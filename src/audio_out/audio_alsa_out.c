@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.60 2002/07/01 11:27:04 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.61 2002/07/01 11:28:29 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -155,7 +155,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_sw_params_t  *swparams;
   snd_pcm_sframes_t     buffer_size;
   snd_pcm_sframes_t     period_size,tmp;
-  int                   err, step;
+  int                   err;
  // int                 open_mode=1; //NONBLOCK
   int                   open_mode=0; //BLOCK
 
@@ -291,7 +291,6 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
-  step = 2;
   period_size = 128;
   do {
     period_size *= 2;
