@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
-#include "strict_scr.h"
+#include "net_buf_ctrl.h"
 
 extern int errno;
 
@@ -71,7 +71,6 @@ extern int errno;
 #endif
 
 #define NET_BS_LEN 2324
-#define PREBUF_SIZE 100000
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -84,9 +83,7 @@ typedef struct {
 
   off_t            curpos;
 
-  int              buffering;
-
-  strictscr_t     *scr;
+  nbc_t           *nbc;
 
 } net_input_plugin_t;
 
@@ -164,9 +161,8 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
   	sscanf(pptr,"%d", &port);
   }
 
-  this->fh = host_connect(filename, port, this->xine);
+  this->fh     = host_connect(filename, port, this->xine);
   this->curpos = 0;
-  this->buffering = 0;
 
   if (this->fh == -1) {
     return 0;
@@ -174,9 +170,7 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   this->mrl = strdup(mrl); /* FIXME: small memory leak */
 
-  /* register our scr plugin */
-
-  this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr);
+  this->nbc = nbc_init (this->xine);
 
   return 1;
 }
@@ -188,48 +182,12 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t len) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n, total;
-  int fifo_fill, video_fill, audio_fill;
-
-  video_fill = this->xine->video_fifo->size(this->xine->video_fifo);
-  
-  if (this->xine->audio_fifo)
-    audio_fill = this->xine->audio_fifo->size(this->xine->audio_fifo);
-  else
-    audio_fill = 0;
-
-  if (audio_fill > video_fill)
-    fifo_fill = audio_fill;
-  else
-    fifo_fill = video_fill;
-
-#ifdef LOG
-  printf ("input_net: fifo_fill: %d, time is %d\n", fifo_fill, 
-	  this->xine->metronom->get_current_time (this->xine->metronom));
-#endif
-
-  if (fifo_fill<LOW_WATER_MARK) {
-    
-    this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
-    this->scr->adjustable = 0;
-    if (!this->buffering) {
-      this->buffering = 1;
-      printf ("input_net: buffering...\n");
-    } else {
-      this->buffering++;
-      if ((this->buffering % 100) == 0)
-	printf ("."); fflush(stdout);
-    }
-
-  } else if ( (fifo_fill>HIGH_WATER_MARK) && (this->buffering)) {
-    this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
-    this->buffering = 0;
-    this->scr->adjustable = 1;
-    printf ("\ninput_net: buffering...done\n");
-  }
 
 #ifdef LOG
   printf ("input_net: reading %d bytes...\n", len);
 #endif
+
+  nbc_check_buffers (this->nbc);
 
   total=0;
   while (total<len){ 
@@ -321,7 +279,10 @@ static void net_plugin_close (input_plugin_t *this_gen) {
   close(this->fh);
   this->fh = -1;
 
-  this->xine->metronom->unregister_scr (this->xine->metronom, &this->scr->scr);
+  if (this->nbc) {
+    nbc_close (this->nbc);
+    this->nbc = NULL;
+  }
 }
 
 /*
@@ -410,9 +371,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrl       = NULL;
   this->config    = config;
   this->curpos    = 0;
-  this->buffering = 0;
-
-  this->scr       = strictscr_init ();
+  this->nbc       = NULL;
   
   return (input_plugin_t *) this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.73 2002/03/23 13:28:35 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.74 2002/03/23 18:56:56 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -223,7 +223,8 @@ static void metronom_resume_clock(metronom_t *this) {
 
 
 static void metronom_adjust_clock(metronom_t *this, int64_t desired_pts) {
-  this->scr_master->adjust(this->scr_master, desired_pts);
+  if (this->scr_adjustable)
+    this->scr_master->adjust(this->scr_master, desired_pts);
 }
 
 static int metronom_set_speed (metronom_t *this, int speed) {
@@ -503,19 +504,36 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   return vpts;
 }
 
-static void metronom_set_av_offset (metronom_t *this, int32_t pts) {
+static void metronom_set_option (metronom_t *this, int option, int64_t value) {
 
   pthread_mutex_lock (&this->lock);
 
-  this->av_offset = pts;
+  switch (option) {
+  case METRONOM_AV_OFFSET:
+    this->av_offset = value;
+    printf ("metronom: av_offset=%lld pts\n", this->av_offset);
+    break;
+  case METRONOM_SCR_ADJUSTABLE:
+    this->scr_adjustable = value;
+    break;
+  default:
+    printf ("metronom: unknown option in set_option: %d\n",
+	    option);
+  }
 
   pthread_mutex_unlock (&this->lock);
-
-  printf ("metronom: av_offset=%d pts\n", pts);
 }
 
-static int32_t metronom_get_av_offset (metronom_t *this) {
-  return this->av_offset;
+static int64_t metronom_get_option (metronom_t *this, int option) {
+  switch (option) {
+  case METRONOM_AV_OFFSET:
+    return this->av_offset;
+  case METRONOM_SCR_ADJUSTABLE:
+    return this->scr_adjustable;
+  }
+  printf ("metronom: unknown option in get_option: %d\n",
+	  option);
+  return 0;
 }
 
 static scr_plugin_t* get_master_scr(metronom_t *this) {
@@ -628,8 +646,8 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   this->got_spu_packet       = metronom_got_spu_packet;
   this->handle_audio_discontinuity = metronom_handle_audio_discontinuity;
   this->handle_video_discontinuity = metronom_handle_video_discontinuity;
-  this->set_av_offset        = metronom_set_av_offset;
-  this->get_av_offset        = metronom_get_av_offset;
+  this->set_option           = metronom_set_option;
+  this->get_option           = metronom_get_option;
   this->start_clock          = metronom_start_clock;
   this->stop_clock           = metronom_stop_clock;
   this->resume_clock         = metronom_resume_clock;
@@ -640,6 +658,7 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   this->set_speed            = metronom_set_speed;
   this->exit                 = metronom_exit;
 
+  this->scr_adjustable = 1;
   this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
   this->register_scr(this, unixscr_init());
 

@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,28 +39,9 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
+#include "net_buf_ctrl.h"
 
 extern int errno;
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 #define BUFSIZE 1024
 
@@ -74,6 +55,8 @@ typedef struct {
   int              fh;
   char            *mrl;
   config_values_t *config;
+
+  nbc_t           *nbc; 
 
   off_t            curpos;
   off_t            contentlength;
@@ -106,7 +89,7 @@ static int http_plugin_host_connect_attempt(struct in_addr ia, int port, xine_t 
   s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (s==-1) {
-    LOG_MSG(xine, _("input_http: failed to open socket\n"));
+    xine_log (xine, XINE_LOG_MSG, _("input_http: failed to open socket\n"));
     return -1;
   }
 
@@ -115,7 +98,7 @@ static int http_plugin_host_connect_attempt(struct in_addr ia, int port, xine_t 
   sin.sin_port   = htons(port);
 	
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
-    LOG_MSG(xine, _("input_http: cannot connect to host\n"));
+    xine_log (xine, XINE_LOG_MSG, _("input_http: cannot connect to host\n"));
     close(s);
     return -1;
   }	
@@ -130,7 +113,7 @@ static int http_plugin_host_connect(const char *host, int port, xine_t *xine) {
 	
   h=gethostbyname(host);
   if (h==NULL) {
-    LOG_MSG(xine, _("input_http: unable to resolve >%s<\n"), host);
+    xine_log (xine, XINE_LOG_MSG, _("input_http: unable to resolve >%s<\n"), host);
     return -1;
   }
 	
@@ -142,7 +125,7 @@ static int http_plugin_host_connect(const char *host, int port, xine_t *xine) {
       return s;
   }
 
-  LOG_MSG(xine, _("http: unable to connect to >%s<\n"), host);
+  xine_log (xine, XINE_LOG_MSG, _("http: unable to connect to >%s<\n"), host);
   return -1;
 }
 
@@ -346,7 +329,9 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
     
     sprintf(buf, "%s\n", buf);
 
-    LOG_MSG(this->xine, buf);
+#ifdef LOG
+    printf (buf);
+#endif
   }
   
   if (proxy != NULL)
@@ -397,8 +382,10 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0 ;
   }
 
+#ifdef LOG
   printf ("input_http: request sent: >%s<\n",
 	  this->buf);
+#endif
 
   /* read and parse reply */
   done = 0; len = 0; linenum = 0;
@@ -414,10 +401,10 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
       
       switch (errno) {
       case EAGAIN:
-	LOG_MSG(this->xine, _("input_http: EAGAIN\n"));
+	xine_log (this->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
 	continue;
       default:
-	LOG_MSG(this->xine, _("input_http: read error\n"));
+	xine_log (this->xine, XINE_LOG_MSG, _("input_http: read error\n"));
 	return 0;
       }
     }
@@ -434,7 +421,9 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
       linenum++;
       
-      LOG_MSG(this->xine, _("input_http: answer: >%s<\n"), this->buf);
+#ifdef LOG
+      printf ("input_http: answer: >%s<\n", this->buf);
+#endif
 
       if (linenum == 1)
       {
@@ -444,17 +433,17 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 	if (sscanf(this->buf, "HTTP/%d.%d %d %[^\015\012]", &httpver, &httpsub,
 		   &httpcode, httpstatus) != 4)
 	{
-      	  LOG_MSG(this->xine, _("input_http: invalid http answer\n"));
+      	  xine_log (this->xine, XINE_LOG_MSG, _("input_http: invalid http answer\n"));
 	  return 0;
 	}
 	
 	if (httpcode >= 300 && httpcode < 400) {
-      	  LOG_MSG(this->xine, _("input_http: 3xx redirection not implemented: >%d %s<\n"),
+      	  xine_log (this->xine, XINE_LOG_MSG, _("input_http: 3xx redirection not implemented: >%d %s<\n"),
 		  httpcode, httpstatus);
 	  return 0;
 	}
 	if (httpcode < 200 || httpcode >= 300) {
-      	  LOG_MSG(this->xine, _("input_http: http status not 2xx: >%d %s<\n"),
+      	  xine_log (this->xine, XINE_LOG_MSG, _("input_http: http status not 2xx: >%d %s<\n"),
 		  httpcode, httpstatus);
 	  return 0;
 	}
@@ -463,14 +452,14 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 	  off_t contentlength;
 	  
 	  if (sscanf(this->buf, "Content-Length: %Ld", &contentlength) == 1) {
-      	    LOG_MSG(this->xine, _("input_http: content length = %Ld bytes\n"), contentlength);
+      	    xine_log (this->xine, XINE_LOG_MSG, _("input_http: content length = %Ld bytes\n"), contentlength);
 	    this->contentlength = contentlength;
 	  }
         }
 	
 	if (!strncasecmp(this->buf, "Location: ", 10))
 	{
-      	  LOG_MSG(this->xine, _("input_http: Location redirection not implemented\n"));
+      	  xine_log (this->xine, XINE_LOG_MSG, _("input_http: Location redirection not implemented\n"));
 	  return 0;
 	}
       }
@@ -483,7 +472,11 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
       len ++;
   }
 
-  LOG_MSG(this->xine, _("input_http: end of headers\n"));
+#ifdef LOG
+  printf ("input_http: end of headers\n");
+#endif
+
+  this->nbc    = nbc_init (this->xine);
 
   return 1;
 }
@@ -492,6 +485,8 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 			       char *buf, off_t nlen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   off_t n, num_bytes;
+
+  nbc_check_buffers (this->nbc);
 
   num_bytes = 0;
 
@@ -503,10 +498,10 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
       
       switch (errno) {
       case EAGAIN:
-	LOG_MSG(this->xine, _("input_http: EAGAIN\n"));
+	xine_log (this->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
 	continue;
       default:
-	LOG_MSG(this->xine, _("input_http: read error\n"));
+	xine_log (this->xine, XINE_LOG_MSG, _("input_http: read error\n"));
 	return 0;
       }
     }
@@ -533,6 +528,8 @@ static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   http_input_plugin_t  *this = (http_input_plugin_t *) this_gen;
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
 
+  nbc_check_buffers (this->nbc);
+
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
   pthread_cleanup_push( pool_release_buffer, buf );
 
@@ -544,7 +541,7 @@ static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buf
     pthread_testcancel();
     num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
     if (num_bytes < 0) {
-      LOG_MSG(this->xine, _("input_http: read error (%s)\n"), strerror (errno));
+      xine_log (this->xine, XINE_LOG_MSG, _("input_http: read error (%s)\n"), strerror (errno));
       buf->free_buffer (buf);
       buf = NULL;
       break;
@@ -593,6 +590,11 @@ static void http_plugin_close (input_plugin_t *this_gen) {
 
   close(this->fh);
   this->fh = -1;
+
+  if (this->nbc) {
+    nbc_close (this->nbc);
+    this->nbc = NULL;
+  }
 }
 
 static void http_plugin_stop (input_plugin_t *this_gen) {
@@ -626,7 +628,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t    *config;
 
   if (iface != 5) {
-    LOG_MSG(xine,
+    xine_log (xine, XINE_LOG_PLUGIN,
 	    _("http input plugin doesn't support plugin API version %d.\n"
 	      "PLUGIN DISABLED.\n"
 	      "This means there's a version mismatch between xine and this input"
@@ -662,6 +664,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->fh      = -1;
   this->config  = config;
   this->curpos  = 0;
+  this->nbc     = NULL;
   
   return (input_plugin_t *) this;
 }

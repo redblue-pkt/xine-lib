@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.21 2002/03/19 20:06:57 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.22 2002/03/23 18:56:55 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,7 +39,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
-#include "strict_scr.h"
+#include "net_buf_ctrl.h"
 
 /*
 #define LOG
@@ -66,11 +66,7 @@ typedef struct {
   off_t            preview_size;
   off_t            preview_pos;
 
-  strictscr_t     *scr; 
-
-  int              buffering;
-  int              low_water_mark;
-  int              high_water_mark;
+  nbc_t           *nbc; 
 
   char             scratch[1025];
 
@@ -129,6 +125,12 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
   }
 
   /*
+   * buffering control
+   */
+
+  this->nbc    = nbc_init (this->xine);
+
+  /*
    * fill preview buffer
    */
 
@@ -136,71 +138,7 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
 					  PREVIEW_SIZE);
   this->preview_pos  = 0;
 
-  /*
-   * buffering control
-   */
-
-  this->curpos          = 0;
-  this->buffering       = 0;
-  this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
-  this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
-
-  /* register our scr plugin */
-  this->scr->scr.start (&this->scr->scr, this->xine->metronom->get_current_time (this->xine->metronom));
-  this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr); 
-
   return 1;
-}
-
-static void check_fifo_buffers (stdin_input_plugin_t *this) {
-
-  int  fifo_fill;
-
-  fifo_fill = this->xine->video_fifo->size(this->xine->video_fifo);
-  if (this->xine->audio_fifo) {
-    fifo_fill += 8*this->xine->audio_fifo->size(this->xine->audio_fifo);
-  }
-
-  if (this->buffering) {
-    xine_log (this->xine, XINE_LOG_MSG, 
-	      "stdin: buffering (%d/%d)...\n", 
-	      fifo_fill, this->high_water_mark);
-  }
-
-  if (fifo_fill<this->low_water_mark) {
-    
-    if (!this->buffering) {
-
-      this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
-      this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, "stdin: buffering...", OSD_TEXT1);
-      this->xine->osd_renderer->show (this->xine->osd, 0);
-
-      /* give video_out time to display osd before pause */
-      sleep (1);
-
-      if (this->high_water_mark<150) {
-
-	/* increase marks to adapt to stream/network needs */
-
-	this->high_water_mark += 10;
-	this->low_water_mark = this->high_water_mark/4;
-      }
-    }
-
-    this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
-    this->xine->audio_out->audio_paused = 2;
-    this->buffering = 1;
-    this->scr->adjustable = 0;
-
-  } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
-    this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
-    this->xine->audio_out->audio_paused = 0;
-    this->buffering = 0;
-    this->scr->adjustable = 1;
-
-    this->xine->osd_renderer->hide (this->xine->osd, 0);
-  }
-
 }
 
 static off_t stdin_plugin_read (input_plugin_t *this_gen, 
@@ -209,7 +147,7 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
   off_t                  num_bytes, total_bytes;
 
-  check_fifo_buffers (this);
+  nbc_check_buffers (this->nbc);
 
   total_bytes = 0;
 
@@ -366,6 +304,11 @@ static char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
 static void stdin_plugin_close(input_plugin_t *this_gen) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
+  if (this->nbc) {
+    nbc_close (this->nbc);
+    this->nbc = NULL;
+  }
+
   close(this->fh);
   this->fh = -1;
 }
@@ -442,11 +385,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrl             = NULL;
   this->config          = config;
   this->curpos          = 0;
-  this->buffering       = 0;
-  this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
-  this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
-  
-  this->scr = strictscr_init (); 
-  
+  this->nbc             = NULL;
+
   return (input_plugin_t *) this;
 }

@@ -30,29 +30,29 @@ xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c read_cache.c
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
-xineplug_inp_net_la_SOURCES = input_net.c strict_scr.c
+xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
 xineplug_inp_net_la_LDFLAGS = -avoid-version -module
 
-xineplug_inp_mms_la_SOURCES = input_mms.c strict_scr.c mms.c asxparser.c
+xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c asxparser.c
 xineplug_inp_mms_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_vcd_la_SOURCES = input_vcd.c
 xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
 
-xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c strict_scr.c
+xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
 xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_rtp_la_SOURCES = input_rtp.c
 xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
 
-xineplug_inp_http_la_SOURCES = input_http.c
+xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
 xineplug_inp_http_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_cda_la_SOURCES = input_cda.c
 xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = dvd_udf.h read_cache.h strict_scr.h mms.h
+noinst_HEADERS = dvd_udf.h read_cache.h net_buf_ctrl.h mms.h
 
 EXTRA_DIST = input_dvd.c dvd_udf.c input_vcd.c read_cache.c
 

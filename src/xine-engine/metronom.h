@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.24 2002/03/23 13:28:36 miguelfreitas Exp $
+ * $Id: metronom.h,v 1.25 2002/03/23 18:56:56 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -144,12 +144,10 @@ struct metronom_s {
   void (*handle_video_discontinuity) (metronom_t *this, int type, int64_t disc_off);
 
   /*
-   * manually correct audio <-> video sync
-   * (this constant value is added to video vpts)  
+   * set/get options for metronom, constants see below
    */
-  void (*set_av_offset) (metronom_t *this, int32_t pts);
-
-  int32_t (*get_av_offset) (metronom_t *this);
+  void (*set_option) (metronom_t *this, int option, int64_t value);
+  int64_t (*get_option) (metronom_t *this, int option);
 
   /*
    * system clock reference (SCR) functions
@@ -227,6 +225,7 @@ struct metronom_s {
   scr_plugin_t*   scr_master;
   scr_plugin_t**  scr_list;
   pthread_t       sync_thread;
+  int             scr_adjustable;
 
   pthread_mutex_t lock;
 
@@ -240,6 +239,13 @@ struct metronom_s {
 };
 
 metronom_t *metronom_init (int have_audio, void *xine);
+
+/*
+ * metronom options
+ */
+
+#define METRONOM_SCR_ADJUSTABLE 1
+#define METRONOM_AV_OFFSET      2
 
 /*
  * SCR (system clock reference) plugins

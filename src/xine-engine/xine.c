@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.111 2002/03/18 19:34:17 guenter Exp $
+ * $Id: xine.c,v 1.112 2002/03/23 18:56:56 guenter Exp $
  *
  * top-level xine functions
  *
@@ -664,11 +664,11 @@ int xine_check_version(int major, int minor, int sub) {
  */
 
 void xine_set_av_offset (xine_t *this, int offset_pts) {
-  this->metronom->set_av_offset (this->metronom, offset_pts);
+  this->metronom->set_option (this->metronom, METRONOM_AV_OFFSET, offset_pts);
 }
 
 int xine_get_av_offset (xine_t *this) {
-  return this->metronom->get_av_offset (this->metronom);
+  return this->metronom->get_option (this->metronom, METRONOM_AV_OFFSET);
 }
 
 /*
