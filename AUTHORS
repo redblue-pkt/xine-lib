@@ -513,5 +513,8 @@ Frank van Viegen <frank@vanviegen.net>
 
 Sylvain Colinet <scolinet@gmail.com>
   mpl2 subtitle support
+
+Barry Scott <barry.scott@onelan.co.uk>
+  fix V4l source selection code by MRL
       
 (let us know if we've forgotten anyone)

@@ -626,6 +626,8 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
   int  ret = 0;
   int  fd  = 0;
 
+  lprintf("input_source: %s\n", input_source);
+  
   this->input = 0;
   
   if (this->video_fd > 0)
@@ -634,18 +636,10 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
     fd = this->radio_fd;
   
   /* Tune into channel */
-  ret = ioctl(fd, VIDIOCGCHAN, &this->video_channel);
-  lprintf("(%d) V4L device currently set to:\n", ret);
-  lprintf("Channel: %d\n", this->video_channel.channel);
-  lprintf("Name:    %s\n", this->video_channel.name);
-  lprintf("Tuners:  %d\n", this->video_channel.tuners);
-  lprintf("Flags:   %d\n", this->video_channel.flags);
-  lprintf("Type:    %d\n", this->video_channel.type);
-  lprintf("Norm:    %d\n", this->video_channel.norm);
-  
   if (strlen(input_source) > 0) {
-    while (strstr(this->video_channel.name, input_source) == NULL &&
-	   ioctl(fd, VIDIOCGCHAN, &this->video_channel) == 0) {
+    for( this->video_channel.channel = 0;
+         ioctl(fd, VIDIOCGCHAN, &this->video_channel) == 0;
+         this->video_channel.channel++ ) {
       
       lprintf("V4L device currently set to:\n");
       lprintf("Channel: %d\n", this->video_channel.channel);
@@ -654,7 +648,11 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
       lprintf("Flags:   %d\n", this->video_channel.flags);
       lprintf("Type:    %d\n", this->video_channel.type);
       lprintf("Norm:    %d\n", this->video_channel.norm);
-      this->video_channel.channel = ++this->input;
+
+      if (strstr(this->video_channel.name, input_source) != NULL) {
+        this->input = this->video_channel.channel;
+        break;
+      }
     }
     
     if (strstr(this->video_channel.name, input_source) == NULL) {
