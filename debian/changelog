@@ -1,3 +1,13 @@
+xine-lib (1-beta1-1) unstable; urgency=low
+
+  * new upstream release.
+    This is actually uploaded to unstable again, so let's check bugs:
+  * doesn't segfault with any of my VCDs (closes: #173424)
+  * supports WMV8 codecs (binary DLL only) (closes: #163363)
+  * should build with dxr3 support (closes: #117170)
+  
+ -- Siggi Langauf <siggi@debian.org>  Tue, 24 Dec 2002 18:07:17 +0100
+
 xine-lib (1-beta0-1) unstable; urgency=low
 
   * new upstream release (now labelled beta)
