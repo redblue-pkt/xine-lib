@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.79 2002/09/16 15:09:36 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.80 2002/10/10 13:12:17 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,7 +59,12 @@
 #include "compat.h"
 #include "audio_out.h"
 
+
 #define ALSA_LOG
+/*
+#define LOG_DEBUG
+*/
+
 #define AO_OUT_ALSA_IFACE_VERSION 4
 
 #define BUFFER_TIME               1000*1000
@@ -87,6 +92,7 @@ typedef struct alsa_driver_s {
   uint32_t      bits_per_sample;
   uint32_t      bytes_per_frame;
   uint32_t      bytes_in_buffer;      /* number of bytes writen to audio hardware   */
+  snd_pcm_sframes_t  buffer_size;
 
   struct {
     pthread_t          thread;
@@ -170,7 +176,7 @@ static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate
 
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
-  err = snd_output_stdio_attach(&jcd_out, stderr, 0);
+  err = snd_output_stdio_attach(&jcd_out, stdout, 0);
 
   switch (mode) {
   case AO_CAP_MODE_MONO:
@@ -263,7 +269,8 @@ static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate
     return 0;
   }
   /* We wanted non blocking open but now put it back to normal */
-  snd_pcm_nonblock(this->audio_fd, 0);
+  //snd_pcm_nonblock(this->audio_fd, 0);
+  snd_pcm_nonblock(this->audio_fd, 1);
   /*
    * configure audio device
    */
@@ -316,10 +323,10 @@ static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
-  buffer_size = snd_pcm_hw_params_get_buffer_size(params);
+  this->buffer_size = buffer_size = snd_pcm_hw_params_get_buffer_size(params);
   /* set the period time [us] (interrupt every x us|y samples ...) */
   dir=0;
-  err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, buffer_size/2, &dir);
+  err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, buffer_size/8, &dir);
   /*err = snd_pcm_hw_params_set_period_time_near(this->audio_fd, params, PERIOD_TIME, &dir); */
   if (err < 0) {
     printf ("audio_alsa_out: period time not available");
@@ -331,15 +338,16 @@ static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate
     goto __close;
   }
   
-  /* Check for pause/resume support */
-  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
-			    && snd_pcm_hw_params_can_resume (params) );
   /* write the parameters to device */
   err = snd_pcm_hw_params(this->audio_fd, params);
   if (err < 0) {
     printf ("audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
     goto __close;
   }
+  /* Check for pause/resume support */
+  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
+			    && snd_pcm_hw_params_can_resume (params) );
+  printf ("audio_alsa_out:open pause_resume=%d\n", this->has_pause_resume);
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
   this->bytes_per_frame = snd_pcm_frames_to_bytes (this->audio_fd, 1);
   /*
@@ -367,6 +375,13 @@ static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate
   err = snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
   if (err < 0) {
     printf ("audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror(err));
+    goto __close;
+  }
+
+  /* never stop the transfer, even on xruns */
+  err = snd_pcm_sw_params_set_stop_threshold(this->audio_fd, swparams, buffer_size);
+  if (err < 0) {
+    printf ("audio_alsa_out: Unable to set stop threshold: %s\n", snd_strerror(err));
     goto __close;
   }
 
@@ -416,41 +431,51 @@ static int ao_alsa_get_gap_tolerance (xine_ao_driver_t *this_gen)
 /*
  * Return the delay. is frames measured by looking at pending samples
  */
+/* FIXME: delay returns invalid data if status is not RUNNING. 
+ * e.g When there is an XRUN or we are in PREPARED mode.
+ */
 static int ao_alsa_delay (xine_ao_driver_t *this_gen) 
 {
-  snd_pcm_status_t  *pcm_stat;
-  snd_pcm_sframes_t delay;
-
+  snd_pcm_state_t    state;
+  snd_pcm_sframes_t delay = 0;
+  int err = 0;
+  snd_timestamp_t tstamp;
+  struct timeval now;
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
-  snd_pcm_status_alloca(&pcm_stat);
-  snd_pcm_status(this->audio_fd, pcm_stat);
-  /* Dump ALSA info to stderr */
-  /* snd_pcm_status_dump(pcm_stat, jcd_out);  */
-  delay=snd_pcm_status_get_delay( pcm_stat );
-  /* printf("audio_alsa_out:delay:delay=%ld\n",delay); */
-  if (delay < 0) delay = 0;
+#ifdef LOG_DEBUG
+  printf("audio_alsa_out:delay:ENTERED\n");
+#endif
+  err=snd_pcm_delay( this->audio_fd, &delay );
+#ifdef LOG_DEBUG
+  printf("audio_alsa_out:delay:delay all=%ld err=%d\n",delay, err);
+  gettimeofday(&now, 0);
+  printf("audio_alsa_out:delay: Time = %ld.%ld\n", now.tv_sec, now.tv_usec);
+  printf("audio_alsa_out:delay:FINISHED\n");
+#endif
   return delay;
-}
 
+}
 /*
  * Handle over/under-run
  */
 static void xrun(alsa_driver_t *this) 
 {
-  snd_pcm_status_t *status;
+  //snd_pcm_status_t *status;
   int res;
 
-  snd_pcm_status_alloca(&status);
-  if ((res = snd_pcm_status(this->audio_fd, status))<0) {
-    printf ("audio_alsa_out: status error: %s\n", snd_strerror(res));
-    return;
-  }
-  if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
-    struct timeval now, diff, tstamp;
-    gettimeofday(&now, 0);
-    snd_pcm_status_get_trigger_tstamp(status, &tstamp);
-    timersub(&now, &tstamp, &diff);
-    printf ("audio_alsa_out: xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+  //snd_pcm_status_alloca(&status);
+  //if ((res = snd_pcm_status(this->audio_fd, status))<0) {
+  //  printf ("audio_alsa_out: status error: %s\n", snd_strerror(res));
+  //  return;
+  //}
+  //snd_pcm_status_dump(status, jcd_out);
+  if (snd_pcm_state(this->audio_fd) == SND_PCM_STATE_XRUN) {
+    //struct timeval now, diff, tstamp;
+    //gettimeofday(&now, 0);
+    //snd_pcm_status_get_trigger_tstamp(status, &tstamp);
+    //timersub(&now, &tstamp, &diff);
+    //printf ("audio_alsa_out: xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+    printf ("audio_alsa_out: XRUN!!!\n");
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
       printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
       return;
@@ -460,29 +485,94 @@ static void xrun(alsa_driver_t *this)
 }
 
 /*
- * Write audio data to output buffer (blocking)
+ * Write audio data to output buffer (blocking using snd_pcm_wait)
  */
 static int ao_alsa_write(xine_ao_driver_t *this_gen,int16_t *data, uint32_t count)
 {
   snd_pcm_sframes_t result;
+  snd_pcm_status_t *pcm_stat;
+  snd_pcm_state_t    state;
+  struct timeval now;
+  int wait_result;
+  int res;
   uint8_t *buffer=(uint8_t *)data;
   snd_pcm_uframes_t number_of_frames = (snd_pcm_uframes_t) count;
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
-  	
+
+#ifdef LOG_DEBUG
+  printf("audio_alsa_out:write:ENTERED\n");
+  gettimeofday(&now, 0);
+  printf("audio_alsa_out:write: Time = %ld.%ld\n", now.tv_sec, now.tv_usec);
+  printf("audio_alsa_out:write:count=%u\n",count);
+#endif
+  snd_pcm_status_alloca(&pcm_stat);
+  state = snd_pcm_state(this->audio_fd);
+  if (state == SND_PCM_STATE_XRUN) {
+#ifdef LOG_DEBUG
+    printf("audio_alsa_out:write:XRUN before\n");
+    snd_pcm_status(this->audio_fd, pcm_stat);
+    snd_pcm_status_dump(pcm_stat, jcd_out); 
+#endif
+    if ((res = snd_pcm_prepare(this->audio_fd))<0) {
+      printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+      assert(0);
+    }
+    state = snd_pcm_state(this->audio_fd);
+#ifdef LOG_DEBUG
+    printf("audio_alsa_out:write:XRUN after\n");
+#endif
+  } 
+  if ( (state != SND_PCM_STATE_PREPARED) &&
+       (state != SND_PCM_STATE_RUNNING) &&
+       (state != SND_PCM_STATE_DRAINING) ) {
+         printf("audio_alsa_out:write:BAD STATE, state = %d\n",state);
+  }
+        
   while( number_of_frames > 0) {
+    if ( (state == SND_PCM_STATE_RUNNING) ) {
+#ifdef LOG_DEBUG
+      printf("audio_alsa_out:write:loop:waiting for Godot\n");
+#endif
+      wait_result = snd_pcm_wait(this->audio_fd, 1000000);
+#ifdef LOG_DEBUG
+      printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
+#endif
+    }
     result = snd_pcm_writei(this->audio_fd, buffer, number_of_frames);
-    /* printf("audio_alsa_out:write:result=%ld\n",result); */
-    if (result == -EAGAIN || (result >=0 && result < number_of_frames)) {
-      /* printf("audio_alsa_out:write:result=%ld\n",result); */
-      snd_pcm_wait(this->audio_fd, 1000);
-    } else if (result == -EPIPE) {
-      xrun(this);
+    if (result < 0) {
+#ifdef LOG_DEBUG
+      printf("audio_alsa_out:write:result=%ld:%s\n",result, snd_strerror(result));
+#endif
+      state = snd_pcm_state(this->audio_fd);
+      if ( (state != SND_PCM_STATE_PREPARED) &&
+           (state != SND_PCM_STATE_RUNNING) &&
+           (state != SND_PCM_STATE_DRAINING) ) {
+        printf("audio_alsa_out:write:BAD STATE2, state = %d, going to try XRUN\n",state);
+        if ((res = snd_pcm_prepare(this->audio_fd))<0) {
+          printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+          assert(0);
+        }
+      }
     }
     if (result > 0) {
       number_of_frames -= result;
       buffer += result * this->bytes_per_frame;
     }
   }
+  if ( (state == SND_PCM_STATE_RUNNING) ) {
+#ifdef LOG_DEBUG
+    printf("audio_alsa_out:write:loop:waiting for Godot2\n");
+#endif
+    wait_result = snd_pcm_wait(this->audio_fd, 1000000);
+#ifdef LOG_DEBUG
+    printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
+#endif
+  }
+#ifdef LOG_DEBUG
+  gettimeofday(&now, 0);
+  printf("audio_alsa_out:write: Time = %ld.%ld\n", now.tv_sec, now.tv_usec);
+  printf("audio_alsa_out:write:FINISHED\n");
+#endif
   return 1; /* audio samples were processed ok */
 }
 

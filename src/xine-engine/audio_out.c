@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.66 2002/09/19 01:59:50 guenter Exp $
+ * $Id: audio_out.c,v 1.67 2002/10/10 13:12:18 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -284,120 +284,10 @@ static int mode_channels( int mode ) {
   return 0;
 } 
 
-static void *ao_loop (void *this_gen) {
-
-  ao_instance_t  *this = (ao_instance_t *) this_gen;
-  int64_t         hw_vpts;
-  audio_buffer_t *buf, *in_buf;
-  int64_t         gap;
-  int64_t         delay;
-  int64_t         cur_time;
-  int             num_output_frames ;
-  int             paused_wait;
-  int64_t         last_sync_time;
-  int             bufs_since_sync;
+static audio_buffer_t* prepare_samples( ao_instance_t  *this, audio_buffer_t *buf) {
   double          acc_output_frames, output_frame_excess = 0;
+  int             num_output_frames ;
 
-  last_sync_time = bufs_since_sync = 0;
-  
-  while ((this->audio_loop_running) ||
-	 (!this->audio_loop_running && this->out_fifo->first)) {
-
-    in_buf = buf = fifo_remove (this->out_fifo);
-    bufs_since_sync++;
-
-#ifdef LOG
-    printf ("audio_out: got a buffer\n");
-#endif
-
-    do {
-      pthread_mutex_lock( &this->driver_lock );
-      delay = this->driver->delay(this->driver);
-      pthread_mutex_unlock( &this->driver_lock );
-
-      /*
-       * where, in the timeline is the "end" of the 
-       * hardware audio buffer at the moment?
-       */
-    
-      cur_time = this->metronom->get_current_time (this->metronom);
-      hw_vpts = cur_time;
-  
-#ifdef LOG
-      printf ("audio_out: current delay is %lld, current time is %lld\n",
-	      delay, cur_time);
-#endif
-
-      /* External A52 decoder delay correction */
-      if ((this->output.mode==AO_CAP_MODE_A52) || (this->output.mode==AO_CAP_MODE_AC5)) 
-        delay += this->passthrough_offset;
-  
-      hw_vpts += delay * 1024 / this->frames_per_kpts;
-  
-      /*
-       * calculate gap:
-       */
-    
-      gap = buf->vpts - hw_vpts;
-
-      /* wait until user unpauses stream
-         audio_paused == 1 means we are playing at a different speed
-         them we must process buffers otherwise the entire engine will stop.
-      */
-      paused_wait = (this->audio_paused == 2) ||
-        (this->audio_paused && gap > this->gap_tolerance);
-      
-      if ( paused_wait ) {
-        this->metronom->allow_full_ao_fill_gap = 1;
-        xine_usec_sleep (50000);
-      }
-    } while ( paused_wait );
-
-#ifdef LOG
-    printf ("audio_out: hw_vpts : %lld   buffer_vpts : %lld   gap : %lld\n",
-	    hw_vpts, buf->vpts, gap);
-#endif
-
-    /*
-     * output audio data synced to master clock
-     */
-    pthread_mutex_lock( &this->driver_lock );
-    
-    if (gap < (-1 * AO_MAX_GAP) || !buf->num_frames || 
-        this->audio_paused ) {
-
-      /* drop package */
-
-#ifdef LOG
-      printf ("audio_out: audio package (vpts = %lld, gap = %lld) dropped\n", 
-	      buf->vpts, gap);
-#endif
-
-    } else {
-      
-      /* for small gaps ( tolerance < abs(gap) < AO_MAX_GAP ) 
-       * feedback them into metronom's vpts_offset. 
-       */
-      if ( abs(gap) < AO_MAX_GAP && abs(gap) > this->gap_tolerance &&
-           cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
-           bufs_since_sync >= SYNC_BUF_INTERVAL ) {
-           
-        this->metronom->set_option(this->metronom, METRONOM_ADJ_VPTS_OFFSET,
-                                   -gap/SYNC_GAP_RATE );
-        last_sync_time = cur_time;
-        bufs_since_sync = 0;
-      }
-      
-      /* for big gaps output silence */
-      if ( gap > AO_MAX_GAP ) {
-        if (this->metronom->allow_full_ao_fill_gap) {
-          ao_fill_gap (this, gap);
-          this->metronom->allow_full_ao_fill_gap = 0;
-        } else {
-          ao_fill_gap (this, gap / 2);
-        }
-      }
-  
       /*
        * resample and output audio data
        */
@@ -423,7 +313,7 @@ static void *ao_loop (void *this_gen) {
         ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
                            buf->num_frames );
         audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
-                                 mode_channels(this->input.mode) * buf->num_frames );
+                                   mode_channels(this->input.mode) * buf->num_frames );
         buf = swap_frame_buffers(this);
       }
 
@@ -467,7 +357,7 @@ static void *ao_loop (void *this_gen) {
             break;
         }
       }
-      
+    
       /* mode conversion */
       if ( this->input.mode != this->output.mode ) {
         switch (this->input.mode) {
@@ -498,7 +388,7 @@ static void *ao_loop (void *this_gen) {
             break;
         }
       }
-      
+
       /* convert back to 8 bits after resampling */
       if( this->output.bits == 8 && (this->do_resample || 
           this->input.mode != this->output.mode) ) {
@@ -508,17 +398,166 @@ static void *ao_loop (void *this_gen) {
                                  mode_channels(this->output.mode) * buf->num_frames );
         buf = swap_frame_buffers(this);
       }
-      
-      this->driver->write (this->driver, buf->mem, buf->num_frames );
+return buf;
+}
+
+
+/* Audio output loop: -
+ * 1) Check for pause. 
+ * 2) Make sure audio hardware is in RUNNING state.
+ * 3) Get delay
+ * 4) Do drop, 0-fill or output samples.
+ * 5) Go round loop again.
+ */
+static void *ao_loop (void *this_gen) {
+
+  ao_instance_t  *this = (ao_instance_t *) this_gen;
+  int64_t         hw_vpts;
+  audio_buffer_t *buf, *in_buf, *out_buf;
+  int64_t         gap;
+  int64_t         delay;
+  int64_t         cur_time;
+  int             num_output_frames ;
+  int             paused_wait;
+  int64_t         last_sync_time;
+  int             bufs_since_sync;
+  double          acc_output_frames, output_frame_excess = 0;
+
+  last_sync_time = bufs_since_sync = 0;
+#ifdef LOG
+  printf ("audio_out:loop: next fifo\n");
+#endif
+  in_buf = buf = fifo_remove (this->out_fifo);
+  bufs_since_sync++;
+#ifdef LOG
+    printf ("audio_out: got a buffer\n");
+#endif
+  
+  while ((this->audio_loop_running) ||
+	 (!this->audio_loop_running && this->out_fifo->first)) {
+
+    /* wait until user unpauses stream
+       audio_paused == 1 means we are playing at a different speed
+       them we must process buffers otherwise the entire engine will stop.
+    */
+    
+    while ( this->audio_paused )  {
+      switch (this->audio_paused) {
+      case 1:
+        { 
+        cur_time = this->metronom->get_current_time (this->metronom);
+        if (buf->vpts < cur_time ) {
+#ifdef LOG
+          printf ("audio_out:loop: next fifo\n");
+#endif
+          fifo_append (this->free_fifo, in_buf);
+          in_buf = buf = fifo_remove (this->out_fifo);
+          bufs_since_sync++;
+        }
+        /* We want it to fall through to case 2: */
+        }
+      case 2:
+        {
+        this->metronom->allow_full_ao_fill_gap = 1;
+        printf ("audio_out:loop:pause: I feel sleepy.\n");
+        xine_usec_sleep (10000);
+        printf ("audio_out:loop:pause: I wake up.\n");
+        break;
+        }
+      }
     }
-    pthread_mutex_unlock( &this->driver_lock );
+    /* pthread_mutex_lock( &this->driver_lock ); What is this lock for ? */
+    delay = this->driver->delay(this->driver);
+    while (delay <=0) {
+      /* Get the audio card into RUNNING state. */
+      ao_fill_gap (this, 10000); /* FIXME, this PTS of 1000 should == period size */
+      delay = this->driver->delay(this->driver);
+    }
+    /* pthread_mutex_unlock( &this->driver_lock ); */
+    /*
+     * where, in the timeline is the "end" of the 
+     * hardware audio buffer at the moment?
+     */
 
-    fifo_append (this->free_fifo, in_buf);
+    cur_time = this->metronom->get_current_time (this->metronom);
+    hw_vpts = cur_time;
+  
+#ifdef LOG
+    printf ("audio_out: current delay is %lld, current time is %lld\n",
+	      delay, cur_time);
+#endif
+    /* External A52 decoder delay correction */
+    if ((this->output.mode==AO_CAP_MODE_A52) || (this->output.mode==AO_CAP_MODE_AC5)) 
+      delay += this->passthrough_offset;
 
+    hw_vpts += delay * 1024 / this->frames_per_kpts;
+  
+    /*
+     * calculate gap:
+     */
+    gap = buf->vpts - hw_vpts;
+#ifdef LOG
+    printf ("audio_out: hw_vpts : %lld   buffer_vpts : %lld   gap : %lld\n",
+	    hw_vpts, buf->vpts, gap);
+#endif
+
+    /*
+     * output audio data synced to master clock
+     */
+    /* pthread_mutex_lock( &this->driver_lock ); */
+    
+    if (gap < (-1 * AO_MAX_GAP) || !buf->num_frames ) {
+
+      /* drop package */
+#ifdef LOG
+      printf ("audio_out:loop: next fifo\n");
+#endif
+      fifo_append (this->free_fifo, in_buf);
+      in_buf = buf = fifo_remove (this->out_fifo);
+      bufs_since_sync++;
+
+#ifdef LOG
+      printf ("audio_out: audio package (vpts = %lld, gap = %lld) dropped\n", 
+	      buf->vpts, gap);
+#endif
+
+      
+      /* for small gaps ( tolerance < abs(gap) < AO_MAX_GAP ) 
+       * feedback them into metronom's vpts_offset. 
+       */
+    } else if ( abs(gap) < AO_MAX_GAP && abs(gap) > this->gap_tolerance &&
+           cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
+           bufs_since_sync >= SYNC_BUF_INTERVAL ) {
+           
+        printf ("audio_out: audio_loop: ADJ_VPTS\n"); 
+        this->metronom->set_option(this->metronom, METRONOM_ADJ_VPTS_OFFSET,
+                                   -gap/SYNC_GAP_RATE );
+        last_sync_time = cur_time;
+        bufs_since_sync = 0;
+
+    } else if ( gap > AO_MAX_GAP ) {
+      /* for big gaps output silence */
+      if (this->metronom->allow_full_ao_fill_gap) {
+        ao_fill_gap (this, gap);
+        this->metronom->allow_full_ao_fill_gap = 0;
+      } else {
+        ao_fill_gap (this, gap / 2);
+      }
+    } else {
+      out_buf = prepare_samples(this, buf);
+
+      this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
+#ifdef LOG
+      printf ("audio_out:loop: next fifo\n");
+#endif
+      fifo_append (this->free_fifo, in_buf);
+      in_buf = buf = fifo_remove (this->out_fifo);
+      bufs_since_sync++;
+
+    }
+    /* pthread_mutex_unlock( &this->driver_lock ); */
   }
-
   pthread_exit(NULL);
-
   return NULL;
 }
 
@@ -667,7 +706,7 @@ static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
 						 buf->num_frames);
 
 #ifdef LOG
-  printf ("audio_out: got buffer, pts=%lld, vpts=%lld\n",
+  printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld\n",
 	  pts, buf->vpts);
 #endif
 
