@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: greedy2frame_template.c,v 1.1 2003/06/22 17:30:03 miguelfreitas Exp $
+// $Id: greedy2frame_template.c,v 1.2 2004/01/02 20:47:03 miguelfreitas Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 // port copyright (c) 2003 Miguel Freitas
@@ -19,6 +19,9 @@
 // CVS Log
 //
 // $Log: greedy2frame_template.c,v $
+// Revision 1.2  2004/01/02 20:47:03  miguelfreitas
+// my small contribution to the cygwin port ;-)
+//
 // Revision 1.1  2003/06/22 17:30:03  miguelfreitas
 // use our own port of greedy2frame (tvtime port is currently broken)
 //
@@ -61,11 +64,19 @@
 
 #if !defined(MASKS_DEFINED)
 #define MASKS_DEFINED
-  static const int64_t YMask    = 0x00ff00ff00ff00ff;
-  static const int64_t Mask = 0x7f7f7f7f7f7f7f7f;
-  static const int64_t DwordOne = 0x0000000100000001;    
-  static const int64_t DwordTwo = 0x0000000200000002;    
+  static const int64_t YMask    = 0x00ff00ff00ff00ffll;
+  static const int64_t Mask = 0x7f7f7f7f7f7f7f7fll;
+  static const int64_t DwordOne = 0x0000000100000001ll;    
+  static const int64_t DwordTwo = 0x0000000200000002ll;    
   static int64_t qwGreedyTwoFrameThreshold;
+#endif
+
+#if !defined(MANGLE)
+  #if defined(__CYGWIN__)
+  #define MANGLE(a) "_" #a
+  #else
+  #define MANGLE(a) #a
+  #endif
 #endif
 
 #if defined(IS_SSE)
@@ -140,7 +151,7 @@ static void DeinterlaceGreedy2Frame_MMX(uint8_t *output, int outstride,
             // See above for a description of the algorithm.
 
             ".align 8 \n\t"
-            "movq Mask, %%mm6			\n\t"
+            "movq "MANGLE(Mask)", %%mm6			\n\t"
 
             "movq %0, %%mm1			\n\t"     // T1
             "movq %1, %%mm0			\n\t"     // M1
@@ -204,10 +215,10 @@ static void DeinterlaceGreedy2Frame_MMX(uint8_t *output, int outstride,
 #endif
 
             // if |M1-M0| > Threshold we want dword worth of twos
-            "pcmpgtb qwGreedyTwoFrameThreshold, %%mm4			\n\t"
-            "pand    Mask, %%mm4			\n\t"               // get rid of any sign bit
-            "pcmpgtd DwordOne, %%mm4			\n\t"           // do we want to bob
-            "pandn   DwordTwo, %%mm4			\n\t"
+            "pcmpgtb "MANGLE(qwGreedyTwoFrameThreshold)", %%mm4			\n\t"
+            "pand    "MANGLE(Mask)", %%mm4			\n\t"               // get rid of any sign bit
+            "pcmpgtd "MANGLE(DwordOne)", %%mm4			\n\t"           // do we want to bob
+            "pandn   "MANGLE(DwordTwo)", %%mm4			\n\t"
 
             "movq    %1, %%mm2			\n\t"     // mm2 = T0
 
@@ -220,11 +231,11 @@ static void DeinterlaceGreedy2Frame_MMX(uint8_t *output, int outstride,
             "pand    %%mm6, %%mm5			\n\t"
 
             // if |T1-T0| > Threshold we want dword worth of ones
-            "pcmpgtb qwGreedyTwoFrameThreshold, %%mm5			\n\t"
+            "pcmpgtb "MANGLE(qwGreedyTwoFrameThreshold)", %%mm5			\n\t"
             "pand    %%mm6, %%mm5			\n\t"                // get rid of any sign bit
 
-            "pcmpgtd DwordOne, %%mm5			\n\t"           
-            "pandn   DwordOne, %%mm5			\n\t"
+            "pcmpgtd "MANGLE(DwordOne)", %%mm5			\n\t"           
+            "pandn   "MANGLE(DwordOne)", %%mm5			\n\t"
             "paddd   %%mm5, %%mm4			\n\t"
 
             "movq    %2, %%mm2			\n\t"     // B0
@@ -238,13 +249,13 @@ static void DeinterlaceGreedy2Frame_MMX(uint8_t *output, int outstride,
             "pand    %%mm6, %%mm5			\n\t"
 
             // if |B1-B0| > Threshold we want dword worth of ones
-            "pcmpgtb qwGreedyTwoFrameThreshold, %%mm5			\n\t"
+            "pcmpgtb "MANGLE(qwGreedyTwoFrameThreshold)", %%mm5			\n\t"
             "pand    %%mm6, %%mm5			\n\t"                // get rid of any sign bit
-            "pcmpgtd DwordOne, %%mm5			\n\t"
-            "pandn   DwordOne, %%mm5			\n\t"
+            "pcmpgtd "MANGLE(DwordOne)", %%mm5			\n\t"
+            "pandn   "MANGLE(DwordOne)", %%mm5			\n\t"
             "paddd   %%mm5, %%mm4			\n\t"
 
-            "pcmpgtd DwordTwo, %%mm4			\n\t"
+            "pcmpgtd "MANGLE(DwordTwo)", %%mm4			\n\t"
 
 // debugging feature
 // output the value of mm4 at this point which is pink where we will weave
