@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.10 2002/11/23 11:08:12 mroi Exp $
+ * $Id: vm.c,v 1.11 2003/01/13 13:53:33 mroi Exp $
  *
  */
 
@@ -378,7 +378,7 @@ int vm_position_get(vm_t *vm, vm_position_t *position) {
   if (((vm->state).pgc->cell_playback[(vm->state).cellN - 1].last_sector ==
        (vm->state).pgc->cell_playback[(vm->state).cellN - 1].last_vobu_start_sector) &&
       ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].last_sector -
-       (vm->state).pgc->cell_playback[(vm->state).cellN - 1].first_sector < 200)) {
+       (vm->state).pgc->cell_playback[(vm->state).cellN - 1].first_sector < 250)) {
     int time;
     time  = ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.hour   & 0xf0) * 36000;
     time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.hour   & 0x0f) * 3600;
@@ -456,8 +456,7 @@ int vm_eval_cmd(vm_t *vm, vm_cmd_t *cmd)
 #ifdef TRACE
     fprintf(MSG_OUT, "libdvdnav: vm_eval_cmd: blockN set to 0x%x\n", (vm->state).blockN);
 #endif
-    assert( (vm->state).blockN == 0 );
-    return 1; /*  Something changed, Jump */
+    return link_values.data2; /* return if there acutally was a jump */
   } else {
     return 0; /*  It updated some state thats all... */
   }
@@ -514,21 +513,35 @@ int vm_go_up(vm_t *vm)
 
 int vm_next_pg(vm_t *vm)
 {
-  /*  Do we need to get a updated pgN value first? */
-  (vm->state).pgN += 1; 
-  return vm_top_pg(vm);
+  if((vm->state).pgN >= (vm->state).pgc->nr_of_programs) {
+    /* last program -> move to first program of next PGC */
+    if ((vm->state).pgc->next_pgc_nr != 0 && set_PGC(vm, (vm->state).pgc->next_pgc_nr) == 0) {
+      vm_jump_prog(vm, 1);
+      return 1;
+    }
+    /* something failed, try to move to the cell after the last */
+    (vm->state).cellN = (vm->state).pgc->nr_of_cells;
+    vm_get_next_cell(vm);
+    return 1;
+  } else {
+    vm_jump_prog(vm, (vm->state).pgN + 1);
+    return 1;
+  }
 }
 
 int vm_prev_pg(vm_t *vm)
 {
-  /*  Do we need to get a updated pgN value first? */
-  (vm->state).pgN -= 1;
-  if((vm->state).pgN == 0) {
-    /*  Check for previous PGCN ?  */
-    (vm->state).pgN = 1;
-    /*  return 0; */
+  if ((vm->state).pgN <= 1) {
+    /* first program -> move to last program of previous PGC */
+    if ((vm->state).pgc->prev_pgc_nr != 0 && set_PGC(vm, (vm->state).pgc->prev_pgc_nr) == 0) {
+      vm_jump_prog(vm, (vm->state).pgc->nr_of_programs);
+      return 1;
+    }
+    return 0;
+  } else {
+    vm_jump_prog(vm, (vm->state).pgN - 1);
+    return 1;
   }
-  return vm_top_pg(vm);
 }
 
 /* Get the current title and part from the current playing position. */
@@ -1374,12 +1387,14 @@ static link_t process_command(vm_t *vm, link_t link_values)
     
     switch(link_values.command) {
     case LinkNoLink:
-      /* No Link */
+      /* No Link => PlayThis */
       /* BUTTON number:data1 */
       if(link_values.data1 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
-      fprintf(MSG_OUT, "libdvdnav: FIXME: in trouble...LinkNoLink - CRASHING!!!\n");
-      assert(0);
+      link_values.command = PlayThis;
+      link_values.data1   = (vm->state).blockN;
+      link_values.data2   = 0;  /* no actual jump */
+      return link_values;
       
     case LinkTopC:
       /* Restart playing from the beginning of the current Cell. */
@@ -1707,6 +1722,7 @@ static link_t process_command(vm_t *vm, link_t link_values)
 #endif
     
   }
+  link_values.data2 = 1; /* there was actually a jump */
   vm->badness_counter--;
   return link_values;
 }
@@ -2029,6 +2045,14 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.11  2003/01/13 13:53:33  mroi
+ * sync to latest cvs of libdvdnav
+ * * small fix for "Spy Game" RC2
+ * * implement LinkNoLink (Disney's "Beauty and the Beast" RC2 deluxe uses it,
+ *   but the interactive game still does not work)
+ * * slightly improved logic of program jumps -> chapter skipping should work
+ *   correctly in more (if not all) cases now
+ *
  * Revision 1.10  2002/11/23 11:08:12  mroi
  * sync to latest libdvdnav cvs:
  * * "Back to the Future" German RC2 fix
