@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.17 2002/12/06 01:33:01 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.18 2002/12/13 00:20:11 miguelfreitas Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -449,8 +449,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   XWindowAttributes     window_attributes;
 #endif
 
-  printf ("video_out_sdl: open_plugin\n");
-
   this = malloc (sizeof (sdl_driver_t));
 
   if (!this) {
@@ -470,16 +468,13 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->screen            = visual->screen;
   this->drawable          = visual->d;
 
-  printf("video_out_sdl: open_plugin - vo_scale_init\n");
   vo_scale_init( &this->sc, 0, 0, config);
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 
-
   /* set SDL to use our existing X11 window */
   sprintf(SDL_windowhack,"SDL_WINDOWID=0x%x", (uint32_t) this->drawable );
   putenv(SDL_windowhack);
-  printf("video_out_sdl: open_plugin - set SDL to use our existing X11 window\n");
 #else
   vo_scale_init( &this->sc, 0, 0, config );
 #endif
@@ -489,20 +484,15 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     printf ("video_out_sdl: open_plugin - sdl video initialization failed.\n");
     return NULL;
   }
-  printf("video_out_sdl: open_plugin - sdl video initialization success\n");
 
   vidInfo = SDL_GetVideoInfo ();
   if (!SDL_ListModes (vidInfo->vfmt, SDL_HWSURFACE | SDL_RESIZABLE)) {
     this->sdlflags = SDL_RESIZABLE;
     if (!SDL_ListModes (vidInfo->vfmt, SDL_RESIZABLE)) {
-      fprintf (stderr, "video_out_sdl: open_plugin - sdl couldn't get any acceptable video mode\n");
+      printf ("video_out_sdl: open_plugin - sdl couldn't get any acceptable video mode\n");
       return NULL;
     }
   }
-  printf("video_out_sdl: open_plugin - sdl found acceptable video mode\n");
-  this->surface = SDL_SetVideoMode (this->sc.gui_width, this->sc.gui_height,
-                                     this->bpp, this->sdlflags);
-  printf("video_out_sdl: open_plugin - sdl set video mode\n");
 
   this->bpp = vidInfo->vfmt->BitsPerPixel;
   if (this->bpp < 16) {
