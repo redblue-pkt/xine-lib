@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.167 2003/05/14 16:17:20 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.168 2003/05/26 11:35:52 hadess Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1422,10 +1422,12 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   }
 
   if (!xv_port) {
-    printf ("video_out_xv: Xv extension is present but "
-	    "I couldn't find a usable yuv12 port.\n");
-    printf ("              Looks like your graphics hardware "
-	    "driver doesn't support Xv?!\n");
+    if (xine->verbosity >= XINE_VERBOSITY_LOG) {
+      printf ("video_out_xv: Xv extension is present but "
+	      "I couldn't find a usable yuv12 port.\n");
+      printf ("              Looks like your graphics hardware "
+	      "driver doesn't support Xv?!\n");
+    }
     /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
     return NULL;
   } else if (xine->verbosity >= XINE_VERBOSITY_LOG)
