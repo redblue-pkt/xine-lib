@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.41 2001/06/14 09:54:13 guenter Exp $
+ * $Id: video_out_xv.c,v 1.42 2001/06/17 20:33:47 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -361,6 +361,9 @@ static void xv_calc_format (xv_driver_t *this,
   this->delivered_height     = height;
   this->delivered_ratio_code = ratio_code;
 
+  if ( (!width) || (!height) )
+    return;
+
   /*
    * aspect ratio calculation
    */
@@ -432,7 +435,7 @@ static void xv_calc_format (xv_driver_t *this,
 
   this->request_dest_size (ideal_width, ideal_height, 
 			   &dest_x, &dest_y, &dest_width, &dest_height);
-  
+
   xv_adapt_to_output_area (this, dest_x, dest_y, dest_width, dest_height);
 }
 
