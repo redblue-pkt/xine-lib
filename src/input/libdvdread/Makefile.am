@@ -20,16 +20,17 @@ noinst_HEADERS = \
 	bswap.h \
 	dvd_udf.h \
 	dvd_input.h \
-	dvd_reader.h \
 	dvdread_internal.h \
-	ifo_types.h \
 	ifo_read.h \
         ifo_print.h \
 	md5.h \
 	nav_read.h \
 	nav_print.h
 
-include_HEADERS = nav_types.h
+include_HEADERS = \
+	dvd_reader.h \
+	ifo_types.h \
+	nav_types.h
 
 ##
 ## Install header files (default=$includedir/xine)
