@@ -774,9 +774,23 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
   /* check if user data denotes closed captions */
   if (buffer[0] == 'C' && buffer[1] == 'C') {
     
-    if (!mpeg2dec->cc_dec)
+    if (!mpeg2dec->cc_dec) {
+      xine_event_t event;
+      xine_format_change_data_t data;
+      
       /* open the closed caption decoder first */
       mpeg2dec->cc_dec = get_spu_decoder(mpeg2dec->stream, (BUF_SPU_CC >> 16) & 0xff);
+      
+      /* send a frame format event so that the CC decoder knows the initial image size */
+      event.type = XINE_EVENT_FRAME_FORMAT_CHANGE;
+      event.stream = mpeg2dec->stream;
+      event.data = &data;
+      event.data_length = sizeof(data);
+      data.width = mpeg2dec->picture->coded_picture_width;
+      data.height = mpeg2dec->picture->coded_picture_height;
+      data.aspect = mpeg2dec->picture->aspect_ratio_information;
+      xine_event_send(mpeg2dec->stream, &event);
+    }
     
     if (mpeg2dec->cc_dec) {
       buf_element_t buf;
