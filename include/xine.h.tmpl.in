@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.62 2001/12/09 17:25:55 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.63 2001/12/09 18:03:26 guenter Exp $
  *
  */
 
@@ -725,14 +725,14 @@ void xine_exit (xine_t *self);
  * \param MRL Media Resource Location to open
  * \param start_pos position in input source (0..65535)
  * \param start_time position measured in seconds from stream start
- * \return Nothing
+ * \return 1 => OK, 0=>err (use xine_get_error for details)
  *
  * Open a stream and play it.  If both start position parameters 
  * are !=0 start_pos will be used
  * for non-seekable streams both values will be ignored
  *
  */
-void xine_play (xine_t *self, char *MRL, int start_pos, int start_time);
+int xine_play (xine_t *self, char *MRL, int start_pos, int start_time);
 
 /**
  * \fn void xine_set_speed (xine_t *self, int speed)
@@ -1686,7 +1686,15 @@ void xine_log (xine_t *self, int buf, const char *format, ...);
 
 char **xine_get_log (xine_t *self, int buf);
 
+/*
+ * xine error reporting
+ */
 
+#define XINE_ERROR_NONE              0
+#define XINE_ERROR_NO_INPUT_PLUGIN   1
+#define XINE_ERROR_NO_DEMUXER_PLUGIN 2
+
+int xine_get_error (xine_t *self);
 
      /** @} end of xine_api */
 

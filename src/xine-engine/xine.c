@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.87 2001/12/09 17:24:39 guenter Exp $
+ * $Id: xine.c,v 1.88 2001/12/09 18:03:26 guenter Exp $
  *
  * top-level xine functions
  *
@@ -237,7 +237,7 @@ static int find_demuxer(xine_t *this, const char *MRL) {
   return 0;
 }
 
-void xine_play (xine_t *this, char *mrl, 
+int xine_play (xine_t *this, char *mrl, 
 		int start_pos, int start_time) {
 
   double     share ;
@@ -295,8 +295,10 @@ void xine_play (xine_t *this, char *mrl,
   if (!this->cur_input_plugin) {
     printf ("xine: cannot find input plugin for this MRL\n");
     this->cur_demuxer_plugin = NULL;
+    this->err = XINE_ERROR_NO_INPUT_PLUGIN;
     pthread_mutex_unlock (&this->xine_lock);
-    return;
+
+    return 0;
   }
   
   xine_log (this, XINE_LOG_MSG,
@@ -311,8 +313,9 @@ void xine_play (xine_t *this, char *mrl,
 
   if (!find_demuxer(this, mrl)) {
     printf ("xine: couldn't find demuxer for >%s<\n", mrl);
+    this->err = XINE_ERROR_NO_DEMUXER_PLUGIN;
     pthread_mutex_unlock (&this->xine_lock);
-    return;
+    return 0;
   }
 
   xine_log (this, XINE_LOG_MSG,
@@ -361,6 +364,8 @@ void xine_play (xine_t *this, char *mrl,
   }
 
   pthread_mutex_unlock (&this->xine_lock);
+
+  return 1;
 }             
 
 int xine_eject (xine_t *this) {
@@ -413,7 +418,8 @@ xine_t *xine_init (vo_driver_t *vo,
 
   printf("xine_init entered\n");
 
-  this->config          = config;
+  this->err     = XINE_ERROR_NONE;
+  this->config  = config;
   /* probe for optimized memcpy or config setting */
   xine_probe_fast_memcpy(config);
   
@@ -815,4 +821,6 @@ char **xine_get_log (xine_t *this, int buf) {
 
 }
 
-
+int xine_get_error (xine_t *this) {
+  return this->err;
+}

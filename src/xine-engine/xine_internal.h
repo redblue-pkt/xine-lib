@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.61 2001/12/09 17:24:39 guenter Exp $
+ * $Id: xine_internal.h,v 1.62 2001/12/09 18:03:26 guenter Exp $
  *
  */
 
@@ -223,6 +223,8 @@ struct xine_s {
   /* log output that may be presented to the user */
   scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
 
+  int                        err;
+
 };
 
 /*
@@ -249,8 +251,9 @@ xine_t *xine_init (vo_driver_t *vo,
  * if both parameters are !=0 start_pos will be used
  * for non-seekable streams both values will be ignored
  *
+ * returns 1 on succ, 0 on failure
  */
-void xine_play (xine_t *this, char *MRL, int start_pos, int start_time);
+int xine_play (xine_t *this, char *MRL, int start_pos, int start_time);
 
 
 /*
@@ -587,6 +590,16 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *this);
 void xine_log (xine_t *this, int buf, const char *format, ...);
 
 char **xine_get_log (xine_t *this, int buf);
+
+/*
+ * xine error reporting
+ */
+
+#define XINE_ERROR_NONE              0
+#define XINE_ERROR_NO_INPUT_PLUGIN   1
+#define XINE_ERROR_NO_DEMUXER_PLUGIN 2
+
+int xine_get_error (xine_t *this);
 
 #ifdef __cplusplus
 }
