@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.11 2002/09/05 22:19:03 mroi Exp $
+ * $Id: msvc.c,v 1.12 2002/09/22 16:01:06 mroi Exp $
  */
 
 #include <stdlib.h>
@@ -261,7 +261,7 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
       vo_frame_t *img;
-      int         n = (this->biWidth * this->biHeight);
+      /* unused variable: int n = (this->biWidth * this->biHeight); */
 
       cram_decode_frame (this, this->buf, this->size);
 
