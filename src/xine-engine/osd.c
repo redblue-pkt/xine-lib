@@ -168,6 +168,8 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
 #define DEBUG_RLE
 */
 
+static int _osd_hide (osd_object_t *osd, int64_t vpts);
+
 /*
  * send the osd to be displayed at given pts (0=now)
  * the object is not changed. there may be subsequent drawing  on it.
@@ -289,6 +291,9 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
     this->event.event_type = OVERLAY_EVENT_SHOW;
     this->event.vpts = vpts;
     ovl_manager->add_event(ovl_manager, (void *)&this->event);
+  } else {
+    /* osd empty - hide it */
+    _osd_hide(osd, vpts);
   }
   pthread_mutex_unlock (&this->osd_mutex);  
   
@@ -315,17 +320,15 @@ static int osd_show_unscaled (osd_object_t *osd, int64_t vpts) {
  * send event to hide osd at given pts (0=now)
  * the object is not changed. there may be subsequent drawing  on it.
  */
-static int osd_hide (osd_object_t *osd, int64_t vpts) {     
+static int _osd_hide (osd_object_t *osd, int64_t vpts) {     
 
   osd_renderer_t *this = osd->renderer;
   video_overlay_manager_t *ovl_manager;
   
   lprintf("osd=%p vpts=%lld\n",osd, vpts);
-    
+      
   if( osd->handle < 0 )
     return 0;
-      
-  pthread_mutex_lock (&this->osd_mutex);  
   
   this->event.object.handle = osd->handle;
   
@@ -335,13 +338,27 @@ static int osd_hide (osd_object_t *osd, int64_t vpts) {
   this->event.event_type = OVERLAY_EVENT_HIDE;
   this->event.vpts = vpts;
   
-  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
   ovl_manager = this->stream->video_out->get_overlay_manager(this->stream->video_out);
   ovl_manager->add_event(ovl_manager, (void *)&this->event);
+
+  return 1;
+}
+
+static int osd_hide (osd_object_t *osd, int64_t vpts) {
+
+  osd_renderer_t *this = osd->renderer;
+  int ret;
+
+  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+
+  pthread_mutex_lock (&this->osd_mutex);
+
+  ret = _osd_hide(osd, vpts);
+
+  pthread_mutex_unlock (&this->osd_mutex);
+
   this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
 
-  pthread_mutex_unlock (&this->osd_mutex);  
-  
   return 1;
 }
 
