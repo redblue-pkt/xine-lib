@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.33 2003/08/12 00:43:48 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.34 2003/09/14 22:02:27 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -46,8 +46,8 @@
 #include "vo_scale.h"
 #include "xineutils.h"
 
-#define ADDRSPACE 8388608
-#define REGBASE   8386560
+#define FB_ADDRSPACE 0x800000
+#define FB_REGSBASE  0x1ffe00
 
 #define BUS_CNTL 0x128
 #define BUS_EXT_REG_EN 0x08000000
@@ -94,6 +94,18 @@
 #define OVERLAY_SCALE_CNTL 0x009
 #define OVERLAY_SCALE_EN 0xC0000000
 
+#define BUF_MODE_SINGLE 0
+#define BUF_MODE_DOUBLE 1
+#define BUF_MODE_MULTI  2
+
+#define MAX_DETAINED_FRAMES 10
+#define MAX_ALLOCED_FRAMES  15
+
+const int scaler_regs_table[2][3] = {
+  {SCALER_BUF0_OFFSET, SCALER_BUF0_OFFSET_U, SCALER_BUF0_OFFSET_V},
+  {SCALER_BUF1_OFFSET, SCALER_BUF1_OFFSET_U, SCALER_BUF1_OFFSET_V}
+};
+
 typedef struct {
   video_driver_class_t vo_driver_class;
 
@@ -107,8 +119,9 @@ typedef struct {
 typedef struct {
   vo_frame_t vo_frame;
 
-  int lengths[3];  
-  int width, height, pitch, format, native_format;
+  void *this;
+  int lengths[3], stripe_lengths[3], stripe_offsets[3];
+  int width, height, pitch, format, native_format, planes, buffer;
   double ratio;
 } pgx64_frame_t;
 
@@ -117,7 +130,7 @@ typedef struct {
   vo_scale_t vo_scale;
 
   pgx64_driver_class_t *class;
-  pgx64_frame_t *current;
+  pgx64_frame_t *previous, *current, *detained[MAX_DETAINED_FRAMES];
 
   Display *display;
   int screen;
@@ -125,18 +138,17 @@ typedef struct {
   GC gc;
 
   int fbfd;
-  uint8_t *vram;
+  uint8_t *vram, *buffer_ptrs[MAX_ALLOCED_FRAMES][3];
   volatile uint32_t *vregs;
-  uint32_t fb_bottom, fb_top, fb_width, fb_height, fb_depth;
-  uint32_t buf_y[2], buf_u[2], buf_v[2];
-  int allocated, delivered_format, dbl_buf_en, buf_num;
 
-  int colour_key, brightness, saturation;
-  int use_deinterlace, use_exclusive;
+  int fb_top, fb_bottom, fb_alloc, fb_width, fb_height, fb_depth;
+  int delivered_format, buffers[MAX_ALLOCED_FRAMES][3], next_buffer;
+  int buf_mode, dblbuf_select, num_frames, detained_frames;
+  int colour_key, brightness, saturation, use_deinterlace, use_exclusive;
 } pgx64_driver_t;
 
 /*
- * Dispose of any allocated image data within a pgx64_frame_t
+ * Dispose of any fb_alloc image data within a pgx64_frame_t
  */
 
 static void dispose_frame_internals(pgx64_frame_t *frame)
@@ -179,23 +191,64 @@ static void repaint_output_area(pgx64_driver_t *this)
 
 static void vram_free_all(pgx64_driver_t* this)
 {
-  this->allocated = this->fb_top;
+  this->fb_alloc = this->fb_top;
 }
 
 static int vram_alloc(pgx64_driver_t* this, int size)
 {
-  if (this->allocated - size < this->fb_bottom) {
-    return 0;
+  if (this->fb_alloc - size < this->fb_bottom) {
+    return -1;
   }
   else {
-    this->allocated -= size;
-    return this->allocated;
+    this->fb_alloc -= size;
+    return this->fb_alloc;
   }
+}
+
+/*
+ * Release detained frames
+ */
+static void release_detained_frames(pgx64_driver_t* this)
+{
+  int i;
+
+  if (this->detained_frames > 0) {
+    printf("video_out_pgx64: Notice: %d detained frame(s) were released\n", this->detained_frames);
+  }
+  for (i=0; i<this->detained_frames; i++) {
+    this->detained[i]->vo_frame.free(&this->detained[i]->vo_frame);
+  }
+  this->detained_frames = 0;
+}
+
+/*
+ * Switch scaler buffers on next vertical sync
+ */
+
+static void switch_buffers(pgx64_driver_t* this)
+{
+  this->vregs[CAPTURE_CONFIG] = this->dblbuf_select ? le2me_32(CAPTURE_CONFIG_BUF1) : le2me_32(CAPTURE_CONFIG_BUF0);
+  this->dblbuf_select = 1 - this->dblbuf_select;
 }
 
 /*
  * XINE VIDEO DRIVER FUNCTIONS
  */
+
+static void pgx64_frame_copy(pgx64_frame_t *frame, uint8_t **src)
+{
+  pgx64_driver_t *this = (pgx64_driver_t*)frame->this;
+  int i;
+
+  frame->vo_frame.copy_called = 1;
+
+  if ((this->buf_mode == BUF_MODE_MULTI) && (frame->buffer >= 0)) {
+    for (i=0; i<frame->planes; i++) {
+      memcpy(this->buffer_ptrs[frame->buffer][i]+frame->stripe_offsets[i], src[i], frame->stripe_lengths[i]);
+      frame->stripe_offsets[i] += frame->stripe_lengths[i];
+    }
+  }
+}
 
 static void pgx64_frame_field(pgx64_frame_t *frame, int which_field)
 {
@@ -209,7 +262,8 @@ static void pgx64_frame_dispose(pgx64_frame_t *frame)
 
 static uint32_t pgx64_get_capabilities(pgx64_driver_t *this)
 {
-  return VO_CAP_YV12 |
+  return VO_CAP_COPIES_IMAGE |
+         VO_CAP_YV12 |
          VO_CAP_YUY2 |
          VO_CAP_COLORKEY |
          VO_CAP_SATURATION |
@@ -229,8 +283,11 @@ static pgx64_frame_t* pgx64_alloc_frame(pgx64_driver_t *this)
 
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
+  frame->vo_frame.copy    = (void*)pgx64_frame_copy; 
   frame->vo_frame.field   = (void*)pgx64_frame_field; 
   frame->vo_frame.dispose = (void*)pgx64_frame_dispose;
+
+  frame->this = (void*)this;
 
   return frame;
 }
@@ -252,27 +309,37 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
     switch (format) {
       case XINE_IMGFMT_YUY2:
         frame->native_format = VIDEO_FORMAT_YUY2;
+        frame->planes = 1;
+        frame->buffer = -1;
         frame->vo_frame.pitches[0] = frame->pitch * 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
-        frame->lengths[1] = 0;
-        frame->lengths[2] = 0;
+        frame->stripe_lengths[0] = frame->vo_frame.pitches[0] * 16;
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
       break;
 
       case XINE_IMGFMT_YV12:
         frame->native_format = VIDEO_FORMAT_YUV12;
+        frame->planes = 3;
+        frame->buffer = -1;
         frame->vo_frame.pitches[0] = frame->pitch;
         frame->vo_frame.pitches[1] = frame->pitch / 2;
         frame->vo_frame.pitches[2] = frame->pitch / 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
         frame->lengths[1] = frame->vo_frame.pitches[1] * (height / 2);
         frame->lengths[2] = frame->vo_frame.pitches[2] * (height / 2);
+        frame->stripe_lengths[0] = frame->vo_frame.pitches[0] * 16;
+        frame->stripe_lengths[1] = frame->vo_frame.pitches[1] * 8;
+        frame->stripe_lengths[2] = frame->vo_frame.pitches[2] * 8;
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
         frame->vo_frame.base[1] = (void*)memalign(8, frame->lengths[1]);
         frame->vo_frame.base[2] = (void*)memalign(8, frame->lengths[2]);
       break;
     }
   }
+
+  frame->stripe_offsets[0] = 0;
+  frame->stripe_offsets[1] = 0;
+  frame->stripe_offsets[2] = 0;
 }
 
 static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
@@ -281,27 +348,18 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
       (frame->height != this->vo_scale.delivered_height) ||
       (frame->ratio != this->vo_scale.delivered_ratio) ||
       (frame->format != this->delivered_format)) {
-
     this->vo_scale.delivered_width  = frame->width;
     this->vo_scale.delivered_height = frame->height;
     this->vo_scale.delivered_ratio  = frame->ratio;
     this->delivered_format          = frame->format;
 
-    vram_free_all(this);
-    if (((this->buf_y[0] = vram_alloc(this, frame->lengths[0])) == 0) ||
-        ((this->buf_u[0] = vram_alloc(this, frame->lengths[1])) == 0) ||
-        ((this->buf_v[0] = vram_alloc(this, frame->lengths[2])) == 0)) {
-      printf("video_out_pgx64: insufficient video memory for frame\n");
-      return;
-    }
-
-    this->buf_num = 0;
-    this->dbl_buf_en = (((this->buf_y[1] = vram_alloc(this, frame->lengths[0])) != 0) &&
-                        ((this->buf_u[1] = vram_alloc(this, frame->lengths[1])) != 0) &&
-                        ((this->buf_v[1] = vram_alloc(this, frame->lengths[2])) != 0));
-
     this->vo_scale.force_redraw = 1;
     vo_scale_compute_ideal_size(&this->vo_scale);
+
+    vram_free_all(this);
+    release_detained_frames(this);
+    this->num_frames = 0;
+    this->buf_mode = BUF_MODE_MULTI;  
   }
 
   if (vo_scale_redraw_needed(&this->vo_scale)) {  
@@ -322,12 +380,6 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     this->vregs[OVERLAY_GRAPHICS_KEY_MSK] = le2me_32(0xffffffff >> (32 - this->fb_depth));
 
     this->vregs[VIDEO_FORMAT] = le2me_32(frame->native_format);
-    this->vregs[SCALER_BUF0_OFFSET] = le2me_32(this->buf_y[0]);
-    this->vregs[SCALER_BUF0_OFFSET_U] = le2me_32(this->buf_u[0]);
-    this->vregs[SCALER_BUF0_OFFSET_V] = le2me_32(this->buf_v[0]);
-    this->vregs[SCALER_BUF1_OFFSET] = le2me_32(this->buf_y[1]);
-    this->vregs[SCALER_BUF1_OFFSET_U] = le2me_32(this->buf_u[1]);
-    this->vregs[SCALER_BUF1_OFFSET_V] = le2me_32(this->buf_v[1]);
     this->vregs[SCALER_BUF_PITCH] = le2me_32(this->use_deinterlace ? frame->pitch*2 : frame->pitch);
     this->vregs[OVERLAY_X_Y_START] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
     this->vregs[OVERLAY_X_Y_END] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
@@ -348,37 +400,119 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     this->vregs[OVERLAY_SCALE_CNTL] = le2me_32(OVERLAY_SCALE_EN);
   }
 
-  memcpy(this->vram+this->buf_y[this->buf_num], frame->vo_frame.base[0], frame->lengths[0]);
+  if (this->buf_mode == BUF_MODE_MULTI) {
+    int i;
 
-  if (frame->format == XINE_IMGFMT_YV12) {
-    memcpy(this->vram+this->buf_u[this->buf_num], frame->vo_frame.base[1], frame->lengths[1]);
-    memcpy(this->vram+this->buf_v[this->buf_num], frame->vo_frame.base[2], frame->lengths[2]);
+    if (frame->buffer >= 0) {
+      for (i=0; i<frame->planes; i++) {
+        this->vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(this->buffers[frame->buffer][i]);
+      }
+    }
+    else {
+      for (i=0; i<frame->planes; i++) {
+        if ((this->buffers[this->num_frames][i] = vram_alloc(this, frame->lengths[i])) < 0) {
+          if (this->detained_frames < MAX_DETAINED_FRAMES) {
+            int buffer;
+
+            if (this->num_frames < 1) {
+              printf("video_out_pgx64: Error: insuffucient video memory for single-buffering\n");
+              return;
+            }
+            buffer = (this->num_frames > 1) ? this->num_frames-2 : 0;
+            for (i=0; i<frame->planes; i++) {
+              this->vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(this->buffers[buffer][i]);
+              memcpy(this->buffer_ptrs[buffer][i], frame->vo_frame.base[i], frame->lengths[i]);
+            }
+            printf("video_out_pgx64: Notice: a frame was detained owing to insuffucient video memory\n");
+            this->detained[this->detained_frames++] = frame;
+            switch_buffers(this);
+            return;
+          }
+          else {
+            printf("video_out_pgx64: Warning: insuffucient video memory for multi-buffering\n");
+            vram_free_all(this);
+            release_detained_frames(this);
+            if (this->num_frames > 1) {
+              this->buf_mode = BUF_MODE_DOUBLE;
+            }
+            else {
+              printf("video_out_pgx64: Warning: insuffucient video memory for double-buffering\n");
+              this->buf_mode = BUF_MODE_SINGLE;
+              this->dblbuf_select = 0;
+            }
+            for (i=0; i<frame->planes; i++) {
+              this->vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(this->buffers[this->dblbuf_select][i]);
+              memcpy(this->buffer_ptrs[this->dblbuf_select][i], frame->vo_frame.base[i], frame->lengths[i]);
+            }
+            frame->vo_frame.copy = NULL;
+            if (this->buf_mode == BUF_MODE_DOUBLE) {
+              switch_buffers(this);
+            }
+            return;
+          }
+        }
+        else {
+          this->buffer_ptrs[this->num_frames][i] = this->vram + this->buffers[this->num_frames][i];
+          frame->vo_frame.copy = (void*)pgx64_frame_copy;
+        }
+      }
+
+      frame->buffer = this->num_frames++;
+      for (i=0; i<frame->planes; i++) {
+        this->vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(this->buffers[frame->buffer][i]);
+        memcpy(this->buffer_ptrs[frame->buffer][i], frame->vo_frame.base[i], frame->lengths[i]);
+      }
+    }
+  }
+  else {
+    int i;
+
+    for (i=0; i<frame->planes; i++) {
+      memcpy(this->buffer_ptrs[this->dblbuf_select][i], frame->vo_frame.base[i], frame->lengths[i]);
+    }
+    frame->vo_frame.copy = NULL;
   }
 
-  if (this->dbl_buf_en) {
-    this->vregs[CAPTURE_CONFIG] = this->buf_num ? le2me_32(CAPTURE_CONFIG_BUF1) : le2me_32(CAPTURE_CONFIG_BUF0);
-    this->buf_num = 1 - this->buf_num;
+  if (this->buf_mode != BUF_MODE_SINGLE) {
+    switch_buffers(this);
   }
 
-  if ((this->current != NULL) && (this->current != frame)) {
-    frame->vo_frame.free(&this->current->vo_frame);
+  if ((this->previous != NULL) && (this->current != frame)) {
+    this->previous->vo_frame.free(&this->previous->vo_frame);
   }
+  this->previous = this->current;
   this->current = frame;
 }
 
 static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
 {
   if (overlay->rle) {
-    switch (frame->format) {
-      case XINE_IMGFMT_YV12: {
-        blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
-      }
-      break;
+    if ((this->buf_mode == BUF_MODE_MULTI) && (frame->buffer >= 0)) {
+      /* FIXME: Implement out of place alphablending functions for better performance */
+      switch (frame->format) {
+        case XINE_IMGFMT_YV12: {
+          blend_yuv(this->buffer_ptrs[frame->buffer], overlay, frame->width, frame->height, frame->vo_frame.pitches);
+        }
+        break;
 
-      case XINE_IMGFMT_YUY2: {
-        blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+        case XINE_IMGFMT_YUY2: {
+          blend_yuy2(this->buffer_ptrs[frame->buffer][0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+        }
+        break;
       }
-      break;
+    }
+    else {
+      switch (frame->format) {
+        case XINE_IMGFMT_YV12: {
+          blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+        }
+        break;
+
+        case XINE_IMGFMT_YUY2: {
+          blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+        }
+        break;
+      }
     }
   }
 }
@@ -532,8 +666,8 @@ static void pgx64_dispose(pgx64_driver_t *this)
 {
   this->vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
   this->vregs[OVERLAY_SCALE_CNTL] = 0;
-  this->vregs[BUS_CNTL] &= ~BUS_EXT_REG_EN;
-  munmap(this->vram, ADDRSPACE);
+  this->vregs[BUS_CNTL] &= le2me_32(~BUS_EXT_REG_EN);
+  munmap(this->vram, FB_ADDRSPACE);
   close(this->fbfd);
 
   pthread_mutex_lock(&this->class->mutex);
@@ -610,7 +744,7 @@ static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visu
     return NULL;
   }
 
-  if ((baseaddr = mmap(0, ADDRSPACE, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
+  if ((baseaddr = mmap(0, FB_ADDRSPACE, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
     printf("video_out_pgx64: unable to memory map framebuffer\n");
     close(fbfd);
     return NULL;
@@ -653,9 +787,9 @@ static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visu
 
   this->fbfd = fbfd;
   this->vram = (uint8_t*)baseaddr;
-  this->vregs = (uint32_t*)(this->vram + REGBASE);
-  this->fb_bottom = attr.fbtype.fb_width * attr.fbtype.fb_height * ((attr.fbtype.fb_depth > 8) ? ((attr.fbtype.fb_depth > 16) ? 4 : 2) : 1);
+  this->vregs = (uint32_t*)baseaddr + FB_REGSBASE;
   this->fb_top = attr.sattr.dev_specific[0];
+  this->fb_bottom = attr.fbtype.fb_size;
   this->fb_width = attr.fbtype.fb_width;
   this->fb_height = attr.fbtype.fb_height;
   this->fb_depth = attr.fbtype.fb_depth;
