@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.16 2002/04/20 20:20:44 guenter Exp $
+ * $Id: buffer_types.c,v 1.17 2002/05/27 06:10:26 siggi Exp $
  *
  *
  * contents:
@@ -50,7 +50,7 @@ typedef struct video_db_s {
 } video_db_t;
 
 typedef struct audio_db_s {
-   uint16_t formattag[10];
+   uint32_t formattag[10];
    uint32_t buf_type;
    char *name;
 } audio_db_t;
@@ -327,10 +327,51 @@ static video_db_t video_db[] = {
 {
   {
     mmioFOURCC('c', 'y', 'u', 'v'),
+    mmioFOURCC('C', 'Y', 'U', 'V'),
     0
   },
   BUF_VIDEO_CYUV,
-  "cyuv format"
+  "Creative YUV format"
+},
+{
+  {
+    mmioFOURCC('s', 'm', 'c', ' '),
+    0
+  },
+  BUF_VIDEO_SMC,
+  "Apple Quicktime Graphics (SMC)"
+},
+{
+  {
+    mmioFOURCC('r', 'p', 'z', 'a'),
+    mmioFOURCC('a', 'z', 'p', 'r'),
+    0
+  },
+  BUF_VIDEO_RPZA,
+  "Apple Quicktime Video (RPZA)"
+},
+{
+  {
+    mmioFOURCC('r', 'l', 'e', ' '),
+    0
+  },
+  BUF_VIDEO_QTRLE,
+  "Apple Quicktime Animation (RLE)"
+},
+{
+  {
+    1, 2, 0  /* MS RLE format identifiers */
+  },
+  BUF_VIDEO_MSRLE,
+  "Microsoft RLE"
+},
+{
+  {
+    mmioFOURCC('D', 'U', 'C', 'K'),
+    0
+  },
+  BUF_VIDEO_DUCKTM1,
+  "Duck Truemotion v1"
 },
 { { 0 }, 0, "last entry" }
 };
@@ -391,7 +432,7 @@ static audio_db_t audio_db[] = {
     0x11, 0
   },
   BUF_AUDIO_IMAADPCM,
-  "IMA ADPCM"
+  "MS IMA ADPCM"
 },
 {
   {
@@ -443,6 +484,44 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_VIVOG723,
   "Vivo G.723/Siren Audio Codec"
+},
+{
+  {
+    0x61, 0
+  },
+  BUF_AUDIO_DK4ADPCM,
+  "Duck DK4 ADPCM (rogue format number)"
+},
+{
+  {
+    0x62, 0
+  },
+  BUF_AUDIO_DK3ADPCM,
+  "Duck DK3 ADPCM (rogue format number)"
+},
+{
+  {
+    mmioFOURCC('i', 'm', 'a', '4'),
+    0
+  },
+  BUF_AUDIO_QTIMAADPCM,
+  "QT IMA ADPCM"
+},
+{
+  {
+    mmioFOURCC('m', 'a', 'c', '3'),
+    0
+  },
+  BUF_AUDIO_MAC3,
+  "Apple MACE 3:1 Audio"
+},
+{
+  {
+    mmioFOURCC('m', 'a', 'c', '6'),
+    0
+  },
+  BUF_AUDIO_MAC6,
+  "Apple MACE 6:1 Audio"
 },
 { { 0 }, 0, "last entry" }
 };

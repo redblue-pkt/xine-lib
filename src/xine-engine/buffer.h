@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.43 2002/04/27 23:31:33 cvogler Exp $
+ * $Id: buffer.h,v 1.44 2002/05/27 06:10:26 siggi Exp $
  *
  *
  * contents:
@@ -104,6 +104,13 @@ extern "C" {
 #define BUF_VIDEO_CYUV          0x021B0000
 #define BUF_VIDEO_DIVX5         0x021C0000
 #define BUF_VIDEO_XVID          0x021D0000
+#define BUF_VIDEO_SMC		0x021E0000
+#define BUF_VIDEO_RPZA		0x021F0000
+#define BUF_VIDEO_QTRLE		0x02200000
+#define BUF_VIDEO_MSRLE		0x02210000
+#define BUF_VIDEO_DUCKTM1	0x02220000
+#define BUF_VIDEO_FLI		0x02230000
+#define BUF_VIDEO_ROQ		0x02240000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -125,7 +132,12 @@ extern "C" {
 #define BUF_AUDIO_AAC           0x030e0000
 #define BUF_AUDIO_REAL    	0x030f0000
 #define BUF_AUDIO_VIVOG723      0x03100000
-
+#define BUF_AUDIO_DK3ADPCM	0x03110000
+#define BUF_AUDIO_DK4ADPCM	0x03120000
+#define BUF_AUDIO_ROQ		0x03130000
+#define BUF_AUDIO_QTIMAADPCM	0x03140000
+#define BUF_AUDIO_MAC3		0x03150000
+#define BUF_AUDIO_MAC6		0x03160000
 
 /* spu buffer types:    */
  
