@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.12 2004/03/16 14:12:03 mroi Exp $
+ * $Id: video_decoder.c,v 1.13 2004/04/19 21:03:02 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -124,7 +124,7 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   height = (context->height+align)&~align;
 
   if( (this->context->pix_fmt != PIX_FMT_YUV420P) ||
-      (width != context->width) || (height != context->height) ) {
+      (width != this->bih.biWidth) || (height != this->bih.biHeight) ) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
             _("ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"));
 
@@ -224,8 +224,8 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   
   this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
 
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->context->width);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->context->height);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->bih.biWidth);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->aspect_ratio*10000);
 
   this->stream->video_out->open (this->stream->video_out, this->stream);
@@ -245,7 +245,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
      (this->context->pix_fmt == PIX_FMT_RGB24) ||
      (this->context->pix_fmt == PIX_FMT_PAL8)) {
     this->output_format = XINE_IMGFMT_YUY2;
-    init_yuv_planes(&this->yuv, this->context->width, this->context->height);
+    init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
   } else {
     this->output_format = XINE_IMGFMT_YV12;
 #ifdef ENABLE_DIRECT_RENDERING
@@ -498,8 +498,8 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       img->base[2],
       img->pitches[2],
      /* width x height */
-      this->context->width,
-      this->context->height);
+      img->width,
+      img->height);
 
   } else if (this->context->pix_fmt == PIX_FMT_YUV411P) {
 
@@ -520,8 +520,8 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       img->base[2],
       img->pitches[2],
      /* width x height */
-      this->context->width,
-      this->context->height);
+      img->width,
+      img->height);
 
   } else if (this->context->pix_fmt == PIX_FMT_RGBA32) {
           
@@ -529,9 +529,9 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     uint32_t *argb_pixels;
     uint32_t argb;
 
-    for(y = 0; y < this->context->height; y++) {
+    for(y = 0; y < img->height; y++) {
       argb_pixels = (uint32_t *)sy;
-      for(x = 0; x < this->context->width; x++) {
+      for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
               
         /* this is endian-safe as the ARGB pixels are stored in
@@ -557,9 +557,9 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     uint8_t *src;
     uint16_t pixel16;
 
-    for(y = 0; y < this->context->height; y++) {
+    for(y = 0; y < img->height; y++) {
       src = sy;
-      for(x = 0; x < this->context->width; x++) {
+      for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
               
         /* a 16-bit RGB565 pixel is supposed to be stored in native-endian
@@ -586,9 +586,9 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     uint8_t *src;
     uint16_t pixel16;
             
-    for(y = 0; y < this->context->height; y++) {
+    for(y = 0; y < img->height; y++) {
       src = sy;
-      for(x = 0; x < this->context->width; x++) {
+      for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
               
         /* a 16-bit RGB555 pixel is supposed to be stored in native-endian
@@ -614,9 +614,9 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     int x, plane_ptr = 0;
     uint8_t *src;
 
-    for(y = 0; y < this->context->height; y++) {
+    for(y = 0; y < img->height; y++) {
       src = sy;
-      for(x = 0; x < this->context->width; x++) {
+      for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
               
         b = *src++;
@@ -638,9 +638,9 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     int x, plane_ptr = 0;
     uint8_t *src;
 
-    for(y = 0; y < this->context->height; y++) {
+    for(y = 0; y < img->height; y++) {
       src = sy;
-      for(x = 0; x < this->context->width; x++) {
+      for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
               
         r = *src++;
@@ -681,9 +681,9 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       v_palette[x] = COMPUTE_V(r, g, b);
     }
 
-    for(y = 0; y < this->context->height; y++) {
+    for(y = 0; y < img->height; y++) {
       src = sy;
-      for(x = 0; x < this->context->width; x++) {
+      for(x = 0; x < img->width; x++) {
         pixel = *src++;
 
         this->yuv.y[plane_ptr] = y_palette[pixel];
@@ -698,20 +698,20 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
           
   } else {
           
-    for (y=0; y<this->context->height; y++) {
-      xine_fast_memcpy (dy, sy, this->context->width);
+    for (y=0; y<img->height; y++) {
+      xine_fast_memcpy (dy, sy, img->width);
   
       dy += img->pitches[0];
   
       sy += this->av_frame->linesize[0];
     }
 
-    for (y=0; y<(this->context->height/2); y++) {
+    for (y=0; y<(img->height/2); y++) {
       
       if (this->context->pix_fmt != PIX_FMT_YUV444P) {
         
-        xine_fast_memcpy (du, su, this->context->width/2);
-        xine_fast_memcpy (dv, sv, this->context->width/2);
+        xine_fast_memcpy (du, su, img->width/2);
+        xine_fast_memcpy (dv, sv, img->width/2);
         
       } else {
         
@@ -722,13 +722,13 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
         /* subsample */
         
         src = su; dst = du;
-        for (x=0; x<(this->context->width/2); x++) {
+        for (x=0; x<(img->width/2); x++) {
           *dst = *src;
           dst++;
           src += 2;
         }
         src = sv; dst = dv;
-        for (x=0; x<(this->context->width/2); x++) {
+        for (x=0; x<(img->width/2); x++) {
           *dst = *src;
           dst++;
           src += 2;
@@ -1017,15 +1017,15 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
         if(av_cmp_q(this->context->sample_aspect_ratio, (AVRational){0,0})) {
           this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
-              (double)this->context->width / (double)this->context->height;
+              (double)this->bih.biWidth / (double)this->bih.biHeight;
           _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  
                              this->aspect_ratio*10000);
         }
 
         if(!this->av_frame->opaque) {
           img = this->stream->video_out->get_frame (this->stream->video_out,
-                                                    this->context->width,
-                                                    this->context->height,
+                                                    this->bih.biWidth,
+                                                    this->bih.biHeight,
                                                     this->aspect_ratio, 
                                                     this->output_format,
                                                     VO_BOTH_FIELDS|this->frame_flags);
