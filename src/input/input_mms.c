@@ -78,12 +78,18 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   char* nmrl=NULL;
   char* uptr;
+  int error_id;
 
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   
-  if (!asx_parse (mrl,&nmrl))
-    nmrl = mrl;
+  error_id=asx_parse(mrl,&nmrl);
   
+  if(error_id)
+    return 0;
+  
+  if(!nmrl)
+    nmrl=mrl;
+
   printf("mms_plugin_open: using mrl <%s> \n", nmrl);
   
   uptr=strdup(nmrl);
