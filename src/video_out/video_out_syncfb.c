@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.15 2001/10/14 23:19:59 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.16 2001/10/22 00:52:10 guenter Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -143,8 +143,11 @@ typedef struct _mga_globals {
 
   int             overlay_state;
 
+  void           *user_data;
+
   /* gui callback */
-  void (*request_dest_size) (int video_width, int video_height,
+  void (*request_dest_size) (void *user_data,
+			     int video_width, int video_height,
                              int *dest_x, int *dest_y,
                              int *dest_height, int *dest_width);
 
@@ -927,6 +930,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   _mga_priv.user_ratio_changed    = 0 ;
   _mga_priv.fourcc_format         = 0;
   _mga_priv.request_dest_size     = ((x11_visual_t*) visual)->request_dest_size;
+  _mga_priv.user_data             = ((x11_visual_t*) visual)->user_data;
 
   _window.clasped_window          = 0;
   _display.default_screen         = DefaultScreen(_mga_priv.lDisplay);

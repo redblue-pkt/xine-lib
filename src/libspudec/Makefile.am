@@ -8,6 +8,7 @@ lib_LTLIBRARIES = xineplug_decode_spu.la
 
 xineplug_decode_spu_la_SOURCES =  spu.c xine_decoder.c 
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module
+xineplug_decode_spu_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la $(top_builddir)/src/xine-engine/libxine.la
 
 noinst_HEADERS = spu.h
 include_HEADERS = spu_decoder_api.h

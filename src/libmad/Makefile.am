@@ -11,6 +11,7 @@ xineplug_decode_mad_la_SOURCES = bit.c frame.c layer3.c timer.c \
 
 
 xineplug_decode_mad_la_LDFLAGS = -avoid-version -module
+xineplug_decode_mad_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 
 noinst_HEADERS = D.dat huffman.h mad.h stream.h fixed.h \
 	imdct_s.dat qc_table.dat synth.h bit.h frame.h layer12.h \

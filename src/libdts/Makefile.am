@@ -8,6 +8,7 @@ lib_LTLIBRARIES = xineplug_decode_dts.la
 
 xineplug_decode_dts_la_SOURCES = xine_decoder.c
 xineplug_decode_dts_la_LDFLAGS = -avoid-version -module
+xineplug_decode_dts_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 
 noinst_HEADERS =
 

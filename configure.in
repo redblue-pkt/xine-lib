@@ -690,7 +690,7 @@ fi
 dnl
 dnl Some include paths ( !!! DO NOT REMOVE !!! )
 dnl
-INCLUDES='-I$(top_srcdir) -I$(top_builddir) -I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_srcdir)/src/xine-engine -I$(top_builddir)/src/xine-engine'
+INCLUDES='-I$(top_srcdir) -I$(top_builddir) -I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_srcdir)/src/xine-engine -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-utils -I$(top_builddir)/src/xine-utils'
 AC_SUBST(INCLUDES)
 
 
@@ -746,6 +746,7 @@ src/libspudec/Makefile
 src/libvfill/Makefile
 src/libvorbis/Makefile
 src/libdivx4/Makefile
+src/xine-utils/Makefile
 src/input/Makefile
 src/xine-engine/Makefile
 misc/Makefile
@@ -785,3 +786,4 @@ else
 fi
 
 chmod +x libtool-nofpic
+

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.h,v 1.5 2001/09/10 13:36:56 jkeil Exp $
+ * $Id: monitor.h,v 1.1 2001/10/22 00:52:10 guenter Exp $
  *
  * debug print and profiling functions
  *

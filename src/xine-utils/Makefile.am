@@ -5,25 +5,40 @@
 CFLAGS = @GLOBAL_CFLAGS@ @THREAD_CFLAGS@
 
 
-lib_LTLIBRARIES = libxine.la
+EXTRA_DIST = cpu_accel.c
 
-libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
-	load_plugins.c video_decoder.c \
-	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c
-libxine_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la\
+lib_LTLIBRARIES = libxineutils.la
+
+libxineutils_la_SOURCES = utils.c memcpy.c monitor.c
+libxineutils_la_LIBADD = cpu_accel.lo \
 	$(THREAD_LIBS) \
 	$(DYNAMIC_LD_LIBS) \
 	-lm 
 
-libxine_la_LDFLAGS =  \
+libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 	-release $(LT_RELEASE)
 
-include_HEADERS  = buffer.h metronom.h configfile.h \
-        audio_out.h resample.h video_out.h xine_internal.h spu_decoder.h \
-	events.h lrb.h
+include_HEADERS  = attributes.h  cpu_accel.h  memcpy.h  utils.h monitor.h
 
-noinst_HEADERS = bswap.h
+###
+# Hardcoded rule: 
+#  gcc failed to compile this with -fPIC flag
+#  hackish: [X] yes   [ ] no
+#
+LIBTOOLNOFPIC = $(SHELL) $(top_builddir)/libtool-nofpic
+LTCOMPILENOFPIC = $(LIBTOOLNOFPIC) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+cpu_accel.lo: cpu_accel.c
+	@mkdir -p .deps; touch .deps/cpu_accel.pp; \
+	echo '$(LTCOMPILENOFPIC) -c $<'; \
+		$(LTCOMPILENOFPIC) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-sed -e 's/^\([^:]*\)\.o[ 	]*:/\1.lo \1.o :/' \
+	  < .deps/$(*F).pp > .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	    >> .deps/$(*F).P; \
+	rm -f .deps/$(*F).pp
+
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
@@ -64,3 +79,4 @@ maintainer-clean-generic:
 	-@echo "This command is intended for maintainers to use;"
 	-@echo "it deletes files that may require special tools to rebuild."
 	-rm -f Makefile.in
+

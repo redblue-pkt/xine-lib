@@ -12,6 +12,7 @@ xineplug_decode_a52_la_SOURCES =  bitstream.c bit_allocate.c \
 	parse.c downmix.c imdct.c imdct_mlib.c \
 	xine_decoder.c
 xineplug_decode_a52_la_LDFLAGS = -avoid-version -module
+xineplug_decode_a52_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 
 noinst_HEADERS = a52.h a52_internal.h \
 	bitstream.h tables.h

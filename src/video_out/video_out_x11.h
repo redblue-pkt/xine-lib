@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.7 2001/10/10 10:06:59 jkeil Exp $
+ * $Id: video_out_x11.h,v 1.8 2001/10/22 00:52:10 guenter Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -52,6 +52,8 @@ typedef struct {
 
   /* drawable to display the video in/on */
   Drawable d;
+
+  void    *user_data;
   
   /*
    * calc dest size
@@ -62,7 +64,8 @@ typedef struct {
    * video out area, just do some calculations and return 
    * the size
    */
-  void (*calc_dest_size) (int video_width, int video_height, 
+  void (*calc_dest_size) (void *user_data,
+			  int video_width, int video_height, 
 			  int *dest_width, int *dest_height);
 
   /*
@@ -78,7 +81,8 @@ typedef struct {
    * preserving aspect ration and stuff). 
    */
 
-  void (*request_dest_size) (int video_width, int video_height,
+  void (*request_dest_size) (void *user_data,
+			     int video_width, int video_height,
 			     int *dest_x, int *dest_y, 
 			     int *dest_width, int *dest_height);
 

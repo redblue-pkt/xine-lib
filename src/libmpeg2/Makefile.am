@@ -16,6 +16,7 @@ xineplug_decode_mpeg2_la_SOURCES = slice.c header.c stats.c idct.c \
 	motion_comp.c decode.c idct_mmx.c motion_comp_mmx.c \
 	idct_mlib.c motion_comp_mlib.c xine_decoder.c
 xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module
+xineplug_decode_mpeg2_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 
 noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h 
 

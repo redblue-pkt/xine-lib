@@ -21,36 +21,43 @@ lib_LTLIBRARIES = $(ogg_module) xineplug_dmx_avi.la \
 	xineplug_dmx_qt.la xineplug_dmx_asf.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
-xineplug_dmx_ogg_la_LIBADD = @OGG_LIBS@
+xineplug_dmx_ogg_la_LIBADD = @OGG_LIBS@ $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_ogg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_avi_la_SOURCES = demux_avi.c
+xineplug_dmx_avi_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_avi_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_block_la_SOURCES = demux_mpeg_block.c
+xineplug_dmx_mpeg_block_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la $(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_mpeg_block_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_la_SOURCES = demux_mpeg.c
+xineplug_dmx_mpeg_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_mpeg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_audio_la_SOURCES = demux_mpgaudio.c
-xineplug_dmx_mpeg_audio_la_LIBADD = -lm
+xineplug_dmx_mpeg_audio_la_LIBADD = -lm $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_mpeg_audio_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_elem_la_SOURCES = demux_elem.c
+xineplug_dmx_mpeg_elem_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_pes_la_SOURCES = demux_pes.c
+xineplug_dmx_mpeg_pes_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_mpeg_pes_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
+xineplug_dmx_mpeg_ts_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_qt_la_SOURCES = demux_qt.c
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
-xineplug_dmx_qt_la_LIBADD = -lz
+xineplug_dmx_qt_la_LIBADD = -lz $(top_builddir)/src/xine-utils/libxineutils.la
 
 xineplug_dmx_asf_la_SOURCES = demux_asf.c
+xineplug_dmx_asf_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = demux.h

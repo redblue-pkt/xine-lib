@@ -27,10 +27,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "xine_internal.h"
-#include "cpu_accel.h"
 #include "deinterlace.h"
 #include "memcpy.h"
 
+#include "cpu_accel.c"
+#include "memcpy.c"
 
 /*
    DeinterlaceFieldBob algorithm
@@ -329,15 +330,17 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       psubsw_r2r ( mm4, mm5 );  // mm5 = Oold - O
       psraw_i2r ( 1, mm5 ); // XXX
       pmullw_r2r ( mm5, mm5 );  // mm5 = (Oold - O) ^ 2
-      psubusw_r2r ( mm5, mm3 ); // mm0 = TT - (Oold - O) ^ 2, or 0 if that's negative
+      psubusw_r2r ( mm5, mm3 ); /* mm0 = TT - (Oold - O) ^ 2, or 0 if that's negative */
       paddusw_r2r ( mm3, mm7 ); // mm7 = our magic number
 
-      // Now compare the similarity totals against our threshold.  The pcmpgtw
-      // instruction will populate the target register with a bunch of mask bits,
-      // filling words where the comparison is true with 1s and ones where it's
-      // false with 0s.  A few ANDs and NOTs and an OR later, we have bobbed
-      // values for pixels under the similarity threshold and weaved ones for
-      // pixels over the threshold.
+      /*
+       * Now compare the similarity totals against our threshold.  The pcmpgtw
+       * instruction will populate the target register with a bunch of mask bits,
+       * filling words where the comparison is true with 1s and ones where it's
+       * false with 0s.  A few ANDs and NOTs and an OR later, we have bobbed
+       * values for pixels under the similarity threshold and weaved ones for
+       * pixels over the threshold.
+       */
 
       pcmpgtw_m2r( *&qwThreshold, mm7 ); // mm7 = 0xffff where we're greater than the threshold, 0 elsewhere
       movq_r2r ( mm7, mm6 );  // mm6 = 0xffff where we're greater than the threshold, 0 elsewhere
@@ -521,7 +524,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     }
   }
 
-  // Copy last odd line if we're processing an Odd field.
+  /* Copy last odd line if we're processing an Odd field. */
   if (IsOdd)
   {
     fast_memcpy(pdst + (height * 2 - 1) * LineLength,
@@ -529,7 +532,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
                       LineLength);
   }
 
-  // clear out the MMX registers ready for doing floating point again
+  /* clear out the MMX registers ready for doing floating point again */
   emms();
 
 #endif
@@ -559,8 +562,11 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
   static mmx_t Mask = {ub:{0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe}};
 
-  // copy first even line no matter what, and the first odd line if we're
-  // processing an odd field.
+  /*
+   * copy first even line no matter what, and the first odd line if we're
+   * processing an odd field.
+   */
+
   fast_memcpy(pdst, pEvenLines, LineLength);
   if (IsOdd)
     fast_memcpy(pdst + LineLength, pOddLines, LineLength);
@@ -601,7 +607,7 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     }
   }
 
-  // Copy last odd line if we're processing an even field.
+  /* Copy last odd line if we're processing an even field. */
   if (! IsOdd)
   {
     fast_memcpy(pdst + (height * 2 - 1) * LineLength,
@@ -609,8 +615,9 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
                       LineLength);
   }
 
-  // clear out the MMX registers ready for doing floating point
-  // again
+  /* clear out the MMX registers ready for doing floating point
+   * again
+   */
   emms();
 #endif
 }

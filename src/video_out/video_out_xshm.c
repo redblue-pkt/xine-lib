@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.47 2001/10/20 13:40:20 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.48 2001/10/22 00:52:10 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -137,13 +137,17 @@ typedef struct xshm_driver_s {
   /* profiler */
   int		   prof_yuv2rgb;
 
+  void            *user_data;
+
   /* gui callbacks */
 
-  void (*request_dest_size) (int video_width, int video_height,
+  void (*request_dest_size) (void *user_data,
+			     int video_width, int video_height,
 			     int *dest_x, int *dest_y, 
 			     int *dest_height, int *dest_width);
 
-  void (*calc_dest_size) (int video_width, int video_height, 
+  void (*calc_dest_size) (void *user_data,
+			  int video_width, int video_height, 
 			  int *dest_width, int *dest_height);
 
 } xshm_driver_t;
@@ -445,7 +449,8 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
     this->output_height  = this->delivered_height;
     this->ratio_factor   = 1.0;
 
-    this->calc_dest_size (this->output_width, this->output_height,
+    this->calc_dest_size (this->user_data,
+			  this->output_width, this->output_height,
 			  &dest_width, &dest_height);
 
   } else {
@@ -528,7 +533,8 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
         ideal_height != this->delivered_height )
       ideal_width &= ~7;
 
-    this->calc_dest_size (ideal_width, ideal_height,
+    this->calc_dest_size (this->user_data,
+			  ideal_width, ideal_height,
 			  &dest_width, &dest_height);
 
     /*
@@ -776,7 +782,8 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       xprintf (VIDEO, "video_out_xshm: requesting dest size of %d x %d \n",
 	       frame->rgb_width, frame->rgb_height);
 
-      this->request_dest_size (frame->rgb_width, frame->rgb_height, 
+      this->request_dest_size (this->user_data,
+			       frame->rgb_width, frame->rgb_height, 
 			       &this->dest_x, &this->dest_y, 
 			       &this->gui_width, &this->gui_height);
       /* for fullscreen modes, clear unused areas of old video area */
@@ -1174,6 +1181,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->display_ratio	    = visual->display_ratio;
   this->request_dest_size   = visual->request_dest_size;
   this->calc_dest_size	    = visual->calc_dest_size;
+  this->user_data           = visual->user_data;
   this->output_width	    = 0;
   this->output_height	    = 0;
   this->output_scale_factor = 1.0;

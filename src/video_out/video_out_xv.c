@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.69 2001/10/15 12:20:01 jkeil Exp $
+ * $Id: video_out_xv.c,v 1.70 2001/10/22 00:52:10 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -51,7 +51,6 @@
 #include <string.h>
 
 #include "monitor.h"
-#include "utils.h"
 #include "video_out.h"
 #include "video_out_x11.h"
 #include "xine_internal.h"
@@ -131,9 +130,12 @@ typedef struct {
   double             display_ratio;        /* given by visual parameter
 					      from init function              */
 
+  void              *user_data;
+
   /* gui callback */
 
-  void             (*request_dest_size) (int video_width, int video_height,
+  void             (*request_dest_size) (void *user_data,
+					 int video_width, int video_height,
 					 int *dest_x, int *dest_y,
 					 int *dest_height, int *dest_width);
 
@@ -331,7 +333,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 
     char *data;
 
-    data = xmalloc (width * height * 3/2);
+    data = malloc (width * height * 3/2);
 
     image = XvCreateImage (this->display, this->xv_port,
 			   xv_format, data, width, height);
@@ -605,7 +607,8 @@ static void xv_calc_format (xv_driver_t *this,
    * ask gui to adapt to this size
    */
 
-  this->request_dest_size (ideal_width, ideal_height,
+  this->request_dest_size (this->user_data,
+			   ideal_width, ideal_height,
 			   &dest_x, &dest_y, &dest_width, &dest_height);
 
   xv_adapt_to_output_area (this, dest_x, dest_y, dest_width, dest_height);
@@ -1025,6 +1028,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->screen            = visual->screen;
   this->display_ratio     = visual->display_ratio;
   this->request_dest_size = visual->request_dest_size;
+  this->user_data         = visual->user_data;
   this->output_xoffset    = 0;
   this->output_yoffset    = 0;
   this->output_width      = 0;
