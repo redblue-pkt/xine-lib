@@ -29,6 +29,10 @@
 #include "attributes.h"
 #include "xineutils.h"
 
+/*
+#define	LOG
+*/
+
 #ifdef ARCH_X86
 static uint32_t arch_accel (void)
 {
@@ -112,7 +116,6 @@ static uint32_t arch_accel (void)
 static jmp_buf sigill_return;
 
 static void sigill_handler (int n) {
-  printf ("cpu_accel: OS doesn't support SSE instructions.\n");
   longjmp(sigill_return, 1);
 }
 #endif /* ARCH_X86 */
@@ -164,13 +167,20 @@ uint32_t xine_mm_accel (void)
 #ifdef ARCH_X86
     /* test OS support for SSE */
     if( accel & MM_ACCEL_X86_SSE ) {
+      void (*old_sigill_handler)(int);
+
+      old_sigill_handler = signal (SIGILL, sigill_handler); 
+
       if (setjmp(sigill_return)) {
+#ifdef LOG
+	printf ("cpu_accel: OS doesn't support SSE instructions.\n");
+#endif
 	accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
       } else {
-	signal (SIGILL, sigill_handler); 
 	__asm__ volatile ("xorps %xmm0, %xmm0");
-	signal (SIGILL, SIG_DFL);
       }
+
+      signal (SIGILL, old_sigill_handler);
     }
 #endif /* ARCH_X86 */
     
