@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.24 2001/10/28 11:43:58 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.25 2001/10/28 14:44:11 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -320,8 +320,8 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 	/* Act like other plugins... keeps metronom in check :) */
 	if(buf->type == BUF_VIDEO_FILL) {
-	vo_frame_t *img;
-	    img = this->video_out->get_frame (this->video_out,
+	    	vo_frame_t *img;
+	    	img = this->video_out->get_frame (this->video_out,
                              this->width,
                              this->height,
                              this->aspect,
@@ -329,7 +329,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              this->duration,
                              VO_BOTH_FIELDS);
 
-		img->draw(img);
+	        img->draw(img);
 	 	img->free(img);
 		return;
 	}
@@ -354,6 +354,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		 strerror(errno));
 		return;
 	}
+	
 	if (written != buf->size)
 		fprintf(stderr, "dxr3: Could only write %d of %d video bytes.\n",
 		 written, buf->size);

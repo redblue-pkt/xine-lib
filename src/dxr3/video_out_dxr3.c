@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.16 2001/10/28 11:14:39 mlampard Exp $
+ * $Id: video_out_dxr3.c,v 1.17 2001/10/28 14:44:11 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -95,7 +95,6 @@ static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
                
   return aligned;
 }
-
 
 static int dxr3_set_property (vo_driver_t *this_gen, int property, int value);
 
@@ -177,25 +176,24 @@ void dxr3_read_config(dxr3_driver_t *this)
 	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
 			fprintf(stderr, "dxr3_vo: setting video mode failed.");
-
 }
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
 	/* Since we have no vo format, we return dummy values here */
-	return VO_CAP_YV12 | IMGFMT_YUY2 | IMGFMT_RGB |
+	return VO_CAP_YV12 | IMGFMT_YUY2 | 
 		VO_CAP_SATURATION | VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST;
 }
 
 /* This are dummy functions to fill in the frame object */
 static void dummy_frame_copy (vo_frame_t *vo_img, uint8_t **src)
 {
-	fprintf(stderr, "dxr3_vo: dummy_frame_copy called!\n");
+	fprintf(stderr, "dxr3_vo: This plugin doesn't play non-mpeg video!\n");
 }
 
 static void dummy_frame_field (vo_frame_t *vo_img, int which_field)
 {
-	fprintf(stderr, "dxr3_vo: dummy_frame_field called!\n");
+	fprintf(stderr, "dxr3_vo: This plugin doesn't play non-mpeg video!\n");
 }
 
 static void dummy_frame_dispose (vo_frame_t *frame_gen)
@@ -224,7 +222,6 @@ static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
         
 	return (vo_frame_t*) frame;
 }
-
 
 static void dxr3_update_frame_format (vo_driver_t *this_gen,
 				      vo_frame_t *frame_gen,
@@ -278,9 +275,9 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 	   frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, 
 	   		(void**) &frame->mem[2]);
 	}else if (format == IMGFMT_YUY2) {
-	   printf("DXR3_Overlay: this plugin doesn't support AVIs\n");
-	   printf("DXR3_Overlay: Exiting......");
-	   exit(1);
+      	   frame->vo_frame.base[0] = malloc_aligned(16, image_size*2,
+      	   		 (void**)&frame->mem[0]);
+           frame->vo_frame.base[1] = frame->vo_frame.base[2] = 0;
 	}
       }
 }
