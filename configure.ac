@@ -1908,6 +1908,12 @@ AC_CHECK_PROG(SGMLTOOLS, sgmltools, sgmltools, no)
 AC_CHECK_PROG(FIG2DEV, fig2dev, fig2dev, no)
 
 
+dnl --------------------------
+dnl Newest automake workaround
+dnl --------------------------
+AC_SUBST(mkdir_p)
+
+
 dnl ---------------------------------------------
 dnl Output configuration files
 dnl ---------------------------------------------
