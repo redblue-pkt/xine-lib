@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.138 2003/11/09 01:40:37 tmattern Exp $
+ * $Id: demux_asf.c,v 1.139 2003/11/09 14:32:04 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -62,6 +62,13 @@
 
 #define PTS_AUDIO 0
 #define PTS_VIDEO 1
+
+#define ASF_MODE_NORMAL            0
+#define ASF_MODE_ASX_REF           1
+#define ASF_MODE_HTTP_REF          2
+#define ASF_MODE_ASF_REF           3
+#define ASF_MODE_ENCRYPTED_CONTENT 4
+
 
 typedef struct {
   int               num;
@@ -150,7 +157,7 @@ typedef struct demux_asf_s {
   /* first packet position */
   int64_t           first_packet_pos;
 
-  int               reference_mode;
+  int               mode;
   
 } demux_asf_t ;
 
@@ -426,11 +433,15 @@ static int asf_read_header (demux_asf_t *this) {
           flags = get_le16(this);
           stream_id = flags & 0x7F; /* stream id */
           if (flags & 0x8000) {
+            /* Encrypted stream 
+             * Parse the end of the header but do not demux the stream. 
+             */
             xine_log(this->stream->xine, XINE_LOG_MSG,
                          _("demux_asf: warning: The stream id=%d is encrypted\n."),
                          stream_id);
             xine_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE,
                          _("Media stream scrambled/encrypted"), NULL);
+            this->mode = ASF_MODE_ENCRYPTED_CONTENT;
           }
 
           get_le32(this);
@@ -1773,18 +1784,19 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
   uint8_t  raw_id = 0;
   int64_t  ts = 0;
   
-  switch (this->reference_mode) {
-    case 1:
+  switch (this->mode) {
+    case ASF_MODE_ASX_REF:
       return demux_asf_parse_asx_references(this);
-      break;
 
-    case 2:
+    case ASF_MODE_HTTP_REF:
       return demux_asf_parse_http_references(this);
-      break;
 
-    case 3:
+    case ASF_MODE_ASF_REF:
       return demux_asf_parse_asf_references(this);
-      break;
+
+    case ASF_MODE_ENCRYPTED_CONTENT:
+      this->status = DEMUX_FINISHED;
+      return this->status;
 
     default:
     
@@ -1851,7 +1863,9 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   if (this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE)
     this->input->seek (this->input, 0, SEEK_SET);
 
-  if (this->reference_mode) {
+  if ((this->mode == ASF_MODE_ASX_REF) ||
+      (this->mode == ASF_MODE_HTTP_REF) ||
+      (this->mode == ASF_MODE_ASF_REF)) {
     xine_demux_control_start(this->stream);
     return;
   }
@@ -1891,7 +1905,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
 
   this->status = DEMUX_OK;
  
-  if (this->reference_mode) {
+  if (this->mode != ASF_MODE_NORMAL) {
     return this->status;
   }
   
@@ -2148,7 +2162,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   /*
    * check for reference stream
    */
-  this->reference_mode = 0;
+  this->mode = ASF_MODE_NORMAL;
   len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
   if ( (len == INPUT_OPTIONAL_UNSUPPORTED) &&
        (input->get_capabilities (input) & INPUT_CAP_SEEKABLE) ) {
@@ -2158,11 +2172,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   if(len > 0) {
     buf[len] = '\0';
     if( strstr(buf,"asx") || strstr(buf,"ASX") )
-      this->reference_mode = 1;
+      this->mode = ASF_MODE_ASX_REF;
     if( strstr(buf,"[Reference]") )
-      this->reference_mode = 2;
+      this->mode = ASF_MODE_HTTP_REF;
     if( strstr(buf,"ASF ") )
-      this->reference_mode = 3;
+      this->mode = ASF_MODE_ASF_REF;
   }
 
   this->demux_plugin.send_headers      = demux_asf_send_headers;
