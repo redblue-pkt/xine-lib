@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.123 2002/05/01 19:42:57 guenter Exp $
+ * $Id: xine.c,v 1.124 2002/05/02 01:44:44 siggi Exp $
  *
  * top-level xine functions
  *
@@ -56,15 +56,25 @@
 #include "xineutils.h"
 #include "compat.h"
 
+static char *logo_mrl= XINE_SKINDIR "/xine_logo.mpg";
+#define LOGO_DELAY 500000 /* usec */
+
 void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_t *this = this_gen;
   xine_event_t event;
 
   xine_stop_internal (this);
 
-  event.type = XINE_EVENT_PLAYBACK_FINISHED;
+  if (strcmp(this->cur_mrl, logo_mrl)) {
 
-  xine_send_event (this, &event);
+    event.type = XINE_EVENT_PLAYBACK_FINISHED;
+    xine_send_event (this, &event);
+
+    xine_usec_sleep (LOGO_DELAY);
+    if (this->status == XINE_STOP) {
+      xine_play(this, logo_mrl, 0, 0);
+    }
+  }
 
   pthread_detach( pthread_self() );
 
@@ -213,6 +223,7 @@ void xine_stop_internal (xine_t *this) {
   printf ("xine_stop: done\n");
 
   pthread_mutex_unlock (&this->xine_lock);
+
 }
 
 void xine_stop (xine_t *this) {
@@ -224,6 +235,9 @@ void xine_stop (xine_t *this) {
   */
   this->metronom->adjust_clock(this->metronom,
 			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+
+  xine_play(this, logo_mrl,0,0);
+
 }
 
 
@@ -612,6 +626,7 @@ xine_t *xine_init (vo_driver_t *vo,
     this->osd_renderer->hide (this->osd, 300000);
   }
 
+  xine_play(this, logo_mrl,0,0);
 
   return this;
 }
