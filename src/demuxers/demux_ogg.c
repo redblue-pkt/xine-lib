@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.92 2003/05/04 16:38:22 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.93 2003/05/04 17:29:36 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1174,7 +1174,6 @@ static void demux_ogg_dispose (demux_plugin_t *this_gen) {
   int i;
 
   for (i=0; i<this->num_streams; i++) {
-    printf ("freeing stream %d\n",i);
     ogg_stream_clear(&this->oss[i]);
   }
 
