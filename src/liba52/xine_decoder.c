@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2003/01/03 22:38:30 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.47 2003/01/07 16:56:17 f1rmb Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -474,6 +474,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->a52_bit_rate;
 		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = this->a52_sample_rate;
+		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 	      }
 	    } else {
 	      this->sync_todo = 7;

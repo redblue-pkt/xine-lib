@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.113 2003/01/03 23:18:13 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.114 2003/01/07 16:56:19 f1rmb Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -314,6 +314,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->yuv_supported=1;
     this->driver_type = DRIVER_DS;
     this->guid=&msmpeg4_clsid;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("MS MPEG-4 V1/V2 (win32)");
     return "mpg4ds32.ax";    
@@ -323,6 +324,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->yuv_supported=1;
     this->yuv_hack_needed=1;
     this->flipped=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("MS MPEG-4 V3 (win32)");
     return "divxc32.dll";
@@ -331,6 +333,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     /* Video in Indeo Video 5 format */
     this->yuv_supported=1;   /* YUV pic is upside-down :( */
     this->flipped=0;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("Indeo Video 5 (win32)");
     return "ir50_32.dll";
@@ -338,6 +341,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   case BUF_VIDEO_IV41:
     /* Video in Indeo Video 4.1 format */
     this->flipped=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("Indeo Video 4.1 (win32)");
     return "ir41_32.dll";
@@ -345,6 +349,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   case BUF_VIDEO_IV32:
     /* Video in Indeo Video 3.2 format */
     this->flipped=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("Indeo Video 3.2 (win32)");
     return "ir32_32.dll";
@@ -352,6 +357,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   case BUF_VIDEO_IV31:
     /* Video in Indeo Video 3.1 format */
     this->flipped=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("Indeo Video 3.1 (win32)");
     return "ir32_32.dll";
@@ -360,6 +366,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     /* Video in Cinepak format */
     this->flipped=1;
     this->yuv_supported=0;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("Cinepak (win32)");
     return "iccvid.dll";
@@ -373,6 +380,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   case BUF_VIDEO_ATIVCR2:
     /* Video in ATI VCR2 format */
     this->yuv_supported=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("ATI VCR2 (win32)");
     return "ativcr2.dll";
@@ -381,6 +389,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     /* Video in I263 format */
     this->flipped=1;
     this->yuv_supported=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("I263 (win32)");
     return "i263_32.drv";
@@ -390,6 +399,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     /* note: can't play streams with 8bpp */
     this->flipped=1;
     this->yuv_supported=0;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("MS Windows Video 1 (win32)");
     return "msvidc32.dll";    
@@ -399,6 +409,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->yuv_supported=1;
     this->driver_type = DRIVER_DS;
     this->guid=&dvsd_clsid;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("Sony DV (win32)");
     return "qdv.dll";    
@@ -407,6 +418,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->yuv_supported=1;
     this->driver_type = DRIVER_DS;
     this->guid=&wmv1_clsid;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("MS WMV 7 (win32)");
     return "wmvds32.ax";    
@@ -415,6 +427,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->yuv_supported=1;
     this->driver_type = DRIVER_DS;
     this->guid=&wmv2_clsid;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("MS WMV 8 (win32)");
     return "wmv8ds32.ax";    
@@ -423,6 +436,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->yuv_supported=1;
     this->driver_type = DRIVER_DMO;
     this->guid=&wmv3_clsid;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("MS WMV 9 (win32)");
     return "wmv9dmod.dll";    
@@ -431,6 +445,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->yuv_supported=1;
     this->ex_functions=1;
     this->flipped=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("VP 31 (win32)");
     return "vp31vfw.dll";    
@@ -438,6 +453,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   case BUF_VIDEO_MSS1:
     this->driver_type = DRIVER_DS;
     this->guid=&mss1_clsid;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("Windows Screen Video (win32)");
     return "msscds32.ax";    
@@ -445,12 +461,14 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   case BUF_VIDEO_TSCC:
     this->flipped=1;
     this->yuv_supported=0;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("TechSmith Screen Capture Codec (win32)");
     return "tsccvid.dll";    
     
   case BUF_VIDEO_UCOD:
     this->yuv_supported=1;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("ClearVideo (win32)");
     return "clrviddd.dll";    
@@ -989,52 +1007,63 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
 
   switch (buf_type) {
   case BUF_AUDIO_WMAV1:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Windows Media Audio v1 (win32)");
     return "divxa32.acm";
   case BUF_AUDIO_WMAV2:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Windows Media Audio v2 (win32)");
     return "divxa32.acm";
   case BUF_AUDIO_WMAV3:
     this->driver_type = DRIVER_DMO;
     this->guid=&wma3_clsid;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Windows Media Audio v3 (win32)");
     return "wma9dmod.dll";
   case BUF_AUDIO_MSADPCM:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("MS ADPCM (win32)");
     return "msadp32.acm";
   case BUF_AUDIO_MSIMAADPCM:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("MS IMA ADPCM (win32)");
     return "imaadp32.acm";
   case BUF_AUDIO_MSGSM:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("MS GSM (win32)");
     return "msgsm32.acm";
   case BUF_AUDIO_IMC:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Intel Music Coder (win32)");
     return "imc32.acm";
   case BUF_AUDIO_LH:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Lernout & Hauspie (win32)");
     return "lhacm.acm";
   case BUF_AUDIO_VOXWARE:
     this->driver_type = DRIVER_DS;
     this->guid=&CLSID_Voxware;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Voxware Metasound (win32)");
     return "voxmsdec.ax";
   case BUF_AUDIO_ACELPNET:
     this->driver_type = DRIVER_DS;
     this->guid=&CLSID_Acelp;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("ACELP.net (win32)");
     return "acelpdec.ax";
   case BUF_AUDIO_VIVOG723:
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Vivo G.723/Siren Audio Codec (win32)");
     return "vivog723.acm";
