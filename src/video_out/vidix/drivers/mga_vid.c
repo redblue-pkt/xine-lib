@@ -120,7 +120,7 @@ static int mga_next_frame = 0;
 static vidix_capability_t mga_cap =
 {
 #ifdef CRTC2
-    "Matrox MGA G200/G4x0/G5x0 YUV Video - with TV-out (second-head) support",
+    "Matrox MGA G200/G4x0/G5x0 YUV Video - with second-head support",
 #else    
     "Matrox MGA G200/G4x0/G5x0 YUV Video",
 #endif
