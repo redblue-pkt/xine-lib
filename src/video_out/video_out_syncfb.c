@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.60 2002/04/02 11:53:54 jkeil Exp $
+ * $Id: video_out_syncfb.c,v 1.61 2002/04/03 15:34:17 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -386,28 +386,28 @@ static void syncfb_frame_dispose (vo_frame_t *vo_img)
   free (frame);
 }
 
-static vo_frame_t *syncfb_alloc_frame(vo_driver_t *this_gen)
+static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
 {
-  syncfb_frame_t     *frame ;
+  syncfb_frame_t* frame;
   
-  frame = (syncfb_frame_t *) malloc (sizeof (syncfb_frame_t));
-  memset (frame, 0, sizeof(syncfb_frame_t));
+  frame = (syncfb_frame_t *) malloc(sizeof(syncfb_frame_t));
 
-  if (frame==NULL) {
-    printf ("syncfb_alloc_frame: out of memory\n");
+  if(frame==NULL) {
+    printf ("video_out_syncfb: error. (frame allocation failed: out of memory)\n");
+  } else {
+    memset (frame, 0, sizeof(syncfb_frame_t));
+    pthread_mutex_init (&frame->vo_frame.mutex, NULL);
+
+    /*
+     * supply required functions
+     */
+
+    frame->vo_frame.copy    = NULL;
+    frame->vo_frame.field   = syncfb_frame_field;
+    frame->vo_frame.dispose = syncfb_frame_dispose;
+
+    frame->vo_frame.driver  = this_gen;
   }
-
-  pthread_mutex_init (&frame->vo_frame.mutex, NULL);
-
-  /*
-   * supply required functions
-   */
-
-  frame->vo_frame.copy    = NULL;
-  frame->vo_frame.field   = syncfb_frame_field;
-  frame->vo_frame.dispose = syncfb_frame_dispose;
-
-  frame->vo_frame.driver  = this_gen;
 
   return (vo_frame_t *) frame;
 }
