@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2002/11/22 23:37:40 guenter Exp $
+ * $Id: xine_decoder.c,v 1.6 2002/11/25 01:14:26 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -112,14 +112,14 @@ static void hexdump (char *buf, int length) {
   }
   printf ("\n");
 
-  printf ("libreal: complete hexdump of package follows:\nlibreal:  ");
+  printf ("libreal: complete hexdump of package follows:\nlibreal 0x0000:  ");
   for (i = 0; i < length; i++) {
     unsigned char c = buf[i];
 
     printf ("%02x", c);
 
     if ((i % 16) == 15)
-      printf ("\nlibreal: ");
+      printf ("\nlibreal 0x%04x: ", i+1);
 
     if ((i % 2) == 1)
       printf (" ");
@@ -215,8 +215,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	printf ("libreal: got %d chunks in buffer and new frame is starting\n",
 		this->num_chunks);
 
-	this->chunk_tab[0]      = this->num_chunks;
-
 	img = this->stream->video_out->get_frame (this->stream->video_out,
 						  /* this->av_picture.linesize[0],  */
 						  this->width,
@@ -253,6 +251,9 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	printf ("libreal: transform_in:\n");
 	hexdump (transform_in, 6*4);
 	
+	printf ("libreal: chunk_table:\n");
+	hexdump (this->chunk_tab, this->num_chunks*8+8);
+	
 	result = cls->rvyuv_transform (this->chunk_buffer, 
 				       this->frame_buffer, 
 				       transform_in,
@@ -279,6 +280,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
       memcpy (this->chunk_buffer, buf->content, buf->size);
 
       this->chunk_buffer_size = buf->size;
+      this->chunk_tab[0]      = 1;
       this->chunk_tab[1]      = 0;
       this->num_chunks        = 1;
 
@@ -295,9 +297,10 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
       
       memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
 
+      this->chunk_tab[2*this->num_chunks]    = 1;
+      this->chunk_tab[2*this->num_chunks+1]  = this->chunk_buffer_size; 
       this->num_chunks++;
-      this->chunk_tab[this->num_chunks]  = this->chunk_buffer_size;
-      this->chunk_buffer_size           += buf->size;
+      this->chunk_buffer_size               += buf->size;
 
       if (buf->pts)
 	this->pts = buf->pts;
