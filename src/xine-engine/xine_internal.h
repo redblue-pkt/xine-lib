@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.145 2003/11/11 18:45:02 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.146 2003/11/15 14:54:31 miguelfreitas Exp $
  *
  */
 
@@ -29,11 +29,6 @@ extern "C" {
 #endif
 
 #include <inttypes.h>
-
-#ifndef EXTRA_INFO
-#define EXTRA_INFO
-typedef struct extra_info_s extra_info_t;
-#endif
 
 /*
  * include public part of xine header
@@ -120,26 +115,6 @@ struct xine_s {
 };
 
 /*
- * extra_info_t is used to pass information from input or demuxer plugins
- * to output frames (past decoder). new data must be added after the existing
- * fields for backward compatibility.
- */
-  
-struct extra_info_s {
-
-  off_t                 input_pos; /* remember where this buf came from in the input source */
-  off_t                 input_length; /* remember the length of the input source */
-  int                   input_time;/* time offset in miliseconds from beginning of stream       */
-  uint32_t              frame_number; /* number of current frame if known */
-  
-  int                   seek_count; /* internal engine use */
-  int64_t               vpts;       /* set on output layers only */ 
-  
-  int                   invalid;    /* do not use this extra info to update anything */
-  int                   total_time; /* duration in miliseconds of the stream */
-};
-
-/*
  * xine event queue
  */
 
@@ -158,35 +133,70 @@ struct xine_event_queue_s {
  */
 
 struct xine_stream_s {
-  
+ 
+  /* reference to xine context */
   xine_t                    *xine;
 
+  /* metronom instance used by current stream */  
+  metronom_t                *metronom;
+  
+  /* demuxers use input_plugin to read data */
+  input_plugin_t            *input_plugin;
+  
+  /* current content detection method, see METHOD_BY_xxx */
+  int                        content_detection_method;
+
+  /* used by video decoders */
+  xine_video_port_t         *video_out;
+  
+  /* demuxers send data to video decoders using this fifo */
+  fifo_buffer_t             *video_fifo;
+  
+  /* used by audio decoders */
+  xine_audio_port_t         *audio_out;
+  
+  /* demuxers send data to audio decoders using this fifo */
+  fifo_buffer_t             *audio_fifo;
+
+  /* input_dvd uses this one. is it possible to add helper functions instead? */
+  spu_decoder_t             *spu_decoder_plugin;
+    
+  /* may we change osd api to make this private? */
+  osd_renderer_t            *osd_renderer;
+  
+  /* dxr3 use this one, should be possible to fix to use the port instead */
+  vo_driver_t               *video_driver;
+  
+  /* michael will move this one to metronom i think */
+  int64_t                    metronom_prebuffer;
+  
+  /* spudec uses this one. (should be checked) */
+  xine_stream_t             *master;
+
+  /* these definitely should be made private! */
+  int                        audio_channel_auto;
+  int                        spu_decoder_streamtype;
+  int                        spu_channel_user;
+  int                        spu_channel_auto;
+  int                        spu_channel_letterbox;
+  int                        spu_channel;
+  int                        demux_action_pending;
+    
+#ifdef XINE_ENGINE_INTERNAL
+  /* these are private variables, plugins must not access them */
+  
   int                        status;
 
-  input_plugin_t            *input_plugin;
   input_class_t             *eject_class;
-  int                        content_detection_method;
   demux_plugin_t            *demux_plugin;
 
-  metronom_t                *metronom;
-
-  xine_video_port_t         *video_out;
-  vo_driver_t               *video_driver;
-  fifo_buffer_t             *video_fifo;
+/*  vo_driver_t               *video_driver;*/
   pthread_t                  video_thread;
   video_decoder_t           *video_decoder_plugin;
   int                        video_decoder_streamtype;
   extra_info_t              *video_decoder_extra_info;
   int                        video_channel;
   
-  xine_audio_port_t         *audio_out;
-  fifo_buffer_t             *audio_fifo;
-  /* FIXME: the next member appears to be unused. Should it be removed? */
-#if 0
-  lrb_t                     *audio_temp;
-#else
-  void                      *audio_temp;
-#endif
   pthread_t                  audio_thread;
   audio_decoder_t           *audio_decoder_plugin;
   int                        audio_decoder_streamtype;
@@ -199,28 +209,20 @@ struct xine_stream_s {
 	    >=0 => respect the user's choice
   */
   int                        audio_channel_user;
-  int                        audio_channel_auto;
+/*  int                        audio_channel_auto; */
 
-  /* FIXME: remove these two members on the next structure cleanup,
-   * they are unused */
-  void                      *spu_out;
-  pthread_t                  spu_thread;
-  
-  spu_decoder_t             *spu_decoder_plugin;
-  int                        spu_decoder_streamtype;
+/*  spu_decoder_t             *spu_decoder_plugin; */
+/*  int                        spu_decoder_streamtype; */
   uint32_t                   spu_track_map[50];
   int                        spu_track_map_entries;
-  int                        spu_channel_user;
-  int                        spu_channel_auto;
-  int                        spu_channel_letterbox;
+/*  int                        spu_channel_user; */
+/*  int                        spu_channel_auto; */
+/*  int                        spu_channel_letterbox; */
   int                        spu_channel_pan_scan;
-  int                        spu_channel;
+/*  int                        spu_channel; */
 
   /* lock for public xine player functions */
   pthread_mutex_t            frontend_lock;
-
-  pthread_mutex_t            osd_lock;
-  osd_renderer_t            *osd_renderer;
 
   /* stream meta information */
   int                        stream_info[XINE_STREAM_INFO_MAX];
@@ -228,7 +230,7 @@ struct xine_stream_s {
 
   
   /* master/slave streams */
-  xine_stream_t             *master;
+/*  xine_stream_t             *master; */
   xine_stream_t             *slave;
   
   /* seeking slowdown */
@@ -252,7 +254,7 @@ struct xine_stream_s {
   pthread_t                  demux_thread;
   int                        demux_thread_running;
   pthread_mutex_t            demux_lock;
-  int                        demux_action_pending;
+/*  int                        demux_action_pending; */
 
   extra_info_t              *current_extra_info;
   pthread_mutex_t            current_extra_info_lock;
@@ -274,8 +276,8 @@ struct xine_stream_s {
   pthread_cond_t             next_video_port_wired;
   pthread_cond_t             next_audio_port_wired;
 
-  int64_t                    metronom_prebuffer;
   broadcaster_t             *broadcaster;
+#endif
 };
 
 
@@ -338,6 +340,8 @@ int _x_demux_read_header           (input_plugin_t *input, unsigned char *buffer
 int _x_demux_check_extension       (char *mrl, char *extensions);
 
 off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo);
+
+int _x_action_pending (xine_stream_t *stream);
 
 /* 
  * plugin_loader functions

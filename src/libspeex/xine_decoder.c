@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2003/11/15 13:01:15 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.3 2003/11/15 14:54:31 miguelfreitas Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -241,8 +241,8 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	this->rate = spx_header->rate;
 	speex_decoder_ctl (this->st, SPEEX_SET_SAMPLING_RATE, &this->rate);
-	this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE]
-	  = this->rate;
+	xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+	  this->rate);
 
 	this->channels = spx_header->nb_channels;
 	if (this->channels == 2) {
@@ -261,7 +261,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	speex_decoder_ctl (this->st, SPEEX_GET_BITRATE, &bitrate);
 	if (bitrate <= 1) bitrate = 16000; /* assume 16 kbit */
-	this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = bitrate;
+	xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, bitrate);
 
 	this->header_count += spx_header->extra_headers;
 	this->expect_metadata = 1;
@@ -343,7 +343,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       speex_decoder_ctl (this->st, SPEEX_GET_BITRATE, &bitrate);
       if (bitrate <= 1) bitrate = 16000; /* assume 16 kbit */
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = bitrate;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, bitrate);
 
       /*PCM saturation (just in case)*/
       for (i=0; i < this->frame_size * this->channels; i++)

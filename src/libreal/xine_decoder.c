@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.52 2003/11/15 13:01:15 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.53 2003/11/15 14:54:31 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -198,8 +198,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 	  this->width, this->width, this->height, this->height);
 #endif
   
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->width;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->height;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
 
   init_data.subformat = BE_32(&buf->content[26]);
   init_data.format    = BE_32(&buf->content[30]);
@@ -310,7 +310,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
     this->decoder_ok = init_codec (this, buf);
     if( !this->decoder_ok )
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 0;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
 
   } else if (this->decoder_ok && this->context) {
 
@@ -372,8 +372,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
 	  this->frame_size = this->width * this->height;
           
-	  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
-	  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
+	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
 	}
         
 	img = this->stream->video_out->get_frame (this->stream->video_out,
@@ -400,7 +400,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	  this->last_pts = this->pts;
 
 	img->duration  = this->duration; 
-	this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->duration;
+	xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
 	img->bad_frame = 0;
 	
 #ifdef LOG

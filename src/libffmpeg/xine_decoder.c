@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.134 2003/11/15 13:01:12 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.135 2003/11/15 14:54:30 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1487,7 +1487,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->context->block_align = audio_header->nBlockAlign;
     this->context->bit_rate = audio_header->nAvgBytesPerSec * 8;
     this->context->codec_id = this->codec->id;
-    this->context->codec_tag = this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC];
+    this->context->codec_tag = xine_get_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC);
     if( audio_header->cbSize > 0 ) {
       this->context->extradata = malloc(audio_header->cbSize);
       this->context->extradata_size = audio_header->cbSize;
@@ -1504,7 +1504,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
     if (avcodec_open (this->context, this->codec) < 0) {
       printf ("ffmpeg: couldn't open decoder\n");
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 0;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
       return;
     }
 

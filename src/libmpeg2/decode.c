@@ -910,10 +910,10 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
       data.pan_scan = mpeg2dec->force_pan_scan;
       xine_event_send(mpeg2dec->stream, &event);
 
-      mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
-        = mpeg2dec->picture->coded_picture_width;
-      mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
-        = mpeg2dec->picture->coded_picture_height;
+      xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+        mpeg2dec->picture->coded_picture_width);
+      xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+        mpeg2dec->picture->coded_picture_height);
     }
     
     if (mpeg2dec->cc_dec) {

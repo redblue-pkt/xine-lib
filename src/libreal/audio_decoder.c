@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.29 2003/11/15 13:01:14 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.30 2003/11/15 14:54:31 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -406,7 +406,7 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 
     this->decoder_ok = init_codec (this, buf) ;
     if( !this->decoder_ok )
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 0;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
 
   } else if( this->decoder_ok ) {
 

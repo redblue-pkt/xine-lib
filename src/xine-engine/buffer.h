@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.123 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: buffer.h,v 1.124 2003/11/15 14:54:31 miguelfreitas Exp $
  *
  *
  * contents:
@@ -227,11 +227,28 @@ extern "C" {
 
 #define BUF_DEMUX_BLOCK		0x05000000
 
-/* to access extra_info_t contents one have to include xine_internal.h */
-#ifndef EXTRA_INFO
-#define EXTRA_INFO
 typedef struct extra_info_s extra_info_t;
-#endif
+
+/*
+ * extra_info_t is used to pass information from input or demuxer plugins
+ * to output frames (past decoder). new data must be added after the existing
+ * fields for backward compatibility.
+ */
+  
+struct extra_info_s {
+
+  off_t                 input_pos; /* remember where this buf came from in the input source */
+  off_t                 input_length; /* remember the length of the input source */
+  int                   input_time;/* time offset in miliseconds from beginning of stream       */
+  uint32_t              frame_number; /* number of current frame if known */
+  
+  int                   seek_count; /* internal engine use */
+  int64_t               vpts;       /* set on output layers only */ 
+  
+  int                   invalid;    /* do not use this extra info to update anything */
+  int                   total_time; /* duration in miliseconds of the stream */
+};
+
 
 #define BUF_NUM_DEC_INFO 4
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2003/11/15 13:01:14 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.14 2003/11/15 14:54:30 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -133,10 +133,10 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
       case STATE_SEQUENCE:
         /* might set nb fbuf, convert format, stride */
         /* might set fbufs */
-        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE]     = info->sequence->byte_rate * 8;
-        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]     = info->sequence->picture_width;
-        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]    = info->sequence->picture_height;
-        this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]  = info->sequence->frame_period / 300;
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,   info->sequence->byte_rate * 8);
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,     info->sequence->picture_width);
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,    info->sequence->picture_height);
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,  info->sequence->frame_period / 300);
         if (this->force_aspect) info->sequence->pixel_width = this->force_aspect;
         switch (info->sequence->pixel_width) {
 	case 3:
@@ -153,7 +153,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
 	  this->ratio = (double)info->sequence->picture_width/(double)info->sequence->picture_height;
 	  break;
         }
-        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = (int)(10000*this->ratio);
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_RATIO, (int)(10000*this->ratio));
 
         if (info->sequence->flags & SEQ_FLAG_MPEG2) {
           xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "MPEG 2 (libmpeg2new)");

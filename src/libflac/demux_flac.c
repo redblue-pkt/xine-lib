@@ -362,11 +362,11 @@ demux_flac_send_headers (demux_plugin_t *this_gen) {
 
     this->status = DEMUX_OK;
 
-    this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-    this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = this->channels;
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = this->sample_rate;
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = this->bits_per_sample;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, this->channels);
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->sample_rate);
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, this->bits_per_sample);
 
     _x_demux_control_start (this->stream);
 
@@ -410,7 +410,7 @@ demux_flac_get_status (demux_plugin_t *this_gen) {
 
 
 static int 
-demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
+demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
     demux_flac_t *this = (demux_flac_t *) this_gen;
 
 #ifdef LOG
@@ -556,8 +556,6 @@ open_plugin (demux_class_t *class_gen,
     this->demux_plugin.dispose           = demux_flac_dispose;
     this->demux_plugin.get_status        = demux_flac_get_status;
     this->demux_plugin.get_stream_length = demux_flac_get_stream_length;
-    this->demux_plugin.get_video_frame   = NULL;
-    this->demux_plugin.got_video_frame_cb= NULL;
     this->demux_plugin.get_capabilities  = demux_flac_get_capabilities;
     this->demux_plugin.get_optional_data = demux_flac_get_optional_data;
     this->demux_plugin.demux_class       = class_gen;
