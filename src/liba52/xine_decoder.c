@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.49 2003/01/26 18:22:34 mroi Exp $
+ * $Id: xine_decoder.c,v 1.50 2003/02/17 22:15:22 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -174,7 +174,7 @@ static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
   }
 }
 
-static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
+static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int preview_mode) {
 
   int output_mode = AO_CAP_MODE_STEREO;
 
@@ -228,15 +228,15 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 
 
       this->output_open = this->stream->audio_out->open (this->stream->audio_out, 
-						 this->stream, 16,
-						 this->a52_sample_rate,
-						 output_mode) ;
+							 this->stream, 16,
+							 this->a52_sample_rate,
+							 output_mode) ;
       this->output_sampling_rate = this->a52_sample_rate;
       this->output_mode = output_mode;
     }
 
 
-    if (!this->output_open)
+    if (!this->output_open || preview_mode)
       return;
 
 
@@ -316,7 +316,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       this->output_mode = AO_CAP_MODE_A52;
     }
 
-    if (this->output_open) {
+    if (this->output_open && !preview_mode) {
       /* SPDIF Passthrough
        * Build SPDIF Header and encaps the A52 audio data in it.
        */
@@ -393,13 +393,11 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
-      if ((buf->decoder_flags & BUF_FLAG_PREVIEW)==0) {
-	a52dec_decode_frame (this, this->pts);
+      a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
 
 #ifdef LOG
-	printf ("liba52: decode frame\n");
+      printf ("liba52: decode frame\n");
 #endif
-      }
 
 #ifdef DEBUG_A52
       write (a52file, this->frame_buffer, this->frame_length);
