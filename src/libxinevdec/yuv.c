@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.12 2002/11/20 11:57:48 mroi Exp $
+ * $Id: yuv.c,v 1.13 2002/12/01 07:16:53 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -77,12 +77,6 @@ static void yuv_decode_data (video_decoder_t *this_gen,
   xine_bmiheader *bih;
 
   vo_frame_t *img; /* video out frame */
-
-  int c_plane_stride;
-  int c_plane_x_ptr, c_plane_y_ptr;
-  int raw_plane_ptr;
-  unsigned char *raw_u_plane;
-  unsigned char *raw_v_plane;
 
   /* a video decoder does not care about this flag (?) */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
@@ -162,43 +156,24 @@ static void yuv_decode_data (video_decoder_t *this_gen,
                                           this->width, this->height,
                                           XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
-        xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
 
-        raw_u_plane = &this->buf[this->width * this->height];
-        raw_v_plane = &this->buf[(this->width * this->height) +
-          (this->width * this->height) / 16];
-        c_plane_stride = this->width / 2;
-        c_plane_y_ptr = c_plane_x_ptr = 0;
-        raw_plane_ptr = 0;
+        yuv9_to_yv12(
+         /* Y */
+          this->buf, 
+          img->base[0], 
+          img->pitches[0],
+         /* U */
+          this->buf + (this->width * this->height), 
+          img->base[1],
+          img->pitches[1],
+         /* V */
+          this->buf + (this->width * this->height) + 
+            (this->width * this->height / 16),
+          img->base[2],
+          img->pitches[2],
+          this->width,
+          this->height);
 
-        while (raw_plane_ptr++ < (this->width * this->height / 16)) {
-
-          img->base[2][c_plane_y_ptr + c_plane_x_ptr + 0] = 
-            raw_u_plane[raw_plane_ptr];
-          img->base[2][c_plane_y_ptr + c_plane_x_ptr + 1] = 
-            raw_u_plane[raw_plane_ptr];
-
-          img->base[2][c_plane_y_ptr + c_plane_stride + c_plane_x_ptr + 0] = 
-            raw_u_plane[raw_plane_ptr];
-          img->base[2][c_plane_y_ptr + c_plane_stride + c_plane_x_ptr + 1] = 
-            raw_u_plane[raw_plane_ptr];
-
-          img->base[1][c_plane_y_ptr + c_plane_x_ptr + 0] = 
-            raw_v_plane[raw_plane_ptr];
-          img->base[1][c_plane_y_ptr + c_plane_x_ptr + 1] = 
-            raw_v_plane[raw_plane_ptr];
-
-          img->base[1][c_plane_y_ptr + c_plane_stride + c_plane_x_ptr + 0] = 
-            raw_v_plane[raw_plane_ptr];
-          img->base[1][c_plane_y_ptr + c_plane_stride + c_plane_x_ptr + 1] = 
-            raw_v_plane[raw_plane_ptr];
-
-          c_plane_x_ptr += 2;
-          if (c_plane_x_ptr >= this->width / 2) {
-            c_plane_x_ptr = 0;
-            c_plane_y_ptr += c_plane_stride * 2;
-          }
-        }
       } else if (buf->type == BUF_VIDEO_GREY) {
 
         img = this->stream->video_out->get_frame (this->stream->video_out,
