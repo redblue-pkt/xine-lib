@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.102 2004/12/24 01:59:12 dsalt Exp $
+ * $Id: input_http.c,v 1.103 2005/01/05 00:37:29 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -153,8 +153,8 @@ static void no_proxy_list_change_cb(void *this_gen, xine_cfg_entry_t *cfg) {
 }
 
 /*
- * handle no proxy list config option and returns, if use the proxy or not
- * if error occured, is expected using the proxy
+ * handle no-proxy list config option and returns, if use the proxy or not
+ * if error occurred, is expected using the proxy
  */
 static int _x_use_proxy(http_input_class_t *this, const char *host) {
   const char *target;
@@ -176,16 +176,37 @@ static int _x_use_proxy(http_input_class_t *this, const char *host) {
 
   host_len = strlen(target);
   no_proxy = strdup(this->noproxylist);
-  domain = strtok_r(no_proxy, ", ", &ptr);
+  domain = strtok_r(no_proxy, ",", &ptr);
   while (domain) {
-    noprox_len = strlen(domain);
-    if (host_len >= noprox_len && strcmp(target + host_len - noprox_len, domain) == 0) {
-      lprintf("host '%s' is in no-proxy domain '%s'\n", target, domain);
-      return 1;
+    /* skip leading spaces */
+    while (isspace (*domain))
+      ++domain;
+    /* only check for matches if we've not reached the end of the token */
+    if (*domain) {
+      /* special-case domain beginning with '=' -> is a host name */
+      if (domain[0] == '=' && strcmp(target, domain + 1) == 0) {
+	lprintf("host '%s' is in no-proxy domain '%s'\n", target, domain);
+	return 1;
+      }
+      noprox_len = strlen(domain);
+      /* special-case host==domain, avoiding dot checks */
+      if (host_len == noprox_len && strcmp(target, domain) == 0) {
+	lprintf("host '%s' is in no-proxy domain '%s'\n", target, domain);
+	return 1;
+      }
+      /* check for host in domain, and require that (if matched) the domain
+       * name is preceded by a dot, either in the host or domain strings,
+       * e.g. "a.foo.bar" is in "foo.bar" and ".foo.bar" but not "o.bar"
+       */
+      if (host_len > noprox_len
+	  && (domain[0] == '.' || target[host_len - noprox_len - 1] == '.')
+	  && strcmp(target + host_len - noprox_len, domain) == 0) {
+	lprintf("host '%s' is in no-proxy domain '%s'\n", target, domain);
+	return 1;
+      }
+      lprintf("host '%s' isn't in no-proxy domain '%s'\n", target, domain);
     }
-    lprintf("host '%s' isn't in no-proxy domain '%s'\n", target, domain);
-    
-    domain = strtok_r(NULL, ", ", &ptr);
+    domain = strtok_r(NULL, ",", &ptr);
     i++;
   }
   free(no_proxy);
@@ -1069,8 +1090,8 @@ static void *init_class (xine_t *xine, void *data) {
 						_("The password for the HTTP proxy."), 10,
 						proxy_password_change_cb, (void *) this);
   this->noproxylist = config->register_string(config,
-					      "input.http_no_proxy", "", _("Domains, where to ignore the HTTP proxy"),
-					      _("A Comma separated list of domain names, where the proxy is to be ignored."), 10,
+					      "media.network.http_no_proxy", "", _("Domains for which to ignore the HTTP proxy"),
+					      _("A comma-separated list of domain names for which the proxy is to be ignored.\nIf a domain name is prefixed with '=' then it is treated as a host name only (full match required)."), 10,
 					      no_proxy_list_change_cb, (void *) this);
   
   return this;

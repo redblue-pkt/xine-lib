@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.73 2004/12/20 21:22:21 mroi Exp $
+ * $Id: configfile.c,v 1.74 2005/01/05 00:37:33 dsalt Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -129,6 +129,7 @@ static config_entry_translation_t config_entry_translation[] = {
   { "input.dvd_use_readahead",			"media.dvd.readahead" },
   { "input.file_hidden_files",			"media.files.show_hidden_files" },
   { "input.file_origin_path",			"media.files.origin_path" },
+  { "input.http_no_proxy",			"media.network.http_no_proxy" },
   { "input.http_proxy_host",			"media.network.http_proxy_host" },
   { "input.http_proxy_password",		"media.network.http_proxy_password" },
   { "input.http_proxy_port",			"media.network.http_proxy_port" },
