@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.70 2002/11/15 18:03:57 esnel Exp $
+ * $Id: xine_decoder.c,v 1.71 2002/11/18 00:32:20 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -597,10 +597,12 @@ static void ff_flush (video_decoder_t *this_gen) {
 }
 
 static void ff_reset (video_decoder_t *this_gen) {
-  /* seems to handle seeking quite nicelly without any code here */
+  ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
 #ifdef LOG
   printf ("ffmpeg: ff_reset\n");
 #endif
+
+  this->size = 0;
 }
 
 static void ff_discontinuity (video_decoder_t *this_gen) {
@@ -892,6 +894,9 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 }
 
 static void ff_audio_reset (audio_decoder_t *this_gen) {
+  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  
+  this->size = 0;
 }
 
 static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
