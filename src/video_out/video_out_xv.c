@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.98 2002/02/26 21:50:42 guenter Exp $
+ * $Id: video_out_xv.c,v 1.99 2002/02/27 08:54:14 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -906,7 +906,9 @@ static int xv_set_property (vo_driver_t *this_gen,
       printf("video_out_xv: VO_PROP_INTERLACED(%d)\n",
 	     this->props[property].value);
       this->deinterlace_enabled = value;
-
+      if (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) {
+         xv_compute_ideal_size (this);
+      }
       break;
     case VO_PROP_ASPECT_RATIO:
 
@@ -1009,14 +1011,14 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 	  XvShmPutImage(this->display, this->xv_port,
 			this->drawable, this->gc, this->cur_frame->image,
 			this->displayed_xoffset, this->displayed_yoffset,
-			this->displayed_width, this->displayed_height - 5,
+			this->displayed_width, this->displayed_height,
 			this->output_xoffset, this->output_yoffset,
 			this->output_width, this->output_height, True);
 	} else {
 	  XvPutImage(this->display, this->xv_port,
 		     this->drawable, this->gc, this->cur_frame->image,
 		     this->displayed_xoffset, this->displayed_yoffset,
-		     this->displayed_width, this->displayed_height - 5,
+		     this->displayed_width, this->displayed_height,
 		     this->output_xoffset, this->output_yoffset,
 		     this->output_width, this->output_height);
 	}
