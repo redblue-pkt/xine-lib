@@ -1,11 +1,12 @@
+? ffmpeg-030211.patch
 Index: libavcodec/common.h
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/common.h,v
-retrieving revision 1.63
-diff -u -r1.63 common.h
---- libavcodec/common.h	10 Nov 2002 11:46:59 -0000	1.63
-+++ libavcodec/common.h	11 Nov 2002 13:47:17 -0000
-@@ -145,11 +145,19 @@
+retrieving revision 1.87
+diff -u -r1.87 common.h
+--- libavcodec/common.h	26 Mar 2003 10:39:34 -0000	1.87
++++ libavcodec/common.h	26 Mar 2003 13:49:18 -0000
+@@ -177,11 +177,19 @@
  
  #    else
  
@@ -33,28 +34,29 @@ diff -u -r1.63 common.h
 Index: libavcodec/dsputil.h
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/dsputil.h,v
-retrieving revision 1.39
-diff -u -r1.39 dsputil.h
---- libavcodec/dsputil.h	11 Nov 2002 09:27:03 -0000	1.39
-+++ libavcodec/dsputil.h	11 Nov 2002 13:47:17 -0000
-@@ -21,8 +21,13 @@
+retrieving revision 1.60
+diff -u -r1.60 dsputil.h
+--- libavcodec/dsputil.h	15 Mar 2003 02:06:09 -0000	1.60
++++ libavcodec/dsputil.h	26 Mar 2003 13:49:18 -0000
+@@ -27,9 +27,14 @@
  
  #include "common.h"
  #include "avcodec.h"
 +#include "xineutils.h"
  
--//#define DEBUG
 +#if defined(ARCH_X86)
 +#define HAVE_MMX 1 
 +#endif
 +
 +#undef DEBUG
+ 
+-//#define DEBUG
  /* dct code */
  typedef short DCTELEM;
+ //typedef int DCTELEM;
+@@ -257,21 +262,25 @@
  
-@@ -133,11 +138,13 @@
- 
- #undef emms_c()
+ #undef emms_c
  
 +#if 0
  #define MM_MMX    0x0001 /* standard MMX */
@@ -66,9 +68,8 @@ diff -u -r1.39 dsputil.h
  
  extern int mm_flags;
  
-@@ -145,10 +152,12 @@
- void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line_size);
- void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line_size);
+ void add_pixels_clamped_mmx(const DCTELEM *block, uint8_t *pixels, int line_size);
+ void put_pixels_clamped_mmx(const DCTELEM *block, uint8_t *pixels, int line_size);
  
 +#if 0 
  static inline void emms(void)
@@ -77,16 +78,33 @@ diff -u -r1.39 dsputil.h
  }
 +#endif
  
+ 
  #define emms_c() \
- {\
+Index: libavcodec/mpegvideo.c
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mpegvideo.c,v
+retrieving revision 1.231
+diff -u -r1.231 mpegvideo.c
+--- libavcodec/mpegvideo.c	22 Mar 2003 12:09:01 -0000	1.231
++++ libavcodec/mpegvideo.c	26 Mar 2003 13:49:19 -0000
+@@ -34,8 +34,7 @@
+ #include "fastmemcpy.h"
+ #endif
+ 
+-//#undef NDEBUG
+-//#include <assert.h>
++#define CONFIG_RISKY
+ 
+ #ifdef CONFIG_ENCODERS
+ static void encode_picture(MpegEncContext *s, int picture_number);
 Index: libavcodec/i386/cputest.c
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/cputest.c,v
-retrieving revision 1.6
-diff -u -r1.6 cputest.c
---- libavcodec/i386/cputest.c	25 May 2002 22:45:33 -0000	1.6
-+++ libavcodec/i386/cputest.c	11 Nov 2002 13:47:17 -0000
-@@ -1,106 +1,13 @@
+retrieving revision 1.8
+diff -u -r1.8 cputest.c
+--- libavcodec/i386/cputest.c	26 Nov 2002 16:26:58 -0000	1.8
++++ libavcodec/i386/cputest.c	26 Mar 2003 13:49:19 -0000
+@@ -1,122 +1,13 @@
 -/* Cpu detection code, extracted from mmx.h ((c)1997-99 by H. Dietz
 -   and R. Fisher). Converted to C and improved by Fabrice Bellard */
 +/* dummy file to use xine mm_support function */
@@ -168,6 +186,22 @@ diff -u -r1.6 cputest.c
 -        if (edx & 0x00400000)
 -            rval |= MM_MMXEXT;
 -        return rval;
+-    } else if (ebx == 0x746e6543 &&
+-               edx == 0x48727561 &&
+-               ecx == 0x736c7561) {  /*  "CentaurHauls" */
+-        /* VIA C3 */
+-        cpuid(0x80000000, eax, ebx, ecx, edx);
+-        if ((unsigned)eax < 0x80000001)
+-            goto inteltest;	
+-	cpuid(0x80000001, eax, ebx, ecx, edx);
+-	rval = 0;      
+-	if( edx & ( 1 << 31) )
+-	  rval |= MM_3DNOW;
+-	if( edx & ( 1 << 23) )
+-	  rval |= MM_MMX;
+-	if( edx & ( 1 << 24) )
+-	  rval |= MM_MMXEXT;
+-	return rval;
 -    } else if (ebx == 0x69727943 &&
 -               edx == 0x736e4978 &&
 -               ecx == 0x64616574) {
@@ -202,7 +236,7 @@ RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mmx.h,v
 retrieving revision 1.3
 diff -u -r1.3 mmx.h
 --- libavcodec/i386/mmx.h	27 May 2002 08:31:54 -0000	1.3
-+++ libavcodec/i386/mmx.h	11 Nov 2002 13:47:17 -0000
++++ libavcodec/i386/mmx.h	26 Mar 2003 13:49:19 -0000
 @@ -1,243 +1 @@
 -/*
 - * mmx.h
@@ -451,11 +485,11 @@ diff -u -r1.3 mmx.h
 Index: libavcodec/i386/mpegvideo_mmx_template.c
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mpegvideo_mmx_template.c,v
-retrieving revision 1.12
-diff -u -r1.12 mpegvideo_mmx_template.c
---- libavcodec/i386/mpegvideo_mmx_template.c	29 Sep 2002 22:44:22 -0000	1.12
-+++ libavcodec/i386/mpegvideo_mmx_template.c	11 Nov 2002 13:47:17 -0000
-@@ -84,16 +84,25 @@
+retrieving revision 1.15
+diff -u -r1.15 mpegvideo_mmx_template.c
+--- libavcodec/i386/mpegvideo_mmx_template.c	3 Mar 2003 14:53:53 -0000	1.15
++++ libavcodec/i386/mpegvideo_mmx_template.c	26 Mar 2003 13:49:20 -0000
+@@ -83,16 +83,25 @@
      }
  
      if(s->out_format == FMT_H263 && s->mpeg_quant==0){
@@ -484,7 +518,7 @@ diff -u -r1.12 mpegvideo_mmx_template.c
              ".balign 16				\n\t"
              "1:					\n\t"
              "pxor %%mm1, %%mm1			\n\t" // 0
-@@ -106,7 +115,7 @@
+@@ -105,7 +114,7 @@
              "por %%mm0, %%mm4			\n\t" 
              "pxor %%mm1, %%mm0			\n\t" 
              "psubw %%mm1, %%mm0			\n\t" // out=((ABS(block[i])*qmat[0] - bias[0]*qmat[0])>>16)*sign(block[i])
@@ -493,7 +527,7 @@ diff -u -r1.12 mpegvideo_mmx_template.c
              "pcmpeqw %%mm7, %%mm0		\n\t" // out==0 ? 0xFF : 0x00
              "movq (%4, %%eax), %%mm1		\n\t" 
              "movq %%mm7, (%1, %%eax)		\n\t" // 0
-@@ -114,6 +123,11 @@
+@@ -113,6 +122,11 @@
  	    PMAXW(%%mm0, %%mm3)
              "addl $8, %%eax			\n\t"
              " js 1b				\n\t"
@@ -505,7 +539,7 @@ diff -u -r1.12 mpegvideo_mmx_template.c
              "movq %%mm3, %%mm0			\n\t"
              "psrlq $32, %%mm3			\n\t"
  	    PMAXW(%%mm0, %%mm3)
-@@ -122,48 +136,46 @@
+@@ -121,48 +135,46 @@
  	    PMAXW(%%mm0, %%mm3)
              "movd %%mm3, %%eax			\n\t"
              "movzbl %%al, %%eax			\n\t" // last_non_zero_p1
@@ -572,7 +606,7 @@ diff -u -r1.12 mpegvideo_mmx_template.c
              " js 1b				\n\t"
              "movq %%mm3, %%mm0			\n\t"
              "psrlq $32, %%mm3			\n\t"
-@@ -171,10 +183,14 @@
+@@ -170,10 +182,14 @@
              "movq %%mm3, %%mm0			\n\t"
              "psrlq $16, %%mm3			\n\t"
  	    PMAXW(%%mm0, %%mm3)
@@ -591,7 +625,7 @@ diff -u -r1.12 mpegvideo_mmx_template.c
                "r" (inv_zigzag_direct16+64), "r" (temp_block+64)
          );
          // note the asm is split cuz gcc doesnt like that many operands ...
-@@ -184,8 +200,8 @@
+@@ -183,8 +199,8 @@
              "psubusw %%mm1, %%mm4		\n\t" 
              "packuswb %%mm4, %%mm4		\n\t"
              "movd %%mm4, %0			\n\t" // *overflow
@@ -601,4 +635,74 @@ diff -u -r1.12 mpegvideo_mmx_template.c
 +        : "r" (s->max_qcoeff)
          );
      }
+ 
+Index: libavcodec/libpostproc/postprocess.c
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/libpostproc/postprocess.c,v
+retrieving revision 1.83
+diff -u -r1.83 postprocess.c
+--- libavcodec/libpostproc/postprocess.c	6 Mar 2003 13:51:18 -0000	1.83
++++ libavcodec/libpostproc/postprocess.c	26 Mar 2003 13:49:20 -0000
+@@ -70,8 +70,9 @@
+ #include "config.h"
+ #include <inttypes.h>
+ #include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
++
++#include "xineutils.h"
++
+ #ifdef HAVE_MALLOC_H
+ #include <malloc.h>
+ #endif
+@@ -80,9 +81,9 @@
+ //#undef HAVE_MMX
+ //#undef ARCH_X86
+ //#define DEBUG_BRIGHTNESS
+-#ifdef USE_FASTMEMCPY
+-#include "libvo/fastmemcpy.h"
+-#endif
++
++#define memcpy(a,b,c) xine_fast_memcpy(a,b,c)
++
+ #include "postprocess.h"
+ #include "postprocess_internal.h"
+ 
+@@ -151,37 +152,6 @@
+ static inline void unusedVariableWarningFixer()
+ {
+ 	if(w05 + w20 + b00 + b01 + b02 + b08 + b80 == 0) b00=0;
+-}
+-#endif
+-
+-
+-#ifdef ARCH_X86
+-static inline void prefetchnta(void *p)
+-{
+-	asm volatile(	"prefetchnta (%0)\n\t"
+-		: : "r" (p)
+-	);
+-}
+-
+-static inline void prefetcht0(void *p)
+-{
+-	asm volatile(	"prefetcht0 (%0)\n\t"
+-		: : "r" (p)
+-	);
+-}
+-
+-static inline void prefetcht1(void *p)
+-{
+-	asm volatile(	"prefetcht1 (%0)\n\t"
+-		: : "r" (p)
+-	);
+-}
+-
+-static inline void prefetcht2(void *p)
+-{
+-	asm volatile(	"prefetcht2 (%0)\n\t"
+-		: : "r" (p)
+-	);
+ }
+ #endif
  

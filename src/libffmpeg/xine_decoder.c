@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.104 2003/03/19 22:22:42 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.105 2003/03/26 14:49:55 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -148,7 +148,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   this->context = avcodec_alloc_context();
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
-  this->context->fourcc = this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC];
+  this->context->codec_tag = this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC];
   
   if( bih && bih->biSize > sizeof(xine_bmiheader) ) {
     this->context->extradata_size = bih->biSize - sizeof(xine_bmiheader);
@@ -1047,7 +1047,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->context->block_align = audio_header->nBlockAlign;
     this->context->bit_rate = audio_header->nAvgBytesPerSec * 8;
     this->context->codec_id = this->codec->id;
-    this->context->fourcc = this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC];
+    this->context->codec_tag = this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC];
     if( audio_header->cbSize > 0 ) {
       this->context->extradata = malloc(audio_header->cbSize);
       this->context->extradata_size = audio_header->cbSize;
@@ -1101,7 +1101,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       offset = 0;
       while (this->size>0) {
         bytes_consumed = avcodec_decode_audio (this->context, 
-                                               (INT16 *)this->decode_buffer,
+                                               (int16_t *)this->decode_buffer,
                                                &decode_buffer_size, 
                                                &this->buf[offset],
                                                this->size);
@@ -1255,7 +1255,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MSMPEG4_V2,
   BUF_VIDEO_MSMPEG4_V3, 
   BUF_VIDEO_WMV7, 
-  /* BUF_VIDEO_WMV8, */
+  BUF_VIDEO_WMV8,
   BUF_VIDEO_MPEG4,
   BUF_VIDEO_XVID, 
   BUF_VIDEO_DIVX5, 
