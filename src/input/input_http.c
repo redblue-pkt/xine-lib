@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -184,7 +184,7 @@ static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
     start += 3;
   else
     start = urlbuf;
-  
+
   at = strchr(start, '@');
   slash = strchr(start, '/');
   
@@ -218,7 +218,7 @@ static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
       if (password != NULL)
       	*password = authcolon + 1;
     }
-    
+
     if (host != NULL)
       *host = at + 1;
   } else
@@ -350,7 +350,7 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
           if (this->stream->meta_info [XINE_META_INFO_TITLE])
             free(this->stream->meta_info [XINE_META_INFO_TITLE]);
           this->stream->meta_info [XINE_META_INFO_TITLE] = strdup (songtitle);
-  
+
           /* prepares the event */
           radio = this->stream->meta_info [XINE_META_INFO_ALBUM];
           
@@ -363,7 +363,7 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
             data.str_len = strlen(songtitle) + 1;
           }  
           strcat(data.str, songtitle);
-          
+
           /* sends the event */
           uevent.type = XINE_EVENT_UI_SET_TITLE;
           uevent.stream = this->stream;
@@ -371,15 +371,15 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
           uevent.data_length = sizeof(data);
           xine_event_send(this->stream, &uevent);
         }
-      }    
+      }
     }
-  }  
-  
+  }
+
   this->shoutcast_mode = 1;
-  this->shoutcast_pos  = 0; 
+  this->shoutcast_pos  = 0;
 }
 
-static off_t http_plugin_read (input_plugin_t *this_gen, 
+static off_t http_plugin_read (input_plugin_t *this_gen,
 			       char *buf, off_t nlen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   off_t n, num_bytes;
@@ -393,11 +393,11 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     if (this->shoutcast_mode && (this->shoutcast_pos == this->shoutcast_metaint)) {
       http_plugin_read_metainf(this_gen);
     }
-    
+
     if (this->preview_pos < this->preview_size) {
 
       n = this->preview_size - this->preview_pos;
-      if (n > (nlen - num_bytes)) 
+      if (n > (nlen - num_bytes))
 	n = nlen - num_bytes;
 
 #ifdef LOG
@@ -440,13 +440,13 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
       if(errno == EAGAIN) {
         fd_set rset;
         struct timeval timeout;
-    
+
         FD_ZERO (&rset);
         FD_SET  (this->fh, &rset);
-        
+
         timeout.tv_sec  = 30;
         timeout.tv_usec = 0;
-        
+
         if (select (this->fh+1, &rset, NULL, NULL, &timeout) <= 0) {
           xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: timeout\n"));
           return 0;
@@ -456,13 +456,16 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
       xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
       return 0;
     }
-    
+
     num_bytes += n;
     this->curpos += n;
-    
+
     /* end of stream */
     if (!n) break;
   }
+
+  if (num_bytes != nlen)
+    nbc_end_of_stream (this->nbc);
   return num_bytes;
 }
 
@@ -484,14 +487,14 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 
       this->buf[len] = '\0';
       len--;
-  
+
       if (len >= 0 && this->buf[len] == '\015') {
         this->buf[len] = '\0';
         len--;
       }
 
       linenum++;
-      
+
 #ifdef LOG
       printf ("input_http: shoutcast answer: >%s<\n", this->buf);
 #endif
@@ -520,7 +523,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
         printf("input_http: shoutcast_metaint: %d\n", this->shoutcast_metaint);
 #endif
       }
-      
+
       if (len == -1)
         done = 1;
       else
@@ -548,10 +551,7 @@ static void pool_release_buffer (void *arg) {
 static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
 
   off_t                 total_bytes;
-  http_input_plugin_t  *this = (http_input_plugin_t *) this_gen;
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
-
-  nbc_check_buffers (this->nbc);
 
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
   pthread_cleanup_push( pool_release_buffer, buf );
@@ -633,7 +633,7 @@ static char* http_plugin_get_mrl (input_plugin_t *this_gen) {
   return this->mrlbuf2;
 }
 
-static int http_plugin_get_optional_data (input_plugin_t *this_gen, 
+static int http_plugin_get_optional_data (input_plugin_t *this_gen,
 					  void *data, int data_type) {
 
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
@@ -664,7 +664,7 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   free (this_gen);
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream,
 				    const char *mrl) {
 
   /* http_input_class_t  *cls = (http_input_class_t *) cls_gen;*/
@@ -775,7 +775,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   if (this->proxyuser != NULL)
     sprintf (this->buf + strlen(this->buf), "Proxy-Authorization: Basic %s\015\012",
 	     this->proxyauth);
-  
+
   if (this->user != NULL)
     sprintf (this->buf + strlen(this->buf), "Authorization: Basic %s\015\012",
 	     this->auth);
@@ -865,7 +865,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 	  return NULL;
 	}
 	if (httpcode < 200 || httpcode >= 300) {
-      	  xine_log (this->stream->xine, XINE_LOG_MSG, 
+      	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
 		    httpcode, httpstatus);
 	  free (this);
