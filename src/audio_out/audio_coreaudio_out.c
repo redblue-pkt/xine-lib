@@ -120,7 +120,7 @@ static OSStatus ao_coreaudio_render_proc (coreaudio_driver_t *this,
         this->buf_readpos += ioData->mBuffers[i].mDataByteSize;
     }
 
-	this->last_block_size = req_size;
+    this->last_block_size = req_size;
 	
     pthread_mutex_unlock (&this->mutex);
     
@@ -139,12 +139,20 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
   AudioStreamBasicDescription format;
   AudioUnitConnection connection;
   ComponentDescription desc;
+  
+  switch (mode) {
+  case AO_CAP_MODE_MONO:
+    this->num_channels = 1;
+    break;
+  case AO_CAP_MODE_STEREO:
+    this->num_channels = 2;
+    break;
+  }
 
-  this->sample_rate     = rate;
+  this->sample_rate = rate;
   this->bits_per_sample = bits;
-  this->num_channels = 2;
   this->capabilities = AO_CAP_16BITS | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL;
-  this->bytes_per_frame = 4;
+  this->bytes_per_frame = this->num_channels * (bits / 8);
   this->buf_readpos = 0;
   this->buf_writepos = 0;
   this->last_block_size = 0;
@@ -193,7 +201,7 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
                         kAudioUnitScope_Input,
                         0, &input, sizeof(input));
 
-  /* connect the output unit to the audio output unit */
+  /* connect the converter unit to the audio output unit */
   connection.sourceAudioUnit = this->converter_unit;
   connection.sourceOutputNumber = 0;
   connection.destInputNumber = 0;
@@ -203,16 +211,16 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
                         &connection, sizeof(connection));
 
   /* set up the audio format we want to use */
-  format.mSampleRate = rate;
+  format.mSampleRate   = rate;
   format.mFormatID     = kAudioFormatLinearPCM;
   format.mFormatFlags  = kLinearPCMFormatFlagIsSignedInteger
                        | kLinearPCMFormatFlagIsBigEndian
                        | kLinearPCMFormatFlagIsPacked;
-  format.mBytesPerPacket   = 4;
+  format.mBitsPerChannel   = this->bits_per_sample;
+  format.mChannelsPerFrame = this->num_channels;
+  format.mBytesPerFrame    = this->bytes_per_frame;
   format.mFramesPerPacket  = 1;
-  format.mBytesPerFrame    = 4;
-  format.mChannelsPerFrame = 2;
-  format.mBitsPerChannel   = bits;
+  format.mBytesPerPacket   = format.mBytesPerFrame;
  
   AudioUnitSetProperty (this->converter_unit,
                         kAudioUnitProperty_StreamFormat,
@@ -224,7 +232,6 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
   if (err) {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "audio_coreaudio_out: failed to AudioUnitInitialize(converter_unit)\n");
-      exit (1);
       return 0;
   }
 
@@ -232,7 +239,6 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
   if (err) {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "audio_coreaudio_out: failed to AudioUnitInitialize(au_unit)\n");
-      exit (1);
       return 0;
   }
 
@@ -240,7 +246,6 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
   if (err) {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "audio_coreaudio_out: failed to AudioOutputUnitStart(au_unit)\n");
-      exit (1);
       return 0;
   }
 
