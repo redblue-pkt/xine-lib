@@ -42,17 +42,18 @@
 
 #define NUM_FRAMES  40
 
-#define NUM_RESOLUTIONS 5
 static struct {
 	int width;
 	int height;
-} resolutions[NUM_RESOLUTIONS] = {
+} resolutions[] = {
 	{ 768, 576 },
 	{ 640, 480 },
 	{ 384, 288 },
 	{ 320, 240 },
 	{ 160, 120 },
 };
+
+#define NUM_RESOLUTIONS (sizeof(resolutions)/sizeof(resolutions[0]))
 
 /*
 #define LOG
