@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.28 2003/05/26 17:00:13 tchamp Exp $
+ * $Id: mms.c,v 1.29 2003/07/10 22:43:41 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -50,6 +50,7 @@
 #include "xineutils.h"
 
 #include "bswap.h"
+#include "io_helper.h"
 #include "mms.h"
 #include "../demuxers/asfheader.h"
 
@@ -73,26 +74,27 @@
 struct mms_s {
 
   xine_stream_t *stream;
-
+  
   int           s;
-
+  
   char         *host;
+  int           port;
   char         *path;
   char         *file;
   char         *url;
-
+  
   /* command to send */
   char          scmd[CMD_HEADER_LEN + CMD_BODY_LEN];
   char         *scmd_body; /* pointer to &scmd[CMD_HEADER_LEN] */
   int           scmd_len; /* num bytes written in header */
-
+  
   char          str[1024]; /* scratch buffer to built strings */
-
+  
   /* receive buffer */
   uint8_t       buf[BUF_SIZE];
   int           buf_size;
   int           buf_read;
-
+  
   uint8_t       asf_header[ASF_HEADER_LEN];
   uint32_t      asf_header_len;
   uint32_t      asf_header_read;
@@ -105,63 +107,12 @@ struct mms_s {
   char          guid[37];
   uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
   uint32_t      bitrates_pos[ASF_MAX_NUM_STREAMS];
-
+  
   int           has_audio;
   int           has_video;
 };
 
 
-static int host_connect_attempt(struct in_addr ia, int port) {
-
-  int                s;
-  struct sockaddr_in sin;
-
-  s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  
-  if (s == -1) {
-    printf ("libmms: socket(): %s\n", strerror(errno));
-    return -1;
-  }
-
-  /* put socket in non-blocking mode */
-
-  fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK);   
-
-  sin.sin_family = AF_INET;	
-  sin.sin_addr   = ia;
-  sin.sin_port   = htons(port);
-  
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 
-      && errno != EINPROGRESS) {
-    printf ("libmms: connect(): %s\n", strerror(errno));
-    close(s);
-    return -1;
-  }	
-	
-  return s;
-}
-
-static int host_connect(const char *host, int port) {
-
-  struct hostent *h;
-  int             i, s;
-  
-  h = gethostbyname(host);
-  if (h == NULL) {
-    printf ("libmms: unable to resolve '%s'.\n", host);
-    return -1;
-  }
-	
-  for (i = 0; h->h_addr_list[i]; i++) {
-    struct in_addr ia;
-
-    memcpy (&ia, h->h_addr_list[i], 4);
-    s = host_connect_attempt(ia, port);
-    if(s != -1)
-      return s;
-  }
-  printf ("libmms: unable to connect to '%s'.\n", host);
-  return -1;
-}
 
 static void put_32 (mms_t *this, uint32_t value) {
 
@@ -395,7 +346,7 @@ static int get_answer (mms_t *this) {
     off_t len;
     uint32_t length;
 
-    len = xine_read_abort (this->stream, this->s, this->buf, 12);
+    len = xio_tcp_read (this->stream, this->s, this->buf, 12);
     if (len < 0) {
       printf ("\nlibmms: get_answer: read error\n");
       return 0;
@@ -414,7 +365,7 @@ static int get_answer (mms_t *this) {
       return 0;
     }
     
-    len = xine_read_abort (this->stream, this->s, this->buf+12, length+4) ;
+    len = xio_tcp_read (this->stream, this->s, this->buf+12, length+4) ;
     if (len < 0) {
       printf ("\nlibmms: get_answer: read error\n");
       return 0;
@@ -449,7 +400,7 @@ static int get_header (mms_t *this) {
 
   while (1) {
 
-    len = xine_read_abort (this->stream, this->s, pre_header, 8) ;
+    len = xio_tcp_read (this->stream, this->s, pre_header, 8) ;
     if (len < 0) {
       printf ("\nlibmms: get_header: read error\n");
       return 0;
@@ -482,7 +433,7 @@ static int get_header (mms_t *this) {
         return 0;
       }
       
-      len = xine_read_abort (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len);
+      len = xio_tcp_read (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len);
       if (len < 0) {
         printf ("\nlibmms: get_header: read error\n");
         return 0;
@@ -507,7 +458,7 @@ static int get_header (mms_t *this) {
       uint32_t packet_len;
       int command;
 
-      len = xine_read_abort (this->stream, this->s, (uint8_t *) &packet_len, 4);
+      len = xio_tcp_read (this->stream, this->s, (uint8_t *) &packet_len, 4);
       if (len < 0) {
         printf ("\nlibmms: get_header: read error\n");
         return 0;
@@ -527,7 +478,7 @@ static int get_header (mms_t *this) {
         return 0;
       }
       
-      len = xine_read_abort (this->stream, this->s, this->buf, packet_len);
+      len = xio_tcp_read (this->stream, this->s, this->buf, packet_len);
       if (len < 0) {
         printf ("\nlibmms: get_header: read error\n");
         return 0;
@@ -690,22 +641,38 @@ static int mms_valid_url (char* url, const char *const * mms_url) {
   return 0;
 } 
 
+static void report_progress (xine_stream_t *stream, int p) {
+
+  xine_event_t             event;
+  xine_progress_data_t     prg;
+
+  prg.description = _("Connecting MMS server (over tcp)...");
+  prg.percent = p;
+  
+  event.type = XINE_EVENT_PROGRESS;
+  event.data = &prg;
+  event.data_length = sizeof (xine_progress_data_t);
+  
+  xine_event_send (stream, &event);
+}
+
 /*
  * TODO: error messages
+ * returns 1 on error
  */
-char* mms_connect_common(int *s, int *port, char *url, char **host, char **path, char **file) {
+int mms_parse_url(mms_t *this) {
   int     proto_len;
   char   *hostend;
   char   *forport;
   char   *_url;
   char   *_host;
     
-  if ((proto_len = mms_valid_url(url, mms_url_s)) <= 0) {
-    return NULL;
+  if ((proto_len = mms_valid_url(this->url, mms_url_s)) <= 0) {
+    return 1;
   }
   
   /* Create a local copy (alloca()'ed), avoid to corrupt the original URL */
-  xine_strdupa(_url, &url[proto_len]);
+  xine_strdupa(_url, &this->url[proto_len]);
   
   _host = _url;
   
@@ -733,36 +700,49 @@ char* mms_connect_common(int *s, int *port, char *url, char **host, char **path,
   forport = strchr(_host, ':');
   if(forport) {
     *forport++ = '\0';
-    *port = atoi(forport);
+    this->port = atoi(forport);
   }
   
-  *host = strdup(_host);
-  
-  if(path)
-    *path = &url[proto_len] + (hostend - _url);
-  
-  if(file)
-    *file = strrchr (url, '/');
-  
+  this->host = strdup(_host);
+  this->path = strdup(&this->url[proto_len] + (hostend - _url));
+  this->file = strdup(strrchr (this->url, '/'));
+  return 0;
+}
+
+/*
+ * returns 1 on error
+ */
+int mms_tcp_connect(mms_t *this) {
+  int progress, res;
   /* 
    * try to connect 
    */
 #ifdef LOG
-  printf("libmms: try to connect to %s on port %d \n", *host, *port);
+  printf("libmms: try to connect to %s on port %d \n", this->host, this->port);
 #endif
-  *s = host_connect (*host, *port);
+  this->s = xio_tcp_connect (this->stream, this->host, this->port);
+
   
-  if (*s == -1) {
-    printf ("libmms: failed to connect '%s'\n", *host);
-    free (*host);
-    return NULL;
+  if (this->s == -1) {
+    printf ("libmms: failed to connect '%s'\n", this->host);
+    return 1;
   }
 
+  /* connection timeout 15s */
+  progress = 0;
+  do {
+    report_progress(this->stream, progress);
+    res = xio_select (this->stream, this->s, XIO_WRITE_READY, 500);
+    progress += 1;
+  } while ((res == XIO_TIMEOUT) && (progress < 30));
+  if (res != XIO_READY) {
+    return 1;
+  }
 #ifdef LOG
   printf ("libmms: connected\n");
 #endif
 
-  return url;
+  return 0;
 }
 
 void mms_gen_guid(char guid[]) {
@@ -777,67 +757,33 @@ void mms_gen_guid(char guid[]) {
   guid[36] = '\0';
 }
 
-static void report_progress (xine_stream_t *stream, int p) {
-
-  xine_event_t             event;
-  xine_progress_data_t     prg;
-
-  prg.description = _("Connecting MMS server...");
-  prg.percent = p;
-  
-  event.type = XINE_EVENT_PROGRESS;
-  event.data = &prg;
-  event.data_length = sizeof (xine_progress_data_t);
-  
-  xine_event_send (stream, &event);
-}
-
 /*
  * TODO: error messages
  *       network timing request
  */
-mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
-  mms_t *this;
-  char  *url     = NULL;
-  char  *url1    = NULL;
-  char  *path    = NULL;
-  char  *file    = NULL;
-  char  *host    = NULL;
-  int    port;
-  int    i, s;
-  int    video_stream = 0;
-  int    audio_stream = 0;
-  int    max_arate    = 0;
-  int    min_vrate    = 0;
-  int    min_bw_left  = 0;
-  int    stream_id;
-  int    bandwitdh_left;
-  int    res;
+mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
+  mms_t  *this;
+  int     i;
+  int     video_stream = 0;
+  int     audio_stream = 0;
+  int     max_arate    = 0;
+  int     min_vrate    = 0;
+  int     min_bw_left  = 0;
+  int     stream_id;
+  int     bandwitdh_left;
+  int     res;
  
-  if (!url_)
+  if (!url)
     return NULL;
-
-  report_progress (stream, 0);
-
-  url = strdup (url_);
-  port = MMS_PORT;
-  url1 = mms_connect_common(&s, &port, url, &host, &path, &file);
-
-  if(!url1){
-    free(url);
-    return NULL;
-  }
-  
-  report_progress (stream, 10);
 
   this = (mms_t*) xine_xmalloc (sizeof (mms_t));
 
   this->stream          = stream;
-  this->url             = url;
-  this->host            = host;
-  this->path            = path;
-  this->file            = file;
-  this->s               = s;
+  this->url             = strdup (url);
+  this->host            = NULL;
+  this->path            = NULL;
+  this->file            = NULL;
+  this->s               = -1;
   this->seq_num         = 0;
   this->scmd_body       = &this->scmd[CMD_HEADER_LEN];
   this->asf_header_len  = 0;
@@ -848,6 +794,20 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   this->buf_read        = 0;
   this->has_audio       = 0;
   this->has_video       = 0;
+
+  report_progress (stream, 0);
+
+  this->port = MMS_PORT;
+  if (mms_parse_url(this)) {
+    goto fail;
+  }
+  
+  if (mms_tcp_connect(this)) {
+    goto fail;
+  }
+  
+  report_progress (stream, 30);
+
   
 #ifdef LOG
   printf ("libmms: url=%s\nlibmms:   host=%s\nlibmms:   "
@@ -874,7 +834,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
     goto fail;
   }
   
-  report_progress (stream, 20);
+  report_progress (stream, 40);
 
   /* TODO: insert network timing rquest here */
   /* command 0x2 */
@@ -898,12 +858,12 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
       goto fail;
   }
 
-  report_progress (stream, 30);
+  report_progress (stream, 50);
 
   /* command 0x5 */
-  string_utf16 (&this->scmd_body[8], path, strlen(path));
+  string_utf16 (&this->scmd_body[8], this->path, strlen(this->path));
   memset (this->scmd_body, 0, 8);
-  if (!send_command (this, 5, 0, 0, strlen(path) * 2 + 12))
+  if (!send_command (this, 5, 0, 0, strlen(this->path) * 2 + 12))
     goto fail;
 
   switch (res = get_answer (this)) {
@@ -920,7 +880,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
       goto fail;
   }
 
-  report_progress (stream, 40);
+  report_progress (stream, 60);
 
   /* command 0x15 */
   memset (this->scmd_body, 0, 40);
@@ -943,7 +903,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 
   interp_header (this);
 
-  report_progress (stream, 50);
+  report_progress (stream, 70);
 
   /* command 0x33 */
   /* choose the best quality for the audio stream */
@@ -1043,7 +1003,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   }
 
 
-  report_progress (stream, 75);
+  report_progress (stream, 70);
 
   /* command 0x07 */
   memset (this->scmd_body, 0, 40);
@@ -1068,8 +1028,17 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   return this;
 
  fail:
-  close (this->s);
-  free (url);
+  if (this->s != -1)
+    close (this->s);
+  if (this->url)
+    free (this->url);
+  if (this->host)
+    free (this->host);
+  if (this->path)
+    free (this->path);
+  if (this->file)
+    free (this->file);
+
   free (this);
   return NULL;
 }
@@ -1264,12 +1233,17 @@ int mms_read (mms_t *this, char *data, int len) {
 
 void mms_close (mms_t *this) {
 
-  if (this->s >= 0) {
-    close(this->s);
-  }
+  if (this->s != -1)
+    close (this->s);
+  if (this->url)
+    free (this->url);
+  if (this->host)
+    free (this->host);
+  if (this->path)
+    free (this->path);
+  if (this->file)
+    free (this->file);
 
-  free (this->host);
-  free (this->url);
   free (this);
 }
 
