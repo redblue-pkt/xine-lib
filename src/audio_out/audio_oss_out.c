@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.89 2003/06/01 22:48:26 jcdutton Exp $
+ * $Id: audio_oss_out.c,v 1.90 2003/06/02 16:41:10 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -934,7 +934,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   if ((caps & AFMT_AC3) || config->register_bool (config, "audio.oss_pass_through_bug", 0,
 			       _("used to inform xine about what the sound card can do"),
-			       NULL, 0, NULL, NULL)) {
+			       NULL, 20, NULL, NULL)) {
     if (config->register_bool (config, "audio.a52_pass_through", 0,
 			       _("used to inform xine about what the sound card can do"),
 			       NULL, 0, NULL, NULL)) {
