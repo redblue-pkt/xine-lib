@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.20 2001/10/25 00:47:01 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.21 2001/11/11 01:45:44 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -684,7 +684,61 @@ static unsigned char * demux_synchronise(demux_ts * this) {
   packet_number++;
   return return_pointer;
 }
+
+static void demux_ts_adaption_field_parse( uint8_t *data, uint32_t adaption_field_length) {
+  uint32_t    discontinuity_indicator;
+  uint32_t    random_access_indicator;
+  uint32_t    elementary_stream_priority_indicator;
+  uint32_t    PCR_flag;
+  uint32_t    OPCR_flag;
+  uint32_t    slicing_point_flag;
+  uint32_t    transport_private_data_flag;
+  uint32_t    adaption_field_extension_flag;
+
+  discontinuity_indicator = ((data[0] >> 7) & 0x01);
+  random_access_indicator = ((data[0] >> 6) & 0x01);
+  elementary_stream_priority_indicator = ((data[0] >> 5) & 0x01);
+  PCR_flag = ((data[0] >> 4) & 0x01);
+  OPCR_flag = ((data[0] >> 3) & 0x01);
+  slicing_point_flag = ((data[0] >> 2) & 0x01);
+  transport_private_data_flag = ((data[0] >> 1) & 0x01);
+  adaption_field_extension_flag = (data[0] & 0x01);
   
+  printf("ADAPTION FIELD length=%d\n", 
+    adaption_field_length);
+  if(discontinuity_indicator) {
+    printf("\tDiscontinuity indicator=%d\n",
+      discontinuity_indicator);
+  }
+  if(random_access_indicator) {
+    printf("\tRandom_access indicator=%d\n",
+      random_access_indicator);
+  }
+  if(elementary_stream_priority_indicator) {
+    printf("\tElementary_stream_priority_indicator=%d\n",
+      elementary_stream_priority_indicator);
+  }
+  if(PCR_flag) {
+    printf("\tPCR_flag=%d\n",
+      PCR_flag);
+  }
+  if(OPCR_flag) {
+    printf("\tOPCR flag=%d",
+      OPCR_flag);
+  }
+  if(slicing_point_flag) {
+    printf("\tslicing_point_flag=%d\n",
+      slicing_point_flag);
+  }
+  if(transport_private_data_flag) {
+    printf("\ttransport_private_data_flag=%d\n",
+      transport_private_data_flag);
+  }
+  printf("\tadaption_field_extension_flag=%d\n",
+    adaption_field_extension_flag);
+
+;
+}
 /* transport stream packet layer */
 
 static void demux_ts_parse_packet (demux_ts *this) {
@@ -734,10 +788,14 @@ static void demux_ts_parse_packet (demux_ts *this) {
      * Has a payload! Calculate & check payload length.
      */
     if (adaption_field_control & 0x2) {
+      uint32_t adaption_field_length = originalPkt[4];
+      if( adaption_field_length > 0) {
+        /* demux_ts_adaption_field_parse( originalPkt+5, adaption_field_length); */
+      }
       /*
        * Skip adaptation header.
        */
-      data_offset+=originalPkt[4]+1;
+      data_offset += adaption_field_length + 1;
     }
 
     data_len = PKT_SIZE - data_offset;
