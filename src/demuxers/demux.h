@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.13 2002/04/09 03:37:59 miguelfreitas Exp $
+ * $Id: demux.h,v 1.14 2002/05/21 00:12:31 siggi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -86,9 +86,12 @@ struct demux_plugin_s
    *
    * if both parameters are !=0 start_pos will be used
    * for non-seekable streams both values will be ignored
+   *
+   * returns the demux status (like get_status, but immediately after
+   *                           starting the demuxer)
    */
 
-  void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
+  int (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
 		 fifo_buffer_t *audio_fifo, 
 		 off_t start_pos, int start_time);
 
@@ -102,9 +105,12 @@ struct demux_plugin_s
    *
    * if both parameters are !=0 start_pos will be used
    * for non-seekable streams both values will be ignored
+   *
+   * returns the demux status (like get_status, but immediately after
+   *                           starting the demuxer)
    */
 
-  void (*seek) (demux_plugin_t *this, 
+  int (*seek) (demux_plugin_t *this, 
 		 off_t start_pos, int start_time);
   
   /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.128 2002/05/14 14:55:47 esnel Exp $
+ * $Id: xine.c,v 1.129 2002/05/21 00:12:32 siggi Exp $
  *
  * top-level xine functions
  *
@@ -354,6 +354,7 @@ int xine_play_internal (xine_t *this, char *mrl,
   double     share ;
   off_t      pos, len;
   int        i;
+  int        demux_status;
 
   printf ("xine_play: xine open %s, start pos = %d, start time = %d (sec)\n", 
 	  mrl, start_pos, start_time);
@@ -443,16 +444,17 @@ int xine_play_internal (xine_t *this, char *mrl,
   } else
     pos = 0;
   
-  if( this->status == XINE_STOP )
-    this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
-				     this->video_fifo,
-				     this->audio_fifo, 
-				     pos, start_time);
-  else
-    this->cur_demuxer_plugin->seek (this->cur_demuxer_plugin,
-				     pos, start_time);
-  
-  if (this->cur_demuxer_plugin->get_status(this->cur_demuxer_plugin) != DEMUX_OK) {
+  if( this->status == XINE_STOP ) {
+    demux_status = this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
+						    this->video_fifo,
+						    this->audio_fifo, 
+						    pos, start_time);
+  }
+  else {
+    demux_status = this->cur_demuxer_plugin->seek (this->cur_demuxer_plugin,
+						   pos, start_time);
+  }
+  if (demux_status != DEMUX_OK) {
     xine_log (this, XINE_LOG_MSG, 
 	      _("xine_play: demuxer failed to start\n"));
     

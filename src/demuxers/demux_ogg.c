@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.24 2002/05/16 22:32:31 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.25 2002/05/21 00:12:32 siggi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -485,7 +485,7 @@ static int demux_ogg_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static void demux_ogg_start (demux_plugin_t *this_gen,
+static int demux_ogg_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo, 
 			     fifo_buffer_t *audio_fifo,
 			     off_t start_pos, int start_time) {
@@ -495,6 +495,7 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
   int err, i;
 
   pthread_mutex_lock( &this->mutex );
+  err = 1;
 
   if( !this->thread_running ) {
     this->video_fifo  = video_fifo;
@@ -578,19 +579,23 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
 	      strerror(err));
       abort();
     }
-  } else {
+  }
+  else {
     xine_flush_engine(this->xine);
+    err = 0;
   }
   
   pthread_mutex_unlock( &this->mutex );
+
+  return err ? DEMUX_FINISHED : DEMUX_OK;
 }
 
-static void demux_ogg_seek (demux_plugin_t *this_gen,
+static int demux_ogg_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
 
-	demux_ogg_start (this_gen, this->video_fifo, this->audio_fifo,
-			 start_pos, start_time);
+  return demux_ogg_start (this_gen, this->video_fifo, this->audio_fifo,
+			  start_pos, start_time);
 }
 
 static int demux_ogg_open(demux_plugin_t *this_gen,
