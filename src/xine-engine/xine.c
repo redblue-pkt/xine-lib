@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.133 2002/05/24 13:15:47 miguelfreitas Exp $
+ * $Id: xine.c,v 1.134 2002/06/01 16:36:13 mroi Exp $
  *
  * top-level xine functions
  *
@@ -75,8 +75,10 @@ static void _logo_change_cb(void *data, cfg_entry_t *cfg) {
     xine_stop_internal(this);  
     this->metronom->adjust_clock(this->metronom,
 				 this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+    pthread_mutex_lock (&this->logo_lock);
     xine_play_internal(this, this->logo_mrl, 0, 0);
     this->status = XINE_LOGO;
+    pthread_mutex_unlock (&this->logo_lock);
   }
   pthread_mutex_unlock (&this->xine_lock);
 }
