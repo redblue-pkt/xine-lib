@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2003/06/03 15:44:31 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.40 2003/07/09 22:09:10 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -79,6 +79,8 @@ typedef struct realdec_decoder_s {
   int              num_chunks;
   uint32_t         chunk_tab[CHUNK_TAB_SIZE];
 
+  uint8_t          chunk_id;
+  
   /* keep track of timestamps, estimate framerate */
   uint64_t         pts;
   int              num_frames;
@@ -458,6 +460,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
       this->chunk_tab[1]      = 0;
       this->num_chunks        = 1;
 
+      this->chunk_id          = buf->content[0];
+
       if (buf->pts)
 	this->pts = buf->pts;
       else
@@ -471,7 +475,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	      this->num_chunks);
 #endif
 
-      if (((buf->content[0] & 0x20) == 0) || (buf->type != BUF_VIDEO_RV30)) {
+      if (((buf->type != BUF_VIDEO_RV30) && (buf->type != BUF_VIDEO_RV40)) ||
+          (buf->content[0] == this->chunk_id)) {
 
 	memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
 
