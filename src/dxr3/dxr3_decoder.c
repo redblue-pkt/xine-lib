@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.18 2001/10/23 12:08:39 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.19 2001/10/23 15:20:35 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -348,7 +348,7 @@ typedef struct spudec_decoder_s {
 
 	vo_instance_t   	*vo_out;
 	int 			fd_spu;
-	int			streams; /* number of streams available */
+	int			menu; /* are we in a menu? */
 	xine_t			*xine;
 } spudec_decoder_t;
 
@@ -403,12 +403,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
         if(buf->type == BUF_SPU_SUBP_CONTROL){
 		int i;
                 uint32_t *subp_control = (uint32_t*) buf->content;
-                this->streams=0;
                 for (i = 0; i < 32; i++) {
 	        	this->spu_stream_state[i].stream_filter = subp_control[i];
-	                          /* Temporary hack to find out if we _may_ be in a menu */
-                                  /* menu's only have one stream, so do some dvd's :(   */
-                        this->streams+=subp_control[i];
                  }
      		return;
 	}
@@ -427,7 +423,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 			fprintf(stderr, "dxr3: spu setpts failed (%s)\n", strerror(errno));
 	}
 
-        if (this->xine->spu_channel != stream_id && this->streams!=1 ) return; 
+        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
 
 	written = write(this->fd_spu, buf->content, buf->size);
 	if (written < 0) {
@@ -451,7 +447,7 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
   xine_spu_event_t *event = (xine_spu_event_t *) event_gen;
-
+  
   switch (event->event.type) {
   case XINE_EVENT_SPU_BUTTON:
     {
@@ -494,6 +490,15 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 		strerror(errno));
     }
     break;
+	/* Temporarily use the stream title to find out if we have a menu... */
+  case XINE_EVENT_UI_SET_TITLE:
+    {
+      if(strstr(event->data,"Menu"))
+	this->menu=1;
+      else
+	this->menu=0;
+    }
+    break;
   }
 }
 
@@ -530,6 +535,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 10;
   this->xine				= xine;
+  this->menu				= 0;
   
   xine_register_event_listener(xine, spudec_event_listener, this);
   
