@@ -82,11 +82,13 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   
-  error_id=asx_parse(mrl,&nmrl);
+  if (strncmp (mrl, "mms://", 6)) {
+    error_id=asx_parse(mrl,&nmrl);
   
-  if(error_id)
-    return 0;
-  
+    if(error_id)
+      return 0;
+  }
+
   if(!nmrl)
     nmrl=mrl;
 
