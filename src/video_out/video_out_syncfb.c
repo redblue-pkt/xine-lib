@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.23 2001/11/03 20:31:36 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.24 2001/11/03 22:39:07 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -96,6 +96,7 @@ typedef struct {
   int               palette;         // palette the syncfb module is using  
   int               overlay_state;   // 0 = off, 1 = on
   uint8_t*          video_mem;       // mmapped video memory
+  int               default_repeat;  // how many times a frame will be displayed
 
   syncfb_config_t      syncfb_config;
   syncfb_capability_t  capabilities;
@@ -347,7 +348,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	 this->syncfb_config.image_xorg     = posx+this->output_xoffset;
 	 this->syncfb_config.image_yorg     = posy+this->output_yoffset;
 
-	 this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : 3;
+	 this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : this->default_repeat;
 
 	 if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
 	   printf("video_out_syncfb: error. (set_config ioctl failed)\n");
@@ -856,6 +857,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
    
   this->bufinfo.id            = -1;   
   this->config                = config;
+  this->default_repeat        = config->lookup_int(config, "syncfb_default_repeat", 3);
   this->display               = visual->display;
   this->display_ratio         = visual->display_ratio;
   this->drawable              = visual->d;
