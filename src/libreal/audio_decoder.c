@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.26 2003/08/25 21:51:42 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.27 2003/10/28 20:18:06 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -731,7 +731,7 @@ static void *init_class (xine_t *xine, void *data) {
  */
 
 static uint32_t audio_types[] = { 
-  BUF_AUDIO_COOK, BUF_AUDIO_ATRK, BUF_AUDIO_14_4, BUF_AUDIO_28_8, BUF_AUDIO_SIPRO, 0
+  BUF_AUDIO_COOK, BUF_AUDIO_ATRK, /* BUF_AUDIO_14_4, BUF_AUDIO_28_8, */ BUF_AUDIO_SIPRO, 0
  };
 
 static decoder_info_t dec_info_audio = {
