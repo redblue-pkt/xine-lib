@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.19 2002/06/03 13:31:13 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.20 2002/06/03 16:20:36 miguelfreitas Exp $
  *
  *
  * contents:
@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "buffer.h"
-
+#include "bswap.h"
 
 #ifndef mmioFOURCC
 #define mmioFOURCC( ch0, ch1, ch2, ch3 )                                         \
@@ -630,4 +630,20 @@ int i;
   }
 
   return "unknow";
+}
+
+void xine_bmiheader_le2me( xine_bmiheader *bih ) {
+  
+  bih->biSize = le2me_32(bih->biSize);
+  bih->biWidth = le2me_32(bih->biWidth);
+  bih->biHeight = le2me_32(bih->biHeight);
+  bih->biPlanes = le2me_16(bih->biPlanes);
+  bih->biBitCount = le2me_16(bih->biBitCount);
+  /* do not change byte order of fourcc */
+  /* bih->biCompression = le2me_32(bih->biCompression); */
+  bih->biSizeImage = le2me_32(bih->biSizeImage);
+  bih->biXPelsPerMeter = le2me_32(bih->biXPelsPerMeter);
+  bih->biYPelsPerMeter = le2me_32(bih->biYPelsPerMeter);
+  bih->biClrUsed = le2me_32(bih->biClrUsed);
+  bih->biClrImportant = le2me_32(bih->biClrImportant);
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.91 2002/06/03 13:31:13 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.92 2002/06/03 16:20:36 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -729,9 +729,11 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       if(lasttag == 1) {
         /* printf ("size : %d\n",sizeof(AVI->bih)); */
         memcpy (&AVI->bih, hdrl_data+i, sizeof(AVI->bih));
+        xine_bmiheader_le2me( &AVI->bih );
+        
         /* stream_read(demuxer->stream,(char*) &avi_header.bih,MIN(size2,sizeof(avi_header.bih))); */
-        AVI->width  = str2ulong(hdrl_data+i+4);
-        AVI->height = str2ulong(hdrl_data+i+8);
+        AVI->width  = AVI->bih.biWidth;
+        AVI->height = AVI->bih.biHeight;
 
         /*
           printf ("size : %d x %d (%d x %d)\n", AVI->width, AVI->height, AVI->bih.biWidth, AVI->bih.biHeight);

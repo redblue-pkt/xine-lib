@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.46 2002/06/03 13:31:12 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.47 2002/06/03 16:20:36 miguelfreitas Exp $
  *
  *
  * contents:
@@ -259,7 +259,11 @@ uint32_t formattag_to_buf_audio( uint32_t formattag );
 char * buf_audio_name( uint32_t buf_type );
 
 
-/* this version of BITMAPINFOHEADER should be safe to compile on 64bits machines */
+/* this is xine version of BITMAPINFOHEADER 
+ * - should be safe to compile on 64bits machines 
+ * - will always use machine endian format, so demuxers reading
+ *   stuff from win32 formats must use the function below.
+ */
 typedef struct {
     int32_t        biSize;
     int32_t        biWidth;
@@ -273,6 +277,9 @@ typedef struct {
     int32_t        biClrUsed;
     int32_t        biClrImportant;
 } xine_bmiheader;
+
+/* convert xine_bmiheader struct from little endian */
+void xine_bmiheader_le2me( xine_bmiheader *bih );
 
 
 #ifdef __cplusplus

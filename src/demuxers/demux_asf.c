@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.41 2002/06/03 13:31:13 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.42 2002/06/03 16:20:35 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -529,6 +529,7 @@ static int asf_read_header (demux_asf_t *this) {
 	this->bih_size = get_le16(this); /* size */
 
 	this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
+	xine_bmiheader_le2me( (xine_bmiheader *) this->bih );
 
 	asf_send_video_header (this, stream_id);
 #ifdef LOG
