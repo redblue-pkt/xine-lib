@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.126 2004/07/19 19:53:40 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.127 2004/08/02 12:51:08 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -332,14 +332,24 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_EQ_16000HZ             27 /* equalizer gains -100..100   */
 #define XINE_PARAM_AUDIO_CLOSE_DEVICE     28 /* force closing audio device  */
 #define XINE_PARAM_AUDIO_AMP_MUTE         29 /* 1=>mute, 0=>unmute */
+#define XINE_PARAM_FINE_SPEED             30 /* 1.000.000 => normal speed   */ 
 
-/* speed values */
+/*
+ * speed values for XINE_PARAM_SPEED parameter.
+ *
+ * alternatively, one may use XINE_PARAM_FINE_SPEED for greater
+ * control of the speed value, where:
+ * XINE_PARAM_SPEED / 4 <-> XINE_PARAM_FINE_SPEED / 1000000
+ */
 #define XINE_SPEED_PAUSE                   0
 #define XINE_SPEED_SLOW_4                  1
 #define XINE_SPEED_SLOW_2                  2
 #define XINE_SPEED_NORMAL                  4
 #define XINE_SPEED_FAST_2                  8
 #define XINE_SPEED_FAST_4                  16
+ 
+/* normal speed value for XINE_PARAM_FINE_SPEED parameter */
+#define XINE_FINE_SPEED_NORMAL             1000000
 
 /* video parameters */
 #define XINE_PARAM_VO_DEINTERLACE          0x01000000 /* bool               */

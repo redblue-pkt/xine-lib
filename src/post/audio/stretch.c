@@ -19,7 +19,7 @@
  *
  * Time stretch by a given factor, optionally preserving pitch
  *
- * $Id: stretch.c,v 1.3 2004/07/27 17:59:58 mroi Exp $
+ * $Id: stretch.c,v 1.4 2004/08/02 12:51:11 miguelfreitas Exp $
  *
  */
 
@@ -93,7 +93,7 @@ static int stretchscr_set_speed (scr_plugin_t *scr, int speed) {
 
   stretchscr_set_pivot( this );
   this->xine_speed   = speed;
-  this->speed_factor = (double) speed * 90000.0 / 4.0 / 
+  this->speed_factor = (double) speed * 90000.0 / XINE_FINE_SPEED_NORMAL / 
                        (*this->stretch_factor);
 
   pthread_mutex_unlock (&this->lock);
@@ -125,7 +125,7 @@ static void stretchscr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
   pthread_mutex_unlock (&this->lock);
   
-  stretchscr_set_speed (&this->scr, XINE_SPEED_NORMAL);
+  stretchscr_set_speed (&this->scr, XINE_FINE_SPEED_NORMAL);
 }
 
 static int64_t stretchscr_get_current (scr_plugin_t *scr) {
@@ -160,9 +160,9 @@ static stretchscr_t* stretchscr_init (double *stretch_factor) {
 
   this = (stretchscr_t *) xine_xmalloc(sizeof(stretchscr_t));
 
-  this->scr.interface_version = 2;
+  this->scr.interface_version = 3;
   this->scr.get_priority      = stretchscr_get_priority;
-  this->scr.set_speed         = stretchscr_set_speed;
+  this->scr.set_fine_speed    = stretchscr_set_speed;
   this->scr.adjust            = stretchscr_adjust;
   this->scr.start             = stretchscr_start;
   this->scr.get_current       = stretchscr_get_current;

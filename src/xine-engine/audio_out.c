@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.182 2004/07/06 22:53:22 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.183 2004/08/02 12:51:11 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -953,7 +953,7 @@ static void *ao_loop (void *this_gen) {
      * we must process buffers otherwise the entire engine will stop.
      */
     
-    if ( this->clock->speed != XINE_SPEED_NORMAL && this->audio_loop_running )  {
+    if ( this->clock->speed != XINE_FINE_SPEED_NORMAL && this->audio_loop_running )  {
 
       if (this->clock->speed != XINE_SPEED_PAUSE) {
 

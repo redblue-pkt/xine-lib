@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.139 2004/06/19 19:51:25 mroi Exp $
+ * $Id: metronom.c,v 1.140 2004/08/02 12:51:21 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -113,7 +113,7 @@ static int unixscr_set_speed (scr_plugin_t *scr, int speed) {
   pthread_mutex_lock (&this->lock);
 
   unixscr_set_pivot( this );
-  this->speed_factor = (double) speed * 90000.0 / 4.0;
+  this->speed_factor = (double) speed * 90000.0 / XINE_FINE_SPEED_NORMAL;
 
   pthread_mutex_unlock (&this->lock);
 
@@ -144,7 +144,7 @@ static void unixscr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
   pthread_mutex_unlock (&this->lock);
   
-  unixscr_set_speed (&this->scr, XINE_SPEED_NORMAL);
+  unixscr_set_speed (&this->scr, XINE_FINE_SPEED_NORMAL);
 }
 
 static int64_t unixscr_get_current (scr_plugin_t *scr) {
@@ -180,9 +180,9 @@ static scr_plugin_t* unixscr_init () {
   this = (unixscr_t *) xine_xmalloc(sizeof(unixscr_t));
   memset(this, 0, sizeof(*this));
   
-  this->scr.interface_version = 2;
+  this->scr.interface_version = 3;
   this->scr.get_priority      = unixscr_get_priority;
-  this->scr.set_speed         = unixscr_set_speed;
+  this->scr.set_fine_speed    = unixscr_set_speed;
   this->scr.adjust            = unixscr_adjust;
   this->scr.start             = unixscr_start;
   this->scr.get_current       = unixscr_get_current;
@@ -224,13 +224,13 @@ static int64_t metronom_get_current_time (metronom_clock_t *this) {
 static void metronom_stop_clock(metronom_clock_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
-    if (*scr) (*scr)->set_speed(*scr, XINE_SPEED_PAUSE);
+    if (*scr) (*scr)->set_fine_speed(*scr, XINE_SPEED_PAUSE);
 }
 
 static void metronom_resume_clock(metronom_clock_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
-    if (*scr) (*scr)->set_speed(*scr, XINE_SPEED_NORMAL);
+    if (*scr) (*scr)->set_fine_speed(*scr, XINE_FINE_SPEED_NORMAL);
 }
 
 
@@ -245,12 +245,12 @@ static int metronom_set_speed (metronom_clock_t *this, int speed) {
   scr_plugin_t **scr;
   int            true_speed;
 
-  true_speed = this->scr_master->set_speed (this->scr_master, speed);
+  true_speed = this->scr_master->set_fine_speed (this->scr_master, speed);
   
   this->speed = true_speed;
 
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
-    if (*scr) (*scr)->set_speed(*scr, true_speed);
+    if (*scr) (*scr)->set_fine_speed(*scr, true_speed);
 
   return true_speed;
 }
@@ -812,7 +812,11 @@ static scr_plugin_t* get_master_scr(metronom_clock_t *this) {
 static int metronom_register_scr (metronom_clock_t *this, scr_plugin_t *scr) {
   int i;
 
-  if (scr->interface_version != 2) return -1;
+  if (scr->interface_version != 3) {
+    xprintf(this->xine, XINE_VERBOSITY_NONE, 
+            "wrong interface version for scr provider!\n");
+    return -1;
+  }
 
   for (i=0; i<MAX_SCR_PROVIDERS; i++)
     if (this->scr_list[i] == NULL) break;
@@ -970,7 +974,7 @@ metronom_clock_t *_x_metronom_clock_init(xine_t *xine)
   this->resume_clock         = metronom_resume_clock;
   this->get_current_time     = metronom_get_current_time;
   this->adjust_clock         = metronom_adjust_clock;
-  this->set_speed            = metronom_set_speed;
+  this->set_fine_speed       = metronom_set_speed;
   this->register_scr         = metronom_register_scr;
   this->unregister_scr       = metronom_unregister_scr;
   this->exit                 = metronom_clock_exit;

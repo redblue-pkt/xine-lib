@@ -266,7 +266,7 @@ static int pvrscr_set_speed (scr_plugin_t *scr, int speed)
   
   pvrscr_set_pivot( this );
   this->xine_speed   = speed;
-  this->speed_factor = (double) speed * 90000.0 / 4.0 *
+  this->speed_factor = (double) speed * 90000.0 / XINE_FINE_SPEED_NORMAL *
     this->speed_tunning;
   
   pthread_mutex_unlock (&this->lock);
@@ -312,7 +312,7 @@ static void pvrscr_start (scr_plugin_t *scr, int64_t start_vpts)
   
   pthread_mutex_unlock (&this->lock);
   
-  pvrscr_set_speed (&this->scr, XINE_SPEED_NORMAL);
+  pvrscr_set_speed (&this->scr, XINE_FINE_SPEED_NORMAL);
 }
 
 static int64_t pvrscr_get_current (scr_plugin_t *scr)
@@ -349,9 +349,9 @@ static pvrscr_t* pvrscr_init (void)
    
    this = (pvrscr_t *) xine_xmalloc(sizeof(pvrscr_t));
    
-   this->scr.interface_version = 2;
+   this->scr.interface_version = 3;
    this->scr.get_priority      = pvrscr_get_priority;
-   this->scr.set_speed         = pvrscr_set_speed;
+   this->scr.set_fine_speed    = pvrscr_set_speed;
    this->scr.adjust            = pvrscr_adjust;
    this->scr.start             = pvrscr_start;
    this->scr.get_current       = pvrscr_get_current;
@@ -1228,7 +1228,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   buf_element_t        *buf = NULL;
   uint8_t              *ptr;
   static char           video = 0;
-  int                   speed = this->stream->xine->clock->speed;
+  int                   speed = _x_get_speed(this->stream);
     
   v4l_event_handler(this); 
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.82 2004/05/07 14:38:14 mroi Exp $
+ * $Id: xine_interface.c,v 1.83 2004/08/02 12:51:21 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -333,6 +333,12 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     _x_set_speed (stream, value);
     pthread_mutex_unlock (&stream->frontend_lock);
     break;
+  
+  case XINE_PARAM_FINE_SPEED:
+    pthread_mutex_lock (&stream->frontend_lock);
+    _x_set_fine_speed (stream, value);
+    pthread_mutex_unlock (&stream->frontend_lock);
+    break;
 
   case XINE_PARAM_AV_OFFSET:
     stream->metronom->set_option (stream->metronom, METRONOM_AV_OFFSET, value);
@@ -475,7 +481,11 @@ int xine_get_param (xine_stream_t *stream, int param) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
-    ret = stream->xine->clock->speed;
+    ret = _x_get_speed(stream);
+    break;
+  
+  case XINE_PARAM_FINE_SPEED:
+    ret = _x_get_fine_speed(stream);
     break;
 
   case XINE_PARAM_AV_OFFSET:

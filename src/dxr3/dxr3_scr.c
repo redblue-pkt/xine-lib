@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.16 2004/07/20 16:37:44 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.17 2004/08/02 12:51:08 miguelfreitas Exp $
  */
 
 /* dxr3 scr plugin.
@@ -86,12 +86,12 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   
   this->xine = xine;
   
-  this->scr_plugin.interface_version = 2;
+  this->scr_plugin.interface_version = 3;
   this->scr_plugin.get_priority      = dxr3_scr_get_priority;
   this->scr_plugin.start             = dxr3_scr_start;
   this->scr_plugin.get_current       = dxr3_scr_get_current;
   this->scr_plugin.adjust            = dxr3_scr_adjust;
-  this->scr_plugin.set_speed         = dxr3_scr_set_speed;
+  this->scr_plugin.set_fine_speed    = dxr3_scr_set_speed;
   this->scr_plugin.exit              = dxr3_scr_exit;
   
   this->priority                     = xine->config->register_num(
@@ -187,6 +187,8 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
   dxr3_scr_t *this = (dxr3_scr_t *)scr;
   uint32_t em_speed;
   int playmode;
+
+  speed = speed * XINE_SPEED_NORMAL / XINE_FINE_SPEED_NORMAL;
   
   pthread_mutex_lock(&this->mutex);
   switch (speed) {
@@ -236,7 +238,7 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
   pthread_mutex_unlock(&this->mutex);
   
   lprintf("speed set to mode %d\n", speed);
-  return speed;
+  return speed * XINE_FINE_SPEED_NORMAL / XINE_SPEED_NORMAL;
 }
 
 static void dxr3_scr_exit(scr_plugin_t *scr)

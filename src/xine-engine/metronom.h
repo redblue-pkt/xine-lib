@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.60 2004/06/19 19:53:29 mroi Exp $
+ * $Id: metronom.h,v 1.61 2004/08/02 12:51:21 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -286,7 +286,7 @@ struct metronom_clock_s {
    * for constants see xine_internal.h
    */
 
-  int (*set_speed) (metronom_clock_t *self, int speed);
+  int (*set_fine_speed) (metronom_clock_t *self, int speed);
 #else
   void *dummy4;
 #endif
@@ -350,7 +350,7 @@ struct scr_plugin_s
    * returns actual speed
    */
 
-  int (*set_speed) (scr_plugin_t *self, int speed);
+  int (*set_fine_speed) (scr_plugin_t *self, int speed);
 
   void (*adjust) (scr_plugin_t *self, int64_t vpts);
 

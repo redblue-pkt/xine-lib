@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.48 2004/07/25 17:11:59 mroi Exp $
+ * $Id: input_pvr.c,v 1.49 2004/08/02 12:51:09 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -306,7 +306,7 @@ static int pvrscr_set_speed (scr_plugin_t *scr, int speed) {
 
   pvrscr_set_pivot( this );
   this->xine_speed   = speed;
-  this->speed_factor = (double) speed * 90000.0 / 4.0 * 
+  this->speed_factor = (double) speed * 90000.0 / XINE_FINE_SPEED_NORMAL * 
                        this->speed_tunning;
 
   pthread_mutex_unlock (&this->lock);
@@ -319,7 +319,7 @@ static void pvrscr_speed_tunning (pvrscr_t *this, double factor) {
 
   pvrscr_set_pivot( this );
   this->speed_tunning = factor;
-  this->speed_factor = (double) this->xine_speed * 90000.0 / 4.0 * 
+  this->speed_factor = (double) this->xine_speed * 90000.0 / XINE_FINE_SPEED_NORMAL * 
                        this->speed_tunning;
 
   pthread_mutex_unlock (&this->lock);
@@ -349,7 +349,7 @@ static void pvrscr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
   pthread_mutex_unlock (&this->lock);
   
-  pvrscr_set_speed (&this->scr, XINE_SPEED_NORMAL);
+  pvrscr_set_speed (&this->scr, XINE_FINE_SPEED_NORMAL);
 }
 
 static int64_t pvrscr_get_current (scr_plugin_t *scr) {
@@ -384,9 +384,9 @@ static pvrscr_t* pvrscr_init (void) {
 
   this = (pvrscr_t *) xine_xmalloc(sizeof(pvrscr_t));
 
-  this->scr.interface_version = 2;
+  this->scr.interface_version = 3;
   this->scr.get_priority      = pvrscr_get_priority;
-  this->scr.set_speed         = pvrscr_set_speed;
+  this->scr.set_fine_speed    = pvrscr_set_speed;
   this->scr.adjust            = pvrscr_adjust;
   this->scr.start             = pvrscr_start;
   this->scr.get_current       = pvrscr_get_current;
@@ -1128,7 +1128,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
 
     case XINE_EVENT_PVR_PAUSE:
       /* ignore event if trying to pause, but already paused */
-      if(this->stream->xine->clock->speed != XINE_SPEED_PAUSE ||
+      if(_x_get_speed(this->stream) != XINE_SPEED_PAUSE ||
          !pause_data->mode)
         this->pvr_play_paused = pause_data->mode;
       break;
@@ -1185,7 +1185,7 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
 
   pvr_input_plugin_t   *this = (pvr_input_plugin_t *) this_gen;
   buf_element_t        *buf;
-  int                   speed = this->stream->xine->clock->speed;
+  int                   speed = _x_get_speed(this->stream);
 
   if( !this->pvr_running ) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_pvr: thread died, aborting\n");

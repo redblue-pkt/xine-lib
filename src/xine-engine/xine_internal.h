@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.158 2004/06/13 21:28:58 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.159 2004/08/02 12:51:21 miguelfreitas Exp $
  *
  */
 
@@ -447,6 +447,12 @@ ao_driver_t *_x_load_audio_output_plugin (xine_t *self, char *id);
 
 
 void _x_set_speed (xine_stream_t *stream, int speed) ;
+
+int _x_get_speed (xine_stream_t *stream) ;
+
+void _x_set_fine_speed (xine_stream_t *stream, int speed) ;
+
+int _x_get_fine_speed (xine_stream_t *stream) ;
 
 void _x_select_spu_channel (xine_stream_t *stream, int channel) ;
 

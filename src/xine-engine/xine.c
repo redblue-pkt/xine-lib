@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.295 2004/06/13 21:28:57 miguelfreitas Exp $
+ * $Id: xine.c,v 1.296 2004/08/02 12:51:21 miguelfreitas Exp $
  */
 
 /*
@@ -250,7 +250,7 @@ static void __set_speed_internal (xine_stream_t *stream, int speed) {
     /* all decoder and post threads may continue now */
     xine->port_ticket->issue(xine->port_ticket, 0);
   
-  stream->xine->clock->set_speed (stream->xine->clock, speed);
+  stream->xine->clock->set_fine_speed (stream->xine->clock, speed);
 
   /* see coment on audio_out loop about audio_paused */
   if( stream->audio_out ) {
@@ -260,7 +260,7 @@ static void __set_speed_internal (xine_stream_t *stream, int speed) {
      * slow motion / fast forward does not play sound, drop buffered
      * samples from the sound driver
      */
-    if (speed != XINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
+    if (speed != XINE_FINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
       stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS, NULL);
 
     stream->audio_out->control(stream->audio_out,
@@ -285,7 +285,7 @@ static void __stop_internal (xine_stream_t *stream) {
   }
 
   /* make sure we're not in "paused" state */
-  __set_speed_internal (stream, XINE_SPEED_NORMAL);
+  __set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
 
   /* Don't change status if we're quitting */
   if (stream->status != XINE_STATUS_QUIT)
@@ -1097,8 +1097,8 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
   stream->demux_action_pending = 1;
 
   /* set normal speed */
-  if (stream->xine->clock->speed != XINE_SPEED_NORMAL)
-    __set_speed_internal (stream, XINE_SPEED_NORMAL);
+  if (_x_get_speed(stream) != XINE_SPEED_NORMAL)
+    __set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
   
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
   
@@ -1116,8 +1116,8 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
    * some input plugin may have changed speed by itself, we must ensure
    * the engine is not paused.
    */
-  if (stream->xine->clock->speed != XINE_SPEED_NORMAL)
-    __set_speed_internal (stream, XINE_SPEED_NORMAL);
+  if (_x_get_speed(stream) != XINE_SPEED_NORMAL)
+    __set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
   
   /*
    * start/seek demux
@@ -1589,21 +1589,53 @@ int xine_get_status (xine_stream_t *stream) {
  * trick play
  */
 
-void _x_set_speed (xine_stream_t *stream, int speed) {
+void _x_set_fine_speed (xine_stream_t *stream, int speed) {
 
   if (stream->ignore_speed_change)
     return;
 
   if (speed <= XINE_SPEED_PAUSE)
     speed = XINE_SPEED_PAUSE;
-  else if (speed > XINE_SPEED_FAST_4)
-    speed = XINE_SPEED_FAST_4;
 
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "set_speed %d\n", speed);
   __set_speed_internal (stream, speed);
   
   if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_SPEED))
     __set_speed_internal (stream->slave, speed);
+}
+
+int _x_get_fine_speed (xine_stream_t *stream) {
+  return stream->xine->clock->speed;
+}
+
+void _x_set_speed (xine_stream_t *stream, int speed) {
+  
+  if (speed > XINE_SPEED_FAST_4)
+    speed = XINE_SPEED_FAST_4;
+
+  _x_set_fine_speed (stream, speed * XINE_FINE_SPEED_NORMAL / XINE_SPEED_NORMAL);
+}
+
+int _x_get_speed (xine_stream_t *stream) {
+  int speed = _x_get_fine_speed (stream);
+  
+  /*
+   * ensure compatibility with old API, only valid XINE_SPEED_xxx 
+   * constants are allowed. XINE_SPEED_NORMAL may only be returned
+   * if speed is exactly XINE_FINE_SPEED_NORMAL.
+   */
+  
+  if( speed <= XINE_SPEED_PAUSE )
+    return XINE_SPEED_PAUSE;
+  if( speed <= XINE_SPEED_SLOW_4 * XINE_FINE_SPEED_NORMAL / XINE_SPEED_NORMAL )
+    return XINE_SPEED_SLOW_4;
+  if( speed < XINE_FINE_SPEED_NORMAL )
+    return XINE_SPEED_SLOW_2;
+  if( speed == XINE_FINE_SPEED_NORMAL )
+    return XINE_SPEED_NORMAL;
+  if( speed <= XINE_SPEED_FAST_2 * XINE_FINE_SPEED_NORMAL / XINE_SPEED_NORMAL )
+    return XINE_SPEED_FAST_2;
+  return XINE_SPEED_FAST_4;
 }
 
 
