@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.49 2002/08/15 03:12:25 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.50 2002/08/15 13:35:12 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -768,7 +768,7 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     printf("video_out_dxr3: VO_PROP_COLORKEY not implemented!");
     this->overlay.colorkey = value;
     break;
-  case VO_PROP_ZOOM_FACTOR:
+  case VO_PROP_ZOOM_X:
     if(!this->overlay_enabled) {  /* TV-out only */
       if (value == 1) {
 #if LOG_VID
