@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.197 2004/04/09 01:56:11 guenter Exp $
+ * $Id: demux_avi.c,v 1.198 2004/04/25 16:23:19 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1217,6 +1217,8 @@ static avi_t *AVI_init(demux_avi_t *this) {
       int nvi, nai[MAX_AUDIO_STREAMS];
       uint64_t totb, tot[MAX_AUDIO_STREAMS];
 
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+               "demux_avi: This is an OpenDML stream\n");
       nvi = 0;
       for(audtr=0; audtr<AVI->n_audio; ++audtr) nai[audtr] = tot[audtr] = 0; 
 
