@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.10 2004/05/09 21:05:35 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.11 2004/05/09 21:52:10 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -45,6 +45,12 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/shape.h>
 #include <X11/Xatom.h>
+
+#define LOG_MODULE "x11osd"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "alphablend.h"
@@ -91,6 +97,8 @@ x11osd_expose (x11osd * osd)
 {
   assert (osd);
 
+  lprintf("expose (state:%d)\n", osd->clean );
+  
   switch (osd->mode) {
     case X11OSD_SHAPED:
       XShapeCombineMask (osd->display, osd->u.shaped.window, ShapeBounding, 0, 0,
@@ -121,6 +129,9 @@ void
 x11osd_resize (x11osd * osd, int width, int height)
 {
   assert (osd);
+  
+  lprintf("resize old:%dx%d new:%dx%d\n", osd->width, osd->height, width, height );
+
   if(osd->width==width && osd->height==height)
     return;
   osd->width = width;
@@ -156,6 +167,8 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   XWindowAttributes getattr;
 
   assert (osd);
+  
+  lprintf("drawable changed\n");
 
 /*
   Do I need to recreate the GC's??
@@ -209,10 +222,9 @@ x11osd_drawable_changed (x11osd * osd, Window window)
 
       break;
   }
-    
+  
   osd->clean = UNDEFINED;
-  x11osd_clear(osd);
-  x11osd_expose(osd);
+  /* do not x11osd_clear() here: osd->u.colorkey.sc has not being updated yet */
 }
 
 static int x11_error = False ;
@@ -386,6 +398,8 @@ x11osd_destroy (x11osd * osd)
 void x11osd_clear(x11osd *osd)
 {
   int i;
+  
+  lprintf("clear (state:%d)\n", osd->clean );
   
   if( osd->clean != WIPED )
     switch (osd->mode) {
