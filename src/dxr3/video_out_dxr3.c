@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.37 2002/07/08 17:07:18 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.38 2002/07/08 19:52:02 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -665,7 +665,9 @@ static int dxr3_get_property(vo_driver_t *this_gen, int property)
   case VO_PROP_TVMODE:
     return 0;
   case VO_PROP_VO_TYPE:
-    return this->overlay_enabled ? VO_TYPE_DXR3_OVERLAY : VO_TYPE_DXR3_TVOUT;
+    if (this->overlay_enabled && is_fullscreen(this)) return VO_TYPE_DXR3_LETTERBOXED;
+    if (this->overlay_enabled || this->widescreen_enabled) return VO_TYPE_DXR3_WIDE;
+    return VO_TYPE_DXR3_LETTERBOXED;
   }
   printf("video_out_dxr3: property %d not implemented.\n", property);
   return 0;

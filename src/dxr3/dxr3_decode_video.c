@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.10 2002/07/05 17:32:01 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.11 2002/07/08 19:52:01 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -519,7 +519,7 @@ static int dxr3_present(xine_t *xine)
 #ifdef LOG_VID
     printf("dxr3_decode_video: dxr3 presence test: info = %d\n", info);
 #endif
-    if ((info != VO_TYPE_DXR3_TVOUT) && (info != VO_TYPE_DXR3_OVERLAY))
+    if ((info != VO_TYPE_DXR3_LETTERBOXED) && (info != VO_TYPE_DXR3_WIDE))
       return 0;
   }
   return 1;

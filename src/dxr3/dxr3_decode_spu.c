@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.9 2002/07/05 17:32:01 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.10 2002/07/08 19:52:01 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -321,7 +321,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC && this->xine->spu_channel_user == -1 &&
       !this->pan_scan && this->xine->spu_channel_letterbox >= 0 &&
       this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
-      VO_TYPE_DXR3_TVOUT) {
+      VO_TYPE_DXR3_LETTERBOXED) {
     /* Use the letterbox version of the subpicture for tv out. */
     spu_channel = this->xine->spu_channel_letterbox;
   }
@@ -407,7 +407,7 @@ static int dxr3_present(xine_t *xine)
 #ifdef LOG_SPU
     printf("dxr3_decode_spu: dxr3 presence test: info = %d\n", info);
 #endif
-    if ((info != VO_TYPE_DXR3_TVOUT) && (info != VO_TYPE_DXR3_OVERLAY))
+    if ((info != VO_TYPE_DXR3_LETTERBOXED) && (info != VO_TYPE_DXR3_WIDE))
       return 0;
   }
   return 1;
@@ -530,7 +530,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     btn->bottom = button_ptr->y_end;
     if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC && !this->pan_scan &&
         this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
-        VO_TYPE_DXR3_TVOUT) {
+        VO_TYPE_DXR3_LETTERBOXED) {
       /* modify button areas for anamorphic menus on tv out */
       int top_black_bar = this->height / 8;
       btn->top = btn->top * 3 / 4 + top_black_bar;
