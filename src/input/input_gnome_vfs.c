@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.1 2003/01/13 12:38:08 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.2 2003/01/13 20:10:23 hadess Exp $
  */
 
 
@@ -26,18 +26,18 @@
 #include "config.h"
 #endif
 
+#include "xine_internal.h"
+#include "xineutils.h"
+#include "compat.h"
+#include "input_plugin.h"
+
 #include <libgnomevfs/gnome-vfs.h>
 
-//#define D(x...)
+/* #define D(x...) */
 #define D(x...) g_message (x)
 #define LOG
 
 #define PREVIEW_SIZE 16384
-
-#include <xine/xine_internal.h>
-#include <xine/xineutils.h>
-#include <xine/compat.h>
-#include <xine/input_plugin.h>
 
 typedef struct {
 	input_class_t input_class;
@@ -247,7 +247,7 @@ gnomevfs_plugin_get_optional_data (input_plugin_t *this_gen,
 
 	D ("input_gnomevfs: get optional data, type %08x, sub %p\n",
 			data_type, this->sub);
-//FIXME
+/* FIXME */
 #if 0
 	switch (data_type) {
 	case INPUT_OPTIONAL_DATA_TEXTSPU0:
