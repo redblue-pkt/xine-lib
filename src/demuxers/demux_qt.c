@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.83 2002/09/21 17:22:21 tmmm Exp $
+ * $Id: demux_qt.c,v 1.84 2002/09/21 18:35:10 tmmm Exp $
  *
  */
 
@@ -288,6 +288,61 @@ typedef struct {
  * lazyqt functions
  **********************************************************************/
 
+/*
+ * This function traverses a file and looks for a moov atom. Returns the
+ * file offset of the beginning of the moov atom (that means the offset
+ * of the 4-byte length preceding the characters 'moov'). Returns -1
+ * if no moov atom was found.
+ *
+ * Note: Do not count on the input stream being positioned anywhere in
+ * particular when this function is finished.
+ */
+static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
+  int64_t *moov_size) {
+
+  off_t atom_size;
+  qt_atom atom;
+  unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
+
+  /* init the passed variables */
+  *moov_offset = *moov_size = -1;
+
+  /* take it from the top */
+  if (input->seek(input, 0, SEEK_SET) != 0)
+    return;
+
+  /* traverse through the input */
+  while (*moov_offset == -1) {
+    if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
+      ATOM_PREAMBLE_SIZE)
+      break;
+
+    atom_size = BE_32(&atom_preamble[0]);
+    atom = BE_32(&atom_preamble[4]);
+
+    if (atom == MOOV_ATOM) {
+      *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
+      *moov_size = atom_size;
+      break;
+    }
+
+    /* 64-bit length special case */
+    if (atom_size == 1) {
+      if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
+        ATOM_PREAMBLE_SIZE)
+        break;
+
+      atom_size = BE_32(&atom_preamble[0]);
+      atom_size <<= 32;
+      atom_size |= BE_32(&atom_preamble[4]);
+      atom_size -= ATOM_PREAMBLE_SIZE * 2;
+    } else
+      atom_size -= ATOM_PREAMBLE_SIZE;
+
+    input->seek(input, atom_size, SEEK_CUR);
+  }
+}
+
 /* create a qt_info structure or return NULL if no memory */
 qt_info *create_qt_info(void) {
   qt_info *info;
@@ -338,29 +393,28 @@ void free_qt_info(qt_info *info) {
 
 /* returns 1 if the file is determined to be a QT file, 0 otherwise */
 static int is_qt_file(input_plugin_t *qt_file) {
-  qt_atom atom = 0;
 
-  if (qt_file->seek(qt_file, 4, SEEK_SET) != 4)
-    return DEMUX_CANNOT_HANDLE;
+  off_t moov_atom_offset = -1;
+  int64_t moov_atom_size = -1;
+  int i;
+  unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
 
-  if (qt_file->read(qt_file, (unsigned char *)&atom, 4) != 4)
-    return DEMUX_CANNOT_HANDLE;
-
-  atom = be2me_32(atom);
-
-  /* check the first atom against all known top-level atoms */
-  if (
-    (atom == FREE_ATOM) ||
-    (atom == JUNK_ATOM) ||
-    (atom == MDAT_ATOM) ||
-    (atom == MOOV_ATOM) ||
-    (atom == PNOT_ATOM) ||
-    (atom == SKIP_ATOM) ||
-    (atom == WIDE_ATOM)
-  )
-    return 1;
-  else
+  find_moov_atom(qt_file, &moov_atom_offset, &moov_atom_size);
+  if (moov_atom_offset == -1) {
     return 0;
+  } else {
+    /* check that the next atom in the chunk contains are alphanumeric;
+     * if not, disqualify the file as a QT file */
+    qt_file->seek(qt_file, moov_atom_offset + ATOM_PREAMBLE_SIZE, SEEK_SET);
+    if (qt_file->read(qt_file, atom_preamble, ATOM_PREAMBLE_SIZE) !=
+      ATOM_PREAMBLE_SIZE)
+      return 0;
+
+    for (i = 4; i < 8; i++)
+      if (!isalnum(atom_preamble[i]))
+        return 0;
+    return 1;
+  }
 }
 
 /* fetch interesting information from the movie header atom */
@@ -1457,8 +1511,15 @@ static int demux_qt_send_headers (demux_qt_t *this) {
   if( !this->qt->audio_type && this->qt->audio_codec )
     xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
 
+  /* load the stream information */
   this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
   this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->qt->audio_channels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->qt->audio_sample_rate;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->qt->audio_bits;
 
   xine_demux_control_headers_done (this->xine);
 
