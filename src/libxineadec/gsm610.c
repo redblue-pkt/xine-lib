@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.1 2002/10/12 19:18:49 tmmm Exp $
+ * $Id: gsm610.c,v 1.2 2002/10/23 04:16:24 tmmm Exp $
  *
  */
 
@@ -69,13 +69,16 @@
 #define GSM610_SAMPLE_SIZE 16
 #define GSM610_BLOCK_SIZE 160
 
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} gsm610_class_t;
+
 typedef struct gsm610_decoder_s {
   audio_decoder_t   audio_decoder;
 
-  int64_t           pts;
+  xine_stream_t    *stream;
 
   unsigned int      buf_type;
-  ao_instance_t    *audio_out;
   int               output_open;
   int               sample_rate;
 
@@ -91,18 +94,6 @@ typedef struct gsm610_decoder_s {
 /**************************************************************************
  * xine audio plugin functions
  *************************************************************************/
-
-static void gsm610_reset (audio_decoder_t *this_gen) {
-}
-
-static void gsm610_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
-
-  gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
-
-  this->audio_out       = audio_out;
-  this->output_open     = 0;
-  this->gsm_state       = NULL;
-}
 
 static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
@@ -125,7 +116,7 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->gsm_state = gsm_create();
     this->buf_type = buf->type;
 
-    this->output_open = this->audio_out->open(this->audio_out,
+    this->output_open = this->stream->audio_out->open(this->stream->audio_out,
       GSM610_SAMPLE_SIZE, this->sample_rate, AO_CAP_MODE_MONO);
   }
 
@@ -170,7 +161,7 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
         /* dispatch the decoded audio; assume that the audio buffer will
          * always contain at least 160 samples */
-        audio_buffer = this->audio_out->get_buffer (this->audio_out);
+        audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
 
         xine_fast_memcpy(audio_buffer->mem, this->decode_buffer,
           GSM610_BLOCK_SIZE * 2);
@@ -178,7 +169,7 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
         audio_buffer->vpts = buf->pts;
         buf->pts = 0;  /* only first buffer gets the real pts */
-        this->audio_out->put_buffer (this->audio_out, audio_buffer);
+        this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
       }
     } else {
 
@@ -200,7 +191,7 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
         /* dispatch the decoded audio; assume that the audio buffer will
          * always contain at least 160 samples */
-        audio_buffer = this->audio_out->get_buffer (this->audio_out);
+        audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
 
         xine_fast_memcpy(audio_buffer->mem, this->decode_buffer,
           GSM610_BLOCK_SIZE * 2);
@@ -208,45 +199,72 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
         audio_buffer->vpts = buf->pts;
         buf->pts = 0;  /* only first buffer gets the real pts */
-        this->audio_out->put_buffer (this->audio_out, audio_buffer);
+        this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
       }
     }
   }
 }
 
-static void gsm610_close (audio_decoder_t *this_gen) {
+static void gsm610_reset (audio_decoder_t *this_gen) {
+}
+
+static void gsm610_dispose (audio_decoder_t *this_gen) {
+
   gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
 
   if (this->gsm_state)
     gsm_destroy(this->gsm_state);
 
   if (this->output_open)
-    this->audio_out->close (this->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out);
   this->output_open = 0;
-}
 
-static char *gsm610_get_id(void) {
-  return "GSM 6.10";
-}
-
-static void gsm610_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   gsm610_decoder_t *this ;
 
   this = (gsm610_decoder_t *) malloc (sizeof (gsm610_decoder_t));
 
-  this->audio_decoder.init                = gsm610_init;
   this->audio_decoder.decode_data         = gsm610_decode_data;
   this->audio_decoder.reset               = gsm610_reset;
-  this->audio_decoder.close               = gsm610_close;
-  this->audio_decoder.get_identifier      = gsm610_get_id;
   this->audio_decoder.dispose             = gsm610_dispose;
 
-  return (audio_decoder_t *) this;
+  this->output_open = 0;
+  this->sample_rate = 0;
+  this->stream = stream;
+  this->buf = NULL;
+  this->size = 0;
+
+  return &this->audio_decoder;
+}
+
+static char *get_identifier (audio_decoder_class_t *this) {
+  return "GSM 6.10";
+}
+
+static char *get_description (audio_decoder_class_t *this) {
+  return "GSM 6.10 audio decoder plugin";
+}
+
+static void dispose_class (audio_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  gsm610_class_t *this ;
+
+  this = (gsm610_class_t *) malloc (sizeof (gsm610_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  return this;
 }
 
 static uint32_t audio_types[] = { 
@@ -262,6 +280,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 9, "gsm610", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 10, "gsm610", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
