@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.97 2002/02/26 21:41:41 guenter Exp $
+ * $Id: video_out_xv.c,v 1.98 2002/02/26 21:50:42 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -655,19 +655,26 @@ static void xv_compute_ideal_size (xv_driver_t *this) {
   corr_factor = this->ratio_factor / image_ratio ;
 
   if (fabs(corr_factor - 1.0) < 0.005) {
-    this->ideal_width  = this->displayed_width;
-    this->ideal_height = this->displayed_height;
+    this->ideal_width  = this->delivered_width;
+    this->ideal_height = this->delivered_height;
 
   } else {
 
     if (corr_factor >= 1.0) {
-      this->ideal_width  = this->displayed_width * corr_factor + 0.5;
-      this->ideal_height = this->displayed_height;
+      this->ideal_width  = this->delivered_width * corr_factor + 0.5;
+      this->ideal_height = this->delivered_height;
     } else {
-      this->ideal_width  = this->displayed_width;
-      this->ideal_height = this->displayed_height / corr_factor + 0.5;
+      this->ideal_width  = this->delivered_width;
+      this->ideal_height = this->delivered_height / corr_factor + 0.5;
     }
+  }
 
+  /* onefield_xv divide by 2 the number of lines */
+  if (this->deinterlace_enabled
+       && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
+       && (this->cur_frame->format == IMGFMT_YV12)) {
+    this->displayed_height  = this->displayed_height / 2;
+    this->displayed_yoffset = this->displayed_yoffset / 2;
   }
 }
 
