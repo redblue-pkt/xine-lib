@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.8 2001/11/18 21:38:23 miguelfreitas Exp $
+ * $Id: configfile.c,v 1.9 2001/11/19 02:57:10 guenter Exp $
  *
  * config file management - implementation
  *
@@ -109,7 +109,6 @@ static char *config_file_register_string (config_values_t *this,
 
   assert (key);
   assert (def_value);
-  assert (description);
 
 #ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
@@ -152,7 +151,6 @@ static int config_file_register_num (config_values_t *this,
   cfg_entry_t *entry;
 
   assert (key);
-  assert (description);
 
 #ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
@@ -200,7 +198,6 @@ static int config_file_register_bool (config_values_t *this,
   cfg_entry_t *entry;
 
   assert (key);
-  assert (description);
 
 #ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
@@ -249,7 +246,6 @@ static int config_file_register_range (config_values_t *this,
   cfg_entry_t *entry;
 
   assert (key);
-  assert (description);
 
 #ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
@@ -330,7 +326,6 @@ static int config_file_register_enum (config_values_t *this,
 
   assert (key);
   assert (values);
-  assert (description);
 
 #ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
@@ -438,7 +433,9 @@ static void config_file_save (config_values_t *this) {
     entry = this->first;
 
     while (entry) {
-      fprintf (f_config, "# %s\n", entry->description);
+      if (entry->description)
+	fprintf (f_config, "# %s\n", entry->description);
+
       switch (entry->type) {
       case CONFIG_TYPE_UNKNOWN:
 
@@ -563,6 +560,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.9  2001/11/19 02:57:10  guenter
+ * make description strings optional - config options without description string will not appear in setup dialog
+ *
  * Revision 1.8  2001/11/18 21:38:23  miguelfreitas
  * fix enum value saving
  *
