@@ -6,6 +6,11 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+// xine: disable DEBUG for ffmpeg (too noisy)
+#ifdef DEBUG
+#undef DEBUG
+#endif
+
 #if defined(WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
 #    define CONFIG_WIN32
 #endif
@@ -131,7 +136,7 @@ static inline float floorf(float f) {
 
 /* windows */
 
-#    ifndef __MINGW32__
+#    if !defined(__MINGW32__) && !defined(__CYGWIN__)
 #        define int64_t_C(c)     (c ## i64)
 #        define uint64_t_C(c)    (c ## i64)
 
@@ -204,40 +209,30 @@ static inline float floorf(float f) {
 
 /* debug stuff */
 
-#    ifndef DEBUG
-#      ifndef NDEBUG
+#    if !defined(DEBUG) && !defined(NDEBUG)
 #        define NDEBUG
-#      endif
 #    endif
 #    include <assert.h>
 
 /* dprintf macros */
-#    if defined(CONFIG_WIN32) && !defined(__MINGW32__)
+#    if defined(CONFIG_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
 
 inline void dprintf(const char* fmt,...) {}
 
 #    else
 
-#if __GNUC__
-#ifdef DEBUG
-#define dprintf(fmt,args...) printf(fmt, ## args)
-#else
-#define dprintf(fmt,args...)
-#endif
-#else
-#ifdef DEBUG
-#define dprintf(...) printf(__VA_ARGS__)
-#else
-#define dprintf(...)
-#endif
-#endif
+#        ifdef DEBUG
+#            define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
+#        else
+#            define dprintf(fmt,...)
+#        endif
 
 #    endif /* !CONFIG_WIN32 */
 
 #    define av_abort()      do { av_log(NULL, AV_LOG_ERROR, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
 
 //rounded divison & shift
-#define RSHIFT(a,b) ((a) > 0 ? ((a) + (1<<((b)-1)))>>(b) : ((a) + (1<<((b)-1))-1)>>(b))
+#define RSHIFT(a,b) ((a) > 0 ? ((a) + ((1<<(b))>>1))>>(b) : ((a) + ((1<<(b))>>1)-1)>>(b))
 /* assume b>0 */
 #define ROUNDED_DIV(a,b) (((a)>0 ? (a) + ((b)>>1) : (a) - ((b)>>1))/(b))
 #define ABS(a) ((a) >= 0 ? (a) : (-(a)))
@@ -291,6 +286,7 @@ struct PutBitContext;
 
 typedef void (*WriteDataFunc)(void *, uint8_t *, int);
 
+/* buf and buf_end must be present and used by every alternative writer. */
 typedef struct PutBitContext {
 #ifdef ALT_BITSTREAM_WRITER
     uint8_t *buf, *buf_end;
@@ -327,11 +323,6 @@ static inline int put_bits_count(PutBitContext *s)
 #endif
 }
 
-static inline int put_bits_left(PutBitContext* s)
-{
-    return (s->buf_end - s->buf) * 8 - put_bits_count(s);
-}
-
 /* pad the end of the output stream with zeros */
 static inline void flush_put_bits(PutBitContext *s)
 {
@@ -354,7 +345,7 @@ void align_put_bits(PutBitContext *s);
 void put_string(PutBitContext * pbc, char *s, int put_zero);
 
 /* bit input */
-
+/* buffer, buffer_end and size_in_bits must be present and used by every reader */
 typedef struct GetBitContext {
     const uint8_t *buffer, *buffer_end;
 #ifdef ALT_BITSTREAM_READER
@@ -386,7 +377,7 @@ typedef struct RL_VLC_ELEM {
     uint8_t run;
 } RL_VLC_ELEM;
 
-#ifdef ARCH_SPARC64
+#ifdef ARCH_SPARC
 #define UNALIGNED_STORES_ARE_BAD
 #endif
 
@@ -437,7 +428,7 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 	bit_buf<<=bit_left;
         bit_buf |= value >> (n - bit_left);
 #ifdef UNALIGNED_STORES_ARE_BAD
-        if (3 & (int) s->buf_ptr) {
+        if (3 & (intptr_t) s->buf_ptr) {
             s->buf_ptr[0] = bit_buf >> 24;
             s->buf_ptr[1] = bit_buf >> 16;
             s->buf_ptr[2] = bit_buf >>  8;
@@ -924,11 +915,6 @@ static inline void init_get_bits(GetBitContext *s,
 #endif
 }
 
-static inline int get_bits_left(GetBitContext *s)
-{
-    return s->size_in_bits - get_bits_count(s);
-}
-
 int check_marker(GetBitContext *s, const char *msg);
 void align_get_bits(GetBitContext *s);
 int init_vlc(VLC *vlc, int nb_bits, int nb_codes,
@@ -1080,7 +1066,7 @@ static inline int get_xbits_trace(GetBitContext *s, int n, char *file, char *fun
 #define get_vlc(s, vlc)            get_vlc_trace(s, (vlc)->table, (vlc)->bits, 3, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define get_vlc2(s, tab, bits, max) get_vlc_trace(s, tab, bits, max, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
-#define tprintf printf
+#define tprintf(...) av_log(NULL, AV_LOG_DEBUG, __VA_ARGS__)
 
 #else //TRACE
 #define tprintf(...) {}
@@ -1180,6 +1166,12 @@ static inline int clip(int a, int amin, int amax)
         return amax;
     else
         return a;
+}
+
+static inline int clip_uint8(int a)
+{
+    if (a&(~255)) return (-a)>>31;
+    else          return a;
 }
 
 /* math */
@@ -1290,6 +1282,9 @@ tend= rdtsc();\
 #define malloc please_use_av_malloc
 #define free please_use_av_free
 #define realloc please_use_av_realloc
+#define time time_is_forbidden_due_to_security_issues
+#define rand rand_is_forbidden_due_to_state_trashing
+#define srand srand_is_forbidden_due_to_state_trashing
 #if !(defined(LIBAVFORMAT_BUILD) || defined(_FRAMEHOOK_H))
 #define printf please_use_av_log
 #define fprintf please_use_av_log

@@ -42,8 +42,8 @@ int ff_h263_decode_init(AVCodecContext *avctx)
     s->workaround_bugs= avctx->workaround_bugs;
 
     // set defaults
+    MPV_decode_defaults(s);
     s->quant_precision=5;
-    s->progressive_sequence=1;
     s->decode_mb= ff_h263_decode_mb;
     s->low_delay= 1;
     avctx->pix_fmt= PIX_FMT_YUV420P;
@@ -551,6 +551,8 @@ retry:
             s->workaround_bugs|= FF_BUG_EDGE;
         }
         
+        if(s->divx_version)
+            s->workaround_bugs|= FF_BUG_HPEL_CHROMA;
 #if 0
         if(s->divx_version==500)
             s->padding_bug_score= 256*256*256*64;
@@ -714,7 +716,8 @@ assert(s->current_picture.pict_type == s->pict_type);
         ff_print_debug_info(s, pict);
     } else {
         *pict= *(AVFrame*)&s->last_picture;
-        ff_print_debug_info(s, pict);
+        if(pict)
+            ff_print_debug_info(s, pict);
     }
 
     /* Return the Picture timestamp as the frame number */

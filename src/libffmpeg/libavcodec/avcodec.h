@@ -24,7 +24,7 @@ extern "C" {
 
 #define FFMPEG_VERSION_INT     0x000408
 #define FFMPEG_VERSION         "0.4.8"
-#define LIBAVCODEC_BUILD       4707
+#define LIBAVCODEC_BUILD       4710
 
 #define LIBAVCODEC_VERSION_INT FFMPEG_VERSION_INT
 #define LIBAVCODEC_VERSION     FFMPEG_VERSION
@@ -449,7 +449,7 @@ typedef struct AVPanScan{
 \
     /**\
      * Motion vector table\
-     * - encoding: unused\
+     * - encoding: set by user\
      * - decoding: set by lavc\
      */\
     int16_t (*motion_val[2])[2];\
@@ -457,7 +457,7 @@ typedef struct AVPanScan{
     /**\
      * Macroblock type table\
      * mb_type_base + mb_width + 2\
-     * - encoding: unused\
+     * - encoding: set by user\
      * - decoding: set by lavc\
      */\
     uint32_t *mb_type;\
@@ -545,13 +545,20 @@ typedef struct AVPanScan{
      * - decoding: set by lavc\
      */\
     short *dct_coeff;\
+\
+    /**\
+     * Motion referece frame index\
+     * - encoding: set by user\
+     * - decoding: set by lavc\
+     */\
+    int8_t *ref_index[2];
 
 #define FF_QSCALE_TYPE_MPEG1	0
 #define FF_QSCALE_TYPE_MPEG2	1
 
 #define FF_BUFFER_TYPE_INTERNAL 1
 #define FF_BUFFER_TYPE_USER     2 ///< Direct rendering buffers (image is (de)allocated by user)
-#define FF_BUFFER_TYPE_SHARED   4 ///< buffer from somewher else, dont dealloc image (data/base)
+#define FF_BUFFER_TYPE_SHARED   4 ///< buffer from somewher else, dont dealloc image (data/base), all other tables are not shared
 #define FF_BUFFER_TYPE_COPY     8 ///< just a (modified) copy of some other buffer, dont dealloc anything
 
 
@@ -847,6 +854,7 @@ typedef struct AVCodecContext {
 #define FF_BUG_QPEL_CHROMA2     256
 #define FF_BUG_DIRECT_BLOCKSIZE 512
 #define FF_BUG_EDGE             1024
+#define FF_BUG_HPEL_CHROMA      2048
 //#define FF_BUG_FAKE_SCALABILITY 16 //autodetection should work 100%
         
     /**
@@ -1567,6 +1575,22 @@ typedef struct AVCodecContext {
      * - decoding: set by execute()
      */
     void *thread_opaque;
+
+    /**
+     * Motion estimation threshold. under which no motion estimation is 
+     * performed, but instead the user specified motion vectors are used
+     * 
+     * - encoding: set by user
+     * - decoding: unused
+     */
+     int me_threshold;
+
+    /**
+     * Macroblock threshold. under which the user specified macroblock types will be used
+     * - encoding: set by user
+     * - decoding: unused
+     */
+     int mb_threshold;
 } AVCodecContext;
 
 
@@ -1676,6 +1700,7 @@ extern AVCodec h263p_encoder;
 extern AVCodec flv_encoder;
 extern AVCodec rv10_encoder;
 extern AVCodec rv20_encoder;
+extern AVCodec dvvideo_encoder;
 extern AVCodec mjpeg_encoder;
 extern AVCodec ljpeg_encoder;
 extern AVCodec mpeg4_encoder;
@@ -1826,7 +1851,10 @@ ImgReSampleContext *img_resample_init(int output_width, int output_height,
 ImgReSampleContext *img_resample_full_init(int owidth, int oheight,
                                       int iwidth, int iheight,
                                       int topBand, int bottomBand,
-                                      int leftBand, int rightBand);
+                                      int leftBand, int rightBand,
+                                      int padtop, int padbottom,
+                                      int padleft, int padright);
+
 
 void img_resample(ImgReSampleContext *s, 
                   AVPicture *output, const AVPicture *input);
@@ -1901,6 +1929,7 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode);
 
 void avcodec_get_context_defaults(AVCodecContext *s);
 AVCodecContext *avcodec_alloc_context(void);
+void avcodec_get_frame_defaults(AVFrame *pic);
 AVFrame *avcodec_alloc_frame(void);
 
 int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic);
@@ -2102,8 +2131,7 @@ void *av_fast_realloc(void *ptr, unsigned int *size, unsigned int min_size);
 /* for static data only */
 /* call av_free_static to release all staticaly allocated tables */
 void av_free_static(void);
-void *__av_mallocz_static(void** location, unsigned int size);
-#define av_mallocz_static(p, s) __av_mallocz_static((void **)(p), s)
+void *av_mallocz_static(unsigned int size);
 
 /* add by bero : in adx.c */
 int is_adx(const unsigned char *buf,size_t bufsize);
@@ -2115,6 +2143,7 @@ void img_copy(AVPicture *dst, const AVPicture *src,
 
 #include <stdarg.h>
 
+#define AV_LOG_QUIET -1
 #define AV_LOG_ERROR 0
 #define AV_LOG_INFO 1
 #define AV_LOG_DEBUG 2

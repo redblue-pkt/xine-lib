@@ -76,6 +76,12 @@ void vp3_idct_put_mmx(int16_t *input_data, int16_t *dequant_matrix,
 void vp3_idct_add_mmx(int16_t *input_data, int16_t *dequant_matrix,
     int coeff_count, uint8_t *dest, int stride);
 
+void vp3_dsp_init_sse2(void);
+void vp3_idct_put_sse2(int16_t *input_data, int16_t *dequant_matrix,
+    int coeff_count, uint8_t *dest, int stride);
+void vp3_idct_add_sse2(int16_t *input_data, int16_t *dequant_matrix,
+    int coeff_count, uint8_t *dest, int stride);
+
 
 /* minimum alignment rules ;)
 if u notice errors in the align stuff, need more alignment for some asm code for some cpu
@@ -378,6 +384,8 @@ static inline uint32_t no_rnd_avg32(uint32_t a, uint32_t b)
    one or more MultiMedia extension */
 int mm_support(void);
 
+#define __align16 __attribute__ ((aligned (16)))
+
 #if defined(HAVE_MMX)
 
 #undef emms_c
@@ -413,7 +421,7 @@ void dsputil_init_pix_mmx(DSPContext* c, AVCodecContext *avctx);
 #elif defined(ARCH_ARMV4L)
 
 /* This is to use 4 bytes read to the IDCT pointers for some 'zero'
-   line ptimizations */
+   line optimizations */
 #define __align8 __attribute__ ((aligned (4)))
 
 void dsputil_init_armv4l(DSPContext* c, AVCodecContext *avctx);
@@ -424,6 +432,12 @@ void dsputil_init_armv4l(DSPContext* c, AVCodecContext *avctx);
 #define __align8 __attribute__ ((aligned (8)))
 
 void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx);
+
+#elif defined(ARCH_SPARC)
+
+/* SPARC/VIS IDCT needs 8-byte aligned DCT blocks */
+#define __align8 __attribute__ ((aligned (8)))
+void dsputil_init_vis(DSPContext* c, AVCodecContext *avctx);
 
 #elif defined(ARCH_ALPHA)
 

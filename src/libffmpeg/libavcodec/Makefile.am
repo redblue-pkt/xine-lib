@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIRS = armv4l i386 mlib alpha ppc libpostproc
+SUBDIRS = armv4l i386 mlib alpha ppc sparc libpostproc
 
 ## some files here are #included by others... go figure.
 EXTRA_DIST = fdctref.c motion_est_template.c svq3.c wmv2.c \
@@ -80,6 +80,7 @@ libavcodec_la_LDFLAGS = \
 	$(top_builddir)/src/libffmpeg/libavcodec/i386/libavcodec_mmx.la \
 	$(top_builddir)/src/libffmpeg/libavcodec/mlib/libavcodec_mlib.la \
 	$(top_builddir)/src/libffmpeg/libavcodec/ppc/libavcodec_ppc.la \
+	$(top_builddir)/src/libffmpeg/libavcodec/sparc/libavcodec_sparc.la \
 	-avoid-version -module
 
 

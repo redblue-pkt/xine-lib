@@ -1962,6 +1962,7 @@ src/libffmpeg/libavcodec/i386/Makefile
 src/libffmpeg/libavcodec/mlib/Makefile
 src/libffmpeg/libavcodec/alpha/Makefile
 src/libffmpeg/libavcodec/ppc/Makefile
+src/libffmpeg/libavcodec/sparc/Makefile
 src/libffmpeg/libavcodec/libpostproc/Makefile
 src/libflac/Makefile
 src/liblpcm/Makefile

@@ -11,6 +11,7 @@ noinst_LTLIBRARIES = libavcodec_ppc.la
 
 libavcodec_ppc_src =  dsputil_altivec.c \
 		      dsputil_ppc.c \
+		      fdct_altivec.c \
 		      fft_altivec.c \
 		      idct_altivec.c \
 		      gmc_altivec.c \
