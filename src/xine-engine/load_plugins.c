@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.60 2001/12/16 19:05:44 hrm Exp $
+ * $Id: load_plugins.c,v 1.61 2001/12/19 22:49:45 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -368,6 +368,27 @@ char **xine_get_autoplay_input_plugin_ids(xine_t *this) {
 char **xine_get_browsable_input_plugin_ids(xine_t *this) {
 
   return (_xine_get_featured_input_plugin_ids(this, INPUT_CAP_GET_DIR));
+}
+
+char *xine_get_input_plugin_description(xine_t *this, char *plugin_id) {
+  char            *str;
+  input_plugin_t  *ip;
+  int              i;
+
+  if((this == NULL) || (this->num_input_plugins < 1) || (plugin_id == NULL))
+    return NULL;
+  
+  for(i = 0; i < this->num_input_plugins; i++) {
+    
+    ip = this->input_plugins[i];
+    
+    if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
+      str = strdup(ip->get_description(ip));
+      return str;
+    }
+  }
+  
+  return NULL;
 }
 
 /** ***************************************************************

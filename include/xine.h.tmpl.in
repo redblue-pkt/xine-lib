@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.68 2001/12/14 16:50:57 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.69 2001/12/19 22:49:45 f1rmb Exp $
  *
  */
 
@@ -1373,7 +1373,17 @@ mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl, in
  * Some input plugins can generate autoplay lists
  * returns a list of ids of these plugins.
  */
-char **xine_get_autoplay_input_plugin_ids (xine_t *self) ;
+char **xine_get_autoplay_input_plugin_ids (xine_t *self);
+
+/**
+ * \fn char *xine_get_input_plugin_description(xine_t *self, char *plugin_id)
+ * \brief Request input plugin description
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param plugin_id Plugin identifier.
+ * \return Description string.
+ *
+ */
+char *xine_get_input_plugin_description(xine_t *self, char *plugin_id);
 
 /**
  * \fn char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls)
