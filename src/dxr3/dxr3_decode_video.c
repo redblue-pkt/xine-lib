@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.23 2002/12/08 15:56:23 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.24 2002/12/10 15:30:26 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -345,12 +345,8 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     }
     if (byte == 0xb5) {
       /* extension data */
-      if ((buffer[0] & 0xf0) == 0x80) {
+      if ((buffer[0] & 0xf0) == 0x80)
         this->repeat_first_field = (buffer[3] >> 1) & 1;
-	if (!this->dxr3_vo->overlay_enabled)
-	  /* in tv modes we tag all frames progressive to avoid still jitter */
-	  buffer[4] |= 0x80;
-      }
       /* check if we can keep syncing */
       if (this->repeat_first_field && this->sync_retry)  /* reset counter */
         this->sync_retry = 500;
