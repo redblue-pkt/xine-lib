@@ -1045,6 +1045,8 @@ src/libxinevdec/Makefile
 src/libxineadec/Makefile
 src/xine-utils/Makefile
 src/input/Makefile
+src/input/libdvdread/Makefile
+src/input/libdvdnav/Makefile
 src/xine-engine/Makefile
 misc/Makefile
 misc/xine-config

@@ -2,6 +2,8 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
+SUBDIRS = libdvdread libdvdnav
+
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
@@ -18,6 +20,14 @@ in_vcd = xineplug_inp_vcd.la
 in_cda = xineplug_inp_cda.la
 endif
 
+# For DVD
+DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
+  -Ilibdvdnav/ \
+  -Ilibdvdread/
+
+CFLAGS = @CFLAGS@ $(DVD_CFLAGS) 
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS) 
+
 lib_LTLIBRARIES = xineplug_inp_file.la $(in_dvd) $(in_vcd) $(in_cda) \
 	xineplug_inp_stdin_fifo.la xineplug_inp_net.la \
 	xineplug_inp_rtp.la xineplug_inp_http.la xineplug_inp_mms.la
@@ -26,8 +36,9 @@ xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
-xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c read_cache.c
-xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_inp_dvd_la_SOURCES = input_dvd.c 
+xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la \
+  libdvdnav/libdvdnav.la libdvdread/libdvdread.la
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
