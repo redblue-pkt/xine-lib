@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.35 2001/07/14 23:17:37 richwareham Exp $
+ * $Id: xine.c,v 1.36 2001/07/25 23:26:14 richwareham Exp $
  *
  * top-level xine functions
  *
@@ -207,6 +207,12 @@ static void xine_play_internal (xine_t *this, char *mrl,
   printf ("xine: using input plugin >%s< for this MRL.\n", 
 	  this->cur_input_plugin->get_identifier(this->cur_input_plugin));
 
+  /* FIXME: This is almost certainly the WRONG way to do this but it is
+   * only temporary until a better way if found for plugins to send events.
+   */
+  this->cur_input_plugin->get_optional_data(this->cur_input_plugin,
+					    (void*)this, 0x1010);
+
   /*
    * find demuxer plugin
    */
@@ -374,6 +380,30 @@ void event_handler(xine_t *xine, event_t *event, void *data) {
 	  xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
 						     INPUT_EVENT_MOUSEMOVE,
 						     0, mevent->x, mevent->y);
+	}
+      }
+    }
+    break;
+  case XINE_OVERLAY_EVENT:
+    {
+      overlay_event_t *oevent = (overlay_event_t*)event;
+      if(xine->video_out != NULL) {
+	int i;
+	vo_overlay_t *overlay = xine->video_out->get_overlay (xine->video_out);
+	if(overlay != NULL) {
+	  overlay->data = oevent->overlay.data;
+	  overlay->x = oevent->overlay.x;
+	  overlay->y = oevent->overlay.y;
+	  overlay->width = oevent->overlay.width;
+	  overlay->height = oevent->overlay.height;
+	  for(i=0; i<4; i++) {
+	    overlay->clut[i] = oevent->overlay.clut[i];
+	    overlay->trans[i] = oevent->overlay.trans[i];
+	  }
+	  overlay->PTS = oevent->overlay.PTS;
+	  overlay->clut_tbl = oevent->overlay.clut_tbl;
+	  overlay->duration = oevent->overlay.duration;
+	  xine->video_out->queue_overlay (xine->video_out, overlay);
 	}
       }
     }

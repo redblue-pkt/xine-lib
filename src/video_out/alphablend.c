@@ -225,11 +225,8 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 	BLEND (32, img, img_overl, dst_width, dst_height);
 }
 
-#define BLEND_YUV(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
-
-void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
-		int dst_width, int dst_height)
-{
+// #define BLEND_YUV(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
+#define BLEND_YUV(dst, src, o) ( (((uint16_t)src)*o + ((uint16_t)dst)*(0xf-o)) >> 4 )
 /* FIXME: my_clut should disappear once I find out how to get the clut from the MPEG2 stream. */
 /* It looks like it comes from the ,IFO file, so will have to wait for IFO parser in xine.
  * Here is an extract of another DVD player (oms)
@@ -237,73 +234,88 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
  *               codec->ctrl (codec, CTRL_SPU_SET_CLUT, clut);
  */ 
 /* This happens to work with "The Matrix" using 0(edges), 8(white) */
-	clut_t my_clut[] = {
-              {y: 0x00, cr: 0x80, cb:0x80},
-	      {y: 0xbf, cr: 0x80, cb:0x80},
-	      {y: 0x10, cr: 0x80, cb:0x80},
-	      {y: 0x28, cr: 0x6d, cb:0xef},
-	      {y: 0x51, cr: 0xef, cb:0x5a},
-	      {y: 0xbf, cr: 0x80, cb:0x80},
-	      {y: 0x36, cr: 0x80, cb:0x80},
-	      {y: 0x28, cr: 0x6d, cb:0xef},
-	      {y: 0xbf, cr: 0x80, cb:0x80},
-              {y: 0x51, cr: 0x80, cb:0x80},
-              {y: 0xbf, cr: 0x80, cb:0x80},
-	      {y: 0x10, cr: 0x80, cb:0x80},
-	      {y: 0x28, cr: 0x6d, cb:0xef},
-	      {y: 0x5c, cr: 0x80, cb:0x80},
-	      {y: 0xbf, cr: 0x80, cb:0x80},
-	      {y: 0x1c, cr: 0x80, cb:0x80},
-	      {y: 0x28, cr: 0x6d, cb:0xef}
-	};
 
-	int src_width = img_overl->width;
-	int src_height = img_overl->height;
-	uint8_t *src_data = img_overl->data;
-	int step=dst_width - src_width;
-	int x_off = img_overl->x;
-	int y_off = img_overl->y;
+static clut_t __default_clut[] = {
+  {y: 0x00, cr: 0x80, cb:0x80},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x10, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef},
+  {y: 0x51, cr: 0xef, cb:0x5a},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x36, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x51, cr: 0x80, cb:0x80},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x10, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef},
+  {y: 0x5c, cr: 0x80, cb:0x80},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x1c, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef}
+};
 
-	uint8_t *dst_y = dst_img + dst_width * y_off + x_off;
-	uint8_t *dst_cr = dst_img + dst_width * dst_height +
-	    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
-	uint8_t *dst_cb = dst_img + (dst_width * dst_height * 5) / 4 +
-	    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
+void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
+		int dst_width, int dst_height)
+{
+  clut_t *my_clut;
 
-	int x, y;
-	for (y = 0; y < src_height; y++) {
-		for (x = 0; x < src_width; x++) {
-			uint8_t clr;
-			uint8_t mask;
-			uint8_t o;
+  int src_width = img_overl->width;
+  int src_height = img_overl->height;
+  uint8_t *src_data = img_overl->data;
+  int step=dst_width - src_width;
+  int x_off = img_overl->x;
+  int y_off = img_overl->y;
 
-			mask = (*src_data) >> 4 ;
+  uint8_t *dst_y = dst_img + dst_width * y_off + x_off;
+  uint8_t *dst_cr = dst_img + dst_width * dst_height +
+    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
+  uint8_t *dst_cb = dst_img + (dst_width * dst_height * 5) / 4 +
+    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
 
-			if (mask) {
-			clr = img_overl->clut[*src_data & 0x03];
-			o = img_overl->trans[*src_data & 0x03];
-				*dst_y = BLEND_YUV (*dst_y, my_clut[clr].y, o);
-                        }
-			dst_y++;
+  int x, y;
 
-			if (y & x & 1) {
-				if (mask) {
-					*dst_cr = BLEND_YUV (*dst_cr, my_clut[clr].cr, o);
-					*dst_cb = BLEND_YUV (*dst_cb, my_clut[clr].cb, o);
-				}
-				dst_cr++;
-				dst_cb++;
-			}
-			src_data++;
-		}
+  /* If there is a CLUT palette specified, use it instead. */
+  if(img_overl->clut_tbl != NULL) {
+    my_clut = (clut_t*)img_overl->clut_tbl;
+  } else {
+    my_clut = __default_clut;
+  }
 
-		dst_y += step;
+  for (y = 0; y < src_height; y++) {
+    for (x = 0; x < src_width; x++) {
+      uint8_t clr;
+      uint8_t mask;
+      uint16_t o;
 
-		if (y & 1) {
-			dst_cr += (step + 1) / 2;
-			dst_cb += (step + 1) / 2;
-		}
+      mask = (*src_data) >> 4 ;
+
+      clr = img_overl->clut[*src_data & 0x03];
+      o = img_overl->trans[*src_data & 0x03];
+      if(o)
+	*dst_y = BLEND_YUV (*dst_y, my_clut[clr].y, o);
+      dst_y++;
+
+      if (y & x & 1) {
+	if (mask) {
+	  if(o) {
+	    *dst_cr = BLEND_YUV (*dst_cr, my_clut[clr].cr, o);
+	    *dst_cb = BLEND_YUV (*dst_cb, my_clut[clr].cb, o); 
+	  }
 	}
+	dst_cr++;
+	dst_cb++;
+      }
+      src_data++;
+    }
+
+    dst_y += step;
+
+    if (y & 1) {
+      dst_cr += (step + 1) / 2;
+      dst_cb += (step + 1) / 2;
+    }
+  }
 }
 
 inline int is_blank (uint8_t * ptr, int width)

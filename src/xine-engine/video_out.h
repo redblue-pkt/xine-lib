@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.14 2001/07/24 12:57:30 guenter Exp $
+ * $Id: video_out.h,v 1.15 2001/07/25 23:26:14 richwareham Exp $
  *
  *
  * xine version of video_out.h 
@@ -278,6 +278,8 @@ struct vo_overlay_s {
   vo_overlay_t     *next;          /* optionally more overlays         */
   vo_overlay_t     *priv;          /* optionally more overlays         */
   int              state;          /* State:FREE,SHOWING etc.          */
+
+  uint32_t         *clut_tbl;      /* Pointer to CLUT palette          */
 
   /* private stuff */
   int	_x;		/* current destination x, y */

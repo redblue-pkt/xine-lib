@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.36 2001/07/24 12:57:30 guenter Exp $
+ * $Id: video_out.c,v 1.37 2001/07/25 23:26:14 richwareham Exp $
  *
  */
 
@@ -574,6 +574,7 @@ static vo_overlay_t *vo_get_overlay (vo_instance_t *this) {
   if (this->first_overlay==NULL) {
     this->first_overlay = this->last_overlay = xmalloc (sizeof (vo_overlay_t)) ;
     this->first_overlay->data=NULL;
+    this->first_overlay->clut_tbl=NULL;
     this->first_overlay->next=NULL;
     this->first_overlay->priv=NULL;
     this->first_overlay->state=OVERLAY_CREATING;
@@ -601,10 +602,12 @@ static vo_overlay_t *vo_get_overlay (vo_instance_t *this) {
 }
 
 static void vo_queue_overlay (vo_instance_t *this, vo_overlay_t *overlay) {
-  
   overlay->PTS = this->metronom->got_spu_packet (this->metronom, overlay->PTS,overlay->duration);
-  if (overlay->data==NULL) overlay->state=OVERLAY_FREE;
-  else overlay->state=OVERLAY_READY_TO_SHOW;
+  if (overlay->data==NULL) {
+    overlay->state=OVERLAY_FREE;
+  } else {
+    overlay->state=OVERLAY_READY_TO_SHOW;
+  }
 }
 
 vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {

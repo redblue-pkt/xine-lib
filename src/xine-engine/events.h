@@ -53,6 +53,16 @@ typedef struct mouse_event_s {
   uint16_t x,y;   /* In Image space */
 } mouse_event_t;
 
+/**
+ * Overlay event - used for plugins/UIs to request that a specific overlay be
+ * displayed.
+ */
+#define XINE_OVERLAY_EVENT 0x0002
+typedef struct overlay_event_s {
+  event_t event;
+  vo_overlay_t overlay;
+} overlay_event_t;
+
 #ifdef __cplusplus
 }
 #endif
