@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/12/02 21:19:22 guenter Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/12/02 21:53:58 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -51,7 +51,6 @@
 
 #define SUB_MAX_TEXT  5
 #define LINE_HEIGHT  20
-#define LINE_WIDTH  300
 
 typedef struct {
 
@@ -78,7 +77,8 @@ typedef struct sputext_decoder_s {
   FILE              *fd;
 
   float              mpsub_position;  
-  
+
+  int                width;          /* frame width                */
   int                uses_time;  
   int                errs;  
   subtitle_t        *subtitles;
@@ -741,17 +741,6 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
   this->format             = 0;
   this->previous_aqt_sub   = NULL;
 
-  this->osd = osd_open (this->xine->osd_renderer, LINE_WIDTH, SUB_MAX_TEXT * LINE_HEIGHT);
-
-  osd_renderer_load_font (this->xine->osd_renderer, this->font);
-  
-  osd_set_font (this->osd, this->font);
-  osd_render_text (this->osd, 0, 0, "sputext decoder");
-  osd_set_position (this->osd, 10, 30);
-    
-  osd_show (this->osd, 0);
-  osd_hide (this->osd, 300000);      
-
 }
 
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
@@ -760,17 +749,24 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_info[0] == 0) {
 
-    int x, y;
+    int y;
 
-    x = buf->decoder_info[1] / 2 - LINE_WIDTH / 2;
-    if (x<0)
-      x = 0;
+    this->width = buf->decoder_info[1];
+
+    this->osd = osd_open (this->xine->osd_renderer, 
+			  this->width,
+			  SUB_MAX_TEXT * LINE_HEIGHT);
+
+    osd_renderer_load_font (this->xine->osd_renderer, this->font);
+    osd_set_font (this->osd, this->font);
 
     y = buf->decoder_info[2] - (SUB_MAX_TEXT * LINE_HEIGHT) - 5;
 
-    osd_set_position (this->osd, x, y); 
+    osd_set_position (this->osd, 0, y); 
 
-    printf ("sputext: position is %d / %d\n", x, y);
+    osd_render_text (this->osd, 0, 0, "sputext decoder");
+    osd_show (this->osd, 0);
+    osd_hide (this->osd, 300000);      
 
     this->fd = (FILE *) buf->content;
   
@@ -847,7 +843,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     if (subtitle) {
       int line, y;
 
-      osd_filled_rect (this->osd, 0, 0, LINE_WIDTH-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
+      osd_filled_rect (this->osd, 0, 0, this->width-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
 
       y = (SUB_MAX_TEXT - subtitle->lines) * LINE_HEIGHT;
 
@@ -857,7 +853,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 	osd_get_text_size( this->osd, subtitle->text[line], 
 			   & w, &h);
 
-	x = (LINE_WIDTH - w) / 2;
+	x = (this->width - w) / 2;
 
 	osd_render_text (this->osd, x, y + line*20, subtitle->text[line]);
       }
