@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.11 2004/05/09 21:52:10 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.12 2004/05/09 23:25:07 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -132,8 +132,6 @@ x11osd_resize (x11osd * osd, int width, int height)
   
   lprintf("resize old:%dx%d new:%dx%d\n", osd->width, osd->height, width, height );
 
-  if(osd->width==width && osd->height==height)
-    return;
   osd->width = width;
   osd->height = height;
 
