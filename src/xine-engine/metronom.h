@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.8 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: metronom.h,v 1.9 2001/08/07 16:00:10 ehasenle Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -40,6 +40,7 @@ extern "C" {
 #include <pthread.h>
 
 typedef struct metronom_s metronom_t ;
+typedef struct scr_plugin_s scr_plugin_t;
 
 struct metronom_s {
 
@@ -155,6 +156,12 @@ struct metronom_s {
   void (*adjust_clock) (metronom_t *this, uint32_t desired_pts);
 
   /*
+   * (un)register a System Clock Reference provider at the metronom
+   */
+  int    (*register_scr) (metronom_t *this, scr_plugin_t *scr);
+  void (*unregister_scr) (metronom_t *this, scr_plugin_t *scr);
+
+  /*
    * metronom internal stuff
    */
 
@@ -180,9 +187,9 @@ struct metronom_s {
 
   int32_t         av_offset;
 
-  struct timeval  start_time;
-  uint32_t        start_pts, last_pts;
-  int             stopped ;
+  scr_plugin_t*   scr_master;
+  scr_plugin_t**  scr_list;
+  pthread_t       sync_thread;
 
   pthread_mutex_t lock;
 
@@ -199,6 +206,23 @@ struct metronom_s {
 };
 
 metronom_t *metronom_init (int have_audio);
+
+struct scr_plugin_s
+{
+  int interface_version;
+
+  int (*get_priority) (scr_plugin_t *this);
+
+  void (*set_speed) (scr_plugin_t *this, float pts_ps);
+
+  void (*adjust) (scr_plugin_t *this, uint32_t vpts);
+
+  void (*start) (scr_plugin_t *this, uint32_t start_vpts);
+
+  uint32_t (*get_current) (scr_plugin_t *this);
+
+  metronom_t *metronom;
+};
 
 #ifdef __cplusplus
 }

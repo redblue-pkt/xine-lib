@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.16 2001/07/10 22:16:58 guenter Exp $
+ * $Id: metronom.c,v 1.17 2001/08/07 16:00:10 ehasenle Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <string.h>
+#include <errno.h>
 
 #include "monitor.h"
 #include "xine_internal.h"
@@ -43,7 +45,114 @@
 #define WRAP_START_TIME    100000
 #define WRAP_TRESHOLD      30000 
 #define MAX_NUM_WRAP_DIFF  100
+#define MAX_SCR_PROVIDERS  10
+#define REALTIME_PTS       90000.0
 
+/*
+ * ****************************************
+ *   primary SCR plugin: 
+ *    unix System Clock Reference
+ * ****************************************
+ */
+
+typedef struct unixscr_s {
+  scr_plugin_t scr;
+  struct timeval start_time;
+  uint32_t start_pts;
+  uint32_t last_pts;
+  pthread_mutex_t lock;
+  float speed;
+} unixscr_t;
+
+static int unixscr_get_priority (scr_plugin_t *scr) {
+  return 5; /* low priority */
+}
+
+static void unixscr_set_speed (scr_plugin_t *scr, float ticks_ps) {
+  unixscr_t *self = (unixscr_t*) scr;
+  uint32_t now = scr->get_current(scr);
+
+  pthread_mutex_lock (&self->lock);
+  
+  gettimeofday(&self->start_time, NULL);
+  self->last_pts = self->start_pts = now;
+  self->speed = ticks_ps; /* ticks per second */
+
+  pthread_mutex_unlock (&self->lock);
+}
+
+static void unixscr_adjust (scr_plugin_t *scr, uint32_t vpts) {
+  unixscr_t *self = (unixscr_t*) scr;
+
+  int      delta;
+  int32_t current_time = self->scr.get_current(&self->scr);
+
+  pthread_mutex_lock (&self->lock);
+
+  /* FIXME: this should be softer than a brute force warp... */
+  delta  = vpts;
+  delta -= current_time;
+  self->start_pts += delta;
+  /* TODO: remove */
+  printf("adjusting start_pts to %d\n", self->start_pts);  
+
+  pthread_mutex_unlock (&self->lock);
+}
+
+static void unixscr_start (scr_plugin_t *scr, uint32_t start_vpts) {
+  unixscr_t *self = (unixscr_t*) scr;
+
+  pthread_mutex_lock (&self->lock);
+
+  gettimeofday(&self->start_time, NULL);
+  self->last_pts = self->start_pts = start_vpts;
+  self->speed = REALTIME_PTS;
+
+  pthread_mutex_unlock (&self->lock);
+
+}
+
+static uint32_t unixscr_get_current (scr_plugin_t *scr) {
+  unixscr_t *self = (unixscr_t*) scr;
+
+  uint32_t pts;
+  struct timeval tv;
+
+  pthread_mutex_lock (&self->lock);
+
+  gettimeofday(&tv, NULL);
+  pts  = (tv.tv_sec  - self->start_time.tv_sec) * self->speed;
+  pts += (tv.tv_usec - self->start_time.tv_usec) * self->speed / 1e6;
+  pts += self->start_pts;
+  
+  if (self->last_pts > pts) {
+    /* printf("metronom: get_current_time(): timer STOPPED!\n"); */
+    pts = self->last_pts;
+  }
+
+  pthread_mutex_unlock (&self->lock);
+
+  return pts;
+}
+
+static scr_plugin_t* unixscr_init () {
+  unixscr_t *self;
+
+  self = malloc(sizeof(*self));
+  memset(self, 0, sizeof(*self));
+  
+  self->scr.interface_version = 1;
+  self->scr.get_priority      = unixscr_get_priority;
+  self->scr.set_speed         = unixscr_set_speed;
+  self->scr.adjust            = unixscr_adjust;
+  self->scr.start             = unixscr_start;
+  self->scr.get_current       = unixscr_get_current;
+
+  pthread_mutex_init (&self->lock, NULL);
+
+  return &self->scr;
+}
+ 
 
 /*
  * ****************************************
@@ -53,75 +162,34 @@
 
 
 static void metronom_start_clock (metronom_t *this, uint32_t pts) {
-
-  pthread_mutex_lock (&this->lock);
-
-  gettimeofday(&this->start_time, NULL);
-  this->last_pts = this->start_pts = pts;
-  this->stopped  = 0;
-
-  pthread_mutex_unlock (&this->lock);
-
+  scr_plugin_t** scr;
+  for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
+    if (*scr) (*scr)->start(*scr, pts);
 }
 
 
 static uint32_t metronom_get_current_time (metronom_t *this) {
-
-  uint32_t pts;
-  struct timeval tv;
-
-  pthread_mutex_lock (&this->lock);
-
-  gettimeofday(&tv, NULL);
-  pts  = (tv.tv_sec  - this->start_time.tv_sec) * 90000;
-  pts += (tv.tv_usec - this->start_time.tv_usec) / 10 * 9 / 10;
-  pts += this->start_pts;
-  
-  if (this->stopped || (this->last_pts > pts)) {
-    /* printf("metronom: get_current_time(): timer STOPPED!\n"); */
-    pts = this->last_pts;
-  }
-
-  pthread_mutex_unlock (&this->lock);
-
-  return pts;
+  return this->scr_master->get_current(this->scr_master);
 }
 
 
 static void metronom_stop_clock(metronom_t *this) {
-
-  uint32_t current_time = this->get_current_time(this);
-
-  pthread_mutex_lock (&this->lock);
-
-  this->stopped = 1;
-  this->last_pts = current_time;
-
-  pthread_mutex_unlock (&this->lock);
-
+  scr_plugin_t** scr;
+  for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
+    if (*scr) (*scr)->set_speed(*scr, 0.0);
 }
 
-
 static void metronom_resume_clock(metronom_t *this) {
-  this->start_clock(this, this->last_pts);
+  scr_plugin_t** scr;
+  for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
+    if (*scr) (*scr)->set_speed(*scr, REALTIME_PTS);
 }
 
 
 
 static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts)
 {
-  int      delta;
-  uint32_t current_time = this->get_current_time(this);
-
-  pthread_mutex_lock (&this->lock);
-
-  /* FIXME: this should be softer than a brute force warp... */
-  delta  = desired_pts;
-  delta -= current_time;
-  this->start_pts += delta;
-  printf("adjusting start_pts to %d\n", this->start_pts);  
-
-  pthread_mutex_unlock (&this->lock);
+  this->scr_master->adjust(this->scr_master, desired_pts);
 }
 
 /*
@@ -506,6 +574,68 @@ static int32_t metronom_get_av_offset (metronom_t *this) {
   return this->av_offset;
 }
 
+static scr_plugin_t* get_master_scr(metronom_t *this) {
+  int select = -1, maxprio = 0, i;
+
+  /* find the SCR provider with the highest priority */
+  for (i=0; i<MAX_SCR_PROVIDERS; i++) if (this->scr_list[i]) {
+    scr_plugin_t *scr = this->scr_list[i];
+    
+    if (maxprio < scr->get_priority(scr)) {
+      select = i;
+      maxprio = scr->get_priority(scr);
+    }
+  }
+  if (select < 0) {
+    printf("panic: No scr provider found!\n");
+    return NULL;
+  }
+  return this->scr_list[select];
+}
+
+static int metronom_register_scr (metronom_t *this, scr_plugin_t *scr) {
+  int i;
+
+  if (scr->interface_version != 1) return -1;
+
+  for (i=0; i<MAX_SCR_PROVIDERS; i++)
+    if (this->scr_list[i] == NULL) break;
+  if (i >= MAX_SCR_PROVIDERS)
+    return -1; /* No free slot available */
+
+  scr->metronom = this;
+  this->scr_list[i] = scr;
+  this->scr_master = get_master_scr(this);
+  return 0;
+}
+
+static void metronom_unregister_scr (metronom_t *this, scr_plugin_t *scr) {
+  int i;
+
+  /* Never unregister scr_list[0]! */
+  for (i=1; i<MAX_SCR_PROVIDERS; i++)
+    if (this->scr_list[i] == scr) break;
+
+  if (i >= MAX_SCR_PROVIDERS)
+    return; /* Not found */
+  
+  this->scr_list[i] = NULL;
+  this->scr_master = get_master_scr(this);
+}
+
+static int metronom_sync_loop (metronom_t *this) {
+  scr_plugin_t** scr;
+  uint32_t pts;
+  
+  while (1) {
+    pts = this->scr_master->get_current(this->scr_master);
+    
+    for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
+      if (*scr && *scr != this->scr_master) (*scr)->adjust(*scr, pts);
+
+    sleep(5); /* synchronise every 5 seconds */
+  }
+}
 
 
 metronom_t * metronom_init (int have_audio) {
@@ -529,6 +659,16 @@ metronom_t * metronom_init (int have_audio) {
   this->resume_clock      = metronom_resume_clock;
   this->get_current_time  = metronom_get_current_time;
   this->adjust_clock      = metronom_adjust_clock;
+  this->register_scr      = metronom_register_scr;
+  this->unregister_scr    = metronom_unregister_scr;
+
+  this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
+  this->register_scr(this, unixscr_init());
+
+  if (pthread_create(&this->sync_thread, NULL,
+      (void*(*)(void*)) metronom_sync_loop, this))
+    fprintf(stderr, "metronom: cannot create sync thread (%s)\n",
+     strerror(errno));
 
   pthread_mutex_init (&this->lock, NULL);
   pthread_cond_init (&this->video_started, NULL);
