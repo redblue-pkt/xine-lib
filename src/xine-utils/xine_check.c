@@ -220,10 +220,17 @@ xine_health_check_t* _x_health_check_cdrom (xine_health_check_t* hc) {
   }
   
   if ( (fd = open(hc->cdrom_dev, O_RDWR)) < 0) {
-    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not sufficient\n.", hc->cdrom_dev);
-    return hc;
-  }
-  close(fd);
+    switch (errno) {
+    case EACCES:
+      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not sufficient\n.", hc->cdrom_dev);
+      return hc;
+    case ENXIO:
+    case ENODEV:
+      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - there is no device behind %s\n.", hc->cdrom_dev);
+      return hc;
+    }
+  } else
+    close(fd);
     
   hc->status = XINE_HEALTH_CHECK_OK;
   return hc;
@@ -249,10 +256,17 @@ xine_health_check_t* _x_health_check_dvdrom(xine_health_check_t* hc) {
   }
 
   if ( (fd = open(hc->dvd_dev, O_RDWR)) < 0) {
-    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not sufficient\n.", hc->cdrom_dev);
-    return hc;
-  }
-  close(fd);
+    switch (errno) {
+    case EACCES:
+      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not sufficient\n.", hc->dvd_dev);
+      return hc;
+    case ENXIO:
+    case ENODEV:
+      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - there is no device behind %s\n.", hc->dvd_dev);
+      return hc;
+    }
+  } else
+    close(fd);
 
   hc->status = XINE_HEALTH_CHECK_OK;
   return hc;
