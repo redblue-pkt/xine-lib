@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.8 2002/10/04 04:55:44 tmmm Exp $
+ * $Id: yuv.c,v 1.9 2002/10/20 17:54:54 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -38,11 +38,17 @@
 
 #define VIDEOBUFSIZE 128*1024
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} yuv_class_t;
+
 typedef struct yuv_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */
 
+  yuv_class_t      *class;
+  xine_stream_t    *stream;
+
   /* these are traditional variables in a video decoder object */
-  vo_instance_t    *video_out;   /* object that will receive frames */
   uint64_t          video_step;  /* frame duration in pts units */
   int               decoder_ok;  /* current decoder status */
   int               skipframes;
@@ -59,22 +65,6 @@ typedef struct yuv_decoder_s {
 /**************************************************************************
  * xine video plugin functions
  *************************************************************************/
-
-/*
- * This function is responsible is called to initialize the video decoder
- * for use. Initialization usually involves setting up the fields in your
- * private video decoder object.
- */
-static void yuv_init (video_decoder_t *this_gen, 
-  vo_instance_t *video_out) {
-  yuv_decoder_t *this = (yuv_decoder_t *) this_gen;
-
-  /* set our own video_out object to the one that xine gives us */
-  this->video_out  = video_out;
-
-  /* indicate that the decoder is not quite ready yet */
-  this->decoder_ok = 0;
-}
 
 /*
  * This function receives a buffer of data from the demuxer layer and
@@ -99,7 +89,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
 
     if(this->buf)
       free(this->buf);
@@ -115,7 +105,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     this->buf = malloc(this->bufsize);
     this->size = 0;
 
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
     return;
@@ -137,7 +127,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
       if (buf->type == BUF_VIDEO_YV12) {
 
-        img = this->video_out->get_frame (this->video_out,
+        img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
                                           42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
@@ -151,7 +141,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
       } else if (buf->type == BUF_VIDEO_YVU9) {
 
-        img = this->video_out->get_frame (this->video_out,
+        img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
                                           XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
@@ -194,7 +184,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
         }
       } else if (buf->type == BUF_VIDEO_GREY) {
 
-        img = this->video_out->get_frame (this->video_out,
+        img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
                                           42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
@@ -205,7 +195,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
       } else {
 
         /* just allocate something to avoid compiler warnings */
-        img = this->video_out->get_frame (this->video_out,
+        img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
                                           XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
@@ -256,11 +246,9 @@ static void yuv_reset (video_decoder_t *this_gen) {
 }
 
 /*
- * This function is called when xine shuts down the decoder. It should
- * free any memory and release any other resources allocated during the
- * execution of the decoder.
+ * This function frees the video decoder instance allocated to the decoder.
  */
-static void yuv_close (video_decoder_t *this_gen) {
+static void yuv_dispose (video_decoder_t *this_gen) {
   yuv_decoder_t *this = (yuv_decoder_t *) this_gen;
 
   if (this->buf) {
@@ -270,44 +258,57 @@ static void yuv_close (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {
     this->decoder_ok = 0;
-    this->video_out->close(this->video_out);
+    this->stream->video_out->close(this->stream->video_out);
   }
-}
 
-/*
- * This function returns the human-readable ID string to identify 
- * this decoder.
- */
-static char *yuv_get_id(void) {
-  return "Raw YUV";
-}
-
-/*
- * This function frees the video decoder instance allocated to the decoder.
- */
-static void yuv_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-/*
- * This function should be the plugin's only advertised function to the
- * outside world. It allows xine to query the plugin module for the addresses
- * to the necessary functions in the video decoder object.
- */
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
-  yuv_decoder_t *this ;
 
-  this = (yuv_decoder_t *) malloc (sizeof (yuv_decoder_t));
-  memset(this, 0, sizeof (yuv_decoder_t));
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  this->video_decoder.init                = yuv_init;
+  yuv_decoder_t  *this ;
+
+  this = (yuv_decoder_t *) xine_xmalloc (sizeof (yuv_decoder_t));
+
   this->video_decoder.decode_data         = yuv_decode_data;
   this->video_decoder.flush               = yuv_flush;
   this->video_decoder.reset               = yuv_reset;
-  this->video_decoder.close               = yuv_close;
-  this->video_decoder.get_identifier      = yuv_get_id;
   this->video_decoder.dispose             = yuv_dispose;
+  this->size                              = 0;
+
+  this->stream                            = stream;
+  this->class                             = (yuv_class_t *) class_gen;
+
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "YUV";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Raw YUV video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  yuv_class_t *this;
+
+  this = (yuv_class_t *) xine_xmalloc (sizeof (yuv_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
 
   return this;
 }
@@ -330,6 +331,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "yuv", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "yuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
