@@ -1,0 +1,166 @@
+# Note that this is NOT a relocatable package
+%define ver     @SPEC_VERSION@
+%define rel     0
+%define prefix  @prefix@
+%define name    @PACKAGE@
+
+Name:        %{name}
+Summary:     A Free Video Player.
+Version:     %{ver}
+Release:     %{rel}
+Copyright:   GPL
+Group:       Development/Libraries
+Source:      http://xine.sourceforge.net/files/@PACKAGE@-@VERSION@.tar.gz
+URL:         http://xine.sourceforge.net
+Packager:    Guenter Bartsch <guenter@users.sourceforge.net>
+BuildRoot:   /tmp/%{name}-root
+# dangerous hack
+AutoReqProv: no
+Requires:    libX11, libXext, libdl, libm, ld-linux, libpthread, libslang, libc
+
+%description
+xine is a free gpl-licensed video player for unix-like systems.
+It supports mpeg-2 and mpeg-1 streams as well as AVI files
+that contain MS MPEG-4 / OpenDivX Video.
+
+xine plays the video and audio data and synchronizes
+the playback of both. Depending on the properties of the stream,
+playback will need more or less processor power, 100% frame rate
+has been seen on a 400 MHz P II system.
+
+%prep
+%setup -n @TAR_NAME@
+
+%build
+./configure --prefix=%{prefix}
+make
+
+%install
+if [ -d $RPM_BUILD_ROOT ]; then rm -rf $RPM_BUILD_ROOT; fi
+#mkdir -p $RPM_BUILD_ROOT/usr/include/X11/pixmaps
+make install-strip prefix=$RPM_BUILD_ROOT%{prefix}
+#cp doc/*.xpm $RPM_BUILD_ROOT/usr/include/X11/pixmaps
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root)
+%{prefix}/bin/xine-config
+%{prefix}/man/man3/xine-lib.3
+%{prefix}/man/man3/ao_functions_t.3
+%{prefix}/man/man3/demux_strategy.3
+%{prefix}/man/man3/video_cap.3
+%{prefix}/man/man3/vo_overlay_t.3
+%{prefix}/man/man3/autoplay_group.3
+%{prefix}/man/man3/event_group.3
+%{prefix}/man/man3/video_group.3
+%{prefix}/man/man3/xine.h.3
+%{prefix}/man/man3/browse_group.3
+%{prefix}/man/man3/loadplugins_group.3
+%{prefix}/man/man3/video_prop.3
+%{prefix}/man/man3/xine_api.3
+%{prefix}/man/man3/build_info.3
+%{prefix}/man/man3/mrl_t.3
+%{prefix}/man/man3/video_ratio.3
+%{prefix}/man/man3/xine_init.3
+%{prefix}/man/man3/cfg_data_t.3
+%{prefix}/man/man3/mrl_types.3
+%{prefix}/man/man3/visual_types.3
+%{prefix}/man/man3/xine_management.3
+%{prefix}/man/man3/config_group.3
+%{prefix}/man/man3/status_group.3
+%{prefix}/man/man3/vo_driver_s.3
+%{prefix}/man/man3/xine_t.3
+%{prefix}/man/man3/config_values_s.3
+%{prefix}/man/man3/ui_callbacks.3
+%{prefix}/man/man3/vo_driver_t.3
+%{prefix}/man/man3/xine_version.3
+%{prefix}/man/man3/config_values_t.3
+%{prefix}/man/man3/version_group.3
+%{prefix}/man/man3/vo_frame_t.3
+%{prefix}/include/xine/*.h
+%{prefix}/include/xine.h
+# input plugins
+%{prefix}/lib/xine/plugins/xineplug_inp_dvd.la
+%{prefix}/lib/xine/plugins/xineplug_inp_dvd.so
+%{prefix}/lib/xine/plugins/xineplug_inp_file.la
+%{prefix}/lib/xine/plugins/xineplug_inp_file.so
+%{prefix}/lib/xine/plugins/xineplug_inp_net.la
+%{prefix}/lib/xine/plugins/xineplug_inp_net.so
+%{prefix}/lib/xine/plugins/xineplug_inp_rtp.la
+%{prefix}/lib/xine/plugins/xineplug_inp_rtp.so
+%{prefix}/lib/xine/plugins/xineplug_inp_stdin_fifo.la
+%{prefix}/lib/xine/plugins/xineplug_inp_stdin_fifo.so
+%{prefix}/lib/xine/plugins/xineplug_inp_vcd.la
+%{prefix}/lib/xine/plugins/xineplug_inp_vcd.so
+# demuxer plugins
+%{prefix}/lib/xine/plugins/xineplug_dmx_avi.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_avi.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_audio.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_audio.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_block.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_block.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
+# decoder plugins
+%{prefix}/lib/xine/plugins/xineplug_decode_a52.la
+%{prefix}/lib/xine/plugins/xineplug_decode_a52.so
+%{prefix}/lib/xine/plugins/xineplug_decode_ff.so
+%{prefix}/lib/xine/plugins/xineplug_decode_ff.la
+%{prefix}/lib/xine/plugins/xineplug_decode_lpcm.so
+%{prefix}/lib/xine/plugins/xineplug_decode_lpcm.la
+%{prefix}/lib/xine/plugins/xineplug_decode_mad.so
+%{prefix}/lib/xine/plugins/xineplug_decode_mad.la
+%{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.la
+%{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.so
+%{prefix}/lib/xine/plugins/xineplug_decode_spu.la
+%{prefix}/lib/xine/plugins/xineplug_decode_spu.so
+# audio driver plugins
+%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la
+%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.so
+%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
+%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
+%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.la
+%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.so
+%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.la
+%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.so
+# video driver plugins
+%{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.so
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
+%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.so
+%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
+%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
+# dxr3
+%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
+%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
+%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
+%{prefix}/include/dxr3_overlay.h
+# doc, lib, skins
+%{prefix}/share/doc/xine/xine-lib-API/*
+%{prefix}/lib/libxine*.la
+%{prefix}/lib/libxine*.so*
+%{prefix}/share/xine/skins/*
+
+#
+# stuff we do not build
+#
+
+#%files alsa05
+#%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
+#%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.so
+
+%changelog

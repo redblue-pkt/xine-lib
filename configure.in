@@ -657,9 +657,11 @@ doc/man/en/man3/Makefile
 doc/xine-lib-API/Makefile
 doc/xine-lib-API/html/Makefile
 misc/xine-lib.spec
+misc/guenter.spec
 misc/SlackBuild
+misc/guenter_rpms.sh
 misc/build_rpms.sh],
-[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
+[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/guenter_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
 
 dnl
 dnl Hack the libtool script.
