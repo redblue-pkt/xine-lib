@@ -358,7 +358,7 @@ int xine_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t 
     buf = xine_xmalloc(MAX_PREVIEW_SIZE);
     read_size = input->get_optional_data(input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
     read_size = MIN (read_size, size);
-    memcpy(buffer, buf, size);
+    memcpy(buffer, buf, read_size);
     free(buf);
   } else {
     return 0;
