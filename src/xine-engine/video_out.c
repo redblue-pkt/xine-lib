@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.138 2003/01/26 18:12:39 mroi Exp $
+ * $Id: video_out.c,v 1.139 2003/02/01 19:22:31 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -84,6 +84,7 @@ typedef struct {
 
   /* do we true real-time output or is this a grab only instance ? */
   int                       grab_only;
+  int                       flush_mode;
 
   extra_info_t             *extra_info_base; /* used to free mem chunk */
 
@@ -339,8 +340,17 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
     if (frames_to_skip<0)
       frames_to_skip = 0;
-  } else
+  } else {
     frames_to_skip = 0;
+
+    if (this->flush_mode) {
+#ifdef LOG
+      printf ("video_out: i'm in flush mode, not appending this frame to queue\n");
+#endif
+      return 0;
+    }
+  }
+
 
 #ifdef LOG
   printf ("video_out: delivery diff : %lld, current vpts is %lld, %d frames to skip\n",
@@ -956,14 +966,23 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
 
   /* FIXME: ugly, use conditions and locks instead */
 
-  while (!img 
-	 && (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK)) {
+  printf ("video_out: get_next_video_frame demux status = %d, fifo_size=%d\n",
+	  stream->demux_plugin->get_status (stream->demux_plugin),
+	  stream->video_fifo->fifo_size);
+
+  while ( !img && (stream->video_fifo->fifo_size 
+		   || (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK))) {
 
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
     xine_usec_sleep (1000);
     pthread_mutex_lock(&this->display_img_buf_queue->mutex);
 
     img = this->display_img_buf_queue->first;
+    printf ("video_out: get_next_video_frame demux status = %d, fifo_size=%d\n",
+	    stream->demux_plugin->get_status (stream->demux_plugin),
+	    stream->video_fifo->fifo_size);
+
+
   }
 
   if (!img) {
@@ -1192,6 +1211,35 @@ static void vo_flush (xine_video_port_t *this_gen) {
   }
 }
 
+/*
+ * set video_out fifo to flush mode (grab mode only)
+ */
+static void vo_set_flush_mode (xine_video_port_t *this_gen, int flush_mode) {
+  vos_t      *this = (vos_t *) this_gen;
+  vo_frame_t *img;
+
+  if (!this->grab_only)
+    return;
+
+  this->flush_mode = flush_mode;
+
+  if (flush_mode) {
+    pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+
+    while ((img = this->display_img_buf_queue->first)) {
+
+#ifdef LOG
+      printf ("video_out: flushing out frame\n");
+#endif
+
+      img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
+
+      vo_frame_dec_lock (img);
+    }
+    pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+  }
+}
+
 
 xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
 				int grabonly) {
@@ -1221,6 +1269,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->vo.enable_ovl            = vo_enable_overlay;
   this->vo.get_overlay_instance  = vo_get_overlay_instance;
   this->vo.flush                 = vo_flush;
+  this->vo.set_flush_mode        = vo_set_flush_mode;
   this->vo.status                = vo_status;
   this->vo.driver                = driver;
 

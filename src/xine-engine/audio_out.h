@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.49 2003/01/11 19:06:52 guenter Exp $
+ * $Id: audio_out.h,v 1.50 2003/02/01 19:22:30 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -176,8 +176,7 @@ struct ao_format_s {
 struct xine_audio_port_s {
   uint32_t (*get_capabilities) (xine_audio_port_t *this); /* for constants see below */
 
-  /*
-   * Get/Set audio property
+  /*   * Get/Set audio property
    *
    * See AO_PROP_* bellow
    */
@@ -227,6 +226,12 @@ struct xine_audio_port_s {
   int (*status) (xine_audio_port_t *this, xine_stream_t *stream,
 	       uint32_t *bits, uint32_t *rate, int *mode);
 
+  /*
+   * set flush mode, can be used in grad_mode to free all
+   * audio buffers automatically while the engine is navigating
+   */
+
+  void (*set_flush_mode) (xine_audio_port_t *this, int flush_mode);
 };
 
 typedef struct audio_driver_class_s audio_driver_class_t;

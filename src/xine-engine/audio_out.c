@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.101 2003/01/30 20:40:42 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.102 2003/02/01 19:22:30 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -73,9 +73,9 @@
 #include "resample.h"
 #include "metronom.h"
 
-/*
+
 #define LOG
-*/
+
 #define LOG_RESAMPLE_SYNC
 
 #define NUM_AUDIO_BUFFERS       32
@@ -148,6 +148,7 @@ typedef struct {
 
   int             audio_loop_running;
   int             grab_only; /* => do not start thread, frontend will consume samples */
+  int             flush_mode;
   int             audio_paused;
   pthread_t       audio_thread;
 
@@ -222,7 +223,6 @@ static void fifo_append_int (audio_fifo_t *fifo,
   assert (!buf->next);
 
   if (!fifo->first) {
-
     fifo->first       = buf;
     fifo->last        = buf;
     fifo->num_buffers = 1;
@@ -755,7 +755,7 @@ static void *ao_loop (void *this_gen) {
       }
 
 #ifdef LOG
-      printf ("audio_out:loop:pause: I feel sleepy.\n");
+      printf ("audio_out:loop:pause: I feel sleepy (%d buffers).\n", this->out_fifo->num_buffers);
 #endif
       xine_usec_sleep (10000);
 #ifdef LOG
@@ -830,7 +830,7 @@ static void *ao_loop (void *this_gen) {
 
       /* drop package */
 #ifdef LOG
-      printf ("audio_out:loop: next fifo\n");
+      printf ("audio_out:loop: drop package, next fifo\n");
 #endif
       fifo_append (this->free_fifo, in_buf);
 
@@ -889,6 +889,11 @@ static void *ao_loop (void *this_gen) {
       }
 #endif
 
+#ifdef LOG
+      printf ("audio_out: loop: writing %d samples to sound device\n", 
+	      out_buf->num_frames);
+#endif
+
       pthread_mutex_lock( &this->driver_lock );
       this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
       pthread_mutex_unlock( &this->driver_lock ); 
@@ -917,7 +922,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
 			       xine_audio_frame_t *frame) {
 
   aos_t          *this = (aos_t *) this_gen;
-  audio_buffer_t *buf;
+  audio_buffer_t *in_buf, *out_buf;
   xine_stream_t  *stream;
 
   do {
@@ -928,49 +933,53 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   
   pthread_mutex_lock (&this->out_fifo->mutex);
 
-  buf = this->out_fifo->first;
+  in_buf = this->out_fifo->first;
 
   /* FIXME: ugly, use conditions and locks instead */
 
-  while (!buf
+  while (!in_buf
 	 && (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK)) {
 
     pthread_mutex_unlock(&this->out_fifo->mutex);
     xine_usec_sleep (1000);
     pthread_mutex_lock(&this->out_fifo->mutex);
 
-    buf = this->out_fifo->first;
+    in_buf = this->out_fifo->first;
   }
 
-  if (!buf) {
+  if (!in_buf) {
     pthread_mutex_unlock(&this->out_fifo->mutex);
     return 0;
   }
 
-  buf = fifo_remove_int (this->out_fifo);
+  in_buf = fifo_remove_int (this->out_fifo);
   pthread_mutex_unlock(&this->out_fifo->mutex);
 
-  frame->vpts            = buf->vpts;
-  frame->num_samples     = buf->num_frames;
+  out_buf = prepare_samples (this, in_buf);
+
+  fifo_append (this->free_fifo, in_buf);
+
+  frame->vpts            = out_buf->vpts;
+  frame->num_samples     = out_buf->num_frames;
   frame->sample_rate     = this->input.rate;
   frame->num_channels    = mode_channels (this->input.mode);
   frame->bits_per_sample = this->input.bits;
-  frame->pos_stream      = buf->extra_info->input_pos;
-  frame->pos_time        = buf->extra_info->input_time;
-  frame->data            = (uint8_t *) buf->mem;
-  frame->xine_frame      = buf;
+  frame->pos_stream      = out_buf->extra_info->input_pos;
+  frame->pos_time        = out_buf->extra_info->input_time;
+  frame->data            = (uint8_t *) out_buf->mem;
+  frame->xine_frame      = out_buf;
 
   return 1;
 }
 
 void xine_free_audio_frame (xine_audio_port_t *this_gen, xine_audio_frame_t *frame) {
 
+#if 0
   aos_t          *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
 
   buf = (audio_buffer_t *) frame->xine_frame;
-
-  fifo_append (this->free_fifo, buf);
+#endif
 }
 
 
@@ -1165,17 +1174,52 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   buf->extra_info->vpts = buf->vpts;
          
 #ifdef LOG
-  printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld\n",
-	  pts, buf->vpts);
+  printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld, flushmode=%d\n",
+	  pts, buf->vpts, this->flush_mode);
 #endif
 
-  fifo_append (this->out_fifo, buf);
+  if (!this->flush_mode) 
+    fifo_append (this->out_fifo, buf);
+  else
+    fifo_append (this->free_fifo, buf);
+  
   this->last_audio_vpts = buf->vpts;
 
 #ifdef LOG
   printf ("audio_out: ao_put_buffer done\n");
 #endif
 }
+
+/*
+ * set audio_out fifo to flush mode (grab mode only)
+ */
+static void ao_set_flush_mode (xine_audio_port_t *this_gen, int flush_mode) {
+  aos_t          *this = (aos_t *) this_gen;
+  audio_buffer_t *buf;
+
+  if (!this->grab_only)
+    return;
+
+  this->flush_mode = flush_mode;
+
+  if (flush_mode) {
+    pthread_mutex_lock(&this->out_fifo->mutex);
+
+    while ((buf = this->out_fifo->first)) {
+
+#ifdef LOG
+      printf ("audio_out: flushing out frame\n");
+#endif
+
+      buf = fifo_remove_int (this->out_fifo);
+
+      fifo_append (this->free_fifo, buf);
+    }
+    pthread_mutex_unlock (&this->out_fifo->mutex);
+  }
+}
+
+
 
 static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
@@ -1346,9 +1390,12 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     break;
 
   default:
-    pthread_mutex_lock( &this->driver_lock );
-    ret =  this->driver->set_property(this->driver, property, value);
-    pthread_mutex_unlock( &this->driver_lock );
+    if (!this->grab_only) {
+      pthread_mutex_lock( &this->driver_lock );
+      ret =  this->driver->set_property(this->driver, property, value);
+      pthread_mutex_unlock( &this->driver_lock );
+    } else
+      ret = 0;
   }
 
   return ret;
@@ -1360,6 +1407,9 @@ static int ao_control (xine_audio_port_t *this_gen, int cmd, ...) {
   va_list args;
   void *arg;
   int rval;
+
+  if (this->grab_only)
+    return 0;
 
   pthread_mutex_lock( &this->driver_lock );
   va_start(args, cmd);
@@ -1441,8 +1491,10 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->ao.control                = ao_control;
   this->ao.flush                  = ao_flush;
   this->ao.status                 = ao_status;
+  this->ao.set_flush_mode         = ao_set_flush_mode;
   
   this->audio_loop_running     = 0;
+  this->flush_mode             = 0;
   this->grab_only              = grab_only;
   this->audio_paused           = 0;
   this->flush_audio_driver     = 0;
