@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.20 2003/08/04 01:37:58 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.21 2003/08/04 03:16:48 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -292,7 +292,7 @@ static subtitle_t *sub_read_line_microdvd(demux_sputext_t *this, subtitle_t *cur
   return current;
 }
 
-static subtitle_t *sub_read_line_subrip(demux_sputext_t *this, subtitle_t *current) {
+static subtitle_t *sub_read_line_subviewer(demux_sputext_t *this, subtitle_t *current) {
 
   char line[1001];
   int a1,a2,a3,a4,b1,b2,b3,b4;
@@ -311,7 +311,7 @@ static subtitle_t *sub_read_line_subrip(demux_sputext_t *this, subtitle_t *curre
     
     p=q=line;
     for (current->lines=1; current->lines < SUB_MAX_TEXT; current->lines++) {
-      for (q=p,len=0; *p && *p!='\r' && *p!='\n' && strncmp(p,"[br]",4); p++,len++);
+      for (q=p,len=0; *p && *p!='\r' && *p!='\n' && strncasecmp(p,"[br]",4); p++,len++);
       current->text[current->lines-1]=(char *)xine_xmalloc (len+1);
       if (!current->text[current->lines-1]) return ERR;
       strncpy (current->text[current->lines-1], q, len);
@@ -324,7 +324,7 @@ static subtitle_t *sub_read_line_subrip(demux_sputext_t *this, subtitle_t *curre
   return current;
 }
 
-static subtitle_t *sub_read_line_third(demux_sputext_t *this,subtitle_t *current) {
+static subtitle_t *sub_read_line_subrip(demux_sputext_t *this,subtitle_t *current) {
   char line[1001];
   int a1,a2,a3,a4,b1,b2,b3,b4;
   char *p=NULL;
@@ -630,13 +630,13 @@ static int sub_autodetect (demux_sputext_t *this) {
       return FORMAT_MICRODVD;
     }
 
-    if (sscanf (line, "%d:%d:%d.%d,%d:%d:%d.%d",     &i, &i, &i, &i, &i, &i, &i, &i)==8){
+    if (sscanf (line, "%d:%d:%d,%d --> %d:%d:%d,%d", &i, &i, &i, &i, &i, &i, &i, &i)==8) {
       this->uses_time=1;
       printf ("demux_sputext: subrip subtitle format detected\n");
       return FORMAT_SUBRIP;
     }
 
-    if (sscanf (line, "%d:%d:%d,%d --> %d:%d:%d,%d", &i, &i, &i, &i, &i, &i, &i, &i)==8) {
+    if (sscanf (line, "%d:%d:%d.%d,%d:%d:%d.%d",     &i, &i, &i, &i, &i, &i, &i, &i)==8){
       this->uses_time=1;
       printf ("demux_sputext: subviewer subtitle format detected\n");
       return FORMAT_SUBVIEWER;
@@ -698,7 +698,7 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
   {
     sub_read_line_microdvd,
     sub_read_line_subrip,
-    sub_read_line_third,
+    sub_read_line_subviewer,
     sub_read_line_sami,
     sub_read_line_vplayer,
     sub_read_line_rt,
