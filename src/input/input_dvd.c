@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.144 2003/04/06 12:11:10 mroi Exp $
+ * $Id: input_dvd.c,v 1.145 2003/04/06 13:06:03 jcdutton Exp $
  *
  */
 
@@ -139,6 +139,17 @@
 # define off64_t off_t
 # define lseek64 lseek
 #endif
+
+static const char *dvdnav_menu_tsble[] = {
+  NULL,
+  NULL,
+  "Title",
+  "Root",
+  "Subpicture",
+  "Audio",
+  "Angle",
+  "Part"
+};
 
 typedef struct {
   input_plugin_t    input_plugin; /* Parent input plugin type        */
@@ -300,8 +311,8 @@ void update_title_display(dvd_input_plugin_t *this) {
   /* Set title/chapter display */
 
   dvdnav_current_title_info(this->dvdnav, &tt, &pr);
-  
-  if(tt != -1) { 
+ 
+  if(tt >= 1) { 
     int num_angle = 0, cur_angle = 0;
     /* no menu here */    
     /* Reflect angle info if appropriate */
@@ -315,6 +326,10 @@ void update_title_display(dvd_input_plugin_t *this) {
 	       "Title %i, Chapter %i",
 	       tt,pr);
     }
+  } else if (tt == 0) {
+    snprintf(this->ui_title, MAX_STR_LEN,
+             "DVD %s Menu",
+             dvdnav_menu_tsble[pr]);
   } else {
     strcpy(this->ui_title, "DVD Navigator: Menu");
   }
@@ -1553,6 +1568,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.145  2003/04/06 13:06:03  jcdutton
+ * Enable display of DVD Menu types.
+ * Currently needs libdvdnav cvs, but does not break xine's own libdvdnav version.
+ *
  * Revision 1.144  2003/04/06 12:11:10  mroi
  * reset the VM when it is already open
  *
