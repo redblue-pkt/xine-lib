@@ -1,3 +1,5 @@
+  * fix possible crash in CDDB queries
+
 xine-lib (1-rc4)
   * experimental DTS software decoder using libdts
   * SPU decoder: timestamp handling for NAV packets fixes the menu on the first

@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.51 2004/04/21 16:43:18 komadori Exp $
+ * $Id: input_cdda.c,v 1.52 2004/05/02 15:17:39 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1453,7 +1453,7 @@ static int _cdda_cddb_socket_open(cdda_input_plugin_t *this) {
   fflush(stdout);
 #endif
   sock = _x_io_tcp_connect(this->stream, this->cddb.server, this->cddb.port);
-  if (_x_io_tcp_connect_finish(this->stream, sock, CDDB_TIMEOUT) != XIO_READY) {
+  if (sock == -1 || _x_io_tcp_connect_finish(this->stream, sock, CDDB_TIMEOUT) != XIO_READY) {
     xine_log(this->stream->xine, XINE_LOG_MSG, _("%s: can't connect to %s:%d\n"), LOG_MODULE, this->cddb.server, this->cddb.port);
     lprintf("failed\n");
     return -1;
