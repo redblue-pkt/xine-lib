@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.42 2004/04/03 18:34:53 tmattern Exp $
+ * $Id: mms.c,v 1.43 2004/04/04 12:19:06 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -1073,14 +1073,14 @@ static int get_media_packet (mms_t *this) {
     if (command == 0x1b) {
       send_command (this, 0x1b, 0, 0, 0);
     } else if (command == 0x1e) {
-      lprintf ("end of the current stream.\n");
+      uint32_t error_code;
 
-      /* might be followed by a new stream cmd 0x20 */
-      if (!this->live_flag) {
-        lprintf ("not a live stream, .\n");
+      /* Warning: sdp is incomplete. Do not stop if error_code==1 */
+      error_code = LE_32(this->buf + 28);
+      lprintf ("End of the current stream. Continue=%d\n", error_code);
+
+      if (!error_code) {
         return 0;
-      } else {
-        lprintf ("live stream, continue.\n");
       }
 
     } else if (command == 0x20) {
