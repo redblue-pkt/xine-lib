@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.179 2002/10/28 11:19:51 miguelfreitas Exp $
+ * $Id: xine.c,v 1.180 2002/10/28 20:15:56 guenter Exp $
  *
  * top-level xine functions
  *
@@ -57,9 +57,9 @@
 #include "xineutils.h"
 #include "compat.h"
 
-/*
+
 #define LOG
-*/
+
 
 void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
 
@@ -386,6 +386,9 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
     = strdup (stream->input_class->get_identifier (stream->input_class));
 
+#ifdef LOG
+  printf ("xine: input plugin found\n");
+#endif
 
   /*
    * find a demux plugin
@@ -774,11 +777,15 @@ int xine_get_speed (xine_stream_t *stream) {
  */
 
 static int xine_get_stream_length (xine_stream_t *stream) {
-  
+
   pthread_mutex_lock( &stream->demux_lock );
 
-  if (stream->demux_plugin)
-    return stream->demux_plugin->get_stream_length (stream->demux_plugin);
+  if (stream->demux_plugin) {
+    int len = stream->demux_plugin->get_stream_length (stream->demux_plugin); 
+    pthread_mutex_unlock( &stream->demux_lock );
+
+    return len;
+  }
   
   pthread_mutex_unlock( &stream->demux_lock );
 
