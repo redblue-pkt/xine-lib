@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.68 2002/05/02 20:32:36 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.69 2002/05/04 21:30:15 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -766,6 +766,16 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
       if(this->bufinfo.id == -1) {
 	 printf("video_out_syncfb: error. (syncfb module couldn't allocate image buffer)\n");
 	 frame->vo_frame.displayed(&frame->vo_frame);
+	 
+	 /* 
+	  * there are several "fixable" situations when this request will fail.
+	  * for example when the screen resolution changes, the kernel module
+	  * will get confused - reinitializing everything will fix things for
+	  * the next frame in that case.
+	  */
+	 syncfb_compute_ideal_size(this);
+	 syncfb_compute_output_size(this);
+	 syncfb_clean_output_area(this);     
   	
 	 return;
       }
