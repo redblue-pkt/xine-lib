@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: upmix.c,v 1.6 2004/05/16 16:23:09 jcdutton Exp $
+ * $Id: upmix.c,v 1.7 2004/05/17 15:10:20 jcdutton Exp $
  *
  */
 
@@ -223,20 +223,27 @@ static int upmix_frames_2to51_any_to_float(uint8_t *dst8, uint8_t *src8, int num
     default:
       left = right = 0.0;
     }
-
+    /* Left channel */
     dst[dst_frame] = left;
+    /* Right channel */
     dst[dst_frame+1] = right;
     /* try a bit of dolby */
     /* FIXME: Dobly surround is a bit more complicated than this, but this is a start. */
+    /* Rear Left channel */
     dst[dst_frame+2] = (left - right) / 2;
+    /* Rear Right channel */
     dst[dst_frame+3] = (left - right) / 2;
     sum = (left + right) / 2;
-    dst[dst_frame+4] = sum;
+    /* Center channel */
+    /* Mute this one because it just causes the Left/Right channel spacing to get moved to the center. */
+    /* dst[dst_frame+4] = sum; */
+    dst[dst_frame+4] = 0;
     /* Create the LFE channel using a low pass filter */
     /* filter feature ported from mplayer */
     sample = sum;
     IIR(sample * sub->k, sub->w[0], sub->q[0], sample);
     IIR(sample , sub->w[1], sub->q[1], sample);
+    /* LFE or Sub woofer channel */
     dst[dst_frame+5] = sample;
 
   }
