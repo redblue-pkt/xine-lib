@@ -16,8 +16,7 @@ ffmpeg				build 4663		Mike Melanson
 goom				1.9dev5
 gsm610				1.0.10
 liba52				0.7.4
-libdvdnav			0.1.6 cvs		Michael Roitzsch
-libdvdread			0.9.4			Michael Roitzsch
+libdvdnav			0.1.9 cvs		Michael Roitzsch
 libfaad				cvs (12/Apr/03)		Miguel Freitas
 libmad				0.14.2b			Miguel Freitas
 libmpeg2			0.2.1 [*]
