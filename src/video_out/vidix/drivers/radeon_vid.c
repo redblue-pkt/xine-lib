@@ -3208,33 +3208,30 @@ static void set_gr_key( void )
 	{
 	case 15:
 #ifndef RAGE128
-		if(RadeonFamily > 100)
-			besr.graphics_key_clr=
-				  ((radeon_grkey.ckey.blue &0xF8))
-				| ((radeon_grkey.ckey.green&0xF8)<<8)
-				| ((radeon_grkey.ckey.red  &0xF8)<<16);
-		else
-#endif
+		besr.graphics_key_clr=
+			  ((radeon_grkey.ckey.blue &0xF8))
+			| ((radeon_grkey.ckey.green&0xF8)<<8)
+			| ((radeon_grkey.ckey.red  &0xF8)<<16);
+#else
 		besr.graphics_key_clr=
 			  ((radeon_grkey.ckey.blue &0xF8)>>3)
 			| ((radeon_grkey.ckey.green&0xF8)<<2)
 			| ((radeon_grkey.ckey.red  &0xF8)<<7);
 		break;
+#endif
 	case 16:
 #ifndef RAGE128
-		/* This test may be too general/specific */
-		if(RadeonFamily > 100)
-			besr.graphics_key_clr=
-				  ((radeon_grkey.ckey.blue &0xF8))
-				| ((radeon_grkey.ckey.green&0xFC)<<8)
-				| ((radeon_grkey.ckey.red  &0xF8)<<16);
-		else
-#endif
+		besr.graphics_key_clr=
+			  ((radeon_grkey.ckey.blue &0xF8))
+			| ((radeon_grkey.ckey.green&0xFC)<<8)
+			| ((radeon_grkey.ckey.red  &0xF8)<<16);
+#else
 		besr.graphics_key_clr=
 			  ((radeon_grkey.ckey.blue &0xF8)>>3)
 			| ((radeon_grkey.ckey.green&0xFC)<<3)
 			| ((radeon_grkey.ckey.red  &0xF8)<<8);
 		break;
+#endif
 	case 24:
 		besr.graphics_key_clr=
 			  ((radeon_grkey.ckey.blue &0xFF))
