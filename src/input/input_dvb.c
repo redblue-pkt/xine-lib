@@ -54,6 +54,10 @@
 #define LOG
 */
 
+/* comment this out to have audio-only streams in the menu as well */
+/* workaround for xine's unability to handle audio-only ts streams */
+#define FILTER_RADIO_STREAMS 
+
 #define FRONTEND_DEVICE "/dev/dvb/adapter0/frontend0"
 #define DEMUX_DEVICE    "/dev/dvb/adapter0/demux0"
 #define DVR_DEVICE      "/dev/dvb/adapter0/dvr0"
@@ -115,12 +119,15 @@ typedef struct {
   pthread_mutex_t     mutex;
 
   osd_object_t       *osd;
+  osd_object_t       *rec_osd;
 
   xine_event_queue_t *event_queue;
 
   /* scratch buffer for forward seeking */
   char                seek_buf[BUFSIZE];
 
+  /* simple vcr-like functionality */
+  int                 record_fd;
 } dvb_input_plugin_t;
 
 typedef struct {
@@ -387,6 +394,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
 
   xine_event_t     event;
   xine_pids_data_t data;
+  xine_ui_data_t   ui_data;
 
   pthread_mutex_lock (&this->mutex);
   
@@ -408,11 +416,57 @@ static void switch_channel (dvb_input_plugin_t *this) {
 
   xine_event_send (this->stream, &event);
 
+  snprintf (ui_data.str, 256, "%04d - %s", this->channel, 
+      	    this->channels[this->channel].name);
+  ui_data.str_len = strlen (ui_data.str);
+
+  if (this->stream->meta_info [XINE_META_INFO_TITLE])
+    free(this->stream->meta_info [XINE_META_INFO_TITLE]);
+  this->stream->meta_info [XINE_META_INFO_TITLE] = strdup (ui_data.str);
+
+  event.type        = XINE_EVENT_UI_SET_TITLE;
+  event.stream      = this->stream;
+  event.data        = &ui_data;
+  event.data_length = sizeof(ui_data);
+  xine_event_send(this->stream, &event);
+
+  printf ("input_dvb: ui title event sent\n");
+  
   this->fd = open (DVR_DEVICE, O_RDONLY);
 
   pthread_mutex_unlock (&this->mutex);
 
   this->stream->osd_renderer->hide (this->osd, 0);
+}
+
+static void do_record (dvb_input_plugin_t *this) {
+
+  if (this->record_fd > -1) {
+
+    /* stop recording */
+    close (this->record_fd);
+    this->record_fd = -1;
+
+    this->stream->osd_renderer->hide (this->rec_osd, 0);
+
+  } else {
+
+    char filename [256];
+
+    snprintf (filename, 256, "dvb_rec_%d.ts", (int) time (NULL));
+    
+    /* start recording */
+    this->record_fd = open (filename, O_CREAT | O_APPEND | O_WRONLY, 0644);
+
+    this->stream->osd_renderer->filled_rect (this->rec_osd, 0, 0, 300, 40, 0);
+
+    this->stream->osd_renderer->render_text (this->rec_osd, 10, 10, filename,
+					     "iso-8859-1",
+					     OSD_TEXT3);
+
+    this->stream->osd_renderer->show (this->rec_osd, 0);
+
+  }
 }
 
 static void dvb_event_handler (dvb_input_plugin_t *this) {
@@ -466,6 +520,10 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
       this->stream->osd_renderer->hide (this->osd, 0);
       break;
 
+    case XINE_EVENT_INPUT_MENU2:
+      do_record (this);
+      break;
+
 #if 0
     default:
       printf ("input_dvb: got an event, type 0x%08x\n", event->type);
@@ -509,6 +567,9 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
       return total;
     }
   }
+
+  if (this->record_fd)
+    write (this->record_fd, buf, total);
 
   pthread_mutex_unlock( &this->mutex );
   return total;
@@ -800,6 +861,11 @@ static channel_t *load_channels (int *num_ch, fe_type_t fe_type) {
 
     channels[num_channels].vpid = strtoul(field, NULL, 0);
 
+#ifdef FILTER_RADIO_STREAMS
+    if (channels[num_channels].vpid == 0)
+      continue; /* only tv channels for now */
+#endif
+
     if (!(field = strsep(&tmp, ":")))
 	continue;
 
@@ -821,7 +887,8 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
   tuner_t            *tuner;
   channel_t          *channels;
   int                 num_channels;
-
+  char                str[256];
+  
   if ( !(tuner = tuner_init()) ) {
     printf ("input_dvb: cannot open dvb device\n");
     return 0;
@@ -860,6 +927,10 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 
   this->event_queue = xine_event_new_queue (this->stream);
 
+  /*
+   * this osd is used for the channel selection menu
+   */
+  
   this->osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer,
 						      410, 410);
   this->stream->osd_renderer->set_position (this->osd, 20, 20);
@@ -868,6 +939,28 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
 						OSD_TEXT3);
 
+  /*
+   * this osd is used to draw the "recording" sign
+   */
+  
+  this->rec_osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer,
+	  					          301, 41);
+  this->stream->osd_renderer->set_position (this->rec_osd, 10, 10);
+  this->stream->osd_renderer->set_font (this->rec_osd, "cetus", 16);
+  this->stream->osd_renderer->set_text_palette (this->rec_osd,
+						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
+						OSD_TEXT3);
+
+  /*
+   * init metadata (channel title)
+   */
+  snprintf (str, 256, "%04d - %s", this->channel, 
+      	    this->channels[this->channel].name);
+
+  if (this->stream->meta_info [XINE_META_INFO_TITLE])
+    free(this->stream->meta_info [XINE_META_INFO_TITLE]);
+  this->stream->meta_info [XINE_META_INFO_TITLE] = strdup (str);
+  
   return 1;
 }
 
@@ -893,6 +986,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *cls_gen,
   this->nbc          = nbc_init (this->stream);
   this->osd          = NULL;
   this->event_queue  = NULL;
+  this->record_fd    = -1;
     
   this->input_plugin.open              = dvb_plugin_open;
   this->input_plugin.get_capabilities  = dvb_plugin_get_capabilities;
