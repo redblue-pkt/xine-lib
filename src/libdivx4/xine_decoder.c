@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2002/03/11 23:43:58 guenter Exp $
+ * $Id: xine_decoder.c,v 1.21 2002/03/19 16:17:08 f1rmb Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -60,7 +60,7 @@
 #if CATCH_SIGSEGV
 #include <signal.h>
 
-#define LOG
+/*  #define LOG */
 
 /* to be able to restore the old handler */
 void (*old_handler)(int);
