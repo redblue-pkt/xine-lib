@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: yuv_frames.c,v 1.1 2003/01/19 19:42:00 guenter Exp $
+ * $Id: yuv_frames.c,v 1.2 2003/01/19 19:42:48 guenter Exp $
  *
  * dummy video decoder for uncompressed video frames as delivered by v4l
  */
@@ -34,7 +34,9 @@
 #include "video_out.h"
 #include "buffer.h"
 
+/*
 #define LOG
+*/
 
 typedef struct {
   video_decoder_class_t   decoder_class;

@@ -47,7 +47,10 @@
 #define GRAB_WIDTH  384
 #define GRAB_HEIGHT 288
 */
+
+/*
 #define LOG
+*/
 
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define FNDELAY O_NDELAY

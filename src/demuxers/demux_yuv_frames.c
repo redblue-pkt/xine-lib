@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_yuv_frames.c,v 1.1 2003/01/19 19:41:33 guenter Exp $
+ * $Id: demux_yuv_frames.c,v 1.2 2003/01/19 19:43:17 guenter Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  *
@@ -38,7 +38,9 @@
 #include "xineutils.h"
 #include "demux.h"
 
+/*
 #define LOG
+*/
 
 typedef struct demux_yuv_frames_s {
   demux_plugin_t        demux_plugin;
