@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.50 2004/05/18 20:38:28 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.51 2004/05/19 18:00:47 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -61,7 +61,7 @@ typedef struct {
   audio_decoder_class_t *class;
 
   dts_state_t     *dts_state;
-  
+  int              audio_caps;  
   uint32_t         rate;
   uint32_t         bits_per_sample;
   uint32_t         number_of_channels;
@@ -69,9 +69,12 @@ typedef struct {
   int              output_open;
   
   int              bypass_mode;
-  int              decoder_flags;
-  int              decoder_sample_rate;
-  int              decoder_bit_rate;
+  int              dts_flags;
+  int              dts_sample_rate;
+  int              dts_bit_rate;
+  int              dts_flags_map[11]; /* Convert from stream dts_flags to the dts_flags we want from the dts downmixer */
+  int              ao_flags_map[11];  /* Convert from the xine AO_CAP's to dts_flags. */
+  int              have_lfe;
   
   
 } dts_decoder_t;
@@ -88,6 +91,7 @@ static void dts_reset (audio_decoder_t *this_gen) {
 static void dts_discontinuity (audio_decoder_t *this_gen) {
 }
 
+#if 0
 static inline int16_t blah (int32_t i) {
 
   if (i > 0x43c07fff)
@@ -97,13 +101,34 @@ static inline int16_t blah (int32_t i) {
   else
     return i - 0x43c00000;
 }
-
 static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
   int i;
   int32_t * f = (int32_t *) _f;       /* XXX assumes IEEE float format */
 
   for (i = 0; i < 256; i++) {
     s16[num_channels*i] = blah (f[i]);
+  }
+}
+#endif
+
+static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
+  int i;
+  float f;
+  for (i = 0; i < 256; i++) {
+    f = _f[i] * 32767;
+    if (f > INT16_MAX) f = INT16_MAX;
+    if (f < INT16_MIN) f = INT16_MIN;
+    s16[num_channels*i] = f;
+    /* printf("samples[%d] = %f, %d\n", i, _f[i], s16[num_channels*i]); */
+  }
+}
+
+
+static inline void mute_channel (int16_t * s16, int num_channels) {
+  int i;
+                                                                                                                           
+  for (i = 0; i < 256; i++) {
+    s16[num_channels*i] = 0;
   }
 }
 
@@ -118,9 +143,10 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  ac5_pcm_length;
   uint32_t  number_of_frames;
   uint32_t  first_access_unit;
-  int       old_decoder_flags;
-  int       old_decoder_sample_rate;
-  int       old_decoder_bit_rate;
+  int       old_dts_flags;
+  int       old_dts_sample_rate;
+  int       old_dts_bit_rate;
+  int output_mode = AO_CAP_MODE_STEREO;
   int n;
   
   lprintf("decode_data\n");
@@ -140,25 +166,25 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS length error\n");
       return;
     }
-    old_decoder_flags = this->decoder_flags;
-    old_decoder_sample_rate = this->decoder_sample_rate;
-    old_decoder_bit_rate = this->decoder_bit_rate;
-     
-    ac5_length = dts_syncinfo(this->dts_state, data_in, &this->decoder_flags, &this->decoder_sample_rate, 
-                              &this->decoder_bit_rate, &ac5_pcm_length);
-    
+    old_dts_flags = this->dts_flags;
+    old_dts_sample_rate = this->dts_sample_rate;
+    old_dts_bit_rate = this->dts_bit_rate;
+
+    ac5_length = dts_syncinfo(this->dts_state, data_in, &this->dts_flags, &this->dts_sample_rate, 
+                              &this->dts_bit_rate, &ac5_pcm_length);
+
     if(!ac5_length) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS Sync bad\n");
       return;
     }
 
     if (!_x_meta_info_get(this->stream, XINE_META_INFO_AUDIOCODEC) ||
-          old_decoder_flags       != this->decoder_flags ||
-          old_decoder_sample_rate != this->decoder_sample_rate ||
-          old_decoder_bit_rate    != this->decoder_bit_rate) {
+          old_dts_flags       != this->dts_flags ||
+          old_dts_sample_rate != this->dts_sample_rate ||
+          old_dts_bit_rate    != this->dts_bit_rate) {
       _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->decoder_bit_rate);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->decoder_sample_rate);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->dts_bit_rate);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->dts_sample_rate);
     }
 
 
@@ -169,8 +195,9 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     } else {
       audio_buffer->vpts       = 0;
     }
-    
+     
     if(this->bypass_mode) {
+      /* SPDIF digital output */
       if (!this->output_open) {
         this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
                                                             this->bits_per_sample, 
@@ -248,38 +275,100 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         }
       }
     } else {
-      int       i, flags = DTS_STEREO;
+      /* Software decode */
+      int       i, dts_flags;
       int16_t  *int_samples = audio_buffer->mem;
+      int       number_of_dts_blocks;
+
       level_t   level = 1.0;
-      sample_t *samples = dts_samples(this->dts_state);
-      
-      if (!this->output_open) {      
+      sample_t *samples;
+
+      this->have_lfe = this->dts_flags & DTS_LFE;
+      dts_flags = this->dts_flags_map[this->dts_flags & DTS_CHANNEL_MASK];
+      if (this->have_lfe)
+        if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
+          output_mode = AO_CAP_MODE_5_1CHANNEL;
+          dts_flags |= DTS_LFE;
+        } else if (this->audio_caps & AO_CAP_MODE_4_1CHANNEL) {
+          output_mode = AO_CAP_MODE_4_1CHANNEL;
+          dts_flags |= DTS_LFE;
+        } else {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: WHAT DO I DO!!!\n");
+          output_mode = this->ao_flags_map[dts_flags & DTS_CHANNEL_MASK];
+        }
+      else
+        output_mode = this->ao_flags_map[dts_flags & DTS_CHANNEL_MASK];
+
+      if(dts_frame(this->dts_state, data_in, &dts_flags, &level, 0)) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: dts_frame error\n");
+        return;
+      }
+      if (!this->output_open) {
         this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
                                                 this->bits_per_sample, 
                                                 this->rate,
-                                                AO_CAP_MODE_STEREO));
+                                                output_mode));
       }
       
       if (!this->output_open) 
         return;
-    
-      if(dts_frame(this->dts_state, data_in, &flags, &level, 384)) {
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: dts_frame error\n");
-        return;
-      }
-      
-      for(i = 0; i < 2; i++) {
+      number_of_dts_blocks = dts_blocks_num (this->dts_state); 
+      audio_buffer->num_frames = 256*number_of_dts_blocks;
+      for(i = 0; i < number_of_dts_blocks; i++) {
         if(dts_block(this->dts_state)) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
                   "libdts: dts_block error on audio channel %d\n", i);
           audio_buffer->num_frames = 0;
+          break;
         }
-        
-        float_to_int (&samples[0*256], int_samples+(i*256*2), 2);
-        float_to_int (&samples[1*256], int_samples+(i*256*2)+1, 2);
+
+        samples = dts_samples(this->dts_state);
+        switch (output_mode) {
+        case AO_CAP_MODE_MONO:
+          float_to_int (&samples[0], int_samples+(i*256), 1);
+          break;
+        case AO_CAP_MODE_STEREO:
+          /* Tested, working. */
+          float_to_int (&samples[0*256], int_samples+(i*256*2), 2);
+          float_to_int (&samples[1*256], int_samples+(i*256*2)+1, 2);
+          break;
+        case AO_CAP_MODE_4CHANNEL:
+          /* Tested, Only Rear channel output */
+          printf("4 channel samples start %d\n", i);
+          float_to_int (&samples[0*256], int_samples+(i*256*4),   4); /*  L? */
+          float_to_int (&samples[1*256], int_samples+(i*256*4)+1, 4); /*  R? */
+          float_to_int (&samples[2*256], int_samples+(i*256*4)+2, 4); /* RL? */
+          float_to_int (&samples[3*256], int_samples+(i*256*4)+3, 4); /* RR? */
+          break;
+        case AO_CAP_MODE_4_1CHANNEL:
+          /* Tested, not working */
+          float_to_int (&samples[0*256], int_samples+(i*256*6)+4, 6); /* LFE? */
+          float_to_int (&samples[1*256], int_samples+(i*256*6)+0, 6); /*   L? */
+          float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /*   R? */
+          float_to_int (&samples[3*256], int_samples+(i*256*6)+2, 6); /*  RL? */
+          float_to_int (&samples[4*256], int_samples+(i*256*6)+3, 6); /*  RR? */
+          mute_channel ( int_samples+(i*256*6)+4, 6); /* C */
+          break;
+        case AO_CAP_MODE_5CHANNEL:
+          float_to_int (&samples[0*256], int_samples+(i*256*6)+4, 6); /*   C */
+          float_to_int (&samples[1*256], int_samples+(i*256*6)+0, 6); /*   L */
+          float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /*   R */
+          float_to_int (&samples[3*256], int_samples+(i*256*6)+2, 6); /*  RL */
+          float_to_int (&samples[4*256], int_samples+(i*256*6)+3, 6); /*  RR */
+          mute_channel ( int_samples+(i*256*6)+5, 6); /* LFE */
+          break;
+        case AO_CAP_MODE_5_1CHANNEL:
+          float_to_int (&samples[0*256], int_samples+(i*256*6)+4, 6); /*   C */
+          float_to_int (&samples[1*256], int_samples+(i*256*6)+0, 6); /*   L */
+          float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /*   R */
+          float_to_int (&samples[3*256], int_samples+(i*256*6)+2, 6); /*  RL */
+          float_to_int (&samples[4*256], int_samples+(i*256*6)+3, 6); /*  RR */
+          float_to_int (&samples[5*256], int_samples+(i*256*6)+5, 6); /* LFE */ /* Not working yet */
+          break;
+        default:
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: help - unsupported mode %08x\n", output_mode);
+        }
       }
-      
-      audio_buffer->num_frames = 256*2;      
     }
     
     this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
@@ -310,12 +399,82 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.dispose             = dts_dispose;
 
   this->dts_state = dts_init(0);
-  
-  if(stream->audio_out->get_capabilities(stream->audio_out) & AO_CAP_MODE_AC5)
+  this->audio_caps        = stream->audio_out->get_capabilities(stream->audio_out);
+  if(this->audio_caps & AO_CAP_MODE_AC5)
     this->bypass_mode = 1;
-  else
+  else {
     this->bypass_mode = 0;
-  
+    /* FIXME: Leave "DOLBY pro logic" downmix out for now. */
+
+    this->dts_flags_map[DTS_MONO]   = DTS_MONO;
+    this->dts_flags_map[DTS_STEREO] = DTS_STEREO;
+    this->dts_flags_map[DTS_3F]     = DTS_STEREO;
+    this->dts_flags_map[DTS_2F1R]   = DTS_STEREO;
+    this->dts_flags_map[DTS_3F1R]   = DTS_STEREO;
+    this->dts_flags_map[DTS_2F2R]   = DTS_STEREO;
+    this->dts_flags_map[DTS_3F2R]   = DTS_STEREO;
+
+    this->ao_flags_map[DTS_MONO]    = AO_CAP_MODE_MONO;
+    this->ao_flags_map[DTS_STEREO]  = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[DTS_3F]      = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[DTS_2F1R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[DTS_3F1R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[DTS_2F2R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[DTS_3F2R]    = AO_CAP_MODE_STEREO;
+
+    /* find best mode */
+    if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
+
+      this->dts_flags_map[DTS_2F2R]   = DTS_2F2R;
+      this->dts_flags_map[DTS_3F2R]   = DTS_3F2R | DTS_LFE;
+      this->ao_flags_map[DTS_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[DTS_3F2R]    = AO_CAP_MODE_5CHANNEL;
+                                                                                                                           
+    } else if (this->audio_caps & AO_CAP_MODE_5CHANNEL) {
+
+      this->dts_flags_map[DTS_2F2R]   = DTS_2F2R;
+      this->dts_flags_map[DTS_3F2R]   = DTS_3F2R;
+      this->ao_flags_map[DTS_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[DTS_3F2R]    = AO_CAP_MODE_5CHANNEL;
+
+    } else if (this->audio_caps & AO_CAP_MODE_4_1CHANNEL) {
+
+      this->dts_flags_map[DTS_2F2R]   = DTS_2F2R;
+      this->dts_flags_map[DTS_3F2R]   = DTS_2F2R | DTS_LFE;
+      this->ao_flags_map[DTS_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[DTS_3F2R]    = AO_CAP_MODE_4CHANNEL;
+
+    } else if (this->audio_caps & AO_CAP_MODE_4CHANNEL) {
+
+      this->dts_flags_map[DTS_2F2R]   = DTS_2F2R;
+      this->dts_flags_map[DTS_3F2R]   = DTS_2F2R;
+
+      this->ao_flags_map[DTS_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[DTS_3F2R]    = AO_CAP_MODE_4CHANNEL;
+
+      /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
+         defaults are ok */
+    } else if (!(this->audio_caps & AO_CAP_MODE_STEREO)) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("HELP! a mono-only audio driver?!\n"));
+
+      this->dts_flags_map[DTS_MONO]   = DTS_MONO;
+      this->dts_flags_map[DTS_STEREO] = DTS_MONO;
+      this->dts_flags_map[DTS_3F]     = DTS_MONO;
+      this->dts_flags_map[DTS_2F1R]   = DTS_MONO;
+      this->dts_flags_map[DTS_3F1R]   = DTS_MONO;
+      this->dts_flags_map[DTS_2F2R]   = DTS_MONO;
+      this->dts_flags_map[DTS_3F2R]   = DTS_MONO;
+
+      this->ao_flags_map[DTS_MONO]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[DTS_STEREO]  = AO_CAP_MODE_MONO;
+      this->ao_flags_map[DTS_3F]      = AO_CAP_MODE_MONO;
+      this->ao_flags_map[DTS_2F1R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[DTS_3F1R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[DTS_2F2R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[DTS_3F2R]    = AO_CAP_MODE_MONO;
+    }
+  }
+
   this->stream        = stream;
   this->class         = class_gen;
   this->output_open   = 0;
