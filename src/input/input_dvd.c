@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.30 2001/10/06 17:57:52 jkeil Exp $
+ * $Id: input_dvd.c,v 1.31 2001/10/08 12:52:49 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -136,6 +136,7 @@ static void closeDrive (dvd_input_plugin_t *this) {
 #ifdef __sun
 #include <sys/scsi/generic/commands.h>
 #include <sys/scsi/impl/uscsi.h>
+#include <sys/stat.h>
 
 /* SCSI mmc3 DVD Commands */
 #define GPCMD_READ_DVD_STRUCTURE        0xad
@@ -173,6 +174,9 @@ typedef union {
 } dvd_struct;
 
 
+/*
+ * Read DVD "Copyright Structure" from DVD Drive
+ */
 static int
 dvd_read_copyright(int fd, dvd_struct *s)
 {
@@ -210,6 +214,37 @@ dvd_read_copyright(int fd, dvd_struct *s)
   s->copyright.rmi = buf[5];
 
   return 0;
+}
+
+
+/* 
+ * Check the environment, if we're running under sun's
+ * vold/rmmount control.
+ */
+static void
+check_solaris_vold_device(dvd_input_plugin_t *this)
+{
+  char *volume_device;
+  char *volume_name;
+  char *volume_action;
+  char *device;
+  struct stat stb;
+
+  if ((volume_device = getenv("VOLUME_DEVICE")) != NULL &&
+      (volume_name   = getenv("VOLUME_NAME"))   != NULL &&
+      (volume_action = getenv("VOLUME_ACTION")) != NULL &&
+      strcmp(volume_action, "insert") == 0) {
+
+    device = malloc(strlen(volume_device) + strlen(volume_name) + 2);
+    if (device == NULL)
+      return;
+    sprintf(device, "%s/%s", volume_device, volume_name);
+    if (stat(device, &stb) != 0 || !S_ISCHR(stb.st_mode)) {
+      free(device);
+      return;
+    }
+    this->device = this->raw_device = device;
+  }
 }
 #endif
 
@@ -749,6 +784,9 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   this->device = config->lookup_str(config, "dvd_device", DVD);
   this->raw_device = config->lookup_str(config, "dvd_raw_device", RDVD);
+#ifdef __sun
+  check_solaris_vold_device(this);
+#endif
 
   this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t));
   this->mrls_allocated_entries = 0;
