@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.23 2004/06/13 21:28:53 miguelfreitas Exp $
+ * $Id: demux_mng.c,v 1.24 2005/01/19 00:59:40 dsalt Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -62,6 +62,7 @@ typedef struct {
 
   mng_handle         mngh;
   xine_bmiheader     bih;
+  int		     left_edge;
   uint8_t           *image;
 
   int                started;
@@ -113,12 +114,13 @@ static mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 si
 static mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 height){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
-  this->bih.biWidth = width;
+  this->bih.biWidth = (width + 7) & ~7;
   this->bih.biHeight = height;
+  this->left_edge = (this->bih.biWidth - width) / 2;
 
-  this->image = malloc(width * height * 3);
+  this->image = malloc(this->bih.biWidth * height * 3);
 
-  mng_set_canvasstyle(mngh, MNG_CANVAS_BGR8);
+  mng_set_canvasstyle(mngh, MNG_CANVAS_RGB8);
 
   return MNG_TRUE;
 }
@@ -140,7 +142,7 @@ static mng_bool mymng_set_timer(mng_handle mngh, mng_uint32 msecs){
 static mng_ptr mymng_get_canvas_line(mng_handle mngh, mng_uint32 line){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
-  return this->image + line * this->bih.biWidth * 3;
+  return this->image + (this->left_edge + line * this->bih.biWidth) * 3;
 }
 
 static mng_bool mymng_refresh(mng_handle mngh, mng_uint32 x, mng_uint32 y, mng_uint32 w, mng_uint32 h){
