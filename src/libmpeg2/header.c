@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <inttypes.h>
+#include <stdio.h>
 
 #include "mpeg2_internal.h"
 #include "attributes.h"
@@ -94,6 +95,39 @@ int header_process_sequence_header (picture_t * picture, uint8_t * buffer)
     /* this is not used by the decoder */
     picture->aspect_ratio_information = buffer[3] >> 4;
     picture->frame_rate_code = buffer[3] & 15;
+
+    switch (picture->frame_rate_code) {
+    case 1: /* 23.976 fps */
+      picture->frame_duration = 3913;
+      break;
+    case 2: /* 24 fps */
+      picture->frame_duration = 3750;
+      break;
+    case 3: /* 25 fps */
+      picture->frame_duration = 3600;
+      break;
+    case 4: /* 29.97 fps */
+      picture->frame_duration = 3003;
+      break;
+    case 5: /* 30 fps */
+      picture->frame_duration = 3000;
+      break;
+    case 6: /* 50 fps */
+      picture->frame_duration = 1800;
+      break;
+    case 7: /* 59.94 fps */
+      picture->frame_duration = 1525;
+      break;
+    case 8: /* 60 fps */
+      picture->frame_duration = 1509;
+      break;
+    default:
+      printf ("invalid/unknown frame rate code : %d \n",
+	      picture->frame_rate_code);
+      picture->frame_duration = 3000;
+    }
+    
+
     picture->bitrate = (buffer[4]<<10)|(buffer[5]<<2)|(buffer[6]>>6);
 
     if (buffer[7] & 2) {

@@ -127,6 +127,7 @@ typedef struct picture_s {
     /* this is a temporary interface, we will build a better one later. */
     int aspect_ratio_information;
     int frame_rate_code;
+    int frame_duration;
     int progressive_sequence;
     int repeat_first_field;
     int progressive_frame;

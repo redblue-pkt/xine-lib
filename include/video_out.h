@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.3 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: video_out.h,v 1.4 2001/04/20 18:01:55 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -268,56 +268,13 @@ vo_instance_t *vo_init (char *driver_name);
 
 char *vo_get_available_drivers ();
 
-/*
- * driver-specific stuff starts here
- */
-
-
-vo_driver_t *init_video_out_xv (Display *display, config_values_t *config) ;
-
-/* FIXME
-   vo_driver_t *init_video_out_mga () ;
-   vo_driver_t *init_video_out_xshm () ;
-   vo_functions_t *init_video_out_x11 () ;
-   FIXME
-*/
-
-
-#warning "FIXME"
-#ifndef VIDEOOUT_COMPILE
-static inline int vo_setup (vo_instance_t * instance, int width, int height)
-{
-  //    return instance->setup (instance, width, height);
-    return 1;
-}
-
-static inline void vo_close (vo_instance_t * instance)
-{
-    if (instance->close)
-        instance->close (instance);
-}
-
-#define VO_TOP_FIELD 1
-#define VO_BOTTOM_FIELD 2
-#define VO_BOTH_FIELDS (VO_TOP_FIELD | VO_BOTTOM_FIELD)
-#define VO_PREDICTION_FLAG 4
-
-static inline vo_frame_t * vo_get_frame (vo_instance_t * instance, int flags)
-{
-  //return instance->get_frame (instance, flags);
-    return instance->get_frame (instance, 0, 0, 0, 0, 0);
-}
-
-static inline void vo_field (vo_frame_t * frame, int flags)
-{
-    if (frame->field)
-        frame->field (frame, flags);
-}
-
-static inline void vo_draw (vo_frame_t * frame)
-{
-    frame->draw (frame);
-}
 #endif
-#warning "FIXME"
-#endif
+
+
+
+
+
+
+
+
+

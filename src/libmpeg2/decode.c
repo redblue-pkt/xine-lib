@@ -101,9 +101,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) &&
 	    (!(mpeg2dec->drop_frame))) {
-	    vo_draw ((picture->picture_coding_type == B_TYPE) ?
-		     picture->current_frame :
-		     picture->forward_reference_frame);
+	  if (picture->picture_coding_type == B_TYPE)
+	    picture->current_frame->draw (picture->current_frame);
+	  else
+	    picture->forward_reference_frame->draw (picture->forward_reference_frame);
 #ifdef ARCH_X86
 	    if (config.flags & MM_ACCEL_X86_MMX)
 		emms ();
@@ -134,19 +135,18 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
 	if (mpeg2dec->is_sequence_needed) {
 	    mpeg2dec->is_sequence_needed = 0;
-	    if (vo_setup (mpeg2dec->output, picture->coded_picture_width,
-			  picture->coded_picture_height)) {
-		fprintf (stderr, "display setup failed\n");
-		exit (1);
-	    }
+
 	    picture->forward_reference_frame =
-		vo_get_frame (mpeg2dec->output,
-			      VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
+	      mpeg2dec->output->get_frame (mpeg2dec->output,picture->coded_picture_width,
+					   picture->coded_picture_height, 
+					   picture->aspect_ratio_information, IMGFMT_YV12, 
+					   picture->frame_duration);
 	    picture->backward_reference_frame =
-		vo_get_frame (mpeg2dec->output,
-			      VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
+	      mpeg2dec->output->get_frame (mpeg2dec->output,picture->coded_picture_width,
+					   picture->coded_picture_height, 
+					   picture->aspect_ratio_information, IMGFMT_YV12, 
+					   picture->frame_duration);
 	}
-	mpeg2dec->frame_rate_code = picture->frame_rate_code;	/* FIXME */
 	break;
 
     case 0xb5:	/* extension_start_code */
@@ -167,23 +167,32 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    mpeg2dec->in_slice = 1;
 
 	    if (picture->second_field)
-		vo_field (picture->current_frame, picture->picture_structure);
-	    /*
+	      picture->current_frame->field (picture->current_frame, picture->picture_structure);
 	    else {
 		if (picture->picture_coding_type == B_TYPE)
 		    picture->current_frame =
-			vo_get_frame (mpeg2dec->output,
-				      picture->picture_structure);
+		      mpeg2dec->output->get_frame (mpeg2dec->output,picture->coded_picture_width,
+						   picture->coded_picture_height, 
+						   picture->aspect_ratio_information, IMGFMT_YV12, 
+						   picture->frame_duration);
+		/* vo_get_frame (mpeg2dec->output,
+		   picture->picture_structure); */
 		else {
 		    picture->current_frame =
+		      mpeg2dec->output->get_frame (mpeg2dec->output,picture->coded_picture_width,
+						   picture->coded_picture_height, 
+						   picture->aspect_ratio_information, IMGFMT_YV12, 
+						   picture->frame_duration);
+		    /*
 			vo_get_frame (mpeg2dec->output,
 				      (VO_PREDICTION_FLAG |
 				       picture->picture_structure));
+		    */
 		    picture->forward_reference_frame =
 			picture->backward_reference_frame;
 		    picture->backward_reference_frame = picture->current_frame;
 		}
-		}*/
+	    }
 	}
 
 	if (!(mpeg2dec->drop_frame)) {
@@ -264,7 +273,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     mpeg2_decode_data (mpeg2dec, finalizer, finalizer+4, mpeg2dec->pts);
 
     if (! (mpeg2dec->is_sequence_needed))
-	vo_draw (mpeg2dec->picture->backward_reference_frame);
+      mpeg2dec->picture->backward_reference_frame->draw (mpeg2dec->picture->backward_reference_frame);
 
     free (mpeg2dec->chunk_buffer);
     free (mpeg2dec->picture);
