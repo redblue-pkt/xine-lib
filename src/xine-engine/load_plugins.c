@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.155 2003/07/27 12:47:23 hadess Exp $
+ * $Id: load_plugins.c,v 1.156 2003/07/27 23:39:02 siggi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -97,6 +97,7 @@ static int _get_decoder_priority (xine_t *this, int default_priority,
 
   char str[80];
   int result;
+  int reset;
 
   sprintf (str, "decoder.%s_priority", id);
 
@@ -108,7 +109,14 @@ static int _get_decoder_priority (xine_t *this, int default_priority,
 				     "can be handled by more than one decoder.\n"
 				     "A priority of 0 enables the decoder's default priority.", 20,
 				     NULL, NULL /*FIXME: implement callback*/);
-
+  /* check for priority reset */
+  reset = this->config->lookup_entry(this->config,
+				     "decoder.reset_priorities")->num_value;
+  if (reset){
+    result = 0;
+    this->config->update_num(this->config, str, 0);
+  }
+  
   return result ? result : default_priority;
 }
 
@@ -962,6 +970,19 @@ void scan_plugins (xine_t *this) {
   }
 #endif
 
+  (void) this->config
+    ->register_bool(this->config,
+		    "decoder.reset_priorities",
+		    1,
+		    "if 'true', reset default decoder priorities",
+		    "This will restore all decoder priorities by\n"
+		    " setting them to 0. (= \"use default priority\")\n"
+		    "while dropping user changes, this ensures that\n"
+		    "a sane set of decoders will be used.\n"
+		    "This option is only evaluated once, next time xine is\n"
+		    "started. After that, it resets to 'false'.",
+		    20, NULL, NULL);
+
   homedir = xine_get_homedir();
   this->plugin_catalog = _new_catalog();
   load_cached_catalog (this);
@@ -1001,6 +1022,8 @@ void scan_plugins (xine_t *this) {
   load_required_plugins (this);
 
   map_decoders (this);
+
+  this->config->update_num(this->config, "decoder.reset_priorities", 0);
 }
 
 /*
