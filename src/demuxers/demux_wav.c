@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.55 2004/04/10 04:13:37 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.56 2004/05/31 11:24:01 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -132,7 +132,11 @@ static int open_wav_file(demux_wav_t *this) {
 
     if (chunk_tag == data_TAG) {
       this->data_start = this->input->get_current_pos(this->input);
-      this->data_size = chunk_size;
+      /* Get the data length from the file itself, instead of the data
+       * TAG, for broken files */
+      this->input->seek(this->input, 0, SEEK_END);
+      this->data_size = this->input->get_current_pos(this->input);
+      this->input->seek(this->input, this->data_start, SEEK_SET);
     } else {
       this->input->seek(this->input, chunk_size, SEEK_CUR);
     }
@@ -351,6 +355,7 @@ static int demux_wav_get_status (demux_plugin_t *this_gen) {
 static int demux_wav_get_stream_length (demux_plugin_t *this_gen) {
   demux_wav_t *this = (demux_wav_t *) this_gen;
 
+  printf ("(int)((int64_t) %lld * 1000 / %d) = %d\n", this->data_size ,this->wave->nAvgBytesPerSec, (int)((int64_t) this->data_size * 1000 / this->wave->nAvgBytesPerSec));
   return (int)((int64_t) this->data_size * 1000 / this->wave->nAvgBytesPerSec);
 }
 
