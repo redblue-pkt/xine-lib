@@ -30,24 +30,19 @@ struct methodlist_item_s
 };
 
 static methodlist_item_t *methodlist = 0;
-static initialized = 0;
 
 void register_deinterlace_method( deinterlace_method_t *method )
 {
-    methodlist_item_t **dest;
+    methodlist_item_t **dest = &methodlist;
+    methodlist_item_t *cur = methodlist;
 
-    if( initialized )
-        return;
-
-    if( !methodlist ) {
-        dest = &methodlist;
-    } else {
-        methodlist_item_t *cur = methodlist;
-        while( cur->next ) cur = cur->next;
+    while( cur ) {
+        if( cur->method == method ) return;
         dest = &(cur->next);
+        cur = cur->next;
     }
 
-    *dest = (methodlist_item_t *) malloc( sizeof( methodlist_item_t ) );
+    *dest = malloc( sizeof( methodlist_item_t ) );
     if( *dest ) {
         (*dest)->method = method;
         (*dest)->next = 0;
@@ -80,13 +75,26 @@ deinterlace_method_t *get_deinterlace_method( int i )
     return cur->method;
 }
 
+void register_deinterlace_plugin( const char *filename )
+{
+    void *handle = dlopen( filename, RTLD_NOW );
+
+    if( !handle ) {
+        fprintf( stderr, "deinterlace: Can't load plugin '%s': %s\n",
+                 filename, dlerror() );
+    } else {
+        deinterlace_plugin_init_t plugin_init;
+        plugin_init = (deinterlace_plugin_init_t) dlsym( handle, "deinterlace_plugin_init" );
+        if( plugin_init ) {
+            plugin_init();
+        }
+    }
+}
+
 void filter_deinterlace_methods( int accel, int fields_available )
 {
     methodlist_item_t *prev = 0;
     methodlist_item_t *cur = methodlist;
-
-    if( initialized )
-        return;
 
     while( cur ) {
         methodlist_item_t *next = cur->next;
@@ -120,6 +128,5 @@ void filter_deinterlace_methods( int accel, int fields_available )
         }
         cur = next;
     }
-    initialized = 1;
 }
 

@@ -17,18 +17,6 @@
  * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/*
- * Uses code from:
- *
- *  linux/arch/i386/kernel/setup.c
- *
- *  Copyright (C) 1995  Linus Torvalds
- *
- * Found in linux 2.4.20.
- *
- * Also helped from code in 'cpuinfo.c' found in mplayer.
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
@@ -96,10 +84,6 @@ void (*subpix_blit_vertical_packed422_scanline)( uint8_t *output, uint8_t *top,
                                                  uint8_t *bot, int subpixpos, int width );
 
 
-#define SPEEDY_START()
-
-#define SPEEDY_END()
-
 /**
  * result = (1 - alpha)B + alpha*F
  *        =  B - alpha*B + alpha*F
@@ -124,18 +108,16 @@ static inline __attribute__ ((always_inline,const)) uint8_t clip255( int x )
     }
 }
 
-#ifdef ARCH_X86
+static unsigned long CombJaggieThreshold = 73;
 
 static unsigned int comb_factor_packed422_scanline_mmx( uint8_t *top, uint8_t *mid,
                                                  uint8_t *bot, int width )
 {
+#ifdef ARCH_X86
     const mmx_t qwYMask = { 0x00ff00ff00ff00ffULL };
     const mmx_t qwOnes = { 0x0001000100010001ULL };
     mmx_t qwThreshold;
     unsigned int temp1, temp2;
-    unsigned long CombJaggieThreshold = 73;
-
-    SPEEDY_START();
 
     width /= 4;
 
@@ -206,20 +188,17 @@ static unsigned int comb_factor_packed422_scanline_mmx( uint8_t *top, uint8_t *m
 
     emms();
 
-    SPEEDY_END();
-
     return temp1;
-}
-
+#else
+    return 0;
 #endif
+}
 
 static unsigned long BitShift = 6;
 
 static unsigned int diff_factor_packed422_scanline_c( uint8_t *cur, uint8_t *old, int width )
 {
     unsigned int ret = 0;
-
-    SPEEDY_START();
 
     width /= 4;
 
@@ -233,7 +212,6 @@ static unsigned int diff_factor_packed422_scanline_c( uint8_t *cur, uint8_t *old
         cur += 8;
         old += 8;
     }
-    SPEEDY_END();
 
     return ret;
 }
@@ -241,8 +219,6 @@ static unsigned int diff_factor_packed422_scanline_c( uint8_t *cur, uint8_t *old
 static unsigned int diff_factor_packed422_scanline_test_c( uint8_t *cur, uint8_t *old, int width )
 {
     unsigned int ret = 0;
-
-    SPEEDY_START();
 
     width /= 16;
 
@@ -256,19 +232,16 @@ static unsigned int diff_factor_packed422_scanline_test_c( uint8_t *cur, uint8_t
         cur += (8*4);
         old += (8*4);
     }
-    SPEEDY_END();
 
     return ret;
 }
 
-#ifdef ARCH_X86
 
 static unsigned int diff_factor_packed422_scanline_mmx( uint8_t *cur, uint8_t *old, int width )
 {
+#ifdef ARCH_X86
     const mmx_t qwYMask = { 0x00ff00ff00ff00ffULL };
     unsigned int temp1, temp2;
-
-    SPEEDY_START();
 
     width /= 4;
 
@@ -299,9 +272,10 @@ static unsigned int diff_factor_packed422_scanline_mmx( uint8_t *cur, uint8_t *o
 
     emms();
 
-    SPEEDY_END();
-
     return temp1;
+#else
+    return 0;
+#endif
 }
 
 #define ABS(a) (((a) < 0)?-(a):(a))
@@ -309,13 +283,12 @@ static unsigned int diff_factor_packed422_scanline_mmx( uint8_t *cur, uint8_t *o
 static void diff_packed422_block8x8_mmx( pulldown_metrics_t *m, uint8_t *old,
                                   uint8_t *new, int os, int ns )
 {
+#ifdef ARCH_X86
     const mmx_t ymask = { 0x00ff00ff00ff00ffULL };
     short out[ 24 ]; /* Output buffer for the partial metrics from the mmx code. */
     uint8_t *outdata = (uint8_t *) out;
     uint8_t *oldp, *newp;
     int i;
-
-    SPEEDY_START();
 
     pxor_r2r( mm4, mm4 );  // 4 even difference sums.
     pxor_r2r( mm5, mm5 );  // 4 odd difference sums.
@@ -449,11 +422,8 @@ static void diff_packed422_block8x8_mmx( pulldown_metrics_t *m, uint8_t *old,
     }
 
     emms();
-
-    SPEEDY_END();
-}
-
 #endif
+}
 
 static void diff_packed422_block8x8_c( pulldown_metrics_t *m, uint8_t *old,
                                 uint8_t *new, int os, int ns )
@@ -461,7 +431,6 @@ static void diff_packed422_block8x8_c( pulldown_metrics_t *m, uint8_t *old,
     int x, y, e=0, o=0, s=0, p=0, t=0;
     uint8_t *oldp, *newp;
 
-    SPEEDY_START();
     m->s = m->p = m->t = 0;
     for (x = 8; x; x--) {
         oldp = old; old += 2;
@@ -483,12 +452,10 @@ static void diff_packed422_block8x8_c( pulldown_metrics_t *m, uint8_t *old,
     m->e = e;
     m->o = o;
     m->d = e+o;
-    SPEEDY_END();
 }
 
 static void packed444_to_packed422_scanline_c( uint8_t *output, uint8_t *input, int width )
 {
-    SPEEDY_START();
     width /= 2;
     while( width-- ) {
         output[ 0 ] = input[ 0 ];
@@ -498,12 +465,10 @@ static void packed444_to_packed422_scanline_c( uint8_t *output, uint8_t *input, 
         output += 4;
         input += 6;
     }
-    SPEEDY_END();
 }
 
 static void packed422_to_packed444_scanline_c( uint8_t *output, uint8_t *input, int width )
 {
-    SPEEDY_START();
     width /= 2;
     while( width-- ) {
         output[ 0 ] = input[ 0 ];
@@ -515,7 +480,6 @@ static void packed422_to_packed444_scanline_c( uint8_t *output, uint8_t *input, 
         output += 6;
         input += 4;
     }
-    SPEEDY_END();
 }
 
 /**
@@ -527,7 +491,6 @@ void packed422_to_packed444_rec601_scanline( uint8_t *dest, uint8_t *src, int wi
 {
     int i;
 
-    SPEEDY_START();
     /* Process two input pixels at a time.  Input is [Y'][Cb][Y'][Cr]. */
     for( i = 0; i < width / 2; i++ ) {
         dest[ (i*6) + 0 ] = src[ (i*4) + 0 ];
@@ -556,17 +519,13 @@ void packed422_to_packed444_rec601_scanline( uint8_t *dest, uint8_t *src, int wi
             dest[ (i*6) + 5 ] = src[ (i*4) + 3 ];
         }
     }
-    SPEEDY_END();
 }
-
-#ifdef ARCH_X86
 
 static void kill_chroma_packed422_inplace_scanline_mmx( uint8_t *data, int width )
 {
+#ifdef ARCH_X86
     const mmx_t ymask = { 0x00ff00ff00ff00ffULL };
     const mmx_t nullchroma = { 0x8000800080008000ULL };
-
-    SPEEDY_START();
 
     movq_m2r( ymask, mm7 );
     movq_m2r( nullchroma, mm6 );
@@ -583,19 +542,15 @@ static void kill_chroma_packed422_inplace_scanline_mmx( uint8_t *data, int width
         data[ 1 ] = 128;
         data += 2;
     }
-    SPEEDY_END();
-}
-
 #endif
+}
 
 static void kill_chroma_packed422_inplace_scanline_c( uint8_t *data, int width )
 {
-    SPEEDY_START();
     while( width-- ) {
         data[ 1 ] = 128;
         data += 2;
     }
-    SPEEDY_END();
 }
 
 /*
@@ -607,7 +562,6 @@ static void testing_packed422_inplace_scanline_c( uint8_t *data, int width, int 
     volatile static int topbottom = 0;
     static uint8_t scanbuffer[2048];
 
-    SPEEDY_START();
     if( scanline <= 1 ) {
         topbottom = scanline;
         memcpy(scanbuffer, data, width*2);
@@ -620,7 +574,6 @@ static void testing_packed422_inplace_scanline_c( uint8_t *data, int width, int 
     } else {
         memcpy(scanbuffer, data, width*2);
     }
-    SPEEDY_END();
 }
 */
 
@@ -629,7 +582,6 @@ static void mirror_packed422_inplace_scanline_c( uint8_t *data, int width )
     int x, tmp1, tmp2;
     int width2 = width*2;
 
-    SPEEDY_START();
     for( x = 0; x < width; x += 2 ) {
         tmp1 = data[ x   ];
         tmp2 = data[ x+1 ];
@@ -638,19 +590,16 @@ static void mirror_packed422_inplace_scanline_c( uint8_t *data, int width )
         data[ width2 - x     ] = tmp1;
         data[ width2 - x + 1 ] = tmp2;
     }
-    SPEEDY_END();
 }
 
 static void halfmirror_packed422_inplace_scanline_c( uint8_t *data, int width )
 {
     int x;
 
-    SPEEDY_START();
     for( x = 0; x < width; x += 2 ) {
         data[ width + x     ] = data[ width - x     ];
         data[ width + x + 1 ] = data[ width - x + 1 ];
     }
-    SPEEDY_END();
 }
 
 static void filter_luma_121_packed422_inplace_scanline_c( uint8_t *data, int width )
@@ -658,7 +607,6 @@ static void filter_luma_121_packed422_inplace_scanline_c( uint8_t *data, int wid
     int r1 = 0;
     int r2 = 0;
 
-    SPEEDY_START();
     data += 2;
     width -= 1;
     while( width-- ) {
@@ -668,7 +616,6 @@ static void filter_luma_121_packed422_inplace_scanline_c( uint8_t *data, int wid
         *(data - 2) = s2 >> 2;
         data += 2;
     }
-    SPEEDY_END();
 }
 
 static void filter_luma_14641_packed422_inplace_scanline_c( uint8_t *data, int width )
@@ -678,7 +625,6 @@ static void filter_luma_14641_packed422_inplace_scanline_c( uint8_t *data, int w
     int r3 = 0;
     int r4 = 0;
 
-    SPEEDY_START();
     width -= 4;
     data += 4;
     while( width-- ) {
@@ -690,7 +636,6 @@ static void filter_luma_14641_packed422_inplace_scanline_c( uint8_t *data, int w
         *(data - 4) = s4 >> 4;
         data += 2;
     }
-    SPEEDY_END();
 }
 
 static void interpolate_packed422_scanline_c( uint8_t *output, uint8_t *top,
@@ -698,24 +643,17 @@ static void interpolate_packed422_scanline_c( uint8_t *output, uint8_t *top,
 {
     int i;
 
-    SPEEDY_START();
-
     for( i = width*2; i; --i ) {
         *output++ = ((*top++) + (*bot++)) >> 1;
     }
-
-    SPEEDY_END();
 }
-
-#ifdef ARCH_X86
 
 static void interpolate_packed422_scanline_mmx( uint8_t *output, uint8_t *top,
                                          uint8_t *bot, int width )
 {
+#ifdef ARCH_X86
     const mmx_t shiftmask = { 0xfefffefffefffeffULL };  /* To avoid shifting chroma to luma. */
     int i;
-
-    SPEEDY_START();
 
     for( i = width/16; i; --i ) {
         movq_m2r( *bot, mm0 );
@@ -777,16 +715,14 @@ static void interpolate_packed422_scanline_mmx( uint8_t *output, uint8_t *top,
     }
 
     emms();
-
-    SPEEDY_END();
+#endif
 }
 
 static void interpolate_packed422_scanline_mmxext( uint8_t *output, uint8_t *top,
                                             uint8_t *bot, int width )
 {
+#ifdef ARCH_X86
     int i;
-
-    SPEEDY_START();
 
     for( i = width/16; i; --i ) {
         movq_m2r( *bot, mm0 );
@@ -829,34 +765,24 @@ static void interpolate_packed422_scanline_mmxext( uint8_t *output, uint8_t *top
 
     sfence();
     emms();
-
-    SPEEDY_END();
-}
-
 #endif
+}
 
 static void blit_colour_packed422_scanline_c( uint8_t *output, int width, int y, int cb, int cr )
 {
     uint32_t colour = cr << 24 | y << 16 | cb << 8 | y;
     uint32_t *o = (uint32_t *) output;
 
-    SPEEDY_START();
-
     for( width /= 2; width; --width ) {
         *o++ = colour;
     }
-
-    SPEEDY_END();
 }
-
-#ifdef ARCH_X86
 
 static void blit_colour_packed422_scanline_mmx( uint8_t *output, int width, int y, int cb, int cr )
 {
+#ifdef ARCH_X86
     uint32_t colour = cr << 24 | y << 16 | cb << 8 | y;
     int i;
-
-    SPEEDY_START();
 
     movd_m2r( colour, mm1 );
     movd_m2r( colour, mm2 );
@@ -889,16 +815,14 @@ static void blit_colour_packed422_scanline_mmx( uint8_t *output, int width, int 
     }
 
     emms();
-
-    SPEEDY_END();
+#endif
 }
 
 static void blit_colour_packed422_scanline_mmxext( uint8_t *output, int width, int y, int cb, int cr )
 {
+#ifdef ARCH_X86
     uint32_t colour = cr << 24 | y << 16 | cb << 8 | y;
     int i;
-
-    SPEEDY_START();
 
     movd_m2r( colour, mm1 );
     movd_m2r( colour, mm2 );
@@ -932,18 +856,13 @@ static void blit_colour_packed422_scanline_mmxext( uint8_t *output, int width, i
 
     sfence();
     emms();
-
-    SPEEDY_END();
-}
-
 #endif
+}
 
 static void blit_colour_packed4444_scanline_c( uint8_t *output, int width,
                                         int alpha, int luma, int cb, int cr )
 {
     int j;
-
-    SPEEDY_START();
 
     for( j = 0; j < width; j++ ) {
         *output++ = alpha;
@@ -951,20 +870,15 @@ static void blit_colour_packed4444_scanline_c( uint8_t *output, int width,
         *output++ = cb;
         *output++ = cr;
     }
-
-    SPEEDY_END();
 }
-
-#ifdef ARCH_X86
 
 static void blit_colour_packed4444_scanline_mmx( uint8_t *output, int width,
                                           int alpha, int luma,
                                           int cb, int cr )
 {
+#ifdef ARCH_X86
     uint32_t colour = (cr << 24) | (cb << 16) | (luma << 8) | alpha;
     int i;
-
-    SPEEDY_START();
 
     movd_m2r( colour, mm1 );
     movd_m2r( colour, mm2 );
@@ -992,18 +906,16 @@ static void blit_colour_packed4444_scanline_mmx( uint8_t *output, int width,
     }
 
     emms();
-
-    SPEEDY_END();
+#endif
 }
 
 void blit_colour_packed4444_scanline_mmxext( uint8_t *output, int width,
                                              int alpha, int luma,
                                              int cb, int cr )
 {
+#ifdef ARCH_X86
     uint32_t colour = (cr << 24) | (cb << 16) | (luma << 8) | alpha;
     int i;
-
-    SPEEDY_START();
 
     movd_m2r( colour, mm1 );
     movd_m2r( colour, mm2 );
@@ -1032,25 +944,28 @@ void blit_colour_packed4444_scanline_mmxext( uint8_t *output, int width,
 
     sfence();
     emms();
-
-    SPEEDY_END();
+#endif
 }
 
-#endif
+
+#define speedy_memcpy_c xine_fast_memcpy
+#define speedy_memcpy_mmx xine_fast_memcpy
+#define speedy_memcpy_mmxext xine_fast_memcpy
+
 
 static void blit_packed422_scanline_c( uint8_t *dest, const uint8_t *src, int width )
 {
-    xine_fast_memcpy( dest, src, width*2 );
+    speedy_memcpy_c( dest, src, width*2 );
 }
 
 static void blit_packed422_scanline_mmx( uint8_t *dest, const uint8_t *src, int width )
 {
-    xine_fast_memcpy( dest, src, width*2 );
+    speedy_memcpy_mmx( dest, src, width*2 );
 }
 
 static void blit_packed422_scanline_mmxext( uint8_t *dest, const uint8_t *src, int width )
 {
-    xine_fast_memcpy( dest, src, width*2 );
+    speedy_memcpy_mmxext( dest, src, width*2 );
 }
 
 static void composite_packed4444_alpha_to_packed422_scanline_c( uint8_t *output, uint8_t *input,
@@ -1058,7 +973,6 @@ static void composite_packed4444_alpha_to_packed422_scanline_c( uint8_t *output,
 {
     int i;
 
-    SPEEDY_START();
     for( i = 0; i < width; i++ ) {
         int af = foreground[ 0 ];
 
@@ -1110,16 +1024,14 @@ static void composite_packed4444_alpha_to_packed422_scanline_c( uint8_t *output,
         output += 2;
         input += 2;
     }
-    SPEEDY_END();
 }
-
-#ifdef ARCH_X86
 
 static void composite_packed4444_alpha_to_packed422_scanline_mmxext( uint8_t *output,
                                                               uint8_t *input,
                                                               uint8_t *foreground,
                                                               int width, int alpha )
 {
+#ifdef ARCH_X86
     const mmx_t alpha2 = { 0x0000FFFF00000000ULL };
     const mmx_t alpha1 = { 0xFFFF0000FFFFFFFFULL };
     const mmx_t round  = { 0x0080008000800080ULL };
@@ -1135,7 +1047,6 @@ static void composite_packed4444_alpha_to_packed422_scanline_mmxext( uint8_t *ou
         return;
     }
 
-    SPEEDY_START();
     READ_PREFETCH_2048( input );
     READ_PREFETCH_2048( foreground );
 
@@ -1214,17 +1125,13 @@ static void composite_packed4444_alpha_to_packed422_scanline_mmxext( uint8_t *ou
     }
     sfence();
     emms();
-
-    SPEEDY_END();
-}
-
 #endif
+}
 
 static void composite_packed4444_to_packed422_scanline_c( uint8_t *output, uint8_t *input,
                                                    uint8_t *foreground, int width )
 {
     int i;
-    SPEEDY_START();
     for( i = 0; i < width; i++ ) {
         int a = foreground[ 0 ];
 
@@ -1258,20 +1165,18 @@ static void composite_packed4444_to_packed422_scanline_c( uint8_t *output, uint8
         output += 2;
         input += 2;
     }
-    SPEEDY_END();
 }
 
-#ifdef ARCH_X86
 
 static void composite_packed4444_to_packed422_scanline_mmxext( uint8_t *output, uint8_t *input,
                                                         uint8_t *foreground, int width )
 {
+#ifdef ARCH_X86
     const mmx_t alpha2 = { 0x0000FFFF00000000ULL };
     const mmx_t alpha1 = { 0xFFFF0000FFFFFFFFULL };
     const mmx_t round  = { 0x0080008000800080ULL };
     int i;
 
-    SPEEDY_START();
     READ_PREFETCH_2048( input );
     READ_PREFETCH_2048( foreground );
 
@@ -1355,11 +1260,8 @@ static void composite_packed4444_to_packed422_scanline_mmxext( uint8_t *output, 
     }
     sfence();
     emms();
-
-    SPEEDY_END();
-}
-
 #endif
+}
 
 /**
  * um... just need some scrap paper...
@@ -1378,8 +1280,6 @@ static void composite_alphamask_to_packed4444_scanline_c( uint8_t *output,
 {
     uint32_t opaque = (textcr << 24) | (textcb << 16) | (textluma << 8) | 0xff;
     int i;
-
-    SPEEDY_START();
 
     for( i = 0; i < width; i++ ) {
         int a = *mask;
@@ -1400,10 +1300,7 @@ static void composite_alphamask_to_packed4444_scanline_c( uint8_t *output,
         output += 4;
         input += 4;
     }
-    SPEEDY_END();
 }
-
-#ifdef ARCH_X86
 
 static void composite_alphamask_to_packed4444_scanline_mmxext( uint8_t *output,
                                                         uint8_t *input,
@@ -1412,12 +1309,11 @@ static void composite_alphamask_to_packed4444_scanline_mmxext( uint8_t *output,
                                                         int textluma, int textcb,
                                                         int textcr )
 {
+#ifdef ARCH_X86
     uint32_t opaque = (textcr << 24) | (textcb << 16) | (textluma << 8) | 0xff;
     const mmx_t round = { 0x0080008000800080ULL };
     const mmx_t fullalpha = { 0x00000000000000ffULL };
     mmx_t colour;
-
-    SPEEDY_START();
 
     colour.w[ 0 ] = 0x00;
     colour.w[ 1 ] = textluma;
@@ -1502,10 +1398,8 @@ static void composite_alphamask_to_packed4444_scanline_mmxext( uint8_t *output,
     }
     sfence();
     emms();
-    SPEEDY_END();
-}
-
 #endif
+}
 
 static void composite_alphamask_alpha_to_packed4444_scanline_c( uint8_t *output,
                                                        uint8_t *input,
@@ -1515,8 +1409,6 @@ static void composite_alphamask_alpha_to_packed4444_scanline_c( uint8_t *output,
 {
     uint32_t opaque = (textcr << 24) | (textcb << 16) | (textluma << 8) | 0xff;
     int i;
-
-    SPEEDY_START();
 
     for( i = 0; i < width; i++ ) {
         int af = *mask;
@@ -1541,14 +1433,10 @@ static void composite_alphamask_alpha_to_packed4444_scanline_c( uint8_t *output,
         output += 4;
         input += 4;
     }
-
-    SPEEDY_END();
 }
 
 static void premultiply_packed4444_scanline_c( uint8_t *output, uint8_t *input, int width )
 {
-    SPEEDY_START();
-
     while( width-- ) {
         unsigned int cur_a = input[ 0 ];
 
@@ -1560,19 +1448,14 @@ static void premultiply_packed4444_scanline_c( uint8_t *output, uint8_t *input, 
         output += 4;
         input += 4;
     }
-
-    SPEEDY_END();
 }
-
-#ifdef ARCH_X86
 
 static void premultiply_packed4444_scanline_mmxext( uint8_t *output, uint8_t *input, int width )
 {
+#ifdef ARCH_X86
     const mmx_t round  = { 0x0080008000800080ULL };
     const mmx_t alpha  = { 0x00000000000000ffULL };
     const mmx_t noalp  = { 0xffffffffffff0000ULL };
-
-    SPEEDY_START();
 
     pxor_r2r( mm7, mm7 );
     while( width-- ) {
@@ -1603,11 +1486,8 @@ static void premultiply_packed4444_scanline_mmxext( uint8_t *output, uint8_t *in
     }
     sfence();
     emms();
-
-    SPEEDY_END();
-}
-
 #endif
+}
 
 static void blend_packed422_scanline_c( uint8_t *output, uint8_t *src1,
                                  uint8_t *src2, int width, int pos )
@@ -1626,11 +1506,10 @@ static void blend_packed422_scanline_c( uint8_t *output, uint8_t *src1,
     }
 }
 
-#ifdef ARCH_X86
-
 static void blend_packed422_scanline_mmxext( uint8_t *output, uint8_t *src1,
                                       uint8_t *src2, int width, int pos )
 {
+#ifdef ARCH_X86
     if( pos <= 0 ) {
         blit_packed422_scanline( output, src1, width );
     } else if( pos >= 256 ) {
@@ -1640,8 +1519,6 @@ static void blend_packed422_scanline_mmxext( uint8_t *output, uint8_t *src1,
     } else {
         const mmx_t all256 = { 0x0100010001000100ULL };
         const mmx_t round  = { 0x0080008000800080ULL };
-
-        SPEEDY_START();
 
         movd_m2r( pos, mm0 );
         pshufw_r2r( mm0, mm0, 0 );
@@ -1670,17 +1547,16 @@ static void blend_packed422_scanline_mmxext( uint8_t *output, uint8_t *src1,
         }
         sfence();
         emms();
-
-        SPEEDY_END();
     }
+#endif
 }
 
 static void quarter_blit_vertical_packed422_scanline_mmxext( uint8_t *output, uint8_t *one,
                                                       uint8_t *three, int width )
 {
+#ifdef ARCH_X86
     int i;
 
-    SPEEDY_START();
     for( i = width/16; i; --i ) {
         movq_m2r( *one, mm0 );
         movq_m2r( *three, mm1 );
@@ -1729,23 +1605,19 @@ static void quarter_blit_vertical_packed422_scanline_mmxext( uint8_t *output, ui
 
     sfence();
     emms();
-
-    SPEEDY_END();
+#endif
 }
 
-#endif
 
 static void quarter_blit_vertical_packed422_scanline_c( uint8_t *output, uint8_t *one,
                                                  uint8_t *three, int width )
 {
-    SPEEDY_START();
     width *= 2;
     while( width-- ) {
         *output++ = (*one + *three + *three + *three + 2) / 4;
         one++;
         three++;
     }
-    SPEEDY_END();
 }
 
 static void subpix_blit_vertical_packed422_scanline_c( uint8_t *output, uint8_t *top,
@@ -1760,13 +1632,10 @@ static void subpix_blit_vertical_packed422_scanline_c( uint8_t *output, uint8_t 
     } else {
         int x;
 
-        SPEEDY_START();
-
         width *= 2;
         for( x = 0; x < width; x++ ) {
             output[ x ] = ( ( top[ x ] * subpixpos ) + ( bot[ x ] * ( 0xffff - subpixpos ) ) ) >> 16;
         }
-        SPEEDY_END();
     }
 }
 
@@ -1783,12 +1652,355 @@ static void a8_subpix_blit_scanline_c( uint8_t *output, uint8_t *input,
     }
 }
 
+/**
+ * These are from lavtools in mjpegtools:
+ *
+ * colorspace.c:  Routines to perform colorspace conversions.
+ *
+ *  Copyright (C) 2001 Matthew J. Marjanovic <maddog@mir.com>
+ *
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+
+#define FP_BITS 18
+
+/* precomputed tables */
+
+static int Y_R[256];
+static int Y_G[256];
+static int Y_B[256];
+static int Cb_R[256];
+static int Cb_G[256];
+static int Cb_B[256];
+static int Cr_R[256];
+static int Cr_G[256];
+static int Cr_B[256];
+static int conv_RY_inited = 0;
+
+static int RGB_Y[256];
+static int R_Cr[256];
+static int G_Cb[256];
+static int G_Cr[256];
+static int B_Cb[256];
+static int conv_YR_inited = 0;
+
+static int myround(double n)
+{
+  if (n >= 0) 
+    return (int)(n + 0.5);
+  else
+    return (int)(n - 0.5);
+}
+
+static void init_RGB_to_YCbCr_tables(void)
+{
+  int i;
+
+  /*
+   * Q_Z[i] =   (coefficient * i
+   *             * (Q-excursion) / (Z-excursion) * fixed-point-factor)
+   *
+   * to one of each, add the following:
+   *             + (fixed-point-factor / 2)         --- for rounding later
+   *             + (Q-offset * fixed-point-factor)  --- to add the offset
+   *             
+   */
+  for (i = 0; i < 256; i++) {
+    Y_R[i] = myround(0.299 * (double)i * 219.0 / 255.0 * (double)(1<<FP_BITS));
+    Y_G[i] = myround(0.587 * (double)i * 219.0 / 255.0 * (double)(1<<FP_BITS));
+    Y_B[i] = myround((0.114 * (double)i * 219.0 / 255.0 * (double)(1<<FP_BITS))
+                     + (double)(1<<(FP_BITS-1)) + (16.0 * (double)(1<<FP_BITS)));
+
+    Cb_R[i] = myround(-0.168736 * (double)i * 224.0 / 255.0 * (double)(1<<FP_BITS));
+    Cb_G[i] = myround(-0.331264 * (double)i * 224.0 / 255.0 * (double)(1<<FP_BITS));
+    Cb_B[i] = myround((0.500 * (double)i * 224.0 / 255.0 * (double)(1<<FP_BITS))
+                       + (double)(1<<(FP_BITS-1)) + (128.0 * (double)(1<<FP_BITS)));
+
+    Cr_R[i] = myround(0.500 * (double)i * 224.0 / 255.0 * (double)(1<<FP_BITS));
+    Cr_G[i] = myround(-0.418688 * (double)i * 224.0 / 255.0 * (double)(1<<FP_BITS));
+    Cr_B[i] = myround((-0.081312 * (double)i * 224.0 / 255.0 * (double)(1<<FP_BITS))
+                      + (double)(1<<(FP_BITS-1)) + (128.0 * (double)(1<<FP_BITS)));
+  }
+  conv_RY_inited = 1;
+}
+
+static void init_YCbCr_to_RGB_tables(void)
+{
+  int i;
+
+  /*
+   * Q_Z[i] =   (coefficient * i
+   *             * (Q-excursion) / (Z-excursion) * fixed-point-factor)
+   *
+   * to one of each, add the following:
+   *             + (fixed-point-factor / 2)         --- for rounding later
+   *             + (Q-offset * fixed-point-factor)  --- to add the offset
+   *             
+   */
+
+  /* clip Y values under 16 */
+  for (i = 0; i < 16; i++) {
+    RGB_Y[i] = myround((1.0 * (double)(16) * 255.0 / 219.0 * (double)(1<<FP_BITS))
+                       + (double)(1<<(FP_BITS-1)));
+  }
+  for (i = 16; i < 236; i++) {
+    RGB_Y[i] = myround((1.0 * (double)(i - 16) * 255.0 / 219.0 * (double)(1<<FP_BITS))
+                       + (double)(1<<(FP_BITS-1)));
+  }
+  /* clip Y values above 235 */
+  for (i = 236; i < 256; i++) {
+    RGB_Y[i] = myround((1.0 * (double)(235) * 255.0 / 219.0 * (double)(1<<FP_BITS))
+                       + (double)(1<<(FP_BITS-1)));
+  }
+    
+  /* clip Cb/Cr values below 16 */
+  for (i = 0; i < 16; i++) {
+    R_Cr[i] = myround(1.402 * (double)(-112) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    G_Cr[i] = myround(-0.714136 * (double)(-112) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    G_Cb[i] = myround(-0.344136 * (double)(-112) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    B_Cb[i] = myround(1.772 * (double)(-112) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+  }
+  for (i = 16; i < 241; i++) {
+    R_Cr[i] = myround(1.402 * (double)(i - 128) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    G_Cr[i] = myround(-0.714136 * (double)(i - 128) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    G_Cb[i] = myround(-0.344136 * (double)(i - 128) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    B_Cb[i] = myround(1.772 * (double)(i - 128) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+  }
+  /* clip Cb/Cr values above 240 */
+  for (i = 241; i < 256; i++) {
+    R_Cr[i] = myround(1.402 * (double)(112) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    G_Cr[i] = myround(-0.714136 * (double)(112) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    G_Cb[i] = myround(-0.344136 * (double)(i - 128) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+    B_Cb[i] = myround(1.772 * (double)(112) * 255.0 / 224.0 * (double)(1<<FP_BITS));
+  }
+  conv_YR_inited = 1;
+}
+
+void rgb24_to_packed444_rec601_scanline( uint8_t *output, uint8_t *input, int width )
+{
+    if( !conv_RY_inited ) init_RGB_to_YCbCr_tables();
+
+    while( width-- ) {
+        int r = input[ 0 ];
+        int g = input[ 1 ];
+        int b = input[ 2 ];
+
+        output[ 0 ] = (Y_R[ r ] + Y_G[ g ] + Y_B[ b ]) >> FP_BITS;
+        output[ 1 ] = (Cb_R[ r ] + Cb_G[ g ] + Cb_B[ b ]) >> FP_BITS;
+        output[ 2 ] = (Cr_R[ r ] + Cr_G[ g ] + Cr_B[ b ]) >> FP_BITS;
+        output += 3;
+        input += 3;
+    }
+}
+
+void rgba32_to_packed4444_rec601_scanline( uint8_t *output, uint8_t *input, int width )
+{
+    if( !conv_RY_inited ) init_RGB_to_YCbCr_tables();
+
+    while( width-- ) {
+        int r = input[ 0 ];
+        int g = input[ 1 ];
+        int b = input[ 2 ];
+        int a = input[ 3 ];
+        
+        output[ 0 ] = a;
+        output[ 1 ] = (Y_R[ r ] + Y_G[ g ] + Y_B[ b ]) >> FP_BITS;
+        output[ 2 ] = (Cb_R[ r ] + Cb_G[ g ] + Cb_B[ b ]) >> FP_BITS;
+        output[ 3 ] = (Cr_R[ r ] + Cr_G[ g ] + Cr_B[ b ]) >> FP_BITS;
+        output += 4;
+        input += 4;
+    }
+}
+
+void packed444_to_rgb24_rec601_scanline( uint8_t *output, uint8_t *input, int width )
+{
+    if( !conv_YR_inited ) init_YCbCr_to_RGB_tables();
+
+    while( width-- ) {
+        int luma = input[ 0 ];
+        int cb = input[ 1 ];
+        int cr = input[ 2 ];
+
+        output[ 0 ] = clip255( (RGB_Y[ luma ] + R_Cr[ cr ]) >> FP_BITS );
+        output[ 1 ] = clip255( (RGB_Y[ luma ] + G_Cb[ cb ] + G_Cr[cr]) >> FP_BITS );
+        output[ 2 ] = clip255( (RGB_Y[ luma ] + B_Cb[ cb ]) >> FP_BITS );
+
+        output += 3;
+        input += 3;
+    }
+}
+
+/**
+ * 601 numbers:
+ *
+ * Y' =  0.299*R' + 0.587*G' + 0.114*B' (in  0.0 to  1.0)
+ * Cb = -0.169*R' - 0.331*G' + 0.500*B' (in -0.5 to +0.5)
+ * Cr =  0.500*R' - 0.419*G' - 0.081*B' (in -0.5 to +0.5)
+ *
+ * Inverse:
+ *      Y         Cb        Cr
+ * R  1.0000   -0.0009    1.4017
+ * G  1.0000   -0.3437   -0.7142
+ * B  1.0000    1.7722    0.0010
+ *
+ * S170M numbers:
+ * Y'   =  0.299*R' + 0.587*G' + 0.114*B' (in  0.0 to 1.0)
+ * B-Y' = -0.299*R' - 0.587*G' + 0.886*B'
+ * R-Y' =  0.701*R' - 0.587*G' - 0.114*B'
+ */
+void packed444_to_rgb24_rec601_reference_scanline( uint8_t *output, uint8_t *input, int width )
+{
+    while( width-- ) {
+        double yp = (((double) input[ 0 ]) - 16.0) / 255.0;
+        double cb = (((double) input[ 1 ]) - 128.0) / 255.0;
+        double cr = (((double) input[ 2 ]) - 128.0) / 255.0;
+        double r, g, b;
+
+        r = yp - (0.0009*cb) + (1.4017*cr);
+        g = yp - (0.3437*cb) - (0.7142*cr);
+        b = yp + (1.7722*cb) + (0.0010*cr);
+
+        if( r > 1.0 ) r = 1.0; else if( r < 0.0 ) r = 0.0;
+        if( g > 1.0 ) g = 1.0; else if( g < 0.0 ) g = 0.0;
+        if( b > 1.0 ) b = 1.0; else if( b < 0.0 ) b = 0.0;
+
+        output[ 0 ] = (int) ((r * 255.0) + 0.5);
+        output[ 1 ] = (int) ((g * 255.0) + 0.5);
+        output[ 2 ] = (int) ((b * 255.0) + 0.5);
+
+        output += 3;
+        input += 3;
+    }
+}
+
+void packed444_to_nonpremultiplied_packed4444_scanline( uint8_t *output, 
+                                                        uint8_t *input,
+                                                        int width, int alpha )
+{
+    int i;
+
+    for( i = 0; i < width; i++ ) {
+        output[ 0 ] = alpha & 0xff;
+        output[ 1 ] = input[ 0 ] & 0xff;
+        output[ 2 ] = input[ 1 ] & 0xff;
+        output[ 3 ] = input[ 2 ] & 0xff;
+
+        output += 4;
+        input += 3;
+    }
+
+}
+
+void aspect_adjust_packed4444_scanline( uint8_t *output,
+                                        uint8_t *input, 
+                                        int width,
+                                        double pixel_aspect )
+{
+    double i;
+    int prev_i = 0;
+    int w = 0;
+
+    pixel_aspect = 1.0 / pixel_aspect;
+
+    for( i = 0.0; i < width; i += pixel_aspect ) {
+        uint8_t *curin = input + ((int) i)*4;
+
+        if( !prev_i ) {
+            output[ 0 ] = curin[ 0 ];
+            output[ 1 ] = curin[ 1 ];
+            output[ 2 ] = curin[ 2 ];
+            output[ 3 ] = curin[ 3 ];
+        } else {
+            int avg_a = 0;
+            int avg_y = 0;
+            int avg_cb = 0;
+            int avg_cr = 0;
+            int pos = prev_i * 4;
+            int c = 0;
+            int j;
+
+            for( j = prev_i; j <= (int) i; j++ ) {
+                avg_a += input[ pos++ ];
+                avg_y += input[ pos++ ];
+                avg_cb += input[ pos++ ];
+                avg_cr += input[ pos++ ];
+                c++;
+            }
+            output[ 0 ] = avg_a / c;
+            output[ 1 ] = avg_y / c;
+            output[ 2 ] = avg_cb / c;
+            output[ 3 ] = avg_cr / c;
+        }
+        output += 4;
+        prev_i = (int) i;
+        w++;
+    }
+}
+
+/**
+ * Sub-pixel data bar renderer.  There are 128 bars.
+ */
+void composite_bars_packed4444_scanline( uint8_t *output,
+                                         uint8_t *background, int width,
+                                         int a, int luma, int cb, int cr,
+                                         int percentage )
+{
+    /**
+     * This is the size of both the bar and the spacing in between in subpixel
+     * units out of 256.  Yes, as it so happens, that puts it equal to 'width'.
+     */
+    int barsize = ( width * 256 ) / 256;
+    int i;
+
+    /* We only need to composite the bar on the pixels that matter. */
+    for( i = 0; i < percentage; i++ ) {
+        int barstart = i * barsize * 2;
+        int barend = barstart + barsize;
+        int pixstart = barstart / 256;
+        int pixend = barend / 256;
+        int j;
+
+        for( j = pixstart; j <= pixend; j++ ) {
+            uint8_t *curout = output + (j*4);
+            uint8_t *curin = background + (j*4);
+            int curstart = j * 256;
+            int curend = curstart + 256;
+            int alpha;
+
+            if( barstart > curstart ) curstart = barstart;
+            if( barend < curend ) curend = barend;
+            if( curend - curstart < 256 ) {
+                alpha = ( ( curend - curstart ) * a ) / 256;
+            } else {
+                alpha = a;
+            }
+
+            curout[ 0 ] = curin[ 0 ] + multiply_alpha( alpha - curin[ 0 ], alpha );
+            curout[ 1 ] = curin[ 1 ] + multiply_alpha( luma - curin[ 1 ], alpha );
+            curout[ 2 ] = curin[ 2 ] + multiply_alpha( cb - curin[ 2 ], alpha );
+            curout[ 3 ] = curin[ 3 ] + multiply_alpha( cr - curin[ 3 ], alpha );
+        }
+    }
+}
+
 
 static uint32_t speedy_accel;
 
-void setup_speedy_calls( int verbose )
+void setup_speedy_calls( uint32_t accel, int verbose )
 {
-    speedy_accel = xine_mm_accel();
+    speedy_accel = accel;
 
     interpolate_packed422_scanline = interpolate_packed422_scanline_c;
     blit_colour_packed422_scanline = blit_colour_packed422_scanline_c;
@@ -1807,7 +2019,7 @@ void setup_speedy_calls( int verbose )
     kill_chroma_packed422_inplace_scanline = kill_chroma_packed422_inplace_scanline_c;
     mirror_packed422_inplace_scanline = mirror_packed422_inplace_scanline_c;
     halfmirror_packed422_inplace_scanline = halfmirror_packed422_inplace_scanline_c;
-    speedy_memcpy = xine_fast_memcpy;
+    speedy_memcpy = speedy_memcpy_c;
     diff_packed422_block8x8 = diff_packed422_block8x8_c;
     a8_subpix_blit_scanline = a8_subpix_blit_scanline_c;
     quarter_blit_vertical_packed422_scanline = quarter_blit_vertical_packed422_scanline_c;
@@ -1832,6 +2044,7 @@ void setup_speedy_calls( int verbose )
         comb_factor_packed422_scanline = comb_factor_packed422_scanline_mmx;
         diff_packed422_block8x8 = diff_packed422_block8x8_mmx;
         quarter_blit_vertical_packed422_scanline = quarter_blit_vertical_packed422_scanline_mmxext;
+        speedy_memcpy = speedy_memcpy_mmxext;
     } else if( speedy_accel & MM_ACCEL_X86_MMX ) {
         if( verbose ) {
             fprintf( stderr, "speedycode: Using MMX optimized functions.\n" );
@@ -1844,16 +2057,16 @@ void setup_speedy_calls( int verbose )
         comb_factor_packed422_scanline = comb_factor_packed422_scanline_mmx;
         kill_chroma_packed422_inplace_scanline = kill_chroma_packed422_inplace_scanline_mmx;
         diff_packed422_block8x8 = diff_packed422_block8x8_mmx;
-    } else
-#endif
-    {
+        speedy_memcpy = speedy_memcpy_mmx;
+    } else {
         if( verbose ) {
             fprintf( stderr, "speedycode: No MMX or MMXEXT support detected, using C fallbacks.\n" );
         }
     }
+#endif
 }
 
-int speedy_get_accel( void )
+uint32_t speedy_get_accel( void )
 {
     return speedy_accel;
 }

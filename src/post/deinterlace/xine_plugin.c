@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.3 2003/06/15 15:25:35 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.4 2003/06/16 18:28:11 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -231,7 +231,7 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
   class->dispose         = deinterlace_class_dispose;
 
 
-  setup_speedy_calls(0);
+  setup_speedy_calls(xine_mm_accel(),0);
 
   linear_plugin_init();
   linearblend_plugin_init();
