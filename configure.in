@@ -540,12 +540,11 @@ misc/Makefile
 misc/xine-config
 m4/Makefile
 doc/Makefile
-doc/FAQ
 doc/man/Makefile
 doc/man/en/Makefile
-doc/man/en/xine.1
+doc/man/en/xine-lib.3
 doc/man/fr/Makefile
-doc/man/fr/xine.1
+doc/man/fr/xine-lib.3
 misc/xine-lib.spec
 misc/SlackBuild
 misc/build_rpms.sh],

@@ -1,6 +1,6 @@
 .\" -*-Nroff-*-
 .\""
-.TH XINE 1x 2000-11-19 "Le projet xine"
+.TH XINE 3x 2000-11-19 "Le projet xine"
 .SH NOM
 xine \- Lecteur audio/vidéo MPEG2/MPEG1.
 .SH SYNOPSIS

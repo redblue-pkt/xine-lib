@@ -4,7 +4,7 @@ SUBDIRS = man
 EXTRA_DIST = $(docs_DOCS) MRL.txt dataflow.dia xine-lib-API.cfg
 
 docdir = $(prefix)/share/doc/xine
-docs_DOCS = README README.syncfb README.freebsd FAQ bug_report_form
+docs_DOCS = README-lib.solaris FAQ-lib FAQ-lib_es
 
 
 install-data-local:

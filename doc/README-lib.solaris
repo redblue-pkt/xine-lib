@@ -1,0 +1,14 @@
+building xine-lib on solaris
+----------------------------
+
+* Compile xine with GNU make (gmake, /opt/sfw/bin/gmake)
+
+* If you get a "fatal: relocation error" ... "symbol __divdi3:
+  referenced symbol not found" error when running xine, re-configure 
+  xine-lib with gcc as the linker command (env LD=gcc configure ...)
+
+* To get VIS accelerated MPEG decoding and colour space conversion 
+  on Solaris SPARC, download and install Sun's mediaLib 2.0, available
+  here:
+
+    http://www.sun.com/sparc/vis/mediaLib.html

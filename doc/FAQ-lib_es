@@ -1,0 +1,74 @@
+
+   ----------------------
+        Xine-lib FAQ
+   ----------------------
+
+
+¿ cómo construyo esta bestia ?
+------------------------------
+
+Primero asegúrese de usar un gcc estable, una bajada oficial del gcc para 
+compilar.
+Puede probar versiones del gcc remendadas (patched), pero estas no son 
+soportadas y probablemente no funcionen (por ejemplo el pgcc conocido para 
+hacer libmpeg falla).
+
+./autogen.sh  <--- solo necesario si comprobara Xine sin CVS
+./configure
+make
+make install
+
+
+¿ Como puedo proporcionar los  CFLAGS adicionales para la recompilación ?
+-------------------------------------------------------------------------
+
+Puede poner el GLOBAL_CFLAGS variable y configurarlo de nuevo.
+
+Éste puede ser usado par especificaciones adicionales que incluyan paths o 
+paths de bibliotecas ( library paths) al recompilar. Ejemplo:
+
+export GLOBAL_CFLAGS="-I/usr/include -L/home/guenter/xine_libs"
+
+
+¿ Hay binarios disponibles para mi K7 ? ¿ Puedo construirlos ?
+--------------------------------------------------------------
+
+Por el momento nosotros no proporcionamos binarios para el K7, no hay soporte 
+para K7 desde la última versión estable del gcc (2.92.2 cuando se escribió esto).
+Use en cambio los binarios para el 686. ¡Estos binarios funcionan bien y usan 
+3DNow!
+
+Si tiene un gcc más nuevo puede intentar compilar par el K7 obteniendo "más" 
+soporte (especialmente mejor cobertura de instrucciones). Si la configuración 
+del script falla al detectar su procesador/gcc correctamente pruebe configurar 
+XINE_BUILD explícitamente para validar la descripción del string para su 
+configuración por ej.:.
+
+export XINE_BUILD=k7-pc-linux-gnu
+rm -f config.cache
+./cvscompile.sh
+make
+make install
+
+
+
+¡ Creo que encontré un error (bug) !
+------------------------------------
+
+Xine esta en una fase temprana de desarrollo. Por favor sea paciente.
+Si tiene tiempo, por favor contáctenos y envíenos un reporte completo sobre 
+el error.
+Por favor incluya completamente toda la salida de la consola de Xine y algunos 
+detalles sobre su hardware y sistema operativo.
+
+Puede localizarnos vía correo electrónico:
+
+  Lista de correo de Xine (Xine Mailing List) <xine-user@lists.sourceforge.net>
+
+
+***********************************************************************
+***  Nota del traductor: he tratado de mantener la fidelidad del    ***
+***  artículo original en inglés lo mayor posible, por comentarios  *** 
+***  sobre la traducción, comunicarse con Alfredo J. Delaiti        ***
+***  alfredodelaiti@netscape.net                        ***
+***********************************************************************
