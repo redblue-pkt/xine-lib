@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.3 2003/01/14 21:00:42 miguelfreitas Exp $
+ * $Id: oscope.c,v 1.4 2003/02/14 04:17:23 tmmm Exp $
  *
  */
 
@@ -33,6 +33,7 @@
 #define FPS 20
 
 #define NUMSAMPLES 512
+#define MAXCHANNELS  6
 
 #define OSCOPE_WIDTH  NUMSAMPLES
 #define OSCOPE_HEIGHT 256
@@ -47,7 +48,7 @@ struct post_plugin_oscope_s {
   xine_stream_t     *stream;
 
   int data_idx;
-  short data [2][NUMSAMPLES];
+  short data [MAXCHANNELS][NUMSAMPLES];
   audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
  
   int bits;
@@ -71,7 +72,7 @@ struct post_plugin_oscope_s {
 
 static void draw_oscope_dots(post_plugin_oscope_t *this) {
 
-  int i;
+  int i, c;
   int pixel_ptr;
   int c_delta;
 
@@ -113,34 +114,12 @@ static void draw_oscope_dots(post_plugin_oscope_t *this) {
       this->v_current -= c_delta;
   }
 
-  if (this->channels == 2) {
+  for( c = 0; c < this->channels; c++){
 
-    /* draw stereo scopes */
-
-    /* left channel is at top */
+    /* draw channel scope */
     for (i = 0; i < NUMSAMPLES; i++) {
       pixel_ptr = 
-        ((OSCOPE_HEIGHT / 4) + (this->data[0][i] >> 9)) * OSCOPE_WIDTH + i;
-      this->yuv.y[pixel_ptr] = 0xFF;
-      this->yuv.u[pixel_ptr] = this->u_current;
-      this->yuv.v[pixel_ptr] = this->v_current;
-    }
-
-    /* right channel is at bottom */
-    for (i = 0; i < NUMSAMPLES; i++) {
-      pixel_ptr = 
-        ((OSCOPE_HEIGHT / 4 * 3) + (this->data[1][i] >> 9)) * OSCOPE_WIDTH + i;
-      this->yuv.y[pixel_ptr] = 0xFF;
-      this->yuv.u[pixel_ptr] = this->u_current;
-      this->yuv.v[pixel_ptr] = this->v_current;
-    }
-
-  } else {
-
-    /* draw mono scope */
-    for (i = 0; i < NUMSAMPLES; i++) {
-      pixel_ptr = 
-        ((OSCOPE_HEIGHT / 2) + (this->data[0][i] >> 8)) * OSCOPE_WIDTH + i;
+        ((OSCOPE_HEIGHT * (c * 2 + 1) / (2*this->channels) ) + (this->data[c][i] >> 9)) * OSCOPE_WIDTH + i;
       this->yuv.y[pixel_ptr] = 0xFF;
       this->yuv.u[pixel_ptr] = this->u_current;
       this->yuv.v[pixel_ptr] = this->v_current;
@@ -152,15 +131,9 @@ static void draw_oscope_dots(post_plugin_oscope_t *this) {
   for (i = 0, pixel_ptr = 0; i < OSCOPE_WIDTH; i++, pixel_ptr++)
       this->yuv.y[pixel_ptr] = 0xFF;
 
-  /* middle line, only on stereo data */
-  if (this->channels == 2) {
-    for (i = 0, pixel_ptr = (OSCOPE_HEIGHT/2) * OSCOPE_WIDTH;
-         i < OSCOPE_WIDTH; i++, pixel_ptr++)
-        this->yuv.y[pixel_ptr] = 0xFF;
-  }
-
-  /* bottom line */
-  for (i = 0, pixel_ptr = (OSCOPE_HEIGHT - 1) * OSCOPE_WIDTH;
+  /* lines under each channel */
+  for ( c = 0; c < this->channels; c++)
+    for (i = 0, pixel_ptr = (OSCOPE_HEIGHT * (c+1) / this->channels - 1) * OSCOPE_WIDTH;
        i < OSCOPE_WIDTH; i++, pixel_ptr++)
       this->yuv.y[pixel_ptr] = 0xFF;
 
@@ -268,7 +241,7 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
   int8_t *data8;
   int samples_used = 0;
   uint64_t vpts = buf->vpts;
-  int i, j;
+  int i, c;
   
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
@@ -289,8 +262,6 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
   
   this->sample_counter += buf->num_frames;
   
-  j = (this->channels >= 2) ? 1 : 0;
-
   do {
     
     if( this->bits == 8 ) {
@@ -299,19 +270,17 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
   
       /* scale 8 bit data to 16 bits and convert to signed as well */
       for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
-           i++, this->data_idx++, data8 += this->channels ) {
-        this->data[0][this->data_idx] = ((int16_t)data8[0] << 8) - 0x8000;
-        this->data[1][this->data_idx] = ((int16_t)data8[j] << 8) - 0x8000;
-      }
+           i++, this->data_idx++, data8 += this->channels )
+        for( c = 0; c < this->channels; c++)
+          this->data[c][this->data_idx] = ((int16_t)data8[c] << 8) - 0x8000;
     } else {
       data = buf->mem;
       data += samples_used * this->channels;
   
       for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
-           i++, this->data_idx++, data += this->channels ) {
-        this->data[0][this->data_idx] = data[0];
-        this->data[1][this->data_idx] = data[j];
-      }
+           i++, this->data_idx++, data += this->channels )
+        for( c = 0; c < this->channels; c++)
+          this->data[c][this->data_idx] = data[c];
     }
   
     if( this->sample_counter >= this->samples_per_frame &&
@@ -425,7 +394,7 @@ static post_plugin_t *oscope_open_plugin(post_class_t *class_gen, int inputs,
 
 static char *oscope_get_identifier(post_class_t *class_gen)
 {
-  return "Oscillicope";
+  return "Oscilliscope";
 }
 
 static char *oscope_get_description(post_class_t *class_gen)
