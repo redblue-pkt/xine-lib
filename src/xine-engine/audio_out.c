@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.128 2003/05/25 21:34:59 tmattern Exp $
+ * $Id: audio_out.c,v 1.129 2003/06/02 16:52:20 mroi Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -222,7 +222,7 @@ typedef struct {
   double          resample_sync_factor; /* correct buffer length by this factor
                                          * to sync audio hardware to (dxr3) clock */
   int             resample_conf;
-  int             force_rate;           /* force audio output rate to this value if non-zero */
+  uint32_t        force_rate;           /* force audio output rate to this value if non-zero */
   int             do_resample;
   int             gap_tolerance;
   audio_fifo_t   *free_fifo;
@@ -358,6 +358,8 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
   return buf;
 }
 
+/* This function is currently not needed */
+#if 0
 static int fifo_num_buffers (audio_fifo_t *fifo) {
 
   int ret;
@@ -368,6 +370,7 @@ static int fifo_num_buffers (audio_fifo_t *fifo) {
 
   return ret;
 }
+#endif
 
 static void fifo_wait_empty (audio_fifo_t *fifo) {
 
@@ -416,13 +419,9 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
   if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-#ifndef _MSC_VER
-    printf ("audio_out: inserting %d 0-frames to fill a gap of %lld pts\n",
+
+    printf ("audio_out: inserting %d 0-frames to fill a gap of %" PRId64 " pts\n",
 	    num_frames, pts_len);
-#else
-  printf ("audio_out: inserting %d 0-frames to fill a gap of %I64d pts\n",
-	  num_frames, pts_len);
-#endif /* _MSC_VER */
 
   if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
@@ -760,6 +759,8 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
   resample_sync_t *info = &this->resample_sync_info;
   int64_t avg_gap = 0;
   double factor;
+  double diff;
+  double duration;
   int i;
 
   if (abs(gap) > AO_MAX_GAP) {
@@ -790,12 +791,9 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
   if (abs(avg_gap) > RESAMPLE_REDUCE_GAP_THRESHOLD && !info->reduce_gap) {
     info->reduce_gap = 1;
     this->resample_sync_factor = (avg_gap < 0) ? 0.995 : 1.005;
+
 #ifdef LOG_RESAMPLE_SYNC
-#ifndef _MSC_VER
-    printf("audio_out: sample rate adjusted to reduce gap: gap=%lld\n", avg_gap);
-#else
-    printf("audio_out: sample rate adjusted to reduce gap: gap=%I64d\n", avg_gap);
-#endif /* _MSC_VER */
+    printf("audio_out: sample rate adjusted to reduce gap: gap=%" PRId64 "\n", avg_gap);
 #endif
     return 0;
 
@@ -832,16 +830,15 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
        * this during calculation */
       num_frames = (this->do_resample) ? (buf->num_frames * this->frame_rate_factor)
         : buf->num_frames;
-      printf("audio_out: gap=%5lld;  gap_diff=%5lld;  frame_diff=%3.0f;  drift_factor=%f\n",
+      printf("audio_out: gap=%5" PRId64 ";  gap_diff=%5" PRId64 ";  frame_diff=%3.0f;  drift_factor=%f\n",
              avg_gap, gap_diff, num_frames * info->window * info->last_factor,
              this->resample_sync_factor);
 #endif
       /* we want to add factor * num_frames to each buffer */
-#ifdef _MSC_VER
-      factor = (int64_t)gap_diff / (int64_t)info->window_duration + info->last_factor;
-#else
-      factor = (double)gap_diff / (double)info->window_duration + info->last_factor;
-#endif /* _MSC_VER */
+      diff = gap_diff;
+      duration = (int64_t)info->window_duration + (int64_t)info->last_factor;
+      factor = diff / duration;
+
       info->last_factor = factor;
       this->resample_sync_factor = 1.0 + factor;
 
@@ -984,13 +981,8 @@ static void *ao_loop (void *this_gen) {
     hw_vpts = cur_time;
   
 #ifdef LOG
-#ifndef _MSC_VER
-    printf ("audio_out: current delay is %lld, current time is %lld\n",
+    printf ("audio_out: current delay is %" PRId64 ", current time is %" PRId64 "\n",
 	      delay, cur_time);
-#else
-    printf ("audio_out: current delay is %I64d, current time is %I64d\n",
-	      delay, cur_time);
-#endif /* _MSC_VER */
 #endif
     /* External A52 decoder delay correction */
     if ((this->output.mode==AO_CAP_MODE_A52) || (this->output.mode==AO_CAP_MODE_AC5)) 
@@ -1004,13 +996,8 @@ static void *ao_loop (void *this_gen) {
      */
     gap = in_buf->vpts - hw_vpts;
 #ifdef LOG
-#ifndef _MSC_VER
-    printf ("audio_out: hw_vpts : %lld   buffer_vpts : %lld   gap : %lld\n",
+    printf ("audio_out: hw_vpts : %" PRId64 " buffer_vpts : %" PRId64 " gap : %" PRId64 "\n",
 	    hw_vpts, in_buf->vpts, gap);
-#else
-    printf ("audio_out: hw_vpts : %I64d   buffer_vpts : %I64d   gap : %I64d\n",
-	    hw_vpts, in_buf->vpts, gap);
-#endif /* _MSC_VER */
 #endif
 
     if (this->resample_sync_method) {
@@ -1038,13 +1025,8 @@ static void *ao_loop (void *this_gen) {
       fifo_append (this->free_fifo, in_buf);
 
 #ifdef LOG
-#ifndef _MSC_VER
-      printf ("audio_out: audio package (vpts = %lld, gap = %lld) dropped\n", 
+      printf ("audio_out: audio package (vpts = %" PRId64 ", gap = %" PRId64 ") dropped\n", 
 	      in_buf->vpts, gap);
-#else
-      printf ("audio_out: audio package (vpts = %I64d, gap = %I64d) dropped\n", 
-	      in_buf->vpts, gap);
-#endif /* _MSC_VER */
 #endif
       in_buf = NULL;
 
@@ -1281,7 +1263,7 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
   this->frames_per_kpts   = (this->output.rate * 1024) / 90000;
   this->audio_step        = ((int64_t)90000 * (int64_t)32768) / (int64_t)this->input.rate;
 #ifdef LOG
-  printf ("audio_out : audio_step %lld pts per 32768 frames\n", this->audio_step);
+  printf ("audio_out : audio_step %" PRId64 " pts per 32768 frames\n", this->audio_step);
 #endif
 
   return this->output.rate;
@@ -1381,13 +1363,8 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   buf->extra_info->vpts = buf->vpts;
          
 #ifdef LOG
-#ifndef _MSC_VER
-  printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld, flushmode=%d\n",
+  printf ("audio_out: ao_put_buffer, pts=%" PRId64 ", vpts=%" PRId64 ", flushmode=%d\n",
 	  pts, buf->vpts, this->discard_buffers);
-#else
-  printf ("audio_out: ao_put_buffer, pts=%I64d, vpts=%I64d, flushmode=%d\n",
-	  pts, buf->vpts, this->discard_buffers);
-#endif /* _MSC_VER */
 #endif
  
   if (!this->discard_buffers) 
