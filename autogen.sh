@@ -139,9 +139,9 @@ run_aclocal () {
   echo $_echo_n " + Running aclocal: $_echo_c"
 
   if test x"$aclocal_1_6x" = x"yes"; then
-    aclocal-1.6 $aclocalinclude -I m4
+    aclocal-1.6 -I m4
   else
-    aclocal $aclocalinclude -I m4
+    aclocal -I m4
   fi
   echo "done." 
 }
