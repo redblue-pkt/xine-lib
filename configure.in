@@ -350,7 +350,7 @@ AC_ARG_WITH(xv-path,[  --with-xv-path=path    Where $xv_lib is installed],
             xv_path="$withval", xv_path="/usr/X11R6/lib")
 
 AC_CHECK_LIB(Xv, XvShmCreateImage, 
-             [ AC_MSG_CHECKING(for $xv_lib location)w
+             [ AC_MSG_CHECKING(for $xv_lib location)
                if test -f "$xv_path/$xv_lib"; then
                  AC_MSG_RESULT(found in $xv_path)
                  XV_LIB="-lXv"
