@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.96 2002/06/20 00:21:52 siggi Exp $
+ * $Id: demux_avi.c,v 1.97 2002/06/23 18:35:41 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1345,7 +1345,7 @@ static int demux_avi_start (demux_plugin_t *this_gen,
 
   if( this->status == DEMUX_OK )
   {
-    xine_demux_control_newpts(this->xine, video_pts, 0);
+    xine_demux_control_newpts(this->xine, video_pts, BUF_FLAG_SEEK);
   }
 
   if( !this->thread_running && (this->status == DEMUX_OK) ) {
