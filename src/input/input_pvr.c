@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.26 2003/06/29 21:56:17 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.27 2003/07/02 18:20:55 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -714,6 +714,12 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
     if( this->rec_fd == -1 )
       return 1;
 
+    if(speed != XINE_SPEED_PAUSE) {
+      /* cannot run faster than the writing thread */
+      while( this->play_blk >= this->rec_blk-1 )
+        pthread_cond_wait (&this->has_valid_data, &this->lock);
+    }
+
     if( this->play_fd == -1 || 
         ((this->play_blk - this->page_block[this->play_page]) >= BLOCKS_PER_PAGE) ||
         (this->rec_page > this->play_page && this->play_blk >= this->page_block[this->play_page+1]) ) {
@@ -764,10 +770,6 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
     }
     
     if(speed != XINE_SPEED_PAUSE) {
-      
-      /* cannot run faster than the writing thread */
-      while( this->play_blk >= this->rec_blk-1 )
-        pthread_cond_wait (&this->has_valid_data, &this->lock);
 
       pos = (off_t)(this->play_blk - this->page_block[this->play_page]) * PVR_BLOCK_SIZE;
       if( lseek (this->play_fd, pos, SEEK_SET) != pos ) {
@@ -1222,8 +1224,10 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   pthread_mutex_lock(&this->lock);
   
   if( this->pvr_playing )
-    if( !pvr_play_file(this, fifo, buf->content, speed) )
+    if( !pvr_play_file(this, fifo, buf->content, speed) ) {
+      pthread_mutex_unlock(&this->lock);
       return NULL;
+    }
   
   if( todo == PVR_BLOCK_SIZE && speed != XINE_SPEED_PAUSE &&
       this->pvr_playing ) {
