@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.76 2003/04/09 22:21:29 guenter Exp $
+ * $Id: video_out_dxr3.c,v 1.77 2003/05/06 21:07:38 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -341,7 +341,12 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   
   /* init aspect */
   dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, ASPECT_FULL);
-    
+  
+  /* init brightness/contrast/saturation */
+  dxr3_set_property(&this->vo_driver, VO_PROP_BRIGHTNESS, 500);
+  dxr3_set_property(&this->vo_driver, VO_PROP_CONTRAST  , 500);
+  dxr3_set_property(&this->vo_driver, VO_PROP_SATURATION, 500);
+  
   /* overlay or tvout? */
   confnum = config->register_enum(config, "dxr3.videoout_mode", 0, videoout_modes,
     _("Dxr3: videoout mode (tv or overlay)"), NULL, 0, NULL, NULL);
