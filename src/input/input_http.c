@@ -657,7 +657,6 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
     this->nbc = NULL;
   }
 
-  free (this->mrl);
   free (this);
 }
 
