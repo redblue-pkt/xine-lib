@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.8 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_yuv_frames.c,v 1.9 2003/10/31 22:56:21 tmattern Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -91,7 +91,7 @@ static int switch_buf(demux_yuv_frames_t *this , buf_element_t *buf){
       result = 1;	/* 1, we still should read audio */
       break;
     case BUF_AUDIO_RAWPCM:
-      if (!this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+      if (!xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO))
         xine_demux_control_newpts(this->stream, buf->pts, 0);
       this->audio_fifo->put(this->audio_fifo, buf);
       break;
@@ -108,7 +108,7 @@ static int demux_yuv_frames_send_chunk (demux_plugin_t *this_gen){
   buf_element_t      *buf;
 
   do {
-    if ( this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+    if ( xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO) )
       buf = this->input->read_block (this->input, this->video_fifo, 0);
     else
       buf = this->input->read_block (this->input, this->audio_fifo, 0);

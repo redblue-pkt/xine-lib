@@ -29,7 +29,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.33 2003/10/23 05:18:59 tmmm Exp $
+ * $Id: demux_vqa.c,v 1.34 2003/10/31 22:56:21 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -255,17 +255,19 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
-    (this->wave.nChannels) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = bih->biWidth;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = bih->biHeight;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->wave.nChannels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->wave.nSamplesPerSec;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->wave.wBitsPerSample;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
+                       (this->wave.nChannels) ? 1 : 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+                       bih->biWidth);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+                       bih->biHeight);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+                       this->wave.nChannels);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+                       this->wave.nSamplesPerSec);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+                       this->wave.wBitsPerSample);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.23 2003/10/28 20:12:54 jstembridge Exp $
+ * $Id: demux_realaudio.c,v 1.24 2003/10/31 22:56:21 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -275,14 +275,14 @@ static void demux_ra_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->wave.nChannels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->wave.nSamplesPerSec;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->wave.wBitsPerSample;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+                       this->wave.nChannels);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+                       this->wave.nSamplesPerSec);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+                       this->wave.wBitsPerSample);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.43 2003/10/24 02:57:58 tmmm Exp $
+ * $Id: demux_roq.c,v 1.44 2003/10/31 22:56:21 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -306,16 +306,18 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
-    (this->wave.nChannels) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->bih.biWidth;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->wave.nChannels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    RoQ_AUDIO_SAMPLE_RATE;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
+                       (this->wave.nChannels) ? 1 : 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+                       this->bih.biWidth);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+                       this->bih.biHeight);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+                       this->wave.nChannels);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+                       RoQ_AUDIO_SAMPLE_RATE);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 16);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

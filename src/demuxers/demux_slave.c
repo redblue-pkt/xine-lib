@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.5 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_slave.c,v 1.6 2003/10/31 22:56:21 tmattern Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -283,8 +283,8 @@ static void demux_slave_send_headers (demux_plugin_t *this_gen) {
 
   this->status = DEMUX_OK;
 
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   this->last_vpts = 0;
   this->send_newpts = 1;

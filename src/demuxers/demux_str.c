@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.15 2003/08/25 21:51:39 f1rmb Exp $
+ * $Id: demux_str.c,v 1.16 2003/10/31 22:56:21 tmattern Exp $
  */
 
 /*
@@ -444,9 +444,9 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
   xine_demux_control_start(this->stream);
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_SEEKABLE] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_SEEKABLE, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
 
   for (channel = 0; channel < STR_MAX_CHANNELS; channel++) {
     if (this->channel_type[channel] & CDXA_TYPE_VIDEO) {
@@ -454,12 +454,12 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
 	/* FIXME: until I figure out how to comfortably let the user
 	 * pick a video channel, just pick a single video channel */
 	video_channel = this->default_video_channel = channel;
-	this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+	xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
 
-	this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
-	  this->bih[channel].biWidth;
-	this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] =
-	  this->bih[channel].biHeight;
+	xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+	                     this->bih[channel].biWidth);
+	xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+	                     this->bih[channel].biHeight);
 
 	/* send init info to video decoder */
 	buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -474,14 +474,14 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
     }
 
     if (this->channel_type[channel] & CDXA_TYPE_AUDIO) {
-      this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
       audio_info = this->audio_info[channel];
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-	(audio_info & 0x01) ? 2 : 1;
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-	(audio_info & 0x04) ? 18900 : 37800;
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+	                   (audio_info & 0x01) ? 2 : 1);
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+	                   (audio_info & 0x04) ? 18900 : 37800);
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 16);
 
       /* send init info to the audio decoder */
       if (this->audio_fifo) {

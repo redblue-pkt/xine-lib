@@ -25,7 +25,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.32 2003/08/25 21:51:39 f1rmb Exp $
+ * $Id: demux_voc.c,v 1.33 2003/10/31 22:56:21 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -202,14 +202,14 @@ static void demux_voc_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->audio_channels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->audio_sample_rate;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->audio_bits;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+                       this->audio_channels);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+                       this->audio_sample_rate);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+                       this->audio_bits);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
