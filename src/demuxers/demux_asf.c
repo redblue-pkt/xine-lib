@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.123 2003/06/13 23:53:11 tmattern Exp $
+ * $Id: demux_asf.c,v 1.124 2003/07/16 00:13:55 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -56,7 +56,7 @@
 
 #define DEFRAG_BUFSIZE    65536
 
-#define WRAP_THRESHOLD       5*90000
+#define WRAP_THRESHOLD       20*90000
 
 #define PTS_AUDIO 0
 #define PTS_VIDEO 1
