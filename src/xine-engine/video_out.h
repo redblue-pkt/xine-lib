@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.71 2002/11/22 18:06:11 mroi Exp $
+ * $Id: video_out.h,v 1.72 2002/12/01 15:11:47 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -42,6 +42,8 @@ extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include "xine.h"
 
 #include <inttypes.h>
 #include <pthread.h>
