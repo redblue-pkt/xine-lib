@@ -37,9 +37,9 @@ if HAVE_AA
 aa_module = xineplug_vo_out_aa.la
 endif
 
-#if HAVE_FB
-#fb_module = xineplug_vo_out_fb.la
-#endif
+if HAVE_FB
+fb_module = xineplug_vo_out_fb.la
+endif
 
 #if HAVE_DIRECTFB
 #directfb_module = xineplug_vo_out_directfb.la
@@ -58,7 +58,8 @@ endif
 
 #lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module)  \
 #                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module) $(vidix_module)
-lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module) $(pgx64_module) $(vidix_module) \
+lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module) $(pgx64_module) \
+	$(vidix_module) $(fb_module) \
 	xineplug_vo_out_none.la
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
@@ -91,10 +92,10 @@ xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
 xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS)
 xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-#	alphablend.c video_out_fb.c
-#xineplug_vo_out_fb_la_LIBADD = $(XINE_LIB)
-#xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
+	alphablend.c video_out_fb.c
+xineplug_vo_out_fb_la_LIBADD = $(XINE_LIB)
+xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
 #xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.19 2002/12/06 01:33:01 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.20 2002/12/08 23:35:46 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -27,6 +27,9 @@
  *
  * ideas from ppmtofb - Display P?M graphics on framebuffer devices
  *            by Geert Uytterhoeven and Chris Lawrence
+ *
+ * note: you must use this driver with aaxine. xine-ui won't work because of
+ *       the visual type (but this can be changed, see below)
  *
  * TODO: VT switching (configurable)
  */
@@ -91,9 +94,7 @@ typedef struct fb_frame_s {
 
 typedef struct fb_driver_s {
 
-  vo_driver_t       vo_driver;
-
-  config_values_t   *config;
+  vo_driver_t        vo_driver;
 
   int                fd;
   int                mem_size;
@@ -115,6 +116,12 @@ typedef struct fb_driver_s {
   int                fb_linelength;
 
 } fb_driver_t;
+
+typedef struct {
+  video_driver_class_t driver_class;
+
+  config_values_t     *config;
+} fb_class_t;
 
 
 /*
@@ -217,6 +224,15 @@ static void fb_compute_rgb_size (fb_driver_t *this, fb_frame_t *frame) {
 
   vo_scale_compute_output_size( &frame->sc );
   
+  /* avoid problems in yuv2rgb */
+  if (frame->sc.output_height < ((frame->sc.delivered_height + 15) >> 4))
+    frame->sc.output_height = ((frame->sc.delivered_height + 15) >> 4);
+  if (frame->sc.output_width < 8)
+    frame->sc.output_width = 8;
+  if (frame->sc.output_width & 1) /* yuv2rgb_mlib needs an even YUV2 width */
+    frame->sc.output_width++;
+
+
 #ifdef LOG
   printf("video_out_fb: frame source %d x %d => screen output %d x %d%s\n",
 	 frame->sc.delivered_width, frame->sc.delivered_height,
@@ -513,13 +529,6 @@ static void fb_get_property_min_max (vo_driver_t *this_gen,
 }
 
 
-static int is_fullscreen_size (fb_driver_t *this, int w, int h)
-{
-/*  return w == DisplayWidth(this->display, this->screen)
-      && h == DisplayHeight(this->display, this->screen); */
-    return 0;
-}
-
 static int fb_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data) {
 
@@ -527,7 +536,7 @@ static int fb_gui_data_exchange (vo_driver_t *this_gen,
 }
 
 
-static void fb_exit (vo_driver_t *this_gen) {
+static void fb_dispose (vo_driver_t *this_gen) {
 
   fb_driver_t *this = (fb_driver_t *) this_gen;
   
@@ -536,7 +545,10 @@ static void fb_exit (vo_driver_t *this_gen) {
   close(this->fd);
 }
 
-static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static vo_driver_t *fb_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+  
+  fb_class_t         *class = (fb_class_t *) class_gen;
+  config_values_t    *config = class->config;
 
   fb_driver_t        *this;
   int                mode;
@@ -559,8 +571,6 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   memset (this, 0, sizeof(fb_driver_t));
 
-  this->config		    = config;
-  
   this->vo_driver.get_capabilities     = fb_get_capabilities;
   this->vo_driver.alloc_frame          = fb_alloc_frame;
   this->vo_driver.update_frame_format  = fb_update_frame_format;
@@ -572,11 +582,11 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.set_property         = fb_set_property;
   this->vo_driver.get_property_min_max = fb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = fb_gui_data_exchange;
-  this->vo_driver.exit                 = fb_exit;
+  this->vo_driver.dispose              = fb_dispose;
   this->vo_driver.redraw_needed        = fb_redraw_needed;
 
   device_name = config->register_string (config, devkey, "",
-					 _("framebuffer device"), NULL, NULL, NULL);
+					 _("framebuffer device"), NULL, 10, NULL, NULL);
 
   if( strlen(device_name) > 3 ) {
     this->fd = open(device_name, O_RDWR);
@@ -638,14 +648,14 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   else
     this->fb_linelength = (var.xres_virtual * var.bits_per_pixel) / 8; 
     
-  vo_scale_init( &this->sc, 1.0, 0, 0 );
+  vo_scale_init( &this->sc, 0, 0, config );
   this->sc.gui_width   = var.xres;
   this->sc.gui_height  = var.yres;
   this->sc.user_ratio  = ASPECT_AUTO;
 
   this->sc.scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
 						     _("disable all video scaling (faster!)"),
-						     NULL, NULL, NULL);
+						     NULL, 10, NULL, NULL);
   
 
   /*
@@ -748,17 +758,51 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   return &this->vo_driver;
 }
 
-static vo_info_t vo_info_fb = {
-  6,
-  "fb",
-  NULL,
-  XINE_VISUAL_TYPE_FB,
-  5
-};
-
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_fb.description = _("xine video output plugin using linux framebuffer device");
-  return &vo_info_fb;
+static char* fb_get_identifier (video_driver_class_t *this_gen) {
+  return "fb";
 }
 
+static char* fb_get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using linux framebuffer device");
+}
+
+static void fb_dispose_class (video_driver_class_t *this_gen) {
+
+  fb_class_t         *this = (fb_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *fb_init_class (xine_t *xine, void *visual_gen) {
+
+  fb_class_t	       *this = (fb_class_t *) malloc (sizeof (fb_class_t));
+
+  this->driver_class.open_plugin     = fb_open_plugin;
+  this->driver_class.get_identifier  = fb_get_identifier;
+  this->driver_class.get_description = fb_get_description;
+  this->driver_class.dispose         = fb_dispose_class;
+
+  this->config          = xine->config;
+
+  return this;
+}
+
+
+static vo_info_t vo_info_fb = {
+  1,                    /* priority    */
+  XINE_VISUAL_TYPE_FB   /* visual type */
+
+/* OBS: to use it from xine-ui set the X11 visual type */
+/*  XINE_VISUAL_TYPE_X11   */
+};
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_OUT, 13, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
 
