@@ -39,7 +39,6 @@ optional
 - id3v2 (guenter)
 - syncfb video output plugin
 - vidix video output plugin
-- pgx64 video output plugin
 - fb video output plugin
 - sdl video output plugin
 - directfb video output plugin
