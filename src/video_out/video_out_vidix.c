@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.22 2003/01/31 16:26:04 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.23 2003/01/31 17:59:57 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -177,54 +177,38 @@ static void write_frame_YUV422(vidix_driver_t* this, vidix_frame_t* frame)
       dst32 += (this->dstrides.y - frame->width) / 2;
    }
 }
+#endif
 
 static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
 {   
    uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
    uint8_t* cb   = (uint8_t *)frame->vo_frame.base[1];
    uint8_t* cr   = (uint8_t *)frame->vo_frame.base[2];
-   uint8_t* dst8 = (this->vidix_mem + this->vidix_play.offset.u +
-                     this->vidix_play.offsets[this->next_frame] + 
-                     this->vidix_play.offset.u);
+   uint8_t* dst8 = (this->vidix_mem +
+                    this->vidix_play.offsets[this->next_frame] + 
+                    this->vidix_play.offset.y);
    int h, w; 
    
-   register uint32_t* tmp32;
-   register uint8_t*  rcr;
-   register uint8_t*  rcb;
-
-   rcr = cr;
-   rcb = cb;
-	
-   for(h = 0; h < (frame->height / 2); h++) {
-      tmp32 = (uint32_t *)dst8;
-      w = (frame->width / 8) * 2;
-      
-      while(w--) {
-	 register uint32_t temp;
-	 
-	 temp = (*rcb) | (*rcr << 8);
-	 rcr++;
-	 rcb++;
-	 temp |= (*rcb << 16) | (*rcr << 24);
-	 rcr++;
-	 rcb++;
-	 *tmp32 = temp;
-	 tmp32++;
-      }
-      
-      dst8 += this->dstrides.y;
-   }
-
-   dst8 = (this->vidix_mem + 
-           this->vidix_play.offsets[this->next_frame] +
-           this->vidix_play.offset.y);
    for(h = 0; h < frame->height; h++) {
       xine_fast_memcpy(dst8, y, frame->width);
-      y    += frame->width;
+      y    += frame->vo_frame.pitches[0];
+      dst8 += this->dstrides.y;
+   }
+   
+   dst8 = (this->vidix_mem + this->vidix_play.offsets[this->next_frame] +
+           this->vidix_play.offset.v);
+
+   for(h = 0; h < (frame->height / 2); h++) {
+     for(w = 0; w < frame->width; w++) {
+       dst8[2*w+0] = cb[w];
+       dst8[2*w+1] = cr[w];
+     }
+      cb += frame->vo_frame.pitches[2];
+      cr += frame->vo_frame.pitches[1];
       dst8 += this->dstrides.y;
    }
 }
-#endif
+
 static void write_frame_YUV420P3(vidix_driver_t* this, vidix_frame_t* frame)
 {   
    uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
@@ -243,6 +227,7 @@ static void write_frame_YUV420P3(vidix_driver_t* this, vidix_frame_t* frame)
 
    dst8 = (this->vidix_mem + 
            this->vidix_play.offsets[this->next_frame]);
+
    for(h = 0; h < (frame->height / 2); h++) {
       xine_fast_memcpy(dst8 + this->vidix_play.offset.v, cb,
                        frame->vo_frame.pitches[2]);
@@ -274,7 +259,7 @@ static void write_frame_YUY2(vidix_driver_t* this, vidix_frame_t* frame)
 
 static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 {
-   switch(frame->format) {   
+  switch(frame->format) {   
     case XINE_IMGFMT_YUY2:
       write_frame_YUY2(this, frame);
 /*
@@ -284,7 +269,10 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
       break;
       
     case XINE_IMGFMT_YV12:
-	 write_frame_YUV420P3(this, frame);
+      if(this->vidix_play.flags & VID_PLAY_INTERLEAVED_UV)
+	write_frame_YUV420P2(this, frame);
+      else
+        write_frame_YUV420P3(this, frame);
 /*      switch(this->yuv_format) {
        case VIDEO_PALETTE_YUV422:
 	 write_frame_YUV422(this, frame);
