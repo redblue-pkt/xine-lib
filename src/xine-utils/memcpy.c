@@ -384,14 +384,20 @@ static struct {
 };
 
 #ifdef ARCH_X86
-static unsigned long long int rdtsc()
+static unsigned long long int rdtsc(int config_flags)
 {
   unsigned long long int x;
-  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-  return x;
+
+  /* that should prevent us from trying cpuid with old cpus */
+  if( config_flags & MM_MMX ) {
+    __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
+    return x;
+  } else {
+    return times(NULL);
+  }
 }
 #else
-static unsigned long long int rdtsc()
+static unsigned long long int rdtsc(int config_flags)
 {
   /* FIXME: implement an equivalent for using optimized memcpy on other
             architectures */
@@ -472,7 +478,8 @@ void xine_probe_fast_memcpy(config_values_t *config)
 
   printf("Benchmarking memcpy methods (smaller is better):\n");
   /* make sure buffers are present on physical memory */
-  memcpy(buf1,buf2,BUFSIZE);
+  memset(buf1,0,BUFSIZE);
+  memset(buf2,0,BUFSIZE);
 
   for(i=1; memcpy_method[i].name; i++)
   {
@@ -480,13 +487,13 @@ void xine_probe_fast_memcpy(config_values_t *config)
          memcpy_method[i].cpu_require )
       continue;
 
-    t = rdtsc();
+    t = rdtsc(config_flags);
     for(j=0;j<50;j++) {
       memcpy_method[i].function(buf2,buf1,BUFSIZE);
       memcpy_method[i].function(buf1,buf2,BUFSIZE);
     }
 
-    t = rdtsc() - t;
+    t = rdtsc(config_flags) - t;
     memcpy_method[i].time = t;
 
     printf("\t%s : %lld\n",memcpy_method[i].name, t);
