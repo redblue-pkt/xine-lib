@@ -49,6 +49,7 @@
  *   OSD - this will allow for filtering/searching of epg data - useful for automatic recording :)
  * - Parse EPG info directly from TS to allow for constant updates, or read from a separate thread.  
  *   Activating EPG will currently block the calling thread, which may cause issues with recording.
+ *
  */
 
 #ifdef HAVE_CONFIG_H
