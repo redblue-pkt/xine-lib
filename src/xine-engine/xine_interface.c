@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.81 2004/04/10 17:41:44 valtri Exp $
+ * $Id: xine_interface.c,v 1.82 2004/05/07 14:38:14 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -207,7 +207,7 @@ int  xine_config_get_first_entry (xine_t *this, xine_cfg_entry_t *entry) {
   config->cur = config->first;
 
   /* do not hand out unclaimed entries */
-  while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN)
+  while (config->cur && config->cur->type == XINE_CONFIG_TYPE_UNKNOWN)
     config->cur = config->cur->next;
   result = __config_get_current_entry (this, entry);
   pthread_mutex_unlock(&config->config_lock);
@@ -234,7 +234,7 @@ int xine_config_get_next_entry (xine_t *this, xine_cfg_entry_t *entry) {
   /* do not hand out unclaimed entries */
   do {
     config->cur = config->cur->next;
-  } while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN);
+  } while (config->cur && config->cur->type == XINE_CONFIG_TYPE_UNKNOWN);
   result = __config_get_current_entry (this, entry);
   pthread_mutex_unlock(&config->config_lock);
 
@@ -254,7 +254,7 @@ int xine_config_lookup_entry (xine_t *this, const char *key,
   config->cur = config->lookup_entry (config, key);
   pthread_mutex_lock(&config->config_lock);
   /* do not hand out unclaimed entries */
-  if (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN)
+  if (config->cur && config->cur->type == XINE_CONFIG_TYPE_UNKNOWN)
     config->cur = NULL;
   result = __config_get_current_entry (this, entry);
   pthread_mutex_unlock(&config->config_lock);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.33 2003/12/09 00:02:36 f1rmb Exp $
+ * $Id: configfile.h,v 1.34 2004/05/07 14:38:14 mroi Exp $
  *
  * config file management
  *
@@ -88,17 +88,6 @@ struct cfg_entry_s {
   xine_config_cb_t callback;
   void            *callback_data;
 };
-
-/*
- * config entry data types
- */
-
-#define CONFIG_TYPE_UNKNOWN 0
-#define CONFIG_TYPE_RANGE   1
-#define CONFIG_TYPE_STRING  2
-#define CONFIG_TYPE_ENUM    3
-#define CONFIG_TYPE_NUM     4
-#define CONFIG_TYPE_BOOL    5
 
 struct config_values_s {
 

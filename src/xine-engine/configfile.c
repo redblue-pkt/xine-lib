@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.64 2004/03/16 21:32:23 siggi Exp $
+ * $Id: configfile.c,v 1.65 2004/05/07 14:38:14 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -156,7 +156,7 @@ static cfg_entry_t *__config_add (config_values_t *this, const char *key, int ex
   entry = (cfg_entry_t *) xine_xmalloc (sizeof (cfg_entry_t));
   entry->config        = this;
   entry->key           = strdup(key);
-  entry->type          = CONFIG_TYPE_UNKNOWN;
+  entry->type          = XINE_CONFIG_TYPE_UNKNOWN;
   entry->unknown_value = NULL;
   entry->str_value     = NULL;
   entry->exp_level     = exp_level;
@@ -232,8 +232,8 @@ static char *__config_register_string (config_values_t *this,
 
   /* convert entry to string type if necessary */
 
-  if (entry->type != CONFIG_TYPE_STRING) {
-    entry->type = CONFIG_TYPE_STRING;
+  if (entry->type != XINE_CONFIG_TYPE_STRING) {
+    entry->type = XINE_CONFIG_TYPE_STRING;
     /*
      * if there is no unknown_value (made with register_empty) set
      * it to default value
@@ -294,14 +294,14 @@ static int __config_register_num (config_values_t *this,
 
   /* convert entry to num type if necessary */
 
-  if (entry->type != CONFIG_TYPE_NUM) {
+  if (entry->type != XINE_CONFIG_TYPE_NUM) {
 
-    if (entry->type == CONFIG_TYPE_STRING) {
+    if (entry->type == XINE_CONFIG_TYPE_STRING) {
       free (entry->str_value);
       free (entry->str_default);
     }
 
-    entry->type      = CONFIG_TYPE_NUM;
+    entry->type      = XINE_CONFIG_TYPE_NUM;
 
     if (entry->unknown_value)
       sscanf (entry->unknown_value, "%d", &entry->num_value);
@@ -359,14 +359,14 @@ static int __config_register_bool (config_values_t *this,
 
   /* convert entry to bool type if necessary */
 
-  if (entry->type != CONFIG_TYPE_BOOL) {
+  if (entry->type != XINE_CONFIG_TYPE_BOOL) {
 
-    if (entry->type == CONFIG_TYPE_STRING) {
+    if (entry->type == XINE_CONFIG_TYPE_STRING) {
       free (entry->str_value);
       free (entry->str_default);
     }
 
-    entry->type      = CONFIG_TYPE_BOOL;
+    entry->type      = XINE_CONFIG_TYPE_BOOL;
 
     if (entry->unknown_value)
       sscanf (entry->unknown_value, "%d", &entry->num_value);
@@ -425,14 +425,14 @@ static int __config_register_range (config_values_t *this,
 
   /* convert entry to range type if necessary */
 
-  if (entry->type != CONFIG_TYPE_RANGE) {
+  if (entry->type != XINE_CONFIG_TYPE_RANGE) {
 
-    if (entry->type == CONFIG_TYPE_STRING) {
+    if (entry->type == XINE_CONFIG_TYPE_STRING) {
       free (entry->str_value);
       free (entry->str_default);
     }
 
-    entry->type      = CONFIG_TYPE_RANGE;
+    entry->type      = XINE_CONFIG_TYPE_RANGE;
 
     if (entry->unknown_value)
       sscanf (entry->unknown_value, "%d", &entry->num_value);
@@ -518,14 +518,14 @@ static int __config_register_enum (config_values_t *this,
 
   /* convert entry to enum type if necessary */
 
-  if (entry->type != CONFIG_TYPE_ENUM) {
+  if (entry->type != XINE_CONFIG_TYPE_ENUM) {
 
-    if (entry->type == CONFIG_TYPE_STRING) {
+    if (entry->type == XINE_CONFIG_TYPE_STRING) {
       free (entry->str_value);
       free (entry->str_default);
     }
 
-    entry->type      = CONFIG_TYPE_ENUM;
+    entry->type      = XINE_CONFIG_TYPE_ENUM;
 
     if (entry->unknown_value)
       entry->num_value = __config_parse_enum (entry->unknown_value, values);
@@ -584,8 +584,8 @@ static void __config_update_num (config_values_t *this,
 
   }
 
-  if ((entry->type == CONFIG_TYPE_UNKNOWN)
-      || (entry->type == CONFIG_TYPE_STRING)) {
+  if ((entry->type == XINE_CONFIG_TYPE_UNKNOWN)
+      || (entry->type == XINE_CONFIG_TYPE_STRING)) {
     printf ("configfile: error - tried to update non-num type %d (key %s, value %d)\n",
 	    entry->type, entry->key, value);
     return;
@@ -622,8 +622,15 @@ static void __config_update_string (config_values_t *this,
     return;
 
   }
+  
+  /* if an enum is updated with a string, we convert the string to
+   * its index and use update number */
+  if (entry->type == XINE_CONFIG_TYPE_ENUM) {
+    __config_update_num(this, key, __config_parse_enum(value, entry->enum_values));
+    return;
+  }
 
-  if (entry->type != CONFIG_TYPE_STRING) {
+  if (entry->type != XINE_CONFIG_TYPE_STRING) {
     printf ("configfile: error - tried to update non-string type %d (key %s, value %s)\n",
 	    entry->type, entry->key, value);
     return;
@@ -695,15 +702,15 @@ void xine_config_load (xine_t *xine, const char *filename) {
 	} else {
           switch (entry->type) {
           case XINE_CONFIG_TYPE_RANGE:
-          case XINE_CONFIG_TYPE_ENUM:
           case XINE_CONFIG_TYPE_NUM:
           case XINE_CONFIG_TYPE_BOOL:
             __config_update_num (this, entry->key, atoi(value));
             break;
+          case XINE_CONFIG_TYPE_ENUM:
           case XINE_CONFIG_TYPE_STRING:
             __config_update_string (this, entry->key, value);
             break;
-          case CONFIG_TYPE_UNKNOWN:
+          case XINE_CONFIG_TYPE_UNKNOWN:
 	    pthread_mutex_lock(&this->config_lock);
 	    free(entry->unknown_value);
 	    entry->unknown_value = strdup(value);
@@ -802,7 +809,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
 	fprintf (f_config, "# %s\n", entry->description);
 
       switch (entry->type) {
-      case CONFIG_TYPE_UNKNOWN:
+      case XINE_CONFIG_TYPE_UNKNOWN:
 
 /*#if 0*/
 	/* discard unclaimed values */
@@ -812,21 +819,21 @@ void xine_config_save (xine_t *xine, const char *filename) {
 /*#endif*/
 
 	break;
-      case CONFIG_TYPE_RANGE:
+      case XINE_CONFIG_TYPE_RANGE:
 	fprintf (f_config, "# [%d..%d], default: %d\n",
 		 entry->range_min, entry->range_max, entry->num_default);
 	if (entry->num_value == entry->num_default) fprintf (f_config, "#");
 	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
 	fprintf (f_config, "\n");
 	break;
-      case CONFIG_TYPE_STRING:
+      case XINE_CONFIG_TYPE_STRING:
 	fprintf (f_config, "# string, default: %s\n",
 		 entry->str_default);
 	if (strcmp(entry->str_value, entry->str_default) == 0) fprintf (f_config, "#");
 	fprintf (f_config, "%s:%s\n", entry->key, entry->str_value);
 	fprintf (f_config, "\n");
 	break;
-      case CONFIG_TYPE_ENUM: {
+      case XINE_CONFIG_TYPE_ENUM: {
 	char **value;
 
 	fprintf (f_config, "# {");
@@ -848,14 +855,14 @@ void xine_config_save (xine_t *xine, const char *filename) {
 	fprintf (f_config, "\n");
 	break;
       }
-      case CONFIG_TYPE_NUM:
+      case XINE_CONFIG_TYPE_NUM:
 	fprintf (f_config, "# numeric, default: %d\n",
 		 entry->num_default);
 	if (entry->num_value == entry->num_default) fprintf (f_config, "#");
 	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
 	fprintf (f_config, "\n");
 	break;
-      case CONFIG_TYPE_BOOL:
+      case XINE_CONFIG_TYPE_BOOL:
 	fprintf (f_config, "# bool, default: %d\n",
 		 entry->num_default);
 	if (entry->num_value == entry->num_default) fprintf (f_config, "#");
@@ -901,7 +908,7 @@ static void __config_dispose (config_values_t *this) {
     if (last->unknown_value)
       free (last->unknown_value);
 
-    if (last->type == CONFIG_TYPE_STRING) {
+    if (last->type == XINE_CONFIG_TYPE_STRING) {
       free (last->str_value);
       free (last->str_default);
     }
@@ -973,7 +980,7 @@ int _x_config_change_opt(config_values_t *config, const char *opt) {
   lprintf ("change_opt '%s'\n", opt);
   
   if ((entry = config->lookup_entry(config, "misc.implicit_config")) &&
-      entry->type == CONFIG_TYPE_BOOL) {
+      entry->type == XINE_CONFIG_TYPE_BOOL) {
     if (!entry->num_value)
       /* changing config entries implicitly is denied */
       return -1;
@@ -1003,20 +1010,20 @@ int _x_config_change_opt(config_values_t *config, const char *opt) {
 
 	switch(entry->type) {
 
-	case CONFIG_TYPE_STRING:
+	case XINE_CONFIG_TYPE_STRING:
 	  config->update_string(config, key, value);
 	  handled = 1;
 	  break;
 
-	case CONFIG_TYPE_RANGE:
-	case CONFIG_TYPE_ENUM:
-	case CONFIG_TYPE_NUM:
-	case CONFIG_TYPE_BOOL:
+	case XINE_CONFIG_TYPE_RANGE:
+	case XINE_CONFIG_TYPE_ENUM:
+	case XINE_CONFIG_TYPE_NUM:
+	case XINE_CONFIG_TYPE_BOOL:
 	  config->update_num(config, key, (atoi(value)));
 	  handled = 1;
 	  break;
 
-	case CONFIG_TYPE_UNKNOWN:
+	case XINE_CONFIG_TYPE_UNKNOWN:
 	  entry->unknown_value = strdup(value);
 	  handled = 1;
 	  break;
