@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.82 2004/01/13 22:38:03 jstembridge Exp $
+ * $Id: demux_real.c,v 1.83 2004/01/15 20:06:06 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -156,6 +156,7 @@ typedef struct {
   int                  fragment_count;
   uint32_t            *fragment_tab;
   int                  fragment_tab_max;
+  int                  fragment_id;
 
   int                  reference_mode;
 } demux_real_t ;
@@ -1100,7 +1101,26 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
           this->status = DEMUX_FINISHED;
           return this->status;
         }
-        n -= buf->size;
+        
+        /* RV30 and RV40 streams contain some fragments that shouldn't be passed 
+         * to the decoder. The first byte of these fragments is different from
+         * that found in the preceding fragments making up the frame */
+        if((n == fragment_size) && 
+           ((buf->type == BUF_VIDEO_RV30) || buf->type == BUF_VIDEO_RV40)) {
+          
+          if(this->fragment_size == 0)
+            this->fragment_id = buf->content[0];
+          else if(this->fragment_id != buf->content[0]) {
+            lprintf("ignoring fragment\n");
+          
+            /* Discard buffer and skip over rest of fragment */
+            buf->free_buffer(buf);
+            this->input->seek(this->input, n - buf->size, SEEK_CUR);
+            this->fragment_count--;
+
+            break;
+          }
+        }
         
         buf->pts = pts;
         pts = 0;
@@ -1113,6 +1133,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         buf->type = this->video_stream->buf_type;
         
         this->video_fifo->put(this->video_fifo, buf);
+        
+        n -= buf->size;
       }
 
       size -= fragment_size;
