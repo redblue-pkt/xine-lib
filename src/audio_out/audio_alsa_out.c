@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.123 2004/01/29 22:01:07 jstembridge Exp $
+ * $Id: audio_alsa_out.c,v 1.124 2004/02/21 14:16:48 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -832,6 +832,7 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
     pthread_cancel(this->mixer.thread);
     pthread_join(this->mixer.thread, &p);
     snd_mixer_close(this->mixer.handle);
+    this->mixer.handle=0;
   }
 
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
@@ -1079,6 +1080,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   if ((err = snd_mixer_open (&this->mixer.handle, 0)) < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: snd_mixer_open(): %s\n", snd_strerror(err));
+    this->mixer.handle=0;
     return;
   }
   
@@ -1086,6 +1088,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: snd_mixer_attach(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
+    this->mixer.handle=0;
     return;
   }
   
@@ -1093,6 +1096,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: snd_mixer_selem_register(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
+    this->mixer.handle=0;
     return;
   }
 
@@ -1100,6 +1104,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: snd_mixer_load(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
+    this->mixer.handle=0;
     return;
   }
   
@@ -1108,6 +1113,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: alloca() failed: %s\n", strerror(errno));
     snd_mixer_close(this->mixer.handle);
+    this->mixer.handle=0;
     return;
   }
   
@@ -1126,7 +1132,6 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     mixer_n_selems++;
 
     if(!strcmp((snd_mixer_selem_get_name(elem)), this->mixer.name)) {
-      
       /* printf("found %s\n", snd_mixer_selem_get_name(elem)); */
       
       this->mixer.elem = elem;
@@ -1212,6 +1217,12 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
       this->capabilities |= AO_CAP_MIXER_VOL;
     else
       this->capabilities |= AO_CAP_PCM_VOL;
+  } else {
+    if (this->mixer.handle) {
+      snd_mixer_close(this->mixer.handle);
+      this->mixer.handle=0;
+    }
+    return;
   }
 
   /* Create a thread which wait/handle mixer events */
