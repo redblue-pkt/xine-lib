@@ -17,12 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.h,v 1.2 2002/12/22 16:46:27 holstsn Exp $
+ * $Id: rmff.h,v 1.3 2003/02/10 22:11:10 heikos Exp $
  *
  * some functions for real media file headers
  * adopted from joschkas real tools
  */
 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
