@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.34 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.35 2003/01/20 05:44:15 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -114,6 +114,7 @@ typedef struct {
   int                  audio_chunk_size2;
 
   unsigned char        huffman_table[HUFFMAN_TABLE_SIZE];
+  uint64_t             pts_counter;
 
   char                 last_mrl[1024];
 } demux_idcin_t;
@@ -128,6 +129,16 @@ typedef struct {
   config_values_t  *config;
 } demux_idcin_class_t;
 
+/* set DEBUG_IDCIN to output information about the A/V chunks that the
+ * demuxer is dispatching to the engine */
+#define DEBUG_IDCIN 0
+
+#if DEBUG_IDCIN
+#define debug_idcin printf
+#else
+static inline void debug_idcin(const char *format, ...) { }
+#endif
+
 static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
 
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
@@ -138,7 +149,6 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   palette_entry_t palette[PALETTE_SIZE];
   int i;
   unsigned int remaining_sample_bytes;
-  uint64_t pts_counter = 0;
   int current_audio_chunk = 1;
   int scale_bits;
 
@@ -149,11 +159,15 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   }
 
   command = le2me_32(command);
+  debug_idcin("  demux_idcin: command %X: ", command);
   if (command == 2) {
+    debug_idcin("demux finished\n");
     this->status = DEMUX_FINISHED;
     return this->status;
   } else {
     if (command == 1) {
+      debug_idcin("load palette\n");
+
       /* load a 768-byte palette and pass it to the demuxer */
       if (this->input->read(this->input, disk_palette, PALETTE_SIZE * 3) !=
         PALETTE_SIZE * 3) {
@@ -187,7 +201,8 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       buf->size = 0;
       buf->type = BUF_VIDEO_IDCIN;
       this->video_fifo->put (this->video_fifo, buf);
-    }
+    } else
+      debug_idcin("load video and audio\n");
   }
 
   /* load the video frame */
@@ -197,13 +212,15 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   }
   remaining_sample_bytes = LE_32(&preamble[0]) - 4;
 
+  debug_idcin("  demux_idcin: dispatching %X video bytes\n",
+    remaining_sample_bytes);
   while (remaining_sample_bytes) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_IDCIN;
     buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     buf->extra_info->input_length = this->filesize;
-    buf->extra_info->input_time = pts_counter / 90;
-    buf->pts = pts_counter;
+    buf->extra_info->input_time = this->pts_counter / 90;
+    buf->pts = this->pts_counter;
 
     if (remaining_sample_bytes > buf->max_size)
       buf->size = buf->max_size;
@@ -223,6 +240,8 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
     if (!remaining_sample_bytes)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
+    debug_idcin("    sending video buf with %d bytes, %lld pts\n",
+        buf->size, buf->pts);
     this->video_fifo->put(this->video_fifo, buf);
   }
 
@@ -237,13 +256,15 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       current_audio_chunk = 1;
     }
 
+    debug_idcin("  demux_idcin: dispatching %X audio bytes\n",
+      remaining_sample_bytes);
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_LPCM_LE;
       buf->extra_info->input_pos = this->input->get_current_pos(this->input);
       buf->extra_info->input_length = this->filesize;
-      buf->extra_info->input_time = pts_counter / 90;
-      buf->pts = pts_counter;
+      buf->extra_info->input_time = this->pts_counter / 90;
+      buf->pts = this->pts_counter;
 
       if (remaining_sample_bytes > buf->max_size)
         buf->size = buf->max_size;
@@ -261,11 +282,15 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
+      debug_idcin("    sending audio buf with %d bytes, %lld pts\n",
+          buf->size, buf->pts);
       this->audio_fifo->put(this->audio_fifo, buf);
     }
   }
 
-  pts_counter += IDCIN_FRAME_PTS_INC;
+  debug_idcin("\n");
+
+  this->pts_counter += IDCIN_FRAME_PTS_INC;
 
   return this->status;
 }
@@ -319,6 +344,10 @@ static int open_idcin_file(demux_idcin_t *this) {
 
   /* if execution got this far, qualify it as a valid Id CIN file 
    * and continue loading */
+  debug_idcin("  demux_idcin: %dx%d video, %d Hz, %d channels, %d bits PCM audio\n",
+    this->video_width, this->video_height,
+    this->audio_sample_rate, this->audio_bytes_per_sample * 8, 
+    this->audio_channels);
 
   /* read the Huffman table */
   if (this->input->read(this->input, this->huffman_table,
@@ -422,6 +451,7 @@ static int demux_idcin_seek (demux_plugin_t *this_gen,
     /* reposition stream past the Huffman tables */
     this->input->seek(this->input, 0x14 + 0x10000, SEEK_SET);
 
+    this->pts_counter = 0;
   }
 
   return this->status;
