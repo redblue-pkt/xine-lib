@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.26 2002/09/21 17:22:21 tmmm Exp $
+ * $Id: demux_film.c,v 1.27 2002/09/21 18:48:25 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -493,8 +493,15 @@ static int demux_film_send_headers(demux_film_t *this) {
 
   this->status = DEMUX_OK;
 
+  /* load stream information */
   this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
   this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->audio_channels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->sample_rate;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->audio_bits;
 
   xine_demux_control_headers_done (this->xine);
 
