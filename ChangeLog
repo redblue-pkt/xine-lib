@@ -30,6 +30,10 @@ xine-lib (1-rc1)
   * fix deadlock/freeze problems in audio output thread
   * Don't add the data track to the autoplay list for Audio CDs (Linux)
   * dxr3: fix stuttering playback of some non-MPEG content
+  * fix playback of AVIs with mp3 VBR
+  * fix some asf demuxer bugs
+    seq number handling (helps a lot with mms live video streams)
+    frame duration bug with "still" frames
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
