@@ -1,7 +1,7 @@
 
 EXTRA_DIST = README dhahelper.c
 
-CFLAGS = -O2 -Wall -D__KERNEL__ -DMODULE
+CFLAGS = -O2 -Wall -D__KERNEL__ -DMODULE -include `echo @LINUX_INCLUDE@ | sed -e 's/\-I//g'`/linux/modversions.h
 
 KVERSION = $(shell $(SHELL) -c 'uname -r')
 moddir = /lib/modules/$(KVERSION)/misc
