@@ -1632,6 +1632,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t len) {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
   off_t n=0, total=0;
+  int have_mutex=0;
   struct pollfd pfd;
   dvb_event_handler (this);
 
@@ -1639,7 +1640,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
 
   nbc_check_buffers (this->nbc);
 
-  pthread_mutex_trylock( &this->mutex ); /* protect agains channel changes */
+  have_mutex=pthread_mutex_trylock( &this->mutex ); /* protect agains channel changes */
   total=0;
   pfd.fd=this->fd;
   pfd.events = POLLPRI | POLLIN;
@@ -1676,8 +1677,8 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
 
   if ((this->record_fd)&&(!this->record_paused))
     write (this->record_fd, buf, total);
-
-  pthread_mutex_unlock( &this->mutex );
+  if(have_mutex==0)
+    pthread_mutex_unlock( &this->mutex );
   /* no data for 10 seconds - tell the user a possible reason */
   if(this->read_failcount==5){
     _x_message(this->stream,1,"DVB Signal Lost.  Please check connections."); 
