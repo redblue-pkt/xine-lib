@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.54 2001/10/17 20:33:09 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.55 2001/10/18 14:29:44 jkeil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -373,21 +373,53 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     } else if ((p[0]&0xf0) == 0xa0) {
 
       int pcm_offset;
+      int number_of_frame_headers;
+      int first_access_unit_pointer;
+      int audio_frame_number;
+      int bits_per_sample;
+      int sample_rate;
+      int num_channels;
+      int dynamic_range;
 
-      xprintf (VERBOSE|DEMUX,"LPCMacket, len : %d %02x\n",packet_len-4, p[0]);  
-
-      for( pcm_offset=0; ++pcm_offset < packet_len-1 ; ){
-	if ( p[pcm_offset] == 0x01 && p[pcm_offset+1] == 0x80 ) { /* START */
-	  pcm_offset += 2;
-	  break;
-	}
-      }
-      /* FIXME: Find out from the stream what these values should be!
-       *        Problem! No-one currently knows.
+      xprintf (VERBOSE|DEMUX,"LPCM packet, len : %d %02x\n",packet_len-4, p[0]);  
+      /*
+       * found in http://members.freemail.absa.co.za/ginggs/dvd/mpeg2_lpcm.txt
+       * appears to be correct.
        */
-      buf->decoder_info[1] = 48000;
-      buf->decoder_info[2] = 16;
-      buf->decoder_info[3] = 2;
+
+      number_of_frame_headers = p[1];
+      /* unknown = p[2]; */
+      first_access_unit_pointer = p[3];
+      audio_frame_number = p[4];
+
+      /*
+       * 000 => mono
+       * 001 => stereo
+       * 010 => 3 channel
+       * ...
+       * 111 => 8 channel
+       */
+      num_channels = (p[5] & 0x7) + 1;
+      sample_rate = p[5] & 0x10 ? 96000 : 48000;
+      switch ((p[5]>>6) & 3) {
+      case 3: /* illegal, use 16-bits? */
+      default:
+	  printf("illegal lpcm sample format (%d), assume 16-bit samples\n",
+		 (p[5]>>6) & 3 );
+      case 0: bits_per_sample = 16; break;
+      case 1: bits_per_sample = 20; break;
+      case 2: bits_per_sample = 24; break;
+      }
+      dynamic_range = p[6];
+
+      xprintf(VERBOSE|DEMUX, "LPCM audio format: %dkHz, %d bit, %d channel\n",
+	      sample_rate/1000, bits_per_sample, num_channels);
+
+      buf->decoder_info[1] = sample_rate;
+      buf->decoder_info[2] = bits_per_sample;
+      buf->decoder_info[3] = num_channels;
+
+      pcm_offset = 7;
 
       buf->content   = p+pcm_offset;
       buf->size      = packet_len-pcm_offset;
