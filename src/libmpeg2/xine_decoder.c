@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2002/10/18 16:46:24 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.42 2002/10/29 01:29:46 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -39,6 +39,7 @@
 /*
 #define LOG
 */
+
 typedef struct {
   video_decoder_class_t   decoder_class;
 } mpeg2_class_t;
@@ -57,7 +58,7 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
 #ifdef LOG
-  printf ("libmpeg2: decode_data...\n");
+  printf ("libmpeg2: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
 #endif
 
   pthread_mutex_lock (&this->lock);

@@ -283,6 +283,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	  switch (picture->picture_coding_type) {
 	  case B_TYPE:
 	    
+#ifdef LOG
+	    printf ("libmpeg2: B-Frame\n");
+#endif
+
 	    if (mpeg2dec->frames_to_drop>1) {
 #ifdef LOG
 	      printf ("libmpeg2: dropping b-frame because frames_to_drop==%d\n",
@@ -310,6 +314,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    
 	  case P_TYPE:
 	    
+#ifdef LOG
+	    printf ("libmpeg2: P-Frame\n");
+#endif
+
 	    if (mpeg2dec->frames_to_drop>2) {
 	      mpeg2dec->drop_frame = 1;
 #ifdef LOG
