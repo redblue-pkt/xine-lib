@@ -1050,9 +1050,8 @@ echo " * decoder plugins:"
 echo "   - a52             - dts"
 echo "   - mpeg2           - spu"
 echo "   - ffmpeg          - mad"
-echo "   - vfill           - divx4"
-echo "   - cinepak         - msvc"
-echo "   - cyuv"
+echo "   - divx4           - cinepak"
+echo "   - msvc            - cyuv"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi
