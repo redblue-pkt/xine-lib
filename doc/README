@@ -14,14 +14,30 @@ faq/
 README.config_en
   details about xine engine config options 
 
+README.dvb
+  instructions on how to get DVB (DigitalTV) working in xine
+
+README.dxr3
+README.dxr3_pl
+  instructions on how to get use the DXR3 (hollywood+) in xine
+
 README.freebsd
   hints on running xine on FreeBSD
 
 README.irix
   hints on running xine on IRIX
 
+README.mrl
+  defines exactly what MRLs (media resource locators) are
+
+README.network_dvd
+  how to play DVDs / Audio CDs over the network
+
 README.opengl
   how to use xine's OpenGL video output
+
+README.plugins
+  information about plugin concepts in xine for developers
 
 README.solaris
   hints on running xine on Solaris
@@ -32,22 +48,6 @@ README.syncfb
 README.tvmode
   how to get tv output working
 
-README.dvb
-  instructions on how to get DVB (DigitalTV) working in xine
-
-README.dxr3
-README.dxr3_pl
-  instructions on how to get use the DXR3 (hollywood+) in xine
-
-README.mrl
-  defines exactly what MRLs (media resource locators) are
-
-README.plugins
-  information about plugin concepts in xine for developers
-
-README.network_dvd
-  how to play DVDs / Audio CDs over the network
-  
 man/
   contains some general manpages about xine-lib
 

@@ -30,3 +30,7 @@ uninstall-local:
 		rm -f $$dir/$$name; \
 		echo "removing $$dir/$$name" ; \
 	done
+
+docs:
+	@cd faq && $(MAKE) $@
+	@cd hackersguide && $(MAKE) $@
