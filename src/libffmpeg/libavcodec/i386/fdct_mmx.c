@@ -10,7 +10,7 @@
 #include "../common.h"
 #include "mmx.h"
 
-#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
+//#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -45,8 +45,8 @@ const int16_t ocos_4_16[4] = {
     23170, 23170, 23170, 23170,	//cos * (2<<15) + 0.5
 };
 
-const mmx_t fdct_one_corr = {0x0001000100010001LL};
-const mmx_t fdct_r_row = {d:{RND_FRW_ROW, RND_FRW_ROW} };
+static const mmx_t fdct_one_corr = {0x0001000100010001LL};
+static volatile mmx_t fdct_r_row = { d:{RND_FRW_ROW, RND_FRW_ROW} };
 
 const int16_t tab_frw_01234567[] ATTR_ALIGN(8) = {  // forward_dct coeff table
     //row0
