@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.11 2002/09/28 23:00:22 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.12 2002/10/01 04:48:32 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -581,12 +581,17 @@ static int demux_mve_open(demux_plugin_t *this_gen, input_plugin_t *input,
   return DEMUX_CANNOT_HANDLE;
 }
 
+static int demux_mve_seek (demux_plugin_t *this_gen,
+                           off_t start_pos, int start_time);
+
 static int demux_mve_start (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
   demux_mve_t *this = (demux_mve_t *) this_gen;
   buf_element_t *buf;
   int err;
+
+  demux_mve_seek(this_gen, start_pos, start_time);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
@@ -671,13 +676,40 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
 
   pthread_mutex_lock(&this->mutex);
 
+  /* make sure the first shot has been recorded */
+  if (this->shot_offsets[0] == 0) {
+
+    while (1) {
+
+      if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+        PREAMBLE_SIZE) {
+        this->status = DEMUX_FINISHED;
+        pthread_mutex_unlock(&this->mutex);
+        return 1;
+      }
+
+      chunk_tag = BE_32(&preamble[0]);
+      /* round up to the nearest even size */
+      chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
+
+      if (chunk_tag == SHOT_TAG) {
+        this->shot_offsets[0] = 
+          this->input->get_current_pos(this->input) - PREAMBLE_SIZE;
+        /* skip the four SHOT data bytes (palette index) */
+        this->input->seek(this->input, 4, SEEK_CUR);
+        break;  /* get out of the infinite while loop */
+      } else {
+        this->input->seek(this->input, chunk_size, SEEK_CUR);
+      }
+    }
+  }
+
   /* compensate for data at start of file */
   start_pos += this->data_start;
   for (i = 0; i < this->number_of_shots - 1; i++) {
 
-    /* at the very least, the first shot offset will have a non-zero value;
-     * if the next shot offset has been recorded, traverse through the file
-     * until it is found */
+    /* if the next shot offset has not been recorded, traverse through the 
+     * file until it is found */
     if (this->shot_offsets[i + 1] == 0) {
 
       while (1) {
