@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.53 2003/04/29 15:14:16 mroi Exp $
+ * $Id: xine_interface.c,v 1.54 2003/05/15 20:23:18 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -422,6 +422,15 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     stream->metronom_prebuffer = value;
     break;
 
+  case XINE_PARAM_BROADCASTER_PORT:
+    if( !stream->broadcaster && value ) {
+      stream->broadcaster = init_broadcaster(stream, value);
+    } else if ( stream->broadcaster && !value ) {
+      close_broadcaster(stream->broadcaster);
+      stream->broadcaster = NULL;
+    }
+    break;
+    
   default:
     printf ("xine_interface: unknown param %d\n", param);
   }
@@ -511,6 +520,13 @@ int  xine_get_param (xine_stream_t *stream, int param) {
 
   case XINE_PARAM_METRONOM_PREBUFFER:
     return stream->metronom_prebuffer;
+  
+  case XINE_PARAM_BROADCASTER_PORT:
+    if( stream->broadcaster )
+      return get_broadcaster_port(stream->broadcaster);
+    else
+      return 0;
+    break;
 
   default:
     printf ("xine_interface: unknown param %d\n", param);

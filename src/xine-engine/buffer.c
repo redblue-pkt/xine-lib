@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.29 2003/05/13 16:38:05 miguelfreitas Exp $
+ * $Id: buffer.c,v 1.30 2003/05/15 20:23:18 miguelfreitas Exp $
  *
  *
  * contents:
@@ -92,8 +92,10 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   buf->pts = 0;
   buf->size = 0;
   buf->decoder_flags = 0;
+  memset(buf->decoder_info, 0, sizeof(buf->decoder_info));
+  memset(buf->decoder_info_ptr, 0, sizeof(buf->decoder_info_ptr));
   extra_info_reset( buf->extra_info );
-
+  
   return buf;
 }
 
@@ -127,6 +129,8 @@ static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
     buf->pts = 0;
     buf->size = 0;
     buf->decoder_flags = 0;
+    memset(buf->decoder_info, 0, sizeof(buf->decoder_info));
+    memset(buf->decoder_info_ptr, 0, sizeof(buf->decoder_info_ptr));
     extra_info_reset( buf->extra_info );
   }
   return buf;

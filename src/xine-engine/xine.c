@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.246 2003/04/25 22:27:35 f1rmb Exp $
+ * $Id: xine.c,v 1.247 2003/05/15 20:23:18 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -398,7 +398,8 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->next_audio_port        = NULL;
   stream->next_video_port        = NULL;
   stream->metronom_prebuffer     = PREBUFFER_PTS_OFFSET;  
-
+  stream->broadcaster            = NULL;
+  
   /*
    * initial master/slave
    */
@@ -1049,6 +1050,9 @@ void xine_dispose (xine_stream_t *stream) {
     stream->slave->master = NULL;
   }
 
+  if(stream->broadcaster)
+    close_broadcaster(stream->broadcaster);
+  
   if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
     printf ("xine_exit: shutdown audio\n");
 

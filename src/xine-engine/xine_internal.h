@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.136 2003/04/21 06:12:23 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.137 2003/05/15 20:23:18 miguelfreitas Exp $
  *
  */
 
@@ -71,6 +71,7 @@ typedef struct extra_info_s extra_info_t;
 #include "plugin_catalog.h"
 #include "video_decoder.h"
 #include "audio_decoder.h"
+#include "broadcaster.h"
 
 #define XINE_MAX_EVENT_LISTENERS         50
 #define XINE_MAX_EVENT_TYPES             100
@@ -260,6 +261,7 @@ struct xine_stream_s {
   pthread_cond_t             next_audio_port_wired;
 
   int64_t                    metronom_prebuffer;
+  broadcaster_t             *broadcaster;
 };
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.83 2003/05/09 17:57:14 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.84 2003/05/15 20:23:16 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -291,7 +291,7 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_IGNORE_VIDEO           13 /* disable video decoding      */
 #define XINE_PARAM_IGNORE_AUDIO           14 /* disable audio decoding      */
 #define XINE_PARAM_IGNORE_SPU             15 /* disable spu decoding        */
-#define XINE_PARAM_ENABLE_BROADCAST       16 /* (not implemented yet)       */
+#define XINE_PARAM_BROADCASTER_PORT       16 /* 0: disable, x: server port  */
 #define XINE_PARAM_METRONOM_PREBUFFER     17 /* unit: 1/90000 sec           */
 #define XINE_PARAM_EQ_30HZ                18 /* equalizer gains -100..100   */
 #define XINE_PARAM_EQ_60HZ                19 /* equalizer gains -100..100   */

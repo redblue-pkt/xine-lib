@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.117 2003/05/06 20:50:11 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.118 2003/05/15 20:23:18 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -629,6 +629,8 @@ static int64_t metronom_get_option (metronom_t *this, int option) {
     return this->spu_offset;
   case METRONOM_FRAME_DURATION:
     return this->img_duration;
+  case METRONOM_VPTS_OFFSET:
+    return this->vpts_offset;
   }
   printf ("metronom: unknown option in get_option: %d\n",
 	  option);

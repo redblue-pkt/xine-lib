@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.46 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_net.c,v 1.47 2003/05/15 20:23:17 miguelfreitas Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -84,7 +84,8 @@ typedef struct {
   
   int              fh;
   char            *mrl;
-
+  char            *host_port;
+  
   char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
 
@@ -206,12 +207,10 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 
 static buf_element_t *net_plugin_read_block (input_plugin_t *this_gen, 
 					     fifo_buffer_t *fifo, off_t todo) {
-  net_input_plugin_t   *this = (net_input_plugin_t *) this_gen;
+  /* net_input_plugin_t   *this = (net_input_plugin_t *) this_gen; */
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   off_t                 total_bytes;
 
-  nbc_check_buffers (this->nbc);
-  
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
   
@@ -318,6 +317,7 @@ static void net_plugin_dispose (input_plugin_t *this_gen ) {
   }
     
   free (this->mrl);
+  free (this->host_port);
   
   if (this->nbc) {
     nbc_close (this->nbc);
@@ -333,7 +333,7 @@ static int net_plugin_open (input_plugin_t *this_gen ) {
   char *pptr;
   int port = 7658;
 
-  filename = (char *) &this->mrl[6];
+  filename = this->host_port;
   pptr=strrchr(filename, ':');
   if(pptr) {
     *pptr++ = 0;
@@ -359,6 +359,7 @@ static int net_plugin_open (input_plugin_t *this_gen ) {
 static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, const char *mrl) {
   /* net_input_plugin_t *this = (net_input_plugin_t *) this_gen; */
   net_input_plugin_t *this;
+  nbc_t *nbc = NULL;
   char *filename;
 
   if (!strncasecmp (mrl, "tcp://", 6)) {
@@ -367,16 +368,35 @@ static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stre
     if((!filename) || (strlen(filename) == 0)) {
       return NULL;
     }
+    
+    nbc = nbc_init (stream);
+    
+  } else if (!strncasecmp (mrl, "slave://", 8)) {
+ 
+    filename = (char *) &mrl[8];
+    
+    if((!filename) || (strlen(filename) == 0)) {
+      return NULL;
+    }
+    
+    /* the only difference for slave:// is that network buffering control
+     * is not used. otherwise, dvd still menus are not displayed (it freezes
+     * with "buffering..." all the time)
+     */
+    
+    nbc = NULL;
+    
   } else {
     return NULL;
   }
 
   this = xine_xmalloc(sizeof(net_input_plugin_t));
   this->mrl           = strdup(mrl);
+  this->host_port     = strdup(filename);
   this->stream        = stream;
   this->fh            = -1;
   this->curpos        = 0;
-  this->nbc           = nbc_init (this->stream);
+  this->nbc           = nbc;
   this->preview_size  = 0;
 
   this->input_plugin.open              = net_plugin_open;

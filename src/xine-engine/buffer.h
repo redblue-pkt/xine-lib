@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.112 2003/05/13 16:38:06 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.113 2003/05/15 20:23:18 miguelfreitas Exp $
  *
  *
  * contents:
@@ -221,6 +221,8 @@ extern "C" {
 typedef struct extra_info_s extra_info_t;
 #endif
 
+#define BUF_NUM_DEC_INFO 4
+
 typedef struct buf_element_s buf_element_t;
 struct buf_element_s {
   buf_element_t        *next;
@@ -238,8 +240,10 @@ struct buf_element_s {
 
   uint32_t              decoder_flags; /* stuff like keyframe, is_header ... see below      */
 
-  uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */
-  void                 *decoder_info_ptr[4]; /* pointers to dec-spec. stuff */
+                        /* additional decoder flags and other dec-spec. stuff */
+  uint32_t              decoder_info[BUF_NUM_DEC_INFO]; 
+                        /* pointers to dec-spec. stuff */
+  void                 *decoder_info_ptr[BUF_NUM_DEC_INFO];
 
   void (*free_buffer) (buf_element_t *buf);
 

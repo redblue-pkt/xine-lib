@@ -41,7 +41,8 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) $(image_module) \
 	xineplug_dmx_real.la \
 	xineplug_dmx_rawdv.la \
 	xineplug_dmx_pva.la \
-	xineplug_dmx_yuv_frames.la
+	xineplug_dmx_yuv_frames.la \
+	xineplug_dmx_slave.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(THEORA_LIBS) $(XINE_LIB)
@@ -122,6 +123,10 @@ xineplug_dmx_audio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_dmx_yuv_frames_la_SOURCES = demux_yuv_frames.c
 xineplug_dmx_yuv_frames_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_yuv_frames_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_slave_la_SOURCES = demux_slave.c
+xineplug_dmx_slave_la_LIBADD = $(XINELIB)
+xineplug_dmx_slave_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_image_la_SOURCES = demux_image.c
 xineplug_dmx_image_la_LIBADD = $(XINE_LIB)
