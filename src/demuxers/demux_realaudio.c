@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.14 2003/01/17 16:52:38 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.15 2003/01/19 23:33:33 tmmm Exp $
  *
  */
 
@@ -357,17 +357,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_realaudio: RealAudio file, %d bits, %d Hz, %s %c%c%c%c audio\n"),
-    this->wave.wBitsPerSample,
-    this->wave.nSamplesPerSec,
-    (this->wave.nChannels == 1) ? "monaural" : "stereo",
-    *((char *)&this->audio_fourcc + 0),
-    *((char *)&this->audio_fourcc + 1),
-    *((char *)&this->audio_fourcc + 2),
-    *((char *)&this->audio_fourcc + 3));
 
   return &this->demux_plugin;
 }

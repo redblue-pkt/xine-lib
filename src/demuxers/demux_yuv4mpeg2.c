@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.17 2003/01/10 21:11:12 miguelfreitas Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.18 2003/01/19 23:33:33 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -397,12 +397,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_yuv4mpeg2: raw YV12 video @ %d x %d\n"),
-    this->bih.biWidth,
-    this->bih.biHeight);
 
   return &this->demux_plugin;
 }

@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.35 2003/01/17 16:52:36 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.36 2003/01/19 23:33:33 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -997,12 +997,6 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
 
   real_parse_headers (this);
 
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_real: Real media file, running time: %d min, %d sec\n"),
-    this->duration / 1000 / 60,
-    this->duration / 1000 % 60);
 }
 
 static int demux_real_seek (demux_plugin_t *this_gen,

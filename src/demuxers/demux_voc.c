@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.26 2003/01/17 16:54:47 miguelfreitas Exp $
+ * $Id: demux_voc.c,v 1.27 2003/01/19 23:33:33 tmmm Exp $
  *
  */
 
@@ -384,14 +384,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"),
-    this->voc_audio_type, 
-    this->audio_sample_rate,
-    this->running_time / 60,
-    this->running_time % 60);
 
   return &this->demux_plugin;
 }

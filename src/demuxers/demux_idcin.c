@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.33 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_idcin.c,v 1.34 2003/01/19 23:33:33 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -525,18 +525,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"),
-    this->video_width,
-    this->video_height);
-  if (this->audio_channels)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_idcin: %d-bit, %d Hz %s PCM audio\n"),
-      this->audio_bytes_per_sample * 8,
-      this->audio_sample_rate,
-      (this->audio_channels == 1) ? "monaural" : "stereo");
 
   return &this->demux_plugin;
 }

@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.34 2003/01/17 16:52:39 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.35 2003/01/19 23:33:33 tmmm Exp $
  *
  */
 
@@ -380,23 +380,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"),
-    this->wave->wFormatTag,
-    this->wave->nSamplesPerSec,
-    this->wave->wBitsPerSample,
-    this->wave->nChannels,
-    ngettext("channel", "channels", this->wave->nChannels));
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_wav: running time = %lld min, %lld sec\n"),
-    this->data_size / this->wave->nAvgBytesPerSec / 60,
-    this->data_size / this->wave->nAvgBytesPerSec % 60);
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_wav: average bytes/sec = %d, block alignment = %d\n"),
-    this->wave->nAvgBytesPerSec,
-    this->wave->nBlockAlign);
 
   /* special block alignment hack so that the demuxer doesn't send
    * packets with individual PCM samples */

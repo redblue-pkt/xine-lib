@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.35 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_fli.c,v 1.36 2003/01/19 23:33:33 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -348,19 +348,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_fli: FLI type: %04X, speed: %d/%d\n"),
-    this->magic_number, this->speed,
-    (this->magic_number == FLI_FILE_MAGIC_1) ? 70 : 1000);
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_fli: %d frames, %dx%d\n"), 
-    this->frame_count, this->width, this->height);
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_fli: running time: %d min, %d sec\n"), 
-    this->frame_count * this->frame_pts_inc / 90000 / 60,
-    this->frame_count * this->frame_pts_inc / 90000 % 60);
 
   return &this->demux_plugin;
 }

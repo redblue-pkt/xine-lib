@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.53 2003/01/10 21:10:59 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.54 2003/01/19 23:33:33 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -730,33 +730,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"),
-    this->version[0],
-    this->version[1],
-    this->version[2],
-    this->version[3],
-    this->total_time / 60,
-    this->total_time % 60);
-  if (this->video_type)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"),
-      (this->video_codec >> 24) & 0xFF,
-      (this->video_codec >> 16) & 0xFF,
-      (this->video_codec >>  8) & 0xFF,
-      (this->video_codec >>  0) & 0xFF,
-      this->bih.biWidth,
-      this->bih.biHeight,
-      this->frequency);
-  if (this->audio_type)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_film: %d Hz, %d-bit %s%s PCM audio\n"),
-      this->sample_rate,
-      this->audio_bits,
-      (this->audio_bits == 16) ? "big-endian " : "",
-      (this->audio_channels == 1) ? "mono" : "stereo");
 
   return &this->demux_plugin;
 }

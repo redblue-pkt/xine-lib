@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.25 2003/01/17 16:52:33 miguelfreitas Exp $
+ * $Id: demux_aiff.c,v 1.26 2003/01/19 23:33:33 tmmm Exp $
  *
  */
 
@@ -415,18 +415,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"),
-    this->audio_sample_rate,
-    this->audio_channels,
-    this->audio_bits,
-    this->audio_frames);
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_aiff: running time: %d min, %d sec\n"),
-    this->running_time / 60,
-    this->running_time % 60);
 
   return &this->demux_plugin;
 }

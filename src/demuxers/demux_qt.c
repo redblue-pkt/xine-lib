@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.141 2003/01/10 21:11:06 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.142 2003/01/19 23:33:33 tmmm Exp $
  *
  */
 
@@ -2384,33 +2384,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"),
-    (this->qt->compressed_header) ? "compressed header, " : "",
-    this->qt->duration / this->qt->timescale / 60,
-    this->qt->duration / this->qt->timescale % 60);
-  if (this->qt->video_codec)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_qt: '%c%c%c%c' video @ %dx%d\n"),
-      *((char *)&this->qt->video_codec + 0),
-      *((char *)&this->qt->video_codec + 1),
-      *((char *)&this->qt->video_codec + 2),
-      *((char *)&this->qt->video_codec + 3),
-      this->qt->video_width,
-      this->qt->video_height);
-  if (this->qt->audio_codec)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
-      *((char *)&this->qt->audio_codec + 0),
-      *((char *)&this->qt->audio_codec + 1),
-      *((char *)&this->qt->audio_codec + 2),
-      *((char *)&this->qt->audio_codec + 3),
-      this->qt->audio_sample_rate,
-      this->qt->audio_bits,
-      this->qt->audio_channels,
-      ngettext("channel", "channels", this->qt->audio_channels));
 
   return &this->demux_plugin;
 }

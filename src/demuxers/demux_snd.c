@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.24 2003/01/10 21:11:10 miguelfreitas Exp $
+ * $Id: demux_snd.c,v 1.25 2003/01/19 23:33:33 tmmm Exp $
  *
  */
 
@@ -386,18 +386,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_snd: %d Hz, %d channels, %d bits, %d frames\n"),
-    this->audio_sample_rate,
-    this->audio_channels,
-    this->audio_bits,
-    this->audio_frames);
-  xine_log(this->stream->xine, XINE_LOG_MSG,
-    _("demux_snd: running time: %d min, %d sec\n"),
-    this->running_time / 60,
-    this->running_time % 60);
 
   return &this->demux_plugin;
 }

@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.35 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_roq.c,v 1.36 2003/01/19 23:33:33 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -472,15 +472,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"),
-    this->width, this->height, this->fps);
-  if (this->audio_channels)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"),
-      (this->audio_channels == 1) ? "monaural" : "stereo");
 
   return &this->demux_plugin;
 }

@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.35 2003/01/10 21:11:09 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.36 2003/01/19 23:33:33 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -480,32 +480,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"),
-    this->duration / 1000 / 60,
-    this->duration / 1000 % 60);
-  if (this->video_type)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"),
-      *((char *)&this->bih.biCompression + 0),
-      *((char *)&this->bih.biCompression + 1),
-      *((char *)&this->bih.biCompression + 2),
-      *((char *)&this->bih.biCompression + 3),
-      this->bih.biWidth,
-      this->bih.biHeight);
-  if (this->audio_type)
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-      _("demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
-      *((char *)&this->audio_codec + 0),
-      *((char *)&this->audio_codec + 1),
-      *((char *)&this->audio_codec + 2),
-      *((char *)&this->audio_codec + 3),
-      this->audio_sample_rate,
-      this->audio_bits,
-      this->audio_channels,
-      ngettext("channel", "channels", this->audio_channels));
 
   return &this->demux_plugin;
 }
