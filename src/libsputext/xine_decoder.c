@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2001/12/13 18:32:15 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.9 2001/12/17 00:19:21 miguelfreitas Exp $
  *
  * code based on mplayer module:
  *
@@ -913,7 +913,9 @@ static void update_osd_font(void *this_gen, cfg_entry_t *entry)
 
   this->font = entry->str_value;
   
-  this->renderer->set_font (this->osd, this->font, this->font_size);
+  if( this->renderer )
+    this->renderer->set_font (this->osd, this->font, this->font_size);
+  
   printf("libsputext: spu_font = %s\n", this->font );
 }
 
