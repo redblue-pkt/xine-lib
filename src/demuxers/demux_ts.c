@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.104 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.105 2004/08/28 17:54:05 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,9 @@
  *
  * Date        Author
  * ----        ------
+ *
+ * 28-Aug-2004 James Courtier-Dutton <jcdutton>
+ *                  - Improve PAT and PMT handling. Added some FIXME comments.
  *
  *  9-Aug-2003 James Courtier-Dutton <jcdutton>
  *                  - Improve readability of code. Added some FIXME comments.
@@ -924,6 +927,7 @@ static void demux_ts_get_reg_desc(demux_ts_t *this, uint32_t *dest,
  *
  * In other words, the PMT is assumed to describe a reasonable number of
  * video, audio and other streams (with descriptors).
+ * FIXME: Implement support for multi section PMT.
  */
 static void demux_ts_parse_pmt (demux_ts_t     *this,
                                 unsigned char *originalPkt,
@@ -1581,9 +1585,26 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
    */
     
   if (payload_unit_start_indicator && this->media_num < MAX_PIDS){
-    /* FIXME: This is faulty assumption.
-     *        This might be a PAT or PMT and not a PES.
-     */ 
+    if (pid == 0) {
+      demux_ts_parse_pat (this, originalPkt, originalPkt+data_offset-4,
+			  payload_unit_start_indicator);
+      return;
+    }
+    program_count = 0;
+    while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
+      if (pid == this->pmt_pid[program_count]) {
+#ifdef TS_LOG
+        printf ("demux_ts: PMT prog: 0x%.4x pid: 0x%.4x\n",
+          this->program_number[program_count],
+	  this->pmt_pid[program_count]);
+#endif
+	demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4,
+	  payload_unit_start_indicator,
+	  program_count);
+	  return;
+      }
+      program_count++;
+    }
     int pes_stream_id = originalPkt[data_offset+3];
 
 #ifdef TS_HEADER_LOG
@@ -1643,11 +1664,6 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 			   data_len);
       return;
     }
-    else if (pid == 0) {
-      demux_ts_parse_pat (this, originalPkt, originalPkt+data_offset-4,
-			  payload_unit_start_indicator);
-      return;
-    }
     else if (pid == NULL_PID) {
 #ifdef TS_LOG
       printf ("demux_ts: Null Packet\n");
@@ -1663,23 +1679,6 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 			   payload_unit_start_indicator, continuity_counter,
 			   data_len);
       return;
-    }
-    else {
-      program_count = 0;
-      while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
-	if (pid == this->pmt_pid[program_count]) {
-#ifdef TS_LOG
-	  printf ("demux_ts: PMT prog: 0x%.4x pid: 0x%.4x\n",
-		  this->program_number[program_count],
-		  this->pmt_pid[program_count]);
-#endif
-	  demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4,
-			      payload_unit_start_indicator,
-			      program_count);
-	  return;
-	}
-	program_count++;
-      }
     }
   }
 }
