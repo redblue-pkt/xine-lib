@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.7 2001/11/17 14:26:38 f1rmb Exp $
+ * $Id: read_cache.c,v 1.8 2001/11/19 22:31:35 miguelfreitas Exp $
  */
 
 #include <sys/types.h>
@@ -204,6 +204,8 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
 
     } else {
 
+      this->cur_mbuf = NULL;
+      
       while (this->mbuf_pool_top==NULL) {
 	pthread_cond_wait (&this->mbuf_pool_not_empty, &this->lock);
       }
@@ -216,6 +218,8 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
     mbuf->adr = madr;
     mbuf->ref = 0;
     mbuf->size_valid = 0;
+    
+    this->cur_mbuf = mbuf;
 
     if (lseek (this->fd, madr, SEEK_SET) < 0) {
       fprintf(stderr, "read_cache: can't seek to offset %lld (%s)\n",
@@ -230,8 +234,6 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
       }
       mbuf->size_valid = bytes_read;
     }
-
-    this->cur_mbuf = mbuf;
 
   } else {
     mbuf = this->cur_mbuf;
