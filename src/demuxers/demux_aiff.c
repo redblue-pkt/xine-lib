@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.21 2003/01/04 14:48:11 miguelfreitas Exp $
+ * $Id: demux_aiff.c,v 1.22 2003/01/06 06:06:52 tmmm Exp $
  *
  */
 
@@ -186,6 +186,7 @@ static int demux_aiff_send_chunk (demux_plugin_t *this_gen) {
   unsigned int remaining_sample_bytes;
   off_t current_file_pos;
   int64_t current_pts;
+  int i;
 
   /* just load data chunks from wherever the stream happens to be
    * pointing; issue a DEMUX_FINISHED status if EOF is reached */
@@ -218,10 +219,15 @@ static int demux_aiff_send_chunk (demux_plugin_t *this_gen) {
 
     if (this->input->read(this->input, buf->content, buf->size) !=
       buf->size) {
-     buf->free_buffer(buf);
+      buf->free_buffer(buf);
       this->status = DEMUX_FINISHED;
       break;
     }
+
+    /* convert 8-bit signed -> unsigned */
+    if (this->audio_bits == 8)
+      for (i = 0; i < buf->size; i++)
+        buf->content[i] += 0x80;
 
     if (!remaining_sample_bytes)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
