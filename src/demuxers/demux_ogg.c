@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.158 2004/12/17 00:21:38 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.159 2004/12/17 20:48:39 tmattern Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1530,6 +1530,9 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
       this->last_pts[0] = 0;
       this->last_pts[1] = 0;
       
+      /* send control buffer to avoid buffer leak */
+      _x_demux_control_end(this->stream, 0);
+      _x_demux_control_start(this->stream);
       send_header(this);
     }
   }
