@@ -52,10 +52,8 @@ required for 1.0
 
 - rc4: provide long language strings via XINE_META_INFO_FULL_LANG in
   ogg demuxer and DVD input
-- update xine hacker's guide (article on post plugins still missing)
 - xine bug tracking system?
 - add help strings for all post plugins
-- add help strings for all config options
 - review code for stack overflows
   (no big review, just grep for the most common mistakes like
   sprintf, sscanf)
