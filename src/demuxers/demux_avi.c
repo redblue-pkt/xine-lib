@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.98 2002/06/25 03:37:53 tmmm Exp $
+ * $Id: demux_avi.c,v 1.99 2002/07/02 17:05:28 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1317,11 +1317,14 @@ static int demux_avi_start (demux_plugin_t *this_gen,
        * point.  This could in theory be turned into a binary search,
        * but it's a linear search for now. */
       while(1) {
-	if (get_video_pts (this, this->avi->video_posf) >= video_pts) {
-	  break;
-	}
-	this->avi->video_posf += 1;
+        vie = video_cur_index_entry(this);
+        if ((get_video_pts (this, this->avi->video_posf) >= video_pts)
+             && (vie->flags & AVIIF_KEYFRAME)) {
+          break;
+        }
+        this->avi->video_posf += 1;
       }
+      video_pts = get_video_pts (this, this->avi->video_posf);
     }
   }
 
