@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.12 2002/05/06 21:40:02 f1rmb Exp $
+ * $Id: input_mms.c,v 1.13 2002/05/23 23:22:14 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -49,7 +49,7 @@
 extern int errno;
 
 #if !defined(NDELAY) && defined(O_NDELAY)
-#define	FNDELAY	O_NDELAY
+#define FNDELAY O_NDELAY
 #endif
 
 typedef struct {
@@ -74,7 +74,9 @@ typedef struct {
 static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
+#ifdef LOG
   printf ("input_mms: trying to open '%s'\n", mrl);
+#endif
 
   this->mms = mms_connect (mrl);
 
@@ -84,20 +86,20 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
   if (this->mrl)
     free (this->mrl);
   
-  this->mrl    = strdup(mrl); /* FIXME: small memory leak */
+  this->mrl    = strdup(mrl); /* free(this->mrl) is in mms_plugin_dispose */
   this->curpos = 0;
   this->nbc    = nbc_init (this->xine);
   return 1;
 }
 
 static off_t mms_plugin_read (input_plugin_t *this_gen, 
-			      char *buf, off_t len) {
+                              char *buf, off_t len) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   off_t               n;
 
 #ifdef LOG
   printf ("mms_plugin_read: %lld bytes ...\n",
-	  len);
+          len);
 #endif
 
   nbc_check_buffers (this->nbc);
@@ -109,14 +111,14 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
 }
 
 static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen, 
-					     fifo_buffer_t *fifo, off_t todo) {
+                                             fifo_buffer_t *fifo, off_t todo) {
   /*mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; */
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   int                   total_bytes;
 
 #ifdef LOG
   printf ("mms_plugin_read_block: %lld bytes...\n",
-	  todo);
+          todo);
 #endif
 
   buf->content = buf->mem;
@@ -140,7 +142,7 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 
 #ifdef LOG
   printf ("mms_plugin_seek: %lld offset, %d origin...\n",
-	  offset, origin);
+          offset, origin);
 #endif
 
   switch (origin) {
@@ -255,7 +257,7 @@ static char* mms_plugin_get_mrl (input_plugin_t *this_gen) {
 }
 
 static int mms_plugin_get_optional_data (input_plugin_t *this_gen, 
-					 void *data, int data_type) {
+                                         void *data, int data_type) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
   switch (data_type) {
@@ -289,10 +291,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   if (iface != 6) {
     printf ("mms input plugin doesn't support plugin API version %d.\n"
-	    "PLUGIN DISABLED.\n"
-	    "This means there's a version mismatch between xine and this input"
-	    "plugin.\nInstalling current input plugins should help.\n",
-	    iface);
+            "PLUGIN DISABLED.\n"
+            "This means there's a version mismatch between xine and this input"
+            "plugin.\nInstalling current input plugins should help.\n",
+            iface);
     return NULL;
   }
 
