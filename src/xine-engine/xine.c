@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.226 2003/02/01 19:22:31 guenter Exp $
+ * $Id: xine.c,v 1.227 2003/02/04 21:24:52 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -213,10 +213,10 @@ void xine_stop (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
-  if (stream->audio_out)
+  if (stream->audio_out && stream->audio_out->set_flush_mode)
     stream->audio_out->set_flush_mode (stream->audio_out, 1);
 
-  if (stream->video_out)
+  if (stream->video_out && stream->video_out->set_flush_mode)
     stream->video_out->set_flush_mode (stream->video_out, 1);
 
   xine_stop_internal (stream);
@@ -233,10 +233,10 @@ void xine_stop (xine_stream_t *stream) {
   if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_STOP))
     xine_stop(stream->slave);
 
-  if (stream->video_out)
+  if (stream->video_out && stream->video_out->set_flush_mode)
     stream->video_out->set_flush_mode (stream->video_out, 0);
   
-  if (stream->audio_out)
+  if (stream->audio_out && stream->audio_out->set_flush_mode)
     stream->audio_out->set_flush_mode (stream->audio_out, 0);
   
   pthread_mutex_unlock (&stream->frontend_lock);
