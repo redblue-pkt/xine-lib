@@ -241,4 +241,7 @@ Contributions
 			Benjamin Herrenschmidt <benh@kernel.crashing.org>,
 			Michel Dänzer <daenzer@debian.org> and others)
 
+  Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
+    demux_ts fixes and improvements
+
     (let us know if we've forgotten anyone)
