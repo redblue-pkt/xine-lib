@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.82 2002/04/24 20:26:07 jcdutton Exp $
+ * $Id: metronom.c,v 1.83 2002/04/27 16:33:24 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,6 +47,10 @@
 #define PREBUFFER_PTS_OFFSET  30000
 #define VIDEO_DRIFT_TOLERANCE 45000
 #define AUDIO_DRIFT_TOLERANCE 45000
+
+/* redefine abs as macro to handle 64-bit diffs.
+   i guess llabs may not be available everywhere */
+#define abs(x) ( (x<0) ? (-x) : (x) )
 
 /*
 #define LOG
@@ -337,6 +341,9 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   
   pthread_mutex_lock (&this->lock);
 
+/*
+  printf("metronom: got_video_frame pts = %lld\n", pts );
+*/
   if (this->in_discontinuity) {
     this->in_discontinuity--;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.56 2002/04/23 13:30:42 esnel Exp $
+ * $Id: demux_mpeg.c,v 1.57 2002/04/27 16:33:24 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -118,11 +118,14 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
   return res;
 }
 
+/* redefine abs as macro to handle 64-bit diffs.
+   i guess llabs may not be available everywhere */
+#define abs(x) ( (x<0) ? (-x) : (x) )
 
 static void check_newpts( demux_mpeg_t *this, int64_t pts )
 {
   int64_t diff;
-
+  
   diff = pts - this->last_pts;
   
   if( !this->preview_mode && pts && 
@@ -381,7 +384,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
       pts |= (w & 0xFFFE) >> 1;
 
-/*       printf ("pts2=%d\n",pts); */
+/*       printf ("pts2=%lld\n",pts); */
 
       /* Decoding Time Stamp */
       w = read_bytes(this, 3); len -= 3;
