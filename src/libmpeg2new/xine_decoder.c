@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2004/03/03 20:09:13 mroi Exp $
+ * $Id: xine_decoder.c,v 1.21 2004/03/23 03:40:38 jcdutton Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -38,17 +38,21 @@
 #include "buffer.h"
 
 
-/*
+
 #define LOG
 #define LOG_FRAME_ALLOC_FREE
 #define LOG_ENTRY
 #define LOG_FRAME_COUNTER
-*/
+
 
 typedef struct {
   video_decoder_class_t   decoder_class;
 } mpeg2_class_t;
 
+typedef struct {
+  uint32_t id;
+  vo_frame_t * img;
+} img_state_t;
 
 typedef struct mpeg2_video_decoder_s {
   video_decoder_t  video_decoder;
@@ -58,25 +62,39 @@ typedef struct mpeg2_video_decoder_s {
   int32_t         force_aspect;
   int             force_pan_scan;
   double          ratio;
-  uint32_t        img_state[30];
+  img_state_t     img_state[30];
   uint32_t	  frame_number;
   uint32_t        rff_pattern;
   
 } mpeg2_video_decoder_t;
 
 
-static void mpeg2_video_print_bad_state(uint32_t * img_state) {
+static void mpeg2_video_print_bad_state(img_state_t * img_state) {
   int32_t n,m;
   m=0;
   for(n=0;n<30;n++) {
-    if (img_state[n]>0) {
-      printf("%d = %u\n",n, img_state[n]);
+    if (img_state[n].id>0) {
+      printf("%d = %u\n",n, img_state[n].id);
       m++;
     }
   }
   if (m > 3) _x_abort();
   if (m == 0) printf("NO FRAMES\n");
 } 
+
+static void mpeg2_video_free_all(img_state_t * img_state) {
+  int32_t n,m;
+  vo_frame_t * img;
+  printf("libmpeg2new:free_all\n");
+  for(n=0;n<30;n++) {
+    if (img_state[n].id>0) {
+      img = img_state[n].img;
+      img->free(img);
+      img_state[n].id = 0;
+    }
+  }
+} 
+
 
 static void mpeg2_video_print_fbuf(const mpeg2_fbuf_t * fbuf) {
   printf("%p",fbuf);
@@ -202,14 +220,16 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
 
  
 #ifdef LOG_FRAME_ALLOC_FREE
-        printf ("libmpeg2:decode_data:get_frame %p (id=%d)\n", img,img->id);
+        printf ("libmpeg2:decode_data:get_frame xine=%p (id=%d)\n", img,img->id);
 #endif
-        if (this->img_state[img->id] != 0) {
-          printf ("libmpeg2:decode_data:get_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
+        if (this->img_state[img->id].id != 0) {
+          printf ("libmpeg2:decode_data:get_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id].id);
           _x_abort();
         }
 
-        this->img_state[img->id] = 1;
+        this->img_state[img->id].id = 1;
+        this->img_state[img->id].img = img;
+
         mpeg2_set_buf (this->mpeg2dec, img->base, img);
         break;
       case STATE_SLICE:
@@ -231,35 +251,35 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
           this->rff_pattern |= img->repeat_first_field;
 
 #ifdef LOG_FRAME_ALLOC_FREE
-          printf ("libmpeg2:decode_data:draw_frame %p, id=%d \n", info->display_fbuf, img->id);
+          printf ("libmpeg2:decode_data:draw_frame xine=%p, fbuf=%p, id=%d \n", img, info->display_fbuf, img->id);
 #endif
-          if (this->img_state[img->id] != 1) {
-            printf ("libmpeg2:decode_data:draw_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
+          if (this->img_state[img->id].id != 1) {
+            printf ("libmpeg2:decode_data:draw_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id].id);
             _x_abort();
           }
-          if (this->img_state[img->id] == 1) {
+          if (this->img_state[img->id].id == 1) {
             frame_skipping = img->draw (img, this->stream);
             /* FIXME: Handle skipping */
-            this->img_state[img->id] = 2;
+            this->img_state[img->id].id = 2;
           }
 
         }
         if (info->discard_fbuf && !info->discard_fbuf->id) {
-          printf ("libmpeg2:decode_data:BAD free_frame discard_fbuf=%p\n", info->discard_fbuf);
-          _x_abort();
+          printf ("libmpeg2:decode_data:BAD free_frame discard: xine=%p, fbuf=%p\n", info->discard_fbuf->id, info->discard_fbuf);
+          //_x_abort();
         }
         if (info->discard_fbuf && info->discard_fbuf->id) {
           img = (vo_frame_t *) info->discard_fbuf->id;
 #ifdef LOG_FRAME_ALLOC_FREE
-          printf ("libmpeg2:decode_data:free_frame %p,id=%d\n", info->discard_fbuf, img->id);
+          printf ("libmpeg2:decode_data:free_frame xine=%p, fbuf=%p,id=%d\n", img, info->discard_fbuf, img->id);
 #endif
-          if (this->img_state[img->id] != 2) {
-            printf ("libmpeg2:decode_data:free_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
+          if (this->img_state[img->id].id != 2) {
+            printf ("libmpeg2:decode_data:free_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id].id);
             _x_abort();
           }
-          if (this->img_state[img->id] == 2) {
+          if (this->img_state[img->id].id == 2) {
             img->free(img);
-            this->img_state[img->id] = 0;
+            this->img_state[img->id].id = 0;
           }
         }
 #ifdef LOG_FRAME_ALLOC_FREE
@@ -269,6 +289,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
       case STATE_GOP:
         break;
       default:
+	printf("libmpeg2new: STATE unknown %d\n",state);
         break;
    }
 
@@ -299,6 +320,10 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 #ifdef LOG_ENTRY
   printf ("libmpeg2: reset\n");
 #endif
+  mpeg2_reset (this->mpeg2dec, 1); /* 1 for full reset */
+  mpeg2_video_free_all(this->img_state);
+
+
 #if 0  /* This bit of code does not work yet. */
   info = mpeg2_info (this->mpeg2dec);
   state = mpeg2_reset (this->mpeg2dec);
@@ -442,7 +467,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   mpeg2_custom_fbuf (this->mpeg2dec, 1);  /* <- Force libmpeg2 to use xine frame buffers. */
   stream->video_out->open(stream->video_out, stream);
   this->force_aspect = this->force_pan_scan = 0;
-  for(n=0;n<30;n++) this->img_state[n]=0;
+  for(n=0;n<30;n++) this->img_state[n].id=0;
 
   return &this->video_decoder;
 }
