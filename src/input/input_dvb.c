@@ -729,20 +729,31 @@ static int tuner_set_diseqc(tuner_t *this, channel_t *c)
    return 1;
 }
 
-/* this new tuning algorithm is taken from dvbstream - much faster than the older method */
+/* Tune to the requested freq. etc, wait for frontend to lock for a few seconds.
+ * if frontend can't lock, retire. */
 static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
 			  *front_param) {
-  fe_status_t status;
+  int status;
+  fe_status_t festatus;
   struct dvb_frontend_event event;
   struct pollfd pfd[1]; 
+  unsigned int strength;
+  unsigned int lock_tries=0;
 
+  event.status=0;  
   while(1)  {
    if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) < 0)       /* empty the event queue */
     break;
   }
 
   if (ioctl(this->fd_frontend, FE_SET_FRONTEND, front_param) <0) {
-    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "setfront front: %s\n", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "input_dvb: setfrontend error: %s\n", strerror(errno));
+  }
+
+  event.status=0;  
+  while(1)  {
+   if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) < 0)       /* empty the event queue */
+    break;
   }
 
   pfd[0].fd=this->fd_frontend;
@@ -750,7 +761,8 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   event.status=0;
 
   while (((event.status & FE_TIMEDOUT)==0) && ((event.status & FE_HAS_LOCK)==0)) {
-    if (poll(pfd,1,500) > 0){
+    printf("input_dvb: Trying for lock...\n");
+    if (poll(pfd,1,2000) > 0){
       if (pfd[0].revents & POLLPRI){
         if ((status = ioctl(this->fd_frontend, FE_GET_EVENT, &event)) < 0){
 	  if (errno != EOVERFLOW) {
@@ -758,10 +770,47 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
 	  }
         }
       }
+    } /* read the status from the frontend... it appears that event.status isn't correct for some FE's */ 
+    ioctl(this->fd_frontend, FE_READ_STATUS, &event.status);
+    lock_tries++;
+    if(lock_tries>5) { /* try to get lock for a few seconds */
+      break;
     }
   }
-  return 1;
+  
+  /* inform the user of frontend status */ 
+  festatus=0;
+  printf("input_dvb: Tuner status:  ");
+  if(ioctl(this->fd_frontend,FE_READ_STATUS,&festatus) >= 0){
+    if (festatus & FE_HAS_SIGNAL) printf(" FE_HAS_SIGNAL");
+    if (festatus & FE_TIMEDOUT) printf(" FE_TIMEDOUT");
+    if (festatus & FE_HAS_LOCK) printf(" FE_HAS_LOCK");
+    if (festatus & FE_HAS_CARRIER) printf(" FE_HAS_CARRIER");
+    if (festatus & FE_HAS_VITERBI) printf(" FE_HAS_VITERBI");
+    if (festatus & FE_HAS_SYNC) printf(" FE_HAS_SYNC");
+  }
+  printf("\n");
+  
+  strength=0;
+  if(ioctl(this->fd_frontend,FE_READ_BER,&strength) >= 0)
+    printf("input_dvb: Bit error rate: %i\n",strength);
+
+  strength=0;
+  if(ioctl(this->fd_frontend,FE_READ_SIGNAL_STRENGTH,&strength) >= 0)
+    printf("input_dvb: Signal strength: %i\n",strength);
+
+  strength=0;
+  if(ioctl(this->fd_frontend,FE_READ_SNR,&strength) >= 0)
+    printf("input_dvb: Signal/Noise Ratio: %i\n",strength);
+ 
+  if (event.status & FE_HAS_LOCK) {
+    return 1;
+  } else {
+    printf("input_dvb: Unable to achieve lock at %.lu Hz\n",(unsigned long)front_param->frequency);
+    return 0;
+  }
 }
+
 
 /* Parse the PMT, and add filters for all stream types associated with 
  * the 'channel'. We leave it to the demuxer to sort out which PIDs to 
