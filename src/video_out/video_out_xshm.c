@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.69 2002/03/21 18:29:51 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.70 2002/03/22 00:31:10 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -606,7 +606,8 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   this->dest_size_cb (this->user_data, frame->ideal_width, frame->ideal_height,
 		      &gui_width, &gui_height);
 
-  if ((frame->gui_width != gui_width) || (frame->gui_height != gui_height)) {
+  if ((frame->gui_width != gui_width) || (frame->gui_height != gui_height) 
+      || do_adapt) {
 
     do_adapt = 1;
     frame->gui_width  = gui_width;
