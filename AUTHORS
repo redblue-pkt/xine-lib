@@ -226,4 +226,7 @@ Contributions
   Ian Goldberg <ian@cypherpunks.ca>
     "streaming" AVI support (plays growing files), >2GB AVI files
 
+  Rogério Brito <rbrito@ime.usp.br>
+    C version for linear blend deinterlacer
+
     (let us know if we've forgotten anyone)
