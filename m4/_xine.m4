@@ -128,9 +128,9 @@ AC_DEFUN([AC_CHECK_DXR3],
       have_encoder=yes
     fi
     if test "$have_encoder" = "yes"; then
-      AC_MSG_RESULT([*** found one or more mpeg encoders, will compile in on-the-fly encoding]);
+      AC_MSG_RESULT([*** found one or more external mpeg encoders]);
     else
-      AC_MSG_RESULT([*** no mpeg encoder found, will support mpeg playing only]);
+      AC_MSG_RESULT([*** no external mpeg encoder found]);
     fi
   else
     AC_MSG_RESULT([DXR3 plugins will not be built.])
