@@ -178,7 +178,7 @@ static always_inline int cmp(MpegEncContext *s, const int x, const int y, const 
         }else
             d= 256*256*256*32;
     }else{
-        int uvdxy;
+        int uvdxy = 0;
         if(dxy){
             if(qpel){
                 c->qpel_put[size][dxy](c->temp, ref[0] + x + y*stride, stride); //FIXME prototype (add h)
