@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.80 2002/07/14 20:55:17 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.81 2002/07/25 17:11:51 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -84,6 +84,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;
+	this->audio_track_map_entries = 0;
 	this->audio_type = 0;
       }
       
@@ -100,6 +101,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;
+	this->audio_track_map_entries = 0;
 	this->audio_type = 0;
       }
       
@@ -132,6 +134,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;
+	this->audio_track_map_entries = 0;
 	this->audio_type = 0;
       }
       running = 0;
@@ -304,6 +307,7 @@ void audio_decoder_init (xine_t *this) {
   this->audio_fifo = fifo_buffer_new (230, 8192);
   this->audio_channel_user = -1;
   this->audio_channel_auto = 0;
+  this->audio_track_map_entries = 0;
   this->audio_type = 0;
 
   /* future magic - coming soon
