@@ -17,9 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.1 2001/10/07 03:53:11 heikos Exp $
+ * $Id: demux_ogg.c,v 1.2 2001/10/07 22:56:39 guenter Exp $
  *
- * demultiplexer for ogg program streams
+ * demultiplexer for ogg streams
  *
  */
 
@@ -60,9 +60,6 @@ typedef struct demux_ogg_s {
   int                   status;
   
   int                   send_end_buffers;
-
-  gui_get_next_mrl_cb_t next_mrl_cb;
-  gui_branched_cb_t     branched_cb;
 
   ogg_sync_state        oy;
   ogg_stream_state      os;
@@ -277,8 +274,6 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
-  this->next_mrl_cb = next_mrl_cb;
-  this->branched_cb = branched_cb;
 
   /* 
    * send start buffer
