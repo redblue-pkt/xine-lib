@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.23 2001/06/24 01:09:31 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.24 2001/06/24 05:30:03 guenter Exp $
  *
  */
 
@@ -38,6 +38,8 @@
 
 #include <inttypes.h>
 #include <unistd.h>
+#include <sys/types.h>
+
 
 /** 
  * \defgroup versgroup Version constants 
