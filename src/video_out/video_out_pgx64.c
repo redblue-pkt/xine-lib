@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.8 2002/10/12 01:34:46 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.9 2002/10/13 15:39:30 jkeil Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -683,6 +683,9 @@ static pgx64_driver_t* pgx64_init_plugin(xine_t *xine, void *visual_gen)
 {  
   pgx64_driver_t *this = init_plugin(xine);
 
+  if (this == NULL)
+    return NULL;
+
   this->display  = ((x11_visual_t*)visual_gen)->display;
   this->screen   = ((x11_visual_t*)visual_gen)->screen;
   this->drawable = ((x11_visual_t*)visual_gen)->d;
@@ -700,6 +703,9 @@ static pgx64_driver_t* pgx64_init_plugin(xine_t *xine, void *visual_gen)
 static pgx64_driver_t* pgx64fb_init_plugin(xine_t *xine, void *visual_gen)
 {
   pgx64_driver_t *this = init_plugin(xine);
+
+  if (this == NULL)
+    return NULL;
 
   this->vo_scale.user_data       = this;
   this->vo_scale.frame_output_cb = (void*)pgx64fb_output_callback;
