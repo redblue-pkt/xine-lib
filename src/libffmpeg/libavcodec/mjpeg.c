@@ -1667,7 +1667,7 @@ static int find_marker(uint8_t **pbuf_ptr, uint8_t *buf_end)
     while (buf_ptr < buf_end) {
         v = *buf_ptr++;
 	v2 = *buf_ptr;
-        if ((v == 0xff) && (v2 >= 0xc0) && (v2 <= 0xfe)) {
+        if ((buf_ptr < buf_end) && (v == 0xff) && (v2 >= 0xc0) && (v2 <= 0xfe)) {
 	    val = *buf_ptr++;
 	    goto found;
         }
