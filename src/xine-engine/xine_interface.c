@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.51 2003/04/08 18:10:47 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.52 2003/04/18 20:04:29 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -373,7 +373,23 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP, value);
     break;
-    
+
+  case XINE_PARAM_EQ_30HZ:
+  case XINE_PARAM_EQ_60HZ:
+  case XINE_PARAM_EQ_125HZ:
+  case XINE_PARAM_EQ_250HZ:
+  case XINE_PARAM_EQ_500HZ:
+  case XINE_PARAM_EQ_1000HZ:
+  case XINE_PARAM_EQ_2000HZ:
+  case XINE_PARAM_EQ_4000HZ:
+  case XINE_PARAM_EQ_8000HZ:
+  case XINE_PARAM_EQ_16000HZ:
+    if (stream->audio_out)
+      stream->audio_out->set_property (stream->audio_out, 
+				       param - XINE_PARAM_EQ_30HZ + AO_PROP_EQ_30HZ, 
+				       value);
+    break;
+
   case XINE_PARAM_VERBOSITY:
     stream->xine->verbosity = value;
     
@@ -451,6 +467,23 @@ int  xine_get_param (xine_stream_t *stream, int param) {
     if (!stream->audio_out)
       return -1;
     return stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP);
+
+  case XINE_PARAM_EQ_30HZ:
+  case XINE_PARAM_EQ_60HZ:
+  case XINE_PARAM_EQ_125HZ:
+  case XINE_PARAM_EQ_250HZ:
+  case XINE_PARAM_EQ_500HZ:
+  case XINE_PARAM_EQ_1000HZ:
+  case XINE_PARAM_EQ_2000HZ:
+  case XINE_PARAM_EQ_4000HZ:
+  case XINE_PARAM_EQ_8000HZ:
+  case XINE_PARAM_EQ_16000HZ:
+    if (!stream->audio_out)
+      return -1;
+
+    return stream->audio_out->get_property (stream->audio_out, 
+					    param - XINE_PARAM_EQ_30HZ + AO_PROP_EQ_30HZ);
+    break;
 
   case XINE_PARAM_VERBOSITY:
     return stream->xine->verbosity;

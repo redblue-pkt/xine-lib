@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.53 2003/03/08 20:25:52 guenter Exp $
+ * $Id: audio_out.h,v 1.54 2003/04/18 20:04:29 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -295,6 +295,16 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_only
 #define AO_PROP_DISCARD_BUFFERS 4
 #define AO_PROP_PAUSED          5
 #define AO_PROP_AMP             6 /* amplifier */
+#define AO_PROP_EQ_30HZ         7 /* equalizer */
+#define AO_PROP_EQ_60HZ         8 /* equalizer */
+#define AO_PROP_EQ_125HZ        9 /* equalizer */
+#define AO_PROP_EQ_250HZ       10 /* equalizer */
+#define AO_PROP_EQ_500HZ       11 /* equalizer */
+#define AO_PROP_EQ_1000HZ      12 /* equalizer */
+#define AO_PROP_EQ_2000HZ      13 /* equalizer */
+#define AO_PROP_EQ_4000HZ      14 /* equalizer */
+#define AO_PROP_EQ_8000HZ      15 /* equalizer */
+#define AO_PROP_EQ_16000HZ     16 /* equalizer */
 
 /* audio device control ops */
 #define AO_CTRL_PLAY_PAUSE	0

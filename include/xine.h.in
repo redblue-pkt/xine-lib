@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.76 2003/04/13 16:08:26 tmattern Exp $
+ * $Id: xine.h.in,v 1.77 2003/04/18 20:04:26 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -292,7 +292,16 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_IGNORE_SPU             15 /* disable spu decoding        */
 #define XINE_PARAM_ENABLE_BROADCAST       16 /* (not implemented yet)       */
 #define XINE_PARAM_METRONOM_PREBUFFER     17 /* unit: 1/90000 sec           */
-
+#define XINE_PARAM_EQ_30HZ                18 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_60HZ                19 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_125HZ               20 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_250HZ               21 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_500HZ               22 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_1000HZ              23 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_2000HZ              24 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_4000HZ              25 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_8000HZ              26 /* equalizer gains -100..100   */
+#define XINE_PARAM_EQ_16000HZ             27 /* equalizer gains -100..100   */
 
 /* speed values */
 #define XINE_SPEED_PAUSE                   0

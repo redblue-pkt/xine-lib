@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.120 2003/04/18 03:00:33 guenter Exp $
+ * $Id: audio_out.c,v 1.121 2003/04/18 20:04:28 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -247,8 +247,8 @@ typedef struct {
   /* 10-band equalizer */
 
   int             do_equ;
-  float           eq_gain[EQ_BANDS];
-  float           eq_preamp;
+  int             eq_gain[EQ_BANDS];
+  int             eq_preamp;
   int             eq_i;
   int             eq_j;
   int             eq_k;
@@ -566,7 +566,7 @@ static void audio_filter_equalize (aos_t *this,
 	  + (long long)iir_cf[band].gamma * (long long)this->eq_data_history[band][channel].y[this->eq_j]
 	  - (long long)iir_cf[band].beta * (long long)this->eq_data_history[band][channel].y[this->eq_k]; 
 	this->eq_data_history[band][channel].y[this->eq_i] = (int)(l >> FP_FRBITS);
-	l = (long long)this->eq_data_history[band][channel].y[this->eq_i] * (long long)EQ_REAL(this->eq_gain[band]);
+	l = (long long)this->eq_data_history[band][channel].y[this->eq_i] * (long long)this->eq_gain[band];
 	out[channel] +=	(int)(l >> FP_FRBITS);
       } 
 
@@ -1517,6 +1517,19 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     ret = this->amp_factor*100;
     break;
   
+  case AO_PROP_EQ_30HZ:
+  case AO_PROP_EQ_60HZ:
+  case AO_PROP_EQ_125HZ:
+  case AO_PROP_EQ_250HZ:
+  case AO_PROP_EQ_500HZ:
+  case AO_PROP_EQ_1000HZ:
+  case AO_PROP_EQ_2000HZ:
+  case AO_PROP_EQ_4000HZ:
+  case AO_PROP_EQ_8000HZ:
+  case AO_PROP_EQ_16000HZ: 
+    ret = (100 * this->eq_gain[property - AO_PROP_EQ_30HZ]) / (1 << FP_FRBITS) ;
+    break;
+
   case AO_PROP_DISCARD_BUFFERS:
     ret = this->discard_buffers;
     break;
@@ -1554,6 +1567,40 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     this->do_amp = (this->amp_factor != 1.0);
 
     ret = this->amp_factor*100;
+    break;
+
+  case AO_PROP_EQ_30HZ:
+  case AO_PROP_EQ_60HZ:
+  case AO_PROP_EQ_125HZ:
+  case AO_PROP_EQ_250HZ:
+  case AO_PROP_EQ_500HZ:
+  case AO_PROP_EQ_1000HZ:
+  case AO_PROP_EQ_2000HZ:
+  case AO_PROP_EQ_4000HZ:
+  case AO_PROP_EQ_8000HZ:
+  case AO_PROP_EQ_16000HZ: 
+    {
+
+      int min_gain, max_gain, i;
+
+      this->eq_gain[property - AO_PROP_EQ_30HZ] = EQ_REAL(((float)value / 100.0)) ;
+      
+      /* calc pregain, find out if any gain != 0.0 - enable eq if that is the case */
+      min_gain = EQ_REAL(0.0);
+      max_gain = EQ_REAL(0.0);
+      for (i=0; i<EQ_BANDS; i++) {
+	if (this->eq_gain[i] < min_gain)
+	  min_gain = this->eq_gain[i];
+	if (this->eq_gain[i] > max_gain)
+	  max_gain = this->eq_gain[i];
+      }
+      
+      printf ("audio_out: eq min_gain=%d, max_gain=%d\n", min_gain, max_gain);
+
+      this->do_equ = ((min_gain != EQ_REAL(0.0)) || (max_gain != EQ_REAL(0.0)));
+
+      ret = value;
+    }
     break;
   
   case AO_PROP_DISCARD_BUFFERS:
@@ -1759,22 +1806,20 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->do_amp                 = 0;
 
   this->do_equ                 = 0;
-
-  this->eq_gain[0] = 1.0;
-  this->eq_gain[1] = 0.9;
-  this->eq_gain[2] = 0.6;
-  this->eq_gain[3] = 0.5;
-  this->eq_gain[4] = 0.4;
-  this->eq_gain[5] = 0.0;
-  this->eq_gain[6] = 0.0;
-  this->eq_gain[7] = 0.0;
-  this->eq_gain[8] = 0.0;
-  this->eq_gain[9] = 0.0;
-
-  this->eq_preamp  = 1.0;
-  this->eq_i       = 0;
-  this->eq_j       = 2;
-  this->eq_k       = 1;
+  this->eq_gain[0]             = 0;
+  this->eq_gain[1]             = 0;
+  this->eq_gain[2]             = 0;
+  this->eq_gain[3]             = 0;
+  this->eq_gain[4]             = 0;
+  this->eq_gain[5]             = 0;
+  this->eq_gain[6]             = 0;
+  this->eq_gain[7]             = 0;
+  this->eq_gain[8]             = 0;
+  this->eq_gain[9]             = 0;
+  this->eq_preamp              = EQ_REAL(1.0);
+  this->eq_i                   = 0;
+  this->eq_j                   = 2;
+  this->eq_k                   = 1;
 
   bzero (this->eq_data_history, sizeof(sXYData) * EQ_BANDS * EQ_CHANNELS);
 
