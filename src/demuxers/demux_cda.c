@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.14 2002/05/15 22:02:48 tmattern Exp $
+ * $Id: demux_cda.c,v 1.15 2002/05/15 22:50:59 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -109,7 +109,7 @@ static void *demux_cda_loop (void *this_gen) {
     }
 
     /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
           this->status != DEMUX_OK){
       pthread_mutex_unlock( &this->mutex );
       xine_usec_sleep(100000);
@@ -156,17 +156,14 @@ static void demux_cda_stop (demux_plugin_t *this_gen) {
   }
   
   /* Force stop */  
-    printf ("demux_cda: before input->stop\n");
   this->input->stop(this->input);
   
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
   
-    printf ("demux_cda: before pthread_join\n");
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-    printf ("demux_cda: before flush_engine\n");
   xine_flush_engine(this->xine);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
