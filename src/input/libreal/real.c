@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.5 2002/12/22 16:46:27 holstsn Exp $
+ * $Id: real.c,v 1.6 2002/12/24 01:30:22 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -29,6 +29,8 @@
 
 #include "real.h"
 #include "asmrp.h"
+#include "sdpplin.h"
+#include <xineutils.h>
 
 /*
 #define LOG
@@ -469,356 +471,106 @@ static int select_mlti_data(const char *mlti_chunk, int mlti_size, int selection
 }
 
 /*
- * Decodes base64 strings (based upon b64 package)
- */
-
-static char *b64_decode(const char *in, int *size)
-{
-  char dtable[256];              /* Encode / decode table */
-  int i,j,k;
-  char *out=malloc(sizeof(char)*strlen(in));
-
-  for (i = 0; i < 255; i++) {
-    dtable[i] = 0x80;
-  }
-  for (i = 'A'; i <= 'Z'; i++) {
-    dtable[i] = 0 + (i - 'A');
-  }
-  for (i = 'a'; i <= 'z'; i++) {
-    dtable[i] = 26 + (i - 'a');
-  }
-  for (i = '0'; i <= '9'; i++) {
-    dtable[i] = 52 + (i - '0');
-  }
-  dtable['+'] = 62;
-  dtable['/'] = 63;
-  dtable['='] = 0;
-
-  k=0;
-  
-  /*CONSTANTCONDITION*/
-  for (j=0; j<strlen(in); j+=4)
-  {
-    char a[4], b[4];
-
-    for (i = 0; i < 4; i++) {
-      int c = in[i+j];
-
-      if (dtable[c] & 0x80) {
-        printf("Illegal character '%c' in input.\n", c);
-        exit(1);
-      }
-      a[i] = (char) c;
-      b[i] = (char) dtable[c];
-    }
-    out[k++] = (b[0] << 2) | (b[1] >> 4);
-    out[k++] = (b[1] << 4) | (b[2] >> 2);
-    out[k++] = (b[2] << 6) | b[3];
-    i = a[2] == '=' ? 1 : (a[3] == '=' ? 2 : 3);
-    if (i < 3) {
-      out[k]=0;
-      *size=k;
-      return out;
-    }
-  }
-  out[k]=0;
-  *size=k;
-  return out;
-}
-
-/*
  * looking at stream description.
  */
- 
-static int sdp_filter(const char *in, const char *filter, char *out) {
 
-  int flen=strlen(filter);
-  int len=strchr(in,'\n')-in;
+rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth) {
 
-  if (!strncmp(in,filter,flen))
-  {
-    if(in[flen]=='"') flen++;
-    if(in[len-1]==13) len--;
-    if(in[len-1]=='"') len--;
-    memcpy(out, &in[flen], len-flen);
-    out[len-flen]=0;
-
-    return len-flen;
-  }
+  sdpplin_t *desc;
+  rmff_header_t *header;
+  char buf[2048];
+  int len, i;
+  int max_bit_rate=0;
+  int avg_bit_rate=0;
+  int max_packet_size=0;
+  int avg_packet_size=0;
+  int duration=0;
   
-  return 0;
-}
 
-rmff_header_t *real_parse_sdp(const char *data, char *stream_rules, uint32_t bandwidth) {
+  if (!data) return NULL;
 
-  rmff_header_t *h=malloc(sizeof(rmff_header_t));
-  rmff_mdpr_t   *media=NULL;
-  char buf[4096];
-  int rulematches[16];
-  int n;
-  int len;
-  int have_audio=0, have_video=0, stream, sr[2];
+  desc=sdpplin_parse(data);
 
-  stream_rules[0]=0;
+  if (!desc) return NULL;
   
-  h=malloc(sizeof(rmff_header_t));
-  h->streams=malloc(sizeof(rmff_mdpr_t*)*3);
-  h->streams[0]=NULL;
-  h->streams[1]=NULL;
-  h->streams[2]=NULL;
-  h->prop=malloc(sizeof(rmff_prop_t));
-  h->streams[0]=malloc(sizeof(rmff_mdpr_t));
-  h->streams[1]=malloc(sizeof(rmff_mdpr_t));
-  h->cont=malloc(sizeof(rmff_cont_t));
-  h->data=malloc(sizeof(rmff_data_t));
-  h->fileheader=malloc(sizeof(rmff_fileheader_t));
-  h->fileheader->object_id=RMF_TAG;
-  h->fileheader->size=18;
-  h->fileheader->object_version=0;
-  h->fileheader->file_version=0;
-  h->fileheader->num_headers=6;
+  header=xine_xmalloc(sizeof(rmff_header_t));
 
-  h->prop->object_version=0;
-  h->streams[0]->object_version=0;
-  h->streams[1]->object_version=0;
-  h->cont->object_version=0;
-  h->data->object_version=0;
+  header->fileheader=rmff_new_fileheader(4+desc->stream_count);
+  header->cont=rmff_new_cont(
+      desc->title,
+      desc->author,
+      desc->copyright,
+      desc->abstract);
+  header->data=rmff_new_dataheader(0,0);
+  header->streams=xine_xmalloc(sizeof(rmff_mdpr_t*)*(desc->stream_count+1));
+#ifdef LOG
+    printf("number of streams: %u\n", desc->stream_count);
+#endif
 
-  h->prop->object_id=PROP_TAG;
-  h->streams[0]->object_id=MDPR_TAG;
-  h->streams[1]->object_id=MDPR_TAG;
-  h->cont->object_id=CONT_TAG;
-  h->data->object_id=DATA_TAG;
+  for (i=0; i<desc->stream_count; i++) {
 
-  h->prop->size=50;
-  h->data->size=18;
-  h->data->next_data_header=0;
+    int j=0;
+    int n;
+    char b[64];
+    int rulematches[16];
 
-  h->cont->title=NULL;
-  h->cont->author=NULL;
-  h->cont->copyright=NULL;
-  h->cont->comment=NULL;
-
-  while (*data) {
-
-    if(sdp_filter(data,"m=audio",buf))
-    {
-      media=h->streams[0];
-      have_audio=1;
-      stream=0;
-    } else if(sdp_filter(data,"m=video",buf))
-    {
-      media=h->streams[1];
-      have_video=1;
-      stream=1;
-    } else if(sdp_filter(data,"m=",buf))
-    {
-      printf("real: warning: unknown media stream type '%s'\n", buf);
-      do {
-        data+=strchr(data,'\n')-data+1;
-      } while (*data && data[0]!='m');
-      continue;
+#ifdef LOG
+    printf("calling asmrp_match with:\n%s\n%u\n", desc->stream[i]->asm_rule_book, bandwidth);
+#endif
+    n=asmrp_match(desc->stream[i]->asm_rule_book, bandwidth, rulematches);
+    for (j=0; j<n; j++) {
+#ifdef LOG
+      printf("asmrp rule match: %u for stream %u\n", rulematches[j], desc->stream[i]->stream_id);
+#endif
+      sprintf(b,"stream=%u;rule=%u,", desc->stream[i]->stream_id, rulematches[j]);
+      strcat(stream_rules, b);
     }
-  
-    /* cont stuff */
-  
-    len=sdp_filter(data,"a=Title:buffer;",buf);
-    if (len) h->cont->title=b64_decode(buf,&len);
+
+    len=select_mlti_data(desc->stream[i]->mlti_data, desc->stream[i]->mlti_data_size, rulematches[0], buf);
     
-    len=sdp_filter(data,"a=Author:buffer;",buf);
-    if (len) h->cont->author=b64_decode(buf,&len);
-    
-    len=sdp_filter(data,"a=Copyright:buffer;",buf);
-    if (len) h->cont->copyright=b64_decode(buf,&len);
-    
-    len=sdp_filter(data,"a=Abstract:buffer;",buf);
-    if (len) h->cont->comment=b64_decode(buf,&len);
+    header->streams[i]=rmff_new_mdpr(
+	desc->stream[i]->stream_id,
+        desc->stream[i]->max_bit_rate,
+        desc->stream[i]->avg_bit_rate,
+        desc->stream[i]->max_packet_size,
+        desc->stream[i]->avg_packet_size,
+        desc->stream[i]->start_time,
+        desc->stream[i]->preroll,
+        desc->stream[i]->duration,
+        desc->stream[i]->stream_name,
+        desc->stream[i]->mime_type,
+	len,
+	buf);
 
-    /* prop stuff */
-
-    len=sdp_filter(data,"a=StreamCount:integer;",buf);
-    if (len) h->prop->num_streams=atoi(buf);
-
-    len=sdp_filter(data,"a=Flags:integer;",buf);
-    if (len) h->prop->flags=atoi(buf);
-
-    /* mdpr stuff */
-
-    if (media) {
-
-      len=sdp_filter(data,"a=control:streamid=",buf);
-      if (len) media->stream_number=atoi(buf);
-
-      len=sdp_filter(data,"a=MaxBitRate:integer;",buf);
-      if (len)
-      {
-        media->max_bit_rate=atoi(buf);
-        media->avg_bit_rate=media->max_bit_rate;
-      }
-
-      len=sdp_filter(data,"a=MaxPacketSize:integer;",buf);
-      if (len)
-      {
-        media->max_packet_size=atoi(buf);
-        media->avg_packet_size=media->max_packet_size;
-      }
-      
-      len=sdp_filter(data,"a=StartTime:integer;",buf);
-      if (len) media->start_time=atoi(buf);
-
-      len=sdp_filter(data,"a=Preroll:integer;",buf);
-      if (len) media->preroll=atoi(buf);
-
-      len=sdp_filter(data,"a=length:npt=",buf);
-      if (len) media->duration=(uint32_t)(atof(buf)*1000);
-
-      len=sdp_filter(data,"a=StreamName:string;",buf);
-      if (len)
-      {
-        media->stream_name=strdup(buf);
-        media->stream_name_size=strlen(media->stream_name);
-      }
-      len=sdp_filter(data,"a=mimetype:string;",buf);
-      if (len)
-      {
-        media->mime_type=strdup(buf);
-        media->mime_type_size=strlen(media->mime_type);
-      }
-      len=sdp_filter(data,"a=OpaqueData:buffer;",buf);
-      if (len)
-      {
-        media->mlti_data=b64_decode(buf, &(media->mlti_data_size));
-#ifdef LOG
-	printf("mlti_data_size: %i\n", media->mlti_data_size);
-#endif
-      }
-      len=sdp_filter(data,"a=ASMRuleBook:string;",buf);
-      if (len)
-      {
-        int i=0;
-        char b[64];
-
-#ifdef LOG
-        printf("calling asmrp_match with:\n%s\n%u\n", buf, bandwidth);
-#endif
-        n=asmrp_match(buf, bandwidth, rulematches);
-        sr[stream]=rulematches[0];
-        for (i=0; i<n; i++) {
-#ifdef LOG
-          printf("asmrp rule match: %u for stream %u\n", rulematches[i], stream);
-#endif
-          sprintf(b,"stream=%u;rule=%u,", stream, rulematches[i]);
-          strcat(stream_rules, b);
-        }
-      }
-    }
-    data+=strchr(data,'\n')-data+1;
-  }
-  if (strlen(stream_rules)>0);
-    stream_rules[strlen(stream_rules)-1]=0; /* delete last , */
-
-  /* we have to reconstruct some data in prop */
-  h->prop->max_bit_rate=0;
-  h->prop->avg_bit_rate=0;
-  h->prop->max_packet_size=0;
-  h->prop->avg_packet_size=0;
-  h->prop->num_packets=0;
-  h->prop->duration=0;
-  h->prop->preroll=0;
-  h->prop->index_offset=0;
-  
-      
-  
-  if(have_video)
-  {
-  
-    h->prop->max_bit_rate=h->streams[1]->max_bit_rate;
-    h->prop->avg_bit_rate=h->streams[1]->avg_bit_rate;
-    h->prop->max_packet_size=h->streams[1]->max_packet_size;
-    h->prop->avg_packet_size=h->streams[1]->avg_packet_size;
-    h->prop->duration=h->streams[1]->duration;
-    /* h->prop->preroll=h->streams[1]->preroll; */
-
-    /* select a codec */
-    h->streams[1]->type_specific_len=select_mlti_data(
-          h->streams[1]->mlti_data, h->streams[1]->mlti_data_size, sr[1], buf);
-    h->streams[1]->type_specific_data=malloc(sizeof(char)*h->streams[1]->type_specific_len);
-    memcpy(h->streams[1]->type_specific_data, buf, h->streams[1]->type_specific_len);
-    
-  } else
-  {
-    free(h->streams[1]);
-    h->streams[1]=NULL;
-  }
-  if(have_audio)
-  {
-  
-    h->prop->max_bit_rate+=h->streams[0]->max_bit_rate;
-    h->prop->avg_bit_rate+=h->streams[0]->avg_bit_rate;
-    h->prop->max_packet_size=MAX(h->prop->max_packet_size,
-        h->streams[0]->max_packet_size);
-    if (have_video)
-      h->prop->avg_packet_size=(h->streams[1]->avg_packet_size
-          +h->streams[0]->avg_packet_size) / 2;
+    duration=MAX(duration,desc->stream[i]->duration);
+    max_bit_rate+=desc->stream[i]->max_bit_rate;
+    avg_bit_rate+=desc->stream[i]->avg_bit_rate;
+    max_packet_size=MAX(max_packet_size, desc->stream[i]->max_packet_size);
+    if (avg_packet_size)
+      avg_packet_size=(avg_packet_size + desc->stream[i]->avg_packet_size) / 2;
     else
-      h->prop->avg_packet_size=h->streams[0]->avg_packet_size;
-    h->prop->duration=MAX(h->prop->duration,h->streams[0]->duration);
-    /* h->prop->preroll=MAX(h->streams[1]->preroll,h->streams[0]->preroll); */
- 
-    /* select a codec */
-    h->streams[0]->type_specific_len=select_mlti_data(
-          h->streams[0]->mlti_data, h->streams[0]->mlti_data_size, sr[0], buf);
-    h->streams[0]->type_specific_data=malloc(sizeof(char)*h->streams[0]->type_specific_len);
-    memcpy(h->streams[0]->type_specific_data, buf, h->streams[0]->type_specific_len);
-    
- } else
-  {
-    free(h->streams[0]);
-    h->streams[0]=NULL;
+      avg_packet_size=desc->stream[i]->avg_packet_size;
   }
-
-  /* fix sizes */
-      
-  h->cont->title_len=0;
-  h->cont->author_len=0;
-  h->cont->copyright_len=0;
-  h->cont->comment_len=0;
-  if (h->cont->title) h->cont->title_len=strlen(h->cont->title);
-  if (h->cont->author) h->cont->author_len=strlen(h->cont->author);
-  if (h->cont->copyright) h->cont->copyright_len=strlen(h->cont->copyright);
-  if (h->cont->comment) h->cont->comment_len=strlen(h->cont->comment);
-
-  h->cont->size=18
-      +h->cont->title_len
-      +h->cont->author_len
-      +h->cont->copyright_len
-      +h->cont->comment_len;
-
-  if (have_audio)
-    h->streams[0]->size=12+7*4+6
-      +h->streams[0]->stream_name_size
-      +h->streams[0]->mime_type_size
-      +h->streams[0]->type_specific_len;
-
-  if (have_video)
-    h->streams[1]->size=12+7*4+6
-      +h->streams[1]->stream_name_size
-      +h->streams[1]->mime_type_size
-      +h->streams[1]->type_specific_len;
-
-  /* fix data offset */
   
-  h->prop->data_offset=RMFF_HEADER_SIZE
-      +h->cont->size
-      +h->prop->size;
+  if (stream_rules)
+    stream_rules[strlen(stream_rules)-1]=0; /* delete last ',' in stream_rules */
 
-  if (have_video)
-    h->prop->data_offset+=h->streams[1]->size;
+  header->prop=rmff_new_prop(
+      max_bit_rate,
+      avg_bit_rate,
+      max_packet_size,
+      avg_packet_size,
+      0,
+      duration,
+      0,
+      0,
+      0,
+      desc->stream_count,
+      desc->flags);
 
-  if (have_audio)
-    h->prop->data_offset+=h->streams[0]->size;
+  rmff_fix_header(header);
 
-  return h;
+  return header;
 }
 
 int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer) {

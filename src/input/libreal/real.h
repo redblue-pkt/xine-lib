@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.h,v 1.1 2002/12/12 22:14:55 holstsn Exp $
+ * $Id: real.h,v 1.2 2002/12/24 01:30:22 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -28,7 +28,7 @@
 #define HAVE_REAL_H
 
 #include "rmff.h"
-#include "../librtsp/rtsp.h"
+#include "rtsp.h"
 
 #ifdef __CYGWIN__
 #define uint32_t unsigned int
@@ -42,7 +42,7 @@
  */
 void real_calc_response_and_checksum (char *response, char *chksum, char *challenge);
 int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer);
-rmff_header_t *real_parse_sdp(const char *data, char *stream_rules, uint32_t bandwidth);
+rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth);
 rmff_header_t *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwidth);
 
 #endif

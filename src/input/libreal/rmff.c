@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.c,v 1.2 2002/12/15 01:51:36 holstsn Exp $
+ * $Id: rmff.c,v 1.3 2002/12/24 01:30:22 holstsn Exp $
  *
  * functions for real media file format
  * adopted from joschkas real tools
@@ -623,6 +623,7 @@ rmff_mdpr_t *rmff_new_mdpr(
     mdpr->mime_type_size=strlen(mime_type);
   }
   mdpr->type_specific_len=type_specific_len;
+  mdpr->type_specific_data=malloc(sizeof(char)*type_specific_len);
   memcpy(mdpr->type_specific_data,type_specific_data,type_specific_len);
   mdpr->mlti_data=NULL;
   
