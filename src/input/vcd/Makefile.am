@@ -1,9 +1,8 @@
+include $(top_srcdir)/misc/Makefile.common
+
 SUBDIRS = libcdio libvcd
 
 libdir = $(XINE_PLUGINDIR)
-
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
-XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 vcdx_SRCS = xineplug_inp_vcd.c vcdplayer.c vcdio.c xine-extra.c
 
@@ -25,23 +24,3 @@ endif
 endif
 
 noinst_HEADERS = vcdio.h vcdplayer.h xine-extra.h
-
-debug:
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBCDIO_CFLAGS) $(LIBVCD_CFLAGS)"
-
-install-debug: debug
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

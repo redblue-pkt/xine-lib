@@ -63,18 +63,6 @@ lib_LTLIBRARIES = \
 	xineplug_inp_cdda.la
 
 
-#lib_LTLIBRARIES = \
-#	$(in_cda) \
-#	$(in_dvd) \
-#	$(in_vcd) \
-#	xineplug_inp_file.la \
-#	xineplug_inp_http.la \
-#	xineplug_inp_mms.la \
-#	xineplug_inp_net.la \
-#	xineplug_inp_rtp.la \
-#	xineplug_inp_stdin_fifo.la
-
-
 xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LIBADD = $(XINE_LIB)
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

@@ -1,6 +1,7 @@
+include $(top_srcdir)/misc/Makefile.common
+
 SUBDIRS = cdio
 
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 INCLUDES = $(LIBCDIO_CFLAGS)
 
 libcdio_SRCS = \
@@ -26,9 +27,10 @@ libiso9660_SRCS = \
 	iso9660_fs.c \
 	xa.c
 
+EXTRA_DIST = $(libcdio_SRCS) $(libiso9660_SRCS)
+
 if ENABLE_VCDX
 if HAVE_VCDNAV
-EXTRA_DIST = $(libcdio_SRCS) $(libio9660_SRCS)
 else
 noinst_LTLIBRARIES = libcdio.la libiso9660.la
 libcdio_la_SOURCES = $(libcdio_SRCS)
@@ -48,24 +50,3 @@ noinst_HEADERS = \
 	cdio_private.h \
 	_cdio_stream.h \
 	iso9660_private.h
-
-
-debug:
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
-
-install-debug: debug
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* 
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in
