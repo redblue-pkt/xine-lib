@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.121 2003/04/04 19:20:52 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.122 2003/07/02 23:10:21 jcdutton Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1226,35 +1226,6 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   int size_read, size_written;
   /* DWORD srcsize=0; */
     
-  /* FIXME: this code still far from perfect, there are a/v sync
-     issues with some streams.
-  */
-  
-  /* buffer empty -> take pts from package */
-  if( !this->size ) {
-    this->pts = pts;
-    /*
-    printf("w32codec: resync pts (%d)\n",this->pts);
-    */
-    this->sumpts = this->sumsize = 0;
-  } else if ( !this->pts ) {
-    if( pts )
-      this->sumpts += (pts - this->lastpts);
-    this->sumsize += size;
-  }
-  
-  /* force resync every 4 seconds */
-  if( this->sumpts >= 4 * 90000 && pts ) {
-    this->pts = pts - this->size * this->sumpts / this->sumsize;
-    /*
-    printf("w32codec: estimated resync pts (%d)\n",this->pts);
-    */
-    this->sumpts = this->sumsize = 0;
-  }
-  
-  if( pts )
-    this->lastpts = pts;
-     
   if( this->size + size > this->max_audio_src_size ) {
     this->max_audio_src_size = this->size + 2 * size;
     printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
@@ -1333,9 +1304,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 	  bufsize = audio_buffer->mem_size;
       
         xine_fast_memcpy( audio_buffer->mem, p, bufsize );
-	/*
-        printf("  outputing %d bytes, pts = %d\n", bufsize, pts );
-        */
+	
 	audio_buffer->num_frames = bufsize / (this->num_channels*2);
 	audio_buffer->vpts       = this->pts;
 

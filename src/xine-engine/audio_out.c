@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.132 2003/06/22 17:10:41 mroi Exp $
+ * $Id: audio_out.c,v 1.133 2003/07/02 23:10:21 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1319,7 +1319,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   
   buf->stream = stream;
   extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
-  
+
   pts = buf->vpts;
 
   buf->vpts = stream->metronom->got_audio_samples (stream->metronom, pts, 
