@@ -345,22 +345,25 @@ dnl Find pkg-config
 dnl
 AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 if test x$PKG_CONFIG = xno ; then
-  AC_MSG_ERROR([*** pkg-config not found. See http://pkgconfig.sourceforge.net])
-fi
+  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
+  echo "*** All of DIRECTFB dependent parts will be disabled"
+else
 
 dnl
 dnl Check for DirectFB
 dnl
-DIRECTFB_REQUIRED_VERSION=0.9.9
+  DIRECTFB_REQUIRED_VERSION=0.9.9
 
-AC_MSG_CHECKING(for DirectFB)
-if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then
-      AC_MSG_RESULT(found)
-      DIRECTFB_CFLAGS=`$PKG_CONFIG --cflags directfb`
-      DIRECTFB_LIBS=`$PKG_CONFIG --libs directfb`
-      have_directfb="yes"
-else
-  AC_MSG_RESULT([*** All of DIRECTFB dependent parts will be disabled ***])
+  AC_MSG_CHECKING(for DirectFB)
+  if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then
+        AC_MSG_RESULT(found)
+        DIRECTFB_CFLAGS=`$PKG_CONFIG --cflags directfb`
+        DIRECTFB_LIBS=`$PKG_CONFIG --libs directfb`
+        have_directfb="yes"
+  else
+    AC_MSG_RESULT([*** All of DIRECTFB dependent parts will be disabled ***])
+  fi
+
 fi
 
 AC_SUBST(DIRECTFB_CFLAGS)
