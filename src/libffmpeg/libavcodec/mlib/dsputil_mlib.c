@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
 #include "../dsputil.h"
@@ -23,270 +23,281 @@
 #include <mlib_types.h>
 #include <mlib_status.h>
 #include <mlib_sys.h>
+#include <mlib_algebra.h>
 #include <mlib_video.h>
 
-/* copy block, width 16 pixel, height 8/16 */
-
-static void put_pixels16_mlib (uint8_t * dest, const uint8_t * ref,
-			       int stride, int height)
+static void get_pixels_mlib(DCTELEM *restrict block, const UINT8 *pixels, int line_size)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoCopyRef_U8_U8_16x16(dest, (uint8_t *)ref, stride);
-    else
-	mlib_VideoCopyRef_U8_U8_16x8 (dest, (uint8_t *)ref, stride);
+  int i;
+
+  for (i=0;i<8;i++) {
+    mlib_VectorConvert_S16_U8_Mod((mlib_s16 *)block, (mlib_u8 *)pixels, 8);
+
+    pixels += line_size;
+    block += 8;
+  }
 }
 
-static void put_pixels16_x2_mlib (uint8_t * dest, const uint8_t * ref,
-				  int stride, int height)
+static void diff_pixels_mlib(DCTELEM *restrict block, const UINT8 *s1, const UINT8 *s2, int line_size)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpX_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpX_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  int i;
+
+  for (i=0;i<8;i++) {
+    mlib_VectorSub_S16_U8_Mod((mlib_s16 *)block, (mlib_u8 *)s1, (mlib_u8 *)s2, 8);
+
+    s1 += line_size;
+    s2 += line_size;
+    block += 8;
+  }
 }
 
-static void put_pixels16_y2_mlib (uint8_t * dest, const uint8_t * ref,
-				  int stride, int height)
+static void put_pixels_clamped_mlib(const DCTELEM *block, UINT8 *restrict pixels, int line_size)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpY_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  int i;
+
+  for(i=0;i<8;i++) {
+    mlib_VectorConvert_U8_S16_Sat(pixels, (mlib_s16 *)block, 8);
+
+    pixels += line_size;
+    block += 8;
+  }
 }
 
-static void put_pixels16_xy2_mlib(uint8_t * dest, const uint8_t * ref,
-				  int stride, int height)
+static void add_pixels_clamped_mlib(const DCTELEM *block, UINT8 *restrict pixels, int line_size)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16) 
-	mlib_VideoInterpXY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpXY_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
 }
 
-
-/* copy block, width 8 pixel, height 8/16 */
-
-static void put_pixels8_mlib (uint8_t * dest, const uint8_t * ref,
-			      int stride, int height)
+static void put_pixels16_mlib (uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoCopyRef_U8_U8_8x16(dest, (uint8_t *)ref, stride);
-    else
-	mlib_VideoCopyRef_U8_U8_8x8 (dest, (uint8_t *)ref, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoCopyRef_U8_U8_16x16(dest, (uint8_t *)ref, stride);
+  }
+  else {
+    mlib_VideoCopyRef_U8_U8_16x8 (dest, (uint8_t *)ref, stride);
+  }
 }
 
-static void put_pixels8_x2_mlib (uint8_t * dest, const uint8_t * ref,
-				 int stride, int height)
+static void put_pixels16_x2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpX_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpX_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpX_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpX_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void put_pixels8_y2_mlib (uint8_t * dest, const uint8_t * ref,
-				 int stride, int height)
+static void put_pixels16_y2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpY_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpY_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void put_pixels8_xy2_mlib(uint8_t * dest, const uint8_t * ref,
-				 int stride, int height)
+static void put_pixels16_xy2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16) 
-	mlib_VideoInterpXY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpXY_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpXY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpXY_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-
-/* average/merge dest+source block, width 16 pixel, height 8/16 */
-
-static void avg_pixels16_mlib (uint8_t * dest, const uint8_t * ref,
-			       int stride, int height)
+static void put_pixels8_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoCopyRefAve_U8_U8_16x16(dest, (uint8_t *)ref, stride);
-    else
-	mlib_VideoCopyRefAve_U8_U8_16x8 (dest, (uint8_t *)ref, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoCopyRef_U8_U8_8x16(dest, (uint8_t *)ref, stride);
+  }
+  else {
+    mlib_VideoCopyRef_U8_U8_8x8 (dest, (uint8_t *)ref, stride);
+  }
 }
 
-static void avg_pixels16_x2_mlib (uint8_t * dest, const uint8_t * ref,
-				  int stride, int height)
+static void put_pixels8_x2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpAveX_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpAveX_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpX_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpX_U8_U8_8x8(dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void avg_pixels16_y2_mlib (uint8_t * dest, const uint8_t * ref,
-				  int stride, int height)
+static void put_pixels8_y2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpAveY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpAveY_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpY_U8_U8_8x8(dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void avg_pixels16_xy2_mlib (uint8_t * dest, const uint8_t * ref,
-				   int stride, int height)
+static void put_pixels8_xy2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpAveXY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpAveXY_U8_U8_16x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpXY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpXY_U8_U8_8x8(dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-
-/* average/merge dest+source block, width 8 pixel, height 8/16 */
-
-static void avg_pixels8_mlib (uint8_t * dest, const uint8_t * ref,
-			      int stride, int height)
+static void avg_pixels16_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoCopyRefAve_U8_U8_8x16(dest, (uint8_t *)ref, stride);
-    else
-	mlib_VideoCopyRefAve_U8_U8_8x8 (dest, (uint8_t *)ref, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16){
+    mlib_VideoCopyRefAve_U8_U8_16x16(dest, (uint8_t *)ref, stride);
+  }
+  else {
+    mlib_VideoCopyRefAve_U8_U8_16x8(dest, (uint8_t *)ref, stride);
+  }
 }
 
-static void avg_pixels8_x2_mlib (uint8_t * dest, const uint8_t * ref,
-				 int stride, int height)
+static void avg_pixels16_x2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpAveX_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpAveX_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpAveX_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpAveX_U8_U8_16x8(dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void avg_pixels8_y2_mlib (uint8_t * dest, const uint8_t * ref,
-				 int stride, int height)
+static void avg_pixels16_y2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpAveY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpAveY_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpAveY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpAveY_U8_U8_16x8(dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void avg_pixels8_xy2_mlib (uint8_t * dest, const uint8_t * ref,
-				  int stride, int height)
+static void avg_pixels16_xy2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    assert(height == 16 || height == 8);
-    if (height == 16)
-	mlib_VideoInterpAveXY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
-    else
-	mlib_VideoInterpAveXY_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpAveXY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpAveXY_U8_U8_16x8(dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void put_pixels_clamped_mlib(const DCTELEM *block, UINT8 *pixels, int line_size)
+static void avg_pixels8_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    int i;
-    uint8_t *p = pixels;
-
-    for (i=0; i<8; i++) {
-      memset(p, 0, 8);
-      p += line_size;
-    }
-
-    mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
-
-    /*int i;
-    UINT8 *cm = cropTbl + MAX_NEG_CROP;
-
-    for(i=0;i<8;i++) {
-        pixels[0] = cm[block[0]];
-        pixels[1] = cm[block[1]];
-        pixels[2] = cm[block[2]];
-        pixels[3] = cm[block[3]];
-        pixels[4] = cm[block[4]];
-        pixels[5] = cm[block[5]];
-        pixels[6] = cm[block[6]];
-        pixels[7] = cm[block[7]];
-
-        pixels += line_size;
-        block += 8;
-    }*/
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoCopyRefAve_U8_U8_8x16(dest, (uint8_t *)ref, stride);
+  }
+  else {
+    mlib_VideoCopyRefAve_U8_U8_8x8(dest, (uint8_t *)ref, stride);
+  }
 }
 
-static void add_pixels_clamped_mlib(const DCTELEM *block, UINT8 *pixels, int line_size)
+static void avg_pixels8_x2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpAveX_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpAveX_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-/* XXX: those functions should be suppressed ASAP when all IDCTs are
-   converted */
-static void ff_idct_put_mlib(UINT8 *dest, int line_size, DCTELEM *data)
+static void avg_pixels8_y2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    mlib_VideoIDCT8x8_S16_S16 (data, data);
-    put_pixels_clamped_mlib(data, dest, line_size);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpAveY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpAveY_U8_U8_8x8(dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
-static void ff_idct_add_mlib(UINT8 *dest, int line_size, DCTELEM *data)
+static void avg_pixels8_xy2_mlib(uint8_t *dest, const uint8_t *ref, int stride, int height)
 {
-    mlib_VideoIDCT8x8_S16_S16 (data, data);
-    add_pixels_clamped_mlib(data, dest, line_size);
-}
-
-static void ff_fdct_mlib(DCTELEM *data)
-{
-    mlib_VideoDCT8x8_S16_S16 (data, data);
+  assert(height == 16 || height == 8);
+  if (height == 16) {
+    mlib_VideoInterpAveXY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
+  }
+  else {
+    mlib_VideoInterpAveXY_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
+  }
 }
 
 void dsputil_init_mlib(DSPContext* c, unsigned mask)
 {
-    c->put_pixels_tab[0][0] = put_pixels16_mlib;
-    c->put_pixels_tab[0][1] = put_pixels16_x2_mlib;
-    c->put_pixels_tab[0][2] = put_pixels16_y2_mlib;
-    c->put_pixels_tab[0][3] = put_pixels16_xy2_mlib;
-    c->put_pixels_tab[1][0] = put_pixels8_mlib;
-    c->put_pixels_tab[1][1] = put_pixels8_x2_mlib;
-    c->put_pixels_tab[1][2] = put_pixels8_y2_mlib;
-    c->put_pixels_tab[1][3] = put_pixels8_xy2_mlib;
+  c->get_pixels = get_pixels_mlib;
+  c->diff_pixels = diff_pixels_mlib;
 
-    c->avg_pixels_tab[0][0] = avg_pixels16_mlib;
-    c->avg_pixels_tab[0][1] = avg_pixels16_x2_mlib;
-    c->avg_pixels_tab[0][2] = avg_pixels16_y2_mlib;
-    c->avg_pixels_tab[0][3] = avg_pixels16_xy2_mlib;
-    c->avg_pixels_tab[1][0] = avg_pixels8_mlib;
-    c->avg_pixels_tab[1][1] = avg_pixels8_x2_mlib;
-    c->avg_pixels_tab[1][2] = avg_pixels8_y2_mlib;
-    c->avg_pixels_tab[1][3] = avg_pixels8_xy2_mlib;
+  c->put_pixels_clamped = put_pixels_clamped_mlib;
+  c->add_pixels_clamped = add_pixels_clamped_mlib;
 
-    c->put_no_rnd_pixels_tab[0][0] = put_pixels16_mlib;
-    c->put_no_rnd_pixels_tab[1][0] = put_pixels8_mlib;
+  c->put_pixels_tab[0][0] = put_pixels16_mlib;
+  c->put_pixels_tab[0][1] = put_pixels16_x2_mlib; 
+  c->put_pixels_tab[0][2] = put_pixels16_y2_mlib;
+  c->put_pixels_tab[0][3] = put_pixels16_xy2_mlib;
+  c->put_pixels_tab[1][0] = put_pixels8_mlib;
+  c->put_pixels_tab[1][1] = put_pixels8_x2_mlib;
+  c->put_pixels_tab[1][2] = put_pixels8_y2_mlib;
+  c->put_pixels_tab[1][3] = put_pixels8_xy2_mlib;
 
-    c->add_pixels_clamped = add_pixels_clamped_mlib;
+  c->avg_pixels_tab[0][0] = avg_pixels16_mlib;
+  c->avg_pixels_tab[0][1] = avg_pixels16_x2_mlib;
+  c->avg_pixels_tab[0][2] = avg_pixels16_y2_mlib;
+  c->avg_pixels_tab[0][3] = avg_pixels16_xy2_mlib; 
+  c->avg_pixels_tab[1][0] = avg_pixels8_mlib;
+  c->avg_pixels_tab[1][1] = avg_pixels8_x2_mlib;
+  c->avg_pixels_tab[1][2] = avg_pixels8_y2_mlib;
+  c->avg_pixels_tab[1][3] = avg_pixels8_xy2_mlib;
+}
+
+static void ff_fdct_mlib(DCTELEM *data)
+{
+  mlib_VideoDCT8x8_S16_S16(data, data);
+}
+
+static void ff_idct_put_mlib(UINT8 *dest, int line_size, DCTELEM *data)
+{
+  mlib_VideoIDCT8x8_S16_S16(data, data);
+  put_pixels_clamped_mlib(data, dest, line_size);
+}
+
+static void ff_idct_add_mlib(UINT8 *dest, int line_size, DCTELEM *data)
+{
+  mlib_VideoIDCT8x8_S16_S16(data, data);
+  add_pixels_clamped_mlib(data, dest, line_size);
 }
 
 void MPV_common_init_mlib(MpegEncContext *s)
 {
-    int i;
+  if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB) {
+    s->fdct = ff_fdct_mlib;
+  }
 
-    if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
-	s->fdct = ff_fdct_mlib;
-    }
-
-    if(s->avctx->idct_algo==FF_IDCT_AUTO || s->avctx->idct_algo==FF_IDCT_MLIB){
-        s->idct_put= ff_idct_put_mlib;
-        s->idct_add= ff_idct_add_mlib;
-        s->idct_permutation_type= FF_NO_IDCT_PERM;
-    }
+  if (s->avctx->idct_algo==FF_IDCT_AUTO || s->avctx->idct_algo==FF_IDCT_MLIB) {
+    s->idct_put = ff_idct_put_mlib;
+    s->idct_add = ff_idct_add_mlib; 
+    s->idct_permutation_type = FF_NO_IDCT_PERM;
+  }
 }
+
