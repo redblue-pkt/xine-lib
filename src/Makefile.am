@@ -36,6 +36,7 @@ SUBDIRS = \
 	libmpeg2 \
 	liba52 \
 	libspudec \
+	libdts \
 	libmad \
 	libw32dll \
 	liblpcm \
