@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.96 2003/02/22 17:32:31 guenter Exp $
+ * $Id: xine_decoder.c,v 1.97 2003/02/23 01:22:56 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -151,6 +151,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   if (avcodec_open (this->context, this->codec) < 0) {
     printf ("ffmpeg: couldn't open decoder\n");
     free(this->context);
+    this->context = NULL;
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 0;
     return;
   }
