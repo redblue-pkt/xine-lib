@@ -64,6 +64,7 @@ AC_ARG_ENABLE(xinetest,
     else
       XINE_CFLAGS=`$XINE_CONFIG $xine_config_args --cflags`
       XINE_LIBS=`$XINE_CONFIG $xine_config_args --libs`
+      XINE_ACFLAGS=`$XINE_CONFIG $xine_config_args --acflags`
       xine_config_major_version=`$XINE_CONFIG $xine_config_args --version | \
              sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
       xine_config_minor_version=`$XINE_CONFIG $xine_config_args --version | \
@@ -203,6 +204,7 @@ main ()
   fi
   AC_SUBST(XINE_CFLAGS)
   AC_SUBST(XINE_LIBS)
+  AC_SUBST(XINE_ACFLAGS)
   AC_LANG_RESTORE()
   rm -f conf.xinetest
 ])
