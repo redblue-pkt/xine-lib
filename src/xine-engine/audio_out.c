@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.186 2004/10/16 18:26:51 hadess Exp $
+ * $Id: audio_out.c,v 1.187 2004/11/10 07:45:29 tmattern Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -972,6 +972,8 @@ static void *ao_loop (void *this_gen) {
     }
 
     if (this->discard_buffers) {
+      if (in_buf->stream)
+	_x_refcounter_dec(in_buf->stream->refcounter);
       fifo_append (this->free_fifo, in_buf);
       in_buf = NULL;
       pthread_mutex_unlock(&this->flush_audio_driver_lock);
@@ -993,6 +995,8 @@ static void *ao_loop (void *this_gen) {
 	cur_time = this->clock->get_current_time (this->clock);
 	if (in_buf->vpts < cur_time ) {
 	  lprintf ("loop: next fifo\n");
+	  if (in_buf->stream)
+	    _x_refcounter_dec(in_buf->stream->refcounter);
 	  fifo_append (this->free_fifo, in_buf);
 	  in_buf = NULL;
 	  continue;
@@ -1105,6 +1109,8 @@ static void *ao_loop (void *this_gen) {
 
       /* drop package */
       lprintf ("loop: drop package, next fifo\n");
+      if (in_buf->stream)
+	_x_refcounter_dec(in_buf->stream->refcounter);
       fifo_append (this->free_fifo, in_buf);
 
       lprintf ("audio package (vpts = %" PRId64 ", gap = %" PRId64 ") dropped\n",
@@ -1180,6 +1186,8 @@ static void *ao_loop (void *this_gen) {
       }
       
       lprintf ("loop: next buf from fifo\n");
+      if (in_buf->stream)
+	_x_refcounter_dec(in_buf->stream->refcounter);
       fifo_append (this->free_fifo, in_buf);
       in_buf = NULL;
     }
@@ -1191,8 +1199,11 @@ static void *ao_loop (void *this_gen) {
       sched_yield();
   }
 
-  if (in_buf)
+  if (in_buf) {
+    if (in_buf->stream)
+      _x_refcounter_dec(in_buf->stream->refcounter);
     fifo_append (this->free_fifo, in_buf);
+  }
 
   return NULL;
 }
@@ -1238,6 +1249,8 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   out_buf = prepare_samples (this, in_buf);
 
   if (out_buf != in_buf) {
+    if (in_buf->stream)
+      _x_refcounter_dec(in_buf->stream->refcounter);
     fifo_append (this->free_fifo, in_buf);
     frame->xine_frame = NULL;
   } else
@@ -1262,8 +1275,11 @@ void xine_free_audio_frame (xine_audio_port_t *this_gen, xine_audio_frame_t *fra
 
   buf = (audio_buffer_t *) frame->xine_frame;
 
-  if (buf)
+  if (buf) {
+    if (buf->stream)
+      _x_refcounter_dec(buf->stream->refcounter);
     fifo_append (this->free_fifo, buf);
+  }
 }
 
 
@@ -1420,6 +1436,7 @@ static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this_gen) {
       this->xine->port_ticket->renew(this->xine->port_ticket, 1);
   
   _x_extra_info_reset( buf->extra_info );
+  buf->stream = NULL;
   
   return buf;
 }
@@ -1455,9 +1472,11 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   lprintf ("ao_put_buffer, pts=%" PRId64 ", vpts=%" PRId64 ", flushmode=%d\n",
            pts, buf->vpts, this->discard_buffers);
 
-  if (!this->discard_buffers) 
+  if (!this->discard_buffers) {
+    if (buf->stream)
+      _x_refcounter_inc(buf->stream->refcounter);
     fifo_append (this->out_fifo, buf);
-  else
+  } else
     fifo_append (this->free_fifo, buf);
   
   this->last_audio_vpts = buf->vpts;
