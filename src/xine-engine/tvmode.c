@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.2 2002/06/16 22:16:55 f1rmb Exp $
+ * $Id: tvmode.c,v 1.3 2002/06/25 14:42:58 mroi Exp $
  *
  * tvmode - TV output selection
  *
@@ -101,7 +101,7 @@ static void tvmode_connect () {
     if (back_card)
 	back_card->openCard (card);
     else
-	fprintf (stderr, "tvmode: cannot connect to nvtvd - no TV mode switching available\n");
+	printf("tvmode: cannot connect to nvtvd - no TV mode switching available\n");
 }
 
 
@@ -150,7 +150,7 @@ static void tvmode_settvstate (int width, int height, double fps) {
     /* Find supported TV mode */
     for (scanm = &scan_mode_pal[0][0]; *scanm && ! found; scanm += 2) {
 	for (scano = scan_overscan; *scano && ! found; scano++) {
-	    fprintf (stderr, "tvmode: trying to use %dx%d %s\n",
+	    printf("tvmode: trying to use %dx%d %s\n",
 		     scanm[0], scanm[1], *scano);
 	    if (back_card->findBySize (opt_system, scanm[0], scanm[1], *scano,
 				       &mode, &crt, &tv)) {
@@ -168,7 +168,7 @@ static void tvmode_settvstate (int width, int height, double fps) {
 				    &crt, &tv, &settings);
 	current_type = 1;
     } else {
-	fprintf (stderr, "tvmode: cannot find any valid TV mode - TV output disabled\n");
+	printf("tvmode: cannot find any valid TV mode - TV output disabled\n");
 	xine_tvmode_exit ();
     }
 }
@@ -182,7 +182,7 @@ static void tvmode_settvstate (int width, int height, double fps) {
 int xine_tvmode_switch (int type, int width, int height, double fps) {
 
     if (back_card) {
-	fprintf (stderr, "tvmode: switching to %s\n", type ? "TV" : "default");
+	printf("tvmode: switching to %s\n", type ? "TV" : "default");
 	switch (type) {
 	case 0:
 	    tvmode_restorestate ();
@@ -191,11 +191,11 @@ int xine_tvmode_switch (int type, int width, int height, double fps) {
 	    tvmode_settvstate (width, height, fps);
 	    break;
 	default:
-	    fprintf (stderr, "tvmode: illegal type for switching\n");
+	    printf("tvmode: illegal type for switching\n");
 	    tvmode_restorestate ();
 	}
     } else {
-	fprintf (stderr, "tvmode: not connected to nvtvd for switching\n");
+	printf("tvmode: not connected to nvtvd for switching\n");
     }
     return current_type;
 }
