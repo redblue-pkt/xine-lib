@@ -17,6 +17,7 @@ xine-lib (0.9.13) unstable; urgency=low
   * Reworked ALSA audio support 
   * demux_qt improvements to handle .mp4
   * initial support of Quicktime6 files
+  * image redraw in paused mode (for window resize, adjusts etc)
 
 xine-lib (0.9.12) unstable; urgency=low
 
