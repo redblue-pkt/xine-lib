@@ -39,6 +39,8 @@ Currently, best practice to get a release out looks like this:
            identify at least one dedicatet tester for each feature.
            So check that overview! Ask testers to test if their feature is
            marked "untested".
+   - you might want to run "make release-check", it will tell you about files
+     from CVS missing in the release; be sure to check these
    - does "make dist" produce a complete (ie. compilable) tarball
      (note: nightly build logs will tell you this.)
 
@@ -108,7 +110,7 @@ hands.
     release. Copy&paste all ChangeLog entries for this release into the
     announcement. Make sure you have GPG clearsigned the announcement when
     sending it!
-    (also make sure it gets immediately approved by the aine-announce
+    (also make sure it gets immediately approved by the xine-announce
      moderator!)
 
 12) write the announcement for xinehq:
