@@ -5,7 +5,7 @@ EXTRA_DIST = autogen.sh SlackBuild.in SlackBuild build_rpms.sh \
 	xine_logo.mpv vga.xinefont.gz
 
 datadir = $(XINE_SKINDIR)
-data_DATA = xine_logo.png xine_logo.mpv
+data_DATA = xine_logo.mpv
 
 bin_SCRIPTS = xine-config
 

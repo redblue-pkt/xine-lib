@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-22 01:48+0200\n"
+"POT-Creation-Date: 2002-06-23 10:57+0200\n"
 "PO-Revision-Date: 2002-05-18 08:36+0200\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -1422,23 +1422,23 @@ msgstr "zprávy"
 msgid "plugin"
 msgstr "modul"
 
-#: src/xine-engine/audio_out.c:730
+#: src/xine-engine/audio_out.c:729
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:733
+#: src/xine-engine/audio_out.c:732
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:761
+#: src/xine-engine/audio_out.c:760
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:765
+#: src/xine-engine/audio_out.c:764
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:766
+#: src/xine-engine/audio_out.c:765
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
@@ -1819,19 +1819,19 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1035
+#: src/libsputext/xine_decoder.c:1039
 msgid "Small"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1036
+#: src/libsputext/xine_decoder.c:1040
 msgid "Normal"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1037
+#: src/libsputext/xine_decoder.c:1041
 msgid "Large"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1041
+#: src/libsputext/xine_decoder.c:1045
 #, fuzzy, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1843,19 +1843,19 @@ msgstr ""
 "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
 "Instalace aktuálních vstupních modulù by mìla pomoci.\n"
 
-#: src/libsputext/xine_decoder.c:1063
+#: src/libsputext/xine_decoder.c:1067
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1069
+#: src/libsputext/xine_decoder.c:1073
 msgid "subtitle size (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1074
+#: src/libsputext/xine_decoder.c:1078
 msgid "source encoging of subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1079
+#: src/libsputext/xine_decoder.c:1083
 msgid "target encoging for subtitles (have to match font encoding)"
 msgstr ""
 

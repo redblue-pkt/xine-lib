@@ -20,7 +20,7 @@ dnl   XINE_SUB += 1; continue with LT_* values below
 dnl
 XINE_MAJOR=0
 XINE_MINOR=9
-XINE_SUB=11
+XINE_SUB=12
 
 
 dnl The libtool version numbers (LT_*); Don't even think about faking this!
