@@ -616,6 +616,22 @@ AM_PATH_ARTS(0.9.5,
 AM_CONDITIONAL(HAVE_ARTS, test x"$no_arts" != "xyes")
 
 dnl ---------------------------------------------
+dnl gnome-vfs support
+dnl ---------------------------------------------
+PKG_CHECK_MODULES(GNOME_VFS, gnome-vfs-2.0,
+                no_gnome_vfs=no,
+		no_gnome_vfs=yes)
+AC_SUBST(GNOME_VFS_CFLAGS)
+AC_SUBST(GNOME_VFS_LIBS)
+if test x"$no_gnome_vfs" != "xyes"; then
+AC_DEFINE(HAVE_GNOME_VFS,1,[Define this if you have gnome-vfs installed])
+else
+AC_MSG_RESULT(*** All of the gnome-vfs dependent parts will be disabled ***)
+fi
+AM_CONDITIONAL(HAVE_GNOME_VFS, test x"$no_gnome_vfs" != "xyes")
+
+
+dnl ---------------------------------------------
 dnl SUN style audio interface
 dnl ---------------------------------------------
 AC_MSG_CHECKING(for Sun audio support)
@@ -1275,6 +1291,9 @@ echo "   - dvb"
 if test x"$have_cdrom_ioctls" = "xyes"; then
   echo "   - dvd           - vcd"
   echo "   - cdda"
+fi
+if test x"$no_gnome_vfs" = "xno"; then
+  echo "   - gnome-vfs"
 fi
 echo ""
 

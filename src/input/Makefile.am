@@ -25,6 +25,10 @@ in_vcd = xineplug_inp_vcd.la
 #in_cda = xineplug_inp_cda.la
 endif
 
+if HAVE_GNOME_VFS
+in_gnome_vfs = xineplug_inp_gnome_vfs.la
+endif
+
 # For DVD
 if HAVE_DVDNAV
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
@@ -38,7 +42,7 @@ DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
 link_dvdnav = libdvdnav/libdvdnav.la libdvdread/libdvdread.la
 endif
 
-AM_CFLAGS = $(DVD_CFLAGS) @ANSI_FLAGS@
+AM_CFLAGS = $(GNOME_VFS_CFLAGS) $(DVD_CFLAGS) @ANSI_FLAGS@
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS) @ANSI_FLAGS@
 
 lib_LTLIBRARIES = \
@@ -46,6 +50,7 @@ lib_LTLIBRARIES = \
 	xineplug_inp_http.la \
 	$(in_dvd) \
 	$(in_vcd) \
+	$(in_gnome_vfs) \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
 	xineplug_inp_pnm.la \
@@ -118,10 +123,14 @@ xineplug_inp_cdda_la_SOURCES = input_cdda.c
 xineplug_inp_cdda_la_LIBADD = $(XINE_LIB)
 xineplug_inp_cdda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
+xineplug_inp_gnome_vfs_la_SOURCES = input_gnome_vfs.c
+xineplug_inp_gnome_vfs_la_LIBADD = $(GNOME_VFS_LIBS) $(XINE_LIB)
+xineplug_inp_gnome_vfs_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
 include_HEADERS = input_plugin.h
 noinst_HEADERS = net_buf_ctrl.h mms.h pnm.h
 
-EXTRA_DIST = input_dvd.c input_vcd.c
+EXTRA_DIST = input_dvd.c input_vcd.c input_gnome_vfs.c
 
 $(XINE_LIB):
 	@cd $(top_builddir)/src/xine-engine && $(MAKE)
