@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.140 2003/04/03 13:04:52 mroi Exp $
+ * $Id: input_dvd.c,v 1.141 2003/04/04 19:20:48 miguelfreitas Exp $
  *
  */
 
@@ -489,6 +489,8 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     if(result == DVDNAV_STATUS_ERR) {
       printf("input_dvd: Error getting next block from DVD (%s)\n",
 	      dvdnav_err_to_string(this->dvdnav));
+      xine_message(this->stream, XINE_MSG_READ_ERROR,
+                   dvdnav_err_to_string(this->dvdnav), NULL);
       if (block != buf->mem) dvdnav_free_cache_block(this->dvdnav, block);
       buf->free_buffer(buf);
       return NULL;
@@ -1625,6 +1627,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.141  2003/04/04 19:20:48  miguelfreitas
+ * add initial async error/general message reporting to frontend
+ * obs: more messages should be added
+ *
  * Revision 1.140  2003/04/03 13:04:52  mroi
  * not so much noise in cvs
  *

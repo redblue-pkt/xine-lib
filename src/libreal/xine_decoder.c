@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2003/03/28 23:40:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.33 2003/04/04 19:20:50 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -156,6 +156,8 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
   if (!this->rv_handle) {
     printf ("libreal: error: %s\n", dlerror());
+    xine_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
+                 codec_name, NULL);
     return 0;
   }
   

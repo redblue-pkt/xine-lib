@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.77 2003/03/24 14:23:56 f1rmb Exp $
+ * $Id: input_file.c,v 1.78 2003/04/04 19:20:49 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -105,9 +105,12 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   while (total_bytes < todo) {
     num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
     if (num_bytes <= 0) {
-      if (num_bytes < 0) 
+      if (num_bytes < 0) {
 	xine_log (this->stream->xine, XINE_LOG_MSG,
 		  _("input_file: read error (%s)\n"), strerror(errno));
+	xine_message(this->stream, XINE_MSG_READ_ERROR,
+                     this->mrl, NULL);
+      }
       buf->free_buffer (buf);
       buf = NULL;
       break;

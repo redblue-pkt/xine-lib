@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.17 2003/03/09 12:19:13 mroi Exp $
+ * $Id: qt_decoder.c,v 1.18 2003/04/04 19:20:51 miguelfreitas Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -242,6 +242,8 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
   if (this->qtml_dll == NULL ) {
     printf ("qt_audio: failed to load dll\n" );
     pthread_mutex_unlock(&win32_codec_mutex);
+    xine_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
+                 "qtmlClient.dll", NULL);
     return;
   }
 
@@ -815,6 +817,8 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
   if (this->qtml_dll == NULL ) {
     printf ("qt_video: failed to load dll\n" );
     pthread_mutex_unlock(&win32_codec_mutex);
+    xine_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
+                 "qtmlClient.dll", NULL);
     return;
   }
 

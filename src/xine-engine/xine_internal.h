@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.131 2003/03/27 18:57:15 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.132 2003/04/04 19:20:54 miguelfreitas Exp $
  *
  */
 
@@ -268,6 +268,10 @@ struct xine_stream_s {
  */
 
 void xine_handle_stream_end      (xine_stream_t *stream, int non_user);
+
+/* report message to UI. usually these are async errors */
+
+int xine_message(xine_stream_t *stream, int type, ...);
 
 /* find and instantiate input and demux plugins */
 

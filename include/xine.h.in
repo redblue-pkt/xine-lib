@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.70 2003/03/27 18:56:54 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.71 2003/04/04 19:20:46 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1265,6 +1265,33 @@ typedef struct {
 } xine_ui_data_t;
 
 /*
+ * Send messages to UI. used mostly to report errors.
+ */
+typedef struct {
+  /*
+   * old xine-ui versions expect xine_ui_data_t type.
+   * this struct is added for compatibility.
+   */
+  xine_ui_data_t      compatibility;
+
+  /* See XINE_MSG_xxx for defined types. */
+  int                 type;
+
+  /* defined types are provided with a standard explanation.
+   * note: explanation may be NULL.
+   */
+  char               *explanation;
+
+  /* parameters are zero terminated strings */
+  int                 num_parameters;
+  char               *parameters;
+
+  /* where messages are stored, will be longer */
+  char                internal_data[1];
+} xine_ui_message_data_t;
+
+
+/*
  * notify frame format change
  */
 typedef struct {
@@ -1360,6 +1387,27 @@ typedef struct {
 } xine_pvr_realtime_t;
 
 #endif
+
+/*
+ * Defined message types for XINE_EVENT_UI_MESSAGE
+ * This is the mechanism to report async errors from engine.
+ *
+ * If frontend knows about the XINE_MSG_xxx type it may safely 
+ * ignore the 'explanation' field and provide it's own custom
+ * dialog to the 'parameters'.
+ *
+ * right column specifies the usual parameters.
+ */
+
+#define XINE_MSG_NO_ERROR		0  /* (messages to UI)   */
+#define XINE_MSG_GENERAL_WARNING	1  /* (warning message)  */
+#define XINE_MSG_UNKNOWN_HOST		2  /* (host name)        */
+#define XINE_MSG_UNKNOWN_DEVICE		3  /* (device name)      */
+#define XINE_MSG_NETWORK_UNREACHABLE	4  /* none               */
+#define XINE_MSG_CONNECTION_REFUSED	5  /* (host name)        */
+#define XINE_MSG_FILE_NOT_FOUND		6  /* (file name or mrl) */
+#define XINE_MSG_READ_ERROR		7  /* (device/file/mrl)  */
+#define XINE_MSG_LIBRARY_LOAD_ERROR	8  /* (library/decoder)  */
 
 /* opaque xine_event_queue_t */
 typedef struct xine_event_queue_s xine_event_queue_t;
