@@ -17,14 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.16 2004/01/22 21:32:48 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.17 2004/01/22 21:36:45 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
  * TODO:
- *   memory leaks
  *   seeking
- *   subtitles
  *   more codecs
  *   metadata
  *
