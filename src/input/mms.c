@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.51 2004/12/14 08:18:36 tmattern Exp $
+ * $Id: mms.c,v 1.52 2004/12/14 23:13:09 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -547,8 +547,10 @@ static void interp_asf_header (mms_t *this) {
 
       case GUID_ASF_STREAM_PROPERTIES:
         {
+          uint16_t flags;
           uint16_t stream_id;
-          int      type;  
+          int      type;
+          int      encrypted;
 
           guid = get_guid(this->asf_header, i);
           switch (guid) {
@@ -570,9 +572,13 @@ static void interp_asf_header (mms_t *this) {
               type = ASF_STREAM_TYPE_UNKNOWN;
           }
 
-          stream_id = LE_16(this->asf_header + i + 48);
+          flags = LE_16(this->asf_header + i + 48);
+          stream_id = flags & 0x7F;
+          encrypted = flags >> 15;
 
-          lprintf ("stream object, stream id: %d\n", stream_id);
+          lprintf ("stream object, stream id: %d, type: %d, encrypted: %d\n",
+                   stream_id, type, encrypted);
+          
           this->stream_types[stream_id] = type;
           this->stream_ids[this->num_stream_ids] = stream_id;
           this->num_stream_ids++;
