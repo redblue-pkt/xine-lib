@@ -1,3 +1,4 @@
+  * updated libfaad
   * network input plugin is working again
   * handle avi files produced by dvgrab
   * real media demuxer should handle most files now 
@@ -5,6 +6,7 @@
     (except dnet x86 only)
   * real media rtsp protocol streaming support
   * mms input plugin cleanup/bugfixes/improvements
+  * syncfb and sdl vo plugins ported
 
 xine-lib (1-beta0)
   * fix decoder priority configuration
