@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2003/12/14 22:13:23 siggi Exp $
+ * $Id: xine_decoder.c,v 1.49 2004/01/12 03:58:47 hadess Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -79,6 +79,7 @@ static void mad_reset (audio_decoder_t *this_gen) {
 
   mad_synth_init  (&this->synth);
   mad_stream_init (&this->stream);
+  this->stream.options = MAD_OPTION_IGNORECRC;
   mad_frame_init  (&this->frame);
 }
 
@@ -315,6 +316,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   mad_synth_init  (&this->synth);
   mad_stream_init (&this->stream);
   mad_frame_init  (&this->frame);
+
+  this->stream.options = MAD_OPTION_IGNORECRC;
 
   lprintf ("init\n"); 
 
