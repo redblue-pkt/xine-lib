@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.47 2002/04/24 08:12:13 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.48 2002/05/03 02:20:29 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -343,8 +343,9 @@ static int openDVDFile (dvd_input_plugin_t *this,
 
   if( encrypted ) {
     LOG_MSG(this->xine,
-	    _("\ninput_dvd: Sorry, xine doesn't play encrypted DVDs. The legal status of CSS\n"
-	      "           decryption is unclear and we will not provide such code.\n\n"));
+	    _("\ninput_dvd: Sorry, this plugin doesn't play encrypted DVDs. The legal status\n"
+	      "           of CSS decryption is unclear and we can't provide such code.\n"
+	      "           Please check http://dvd.sf.net for more information.\n"));
     return 0;
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.98 2002/05/03 00:56:37 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.99 2002/05/03 02:20:29 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1035,7 +1035,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
     }
   }
   else {
-    printf("demux_mpeg_block: unknown block size. try using demux_mpeg.\n");
+    xine_log (this->xine, XINE_LOG_MSG,
+	_("demux_mpeg_block: unknown block size. try using demux_mpeg.\n"));
     this->status   = DEMUX_FINISHED ;
   }
   pthread_mutex_unlock( &this->mutex );
