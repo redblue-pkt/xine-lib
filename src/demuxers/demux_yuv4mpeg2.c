@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.26 2003/08/12 18:41:08 jstembridge Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.27 2003/08/12 19:44:35 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -151,7 +151,7 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
         /* read frame rate - stored as a ratio
          * numberator */
         this->fps_n = strtol(header_ptr + 1, &header_endptr, 10);
-        if ((header_end_ptr == header_ptr + 1) || (*header_endptr != ':'))
+        if ((header_endptr == header_ptr + 1) || (*header_endptr != ':'))
           return 0;
         else
           header_ptr = header_endptr;
@@ -314,8 +314,8 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_info[0] = this->progressive;
   buf->decoder_info[1] = this->frame_pts_inc;  /* initial video step */
   buf->decoder_info[2] = this->top_field_first;
-  buf->decoder_info[3] = this->aspect_n;
-  buf->decoder_info[4] = this->aspect_d;
+  buf->decoder_info[3] = this->bih.biWidth*this->aspect_n/this->aspect_d;
+  buf->decoder_info[4] = this->bih.biHeight;
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
   buf->type = BUF_VIDEO_I420;
