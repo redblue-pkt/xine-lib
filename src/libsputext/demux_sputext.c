@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.8 2003/01/11 11:34:15 mroi Exp $
+ * $Id: demux_sputext.c,v 1.9 2003/01/12 15:29:08 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -48,9 +48,9 @@
 #include "xineutils.h"
 #include "../demuxers/demux.h"
 
-/*
+
 #define LOG 1
-*/
+
 
 #define ERR (void *)-1
 #define SUB_MAX_TEXT  5
@@ -760,8 +760,9 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
 	{ free(first[this->num].text[i]);
 	  first[this->num].text[i]=tmp;
 	}
-	else
-        { printf("demux_sputext: Can't convert subtitle text\n"); }
+	else {
+          printf("demux_sputext: Can't convert subtitle text\n");
+        }
       }
       ++this->num; /* Error vs. Valid */
     }
@@ -872,19 +873,33 @@ static int demux_sputext_send_chunk (demux_plugin_t *this_gen) {
 static int demux_sputext_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
   demux_sputext_t *this = (demux_sputext_t*)this_gen;
-  /* FIXME: change this->cur according to seek target and set a discontinuity */
 
-  if( this->uses_time && start_time ) {
-  }
-
+#ifdef LOG
+  printf("demux_sputext: seek() called\n");
+#endif
+  /* simple seeking approach: just go back to start. 
+   * decoder will discard subtitles until the desired position.
+   */
+  this->cur = 0;
+  this->status = DEMUX_OK;
+  
+  xine_demux_flush_engine (this->stream);
+  xine_demux_control_newpts(this->stream, 0, 0);
+  
   return this->status;
 }
 
 static void demux_sputext_send_headers(demux_plugin_t *this_gen) {
   demux_sputext_t *this = (demux_sputext_t*)this_gen;
+  
+#ifdef LOG
+  printf("demux_sputext: send_headers() called\n");
+#endif
+  
   xine_demux_control_start(this->stream);
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
+  this->status = DEMUX_OK;
 }
 
 static uint32_t demux_sputext_get_capabilities(demux_plugin_t *this_gen) {
@@ -916,7 +931,6 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
   this->demux_plugin.get_capabilities  = demux_sputext_get_capabilities;
   this->demux_plugin.get_optional_data = NULL;
   this->demux_plugin.demux_class       = class_gen;
-  this->status = DEMUX_OK;
 
   this->buflen = 0;
 

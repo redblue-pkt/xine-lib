@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.47 2003/01/11 15:31:45 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.48 2003/01/12 15:29:08 miguelfreitas Exp $
  *
  */
 
@@ -36,9 +36,9 @@
 #include "xineutils.h"
 #include "osd.h"
 
-/*
+
 #define LOG 1
-*/
+
 #define SUB_MAX_TEXT  5
 
 #define SUB_BUFSIZE 1024
@@ -75,7 +75,7 @@ typedef struct sputext_decoder_s {
   int                height;         /* frame height               */
   int                font_size;
   int                line_height;
-
+  int                seek_count;
 
   char              *font;
   subtitle_size      subtitle_size;
@@ -168,11 +168,11 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   this->renderer->show (this->osd, sub_start);
   this->renderer->hide (this->osd, sub_end);
   
-//#ifdef LOG
+#ifdef LOG
   printf ("sputext: scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
           this->text[0], sub_start, sub_end, 
           this->stream->xine->clock->get_current_time (this->stream->xine->clock));
-//#endif
+#endif
 }
 
 
@@ -186,7 +186,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t *val;
   char *str;
   extra_info_t extra_info;
-  int seek_count;
   int status;
   
   val = (uint32_t * )buf->content;
@@ -199,20 +198,27 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     strcpy( this->text[i], str );
   }
   
+#ifdef LOG
   printf("libsputext: decoder data [%s]\n", this->text[0]);
   printf("libsputext: mode %d timing %d->%d\n", uses_time, start, end);
+#endif
 
   if( end <= start ) {
+#ifdef LOG
     printf("libsputext: discarding subtitle with invalid timing\n");
+#endif
   }
   
   if( this->stream->master_stream )
     xine_get_current_info (this->stream->master_stream, &extra_info, sizeof(extra_info) );
   else
     xine_get_current_info (this->stream, &extra_info, sizeof(extra_info) );
-  seek_count = extra_info.seek_count;
+  
+  if( !this->seek_count ) {
+    this->seek_count = extra_info.seek_count;
+  }
    
-  do {
+  while(this->seek_count == extra_info.seek_count) {
   
     /* initialize decoder if needed */
     if( !this->width || !this->height || !this->img_duration ) {
@@ -222,8 +228,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
                                              
         if( this->width && this->height && this->img_duration ) {
           this->renderer = this->stream->osd_renderer;
-        
-          this->osd = NULL;
         
           update_font_size (this);
         }
@@ -284,8 +288,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     else
       status = xine_get_status (this->stream);
     
-    if( status == XINE_STATUS_QUIT || status == XINE_STATUS_STOP )
+    if( status == XINE_STATUS_QUIT || status == XINE_STATUS_STOP ) {
+      this->width = this->height = 0;
       return;
+    }
 
     xine_usec_sleep (50000);
             
@@ -294,13 +300,15 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     else
       xine_get_current_info (this->stream, &extra_info, sizeof(extra_info) );
 
-  } while(seek_count == extra_info.seek_count);
+  }
 }  
 
 
 static void spudec_reset (spu_decoder_t *this_gen) {
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
-
+  
+  this->width = this->height = 0;
+  this->seek_count = 0;
 }
 
 static void spudec_discontinuity (spu_decoder_t *this_gen) {
