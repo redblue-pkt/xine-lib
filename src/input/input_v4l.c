@@ -1067,7 +1067,7 @@ int open_audio_capture_device(v4l_input_plugin_t *this)
        * too, otherwise we will loose videoframes because we keep on waiting
        * for an audio fragment
        */
-      PRINT("Audio :( Error opening PCM device %s\n", this->pcm_name);
+      DBGPRINT("Audio :( Error opening PCM device %s\n", this->pcm_name);
       this->audio_capture = 0;
    }
   
@@ -1350,7 +1350,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen,
       ptr = this->video_buf + this->gb_buffers.offsets[this->gb_frame];
       buf->pts = get_time(); /* this->stream->xine->clock->get_current_time(this->stream->xine->clock); */
       xine_fast_memcpy (buf->content, ptr, this->frame_size); 
-   } else {
+   } else if (this->audio_capture) {
 
 #ifdef HAVE_ALSA
       /* Record audio */
