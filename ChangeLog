@@ -1,7 +1,11 @@
 xine-lib (1-beta12)
   * playback of theorastreams added
   * updated nvtv support, and bug fixes
-
+  * playback of cd/dvd over the network (see README.network_dvd)
+  * use variable block program stream demuxer for mpeg2 files
+  * cdda improvements (error handling, device on mrl)
+  * input_pvr (ivtv) updates
+    
 xine-lib (1-beta11)
   * fix bugs in selecting ogm subtitles
   * fix multiple lines subtitles' display in OGM container
