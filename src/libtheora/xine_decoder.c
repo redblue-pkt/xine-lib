@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2003/07/07 19:36:50 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.11 2003/07/08 12:24:40 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -63,6 +63,7 @@ typedef struct theora_decoder_s {
   char*              packet;
   int                done;
   int                width, height;
+  int                offset_x, offset_y;
   int                frame_duration;
   int                skipframes;
   int                hp_read;
@@ -80,23 +81,29 @@ static void readin_op (theora_decoder_t *this, char* src, int size) {
   this->done=this->done+size;
 }
 
-static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame) {
+static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame, int offset_x, int offset_y) {
   int i;
+  int crop_offset;
   /*fixme - clarify if the frame must be copied or if there is a faster solution
    like exchanging the pointers*/
 
-  /*copy all 3 parts of the picture*/
-  for(i=0;i<yuv->y_height;i++)
-    xine_fast_memcpy(frame->base[0]+yuv->y_width*i, 
-	   yuv->y+yuv->y_stride*i, 
-	   yuv->y_width);
-  for(i=0;i<yuv->uv_height;i++){
-    xine_fast_memcpy(frame->base[2]+yuv->uv_width*i, 
-	   yuv->v+yuv->uv_stride*i, 
-	   yuv->uv_width);
-    xine_fast_memcpy(frame->base[1]+yuv->uv_width*i, 
-	   yuv->u+yuv->uv_stride*i, 
-	   yuv->uv_width);
+  /*copy yuv data onto the frame, respecting offsets*/
+
+  crop_offset=offset_x+yuv->y_stride*offset_y;
+  for(i=0;i<frame->height;i++)
+    xine_fast_memcpy(frame->base[0]+frame->pitches[0]*i, 
+		     yuv->y+crop_offset+yuv->y_stride*i, 
+		     frame->width);
+
+  crop_offset=(offset_x/2)+(yuv->uv_stride)*(offset_y/2);
+  for(i=0;i<frame->height/2;i++){
+    xine_fast_memcpy(frame->base[1]+frame->pitches[1]*i, 
+		     yuv->u+crop_offset+yuv->uv_stride*i, 
+		     frame->width/2);
+    xine_fast_memcpy(frame->base[2]+frame->pitches[2]*i, 
+		     yuv->v+crop_offset+yuv->uv_stride*i, 
+		     frame->width/2);
+
   }
 }
 
@@ -169,12 +176,19 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       theora_decode_init (&this->t_state, &this->t_info);
       this->frame_duration=((int64_t)90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 #ifdef LOG
-      printf("libtheora: theora stream is Theora %dx%d %.02f fps video.\n",
+      printf("libtheora: theora stream is Theora %dx%d %.02f fps video.\n"
+	     "           frame content is %dx%d with offset (%d,%d).\n"
+	     "           aspect ratio is %d:%d.\n",
 	     this->t_info.width,this->t_info.height,
-	     (double)this->t_info.fps_numerator/this->t_info.fps_denominator);
+	     (double)this->t_info.fps_numerator/this->t_info.fps_denominator,
+	     this->t_info.frame_width, this->t_info.frame_height,
+	     this->t_info.offset_x, this->t_info.offset_y,
+	     this->t_info.aspect_numerator, this->t_info.aspect_denominator);
 #endif	  
-      this->width=this->t_info.width;
-      this->height=this->t_info.height;
+      this->width=this->t_info.frame_width;
+      this->height=this->t_info.frame_height;
+      this->offset_x=this->t_info.offset_x;
+      this->offset_y=this->t_info.offset_y;
       this->initialized=1;
       this->hp_read++;
     }
@@ -207,7 +221,7 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 						  ASPECT_SQUARE,
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
-      yuv2frame(&yuv, frame);
+      yuv2frame(&yuv, frame, this->offset_x, this->offset_y);
 
       frame->pts = buf->pts;
       frame->duration=this->frame_duration;
