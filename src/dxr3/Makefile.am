@@ -16,7 +16,7 @@ xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c
 xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c overlay.c
-xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module
+xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(X_LIBS)
 
 include_HEADERS = dxr3_overlay.h
 

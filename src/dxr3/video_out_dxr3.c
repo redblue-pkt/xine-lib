@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.5 2001/07/26 16:03:10 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.6 2001/07/31 17:41:32 ehasenle Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -41,6 +41,9 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#ifdef HAVE_XINERAMA
+#include <X11/extensions/Xinerama.h>
+#endif
 #include "../video_out/video_out_x11.h"
 
 char devname[]="/dev/em8300";
@@ -370,12 +373,43 @@ static void dxr3_exit (vo_driver_t *this_gen)
 	close(this->fd_control);
 }
 
+static void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
+{
+	int scrn;
+#ifdef HAVE_XINERAMA
+	int screens;
+	int dummy_a, dummy_b;
+	XineramaScreenInfo *screeninfo = NULL;
+#endif
+
+	this->win = vis->d;
+	this->display = vis->display;
+	this->gc = XCreateGC(this->display, this->win, 0, NULL);
+	scrn = DefaultScreen(this->display);
+
+	/* Borrowed from xine-ui in order to detect fullscreen */
+#ifdef HAVE_XINERAMA
+	if (XineramaQueryExtension(this->display, &dummy_a, &dummy_b) &&
+	 (screeninfo = XineramaQueryScreens(this->display, &screens)) &&
+	 XineramaIsActive(this->display))
+	{
+		this->overlay.screen_xres = screeninfo[0].width;
+		this->overlay.screen_yres = screeninfo[0].height;
+	} else
+#endif
+	{
+		this->overlay.screen_xres = DisplayWidth(this->display, scrn);
+		this->overlay.screen_yres = DisplayHeight(this->display, scrn);
+	}
+
+	this->overlay.screen_depth = DisplayPlanes(this->display, scrn);
+	this->request_dest_size = vis->request_dest_size;
+	printf("xres %d yres %d depth %d\n", this->overlay.screen_xres, this->overlay.screen_yres, this->overlay.screen_depth);
+}
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 {
 	dxr3_driver_t *this;
-	x11_visual_t *vis;
-	Screen *xscrn;
 
 	/*
 	* allocate plugin struct
@@ -401,16 +435,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
 	this->vo_driver.exit                 = dxr3_exit;
 
-	/* visual */
-	vis = visual_gen;
-	this->win = vis->d;
-	this->display = vis->display;
-	this->gc = XCreateGC(this->display, this->win, 0, NULL);
-	xscrn = ScreenOfDisplay(this->display, 0);
-	this->overlay.screen_xres = xscrn->width;
-	this->overlay.screen_yres = xscrn->height;
-	this->overlay.screen_depth = xscrn->root_depth;
-	this->request_dest_size = vis->request_dest_size;
+	gather_screen_vars(this, visual_gen);
 	
 	/* default values */
 	this->overlay_enabled = 0;
