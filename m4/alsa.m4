@@ -102,15 +102,27 @@ dnl
 #include <$asoundlib_h>
 
 int main() {
-  int major, minor, micro;
+  int major, minor, micro, extra;
   char *tmp_version;
 
   system("touch conf.alsatest");
 
   tmp_version = strdup("$min_alsa_version");
-  if(sscanf(tmp_version, "%d.%d.%d", &major, &minor, &micro) != 3) {
-    printf("%s, bad version string\n", "$min_alsa_version");
-    exit(1);
+  if(sscanf(tmp_version, "%d.%d.%dpre%d", &major, &minor, &micro, &extra) != 4) {
+    if(sscanf(tmp_version, "%d.%d.%dalpha%d", &major, &minor, &micro, &extra) != 4) {
+      if(sscanf(tmp_version, "%d.%d.%dbeta%d", &major, &minor, &micro, &extra) != 4) {
+        if(sscanf(tmp_version, "%d.%d.%drc%d", &major, &minor, &micro, &extra) != 4) {
+          if(sscanf(tmp_version, "%d.%d.%d", &major, &minor, &micro) != 3) {
+            printf("%s, bad version string\n", "$min_alsa_version");
+            exit(1);
+          } else  /* final */
+            extra = 1000000;
+        } else  /* rc */
+          extra += 100000;
+      } else  /* beta */
+        extra += 20000;
+    } else  /* alpha */
+      extra += 10000;
   }
 
   #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
@@ -122,10 +134,14 @@ int main() {
   #if !defined(SND_LIB_SUBMINOR) && defined(SOUNDLIB_VERSION_SUBMINOR)
   #define SND_LIB_SUBMINOR SOUNDLIB_VERSION_SUBMINOR
   #endif
+  #if !defined(SND_LIB_EXTRAVER) && defined(SOUNDLIB_VERSION_EXTRAVER)
+  #define SND_LIB_EXTRAVER SOUNDLIB_VERSION_EXTRAVER
+  #endif
 
   if((SND_LIB_MAJOR > major) ||
     ((SND_LIB_MAJOR == major) && (SND_LIB_MINOR > minor)) ||
-    ((SND_LIB_MAJOR == major) && (SND_LIB_MINOR == minor) && (SND_LIB_SUBMINOR >= micro))) {
+    ((SND_LIB_MAJOR == major) && (SND_LIB_MINOR == minor) && (SND_LIB_SUBMINOR > micro)) ||
+    ((SND_LIB_MAJOR == major) && (SND_LIB_MINOR == minor) && (SND_LIB_SUBMINOR == micro) && (SND_LIB_EXTRAVER >= extra))) {
     return 0;
   }
   else {
