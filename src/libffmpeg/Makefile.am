@@ -17,8 +17,6 @@ xineplug_decode_ff_la_LDFLAGS = \
 		$(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la \
 		-avoid-version -module
 
-noinst_HEADERS = config.h
-
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
 	  (cd $$subdir && $(MAKE) $@) || exit;\

@@ -14,6 +14,7 @@ EXTRA_DIST = cvscompile.sh automake.diff \
 
 noinst_HEADERS = config.h
 
+CONFIG_CLEAN_FILES = libtool-nofpic
 
 docs:
 	@cd doc && $(MAKE) $@
@@ -24,10 +25,12 @@ debug:
 	  (cd $$subdir && $(MAKE) $@) || exit;\
 	done;
 
+
 install-debug: debug
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
 	  (cd $$subdir && $(MAKE) $@) || exit; \
 	done;
+
 
 prune-cache:
 	-rm -f config.cache

@@ -1,3 +1,6 @@
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
+
 #undef XINE_MAJOR
 #undef XINE_MINOR
 #undef XINE_SUB
@@ -95,4 +98,6 @@
 /* Disable GCC compiler extensions, if gcc is not in use */
 #ifndef	__GNUC__
 #define	__attribute__(x)	/**/
+#endif
+
 #endif

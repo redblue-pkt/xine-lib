@@ -6,13 +6,14 @@ EXTRA_DIST = xine.h.tmpl.in
 
 include_HEADERS  = xine.h
 
+CONFIG_CLEAN_FILES = xine.h.tmpl xine.h
+
 xine.h: xine.h.tmpl
 	@echo "creating xine.h"; \
 	rm -f xine.h && \
 	echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' \
 	  > xine.h && \
 	cat xine.h.tmpl >> xine.h
-
 
 debug:
 
