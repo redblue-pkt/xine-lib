@@ -1127,7 +1127,7 @@ echo "   - fli           - smjpeg"
 echo "   - idcin         - wav"
 echo "   - wc3 mve       - voc"
 echo "   - vqa           - aiff"
-echo "   - cda"
+echo "   - cda           - snd/au"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
