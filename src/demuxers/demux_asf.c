@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.33 2002/04/09 03:37:59 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.34 2002/04/12 01:39:07 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -746,8 +746,11 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     buf->pts        = timestamp * 90;
 
     if (buf->pts && this->send_discontinuity) {
-      this->send_discontinuity = 0;
-      asf_send_discontinuity (this, buf->pts);
+      this->send_discontinuity--;
+      if( !this->send_discontinuity )
+        asf_send_discontinuity (this, buf->pts);
+      else
+        buf->pts = 0;
     }
 
     buf->type       = stream->buf_type;
@@ -840,8 +843,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 	      (p-stream->buffer) / 1024; 
 
 	    if (buf->pts && this->send_discontinuity) {
-	      this->send_discontinuity = 0;
-	      asf_send_discontinuity (this, buf->pts);
+	      buf->pts = 0;
 	    }
 
 	    buf->type       = stream->buf_type;
@@ -851,24 +853,9 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 	    p+=bufsize;
           
 	    /* test if whole packet read */
-	    if ( !stream->frag_offset ) {
-
-	      if ( (buf->type & BUF_MAJOR_MASK) == BUF_VIDEO_BASE) {
-		if (buf->pts && this->last_video_pts) 
-		  this->frame_duration = (3* this->frame_duration + (buf->pts - this->last_video_pts)) / 4;
-
-#ifdef LOG
-		printf ("demux_asf: frame_duration is %d\n", this->frame_duration);
-#endif	
-
-		this->last_video_pts = buf->pts;
-
-		buf->decoder_flags   = BUF_FLAG_FRAME_END | BUF_FLAG_FRAMERATE;
-		buf->decoder_info[0] = this->frame_duration;
-	      } else
-		buf->decoder_flags   = BUF_FLAG_FRAME_END;
-
-	    } else 
+	    if ( !stream->frag_offset )
+	      buf->decoder_flags   = BUF_FLAG_FRAME_END;
+	    else 
 	      buf->decoder_flags = 0;
 	  
 	    stream->fifo->put (stream->fifo, buf);
@@ -1300,7 +1287,7 @@ static void demux_asf_start (demux_plugin_t *this_gen,
     /*
      * seek to start position
      */
-    this->send_discontinuity       = 1;
+    this->send_discontinuity       = 2;
     this->last_video_pts           = 0;
 
     if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
