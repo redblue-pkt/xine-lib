@@ -1,3 +1,12 @@
+xine-lib (1-rc0-1) unstable; urgency=low
+
+  * new upstream release
+    * new versioning scheme should sort correctly (closes: #194063)
+    * includes liba52 fix (closes: #196327)
+  * libxine-dev depends on libfreetype6-dev (closes: #195738)
+    
+ -- Siggi Langauf <siggi@debian.org>  Sun, 27 Jul 2003 23:43:33 +0200
+
 xine-lib (1-beta12-1) unstable; urgency=low
 
 

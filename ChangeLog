@@ -1,4 +1,4 @@
-xine-lib (1-beta13)
+xine-lib (1-rc0)
   * improved seeking accuracy of ogg_demuxer 
   * xine broadcaster (send stream to multiple xine clients simultaneously)
     start master with 'xine --broadcast-port xxxx'
