@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.40 2001/11/30 00:53:50 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.41 2001/12/10 15:33:24 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -431,21 +431,24 @@ void xrun(alsa_driver_t *this)
 
 static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
 {
-  ssize_t r;
+  snd_pcm_sframes_t result;
+  uint8_t *buffer=(uint8_t *)data;
+  snd_pcm_uframes_t number_of_frames = (snd_pcm_uframes_t) count;
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   	
-  while( count > 0) {
-    r = snd_pcm_writei(this->audio_fd, data, count);
-    /* printf("audio_alsa_out:write:r=%d\n",r); */
-    if (r == -EAGAIN || (r >=0 && r < count)) {
+  while( number_of_frames > 0) {
+    result = snd_pcm_writei(this->audio_fd, buffer, number_of_frames);
+    /* printf("audio_alsa_out:write:result=%ld\n",result); */
+    if (result == -EAGAIN || (result >=0 && result < number_of_frames)) {
+      /* printf("audio_alsa_out:write:result=%ld\n",result); */
       snd_pcm_wait(this->audio_fd, 1000);
-    } else if (r == -EPIPE) {
+    } else if (result == -EPIPE) {
       xrun(this);
     }
-    if (r > 0) {
-      count -= r;
+    if (result > 0) {
+      number_of_frames -= result;
       /* FIXME: maybe not *2 as int16 */
-      data += r * 2 * this->num_channels;
+      buffer += result * this->bytes_per_frame;
     }
   }
   /* FIXME: What should this really be? */
