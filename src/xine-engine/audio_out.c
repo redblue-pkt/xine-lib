@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.80 2002/11/12 16:52:33 guenter Exp $
+ * $Id: audio_out.c,v 1.81 2002/11/12 17:55:48 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -139,7 +139,9 @@ static audio_fifo_t *fifo_new () {
 static void fifo_append_int (audio_fifo_t *fifo,
 			     audio_buffer_t *buf) {
 
-  buf->next = NULL;
+  /* buf->next = NULL; */
+
+  assert (!buf->next);
 
   if (!fifo->first) {
 
@@ -159,8 +161,6 @@ static void fifo_append_int (audio_fifo_t *fifo,
 
 static void fifo_append (audio_fifo_t *fifo,
 			 audio_buffer_t *buf) {
-
-  assert (!buf->next);
 
   pthread_mutex_lock (&fifo->mutex);
   fifo_append_int (fifo, buf);
