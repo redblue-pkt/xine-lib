@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.196 2005/02/12 09:21:32 tmattern Exp $
+ * $Id: load_plugins.c,v 1.197 2005/02/12 15:13:30 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -287,17 +287,19 @@ static void _decoder_priority_cb(void *data, xine_cfg_entry_t *cfg) {
   map_decoders((xine_t *)data);
 }
 
-static plugin_info_t *_get_cached_plugin ( xine_list_t *list,
-			    char *filename, struct stat *statbuffer,
-			    plugin_info_t *previous_info){
-
+static plugin_info_t *_get_cached_info (xine_t *this,
+					char *filename, off_t filesize, time_t filemtime,
+					plugin_info_t *previous_info) {
   plugin_node_t *node;
+  xine_list_t *list = this->plugin_catalog->cache;
 
+  _x_assert(this);
+  
   node = xine_list_first_content (list);
   while (node) {
     if( !previous_info &&
-	node->file->filesize == statbuffer->st_size &&
-	node->file->filemtime == statbuffer->st_mtime &&
+	node->file->filesize == filesize &&
+	node->file->filemtime == filemtime &&
 	!strcmp( node->file->filename, filename )) {
       
       return node->info;
@@ -504,6 +506,76 @@ static plugin_catalog_t *_new_catalog(void){
   return catalog;
 }
 
+
+static void _register_plugins(xine_t *this, plugin_file_t *file, plugin_info_t *info) {
+  _x_assert(this);
+  _x_assert(info);
+
+  while ( info && info->type != PLUGIN_NONE ){
+    
+    xine_log (this, XINE_LOG_PLUGIN,
+	      _("load_plugins: plugin %s found\n"), file->filename);
+    
+    if (this->plugin_catalog->plugin_count >= PLUGIN_MAX ||
+	(this->plugin_catalog->decoder_count >= DECODER_MAX &&
+	 info->type >= PLUGIN_AUDIO_DECODER && info->type <= PLUGIN_SPU_DECODER)) {
+      xine_log (this, XINE_LOG_PLUGIN,
+		_("load_plugins: plugin limit reached, %s could not be loaded\n"), file->filename);
+    } else {
+      switch (info->type & PLUGIN_TYPE_MASK){
+      case PLUGIN_INPUT:
+	_insert_node (this, this->plugin_catalog->input, file, info,
+		      INPUT_PLUGIN_IFACE_VERSION);
+	break;
+      case PLUGIN_DEMUX:
+	_insert_node (this, this->plugin_catalog->demux, file, info,
+		      DEMUXER_PLUGIN_IFACE_VERSION);
+	break;
+      case PLUGIN_AUDIO_DECODER:
+	_insert_node (this, this->plugin_catalog->audio, file, info,
+		      AUDIO_DECODER_IFACE_VERSION);
+	this->plugin_catalog->decoder_count++;
+	break;
+      case PLUGIN_VIDEO_DECODER:
+	_insert_node (this, this->plugin_catalog->video, file, info,
+		      VIDEO_DECODER_IFACE_VERSION);
+	this->plugin_catalog->decoder_count++;
+	break;
+      case PLUGIN_SPU_DECODER:
+	_insert_node (this, this->plugin_catalog->spu, file, info,
+		      SPU_DECODER_IFACE_VERSION);
+	this->plugin_catalog->decoder_count++;
+	break;
+      case PLUGIN_AUDIO_OUT:
+	_insert_node (this, this->plugin_catalog->aout, file, info,
+		      AUDIO_OUT_IFACE_VERSION);
+	break;
+      case PLUGIN_VIDEO_OUT:
+	_insert_node (this, this->plugin_catalog->vout, file, info,
+		      VIDEO_OUT_DRIVER_IFACE_VERSION);
+	break;
+      case PLUGIN_POST:
+	_insert_node (this, this->plugin_catalog->post, file, info,
+		      POST_PLUGIN_IFACE_VERSION);
+	break;
+      default:
+	xine_log (this, XINE_LOG_PLUGIN,
+		  _("load_plugins: unknown plugin type %d in %s\n"),
+		  info->type, file->filename);
+      }
+      this->plugin_catalog->plugin_count++;
+    }
+    
+    /* get next info either from lib or cache */
+    if( file && !file->lib_handle ) {
+      lprintf("get cached info\n");
+      info = _get_cached_info (this, file->filename, file->filesize, file->filemtime, info);
+    } else {
+      info++;
+    }
+  }
+}
+
 /*
  * First stage plugin loader (catalog builder)
  *
@@ -517,7 +589,6 @@ static void collect_plugins(xine_t *this, char *path){
 
   dir = opendir(path);
   if (dir) {
-    int plugin_count = 0, decoder_count = 0;
     struct dirent *pEntry;
     int path_len;
     char *str = NULL;
@@ -530,9 +601,9 @@ static void collect_plugins(xine_t *this, char *path){
 
     while ((pEntry = readdir (dir)) != NULL) {
       size_t str_size = 0;
-      size_t new_str_size;
-      void *lib;
-      plugin_info_t *info;
+      size_t new_str_size = 0;
+      void *lib = NULL;
+      plugin_info_t *info = NULL;
       
       struct stat statbuffer;
 
@@ -575,8 +646,7 @@ static void collect_plugins(xine_t *this, char *path){
 	  lib = NULL;
 
 	  /* get the first plugin_info_t */
-	  info = _get_cached_plugin ( this->plugin_catalog->cache,
-			              str, &statbuffer, NULL);
+	     info = _get_cached_info (this, str, statbuffer.st_size, statbuffer.st_mtime, NULL);
 #ifdef LOG
 	  if( info )
 	    printf("load_plugins: using cached %s\n", str);
@@ -594,72 +664,10 @@ static void collect_plugins(xine_t *this, char *path){
 
 	    if (info || (info = dlsym(lib, "xine_plugin_info"))) {
 	      plugin_file_t *file;
-       
+
 	      file = _insert_file(this, this->plugin_catalog->file, str, &statbuffer, lib);
 
-	      while ( info && info->type != PLUGIN_NONE ){
-
-		xine_log (this, XINE_LOG_PLUGIN,
-			  _("load_plugins: plugin %s found\n"), str);
-		
-		if (plugin_count >= PLUGIN_MAX ||
-		    (decoder_count >= DECODER_MAX &&
-		     info->type >= PLUGIN_AUDIO_DECODER && info->type <= PLUGIN_SPU_DECODER)) {
-		  xine_log (this, XINE_LOG_PLUGIN,
-			    _("load_plugins: plugin limit reached, %s could not be loaded\n"), str);
-		} else {
-		  switch (info->type & PLUGIN_TYPE_MASK){
-		  case PLUGIN_INPUT:
-		    _insert_node (this, this->plugin_catalog->input, file, info,
-				  INPUT_PLUGIN_IFACE_VERSION);
-		    break;
-		  case PLUGIN_DEMUX:
-		    _insert_node (this, this->plugin_catalog->demux, file, info,
-				  DEMUXER_PLUGIN_IFACE_VERSION);
-		    break;
-		  case PLUGIN_AUDIO_DECODER:
-		    _insert_node (this, this->plugin_catalog->audio, file, info,
-				  AUDIO_DECODER_IFACE_VERSION);
-		    decoder_count++;
-		    break;
-		  case PLUGIN_VIDEO_DECODER:
-		    _insert_node (this, this->plugin_catalog->video, file, info,
-				  VIDEO_DECODER_IFACE_VERSION);
-		    decoder_count++;
-		    break;
-		  case PLUGIN_SPU_DECODER:
-		    _insert_node (this, this->plugin_catalog->spu, file, info,
-				  SPU_DECODER_IFACE_VERSION);
-		    decoder_count++;
-		    break;
-		  case PLUGIN_AUDIO_OUT:
-		    _insert_node (this, this->plugin_catalog->aout, file, info,
-				  AUDIO_OUT_IFACE_VERSION);
-		    break;
-		  case PLUGIN_VIDEO_OUT:
-		    _insert_node (this, this->plugin_catalog->vout, file, info,
-				  VIDEO_OUT_DRIVER_IFACE_VERSION);
-		    break;
-		  case PLUGIN_POST:
-		    _insert_node (this, this->plugin_catalog->post, file, info,
-				  POST_PLUGIN_IFACE_VERSION);
-		    break;
-		  default:
-		    xine_log (this, XINE_LOG_PLUGIN,
-			      _("load_plugins: unknown plugin type %d in %s\n"),
-			      info->type, str);
-		  }
-		  plugin_count++;
-		}
-
-		/* get next info either from lib or cache */
-		if( lib ) {
-		  info++;
-		} else {
-		  info = _get_cached_plugin ( this->plugin_catalog->cache,
-			                      str, &statbuffer, info);
-		}
-	      }
+	      _register_plugins(this, file, info);
 	    }
 	    else {
 	      const char *error = dlerror();
