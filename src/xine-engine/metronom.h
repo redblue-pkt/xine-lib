@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.23 2002/03/20 23:12:58 guenter Exp $
+ * $Id: metronom.h,v 1.24 2002/03/23 13:28:36 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -218,6 +218,9 @@ struct metronom_s {
 
   int64_t         video_drift;
   int64_t         video_drift_step;
+  
+  int             audio_samples;
+  int64_t         audio_drift_step;
 
   int64_t         av_offset;
 

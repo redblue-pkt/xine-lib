@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.72 2002/03/22 18:20:03 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.73 2002/03/23 13:28:35 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,6 +46,7 @@
 #define MAX_SCR_PROVIDERS        10
 #define PREBUFFER_PTS_OFFSET  30000
 #define VIDEO_DRIFT_TOLERANCE 45000
+#define AUDIO_DRIFT_TOLERANCE 45000
 
 /*
 #define LOG
@@ -434,6 +435,9 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
   }
     
   /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
+
+  this->audio_samples = 0;
+  this->audio_drift_step = 0;
   
   pthread_mutex_unlock (&this->lock);
 }
@@ -442,6 +446,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
 					   int nsamples) {
 
   int64_t vpts;
+  int64_t diff;
 
 #ifdef LOG  
   printf ("metronom: got %d audio samples, pts is %lld\n", nsamples, pts);
@@ -454,12 +459,41 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   
   if (pts) {
     vpts = pts + this->vpts_offset;
-    this->audio_vpts = vpts;
-  } else
-    vpts = this->audio_vpts;
+    diff = this->audio_vpts - vpts;
+    
+    /* compare predicted and given vpts */
+    if( abs(diff) > AUDIO_DRIFT_TOLERANCE ) {
+      this->audio_vpts = vpts;
+      this->audio_drift_step = 0;
+      printf("metronom: audio jump\n");
+    }
+    else {
+      if( this->audio_samples ) {
+        /* calculate drift_step to recover vpts errors */
+        printf("audio diff = %lld ", diff );
+        diff *= AUDIO_SAMPLE_NUM;
+        diff /= this->audio_samples * 4;
+        
+        /* drift_step is not allowed to change rate by more than 25% */
+        if( diff > this->pts_per_smpls/4 )
+          diff = this->pts_per_smpls/4;    
+        if( diff < -this->pts_per_smpls/4 )
+          diff = -this->pts_per_smpls/4;
+        
+        this->audio_drift_step = diff;
+                
+        printf("audio_drift = %lld, pts_per_smpls = %lld\n", diff,
+                this->pts_per_smpls );
+      }
+    }
+    this->audio_samples = 0;
+  }
+  vpts = this->audio_vpts;
 
-  this->audio_vpts += nsamples * this->pts_per_smpls / AUDIO_SAMPLE_NUM;
-
+  this->audio_vpts += nsamples * (this->pts_per_smpls-this->audio_drift_step)
+                      / AUDIO_SAMPLE_NUM;
+  this->audio_samples += nsamples;
+  
 #ifdef LOG
   printf ("metronom: audio vpts for %10lld : %10lld\n", pts, vpts);
 #endif
