@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.17 2003/03/29 13:19:09 mroi Exp $
+ * $Id: vm.c,v 1.18 2003/04/01 19:42:41 jcdutton Exp $
  *
  */
 
@@ -1212,9 +1212,8 @@ static int process_command(vm_t *vm, link_t link_values) {
       break;
       
     case LinkTopPG:
-      /* Link to Top of Program */
+      /* Link to Top of current Program */
       /* BUTTON number:data1 */
-      fprintf(MSG_OUT, "libdvdnav: FIXME: LinkTopPG. This should start the current PG again.\n");
       if(link_values.data1 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
       link_values = play_PG(vm);
@@ -1335,6 +1334,7 @@ static int process_command(vm_t *vm, link_t link_values) {
     case LinkPTTN:
       /* Link to Part of current Title Number:data1 */
       /* BUTTON number:data2 */
+      /* PGC Pre-Commands are not executed */
       assert((vm->state).domain == VTS_DOMAIN);
       if(link_values.data2 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data2 << 10;
@@ -1369,6 +1369,8 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Jump to VTS Title Domain */
       /* Only allowed from the First Play domain(PGC) */
       /* or the Video Manager domain (VMG) */
+      /* Stop SPRM9 Timer */
+      /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VMGM_DOMAIN || (vm->state).domain == FP_DOMAIN); /* ?? */
       if(!set_TT(vm, link_values.data1))
 	assert(0);
@@ -1378,6 +1380,8 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Jump to Title:data1 in same VTS Title Domain */
       /* Only allowed from the VTS Menu Domain(VTSM) */
       /* or the Video Title Set Domain(VTS) */
+      /* Stop SPRM9 Timer */
+      /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VTSM_DOMAIN || (vm->state).domain == VTS_DOMAIN); /* ?? */
       if(!set_VTS_TT(vm, (vm->state).vtsN, link_values.data1))
 	assert(0);
@@ -1387,6 +1391,8 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Jump to Part:data2 of Title:data1 in same VTS Title Domain */
       /* Only allowed from the VTS Menu Domain(VTSM) */
       /* or the Video Title Set Domain(VTS) */
+      /* Stop SPRM9 Timer */
+      /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VTSM_DOMAIN || (vm->state).domain == VTS_DOMAIN); /* ?? */
       if(!set_VTS_PTT(vm, (vm->state).vtsN, link_values.data1, link_values.data2))
 	assert(0);
@@ -1397,6 +1403,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Jump to First Play Domain */
       /* Only allowed from the VTS Menu Domain(VTSM) */
       /* or the Video Manager domain (VMG) */
+      /* Stop SPRM9 Timer and any GPRM counters */
       assert((vm->state).domain == VMGM_DOMAIN || (vm->state).domain == VTSM_DOMAIN); /* ?? */
       if (!set_FP_PGC(vm))
 	assert(0);
@@ -1405,6 +1412,7 @@ static int process_command(vm_t *vm, link_t link_values) {
     case JumpSS_VMGM_MENU:
       /* Jump to Video Manger domain - Title Menu:data1 or any PGC in VMG */
       /* Allowed from anywhere except the VTS Title domain */
+      /* Stop SPRM9 Timer and any GPRM counters */
       assert((vm->state).domain != VTS_DOMAIN); /* ?? */
       (vm->state).domain = VMGM_DOMAIN;
       if(!set_MENU(vm, link_values.data1))
@@ -1414,6 +1422,7 @@ static int process_command(vm_t *vm, link_t link_values) {
     case JumpSS_VTSM:
       /* Jump to a menu in Video Title domain, */
       /* or to a Menu is the current VTS */
+      /* Stop SPRM9 Timer and any GPRM counters */
       /* FIXME: This goes badly wrong for some DVDs. */
       /* FIXME: Keep in touch with ogle people regarding what to do here */
       /* ifoOpenNewVTSI:data1 */
@@ -1446,6 +1455,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       break;
     case JumpSS_VMGM_PGC:
       /* set_PGCN:data1 */
+      /* Stop SPRM9 Timer and any GPRM counters */
       assert((vm->state).domain != VTS_DOMAIN); /* ?? */
       (vm->state).domain = VMGM_DOMAIN;
       if(!set_PGCN(vm, link_values.data1))
@@ -1808,6 +1818,10 @@ void vm_position_print(vm_t *vm, vm_position_t *position) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.18  2003/04/01 19:42:41  jcdutton
+ * Add some comments.
+ * Remove a FIXME comment.
+ *
  * Revision 1.17  2003/03/29 13:19:09  mroi
  * sync to libdvdnav cvs once again
  *  * some changes to mutual header inclusion to make it compile warning-less
