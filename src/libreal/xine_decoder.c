@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2003/05/26 23:52:35 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.38 2003/05/29 00:23:53 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -365,8 +365,45 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 #ifdef LOG
 	printf ("libreal: got %d chunks in buffer and new frame is starting\n",
 		this->num_chunks);
+
+	printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
+	hexdump (this->chunk_buffer, this->chunk_buffer_size);
+
+	printf ("libreal: transform_in:\n");
+	hexdump (transform_in, 6*4);
+	
+	printf ("libreal: chunk_table:\n");
+	hexdump (this->chunk_tab, this->num_chunks*8+8);
+#endif
+	
+	result = this->rvyuv_transform (this->chunk_buffer, 
+					this->frame_buffer, 
+					transform_in,
+					transform_out, 
+					this->context);
+
+#ifdef LOG
+	printf ("libreal: transform result: %08x\n", result);
+        
+	printf ("libreal: transform_out:\n");
+	hexdump (transform_out, 5*4);
 #endif
 
+	/* Sometimes the stream contains video of a different size
+	 * to that specified in the realmedia file */
+	if(transform_out[0] && ((transform_out[3] != this->width) || 
+				(transform_out[4] != this->height))) {
+	  this->width  = transform_out[3];
+	  this->height = transform_out[4];
+
+	  this->frame_size = this->width * this->height;
+	  this->frame_buffer = realloc(this->frame_buffer, 
+				       this->width * this->height * 3/2);
+          
+	  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
+	  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+	}
+        
 	img = this->stream->video_out->get_frame (this->stream->video_out,
 						  /* this->av_picture.linesize[0],  */
 						  this->width,
@@ -401,25 +438,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 		buf->pts - this->pts,
 		this->num_frames,
 		this->duration);
-
-	printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
-	hexdump (this->chunk_buffer, this->chunk_buffer_size);
-
-	printf ("libreal: transform_in:\n");
-	hexdump (transform_in, 6*4);
-	
-	printf ("libreal: chunk_table:\n");
-	hexdump (this->chunk_tab, this->num_chunks*8+8);
-#endif
-	
-	result = this->rvyuv_transform (this->chunk_buffer, 
-					this->frame_buffer, 
-					transform_in,
-					transform_out, 
-					this->context);
-
-#ifdef LOG
-	printf ("libreal: transform result: %08x\n", result);
 #endif
 
 	realdec_copy_frame (this, img->base, img->pitches);
