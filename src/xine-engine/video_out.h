@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.19 2001/09/16 15:21:13 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.20 2001/09/19 02:40:58 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -176,6 +176,12 @@ struct vo_instance_s {
 #define VO_PROP_SOFT_DEINTERLACE  7
 #define VO_NUM_PROPERTIES         8
 
+/* number of recent frames to keep in memory
+   these frames are needed by some deinterlace algorithms
+   FIXME: we need a method to flush the recent frames (new stream)
+*/
+#define VO_NUM_RECENT_FRAMES     2
+
 /* image formats that can be supported by display drivers: */
 
 #define IMGFMT_YV12 0x32315659
@@ -198,7 +204,7 @@ struct vo_instance_s {
 
 /* video driver capabilities */
 
-/* driver copies image (i.e. converts it to 
+/* driver copies image (i.e. converts it to
    rgb buffers in the private fields of image buffer) */
 #define VO_CAP_COPIES_IMAGE 0x00000001
 
@@ -227,7 +233,7 @@ struct vo_driver_s {
 
   uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see above */
 
-  /* 
+  /*
    * allocate an vo_frame_t struct,
    * the driver must supply the copy, field and dispose functions
    */
@@ -317,7 +323,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) ;
  *             visual      - driver specific info (e.g. Display*)
  *
  * return value: video_driver_t* in case of success,
- *               NULL            on failure (e.g. wrong interface version, 
+ *               NULL            on failure (e.g. wrong interface version,
  *                               wrong visual type...)
  *
  *

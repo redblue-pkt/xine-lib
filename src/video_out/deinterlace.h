@@ -29,11 +29,11 @@
 
 #include "video_out.h"
 
-void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc,
+void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
     int width, int height, int method );
-
 
 #define DEINTERLACE_NONE     0
 #define DEINTERLACE_BOB      1
+#define DEINTERLACE_WEAVE    2
 
 #endif
