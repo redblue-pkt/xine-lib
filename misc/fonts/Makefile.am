@@ -10,7 +10,7 @@ data_DATA = mono-16.xinefont.gz  sans-16.xinefont.gz  serif-16.xinefont.gz \
 #
 # font used for osd
 #
-EXTRA_DIST = cetus.ttf $(data_DATA)
+EXTRA_DIST = cetus.ttf README.cetus $(data_DATA)
 
 debug:
 
