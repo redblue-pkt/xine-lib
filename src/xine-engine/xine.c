@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.234 2003/03/07 12:51:48 guenter Exp $
+ * $Id: xine.c,v 1.235 2003/03/07 17:00:56 mroi Exp $
  *
  * top-level xine functions
  *
@@ -743,7 +743,13 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	  config_entry[strlen(tmp)] = '\0';
 	}
 	mrl_unescape(config_entry);
-	xine_config_change_opt(stream->xine->config, config_entry);
+	if (!xine_config_change_opt(stream->xine->config, config_entry)) {
+	  free(config_entry);
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
 	free(config_entry);
       }
     }
