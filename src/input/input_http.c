@@ -593,10 +593,10 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
   if ((origin == SEEK_CUR) && (offset >= 0)) {
 
     for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
-      this->curpos += http_plugin_read (this_gen, this->seek_buf, BUFSIZE);
+      http_plugin_read (this_gen, this->seek_buf, BUFSIZE);
     }
 
-    this->curpos += http_plugin_read (this_gen, this->seek_buf, offset);
+    http_plugin_read (this_gen, this->seek_buf, offset);
   }
 
   return this->curpos;
