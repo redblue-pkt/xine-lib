@@ -763,10 +763,10 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
       /* try load font from current directory */
       if (FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face)) {
         /* try load font from home directory */
-        sprintf(pathname, "%s/.xine/fonts/%s", xine_get_homedir(), fontname);
+        snprintf(pathname, 1024, "%s/.xine/fonts/%s", xine_get_homedir(), fontname);
         if (FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face)) {
           /* try load font from xine font directory */
-          sprintf(pathname, "%s/%s", XINE_FONTDIR, fontname);
+          snprintf(pathname, 1024, "%s/%s", XINE_FONTDIR, fontname);
           if (FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face)) {
             error_flag = 1;
 	    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
@@ -1368,7 +1368,7 @@ osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream ) {
 
   osd_preload_fonts (this, XINE_FONTDIR);
 
-  sprintf (str, "%s/.xine/fonts", xine_get_homedir ());
+  snprintf (str, 1024, "%s/.xine/fonts", xine_get_homedir ());
 
   osd_preload_fonts (this, str);
 
