@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.43 2002/02/17 00:06:58 guenter Exp $
+ * $Id: video_out.h,v 1.44 2002/02/18 17:30:40 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -187,7 +187,8 @@ struct vo_instance_s {
 #define VO_PROP_OFFSET_X              10 
 #define VO_PROP_OFFSET_Y              11
 #define VO_PROP_TVMODE		      12 
-#define VO_NUM_PROPERTIES             13
+#define VO_PROP_MAX_NUM_FRAMES        13 
+#define VO_NUM_PROPERTIES             14
 
 /* zoom specific constants FIXME: generate this from xine.tmpl.in */
 #define VO_ZOOM_STEP        100

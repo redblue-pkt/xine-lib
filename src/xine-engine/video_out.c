@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.76 2002/02/18 13:33:19 guenter Exp $
+ * $Id: video_out.c,v 1.77 2002/02/18 17:30:40 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -900,6 +900,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
   pthread_attr_t pth_attrs;
   int		 err;
   gzFile        *fp;
+  int            num_frame_buffers;
 
   this = xine_xmalloc (sizeof (vos_t)) ;
 
@@ -931,7 +932,14 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
   this->overlay_source->init (this->overlay_source);
   this->overlay_enabled       = 1;
 
-  for (i=0; i<NUM_FRAME_BUFFERS; i++) {
+  num_frame_buffers = driver->get_property (driver, VO_PROP_MAX_NUM_FRAMES);
+
+  if (!num_frame_buffers)
+    num_frame_buffers = NUM_FRAME_BUFFERS; /* default */
+  else if (num_frame_buffers<5) 
+    num_frame_buffers = 5;
+
+  for (i=0; i<num_frame_buffers; i++) {
     vo_frame_t *img;
 
     img = driver->alloc_frame (driver) ;
