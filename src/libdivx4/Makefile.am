@@ -6,25 +6,20 @@ CFLAGS = @GLOBAL_CFLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
-if HAVE_DIVXDECORE
-divx4_codec = xineplug_decode_divx4.la
-endif
-
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = $(divx4_codec)
+if HAVE_DIVX4
+divx4_module = xineplug_decode_divx4.la
+endif
+
+lib_LTLIBRARIES = $(divx4_module)
 
 xineplug_decode_divx4_la_SOURCES = xine_decoder.c
-
-xineplug_decode_divx4_la_LDFLAGS = -ldivxdecore -avoid-version -module
-
-#noinst_HEADERS = config.h
+xineplug_decode_divx4_la_LIBADD = @DIVX4_LIBS@
+xineplug_decode_divx4_la_LDFLAGS = -avoid-version -module
 
 debug:
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

@@ -248,8 +248,26 @@ AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 dnl
 dnl Checks for Ascii-Art library
 dnl
-AM_PATH_AALIB(1.2,,)
+AM_PATH_AALIB(1.2,, AC_MSG_RESULT(*** All of AALIB dependent parts will be disabled ***))
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
+
+
+dnl
+dnl Check for divx4
+dnl
+AC_CHECK_DIVX4(, AC_MSG_RESULT(*** All of DIVX4 dependent parts will be disabled ***))
+AM_CONDITIONAL(HAVE_DIVX4, test x"$no_divx4" != "xyes")
+
+
+dnl
+dnl Ogg/Vorbis libs.
+dnl
+
+AM_PATH_OGG([no_oggvorbis=no
+            AM_PATH_VORBIS(no_oggvorbis=no, 
+                           AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))],
+            AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_VORBIS, test x"$no_oggvorbis" = "xno")
 
 
 dnl
@@ -573,19 +591,7 @@ else
 fi
 AC_SUBST(W32DLL_DEP)
 
-enable_divx4=yes
-DIVX_LIBS=$LIBS
-LIBS="$DIVX_LIBS -lstdc++"
-AC_CHECK_LIB(divxdecore, decore, , enable_divx4=no)
-AC_CHECK_HEADER(decore.h, , enable_divx4=no)
-if test x$enable_divx4 = xno ; then 
-    AC_MSG_WARN([
-*** Did not find decore.h or libdivxdecore. Not compiling divx4 plugin.  ])
-fi;
-AM_CONDITIONAL(HAVE_DIVXDECORE, test x"$enable_divx4" = "xyes")
-
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
-
 
 dnl
 dnl gcc __attribute__ ((aligned ()))

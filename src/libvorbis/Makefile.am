@@ -1,42 +1,26 @@
-CFLAGS = @GLOBAL_CFLAGS@ 
+##
+## Process this file with automake to produce Makefile.in
+##
+
+CFLAGS = @GLOBAL_CFLAGS@ @OGG_CFLAGS@ @VORBIS_CFLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_vorbis.la
+if HAVE_VORBIS
+vorbis_module = xineplug_decode_vorbis.la
+endif
+
+lib_LTLIBRARIES = $(vorbis_module)
 
 xineplug_decode_vorbis_la_SOURCES = xine_decoder.c
-xineplug_decode_vorbis_la_LIBADD = -lvorbis
+xineplug_decode_vorbis_la_LIBADD = @OGG_LIBS@ @VORBIS_LIBS@
 xineplug_decode_vorbis_la_LDFLAGS = -avoid-version -module
 
 
-
-##
-## Install header files (default=$includedir/xine)
-##
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-
-##
-## Remove them
-##
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	list='$(include_HEADERS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @OGG_CFLAGS@ @VORBIS_CFLAGS@"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
