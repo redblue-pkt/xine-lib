@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.87 2003/03/04 10:30:27 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.88 2003/03/15 13:50:58 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -793,7 +793,10 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
       if ((result=snd_pcm_drop(this->audio_fd)) < 0) {
         printf("audio_alsa_out: Drop call failed err=%d\n",result);
       }
-    }
+      if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
+        printf("audio_alsa_out: Prepare call failed err=%d\n",result);
+      }
+     }
     break;
   }
 
