@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.37 2001/11/18 17:34:28 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.38 2001/11/24 13:44:34 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,7 +73,7 @@
 # endif
 #endif
 
-#define AO_OUT_ALSA_IFACE_VERSION 2
+#define AO_OUT_ALSA_IFACE_VERSION 3
 
 #define GAP_TOLERANCE             5000
 
