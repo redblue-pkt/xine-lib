@@ -993,11 +993,13 @@ static inline void slice_non_intra_DCT (picture_t * picture, uint8_t * dest,
 #define MOTION(table,ref,motion_x,motion_y,size,y)			      \
     pos_x = 2 * picture->offset + motion_x;				      \
     pos_y = 2 * picture->v_offset + motion_y + 2 * y;			      \
-    if ((pos_x > picture->limit_x) || (pos_y > picture->limit_y_ ## size)) {  \
-      if (pos_x > picture->limit_x)					      \
-           pos_x = (((int)pos_x) < 0) ? 0 : picture->limit_x;		      \
-      if (pos_y > picture->limit_y_ ## size)				      \
-           pos_y = (((int)pos_y) < 0) ? 0 : picture->limit_y_ ## size;	      \
+    if (pos_x > picture->limit_x) {					      \
+      pos_x = ((int)pos_x < 0) ? 0 : picture->limit_x;			      \
+      motion_x = pos_x - 2 * picture->offset;				      \
+    }									      \
+    if (pos_y > picture->limit_y_ ## size){				      \
+      pos_y = ((int)pos_y < 0) ? 0 : picture->limit_y_ ## size;		      \
+      motion_y = pos_y - 2 * picture->v_offset - 2 * y;			      \
     }									      \
     xy_half = ((pos_y & 1) << 1) | (pos_x & 1);				      \
     table[xy_half] (picture->dest[0] + y * picture->pitches[0] +	      \
@@ -1020,11 +1022,13 @@ static inline void slice_non_intra_DCT (picture_t * picture, uint8_t * dest,
 #define MOTION_FIELD(table,ref,motion_x,motion_y,dest_field,op,src_field)     \
     pos_x = 2 * picture->offset + motion_x;				      \
     pos_y = picture->v_offset + motion_y;				      \
-    if ((pos_x > picture->limit_x) || (pos_y > picture->limit_y)) {	      \
-      if (pos_x > picture->limit_x)					      \
-           pos_x = (((int)pos_x) < 0) ? 0 : picture->limit_x;		      \
-      if (pos_y > picture->limit_y)					      \
-           pos_y = (((int)pos_y) < 0) ? 0 : picture->limit_y;		      \
+    if (pos_x > picture->limit_x) {					      \
+      pos_x = ((int)pos_x < 0) ? 0 : picture->limit_x;			      \
+      motion_x = pos_x - 2 * picture->offset;				      \
+    }									      \
+    if (pos_y > picture->limit_y){					      \
+      pos_y = ((int)pos_y < 0) ? 0 : picture->limit_y;			      \
+      motion_y = pos_y - picture->v_offset;				      \
     }									      \
     xy_half = ((pos_y & 1) << 1) | (pos_x & 1);				      \
     table[xy_half] (picture->dest[0] + dest_field * picture->pitches[0] +     \
@@ -1185,9 +1189,18 @@ static void motion_fr_dmv (picture_t * picture, motion_t * motion,
     other_y = ((motion_y * m + (motion_y > 0)) >> 1) + dmv_y + 1;
     MOTION_FIELD (mpeg2_mc.put, motion->ref[0], other_x, other_y, 1, & ~1, 0);
 
-    xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
-    offset = (picture->offset + (motion_x >> 1) +
-	      (picture->v_offset + (motion_y & ~1)) * picture->pitches[0]);
+    pos_x = 2 * picture->offset + motion_x;
+    pos_y = picture->v_offset + motion_y;
+    if(pos_x > picture->limit_x){
+      pos_x = ((int)pos_x < 0) ? 0 : picture->limit_x;
+      motion_x = pos_x - 2 * picture->offset;
+    }
+    if(pos_y > picture->limit_y){
+      pos_y = ((int)pos_y < 0) ? 0 : picture->limit_y;
+      motion_y = pos_y - picture->v_offset;
+    }
+    xy_half = ((pos_y & 1) << 1) | (pos_x & 1);
+    offset = (pos_x >> 1) + (pos_y & ~1) * picture->pitches[0];
     mpeg2_mc.avg[xy_half]
 	(picture->dest[0] + picture->offset,
 	 motion->ref[0][0] + offset, 2 * picture->pitches[0], 8);
