@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.55 2003/09/01 04:08:41 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.56 2003/09/01 14:30:56 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -458,6 +458,11 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
               if (((this->a52_flags & A52_CHANNEL_MASK) == A52_3F2R) && (this->a52_flags & A52_LFE))
                 this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 5.1");
+              else if ((((this->a52_flags & A52_CHANNEL_MASK) == A52_2F2R) && (this->a52_flags & A52_LFE)) ||
+                       (((this->a52_flags & A52_CHANNEL_MASK) == A52_3F1R) && (this->a52_flags & A52_LFE)))
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 4.1");
+              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_3F2R) 
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 5.0");
               else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F2R) ||
                        ((this->a52_flags & A52_CHANNEL_MASK) == A52_3F1R))
                 this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 4.0");
