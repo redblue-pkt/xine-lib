@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.5 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: demux_cda.c,v 1.6 2002/01/14 21:42:59 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -99,7 +99,6 @@ static int demux_cda_next (demux_cda_t *this) {
   buf->input_time      = buf->input_pos / this->blocksize;
   buf->type            = BUF_VIDEO_FILL; /* Fake */
   
-  //  if(this->audio_fifo)
   this->video_fifo->put(this->video_fifo, buf);
   
   return ((pos < len));

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.14 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: input_cda.c,v 1.15 2002/01/14 21:43:00 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1414,7 +1414,8 @@ static int cda_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
 
-  if((_cda_is_cd_changed(this->cda) == 1) && (this->cda->num_tracks)) {
+  if(((_cda_is_cd_changed(this->cda) == 1) && (this->cda->num_tracks)) 
+     || ((_cda_is_cd_changed(this->cda) == -1) && (!this->cda->num_tracks))) {
     if(!_cda_read_toc_cd(this->cda)) {
       _cda_free_cda(this->cda);
       return 0;
@@ -1533,7 +1534,7 @@ static off_t cda_plugin_get_length (input_plugin_t *this_gen) {
   _ENTER_FUNC();
   _LEAVE_FUNC();
 
-  return (this->cda->track[this->cda->cur_track-1].length * CDA_BLOCKSIZE);
+  return (this->cda->track[this->cda->cur_track-1].length * CDA_BLOCKSIZE) - CDA_BLOCKSIZE;
 }
 
 /*
@@ -1547,12 +1548,15 @@ static off_t cda_plugin_get_current_pos (input_plugin_t *this_gen){
   _cda_get_status_cd(this->cda);
 
 #ifdef DEBUG_POS
-  printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b(%02d:%02d:%02d) (%d)%02d",
+  printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b(%02d:%02d:%02d) (%d)%02d - %d/%d[%d/%d]\n",
 	 (this->cda->cur_pos / (60 * 60)),
 	 ((this->cda->cur_pos / 60) % 60),
 	 (this->cda->cur_pos  %60),
 	 this->cda->cur_track-1,
-	 this->cda->track[this->cda->cur_track-1].length);
+	 this->cda->track[this->cda->cur_track-1].length,
+	 this->cda->cur_pos * CDA_BLOCKSIZE,
+	 this->cda->track[this->cda->cur_track-1].length * CDA_BLOCKSIZE,
+	 this->cda->cur_pos, this->cda->track[this->cda->cur_track-1].length);
 #endif
   
   _LEAVE_FUNC();

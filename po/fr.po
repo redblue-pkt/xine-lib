@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2001-12-27 15:07+0100\n"
+"POT-Creation-Date: 2002-01-14 22:35+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,118 +14,105 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/demuxers/demux_ts.c:237
-msgid "demux_ts: demux error! PAT without payload unit start\n"
+#: src/demuxers/demux_ts.c:245
+msgid "demux_ts: demux error! PAT without payload unit start indicator\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:246
+#: src/demuxers/demux_ts.c:255
 msgid "demux_ts: demux error! PAT with invalid pointer\n"
 msgstr ""
 
 #: src/demuxers/demux_ts.c:288
-msgid "demux_ts: demux error! PAT with invalid section length\n"
+msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:292
+#: src/demuxers/demux_ts.c:294
 #, c-format
-msgid "demux_ts: demux error! PAT with invalid section %02x of %02x\n"
+msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:302
+#: src/demuxers/demux_ts.c:304
 #, c-format
 msgid ""
-"demux_ts: demux error! PAT with invalid CRC32: packet_crc32=0x%08x "
-"calc_crc32=0x%08x\n"
+"demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
+"calc_crc32: %.8x\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:355
+#: src/demuxers/demux_ts.c:368
 #, c-format
-msgid "demux_ts: error %02x %02x %02x (should be 0x000001) \n"
+msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:491
+#: src/demuxers/demux_ts.c:505
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:503
+#: src/demuxers/demux_ts.c:517
 #, c-format
-msgid "demux_ts: dropped input packet cc = %d expected = %d\n"
+msgid "demux_ts: dropped input packet cc: %d expected: %d\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:515
-msgid "PUS set but no PES header (corrupt stream?)\n"
+#: src/demuxers/demux_ts.c:531
+msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:521
+#: src/demuxers/demux_ts.c:539
 msgid "demux_ts: broken pes encountered\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:624
-msgid "demux error! PMT without payload unit start\n"
-msgstr ""
-
-#: src/demuxers/demux_ts.c:633
+#: src/demuxers/demux_ts.c:640
 msgid "demux error! PMT with invalid pointer\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:675
-msgid "demux error! PMT with invalid section length\n"
-msgstr ""
-
-#: src/demuxers/demux_ts.c:679
-#, c-format
-msgid "demux error! PMT with invalid section %02x of %02x\n"
-msgstr ""
-
-#: src/demuxers/demux_ts.c:689
+#: src/demuxers/demux_ts.c:745
 #, c-format
 msgid ""
-"demux_ts: demux error! PMT with invalid CRC32: packet_crc32=0x%08x "
-"calc_crc32=0x%08x\n"
+"demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
+"calc_crc32: %#.8x\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:701
+#: src/demuxers/demux_ts.c:760
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:717
+#: src/demuxers/demux_ts.c:777
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:822
+#: src/demuxers/demux_ts.c:896
 msgid "RE-Sync failed\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:970
+#: src/demuxers/demux_ts.c:1044
 #, c-format
-msgid "demux error! invalid ts sync byte %02x\n"
+msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:974
+#: src/demuxers/demux_ts.c:1049
 msgid "demux error! transport error\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:998
+#: src/demuxers/demux_ts.c:1074
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1141
+#: src/demuxers/demux_ts.c:1226
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1232
+#: src/demuxers/demux_ts.c:1317
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1243
+#: src/demuxers/demux_ts.c:1328
 msgid "demux_ts: stop...\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1290
+#: src/demuxers/demux_ts.c:1375
 #, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -248,7 +235,7 @@ msgstr ""
 msgid "You should specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:938 src/demuxers/demux_mpgaudio.c:466
+#: src/demuxers/demux_mpeg.c:938 src/demuxers/demux_mpgaudio.c:468
 #, c-format
 msgid ""
 "demux_mpeg: plugin doesn't support plugin API version %d.\n"
@@ -281,43 +268,43 @@ msgid ""
 "scrambled?\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:366
+#: src/demuxers/demux_mpeg_block.c:377
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:480
+#: src/demuxers/demux_mpeg_block.c:491
 #, c-format
 msgid "illegal lpcm sample format (%d), assume 16-bit samples\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:643
+#: src/demuxers/demux_mpeg_block.c:651
 #, c-format
 msgid "demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:744
+#: src/demuxers/demux_mpeg_block.c:752
 msgid "demux_mpeg_block: stop...ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:863
+#: src/demuxers/demux_mpeg_block.c:871
 #, c-format
 msgid "demux_mpeg_block: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:880
+#: src/demuxers/demux_mpeg_block.c:888
 #, c-format
 msgid "demux_mpeg_block: mrl %s is new, will estimated bitrate\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:884
+#: src/demuxers/demux_mpeg_block.c:892
 #, c-format
 msgid "demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1040
+#: src/demuxers/demux_mpeg_block.c:1048
 #, c-format
 msgid ""
 "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
@@ -331,11 +318,11 @@ msgstr ""
 msgid "mpgaudio: bitrate = %.2fkbps\n"
 msgstr ""
 
-#: src/demuxers/demux_mpgaudio.c:263
+#: src/demuxers/demux_mpgaudio.c:265
 msgid "demux_mpgaudio_block: stop...ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_mpgaudio.c:367
+#: src/demuxers/demux_mpgaudio.c:369
 #, c-format
 msgid "demux_mpgaudio: can't create new thread (%s)\n"
 msgstr ""
@@ -500,63 +487,63 @@ msgstr ""
 msgid "demux_asf: file doesn't start with an asf header\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:464
+#: src/demuxers/demux_asf.c:465
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:515
+#: src/demuxers/demux_asf.c:516
 #, c-format
 msgid "demux_asf: audio conceal interleave detected (%d x %d x %d)\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:612
+#: src/demuxers/demux_asf.c:613
 msgid "demux_asf: absolute size ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:809
+#: src/demuxers/demux_asf.c:816
 msgid "demux_asf: buffer overflow on defrag!\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:840
+#: src/demuxers/demux_asf.c:847
 msgid "demux_asf: get_packet failed\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:874
+#: src/demuxers/demux_asf.c:881
 #, c-format
 msgid "demux_asf: unknow segtype %x\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1053
+#: src/demuxers/demux_asf.c:1060
 msgid "demux_asf: stop...ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1139
+#: src/demuxers/demux_asf.c:1146
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1140
+#: src/demuxers/demux_asf.c:1147
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1141
+#: src/demuxers/demux_asf.c:1148
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1142
+#: src/demuxers/demux_asf.c:1149
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1170
+#: src/demuxers/demux_asf.c:1177
 #, c-format
 msgid "demux_asf: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1245
+#: src/demuxers/demux_asf.c:1252
 #, c-format
 msgid ""
 "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -565,16 +552,16 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_cda.c:156
+#: src/demuxers/demux_cda.c:155
 msgid "demux_cda: stop...ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_cda.c:231
+#: src/demuxers/demux_cda.c:230
 #, c-format
 msgid "demux_cda: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_cda.c:307
+#: src/demuxers/demux_cda.c:306
 #, c-format
 msgid ""
 "demux_cda: plugin doesn't support plugin API version %d.\n"
@@ -583,43 +570,32 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/input/input_net.c:100
-#, c-format
-msgid "socket(): %s\n"
-msgstr ""
-
 #: src/input/input_net.c:106
 #, c-format
-msgid "fcntl(nonblocking): %s\n"
+msgid "input_net: socket(): %s\n"
 msgstr ""
 
-#: src/input/input_net.c:117
+#: src/input/input_net.c:115
 #, c-format
-msgid "connect(): %s\n"
+msgid "input_net: connect(): %s\n"
 msgstr ""
 
-#. Ermm.. ??
-#: src/input/input_net.c:136
+#: src/input/input_net.c:130
 #, c-format
-msgid "select(): %s\n"
+msgid "input_net: unable to resolve '%s'.\n"
 msgstr ""
 
-#: src/input/input_net.c:152 src/input/input_rtp.c:205
+#: src/input/input_net.c:142
 #, c-format
-msgid "unable to resolve '%s'.\n"
+msgid "input_net: unable to connect to '%s'.\n"
 msgstr ""
 
-#: src/input/input_net.c:165 src/input/input_rtp.c:218
-#, c-format
-msgid "unable to connect to '%s'.\n"
-msgstr ""
-
-#: src/input/input_net.c:286
+#: src/input/input_net.c:340
 #, fuzzy
 msgid "net input plugin as shipped with xine"
 msgstr "Plugin d'entrée pour lecteur de DVD fournis avec xine"
 
-#: src/input/input_net.c:324
+#: src/input/input_net.c:378
 #, c-format
 msgid ""
 "net input plugin doesn't support plugin API version %d.\n"
@@ -641,6 +617,16 @@ msgstr ""
 #: src/input/input_rtp.c:185
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
+msgstr ""
+
+#: src/input/input_rtp.c:205
+#, c-format
+msgid "unable to resolve '%s'.\n"
+msgstr ""
+
+#: src/input/input_rtp.c:218
+#, c-format
+msgid "unable to connect to '%s'.\n"
 msgstr ""
 
 #: src/input/input_rtp.c:241
@@ -1137,26 +1123,26 @@ msgstr ""
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1428
+#: src/input/input_cda.c:1429
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
 msgstr ""
 
-#: src/input/input_cda.c:1434
+#: src/input/input_cda.c:1435
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
 msgstr ""
 
-#: src/input/input_cda.c:1517
+#: src/input/input_cda.c:1518
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
 msgstr ""
 
-#: src/input/input_cda.c:1630
+#: src/input/input_cda.c:1634
 #, fuzzy
 msgid "cd audio plugin as shipped with xine"
 msgstr "Plugin d'entrée pour lecteur de DVD fournis avec xine"
 
-#: src/input/input_cda.c:1805
+#: src/input/input_cda.c:1809
 #, c-format
 msgid ""
 "cda input plugin doesn't support plugin API version %d.\n"
@@ -1173,171 +1159,172 @@ msgstr ""
 msgid "metronom: video stream start ignored\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:285
+#: src/xine-engine/metronom.c:286
 msgid "metronom: waiting for audio to start...\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:301
+#: src/xine-engine/metronom.c:302
 msgid "metronom: video stream end\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:304
+#: src/xine-engine/metronom.c:305
 msgid "metronom: video stream end ignored\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:314
+#: src/xine-engine/metronom.c:315
 msgid "metronom: waiting for audio to end...\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:328
+#: src/xine-engine/metronom.c:329
 msgid "metronom: audio stream start...\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:331
+#: src/xine-engine/metronom.c:332
 msgid "metronom: audio stream start ignored\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:355
+#: src/xine-engine/metronom.c:357
 msgid "metronom: waiting for video to start...\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:363
+#: src/xine-engine/metronom.c:365
 msgid "metronom: audio stream start...done\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:372
+#: src/xine-engine/metronom.c:374
 msgid "metronom: audio stream end\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:374
+#: src/xine-engine/metronom.c:376
 msgid "metronom: audio stream end ignored\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:383
+#: src/xine-engine/metronom.c:385
 msgid "metronom: waiting for video to end...\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:466
+#: src/xine-engine/metronom.c:479
 #, c-format
 msgid "metronom: video discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:473
+#: src/xine-engine/metronom.c:486
 #, c-format
 msgid "metronom: waiting for audio discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:481
+#: src/xine-engine/metronom.c:494
 #, c-format
 msgid "metronom: video vpts adjusted to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:536
+#: src/xine-engine/metronom.c:525 src/xine-engine/metronom.c:740
+#, c-format
+msgid "metronom: audio/video vpts too old, adjusted to %d\n"
+msgstr ""
+
+#: src/xine-engine/metronom.c:564
 #, c-format
 msgid ""
 "metronom: video pts discontinuity/start, pts is %d, wrap_offset is %d, vpts "
 "is %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:551 src/xine-engine/metronom.c:741
+#: src/xine-engine/metronom.c:579 src/xine-engine/metronom.c:782
 #, c-format
 msgid "metronom: forcing video_wrap (%d) and audio wrap (%d)"
 msgstr ""
 
-#: src/xine-engine/metronom.c:559
+#: src/xine-engine/metronom.c:587
 #, c-format
 msgid " to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:623
+#: src/xine-engine/metronom.c:651
 #, c-format
 msgid "metronom: delta too big, setting vpts to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:666
+#: src/xine-engine/metronom.c:694
 #, c-format
 msgid "metronom: audio discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:672
+#: src/xine-engine/metronom.c:700
 #, c-format
 msgid "metronom: waiting for video_discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:681
+#: src/xine-engine/metronom.c:708
 #, c-format
 msgid "metronom: audio vpts adjusted to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:724
+#: src/xine-engine/metronom.c:765
 #, c-format
 msgid ""
 "metronom: audio pts discontinuity/start, pts is %d, wrap_offset is %d, vpts "
 "is %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:749
+#: src/xine-engine/metronom.c:790
 #, c-format
 msgid "to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:799
+#: src/xine-engine/metronom.c:840
 #, c-format
 msgid "metronom: av_offset=%d pts\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:819
+#: src/xine-engine/metronom.c:860
 msgid "metronom: panic - no scr provider found!\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:904
+#: src/xine-engine/metronom.c:945
 #, c-format
 msgid "metronom: cannot create sync thread (%s)\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:209
+#: src/xine-engine/video_out.c:216
 msgid "video_out: sigprocmask failed.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:271
+#: src/xine-engine/video_out.c:297
 #, c-format
 msgid ""
 "video_out : throwing away image with pts %d because it's too old (diff : %d "
 "> %d).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:410
-msgid "video_out : overwriting frame backup\n"
-msgstr ""
-
-#: src/xine-engine/video_out.c:514
+#: src/xine-engine/video_out.c:536
 #, c-format
 msgid "video_out : can't create thread (%s)\n"
 msgstr ""
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:516
+#: src/xine-engine/video_out.c:538
 msgid "video_out : sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:520
+#: src/xine-engine/video_out.c:542
 msgid "video_out : thread created\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:522
+#: src/xine-engine/video_out.c:544
 msgid "video_out : vo_open : warning! video thread already running\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:711
+#: src/xine-engine/video_out.c:758
 msgid "video_out : ALERT! frame is already locked for displaying\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:724
+#: src/xine-engine/video_out.c:771
 #, c-format
-msgid "vo_frame_draw: rejected, %d frames to skip\n"
+msgid "video_out: rejected, %d frames to skip\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:772
+#: src/xine-engine/video_out.c:819
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr ""
@@ -1408,128 +1395,128 @@ msgstr ""
 msgid "xine_exit: bye!\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:447
+#: src/xine-engine/xine.c:449
 msgid "xine_init entered\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:520
+#: src/xine-engine/xine.c:522
 msgid "xine_init returning\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:561
+#: src/xine-engine/xine.c:563
 msgid "xine: xine_get_current_position: no input source\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:682
+#: src/xine-engine/xine.c:684
 #, c-format
 msgid "xine: set_speed %d\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:842
+#: src/xine-engine/xine.c:844
 msgid "messages"
 msgstr "messages"
 
 #. XINE_LOG_MSG
-#: src/xine-engine/xine.c:843
+#: src/xine-engine/xine.c:845
 #, fuzzy
 msgid "inputs"
 msgstr "entrée"
 
 #. XINE_LOG_INPUT
-#: src/xine-engine/xine.c:844
+#: src/xine-engine/xine.c:846
 msgid "demuxers"
 msgstr ""
 
 #. XINE_LOG_DEMUX
-#: src/xine-engine/xine.c:845
+#: src/xine-engine/xine.c:847
 msgid "codecs"
 msgstr "codec"
 
 #. XINE_LOG_CODEC
-#: src/xine-engine/xine.c:846
+#: src/xine-engine/xine.c:848
 msgid "video"
 msgstr ""
 
 #. XINE_LOG_VIDEO
-#: src/xine-engine/xine.c:847
+#: src/xine-engine/xine.c:849
 msgid "metronom"
 msgstr ""
 
 #. XINE_LOG_METRONOM
-#: src/xine-engine/xine.c:848
+#: src/xine-engine/xine.c:850
 msgid "plugin"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:121 src/xine-engine/load_plugins.c:469
+#: src/xine-engine/load_plugins.c:121 src/xine-engine/load_plugins.c:473
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:156
+#: src/xine-engine/load_plugins.c:158
 #, c-format
 msgid ""
 "load_plugins: cannot open demux plugin %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:170
+#: src/xine-engine/load_plugins.c:172
 #, c-format
 msgid "load_plugins: demux plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:178
+#: src/xine-engine/load_plugins.c:180
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:314
+#: src/xine-engine/load_plugins.c:318
 #, c-format
 msgid ""
 "load_plugins: cannot open input plugin %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:326
+#: src/xine-engine/load_plugins.c:330
 #, c-format
 msgid "load_plugins: input plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:333
+#: src/xine-engine/load_plugins.c:337
 #, c-format
 msgid ""
 "load_plugins: %s is no valid input plugin (lacks init_input_plugin() "
 "function)\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:337
+#: src/xine-engine/load_plugins.c:341
 #, c-format
 msgid "%s(%d): too many input plugins installed, exiting.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:350
+#: src/xine-engine/load_plugins.c:354
 #, c-format
 msgid ""
 "load_plugins: no input plugins found in %s! - Did you install xine "
 "correctly??\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:529
+#: src/xine-engine/load_plugins.c:534
 #, c-format
 msgid ""
 "load_plugins: failed to load plugin %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:557
+#: src/xine-engine/load_plugins.c:562
 #, c-format
 msgid "spu decoder plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:585
+#: src/xine-engine/load_plugins.c:590
 #, c-format
 msgid "video decoder plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:609
+#: src/xine-engine/load_plugins.c:614
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr ""
