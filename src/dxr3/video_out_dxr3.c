@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.73 2003/02/18 12:58:44 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.74 2003/03/30 10:58:35 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -337,18 +337,6 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
            "video_out_dxr3: you will not be able to play non-mpeg content using this video out\n"
            "video_out_dxr3: driver. See the README.dxr3 for details on configuring an encoder.\n");
   
-  /* init bcs */
-  if (ioctl(this->fd_control, EM8300_IOCTL_GETBCS, &this->bcs))
-    printf("video_out_dxr3: cannot read bcs values (%s)\n", strerror(errno));
-  this->bcs.contrast   = config->register_range(config, "dxr3.contrast",
-    this->bcs.contrast, 100, 900, _("Dxr3: contrast control"),     NULL, 0, NULL, NULL);
-  this->bcs.saturation = config->register_range(config, "dxr3.saturation",
-    this->bcs.saturation, 100, 900, _("Dxr3: saturation control"), NULL, 0, NULL, NULL);
-  this->bcs.brightness = config->register_range(config, "dxr3.brightness",
-    this->bcs.brightness, 100, 900, _("Dxr3: brightness control"), NULL, 0, NULL, NULL);
-  if (ioctl(this->fd_control, EM8300_IOCTL_SETBCS, &this->bcs))
-    printf("video_out_dxr3: cannot set bcs values (%s)\n", strerror(errno));
-
   /* init aspect */
   dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, ASPECT_FULL);
     
@@ -1027,13 +1015,9 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     break;
   }
 
-  if (bcs_changed) {
+  if (bcs_changed)
     if (ioctl(this->fd_control, EM8300_IOCTL_SETBCS, &this->bcs))
       printf("video_out_dxr3: bcs set failed (%s)\n", strerror(errno));
-    this->class->xine->config->update_num(this->class->xine->config, "dxr3.contrast",   this->bcs.contrast);
-    this->class->xine->config->update_num(this->class->xine->config, "dxr3.saturation", this->bcs.saturation);
-    this->class->xine->config->update_num(this->class->xine->config, "dxr3.brightness", this->bcs.brightness);
-  }
     
   return value;
 }
