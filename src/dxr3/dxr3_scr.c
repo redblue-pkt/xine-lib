@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.17 2004/08/02 12:51:08 miguelfreitas Exp $
+ * $Id: dxr3_scr.c,v 1.18 2004/08/16 15:21:03 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -188,40 +188,23 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
   uint32_t em_speed;
   int playmode;
 
-  speed = speed * XINE_SPEED_NORMAL / XINE_FINE_SPEED_NORMAL;
-  
   pthread_mutex_lock(&this->mutex);
-  switch (speed) {
-  case XINE_SPEED_PAUSE:
-    em_speed = 0;
+  
+  em_speed = 0x900 * speed / XINE_FINE_SPEED_NORMAL;
+  switch (em_speed) {
+  case 0:
+    /* pause mode */
     playmode = MVCOMMAND_PAUSE;
     break;
-  case XINE_SPEED_SLOW_4:
-    em_speed = 0x900 / 4;
-    playmode = MVCOMMAND_START;
-    break;
-  case XINE_SPEED_SLOW_2:
-    em_speed = 0x900 / 2;
-    playmode = MVCOMMAND_START;
-    break;
-  case XINE_SPEED_NORMAL:
-    em_speed = 0x900;
+  case 0x900:
+    /* normal playback */
     if (this->sync)
       playmode = MVCOMMAND_SYNC;
     else
       playmode = MVCOMMAND_START;
-    break;
-  case XINE_SPEED_FAST_2:
-    em_speed = 0x900 * 2;
-    playmode = MVCOMMAND_START;
-    break;
-  case XINE_SPEED_FAST_4:
-    em_speed = 0x900 * 4;
-    playmode = MVCOMMAND_START;
-    break;
+    break;    
   default:
-    speed = em_speed = 0;
-    playmode = MVCOMMAND_PAUSE;
+    playmode = MVCOMMAND_START;
   }
   
   if (dxr3_mvcommand(this->fd_control, playmode))
@@ -238,7 +221,7 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
   pthread_mutex_unlock(&this->mutex);
   
   lprintf("speed set to mode %d\n", speed);
-  return speed * XINE_FINE_SPEED_NORMAL / XINE_SPEED_NORMAL;
+  return speed;
 }
 
 static void dxr3_scr_exit(scr_plugin_t *scr)
