@@ -21,7 +21,7 @@ xine-lib (1-rc2)
   * the former VCDX plugin is now the default VCD plugin which opens up
     a world of new features for VCD users (the old plugin is still
     available as VCDO)
-    
+  * documentation (xine hacker's guide) has undergone a major update
 
 xine-lib (1-rc1)
   * fix incorrect colours when blending frame with a big-endian RGB pixel format
