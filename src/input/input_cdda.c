@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.55 2004/05/11 21:21:39 mroi Exp $
+ * $Id: input_cdda.c,v 1.56 2004/05/12 11:19:13 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -838,6 +838,7 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
 
 
 static int read_cdrom_toc(int fd, cdrom_toc *toc) {
+  xine_log(this->stream->xine, XINE_LOG_MSG, _("read_cdrom_toc is not supported on this platform\n"));
   return -1;
 }
 
@@ -1803,7 +1804,9 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
   if (this_gen)
     this_gen->fd = -1;
 
-  fd = open (cdda_device, O_RDONLY);
+  /* We use O_NONBLOCK for when /proc/sys/dev/cdrom/check_media is at 1 on
+   * Linux systems */
+  fd = open (cdda_device, O_RDONLY | O_NONBLOCK);
   if (fd == -1) {
     return -1;
   }
@@ -2266,24 +2269,27 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   int fd, i, err = -1;
   int num_tracks;
 
+  lprintf("cdda_class_get_autoplay_list for >%s<\n", this->cdda_device);
+
   /* free old playlist */
   for( i = 0; this->autoplaylist[i]; i++ ) {
     free( this->autoplaylist[i] );
     this->autoplaylist[i] = NULL; 
   }  
-  
+
   /* get the CD TOC */
   toc = init_cdrom_toc();
 
   fd = -1;
-  
-  if (!ip)
+
+  if (!ip) {
     /* we need an instance pointer to store all the details about the
      * device we are going to open; but it is possible that this function
      * gets called, before a plugin instance has been created;
      * let's create a dummy instance in such a condition */
     ip = (cdda_input_plugin_t *)xine_xmalloc(sizeof(cdda_input_plugin_t));
     ip->stream = NULL;
+  }
 
 #ifndef WIN32
   if( strchr(this->cdda_device,':') ) {
@@ -2296,6 +2302,8 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 
   if (fd == -1) {
     if (cdda_open(ip, this->cdda_device, toc, &fd) == -1) {
+      lprintf("cdda_class_get_autoplay_list: opening >%s< failed %s\n",
+              this->cdda_device, strerror(errno));
       if (ip != this->ip) free(ip);
       return NULL;
     }
@@ -2343,7 +2351,7 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   char                *cdda_device = NULL;
   int                  cddb_error = class->cddb_error;
 
-  lprintf("cdda_class_get_instance\n");
+  lprintf("cdda_class_get_instance: >%s<\n", mrl);
 
   /* fetch the CD track to play */
   if (!strncasecmp (mrl, "cdda:/", 6)) {
