@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.105 2003/03/26 14:49:55 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.106 2003/03/27 17:20:57 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1255,7 +1255,6 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MSMPEG4_V2,
   BUF_VIDEO_MSMPEG4_V3, 
   BUF_VIDEO_WMV7, 
-  BUF_VIDEO_WMV8,
   BUF_VIDEO_MPEG4,
   BUF_VIDEO_XVID, 
   BUF_VIDEO_DIVX5, 
@@ -1267,6 +1266,11 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MPEG, 
   BUF_VIDEO_DV,
   BUF_VIDEO_HUFFYUV,
+  0 
+};
+
+static uint32_t experimental_video_types[] = { 
+  BUF_VIDEO_WMV8,
   0 
 };
 
@@ -1283,6 +1287,11 @@ static decoder_info_t dec_info_ffmpeg_video = {
   5                        /* priority        */
 };
 
+static decoder_info_t dec_info_ffmpeg_experimental_video = {
+  experimental_video_types,   /* supported types */
+  0                           /* priority        */
+};
+
 static decoder_info_t dec_info_ffmpeg_audio = {
   supported_audio_types,   /* supported types */
   5                        /* priority        */
@@ -1291,6 +1300,7 @@ static decoder_info_t dec_info_ffmpeg_audio = {
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 14, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
+  { PLUGIN_VIDEO_DECODER, 14, "ffmpeg-wmv8", XINE_VERSION_CODE, &dec_info_ffmpeg_experimental_video, init_video_plugin },
   { PLUGIN_AUDIO_DECODER, 13, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
