@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.10 2002/09/05 12:52:24 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.11 2002/10/11 10:55:28 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -115,8 +115,10 @@ typedef struct dxr3_driver_s {
   char            *user_data;
   void           (*frame_output_cb)(void *user_data,
                      int video_width, int video_height,
+		     double video_pixel_aspect,
                      int *dest_x, int *dest_y,
                      int *dest_height, int *dest_width,
+		     double *dest_pixel_aspect,
                      int *win_x, int *win_y);
 } dxr3_driver_t;
 

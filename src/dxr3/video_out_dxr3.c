@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.56 2002/09/27 13:07:43 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.57 2002/10/11 10:55:27 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -1255,23 +1255,23 @@ static int dxr3_overlay_set_attributes(dxr3_overlay_t *this)
 static void dxr3_overlay_update(dxr3_driver_t *this)
 {
   if (this->overlay_enabled) {
-    int width;
+    double video_aspect, gui_aspect;
     int gui_win_x, gui_win_y, win_off_x, win_off_y, gui_width, gui_height;
     
     switch (this->aspect) {
     case ASPECT_FULL:
-      width = this->video_oheight * 4 / 3;
+      video_aspect = 4 / 3;
       break;
     case ASPECT_ANAMORPHIC:
-      width = this->video_oheight * 16 / 9;
+      video_aspect = 16 / 9;
       break;
     default:
-      width = this->video_width;
+      video_aspect = 4 / 3;
     }
     
     this->frame_output_cb(this->user_data,
-      width, this->video_oheight,
-      &win_off_x, &win_off_y, &gui_width, &gui_height, &gui_win_x, &gui_win_y);
+      this->video_width, this->video_oheight, video_aspect,
+      &win_off_x, &win_off_y, &gui_width, &gui_height, &gui_aspect, &gui_win_x, &gui_win_y);
       
     if (this->xpos != (gui_win_x + win_off_x) ||
         this->ypos != (gui_win_y + win_off_y) ||
