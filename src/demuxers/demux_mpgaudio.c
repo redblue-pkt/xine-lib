@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.82 2002/11/28 10:21:06 petli Exp $
+ * $Id: demux_mpgaudio.c,v 1.83 2002/11/28 18:42:25 tmmm Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -500,8 +500,20 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 #ifdef LOG
       printf ("demux_mpgaudio: **** found RIFF tag\n");
 #endif
-      /* skip the remaining 12 bytes of the RIFF tag */
-      input->seek(input, 12, SEEK_CUR);
+      /* skip the length */
+      input->seek(input, 4, SEEK_CUR);
+
+      /* disqualify the file if it is, in fact, an AVI file */
+      if (input->read(input, riff_check, 4) != 4)
+        return NULL;
+      if ((riff_check[0] == 'A') &&
+          (riff_check[1] == 'V') &&
+          (riff_check[2] == 'I') &&
+          (riff_check[3] == ' '))
+        return NULL;
+
+      /* skip 4 more bytes */
+      input->seek(input, 4, SEEK_CUR);
 
       /* get the length of the next chunk */
       if (input->read(input, riff_check, 4) != 4)
