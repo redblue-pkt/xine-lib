@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.18 2001/09/23 15:14:01 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.19 2001/09/25 18:39:36 jkeil Exp $
  */
 
 #include "config.h"
@@ -211,70 +211,11 @@ static void scale_line_fast (uint8_t *source, uint8_t *dest,
 }
 #endif
 
-/*
- * Interpolates 7 output pixels from 5 source pixels using shifts.
- * Useful for scaling an mpeg2 dvd input source to 16:9 format
- * (720 x 576 ==> 1008 x 576)
- *
- * Interpolated source pixels are at n*5/7 (n=0..6):
- * 0.0, 0.71428, 1.42857, 2.14285, 2.85714, 3.57142, 4.28571
- *
- * We use:
- * 0.0				source[0]
- * 0.71428 => 3/4 (0.75)	(1*source[0] + 3*source[1]) >> 2
- * 1.42857 => 1+3/8 (1.375)	(5*source[1] + 3*source[2]) >> 3
- * 2.14285 => 2+1/8 (2.125)	(7*source[2] + 1*source[3]) >> 3
- * 2.85714 => 2+7/8 (2.875)	(1*source[2] + 7*source[3]) >> 3
- * 3.57142 => 3+5/8 (3.625)	(3*source[3] + 5*source[4]) >> 3
- * 4.28571 => 4+1/4 (4.25)	(3*source[4] + 1*source[5]) >> 2
- */
-static void scale_line_5_7 (uint8_t *source, uint8_t *dest,
-			    int width, int step) {
-
-  int p1, p2;
-
-  profiler_start_count(prof_scale_line);
-
-  p1 = source[0];
-  while ((width -= 7) >= 0) {
-    dest[0] = p1;
-    p2 = source[1];
-    dest[1] = (1*p1 + 3*p2) >> 2;
-    p1 = source[2];
-    dest[2] = (5*p2 + 3*p1) >> 3;
-    p2 = source[3];
-    dest[3] = (7*p1 + 1*p2) >> 3;
-    dest[4] = (1*p1 + 7*p2) >> 3;
-    p1 = source[4];
-    dest[5] = (3*p2 + 5*p1) >> 3;
-    p2 = source[5];
-    dest[6] = (3*p1 + 1*p2) >> 2;
-    source += 5;
-    dest += 7;
-    p1 = p2;
-  }
-
-  if ((width += 7) <= 0) goto done;
-  *dest++ = source[0];
-  if (--width <= 0) goto done;
-  *dest++ = (1*source[0] + 3*source[1]) >> 2;
-  if (--width <= 0) goto done;
-  *dest++ = (5*source[1] + 3*source[2]) >> 3;
-  if (--width <= 0) goto done;
-  *dest++ = (7*source[2] + 1*source[3]) >> 3;
-  if (--width <= 0) goto done;
-  *dest++ = (1*source[2] + 7*source[3]) >> 3;
-  if (--width <= 0) goto done;
-  *dest++ = (3*source[3] + 5*source[4]) >> 3;
-done:
-
-  profiler_stop_count(prof_scale_line);
-}
-
 			
 /*
  * Interpolates 16 output pixels from 15 source pixels using shifts.
- * Useful for scaling an mpeg2 dvd input source to 4:3 format
+ * Useful for scaling a PAL mpeg2 dvd input source to 4:3 format on
+ * a monitor using square pixels.
  * (720 x 576 ==> 768 x 576)
  */
 static void scale_line_15_16 (uint8_t *source, uint8_t *dest,
@@ -357,8 +298,10 @@ static void scale_line_15_16 (uint8_t *source, uint8_t *dest,
 
 /*
  * Interpolates 64 output pixels from 45 source pixels using shifts.
- * Useful for scaling an mpeg2 dvd input source to 1024x768 fullscreen
- * (720 x 576 ==> 1024 x XXX)
+ * Useful for scaling a PAL mpeg2 dvd input source to 1024x768
+ * fullscreen resolution, or to 16:9 format on a monitor using square
+ * pixels.
+ * (720 x 576 ==> 1024 x 576)
  */
 static void scale_line_45_64 (uint8_t *source, uint8_t *dest,
 			     int width, int step) {
@@ -616,7 +559,7 @@ static void scale_line_45_64 (uint8_t *source, uint8_t *dest,
 
 /*
  * Interpolates 16 output pixels from 9 source pixels using shifts.
- * Useful for scaling an mpeg2 dvd input source to 1280x1024 fullscreen
+ * Useful for scaling a PAL mpeg2 dvd input source to 1280x1024 fullscreen
  * (720 x 576 ==> 1280 x XXX)
  */
 static void scale_line_9_16 (uint8_t *source, uint8_t *dest,
@@ -722,27 +665,38 @@ static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
 }
 
 			
+/* Scale line with no scaling. */
+
+static void scale_line_1_1 (uint8_t *source, uint8_t *dest,
+			    int width, int step) {
+
+  profiler_start_count(prof_scale_line);
+  memcpy(dest, source, width);
+  profiler_stop_count(prof_scale_line);
+}
+
+			
 static scale_line_func_t find_scale_line_func(int step) {
 #if 1
-  if (abs(step - 5*32768/7) < 10) {
-    printf("yuv2rgb: using dvd 16:9 optimized scale_line\n");
-    return scale_line_5_7;
-  }
-  if (abs(step - 15*32768/16) < 10) {
+  if (step == 15*32768/16) {
     printf("yuv2rgb: using dvd 4:3 optimized scale_line\n");
     return scale_line_15_16;
   }
-  if (abs(step - 45*32768/64) < 10) {
+  if (step == 45*32768/64) {
     printf("yuv2rgb: using dvd fullscreen(1024x768) optimized scale_line\n");
     return scale_line_45_64;
   }
-  if (abs(step - 9*32768/16) < 10) {
+  if (step == 9*32768/16) {
     printf("yuv2rgb: using dvd fullscreen(1280x1024) optimized scale_line\n");
     return scale_line_9_16;
   }
-  if (abs(step - 1*32768/2) < 10) {
+  if (step == 1*32768/2) {
     printf("yuv2rgb: using optimized 2*zoom scale_line\n");
     return scale_line_1_2;
+  }
+  if (step == 1*32768/1) {
+    printf("yuv2rgb: using non-scaled scale_line\n");
+    return scale_line_1_1;
   }
   printf("yuv2rgb: using generic scale_line with interpolation\n");
   return scale_line_gen;
