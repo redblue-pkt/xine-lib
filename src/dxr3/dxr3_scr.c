@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.14 2004/04/10 15:29:57 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.15 2004/07/11 11:47:10 hadess Exp $
  */
 
 /* dxr3 scr plugin.
@@ -48,12 +48,19 @@ static void    dxr3_scr_adjust(scr_plugin_t *scr, int64_t vpts);
 static int     dxr3_scr_set_speed(scr_plugin_t *scr, int speed);
 static void    dxr3_scr_exit(scr_plugin_t *scr);
 
-/* helper function */
-static inline int dxr3_mvcommand(int fd_control, int command);
-
 /* config callback */
 static void    dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry);
 
+static inline int dxr3_mvcommand(int fd_control, int command)
+{
+  em8300_register_t reg;
+  
+  reg.microcode_register = 1;
+  reg.reg = 0;
+  reg.val = command;
+  
+  return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &reg);
+}
 
 dxr3_scr_t *dxr3_scr_init(xine_t *xine)
 {
@@ -246,16 +253,7 @@ static void dxr3_scr_exit(scr_plugin_t *scr)
 }
 
 
-static inline int dxr3_mvcommand(int fd_control, int command)
-{
-  em8300_register_t reg;
-  
-  reg.microcode_register = 1;
-  reg.reg = 0;
-  reg.val = command;
-  
-  return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &reg);
-}
+
 
 static void dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry)
 {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.55 2004/06/13 16:00:17 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.56 2004/07/11 11:47:10 hadess Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -144,10 +144,6 @@ typedef struct dxr3_decoder_s {
 } dxr3_decoder_t;
 
 /* helper functions */
-static inline int  dxr3_present(xine_stream_t *stream);
-static inline int  dxr3_mvcommand(int fd_control, int command);
-static inline void parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
-static inline int  get_duration(dxr3_decoder_t *this);
 static        void frame_format_change(dxr3_decoder_t *this);
 
 /* config callbacks */
@@ -156,6 +152,147 @@ static void      dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t *entry);
 
+static inline int dxr3_present(xine_stream_t *stream)
+{
+  plugin_node_t *node;
+  video_driver_class_t *vo_class;
+  int present = 0;
+  
+  if (stream->video_driver && stream->video_driver->node) {
+    node = (plugin_node_t *)stream->video_driver->node;
+    if (node->plugin_class) {
+      vo_class = (video_driver_class_t *)node->plugin_class;
+      if (vo_class->get_identifier)
+        present = (strcmp(vo_class->get_identifier(vo_class), DXR3_VO_ID) == 0);
+    }
+  }
+#if LOG_VID
+  printf("dxr3_decode_video: dxr3 %s\n", present ? "present" : "not present");
+#endif
+  return present;
+}
+
+static inline int dxr3_mvcommand(int fd_control, int command)
+{
+  em8300_register_t reg;
+  
+  reg.microcode_register = 1;
+  reg.reg = 0;
+  reg.val = command;
+  
+  return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &reg);
+}
+
+static inline void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
+{
+  this->frame_rate_code = buffer[3] & 15;
+  this->height          = (buffer[0] << 16) |
+                          (buffer[1] <<  8) |
+                          (buffer[2] <<  0);
+  this->width           = ((this->height >> 12) + 15) & ~15;
+  this->height          = ((this->height & 0xfff) + 15) & ~15;
+  this->aspect_code     = buffer[3] >> 4;
+  
+  this->have_header_info = 1;
+  
+  if (this->force_aspect) this->aspect_code = this->force_aspect;
+  
+  /* when width, height or aspect changes,
+   * we have to send an event for dxr3 spu decoder */
+  if (!this->last_width || !this->last_height || !this->last_aspect_code ||
+      (this->last_width != this->width) ||
+      (this->last_height != this->height) ||
+      (this->last_aspect_code != this->aspect_code)) {
+    frame_format_change(this);
+    this->last_width = this->width;
+    this->last_height = this->height;
+    this->last_aspect_code = this->aspect_code;
+  }
+}
+
+static inline int get_duration(dxr3_decoder_t *this)
+{
+  int duration;
+  
+  switch (this->frame_rate_code) {
+  case 1: /* 23.976 */
+    duration = 3754;  /* actually it's 3753.75 */
+    break;
+  case 2: /* 24.000 */
+    duration = 3750;
+    break;
+  case 3: /* 25.000 */
+    duration = this->repeat_first_field ? 5400 : 3600;
+    break;
+  case 4: /* 29.970 */
+    duration = this->repeat_first_field ? 4505 : 3003;
+    break;
+  case 5: /* 30.000 */
+    duration = 3000;
+    break;
+  case 6: /* 50.000 */
+    duration = 1800;
+    break;
+  case 7: /* 59.940 */
+    duration = 1502;  /* actually it's 1501.5 */
+    break;
+  case 8: /* 60.000 */
+    duration = 1500;
+    break;
+  default:
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("dxr3_decode_video: WARNING: unknown frame rate code %d\n"), this->frame_rate_code);
+    duration = 0;
+    break;
+  }
+  
+  /* update stream metadata */
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, duration);
+  
+  if (this->correct_durations && duration) {
+    /* we set an initial average frame duration here */
+    if (!this->avg_duration) this->avg_duration = duration;
+  
+    /* Apply a correction to the framerate-code if metronom
+     * insists on a different frame duration.
+     * The code below is for NTCS streams labeled as PAL streams.
+     * (I have seen such things even on dvds!)
+     */
+    if (this->avg_duration && this->avg_duration < 3300 && duration == 3600) {
+      if (this->force_duration_window > 0) {
+        /* we are already in a force_duration window, so we force duration */
+        this->force_duration_window = FORCE_DURATION_WINDOW_SIZE;
+        return 3000;
+      }
+      if (this->force_duration_window <= 0 && (this->force_duration_window += 10) > 0) {
+        /* we just entered a force_duration window, so we start the correction */
+        metronom_t *metronom = this->stream->metronom;
+        int64_t cur_offset;
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		_("dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n"));
+        /* those weird streams need an offset, too */
+        cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
+        metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset - 28800);
+        this->force_duration_window = FORCE_DURATION_WINDOW_SIZE;
+        return 3000;
+      }
+    }
+    
+    if (this->force_duration_window == -FORCE_DURATION_WINDOW_SIZE)
+      /* we are far from a force_duration window */
+      return duration;
+    if (--this->force_duration_window == 0) {
+      /* we have just left a force_duration window */
+      metronom_t *metronom = this->stream->metronom;
+      int64_t cur_offset;
+      cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
+      metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset + 28800);
+      this->force_duration_window = -FORCE_DURATION_WINDOW_SIZE;
+    }
+  }
+  
+  return duration;
+}
 
 static void *dxr3_init_plugin(xine_t *xine, void *data)
 {
@@ -658,149 +795,6 @@ static void dxr3_dispose(video_decoder_t *this_gen)
   this->class->instance  = 0;
   
   free(this);
-}
-
-
-static inline int dxr3_present(xine_stream_t *stream)
-{
-  plugin_node_t *node;
-  video_driver_class_t *vo_class;
-  int present = 0;
-  
-  if (stream->video_driver && stream->video_driver->node) {
-    node = (plugin_node_t *)stream->video_driver->node;
-    if (node->plugin_class) {
-      vo_class = (video_driver_class_t *)node->plugin_class;
-      if (vo_class->get_identifier)
-        present = (strcmp(vo_class->get_identifier(vo_class), DXR3_VO_ID) == 0);
-    }
-  }
-#if LOG_VID
-  printf("dxr3_decode_video: dxr3 %s\n", present ? "present" : "not present");
-#endif
-  return present;
-}
-
-static inline int dxr3_mvcommand(int fd_control, int command)
-{
-  em8300_register_t reg;
-  
-  reg.microcode_register = 1;
-  reg.reg = 0;
-  reg.val = command;
-  
-  return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &reg);
-}
-
-static inline void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
-{
-  this->frame_rate_code = buffer[3] & 15;
-  this->height          = (buffer[0] << 16) |
-                          (buffer[1] <<  8) |
-                          (buffer[2] <<  0);
-  this->width           = ((this->height >> 12) + 15) & ~15;
-  this->height          = ((this->height & 0xfff) + 15) & ~15;
-  this->aspect_code     = buffer[3] >> 4;
-  
-  this->have_header_info = 1;
-  
-  if (this->force_aspect) this->aspect_code = this->force_aspect;
-  
-  /* when width, height or aspect changes,
-   * we have to send an event for dxr3 spu decoder */
-  if (!this->last_width || !this->last_height || !this->last_aspect_code ||
-      (this->last_width != this->width) ||
-      (this->last_height != this->height) ||
-      (this->last_aspect_code != this->aspect_code)) {
-    frame_format_change(this);
-    this->last_width = this->width;
-    this->last_height = this->height;
-    this->last_aspect_code = this->aspect_code;
-  }
-}
-
-static inline int get_duration(dxr3_decoder_t *this)
-{
-  int duration;
-  
-  switch (this->frame_rate_code) {
-  case 1: /* 23.976 */
-    duration = 3754;  /* actually it's 3753.75 */
-    break;
-  case 2: /* 24.000 */
-    duration = 3750;
-    break;
-  case 3: /* 25.000 */
-    duration = this->repeat_first_field ? 5400 : 3600;
-    break;
-  case 4: /* 29.970 */
-    duration = this->repeat_first_field ? 4505 : 3003;
-    break;
-  case 5: /* 30.000 */
-    duration = 3000;
-    break;
-  case 6: /* 50.000 */
-    duration = 1800;
-    break;
-  case 7: /* 59.940 */
-    duration = 1502;  /* actually it's 1501.5 */
-    break;
-  case 8: /* 60.000 */
-    duration = 1500;
-    break;
-  default:
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-	    _("dxr3_decode_video: WARNING: unknown frame rate code %d\n"), this->frame_rate_code);
-    duration = 0;
-    break;
-  }
-  
-  /* update stream metadata */
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, duration);
-  
-  if (this->correct_durations && duration) {
-    /* we set an initial average frame duration here */
-    if (!this->avg_duration) this->avg_duration = duration;
-  
-    /* Apply a correction to the framerate-code if metronom
-     * insists on a different frame duration.
-     * The code below is for NTCS streams labeled as PAL streams.
-     * (I have seen such things even on dvds!)
-     */
-    if (this->avg_duration && this->avg_duration < 3300 && duration == 3600) {
-      if (this->force_duration_window > 0) {
-        /* we are already in a force_duration window, so we force duration */
-        this->force_duration_window = FORCE_DURATION_WINDOW_SIZE;
-        return 3000;
-      }
-      if (this->force_duration_window <= 0 && (this->force_duration_window += 10) > 0) {
-        /* we just entered a force_duration window, so we start the correction */
-        metronom_t *metronom = this->stream->metronom;
-        int64_t cur_offset;
-        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		_("dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n"));
-        /* those weird streams need an offset, too */
-        cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
-        metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset - 28800);
-        this->force_duration_window = FORCE_DURATION_WINDOW_SIZE;
-        return 3000;
-      }
-    }
-    
-    if (this->force_duration_window == -FORCE_DURATION_WINDOW_SIZE)
-      /* we are far from a force_duration window */
-      return duration;
-    if (--this->force_duration_window == 0) {
-      /* we have just left a force_duration window */
-      metronom_t *metronom = this->stream->metronom;
-      int64_t cur_offset;
-      cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
-      metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset + 28800);
-      this->force_duration_window = -FORCE_DURATION_WINDOW_SIZE;
-    }
-  }
-  
-  return duration;
 }
 
 static void frame_format_change(dxr3_decoder_t *this)

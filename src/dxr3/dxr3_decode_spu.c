@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.47 2004/06/21 16:19:40 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.48 2004/07/11 11:47:10 hadess Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -140,15 +140,80 @@ typedef struct dxr3_spudec_s {
 } dxr3_spudec_t;
 
 /* helper functions */
-static inline int  dxr3_present(xine_stream_t *stream);
-static inline void dxr3_spudec_handle_event(dxr3_spudec_t *this);
 /* the NAV functions must be called with the pci_lock held */
 static inline void dxr3_spudec_clear_nav_list(dxr3_spudec_t *this);
 static inline void dxr3_spudec_update_nav(dxr3_spudec_t *this);
 static void        dxr3_spudec_process_nav(dxr3_spudec_t *this);
 static int         dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn);
-static inline void dxr3_swab_clut(int* clut);
 
+static inline int dxr3_present(xine_stream_t *stream)
+{
+  plugin_node_t *node;
+  video_driver_class_t *vo_class;
+  int present = 0;
+  
+  if (stream->video_driver && stream->video_driver->node) {
+    node = (plugin_node_t *)stream->video_driver->node;
+    if (node->plugin_class) {
+      vo_class = (video_driver_class_t *)node->plugin_class;
+      if (vo_class->get_identifier)
+        present = (strcmp(vo_class->get_identifier(vo_class), DXR3_VO_ID) == 0);
+    }
+  }
+  llprintf(LOG_SPU, "dxr3 %s\n", present ? "present" : "not present");
+  return present;
+}
+
+static inline void dxr3_spudec_handle_event(dxr3_spudec_t *this)
+{
+  xine_event_t *event;
+  
+  while ((event = xine_event_get(this->event_queue))) {
+    llprintf(LOG_SPU, "event caught: SPU_FD = %i\n",this->fd_spu);
+  
+    switch (event->type) {
+    case XINE_EVENT_FRAME_FORMAT_CHANGE:
+      /* we are in anamorphic mode, if the frame is 16:9, but not pan&scan'ed */
+      this->anamorphic =
+	(((xine_format_change_data_t *)event->data)->aspect == 3) &&
+	(((xine_format_change_data_t *)event->data)->pan_scan == 0);
+      llprintf(LOG_BTN, "anamorphic mode %s\n", this->anamorphic ? "on" : "off");
+      break;
+    }
+  
+    xine_event_free(event);
+  }
+}
+
+static inline void dxr3_spudec_clear_nav_list(dxr3_spudec_t *this)
+{
+  while (this->pci_cur.next) {
+    pci_node_t *node = this->pci_cur.next->next;
+    free(this->pci_cur.next);
+    this->pci_cur.next = node;
+  }
+  /* invalidate current timestamp */
+  this->pci_cur.pci.hli.hl_gi.hli_s_ptm = (uint32_t)-1;
+}
+
+static inline void dxr3_spudec_update_nav(dxr3_spudec_t *this)
+{
+  metronom_clock_t *clock = this->stream->xine->clock;
+  
+  if (this->pci_cur.next && this->pci_cur.next->vpts <= clock->get_current_time(clock)) {
+    pci_node_t *node = this->pci_cur.next;
+    xine_fast_memcpy(&this->pci_cur, this->pci_cur.next, sizeof(pci_node_t));
+    dxr3_spudec_process_nav(this);
+    free(node);
+  }
+}
+
+static inline void dxr3_swab_clut(int *clut)
+{
+  int i;
+  for (i=0; i<16; i++)
+    clut[i] = bswap_32(clut[i]);
+}
 
 static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
 {
@@ -533,67 +598,7 @@ static void dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int3
 }
 
 
-static inline int dxr3_present(xine_stream_t *stream)
-{
-  plugin_node_t *node;
-  video_driver_class_t *vo_class;
-  int present = 0;
-  
-  if (stream->video_driver && stream->video_driver->node) {
-    node = (plugin_node_t *)stream->video_driver->node;
-    if (node->plugin_class) {
-      vo_class = (video_driver_class_t *)node->plugin_class;
-      if (vo_class->get_identifier)
-        present = (strcmp(vo_class->get_identifier(vo_class), DXR3_VO_ID) == 0);
-    }
-  }
-  llprintf(LOG_SPU, "dxr3 %s\n", present ? "present" : "not present");
-  return present;
-}
 
-static inline void dxr3_spudec_handle_event(dxr3_spudec_t *this)
-{
-  xine_event_t *event;
-  
-  while ((event = xine_event_get(this->event_queue))) {
-    llprintf(LOG_SPU, "event caught: SPU_FD = %i\n",this->fd_spu);
-  
-    switch (event->type) {
-    case XINE_EVENT_FRAME_FORMAT_CHANGE:
-      /* we are in anamorphic mode, if the frame is 16:9, but not pan&scan'ed */
-      this->anamorphic =
-	(((xine_format_change_data_t *)event->data)->aspect == 3) &&
-	(((xine_format_change_data_t *)event->data)->pan_scan == 0);
-      llprintf(LOG_BTN, "anamorphic mode %s\n", this->anamorphic ? "on" : "off");
-      break;
-    }
-  
-    xine_event_free(event);
-  }
-}
-
-static inline void dxr3_spudec_clear_nav_list(dxr3_spudec_t *this)
-{
-  while (this->pci_cur.next) {
-    pci_node_t *node = this->pci_cur.next->next;
-    free(this->pci_cur.next);
-    this->pci_cur.next = node;
-  }
-  /* invalidate current timestamp */
-  this->pci_cur.pci.hli.hl_gi.hli_s_ptm = (uint32_t)-1;
-}
-
-static inline void dxr3_spudec_update_nav(dxr3_spudec_t *this)
-{
-  metronom_clock_t *clock = this->stream->xine->clock;
-  
-  if (this->pci_cur.next && this->pci_cur.next->vpts <= clock->get_current_time(clock)) {
-    pci_node_t *node = this->pci_cur.next;
-    xine_fast_memcpy(&this->pci_cur, this->pci_cur.next, sizeof(pci_node_t));
-    dxr3_spudec_process_nav(this);
-    free(node);
-  }
-}
 
 static void dxr3_spudec_process_nav(dxr3_spudec_t *this)
 {
@@ -702,9 +707,3 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
   return -1;
 }
 
-static inline void dxr3_swab_clut(int *clut)
-{
-  int i;
-  for (i=0; i<16; i++)
-    clut[i] = bswap_32(clut[i]);
-}
