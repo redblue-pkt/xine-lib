@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.4 2001/07/25 15:03:15 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.5 2001/07/26 16:03:10 ehasenle Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -36,6 +36,12 @@
 #include <linux/em8300.h>
 #include "video_out.h"
 #include "xine_internal.h"
+#include "dxr3_overlay.h"
+
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <X11/Xutil.h>
+#include "../video_out/video_out_x11.h"
 
 char devname[]="/dev/em8300";
 
@@ -45,7 +51,94 @@ typedef struct dxr3_driver_s {
 	int aspectratio;
 	int tv_mode;
 	em8300_bcs_t bcs;
+	
+	/* for overlay */
+	dxr3_overlay_t overlay;
+	Display *display;
+	Drawable win;
+	GC gc;     
+	XColor color;
+	int xpos, ypos;
+	int width, height;
+	int overlay_enabled;
+	float desired_ratio;
+	void (*request_dest_size) (int video_width, int video_height, int *dest_x,
+	 int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;
+
+static void dxr3_overlay_adapt_area(dxr3_driver_t *this,
+ int dest_x, int dest_y, int dest_width, int dest_height)
+{
+	XWindowAttributes a;
+	Window junkwin;
+	int rx, ry;
+
+	XLockDisplay(this->display);
+
+	XSetForeground(this->display, this->gc, this->color.pixel);
+	XGetWindowAttributes(this->display, this->win, &a);
+    XTranslateCoordinates (this->display, this->win, a.root,
+	 dest_x, dest_y, &rx, &ry, &junkwin);
+
+	XUnlockDisplay(this->display);
+	
+	this->xpos = rx; this->ypos = ry;
+	this->width = dest_width; this->height = dest_height;
+
+	dxr3_overlay_set_window(&this->overlay, this->xpos, this->ypos,
+	 this->width, this->height);
+}
+
+static void dxr3_get_keycolor(dxr3_driver_t *this)
+{
+	this->color.red   = ((this->overlay.colorkey >> 16) & 0xff) * 256;
+	this->color.green = ((this->overlay.colorkey >>  8) & 0xff) * 256;
+	this->color.blue  = ((this->overlay.colorkey      ) & 0xff) * 256;
+
+	XAllocColor(this->display, DefaultColormap(this->display,0), &this->color);
+}
+	
+void dxr3_read_config(dxr3_driver_t *this, config_values_t *config)
+{
+	char* str;
+
+	if (ioctl(this->fd_control, EM8300_IOCTL_GETBCS, &this->bcs))
+		fprintf(stderr, "dxr3_vo: cannot read bcs values (%s)\n",
+		 strerror(errno));
+	this->vo_driver.set_property(&this->vo_driver,
+	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
+
+	str = config->lookup_str(config, "dxr3_tvmode", "default");
+	if (!strcmp(str, "ntsc")) {
+		this->tv_mode = EM8300_VIDEOMODE_NTSC;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to NTSC\n");
+	} else if (!strcmp(str, "pal")) {
+		this->tv_mode = EM8300_VIDEOMODE_PAL;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 50Hz\n");
+	} else if (!strcmp(str, "pal60")) {
+		this->tv_mode = EM8300_VIDEOMODE_PAL60;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 60Hz\n");
+	} else if (!strcmp(str, "overlay")) {
+		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
+		fprintf(stderr, "dxr3_vo: setting up overlay mode\n");
+		if (dxr3_overlay_read_state(&this->overlay) == 0) {
+			this->overlay_enabled = 1;
+			
+			str = config->lookup_str(config, "dxr3_keycolor", "0x80a040");
+			sscanf(str, "%x", &this->overlay.colorkey);
+
+			str = config->lookup_str(config, "dxr3_color_interval", "50.0");
+			sscanf(str, "%f", &this->overlay.color_interval);
+		} else {
+			fprintf(stderr, "dxr3_vo: please run autocal, overlay disabled\n");
+		}
+	} else {
+		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
+	}
+	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
+		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
+			fprintf(stderr, "dxr3_vo: setting video mode failed.");
+}
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
@@ -127,6 +220,10 @@ static int dxr3_get_property (vo_driver_t *this_gen, int property)
 	case VO_PROP_ASPECT_RATIO:
 		val = this->aspectratio;
 		break;
+	
+	case VO_PROP_COLORKEY:
+		val = this->overlay.colorkey;
+		break;
 	default:
 		val = 0;
 		fprintf(stderr, "dxr3_vo: property %d not implemented!\n", property);
@@ -135,11 +232,27 @@ static int dxr3_get_property (vo_driver_t *this_gen, int property)
 	return val;
 }
 
+static int is_fullscreen(dxr3_driver_t *this)
+{
+	XWindowAttributes a;
+
+	XGetWindowAttributes(this->display, this->win, &a);
+	/* this is a good place for gathering the with and height
+	 * although it is a mis-use for is_fullscreen */
+	this->width  = a.width;
+	this->height = a.height;
+	
+	return a.x==0 && a.y==0 &&
+	 a.width  == this->overlay.screen_xres &&
+	 a.height == this->overlay.screen_yres;
+}
+
 static int dxr3_set_property (vo_driver_t *this_gen, 
 			      int property, int value)
 {
 	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
 	int val, bcs_changed = 0;
+	int fullscreen;
 
 	switch (property) {
 	case VO_PROP_SATURATION:
@@ -155,25 +268,39 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 		bcs_changed = 1;
 		break;
 	case VO_PROP_ASPECT_RATIO:
-		/* xitk just increments the value, so we make
+		/* xitk-ui just increments the value, so we make
 		 * just a two value "loop"
 		 */
 		if (value > ASPECT_FULL)
 			value = ASPECT_ANAMORPHIC;
 		this->aspectratio = value;
+		fullscreen = is_fullscreen(this);
 
 		if (value == ASPECT_ANAMORPHIC) {
 			fprintf(stderr, "dxr3_vo: setting aspect ratio to anamorphic\n");
-			val = EM8300_ASPECTRATIO_16_9;
+			if (!this->overlay_enabled || fullscreen)
+				val = EM8300_ASPECTRATIO_16_9;
+			else /* The overlay window can adapt to the ratio */
+				val = EM8300_ASPECTRATIO_4_3;
+			this->desired_ratio = 16.0/9.0;
 		} else {
 			fprintf(stderr, "dxr3_vo: setting aspect ratio to full\n");
 			val = EM8300_ASPECTRATIO_4_3;
+			this->desired_ratio = 4.0/3.0;
 		}
 
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
 			fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
 			 strerror(errno));
-
+		if (this->overlay_enabled && !fullscreen){
+			int foo;
+			this->request_dest_size(this->width,
+			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
+		}
+		break;
+	case VO_PROP_COLORKEY:
+		fprintf(stderr, "dxr3_vo: VO_PROP_COLORKEY not implemented!");
+		this->overlay.colorkey = val;
 		break;
 	}
 
@@ -206,45 +333,90 @@ static void dxr3_get_property_min_max (vo_driver_t *this_gen,
 static int dxr3_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data)
 {
-  /* dxr3_driver_t     *this = (dxr3_driver_t *) this_gen; */
-  return 0;
+	dxr3_driver_t *this = (dxr3_driver_t*) this_gen;
+	x11_rectangle_t *area;
+	XWindowAttributes a;
+
+	if (!this->overlay_enabled) return 0;
+
+	switch (data_type) {
+	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
+		area = (x11_rectangle_t*) data;
+		dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
+		break;
+	case GUI_DATA_EX_EXPOSE_EVENT:
+		XLockDisplay(this->display);
+		XFillRectangle(this->display, this->win,
+		 this->gc, 0, 0, this->width, this->height);
+		XUnlockDisplay(this->display);
+		break;
+	case GUI_DATA_EX_DRAWABLE_CHANGED:
+		this->win = (Drawable) data;
+		this->gc = XCreateGC(this->display, this->win, 0, NULL);
+		XGetWindowAttributes(this->display, this->win, &a);
+		dxr3_set_property((vo_driver_t*) this,
+		 VO_PROP_ASPECT_RATIO, this->aspectratio);
+		break;
+	}
+	return 0;
 }
 
 static void dxr3_exit (vo_driver_t *this_gen)
 {
 	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
+
+	if(this->overlay_enabled)
+		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
 	close(this->fd_control);
 }
 
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 {
-  dxr3_driver_t        *this;
-  char* str;
+	dxr3_driver_t *this;
+	x11_visual_t *vis;
+	Screen *xscrn;
 
-  /*
-   * allocate plugin struct
-   */
+	/*
+	* allocate plugin struct
+	*/
 
-  this = malloc (sizeof (dxr3_driver_t));
+	this = malloc (sizeof (dxr3_driver_t));
 
-  if (!this) {
-    printf ("video_out_dxr3: malloc failed\n");
-    return NULL;
-  }
+	if (!this) {
+		printf ("video_out_dxr3: malloc failed\n");
+		return NULL;
+	}
 
-  memset (this, 0, sizeof(dxr3_driver_t));
+	memset (this, 0, sizeof(dxr3_driver_t));
 
-  this->vo_driver.get_capabilities     = dxr3_get_capabilities;
-  this->vo_driver.alloc_frame          = dxr3_alloc_frame;
-  this->vo_driver.update_frame_format  = dxr3_update_frame_format;
-  this->vo_driver.display_frame        = dxr3_display_frame;
-  this->vo_driver.overlay_blend        = dxr3_overlay_blend;
-  this->vo_driver.get_property         = dxr3_get_property;
-  this->vo_driver.set_property         = dxr3_set_property;
-  this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
-  this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
-  this->vo_driver.exit                 = dxr3_exit;
+	this->vo_driver.get_capabilities     = dxr3_get_capabilities;
+	this->vo_driver.alloc_frame          = dxr3_alloc_frame;
+	this->vo_driver.update_frame_format  = dxr3_update_frame_format;
+	this->vo_driver.display_frame        = dxr3_display_frame;
+	this->vo_driver.overlay_blend        = dxr3_overlay_blend;
+	this->vo_driver.get_property         = dxr3_get_property;
+	this->vo_driver.set_property         = dxr3_set_property;
+	this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
+	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
+	this->vo_driver.exit                 = dxr3_exit;
+
+	/* visual */
+	vis = visual_gen;
+	this->win = vis->d;
+	this->display = vis->display;
+	this->gc = XCreateGC(this->display, this->win, 0, NULL);
+	xscrn = ScreenOfDisplay(this->display, 0);
+	this->overlay.screen_xres = xscrn->width;
+	this->overlay.screen_yres = xscrn->height;
+	this->overlay.screen_depth = xscrn->root_depth;
+	this->request_dest_size = vis->request_dest_size;
+	
+	/* default values */
+	this->overlay_enabled = 0;
+	this->aspectratio = ASPECT_FULL;
+	dxr3_set_property((vo_driver_t*) this,
+	 VO_PROP_ASPECT_RATIO, this->aspectratio);
 
 	/* open control device */
 	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
@@ -253,30 +425,14 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 		return 0;
 	}
 
-	if (ioctl(this->fd_control, EM8300_IOCTL_GETBCS, &this->bcs))
-		fprintf(stderr, "dxr3_vo: cannot read bcs values (%s)\n",
-		 strerror(errno));
-	this->vo_driver.set_property(&this->vo_driver,
-	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
-
-	str = config->lookup_str(config, "dxr3_tvmode", "default");
-	if (!strcmp(str, "ntsc")) {
-		this->tv_mode = EM8300_VIDEOMODE_NTSC;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to NTSC\n");
-	} else if (!strcmp(str, "pal")) {
-		this->tv_mode = EM8300_VIDEOMODE_PAL;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 50Hz\n");
-	} else if (!strcmp(str, "pal60")) {
-		this->tv_mode = EM8300_VIDEOMODE_PAL60;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 60Hz\n");
-	} else {
-		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
+	dxr3_read_config(this, config);
+	
+	if (this->overlay_enabled) {
+		dxr3_get_keycolor(this);
+		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
 	}
-	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
-		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
-			fprintf(stderr, "dxr3_vo: setting video mode failed.");
 
-  return &this->vo_driver;
+	return &this->vo_driver;
 }
 
 static vo_info_t vo_info_dxr3 = {
