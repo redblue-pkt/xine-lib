@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.103 2003/03/07 12:51:48 guenter Exp $
+ * $Id: audio_decoder.c,v 1.104 2003/03/07 15:29:30 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -116,7 +116,13 @@ void *audio_decoder_loop (void *stream_gen) {
       pthread_cond_broadcast (&stream->counter_changed);
 
       while (stream->finished_count_video < stream->finished_count_audio) {
-        pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
+        struct timeval tv;
+        struct timespec ts;
+        gettimeofday(&tv, NULL);
+        ts.tv_sec  = tv.tv_sec + 1;
+        ts.tv_nsec = tv.tv_usec * 1000;
+        /* use timedwait to workaround buggy pthread broadcast implementations */
+        pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
       }
           
       pthread_mutex_unlock (&stream->counter_lock);

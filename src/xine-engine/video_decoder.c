@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.130 2003/03/06 23:30:36 hadess Exp $
+ * $Id: video_decoder.c,v 1.131 2003/03/07 15:29:32 miguelfreitas Exp $
  *
  */
 
@@ -148,9 +148,15 @@ void *video_decoder_loop (void *stream_gen) {
 
       if (stream->audio_fifo) {
 
-	while (stream->finished_count_video > stream->finished_count_audio) {
-	  pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
-	}
+        while (stream->finished_count_video > stream->finished_count_audio) {
+          struct timeval tv;
+          struct timespec ts;
+          gettimeofday(&tv, NULL);
+          ts.tv_sec  = tv.tv_sec + 1;
+          ts.tv_nsec = tv.tv_usec * 1000;
+          /* use timedwait to workaround buggy pthread broadcast implementations */
+          pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+        }
       }
           
       pthread_mutex_unlock (&stream->counter_lock);

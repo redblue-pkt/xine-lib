@@ -125,10 +125,16 @@ void xine_demux_control_headers_done (xine_stream_t *stream) {
 
   while ((stream->header_count_audio<header_count_audio) || 
 	 (stream->header_count_video<header_count_video)) {
+    struct timeval tv;
+    struct timespec ts;
 #ifdef LOG
     printf ("xine: waiting for headers.\n");
 #endif
-    pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
+    gettimeofday(&tv, NULL);
+    ts.tv_sec  = tv.tv_sec + 1;
+    ts.tv_nsec = tv.tv_usec * 1000;
+    /* use timedwait to workaround buggy pthread broadcast implementations */
+    pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
   }
 #ifdef LOG
   printf ("xine: headers processed.\n");
