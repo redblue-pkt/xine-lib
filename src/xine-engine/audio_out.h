@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.19 2001/11/04 22:49:38 guenter Exp $
+ * $Id: audio_out.h,v 1.20 2001/11/10 13:48:03 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 
-#define AUDIO_OUT_IFACE_VERSION  2
+#define AUDIO_OUT_IFACE_VERSION  3
 
 /*
  * ao_driver_s contains the driver every audio output
@@ -90,7 +90,7 @@ struct ao_driver_s {
    *        call write_audio_data with the _same_ samples again
    */
   int (*write)(ao_driver_t *this,
-			  int16_t* audio_data, uint32_t num_samples);
+	       int16_t* audio_data, uint32_t num_samples);
 
   /*
    * this is called when the decoder no longer uses the audio
@@ -121,6 +121,22 @@ struct ao_driver_s {
 /*
  * ao_instance_s contains the instance every audio decoder talks to
  */
+typedef struct audio_fifo_s audio_fifo_t;
+
+typedef struct audio_buffer_s audio_buffer_t;
+
+struct audio_buffer_s {
+
+  audio_buffer_t    *next;
+
+  int16_t           *mem;
+  int                mem_size;
+  int                num_frames;
+
+  uint32_t           vpts;
+  uint32_t           scr;
+};
+
 typedef struct ao_instance_s ao_instance_t;
 
 struct ao_instance_s {
@@ -141,17 +157,17 @@ struct ao_instance_s {
 	       uint32_t bits, uint32_t rate, int mode);
 
   /*
-   * write audio data to output buffer
-   * audio driver must sync sample playback with metronom
-   * return value:
-   *   1 => audio samples were processed ok
-   *   0 => audio samples were not yet processed,
-   *        call write_audio_data with the _same_ samples again
+   * get a piece of memory for audio data 
    */
 
-  int (*write)(ao_instance_t *this,
-	       int16_t* audio_data, uint32_t num_frames,
-	       uint32_t pts);
+  audio_buffer_t * (*get_buffer) (ao_instance_t *this);
+
+  /*
+   * append a buffer filled with audio data to the audio fifo
+   * for output
+   */
+
+  void (*put_buffer) (ao_instance_t *this, audio_buffer_t *buf);
 
   /* audio driver is no longer used by decoder => close */
   void (*close) (ao_instance_t *self);
@@ -172,7 +188,6 @@ struct ao_instance_s {
   int32_t         output_frame_rate, input_frame_rate;
   double          frame_rate_factor;
   uint32_t        num_channels;
-  int             audio_started;
   uint32_t        last_audio_vpts;
   int             resample_conf;
   int             force_rate;           /* force audio output rate to this value if non-zero */
@@ -180,6 +195,8 @@ struct ao_instance_s {
   int	 	  mode;
   int             bits;
   int             gap_tolerance;
+  audio_fifo_t   *free_fifo;
+  audio_fifo_t   *out_fifo;
   uint16_t       *frame_buffer;
   int16_t        *zero_space;
 };

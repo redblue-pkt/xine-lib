@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.59 2001/10/25 00:46:59 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.60 2001/11/10 13:48:02 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -67,6 +67,7 @@ typedef struct demux_mpeg_block_s {
 
   uint8_t              *scratch;
 
+  uint32_t              last_scr;
 } demux_mpeg_block_t ;
 
 
@@ -79,6 +80,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   uint32_t       PTS;
   uint32_t       packet_len;
   uint32_t       stream_id;
+  uint32_t       scr = this->last_scr;
 
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
@@ -167,6 +169,18 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     if (bMpeg1) {
 
+      /* system_clock_reference */
+
+      scr  = (p[4] & 0x02) << 30;
+      scr |= (p[5] & 0xFF) << 22;
+      scr |= (p[5] & 0xFE) << 14;
+      scr |= (p[6] & 0xFF) <<  7;
+      scr |= (p[7] & 0xFE) >>  1;
+
+      buf->SCR = scr;
+
+      /* mux_rate */
+
       if (!this->rate) {
 	this->rate = (p[9] & 0x7F) << 15;
 	this->rate |= (p[10] << 7);
@@ -178,25 +192,26 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       p   += 12;
 
     } else { /* mpeg2 */
+      
+      int      num_stuffing_bytes;
 
-      int   num_stuffing_bytes;
+      /* system_clock_reference */
 
-      /* SCR decoding code works but is not used by xine
-      int   scr;
-
-      scr  = (p[4] & 0x38) << 27 ;
+      scr  = (p[4] & 0x08) << 27 ;
       scr |= (p[4] & 0x03) << 28 ;
       scr |= p[5] << 20;
       scr |= (p[6] & 0xF8) << 12 ;
       scr |= (p[6] & 0x03) << 13 ;
       scr |= p[7] << 5;
       scr |= (p[8] & 0xF8) >> 3;
-
-      optional - decode extension:
-
+      /*  optional - decode extension:
       scr *=300;
       scr += ( (p[8] & 0x03 << 7) | (p[9] & 0xFE >> 1) );
       */
+
+      buf->SCR = scr;
+
+      /* mux_rate */
 
       if (!this->rate) {
 	this->rate = (p[0xA] << 14);
@@ -235,7 +250,29 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       this->status = DEMUX_FINISHED;
     }
 
-    return ;
+    return;
+  }
+
+  /* discontinuity ? */
+  {  
+    int32_t scr_diff = scr - this->last_scr;
+    if (abs(scr_diff) > 60000) {
+      
+      buf_element_t *buf;
+
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = BUF_CONTROL_AVSYNC_RESET;
+      buf->SCR  = scr;
+      this->video_fifo->put (this->video_fifo, buf);
+
+      if (this->audio_fifo) {
+	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+	buf->type = BUF_CONTROL_AVSYNC_RESET;
+	buf->SCR  = scr;
+	this->audio_fifo->put (this->audio_fifo, buf);
+      }
+    }
+    this->last_scr = scr;
   }
 
   packet_len = p[4] << 8 | p[5];
@@ -308,7 +345,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       PTS |= (p[11] & 0xFE) << 14 ;
       PTS |=  p[12]         <<  7 ;
       PTS |= (p[13] & 0xFE) >>  1 ;
-      
+
     } else
       PTS = 0;
 
@@ -331,6 +368,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     p    += header_len + 9;
     packet_len -= header_len + 3;
   }
+
+  PTS &= 0x7FFFFFFF ; /* 31 bit only (for signed calculations) */
 
   if (stream_id == 0xbd) {
 
@@ -744,6 +783,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
     this->rate = demux_mpeg_block_estimate_rate (this);
 
 
+  this->last_scr = 0;
+
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 
     int num_buffers = NUM_PREVIEW_BUFFERS;
@@ -792,7 +833,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
    * now start demuxing
    */
 
-  this->status = DEMUX_OK ;
+  this->status   = DEMUX_OK ;
+  this->last_scr = 0;
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_block_loop, this)) != 0) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.7 2001/11/06 21:47:30 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.8 2001/11/10 13:48:02 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -163,6 +163,7 @@ static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
 	}
 	
 	buf->PTS    = 0; /* FIXME */
+	buf->SCR    = 0; /* FIXME */
 	buf->size   = op.bytes;
 	
 	buf->decoder_info[0] = is_content;

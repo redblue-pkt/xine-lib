@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.8 2001/11/07 19:06:15 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.9 2001/11/10 13:48:02 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -621,6 +621,7 @@ static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream,
     buf->input_time = 0 ;
   }
   buf->PTS        = timestamp * 90;
+  buf->SCR        = timestamp * 90;
   buf->type       = stream->buf_type;
   buf->size       = frag_len;
   

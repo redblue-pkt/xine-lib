@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/10/22 00:40:36 matt2000 Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/11/10 13:48:02 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -64,7 +64,6 @@ typedef struct a52dec_decoder_s {
   int              a52_flags_map[11];
   int              ao_flags_map[11];
 
-  int16_t          int_samples [6 * 256 * 6];
   sample_t        *samples;
 
   ao_instance_t	  *audio_out;
@@ -149,8 +148,8 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
       this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
       this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_4CHANNEL;
 
-    /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
-       defaults are ok */
+      /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
+	 defaults are ok */
     } else if (!(this->audio_caps & AO_CAP_MODE_STEREO)) {
       printf ("HELP! a mono-only audio driver?!\n");
 
@@ -175,34 +174,34 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   }
 
   /*
-  for (i = 0; i<8; i++)
+    for (i = 0; i<8; i++)
     this->a52_flags_map[i] |= A52_ADJUST_LEVEL;
-*/
+  */
 #ifdef DEBUG_A52
   a52file = open ("test.a52", O_CREAT | O_WRONLY | O_TRUNC, 0644); 
 #endif
 }
 
-static inline int16_t blah (int32_t i)
-{
-    if (i > 0x43c07fff)
-        return 32767;
-    else if (i < 0x43bf8000)
-        return -32768;
-    else
-        return i - 0x43c00000;
+static inline int16_t blah (int32_t i) {
+
+  if (i > 0x43c07fff)
+    return 32767;
+  else if (i < 0x43bf8000)
+    return -32768;
+  else
+    return i - 0x43c00000;
 }
 
 static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
-    int i;
-    int32_t * f = (int32_t *) _f;       /* XXX assumes IEEE float format */
+  int i;
+  int32_t * f = (int32_t *) _f;       /* XXX assumes IEEE float format */
 
-    for (i = 0; i < 256; i++) {
-        s16[num_channels*i] = blah (f[i]);
-    }
+  for (i = 0; i < 256; i++) {
+    s16[num_channels*i] = blah (f[i]);
+  }
 }
 
-static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
+static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts, uint32_t scr) {
 
   int output_mode = AO_CAP_MODE_STEREO;
 
@@ -212,8 +211,10 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
   
   if (!this->bypass_mode) {
     
-    int a52_output_flags, i;
-    sample_t level = this->a52_level;
+    int              a52_output_flags, i;
+    sample_t         level = this->a52_level;
+    audio_buffer_t  *buf;
+    int16_t         *int_samples;
     
     /* 
      * oki, decode this frame in software
@@ -253,8 +254,8 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
       
       
       this->output_open = this->audio_out->open (this->audio_out, 16, 
-						  this->a52_sample_rate,
-						  output_mode) ;
+						 this->a52_sample_rate,
+						 output_mode) ;
       this->output_sampling_rate = this->a52_sample_rate;
       this->output_mode = output_mode;
     }
@@ -268,6 +269,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
      * decode a52 and convert/interleave samples
      */
 
+    buf = this->audio_out->get_buffer (this->audio_out);
+    int_samples = buf->mem;
+
     for (i = 0; i < 6; i++) {
       if (a52_block (&this->a52_state, this->samples)) {
 	printf ("liba52: a52_block error\n");
@@ -276,32 +280,32 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
       
       switch (output_mode) {
       case AO_CAP_MODE_MONO:
-	float_to_int (&this->samples[0], this->int_samples+(i*256), 1);
+	float_to_int (&this->samples[0], int_samples+(i*256), 1);
 	break;
       case AO_CAP_MODE_STEREO:
-	float_to_int (&this->samples[0*256], this->int_samples+(i*256*2), 2);
-	float_to_int (&this->samples[1*256], this->int_samples+(i*256*2)+1, 2);
+	float_to_int (&this->samples[0*256], int_samples+(i*256*2), 2);
+	float_to_int (&this->samples[1*256], int_samples+(i*256*2)+1, 2);
 	break;
       case AO_CAP_MODE_4CHANNEL:
-	float_to_int (&this->samples[0*256], this->int_samples+(i*256*4),   4); /*  L */
-	float_to_int (&this->samples[1*256], this->int_samples+(i*256*4)+1, 4); /*  R */
-	float_to_int (&this->samples[2*256], this->int_samples+(i*256*4)+2, 4); /* RL */
-	float_to_int (&this->samples[3*256], this->int_samples+(i*256*4)+3, 4); /* RR */
+	float_to_int (&this->samples[0*256], int_samples+(i*256*4),   4); /*  L */
+	float_to_int (&this->samples[1*256], int_samples+(i*256*4)+1, 4); /*  R */
+	float_to_int (&this->samples[2*256], int_samples+(i*256*4)+2, 4); /* RL */
+	float_to_int (&this->samples[3*256], int_samples+(i*256*4)+3, 4); /* RR */
 	break;
       case AO_CAP_MODE_5CHANNEL:
-	float_to_int (&this->samples[0*256], this->int_samples+(i*256*5)+0, 5); /*  L */
-	float_to_int (&this->samples[1*256], this->int_samples+(i*256*5)+4, 5); /*  C */
-	float_to_int (&this->samples[2*256], this->int_samples+(i*256*5)+1, 5); /*  R */
-	float_to_int (&this->samples[3*256], this->int_samples+(i*256*5)+2, 5); /* RL */
-	float_to_int (&this->samples[4*256], this->int_samples+(i*256*5)+3, 5); /* RR */
+	float_to_int (&this->samples[0*256], int_samples+(i*256*5)+0, 5); /*  L */
+	float_to_int (&this->samples[1*256], int_samples+(i*256*5)+4, 5); /*  C */
+	float_to_int (&this->samples[2*256], int_samples+(i*256*5)+1, 5); /*  R */
+	float_to_int (&this->samples[3*256], int_samples+(i*256*5)+2, 5); /* RL */
+	float_to_int (&this->samples[4*256], int_samples+(i*256*5)+3, 5); /* RR */
 	break;
       case AO_CAP_MODE_5_1CHANNEL:
-	float_to_int (&this->samples[0*256], this->int_samples+(i*256*6)+5, 6); /* lfe */
-	float_to_int (&this->samples[1*256], this->int_samples+(i*256*6)+0, 6); /*   L */
-	float_to_int (&this->samples[2*256], this->int_samples+(i*256*6)+4, 6); /*   C */
-	float_to_int (&this->samples[3*256], this->int_samples+(i*256*6)+1, 6); /*   R */
-	float_to_int (&this->samples[4*256], this->int_samples+(i*256*6)+2, 6); /*  RL */
-	float_to_int (&this->samples[5*256], this->int_samples+(i*256*6)+3, 6); /*  RR */
+	float_to_int (&this->samples[0*256], int_samples+(i*256*6)+5, 6); /* lfe */
+	float_to_int (&this->samples[1*256], int_samples+(i*256*6)+0, 6); /*   L */
+	float_to_int (&this->samples[2*256], int_samples+(i*256*6)+4, 6); /*   C */
+	float_to_int (&this->samples[3*256], int_samples+(i*256*6)+1, 6); /*   R */
+	float_to_int (&this->samples[4*256], int_samples+(i*256*6)+2, 6); /*  RL */
+	float_to_int (&this->samples[5*256], int_samples+(i*256*6)+3, 6); /*  RR */
 	break;
       default:
 	printf ("liba52: help - unsupported mode %08x\n", output_mode);
@@ -310,10 +314,12 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
       
     /*  output decoded samples */
       
-    this->audio_out->write (this->audio_out,
-					 this->int_samples,
-					 256*6,
-					 pts);
+    buf->num_frames = 256*6;
+    buf->vpts       = pts;
+    buf->scr        = scr;
+
+    this->audio_out->put_buffer (this->audio_out, buf);
+
     pts = 0;
     
   } else {
@@ -329,16 +335,24 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
       a52_syncinfo (this->frame_buffer, &flags, &sample_rate, &bit_rate);
       
       this->output_open = this->audio_out->open (this->audio_out, 16, 
-						  sample_rate,
-						  AO_CAP_MODE_A52) ;
+						 sample_rate,
+						 AO_CAP_MODE_A52) ;
       this->output_mode = AO_CAP_MODE_A52;
     }
     
     if (this->output_open) {
-      this->audio_out->write (this->audio_out,
-					 (int16_t*)this->frame_buffer,
-					 this->frame_length,
-					 pts);
+
+      audio_buffer_t *buf = this->audio_out->get_buffer (this->audio_out);
+
+      memcpy (buf->mem, this->frame_buffer, this->frame_length);
+
+      buf->num_frames = this->frame_length;
+      buf->vpts       = pts;
+      buf->scr        = scr;
+      
+      this->audio_out->put_buffer (this->audio_out, buf);
+      
+      pts = 0;
     }
   }
 }
@@ -354,10 +368,10 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     return;
   
   /*
-  printf ("liba52: got buffer, pts =%d, pts - last_pts=%d\n", 
-	  buf->PTS, buf->PTS - this->last_pts);
+    printf ("liba52: got buffer, pts =%d, pts - last_pts=%d\n", 
+    buf->PTS, buf->PTS - this->last_pts);
 
-  this->last_pts = buf->PTS;
+    this->last_pts = buf->PTS;
   */
 
   if (buf->PTS) 
@@ -367,7 +381,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   while (current != end) {
 
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
-      a52dec_decode_frame (this, this->pts);
+      a52dec_decode_frame (this, this->pts, buf->SCR);
 #ifdef DEBUG_A52
       write (a52file, this->frame_buffer, this->frame_length);
 #endif

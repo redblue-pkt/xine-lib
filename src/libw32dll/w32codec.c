@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.39 2001/11/08 21:39:03 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.40 2001/11/10 13:48:03 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -75,10 +75,8 @@ typedef struct w32a_decoder_s {
     int		    output_open;
   int               decoder_ok;
 
-  unsigned char     *buf;
+  unsigned char    *buf;
   int               size;   
-  unsigned char     *sample_buf;
-  int               sample_buf_size;
   HACMSTREAM        srcstream;
   int               rec_audio_src_size;
   int               num_channels;
@@ -505,6 +503,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       }
 
       img->PTS = buf->PTS;
+      img->SCR = buf->SCR;
       if(ret) {
 	printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
 	img->bad_frame = 1;
@@ -596,7 +595,7 @@ static void w32a_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->output_open = 0;
   this->decoder_ok = 0;
   
-  this->buf = this->sample_buf = NULL;
+  this->buf = NULL;
 }
 
 static int w32a_init_audio (w32a_decoder_t *this,
@@ -663,8 +662,6 @@ static int w32a_init_audio (w32a_decoder_t *this,
 
   if( this->buf )
     free(this->buf);
-  if( this->sample_buf )
-    free(this->sample_buf);
   
   if( this->rec_audio_src_size < 2 * in_fmt->nBlockAlign ) {
     this->rec_audio_src_size = 2 * in_fmt->nBlockAlign;
@@ -672,8 +669,6 @@ static int w32a_init_audio (w32a_decoder_t *this,
     printf("w32codec: adjusting source buffer size to %d\n", this->rec_audio_src_size); 
   }
   this->buf = malloc( 2 * this->rec_audio_src_size );
-  this->sample_buf = malloc( srcsize );
-  this->sample_buf_size = srcsize;
     
   this->size = 0;
 
@@ -682,20 +677,25 @@ static int w32a_init_audio (w32a_decoder_t *this,
 
 
 static void w32a_decode_audio (w32a_decoder_t *this,
-			       unsigned char *data, uint32_t nSize, 
-			       int bFrameEnd, uint32_t nPTS) {
+			       unsigned char *data, 
+			       uint32_t size, 
+			       int frame_end, 
+			       uint32_t pts,
+			       uint32_t scr) {
 
   static ACMSTREAMHEADER ash;
   HRESULT hr;
   /* DWORD srcsize=0; */
 
-  fast_memcpy (&this->buf[this->size], data, nSize);
+  fast_memcpy (&this->buf[this->size], data, size);
 
-  this->size += nSize;
+  this->size += size;
   if( this->size > 2 * this->rec_audio_src_size )
     printf("w32codec: buffer overflow on w32a_decode_audio\n");
   
   while (this->size >= this->rec_audio_src_size) {
+
+    audio_buffer_t *audio_buffer = this->audio_out->get_buffer (this->audio_out);
 
     memset(&ash, 0, sizeof(ash));
     ash.cbStruct=sizeof(ash);
@@ -703,11 +703,15 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     ash.dwUser=0; 
     ash.pbSrc=this->buf;
     ash.cbSrcLength=this->rec_audio_src_size;
-    ash.pbDst=this->sample_buf;
-    ash.cbDstLength=this->sample_buf_size;
+    ash.pbDst=(uint8_t *)audio_buffer->mem;
+    ash.cbDstLength=audio_buffer->mem_size;
     hr=acmStreamPrepareHeader(this->srcstream,&ash,0);
     if(hr){
       printf("w32codec: (ACM_Decoder) acmStreamPrepareHeader error %d\n",(int)hr);
+      
+      audio_buffer->num_frames = 0;
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
       return;
     }
 
@@ -722,21 +726,23 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     if(hr){
       printf("w32codec: acmStreamConvert error %d, used %d bytes\n",(int)hr,(int)ash.cbSrcLengthUsed);
       ash.cbSrcLengthUsed = this->rec_audio_src_size; 
+
+      audio_buffer->num_frames = 0;
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
     } else {
       /*
       printf ("acmStreamConvert worked, used %d bytes, generated %d bytes\n",
 	      ash.cbSrcLengthUsed, ash.cbDstLengthUsed);
       */
       if (ash.cbDstLengthUsed>0) {
-	/*
-	printf ("decoded : %02x %02x %02x %02x  ... %02x %02x \n",
-		this->sample_buf[0], this->sample_buf[1], this->sample_buf[2], this->sample_buf[3], 
-		this->sample_buf[ash.cbDstLengthUsed-2], this->sample_buf[ash.cbDstLengthUsed-1]);
-		*/
-	this->audio_out->write (this->audio_out,
-					   (int16_t*) this->sample_buf, 
-					   ash.cbDstLengthUsed / (this->num_channels*2), 
-					   nPTS); 
+
+	audio_buffer->num_frames = ash.cbDstLengthUsed / (this->num_channels*2);
+	audio_buffer->vpts       = pts;
+	audio_buffer->scr        = scr;
+
+	this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
       }
     }
     if(ash.cbSrcLengthUsed>=this->size){
@@ -765,7 +771,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     w32a_decode_audio (this, buf->content, buf->size,
 		       buf->decoder_info[0]==2, 
-		       buf->PTS);
+		       buf->PTS, buf->SCR);
   }
 }
 
@@ -786,10 +792,6 @@ static void w32a_close (audio_decoder_t *this_gen) {
   if( this->buf ) {
     free(this->buf);
     this->buf = NULL;
-  }
-  if( this->sample_buf ) {
-    free(this->sample_buf);
-    this->sample_buf = NULL;
   }
 }
 

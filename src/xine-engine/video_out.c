@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.51 2001/10/21 13:14:08 jcdutton Exp $
+ * $Id: video_out.c,v 1.52 2001/11/10 13:48:03 guenter Exp $
  *
  */
 
@@ -346,11 +346,11 @@ static void vo_open (vo_instance_t *this) {
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
 
     if((err = pthread_create (&this->video_thread,
-			      &pth_attrs, video_out_loop, this)) != 0)
-    {
-      fprintf (stderr, "video_out: can't create thread (%s)\n", strerror(err));
-      /* FIXME: why pthread_create fails? */
-      fprintf (stderr, "Sorry, this should not happen. Please restart Xine.\n");
+			      &pth_attrs, video_out_loop, this)) != 0) {
+
+      printf ("video_out: can't create thread (%s)\n", strerror(err));
+      /* FIXME: how does this happen ? */
+      printf ("video_out: sorry, this should not happen. please restart xine.\n");
       exit(1);
     }
     else
@@ -469,7 +469,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   uint32_t       pic_vpts ;
   int            frames_to_skip;
 
-  pic_vpts = this->metronom->got_video_frame (this->metronom, img->PTS);
+  pic_vpts = this->metronom->got_video_frame (this->metronom, img->PTS, img->SCR);
 
   /*
   printf ("video_out: got image %d. vpts for picture is %d (pts was %d)\n",

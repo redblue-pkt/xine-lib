@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2001/09/12 17:33:34 guenter Exp $
+ * $Id: xine_decoder.c,v 1.8 2001/11/10 13:48:02 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -31,7 +31,6 @@
 #include "frame.h"
 #include "synth.h"
 
-#define MAX_NUM_SAMPLES 8192
 #define INPUT_BUF_SIZE  16384
 
 typedef struct mad_decoder_s {
@@ -47,8 +46,6 @@ typedef struct mad_decoder_s {
   int               output_sampling_rate;
   int               output_open;
   int               output_mode;
-
-  int16_t           samples[MAX_NUM_SAMPLES];
 
   uint8_t           buffer[INPUT_BUF_SIZE];
   int               bytes_in_buffer;
@@ -189,10 +186,14 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	mad_synth_frame (&this->synth, &this->frame);
 
 	{
-	  unsigned int nchannels, nsamples;
-	  mad_fixed_t const *left_ch, *right_ch;
-	  struct mad_pcm *pcm = &this->synth.pcm;
-	  uint16_t *output = this->samples;
+	  unsigned int         nchannels, nsamples;
+	  mad_fixed_t const   *left_ch, *right_ch;
+	  struct mad_pcm      *pcm = &this->synth.pcm;
+	  audio_buffer_t      *audio_buffer;
+	  uint16_t            *output;
+
+	  audio_buffer = this->audio_out->get_buffer (this->audio_out);
+	  output = audio_buffer->mem;
 
 	  nchannels = pcm->channels;
 	  nsamples  = pcm->length;
@@ -209,10 +210,12 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	  }
 
-	  this->audio_out->write (this->audio_out,
-					     this->samples,
-					     pcm->length,
-					     buf->PTS);
+	  audio_buffer->num_frames = pcm->length;
+	  audio_buffer->vpts       = buf->PTS;
+	  audio_buffer->scr        = buf->SCR;
+
+	  this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
 	  buf->PTS = 0;
 
 	}

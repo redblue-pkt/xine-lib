@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.23 2001/11/07 19:41:26 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.24 2001/11/10 13:48:03 guenter Exp $
  *
  *
  * contents:
@@ -65,10 +65,11 @@ extern "C" {
 #define BUF_CONTROL_START         0x01000000
 #define BUF_CONTROL_END           0x01010000
 #define BUF_CONTROL_QUIT          0x01020000
-#define BUF_CONTROL_DISCONTINUITY 0x01030000
+#define BUF_CONTROL_DISCONTINUITY 0x01030000 /* deprecated */
 #define BUF_CONTROL_NOP           0x01040000
 #define BUF_CONTROL_AUDIO_CHANNEL 0x01050000
 #define BUF_CONTROL_SPU_CHANNEL   0x01060000
+#define BUF_CONTROL_AVSYNC_RESET  0x01070000
 
 /* video buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -136,7 +137,8 @@ struct buf_element_s {
   uint32_t              size ;   /* size of _content_ */
   uint32_t              max_size;        
   uint32_t              type;
-  uint32_t              PTS;
+  uint32_t              PTS;     /* presentation time stamp, used for a/v sync */
+  uint32_t              SCR;     /* system clock reference, used for discont. detection */
   off_t                 input_pos; /* remember where this buf came from in the input source */
   int                   input_time;/* time offset in seconds from beginning of stream       */
   uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */

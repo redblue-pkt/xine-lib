@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.61 2001/11/06 21:46:05 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.62 2001/11/10 13:48:03 guenter Exp $
  *
  */
 
@@ -101,18 +101,9 @@ void *video_decoder_loop (void *this_gen) {
 
       break;
 
-    case BUF_SPU_CLUT:
-      profiler_start_count (prof_spu_decode);
-
-      spu_decoder = update_spu_decoder(this, buf->type);
-
-      if (spu_decoder)
-        spu_decoder->decode_data (spu_decoder, buf);
-
-      profiler_stop_count (prof_spu_decode);
-      break;
-
     case BUF_SPU_SUBP_CONTROL:
+    case BUF_SPU_CLUT:
+    case BUF_SPU_PACKAGE:
       profiler_start_count (prof_spu_decode);
 
       spu_decoder = update_spu_decoder(this, buf->type);
@@ -125,22 +116,6 @@ void *video_decoder_loop (void *this_gen) {
 
     case BUF_CONTROL_SPU_CHANNEL:
       this->spu_channel = buf->decoder_info[0];
-      break;
-
-    case BUF_SPU_PACKAGE:
-      profiler_start_count (prof_spu_decode);
-
-      /* now, decode this buffer if it's the right track */
-//      if ( (buf->type  & 0xFFFF)== this->spu_channel) {
-
-        spu_decoder = update_spu_decoder (this, buf->type);
-
-        if (spu_decoder)
-          spu_decoder->decode_data (spu_decoder, buf);
-
-//      }
-
-      profiler_stop_count (prof_spu_decode);
       break;
 
     case BUF_CONTROL_END:
@@ -185,9 +160,22 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_DISCONTINUITY:
+      printf ("video_decoder: BUF_CONTROL_DISCONTINUITY is deprecated\n");
+      break;
+
+    case BUF_CONTROL_AVSYNC_RESET:
+      printf ("video_decoder: discontinuity ahead\n");
+
+      /* fixme ? */
+      if (this->cur_video_decoder_plugin) {
+	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
+	this->cur_video_decoder_plugin = NULL;
+      }
+
       this->metronom->expect_video_discontinuity (this->metronom);
       break;
 
+    case BUF_CONTROL_AUDIO_CHANNEL:
     case BUF_CONTROL_NOP:
       break;
 

@@ -257,6 +257,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		}
 		picture->current_frame->bad_frame = 0;
 		picture->current_frame->PTS = mpeg2dec->pts;
+		picture->current_frame->SCR = mpeg2dec->scr;
 		mpeg2dec->pts = 0;
 	    }
 	}
@@ -323,7 +324,7 @@ static inline uint8_t * copy_chunk (mpeg2dec_t * mpeg2dec,
 }
 
 int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
-		       uint32_t pts)
+		       uint32_t pts, uint32_t scr)
 {
     int ret;
     uint8_t code;
@@ -339,6 +340,8 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
 
     if (pts)
       mpeg2dec->pts = pts;
+
+    mpeg2dec->scr = scr;
 
     while (current != end) {
 	code = mpeg2dec->code;
@@ -380,6 +383,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     if (picture->throwaway_frame) {
       printf ("libmpeg2: blasting out throwaway frame on close\n");
       picture->throwaway_frame->PTS = 0;
+      picture->throwaway_frame->SCR = mpeg2dec->scr;
       picture->throwaway_frame->bad_frame = 0;
       picture->throwaway_frame->draw (picture->throwaway_frame);
       picture->throwaway_frame->free (picture->throwaway_frame);
@@ -388,6 +392,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     if (picture->backward_reference_frame) {
       printf ("libmpeg2: blasting out backward reference frame on close\n");
       picture->backward_reference_frame->PTS = 0;
+      picture->backward_reference_frame->SCR = mpeg2dec->scr;
       picture->backward_reference_frame->bad_frame = 0;
       picture->backward_reference_frame->draw (picture->backward_reference_frame);
       picture->backward_reference_frame->free (picture->backward_reference_frame);

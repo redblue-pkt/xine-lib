@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.50 2001/11/07 19:06:15 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.51 2001/11/10 13:48:02 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -724,6 +724,7 @@ static int demux_avi_next (demux_avi_t *this) {
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: audio \n");
 
     buf->PTS    = audio_pts;
+    buf->SCR    = audio_pts;
     buf->size   = AVI_read_audio (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
 
     if (buf->size<0) {
@@ -750,6 +751,7 @@ static int demux_avi_next (demux_avi_t *this) {
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: video \n");
 
     buf->PTS        = video_pts;
+    buf->SCR        = video_pts;
     buf->size       = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
     buf->type       = this->avi->video_type;
     

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2001/10/18 14:32:28 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.13 2001/11/10 13:48:02 guenter Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -41,13 +41,12 @@
 typedef struct lpcm_decoder_s {
   audio_decoder_t  audio_decoder;
 
-  uint32_t         pts;
   uint32_t         rate;
   uint32_t         bits_per_sample; 
   uint32_t         number_of_channels; 
   uint32_t         ao_cap_mode; 
    
-  ao_instance_t  *audio_out;
+  ao_instance_t   *audio_out;
   int              output_open;
   int		   cpu_be;	/* TRUE, if we're a Big endian CPU */
 } lpcm_decoder_t;
@@ -66,7 +65,6 @@ void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
   this->audio_out     = audio_out;
   this->output_open   = 0;
-  this->pts           = 0;
   this->rate          = 0;
   this->bits_per_sample=0; 
   this->number_of_channels=0; 
@@ -79,10 +77,10 @@ void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
-  int16_t *sample_buffer=(int16_t *)buf->content;
-  int stream_be;
+  int16_t        *sample_buffer=(int16_t *)buf->content;
+  int             stream_be;
+  audio_buffer_t *audio_buffer;
 
-  this->pts = buf->PTS;
   if (buf->decoder_info[0] == 0) {
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
@@ -113,17 +111,22 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if (!this->output_open) 
     return;
 
+  audio_buffer = this->audio_out->get_buffer (this->audio_out);
+
   /* Swap LPCM samples into native byte order, if necessary */
+
   stream_be = ( buf->type == BUF_AUDIO_LPCM_BE );
   if (stream_be != this->cpu_be)
-    swab(sample_buffer, sample_buffer, buf->size);
+    swab (audio_buffer->mem, sample_buffer, buf->size);
+  else
+    memcpy (audio_buffer->mem, sample_buffer, buf->size);
 
-  this->audio_out->write (this->audio_out,
-                            sample_buffer,
-                            (((buf->size*8)/this->number_of_channels)/this->bits_per_sample),
-                            this->pts);
+  audio_buffer->vpts       = buf->PTS;
+  audio_buffer->scr        = buf->SCR;
+  audio_buffer->num_frames = (((buf->size*8)/this->number_of_channels)/this->bits_per_sample);
 
-  
+  this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
 }
 
 void lpcm_close (audio_decoder_t *this_gen) {

@@ -43,7 +43,7 @@ typedef struct mpeg2dec_s {
     /* last start code ? */
     uint8_t code;
 
-    uint32_t pts;
+    uint32_t pts, scr;
 
 } mpeg2dec_t ;
 
@@ -60,7 +60,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec);
 
 int mpeg2_decode_data (mpeg2dec_t * mpeg2dec,
 		       uint8_t * data_start, uint8_t * data_end, 
-		       uint32_t pts);
+		       uint32_t pts, uint32_t scr);
 
 void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				 uint8_t * data_start, uint8_t * data_end);

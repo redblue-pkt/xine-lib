@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.12 2001/10/18 18:50:53 guenter Exp $
+ * $Id: metronom.h,v 1.13 2001/11/10 13:48:03 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -83,41 +83,45 @@ struct metronom_s {
    * called by video output driver for *every* frame
    *
    * parameter pts: pts for frame if known, 0 otherwise
+   *           scr: system clock reference, may be 0 or == pts if unknown
    *
    * return value: virtual pts for frame
    *
    */
   
-  uint32_t (*got_video_frame) (metronom_t *this, uint32_t pts);
+  uint32_t (*got_video_frame) (metronom_t *this, uint32_t pts, uint32_t scr);
 
   /*
    * called by audio output driver whenever audio samples are delivered to it
    *
    * parameter pts      : pts for audio data if known, 0 otherwise
    *           nsamples : number of samples delivered
+   *           scr      : system clock reference, may be 0 or == pts if unknown
    *
    * return value: virtual pts for audio data
    *
    */
 
-  uint32_t (*got_audio_samples) (metronom_t *this, uint32_t pts, uint32_t nsamples); 
-
-  /* 
-   * inform metronom that there was a still image with no audio 
-   */
-
-  void (*got_audio_still) (metronom_t *this);
+  uint32_t (*got_audio_samples) (metronom_t *this, uint32_t pts, uint32_t nsamples, uint32_t scr); 
 
   /*
    * called by SPU decoder whenever a packet is delivered to it
    *
    * parameter pts      : pts for SPU packet if known, 0 otherwise
+   *           scr      : system clock reference, may be 0 or == pts if unknown
    *
    * return value: virtual pts for SPU packet
    *
    */
 
-  uint32_t (*got_spu_packet) (metronom_t *this, uint32_t pts, uint32_t duration); 
+  uint32_t (*got_spu_packet) (metronom_t *this, uint32_t pts, uint32_t duration,
+			      uint32_t scr); 
+
+  /*
+   * tell metronom about discontinuities
+   */
+  void (*expect_audio_discontinuity) (metronom_t *this);
+  void (*expect_video_discontinuity) (metronom_t *this);
 
   /*
    * manually correct audio <-> video sync
@@ -125,13 +129,6 @@ struct metronom_s {
   void (*set_av_offset) (metronom_t *this, int32_t pts);
 
   int32_t (*get_av_offset) (metronom_t *this);
-
-  /*
-   * tell metronom to expect a pts discontinuity
-   */
-
-  void (*expect_audio_discontinuity) (metronom_t *this);
-  void (*expect_video_discontinuity) (metronom_t *this);
 
   /*
    * system clock reference (SCR) functions
@@ -199,10 +196,12 @@ struct metronom_s {
   int             wrap_diff_counter;
 
   uint32_t        last_video_pts;
+  uint32_t        last_video_scr;
   int             num_video_vpts_guessed;
   int32_t         video_pts_delta;
 
   uint32_t        last_audio_pts;
+  uint32_t        last_audio_scr;
   int             num_audio_samples_guessed;
 
   int32_t         av_offset;
@@ -219,7 +218,11 @@ struct metronom_s {
   int             audio_stream_starting;
   int             audio_stream_running;
   int             video_discontinuity;
+  int             video_discontinuity_count;
   int             audio_discontinuity;
+  int             audio_discontinuity_count;
+  pthread_cond_t  video_discontinuity_reached;
+  pthread_cond_t  audio_discontinuity_reached;
   pthread_cond_t  video_started;
   pthread_cond_t  audio_started;
   pthread_cond_t  video_ended;

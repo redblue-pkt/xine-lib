@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2001/09/06 15:23:14 joachim_koenig Exp $
+ * $Id: xine_decoder.c,v 1.2 2001/11/10 13:48:02 guenter Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  *
@@ -39,13 +39,12 @@
 typedef struct dts_decoder_s {
   audio_decoder_t  audio_decoder;
 
-  uint32_t         pts;
   uint32_t         rate;
   uint32_t         bits_per_sample; 
   uint32_t         number_of_channels; 
   uint32_t	   audio_caps; 
    
-  ao_instance_t  *audio_out;
+  ao_instance_t   *audio_out;
   int              output_open;
 } dts_decoder_t;
 
@@ -62,7 +61,6 @@ void dts_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
   this->audio_out     = audio_out;
   this->output_open   = 0;
-  this->pts           = 0;
   this->rate          = 48000;
   this->bits_per_sample=16; 
   this->number_of_channels=2; 
@@ -72,31 +70,30 @@ void dts_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
 void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  dts_decoder_t *this = (dts_decoder_t *) this_gen;
-  int16_t *sample_buffer=(int16_t *)buf->content;
+  dts_decoder_t  *this = (dts_decoder_t *) this_gen;
+  int16_t        *sample_buffer=(int16_t *)buf->content;
+  audio_buffer_t *audio_buffer;
 
   if ((this->audio_caps & AO_CAP_MODE_AC5) == 0) {
     return;
   }
-
-  this->pts = buf->PTS;
-
 
   if (!this->output_open) {      
     this->output_open = (this->audio_out->open (this->audio_out, this->bits_per_sample, 
                                                 this->rate,
                                                 AO_CAP_MODE_AC5));
   }
-  if (!this->output_open) {
+  if (!this->output_open) 
     return;
-  }
-
-  this->audio_out->write (this->audio_out,
-                            sample_buffer,
-                            1536,
-                            this->pts);
-
   
+  audio_buffer = this->audio_out->get_buffer (this->audio_out);
+
+  audio_buffer->vpts       = buf->PTS;
+  audio_buffer->scr        = buf->SCR;
+  audio_buffer->num_frames = 1536;
+  
+  this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
 }
 
 void dts_close (audio_decoder_t *this_gen) {

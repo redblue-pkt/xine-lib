@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2001/10/07 03:53:11 heikos Exp $
+ * $Id: xine_decoder.c,v 1.2 2001/11/10 13:48:03 guenter Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -171,11 +171,14 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       int i,j;
       int clipflag=0;
       int bout=(samples<this->convsize?samples:this->convsize);
+      audio_buffer_t *audio_buffer;
+
+      audio_buffer = this->audio_out->get_buffer (this->audio_out);
       
       /* convert floats to 16 bit signed ints (host order) and
 	 interleave */
       for(i=0;i<this->vi.channels;i++){
-	ogg_int16_t *ptr=this->convbuffer+i;
+	ogg_int16_t *ptr=audio_buffer->mem+i;
 	float  *mono=pcm[i];
 	for(j=0;j<bout;j++){
 	  int val=mono[j]*32767.f;
@@ -193,10 +196,11 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	}
       }
 
-      this->audio_out->write (this->audio_out,
-			      this->convbuffer,
-			      bout,
-			      buf->PTS);
+      audio_buffer->vpts       = buf->PTS;
+      audio_buffer->num_frames = bout;
+
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
       buf->PTS=0;
       vorbis_synthesis_read(&this->vd,bout);
     }

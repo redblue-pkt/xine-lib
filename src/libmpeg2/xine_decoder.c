@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2001/10/03 17:17:06 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.16 2001/11/10 13:48:03 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -72,7 +72,7 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
     /* write (this->mpeg_file, buf->content, buf->size); */
 
     mpeg2_decode_data (&this->mpeg2, buf->content, buf->content + buf->size,
-		       buf->PTS);
+		       buf->PTS, buf->SCR);
 
   }
 

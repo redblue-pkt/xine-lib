@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.26 2001/11/10 06:20:39 mlampard Exp $
+ * $Id: video_out.h,v 1.27 2001/11/10 13:48:03 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -60,6 +60,7 @@ struct vo_frame_s {
   struct vo_frame_s         *next;
 
   uint32_t                   PTS;
+  uint32_t                   SCR;
   int                        bad_frame; /* e.g. frame skipped or based on skipped frame */
   uint8_t                   *base[3];
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.10 2001/11/07 18:26:36 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.11 2001/11/10 13:48:02 guenter Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -3992,6 +3992,7 @@ static void *demux_qt_loop (void *this_gen) {
 	/* int count; */
       
 	buf->PTS             = audio_pts;
+	buf->SCR             = audio_pts;
 	buf->type            = this->audio_type;
 	buf->decoder_info[0] = 1;
 	buf->input_time      = 0;
@@ -4038,6 +4039,7 @@ static void *demux_qt_loop (void *this_gen) {
 	  buf->content         = buf->mem;
 	  buf->size            = copy_bytes;
 	  buf->PTS             = video_pts;
+	  buf->SCR             = video_pts;
 	  buf->type            = this->video_type;
 	  buf->input_time      = video_pts / 90000;
 	  buf->input_pos       = this->input->get_current_pos(this->input);

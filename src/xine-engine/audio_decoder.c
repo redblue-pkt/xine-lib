@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.50 2001/10/22 01:23:08 jcdutton Exp $
+ * $Id: audio_decoder.c,v 1.51 2001/11/10 13:48:03 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -124,13 +124,24 @@ void *audio_decoder_loop (void *this_gen) {
       break;
 
     case BUF_VIDEO_FILL:
-      this->metronom->got_audio_still (this->metronom);
       break;
 
     case BUF_CONTROL_NOP:
       break;
 
     case BUF_CONTROL_DISCONTINUITY:
+      printf ("audio_decoder: BUF_CONTROL_DISCONTINUITY is deprecated\n");
+      break;
+
+    case BUF_CONTROL_AVSYNC_RESET:
+      printf ("audio_decoder: discontinuity ahead\n");
+
+      /* fixme ? */
+      if (this->cur_audio_decoder_plugin) {
+	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+	this->cur_audio_decoder_plugin = NULL;
+      }
+
       this->metronom->expect_audio_discontinuity (this->metronom);
       break;
 
