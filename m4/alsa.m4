@@ -65,8 +65,17 @@ if test x"$enable_alsa" != "xno"; then
   fi
   ALSA_CFLAGS="$ALSA_CFLAGS"
 
-  AC_CHECK_HEADER(alsa/asoundlib.h, [asoundlib_h="alsa/asoundlib.h"], \
-	 [AC_CHECK_HEADER(sys/asoundlib.h, asoundlib_h="sys/asoundlib.h")])
+  AC_CHECK_HEADER(alsa/asoundlib.h,
+         [
+           asoundlib_h="alsa/asoundlib.h"
+	   AC_DEFINE(HAVE_ALSA_ASOUNDLIB_H, 1, [Define this if your asoundlib.h is installed in alsa/]) 
+	 ],[
+	   AC_CHECK_HEADER(sys/asoundlib.h,
+	     [
+	       asoundlib_h="sys/asoundlib.h"
+	       AC_DEFINE(HAVE_SYS_ASOUNDLIB_H, 1, [Define this if your asoundlib.h is installed in sys/]) 
+	     ])
+	 ])
 
   min_alsa_version=ifelse([$1], ,0.1.1,$1)
   AC_MSG_CHECKING([for ALSA version >= $min_alsa_version])
