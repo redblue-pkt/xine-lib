@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.135 2003/01/11 19:06:53 guenter Exp $
+ * $Id: video_out.c,v 1.136 2003/01/13 13:43:46 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1017,8 +1017,9 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
   vos_t      *this = (vos_t *) this_gen;
 
-  printf ("video_out: vo_open \n\n\n");
-
+#ifdef LOG
+  printf("video_out: vo_open\n");
+#endif
   this->video_opened = 1;
   this->flush_frames = 0;
   this->last_delivery_pts = 0;
