@@ -54,9 +54,6 @@ required for 1.0
   ogg demuxer and DVD input
 - xine bug tracking system?
 - add help strings for all post plugins
-- review code for stack overflows
-  (no big review, just grep for the most common mistakes like
-  sprintf, sscanf)
 - review code for malloc()s that don't check their return type
   (replace with xine_xmalloc() and make it abort() on failure,
   if graceful failure handling is not possible)
