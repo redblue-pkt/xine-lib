@@ -1,9 +1,9 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu_decoder.h,v 1.5 2002/03/31 20:38:43 jcdutton Exp $
+ * $Id: spu_decoder.h,v 1.6 2002/10/23 17:12:34 guenter Exp $
  */
 #ifndef HAVE_SPU_OUT_H
 #define HAVE_SPU_OUT_H

@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: locale.c,v 1.2 2002/01/20 23:21:52 f1rmb Exp $
+ * $Id: locale.c,v 1.3 2002/10/23 17:12:31 guenter Exp $
  *
  * intl init.
  *
@@ -38,7 +38,7 @@ char *xine_set_locale(void) {
 #ifdef XINE_LOCALE_LOG
     printf("xine-lib: locale not supported by C library\n");
 #endif
-    //    xine_log(this, XINE_LOG_INTERNAL, "xine-lib: locale not supported by C library");
+    /*    xine_log(this, XINE_LOG_INTERNAL, "xine-lib: locale not supported by C library"); */
     return NULL;
   }
   

@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.c,v 1.3 2002/10/23 17:12:32 guenter Exp $
  *
  * nvtvd - Routines for communication with nvtvd.
  *
@@ -52,7 +52,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.c,v 1.3 2002/10/23 17:12:32 guenter Exp $
  *
  * Contents:
  *
@@ -158,7 +158,7 @@ void  pipeWriteList (FILE *pipe, int size, void *list);
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.c,v 1.3 2002/10/23 17:12:32 guenter Exp $
  *
  * Contents:
  *
@@ -583,7 +583,7 @@ CardPtr back_client_init (void)
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.c,v 1.3 2002/10/23 17:12:32 guenter Exp $
  *
  * Contents:
  *

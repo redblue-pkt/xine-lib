@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
+ * $Id: nvtvd.h,v 1.4 2002/10/23 17:12:33 guenter Exp $
  *
  * nvtvd - Routines for communication with nvtvd.
  *
@@ -582,7 +582,7 @@ typedef struct _riva_hw_inst
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
+ * $Id: nvtvd.h,v 1.4 2002/10/23 17:12:33 guenter Exp $
  *
  * Contents:
  *
@@ -1099,7 +1099,7 @@ typedef struct {
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
+ * $Id: nvtvd.h,v 1.4 2002/10/23 17:12:33 guenter Exp $
  *
  * Contents:
  *
@@ -1215,7 +1215,7 @@ extern BackCardPtr back_card;
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
+ * $Id: nvtvd.h,v 1.4 2002/10/23 17:12:33 guenter Exp $
  *
  * Contents:
  *

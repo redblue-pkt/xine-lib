@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.h,v 1.2 2002/07/01 13:51:28 miguelfreitas Exp $
+ * $Id: resample.h,v 1.3 2002/10/23 17:12:34 guenter Exp $
  *
  * utilitiy functions for audio drivers
  *
