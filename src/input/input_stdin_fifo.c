@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.44 2003/03/06 23:56:47 miguelfreitas Exp $
+ * $Id: input_stdin_fifo.c,v 1.45 2003/03/14 23:52:07 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -120,6 +120,12 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
 #ifdef LOG
           printf ("stdin: timeout\n");
 #endif
+          /* aborts current read if action pending. otherwise xine
+           * cannot be stopped when no more data is available.
+           */
+          if( this->stream->demux_action_pending )
+            return 0;
+            
         } else {
           break;
         }
