@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.46 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.47 2002/08/11 13:22:55 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -43,9 +43,11 @@
 #include <errno.h>
 #include <math.h>
 
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-#include <X11/Xutil.h>
+#ifdef HAVE_X11
+#  include <X11/Xlib.h>
+#  include <X11/Xatom.h>
+#  include <X11/Xutil.h>
+#endif
 #ifdef HAVE_XINERAMA
 #  include <X11/extensions/Xinerama.h>
 #endif
@@ -53,7 +55,9 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "video_out.h"
-#include "../video_out/video_out_x11.h"
+#ifdef HAVE_X11
+#  include "../video_out/video_out_x11.h"
+#endif
 #include "alphablend.h"
 #include "dxr3.h"
 #include "video_out_dxr3.h"
@@ -127,7 +131,11 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   const char *confstr;
   int dashpos, encoder, confnum;
   static char *available_encoders[SUPPORTED_ENCODER_COUNT + 2];
+#ifdef HAVE_X11
   static char *videoout_modes[] = { "letterboxed tv", "widescreen tv", "overlay", NULL };
+#else
+  static char *videoout_modes[] = { "letterboxed tv", "widescreen tv", NULL };
+#endif
   static char *tv_modes[] = { "ntsc", "pal", "pal60" , "default", NULL };
 
   this = (dxr3_driver_t *)malloc(sizeof(dxr3_driver_t));
@@ -274,6 +282,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
     dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, ASPECT_FULL);
     this->widescreen_enabled = 1;
     break;
+#ifdef HAVE_X11
   case 2: /* overlay mode */
 #if LOG_VID
     printf("video_out_dxr3: setting up overlay mode\n");
@@ -296,6 +305,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       this->tv_switchable = 0;
       this->widescreen_enabled = 0;
     }
+#endif
   }
   
   /* init tvmode */
@@ -327,6 +337,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
     if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
       printf("video_out_dxr3: setting video mode failed.\n");
   
+#ifdef HAVE_X11
   /* initialize overlay */
   if (this->overlay_enabled) {
     em8300_overlay_screen_t scr;
@@ -356,6 +367,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
     if (ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SETMODE, &value) != 0)
       printf("video_out_dxr3: switching to overlay mode failed.\n");
   }
+#endif
   
   return &this->vo_driver;
 }
@@ -820,6 +832,7 @@ static void dxr3_get_property_min_max(vo_driver_t *this_gen, int property,
 
 static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *data)
 {
+#ifdef HAVE_X11
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
 
   if (!this->overlay_enabled && !this->tv_switchable) return 0;
@@ -872,6 +885,7 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
   default:
     return -1;
   }
+#endif
   return 0;
 }
 
@@ -892,6 +906,7 @@ static void dxr3_exit(vo_driver_t *this_gen)
 }
 
 
+#ifdef HAVE_X11
 static void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
 {
   int scrn;
@@ -1189,6 +1204,7 @@ static void dxr3_overlay_update(dxr3_driver_t *this)
     }
   }
 }
+#endif
 
 static void dxr3_zoomTV(dxr3_driver_t *this)
 {
@@ -1229,15 +1245,18 @@ static void dxr3_zoomTV(dxr3_driver_t *this)
   ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &update);
 }
 
+#ifdef HAVE_X11
 static void dxr3_translate_gui2video(dxr3_driver_t *this, int x, int y,
   int *vid_x, int *vid_y)
 {
   *vid_x = x * this->video_width   / this->width;
   *vid_y = y * this->video_oheight / this->height - this->top_bar;
 }
+#endif
 
 static int is_fullscreen(dxr3_driver_t *this)
 {
+#ifdef HAVE_X11
   XWindowAttributes a;
 
   XGetWindowAttributes(this->display, this->win, &a);
@@ -1247,6 +1266,9 @@ static int is_fullscreen(dxr3_driver_t *this)
     a.y == 0 &&
     a.width  == this->overlay.screen_xres &&
     a.height == this->overlay.screen_yres;
+#else
+  return 0;
+#endif
 }
 
 

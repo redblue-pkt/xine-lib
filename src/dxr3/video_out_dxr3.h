@@ -17,14 +17,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.7 2002/07/17 14:58:12 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.8 2002/08/11 13:22:55 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <X11/Xlib.h>
+#ifdef HAVE_X11
+#  include <X11/Xlib.h>
+#endif
 
 #include "xine_internal.h"
 #include "dxr3.h"
@@ -96,12 +98,14 @@ typedef struct dxr3_driver_s {
   int              need_update;   /* the mpeg encoder needs to be updated */
 
   dxr3_overlay_t   overlay;
+#ifdef HAVE_X11
   Display         *display;
   Drawable         win;
   GC               gc;
   XColor           color;
   int              xpos, ypos;
   int              width, height; 
+#endif
 
   char            *user_data;
   void           (*frame_output_cb)(void *user_data,
