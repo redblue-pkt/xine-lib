@@ -63,6 +63,7 @@ required for 1.0
 - review code for malloc()s that don't check their return type
   (replace with xine_xmalloc() and make it abort() on failure,
   if graceful failure handling is not possible)
+- clean up MRL sytax of individual plugins and finish their documentation
 
 optional
 --------
