@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.15 2003/10/07 19:57:48 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.16 2003/10/20 20:30:55 f1rmb Exp $
  */
 
 
@@ -33,7 +33,11 @@
 
 #include <libgnomevfs/gnome-vfs.h>
 
+#ifdef  __GNUC__
 #define D(...)
+#else
+#define D(__VA_ARGS__)
+#endif
 /* #define D(...) g_message (__VA_ARGS__) */
 /* #define LOG */
 
