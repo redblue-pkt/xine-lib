@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.21 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.22 2002/10/31 02:22:58 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -101,6 +101,8 @@ typedef struct {
   off_t                data_start;
   off_t                data_size;
 
+  int64_t              video_pts;
+
   char                 last_mrl[1024];
 } demux_mve_t;
 
@@ -156,7 +158,6 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
   buf_element_t *buf = NULL;
   int64_t text_pts = 0;
   int64_t audio_pts = 0;
-  int64_t video_pts = 0;
   unsigned char preamble[PREAMBLE_SIZE];
   unsigned int chunk_tag;
   unsigned int chunk_size;
@@ -184,7 +185,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
       if (this->seek_flag) {
 
         /* reset pts */
-        video_pts = 0;
+        this->video_pts = 0;
         xine_demux_control_newpts(this->stream, 0, BUF_FLAG_SEEK);
         this->seek_flag = 0;
 
@@ -224,7 +225,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
 
     } else if (chunk_tag == AUDI_TAG) {
 
-      audio_pts = video_pts - WC3_PTS_INC;
+      audio_pts = this->video_pts - WC3_PTS_INC;
 
       while (chunk_size) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
@@ -260,8 +261,8 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
         buf->type = BUF_VIDEO_WC3;
         buf->input_pos = current_file_pos;
         buf->input_length = this->data_size;
-        buf->input_time = video_pts / 90000;
-        buf->pts = video_pts;
+        buf->input_time = this->video_pts / 90000;
+        buf->pts = this->video_pts;
 
         if (chunk_size > buf->max_size)
           buf->size = buf->max_size;
@@ -281,11 +282,11 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
 
         this->video_fifo->put (this->video_fifo, buf);
       }
-      video_pts += WC3_PTS_INC;
+      this->video_pts += WC3_PTS_INC;
 
     } else if (chunk_tag == TEXT_TAG) {
 
-      text_pts = video_pts - WC3_PTS_INC;
+      text_pts = this->video_pts - WC3_PTS_INC;
 
       /* unhandled thus far */
       this->input->seek(this->input, chunk_size, SEEK_CUR);
@@ -499,10 +500,12 @@ static int open_mve_file(demux_mve_t *this) {
 
   }
 
-  /* note the data start offset right */
+  /* note the data start offset */
   this->data_start = this->input->get_current_pos(this->input);
 
   this->data_size = this->input->get_length(this->input) - this->data_start;
+
+  this->video_pts = 0;
 
   return 1;
 }
