@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.5 2002/01/09 15:16:37 mshopf Exp $
+ * $Id: audio_irixal_out.c,v 1.6 2002/03/11 19:58:00 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,7 +50,7 @@
 //# endif
 //#endif
 
-#define AO_IRIXAL_IFACE_VERSION 3
+#define AO_IRIXAL_IFACE_VERSION 4
 
 #define DEFAULT_GAP_TOLERANCE         5000
 
@@ -286,6 +286,27 @@ static int ao_irixal_set_property (ao_driver_t *this, int property, int value) {
   return ~value;
 }
 
+/*
+ *
+ */
+static int ao_irixal_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+  irixal_driver_t *this = (irixal_driver_t *) this_gen;
+
+  switch (cmd) {
+
+  case AO_CTRL_PLAY_PAUSE:
+    break;
+
+  case AO_CTRL_PLAY_RESUME:
+    break;
+
+  case AO_CTRL_FLUSH_BUFFERS:
+    break;
+  }
+
+  return 0;
+}
+
 ao_driver_t *init_audio_out_plugin (config_values_t *config)
 {
   irixal_driver_t *this;
@@ -372,6 +393,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config)
   this->ao_driver.close               = ao_irixal_close;
   this->ao_driver.exit                = ao_irixal_exit;
   this->ao_driver.get_gap_tolerance   = ao_irixal_get_gap_tolerance;
+  this->ao_driver.control	      = ao_irixal_ctrl;
 
   return &this->ao_driver;
 }

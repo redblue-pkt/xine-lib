@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.8 2001/11/18 15:08:30 guenter Exp $
+ * $Id: audio_arts_out.c,v 1.9 2002/03/11 19:58:00 jkeil Exp $
  */
 
 /* required for swab() */
@@ -41,7 +41,7 @@
 #include "xineutils.h"
 #include "audio_out.h"
 
-#define AO_OUT_ARTS_IFACE_VERSION 3
+#define AO_OUT_ARTS_IFACE_VERSION 4
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
@@ -239,6 +239,28 @@ static int ao_arts_set_property (ao_driver_t *this, int property, int value) {
   return ~value;
 }
 
+/*
+ *
+ */
+static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+
+  switch (cmd) {
+
+  case AO_CTRL_PLAY_PAUSE:
+    break;
+
+  case AO_CTRL_PLAY_RESUME:
+    break;
+
+  case AO_CTRL_FLUSH_BUFFERS:
+    break;
+  }
+
+  return 0;
+}
+
+
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   arts_driver_t *this;
@@ -278,7 +300,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.close               = ao_arts_close;
   this->ao_driver.exit                = ao_arts_exit;
   this->ao_driver.get_gap_tolerance   = ao_arts_get_gap_tolerance;
-  
+  this->ao_driver.control	      = ao_arts_ctrl;
+
   return &this->ao_driver;
 }
 

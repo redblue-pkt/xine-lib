@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.25 2002/03/11 12:31:26 guenter Exp $
+ * $Id: audio_out.h,v 1.26 2002/03/11 19:58:01 jkeil Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -37,7 +37,7 @@ extern "C" {
 #endif
 
 
-#define AUDIO_OUT_IFACE_VERSION  3
+#define AUDIO_OUT_IFACE_VERSION  4
 
 /*
  * ao_driver_s contains the driver every audio output
@@ -113,12 +113,19 @@ struct ao_driver_s {
    * get_property() return 1 in success, 0 on failure.
    * set_property() return value on success, ~value on failure.
    *
-   * See AC_PROP_* bellow for available properties.
+   * See AO_PROP_* below for available properties.
    */
   int (*get_property) (ao_driver_t *this, int property);
 
-  int (*set_property) (ao_driver_t *this,  int property, int value);
+  int (*set_property) (ao_driver_t *this, int property, int value);
 
+
+  /*
+   * misc control operations on the audio device.
+   *
+   * See AO_CTRL_* below.
+   */
+  int (*control) (ao_driver_t *this, int cmd, /* arg */ ...);
 };
 
 /*
@@ -178,6 +185,14 @@ struct ao_instance_s {
 
   /* called on xine exit */
   void (*exit) (ao_instance_t *this);
+
+  /*
+   * misc control operations on the audio device.
+   *
+   * See AO_CTRL_* below.
+   */
+  int (*control) (ao_driver_t *this, int cmd, /* arg */ ...);
+
 
   /* private stuff */
 
@@ -251,6 +266,13 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) ;
 #define AO_PROP_MIXER_VOL       0
 #define AO_PROP_PCM_VOL         1
 #define AO_PROP_MUTE_VOL        2
+
+
+/* audio device control ops */
+#define AO_CTRL_PLAY_PAUSE	0
+#define AO_CTRL_PLAY_RESUME	1
+#define	AO_CTRL_FLUSH_BUFFERS	2
+
 
 typedef struct ao_info_s {
 

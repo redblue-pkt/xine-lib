@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.46 2002/02/08 13:13:47 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.47 2002/03/11 19:58:00 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -60,7 +60,7 @@
 # endif
 #endif
 
-#define AO_OUT_ALSA_IFACE_VERSION 3
+#define AO_OUT_ALSA_IFACE_VERSION 4
 
 #define GAP_TOLERANCE             5000
 
@@ -77,6 +77,7 @@ typedef struct alsa_driver_s {
   snd_pcm_t    *audio_fd;
   int           capabilities;
   int           open_mode;
+  int		has_pause_resume;
 
   int32_t       output_sample_rate, input_sample_rate;
   double        sample_rate_factor;
@@ -633,6 +634,34 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
   return ~value;
 }
 
+
+static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+  alsa_driver_t *this = (alsa_driver_t *) this_gen;
+
+#if 0
+  switch (cmd) {
+
+  case AO_CTRL_PLAY_PAUSE:
+    if (this->has_pause_resume)
+      snd_pcm_pause(this->audio_fd, 1);
+    break;
+
+  case AO_CTRL_PLAY_RESUME:
+    if (this->has_pause_resume)
+      snd_pcm_pause(this->audio_fd, 0);
+    break;
+
+  case AO_CTRL_FLUSH_BUFFERS:
+    snd_pcm_drop(this->audio_fd);
+    snd_pcm_prepare(this->audio_fd);
+    break;
+  }
+#endif
+
+  return 0;
+}
+
+
 static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t      *config = this->config;
@@ -961,6 +990,9 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     printf ("(5.1-channel not enabled in xine config) " );
   }
  
+  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (this->audio_fd)
+			    && snd_pcm_hw_params_can_resume (this->audio_fd) );
+
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
   this->output_sample_rate = 0;
@@ -1005,6 +1037,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.close               = ao_alsa_close;
   this->ao_driver.exit                = ao_alsa_exit;
   this->ao_driver.get_gap_tolerance   = ao_alsa_get_gap_tolerance;
+  this->ao_driver.control	      = ao_alsa_ctrl;
 
   return &this->ao_driver;
 }

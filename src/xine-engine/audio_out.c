@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.44 2002/03/11 12:31:26 guenter Exp $
+ * $Id: audio_out.c,v 1.45 2002/03/11 19:58:01 jkeil Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -240,7 +240,8 @@ static void *ao_loop (void *this_gen) {
   int64_t         cur_time;
   int             num_output_frames ;
   int             paused_wait;
-  
+
+
   while ((this->audio_loop_running) ||
 	 (!this->audio_loop_running && this->out_fifo->first)) {
 
@@ -564,6 +565,20 @@ static int ao_set_property (ao_instance_t *this, int property, int value) {
   return(this->driver->set_property(this->driver, property, value));
 }
 
+static int ao_control (ao_instance_t *this, int cmd, ...) {
+
+  va_list args;
+  void *arg;
+  int rval;
+
+  va_start(args, cmd);
+  arg = va_arg(args, void*);
+  rval = this->driver->control(this->driver, cmd, arg);
+  va_end(args);
+
+  return rval;
+}
+
 ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
  
   config_values_t *config = xine->config;
@@ -585,6 +600,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->get_capabilities      = ao_get_capabilities;
   this->get_property          = ao_get_property;
   this->set_property          = ao_set_property;
+  this->control		      = ao_control;
   this->audio_loop_running    = 0;
   this->audio_paused          = 0;
   /* FIXME: is 4* good enough for all resample cases?? */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.17 2002/02/23 17:22:09 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.18 2002/03/11 19:58:01 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,7 +56,7 @@
 #define	AUDIO_PRECISION_16	16
 #endif
 
-#define AO_SUN_IFACE_VERSION 3
+#define AO_SUN_IFACE_VERSION 4
 
 #define GAP_TOLERANCE         5000
 #define GAP_NONRT_TOLERANCE  15000
@@ -598,6 +598,55 @@ static int ao_sun_set_property (ao_driver_t *this_gen, int property, int value) 
   return ~value;
 }
 
+static int ao_sun_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+  sun_driver_t *this = (sun_driver_t *) this_gen;
+  audio_info_t	info;
+
+  switch (cmd) {
+
+  case AO_CTRL_PLAY_PAUSE:
+    AUDIO_INITINFO(&info);
+    info.play.pause = 1;
+    ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+    break;
+
+  case AO_CTRL_PLAY_RESUME:
+    AUDIO_INITINFO(&info);
+    info.play.pause = 0;
+    ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+    break;
+
+  case AO_CTRL_FLUSH_BUFFERS:
+#ifdef	__svr4__
+    /* flush buffered STEAMS data first */
+    ioctl(this->audio_fd, I_FLUSH, FLUSHW);
+
+    /* 
+     * the flush above discarded an unknown amount of data from the
+     * audio device.  To get the "*_delay" computation in sync again,
+     * reset the audio device's sample counter to 0, after waiting
+     * that all samples still active playing on the sound hardware
+     * have finished playing.
+     */
+    AUDIO_INITINFO(&info);
+    info.play.pause = 0;
+    ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+
+    ioctl(this->audio_fd, AUDIO_DRAIN);
+
+    AUDIO_INITINFO(&info);
+    info.play.samples = 0;
+    ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+
+    this->frames_in_buffer = 0;
+    this->last_samplecnt = 0;
+#endif
+    break;
+  }
+
+  return 0;
+}
+
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   sun_driver_t	  *this;
@@ -683,6 +732,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.close			= ao_sun_close;
   this->ao_driver.exit			= ao_sun_exit;
   this->ao_driver.get_gap_tolerance     = ao_sun_get_gap_tolerance;
+  this->ao_driver.control		= ao_sun_ctrl;
 
   return &this->ao_driver;
 }

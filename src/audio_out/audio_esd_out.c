@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.17 2001/12/18 22:46:16 f1rmb Exp $
+ * $Id: audio_esd_out.c,v 1.18 2002/03/11 19:58:00 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,7 +39,7 @@
 #include "audio_out.h"
 #include "metronom.h"
 
-#define AO_OUT_ESD_IFACE_VERSION 3
+#define AO_OUT_ESD_IFACE_VERSION 4
 
 #define GAP_TOLERANCE         5000
 
@@ -343,6 +343,25 @@ static int ao_esd_set_property (ao_driver_t *this_gen, int property, int value) 
   return ~value;
 }
 
+static int ao_esd_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+  esd_driver_t *this = (esd_driver_t *) this_gen;
+
+
+  switch (cmd) {
+
+  case AO_CTRL_PLAY_PAUSE:
+    break;
+
+  case AO_CTRL_PLAY_RESUME:
+    break;
+
+  case AO_CTRL_FLUSH_BUFFERS:
+    break;
+  }
+
+  return 0;
+}
+
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   esd_driver_t *this;
@@ -406,6 +425,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.write		      = ao_esd_write;
   this->ao_driver.close               = ao_esd_close;
   this->ao_driver.exit                = ao_esd_exit;
+  this->ao_driver.control	      = ao_esd_ctrl;
 
   return &this->ao_driver;
 }

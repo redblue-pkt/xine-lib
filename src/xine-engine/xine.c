@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.106 2002/03/11 12:31:26 guenter Exp $
+ * $Id: xine.c,v 1.107 2002/03/11 19:58:01 jkeil Exp $
  *
  * top-level xine functions
  *
@@ -144,6 +144,27 @@ static void update_osd_display(void *this_gen, cfg_entry_t *entry)
   this->osd_display = entry->num_value;
 }
 
+
+static void xine_set_speed_internal (xine_t *this, int speed) {
+
+  this->metronom->set_speed (this->metronom, speed);
+
+  /* see coment on audio_out loop about audio_paused */
+  if( this->audio_out ) {
+    this->audio_out->audio_paused = (speed != SPEED_NORMAL) + 
+                                    (speed == SPEED_PAUSE);
+
+    if (speed != SPEED_NORMAL && speed != SPEED_PAUSE)
+	this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
+
+    this->audio_out->control(this->audio_out,
+			     speed == SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME);
+  }
+
+  this->speed = speed;
+}
+
+
 void xine_stop_internal (xine_t *this) {
 
   pthread_mutex_lock (&this->xine_lock);
@@ -158,12 +179,10 @@ void xine_stop_internal (xine_t *this) {
     return;
   }
 
+  if (this->audio_out)
+    this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
-  this->metronom->set_speed (this->metronom, SPEED_NORMAL);
-  this->speed      = SPEED_NORMAL;
-
-  if( this->audio_out )
-    this->audio_out->audio_paused = 0;
+  xine_set_speed_internal(this, SPEED_NORMAL);
 
   this->status = XINE_STOP;
   LOG_MSG(this, _("xine_stop: stopping demuxer\n"));
@@ -300,6 +319,9 @@ int xine_play (xine_t *this, char *mrl,
 	this->cur_input_plugin->stop(this->cur_input_plugin);
     }
 
+    if (this->audio_out)
+      this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
+
     this->status = XINE_STOP;
   }
 
@@ -378,11 +400,7 @@ int xine_play (xine_t *this, char *mrl,
     this->status = XINE_PLAY;
     strncpy (this->cur_mrl, mrl, 1024);
     
-    this->metronom->set_speed (this->metronom, SPEED_NORMAL);
-
-    if( this->audio_out )
-      this->audio_out->audio_paused = 0;
-    this->speed = SPEED_NORMAL;
+    xine_set_speed_internal (this, SPEED_NORMAL);
 
     /* osd */
     xine_internal_osd (this, ">", 0, 300000);
@@ -679,8 +697,6 @@ int xine_get_av_offset (xine_t *this) {
 
 void xine_set_speed (xine_t *this, int speed) {
 
-  struct timespec tenth_sec;
-
   pthread_mutex_lock (&this->xine_lock);
 
   if (speed <= SPEED_PAUSE) 
@@ -712,21 +728,10 @@ void xine_set_speed (xine_t *this, int speed) {
   } 
 
   /* make sure osd can be displayed */
-  tenth_sec.tv_sec = 0;
-  tenth_sec.tv_nsec = 100000000;
-
-  nanosleep (&tenth_sec, NULL);
+  xine_usec_sleep(100000);
 
   LOG_MSG(this, _("xine: set_speed %d\n"), speed);
-
-  this->metronom->set_speed (this->metronom, speed);
-
-  /* see coment on audio_out loop about audio_paused */
-  if( this->audio_out )
-    this->audio_out->audio_paused = (speed != SPEED_NORMAL) + 
-                                    (speed == SPEED_PAUSE);
-
-  this->speed      = speed;
+  xine_set_speed_internal (this, speed);
 
   pthread_mutex_unlock (&this->xine_lock);
 }
