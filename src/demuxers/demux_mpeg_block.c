@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.92 2002/04/16 12:27:20 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.93 2002/04/22 01:08:34 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -161,8 +161,14 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     if (this->audio_fifo) {
       cbuf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+
       cbuf->type = buf->type;
       cbuf->decoder_flags = buf->decoder_flags;
+      cbuf->decoder_info[0] = buf->decoder_info[0];
+      cbuf->decoder_info[1] = buf->decoder_info[1];
+      cbuf->decoder_info[2] = buf->decoder_info[2];
+      cbuf->decoder_info[3] = buf->decoder_info[3];
+
       this->audio_fifo->put (this->audio_fifo, cbuf);
     }
 
