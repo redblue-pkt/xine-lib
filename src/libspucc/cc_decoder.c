@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.9 2002/03/20 18:38:20 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.10 2002/03/20 18:42:38 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -252,6 +252,16 @@ struct cc_renderer_s {
 #warning "FIXME: bug in OSD or SPU?"
   int display_vpts;           /* vpts of currently displayed caption */
 
+  /* this variable is an even worse hack: in some rare cases, the pts
+     information on the DVD gets out of sync with the caption information.
+     If this happens, the vpts of a hide caption event can actually be
+     slightly higher than the vpts of the following show caption event.
+     For this reason, we remember the vpts of the hide event and force
+     the next show event's vpts  to be at least equal to the hide event's 
+     vpts.
+  */
+  int last_hide_vpts;
+     
   metronom_t *metronom;       /* the active xine metronom */
 
   cc_config_t *cc_cfg;        /* captioning configuration */
@@ -777,6 +787,7 @@ static void cc_renderer_hide_caption(cc_renderer_t *this, int64_t vpts)
   if (this->displayed) {
     this->osd_renderer->hide(this->cap_display, vpts);
     this->displayed = 0;
+    this->last_hide_vpts = vpts;
   }
 }
 
@@ -798,6 +809,7 @@ static void cc_renderer_show_caption(cc_renderer_t *this, cc_buffer_t *buf,
   this->osd_renderer->set_position(this->cap_display, 
 				   this->x,
 				   this->y);
+  vpts = MAX(vpts, this->last_hide_vpts);
   this->osd_renderer->show(this->cap_display, vpts);
   
   this->displayed = 1;
@@ -961,6 +973,9 @@ static void cc_hide_displayed(cc_decoder_t *this)
   if (cc_renderer_on_display(this->cc_cfg->renderer)) {
     int64_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
 					  this->f_offset); 
+#ifdef LOG_DEBUG
+    printf("cc_decoder: cc_hide_displayed: hiding caption %u at vpts %u\n", this->capid, vpts);
+#endif    
     cc_renderer_hide_caption(this->cc_cfg->renderer, vpts);
   }
 }
@@ -1179,6 +1194,10 @@ static void cc_decode_EIA608(cc_decoder_t *this, uint16_t data)
   uint8_t c1 = data & 0x7f;
   uint8_t c2 = (data >> 8) & 0x7f;
 
+#if LOG_DEBUG >= 3
+  printf("decoding %x %x\n", c1, c2);
+#endif
+
   if (c1 & 0x60) {             /* normal character, 0x20 <= c1 <= 0x7f */
     cc_decode_standard_char(this, c1, c2);
   }
@@ -1242,12 +1261,23 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
    *        field #2 in line 21 of the VBI. We'll ignore it for the
    *        time being.
    *
-   *   0xff starts 2 byte EIA-608 sequence, field #1 in line 21 of the VBI
+   *   0xff starts 2 byte EIA-608 sequence, field #1 in line 21 of the VBI.
+   *        Followed by a 3-code triplet that starts either with 0xff or
+   *        0xfe. In either case, the following triplet needs to be ignored
+   *        for line 21, field 1.
    *
    *   0x00 is padding, followed by 2 more 0x00.
    *
    *   0x01 always seems to appear at the beginning, always seems to
-   *        be followed by 0xf8, 0x9e. Ignored for the time being.
+   *        be followed by 0xf8, 8-bit number. 
+   *        The lower 7 bits of this 8-bit number seem to denote the
+   *        number of code triplets that follow.
+   *        The most significant bit denotes whether the Line 21 field 1 
+   *        captioning information is at odd or even triplet offsets from this
+   *        beginning triplet. 1 denotes odd offsets, 0 denotes even offsets.
+   *      
+   *        Most captions are encoded with odd offsets, so this is what we
+   *        will assume.
    *
    * until end of packet
    */
@@ -1255,11 +1285,26 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
   uint32_t curbytes = 0;
   uint8_t data1, data2;
   uint8_t cc_code;
+  int odd_offset = 1;
 
   this->f_offset = 0;
   this->pts = pts;
-  
+
+#if LOG_DEBUG >= 2
+  printf("libspucc: decode_cc: got pts %u scr %u\n", pts, scr);
+  {
+    uint8_t *cur_d = buffer;
+    printf("libspucc: decode_cc: codes: ");
+    while (cur_d < buffer + buf_len) {
+      printf("0x%0x ", *cur_d++);
+    }
+    printf("\n");
+  }
+#endif  
+
   while (curbytes < buf_len) {
+    int skip = 2;
+
     cc_code = *current++;
     curbytes++;
     
@@ -1270,14 +1315,14 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
       break;
     }
     
-    data1 = *current++;
-    data2 = *current++;
-    curbytes += 2;
+    data1 = *current;
+    data2 = *(current + 1);
     
     switch (cc_code) {
     case 0xfe:
       /* expect 2 byte encoding (perhaps CC3, CC4?) */
       /* ignore for time being */
+      skip = 2;
       break;
       
     case 0xff:
@@ -1286,22 +1331,31 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
 	cc_decode_EIA608(this, data1 | (data2 << 8));
 	this->f_offset++;
       }
+      skip = 5;
       break;
       
     case 0x00:
       /* This seems to be just padding */
+      skip = 2;
       break;
       
     case 0x01:
-      /* unknown Header info, ignore for the time being */
+      odd_offset = data2 & 0x80;
+      if (odd_offset)
+	skip = 2;
+      else
+	skip = 5;
       break;
       
     default:
 #ifdef LOG_DEBUG
       fprintf(stderr, "Unknown CC encoding: %x\n", cc_code);
 #endif
+      skip = 2;
       break;
     }
+    current += skip;
+    curbytes += skip;
   }
 }
 
