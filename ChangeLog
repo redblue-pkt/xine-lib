@@ -1,3 +1,7 @@
+  
+  * OSD (On Screen Display) for rendering text and graphics into overlays
+  * reworked spu and overlay manager (multiple overlays supported)
+
 xine (0.9.6) unstable; urgency=low
 
   * demux_asf big fragments handling
