@@ -1031,34 +1031,27 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
 static int open_audio_capture_device(v4l_input_plugin_t *this)
 {
 #ifdef HAVE_ALSA
-  lprintf("audio: Opening PCM Device\n");
+  int mode = 0;
+
+  lprintf("open_audio_capture_device\n");
 
   /* Allocate the snd_pcm_hw_params_t structure on the stack. */
   snd_pcm_hw_params_alloca(&this->pcm_hwparams);
   
+  /* If we are not capturing video, open the sound device in blocking mode,
+   * otherwise xine gets too many NULL bufs and doesn't seem to handle them
+   * correctly. If we are capturing video, open the sound device in non-
+   * blocking mode, otherwise we will loose video frames while waiting */
+  if(!this->audio_only)
+    mode = SND_PCM_NONBLOCK;
+   
   /* Open the PCM device. */
-  if (this->audio_only) {
-    /* Open the sound device in blocking mode if we are not capturing video,
-     * otherwise xine gets to many NULL bufs and doesn't seem to handle
-     * them correctly
-     */
-    if (snd_pcm_open(&this->pcm_handle, this->pcm_name, this->pcm_stream, 0) < 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              "input_v4l: Error opening PCM device %s\n", this->pcm_name);
-      this->audio_capture = 0;
-    }
-  } else
-    if (snd_pcm_open(&this->pcm_handle, this->pcm_name, 
-		     this->pcm_stream, SND_PCM_NONBLOCK) < 0) {
-      /* Open the sound device in non blocking mode when capturing video data
-       * too, otherwise we will loose videoframes because we keep on waiting
-       * for an audio fragment
-       */
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              "input_v4l: Error opening PCM device %s\n", this->pcm_name);
-      this->audio_capture = 0;
-    }
-  
+  if(snd_pcm_open(&this->pcm_handle, this->pcm_name, this->pcm_stream, mode) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: Error opening PCM device: %s\n", this->pcm_name);
+    this->audio_capture = 0;
+  }
+ 
   /* Get parameters */
   if (this->audio_capture &&
       (snd_pcm_hw_params_any(this->pcm_handle, this->pcm_hwparams) < 0)) {
