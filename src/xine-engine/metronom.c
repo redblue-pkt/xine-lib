@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.83 2002/04/27 16:33:24 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.84 2002/04/30 01:48:18 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -341,9 +341,10 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   
   pthread_mutex_lock (&this->lock);
 
-/*
+#ifdef LOG
   printf("metronom: got_video_frame pts = %lld\n", pts );
-*/
+#endif
+
   if (this->in_discontinuity) {
     this->in_discontinuity--;
 
@@ -537,9 +538,9 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
     this->vpts_offset += value;
-/*#ifdef LOG*/
+#ifdef LOG
     printf ("metronom: adjusting vpts_offset by %lld\n", value );
-/*#endif*/
+#endif
     break;
   default:
     printf ("metronom: unknown option in set_option: %d\n",
