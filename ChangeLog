@@ -1,4 +1,5 @@
   
+  * fix no audio deadlock
   * OSD (On Screen Display) for rendering text and graphics into overlays
   * reworked spu and overlay manager (multiple overlays supported)
 
