@@ -8,7 +8,7 @@
 Name:        %{name}
 Summary:     A portable video/audio library for unix-like systems.
 Summary(cs): Pøenositelná video/audio knihovna pro unixovské systémy
-Summary(de): Eine portabele Audio-/Video-Bibliothek für Unix-basierende Systeme.
+Summary(de): Eine portabele Audio-/Video-Bibliothek für unixartige Systeme.
 Version:     %{version}
 Release:     %{release}
 License:     GPL
@@ -42,21 +42,21 @@ Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních
 projektech.
 
 %description -l de
-%{name} ist das Herzstueck von xine (einem freien, GPL lizensiertem
-Audio/Video-Abspielprogramm für Unix-basierende Systeme). %{name} stellt die
-Funktionen zur Dekodierung und Wiedergabe vieler aktueller Audio- und Video-
-codecs zur Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu
-nennen. Die Bibliothek enthaelt und benutzt eine Vielzahl von prozessor-
-spezifischen Optimierungen, um eine fluessige Wiedergabe mit minimaler
-Prozessorbelastung gewaehrleisten zu koennnen.
+%{name} ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
+Video-Abspielprogramm für unixartige Systeme). %{name} stellt die Funktionen
+zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
+Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu nennen.
+Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
+Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
+gewährleisten zu könnnen.
 
-Zoegern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
+Zögern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
 hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
 
 %package -n %{libname}
 Summary:   Required libs to run programs dynamically linked with %{name}.
 Summary(cs): Knihovny nutné pro bìh programù dynamicky linkovaných s %{name}
-Summary(de): Benoetigte Bibliotheken, um Programme, die dynamisch gegen %{name} gelinkt sind, benutzen zu koennen.
+Summary(de): Benötigte Bibliotheken, um Programme, die dynamisch gegen %{name} gelinkt sind, benutzen zu können.
 Group:	   Development/Libraries
 Obsoletes: xine, xine-lib, xine-lib-oss, xine-lib-alsa09, xine-lib-arts, xine-lib-esd, xine-lib-dxr3, xine-lib-xv, xine-lib-sdl, xine-lib-aa, xine-lib-opengl, xine-lib-w32dll, xine-lib-oggvorbis
 Provides:  %{name} = %{version}-%{release}
@@ -89,24 +89,24 @@ Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních
 projektech.
 
 %description -n %{libname} -l de
-Dieses Paket wird benoetigt, um Programme, die dynamisch gegen %{name}
-gelinkt sind, benutzen zu koennen.
+Dieses Paket wird benötigt, um Programme, die dynamisch gegen %{name}
+gelinkt sind, benutzen zu können.
 
-%{name} ist das Herzstueck von xine (einem freien, GPL lizensiertem
-Audio/Video-Abspielprogramm für Unix-basierende Systeme). %{name} stellt die
-Funktionen zur Dekodierung und Wiedergabe vieler aktueller Audio- und Video-
-codecs zur Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu
-nennen. Die Bibliothek enthaelt und benutzt eine Vielzahl von prozessor-
-spezifischen Optimierungen, um eine fluessige Wiedergabe mit minimaler
-Prozessorbelastung gewaehrleisten zu koennnen.
+%{name} ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
+Video-Abspielprogramm für unixartige Systeme). %{name} stellt die Funktionen
+zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
+Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu nennen.
+Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
+Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
+gewährleisten zu könnnen.
 
-Zoegern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
+Zögern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
 hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
 
 %package -n %{libname}-devel
 Summary:   Header files and documentation to develope programs with %{name}.
 Summary(cs): Hlavièkové soubory a dokumentace pro vývoj programù pou¾ívajících %{name}.
-Summary(de): Headerdateien und Dokumentationen, um Programme mit %{name} entwickeln zu koennen.
+Summary(de): Headerdateien und Dokumentationen, um Programme mit %{name} entwickeln zu können.
 Group:	   Development/Libraries
 Obsoletes: xine-lib-devel
 Provides:  %{name}-devel = %{version}-%{release}
@@ -141,18 +141,18 @@ Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních
 projektech.
 
 %description -n %{libname}-devel -l de
-Dieses Paket enthaelt die Headerdateien und Dokumentationen, um Programme
-mit %{name} entwickeln zu koennen.
+Dieses Paket enthält die Headerdateien und Dokumentationen, um Programme
+mit %{name} entwickeln zu können.
 
-%{name} ist das Herzstueck von xine (einem freien, GPL lizensiertem
-Audio/Video-Abspielprogramm für Unix-basierende Systeme). %{name} stellt die
-Funktionen zur Dekodierung und Wiedergabe vieler aktueller Audio- und Video-
-codecs zur Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu
-nennen. Die Bibliothek enthaelt und benutzt eine Vielzahl von prozessor-
-spezifischen Optimierungen, um eine fluessige Wiedergabe mit minimaler
-Prozessorbelastung gewaehrleisten zu koennnen.
+%{name} ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
+Video-Abspielprogramm für unixartige Systeme). %{name} stellt die Funktionen
+zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
+Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu nennen.
+Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
+Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
+gewährleisten zu könnnen.
 
-Zoegern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
+Zögern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
 hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
 
 %prep
@@ -221,6 +221,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Oct 27 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- Update of the german descriptions.
 * Thu Jun 06 2002 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - ability to pass args to configure. Fix vidix/dhahelper inclusion.
 * Mon May 27 2002 Matthias Dahl <matthew2k@web.de>
