@@ -1650,7 +1650,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
   
   while (total<len){ 
 
-    if(poll(&pfd,1,2000)<1){
+    if(poll(&pfd,1,10000)<1){
       printf("input_dvb:  No data available.  Signal Lost??  \n");
       _x_demux_control_end(this->stream, BUF_FLAG_END_USER); 
       this->read_failcount++;
@@ -1682,7 +1682,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
     write (this->record_fd, buf, total);
   if(have_mutex==0)
     pthread_mutex_unlock( &this->mutex );
-  /* no data for 10 seconds - tell the user a possible reason */
+  /* no data for several seconds - tell the user a possible reason */
   if(this->read_failcount==5){
     _x_message(this->stream,1,"DVB Signal Lost.  Please check connections."); 
   }
