@@ -719,16 +719,17 @@ AM_CONDITIONAL(HAVE_CDROM_IOCTLS, [test x"$have_cdrom_ioctls" = "xyes"])
 dnl ---------------------------------------------
 dnl check for a usable version of libdvdnav
 dnl ---------------------------------------------
-AC_ARG_WITH(included-dvdnav,[  --with-included-dvdnav  Use included dvdnav library [recommended]],
-            included_dvdnav="yes"; no_dvdnav="yes", included_dvdnav="no")
+AC_ARG_WITH(external-dvdnav,[  --with-external-dvdnav  Use external dvdnav library [[not recommended]]],
+            [external_dvdnav="yes"], [no_dvdnav="yes"; external_dvdnav="no"])
 
-if test x"$included_dvdnav" = "xno"; then
+if test x"$external_dvdnav" = "xyes"; then
   AM_PATH_DVDNAV(0.1.4,
 	  AC_DEFINE(HAVE_DVDNAV,1,[Define this if you have a suitable version of libdvdnav]),
 	  [AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])])
 else
   AC_MSG_RESULT([Use included DVDNAV/DVDREAD support])
 fi
+
 AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
 
 dnl ---------------------------------------------
