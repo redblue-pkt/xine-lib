@@ -1339,6 +1339,8 @@ dnl post plugins
 echo " * post effect plugins:"
 echo "  * planar video effects:"
 echo "   - invert"
+echo "  * SFX:"
+echo "   - goom"
 echo ""
 
 dnl Video plugins
