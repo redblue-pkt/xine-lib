@@ -1,2 +1,2 @@
 
-char libavcodec_mlib_dummy;
+char libavcodec_sparc_dummy;
