@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.88 2001/12/09 18:03:26 guenter Exp $
+ * $Id: xine.c,v 1.89 2001/12/13 00:52:01 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -803,6 +803,15 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *this) {
 /*
  * log functions
  */
+const char **xine_get_log_names(void) {
+  static const char *log_sections[XINE_LOG_NUM + 1] = {
+    "messages", /* XINE_LOG_MSG */
+    "codecs",   /* XINE_LOG_CODEC */
+    NULL
+  };
+
+  return log_sections;
+}
 
 void xine_log (xine_t *this, int buf, const char *format, ...) {
 
@@ -816,9 +825,11 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
 }
 
 char **xine_get_log (xine_t *this, int buf) {
-
+  
+  if(buf >= XINE_LOG_NUM)
+    return NULL;
+  
   return this->log_buffers[buf]->get_content (this->log_buffers[buf]);
-
 }
 
 int xine_get_error (xine_t *this) {

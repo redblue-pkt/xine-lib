@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.63 2001/12/11 15:30:06 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.64 2001/12/13 00:52:01 f1rmb Exp $
  *
  */
 
@@ -589,6 +589,8 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *this);
  * xine log functions 
  */
   
+const char **xine_get_log_names(void);
+
 void xine_log (xine_t *this, int buf, const char *format, ...);
 
 char **xine_get_log (xine_t *this, int buf);
