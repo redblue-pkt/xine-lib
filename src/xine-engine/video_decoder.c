@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.137 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.138 2003/11/16 15:41:15 mroi Exp $
  *
  */
 
@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define XINE_ENGINE_INTERNAL
 
 #include "xine_internal.h"
 #include "xineutils.h"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.109 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.110 2003/11/16 15:41:15 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -32,6 +32,8 @@
 #include <string.h>
 #include <sched.h>
 #include <unistd.h>
+
+#define XINE_ENGINE_INTERNAL
 
 #include "xine_internal.h"
 #include "xineutils.h"

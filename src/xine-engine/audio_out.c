@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.150 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: audio_out.c,v 1.151 2003/11/16 15:41:15 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -78,6 +78,7 @@
 #include <math.h>
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
+#define XINE_ENGINE_INTERNAL
 
 /********** logging **********/
 #define LOG_MODULE "audio_out"

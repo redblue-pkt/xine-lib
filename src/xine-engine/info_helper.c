@@ -28,6 +28,9 @@
 #endif
 
 #include <string.h>
+
+#define XINE_ENGINE_INTERNAL
+
 #include "info_helper.h"
 
 /* Remove trailing separator chars (\n,\r,\t, space,...)

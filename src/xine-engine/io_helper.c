@@ -35,6 +35,9 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+
+#define XINE_ENGINE_INTERNAL
+
 #include "io_helper.h"
 
 /* private constants */

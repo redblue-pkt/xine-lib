@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.65 2003/11/15 20:43:11 mroi Exp $
+ * $Id: xine_interface.c,v 1.66 2003/11/16 15:41:15 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -40,6 +40,8 @@
 #elif defined (__FreeBSD__)
 #include <machine/endian.h>
 #endif
+
+#define XINE_ENGINE_INTERNAL
 
 #include "xine_internal.h"
 #include "audio_out.h"

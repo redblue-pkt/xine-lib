@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.265 2003/11/15 20:43:11 mroi Exp $
+ * $Id: xine.c,v 1.266 2003/11/16 15:41:15 mroi Exp $
  */
 
 /*
@@ -49,9 +49,11 @@
 /********** logging **********/
 #define LOG_MODULE "xine"
 #define LOG_VERBOSE
-
 /* #define LOG */
-#define XINE_ENABLE_EXPERIMENTAL_FEATURES 1
+
+#define XINE_ENABLE_EXPERIMENTAL_FEATURES
+#define XINE_ENGINE_INTERNAL
+
 #include "xine_internal.h"
 #include "plugin_catalog.h"
 #include "audio_out.h"

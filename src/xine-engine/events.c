@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.19 2003/04/02 12:28:09 hadess Exp $
+ * $Id: events.c,v 1.20 2003/11/16 15:41:15 mroi Exp $
  *
  * Event handling functions
  *
@@ -26,6 +26,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#define XINE_ENGINE_INTERNAL
 
 #include "xine_internal.h"
 

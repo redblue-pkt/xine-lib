@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.39 2003/11/15 14:54:31 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.40 2003/11/16 15:41:15 mroi Exp $ 
  */
 
 
@@ -32,6 +32,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+
+#define XINE_ENGINE_INTERNAL
+
 #include "xine_internal.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
