@@ -87,6 +87,7 @@ else xine can decode.
 This option must be compiled in and requires a supported mpeg encoder. 
 At the moment there are two:
 - libfame from fame.sourceforge.net (very fast, good quality)
+  (currently the 0.9 versions of libfame don't work, use the 0.8 versions)
 - librte (version 0.4) from zapping.sourceforge.net (fast, very good quality)
 If configure finds one or both it will compile in encoding support into
 the dxr3 driver. 
@@ -313,4 +314,4 @@ and dxr3.color_interval too.
 
 --- 
 version of this file:
- $Id: README.dxr3,v 1.7 2003/01/05 13:11:53 guenter Exp $
+ $Id: README.dxr3,v 1.8 2003/03/15 20:57:53 mroi Exp $
