@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.32 2003/02/23 01:15:59 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.33 2003/03/14 19:23:00 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -737,15 +737,9 @@ static int vidix_set_property (vo_driver_t *this_gen,
 }
 
 
-static void vidix_config_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
+static void vidix_ckey_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;  
-  
-  if(strcmp(entry->key, "video.vidix_use_double_buffer") == 0) {
-    this->use_doublebuffer = entry->num_value;
-    this->sc.force_redraw = 1;
-    return;
-  }
   
   if(strcmp(entry->key, "video.vidix_use_colour_key") == 0) {
     this->use_colourkey = entry->num_value;
@@ -764,6 +758,15 @@ static void vidix_config_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry
   }
   
   vidix_update_colourkey(this);
+  this->sc.force_redraw = 1;
+}
+
+
+static void vidix_db_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
+
+  vidix_driver_t *this = (vidix_driver_t *) this_gen; 
+
+  this->use_doublebuffer = entry->num_value;
   this->sc.force_redraw = 1;
 }
 
@@ -913,7 +916,7 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   /* Configuration for double buffering */
   this->use_doublebuffer = config->register_bool(config,
     "video.vidix_use_double_buffer", 1, "double buffer to sync video to retrace", NULL, 10,
-    (void*) vidix_config_callback, this);
+    (void*) vidix_db_callback, this);
     
   /* Set up remaining props */
   this->props[VO_PROP_ASPECT_RATIO].value = ASPECT_AUTO;
@@ -1048,23 +1051,23 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   /* Someone might want to disable colour keying (?) */
   this->use_colourkey = config->register_bool(config, 
     "video.vidix_use_colour_key", 1, "enable use of overlay colour key", 
-    NULL, 10, (void*) vidix_config_callback, this);
+    NULL, 10, (void*) vidix_ckey_callback, this);
     
   /* Colour key components */
   this->vidix_grkey.ckey.red = config->register_range(config,
     "video.vidix_colour_key_red", 255, 0, 255, 
     "video overlay colour key red component", NULL, 10,
-    (void*) vidix_config_callback, this); 
+    (void*) vidix_ckey_callback, this); 
   
   this->vidix_grkey.ckey.green = config->register_range(config,
     "video.vidix_colour_key_green", 0, 0, 255, 
     "video overlay colour key green component", NULL, 10,
-    (void*) vidix_config_callback, this);     
+    (void*) vidix_ckey_callback, this);     
   
   this->vidix_grkey.ckey.blue = config->register_range(config,
     "video.vidix_colour_key_blue", 255, 0, 255, 
     "video overlay colour key blue component", NULL, 10,
-    (void*) vidix_config_callback, this);     
+    (void*) vidix_ckey_callback, this);     
     
   vidix_update_colourkey(this);
 
