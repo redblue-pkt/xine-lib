@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.18 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.19 2003/02/22 01:23:07 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -95,17 +95,28 @@ typedef struct {
 static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
 
   unsigned char header[Y4M_HEADER_BYTES];
+  unsigned char preview[MAX_PREVIEW_SIZE];
   int i;
 
   this->bih.biWidth = this->bih.biHeight = this->fps = this->data_start = 0;
 
-  /* back to the start */
-  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
-  /* read a chunk of bytes that should contain all the header info */
-  if (this->input->read(this->input, header, Y4M_HEADER_BYTES) !=
-    Y4M_HEADER_BYTES)
-    return 0;
+    /* back to the start */
+    this->input->seek(this->input, 0, SEEK_SET);
+
+    /* read a chunk of bytes that should contain all the header info */
+    if (this->input->read(this->input, header, Y4M_HEADER_BYTES) !=
+      Y4M_HEADER_BYTES)
+      return 0;
+
+  } else {
+    this->input->get_optional_data(this->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(header, preview, Y4M_HEADER_BYTES);
+  }
 
   /* check for the Y4M signature */
   if (memcmp(header, Y4M_SIGNATURE, Y4M_SIGNATURE_SIZE) != 0)
@@ -154,16 +165,27 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
     else
       break;
   this->data_start = i;
-  this->data_size = this->input->get_length(this->input) - 
-    this->data_start;
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->data_size = this->input->get_length(this->input) - 
+      this->data_start;
+  }
 
   /* make sure all the data was found */
   if (!this->bih.biWidth || !this->bih.biHeight ||
       !this->fps || !this->data_start)
     return 0;
 
-  /* seek to first frame */
-  this->input->seek(this->input, this->data_start, SEEK_SET);
+  /* file is qualified; if the input was not seekable, read the header
+   * bytes out of the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+
+    this->input->seek(this->input, this->data_start, SEEK_SET);
+
+  } else {
+
+    /* seek to first frame */
+    this->input->seek(this->input, this->data_start, SEEK_SET);
+  }
 
   return 1;
 }
@@ -266,18 +288,22 @@ static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
 
-   /* YUV4MPEG2 files are essentially constant bit-rate video. Seek along
-    * the calculated frame boundaries. Divide the requested seek offset
-    * by the frame size integer-wise to obtain the desired frame number 
-    * and then multiply the frame number by the frame size to get the
-    * starting offset. Add the data_start offset to obtain the final
-    * offset. */
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
-  start_pos /= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
-  start_pos *= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
-  start_pos += this->data_start;
+     /* YUV4MPEG2 files are essentially constant bit-rate video. Seek along
+      * the calculated frame boundaries. Divide the requested seek offset
+      * by the frame size integer-wise to obtain the desired frame number 
+      * and then multiply the frame number by the frame size to get the
+      * starting offset. Add the data_start offset to obtain the final
+      * offset. */
 
-  this->input->seek(this->input, start_pos, SEEK_SET);
+    start_pos /= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
+    start_pos *= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
+    start_pos += this->data_start;
+
+    this->input->seek(this->input, start_pos, SEEK_SET);
+  }
+
   this->seek_flag = 1;
   this->status = DEMUX_OK;
   xine_demux_flush_engine (this->stream);
@@ -329,11 +355,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_yuv4mpeg2_t *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_yuv4mpeg2.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_yuv4mpeg2_t));
   this->stream = stream;
