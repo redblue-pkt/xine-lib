@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.148 2003/04/20 21:13:22 guenter Exp $
+ * $Id: load_plugins.c,v 1.149 2003/04/21 06:12:23 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -58,6 +58,7 @@
 
 static char *plugin_name;
 
+#if 0
 #if DONT_CATCH_SIGSEGV
 
 #define install_segv_handler()
@@ -83,9 +84,7 @@ static void remove_segv_handler(void){
 }
 
 #endif
-
-
-
+#endif /* 0 */
 
 /*
  * plugin list/catalog management functions

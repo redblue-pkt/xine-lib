@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.135 2003/04/17 19:01:25 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.136 2003/04/21 06:12:23 f1rmb Exp $
  *
  */
 
@@ -300,6 +300,7 @@ void xine_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int
 /* demuxer helper functions from demux.c */
 
 void xine_demux_flush_engine         (xine_stream_t *stream);
+void xine_demux_control_nop          (xine_stream_t *stream, uint32_t flags);
 void xine_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32_t flags);
 void xine_demux_control_headers_done (xine_stream_t *stream);
 void xine_demux_control_start        (xine_stream_t *stream);
