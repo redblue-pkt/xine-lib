@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.32 2003/01/10 11:57:18 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.33 2003/01/17 16:52:40 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -224,35 +224,39 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
 
     } else if (chunk_tag == AUDI_TAG) {
 
-      audio_pts = this->video_pts - WC3_PTS_INC;
+      if( this->audio_fifo ) {
 
-      while (chunk_size) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type = BUF_AUDIO_LPCM_LE;
-        buf->extra_info->input_pos = current_file_pos;
-        buf->extra_info->input_length = this->data_size;
-        buf->extra_info->input_time = audio_pts / 90;
-        buf->pts = audio_pts;
-
-        if (chunk_size > buf->max_size)
-          buf->size = buf->max_size;
-        else
-          buf->size = chunk_size;
-        chunk_size -= buf->size;
-
-        if (this->input->read(this->input, buf->content, buf->size) !=
-          buf->size) {
-          buf->free_buffer(buf);
-          this->status = DEMUX_FINISHED;
-          break;
+        audio_pts = this->video_pts - WC3_PTS_INC;
+  
+        while (chunk_size) {
+          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+          buf->type = BUF_AUDIO_LPCM_LE;
+          buf->extra_info->input_pos = current_file_pos;
+          buf->extra_info->input_length = this->data_size;
+          buf->extra_info->input_time = audio_pts / 90;
+          buf->pts = audio_pts;
+  
+          if (chunk_size > buf->max_size)
+            buf->size = buf->max_size;
+          else
+            buf->size = chunk_size;
+          chunk_size -= buf->size;
+  
+          if (this->input->read(this->input, buf->content, buf->size) !=
+            buf->size) {
+            buf->free_buffer(buf);
+            this->status = DEMUX_FINISHED;
+            break;
+          }
+  
+          if (!chunk_size)
+            buf->decoder_flags |= BUF_FLAG_FRAME_END;
+  
+          this->audio_fifo->put (this->audio_fifo, buf);
         }
-
-        if (!chunk_size)
-          buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-        this->audio_fifo->put (this->audio_fifo, buf);
+      }else{
+        this->input->seek(this->input, chunk_size, SEEK_CUR);
       }
-
     } else if (chunk_tag == VGA_TAG) {
 
       while (chunk_size) {

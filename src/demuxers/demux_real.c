@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.34 2003/01/11 00:00:54 holstsn Exp $
+ * $Id: demux_real.c,v 1.35 2003/01/17 16:52:36 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -434,7 +434,7 @@ static void real_parse_headers (demux_real_t *this) {
 
 		this->audio_stream_num = mdpr->stream_number;
 
-		if (this->audio_buf_type) {
+		if (this->audio_buf_type && this->audio_fifo) {
 		  buf_element_t *buf;
 		  
 		  /* send header */
@@ -880,7 +880,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       
     } /* while(size>2) */
 
-  } else if (stream == this->audio_stream_num) {
+  } else if (stream == this->audio_stream_num && this->audio_fifo) {
 
     buf_element_t *buf;
     int            n;

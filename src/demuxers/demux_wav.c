@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.33 2003/01/10 21:11:12 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.34 2003/01/17 16:52:39 miguelfreitas Exp $
  *
  */
 
@@ -171,6 +171,11 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
   }
 
   while (remaining_sample_bytes) {
+    if(!this->audio_fifo){
+      this->status = DEMUX_FINISHED;
+      break;
+    }
+
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
     buf->extra_info->input_pos = current_file_pos;

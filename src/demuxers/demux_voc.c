@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.24 2003/01/10 21:11:11 miguelfreitas Exp $
+ * $Id: demux_voc.c,v 1.25 2003/01/17 16:52:38 miguelfreitas Exp $
  *
  */
 
@@ -179,6 +179,11 @@ static int demux_voc_send_chunk(demux_plugin_t *this_gen) {
   }
 
   while (remaining_sample_bytes) {
+    /* abort if no audio fifo */
+    if(!this->audio_fifo)
+      this->status = DEMUX_FINISHED;
+      break;
+
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
     buf->extra_info->input_pos = current_file_pos;

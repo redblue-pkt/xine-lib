@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.26 2003/01/10 11:57:18 miguelfreitas Exp $
+ * $Id: demux_vqa.c,v 1.27 2003/01/17 16:52:38 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -179,30 +179,35 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
   this->audio_frames += (chunk_size * 2 / this->audio_channels);
 
   while (chunk_size) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type = BUF_AUDIO_VQA_IMA;
-    buf->extra_info->input_pos = current_file_pos;
-    buf->extra_info->input_length = this->filesize;
-    buf->extra_info->input_time = audio_pts / 90;
-    buf->pts = audio_pts;
-
-    if (chunk_size > buf->max_size)
-      buf->size = buf->max_size;
-    else
-      buf->size = chunk_size;
-    chunk_size -= buf->size;
-
-    if (this->input->read(this->input, buf->content, buf->size) !=
-      buf->size) {
-      buf->free_buffer(buf);
-      this->status = DEMUX_FINISHED;
-      break;
+    if(this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type = BUF_AUDIO_VQA_IMA;
+      buf->extra_info->input_pos = current_file_pos;
+      buf->extra_info->input_length = this->filesize;
+      buf->extra_info->input_time = audio_pts / 90;
+      buf->pts = audio_pts;
+  
+      if (chunk_size > buf->max_size)
+        buf->size = buf->max_size;
+      else
+        buf->size = chunk_size;
+      chunk_size -= buf->size;
+  
+      if (this->input->read(this->input, buf->content, buf->size) !=
+        buf->size) {
+        buf->free_buffer(buf);
+        this->status = DEMUX_FINISHED;
+        break;
+      }
+  
+      if (!chunk_size)
+        buf->decoder_flags |= BUF_FLAG_FRAME_END;
+  
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }else{
+      this->input->seek(this->input, chunk_size, SEEK_CUR);
+      chunk_size = 0;
     }
-
-    if (!chunk_size)
-      buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-    this->audio_fifo->put (this->audio_fifo, buf);
   }
   /* stay on 16-bit alignment */
   if (skip_byte)
