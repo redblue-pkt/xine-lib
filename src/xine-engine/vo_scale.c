@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.16 2002/11/22 18:06:13 mroi Exp $
+ * $Id: vo_scale.c,v 1.17 2002/11/24 16:18:34 guenter Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -379,7 +379,7 @@ void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
       _("horizontal image position in the output window"), NULL, 0,
       vo_scale_horizontal_pos_changed, this) / 100.0;
   this->output_vertical_position =
-    config->register_range(config, "video.vertical_position", 33, 0, 100,
+    config->register_range(config, "video.vertical_position", 50, 0, 100,
       _("vertical image position in the output window"), NULL, 0,
       vo_scale_vertical_pos_changed, this) / 100.0;
 }                  
