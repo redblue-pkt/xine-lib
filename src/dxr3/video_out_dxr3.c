@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.12 2001/10/23 14:06:30 mlampard Exp $
+ * $Id: video_out_dxr3.c,v 1.13 2001/10/24 09:28:26 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -68,6 +68,7 @@ typedef struct dxr3_driver_s {
 	int overlay_enabled;
 	float desired_ratio;
 
+	config_values_t *config;
 	void *user_data;
 	int video_width;
 	int video_height;
@@ -110,13 +111,19 @@ static void dxr3_get_keycolor(dxr3_driver_t *this)
 	XAllocColor(this->display, DefaultColormap(this->display,0), &this->color);
 }
 	
-void dxr3_read_config(dxr3_driver_t *this, config_values_t *config)
+void dxr3_read_config(dxr3_driver_t *this)
 {
 	char* str;
-
+	config_values_t *config=this->config;
+	
 	if (ioctl(this->fd_control, EM8300_IOCTL_GETBCS, &this->bcs))
 		fprintf(stderr, "dxr3_vo: cannot read bcs values (%s)\n",
 		 strerror(errno));
+
+	this->bcs.contrast = config->lookup_int(config, "dxr3_contrast", this->bcs.contrast);
+	this->bcs.saturation = config->lookup_int(config, "dxr3_saturation", this->bcs.saturation);
+	this->bcs.brightness = config->lookup_int(config, "dxr3_brightness", this->bcs.brightness);
+
 	this->vo_driver.set_property(&this->vo_driver,
 	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
 
@@ -150,6 +157,7 @@ void dxr3_read_config(dxr3_driver_t *this, config_values_t *config)
 	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
 			fprintf(stderr, "dxr3_vo: setting video mode failed.");
+
 }
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
@@ -327,10 +335,15 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 		break;
 	}
 
-	if (bcs_changed)
+	if (bcs_changed){
 		if (ioctl(this->fd_control, EM8300_IOCTL_SETBCS, &this->bcs))
 			fprintf(stderr, "dxr3_vo: bcs set failed (%s)\n",
 			 strerror(errno));
+		this->config->set_int(this->config, "dxr3_contrast", this->bcs.contrast);
+		this->config->set_int(this->config, "dxr3_saturation", this->bcs.saturation);
+		this->config->set_int(this->config, "dxr3_brightness", this->bcs.brightness);
+	}			 
+			 
 	return value;
 }
 
@@ -415,6 +428,7 @@ static void dxr3_exit (vo_driver_t *this_gen)
 {
 	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
 
+
 	if(this->overlay_enabled)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
 	close(this->fd_control);
@@ -482,6 +496,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
 	this->vo_driver.exit                 = dxr3_exit;
+	this->config			     = config;
 
 	/* open control device */
 	devname = config->lookup_str (config, LOOKUP_DEV, DEFAULT_DEV);
@@ -497,7 +512,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->overlay_enabled = 0;
 	this->aspectratio = ASPECT_FULL;
 
-	dxr3_read_config(this, config);
+	dxr3_read_config(this);
 	
 	if (this->overlay_enabled) {
 		dxr3_get_keycolor(this);
