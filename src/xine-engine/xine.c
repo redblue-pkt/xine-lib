@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.63 2001/10/05 01:56:57 miguelfreitas Exp $
+ * $Id: xine.c,v 1.64 2001/10/07 15:13:09 guenter Exp $
  *
  * top-level xine functions
  *
@@ -185,11 +185,10 @@ void xine_play (xine_t *this, char *mrl,
   off_t      pos, len;
   int        i;
 
-  xprintf (VERBOSE|LOOP, "xine open %s, start pos = %d\n", mrl, start_pos);
+  printf ("xine_play: xine open %s, start pos = %d, start time = %d (sec)\n", 
+	   mrl, start_pos, start_time);
 
   pthread_mutex_lock (&this->xine_lock);
-
-  printf ("xine_play: open %s, start pos = %d\n", mrl, start_pos);
 
   /*
    * stop engine?

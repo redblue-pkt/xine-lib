@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.24 2001/10/03 15:09:04 jkeil Exp $
+ * $Id: input_vcd.c,v 1.25 2001/10/07 15:13:09 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -660,11 +660,20 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 }
 #endif
 
-//
+static off_t vcd_time_to_offset (int min, int sec, int frame) {
+  return min * 60 * 75 + sec * 75 + frame;
+}
 
-/*
- *
- */
+static void vcd_offset_to_time (off_t offset, int *min, int *sec, 
+				int *frame) {
+
+  *min = offset / (60*75);
+  offset %= (60*75);
+  *sec = offset / 75; 
+  *frame = offset % 75; 
+
+}
+
 #if defined (__linux__) || defined(__sun)
 static off_t vcd_plugin_seek (input_plugin_t *this_gen, 
 			      off_t offset, int origin) {
@@ -678,34 +687,36 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 
   switch (origin) {
   case SEEK_SET:
-    dist = offset / VCDSECTORSIZE;
+    sector_pos = (offset / VCDSECTORSIZE) 
+      +  vcd_time_to_offset (start_msf->minute,
+			     start_msf->second,
+			     start_msf->frame);
+    
 
-    this->cur_min = dist / (60*75) + start_msf->minute;
-    dist %= 60;
-    this->cur_sec = dist / 75 + start_msf->second;
-    dist %= 75;
-    this->cur_frame = dist + start_msf->frame;
-
-    xprintf (VERBOSE|INPUT, "%Ld => %02d:%02d:%02d\n", offset,
-	     this->cur_min, this->cur_sec, this->cur_frame);
+    vcd_offset_to_time (sector_pos, &this->cur_min,
+			&this->cur_sec, &this->cur_frame);
+    /*
+    printf ("input_vcd: seek to %lld => %02d:%02d:%02d (start is %02d:%02d:%02d)\n", offset,
+	    this->cur_min, this->cur_sec, this->cur_frame,
+	    start_msf->minute, start_msf->second, start_msf->frame);
+    */
 
     break;
   case SEEK_CUR:
     if (offset) 
       fprintf (stderr, "input_vcd: SEEK_CUR not implemented for offset != 0\n");
 
-    sector_pos = 75 - start_msf->frame;
-    
-    if (start_msf->second<60)
-      sector_pos += (59 - start_msf->second) * 75;
-    
-    if ( this->cur_min > start_msf->minute) {
-      sector_pos += (this->cur_min - start_msf->minute-1) * 60 * 75;
-      
-      sector_pos += this->cur_sec * 60;
-      
-      sector_pos += this->cur_frame ;
-    }
+    /*
+    printf ("input_vcd: current pos: %02d:%02d:%02d\n",
+	    this->cur_min, this->cur_sec, this->cur_frame);
+    */
+
+    sector_pos = vcd_time_to_offset (this->cur_min,
+				     this->cur_sec,
+				     this->cur_frame)
+      -  vcd_time_to_offset (start_msf->minute,
+			     start_msf->second,
+			     start_msf->frame);
 
     return sector_pos * VCDSECTORSIZE;
 

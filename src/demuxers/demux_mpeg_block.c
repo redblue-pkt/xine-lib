@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.51 2001/10/06 13:48:17 jkeil Exp $
+ * $Id: demux_mpeg_block.c,v 1.52 2001/10/07 15:13:09 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -59,6 +59,7 @@ typedef struct demux_mpeg_block_s {
   int                   rate;
 
   int                   send_end_buffers;
+  int                   warned; /* encryption warning */
 
   gui_get_next_mrl_cb_t next_mrl_cb;
   gui_branched_cb_t     branched_cb;
@@ -222,6 +223,13 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     printf ("demux_mpeg_block: error! %02x %02x %02x (should be 0x000001) \n",
 	    p[0], p[1], p[2]);
     buf->free_buffer (buf);
+
+    this->warned++;
+    if (this->warned > 5) {
+      printf ("demux_mpeg_block: too many errors, stopping playback. Maybe this stream is scrambled?\n");
+      this->status = DEMUX_FINISHED;
+    }
+
     return ;
   }
 
@@ -282,13 +290,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   } else { /* mpeg 2 */
     /* check PES scrambling_control */
-    if ((p[6] & 0x30) != 0) {
-        printf("demux_mpeg_block: Encrypted PES MPEG2 stream.\n");
-	printf("\n\tSorry, Xine doesn't play encrypted MPEG2 streams. The legal status of\n"
-	       "\tCSS decryption is unclear and we will not provide such code.\n\n");
-	buf->free_buffer(buf);
-	this->status = DEMUX_FINISHED;
-        return;
+    if (((p[6] & 0x30) != 0) && !this->warned) {
+      printf("demux_mpeg_block: warning: pes header indicates that this stream may be encrypted (encryption mode %d)\n", (p[6] & 0x30) >> 4);
+
+      this->warned = 1;
     }
 
     if (p[7] & 0x80) { /* PTS avail */
@@ -501,20 +506,21 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   uint32_t       PTS, last_PTS;
   int            rate;
   int            count;
+  int            stream_id;
 
   if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) 
     return 0;
 
-  pos      = 0;
   last_pos = 0;
   last_PTS = 0;
   rate     = 0;
   step     = this->input->get_length (this->input) / 10;
   step     = (step / this->blocksize) * this->blocksize;
   if (step <= 0) step = this->blocksize; /* avoid endless loop for tiny files */
+  pos      = step;
   count    = 0;
   
-  this->input->seek (this->input, 0, SEEK_SET);
+  this->input->seek (this->input, pos, SEEK_SET);
 
   while ((buf = this->input->read_block (this->input, this->video_fifo, this->blocksize)) ) {
 
@@ -541,7 +547,14 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
       return rate;
     }
 
+    stream_id  = p[3];
     PTS = 0; 
+
+    if ((stream_id < 0xbc) || ((stream_id & 0xf0) != 0xe0)) {
+      pos += (off_t) this->blocksize;
+      continue; /* only use video packets */
+    }
+
 
     if (is_mpeg1) {
 
@@ -582,6 +595,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 
     if (PTS) {
 
+
       if ( (pos>last_pos) && (PTS>last_PTS) ) {
 	int cur_rate;
       
@@ -591,7 +605,10 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 
 	count ++;
 	
-	/* printf ("demux_mpeg_block: cur_rate = %d, overall rate : %d\n", cur_rate, rate); */
+	/*
+	printf ("demux_mpeg_block: stream_id %02x, pos: %lld, PTS: %d, cur_rate = %d, overall rate : %d\n", 
+		stream_id, pos, PTS, cur_rate, rate); 
+	*/
       }
 
       last_pos = pos;
@@ -604,6 +621,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 
     if (this->input->seek (this->input, pos, SEEK_SET) == (off_t)-1)
       break;
+
   }
 
   return rate;
