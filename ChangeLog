@@ -1,5 +1,6 @@
 xine (0.9.11) unstable; urgency=low
   
+  * sync with ffmpeg cvs
   * RoQ DPCM audio decoder
   * some endianess and 64bit machine fixes
   * better quality using linearblend filter
