@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.114 2003/04/23 18:42:39 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.115 2003/04/27 20:56:02 heinchen Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -172,7 +172,7 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
    * if false: free this frame after drawing it.
    */
   img->drawn = av_frame->reference;
-
+  
   av_frame->opaque = img;
 
   av_frame->data[0]= img->base[0];
@@ -759,7 +759,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if ( (buf->decoder_flags & (BUF_FLAG_FRAME_END|BUF_FLAG_FRAME_START))
 	  || this->is_continous) {
 
-      vo_frame_t *img;
+      vo_frame_t *img, *tmp_img = NULL;
       int         free_img;
       int         got_picture, len;
       int         offset;
@@ -866,7 +866,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	    if(this->av_frame->type == FF_BUFFER_TYPE_USER) {
 	      if(free_img)
-	        img->free(img);
+	        tmp_img = img;
 
 	      img = this->stream->video_out->get_frame (this->stream->video_out,
 						        this->context->width,
@@ -884,6 +884,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			   this->av_frame->qscale_table, this->av_frame->qstride,
 			   this->pp_mode, this->pp_context, 
 			   this->av_frame->pict_type);
+
+	    if(tmp_img) {
+	      tmp_img->free(tmp_img);
+	      tmp_img = NULL;
+	    }
 
 	  } else if(this->av_frame->type != FF_BUFFER_TYPE_USER) {
 	    ff_convert_frame(this, img);
