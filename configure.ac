@@ -1378,6 +1378,7 @@ src/liblpcm/Makefile
 src/libmad/Makefile
 src/libmpeg2/Makefile
 src/libmpeg2new/Makefile
+src/libmpeg2new/libmpeg2/Makefile
 src/libspudec/Makefile
 src/libspucc/Makefile
 src/libsputext/Makefile

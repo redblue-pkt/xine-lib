@@ -25,7 +25,7 @@
 
 #include <inttypes.h>
 
-#include "mpeg2.h"
+#include "../include/mpeg2.h"
 #include "mpeg2_internal.h"
 
 mpeg2_mc_t mpeg2_mc;

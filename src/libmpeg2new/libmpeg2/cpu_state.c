@@ -26,11 +26,11 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include "mpeg2.h"
+#include "../include/mpeg2.h"
 #include "mpeg2_internal.h"
-#include "attributes.h"
+#include "../include/attributes.h"
 #ifdef ARCH_X86
-#include "mmx.h"
+#include "../include/mmx.h"
 #endif
 
 void (* mpeg2_cpu_state_save) (cpu_state_t * state) = NULL;

@@ -27,10 +27,10 @@
 
 #include <inttypes.h>
 
-#include "mpeg2.h"
+#include "../include/mpeg2.h"
 #include "mpeg2_internal.h"
-#include "attributes.h"
-#include "mmx.h"
+#include "../include/attributes.h"
+#include "../include/mmx.h"
 
 #define CPU_MMXEXT 0
 #define CPU_3DNOW 1

@@ -25,9 +25,9 @@
 
 #include <inttypes.h>
 
-#include "mpeg2.h"
+#include "../include/mpeg2.h"
 #include "mpeg2_internal.h"
-#include "attributes.h"
+#include "../include/attributes.h"
 
 extern mpeg2_mc_t mpeg2_mc;
 extern void (* mpeg2_idct_copy) (int16_t * block, uint8_t * dest, int stride);
@@ -1469,9 +1469,15 @@ void mpeg2_init_fbuf (mpeg2_decoder_t * decoder, uint8_t * current_fbuf[3],
     decoder->picture_dest[1] = current_fbuf[1] + (offset >> 1);
     decoder->picture_dest[2] = current_fbuf[2] + (offset >> 1);
 
-    decoder->f_motion.ref[0][0] = forward_fbuf[0] + offset;
-    decoder->f_motion.ref[0][1] = forward_fbuf[1] + (offset >> 1);
-    decoder->f_motion.ref[0][2] = forward_fbuf[2] + (offset >> 1);
+    if (forward_fbuf) {
+      decoder->f_motion.ref[0][0] = forward_fbuf[0] + offset;
+      decoder->f_motion.ref[0][1] = forward_fbuf[1] + (offset >> 1);
+      decoder->f_motion.ref[0][2] = forward_fbuf[2] + (offset >> 1);
+    } else {
+      decoder->f_motion.ref[0][0] = 0;
+      decoder->f_motion.ref[0][1] = 0;
+      decoder->f_motion.ref[0][2] = 0;
+    }
 
     decoder->b_motion.ref[0][0] = backward_fbuf[0] + offset;
     decoder->b_motion.ref[0][1] = backward_fbuf[1] + (offset >> 1);
@@ -1488,9 +1494,15 @@ void mpeg2_init_fbuf (mpeg2_decoder_t * decoder, uint8_t * current_fbuf[3],
 	if (decoder->second_field && (decoder->coding_type != B_TYPE))
 	    forward_fbuf = current_fbuf;
 
-	decoder->f_motion.ref[1][0] = forward_fbuf[0] + offset;
-	decoder->f_motion.ref[1][1] = forward_fbuf[1] + (offset >> 1);
-	decoder->f_motion.ref[1][2] = forward_fbuf[2] + (offset >> 1);
+        if (forward_fbuf) {
+	  decoder->f_motion.ref[1][0] = forward_fbuf[0] + offset;
+  	  decoder->f_motion.ref[1][1] = forward_fbuf[1] + (offset >> 1);
+	  decoder->f_motion.ref[1][2] = forward_fbuf[2] + (offset >> 1);
+        } else {
+          decoder->f_motion.ref[0][0] = 0;
+          decoder->f_motion.ref[0][1] = 0;
+          decoder->f_motion.ref[0][2] = 0;
+        }
 
 	decoder->b_motion.ref[1][0] = backward_fbuf[0] + offset;
 	decoder->b_motion.ref[1][1] = backward_fbuf[1] + (offset >> 1);
