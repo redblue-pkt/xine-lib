@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.5 2001/08/22 11:03:52 jcdutton Exp $
+ * $Id: audio_out.c,v 1.6 2001/08/22 16:20:13 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -57,17 +57,6 @@
 #include <fcntl.h>
 #include <math.h>
 #include <unistd.h>
-#if defined(__OpenBSD__)
-#include <soundcard.h>
-#elif defined(__FreeBSD__)
-#include <machine/soundcard.h>
-#else
-#if defined(__linux__)
-#include <linux/config.h> /* Check for DEVFS */
-#endif
-#include <sys/soundcard.h>
-#endif
-#include <sys/ioctl.h>
 #include <inttypes.h>
 
 #include "xine_internal.h"
@@ -77,35 +66,11 @@
 #include "metronom.h"
 #include "utils.h"
 
-#ifndef AFMT_S16_NE
-# if defined(sparc) || defined(__sparc__) || defined(PPC)
-/* Big endian machines */
-#  define AFMT_S16_NE AFMT_S16_BE
-# else
-#  define AFMT_S16_NE AFMT_S16_LE
-# endif
-#endif
-
-#ifndef AFMT_AC3
-#       define AFMT_AC3         0x00000400      /* Dolby Digital AC3 */
-#endif
-
-#define AO_OUT_OSS_IFACE_VERSION 1
-
-#define AUDIO_NUM_FRAGMENTS     15
-#define AUDIO_FRAGMENT_SIZE   8192
-
 /* bufsize must be a multiple of 3 and 5 for 5.0 and 5.1 channel playback! */
 #define ZERO_BUF_SIZE        15360
 
 #define GAP_TOLERANCE         5000
 #define MAX_GAP              90000
-
-#ifdef CONFIG_DEVFS_FS
-#define DSP_TEMPLATE "/dev/sound/dsp%d"
-#else
-#define DSP_TEMPLATE "/dev/dsp%d"
-#endif
 
 struct frmsize_s
 {
@@ -163,10 +128,11 @@ static int ao_open(ao_instance_t *self,
 		   uint32_t bits, uint32_t rate, int mode)
 { 
   int result;
-  if(result=self->driver->open(self->driver,bits,rate,mode)<0) {
-	  printf("open failed!\n");
-	  return -1;
+  if ((result=self->driver->open(self->driver,bits,rate,mode))<0) {
+    printf("open failed!\n");
+    return -1;
   }; 
+
   self->mode                  = mode;
   self->input_frame_rate      = rate;
   self->frames_in_buffer      = 0;
@@ -177,7 +143,7 @@ static int ao_open(ao_instance_t *self,
   self->output_frame_rate=rate;
   self->num_channels = self->driver->num_channels(self->driver); 
 
-  self->frame_rate_factor = (double) self->output_frame_rate / (double) self->input_frame_rate; /* Alway produces 1 at the moment */
+  self->frame_rate_factor = (double) self->output_frame_rate / (double) self->input_frame_rate; /* always produces 1 at the moment */
   self->audio_step         = (uint32_t) 90000 * (uint32_t) 32768
 	                                   / self->input_frame_rate;
   self->frames_per_kpts     = self->output_frame_rate * self->num_channels * 2 * 1024 / 90000;
@@ -225,30 +191,30 @@ static void ao_fill_gap (ao_instance_t *self, uint32_t pts_len) {
 
 void write_pause_burst(ao_instance_t *self, int error)
 {
-        unsigned char buf[8192];
-        unsigned short *sbuf = (unsigned short *)&buf[0];
-
-        sbuf[0] = 0xf872;
-        sbuf[1] = 0x4e1f;
-
-        if (error == 0)
-                // Audio ES Channel empty, wait for DD Decoder or pause
-                sbuf[2] = 0x0003;
-        else
-                // user stop, skip or error
-                sbuf[2] = 0x0103;
-
-        sbuf[3] = 0x0020;
-        sbuf[4] = 0x0000;
-        sbuf[5] = 0x0000;
-
-        memset(&sbuf[6], 0, 6144 - 96);
-	self->driver->write(self->driver, sbuf, 6144 / 4);
+  unsigned char buf[8192];
+  unsigned short *sbuf = (unsigned short *)&buf[0];
+  
+  sbuf[0] = 0xf872;
+  sbuf[1] = 0x4e1f;
+  
+  if (error == 0)
+    /* Audio ES Channel empty, wait for DD Decoder or pause */
+    sbuf[2] = 0x0003;
+  else
+    /* user stop, skip or error */
+    sbuf[2] = 0x0103;
+  
+  sbuf[3] = 0x0020;
+  sbuf[4] = 0x0000;
+  sbuf[5] = 0x0000;
+  
+  memset(&sbuf[6], 0, 6144 - 96);
+  self->driver->write(self->driver, sbuf, 6144 / 4);
 }
 
 static int ao_write(ao_instance_t *self,
-                               int16_t* output_frames, uint32_t num_frames,
-                               uint32_t pts_)
+		    int16_t* output_frames, uint32_t num_frames,
+		    uint32_t pts_)
 {
   uint32_t         vpts, buffer_vpts;
   int32_t          gap;
@@ -280,47 +246,47 @@ static int ao_write(ao_instance_t *self,
 
   if ( self->audio_has_realtime || !self->audio_started ) {
 
-  /*
-   * where, in the timeline is the "end" of the audio buffer at the moment?
-   */
-
-  buffer_vpts = self->metronom->get_current_time (self->metronom);
-
-  if (self->audio_started) {
-    pos = self->driver->delay(self->driver);
-  } else
-    pos = 0;
-  if ( (self->mode==AO_CAP_MODE_AC3) && (pos>10) ) pos-=10; /* External AC3 decoder delay correction */
-
-  if (pos>self->frames_in_buffer) /* buffer ran dry */
-    self->frames_in_buffer = pos;
-
-  buffer_vpts += (self->frames_in_buffer - pos) * 1024 / self->frames_per_kpts;
-
- /*
-   * calculate gap:
-   */
-
-  gap = vpts - buffer_vpts;
-  xprintf (VERBOSE|AUDIO, "audio_out: buff=%d pos=%d buf_vpts=%d gap=%d\n",
-           self->frames_in_buffer, pos,buffer_vpts,gap);
-
-  if (gap>GAP_TOLERANCE) {
-    ao_fill_gap (self, gap);
-
-    /* keep xine responsive */
-
-    if (gap>MAX_GAP)
-      return 0;
-
-  } else if (gap<-GAP_TOLERANCE) {
-    bDropPackage = 1;
-    xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d)"
-             "dropped\n", vpts, gap);
-  }
-
+    /*
+     * where, in the timeline is the "end" of the audio buffer at the moment?
+     */
+    
+    buffer_vpts = self->metronom->get_current_time (self->metronom);
+    
+    if (self->audio_started) {
+      pos = self->driver->delay(self->driver);
+    } else
+      pos = 0;
+    if ( (self->mode==AO_CAP_MODE_AC3) && (pos>10) ) pos-=10; /* External AC3 decoder delay correction */
+    
+    if (pos>self->frames_in_buffer) /* buffer ran dry */
+      self->frames_in_buffer = pos;
+    
+    buffer_vpts += (self->frames_in_buffer - pos) * 1024 / self->frames_per_kpts;
+    
+    /*
+     * calculate gap:
+     */
+    
+    gap = vpts - buffer_vpts;
+    xprintf (VERBOSE|AUDIO, "audio_out: buff=%d pos=%d buf_vpts=%d gap=%d\n",
+	     self->frames_in_buffer, pos,buffer_vpts,gap);
+    
+    if (gap>GAP_TOLERANCE) {
+      ao_fill_gap (self, gap);
+      
+      /* keep xine responsive */
+      
+      if (gap>MAX_GAP)
+	return 0;
+      
+    } else if (gap<-GAP_TOLERANCE) {
+      bDropPackage = 1;
+      xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d)"
+	       "dropped\n", vpts, gap);
+    }
+    
   } /* has realtime */
-
+  
   /*
    * resample and output frames
    */
@@ -361,17 +327,17 @@ static int ao_write(ao_instance_t *self,
       break;
     case AO_CAP_MODE_AC3:
       num_output_frames = (num_frames+8)/4;
-      self->frame_buffer[0] = 0xf872;  //spdif syncword
-      self->frame_buffer[1] = 0x4e1f;  // .............
-      self->frame_buffer[2] = 0x0001;  // AC3 data
+      self->frame_buffer[0] = 0xf872;  /* spdif syncword */
+      self->frame_buffer[1] = 0x4e1f;  /* .............  */
+      self->frame_buffer[2] = 0x0001;  /* AC3 data       */
 
-           data = (uint8_t *)&output_frames[1]; // skip AC3 sync
-           fscod = (data[2] >> 6) & 0x3;
-           frmsizecod = data[2] & 0x3f;
-           frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] << 4;
-           self->frame_buffer[3] = frame_size;
+      data = (uint8_t *)&output_frames[1]; /* skip AC3 sync */
+      fscod = (data[2] >> 6) & 0x3;
+      frmsizecod = data[2] & 0x3f;
+      frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] << 4;
+      self->frame_buffer[3] = frame_size;
 
-    // ac3 seems to be swabbed data
+      /* ac3 seems to be swabbed data */
       swab(output_frames,self->frame_buffer+4,  num_frames  );
       self->driver->write(self->driver, self->zero_space, 2); /* Prevents crackle at start. */
       self->driver->write(self->driver, self->frame_buffer, num_output_frames);
@@ -411,6 +377,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom) {
   ao_instance_t *self;
 
   self = xmalloc (sizeof (ao_instance_t)) ;
+
   self->driver                = driver;
   self->metronom              = metronom;
 
@@ -419,10 +386,9 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom) {
   self->close                 = ao_close;
   self->get_capabilities      = ao_get_capabilities;
   self->audio_loop_running    = 0;
-  self->frame_buffer = malloc (40000);
-  memset (self->frame_buffer, 0, 40000);
-  self->zero_space = malloc (ZERO_BUF_SIZE);
-  memset (self->zero_space, 0, ZERO_BUF_SIZE);
+  self->frame_buffer          = xmalloc (40000);
+  self->zero_space            = xmalloc (ZERO_BUF_SIZE);
+
   return self;
 }
 
