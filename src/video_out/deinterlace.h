@@ -29,6 +29,7 @@
 
 #include "video_out.h"
 
+int deinterlace_yuv_supported ( int method );
 void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
     int width, int height, int method );
 

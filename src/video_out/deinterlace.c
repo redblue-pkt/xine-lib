@@ -825,6 +825,26 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
   }
 }
 
+int deinterlace_yuv_supported ( int method )
+{
+  switch( method ) {
+    case DEINTERLACE_NONE:
+      return 1;
+    case DEINTERLACE_BOB:
+    case DEINTERLACE_WEAVE:
+    case DEINTERLACE_GREEDY:
+    case DEINTERLACE_ONEFIELD:
+      return check_for_mmx();
+    case DEINTERLACE_ONEFIELDXV:
+      printf ("deinterlace: ONEFIELDXV must be handled by the video driver.\n");
+      return 0;
+    case DEINTERLACE_LINEARBLEND:
+      return 1;
+  }
+
+  return 0;
+}
+
 char *deinterlace_methods[] = {
   "none", 
   "bob",
