@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.11 2004/03/14 21:24:21 tmmm Exp $
+ * $Id: video_decoder.c,v 1.12 2004/03/16 14:12:03 mroi Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1285,7 +1285,7 @@ static uint32_t wmv8_video_types[] = {
 
 decoder_info_t dec_info_ffmpeg_video = {
   supported_video_types,   /* supported types */
-  5                        /* priority        */
+  6                        /* priority        */
 };
 
 decoder_info_t dec_info_ffmpeg_wmv8 = {

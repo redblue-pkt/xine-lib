@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.51 2004/03/14 20:40:39 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.52 2004/03/16 14:12:04 mroi Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -360,7 +360,7 @@ static uint32_t audio_types[] = {
 
 static decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
-  6                    /* priority        */
+  7                    /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {

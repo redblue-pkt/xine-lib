@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.67 2004/03/03 20:09:14 mroi Exp $
+ * $Id: xine_decoder.c,v 1.68 2004/03/16 14:12:04 mroi Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -581,7 +581,7 @@ static uint32_t supported_types[] = { BUF_VIDEO_RV20,
 
 static decoder_info_t dec_info_real = {
   supported_types,     /* supported types */
-  6                    /* priority        */
+  7                    /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.6 2004/03/14 21:37:52 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.7 2004/03/16 14:12:03 mroi Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -424,6 +424,6 @@ static uint32_t supported_audio_types[] = {
 
 decoder_info_t dec_info_ffmpeg_audio = {
   supported_audio_types,   /* supported types */
-  5                        /* priority        */
+  6                        /* priority        */
 };
 
