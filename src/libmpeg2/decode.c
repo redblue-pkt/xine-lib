@@ -212,6 +212,9 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
   else
     mpeg2dec->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("MPEG-2");
+
+  mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
+  
 }
 
 
