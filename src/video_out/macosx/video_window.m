@@ -109,7 +109,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     NSRect standard_frame;
 
     if ([xineView isFullScreen])
-        return;
+        return defaultFrame;
 
     screen_size = defaultFrame.size;
     video_size = [xineView videoSize];
@@ -379,7 +379,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 }
 
 - (void) calcFullScreenAspect {
-    int fs_width, fs_height, x, y, w, h;
+    int fs_width, fs_height, x = 0, y = 0, w = 0, h = 0;
    
     fs_width = CGDisplayPixelsWide (kCGDirectMainDisplay);
     fs_height = CGDisplayPixelsHigh (kCGDirectMainDisplay);
