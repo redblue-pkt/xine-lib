@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.63 2002/08/12 00:11:54 tmmm Exp $
+ * $Id: buffer.h,v 1.64 2002/08/28 14:03:29 miguelfreitas Exp $
  *
  *
  * contents:
@@ -124,6 +124,7 @@ extern "C" {
 #define BUF_VIDEO_TSCC		0x022B0000
 #define BUF_VIDEO_YVU9		0x022C0000
 #define BUF_VIDEO_VQA		0x022D0000
+#define BUF_VIDEO_GREY		0x022E0000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 

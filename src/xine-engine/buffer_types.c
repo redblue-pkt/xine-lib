@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.37 2002/08/09 00:24:58 tmmm Exp $
+ * $Id: buffer_types.c,v 1.38 2002/08/28 14:03:30 miguelfreitas Exp $
  *
  *
  * contents:
@@ -446,6 +446,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_YVU9,
   "Raw YVU9 Planar Data"
+},
+{
+  {
+    meFOURCC('G', 'R', 'E', 'Y'),
+    0
+  },
+  BUF_VIDEO_GREY,
+  "Raw greyscale"
 },
 { { 0 }, 0, "last entry" }
 };
