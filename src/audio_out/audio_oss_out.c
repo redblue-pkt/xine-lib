@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.60 2002/04/23 01:06:32 miguelfreitas Exp $
+ * $Id: audio_oss_out.c,v 1.61 2002/04/28 15:20:38 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -250,9 +250,9 @@ static int ao_oss_open(ao_driver_t *this_gen,
   printf ("audio_oss_out : %d channels output\n",this->num_channels);
   this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
   
- /*
-  * set format
-  */
+  /*
+   * set format
+   */
 
   switch (mode) {
   case AO_CAP_MODE_MONO:
@@ -260,23 +260,26 @@ static int ao_oss_open(ao_driver_t *this_gen,
   case AO_CAP_MODE_4CHANNEL:
   case AO_CAP_MODE_5CHANNEL:
   case AO_CAP_MODE_5_1CHANNEL:
-    tmp = AFMT_S16_NE;
+    if (bits==8)
+       tmp = AFMT_U8;
+    else
+       tmp = AFMT_S16_NE;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0
 	|| tmp != AFMT_S16_NE) {
-        printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_S16_NE.\n");
-       if (tmp != AFMT_S16_NE)
-         printf("audio_oss_out: ioctl succeeded but set format to %x.\n", tmp);
-       else
-         printf("audio_oss_out: The AFMT_S16_NE ioctl failed.\n");
-       return 0;
+      printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_S16_NE.\n");
+      if (tmp != AFMT_S16_NE)
+	printf("audio_oss_out: ioctl succeeded but set format to %x.\n", tmp);
+      else
+	printf("audio_oss_out: The AFMT_S16_NE ioctl failed.\n");
+      return 0;
     }
     break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
     tmp = AFMT_AC3;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
-        printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
-       return 0;
+      printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
+      return 0;
     }
     break;
   }
@@ -288,19 +291,19 @@ static int ao_oss_open(ao_driver_t *this_gen,
    */
 
   /* WARNING: let's hope for good defaults here...
-  tmp=0 ;
-  fsize = AUDIO_FRAGMENT_SIZE;
-  while (fsize>0) {
-    fsize /=2;
-    tmp++;
-  }
-  tmp--;
+     tmp=0 ;
+     fsize = AUDIO_FRAGMENT_SIZE;
+     while (fsize>0) {
+     fsize /=2;
+     tmp++;
+     }
+     tmp--;
 
-  tmp = (AUDIO_NUM_FRAGMENTS << 16) | tmp ;
+     tmp = (AUDIO_NUM_FRAGMENTS << 16) | tmp ;
 
-  printf ("audio_oss_out: audio buffer fragment info : %x\n",tmp);
+     printf ("audio_oss_out: audio buffer fragment info : %x\n",tmp);
 
-  ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
+     ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
 
   return this->output_sample_rate;
