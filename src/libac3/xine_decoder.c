@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/05/28 22:00:17 guenter Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/05/28 22:00:46 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -124,7 +124,7 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	if (this->syncword != 0x0b77) {
 	  this->syncword = (this->syncword << 8) | byte;
 
-	  printf ("syncword: %04x\n", this->syncword);
+	  /* printf ("syncword: %04x\n", this->syncword); */
 
 	  if (this->syncword == 0x0b77) {
 
