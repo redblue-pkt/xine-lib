@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.15 2001/04/29 14:32:11 guenter Exp $
+ * $Id: xine_internal.h,v 1.16 2001/04/30 23:07:00 guenter Exp $
  *
  */
 
@@ -33,7 +33,7 @@
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
-#define DECODER_PLUGIN_MAX 50
+#define DECODER_PLUGIN_MAX     256
 #define DECODER_PLUGIN_IFACE_VERSION      1
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
@@ -138,7 +138,6 @@ typedef struct xine_s {
   fifo_buffer_t             *video_fifo;
   pthread_t                  video_thread;
   video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
-  int                        num_video_decoder_plugins;
   video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
 

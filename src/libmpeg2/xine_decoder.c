@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/04/29 14:32:11 guenter Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/04/30 23:07:00 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -46,11 +46,15 @@ void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+  printf ("libmpeg: initializing mpeg2dec\n");
+
   mpeg2_init (&this->mpeg2, video_out);
 }
 
 void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+
+  printf ("libmpeg: decoding data (pts = %d)\n", buf->PTS);
 
   mpeg2_decode_data (&this->mpeg2, buf->content, buf->content + buf->size,
 		     buf->PTS);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.5 2001/04/28 21:23:04 guenter Exp $
+ * $Id: input_file.c,v 1.6 2001/04/30 23:07:00 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -94,6 +94,8 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
       return NULL;
     }
   }
+
+  buf->size = total_bytes;
 
   return buf;
 }

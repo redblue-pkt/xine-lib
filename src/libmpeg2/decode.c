@@ -307,6 +307,8 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     chunk_ptr = mpeg2dec->chunk_ptr;
     mpeg2dec->pts = pts;
 
+    printf ("mpeg2_decode_data\n");
+
     while (current != end) {
 	while (1) {
 	    byte = *current++;
@@ -329,6 +331,7 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
 
 	/* found start_code following chunk */
 
+	printf ("mpeg2: parse_chunk\n");
 	ret += parse_chunk (mpeg2dec, mpeg2dec->code, mpeg2dec->chunk_buffer, pts);
 
 	/* done with header or slice, prepare for next one */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.16 2001/04/29 01:09:23 guenter Exp $
+ * $Id: load_plugins.c,v 1.17 2001/04/30 23:07:00 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -217,12 +217,10 @@ void load_decoder_plugins (xine_t *this,
    * clean up first
    */
 
-  this->num_video_decoder_plugins = 0;
   this->cur_video_decoder_plugin = NULL;
   for (i=0; i<DECODER_PLUGIN_MAX; i++)
     this->video_decoder_plugins[i] = NULL;
 
-  this->num_audio_decoder_plugins = 0;
   this->cur_audio_decoder_plugin = NULL;
   for (i=0; i<AUDIO_OUT_PLUGIN_MAX; i++)
     this->audio_decoder_plugins[i] = NULL;
@@ -268,50 +266,43 @@ void load_decoder_plugins (xine_t *this,
 	   */
 
 	  if((initplug = dlsym(plugin, "init_video_decoder_plugin")) != NULL) {
+
 	    video_decoder_t *vdp;
+	    int              streamtype;
 	      
 	    vdp = (video_decoder_t *) initplug(iface_version, config);
-	    this->video_decoder_plugins[this->num_video_decoder_plugins] = vdp; 
-	    
-	    printf("video decoder plugin found : %s(ID: %s, iface: %d)\n", 
-		   str,   
-		   this->video_decoder_plugins[this->num_video_decoder_plugins]->get_identifier(),
-		   this->video_decoder_plugins[this->num_video_decoder_plugins]->interface_version);
 
-	    this->num_video_decoder_plugins++;
+	    for (streamtype = 0; streamtype<256; streamtype++) {
+	      if (vdp->can_handle (vdp, (streamtype<<16) | BUF_VIDEO_BASE))
+		this->video_decoder_plugins[streamtype] = vdp; 
+	    }
+	    
+	    printf("video decoder plugin found : %s (ID: %s, iface: %d)\n", 
+		   pEntry->d_name, vdp->get_identifier(), vdp->interface_version);
+
 	  }
 	  
-	  if(this->num_video_decoder_plugins > DECODER_PLUGIN_MAX) {
-	    fprintf(stderr, "%s(%d): too many video decoder plugins installed,"
-		    " exiting.\n", __FILE__, __LINE__);
-	    exit(1);
-	  }
-
 	  /*
 	   * does this plugin provide an audio decoder plugin?
 	   */
 
 	  if((initplug = dlsym(plugin, "init_audio_decoder_plugin")) != NULL) {
+
 	    audio_decoder_t *adp;
+	    int              streamtype;
 	      
 	    adp = (audio_decoder_t *) initplug(iface_version, config);
-	    this->audio_decoder_plugins[this->num_audio_decoder_plugins] = adp; 
-	    
-	    printf("audio decoder plugin found : %s(ID: %s, iface: %d)\n", 
-		   str,   
-		   this->audio_decoder_plugins[this->num_audio_decoder_plugins]->get_identifier(),
-		   this->audio_decoder_plugins[this->num_audio_decoder_plugins]->interface_version);
 
-	    this->num_audio_decoder_plugins++;
+	    for (streamtype = 0; streamtype<256; streamtype++) {
+	      if (adp->can_handle (adp, (streamtype<<16) | BUF_AUDIO_BASE))
+		this->audio_decoder_plugins[streamtype] = adp; 
+	    }
+
+	    printf("audio decoder plugin found : %s(ID: %s, iface: %d)\n", 
+		   pEntry->d_name, adp->get_identifier(), adp->interface_version);
+
 	  }
 	  
-	  if(this->num_audio_decoder_plugins > DECODER_PLUGIN_MAX) {
-	    fprintf(stderr, "%s(%d): too many audio decoder plugins installed,"
-		    " exiting.\n", __FILE__, __LINE__);
-	    exit(1);
-	  }
-
-
 	}
       }
     }
