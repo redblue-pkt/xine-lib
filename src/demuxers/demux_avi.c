@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.104 2002/07/17 18:17:48 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.105 2002/07/28 21:12:18 heikos Exp $
  *
  * demultiplexer for avi streams
  *
@@ -129,6 +129,8 @@ typedef struct
 
   audio_index_t  audio_idx;
 
+  off_t   audio_tot;         /* Total number of audio bytes */
+
 } avi_audio_t;
 
 typedef struct
@@ -148,7 +150,6 @@ typedef struct
 
   avi_audio_t		*audio[MAX_AUDIO_STREAMS];
   int			n_audio;
-  off_t   audio_tot;         /* Total number of audio bytes */
 
   uint32_t video_type;      /* BUF_VIDEO_xxx type */
 
@@ -307,15 +308,19 @@ static void long2str(unsigned char *dst, int n)
 #define PAD_EVEN(x) ( ((x)+1) & ~1 )
 
 static int64_t get_audio_pts (demux_avi_t *this, int track, long posc,
-	off_t postot, long posb) {
+			      off_t postot, long posb) {
 
-  if (this->avi->audio[track]->dwSampleSize==0)
+  if (this->avi->audio[track]->dwSampleSize==0) {
+    /* variable bitrate */
     return (int64_t) posc * (double) this->avi->audio[track]->dwScale_audio /
       this->avi->audio[track]->dwRate_audio * 90000.0;
-  else
+  } else {
+    /* constant bitrate */
+
     return (postot+posb)/
       this->avi->audio[track]->dwSampleSize * (double) this->avi->audio[track]->dwScale_audio /
       this->avi->audio[track]->dwRate_audio * 90000.0;
+  }
 }
 
 static int64_t get_video_pts (demux_avi_t *this, long pos) {
@@ -447,10 +452,10 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
 	off_t pos = this->idx_grow.nexttagoffset + ioff;
 	long len = n;
 	if (audio_index_append(this->avi, i, pos, len,
-	    this->avi->audio_tot) == -1) {
+			       this->avi->audio[i]->audio_tot) == -1) {
 	  /* As above. */
 	}
-        this->avi->audio_tot += len;
+        this->avi->audio[i]->audio_tot += len;
       }
     }
 
@@ -717,6 +722,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
           a->dwScale_audio = str2ulong(hdrl_data+i+20);
           a->dwRate_audio  = str2ulong(hdrl_data+i+24);
           a->dwSampleSize  = str2ulong(hdrl_data+i+44);
+	  a->audio_tot     = 0;
           auds_strh_seen = 1;
           lasttag = 2; /* auds */
           AVI->n_audio++;
@@ -844,7 +850,6 @@ static avi_t *AVI_init(demux_avi_t *this)  {
     /* Now generate the video index and audio index arrays from the
      * idx1 record. */
 
-    AVI->audio_tot = 0;
     ioff = idx_type == 1 ? 8 : AVI->movi_start+4;
 
     for(i=0;i<AVI->n_idx;i++) {
@@ -860,10 +865,10 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 	if(strncasecmp(AVI->idx[i],AVI->audio[n]->audio_tag,4) == 0) {
 	  off_t pos = str2ulong(AVI->idx[i]+ 8)+ioff;
 	  long len = str2ulong(AVI->idx[i]+12);
-	  if (audio_index_append(AVI, n, pos, len, AVI->audio_tot) == -1) {
+	  if (audio_index_append(AVI, n, pos, len, AVI->audio[n]->audio_tot) == -1) {
 	    ERR_EXIT(AVI_ERR_NO_MEM) ;
 	  }
-	  AVI->audio_tot += len;
+	  AVI->audio[n]->audio_tot += len;
 	}
       }
     }
@@ -1056,7 +1061,7 @@ static int demux_avi_next (demux_avi_t *this) {
 
       /* read audio */
 
-      buf->pts    = audio_pts;
+      buf->pts    = audio_pts; 
       buf->size   = AVI_read_audio (this, audio, buf->mem, 2048, &buf->decoder_flags);
 
       if (buf->size<0) {
