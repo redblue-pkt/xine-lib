@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.11 2002/10/19 21:23:52 guenter Exp $
+ * $Id: events.c,v 1.12 2002/10/22 07:36:05 jcdutton Exp $
  *
  * Event handling functions
  *
@@ -62,7 +62,7 @@ xine_event_t *xine_event_wait (xine_event_queue_t *queue) {
 }
 
 void xine_event_free (xine_event_t *event) {
-  free (event->data);
+  if (event->data) free (event->data);
   free (event);
 }
 
@@ -84,8 +84,12 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
     cevent->type        = event->type;
     cevent->stream      = event->stream;
     cevent->data_length = event->data_length;
-    cevent->data        = malloc (event->data_length);
-    memcpy (cevent->data, event->data, event->data_length);
+    if (cevent->data_length > 0 ) {
+      cevent->data = malloc (event->data_length);
+      memcpy (cevent->data, event->data, event->data_length);
+    } else {
+      cevent->data = NULL;
+    }
     
     pthread_mutex_lock (&queue->lock);
     xine_list_append_content (queue->events, cevent);

@@ -18,24 +18,24 @@ libdir = $(XINE_PLUGINDIR)
 # All of xine input plugins should be named like the scheme "xineplug_inp_"
 #
 
-#if HAVE_CDROM_IOCTLS
-#in_dvd = xineplug_inp_dvd.la
+if HAVE_CDROM_IOCTLS
+in_dvd = xineplug_inp_dvd.la
 #in_vcd = xineplug_inp_vcd.la
 #in_cda = xineplug_inp_cda.la
-#endif
+endif
 
 # For DVD
-#if HAVE_DVDNAV
-#DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-#  $(DVDNAV_CFLAGS) \
-#  -I$(top_srcdir)/src/input/libdvdread/
-#link_dvdnav = $(DVDNAV_LIBS)
-#else
-#DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-#  -I$(top_srcdir)/src/input/libdvdnav/ \
-#  -I$(top_srcdir)/src/input/libdvdread/
-#link_dvdnav = libdvdnav/libdvdnav.la libdvdread/libdvdread.la
-#endif
+if HAVE_DVDNAV
+DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
+  $(DVDNAV_CFLAGS) \
+  -I$(top_srcdir)/src/input/libdvdread/
+link_dvdnav = $(DVDNAV_LIBS)
+else
+DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
+  -I$(top_srcdir)/src/input/libdvdnav/ \
+  -I$(top_srcdir)/src/input/libdvdread/
+link_dvdnav = libdvdnav/libdvdnav.la libdvdread/libdvdread.la
+endif
 
 AM_CFLAGS = $(DVD_CFLAGS) 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS) 
@@ -43,6 +43,7 @@ DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS)
 lib_LTLIBRARIES = \
 	xineplug_inp_file.la \
 	xineplug_inp_http.la \
+	$(in_dvd) \
 	xineplug_inp_mms.la 
 
 #lib_LTLIBRARIES = \
@@ -61,9 +62,9 @@ xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_dvd_la_SOURCES = input_dvd.c 
-#xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la $(link_dvdnav)
-#xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
+xineplug_inp_dvd_la_SOURCES = input_dvd.c 
+xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la $(link_dvdnav)
+xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
 #xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
 #xineplug_inp_net_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la

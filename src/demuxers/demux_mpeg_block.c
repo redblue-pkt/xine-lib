@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.122 2002/10/22 04:23:19 storri Exp $
+ * $Id: demux_mpeg_block.c,v 1.123 2002/10/22 07:36:05 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1109,7 +1109,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
 
   demux_mpeg_block_t *this;
-
+  printf ("demux_mpeg_block:open_plugin:input ID=%s\n",input->input_class->get_identifier(input->input_class) );
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf("demux_mpeg_block.c: not seekable, can't handle!\n");
     return NULL;
@@ -1156,10 +1156,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case XINE_DEMUX_CONTENT_STRATEGY: {
 
-    if(((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) &&
-       ((input->get_capabilities(input) & INPUT_CAP_VARIABLE_BITRATE) == 0) ) {
+    if(((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
 
       this->blocksize = input->get_blocksize(input);
+#ifdef LOG
+  printf("demux_mpeg_block:open_plugin:blocksize=%d\n",this->blocksize);
+#endif
 
       if (!this->blocksize)
         this->blocksize = demux_mpeg_detect_blocksize( this, input );
@@ -1171,9 +1173,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       input->seek(input, 0, SEEK_SET);
       if (input->read(input, this->scratch, this->blocksize)) {
+#ifdef LOG
+  printf("demux_mpeg_block:open_plugin:read worked\n");
+#endif
 
         if (this->scratch[0] || this->scratch[1]
             || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
+#ifdef LOG
+  printf("demux_mpeg_block:open_plugin:scratch failed\n");
+#endif
           free (this);
           return NULL;
         }
