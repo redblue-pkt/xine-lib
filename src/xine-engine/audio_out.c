@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.70 2002/10/14 15:47:25 guenter Exp $
+ * $Id: audio_out.c,v 1.71 2002/10/18 13:13:30 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -67,9 +67,9 @@
 #include "resample.h"
 #include "metronom.h"
 
-/*
+
 #define LOG
-*/
+
 
 #define NUM_AUDIO_BUFFERS       32
 #define AUDIO_BUF_SIZE       32768

@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.81 2002/10/12 10:36:50 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.82 2002/10/18 13:13:30 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -65,7 +65,7 @@
 #define LOG_DEBUG
 */
 
-#define AO_OUT_ALSA_IFACE_VERSION 4
+#define AO_OUT_ALSA_IFACE_VERSION 5
 
 #define BUFFER_TIME               1000*1000
 #define PERIOD_TIME               100*1000
@@ -74,6 +74,12 @@
 #define MIXER_MASK_LEFT           (1 << 0)
 #define MIXER_MASK_RIGHT          (1 << 1)
 #define MIXER_MASK_STEREO         (MIXER_MASK_LEFT|MIXER_MASK_RIGHT)
+
+typedef struct {
+  audio_driver_class_t driver_class;
+
+  config_values_t *config;
+} alsa_class_t;
 
 typedef struct alsa_driver_s {
 
@@ -987,9 +993,10 @@ static void ao_alsa_mixer_init(xine_ao_driver_t *this_gen) {
 /*
  * Initialize plugin
  */
-static void *init_audio_out_plugin (xine_t *xine, void *data) {
+static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
-  config_values_t     *config = xine->config;
+  alsa_class_t        *class = (alsa_class_t *) class_gen;
+  config_values_t     *config = class->config;
   alsa_driver_t       *this;
   int                  err;
   char                *pcm_device;
@@ -1184,16 +1191,44 @@ static void *init_audio_out_plugin (xine_t *xine, void *data) {
   return &this->ao_driver;
 }
 
+/*
+ * class functions
+ */
+
+static char* get_identifier (audio_driver_class_t *this_gen) {
+  return "alsa";
+}
+
+static char* get_description (audio_driver_class_t *this_gen) {
+  return _("xine audio output plugin using alsa-compliant audio devices/drivers");
+}
+
+static void dispose_class (audio_driver_class_t *this_gen) {
+
+  alsa_class_t *this = (alsa_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *data) {
+
+  alsa_class_t        *this;
+
+  this = (alsa_class_t *) malloc (sizeof (alsa_class_t));
+
+  this->driver_class.open_plugin     = open_plugin;
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
+  this->config = xine->config;
+
+   return this;
+ }
+
 static ao_info_t ao_info_alsa = {
-  "xine audio output plugin using alsa-compliant audio devices/drivers",
   10
 };
-
-ao_info_t *get_audio_out_plugin_info() {
-
-  ao_info_alsa.description = _("xine audio output plugin using alsa-compliant audio devices/drivers");
-  return &ao_info_alsa;
-}
 
 /*
  * exported plugin catalog entry
@@ -1201,6 +1236,6 @@ ao_info_t *get_audio_out_plugin_info() {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_OUT, AO_OUT_ALSA_IFACE_VERSION, "alsa", XINE_VERSION_CODE, &ao_info_alsa, init_audio_out_plugin },
+  { PLUGIN_AUDIO_OUT, AO_OUT_ALSA_IFACE_VERSION, "alsa", XINE_VERSION_CODE, &ao_info_alsa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
