@@ -1,4 +1,5 @@
   * updated libfaad
+  * improved engine for seeking and slider positioning
   * network input plugin is working again
   * handle avi files produced by dvgrab
   * real media demuxer should handle most files now 
