@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.158 2003/12/12 01:44:40 f1rmb Exp $
+ * $Id: audio_out.c,v 1.159 2003/12/24 13:06:12 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -205,6 +205,9 @@ typedef struct {
   ao_driver_t         *driver;
   pthread_mutex_t      driver_lock;
   int                  driver_open;
+  pthread_mutex_t      driver_action_lock; /* protects num_driver_actions */
+  int                  num_driver_actions; /* number of threads, that wish to call
+                                            * functions needing driver_lock */
   metronom_clock_t    *clock;
   xine_t              *xine;
   xine_list_t         *streams;
@@ -1086,6 +1089,12 @@ static void *ao_loop (void *this_gen) {
       fifo_append (this->free_fifo, in_buf);
       in_buf = NULL;
     }
+
+    /* Give other threads a chance to use functions which require this->driver_lock to
+     * be available. This is needed when using NPTL on Linux (and probably PThreads
+     * on Solaris as well). */
+    if (this->num_driver_actions > 0)
+      sched_yield();
   }
 
   if (in_buf)
@@ -1246,6 +1255,23 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
   lprintf ("audio_step %" PRId64 " pts per 32768 frames\n", this->audio_step);
   return this->output.rate;
 }
+
+
+static inline void inc_num_driver_actions(aos_t *this) {
+
+  pthread_mutex_lock(&this->driver_action_lock);
+  this->num_driver_actions++;
+  pthread_mutex_unlock(&this->driver_action_lock);
+}
+
+
+static inline void dec_num_driver_actions(aos_t *this) {
+
+  pthread_mutex_lock(&this->driver_action_lock);
+  this->num_driver_actions--;
+  pthread_mutex_unlock(&this->driver_action_lock);
+}
+
 
 /*
  * open the audio device for writing to
@@ -1416,6 +1442,7 @@ static void ao_exit(xine_audio_port_t *this_gen) {
   }
 
   pthread_mutex_destroy(&this->driver_lock);
+  pthread_mutex_destroy(&this->driver_action_lock);
   pthread_mutex_destroy(&this->streams_lock);
   xine_list_free(this->streams);
 
@@ -1481,7 +1508,9 @@ static uint32_t ao_get_capabilities (xine_audio_port_t *this_gen) {
       | AO_CAP_MODE_5_1CHANNEL | AO_CAP_8BITS;
     */
   } else {
+    inc_num_driver_actions(this);
     pthread_mutex_lock( &this->driver_lock );
+    dec_num_driver_actions(this);
     result=this->driver->get_capabilities(this->driver);  
     pthread_mutex_unlock( &this->driver_lock );
   }
@@ -1523,7 +1552,9 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     break;
 
   default:
+    inc_num_driver_actions(this);
     pthread_mutex_lock( &this->driver_lock );
+    dec_num_driver_actions(this);
     ret = this->driver->get_property(this->driver, property);
     pthread_mutex_unlock( &this->driver_lock );
   }
@@ -1616,7 +1647,9 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     break;
 
   case AO_PROP_CLOSE_DEVICE:
+    inc_num_driver_actions(this);
     pthread_mutex_lock( &this->driver_lock );
+    dec_num_driver_actions(this);
     if(this->driver_open)
       this->driver->close(this->driver);
     this->driver_open = 0;
@@ -1643,7 +1676,9 @@ static int ao_control (xine_audio_port_t *this_gen, int cmd, ...) {
   if (this->grab_only)
     return 0;
 
+  inc_num_driver_actions(this);
   pthread_mutex_lock( &this->driver_lock );
+  dec_num_driver_actions(this);
   if(this->driver_open) {
     va_start(args, cmd);
     arg = va_arg(args, void*);
@@ -1758,6 +1793,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
     
   pthread_mutex_init( &this->streams_lock, NULL );
   pthread_mutex_init( &this->driver_lock, NULL );
+  pthread_mutex_init( &this->driver_action_lock, NULL );
 
   this->ao.open                   = ao_open;
   this->ao.get_buffer             = ao_get_buffer;
@@ -1770,7 +1806,8 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->ao.control                = ao_control;
   this->ao.flush                  = ao_flush;
   this->ao.status                 = ao_status;
-  
+
+  this->num_driver_actions     = 0;  
   this->audio_loop_running     = 0;
   this->grab_only              = grab_only;
   this->audio_paused           = 0;
