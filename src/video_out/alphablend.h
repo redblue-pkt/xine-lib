@@ -28,6 +28,13 @@
 
 #include "video_out.h"
 
+typedef struct {         /* CLUT == Color LookUp Table */
+  uint8_t cb    : 8;
+  uint8_t cr    : 8;
+  uint8_t y     : 8;
+  uint8_t foo   : 8;
+} __attribute__ ((packed)) clut_t;
+
 void blend_rgb16 (uint8_t * img, vo_overlay_t * overlay, int width,
 		int height);
 void blend_rgb24 (uint8_t * img, vo_overlay_t * overlay, int width,

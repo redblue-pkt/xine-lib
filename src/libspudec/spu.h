@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.3 2001/08/13 12:52:33 ehasenle Exp $
+ * $Id: spu.h,v 1.4 2001/08/16 12:33:00 ehasenle Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -34,16 +34,6 @@
 
 #include <inttypes.h>
 #include "video_out.h"
-
-#ifndef CLUT_T
-#define CLUT_T
-typedef struct {                // CLUT == Color LookUp Table
-        uint8_t:8;
-        uint8_t y:8;
-        uint8_t cr:8;
-        uint8_t cb:8;
-} __attribute__ ((packed)) clut_t;
-#endif
 
 typedef struct spu_clut_struct {
 #ifdef WORDS_BIGENDIAN

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2001/08/15 09:07:16 ehasenle Exp $
+ * $Id: xine_decoder.c,v 1.10 2001/08/16 12:33:00 ehasenle Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -35,11 +35,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <byteswap.h>
 
 #include "spu.h"
 #include "buffer.h"
 #include "events.h"
 #include "xine_internal.h"
+#include "video_out/alphablend.h"
 
 static clut_t __default_clut[] = {
   {y: 0x00, cr: 0x80, cb:0x80},
@@ -123,9 +125,19 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 
   if (buf->type == BUF_SPU_CLUT) {
-    memcpy(this->state.clut, buf->content, sizeof(int32_t)*16);
+    if (buf->content[0]) { /* cheap endianess detection */
+      memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
+    } else {
+      int i;
+      uint32_t *clut = (uint32_t*) buf->content;
+      for (i = 0; i < 16; i++)
+        this->state.clut[i] = bswap_32(clut[i]);
+    }
     return;
   }
+
+  if (buf->decoder_info[0] == 0)  /* skip preview data */
+    return;
 
   if (buf->PTS) {
     metronom_t *metronom = this->ovl_src.metronom;

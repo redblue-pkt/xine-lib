@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.10 2001/07/18 21:38:16 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.11 2001/08/16 12:33:00 ehasenle Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -35,16 +35,6 @@ extern "C" {
 
 #define INPUT_PLUGIN_IFACE_VERSION   2
  
-#ifndef CLUT_T
-#define CLUT_T
-typedef struct {         /* CLUT == Color LookUp Table */
-	uint8_t foo		: 8; /* UNKNOWN: 0x00? */
-	uint8_t y		: 8;
-	uint8_t cr		: 8;
-	uint8_t cb		: 8;
-} __attribute__ ((packed)) clut_t;
-#endif
-
 /*
  * Return pointer of allocate/cleaned memory size *size*.
  */

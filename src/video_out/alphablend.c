@@ -33,17 +33,7 @@
 #include <inttypes.h>
 
 #include "video_out.h"
-
-/* FIXME: CLUT_T should go elsewhere. */
-#ifndef CLUT_T
-#define CLUT_T
-typedef struct {                // CLUT == Color LookUp Table
-        uint8_t:8;
-        uint8_t y:8;
-        uint8_t cr:8;
-        uint8_t cb:8;
-} __attribute__ ((packed)) clut_t;
-#endif
+#include "alphablend.h"
 
 
 #define BLEND_COLOR(dst, src, mask, o) ((((src&mask)*o + ((dst&mask)*(0x0f-o)))/0xf) & mask)
