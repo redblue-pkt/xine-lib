@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.8 2001/12/01 19:32:44 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.9 2001/12/01 19:36:30 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -111,6 +111,11 @@
  * At the moment libffmpeg's encoder output is pretty crappy, with weird
  * ghost effects left and right of objects. At the moment using a fixed 
  * quantizer value. Somewhat more cpu intensive than libfame.
+ *
+ ***** Update 1/12/2001 by Harm
+ * some support for mp1e encoder. Needs the raw-input patch for mp1e to
+ * be functional. I'm sending that patch to the mp1e guys at zapping.sf.net,
+ * it might be in the next version...
  */
 
 /* encoder specific config/setup stuff 	*
@@ -512,12 +517,6 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 #endif
 #if USE_MP1E
    size = frame->width*this->oheight;
-   {
-	static x = 0;
-	if (!x)
-	printf("dxr3enc: writing %d x %d = %d bytes\n", frame->width, this->oheight, size);
-	x = 1;
-   }
    fwrite(y, size, 1, mp1e);
    fwrite(u, size/4, 1, mp1e);
    fwrite(v, size/4, 1, mp1e);
