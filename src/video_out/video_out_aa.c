@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.11 2001/07/24 12:57:30 guenter Exp $
+ * $Id: video_out_aa.c,v 1.12 2001/09/26 17:19:49 jkeil Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -249,7 +249,7 @@ static int aa_set_property (vo_driver_t *this_gen,
   aa_driver_t *this = (aa_driver_t*) this_gen;
 
   if ( property == VO_PROP_ASPECT_RATIO) {
-    if (value>ASPECT_DVB)
+    if (value>=NUM_ASPECT_RATIOS)
       value = ASPECT_AUTO;
     this->user_ratio = value;
 

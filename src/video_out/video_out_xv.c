@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.62 2001/09/19 23:12:24 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.63 2001/09/26 17:19:49 jkeil Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -546,16 +546,19 @@ static void xv_calc_format (xv_driver_t *this,
     case 3:  /* anamorphic     */
       desired_ratio = 16.0 /9.0;
       break;
+    case 4:  /* 2.11:1 */
+      desired_ratio = 2.11/1.0;
+      break;
+    case 1: /* "square" source pels */
     case 42: /* probably non-mpeg stream => don't touch aspect ratio */
       desired_ratio = image_ratio;
       break;
     case 0: /* forbidden       */
       fprintf (stderr, "invalid ratio, using 4:3\n");
-    case 1: /* "square" => 4:3 */
-    case 2: /* 4:3             */
     default:
       xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n",
 	       ratio_code);
+    case 2: /* 4:3             */
       desired_ratio = 4.0 / 3.0;
       break;
     }
@@ -566,6 +569,10 @@ static void xv_calc_format (xv_driver_t *this,
   case ASPECT_DVB:
     desired_ratio = 2.0 / 1.0;
     break;
+  case ASPECT_SQUARE:
+    desired_ratio = image_ratio;
+    break;
+  case ASPECT_FULL:
   default:
     desired_ratio = 4.0 / 3.0;
   }
@@ -738,7 +745,7 @@ static int xv_set_property (vo_driver_t *this_gen,
       break;
     case VO_PROP_ASPECT_RATIO:
 
-      if (value>ASPECT_DVB)
+      if (value>=NUM_ASPECT_RATIOS)
 	value = ASPECT_AUTO;
 
       this->props[property].value = value;

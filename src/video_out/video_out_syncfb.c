@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.12 2001/08/20 11:16:40 joachim_koenig Exp $
+ * $Id: video_out_syncfb.c,v 1.13 2001/09/26 17:19:49 jkeil Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -415,16 +415,19 @@ printf("new frame format width %d height %d ratio %d format %x\n",width,height,r
       fprintf (stderr, "invalid ratio\n");
       exit (1);
       break;
-    case 1: /* "square" => 4:3 */
     case 2:
       aspect_ratio = 4.0 / 3.0;
       break;
     case 3:
       aspect_ratio = 16.0 / 9.0;
       break;
+    case 4:
+      aspect_ratio = 2.11/1.0;
+      break;
     case 42: /* some stupid stream => don't touch aspect ratio */
     default:
       xprintf (VIDEO, "unknown aspect ratio (%d) in stream. untouched.\n", _mga_priv.ratio);
+    case 1: /* "square" source pels */
       aspect_ratio = (double)_mga_priv.image_width / (double)_mga_priv.image_height;
       break;
     }
@@ -432,8 +435,10 @@ printf("new frame format width %d height %d ratio %d format %x\n",width,height,r
     aspect_ratio = 16.0 / 9.0;
   } else if (_mga_priv.user_ratio == ASPECT_DVB) {
     aspect_ratio = 2.0 / 1.0;
+  } else if (_mga_priv.user_ratio == ASPECT_SQUARE) {
+    aspect_ratio = (double)_mga_priv.image_width / (double)_mga_priv.image_height;
   } else {
-    aspect_ratio = 1.0;
+    aspect_ratio =  4.0 / 3.0;
   }
   aspect_ratio *= display_ratio;
   if (_mga_priv.image_height * aspect_ratio >= _mga_priv.image_width) {
@@ -741,7 +746,7 @@ printf("set property %d value %d\n",property,value);
         }
         return value;
   case VO_PROP_ASPECT_RATIO:
-	if (value > ASPECT_DVB)
+	if (value >= NUM_ASPECT_RATIOS)
 	  value = ASPECT_AUTO;
         if (value != _mga_priv.user_ratio) {
           _mga_priv.user_ratio         = value;

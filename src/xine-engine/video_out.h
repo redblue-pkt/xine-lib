@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.21 2001/09/26 01:18:19 guenter Exp $
+ * $Id: video_out.h,v 1.22 2001/09/26 17:19:49 jkeil Exp $
  *
  *
  * xine version of video_out.h 
@@ -192,6 +192,8 @@ struct vo_instance_s {
 #define ASPECT_ANAMORPHIC  1 /* 16:9 */
 #define ASPECT_FULL        2 /* 4:3  */
 #define ASPECT_DVB         3 /* 1:2  */
+#define ASPECT_SQUARE      4 /* square pels */
+#define NUM_ASPECT_RATIOS  5
 
 /* get_frame flags */
 

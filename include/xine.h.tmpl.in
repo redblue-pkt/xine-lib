@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.41 2001/09/16 23:13:45 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.42 2001/09/26 17:19:48 jkeil Exp $
  *
  */
 
@@ -317,6 +317,18 @@ int xine_check_version(int major, int minor, int sub);
  * \sa VO_PROP_ASPECT_RATIO
  */
 #define ASPECT_DVB         3
+/**
+ * \def ASPECT_SQUARE
+ * Set aspect ration to square pels.
+ * \sa VO_PROP_ASPECT_RATIO
+ */
+#define ASPECT_SQUARE      4
+/**
+ * \def NUM_ASPECT_RATIOS
+ * Number of aspect ratios supported for VO_PROP_ASPECT_RATIO property.
+ * \sa VO_PROP_ASPECT_RATIO
+ */
+#define NUM_ASPECT_RATIOS  5
 
                /** @} end of video_ratio */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.39 2001/09/25 18:39:36 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.40 2001/09/26 17:19:49 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -459,16 +459,19 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
       case 3:  /* anamorphic     */
 	desired_ratio = 16.0 /9.0;
 	break;
+      case 4:  /* 2.11:1 */
+	desired_ratio = 2.11/1.0;
+	break;
+      case 1:  /* square pels */
       case 42: /* probably non-mpeg stream => don't touch aspect ratio */
 	desired_ratio = image_ratio;
 	break;
-      case 0: /* forbidden       */
+      case 0: /* forbidden -> 4:3 */
 	fprintf (stderr, "invalid ratio, using 4:3\n");
-      case 1: /* "square" => 4:3 */
-      case 2: /* 4:3             */
       default:
 	xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n", 
 		 this->delivered_ratio_code);
+      case 2: /* 4:3             */
 	desired_ratio = 4.0 / 3.0;
 	break;
       }
@@ -479,6 +482,10 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
     case ASPECT_DVB:
       desired_ratio = 2.0 / 1.0;
       break;
+    case ASPECT_SQUARE:
+      desired_ratio = image_ratio;
+      break;
+    case ASPECT_FULL:
     default:
       desired_ratio = 4.0 / 3.0;
     }
@@ -817,7 +824,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
 
   if ( property == VO_PROP_ASPECT_RATIO) {
-    if (value>ASPECT_DVB)
+    if (value>=NUM_ASPECT_RATIOS)
       value = ASPECT_AUTO;
     this->user_ratio = value;
     this->gui_changed |= GUI_ASPECT_CHANGED;
