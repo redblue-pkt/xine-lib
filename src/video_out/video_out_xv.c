@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.52 2001/07/10 19:33:05 guenter Exp $
+ * $Id: video_out_xv.c,v 1.53 2001/07/11 20:16:02 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -847,7 +847,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	    "I couldn't find a usable yuv12 port.\n");
     printf ("              Looks like your graphics hardware "
 	    "driver doesn't support Xv?!\n");
-    XvFreeAdaptorInfo (adaptor_info);
+    /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
     return NULL;
   } else
     printf ("video_out_xv: using Xv port %ld for hardware "
