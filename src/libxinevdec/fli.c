@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.2 2002/07/15 21:42:34 esnel Exp $
+ * $Id: fli.c,v 1.3 2002/08/28 03:37:17 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -183,7 +183,7 @@ void decode_fli_frame(fli_decoder_t *this) {
         stream_ptr += 2;
         if (line_packets < 0) {
           line_packets = -line_packets;
-          y_ptr += (line_packets * this->yuv_planes.row_stride);
+          y_ptr += (line_packets * this->yuv_planes.row_width);
           ghost_y_ptr += (line_packets * this->width);
         } else {
           pixel_ptr = y_ptr;
@@ -232,18 +232,7 @@ void decode_fli_frame(fli_decoder_t *this) {
             }
           }
 
-          // take care of the extra 2 pixels on the C lines
-          this->yuv_planes.u[pixel_ptr] =
-            this->yuv_planes.u[pixel_ptr - 1];
-          this->yuv_planes.u[pixel_ptr + 1] =
-            this->yuv_planes.u[pixel_ptr - 2];
-
-          this->yuv_planes.v[pixel_ptr] =
-            this->yuv_planes.v[pixel_ptr - 1];
-          this->yuv_planes.v[pixel_ptr + 1] =
-            this->yuv_planes.v[pixel_ptr - 2];
-
-          y_ptr += this->yuv_planes.row_stride;
+          y_ptr += this->yuv_planes.row_width;
           ghost_y_ptr += this->width;
           compressed_lines--;
         }
@@ -254,7 +243,7 @@ void decode_fli_frame(fli_decoder_t *this) {
       /* line compressed */
       starting_line = LE_16(&this->buf[stream_ptr]);
       stream_ptr += 2;
-      y_ptr = starting_line * this->yuv_planes.row_stride;
+      y_ptr = starting_line * this->yuv_planes.row_width;
       ghost_y_ptr = starting_line * this->width;
 
       compressed_lines = LE_16(&this->buf[stream_ptr]);
@@ -299,18 +288,7 @@ void decode_fli_frame(fli_decoder_t *this) {
           }
         }
 
-        // take care of the extra 2 pixels on the C lines
-        this->yuv_planes.u[pixel_ptr] =
-          this->yuv_planes.u[pixel_ptr - 1];
-        this->yuv_planes.u[pixel_ptr + 1] =
-          this->yuv_planes.u[pixel_ptr - 2];
-
-        this->yuv_planes.v[pixel_ptr] =
-          this->yuv_planes.v[pixel_ptr - 1];
-        this->yuv_planes.v[pixel_ptr + 1] =
-          this->yuv_planes.v[pixel_ptr - 2];
-
-        y_ptr += this->yuv_planes.row_stride;
+        y_ptr += this->yuv_planes.row_width;
         ghost_y_ptr += this->width;
         compressed_lines--;
       }
@@ -362,18 +340,7 @@ void decode_fli_frame(fli_decoder_t *this) {
           }
         }
 
-        // take care of the extra 2 pixels on the C lines
-        this->yuv_planes.u[pixel_ptr] =
-          this->yuv_planes.u[pixel_ptr - 1];
-        this->yuv_planes.u[pixel_ptr + 1] =
-          this->yuv_planes.u[pixel_ptr - 2];
-
-        this->yuv_planes.v[pixel_ptr] =
-          this->yuv_planes.v[pixel_ptr - 1];
-        this->yuv_planes.v[pixel_ptr + 1] =
-          this->yuv_planes.v[pixel_ptr - 2];
-
-        y_ptr += this->yuv_planes.row_stride;
+        y_ptr += this->yuv_planes.row_width;
         ghost_y_ptr += this->width;
       }
       break;
@@ -418,18 +385,6 @@ void decode_fli_frame(fli_decoder_t *this) {
         this->yuv_planes.v[pixel_ptr] = this->yuv_palette[palette_ptr1 + 2];
         pixel_ptr++;
       }
-
-      // take care of the extra 2 pixels on the C lines
-      this->yuv_planes.u[pixel_ptr] =
-        this->yuv_planes.u[pixel_ptr - 1];
-      this->yuv_planes.u[pixel_ptr + 1] =
-        this->yuv_planes.u[pixel_ptr - 2];
-
-      // take care of the extra 2 pixels on the C lines
-      this->yuv_planes.v[pixel_ptr] =
-        this->yuv_planes.v[pixel_ptr - 1];
-      this->yuv_planes.v[pixel_ptr + 1] =
-        this->yuv_planes.v[pixel_ptr - 2];
 
       pixel_ptr += 2;
     }

@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.1 2002/08/12 00:16:54 tmmm Exp $
+ * $Id: idcinvideo.c,v 1.2 2002/08/28 03:37:17 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -91,7 +91,6 @@ void huff_decode(idcinvideo_decoder_t *this) {
   int prev;
   unsigned char v = 0;
   int bit_pos, node_num, dat_pos;
-  int width_countdown = this->width;
   int plane_ptr = 0;
 
   prev = bit_pos = dat_pos = 0;
@@ -118,12 +117,6 @@ void huff_decode(idcinvideo_decoder_t *this) {
     this->yuv_planes.u[plane_ptr] = this->yuv_palette[node_num * 4 + 1];
     this->yuv_planes.v[plane_ptr] = this->yuv_palette[node_num * 4 + 2];
     plane_ptr++;
-    width_countdown--;
-    if (!width_countdown) {
-      FINISH_LINE(this->yuv_planes, plane_ptr - this->width);
-      width_countdown = this->width;
-      plane_ptr += 2;
-    }
 
     prev = node_num;
   }

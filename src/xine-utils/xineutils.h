@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.20 2002/07/24 08:00:13 f1rmb Exp $
+ * $Id: xineutils.h,v 1.21 2002/08/28 03:32:48 tmmm Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -728,7 +728,6 @@ typedef struct yuv_planes_s {
   unsigned char *u;
   unsigned char *v;
   unsigned int row_width;    /* frame width */
-  unsigned int row_stride;   /* frame width + 2 */
   unsigned int row_count;    /* frame height */
 
 } yuv_planes_t;
@@ -752,17 +751,6 @@ extern void (*yuv444_to_yuy2)
 #define COMPUTE_V(r, g, b) \
   (unsigned char) \
   ((v_r_table[r] + v_g_table[g] + v_b_table[b]) / SCALEFACTOR + CENTERSAMPLE)
-
-#define FINISH_LINE(yuv_planes, row_ptr) \
-  yuv_planes.u[row_ptr + yuv_planes.row_width] = \
-    yuv_planes.u[row_ptr + yuv_planes.row_width - 1]; \
-  yuv_planes.u[row_ptr + yuv_planes.row_width + 1] = \
-    yuv_planes.u[row_ptr + yuv_planes.row_width - 2]; \
- \
-  yuv_planes.v[row_ptr + yuv_planes.row_width] = \
-    yuv_planes.v[row_ptr + yuv_planes.row_width - 1]; \
-  yuv_planes.v[row_ptr + yuv_planes.row_width + 1] = \
-    yuv_planes.v[row_ptr + yuv_planes.row_width - 2];
 
 #define UNPACK_BGR15(packed_pixel, r, g, b) \
   b = (packed_pixel & 0x7C00) >> 7; \

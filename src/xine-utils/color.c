@@ -37,25 +37,8 @@
  * COMPUTE_Y(r, g, b), COMPUTE_U(r, g, b), COMPUTE_V(r, g, b) macros found
  * in xineutils.h
  *
- * The yuv_planes_t structure has 3 other fields: row_width and row_count,
- * which are equivalent to the frame width and height, respectively, and
- * row_stride, which is 2 bytes longer than the row_width. This is because
- * each row in each plane is actually 2 bytes longer than the width. For
- * example, if the row_width is 8 then the row_stride is 10 and each
- * plane's byte map is laid out as follows:
- *
- *   byte  0: p0  p1  p2  p3  p4  p5  p6  p7  p7  p6
- *   byte 10: p8  p9 p10 p11 p12 p13 p14 p15 p15 p14 
- *   byte 20: ...
- *
- * The extra 2 samples are necessary for the final conversion. The extra
- * 2 samples are simply mirrored from the last 2 samples on the line.
- * This library provides a macro called FINISH_LINE() to mirror the last
- * 2 samples in each color plane. To use it, call the macro with the YUV
- * planes structure and the index of the first byte on the row. For
- * example, in the above example, call FINISH_LINE() with a yuv_planes
- * structure and the index 10 in order to finish (mirror the last 2 samples)
- * on the second line.
+ * The yuv_planes_t structure has 2 other fields: row_width and row_count
+ * which are equivalent to the frame width and height, respectively.
  *
  * When an image has been fully decoded into the yuv_planes_t structure,
  * call yuv444_to_yuy2() with the structure and the final (pre-allocated)
@@ -76,7 +59,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.5 2002/07/20 04:20:56 tmmm Exp $
+ * $Id: color.c,v 1.6 2002/08/28 03:32:48 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -152,17 +135,17 @@ void (*yuv444_to_yuy2) (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
  * init_yuv_planes
  *
  * This function initializes a yuv_planes_t structure based on the width
- * and height passed to it. The width must be divisible by 4 or the
- * final conversion function will not work.
+ * and height passed to it. The width must be divisible by 2.
  */
 void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height) {
 
   int plane_size;
 
   yuv_planes->row_width = width;
-  yuv_planes->row_stride = width + 2;
   yuv_planes->row_count = height;
-  plane_size = yuv_planes->row_stride * yuv_planes->row_count;
+  /* add 6 extra bytes to the plane size to account for residual filtering
+   * on the C planes */
+  plane_size = yuv_planes->row_width * yuv_planes->row_count + 6;
 
   yuv_planes->y = xine_xmalloc(plane_size);
   yuv_planes->u = xine_xmalloc(plane_size);
@@ -197,15 +180,16 @@ void free_yuv_planes(yuv_planes_t *yuv_planes) {
  *
  *   YUY2 map: Y0 U0 Y1 V1  Y2 U2 Y3 V3
  */
-void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch) {
+void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, 
+  int pitch) {
 
   int row_ptr, pixel_ptr;
   int yuy2_index;
 
   /* copy the Y samples */
   yuy2_index = 0;
-  for (row_ptr = 0; row_ptr < yuv_planes->row_stride * yuv_planes->row_count;
-    row_ptr += yuv_planes->row_stride) {
+  for (row_ptr = 0; row_ptr < yuv_planes->row_width * yuv_planes->row_count;
+    row_ptr += yuv_planes->row_width) {
     for (pixel_ptr = 0; pixel_ptr <  yuv_planes->row_width;
       pixel_ptr++, yuy2_index += 2)
       yuy2_map[yuy2_index] = yuv_planes->y[row_ptr + pixel_ptr];
@@ -215,8 +199,8 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pit
 
   /* copy the C samples */
   yuy2_index = 1;
-  for (row_ptr = 0; row_ptr < yuv_planes->row_stride * yuv_planes->row_count;
-    row_ptr += yuv_planes->row_stride) {
+  for (row_ptr = 0; row_ptr < yuv_planes->row_width * yuv_planes->row_count;
+    row_ptr += yuv_planes->row_width) {
 
     for (pixel_ptr = 0; pixel_ptr <  yuv_planes->row_width;) {
       yuy2_map[yuy2_index] = yuv_planes->u[row_ptr + pixel_ptr];
@@ -300,15 +284,20 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pit
  * [C2..C5] and once for [C4..C7]. After computing 3 filtered samples,
  * increment the plane pointer by 6 and repeat the whole process.
  *
- * There is a special case when the row width is not evenly divisible by
- * 6. In the special case, the plane pointer must be backed up by a few
- * samples so that the filter can be computed 1 or 2 more times in order to
- * pad out the line.    
+ * There is a special case when the filter hits the end of the line since
+ * it is always necessary to rely on phantom samples beyond the end of the
+ * line in order to compute the final 1-3 C samples of a line. This function
+ * uses zeros in those phantom positions in order to compute the final 
+ * samples. However, the function might read up to 6 samples from the next
+ * line which might not exist if the filter is already operation on the 
+ * last line of the plane. This is why the planes are allocated to be 6 
+ * bytes larger than width * height.
  *
  */
-void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch) {
+void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
+  int pitch) {
 #ifdef ARCH_X86
-  int i, j, k;
+  int h, i, j, k;
   unsigned char *source_plane;
   unsigned char *dest_plane;
   unsigned char vector[8];
@@ -318,22 +307,37 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
     0x03, 0x00,
     0x01, 0x00
   };
-
-  /* special case work variables */
-  int width_mod;
-  int secondary_samples;
-  int rewind_bytes;
-  int toss_out_shift;
+  unsigned char advance2_andmask[] = {
+    0xFF, 0xFF,
+    0x00, 0x00,
+    0x00, 0x00,
+    0x00, 0x00
+  };
+  unsigned char advance4_andmask[] = {
+    0xFF, 0xFF,
+    0xFF, 0xFF,
+    0x00, 0x00,
+    0x00, 0x00
+  };
+  unsigned char advance6_andmask[] = {
+    0xFF, 0xFF,
+    0xFF, 0xFF,
+    0xFF, 0xFF,
+    0x00, 0x00
+  };
+  int block_loops = yuv_planes->row_width / 6;
+  int filter_loops;
+  int advance_count;
   int row_inc = (pitch - 2 * yuv_planes->row_width);
 
-  width_mod = yuv_planes->row_width % 6;
-  secondary_samples = width_mod / 2;
-  rewind_bytes = 6 - width_mod;
-  toss_out_shift = rewind_bytes * 8;
-
-  /* set up some MMX registers: mm0 = 0, mm7 = color filter */
+  /* set up some MMX registers: 
+   * mm0 = 0, mm7 = color filter,
+   * mm4..6 = advance 2,4,6 and masks */
   pxor_r2r(mm0, mm0);
   movq_m2r(*filter, mm7);
+  movq_m2r(*advance2_andmask, mm4);
+  movq_m2r(*advance4_andmask, mm5);
+  movq_m2r(*advance6_andmask, mm6);
 
   /* copy the Y samples */
   source_plane = yuv_planes->y;
@@ -356,141 +360,70 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
       dest_plane += 8;
     }
 
-    /* account for extra 2 samples */
-    source_plane += 2;
     dest_plane += row_inc;
   }
 
-  /* figure out the U samples */
-  source_plane = yuv_planes->u;
-  dest_plane = yuy2_map + 1;
-  for (i = 0; i < yuv_planes->row_count; i++) {
+  /* figure out the C samples */
+  for (h = 0; h < 2; h++) {
 
-    /* iterate through blocks of 6 samples */
-    for (j = 0; j < yuv_planes->row_width / 6; j++) {
-
-      movq_m2r(*source_plane, mm1); /* load 8 U samples */
-      source_plane += 6;
-
-      for (k = 0; k < 3; k++)
-      {
-        movq_r2r(mm1, mm2);      /* make a copy */
-
-        punpcklbw_r2r(mm0, mm2); /* interleave lower 4 samples with zeros */
-        pmaddwd_r2r(mm7, mm2);   /* apply the filter */
-        movq_r2r(mm2, mm3);      /* copy result to mm3 */
-        psrlq_i2r(32, mm3);      /* move the upper sum down */
-        paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
-        psrlq_i2r(3, mm2);       /* final phase of the filter */
-
-        movq_r2m(mm2, *vector);
-        dest_plane[0] = vector[0];
-        dest_plane += 4;
-
-        psrlq_i2r(16, mm1);      /* toss out 2 U samples and loop again */
-      }
+    /* select the color plane for this iteration */
+    if (h == 0) {
+      source_plane = yuv_planes->u;
+      dest_plane = yuy2_map + 1;
+    } else {
+      source_plane = yuv_planes->v;
+      dest_plane = yuy2_map + 3;
     }
 
-    /* special case time: secondary samples */
-    if (width_mod) {
-      source_plane -= rewind_bytes;
-      movq_m2r(*source_plane, mm1); /* load 8 U samples */
-      source_plane += 8;
+    for (i = 0; i < yuv_planes->row_count; i++) {
 
-      /* toss out 1-2 U samples before starting */
-      /* (psrlq_m2r does not work like I expect it to, so this looks weird) */
-      if (toss_out_shift == 16)
-        psrlq_i2r(16, mm1);
-      else
-        psrlq_i2r(32, mm1);
+      filter_loops = 3;
 
-      for (k = 0; k < secondary_samples; k++)
-      {
-        movq_r2r(mm1, mm2);      /* make a copy */
+      /* iterate through blocks of 6 samples */
+      for (j = 0; j <= block_loops; j++) {
 
-        punpcklbw_r2r(mm0, mm2); /* interleave lower 4 samples with zeros */
-        pmaddwd_r2r(mm7, mm2);   /* apply the filter */
-        movq_r2r(mm2, mm3);      /* copy result to mm3 */
-        psrlq_i2r(32, mm3);      /* move the upper sum down */
-        paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
-        psrlq_i2r(3, mm2);       /* final phase of the filter */
+        /* special case for end-of-line residual */
+        if (j != block_loops) {
+          movq_m2r(*source_plane, mm1); /* load 8 C samples */
+          source_plane += 6;
+        } else {
+          advance_count = yuv_planes->row_width % 6;
+          if (!advance_count)
+            advance_count = 6;
+          filter_loops = advance_count / 2;
 
-        movq_r2m(mm2, *vector);
-        dest_plane[0] = vector[0];
-        dest_plane += 4;
+          movq_m2r(*source_plane, mm1); /* load 8 C samples */
+          source_plane += advance_count;
 
-        psrlq_i2r(16, mm1);      /* toss out 2 U samples and loop again */
-      }
-    } else
-      source_plane += 2;
+          /* zero out the rest of the samples */
+/*
+          if (advance_count == 2)
+            pand_r2r(mm4, mm1);
+          else if (advance_count == 4)
+            pand_r2r(mm5, mm1);
+          else if (advance_count == 6)
+            pand_r2r(mm6, mm1);
+*/
+        }
 
-    dest_plane += row_inc;
-  }
+        for (k = 0; k < filter_loops; k++) {
+          movq_r2r(mm1, mm2);      /* make a copy */
 
-  /* figure out the V samples */
-  source_plane = yuv_planes->v;
-  dest_plane = yuy2_map + 3;
-  for (i = 0; i < yuv_planes->row_count; i++) {
+          punpcklbw_r2r(mm0, mm2); /* interleave lower 4 samples with zeros */
+          pmaddwd_r2r(mm7, mm2);   /* apply the filter */
+          movq_r2r(mm2, mm3);      /* copy result to mm3 */
+          psrlq_i2r(32, mm3);      /* move the upper sum down */
+          paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
+          psrlq_i2r(3, mm2);       /* divide by 8 */
 
-    /* iterate through blocks of 6 samples */
-    for (j = 0; j < yuv_planes->row_width / 6; j++) {
+          movq_r2m(mm2, *vector);
+          dest_plane[0] = vector[0];
+          dest_plane += 4;
 
-      movq_m2r(*source_plane, mm1); /* load 8 V samples */
-      source_plane += 6;
-
-      for (k = 0; k < 3; k++)
-      {
-        movq_r2r(mm1, mm2);      /* make a copy */
-
-        punpcklbw_r2r(mm0, mm2); /* interleave lower 4 samples with zeros */
-        pmaddwd_r2r(mm7, mm2);   /* apply the filter */
-        movq_r2r(mm2, mm3);      /* copy result to mm3 */
-        psrlq_i2r(32, mm3);      /* move the upper sum down */
-        paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
-        psrlq_i2r(3, mm2);       /* final phase of the filter */
-
-        movq_r2m(mm2, *vector);
-        dest_plane[0] = vector[0];
-        dest_plane += 4;
-
-        psrlq_i2r(16, mm1);      /* toss out 2 V samples and loop again */
+          psrlq_i2r(16, mm1);      /* toss out 2 C samples and loop again */
+        }
       }
     }
-
-    /* special case time: secondary samples */
-    if (width_mod) {
-      source_plane -= rewind_bytes;
-      movq_m2r(*source_plane, mm1); /* load 8 V samples */
-      source_plane += 8;
-
-      /* toss out 1-2 V samples before starting */
-      /* (psrlq_m2r does not work like I expect it to, so this looks weird) */
-      if (toss_out_shift == 16)
-        psrlq_i2r(16, mm1);
-      else
-        psrlq_i2r(32, mm1);
-
-      for (k = 0; k < secondary_samples; k++)
-      {
-        movq_r2r(mm1, mm2);      /* make a copy */
-
-        punpcklbw_r2r(mm0, mm2); /* interleave lower 4 samples with zeros */
-        pmaddwd_r2r(mm7, mm2);   /* apply the filter */
-        movq_r2r(mm2, mm3);      /* copy result to mm3 */
-        psrlq_i2r(32, mm3);      /* move the upper sum down */
-        paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
-        psrlq_i2r(3, mm2);       /* final phase of the filter */
-
-        movq_r2m(mm2, *vector);
-        dest_plane[0] = vector[0];
-        dest_plane += 4;
-
-        psrlq_i2r(16, mm1);      /* toss out 2 V samples and loop again */
-      }
-    } else
-      source_plane += 2;
-
-    dest_plane += row_inc;
   }
 
   /* be a good MMX citizen and empty MMX state */

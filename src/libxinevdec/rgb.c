@@ -21,7 +21,7 @@
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
  * 
- * $Id: rgb.c,v 1.3 2002/07/20 04:24:59 tmmm Exp $
+ * $Id: rgb.c,v 1.4 2002/08/28 03:37:17 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -162,9 +162,9 @@ static void rgb_decode_data (video_decoder_t *this_gen,
 
       /* iterate through each row */
       buf_ptr = 0;
-      row_ptr = this->yuv_planes.row_stride *
+      row_ptr = this->yuv_planes.row_width *
         (this->yuv_planes.row_count - 1);
-      for (; row_ptr >= 0; row_ptr -= this->yuv_planes.row_stride) {
+      for (; row_ptr >= 0; row_ptr -= this->yuv_planes.row_width) {
         for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
 
           if (this->bytes_per_pixel == 1) {
@@ -206,9 +206,6 @@ static void rgb_decode_data (video_decoder_t *this_gen,
 
           }
         }
-
-        /* take care of the extra 2 pixels on the C lines */
-        FINISH_LINE(this->yuv_planes, row_ptr);
       }
 
       yuv444_to_yuy2(&this->yuv_planes, img->base[0], img->pitches[0]);
