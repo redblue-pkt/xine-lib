@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2001/12/09 17:10:12 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.45 2001/12/12 15:05:37 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -294,11 +294,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
                      buf->content,
                      buf->size);
   if(this->spu_stream_state[stream_id].ra_complete == 1) { 
-    /* Testing menus  */
-    if(stream_id == 0) {
-    /* End testing menus */
-     spu_process(this,stream_id);
-    }
+    /*
+     * Testing menus  
+     * if(stream_id == 0) {
+     * spu_process(this,stream_id);
+     * }
+     * End testing menus
+     */ 
+    spu_process(this,stream_id);
   }
 }
 
