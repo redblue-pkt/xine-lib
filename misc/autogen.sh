@@ -53,7 +53,7 @@ fi
 
 aclocalinclude="$ACLOCAL_FLAGS"; \
 (echo $_echo_n " + Running aclocal: $_echo_c"; \
-    aclocal $aclocalinclude; \
+    aclocal $aclocalinclude -I m4; \
  echo "done.") && \
 (echo $_echo_n " + Running libtoolize: $_echo_c"; \
     libtoolize --force --copy >/dev/null 2>&1; \

@@ -2,34 +2,37 @@
 # Run this to generate all the initial Makefiles, etc.
 
 ## extract automake version
-automake_1_5x=no
+automake_1_6x=no
 AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
 if test $AM -lt 100 ; then
   AM=`expr $AM \* 10`
 fi
-if [ `expr $AM` -ge 150 ]; then
-    automake_1_5x=yes
+if [ `expr $AM` -ge 160 ]; then
+    automake_1_6x=yes
+fi
+if test x"$automake_1_6x" = x"no"; then
+	echo "To compile xine-lib from CVS requires automake >= 1.6"
+	exit
+fi
+
+## extract autoconf version
+autoconf_2_53=no
+AC="`autoconf --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
+if test $AC -lt 100 ; then
+  AC=`expr $AC \* 10`
+fi
+if [ `expr $AC` -ge 253 ]; then
+    autoconf_2_53=yes
+fi
+if test x"$autoconf_2_53" = x"no"; then
+	echo "To compile xine-lib from CVS requires autoconf >= 2.53"
+	exit
 fi
 
 rm -f config.cache
 
 srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
-
-m4_files="_xine.m4 arts.m4 as.m4 esd.m4 iconv.m4 lcmessage.m4 vorbis.m4 aa.m4 gettext.m4 irixal.m4 ogg.m4 alsa.m4 codeset.m4 glibc21.m4 isc-posix.m4 progtest.m4 sdl.m4 xvid.m4 libfame.m4 dvdnav.m4"
-if test -d $srcdir/m4; then
-    rm -f acinclude.m4
-    for m4f in $m4_files; do
-	cat $srcdir/m4/$m4f >> acinclude.m4
-    done
-##    ## automake 1.5x implement AM_PROG_AS, not older ones, so add it.
-##    if test x"$automake_1_5x" = x"no"; then
-##	cat $srcdir/m4/as.m4 >> acinclude.m4
-##    fi
-else
-    echo "Directory 'm4' is missing."
-    exit 1
-fi
 
 (test -f $srcdir/configure.ac) || {
     echo -n "*** Error ***: Directory "\`$srcdir\'" does not look like the"
