@@ -276,6 +276,7 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.la
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
 # lib, logo and fonts.
+@HAVE_IMLIB_TRUE@%{prefix}/bin/xine-logoconv
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/xine_logo.png

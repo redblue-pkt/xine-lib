@@ -35,6 +35,9 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,11 +100,19 @@ static void save_image (char *oldname, ImlibImage *img) {
       double y, u, v;
       unsigned char cy,cu,cv;
 
+#ifdef WORDS_BIGENDIAN
       r = img->rgb_data[(px+py*w)*3];
       g = img->rgb_data[(px+py*w)*3+1];
       b = img->rgb_data[(px+py*w)*3+2];
+#else
+      r = img->rgb_data[(px+py*w)*3+2];
+      g = img->rgb_data[(px+py*w)*3+1];
+      b = img->rgb_data[(px+py*w)*3];
+#endif
 
-      y = LUMARED*r + LUMAGREEN*g + LUMABLUE*b;
+      y = (LUMARED*r) + (LUMAGREEN*g) + (LUMABLUE*b);
+      //      u = (b-y) / (2 - 2*LUMABLUE);
+      //      v = (r-y) / (2 - 2*LUMABLUE);
       u = (b-y) / (2 - 2*LUMABLUE);
       v = (r-y) / (2 - 2*LUMABLUE);
 
@@ -128,9 +139,9 @@ static void save_image (char *oldname, ImlibImage *img) {
 
 int main(int argc, char *argv[]) {
 
-  Display    *display;
-  ImlibData  *imlib_data;
-  ImlibImage *img;
+  Display           *display;
+  ImlibData         *imlib_data;
+  ImlibImage        *img;
 
   if (argc != 2) {
     printf ("usage: %s foo.png\n", argv[0]);
@@ -141,8 +152,8 @@ int main(int argc, char *argv[]) {
     printf ("failed to open X11 display\n");
     exit (1);
   }
-
-  if (!(imlib_data = Imlib_init (display))) {
+  
+  if (!(imlib_data = Imlib_init(display))) {
     printf ("failed to initialize imlib\n");
     exit(1);
   }
