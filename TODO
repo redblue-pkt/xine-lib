@@ -55,7 +55,6 @@ required for 1.0
   ogg demuxer and DVD input
 - update xine hacker's guide (article on post plugins still missing)
 - xine bug tracking system?
-- fix stream end detection for real streams
 - add help strings for all post plugins
 - add help strings for all config options
 - review code for stack overflows
@@ -118,6 +117,8 @@ Open Tasks
 - detect raw ac3/a52 in MPEG Program streams.
 - detect raw ac3/a52 in MPEG Transport streams that lack PAT/PMT tables.
 - handle MPEG PES/PS streams with PES_packet_length = 0
+- implement native FLAC demuxer and include ffmpeg FLAC decoder to remove
+  dependency on libflac
 
 xine's future
 =============
