@@ -21,7 +21,7 @@
 /*
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.35 2003/11/13 15:23:00 andruil Exp $
+ * $Id: demux_aiff.c,v 1.36 2003/11/15 14:00:38 miguelfreitas Exp $
  *
  */
 
@@ -264,7 +264,7 @@ static void demux_aiff_send_headers(demux_plugin_t *this_gen) {
 }
 
 static int demux_aiff_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
+                           off_t start_pos, int start_time, int playing) {
 
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
 
@@ -342,8 +342,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_aiff_dispose;
   this->demux_plugin.get_status        = demux_aiff_get_status;
   this->demux_plugin.get_stream_length = demux_aiff_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_aiff_get_capabilities;
   this->demux_plugin.get_optional_data = demux_aiff_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

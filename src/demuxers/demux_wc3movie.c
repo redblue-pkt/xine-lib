@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.45 2003/11/13 15:23:01 andruil Exp $
+ * $Id: demux_wc3movie.c,v 1.46 2003/11/15 14:01:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -509,7 +509,7 @@ static int open_mve_file(demux_mve_t *this) {
 }
 
 static int demux_mve_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
+                           off_t start_pos, int start_time, int playing) {
 
   /*
    * MVE files are comprised of a series of SHOTs. A SHOT begins when the
@@ -663,8 +663,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_mve_dispose;
   this->demux_plugin.get_status        = demux_mve_get_status;
   this->demux_plugin.get_stream_length = demux_mve_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_mve_get_capabilities;
   this->demux_plugin.get_optional_data = demux_mve_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

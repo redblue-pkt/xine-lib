@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.45 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_roq.c,v 1.46 2003/11/15 14:01:02 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -352,12 +352,12 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
 }
 
 static int demux_roq_seek (demux_plugin_t *this_gen,
-                             off_t start_pos, int start_time) {
+                             off_t start_pos, int start_time, int playing) {
 
   demux_roq_t *this = (demux_roq_t *) this_gen;
 
   /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
+  if( !playing ) {
 
     /* send new pts */
     _x_demux_control_newpts(this->stream, 0, 0);
@@ -418,8 +418,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_roq_dispose;
   this->demux_plugin.get_status        = demux_roq_get_status;
   this->demux_plugin.get_stream_length = demux_roq_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_roq_get_capabilities;
   this->demux_plugin.get_optional_data = demux_roq_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

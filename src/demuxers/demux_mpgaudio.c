@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.123 2003/11/13 15:23:01 andruil Exp $
+ * $Id: demux_mpgaudio.c,v 1.124 2003/11/15 14:00:52 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -908,7 +908,7 @@ static int xing_get_seek_time(demux_mpgaudio_t *this, off_t pos)
 }
 
 static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
-                                off_t start_pos, int start_time) {
+                                off_t start_pos, int start_time, int playing) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
@@ -949,7 +949,7 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
   this->status = DEMUX_OK;
   this->send_newpts = 1;
 
-  if( !this->stream->demux_thread_running ) {
+  if( !playing ) {
     this->buf_flag_seek = 0;
   } else {
     this->buf_flag_seek = 1;
@@ -1115,7 +1115,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_mpgaudio_dispose;
   this->demux_plugin.get_status        = demux_mpgaudio_get_status;
   this->demux_plugin.get_stream_length = demux_mpgaudio_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
   this->demux_plugin.get_capabilities  = demux_mpgaudio_get_capabilities;
   this->demux_plugin.get_optional_data = demux_mpgaudio_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

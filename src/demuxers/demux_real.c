@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.70 2003/11/13 15:23:01 andruil Exp $
+ * $Id: demux_real.c,v 1.71 2003/11/15 14:01:01 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1157,7 +1157,7 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
 }
 
 static int demux_real_seek (demux_plugin_t *this_gen,
-                             off_t start_pos, int start_time) {
+                             off_t start_pos, int start_time, int playing) {
 
   demux_real_t       *this = (demux_real_t *) this_gen;
   real_index_entry_t *index, *other_index = NULL;
@@ -1198,7 +1198,7 @@ static int demux_real_seek (demux_plugin_t *this_gen,
 
     this->input->seek(this->input, index[i].offset, SEEK_SET);
 
-    if(this->stream->demux_thread_running) {
+    if(playing) {
       this->buf_flag_seek = 1;
       _x_demux_flush_engine(this->stream);
     }
@@ -1344,8 +1344,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_real_dispose;
   this->demux_plugin.get_status        = demux_real_get_status;
   this->demux_plugin.get_stream_length = demux_real_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_real_get_capabilities;
   this->demux_plugin.get_optional_data = demux_real_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
@@ -1399,6 +1397,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 22, "real", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 23, "real", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

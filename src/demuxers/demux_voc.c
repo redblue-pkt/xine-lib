@@ -25,7 +25,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.34 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_voc.c,v 1.35 2003/11/15 14:01:04 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -228,7 +228,7 @@ static void demux_voc_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_voc_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
+static int demux_voc_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
   demux_voc_t *this = (demux_voc_t *) this_gen;
 
   this->seek_flag = 1;
@@ -305,8 +305,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_voc_dispose;
   this->demux_plugin.get_status        = demux_voc_get_status;
   this->demux_plugin.get_stream_length = demux_voc_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_voc_get_capabilities;
   this->demux_plugin.get_optional_data = demux_voc_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

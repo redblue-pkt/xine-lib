@@ -22,7 +22,7 @@
  * VOX Demuxer by Mike Melanson (melanson@pcisys.net)
  * This a demuxer for .vox files containing raw Dialogic ADPCM data.
  *
- * $Id: demux_vox.c,v 1.9 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_vox.c,v 1.10 2003/11/15 14:01:04 miguelfreitas Exp $
  *
  */
 
@@ -134,11 +134,11 @@ static void demux_vox_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_vox_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
+static int demux_vox_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
   demux_vox_t *this = (demux_vox_t *) this_gen;
 
   /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
+  if( !playing ) {
 
     /* send new pts */
     _x_demux_control_newpts(this->stream, 0, 0);
@@ -215,8 +215,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_vox_dispose;
   this->demux_plugin.get_status        = demux_vox_get_status;
   this->demux_plugin.get_stream_length = demux_vox_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_vox_get_capabilities;
   this->demux_plugin.get_optional_data = demux_vox_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

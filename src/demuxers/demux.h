@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.33 2003/10/06 15:46:20 mroi Exp $
+ * $Id: demux.h,v 1.34 2003/11/15 14:00:37 miguelfreitas Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@
 #  include <xine/xine_internal.h>
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    22
+#define DEMUXER_PLUGIN_IFACE_VERSION    23
 
 #define DEMUX_OK                   0
 #define DEMUX_FINISHED             1
@@ -110,6 +110,8 @@ struct demux_plugin_s {
    *
    * start_pos  : position in input source
    * start_time : position measured in miliseconds from stream start
+   * playing : true if this is a new seek within an already playing stream
+   *           false if playback of this stream has not started yet
    *
    * if both parameters are !=0 start_pos will be used
    * for non-seekable streams both values will be ignored
@@ -119,7 +121,7 @@ struct demux_plugin_s {
    */
 
   int (*seek) (demux_plugin_t *this, 
-	       off_t start_pos, int start_time);
+	       off_t start_pos, int start_time, int playing );
 
   /*
    * send a chunk of data down to decoder fifos 
@@ -151,24 +153,6 @@ struct demux_plugin_s {
    */
 
   int (*get_stream_length) (demux_plugin_t *this);
-
-  /*
-   * get audio/video frames 
-   *
-   * experimental, function pointers can be NULL for now.
-   */
-
-  int (*get_video_frame) (demux_plugin_t *this,
-			  int timestamp, /* msec */
-			  int *width, int *height,
-			  int *ratio_code, 
-			  int *duration, /* msec */
-			  int *format,
-			  uint8_t *img) ;
-
-  /* called by video_out for every frame it receives */
-  void (*got_video_frame_cb) (demux_plugin_t *this,
-			      vo_frame_t *frame);
 
   /*
    * return capabilities of demuxed stream

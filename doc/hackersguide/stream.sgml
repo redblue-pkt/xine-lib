@@ -332,7 +332,7 @@
     decoder and then return.
    </para>
    <para>
-    <programlisting>&nbsp;&nbsp;&nbsp;int demux_seek(demux_plugin_t *this_gen, off_t start_pos, int start_time);</programlisting>
+    <programlisting>&nbsp;&nbsp;&nbsp;int demux_seek(demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing);</programlisting>
     This function is called by the engine to request stream repositioning.
     This function should be implemented if possible. See the section on
     "Seeking Policy" for more information. A seek operation should reposition

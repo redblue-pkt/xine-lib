@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.263 2003/11/15 13:01:01 miguelfreitas Exp $
+ * $Id: xine.c,v 1.264 2003/11/15 14:00:35 miguelfreitas Exp $
  */
 
 /*
@@ -964,7 +964,8 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
 
   /* seek to new position (no data is sent to decoders yet) */
   demux_status = stream->demux_plugin->seek (stream->demux_plugin,
-						   pos, start_time);
+					     pos, start_time, 
+					     stream->demux_thread_running);
 
   stream->demux_action_pending = 0;
 
@@ -1494,24 +1495,9 @@ int xine_get_video_frame (xine_stream_t *stream,
 			  int *duration, /* msec */
 			  int *format,
 			  uint8_t *img) {
-  int ret;
-
-  pthread_mutex_lock (&stream->frontend_lock);
-
-  if (stream->status != XINE_STATUS_STOP)
-    xine_stop_internal (stream);
-
-  if (stream->demux_plugin->get_video_frame)
-    ret = stream->demux_plugin->get_video_frame (stream->demux_plugin,
-						 timestamp, width, height,
-						 ratio_code, duration,
-						 format, img);
-  else
-    ret = 0;
-
-  pthread_mutex_unlock (&stream->frontend_lock);
-
-  return ret;
+  printf ("xine: xine_get_video_frame not implemented yet.\n");
+  abort ();
+  return 0;
 }
 
 int xine_get_spu_lang (xine_stream_t *stream, int channel, char *lang) {

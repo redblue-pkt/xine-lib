@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.175 2003/11/11 18:44:51 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.176 2003/11/15 14:00:40 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1600,7 +1600,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
  * seek().
  */
 static int demux_avi_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
+                           off_t start_pos, int start_time, int playing) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
                              
   if (!this->streaming) {
@@ -1836,8 +1836,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_avi_dispose;
   this->demux_plugin.get_status        = demux_avi_get_status;
   this->demux_plugin.get_stream_length = demux_avi_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_avi_get_capabilities;
   this->demux_plugin.get_optional_data = demux_avi_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
@@ -1911,6 +1909,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 22, "avi", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 23, "avi", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

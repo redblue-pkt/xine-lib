@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.8 2003/11/13 15:23:01 andruil Exp $
+ * $Id: demux_nsv.c,v 1.9 2003/11/15 14:00:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -358,13 +358,13 @@ static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
 }
 
 static int demux_nsv_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
+                           off_t start_pos, int start_time, int playing) {
 
   demux_nsv_t *this = (demux_nsv_t *) this_gen;
 
   lprintf("starting demuxer\n");
   /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
+  if( !playing ) {
 
     /* send new pts */
     _x_demux_control_newpts(this->stream, 0, 0);
@@ -414,8 +414,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_nsv_dispose;
   this->demux_plugin.get_status        = demux_nsv_get_status;
   this->demux_plugin.get_stream_length = demux_nsv_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_nsv_get_capabilities;
   this->demux_plugin.get_optional_data = demux_nsv_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
@@ -498,6 +496,6 @@ static void *demux_nsv_init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 22, "nsv", XINE_VERSION_CODE, NULL, demux_nsv_init_plugin },
+  { PLUGIN_DEMUX, 23, "nsv", XINE_VERSION_CODE, NULL, demux_nsv_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

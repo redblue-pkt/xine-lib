@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.25 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_realaudio.c,v 1.26 2003/11/15 14:01:02 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -303,7 +303,7 @@ static void demux_ra_send_headers(demux_plugin_t *this_gen) {
 }
 
 static int demux_ra_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
+                           off_t start_pos, int start_time, int playing) {
 
   demux_ra_t *this = (demux_ra_t *) this_gen;
 
@@ -385,8 +385,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_ra_dispose;
   this->demux_plugin.get_status        = demux_ra_get_status;
   this->demux_plugin.get_stream_length = demux_ra_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_ra_get_capabilities;
   this->demux_plugin.get_optional_data = demux_ra_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

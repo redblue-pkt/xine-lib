@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.171 2003/11/13 15:23:01 andruil Exp $
+ * $Id: demux_qt.c,v 1.172 2003/11/15 14:00:56 miguelfreitas Exp $
  *
  */
 
@@ -2559,7 +2559,7 @@ static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
 }
 
 static int demux_qt_seek (demux_plugin_t *this_gen,
-                          off_t start_pos, int start_time) {
+                          off_t start_pos, int start_time, int playing) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
   qt_trak *video_trak = NULL;
@@ -2621,7 +2621,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
    * do only flush if already running (seeking).
    * otherwise decoder_config is flushed too.
    */
-  if(this->stream->demux_thread_running)
+  if(playing)
     _x_demux_flush_engine(this->stream);
 
   return this->status;
@@ -2689,8 +2689,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_qt_dispose;
   this->demux_plugin.get_status        = demux_qt_get_status;
   this->demux_plugin.get_stream_length = demux_qt_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_qt_get_capabilities;
   this->demux_plugin.get_optional_data = demux_qt_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
@@ -2824,6 +2822,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 22, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 23, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

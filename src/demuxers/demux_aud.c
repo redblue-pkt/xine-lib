@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.13 2003/11/11 18:44:51 f1rmb Exp $
+ * $Id: demux_aud.c,v 1.14 2003/11/15 14:00:40 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -221,7 +221,7 @@ static void demux_aud_send_headers(demux_plugin_t *this_gen) {
 }
 
 static int demux_aud_seek (demux_plugin_t *this_gen,
-                               off_t start_pos, int start_time) {
+                               off_t start_pos, int start_time, int playing) {
 
   demux_aud_t *this = (demux_aud_t *) this_gen;
 
@@ -276,8 +276,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_aud_dispose;
   this->demux_plugin.get_status        = demux_aud_get_status;
   this->demux_plugin.get_stream_length = demux_aud_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_aud_get_capabilities;
   this->demux_plugin.get_optional_data = demux_aud_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

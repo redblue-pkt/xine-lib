@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.44 2003/11/13 15:23:01 andruil Exp $
+ * $Id: demux_smjpeg.c,v 1.45 2003/11/15 14:01:02 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -351,11 +351,11 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_smjpeg_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
+static int demux_smjpeg_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
 
   /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
+  if( !playing ) {
 
     this->status = DEMUX_OK;
   }
@@ -413,8 +413,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_smjpeg_dispose;
   this->demux_plugin.get_status        = demux_smjpeg_get_status;
   this->demux_plugin.get_stream_length = demux_smjpeg_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_smjpeg_get_capabilities;
   this->demux_plugin.get_optional_data = demux_smjpeg_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

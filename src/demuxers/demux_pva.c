@@ -23,7 +23,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.13 2003/11/11 18:44:52 f1rmb Exp $
+ * $Id: demux_pva.c,v 1.14 2003/11/15 14:00:55 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -337,7 +337,7 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
 
 #define SEEK_BUFFER_SIZE 1024
 static int demux_pva_seek (demux_plugin_t *this_gen,
-                               off_t start_pos, int start_time) {
+                               off_t start_pos, int start_time, int playing) {
 
   demux_pva_t *this = (demux_pva_t *) this_gen;
   unsigned char seek_buffer[SEEK_BUFFER_SIZE];
@@ -377,7 +377,7 @@ static int demux_pva_seek (demux_plugin_t *this_gen,
   this->input->seek(this->input, -(SEEK_BUFFER_SIZE - i), SEEK_CUR);
 
   /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
+  if( !playing ) {
 
     this->send_newpts = 1;
 
@@ -434,8 +434,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_pva_dispose;
   this->demux_plugin.get_status        = demux_pva_get_status;
   this->demux_plugin.get_stream_length = demux_pva_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_pva_get_capabilities;
   this->demux_plugin.get_optional_data = demux_pva_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
@@ -517,6 +515,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 22, "pva", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 23, "pva", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

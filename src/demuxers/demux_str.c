@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.18 2003/11/13 15:23:01 andruil Exp $
+ * $Id: demux_str.c,v 1.19 2003/11/15 14:01:03 miguelfreitas Exp $
  */
 
 /*
@@ -495,7 +495,7 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_str_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
+static int demux_str_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
   demux_str_t *this = (demux_str_t *) this_gen;
 
   _x_demux_flush_engine (this->stream);
@@ -563,8 +563,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_str_dispose;
   this->demux_plugin.get_status        = demux_str_get_status;
   this->demux_plugin.get_stream_length = demux_str_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_str_get_capabilities;
   this->demux_plugin.get_optional_data = demux_str_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;

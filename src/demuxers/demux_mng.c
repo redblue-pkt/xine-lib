@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.13 2003/11/11 18:44:52 f1rmb Exp $
+ * $Id: demux_mng.c,v 1.14 2003/11/15 14:00:48 miguelfreitas Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -218,7 +218,7 @@ static void demux_mng_send_headers(demux_mng_t *this){
   this->video_fifo->put(this->video_fifo, buf);
 }
 
-static int demux_mng_seek(demux_mng_t *this, off_t start_pos, int start_time){
+static int demux_mng_seek(demux_mng_t *this, off_t start_pos, int start_time, int playing){
   return this->status;
 }
 
@@ -262,8 +262,6 @@ static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stre
   this->demux_plugin.dispose           = (void*)demux_mng_dispose;
   this->demux_plugin.get_status        = (void*)demux_mng_get_status;
   this->demux_plugin.get_stream_length = (void*)demux_mng_get_stream_length;
-  this->demux_plugin.get_video_frame   = NULL;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_mng_get_capabilities;
   this->demux_plugin.get_optional_data = demux_mng_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
@@ -367,6 +365,6 @@ static void *init_plugin(xine_t *xine, void *data){
 }
 
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 22, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
+  { PLUGIN_DEMUX, 23, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

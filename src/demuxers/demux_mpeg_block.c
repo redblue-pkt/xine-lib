@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.197 2003/11/11 18:44:52 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.198 2003/11/15 14:00:49 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -1195,7 +1195,7 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
 
 
 static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
-				   off_t start_pos, int start_time) {
+				   off_t start_pos, int start_time, int playing) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   start_time /= 1000;
@@ -1232,7 +1232,7 @@ static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
    */
   this->last_cell_time = 0;
   this->send_newpts = 1;
-  if( !this->stream->demux_thread_running ) {
+  if( !playing ) {
     
     this->buf_flag_seek = 0;
     this->nav_last_end_pts = this->nav_last_start_pts = 0;
@@ -1339,8 +1339,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_mpeg_block_dispose;
   this->demux_plugin.get_status        = demux_mpeg_block_get_status;
   this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
-  this->demux_plugin.get_video_frame   = demux_mpeg_block_get_video_frame;
-  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_mpeg_block_get_capabilities;
   this->demux_plugin.get_optional_data = demux_mpeg_block_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
@@ -1530,6 +1528,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 22, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 23, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
