@@ -320,7 +320,9 @@ int DMO_VideoDecoder_DecodeInternal(DMO_VideoDecoder *this, const void* src, int
 //	return -1;
 //    }
 
+#ifdef LDT_paranoia
     Setup_FS_Segment();
+#endif
 
     bufferin = CMediaBufferCreate(size, (void*)src, size, 0);
     result = this->m_pDMO_Filter->m_pMedia->vt->ProcessInput(this->m_pDMO_Filter->m_pMedia, 0,
@@ -507,7 +509,9 @@ int DMO_VideoDecoder_SetDestFmt(DMO_VideoDecoder *this, int bits, unsigned int c
 	break;
     }
 
+#ifdef LDT_paranoia
     Setup_FS_Segment();
+#endif
 
 //    if(should_test)
 //	result = this->m_pDMO_Filter->m_pOutputPin->vt->QueryAccept(this->m_pDMO_Filter->m_pOutputPin, &this->m_sDestType);

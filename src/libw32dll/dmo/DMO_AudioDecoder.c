@@ -129,7 +129,7 @@ int DMO_AudioDecoder_Convert(DMO_AudioDecoder *this, const void* in_data, unsign
 #ifdef LDT_paranoia
     Setup_FS_Segment();
 #endif
-        
+                
     //m_pDMO_Filter->m_pMedia->vt->Lock(m_pDMO_Filter->m_pMedia, 1);
     bufferin = CMediaBufferCreate(in_size, (void*)in_data, in_size, 1);
     r = this->m_pDMO_Filter->m_pMedia->vt->ProcessInput(this->m_pDMO_Filter->m_pMedia, 0,

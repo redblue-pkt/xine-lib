@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.5 2002/12/18 04:00:53 guenter Exp $
+ * $Id: ldt_keeper.c,v 1.6 2003/02/17 03:18:03 miguelfreitas Exp $
  *
  *
  * contents:
@@ -124,17 +124,13 @@ struct modify_ldt_ldt_s {
 /* user level (privilege level: 3) ldt (1<<2) segment selector */
 #define       LDT_SEL(idx) ((idx) << 3 | 1 << 2 | 3)
 
-/* i got this value from wine sources, it's the first free LDT entry */
+/* i got value 17 from wine sources, it's the first free LDT entry */
+/* unfortunately it clashes with linuxthreads. lets try another one. */
 #ifndef       TEB_SEL_IDX
-#define       TEB_SEL_IDX     17
+#define       TEB_SEL_IDX     27
 #endif
 
 #define       TEB_SEL LDT_SEL(TEB_SEL_IDX)
-
-/**
- * here is a small logical problem with Restore for multithreaded programs -
- * in C++ we use static class for this...
- */
 
 #ifdef __cplusplus
 extern "C"
@@ -142,49 +138,25 @@ extern "C"
 void Setup_FS_Segment(void)
 {
     __asm__ __volatile__(
-	"movl %0,%%eax; movw %%ax, %%fs" : : "i" (TEB_SEL)
+	"movl %0,%%eax; movw %%ax, %%fs" : : "i" (TEB_SEL) : "%eax"
     );
 }
 
-/* (just in case someday we need dynamic entry indexes) 
-__ASM_GLOBAL_FUNC( __set_fs, "movl 4(%esp),%eax\n\tmovw %ax,%fs\n\tret" )
-*/
-
-/* we don't need this - use modify_ldt instead */
-#if 0
-#ifdef __linux__
-/* XXX: why is this routine from libc redefined here? */
-/* NOTE: the redefined version ignores the count param, count is hardcoded as 16 */
-static int LDT_Modify( int func, struct modify_ldt_ldt_s *ptr,
-		       unsigned long count )
+void Check_FS_Segment(void)
 {
-    int res;
-#ifdef __PIC__
-    __asm__ __volatile__( "pushl %%ebx\n\t"
-			  "movl %2,%%ebx\n\t"
-			  "int $0x80\n\t"
-			  "popl %%ebx"
-			  : "=a" (res)
-			  : "0" (__NR_modify_ldt),
-			  "r" (func),
-			  "c" (ptr),
-			  "d"(16)//sizeof(*ptr) from kernel point of view
-			  :"esi"     );
-#else
-    __asm__ __volatile__("int $0x80"
-			 : "=a" (res)
-			 : "0" (__NR_modify_ldt),
-			 "b" (func),
-			 "c" (ptr),
-			 "d"(16)
-			 :"esi");
-#endif  /* __PIC__ */
-    if (res >= 0) return res;
-    errno = -res;
-    return -1;
+    int fs;
+     __asm__ __volatile__(
+	"movw %%fs,%%ax; mov %%eax,%0" : "=r" (fs) :: "%eax"
+    );
+    fs = fs & 0xffff;
+    
+    if( fs != TEB_SEL ) {
+      printf("ldt_keeper: FS segment is not set or has being lost!\n");
+      printf("            Please report this error to xine-devel@sourceforge.net\n");
+      printf("            Aborting....\n");
+      abort();
+    }
 }
-#endif
-#endif
 
 #if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 static void LDT_EntryToBytes( unsigned long *buffer, const struct modify_ldt_ldt_s *content )
@@ -202,8 +174,6 @@ static void LDT_EntryToBytes( unsigned long *buffer, const struct modify_ldt_ldt
 }
 #endif
 
-void* fs_seg=0;
-
 ldt_fs_t* Setup_LDT_Keeper(void)
 {
     struct modify_ldt_ldt_s array;
@@ -218,7 +188,7 @@ ldt_fs_t* Setup_LDT_Keeper(void)
         perror( "Cannot open /dev/zero for READ+WRITE. Check permissions! error: ");
 	return NULL;
     }
-    fs_seg=
+
     ldt_fs->fs_seg = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_PRIVATE,
 			  ldt_fs->fd, 0);
     if (ldt_fs->fs_seg == (void*)-1)
@@ -281,7 +251,7 @@ ldt_fs_t* Setup_LDT_Keeper(void)
 #endif
 
     Setup_FS_Segment();
-
+    
     ldt_fs->prev_struct = (char*)malloc(sizeof(char) * 8);
     *(void**)array.base_addr = ldt_fs->prev_struct;
 

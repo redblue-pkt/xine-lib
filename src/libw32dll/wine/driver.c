@@ -85,7 +85,9 @@ LRESULT WINAPI SendDriverMessage(HDRVR hDriver, UINT message,
     __asm__ __volatile__ ("fsave (%0)\n\t": :"r"(&qw));
 #endif
 
+#ifdef LDT_paranoia
     Setup_FS_Segment();
+#endif
 
     STORE_ALL;
     result=module->DriverProc(module->dwDriverID, hDriver, message, lParam1, lParam2);
@@ -108,7 +110,9 @@ void DrvClose(HDRVR hDriver)
 	DRVR* d = (DRVR*)hDriver;
 	if (d->hDriverModule)
 	{
+#ifdef LDT_paranoia
 	    Setup_FS_Segment();
+#endif
 	    if (d->DriverProc)
 	    {
 		SendDriverMessage(hDriver, DRV_CLOSE, 0, 0);
@@ -130,7 +134,9 @@ HDRVR DrvOpen(LPARAM lParam2)
     char unknown[0x124];
     const char* filename = (const char*) ((ICOPEN*) lParam2)->pV1Reserved;
 
+#ifdef LDT_paranoia
     Setup_LDT_Keeper();
+#endif
     printf("Loading codec DLL: '%s'\n",filename);
 
     hDriver = (NPDRVR) malloc(sizeof(DRVR));
@@ -139,7 +145,9 @@ HDRVR DrvOpen(LPARAM lParam2)
     memset((void*)hDriver, 0, sizeof(DRVR));
 
     CodecAlloc();
+#ifdef LDT_paranoia
     Setup_FS_Segment();
+#endif
 
     hDriver->hDriverModule = LoadLibraryA(filename);
     if (!hDriver->hDriverModule)

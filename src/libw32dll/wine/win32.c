@@ -1423,10 +1423,9 @@ static int WINAPI expGetCurrentProcess()
 // this version is required for Quicktime codecs (.qtx/.qts) to work.
 // (they assume some pointers at FS: segment)
 
-extern void* fs_seg;
-
 //static int tls_count;
 static int tls_use_map[64];
+static void *tls_minus_one;
 static int WINAPI expTlsAlloc()
 {
     int i;
@@ -1448,16 +1447,53 @@ static int WINAPI expTlsSetValue(int index, void* value)
 //    if((index<0) || (index>64))
     if((index>=64))
 	return 0;
+	
+    /* qt passes -1 here. probably a side effect of some bad patching */
+    if( index < 0 ) {
+      tls_minus_one = value;
+      return 1;
+    }
+     
+#if 0
     *(void**)((char*)fs_seg+0x88+4*index) = value;
+#else
+    /* does not require fs_seg memory, if everything is right
+     * we can access FS:xxxx like any win32 code would do.
+     */
+    index = 0x88+4*index;
+     __asm__ __volatile__(
+	"movl %0,%%fs:(%1)" :: "r" (value), "r" (index) 
+    );
+#endif
     return 1;
 }
 
 static void* WINAPI expTlsGetValue(DWORD index)
 {
+    void *ret;
+    
     dbgprintf("TlsGetValue(%d)\n",index);
 //    if((index<0) || (index>64))
-    if((index>=64)) return NULL;
+    if((index>=64)) 
+      return NULL;
+      
+    /* qt passes -1 here. probably a side effect of some bad patching */
+    if( index < 0 ) {
+      return tls_minus_one;
+    }
+
+#if 0
     return *(void**)((char*)fs_seg+0x88+4*index);
+#else
+    /* does not require fs_seg memory, if everything is right
+     * we can access FS:xxxx like any win32 code would do.
+     */
+    index = 0x88+4*index;
+     __asm__ __volatile__(
+	"movl %%fs:(%1),%0" : "=r" (ret) : "r" (index) 
+    );
+    return ret;
+#endif
 }
 
 static int WINAPI expTlsFree(int idx)
