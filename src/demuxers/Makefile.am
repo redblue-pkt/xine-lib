@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = $(THEORA_CFLAGS) $(OGG_CFLAGS) @ANSI_FLAGS@
+AM_CFLAGS = $(THEORA_CFLAGS) $(OGG_CFLAGS) $(SPEEX_CFLAGS) @ANSI_FLAGS@
 
 libdir = $(XINE_PLUGINDIR)
 
