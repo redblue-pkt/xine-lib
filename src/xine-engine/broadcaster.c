@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.7 2004/03/14 09:38:03 valtri Exp $
+ * $Id: broadcaster.c,v 1.8 2004/07/22 14:25:05 mroi Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -141,12 +141,12 @@ static int sock_string_write(xine_t *xine, int socket, char *msg, ...) {
   va_list  args;
   
   va_start(args, msg);
-  vsnprintf(buf, _BUFSIZ, msg, args);
+  vsnprintf(buf, _BUFSIZ - 1, msg, args);
   va_end(args);
   
   /* Each line sent is '\n' terminated */
   if((buf[strlen(buf)] == '\0') && (buf[strlen(buf) - 1] != '\n'))
-      sprintf(buf, "%s%c", buf, '\n');
+      strcat(buf, "\n");
  
   return sock_data_write(xine, socket, buf, strlen(buf));
 }
@@ -182,12 +182,12 @@ static void broadcaster_string_write(broadcaster_t *this, char *msg, ...) {
   va_list  args;
   
   va_start(args, msg);
-  vsnprintf(buf, _BUFSIZ, msg, args);
+  vsnprintf(buf, _BUFSIZ - 1, msg, args);
   va_end(args);
   
   /* Each line sent is '\n' terminated */
   if((buf[strlen(buf)] == '\0') && (buf[strlen(buf) - 1] != '\n'))
-      sprintf(buf, "%s%c", buf, '\n');
+      strcat(buf, "\n");
  
   broadcaster_data_write(this, buf, strlen(buf));
 }
