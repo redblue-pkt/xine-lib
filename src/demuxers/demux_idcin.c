@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.37 2003/01/25 03:04:15 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.38 2003/02/22 01:11:54 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -299,11 +299,20 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
 static int open_idcin_file(demux_idcin_t *this) {
 
   unsigned char header[IDCIN_HEADER_SIZE];
+  unsigned char preview[MAX_PREVIEW_SIZE];
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) != 
-    IDCIN_HEADER_SIZE)
-    return 0;
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) != 
+      IDCIN_HEADER_SIZE)
+      return 0;
+  } else {
+    this->input->get_optional_data(this->input, preview, 
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(header, preview, IDCIN_HEADER_SIZE);
+  }
 
   /*
    * This is what you could call a "probabilistic" file check: Id CIN
@@ -349,6 +358,14 @@ static int open_idcin_file(demux_idcin_t *this) {
     this->audio_sample_rate, 
     this->audio_channels,
     this->audio_bytes_per_sample * 8);
+
+  /* file is qualified; if the input was not seekable, read the header
+   * bytes out of the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) != 
+      IDCIN_HEADER_SIZE)
+      return 0;
+  }
 
   /* read the Huffman table */
   if (this->input->read(this->input, this->huffman_table,
@@ -491,11 +508,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_idcin_t  *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_idcin.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_idcin_t));
   this->stream = stream;
