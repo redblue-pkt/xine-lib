@@ -63,6 +63,9 @@
 /* Define this if you have OpenGL support available */
 #undef HAVE_OPENGL
 
+/* Define this if you have GLut support available */
+#undef HAVE_GLUT
+
 /* Define this if you have libXinerama installed */
 #undef HAVE_XINERAMA
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.2 2002/01/23 00:15:43 jcdutton Exp $
+ * $Id: video_out_opengl.c,v 1.3 2002/01/23 15:05:46 richwareham Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -49,6 +49,10 @@
 #  define DEBUGF(x) ((void) 0)
 #endif
 
+/* Uncomment for some fun! */
+/*
+#define SPHERE
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -67,6 +71,7 @@
 
 #include <GL/gl.h>
 #include <GL/glx.h>
+#include <GL/glut.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -166,6 +171,9 @@ typedef struct opengl_driver_s {
   /* display anatomy */
   double           display_ratio;        /* given by visual parameter from init function */
   void            *user_data;
+  /* Current frame texture data */
+  char            *texture_data;
+  int              texture_width, texture_height;
 
   /* gui callbacks */
 
@@ -619,6 +627,8 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 
   if (ctx)
   {
+   int i;
+
 /*fprintf (stderr, "set context %p\n", ctx); */
     /* Set and initialize context */
     if (! glXMakeCurrent (this->display, this->drawable, ctx))
@@ -632,7 +642,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
     else if (this->context_state == CONTEXT_SET ||
 	     this->context_state == CONTEXT_RELOAD)
       this->context_state = CONTEXT_RELOAD;
-    glViewport (0, 0, this->window_width, this->window_height);
+    /* glViewport (0, 0, this->window_width, this->window_height);
     glMatrixMode (GL_PROJECTION);
     glLoadIdentity ();
     glOrtho (0, this->window_width, this->window_height, 0, -1, 1);
@@ -641,8 +651,66 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
     glDisable    (GL_BLEND);
     glDisable    (GL_DEPTH_TEST);
     glDisable    (GL_CULL_FACE);
+    glEnable     (GL_TEXTURE_2D);
     glDepthMask  (GL_FALSE);
     glClearColor (0, 0, 0, 0);
+    */
+    glViewport (0, 0, this->window_width, 
+		this->window_height);
+    glMatrixMode (GL_PROJECTION);
+    glLoadIdentity ();
+    
+    gluPerspective (45.0f, 
+		    (GLfloat)(this->window_width)/
+		    (GLfloat)(this->window_height),
+		    1.0f, 1000.0f);
+    glMatrixMode (GL_MODELVIEW);
+    glLoadIdentity ();	
+	
+    glClearColor (0.0f, 0.0f, 0.0f, 0.5f);
+    glClearDepth (1.0f);
+    glDepthFunc (GL_LEQUAL);
+    glEnable(GL_DEPTH_TEST);
+    glShadeModel (GL_FLAT);
+    glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+
+    glEnable(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+
+    this->texture_width = 1;
+    i = frame->width;
+    while(i > 0) {
+      i = i>>1;
+      this->texture_width = (this->texture_width) << 1;
+    }
+    
+    this->texture_height = 1;
+    i = frame->height;
+    while(i > 0) {
+      i = i>>1;
+      this->texture_height = (this->texture_height) << 1;
+    }
+    
+    if(this->texture_data) {
+      free(this->texture_data);
+    }
+   
+    glMatrixMode(GL_TEXTURE);
+    glLoadIdentity();
+    glScalef((float)(frame->width)/(float)(this->texture_width),
+	     (float)(frame->height)/(float)(this->texture_height),
+	     1.0f);
+    glMatrixMode(GL_MODELVIEW);
+
+    this->texture_data = malloc(this->texture_width * this->texture_height * 3);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, 
+		 this->texture_width, this->texture_height,
+		 0, RGB_TEXTURE_FORMAT, GL_UNSIGNED_BYTE,
+		 this->texture_data);
+
     /* for fullscreen and misratioed modes, clear unused areas of old
      * video area */
     if (this->window_width != this->output_width
@@ -652,6 +720,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 
   if (frame)
   {
+   
     xoffset = (this->window_width - this->output_width) / 2;
     yoffset = (this->window_height - this->output_height) / 2;
     if (xoffset < 0)
@@ -660,11 +729,39 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
       yoffset = 0;
 
 /*fprintf (stderr, "render %p %p: +%d+%d\n", frame, ctx, xoffset, yoffset); */
+    
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+		    (GLsizei)(frame->width),
+		    (GLsizei)(frame->height),
+		    RGB_TEXTURE_FORMAT, GL_UNSIGNED_BYTE,
+		    frame->texture);
+    glClear (GL_DEPTH_BUFFER_BIT);	
+    glLoadIdentity();	
+    glBegin(GL_QUADS);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f( 11.0f,  -8.3f, -20.0f);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-11.0f,  -8.3f, -20.0f);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-11.0f, 8.3f, -20.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f( 11.0f, 8.3f, -20.0f);
+    glEnd();	
+
+#ifdef SPHERE
+    glEnable(GL_TEXTURE_GEN_S);
+    glEnable(GL_TEXTURE_GEN_T);	
+
+    glTranslatef(0.0f, 0.0f, -10.0f);
+    glutSolidSphere(3.0f, 20, 10);
+
+    glDisable(GL_TEXTURE_GEN_S);
+    glDisable(GL_TEXTURE_GEN_T);
+#endif
+
+    /*
     glPixelZoom (((float)this->output_width)    / frame->width,
                  - ((float)this->output_height) / frame->height);
     glRasterPos2i (xoffset, yoffset);
     glDrawPixels (frame->width, frame->height, RGB_TEXTURE_FORMAT,
                   GL_UNSIGNED_BYTE, frame->texture);
+    */
 /*fprintf (stderr, "render done\n"); */
   }
   glFlush ();
@@ -1009,6 +1106,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->zoom_mpeg1	    = config->register_bool (config, "video.zoom_mpeg1", 1,
 						     "Zoom small video formats to double size",
 						     NULL, NULL, NULL);
+  this->texture_data        = NULL;
+  this->texture_width       = 0;
+  this->texture_height      = 0;
   this->drawable	    = None;      /* We need a different one with a dedicated visual anyway */
   this->context_state       = CONTEXT_BAD;
 
