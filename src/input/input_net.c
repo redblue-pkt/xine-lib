@@ -210,16 +210,25 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
  *
  */
 static off_t net_plugin_read (input_plugin_t *this_gen, 
-			      char *buf, off_t nlen) {
+			      char *buf, off_t len) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
-  off_t n;
+  off_t n, total;
 
-  n = read (this->fh, buf, nlen);
-
-  if (n > 0)
-    this->curpos += n;
-
-  return n;
+  total=0;
+  while (total<len){ 
+    n = read (this->fh, &buf[total], len-total);
+    /*
+    printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n",
+	    n,total,len);
+    */
+    if (n > 0){
+      this->curpos += n;
+      total += n;
+    }
+    else if (n<0 && errno!=EAGAIN) 
+      return total;
+  }
+  return total;
 }
 
 static buf_element_t *net_plugin_read_block (input_plugin_t *this_gen, 
