@@ -13,6 +13,13 @@ AC_DEFUN([AC_C_ALWAYS_INLINE],
         CFLAGS="$SAVE_CFLAGS"
         AC_MSG_RESULT([$ac_cv_always_inline])
         if test x"$ac_cv_always_inline" = x"yes"; then
+            AH_TOP([
+#ifdef inline
+/* the strange formatting below is needed to prevent config.status from rewriting it */
+#  undef \
+     inline
+#endif
+            ])
             AC_DEFINE_UNQUOTED([inline],[inline __attribute__ ((__always_inline__))])
         fi
     fi])
