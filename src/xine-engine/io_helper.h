@@ -98,7 +98,7 @@ off_t _x_io_file_read (xine_stream_t *stream, int fd, char *buf, off_t todo);
 
 
 /*
- * write to a tcp socket checking demux_action_pending
+ * write to a file descriptor checking demux_action_pending
  *
  * the fifo input plugin should use this function in order to
  * not freeze the engine.
