@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.26 2003/10/20 08:36:57 valtri Exp $
+ * $Id: configfile.h,v 1.27 2003/10/21 16:04:05 mroi Exp $
  *
  * config file management
  *
@@ -43,7 +43,7 @@ extern "C" {
 
 /*
  * config entries above this experience 
- * level musn't be changed from MRL
+ * level must never be changed from MRL
  */
 #define XINE_CONFIG_SECURITY 50
 	
