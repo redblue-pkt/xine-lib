@@ -744,7 +744,7 @@ case "$host_or_hostalias" in
 
 
 
-  i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-*)
+  i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-* | pentium*)
     if test "$GCC" = yes; then
 	dnl Check for gcc cpu optimization support
 	AC_TRY_CFLAGS("-mcpu=i386", 
@@ -759,6 +759,8 @@ case "$host_or_hostalias" in
 
         AC_TRY_CFLAGS("-mmmx",f_mmmx="-mmmx", f_mmmx="")
         AC_TRY_CFLAGS("-msse",f_msse="-msse", f_msse="")
+        AC_TRY_CFLAGS("-msse2",f_msse2="-msse2", f_msse2="")
+        AC_TRY_CFLAGS("-m3dnow",f_m3dnow="-m3dnow", f_-m3dnow="")
 
 	dnl add x86 specific gcc CFLAGS
 	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
@@ -776,29 +778,54 @@ case "$host_or_hostalias" in
 		archopt_val="i486" ;;
 	    i586-*)
 		archopt_val="pentium" 
-                CFLAGS="$CFLAGS $f_mmmx"
                 ;;
-	    i686-*)
+	    pentium-mmx-*)
+		archopt_val="pentium-mmx" 
+		enable_ffmmx="yes"
+		CFLAGS="$CFLAGS $f_mmmx"
+		;;
+	    pentiumpro-* | pentium2-* | i686-*)
 		archopt_val="pentiumpro"
+		enable_ffmmx="yes"
 		if test x"$check_athlon" = "xyes"; then
 		    if test -f /proc/cpuinfo; then
 			modelname=`cat /proc/cpuinfo | grep "model name" -m 1 | sed -e 's/ //g' | cut -d':' -f2`
 			case "$modelname" in
 			*Athlon* | *Duron* | *K7*)
-			    archopt_val="$k7cpu" ;;
+			    archopt_val="$k7cpu"
+			    CFLAGS="$CFLAGS $f_mmmx $f_m3dnow"
+			    ;;
 			esac
 		    fi 
 		fi
-                CFLAGS="$CFLAGS $f_mmmx $f_msse"
+                CFLAGS="$CFLAGS $f_mmmx"
 		;;
 	    k6-*)
-		archopt_val="k6" ;;
-	    k7-*)
-		archopt_val="k7" ;;
-	    athlon-*)
-		archopt_val="athlon" ;;
+		archopt_val="k6"
+		CFLAGS="$CFLAGS $f_m3dnow"
+		;;
+	    pentium3-*)
+		archopt_val="pentium3"
+		enable_ffmmx="yes"
+		CFLAGS="$CFLAGS $f_mmmx $f_msse"
+		;;
+	    pentium4-*)
+		archopt_val="pentium4"
+		enable_ffmmx="yes"
+		CFLAGS="$CFLAGS $f_mmmx $f_msse2"
+		;;
+	    athlon-4-* | athlon-xp-* | athlon-mp-*)
+		archopt_val="athlon-4"
+		enable_ffmmx="yes"
+		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow $f_msse"
+		;;
+	    k7-* | athlon-tbird-* | athlon-*)
+		archopt_val="athlon"
+		enable_ffmmx="yes"
+		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow"
+		;;
+	    
 	    esac
-
 	    if test x"$archopt_val" != x; then
 		CFLAGS="$CFLAGS $sarchopt=$archopt_val"
 		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=$archopt_val"
@@ -815,7 +842,6 @@ case "$host_or_hostalias" in
     	AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
 	AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
 	enable_w32dll="yes"
-    	enable_ffmmx="yes"
     else
 	dnl add x86 specific cc CFLAGS
 	CFLAGS="$CFLAGS -O"
