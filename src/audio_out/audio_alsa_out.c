@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.132 2004/03/20 01:32:29 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.133 2004/03/20 20:45:18 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -874,7 +874,7 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
    * (i.e. xscreensaver).
    */
 
-  if(this->mixer.handle) {
+  if(this->mixer.handle && this->mixer.thread != 0) {
     this->mixer.running = 0;
     pthread_join(this->mixer.thread, NULL);
     snd_mixer_close(this->mixer.handle);
@@ -1109,7 +1109,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   snd_mixer_selem_id_t *sid;
   int                   loop = 0;
   int                   found;
-  int                   swl = 0, swr = 0;
+  int                   swl = 0, swr = 0, send_events;
 
   this->mixer.elem = 0; 
   snd_ctl_card_info_alloca(&hw_info);
@@ -1286,10 +1286,16 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   }
 
   /* Create a thread which wait/handle mixer events */
+  send_events = config->register_num(config, "audio.alsa_hw_mixer", 1,
+		  		     _("Whether to generate an event when the hardware mixer values change"),
+				     _("When the hardware mixer changes, an event will be sent to the front-end"),
+				     10, NULL, NULL);
+
+  if (send_events == 1)
   {
     pthread_attr_t       pth_attrs;
     struct sched_param   pth_params;
-    
+
     pthread_attr_init(&pth_attrs);
     
     pthread_attr_getschedparam(&pth_attrs, &pth_params);
@@ -1297,6 +1303,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     pthread_attr_setschedparam(&pth_attrs, &pth_params);
     pthread_create(&this->mixer.thread, &pth_attrs, ao_alsa_handle_event_thread, (void *) this);
     pthread_attr_destroy(&pth_attrs);
+  } else {
+    this->mixer.thread = 0;
   }
 }
 
