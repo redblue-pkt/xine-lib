@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.64 2003/11/11 18:45:02 f1rmb Exp $
+ * $Id: xineutils.h,v 1.65 2003/11/26 21:28:47 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -1090,6 +1090,12 @@ void xine_list_insert_content (xine_list_t *l, void *content);
  */
 void xine_list_delete_current (xine_list_t *l);
 
+#ifndef HAVE_BASENAME
+/*
+ * get base name
+ */
+char *basename (char const *name);
+#endif
 
 
 #ifdef __cplusplus

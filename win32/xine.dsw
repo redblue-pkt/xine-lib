@@ -384,6 +384,27 @@ Package=<4>
 
 ###############################################################################
 
+Project: "xineplug_dmx_mpeg_pes"=".\xineplug_dmx_mpeg_pes.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxinesuppt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxineutils
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "xineplug_dmx_mpeg_ts"=".\xineplug_dmx_mpeg_ts.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -469,6 +490,27 @@ Package=<4>
 ###############################################################################
 
 Project: "xineplug_dmx_slave"=".\xineplug_dmx_slave.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxinesuppt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxineutils
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "xineplug_dmx_sputext"=".\xineplug_dmx_sputext.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
