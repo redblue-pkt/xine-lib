@@ -24,7 +24,7 @@
  * for the SPDIF AC3 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
  *
- * $Id: audio_alsa05_out.c,v 1.5 2001/07/18 21:38:16 f1rmb Exp $
+ * $Id: audio_alsa05_out.c,v 1.6 2001/08/13 14:03:00 guenter Exp $
  */
 
 /* required for swab() */
@@ -567,8 +567,9 @@ static int ao_put_samples(ao_functions_t *this,int16_t* output_samples,
    }
    if (gAudioALSA.ao_mode == AO_CAP_MODE_STEREO) {  /* fine tuning  */
      if (diff > 1) {
-       memcpy(&output_samples[num_samples*4],&output_samples[num_samples*4]-4,4); /* duplicate last sample */
-       num_samples++;
+       /*memcpy(&output_samples[num_samples*4],&output_samples[num_samples*4]-4,4); */
+       /* duplicate last sample */
+       /*num_samples++;*/
      }
      if (diff < -1)
        num_samples--;
