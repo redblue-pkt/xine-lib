@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.27 2001/08/29 02:23:58 guenter Exp $
+ * $Id: demux_avi.c,v 1.28 2001/08/30 12:46:31 jkeil Exp $
  *
  * demultiplexer for avi streams
  *
@@ -934,7 +934,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   memcpy (buf->content, &this->avi->bih, sizeof (this->avi->bih));
   buf->size = sizeof (this->avi->bih);
 
-  switch (this->avi->bih.biCompression) {
+  switch (str2ulong((void*)&this->avi->bih.biCompression)) {
     case mmioFOURCC('M', 'P', 'G', '4'):
     case mmioFOURCC('m', 'p', 'g', '4'):
     case mmioFOURCC('M', 'P', '4', '1'):
