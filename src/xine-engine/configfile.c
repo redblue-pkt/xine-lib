@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.19 2002/03/16 13:33:47 esnel Exp $
+ * $Id: configfile.c,v 1.20 2002/04/11 07:17:43 esnel Exp $
  *
  * config file management - implementation
  *
@@ -459,9 +459,11 @@ static void config_file_update_string (config_values_t *this,
     return;
   }
 
-  free (entry->str_default);
+  if (value != entry->str_value) {
+    free (entry->str_value);
 
-  entry->str_value = copy_string (value);
+    entry->str_value = copy_string (value);
+  }
 
   if (entry->callback) 
     entry->callback (entry->callback_data, entry);
@@ -647,6 +649,9 @@ config_values_t *xine_config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.20  2002/04/11 07:17:43  esnel
+ * Fix configfile corruption reported by Chris Rankin
+ *
  * Revision 1.19  2002/03/16 13:33:47  esnel
  * fix memory leak, add dispose() function to config_values_s
  *
