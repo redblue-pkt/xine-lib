@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.17 2003/01/03 23:40:46 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.18 2003/01/04 19:35:15 tmmm Exp $
  *
  * GOOM post plugin.
  *
@@ -386,10 +386,11 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   if( this->bits == 8 ) {        
     data8 = (int8_t *)buf->mem;
     
-    for( i = 0; i < buf->num_frames && this->data_idx < 512; 
+    /* scale 8 bit data to 16 bits and convert to signed as well */
+    for( i = 0; i < buf->num_frames && this->data_idx < 512;
          i++, this->data_idx++, data8 += this->channels ) {
-      this->data[0][this->data_idx] = (int16_t)data8[0] << 8;
-      this->data[1][this->data_idx] = (int16_t)data8[j] << 8;
+      this->data[0][this->data_idx] = ((int16_t)data8[0] << 8) - 0x8000;
+      this->data[1][this->data_idx] = ((int16_t)data8[j] << 8) - 0x8000;
     }
   } else {
     data = buf->mem;
