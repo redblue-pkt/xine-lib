@@ -21,9 +21,9 @@
  * the algorithm used 
  */
  
-/*
- * includes patch from Michael Niedermayer to include GPL licensed HuffYUV v1 
- * tables
+/**
+ * @file huffyuv.c
+ * huffyuv codec for libavcodec.
  */
 
 #include "common.h"
