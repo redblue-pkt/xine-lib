@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.69 2001/12/19 22:49:45 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.70 2001/12/20 16:50:54 miguelfreitas Exp $
  *
  */
 
@@ -1659,6 +1659,12 @@ struct osd_renderer_s {
    * set palette (color and transparency)
    */
   void (*set_palette) (osd_object_t *osd, uint32_t *color, uint8_t *trans );
+
+  /*
+   * set on existing text palette
+   * (-1 to set used specified palette)
+   */
+  void (*set_text_palette) (osd_object_t *osd, int palette_number );
 
   /*
    * get palette (color and transparency)
