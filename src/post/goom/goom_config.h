@@ -1,3 +1,4 @@
+#include <inttypes.h>
 
 /* #define VERSION "1.9dev5" */
 /* #define _DEBUG */
@@ -29,10 +30,10 @@
 /* #define VERBOSE */
 
 #ifndef guint32
-#define guint8 unsigned char
-#define guin16 unsigned short
-#define guint32 unsigned int
-#define gint8 signed char
-#define gint16 signed short int
-#define gint32 signed int
+#define guint8  uint8_t
+#define guin16  uint16_t
+#define guint32 uint32_t
+#define gint8   int8_t
+#define gint16  int16_t
+#define gint32  int32_t
 #endif

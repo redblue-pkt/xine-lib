@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.5 2002/12/29 14:04:43 mroi Exp $
+ * $Id: xine_goom.c,v 1.6 2002/12/29 16:57:08 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -34,7 +34,7 @@
 
 #include "goom_core.h"
 
-#define FPS 15
+#define FPS 25
 #define DURATION 90000/FPS
 
 #define GOOM_WIDTH  320
@@ -57,6 +57,7 @@ struct post_plugin_goom_s {
   int sample_rate;
   int sample_counter;
   int samples_per_frame;
+  
 };
 
 typedef struct post_goom_out_s post_goom_out_t;
@@ -278,7 +279,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->samples_per_frame = rate / FPS;
   this->sample_rate = rate; 
   this->stream = stream;
-  
+
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
 
@@ -300,10 +301,12 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_goom_t *this = (post_plugin_goom_t *)port->post;
   vo_frame_t         *frame;
-  uint32_t *goom_frame;
+//  uint32_t *goom_frame;
+  uint8_t *goom_frame, *goom_frame_end;
   int16_t *data;
   int8_t *data8;
   int i, j;
+  uint8_t *dest_ptr;
 
   this->sample_counter += buf->num_frames;
   
@@ -326,8 +329,8 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       }
     }
         
-    goom_frame = goom_update (this->data, 0);
-    
+    goom_frame = (uint8_t *)goom_update (this->data, 0);
+
     frame = this->vo_port->get_frame (this->vo_port, GOOM_WIDTH, GOOM_HEIGHT,
                                       XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
                                       VO_BOTH_FIELDS);
@@ -354,28 +357,43 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       frame -> base[0][j+3] = v;
     
     }
-#else
+#endif
 
-    /* Not perfect, but fast */
-    for (i=0, j=0; i<GOOM_WIDTH * GOOM_HEIGHT; i+=2, j+=4) {
-      uint8_t r1 = (goom_frame[i]   & 0xFF0000) >> 16;
-      uint8_t g1 = (goom_frame[i]   &   0xFF00) >>  8;
-      uint8_t b1 = (goom_frame[i]   &     0xFF);
-      uint8_t r2 = (goom_frame[i+1] & 0xFF0000) >> 16;
-      uint8_t g2 = (goom_frame[i+1] &   0xFF00) >>  8;
-      uint8_t b2 = (goom_frame[i+1] &     0xFF);
-      uint8_t y1 = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) / SCALEFACTOR;
-      uint8_t y2 = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) / SCALEFACTOR;
-      uint8_t u  = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) / SCALEFACTOR) + 128;
-      uint8_t v  = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) / SCALEFACTOR) + 128;
-  
-      frame -> base[0][j]   = y1;
-      frame -> base[0][j+1] = u;
-      frame -> base[0][j+2] = y2;
-      frame -> base[0][j+3] = v;
-    }
+#if 1
+
+    /* Try to be fast */
+    dest_ptr = frame -> base[0];
+    goom_frame_end = goom_frame + 4 * (GOOM_WIDTH * GOOM_HEIGHT);
+    while (goom_frame < goom_frame_end) {
+    
+#ifdef __BIG_ENDIAN__
+      goom_frame ++;
+      uint8_t r1 = *goom_frame; goom_frame ++;
+      uint8_t g1 = *goom_frame; goom_frame ++;
+      uint8_t b1 = *goom_frame; goom_frame += 2;
+      uint8_t r2 = *goom_frame; goom_frame ++;
+      uint8_t g2 = *goom_frame; goom_frame ++;
+      uint8_t b2 = *goom_frame; goom_frame ++;
+#else
+      uint8_t b1 = *goom_frame; goom_frame ++;
+      uint8_t g1 = *goom_frame; goom_frame ++;
+      uint8_t r1 = *goom_frame; goom_frame += 2;
+      uint8_t b2 = *goom_frame; goom_frame ++;
+      uint8_t g2 = *goom_frame; goom_frame ++;
+      uint8_t r2 = *goom_frame; goom_frame += 2;
 #endif
   
+      *dest_ptr = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) >> 16;
+      dest_ptr++;
+      *dest_ptr = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) >> 16) + 128;
+      dest_ptr++;
+      *dest_ptr = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) >> 16;
+      dest_ptr++;
+      *dest_ptr = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) >> 16) + 128;
+      dest_ptr++;
+    }
+#endif
+
     frame->draw(frame, stream);
     frame->free(frame);
     
