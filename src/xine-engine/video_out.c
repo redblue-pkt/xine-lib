@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.137 2003/01/25 12:10:33 mroi Exp $
+ * $Id: video_out.c,v 1.138 2003/01/26 18:12:39 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1252,6 +1252,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
     vo_frame_t *img;
 
     img = driver->alloc_frame (driver) ;
+    if (!img) break;
 
     img->id        = i;
     
