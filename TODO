@@ -53,6 +53,12 @@ optional
 - bring dxr3 video out to work with aaxine (michael)
 - streaming of avi files (e.g. via http)
 - visualization plugins (can be done staightforward with post effect plugins)
+- Multiple DVD Subtitles displayed at the same time (jcdutton)
+- Passing extra info throught the decoders untouched (jcdutton)
+- Move DVD Still image sleep() from input_dvd.c to ./src/xine-engine (jcdutton)
+- Move read cache code from libdvdnav into input_dvd.c (jcdutton)
+- Support DVD "Trick" modes. Super Fast forward/reverse (jcdutton)
+- Add user selectable option for resampling audio out instead of current "gap feedback" method. (jcdutton)
 
 
 Assigned tasks
