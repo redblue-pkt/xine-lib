@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.44 2003/02/01 13:15:22 mroi Exp $
+ * $Id: configfile.c,v 1.45 2003/02/02 12:33:23 hadess Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -719,6 +719,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
   FILE *f_config, *f_backup;
 
   sprintf(temp, "%s~", filename);
+  unlink (temp);
 
   if (stat(temp, &backup_stat) != 0) {
     char line[1024];
@@ -746,12 +747,14 @@ void xine_config_save (xine_t *xine, const char *filename) {
     } else {
       if (f_config)
         fclose(f_config);
+      else
+	backup = 1;
       if (f_backup)
         fclose(f_backup);
     }
   }
   
-  if (!backup) {
+  if (!backup && (stat(filename, &config_stat) == 0)) {
     printf("configfile: WARNING: backing up configfile to %s failed\n", temp);
     printf("configfile: WARNING: your configuration will not be saved\n");
     return;
