@@ -27,8 +27,13 @@ libxine_la_LDFLAGS =  -version-info 5:0:5
 noinst_HEADERS = xine_internal.h buffer.h metronom.h configfile.h \
 	monitor.h cpu_accel.h attributes.h utils.h
 
-#cpu_accel.lo:
-#	$(CC) -DHAVE_CONFIG_H $(INCLUDES) -pipe `echo "@DEBUG_CFLAGS@" | sed -e 's/\-DDEBUG//' -e 's/\-g//'` -fomit-frame-pointer -Wall -Wp,-MD,.deps/cpu_accel.P -c $(basename $@).c -o $@
+##
+# Hardcoded rule: 
+#  gcc failed to compile this with some optimized flags on all of my 
+#  systems.
+#
+cpu_accel.lo:
+	$(CC) -DHAVE_CONFIG_H $(INCLUDES) -pipe `echo "@DEBUG_CFLAGS@" | sed -e 's/\-DDEBUG//' -e 's/\-g//'` -fomit-frame-pointer -Wall -Wp,-MD,.deps/cpu_accel.P -c $(basename $@).c -o $@
 #	echo timestamp > $(basename $@).o
 
 
