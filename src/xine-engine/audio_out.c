@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.104 2003/02/06 00:09:19 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.105 2003/02/16 19:56:12 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -924,6 +924,8 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   audio_buffer_t *in_buf, *out_buf;
   xine_stream_t  *stream;
 
+  printf ("audio_audio: get_next_audio_frame\n");
+
   do {
     stream = xine_list_first_content(this->streams);
     if (!stream)
@@ -948,6 +950,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
 
   if (!in_buf) {
     pthread_mutex_unlock(&this->out_fifo->mutex);
+    printf ("audio_audio: EOS\n");
     return 0;
   }
 
@@ -956,7 +959,11 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
 
   out_buf = prepare_samples (this, in_buf);
 
-  fifo_append (this->free_fifo, in_buf);
+  if (out_buf != in_buf) {
+    fifo_append (this->free_fifo, in_buf);
+    frame->xine_frame = NULL;
+  } else
+    frame->xine_frame    = out_buf;
 
   frame->vpts            = out_buf->vpts;
   frame->num_samples     = out_buf->num_frames;
@@ -966,19 +973,19 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   frame->pos_stream      = out_buf->extra_info->input_pos;
   frame->pos_time        = out_buf->extra_info->input_time;
   frame->data            = (uint8_t *) out_buf->mem;
-  frame->xine_frame      = out_buf;
 
   return 1;
 }
 
 void xine_free_audio_frame (xine_audio_port_t *this_gen, xine_audio_frame_t *frame) {
 
-#if 0
   aos_t          *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
 
   buf = (audio_buffer_t *) frame->xine_frame;
-#endif
+
+  if (buf)
+    fifo_append (this->free_fifo, buf);
 }
 
 
@@ -1176,6 +1183,8 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld, flushmode=%d\n",
 	  pts, buf->vpts, this->discard_buffers);
 #endif
+  printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld, flushmode=%d\n",
+	  pts, buf->vpts, this->discard_buffers);
 
   if (!this->discard_buffers) 
     fifo_append (this->out_fifo, buf);
@@ -1195,8 +1204,12 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   audio_buffer_t *audio_buffer;
   xine_stream_t *cur;
 
+  printf ("audio_out: ao_close \n");
+
   if (this->audio_loop_running) {
     void *p;
+
+    printf ("audio_out: loop running \n");
 
     this->audio_loop_running = 0;
     this->audio_paused = 0;
@@ -1415,6 +1428,8 @@ static int ao_control (xine_audio_port_t *this_gen, int cmd, ...) {
 static void ao_flush (xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
+
+  printf ("audio_out: ao_flush (loop running: %d)\n", this->audio_loop_running);
 
   if( this->audio_loop_running ) {
     this->discard_buffers++;
