@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.21 2001/07/17 20:47:35 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.22 2001/07/20 15:59:29 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -675,15 +675,15 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
   } else {
 
-    if ( (frame->rgb_width != this->dest_width)
-	 || (frame->rgb_height != this->dest_height) ) {
+    if ( (frame->width != this->dest_width)
+	 || (frame->height != this->dest_height) ) {
       
       this->request_dest_size (frame->rgb_width, frame->rgb_height, 
 			       &this->dest_x, &this->dest_y, 
 			       &this->gui_width, &this->gui_height);
       
-      this->dest_width = frame->rgb_width;
-      this->dest_height = frame->rgb_height;
+      this->dest_width = frame->width;
+      this->dest_height = frame->height;
 
       this->output_xoffset  = (frame->rgb_width - this->gui_width) / 2;
       this->output_yoffset  = (frame->rgb_height - this->gui_height) / 2;
@@ -767,42 +767,38 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
   xshm_driver_t   *this = (xshm_driver_t *) this_gen;
   x11_rectangle_t *area; 
-  int              dest_width, dest_height;
+  int              gui_width, gui_height;
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
 
     area = (x11_rectangle_t *) data;
 
-    dest_width = area->w;
-    dest_height = area->h;
+    gui_width = area->w;
+    gui_height = area->h;
 
-    if ( (dest_width != this->gui_width) || (dest_height != this->gui_height) ) {
-
-      /*xshm_calc_output_size (this); */
+    if ( (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
 
       /*
        * make the frames fit into the given destination area
        */
 
-#if 0 
       /*FIXME: not stable yet */
-      if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
+      if ( ((double) gui_width / this->ratio_factor) < gui_height ) {
 	
-	this->output_width   = dest_width ;
-	this->output_height  = (double) dest_width / this->ratio_factor ;
+	this->output_width   = gui_width ;
+	this->output_height  = (double) gui_width / this->ratio_factor ;
       } else {
 	
-	this->output_width    = (double) dest_height * this->ratio_factor ;
-	this->output_height   = dest_height;
+	this->output_width    = (double) gui_height * this->ratio_factor ;
+	this->output_height   = gui_height;
       } 
       
-      this->gui_width = dest_width;
-      this->gui_height = dest_height;
+      this->gui_width = gui_width;
+      this->gui_height = gui_height;
 
-      printf ("video_out_xshm: new output size: %d x %d (%d x %d)\n",
-	      dest_width, dest_height, this->output_width, this->output_height);
-#endif
+      printf ("video_out_xshm: new output size: %d x %d\n",
+	      gui_width, gui_height);
     }
 
     break;
