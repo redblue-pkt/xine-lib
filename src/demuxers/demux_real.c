@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.69 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_real.c,v 1.70 2003/11/13 15:23:01 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -55,12 +55,7 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
-        ( (long)(unsigned char)(ch3) | \
-        ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | \
-        ( (long)(unsigned char)(ch0) << 24 ) )
-
+#define FOURCC_TAG BE_FOURCC
 #define RMF_TAG   FOURCC_TAG('.', 'R', 'M', 'F')
 #define PROP_TAG  FOURCC_TAG('P', 'R', 'O', 'P')
 #define MDPR_TAG  FOURCC_TAG('M', 'D', 'P', 'R')

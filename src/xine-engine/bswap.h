@@ -155,4 +155,18 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 #define AME_64(x) ALE_64(x)
 #endif
 
+
+#define BE_FOURCC( ch0, ch1, ch2, ch3 )             \
+        ( (uint32_t)(unsigned char)(ch3) |          \
+        ( (uint32_t)(unsigned char)(ch2) << 8 ) |   \
+        ( (uint32_t)(unsigned char)(ch1) << 16 ) |  \
+        ( (uint32_t)(unsigned char)(ch0) << 24 ) )
+
+#define LE_FOURCC( ch0, ch1, ch2, ch3 )             \
+        ( (uint32_t)(unsigned char)(ch0) |          \
+        ( (uint32_t)(unsigned char)(ch1) << 8 ) |   \
+        ( (uint32_t)(unsigned char)(ch2) << 16 ) |  \
+        ( (uint32_t)(unsigned char)(ch3) << 24 ) )
+
+
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.70 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: buffer_types.c,v 1.71 2003/11/13 15:23:01 andruil Exp $
  *
  *
  * contents:
@@ -40,17 +40,9 @@
 
 /* FOURCC will be manipulated using machine endian */
 #ifdef WORDS_BIGENDIAN
-#define meFOURCC( ch0, ch1, ch2, ch3 )              \
-        ( (uint32_t)(unsigned char)(ch3) |          \
-        ( (uint32_t)(unsigned char)(ch2) << 8 ) |   \
-        ( (uint32_t)(unsigned char)(ch1) << 16 ) |  \
-        ( (uint32_t)(unsigned char)(ch0) << 24 ) )
+#define meFOURCC BE_FOURCC
 #else
-#define meFOURCC( ch0, ch1, ch2, ch3 )              \
-        ( (uint32_t)(unsigned char)(ch0) |          \
-        ( (uint32_t)(unsigned char)(ch1) << 8 ) |   \
-        ( (uint32_t)(unsigned char)(ch2) << 16 ) |  \
-        ( (uint32_t)(unsigned char)(ch3) << 24 ) )
+#define meFOURCC LE_FOURCC
 #endif
 
 

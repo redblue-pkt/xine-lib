@@ -29,7 +29,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.35 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_vqa.c,v 1.36 2003/11/13 15:23:01 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,12 +49,7 @@
 #include "bswap.h"
 #include "group_games.h"
 
-#define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
-        ( (long)(unsigned char)(ch3) | \
-        ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | \
-        ( (long)(unsigned char)(ch0) << 24 ) )
-
+#define FOURCC_TAG BE_FOURCC
 #define FORM_TAG FOURCC_TAG('F', 'O', 'R', 'M')
 #define WVQA_TAG FOURCC_TAG('W', 'V', 'Q', 'A')
 #define VQHD_TAG FOURCC_TAG('V', 'Q', 'H', 'D')

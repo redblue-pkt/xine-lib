@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.17 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_str.c,v 1.18 2003/11/13 15:23:01 andruil Exp $
  */
 
 /*
@@ -150,12 +150,7 @@
 #define CDXA_TYPE_VIDEO    0x02
 #define CDXA_SUBMODE_EOF   0x80 /* set if EOF */
 
-#define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
-        ( (long)(unsigned char)(ch3) | \
-        ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | \
-        ( (long)(unsigned char)(ch0) << 24 ) )
-
+#define FOURCC_TAG BE_FOURCC
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define CDXA_TAG FOURCC_TAG('C', 'D', 'X', 'A')
 

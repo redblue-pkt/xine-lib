@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.122 2003/11/11 18:44:52 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.123 2003/11/13 15:23:01 andruil Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -55,10 +55,7 @@
 
 #define WRAP_THRESHOLD       120000
 
-#define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
-        ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
-
+#define FOURCC_TAG BE_FOURCC
 #define RIFF_CHECK_BYTES 1024
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')

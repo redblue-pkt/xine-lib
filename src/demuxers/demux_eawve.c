@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_eawve.c,v 1.22 2003/11/11 18:44:51 f1rmb Exp $
+ * $Id: demux_eawve.c,v 1.23 2003/11/13 15:23:01 andruil Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -46,11 +46,7 @@
 #include "demux.h"
 #include "group_games.h"
 
-#define FOURCC_TAG(ch0, ch1, ch2, ch3) \
-                 (((uint32_t)(ch3)) | \
-                  ((uint32_t)(ch2) << 8) | \
-                  ((uint32_t)(ch1) << 16) | \
-                  ((uint32_t)(ch0) << 24))
+#define FOURCC_TAG BE_FOURCC
 
 typedef struct {
   demux_plugin_t   demux_plugin;

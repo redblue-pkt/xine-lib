@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.170 2003/11/11 18:44:52 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.171 2003/11/13 15:23:01 andruil Exp $
  *
  */
 
@@ -56,12 +56,7 @@
 
 typedef unsigned int qt_atom;
 
-#define QT_ATOM( ch0, ch1, ch2, ch3 ) \
-        ( (unsigned char)(ch3) | \
-        ( (unsigned char)(ch2) << 8 ) | \
-        ( (unsigned char)(ch1) << 16 ) | \
-        ( (unsigned char)(ch0) << 24 ) )
-
+#define QT_ATOM BE_FOURCC
 /* top level atoms */
 #define FREE_ATOM QT_ATOM('f', 'r', 'e', 'e')
 #define JUNK_ATOM QT_ATOM('j', 'u', 'n', 'k')

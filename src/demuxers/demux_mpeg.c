@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.126 2003/11/11 18:44:52 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.127 2003/11/13 15:23:01 andruil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -80,10 +80,7 @@ typedef struct {
  */
 #include "bswap.h"
 
-#define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
-        ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
-
+#define QT_ATOM BE_FOURCC
 /* these are the known top-level QT atoms */
 #define FREE_ATOM QT_ATOM('f', 'r', 'e', 'e')
 #define JUNK_ATOM QT_ATOM('j', 'u', 'n', 'k')
@@ -97,8 +94,7 @@ typedef struct {
 
 /* a little something for dealing with RIFF headers */
 
-#define FOURCC_TAG(ch0, ch1, ch2, ch3) QT_ATOM(ch0, ch1, ch2, ch3)
-
+#define FOURCC_TAG BE_FOURCC
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define WAVE_TAG FOURCC_TAG('W', 'A', 'V', 'E')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')

@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.43 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: demux_smjpeg.c,v 1.44 2003/11/13 15:23:01 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,10 +48,7 @@
 #include "bswap.h"
 #include "group_games.h"
 
-#define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
-        ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
-
+#define FOURCC_TAG BE_FOURCC
 #define _TXT_TAG FOURCC_TAG('_', 'T', 'X', 'T')
 #define _SND_TAG FOURCC_TAG('_', 'S', 'N', 'D')
 #define _VID_TAG FOURCC_TAG('_', 'V', 'I', 'D')

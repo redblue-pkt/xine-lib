@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.7 2003/11/11 18:44:52 f1rmb Exp $
+ * $Id: demux_nsv.c,v 1.8 2003/11/13 15:23:01 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,12 +48,7 @@
 #include "bswap.h"
 #include "buffer.h"
 
-#define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
-        ( (long)(unsigned char)(ch3) | \
-        ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | \
-        ( (long)(unsigned char)(ch0) << 24 ) )
-
+#define FOURCC_TAG BE_FOURCC
 #define NSVf_TAG FOURCC_TAG('N', 'S', 'V', 'f')
 #define NSVs_TAG FOURCC_TAG('N', 'S', 'V', 's')
 #define NONE_TAG FOURCC_TAG('N', 'O', 'N', 'E')

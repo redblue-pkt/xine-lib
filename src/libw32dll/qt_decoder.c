@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.23 2003/11/11 18:44:55 f1rmb Exp $
+ * $Id: qt_decoder.c,v 1.24 2003/11/13 15:23:01 andruil Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -50,10 +50,7 @@
 #ifdef FOUR_CHAR_CODE
 #  undef FOUR_CHAR_CODE
 #endif
-#define FOUR_CHAR_CODE(a,b,c,d)  (uint32_t)( ((unsigned char)(a)<<24) | \
-                                             ((unsigned char)(b)<<16) | \
-                                             ((unsigned char)(c)<<8) | \
-                                             (unsigned char)(d) )
+#define FOUR_CHAR_CODE BE_FOURCC
 
 /*
 #define LOG
