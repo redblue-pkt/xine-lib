@@ -231,6 +231,11 @@ AC_SUBST(LIBFFMPEG_CFLAGS)
 LIBMPEG2_CFLAGS=""
 LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_ENCODERS -DCONFIG_DECODERS"
 
+AC_CHECK_DECL(lrintf,[AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' function is declared in math.h])],,[
+#define _ISOC9X_SOURCE
+#include "math.h"
+])
+
 AC_ARG_ENABLE(altivec,
 	[  --disable-altivec       Use assembly codes for Motorola 74xx CPUs],
 		enable_altivec=no, 
