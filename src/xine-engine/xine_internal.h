@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.80 2002/05/01 19:42:57 guenter Exp $
+ * $Id: xine_internal.h,v 1.81 2002/05/02 12:31:03 f1rmb Exp $
  *
  */
 
@@ -139,6 +139,7 @@ struct audio_decoder_s {
 #define XINE_STOP      0 
 #define XINE_PLAY      1 
 #define XINE_QUIT      2
+#define XINE_LOGO      3
 
 /*
  * log output
@@ -157,6 +158,11 @@ struct xine_s {
   metronom_t                *metronom;
   
   config_values_t           *config;
+
+  /* MRL of displayed logo */
+  char                      *logo_mrl;
+  /* Logo manipulation mutex */
+  pthread_mutex_t            logo_lock;
 
   input_plugin_t            *input_plugins[INPUT_PLUGIN_MAX];
   int                        num_input_plugins;

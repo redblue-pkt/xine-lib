@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.124 2002/05/02 01:44:44 siggi Exp $
+ * $Id: xine.c,v 1.125 2002/05/02 12:31:03 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -56,8 +56,28 @@
 #include "xineutils.h"
 #include "compat.h"
 
-static char *logo_mrl= XINE_SKINDIR "/xine_logo.mpg";
 #define LOGO_DELAY 500000 /* usec */
+
+/* config callback for logo mrl changing */
+static void _logo_change_cb(void *data, cfg_entry_t *cfg) {
+  xine_t            *this = (xine_t *) data;
+  
+  pthread_mutex_lock (&this->logo_lock);
+  this->logo_mrl = cfg->str_value;
+  pthread_mutex_unlock (&this->logo_lock);
+  
+  /*
+   * Start playback of new mrl only if 
+   * current status is XINE_STOP of XINE_LOGO 
+   */
+  if((this->status == XINE_LOGO) || (this->status == XINE_STOP)) {
+    xine_stop_internal(this);  
+    this->metronom->adjust_clock(this->metronom,
+				 this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+    xine_play(this, this->logo_mrl, 0, 0);
+    this->status = XINE_LOGO;
+  }
+}
 
 void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_t *this = this_gen;
@@ -65,16 +85,19 @@ void * xine_notify_stream_finished_thread (void * this_gen) {
 
   xine_stop_internal (this);
 
-  if (strcmp(this->cur_mrl, logo_mrl)) {
+  pthread_mutex_lock (&this->logo_lock);
+  if (strcmp(this->cur_mrl, this->logo_mrl)) {
 
     event.type = XINE_EVENT_PLAYBACK_FINISHED;
     xine_send_event (this, &event);
 
     xine_usec_sleep (LOGO_DELAY);
     if (this->status == XINE_STOP) {
-      xine_play(this, logo_mrl, 0, 0);
-    }
+      xine_play(this, this->logo_mrl, 0, 0);
+      this->status = XINE_LOGO; 
+   }
   }
+  pthread_mutex_unlock (&this->logo_lock);
 
   pthread_detach( pthread_self() );
 
@@ -189,19 +212,21 @@ void xine_stop_internal (xine_t *this) {
   printf ("xine_stop\n");
 
   /* xine_internal_osd (this, "}", this->metronom->get_current_time (this->metronom), 30000); never works */
-
+  
   if (this->status == XINE_STOP) {
     printf ("xine_stop ignored\n");
     pthread_mutex_unlock (&this->xine_lock);
     return;
   }
-
+  
   if (this->audio_out)
     this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
   xine_set_speed_internal(this, SPEED_NORMAL);
 
-  this->status = XINE_STOP;
+  /* Don't change status if we're quitting */
+  if(this->status != XINE_QUIT)
+    this->status = XINE_STOP;
     
   printf ("xine_stop: stopping demuxer\n");
   if(this->cur_demuxer_plugin) {
@@ -235,9 +260,13 @@ void xine_stop (xine_t *this) {
   */
   this->metronom->adjust_clock(this->metronom,
 			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
-
-  xine_play(this, logo_mrl,0,0);
-
+  
+  if(this->status == XINE_STOP) {
+    pthread_mutex_lock (&this->logo_lock);
+    xine_play(this, this->logo_mrl,0,0);
+    this->status = XINE_LOGO;
+    pthread_mutex_unlock (&this->logo_lock);
+  }
 }
 
 
@@ -329,7 +358,7 @@ int xine_play (xine_t *this, char *mrl,
    * stop engine only for different mrl
    */
 
-  if (this->status == XINE_PLAY && strcmp (mrl, this->cur_mrl) ) {
+  if ((this->status == XINE_PLAY && strcmp (mrl, this->cur_mrl)) || (this->status == XINE_LOGO)) {
     
     if(this->cur_demuxer_plugin) {
       this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
@@ -472,6 +501,8 @@ void xine_exit (xine_t *this) {
 
   int i;
 
+  this->status = XINE_QUIT;
+
   xine_stop(this);
     
   printf ("xine_exit: shutdown audio\n");
@@ -524,6 +555,19 @@ xine_t *xine_init (vo_driver_t *vo,
   static char *demux_strategies[] = {"default", "reverse", "content",
 				     "extension", NULL};
   int          i;
+  char         default_logo[2048];
+  
+  /* setting default logo mrl */
+  pthread_mutex_init (&this->logo_lock, NULL);
+
+  memset(&default_logo, 0, sizeof(default_logo));
+  snprintf(default_logo, 2048, "file://%s/xine_logo.mpg", XINE_SKINDIR);
+
+  pthread_mutex_lock (&this->logo_lock);
+  this->logo_mrl = config->register_string(config, "misc.logo_mrl", default_logo,
+					   "logo mrl, displayed in video output window",
+					   NULL, _logo_change_cb, (void *) this);
+  pthread_mutex_unlock (&this->logo_lock);
 
   this->video_driver = vo;
 
@@ -626,7 +670,10 @@ xine_t *xine_init (vo_driver_t *vo,
     this->osd_renderer->hide (this->osd, 300000);
   }
 
-  xine_play(this, logo_mrl,0,0);
+  pthread_mutex_lock (&this->logo_lock);
+  xine_play(this, this->logo_mrl,0,0);
+  this->status = XINE_LOGO;
+  pthread_mutex_unlock (&this->logo_lock);
 
   return this;
 }
