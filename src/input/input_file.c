@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.64 2002/10/18 04:04:10 miguelfreitas Exp $
+ * $Id: input_file.c,v 1.65 2002/10/27 22:48:57 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -234,6 +234,33 @@ static void file_plugin_dispose (input_plugin_t *this_gen ) {
   free (this);
 }
 
+static char *decode_uri (char *uri) {
+
+  int len = strlen (uri);
+  int i;
+
+  for (i=0; i<len; i++) {
+
+    if ( (uri[i]=='%') && (i<(len-2)) ) {
+
+      int c;
+
+      if ( sscanf (&uri[i+1], "%02x", &c) == 1) {
+
+	uri[i]= (char) c;
+
+	memmove (uri+i+1, uri+i+3, len-i-3);
+
+	len-=2;
+      }
+    }
+  }
+  
+  uri[len] = 0;
+
+  return uri;
+}
+
 static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
 				    const char *data) {
 
@@ -244,12 +271,12 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   char                *filename, *subtitle;
   int                  fh;
 
-  if (!strncasecmp (mrl, "file://", 7))
-    filename = &mrl[7];
+  if (!strncasecmp (mrl, "file://", 7)) 
+    filename = decode_uri (&mrl[7]);
   else
     filename = mrl;
 
-  subtitle = strrchr (filename, '%');
+  subtitle = strrchr (filename, '#');
   if (subtitle) {
     *subtitle = 0;
     subtitle++;
