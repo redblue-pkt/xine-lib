@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.188 2004/06/15 21:22:34 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.189 2004/07/07 01:07:58 miguelfreitas Exp $
  *
  */
 
@@ -1458,7 +1458,7 @@ static qt_error parse_reference_atom (reference_t *ref,
     if (current_atom == RDRF_ATOM) {
 
       /* if the URL starts with "http://", copy it */
-      if (strncmp(&ref_atom[i + 12], "http://", 7) == 0
+      if (strncmp(&ref_atom[i + 16], "http://", 7) == 0
         || strncmp(&ref_atom[i + 16], "rtsp://", 7) == 0) {
 
         /* URL is spec'd to terminate with a NULL; don't trust it */
