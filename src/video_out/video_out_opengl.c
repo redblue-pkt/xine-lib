@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.1 2002/01/22 20:15:00 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.2 2002/01/23 00:15:43 jcdutton Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -530,13 +530,24 @@ static void opengl_overlay_clut_yuv2rgb(opengl_driver_t  *this, vo_overlay_t *ov
 {
   int i;
   clut_t* clut = (clut_t*) overlay->color;
-
-  for (i = 0; i < sizeof(overlay->color)/sizeof(overlay->color[0]); i++) {
-    *((uint32_t *)&clut[i]) =
-                 this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb,
-                 clut[i].y, clut[i].cb, clut[i].cr);
-  }
+  if (!overlay->rgb_clut) {
+    for (i = 0; i < sizeof(overlay->color)/sizeof(overlay->color[0]); i++) {
+      *((uint32_t *)&clut[i]) =
+                   this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb,
+                   clut[i].y, clut[i].cb, clut[i].cr);
+    }
   overlay->rgb_clut++;
+  }
+  if (!overlay->clip_rgb_clut) {
+    clut = (clut_t*) overlay->clip_color;
+    for (i = 0; i < sizeof(overlay->color)/sizeof(overlay->color[0]); i++) {
+      *((uint32_t *)&clut[i]) =
+                   this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb,
+                   clut[i].y, clut[i].cb, clut[i].cr);
+    }
+  overlay->clip_rgb_clut++;
+  }
+
 }
 
 static void opengl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
@@ -545,7 +556,7 @@ static void opengl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, 
 
   /* Alpha Blend here */
   if (overlay->rle) {
-    if( !overlay->rgb_clut )
+    if( !overlay->rgb_clut || !overlay->clip_rgb_clut)
       opengl_overlay_clut_yuv2rgb(this,overlay);
 
     assert (this->delivered_width == frame->width);
