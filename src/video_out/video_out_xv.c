@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.22 2001/05/26 00:48:47 guenter Exp $
+ * $Id: video_out_xv.c,v 1.23 2001/05/28 11:21:49 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -91,6 +91,7 @@ typedef struct xv_driver_s {
   XVisualInfo      vinfo;
   GC               gc;
   unsigned int     xv_port;
+  XColor           black;
 
   xv_property_t    props[VO_NUM_PROPERTIES];
   uint32_t         capabilities;
@@ -221,6 +222,8 @@ static void xv_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen
     frame->shminfo.readOnly = False;
     frame->image->data = frame->shminfo.shmaddr;
 
+    /* memset (frame->image->data,0,frame->image->data_size);  */
+
     XShmAttach(this->display, &frame->shminfo);
 
     XSync(this->display, False);
@@ -260,6 +263,14 @@ static void xv_adapt_to_output_area (xv_driver_t *this, int dest_x, int dest_y, 
     this->output_xoffset  = dest_x + (dest_width - this->output_width) / 2;
     this->output_yoffset  = dest_y;
   } 
+
+  /*
+   * clear output area
+   */
+
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 dest_x, dest_y, dest_width, dest_height);
+
 }
 
 static void xv_calc_format (xv_driver_t *this, int width, int height, int ratio_code) {
@@ -359,7 +370,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   XLockDisplay (this->display);
 
   XvShmPutImage(this->display, this->xv_port, this->drawable, this->gc, frame->image,
-		0, 0,  frame->width, frame->height,
+		0, 0,  frame->width, frame->height-5,
 		this->output_xoffset, this->output_yoffset,
 		this->output_width, this->output_height, False);
 
@@ -406,8 +417,16 @@ static int xv_set_property (vo_driver_t *this_gen,
       printf("video_out_xv: VO_PROP_INTERLACED(%d)\n", this->props[property].value);
       break;
     case VO_PROP_ASPECT_RATIO:
+
+      if (value>ASPECT_DVB)
+	value = ASPECT_AUTO;
+
       this->props[property].value = value;
       printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n", this->props[property].value);
+
+      xv_calc_format (this, this->delivered_width, this->delivered_height, 
+		      this->delivered_ratio_code) ;
+
       break;
     }
   }
@@ -510,7 +529,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XvImageFormatValues  *fo;
   int                   nattr;
   x11_visual_t         *visual;
-
+  XColor                dummy;
 
   visual = (x11_visual_t *) visual_gen;
   display = visual->display;
@@ -585,6 +604,11 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
   this->xv_port           = xv_port;
   this->capabilities      = 0;
+
+  XAllocNamedColor(this->display, 
+		   DefaultColormap(this->display, this->screen), 
+		   "black", &this->black, &dummy);
+
 
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
