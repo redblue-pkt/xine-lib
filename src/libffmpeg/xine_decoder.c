@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.76 2002/12/08 22:24:28 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.77 2002/12/16 00:32:12 tmattern Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -116,12 +116,10 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
 static void init_video_codec (ff_video_decoder_t *this, AVCodec *codec, xine_bmiheader *bih) {
 
-#if 0  /* now we have strides, i don't think this is needed anymore */ 
   /* force (width % 8 == 0), otherwise there will be 
    * display problems with Xv. 
    */ 
   this->bih.biWidth = (this->bih.biWidth + 7) & (~7);
-#endif
 
   this->av_picture = avcodec_alloc_picture();
   this->context = avcodec_alloc_context();
