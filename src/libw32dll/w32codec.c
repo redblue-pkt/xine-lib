@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.56 2002/01/07 17:21:16 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.57 2002/01/07 18:34:02 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -71,7 +71,9 @@ static GUID wmv2_clsid =
 	{0xbd, 0xb1, 0x0c, 0x6e, 0x66, 0x60, 0x71, 0x4f}
 };
 
+pthread_mutex_t win32_codec_name_mutex;
 extern char*   win32_codec_name; 
+
 extern char*   win32_def_path;
 
 #define VIDEOBUFSIZE 128*1024
@@ -554,12 +556,14 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
     this->video_step = buf->decoder_info[1];
 
+    pthread_mutex_lock(&win32_codec_name_mutex);
     win32_codec_name = get_vids_codec_name (this, buf->type);
 
     if( !this->ds_driver )
       w32v_init_codec (this, buf->type);
     else
       w32v_init_ds_codec (this, buf->type);
+    pthread_mutex_unlock(&win32_codec_name_mutex);
       
     this->stream_id = -1;
     
@@ -814,6 +818,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
 			    int buf_type) {
 
   HRESULT ret;
+  void *ret2;
   static WAVEFORMATEX wf;     
   static WAVEFORMATEX *in_fmt;
   unsigned long in_size=in_fmt_->nBlockAlign;
@@ -850,6 +855,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
   wf.wBitsPerSample  = 16;
   wf.cbSize          = 0;
   
+  pthread_mutex_lock(&win32_codec_name_mutex);
   win32_codec_name = get_auds_codec_name (this, buf_type);
   
   if( !this->ds_driver ) {
@@ -857,6 +863,8 @@ static int w32a_init_audio (w32a_decoder_t *this,
                       in_fmt,
                       &wf,
                       NULL,0,0,0);
+    pthread_mutex_unlock(&win32_codec_name_mutex);
+
     if(ret){
       if(ret==ACMERR_NOTPOSSIBLE)
         printf("w32codec: (ACM_Decoder) Unappropriate audio format\n");
@@ -875,9 +883,10 @@ static int w32a_init_audio (w32a_decoder_t *this,
     acmStreamSize(this->srcstream, out_size, (LPDWORD) &this->rec_audio_src_size, 
       ACM_STREAMSIZEF_DESTINATION);
   } else {
+    ret2 = this->ds_dec=DS_AudioDecoder_Open(win32_codec_name,this->guid, in_fmt);
+    pthread_mutex_unlock(&win32_codec_name_mutex);
     
-    if( (this->ds_dec=DS_AudioDecoder_Open(win32_codec_name,
-                                           this->guid, in_fmt)) == NULL ) {
+    if( ret2 == NULL ) {
       printf("w32codec: Error initializing DirectShow Audio\n");
       this->srcstream = 0;
       return 0;
@@ -1142,8 +1151,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.get_identifier      = w32v_get_id;
   this->video_decoder.priority            = 1;
 
+  pthread_mutex_init (&win32_codec_name_mutex, NULL);
+  
   this->prof_rgb2yuv = xine_profiler_allocate_slot ("w32codec rgb2yuv convert");
-
 
   return (video_decoder_t *) this;
 }
@@ -1177,6 +1187,8 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.close               = w32a_close;
   this->audio_decoder.get_identifier      = w32a_get_id;
   this->audio_decoder.priority            = 1;
+  
+  pthread_mutex_init (&win32_codec_name_mutex, NULL);
   
   return (audio_decoder_t *) this;
 }
