@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.24 2001/11/10 13:48:03 guenter Exp $
+ * $Id: audio_out.c,v 1.25 2001/11/10 19:34:25 jkeil Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -347,7 +347,7 @@ static void *ao_loop (void *this_gen) {
       /* drop package */
 
       xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d) dropped\n", 
-	       vpts, gap);
+	       buf->vpts, gap);
 
     } else {
 
