@@ -8,6 +8,7 @@ xine-lib (1.0.0-alpha2/beta0)
   * use binary real codecs to decode rv20/30 video, sipro/cook audio
     (experimental)
   * arts audio output plugin ported to new architecture
+  * esound audio output plugin ported to new architecture
 	
 xine-lib (1.0.0-alpha1) 
   * transport stream demuxer fixes

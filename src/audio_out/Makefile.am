@@ -19,9 +19,9 @@ alsa_module = xineplug_ao_out_alsa.la
 endif
 endif
 
-#if HAVE_ESD
-#esd_module = xineplug_ao_out_esd.la
-#endif
+if HAVE_ESD
+esd_module = xineplug_ao_out_esd.la
+endif
 
 if HAVE_SUNAUDIO
 sun_module = xineplug_ao_out_sun.la
@@ -44,7 +44,8 @@ endif
 lib_LTLIBRARIES = $(oss_module) \
 	$(alsa_module) \
 	$(sun_module) \
-	$(arts_module)
+	$(arts_module) \
+	$(esd_module) 
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -61,9 +62,9 @@ xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c
 xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
 xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c 
-#xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
-#xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c 
+xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
+xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c
 xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.22 2002/11/20 11:57:39 mroi Exp $
+ * $Id: audio_esd_out.c,v 1.23 2002/11/26 02:37:35 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,7 +39,7 @@
 #include "audio_out.h"
 #include "metronom.h"
 
-#define AO_OUT_ESD_IFACE_VERSION 4
+#define AO_OUT_ESD_IFACE_VERSION 6
 
 #define GAP_TOLERANCE         5000
 
@@ -71,6 +71,12 @@ typedef struct esd_driver_s {
   } mixer;
 
 } esd_driver_t;
+
+typedef struct {
+  audio_driver_class_t driver_class;
+
+  config_values_t *config;
+} esd_class_t;
 
 
 /*
@@ -362,9 +368,11 @@ static int ao_esd_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-static void *init_audio_out_plugin (xine_t *xine, void *data) {
+static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, 
+				 const void *data) {
 
-  config_values_t *config = xine->config;
+  esd_class_t     *class = (esd_class_t *) class_gen;
+  config_values_t *config = class->config;
   esd_driver_t    *this;
   int              audio_fd;
   sigset_t         vo_mask, vo_mask_orig;
@@ -431,15 +439,44 @@ static void *init_audio_out_plugin (xine_t *xine, void *data) {
   return this;
 }
 
+/*
+ * class functions
+ */
+
+static char* get_identifier (audio_driver_class_t *this_gen) {
+  return "esd";
+}
+
+static char* get_description (audio_driver_class_t *this_gen) {
+  return _("xine audio output plugin using esound");
+}
+
+static void dispose_class (audio_driver_class_t *this_gen) {
+
+  esd_class_t *this = (esd_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *data) {
+
+  esd_class_t        *this;
+
+  this = (esd_class_t *) malloc (sizeof (esd_class_t));
+
+  this->driver_class.open_plugin     = open_plugin;
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
+  this->config = xine->config;
+
+  return this;
+}
+
 static ao_info_t ao_info_esd = {
-  "xine audio output plugin using esd",
   4
 };
-
-ao_info_t *get_audio_out_plugin_info() {
-  ao_info_esd.description = _("xine audio output plugin using esd");
-  return &ao_info_esd;
-}
 
 /*
  * exported plugin catalog entry
@@ -447,6 +484,6 @@ ao_info_t *get_audio_out_plugin_info() {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_OUT, AO_OUT_ESD_IFACE_VERSION, "esd", XINE_VERSION_CODE, &ao_info_esd, init_audio_out_plugin },
+  { PLUGIN_AUDIO_OUT, AO_OUT_ESD_IFACE_VERSION, "esd", XINE_VERSION_CODE, &ao_info_esd, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
