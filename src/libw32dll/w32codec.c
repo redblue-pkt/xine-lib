@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.70 2002/04/09 03:38:01 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.71 2002/04/16 02:36:46 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -602,7 +602,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
-
+  
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     if ( buf->type & 0xff )
       return;
@@ -667,6 +667,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
 
       HRESULT     ret;
+      int         flags;
       vo_frame_t *img;
       uint8_t    *img_buffer = this->img_buffer;
 
@@ -689,20 +690,25 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       if (this->outfmt==IMGFMT_YUY2)
          img_buffer = img->base[0];
+         
+      flags = 0;
+      if( !(buf->decoder_flags & BUF_FLAG_KEYFRAME) )
+        flags |= ICDECOMPRESS_NOTKEYFRAME;
+      if( this->skipframes )
+        flags |= ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL;
       
       pthread_mutex_lock(&win32_codec_mutex);
       if( !this->ds_driver )
         ret = (!this->ex_functions)
-              ?ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME | 
-                            ((this->skipframes)?ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL:0), 
+              ?ICDecompress(this->hic, flags,
 			    &this->bih, this->buf, &this->o_bih, 
 			    (this->skipframes)?NULL:img_buffer)
-              :ICDecompressEx(this->hic, ICDECOMPRESS_NOTKEYFRAME | 
-                            ((this->skipframes)?ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL:0), 
+              :ICDecompressEx(this->hic, flags,
 			    &this->bih, this->buf, &this->o_bih,
 			    (this->skipframes)?NULL:img_buffer); 
       else {
-        ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, this->size, 0,
+        ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, this->size,
+                            buf->decoder_flags & BUF_FLAG_KEYFRAME,
                             (this->skipframes)?NULL:img_buffer);
       }
       pthread_mutex_unlock(&win32_codec_mutex);
@@ -827,10 +833,13 @@ static void w32v_reset (video_decoder_t *this_gen) {
   
   pthread_mutex_lock(&win32_codec_mutex);
   if ( !this->ds_driver ) {
-    if (!this->ex_functions) 
+    if( this->hic )
+    {
+      if (!this->ex_functions) 
         ICDecompressBegin(this->hic, &this->bih, &this->o_bih);
-    else
+      else
         ICDecompressBeginEx(this->hic, &this->bih, &this->o_bih);
+    }
   } else {
   }
   this->size = 0;
@@ -848,8 +857,10 @@ static void w32v_close (video_decoder_t *this_gen) {
 #endif
   {
     if ( !this->ds_driver ) {
-      ICDecompressEnd(this->hic);
-      ICClose(this->hic);
+      if( this->hic ) {
+        ICDecompressEnd(this->hic);
+        ICClose(this->hic);
+      }
     } else {
       if( this->ds_dec )
         DS_VideoDecoder_Destroy(this->ds_dec);
