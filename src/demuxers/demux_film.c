@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.34 2002/10/20 16:45:27 tmmm Exp $
+ * $Id: demux_film.c,v 1.35 2002/10/22 04:08:47 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -142,7 +142,6 @@ static int open_film_file(demux_film_t *film) {
   film->sample_rate = 0;
   film->audio_bits = 0;
   film->audio_channels = 0;
-  film->waiting_for_keyframe = 0;
 
   /* reset the file */
   film->input->seek(film->input, 0, SEEK_SET);
@@ -295,7 +294,7 @@ static void *demux_film_loop (void *this_gen) {
       if (this->last_sample + 1 != this->current_sample) {
         /* send new pts */
         xine_demux_control_newpts(this->stream, this->sample_table[i].pts,
-          BUF_FLAG_SEEK);
+          (this->sample_table[i].pts) ? BUF_FLAG_SEEK : 0);
       }
 
       this->last_sample = this->current_sample;
@@ -491,7 +490,7 @@ static void *demux_film_loop (void *this_gen) {
         }
       }
     }
-  
+
     /* wait before sending end buffers: user might want to do a new seek */
     while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
           this->status != DEMUX_OK){
@@ -502,9 +501,6 @@ static void *demux_film_loop (void *this_gen) {
 
   } while (this->status == DEMUX_OK);
 
-  printf ("demux_film: demux loop finished (status: %d)\n",
-          this->status);
-
   this->current_sample = this->last_sample = 0;
 
   this->status = DEMUX_FINISHED;
@@ -512,9 +508,10 @@ static void *demux_film_loop (void *this_gen) {
   if (this->send_end_buffers) {
     xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
-      
+
   this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
+
   return NULL;
 }
 
@@ -594,6 +591,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
     this->thread_running = 1;
+    this->waiting_for_keyframe = 0;
 
     this->last_sample = 0;
 
@@ -674,9 +672,8 @@ static int demux_film_seek (demux_plugin_t *this_gen,
 
   this->current_sample = best_index;
   status = this->status = DEMUX_OK;
-  pthread_mutex_unlock( &this->mutex );
-
   xine_demux_flush_engine(this->stream);
+  pthread_mutex_unlock( &this->mutex );
 
   return status;
 }
@@ -693,13 +690,13 @@ static void demux_film_stop (demux_plugin_t *this_gen) {
     return;
   }
 
-  this->current_sample = this->last_sample = 0;
-
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
+
+  this->current_sample = this->last_sample = 0;
 
   xine_demux_flush_engine(this->stream);
 
