@@ -1,7 +1,0 @@
-;------------------------------------------------------------
-; XINEPLUG_VO_OUT DLL DEFINITIONS FILE
-
-EXPORTS
-
-xine_plugin_info
-
