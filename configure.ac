@@ -164,7 +164,6 @@ AC_TYPE_SIZE_T
 dnl AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_GENERATE_INTTYPES([include])
 
-
 dnl ---------------------------------------------
 dnl debug cflags
 dnl ---------------------------------------------
@@ -620,7 +619,7 @@ AC_CHECK_HEADER(linux/fb.h,
                 [AC_DEFINE(HAVE_FB,1,[Define this if you have linux framebuffer support])
                  have_fb=yes],)
 AC_ARG_ENABLE(fb, [  --disable-fb            Do not build linux framebuffer support],
-	      have_fb=no, have_fb=yes)
+	      have_fb=no,)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
 

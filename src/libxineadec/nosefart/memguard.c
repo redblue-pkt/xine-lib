@@ -22,7 +22,7 @@
 ** memory allocation wrapper routines
 **
 ** NOTE: based on code (c) 1998 the Retrocade group
-** $Id: memguard.c,v 1.3 2004/02/19 02:50:25 rockyb Exp $
+** $Id: memguard.c,v 1.4 2004/02/20 19:53:39 komadori Exp $
 */
 
 #include "types.h"
@@ -33,7 +33,15 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
+
+#if HAVE_INTTYPES_H
+# include <inttypes.h>
+#else
+# if HAVE_STDINT_H
+#  include <stdint.h>
+# endif
+#endif
+
 #include "memguard.h"
 #include "log.h"
 
@@ -364,6 +372,9 @@ void mem_checkblocks(void)
 
 /*
 ** $Log: memguard.c,v $
+** Revision 1.4  2004/02/20 19:53:39  komadori
+** Fixed detection of linux framebuffer support. Included xineutils.h in dsputil_mlib.c and added to diff_to_ffmpeg_cvs.txt. Fixed function prototype in dsputil_mlib.c (should be sent back to ffmpeg-dev at some point). Fixed includes in nosefart. Fixed nested comments and includes in goom.
+**
 ** Revision 1.3  2004/02/19 02:50:25  rockyb
 ** Mandrake patches from
 **   http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/SPECS/xine-lib/

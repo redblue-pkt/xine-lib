@@ -526,6 +526,15 @@ retrieving revision 1.14
 diff -u -r1.14 dsputil_mlib.c
 --- mlib/dsputil_mlib.c	11 Oct 2003 16:43:51 -0000	1.14
 +++ mlib/dsputil_mlib.c	1 Feb 2004 04:42:48 -0000
+@@ -20,6 +20,8 @@
+ #include "../dsputil.h"
+ #include "../mpegvideo.h"
+ 
++#include "../../../xine-utils/xineutils.h"
++
+ #include <mlib_types.h>
+ #include <mlib_status.h>
+ #include <mlib_sys.h>
 @@ -419,6 +419,7 @@
  
  void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)

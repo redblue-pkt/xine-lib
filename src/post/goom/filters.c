@@ -12,13 +12,21 @@
 
 //#define _DEBUG_PIXEL;
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+
+#if HAVE_INTTYPES_H
+# include <inttypes.h>
+#else
+# if HAVE_STDINT_H
+#  include <stdint.h>
+# endif
+#endif
+
 #include "filters.h"
 #include "graphic.h"
 #include "goom_tools.h"
-#include <stdlib.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdint.h>
 
 #ifdef HAVE_MMX
 #define USE_ASM
@@ -726,7 +734,7 @@ zoomFilterFastRGB (Uint * pix1,
         }
 /*
 	if (interlace_start>=0) {
-		/* creation de la nouvelle destination *
+		* creation de la nouvelle destination *
 		for (y = interlace_start; y < prevY; y+=INTERLACE_INCR) {
 			Uint premul_y_prevX = y * prevX * 2;
 			for (x = 0; x < prevX; x++) {
@@ -736,13 +744,13 @@ zoomFilterFastRGB (Uint * pix1,
 				
 				calculatePXandPY (x, y, &px, &py);
 				
-				/*				if (py>ay<<16)
+				*				if (py>ay<<16)
 									py = iRAND (32);
 									if (px>ax<<16)
 									px = iRAND (32);
 				*
 				
-				/*
+				*
 					if ((px == x << 4) && (py == y << 4)) {
 					if (x > middleX)
 					py += 2;
@@ -765,7 +773,6 @@ zoomFilterFastRGB (Uint * pix1,
 		if (interlace_start == 0)
 			interlace_start = -1;
 	}
-
 */
 
 	if (interlace_start>=0) {
