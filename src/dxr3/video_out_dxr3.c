@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.91 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: video_out_dxr3.c,v 1.92 2003/11/26 20:30:36 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -983,6 +983,10 @@ static int dxr3_get_property(vo_driver_t *this_gen, int property)
   case VO_PROP_ZOOM_Y:
   case VO_PROP_TVMODE:
     return 0;
+  case VO_PROP_WINDOW_WIDTH:
+    return this->scale.gui_width;
+  case VO_PROP_WINDOW_HEIGHT:
+    return this->scale.gui_height;
   }
   printf("video_out_dxr3: property %d not implemented.\n", property);
   return 0;
