@@ -341,4 +341,7 @@ James Stembridge <jstembridge@gmx.net>
 Mattias Eriksson <snaggen@acc.umu.se>
   ported nvtv/tvmode code
     
+John McCutchan <ttb@tentacle.dhs.org>
+  flac demuxer and decoder
+
 (let us know if we've forgotten anyone)
