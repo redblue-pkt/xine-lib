@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.10 2002/09/11 17:41:08 guenter Exp $
+ * $Id: xine_interface.c,v 1.11 2002/09/13 18:25:23 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -384,50 +384,39 @@ int  xine_get_param (xine_p this, int param) {
 }
 
 uint32_t xine_get_stream_info (xine_p this, int info) {
-  printf ("xine_interface: xine_get_stream_info: not implemented\n");
 
   switch (info) {
-
-  case XINE_STREAM_INFO_WIDTH:
-    return 0; /* FIXME */
-
-  case XINE_STREAM_INFO_HEIGHT:
-    return 0; /* FIXME */
 
   case XINE_STREAM_INFO_SEEKABLE:
     if (this->cur_input_plugin)
       return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SEEKABLE;
     return 0;
 
-  case XINE_STREAM_INFO_VIDEO_FOURCC:
-    return 0; /* FIXME */
-    
-  case XINE_STREAM_INFO_VIDEO_CHANNELS:
-    return 0; /* FIXME */
-
-  case XINE_STREAM_INFO_VIDEO_STREAMS:
-    return 0; /* FIXME */
-
-  case XINE_STREAM_INFO_AUDIO_FOURCC:
-    return 0; /* FIXME */
-
-  case XINE_STREAM_INFO_AUDIO_CHANNELS:
-    return 0; /* FIXME */
-
-  case XINE_STREAM_INFO_AUDIO_BITS:
-    return 0; /* FIXME */
-
-  case XINE_STREAM_INFO_AUDIO_SAMPLERATE:
-    return 0; /* FIXME */
-
   case XINE_STREAM_INFO_HAS_CHAPTERS:
     if (this->cur_input_plugin)
       return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_CHAPTERS;
     return 0;
+
+  case XINE_STREAM_INFO_WIDTH:
+  case XINE_STREAM_INFO_HEIGHT:
+  case XINE_STREAM_INFO_VIDEO_FOURCC:
+  case XINE_STREAM_INFO_VIDEO_CHANNELS:
+  case XINE_STREAM_INFO_VIDEO_STREAMS:
+  case XINE_STREAM_INFO_AUDIO_FOURCC:
+  case XINE_STREAM_INFO_AUDIO_CHANNELS:
+  case XINE_STREAM_INFO_AUDIO_BITS:
+  case XINE_STREAM_INFO_AUDIO_SAMPLERATE:
+    return this->stream_info[info];
+
   default:
-    printf ("xine_interface: error, unknown info (%d) requested\n",
+    printf ("xine_interface: error, unknown stream info (%d) requested\n",
 	    info);
   }
   return 0;
+}
+
+const char *xine_get_meta_info (xine_p this, int info) {
+
+  return this->meta_info[info];
 }
 

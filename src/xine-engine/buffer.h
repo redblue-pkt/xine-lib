@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.68 2002/09/01 21:14:12 tmmm Exp $
+ * $Id: buffer.h,v 1.69 2002/09/13 18:25:23 guenter Exp $
  *
  *
  * contents:
@@ -75,6 +75,7 @@ extern "C" {
 #define BUF_CONTROL_SPU_CHANNEL   0x01060000
 #define BUF_CONTROL_NEWPTS        0x01070000
 #define BUF_CONTROL_RESET_DECODER 0x01080000
+#define BUF_CONTROL_HEADERS_DONE  0x01090000
 
 /* video buffer types:  (please keep in sync with buffer_types.c) */
 

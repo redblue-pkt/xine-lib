@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.98 2002/09/11 17:41:08 guenter Exp $
+ * $Id: xine_internal.h,v 1.99 2002/09/13 18:25:23 guenter Exp $
  *
  */
 
@@ -136,6 +136,8 @@ struct audio_decoder_s {
 #define XINE_LOG_PLUGIN    2
 #define XINE_LOG_NUM       3 /* # of log buffers defined */
 
+#define XINE_STREAM_INFO_MAX 99
+
 /*
  * the big xine struct, holding everything together
  */
@@ -240,6 +242,10 @@ struct xine_s {
   int                        playing_logo;
   int                        curtime_needed_for_osd;
   pthread_mutex_t            osd_lock;
+
+  /* stream meta information */
+  int                        stream_info[XINE_STREAM_INFO_MAX];
+  char                      *meta_info  [XINE_STREAM_INFO_MAX];
 };
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.12 2002/09/11 17:41:07 guenter Exp $
+ * $Id: xine.h.in,v 1.13 2002/09/13 18:25:22 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -135,12 +135,13 @@ int  xine_trick_mode (xine_p self, int mode, int value);
 
 /*
  * get information about the stream such as
- * video width/height, codecs, audio format, ...
+ * video width/height, codecs, audio format, title, author...
  *
  * constants see below
  */
 
-uint32_t xine_get_stream_info (xine_p self, int info);
+uint32_t    xine_get_stream_info (xine_p self, int info);
+const char *xine_get_meta_info   (xine_p self, int info);
 
 /*
  * stop playback
@@ -300,6 +301,9 @@ int xine_register_report_codec_cb(xine_p self,
 #define XINE_PARAM_VIDEO_CHANNEL           5  
 #define XINE_PARAM_AUDIO_VOLUME            6
 #define XINE_PARAM_AUDIO_MUTE              7
+#define XINE_PARAM_AUDIO_COMPR_LEVEL       8
+#define XINE_PARAM_AUDIO_AMP_LEVEL         9
+#define XINE_PARAM_AUDIO_REPORT_LEVEL     10
 
 /* stream format detection strategies */
 
@@ -351,6 +355,15 @@ int xine_register_report_codec_cb(xine_p self,
 #define XINE_STREAM_INFO_AUDIO_BITS        8
 #define XINE_STREAM_INFO_AUDIO_SAMPLERATE  9
 #define XINE_STREAM_INFO_HAS_CHAPTERS      10
+
+/* xine_get_meta_info */
+
+#define XINE_META_INFO_TITLE               0
+#define XINE_META_INFO_COMMENT             1
+#define XINE_META_INFO_ARTIST              2
+#define XINE_META_INFO_GENRE               3
+#define XINE_META_INFO_ALBUM               4
+#define XINE_META_INFO_YEAR                5
 
 /*
  * video stuff 
@@ -785,6 +798,7 @@ void              xine_reset_config        (xine_p self);
 #define XINE_EVENT_OUTPUT_NO_VIDEO      43
 
 #define XINE_EVENT_UI_MESSAGE           44 /* message (dialog) for the ui to display */
+#define XINE_EVENT_AUDIO_LEVEL          45 /* report current audio level (l/r)       */
 
 /*
  * generic event type.
@@ -880,6 +894,14 @@ typedef struct {
   int64_t          pts;
   uint32_t         scr;
 } xine_closed_caption_event_t;
+
+/*
+ * audio level for left/right channel
+ */
+typedef struct {
+  xine_event_t     event;
+  int              left, right; /* 0..255 */
+} xine_audio_level_event_t;
 
 /* event listener callback */
 typedef void (*xine_event_listener_cb_t) (void *user_data, 

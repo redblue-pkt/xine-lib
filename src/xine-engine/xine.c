@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.156 2002/09/11 17:41:08 guenter Exp $
+ * $Id: xine.c,v 1.157 2002/09/13 18:25:23 guenter Exp $
  *
  * top-level xine functions
  *
@@ -415,6 +415,16 @@ int xine_open_internal (xine_t *this, const char *mrl) {
   if (this->status == XINE_STATUS_STOP ) {
 
     plugin_node_t *node;
+    int            i;
+
+    /*
+     * reset metainfo 
+     */
+    
+    for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
+      this->stream_info[i] = 0;
+      this->meta_info  [i] = NULL;
+    }
 
     /*
      * find input plugin
