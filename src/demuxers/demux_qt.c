@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.134 2002/12/21 21:57:43 esnel Exp $
+ * $Id: demux_qt.c,v 1.135 2002/12/22 02:15:45 tmmm Exp $
  *
  */
 
@@ -387,7 +387,6 @@ static inline void debug_video_demux(const char *format, ...) { }
 static inline void debug_audio_demux(const char *format, ...) { }
 #endif
 
-#ifdef LOG
 static void hexdump (char *buf, int length) {
 
   int i;
@@ -418,7 +417,6 @@ static void hexdump (char *buf, int length) {
   }
   printf ("\n");
 }
-#endif
 
 void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {
 #if DEBUG_DUMP_MOOV
@@ -678,6 +676,8 @@ static qt_error parse_trak_atom (qt_sample_table *sample_table,
   sample_table->decoder_config = NULL;
   sample_table->decoder_config_len = 0;
   sample_table->stsd = NULL;
+  memset(&sample_table->media_description, 0, 
+    sizeof(sample_table->media_description));
 
   /* special audio parameters */
   sample_table->samples_per_packet = 0;
@@ -761,8 +761,8 @@ static qt_error parse_trak_atom (qt_sample_table *sample_table,
       sample_table->timescale = BE_32(&trak_atom[i + 0x10]);
     else if (current_atom == STSD_ATOM) {
 
-#ifdef LOG
-      printf ("demux_qt: stsd atom\n");
+      debug_atom_load ("demux_qt: stsd atom\n");
+#if DEBUG_ATOM_LOAD
       hexdump (&trak_atom[i], current_atom_size);
 #endif
 
@@ -1234,6 +1234,52 @@ free_sample_table:
   return last_error;
 }
 
+/* This is a little support function used to process the edit list when
+ * building a frame table. */
+#define MAX_DURATION 0x7FFFFFFFFFFFFFFF
+static void get_next_edit_list_entry(qt_sample_table *sample_table, 
+  int *edit_list_index,
+  unsigned int *edit_list_media_time, 
+  int64_t *edit_list_duration,
+  unsigned int global_timescale) {
+
+  /* if there is no edit list, set to max duration and get out */
+  if (!sample_table->edit_list_table) {
+
+    *edit_list_media_time = 0;
+    *edit_list_duration = MAX_DURATION;
+    debug_edit_list("  qt: no edit list table, initial = %d, %lld\n", *edit_list_media_time, *edit_list_duration);
+    return;
+
+  } else while (*edit_list_index < sample_table->edit_list_count) {
+
+    /* otherwise, find an edit list entries whose media time != -1 */
+    if (sample_table->edit_list_table[*edit_list_index].media_time != -1) {
+
+      *edit_list_media_time = 
+        sample_table->edit_list_table[*edit_list_index].media_time;
+      *edit_list_duration = 
+        sample_table->edit_list_table[*edit_list_index].track_duration;
+
+      /* duration is in global timescale units; convert to trak timescale */
+      *edit_list_duration *= sample_table->timescale;
+      *edit_list_duration /= global_timescale;
+
+      *edit_list_index = *edit_list_index + 1;
+      break;
+    }
+
+    *edit_list_index = *edit_list_index + 1;
+  }
+
+  /* on the way out, check if this is the last edit list entry; if so, 
+   * don't let the duration expire (so set it to an absurdly large value) 
+   */
+  if (*edit_list_index == sample_table->edit_list_count)
+    *edit_list_duration = MAX_DURATION;
+  debug_edit_list("  qt: edit list table exists, initial = %d, %lld\n", *edit_list_media_time, *edit_list_duration);
+}
+
 static qt_error build_frame_table(qt_sample_table *sample_table,
 				  unsigned int global_timescale) {
 
@@ -1340,27 +1386,8 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
 
     /* initialize edit list considerations */
     edit_list_index = 0;
-    if (sample_table->edit_list_table) {
-      edit_list_media_time = 
-        sample_table->edit_list_table[edit_list_index].media_time;
-      edit_list_duration = 
-        sample_table->edit_list_table[edit_list_index].track_duration;
-
-      /* duration is in global timescale units; convert to trak timescale */
-      edit_list_duration *= sample_table->timescale;
-      edit_list_duration /= global_timescale;
-
-      edit_list_index++;
-      /* if this is the last edit list entry, don't let the duration
-       * expire (so set it to an absurdly large value) */
-      if (edit_list_index == sample_table->edit_list_count)
-        edit_list_duration = 0xFFFFFFFFFFFF;
-      debug_edit_list("  qt: edit list table exists, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
-    } else {
-      edit_list_media_time = 0;
-      edit_list_duration = 0xFFFFFFFFFFFF;
-      debug_edit_list("  qt: no edit list table, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
-    }
+    get_next_edit_list_entry(sample_table, &edit_list_index,
+      &edit_list_media_time, &edit_list_duration, global_timescale);
 
     /* fix up pts information w.r.t. the edit list table */
     edit_list_pts_counter = 0;
@@ -1375,7 +1402,7 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
           frame_duration = 
             (sample_table->frames[i + 1].pts - sample_table->frames[i].pts);
 
-            debug_edit_list("duration = %lld...", frame_duration);
+        debug_edit_list("duration = %lld...", frame_duration);
         sample_table->frames[i].pts = edit_list_pts_counter;
         edit_list_pts_counter += frame_duration;
         edit_list_duration -= frame_duration;
@@ -1385,29 +1412,8 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
 
       /* reload media time and duration */
       if (edit_list_duration <= 0) {
-        if ((sample_table->edit_list_table) &&
-            (edit_list_index < sample_table->edit_list_count)) {
-          debug_edit_list("\n  edit list index = %d, ", edit_list_index);
-          edit_list_media_time = 
-            sample_table->edit_list_table[edit_list_index].media_time;
-          edit_list_duration = 
-            sample_table->edit_list_table[edit_list_index].track_duration;
-
-          /* duration is in global timescale units; convert to trak timescale */
-          edit_list_duration *= sample_table->timescale;
-          edit_list_duration /= global_timescale;
-
-          edit_list_index++;
-          /* if this is the last edit list entry, don't let the duration
-           * expire (so set it to an absurdly large value) */
-          if (edit_list_index == sample_table->edit_list_count)
-            edit_list_duration = 0xFFFFFFFFFFFF;
-          debug_edit_list("entry: %d, %lld\n      ", edit_list_media_time, edit_list_duration);
-        } else {
-          edit_list_media_time = 0;
-          edit_list_duration = 0xFFFFFFFFFFFF;
-          debug_edit_list("no edit list table (or expired): %d, %lld\n", edit_list_media_time, edit_list_duration);
-        }
+        get_next_edit_list_entry(sample_table, &edit_list_index,
+          &edit_list_media_time, &edit_list_duration, global_timescale);
       }
 
       debug_edit_list("(after) pts = %lld...\n", sample_table->frames[i].pts);
