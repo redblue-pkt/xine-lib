@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.121 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.122 2003/01/09 01:09:57 miguelfreitas Exp $
  *
  */
 
@@ -106,6 +106,10 @@ void *video_decoder_loop (void *stream_gen) {
       
       stream->metronom->handle_video_discontinuity (stream->metronom, 
 						    DISC_STREAMSTART, 0);
+      
+      /* assume handled, we will known after trying to init decoder */
+      stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 
+        stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO];
       buftype_unknown = 0;
       break;
 
@@ -267,16 +271,15 @@ void *video_decoder_loop (void *stream_gen) {
           stream->video_decoder_streamtype = streamtype;
           stream->video_decoder_plugin = get_video_decoder (stream, streamtype);
     
-          if( stream->video_decoder_plugin )
-            stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
+          stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 
+            (stream->video_decoder_plugin != NULL);
         }
 
         if (stream->video_decoder_plugin)
           stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);  
  
-        if (buf->type != buftype_unknown && 
-            (!stream->video_decoder_plugin || 
-             !stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED])) {
+        if (buf->type != buftype_unknown &&  
+            !stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED]) {
           xine_log (stream->xine, XINE_LOG_MSG, 
                     "video_decoder: no plugin available to handle '%s'\n",
                     buf_video_name( buf->type ) );
