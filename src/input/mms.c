@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.23 2003/04/13 16:34:51 miguelfreitas Exp $
+ * $Id: mms.c,v 1.24 2003/04/25 21:46:49 tmattern Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -381,11 +381,12 @@ static int get_answer (mms_t *this) {
   int   command = 0x1b;
 
   while (command == 0x1b) {
-    int len, length;
+    int len;
+    uint32_t length;
 
     len = xine_read_abort (this->stream, this->s, this->buf, 12);
     if (len != 12) {
-      printf ("\nalert! eof\n");
+      printf ("\nlibmms: alert! eof\n");
       return 0;
     }
 
@@ -394,10 +395,14 @@ static int get_answer (mms_t *this) {
 #ifdef LOG
     printf ("\n\npacket length: %d\n", length);
 #endif
-
+    if (length > (BUF_SIZE - 12)) {
+      printf ("libmms: invalid packet length: %d\n", length);
+      return 0;
+    }
+    
     len = xine_read_abort (this->stream, this->s, this->buf+12, length+4) ;
     if (len<=0) {
-      printf ("alert! eof\n");
+      printf ("libmms: alert! eof\n");
       return 0;
     }
     
