@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.51 2003/05/25 14:53:27 jstembridge Exp $
+ * $Id: demux_real.c,v 1.52 2003/05/25 20:24:19 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -85,9 +85,9 @@ typedef struct {
 } real_packet;
 
 typedef struct {
-  int   timestamp;
-  int   offset;
-  int   packetno;
+  unsigned int   timestamp;
+  unsigned int   offset;
+  unsigned int   packetno;
 } real_index_entry_t;
 
 typedef struct {
@@ -119,6 +119,7 @@ typedef struct {
   uint32_t             audio_buf_type;
   real_index_entry_t  *audio_index;
   int                  audio_index_entries;
+  int                  audio_need_keyframe;
 
   unsigned int         current_data_chunk_packet_count;
   unsigned int         next_data_chunk_offset;
@@ -221,7 +222,11 @@ static void real_parse_index(demux_real_t *this) {
     this->input->seek(this->input, next_index_chunk, SEEK_SET);
     
     /* Read index chunk header */
-    this->input->read(this->input, index_chunk_header, INDEX_CHUNK_HEADER_SIZE);
+    if(this->input->read(this->input, index_chunk_header, INDEX_CHUNK_HEADER_SIZE)
+       != INDEX_CHUNK_HEADER_SIZE) {
+      printf("demux_real: index chunk header not read\n");
+      break;
+    }
     
     /* Check chunk is actually an index chunk */
     if(BE_32(&index_chunk_header[0]) == INDX_TAG) {
@@ -267,7 +272,13 @@ static void real_parse_index(demux_real_t *this) {
         
         /* Read index */
         for(i = 0; i < entries; i++) {
-          this->input->read(this->input, index_record, INDEX_RECORD_SIZE);
+          if(this->input->read(this->input, index_record, INDEX_RECORD_SIZE)
+             != INDEX_RECORD_SIZE) {
+            printf("demux_real: index record not read\n");
+            free(*index);
+            *index = NULL;
+            break;
+          }
           
           (*index)[i].timestamp = BE_32(&index_record[2]);
           (*index)[i].offset    = BE_32(&index_record[6]);
@@ -696,10 +707,9 @@ static void real_parse_headers (demux_real_t *this) {
 
     }
   }
-#if 0
+
   if((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0)
     real_parse_index(this);
-#endif
 }
 
 
@@ -1041,6 +1051,11 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     printf ("demux_real: audio chunk detected.\n");
 #endif
 
+    if(this->audio_need_keyframe && !keyframe)
+      goto discard;
+    else
+      this->audio_need_keyframe = 0;
+    
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
     buf->content       = buf->mem;
@@ -1074,6 +1089,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 #ifdef LOG
     printf ("demux_real: chunk not detected; discarding.\n");
 #endif
+discard:
     this->input->seek(this->input, size, SEEK_CUR);
 
   }
@@ -1160,16 +1176,47 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
 static int demux_real_seek (demux_plugin_t *this_gen,
                              off_t start_pos, int start_time) {
 
-  demux_real_t *this = (demux_real_t *) this_gen;
-
-  /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
-
-    /* send new pts */
-/*    xine_demux_control_newpts(this->stream, 0, 0);
-*/
-
-    this->status = DEMUX_OK;
+  demux_real_t       *this = (demux_real_t *) this_gen;
+  real_index_entry_t *index, *other_index;
+  int                 i = 0, entries;
+   
+  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) &&
+     (this->audio_index || this->video_index)) {
+  
+    /* video index has priority over audio index */
+    if(this->video_index) {
+      index = this->video_index;
+      entries = this->video_index_entries;
+      other_index = this->audio_index;
+      
+      /* when seeking by video index the first audio chunk won't necesserily
+       * be a keyframe which would upset the decoder */
+      this->audio_need_keyframe = 1;
+    } else {
+      index = this->audio_index;
+      entries = this->audio_index_entries;
+      other_index = this->video_index;
+    }
+    
+    if(start_pos) {
+      while((index[i+1].offset < start_pos) && (i < entries - 1))
+        i++;
+    } else if(start_time) {
+      start_time *= 1000;
+      while((index[i+1].timestamp < start_time) && (i < entries - 1))
+        i++;
+    }
+    
+    /* make sure we don't skip past audio/video at start of file */
+    if((i == 0) && other_index && (other_index[0].offset < index[0].offset))
+      index = other_index;
+    
+    this->input->seek(this->input, index[i].offset, SEEK_SET);
+    
+    if(this->stream->demux_thread_running) {
+      this->buf_flag_seek = 1;
+      xine_demux_flush_engine(this->stream);
+    }
   }
 
   this->send_newpts     = 1;
