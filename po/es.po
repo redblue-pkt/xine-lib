@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.8\n"
+"Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-08-03 20:55+0200\n"
 "PO-Revision-Date: 2002-02-20 00:00+0100\n"
 "Last-Translator: Juan Manuel García Molina <juanma_gm@wanadoo.es>\n"
@@ -13,6 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.5\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:734
 #: src/audio_out/audio_alsa_out.c:919 src/audio_out/audio_alsa_out.c:963

@@ -4,7 +4,7 @@
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.9\n"
+"Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-08-03 20:55+0200\n"
 "PO-Revision-Date: 2002-07-22 22:42+0200\n"
 "Last-Translator: Bartlomiej Muryn <forever@klub.chip.pl>\n"
@@ -13,6 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.6\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 
 # src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:728
 # src/audio_out/audio_alsa_out.c:913 src/audio_out/audio_alsa_out.c:957

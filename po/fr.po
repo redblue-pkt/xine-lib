@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.9\n"
+"Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-08-03 20:55+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
@@ -12,6 +12,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:734
 #: src/audio_out/audio_alsa_out.c:919 src/audio_out/audio_alsa_out.c:963
