@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.147 2003/12/26 18:37:59 valtri Exp $
+ * $Id: xine_decoder.c,v 1.148 2004/01/03 14:50:13 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -238,7 +238,9 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   this->context->opaque = this;
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
-  this->context->codec_tag = _x_stream_info_get(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC);
+  this->context->stream_codec_tag = this->context->codec_tag = 
+    _x_stream_info_get(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC);
+
   /* some decoders (eg. dv) do not know the pix_fmt until they decode the
    * first frame. setting to -1 avoid enabling DR1 for them.
    */
