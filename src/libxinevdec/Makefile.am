@@ -12,7 +12,7 @@ lib_LTLIBRARIES = xineplug_decode_cinepak.la xineplug_decode_cyuv.la \
 	xineplug_decode_svq1.la xineplug_decode_fli.la \
 	xineplug_decode_rgb.la xineplug_decode_yuv.la \
 	xineplug_decode_msrle.la xineplug_decode_idcinvideo.la \
-	xineplug_decode_qtsmc.la
+	xineplug_decode_qtsmc.la xineplug_decode_qtrpza.la
 
 xineplug_decode_cinepak_la_SOURCES = cinepak.c
 xineplug_decode_cinepak_la_LDFLAGS = -avoid-version -module
@@ -46,6 +46,9 @@ xineplug_decode_idcinvideo_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_qtsmc_la_SOURCES = qtsmc.c
 xineplug_decode_qtsmc_la_LDFLAGS = -avoid-version -module
+
+xineplug_decode_qtrpza_la_SOURCES = qtrpza.c
+xineplug_decode_qtrpza_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = svq1_codebooks.h
 
