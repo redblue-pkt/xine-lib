@@ -23,7 +23,7 @@ consult also the HOWTO:
 
 The xine dxr3 plugin requires at least the version
 
-	em8300-0.8.0 of the linux drivers.
+	em8300-0.8.1 of the linux drivers.
 	
 
 Compilation
@@ -67,6 +67,12 @@ Some of them are important for dxr3 playback:
 		color errors on VGA output. Smaller value is better
 		for not using the "wrong" colors as overlay.
 		Meaningful range: 20.0 - 200.0
+
+*) dxr3_scr_prio:
+	10	Priority of the dxr3 scr plugin. <5 means that the
+		unix system timer will be used. >5 forces to use
+		dxr3 as sync source. If you don't understand this
+		keep the default value.
 	
 *) video_driver_name:
 	dxr3    Needed for setting the tv_mode, brightness, contrast,
@@ -129,4 +135,4 @@ and dxr3_color_interval too.
 
 ________________________
 docu version information
-$Id: README.dxr3,v 1.4 2001/08/06 21:11:54 ehasenle Exp $
+$Id: README.dxr3,v 1.5 2001/08/14 10:31:50 ehasenle Exp $
