@@ -34,21 +34,23 @@ typedef struct _CodecInfo
     GUID guid;
 }CodecInfo;
 
-/*
+
 typedef struct _CImage // public  your_libvo_mem
 {
+    char* ptr;
+    
     char* (*Data)();
-    {
+    /*{
 	return 0;
 	// pointer to memory block
-    }
-    bool (*Supported)(fourcc_t csp, int bits);
-    {
+    }*/
+    int (*Supported)(fourcc_t csp, int bits);
+    /*{
 	return true;
 	// if you support such surface 
-    }
+    }*/
 }CImage;
-*/
+
 
 #if 0
 struct BitmapInfo : public BITMAPINFOHEADER
@@ -77,14 +79,6 @@ struct IAudioEncoder
 };
 */
 
-typedef struct _IVideoDecoder
-{
-    int VBUFSIZE;
-    int QMARKHI;
-    int QMARKLO;
-    int DMARKHI;
-    int DMARKLO;
-
     enum CAPS
     {
 	CAP_NONE = 0,
@@ -106,6 +100,16 @@ typedef struct _IVideoDecoder
 	STOP = 0,
 	START,
     };
+
+
+typedef struct _IVideoDecoder
+{
+    int VBUFSIZE;
+    int QMARKHI;
+    int QMARKLO;
+    int DMARKHI;
+    int DMARKLO;
+
     /*
     IVideoDecoder(CodecInfo& info, const BITMAPINFOHEADER& format) : record(info)
     {
@@ -120,8 +124,8 @@ typedef struct _IVideoDecoder
     }
     */
     const CodecInfo record;
-    //DecodingMode m_Mode;	// should we do precaching (or even change Quality on the fly)
-    //DecodingState m_State;
+    int m_Mode;	// should we do precaching (or even change Quality on the fly)
+    int m_State;
     int m_iDecpos;
     int m_iPlaypos;
     float m_fQuality;           // quality for the progress bar 0..1(best)

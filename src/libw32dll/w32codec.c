@@ -17,9 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.41 2001/11/13 21:47:59 heikos Exp $
+ * $Id: w32codec.c,v 1.42 2001/11/15 00:41:28 miguelfreitas Exp $
  *
  * routines for using w32 codecs
+ * DirectShow support by Miguel Freitas
  *
  */
 
@@ -35,12 +36,42 @@
 #include "wine/mmreg.h"
 #include "wine/ldt_keeper.h"
 
+#define NOAVIFILE_HEADERS
+#include "DirectShow/guids.h"
+#include "DirectShow/DS_AudioDecoder.h"
+//#include "DirectShow/DS_VideoDecoder.h"
+//#include "dshow_cpp/DS_AudioDec.h"
+
 #include "video_out.h"
 #include "audio_out.h"
 #include "buffer.h"
 #include "monitor.h"
 #include "xine_internal.h"
 #include "memcpy.h"
+ 
+static GUID CLSID_Voxware =
+{
+     0x73f7a062, 0x8829, 0x11d1,
+     { 0xb5, 0x50, 0x00, 0x60, 0x97, 0x24, 0x2d, 0x8d }
+};
+    
+static GUID CLSID_Acelp =
+{
+     0x4009f700, 0xaeba, 0x11d1,
+     { 0x83, 0x44, 0x00, 0xc0, 0x4f, 0xb9, 0x2e, 0xb7 }
+};
+  
+static GUID wmv1_clsid =
+{
+	0x4facbba1, 0xffd8, 0x4cd7,
+	{0x82, 0x28, 0x61, 0xe2, 0xf6, 0x5c, 0xb1, 0xae}
+};
+
+static GUID wmv2_clsid =
+{
+	0x521fb373, 0x7654, 0x49f2,
+	{0xbd, 0xb1, 0x0c, 0x6e, 0x66, 0x60, 0x71, 0x4f}
+};
 
 extern char*   win32_codec_name; 
 extern char*   win32_def_path;
@@ -64,7 +95,12 @@ typedef struct w32v_decoder_s {
 
   /* profiler */
   int		   prof_rgb2yuv;
-  
+
+  int               ds_driver;
+  GUID             *guid;
+  //DS_VideoDecoder  *ds_dec;
+
+    
   LDT_FS *ldt_fs;
 } w32v_decoder_t;
 
@@ -77,9 +113,21 @@ typedef struct w32a_decoder_s {
 
   unsigned char    *buf;
   int               size;   
+  uint32_t          pts;
+  uint32_t          scr;
+
+  unsigned char    *outbuf;
+  int               outsize;
+      
   HACMSTREAM        srcstream;
   int               rec_audio_src_size;
+  int               max_audio_src_size;
   int               num_channels;
+  int               rate;
+  
+  int               ds_driver;
+  GUID             *guid;
+  DS_AudioDecoder  *ds_dec;
   
   LDT_FS *ldt_fs;
 } w32a_decoder_t;
@@ -181,6 +229,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   this->yuv_supported=0;
   this->yuv_hack_needed=0;
   this->flipped=0;
+  this->ds_driver = 0;
   
   buf_type &= 0xffff0000;
 
@@ -253,6 +302,12 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     /* MainConcept DV Codec */
     this->yuv_supported=1;
     return "mcdvd_32.dll";    
+  
+  case BUF_VIDEO_WMV7:
+    this->yuv_supported=1;
+    this->ds_driver = 1;
+    this->guid=&wmv1_clsid;
+    return "wmvds32.ax";    
 
   }
 
@@ -287,6 +342,7 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
 	   buf_type == BUF_VIDEO_I263 ||
 	   buf_type == BUF_VIDEO_MSVC ||
 	   buf_type == BUF_VIDEO_DV );
+           //buf_type == BUF_VIDEO_WMV7 );
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
@@ -313,8 +369,6 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   
   this->ldt_fs = Setup_LDT_Keeper();
   
-  win32_codec_name = get_vids_codec_name (this, buf_type);
-
   outfmt = IMGFMT_15RGB;
   if (this->yuv_supported) {
     vo_cap = this->video_out->get_capabilities (this->video_out);
@@ -343,7 +397,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
     this->decoder_ok = 0;
     return;
   }
-
+    
   printf ("w32codec: video output format: %.4s %08lx\n",
 	  (char*)&this->o_bih.biCompression,
 	  this->o_bih.biCompression);
@@ -392,6 +446,66 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   this->decoder_ok = 1;
 }
 
+static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
+  /*HRESULT  ret;
+  uint32_t vo_cap;
+  int outfmt;
+  CodecInfo ci;
+
+  printf ("w32codec: init DS codec...\n");
+  
+  memset(&this->o_bih, 0, sizeof(BITMAPINFOHEADER));
+  this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
+
+  this->ldt_fs = Setup_LDT_Keeper();
+  
+  outfmt = IMGFMT_15RGB;
+  if (this->yuv_supported) {
+      outfmt = IMGFMT_YUY2;
+  }
+
+
+  ci.dll=win32_codec_name;
+  memcpy(&ci.guid,this->guid,sizeof(ci.guid));
+
+  this->ds_dec = DS_VideoDecoder_Create(&ci, &this->bih, this->flipped, 0);
+    
+
+  if(outfmt==IMGFMT_YUY2 || outfmt==IMGFMT_15RGB)
+    this->o_bih.biBitCount=16;
+  else
+    this->o_bih.biBitCount=outfmt&0xFF;
+
+  this->o_bih.biSizeImage = this->o_bih.biWidth * this->o_bih.biHeight
+      * this->o_bih.biBitCount / 8;
+
+  if (this->flipped)
+    this->o_bih.biHeight=-this->bih.biHeight; 
+
+  if(outfmt==IMGFMT_YUY2 && !this->yuv_hack_needed)
+    this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2');
+  else 
+    this->o_bih.biCompression = 0;
+      
+
+  if (outfmt==IMGFMT_YUY2 && this->yuv_hack_needed)
+    this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2'); 
+
+  DS_VideoDecoder_SetDestFmt(this->ds_dec, this->o_bih.biBitCount,this->o_bih.biCompression);
+  
+  DS_VideoDecoder_StartInternal(this->ds_dec);  
+  
+  this->size = 0;
+
+  this->img_buffer = malloc (this->o_bih.biSizeImage);
+
+  this->video_out->open (this->video_out);
+
+  this->outfmt = outfmt;
+  this->decoder_ok = 1;*/
+}
+
+
 static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
@@ -408,7 +522,12 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
     this->video_step = buf->decoder_info[1];
 
-    w32v_init_codec (this, buf->type);
+    win32_codec_name = get_vids_codec_name (this, buf->type);
+
+    if( !this->ds_driver )
+      w32v_init_codec (this, buf->type);
+    else
+      w32v_init_ds_codec (this, buf->type);
     
   } else if (this->decoder_ok) {
 
@@ -440,10 +559,17 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			 &this->bih, this->buf,
 			 &this->o_bih, img->base[0]);
       */
+      if( !this->ds_driver )
       ret = ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
 			 &this->bih, this->buf,
 			 &this->o_bih, this->img_buffer);
-
+      else {
+      /*  CImage image;
+        image.ptr=this->img_buffer;
+        ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, 
+                         this->size, 0, &image);*/
+      }
+                         
       if (this->outfmt==IMGFMT_YUY2) {
 	/* already decoded into YUY2 format by DLL */
 	fast_memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
@@ -564,12 +690,15 @@ static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
 	   (codec == BUF_AUDIO_IMAADPCM) ||
 	   (codec == BUF_AUDIO_MSGSM) ||
 	   (codec == BUF_AUDIO_IMC) ||
-	   (codec == BUF_AUDIO_LH) );
+	   (codec == BUF_AUDIO_LH) || 
+	   (codec == BUF_AUDIO_VOXWARE) ||
+           (codec == BUF_AUDIO_ACELPNET) );
 }
 
 static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
 
   buf_type = buf_type & 0xFFFF0000;
+  this->ds_driver=0;
 
   switch (buf_type) {
   case BUF_AUDIO_DIVXA:
@@ -584,6 +713,15 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     return "imc32.acm";
   case BUF_AUDIO_LH:
     return "lhacm.acm";
+  case BUF_AUDIO_VOXWARE:
+    this->ds_driver=1;
+    this->guid=&CLSID_Voxware;
+    return "voxmsdec.ax";
+  case BUF_AUDIO_ACELPNET:
+    /* acelpnet is not working yet */
+    this->ds_driver=1;
+    this->guid=&CLSID_Acelp;
+    return "acelpdec.ax";
   }
   printf ("w32codec: this didn't happen: unknown audio buf type %08x\n",
 	  buf_type);
@@ -599,6 +737,7 @@ static void w32a_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->decoder_ok = 0;
   
   this->buf = NULL;
+  this->outbuf = NULL;
 }
 
 static int w32a_init_audio (w32a_decoder_t *this,
@@ -607,9 +746,10 @@ static int w32a_init_audio (w32a_decoder_t *this,
 
   HRESULT ret;
   static WAVEFORMATEX wf;     
-  long in_size=in_fmt_->nBlockAlign;
   static WAVEFORMATEX *in_fmt;
-  unsigned long srcsize;
+  unsigned long in_size=in_fmt_->nBlockAlign;
+  unsigned long out_size;
+  audio_buffer_t *audio_buffer;
 
   in_fmt = (WAVEFORMATEX *) malloc (64);
 
@@ -617,6 +757,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
 
   this->srcstream = 0;
   this->num_channels  = in_fmt->nChannels;
+  this->rate = in_fmt->nSamplesPerSec;
   
   if (this->output_open)
     this->audio_out->close (this->audio_out);
@@ -628,6 +769,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
     printf("w32codec: (ACM_Decoder) Cannot open audio output device\n");
     return 0;
   }
+  audio_buffer = this->audio_out->get_buffer (this->audio_out);
 
   this->ldt_fs = Setup_LDT_Keeper();
   
@@ -640,39 +782,75 @@ static int w32a_init_audio (w32a_decoder_t *this,
   wf.cbSize          = 0;
   
   win32_codec_name = get_auds_codec_name (this, buf_type);
-  ret=acmStreamOpen(&this->srcstream,(HACMDRIVER)NULL,
-                    in_fmt,
-		    &wf,
-                    NULL,0,0,0);
-  if(ret){
-    if(ret==ACMERR_NOTPOSSIBLE)
-      printf("w32codec: (ACM_Decoder) Unappropriate audio format\n");
-    else
-      printf("w32codec: (ACM_Decoder) acmStreamOpen error %d", (int) ret);
-    this->srcstream = 0;
-    return 0;
-  }
+  
+  if( !this->ds_driver ) {
+    ret=acmStreamOpen(&this->srcstream,(HACMDRIVER)NULL,
+                      in_fmt,
+                      &wf,
+                      NULL,0,0,0);
+    if(ret){
+      if(ret==ACMERR_NOTPOSSIBLE)
+        printf("w32codec: (ACM_Decoder) Unappropriate audio format\n");
+      else
+        printf("w32codec: (ACM_Decoder) acmStreamOpen error %d", (int) ret);
+      this->srcstream = 0;
+      return 0;
+    }
 
-  acmStreamSize(this->srcstream, in_size, &srcsize, ACM_STREAMSIZEF_SOURCE);
-  printf("w32codec: Audio buffer min. size: %d\n",(int)srcsize);
-  srcsize*=2;
-  if(srcsize<16384) 
-    srcsize=16384;
+    acmStreamSize(this->srcstream, in_size, &out_size, ACM_STREAMSIZEF_SOURCE);
+    out_size*=2;
+    if(out_size < audio_buffer->mem_size) 
+      out_size=audio_buffer->mem_size;
+    printf("w32codec: Audio buffer min. size: %d\n",(int)out_size);
+  
+    acmStreamSize(this->srcstream, out_size, (LPDWORD) &this->rec_audio_src_size, 
+      ACM_STREAMSIZEF_DESTINATION);
+  } else {
+    CodecInfo ci;
+       
+    ci.dll=win32_codec_name;
+    memcpy(&ci.guid,this->guid,sizeof(GUID));
     
-  acmStreamSize(this->srcstream, srcsize, (LPDWORD) &this->rec_audio_src_size, 
-		ACM_STREAMSIZEF_DESTINATION);
+    /*__asm__ __volatile__(
+	   "int $0x3\n" : : 
+    	);*/
+
+    if( (this->ds_dec=DS_AudioDecoder_Create(&ci, in_fmt)) == NULL ) {
+      printf("w32codec: Error initializing DirectShow Audio\n");
+      this->srcstream = 0;
+      return 0;
+    }
+    
+    out_size = audio_buffer->mem_size;  
+    printf("w32codec: output buffer size: %d\n",(int)out_size);
+    this->rec_audio_src_size=DS_AudioDecoder_GetSrcSize(this->ds_dec,out_size);
+    
+    /* somehow DS_Filters seems to eat more than rec_audio_src_size if the output 
+       buffer is big enough. Doubling rec_audio_src_size should make this 
+       impossible */
+    this->rec_audio_src_size*=2; 
+  }
   printf("w32codec: Recommended source buffer size: %d\n", this->rec_audio_src_size); 
 
   if( this->buf )
     free(this->buf);
   
-  if( this->rec_audio_src_size < 2 * in_fmt->nBlockAlign ) {
-    this->rec_audio_src_size = 2 * in_fmt->nBlockAlign;
-    srcsize *= 2;
+  if( this->outbuf )
+    free(this->outbuf);
+
+  if( this->rec_audio_src_size < in_fmt->nBlockAlign ) {
+    this->rec_audio_src_size = in_fmt->nBlockAlign;
     printf("w32codec: adjusting source buffer size to %d\n", this->rec_audio_src_size); 
   }
-  this->buf = malloc( 2 * this->rec_audio_src_size );
-    
+  
+  this->max_audio_src_size = 2 * this->rec_audio_src_size;
+  
+  this->buf = malloc( this->max_audio_src_size );
+
+  out_size += 32768;
+  this->outbuf = malloc( out_size );
+  this->outsize = out_size;
+      
   this->size = 0;
 
   return 1;
@@ -688,76 +866,132 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 
   static ACMSTREAMHEADER ash;
   HRESULT hr;
+  int size_read, size_written;
   /* DWORD srcsize=0; */
+  int in_avg_pts_kbyte = 0;
 
-  fast_memcpy (&this->buf[this->size], data, size);
-
-  this->size += size;
-  if( this->size > 2 * this->rec_audio_src_size )
-    printf("w32codec: buffer overflow on w32a_decode_audio\n");
   
+  /* FIXME: the current code for estimating output pts don't work
+     on wraps and seeks!!!
+     also there might be serious sync problems. in short: it's 
+     somewhat broken and need fix.
+  */
+  
+  if( !this->size || pts < this->pts || scr < this->scr ) {
+    this->pts = pts;
+    this->scr = scr;
+  } else {
+    /* input based estimation disabled -> bad results */
+    /* in_avg_pts_kbyte = (pts - this->pts) * 1024 / this->size; */
+  }
+  
+   
+  if( this->size + size > this->max_audio_src_size ) {
+    this->max_audio_src_size = this->size + size;
+    printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
+      this->max_audio_src_size);
+    this->buf = realloc( this->buf, this->max_audio_src_size );
+  }
+  
+  fast_memcpy (&this->buf[this->size], data, size);
+       
+  this->size += size;
+
   while (this->size >= this->rec_audio_src_size) {
-
-    audio_buffer_t *audio_buffer = this->audio_out->get_buffer (this->audio_out);
-
     memset(&ash, 0, sizeof(ash));
     ash.cbStruct=sizeof(ash);
     ash.fdwStatus=0;
     ash.dwUser=0; 
     ash.pbSrc=this->buf;
     ash.cbSrcLength=this->rec_audio_src_size;
-    ash.pbDst=(uint8_t *)audio_buffer->mem;
-    ash.cbDstLength=audio_buffer->mem_size;
-    hr=acmStreamPrepareHeader(this->srcstream,&ash,0);
-    if(hr){
-      printf("w32codec: (ACM_Decoder) acmStreamPrepareHeader error %d\n",(int)hr);
-      
-      audio_buffer->num_frames = 0;
-      this->audio_out->put_buffer (this->audio_out, audio_buffer);
-
-      return;
-    }
-
+    ash.pbDst=this->outbuf;
+    ash.cbDstLength=this->outsize;
+    
     /*
     printf ("decoding %d of %d bytes (%02x %02x %02x %02x ... %02x %02x)\n", 
 	    this->rec_audio_src_size, this->size,
 	    this->buf[0], this->buf[1], this->buf[2], this->buf[3],
 	    this->buf[this->rec_audio_src_size-2], this->buf[this->rec_audio_src_size-1]); 
     */
+    
+    if( !this->ds_driver ) {
+      hr=acmStreamPrepareHeader(this->srcstream,&ash,0);
+      if(hr){
+        printf("w32codec: (ACM_Decoder) acmStreamPrepareHeader error %d\n",(int)hr);
 
-    hr=acmStreamConvert(this->srcstream,&ash,0);
-    if(hr){
-      printf("w32codec: acmStreamConvert error %d, used %d bytes\n",(int)hr,(int)ash.cbSrcLengthUsed);
-      ash.cbSrcLengthUsed = this->rec_audio_src_size; 
-
-      audio_buffer->num_frames = 0;
-      this->audio_out->put_buffer (this->audio_out, audio_buffer);
-
+        return;
+      }
+      
+      hr=acmStreamConvert(this->srcstream,&ash,0);
     } else {
+      hr=DS_AudioDecoder_Convert(this->ds_dec, ash.pbSrc, ash.cbSrcLength,
+			     ash.pbDst, ash.cbDstLength,
+		             &size_read, &size_written );
+       ash.cbSrcLengthUsed = size_read;
+       ash.cbDstLengthUsed = size_written;
+    }
+   
+    if(hr){
+      printf("w32codec: stream convert error %d, used %d bytes\n",(int)hr,(int)ash.cbSrcLengthUsed);
+      this->size-=ash.cbSrcLength;
+    } else {
+      int DstLengthUsed, bufsize;
+      audio_buffer_t *audio_buffer;
+      char *p;
       /*
       printf ("acmStreamConvert worked, used %d bytes, generated %d bytes\n",
 	      ash.cbSrcLengthUsed, ash.cbDstLengthUsed);
       */
-      if (ash.cbDstLengthUsed>0) {
-
-	audio_buffer->num_frames = ash.cbDstLengthUsed / (this->num_channels*2);
+      DstLengthUsed = ash.cbDstLengthUsed;
+      pts = this->pts;
+      scr = this->scr;
+      p = this->outbuf;
+      
+      while( DstLengthUsed )
+      {
+        audio_buffer = this->audio_out->get_buffer (this->audio_out);
+        
+	if( DstLengthUsed < audio_buffer->mem_size )
+	  bufsize = DstLengthUsed;
+	else
+	  bufsize = audio_buffer->mem_size;
+      
+        fast_memcpy( audio_buffer->mem, p, bufsize );
+	/*
+        printf("  outputing %d bytes, pts = %d\n", bufsize, pts );
+        */
+	audio_buffer->num_frames = bufsize / (this->num_channels*2);
 	audio_buffer->vpts       = pts;
 	audio_buffer->scr        = scr;
 
 	this->audio_out->put_buffer (this->audio_out, audio_buffer);
-
+        
+	pts += bufsize / (this->num_channels*2) * 90000 / this->rate;
+        scr += bufsize / (this->num_channels*2) * 90000 / this->rate;
+	DstLengthUsed -= bufsize;
+	p += bufsize;
       }
     }
     if(ash.cbSrcLengthUsed>=this->size){
       this->size=0;
     } else {
       this->size-=ash.cbSrcLengthUsed;
-      memmove( this->buf, &this->buf [ash.cbSrcLengthUsed], this->size);
+      fast_memcpy( this->buf, &this->buf [ash.cbSrcLengthUsed], this->size);
+      
+      if( in_avg_pts_kbyte ) {
+        this->pts += ash.cbSrcLengthUsed * in_avg_pts_kbyte / 1024;
+        this->scr += ash.cbSrcLengthUsed * in_avg_pts_kbyte / 1024;
+      } else {
+        this->pts += ash.cbDstLengthUsed / (this->num_channels*2) * 90000 / this->rate;
+        this->scr += ash.cbDstLengthUsed / (this->num_channels*2) * 90000 / this->rate;
+      }
     }
 
-    hr=acmStreamUnprepareHeader(this->srcstream,&ash,0);
-    if(hr){
-      printf("w32codec: (ACM_Decoder) acmStreamUnprepareHeader error %d\n",(int)hr);
+    if( !this->ds_driver ) {
+      hr=acmStreamUnprepareHeader(this->srcstream,&ash,0);
+      if(hr){
+        printf("w32codec: (ACM_Decoder) acmStreamUnprepareHeader error %d\n",(int)hr);
+      }
     }
   }
 }
@@ -779,12 +1013,15 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 
-
 static void w32a_close (audio_decoder_t *this_gen) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
-  acmStreamClose(this->srcstream, 0);
+  if( !this->ds_driver ) {
+    acmStreamClose(this->srcstream, 0);
+  } else {
+    DS_AudioDecoder_Destroy(this->ds_dec);
+  }
 
   Restore_LDT_Keeper(this->ldt_fs);
   
@@ -795,6 +1032,10 @@ static void w32a_close (audio_decoder_t *this_gen) {
   if( this->buf ) {
     free(this->buf);
     this->buf = NULL;
+  }
+  if( this->outbuf ) {
+    free(this->outbuf);
+    this->outbuf = NULL;
   }
 }
 
