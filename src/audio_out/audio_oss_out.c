@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.13 2001/06/15 08:58:11 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.14 2001/06/16 19:58:31 guenter Exp $
  */
 
 /* required for swab() */
@@ -464,6 +464,7 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   xprintf (VERBOSE|AUDIO, "audio_oss_out: Opening audio device...");
   devnum = 0;
   best_rate = 0;
+  sprintf (this->audio_dev, "/dev/dsp");
   while (devnum<16) {
 
     audio_fd=open(devname,O_WRONLY|O_NDELAY);
