@@ -164,7 +164,8 @@ xineplug_vo_out_macosx_la_SOURCES = alphablend.c video_out_macosx.m macosx/video
 xineplug_vo_out_macosx_la_CPPFLAGS = $(X_CFLAGS) $(MLIB_CFLAGS)
 xineplug_vo_out_macosx_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
 	$(GLU_LIBS) $(X_LIBS) $(XINE_LIB)
-xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ -framework Cocoa -framework OpenGL -lobjc -umbrella AppKit
+xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ \
+	-Wl,-framework -Wl,Cocoa -framework Cocoa -framework OpenGL
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h \
 	yuv2rgb.h x11osd.h

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.2 2004/06/08 20:44:27 mroi Exp $
+ * $Id: video_out_macosx.m,v 1.3 2004/06/12 19:48:34 zonque Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -274,7 +274,7 @@ static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *
   XineVideoWindow   *window = (XineVideoWindow *) visual;
   
   driver = (macosx_driver_t *) xine_xmalloc(sizeof(macosx_driver_t));
-  
+
   driver->config = class->config;
   driver->xine   = class->xine;
   driver->ratio  = XINE_VO_ASPECT_AUTO;
@@ -294,11 +294,6 @@ static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *
   driver->vo_driver.dispose              = macosx_dispose;
   driver->vo_driver.redraw_needed        = macosx_redraw_needed;
  
-  NSSize s;
-  s.width = 720;
-  s.height = 576;
-
-
   return &driver->vo_driver;
 }    
 
