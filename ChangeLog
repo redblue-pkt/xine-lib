@@ -1,5 +1,9 @@
 xine (0.9.next) unstable; urgency=low
 
+  * working setup dialog (experimental)
+  * dxr3 bugfixes
+  * sun audio interface version fixed
+  * fix segfault with -A null
   * add support for quicktime streams without audio
 
 xine (0.9.5) unstable; urgency=low
