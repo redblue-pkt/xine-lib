@@ -608,8 +608,6 @@ dnl ---------------------------------------------
 dnl Ogg/Theora libs.
 dnl ---------------------------------------------
 
-echo "these are your cflags before ampath_blabla $CFLAGS "
-
 AM_PATH_OGG(
            [ AM_PATH_THEORA(AC_DEFINE(HAVE_THEORA,1,[Define this if you have theora]),
                            AC_MSG_RESULT([*** All OGG/THEORA dependent parts will be disabled ***]))
