@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.51 2004/02/09 22:24:37 jstembridge Exp $
+ * $Id: demux_roq.c,v 1.52 2004/05/29 19:01:53 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -90,7 +90,6 @@ static int open_roq_file(demux_roq_t *this) {
   unsigned int chunk_size;
   unsigned int fps;
 
-  this->input->seek(this->input, 0, SEEK_SET);
   if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) !=
       RoQ_CHUNK_PREAMBLE_SIZE)
     return 0;
@@ -194,11 +193,6 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
 
   /* if the chunk is an audio chunk, route it to the audio fifo */
   if ((chunk_type == RoQ_SOUND_MONO) || (chunk_type == RoQ_SOUND_STEREO)) {
-    /* rewind over the preamble */
-    this->input->seek(this->input, -RoQ_CHUNK_PREAMBLE_SIZE, SEEK_CUR);
-
-    /* adjust the chunk size */
-    chunk_size += RoQ_CHUNK_PREAMBLE_SIZE;
 
     if( this->audio_fifo ) {
         
@@ -210,6 +204,15 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
       this->audio_byte_count += chunk_size - 8;  /* do not count the preamble */
          
       current_file_pos = this->input->get_current_pos(this->input);
+
+      /* send out the preamble */
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type = BUF_AUDIO_ROQ;
+      buf->extra_info->input_pos = current_file_pos - RoQ_CHUNK_PREAMBLE_SIZE;
+      buf->pts = 0;
+      buf->size = RoQ_CHUNK_PREAMBLE_SIZE;
+      memcpy(buf->content, preamble, RoQ_CHUNK_PREAMBLE_SIZE);
+      this->audio_fifo->put(this->audio_fifo, buf);
 
       /* packetize the audio */
       while (chunk_size) {
@@ -245,29 +248,19 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
   } else if ((chunk_type == RoQ_QUAD_CODEBOOK) ||
     (chunk_type == RoQ_QUAD_VQ)) {
 
-    current_file_pos = this->input->get_current_pos(this->input) -
-      RoQ_CHUNK_PREAMBLE_SIZE;
+    current_file_pos = this->input->get_current_pos(this->input);
 
-    /* if the chunk is video, check if it is a codebook */
-    if (chunk_type == RoQ_QUAD_CODEBOOK) {
-      /* if it is, figure in the size of the next VQ chunk, too */
-      this->input->seek(this->input, chunk_size, SEEK_CUR);
-      if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) !=
-        RoQ_CHUNK_PREAMBLE_SIZE) {
-        this->status = DEMUX_FINISHED;
-        return this->status;
-      }
+    /* send out the preamble */
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type = BUF_VIDEO_ROQ;
+    buf->extra_info->input_pos = current_file_pos - RoQ_CHUNK_PREAMBLE_SIZE;
+    buf->pts = this->video_pts_counter;
+    buf->size = RoQ_CHUNK_PREAMBLE_SIZE;
+    memcpy(buf->content, preamble, RoQ_CHUNK_PREAMBLE_SIZE);
+    this->video_fifo->put(this->video_fifo, buf);
 
-      /* rewind to the start of the codebook chunk */
-      this->input->seek(this->input, current_file_pos, SEEK_SET);
-
-      /* figure out the total video chunk size */
-      chunk_size += (2 * RoQ_CHUNK_PREAMBLE_SIZE) + LE_32(&preamble[2]);
-    }
-
-    /* packetize the video chunk and route it to the video fifo */
     while (chunk_size) {
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf = this->video_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_VIDEO_ROQ;
       buf->extra_info->input_pos = current_file_pos;
       buf->pts = this->video_pts_counter;
@@ -285,11 +278,15 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
         break;
       }
 
-      if (!chunk_size)
+      /* only indicate end of video frame if this is a VQ chunk */
+      if (!chunk_size && (chunk_type == RoQ_QUAD_VQ))
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
       this->video_fifo->put(this->video_fifo, buf);
     }
-    this->video_pts_counter += this->frame_pts_inc;
+
+    /* only advance pts counter on VQ frames */
+    if (chunk_type == RoQ_QUAD_VQ)
+      this->video_pts_counter += this->frame_pts_inc;
   } else {
     lprintf("encountered bad chunk type: %d\n", chunk_type);
   }
