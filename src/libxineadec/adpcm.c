@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.8 2002/07/05 17:32:04 mroi Exp $
+ * $Id: adpcm.c,v 1.9 2002/07/15 03:48:03 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -851,7 +851,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
            * initial predictor is also the first output sample (hence
            * the +1) */
           this->out_block_size = 
-            (this->in_block_size - (4 * this->channels)) * 2 + 1;
+            (this->in_block_size - (4 * this->channels)) * 2 + this->channels;
           break;
 
         case BUF_AUDIO_DK3ADPCM:
