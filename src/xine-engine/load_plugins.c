@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.23 2001/06/14 18:32:57 guenter Exp $
+ * $Id: load_plugins.c,v 1.24 2001/06/15 22:17:33 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -201,152 +201,45 @@ void load_input_plugins (xine_t *this,
   
 }
 
-char **xine_get_autoplay_input_plugin_ids(xine_t *this) {
-  char **plugin_ids;
-  int    num_plugins = 0;
-  DIR   *dir;
+static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
+  input_plugin_t  *ip;
+  char           **plugin_ids;
+  int              num_plugins = this->num_input_plugins;
+  int              i;
+  int              n = 0;
 
-  plugin_ids = xmalloc (50 * sizeof (char *));
-  plugin_ids[num_plugins] = NULL;
+  if(!num_plugins)
+    return NULL;
 
-  dir = opendir (XINE_PLUGINDIR);
-  
-  if (dir) {
-    struct dirent *dir_entry;
-    
-    while ((dir_entry = readdir (dir)) != NULL) {
-      char  str[1024];
-      void *plugin;
-      int nLen = strlen (dir_entry->d_name);
-      
-      if ((strncasecmp(dir_entry->d_name,
- 		       XINE_INPUT_PLUGIN_PREFIXNAME, 
-		       XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((dir_entry->d_name[nLen-3]=='.') 
-	   && (dir_entry->d_name[nLen-2]=='s')
-	   && (dir_entry->d_name[nLen-1]=='o'))) {
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
+  plugin_ids = xmalloc (num_plugins * sizeof (char *));
 
-	/* printf ("load_plugins: trying to load plugin %s\n", str); */
+  for(i = 0; i < num_plugins; i++) {
 
-	/*
-	 * now, see if we can open this plugin,
-	 * and get it's id
-	 */
+    ip = this->input_plugins[i];
 
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-
-	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
-		 str, dlerror()); */
-
-	} else {
-
-	  void *(*initplug) (int, config_values_t *);
-	  
-	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
-	    input_plugin_t *ip;
-	    
-	    ip = (input_plugin_t *) initplug(INPUT_PLUGIN_IFACE_VERSION, 
-					     this->config);
-
-	    if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
-	      plugin_ids[num_plugins] = (char *) 
-		malloc (strlen(ip->get_identifier(ip)+1));
-	      strcpy (plugin_ids[num_plugins], ip->get_identifier(ip));
-	      num_plugins++;
-	      plugin_ids[num_plugins] = NULL;
-	    }
-
-	    dlclose(plugin);
-
-	  } else {
-	    printf ("load_plugins: %s is no valid input plugin "
-		    "(lacks init_input_plugin() function)\n", str);
-	  }
-	}
-      }
+    if(ip->get_capabilities(ip) & feature) {
+      plugin_ids[n] = (char *) malloc (strlen(ip->get_identifier(ip)+1));
+      strcpy (plugin_ids[n], ip->get_identifier(ip));
+/*        printf("%s(%d): %s is featured\n",  */
+/*  	     __FUNCTION__, feature, ip->get_identifier(ip)); */
+      n++;
     }
-  } else {
-    fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s",
-	     __FUNCTION__, strerror(errno));
+
   }
-  
+
+  plugin_ids[n] = NULL;
+
   return plugin_ids;
 }
 
+char **xine_get_autoplay_input_plugin_ids(xine_t *this) {
+
+  return (_xine_get_featured_input_plugin_ids(this, INPUT_CAP_AUTOPLAY));
+}
+
 char **xine_get_browsable_input_plugin_ids(xine_t *this) {
-  char **plugin_ids;
-  int    num_plugins = 0;
-  DIR   *dir;
 
-  plugin_ids = xmalloc (50 * sizeof (char *));
-  plugin_ids[num_plugins] = NULL;
-
-  dir = opendir (XINE_PLUGINDIR);
-  
-  if (dir) {
-    struct dirent *dir_entry;
-    
-    while ((dir_entry = readdir (dir)) != NULL) {
-      char  str[1024];
-      void *plugin;
-      int nLen = strlen (dir_entry->d_name);
-      
-      if ((strncasecmp(dir_entry->d_name,
- 		       XINE_INPUT_PLUGIN_PREFIXNAME, 
-		       XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((dir_entry->d_name[nLen-3]=='.') 
-	   && (dir_entry->d_name[nLen-2]=='s')
-	   && (dir_entry->d_name[nLen-1]=='o'))) {
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
-
-	/* printf ("load_plugins: trying to load plugin %s\n", str); */
-
-	/*
-	 * now, see if we can open this plugin,
-	 * and get it's id
-	 */
-
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-
-	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
-		 str, dlerror()); */
-
-	} else {
-
-	  void *(*initplug) (int, config_values_t *);
-	  
-	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
-	    input_plugin_t *ip;
-	    
-	    ip = (input_plugin_t *) initplug(INPUT_PLUGIN_IFACE_VERSION, 
-					     this->config);
-
-	    if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
-	      plugin_ids[num_plugins] = (char *) 
-		malloc (strlen(ip->get_identifier(ip)+1));
-	      strcpy (plugin_ids[num_plugins], ip->get_identifier(ip));
-	      num_plugins++;
-	      plugin_ids[num_plugins] = NULL;
-	    }
-
-	    dlclose(plugin);
-
-	  } else {
-	    printf ("load_plugins: %s is no valid input plugin "
-		    "(lacks init_input_plugin() function)\n", str);
-	  }
-	}
-      }
-    }
-  } else {
-    fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s", 
-	     __FUNCTION__, strerror(errno));
-  }
-  
-  return plugin_ids;
+  return (_xine_get_featured_input_plugin_ids(this, INPUT_CAP_GET_DIR));
 }
 
 /** ***************************************************************
