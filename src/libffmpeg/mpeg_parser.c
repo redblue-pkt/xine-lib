@@ -20,7 +20,7 @@
  * Simple MPEG-ES parser/framer by Thibaut Mattern (tmattern@noos.fr)
  *   based on libmpeg2 decoder.
  *
- * $Id: mpeg_parser.c,v 1.2 2004/07/18 17:36:25 tmattern Exp $
+ * $Id: mpeg_parser.c,v 1.3 2004/09/21 19:27:18 tmattern Exp $
  */
 #define LOG_MODULE "mpeg_parser"
 #define LOG_VERBOSE
@@ -28,7 +28,6 @@
 #define LOG
 */
 #include "mpeg_parser.h"
-#include "xine_internal.h"
 
 /* mpeg frame rate table from lavc */
 static const int frame_rate_tab[][2] = {
