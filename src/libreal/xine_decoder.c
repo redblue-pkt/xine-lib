@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.31 2003/03/28 17:01:47 guenter Exp $
+ * $Id: xine_decoder.c,v 1.32 2003/03/28 23:40:23 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -192,7 +192,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
       = strdup ("RV 20");
     break;
   case BUF_VIDEO_RV30:
-    if (!load_syms_linux (this, "drv31.so.6.0"))
+    if (!load_syms_linux (this, "drv3.so.6.0"))
       return 0;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("RV 30");
