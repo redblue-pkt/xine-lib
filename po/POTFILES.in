@@ -15,7 +15,6 @@ src/demuxers/demux_mpeg_block.c
 src/demuxers/demux_mpeg_pes.c
 src/demuxers/demux_nsf.c
 src/demuxers/demux_ogg.c
-src/demuxers/demux_pes.c
 src/demuxers/demux_pva.c
 src/demuxers/demux_roq.c
 src/demuxers/demux_smjpeg.c
