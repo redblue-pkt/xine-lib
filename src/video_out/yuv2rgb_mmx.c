@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 
 #include "attributes.h"
@@ -334,7 +335,7 @@ static void scale_line (uint8_t *source, uint8_t *dest,
     printf ("scale_line, dx = %d, p1 = %d, p2 = %d\n", dx, p1, p2);
     */
  
-    *dest = (p1 * (32768 - dx) + p2 * dx)  / 32768;
+    *dest = (p1 * (32768 - dx) + p2 * dx) / 32768;
 
     dx += step;
     while (dx > 32768) {
@@ -366,8 +367,8 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
     width >>= 3;
 
     if (!this->do_scale) {
-      y_stride -= width;
-      uv_stride -= width >> 1;
+      y_stride -= 8 * width;
+      uv_stride -= 4 * width;
 
       do {
 
@@ -472,8 +473,8 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
     width >>= 3;
 
     if (!this->do_scale) {
-      y_stride -= width;
-      uv_stride -= width >> 1;
+      y_stride -= 8 * width;
+      uv_stride -= 4 * width;
 
       do {
 
@@ -577,8 +578,8 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
     width >>= 3;
 
     if (!this->do_scale) {
-      y_stride -= width;
-      uv_stride -= width >> 1;
+      y_stride -= 8 * width;
+      uv_stride -= 4 * width;
 
       do {
 	i = width; img = image;
@@ -682,8 +683,8 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
     width >>= 3;
 
     if (!this->do_scale) {
-      y_stride -= width;
-      uv_stride -= width >> 1;
+      y_stride -= 8 * width;
+      uv_stride -= 4 * width;
 
       do {
 	i = width; img = image;
