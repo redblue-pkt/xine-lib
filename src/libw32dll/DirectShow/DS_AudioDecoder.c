@@ -4,7 +4,6 @@
 	 Copyright 2001 Eugene Kuznetsov  (divx@euro.ru)
 
 *********************************************************/
-#define NOAVIFILE_HEADERS
 
 #include "DS_AudioDecoder.h"
 #include <string.h>
@@ -76,7 +75,12 @@ DS_AudioDecoder * DS_AudioDecoder_Create(const CodecInfo * info, const WAVEFORMA
     {
         ALLOCATOR_PROPERTIES props, props1;
         this->m_pDS_Filter = DS_Filter_Create((const char*)info->dll, &info->guid, &this->m_sOurType, &this->m_sDestType);
-	DS_Filter_Start(this->m_pDS_Filter);
+	if( !this->m_pDS_Filter ) {
+           free(this);
+           return NULL;
+        }
+        
+        DS_Filter_Start(this->m_pDS_Filter);
 
 	props.cBuffers=1;
         props.cbBuffer=this->m_sOurType.lSampleSize;
@@ -160,12 +164,10 @@ int DS_AudioDecoder_Convert(DS_AudioDecoder *this, const void* in_data, uint_t i
 
 int DS_AudioDecoder_GetSrcSize(DS_AudioDecoder *this, int dest_size)
 {
-    double efficiency;
-    int frames;
-    
-    efficiency = (double) this->in_fmt.nAvgBytesPerSec
+    double efficiency =(double) this->in_fmt.nAvgBytesPerSec
 	/ (this->in_fmt.nSamplesPerSec*this->in_fmt.nBlockAlign);
-    frames = (int)(dest_size*efficiency);
+    int frames = (int)(dest_size*efficiency);;
+    
     if (frames < 1)
 	frames = 1;
     return frames * this->in_fmt.nBlockAlign;

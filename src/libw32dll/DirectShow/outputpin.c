@@ -491,5 +491,5 @@ void COutputPin_SetPointer2(COutputPin *this,char* p)
 void COutputPin_SetFrameSizePointer(COutputPin *this,long* z)
 { this->mempin->frame_size_pointer = z; }
 
-void COutputPin_SetNewFormat(COutputPin *this,const AM_MEDIA_TYPE * a) 
+void COutputPin_SetNewFormat(COutputPin *this, AM_MEDIA_TYPE * a) 
 { memcpy(&this->type,a,sizeof(AM_MEDIA_TYPE)); }
