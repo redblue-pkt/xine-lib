@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.59 2002/01/15 17:30:51 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.60 2002/01/18 01:02:32 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -113,7 +113,8 @@ typedef struct w32v_decoder_s {
   DS_VideoDecoder  *ds_dec;
 
   int               stream_id;
-    
+  int               skipframes;  
+  
   LDT_FS *ldt_fs;
 } w32v_decoder_t;
 
@@ -590,6 +591,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     pthread_mutex_unlock(&win32_codec_name_mutex);
       
     this->stream_id = -1;
+    this->skipframes = 0;
     
   } else if (this->decoder_ok) {
 
@@ -622,7 +624,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       /* decoder video frame */
 
       this->bih.biSizeImage = this->size;
-
+     
       img = this->video_out->get_frame (this->video_out,
 					this->bih.biWidth, 
 					this->bih.biHeight, 
@@ -631,92 +633,93 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->video_step,
 					VO_BOTH_FIELDS);
 
-      /*
-      ret = ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
-			 &this->bih, this->buf,
-			 &this->o_bih, img->base[0]);
-      */
       if( !this->ds_driver )
         ret = (!this->ex_functions)
-              ?ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
-			    &this->bih, this->buf,
-			    &this->o_bih, this->img_buffer)
-              :ICDecompressEx(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
-			    &this->bih, this->buf,
-			    &this->o_bih, this->img_buffer);
+              ?ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME | 
+                            ((this->skipframes)?ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL:0), 
+			    &this->bih, this->buf, &this->o_bih, 
+			    (this->skipframes)?NULL:this->img_buffer)
+              :ICDecompressEx(this->hic, ICDECOMPRESS_NOTKEYFRAME | 
+                            ((this->skipframes)?ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL:0), 
+			    &this->bih, this->buf, &this->o_bih,
+			    (this->skipframes)?NULL:this->img_buffer); 
       else {
-        ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, 
-                         this->size, 0, this->img_buffer);
+        ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, this->size, 0,
+                            (this->skipframes)?NULL:this->img_buffer);
       }
                          
-      if (this->outfmt==IMGFMT_YUY2) {
-	/* already decoded into YUY2 format by DLL */
-	xine_fast_memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
-      } else {
-	/* now, convert rgb to yuv */
-	int row, col;
+      if(!this->skipframes) {
+        if (this->outfmt==IMGFMT_YUY2) {
+	  /* already decoded into YUY2 format by DLL */
+	  xine_fast_memcpy(img->base[0], this->img_buffer,
+	                   this->bih.biHeight*this->bih.biWidth*2);
+        } else {
+	  /* now, convert rgb to yuv */
+	  int row, col;
 #if	HAS_SLOW_MULT
-	int32_t *ctab = rgb_ycc_tab;
+	  int32_t *ctab = rgb_ycc_tab;
 #endif
-
-	xine_profiler_start_count (this->prof_rgb2yuv);
-
-	for (row=0; row<this->bih.biHeight; row++) {
-
-	  uint16_t *pixel, *out;
-
-	  pixel = (uint16_t *) ( (uint8_t *)this->img_buffer + 2 * row * this->o_bih.biWidth );
-	  out = (uint16_t *) (img->base[0] + 2 * row * this->o_bih.biWidth );
-
-	  for (col=0; col<this->o_bih.biWidth; col++, pixel++, out++) {
-	    
-	    uint8_t   r,g,b;
-	    uint8_t   y,u,v;
-	    
-	    b = (*pixel & 0x001F) << 3;
-	    g = (*pixel & 0x03E0) >> 5 << 3;
-	    r = (*pixel & 0x7C00) >> 10 << 3;
-	    
+  
+	  xine_profiler_start_count (this->prof_rgb2yuv);
+  
+	  for (row=0; row<this->bih.biHeight; row++) {
+  
+	    uint16_t *pixel, *out;
+  
+	    pixel = (uint16_t *) ( (uint8_t *)this->img_buffer + 2 * row * this->o_bih.biWidth );
+	    out = (uint16_t *) (img->base[0] + 2 * row * this->o_bih.biWidth );
+  
+	    for (col=0; col<this->o_bih.biWidth; col++, pixel++, out++) {
+  	    
+	      uint8_t   r,g,b;
+	      uint8_t   y,u,v;
+  	    
+	      b = (*pixel & 0x001F) << 3;
+	      g = (*pixel & 0x03E0) >> 5 << 3;
+	      r = (*pixel & 0x7C00) >> 10 << 3;
+  	    
 #if	HAS_SLOW_MULT
-	    y = (ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF]) >> SCALEBITS;
-	    if (!(col & 0x0001)) {
-	      /* even pixel, do u */
-	      u = (ctab[r+R_CB_OFF] + ctab[g+G_CB_OFF] + ctab[b+B_CB_OFF]) >> SCALEBITS;
-	      *out = ( (uint16_t) u << 8) | (uint16_t) y;
-	    } else {
-	      /* odd pixel, do v */
-	      v = (ctab[r+R_CR_OFF] + ctab[g+G_CR_OFF] + ctab[b+B_CR_OFF]) >> SCALEBITS;
-	      *out = ( (uint16_t) v << 8) | (uint16_t) y;
-	    }
+	      y = (ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF]) >> SCALEBITS;
+	      if (!(col & 0x0001)) {
+	        /* even pixel, do u */
+	        u = (ctab[r+R_CB_OFF] + ctab[g+G_CB_OFF] + ctab[b+B_CB_OFF]) >> SCALEBITS;
+	        *out = ( (uint16_t) u << 8) | (uint16_t) y;
+	      } else {
+	        /* odd pixel, do v */
+	        v = (ctab[r+R_CR_OFF] + ctab[g+G_CR_OFF] + ctab[b+B_CR_OFF]) >> SCALEBITS;
+	        *out = ( (uint16_t) v << 8) | (uint16_t) y;
+	      }
 #else
-	    y = (FIX(0.299) * r + FIX(0.587) * g + FIX(0.114) * b + ONE_HALF) >> SCALEBITS;
-	    if (!(col & 0x0001)) {
-	      /* even pixel, do u */
-	      u = (- FIX(0.16874) * r - FIX(0.33126) * g + FIX(0.5) * b + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
-	      *out = ( (uint16_t) u << 8) | (uint16_t) y;
-	    } else {
-	      /* odd pixel, do v */
-	      v = (FIX(0.5) * r - FIX(0.41869) * g - FIX(0.08131) * b + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
-	      *out = ( (uint16_t) v << 8) | (uint16_t) y;
-	    }
+	      y = (FIX(0.299) * r + FIX(0.587) * g + FIX(0.114) * b + ONE_HALF) >> SCALEBITS;
+	      if (!(col & 0x0001)) {
+	        /* even pixel, do u */
+	        u = (- FIX(0.16874) * r - FIX(0.33126) * g + FIX(0.5) * b + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
+	        *out = ( (uint16_t) u << 8) | (uint16_t) y;
+	      } else {
+	        /* odd pixel, do v */
+	        v = (FIX(0.5) * r - FIX(0.41869) * g - FIX(0.08131) * b + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
+	        *out = ( (uint16_t) v << 8) | (uint16_t) y;
+	      }
 #endif
-	    //printf("r %02x g %02x b %02x y %02x u %02x v %02x\n",r,g,b,y,u,v);
+	      //printf("r %02x g %02x b %02x y %02x u %02x v %02x\n",r,g,b,y,u,v);
+	    }
 	  }
-	}
-
-	xine_profiler_stop_count (this->prof_rgb2yuv);
+  
+	  xine_profiler_stop_count (this->prof_rgb2yuv);
+        }
       }
-
+      
       img->PTS = buf->PTS;
       img->SCR = buf->SCR;
-      if(ret) {
-	printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
+      if(ret || this->skipframes) {
+        if( !this->skipframes )
+	  printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
 	img->bad_frame = 1;
       } else {
 	img->bad_frame = 0;
       }
       
-      if (img->copy) {
+      if (img->copy && !this->skipframes) {
 	int height = abs(this->o_bih.biHeight);
 	int stride = this->o_bih.biWidth;
 	uint8_t* src[3];
@@ -729,7 +732,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	}
       }
 
-      img->draw(img);
+      this->skipframes = img->draw(img);
+      if( this->skipframes < 0 )
+        this->skipframes = 0;
       img->free(img);
 
       this->size = 0;
