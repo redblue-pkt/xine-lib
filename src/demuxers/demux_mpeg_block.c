@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.97 2002/05/01 13:30:39 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.98 2002/05/03 00:56:37 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -47,6 +47,11 @@
 
 #define NUM_PREVIEW_BUFFERS   250
 #define DISC_TRESHOLD       90000
+
+#define WRAP_THRESHOLD     120000 
+#define PTS_AUDIO 0
+#define PTS_VIDEO 1
+
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
@@ -79,10 +84,69 @@ typedef struct demux_mpeg_block_s {
 
   uint8_t              *scratch, *scratch_base;
 
-  int64_t               last_scr;
-  int                   ignore_scr_discont;
   int64_t               nav_last_end_pts;
+  int64_t               nav_last_start_pts;
+  int64_t               last_pts[2];
+  int                   send_newpts;
+
 } demux_mpeg_block_t ;
+
+
+/* OK, i think demux_mpeg_block discontinuity handling demands some
+   explanation:
+   
+   - The preferred discontinuity handling/detection for DVD is based on
+   NAV packets information. Most of the time it will provide us very
+   accurate and reliable information.
+   
+   - Has been shown that sometimes a DVD discontinuity may happen before
+   a new NAV packet arrives (seeking?). To avoid sending wrong PTS to
+   decoders we _used_ to check for SCR discontinuities. Unfortunately
+   some VCDs have very broken SCR values causing false triggering.
+   
+   - To fix the above problem (also note that VCDs don't have NAV
+   packets) we fallback to the same PTS-based wrap detection as used
+   in demux_mpeg. The only trick is to not send discontinuity information
+   if NAV packets have already done the job.
+   
+   [Miguel 02-05-2002]
+*/
+
+static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
+{
+  int64_t diff;
+  
+  diff = pts - this->last_pts[video];
+
+  if( pts && (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
+
+    /* check if pts is outside nav pts range. any stream without nav must enter here. */
+    if( pts > this->nav_last_end_pts || pts < this->nav_last_start_pts )
+    {
+      buf_element_t *buf;
+    
+      printf("demux_mpeg_block: pts wrap detected\n" );
+  
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = BUF_CONTROL_NEWPTS;
+      buf->disc_off = pts;
+      this->video_fifo->put (this->video_fifo, buf);
+
+      if (this->audio_fifo) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type = BUF_CONTROL_NEWPTS;
+        buf->disc_off = pts;
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
+    }
+    
+    this->send_newpts = 0;
+    this->last_pts[1-video] = 0;
+  }
+  
+  if( pts )
+    this->last_pts[video] = pts;
+}
 
 
 static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_mode) {
@@ -94,7 +158,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   int64_t        pts;
   uint32_t       packet_len;
   uint32_t       stream_id;
-  int64_t        scr = this->last_scr;
+  int64_t        scr = 0;
 
 #ifdef LOG
   printf ("demux_mpeg_block: read_block\n");
@@ -179,10 +243,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 #ifdef LOG
     printf ("demux_mpeg_block: type %08x != BUF_DEMUX_BLOCK\n", buf->type);
 #endif
-    /*
-    if (buf->type == BUF_CONTROL_NOP) 
-      this->send_disc = 1;
-    */
+
     return;
   }
 
@@ -248,8 +309,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 #ifdef LOG
       printf ("demux_mpeg_block: SCR=%lld\n", scr);
 #endif
-
-      /* buf->scr = scr; */
 
       /* mux_rate */
 
@@ -342,51 +401,11 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     }
     
     this->nav_last_end_pts = end_pts;
-    this->ignore_scr_discont = 1;
-
-    /*
-    for (i=0; i<120; i++)
-      printf ("%02x ", p[i]);
-    printf ("\n");
-    */
+    this->nav_last_start_pts = start_pts;
+    this->send_newpts = 0;
 
     return ;
   }
-
-  /* discontinuity ? */
-  if (scr && !preview_mode)  {  
-    int64_t scr_diff = scr - this->last_scr;
-
-#ifdef LOG
-    printf ("demux_mpeg_block: scr %d last_scr %d diff %d\n",
-	    scr, this->last_scr, scr_diff);
-#endif
-
-    if ( (abs(scr_diff) > DISC_TRESHOLD) &&
-        !this->ignore_scr_discont) {
-      
-      buf_element_t *buf;
-
-#ifdef LOG
-      printf ("demux_mpeg_block: DISCONTINUITY/NEWPTS!\n");
-#endif
-
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = BUF_CONTROL_DISCONTINUITY;
-      buf->disc_off = scr_diff;
-      this->video_fifo->put (this->video_fifo, buf);
-
-      if (this->audio_fifo) {
-	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-	buf->type = BUF_CONTROL_DISCONTINUITY;
-	buf->disc_off = scr_diff;
-	this->audio_fifo->put (this->audio_fifo, buf);
-      }
-    }
-    this->ignore_scr_discont = 0;
-    this->last_scr = scr;
-  }
-
 
   if (bMpeg1) {
 
@@ -496,6 +515,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->size      = packet_len-1;
       buf->type      = BUF_SPU_PACKAGE + spu_id;
       buf->pts       = pts;
+      if( !preview_mode )
+        check_newpts( this, pts, PTS_VIDEO );
+      
       buf->input_pos = this->input->get_current_pos(this->input);
       buf->input_length = this->input->get_length (this->input);
       
@@ -518,6 +540,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
         buf->type      = BUF_AUDIO_A52 + track;
       }
       buf->pts       = pts;
+      if( !preview_mode )
+        check_newpts( this, pts, PTS_AUDIO );
 
       buf->input_pos = this->input->get_current_pos(this->input);
       buf->input_length = this->input->get_length (this->input);
@@ -579,6 +603,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->size      = packet_len-pcm_offset;
       buf->type      = BUF_AUDIO_LPCM_BE + track;
       buf->pts       = pts;
+      if( !preview_mode )
+        check_newpts( this, pts, PTS_AUDIO );
 
       buf->input_pos = this->input->get_current_pos(this->input);
       buf->input_length = this->input->get_length (this->input);
@@ -597,6 +623,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->size      = packet_len;
     buf->type      = BUF_VIDEO_MPEG;
     buf->pts       = pts;
+    if( !preview_mode )
+      check_newpts( this, pts, PTS_VIDEO );
 
     buf->input_pos = this->input->get_current_pos(this->input);
     buf->input_length = this->input->get_length (this->input);
@@ -614,6 +642,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->size      = packet_len;
     buf->type      = BUF_AUDIO_MPEG + track;
     buf->pts       = pts;
+    if( !preview_mode )
+        check_newpts( this, pts, PTS_AUDIO );
 
     buf->input_pos = this->input->get_current_pos(this->input);
     buf->input_length = this->input->get_length (this->input);
@@ -931,10 +961,6 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
       if (!this->rate)
         this->rate = demux_mpeg_block_estimate_rate (this);
 
-      this->last_scr         = 0;
-      this->nav_last_end_pts = 0;
-      this->ignore_scr_discont = 0;
-
       if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
 
         int num_buffers = NUM_PREVIEW_BUFFERS;
@@ -988,13 +1014,14 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
     /*
      * now start demuxing
      */
+    this->send_newpts = 1;
     
     if( this->status != DEMUX_OK ) {
     
       this->status   = DEMUX_OK ;
-      this->last_scr = 0;
-      this->nav_last_end_pts = 0;
-      this->ignore_scr_discont = 0;
+      this->last_pts[0]   = 0;
+      this->last_pts[1]   = 0;
+      this->nav_last_end_pts = this->nav_last_start_pts = 0;
 
       if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_block_loop, this)) != 0) {
