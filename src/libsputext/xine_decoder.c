@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/12/02 15:27:20 guenter Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/12/02 21:19:22 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -83,10 +83,12 @@ typedef struct sputext_decoder_s {
   int                errs;  
   subtitle_t        *subtitles;
   int                num;            /* number of subtitle structs */
-  int                format;         /* constants see below */     
+  int                cur;            /* current subtitle           */
+  int                format;         /* constants see below        */     
   subtitle_t        *previous_aqt_sub ;
 
   osd_object_t      *osd;
+  char              *font;
 
   /* thread */
   int                running;
@@ -741,9 +743,9 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   this->osd = osd_open (this->xine->osd_renderer, LINE_WIDTH, SUB_MAX_TEXT * LINE_HEIGHT);
 
-  osd_renderer_load_font (this->xine->osd_renderer, "vga");
+  osd_renderer_load_font (this->xine->osd_renderer, this->font);
   
-  osd_set_font (this->osd,"vga");
+  osd_set_font (this->osd, this->font);
   osd_render_text (this->osd, 0, 0, "sputext decoder");
   osd_set_position (this->osd, 10, 30);
     
@@ -752,115 +754,9 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
 }
 
-#define PTS_FACTOR 9000
-
-static void *spudec_loop (void *this_gen) {
-
-  sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
-
-  struct timespec   tenth_second;
-  subtitle_t       *current;
-  int               count;
-  int32_t           pts_factor;
-
-  tenth_second.tv_sec = 0;
-  tenth_second.tv_nsec = 100000000;
-
-  /* wait two seconds so metronom can determine the correct frame rate */
-  
-  for (count = 0; count<20; count++)
-    nanosleep (&tenth_second, NULL);
-
-  current = this->subtitles;
-   
-  count = 0;
-
-  while (current && this->running) {
-
-    int32_t diff, sub_pts, pts;
-
-    pts = this->xine->metronom->get_current_time (this->xine->metronom);
-
-    if (this->uses_time)
-      pts_factor = 9000;
-    else
-      pts_factor = this->xine->metronom->get_video_rate (this->xine->metronom);
-
-#ifdef LOG
-    printf ("sputext: pts_factor : %d\n", pts_factor);
-#endif
-
-    if (!pts_factor) {
-      nanosleep (&tenth_second, NULL);
-      continue;
-    }
-    
-    sub_pts = (current->start * pts_factor) + this->xine->metronom->video_wrap_offset;
-
-    diff = sub_pts - pts ;
-
-    if (diff < 0) {
-
-#ifdef LOG
-      printf ("sputext: current is '%s' - too old start time %d, diff %d\n",
-	      current->text[0], sub_pts, diff );
-#endif
-
-      current++; count++;
-      if (count >= this->num)
-	current = NULL;
-
-      continue;
-
-    }
-
-#ifdef LOG
-    printf ("sputext: current is '%s' (actually %d lines), start time %d, diff %d\n",
-	    current->text[0], current->lines, sub_pts, diff);
-#endif
-
-    if (diff < 30000) {
-
-      int line, y;
-
-      osd_filled_rect (this->osd, 0, 0, LINE_WIDTH-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
-
-      y = (SUB_MAX_TEXT - current->lines) * LINE_HEIGHT;
-
-      for (line=0; line<current->lines; line++) {
-	int w,h,x;
-
-	osd_get_text_size( this->osd, current->text[line], 
-			   & w, &h);
-
-	x = (LINE_WIDTH - w) / 2;
-
-	osd_render_text (this->osd, x, y + line*20, current->text[line]);
-      }
-      
-      osd_show (this->osd, sub_pts);
-      osd_hide (this->osd, current->end * pts_factor + this->xine->metronom->video_wrap_offset);      
-
-      current++; count++;
-      if (count >= this->num)
-	current = NULL;
-
-    }
-
-    nanosleep (&tenth_second, NULL);
-  }
-
-  printf ("sputext: thread finished\n");
-
-  pthread_exit (NULL);
-
-  return NULL;
-}
-
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
-  int err;
 
   if (buf->decoder_info[0] == 0) {
 
@@ -883,18 +779,96 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     printf ("sputext: subtitle format %s time.\n", this->uses_time?"uses":"doesn't use");
     printf ("sputext: read %i subtitles, %i errors.\n", this->num, this->errs);
 
-    /* start thread */
+    this->cur = 0;
 
-    this->running = 1;
-    
-    if ((err = pthread_create (&this->spu_thread,
-			       NULL, spudec_loop, this)) != 0) {
-      printf ("sputext: can't create new thread (%s)\n",
-	      strerror(err));
-      exit (1);
+  } else {
+
+    uint32_t    pts, pts_end;
+    int32_t     pts_factor;
+    int         frame_num;
+    subtitle_t *subtitle;
+
+    subtitle = NULL;
+
+    pts       = buf->PTS;
+    pts_end   = pts;
+    frame_num = buf->decoder_info[1];
+
+    /* 
+     * find out which subtitle to display 
+     */
+
+    if (!this->uses_time) {
+
+
+      while ( (this->cur < this->num) 
+	      && (this->subtitles[this->cur].start < frame_num) )
+	this->cur++;
+
+      if (this->cur >= this->num)
+	return;
+
+      subtitle = &this->subtitles[this->cur];
+
+      if (subtitle->start > frame_num)
+	return;
+
+      pts_factor = this->xine->metronom->get_video_rate (this->xine->metronom);
+
+      pts += this->xine->metronom->video_wrap_offset;
+
+      pts_end = pts + (subtitle->end - subtitle->start) * pts_factor;
+
+    } else {
+
+      uint32_t start_tenth;
+
+      start_tenth = pts / 9000;
+
+      /* FIXME: untested */
+
+      while ( (this->cur < this->num) 
+	      && (this->subtitles[this->cur].start < start_tenth) )
+	this->cur++;
+
+      if (this->cur >= this->num)
+	return;
+
+      subtitle = &this->subtitles[this->cur];
+
+      if (subtitle->start > start_tenth)
+	return;
+
+      pts += this->xine->metronom->video_wrap_offset;
+
+      pts_end = subtitle->end * 9000 + this->xine->metronom->video_wrap_offset;
     }
-  }
 
+    if (subtitle) {
+      int line, y;
+
+      osd_filled_rect (this->osd, 0, 0, LINE_WIDTH-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
+
+      y = (SUB_MAX_TEXT - subtitle->lines) * LINE_HEIGHT;
+
+      for (line=0; line<subtitle->lines; line++) {
+	int w,h,x;
+
+	osd_get_text_size( this->osd, subtitle->text[line], 
+			   & w, &h);
+
+	x = (LINE_WIDTH - w) / 2;
+
+	osd_render_text (this->osd, x, y + line*20, subtitle->text[line]);
+      }
+      
+      osd_show (this->osd, pts );
+      osd_hide (this->osd, pts_end);
+
+    }
+
+    this->cur++;
+  }
 }  
 
 
@@ -943,6 +917,12 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->spu_decoder.priority            = 1;
 
   this->xine                            = xine;
+
+  this->font                            = xine->config->register_string(xine->config, 
+									"codec.spu_font", 
+									"vga", 
+									"font for avi subtitles", 
+									NULL, NULL, NULL);
 
   return (spu_decoder_t *) this;
 }

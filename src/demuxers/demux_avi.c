@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.56 2001/12/02 15:27:19 guenter Exp $
+ * $Id: demux_avi.c,v 1.57 2001/12/02 21:19:21 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -123,6 +123,7 @@ typedef struct demux_avi_s {
   int                  status;
 
   int                  no_audio;
+  int                  have_spu;
 
   uint32_t             video_step;
   uint32_t             AVI_errno; 
@@ -638,51 +639,50 @@ static long AVI_read_audio(demux_avi_t *this, avi_t *AVI, char *audbuf,
 }
 
 static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf, 
-			   long bytes, int *bFrameDone)
-{
+			   long bytes, int *frame_done) {
+
   long nr, pos, left, todo;
 
   if(!AVI->video_index)         { this->AVI_errno = AVI_ERR_NO_IDX;   return -1; }
 
   nr = 0; /* total number of bytes read */
 
-  while(bytes>0)
-    {
+  while(bytes>0) {
+    
+    left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
+    
+    if(left==0) {
+      AVI->video_posf++;
+      AVI->video_posb = 0;
+      if (nr>0) {
+	*frame_done = 2;
+	return nr;
+      }
       left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
-      if(left==0)
-	{
-	  AVI->video_posf++;
-	  AVI->video_posb = 0;
-	  if (nr>0) {
-	    *bFrameDone = 2;
-	    return nr;
-	  }
-	  left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
-	}
-      if(bytes<left)
-	todo = bytes;
-      else
-	todo = left;
-      pos = AVI->video_index[AVI->video_posf].pos + AVI->video_posb;
-      /* printf ("demux_avi: read video from %d\n", pos); */
-      if (this->input->seek (this->input, pos, SEEK_SET)<0) 
-	return -1;
-      if (this->input->read(this->input, vidbuf+nr,todo) != todo)
-	{
-	  this->AVI_errno = AVI_ERR_READ;
-	  *bFrameDone = 1;
-	  return -1;
-	}
-      bytes -= todo;
-      nr    += todo;
-      AVI->video_posb += todo;
     }
+    if(bytes<left)
+      todo = bytes;
+    else
+      todo = left;
+    pos = AVI->video_index[AVI->video_posf].pos + AVI->video_posb;
+    /* printf ("demux_avi: read video from %d\n", pos); */
+    if (this->input->seek (this->input, pos, SEEK_SET)<0) 
+      return -1;
+    if (this->input->read(this->input, vidbuf+nr,todo) != todo) {
+      this->AVI_errno = AVI_ERR_READ;
+      *frame_done = 1;
+      return -1;
+    }
+    bytes -= todo;
+    nr    += todo;
+    AVI->video_posb += todo;
+  }
 
   left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
   if (left==0)
-    *bFrameDone = 2;
+    *frame_done = 2;
   else
-    *bFrameDone = 1;
+    *frame_done = 1;
 	 
   return nr;
 }
@@ -747,6 +747,7 @@ static int demux_avi_next (demux_avi_t *this) {
     }
 
   } else {
+
     /* read video */
 
     buf->PTS        = video_pts;
@@ -767,10 +768,25 @@ static int demux_avi_next (demux_avi_t *this) {
 	    buf, buf->decoder_info[0]);
 	    */
 
-    
     this->video_fifo->put (this->video_fifo, buf);
-  }
 
+    /*
+     * send packages to inform & drive text spu decoder
+     */
+
+    if (this->have_spu && (buf->decoder_info[0] == 2)) {
+      buf_element_t *buf;
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      
+      buf->type    = BUF_SPU_TEXT;
+      buf->PTS     = video_pts;
+    
+      buf->decoder_info[0] = 1;
+      buf->decoder_info[1] = this->avi->video_posf;
+      
+      this->video_fifo->put (this->video_fifo, buf);
+    }
+  }
 
   return (buf->size>0);
 }
@@ -1011,9 +1027,12 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
     this->video_fifo->put (this->video_fifo, buf);
 
+    this->have_spu = 1;
+
     printf ("demux_avi: text subtitle file available\n");
 
-  }
+  } else
+    this->have_spu = 0;
 
   if ((err = pthread_create (&this->thread, NULL, demux_avi_loop, this)) != 0) {
     fprintf (stderr, "demux_avi: can't create new thread (%s)\n",
