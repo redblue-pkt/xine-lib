@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.16 2001/10/14 14:49:54 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.17 2001/10/20 12:08:31 guenter Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -417,49 +417,54 @@ static void spudec_close (spu_decoder_t *this_gen)
 	close(this->fd_spu);
 }
 
-static void spudec_event (spu_decoder_t *this_gen, spu_event_t *event) {
-	spudec_decoder_t *this = (spudec_decoder_t*) this_gen;
-	switch (event->sub_type) {
-	case SPU_EVENT_BUTTON:
-		{
-			spu_button_t *but = event->data;
-			em8300_button_t btn;
-			int i;
+static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 
-			if (!but->show) {
-				ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
-				break;
-			}
-			btn.color = btn.contrast = 0;
+  spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
+  xine_spu_event_t *event = (xine_spu_event_t *) event_gen;
 
-			for (i = 0; i < 4; i++) {
-				btn.color    |= (but->color[i] & 0xf) << (4*i);
-				btn.contrast |= (but->trans[i] & 0xf) << (4*i);
-			}
+  switch (event->event.type) {
+  case XINE_EVENT_SPU_BUTTON:
+    {
 
-			btn.left   = but->left;
-			btn.right  = but->right;
-			btn.top    = but->top;
-			btn.bottom = but->bottom;
-			
-			if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-				fprintf(stderr, "dxr3: failed to set spu button (%s)\n",
-				 strerror(errno));
-		}
-		break;
-	case SPU_EVENT_CLUT:
-		{
-			spu_cltbl_t *clut = event->data;
+      spu_button_t *but = event->data;
+      em8300_button_t btn;
+      int i;
+      
+      if (!but->show) {
+	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+	break;
+      }
+      btn.color = btn.contrast = 0;
+      
+      for (i = 0; i < 4; i++) {
+	btn.color    |= (but->color[i] & 0xf) << (4*i);
+	btn.contrast |= (but->trans[i] & 0xf) << (4*i);
+      }
+      
+      btn.left   = but->left;
+      btn.right  = but->right;
+      btn.top    = but->top;
+      btn.bottom = but->bottom;
+      
+      if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
+	fprintf(stderr, "dxr3: failed to set spu button (%s)\n",
+		strerror(errno));
+    }
+    break;
+
+  case XINE_EVENT_SPU_CLUT:
+    {
+      spu_cltbl_t *clut = event->data;
 #ifdef WORDS_BIGENDIAN
-			swab_clut(clut->clut);
+      swab_clut(clut->clut);
 #endif
-
-			if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, clut->clut))
-				fprintf(stderr, "dxr3: failed to set CLUT (%s)\n",
-				 strerror(errno));
-		}
-		break;
-	}
+      
+      if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, clut->clut))
+	fprintf(stderr, "dxr3: failed to set CLUT (%s)\n",
+		strerror(errno));
+    }
+    break;
+  }
 }
 
 static char *spudec_get_id(void)
@@ -467,12 +472,12 @@ static char *spudec_get_id(void)
 	return "dxr3-spudec";
 }
 
-spu_decoder_t *init_spu_decoder_plugin (int iface_version,
- config_values_t *cfg)
+spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
 {
   spudec_decoder_t *this;
+  config_values_t  *cfg;
 
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 	    "dxr3: this means there's a version mismatch between xine and this "
 	    "dxr3: decoder plugin.\nInstalling current plugins should help.\n",
@@ -480,20 +485,22 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version,
     return NULL;
   }
 
+  cfg = xine->config;
   devname = cfg->lookup_str (cfg, LOOKUP_DEV, DEFAULT_DEV);
   dxr3_presence_test ();
   if (!dxr3_ok) return NULL;
 
   this = (spudec_decoder_t *) malloc (sizeof (spudec_decoder_t));
 
-  this->spu_decoder.interface_version   = 3;
+  this->spu_decoder.interface_version   = 4;
   this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
-  this->spu_decoder.event               = spudec_event;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 10;
+
+  xine_register_event_listener(xine, spudec_event_listener, this);
   
   return (spu_decoder_t *) this;
 }
