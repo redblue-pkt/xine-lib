@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.66 2004/09/07 19:27:55 valtri Exp $
+ * $Id: input_cdda.c,v 1.67 2004/12/09 01:34:31 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,6 +73,7 @@
 
 #define CDDB_SERVER             "freedb.freedb.org"
 #define CDDB_PORT               8880
+#define CDDB_PROTOCOL           6
 #define CDDB_TIMEOUT            2000
 
 /* CD-relevant defines and data structures */
@@ -1254,7 +1255,12 @@ static char *_cdda_cddb_get_default_location(void) {
  * Read from socket, fill char *s, return size length.
  */
 static int _cdda_cddb_socket_read(cdda_input_plugin_t *this, char *str, int size) {
-  return _x_io_tcp_read_line(this->stream, this->cddb.fd, str, size);
+  int ret;
+  ret = _x_io_tcp_read_line(this->stream, this->cddb.fd, str, size);
+
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "<<< %s\n", str);
+
+  return ret;
 }
 
 /*
@@ -1265,6 +1271,8 @@ static int _cdda_cddb_send_command(cdda_input_plugin_t *this, char *cmd) {
   if((this == NULL) || (this->cddb.fd < 0) || (cmd == NULL))
     return -1;
 
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, ">>> %s\n", cmd);
+  
   return (int)_x_io_tcp_write(this->stream, this->cddb.fd, cmd, strlen(cmd));
 }
 
@@ -1572,6 +1580,26 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
       _cdda_cddb_socket_close(this);
       return 0;
     }
+    /* Send server protocol number */
+    /* For UTF-8 support - use protocol 6 */
+
+    memset(&buffer, 0, sizeof(buffer));
+    sprintf(buffer, "proto %d\n",CDDB_PROTOCOL);
+    if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: error while sending cddb protocol command.\n");
+      _cdda_cddb_socket_close(this);
+      return 0;
+    }
+
+    memset(&buffer, 0, sizeof(buffer));
+    err = _cdda_cddb_socket_read(this, buffer, sizeof(buffer) - 1);
+    if (err < 0 || (err = _cdda_cddb_handle_code(buffer)) < 0) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: cddb protocol command returned error code '%03d'.\n", err);
+      _cdda_cddb_socket_close(this);
+      return 0;
+    }
 
     /* Send query command */
     memset(&buffer, 0, sizeof(buffer));
@@ -1590,25 +1618,58 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
 
     memset(&buffer, 0, sizeof(buffer));
     err = _cdda_cddb_socket_read(this, buffer, sizeof(buffer) - 1);
-    if (err < 0 || (err = _cdda_cddb_handle_code(buffer)) != 200) {
+    if (err < 0 || (((err = _cdda_cddb_handle_code(buffer)) != 200) && (err != 210))) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_cdda: cddb query command returned error code '%03d'.\n", err);
       _cdda_cddb_socket_close(this);
       return 0;
     }
 
-    p = buffer;
-    i = 0;
-    while ((i <= 2) && ((m = xine_strsep(&p, " ")) != NULL)) {
-      if (i == 1) {
-        this->cddb.disc_category = strdup(m);
+    if (err == 200) {
+      p = buffer;
+      i = 0;
+      while ((i <= 2) && ((m = xine_strsep(&p, " ")) != NULL)) {
+        if (i == 1) {
+          this->cddb.disc_category = strdup(m);
+        }
+        else if(i == 2) {
+          this->cddb.cdiscid = strdup(m);
+        }
+        i++;
       }
-      else if(i == 2) {
-        this->cddb.cdiscid = strdup(m);
-      }
-      i++;
     }
-		  
+    
+    if (err == 210) {
+      memset(&buffer, 0, sizeof(buffer));
+      err = _cdda_cddb_socket_read(this, buffer, sizeof(buffer) - 1);
+      if (err < 0) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                "input_cdda: cddb query command returned error code '%03d'.\n", err);
+        _cdda_cddb_socket_close(this);
+        return 0;
+      }
+      p = buffer;
+      i = 0;
+      while ((i <= 1) && ((m = xine_strsep(&p, " ")) != NULL)) {
+        if (i == 0) {
+          this->cddb.disc_category = strdup(m);
+        }
+        else if(i == 1) {
+          this->cddb.cdiscid = strdup(m);
+        }
+        i++;
+      }
+      while (strcmp(buffer, ".")) {
+        memset(&buffer, 0, sizeof(buffer));
+        err = _cdda_cddb_socket_read(this, buffer, sizeof(buffer) - 1);
+        if (err < 0) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                  "input_cdda: cddb query command returned error code '%03d'.\n", err);
+          _cdda_cddb_socket_close(this);
+          return 0;
+        }
+      }
+    }		  
     /* Send read command */
     memset(&buffer, 0, sizeof(buffer));
     snprintf(buffer, sizeof(buffer), "cddb read %s %s\n", this->cddb.disc_category, this->cddb.cdiscid);
