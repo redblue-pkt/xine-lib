@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.107 2002/03/21 18:29:51 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.108 2002/03/21 18:33:28 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1019,29 +1019,27 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     
     /* FIXME : take care of completion events */
     
-    if (xev->count == 0) {
-      if (this->cur_frame) {
-	XLockDisplay (this->display);
-
-	if (this->use_shm) {
-	  XvShmPutImage(this->display, this->xv_port,
-			this->drawable, this->gc, this->cur_frame->image,
-			this->displayed_xoffset, this->displayed_yoffset,
-			this->displayed_width, this->displayed_height,
-			this->output_xoffset, this->output_yoffset,
-			this->output_width, this->output_height, True);
-	} else {
-	  XvPutImage(this->display, this->xv_port,
-		     this->drawable, this->gc, this->cur_frame->image,
-		     this->displayed_xoffset, this->displayed_yoffset,
-		     this->displayed_width, this->displayed_height,
-		     this->output_xoffset, this->output_yoffset,
-		     this->output_width, this->output_height);
-	}
-	XFlush(this->display);
-
-	XUnlockDisplay (this->display);
+    if (this->cur_frame) {
+      XLockDisplay (this->display);
+      
+      if (this->use_shm) {
+	XvShmPutImage(this->display, this->xv_port,
+		      this->drawable, this->gc, this->cur_frame->image,
+		      this->displayed_xoffset, this->displayed_yoffset,
+		      this->displayed_width, this->displayed_height,
+		      this->output_xoffset, this->output_yoffset,
+		      this->output_width, this->output_height, True);
+      } else {
+	XvPutImage(this->display, this->xv_port,
+		   this->drawable, this->gc, this->cur_frame->image,
+		   this->displayed_xoffset, this->displayed_yoffset,
+		   this->displayed_width, this->displayed_height,
+		   this->output_xoffset, this->output_yoffset,
+		   this->output_width, this->output_height);
       }
+      XFlush(this->display);
+      
+      XUnlockDisplay (this->display);
     }
   }
   break;
@@ -1118,9 +1116,9 @@ static void xv_check_capability (xv_driver_t *this,
   this->capabilities |= capability;
 
   /* 
-   * Some Xv drivers (Gatos ATI) report some ~0 as max values, this is confusing.
+   * some Xv drivers (Gatos ATI) report some ~0 as max values, this is confusing.
    */
-  if(VO_PROP_COLORKEY && (attr.max_value == ~0))
+  if (VO_PROP_COLORKEY && (attr.max_value == ~0))
     attr.max_value = 2147483615;
   
   this->props[property].min  = attr.min_value;
@@ -1135,13 +1133,12 @@ static void xv_check_capability (xv_driver_t *this,
 
   sprintf (this->scratch, "video.%s", str_prop);
 
-  /* This is a boolean property */
-  if((attr.min_value == 0) && (attr.max_value == 1)) {
+  /* is this a boolean property ? */
+  if ((attr.min_value == 0) && (attr.max_value == 1)) {
     this->config->register_bool (this->config, this->scratch, int_default,
 				 "Xv property", NULL, xv_property_callback, &this->props[property]);
   
-  }
-  else {
+  } else {
     this->config->register_range (this->config, this->scratch, int_default,
 				  this->props[property].min, this->props[property].max,   
 				  "Xv property", NULL, xv_property_callback, &this->props[property]);
