@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.145 2003/12/14 22:13:23 siggi Exp $
+ * $Id: xine_decoder.c,v 1.146 2003/12/16 01:57:31 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1561,17 +1561,6 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
         this->size -= bytes_consumed;
         offset += bytes_consumed;
-
-        if (!decode_buffer_size) {
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-		   "ffmpeg: didn't get an audio frame, got %d bytes left\n", this->size);
-
-          if (this->size>0)
-            memmove (this->buf, &this->buf[offset], this->size);
-
-          return;
-        }
-
       }
 
       /* reset internal accumulation buffer */
