@@ -322,4 +322,7 @@ Micael Beronius <micael.beronius@telia.com>
 Chris Purnell <cjp@lost.org.uk>
   DVB plugin port to new API, DVB-C support, updates, fixes
 
+James Stembridge <jstembridge@gmx.net>
+  several VIDIX driver updates and improvements
+  
 (let us know if we've forgotten anyone)

@@ -13,6 +13,9 @@
   * NSF audio decoding via Nosefart
   * DVB plugin updated to new DVB API, DVB-C and DVB-T support
   * gnome-vfs input plugin added
+  * external subtitles support. use either MRL syntax like 
+    "test.mpg#subtitle:file.sub" or the frontend option.
+  * updated VIDIX driver (image controls supported)
 	
 xine-lib (1-beta2)
   * what a GOOM! post plugin
