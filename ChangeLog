@@ -1,3 +1,5 @@
+  * SDL video out driver
+ 
 xine (0.9.8) unstable; urgency=low
 
   * Linux framebuffer video out driver (experimental)

@@ -1,5 +1,5 @@
-CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ @LIBMPEG2_CFLAGS@ -DXINE_COMPILE
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ @X_CFLAGS@ @LIBMPEG2_CFLAGS@ -DXINE_COMPILE
+CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ @LIBMPEG2_CFLAGS@ -DXINE_COMPILE @SDL_CFLAGS@
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ @X_CFLAGS@ @LIBMPEG2_CFLAGS@ -DXINE_COMPILE @SDL_CFLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -21,6 +21,11 @@ if HAVE_FB
 fb_module = xineplug_vo_out_fb.la
 endif
 
+if HAVE_SDL
+sdl_module = xineplug_vo_out_sdl.la
+endif
+
+
 ##
 # IMPORTANT:
 # ---------
@@ -28,7 +33,7 @@ endif
 # scheme "xineplug_vo_out_"
 #
 lib_LTLIBRARIES = $(xv_module) $(syncfb_module) $(xshm_module) $(aa_module) \
-                  $(fb_module)
+                  $(fb_module) $(sdl_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext
@@ -49,6 +54,10 @@ xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_fb.c
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module
+
+xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
+xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS)
+xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = yuv2rgb.h video_out_syncfb.h alphablend.h deinterlace.h
 
