@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.39 2002/10/24 17:51:30 guenter Exp $
+ * $Id: audio_out.h,v 1.40 2002/10/29 16:02:47 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -201,7 +201,11 @@ struct ao_instance_s {
    */
   int (*control) (ao_instance_t *this, int cmd, /* arg */ ...);
 
-  
+  /*
+   * Flush audio_out fifo.
+   */
+  void (*flush) (ao_instance_t *this);
+
   /* private stuff */
 
   xine_ao_driver_t    *driver;
@@ -232,6 +236,8 @@ struct ao_instance_s {
   int16_t        *zero_space;
 
   int64_t         passthrough_offset;
+  int             flush_audio_driver;
+  int             allow_full_ao_fill_gap;
 
   int             do_compress;
   double          compression_factor;   /* current compression */

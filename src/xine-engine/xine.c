@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.182 2002/10/29 03:31:38 guenter Exp $
+ * $Id: xine.c,v 1.183 2002/10/29 16:02:51 mroi Exp $
  *
  * top-level xine functions
  *
@@ -113,7 +113,7 @@ static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
      * samples from the sound driver
      */
     if (speed != XINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
-      stream->audio_out->control(stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
+      stream->audio_out->flush(stream->audio_out);
 
     stream->audio_out->control(stream->audio_out,
 			       speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME);
@@ -186,10 +186,6 @@ static void xine_stop_internal (xine_stream_t *stream) {
 #ifdef LOG
   printf ("xine_stop: demux stopped\n");
 #endif
-
-  /* remove buffered samples from the sound device driver */
-  if (stream->audio_out)
-    stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
 #ifdef LOG
   printf ("xine_stop: done\n");
@@ -318,6 +314,9 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->osd_lock, NULL);
   pthread_mutex_init (&stream->counter_lock, NULL);
   pthread_cond_init  (&stream->counter_changed, NULL);
+  pthread_mutex_init (&stream->first_frame_lock, NULL);
+  pthread_cond_init  (&stream->first_frame_reached, NULL);
+
 
   /*
    * event queues
@@ -412,10 +411,6 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	      _("xine: couldn't find demux for >%s<\n"), mrl);
     stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 
-    /* remove buffered samples from the sound device driver */
-    if (stream->audio_out)
-      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
-
     stream->status = XINE_STATUS_STOP;
     return 0;
   }
@@ -509,6 +504,17 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   if (stream->speed != XINE_SPEED_NORMAL) 
     xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
 
+  /* Wait until the first frame produced by the previous
+   * xine_play call is pushed into the video_out fifo
+   * see video_out.c
+   */
+  pthread_mutex_lock (&stream->first_frame_lock);
+  /* FIXME: howto detect if video frames will be produced */
+  if (stream->first_frame_flag && stream->video_decoder_plugin) {
+    pthread_cond_wait(&stream->first_frame_reached, &stream->first_frame_lock);
+  }
+  pthread_mutex_unlock (&stream->first_frame_lock);
+
   /*
    * start/seek demux
    */
@@ -543,6 +549,10 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     xine_demux_start_thread( stream );
     stream->status = XINE_STATUS_PLAY;
   }
+
+  pthread_mutex_lock (&stream->first_frame_lock);
+  stream->first_frame_flag = 1;
+  pthread_mutex_unlock (&stream->first_frame_lock);
 
   printf ("xine: xine_play_internal ...done\n");
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.38 2002/10/28 07:53:52 tmattern Exp $
+ * $Id: metronom.h,v 1.39 2002/10/29 16:02:49 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -217,9 +217,7 @@ struct metronom_s {
   int64_t         audio_vpts;
 
   int64_t         vpts_offset;
-  int64_t         next_vpts_offset;
-
-  int             in_discontinuity;
+  int64_t         old_vpts_offset;
 
   int64_t         video_drift;
   int64_t         video_drift_step;
@@ -244,8 +242,14 @@ struct metronom_s {
   pthread_cond_t  audio_discontinuity_reached;
   pthread_cond_t  cancel;
 
-  int             allow_full_ao_fill_gap;
+  int             force_video_jump;
   int             force_audio_jump;
+
+  int64_t         video_discontinuity_pts;
+  int64_t         audio_discontinuity_pts;
+
+  int             in_video_discontinuity;
+  int             in_audio_discontinuity;
 
   int64_t         img_duration;
   int             img_cpt;

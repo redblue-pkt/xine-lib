@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.86 2002/10/18 04:04:10 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.87 2002/10/29 16:02:43 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -149,8 +149,6 @@ void *audio_decoder_loop (void *stream_gen) {
     case BUF_CONTROL_RESET_DECODER:
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
-      if (stream->audio_out)
-        stream->audio_out->control(stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
       break;
           
     case BUF_CONTROL_DISCONTINUITY:

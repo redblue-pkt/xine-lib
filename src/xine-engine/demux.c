@@ -56,6 +56,14 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
     buf->type            = BUF_CONTROL_RESET_DECODER;
     stream->audio_fifo->put (stream->audio_fifo, buf);
   }
+
+  if (stream->video_out) {
+    stream->video_out->flush(stream->video_out);
+  }
+
+  if (stream->audio_out) {
+    stream->audio_out->flush(stream->audio_out);
+  }
   
   stream->metronom->adjust_clock(stream->metronom,
                                stream->metronom->get_current_time(stream->metronom) + 30 * 90000 );

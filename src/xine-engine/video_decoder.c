@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.105 2002/10/27 01:52:15 guenter Exp $
+ * $Id: video_decoder.c,v 1.106 2002/10/29 16:02:49 mroi Exp $
  *
  */
 
@@ -205,6 +205,14 @@ void *video_decoder_loop (void *stream_gen) {
 	xine_handle_stream_end (stream, 
 				buf->decoder_flags & BUF_FLAG_END_STREAM);
       }
+
+      /* Wake up xine_play if it's waiting for a frame */
+      pthread_mutex_lock (&stream->first_frame_lock);
+      if (stream->first_frame_flag) {
+        stream->first_frame_flag = 0;
+        pthread_cond_signal(&stream->first_frame_reached);
+      }
+      pthread_mutex_unlock (&stream->first_frame_lock);
 
       break;
 

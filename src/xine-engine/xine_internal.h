@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.108 2002/10/28 03:24:44 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.109 2002/10/29 16:02:54 mroi Exp $
  *
  */
 
@@ -189,6 +189,11 @@ struct xine_stream_s {
   /* stream meta information */
   int                        stream_info[XINE_STREAM_INFO_MAX];
   char                      *meta_info  [XINE_STREAM_INFO_MAX];
+
+  /* seeking slowdown */
+  int                        first_frame_flag;
+  pthread_mutex_t            first_frame_lock;
+  pthread_cond_t             first_frame_reached;
 
   /* wait for headers sent / stream decoding finished */
   pthread_mutex_t            counter_lock;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.106 2002/10/16 22:54:48 guenter Exp $
+ * $Id: video_out.c,v 1.107 2002/10/29 16:02:50 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -109,10 +109,8 @@ static img_buf_fifo_t *vo_new_img_buf_queue () {
   return queue;
 }
 
-static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
+static void vo_append_to_img_buf_queue_int (img_buf_fifo_t *queue,
 					vo_frame_t *img) {
-
-  pthread_mutex_lock (&queue->mutex);
 
   /* img already enqueue? (serious leak) */
   assert (img->next==NULL);
@@ -132,13 +130,17 @@ static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
   queue->num_buffers++;
 
   pthread_cond_signal (&queue->not_empty);
+}
+
+static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
+					vo_frame_t *img) {
+  pthread_mutex_lock (&queue->mutex);
+  vo_append_to_img_buf_queue_int (queue, img);
   pthread_mutex_unlock (&queue->mutex);
 }
 
-static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
+static vo_frame_t *vo_remove_from_img_buf_queue_int (img_buf_fifo_t *queue) {
   vo_frame_t *img;
-
-  pthread_mutex_lock (&queue->mutex);
 
   while (!queue->first || queue->locked_for_read) {
     pthread_cond_wait (&queue->not_empty, &queue->mutex);
@@ -158,6 +160,14 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
     }
   }
     
+  return img;
+}
+
+static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
+  vo_frame_t *img;
+
+  pthread_mutex_lock (&queue->mutex);
+  img = vo_remove_from_img_buf_queue_int(queue);
   pthread_mutex_unlock (&queue->mutex);
 
   return img;
@@ -279,6 +289,17 @@ static int vo_frame_draw (vo_frame_t *img) {
   }
 
   if (!img->bad_frame) {
+
+    /*
+     * Wake up xine_play if it's waiting for a frame
+     */
+    pthread_mutex_lock (&this->stream->first_frame_lock);
+    if (this->stream->first_frame_flag) {
+      this->stream->first_frame_flag = 0;
+      pthread_cond_signal(&this->stream->first_frame_reached);
+    }
+    pthread_mutex_unlock (&this->stream->first_frame_lock);
+
     /*
      * put frame into FIFO-Buffer
      */
@@ -703,7 +724,7 @@ static void *video_out_loop (void *this_gen) {
       printf ("video_out: displaying frame (id=%d)\n", img->id);
 #endif
       overlay_and_display_frame (this, img, vpts);
-    }
+      }
     else
     {
       check_redraw_needed( this, vpts );
@@ -886,6 +907,29 @@ static void vo_enable_overlay (vo_instance_t *this_gen, int overlay_enabled) {
   this->overlay_enabled = overlay_enabled;
 }
 
+/*
+ * Flush video_out fifo
+ */
+static void vo_flush (vo_instance_t *this_gen) {
+  vos_t      *this = (vos_t *) this_gen;
+  vo_frame_t *img;
+  int        i, num_buffers;
+
+  pthread_mutex_lock (&this->display_img_buf_queue->mutex);
+  pthread_mutex_lock (&this->free_img_buf_queue->mutex);
+  num_buffers = this->display_img_buf_queue->num_buffers;
+
+  /* don't flush the last img, it improves seeking */
+  printf ("video_out: flush fifo (%d buffers)\n", num_buffers);
+  for (i = 1; i < num_buffers; i++) {
+    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
+    vo_append_to_img_buf_queue_int (this->free_img_buf_queue, img);
+  }
+
+  pthread_mutex_unlock (&this->free_img_buf_queue->mutex);
+  pthread_mutex_unlock (&this->display_img_buf_queue->mutex);
+}
+
 
 vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, 
 				xine_stream_t *stream) {
@@ -912,6 +956,7 @@ vo_instance_t *vo_new_instance (xine_vo_driver_t *driver,
   this->vo.get_capabilities      = vo_get_capabilities;
   this->vo.enable_ovl            = vo_enable_overlay;
   this->vo.get_overlay_instance  = vo_get_overlay_instance;
+  this->vo.flush                 = vo_flush;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.68 2002/10/26 14:45:28 mroi Exp $
+ * $Id: video_out.h,v 1.69 2002/10/29 16:02:50 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -149,6 +149,9 @@ struct vo_instance_s {
 
   /* get overlay instance (overlay source) */
   video_overlay_instance_t* (*get_overlay_instance) (vo_instance_t *this);
+
+  /* flush video_out fifo */
+  void (*flush) (vo_instance_t *this);
 
   /* private stuff can be added here */
 

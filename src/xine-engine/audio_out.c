@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.74 2002/10/24 17:51:30 guenter Exp $
+ * $Id: audio_out.c,v 1.75 2002/10/29 16:02:45 mroi Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -136,10 +136,8 @@ static audio_fifo_t *fifo_new () {
   return fifo;
 }
 
-static void fifo_append (audio_fifo_t *fifo,
+static void fifo_append_int (audio_fifo_t *fifo,
 			 audio_buffer_t *buf) {
-
-  pthread_mutex_lock (&fifo->mutex);
 
   buf->next = NULL;
 
@@ -156,16 +154,19 @@ static void fifo_append (audio_fifo_t *fifo,
     fifo->num_buffers++;
 
   }
-
   pthread_cond_signal (&fifo->not_empty);
+}
+
+static void fifo_append (audio_fifo_t *fifo,
+			 audio_buffer_t *buf) {
+
+  pthread_mutex_lock (&fifo->mutex);
+  fifo_append_int (fifo, buf);
   pthread_mutex_unlock (&fifo->mutex);
 }
 
-static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
-
+static audio_buffer_t *fifo_remove_int (audio_fifo_t *fifo) {
   audio_buffer_t *buf;
-
-  pthread_mutex_lock (&fifo->mutex);
 
   while (!fifo->first) {
     pthread_cond_wait (&fifo->not_empty, &fifo->mutex);
@@ -187,10 +188,20 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
 
   }
     
+  return buf;
+}
+
+static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
+
+  audio_buffer_t *buf;
+
+  pthread_mutex_lock (&fifo->mutex);
+  buf = fifo_remove_int(fifo);
   pthread_mutex_unlock (&fifo->mutex);
 
   return buf;
 }
+
 
 void write_pause_burst(ao_instance_t *this, uint32_t num_frames)
 { 
@@ -320,7 +331,7 @@ static void audio_filter_compress (ao_instance_t *this, int16_t *mem, int num_fr
       this->compression_factor = this->compression_factor_max;
   }
   
-#if LOG
+#ifdef LOG
   printf ("audio_out: max=%d f_max=%f compression_factor=%f\n", 
 	  maxs, f_max, this->compression_factor);
 #endif
@@ -471,11 +482,8 @@ static void *ao_loop (void *this_gen) {
   int64_t         gap;
   int64_t         delay;
   int64_t         cur_time;
-  /*  int             num_output_frames ;*/
-  /*   int             paused_wait; */
   int64_t         last_sync_time;
   int             bufs_since_sync;
-  /*  double          acc_output_frames, output_frame_excess = 0; */
 
   last_sync_time = bufs_since_sync = 0;
 #ifdef LOG
@@ -490,12 +498,21 @@ static void *ao_loop (void *this_gen) {
   while ((this->audio_loop_running) ||
 	 (!this->audio_loop_running && this->out_fifo->first)) {
 
+
+    if (this->flush_audio_driver) {
+#ifdef LOG
+      printf ("audio_out: flush audio driver\n");
+#endif
+      this->control(this, AO_CTRL_FLUSH_BUFFERS);
+      this->flush_audio_driver = 0;
+    }
+
     /* wait until user unpauses stream
        audio_paused == 1 means we are playing at a different speed
        them we must process buffers otherwise the entire engine will stop.
     */
     
-    while ( this->audio_paused )  {
+    while ( this->audio_paused && this->audio_loop_running )  {
       switch (this->audio_paused) {
       case 1:
         { 
@@ -512,7 +529,7 @@ static void *ao_loop (void *this_gen) {
         }
       case 2:
         {
-        this->metronom->allow_full_ao_fill_gap = 1;
+        this->allow_full_ao_fill_gap = 1;
 #ifdef LOG
         printf ("audio_out:loop:pause: I feel sleepy.\n");
 #endif
@@ -526,7 +543,7 @@ static void *ao_loop (void *this_gen) {
     }
     /* pthread_mutex_lock( &this->driver_lock ); What is this lock for ? */
     delay = this->driver->delay(this->driver);
-    while (delay <=0) {
+    while (delay <=0 && this->audio_loop_running) {
       /* Get the audio card into RUNNING state. */
       ao_fill_gap (this, 10000); /* FIXME, this PTS of 1000 should == period size */
       delay = this->driver->delay(this->driver);
@@ -586,8 +603,9 @@ static void *ao_loop (void *this_gen) {
     } else if ( abs(gap) < AO_MAX_GAP && abs(gap) > this->gap_tolerance &&
            cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
            bufs_since_sync >= SYNC_BUF_INTERVAL ) {
-           
+#ifdef LOG
         printf ("audio_out: audio_loop: ADJ_VPTS\n"); 
+#endif
         this->metronom->set_option(this->metronom, METRONOM_ADJ_VPTS_OFFSET,
                                    -gap/SYNC_GAP_RATE );
         last_sync_time = cur_time;
@@ -595,9 +613,9 @@ static void *ao_loop (void *this_gen) {
 
     } else if ( gap > AO_MAX_GAP ) {
       /* for big gaps output silence */
-      if (this->metronom->allow_full_ao_fill_gap) {
+      if (this->allow_full_ao_fill_gap) {
         ao_fill_gap (this, gap);
-        this->metronom->allow_full_ao_fill_gap = 0;
+        this->allow_full_ao_fill_gap = 0;
       } else {
         ao_fill_gap (this, gap / 2);
       }
@@ -955,6 +973,26 @@ static int ao_control (ao_instance_t *this, int cmd, ...) {
   return rval;
 }
 
+static void ao_flush (ao_instance_t *this) {
+  audio_buffer_t *buf;
+  int            i, num_buffers;
+
+  pthread_mutex_lock (&this->out_fifo->mutex);
+  pthread_mutex_lock (&this->free_fifo->mutex);
+  num_buffers = this->out_fifo->num_buffers;
+  printf ("audio_out: flush fifo (%d buffers)\n", num_buffers);
+
+  for (i = 0; i < this->out_fifo->num_buffers; i++) {
+    buf = fifo_remove_int (this->out_fifo);
+    fifo_append_int (this->free_fifo, buf);
+  }
+
+  this->flush_audio_driver = 1;
+  this->allow_full_ao_fill_gap = 1;
+  pthread_mutex_unlock (&this->free_fifo->mutex);
+  pthread_mutex_unlock (&this->out_fifo->mutex);
+}
+
 ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, 
 				xine_stream_t *stream) {
  
@@ -971,19 +1009,22 @@ ao_instance_t *ao_new_instance (xine_ao_driver_t *driver,
   this->stream                = stream;
   pthread_mutex_init( &this->driver_lock, NULL );
 
-  this->open                  = ao_open;
-  this->get_buffer            = ao_get_buffer;
-  this->put_buffer            = ao_put_buffer;
-  this->close                 = ao_close;
-  this->exit                  = ao_exit;
-  this->get_capabilities      = ao_get_capabilities;
-  this->get_property          = ao_get_property;
-  this->set_property          = ao_set_property;
-  this->control		      = ao_control;
-  this->audio_loop_running    = 0;
-  this->audio_paused          = 0;
-  this->zero_space            = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
-  this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
+  this->open                   = ao_open;
+  this->get_buffer             = ao_get_buffer;
+  this->put_buffer             = ao_put_buffer;
+  this->close                  = ao_close;
+  this->exit                   = ao_exit;
+  this->get_capabilities       = ao_get_capabilities;
+  this->get_property           = ao_get_property;
+  this->set_property           = ao_set_property;
+  this->control                = ao_control;
+  this->flush                  = ao_flush;
+  this->audio_loop_running     = 0;
+  this->audio_paused           = 0;
+  this->flush_audio_driver     = 0;
+  this->allow_full_ao_fill_gap = 0;
+  this->zero_space             = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
+  this->gap_tolerance          = driver->get_gap_tolerance (this->driver);
 
   this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
 					       resample_modes,
