@@ -21,7 +21,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.3 2003/01/29 03:36:04 tmmm Exp $
+ * $Id: demux_ac3.c,v 1.4 2003/02/08 16:01:09 tmmm Exp $
  *
  */
 
@@ -60,7 +60,7 @@ typedef struct {
   int                  status;
   int                  seek_flag;
 
-  int                  sample_rate;  /* 0 = 48KHz, 1 = 44.1KHz, 2 = 32KHz */
+  int                  sample_rate;
   int                  frame_size;
   int                  running_time;
 
