@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.62 2001/12/09 18:03:26 guenter Exp $
+ * $Id: xine_internal.h,v 1.63 2001/12/11 15:30:06 miguelfreitas Exp $
  *
  */
 
@@ -54,7 +54,7 @@ extern "C" {
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
 #define DECODER_PLUGIN_MAX     256
-#define DECODER_PLUGIN_IFACE_VERSION      3
+#define DECODER_PLUGIN_IFACE_VERSION      4
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
 #define XINE_MAX_EVENT_LISTENERS 50
@@ -111,6 +111,8 @@ struct audio_decoder_s {
 
   void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
 
+  void (*reset) (audio_decoder_t *this);
+  
   void (*close) (audio_decoder_t *this);
 
   char* (*get_identifier) (void);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.56 2001/11/20 12:41:57 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.57 2001/12/11 15:30:06 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -137,11 +137,8 @@ void *audio_decoder_loop (void *this_gen) {
     case BUF_CONTROL_AVSYNC_RESET:
       printf ("audio_decoder: discontinuity ahead\n");
 
-      /* fixme ? */
       if (this->cur_audio_decoder_plugin) {
-	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
-	this->cur_audio_decoder_plugin = NULL;
-	this->audio_type = 0;
+	this->cur_audio_decoder_plugin->reset (this->cur_audio_decoder_plugin);
       }
 
       this->metronom->expect_audio_discontinuity (this->metronom);
@@ -156,20 +153,6 @@ void *audio_decoder_loop (void *this_gen) {
       break;
 
     default:
-
-#if 0
-      while (this->audio_mute==2) {
-	xine_usec_sleep (50000);
-      }
-
-      if (this->audio_mute) {
-	/*
-	lrb_add (this->audio_temp, buf);
-	continue;
-	*/
-	break;
-      }
-#endif
 
       xine_profiler_start_count (prof_audio_decode);
 

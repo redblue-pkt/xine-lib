@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2001/12/10 12:31:09 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.17 2001/12/11 15:30:05 miguelfreitas Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -60,6 +60,12 @@ int lpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
 	   buf_type == BUF_AUDIO_LPCM_LE );
 }
 
+
+void lpcm_reset (audio_decoder_t *this_gen) {
+
+  /* lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen; */
+
+}
 
 void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
@@ -148,7 +154,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   lpcm_decoder_t *this ;
 
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     printf( "liblpcm: plugin doesn't support plugin API version %d.\n"
 	    "liblpcm: this means there's a version mismatch between xine and this "
 	    "liblpcm: decoder plugin.\nInstalling current plugins should help.\n",
@@ -158,10 +164,11 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this = (lpcm_decoder_t *) malloc (sizeof (lpcm_decoder_t));
 
-  this->audio_decoder.interface_version   = 3;
+  this->audio_decoder.interface_version   = iface_version;
   this->audio_decoder.can_handle          = lpcm_can_handle;
   this->audio_decoder.init                = lpcm_init;
   this->audio_decoder.decode_data         = lpcm_decode_data;
+  this->audio_decoder.reset               = lpcm_reset;
   this->audio_decoder.close               = lpcm_close;
   this->audio_decoder.get_identifier      = lpcm_get_id;
   this->audio_decoder.priority            = 1;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/11/13 21:47:59 heikos Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/12/11 15:30:06 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -65,6 +65,14 @@ static int vorbis_can_handle (audio_decoder_t *this_gen, int buf_type) {
   return ((buf_type & 0xFFFF0000) == BUF_AUDIO_VORBIS) ;
 }
 
+
+static void vorbis_reset (audio_decoder_t *this_gen) {
+
+  vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
+
+  vorbis_synthesis_init(&this->vd,&this->vi); 
+  vorbis_block_init(&this->vd,&this->vb);     
+}
 
 static void vorbis_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
@@ -228,7 +236,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   vorbis_decoder_t *this ;
 
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     printf( "libvorbis: plugin doesn't support plugin API version %d.\n"
 	    "libvorbis: this means there's a version mismatch between xine and this "
 	    "libvorbis: decoder plugin.\nInstalling current plugins should help.\n",
@@ -239,10 +247,11 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this = (vorbis_decoder_t *) malloc (sizeof (vorbis_decoder_t));
 
-  this->audio_decoder.interface_version   = 3;
+  this->audio_decoder.interface_version   = iface_version;
   this->audio_decoder.can_handle          = vorbis_can_handle;
   this->audio_decoder.init                = vorbis_init;
   this->audio_decoder.decode_data         = vorbis_decode_data;
+  this->audio_decoder.reset               = vorbis_reset;
   this->audio_decoder.close               = vorbis_close;
   this->audio_decoder.get_identifier      = vorbis_get_id;
   this->audio_decoder.priority            = 5;

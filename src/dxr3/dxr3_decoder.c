@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.41 2001/11/26 01:12:00 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.42 2001/12/11 15:30:05 miguelfreitas Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -564,7 +564,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 {
 	dxr3_decoder_t *this ;
 
-	if (iface_version != 3) {
+	if (iface_version != 4) {
 		printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 		 "dxr3: this means there's a version mismatch between xine and this\n"
 		 "dxr3: decoder plugin. Installing current plugins should help.\n",
@@ -579,7 +579,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 
 	this = (dxr3_decoder_t *) malloc (sizeof (dxr3_decoder_t));
 
-	this->video_decoder.interface_version   = 3;
+	this->video_decoder.interface_version   = iface_version;
 	this->video_decoder.can_handle          = dxr3_can_handle;
 	this->video_decoder.init                = dxr3_init;
 	this->video_decoder.decode_data         = dxr3_decode_data;

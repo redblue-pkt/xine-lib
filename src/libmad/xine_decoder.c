@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2001/11/13 21:47:58 heikos Exp $
+ * $Id: xine_decoder.c,v 1.10 2001/12/11 15:30:06 miguelfreitas Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -30,6 +30,7 @@
 #include "xine_internal.h"
 #include "frame.h"
 #include "synth.h"
+#include "xineutils.h"
 
 #define INPUT_BUF_SIZE  16384
 
@@ -54,6 +55,18 @@ typedef struct mad_decoder_s {
 
 static int mad_can_handle (audio_decoder_t *this_gen, int buf_type) {
   return ((buf_type & 0xFFFF0000) == BUF_AUDIO_MPEG) ;
+}
+
+
+static void mad_reset (audio_decoder_t *this_gen) {
+
+  mad_decoder_t *this = (mad_decoder_t *) this_gen;
+
+  this->bytes_in_buffer = 0;
+
+  mad_synth_init  (&this->synth);
+  mad_stream_init (&this->stream);
+  mad_frame_init  (&this->frame);
 }
 
 
@@ -122,7 +135,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   
   if (buf->decoder_info[0] >0) {
 
-    memcpy (&this->buffer[this->bytes_in_buffer], 
+    xine_fast_memcpy (&this->buffer[this->bytes_in_buffer], 
 	    buf->content, buf->size);
     this->bytes_in_buffer += buf->size;
 
@@ -246,7 +259,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   mad_decoder_t *this ;
 
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     printf( "libmad: plugin doesn't support plugin API version %d.\n"
 	    "libmad: this means there's a version mismatch between xine and this "
 	    "libmad: decoder plugin.\nInstalling current plugins should help.\n",
@@ -257,10 +270,11 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this = (mad_decoder_t *) malloc (sizeof (mad_decoder_t));
 
-  this->audio_decoder.interface_version   = 3;
+  this->audio_decoder.interface_version   = iface_version;
   this->audio_decoder.can_handle          = mad_can_handle;
   this->audio_decoder.init                = mad_init;
   this->audio_decoder.decode_data         = mad_decode_data;
+  this->audio_decoder.reset               = mad_reset;
   this->audio_decoder.close               = mad_close;
   this->audio_decoder.get_identifier      = mad_get_id;
   this->audio_decoder.priority            = 5;

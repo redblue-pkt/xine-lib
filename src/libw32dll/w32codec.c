@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.50 2001/11/18 22:58:30 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.51 2001/12/11 15:30:06 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -784,6 +784,14 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
   return NULL;
 }
 
+static void w32a_reset (audio_decoder_t *this_gen) {
+
+  w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
+
+  this->size = 0;
+}
+
+
 static void w32a_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
@@ -1111,7 +1119,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   w32v_decoder_t *this ;
 
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
@@ -1126,7 +1134,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   this = (w32v_decoder_t *) xine_xmalloc (sizeof (w32v_decoder_t));
 
-  this->video_decoder.interface_version   = 3;
+  this->video_decoder.interface_version   = iface_version;
   this->video_decoder.can_handle          = w32v_can_handle;
   this->video_decoder.init                = w32v_init;
   this->video_decoder.decode_data         = w32v_decode_data;
@@ -1146,7 +1154,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   w32a_decoder_t *this ;
 
   
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
@@ -1161,10 +1169,11 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this = (w32a_decoder_t *) xine_xmalloc (sizeof (w32a_decoder_t));
   
-  this->audio_decoder.interface_version   = 3;
+  this->audio_decoder.interface_version   = iface_version;
   this->audio_decoder.can_handle          = w32a_can_handle;
   this->audio_decoder.init                = w32a_init;
   this->audio_decoder.decode_data         = w32a_decode_data;
+  this->audio_decoder.reset               = w32a_reset;
   this->audio_decoder.close               = w32a_close;
   this->audio_decoder.get_identifier      = w32a_get_id;
   this->audio_decoder.priority            = 1;

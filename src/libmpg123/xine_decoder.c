@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/12/11 15:30:06 miguelfreitas Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -54,6 +54,12 @@ int mpgdec_can_handle (audio_decoder_t *this_gen, int buf_type) {
   return ((buf_type & 0xFFFF0000) == BUF_AUDIO_MPEG) ;
 }
 
+void mpgdec_reset (audio_decoder_t *this_gen) {
+
+  mpgdec_decoder_t *this = (mpgdec_decoder_t *) this_gen; 
+
+  mpg_audio_reset (this->mpg);
+}
 
 void mpgdec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
@@ -113,6 +119,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   this->audio_decoder.interface_version   = 2;
   this->audio_decoder.can_handle          = mpgdec_can_handle;
   this->audio_decoder.init                = mpgdec_init;
+  this->audio_decoder.reset               = mpgdec_reset;
   this->audio_decoder.decode_data         = mpgdec_decode_data;
   this->audio_decoder.close               = mpgdec_close;
   this->audio_decoder.get_identifier      = mpgdec_get_id;

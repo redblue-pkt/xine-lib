@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2001/11/13 21:47:58 heikos Exp $
+ * $Id: xine_decoder.c,v 1.18 2001/12/11 15:30:06 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -108,7 +108,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   mpeg2dec_decoder_t *this ;
 
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     printf( "libmpeg2: plugin doesn't support plugin API version %d.\n"
 	    "libmpeg2: this means there's a version mismatch between xine and this "
 	    "libmpeg2: decoder plugin.\nInstalling current plugins should help.\n",
@@ -119,7 +119,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this = (mpeg2dec_decoder_t *) malloc (sizeof (mpeg2dec_decoder_t));
   memset(this, 0, sizeof (mpeg2dec_decoder_t));
 
-  this->video_decoder.interface_version   = 3;
+  this->video_decoder.interface_version   = iface_version;
   this->video_decoder.can_handle          = mpeg2dec_can_handle;
   this->video_decoder.init                = mpeg2dec_init;
   this->video_decoder.decode_data         = mpeg2dec_decode_data;
