@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.47 2001/09/26 01:18:19 guenter Exp $
+ * $Id: video_out.c,v 1.48 2001/10/03 13:45:04 miguelfreitas Exp $
  *
  */
 
@@ -63,10 +63,20 @@ static img_buf_fifo_t *vo_new_img_buf_queue () {
   return queue;
 }
 
-static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue, 
+//static (just for debuging)
+ void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
 					vo_frame_t *img) {
+vo_frame_t *tst;
 
   pthread_mutex_lock (&queue->mutex);
+
+  tst = queue->first;
+  while( tst )
+  {
+    if( tst == img )
+      printf("WARNING!!! DUPLICATED IMG %p QUEUE %p\n", img, queue);
+    tst=tst->next;
+  }
 
   img->next = NULL;
 
@@ -74,7 +84,7 @@ static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
     queue->first = img;
     queue->last  = img;
     queue->num_buffers = 0;
-  } 
+  }
   else if (queue->last) {
     queue->last->next = img;
     queue->last  = img;
@@ -86,7 +96,8 @@ static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
   pthread_mutex_unlock (&queue->mutex);
 }
 
-static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
+//static (just for debuging)
+ vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
   vo_frame_t *img;
 
   pthread_mutex_lock (&queue->mutex);
@@ -194,7 +205,7 @@ static void *video_out_loop (void *this_gen) {
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
-      vo_set_timer (video_step); 
+      vo_set_timer (video_step);
     }
     pts_absdiff = 1000000;
 
@@ -210,7 +221,7 @@ static void *video_out_loop (void *this_gen) {
       profiler_stop_count (prof_video_out);
       continue;
     }
-    
+
     /*
      * throw away expired frames
      */
@@ -293,7 +304,7 @@ static void *video_out_loop (void *this_gen) {
       /* This is the only way for the spu decoder to get pts values
        * for flushing it's buffers. So don't remove it! */
       vo_overlay_t *ovl;
-      
+
       profiler_start_count (prof_spu_blend);
 
       ovl = this->overlay_source->get_overlay (this->overlay_source, img->PTS);
@@ -314,7 +325,7 @@ static void *video_out_loop (void *this_gen) {
   
   img = this->display_img_buf_queue->first;
   while (img) {
-    
+
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
     pthread_mutex_lock (&img->mutex);
 
@@ -344,8 +355,15 @@ static void vo_open (vo_instance_t *this) {
     pthread_attr_init(&pth_attrs);
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
 
-    pthread_create (&this->video_thread, &pth_attrs, video_out_loop, this) ; 
-    printf ("video_out: thread created\n");
+    if( pthread_create (&this->video_thread, &pth_attrs, video_out_loop, this) )
+    {
+      printf ("video_out: error creating thread\n");
+      /* FIXME: why pthread_create fails? */
+      printf ("Sorry, this should not happen. Please restart Xine.\n");
+      exit(1);
+    }
+    else
+      printf ("video_out: thread created\n");
   } else
     printf ("video_out: vo_open : warning! video thread already running\n");
 
@@ -359,7 +377,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
   vo_frame_t *img;
 
   /*
-  printf ("video_out: get_frame %d x %d from queue %d\n", 
+  printf ("video_out: get_frame %d x %d from queue %d\n",
 	  width, height, this->free_img_buf_queue);
   fflush(stdout);
   */
@@ -403,7 +421,7 @@ static void vo_close (vo_instance_t *this) {
 }
 
 static void vo_free_img_buffers (vo_instance_t *this) {
-  vo_frame_t *img; 
+  vo_frame_t *img;
 
   while (this->free_img_buf_queue->first) {
     img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
@@ -439,7 +457,7 @@ static void vo_frame_displayed (vo_frame_t *img) {
 static void vo_frame_free (vo_frame_t *img) {
 
   pthread_mutex_lock (&img->mutex);
-  img->decoder_locked = 0; 
+  img->decoder_locked = 0;
 
   if (!img->display_locked && !img->driver_locked ) {
     vo_append_to_img_buf_queue (img->instance->free_img_buf_queue, img);
@@ -463,7 +481,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   pic_vpts = this->metronom->got_video_frame (this->metronom, img->PTS);
 
   /*
-  printf ("video_out: got image %d. vpts for picture is %d (pts was %d)\n", 
+  printf ("video_out: got image %d. vpts for picture is %d (pts was %d)\n",
 	  img, pic_vpts, img->PTS);
   */
 
@@ -471,13 +489,19 @@ static int vo_frame_draw (vo_frame_t *img) {
   this->num_frames_delivered++;
 
   xprintf (VERBOSE|VIDEO,"video_out: got image. vpts for picture is %d\n", pic_vpts);
-  
+
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
   frames_to_skip = ((-1 * diff) / this->pts_per_frame + 3) * 2;
 
   xprintf (VERBOSE|VIDEO,"video_out:: delivery diff : %d\n",diff);
+
+  if( img->display_locked )
+  {
+    printf ("video_out: ALERT! frame is already locked for displaying\n");
+    return frames_to_skip;
+  }
 
   if (cur_vpts>0) {
 
@@ -498,7 +522,7 @@ static int vo_frame_draw (vo_frame_t *img) {
 
       return frames_to_skip;
 
-    } 
+    }
   } /* else: we are probably in precaching mode */
 
   if (!img->bad_frame) {
@@ -522,16 +546,16 @@ static int vo_frame_draw (vo_frame_t *img) {
     pthread_mutex_lock (&img->mutex);
     img->display_locked = 0;
     pthread_mutex_unlock (&img->mutex);
-    
+
     vo_frame_displayed (img);
   }
 
   /*
    * performance measurement
    */
-  
+
   if (this->num_frames_delivered>199) {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "%d frames delivered, %d frames skipped, %d frames discarded\n", 
             this->num_frames_delivered, this->num_frames_skipped, this->num_frames_discarded);
 
