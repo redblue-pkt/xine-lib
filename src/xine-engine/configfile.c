@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.25 2002/09/06 18:13:11 mroi Exp $
+ * $Id: configfile.c,v 1.26 2002/09/08 22:11:41 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -68,6 +68,7 @@ static cfg_entry_t *xine_config_add (config_values_t *this, char *key) {
   entry->config        = this;
   entry->key           = copy_string (key);
   entry->type          = CONFIG_TYPE_UNKNOWN;
+  entry->unknown_value = NULL;
   entry->str_sticky    = NULL;
 
   entry->next          = NULL;
@@ -527,8 +528,28 @@ void xine_load_config (xine_p xine_ro, const char *filename) {
 	*value = (char) 0;
 	value++;
 	
-	entry = xine_config_add (this, line);
-	entry->unknown_value = copy_string (value);
+	if (!(entry = _xine_config_lookup_entry(this, line))) {
+	  entry = xine_config_add (this, line);
+	  entry->unknown_value = copy_string (value);
+	} else {
+          switch (entry->type) {
+          case XINE_CONFIG_TYPE_RANGE:
+          case XINE_CONFIG_TYPE_ENUM:
+          case XINE_CONFIG_TYPE_NUM:
+          case XINE_CONFIG_TYPE_BOOL:
+            xine_config_update_num (this, entry->key, entry->num_value);
+            break;
+          case XINE_CONFIG_TYPE_STRING:
+            xine_config_update_string (this, entry->key, entry->str_value);
+            break;
+          case CONFIG_TYPE_UNKNOWN:
+	    free(entry->unknown_value);
+	    entry->unknown_value = copy_string (value);
+          default:
+            printf ("xine_interface: error, unknown config entry type %d\n", entry->type);
+            abort();
+          }
+	}
       }
     }
     
