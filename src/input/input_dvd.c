@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.58 2002/08/09 22:33:10 mroi Exp $
+ * $Id: input_dvd.c,v 1.59 2002/08/13 15:55:23 mroi Exp $
  *
  */
 
@@ -60,7 +60,7 @@
 #elif defined(__linux__)
 #include <linux/cdrom.h>
 #else
-#error "Need the DVD ioctls"
+#warning "This might not compile due to missing cdrom ioctls"
 #endif
 
 /* Xine includes */
@@ -1397,6 +1397,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.59  2002/08/13 15:55:23  mroi
+ * change error to warning
+ *
  * Revision 1.58  2002/08/09 22:33:10  mroi
  * sorry, my raw device patch was not meant to be committed
  * It only works with a patched version of libdvdcss
