@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2003/08/04 03:47:09 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.11 2003/08/05 15:10:05 mroi Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -56,6 +56,7 @@ typedef struct mpeg2_video_decoder_s {
   mpeg2_class_t   *class;
   xine_stream_t   *stream;
   int32_t         force_aspect;
+  int             force_pan_scan;
   double          ratio;
   uint32_t        img_state[30];
   uint32_t	  frame_number;
@@ -107,9 +108,11 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
   if (buf_element->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf_element->decoder_info[1] == BUF_SPECIAL_ASPECT) {
       this->force_aspect = buf_element->decoder_info[2];
-      if (buf_element->decoder_info[3] == 0x1 && buf_element->decoder_info[2] == XINE_VO_ASPECT_ANAMORPHIC)
-        /* letterboxing is denied, we have to do pan&scan */
-        this->force_aspect = XINE_VO_ASPECT_PAN_SCAN;
+      if (buf_element->decoder_info[3] == 0x1 && buf_element->decoder_info[2] == 3)
+	/* letterboxing is denied, we have to do pan&scan */
+	this->force_pan_scan = 1;
+      else
+	this->force_pan_scan = 0;
     }
     
     return;
@@ -134,25 +137,21 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]     = info->sequence->picture_width;
         this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]    = info->sequence->picture_height;
         this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]  = info->sequence->frame_period / 300;
-        if (this->force_aspect > 0) {
-          switch (info->sequence->pixel_width) {
-	  case XINE_VO_ASPECT_PAN_SCAN:
-	  case XINE_VO_ASPECT_ANAMORPHIC:
-	    this->ratio = 16.0 /9.0;
-	    break;
-	  case XINE_VO_ASPECT_DVB:
-	    this->ratio = 2.11;
-	    break;
-	  case XINE_VO_ASPECT_4_3:
-	    this->ratio = 4.0 / 3.0;
-	    break;
-	  case XINE_VO_ASPECT_SQUARE:
-	  default:
-	    this->ratio = (double)info->sequence->picture_width/(double)info->sequence->picture_height;
-	    break;
-          }
-        } else {
-          this->ratio = (double)info->sequence->pixel_width/(double)info->sequence->pixel_height;
+        if (this->force_aspect) info->sequence->pixel_width = this->force_aspect;
+        switch (info->sequence->pixel_width) {
+	case 3:
+	  this->ratio = 16.0 / 9.0;
+	  break;
+	case 4:
+	  this->ratio = 2.11;
+	  break;
+	case 2:
+	  this->ratio = 4.0 / 3.0;
+	  break;
+	case 1:
+	default:
+	  this->ratio = (double)info->sequence->picture_width/(double)info->sequence->picture_height;
+	  break;
         }
         this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = (int)(10000*this->ratio);
 
@@ -443,7 +442,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->mpeg2dec = mpeg2_init ();
   mpeg2_custom_fbuf (this->mpeg2dec, 1);  /* <- Force libmpeg2 to use xine frame buffers. */
   stream->video_out->open(stream->video_out, stream);
-  this->force_aspect = 0;
+  this->force_aspect = this->force_pan_scan = 0;
   for(n=0;n<30;n++) this->img_state[n]=0;
 
   return &this->video_decoder;
