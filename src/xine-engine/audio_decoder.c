@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.29 2001/08/25 07:12:16 guenter Exp $
+ * $Id: audio_decoder.c,v 1.30 2001/08/25 07:51:24 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -27,9 +27,11 @@
 #include "config.h"
 #endif
 
+#include <sched.h>
+#include <unistd.h>
+
 #include "xine_internal.h"
 #include "monitor.h"
-#include <sched.h>
 
 void *audio_decoder_loop (void *this_gen) {
 
@@ -229,7 +231,7 @@ void audio_decoder_shutdown (xine_t *this) {
     buf->type = BUF_CONTROL_QUIT;
     this->audio_fifo->put (this->audio_fifo, buf);
     
-    pthread_join (this->audio_thread, &p);
+    pthread_join (this->audio_thread, &p); 
   }
 }
 

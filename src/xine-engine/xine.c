@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.48 2001/08/25 07:12:16 guenter Exp $
+ * $Id: xine.c,v 1.49 2001/08/25 07:51:24 guenter Exp $
  *
  * top-level xine functions
  *
@@ -320,6 +320,7 @@ void xine_exit (xine_t *this) {
 
   printf ("xine_exit: shutdown audio\n");
 
+  this->audio_mute = 1;
   audio_decoder_shutdown (this);
 
   printf ("xine_exit: shutdown video\n");
