@@ -1,5 +1,5 @@
 dnl
-dnl Configure.in for xine
+dnl Configure.ac for xine
 dnl
 
 AC_INIT
