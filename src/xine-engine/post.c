@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.1 2002/12/01 14:52:55 mroi Exp $
+ * $Id: post.c,v 1.2 2002/12/03 21:59:46 mroi Exp $
  */
  
 /*
@@ -99,7 +99,7 @@ post_video_port_t *post_intercept_video_port(xine_video_port_t *original) {
 }
 
 
-/* functions intercepting frame calls */
+/* dummy intercept functions for frames */
 static void post_frame_free(vo_frame_t *vo_img) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
   post_restore_video_frame(vo_img, port);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.1 2002/12/01 14:52:56 mroi Exp $
+ * $Id: post.h,v 1.2 2002/12/03 21:59:46 mroi Exp $
  *
  * post plugin definitions
  *
@@ -92,6 +92,17 @@ struct post_plugin_s {
 };
 
 
+/* Post plugins work by intercepting calls to video or audio ports
+ * in the sense of the decorator design pattern. They reuse the
+ * functions of a given target port, but add own functionality in
+ * front of that port by creating a new port structure and filling in
+ * the function pointers with pointers to own functions that
+ * would do something and then call the original port function.
+ *
+ * Much the same is done with video frames which have their own
+ * set of functions attached that you might need to decorate.
+ */
+
 /* helper structure for intercepting video port calls */
 typedef struct post_video_port_s post_video_port_t;
 struct post_video_port_s {
@@ -104,14 +115,18 @@ struct post_video_port_s {
   
   /* here you can keep information about the frames */
   vo_frame_t         original_frame;
+  
+  /* backward reference so that you have access to the post plugin
+   * when the call only gives you the port */
+  xine_post_t       *post;
 };
 
-/* use this to create a new video port in which port functions can
- * be replaced with own implementation */
+/* use this to create a new, trivially decorated video port in which
+ * port functions can be replaced with own implementations */
 post_video_port_t *post_intercept_video_port(xine_video_port_t *port);
 
-/* use this to modify a frame to so that functions can be replaced
- * with own implementations */
+/* use this to decorate and to undecorate a frame so that its functions
+ * can be replaced with own implementations */
 void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
 void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.42 2002/12/01 15:18:13 mroi Exp $
+ * $Id: xine.h.in,v 1.43 2002/12/03 21:59:46 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -303,13 +303,13 @@ struct xine_post_s {
 
   /* a NULL-terminated array of audio input ports this post plugin
    * provides; you can hand these to other post plugin's outputs or
-   * pass it to the initialization of a stream
+   * pass them to the initialization of streams
    */
   xine_audio_port_t **audio_input;
   
   /* a NULL-terminated array of video input ports this post plugin
    * provides; you can hand these to other post plugin's outputs or
-   * pass it to the initialization of a stream
+   * pass them to the initialization of streams
    */
   xine_video_port_t **video_input;
   
@@ -414,9 +414,29 @@ void xine_post_dispose(xine_t *xine, xine_post_t *self);
 
 
 /* post plugin data types */
+
+/* video port data
+ * input->data is a xine_video_port_t*
+ * output->data is a xine_video_port_t**
+ */
 #define XINE_POST_DATA_VIDEO          0
+
+/* audio port data
+ * input->data is a xine_audio_port_t*
+ * output->data is a xine_audio_port_t**
+ */
 #define XINE_POST_DATA_AUDIO          1
+
+/* integer data
+ * input->data is a int*
+ * output->data is a int*
+ */
 #define XINE_POST_DATA_INT            3
+
+/* double precision floating point data
+ * input->data is a double*
+ * output->data is a double*
+ */
 #define XINE_POST_DATA_DOUBLE         4
 
 
