@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.9 2001/12/10 11:46:38 jkeil Exp $
+ * $Id: input_cda.c,v 1.10 2001/12/10 23:40:32 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,18 +44,27 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #ifdef HAVE_LINUX_CDROM_H
+# define NON_BLOCKING
 # include <linux/cdrom.h>
 #endif
 #ifdef HAVE_SYS_CDIO_H
 # include <sys/cdio.h>
 /* TODO: not clean yet */
 # if defined (__FreeBSD__)
+#define CDIOREADSUBCHANNEL CDIOCREADSUBCHANNEL
 #  include <sys/cdrio.h>
 # endif
 #endif
-#if ! defined (HAVE_LINUX_CDROM_H) && ! defined (HAVE_SYS_CDIO_H)
+
+/* For Digital UNIX */
+#ifdef HAVE_IO_CAM_CDROM_H
+#include <io/cam/cdrom.h>
+#endif
+
+#if !defined (HAVE_LINUX_CDROM_H) && !defined (HAVE_SYS_CDIO_H) && !defined(HAVE_IO_CAM_CDROM_H)
 #error "you need to add cdrom / CDA support for your platform to input_cda and configure.in"
 #endif
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
@@ -63,7 +72,16 @@
 /*
 #define DEBUG_DISC
 #define DEBUG_POS
+#define TRACE_FUNCS
 */
+
+#ifdef TRACE_FUNCS
+#define _ENTER_FUNC() printf("%s() ENTERING.\n", __XINE_FUNCTION__)
+#define _LEAVE_FUNC() printf("%s() LEAVING.\n", __XINE_FUNCTION__)
+#else
+#define _ENTER_FUNC()
+#define _LEAVE_FUNC()
+#endif
 
 #ifndef NAME_MAX
 #define NAME_MAX 256
@@ -110,7 +128,6 @@ typedef struct {
   int           cur_pos;
   int           status;
   int           num_tracks;
-  int           first_track;
   int           length;
   unsigned long disc_id;
   int           have_cddb_info;
@@ -740,7 +757,7 @@ static void _cda_cbbd_grab_infos(cda_input_plugin_t *this) {
  * Return 1 if CD has been changed, 0 of not, -1 on error.
  */
 static int _cda_is_cd_changed(cdainfo_t *cda) {
-#ifdef	CDROM_MEDIA_CHANGED
+#ifdef	DROM_MEDIA_CHANGED
   int err, cd_changed=0;
 
   if(cda == NULL || cda->fd < 0)
@@ -773,78 +790,83 @@ static int _cda_is_cd_changed(cdainfo_t *cda) {
 
 /*
  * Get CDA status (pos, cur track, status)
- * This function was grabbed and adapted from workbone (thanks to this team).
  */
 static int _cda_get_status_cd(cdainfo_t *cda) {
-  struct cdrom_subchnl	sc;
-  int                   cur_pos_abs = 0;
-  int                   cur_frame = 0;
-  int                   cur_track;
-  int                   cur_ntracks;
-  int                   cur_cdlen;
-  int                   cur_index;
-  int                   cur_pos_rel = 0;
-  int                   cur_tracklen;
+#ifdef CDIOREADSUBCHANNEL
+  struct ioc_read_subchannel cdsc;
+  struct cd_sub_channel_info data;
+#endif
+#ifdef CDROMSUBCHNL
+  struct cdrom_subchnl	     sc;
+#endif
+#ifdef CDROM_READ_SUBCHANNEL
+  struct cd_sub_channel      sch;
+#endif
+  int                        cur_pos_abs = 0;
+  int                        cur_frame = 0;
+  int                        cur_track;
+  int                        cur_pos_rel = 0;
   
   if(cda == NULL || cda->fd < 0)
     return 0;
   
-  cur_track      = cda->cur_track;
-  cur_ntracks    = cda->num_tracks;
-  cur_cdlen      = cda->length;
 
+#ifdef CDIOREADSUBCHANNEL
+  memset(&cdsc, 0, sizeof(struct ioc_read_subchannel));
+  cdsc.data           = &data;
+  cdsc.data_len       = sizeof(data);
+  cdsc.data_format    = CD_CURRENT_POSITION;
+  cdsc.address_format = CD_MSF_FORMAT;
+   
+  if(ioctl(cda->fd, CDIOCREADSUBCHANNEL, (char *)&cdsc) < 0) {
+#endif
+#ifdef CDROM_READ_SUBCHANNEL
+  sch.sch_data_format    = CDROM_CURRENT_POSITION;
+  sch.sch_address_format = CDROM_MSF_FORMAT;
+   
+  if(ioctl(cda->fd, CDROM_READ_SUBCHANNEL, &sch) < 0) {
+#endif
+#ifdef CDROMSUBCHNL
   sc.cdsc_format = CDROM_MSF;
-  
-  if(ioctl(cda->fd, CDROMSUBCHNL, &sc)) {
+ 
+  if(ioctl(cda->fd, CDROMSUBCHNL, &sc) < 0) {
+#endif
     fprintf(stderr, "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n", strerror(errno));
     return 0;
   }
 
+#ifdef CDIOREADSUBCHANNEL
+  switch(data.header.audio_status) {
+  case CD_AS_PLAY_IN_PROGRESS:
+    cda->status = CDA_PLAY;
+    cur_pos_abs = data.what.position.absaddr.msf.minute * 60 + data.what.position.absaddr.msf.second;
+    cur_frame   = cur_pos_abs * 75 + data.what.position.absaddr.msf.frame;
+    break;
+
+  case CD_AS_PLAY_PAUSED:
+    cda->status = CDA_PAUSE;
+    break;
+
+  case CD_AS_PLAY_COMPLETED:
+    cda->status = CDA_COMPLETE;
+    break;
+
+  case CD_AS_NO_STATUS:
+    cda->status = CDA_STOP;
+    break;
+  }
+#endif
+
+#ifdef CDROMSUBCHNL
   switch(sc.cdsc_audiostatus) {
   case CDROM_AUDIO_PLAY:
     cda->status = CDA_PLAY;
-    
-  __get_pos:
-    
     cur_pos_abs = sc.cdsc_absaddr.msf.minute * 60 + sc.cdsc_absaddr.msf.second;
     cur_frame   = cur_pos_abs * 75 + sc.cdsc_absaddr.msf.frame;
-    
-    if(cur_track < 1 
-       || cur_frame < cda->track[cur_track-1].start 
-       || cur_frame >= (cur_track >= cur_ntracks ? 
-			(cur_cdlen + 1) * 75 :
-			cda->track[cur_track].start)) {
-      cur_track = 0;
-      
-      while (cur_track < cur_ntracks && cur_frame >= cda->track[cur_track].start)
-	cur_track++;
-    }
-
-    if(cur_track >= 1 && sc.cdsc_trk > cda->track[cur_track-1].track)
-      cur_track++;
-    
-    cur_index = sc.cdsc_ind;
-    
-  __get_posrel:
-    
-    if(cur_track >= 1 && cur_track <= cur_ntracks) {
-      cur_pos_rel = (cur_frame - cda->track[cur_track-1].start) / 75;
-      if(cur_pos_rel < 0)
-	cur_pos_rel = -cur_pos_rel;
-    }
-    
-    if(cur_pos_abs < 0)
-      cur_pos_abs = cur_frame = 0;
-    
-    if(cur_track < 1)
-      cur_tracklen = cda->length;
-    else
-      cur_tracklen = cda->track[cur_track-1].length;
     break;
     
   case CDROM_AUDIO_PAUSED:
     cda->status = CDA_PAUSE;
-    goto __get_pos;
     break;
     
   case CDROM_AUDIO_COMPLETED:
@@ -853,8 +875,17 @@ static int _cda_get_status_cd(cdainfo_t *cda) {
     
   case CDROM_AUDIO_NO_STATUS:
     cda->status = CDA_STOP;
-    goto __get_posrel;
+    break;
   }
+#endif
+
+  cur_track = 0;
+  
+  while(cur_track < cda->num_tracks &&
+	cur_frame >= cda->track[cur_track].start)
+    cur_track++;
+
+  cur_pos_rel = (cur_frame - cda->track[cur_track - 1].start) / 75;
 
   if(cur_track == cda->cur_track)
     cda->cur_pos = cur_pos_rel;
@@ -901,7 +932,12 @@ static int _cda_get_status_cd(cdainfo_t *cda) {
  * Play a time chunk (in secs);
  */
 static int _cda_play_chunk_cd(cdainfo_t *cda, int start, int end) {
-  struct cdrom_msf   msf;
+#ifdef CDIOCPLAYMSF
+  struct ioc_play_msf cdmsf;
+#endif
+#ifdef CDROMPLAYMSF
+  struct cdrom_msf    msf;
+#endif
   
   if(cda == NULL || cda->fd < 0)
     return 0;
@@ -911,22 +947,47 @@ static int _cda_play_chunk_cd(cdainfo_t *cda, int start, int end) {
   if(start >= end)
     start = end - 1;
   
-  msf.cdmsf_min0   = start / (60*75);
-  msf.cdmsf_sec0   = (start % (60*75)) / 75;
+#ifdef CDIOCPLAYMSF
+  cdmsf.start_m    = start / (60 * 75);
+  cdmsf.start_s    = (start % (60 * 75)) / 75;
+  cdmsf.start_f    = start % 75;
+  cdmsf.end_m      = end / (60 * 75);
+  cdmsf.end_s      = (end % (60 * 75)) / 75;
+  cdmsf.end_f      = end % 75;
+#endif
+#ifdef CDROMPLAYMSF
+  msf.cdmsf_min0   = start / (60 * 75);
+  msf.cdmsf_sec0   = (start % (60 * 75)) / 75;
   msf.cdmsf_frame0 = start % 75;
-  msf.cdmsf_min1   = end / (60*75);
-  msf.cdmsf_sec1   = (end % (60*75)) / 75;
+  msf.cdmsf_min1   = end / (60 * 75);
+  msf.cdmsf_sec1   = (end % (60 * 75)) / 75;
   msf.cdmsf_frame1 = end % 75;
+#endif
   
+#ifdef CDIOCSTART
+  if(ioctl(cda->fd, CDIOCSTART) < 0) {
+    fprintf(stderr, "input_cda: ioctl(CDIOCSTART) failed: %s.\n", strerror(errno));
+    return 0;
+  }
+#endif
+#ifdef CDROMSTART
   if (ioctl(cda->fd, CDROMSTART)) {
     fprintf(stderr, "input_cda: ioctl(CDROMSTART) failed: %s.\n", strerror(errno));
     return 0;
   }
-  
+#endif
+#ifdef CDIOCPLAYMSF
+  if(ioctl(cda->fd, CDIOCPLAYMSF, (char *)&cdmsf) < 0) {
+    fprintf(stderr, "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n", strerror(errno));
+    return 0;
+  }
+#endif  
+#ifdef CDROMPLAYMSF
   if(ioctl(cda->fd, CDROMPLAYMSF, &msf)) {
     fprintf(stderr, "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n", strerror(errno));
     return 0;
   }
+#endif
 
   return 1;
 }
@@ -938,9 +999,11 @@ static int _cda_open_cd(cdainfo_t *cda) {
 
   if(cda == NULL)
     return 0;
-  
-  if((cda->fd = open(cda->device_name, 0)) < 0) {
-    
+#ifdef NON_BLOCKING
+  if((cda->fd = open(cda->device_name, O_RDONLY | O_NONBLOCK)) < 0) {
+#else
+  if((cda->fd = open(cda->device_name, O_RDONLY)) < 0) {
+#endif  
     if(errno == EACCES) {
       fprintf(stderr, "input_cda: No rights to open %s.\n", cda->device_name);
     }
@@ -977,7 +1040,12 @@ static void _cda_stop_cd(cdainfo_t *cda) {
     return;
   
   if(cda->status != CDA_STOP) {
+#ifdef CDIOCSTOP
+    ioctl(cda->cd, CDIOCSTOP);
+#endif
+#ifdef CDROMSTOP
     ioctl(cda->fd, CDROMSTOP);
+#endif
     _cda_get_status_cd(cda);
   }
 }
@@ -991,7 +1059,12 @@ static void _cda_pause_cd(cdainfo_t *cda) {
     return;
   
   if(cda->status == CDA_PLAY) {
+#ifdef CDIOCPAUSE
+    ioctl(cda->fd, CDIOCPAUSE);
+#endif
+#ifdef CDROMPAUSE
     ioctl(cda->fd, CDROMPAUSE);
+#endif
     _cda_get_status_cd(cda);
   }
 }
@@ -1005,7 +1078,12 @@ static void _cda_resume_cd(cdainfo_t *cda) {
     return;
   
   if(cda->status == CDA_PAUSE) {
+#ifdef CDIOCRESUME
+    ioctl(cda->fd, CDIOCRESUME);
+#endif
+#ifdef CDROMRESUME
     ioctl(cda->fd, CDROMRESUME);
+#endif
     _cda_get_status_cd(cda);
   }
 }
@@ -1063,18 +1141,38 @@ static int _cda_eject_cd(cdainfo_t *cda) {
  * Read cd table of content.
  */
 static int _cda_read_toc_cd(cdainfo_t *cda) {
-  struct cdrom_tochdr	hdr;
-  struct cdrom_tocentry	entry;
-  int			i, pos;
+#ifdef CDIOREADTOCENTRYS
+  struct cd_toc_entry        toc_buffer[MAX_TRACKS];
+  struct ioc_read_toc_entry  cdte;
+#endif
+#ifdef CDROMREADTOCHDR
+  struct cdrom_tochdr	     hdr;
+#endif
+#ifdef CDROMREADTOCENTRY
+  struct cdrom_tocentry	     entry;
+#endif
+#ifdef CDIOREADTOCHEADER
+  struct ioc_toc_header      cdth;
+#endif
+  int			     i, pos;
   
 
-  if(ioctl(cda->fd, CDROMREADTOCHDR, &hdr)) {
+#ifdef CDIOREADTOCHEADER
+  if(ioctl(cda->fd, CDIOREADTOCHEADER, (char *)&cdth) < 0) {
+    fprintf(stderr, "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n", strerror(errno));
+    return 0;
+  }
+
+  cda->num_tracks  = cdth.ending_track;
+#endif
+#ifdef CDROMREADTOCHDR
+  if(ioctl(cda->fd, CDROMREADTOCHDR, &hdr) < 0) {
     fprintf(stderr, "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n", strerror(errno));
     return 0;
   }
-  
-  cda->first_track = hdr.cdth_trk0;
+
   cda->num_tracks  = hdr.cdth_trk1;
+#endif
   
   if(cda->track) {
     /* Freeing old track/disc titles */
@@ -1099,6 +1197,27 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
   else
     cda->track = (trackinfo_t *) malloc((cda->num_tracks + 1) * sizeof(trackinfo_t));
   
+#ifdef CDIOREADTOCENTRYS
+  cdte.address_format = CD_MSF_FORMAT;
+  cdte.starting_track = 0;
+  cdte.data           = toc_buffer;
+  cdte.data_len       = sizeof(toc_buffer);
+  
+  if(ioctl(cda->fd, CDIOREADTOCENTRYS, (char *)&cdte) < 0) {
+    fprintf(stderr, "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n", strerror(errno));
+    return 0;
+  }
+  
+  for(i = 0; i  <= cda->num_tracks; i++) {
+    cda->track[i].track  = i + 1;
+    cda->track[i].type   = (entry.cdte_ctrl & CDROM_DATA_TRACK) ? CDDATA : CDAUDIO; /* FIXME */
+    cda->track[i].length = cdte.data[i].addr.msf.minute * 60 + cdte.data[i].addr.msf.second;
+    cda->track[i].start  = cda->track[i].length * 75 + cdte.data[i].addr.msf.frame;
+    cda->track[i].title  = NULL;
+    
+  }
+#endif
+#ifdef CDROMREADTOCENTRY
   for(i = 0; i <= cda->num_tracks; i++) {
     if(i == cda->num_tracks)
       entry.cdte_track = CDROM_LEADOUT;
@@ -1117,6 +1236,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
     cda->track[i].start  = cda->track[i].length * 75 + entry.cdte_addr.msf.frame;
     cda->track[i].title  = NULL;
   }
+#endif
   
   /* compute real track length */
   pos = cda->track[0].length;  
@@ -1134,8 +1254,8 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
   cda->category = NULL;
   
 #ifdef DEBUG_DISC
-  printf("Disc have %d track(s), first track is %d, length %d (%02d:%02d:%02d)\n", 
-	 cda->num_tracks, cda->first_track, 
+  printf("Disc have %d track(s), length %d (%02d:%02d:%02d)\n", 
+	 cda->num_tracks, 
 	 cda->length, (cda->length / (60 * 60)), ((cda->length / 60) % 60), (cda->length %60));
   
   { /* CDDB infos */
@@ -1266,6 +1386,8 @@ static int cda_plugin_open (input_plugin_t *this_gen, char *mrl) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   char               *filename;
   
+  _ENTER_FUNC();
+
   this->mrl = mrl;
 
   if(strncasecmp (mrl, "cda://", 6))
@@ -1299,6 +1421,7 @@ static int cda_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
   
+  _LEAVE_FUNC();
   return 1;
 }
 
@@ -1310,6 +1433,8 @@ static buf_element_t *cda_plugin_read_block (input_plugin_t *this_gen,
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   buf_element_t      *buf;
   unsigned char       buffer[nlen];
+
+  _ENTER_FUNC();
 
   /* Check if speed has changed */
   if(this->xine->speed != this->speed) {
@@ -1332,6 +1457,8 @@ static buf_element_t *cda_plugin_read_block (input_plugin_t *this_gen,
   buf->type    = BUF_DEMUX_BLOCK;
   memcpy(buf->mem, buffer, nlen);
 
+  _LEAVE_FUNC();
+
   return buf;
 }
 
@@ -1342,11 +1469,15 @@ static off_t cda_plugin_read (input_plugin_t *this_gen, char *buf, off_t nlen) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   char               *buffer[nlen];
 
+  _ENTER_FUNC();
+
   _cda_get_status_cd(this->cda);
   
   /* Dummy */
   memset(&buffer, 'X', sizeof(buf));
   memcpy(buf, buffer, nlen);
+
+  _LEAVE_FUNC();
 
   return nlen;
 }
@@ -1357,9 +1488,12 @@ static off_t cda_plugin_read (input_plugin_t *this_gen, char *buf, off_t nlen) {
 static off_t cda_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   cda_input_plugin_t  *this = (cda_input_plugin_t *) this_gen;
   
+  _ENTER_FUNC();
+
   switch (origin) {
   case SEEK_SET:
-    _cda_play_track_from_pos(this->cda, this->cda->cur_track, (int) (offset/CDA_BLOCKSIZE));
+    if(((int) (offset/CDA_BLOCKSIZE)) != this->cda->cur_pos)
+      _cda_play_track_from_pos(this->cda, this->cda->cur_track, (int) (offset/CDA_BLOCKSIZE));
     _cda_update_ui_title(this);
     break;
     
@@ -1368,6 +1502,8 @@ static off_t cda_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 	     origin);
     return 0;
   }
+
+  _LEAVE_FUNC();
 
   return offset;
 }
@@ -1378,6 +1514,9 @@ static off_t cda_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 static off_t cda_plugin_get_length (input_plugin_t *this_gen) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
 
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
+
   return (this->cda->track[this->cda->cur_track-1].length * CDA_BLOCKSIZE);
 }
 
@@ -1386,6 +1525,8 @@ static off_t cda_plugin_get_length (input_plugin_t *this_gen) {
  */
 static off_t cda_plugin_get_current_pos (input_plugin_t *this_gen){
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
+
+  _ENTER_FUNC();
 
   _cda_get_status_cd(this->cda);
 
@@ -1398,6 +1539,8 @@ static off_t cda_plugin_get_current_pos (input_plugin_t *this_gen){
 	 this->cda->track[this->cda->cur_track-1].length);
 #endif
   
+  _LEAVE_FUNC();
+
   return (this->cda->cur_pos * CDA_BLOCKSIZE);
 }
 
@@ -1405,6 +1548,9 @@ static off_t cda_plugin_get_current_pos (input_plugin_t *this_gen){
  * Get plugin capabilities.
  */
 static uint32_t cda_plugin_get_capabilities (input_plugin_t *this_gen) {
+
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
   
   return INPUT_CAP_SEEKABLE | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
 }
@@ -1413,6 +1559,9 @@ static uint32_t cda_plugin_get_capabilities (input_plugin_t *this_gen) {
  * Get (pseudo) blocksize.
  */
 static uint32_t cda_plugin_get_blocksize (input_plugin_t *this_gen) {
+
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
 
   return CDA_BLOCKSIZE;
 }
@@ -1423,6 +1572,9 @@ static uint32_t cda_plugin_get_blocksize (input_plugin_t *this_gen) {
 static int cda_plugin_eject_media (input_plugin_t *this_gen) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
 
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
+
   return (_cda_eject_cd(this->cda));
 }
 
@@ -1432,7 +1584,11 @@ static int cda_plugin_eject_media (input_plugin_t *this_gen) {
 static void cda_plugin_close(input_plugin_t *this_gen) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
 
+  _ENTER_FUNC();
+
   _cda_stop_cd(this->cda);
+
+  _LEAVE_FUNC();
 }
 
 /*
@@ -1441,14 +1597,20 @@ static void cda_plugin_close(input_plugin_t *this_gen) {
 static void cda_plugin_stop (input_plugin_t *this_gen) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
 
+  _ENTER_FUNC();
+
   _cda_stop_cd(this->cda);
   _cda_close_cd(this->cda);
+
+  _LEAVE_FUNC();
 }
 
 /*
  *
  */
 static char *cda_plugin_get_description (input_plugin_t *this_gen) {
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
   return "cd audio plugin as shipped with xine";
 }
 
@@ -1456,6 +1618,8 @@ static char *cda_plugin_get_description (input_plugin_t *this_gen) {
  *
  */
 static char *cda_plugin_get_identifier (input_plugin_t *this_gen) {
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
   return "CDA";
 }
 
@@ -1467,6 +1631,8 @@ static mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen,
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int                 i;
     
+  _ENTER_FUNC();
+
   *nEntries = 0;
 
   if(filename)
@@ -1534,6 +1700,8 @@ static mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen,
 
   this->mrls[*nEntries] = NULL;
   
+  _LEAVE_FUNC();
+
   return this->mrls;
 }
 
@@ -1544,6 +1712,7 @@ static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFile
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int                 i;
 
+  _ENTER_FUNC();
 
   *nFiles = 0;
   
@@ -1579,6 +1748,8 @@ static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFile
   this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *));
   this->filelist[i - 1] = NULL;
   
+  _LEAVE_FUNC();
+
   return this->filelist;
 }
 
@@ -1588,6 +1759,8 @@ static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFile
 static char* cda_plugin_get_mrl (input_plugin_t *this_gen) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
   return this->mrl;
 }
 
@@ -1596,6 +1769,8 @@ static char* cda_plugin_get_mrl (input_plugin_t *this_gen) {
  */
 static int cda_plugin_get_optional_data (input_plugin_t *this_gen, void *data, int data_type) {
 
+  _ENTER_FUNC();
+  _LEAVE_FUNC();
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
@@ -1606,6 +1781,8 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   cda_input_plugin_t *this;
   config_values_t    *config;
   int                 i;
+
+  _ENTER_FUNC();
 
   if (iface != 5) {
     printf("cda input plugin doesn't support plugin API version %d.\n"
@@ -1674,6 +1851,8 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
+
+  _LEAVE_FUNC();
 
   return (input_plugin_t *) this;
 }

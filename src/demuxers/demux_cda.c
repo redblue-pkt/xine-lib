@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.2 2001/12/09 13:21:19 jkeil Exp $
+ * $Id: demux_cda.c,v 1.3 2001/12/10 23:40:29 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -66,7 +66,7 @@ static int demux_cda_next (demux_cda_t *this) {
   buf_element_t *buf;
   int            pos, len;
   
-  buf = this->input->read_block(this->input, this->audio_fifo, this->blocksize);
+  buf = this->input->read_block(this->input, this->video_fifo, this->blocksize);
   
   pos = this->input->get_current_pos(this->input);
   len = this->input->get_length(this->input);
@@ -75,10 +75,10 @@ static int demux_cda_next (demux_cda_t *this) {
   buf->SCR             = 0;
   buf->input_pos       = pos;
   buf->input_time      = buf->input_pos / this->blocksize;
-  buf->type            = BUF_AUDIO_MPEG; /* Fake */
+  buf->type            = BUF_VIDEO_FILL; /* Fake */
   
-  if(this->audio_fifo)
-    this->audio_fifo->put(this->audio_fifo, buf);
+  //  if(this->audio_fifo)
+  this->video_fifo->put(this->video_fifo, buf);
   
   return ((pos < len));
 }
