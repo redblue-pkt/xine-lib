@@ -243,7 +243,7 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
  */
 
 static uint32_t video_types[] = { 
-  BUF_VIDEO_XVID, BUF_VIDEO_DIVX5,
+  BUF_VIDEO_XVID,
   0
  };
 
@@ -252,8 +252,19 @@ static decoder_info_t dec_info_video = {
   3                    /* priority        */
 };
 
+static uint32_t video_types2[] = { 
+  BUF_VIDEO_DIVX5,
+  0
+ };
+
+static decoder_info_t dec_info_video2 = {
+  video_types2,         /* supported types */
+  10                    /* priority        */
+};
+
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 10, "xvid", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 10, "xvid-divx5", XINE_VERSION_CODE, &dec_info_video2, init_video_decoder_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
