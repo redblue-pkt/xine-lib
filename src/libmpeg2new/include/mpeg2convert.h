@@ -1,5 +1,5 @@
 /*
- * convert.h
+ * mpeg2convert.h
  * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
@@ -21,36 +21,28 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef CONVERT_H
-#define CONVERT_H
+#ifndef MPEG2CONVERT_H
+#define MPEG2CONVERT_H
 
-#define CONVERT_FRAME 0
-#define CONVERT_TOP_FIELD 1
-#define CONVERT_BOTTOM_FIELD 2
-#define CONVERT_BOTH_FIELDS 3
+mpeg2_convert_t mpeg2convert_rgb32;
+mpeg2_convert_t mpeg2convert_rgb24;
+mpeg2_convert_t mpeg2convert_rgb16;
+mpeg2_convert_t mpeg2convert_rgb15;
+mpeg2_convert_t mpeg2convert_rgb8;
+mpeg2_convert_t mpeg2convert_bgr32;
+mpeg2_convert_t mpeg2convert_bgr24;
+mpeg2_convert_t mpeg2convert_bgr16;
+mpeg2_convert_t mpeg2convert_bgr15;
+mpeg2_convert_t mpeg2convert_bgr8;
 
-typedef struct convert_init_s {
-    void * id;
-    int id_size;
-    int buf_size[3];
-    void (* start) (void * id, uint8_t * const * dest, int flags);
-    void (* copy) (void * id, uint8_t * const * src, unsigned int v_offset);
-} convert_init_t;
+typedef enum {
+    MPEG2CONVERT_RGB = 0,
+    MPEG2CONVERT_BGR = 1
+} mpeg2convert_rgb_order_t;
 
-typedef void convert_t (int width, int height, uint32_t accel, void * arg,
-			convert_init_t * result);
+mpeg2_convert_t * mpeg2convert_rgb (mpeg2convert_rgb_order_t order,
+				    unsigned int bpp);
 
-convert_t convert_rgb32;
-convert_t convert_rgb24;
-convert_t convert_rgb16;
-convert_t convert_rgb15;
-convert_t convert_bgr32;
-convert_t convert_bgr24;
-convert_t convert_bgr16;
-convert_t convert_bgr15;
+mpeg2_convert_t mpeg2convert_uyvy;
 
-#define CONVERT_RGB 0
-#define CONVERT_BGR 1
-convert_t * convert_rgb (int order, int bpp);
-
-#endif /* CONVERT_H */
+#endif /* MPEG2CONVERT_H */
