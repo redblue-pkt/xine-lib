@@ -256,7 +256,7 @@ Tomas Kovar <tomask@mac.com>
   slovak internationalization files (xine lib), xvid support
 
 Daniel Bena <Daniel.Bena@dm-drogeriemarkt.sk>
-  slovak internationalization files (xine ui).
+  slovak internationalization files (xine ui, xine lib).
 
 Scott Smith <ssmith@akamai.com>
   yuv2rgb optimizations and downscaling support
