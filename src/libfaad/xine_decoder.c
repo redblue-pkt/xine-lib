@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.22 2003/12/14 22:13:23 siggi Exp $
+ * $Id: xine_decoder.c,v 1.23 2003/12/19 05:03:28 tmmm Exp $
  *
  */
 
@@ -120,10 +120,10 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     sample_buffer = faacDecDecode(this->faac_dec, 
                                   &this->faac_finfo, inbuf, sample_size);
  
-    used = sample_size;
+    used = this->faac_finfo.bytesconsumed;
 
     decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
-    
+
     lprintf("decoded %d/%d output %ld\n",
 	    used, this->size, this->faac_finfo.samples );
       
@@ -211,7 +211,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->num_channels=buf->decoder_info[3] ; 
-  
+
     if (this->output_open) {
         this->stream->audio_out->close (this->stream->audio_out, this->stream);
         this->output_open = 0;
