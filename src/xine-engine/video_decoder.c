@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.106 2002/10/29 16:02:49 mroi Exp $
+ * $Id: video_decoder.c,v 1.107 2002/10/31 16:58:23 mroi Exp $
  *
  */
 
@@ -135,6 +135,8 @@ void *video_decoder_loop (void *stream_gen) {
     case BUF_SPU_PACKAGE:
     case BUF_SPU_NAV:
       xine_profiler_start_count (prof_spu_decode);
+      if (stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
+        break;
       if (!stream->spu_decoder_plugin) {
         update_spu_decoder(stream, buf->type);
       }
@@ -281,6 +283,9 @@ void *video_decoder_loop (void *stream_gen) {
       
     default:
       xine_profiler_start_count (prof_video_decode);
+      
+      if (stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO])
+        break;
 
       if ( (buf->type & 0xFF000000) == BUF_VIDEO_BASE ) {
 

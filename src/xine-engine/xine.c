@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.185 2002/10/30 17:51:13 miguelfreitas Exp $
+ * $Id: xine.c,v 1.186 2002/10/31 16:58:24 mroi Exp $
  *
  * top-level xine functions
  *
@@ -368,6 +368,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 
   int header_count_audio;
   int header_count_video;
+  char *stream_setup;
 
 #ifdef LOG
   printf ("xine: xine_open_internal '%s'...\n", mrl);
@@ -384,43 +385,176 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 #endif
 
   /*
-   * find an input plugin
+   * look for a stream_setup in MRL
    */
+   
+  if ((stream_setup = strchr(mrl, '#'))) {
+    char *input_source = (char *)malloc(stream_setup - mrl + 1);
+    memcpy(input_source, mrl, stream_setup - mrl);
+    input_source[stream_setup - mrl] = '\0';
+    
+    /*
+     * find an input plugin
+     */
 
-  if (!(stream->input_plugin = find_input_plugin (stream, mrl))) {
-    xine_log (stream->xine, XINE_LOG_MSG,
-	      _("xine: cannot find input plugin for this MRL\n"));
+    if (!(stream->input_plugin = find_input_plugin (stream, input_source))) {
+      xine_log (stream->xine, XINE_LOG_MSG,
+	        _("xine: cannot find input plugin for this MRL\n"));
 
-    stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
-    return 0;
-  }
-  stream->input_class = stream->input_plugin->input_class;
-  stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
-    = strdup (stream->input_class->get_identifier (stream->input_class));
+      stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
+      free(input_source);
+      return 0;
+    }
+    stream->input_class = stream->input_plugin->input_class;
+    stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
+      = strdup (stream->input_class->get_identifier (stream->input_class));
+    free(input_source);
 
 #ifdef LOG
-  printf ("xine: input plugin %s found\n", 
-	  stream->input_plugin->input_class->get_identifier(stream->input_plugin->input_class));
+    printf ("xine: input plugin %s found\n", 
+	    stream->input_plugin->input_class->get_identifier(stream->input_plugin->input_class));
 #endif
 
-  /*
-   * find a demux plugin
-   */
-  if (!(stream->demux_plugin=find_demux_plugin (stream, stream->input_plugin))) {
-    xine_log (stream->xine, XINE_LOG_MSG,
-	      _("xine: couldn't find demux for >%s<\n"), mrl);
-    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+    while (stream_setup && *stream_setup && *(++stream_setup)) {
+      if (strncasecmp(stream_setup, "demux", 5) == 0) {
+        if (*(stream_setup += 5) == ':') {
+	  /* demuxer specified by name */
+	  char *tmp = ++stream_setup;
+	  char *demux_name;
+	  stream_setup = strchr(stream_setup, ';');
+	  if (stream_setup) {
+	    demux_name = (char *)malloc(stream_setup - tmp + 1);
+	    memcpy(demux_name, tmp, stream_setup - tmp);
+	    demux_name[stream_setup - tmp] = '\0';
+	  } else {
+	    demux_name = (char *)malloc(strlen(tmp));
+	    memcpy(demux_name, tmp, strlen(tmp));
+	    demux_name[strlen(tmp)] = '\0';
+	  }
+	  if (!(stream->demux_plugin = find_demux_plugin_by_name(stream, demux_name, stream->input_plugin))) {
+	    xine_log(stream->xine, XINE_LOG_MSG,
+	      _("xine: specified demuxer %s failed to start\n"), demux_name);
+	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+	    stream->status = XINE_STATUS_STOP;
+	    free(demux_name);
+	    return 0;
+	  }
+#ifdef LOG
+	  printf ("xine: demux and input plugin found\n");
+#endif
 
-    stream->status = XINE_STATUS_STOP;
-    return 0;
-  }
+	  stream->meta_info[XINE_META_INFO_SYSTEMLAYER]
+	   = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
+	  free(demux_name);
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	continue;
+      }
+      if (strncasecmp(stream_setup, "novideo", 7) == 0) {
+        stream_setup += 7;
+        if (*stream_setup == ';' || *stream_setup == '\0') {
+	  stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] = 1;
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	printf("xine: ignoring video\n");
+	continue;
+      }
+      if (strncasecmp(stream_setup, "noaudio", 7) == 0) {
+        stream_setup += 7;
+        if (*stream_setup == ';' || *stream_setup == '\0') {
+	  stream->stream_info[XINE_STREAM_INFO_IGNORE_AUDIO] = 1;
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	printf("xine: ignoring audio\n");
+	continue;
+      }
+      if (strncasecmp(stream_setup, "nospu", 5) == 0) {
+        stream_setup += 5;
+        if (*stream_setup == ';' || *stream_setup == '\0') {
+	  stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU] = 1;
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	printf("xine: ignoring subpicture\n");
+	continue;
+      }
+      {
+        /* when we got here, the stream setup parameter must be a config entry */
+	char *tmp = stream_setup;
+	if ((stream_setup = strchr(stream_setup, ';'))) {
+	  char *config_entry = (char *)malloc(stream_setup - tmp + 1);
+	  memcpy(config_entry, tmp, stream_setup - tmp);
+	  config_entry[stream_setup - tmp] = '\0';
+	  xine_config_change_opt(stream->xine->config, config_entry);
+	  free(config_entry);
+	} else {
+	  xine_config_change_opt(stream->xine->config, tmp);
+	}
+      }
+    }
+    
+  } else {
+  
+    /* no stream setup found in MRL, continue as ususal */
+  
+    /*
+     * find an input plugin
+     */
+
+    if (!(stream->input_plugin = find_input_plugin (stream, mrl))) {
+      xine_log (stream->xine, XINE_LOG_MSG,
+	        _("xine: cannot find input plugin for this MRL\n"));
+
+      stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
+      return 0;
+    }
+    stream->input_class = stream->input_plugin->input_class;
+    stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
+      = strdup (stream->input_class->get_identifier (stream->input_class));
 
 #ifdef LOG
-  printf ("xine: demux and input plugin found\n");
+    printf ("xine: input plugin %s found\n", 
+	    stream->input_plugin->input_class->get_identifier(stream->input_plugin->input_class));
+#endif
+  }
+
+
+  if (!stream->demux_plugin) {
+  
+    /*
+     * find a demux plugin
+     */
+    if (!(stream->demux_plugin=find_demux_plugin (stream, stream->input_plugin))) {
+      xine_log (stream->xine, XINE_LOG_MSG,
+	        _("xine: couldn't find demux for >%s<\n"), mrl);
+      stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+
+      stream->status = XINE_STATUS_STOP;
+      return 0;
+    }
+
+#ifdef LOG
+    printf ("xine: demux and input plugin found\n");
 #endif
 
-  stream->meta_info[XINE_META_INFO_SYSTEMLAYER]
-    = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
+    stream->meta_info[XINE_META_INFO_SYSTEMLAYER]
+      = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
+  }
 
   /*
    * send and decode headers

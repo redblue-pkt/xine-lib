@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.39 2002/10/31 10:45:36 mroi Exp $
+ * $Id: configfile.c,v 1.40 2002/10/31 16:58:15 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -792,13 +792,11 @@ int xine_config_change_opt(config_values_t *config, const char *opt) {
   printf ("configfile: change_opt '%s'\n", opt);
 #endif
 
-  if(config && opt && (!strncasecmp(opt, "opt:", 4))) {
-    char *optsafe;
+  if(config && opt) {
     char *key, *value;
 
-    xine_strdupa(optsafe, opt);
-    key = &optsafe[4];
-    value = strrchr(optsafe, '=');
+    key = strdup(opt);
+    value = strrchr(key, ':');
 
     if(key && strlen(key) && value && strlen(value)) {
 
@@ -824,14 +822,14 @@ int xine_config_change_opt(config_values_t *config, const char *opt) {
 	  break;
 
 	case CONFIG_TYPE_UNKNOWN:
-#ifdef LOG
-	  printf("configfile: change_opt() try to update an CONFIG_TYPE_UNKNOWN entry\n");
-#endif
+	  entry->unknown_value = strdup(value);
+	  handled = 1;
 	  break;
 
 	}
       }
     }
+    free(key);
   }
 
   return handled;

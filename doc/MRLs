@@ -1,0 +1,71 @@
+proposition of generic syntax of MRLs
+=====================================
+
+This document defines a draft for a syntactic specification of MRLs as
+used by xine-lib. The language of MRLs is designed to be a true subset
+of the language of URIs as given in RFC2396. A type 2 grammar for the
+language of MRLs is given in EBNF below.
+
+Semantically, MRLs consist of two distinct parts that are evaluated by
+different components of the xine architecture. The first part,
+derivable from the symbol <input_source> in the given grammar, is
+completely handed to the input plugins, with input plugins signaling
+if they can handle the MRL.
+The second part, derivable from <stream_setup> and delimited from the
+first by a crosshatch ('#') contains parameters that modify the
+initialization and playback behaviour of the stream to which the MRL
+is passed. The possible parameters should be self-explaining, when
+looking into the grammar.
+
+The following definition should be regarded as a guideline only.
+Of course any given input plugin only understands a subset of all
+possible MRLs. On the other hand, invalid MRLs according to this
+definition might be understood for convenience reasons.
+Some user awareness is required at this point.
+
+EBNF grammar for MRLs:
+
+<mrl>		::= <input_source>[#<stream_setup>]
+<input_source>	::= (<absolute_mrl>|<relative_mrl>)
+<absolute_mrl>	::= <input>:(<net_path>|<abs_path>)[?<query>]
+<relative_mrl>	::= (<abs_path>|<rel_path>)
+<net_path>	::= //<authority>[<abs_path>]
+<abs_path>	::= /<path_segments>
+<rel_path>	::= <rel_segment>[<abs_path>]
+<rel_segment>	::= <rel_char>{<rel_char>}
+<rel_char>	::= (<unreserved>|<escaped>|;|@|&|=|+|$|,)
+<input>		::= <alpha>{(<alpha>|<digit>|+|-|.)}
+<authority>	::= (<server>|<reg_name>)
+<server>	::= [[<userinfo>@]<host>[:<port>]]
+<userinfo>	::= {(<unreserved>|<escaped>|;|:|&|=|+|$|,)}
+<host>		::= (<hostname>|<ipv4_address>)
+<hostname>	::= {<domainlabel>.}<toplabel>[.]
+<domainlabel>	::= (<alphanum>|<alphanum>{(<alphanum>|-)}<alphanum>)
+<toplabel>	::= (<alpha>|<alpha>{(<alphanum>|-)}<alphanum>)
+<ipv4_address>	::= <digit>{<digit>}.<digit>{<digit>}.<digit>{<digit>}.<digit>{<digit>}
+<port>		::= {<digit>}
+<reg_name>	::= <reg_char>{<reg_char>}
+<reg_char>	::= (<unreserved>|<escaped>|;|:|@|&|=|+|$|,)
+<path_segments>	::= <segment>{/<segment>}
+<segment>	::= {<path_char>}{;<param>}
+<param>		::= {<path_char>}
+<path_char>	::= (<unreserved>|<escaped>|:|@|&|=|+|$|,)
+<query>		::= {<mrl_char>}
+<stream_setup>	::= <stream_option>;{<stream_option>}
+<stream_option>	::= (<configoption>|<demux>|novideo|noaudio|nospu)
+<configoption>	::= <configentry>:<configvalue>
+<configentry>	::= <unreserved>{<unreserved>}
+<configvalue>	::= <conf_char>{<conf_char>}
+<demux>		::= demux:<stream_char>{<stream_char>}
+<stream_char>	::= (<unreserved>|<escaped>|:|@|&|=|+|$|,)
+<mrl_char>	::= (<reserved>|<unreserved>|<escaped>)
+<reserved>	::= (;|/|?|:|@|&|=|+|$|,)
+<unreserved>	::= (<alphanum>|<mark>)
+<mark>		::= (-|_|.|!|~|*|'|(|))
+<escaped>	::= %<hex><hex>
+<hex>		::= (<digit>|A|B|C|D|E|F|a|b|c|d|e|f)
+<alphanum>	::= (<alpha>|<digit>)
+<alpha>		::= (<lowalpha>|<upalpha>)
+<lowalpha>	::= (a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)
+<upalpha>	::= (A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z)
+<digit>		::= (0|1|2|3|4|5|6|7|8|9)

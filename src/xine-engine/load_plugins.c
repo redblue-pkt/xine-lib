@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.107 2002/10/27 01:52:15 guenter Exp $
+ * $Id: load_plugins.c,v 1.108 2002/10/31 16:58:16 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -694,6 +694,29 @@ demux_plugin_t *find_demux_plugin (xine_stream_t *stream, input_plugin_t *input)
     abort();
   }
 
+  return NULL;
+}
+
+demux_plugin_t *find_demux_plugin_by_name(xine_stream_t *stream, const char *name, input_plugin_t *input) {
+
+  plugin_catalog_t  *catalog = stream->xine->plugin_catalog;
+  plugin_node_t     *node;
+  demux_plugin_t    *plugin;
+
+  pthread_mutex_lock(&catalog->lock);
+  node = xine_list_first_content(catalog->demux);
+    
+  while (node) {
+    if (strcasecmp(node->info->id, name) == 0) {
+      if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
+	pthread_mutex_unlock (&catalog->lock);
+	return plugin;
+      }
+    }
+    node = xine_list_next_content(catalog->demux);
+  }
+  
+  pthread_mutex_unlock(&catalog->lock);
   return NULL;
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.110 2002/10/30 17:51:13 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.111 2002/10/31 16:58:25 mroi Exp $
  *
  */
 
@@ -228,6 +228,7 @@ void xine_handle_stream_end      (xine_stream_t *stream, int non_user);
 
 input_plugin_t *find_input_plugin (xine_stream_t *stream, const char *mrl);
 demux_plugin_t *find_demux_plugin (xine_stream_t *stream, input_plugin_t *input);
+demux_plugin_t *find_demux_plugin_by_name (xine_stream_t *stream, const char *name, input_plugin_t *input);
 
 /* create decoder fifos and threads */
 

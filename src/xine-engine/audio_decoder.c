@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.87 2002/10/29 16:02:43 mroi Exp $
+ * $Id: audio_decoder.c,v 1.88 2002/10/31 16:58:14 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -172,6 +172,9 @@ void *audio_decoder_loop (void *stream_gen) {
       break;
 
     default:
+
+      if (stream->stream_info[XINE_STREAM_INFO_IGNORE_AUDIO])
+        break;
 
       xine_profiler_start_count (prof_audio_decode);
 
