@@ -1,3 +1,9 @@
+xine-lib (0.9.8-1) unstable; urgency=high
+
+  * new upstream release
+
+ -- Siggi Langauf <siggi@debian.org>  Mon, 14 Jan 2002 00:43:52 +0100
+
 xine-lib (0.9.7-3) unstable; urgency=high
 
   * re-added check for HPPA (closes: #123036)
