@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.75 2002/11/03 20:39:28 guenter Exp $
+ * $Id: demux_asf.c,v 1.76 2002/11/03 20:41:55 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -40,9 +40,9 @@
 #include "demux.h"
 #include "xineutils.h"
 
-
+/*
 #define LOG
-
+*/
 
 #define PACKET_SIZE        3200
 #define PACKET_HEADER_SIZE   12
