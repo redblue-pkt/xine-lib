@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpeg_encoders.c,v 1.1 2001/12/16 19:06:49 hrm Exp $
+ * $Id: mpeg_encoders.c,v 1.2 2001/12/16 22:34:21 hrm Exp $
  *
  * mpeg encoders for the dxr3 video out plugin.  
  */ 
@@ -86,12 +86,16 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 	width = drv->video_width;
 	height = drv->video_height;
 
-	if (this->context != 0) /* already done */
-		return 0;
+	if (this->context != 0) {/* already running */
+		printf("dxr3: closing current encoding context.\n");
+		rte_stop(this->context);
+		rte_context_delete(this->context);
+		this->context = 0;
+	}
 
 	this->context = rte_context_new (width, height, "mp1e", drv);
 	if (! this->context) {
-		printf("failed to get rte context.\n");
+		printf("dxr3: failed to get rte context.\n");
 		return 1;
 	}
 	context = this->context; /* shortcut */
@@ -255,6 +259,11 @@ static int fame_on_update_format(dxr3_driver_t *drv)
 		printf("dxr3: Using YUY2->YV12 conversion\n");  
 	}
 
+	if (this->fc) {
+		printf("dxr3: closing current encoding context.\n");
+		fame_close(this->fc);
+		this->fc = 0;
+	}
 	if (!this->fc)
 		this->fc = fame_open();
 	if (!this->fc) {
