@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.104 2003/02/02 13:38:24 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.105 2003/02/03 00:24:13 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -59,6 +59,10 @@
 #include "yuv2rgb.h"
 #include "xineutils.h"
 #include "vo_scale.h"
+
+#ifndef XShmGetEventBase
+extern int XShmGetEventBase(Display *);
+#endif
 
 /*
 #define LOG
@@ -112,7 +116,8 @@ typedef struct xshm_driver_s {
   vo_scale_t         sc;
   
   int                expecting_event; /* completion event */
-
+  int                completion_event;
+  
   xshm_frame_t      *cur_frame; /* for completion event handling */
   vo_overlay_t      *overlay;
 
@@ -699,6 +704,22 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 #ifdef LOG
   printf ("video_out_xshm: display frame...\n");
 #endif
+  
+  if (this->expecting_event) {
+    XEvent event;
+    int received;
+    
+    /*
+     * fallback mechanism: try to get the event directly in case frontend has
+     * not forwarded it to us (yet).
+     */
+    XLockDisplay (this->display);
+    received = XCheckTypedEvent(this->display, this->completion_event, &event);
+    XUnlockDisplay (this->display);
+
+    if(received)
+      this->expecting_event = 0;     
+  }  
 
   if (this->expecting_event) {
 #ifdef LOG
@@ -1163,6 +1184,10 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   myimage = create_ximage (this, &myshminfo, 100, 100);
   dispose_ximage (this, &myshminfo, myimage);
 
+  if(this->use_shm)
+    this->completion_event = XShmGetEventBase(display) + ShmCompletion;
+  else
+    this->completion_event = -1;
 
   /*
    * Is the same byte order in use on the X11 client and server?

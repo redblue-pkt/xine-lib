@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.156 2003/01/29 12:37:27 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.157 2003/02/03 00:24:13 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -67,6 +67,10 @@
 #include "xineutils.h"
 #include "vo_scale.h"
 
+#ifndef XShmGetEventBase
+extern int XShmGetEventBase(Display *);
+#endif
+
 /*
 #define LOG
 */
@@ -113,6 +117,7 @@ struct xv_driver_s {
   XvPortID           xv_port;
   XColor             black;
   int                expecting_event; /* completion event handling */
+  int                completion_event;
   int                use_shm;
   xv_property_t      props[VO_NUM_PROPERTIES];
   uint32_t           capabilities;
@@ -663,8 +668,25 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   /*
   printf ("video_out_xv: xv_display_frame...\n");
   */
+  
   if (this->expecting_event) {
+    XEvent event;
+    int received;
+    
+    /*
+     * fallback mechanism: try to get the event directly in case frontend has
+     * not forwarded it to us (yet).
+     */
+    XLockDisplay (this->display);
+    received = XCheckTypedEvent(this->display, this->completion_event, &event);
+    XUnlockDisplay (this->display);
 
+    if(received)
+      this->expecting_event = 0;     
+  }  
+  
+  if (this->expecting_event) {
+    
     frame->vo_frame.displayed (&frame->vo_frame);
     this->expecting_event--;
 #ifdef LOG
@@ -1287,6 +1309,11 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   myimage = create_ximage (this, &myshminfo, 100, 100,
 			   (this->xv_format_yv12 != 0) ? XINE_IMGFMT_YV12 : XINE_IMGFMT_YUY2);
   dispose_ximage (this, &myshminfo, myimage);
+  
+  if(this->use_shm)
+    this->completion_event = XShmGetEventBase(display) + ShmCompletion;
+  else
+    this->completion_event = -1;
 
   this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
 						    deinterlace_methods,
