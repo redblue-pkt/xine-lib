@@ -32,7 +32,9 @@
 
 #define DEFAULT_LOW_WATER_MARK  2
 #define DEFAULT_HIGH_WATER_MARK 5
-
+/*
+#define LOG
+*/
 struct nbc_s {
 
   xine_t          *xine;
@@ -51,12 +53,12 @@ void nbc_check_buffers (nbc_t *this) {
   if (this->xine->audio_fifo) {
     fifo_fill += 8*this->xine->audio_fifo->size(this->xine->audio_fifo);
   }
-
+#ifdef LOG
   if (this->buffering) {
     xine_log (this->xine, XINE_LOG_MSG, 
 	      "net_buf_ctl: buffering (%d/%d)...\n", fifo_fill, this->high_water_mark);
   }
-
+#endif
   if (fifo_fill<this->low_water_mark) {
     
     if (!this->buffering) {
