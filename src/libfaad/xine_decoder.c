@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.31 2004/01/28 12:38:37 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.32 2004/05/24 22:17:58 jstembridge Exp $
  *
  */
 
@@ -56,13 +56,16 @@ typedef struct faad_decoder_s {
   faacDecFrameInfo        faac_finfo;
   int                     faac_failed;
  
-  int              mp4_mode;
+  int              raw_mode;
   
   unsigned char   *buf;
   int              size;
   int              rec_audio_src_size;
   int              max_audio_src_size;
   int              pts;
+  
+  unsigned char   *dec_config;
+  int              dec_config_size;
   
   unsigned long    rate;
   int              bits_per_sample; 
@@ -80,29 +83,63 @@ static void faad_reset (audio_decoder_t *this_gen) {
 }
 
 static int faad_open_dec( faad_decoder_t *this ) {
+  int used;
+
   this->faac_dec = faacDecOpen();
   if( !this->faac_dec ) {
     xine_log (this->stream->xine, XINE_LOG_MSG,
               _("libfaad: libfaad faacDecOpen() failed.\n"));
     this->faac_failed++;
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
-    return 1;
-  }
+  } else {
+    if( this->dec_config ) {
+      used = faacDecInit2(this->faac_dec, this->dec_config, this->dec_config_size,
+                          &this->rate, &this->num_channels);
+      
+      if( used < 0 ) {
+        xprintf( this->stream->xine, XINE_VERBOSITY_LOG,
+                _("libfaad: libfaad faacDecInit2 failed.\n"));
+        this->faac_failed++;
+      } else
+        lprintf( "faacDecInit2 returned rate=%ld channels=%d\n",
+                 this->rate, this->num_channels );
+    } else {
+      /* Set the default object type and samplerate */
+      /* This is useful for RAW AAC files */
+      this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
+      if( this->faac_cfg ) {
+        this->faac_cfg->defSampleRate = this->rate;
+        this->faac_cfg->outputFormat = FAAD_FMT_16BIT;
+        this->bits_per_sample = 16;
+        this->faac_cfg->useOldADTSFormat = 0;
+        faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
+      }
   
-  if( !this->mp4_mode ) {
-    /* Set the default object type and samplerate */
-    /* This is useful for RAW AAC files */
-    this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
-    if( this->faac_cfg ) {
-      this->faac_cfg->defSampleRate = this->rate;
-      this->faac_cfg->outputFormat = FAAD_FMT_16BIT;
-      this->bits_per_sample = 16;
-      this->faac_cfg->useOldADTSFormat = 0;
-      faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
+      used = faacDecInit(this->faac_dec, this->buf, this->size,
+                        &this->rate, &this->num_channels);
+        
+      if( used < 0 ) {
+        xprintf ( this->stream->xine, XINE_VERBOSITY_LOG,
+                  _("libfaad: libfaad faacDecInit failed.\n"));
+        this->faac_failed++;
+      } else {
+        lprintf( "faacDecInit() returned rate=%ld channels=%d (used=%d)\n",
+                 this->rate, this->num_channels, used);
+                      
+        this->size -= used;
+        memmove( this->buf, &this->buf[used], this->size );
+      }
     }
   }
-
-  return 0;
+  
+  if( this->faac_failed ) {
+    if( this->faac_dec ) {
+      faacDecClose( this->faac_dec );
+      this->faac_dec = NULL;
+    }
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
+  }
+  
+  return this->faac_failed;
 }
 
 static int faad_open_output( faad_decoder_t *this ) {
@@ -147,37 +184,40 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     return;
 
   inbuf = this->buf;
-  while( (this->mp4_mode && end_frame && this->size >= 10) ||
-         (!this->mp4_mode && this->size >= this->rec_audio_src_size) ) {
+  while( (!this->raw_mode && end_frame && this->size >= 10) ||
+         (this->raw_mode && this->size >= this->rec_audio_src_size) ) {
       
     sample_buffer = faacDecDecode(this->faac_dec, 
                                   &this->faac_finfo, inbuf, sample_size);
  
-    /* raw AAC parameters is only known after decoding the first frame */
-    if( !this->mp4_mode &&
-        (this->num_channels != this->faac_finfo.channels||
-         this->rate != this->faac_finfo.samplerate) ) {
-    
-      this->num_channels = this->faac_finfo.channels;
-      this->rate = this->faac_finfo.samplerate;
-      this->stream->audio_out->close (this->stream->audio_out, this->stream);
-      this->output_open = 0;
-      faad_open_output( this );
-    }
-    
-    used = this->faac_finfo.bytesconsumed;
-
-    decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
-
-    lprintf("decoded %d/%d output %ld\n",
-	    used, this->size, this->faac_finfo.samples );
-      
-    if (sample_buffer == NULL) {
+    if( !sample_buffer ) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	      "libfaad: %s\n", faacDecGetErrorMessage(this->faac_finfo.error));
-      used = 1;
-    }
-    else {
+              "libfaad: %s\n", faacDecGetErrorMessage(this->faac_finfo.error));
+      used = 1;    
+    } else {
+      used = this->faac_finfo.bytesconsumed;
+          
+      /* raw AAC parameters is only known after decoding the first frame */
+      if( !this->dec_config &&
+          (this->num_channels != this->faac_finfo.channels ||
+           this->rate != this->faac_finfo.samplerate) ) {
+    
+        this->num_channels = this->faac_finfo.channels;
+        this->rate = this->faac_finfo.samplerate;
+      
+        lprintf("faacDecDecode() returned rate=%ld channels=%d used=%d\n",
+                this->rate, this->num_channels, used);
+      
+        this->stream->audio_out->close (this->stream->audio_out, this->stream);
+        this->output_open = 0;
+        faad_open_output( this );
+      }
+    
+      decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
+
+      lprintf("decoded %d/%d output %ld\n",
+              used, this->size, this->faac_finfo.samples );
+      
       while( decoded ) {
         audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
         
@@ -206,7 +246,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
       inbuf += used;
     }
 
-    if( this->mp4_mode )
+    if( !this->raw_mode )
       this->size = 0;   
   }
 
@@ -218,37 +258,22 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
 static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   faad_decoder_t *this = (faad_decoder_t *) this_gen;
-  int used;
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
-
-  /* initialize libfaad with with config information from ESDS mp4/qt atom */
+  /* store config information from ESDS mp4/qt atom */
   if( !this->faac_dec && (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
       buf->decoder_info[1] == BUF_SPECIAL_DECODER_CONFIG ) {
-
-    /* mode for playing data from .mp4 files */    
-    this->mp4_mode = 1;
-
-    if( !this->faac_dec ) {
-      if( faad_open_dec(this) )
-        return;
-    }
-
-    used = faacDecInit2(this->faac_dec, buf->decoder_info_ptr[2],
-                        buf->decoder_info[2], &this->rate, &this->num_channels);
     
-    if( used < 0 ) {
-      xine_log (this->stream->xine, XINE_LOG_MSG,
-              _("libfaad: libfaad faacDecInit2() failed.\n"));
-      this->faac_failed++;
-      this->faac_dec = NULL;
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
+    this->dec_config = xine_xmalloc(buf->decoder_info[2]);
+    this->dec_config_size = buf->decoder_info[2];
+    memcpy(this->dec_config, buf->decoder_info_ptr[2], buf->decoder_info[2]);
+    
+    if( faad_open_dec(this) )
       return;
-    }
-    lprintf("faacDecInit2 returned rate=%ld channels=%d\n",
-            this->rate, this->num_channels );
+
+    this->raw_mode = 0;
   }
 
   /* get audio parameters from file header 
@@ -257,16 +282,23 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->num_channels=buf->decoder_info[3] ; 
+ 
+    if( !this->bits_per_sample )
+      this->bits_per_sample = 16;
+    
+    if( buf->size ) {
+      xine_waveformatex *wavex = (xine_waveformatex *) buf->content;
 
-    if (this->output_open) {
-        this->stream->audio_out->close (this->stream->audio_out, this->stream);
-        this->output_open = 0;
+      if( wavex->cbSize ) {
+        this->dec_config = xine_xmalloc(wavex->cbSize);
+        this->dec_config_size = wavex->cbSize;
+        memcpy(this->dec_config, buf->content + sizeof(xine_waveformatex),
+               wavex->cbSize);
+               
+        if( faad_open_dec(this) )
+          return;
+      }
     }
-
-    if( this->faac_dec )
-      faacDecClose(this->faac_dec);
-    this->faac_dec = NULL;
-    this->faac_failed = 0;
                                                
     /* stream/meta info */
     _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,
@@ -290,33 +322,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     memcpy (&this->buf[this->size], buf->content, buf->size);
     this->size += buf->size;
     
-    if( !this->faac_dec ) {
-
-      /* mode for playing data from .aac files */
-      this->mp4_mode = 0;
-
-      if( faad_open_dec(this) )
-        return;
-
-      used = faacDecInit(this->faac_dec, this->buf, this->size,
-                         &this->rate, &this->num_channels);
-      
-      if( used < 0 ) {
-        xine_log (this->stream->xine, XINE_LOG_MSG,
-		  _("libfaad: libfaad faacDecInit() failed.\n"));
-        this->faac_failed++;
-        faacDecClose(this->faac_dec);
-        this->faac_dec = NULL;
-        _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
-        return;
-      }
-      lprintf("faacDecInit() returned rate=%ld channels=%d (used=%d)\n",
-              this->rate, this->num_channels, used);
-                    
-      this->size -= used;
-      memmove(this->buf, &this->buf[used], this->size);
-
-    }
+    if( !this->faac_dec && faad_open_dec(this) )
+      return;
 
     /* open audio device as needed */
     if (!this->output_open) {
@@ -344,6 +351,11 @@ static void faad_dispose (audio_decoder_t *this_gen) {
   this->size = 0;
   this->max_audio_src_size = 0;
   
+  if( this->dec_config )
+    free(this->dec_config);
+  this->dec_config = NULL;
+  this->dec_config_size = 0;
+  
   if( this->faac_dec )
     faacDecClose(this->faac_dec);
   this->faac_dec = NULL;
@@ -366,11 +378,14 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->stream             = stream;
   this->output_open        = 0;
+  this->raw_mode           = 1;
   this->faac_dec           = NULL; 
   this->faac_failed        = 0;
   this->buf                = NULL;
   this->size               = 0;
   this->max_audio_src_size = 0;
+  this->dec_config         = NULL;
+  this->dec_config_size    = 0;
 
   this->rate               = 44100;
 
