@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.12 2003/12/14 22:13:25 siggi Exp $
+ * $Id: image.c,v 1.13 2003/12/24 13:27:47 mroi Exp $
  *
  * a image video decoder
  */
@@ -213,7 +213,6 @@ static void end_callback(png_structp png_ptr, png_infop info) {
 
   vo_frame_t *img; /* video out frame */
   int row, col;
-  int i;
 
   /*
    * libpng has read end of image, now convert rows into a video frame
