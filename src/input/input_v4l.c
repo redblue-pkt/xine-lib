@@ -1517,12 +1517,6 @@ static void v4l_event_handler (v4l_input_plugin_t *this) {
 	       xine_demux_flush_engine(this->stream); 
 	    }
 	    break;
-	 case XINE_EVENT_MRL_REFERENCE:
-	    DBGPRINT("Got new mrl: %s\n", (char *)event->data);
-	    extract_mrl(this, event->data);
-	    set_frequency(this, this->frequency);
-	    xine_demux_flush_engine(this->stream);
-	    break;
 /*	 default:
 
  	    DBGPRINT("Got an event, type 0x%08x\n", event->type);
