@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.15 2001/09/23 08:11:11 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.16 2001/10/14 14:49:54 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -55,6 +55,9 @@ typedef struct dxr3_decoder_s {
 	int last_pts;
 	scr_plugin_t *scr;
 	int scr_prio;
+	int width;
+	int height;
+	int aspect;
 } dxr3_decoder_t;
 
 static int dxr3_tested = 0;
@@ -118,7 +121,7 @@ static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 		em_speed = 0x900*4;
 		break;
 	default:
-		em_speed = 0x900;
+		em_speed = 0;
 	}
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &em_speed))
 		fprintf(stderr, "dxr3scr: failed to set speed (%s)\n", strerror(errno));
@@ -215,6 +218,32 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	this->scr->start(this->scr, 0);
 }
 
+#define HEADER_OFFSET 4
+static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
+{
+	/* only carry on if we have a legitimate mpeg header... */
+	if (buffer[1]==0 && buffer[0]==0 && buffer[2]==1 && buffer[3]==0xb3) {
+		int old_h = this->height;
+		int old_w = this->width;
+		int old_a = this->aspect;
+
+		/* grab video resolution and aspect ratio from the stream */
+		this->height = (buffer[HEADER_OFFSET+0] << 16) |
+		               (buffer[HEADER_OFFSET+1] <<  8) |
+					    buffer[HEADER_OFFSET+2];
+		this->width  = ((this->height >> 12) + 15) & ~15;
+		this->height = ((this->height & 0xfff) + 15) & ~15;
+		this->aspect = buffer[HEADER_OFFSET+3] >> 4;
+
+		/* and ship the data if different ... appeasing any other vo plugins
+		that are active ... */
+		if (old_h!=this->height || old_w!=this->width || old_a!=this->aspect)
+			this->video_out->get_frame(this->video_out,
+			 this->width,this->height,this->aspect,
+			 IMGFMT_YV12, 1, VO_BOTH_FIELDS);
+	}
+}
+
 static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
@@ -250,6 +279,9 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	if (written != buf->size)
 		fprintf(stderr, "dxr3: Could only write %d of %d video bytes.\n",
 		 written, buf->size);
+
+	/* run the header parser here... otherwise the dxr3 tends to block... */
+	find_aspect(this, buf->content);	
 }
 
 static void dxr3_close (video_decoder_t *this_gen)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.9 2001/10/10 10:05:03 jkeil Exp $
+ * $Id: video_out_dxr3.c,v 1.10 2001/10/14 14:49:54 ehasenle Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -67,9 +67,15 @@ typedef struct dxr3_driver_s {
 	int width, height;
 	int overlay_enabled;
 	float desired_ratio;
+
+	int video_width;
+	int video_height;
+	int video_aspect;
 	void (*request_dest_size) (int video_width, int video_height, int *dest_x,
 	 int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;
+
+static int dxr3_set_property (vo_driver_t *this_gen, int property, int value);
 
 static void dxr3_overlay_adapt_area(dxr3_driver_t *this,
  int dest_x, int dest_y, int dest_width, int dest_height)
@@ -187,8 +193,19 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 				      uint32_t width, uint32_t height,
 				      int ratio_code, int format, int flags)
 {
-	/* dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; */
-	fprintf(stderr, "dxr3_vo: dummy function update_frame_format called!\n");
+	dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
+
+	int aspect;
+	this->video_width  = width;
+	this->video_height = height;
+	this->video_aspect = ratio_code;
+
+	if (ratio_code < 3 || ratio_code>4)
+	  aspect = ASPECT_FULL;
+	else
+	  aspect = ASPECT_ANAMORPHIC;
+	if(this->aspectratio!=aspect)
+	  dxr3_set_property (this_gen, VO_PROP_ASPECT_RATIO, aspect);
 }
 
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame)
@@ -339,6 +356,8 @@ static void dxr3_translate_gui2video(dxr3_driver_t *this,
 				     int x, int y,
 				     int *vid_x, int *vid_y)
 {
+	x = x * this->video_width / this->width;
+	y = y * this->video_height / this->height;
 	*vid_x = x;
 	*vid_y = y;
 }
@@ -370,23 +389,21 @@ static int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 		dxr3_set_property((vo_driver_t*) this,
 		 VO_PROP_ASPECT_RATIO, this->aspectratio);
 		break;
-	/* FIXME: implement this
 	case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
 		{
-	    	int x1, y1, x2, y2;
-		x11_rectangle_t *rect = data;
+			int x1, y1, x2, y2;
+			x11_rectangle_t *rect = data;
 
-		dxr3_translate_gui2video(this, rect->x, rect->y,
-					 &x1, &y1);
-		dxr3_translate_gui2video(this, rect->x+rect->w, rect->y+rect->h,
-					 &x2, &y2);
-		rect->x = x1;
-		rect->y = y1;
-		rect->w = x2-x1;
-		rect->h = y2-y1;
+			dxr3_translate_gui2video(this, rect->x, rect->y,
+						 &x1, &y1);
+			dxr3_translate_gui2video(this, rect->w, rect->h,
+						 &x2, &y2);
+			rect->x = x1;
+			rect->y = y1;
+			rect->w = x2-x1;
+			rect->h = y2-y1;
 		}
 		break;
-	*/
 	default:
 		return -1;
 	}
@@ -477,8 +494,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	/* default values */
 	this->overlay_enabled = 0;
 	this->aspectratio = ASPECT_FULL;
-	dxr3_set_property((vo_driver_t*) this,
-	 VO_PROP_ASPECT_RATIO, this->aspectratio);
 
 	dxr3_read_config(this, config);
 	
