@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.16 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_idcin.c,v 1.17 2002/10/12 20:12:05 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -74,6 +74,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
