@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.19 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: buffer.c,v 1.20 2002/12/22 15:02:06 miguelfreitas Exp $
  *
  *
  * contents:
@@ -116,6 +116,42 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
 }
 
 /*
+ * allocate a buffer from buffer pool - may fail if none is available
+ */
+
+static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
+  
+  buf_element_t *buf;
+
+  pthread_mutex_lock (&this->buffer_pool_mutex);
+
+  if (this->buffer_pool_top) {
+
+    buf = this->buffer_pool_top;
+    this->buffer_pool_top = this->buffer_pool_top->next;
+    this->buffer_pool_num_free--;
+  
+  } else {
+    
+    buf = NULL;
+    
+  }
+
+  pthread_mutex_unlock (&this->buffer_pool_mutex);
+
+  /* set sane values to the newly allocated buffer */
+  if( buf ) {
+    buf->content = buf->mem; /* 99% of demuxers will want this */
+    buf->pts = 0;
+    buf->size = 0;
+    buf->decoder_flags = 0;
+    extra_info_reset( buf->extra_info );
+  }
+  return buf;
+}
+
+
+/*
  * append buffer element to fifo buffer
  */
 static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
@@ -135,6 +171,27 @@ static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
 
   pthread_mutex_unlock (&fifo->mutex);
 }
+
+/*
+ * insert buffer element to fifo buffer (demuxers MUST NOT call this one)
+ */
+static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
+  
+  pthread_mutex_lock (&fifo->mutex);
+
+  element->next = fifo->first;
+  fifo->first = element;
+  
+  if( !fifo->last )
+    fifo->last = element;
+    
+  fifo->fifo_size++;
+
+  pthread_cond_signal (&fifo->not_empty);
+
+  pthread_mutex_unlock (&fifo->mutex);
+}
+
 
 /*
  * get element from fifo buffer
@@ -270,6 +327,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->last            = NULL;
   this->fifo_size       = 0;
   this->put             = fifo_buffer_put;
+  this->insert          = fifo_buffer_insert;
   this->get             = fifo_buffer_get;
   this->clear           = fifo_buffer_clear;
   this->size		= fifo_buffer_size;
@@ -313,10 +371,11 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
     
     buffer_pool_free (buf);
   }
-  this->buffer_pool_num_free = num_buffers;
-  this->buffer_pool_capacity = num_buffers;
-  this->buffer_pool_buf_size = buf_size;
-  this->buffer_pool_alloc    = buffer_pool_alloc;
+  this->buffer_pool_num_free  = num_buffers;
+  this->buffer_pool_capacity  = num_buffers;
+  this->buffer_pool_buf_size  = buf_size;
+  this->buffer_pool_alloc     = buffer_pool_alloc;
+  this->buffer_pool_try_alloc = buffer_pool_try_alloc;
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.115 2002/12/21 16:13:43 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.116 2002/12/22 15:02:06 miguelfreitas Exp $
  *
  */
 
@@ -193,7 +193,13 @@ void *video_decoder_loop (void *stream_gen) {
         stream->spu_decoder_plugin->reset (stream->spu_decoder_plugin);
       }
       break;
-    
+
+    case BUF_CONTROL_FLUSH_DECODER:
+      if (stream->video_decoder_plugin) {
+        stream->video_decoder_plugin->flush (stream->video_decoder_plugin);
+      }
+      break;
+          
     case BUF_CONTROL_DISCONTINUITY:
 #ifdef LOG
       printf ("video_decoder: discontinuity ahead\n");

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.122 2002/12/21 19:23:01 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.123 2002/12/22 15:02:07 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -609,7 +609,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      */
     pthread_mutex_lock( &this->free_img_buf_queue->mutex );
     if (img && !img->next) {
-
+      
       if (img->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
           img->stream->video_fifo->size(img->stream->video_fifo) < 10) {
 
@@ -737,12 +737,12 @@ static void *video_out_loop (void *this_gen) {
   vos_t             *this = (vos_t *) this_gen;
   int64_t            frame_duration, next_frame_vpts;
   int64_t            usec_to_sleep;
-  
+    
   /*
    * here it is - the heart of xine (or rather: one of the hearts
    * of xine) : the video output loop
    */
-
+   
   frame_duration = 1500; /* default */
   next_frame_vpts = this->clock->get_current_time (this->clock);
 
@@ -788,66 +788,24 @@ static void *video_out_loop (void *this_gen) {
     if (diff > 30000 && !this->display_img_buf_queue->first) {
       xine_stream_t *stream;
       
-#if	XINE_DEADLOCK_ON_QUIT
-      /*
-       * this flush code often deadlocks when a BUF_CONTROL_QUIT is
-       * sent to the video_decoder thread (that is, on xine exit):
-       *
-       * - we're detecting a "stall" here, this code locks
-       * streams_lock, and then video decoder's lock in the
-       * ...->flush() call
-       *
-       * - video_decoder performs actions for BUF_CONTROL_QUIT: it
-       * locks and disposes the video_decoder, which calls vo_close()
-       * and vo_close() tries to lock the streams_lock.
-       */
       pthread_mutex_lock(&this->streams_lock);
       for (stream = xine_list_first_content(this->streams); stream;
            stream = xine_list_next_content(this->streams)) {
-        if (stream->video_decoder_plugin) {
-
+        if (stream->video_decoder_plugin && stream->video_fifo) {
+          buf_element_t *buf;
+          
 #ifdef LOG
-	  printf ("video_out: flushing current video decoder plugin (%d %d)\n", 
-		  this->display_img_buf_queue->num_buffers,
-		  this->free_img_buf_queue->num_buffers);
+	  printf ("video_out: flushing current video decoder plugin\n");
 #endif
-	
-	  stream->video_decoder_plugin->flush(stream->video_decoder_plugin);
+          
+          buf = stream->video_fifo->buffer_pool_try_alloc (stream->video_fifo);
+          if( buf ) {
+            buf->type = BUF_CONTROL_FLUSH_DECODER;
+            stream->video_fifo->put(stream->video_fifo, buf);
+          }
         }
       }
       pthread_mutex_unlock(&this->streams_lock);
-#else
-      /*
-       * Ugly hack to avoid the above mentioned deadlock: try to
-       * release the streams_lock as soon as possible, when we know
-       * that the current stream is the last one.
-       *
-       * This hack only works when the stream with video_decorder_plugin
-       * is the last one in the streams list!
-       */
-      pthread_mutex_lock(&this->streams_lock);
-      if ((stream = xine_list_first_content(this->streams)) != NULL) {
-	xine_stream_t *stream_next;
-
-	for (; stream; stream = stream_next) {
-	  stream_next = xine_list_next_content(this->streams);
-	  if (!stream_next)
-	    pthread_mutex_unlock(&this->streams_lock); 
-
-	  if (stream->video_decoder_plugin) {
-
-#ifdef LOG
-	    printf ("video_out: flushing current video decoder plugin (%d %d)\n", 
-		    this->display_img_buf_queue->num_buffers,
-		    this->free_img_buf_queue->num_buffers);
-#endif
-	
-	    stream->video_decoder_plugin->flush(stream->video_decoder_plugin);
-	  }
-	}
-      } else
-	pthread_mutex_unlock(&this->streams_lock);
-#endif
 
       this->last_delivery_pts = vpts;
     }

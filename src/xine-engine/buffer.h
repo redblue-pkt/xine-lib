@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.86 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.87 2002/12/22 15:02:06 miguelfreitas Exp $
  *
  *
  * contents:
@@ -77,6 +77,7 @@ extern "C" {
 #define BUF_CONTROL_NEWPTS        0x01070000
 #define BUF_CONTROL_RESET_DECODER 0x01080000
 #define BUF_CONTROL_HEADERS_DONE  0x01090000
+#define BUF_CONTROL_FLUSH_DECODER 0x010a0000
 
 /* video buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -404,6 +405,18 @@ struct fifo_buffer_s
    */
 
   buf_element_t *(*buffer_pool_alloc) (fifo_buffer_t *this);
+  
+  
+  /*
+   * special functions, not used by demuxers
+   */ 
+  
+  /* the same as buffer_pool_alloc but may fail if none is available */
+  buf_element_t *(*buffer_pool_try_alloc) (fifo_buffer_t *this);
+  
+  /* the samme as put but insert at the head of the fifo */
+  void (*insert) (fifo_buffer_t *fifo, buf_element_t *buf);
+  
 
   /*
    * private variables for buffer pool management
