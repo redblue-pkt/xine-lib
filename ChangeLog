@@ -17,6 +17,8 @@ xine-lib (1-rc4)
   * fix 24 bpp RGB output - may affect some users of xshm and fb
   * generate events for "Permission denied" and "File not found" in the
     http and file plugins
+  * DXR3: fix menu highlight areas in letterboxed overlay mode with 
+    pan&scan content
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins

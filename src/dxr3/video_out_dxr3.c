@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.100 2004/04/10 15:29:57 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.101 2004/04/15 14:42:35 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -1197,6 +1197,11 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
       rect->y = y1 - this->top_bar;
       rect->w = x2 - x1;
       rect->h = y2 - y1;
+      if (this->overlay_enabled && this->pan_scan) {
+	/* in this mode, the image is distorted, so we have to modify */
+	rect->x = rect->x * 3 / 4 + this->scale.delivered_width / 8;
+	rect->w = rect->w * 3 / 4;
+      }
     }
     break;
   case XINE_GUI_SEND_VIDEOWIN_VISIBLE:
