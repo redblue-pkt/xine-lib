@@ -156,7 +156,8 @@ yuv2rgb_factory_t *yuv2rgb_factory_init (int mode, int swapped, uint8_t *colorma
  * internal stuff below this line
  */
 
-void mmx_yuv2rgb_set_gamma(int gamma);
+void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
+				int brightness, int contrast, int saturation);
 void yuv2rgb_init_mmxext (yuv2rgb_factory_t *this);
 void yuv2rgb_init_mmx (yuv2rgb_factory_t *this);
 void yuv2rgb_init_mlib (yuv2rgb_factory_t *this);

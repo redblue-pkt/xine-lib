@@ -49,16 +49,25 @@ do {				\
 
 static mmx_t mmx_subYw = {0x1010101010101010};
 static mmx_t mmx_addYw = {0x0000000000000000};
+static mmx_t mmx_U_green = {0xf37df37df37df37d};
+static mmx_t mmx_U_blue = {0x4093409340934093};
+static mmx_t mmx_V_red = {0x3312331233123312};
+static mmx_t mmx_V_green = {0xe5fce5fce5fce5fc};
+static mmx_t mmx_Y_coeff = {0x253f253f253f253f};
 
-void mmx_yuv2rgb_set_gamma(int gamma) 
+extern const int32_t Inverse_Table_6_9[8][4];
+
+void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
+				int brightness, int contrast, int saturation)
 {
-int a,s,i;
+  int a,s,i;
+  int crv, cbu, cgu, cgv;
 
-  if( gamma <= 16 ) {
+  if( brightness <= 16 ) {
     a = 0;
-    s = 16 - gamma;
+    s = 16 - brightness;
   } else {
-    a = gamma - 16;
+    a = brightness - 16;
     s = 0;
   }
   
@@ -66,17 +75,30 @@ int a,s,i;
     *((unsigned char *)&mmx_subYw + i) = s;
     *((unsigned char *)&mmx_addYw + i) = a;
   }
+
+  saturation = (saturation > 242) ? 242 : saturation;
+
+  crv = Inverse_Table_6_9[this->matrix_coefficients][0];
+  crv = (crv * saturation + 512) / 1024;
+  cbu = Inverse_Table_6_9[this->matrix_coefficients][1];
+  cbu = (cbu * saturation + 512) / 1024;
+  cgu = Inverse_Table_6_9[this->matrix_coefficients][2];
+  cgu = (cgu * saturation + 512) / 1024;
+  cgv = Inverse_Table_6_9[this->matrix_coefficients][3];
+  cgv = (cgv * saturation + 512) / 1024;
+
+  for (i=0; i < 4; i++) {
+    *((int16_t *)&mmx_U_green + i) = -cgu;
+    *((int16_t *)&mmx_U_blue  + i) =  cbu;
+    *((int16_t *)&mmx_V_red   + i) =  crv;
+    *((int16_t *)&mmx_V_green + i) = -cgv;
+  }
 }
 
 static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     static mmx_t mmx_80w = {0x0080008000800080};
-    static mmx_t mmx_U_green = {0xf37df37df37df37d};
-    static mmx_t mmx_U_blue = {0x4093409340934093};
-    static mmx_t mmx_V_red = {0x3312331233123312};
-    static mmx_t mmx_V_green = {0xe5fce5fce5fce5fc};
     static mmx_t mmx_00ffw = {0x00ff00ff00ff00ff};
-    static mmx_t mmx_Y_coeff = {0x253f253f253f253f};
 
     movq_m2r (*py, mm6);		// mm6 = Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0
     pxor_r2r (mm4, mm4);		// mm4 = 0

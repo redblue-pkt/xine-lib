@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.103 2003/02/02 12:44:04 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.104 2003/02/02 13:38:24 esnel Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -302,7 +302,8 @@ static void dispose_ximage (xshm_driver_t *this,
  */
 
 static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
+  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 |
+	 VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST | VO_CAP_SATURATION;
 }
 
 static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
@@ -817,7 +818,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
     printf ("video_out_xshm: aspect ratio changed to %s\n",
 	    vo_scale_aspect_ratio_name(value));
 
-  } else if ( property == VO_PROP_BRIGHTNESS) {
+  } else if (property == VO_PROP_BRIGHTNESS) {
 
     this->yuv2rgb_brightness = value;
     this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
@@ -826,9 +827,27 @@ static int xshm_set_property (vo_driver_t *this_gen,
 					   this->yuv2rgb_saturation);
 
     this->sc.force_redraw = 1;
-#ifdef LOG
-    printf ("video_out_xshm: gamma changed to %d\n",value);
-#endif
+
+  } else if (property == VO_PROP_CONTRAST) {
+
+    this->yuv2rgb_contrast = value;
+    this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+					   this->yuv2rgb_brightness,
+					   this->yuv2rgb_contrast,
+					   this->yuv2rgb_saturation);
+
+    this->sc.force_redraw = 1;
+
+  } else if (property == VO_PROP_SATURATION) {
+
+    this->yuv2rgb_saturation = value;
+    this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+					   this->yuv2rgb_brightness,
+					   this->yuv2rgb_contrast,
+					   this->yuv2rgb_saturation);
+
+    this->sc.force_redraw = 1;
+
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
   }

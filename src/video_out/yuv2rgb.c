@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.38 2003/02/02 12:44:05 esnel Exp $
+ * $Id: yuv2rgb.c,v 1.39 2003/02/02 13:38:24 esnel Exp $
  */
 
 #include "config.h"
@@ -3136,7 +3136,7 @@ void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
     (uint8_t *)this->table_bU[i] += this->entry_size*(gamma - this->gamma);
   }
 #ifdef ARCH_X86
-  mmx_yuv2rgb_set_gamma(gamma);
+  mmx_yuv2rgb_set_csc_levels (this, brightness, contrast, saturation);
 #endif  
   this->gamma = gamma;
 }
