@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.101 2002/02/27 19:40:29 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.102 2002/02/28 18:32:57 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -924,6 +924,8 @@ static int xv_set_property (vo_driver_t *this_gen,
 	     this->props[property].value);
 
       xv_compute_ideal_size (this);
+      xv_compute_output_size (this);
+      xv_clean_output_area (this);
 
       break;
     case VO_PROP_ZOOM_FACTOR:
@@ -937,7 +939,6 @@ static int xv_set_property (vo_driver_t *this_gen,
 		this->props[property].value);
 	           
 	xv_compute_ideal_size (this);
-
       }
       break;
     } 
@@ -1448,4 +1449,3 @@ vo_info_t *get_video_out_plugin_info() {
 }
 
 #endif
-
