@@ -309,41 +309,51 @@
     </para>
   </sect1>
   <sect1>
-    <title>xine engine from inside</title>
+    <title>The xine engine from the inside</title>
     <para></para>
   </sect1>
   <sect1>
     <title>Plugin architecture</title>
     <para>
-    xine plugins are basically shared libraries that export one
-    public function init_*_plugin (exact function name depends on plugin type).
-    This function returns a pointer to freshly malloced
-    struct containing mainly
-    function pointers, the "methods" of the plugin. 
-    If you think this is pretty much an object-oriented aproach, you're right.
+    xine plugins are built as shared libraries that export at least one
+    public function named <function>init_type_plugin</function>, where
+    <function>type</function> reflects the function of the plugin (video,
+    audio, etc). This function returns a pointer to freshly allocated (typically
+    via <function>malloc()</function>) structure containing mainly
+    function pointers; these are the "methods" of the plugin. 
+    If you think this is pretty much an object-oriented aproach, 
+    then you're right.
+    </para>
+    <para>
+    All plugins are installed in a special xine plugins directory
+    which can be found using the  <command>xine-config --plugindir</command>
+    command.
     </para>
     <para>
     You'll find exact definitions of public functions and plugin structs
-    in the appropriate header files (e.g. demux/demux.h, input/input_plugin.h,
-    xine-engine/video_out.h,...).
+    in the appropriate header files for each plugin type
+    (e.g. <filename>demux/demux.h</filename>, <filename>input/input_plugin.h</filename>,
+    <filename>xine-engine/video_out.h</filename>, etc) within the xine source-code.
     </para>
     <para>
-    Most plugins will need some additional "private" data fields.
-    These should be simply added at the end of the plugin struct,
-    e.g. a demuxer plugin called "foo" with two private 
-    fields "xine" and "count"
-    would have a plugin struct like
+    Many plugins will need some additional "private" data fields.
+    These should be simply added at the end of the plugin structure.
+    For example a demuxer plugin called "foo" with two private 
+    fields "xine" and "count" may have a plugin structure declared in
+    the following way:
     <programlisting>
     typedef struct {
        /* public fields "inherited" from demux.h */
 
        demux_plugin_t    demux_plugin;
-
        xine_t           *xine;
-
        int               count;
     } demux_foo_t;
     </programlisting>
+    </para>
+    <para>
+      The plugin would then access public fields via the 
+      <varname>demux_plugin</varname> field and private fields directly.
     </para>
   </sect1>
 </chapter>
@@ -465,16 +475,8 @@ struct demux_plugin_s
     <title>Adding support for a new type of video output
            (e.g. framebuffer device)</title>
     <para>
-      The xine plugin system makes it easy to create a new video
-      output target for xine. Video output plugins, like all
-      plugins are installed in a special xine plugins directory
-      which can be found using the 
-      <command>xine-config --plugindir</command>
-      command.
-    </para>
-    <para>
       In order to allow for device-dependant acceleration features, xine
-      calls on the video output plugin for more than just displaying
+      calls upon the video output plugin for more than just displaying
       images. The tasks performed by the video plugins are:
     </para>
     <para>

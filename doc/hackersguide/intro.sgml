@@ -1,9 +1,10 @@
 <sect1>
 <title>Where am I ?</title>
 <para>
-You are currently looking at a piece of documentation for xine.
+You are currently looking at a piece of documentation for xine. 
 xine is a free video player. It lives on
-<ulink url="http://xine.sf.net">http://xine.sf.net</ulink>.
+<ulink url="http://xine.sf.net">http://xine.sf.net</ulink>. Specifically
+this document goes under the moniker of the 'xine Hackers' Guide'.
 </para>
 </sect1>
 
@@ -13,12 +14,18 @@ xine is a free video player. It lives on
 This document should help xine hackers to find their way through
 xine's architecture and source code. It's a pretty free-form document
 containing a loose collection of articles describing various aspects
-of xine's internals.
+of xine's internals. It has been written by a number of people who work
+on xine themselves and is intended to provide the important concepts and
+methods used within xine. Readers should not consider this document to be
+an exhausative description of the internals of xine. As with all projects
+which provide access, the source-code should be considered the definative source
+of information.
 </para>
 
 <para>
-This document has no intention to and therefore will never be complete or
-current in any way.
+This document has no intention to be, and therefore never will be, complete or
+current in any way. Instead it should be considered a read-map pointing the
+casual hacker to the correct location in the xine source.
 </para>
 </sect1>
 
