@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.34 2003/09/14 22:02:27 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.35 2003/09/21 02:53:19 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -43,6 +43,7 @@
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "bswap.h"
+#include "yuv2rgb.h"
 #include "vo_scale.h"
 #include "xineutils.h"
 
@@ -94,17 +95,28 @@
 #define OVERLAY_SCALE_CNTL 0x009
 #define OVERLAY_SCALE_EN 0xC0000000
 
+static const int scaler_regs_table[2][3] = {
+  {SCALER_BUF0_OFFSET, SCALER_BUF0_OFFSET_U, SCALER_BUF0_OFFSET_V},
+  {SCALER_BUF1_OFFSET, SCALER_BUF1_OFFSET_U, SCALER_BUF1_OFFSET_V}
+};
+
 #define BUF_MODE_SINGLE 0
 #define BUF_MODE_DOUBLE 1
 #define BUF_MODE_MULTI  2
 
-#define MAX_DETAINED_FRAMES 10
-#define MAX_ALLOCED_FRAMES  15
+#define OVL_MODE_ALPHA_BLEND 0
+#define OVL_MODE_EXCLUSIVE   1
+#define OVL_MODE_CHROMA_KEY  2
 
-const int scaler_regs_table[2][3] = {
-  {SCALER_BUF0_OFFSET, SCALER_BUF0_OFFSET_U, SCALER_BUF0_OFFSET_V},
-  {SCALER_BUF1_OFFSET, SCALER_BUF1_OFFSET_U, SCALER_BUF1_OFFSET_V}
+static const char *overlay_modes[] = {
+  "alpha blend to normal overlay",
+  "alpha blend to exclusive overlay",
+  "chroma key graphics",
+  NULL
 };
+
+#define MAX_ALLOCED_FRAMES  15
+#define MAX_DETAINED_FRAMES 10
 
 typedef struct {
   video_driver_class_t vo_driver_class;
@@ -130,25 +142,31 @@ typedef struct {
   vo_scale_t vo_scale;
 
   pgx64_driver_class_t *class;
-  pgx64_frame_t *previous, *current, *detained[MAX_DETAINED_FRAMES];
+  pgx64_frame_t *current, *previous, *detained[MAX_DETAINED_FRAMES];
 
   Display *display;
-  int screen;
+  int screen, depth;
   Drawable drawable;
   GC gc;
+  Visual *visual;
 
-  int fbfd;
-  uint8_t *vram, *buffer_ptrs[MAX_ALLOCED_FRAMES][3];
+  int fbfd, free_top, free_bottom, free_mark, fb_width, fb_height, fb_depth;
+  int buf_mode, buffers[MAX_ALLOCED_FRAMES][3], dblbuf_select, num_frames;
+  int detained_frames;
+  uint8_t *vram, *fb_base, *buffer_ptrs[MAX_ALLOCED_FRAMES][3];
   volatile uint32_t *vregs;
 
-  int fb_top, fb_bottom, fb_alloc, fb_width, fb_height, fb_depth;
-  int delivered_format, buffers[MAX_ALLOCED_FRAMES][3], next_buffer;
-  int buf_mode, dblbuf_select, num_frames, detained_frames;
-  int colour_key, brightness, saturation, use_deinterlace, use_exclusive;
+  int ovl_mode, key_width, key_height, key_changed;
+  XImage *key;
+  pthread_mutex_t key_mutex;
+  yuv2rgb_factory_t *yuv2rgb_factory;
+  yuv2rgb_t *yuv2rgb;
+
+  int delivered_format, colour_key, brightness, saturation, deinterlace_en;
 } pgx64_driver_t;
 
 /*
- * Dispose of any fb_alloc image data within a pgx64_frame_t
+ * Dispose of any free_mark key data within a pgx64_frame_t
  */
 
 static void dispose_frame_internals(pgx64_frame_t *frame)
@@ -168,21 +186,40 @@ static void dispose_frame_internals(pgx64_frame_t *frame)
 }
 
 /*
- * Paint the output area with the colour key and black borders
+ * Paint the output area with black borders and colour key (or chroma key image)
  */
 
 static void repaint_output_area(pgx64_driver_t *this)
 {
+  int i;
+
   XLockDisplay(this->display);
   XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[0].x, this->vo_scale.border[0].y, this->vo_scale.border[0].w, this->vo_scale.border[0].h);
-  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[1].x, this->vo_scale.border[1].y, this->vo_scale.border[1].w, this->vo_scale.border[1].h);
-  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[2].x, this->vo_scale.border[2].y, this->vo_scale.border[2].w, this->vo_scale.border[2].h);
-  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[3].x, this->vo_scale.border[3].y, this->vo_scale.border[3].w, this->vo_scale.border[3].h);
-  XSetForeground(this->display, this->gc, this->colour_key);
-  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
+  for (i=0; i<4; i++) {
+    XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[i].x, this->vo_scale.border[i].y, this->vo_scale.border[i].w, this->vo_scale.border[i].h);
+  }
+
+  pthread_mutex_lock(&this->key_mutex);
+  if (!this->key) {
+    XSetForeground(this->display, this->gc, this->colour_key);
+    XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
+  }
+  else {
+    XPutImage(this->display, this->drawable, this->gc, this->key, 0, 0, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->key_width, this->key_width);
+  }
+  pthread_mutex_unlock(&this->key_mutex);
+
   XFlush(this->display);
   XUnlockDisplay(this->display);
+}
+
+static void clear_key(pgx64_driver_t *this)
+{
+  int i;
+
+  for (i=0; i<(this->key_width*this->key_height); i++) {
+    ((uint32_t*)this->key->data)[i] = this->colour_key;
+  }
 }
 
 /*
@@ -191,23 +228,24 @@ static void repaint_output_area(pgx64_driver_t *this)
 
 static void vram_free_all(pgx64_driver_t* this)
 {
-  this->fb_alloc = this->fb_top;
+  this->free_mark = this->free_top;
 }
 
 static int vram_alloc(pgx64_driver_t* this, int size)
 {
-  if (this->fb_alloc - size < this->fb_bottom) {
+  if (this->free_mark - size < this->free_bottom) {
     return -1;
   }
   else {
-    this->fb_alloc -= size;
-    return this->fb_alloc;
+    this->free_mark -= size;
+    return this->free_mark;
   }
 }
 
 /*
  * Release detained frames
  */
+
 static void release_detained_frames(pgx64_driver_t* this)
 {
   int i;
@@ -276,14 +314,14 @@ static pgx64_frame_t* pgx64_alloc_frame(pgx64_driver_t *this)
 
   frame = (pgx64_frame_t*)malloc(sizeof(pgx64_frame_t));
   if (!frame) {
-    printf("video_out_pgx64: frame malloc failed\n");
+    printf("video_out_pgx64: Error: frame malloc failed\n");
     return NULL;
   }
   memset(frame, 0, sizeof(pgx64_frame_t));
 
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
-  frame->vo_frame.copy    = (void*)pgx64_frame_copy; 
+  frame->vo_frame.copy    = NULL; 
   frame->vo_frame.field   = (void*)pgx64_frame_field; 
   frame->vo_frame.dispose = (void*)pgx64_frame_dispose;
 
@@ -364,6 +402,37 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 
   if (vo_scale_redraw_needed(&this->vo_scale)) {  
     vo_scale_compute_output_size(&this->vo_scale);
+
+    pthread_mutex_lock(&this->key_mutex);
+    if ((this->ovl_mode == OVL_MODE_CHROMA_KEY) &&
+        ((this->vo_scale.output_width != this->key_width) ||
+         (this->vo_scale.output_height != this->key_height))) {
+      this->key_width  = this->vo_scale.output_width;
+      this->key_height = this->vo_scale.output_height;
+
+      if (this->key) {
+        XDestroyImage(this->key);
+      }
+      this->key = XCreateImage(this->display, this->visual, this->depth, ZPixmap, 0, NULL, this->key_width, this->key_height, 8, 0);
+      if (this->key) {
+        this->key->data = malloc(this->key_width * this->key_height * 4);
+        if (!this->key->data) {
+          XDestroyImage(this->key);
+          this->key = NULL;
+          pthread_mutex_unlock(&this->key_mutex);
+          printf("video_out_pgx64: Error: key image malloc failed\n");
+          return;
+        }
+      }
+      else {
+        pthread_mutex_unlock(&this->key_mutex);
+        printf("video_out_pgx64: Error: key image malloc failed\n");
+        return;
+      }
+      clear_key(this);
+    }
+    pthread_mutex_unlock(&this->key_mutex);
+
     repaint_output_area(this);
 
     this->vregs[BUS_CNTL] |= le2me_32(BUS_EXT_REG_EN);
@@ -380,13 +449,13 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     this->vregs[OVERLAY_GRAPHICS_KEY_MSK] = le2me_32(0xffffffff >> (32 - this->fb_depth));
 
     this->vregs[VIDEO_FORMAT] = le2me_32(frame->native_format);
-    this->vregs[SCALER_BUF_PITCH] = le2me_32(this->use_deinterlace ? frame->pitch*2 : frame->pitch);
+    this->vregs[SCALER_BUF_PITCH] = le2me_32(this->deinterlace_en ? frame->pitch*2 : frame->pitch);
     this->vregs[OVERLAY_X_Y_START] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
     this->vregs[OVERLAY_X_Y_END] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
-    this->vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->use_deinterlace ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
-    this->vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->use_deinterlace ? frame->height/2 : frame->height));
+    this->vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
+    this->vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->deinterlace_en ? frame->height/2 : frame->height));
 
-    if (this->use_exclusive) {
+    if (this->ovl_mode == OVL_MODE_EXCLUSIVE) {
       int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
       int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
 
@@ -430,7 +499,6 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
           }
           else {
             printf("video_out_pgx64: Warning: insuffucient video memory for multi-buffering\n");
-            vram_free_all(this);
             release_detained_frames(this);
             if (this->num_frames > 1) {
               this->buf_mode = BUF_MODE_DOUBLE;
@@ -453,7 +521,6 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
         }
         else {
           this->buffer_ptrs[this->num_frames][i] = this->vram + this->buffers[this->num_frames][i];
-          frame->vo_frame.copy = (void*)pgx64_frame_copy;
         }
       }
 
@@ -462,6 +529,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
         this->vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(this->buffers[frame->buffer][i]);
         memcpy(this->buffer_ptrs[frame->buffer][i], frame->vo_frame.base[i], frame->lengths[i]);
       }
+      frame->vo_frame.copy = (void*)pgx64_frame_copy;
     }
   }
   else {
@@ -477,7 +545,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     switch_buffers(this);
   }
 
-  if ((this->previous != NULL) && (this->current != frame)) {
+  if (this->previous != NULL) {
     this->previous->vo_frame.free(&this->previous->vo_frame);
   }
   this->previous = this->current;
@@ -517,11 +585,62 @@ static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_o
   }
 }
 
+static void pgx64_overlay_key_begin(pgx64_driver_t *this, pgx64_frame_t *frame, int changed)
+{
+  if (changed) {
+    pthread_mutex_lock(&this->key_mutex);
+    if (!this->key) {
+      pthread_mutex_unlock(&this->key_mutex);
+      return;
+    }
+    clear_key(this);
+    this->key_changed = 1;
+  }
+}
+
+static void pgx64_overlay_key_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
+{
+  if (overlay->rle) {
+    if (this->key_changed) {
+      if (!overlay->rgb_clut) {
+        int i;
+        clut_t *clut;
+
+        clut = (clut_t*)overlay->color;
+        for (i=0; i<OVL_PALETTE_SIZE; i++) {
+          overlay->color[i] = this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb, clut[i].y, clut[i].cb, clut[i].cr);
+        }
+        overlay->rgb_clut = 1;
+      }
+      if (!overlay->clip_rgb_clut) {
+        int i;
+        clut_t *clut;
+
+        clut = (clut_t*)overlay->clip_color;
+        for (i=0; i<OVL_PALETTE_SIZE; i++) {
+          overlay->clip_color[i] = this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb, clut[i].y, clut[i].cb, clut[i].cr);
+        }
+        overlay->clip_rgb_clut = 1;
+      }
+      blend_rgb32((uint8_t *)this->key->data, overlay, this->key_width, this->key_height, frame->width, frame->height);
+    }
+  }
+}
+
+static void pgx64_overlay_key_end(pgx64_driver_t *this, pgx64_frame_t *frame)
+{
+  if (this->key_changed) {
+    this->key_changed = 0;
+    pthread_mutex_unlock(&this->key_mutex);
+    repaint_output_area(this);
+  }
+}
+
 static int pgx64_get_property(pgx64_driver_t *this, int property)
 {
   switch (property) {
     case VO_PROP_INTERLACED:
-      return this->use_deinterlace;
+      return this->deinterlace_en;
     break;
 
     case VO_PROP_ASPECT_RATIO:
@@ -550,7 +669,7 @@ static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
 {
   switch (property) {
     case VO_PROP_INTERLACED: {
-      this->use_deinterlace = value;
+      this->deinterlace_en = value;
       this->vo_scale.force_redraw = 1;
     }
     break;
@@ -650,12 +769,8 @@ static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *da
 
 static int pgx64_redraw_needed(pgx64_driver_t *this)
 {
-  if (vo_scale_redraw_needed(&this->vo_scale)) {
-    if (this->current != NULL) {
-      this->vo_scale.force_redraw = 1;
-      pgx64_display_frame(this, this->current);
-    }
-
+  if (vo_scale_redraw_needed(&this->vo_scale)) {  
+    this->vo_scale.force_redraw = 1;
     return 1;
   }
 
@@ -664,6 +779,11 @@ static int pgx64_redraw_needed(pgx64_driver_t *this)
 
 static void pgx64_dispose(pgx64_driver_t *this)
 {
+  this->yuv2rgb->dispose(this->yuv2rgb);
+  this->yuv2rgb_factory->dispose(this->yuv2rgb_factory);
+  if (this->key != NULL) {
+    XDestroyImage(this->key);
+  }
   this->vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
   this->vregs[OVERLAY_SCALE_CNTL] = 0;
   this->vregs[BUS_CNTL] &= le2me_32(~BUS_EXT_REG_EN);
@@ -688,8 +808,33 @@ static void pgx64_config_changed(pgx64_driver_t *this, xine_cfg_entry_t *entry)
   else if (strcmp(entry->key, "video.pgx64_saturation") == 0) {
     pgx64_set_property(this, VO_PROP_SATURATION, entry->num_value);
   }
-  else if (strcmp(entry->key, "video.pgx64_use_exclusive") == 0) {
-    this->use_exclusive = entry->num_value;
+  else if (strcmp(entry->key, "video.pgx64_overlay_mode") == 0) {
+    pthread_mutex_lock(&this->key_mutex);
+    this->ovl_mode = entry->num_value;
+    if ((entry->num_value == OVL_MODE_CHROMA_KEY) && (this->visual->class != TrueColor)) {
+      printf("video_out_pgx64: Error: chroma keyed graphics require a true colour visual, reverting to alpha blending\n");
+      this->ovl_mode = OVL_MODE_ALPHA_BLEND;
+    }
+    else {
+      this->ovl_mode = entry->num_value;
+    }
+    if (this->ovl_mode == OVL_MODE_CHROMA_KEY) {
+      this->vo_driver.overlay_begin = (void*)pgx64_overlay_key_begin;
+      this->vo_driver.overlay_blend = (void*)pgx64_overlay_key_blend;
+      this->vo_driver.overlay_end   = (void*)pgx64_overlay_key_end;
+    }
+    else {
+      if (this->key != NULL) {
+        XDestroyImage(this->key);
+        this->key = NULL;
+        this->key_width = 0;
+        this->key_height = 0;
+      }
+      this->vo_driver.overlay_begin = NULL;
+      this->vo_driver.overlay_blend = (void*)pgx64_overlay_blend;
+      this->vo_driver.overlay_end   = NULL;
+    }
+    pthread_mutex_unlock(&this->key_mutex);
     this->vo_scale.force_redraw = 1;
   }
 }
@@ -717,6 +862,7 @@ static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visu
   int fbfd;
   void *baseaddr;
   struct fbgattr attr;
+  XWindowAttributes win_attrs;
 
   pthread_mutex_lock(&class->mutex);
   if (class->instance_count > 0) {
@@ -728,31 +874,31 @@ static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visu
 
   devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb", "name of pgx64 device", NULL, 10, NULL, NULL);
   if ((fbfd = open(devname, O_RDWR)) < 0) {
-    printf("video_out_pgx64: can't open framebuffer device '%s'\n", devname);
+    printf("video_out_pgx64: Error: can't open framebuffer device '%s'\n", devname);
     return NULL;
   }
 
   if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    printf("video_out_pgx64: ioctl failed, unable to determine framebuffer characteristics\n");
+    printf("video_out_pgx64: Error: ioctl failed, unable to determine framebuffer characteristics\n");
     close(fbfd);
     return NULL;
   }
 
   if (attr.real_type != 22) {
-    printf("video_out_pgx64: '%s' is not a mach64 framebuffer device\n", devname);
+    printf("video_out_pgx64: Error: '%s' is not a mach64 framebuffer device\n", devname);
     close(fbfd);
     return NULL;
   }
 
   if ((baseaddr = mmap(0, FB_ADDRSPACE, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
-    printf("video_out_pgx64: unable to memory map framebuffer\n");
+    printf("video_out_pgx64: Error: unable to memory map framebuffer\n");
     close(fbfd);
     return NULL;
   }
 
   this = (pgx64_driver_t*)malloc(sizeof(pgx64_driver_t));
   if (!this) {
-    printf("video_out_pgx64: driver malloc failed\n");
+    printf("video_out_pgx64: Error: driver malloc failed\n");
     return NULL;
   }
   memset(this, 0, sizeof(pgx64_driver_t));
@@ -760,9 +906,9 @@ static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visu
   this->vo_driver.get_capabilities     = (void*)pgx64_get_capabilities;
   this->vo_driver.alloc_frame          = (void*)pgx64_alloc_frame;
   this->vo_driver.update_frame_format  = (void*)pgx64_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_begin        = NULL;
   this->vo_driver.overlay_blend        = (void*)pgx64_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.overlay_end          = NULL;
   this->vo_driver.display_frame        = (void*)pgx64_display_frame;
   this->vo_driver.get_property         = (void*)pgx64_get_property;
   this->vo_driver.set_property         = (void*)pgx64_set_property;
@@ -785,11 +931,16 @@ static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visu
   this->drawable = ((x11_visual_t*)visual_gen)->d;
   this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
 
+  XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+  this->depth  = win_attrs.depth;
+  this->visual = win_attrs.visual;
+
   this->fbfd = fbfd;
   this->vram = (uint8_t*)baseaddr;
   this->vregs = (uint32_t*)baseaddr + FB_REGSBASE;
-  this->fb_top = attr.sattr.dev_specific[0];
-  this->fb_bottom = attr.fbtype.fb_size;
+  this->free_top = attr.sattr.dev_specific[0];
+  this->free_bottom = attr.sattr.dev_specific[5] + attr.fbtype.fb_size;
+  this->fb_base = this->vram + attr.sattr.dev_specific[5];
   this->fb_width = attr.fbtype.fb_width;
   this->fb_height = attr.fbtype.fb_height;
   this->fb_depth = attr.fbtype.fb_depth;
@@ -797,7 +948,24 @@ static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visu
   this->colour_key = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, (void*)pgx64_config_changed, this);
   this->brightness = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, (void*)pgx64_config_changed, this);
   this->saturation = class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, (void*)pgx64_config_changed, this);
-  this->use_exclusive = class->config->register_bool(this->class->config, "video.pgx64_use_exclusive", 0, "use exclusive video overlays", NULL, 10, (void*)pgx64_config_changed, this);
+  this->ovl_mode = class->config->register_enum(this->class->config, "video.pgx64_overlay_mode", 0, (char**)overlay_modes, "video overlay mode", NULL, 10, (void*)pgx64_config_changed, this);
+
+  pthread_mutex_init(&this->key_mutex, NULL);
+  if ((this->ovl_mode == OVL_MODE_CHROMA_KEY) && (this->visual->class != TrueColor)) {
+    printf("video_out_pgx64: Error: chroma keyed graphics require a true colour visual, reverting to alpha blending\n");
+    this->ovl_mode = OVL_MODE_ALPHA_BLEND;
+  }
+  else if (this->ovl_mode == OVL_MODE_CHROMA_KEY) {
+    this->vo_driver.overlay_begin = (void*)pgx64_overlay_key_begin;
+    this->vo_driver.overlay_blend = (void*)pgx64_overlay_key_blend;
+    this->vo_driver.overlay_end   = (void*)pgx64_overlay_key_end;
+  }
+  if (((this->yuv2rgb_factory = yuv2rgb_factory_init(MODE_32_RGB, 0, NULL)) == NULL) ||
+      ((this->yuv2rgb = this->yuv2rgb_factory->create_converter(this->yuv2rgb_factory)) == NULL)) {
+    printf("video_out_pgx64: Error: yuv2rgb malloc failed\n");
+    free(this);
+    return NULL;
+  }
 
   return this;
 }
@@ -814,25 +982,26 @@ static char* pgx64_get_description(pgx64_driver_class_t *this)
 
 static pgx64_driver_class_t* pgx64_init_class(xine_t *xine, void *visual_gen)
 {
-  pgx64_driver_class_t *this;
+  pgx64_driver_class_t *class;
 
-  if ((this = (pgx64_driver_class_t*)malloc(sizeof(pgx64_driver_class_t))) == NULL) {
-    printf("video_out_pgx64: driver class malloc failed\n");
+  class = (pgx64_driver_class_t*)malloc(sizeof(pgx64_driver_class_t));
+  if (!class) {
+    printf("video_out_pgx64: Error: driver class malloc failed\n");
     return NULL;
   }
-  memset(this, 0, sizeof(pgx64_driver_class_t));
+  memset(class, 0, sizeof(pgx64_driver_class_t));
 
-  this->vo_driver_class.open_plugin     = (void*)pgx64_init_driver;
-  this->vo_driver_class.get_identifier  = (void*)pgx64_get_identifier;
-  this->vo_driver_class.get_description = (void*)pgx64_get_description;
-  this->vo_driver_class.dispose         = (void*)pgx64_dispose_class;
+  class->vo_driver_class.open_plugin     = (void*)pgx64_init_driver;
+  class->vo_driver_class.get_identifier  = (void*)pgx64_get_identifier;
+  class->vo_driver_class.get_description = (void*)pgx64_get_description;
+  class->vo_driver_class.dispose         = (void*)pgx64_dispose_class;
 
-  this->xine   = xine;
-  this->config = xine->config;
+  class->xine   = xine;
+  class->config = xine->config;
 
-  pthread_mutex_init(&this->mutex, NULL);
+  pthread_mutex_init(&class->mutex, NULL);
 
-  return this;
+  return class;
 }
 
 plugin_info_t xine_plugin_info[] = {

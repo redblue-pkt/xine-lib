@@ -1,7 +1,3 @@
-/*TOAST_SPU will define ALL spu entries - no matter the tranparency*/
-/*#define TOAST_SPU*/
-/* #define PRIV_CLUT */
-/* Currently only blend_yuv(..) works */
 /*
  *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
@@ -71,19 +67,6 @@ static void mem_blend24(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
   }
 }
 
-static void mem_blend24_32(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
- uint8_t o, int len) {
-  uint8_t *limit = mem + len*4;
-  while (mem < limit) {
-    *mem = BLEND_BYTE(*mem, r, o);
-    mem++;
-    *mem = BLEND_BYTE(*mem, g, o);
-    mem++;
-    *mem = BLEND_BYTE(*mem, b, o);
-    mem += 2;
-  }
-}
-
 static void mem_blend32(uint8_t *mem, uint8_t *src, uint8_t o, int len) {
   uint8_t *limit = mem + len*4;
   while (mem < limit) {
@@ -97,7 +80,6 @@ static void mem_blend32(uint8_t *mem, uint8_t *src, uint8_t o, int len) {
     mem++;
   }
 }
-
 
 /*
  * Some macros for fixed point arithmetic.
@@ -687,9 +669,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
         } else if( clip_right < x + rlelen ) {
           if( clip_right > x ) {
             x2_scaled = SCALED_TO_INT( clip_right * x_scale);
-            mem_blend24_32(img_pix + x1_scaled*4, clut[clr].cb,
-                    clut[clr].cr, clut[clr].y,
-                    o, x2_scaled-x1_scaled);
+            mem_blend32(img_pix + x1_scaled*4, (uint8_t *)&clut[clr], o, x2_scaled-x1_scaled);
             o = 0;            
           } else {
             o = 0;
@@ -699,9 +679,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 
       x2_scaled = SCALED_TO_INT((x + rlelen) * x_scale);
       if (o && mask) {
-        mem_blend24_32(img_pix + x1_scaled*4, clut[clr].cb,
-                    clut[clr].cr, clut[clr].y,
-                    o, x2_scaled-x1_scaled);
+        mem_blend32(img_pix + x1_scaled*4, (uint8_t *)&clut[clr], o, x2_scaled-x1_scaled);
       }
 
       x1_scaled = x2_scaled;

@@ -1,5 +1,5 @@
 xine-lib (1-rc1)
-  * fix incorrect overlay colours when X server has a big-endian pixel format
+  * fix incorrect colours when blending frame with a big-endian RGB pixel format
   * add support for chroma keyed overlay graphics to video_out_pgx64
   * add support for double and multi-buffering to video_out_pgx64
   * libdvdnav: fix some undetected stills (fixes "Red Dragon" RC2 scene selection)
