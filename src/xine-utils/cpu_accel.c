@@ -89,7 +89,7 @@ static uint32_t x86_accel (void)
 
   caps = MM_ACCEL_X86_MMX;
   if (edx & 0x02000000)       /* SSE - identical to AMD MMX extensions */
-    caps = MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT;
+    caps |= MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT;
 
   if (edx & 0x04000000)       /* SSE2 */
     caps |= MM_ACCEL_X86_SSE2;  
