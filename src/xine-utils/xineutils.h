@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.80 2004/03/03 19:59:43 mroi Exp $
+ * $Id: xineutils.h,v 1.81 2004/03/18 16:50:00 komadori Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -723,7 +723,7 @@ static inline void _private_setenv(const char *name, const char *val, int _xx) {
   
   sprintf(env, "%s%c%s", name, '=', val);
   putenv(env);
-  free(env);
+  /*free(env); The string passed to putenv must not be freed*/
 }
 #define	xine_setenv	_private_setenv
 #endif
