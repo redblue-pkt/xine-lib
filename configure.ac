@@ -621,7 +621,6 @@ AC_CHECK_LIB(dga, XDgaGrabDrawable, [
 	AC_CHECK_HEADER(dga/dga.h, [
 	        SUNDGA_CFLAGS="-I/usr/openwin/include"
 		SUNDGA_LIBS="-ldga"
-		AC_DEFINE(HAVE_SUNDGA,1,[Define this you have Sun DGA])
 		ac_have_sundga=yes
 	],
 	)
@@ -2239,8 +2238,8 @@ if test x"$no_x" != "xyes"; then
     echo "   - OpenGL"
   fi
   if test x$ac_have_sunfb = "xyes"; then
-    echo "   - PGX64 (for Sun PGX64/PGX24 cards)"
     if test x$ac_have_sundga = "xyes"; then
+      echo "   - PGX64 (for Sun PGX64/PGX24 cards)"
       echo "   - PGX32 (for Sun PGX32 cards)"
     fi
   fi

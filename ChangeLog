@@ -22,9 +22,9 @@ xine-lib (1-rc4)
     pan&scan content
   * DXR3: fix libavcodec encoder for frame widths not a multiple of 16
   * mediaLib now used for bilinear scaling
-  * video_out_pgx32 now properly clips video output
-  * video_out_pgx64 now disables overlay when fully occluded, fixed displaying
-    some frames out of order when multi-buffering.
+  * video_out_pgx32: properly clips video output
+  * video_out_pgx64: fixed displaying frames out of order when multi-buffering,
+    automatically manages overlay mode based on degree of occlusion.
   * DXR3: option to use Pan & Scan information embedded in MPEG and DVB streams
   * disable AUD content detection because of false positives
   * fix Real pnm/rtsp streaming on big endian platforms

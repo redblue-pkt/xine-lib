@@ -31,8 +31,8 @@ if HAVE_SYNCFB
 syncfb_module = xineplug_vo_out_syncfb.la
 endif
 if HAVE_SUNFB
-pgx64_module = xineplug_vo_out_pgx64.la
 if HAVE_SUNDGA
+pgx64_module = xineplug_vo_out_pgx64.la
 pgx32_module = xineplug_vo_out_pgx32.la
 endif
 endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.55 2004/04/16 12:17:03 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.56 2004/04/25 15:05:31 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -41,10 +41,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
-
-#ifdef HAVE_SUNDGA
 #include <dga/dga.h>
-#endif
 
 #include "xine_internal.h"
 #include "alphablend.h"
@@ -118,19 +115,6 @@ static const int scaler_regs_table[2][3] = {
   {SCALER_BUF1_OFFSET, SCALER_BUF1_OFFSET_U, SCALER_BUF1_OFFSET_V}
 };
 
-/* Overlay modes */
-
-#define OVL_MODE_ALPHA_BLEND 0
-#define OVL_MODE_EXCLUSIVE   1
-#define OVL_MODE_CHROMA_KEY  2
-
-static const char *overlay_modes[] = {
-  "alpha blend to normal overlay",
-  "alpha blend to exclusive overlay",
-  "chroma key graphics",
-  NULL
-};
-
 /* Structures */
 
 struct pgx64_overlay_s {
@@ -175,17 +159,15 @@ typedef struct {
   uint8_t *vbase, *buffer_ptrs[2][3];
 
   Display *display;
-  int screen, depth, dgavis;
+  int screen, depth;
   Visual *visual;
   Drawable drawable;
   Colormap cmap;
   GC gc;
-#ifdef HAVE_SUNDGA
   Dga_drawable dgadraw;
-#endif
 
-  int ovl_mode, ovl_changed, ovl_regen_needed;
-  pthread_mutex_t ovl_mutex;
+  int chromakey_en, chromakey_changed, chromakey_regen_needed;
+  pthread_mutex_t chromakey_mutex;
   pgx64_overlay_t *first_overlay;
 
   int multibuf_en, buf_mode, dblbuf_select, delivered_format;
@@ -251,11 +233,11 @@ static void repaint_output_area(pgx64_driver_t *this)
   XFlush(this->display);
   XUnlockDisplay(this->display);
 
-  pthread_mutex_lock(&this->ovl_mutex);
-  if (this->ovl_mode == OVL_MODE_CHROMA_KEY) {
+  pthread_mutex_lock(&this->chromakey_mutex);
+  if (this->chromakey_en) {
     draw_overlays(this);
   }
-  pthread_mutex_unlock(&this->ovl_mutex);
+  pthread_mutex_unlock(&this->chromakey_mutex);
 }
 
 /*
@@ -456,10 +438,17 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     }
   }
 
+  DGA_DRAW_LOCK(this->dgadraw, -1);
+  this->vo_scale.force_redraw = this->vo_scale.force_redraw || DGA_DRAW_MODIF(this->dgadraw);
+  DGA_DRAW_UNLOCK(this->dgadraw);
+
   if (_x_vo_scale_redraw_needed(&this->vo_scale)) {  
+    short int *cliprects, wx0, wy0, wx1, wy1, cx0, cy0, cx1, cy1;
+    int dgavis;
+
     _x_vo_scale_compute_output_size(&this->vo_scale);
     repaint_output_area(this);
-    this->ovl_regen_needed = 1;
+    this->chromakey_regen_needed = 1;
 
     vregs[BUS_CNTL] |= le2me_32(BUS_EXT_REG_EN);
     vregs[OVERLAY_SCALE_CNTL] = 0;
@@ -482,23 +471,40 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->deinterlace_en ? frame->height/2 : frame->height));
 
-#ifdef HAVE_SUNDGA
+    wx0 = this->vo_scale.gui_win_x + this->vo_scale.output_xoffset;
+    wy0 = this->vo_scale.gui_win_y + this->vo_scale.output_yoffset;
+    wx1 = wx0 + this->vo_scale.output_width;
+    wy1 = wy0 + this->vo_scale.output_height;
+
     DGA_DRAW_LOCK(this->dgadraw, -1);
-    this->dgavis = dga_draw_visibility(this->dgadraw);
-    DGA_DRAW_UNLOCK(this->dgadraw);
-#endif
+    dgavis = DGA_VIS_FULLY_OBSCURED;
+    cliprects = dga_draw_clipinfo(this->dgadraw);
+    while ((cy0 = *cliprects++) != DGA_Y_EOL) {
+      cy1 = *cliprects++;
+      while ((cx0 = *cliprects++) != DGA_X_EOL) {
+        cx1 = *cliprects++;
 
-    if (this->dgavis != DGA_VIS_FULLY_OBSCURED) {
-      if (this->ovl_mode == OVL_MODE_EXCLUSIVE) {
-        int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
-        int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
-
-        vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
-        vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
+        if (((cx0 >= wx0) && (cy0 >= wy0)) || ((cx1 <= wx1) && (cy1 <= wy1))) {
+          dgavis = DGA_VIS_PARTIALLY_OBSCURED;
+        }
+        if ((cx0 <= wx0) && (cy0 <= wy0) && (cx1 >= wx1) && (cy1 >= wy1)) {
+          dgavis = DGA_VIS_UNOBSCURED;
+        }
       }
+    }
 
+    if (dgavis == DGA_VIS_UNOBSCURED) {
+      int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
+      int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
+
+      vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
+      vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
+    }
+
+    if (dgavis != DGA_VIS_FULLY_OBSCURED) {
       vregs[OVERLAY_SCALE_CNTL] = le2me_32(OVERLAY_SCALE_EN);
     }
+    DGA_DRAW_UNLOCK(this->dgadraw);
   }
 
   if (this->buf_mode == BUF_MODE_MULTI) {
@@ -595,12 +601,12 @@ static void pgx64_overlay_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen, in
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   /*pgx64_frame_t *frame = (pgx64_frame_t *)frame_gen;*/
 
-  if ((this->ovl_mode == OVL_MODE_CHROMA_KEY) && (changed || this->ovl_regen_needed)) {
+  if ((this->chromakey_en) && (changed || this->chromakey_regen_needed)) {
     pgx64_overlay_t *ovl, *next_ovl;
 
-    this->ovl_regen_needed = 0;
-    this->ovl_changed = 1;
-    pthread_mutex_lock(&this->ovl_mutex);
+    this->chromakey_regen_needed = 0;
+    this->chromakey_changed = 1;
+    pthread_mutex_lock(&this->chromakey_mutex);
 
     XLockDisplay(this->display);
     XSetForeground(this->display, this->gc, this->colour_key);
@@ -627,7 +633,7 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   pgx64_frame_t *frame = (pgx64_frame_t *)frame_gen;
 
-  pgx64_overlay_t *ovl, **ovl_ptr;
+  pgx64_overlay_t *ovl, **chromakey_ptr;
   int x_scale, y_scale, i, x, y, len, width;
   int use_clip_palette, max_palette_colour[2];
   unsigned long palette[2][OVL_PALETTE_SIZE];
@@ -744,11 +750,11 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
   }
   XUnlockDisplay(this->display);
 
-  ovl_ptr = &this->first_overlay;
-  while ( *ovl_ptr != NULL) {
-    ovl_ptr = &( *ovl_ptr)->next;
+  chromakey_ptr = &this->first_overlay;
+  while ( *chromakey_ptr != NULL) {
+    chromakey_ptr = &( *chromakey_ptr)->next;
   }
-  *ovl_ptr = ovl;
+  *chromakey_ptr = ovl;
 }
 
 static void pgx64_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay)
@@ -757,7 +763,7 @@ static void pgx64_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
   pgx64_frame_t *frame = (pgx64_frame_t *)frame_gen;
 
   if (overlay->rle) {
-    if (this->ovl_changed) {
+    if (this->chromakey_changed) {
       pgx64_overlay_key_blend(this_gen, frame_gen, overlay);
     }
     else {
@@ -797,10 +803,10 @@ static void pgx64_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   /*pgx64_frame_t *frame = (pgx64_frame_t *)frame_gen;*/
 
-  if (this->ovl_changed) {
+  if (this->chromakey_changed) {
     draw_overlays(this);
-    pthread_mutex_unlock(&this->ovl_mutex);
-    this->ovl_changed = 0;
+    pthread_mutex_unlock(&this->chromakey_mutex);
+    this->chromakey_changed = 0;
   }
 }
 
@@ -915,20 +921,16 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
       XWindowAttributes win_attrs;
 
       XLockDisplay(this->display);
-#ifdef HAVE_SUNDGA
       XDgaUnGrabDrawable(this->dgadraw);
-#endif
       XFreeGC(this->display, this->gc);
-      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-      this->depth    = win_attrs.depth;
-      this->visual   = win_attrs.visual;
       this->drawable = (Drawable)data;
-      this->cmap     = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
-      XSetWindowColormap(this->display, this->drawable, this->cmap);
       this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
-#ifdef HAVE_SUNDGA
       this->dgadraw  = XDgaGrabDrawable(this->display, this->drawable);
-#endif
+      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+      this->depth  = win_attrs.depth;
+      this->visual = win_attrs.visual;
+      this->cmap   = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
+      XSetWindowColormap(this->display, this->drawable, this->cmap);
       XUnlockDisplay(this->display);
     }
     break;
@@ -961,15 +963,13 @@ static int pgx64_redraw_needed(vo_driver_t *this_gen)
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   int modif = 0;
 
-#ifdef HAVE_SUNDGA
   DGA_DRAW_LOCK(this->dgadraw, -1);
   modif = DGA_DRAW_MODIF(this->dgadraw);
   DGA_DRAW_UNLOCK(this->dgadraw);
-#endif
 
   if (modif || _x_vo_scale_redraw_needed(&this->vo_scale)) {  
     this->vo_scale.force_redraw = 1;
-    this->ovl_regen_needed = 1;
+    this->chromakey_regen_needed = 1;
     return 1;
   }
 
@@ -986,9 +986,7 @@ static void pgx64_dispose(vo_driver_t *this_gen)
 
   XLockDisplay (this->display);
   XFreeColormap(this->display, this->cmap);
-#ifdef HAVE_SUNDGA
   XDgaUnGrabDrawable(this->dgadraw);
-#endif
   XFreeGC(this->display, this->gc);
   XUnlockDisplay (this->display);
 
@@ -1017,7 +1015,7 @@ static void pgx64_config_changed(void *user_data, xine_cfg_entry_t *entry)
     pgx64_set_property(this_gen, VO_PROP_SATURATION, entry->num_value);
   }
   else if (strcmp(entry->key, "video.pgx64_overlay_mode") == 0) {
-    this->ovl_mode = entry->num_value;
+    this->chromakey_en = entry->num_value;
   }
   else if (strcmp(entry->key, "video.pgx64_multibuf_en") == 0) {
     this->multibuf_en = entry->num_value;
@@ -1059,20 +1057,20 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
   class->instance_count++;
   pthread_mutex_unlock(&class->mutex);
 
-  devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb", "name of pgx64 device", NULL, 10, NULL, NULL);
+  devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb", _("path to pgx64/pgx24 device"), NULL, 10, NULL, NULL);
   if ((fbfd = open(devname, O_RDWR)) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: can't open framebuffer device '%s'\n", devname);
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: can't open framebuffer device '%s'\n"), devname);
     return NULL;
   }
 
   if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: ioctl failed, unable to determine framebuffer characteristics\n");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: ioctl failed, bad device\n"));
     close(fbfd);
     return NULL;
   }
 
   if (attr.real_type != 22) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: '%s' is not a mach64 framebuffer device\n", devname);
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: '%s' is not a pgx64/pgx24 framebuffer device\n"), devname);
     close(fbfd);
     return NULL;
   }
@@ -1124,9 +1122,7 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
 
   XLockDisplay(this->display);
   this->gc      = XCreateGC(this->display, this->drawable, 0, NULL);
-#ifdef HAVE_SUNDGA
   this->dgadraw = XDgaGrabDrawable(this->display, this->drawable);
-#endif
 
   XGetWindowAttributes(this->display, this->drawable, &win_attrs);
   this->depth  = win_attrs.depth;
@@ -1135,13 +1131,13 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
   XSetWindowColormap(this->display, this->drawable, this->cmap);
   XUnlockDisplay(this->display);
 
-  this->colour_key  = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, pgx64_config_changed, this);
-  this->brightness  = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, pgx64_config_changed, this);
-  this->saturation  = class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, pgx64_config_changed, this);
-  this->ovl_mode    = class->config->register_enum(this->class->config, "video.pgx64_overlay_mode", 0, (char **)overlay_modes, "video overlay mode", NULL, 10, pgx64_config_changed, this);
-  this->multibuf_en = class->config->register_bool(this->class->config, "video.pgx64_multibuf_en", 1, "enable multi-buffering", NULL, 10, pgx64_config_changed, this);
+  this->colour_key   = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1, _("video overlay colour key"), NULL, 10, pgx64_config_changed, this);
+  this->brightness   = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, _("video overlay brightness"), NULL, 10, pgx64_config_changed, this);
+  this->saturation   = class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31, _("video overlay saturation"), NULL, 10, pgx64_config_changed, this);
+  this->chromakey_en = class->config->register_bool(this->class->config, "video.pgx64_chromakey_en", 0, _("enable chroma keying"), NULL, 10, pgx64_config_changed, this);
+  this->multibuf_en  = class->config->register_bool(this->class->config, "video.pgx64_multibuf_en", 1, _("enable multi-buffering"), NULL, 10, pgx64_config_changed, this);
 
-  pthread_mutex_init(&this->ovl_mutex, NULL);
+  pthread_mutex_init(&this->chromakey_mutex, NULL);
 
   return (vo_driver_t *)this;
 }
@@ -1165,9 +1161,7 @@ static void *pgx64_init_class(xine_t *xine, void *visual_gen)
     return NULL;
   }
 
-#ifdef HAVE_SUNDGA
   DGA_INIT();
-#endif
 
   class->vo_driver_class.open_plugin     = pgx64_init_driver;
   class->vo_driver_class.get_identifier  = pgx64_get_identifier;

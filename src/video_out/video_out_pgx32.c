@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.4 2004/04/16 12:17:03 komadori Exp $
+ * $Id: video_out_pgx32.c,v 1.5 2004/04/25 15:05:31 komadori Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -59,11 +59,15 @@
 #define FIFO_SPACE 0x0003
 
 #define RASTERISER_MODE 0x1014
-#define AREA_STIPPLE_MODE 0x1034
-#define WINDOW_ORIGIN 0x1039
 
 #define RECT_ORIGIN 0x101A
 #define RECT_SIZE 0x101B
+
+#define SCISSOR_MODE 0x1030
+#define SCISSOR_MIN_XY 0x1031
+#define SCISSOR_MAX_XY 0x1032
+#define AREA_STIPPLE_MODE 0x1034
+#define WINDOW_ORIGIN 0x1039
 
 #define DY 0x1005
 
@@ -87,15 +91,10 @@
 #define LOGICAL_OP_MODE 0x1105
 #define STENCIL_MODE 0x1131
 
-#define READ_MODE 0x1150
 #define WRITE_MODE 0x1157
 #define WRITE_MASK 0x1158
 
 #define YUV_MODE 0x11E0
-
-#define SCISSOR_MODE 0x1030
-#define SCISSOR_MIN_XY 0x1031
-#define SCISSOR_MAX_XY 0x1032
 
 #define RENDER 0x1007
 #define RENDER_BEGIN 0x00000000006020C0L
@@ -165,11 +164,11 @@ typedef struct {
 
   pgx32_frame_t *current;
 
-  int fbfd, fb_width, fb_height, fb_depth, screen_pitch_code;
+  int fbfd, fb_width, fb_height, fb_depth;
   uint8_t *vbase;
 
   Display *display;
-  int screen, depth, dgavis;
+  int screen, depth;
   Visual *visual;
   Drawable drawable;
   GC gc;
@@ -203,6 +202,51 @@ static void dispose_frame_internals(pgx32_frame_t *frame)
 }
 
 /*
+ * Convert yuy2 frame/slice to GFXP internal YUV format
+ */
+
+static uint32_t *convert_yuy2(uint32_t *src, int width, int pitch, int height, uint32_t *dst)
+{
+  int l, x;
+
+  for (l=0; l<height; l++) {
+    for(x=0; x<(width+1)/2; x++) {
+      *(dst++) = (*src >> 16) | ((*src & 0xffff) << 16);
+      src++;
+    }
+    dst += (pitch-width)/2;
+  }
+
+  return dst;
+}
+
+/*
+ * Convert yv12 frame/slice to GFXP internal YUV format
+ */
+
+static uint32_t *convert_yv12(uint16_t *ysrc, uint8_t *usrc, uint8_t *vsrc, int width, int pitch, int height, uint32_t *dst)
+{
+  int l, x, y, u, v;
+
+  for (l=0; l<height; l++) {
+    if (l & 1) {
+      usrc -= (width+1)/2;
+      vsrc -= (width+1)/2;
+    }
+
+    for (x=0; x<(width+1)/2; x++) {
+      y = *(ysrc++);
+      u = *(usrc++);
+      v = *(vsrc++);
+      *(dst++) = ((y & 0x00ff) << 24) | (v << 16) | (y & 0xff00) | u;
+    }
+    dst += (pitch-width)/2;
+  }
+
+  return dst;
+}
+
+/*
  * XINE VIDEO DRIVER FUNCTIONS
  */
 
@@ -213,49 +257,12 @@ static void pgx32_frame_proc_frame(vo_frame_t *frame_gen)
   frame->vo_frame.proc_called = 1;
 
   switch (frame->format) {
-    case XINE_IMGFMT_YUY2: {
-      int i, x;
-      uint32_t *src, *dst, pixel;
-
-      src = (uint32_t *)(void *)frame->vo_frame.base[0];
-      dst = frame->stripe_dst;
-
-      for (i=0; i<frame->height; i++) {
-        for(x=0; x<frame->vo_frame.pitches[0]/4; x++) {
-          pixel = *(src++);
-          *(dst++) = (pixel >> 16) | ((pixel & 0xffff) << 16);
-        }
-        dst += (frame->pitch-frame->width)/2;
-      }
-    }
+    case XINE_IMGFMT_YUY2:
+      convert_yuy2((uint32_t *)(void *)frame->vo_frame.base[0], frame->width, frame->pitch, frame->height, frame->stripe_dst);
     break;
 
-    case XINE_IMGFMT_YV12: {
-      int i, x;
-      uint16_t *yptr, y;
-      uint8_t *uptr, *vptr, u, v;
-      uint32_t *dst;
-
-      yptr = (uint16_t *)(void *)frame->vo_frame.base[0];
-      uptr = frame->vo_frame.base[1];
-      vptr = frame->vo_frame.base[2];
-      dst = frame->stripe_dst;
-
-      for (i=0; i<frame->height; i++) {
-        if (i & 1) {
-          uptr -= frame->vo_frame.pitches[1];
-          vptr -= frame->vo_frame.pitches[2];
-        }
-
-        for(x=0; x<frame->vo_frame.pitches[0]/2; x++) {
-          y = *(yptr++);
-          u = *(uptr++);
-          v = *(vptr++);
-          *(dst++) = ((y & 0x00ff) << 24) | (v << 16) | (y & 0xff00) | u;
-        }
-        dst += (frame->pitch-frame->width)/2;
-      }
-    }
+    case XINE_IMGFMT_YV12:
+      convert_yv12((uint16_t *)(void *)frame->vo_frame.base[0], frame->vo_frame.base[1], frame->vo_frame.base[2], frame->width, frame->pitch, frame->height, frame->stripe_dst);
     break;
   }
 }
@@ -263,63 +270,20 @@ static void pgx32_frame_proc_frame(vo_frame_t *frame_gen)
 static void pgx32_frame_proc_slice(vo_frame_t *frame_gen, uint8_t **src)
 {
   pgx32_frame_t *frame = (pgx32_frame_t *)frame_gen;
+  int slice_height;
 
   frame->vo_frame.proc_called = 1;
 
+  slice_height = (frame->lines_remaining > 16) ? 16 : frame->lines_remaining;
+  frame->lines_remaining -= slice_height;
+
   switch (frame->format) {
-    case XINE_IMGFMT_YUY2: {
-      int i, x, len;
-      uint32_t *yptr, *dst, pixel;
-
-      yptr = (uint32_t *)(void *)src[0];
-      dst = frame->stripe_dst;
-
-      len = (frame->lines_remaining > 16) ? 16 : frame->lines_remaining;
-      frame->lines_remaining -= len;
-
-      for (i=0; i<len; i++) {
-        for(x=0; x<frame->vo_frame.pitches[0]/4; x++) {
-          pixel = *(yptr++);
-          *(dst++) = (pixel >> 16) | ((pixel & 0xffff) << 16);
-        }
-        dst += (frame->pitch-frame->width)/2;
-      }
-
-      frame->stripe_dst = dst;
-    }
+    case XINE_IMGFMT_YUY2:
+      frame->stripe_dst = convert_yuy2((uint32_t *)(void *)src[0], frame->width, frame->pitch, slice_height, frame->stripe_dst);
     break;
 
-    case XINE_IMGFMT_YV12: {
-      int i, x, len;
-      uint16_t *yptr, y;
-      uint8_t *uptr, *vptr, u, v;
-      uint32_t *dst;
-
-      yptr = (uint16_t *)(void *)src[0];
-      uptr = src[1];
-      vptr = src[2];
-      dst = frame->stripe_dst;
-
-      len = (frame->lines_remaining > 16) ? 16 : frame->lines_remaining;
-      frame->lines_remaining -= len;
-
-      for (i=0; i<len; i++) {
-        if (i & 1) {
-          uptr -= frame->vo_frame.pitches[1];
-          vptr -= frame->vo_frame.pitches[2];
-        }
-
-        for(x=0; x<frame->vo_frame.pitches[0]/2; x++) {
-          y = *(yptr++);
-          u = *(uptr++);
-          v = *(vptr++);
-          *(dst++) = ((y & 0x00ff) << 24) | (v << 16) | (y & 0xff00) | u;
-        }
-        dst += (frame->pitch-frame->width)/2;
-      }
-
-      frame->stripe_dst = dst;
-    }
+    case XINE_IMGFMT_YV12:
+      frame->stripe_dst = convert_yv12((uint16_t *)(void *)src[0], src[1], src[2], frame->width, frame->pitch, slice_height, frame->stripe_dst);
     break;
   }
 }
@@ -434,7 +398,8 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   pgx32_driver_t *this = (pgx32_driver_t *)(void *)this_gen;
   pgx32_frame_t *frame = (pgx32_frame_t *)frame_gen;
   volatile uint64_t *vregs = (void *)(this->vbase+GFXP_REGSBASE);
-  short int *cliprects;
+
+  short int *cliprects, wx0, wy0, wx1, wy1, cx0, cy0, cx1, cy1;
 
   if ((frame->width != this->vo_scale.delivered_width) ||
       (frame->height != this->vo_scale.delivered_height) ||
@@ -464,94 +429,82 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
   memcpy((this->vbase+GFXP_VRAM_MMAPLEN)-frame->packedlen, frame->packedbuf, frame->packedlen);
 
+  XLockDisplay(this->display);
   DGA_DRAW_LOCK(this->dgadraw, -1);
-  if (DGA_DRAW_MODIF(this->dgadraw)) {
-    this->dgavis = dga_draw_visibility(this->dgadraw);
-  }
+
+  while(le2me_64(vregs[FIFO_SPACE]) < 24) {}
+
+  vregs[RASTERISER_MODE] = 0;
+  vregs[SCISSOR_MODE] = 0;
+  vregs[AREA_STIPPLE_MODE] = 0;
+  vregs[WINDOW_ORIGIN] = 0;
+
+  vregs[DY] = le2me_64(1 << 16);
+
+  vregs[TEXTURE_ADDR_MODE] = le2me_64(1);
+  vregs[SSTART] = 0;
+  vregs[DSDX] = le2me_64((frame->width << 20) / this->vo_scale.output_width);
+  vregs[DSDY_DOM] = 0;
+  vregs[TSTART] = 0;
+  vregs[DTDX] = 0;
+  vregs[DTDY_DOM] = le2me_64((frame->height << 20) / this->vo_scale.output_height);
+
+  vregs[TEXTURE_MAP_FORMAT] = le2me_64((1 << 19) | frame->pitch_code);
+
+  vregs[TEXTURE_DATA_FORMAT] = le2me_64(0x63);
+  vregs[TEXTURE_READ_MODE] = le2me_64((1 << 17) | (11 << 13) | (11 << 9) | 1);
+  vregs[TEXTURE_COLOUR_MODE] = le2me_64((0 << 4) | (3 << 1) | 1);
+
+  vregs[SHADING_MODE] = 0;
+  vregs[ALPHA_BLENDING_MODE] = 0;
+  vregs[DITHERING_MODE] = le2me_64((1 << 10) | 1);
+  vregs[LOGICAL_OP_MODE] = 0;
+  vregs[STENCIL_MODE] = 0;
+
+  vregs[WRITE_MODE] = le2me_64(1);
+  vregs[WRITE_MASK] = le2me_64(0x00ffffff);
+
+  vregs[YUV_MODE] = le2me_64(1);
+
+  wx0 = this->vo_scale.gui_win_x + this->vo_scale.output_xoffset;
+  wy0 = this->vo_scale.gui_win_y + this->vo_scale.output_yoffset;
+  wx1 = wx0 + this->vo_scale.output_width;
+  wy1 = wy0 + this->vo_scale.output_height;
+
   cliprects = dga_draw_clipinfo(this->dgadraw);
-  DGA_DRAW_UNLOCK(this->dgadraw);
+  while ((cy0 = *cliprects++) != DGA_Y_EOL) {
+    cy1 = *cliprects++;
+    while ((cx0 = *cliprects++) != DGA_X_EOL) {
+      cx1 = *cliprects++;
 
-  /* There is a small window between unlocking the DGA drawable and locking
-   * the X server during which the status of the drawable could change, but
-   * this is unavoidable as my testing shows that having both locked at the
-   * same time causes the X server to become unresponsive. (Solaris 9 12/03)
-   */
-
-  if (this->dgavis != DGA_VIS_FULLY_OBSCURED) {
-    XLockDisplay(this->display);
-    XGrabServer(this->display);
-    XSync(this->display, False);
-
-    while(le2me_64(vregs[FIFO_SPACE]) < 28) {}
-
-    vregs[RASTERISER_MODE] = 0;
-    vregs[AREA_STIPPLE_MODE] = 0;
-    vregs[WINDOW_ORIGIN] = 0;
-
-    vregs[RECT_ORIGIN] = le2me_64((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) << 16));
-    vregs[RECT_SIZE] = le2me_64(this->vo_scale.output_width | (this->vo_scale.output_height << 16));
-
-    vregs[DY] = le2me_64(1 << 16);
-
-    vregs[TEXTURE_ADDR_MODE] = le2me_64(1);
-    vregs[SSTART] = 0;
-    vregs[DSDX] = le2me_64((frame->width << 20) / this->vo_scale.output_width);
-    vregs[DSDY_DOM] = 0;
-    vregs[TSTART] = 0;
-    vregs[DTDX] = 0;
-    vregs[DTDY_DOM] = le2me_64((frame->height << 20) / this->vo_scale.output_height);
-
-    vregs[TEXTURE_BASE_ADDR] = le2me_64((GFXP_VRAM_MMAPLEN-frame->packedlen) >> 1);
-    vregs[TEXTURE_MAP_FORMAT] = le2me_64((1 << 19) | frame->pitch_code);
-
-    vregs[TEXTURE_DATA_FORMAT] = le2me_64(0x63);
-    vregs[TEXTURE_READ_MODE] = le2me_64((1 << 17) | (11 << 13) | (11 << 9) | 1);
-    vregs[TEXTURE_COLOUR_MODE] = le2me_64((0 << 4) | (3 << 1) | 1);
-
-    vregs[SHADING_MODE] = 0;
-    vregs[ALPHA_BLENDING_MODE] = 0;
-    vregs[DITHERING_MODE] = le2me_64((1 << 10) | 1);
-    vregs[LOGICAL_OP_MODE] = 0;
-    vregs[STENCIL_MODE] = 0;
-
-    vregs[READ_MODE] = le2me_64(this->screen_pitch_code);
-    vregs[WRITE_MODE] = le2me_64(1);
-    vregs[WRITE_MASK] = le2me_64(0x00ffffff);
-
-    vregs[YUV_MODE] = le2me_64(1);
-
-    if (this->dgavis == DGA_VIS_PARTIALLY_OBSCURED) {
-      short int x0, y0, x1, y1;
-      vregs[SCISSOR_MODE] = le2me_64(1);
-      while ((y0 = *cliprects++) != DGA_Y_EOL) {
-        y1 = *cliprects++;
-        while ((x0 = *cliprects++) != DGA_X_EOL) {
-          x1 = *cliprects++;
-          while(le2me_64(vregs[FIFO_SPACE]) < 3) {}
-          vregs[SCISSOR_MIN_XY] = le2me_64((y0 << 16) | x0);
-          vregs[SCISSOR_MAX_XY] = le2me_64((y1 << 16) | x1);
-          vregs[RENDER] = le2me_64(RENDER_BEGIN);
-        }  
+      if ((cx0 >= wx1) || (cy0 >= wy1)) {
+        continue;
       }
-      while(le2me_64(vregs[FIFO_SPACE]) < 6) {}
-      vregs[SCISSOR_MODE] = 0;
-    }
-    else {
-      vregs[SCISSOR_MODE] = 0;
-      while(le2me_64(vregs[FIFO_SPACE]) < 6) {}
+      if ((cx1 <= wx0) || (cy1 <= wy0)) {
+        continue;
+      }
+      cx0 = (cx0 < wx0) ? wx0 : cx0;
+      cy0 = (cy0 < wy0) ? wy0 : cy0;
+      cx1 = (cx1 > wx1) ? wx1 : cx1;
+      cy1 = (cy1 > wy1) ? wy1 : cy1;
+
+      while(le2me_64(vregs[FIFO_SPACE]) < 4) {}
+      vregs[RECT_ORIGIN] = le2me_64(cx0 | (cy0 << 16));
+      vregs[RECT_SIZE] = le2me_64((cx1-cx0) | ((cy1-cy0) << 16));
+      vregs[TEXTURE_BASE_ADDR] = le2me_64(((GFXP_VRAM_MMAPLEN-frame->packedlen) >> 1) + (((cx0-wx0)*frame->width)/this->vo_scale.output_width) + (((cy0-wy0)*frame->height)/this->vo_scale.output_height) * frame->pitch);
       vregs[RENDER] = le2me_64(RENDER_BEGIN);
     }
-
-    vregs[TEXTURE_ADDR_MODE] = 0;
-    vregs[TEXTURE_READ_MODE] = 0;
-    vregs[TEXTURE_COLOUR_MODE] = 0;
-    vregs[DITHERING_MODE] = 0;
-    vregs[YUV_MODE] = 0;
-
-    XUngrabServer(this->display);
-    XFlush(this->display);
-    XUnlockDisplay(this->display);
   }
+
+  while(le2me_64(vregs[FIFO_SPACE]) < 5) {}
+  vregs[TEXTURE_ADDR_MODE] = 0;
+  vregs[TEXTURE_READ_MODE] = 0;
+  vregs[TEXTURE_COLOUR_MODE] = 0;
+  vregs[DITHERING_MODE] = 0;
+  vregs[YUV_MODE] = 0;
+
+  DGA_DRAW_UNLOCK(this->dgadraw);
+  XUnlockDisplay(this->display);
 
   if (this->current != NULL) {
     this->current->vo_frame.free(&this->current->vo_frame);
@@ -699,12 +652,12 @@ static int pgx32_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
       XLockDisplay(this->display);
       XDgaUnGrabDrawable(this->dgadraw);
       XFreeGC(this->display, this->gc);
-      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-      this->depth    = win_attrs.depth;
-      this->visual   = win_attrs.visual;
       this->drawable = (Drawable)data;
       this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
       this->dgadraw  = XDgaGrabDrawable(this->display, this->drawable);
+      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+      this->depth  = win_attrs.depth;
+      this->visual = win_attrs.visual;
       XUnlockDisplay(this->display);
     }
     break;
@@ -785,7 +738,7 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
 {
   pgx32_driver_class_t *class = (pgx32_driver_class_t *)(void *)class_gen;
   char *devname;
-  int fbfd, i;
+  int fbfd;
   struct vis_identifier ident;
   struct fbgattr attr;
   uint8_t *vbase;
@@ -800,34 +753,36 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
   class->instance_count++;
   pthread_mutex_unlock(&class->mutex);
 
-  devname = class->config->register_string(class->config, "video.pgx32_device", "/dev/fb", "name of pgx32 device", NULL, 10, NULL, NULL);
+  devname = class->config->register_string(class->config, "video.pgx32_device", "/dev/fb", _("path to pgx32 device"), NULL, 10, NULL, NULL);
   if ((fbfd = open(devname, O_RDWR)) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: can't open framebuffer device '%s'\n", devname);
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: can't open framebuffer device '%s'\n"), devname);
     return NULL;
   }
 
   if (ioctl(fbfd, VIS_GETIDENTIFIER, &ident) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: ioctl failed, unable to determine framebuffer type\n");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: ioctl failed, bad device\n"));
     close(fbfd);
     return NULL;
   }
 
   if (strcmp("TSIgfxp", ident.name) != 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: '%s' is not a gfxp framebuffer device\n", devname);    
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: '%s' is not a pgx32 framebuffer device\n"), devname);    
     close(fbfd);
     return NULL;
   }
 
   if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: ioctl failed, unable to determine framebuffer characteristics\n");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: ioctl failed, bad device\n"));
     close(fbfd);
     return NULL;
   }
 
   if ((vbase = mmap(0, GFXP_VRAM_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0x04000000)) == MAP_FAILED) {
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: unable to memory map framebuffer\n");
     return 0;
   }
   if (mmap(vbase+GFXP_REGSBASE, GFXP_REGS_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fbfd, 0x02000000) == MAP_FAILED) {
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: unable to memory map framebuffer\n");
     munmap(vbase, GFXP_VRAM_MMAPLEN);
     return 0;
   }
@@ -864,12 +819,6 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
   this->fb_height = attr.fbtype.fb_height;
   this->fb_depth  = attr.fbtype.fb_depth;
   this->vbase     = vbase;
-
-  for (i=0; i<sizeof(pitch_code_table)/sizeof(pitch_code_table[0]); i++) {
-    if (pitch_code_table[i][0] == this->fb_width) {
-      this->screen_pitch_code = pitch_code_table[i][1];
-    }
-  }
 
   this->display  = ((x11_visual_t *)visual_gen)->display;
   this->screen   = ((x11_visual_t *)visual_gen)->screen;
