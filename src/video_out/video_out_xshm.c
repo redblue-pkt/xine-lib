@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.109 2003/04/16 11:30:13 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.110 2003/05/26 11:33:01 hadess Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -791,8 +791,10 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
   case VO_PROP_SATURATION:
     return this->yuv2rgb_saturation;
   default:
-    printf ("video_out_xshm: tried to get unsupported property %d\n", 
-	    property);
+    if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+      printf ("video_out_xshm: tried to get unsupported property %d\n", 
+	      property);
+    }
   }
 
   return 0;
