@@ -33,9 +33,9 @@
 #define DEFAULT_LOW_WATER_MARK     1
 #define DEFAULT_HIGH_WATER_MARK 5000 /* in millisecond */
 
-
+/*
 #define LOG
-
+*/
 
 struct nbc_s {
 
