@@ -61,11 +61,10 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.22 2003/08/25 14:32:37 mroi Exp $
+ * $Id: color.c,v 1.23 2003/09/16 02:03:16 storri Exp $
  */
 
 #include "xine_internal.h"
-#include "xineutils.h"
 
 /*
  * In search of the perfect colorspace conversion formulae...

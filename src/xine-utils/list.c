@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.4 2002/10/24 15:01:18 jkeil Exp $
+ * $Id: list.c,v 1.5 2003/09/16 02:03:16 storri Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -26,7 +26,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <inttypes.h>
 
 #include "xineutils.h"
