@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.63 2003/01/07 22:51:35 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.64 2003/02/14 18:11:47 heikos Exp $
  *
  */
 
@@ -96,7 +96,7 @@ typedef struct {
 #elif defined (__FreeBSD__)
   struct ioc_toc_header  tochdr;
   struct cd_toc_entry    *tocent;
-  off_t                  cur_sector;
+  off_t                  cur_sec;
 #endif
 
   int                    total_tracks;
@@ -118,7 +118,7 @@ typedef struct {
 
   int                    cur_track;
 
-#if defined (__linux__) || defined(__sun)
+#if defined (__linux__) || defined(__sun) || defined(__FreeBSD__)
   uint8_t                cur_min, cur_sec, cur_frame;
 #endif
 
@@ -398,7 +398,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
     return 0;
 
   do {
-    if (lseek (this->fd, this->cur_sector * bsize, SEEK_SET) == -1) {
+    if (lseek (this->fd, this->cur_sec * bsize, SEEK_SET) == -1) {
       printf ("input_vcd: seek error %d\n", errno);
       return 0;
     }
@@ -406,7 +406,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
       printf ("input_vcd: read error %d\n", errno);
       return 0;
     }
-    this->cur_sector++;
+    this->cur_sec++;
   } while ((data.subheader[2]&~0x01)==0x60);
   memcpy (buf, data.data, VCDSECTORSIZE);
   return VCDSECTORSIZE;
@@ -538,7 +538,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
     return NULL;
 
   do {
-    if (lseek (this->fd, this->cur_sector * bsize, SEEK_SET) == -1) {
+    if (lseek (this->fd, this->cur_sec * bsize, SEEK_SET) == -1) {
       printf ("input_vcd: seek error %d\n", errno);
       return NULL;
     }
@@ -546,7 +546,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
       printf ("input_vcd: read error %d\n", errno);
       return NULL;
     }
-    this->cur_sector++;
+    this->cur_sec++;
   } while ((data.subheader[2]&~0x01)==0x60);
 
   buf = fifo->buffer_pool_alloc (fifo);
@@ -695,7 +695,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 
   start = 
     ntohl(this->cls->tocent
-	  [this->cur_track+1 - this->tochdr.starting_track].addr.lba);
+	  [this->cur_track+1 - this->cls->tochdr.starting_track].addr.lba);
 
   /*  printf("seek: start sector:%lu, origin: %d, offset:%qu\n", 
 	 start, origin, offset);
@@ -704,14 +704,14 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
   switch (origin) {
   case SEEK_SET:
     dist = offset / VCDSECTORSIZE;
-    this->cur_sector = start + dist;
+    this->cur_sec = start + dist;
     break;
   case SEEK_CUR:
 
     if (offset) 
       printf ("input_vcd: SEEK_CUR not implemented for offset != 0\n");
 
-    sector_pos = this->cur_sector;
+    sector_pos = this->cur_sec;
 
     return sector_pos * VCDSECTORSIZE;
 
@@ -766,10 +766,10 @@ static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
   len = 
     ntohl(this->cls->tocent
 	  [this->cur_track+2 
-	  - this->tochdr.starting_track].addr.lba)
+	  - this->cls->tochdr.starting_track].addr.lba)
     - ntohl(this->cls->tocent
 	    [this->cur_track+1 
-	    - this->tochdr.starting_track].addr.lba);
+	    - this->cls->tochdr.starting_track].addr.lba);
   
   return len * 2352; /*VCDSECTORSIZE;*/
 
@@ -893,9 +893,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
       return 0;
     }
   
-    this->cur_sector = 
+    this->cur_sec = 
       ntohl(this->cls->tocent
-	    [this->cur_track+1 - this->tochdr.starting_track].addr.lba);
+	    [this->cur_track+1 - this->cls->tochdr.starting_track].addr.lba);
     
   }
 #endif
