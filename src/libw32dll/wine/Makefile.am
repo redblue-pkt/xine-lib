@@ -13,7 +13,7 @@ AM_CFLAGS = $(X_CFLAGS) -fno-omit-frame-pointer \
 
 # CFLAGS is here to filter out -fomit-frame-pointer because it causes bad
 # behavior of wine
-CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g'`
+CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g'` -fno-inline-functions
 
 if HAVE_W32DLL
 wine_lib = libwine.la
