@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.90 2002/09/28 11:10:04 mroi Exp $
+ * $Id: input_dvd.c,v 1.91 2002/10/02 15:56:51 mroi Exp $
  *
  */
 
@@ -126,13 +126,6 @@ extern int errno;
 /* Array to hold MRLs returned by get_autoplay_list */
 #define MAX_DIR_ENTRIES 1250
 #define MAX_STR_LEN     255  
-char    filelist[MAX_DIR_ENTRIES][MAX_STR_LEN];
-char   *filelist2[MAX_DIR_ENTRIES];
-
-/* A Temporary string (FIXME: May cause problems if multiple
- * dvdnavs in multiple threads). */
-char    temp_str[256];
-#define TEMP_STR_LEN 255
 
 typedef struct {
   input_plugin_t    input_plugin; /* Parent input plugin type        */
@@ -158,6 +151,9 @@ typedef struct {
   size_t            dvd_name_length;                   
   xine_mrl_t           **mrls;
   int               num_mrls;
+  char              filelist[MAX_DIR_ENTRIES][MAX_STR_LEN];
+  char             *filelist2[MAX_DIR_ENTRIES];
+  char              ui_title[MAX_STR_LEN + 1];
   
   /* special buffer handling for libdvdnav caching */
   pthread_mutex_t   buf_mutex;
@@ -235,14 +231,14 @@ void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
 void update_title_display(dvdnav_input_plugin_t *this) {
   xine_ui_event_t uevent;
   int tt=-1, pr=-1;
-  size_t temp_str_length=0;
+  size_t ui_str_length=0;
 
   if(!this || !(this->xine)) 
    return;
   
   /* Set title/chapter display */
   uevent.event.type = XINE_EVENT_UI_SET_TITLE;
-  uevent.data = temp_str;
+  uevent.data = this->ui_title;
 
   dvdnav_current_title_info(this->dvdnav, &tt, &pr);
   
@@ -252,26 +248,26 @@ void update_title_display(dvdnav_input_plugin_t *this) {
     /* Reflect angle info if appropriate */
     dvdnav_get_angle_info(this->dvdnav, &cur_angle, &num_angle);
     if(num_angle > 1) {
-      snprintf(temp_str, TEMP_STR_LEN,
+      snprintf(this->ui_title, MAX_STR_LEN,
                "Title %i, Chapter %i, Angle %i of %i",
                tt,pr,cur_angle, num_angle); 
     } else {
-      snprintf(temp_str, TEMP_STR_LEN, 
+      snprintf(this->ui_title, MAX_STR_LEN, 
 	       "Title %i, Chapter %i",
 	       tt,pr);
     }
   } else {
-    strcpy(temp_str, "DVD Navigator: Menu");
+    strcpy(this->ui_title, "DVD Navigator: Menu");
   }
-  temp_str_length = strlen(temp_str);
+  ui_str_length = strlen(this->ui_title);
   
-  if (this->dvd_name[0] != 0 && (temp_str_length + this->dvd_name_length < TEMP_STR_LEN)) {
-      snprintf(temp_str+temp_str_length, TEMP_STR_LEN - temp_str_length, 
+  if (this->dvd_name[0] != 0 && (ui_str_length + this->dvd_name_length < MAX_STR_LEN)) {
+      snprintf(this->ui_title+ui_str_length, MAX_STR_LEN - ui_str_length, 
 	       ", %s",
 	       &this->dvd_name[0]);
   }
 #ifdef INPUT_DEBUG
-  printf("input_dvd: Changing title to read '%s'\n", temp_str);
+  printf("input_dvd: Changing title to read '%s'\n", this->ui_title);
 #endif
   xine_send_event(this->xine, &uevent.event);
 }
@@ -1375,7 +1371,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 static char **dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen, 
 							   int *nFiles) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t *) this_gen;
-  int titles, i;
+  int i;
   trace_print("get_autoplay_list entered\n"); 
   /* Close the plugin is opened */
   if(this->opened) {
@@ -1390,27 +1386,11 @@ static char **dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen,
 
   i = 0;
   for(i=0;(i<this->num_mrls) && (i<MAX_DIR_ENTRIES);i++) {
-    snprintf (&(filelist[i][0]), MAX_STR_LEN, this->mrls[i]->mrl);
-    filelist2[i] = &(filelist[i][0]);
+    snprintf (&(this->filelist[i][0]), MAX_STR_LEN, this->mrls[i]->mrl);
+    this->filelist2[i] = &(this->filelist[i][0]);
   }
-  filelist2[*nFiles] = NULL;
-  return filelist2;
-  /* Return a list of all titles */
-  snprintf (&(filelist[0][0]), MAX_STR_LEN, "dvd://");
-  filelist2[0] = &(filelist[0][0]);
-
-  dvdnav_get_number_of_titles(this->dvdnav, &titles);
-  for(i=1; i<=titles; i++) {
-    snprintf (&(filelist[i][0]), MAX_STR_LEN, "dvd://:%i", i);
-    filelist2[i] = &(filelist[i][0]);
-  }
-  *nFiles=titles+1;
-  filelist2[*nFiles] = NULL;
-#ifdef INPUT_DEBUG
-  printf("input_dvd: get_autoplay_list exiting opened=%d dvdnav=%p\n",this->opened, this->dvdnav); 
-#endif
-
-  return filelist2;
+  this->filelist2[*nFiles] = NULL;
+  return this->filelist2;
 }
 
 void dvdnav_plugin_dispose(input_plugin_t *this_gen) {
@@ -1570,6 +1550,10 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.91  2002/10/02 15:56:51  mroi
+ * - kill global variables
+ * - remove some code that could never be reached (after return)
+ *
  * Revision 1.90  2002/09/28 11:10:04  mroi
  * configurable skipping behaviour
  *
