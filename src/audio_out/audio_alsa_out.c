@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.38 2001/11/24 13:44:34 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.39 2001/11/28 23:15:09 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -149,8 +149,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_stream_t      direction = SND_PCM_STREAM_PLAYBACK; 
   snd_pcm_hw_params_t  *params;
   snd_pcm_sw_params_t  *swparams;
-  snd_pcm_sframes_t     buffer_time;
-  snd_pcm_sframes_t     period_time,tmp;
+  snd_pcm_sframes_t     buffer_size;
+  snd_pcm_sframes_t     period_size,tmp;
   snd_aes_iec958_t      spdif;
   snd_ctl_elem_value_t *ctl;
   snd_ctl_t            *ctl_handle;
@@ -338,31 +338,26 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
       printf ("audio_alsa_out: rate not available\n");
       goto __close;
     }
-  buffer_time = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params,
-                                                       500000, 0);
-  if (buffer_time < 0) {
+  buffer_size = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params,
+                                                       500000);
+  if (buffer_size < 0) {
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
   step = 2;
-  period_time = 10000 * 2;
+  period_size = 128;
   do {
-    period_time /= 2;
-    tmp = snd_pcm_hw_params_set_period_time_near(this->audio_fd, params,
-                                                 period_time, 0);
-    if (tmp == period_time) {
-      period_time /= 3;
-      tmp = snd_pcm_hw_params_set_period_time_near(this->audio_fd, params,
-                                                   period_time, 0);
-      if (tmp == period_time)
-        period_time = 10000 * 2;
-    }
-    if (period_time < 0) {
-      printf ("audio_alsa_out: period time not available");
+    period_size *= 2;
+    tmp = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params,
+                                                 period_size, 0);
+    printf("audio_alsa_out:open:period_size=%ld tmp=%ld\n",period_size,tmp);
+
+    if (period_size < 0) {
+      printf ("audio_alsa_out: period size not available");
       goto __close;
     }
-  } while (buffer_time == period_time && period_time > 10000);
-  if (buffer_time == period_time) {
+  } while (period_size <= (buffer_size/2) && (period_size != tmp));
+  if (buffer_size == period_size) {
     printf ("audio_alsa_out: buffer time and period time match, could not use\n");
     goto __close;
   }
@@ -377,9 +372,9 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
    */
   /* Copy current parameters into swparams */
   snd_pcm_sw_params_current(this->audio_fd, swparams);
-  tmp=snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 4);
+  tmp=snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, period_size);
   tmp=snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, 1);
-  tmp=snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, 1);
+  tmp=snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
 
   /* Install swparams into current parameters */
   snd_pcm_sw_params(this->audio_fd, swparams);
@@ -420,6 +415,7 @@ static int ao_alsa_delay (ao_driver_t *this_gen)
   /* Dump ALSA info to stderr */
   /* snd_pcm_status_dump(pcm_stat, jcd_out);  */
   delay=snd_pcm_status_get_delay( pcm_stat );
+  /* printf("audio_alsa_out:delay:delay=%ld\n",delay); */
   return delay;
 }
 
@@ -454,6 +450,7 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
   	
   while( count > 0) {
     r = snd_pcm_writei(this->audio_fd, data, count);
+    /* printf("audio_alsa_out:write:r=%d\n",r); */
     if (r == -EAGAIN || (r >=0 && r < count)) {
       snd_pcm_wait(this->audio_fd, 1000);
     } else if (r == -EPIPE) {
