@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.140 2002/12/21 12:56:44 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.141 2002/12/23 21:29:57 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1115,6 +1115,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
 
     buf->extra_info->input_time = video_pts / 90000;
     buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
+    buf->extra_info->frame_number = this->avi->video_posf; 
     buf->decoder_flags |= decoder_flags;
 
     if (buf->size<0) {
