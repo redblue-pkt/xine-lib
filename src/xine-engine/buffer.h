@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.121 2003/10/14 22:16:32 tmattern Exp $
+ * $Id: buffer.h,v 1.122 2003/10/24 02:59:03 tmmm Exp $
  *
  *
  * contents:
@@ -314,18 +314,9 @@ struct buf_element_s {
  */
 #define BUF_SPECIAL_PALETTE  1
 
-/*
- * In a BUF_SPECIAL_IDCIN_HUFFMAN_TABLE buffer:
- * decoder_info[1] = BUF_SPECIAL_IDCIN_HUFFMAN_TABLE
- * decoder_info[2] = 65536 (size of data)
- * decoder_info_ptr[2] = pointer to a 65536-element byte array containing the
- *  Huffman tables from an Id CIN file
- * This buffer is used to transport the Huffman tables from an Id CIN
- * file to the Id CIN decoder. A decoder should not count on the byte array
- * to exist for the duration of the program's execution and should copy the
- * data into its own private structures.
- */
-#define BUF_SPECIAL_IDCIN_HUFFMAN_TABLE  2
+
+/* special buffer type 2 used to be defined but is now available for use */
+
 
 /*
  * In a BUF_SPECIAL_ASPECT buffer:
