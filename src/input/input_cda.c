@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.7 2001/12/10 01:43:30 f1rmb Exp $
+ * $Id: input_cda.c,v 1.8 2001/12/10 10:51:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -145,6 +145,33 @@ static void _cda_stop_cd(cdainfo_t *);
 /*
  * ******************************** PRIVATES ***************************************
  */
+
+/*
+ * Callbacks for configuratoin changes.
+ */
+static void device_change_cb(void *data, cfg_entry_t *cfg) {
+  cda_input_plugin_t *this = (cda_input_plugin_t *) data;
+  
+  if(this->cda->device_name)
+    free(this->cda->device_name);
+
+  this->cda->device_name = strdup(cfg->str_value);
+}
+static void server_change_cb(void *data, cfg_entry_t *cfg) {
+  cda_input_plugin_t *this = (cda_input_plugin_t *) data;
+  
+  this->cddb.server = cfg->str_value;
+}
+static void port_change_cb(void *data, cfg_entry_t *cfg) {
+  cda_input_plugin_t *this = (cda_input_plugin_t *) data;
+  
+  this->cddb.port = cfg->num_value;
+}
+static void cachedir_change_cb(void *data, cfg_entry_t *cfg) {
+  cda_input_plugin_t *this = (cda_input_plugin_t *) data;
+  
+  this->cddb.cache_dir = cfg->str_value;
+}
 
 /*
  *
@@ -373,10 +400,6 @@ static int _cda_load_cached_cddb_infos(cda_input_plugin_t *this) {
   if(this == NULL)
     return 0;
   
-  this->cddb.cache_dir = this->config->register_string(this->config, "input.cda_cddb_cachedir", 
-						       (_cda_cddb_get_default_location()),
-						       "cddbp cache directory", NULL, NULL, NULL);
-  
   memset(&cdir, 0, sizeof(cdir));
   sprintf(cdir, "%s", this->cddb.cache_dir);
   
@@ -442,10 +465,6 @@ static void _cda_save_cached_cddb_infos(cda_input_plugin_t *this, char *filecont
   if((this == NULL) || (filecontent == NULL))
     return;
   
-  this->cddb.cache_dir = this->config->register_string(this->config, "input.cda_cddb_cachedir", 
-						       (_cda_cddb_get_default_location()),
-						       "cddbp cache directory", NULL, NULL, NULL);
-  
   memset(&cfile, 0, sizeof(cfile));
 
   /* Ensure "~/.xine/cddbcache" exist */
@@ -477,15 +496,6 @@ static int _cda_cddb_socket_open(cda_input_plugin_t *this) {
   if(this == NULL)
     return -1;
   
-  this->cddb.server = 
-    this->config->register_string(this->config, "input.cda_cddb_server", CDDB_SERVER,
-				  "cddbp server name", NULL, NULL, NULL);
-  
-  this->cddb.port = 
-    this->config->register_num(this->config, "input.cda_cddb_port", CDDB_PORT,
-			       "cddbp server port", NULL, NULL, NULL);
-  
-
   alarm(15);
   signal(SIGALRM, die);
   if((he=gethostbyname(this->cddb.server)) == NULL) {
@@ -1628,23 +1638,26 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   this->cda->device_name = strdup(config->register_string(config, "input.cda_device", CDROM,
 							  "path to your local cd audio device file",
-							  NULL, NULL, NULL));
+							  NULL, 
+							  device_change_cb, (void *) this));
   
   this->cddb.server = config->register_string(config, "input.cda_cddb_server", CDDB_SERVER,
-					       "cddbp server name", NULL, NULL, NULL);
+					      "cddbp server name", NULL,
+					      server_change_cb, (void *) this);
   
   this->cddb.port = config->register_num(config, "input.cda_cddb_port", CDDB_PORT,
-					     "cddbp server port", NULL, NULL, NULL);
+					 "cddbp server port", NULL,
+					 port_change_cb, (void *) this);
 
   this->cddb.fd = -1;
 
   this->cddb.cache_dir = config->register_string(config, "input.cda_cddb_cachedir", 
 						 (_cda_cddb_get_default_location()),
-						 "cddbp cache directory", NULL, NULL, NULL);
+						 "cddbp cache directory", NULL, 
+						 cachedir_change_cb, (void *) this);
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
 
   return (input_plugin_t *) this;
 }
-
