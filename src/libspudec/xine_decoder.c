@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.22 2001/10/23 00:50:47 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.23 2001/10/23 10:49:22 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -529,13 +529,19 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
     case EVENT_HIDE_SPU:
       LOG (LOG_DEBUG, "HIDE SPU NOW\n");
       this->spu_showing[1].handle = -1;
+      if(this->spu_objects[handle].overlay->rle) {
+        free(this->spu_objects[handle].overlay->rle);
+      }
+      if (this->spu_objects[handle].overlay) {
+        free(this->spu_objects[handle].overlay);
+      }
       spu_free_handle( this, handle );
       break;
 
     case EVENT_HIDE_MENU:
       LOG (LOG_DEBUG, "HIDE MENU NOW\n");
       this->spu_showing[1].handle = -1;
-      //spu_free_handle( this, handle );
+      /* spu_free_handle( this, handle ); */
       break;
 
     case EVENT_MENU_SPU:
@@ -549,6 +555,8 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
         print_overlay(overlay);
 
         this->spu_objects[handle].handle = handle; /* This should not change for menus */
+        /* If rle is not empty, free it first */
+        if(overlay->rle) free (overlay->rle);
         overlay->rle = event_overlay->rle;
         overlay->data_size = event_overlay->data_size;
         overlay->num_rle = event_overlay->num_rle;
@@ -578,6 +586,8 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
           overlay->trans[3] = event_overlay->trans[3];
         }
         this->spu_showing[1].handle = handle;
+        if (event_overlay) free(event_overlay);
+        /* Free should set pointer to NULL, but we should check this */
         LOG (LOG_DEBUG, "overlay after\n");
         print_overlay(overlay);
       }
