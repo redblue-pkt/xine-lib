@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.74 2005/01/05 00:37:33 dsalt Exp $
+ * $Id: configfile.c,v 1.75 2005/01/30 16:51:20 tmattern Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -274,7 +274,8 @@ static void config_insert(config_values_t *this, cfg_entry_t *new_entry) {
   cur_base = NULL;
   for (cur = this->first, prev = NULL; cur; prev = cur, cur = cur->next) {
     /* extract parts of the cur key */
-    free(cur_base);
+    if (cur_base)
+      free(cur_base);
     config_key_split(cur->key, &cur_base, &cur_section, &cur_subsect, &cur_name);
     
     /* sort by section name */
@@ -311,8 +312,10 @@ static void config_insert(config_values_t *this, cfg_entry_t *new_entry) {
     
     break;
   }
-  free(new_base);
-  free(cur_base);
+  if (new_base)
+    free(new_base);
+  if (cur_base)
+    free(cur_base);
   
   new_entry->next = cur;
   if (!cur)
@@ -340,6 +343,15 @@ static cfg_entry_t *config_add (config_values_t *this, const char *key, int exp_
   lprintf ("add entry key=%s\n", key);
 
   return entry;
+}
+
+static void config_remove(config_values_t *this, cfg_entry_t *entry, cfg_entry_t *prev) {
+  if (!entry->next)
+    this->last = prev;
+  if (!prev)
+    this->first = entry->next;
+  else
+    prev->next = entry->next;
 }
 
 static const char *config_translate_key (const char *key) {
@@ -411,129 +423,152 @@ static cfg_entry_t *config_lookup_entry(config_values_t *this, const char *key) 
   return entry;
 }
 
-static char *config_register_string (config_values_t *this,
-				       const char *key,
-				       const char *def_value,
-				       const char *description,
-				       const char *help,
-				       int exp_level,
-				       xine_config_cb_t changed_cb,
-				       void *cb_data) {
+static void config_reset_value(cfg_entry_t *entry) {
 
+  if (entry->str_value) {
+    free (entry->str_value);
+    entry->str_value = NULL;
+  }
+  if (entry->str_default) {
+    free (entry->str_default);
+    entry->str_default = NULL;
+  }
+  if (entry->description) {
+    free (entry->description);
+    entry->description = NULL;
+  }
+  if (entry->help) {
+    free (entry->help);
+    entry->help = NULL;
+  }
+  if (entry->enum_values) {
+    char **value;
+
+    value = entry->enum_values;
+    while (*value) {
+      free (*value);
+      value++;
+    }
+    free (entry->enum_values);
+    entry->enum_values = NULL;
+  }
+  entry->num_value = 0;
+}
+
+static cfg_entry_t *config_register_key (config_values_t *this,
+					 const char *key,
+					 int exp_level,
+					 xine_config_cb_t changed_cb,
+					 void *cb_data) {
   cfg_entry_t *entry, *prev;
 
+  _x_assert(this);
   _x_assert(key);
-  _x_assert(def_value);
 
   lprintf ("registering %s\n", key);
-
-  /* make sure this entry exists, create it if not */
-  pthread_mutex_lock(&this->config_lock);
-
   config_lookup_entry_int(this, key, &entry, &prev);
 
   if (!entry) {
+    /* new entry */
     entry = config_add (this, key, exp_level);
-    entry->unknown_value = strdup(def_value);
   } else {
-    if (!entry->next)
-      this->last = prev;
-    if (!prev)
-      this->first = entry->next;
-    else
-      prev->next = entry->next;
-    
-    entry->exp_level = exp_level;
-    config_insert(this, entry);
+    if (entry->exp_level != exp_level) {
+      config_remove(this, entry, prev);
+      entry->exp_level = exp_level;
+      config_insert(this, entry);
+    }
   }
 
-  /* convert entry to string type if necessary */
+  /* override callback */
+  if (changed_cb) {
+    if (entry->callback && (entry->callback != changed_cb)) {
+      lprintf("overriding callback\n");
+    }
+    entry->callback = changed_cb;
+    entry->callback_data = cb_data;
+  }
 
-  if (entry->type != XINE_CONFIG_TYPE_STRING) {
-    entry->type = XINE_CONFIG_TYPE_STRING;
-    /*
-     * if there is no unknown_value (made with register_empty) set
-     * it to default value
-     */
-    if(!entry->unknown_value)
-      entry->unknown_value = strdup(def_value);
+  return entry;
+}
 
-    entry->str_value = strdup(entry->unknown_value);
+static char *config_register_string (config_values_t *this,
+				     const char *key,
+				     const char *def_value,
+				     const char *description,
+				     const char *help,
+				     int exp_level,
+				     xine_config_cb_t changed_cb,
+				     void *cb_data) {
+  cfg_entry_t *entry;
 
-  } else
-    free (entry->str_default);
-
-  /* fill out rest of struct */
-
-  entry->str_default    = strdup(def_value);
-  entry->description    = description;
-  entry->help           = help;
-  entry->callback       = changed_cb;
-  entry->callback_data  = cb_data;
+  _x_assert(this);
+  _x_assert(key);
+  _x_assert(def_value);
 
   pthread_mutex_unlock(&this->config_lock);
 
+  entry = config_register_key(this, key, exp_level, changed_cb, cb_data);
+
+  if (entry->type != XINE_CONFIG_TYPE_UNKNOWN) {
+    lprintf("config entry already registered: %s\n", key);
+    pthread_mutex_unlock(&this->config_lock);
+    return entry->str_value;
+  }
+
+  config_reset_value(entry);
+
+  /* set string */
+  entry->type = XINE_CONFIG_TYPE_STRING;
+  
+  if (entry->unknown_value)
+    entry->str_value = strdup(entry->unknown_value);
+  else
+    entry->str_value = strdup(def_value);
+
+  /* fill out rest of struct */
+  entry->str_default    = strdup(def_value);
+  entry->description    = (description) ? strdup(description) : NULL;
+  entry->help           = (help) ? strdup(help) : NULL;
+
+  pthread_mutex_unlock(&this->config_lock);
   return entry->str_value;
 }
 
 static int config_register_num (config_values_t *this,
-				  const char *key, int def_value,
-				  const char *description,
-				  const char *help,
-				  int exp_level,
-				  xine_config_cb_t changed_cb,
-				  void *cb_data) {
+				const char *key,
+				int def_value,
+				const char *description,
+				const char *help,
+				int exp_level,
+				xine_config_cb_t changed_cb,
+				void *cb_data) {
 
-  cfg_entry_t *entry, *prev;
+  cfg_entry_t *entry;
+  _x_assert(this);
   _x_assert(key);
 
-  lprintf ("registering %s\n", key);
-
-  /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  config_lookup_entry_int(this, key, &entry, &prev);
+  entry = config_register_key(this, key, exp_level, changed_cb, cb_data);
 
-  if (!entry) {
-    entry = config_add (this, key, exp_level);
-    entry->unknown_value = NULL;
-  } else {
-    if (!entry->next)
-      this->last = prev;
-    if (!prev)
-      this->first = entry->next;
-    else
-      prev->next = entry->next;
-    
-    entry->exp_level = exp_level;
-    config_insert(this, entry);
+  if (entry->type != XINE_CONFIG_TYPE_UNKNOWN) {
+    lprintf("config entry already registered: %s\n", key);
+    pthread_mutex_unlock(&this->config_lock);
+    return entry->num_value;
   }
 
-  /* convert entry to num type if necessary */
+  config_reset_value(entry);
+  entry->type = XINE_CONFIG_TYPE_NUM;
 
-  if (entry->type != XINE_CONFIG_TYPE_NUM) {
-
-    if (entry->type == XINE_CONFIG_TYPE_STRING) {
-      free (entry->str_value);
-      free (entry->str_default);
-    }
-
-    entry->type      = XINE_CONFIG_TYPE_NUM;
-
-    if (entry->unknown_value)
-      sscanf (entry->unknown_value, "%d", &entry->num_value);
-    else
-      entry->num_value = def_value;
-  }
-
+  if (entry->unknown_value)
+    sscanf (entry->unknown_value, "%d", &entry->num_value);
+  else
+    entry->num_value = def_value;
 
   /* fill out rest of struct */
-
   entry->num_default    = def_value;
-  entry->description    = description;
-  entry->help           = help;
-  entry->callback       = changed_cb;
-  entry->callback_data  = cb_data;
+  entry->description    = (description) ? strdup(description) : NULL;
+  entry->help           = (help) ? strdup(help) : NULL;
 
   pthread_mutex_unlock(&this->config_lock);
 
@@ -541,64 +576,40 @@ static int config_register_num (config_values_t *this,
 }
 
 static int config_register_bool (config_values_t *this,
-				   const char *key,
-				   int def_value,
-				   const char *description,
-				   const char *help,
-				   int exp_level,
-				   xine_config_cb_t changed_cb,
-				   void *cb_data) {
+				 const char *key,
+				 int def_value,
+				 const char *description,
+				 const char *help,
+				 int exp_level,
+				 xine_config_cb_t changed_cb,
+				 void *cb_data) {
 
-  cfg_entry_t *entry, *prev;
+  cfg_entry_t *entry;
+  _x_assert(this);
   _x_assert(key);
 
-  lprintf ("registering %s\n", key);
-
-  /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  config_lookup_entry_int(this, key, &entry, &prev);
+  entry = config_register_key(this, key, exp_level, changed_cb, cb_data);
 
-  if (!entry) {
-    entry = config_add (this, key, exp_level);
-    entry->unknown_value = NULL;
-  } else {
-    if (!entry->next)
-      this->last = prev;
-    if (!prev)
-      this->first = entry->next;
-    else
-      prev->next = entry->next;
-    
-    entry->exp_level = exp_level;
-    config_insert(this, entry);
+  if (entry->type != XINE_CONFIG_TYPE_UNKNOWN) {
+    lprintf("config entry already registered: %s\n", key);
+    pthread_mutex_unlock(&this->config_lock);
+    return entry->num_value;
   }
 
-  /* convert entry to bool type if necessary */
+  config_reset_value(entry);
+  entry->type = XINE_CONFIG_TYPE_BOOL;
 
-  if (entry->type != XINE_CONFIG_TYPE_BOOL) {
-
-    if (entry->type == XINE_CONFIG_TYPE_STRING) {
-      free (entry->str_value);
-      free (entry->str_default);
-    }
-
-    entry->type      = XINE_CONFIG_TYPE_BOOL;
-
-    if (entry->unknown_value)
-      sscanf (entry->unknown_value, "%d", &entry->num_value);
-    else
-      entry->num_value = def_value;
-  }
-
+  if (entry->unknown_value)
+    sscanf (entry->unknown_value, "%d", &entry->num_value);
+  else
+    entry->num_value = def_value;
 
   /* fill out rest of struct */
-
   entry->num_default    = def_value;
-  entry->description    = description;
-  entry->help           = help;
-  entry->callback       = changed_cb;
-  entry->callback_data  = cb_data;
+  entry->description    = (description) ? strdup(description) : NULL;
+  entry->help           = (help) ? strdup(help) : NULL;
 
   pthread_mutex_unlock(&this->config_lock);
 
@@ -606,66 +617,44 @@ static int config_register_bool (config_values_t *this,
 }
 
 static int config_register_range (config_values_t *this,
-				    const char *key,
-				    int def_value,
-				    int min, int max,
-				    const char *description,
-				    const char *help,
-				    int exp_level,
-				    xine_config_cb_t changed_cb,
-				    void *cb_data) {
+				  const char *key,
+				  int def_value,
+				  int min, int max,
+				  const char *description,
+				  const char *help,
+				  int exp_level,
+				  xine_config_cb_t changed_cb,
+				  void *cb_data) {
 
-  cfg_entry_t *entry, *prev;
+  cfg_entry_t *entry;
+  _x_assert(this);
   _x_assert(key);
 
-  lprintf ("registering range %s\n", key);
-
-  /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  config_lookup_entry_int(this, key, &entry, &prev);
+  entry = config_register_key(this, key, exp_level, changed_cb, cb_data);
 
-  if (!entry) {
-    entry = config_add (this, key, exp_level);
-    entry->unknown_value = NULL;
-  } else {
-    if (!entry->next)
-      this->last = prev;
-    if (!prev)
-      this->first = entry->next;
-    else
-      prev->next = entry->next;
-    
-    entry->exp_level = exp_level;
-    config_insert(this, entry);
+  if (entry->type != XINE_CONFIG_TYPE_UNKNOWN) {
+    lprintf("config entry already registered: %s\n", key);
+    pthread_mutex_unlock(&this->config_lock);
+    return entry->num_value;
   }
 
-  /* convert entry to range type if necessary */
+  config_reset_value(entry);
+  entry->type = XINE_CONFIG_TYPE_RANGE;
 
-  if (entry->type != XINE_CONFIG_TYPE_RANGE) {
-
-    if (entry->type == XINE_CONFIG_TYPE_STRING) {
-      free (entry->str_value);
-      free (entry->str_default);
-    }
-
-    entry->type      = XINE_CONFIG_TYPE_RANGE;
-
-    if (entry->unknown_value)
-      sscanf (entry->unknown_value, "%d", &entry->num_value);
-    else
-      entry->num_value = def_value;
-  }
+  if (entry->unknown_value)
+    sscanf (entry->unknown_value, "%d", &entry->num_value);
+  else
+    entry->num_value = def_value;
 
   /* fill out rest of struct */
 
   entry->num_default   = def_value;
   entry->range_min     = min;
   entry->range_max     = max;
-  entry->description   = description;
-  entry->help          = help;
-  entry->callback      = changed_cb;
-  entry->callback_data = cb_data;
+  entry->description    = (description) ? strdup(description) : NULL;
+  entry->help           = (help) ? strdup(help) : NULL;
 
   pthread_mutex_unlock(&this->config_lock);
 
@@ -698,67 +687,64 @@ static int config_parse_enum (const char *str, char **values) {
 }
 
 static int config_register_enum (config_values_t *this,
-				   const char *key,
-				   int def_value,
-				   char **values,
-				   const char *description,
-				   const char *help,
-				   int exp_level,
-				   xine_config_cb_t changed_cb,
-				   void *cb_data) {
+				 const char *key,
+				 int def_value,
+				 char **values,
+				 const char *description,
+				 const char *help,
+				 int exp_level,
+				 xine_config_cb_t changed_cb,
+				 void *cb_data) {
 
-  cfg_entry_t *entry, *prev;
+  cfg_entry_t *entry;
+  char **value_src, **value_dest;
+  int value_count;
+
+
+  _x_assert(this);
   _x_assert(key);
   _x_assert(values);
 
-  lprintf ("registering enum %s\n", key);
-
-  /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  config_lookup_entry_int(this, key, &entry, &prev);
+  entry = config_register_key(this, key, exp_level, changed_cb, cb_data);
 
-  if (!entry) {
-    entry = config_add (this, key, exp_level);
-    entry->unknown_value = NULL;
-  } else {
-    if (!entry->next)
-      this->last = prev;
-    if (!prev)
-      this->first = entry->next;
-    else
-      prev->next = entry->next;
-    
-    entry->exp_level = exp_level;
-    config_insert(this, entry);
+  if (entry->type != XINE_CONFIG_TYPE_UNKNOWN) {
+    lprintf("config entry already registered: %s\n", key);
+    pthread_mutex_unlock(&this->config_lock);
+    return entry->num_value;
   }
 
-  /* convert entry to enum type if necessary */
+  config_reset_value(entry);
+  entry->type = XINE_CONFIG_TYPE_ENUM;
 
-  if (entry->type != XINE_CONFIG_TYPE_ENUM) {
-
-    if (entry->type == XINE_CONFIG_TYPE_STRING) {
-      free (entry->str_value);
-      free (entry->str_default);
-    }
-
-    entry->type      = XINE_CONFIG_TYPE_ENUM;
-
-    if (entry->unknown_value)
-      entry->num_value = config_parse_enum (entry->unknown_value, values);
-    else
-      entry->num_value = def_value;
-
-  }
-
+  if (entry->unknown_value)
+    entry->num_value = config_parse_enum (entry->unknown_value, values);
+  else
+    entry->num_value = def_value;
+  
   /* fill out rest of struct */
+  entry->num_default = def_value;
 
-  entry->num_default   = def_value;
-  entry->enum_values   = values;
-  entry->description   = description;
-  entry->help          = help;
-  entry->callback      = changed_cb;
-  entry->callback_data = cb_data;
+  /* allocate and copy the enum values */
+  value_src = values;
+  value_count = 0;
+  while (*value_src) {
+    value_src++;
+    value_count++;
+  }
+  entry->enum_values = malloc (sizeof(char*) * (value_count + 1));
+  value_src = values;
+  value_dest = entry->enum_values;
+  while (*value_src) {
+    *value_dest = strdup(*value_src);
+    value_src++;
+    value_dest++;
+  }
+  *value_dest = NULL;
+
+  entry->description   = (description) ? strdup(description) : NULL;
+  entry->help          = (help) ? strdup(help) : NULL;
 
   pthread_mutex_unlock(&this->config_lock);
 
@@ -785,7 +771,7 @@ static void config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src)
 }
 
 static void config_update_num (config_values_t *this,
-				 const char *key, int value) {
+			       const char *key, int value) {
   
   cfg_entry_t *entry;
 
@@ -813,6 +799,7 @@ static void config_update_num (config_values_t *this,
 
   if (entry->callback) {
     xine_cfg_entry_t cb_entry;
+
     config_shallow_copy(&cb_entry, entry);
     /* do not enter the callback from within a locked context */
     pthread_mutex_unlock(&this->config_lock);
@@ -822,8 +809,8 @@ static void config_update_num (config_values_t *this,
 }
 
 static void config_update_string (config_values_t *this,
-				       const char *key,
-				       const char *value) {
+				  const char *key,
+				  const char *value) {
 
   cfg_entry_t *entry;
   char *str_free = NULL;
@@ -861,13 +848,15 @@ static void config_update_string (config_values_t *this,
 
   if (entry->callback) {
     xine_cfg_entry_t cb_entry;
+
     config_shallow_copy(&cb_entry, entry);
     /* FIXME: find a solution which does not enter the callback with the lock acquired,
      * but does also handle the char* leak- and race-free without unnecessary string copying */
     entry->callback (entry->callback_data, &cb_entry);
   }
 
-  if (str_free) free(str_free);
+  if (str_free)
+    free(str_free);
   pthread_mutex_unlock(&this->config_lock);
 }
 
@@ -1136,10 +1125,7 @@ static void config_dispose (config_values_t *this) {
     if (last->unknown_value)
       free (last->unknown_value);
 
-    if (last->type == XINE_CONFIG_TYPE_STRING) {
-      free (last->str_value);
-      free (last->str_default);
-    }
+    config_reset_value(last);
 
     free (last);
   }

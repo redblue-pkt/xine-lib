@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.36 2004/12/12 22:01:31 mroi Exp $
+ * $Id: configfile.h,v 1.37 2005/01/30 16:51:20 tmattern Exp $
  *
  * config file management
  *
@@ -77,8 +77,8 @@ struct cfg_entry_s {
   char           **enum_values;
 
   /* help info for the user */
-  const char      *description;
-  const char      *help;
+  char            *description;
+  char            *help;
 
   /* user experience level */
   int              exp_level;
