@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.125 2002/12/27 16:47:10 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.126 2003/02/11 15:17:10 mroi Exp $
  *
  */
 
@@ -1586,6 +1586,7 @@ static void *init_class (xine_t *xine, void *data) {
     char *raw_device;
 #endif
     static char *decrypt_modes[] = { "key", "disc", "title", NULL };
+    char *css_cache_default, *css_cache;
     int mode;
     
 #ifndef HAVE_DVDNAV
@@ -1602,6 +1603,15 @@ static void *init_class (xine_t *xine, void *data) {
 				 decrypt_modes, "the css decryption method libdvdcss should use",
 				 NULL, 10, NULL, NULL);
     xine_setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
+    
+    css_cache_default = (char *)malloc(strlen(xine_get_homedir()) + 10);
+    sprintf(css_cache_default, "%s/.dvdcss/", xine_get_homedir());
+    css_cache = config->register_string(config, "input.css_cache_path", css_cache_default,
+					"path to the libdvdcss title key cache",
+					NULL, 10, NULL, NULL);
+    if (strlen(css_cache) > 0)
+      xine_setenv("DVDCSS_CACHE", css_cache, 0);
+    free(css_cache_default);
     
     dlclose(dvdcss);
   }
@@ -1645,6 +1655,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.126  2003/02/11 15:17:10  mroi
+ * enable libdvdcss title key cache
+ *
  * Revision 1.125  2002/12/27 16:47:10  miguelfreitas
  * man errno: "must not be  explicitly  declared; errno  may  be a macro"
  * (thanks Chris Rankin for noticing)
