@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.14 2002/09/29 01:01:58 tmmm Exp $
+ * $Id: vo_scale.c,v 1.15 2002/10/24 16:43:07 mroi Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -152,28 +152,28 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
        */
       if ( x_factor <= y_factor ) {
         this->output_width = this->gui_width;
-        this->displayed_width = this->delivered_width / this->zoom_factor_x;
+        this->displayed_width = (double)this->delivered_width / this->zoom_factor_x + 0.5;
         
-        this->output_height = this->delivered_height * x_factor;
+        this->output_height = (double)this->delivered_height * x_factor + 0.5;
         if( this->output_height * this->zoom_factor_y <= this->gui_height ) {
           this->displayed_height = this->delivered_height;
-          this->output_height = this->output_height * this->zoom_factor_y;
+          this->output_height = (double)this->output_height * this->zoom_factor_y + 0.5;
         } else {
           this->displayed_height = (double) this->delivered_height *
-            this->gui_height / this->output_height / this->zoom_factor_y;
+            this->gui_height / this->output_height / this->zoom_factor_y + 0.5;
           this->output_height = this->gui_height;
         }
       } else {
         this->output_height = this->gui_height;
-        this->displayed_height = this->delivered_height / this->zoom_factor_y;
+        this->displayed_height = (double)this->delivered_height / this->zoom_factor_y + 0.5;
         
-        this->output_width = this->delivered_width * y_factor;
+        this->output_width = (double)this->delivered_width * y_factor + 0.5;
         if( this->output_width * this->zoom_factor_x <= this->gui_width ) {
           this->displayed_width = this->delivered_width;
-          this->output_width = this->output_width * this->zoom_factor_x;
+          this->output_width = (double)this->output_width * this->zoom_factor_x + 0.5;
         } else {
           this->displayed_width = (double) this->delivered_width *
-            this->gui_width / this->output_width / this->zoom_factor_x;
+            this->gui_width / this->output_width / this->zoom_factor_x + 0.5;
           this->output_width = this->gui_width;
         }
       }
@@ -181,9 +181,9 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
     } else {
       if(x_factor < y_factor) {
         this->output_width   = (double) this->gui_width;
-        this->output_height  = (double) this->delivered_height * x_factor;
+        this->output_height  = (double) this->delivered_height * x_factor + 0.5;
       } else {
-        this->output_width   = (double) this->delivered_width  * y_factor;
+        this->output_width   = (double) this->delivered_width  * y_factor + 0.5;
         this->output_height  = (double) this->gui_height;
       }
       this->displayed_width = this->delivered_width;
