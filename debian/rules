@@ -9,19 +9,55 @@
 # This is the debhelper compatability version to use.
 export DH_COMPAT=2
 
-# shared library versions, option 1
-#version=0.5.0
-#major=0
-# option 2, assuming created lib in src/xine-engine/.libs/dlibxine.so.<version>
+# assuming created lib in src/xine-engine/.libs/libxine.so.<version>
 version=`ls src/xine-engine/.libs/libxine*.so.* | \
  awk '{if (match($$0,/[0-9]+\.[0-9]+\.[0-9]+$$/)) print substr($$0,RSTART)}'`
 major=`ls src/xine-engine/.libs/libxine*.so.* | \
  awk '{if (match($$0,/\.so\.[0-9]+$$/)) print substr($$0,RSTART+4)}'`
 
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+
+ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+        CFLAGS += -g
+endif
+INSTALL_TARGET := install
+BUILD_TARGET := all
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+        INSTALL_TARGET := install-debug
+        BUILD_TARGET := debug
+endif
+
+# the "optimize" flag disables compatibility hacks
+ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
+ $(warning trying to disable machine-specific optimizations)
+ $(warning add 'optimize' to DEB_BUILD_OPTIONS to enable them)
+ DEB_HOST_GNU_TYPE := \
+  $(sehll echo $(DEB_HOST_GNU_TYPE)|sed -e 's/^alphaev56/alpha/')
+ DEB_BUILD_GNU_TYPE := \
+  $(shell echo $(DEB_BUILD_GNU_TYPE)|sed -e 's/^alphaev56/alpha/')
+ #on intel architectures, xine probes CPU specific optimizations on runtime
+ DEB_HOST_GNU_TYPE := \
+  $(shell echo $(DEB_HOST_GNU_TYPE)|sed -e 's/^i.86/i686/')
+ DEB_BUILD_GNU_TYPE := \
+  $(shell echo $(DEB_BUILD_GNU_TYPE)|sed -e 's/^i.86/i686/')
+ ifneq ($DEB_HOST_GNU_TYPE,$DEB_BUILD_GNU_TYPE)
+  $(warning WARNING: cross compiling is not supported by xine)
+  $(warning          using DEB_BUILD_GNU_TYPE = $(DEB_BUILD_GNU_TYPE))
+  $(warning          ignoring DEB_HOST_GNU_TYPE = $(DEB_HOST_GNU_TYPE))
+  DEB_HOST_GNU_TYPE := $(DEB_BUILD_GNU_TYPE)
+ endif
+endif
+
+
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure --prefix=/usr --mandir=\$${prefix}/share/man
+	./configure --prefix=/usr --mandir=\$${prefix}/share/man \
+                    --host=$(DEB_HOST_GNU_TYPE)
 	touch configure-stamp
 
 build: configure-stamp build-stamp
