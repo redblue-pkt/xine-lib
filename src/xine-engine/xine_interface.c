@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.48 2003/04/04 19:20:53 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.49 2003/04/06 22:56:17 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -741,20 +741,18 @@ int xine_message(xine_stream_t *stream, int type, ...) {
   }
   va_end(ap);
 
-  size += sizeof(xine_ui_message_data_t);
+  size += sizeof(xine_ui_message_data_t) + 1;
   data = xine_xmalloc( size );
   strcpy(data->compatibility.str, 
          "Upgrade your frontend to see the error messages");
   data->type = type;
   data->num_parameters = n;
   
+  params = data->messages;
+
   if( explanation ) {
-    strcpy(data->internal_data, explanation);
-    data->explanation = data->internal_data;
-    params = data->parameters = data->internal_data + strlen(explanation) + 1;
-  } else {
-    data->explanation = NULL;
-    params = data->parameters = data->internal_data;
+    strcpy (data->messages, explanation);
+    params = data->messages + strlen(explanation) + 1;
   }
 
   params[0] = '\0';
@@ -765,11 +763,14 @@ int xine_message(xine_stream_t *stream, int type, ...) {
   }
   va_end(ap);
 
+  params[0] = '\0';
+
   event.type = XINE_EVENT_UI_MESSAGE;
   event.stream = stream;
   event.data_length = size;
   event.data = data;
   xine_event_send(stream, &event);
+
   free(data);
 
   return 1;

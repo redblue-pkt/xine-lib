@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.72 2003/04/06 15:50:57 holstsn Exp $
+ * $Id: xine.h.in,v 1.73 2003/04/06 22:56:16 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1277,17 +1277,16 @@ typedef struct {
   /* See XINE_MSG_xxx for defined types. */
   int                 type;
 
-  /* defined types are provided with a standard explanation.
-   * note: explanation may be NULL.
-   */
-  char               *explanation;
-
-  /* parameters are zero terminated strings */
+  /* some message types have additional information parameters */
   int                 num_parameters;
-  char               *parameters;
 
-  /* where messages are stored, will be longer */
-  char                internal_data[1];
+  /* where messages are stored, will be longer 
+   *
+   * this field begins with the message text itself (\0-terminated),
+   * followed by (optional) \0-terminated parameter strings
+   * the end marker is \0 \0 
+   */
+  char                messages[1];
 } xine_ui_message_data_t;
 
 
