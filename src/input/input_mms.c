@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.50 2004/04/15 22:10:55 tmattern Exp $
+ * $Id: input_mms.c,v 1.51 2004/04/26 15:05:04 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -228,10 +228,7 @@ static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t mms_plugin_get_capabilities (input_plugin_t *this_gen) {
-  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen; 
-  uint32_t cap = INPUT_CAP_PREVIEW;
-  
-  return cap;
+  return INPUT_CAP_PREVIEW;
 }
 
 static uint32_t mms_plugin_get_blocksize (input_plugin_t *this_gen) {
