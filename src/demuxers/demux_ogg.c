@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.153 2004/09/01 00:09:13 athp Exp $
+ * $Id: demux_ogg.c,v 1.154 2004/09/01 18:32:53 athp Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -66,10 +66,10 @@
 #define LOG
 */
 
-#undef  LOG_PACKETS
-#undef  LOG_PREVIEWS
-#undef  LOG_PTS
-#undef  LOG_VIDEO_PACKETS
+#define DEBUG_PACKETS 0
+#define DEBUG_PREVIEWS 0
+#define DEBUG_PTS 0
+#define DEBUG_VIDEO_PACKETS 0
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -343,9 +343,7 @@ static void send_ogg_packet (demux_ogg_t *this,
 static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview) {
   int64_t diff;
 
-#ifdef LOG_PTS
-  lprintf ("new pts %" PRId64 " found in stream\n",pts);
-#endif
+  llprintf(DEBUG_PTS, "new pts %" PRId64 " found in stream\n",pts);
 
   diff = pts - this->last_pts[video];
 
@@ -605,9 +603,7 @@ static void send_ogg_buf (demux_ogg_t *this,
       data = op->packet+1+hdrlen;
       size = op->bytes-1-hdrlen;
     }
-#ifdef LOG_PACKETS
-    lprintf ("audio data size %d\n", size);
-#endif
+    llprintf(DEBUG_PACKETS, "audio data size %d\n", size);
 
     if ((op->granulepos != -1) || (this->si[stream_num]->header_granulepos != -1)) {
       pts = get_pts(this, stream_num, op->granulepos );
@@ -615,13 +611,12 @@ static void send_ogg_buf (demux_ogg_t *this,
     } else
       pts = 0;
 
-#ifdef LOG_PACKETS
-    lprintf ("audiostream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
+    llprintf(DEBUG_PACKETS,
+             "audiostream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
              stream_num,
              op->granulepos,
              this->si[stream_num]->header_granulepos,
              pts);
-#endif
 
     _x_demux_send_data(this->audio_fifo, data, size,
                        pts, this->si[stream_num]->buf_types, decoder_flags,
@@ -651,13 +646,12 @@ static void send_ogg_buf (demux_ogg_t *this,
     } else
       pts = 0;
 
-#ifdef LOG_PACKETS
-    lprintf ("theorastream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
+    llprintf(DEBUG_PACKETS,
+             "theorastream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
              stream_num,
              op->granulepos,
              this->si[stream_num]->header_granulepos,
              pts);
-#endif
 
     send_ogg_packet (this, this->video_fifo, op, pts, decoder_flags, stream_num);
 
@@ -671,9 +665,8 @@ static void send_ogg_buf (demux_ogg_t *this,
     int size;
     int64_t pts;
 
-#ifdef LOG_VIDEO_PACKETS
-    lprintf ("video buffer, type=%08x\n", this->si[stream_num]->buf_types);
-#endif
+    llprintf(DEBUG_VIDEO_PACKETS,
+             "video buffer, type=%08x\n", this->si[stream_num]->buf_types);
 
     if (op->packet[0] == PACKET_TYPE_COMMENT ) {
       read_chapter_comment(this, op);
@@ -687,13 +680,12 @@ static void send_ogg_buf (demux_ogg_t *this,
       } else
         pts = 0;
       
-#ifdef LOG_VIDEO_PACKETS
-      lprintf ("videostream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
+      llprintf(DEBUG_VIDEO_PACKETS,
+               "videostream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
                stream_num,
                op->granulepos,
                this->si[stream_num]->header_granulepos,
                pts);
-#endif
 
       _x_demux_send_data(this->video_fifo, data, size,
                          pts, this->si[stream_num]->buf_types, decoder_flags,
@@ -1328,10 +1320,9 @@ static void send_header (demux_ogg_t *this) {
           if (this->si[i]->headers > 0)
             done = 0;
 
-#ifdef LOG_PREVIEWS
-          lprintf ("%d preview buffers left to send from stream %d\n",
+          llprintf(DEBUG_PREVIEWS,
+                   "%d preview buffers left to send from stream %d\n",
                    this->si[i]->headers, i);
-#endif
         }
       }
     }
@@ -1356,9 +1347,7 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
 
   ogg_handle_event(this);
 
-#ifdef LOG_PACKETS
-  lprintf ("send package...\n");
-#endif
+  llprintf(DEBUG_PACKETS, "send package...\n");
 
   if (!read_ogg_packet(this)) {
     this->status = DEMUX_FINISHED;
