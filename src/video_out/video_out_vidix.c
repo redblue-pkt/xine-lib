@@ -17,13 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.28 2003/02/19 21:44:23 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.29 2003/02/20 20:19:39 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
  * xine video_out driver to vidix library by Miguel Freitas 30/05/2002
  *
- * based on video_out_xv.c and video_out_syncfb.c
+ * based on video_out_xv.c, video_out_syncfb.c and video_out_pgx64.c
  *
  * some vidix specific code from mplayer (file vosub_vidix.c)
  *
@@ -39,6 +39,10 @@
 #include <inttypes.h>
 
 #include <X11/Xlib.h>
+
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/fb.h>
 
 #include "xine.h"
 #include "vidixlib.h"
@@ -104,11 +108,18 @@ struct vidix_driver_s {
   vidix_property_t    props[VO_NUM_PROPERTIES];
   uint32_t            capabilities;
 
-   /* X11 / Xv related stuff */
+  int                 visual_type;
+  
+  /* X11 related stuff */
   Display            *display;
   int                 screen;
   Drawable            drawable;
   GC                  gc;
+  
+  /* fb related stuff */
+  int                 fb_width;
+  int                 fb_height;
+  
   int                 depth;
 
   vo_scale_t          sc;
@@ -278,22 +289,24 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 
 static void vidix_clean_output_area(vidix_driver_t *this) {
 
-  XLockDisplay(this->display);      
+  if(this->visual_type == XINE_VISUAL_TYPE_X11) {
+    XLockDisplay(this->display);      
       
-  XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[0].x, this->sc.border[0].y, this->sc.border[0].w, this->sc.border[0].h);
-  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[1].x, this->sc.border[1].y, this->sc.border[1].w, this->sc.border[1].h);
-  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[2].x, this->sc.border[2].y, this->sc.border[2].w, this->sc.border[2].h);
-  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[3].x, this->sc.border[3].y, this->sc.border[3].w, this->sc.border[3].h);
+    XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
+    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[0].x, this->sc.border[0].y, this->sc.border[0].w, this->sc.border[0].h);
+    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[1].x, this->sc.border[1].y, this->sc.border[1].w, this->sc.border[1].h);
+    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[2].x, this->sc.border[2].y, this->sc.border[2].w, this->sc.border[2].h);
+    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[3].x, this->sc.border[3].y, this->sc.border[3].w, this->sc.border[3].h);
   
-  if(this->use_colourkey) {
-    XSetForeground(this->display, this->gc, this->colourkey);
-    XFillRectangle(this->display, this->drawable, this->gc, this->sc.output_xoffset, this->sc.output_yoffset, this->sc.output_width, this->sc.output_height);
-  }
+    if(this->use_colourkey) {
+      XSetForeground(this->display, this->gc, this->colourkey);
+      XFillRectangle(this->display, this->drawable, this->gc, this->sc.output_xoffset, this->sc.output_yoffset, this->sc.output_width, this->sc.output_height);
+    }
   
-  XFlush(this->display);
+    XFlush(this->display);
 
-  XUnlockDisplay(this->display);
+    XUnlockDisplay(this->display);
+  }
 }
 
 
@@ -340,6 +353,18 @@ static uint32_t vidix_get_capabilities (vo_driver_t *this_gen) {
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
 
   return this->capabilities;
+}
+
+static void vidixfb_frame_output_cb(void *user_data, int video_width, int video_height, double video_pixel_aspect, int *dest_x, int *dest_y, int *dest_width, int *dest_height, double *dest_pixel_aspect, int *win_x, int *win_y) {
+  vidix_driver_t *this = (vidix_driver_t *) user_data;
+
+  *dest_x            = 0;
+  *dest_y            = 0;
+  *dest_width        = this->fb_width;
+  *dest_height       = this->fb_height;
+  *dest_pixel_aspect = 1.0;
+  *win_x             = 0;
+  *win_y             = 0;
 }
 
 static void vidix_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -758,11 +783,13 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
       printf ("video_out_vidix: GUI_DATA_EX_DRAWABLE_CHANGED\n");
 #endif
     
-    this->drawable = (Drawable) data;
-    XLockDisplay(this->display);
-    XFreeGC(this->display, this->gc);
-    this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
-    XUnlockDisplay(this->display);
+    if(this->visual_type == XINE_VISUAL_TYPE_X11) {
+      this->drawable = (Drawable) data;
+      XLockDisplay(this->display);
+      XFreeGC(this->display, this->gc);
+      this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+      XUnlockDisplay(this->display);
+    }
     break;
   
   case XINE_GUI_SEND_EXPOSE_EVENT:
@@ -806,13 +833,10 @@ static void vidix_exit (vo_driver_t *this_gen) {
   vdlClose(this->vidix_handler);
 }
 
-static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   vidix_class_t        *class = (vidix_class_t *) class_gen;
   config_values_t      *config = class->config;
   vidix_driver_t       *this;
-  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
-  XWindowAttributes     window_attributes;
-  vidix_fourcc_t        vidix_fourcc;
   int                   err;
     
   this = malloc (sizeof (vidix_driver_t));
@@ -828,14 +852,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->vidix_handler = class->vidix_handler;
   this->vidix_cap = class->vidix_cap;
 
-  this->display           = visual->display;
-  this->screen            = visual->screen;
-  this->drawable          = visual->d;
-  this->gc                = XCreateGC(this->display, this->drawable, 0, NULL);
- 
   vo_scale_init( &this->sc, 1, /*this->vidix_cap.flags & FLAG_UPSCALER,*/ 0, config );
-  this->sc.frame_output_cb   = visual->frame_output_cb;
-  this->sc.user_data         = visual->user_data;
   
   this->config            = config;
   
@@ -843,32 +860,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   
   this->capabilities      = 0;
 
-  XGetWindowAttributes(this->display, this->drawable, &window_attributes);
-  this->sc.gui_width         = window_attributes.width;
-  this->sc.gui_height        = window_attributes.height;
-  this->depth                = window_attributes.depth;
-  
-  /* Detect if YUY2 is supported */
-  memset(&vidix_fourcc, 0, sizeof(vidix_fourcc_t));
-  vidix_fourcc.fourcc = IMGFMT_YUY2;
-  vidix_fourcc.depth = this->depth;
-  
-  if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
-    this->capabilities |= VO_CAP_YUY2;
-    printf("video_out_vidix: adaptor supports the yuy2 format\n");
-  }
-    
-  /* Detect if YV12 is supported - we always support yv12 but we need
-     to know if we have to convert */
-  this->capabilities |= VO_CAP_YV12;
-  vidix_fourcc.fourcc = IMGFMT_YV12;
-  
-  if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
-    this->supports_yv12 = 1;
-    printf("video_out_vidix: adaptor supports the yv12 format\n");
-  } else
-    this->supports_yv12 = 0;
-    
   /* Find what equalizer flags are supported */  
   if(this->vidix_cap.flags & FLAG_EQUALIZER) {
     if((err = vdlPlaybackGetEq(this->vidix_handler, &this->vidix_eq)) != 0) {
@@ -908,33 +899,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     }
   }
   
-  /* We'll assume all drivers support colour keying (which they do 
-     at the moment) */
-  this->capabilities |= VO_CAP_COLORKEY;
-  
-  /* Someone might want to disable colour keying (?) */
-  this->use_colourkey = config->register_bool(config, 
-    "video.vidix_use_colour_key", 1, "enable use of overlay colour key", 
-    NULL, 10, (void*) vidix_config_callback, this);
-    
-  /* Colour key components */
-  this->vidix_grkey.ckey.red = config->register_range(config,
-    "video.vidix_colour_key_red", 255, 0, 255, 
-    "video overlay colour key red component", NULL, 10,
-    (void*) vidix_config_callback, this); 
-  
-  this->vidix_grkey.ckey.green = config->register_range(config,
-    "video.vidix_colour_key_green", 0, 0, 255, 
-    "video overlay colour key green component", NULL, 10,
-    (void*) vidix_config_callback, this);     
-  
-  this->vidix_grkey.ckey.blue = config->register_range(config,
-    "video.vidix_colour_key_blue", 255, 0, 255, 
-    "video overlay colour key blue component", NULL, 10,
-    (void*) vidix_config_callback, this);     
-    
-  vidix_update_colourkey(this);
-  
   /* Configuration for double buffering */
   this->use_doublebuffer = config->register_bool(config,
     "video.vidix_use_double_buffer", 1, "double buffer to sync video to retrace", NULL, 10,
@@ -968,15 +932,131 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->vo_driver.redraw_needed        = vidix_redraw_needed;
 
   printf ("video_out_vidix: warning, xine's vidix driver is EXPERIMENTAL\n");
+  
+  return this;
+}
+
+static void query_fourccs (vidix_driver_t *this) {
+  vidix_fourcc_t        vidix_fourcc;
+  int                   err;
+    
+  /* Detect if YUY2 is supported */
+  memset(&vidix_fourcc, 0, sizeof(vidix_fourcc_t));
+  vidix_fourcc.fourcc = IMGFMT_YUY2;
+  vidix_fourcc.depth = this->depth;
+  
+  if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
+    this->capabilities |= VO_CAP_YUY2;
+    printf("video_out_vidix: adaptor supports the yuy2 format\n");
+  }
+    
+  /* Detect if YV12 is supported - we always support yv12 but we need
+     to know if we have to convert */
+  this->capabilities |= VO_CAP_YV12;
+  vidix_fourcc.fourcc = IMGFMT_YV12;
+  
+  if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
+    this->supports_yv12 = 1;
+    printf("video_out_vidix: adaptor supports the yv12 format\n");
+  } else
+    this->supports_yv12 = 0;
+}
+
+static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+  vidix_driver_t       *this   = open_plugin(class_gen);
+  config_values_t      *config = this->config;
+    
+  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
+  XWindowAttributes     window_attributes;  
+  
+  this->visual_type       = XINE_VISUAL_TYPE_X11;
+  
+  this->display           = visual->display;
+  this->screen            = visual->screen;
+  this->drawable          = visual->d;
+  this->gc                = XCreateGC(this->display, this->drawable, 0, NULL);
+ 
+  XGetWindowAttributes(this->display, this->drawable, &window_attributes);
+  this->sc.gui_width      = window_attributes.width;
+  this->sc.gui_height     = window_attributes.height;
+  this->depth             = window_attributes.depth;
+  
+  this->sc.frame_output_cb   = visual->frame_output_cb;
+  this->sc.user_data         = visual->user_data;
+  
+  /* We'll assume all drivers support colour keying (which they do 
+     at the moment) */
+  this->capabilities |= VO_CAP_COLORKEY;
+  
+  /* Someone might want to disable colour keying (?) */
+  this->use_colourkey = config->register_bool(config, 
+    "video.vidix_use_colour_key", 1, "enable use of overlay colour key", 
+    NULL, 10, (void*) vidix_config_callback, this);
+    
+  /* Colour key components */
+  this->vidix_grkey.ckey.red = config->register_range(config,
+    "video.vidix_colour_key_red", 255, 0, 255, 
+    "video overlay colour key red component", NULL, 10,
+    (void*) vidix_config_callback, this); 
+  
+  this->vidix_grkey.ckey.green = config->register_range(config,
+    "video.vidix_colour_key_green", 0, 0, 255, 
+    "video overlay colour key green component", NULL, 10,
+    (void*) vidix_config_callback, this);     
+  
+  this->vidix_grkey.ckey.blue = config->register_range(config,
+    "video.vidix_colour_key_blue", 255, 0, 255, 
+    "video overlay colour key blue component", NULL, 10,
+    (void*) vidix_config_callback, this);     
+    
+  vidix_update_colourkey(this);
+
+  query_fourccs(this);
+
   return &this->vo_driver;
 }
 
-static char* get_identifier (video_driver_class_t *this_gen) {
-  return "Vidix";
+static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+  vidix_driver_t          *this = open_plugin(class_gen);
+  config_values_t         *config = this->config;
+  int                      fd;
+  struct fb_var_screeninfo fb_var;
+    
+  this->visual_type = XINE_VISUAL_TYPE_FB;
+  
+  fd = open("/dev/fb0", O_RDONLY);
+  ioctl(fd, FBIOGET_VSCREENINFO, &fb_var);
+  
+  this->depth = fb_var.bits_per_pixel;
+  this->fb_width = fb_var.xres;
+  this->fb_height = fb_var.yres;
+  
+  close(fd);
+  
+  this->sc.frame_output_cb   = vidixfb_frame_output_cb;
+  this->sc.user_data         = this;
+    
+  this->use_colourkey = 0;
+  
+  query_fourccs(this);
+  
+  return &this->vo_driver;
 }
 
-static char* get_description (video_driver_class_t *this_gen) {
-  return _("xine video output plugin using libvidix");
+static char* vidix_get_identifier (video_driver_class_t *this_gen) {
+  return "vidix";
+}
+
+static char* vidixfb_get_identifier (video_driver_class_t *this_gen) {
+  return "vidixfb";
+} 
+
+static char* vidix_get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using libvidix for x11");
+}
+
+static char* vidixfb_get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using libvidix for linux frame buffer");
 }
 
 static void dispose_class (video_driver_class_t *this_gen) {
@@ -1021,11 +1101,30 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 
   this->config            = xine->config;
   
-  this->driver_class.open_plugin     = open_plugin;
-  this->driver_class.get_identifier  = get_identifier;
-  this->driver_class.get_description = get_description;
-  this->driver_class.dispose         = dispose_class;
+  return this;
+}
 
+static void *vidix_init_class (xine_t *xine, void *visual_gen) {
+
+  vidix_class_t *this = init_class (xine, visual_gen);
+  
+  this->driver_class.open_plugin     = vidix_open_plugin;
+  this->driver_class.get_identifier  = vidix_get_identifier;
+  this->driver_class.get_description = vidix_get_description;
+  this->driver_class.dispose         = dispose_class;
+  
+  return this;
+}
+
+static void *vidixfb_init_class (xine_t *xine, void *visual_gen) {
+
+  vidix_class_t *this = init_class (xine, visual_gen);
+  
+  this->driver_class.open_plugin     = vidixfb_open_plugin;
+  this->driver_class.get_identifier  = vidixfb_get_identifier;
+  this->driver_class.get_description = vidixfb_get_description;
+  this->driver_class.dispose         = dispose_class;
+  
   return this;
 }
 
@@ -1034,12 +1133,18 @@ static vo_info_t vo_info_vidix = {
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
 
+static vo_info_t vo_info_vidixfb = {
+  2,                    /* priority    */
+  XINE_VISUAL_TYPE_FB   /* visual type */
+};
+
 /*
  * exported plugin catalog entry
  */
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 14, "vidix", XINE_VERSION_CODE, &vo_info_vidix, init_class },
+  { PLUGIN_VIDEO_OUT, 14, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
+  { PLUGIN_VIDEO_OUT, 14, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
