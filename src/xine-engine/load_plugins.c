@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.112 2002/11/12 00:13:14 guenter Exp $
+ * $Id: load_plugins.c,v 1.113 2002/11/14 19:45:01 esnel Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1452,45 +1452,79 @@ char *xine_get_mime_types (xine_t *self) {
 }
 
 
+static void dispose_plugin_list (xine_list_t *list) {
+
+  plugin_node_t *node;
+  decoder_info_t *decoder_info;
+
+  node = xine_list_first_content (list);
+  while (node) {
+    if (node->plugin_class) {
+      void *cls = node->plugin_class;
+
+      /* dispose of plugin class */
+      switch (node->info->type) {
+      case PLUGIN_INPUT:
+        ((input_class_t *)cls)->dispose ((input_class_t *)cls);
+        break;
+      case PLUGIN_DEMUX:
+        ((demux_class_t *)cls)->dispose ((demux_class_t *)cls);
+        break;
+      case PLUGIN_SPU_DECODER:
+        ((spu_decoder_class_t *)cls)->dispose ((spu_decoder_class_t *)cls);
+        break;
+      case PLUGIN_AUDIO_DECODER:
+        ((audio_decoder_class_t *)cls)->dispose ((audio_decoder_class_t *)cls);
+        break;
+      case PLUGIN_VIDEO_DECODER:
+        ((video_decoder_class_t *)cls)->dispose ((video_decoder_class_t *)cls);
+        break;
+      case PLUGIN_AUDIO_OUT:
+        ((audio_driver_class_t *)cls)->dispose ((audio_driver_class_t *)cls);
+        break;
+      case PLUGIN_VIDEO_OUT:
+        ((video_driver_class_t *)cls)->dispose ((video_driver_class_t *)cls);
+        break;
+      }
+    }
+
+    /* free special info */
+    switch (node->info->type) {
+    case PLUGIN_SPU_DECODER:
+    case PLUGIN_AUDIO_DECODER:
+    case PLUGIN_VIDEO_DECODER:
+      decoder_info = (decoder_info_t *)node->info->special_info;
+      free (decoder_info->supported_types);
+
+    default:
+      free (node->info->special_info);
+      break;
+    }
+
+    /* free info structure and string copies */
+    free (node->info->id);
+    free (node->info);
+    free (node->filename);
+    free (node);
+
+    node = xine_list_next_content (list);
+  }
+}
+
+
 /*
  * dispose all currently loaded plugins (shutdown)
  */
 
 void dispose_plugins (xine_t *this) {
 
-/* FIXME */
+  dispose_plugin_list (this->plugin_catalog->input);
+  dispose_plugin_list (this->plugin_catalog->demux);
+  dispose_plugin_list (this->plugin_catalog->spu);
+  dispose_plugin_list (this->plugin_catalog->audio);
+  dispose_plugin_list (this->plugin_catalog->video);
+  dispose_plugin_list (this->plugin_catalog->aout);
+  dispose_plugin_list (this->plugin_catalog->vout);
 
-#if 0
-  plugin_node_t *node;
-
-  node = xine_list_first_content (this->plugin_catalog->demux);
-  while (node) {
-    demux_plugin_t *dp = node->plugin;
-
-    if (dp)
-      dp->dispose (dp);
-
-    node = xine_list_next_content (this->plugin_catalog->demux);
-  }
-
-  node = xine_list_first_content (this->plugin_catalog->input);
-  while (node) {
-    input_plugin_t *ip = node->plugin;
-
-    if (ip)
-      ip->dispose (ip);
-
-    node = xine_list_next_content (this->plugin_catalog->input);
-  }
-
-  for (i = 0; i < this->num_audio_decoders_loaded; i++)
-    this->audio_decoders_loaded[i]->dispose (this->audio_decoders_loaded[i]);
-
-  for (i = 0; i < this->num_video_decoders_loaded; i++)
-    this->video_decoders_loaded[i]->dispose (this->video_decoders_loaded[i]);
-
-  for (i = 0; i < this->num_spu_decoders_loaded; i++)
-    this->spu_decoders_loaded[i]->dispose (this->spu_decoders_loaded[i]);
-
-#endif
+  free (this->plugin_catalog);
 }

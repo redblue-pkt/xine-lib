@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.191 2002/11/11 00:54:08 miguelfreitas Exp $
+ * $Id: xine.c,v 1.192 2002/11/14 19:45:01 esnel Exp $
  *
  * top-level xine functions
  *
@@ -805,29 +805,24 @@ void xine_dispose (xine_stream_t *stream) {
   pthread_mutex_destroy (&stream->event_queues_lock);
   pthread_cond_destroy (&stream->counter_changed);
 
+  stream->metronom->exit (stream->metronom);
+
   free (stream);
 }
 
 void xine_exit (xine_t *this) {
 
-  /* FIXME */
+  int i;
 
   printf ("xine_exit: bye!\n");
 
-#if 0
-
-  int i;
-
   for (i = 0; i < XINE_LOG_NUM; i++)
-    stream->log_buffers[i]->dispose (stream->log_buffers[i]);
+    this->log_buffers[i]->dispose (this->log_buffers[i]);
 
-  stream->metronom->exit (stream->metronom);
+  dispose_plugins (this);
+  this->config->dispose(this->config);
 
-  dispose_plugins (stream);
-  xine_profiler_print_results ();
-  stream->config->dispose(stream->config);
-
-#endif
+  free (this);
 }
 
 xine_t *xine_new (void) {
