@@ -184,6 +184,7 @@ static int osd_show (osd_object_t *osd, int64_t vpts ) {
     
     for( y = osd->y1; y <= osd->y2; y++ ) {
       rle.len = 0;
+      rle.color = 0;
       c = osd->area + y * osd->width + osd->x1;                                       
       for( x = osd->x1; x <= osd->x2; x++, c++ ) {
         if( rle.color != *c ) {
