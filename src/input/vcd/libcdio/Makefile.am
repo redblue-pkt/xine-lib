@@ -66,4 +66,5 @@ noinst_HEADERS = \
 	scsi_mmc.h \
 	cdio_private.h \
 	_cdio_stream.h \
-	iso9660_private.h
+	iso9660_private.h \
+	portable.h
