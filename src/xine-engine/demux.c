@@ -171,11 +171,12 @@ static void *demux_loop (void *stream_gen) {
 #ifdef LOG
     printf ("demux: main demuxer loop finished (status: %d)\n", status);
 #endif
+    
     /* wait before sending end buffers: user might want to do a new seek */
     while(stream->demux_thread_running && 
-          (!stream->video_fifo || stream->video_fifo->size(stream->video_fifo)) &&
-          (!stream->audio_fifo || stream->audio_fifo->size(stream->audio_fifo)) &&
-          status != DEMUX_OK ){
+          ((!stream->video_fifo || stream->video_fifo->size(stream->video_fifo)) ||
+           (!stream->audio_fifo || stream->audio_fifo->size(stream->audio_fifo))) &&
+          status == DEMUX_FINISHED ){
       pthread_mutex_unlock( &stream->demux_lock );
       xine_usec_sleep(100000);
       pthread_mutex_lock( &stream->demux_lock );
@@ -194,12 +195,12 @@ static void *demux_loop (void *stream_gen) {
   } else {
     xine_demux_control_end(stream, BUF_FLAG_END_USER);
   }
-  
-  stream->demux_thread_running = 0;
-  pthread_mutex_unlock( &stream->demux_lock );
-  
-  pthread_exit(NULL);
 
+  stream->demux_thread_running = 0;
+
+  pthread_mutex_unlock( &stream->demux_lock );
+
+  pthread_exit(NULL);
   return NULL;
 }
 
@@ -258,7 +259,7 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
   stream->demux_thread = 0;
   
   pthread_mutex_unlock (&stream->counter_lock);
-    
+
   /*
    * Wake up xine_play if it's waiting for a frame
    */
@@ -268,6 +269,6 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
     pthread_cond_signal(&stream->first_frame_reached);
   }
   pthread_mutex_unlock (&stream->first_frame_lock);
-  
+
   return 0;
 }
