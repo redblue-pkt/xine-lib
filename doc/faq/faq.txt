@@ -74,6 +74,15 @@ Table of Contents
     When I play this stream, xine shows video but there's no audio!
     Can xine produce 4-/5-channel surround audio output?
     What about ac3 output via spdif to an external ac3 decoder?
+    Getting SPDIF output from a SBLive 5.1 using OSS drivers
+       
+        Requirements
+        The OSS driver is maintained by creative and can be downloaded at http:
+            //opensource.creative.com/
+        Setting up xine for SPDIF (AC3_passthrough) output
+        The cable used for the SBLive can easily be self-made or buy a stereo
+            3.5mm jack to dual RCA cable.
+       
     Changing the volume with the GUI control has no effect! What's up!?
     Audio is stuttering and i see a lot of "metronom: fixing sound card drift
         by -2115 pts" on the console output
@@ -868,6 +877,132 @@ xine can do that too. Pretty much the same story as for 4-/5-channel surround
 /.xine/config/~/.gxine/config) yourself:
         audio.a52_pass_through:1
       
+
+-------------------------------------------------------------------------------
+
+Getting SPDIF output from a SBLive 5.1 using OSS drivers
+
+The following explains how to get the above configuration going with xine. Some
+parts of it may applicable to other configurations (cards that use the EMU10k1
+chip) as well.
+
+ 
+
+-------------------------------------------------------------------------------
+
+Requirements
+
+ 1. xine-lib >= 1.x.x
+   
+ 2. OSS driver
+   
+ 3. An external decoder
+   
+ 4. A cable to connect the SBLive to the external decoder
+   
+The configuration described was tested using the following equipment :
+Soundblaster live 5.1 (rev 7) Yamaha DSP-AX620 external decoder
+
+-------------------------------------------------------------------------------
+
+The OSS driver is maintained by creative and can be downloaded at http://
+opensource.creative.com/
+
+The driver package contains documentation on how to install it. Besides that
+I'd like to add the following notes.
+
+In order to compile and install these drivers, you need a valid kernel
+configuration file. For RedHat Linux's pre-compiled kernels these configuration
+files can be found in /usr/src/linux/configs After you've located the correct
+config file for your kernel, you need to copy it to /usr/src/linux/.config For
+example, when you run the 2.4.18-i686 kernel do :
+         cp /usr/src/linux/configs/kernel-2.4.18-i686.config /usr/src/linux/.config
+       
+Make sure that the emu10k1 module that is currently installed is not loaded. To
+unload the modules :
+         /sbin/modprobe -rv emu10k1.o ac97_codec.o
+       
+If this mentions that the device is busy, some program is using the driver.
+Some example could be a mixer application or sound daemon like artsd. You'll
+need to close down the applications before continuing. At success it should
+print something like :
+         # delete emu10k1
+         # delete ac97_codec
+         # delete soundcore
+       
+Run make in the directory where you unpacked the driver and follow the
+instructions printed at the end of each step. The last step should be:
+         make install-tools
+       
+As the README of the driver package mentions the SPDIF AC3 output doesn't work
+by default. In the directory utils/scripts an emu10k1.conf file can be found
+which need to be placed in the default installation directory (/usr/local/etc).
+After this the emu10k1.conf needs to be modified. The following settings worked
+fine for me (I don't use the analog outputs of the card) :
+         CARD_IS_5_1=yes
+         USE_DIGITAL_OUTPUT=yes
+         ENABLE_TONE_CONTROL=yes
+         AC3PASSTHROUGH=yes
+         ENABLE_LIVEDRIVE_IR=no
+         INVERT_REAR=no
+         MULTICHANNEL=yes
+         ROUTE_ALL_TO_SUB=no
+         ANALOG_FRONT_BOOST=no
+         SURROUND=no
+         PROLOGIC=no
+         ENABLE_CD_Spdif=yes  
+         ENABLE_OPTICAL_SPDIF=no 
+         ENABLE_LINE2_MIC2=no    
+         ENABLE_RCA_SPDIF=no     
+         ENABLE_RCA_AUX=no
+       
+After modifying the emu10k1.conf, you need to modify your /etc/modules.conf and
+make sure the following lines are in there.
+         alias sound-slot-0 emu10k1
+         post-install emu10k1 /usr/local/etc/emu-script
+       
+After saving the changes to modules.conf, run
+         /sbin/depmod -a
+       
+Now, you're ready to load the new modules and set the correct options for it.
+To load the modules run :
+         /sbin/modprobe emu10k1
+       
+
+-------------------------------------------------------------------------------
+
+Setting up xine for SPDIF (AC3_passthrough) output
+
+You can either use the config dialog or edit the config file (~/.xine/config2)
+yourself:
+         audio.a52_pass_through:1
+       
+In case the setting is not in the file you can add it.
+
+-------------------------------------------------------------------------------
+
+The cable used for the SBLive can easily be self-made or buy a stereo 3.5mm
+jack to dual RCA cable.
+
+   What you need to make the cable yourself :
+   a) stereo 3.5mm jack plug
+   b) RCA plug
+   c) shielded cable (video coax 75 Ohm will do)
+
+   Connect them as follows :
+   
+   center pin jackplug ------|----- center pin RCA plug
+                   GND     __|__    GND
+      
+
+In order to test it use a DVD with AC3 or DTS track start xine and select the
+right audio track from user interface or start xine as:
+          xine dvd://1 -a 0 
+        
+The external decoder should display something like "Dolby Digital" in case the
+selected audio track contains AC3 data or "DTS" in case the selected audio
+track contains DTS data. Of course stereo audio also goes through the SPDIF
+output, so the analog outputs of the SBLive 5.1 are not needed anymore.
 
 -------------------------------------------------------------------------------
 

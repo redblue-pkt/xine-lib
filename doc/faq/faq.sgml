@@ -1182,6 +1182,178 @@
       </programlisting>
     </para>
   </sect1>
+  <sect1 id="sblivespdif">
+    <title>Getting SPDIF output from a SBLive 5.1 using OSS drivers</title>
+    
+    <para>
+      The following explains how to get the above configuration 
+      going with xine. Some parts of it may applicable to other 
+      configurations (cards that use the EMU10k1 chip) as well.
+    <para>
+
+    <sect2>
+
+      <title> Requirements </title>
+
+      <orderedlist>
+        <listitem>
+	  <para> xine-lib >= 1.x.x </para>
+	</listitem>
+	<listitem>
+	  <para> OSS driver </para>
+	</listitem>
+	<listitem>
+	  <para> An external decoder </para>
+	</listitem>
+	<listitem>
+	  <para> A cable to connect the SBLive to the external decoder </para>
+	</listitem>
+      </orderedlist>
+
+      <para>
+        The configuration described was tested using the following equipment :
+	Soundblaster live 5.1 (rev 7)
+	Yamaha DSP-AX620 external decoder
+      </para>
+    </sect2>
+    <sect2>
+     <title> The OSS driver is maintained by creative and can be downloaded at
+             <ulink url="http://opensource.creative.com/">
+	     http://opensource.creative.com/ </ulink> </title>
+
+     <para>
+       The driver package contains documentation on how to install it. 
+       Besides that I'd like to add the following notes.
+     </para>
+
+     <para>
+       In order to compile and install these drivers, you need a valid kernel
+       configuration file. For RedHat Linux's pre-compiled kernels these
+       configuration files can be found in 
+       <filename>/usr/src/linux/configs</filename>
+       After you've located the correct config file for your kernel,
+       you need to copy it to <filename>/usr/src/linux/.config</filename>
+       For example, when you run the 2.4.18-i686 kernel do :
+       <programlisting>
+         cp /usr/src/linux/configs/kernel-2.4.18-i686.config /usr/src/linux/.config
+       </programlisting>
+       Make sure that the emu10k1 module that is currently installed is 
+       not loaded. To unload the modules :
+       <programlisting>
+         /sbin/modprobe -rv emu10k1.o ac97_codec.o
+       </programlisting>
+
+       If this mentions that the device is busy, some program is 
+       using the driver. Some example could be a mixer application 
+       or sound daemon like artsd. You'll need to close down the 
+       applications before continuing.
+       At success it should print something like :
+       <programlisting>
+         # delete emu10k1
+	 # delete ac97_codec
+	 # delete soundcore
+       </programlisting>
+       Run make in the directory where you unpacked the driver and follow the
+       instructions printed at the end of each step.
+       The last step should be: 
+       <programlisting>
+         make install-tools
+       </programlisting>
+
+       As the README of the driver package mentions the SPDIF AC3 
+       output doesn't work by default. In the directory 
+       <filename>utils/scripts</filename> an <filename>emu10k1.conf</filename>
+       file  can be found which need to be placed in the default
+       installation directory (<filename>/usr/local/etc</filename>). 
+       After this the <filename>emu10k1.conf</filename> needs to be modified.
+       The following settings worked fine for me (I don't use the analog 
+       outputs of the card) :
+       
+       <programlisting>
+         CARD_IS_5_1=yes
+	 USE_DIGITAL_OUTPUT=yes
+	 ENABLE_TONE_CONTROL=yes
+	 AC3PASSTHROUGH=yes
+	 ENABLE_LIVEDRIVE_IR=no
+	 INVERT_REAR=no
+	 MULTICHANNEL=yes
+	 ROUTE_ALL_TO_SUB=no
+	 ANALOG_FRONT_BOOST=no
+	 SURROUND=no
+	 PROLOGIC=no
+	 ENABLE_CD_Spdif=yes  
+	 ENABLE_OPTICAL_SPDIF=no 
+	 ENABLE_LINE2_MIC2=no    
+	 ENABLE_RCA_SPDIF=no     
+	 ENABLE_RCA_AUX=no
+       </programlisting>
+       After modifying the <filename>emu10k1.conf</filename>, 
+       you need to modify your <filename>/etc/modules.conf</filename> and
+       make sure the following lines are in there.
+
+       <programlisting>
+         alias sound-slot-0 emu10k1
+	 post-install emu10k1 /usr/local/etc/emu-script
+       </programlisting>
+
+       After saving the changes to <filename>modules.conf</filename>, 
+       run 
+       <programlisting>
+         /sbin/depmod -a
+       </programlisting>
+
+       Now, you're ready to load the new modules and set the correct 
+       options for it. To load the modules run :
+       <programlisting>
+         /sbin/modprobe emu10k1
+       </programlisting>
+     </para>
+    </sect2>
+    <sect2>
+     <title> Setting up xine for SPDIF (AC3_passthrough) output </title>
+
+     <para>
+       You can either use the config dialog or edit the config file 
+       (<filename>~/.xine/config2</filename>) yourself: 
+       <programlisting>
+         audio.a52_pass_through:1
+       </programlisting>
+       In case the setting is not in the file you can add it.
+     </para>
+    </sect2>
+    <sect2>
+      <title> The cable used for the SBLive can easily be self-made 
+              or buy a stereo 3.5mm jack to dual RCA cable. </title>
+
+      <programlisting>
+   What you need to make the cable yourself :
+   a) stereo 3.5mm jack plug
+   b) RCA plug
+   c) shielded cable (video coax 75 Ohm will do)
+
+   Connect them as follows :
+   
+   center pin jackplug ------|----- center pin RCA plug
+             	   GND     __|__    GND
+      </programlisting>	
+
+      <para>
+        In order to test it use a DVD with AC3 or DTS track
+        start xine and select the right audio track 
+        from user interface or start xine as: 
+        <programlisting>
+          xine dvd://1 -a 0 
+        </programlisting>
+        The external decoder should display something like 
+        "Dolby Digital" in case the
+        selected audio track contains AC3 data or "DTS"
+        in case the selected audio
+        track contains DTS data.
+        Of course stereo audio also goes through the SPDIF output, so the analog
+        outputs of the SBLive 5.1 are not needed anymore.
+     </para>
+    </sect2>
+  </sect1>
   <sect1 id="volumecontrol">
 
     <title>Changing the volume with the GUI control has no effect! What's up!?</title>
