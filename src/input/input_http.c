@@ -461,14 +461,6 @@ static off_t http_plugin_seek(input_plugin_t *this_gen,
   return this->curpos;
 }
 
-static char *http_plugin_get_description (input_plugin_t *this_gen) {
-  return _("http network stream input plugin");
-}
-
-static char *http_plugin_get_identifier (input_plugin_t *this_gen) {
-  return "HTTP";
-}
-
 static char* http_plugin_get_mrl (input_plugin_t *this_gen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 

@@ -44,7 +44,8 @@ lib_LTLIBRARIES = \
 	xineplug_inp_file.la \
 	xineplug_inp_http.la \
 	$(in_dvd) \
-	xineplug_inp_mms.la 
+	xineplug_inp_mms.la \
+	xineplug_inp_stdin_fifo.la
 
 #lib_LTLIBRARIES = \
 #	$(in_cda) \
@@ -78,9 +79,9 @@ xineplug_inp_mms_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 #xineplug_inp_vcd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
-#xineplug_inp_stdin_fifo_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
+xineplug_inp_stdin_fifo_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_inp_rtp_la_SOURCES = input_rtp.c
 #xineplug_inp_rtp_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
