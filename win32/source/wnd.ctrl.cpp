@@ -384,13 +384,23 @@ void XINE_UI::end_ctrlwnd()
 
 bool _XINE_UI::UpdateCtrl()
 {
+	int length_time;
+
 	if( gGui->stream )
 	{
 		if( mode == XINE_STATUS_PLAY )
 		{
 		  /*mrl_time_current = xine_get_current_time( gGui->stream );*/
-		  if (xine_get_pos_length(gGui->stream, 0, &mrl_time_current, 0))
+		  length_time = 0;
+		  if (xine_get_pos_length(gGui->stream, 0, &mrl_time_current, &length_time))
           {
+            if (length_time && ((length_time/1000) != mrl_time_length))
+			{
+				mrl_time_length = length_time/1000;
+		        HWND htimebar = GetDlgItem( hctrlwnd, ID_TIMEBAR );
+		        SendMessage( htimebar, TBM_SETRANGE, (WPARAM) TRUE, (LPARAM) MAKELONG( 0, mrl_time_length ) );
+			}
+
 			mrl_time_current /= 1000;
 		    if( !tracking )
 			{

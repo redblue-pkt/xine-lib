@@ -847,15 +847,24 @@ bool XINE_UI::UpdatePanel()
 {
     char  buffer[10];
     char *lang = NULL;
+	const char *title;
 
     UpdateWindow( hpanelwnd );
 
 	// set our title
 
-	if( mrl_short_name )
-		SetDlgItemText( hpanelwnd, ID_TITLE, mrl_short_name );
-	else
-		SetDlgItemText( hpanelwnd, ID_TITLE, "<no input>" );
+    if ((mrl_long_name) && strstr(mrl_long_name, "cdda:/"))
+	{
+		title = xine_get_meta_info(gGui->stream, XINE_META_INFO_TITLE);
+   	    SetDlgItemText( hpanelwnd, ID_TITLE, title );
+	}
+	else 
+	{
+  	  if( mrl_short_name )
+	  	  SetDlgItemText( hpanelwnd, ID_TITLE, mrl_short_name );
+	  else
+	 	  SetDlgItemText( hpanelwnd, ID_TITLE, "<no input>" );
+	}
 	
 	// set our time
 
