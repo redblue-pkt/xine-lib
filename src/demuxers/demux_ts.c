@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.7 2001/08/20 22:56:36 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.8 2001/08/28 19:16:19 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -840,7 +840,7 @@ static void demux_ts_queue_pes(
 
       buf->content  = p+4;
       buf->size     = nPacketLen-4;
-      buf->type     = BUF_AUDIO_AC3;
+      buf->type     = BUF_AUDIO_A52;
       buf->PTS      = nPTS;
       buf->DTS      = nDTS ;
       buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);

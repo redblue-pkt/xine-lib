@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/08/10 22:14:24 guenter Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/08/28 19:16:20 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -32,25 +32,13 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include "xine_internal.h"
 #include "cpu_accel.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
 
 #include "libavcodec/avcodec.h"
-
-/* this def is taken from xine_internal.h */
-typedef struct video_decoder_s video_decoder_t;
-struct video_decoder_s {
-  int interface_version;
-  int (*can_handle) (video_decoder_t *this, int buf_type);
-  void (*init) (video_decoder_t *this, vo_instance_t *video_out);
-  void (*decode_data) (video_decoder_t *this, buf_element_t *buf);
-  void (*close) (video_decoder_t *this);
-  char* (*get_identifier) (void);
-  int priority;
-  metronom_t *metronom;
-};
 
 /* now this is ripped of wine's vfw.h */
 typedef struct {
@@ -94,7 +82,13 @@ typedef struct ff_decoder_s {
 */
 
 static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_VIDEO_AVI) ;
+  buf_type &= 0xFFFF0000;
+
+  return ( buf_type == BUF_VIDEO_MSMPEG4 ||
+           buf_type == BUF_VIDEO_MJPEG ||
+           buf_type == BUF_VIDEO_MPEG4 ||
+	   buf_type == BUF_VIDEO_I263 ||
+	   buf_type == BUF_VIDEO_RV10 );
 }
 
 static void ff_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
@@ -116,6 +110,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_info[0] == 0) {
 
     AVCodec *codec = NULL;
+    int codec_type;
 
     /* init package containing bih */
 
@@ -123,6 +118,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->video_step = buf->decoder_info[1];
 
     /* init codec */
+
+    codec_type = buf->type & 0xFFFF0000;
 
     /*
     if (this->bih.biCompression == mmioFOURCC('D', 'I', 'V', 'X')) {
@@ -135,36 +132,25 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
     */
 
-    switch (this->bih.biCompression) {
-    case mmioFOURCC('M', 'P', 'G', '4'):
-    case mmioFOURCC('m', 'p', 'g', '4'):
-    case mmioFOURCC('M', 'P', '4', '2'):
-    case mmioFOURCC('m', 'p', '4', '2'):
-    case mmioFOURCC('M', 'P', '4', '3'):
-    case mmioFOURCC('m', 'p', '4', '3'):
-    case mmioFOURCC('D', 'I', 'V', '3'):
-    case mmioFOURCC('d', 'i', 'v', '3'):
-    case mmioFOURCC('D', 'I', 'V', '4'):
-    case mmioFOURCC('d', 'i', 'v', '4'):
-    case mmioFOURCC('M', 'P', '4', '1'):
-    case mmioFOURCC('m', 'p', '4', '1'):
-      printf ("ffmpeg: ms mpeg4 format detected\n");
+    switch (buf->type & 0xFFFF0000) {
+    case BUF_VIDEO_MSMPEG4:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
       break;
-    case mmioFOURCC('D', 'I', 'V', 'X'):
-    case mmioFOURCC('d', 'i', 'v', 'x'):
-    case mmioFOURCC('D', 'i', 'v', 'x'):
-    case mmioFOURCC('D', 'i', 'v', 'X'):
-      printf ("ffmpeg: mpeg4 (opendivx) format detected\n");
-      codec = avcodec_find_decoder (CODEC_ID_OPENDIVX);
+    case BUF_VIDEO_MPEG4 :
+      codec = avcodec_find_decoder (CODEC_ID_MPEG4);
       break;
-    case mmioFOURCC('d', 'm', 'b', '1'):
-      printf ("ffmpeg: motion jpeg format detected\n");
+    case BUF_VIDEO_MJPEG:
       codec = avcodec_find_decoder (CODEC_ID_MJPEG);
       break;
+    case BUF_VIDEO_I263:
+      codec = avcodec_find_decoder (CODEC_ID_H263);
+      break;
+    case BUF_VIDEO_RV10:
+      codec = avcodec_find_decoder (CODEC_ID_RV10);
+      break;
     default:
-      printf ("ffmpeg: unknown video format 0x%08X\n",
-	      this->bih.biCompression);
+      printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
+	      buf->type & 0xFFFF0000);
     }
 
     if (!codec) {

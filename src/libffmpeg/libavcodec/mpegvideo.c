@@ -81,7 +81,8 @@ static void convert_matrix(int *qmat, const UINT16 *quant_matrix, int qscale)
             /* 16 <= qscale * quant_matrix[i] <= 7905 */
             /* 19952 <= aanscales[i] * qscale * quant_matrix[i] <= 249205026 */
             
-            qmat[i] = (int)((1ULL << (QMAT_SHIFT + 11)) / (aanscales[i] * qscale * quant_matrix[i]));
+            qmat[i] = (int)((UINT64_C(1) << (QMAT_SHIFT + 11)) / 
+                            (aanscales[i] * qscale * quant_matrix[i]));
         }
     } else {
         for(i=0;i<64;i++) {
@@ -183,13 +184,6 @@ int MPV_common_init(MpegEncContext *s)
     /* default structure is frame */
     s->picture_structure = PICT_FRAME;
 
-    /* init default q matrix (only for mpeg and mjpeg) */
-    for(i=0;i<64;i++) {
-        s->intra_matrix[i] = default_intra_matrix[i];
-        s->chroma_intra_matrix[i] = default_intra_matrix[i];
-        s->non_intra_matrix[i] = default_non_intra_matrix[i];
-        s->chroma_non_intra_matrix[i] = default_non_intra_matrix[i];
-    }
     /* init macroblock skip table */
     if (!s->encoding) {
         s->mbskip_table = av_mallocz(s->mb_width * s->mb_height);
@@ -248,6 +242,7 @@ void MPV_common_end(MpegEncContext *s)
 int MPV_encode_init(AVCodecContext *avctx)
 {
     MpegEncContext *s = avctx->priv_data;
+    int i;
 
     s->bit_rate = avctx->bit_rate;
     s->frame_rate = avctx->frame_rate;
@@ -288,7 +283,7 @@ int MPV_encode_init(AVCodecContext *avctx)
         s->out_format = FMT_H263;
         s->h263_rv10 = 1;
         break;
-    case CODEC_ID_OPENDIVX:
+    case CODEC_ID_MPEG4:
         s->out_format = FMT_H263;
         s->h263_pred = 1;
         s->unrestricted_mv = 1;
@@ -312,6 +307,12 @@ int MPV_encode_init(AVCodecContext *avctx)
     if (MPV_common_init(s) < 0)
         return -1;
     
+    /* init default q matrix */
+    for(i=0;i<64;i++) {
+        s->intra_matrix[i] = default_intra_matrix[i];
+        s->non_intra_matrix[i] = default_non_intra_matrix[i];
+    }
+
     /* rate control init */
     rate_control_init(s);
 
@@ -370,6 +371,7 @@ void MPV_frame_start(MpegEncContext *s)
     int i;
     UINT8 *tmp;
 
+    s->mb_skiped = 0;
     if (s->pict_type == B_TYPE) {
         for(i=0;i<3;i++) {
             s->current_picture[i] = s->aux_picture[i];
@@ -789,8 +791,8 @@ void MPV_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
             add_dct(s, block[2], 2, dest_y + dct_offset, dct_linesize);
             add_dct(s, block[3], 3, dest_y + dct_offset + 8, dct_linesize);
 
-            add_dct(s, block[4], 4, dest_cb, dct_linesize >> 1);
-            add_dct(s, block[5], 5, dest_cr, dct_linesize >> 1);
+            add_dct(s, block[4], 4, dest_cb, s->linesize >> 1);
+            add_dct(s, block[5], 5, dest_cr, s->linesize >> 1);
         } else {
             /* dct only in intra block */
             put_dct(s, block[0], 0, dest_y, dct_linesize);
@@ -798,8 +800,8 @@ void MPV_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
             put_dct(s, block[2], 2, dest_y + dct_offset, dct_linesize);
             put_dct(s, block[3], 3, dest_y + dct_offset + 8, dct_linesize);
 
-            put_dct(s, block[4], 4, dest_cb, dct_linesize >> 1);
-            put_dct(s, block[5], 5, dest_cr, dct_linesize >> 1);
+            put_dct(s, block[4], 4, dest_cb, s->linesize >> 1);
+            put_dct(s, block[5], 5, dest_cr, s->linesize >> 1);
         }
     }
  the_end:
@@ -981,6 +983,10 @@ static int dct_quantize(MpegEncContext *s,
     const int *qmat;
 
     av_fdct (block);
+
+    /* we need this permutation so that we correct the IDCT
+       permutation. will be moved into DCT code */
+    block_permute(block);
 
     if (s->mb_intra) {
         if (n < 4)
@@ -1250,7 +1256,7 @@ static void rate_control_init(MpegEncContext *s)
  */
 static int rate_estimate_qscale(MpegEncContext *s)
 {
-    long long total_bits = s->total_bits;
+    INT64 total_bits = s->total_bits;
     float q;
     int qscale, diff, qmin;
 
@@ -1275,9 +1281,9 @@ static int rate_estimate_qscale(MpegEncContext *s)
         q = 31;
     qscale = (int)(q + 0.5);
 #if defined(DEBUG)
-    printf("%d: total=%Ld br=%0.1f diff=%d qest=%0.1f\n", 
+    printf("%d: total=%0.0f br=%0.1f diff=%d qest=%0.1f\n", 
            s->picture_number, 
-           total_bits, 
+           (double)total_bits, 
            (float)s->frame_rate / FRAME_RATE_BASE * 
            total_bits / s->picture_number, 
            diff, q);
@@ -1335,10 +1341,10 @@ AVCodec mjpeg_encoder = {
     MPV_encode_end,
 };
 
-AVCodec opendivx_encoder = {
-    "opendivx",
+AVCodec mpeg4_encoder = {
+    "mpeg4",
     CODEC_TYPE_VIDEO,
-    CODEC_ID_OPENDIVX,
+    CODEC_ID_MPEG4,
     sizeof(MpegEncContext),
     MPV_encode_init,
     MPV_encode_picture,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.16 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: w32codec.c,v 1.17 2001/08/28 19:16:20 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -172,7 +172,17 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 #define IMGFMT_15RGB mmioFOURCC( 15,'R','G','B')
 
 static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_VIDEO_AVI) ;
+  buf_type &= 0xFFFF0000;
+
+  return ( buf_type == BUF_VIDEO_AVI ||
+           buf_type == BUF_VIDEO_MSMPEG4 ||
+           buf_type == BUF_VIDEO_MJPEG ||
+           buf_type == BUF_VIDEO_IV50 ||
+           buf_type == BUF_VIDEO_IV41 ||
+           buf_type == BUF_VIDEO_IV32 ||
+           buf_type == BUF_VIDEO_CINEPACK ||
+           /* buf_type == BUF_VIDEO_ATIVCR1 || */
+           buf_type == BUF_VIDEO_ATIVCR2 );
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {

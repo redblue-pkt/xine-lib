@@ -24,7 +24,7 @@
 
 #include <inttypes.h>
 
-#include "config.h"
+#include "../config.h"
 
 #include "cpu_accel.h"
 

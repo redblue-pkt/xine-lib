@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.27 2001/08/23 11:27:35 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.28 2001/08/28 19:16:20 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -49,6 +49,7 @@
 #include <sys/time.h>
 
 #include <pthread.h>
+#include <netinet/in.h>
 
 #include "xine_internal.h"
 #include "monitor.h"

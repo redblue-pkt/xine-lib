@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.25 2001/08/25 07:42:30 guenter Exp $
+ * $Id: demux_avi.c,v 1.26 2001/08/28 19:16:19 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -91,6 +91,9 @@ typedef struct
   long   audio_posc;        /* Audio position: chunk */
   long   audio_posb;        /* Audio position: byte within chunk */
   
+  uint32_t video_type;      /* BUF_VIDEO_xxx type */
+  uint32_t audio_type;      /* BUF_AUDIO_xxx type */
+
   long                   pos;      /* position in file */
   long                   n_idx;    /* number of index entries actually filled */
   long                   max_idx;  /* number of index entries actually allocated */
@@ -563,56 +566,10 @@ static avi_t *AVI_init(demux_avi_t *this)
   return AVI;
 }
 
-static long AVI_frame_size(demux_avi_t *this, avi_t *AVI, long frame)
-{
-  if(!AVI->video_index)         { this->AVI_errno = AVI_ERR_NO_IDX;   return -1; }
-
-  if(frame < 0 || frame >= AVI->video_frames) return 0;
-  return(AVI->video_index[frame].len);
-}
-
 static void AVI_seek_start(avi_t *AVI)
 {
   AVI->video_posf = 0;
   AVI->video_posb = 0;
-}
-
-static int AVI_set_video_position(demux_avi_t *this, avi_t *AVI, long frame)
-{
-  if(!AVI->video_index)         { this->AVI_errno = AVI_ERR_NO_IDX;   return -1; }
-
-  if (frame < 0 ) frame = 0;
-  AVI->video_posf = frame;
-  AVI->video_posb = 0;
-  return 0;
-}
-      
-static int AVI_set_audio_position(demux_avi_t *this, avi_t *AVI, long byte)
-{
-  long n0, n1, n;
-
-  if(!AVI->audio_index)         { this->AVI_errno = AVI_ERR_NO_IDX;   return -1; }
-
-  if(byte < 0) byte = 0;
-
-  /* Binary search in the audio chunks */
-
-  n0 = 0;
-  n1 = AVI->audio_chunks;
-
-  while(n0<n1-1)
-    {
-      n = (n0+n1)/2;
-      if(AVI->audio_index[n].tot>byte)
-	n1 = n;
-      else
-	n0 = n;
-    }
-
-  AVI->audio_posc = n0;
-  AVI->audio_posb = byte - AVI->audio_index[n0].tot;
-
-  return 0;
 }
 
 static long AVI_read_audio(demux_avi_t *this, avi_t *AVI, char *audbuf, 
@@ -766,26 +723,7 @@ static int demux_avi_next (demux_avi_t *this) {
 
     buf->input_pos = this->input->get_current_pos(this->input);
 
-    switch (this->avi->a_fmt) {
-    case 0x01:
-      buf->type     = BUF_AUDIO_LPCM;
-      break;
-    case 0x2000:
-      buf->type     = BUF_AUDIO_AC3;
-      break;
-    case 0x50:
-    case 0x55:
-      buf->type     = BUF_AUDIO_MPEG;
-      break;
-    case 0x161:
-      buf->type     = BUF_AUDIO_AVI;
-      break;
-    default:
-      printf ("demux_avi: unknown audio type 0x%lx =>exit\n", this->avi->a_fmt);
-      this->status  = DEMUX_FINISHED;
-      buf->type     = BUF_AUDIO_MPEG;
-      break;
-    }
+    buf->type = this->avi->audio_type;
 
     if(this->audio_fifo) {
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -799,7 +737,7 @@ static int demux_avi_next (demux_avi_t *this) {
 
     buf->PTS   = video_pts;
     buf->size  = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
-    buf->type  = BUF_VIDEO_AVI ; 
+    buf->type  = this->avi->video_type;
 
     if (buf->size<0) {
       buf->free_buffer (buf);
@@ -968,7 +906,74 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   buf->decoder_info[1] = this->video_step;
   memcpy (buf->content, &this->avi->bih, sizeof (this->avi->bih));
   buf->size = sizeof (this->avi->bih);
-  buf->type = BUF_VIDEO_AVI; 
+
+  switch (this->avi->bih.biCompression) {
+    case mmioFOURCC('M', 'P', 'G', '4'):
+    case mmioFOURCC('m', 'p', 'g', '4'):
+    case mmioFOURCC('M', 'P', '4', '1'):
+    case mmioFOURCC('m', 'p', '4', '1'):
+    case mmioFOURCC('M', 'P', '4', '2'):
+    case mmioFOURCC('m', 'p', '4', '2'):
+    case mmioFOURCC('M', 'P', '4', '3'):
+    case mmioFOURCC('m', 'p', '4', '3'):
+    case mmioFOURCC('D', 'I', 'V', '3'):
+    case mmioFOURCC('d', 'i', 'v', '3'):
+    case mmioFOURCC('D', 'I', 'V', '4'):
+    case mmioFOURCC('d', 'i', 'v', '4'):
+      /* Video in Microsoft MPEG-4 format */
+      this->avi->video_type     = BUF_VIDEO_MSMPEG4;
+      break;
+    case mmioFOURCC('D', 'I', 'V', 'X'):
+    case mmioFOURCC('d', 'i', 'v', 'x'):
+    case mmioFOURCC('D', 'i', 'v', 'x'):
+    case mmioFOURCC('D', 'i', 'v', 'X'):
+      /* Video in mpeg4 (opendivx) format */
+      this->avi->video_type     = BUF_VIDEO_MPEG4;
+      break;
+    case mmioFOURCC('d', 'm', 'b', '1'):
+    case mmioFOURCC('M', 'J', 'P', 'G'):
+      /* Video in motion jpeg format */
+      this->avi->video_type     = BUF_VIDEO_MJPEG;
+      break;
+    case mmioFOURCC('I', 'V', '5', '0'):
+    case mmioFOURCC('i', 'v', '5', '0'):
+      /* Video in Indeo Video 5.0 format */
+      this->avi->video_type     = BUF_VIDEO_IV50;
+
+    case mmioFOURCC('I', 'V', '4', '1'):
+    case mmioFOURCC('i', 'v', '4', '1'):
+      /* Video in Indeo Video 4.1 format */
+      this->avi->video_type     = BUF_VIDEO_IV41;
+      break;
+    case mmioFOURCC('I', 'V', '3', '2'):
+    case mmioFOURCC('i', 'v', '3', '2'):
+      /* Video in Indeo Video 3.2 format */
+      this->avi->video_type     = BUF_VIDEO_IV32;
+      break;
+
+    case mmioFOURCC('c', 'v', 'i', 'd'):
+      /* Video in Cinepak format */
+      this->avi->video_type     = BUF_VIDEO_CINEPACK;
+      break;
+    case mmioFOURCC('V', 'C', 'R', '1'):
+      /* Video in ATI VCR1 format */
+      this->avi->video_type     = BUF_VIDEO_ATIVCR1;
+      break;
+    case mmioFOURCC('V', 'C', 'R', '2'):
+      /* Video in ATI VCR2 format */
+      this->avi->video_type     = BUF_VIDEO_ATIVCR2;
+      break;
+    case mmioFOURCC('I', '2', '6', '3'):
+    case mmioFOURCC('i', '2', '6', '3'):
+      /* Video in I263 format */
+      this->avi->video_type     = BUF_VIDEO_I263;
+      break;
+    default:
+      this->avi->video_type     = BUF_VIDEO_AVI;
+      break;
+  }
+  buf->type = this->avi->video_type;
+
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
@@ -979,24 +984,25 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     buf->size = sizeof (this->avi->wavex);
     switch (this->avi->a_fmt) {
     case 0x01:
-      buf->type     = BUF_AUDIO_LPCM;
+      this->avi->audio_type     = BUF_AUDIO_LPCM;
       break;
     case 0x2000:
-      buf->type     = BUF_AUDIO_AC3;
+      this->avi->audio_type     = BUF_AUDIO_A52;
       break;
     case 0x50:
     case 0x55:
-      buf->type     = BUF_AUDIO_MPEG;
+      this->avi->audio_type     = BUF_AUDIO_MPEG;
       break;
     case 0x161:
-      buf->type     = BUF_AUDIO_AVI;
+      this->avi->audio_type     = BUF_AUDIO_AVI;
       break;
     default:
       printf ("demux_avi: unknown audio type 0x%lx =>exit\n", this->avi->a_fmt);
       this->status  = DEMUX_FINISHED;
-      buf->type     = BUF_AUDIO_MPEG;
+      this->avi->audio_type     = BUF_AUDIO_MPEG;
       break;
     }
+    buf->type = this->avi->audio_type;
     buf->decoder_info[0] = 0; /* first package, containing wavex */
     this->audio_fifo->put (this->audio_fifo, buf);
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.24 2001/08/28 19:16:19 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -79,7 +79,7 @@ typedef struct ac3dec_decoder_s {
 } ac3dec_decoder_t;
 
 int ac3dec_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_AUDIO_AC3) ;
+  return ((buf_type & 0xFFFF0000) == BUF_AUDIO_A52) ;
 }
 
 

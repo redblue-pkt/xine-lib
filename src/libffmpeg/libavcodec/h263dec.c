@@ -23,10 +23,14 @@
 #include "avcodec.h"
 #include "mpegvideo.h"
 
+#undef DEBUG
+
 static int h263_decode_init(AVCodecContext *avctx)
 {
     MpegEncContext *s = avctx->priv_data;
-    
+    int i;
+
+    s->avctx = avctx;
     s->out_format = FMT_H263;
 
     s->width = avctx->width;
@@ -36,7 +40,7 @@ static int h263_decode_init(AVCodecContext *avctx)
     switch(avctx->codec->id) {
     case CODEC_ID_H263:
         break;
-    case CODEC_ID_OPENDIVX:
+    case CODEC_ID_MPEG4:
         s->time_increment_bits = 4; /* default value for broken headers */
         s->h263_pred = 1;
         break;
@@ -54,6 +58,11 @@ static int h263_decode_init(AVCodecContext *avctx)
     /* for h263, we allocate the images after having read the header */
     if (MPV_common_init(s) < 0)
         return -1;
+
+    /* XXX: suppress this matrix init, only needed because using mpeg1
+       dequantize in mmx case */
+    for(i=0;i<64;i++)
+        s->non_intra_matrix[i] = default_non_intra_matrix[i];
 
     if (s->h263_msmpeg4)
         msmpeg4_decode_init_vlc(s);
@@ -79,7 +88,7 @@ static int h263_decode_frame(AVCodecContext *avctx,
     int ret;
     AVPicture *pict = data; 
 
-#ifdef DEBUG_PRINTS
+#ifdef DEBUG
     printf("*****frame %d size=%d\n", avctx->frame_number, buf_size);
     printf("bytes=%x %x %x %x\n", buf[0], buf[1], buf[2], buf[3]);
 #endif
@@ -105,21 +114,17 @@ static int h263_decode_frame(AVCodecContext *avctx,
     if (ret < 0)
         return -1;
 
-    /* make sure we start with an I-Frame */
-    if (!s->slice_height && (s->pict_type != I_TYPE))
-      return -1;
-
     MPV_frame_start(s);
 
-#ifdef DEBUG_PRINTS
+#ifdef DEBUG
     printf("qscale=%d\n", s->qscale);
 #endif
 
     /* decode each macroblock */
     for(s->mb_y=0; s->mb_y < s->mb_height; s->mb_y++) {
         for(s->mb_x=0; s->mb_x < s->mb_width; s->mb_x++) {
-#ifdef DEBUG_PRINTS
-            printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y); 
+#ifdef DEBUG
+            printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y);
 #endif
             /* DCT & quantize */
             if (s->h263_msmpeg4) {
@@ -144,6 +149,20 @@ static int h263_decode_frame(AVCodecContext *avctx,
             }
             MPV_decode_mb(s, s->block);
         }
+        if (avctx->draw_horiz_band) {
+            UINT8 *src_ptr[3];
+            int y, h, offset;
+            y = s->mb_y * 16;
+            h = s->height - y;
+            if (h > 16)
+                h = 16;
+            offset = y * s->linesize;
+            src_ptr[0] = s->current_picture[0] + offset;
+            src_ptr[1] = s->current_picture[1] + (offset >> 2);
+            src_ptr[2] = s->current_picture[2] + (offset >> 2);
+            avctx->draw_horiz_band(avctx, src_ptr, s->linesize,
+                                   y, s->width, h);
+        }
     }
 
     MPV_frame_end(s);
@@ -160,15 +179,16 @@ static int h263_decode_frame(AVCodecContext *avctx,
     return buf_size;
 }
 
-AVCodec opendivx_decoder = {
-    "opendivx",
+AVCodec mpeg4_decoder = {
+    "mpeg4",
     CODEC_TYPE_VIDEO,
-    CODEC_ID_OPENDIVX,
+    CODEC_ID_MPEG4,
     sizeof(MpegEncContext),
     h263_decode_init,
     NULL,
     h263_decode_end,
     h263_decode_frame,
+    CODEC_CAP_DRAW_HORIZ_BAND,
 };
 
 AVCodec h263_decoder = {
@@ -180,6 +200,7 @@ AVCodec h263_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
+    CODEC_CAP_DRAW_HORIZ_BAND,
 };
 
 AVCodec msmpeg4_decoder = {
@@ -191,6 +212,7 @@ AVCodec msmpeg4_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
+    CODEC_CAP_DRAW_HORIZ_BAND,
 };
 
 AVCodec h263i_decoder = {
@@ -202,5 +224,6 @@ AVCodec h263i_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
+    CODEC_CAP_DRAW_HORIZ_BAND,
 };
 

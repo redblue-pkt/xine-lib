@@ -30,7 +30,7 @@
  *        - (encoding) select best vlc/dc table 
  *        - (decoding) handle slice indication
  */
-//#define DEBUG_PRINTS
+#undef DEBUG
 
 /* motion vector table */
 typedef struct MVTable {
@@ -50,7 +50,7 @@ static int msmpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr);
 static int msmpeg4_decode_motion(MpegEncContext * s, 
                                  int *mx_ptr, int *my_ptr);
 
-#ifdef DEBUG_PRINTS
+#ifdef DEBUG
 int intra_count = 0;
 int frame_count = 0;
 #endif
@@ -197,7 +197,7 @@ void msmpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
             init_rl(&rl_table[i]);
     }
 
-#ifdef DEBUG_PRINTS
+#ifdef DEBUG
     intra_count = 0;
     printf("*****frame %d:\n", frame_count++);
 #endif
@@ -592,7 +592,7 @@ int msmpeg4_decode_init_vlc(MpegEncContext *s)
     init_vlc(&mb_non_intra_vlc, 9, 128, 
              &table_mb_non_intra[0][1], 8, 4,
              &table_mb_non_intra[0][0], 8, 4);
-    init_vlc(&mb_intra_vlc, 9, 128, 
+    init_vlc(&mb_intra_vlc, 9, 64, 
              &table_mb_intra[0][1], 4, 2,
              &table_mb_intra[0][0], 4, 2);
     return 0;
@@ -642,7 +642,7 @@ int msmpeg4_decode_picture_header(MpegEncContext * s)
         s->mv_table_index = get_bits1(&s->gb);
         s->no_rounding ^= 1;
     }
-#ifdef DEBUG_PRINTS
+#ifdef DEBUG
     printf("*****frame %d:\n", frame_count++);
 #endif
     return 0;

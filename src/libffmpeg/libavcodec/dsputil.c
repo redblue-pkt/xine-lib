@@ -31,7 +31,7 @@ op_pixels_abs_func pix_abs16x16_x2;
 op_pixels_abs_func pix_abs16x16_y2;
 op_pixels_abs_func pix_abs16x16_xy2;
 
-static UINT8 cropTbl[256 + 2 * MAX_NEG_CROP];
+UINT8 cropTbl[256 + 2 * MAX_NEG_CROP];
 UINT32 squareTbl[512];
 
 extern UINT16 default_intra_matrix[64];
@@ -447,10 +447,10 @@ void dsputil_init(void)
     block_permute(default_intra_matrix);
     block_permute(default_non_intra_matrix);
 
-#ifndef DEBUG
 #ifdef HAVE_MMX
-    printf ("ffmpeg: init mmx\n");
     dsputil_init_mmx();
 #endif
+#ifdef ARCH_ARMV4L
+    dsputil_init_armv4l();
 #endif
 }

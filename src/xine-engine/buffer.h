@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.5 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: buffer.h,v 1.6 2001/08/28 19:16:20 guenter Exp $
  *
  *
  * contents:
@@ -69,14 +69,24 @@ extern "C" {
 
 #define BUF_VIDEO_BASE       0x02000000
 #define BUF_VIDEO_MPEG       0x02000000
-#define BUF_VIDEO_OPENDIVX   0x02010000
+#define BUF_VIDEO_MPEG4      0x02010000
 #define BUF_VIDEO_QUICKTIME  0x02020000
 #define BUF_VIDEO_AVI        0x02030000
+#define BUF_VIDEO_MSMPEG4    0x02040000
+#define BUF_VIDEO_MJPEG      0x02050000
+#define BUF_VIDEO_IV50       0x02060000
+#define BUF_VIDEO_IV41       0x02070000
+#define BUF_VIDEO_IV32       0x02080000
+#define BUF_VIDEO_CINEPACK   0x02090000
+#define BUF_VIDEO_ATIVCR1    0x020a0000
+#define BUF_VIDEO_ATIVCR2    0x020b0000
+#define BUF_VIDEO_I263       0x020c0000
+#define BUF_VIDEO_RV10       0x020d0000
 
 /* audio buffer types:  */
 
 #define BUF_AUDIO_BASE       0x03000000
-#define BUF_AUDIO_AC3        0x03000000
+#define BUF_AUDIO_A52        0x03000000
 #define BUF_AUDIO_MPEG       0x03010000
 #define BUF_AUDIO_LPCM       0x03020000
 #define BUF_AUDIO_AVI        0x03030000

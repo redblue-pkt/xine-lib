@@ -22,8 +22,6 @@
 #include "dsputil.h"
 #include "cpu_accel.h"
 
-#ifndef DEBUG
-
 int mm_flags; /* multimedia extension flags */
 
 int pix_abs16x16_mmx(UINT8 *blk1, UINT8 *blk2, int lx, int h);
@@ -1055,4 +1053,3 @@ void dsputil_init_mmx(void)
         }
     }
 }
-#endif /* DEBUG */

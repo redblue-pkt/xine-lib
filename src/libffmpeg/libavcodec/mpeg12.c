@@ -16,24 +16,26 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
 
 #include "mpeg12data.h"
 
-#ifdef USE_FASTMEMCPY
-#include "fastmemcpy.h"
-#endif
-//#define DEBUG_PRINTS
+//#define DEBUG
 
-#ifdef DEBUG_PRINTS
+#ifndef CONFIG_WIN32
+
+#ifdef DEBUG
 #define dprintf(fmt,args...) printf(fmt, ## args)
 #else
 #define dprintf(fmt,args...)
+#endif
+
+#else
+
+inline void dprintf(const char* fmt,...) {}
+
 #endif
 
 /* Start codes. */
@@ -118,11 +120,11 @@ static void mpeg1_encode_sequence_header(MpegEncContext *s)
             fps = frame_rate_tab[s->frame_rate_index];
             time_code = s->fake_picture_number * FRAME_RATE_BASE;
             s->gop_picture_number = s->fake_picture_number;
-            put_bits(&s->pb, 5, (time_code / (fps * 3600)) % 24);
-            put_bits(&s->pb, 6, (time_code / (fps * 60)) % 60);
+            put_bits(&s->pb, 5, (UINT32)((time_code / (fps * 3600)) % 24));
+            put_bits(&s->pb, 6, (UINT32)((time_code / (fps * 60)) % 60));
             put_bits(&s->pb, 1, 1);
-            put_bits(&s->pb, 6, (time_code / fps) % 60);
-            put_bits(&s->pb, 6, (time_code % fps) / FRAME_RATE_BASE);
+            put_bits(&s->pb, 6, (UINT32)((time_code / fps) % 60));
+            put_bits(&s->pb, 6, (UINT32)((time_code % fps) / FRAME_RATE_BASE));
             put_bits(&s->pb, 1, 1); /* closed gop */
             put_bits(&s->pb, 1, 0); /* broken link */
         }
@@ -456,7 +458,7 @@ void mpeg1_init_vlc(MpegEncContext *s)
         init_vlc(&mv_vlc, 9, 17, 
                  &mbMotionVectorTable[0][1], 2, 1,
                  &mbMotionVectorTable[0][0], 2, 1);
-        init_vlc(&mbincr_vlc, 9, 34, 
+        init_vlc(&mbincr_vlc, 9, 35, 
                  &mbAddrIncrTable[0][1], 2, 1,
                  &mbAddrIncrTable[0][0], 2, 1);
         init_vlc(&mb_pat_vlc, 9, 63, 
@@ -487,6 +489,22 @@ static inline int get_dmv(MpegEncContext *s)
         return 1 - (get_bits1(&s->gb) << 1);
     else
         return 0;
+}
+
+static inline int get_qscale(MpegEncContext *s)
+{
+    int qscale;
+    if (s->mpeg2) {
+        if (s->q_scale_type) {
+            qscale = non_linear_qscale[get_bits(&s->gb, 5)];
+        } else {
+            qscale = get_bits(&s->gb, 5) << 1;
+        }
+    } else {
+        /* for mpeg1, we use the generic unquant code */
+        qscale = get_bits(&s->gb, 5);
+    }
+    return qscale;
 }
 
 /* motion type (for mpeg2) */
@@ -538,6 +556,7 @@ static int mpeg_decode_mb(MpegEncContext *s,
             s->mv_dir = MV_DIR_FORWARD;
             s->mv[0][0][0] = s->mv[0][0][1] = 0;
             s->last_mv[0][0][0] = s->last_mv[0][0][1] = 0;
+            s->last_mv[0][1][0] = s->last_mv[0][1][1] = 0;
         } else {
             /* if B type, reuse previous vectors and directions */
             s->mv[0][0][0] = s->last_mv[0][0][0];
@@ -585,7 +604,7 @@ static int mpeg_decode_mb(MpegEncContext *s,
         !s->frame_pred_frame_dct &&
         (mb_type & (MB_PAT | MB_INTRA))) {
         s->interlaced_dct = get_bits1(&s->gb);
-#ifdef DEBUG_PRINTS
+#ifdef DEBUG
         if (s->interlaced_dct)
             printf("interlaced_dct\n");
 #endif
@@ -594,16 +613,7 @@ static int mpeg_decode_mb(MpegEncContext *s,
     }
 
     if (mb_type & MB_QUANT) {
-        if (s->mpeg2) {
-            if (s->q_scale_type) {
-                s->qscale = non_linear_qscale[get_bits(&s->gb, 5)];
-            } else {
-                s->qscale = get_bits(&s->gb, 5) << 1;
-            }
-        } else {
-            /* for mpeg1, we use the generic unquant code */
-            s->qscale = get_bits(&s->gb, 5);
-        }
+        s->qscale = get_qscale(s);
     }
     if (mb_type & MB_INTRA) {
         if (s->concealment_motion_vectors) {
@@ -626,6 +636,8 @@ static int mpeg_decode_mb(MpegEncContext *s,
         s->mv_type = MV_TYPE_16X16;
         s->last_mv[0][0][0] = 0;
         s->last_mv[0][0][1] = 0;
+        s->last_mv[0][1][0] = 0;
+        s->last_mv[0][1][1] = 0;
         s->mv[0][0][0] = 0;
         s->mv[0][0][1] = 0;
     } else if (mb_type & (MB_FOR | MB_BACK)) {
@@ -634,7 +646,7 @@ static int mpeg_decode_mb(MpegEncContext *s,
         for(i=0;i<2;i++) {
             if (mb_type & (MB_FOR >> i)) {
                 s->mv_dir |= (MV_DIR_FORWARD >> i);
-                dprintf("mv_type=%d\n", motion_type);
+                dprintf("motion_type=%d\n", motion_type);
                 switch(motion_type) {
                 case MT_FRAME: /* or MT_16X8 */
                     if (s->picture_structure == PICT_FRAME) {
@@ -972,7 +984,13 @@ static int mpeg2_decode_block_non_intra(MpegEncContext *s,
     add_coef:
 	j = scan_table[i];
         dprintf("%d: run=%d level=%d\n", n, run, level);
-        level = ((level * 2 + 1) * s->qscale * matrix[j]) / 32;
+        /* XXX: optimize */
+        if (level > 0) {
+            level = ((level * 2 + 1) * s->qscale * matrix[j]) >> 5;
+        } else {
+            level = ((-level * 2 + 1) * s->qscale * matrix[j]) >> 5;
+            level = -level;
+        }
         /* XXX: is it really necessary to saturate since the encoder
            knows whats going on ? */
         mismatch ^= level;
@@ -999,7 +1017,6 @@ static int mpeg2_decode_block_intra(MpegEncContext *s,
         scan_table = ff_alternate_vertical_scan;
     else
         scan_table = zigzag_direct;
-    mismatch = 1;
 
     /* DC coef */
     component = (n <= 3 ? 0 : n - 4 + 1);
@@ -1011,6 +1028,7 @@ static int mpeg2_decode_block_intra(MpegEncContext *s,
     s->last_dc[component] = dc;
     block[0] = dc << (3 - s->intra_dc_precision);
     dprintf("dc=%d\n", block[0]);
+    mismatch = block[0] ^ 1;
     i = 1;
     if (s->intra_vlc_format)
         rl = &rl_mpeg2;
@@ -1020,7 +1038,7 @@ static int mpeg2_decode_block_intra(MpegEncContext *s,
         matrix = s->intra_matrix;
     else
         matrix = s->chroma_intra_matrix;
-        
+
     /* now quantify & encode AC coefs */
     for(;;) {
         code = get_vlc(&s->gb, &rl->vlc);
@@ -1120,7 +1138,7 @@ static int mpeg1_decode_picture(AVCodecContext *avctx,
 
     ref = get_bits(&s->gb, 10); /* temporal ref */
     s->pict_type = get_bits(&s->gb, 3);
-    dprintf("pict_type=%d\n", s->pict_type);
+    dprintf("pict_type=%d number=%d\n", s->pict_type, s->picture_number);
     skip_bits(&s->gb, 16);
     if (s->pict_type == P_TYPE || s->pict_type == B_TYPE) {
         s->full_pel[0] = get_bits1(&s->gb);
@@ -1174,10 +1192,12 @@ static void mpeg_decode_quant_matrix_extension(MpegEncContext *s)
 {
     int i, v, j;
 
+    dprintf("matrix extension\n");
+
     if (get_bits1(&s->gb)) {
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
-            j = block_permute_op(i);
+            j = zigzag_direct[i];
             s->intra_matrix[j] = v;
             s->chroma_intra_matrix[j] = v;
         }
@@ -1185,7 +1205,7 @@ static void mpeg_decode_quant_matrix_extension(MpegEncContext *s)
     if (get_bits1(&s->gb)) {
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
-            j = block_permute_op(i);
+            j = zigzag_direct[i];
             s->non_intra_matrix[j] = v;
             s->chroma_non_intra_matrix[j] = v;
         }
@@ -1193,14 +1213,14 @@ static void mpeg_decode_quant_matrix_extension(MpegEncContext *s)
     if (get_bits1(&s->gb)) {
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
-            j = block_permute_op(i);
+            j = zigzag_direct[i];
             s->chroma_intra_matrix[j] = v;
         }
     }
     if (get_bits1(&s->gb)) {
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
-            j = block_permute_op(i);
+            j = zigzag_direct[i];
             s->chroma_non_intra_matrix[j] = v;
         }
     }
@@ -1225,10 +1245,11 @@ static void mpeg_decode_picture_coding_extension(MpegEncContext *s)
     s->chroma_420_type = get_bits1(&s->gb);
     s->progressive_frame = get_bits1(&s->gb);
     /* composite display not parsed */
-    dprintf("dc_preci=%d\n", s->intra_dc_precision);
-    dprintf("pict_structure=%d\n", s->picture_structure);
+    dprintf("intra_dc_precion=%d\n", s->intra_dc_precision);
+    dprintf("picture_structure=%d\n", s->picture_structure);
     dprintf("conceal=%d\n", s->concealment_motion_vectors);
-    dprintf("intrafmt=%d\n", s->intra_vlc_format);
+    dprintf("intra_vlc_format=%d\n", s->intra_vlc_format);
+    dprintf("alternate_scan=%d\n", s->alternate_scan);
     dprintf("frame_pred_frame_dct=%d\n", s->frame_pred_frame_dct);
 }
 
@@ -1287,7 +1308,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
 
     init_get_bits(&s->gb, buf, buf_size);
 
-    s->qscale = get_bits(&s->gb, 5);
+    s->qscale = get_qscale(s);
     /* extra slice info */
     while (get_bits1(&s->gb) != 0) {
         skip_bits(&s->gb, 8);
@@ -1375,6 +1396,7 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         s->width = width;
         s->height = height;
         s->has_b_frames = 1;
+        s->avctx = avctx;
         avctx->width = width;
         avctx->height = height;
         avctx->frame_rate = frame_rate_tab[s->frame_rate_index];
@@ -1393,10 +1415,16 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
     if (get_bits1(&s->gb)) {
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
-            j = block_permute_op(i);
+            j = zigzag_direct[i];
             s->intra_matrix[j] = v;
             s->chroma_intra_matrix[j] = v;
         }
+#ifdef DEBUG
+        dprintf("intra matrix present\n");
+        for(i=0;i<64;i++)
+            dprintf(" %d", s->intra_matrix[zigzag_direct[i]]);
+        printf("\n");
+#endif
     } else {
         for(i=0;i<64;i++) {
             v = default_intra_matrix[i];
@@ -1407,10 +1435,16 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
     if (get_bits1(&s->gb)) {
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
-            j = block_permute_op(i);
+            j = zigzag_direct[i];
             s->non_intra_matrix[j] = v;
             s->chroma_non_intra_matrix[j] = v;
         }
+#ifdef DEBUG
+        dprintf("non intra matrix present\n");
+        for(i=0;i<64;i++)
+            dprintf(" %d", s->non_intra_matrix[zigzag_direct[i]]);
+        printf("\n");
+#endif
     } else {
         for(i=0;i<64;i++) {
             v = default_non_intra_matrix[i];

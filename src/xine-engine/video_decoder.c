@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.43 2001/08/25 08:48:12 guenter Exp $
+ * $Id: video_decoder.c,v 1.44 2001/08/28 19:16:20 guenter Exp $
  *
  */
 
@@ -114,37 +114,6 @@ void *video_decoder_loop (void *this_gen) {
       }
       break;
 
-    case BUF_VIDEO_MPEG:
-    case BUF_VIDEO_AVI:
-
-      /*
-      printf ("video_decoder: got package %d, decoder_info[0]:%d\n", 
-	      buf, buf->decoder_info[0]);
-      */      
-
-      streamtype = (buf->type>>16) & 0xFF;
-
-      decoder = this->video_decoder_plugins [streamtype];
-
-      if (decoder) {
-
-	if (this->cur_video_decoder_plugin != decoder) {
-
-	  if (this->cur_video_decoder_plugin) 
-	    this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
-
-	  this->cur_video_decoder_plugin = decoder;
-	  this->cur_video_decoder_plugin->init (this->cur_video_decoder_plugin, this->video_out);
-
-	  printf ("video_decoder: using decoder >%s< \n",
-		  decoder->get_identifier());
-
-	}
-	
-	decoder->decode_data (this->cur_video_decoder_plugin, buf);  
-      }
-      break;
-
     case BUF_CONTROL_END:
 
       this->metronom->video_stream_end (this->metronom);
@@ -185,6 +154,40 @@ void *video_decoder_loop (void *this_gen) {
       }
       
       running = 0;
+      break;
+
+    default:
+      if ( (buf->type & 0xFF000000) == BUF_VIDEO_BASE ) {
+
+	/*
+	  printf ("video_decoder: got package %d, decoder_info[0]:%d\n", 
+	  buf, buf->decoder_info[0]);
+	*/      
+	
+	streamtype = (buf->type>>16) & 0xFF;
+	
+	decoder = this->video_decoder_plugins [streamtype];
+	
+	if (decoder) {
+	  
+	  if (this->cur_video_decoder_plugin != decoder) {
+	    
+	    if (this->cur_video_decoder_plugin) 
+	      this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
+	    
+	    this->cur_video_decoder_plugin = decoder;
+	    this->cur_video_decoder_plugin->init (this->cur_video_decoder_plugin, this->video_out);
+	    
+	    printf ("video_decoder: using decoder >%s< \n",
+		    decoder->get_identifier());
+	    
+	  }
+	  
+	  decoder->decode_data (this->cur_video_decoder_plugin, buf);  
+	}
+      } else
+	printf ("video_decoder: unknown buffer type: %08x\n", buf->type);
+
       break;
 
     }
