@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.14 2001/11/13 21:47:59 heikos Exp $
+ * $Id: metronom.h,v 1.15 2001/12/22 20:16:49 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -25,6 +25,18 @@
  *              can be used for synchronization
  *              video/audio frame with same pts also have same vpts
  *              but pts is likely to differ from vpts
+ *
+ * the basic idea is: 
+ *    video_pts + video_wrap_offset = video_vpts
+ *    audio_pts + audio_wrap_offset = audio_vpts
+ *
+ *  - video_wrap_offset should be equal to audio_wrap_offset as to have
+ *    perfect audio and video sync. They will differ on brief periods due
+ *    discontinuity correction.
+ *  - metronom should also interpolate vpts values most of the time as
+ *    video_pts and audio_vpts are not given for every frame.
+ *  - corrections to the frame rate may be needed to cope with bad
+ *    encoded streams.
  *
  */
 
@@ -46,6 +58,8 @@ struct metronom_s {
 
   /*
    * this is called to tell metronom to prepare for a new video stream
+   * (video and audio decoder threads may be blocked at these functions
+   * to synchronize starting and stopping)
    */
 
   void (*video_stream_start) (metronom_t *this);
@@ -53,6 +67,8 @@ struct metronom_s {
 
   /*
    * this is called to tell metronom to prepare for a new audio stream
+   * (video and audio decoder threads may be blocked at these functions
+   * to synchronize starting and stopping)
    */
 
   void (*audio_stream_start) (metronom_t *this);
@@ -85,8 +101,11 @@ struct metronom_s {
    * parameter pts: pts for frame if known, 0 otherwise
    *           scr: system clock reference, may be 0 or == pts if unknown
    *
-   * return value: virtual pts for frame
+   * return value: virtual pts for frame (interpolated if pts == 0)
    *
+   * this function will also update video_wrap_offset if a discontinuity
+   * is detected (read the comentaries below about discontinuities).
+   * 
    */
   
   uint32_t (*got_video_frame) (metronom_t *this, uint32_t pts, uint32_t scr);
@@ -100,6 +119,9 @@ struct metronom_s {
    *
    * return value: virtual pts for audio data
    *
+   * this function will also update audio_wrap_offset if a discontinuity
+   * is detected (read the comentaries below about discontinuities).
+   *
    */
 
   uint32_t (*got_audio_samples) (metronom_t *this, uint32_t pts, uint32_t nsamples, uint32_t scr); 
@@ -111,20 +133,39 @@ struct metronom_s {
    *           scr      : system clock reference, may be 0 or == pts if unknown
    *
    * return value: virtual pts for SPU packet
-   *
+   * (this is the only pts to vpts function that cannot update the wrap_offset
+   * due to the lack of regularity on spu packets)
    */
 
   uint32_t (*got_spu_packet) (metronom_t *this, uint32_t pts, uint32_t duration,
 			      uint32_t scr); 
 
   /*
-   * tell metronom about discontinuities
+   * Tell metronom about discontinuities.
+   *
+   * These functions are called due to a discontinuity detected at
+   * demux stage from SCR values. As SCR are not guarateed to happen with
+   * any regularity, we can not correct the xxx_wrap_offset right now.
+   *
+   * We will instead prepare both audio and video to correct the
+   * discontinuity at the first new PTS value (got_video_frame or
+   * got_audio_samples). As we can predict with reasonably accuracy what
+   * the old PTS would have being the calculated wrap_offset should be
+   * good.
+   *
+   * (the time between discontinuity is detected to where it is corrected
+   * may be called "discontinuity window". Inside this window we cannot
+   * use the xxx_wrap_offset for any pts -> vpts calculation as the result
+   * would be wrong. The vpts values will be predicted for pts == 0 and
+   * whenever we get a new pts we can calculate the new xxx_wrap_offset)
+   *
    */
   void (*expect_audio_discontinuity) (metronom_t *this);
   void (*expect_video_discontinuity) (metronom_t *this);
 
   /*
    * manually correct audio <-> video sync
+   * (this constant value is added to video vpts)  
    */
   void (*set_av_offset) (metronom_t *this, int32_t pts);
 
