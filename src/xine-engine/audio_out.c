@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.160 2003/12/31 23:29:06 jcdutton Exp $
+ * $Id: audio_out.c,v 1.161 2004/01/01 14:20:52 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1594,7 +1594,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     break;
 
   case AO_PROP_AMP_MUTE:
-    this->amp_mute = value;
+    ret = this->amp_mute = value;
     break;
 
   case AO_PROP_EQ_30HZ:
