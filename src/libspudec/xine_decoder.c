@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.47 2002/01/04 00:23:06 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.48 2002/01/04 23:20:30 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -107,6 +107,20 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
   this->state.need_clut = 1;
 }
 
+static void spudec_print_overlay( vo_overlay_t *ovl ) {
+#ifdef LOG_DEBUG
+  printf ("spu: OVERLAY to show\n");
+  printf ("spu: \tx = %d y = %d width = %d height = %d\n",
+	  ovl->x, ovl->y, ovl->width, ovl->height );
+  printf ("spu: \tclut [%x %x %x %x]\n",
+	  ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
+  printf ("spu: \ttrans [%d %d %d %d]\n",
+	  ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
+  printf ("spu: \tclip top=%d bottom=%d left=%d right=%d\n",
+	  ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
+#endif
+  return;
+} 
 
 static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 //  spu_overlay_event_t   *event;
@@ -142,12 +156,25 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
        *        For menus, store it for later.
        */
 /* spu_channel is now set based on whether we are in the menu or not. */
-      if (this->xine->spu_channel != stream_id) { 
+/* Bit 7 is set if only forced display SPUs should be shown */
+      if ( (this->xine->spu_channel & 0x1f) != stream_id  ) { 
 #ifdef LOG_DEBUG
-        printf ("spu: Dropping SPU channel %d\n", stream_id);
+        printf ("spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
 #endif
         return;
       }
+      if ( (this->state.menu == 0) && (this->xine->spu_channel & 0x80) ) { 
+#ifdef LOG_DEBUG
+        printf ("spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
+#endif
+        return;
+      }
+
+#ifdef LOG_DEBUG
+      spudec_print_overlay( &this->overlay );
+      printf ("spu: forced display:%s\n", this->state.menu ? "Yes" : "No" ); 
+#endif
+  
       if ((this->state.modified) ) { 
         spu_draw_picture(&this->state, this->cur_seq, &this->overlay);
       }
@@ -344,21 +371,6 @@ static void spudec_nextseq(spudec_decoder_t* this) {
     this->state.menu = 0;
   }
 }
-
-static void spudec_print_overlay( vo_overlay_t *ovl ) {
-#ifdef LOG_DEBUG
-  printf ("spu: OVERLAY to show\n");
-  printf ("spu: \tx = %d y = %d width = %d height = %d\n",
-	  ovl->x, ovl->y, ovl->width, ovl->height );
-  printf ("spu: \tclut [%x %x %x %x]\n",
-	  ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
-  printf ("spu: \ttrans [%d %d %d %d]\n",
-	  ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
-  printf ("spu: \tclip top=%d bottom=%d left=%d right=%d\n",
-	  ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
-#endif
-  return;
-} 
 
 static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
