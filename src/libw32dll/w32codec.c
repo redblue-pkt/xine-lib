@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.79 2002/06/08 19:45:19 tmmm Exp $
+ * $Id: w32codec.c,v 1.80 2002/06/09 13:23:36 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -95,6 +95,8 @@ extern char*   win32_def_path;
 typedef struct w32v_decoder_s {
   video_decoder_t   video_decoder;
 
+  xine_t           *xine;
+  
   vo_instance_t    *video_out;
   int64_t           video_step;
   int               decoder_ok;
@@ -127,6 +129,8 @@ typedef struct w32v_decoder_s {
 
 typedef struct w32a_decoder_s {
   audio_decoder_t   audio_decoder;
+  
+  xine_t           *xine;
 
   ao_instance_t    *audio_out;
   int               output_open;
@@ -439,19 +443,19 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 		      ICMODE_FASTDECOMPRESS);
 
   if(!this->hic){
-    printf ("w32codec: ICOpen failed! unknown codec %08lx / wrong parameters?\n",
-	    this->bih.biCompression);
+    xine_log (this->xine, XINE_LOG_MSG, 
+              "w32codec: ICOpen failed! unknown codec %08lx / wrong parameters?\n",
+              this->bih.biCompression);
     this->decoder_ok = 0;
     return;
   }
 
   ret = ICDecompressGetFormat(this->hic, &this->bih, &this->o_bih);
   if(ret){
-    printf("w32codec: ICDecompressGetFormat (%.4s %08lx/%d) failed: Error %ld\n",
-	   (char*)&this->o_bih.biCompression, 
-	   this->bih.biCompression,
-	   this->bih.biBitCount,
-	   (long)ret);
+    xine_log (this->xine, XINE_LOG_MSG, 
+              "w32codec: ICDecompressGetFormat (%.4s %08lx/%d) failed: Error %ld\n",
+              (char*)&this->o_bih.biCompression, this->bih.biCompression, 
+              this->bih.biBitCount, (long)ret);                
     this->decoder_ok = 0;
     return;
   }
@@ -481,7 +485,8 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
         :ICDecompressQueryEx(this->hic, &this->bih, &this->o_bih);
   
   if(ret){
-    printf("w32codec: ICDecompressQuery failed: Error %ld\n", (long)ret);
+    xine_log (this->xine, XINE_LOG_MSG,
+              "w32codec: ICDecompressQuery failed: Error %ld\n", (long)ret);
     this->decoder_ok = 0;
     return;
   }
@@ -491,7 +496,8 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
         :ICDecompressBeginEx(this->hic, &this->bih, &this->o_bih);
   
   if(ret){
-    printf("w32codec: ICDecompressBegin failed: Error %ld\n", (long)ret);
+    xine_log (this->xine, XINE_LOG_MSG,
+              "w32codec: ICDecompressBegin failed: Error %ld\n", (long)ret);
     this->decoder_ok = 0;
     return;
   }
@@ -531,8 +537,9 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
                                         &this->bih, this->flipped, 0);
   
   if(!this->ds_dec){
-    printf ("w32codec: DS_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n",
-	    this->bih.biCompression);
+    xine_log (this->xine, XINE_LOG_MSG,
+              "w32codec: DS_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n",
+              this->bih.biCompression);
     this->decoder_ok = 0;
     return;
   }
@@ -622,7 +629,14 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       w32v_init_codec (this, buf->type);
     else
       w32v_init_ds_codec (this, buf->type);
-      
+    
+    if( !this->decoder_ok ) {
+      xine_log (this->xine, XINE_LOG_MSG,
+              "w32codec: decoder failed to start. Is '%s' installed?\n", 
+              win32_codec_name );
+      xine_report_codec( this->xine, XINE_CODEC_VIDEO, 0, buf->type, 0);
+    }
+                                         
 #ifdef SYNC_SHUTDOWN
     if( this->decoder_ok )
       w32v_instance = this;
@@ -1006,7 +1020,6 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
   audio_buffer->vpts       = 0;
   this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
-  
   wf.nChannels       = in_fmt->nChannels;
   wf.nSamplesPerSec  = in_fmt->nSamplesPerSec;
   wf.nAvgBytesPerSec = 2*wf.nSamplesPerSec*wf.nChannels;
@@ -1015,7 +1028,6 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
   wf.wBitsPerSample  = 16;
   wf.cbSize          = 0;
   
-  pthread_mutex_lock(&win32_codec_mutex);
   this->ldt_fs = Setup_LDT_Keeper();
   win32_codec_name = get_auds_codec_name (this, buf->type);
   
@@ -1026,11 +1038,12 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
                       NULL,0,0,0);
     if(ret){
       if(ret==ACMERR_NOTPOSSIBLE)
-        printf("w32codec: (ACM_Decoder) Unappropriate audio format\n");
+        xine_log (this->xine, XINE_LOG_MSG,
+                  "w32codec: (ACM_Decoder) Unappropriate audio format\n");
       else
-        printf("w32codec: (ACM_Decoder) acmStreamOpen error %d", (int) ret);
+        xine_log (this->xine, XINE_LOG_MSG,
+                  "w32codec: (ACM_Decoder) acmStreamOpen error %d\n", (int) ret);
       this->srcstream = 0;
-      pthread_mutex_unlock(&win32_codec_mutex);
       return 0;
     }
 
@@ -1046,9 +1059,8 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
     ret2 = this->ds_dec=DS_AudioDecoder_Open(win32_codec_name,this->guid, in_fmt);
     
     if( ret2 == NULL ) {
-      printf("w32codec: Error initializing DirectShow Audio\n");
+      xine_log (this->xine, XINE_LOG_MSG, "w32codec: Error initializing DirectShow Audio\n");
       this->srcstream = 0;
-      pthread_mutex_unlock(&win32_codec_mutex);
       return 0;
     }
     
@@ -1061,7 +1073,6 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
        impossible */
     this->rec_audio_src_size*=2; 
   }
-  pthread_mutex_unlock(&win32_codec_mutex);
   printf("w32codec: Recommended source buffer size: %d\n", this->rec_audio_src_size); 
 
   if( this->buf )
@@ -1246,8 +1257,17 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     printf ("w32codec: got audio header\n");
 #endif
 
+    pthread_mutex_lock(&win32_codec_mutex);
     this->decoder_ok = w32a_init_audio (this, buf);
-
+    
+    if( !this->decoder_ok ) {
+      xine_log (this->xine, XINE_LOG_MSG,
+              "w32codec: decoder failed to start. Is '%s' installed?\n", 
+              win32_codec_name );
+      xine_report_codec( this->xine, XINE_CODEC_AUDIO, 0, buf->type, 0);
+    }
+    pthread_mutex_unlock(&win32_codec_mutex);
+ 
 #ifdef SYNC_SHUTDOWN
     if( this->decoder_ok )
       w32a_instance = this;
@@ -1341,6 +1361,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   this = (w32v_decoder_t *) xine_xmalloc (sizeof (w32v_decoder_t));
 
+  this->xine = xine;
+  
   this->video_decoder.interface_version   = iface_version;
   this->video_decoder.can_handle          = w32v_can_handle;
   this->video_decoder.init                = w32v_init;
@@ -1387,7 +1409,9 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 					 NULL, NULL, NULL);
 
   this = (w32a_decoder_t *) xine_xmalloc (sizeof (w32a_decoder_t));
-  
+
+  this->xine = xine;
+    
   this->audio_decoder.interface_version   = iface_version;
   this->audio_decoder.can_handle          = w32a_can_handle;
   this->audio_decoder.init                = w32a_init;

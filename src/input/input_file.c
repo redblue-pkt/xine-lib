@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.49 2002/05/25 19:19:17 siggi Exp $
+ * $Id: input_file.c,v 1.50 2002/06/09 13:23:36 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -805,9 +805,10 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
   
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
+#ifdef LOG
   LOG_MSG(this->xine, _("input_file: get optional data, type %08x, sub %p\n"),
 	  data_type, this->sub);
-
+#endif
 
   switch(data_type) {
   case INPUT_OPTIONAL_DATA_TEXTSPU0:
