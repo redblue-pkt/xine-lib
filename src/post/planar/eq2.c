@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.6 2003/08/15 14:43:30 mroi Exp $
+ * $Id: eq2.c,v 1.7 2003/08/19 18:33:43 mroi Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -575,7 +575,7 @@ static int eq2_get_property(xine_video_port_t *port_gen, int property) {
   else if( property == XINE_PARAM_VO_CONTRAST )
     return 65535 * (this->params.contrast) / 2.0;
   else if( property == XINE_PARAM_VO_SATURATION )
-    return 65535 * (this->params.contrast) / 2.0;
+    return 65535 * (this->params.saturation) / 2.0;
   else
     return port->original_port->get_property(port->original_port, property);
 }
