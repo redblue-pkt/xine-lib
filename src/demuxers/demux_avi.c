@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.208 2004/09/17 19:21:33 valtri Exp $
+ * $Id: demux_avi.c,v 1.209 2004/10/13 17:19:26 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1223,7 +1223,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
       }
     }
     
-  } else if (AVI->is_opendml) {
+  } else if (AVI->is_opendml && !this->streaming) {
       uint64_t offset = 0;
       int hdrl_len = 4+4+2+1+1+4+4+8+4;
       char *en, *chunk_start;
