@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.70 2002/07/03 07:38:20 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.71 2002/07/03 07:44:04 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -953,10 +953,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this->capabilities = 0;
 
-  if ( !(snd_pcm_hw_params_set_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) 
-    this->capabilities |= AO_CAP_8BITS;
-
   printf ("audio_alsa_out : supported modes are ");
+  if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) {
+    this->capabilities |= AO_CAP_8BITS;
+    printf ("8bit ");
+  }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) {
     this->capabilities |= AO_CAP_MODE_MONO;
     printf ("mono ");
