@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.26 2001/06/24 22:20:26 guenter Exp $
+ * $Id: video_out.c,v 1.27 2001/07/04 14:14:39 uid56437 Exp $
  *
  */
 
@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "video_out.h"
