@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.150 2004/01/12 17:35:16 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.151 2004/01/16 16:03:54 andruil Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -979,20 +979,19 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
    
     if(!(buf->decoder_flags & BUF_FLAG_FRAME_START)) {
-      xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
-      
       if(codec_type == BUF_VIDEO_RV10) {
         this->context->slice_offset[this->context->slice_count] = this->size;
         this->context->slice_count++;     
       }
-
-      this->size += buf->size;
     }
+
+    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+    this->size += buf->size;
 
     if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
       this->video_step = buf->decoder_info[0];
 
-    if ( (buf->decoder_flags & (BUF_FLAG_FRAME_END|BUF_FLAG_FRAME_START))
+    if ( (buf->decoder_flags & (BUF_FLAG_FRAME_END))
 	  || this->is_continous) {
 
       vo_frame_t *img;
@@ -1122,14 +1121,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     if(buf->decoder_flags & BUF_FLAG_FRAME_START) {
-      xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
-      
       if(codec_type == BUF_VIDEO_RV10) {
         this->context->slice_offset[0] = this->size;
         this->context->slice_count = 1;
       }
-
-      this->size += buf->size;
     }
     
   } else {
