@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.33 2001/12/24 00:45:03 guenter Exp $
+ * $Id: video_out.h,v 1.34 2002/01/08 16:47:57 cvogler Exp $
  *
  *
  * xine version of video_out.h 
@@ -195,6 +195,10 @@ struct vo_instance_s {
 #define VO_ZOOM_MAX         400
 #define VO_ZOOM_MIN         -85
 
+/* number of colors in the overlay palette. Currently limited to 256
+   at most, because some alphablend functions use an 8-bit index into
+   the palette. This should probably be classified as a bug. */
+#define OVL_PALETTE_SIZE 256
 
 /* number of recent frames to keep in memory
    these frames are needed by some deinterlace algorithms
@@ -316,8 +320,8 @@ struct vo_overlay_s {
   int               width;         /* width of subpicture area         */
   int               height;        /* height of subpicture area        */
   
-  uint32_t          color[16];      /* color lookup table               */
-  uint8_t           trans[16];      /* mixer key table                  */
+  uint32_t          color[OVL_PALETTE_SIZE];  /* color lookup table     */
+  uint8_t           trans[OVL_PALETTE_SIZE];  /* mixer key table        */
   int               rgb_clut;      /* true if clut was converted to rgb*/
 
   int               clip_top;

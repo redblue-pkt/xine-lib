@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.3 2002/01/07 23:09:38 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.4 2002/01/08 16:47:56 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -442,7 +442,8 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
       buf[seg_pos[seg + 1] - seg_pos[seg]] = '\0';
       ccrow_set_attributes(renderer, this, seg_pos[seg]);
       osd_renderer->render_text(renderer->cap_display,
-				x + cumulative_seg_width[seg], y, buf);
+				x + cumulative_seg_width[seg], y, buf,
+				OSD_TEXT1);
     }
 
     pos = ccrow_find_next_text_part(this, endpos);
@@ -667,7 +668,7 @@ static void cc_renderer_adjust_osd_object(cc_renderer_t *this)
   this->cap_display = this->osd_renderer->new_object(this->osd_renderer,
 						     this->width,
 						     this->height);
-  this->osd_renderer->set_text_palette(this->cap_display, 2);  
+  this->osd_renderer->set_text_palette(this->cap_display, 2, OSD_TEXT1);  
 }
 
 

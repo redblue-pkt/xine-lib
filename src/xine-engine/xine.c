@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.95 2002/01/02 18:16:08 jkeil Exp $
+ * $Id: xine.c,v 1.96 2002/01/08 16:47:57 cvogler Exp $
  *
  * top-level xine functions
  *
@@ -119,7 +119,7 @@ static void xine_internal_osd (xine_t *this, char *str,
   if( this->osd_display ) {
    
     this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
-    this->osd_renderer->render_text (this->osd, 0, 5, str);
+    this->osd_renderer->render_text (this->osd, 0, 5, str, OSD_TEXT1);
   
     seconds = this->cur_input_time;
   
@@ -128,7 +128,7 @@ static void xine_internal_osd (xine_t *this, char *str,
              (seconds % (60*60)) / 60,
              seconds % 60);
     
-    this->osd_renderer->render_text (this->osd, 70, 5, tstr);
+    this->osd_renderer->render_text (this->osd, 70, 5, tstr, OSD_TEXT1);
   
     this->osd_renderer->show (this->osd, start_time);
     this->osd_renderer->hide (this->osd, start_time+duration);
@@ -506,7 +506,7 @@ xine_t *xine_init (vo_driver_t *vo,
   
   this->osd = this->osd_renderer->new_object (this->osd_renderer, 300, 100);
   this->osd_renderer->set_font (this->osd, "cetus", 24);
-  this->osd_renderer->set_text_palette (this->osd, TEXTPALETTE_WHITE_BLACK_TRANSPARENT );
+  this->osd_renderer->set_text_palette (this->osd, TEXTPALETTE_WHITE_BLACK_TRANSPARENT, OSD_TEXT1 );
   this->osd_renderer->set_position (this->osd, 10,10);
 
   this->osd_display = config->register_bool(config, "misc.osd_display", 1,

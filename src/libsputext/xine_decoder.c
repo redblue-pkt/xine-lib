@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/12/17 00:55:25 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.11 2002/01/08 16:47:56 cvogler Exp $
  *
  * code based on mplayer module:
  *
@@ -776,7 +776,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     this->renderer->set_position (this->osd, 0, y); 
 
-    this->renderer->render_text (this->osd, 0, 0, "sputext decoder");
+    this->renderer->render_text (this->osd, 0, 0, "sputext decoder", OSD_TEXT1);
     this->renderer->show (this->osd, 0);
     this->renderer->hide (this->osd, 300000);      
 
@@ -883,13 +883,13 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           }
         }
         
-        this->renderer->render_text (this->osd, x, y + line*this->line_height, subtitle->text[line]);
+        this->renderer->render_text (this->osd, x, y + line*this->line_height, subtitle->text[line], OSD_TEXT1);
       }
        
       if( font_size != this->font_size )
         this->renderer->set_font (this->osd, this->font, this->font_size);
         
-      this->renderer->set_text_palette (this->osd, -1);
+      this->renderer->set_text_palette (this->osd, -1, OSD_TEXT1);
       this->renderer->show (this->osd, pts );
       this->renderer->hide (this->osd, pts_end);
 

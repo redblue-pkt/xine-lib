@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.6 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: osd.h,v 1.7 2002/01/08 16:47:57 cvogler Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -84,8 +84,15 @@ struct osd_renderer_s {
   /*
    * set on existing text palette 
    * (-1 to set used specified palette)
+   *
+   * color_base specifies the first color index to use for this text
+   * palette. The OSD palette is then modified starting at this
+   * color index, up to the size of the text palette.
+   *
+   * Use OSD_TEXT1, OSD_TEXT2, ... for some preasssigned color indices.
    */
-  void (*set_text_palette) (osd_object_t *osd, int palette_number );
+  void (*set_text_palette) (osd_object_t *osd, int palette_number,
+			    int color_base );
   
   /*
    * get palette (color and transparency)
@@ -108,9 +115,14 @@ struct osd_renderer_s {
   /*
    * render text on x,y position (8 bits version)
    * no \n yet
+   *
+   * The text is assigned the colors starting at the index specified by
+   * color_base up to the size of the text palette. 
+   *
+   * Use OSD_TEXT1, OSD_TEXT2, ... for some preasssigned color indices.
    */
   int (*render_text) (osd_object_t *osd, int x1, int y1, 
-		      char *text);
+		      char *text, int color_base);
 
   /*
    * get width and height of how text will be renderized
@@ -149,6 +161,27 @@ struct osd_renderer_s {
 osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, config_values_t *config );
 
 
+/*
+ * The size of a text palette 
+ */
+
+#define TEXT_PALETTE_SIZE 11
+
+/*
+ * Preassigned color indices for rendering text
+ * (more can be added, not exceeding OVL_PALETTE_SIZE)
+ */
+
+#define OSD_TEXT1 (0 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT2 (1 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT3 (2 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT4 (3 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT5 (4 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT6 (5 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT7 (6 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT8 (7 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT9 (8 * TEXT_PALETTE_SIZE)
+#define OSD_TEXT10 (9 * TEXT_PALETTE_SIZE)
 
 /* 
  * Defined palettes for rendering osd text
@@ -157,8 +190,8 @@ osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, conf
 
 #define NUMBER_OF_TEXT_PALETTES 4
 #define TEXTPALETTE_WHITE_BLACK_TRANSPARENT    0
-#define TEXTPALETTE_WHITE_NONE_TRANSLUCID      1
-#define TEXTPALETTE_WHITE_NONE_TRANSPUCID      2
+#define TEXTPALETTE_WHITE_NONE_TRANSPARENT     1
+#define TEXTPALETTE_WHITE_NONE_TRANSLUCID      2
 #define TEXTPALETTE_YELLOW_BLACK_TRANSPARENT   3
  
 #ifdef __OSD_C__
@@ -192,7 +225,7 @@ static char *textpalettes_str[NUMBER_OF_TEXT_PALETTES+1] = {
     This can surelly be improved a lot. [Miguel]
 */
 
-static clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][11] = {
+static clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
 /* white, black border, transparent */
   {
     CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
@@ -251,7 +284,7 @@ static clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][11] = {
   },
 };
 
-static uint8_t textpalettes_trans[NUMBER_OF_TEXT_PALETTES][11] = {
+static uint8_t textpalettes_trans[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
   {0, 0, 3, 6, 8, 10, 12, 14, 15, 15, 15 },
   {0, 0, 0, 0, 0, 0, 2, 6, 9, 12, 15 },
   {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },

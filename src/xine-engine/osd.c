@@ -67,8 +67,8 @@ struct osd_object_s {
   int x1, y1;
   int x2, y2;
   
-  uint32_t color[16];	/* color lookup table  */
-  uint8_t trans[16];	/* mixer key table */
+  uint32_t color[OVL_PALETTE_SIZE];	/* color lookup table  */
+  uint8_t trans[OVL_PALETTE_SIZE];	/* mixer key table */
 
   int32_t handle;
   
@@ -432,15 +432,22 @@ static void osd_set_palette(osd_object_t *osd, uint32_t *color, uint8_t *trans )
  * (-1 to set user specified palette)
  */
 
-static void osd_set_text_palette(osd_object_t *osd, int palette_number ) {
+static void osd_set_text_palette(osd_object_t *osd, int palette_number,
+				 int color_base) {
 
   if( palette_number < 0 )
     palette_number = osd->renderer->textpalette;
-    
-  memcpy(osd->color, textpalettes_color[palette_number],
-                     sizeof(textpalettes_color[palette_number])); 
-  memcpy(osd->trans, textpalettes_trans[palette_number], 
-                     sizeof(textpalettes_trans[palette_number])); 
+
+  /* some sanity checks for the color indices */
+  if( color_base < 0 )
+    color_base = 0;
+  else if( color_base > OVL_PALETTE_SIZE - TEXT_PALETTE_SIZE )
+    color_base = OVL_PALETTE_SIZE - TEXT_PALETTE_SIZE;
+
+  memcpy(&osd->color[color_base], textpalettes_color[palette_number],
+	 sizeof(textpalettes_color[palette_number]));
+  memcpy(&osd->trans[color_base], textpalettes_trans[palette_number],
+	 sizeof(textpalettes_trans[palette_number]));    
 }
 
 
@@ -634,7 +641,8 @@ static int osd_set_font( osd_object_t *osd, char *fontname, int size) {
  * render text on x,y position (8 bits version)
  *  no \n yet
  */
-static int osd_render_text (osd_object_t *osd, int x1, int y1, char *text) {
+static int osd_render_text (osd_object_t *osd, int x1, int y1,
+	                    char *text, int color_base) {
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;
@@ -645,7 +653,13 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1, char *text) {
 #ifdef LOG_DEBUG  
   printf("osd_render_text %p (%d,%d) \"%s\"\n", osd, x1, y1, text);
 #endif
-  
+ 
+  /* some sanity checks for the color indices */
+  if( color_base < 0 )
+    color_base = 0;
+  else if( color_base > OVL_PALETTE_SIZE - TEXT_PALETTE_SIZE )
+    color_base = OVL_PALETTE_SIZE - TEXT_PALETTE_SIZE;
+
   pthread_mutex_lock (&this->osd_mutex);
   
   font = osd->font;
@@ -672,7 +686,10 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1, char *text) {
       src = font->fontchar[i].bmp;
       
       for( y = 0; y < font->fontchar[i].height; y++ ) {
-        memcpy( dst, src, font->fontchar[i].width );
+	int width = font->fontchar[i].width;
+	uint8_t *s = src, *d = dst;
+	while (s < src + width)
+	  *d++ = *s++ + (uint8_t) color_base;
         src += font->fontchar[i].width;
         dst += osd->width;
       }
