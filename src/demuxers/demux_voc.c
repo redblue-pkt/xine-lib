@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.7 2002/09/21 18:18:46 tmmm Exp $
+ * $Id: demux_voc.c,v 1.8 2002/10/03 00:08:47 tmmm Exp $
  *
  */
 
@@ -81,7 +81,6 @@ typedef struct {
 
   off_t                data_start;
   off_t                data_size;
-  off_t                data_end;
   unsigned int         running_time;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
@@ -110,10 +109,10 @@ static void *demux_voc_loop (void *this_gen) {
       /* just load data chunks from wherever the stream happens to be
        * pointing; issue a DEMUX_FINISHED status if EOF is reached */
       remaining_sample_bytes = PCM_BLOCK_ALIGN;
-      current_file_pos = this->input->get_current_pos(this->input);
+      current_file_pos = 
+        this->input->get_current_pos(this->input) - this->data_start;
 
       current_pts = current_file_pos;
-      current_pts -= this->data_start;
       current_pts *= 90000;
       current_pts /= this->audio_sample_rate;
 
@@ -126,7 +125,7 @@ static void *demux_voc_loop (void *this_gen) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = this->audio_type;
         buf->input_pos = current_file_pos;
-        buf->input_length = this->data_end;
+        buf->input_length = this->data_size;
         buf->input_time = current_pts / 90000;
         buf->pts = current_pts;
 
@@ -248,7 +247,6 @@ static int load_voc_and_send_headers(demux_voc_t *this) {
   sample_rate_divisor = preamble[0];
   this->audio_sample_rate = 256 - (1000000 / sample_rate_divisor);
   this->data_start = this->input->get_current_pos(this->input);
-  this->data_end = this->data_start + this->data_size;
   this->audio_bits = 8;
   this->audio_channels = 1;
   this->running_time = this->data_size / this->audio_sample_rate;
@@ -328,6 +326,9 @@ static int demux_voc_open(demux_plugin_t *this_gen,
   return DEMUX_CANNOT_HANDLE;
 }
 
+static int demux_voc_seek (demux_plugin_t *this_gen,
+                           off_t start_pos, int start_time);
+
 static int demux_voc_start (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
@@ -335,73 +336,12 @@ static int demux_voc_start (demux_plugin_t *this_gen,
   buf_element_t *buf;
   int err;
 
+  demux_voc_seek(this_gen, start_pos, start_time);
+
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-#if 0
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
-    /* load the header */
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
-      VOC_HEADER_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    first_block_offset = LE_16(&header[0x14]);
-    this->input->seek(this->input, first_block_offset, SEEK_SET);
-
-    /* load the block preamble */
-    if (this->input->read(this->input, preamble, BLOCK_PREAMBLE_SIZE) != 
-      BLOCK_PREAMBLE_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    /* so far, this demuxer only cares about type 1 blocks */
-    if (preamble[0] != 1) {
-      xine_log(this->xine, XINE_LOG_MSG,
-        _("unknown VOC block type (0x%02X); please report to xine developers\n"),
-        preamble[0]);
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    /* assemble 24-bit, little endian length */
-    this->data_size = preamble[1] | (preamble[2] << 8) | (preamble[3] << 16);
-
-    /* get the next 2 bytes (re-use preamble bytes) */
-    if (this->input->read(this->input, preamble, 2) != 2) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    /* this app only knows how to deal with format 0 data (raw PCM) */
-    if (preamble[1] != 0) {
-      xine_log(this->xine, XINE_LOG_MSG,
-        _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
-        preamble[1]);
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    this->audio_type = BUF_AUDIO_LPCM_BE;
-    sample_rate_divisor = preamble[0];
-    this->audio_sample_rate = 256 - (1000000 / sample_rate_divisor);
-    this->data_start = this->input->get_current_pos(this->input);
-    this->data_end = this->data_start + this->data_size;
-    this->audio_bits = 8;
-    this->audio_channels = 1;
-    this->running_time = this->data_size / this->audio_sample_rate;
-#endif
 
     /* print vital stats */
     xine_log(this->xine, XINE_LOG_MSG,
@@ -447,29 +387,27 @@ static int demux_voc_seek (demux_plugin_t *this_gen,
 
   demux_voc_t *this = (demux_voc_t *) this_gen;
   int status;
-  off_t data_offset;
 
   pthread_mutex_lock(&this->mutex);
 
   /* check the boundary offsets */
-  if (start_pos < this->data_start)
+  if (start_pos < 0)
     this->input->seek(this->input, this->data_start, SEEK_SET);
-  else if (start_pos >= this->data_end) {
-    this->status = DEMUX_FINISHED;
-    status = this->status;
+  else if (start_pos >= this->data_size) {
+    status = this->status = DEMUX_FINISHED;
     pthread_mutex_unlock(&this->mutex);
     return status;
   } else {
-    /* This function must seek along the block alignment. Determine how
-     * far into the data the requested offset lies, divide the diff
-     * by the block alignment integer-wise, and multiply that by the
-     * block alignment to get the new aligned offset. */
-    data_offset = start_pos - this->data_start;
-    data_offset /= PCM_BLOCK_ALIGN;
-    data_offset *= PCM_BLOCK_ALIGN;
-    data_offset += this->data_start;
+    /* This function must seek along the block alignment. The start_pos
+     * is in reference to the start of the data. Divide the start_pos by
+     * the block alignment integer-wise, and multiply the quotient by the
+     * block alignment to get the new aligned offset. Add the data start
+     * offset and seek to the new position. */
+    start_pos /= PCM_BLOCK_ALIGN;
+    start_pos *= PCM_BLOCK_ALIGN;
+    start_pos += this->data_start;
 
-    this->input->seek(this->input, data_offset, SEEK_SET);
+    this->input->seek(this->input, start_pos, SEEK_SET);
   }
 
   this->seek_flag = 1;

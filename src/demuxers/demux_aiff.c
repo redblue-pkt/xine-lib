@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.6 2002/09/21 18:18:46 tmmm Exp $
+ * $Id: demux_aiff.c,v 1.7 2002/10/03 00:08:47 tmmm Exp $
  *
  */
 
@@ -93,7 +93,6 @@ typedef struct {
 
   off_t                data_start;
   off_t                data_size;
-  off_t                data_end;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
 } demux_aiff_t;
@@ -121,10 +120,10 @@ static void *demux_aiff_loop (void *this_gen) {
       /* just load data chunks from wherever the stream happens to be
        * pointing; issue a DEMUX_FINISHED status if EOF is reached */
       remaining_sample_bytes = this->audio_block_align;
-      current_file_pos = this->input->get_current_pos(this->input);
+      current_file_pos = 
+        this->input->get_current_pos(this->input) - this->data_start;
 
       current_pts = current_file_pos;
-      current_pts -= this->data_start;
       current_pts *= 90000;
       current_pts /= this->audio_bytes_per_second;
 
@@ -137,7 +136,7 @@ static void *demux_aiff_loop (void *this_gen) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = this->audio_type;
         buf->input_pos = current_file_pos;
-        buf->input_length = this->data_end;
+        buf->input_length = this->data_size;
         buf->input_time = current_pts / 90000;
         buf->pts = current_pts;
 
@@ -248,7 +247,6 @@ static int load_aiff_and_send_headers(demux_aiff_t *this) {
       this->data_size = this->audio_frames * this->audio_channels *
         (this->audio_bits / 8);
       this->running_time = this->audio_frames / this->audio_sample_rate;
-      this->data_end = this->data_start + this->data_size;
 
       this->audio_block_align = PCM_BLOCK_ALIGN;
 
@@ -344,12 +342,17 @@ static int demux_aiff_open(demux_plugin_t *this_gen,
   return DEMUX_CANNOT_HANDLE;
 }
 
+static int demux_aiff_seek (demux_plugin_t *this_gen,
+                            off_t start_pos, int start_time);
+
 static int demux_aiff_start (demux_plugin_t *this_gen,
                              off_t start_pos, int start_time) {
 
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
   buf_element_t *buf;
   int err;
+
+  demux_aiff_seek(this_gen, start_pos, start_time);
 
   pthread_mutex_lock(&this->mutex);
 
@@ -405,29 +408,27 @@ static int demux_aiff_seek (demux_plugin_t *this_gen,
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
   int status;
 
-  off_t data_offset;
-
   pthread_mutex_lock(&this->mutex);
 
   /* check the boundary offsets */
-  if (start_pos < this->data_start)
+  if (start_pos < 0)
     this->input->seek(this->input, this->data_start, SEEK_SET);
-  else if (start_pos >= this->data_end) {
+  else if (start_pos >= this->data_size) {
     this->status = DEMUX_FINISHED;
     status = this->status;
     pthread_mutex_unlock(&this->mutex);
     return status;
   } else {
-    /* This function must seek along the block alignment. Determine how
-     * far into the data the requested offset lies, divide the diff
-     * by the block alignment integer-wise, and multiply that by the
-     * block alignment to get the new aligned offset. */
-    data_offset = start_pos - this->data_start;
-    data_offset /= this->audio_block_align;
-    data_offset *= this->audio_block_align;
-    data_offset += this->data_start;
+    /* This function must seek along the block alignment. The start_pos
+     * is in reference to the start of the data. Divide the start_pos by
+     * the block alignment integer-wise, and multiply the quotient by the
+     * block alignment to get the new aligned offset. Add the data start
+     * offset and seek to the new position. */
+    start_pos /= this->audio_block_align;
+    start_pos *= this->audio_block_align;
+    start_pos += this->data_start;
 
-    this->input->seek(this->input, data_offset, SEEK_SET);
+    this->input->seek(this->input, start_pos, SEEK_SET);
   }
 
   this->seek_flag = 1;
