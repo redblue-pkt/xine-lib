@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.12 2002/11/22 03:38:07 guenter Exp $
+ * $Id: demux_real.c,v 1.13 2002/11/22 16:22:01 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -858,8 +858,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_real_t   *this;
 
-  printf ("demux_real: open_plugin\n");
-
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
@@ -872,13 +870,22 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
 	if (input->read(input, buf, 4)) {
 
+	  printf ("demux_real: input seekable, read 4 bytes: %02x %02x %02x %02x\n",
+		  buf[0], buf[1], buf[2], buf[3]);
+
 	  if ((buf[0] != 0x2e)
 	      || (buf[1] != 'R')
 	      || (buf[2] != 'M')
 	      || (buf[3] != 'F')) 
 	    return NULL;
-	}
+	} else
+	  return NULL;
+
       } else if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
+	
+	printf ("demux_real: input provides preview, read 4 bytes: %02x %02x %02x %02x\n",
+		buf[0], buf[1], buf[2], buf[3]);
+
 	if ((buf[0] != 0x2e)
 	    || (buf[1] != 'R')
 	    || (buf[2] != 'M')
