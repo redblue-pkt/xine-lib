@@ -17,15 +17,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2003/01/10 22:23:54 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.43 2003/01/11 03:47:01 miguelfreitas Exp $
  *
- * code based on mplayer module:
- *
- * Subtitle reader with format autodetection
- *
- * Written by laaz
- * Some code cleanup & realloc() by A'rpi/ESP-team
- * dunnowhat sub format by szabi
  */
 
 #include <stdlib.h>
@@ -77,6 +70,7 @@ typedef struct sputext_decoder_s {
 
   int                output_open;
 
+  int                lines;
   char               text[SUB_MAX_TEXT][SUB_BUFSIZE];
 
   float              mpsub_position;  
@@ -85,7 +79,6 @@ typedef struct sputext_decoder_s {
   int                height;         /* frame height               */
   int                font_size;
   int                line_height;
-  int                uses_time;  
 
 
   char              *font;
@@ -95,6 +88,7 @@ typedef struct sputext_decoder_s {
   osd_renderer_t    *renderer;
   osd_object_t      *osd;
 
+  int64_t            img_duration;
   int64_t            last_subtitle_end; /* no new subtitle before this vpts */
 } sputext_decoder_t;
 
@@ -135,154 +129,181 @@ static void update_font_size (sputext_decoder_t *this) {
   }
 }
 
+
+static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t sub_end ) {
+  
+  int line, y;
+  int font_size;
+  
+  this->renderer->filled_rect (this->osd, 0, 0, this->width-1, this->line_height * SUB_MAX_TEXT - 1, 0);
+  
+  y = (SUB_MAX_TEXT - this->lines) * this->line_height;
+  font_size = this->font_size;
+        
+  for (line=0; line<this->lines; line++) {
+    int w,h,x;
+          
+    while(1) {
+      this->renderer->get_text_size( this->osd, this->text[line], 
+                                     &w, &h);
+      x = (this->width - w) / 2;
+            
+      if( w > this->width && font_size > 16 ) {
+        font_size -= 4;
+        this->renderer->set_font (this->osd, this->font, font_size);
+      } else {
+        break;
+      }
+    }
+          
+    this->renderer->render_text (this->osd, x, y + line*this->line_height,
+                                 this->text[line], OSD_TEXT1);
+  }
+         
+  if( font_size != this->font_size )
+    this->renderer->set_font (this->osd, this->font, this->font_size);
+  
+  if( this->last_subtitle_end && sub_start < this->last_subtitle_end ) {
+    sub_start = this->last_subtitle_end;
+  }
+  this->last_subtitle_end = sub_end;
+          
+  this->renderer->set_text_palette (this->osd, -1, OSD_TEXT1);
+  this->renderer->show (this->osd, sub_start);
+  this->renderer->hide (this->osd, sub_end);
+  
+//#ifdef LOG
+  printf ("sputext: scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
+          this->text[0], sub_start, sub_end, 
+          this->stream->xine->clock->get_current_time (this->stream->xine->clock));
+//#endif
+}
+
+
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
-  int64_t current_time;
-  uint32_t start, end;
+  int uses_time;
+  int32_t start, end, diff;
+  int64_t start_vpts, end_vpts;
+  int i;
+  uint32_t *val;
+  char *str;
+  extra_info_t extra_info;
+  int seek_count;
+  int status;
   
-  if( !this->width || !this->height || !this->renderer ) {
-
+  val = (uint32_t * )buf->content;
+  this->lines = *val++;
+  uses_time = *val++;
+  start = *val++;
+  end = *val++;
+  str = (char *)val;
+  for (i = 0; i < this->lines; i++, str+=strlen(str)+1) {
+    strcpy( this->text[i], str );
   }
+  
+  printf("libsputext: decoder data [%s]\n", this->text[0]);
+  printf("libsputext: mode %d timming %d->%d\n", uses_time, start, end);
 
-#if 0
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
-    this->width  = buf->decoder_info[1];
-    this->height = buf->decoder_info[2];
-
-    this->renderer = this->stream->osd_renderer;
-    this->osd = NULL;
-
-    update_font_size (this);
-    
-    current_time = this->stream->xine->clock->get_current_time (this->stream->xine->clock);
-    this->renderer->show (this->osd, current_time);
-    this->renderer->hide (this->osd, current_time+300000);      
-
-  } else {
-
-    int64_t     sub_start, sub_end;
-
-    /* don't want to see subtitle */
-    if(this->stream->spu_channel_user == -2)
-      return;
-
+  if( end <= start ) {
+    printf("libsputext: discarding subtitle with invalid timming\n");
+  }
+  
+  if( this->stream->master_stream )
+    xine_get_current_info (this->stream->master_stream, &extra_info, sizeof(extra_info) );
+  else
+    xine_get_current_info (this->stream, &extra_info, sizeof(extra_info) );
+  seek_count = extra_info.seek_count;
    
-    /* 
-     * find out which subtitle to display 
-     */
-    if (!this->uses_time) {
-      int         frame_num;
-      int64_t     pts_factor;
-      long        frame_offset;
-
-      frame_num = buf->decoder_info[1];
-
-      /* FIXME FIXME FIXME 
-      pts_factor = this->stream->metronom->get_video_rate (this->stream->metronom);
-      */
-      pts_factor = 3000;
-
-      frame_offset = this->time_offset * 900 / pts_factor;
-
-      while ( (this->cur < this->num) 
-	      && (this->text[this->cur].start + frame_offset < frame_num) )
-	this->cur++;
-
-      if (this->cur >= this->num)
-	return;
-
-      subtitle = &this->subtitles[this->cur];
-
-      if (subtitle->start + frame_offset > frame_num)
-	return;
-
-      sub_start = this->stream->metronom->got_spu_packet(this->stream->metronom, buf->pts);
-      sub_end = sub_start + (subtitle->end - subtitle->start) * pts_factor;
-
-    } else {
-      uint32_t start_tenth;
-
-      start_tenth = buf->pts/900;
-
-#ifdef LOG
-      printf ("sputext: searching for spu for %d\n", start_tenth);
-#endif
-
-      while ( (this->cur < this->num) 
-	      && (this->subtitles[this->cur].start + this->time_offset < start_tenth) )
-	this->cur++;
-
-      if (this->cur >= this->num)
-	return;
-
-#ifdef LOG
-      printf ("sputext: found >%s<, start %ld, end %ld\n", this->subtitles[this->cur].text[0],
-	      this->subtitles[this->cur].start + this->time_offset, this->subtitles[this->cur].end);
-#endif
-
-      subtitle = &this->subtitles[this->cur];
-
-      if (subtitle->start + this->time_offset > (start_tenth+20))
-	return;
-
-      sub_start = this->stream->metronom->got_spu_packet(this->stream->metronom, (subtitle->start+this->time_offset)*900);
-      sub_end = sub_start + (subtitle->end - subtitle->start)*900;
-    }
-
-    if( !sub_start )
-      return;
-
-    if (subtitle) {
-      int line, y;
-      int font_size;
-
-      this->renderer->filled_rect (this->osd, 0, 0, this->width-1, this->line_height * SUB_MAX_TEXT - 1, 0);
-
-      y = (SUB_MAX_TEXT - subtitle->lines) * this->line_height;
-      font_size = this->font_size;
+  do {
+  
+    /* initialize decoder if needed */
+    if( !this->width || !this->height ) {
       
-      for (line=0; line<subtitle->lines; line++) {
-        int w,h,x;
+      if( this->stream->video_out->status(this->stream->video_out, NULL,
+                                           &this->width, &this->height )) {
+                                             
+        if( this->width && this->height ) {
+          this->renderer = this->stream->osd_renderer;
         
-        while(1) {
-          this->renderer->get_text_size( this->osd, subtitle->text[line], 
-                                         &w, &h);
-          x = (this->width - w) / 2;
+          if( this->stream->master_stream )
+            this->img_duration = this->stream->master_stream->metronom->get_option(
+              this->stream->master_stream->metronom, METRONOM_FRAME_DURATION);
+          else
+            this->img_duration = this->stream->metronom->get_option(
+              this->stream->metronom, METRONOM_FRAME_DURATION);
+    
+          this->osd = NULL;
+        
+          update_font_size (this);
+        }
+      }
+    }
+    
+    if( this->osd && this->last_subtitle_end < extra_info.vpts ) {
+      
+      /* try to use frame number mode */
+      if( !uses_time && extra_info.frame_number ) {
+        
+        diff = end - extra_info.frame_number;
+        
+        /* discard old subtitles */
+        if( diff < 0 )
+          return;
           
-          if( w > this->width && font_size > 16 ) {
-            font_size -= 4;
-            this->renderer->set_font (this->osd, this->font, font_size);
-          } else {
-            break;
-          }
+        diff = start - extra_info.frame_number;
+        
+        /* draw it if less than 2 seconds left */
+        if( diff < 2*90000 / this->img_duration ) {
+          start_vpts = extra_info.vpts + diff * this->img_duration;
+          end_vpts = start_vpts + (end-start) * this->img_duration;
+     
+          draw_subtitle(this, start_vpts, end_vpts);
+          return;     
         }
         
-        this->renderer->render_text (this->osd, x, y + line*this->line_height, subtitle->text[line], OSD_TEXT1);
-      }
-       
-      if( font_size != this->font_size )
-        this->renderer->set_font (this->osd, this->font, this->font_size);
-
-      if( this->last_subtitle_end && sub_start < this->last_subtitle_end ) {
-	sub_start = this->last_subtitle_end;
-      }
-      this->last_subtitle_end = sub_end;
+      } else {
         
-      this->renderer->set_text_palette (this->osd, -1, OSD_TEXT1);
-      this->renderer->show (this->osd, sub_start);
-      this->renderer->hide (this->osd, sub_end);
-
-#ifdef LOG
-      printf ("sputext: scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
-	      subtitle->text[0], sub_start, sub_end, 
-	      this->stream->metronom->get_current_time (this->stream->metronom));
-#endif
-
+        if( !uses_time ) {
+          start = start * this->img_duration / 90;
+          end = end * this->img_duration / 90;
+          uses_time = 1;
+        }
+        
+        diff = end - extra_info.input_time;
+        
+        /* discard old subtitles */
+        if( diff < 0 )
+          return;
+          
+        diff = start - extra_info.input_time;
+        
+        /* draw it if less than 2 seconds left */
+        if( diff < 2000 ) {
+          start_vpts = extra_info.vpts + diff * 90;
+          end_vpts = start_vpts + (end-start) * 90;
+          
+          draw_subtitle(this, start_vpts, end_vpts);
+          return;     
+        }
+      }
     }
-    this->cur++;
-  }
-#endif
+  
+    xine_usec_sleep (50000);
+    
+    if( this->stream->master_stream )
+      xine_get_current_info (this->stream->master_stream, &extra_info, sizeof(extra_info) );
+    else
+      xine_get_current_info (this->stream, &extra_info, sizeof(extra_info) );
+
+    if( this->stream->master_stream )
+      status = xine_get_status (this->stream->master_stream);
+    else
+      status = xine_get_status (this->stream);
+       
+  } while(seek_count == extra_info.seek_count && status != XINE_STATUS_QUIT &&
+          status != XINE_STATUS_STOP);
 }  
 
 
@@ -395,6 +416,8 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
   sputext_class_t *this ;
 
+  printf("libsputext: init class\n");
+  
   this = (sputext_class_t *) xine_xmalloc (sizeof (sputext_class_t));
 
   this->class.open_plugin      = sputext_class_open_plugin;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.6 2003/01/10 22:23:54 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.7 2003/01/11 03:47:01 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -819,8 +819,8 @@ static int demux_sputext_next (demux_sputext_t *this_gen) {
   val = (uint32_t * )buf->content;
   *val++ = sub->lines;
   *val++ = this->uses_time;
-  *val++ = sub->start * 10;
-  *val++ = sub->end * 10;
+  *val++ = (this->uses_time) ? sub->start * 10 : sub->start;
+  *val++ = (this->uses_time) ? sub->end * 10 : sub->end;
   str = (char *)val;
   for (line = 0; line < sub->lines; line++, str+=strlen(str)+1) {
     if( strlen(sub->text[line]) > SUB_BUFSIZE )

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.41 2002/11/20 11:57:49 mroi Exp $
+ * $Id: metronom.h,v 1.42 2003/01/11 03:47:01 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -206,6 +206,7 @@ struct metronom_s {
 
 #define METRONOM_AV_OFFSET        2
 #define METRONOM_ADJ_VPTS_OFFSET  3
+#define METRONOM_FRAME_DURATION   4
 
 metronom_t *metronom_init (int have_audio, xine_stream_t *stream);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.132 2003/01/10 19:15:16 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.133 2003/01/11 03:47:01 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -306,7 +306,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   stream->metronom->got_video_frame (stream->metronom, img);
 
   pic_vpts = img->vpts;
-
+  img->extra_info->vpts = img->vpts;
+  
   cur_vpts = this->clock->get_current_time(this->clock);
   this->last_delivery_pts = cur_vpts;
 
@@ -963,7 +964,7 @@ static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
   pthread_mutex_lock(&this->streams_lock);
   for (cur = xine_list_first_content(this->streams); cur;
        cur = xine_list_next_content(this->streams))
-    if (cur == stream) {
+    if (cur == stream || !stream) {
       *width = this->current_width;
       *height = this->current_height;
       ret = 1;

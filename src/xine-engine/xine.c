@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.212 2003/01/10 21:11:12 miguelfreitas Exp $
+ * $Id: xine.c,v 1.213 2003/01/11 03:47:01 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -107,6 +107,9 @@ void extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
     
   if( src->seek_count )
     dst->seek_count = src->seek_count;
+
+  if( src->vpts )
+    dst->vpts = src->vpts;
 }
 
 static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
@@ -1029,12 +1032,21 @@ static int xine_get_current_position (xine_stream_t *stream) {
   pthread_mutex_unlock( &stream->current_extra_info_lock );
 
   if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
-  share /= (double) len * 65536;
+  share /= (double) len;
+  share *= 65536;
 
   pthread_mutex_unlock (&stream->frontend_lock);
 
   return (int) share;
 }
+
+void xine_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int size) {
+  
+  pthread_mutex_lock( &stream->current_extra_info_lock );
+  memcpy( extra_info, stream->current_extra_info, size );  
+  pthread_mutex_unlock( &stream->current_extra_info_lock );
+}
+
 
 int xine_get_status (xine_stream_t *stream) {
   return stream->status;
@@ -1288,4 +1300,11 @@ int xine_trick_mode (xine_stream_t *stream, int mode, int value) {
   printf ("xine: xine_trick_mode not implemented yet.\n");
   abort ();
 }
+
+int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
+                         int affection) {
+  master->slave_stream = slave;
+  slave->master_stream = master;                           
+  return 1;
+}                           
 

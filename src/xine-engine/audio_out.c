@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.97 2003/01/10 19:15:16 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.98 2003/01/11 03:47:01 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -913,7 +913,8 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
 
   buf->vpts = stream->metronom->got_audio_samples (stream->metronom, pts, 
 						   buf->num_frames);
-
+  buf->extra_info->vpts = buf->vpts;
+         
 #ifdef LOG
   printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld\n",
 	  pts, buf->vpts);
@@ -1137,7 +1138,7 @@ static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
   pthread_mutex_lock(&this->streams_lock);
   for (cur = xine_list_first_content(this->streams); cur;
        cur = xine_list_next_content(this->streams))
-    if (cur == stream) {
+    if (cur == stream || !stream) {
       *bits = this->input.bits;
       *rate = this->input.rate;
       *mode = this->input.mode;

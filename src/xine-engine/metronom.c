@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.108 2002/12/23 10:03:50 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.109 2003/01/11 03:47:01 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -398,6 +398,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
       this->img_cpt = 0;
       this->last_video_pts = pts;
       img->duration = this->img_duration;
+    } else {
+      this->img_duration = img->duration;  
     }
   
   
@@ -439,7 +441,9 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   } else {
     if (!img->duration) {
       img->duration = this->img_duration;
-    }  
+    } else {
+      this->img_duration = img->duration;  
+    }
   }
 
   
@@ -618,6 +622,8 @@ static int64_t metronom_get_option (metronom_t *this, int option) {
   switch (option) {
   case METRONOM_AV_OFFSET:
     return this->av_offset;
+  case METRONOM_FRAME_DURATION:
+    return this->img_duration;
   }
   printf ("metronom: unknown option in get_option: %d\n",
 	  option);

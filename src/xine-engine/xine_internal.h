@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.123 2003/01/10 19:15:17 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.124 2003/01/11 03:47:01 miguelfreitas Exp $
  *
  */
 
@@ -210,6 +210,11 @@ struct xine_stream_s {
   int                        stream_info[XINE_STREAM_INFO_MAX];
   char                      *meta_info  [XINE_STREAM_INFO_MAX];
 
+  
+  /* master/slave streams */
+  xine_stream_t             *master_stream;
+  xine_stream_t             *slave_stream;
+  
   /* seeking slowdown */
   int                        first_frame_flag;
   pthread_mutex_t            first_frame_lock;
@@ -269,6 +274,8 @@ void audio_decoder_shutdown      (xine_stream_t *stream);
 void extra_info_reset( extra_info_t *extra_info );
 
 void extra_info_merge( extra_info_t *dst, extra_info_t *src );
+
+void xine_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int size);
                         
                         
 /* demuxer helper functions from demux.c */
