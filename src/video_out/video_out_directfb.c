@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.18 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: video_out_directfb.c,v 1.19 2003/08/09 22:41:19 hadess Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -50,6 +50,7 @@
 #include <pthread.h>
 #include <netinet/in.h>
 
+#include "xine.h"
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "yuv2rgb.h"
@@ -116,6 +117,10 @@ typedef struct directfb_driver_s {
 			  int *dest_width, int *dest_height);
 
 } directfb_driver_t;
+
+typedef struct {
+  video_driver_class_t driver_class;
+} directfb_class_t;
 
 #define CONTEXT_BAD             0
 #define CONTEXT_SAME_DRAWABLE   1
@@ -243,11 +248,11 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
     frame->height = height;
        
     switch(frame->format) {
-     case IMGFMT_YV12:
+     case XINE_IMGFMT_YV12:
       s_dsc.pixelformat = DSPF_YV12;
       l_dsc.pixelformat = DSPF_YV12;
       break;
-     case IMGFMT_YUY2:
+     case XINE_IMGFMT_YUY2:
       s_dsc.pixelformat = DSPF_YUY2;
       l_dsc.pixelformat = DSPF_YUY2;
       break;
@@ -283,7 +288,7 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
 
     frame->locked = 1;
     switch(frame->format) {
-     case IMGFMT_YV12:
+     case XINE_IMGFMT_YV12:
       frame->vo_frame.pitches[0] = pitch;
       frame->vo_frame.pitches[1] = pitch/2;
       frame->vo_frame.pitches[2] = pitch/2;
@@ -291,7 +296,7 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
       frame->vo_frame.base[2] = data + pitch*height;
       frame->vo_frame.base[1] = data + pitch*height + pitch*height/4;
       break;
-     case IMGFMT_YUY2:
+     case XINE_IMGFMT_YUY2:
       frame->vo_frame.pitches[0] = 2*pitch;
       frame->vo_frame.base[0] = data;
       frame->vo_frame.base[1] = data;
@@ -491,13 +496,13 @@ fprintf (stderr, "done gui_data_exchange\n");
 }
 
 static int directfb_redraw_needed (vo_driver_t *this_gen) {
-    directfb_driver_t  *this = (directfb_driver_t *) this_gen;
+//    directfb_driver_t  *this = (directfb_driver_t *) this_gen;
 
     return 0;
 }
 
 
-static void directfb_exit (vo_driver_t *this_gen) {
+static void directfb_dispose (vo_driver_t *this_gen) {
   /* directfb_driver_t *this = (directfb_driver_t *) this_gen; */
 }
 
@@ -506,8 +511,9 @@ typedef struct {
   IDirectFBDisplayLayer *video_layer;
 } dfb_visual_info_t;
 
-static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
 
+  /* directfb_class_t   *class = (directfb_class_t *) class_gen; */
   directfb_driver_t      *this;
   dfb_visual_info_t      *visual_info = (dfb_visual_info_t*)visual_gen;
 
@@ -525,7 +531,6 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   memset (this, 0, sizeof(directfb_driver_t));
 
-  this->config		    = config;
   this->frame_width	    = 0;
   this->frame_height	    = 0;
 
@@ -541,7 +546,7 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = directfb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = directfb_gui_data_exchange;
   this->vo_driver.redraw_needed        = directfb_redraw_needed;
-  this->vo_driver.exit                 = directfb_exit;
+  this->vo_driver.dispose              = directfb_dispose;
 
   this->dfb = visual_info->dfb;
   this->layer = visual_info->video_layer;
@@ -551,16 +556,42 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   return &this->vo_driver;
 }
 
+static char* get_identifier (video_driver_class_t *this_gen) {
+  return "DirectFB";
+}
+
+static char* get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using the DirectFB library.");
+}
+
+static void dispose_class (video_driver_class_t *this_gen) {
+
+  directfb_class_t        *this = (directfb_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *visual_gen) {
+
+  directfb_class_t    *this;
+
+  this = (directfb_class_t *) malloc (sizeof (directfb_class_t));
+  this->driver_class.open_plugin     = open_plugin;
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
+  return this;
+}
+
 static vo_info_t vo_info_directfb = {
-  6,
-  "DirectFB",
-  NULL,
-  VISUAL_TYPE_DFB,
-  8
+  8,                    /* priority    */
+  XINE_VISUAL_TYPE_DFB  /* visual type */
 };
 
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_directfb.description = _("xine video output plugin using the DirectFB library.");
-  return &vo_info_directfb;
-}
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_VIDEO_OUT, 16, "DirectFB", XINE_VERSION_CODE, &vo_info_directfb, init_class },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
 
