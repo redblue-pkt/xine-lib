@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.79 2003/02/02 17:36:06 guenter Exp $
+ * $Id: demux_ts.c,v 1.80 2003/03/05 16:44:51 petli Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1499,8 +1499,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 	this->videoMedia = this->media_num;
 	demux_ts_pes_new(this, this->media_num++, pid, this->video_fifo, t);
       }
-    } else if (t == PRIVATE_STREAM1 ||
-	       (t >= AUDIO_STREAM_S && t <= AUDIO_STREAM_E)) {
+    } else if (t >= AUDIO_STREAM_S && t <= AUDIO_STREAM_E) {
       if ( this->audioPid == INVALID_PID) {
 
 	printf ("demux_ts: auto-detected audio pid %d\n",
