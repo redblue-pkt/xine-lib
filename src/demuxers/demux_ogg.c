@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.77 2003/04/14 04:36:26 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.78 2003/04/14 05:06:29 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -862,7 +862,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	stream_num=get_stream(this, ogg_page_serialno (&this->og) );
 	if (stream_num!=-1) {
 	  if (this->time_length < get_pts(this, stream_num, ogg_page_granulepos(&this->og)))
-	    this->time_length = get_pts(this, stream_num, ogg_page_granulepos(&this->og));
+	    this->time_length = get_pts(this, stream_num, ogg_page_granulepos(&this->og)) / 90;
 	}
       }
       this->demux_plugin.seek((demux_plugin_t *)this, position,0);
