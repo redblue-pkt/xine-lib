@@ -884,6 +884,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *cls_gen,
 
   this = (dvb_input_plugin_t *) xine_xmalloc (sizeof(dvb_input_plugin_t));
 
+  this->stream       = stream;
   this->mrl          = strdup(mrl);
   this->cls          = cls;
   this->tuner        = NULL;
