@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.31 2004/10/08 20:44:34 mroi Exp $
+ * $Id: vm.c,v 1.32 2004/12/20 19:27:20 mroi Exp $
  *
  */
 
@@ -186,7 +186,7 @@ static void dvd_read_name(char *name, const char *device) {
 
 static int ifoOpenNewVTSI(vm_t *vm, dvd_reader_t *dvd, int vtsN) {
   if((vm->state).vtsN == vtsN) {
-    return 0; /*  We alread have it */
+    return 1; /*  We alread have it */
   }
   
   if(vm->vtsi != NULL)
@@ -195,31 +195,31 @@ static int ifoOpenNewVTSI(vm_t *vm, dvd_reader_t *dvd, int vtsN) {
   vm->vtsi = ifoOpenVTSI(dvd, vtsN);
   if(vm->vtsi == NULL) {
     fprintf(MSG_OUT, "libdvdnav: ifoOpenVTSI failed\n");
-    return -1;
+    return 0;
   }
   if(!ifoRead_VTS_PTT_SRPT(vm->vtsi)) {
-    fprintf(MSG_OUT, "libdvdnav: ifoRead_VTS_PTT_SRPT failed - CRASHING!!!\n");
-    assert(0);
+    fprintf(MSG_OUT, "libdvdnav: ifoRead_VTS_PTT_SRPT failed\n");
+    return 0;
   }
   if(!ifoRead_PGCIT(vm->vtsi)) {
-    fprintf(MSG_OUT, "libdvdnav: ifoRead_PGCIT failed - CRASHING!!!\n");
-    assert(0);
+    fprintf(MSG_OUT, "libdvdnav: ifoRead_PGCIT failed\n");
+    return 0;
   }
   if(!ifoRead_PGCI_UT(vm->vtsi)) {
-    fprintf(MSG_OUT, "libdvdnav: ifoRead_PGCI_UT failed - CRASHING!!!\n");
-    assert(0);
+    fprintf(MSG_OUT, "libdvdnav: ifoRead_PGCI_UT failed\n");
+    return 0;
   }
   if(!ifoRead_VOBU_ADMAP(vm->vtsi)) {
-    fprintf(MSG_OUT, "libdvdnav: ifoRead_VOBU_ADMAP vtsi failed - CRASHING\n");
-    assert(0);
+    fprintf(MSG_OUT, "libdvdnav: ifoRead_VOBU_ADMAP vtsi failed\n");
+    return 0;
   }
   if(!ifoRead_TITLE_VOBU_ADMAP(vm->vtsi)) {
-    fprintf(MSG_OUT, "libdvdnav: ifoRead_TITLE_VOBU_ADMAP vtsi failed - CRASHING\n");
-    assert(0);
+    fprintf(MSG_OUT, "libdvdnav: ifoRead_TITLE_VOBU_ADMAP vtsi failed\n");
+    return 0;
   }
   (vm->state).vtsN = vtsN;
-
-  return 0;
+  
+  return 1;
 }
 
 
@@ -258,7 +258,8 @@ dvd_reader_t *vm_get_dvd_reader(vm_t *vm) {
 int vm_start(vm_t *vm) {
   /* Set pgc to FP (First Play) pgc */
   set_FP_PGC(vm);
-  return process_command(vm, play_PGC(vm));
+  process_command(vm, play_PGC(vm));
+  return !vm->stopped;
 }
 
 void vm_stop(vm_t *vm) {
@@ -384,7 +385,8 @@ vm_t *vm_new_copy(vm_t *source) {
   vtsN = (target->state).vtsN;
   if (vtsN > 0) {
     (target->state).vtsN = 0;
-    ifoOpenNewVTSI(target, target->dvd, vtsN);
+    if (!ifoOpenNewVTSI(target, target->dvd, vtsN))
+      assert(0);
   
     /* restore pgc pointer into the new vtsi */
     if (!set_PGCN(target, pgcN))
@@ -1282,9 +1284,10 @@ static int process_command(vm_t *vm, link_t link_values) {
       if(link_values.data1 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
       assert((vm->state).pgc->next_pgc_nr != 0);
-      if(!set_PGCN(vm, (vm->state).pgc->next_pgc_nr))
-	assert(0);
-      link_values = play_PGC(vm);
+      if(set_PGCN(vm, (vm->state).pgc->next_pgc_nr))
+	link_values = play_PGC(vm);
+      else
+	link_values.command = Exit;
       break;
     case LinkPrevPGC:
       /* Link to Previous Program Chain */
@@ -1292,9 +1295,10 @@ static int process_command(vm_t *vm, link_t link_values) {
       if(link_values.data1 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
       assert((vm->state).pgc->prev_pgc_nr != 0);
-      if(!set_PGCN(vm, (vm->state).pgc->prev_pgc_nr))
-	assert(0);
-      link_values = play_PGC(vm);
+      if(set_PGCN(vm, (vm->state).pgc->prev_pgc_nr))
+	link_values = play_PGC(vm);
+      else
+	link_values.command = Exit;
       break;
     case LinkGoUpPGC:
       /* Link to GoUp Program Chain */
@@ -1302,9 +1306,10 @@ static int process_command(vm_t *vm, link_t link_values) {
       if(link_values.data1 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
       assert((vm->state).pgc->goup_pgc_nr != 0);
-      if(!set_PGCN(vm, (vm->state).pgc->goup_pgc_nr))
-	assert(0);
-      link_values = play_PGC(vm);
+      if(set_PGCN(vm, (vm->state).pgc->goup_pgc_nr))
+	link_values = play_PGC(vm);
+      else
+	link_values.command = Exit;
       break;
     case LinkTailPGC:
       /* Link to Tail of Program Chain */
@@ -1327,7 +1332,8 @@ static int process_command(vm_t *vm, link_t link_values) {
 	}
 	
 	(vm->state).domain = VTS_DOMAIN;
-	ifoOpenNewVTSI(vm, vm->dvd, (vm->state).rsm_vtsN);
+	if (!ifoOpenNewVTSI(vm, vm->dvd, (vm->state).rsm_vtsN))
+	  assert(0);
 	set_PGCN(vm, (vm->state).rsm_pgcN);
 	
 	/* These should never be set in SystemSpace and/or MenuSpace */ 
@@ -1406,9 +1412,10 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Stop SPRM9 Timer */
       /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VMGM_DOMAIN || (vm->state).domain == FP_DOMAIN); /* ?? */
-      if(!set_TT(vm, link_values.data1))
-	return 0;
-      link_values = play_PGC(vm);
+      if(set_TT(vm, link_values.data1))
+        link_values = play_PGC(vm);
+      else
+	link_values.command = Exit;
       break;
     case JumpVTS_TT:
       /* Jump to Title:data1 in same VTS Title Domain */
@@ -1465,7 +1472,8 @@ static int process_command(vm_t *vm, link_t link_values) {
 	  /* the normal case */
 	  assert((vm->state).domain == VMGM_DOMAIN || (vm->state).domain == FP_DOMAIN); /* ?? */
 	  (vm->state).domain = VTSM_DOMAIN;
-	  ifoOpenNewVTSI(vm, vm->dvd, link_values.data1);  /* Also sets (vm->state).vtsN */
+	  if (!ifoOpenNewVTSI(vm, vm->dvd, link_values.data1))  /* Also sets (vm->state).vtsN */
+	    assert(0);
 	} else {
 	  /* This happens on some discs like "Captain Scarlet & the Mysterons" or
 	   * the German RC2 of "Anatomie" in VTSM. */
@@ -1578,14 +1586,9 @@ static int set_VTS_PTT(vm_t *vm, int vtsN, int vts_ttn, int part) {
   
   (vm->state).domain = VTS_DOMAIN;
 
-  if(vtsN != (vm->state).vtsN)
-    res = ifoOpenNewVTSI(vm, vm->dvd, vtsN);  /* Also sets (vm->state).vtsN */
-  else
-    res = 0;
-
-  if (res < 0) {
-    return 0;
-  }
+  if (vtsN != (vm->state).vtsN)
+    if (!ifoOpenNewVTSI(vm, vm->dvd, vtsN))  /* Also sets (vm->state).vtsN */
+      return 0;
   
   if ((vts_ttn < 1) || (vts_ttn > vm->vtsi->vts_ptt_srpt->nr_of_srpts) ||
       (part < 1) || (part > vm->vtsi->vts_ptt_srpt->title[vts_ttn - 1].nr_of_ptts) ) {
@@ -1610,6 +1613,9 @@ static int set_VTS_PTT(vm_t *vm, int vtsN, int vts_ttn, int part) {
 
 static int set_FP_PGC(vm_t *vm) {  
   (vm->state).domain = FP_DOMAIN;
+  if (!vm->vmgi->first_play_pgc) {
+    return set_PGCN(vm, 1);
+  }
   (vm->state).pgc = vm->vmgi->first_play_pgc;
   (vm->state).pgcN = vm->vmgi->vmgi_mat->first_play_pgc;
   return 1;

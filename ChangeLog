@@ -7,6 +7,8 @@ xine-lib
   * fixed deadlock with ASF chained streams due to fifo buffer leak
   * DVB Subtitles: fixed flashing, repeating subs, fix sync & timeouts
   * DVB EPG: fixed incorrectly parsed running status, clear old epg data, cropped epg texts
+  * updated included libdvdnav: more graceful handling of some error conditions;
+    fixed playback of some strangely authored DVDs
 
 xine-lib (1-rc8)
   * Multiple security vulnerabilities fixed on PNM and Real RTSP clients
