@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.43 2002/06/07 02:40:46 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.44 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -334,6 +334,7 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
     
   if ( !this->streams[this->num_streams].buf_type ) {
     printf ("demux_asf: unknown audio type 0x%x\n", wavex->wFormatTag);
+    xine_report_codec( this->xine, XINE_CODEC_AUDIO, wavex->wFormatTag, 0, 0);
     this->streams[this->num_streams].buf_type     = BUF_CONTROL_NOP;
   } else
     xine_log (this->xine, XINE_LOG_FORMAT,
@@ -389,6 +390,8 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
     printf ("demux_asf: unknown video format %.4s\n",
 	    (char*)&bih->biCompression);
     
+    xine_report_codec( this->xine, XINE_CODEC_VIDEO, bih->biCompression, 0, 0);
+
     this->status = DEMUX_FINISHED;
     return;
   }

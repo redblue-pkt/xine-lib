@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.135 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: xine.c,v 1.136 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -137,6 +137,35 @@ void xine_notify_stream_finished (xine_t *this) {
 	    strerror(err));
     abort();
   }
+}
+
+void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t buf_type, int handled ) {
+
+  if( this->report_codec_cb ) {
+    if( codec_type == XINE_CODEC_VIDEO ) {
+      if( !buf_type )
+        buf_type = fourcc_to_buf_video( fourcc );
+
+      this->report_codec_cb( this->report_codec_user_data,
+                             codec_type, fourcc,
+                             buf_video_name( buf_type ), handled );
+    } else {
+      if( !buf_type )
+        buf_type = formattag_to_buf_audio( fourcc );
+    
+      this->report_codec_cb( this->report_codec_user_data,
+                             codec_type, fourcc,
+                             buf_audio_name( buf_type ), handled );
+    }
+  }
+}
+
+int xine_register_report_codec_cb(xine_t *this, xine_report_codec_t report_codec,
+				 void *user_data) {
+  
+  this->report_codec_cb = report_codec;
+  this->report_codec_user_data = user_data;
+  return 0;
 }
 
 static void xine_internal_osd (xine_t *this, char *str, 
@@ -595,7 +624,8 @@ xine_t *xine_init (vo_driver_t *vo,
   this->num_event_listeners = 0; /* Initially there are none */
   this->cur_input_plugin = NULL; /* In case the input plugin event handlers
                                   * are called too early. */
-  this->cur_spu_decoder_plugin = NULL; 
+  this->cur_spu_decoder_plugin = NULL;
+  this->report_codec_cb = NULL; 
   
   /*
    * create a metronom

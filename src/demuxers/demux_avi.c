@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.93 2002/06/07 02:40:46 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.94 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1240,6 +1240,7 @@ static int demux_avi_start (demux_plugin_t *this_gen,
       if( !this->avi->audio[i]->audio_type ) {
         xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: unknown audio type 0x%lx\n"),
                   this->avi->audio[i]->wavex->wFormatTag);
+        xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->avi->audio[i]->wavex->wFormatTag, 0, 0);
         this->no_audio  = 1;
         this->avi->audio[i]->audio_type     = BUF_CONTROL_NOP;
       }
@@ -1364,6 +1365,8 @@ static int demux_avi_start (demux_plugin_t *this_gen,
       xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: unknown video codec '%.4s'\n"),
                 (char*)&this->avi->bih.biCompression);
       buf->free_buffer (buf);
+    
+      xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->avi->bih.biCompression, 0, 0);
 
       this->status = DEMUX_FINISHED;
     } else {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.74 2002/06/03 20:36:26 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.75 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -226,6 +226,7 @@ void *audio_decoder_loop (void *this_gen) {
 		xine_log (this, XINE_LOG_FORMAT, 
 			  "audio_decoder: using audio decoder plugin '%s'\n",
 			  decoder->get_identifier());
+		xine_report_codec( this, XINE_CODEC_AUDIO, 0, buf->type, 1);
 
 		this->cur_audio_decoder_plugin = decoder;
 		this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
@@ -244,6 +245,7 @@ void *audio_decoder_loop (void *this_gen) {
 	    else if( buf->type != buftype_unknown ) {
 	      xine_log (this, XINE_LOG_MSG, "audio_decoder: no plugin available to handle '%s'\n",
 		        buf_audio_name( buf->type ) );
+	      xine_report_codec( this, XINE_CODEC_AUDIO, 0, buf->type, 0);
 	      buftype_unknown = buf->type;
 	    }
 	  }
@@ -251,6 +253,7 @@ void *audio_decoder_loop (void *this_gen) {
       } else if( buf->type != buftype_unknown ) {
 	  xine_log (this, XINE_LOG_MSG, "audio_decoder: unknown buffer type: %08x\n",
 		    buf->type );
+	  xine_report_codec( this, XINE_CODEC_AUDIO, 0, buf->type, 0);
 	  buftype_unknown = buf->type;
       }
 

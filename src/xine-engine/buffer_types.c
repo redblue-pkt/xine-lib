@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.23 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.24 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  *
  * contents:
@@ -599,7 +599,7 @@ int i;
     }
   }
 
-  return "unknown";
+  return "";
 }
 
 uint32_t formattag_to_buf_audio( uint32_t formattag ) {
@@ -633,7 +633,7 @@ int i;
     }
   }
 
-  return "unknow";
+  return "";
 }
 
 void xine_bmiheader_le2me( xine_bmiheader *bih ) {

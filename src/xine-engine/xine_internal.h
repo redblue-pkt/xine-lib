@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.86 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.87 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  */
 
@@ -151,6 +151,12 @@ struct audio_decoder_s {
 
 typedef void (*xine_event_listener_t) (void *user_data, xine_event_t *);
 
+#define XINE_CODEC_AUDIO   0
+#define XINE_CODEC_VIDEO   1
+
+typedef void (*xine_report_codec_t) (void *user_data, int codec_type,
+                                     uint32_t fourcc, char *description, int handled);
+
 struct xine_s {
   
   /* private : */
@@ -250,6 +256,9 @@ struct xine_s {
 
   pthread_t                  finished_thread;
   int                        finished_thread_running;
+  
+  xine_report_codec_t        report_codec_cb;
+  void                      *report_codec_user_data;
 };
 
 /*
@@ -428,6 +437,7 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls);
  */
 
 void xine_notify_stream_finished (xine_t *this);
+void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t buf_type, int handled );
 
 /*
  * video decoder stuff
@@ -586,6 +596,16 @@ int xine_remove_event_listener(xine_t *this, xine_event_listener_t listener);
  */
 
 void xine_send_event(xine_t *this, xine_event_t *event);
+
+/*
+ * register an codec reporting callback.
+ * return 0 if ok
+ * obs: set to NULL to unregister
+ */
+
+int xine_register_report_codec_cb(xine_t *this, xine_report_codec_t report_codec,
+				 void *user_data);
+
 
 /*
  * snapshot function

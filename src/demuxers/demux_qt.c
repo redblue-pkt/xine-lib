@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.47 2002/06/07 02:48:31 tmmm Exp $
+ * $Id: demux_qt.c,v 1.48 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  */
 
@@ -1253,8 +1253,14 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
     this->bih.biCompression = this->qt->video_codec;
     this->qt->video_type = fourcc_to_buf_video(this->bih.biCompression);
+    
+    if( !this->qt->video_type )
+      xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
 
     this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
+    
+    if( !this->qt->audio_type )
+      xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
 
     /* print vital stats */
     xine_log (this->xine, XINE_LOG_FORMAT,

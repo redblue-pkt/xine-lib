@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.86 2002/06/03 20:36:26 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.87 2002/06/07 04:15:46 miguelfreitas Exp $
  *
  */
 
@@ -257,19 +257,23 @@ void *video_decoder_loop (void *this_gen) {
 
 	    xine_log (this, XINE_LOG_FORMAT, "using video decoder plugin '%s'\n",
 		      decoder->get_identifier());
+    
+	    xine_report_codec( this, XINE_CODEC_VIDEO, 0, buf->type, 1);
 	    
 	  }
 
 	  decoder->decode_data (this->cur_video_decoder_plugin, buf);  
 	
 	} else if( buf->type != buftype_unknown ) {
-	      xine_log (this, XINE_LOG_MSG, "video_decoder: no plugin available to handle '%s'\n",
+	    xine_log (this, XINE_LOG_MSG, "video_decoder: no plugin available to handle '%s'\n",
 		        buf_video_name( buf->type ) );
+	    xine_report_codec( this, XINE_CODEC_VIDEO, 0, buf->type, 0);
 	    buftype_unknown = buf->type;
         }
       } else if( buf->type != buftype_unknown ) {
 	  xine_log (this, XINE_LOG_MSG, "video_decoder: unknown buffer type: %08x\n",
 		    buf->type );
+	  xine_report_codec( this, XINE_CODEC_VIDEO, 0, buf->type, 0);
 	  buftype_unknown = buf->type;
       }
 

@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.95 2002/05/02 18:59:29 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.96 2002/06/07 04:15:45 miguelfreitas Exp $
  *
  */
 
@@ -1612,6 +1612,35 @@ void xine_send_event(xine_t *self, xine_event_t *event);
 
           /** @} end of event_group */
 
+          
+#define XINE_CODEC_AUDIO   0
+#define XINE_CODEC_VIDEO   1
+
+/**
+ * codec reporting callback.
+ * \param user_data
+ * \param codec_type type of codec being reported (XINE_CODEC_AUDIO/XINE_CODEC_VIDEO)
+ * \param fourcc codec identifier (fourcc) in machine endianness
+ * \param description description or human readable codec name ("" if unkown)
+ * \param handled if true, the plugin exist and will be used. otherwise it's an error condition (plugin not found or codec unknown)
+ * \sa xine_register_report_codec_cb
+ */
+typedef void (*xine_report_codec_t) (void *user_data, int codec_type,
+                                     uint32_t fourcc, char *description, int handled);
+
+/**
+ * \fn int xine_register_report_codec_cb(xine_t *self, xine_report_codec_t report_codec, void *user_data);
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param report_codec callback function.
+ * \param user_data - will be used as first parameter to callback
+ * \brief registers a callback function to receive codec information (may change during playback)
+ * \return 0 if the callback was registerd, non-zero if it could not.
+ * \sa xine_report_codec_t
+ */
+int xine_register_report_codec_cb(xine_t *self, xine_report_codec_t report_codec,
+				 void *user_data);
+         
+          
 /**
  * \fn int xine_get_current_frame (xine_t *self, int *width, int *height, int *ratio_code, int *format, uint8_t **y, uint8_t **u, uint8_t **v)
  *
