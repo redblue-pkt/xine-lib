@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.2 2003/10/19 14:34:36 siggi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.3 2003/10/19 23:47:34 rockyb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -1634,7 +1634,7 @@ vcd_init (xine_t *xine, void *data)
     
     my_vcd.player.default_autoplay = 
       config->register_enum(config, 
-                            "vcdx.autoplay",
+                            "vcd.autoplay",
                             VCDPLAYER_AUTOPLAY_PBC,
                             (char **) autoplay_modes,
                             _("default type to use on VCD autoplay"),
@@ -1646,7 +1646,7 @@ _("What play unit to use when none is specified in an MRL, e.g. "
     
     class->vcd_device = 
       config->register_string(config, 
-                              "vcdx.default_device",
+                              "vcd.default_device",
                               "",
           _("default CD drive used for VCD when none given"),
 _("What to use if no drive specified. If null, we'll scan for CD drives."), 
@@ -1656,7 +1656,7 @@ _("What to use if no drive specified. If null, we'll scan for CD drives."),
 
     my_vcd.player.slider_length =
       config->register_enum(config, 
-                            "vcdx.length_reporting",
+                            "vcd.length_reporting",
                             VCDPLAYER_SLIDER_LENGTH_AUTO, 
                             (char **) length_reporting_modes,
                             _("position slider range"),
@@ -1666,7 +1666,7 @@ _("The range the stream playback position slider represents when playing."),
 
 #if READAHEAD_FINISHED
     my_vcd.player.readahead = 
-      config->register_bool(config, "vcdx.use_readahead",
+      config->register_bool(config, "vcd.use_readahead",
                             (int) false,
                             _("Do we use read-ahead caching?"),
                             _("Class "
@@ -1677,7 +1677,7 @@ _("The range the stream playback position slider represents when playing."),
 
   my_vcd.player.autoadvance = 
     config->register_bool(config, 
-                        "vcdx.autoadvance",
+                        "vcd.autoadvance",
                         (int) true,
                         _("Automatically advance track/entry?"),
 _("If set, we should we automatically advance to the next entry or track. Used only when playback control (PBC) is not on."),
@@ -1687,7 +1687,7 @@ _("If set, we should we automatically advance to the next entry or track. Used o
 
   my_vcd.player.show_rejected = 
     config->register_bool(config, 
-                        "vcdx.show_rejected",
+                        "vcd.show_rejected",
                         (int) false,
                         _("Show 'rejected' LIDs?"),
 "Some playback list IDs (LIDs) are marked not showable, "
@@ -1699,7 +1699,7 @@ _("If set, we should we automatically advance to the next entry or track. Used o
 
   my_vcd.v_config.title_format = 
     strdup(config->register_string(config,
-                          "vcdx.title_format",
+                          "vcd.title_format",
                           "%F - %I %N%L%S, disk %c of %C - %v %A",
                           _("format string for display banner"),
 _("Format used in the GUI Title. Similar to the Unix date "
@@ -1711,7 +1711,7 @@ _("Format used in the GUI Title. Similar to the Unix date "
 
   my_vcd.v_config.comment_format = 
     strdup(config->register_string(config,
-                          "vcdx.comment_format",
+                          "vcd.comment_format",
                           "%P - Track %T",
                           _("format string for stream comment field"),
 _("Format used in the GUI Title. Similar to the Unix date "
@@ -1723,7 +1723,7 @@ _("Format used in the GUI Title. Similar to the Unix date "
 
   vcdplayer_debug = 
   config->register_num(config, 
-                       "vcdx.debug",
+                       "vcd.debug",
                        0,
                        _("debug flag mask"),
                        _("This integer when viewed in binary is a debugging mask"),
