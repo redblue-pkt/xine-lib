@@ -1464,7 +1464,7 @@
      xine will normally use Xv by default if it is available. In some cases
      you might need to choose Xv playback manually (when the <filename>~/.xine/config</filename>
      file for some reason says that you want to use XShm):
-     <screen>&nbsp;&nbsp;&nbsp;<command>xine -V Xv foo.mpg</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>xine -V Xv</command></screen>
     </para>
     <para>
      If this doesn't work for you, it may be possible that Xv is not present
@@ -1664,6 +1664,25 @@
 
   <sect1 id="errors">
    <title>Error Messages: What they mean and what you can do</title>
+
+   <sect2 id="xfreecrash">
+    <title>Starting xine crashes XFree, I am logged out of my desktop!</title>
+    <para>
+     xine itself is unable to crash XFree, so when your X server just shuts down or
+     restarts with the login screen, there is something wrong with your X setup.
+     Most common are problems with the Xv extension. Try running xine with the XShm
+     video output plugin:
+     <screen>&nbsp;&nbsp;&nbsp;<command>xine -V XShm</command></screen>
+    </para>
+    <para>
+     If that works fine, you just proved, that the Xv extension is buggy. xine will
+     remember the last used video output plugin, so the setting will stay at XShm.
+     You could simply continue using this, but XShm is a lot slower than Xv, so
+     consult the <link linkend="xvextension">section on Xv</link> and see if you can
+     get it working. Usually you should look for updated versions of the XFree driver
+     module that belongs to your graphics card.
+    </para>
+   </sect2>
 
    <sect2 id="audiodrivererr">
     <title>Starting xine fails with complains about audio drivers/devices!</title>
