@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.92 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_qt.c,v 1.93 2002/10/06 02:27:53 tmmm Exp $
  *
  */
 
@@ -171,6 +171,7 @@ typedef struct {
       unsigned int sample_rate;
       unsigned int channels;
       unsigned int bits;
+      unsigned int vbr;
     } audio;
 
   } media_description;
@@ -240,6 +241,7 @@ typedef struct {
   unsigned int audio_sample_rate;
   unsigned int audio_channels;
   unsigned int audio_bits;
+  unsigned int audio_vbr;    /* flag to indicate if audio is VBR */
   void *audio_decoder_config;
   int audio_decoder_config_len;
   unsigned int *audio_sample_size_table;
@@ -415,8 +417,9 @@ static int is_qt_file(input_plugin_t *qt_file) {
   if (moov_atom_offset == -1) {
     return 0;
   } else {
-    /* check that the next atom in the chunk contains are alphanumeric;
-     * if not, disqualify the file as a QT file */
+    /* check that the next atom in the chunk contains alphanumeric
+     * characters in the atom type field; if not, disqualify the file 
+     * as a QT file */
     qt_file->seek(qt_file, moov_atom_offset + ATOM_PREAMBLE_SIZE, SEEK_SET);
     if (qt_file->read(qt_file, atom_preamble, ATOM_PREAMBLE_SIZE) !=
       ATOM_PREAMBLE_SIZE)
@@ -709,28 +712,19 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
         }
 
-/*
-printf("*** audio: %d bits, %d channels, %d Hz\n" \
-    "  %d samples/packet, %d bytes/packet, %d bytes/frame, %d bytes/sample, %d samples/frame\n",
-  sample_table->media_description.audio.bits,
-  sample_table->media_description.audio.channels,
-  sample_table->media_description.audio.sample_rate,
-  sample_table->samples_per_packet,
-  sample_table->bytes_per_packet,
-  sample_table->bytes_per_frame,
-  sample_table->bytes_per_sample,
-  sample_table->samples_per_frame
-);
-*/
-
+        /* see if the trak deserves a promotion to VBR */
+        if (BE_16(&trak_atom[i + 0x28]) == 0xFFFE)
+          sample_table->media_description.audio.vbr = 1;
+        else
+          sample_table->media_description.audio.vbr = 0;
       }
 
     } else if (current_atom == ESDS_ATOM) {
 
       uint32_t len;
       
-      if (sample_table->type == MEDIA_VIDEO || 
-          sample_table->type == MEDIA_AUDIO) {
+      if ((sample_table->type == MEDIA_VIDEO) || 
+          (sample_table->type == MEDIA_AUDIO)) {
         
         j = i + 8;
         if( trak_atom[j++] == 0x03 ) {
@@ -935,9 +929,10 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
   unsigned int edit_list_index;
   unsigned int edit_list_pts_counter;
 
-  /* AUDIO and OTHER frame types follow the same rules; VIDEO follows a
-   * different set */
-  if (sample_table->type == MEDIA_VIDEO) {
+  /* AUDIO and OTHER frame types follow the same rules; VIDEO and vbr audio
+   * frame types follow a different set */
+  if ((sample_table->type == MEDIA_VIDEO) || 
+      (sample_table->media_description.audio.vbr)) {
 
     /* in this case, the total number of frames is equal to the number of
      * entries in the sample size table */
@@ -974,7 +969,7 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
           sample_table->sample_to_chunk_table[i].samples_per_chunk;
         current_offset = sample_table->chunk_offset_table[j];
         while (samples_per_chunk > 0) {
-          sample_table->frames[frame_counter].type = MEDIA_VIDEO;
+          sample_table->frames[frame_counter].type = sample_table->type;
 
           /* figure out the offset and size */
           sample_table->frames[frame_counter].offset = current_offset;
@@ -1260,6 +1255,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
         sample_tables[i].media_description.audio.bits;
       info->audio_codec =
         sample_tables[i].media_description.audio.codec_format;
+      info->audio_vbr = 
+        sample_tables[i].media_description.audio.vbr;
 
       info->audio_decoder_config = sample_tables[i].decoder_config;
       info->audio_decoder_config_len = sample_tables[i].decoder_config_len;
@@ -1330,128 +1327,86 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
 
 static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
-  unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
-  int64_t top_level_atom_size;
-  qt_atom top_level_atom;
   unsigned char *moov_atom = NULL;
-  int64_t preseek_pos;
+  off_t moov_atom_offset = -1;
+  int64_t moov_atom_size = -1;
 
   /* zlib stuff */
   z_stream z_state;
   int z_ret_code;
   unsigned char *unzip_buffer;
 
-  /* reset the file */
-  if (input->seek(input, 0, SEEK_SET) != 0) {
+  find_moov_atom(input, &moov_atom_offset, &moov_atom_size);
+  if (moov_atom_offset == -1) {
+    info->last_error = QT_NO_MOOV_ATOM;
+    return info->last_error;
+  }
+  info->moov_first_offset = moov_atom_offset;
+  info->moov_last_offset = info->moov_first_offset + moov_atom_size;
+
+  moov_atom = (unsigned char *)malloc(moov_atom_size);
+  if (moov_atom == NULL) {
+    info->last_error = QT_NO_MEMORY;
+    return info->last_error;
+  }
+  /* seek to the start of moov atom */
+  if (input->seek(input, info->moov_first_offset, SEEK_SET) !=
+    info->moov_first_offset) {
     info->last_error = QT_FILE_READ_ERROR;
     return info->last_error;
   }
-      
-  /* traverse through the file looking for the moov atom */
-  info->moov_first_offset = -1;
+  if (input->read(input, moov_atom, moov_atom_size) !=
+    moov_atom_size) {
+    free(moov_atom);
+    info->last_error = QT_FILE_READ_ERROR;
+    return info->last_error;
+  }
 
-  while (info->moov_first_offset == -1) {
+  /* check if moov is compressed */
+  if (BE_32(&moov_atom[12]) == CMOV_ATOM) {
 
-    if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) != 
-      ATOM_PREAMBLE_SIZE) {
-      info->last_error = QT_FILE_READ_ERROR;
+    info->compressed_header = 1;
+
+    z_state.next_in = &moov_atom[0x28];
+    z_state.avail_in = moov_atom_size - 0x28;
+    z_state.avail_out = BE_32(&moov_atom[0x24]);
+    unzip_buffer = (unsigned char *)malloc(BE_32(&moov_atom[0x24]));
+    if (!unzip_buffer) {
+      info->last_error = QT_NO_MEMORY;
       return info->last_error;
     }
 
-    top_level_atom_size = BE_32(&atom_preamble[0]);
-    top_level_atom = BE_32(&atom_preamble[4]);
-    /* 64-bit length special case */
-    if (top_level_atom_size == 1) {
-      preseek_pos = input->get_current_pos(input);
-      if (input->read(input, atom_preamble, 8) != 8) {
-        info->last_error = QT_FILE_READ_ERROR;
-        return info->last_error;
-      }
-      top_level_atom_size = BE_32(&atom_preamble[0]);
-      top_level_atom_size <<= 32;
-      top_level_atom_size |= BE_32(&atom_preamble[4]);
+    z_state.next_out = unzip_buffer;
+    z_state.zalloc = (alloc_func)0;
+    z_state.zfree = (free_func)0;
+    z_state.opaque = (voidpf)0;
 
-      /* rewind 8 bytes */
-      if (input->seek(input, preseek_pos, SEEK_SET) != preseek_pos) {
-        info->last_error = QT_FILE_READ_ERROR;
-        return info->last_error;
-      }
+    z_ret_code = inflateInit (&z_state);
+    if (Z_OK != z_ret_code) {
+      info->last_error = QT_ZLIB_ERROR;
+      return info->last_error;
     }
 
-    if (top_level_atom == MOOV_ATOM) {
-      info->moov_first_offset = input->get_current_pos(input) - 
-        ATOM_PREAMBLE_SIZE;
-      info->moov_last_offset =
-        info->moov_first_offset + top_level_atom_size;
-
-      moov_atom = (unsigned char *)malloc(top_level_atom_size);
-      if (moov_atom == NULL) {
-        info->last_error = QT_NO_MEMORY;
-        return info->last_error;
-      }
-      /* rewind to start of moov atom */
-      if (input->seek(input, info->moov_first_offset, SEEK_SET) != 
-        info->moov_first_offset) {
-        info->last_error = QT_FILE_READ_ERROR;
-        return info->last_error;
-      }
-      if (input->read(input, moov_atom, top_level_atom_size) != 
-        top_level_atom_size) {
-        free(moov_atom);
-        info->last_error = QT_FILE_READ_ERROR;
-        return info->last_error;
-      }
-
-      /* check if moov is compressed */
-      if (BE_32(&moov_atom[12]) == CMOV_ATOM) {
-
-        info->compressed_header = 1;
-
-        z_state.next_in = &moov_atom[0x28];
-        z_state.avail_in = top_level_atom_size - 0x28;
-        z_state.avail_out = BE_32(&moov_atom[0x24]);
-        unzip_buffer = (unsigned char *)malloc(BE_32(&moov_atom[0x24]));
-        if (!unzip_buffer) {
-          info->last_error = QT_NO_MEMORY;
-          return info->last_error;
-        }
-
-        z_state.next_out = unzip_buffer;
-        z_state.zalloc = (alloc_func)0;
-        z_state.zfree = (free_func)0;
-        z_state.opaque = (voidpf)0;
-
-        z_ret_code = inflateInit (&z_state);
-        if (Z_OK != z_ret_code) {
-          info->last_error = QT_ZLIB_ERROR;
-          return info->last_error;
-        }
-
-        z_ret_code = inflate(&z_state, Z_NO_FLUSH);
-        if ((z_ret_code != Z_OK) && (z_ret_code != Z_STREAM_END)) {
-          info->last_error = QT_ZLIB_ERROR;
-          return info->last_error;
-        }
-
-        z_ret_code = inflateEnd(&z_state);
-        if (Z_OK != z_ret_code) {
-          info->last_error = QT_ZLIB_ERROR;
-          return info->last_error;
-        }
-
-        /* replace the compressed moov atom with the decompressed atom */
-        free (moov_atom);
-        moov_atom = unzip_buffer;
-        top_level_atom_size = BE_32 (&moov_atom[0]);
-      }
-    } else {
-      input->seek(input, top_level_atom_size - ATOM_PREAMBLE_SIZE, SEEK_CUR);
+    z_ret_code = inflate(&z_state, Z_NO_FLUSH);
+    if ((z_ret_code != Z_OK) && (z_ret_code != Z_STREAM_END)) {
+      info->last_error = QT_ZLIB_ERROR;
+      return info->last_error;
     }
+
+    z_ret_code = inflateEnd(&z_state);
+    if (Z_OK != z_ret_code) {
+      info->last_error = QT_ZLIB_ERROR;
+      return info->last_error;
+    }
+
+    /* replace the compressed moov atom with the decompressed atom */
+    free (moov_atom);
+    moov_atom = unzip_buffer;
+    moov_atom_size = BE_32(&moov_atom[0]);
   }
 
   /* take apart the moov atom */
-  if (info->moov_first_offset != -1)
-    parse_moov_atom(info, moov_atom);
+  parse_moov_atom(info, moov_atom);
 
   if (!moov_atom) {
     info->last_error = QT_NO_MOOV_ATOM;
@@ -1460,6 +1415,8 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
   return QT_OK;
 }
+
+
 
 /**********************************************************************
  * xine demuxer functions
@@ -1583,7 +1540,7 @@ printf ("hey %d) video frame, size %d, pts %lld, duration %d\n",
           this->video_fifo->put(this->video_fifo, buf);
         }
 
-      } else if ((this->qt->frames[i].type == MEDIA_AUDIO) && 
+      } else if ((this->qt->frames[i].type == MEDIA_AUDIO) &&
           this->audio_fifo && this->qt->audio_type) {
         /* load an audio sample and packetize it */
         remaining_sample_bytes = this->qt->frames[i].size;
@@ -1700,7 +1657,7 @@ static int demux_qt_send_headers (demux_qt_t *this) {
   if( this->qt->video_type == BUF_VIDEO_MSMPEG4_V1 )
     this->qt->video_type = BUF_VIDEO_MPEG4;
     
-  if( !this->qt->video_type )
+  if( !this->qt->video_type && this->qt->video_codec )
     xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
 
   this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
