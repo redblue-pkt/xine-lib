@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.118 2004/04/05 20:01:27 hadess Exp $
+ * $Id: xine.h.in,v 1.119 2004/04/09 14:46:02 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -723,7 +723,9 @@ typedef struct {
   xine_post_api_descr_t * (*get_param_descr) (void);
 
   /*
-   * method to get plugin and parameters help
+   * method to get plugin and parameters help (UTF-8)
+   * the help string must be word wrapped by the frontend.
+   * it might contain \n to mark paragraph breaks.
    */
   char * (*get_help) (void);
 } xine_post_api_t;
@@ -828,6 +830,7 @@ int  xine_get_pos_length (xine_stream_t *stream,
 /*
  * get information about the stream such as
  * video width/height, codecs, audio format, title, author...
+ * strings are UTF-8 encoded.
  *
  * constants see below
  */
@@ -1229,7 +1232,10 @@ struct xine_cfg_entry_s {
   /* type enum specific: */
   char           **enum_values;
 
-  /* help info for the user */
+  /* help info for the user (UTF-8)
+   * the help string must be word wrapped by the frontend.
+   * it might contain \n to mark paragraph breaks.
+   */
   const char      *description;
   const char      *help;
 
