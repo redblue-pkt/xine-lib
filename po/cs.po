@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-05-13 09:30+0200\n"
-"PO-Revision-Date: 2002-05-13 09:36+0200\n"
+"PO-Revision-Date: 2002-05-18 08:36+0200\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -165,8 +165,8 @@ msgid ""
 "Installing current demuxer plugins should help.\n"
 msgstr ""
 "demux_avi: tento modul nepodporuje programové rozhraní ve verzi %d.\n"
-"demux_avi: To znamená nesluèitelnost verzí mezi xine a tímto demux_avi: "
-"demux-modulem.\n"
+"demux_avi: Toto znamená nesluèitelnost verzí mezi xine a tímto \n"
+"demux_avi: demux-modulem.\n"
 "Instalace aktuálního demux-modulu by mìla pomoci.\n"
 
 #: src/demuxers/demux_mpeg.c:950
@@ -249,22 +249,22 @@ msgstr "demux_asf: délka videa je %d sekund, rychlost toku dat je %d bytù/s\n"
 #: src/demuxers/demux_asf.c:1283
 #, c-format
 msgid "demux_asf: title        : %s\n"
-msgstr "demux_asf: název        : %s\n"
+msgstr "demux_asf: název         : %s\n"
 
 #: src/demuxers/demux_asf.c:1285
 #, c-format
 msgid "demux_asf: author       : %s\n"
-msgstr "demux_asf: autor        : %s\n"
+msgstr "demux_asf: autor         : %s\n"
 
 #: src/demuxers/demux_asf.c:1287
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
-msgstr "demux_asf: copyright    : %s\n"
+msgstr "demux_asf: autorská práva: %s\n"
 
 #: src/demuxers/demux_asf.c:1289
 #, c-format
 msgid "demux_asf: comment      : %s\n"
-msgstr "demux_asf: komentáø    : %s\n"
+msgstr "demux_asf: komentáø      : %s\n"
 
 #: src/input/input_net.c:102
 #, c-format
@@ -360,7 +360,8 @@ msgid ""
 "Installing current input plugins should help.\n"
 msgstr ""
 "Vstupní modul rtp nepodporuje programové rozhraní modulù ve verzi %d.\n"
-"To znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
+"MODUL NEAKTIVNÍ.\n"
+"Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
 "Instalace aktuálních vstupních modulù by mìla pomoci.\n"
 
 #: src/input/input_rtp.c:530 src/input/input_rtp.c:535
@@ -398,7 +399,7 @@ msgstr "USCSICMD dvd_read_copyright: %s"
 
 #: src/input/input_dvd.c:246
 msgid "bad status: READ DVD STRUCTURE (copyright)\n"
-msgstr "neúspìch: ÈTENÍ STRUKTURY DVD (copyright)\n"
+msgstr "neúspìch: ÈTENÍ STRUKTURY DVD (autorská práva)\n"
 
 #: src/input/input_dvd.c:300
 #, c-format
@@ -415,7 +416,7 @@ msgid ""
 "           Assuming disk is not encrypted.\n"
 msgstr ""
 "input_dvd: Ne¹lo pøeèíst strukturu s autorskými právy.\n"
-"           Pøedpokládá se, ¾e disk není za¹ifrovaný.\n"
+"           Bude se pøedpokládat, ¾e disk není za¹ifrovaný.\n"
 
 #: src/input/input_dvd.c:346
 msgid ""
@@ -564,7 +565,7 @@ msgstr "input_vcd: chyba pøi ioctl CDROMREADTOCENTRY pro stopu %d\n"
 
 #: src/input/input_vcd.c:178
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
-msgstr "input_vcd: chyba pøi ioctl CDROMREADTOCENTRY pro lead-out stopy\n"
+msgstr "input_vcd: chyba pøi ioctl CDROMREADTOCENTRY pro lead-out\n"
 
 #: src/input/input_vcd.c:209
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY\n"
@@ -715,7 +716,7 @@ msgstr "input_http: stav http není 2xx: >%d %s<\n"
 #: src/input/input_http.c:464
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
-msgstr "input_http: délak obsahu = %Ld bytù\n"
+msgstr "input_http: délka obsahu = %Ld bytù\n"
 
 #: src/input/input_http.c:471
 msgid "input_http: Location redirection not implemented\n"
@@ -851,7 +852,7 @@ msgstr "input_cda: posuv na cíl typu %d není implementován!\n"
 
 #: src/input/input_cda.c:1609
 msgid "cd audio plugin as shipped with xine"
-msgstr "modul CD-zvuku dodávaný se xine"
+msgstr "modul pro zvukové CD dodávaný se xine"
 
 #: src/input/input_cda.c:1797
 #, c-format
