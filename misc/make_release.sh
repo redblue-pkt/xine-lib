@@ -33,7 +33,7 @@ if test -r CVS/Root; then
     cvsroot=`cat CVS/Root`
     case "$cvsroot" in
       *cvs.xine.sf.net:/cvsroot/xine*) ;;
-      *cvs.xine.sourceforgef.net:/cvsroot/xine*) ;;
+      *cvs.xine.sourceforge.net:/cvsroot/xine*) ;;
       *)
         echo "This doesn't look like a xine CVS checkout. aborting..."
 	exit 1
