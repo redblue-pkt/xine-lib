@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.35 2001/08/11 18:27:10 guenter Exp $
+ * $Id: video_decoder.c,v 1.36 2001/08/13 17:52:22 jkeil Exp $
  *
  */
 
@@ -26,6 +26,7 @@
 #endif
 
 #include "xine_internal.h"
+#include <sched.h>
 
 static spu_decoder_t* update_spu_decoder(xine_t *this, int type) {
   int streamtype = (type>>16) & 0xFF;
