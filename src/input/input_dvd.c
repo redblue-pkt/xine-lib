@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.191 2004/09/16 13:10:09 mroi Exp $
+ * $Id: input_dvd.c,v 1.192 2004/12/05 22:41:12 f1rmb Exp $
  *
  */
 
@@ -1041,8 +1041,8 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
         }
         if (this->stream->spu_decoder_plugin->get_interact_info(this->stream->spu_decoder_plugin, &nav_pci) ) {
 	  xine_input_data_t *input = event->data;
-          if (dvdnav_mouse_activate(this->dvdnav, 
-				    &nav_pci, input->x, input->y) == DVDNAV_STATUS_OK) {
+          if((input->button == 1) && dvdnav_mouse_activate(this->dvdnav, 
+							   &nav_pci, input->x, input->y) == DVDNAV_STATUS_OK) {
             xine_dvd_send_button_update(this, 1);
 
 	    if(this->mouse_in)
