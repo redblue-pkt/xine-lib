@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2001/12/11 15:30:05 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.14 2001/12/13 23:10:53 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -193,11 +193,29 @@ static int divx4_check_version(divx4_decoder_t *this)
   return 1;
 }
 
+static void divx4_set_pp(divx4_decoder_t *this) {
+  DEC_SET setpp;   /* for setting postproc level */
+  int ret;
+    
+  /* multiply postproc level by 10 for internal consumption */
+  printf("divx4: Setting post processing level to %d (see ~/.xinerc)\n"
+         "divx4: Valid range 0-6, reduce if you get frame drop\n", 
+         this->postproc); 
+  setpp.postproc_level=this->postproc*10;
+
+  ret = this->decore((unsigned long)this, DEC_OPT_SETPP, &setpp, 0);
+  if (ret != DEC_OK)
+  {
+    printf("divx4: decore DEC_OPT_SETPP command returned %s.\n", decore_retval(ret));
+    /* perhaps not fatal, so we'll continue */
+  }
+}
+
+
 /* helper function to initialize decore */
 static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
 {
   DEC_PARAM param; /* for init                   */
-  DEC_SET setpp;   /* for setting postproc level */
   int ret, codec_type;
 
   memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
@@ -234,19 +252,8 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
     return 0;
   }
 
-  /* multiply postproc level by 10 for internal consumption */
-  printf("divx4: Setting post processing level to %d (see ~/.xinerc)\n"
-         "divx4: Valid range 0-6, reduce if you get frame drop\n", 
-         this->postproc); 
-  setpp.postproc_level=this->postproc*10;
-
-  ret = this->decore((unsigned long)this, DEC_OPT_SETPP, &setpp, 0);
-  if (ret != DEC_OK)
-  {
-    printf("divx4: decore DEC_OPT_SETPP command returned %s.\n", decore_retval(ret));
-    /* perhaps not fatal, so we'll continue */
-  }
-
+  divx4_set_pp( this );
+  
   return 1;
 }
 
@@ -419,6 +426,17 @@ static void divx4_close (video_decoder_t *this_gen)  {
   }
 }
 
+static void divx4_update_postproc(void *this_gen, cfg_entry_t *entry)
+{
+  divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
+  
+  if( this->postproc != entry->num_value ) {
+    this->postproc = entry->num_value;
+    divx4_set_pp( this );
+  }
+}
+
+
 static char *divx4_get_id(void) {
   return "divx4 video decoder";
 }
@@ -471,7 +489,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this->postproc 			  = cfg->register_range (cfg, "codec.divx4_postproc", 3,
 								 0, 6,
 								 "the postprocessing level, 0 = none and fast, 6 = all and slow",
-								 NULL, NULL, NULL);
+								 NULL, divx4_update_postproc, this);
   this->can_handle_311			  = cfg->register_bool (cfg, "codec.divx4_msmpeg4v3", 1,
 								"use divx4 plugin for msmpeg4v3 streams",
 								NULL, NULL, NULL);
