@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#rip:file.raw;noaudio;novideo
  *
- * $Id: input_rip.c,v 1.1 2003/08/21 00:37:29 miguelfreitas Exp $
+ * $Id: input_rip.c,v 1.2 2003/08/22 14:27:30 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -180,7 +180,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
     memcpy(buf->content, &this->preview[this->curpos], npreview);
 
     lprintf(" => read %lld bytes by rip plugin (block)\n", nreal + npreview);
-    retval = rip_plugin_read(this_gen, &buf->content[npreview], nreal);
+    retval = this->main_input_plugin->read(this->main_input_plugin, &buf->content[npreview], nreal);
     if (retval != nreal) {
         buf->free_buffer(buf);
         return NULL;
@@ -220,52 +220,48 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
   char buffer[SCRATCH_SIZE];
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   uint32_t blocksize;
-  off_t toread, writed;
+  off_t newpos, toread;
 
   lprintf("seek, offset %lld, origin %d (curpos %lld)\n", offset, origin, this->curpos);
   
   switch (origin) {
-    case SEEK_SET: toread = offset - this->curpos; break;
-    case SEEK_CUR: toread = offset; break;
-    default: toread = 0;
+    case SEEK_SET: newpos = offset; break;
+    case SEEK_CUR: newpos = this->curpos + offset; break;
+    default: newpos = this->curpos;
   }
 
-  if (toread < 0) {
+  if (newpos < this->curpos) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-      "cannot seek back (%lld bytes)\n", -toread);
+      "cannot seek back (yet)\n");
     return -1;
   }
 
   if( this_gen->get_capabilities(this_gen) & INPUT_CAP_BLOCK )
     blocksize = this_gen->get_blocksize(this_gen);
   else
-    blocksize = 1;
-
-  toread -= (toread % blocksize);
+    blocksize = 0;
 
   /* read/catch by sizeof(buffer) bytes  */
-  while (toread > 0) {
-    if( blocksize > 1 ) {
+  while (this->curpos < newpos) {
+    if( blocksize ) {
       buf_element_t *buf;
 
       buf = rip_plugin_read_block(this_gen, this->stream->video_fifo, blocksize);
-      if (buf) {
-        writed = buf->size;
+      if (buf)
         buf->free_buffer(buf);
-      } else {
-        toread = 0;
-	writed = 0;
-      }
+      else
+        break;
     } else {
-      writed = rip_plugin_read(this_gen, buffer, (toread > sizeof buffer) ? (sizeof buffer) : toread);
-    }
+      toread = newpos - this->curpos;
+      if( toread > sizeof(buffer) )
+        toread = sizeof(buffer);
 
-    if (writed <= 0) {
-      xine_log(this->stream->xine, XINE_LOG_MSG, 
-               _("input_rip: seeking failed\n"));
-      break;
+      if( rip_plugin_read(this_gen, buffer, toread) <= 0 ) {
+        xine_log(this->stream->xine, XINE_LOG_MSG, 
+                 _("input_rip: seeking failed\n"));
+        break;
+      }
     }
-    toread -= writed;
   }
 
   lprintf(" => newpos %lld\n", this->curpos);
