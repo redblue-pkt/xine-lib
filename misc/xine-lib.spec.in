@@ -11,10 +11,25 @@ Version:     %{ver}
 Release:     %{rel}
 Copyright:   GPL
 Group:       Applications/X11
-Source:      http://xine.sourceforge.net/files/@PACKAGE@_@VERSION@.tar.gz
+Source:      http://xine.sourceforge.net/files/@PACKAGE@-@VERSION@.tar.gz
 URL:         http://xine.sourceforge.net
 Packager:    Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 BuildRoot:   /tmp/%{name}-root
+
+@HAVE_ALSA05_TRUE@%package alsa05
+@HAVE_ALSA05_TRUE@Summary:     XINE - alsa 0.5.x support.
+@HAVE_ALSA05_TRUE@Group:       Applications/X11
+@HAVE_ALSA05_TRUE@Requires:    xine-lib >= 0.5.0
+
+@HAVE_ALSA09_TRUE@%package alsa09
+@HAVE_ALSA09_TRUE@Summary:     XINE - alsa >= 0.9.x support.
+@HAVE_ALSA09_TRUE@Group:       Applications/X11
+@HAVE_ALSA09_TRUE@Requires:    xine-lib >= 0.5.0
+
+@HAVE_DXR3_TRUE@%package dxr3
+@HAVE_DXR3_TRUE@Summary:     XINE - DXR3 support.
+@HAVE_DXR3_TRUE@Group:       Applications/X11
+@HAVE_DXR3_TRUE@Requires:    xine-lib >= 0.5.0
 
 %description
 xine is a free gpl-licensed video player for unix-like systems.
@@ -41,6 +56,15 @@ la lecture aura besoin de plus ou moins de puissance du processeur,
 xine 는 GPL라이선스를 따르는 UNIX용 공개 동영상 플레이어입니다. 이
 플레이어는 mpeg-2 와 mpeg 1 스트림을 지원하며, 현재는 지원하지
 않지만 나중에는 mpeg-4 와 다른 형식의 동영상도 지원할 예정입니다.
+
+@HAVE_ALSA05_TRUE@%description alsa05
+@HAVE_ALSA05_TRUE@audio plugin with alsa 0.5.x support.
+
+@HAVE_ALSA09_TRUE@%description alsa09
+@HAVE_ALSA09_TRUE@audio plugin with alsa >= 0.9.x support.
+
+@HAVE_DXR3_TRUE@%description dxr3
+@HAVE_DXR3_TRUE@video/decoder plugins for DXR3 card support.
 
 %prep
 %setup -n @TAR_NAME@
@@ -103,13 +127,7 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.so
 %{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
 %{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
-@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
-@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
 # audio driver plugins
-@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
-@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.so
-@HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
-@HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
 %{prefix}/lib/xine/plugins/xineplug_ao_out_esd.la
 %{prefix}/lib/xine/plugins/xineplug_ao_out_esd.so
 %{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la
@@ -123,12 +141,26 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
-@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
-@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/*
-%{prefix}/share/doc/xine/*
+##%{prefix}/share/doc/xine/*
+
+@HAVE_ALSA05_TRUE@%files alsa05
+@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
+@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.so
+
+@HAVE_ALSA09_TRUE@%files alsa09
+@HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
+@HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
+
+
+@HAVE_DXR3_TRUE@%files dxr3
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
+
 
 %changelog
 * Wed Jul 18 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>

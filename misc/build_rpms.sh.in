@@ -14,18 +14,18 @@ if [ `expr $RPMVERSION` -lt 100 ]; then
 fi
 
 if [ `expr $RPMVERSION` -lt 400 ]; then
-  RPM_BA="rpm -ba -ta ./@PACKAGE@_@VERSION@.tar.gz"
-  RPM_BB="rpm -bb -ta ./@PACKAGE@_@VERSION@.tar.gz"
+  RPM_BA="rpm -ba -ta ./@PACKAGE@-@VERSION@.tar.gz"
+  RPM_BB="rpm -bb -ta ./@PACKAGE@-@VERSION@.tar.gz"
 else
-  RPM_BA="rpm -ta ./@PACKAGE@_@VERSION@.tar.gz -ba"
-  RPM_BB="rpm -ta ./@PACKAGE@_@VERSION@.tar.gz -bb"
+  RPM_BA="rpm -ta ./@PACKAGE@-@VERSION@.tar.gz -ba"
+  RPM_BB="rpm -ta ./@PACKAGE@-@VERSION@.tar.gz -bb"
 fi
 
 ##VERSION="@XINE_MAJOR@.@XINE_MINOR@.@XINE_SUB@"
 
 echo "Creating tarball..."
 rm -f config.cache && ./cvscompile.sh && make dist
-mv -f @TAR_NAME@.tar.gz  @PACKAGE@_@VERSION@.tar.gz
+##mv -f @TAR_NAME@.tar.gz  @PACKAGE@-@VERSION@.tar.gz
 rm -rf rpms
 mkdir rpms
 
@@ -44,6 +44,9 @@ eval $RPM_BA
 
 cp '/usr/src/redhat/SRPMS/@PACKAGE@-@SPEC_VERSION@-0.src.rpm' ./rpms/
 mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.i686.rpm'
+@HAVE_ALSA05_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa05-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa05-@SPEC_VERSION@-0.i686.rpm'
+@HAVE_ALSA09_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa09-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa09-@SPEC_VERSION@-0.i686.rpm'
+@HAVE_DXR3_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-drx3-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-dxr3-@SPEC_VERSION@-0.i686.rpm'
 
 echo "*****************************************************"
 echo
@@ -59,6 +62,9 @@ export XINE_BUILD=k6-pc-linux-gnu
 eval $RPM_BB
 
 mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.k6.rpm'
+@HAVE_ALSA05_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa05-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa05-@SPEC_VERSION@-0.k6.rpm'
+@HAVE_ALSA09_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa09-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa09-@SPEC_VERSION@-0.k6.rpm'
+@HAVE_DXR3_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-drx3-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-dxr3-@SPEC_VERSION@-0.k6.rpm'
 
 echo "*****************************************************"
 echo
@@ -74,6 +80,9 @@ export XINE_BUILD=i586-pc-linux-gnu
 eval $RPM_BB
 
 mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.i586.rpm'
+@HAVE_ALSA05_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa05-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa05-@SPEC_VERSION@-0.i586.rpm'
+@HAVE_ALSA09_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa09-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa09-@SPEC_VERSION@-0.i586.rpm'
+@HAVE_DXR3_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-drx3-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-dxr3-@SPEC_VERSION@-0.i586.rpm'
 
 echo "*****************************************************"
 echo
@@ -89,5 +98,8 @@ export XINE_BUILD=athlon-pc-linux-gnu
 eval $RPM_BB
 
 mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.k7.rpm'
+@HAVE_ALSA05_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa05-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa05-@SPEC_VERSION@-0.k7.rpm'
+@HAVE_ALSA09_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-alsa09-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-alsa09-@SPEC_VERSION@-0.k7.rpm'
+@HAVE_DXR3_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-drx3-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-dxr3-@SPEC_VERSION@-0.k7.rpm'
 
 echo "Done."
