@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2003/07/19 11:51:40 mroi Exp $
+ * $Id: xine_decoder.c,v 1.47 2003/07/19 16:40:43 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -223,38 +223,31 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   /* setup rv30 codec (codec sub-type and image dimensions): */
   if ((init_data.format>=0x20200002) && (buf->type != BUF_VIDEO_RV40)) {
-    unsigned long cmsg24[8];
-    unsigned long cmsg_data[9];
+    int            i, j;
+    unsigned long *cmsg24;
+    unsigned long  cmsg_data[9];
 
+    cmsg24 = xine_xmalloc((buf->size - 34 + 2) * sizeof(unsigned long));
+    
     cmsg24[0]=this->width;
     cmsg24[1]=this->height;
-    switch(buf->content[3]) {
-      case 0x28:
-        cmsg24[7]=4*buf->content[39];
-        cmsg24[6]=4*buf->content[38];
-      case 0x26:
-        cmsg24[5]=4*buf->content[37];
-        cmsg24[4]=4*buf->content[36];
-      case 0x24:
-        cmsg24[3]=4*buf->content[35];
-        cmsg24[2]=4*buf->content[34];
-        break;
-      default:
-        printf("libreal: error, unrecognised custom message data\n");
-    }
-
+    for(i = 2, j = 34; j < buf->size; i++, j++)
+      cmsg24[i] = 4 * buf->content[j];
+    
     cmsg_data[0]=0x24;
     cmsg_data[1]=1+((init_data.subformat>>16)&7);
-    cmsg_data[2]=(unsigned long)&cmsg24;
+    cmsg_data[2]=(unsigned long) cmsg24;
 
 #ifdef LOG
     printf ("libreal: CustomMessage cmsg_data:\n");
     xine_hexdump ((char *) cmsg_data, sizeof (cmsg_data));
     printf ("libreal: cmsg24:\n");
-    xine_hexdump ((char *) cmsg24, sizeof (cmsg24));
+    xine_hexdump ((char *) cmsg24, (buf->size - 34 + 2) * sizeof(unsigned long));
 #endif
     
     this->rvyuv_custom_message (cmsg_data, this->context);
+    
+    free(cmsg24);
   }
   
   this->stream->video_out->open(this->stream->video_out, this->stream);
