@@ -17,12 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3enc.c,v 1.3 2001/10/27 17:48:25 mlampard Exp $
+ * $Id: video_out_dxr3enc.c,v 1.4 2001/10/28 20:44:48 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
  * modifications to the original dxr3 video out plugin by 
  * Mike Lampard <mike at web2u.com.au>
+ * this first standalone version by 
  * Harm van der Heijden <hrm at users.sourceforge.net>
  *
  * Changes are mostly in dxr3_update_frame_format() (init stuff) and
@@ -47,6 +48,18 @@
  * - split off code that is shared with original dxr3 decoder, for
  *   maintainability of the whole thing.
  *
+ * Update 28/10/2001 by Harm
+ * I've implemented a method for buffering the mpeg data
+ * (basically copying it to the frame) for display (read: write to mpeg
+ * device) when xine requests it via dxr3_frame_display. It helps sync,
+ * but playback is still not smooth.
+ *
+ * buffering enabled by default, see USE_MPEG_BUFFER define.
+ *
+ * Moved the mpeg device (/dev/em8300_fd) file descriptor to vo_driver_t;
+ * very weird: to be able to use it in frame_display, I must reopen it 
+ * there! Is that a thread thing or something? Normally you'd open it in
+ * the driver's init function. 
  */
  
 #include <sys/types.h>
@@ -81,26 +94,23 @@ static char *devname;
 
 #define DEFAULT_BUFFER_SIZE 1024*1024
 
-/* enable to buffer the mpeg1 stream; makes jerkiness
- * worse for some reason... */
-#define BUFFER_FRAMES 0 
+/* 1: enable to buffer the mpeg1 stream; 
+ * 0: write to mpeg device immediately;
+ * with 1 sync is better, but playback still not smooth */
+#define USE_MPEG_BUFFER 1 
 
+/* some global stuff for libfame, could use some cleanup :-) */
 fame_parameters_t fp = FAME_PARAMETERS_INITIALIZER;
 fame_object_t *object;
 fame_yuv_t yuv;
 fame_context_t *fc; /* needed for fame calls */
-int fd_video;
 unsigned char *buffer;
-#if BUFFER_FRAMES
-unsigned char *out_buffer;
-int out_buffer_pos;
-int out_buffer_frames;
-#endif
 
 typedef struct dxr3_driver_s {
 	vo_driver_t      vo_driver;
 	config_values_t *config;
 	int fd_control;
+        int fd_video;
 	int aspectratio;
 	int tv_mode;
 	em8300_bcs_t bcs;
@@ -134,6 +144,10 @@ typedef struct dxr3_frame_s {
   int           format;
   dxr3_driver_t *vo_instance; /* points to self, for use in dxr3_frame_copy */
   int           copy_calls; /* counts calls to dxr3_frame_copy function */
+#if USE_MPEG_BUFFER
+  unsigned char *mpeg; // encoded mpeg data
+  unsigned int  mpeg_size; // length of data
+#endif
 }dxr3_frame_t;
 
 static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
@@ -247,6 +261,9 @@ static void dxr3_frame_dispose (vo_frame_t *frame_gen)
     free (frame->mem[1]);
   if (frame->mem[2])
     free (frame->mem[2]);
+#if USE_MPEG_BUFFER
+  free(frame->mpeg);
+#endif
   free(frame);
 }
 
@@ -263,6 +280,10 @@ static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
   frame->vo_frame.copy    = dxr3_frame_copy; 
   frame->vo_frame.field   = dummy_frame_field; 
   frame->vo_frame.dispose = dxr3_frame_dispose;
+
+#if USE_MPEG_BUFFER
+  frame->mpeg = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
+#endif
 
   return (vo_frame_t*) frame;
 }
@@ -393,17 +414,10 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   /* init fame if needed */
   if (!fc)
   {
-    fd_video = open ("/dev/em8300_mv", O_WRONLY);// | O_NDELAY); 
-    //fd_video = creat("out.mpg", 0666);// | O_NDELAY); 
     if (!(fc = fame_open ()))
       puts ("Couldn't start the FAME library");
    
     buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
-#if BUFFER_FRAMES
-    out_buffer = (unsigned char *) malloc (BUFFER_FRAMES*DEFAULT_BUFFER_SIZE);
-    out_buffer_pos = 0;
-    out_buffer_frames = 0;
-#endif
     fp.quality=this->config->lookup_int(this->config,"dxr3_enc_quality",90);
     fp.width = width;
     fp.height = oheight;
@@ -454,6 +468,11 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
   if(this->aspectratio!=aspect)
     dxr3_set_property (this_gen,VO_PROP_ASPECT_RATIO, aspect);
+
+#if USE_MPEG_BUFFER
+  /* safeguard */
+  frame->mpeg_size = 0;
+#endif
 }
 
 static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
@@ -522,24 +541,34 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
     yuv.u=u;
     yuv.v=v;
     size = fame_encode_frame(fc, &yuv, NULL);
-#if BUFFER_FRAMES
-    memcpy(out_buffer + out_buffer_pos, buffer, size);
-    out_buffer_pos += size;
-    out_buffer_frames++;
+    /* not sure whether libfame does bounds checking, but if we're
+     * this close to the limit there's bound to be trouble */
+    if (size >= DEFAULT_BUFFER_SIZE) {
+      printf("dxr3enc: warning, mpeg buffer too small!\n");
+      size = DEFAULT_BUFFER_SIZE;
+    }
+#if USE_MPEG_BUFFER
+    memcpy(frame->mpeg, buffer, size);
+    frame->mpeg_size = size;
 #else
-    write(fd_video, buffer, size);
+    if (write(this->fd_video, buffer, size) < 0)
+      perror("dxr3enc: writing to video device");
 #endif
   }
 }
 
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
-#if BUFFER_FRAMES
-  if (out_buffer_frames > BUFFER_FRAMES/2) {
-    write(fd_video, out_buffer, out_buffer_pos);
-    out_buffer_pos = 0;
-    out_buffer_frames = 0;
+#if USE_MPEG_BUFFER
+  char tmpstr[256]; 
+  dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
+  dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
+  if (this->fd_video < 0) {
+    snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
+    this->fd_video = open(tmpstr, O_WRONLY);
   }
+  if (write(this->fd_video, frame->mpeg, frame->mpeg_size) < 0)
+    perror("dxr3enc: writing to video device");
 #endif
   frame_gen->displayed (frame_gen); 
 }
@@ -748,7 +777,6 @@ static void dxr3_exit (vo_driver_t *this_gen)
     fame_close(fc);
     fc = 0;
     free(buffer);
-    close(fd_video);
   }
   if (this->buf[0]) free(this->buf[0]);  
   if (this->buf[1]) free(this->buf[1]);  
@@ -756,6 +784,7 @@ static void dxr3_exit (vo_driver_t *this_gen)
   if(this->overlay_enabled)
     dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
   close(this->fd_control);
+  close(this->fd_video);
 }
 
 static void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
@@ -795,6 +824,7 @@ static void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 {
 	dxr3_driver_t *this;
+	char tmpstr[100];
 
 	/*
 	* allocate plugin struct
@@ -823,12 +853,25 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	
 	/* open control device */
 	devname = config->lookup_str (config, LOOKUP_DEV, DEFAULT_DEV);
+	printf("dxr3enc: Entering video init, devname=%s.\n",devname);
 	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
 		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
 		 devname, strerror(errno));
 		return 0;
 	}
-
+	/* open video device */
+	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
+	if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
+		fprintf(stderr, "dxr3: Failed to open video device %s (%s)\n",
+		 tmpstr, strerror(errno));
+		return 0;
+	}
+#if USE_MPEG_BUFFER
+        /* we have to close now and open the first time we get to display_frame
+         * weird... */
+        close(this->fd_video);
+        this->fd_video = -1;
+#endif
 	gather_screen_vars(this, visual_gen);
 	
 	/* default values */
