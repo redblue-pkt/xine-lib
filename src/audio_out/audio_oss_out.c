@@ -17,18 +17,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.90 2003/06/02 16:41:10 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.91 2003/10/06 15:27:10 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
  * 
  * General Programming Guidelines: -
  * New concept of an "audio_frame".
- * An audio_frame consists of all the samples required to fill every audio channel to a full amount of bits.
- * So, it does not mater how many bits per sample, or how many audio channels are being used, the number of audio_frames is the same.
+ * An audio_frame consists of all the samples required to fill every audio channel
+ * to a full amount of bits. So, it does not matter how many bits per sample,
+ * or how many audio channels are being used, the number of audio_frames is the same.
  * E.g.  16 bit stereo is 4 bytes, but one frame.
  *       16 bit 5.1 surround is 12 bytes, but one frame.
- * The purpose of this is to make the audio_sync code a lot more readable, rather than having to multiply by the amount of channels all the time
+ * The purpose of this is to make the audio_sync code a lot more readable,
+ * rather than having to multiply by the amount of channels all the time
  * when dealing with audio_bytes instead of audio_frames.
  *
  * The number of samples passed to/from the audio driver is also sent in units of audio_frames.

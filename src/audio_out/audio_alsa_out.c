@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.112 2003/10/04 22:49:58 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.113 2003/10/06 15:27:10 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -284,7 +284,9 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_uframes_t     period_size_max; 
   snd_pcm_uframes_t     buffer_size_min;
   snd_pcm_uframes_t     buffer_size_max;
+#if 0
   uint32_t              periods;
+#endif
   uint32_t              buffer_time=BUFFER_TIME;
   snd_pcm_uframes_t     buffer_time_to_size;
   int                   err, dir;
@@ -623,6 +625,8 @@ static int ao_alsa_delay (ao_driver_t *this_gen)  {
   return delay;
 
 }
+
+#if 0
 /*
  * Handle over/under-run
  */
@@ -655,6 +659,7 @@ static void xrun(alsa_driver_t *this)
     return;         /* ok, data should be accepted again */
   }
 }
+#endif
 
 /*
  * Write audio data to output buffer (blocking using snd_pcm_wait)

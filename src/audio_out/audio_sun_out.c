@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2002 the xine project
+ * Copyright (C) 2001-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.29 2003/03/07 20:28:42 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.30 2003/10/06 15:27:10 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H

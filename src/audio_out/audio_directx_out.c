@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2001-2003 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -19,6 +19,8 @@
  *
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
+ *
+ * $Id: audio_directx_out.c,v 1.4 2003/10/06 15:27:10 mroi Exp $
  */
 
 typedef unsigned char boolean;

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.26 2003/02/14 22:32:41 f1rmb Exp $
+ * $Id: audio_esd_out.c,v 1.27 2003/10/06 15:27:10 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
