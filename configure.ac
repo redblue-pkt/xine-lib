@@ -1630,7 +1630,6 @@ case "$host_or_hostalias" in
     OBJCFLAGS="-no-cpp-precomp -D_INTL_REDIRECT_MACROS -fconstant-string-class=NSConstantString $OBJCFLAGS"
     AC_SUBST(OBJCFLAGS)
     OBJCDEPMODE="depmode=gcc3"
-    AC_SUBST(OBJCDEPMODE)
     ;;
 
   ppc-*-linux* | powerpc-*) 
