@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.137 2004/04/14 21:30:32 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.138 2004/04/30 03:07:33 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1272,18 +1272,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   }
 }
 
-static void alsa_passthru_cb (void *user_data,
-                                  xine_cfg_entry_t *entry) {
-  alsa_driver_t *this = (alsa_driver_t *) user_data;
-  int32_t value = entry->num_value;
-  if (value) {
-    this->capabilities |= AO_CAP_MODE_A52;
-    this->capabilities |= AO_CAP_MODE_AC5;
-  } else {
-    this->capabilities &= ~AO_CAP_MODE_A52;
-    this->capabilities &= ~AO_CAP_MODE_AC5;
-  }
-}
+static void alsa_speaker_arrangement_cb (void *user_data,
+                                  xine_cfg_entry_t *entry); 
 
 /*
  * Initialize plugin
@@ -1297,6 +1287,21 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   int                  err;
   char                *pcm_device;
   snd_pcm_hw_params_t *params;
+  static char         *speaker_arrangement[] = {"Mono", "Stereo", "Headphones", "A52_Passthru", "Surround21", "Surround3", "Surround4", "Surround41", "Surround5", "Surround51", "Surround6", "Surround61", "Surround71", NULL};
+  #define MONO 0
+  #define STEREO 1
+  #define HEADPHONES 2
+  #define A52_PASSTHRU 3
+  #define SURROUND21 4
+  #define SURROUND3  5
+  #define SURROUND4  6
+  #define SURROUND41 7
+  #define SURROUND5  8
+  #define SURROUND51 9
+  #define SURROUND6  10
+  #define SURROUND61 11
+  #define SURROUND71 12
+  int speakers;
 
   this = (alsa_driver_t *) xine_xmalloc (sizeof (alsa_driver_t));
 
@@ -1405,6 +1410,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   this->capabilities = 0;
 
+  speakers = config->register_enum(config, "audio.speaker_arrangement", 1,
+                        speaker_arrangement,
+                        _("Speaker arrangement"),
+                        _("Select how your speakers are arranged."
+                        "This determines which speakers xine uses for output"),
+                        0,  alsa_speaker_arrangement_cb, this);
+
   xprintf(class->xine, XINE_VERBOSITY_LOG, _("audio_alsa_out : supported modes are "));
   if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) {
     this->capabilities |= AO_CAP_8BITS;
@@ -1419,18 +1431,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("stereo "));
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4)) &&
-        config->register_bool (config,
-                               "audio.four_channel",
-                               0,
-                               _("sound system can handle 4.0 audio"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive four channel surround sound from xine. "
-                                 "This means two front channels (left and right) "
-                                 "and two rear channels (left and right).\n"
-                                 "You need to connect the necessary speakers to "
-                                 "take advantage of this."),
-                               0, NULL,
-                               NULL) ) {
+     ( speakers == SURROUND4 )) {
     this->capabilities |= AO_CAP_MODE_4CHANNEL;
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("4-channel "));
   } 
@@ -1438,18 +1439,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("(4-channel not enabled in xine config) "));
   
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
-        config->register_bool (config,
-                               "audio.four_lfe_channel",
-                               0,
-                               _("sound system can handle 4.1 audio"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive four channel plus LFE surround sound from "
-                                 "xine. This means two front channels (left and "
-                                 "right), two rear channels (left and right) and a "
-                                 "subwoofer (LFE) channel.\nYou need to connect "
-                                 "the necessary speakers to take advantage of this."),
-                               0, NULL,
-                               NULL) ) {
+     ( speakers == SURROUND41 )) {
     this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("4.1-channel "));
   } 
@@ -1457,18 +1447,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("(4.1-channel not enabled in xine config) "));
 
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
-        config->register_bool (config,
-                               "audio.five_channel",
-                               0,
-                               _("sound system can handle 5.0 audio"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive five channel surround sound from xine. "
-                                 "This means three front channels (left, center and "
-                                 "right) and two rear channels (left and right).\n"
-                                 "You need to connect the necessary speakers to "
-                                 "take advantage of this."),
-                               0, NULL,
-                               NULL) ) {
+     ( speakers == SURROUND5 )) {
     this->capabilities |= AO_CAP_MODE_5CHANNEL;
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("5-channel "));
   } 
@@ -1476,25 +1455,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("(5-channel not enabled in xine config) "));
 
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
-        config->register_bool (config,
-                               "audio.five_lfe_channel",
-                               0,
-                               _("sound system can handle 5.1 audio"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive five channel plus LFE surround sound from "
-                                 "xine. This means three front channels (left, center "
-                                 "and right), two rear channels (left and right) and "
-                                 "a subwoofer (LFE) channel.\nYou need to connect "
-                                 "the necessary speakers to take advantage of this."),
-                               0, NULL,
-                               NULL) ) {
+     ( speakers >= SURROUND51 )) {
     this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("5.1-channel "));
   } 
   else
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("(5.1-channel not enabled in xine config) "));
 
- 
   this->has_pause_resume = 0; /* This is checked at open time instead */
 
   snd_pcm_close (this->audio_fd);
@@ -1512,17 +1479,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   }
 
   this->output_sample_rate = 0;
-  if (config->register_bool (config,
-                               "audio.a52_pass_through",
-                               0,
-                               _("sound system can handle undecoded digital sound"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive undecoded digital sound from xine.\n"
-                                 "You need to connect a digital surround decoder "
-                                 "capable of decoding the formats you want to play "
-                                 "to your sound card's digital output. "),
-                               0, alsa_passthru_cb,
-                               this) ) {
+  if ( speakers == A52_PASSTHRU ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("a/52 and DTS pass-through\n"));
@@ -1560,6 +1517,40 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   return &this->ao_driver;
 }
+
+static void alsa_speaker_arrangement_cb (void *user_data,
+                                  xine_cfg_entry_t *entry) {
+  alsa_driver_t *this = (alsa_driver_t *) user_data;
+  int32_t value = entry->num_value;
+  if (value == A52_PASSTHRU) {
+    this->capabilities |= AO_CAP_MODE_A52;
+    this->capabilities |= AO_CAP_MODE_AC5;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_A52;
+    this->capabilities &= ~AO_CAP_MODE_AC5;
+  }
+  if (value == SURROUND4) {
+    this->capabilities |= AO_CAP_MODE_4CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_4CHANNEL;
+  }
+  if (value == SURROUND41) {
+    this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_4_1CHANNEL;
+  }
+  if (value == SURROUND5) {
+    this->capabilities |= AO_CAP_MODE_5CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_5CHANNEL;
+  }
+  if (value >= SURROUND51) {
+    this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_5_1CHANNEL;
+  }
+}
+
 
 /*
  * class functions

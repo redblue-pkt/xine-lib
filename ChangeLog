@@ -36,6 +36,7 @@ xine-lib (1-rc4)
   * all config entries have help strings now
   * seeking support for matroska files
   * libmpeg2 now has native VIS motion compensation routines on SPARC
+  * alsa audio out now uses a more user friendly "Speaker arrangement" config item.
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
