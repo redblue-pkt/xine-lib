@@ -782,13 +782,15 @@ case "$host_or_hostalias" in
   ppc-*-linux* | powerpc-*) 
     CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
-    ASFLAGS="" dnl avoid ppc compilation crash
+    dnl avoid ppc compilation crash
+    AS="$CC"
     AC_DEFINE(FPM_PPC)
     AC_DEFINE(ARCH_PPC)
     
     if test x$enable_altivec = xyes; then
         AC_DEFINE(ENABLE_ALTIVEC)
         CFLAGS="$CFLAGS -Wa,-m7400"
+	DEBUG_CFLAGS="$DEBUG_CFLAGS -Wa,-m7400"
     fi
     ;;
 
