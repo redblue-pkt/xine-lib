@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.257 2003/10/08 05:33:28 valtri Exp $
+ * $Id: xine.c,v 1.258 2003/10/13 11:13:59 mroi Exp $
  */
 
 /*
@@ -506,8 +506,24 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
      */
 
     if ((stream->input_plugin = find_input_plugin (stream, input_source))) {
-      free(input_source);
-      break;
+      xine_log (stream->xine, XINE_LOG_MSG, 
+		"xine: found input plugin  : %s\n",
+		stream->input_plugin->input_class->get_description(stream->input_plugin->input_class));
+      if (stream->input_plugin->input_class->eject_media)
+        stream->eject_class = stream->input_plugin->input_class;
+      stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
+        = strdup (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class));
+
+      if (!stream->input_plugin->open(stream->input_plugin)) {
+	xine_log (stream->xine, XINE_LOG_MSG,
+	          _("xine: input plugin cannot open MRL [%s]\n"),mrl);
+	stream->input_plugin->dispose(stream->input_plugin);
+	stream->input_plugin = NULL;
+	stream->err = XINE_ERROR_INPUT_FAILED;
+      } else {
+        free(input_source);
+        break;
+      }
     }
 
     free(input_source);
@@ -522,25 +538,8 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	      _("xine: cannot find input plugin for MRL [%s]\n"),mrl);
     stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
     return 0;
-  } else {
-    xine_log (stream->xine, XINE_LOG_MSG, 
-	      "xine: found input plugin  : %s\n",
-	      stream->input_plugin->input_class->get_description(stream->input_plugin->input_class));
-    if (stream->input_plugin->input_class->eject_media)
-      stream->eject_class = stream->input_plugin->input_class;
-    stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
-      = strdup (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class));
   }
 
-  if (!stream->input_plugin->open(stream->input_plugin)) {
-    xine_log (stream->xine, XINE_LOG_MSG,
-	      _("xine: input plugin cannot open MRL [%s]\n"),mrl);
-    stream->input_plugin->dispose(stream->input_plugin);
-    stream->input_plugin = NULL;
-    stream->err = XINE_ERROR_INPUT_FAILED;
-    return 0;
-  }
-        
   if (*stream_setup) {
 
     while (stream_setup && *stream_setup && *(++stream_setup)) {
