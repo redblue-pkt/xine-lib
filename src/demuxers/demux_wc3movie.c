@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.33 2003/01/17 16:52:40 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.34 2003/02/22 01:38:10 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,7 +67,7 @@
 #define WC3_PTS_INC (90000 / 15)
 #define WC3_USUAL_WIDTH 320
 #define WC3_USUAL_HEIGHT 165
-
+#define WC3_HEADER_SIZE 16
 #define PREAMBLE_SIZE 8
 
 typedef struct {
@@ -382,20 +382,36 @@ static int open_mve_file(demux_mve_t *this) {
   int i, j;
   unsigned char r, g, b;
   int temp;
-  unsigned char header[16];
+  unsigned char header[WC3_HEADER_SIZE];
+  unsigned char preview[MAX_PREVIEW_SIZE];
 
   /* these are the frame dimensions unless others are found */
   this->video_width = WC3_USUAL_WIDTH;
   this->video_height = WC3_USUAL_HEIGHT;
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, 16) != 16)
-    return 0;
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if (this->input->read(this->input, header, WC3_HEADER_SIZE) != 
+      WC3_HEADER_SIZE)
+      return 0;
+  } else {
+    this->input->get_optional_data(this->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(header, preview, WC3_HEADER_SIZE);
+  }
 
   if ((BE_32(&header[0]) != FORM_TAG) ||
       (BE_32(&header[8]) != MOVE_TAG) ||
       (BE_32(&header[12]) != PC_TAG))
     return 0;
+
+  /* file is qualified; if the input was not seekable, skip over the header
+   * bytes in the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->input->seek(this->input, WC3_HEADER_SIZE, SEEK_SET);
+  }
 
   /* load the number of palettes, the only interesting piece of information
    * in the _PC_ chunk; take it for granted that it will always appear at
@@ -543,6 +559,15 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
   unsigned int chunk_size;
   int new_shot = -1;
 
+  this->status = DEMUX_OK;
+  xine_demux_flush_engine(this->stream);
+  this->seek_flag = 1;
+
+  /* if input is non-seekable, do not proceed with the rest of this
+   * seek function */  
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+    return this->status;
+
   /* make sure the first shot has been recorded */
   if (this->shot_offsets[0] == 0) {
 
@@ -618,25 +643,10 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
     new_shot = this->number_of_shots - 1;
   this->current_shot = new_shot;
 
-  /* reposition the stream and signal the demux loop to reset pts */
+  /* reposition the stream at new shot */
   this->input->seek(this->input, this->shot_offsets[new_shot], SEEK_SET);
-  this->seek_flag = 1;
 
-  this->status = DEMUX_OK;
-
-  xine_demux_flush_engine(this->stream);
-  
-  /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
-
-    /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
-
-    this->status = DEMUX_OK;
-    this->seek_flag = 0;
-  }
-
-  return 0;
+  return this->status;
 }
 
 static void demux_mve_dispose (demux_plugin_t *this_gen) {
@@ -671,11 +681,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_mve_t    *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_mve.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_mve_t));
   this->stream = stream;
