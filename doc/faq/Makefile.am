@@ -21,10 +21,11 @@ dist-hook:
 faq.sgml: $(srcdir)/faq.sgml
 	cp $^ .
 
+if HAVE_SGMLTOOLS
 faq.html: faq.sgml
-	@if test "$(SGMLTOOLS)" != "no"; then \
-	  $(SGMLTOOLS) -b onehtml faq.sgml; \
-	else \
+	  $(SGMLTOOLS) -b onehtml faq.sgml;
+else
+faq.html: faq.sgml
 	  if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
@@ -34,11 +35,13 @@ faq.html: faq.sgml
 	    touch $^; \
 	  fi; \
 	fi
+endif
 
+if HAVE_SGMLTOOLS
 faq.txt: faq.sgml
-	@if test "$(SGMLTOOLS)" != "no"; then \
-	  $(SGMLTOOLS) -b txt faq.sgml; \
-	else \
+	  $(SGMLTOOLS) -b txt faq.sgml;
+else
+faq.txt: faq.sgml
 	  if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
@@ -48,3 +51,4 @@ faq.txt: faq.sgml
 	    touch $^; \
 	  fi; \
 	fi
+endif

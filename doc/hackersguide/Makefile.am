@@ -31,30 +31,33 @@ dist-hook:
 $(hackersguide_sgml): %.sgml: $(srcdir)/%.sgml
 	cp $^ .
 
+if HAVE_SGMLTOOLS
 hackersguide.html: $(hackersguide_sgml)
-	@if test "$(SGMLTOOLS)" != "no"; then \
-	  $(SGMLTOOLS) -b onehtml hackersguide.sgml; \
-	else \
-	  if test "$(fail_if_missing)" = "yes"; then \
+	$(SGMLTOOLS) -b onehtml hackersguide.sgml;
+else
+hackersguide.html: $(hackersguide_sgml)
+	if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
-	  else \
+	else \
 	    touch $@; \
 	    sleep 1; \
 	    touch $^; \
-	  fi; \
-	fi
+	fi;
+endif
 
+if HAVE_FIG2DEV
 %.png: $(srcdir)/%.fig
-	@if test "$(FIG2DEV)" != "no"; then \
-	  $(FIG2DEV) -L png -S 4 $< $@; \
-	else \
-	  if test "$(fail_if_missing)" = "yes"; then \
+	  $(FIG2DEV) -L png -S 4 $< $@;
+else
+%.png: $(srcdir)/%.fig
+	if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install fig2dev."; \
 	    exit 1; \
-	  else \
+	else \
 	    touch $@; \
 	    sleep 1; \
 	    touch $^; \
 	  fi; \
 	fi
+endif

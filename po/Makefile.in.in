@@ -132,7 +132,7 @@ uninstall:
 	for cat in $$catalogs; do \
 	  cat=`basename $$cat`; \
 	  lang=`echo $$cat | sed 's/\.gmo$$//'`; \
-	  rm -f $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES/$(PACKAGE).mo; \
+	  rm -f $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES/$(LIBNAME).mo; \
 	done
 	if test "$(PACKAGE)" = "gettext"; then \
 	  rm -f $(DESTDIR)$(gettextsrcdir)/Makefile.in.in; \
