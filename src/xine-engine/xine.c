@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.275 2003/12/12 01:44:40 f1rmb Exp $
+ * $Id: xine.c,v 1.276 2003/12/14 12:20:17 f1rmb Exp $
  */
 
 /*
@@ -1139,19 +1139,22 @@ void xine_exit (xine_t *this) {
     this->log_buffers[i]->dispose (this->log_buffers[i]);
 
   _x_dispose_plugins (this);
-
+  
+  xine_list_free(this->streams);
+  
   if(this->clock)
     this->clock->exit (this->clock);
-
+  
   if(this->config)
     this->config->dispose(this->config);
-
+  
 #if defined(WIN32)
-    WSACleanup();
+  WSACleanup();
 #endif
-
+  
+  pthread_mutex_destroy (&this->streams_lock);
   pthread_mutex_destroy(&this->streams_lock);
-
+  
   free (this);
 }
 
