@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.32 2001/11/07 02:29:21 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.33 2001/11/07 10:37:12 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  *
@@ -39,6 +39,7 @@
 #include "buffer.h"
 #include "monitor.h"
 #include "xine_internal.h"
+#include "memcpy.h"
 
 extern char*   win32_codec_name; 
 extern char*   win32_def_path;
@@ -393,7 +394,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     /* printf ("w32codec: processing packet ...\n"); */
 
-    memcpy (&this->buf[this->size], buf->content, buf->size);
+    fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
 
@@ -425,7 +426,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       if (this->outfmt==IMGFMT_YUY2) {
 	/* already decoded into YUY2 format by DLL */
-	memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
+	fast_memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
       } else {
 	/* now, convert rgb to yuv */
 	int row, col;
@@ -651,7 +652,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   HRESULT hr;
   /* DWORD srcsize=0; */
 
-  memcpy (&this->buf[this->size], data, nSize);
+  fast_memcpy (&this->buf[this->size], data, nSize);
 
   this->size += nSize;
   if( this->size > 2 * this->rec_audio_src_size )
