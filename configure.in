@@ -79,6 +79,12 @@ AC_SUBST(STATIC)
 
 
 dnl
+dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
+dnl
+AM_PROG_AS
+
+
+dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
 AC_C_BIGENDIAN
@@ -376,7 +382,7 @@ if test "$host_or_hostalias" = ""; then
 fi
 
 case "$host_or_hostalias" in
-i386-*-freebsd*)
+  i386-*-freebsd*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS"
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS"
@@ -389,7 +395,7 @@ i386-*-freebsd*)
     ;;
 
 
-i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-*)
+  i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-*)
 
     if test "$GCC" = yes; then
 	dnl Check for gcc cpu optimization support
@@ -460,26 +466,26 @@ i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-*)
     AC_DEFINE(FPM_INTEL)
     ;;
 
-alphaev56-*)
+  alphaev56-*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=ev56 -mieee"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mcpu=ev56 -mieee"
     AC_DEFINE(FPM_64BIT)
     ;;
 
-alpha*)
+  alpha*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mieee"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
     AC_DEFINE(FPM_64BIT)
     ;;
 
-ppc-*-linux* | powerpc-*) 
+  ppc-*-linux* | powerpc-*) 
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     FORCE_44K_MAX=yes
     AC_DEFINE(FPM_PPC)
     ;;
 
-sparc*-*-linux*)
+  sparc*-*-linux*)
     case $host_alias in
     sparc-*)    cpu_cflags="-mcpu=supersparc -mtune=supersparc" ;;
     sparc64-*)  cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
@@ -490,7 +496,7 @@ sparc*-*-linux*)
     AC_DEFINE(FPM_SPARC)
     ;;
 
-sparc-*-solaris*)
+  sparc-*-solaris*)
     if test "$GCC" = yes; then
 	case `uname -m` in
 	sun4c) cpu_cflags="-mcpu=v7 -mtune=supersparc" ;;
@@ -509,19 +515,19 @@ sparc-*-solaris*)
     AC_DEFINE(FPM_SPARC)
     ;;
 
-mips-*)
+  mips-*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE(FPM_MIPS)
     ;;
 
-m68k-*)
+  m68k-*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O2"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE(FPM_M68K)
     ;;
 
-*)
+  *)
     echo "Host type '$host' ($host_alias) is currently not supported by xine"
     exit 1
     ;;
@@ -616,8 +622,8 @@ dnl
 case "`id`" in
   uid=0\(* )
     AC_MSG_CHECKING(for aclocal directory)
-    if(aclocal --version) < /dev/null > /dev/null 2>&1; then
-      ACLOCAL_DIR=`$ACLOCAL --print-ac-dir`
+    if (aclocal --version) < /dev/null > /dev/null 2>&1; then
+      ACLOCAL_DIR="`eval $ACLOCAL --print-ac-dir`"
       AC_MSG_RESULT($ACLOCAL_DIR)
     else
       ACLOCAL_DIR="/usr/local/share/aclocal"

@@ -1,17 +1,28 @@
 #!/bin/sh
 # Run this to generate all the initial Makefiles, etc.
 
+## extract autoconf version
+autoconf_2_5x=no
+AC="`autoconf --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)]//g'`"
+if [ `expr $AC` -ge 250 ]; then
+    autoconf_2_5x=yes
+fi
+
 rm -f config.cache
 
 srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
 
-#m4_files="_xine.m4 alsa.m4 arts.m4 esd.m4 aa.m4 irixal.m4"
+m4_files="_xine.m4 alsa.m4 arts.m4 esd.m4 aa.m4 irixal.m4"
 if test -d $srcdir/m4; then
     rm -f acinclude.m4
-    for m4f in $srcdir/m4/*.m4; do
-	cat $m4f >> acinclude.m4
+    for m4f in $m4_files; do
+	cat $srcdir/m4/$m4f >> acinclude.m4
     done
+    ## autoconf 2.5x implement AM_PROG_AS, not older ones, so add it.
+    if test x"$autoconf_2_5x" = x"no"; then
+	cat $srcdir/m4/as.m4 >> acinclude.m4
+    fi
 else
     echo "Directory 'm4' is missing."
     exit 1

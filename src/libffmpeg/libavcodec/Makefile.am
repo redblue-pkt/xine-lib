@@ -5,6 +5,7 @@
 #CFLAGS = -D_FILE_OFFSET_BITS=64 @GLOBAL_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
 CFLAGS = @GLOBAL_CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -32,6 +33,9 @@ libavcodec_la_SOURCES = dsputil.c   fdctref.c   jfdctfst.c  mpeg12.c   \
 noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h   dsputil_mmx_avg.h\
 		 common.h     h263data.h  mpeg4data.h   msmpeg4data.h \
 		 mpeg12data.h
+
+.s.lo:
+	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
 
 debug:
 	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
