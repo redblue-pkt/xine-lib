@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.2 2003/01/13 01:23:13 f1rmb Exp $
+ * $Id: mmsh.c,v 1.3 2003/01/14 23:39:11 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -48,9 +48,9 @@
 #include "mmsh.h"
 #include "../demuxers/asfheader.h"
 
-/*
+
 #define LOG
-*/
+
 #define MMSH_PORT 80
 
 #define BUF_SIZE 102400
@@ -75,7 +75,7 @@ static const char* mmsh_FirstRequest =
     "Host: %s\r\n"
     "Pragma: no-cache,rate=1.000000,stream-time=0,stream-offset=0:0,request-context=%u,max-duration=0\r\n"
     CLIENTGUID
-    "Connection: Close\r\n\r\n\r\n\r\n\n\n";
+    "Connection: Close\r\n\r\n";
 
 static const char* mmsh_SeekableRequest =
     "GET %s HTTP/1.0\r\n"
@@ -430,8 +430,9 @@ static int get_answer (mmsh_t *this) {
         int httpver, httpsub, httpcode;
         char httpstatus[100];
 
-        if (sscanf(this->buf, "HTTP/%d.%d %d %[^\015\012]", &httpver, &httpsub,
-                   &httpcode, httpstatus) != 4) {
+        if (sscanf(this->buf, "HTTP/%d.%d %d", &httpver, &httpsub,
+            &httpcode) != 3) {
+          printf( "libmmsh: bad response format\n");
           return 0;
         }
 
@@ -724,12 +725,19 @@ char* mmsh_connect_common(int *s, int *port, char *url, char **host, char **path
   printf ("libmmsh: extracting host name \n");
 #endif
   hostend = strchr(_host, '/');
+  
+  /*
   if ((!hostend) || (strlen(hostend) <= 1)) {
     printf ("libmmsh: invalid url >%s<, failed to find hostend\n", url);
     return NULL;
   }
-  
-  *hostend++ = '\0';
+  */
+  if (!hostend) {
+    printf ("libmmsh: no trailing /\n");
+    hostend = _host + strlen(_host);
+  } else {
+    *hostend++ = '\0';
+  }
 
   /* Is port specified ? */
   forport = strchr(_host, ':');
@@ -844,6 +852,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 
   /* first request */
   printf("libmmsh: first http request\n");
+  
   sprintf (this->str, mmsh_FirstRequest, path, host, 1);
   
   if (!send_command (this, this->str))
