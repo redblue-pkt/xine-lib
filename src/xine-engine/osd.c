@@ -1141,9 +1141,9 @@ static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
 
   /* update clipping area */
   osd->x1 = MIN( osd->x1, x1 );
-  osd->x2 = MAX( osd->x2, x1+width );
+  osd->x2 = MAX( osd->x2, x1+width-1 );
   osd->y1 = MIN( osd->y1, y1 );
-  osd->y2 = MAX( osd->y2, y1+height );
+  osd->y2 = MAX( osd->y2, y1+height-1 );
 
   for( y=0; y<height; y++ ) {
     if ( palette_map ) {
