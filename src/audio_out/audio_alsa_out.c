@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.103 2003/08/28 16:42:07 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.104 2003/08/31 17:56:24 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -280,6 +280,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_sw_params_t  *swparams;
   snd_pcm_access_mask_t *mask;
   snd_pcm_uframes_t     period_size;
+  uint32_t              periods;
   uint32_t              buffer_time=BUFFER_TIME;
   int                   err, dir;
   int                 open_mode=1; /* NONBLOCK */
@@ -446,9 +447,11 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   }
 
   /* Set period to buffer size ratios at 8 periods to 1 buffer */
-  err = snd_pcm_hw_params_set_periods(this->audio_fd, params, 8 ,0);
+  dir=-1;
+  periods=8;
+  err = snd_pcm_hw_params_set_periods_near(this->audio_fd, params, &periods ,&dir);
   if (err < 0) {
-    printf ("audio_alsa_out: unable to set 8 periods\n");
+    printf ("audio_alsa_out: unable to set any periods\n");
     goto __close;
   }
 
