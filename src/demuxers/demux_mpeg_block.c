@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.44 2001/09/12 23:14:39 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.45 2001/09/16 22:06:28 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -367,7 +367,13 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	  break;
 	}
       }
-  
+      /* FIXME: Find out from the stream what these values should be!
+       *        Problem! No-one currently knows.
+       */
+      buf->decoder_info[1] = 48000;
+      buf->decoder_info[2] = 16;
+      buf->decoder_info[3] = 2;
+
       buf->content   = p+pcm_offset;
       buf->size      = packet_len-pcm_offset;
       buf->type      = BUF_AUDIO_LPCM_BE + track;
