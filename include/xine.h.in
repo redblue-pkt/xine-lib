@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.92 2003/08/05 15:05:51 mroi Exp $
+ * $Id: xine.h.in,v 1.93 2003/08/26 21:18:32 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -319,6 +319,7 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_EQ_4000HZ              25 /* equalizer gains -100..100   */
 #define XINE_PARAM_EQ_8000HZ              26 /* equalizer gains -100..100   */
 #define XINE_PARAM_EQ_16000HZ             27 /* equalizer gains -100..100   */
+#define XINE_PARAM_AUDIO_CLOSE_DEVICE     28 /* force closing audio device  */
 
 /* speed values */
 #define XINE_SPEED_PAUSE                   0

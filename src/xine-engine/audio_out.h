@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.56 2003/07/22 09:36:03 mroi Exp $
+ * $Id: audio_out.h,v 1.57 2003/08/26 21:18:32 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -138,6 +138,14 @@ struct ao_driver_s {
 typedef struct extra_info_s extra_info_t;
 #endif
 
+typedef struct ao_format_s ao_format_t;
+
+struct ao_format_s {
+  uint32_t bits;
+  uint32_t rate;
+  int mode;
+};
+
 typedef struct audio_fifo_s audio_fifo_t;
 
 typedef struct audio_buffer_s audio_buffer_t;
@@ -159,14 +167,7 @@ struct audio_buffer_s {
 
   xine_stream_t     *stream; /* stream that send that buffer */
 
-};
-
-typedef struct ao_format_s ao_format_t;
-
-struct ao_format_s {
-  uint32_t bits; 
-  uint32_t rate;
-  int mode;
+  ao_format_t        format; /* let each buffer carry it's own format info */
 };
 
 /*
@@ -305,6 +306,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_only
 #define AO_PROP_EQ_4000HZ      14 /* equalizer */
 #define AO_PROP_EQ_8000HZ      15 /* equalizer */
 #define AO_PROP_EQ_16000HZ     16 /* equalizer */
+#define AO_PROP_CLOSE_DEVICE   17 /* force closing audio device */
 
 /* audio device control ops */
 #define AO_CTRL_PLAY_PAUSE	0

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.137 2003/07/26 00:27:20 jcdutton Exp $
+ * $Id: audio_out.c,v 1.138 2003/08/26 21:18:32 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -854,6 +854,7 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
   return 0;
 }
 
+static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mode);
 
 /* Audio output loop: -
  * 1) Check for pause. 
@@ -932,8 +933,21 @@ static void *ao_loop (void *this_gen) {
       continue;
     }
 
-
+    /* change driver's settings as needed */
     pthread_mutex_lock( &this->driver_lock );
+    if( in_buf && in_buf->num_frames ) {
+      if( !this->driver_open ||
+         in_buf->format.bits != this->input.bits ||
+         in_buf->format.rate != this->input.rate ||
+         in_buf->format.mode != this->input.mode ) {
+         lprintf("audio format has changed\n");
+         ao_change_settings(this,
+                            in_buf->format.bits,
+                            in_buf->format.rate,
+                            in_buf->format.mode);
+      }
+    }
+
     if(this->driver_open) {
       delay = this->driver->delay(this->driver);
       while (delay < 0 && this->audio_loop_running) {
@@ -1159,17 +1173,10 @@ void xine_free_audio_frame (xine_audio_port_t *this_gen, xine_audio_frame_t *fra
 static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mode) {
   int output_sample_rate;
 
-  if (this->audio_loop_running) {
-    /* make sure there are no more buffers on queue */
-    fifo_wait_empty(this->out_fifo);
-  }
-  
-  pthread_mutex_lock( &this->driver_lock );
   if(this->driver_open)
     this->driver->close(this->driver);  
   this->driver_open = 0;
-  pthread_mutex_unlock( &this->driver_lock );
- 
+
   this->input.mode            = mode;
   this->input.rate            = rate;
   this->input.bits            = bits;
@@ -1197,10 +1204,8 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
                "stereo not supported by driver, converting to mono.\n");
     }
  
-    pthread_mutex_lock( &this->driver_lock );
     output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode);
     this->driver_open = 1;
-    pthread_mutex_unlock( &this->driver_lock );
   } else
     output_sample_rate = this->input.rate;
 
@@ -1251,10 +1256,21 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
  
   aos_t *this = (aos_t *) this_gen;
 
-  if( !this->driver_open || bits != this->input.bits || rate != this->input.rate || mode != this->input.mode )
-    if( !ao_change_settings(this, bits, rate, mode) )
+  if( !this->driver_open || bits != this->input.bits || rate != this->input.rate || mode != this->input.mode ) {
+    int ret;
+
+    if (this->audio_loop_running) {
+      /* make sure there are no more buffers on queue */
+      fifo_wait_empty(this->out_fifo);
+    }
+
+    pthread_mutex_lock( &this->driver_lock );
+    ret = ao_change_settings(this, bits, rate, mode);
+    pthread_mutex_unlock( &this->driver_lock );
+    if( !ret )
       return 0;
-  
+  }
+
   pthread_mutex_lock(&this->streams_lock);
   xine_list_append_content(this->streams, stream);
   pthread_mutex_unlock(&this->streams_lock);
@@ -1315,18 +1331,10 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
     return;
   }
 
-  /* change driver's settings if needed */
-  if( stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] != this->input.bits ||
-      stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] != this->input.rate ||
-      stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE] != this->input.mode ) {
-    lprintf("audio format have changed\n");
-    ao_change_settings(this, 
-                       stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS],
-                       stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE],
-                       stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE]);
-  }
-  
   buf->stream = stream;
+  buf->format.bits = stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
+  buf->format.rate = stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
+  buf->format.mode = stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
   extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
 
   pts = buf->vpts;
@@ -1619,6 +1627,14 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
   case AO_PROP_PAUSED:
     this->audio_paused = value;
     ret = this->audio_paused;
+    break;
+
+  case AO_PROP_CLOSE_DEVICE:
+    pthread_mutex_lock( &this->driver_lock );
+    if(this->driver_open)
+      this->driver->close(this->driver);
+    this->driver_open = 0;
+    pthread_mutex_unlock( &this->driver_lock );
     break;
 
   default:
