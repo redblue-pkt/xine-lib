@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.59 2004/01/07 22:25:22 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.60 2004/04/10 15:31:10 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -1118,7 +1118,8 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   query_fourccs(this);
 
   XLockDisplay (this->display);
-  this->xoverlay = x11osd_create (this->xine, this->display, this->screen, this->drawable);
+  this->xoverlay = x11osd_create (this->xine, this->display, this->screen, 
+                                  this->drawable, X11OSD_SHAPED);
   XUnlockDisplay (this->display);
 
   if( this->xoverlay )

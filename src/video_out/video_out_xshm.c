@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.128 2004/04/10 03:34:37 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.129 2004/04/10 15:31:10 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1230,7 +1230,8 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
 					 this->yuv2rgb_saturation);
 
   XLockDisplay (this->display);
-  this->xoverlay = x11osd_create (this->xine, this->display, this->screen, this->drawable);
+  this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
+                                  this->drawable, X11OSD_SHAPED);
   XUnlockDisplay (this->display);
 
   return &this->vo_driver;

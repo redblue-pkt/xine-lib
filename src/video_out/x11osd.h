@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.h,v 1.3 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: x11osd.h,v 1.4 2004/04/10 15:31:10 miguelfreitas Exp $
  *
  * x11osd.h, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -30,9 +30,14 @@
 #ifndef X11OSD_H
 #define X11OSD_H
 
-typedef struct x11osd x11osd;
+#include "vo_scale.h"
 
-x11osd *x11osd_create (xine_t *xine, Display *display, int screen, Window window);
+typedef struct x11osd x11osd;
+enum x11osd_mode {X11OSD_SHAPED, X11OSD_COLORKEY};
+
+x11osd *x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x11osd_mode mode);
+
+void x11osd_colorkey(x11osd * osd, uint32_t colorkey, vo_scale_t *scaling);
 
 void x11osd_destroy (x11osd * osd);
 

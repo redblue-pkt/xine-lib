@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.195 2004/04/09 15:29:33 mroi Exp $
+ * $Id: video_out_xv.c,v 1.196 2004/04/10 15:31:10 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1107,8 +1107,11 @@ static void xv_check_capability (xv_driver_t *this,
     xv_set_property (&this->vo_driver, property, entry->num_value);
 
     if (strcmp(str_prop, "XV_COLORKEY") == 0) {
-      this->use_colorkey = 1;
+      this->use_colorkey |= 1;
       this->colorkey = entry->num_value;
+    } else if(strcmp(str_prop, "XV_AUTOPAINT_COLORKEY") == 0) {
+      if(entry->num_value==1)
+        this->use_colorkey |= 2;	/* colorkey is autopainted */
     }
   } else
     this->props[property].value  = int_default;
@@ -1367,7 +1370,15 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->deinterlace_enabled = 0;
 
   XLockDisplay (this->display);
-  this->xoverlay = x11osd_create (this->xine, this->display, this->screen, this->drawable);
+  if(this->use_colorkey==1) {
+    this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
+                                    this->drawable, X11OSD_COLORKEY);
+    if(this->xoverlay)
+      x11osd_colorkey(this->xoverlay, this->colorkey, &this->sc);
+  } else {
+    this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
+                                    this->drawable, X11OSD_SHAPED);
+  }
   XUnlockDisplay (this->display);
 
   if( this->xoverlay )

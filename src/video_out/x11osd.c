@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.7 2004/03/23 09:29:25 esnel Exp $
+ * $Id: x11osd.c,v 1.8 2004/04/10 15:31:10 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -25,6 +25,8 @@
  *
  * based on ideas and code of
  * xosd Copyright (c) 2000 Andre Renaud (andre@ignavus.net)
+ *
+ * colorkey support by Yann Vernier
  */
 
 #include <stdarg.h>
@@ -52,26 +54,87 @@ struct x11osd
 {
   Display *display;
   int screen;
+  enum x11osd_mode mode;
+
+  union {
+    struct {
+      Window window;
+      Pixmap mask_bitmap;
+      GC mask_gc;
+      GC mask_gc_back;
+      int mapped;
+    } shaped;
+    struct {
+      uint32_t colorkey;
+      vo_scale_t *scaling;
+      int bordercount;
+      XRectangle borders[4];
+    } colorkey;
+  } u;
   Window window;
-  Window parent_window;
   unsigned int depth;
-  Pixmap mask_bitmap;
   Pixmap bitmap;
   Visual *visual;
   Colormap cmap;
 
   GC gc;
-  GC mask_gc;
-  GC mask_gc_back;
 
   int width;
   int height;
   int x;
   int y;
-  int clean;
-  int mapped;
+  enum {DRAWN, WIPED, UNDEFINED} clean;
   xine_t *xine;
 };
+
+static void x11osd_colorkey_compute_borders(x11osd *osd)
+{
+  assert (osd);
+  assert (osd->mode==X11OSD_COLORKEY);
+
+  if(osd->u.colorkey.scaling) {
+    XRectangle *r=osd->u.colorkey.borders;
+    vo_scale_t *scaling=osd->u.colorkey.scaling;
+    int tmp, count=0;
+
+    if(scaling->output_yoffset>0) {
+      r->x=r->y=0;
+      r->width=osd->width;
+      r->height=scaling->output_yoffset;
+      r++;
+      count++;
+    }
+    tmp=osd->height-scaling->output_yoffset-scaling->output_height;
+    if(tmp>0) {
+      r->x=0;
+      r->width=osd->width;
+      r->y=osd->height-tmp;
+      r->height=tmp;
+      r++;
+      count++;
+    }
+    if(scaling->output_xoffset>0) {
+      r->x=0;
+      r->y=scaling->output_yoffset;
+      r->width=scaling->output_xoffset;
+      r->height=scaling->output_height;
+      r++;
+      count++;
+    }
+    tmp=osd->width-scaling->output_xoffset-scaling->output_width;
+    if(tmp>0) {
+      r->x=osd->width-tmp;
+      r->y=scaling->output_yoffset;
+      r->width=tmp;
+      r->height=scaling->output_height;
+      r++;
+      count++;
+    }
+    osd->u.colorkey.bordercount=count;
+  }
+  else
+    osd->u.colorkey.bordercount=0;
+}
 
 
 void
@@ -79,21 +142,28 @@ x11osd_expose (x11osd * osd)
 {
   assert (osd);
 
-  XShapeCombineMask (osd->display, osd->window, ShapeBounding, 0, 0,
-                     osd->mask_bitmap, ShapeSet);
+  switch (osd->mode) {
+    case X11OSD_SHAPED:
+      XShapeCombineMask (osd->display, osd->u.shaped.window, ShapeBounding, 0, 0,
+			 osd->u.shaped.mask_bitmap, ShapeSet);
+      if( osd->clean==DRAWN ) {
 
-  if( !osd->clean ) {
-
-    if( !osd->mapped )
-      XMapRaised (osd->display, osd->window);
-    osd->mapped = 1;
+	if( !osd->u.shaped.mapped )
+	  XMapRaised (osd->display, osd->u.shaped.window);
+	osd->u.shaped.mapped = 1;
     
-    XCopyArea (osd->display, osd->bitmap, osd->window, osd->gc, 0, 0,
-               osd->width, osd->height, 0, 0);
-  } else {
-    if( osd->mapped )
-      XUnmapWindow (osd->display, osd->window);
-    osd->mapped = 0;
+	XCopyArea (osd->display, osd->bitmap, osd->u.shaped.window, osd->gc, 0, 0,
+		   osd->width, osd->height, 0, 0);
+      } else {
+	if( osd->u.shaped.mapped )
+	  XUnmapWindow (osd->display, osd->u.shaped.window);
+	osd->u.shaped.mapped = 0;
+      }
+      break;
+    case X11OSD_COLORKEY:
+      if( osd->clean!=UNDEFINED )
+	XCopyArea (osd->display, osd->bitmap, osd->window, osd->gc, 0, 0,
+		   osd->width, osd->height, 0, 0);
   }
 }
 
@@ -102,26 +172,39 @@ void
 x11osd_resize (x11osd * osd, int width, int height)
 {
   assert (osd);
+  osd->clean=UNDEFINED;
+  if(osd->width==width && osd->height==height)
+    return;
   osd->width = width;
   osd->height = height;
 
-  XResizeWindow (osd->display, osd->window, osd->width, osd->height);
-  XFreePixmap (osd->display, osd->mask_bitmap);
-  osd->mask_bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width, osd->height,
-		   1);
-  XFillRectangle (osd->display, osd->mask_bitmap, osd->mask_gc_back,
-		  0, 0, osd->width, osd->height);
-
   XFreePixmap (osd->display, osd->bitmap);
-  osd->bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width,
-		   osd->height, osd->depth);
+  switch(osd->mode) {
+    case X11OSD_SHAPED:
+      XResizeWindow (osd->display, osd->u.shaped.window, osd->width, osd->height);
+      XFreePixmap (osd->display, osd->u.shaped.mask_bitmap);
+      osd->u.shaped.mask_bitmap =
+	XCreatePixmap (osd->display, osd->u.shaped.window, osd->width, osd->height,
+		       1);
+      XFillRectangle (osd->display, osd->u.shaped.mask_bitmap, osd->u.shaped.mask_gc_back,
+		      0, 0, osd->width, osd->height);
+      osd->bitmap =
+	XCreatePixmap (osd->display, osd->u.shaped.window,
+		       osd->width, osd->height, osd->depth);
+      break;
+    case X11OSD_COLORKEY:
+      osd->bitmap =
+	XCreatePixmap (osd->display, osd->window,
+		       osd->width, osd->height, osd->depth);
+      break;
+  }
 }
 
 void
 x11osd_drawable_changed (x11osd * osd, Window window)
 {
+  XSetWindowAttributes  attr;
+
   assert (osd);
 
 /*
@@ -132,40 +215,51 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   XFreeGC (osd->display, osd->mask_gc_back);
 */
   XFreePixmap (osd->display, osd->bitmap);
-  XFreePixmap (osd->display, osd->mask_bitmap);
   XFreeColormap (osd->display, osd->cmap);
-  XDestroyWindow (osd->display, osd->window);
 
   /* we need to call XSync(), because otherwise, calling XDestroyWindow()
      on the parent window could destroy our OSD window twice !! */
   XSync (osd->display, False);
 
-  osd->parent_window = window;
-  osd->window = XCreateSimpleWindow (osd->display, 
-                                     osd->parent_window,
-                                     0, 0,
-                                     osd->width, osd->height, 1, 
-                                     BlackPixel (osd->display, osd->screen),
-                                     BlackPixel (osd->display, osd->screen));
-
-  osd->mask_bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width, osd->height,
-		   1);
-  XFillRectangle (osd->display, osd->mask_bitmap, osd->mask_gc_back,
-		  0, 0, osd->width, osd->height);
-
-  osd->bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width,
-		   osd->height, osd->depth);
+  osd->window = window;
   
-  osd->cmap = XCreateColormap(osd->display, osd->window, 
+  switch(osd->mode) {
+    case X11OSD_SHAPED:
+      XFreePixmap (osd->display, osd->u.shaped.mask_bitmap);
+      XDestroyWindow (osd->display, osd->u.shaped.window);
+
+      attr.override_redirect = True;
+      attr.background_pixel  = BlackPixel (osd->display, osd->screen);
+      osd->u.shaped.window = XCreateWindow(osd->display, osd->window,
+                              0, 0, osd->width, osd->height, 0, 
+                              CopyFromParent, CopyFromParent, CopyFromParent, 
+                              CWBackPixel | CWOverrideRedirect, &attr);
+
+      XSelectInput (osd->display, osd->u.shaped.window, ExposureMask);
+      osd->u.shaped.mapped = 0;
+
+      osd->u.shaped.mask_bitmap = XCreatePixmap (osd->display, osd->u.shaped.window,
+						 osd->width, osd->height, 1);
+      XFillRectangle (osd->display, osd->u.shaped.mask_bitmap, osd->u.shaped.mask_gc_back,
+		      0, 0, osd->width, osd->height);
+
+      osd->bitmap = XCreatePixmap (osd->display, osd->u.shaped.window, osd->width,
+				   osd->height, osd->depth);
+
+      osd->cmap = XCreateColormap(osd->display, osd->u.shaped.window, 
+				  osd->visual, AllocNone);
+      break;
+    case X11OSD_COLORKEY:
+      osd->bitmap = XCreatePixmap (osd->display, osd->window, osd->width,
+				   osd->height, osd->depth);
+      /*x11osd_colorkey_compute_borders(osd);*/
+      osd->cmap = XCreateColormap(osd->display, osd->window, 
                               osd->visual, AllocNone);
 
-  XSelectInput (osd->display, osd->window, ExposureMask);
-  
-  osd->clean = 0;
-  x11osd_clear(osd);
-  osd->mapped = 0;
+      break;
+  }
+    
+  osd->clean = UNDEFINED;
   x11osd_expose(osd);
 }
 
@@ -178,7 +272,7 @@ static int x11_error_handler(Display *dpy, XErrorEvent *error)
 }
 
 x11osd *
-x11osd_create (xine_t *xine, Display *display, int screen, Window window)
+x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x11osd_mode mode)
 {
   x11osd *osd;
   int event_basep, error_basep;
@@ -189,15 +283,11 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window)
   if (!osd)
     return NULL;
 
+  osd->mode = mode;
   osd->xine = xine;
   osd->display = display;
   osd->screen = screen;
-  osd->parent_window = window;
-
-  if (!XShapeQueryExtension (osd->display, &event_basep, &error_basep)) {
-    xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: XShape extension not available. unscaled overlay disabled.\n"));
-    goto error2;
-  }
+  osd->window = window;
 
   x11_error = False;
   old_handler = XSetErrorHandler(x11_error_handler);
@@ -207,62 +297,86 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window)
   osd->width = XDisplayWidth (osd->display, osd->screen);
   osd->height = XDisplayHeight (osd->display, osd->screen);         
 
-  attr.override_redirect = True;
-  attr.background_pixel  = BlackPixel (osd->display, osd->screen);
-  osd->window = XCreateWindow(osd->display, osd->parent_window,
+  switch (mode) {
+    case X11OSD_SHAPED:
+      if (!XShapeQueryExtension (osd->display, &event_basep, &error_basep)) {
+	xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: XShape extension not available. unscaled overlay disabled.\n"));
+	goto error2;
+      }
+
+      attr.override_redirect = True;
+      attr.background_pixel  = BlackPixel (osd->display, osd->screen);
+      osd->u.shaped.window = XCreateWindow(osd->display, osd->window,
                               0, 0, osd->width, osd->height, 0, 
                               CopyFromParent, CopyFromParent, CopyFromParent, 
                               CWBackPixel | CWOverrideRedirect, &attr);
 
-  XSync(osd->display, False);
-  if( x11_error ) {
-    xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: error creating window. unscaled overlay disabled.\n"));
-    goto error3;
-  }
+      XSync(osd->display, False);
+      if( x11_error ) {
+	xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: error creating window. unscaled overlay disabled.\n"));
+	goto error_window;
+      }
 
-  osd->mask_bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width, 
+      osd->u.shaped.mask_bitmap = XCreatePixmap (osd->display, osd->u.shaped.window, osd->width, 
                    osd->height, 1);
-  XSync(osd->display, False);
-  if( x11_error ) {
-    xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: error creating pixmap. unscaled overlay disabled.\n"));
-    goto error4;
-  }
+      XSync(osd->display, False);
+      if( x11_error ) {
+	xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: error creating pixmap. unscaled overlay disabled.\n"));
+	goto error_aftermaskbitmap;
+      }
 
-  osd->bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width, 
+      osd->bitmap = XCreatePixmap (osd->display, osd->u.shaped.window, osd->width, 
                    osd->height, osd->depth);
+      osd->gc = XCreateGC (osd->display, osd->u.shaped.window, 0, NULL);
+
+      osd->u.shaped.mask_gc = XCreateGC (osd->display, osd->u.shaped.mask_bitmap, 0, NULL);
+      XSetForeground (osd->display, osd->u.shaped.mask_gc,
+		  WhitePixel (osd->display, osd->screen));
+      XSetBackground (osd->display, osd->u.shaped.mask_gc,
+		  BlackPixel (osd->display, osd->screen));
+
+
+      osd->u.shaped.mask_gc_back = XCreateGC (osd->display, osd->u.shaped.mask_bitmap, 0, NULL);
+      XSetForeground (osd->display, osd->u.shaped.mask_gc_back,
+		  BlackPixel (osd->display, osd->screen));
+      XSetBackground (osd->display, osd->u.shaped.mask_gc_back,
+		  WhitePixel (osd->display, osd->screen));
+
+      XSelectInput (osd->display, osd->u.shaped.window, ExposureMask);
+      osd->u.shaped.mapped = 0;
+      osd->cmap = XCreateColormap(osd->display, osd->u.shaped.window, 
+                              osd->visual, AllocNone);
+      break;
+    case X11OSD_COLORKEY:
+      osd->bitmap = XCreatePixmap (osd->display, osd->window, osd->width, 
+                   osd->height, osd->depth);
+      /*x11osd_colorkey_compute_borders(osd);	done in x11osd_colorkey */
+      osd->gc = XCreateGC (osd->display, osd->window, 0, NULL);
+      osd->cmap = XCreateColormap(osd->display, osd->window, 
+                              osd->visual, AllocNone);
+      /* FIXME: the expose event doesn't seem to happen? */
+      /*XSelectInput (osd->display, osd->window, ExposureMask);*/
+      break;
+    default:
+      goto error2;
+  }
+
   XSync(osd->display, False);
   if( x11_error ) {
     xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: error creating pixmap. unscaled overlay disabled.\n"));
-    goto error5;
+    goto error_pixmap;
   }
 
-  osd->gc = XCreateGC (osd->display, osd->window, 0, NULL);
-  osd->mask_gc = XCreateGC (osd->display, osd->mask_bitmap, 0, NULL);
-  osd->mask_gc_back = XCreateGC (osd->display, osd->mask_bitmap, 0, NULL);
-
-  XSetForeground (osd->display, osd->mask_gc_back,
-		  BlackPixel (osd->display, osd->screen));
-  XSetBackground (osd->display, osd->mask_gc_back,
-		  WhitePixel (osd->display, osd->screen));
-
-  XSetForeground (osd->display, osd->mask_gc,
-		  WhitePixel (osd->display, osd->screen));
-  XSetBackground (osd->display, osd->mask_gc,
-		  BlackPixel (osd->display, osd->screen));
-
-  osd->cmap = XCreateColormap(osd->display, osd->window, 
-                              osd->visual, AllocNone);
-
-  XSelectInput (osd->display, osd->window, ExposureMask);
-
-  osd->clean = 0;
-  x11osd_clear(osd);
-  osd->mapped = 0;
-  x11osd_expose(osd);
+  osd->clean = UNDEFINED;
+  if(mode==X11OSD_SHAPED) {
+    x11osd_expose(osd);
+  }
 
   XSetErrorHandler(old_handler);
+
+  xprintf(osd->xine, XINE_VERBOSITY_DEBUG, 
+    _("x11osd: unscaled overlay created (%s mode).\n"), 
+    (mode==X11OSD_SHAPED) ? "XShape" : "Colorkey" );
 
   return osd;
 
@@ -272,16 +386,30 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window)
   XFreeGC (osd->display, osd->mask_gc_back);
 */
 
-error5:
+error_pixmap:
   XFreePixmap (osd->display, osd->bitmap);
-error4:
-  XFreePixmap (osd->display, osd->mask_bitmap);
-error3:
-  XDestroyWindow (osd->display, osd->window);
+error_aftermaskbitmap:
+  if(mode==X11OSD_SHAPED)
+    XFreePixmap (osd->display, osd->u.shaped.mask_bitmap);
+error_window:
+  if(mode==X11OSD_SHAPED)
+    XDestroyWindow (osd->display, osd->u.shaped.window);
   XSetErrorHandler(old_handler);
 error2:
   free (osd);
   return NULL;
+}
+
+void x11osd_colorkey(x11osd * osd, uint32_t colorkey, vo_scale_t *scaling)
+{
+  assert (osd);
+  assert (osd->mode==X11OSD_COLORKEY);
+
+  osd->u.colorkey.colorkey=colorkey;
+  osd->u.colorkey.scaling=scaling;
+  /*x11osd_colorkey_compute_borders(osd);
+  x11osd_clear(osd);	Workaround: we clear on the first blend instead.
+  x11osd_expose(osd);*/
 }
 
 void
@@ -291,22 +419,43 @@ x11osd_destroy (x11osd * osd)
   assert (osd);
 
   XFreeGC (osd->display, osd->gc);
-  XFreeGC (osd->display, osd->mask_gc);
-  XFreeGC (osd->display, osd->mask_gc_back);
   XFreePixmap (osd->display, osd->bitmap);
-  XFreePixmap (osd->display, osd->mask_bitmap);
   XFreeColormap (osd->display, osd->cmap);
-  XDestroyWindow (osd->display, osd->window);
+  if(osd->mode==X11OSD_SHAPED) {
+    XFreeGC (osd->display, osd->u.shaped.mask_gc);
+    XFreeGC (osd->display, osd->u.shaped.mask_gc_back);
+    XFreePixmap (osd->display, osd->u.shaped.mask_bitmap);
+    XDestroyWindow (osd->display, osd->u.shaped.window);
+  }
 
   free (osd);
 }
 
 void x11osd_clear(x11osd *osd)
 {
-  if( !osd->clean )
-    XFillRectangle (osd->display, osd->mask_bitmap, osd->mask_gc_back,
-                    0, 0, osd->width, osd->height);
-  osd->clean = 1;
+  if( osd->clean!=WIPED )
+    switch (osd->mode) {
+      case X11OSD_SHAPED:
+	XFillRectangle (osd->display, osd->u.shaped.mask_bitmap, osd->u.shaped.mask_gc_back,
+			0, 0, osd->width, osd->height);
+	break;
+      case X11OSD_COLORKEY:
+	XSetForeground(osd->display, osd->gc, osd->u.colorkey.colorkey);
+	if(osd->u.colorkey.scaling) {
+	  x11osd_colorkey_compute_borders(osd);
+	  XFillRectangle (osd->display, osd->bitmap, osd->gc,
+			  osd->u.colorkey.scaling->output_xoffset,
+			  osd->u.colorkey.scaling->output_yoffset,
+			  osd->u.colorkey.scaling->output_width,
+			  osd->u.colorkey.scaling->output_height);
+	  XSetForeground(osd->display, osd->gc, BlackPixel(osd->display, osd->screen));
+	  XFillRectangles (osd->display, osd->bitmap, osd->gc, 
+			   osd->u.colorkey.borders, osd->u.colorkey.bordercount);
+	} else
+	  XFillRectangle (osd->display, osd->bitmap, osd->gc, 0, 0, osd->width, osd->height);
+	break;
+    }
+  osd->clean = WIPED;
 }
 
 #define TRANSPARENT 0xffffffff
@@ -315,6 +464,8 @@ void x11osd_clear(x11osd *osd)
 
 void x11osd_blend(x11osd *osd, vo_overlay_t *overlay)
 {
+  if (osd->clean==UNDEFINED)
+    x11osd_clear(osd);	/* Workaround. Colorkey mode needs scaling data before the clear. */
   if (overlay->rle) {
     int i, x, y, len, width;
     int use_clip_palette, max_palette_colour[2];
@@ -405,7 +556,8 @@ void x11osd_blend(x11osd *osd, vo_overlay_t *overlay)
         if(palette[use_clip_palette][overlay->rle[i].color] != TRANSPARENT) {
           XSetForeground(osd->display, osd->gc, palette[use_clip_palette][overlay->rle[i].color]);
           XFillRectangle(osd->display, osd->bitmap, osd->gc, overlay->x + x, overlay->y + y, width, 1);
-          XFillRectangle(osd->display, osd->mask_bitmap, osd->mask_gc, overlay->x + x, overlay->y + y, width, 1);
+	  if(osd->mode==X11OSD_SHAPED)
+	    XFillRectangle(osd->display, osd->u.shaped.mask_bitmap, osd->u.shaped.mask_gc, overlay->x + x, overlay->y + y, width, 1);
         }
 
         x += width;
@@ -415,7 +567,7 @@ void x11osd_blend(x11osd *osd, vo_overlay_t *overlay)
         }
       }
     }
+    osd->clean = DRAWN;
   }
-  osd->clean = 0;
 }
 
