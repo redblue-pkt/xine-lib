@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.18 2001/10/01 23:04:57 f1rmb Exp $
+ * $Id: audio_out.c,v 1.19 2001/10/03 15:21:29 jkeil Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -241,9 +241,6 @@ static int ao_write(ao_instance_t *this,
   uint8_t    *data;
   uint32_t    cur_time;
   
-  if (this->driver<0)
-    return 1;
-
   vpts = this->metronom->got_audio_samples (this->metronom, pts, num_frames);
 
   xprintf (VERBOSE|AUDIO, "audio_out: got %d frames, vpts=%d pts=%d\n",
