@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.199 2004/05/02 12:32:11 tmattern Exp $
+ * $Id: demux_avi.c,v 1.200 2004/05/04 21:45:15 jstembridge Exp $
  *
  * demultiplexer for avi streams
  *
@@ -765,8 +765,10 @@ static avi_t *AVI_init(demux_avi_t *this) {
 
   if( this->input->read(this->input, data,12) != 12 ) ERR_EXIT(AVI_ERR_READ) ;
 
-  if( strncasecmp(data  ,"RIFF",4) !=0 ||
-      strncasecmp(data+8,"AVI ",4) !=0 )
+  if( !( (strncasecmp(data  ,"ON2 ",4) == 0 &&
+          strncasecmp(data+8,"ON2f",4) == 0) ||
+         (strncasecmp(data  ,"RIFF",4) == 0 &&
+          strncasecmp(data+8,"AVI ",4) == 0) ) )
     ERR_EXIT(AVI_ERR_NO_AVI) ;
   /* Go through the AVI file and extract the header list,
      the start position of the 'movi' list and an optionally
@@ -2195,8 +2197,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     if (_x_demux_read_header(input, buf, 12) != 12)
       return NULL;
 
-    if( strncasecmp(buf  ,"RIFF",4) !=0 ||
-        strncasecmp(buf+8,"AVI ",4) !=0 )
+    if( !( (strncasecmp(buf  ,"ON2 ",4) == 0 &&
+            strncasecmp(buf+8,"ON2f",4) == 0) ||
+           (strncasecmp(buf  ,"RIFF",4) == 0 &&
+            strncasecmp(buf+8,"AVI ",4) == 0) ) )
       return NULL;
   }
   break;
