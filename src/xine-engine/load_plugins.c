@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.186 2004/09/01 18:19:50 valtri Exp $
+ * $Id: load_plugins.c,v 1.187 2004/10/24 00:59:37 athp Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -497,8 +497,12 @@ static void collect_plugins(xine_t *this, char *path){
 #elif defined(__CYGWIN__) || defined(WIN32)
 	  if(!strstr(str, ".dll"))
 #else
-	  if(!strstr(str, ".so")) 
+	  if(!strstr(str, ".so")
 #endif
+#ifdef HOST_OS_DARWIN
+             && !strcasestr(str, ".xineplugin")
+#endif
+            )
 	    break;
 
 	  plugin_name = str;
@@ -513,7 +517,7 @@ static void collect_plugins(xine_t *this, char *path){
 #endif
 
 	  if(!info && (lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL)) == NULL) {
-	    char *error = dlerror();
+	    const char *error = dlerror();
 	    /* too noisy -- but good to catch unresolved references */
 	    xprintf(this, XINE_VERBOSITY_LOG, 
 		    _("load_plugins: cannot open plugin lib %s:\n%s\n"), str, error);
@@ -598,7 +602,7 @@ static void collect_plugins(xine_t *this, char *path){
 	      }
 	    }
 	    else {
-	      char *error = dlerror();
+	      const char *error = dlerror();
 
 	      xine_log (this, XINE_LOG_PLUGIN,
 			_("load_plugins: can't get plugin info from %s:\n%s\n"), str, error);
@@ -637,7 +641,7 @@ static void *_load_plugin_class(xine_t *this,
   void *lib;
 
   if((lib = dlopen (filename, RTLD_LAZY | RTLD_GLOBAL)) == NULL) {
-    char *error = dlerror();
+    const char *error = dlerror();
 
     xine_log (this, XINE_LOG_PLUGIN,
 	      _("load_plugins: cannot (stage 2) open plugin lib %s:\n%s\n"), filename, error);
