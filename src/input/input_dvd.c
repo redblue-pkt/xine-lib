@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.169 2003/10/26 10:48:24 mroi Exp $
+ * $Id: input_dvd.c,v 1.170 2003/11/08 22:39:32 tmattern Exp $
  *
  */
 
@@ -1527,7 +1527,7 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->input_plugin.input_class        = class_gen;
 
   this->stream = stream;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] = 1;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HAS_STILL, 1);
 
   this->dvdnav                 = NULL;
   this->opened                 = 0;
@@ -1727,6 +1727,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.170  2003/11/08 22:39:32  tmattern
+ * Use info helper functions.
+ *
  * Revision 1.169  2003/10/26 10:48:24  mroi
  * fix some prominent compiler warnings
  *
