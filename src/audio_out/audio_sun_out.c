@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.12 2001/09/28 10:19:08 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.13 2001/10/06 13:49:49 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -421,7 +421,7 @@ static int ao_sun_get_property (ao_driver_t *this_gen, int property) {
   case AO_PROP_PCM_VOL:
     if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
       return 0;
-    return info.play.gain;
+    return info.play.gain * 100 / AUDIO_MAX_GAIN;
 #if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
   case AO_PROP_MUTE_VOL:
     if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
@@ -447,7 +447,7 @@ static int ao_sun_set_property (ao_driver_t *this_gen, int property, int value) 
   case AO_PROP_MIXER_VOL:
     break;
   case AO_PROP_PCM_VOL:
-    info.play.gain = value;
+    info.play.gain = value * AUDIO_MAX_GAIN / 100;
     if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
       return ~value;
     return value;
