@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.114 2003/10/07 17:25:10 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.115 2003/10/12 13:35:49 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -484,13 +484,6 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
 #endif
-  dir=0;
-  err = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params, &this->buffer_size);
-  if (err < 0) {
-    printf ("audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
-    goto __close;
-  }
-  err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
 #if 1
   /* set the period time [us] (interrupt every x us|y samples ...) */
   dir=0;
@@ -502,9 +495,17 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 #endif
   dir=0;
   err = snd_pcm_hw_params_get_period_size(params, &period_size, &dir);
+
+  dir=0;
+  err = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params, &this->buffer_size);
+  if (err < 0) {
+    printf ("audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
+    goto __close;
+  }
+  err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
 #ifdef ALSA_LOG_BUFFERS
-  printf("was set buffer_size = %ld\n",this->buffer_size);
   printf("was set period_size = %ld\n",period_size);
+  printf("was set buffer_size = %ld\n",this->buffer_size);
 #endif
   if (2*period_size > this->buffer_size) {
     printf ("audio_alsa_out: buffer to small, could not use\n");
