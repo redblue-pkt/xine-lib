@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.18 2004/11/19 00:30:17 tmattern Exp $
+ * $Id: demux_nsv.c,v 1.19 2004/11/30 00:41:00 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,11 +50,17 @@
 #include "buffer.h"
 
 #define FOURCC_TAG BE_FOURCC
-#define NSVf_TAG FOURCC_TAG('N', 'S', 'V', 'f')
-#define NSVs_TAG FOURCC_TAG('N', 'S', 'V', 's')
-#define NONE_TAG FOURCC_TAG('N', 'O', 'N', 'E')
+#define NSVf_TAG       FOURCC_TAG('N', 'S', 'V', 'f')
+#define NSVs_TAG       FOURCC_TAG('N', 'S', 'V', 's')
+#define NONE_TAG       FOURCC_TAG('N', 'O', 'N', 'E')
 
-#define BEEF 0xBEEF
+#define BEEF 0xEFBE
+
+#define NSV_MAX_RESYNC (1024 * 1024)
+#define NSV_RESYNC_ERROR 0
+#define NSV_RESYNC_BEEF  1
+#define NSV_RESYNC_NSVf  2
+#define NSV_RESYNC_NSVs  3
 
 typedef struct {
   demux_plugin_t       demux_plugin;
@@ -73,191 +79,30 @@ typedef struct {
   unsigned int         video_type;
   int64_t              video_pts;
   unsigned int         audio_type;
+  uint32_t             video_fourcc;
+  uint32_t             audio_fourcc;
 
   int                  keyframe_found;
+  int                  is_first_chunk;
 
   xine_bmiheader       bih;
+
+  /* ultravox stuff */
+  int                  is_ultravox;
+  int                  ultravox_size;
+  int                  ultravox_pos;
+  int                  ultravox_first;
 } demux_nsv_t;
 
 typedef struct {
   demux_class_t     demux_class;
 } demux_nsv_class_t;
 
-/* returns 1 if the NSV file was opened successfully, 0 otherwise */
-static int open_nsv_file(demux_nsv_t *this) {
-  unsigned char preview[28];
-  unsigned int  video_fourcc;
-  unsigned int  audio_fourcc;
-  int           is_ultravox = 0;
-  unsigned int  offset = 0;
 
-  if (_x_demux_read_header(this->input, preview, 4) != 4)
-    return 0;
-
-  /* check for a 'NSV' signature */
-  if ((preview[0] != 'N') ||
-      (preview[1] != 'S') ||
-      (preview[2] != 'V'))
-  {
-    if ((preview[0] != 'Z') ||
-        (preview[1] != 0)   ||
-	(preview[2] != '9') ||
-	(preview[3] != 1))
-          return 0;
-
-    is_ultravox = 1;
-  }
-
-  lprintf("NSV file detected\n");
-
-  this->data_size = this->input->get_length(this->input);
-
-  if (is_ultravox == 1) {
-    int i;
-    unsigned char buffer[512];
-
-    if (_x_demux_read_header(this->input, buffer, 512) != 512)
-      return 0;
-
-    for (i = 0; i < 512 - 3; i++)
-    {
-      if ((buffer[i] == 'N') &&
-          (buffer[i+1] == 'S') &&
-	  (buffer[i+2] == 'V')) {
-          /* Fill the preview buffer with our nice new NSV tag */
-          memcpy (preview, buffer + i, 4);
-          offset = i;
-	  break;
-      }
-    }
-  }
-
-  /* file is qualified, proceed to load; jump over the first 4 bytes */
-  this->input->seek(this->input, 4 + offset, SEEK_SET);
-
-  if (BE_32(&preview[0]) == NSVf_TAG) {
-
-    /* if there is a NSVs tag, load 24 more header bytes; load starting at
-     * offset 4 in buffer to keep header data in line with document */
-    if (this->input->read(this->input, &preview[4], 24) != 24)
-      return 0;
-
-    lprintf("found NSVf chunk\n");
-    this->data_size = BE_32(&preview[8]);
-
-    /* skip the rest of the data */
-    this->input->seek(this->input, LE_32(&preview[4]) - 28, SEEK_CUR);
-
-    /* get the first 4 bytes of the next chunk */
-    if (this->input->read(this->input, preview, 4) != 4)
-      return 0;
-  } 
-
-  /* make sure it is a 'NSVs' chunk */
-  if (preview[3] != 's')
-    return 0;
-
-  /* fetch the remaining 12 header bytes of the first chunk to get the 
-   * relevant information */
-  if (this->input->read(this->input, &preview[4], 12) != 12)
-    return 0;
-
-  video_fourcc = ME_32(&preview[4]);
-  if (BE_32(&preview[4]) == NONE_TAG)
-    this->video_type = 0;
-  else
-    this->video_type = _x_fourcc_to_buf_video(video_fourcc);
-
-  audio_fourcc = ME_32(&preview[8]);
-  if (BE_32(&preview[8]) == NONE_TAG)
-    this->audio_type = 0;
-  else
-    this->audio_type = _x_formattag_to_buf_audio(audio_fourcc);
-
-  this->bih.biSize = sizeof(this->bih);
-  this->bih.biWidth = LE_16(&preview[12]);
-  this->bih.biHeight = LE_16(&preview[14]);
-  this->bih.biCompression = video_fourcc;
-  this->video_pts = 0;
-
-  /* may not be true, but set it for the time being */
-  this->frame_pts_inc = 3003;
-
-  lprintf("video: %c%c%c%c, buffer type %08X, %dx%d\n",
-    preview[4],
-    preview[5],
-    preview[6],
-    preview[7],
-    this->video_type,
-    this->bih.biWidth,
-    this->bih.biHeight);
-
-  return 1;
-}
-
-static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
-  demux_nsv_t *this = (demux_nsv_t *) this_gen;
-
-  unsigned char header[8];
-  buf_element_t *buf;
-  off_t current_file_pos;
-  int video_size;
-  int audio_size;
-  int chunk_id;
-
-  current_file_pos = this->input->get_current_pos(this->input);
-
-  lprintf("dispatching video & audio chunks...\n");
-
-  /*
-   * Read 7 bytes and expect the stream to be sitting at 1 of 3 places:
-   *  1) start of a new 'NSVs' chunk; need to seek over the next 9 bytes,
-   *     read 7 bytes, and move onto case 2
-   *  2) at the length info at the start of a NSVs chunk; use the first
-   *     as a FPS byte, read one more byte from the stream and use bytes
-   *     3-7 as the length info
-   *  3) at the BEEF marker indicating a new chunk within the NSVs chunk;
-   *     use bytes 2-6 as the length info
-   */
-
-  if (this->input->read(this->input, header, 7) != 7) {
-    this->status = DEMUX_FINISHED;
-    return this->status;
-  }
-
-  chunk_id = LE_16(&header[0]);
-  switch (chunk_id) {
-
-  /* situation #3 from the comment */
-  case 0xBEEF:
-    lprintf("situation #3\n");
-    video_size = LE_32(&header[2]);
-    video_size >>= 4;
-    video_size &= 0xFFFFF;
-    audio_size = LE_16(&header[5]);
-    break;
-
-  /* situation #1 from the comment, characters 'NS' (swapped) from the stream */
-  case 0x534E:
-    lprintf("situation #1\n");
-    this->input->seek(this->input, 9, SEEK_CUR);
-    if (this->input->read(this->input, header, 7) != 7) {
-      this->status = DEMUX_FINISHED;
-      return this->status;
-    }
-
-    /* yes, fall through intentionally to situation #2, per comment */
-
-  /* situation #2 from the comment */
-  default:
-    lprintf("situation #2\n");
+static void nsv_parse_framerate(demux_nsv_t *this, uint8_t framerate)
+{
     /* need 1 more byte */
-    if (this->input->read(this->input, &header[7], 1) != 1) {
-      this->status = DEMUX_FINISHED;
-      return this->status;
-    }
-
-    this->fps = header[0];
+    this->fps = framerate;
     if (this->fps & 0x80) {
       switch (this->fps & 0x7F) {
       case 1:
@@ -282,18 +127,236 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
       }
     } else
       this->frame_pts_inc = 90000 / this->fps;
+}
 
-    video_size = LE_32(&header[3]);
-    video_size >>= 4;
-    video_size &= 0xFFFFF;
-    audio_size = LE_16(&header[6]);
+static off_t nsv_read(demux_nsv_t *this, uint8_t *buffer, off_t len) {
 
-    break;
+  if (this->is_ultravox != 2) {
 
+    return this->input->read(this->input, buffer, len);
+
+  } else {
+
+    int ultravox_rest;
+    int buffer_pos = 0;
+    
+    /* ultravox stuff */
+    while (len) {
+      ultravox_rest = this->ultravox_size - this->ultravox_pos;
+
+      if (len > ultravox_rest) {
+	uint8_t ultravox_buf[7];
+
+	if (ultravox_rest) {
+	  if (this->input->read(this->input, buffer + buffer_pos, ultravox_rest) != ultravox_rest)
+	    return -1;
+	  buffer_pos += ultravox_rest;
+	  len -= ultravox_rest;
+	}
+	/* parse ultravox packet header */
+	if (this->ultravox_first) {
+	  /* only 6 bytes */
+	  this->ultravox_first = 0;
+	  ultravox_buf[0] = 0;
+	  if (this->input->read(this->input, ultravox_buf + 1, 6) != 6)
+	    return -1;
+	} else {
+	  if (this->input->read(this->input, ultravox_buf, 7) != 7)
+	    return -1;
+	}
+	/* check signature */
+	if ((ultravox_buf[0] != 0x00)  || (ultravox_buf[1] != 0x5A)) {
+	  lprintf("lost ultravox sync\n");
+	  return -1;
+	}
+	/* read packet payload len */
+	this->ultravox_size = BE_16(&ultravox_buf[5]);
+	this->ultravox_pos = 0;
+	lprintf("ultravox_size: %d\n", this->ultravox_size);
+      } else {
+	if (this->input->read(this->input, buffer + buffer_pos, len) != len)
+	  return -1;
+	buffer_pos += len;
+	this->ultravox_pos += len;
+	len = 0;
+      }
+    }
+    return buffer_pos;
+  }
+}
+
+static off_t nsv_seek(demux_nsv_t *this, off_t offset, int origin) {
+  if (this->is_ultravox != 2) {
+
+    return this->input->seek(this->input, offset, origin);
+
+  } else {
+
+    /* ultravox stuff */
+    if (origin == SEEK_CUR) {
+      uint8_t buffer[1024];
+      
+      while (offset) {
+	if (offset > sizeof(buffer)) {
+	  if (nsv_read(this, buffer, sizeof(buffer)) != sizeof(buffer))
+	    return -1;
+	  offset = 0;
+	} else {
+	  if (nsv_read(this, buffer, offset) != offset)
+	    return -1;
+	  offset -= sizeof(buffer);
+	}
+      }
+      return 0;
+
+    } else {
+      /* not supported */
+      return -1;
+    }
+  }
+}
+
+static int nsv_resync(demux_nsv_t *this) {
+  int i;
+  uint32_t tag = 0;
+
+  for (i = 0; i < NSV_MAX_RESYNC; i++) {
+    uint8_t byte;
+    
+    if (nsv_read(this, &byte, 1) != 1)
+      return NSV_RESYNC_ERROR;
+
+#ifdef LOG
+    printf("%2X ", byte);
+#endif
+    tag = (tag << 8) | byte;
+
+    if ((tag & 0x0000ffff) == BEEF) {
+      lprintf("found BEEF after %d bytes\n", i + 1);
+      return NSV_RESYNC_BEEF;
+    } else if (tag == NSVs_TAG) {
+      lprintf("found NSVs after %d bytes\n", i + 1);
+      return NSV_RESYNC_NSVs;
+    } else if (tag == NSVf_TAG) {
+      lprintf("found NSVf after %d bytes\n", i + 1);
+      return NSV_RESYNC_NSVf;
+    }
+  }
+  lprintf("can't resync\n");
+  return NSV_RESYNC_ERROR;
+}
+
+
+/* returns 1 if the NSV file was opened successfully, 0 otherwise */
+static int open_nsv_file(demux_nsv_t *this) {
+  unsigned char preview[28];
+  int           NSVs_found = 0;
+
+  if (_x_demux_read_header(this->input, preview, 4) != 4)
+    return 0;
+
+  /* check for a 'NSV' signature */
+  if ((preview[0] != 'N') ||
+      (preview[1] != 'S') ||
+      (preview[2] != 'V'))
+  {
+    if ((preview[0] != 'Z') ||
+        (preview[1] != 0)   ||
+	(preview[2] != '9'))
+      return 0;
+    this->is_ultravox = preview[3];
+    this->ultravox_first = 1;
   }
 
-  lprintf("sending video chunk with size 0x%X, audio chunk with size 0x%X\n",
-    video_size, audio_size);
+  lprintf("NSV file detected, ultravox=%d\n", this->is_ultravox);
+
+  this->data_size = this->input->get_length(this->input);
+
+  while (!NSVs_found) {
+    switch (nsv_resync(this)) {
+      
+    case NSV_RESYNC_NSVf:
+      {
+	uint32_t chunk_size;
+	
+	/* if there is a NSVs tag, load 24 more header bytes; load starting at
+	 * offset 4 in buffer to keep header data in line with document */
+	if (nsv_read(this, &preview[4], 24) != 24)
+	  return 0;
+
+	lprintf("found NSVf chunk\n");
+	/*	this->data_size = LE_32(&preview[8]);*/
+	/*lprintf("data_size: %lld\n", this->data_size);*/
+	
+	/* skip the rest of the data */
+	chunk_size = LE_32(&preview[4]);
+	nsv_seek(this, chunk_size - 28, SEEK_CUR);
+      }
+      break;
+    
+    case NSV_RESYNC_NSVs:
+      
+      /* fetch the remaining 15 header bytes of the first chunk to get the 
+       * relevant information */
+      if (nsv_read(this, &preview[4], 15) != 15)
+	return 0;
+      
+      this->video_fourcc = ME_32(&preview[4]);
+      if (BE_32(&preview[4]) == NONE_TAG)
+	this->video_type = 0;
+      else
+	this->video_type = _x_fourcc_to_buf_video(this->video_fourcc);
+      
+      this->audio_fourcc = ME_32(&preview[8]);
+      if (BE_32(&preview[8]) == NONE_TAG)
+	this->audio_type = 0;
+      else
+	this->audio_type = _x_formattag_to_buf_audio(this->audio_fourcc);
+      
+      this->bih.biSize = sizeof(this->bih);
+      this->bih.biWidth = LE_16(&preview[12]);
+      this->bih.biHeight = LE_16(&preview[14]);
+      this->bih.biCompression = this->video_fourcc;
+      this->video_pts = 0;
+      
+      /* may not be true, but set it for the time being */
+      this->frame_pts_inc = 3003;
+      
+      lprintf("video: %c%c%c%c, buffer type %08X, %dx%d\n",
+	      preview[4],
+	      preview[5],
+	      preview[6],
+	      preview[7],
+	      this->video_type,
+	      this->bih.biWidth,
+	      this->bih.biHeight);
+      lprintf("audio: %c%c%c%c, buffer type %08X\n",
+	      preview[8],
+	      preview[9],
+	      preview[10],
+	      preview[11],
+	      this->audio_type);
+
+      nsv_parse_framerate(this, preview[12]);
+      NSVs_found = 1;
+      break;
+    
+    case NSV_RESYNC_ERROR:
+      return 0;
+      
+    }
+  }
+
+  this->is_first_chunk = 1;
+  return 1;
+}
+
+static int nsv_parse_payload(demux_nsv_t *this, int video_size, int audio_size) {
+  buf_element_t *buf;
+  off_t current_file_pos;
+
+  lprintf("video_size=%d, audio_size=%d\n", video_size, audio_size);
+  current_file_pos = this->input->get_current_pos(this->input);
 
   while (video_size) {
     int buf_num = 0;
@@ -306,7 +369,7 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
       buf->size = video_size;
     video_size -= buf->size;
 
-    if (this->input->read(this->input, buf->content, buf->size) != buf->size) {
+    if (nsv_read(this, buf->content, buf->size) != buf->size) {
       buf->free_buffer(buf);
       this->status = DEMUX_FINISHED;
       return this->status;
@@ -362,26 +425,85 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
       buf->size = audio_size;
     audio_size -= buf->size;
 
-    if (this->input->read(this->input, buf->content, buf->size) != buf->size) {
+    if (nsv_read(this, buf->content, buf->size) != buf->size) {
       buf->free_buffer(buf);
       this->status = DEMUX_FINISHED;
       return this->status;
     }
 
     buf->type = this->audio_type;
+
     if( this->data_size )
       buf->extra_info->input_normpos = (int)((double)current_file_pos * 65535 / this->data_size);
     buf->extra_info->input_time = this->video_pts / 90;
     buf->pts = this->video_pts;
+
     buf->decoder_flags |= BUF_FLAG_FRAMERATE;
     buf->decoder_info[0] = this->frame_pts_inc;
 
     if (!audio_size)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
     this->audio_fifo->put(this->audio_fifo, buf);
   }
 
   this->video_pts += this->frame_pts_inc;
+
+  return this->status;
+}
+
+
+static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
+  demux_nsv_t *this = (demux_nsv_t *) this_gen;
+
+  uint8_t  buffer[15];
+  off_t    current_file_pos;
+  int      video_size;
+  int      audio_size;
+  int      chunk_type;
+
+  current_file_pos = this->input->get_current_pos(this->input);
+
+  lprintf("dispatching video & audio chunks...\n");
+  
+  if (this->is_first_chunk) {
+    chunk_type = NSV_RESYNC_BEEF;
+    this->is_first_chunk = 0;
+  } else {
+    chunk_type = nsv_resync(this);
+  }
+  
+  switch (chunk_type) {
+  case NSV_RESYNC_NSVf:
+    /* do nothing */
+    break;
+    
+  case NSV_RESYNC_NSVs:
+    /* skip header */
+    if (nsv_read(this, buffer, 15) != 15)
+      return 0;
+    nsv_parse_framerate(this, buffer[12]);
+    
+    /* fall thru */
+    
+  case NSV_RESYNC_BEEF:
+    if (nsv_read(this, buffer, 5) != 5) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+    video_size = LE_32(&buffer[0]);
+    video_size >>= 4;
+    video_size &= 0xFFFFF;
+    audio_size = LE_16(&buffer[3]);
+    
+    nsv_parse_payload(this, video_size, audio_size);
+    break;
+    
+  case NSV_RESYNC_ERROR:
+    this->status = DEMUX_FINISHED;
+    break;
+  }
+  
   return this->status;
 }
 
@@ -395,6 +517,10 @@ static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
+		     this->video_fourcc);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
+		     this->audio_fourcc);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO,
     (this->video_type) ? 1 : 0);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
@@ -404,11 +530,12 @@ static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
     this->bih.biHeight);
 
+
   /* send start buffers */
   _x_demux_control_start(this->stream);
 
   /* send init info to the video decoder */
-  if (this->video_fifo && this->video_type) {
+  if (this->video_type) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
                          BUF_FLAG_FRAME_END;
