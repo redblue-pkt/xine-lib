@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.28 2001/11/13 21:47:59 heikos Exp $
+ * $Id: video_out.h,v 1.29 2001/11/15 23:18:04 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -134,7 +134,9 @@ struct vo_instance_s {
   /* overlay stuff */
   void (*register_ovl_src) (vo_instance_t *this, ovl_src_t *ovl_src);
   void (*unregister_ovl_src) (vo_instance_t *this, ovl_src_t *ovl_src);
+  void (*enable_ovl) (vo_instance_t *this, int ovl_enable);
   ovl_src_t         *overlay_source;
+  int                overlay_enabled;
 
   /* video driver is no longer used by decoder => close */
   void (*close) (vo_instance_t *this);

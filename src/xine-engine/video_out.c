@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.53 2001/11/13 21:47:59 heikos Exp $
+ * $Id: video_out.c,v 1.54 2001/11/15 23:18:04 guenter Exp $
  *
  */
 
@@ -304,7 +304,7 @@ static void *video_out_loop (void *this_gen) {
       profiler_start_count (prof_spu_blend);
 
       ovl = this->overlay_source->get_overlay (this->overlay_source, img->PTS);
-      if (this->video_loop_running && ovl && this->driver->overlay_blend)
+      if (this->video_loop_running && ovl && this->driver->overlay_blend && this->overlay_enabled)
 	this->driver->overlay_blend (this->driver, img, ovl); 
 
       profiler_stop_count (prof_spu_blend);
@@ -578,6 +578,10 @@ static void vo_unregister_ovl_src (vo_instance_t *this, ovl_src_t *ovl_src)
     this->overlay_source = NULL;
 }
 
+static void vo_enable_overlay (vo_instance_t *this, int overlay_enabled) {
+  this->overlay_enabled = overlay_enabled;
+}
+
 vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
 
   vo_instance_t *this;
@@ -595,6 +599,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->get_capabilities      = vo_get_capabilities;
   this->register_ovl_src      = vo_register_ovl_src;
   this->unregister_ovl_src    = vo_unregister_ovl_src;
+  this->enable_ovl            = vo_enable_overlay;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;
@@ -604,6 +609,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->video_loop_running    = 0;
   this->pts_per_frame         = 0;
   this->pts_per_half_frame    = 0;
+  this->overlay_enabled       = 1;
 
   for (i=0; i<NUM_FRAME_BUFFERS; i++) {
     vo_frame_t *img;

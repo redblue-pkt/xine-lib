@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.63 2001/11/13 21:47:59 heikos Exp $
+ * $Id: video_decoder.c,v 1.64 2001/11/15 23:18:04 guenter Exp $
  *
  */
 
@@ -145,7 +145,9 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_SPU_CHANNEL:
-      this->spu_channel = buf->decoder_info[0];
+      this->spu_channel_auto = buf->decoder_info[0];
+      if (this->spu_channel_user == -1)
+	this->spu_channel = this->spu_channel_auto;
       break;
 
     case BUF_CONTROL_END:

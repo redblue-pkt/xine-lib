@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.54 2001/11/13 21:47:59 heikos Exp $
+ * $Id: xine_internal.h,v 1.55 2001/11/15 23:18:04 guenter Exp $
  *
  */
 
@@ -164,8 +164,15 @@ struct xine_s {
   spu_decoder_t             *cur_spu_decoder_plugin;
   int                        spu_finished;
 
-  int                        audio_channel;
-  int                        audio_channel_suggested;
+  /* *_user: -2 => off
+             -1 => auto (use *_auto value)
+	    >=0 => respect the user's choice
+  */
+
+  int                        audio_channel_user;
+  int                        audio_channel_auto;
+  int                        spu_channel_user;
+  int                        spu_channel_auto;
   int                        spu_channel;
 
   vo_instance_t             *video_out;
@@ -198,6 +205,9 @@ struct xine_s {
   xine_event_listener_t      event_listeners[XINE_MAX_EVENT_LISTENERS];
   void                      *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
   uint16_t                   num_event_listeners;
+
+  /* scratch string buffer */
+  char                       str[1024];
 };
 
 /*
