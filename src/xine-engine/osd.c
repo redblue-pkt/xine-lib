@@ -835,7 +835,7 @@ static uint16_t osd_iconv_getunicode(iconv_t *cd, const char *encoding, char **i
     }
   } else {
     /* direct mapping without iconv */
-    unicode = (*inbuf)[0];
+    unicode = (unsigned char)(*inbuf)[0];
     (*inbuf)++;
     (*inbytesleft)--;
   }
