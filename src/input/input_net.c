@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.48 2003/05/20 16:23:44 tchamp Exp $
+ * $Id: input_net.c,v 1.49 2003/05/20 20:49:12 tchamp Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -139,7 +139,7 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
 #ifndef WIN32
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) 
 #else
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError != WSAEINPROGRESS) 
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif
   {
     LOG_MSG (xine, _("input_net: connect(): %s\n"), strerror(errno));
@@ -364,7 +364,12 @@ static int net_plugin_open (input_plugin_t *this_gen ) {
   /*
    * fill preview buffer
    */
+#ifndef WIN32
   this->preview_size = read (this->fh, this->preview, MAX_PREVIEW_SIZE);
+#else
+  this->preview_size = recv (this->fh, this->preview, MAX_PREVIEW_SIZE, 0);
+#endif
+
   this->curpos       = 0;
 
   return 1;
