@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.6 2002/05/14 02:34:37 miguelfreitas Exp $
+ * $Id: utils.c,v 1.7 2002/05/14 03:02:45 miguelfreitas Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -76,11 +76,11 @@ const char *xine_get_homedir(void) {
   int ret;
   struct passwd pwd;
   char *buffer = NULL;
-  int bufsize = 128;
+  int bufsize = 256;
 
   buffer = (char *) xine_xmalloc(bufsize);
   
-  if((ret = getpwuid_r(getuid(), &pwd, buffer, bufsize, &pw)) < 0) {
+  if((ret = getpwuid_r(getuid(), &pwd, buffer, bufsize, &pw)) != 0) {
 #else
   if((pw = getpwuid(getuid())) == NULL) {
 #endif
