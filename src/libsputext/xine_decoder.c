@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2003/01/11 12:52:03 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.47 2003/01/11 15:31:45 miguelfreitas Exp $
  *
  */
 
@@ -278,21 +278,23 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         }
       }
     }
-  
-    xine_usec_sleep (50000);
     
+    if( this->stream->master_stream )
+      status = xine_get_status (this->stream->master_stream);
+    else
+      status = xine_get_status (this->stream);
+    
+    if( status == XINE_STATUS_QUIT || status == XINE_STATUS_STOP )
+      return;
+
+    xine_usec_sleep (50000);
+            
     if( this->stream->master_stream )
       xine_get_current_info (this->stream->master_stream, &extra_info, sizeof(extra_info) );
     else
       xine_get_current_info (this->stream, &extra_info, sizeof(extra_info) );
 
-    if( this->stream->master_stream )
-      status = xine_get_status (this->stream->master_stream);
-    else
-      status = xine_get_status (this->stream);
-       
-  } while(seek_count == extra_info.seek_count && status != XINE_STATUS_QUIT &&
-          status != XINE_STATUS_STOP);
+  } while(seek_count == extra_info.seek_count);
 }  
 
 
