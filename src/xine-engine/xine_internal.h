@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.29 2001/07/14 13:28:32 guenter Exp $
+ * $Id: xine_internal.h,v 1.30 2001/07/14 23:17:37 richwareham Exp $
  *
  */
 
@@ -32,6 +32,7 @@
 #include "metronom.h"
 #include "spu_decoder.h"
 #include "libspudec/spu_decoder_api.h"
+#include "events.h"
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
@@ -39,6 +40,7 @@
 #define DECODER_PLUGIN_IFACE_VERSION      1
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
+#define XINE_MAX_EVENT_LISTENERS 50
 
 /*
  * generic xine video decoder plugin interface
@@ -109,7 +111,10 @@ typedef void (*gui_stream_end_cb_t)(int nStatus);
 #define XINE_PAUSE     2 
 #define XINE_QUIT      3
 
-typedef struct xine_s {
+typedef struct xine_s xine_t;
+typedef void (*event_listener_t) (xine_t *xine, event_t *event, void *data);
+
+struct xine_s {
   
   /* private : */
 
@@ -166,7 +171,11 @@ typedef struct xine_s {
   /* Lock for xine player functions */
   pthread_mutex_t            xine_lock;
 
-} xine_t;
+  /* Array of event handlers. */
+  event_listener_t           event_listeners[XINE_MAX_EVENT_LISTENERS];
+  uint16_t                   num_event_listeners;
+
+};
 
 /*
  * read config file and init a config object
@@ -416,5 +425,36 @@ char **xine_list_audio_output_plugins ();
  */
 
 ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
+
+/**
+ * @defgroup eventgroup Sending events
+ * Event dispatcher mechanism
+ * @{
+ */
+
+/**
+ * \fn xine_register_event_listener(event_listener_t *listener)
+ * \brief registers an event listener callback.
+ * \return 0 if the listener was registerd, non-zero if it could not.
+ */
+
+int xine_register_event_listener(xine_t *this, event_listener_t *listener);
+
+/**
+ * \fn xine_remove_event_listener(event_listener_t *listener)
+ * \brief Attempts to remove a registered event listener.
+ * \return 0 if the listener was removes, non-zero if it wasn't (e.g. not found).
+ */
+
+int xine_remove_event_listener(xine_t *this, event_listener_t *listener);
+
+/**
+ * \fn xine_send_event(event_t *event)
+ * \brief sends an event to all listeners.
+ */
+
+void xine_send_event(xine_t *this, event_t *event, void *data);
+
+/** @} end of eventgroup */
 
 #endif

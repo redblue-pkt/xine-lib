@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.34 2001/07/14 13:28:32 guenter Exp $
+ * $Id: xine.c,v 1.35 2001/07/14 23:17:37 richwareham Exp $
  *
  * top-level xine functions
  *
@@ -351,6 +351,36 @@ void xine_pause (xine_t *this) {
   pthread_mutex_unlock (&this->xine_lock);
 }
 
+void event_handler(xine_t *xine, event_t *event, void *data) {
+  /* Check Xine handle/current input plugin is not NULL */
+  if((xine == NULL) || (xine->cur_input_plugin == NULL)) {
+    return;
+  }
+
+  switch(event->type) {
+  case XINE_MOUSE_EVENT: 
+    {
+      mouse_event_t *mevent = (mouse_event_t*)event;
+      
+      /* Send event to imput plugin if appropriate. */
+      if(xine->cur_input_plugin->handle_input_event != NULL) {
+	if(mevent->button != 0) {
+	  /* Click event. */
+	  xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
+						     INPUT_EVENT_MOUSEBUTTON,
+						     0, mevent->x, mevent->y);
+	} else {
+	  /* Motion event */
+	  xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
+						     INPUT_EVENT_MOUSEMOVE,
+						     0, mevent->x, mevent->y);
+	}
+      }
+    }
+    break;
+  }
+}
+
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
 		   config_values_t *config,
@@ -408,6 +438,14 @@ xine_t *xine_init (vo_driver_t *vo,
   }
   audio_decoder_init (this);
   printf("xine_init returning\n");
+
+  /*
+   * init event listeners
+   */
+  this->num_event_listeners = 0; /* Initially there are none */
+
+  xine_register_event_listener(this, event_handler);
+
   return this;
 }
 
