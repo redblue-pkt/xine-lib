@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.48 2004/04/07 19:44:29 mroi Exp $
+ * $Id: input_mms.c,v 1.49 2004/04/10 15:45:11 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -456,15 +456,18 @@ static void *init_class (xine_t *xine, void *data) {
 
   xine->config->register_enum(xine->config, "input.mms_network_bandwidth", 10,
 			      (char **)mms_bandwidth_strs,
-			      _("Network bandwidth"),
-			      NULL, 0, bandwidth_changed_cb, (void*) this);
+			      _("network bandwidth"),
+			      _("Specify the bandwidth of your internet connection here. "
+			        "This will be used when streaming servers offer different versions "
+				"with different bandwidth requirements of the same stream."),
+			      0, bandwidth_changed_cb, (void*) this);
 
   this->protocol = xine->config->register_enum(xine->config,
     "input.mms_protocol", 
     0, 
     (char **)mms_protocol_strs, 
     _("MMS protocol"),
-    _("Select the protocol above MMS. TCP is better but you may need HTTP behind the firewall."),
+    _("Select the protocol to encapsulate MMS.\nTCP is better but you may need HTTP behind a firewall."),
      20, 
      protocol_changed_cb, (void*)this);
 

@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.48 2004/04/10 14:27:37 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.49 2004/04/10 15:45:10 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2409,24 +2409,39 @@ static void *init_plugin (xine_t *xine, void *data) {
   
   this->cdda_device = config->register_string(config, "input.cdda_device", 
 					      DEFAULT_CDDA_DEVICE,
-					      _("device used for cdda drive"), NULL, 20, 
-					      cdda_device_cb, (void *) this);
+					      _("device used for CD audio"),
+					      _("The path to the device, usually a "
+						"CD or DVD drive, which you intend to use "
+						"for playing audio CDs."),
+					      10, cdda_device_cb, (void *) this);
   
   config->register_bool(config, "input.cdda_use_cddb", 1,
-			_("use cddb feature"), NULL, 10,
-			enable_cddb_changed_cb, (void *) this);
+			_("query CDDB"), _("Enables CDDB queries, which will give you "
+			"convenient title and track names for your audio CDs.\n"
+			"Keep in mind that, unless you use your own private CDDB, this information "
+			"is retrieved from an internet server which might collect a profile "
+			"of your listening habits."),
+			10, enable_cddb_changed_cb, (void *) this);
   
   config->register_string(config, "input.cdda_cddb_server", CDDB_SERVER,
-			  _("cddbp server name"), NULL, 10,
+			  _("CDDB server name"), _("The CDDB server used to retrieve the "
+			  "title and track information from.\nThis setting is security critical, "
+			  "because the sever will receive information about your listening habits "
+			  "and could answer the queries with malicious replies. Be sure to enter "
+			  "a server you can trust."), XINE_CONFIG_SECURITY,
 			  server_changed_cb, (void *) this);
   
   config->register_num(config, "input.cdda_cddb_port", CDDB_PORT,
-		       _("cddbp server port"), NULL, 10,
+		       _("CDDB server port"), _("The server port used to retrieve the "
+		       "title and track information from."), XINE_CONFIG_SECURITY,
 		       port_changed_cb, (void *) this);
   
   config->register_string(config, "input.cdda_cddb_cachedir", 
 			  (_cdda_cddb_get_default_location()),
-			  _("cddbp cache directory"), NULL, 20, 
+			  _("CDDB cache directory"), _("The replies from the CDDB server will be "
+			  "cached in this directory.\nThis setting is security critical, because files "
+			  "with uncontrollable names will be created in this directory. Be sure to use "
+			  "a dedicated directory not used for anything but CDDB caching."), XINE_CONFIG_SECURITY, 
 			  cachedir_changed_cb, (void *) this);
 
   this->cddb_error = 0;

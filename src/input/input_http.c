@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.84 2004/03/31 07:42:50 valtri Exp $
+ * $Id: input_http.c,v 1.85 2004/04/10 15:45:11 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -938,23 +938,23 @@ static void *init_class (xine_t *xine, void *data) {
   this->proxyhost_env = NULL;
   this->proxyhost = config->register_string(config, 
       "input.http_proxy_host", "", _("HTTP proxy host"),
-      _("HTTP proxy server used for http streaming"), 0,
+      _("The hostname of the HTTP proxy."), 10,
       proxy_host_change_cb, (void *) this);
   this->proxyport = config->register_num(config,
       "input.http_proxy_port", DEFAULT_HTTP_PORT, _("HTTP proxy port"),
-      _("HTTP proxy port used for http streaming"), 0,
+      _("The port number of the HTTP proxy."), 10,
       proxy_port_change_cb, (void *) this);
   this->proxyuser = config->register_string(config,
       "input.http_proxy_user", "", _("HTTP proxy username"),
-      _("HTTP proxy user used for http streaming"), 0,
+      _("The user name for the HTTP proxy."), 10,
       proxy_user_change_cb, (void *) this);
   this->proxypassword = config->register_string(config,
       "input.http_proxy_password", "", _("HTTP proxy password"),
-      _("HTTP proxy password used for http streaming"), 0, 
+      _("The password for the HTTP proxy."), 10,
       proxy_password_change_cb, (void *) this);
   this->noproxylist = config->register_string(config,
-      "input.http_no_proxy", "", _("Sites, where don't use HTTP proxy"),
-      _("Comma separated domains, where xine shouldn't use proxy"), 0,
+      "input.http_no_proxy", "", _("Domains, where to ignore the HTTP proxy"),
+      _("A Comma separated list of domain names, where the proxy is to be ignored."), 10,
       no_proxy_list_change_cb, (void *) this);
 
   /* 

@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.15 2004/04/05 18:01:09 hadess Exp $
+  $Id: xineplug_inp_vcd.c,v 1.16 2004/04/10 15:45:11 mroi Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -1658,9 +1658,9 @@ vcd_init (xine_t *xine, void *data)
                             VCDPLAYER_AUTOPLAY_PBC,
                             (char **) autoplay_modes,
                             _("default type to use on VCD autoplay"),
-_("What play unit to use when none is specified in an MRL, e.g. "
+_("The play unit to use when none is specified in an MRL, e.g. "
                             "vcd:// or vcd:///dev/dvd:"),
-                            0, 
+                            10, 
                             vcd_default_autoplay_cb, class);
     
     
@@ -1669,7 +1669,7 @@ _("What play unit to use when none is specified in an MRL, e.g. "
                               "vcd.default_device",
                               "",
           _("default CD drive used for VCD when none given"),
-_("What to use if no drive specified. If null, we'll scan for CD drives."), 
+_("What to use if no drive specified. If the setting is empty, xine will scan for CD drives."), 
                               20,
                               vcd_default_dev_changed_cb, 
                               (void *) class));
@@ -1681,7 +1681,7 @@ _("What to use if no drive specified. If null, we'll scan for CD drives."),
                             (char **) length_reporting_modes,
                             _("position slider range"),
 _("The range the stream playback position slider represents when playing."),
-                            0, 
+                            10, 
                             vcd_slider_length_cb, NULL);
 
 #if READAHEAD_FINISHED
@@ -1699,9 +1699,9 @@ _("The range the stream playback position slider represents when playing."),
     config->register_bool(config, 
                         "vcd.autoadvance",
                         (int) true,
-                        _("Automatically advance track/entry?"),
-_("If set, we should we automatically advance to the next entry or track. Used only when playback control (PBC) is not on."),
-                        0, 
+                        _("automatically advance track/entry"),
+_("If enabled, we should automatically advance to the next entry or track. Used only when playback control (PBC) is disabled."),
+                        10, 
                         vcd_autoadvance_cb, 
                         NULL); 
 
@@ -1709,11 +1709,11 @@ _("If set, we should we automatically advance to the next entry or track. Used o
     config->register_bool(config, 
                         "vcd.show_rejected",
                         (int) false,
-                        _("Show 'rejected' LIDs?"),
-"Some playback list IDs (LIDs) are marked not showable, "
-"but you can see then in the MRL list if this is set. Rejected entries "
-"are marked with an asterisk (*) appended in the MRL.",
-                        0, 
+                        _("show 'rejected' LIDs"),
+_("Some playback list IDs (LIDs) are marked not showable, "
+"but you can see them in the MRL list if this is set. Rejected entries "
+"are marked with an asterisk (*) appended to the MRL."),
+                        10, 
                         vcd_show_rejected_cb, 
                         NULL); 
 
@@ -1723,9 +1723,9 @@ _("If set, we should we automatically advance to the next entry or track. Used o
                           "%F - %I %N%L%S, disk %c of %C - %v %A",
                           _("format string for display banner"),
 _("Format used in the GUI Title. Similar to the Unix date "
-"command. Format specifiers that start with a percent sign. Specifiers are "
+"command. Format specifiers start with a percent sign. Specifiers are "
 "%A, %C, %c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, and %%."),
-                          0,
+                          20,
                           vcd_title_format_changed_cb,
                           NULL));
 
@@ -1735,9 +1735,9 @@ _("Format used in the GUI Title. Similar to the Unix date "
                           "%P - Track %T",
                           _("format string for stream comment field"),
 _("Format used in the GUI Title. Similar to the Unix date "
-"command. Format specifiers that start with a percent sign. Specifiers are "
-"same as the title_format."),
-                          0,
+"command. Format specifiers start with a percent sign. Specifiers are "
+"%A, %C, %c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, and %%."),
+                          20,
                           vcd_comment_format_changed_cb,
                           NULL));
 
@@ -1746,8 +1746,8 @@ _("Format used in the GUI Title. Similar to the Unix date "
                        "vcd.debug",
                        0,
                        _("debug flag mask"),
-                       _("This integer when viewed in binary is a debugging mask"),
-                        0, 
+                       _("This integer is a debugging mask when interpreted in binary."),
+                        20,
                         vcd_debug_cb, 
                         class); 
   }

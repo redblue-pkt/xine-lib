@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.179 2003/12/26 16:13:21 mroi Exp $
+ * $Id: input_dvd.c,v 1.180 2004/04/10 15:45:10 mroi Exp $
  *
  */
 
@@ -1654,9 +1654,10 @@ static void *init_class (xine_t *xine, void *data) {
   this->dvd_device = config->register_string(config,
 					     "input.dvd_device",
 					     DVD_PATH,
-					     "device used for dvd drive",
-					     NULL,
-					     0, device_change_cb, (void *)this);
+					     _("device used for DVD playback"),
+					     _("The path to the device, usually a "
+					       "DVD drive, which you intend to use for playing DVDs."),
+					     10, device_change_cb, (void *)this);
   
   if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
     /* we have found libdvdcss, enable the specific config options */
@@ -1666,20 +1667,37 @@ static void *init_class (xine_t *xine, void *data) {
     int mode;
     
     raw_device = config->register_string(config, "input.dvd_raw_device",
-					 RDVD_PATH, "raw device set up for dvd access",
-					 NULL, 10, NULL, NULL);
+					 RDVD_PATH, _("raw device set up for DVD access"),
+					 _("If this points to a raw device connected to your "
+					   "DVD device, xine will use the raw device for playback. "
+					   "This has the advantage of being slightly faster and "
+					   "of bypassing the block device cache, which avoids "
+					   "throwing away important cache content by keeping DVD "
+					   "data cached. Using the block device cache for DVDs "
+					   "is useless, because almost all DVD data will be used "
+					   "only once.\nSee the documentation on raw device setup "
+					   "(man raw) for further information."),
+					 10, NULL, NULL);
     if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
     
     mode = config->register_enum(config, "input.css_decryption_method", 0,
-				 decrypt_modes, "the css decryption method libdvdcss should use",
-				 NULL, 10, NULL, NULL);
+				 decrypt_modes, _("CSS decryption method"),
+				 _("Selects the decryption method libdvdcss will use to descramble "
+				   "copy protected DVDs. Try the various methods, if you have problems "
+				   "playing scrambled DVDs."), 20, NULL, NULL);
     xine_setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
     
     css_cache_default = (char *)malloc(strlen(xine_get_homedir()) + 10);
     sprintf(css_cache_default, "%s/.dvdcss/", xine_get_homedir());
     css_cache = config->register_string(config, "input.css_cache_path", css_cache_default,
-					"path to the libdvdcss title key cache",
-					NULL, 10, NULL, NULL);
+					_("path to the title key cache"),
+					_("Since cracking the copy protection of scrambled DVDs can "
+					  "be quite time consuming, libdvdcss will cache the cracked "
+					  "keys in this directory.\nThis setting is security critical, "
+					  "because files with uncontrollable names will be created in "
+					  "this directory. Be sure to use a dedicated directory not "
+					  "used for anything but DVD key caching."),
+					XINE_CONFIG_SECURITY, NULL, NULL);
     if (strlen(css_cache) > 0)
       xine_setenv("DVDCSS_CACHE", css_cache, 0);
     free(css_cache_default);
@@ -1695,34 +1713,53 @@ static void *init_class (xine_t *xine, void *data) {
   
   config->register_num(config, "input.dvd_region",
 		       1,
-		       "Region that DVD player claims "
-		       "to be (1 -> 8)",
-		       "This only needs to be changed "
-		       "if your DVD jumps to a screen "
-		       "complaining about region code ",
+		       _("region the DVD player claims to be in (1 to 8)"),
+		       _("This only needs to be changed if your DVD jumps to a screen "
+		         "complaining about a wrong region code. It has nothing to do with "
+		         "the region code set in DVD drives, this is purely software."),
 		       0, region_changed_cb, this);
   config->register_string(config, "input.dvd_language",
 			  "en",
-			  "The default language for dvd",
-			  "The dvdnav plugin tries to use this "
-			  "language as a default. This must be a"
-			  "two character ISO country code.",
+			  _("default language for DVD playback"),
+			  _("xine tries to use this language as a default for DVD playback. "
+			    "As far as the DVD supports it, menus and audio tracks will be presented "
+			    "in this language.\nThe value must be a two character ISO639 language code."),
 			  0, language_changed_cb, this);
   config->register_bool(config, "input.dvd_use_readahead",
 			1,
-			"Do we use read-ahead caching?",
-			"This "
-			"may lead to jerky playback on low-end "
-			"machines.",
+			_("read-ahead caching"),
+			_("xine can use a read ahead cache for DVD drive access.\n"
+			  "This may lead to jerky playback on slow drives, but it improves the impact "
+			  "of the DVD layer change on faster drives."),
 			10, read_ahead_cb, this);
   config->register_enum(config, "input.dvd_skip_behaviour", 0,
 			skip_modes,
-			"Skipping will work on this basis.",
-			NULL, 10, NULL, NULL);
+			_("unit for the skip action"),
+			_("You can configure the behaviour when issuing a skip command (using the skip "
+			  "buttons for example). The individual values mean:\n\n"
+			  "skip program\n"
+			  "will skip a DVD program, which is a navigational unit similar to the "
+			  "index marks on an audio CD; this is the normal behaviour for DVD players\n\n"
+			  "skip part\n"
+			  "will skip a DVD part, which is a structural unit similar to the "
+			  "track marks on an audio CD; parts usually coincide with programs, but parts "
+			  "can be larger than programs\n\n"
+			  "skip title\n"
+			  "will skip a DVD title, which is a structural unit representing entire "
+			  "features on the DVD"),
+			20, NULL, NULL);
   config->register_enum(config, "input.dvd_seek_behaviour", 0,
 			seek_modes,
-			"Seeking will work on this basis.",
-			NULL, 10, seek_mode_cb, this);
+			_("unit for seeking"),
+			_("You can configure the domain spanned by the seek slider. The individual "
+			  "values mean:\n\n"
+			  "seek in program chain\n"
+			  "seeking will span an entire DVD program chain, which is a navigational "
+			  "unit representing the entire video stream of the current feature\n\n"
+			  "seek in program\n"
+			  "seeking will span a DVD program, which is a navigational unit representing "
+			  "a chapter of the current feature"),
+			20, seek_mode_cb, this);
 
 #ifdef __sun
   check_solaris_vold_device(this);
@@ -1736,6 +1773,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.180  2004/04/10 15:45:10  mroi
+ * improving config help strings
+ *
  * Revision 1.179  2003/12/26 16:13:21  mroi
  * * cure the ABI breakage: XINE_LANG_MAX cannot be increased
  * * add TODO items to provide a better solution

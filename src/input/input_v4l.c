@@ -1918,8 +1918,9 @@ static void *init_video_class (xine_t *xine, void *data)
   
   config->register_string (config, "input.v4l_video_device_path",
 			   VIDEO_DEV,
-			   _("path to the v4l video device"),
-			   NULL, 10, NULL, NULL);
+			   _("v4l video device"),
+			   _("The path to your Video4Linux video device."),
+			   10, NULL, NULL);
   
   return this;
 }
@@ -1943,8 +1944,9 @@ static void *init_radio_class (xine_t *xine, void *data)
   
   config->register_string (config, "input.v4l_radio_device_path",
 			   RADIO_DEV,
-			   _("path to the v4l radio device"),
-			   NULL, 10, NULL, NULL);
+			   _("v4l radio device"),
+			   _("The path to your Video4Linux radio device."),
+			   10, NULL, NULL);
   
   return this;
 }

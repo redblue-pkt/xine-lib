@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.89 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_file.c,v 1.90 2004/04/10 15:45:11 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -845,15 +845,17 @@ static void *init_plugin (xine_t *xine, void *data) {
     this->origin_path = config->register_string(config, "input.file_origin_path",
 						current_dir, 
 						_("file browsing start location"),
-						NULL, 0, origin_change_cb, 
-						(void *) this);
+						_("The browser to select the file to play will "
+						  "start at this location."),
+						0, origin_change_cb, (void *) this);
   }
   
   this->show_hidden_files = config->register_bool(config, 
 						  "input.file_hidden_files", 
-						  1, _("list hidden files"),
-						  NULL, 10, hidden_bool_cb, 
-						  (void *) this);
+						  0, _("list hidden files"),
+						  _("If enabled, the browser to select the file to "
+						    "play will also show hidden files."),
+						  10, hidden_bool_cb, (void *) this);
   
   return this;
 }

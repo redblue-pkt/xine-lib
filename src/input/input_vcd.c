@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.72 2004/01/07 22:21:40 hadess Exp $
+ * $Id: input_vcd.c,v 1.73 2004/04/10 15:45:11 mroi Exp $
  *
  */
 
@@ -1091,8 +1091,10 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.eject_media        = vcd_class_eject_media;
 
   this->device = config->register_string (config, "input.vcd_device", CDROM,
-					  _("path to your local vcd device file"),
-					  NULL, 10, device_change_cb, (void *)this);
+					  _("device used for VCD playback"),
+					  _("The path to the device, usually a CD or DVD drive, "
+					    "you intend to play your VideoCDs with."),
+					  10, device_change_cb, (void *)this);
 
   this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;
