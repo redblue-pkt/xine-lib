@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-SUBDIRS = fftw
+SUBDIRS = fftw codebook
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
