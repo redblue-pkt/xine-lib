@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.51 2001/10/27 16:12:21 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.52 2001/11/04 11:53:07 siggi Exp $
  *
  */
 
@@ -267,15 +267,65 @@ int xine_check_version(int major, int minor, int sub);
  */
 #define VO_PROP_COLORKEY          6
 /**
+ * \def VO_PROP_ZOOM_X
+ * Horizontal zoom  property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_ZOOM_X            7 
+/**
+ * \def VO_PROP_ZOOM_Y
+ * Vertical zoom property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_ZOOM_Y            8 
+/**
+ * \def VO_PROP_OFFSET_X
+ * Horizontal offset property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_OFFSET_X          9 
+/**
+ * \def VO_PROP_OFFSET_Y
+ * Vertical offset property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_OFFSET_Y          10 
+/**
  * \def VO_NUM_PROPERTIES
  * Number of available properties property.
  * \sa vo_driver_t
  */
-#define VO_NUM_PROPERTIES         7
+#define VO_NUM_PROPERTIES         11 
 
                /** @} end of video_prop */
 
-               /**
+                /**
+		* \defgroup video_zoom Zoom related constants
+		* \sa VO_PROP_ASPECT_RATIO, vo_driver_t
+		* @{
+		*/
+/**
+ * \def ZOOM_STEP
+ * Step for the zoom feature
+ * \sa VO_PROP_ZOOM_X
+ */
+#define ZOOM_STEP        100
+/**
+ * \def ZOOM_MAX
+ * Max value for zoom properties
+ * \sa VO_PROP_ZOOM_X
+ */
+#define ZOOM_MAX         400
+/**
+ * \def ZOOM_MIN
+ * Min value for zoom properties
+ * \sa VO_PROP_ZOOM_X
+ */
+#define ZOOM_MIN         -85
+    
+               /** @} end of video_zoom */
+	       
+                /**
 		* \defgroup video_ratio Possible ratios for the VO_PROP_ASPECT_RATIO call
 		* \sa VO_PROP_ASPECT_RATIO, vo_driver_t
 		* @{

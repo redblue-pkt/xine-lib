@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.24 2001/10/20 13:40:20 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.25 2001/11/04 11:53:08 siggi Exp $
  *
  *
  * xine version of video_out.h 
@@ -171,7 +171,17 @@ struct vo_instance_s {
 #define VO_PROP_CONTRAST          4
 #define VO_PROP_BRIGHTNESS        5
 #define VO_PROP_COLORKEY          6
-#define VO_NUM_PROPERTIES         7
+#define VO_PROP_ZOOM_X            7 
+#define VO_PROP_ZOOM_Y            8 
+#define VO_PROP_OFFSET_X          9 
+#define VO_PROP_OFFSET_Y          10 
+#define VO_NUM_PROPERTIES         11
+
+/* zoom specific constants FIXME: generate this from xine.tmpl.in */
+#define VO_ZOOM_STEP        100
+#define VO_ZOOM_MAX         400
+#define VO_ZOOM_MIN         -85
+
 
 /* number of recent frames to keep in memory
    these frames are needed by some deinterlace algorithms

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.72 2001/10/27 16:12:21 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.73 2001/11/04 11:53:08 siggi Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -110,6 +110,7 @@ typedef struct {
   vo_overlay_t      *overlay;
 
   /* size / aspect ratio calculations */
+  /* delivered images */
   int                delivered_width;      /* everything is set up for
 					      these frame dimensions          */
   int                delivered_height;     /* the dimension as they come
@@ -117,6 +118,20 @@ typedef struct {
   int                delivered_ratio_code;
   double             ratio_factor;         /* output frame must fullfill:
 					      height = width * ratio_factor   */
+
+  /* displayed part of delivered images */
+  int                displayed_width;
+  int                displayed_height;
+  int                displayed_xoffset;
+  int                displayed_yoffset;
+
+  /* Window */
+  int                window_width;
+  int                window_height;
+  int                window_xoffset;
+  int                window_yoffset;
+
+  /* output screen area */
   int                output_width;         /* frames will appear in this
 					      size (pixels) on screen         */
   int                output_height;
@@ -508,6 +523,100 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
   this->cur_frame = &this->deinterlace_frame;
 }
 
+static void xv_clear_unused_output_area (xv_driver_t *this,
+				     int dest_x, int dest_y,
+				     int dest_width, int dest_height) {
+
+  XLockDisplay (this->display);
+  XSetForeground (this->display, this->gc, this->black.pixel);
+
+  /* top black band */
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 dest_x, dest_y, dest_width, this->output_yoffset - dest_y);
+
+  /* left black band */
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 dest_x, dest_y, this->output_xoffset-dest_x, dest_height);
+
+  /* bottom black band */
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 dest_x, this->output_yoffset+this->output_height,
+		 dest_width,
+		 dest_height - this->output_yoffset - this->output_height);
+
+  /* right black band */
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 this->output_xoffset+this->output_width, dest_y, 
+		 dest_width - this->output_xoffset - this->output_width,
+		 dest_height);
+  XUnlockDisplay (this->display);
+}
+
+static void xv_adapt_to_zoom_x(xv_driver_t *this, int zoom_x)
+{
+  int ideal_width;
+  double zoom_factor_x;
+
+  zoom_factor_x = ((double)zoom_x + (double)VO_ZOOM_STEP) / (double)VO_ZOOM_STEP;
+  ideal_width  = (double)this->window_width * zoom_factor_x;
+  if (ideal_width > this->window_width)
+  {
+    /* cut left and right borders */
+    this->output_width = this->window_width;
+    this->output_xoffset = this->window_xoffset;
+    this->displayed_width = (double)this->delivered_width * ((double)this->window_width / (double)ideal_width);
+    this->displayed_xoffset = (this->delivered_width - this->displayed_width) / 2;
+  } else {
+    this->output_width = ideal_width;
+    this->output_xoffset = this->window_xoffset + (this->window_width - ideal_width) / 2;
+    this->displayed_xoffset = 0;
+    this->displayed_width = this->delivered_width;
+  }    
+}
+
+static void xv_adapt_to_zoom_y(xv_driver_t *this, int zoom_y)
+{
+  int ideal_height;
+  double zoom_factor_y;
+
+  zoom_factor_y = ((double)zoom_y + (double)VO_ZOOM_STEP) / (double)VO_ZOOM_STEP;
+  ideal_height  = (double)this->window_height * zoom_factor_y;
+
+  if (ideal_height > this->window_height)
+  {
+    /* cut */
+    this->output_height = this->window_height;
+    this->output_yoffset = this->window_yoffset;
+    this->displayed_height = (double)this->delivered_height * ((double)this->window_height / (double)ideal_height);
+    this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
+  } else {
+    this->output_height = ideal_height;
+    this->output_yoffset = this->window_yoffset + (this->window_height - ideal_height) / 2;
+    this->displayed_yoffset = 0;
+    this->displayed_height = this->delivered_height;
+  }
+}
+
+static void xv_adapt_to_offset (xv_driver_t *this, int xoffset, int yoffset)
+{
+  int ideal_x, ideal_y;
+
+  /* try move displayed area */
+  ideal_x = this->displayed_xoffset + xoffset;
+  ideal_y = this->displayed_yoffset + yoffset;
+  
+  if (ideal_x < 0)
+    ideal_x = 0;
+  if ((ideal_x + this->displayed_width) > this->delivered_width)
+    ideal_x = this->delivered_width - this->displayed_width;
+  if (ideal_y < 0)
+    ideal_y = 0;
+  if ((ideal_y + this->displayed_height) > this->delivered_height)
+    ideal_y = this->delivered_height - this->displayed_height;
+
+  this->displayed_xoffset = ideal_x;
+  this->displayed_yoffset = ideal_y;
+}
 
 static void xv_adapt_to_output_area (xv_driver_t *this,
 				     int dest_x, int dest_y,
@@ -516,45 +625,17 @@ static void xv_adapt_to_output_area (xv_driver_t *this,
   /*
    * make the frames fit into the given destination area
    */
+  this->window_xoffset  = dest_x;
+  this->window_yoffset  = dest_y;
+  this->window_width    = dest_width;
+  this->window_height   = dest_height;
 
-  if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
+  /* Calc output area size and displayed area size */
+  xv_adapt_to_zoom_x(this, this->props[VO_PROP_ZOOM_X].value);
+  xv_adapt_to_zoom_y(this, this->props[VO_PROP_ZOOM_Y].value);
+  xv_adapt_to_offset(this, this->props[VO_PROP_OFFSET_X].value, this->props[VO_PROP_OFFSET_Y].value);
 
-    this->output_width   = dest_width ;
-    this->output_height  = (double) dest_width / this->ratio_factor ;
-    this->output_xoffset = dest_x;
-    this->output_yoffset = dest_y + (dest_height - this->output_height) / 2;
-
-  } else {
-
-    this->output_width    = (double) dest_height * this->ratio_factor ;
-    this->output_height   = dest_height;
-    this->output_xoffset  = dest_x + (dest_width - this->output_width) / 2;
-    this->output_yoffset  = dest_y;
-  }
-
-  /*
-   * clear unused output area
-   */
-
-  XLockDisplay (this->display);
-  XSetForeground (this->display, this->gc, this->black.pixel);
-
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 dest_x, dest_y, dest_width, this->output_yoffset - dest_y);
-
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 dest_x, dest_y, this->output_xoffset-dest_x, dest_height);
-
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 dest_x, this->output_yoffset+this->output_height,
-		 dest_width,
-		 dest_height - this->output_yoffset - this->output_height);
-
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 this->output_xoffset+this->output_width, dest_y, 
-		 dest_width - this->output_xoffset - this->output_width,
-		 dest_height);
-  XUnlockDisplay (this->display);
+  xv_clear_unused_output_area (this, dest_x, dest_y, dest_width, dest_height);
 }
 
 static void xv_calc_format (xv_driver_t *this,
@@ -562,6 +643,7 @@ static void xv_calc_format (xv_driver_t *this,
 
   double image_ratio, desired_ratio;
   double corr_factor;
+  int final_width, final_height;
   int ideal_width, ideal_height;
   int dest_x, dest_y, dest_width, dest_height;
 
@@ -652,6 +734,22 @@ static void xv_calc_format (xv_driver_t *this,
 			   ideal_width, ideal_height,
 			   &dest_x, &dest_y, &dest_width, &dest_height);
 
+  /*
+   * Calc zoom value to adapt to this size
+   */
+  if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
+    final_width  = dest_width;
+    final_height = (double) dest_width / this->ratio_factor;
+  } else {
+    final_width  = (double) dest_height * this->ratio_factor;
+    final_height = dest_height;
+  }
+  
+  this->props[VO_PROP_ZOOM_X].value =
+      ((VO_ZOOM_STEP * final_width) / dest_width) - VO_ZOOM_STEP;
+  this->props[VO_PROP_ZOOM_Y].value =
+      ((VO_ZOOM_STEP * final_height) / dest_height) - VO_ZOOM_STEP;
+
   xv_adapt_to_output_area (this, dest_x, dest_y, dest_width, dest_height);
 }
 
@@ -719,6 +817,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if ( (frame->width != this->delivered_width)
 	 || (frame->height != this->delivered_height)
 	 || (frame->ratio_code != this->delivered_ratio_code) ) {
+	 printf("debug: change frame format\n");
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
     /* Alpha Blend here
@@ -731,20 +830,23 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
     XLockDisplay (this->display);
     
+//		    this->cur_frame->width-2*this->zoom_xoffset, this->cur_frame->height-5-2*this->zoom_yoffset,
     if (this->use_shm) {
       XvShmPutImage(this->display, this->xv_port,
 		    this->drawable, this->gc, this->cur_frame->image,
-		    0, 0,  this->cur_frame->width, this->cur_frame->height-5,
+		    this->displayed_xoffset, this->displayed_yoffset,
+		    this->displayed_width, this->displayed_height - 5,
 		    this->output_xoffset, this->output_yoffset,
 		    this->output_width, this->output_height, True);
 
       this->expecting_event = 10;
     } else {
       XvPutImage(this->display, this->xv_port,
-		 this->drawable, this->gc, this->cur_frame->image,
-		 0, 0,  this->cur_frame->width, this->cur_frame->height-5,
-		 this->output_xoffset, this->output_yoffset,
-		 this->output_width, this->output_height);
+		    this->drawable, this->gc, this->cur_frame->image,
+		    this->displayed_xoffset, this->displayed_yoffset,
+		    this->displayed_width, this->displayed_height - 5,
+		    this->output_xoffset, this->output_yoffset,
+		    this->output_width, this->output_height);
     }
 
     XFlush(this->display);
@@ -796,6 +898,44 @@ static int xv_set_property (vo_driver_t *this_gen,
 
       xv_calc_format (this, this->delivered_width, this->delivered_height,
 		      this->delivered_ratio_code) ;
+      break;
+    case VO_PROP_ZOOM_X:
+      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX))
+      {
+        this->props[property].value = value;
+        printf("video_out_xv: VO_PROP_ZOOM_X(%d) \n",
+	           this->props[property].value);
+	           
+        xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
+            this->window_width, this->window_height);
+      }
+      break;
+    case VO_PROP_ZOOM_Y:
+      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX))
+      {
+        this->props[property].value = value;
+        printf("video_out_xv: VO_PROP_ZOOM_Y(%d) \n",
+	           this->props[property].value);
+	           
+        xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
+            this->window_width, this->window_height);
+      }
+      break;
+    case VO_PROP_OFFSET_X:
+      this->props[property].value = value;
+      printf("video_out_xv: VO_PROP_OFFSET_X(%d) \n",
+          this->props[property].value);
+	           
+      xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
+          this->window_width, this->window_height);
+      break;
+    case VO_PROP_OFFSET_Y:
+      this->props[property].value = value;
+      printf("video_out_xv: VO_PROP_OFFSET_Y(%d) \n",
+          this->props[property].value);
+	           
+      xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
+          this->window_width, this->window_height);
       break;
     }
   }
@@ -850,9 +990,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
 
     area = (x11_rectangle_t *) data;
-
     xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
-
     break;
   case GUI_DATA_EX_COMPLETION_EVENT: {
    
@@ -877,17 +1015,19 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 	XLockDisplay (this->display);
 
 	if (this->use_shm) {
-	  XvShmPutImage(this->display, this->xv_port,
-			this->drawable, this->gc, this->cur_frame->image,
-			0, 0,  this->cur_frame->width, this->cur_frame->height-5,
-			this->output_xoffset, this->output_yoffset,
-			this->output_width, this->output_height, False);
+      XvShmPutImage(this->display, this->xv_port,
+		    this->drawable, this->gc, this->cur_frame->image,
+		    this->displayed_xoffset, this->displayed_yoffset,
+		    this->displayed_width, this->displayed_height - 5,
+		    this->output_xoffset, this->output_yoffset,
+		    this->output_width, this->output_height, True);
 	} else {
 	  XvPutImage(this->display, this->xv_port,
-		     this->drawable, this->gc, this->cur_frame->image,
-		     0, 0,  this->cur_frame->width, this->cur_frame->height-5,
-		     this->output_xoffset, this->output_yoffset,
-		     this->output_width, this->output_height);
+		    this->drawable, this->gc, this->cur_frame->image,
+		    this->displayed_xoffset, this->displayed_yoffset,
+		    this->displayed_width, this->displayed_height - 5,
+		    this->output_xoffset, this->output_yoffset,
+		    this->output_width, this->output_height);
 	}
 	XFlush(this->display);
 
@@ -1073,6 +1213,14 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->output_yoffset    = 0;
   this->output_width      = 0;
   this->output_height     = 0;
+  this->displayed_xoffset = 0;
+  this->displayed_yoffset = 0;
+  this->displayed_width   = 0;
+  this->displayed_height  = 0;
+  this->window_xoffset    = 0;
+  this->window_yoffset    = 0;
+  this->window_width      = 0;
+  this->window_height     = 0;
   this->drawable          = visual->d;
   this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
   this->xv_port           = xv_port;
