@@ -21,8 +21,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __ALTIVEC__
-
 #include "config.h"
 
 #if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
@@ -32,13 +30,7 @@
 #include "mpeg2_internal.h"
 #include "xineutils.h"
 
-static int16_t constants[5][8] ATTR_ALIGN(16) = {
-    {23170, 13573, 6518, 21895, -23170, -21895, 32, 31},
-    {16384, 22725, 21407, 19266, 16384, 19266, 21407, 22725},
-    {22725, 31521, 29692, 26722, 22725, 26722, 29692, 31521},
-    {21407, 29692, 27969, 25172, 21407, 25172, 27969, 29692},
-    {19266, 26722, 25172, 22654, 19266, 22654, 25172, 26722}
-};
+#ifndef HOST_OS_DARWIN
 
 /*
  * The asm code is generated with:
@@ -497,6 +489,14 @@ void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride)
 	 );
 }
 
+static int16_t constants[5][8] ATTR_ALIGN(16) = {
+    {23170, 13573, 6518, 21895, -23170, -21895, 32, 31},
+    {16384, 22725, 21407, 19266, 16384, 19266, 21407, 22725},
+    {22725, 31521, 29692, 26722, 22725, 26722, 29692, 31521},
+    {21407, 29692, 27969, 25172, 21407, 25172, 27969, 29692},
+    {19266, 26722, 25172, 22654, 19266, 22654, 25172, 26722}
+};
+
 void mpeg2_idct_altivec_init (void)
 {
     int i, j;
@@ -512,9 +512,7 @@ void mpeg2_idct_altivec_init (void)
     }
 }
 
-#endif	/* ARCH_PPC */
-
-#else	/* __ALTIVEC__ */
+#else	/* HOST_OS_DARWIN */
 
 #define vector_s16_t vector signed short
 #define vector_u16_t vector unsigned short
@@ -694,6 +692,20 @@ void mpeg2_idct_add_altivec (vector_s16_t * block, unsigned char * dest,
     memset (block, 0, 64 * sizeof (signed short));
 }
 
-#endif	/* __ALTIVEC__ */
+void mpeg2_idct_altivec_init (void)
+{
+    int i, j;
 
+    /* the altivec idct uses a transposed input, so we patch scan tables */
+    for (i = 0; i < 64; i++) {
+	j = mpeg2_scan_norm[i];
+	mpeg2_scan_norm[i] = (j >> 3) | ((j & 7) << 3);
+	j = mpeg2_scan_alt[i];
+	mpeg2_scan_alt[i] = (j >> 3) | ((j & 7) << 3);
+    }
+}
+
+#endif	/* HOST_OS_DARWIN */
+
+#endif	/* ARCH_PPC && ENABLED_ALTIVEC */
 

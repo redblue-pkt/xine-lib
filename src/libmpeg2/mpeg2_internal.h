@@ -239,8 +239,15 @@ void mpeg2_zero_block_mmx (int16_t * block);
 void mpeg2_idct_mmx_init (void);
 
 /* idct_altivec.c */
+#ifndef HOST_OS_DARWIN
 void mpeg2_idct_copy_altivec (int16_t * block, uint8_t * dest, int stride);
 void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride);
+#else /* HOST_OS_DARWIN */
+void mpeg2_idct_copy_altivec (vector signed short * block, unsigned char * dest,
+			      int stride);
+void mpeg2_idct_add_altivec (vector signed short * block, unsigned char * dest,
+			     int stride);
+#endif /* HOST_OS_DARWIN */
 void mpeg2_idct_altivec_init (void);
 
 /* motion_comp.c */

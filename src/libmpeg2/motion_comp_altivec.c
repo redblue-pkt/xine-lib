@@ -21,20 +21,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __ALTIVEC__
-
 #include "config.h"
+
+#ifndef HOST_OS_DARWIN
 
 #if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
 
-#include <inttypes.h>
-
 #include "mpeg2_internal.h"
+
+#include <inttypes.h>
 
 /*
  * The asm code is generated with:
  *
- * gcc-2.95 -fvec -D__ALTIVEC__ -O9 -fomit-frame-pointer -mregnames -S
+ * gcc-2.95 -fvec -DHOST_OS_DARWIN -O9 -fomit-frame-pointer -mregnames -S
  *      motion_comp_altivec.c
  *
  * sed 's/.L/._L/g' motion_comp_altivec.s |
@@ -1067,7 +1067,9 @@ MPEG2_MC_EXTERN (altivec)
 
 #endif	/* ARCH_PPC */
 
-#else	/* __ALTIVEC__ */
+#else	/* HOST_OS_DARWIN */
+
+#include "mpeg2_internal.h"
 
 #define vector_s16_t vector signed short
 #define vector_u16_t vector unsigned short
@@ -2019,4 +2021,7 @@ void MC_avg_xy_8_altivec (unsigned char * dest, unsigned char * ref,
     vec_ste ((vector_u32_t)tmp, 4, (unsigned int *)dest);
 }
 
-#endif	/* __ALTIVEC__ */
+MPEG2_MC_EXTERN (altivec)
+
+#endif	/* HOST_OS_DARWIN */
+
