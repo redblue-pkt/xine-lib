@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.11 2002/12/29 22:34:29 tmattern Exp $
+ * $Id: xine_goom.c,v 1.12 2002/12/29 23:58:43 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -365,36 +365,33 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
     dest_ptr = frame -> base[0];
     goom_frame_end = goom_frame + 4 * (GOOM_WIDTH * GOOM_HEIGHT);
     while (goom_frame < goom_frame_end) {
-    
+      uint8_t r1, g1, b1, r2, g2, b2;
+      
 #ifdef __BIG_ENDIAN__
       goom_frame ++;
-      
-      {
-	uint8_t r1 = *(goom_frame++);
-	uint8_t g1 = *(goom_frame++);
-	uint8_t b1 = *goom_frame; goom_frame += 2;
-	uint8_t r2 = *(goom_frame++);
-	uint8_t g2 = *(goom_frame++);
-	uint8_t b2 = *(goom_frame++);
+      r1 = *goom_frame; goom_frame++;
+      g1 = *goom_frame; goom_frame++;
+      b1 = *goom_frame; goom_frame += 2;
+      r2 = *goom_frame; goom_frame++;
+      g2 = *goom_frame; goom_frame++;
+      b2 = *goom_frame; goom_frame++;
 #else
-      {
-	uint8_t b1 = *(goom_frame++);
-	uint8_t g1 = *(goom_frame++);
-	uint8_t r1 = *goom_frame; goom_frame += 2;
-	uint8_t b2 = *(goom_frame++);
-	uint8_t g2 = *(goom_frame++);
-	uint8_t r2 = *goom_frame; goom_frame += 2;
+      b1 = *goom_frame; goom_frame++;
+      g1 = *goom_frame; goom_frame++;
+      r1 = *goom_frame; goom_frame += 2;
+      b2 = *goom_frame; goom_frame++;
+      g2 = *goom_frame; goom_frame++;
+      r2 = *goom_frame; goom_frame += 2;
 #endif
-	
-	*dest_ptr = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) >> 16;
-	dest_ptr++;
-	*dest_ptr = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) >> 16) + 128;
-	dest_ptr++;
-	*dest_ptr = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) >> 16;
-	dest_ptr++;
-	*dest_ptr = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) >> 16) + 128;
-	dest_ptr++;
-      }
+      
+      *dest_ptr = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) >> 16;
+      dest_ptr++;
+      *dest_ptr = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) >> 16) + 128;
+      dest_ptr++;
+      *dest_ptr = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) >> 16;
+      dest_ptr++;
+      *dest_ptr = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) >> 16) + 128;
+      dest_ptr++;
     }
 #endif
 
