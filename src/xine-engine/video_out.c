@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.40 2001/08/14 11:57:40 guenter Exp $
+ * $Id: video_out.c,v 1.41 2001/09/06 14:09:37 jkeil Exp $
  *
  */
 
@@ -283,10 +283,15 @@ static void *video_out_loop (void *this_gen) {
     if (this->overlay_source) {
       /* This is the only way for the spu decoder to get pts values
        * for flushing it's buffers. So don't remove it! */
-      vo_overlay_t *ovl =
-       this->overlay_source->get_overlay (this->overlay_source, img->PTS);
+      vo_overlay_t *ovl;
+      
+      profiler_start_count (4);
+
+      ovl = this->overlay_source->get_overlay (this->overlay_source, img->PTS);
       if (ovl && this->driver->overlay_blend)
 	this->driver->overlay_blend (this->driver, img, ovl); 
+
+      profiler_stop_count (4);
     }
     
     this->driver->display_frame (this->driver, img); 
