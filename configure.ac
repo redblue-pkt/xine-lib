@@ -2007,7 +2007,7 @@ dnl cat libtool.tmp > libtool
 dnl chmod +x libtool
 
 dnl make libtool-nofpic silent and not installing plugins's .la files
-cat libtool | sed -e 's/^ *\$echo \"---------.*$/exit 0/;s/# Install the pseudo-library.*/continue/' > libtool.tmp
+cat libtool | sed -e 's/^.*echo \"---------.*$/exit 0/;s/# Install the pseudo-library.*/continue/' > libtool.tmp
 
 dnl Remove fPIC flag, if necessary
 if test x$no_fpic = "xyes"; then
