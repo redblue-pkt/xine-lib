@@ -154,8 +154,8 @@ typedef struct {
   unsigned long    calc_frequency;
   char		   *tuner_name;
 
-   int		  radio;   /* ask for a radio channel */
-   int		  channel; /* channel number */
+  int		  radio;   /* ask for a radio channel */
+  int		  channel; /* channel number */
 
   struct video_channel     video_channel;
   struct video_tuner       video_tuner;
@@ -698,7 +698,7 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
 	 DBGPRINT("The tuner is in AUTO mode\r\n");
 	 break;
    }
-#endif		
+#endif
    return 1;   
 }
 
@@ -706,6 +706,7 @@ int open_radio_capture_device(v4l_input_plugin_t *this)
 {
    int tuner_found = 0;
    int i = 0;
+   cfg_entry_t* entry;
 
    /*
     * pre-alloc a bunch of frames
@@ -718,7 +719,10 @@ int open_radio_capture_device(v4l_input_plugin_t *this)
 
    DBGPRINT("Opening radio device\n");
 
-   this->radio_fd = open("/dev/v4l/radio0", O_RDWR);
+   entry = this->stream->xine->config->lookup_entry(
+	 this->stream->xine->config, "input.v4l_audio_device_path");
+
+   this->radio_fd = open(entry->str_value, O_RDWR);
 
    if (this->radio_fd < 0)
       return 0; 
@@ -796,6 +800,7 @@ int open_video_capture_device(v4l_input_plugin_t *this)
 {
    int i, j, ret, found = 0;
    int tuner_found = 0;
+   cfg_entry_t* entry;
    
    DBGPRINT("Trying to open '%s'\n", this->mrl);
 
@@ -808,12 +813,15 @@ int open_video_capture_device(v4l_input_plugin_t *this)
    pthread_mutex_init (&this->aud_frames_lock, NULL);
    pthread_cond_init  (&this->aud_frame_freed, NULL); 
 
+   entry = this->stream->xine->config->lookup_entry(
+	 this->stream->xine->config, "input.v4l_video_device_path");
+
    /* Try to open the video device */
-   this->video_fd = open("/dev/v4l/video0", O_RDWR);
+   this->video_fd = open(entry->str_value, O_RDWR);
    
    if (this->video_fd < 0) {
-      DBGPRINT("(%d) Cannot open v4l device: %s\n", this->video_fd, 
-	    strerror(errno));
+      DBGPRINT("(%d) Cannot open v4l device (%s): %s\n", this->video_fd,
+	    entry->str_value, strerror(errno));
       return 0;
    }
    DBGPRINT("Device opened, tv %d\n", this->video_fd);
@@ -1186,7 +1194,8 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
       
       this->scr_tunning = SCR_PAUSED;
       pvrscr_speed_tunning(this->scr, 0.0);
-      this->stream->audio_out->set_property(this->stream->audio_out, AO_PROP_PAUSED, 2);
+      if (this->stream->audio_out != NULL)
+       this->stream->audio_out->set_property(this->stream->audio_out, AO_PROP_PAUSED, 2);
    } else
    if (num_free <= 1 && scr_tunning != SCR_SKIP) {
       this->scr_tunning = SCR_SKIP;
@@ -1204,7 +1213,8 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
 	 this->scr_tunning = 0;
 
 	 pvrscr_speed_tunning(this->scr, 1.0);
-	 this->stream->audio_out->set_property(this->stream->audio_out, AO_PROP_PAUSED, 0);
+	 if (this->stream->audio_out != NULL)
+	   this->stream->audio_out->set_property(this->stream->audio_out, AO_PROP_PAUSED, 0);
       }
    } else
    if (scr_tunning == SCR_SKIP) {
@@ -1794,6 +1804,7 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
 		xine_stream_t *stream, const char *data)
 {
    int is_ok = 1;
+   cfg_entry_t* entry;
    
    v4l_input_plugin_t *this = NULL;
   
@@ -1804,20 +1815,23 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
       this->input_plugin.open              = v4l_plugin_video_open;
    else
       return NULL;
-  
+
+   entry = this->stream->xine->config->lookup_entry(
+	 this->stream->xine->config, "input.v4l_video_device_path");
+
    /* Try to see if the MRL contains a v4l device we understand */
    if (is_ok)
       extract_mrl(this, this->mrl);
 
    /* Try to open the video device */
    if (is_ok)
-      this->video_fd = open(VIDEO_DEV, O_RDWR);
+      this->video_fd = open(entry->str_value, O_RDWR);
  
    if (is_ok && this->video_fd < 0) {
       DBGPRINT("(%d) Cannot open v4l device: %s\n", this->video_fd, 
 	    strerror(errno));
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-	    PLUGIN ": Sorry, could not open %s\n", VIDEO_DEV);
+	    PLUGIN ": Sorry, could not open %s\n", entry->str_value);
 	    is_ok = 0;
    } else
       DBGPRINT("Device opened, tv %d\n", this->video_fd);
@@ -1868,6 +1882,7 @@ static input_plugin_t *v4l_class_get_radio_instance (input_class_t *cls_gen,
 {
    int is_ok = 1;
    v4l_input_plugin_t *this = NULL;
+   cfg_entry_t* entry;
    
    if (strstr(data, "Radio") == NULL)
       return NULL;
@@ -1880,13 +1895,17 @@ static input_plugin_t *v4l_class_get_radio_instance (input_class_t *cls_gen,
    else
       return NULL;
 
+   entry = this->stream->xine->config->lookup_entry(
+	          this->stream->xine->config, "input.v4l_radio_device_path");
+
    if (is_ok)
-      this->radio_fd = open(RADIO_DEV, O_RDWR);
+      this->radio_fd = open(entry->str_value, O_RDWR);
 
    if (this->radio_fd < 0) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
 	    PLUGIN ": Allthough normally we would be able to handle this MRL,\n"
-	    PLUGIN ": I am unable to open the radio device.[%s]\n", RADIO_DEV);
+	    PLUGIN ": I am unable to open the radio device.[%s]\n",
+	    entry->str_value);
       is_ok = 0;
    } else
       DBGPRINT("Device opened, radio %d\n", this->radio_fd);
@@ -1934,6 +1953,7 @@ static void v4l_class_dispose (input_class_t *this_gen) {
 static void *init_video_class (xine_t *xine, void *data)
 {
    v4l_input_class_t  *this;
+   config_values_t    *config = xine->config;
    
    this = (v4l_input_class_t *) xine_xmalloc (sizeof (v4l_input_class_t));
    
@@ -1946,13 +1966,19 @@ static void *init_video_class (xine_t *xine, void *data)
    this->input_class.get_autoplay_list  = NULL;
    this->input_class.dispose            = v4l_class_dispose;
    this->input_class.eject_media        = NULL;
-   
+
+   config->register_string (config, "input.v4l_video_device_path",
+			    VIDEO_DEV,
+			    _("path to the v4l video device"),
+			    NULL, 10, NULL, NULL);
+ 
    return this;
 }
 
 static void *init_radio_class (xine_t *xine, void *data)
 {
    v4l_input_class_t  *this;
+   config_values_t    *config = xine->config;
    
    this = (v4l_input_class_t *) xine_xmalloc (sizeof (v4l_input_class_t));
   
@@ -1965,7 +1991,12 @@ static void *init_radio_class (xine_t *xine, void *data)
    this->input_class.get_autoplay_list  = NULL;
    this->input_class.dispose            = v4l_class_dispose;
    this->input_class.eject_media        = NULL;
-   
+
+   config->register_string (config, "input.v4l_radio_device_path",
+			    RADIO_DEV,
+			    _("path to the v4l radio device"),
+			    NULL, 10, NULL, NULL);
+
    return this;
 }
 
@@ -1975,8 +2006,8 @@ static void *init_radio_class (xine_t *xine, void *data)
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 13, "v4l_radio", XINE_VERSION_CODE, NULL, init_radio_class },
-  { PLUGIN_INPUT, 13, "v4l_tv", XINE_VERSION_CODE, NULL, init_video_class },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 13, "v4l_radio", XINE_VERSION_CODE, NULL, init_radio_class },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 13, "v4l_tv", XINE_VERSION_CODE, NULL, init_video_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
