@@ -1,13 +1,15 @@
 SUBDIRS = fonts
 
 EXTRA_DIST = build_rpms.sh \
+	cdda_server.c \
 	SlackBuild.in \
 	SlackBuild \
 	vga.xinefont.gz \
 	xine-fontconv.c \
 	xine-lib.spec.in \
 	xine-lib.spec \
-	libxine.pc.in
+	libxine.pc.in \
+	libdvdcss-1.2.6-network.patch
 
 bin_SCRIPTS = xine-config
 
