@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.106 2003/02/16 20:16:01 guenter Exp $
+ * $Id: audio_out.c,v 1.107 2003/02/21 02:05:12 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -924,7 +924,9 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   audio_buffer_t *in_buf, *out_buf;
   xine_stream_t  *stream;
 
+#ifdef LOG
   printf ("audio_audio: get_next_audio_frame\n");
+#endif
 
   do {
     stream = xine_list_first_content(this->streams);

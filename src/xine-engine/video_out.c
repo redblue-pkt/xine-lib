@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.144 2003/02/20 11:59:32 jstembridge Exp $
+ * $Id: video_out.c,v 1.145 2003/02/21 02:05:12 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -965,9 +965,11 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
 
   /* FIXME: ugly, use conditions and locks instead */
 
+#ifdef LOG
   printf ("video_out: get_next_video_frame demux status = %d, fifo_size=%d\n",
 	  stream->demux_plugin->get_status (stream->demux_plugin),
 	  stream->video_fifo->fifo_size);
+#endif
 
   while ( !img && (stream->video_fifo->fifo_size 
 		   || (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK))) {
