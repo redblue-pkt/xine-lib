@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.47 2001/10/25 00:46:58 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.48 2001/10/30 09:42:26 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1065,6 +1065,14 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     case mmioFOURCC('i', '2', '6', '3'):
       /* Video in I263 format */
       this->avi->video_type     = BUF_VIDEO_I263;
+      break;
+    case mmioFOURCC('W','M','V','1'):
+      /* Windows Media Video 7 */
+      this->avi->video_type     = BUF_VIDEO_WMV7;
+      break;
+    case mmioFOURCC('W','M','V','2'):
+      /* Windows Media Video 8 */
+      this->avi->video_type     = BUF_VIDEO_WMV8;
       break;
     default:
       printf ("demux_avi: unknown avi format %.4s\n",

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.4 2001/10/25 00:46:58 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.5 2001/10/30 09:42:26 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -442,6 +442,14 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
   case mmioFOURCC('i', '2', '6', '3'):
     /* Video in I263 format */
     this->streams[this->num_streams].buf_type     = BUF_VIDEO_I263;
+    break;
+  case mmioFOURCC('W','M','V','1'):
+    /* Windows Media Video 7 */
+    this->streams[this->num_streams].buf_type     = BUF_VIDEO_WMV7;
+    break;
+  case mmioFOURCC('W','M','V','2'):
+    /* Windows Media Video 8 */
+    this->streams[this->num_streams].buf_type     = BUF_VIDEO_WMV8;
     break;
   default:
     printf ("demux_asf: unknown video format %.4s\n",
