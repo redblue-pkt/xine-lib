@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.8 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: dxr3_video_out.c,v 1.9 2002/03/07 13:33:44 jcdutton Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -160,32 +160,6 @@ int dxr3_rte_init(dxr3_driver_t *);
 int dxr3_fame_init(dxr3_driver_t *);
 #endif
 
-#define MV_COMMAND 0
-
-vo_info_t *get_video_out_plugin_info();
-
-/* some helper stuff so that the decoder plugin can test for the
- * presence of the dxr3 vo driver */
-/* to be called by dxr3 video out init and exit handlers */
-static void dxr3_set_vo(dxr3_driver_t* this, int active)
-{
-	cfg_entry_t *entry;
-	config_values_t *config = this->config;
-
-	entry = config->lookup_entry(config, "dxr3.active");
-	if (! entry) {
-		/* register first */
-		config->register_num(config, "dxr3.active", active, 
-			"state of dxr3 video out", 
-			"(internal variable; do not edit)",
-			NULL, NULL);
-	}
-	else {
-		entry->num_value = active;
-	}
-	printf("dxr3: %s dxr3 video out.\n", (active ? "enabled" : "disabled"));
-}
-
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
 	return VO_CAP_YV12 | VO_CAP_YUY2 |
@@ -221,6 +195,7 @@ static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
     frame->vo_frame.copy = 0;
   frame->vo_frame.field   = dummy_frame_field; 
   frame->vo_frame.dispose = dxr3_frame_dispose;
+  frame->vo_frame.driver  = this_gen;
 
   return (vo_frame_t*) frame;
 }
@@ -237,7 +212,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
   /* reset the copy calls counter (number of calls to dxr3_frame_copy) */	
   frame->copy_calls = 0;
-  frame->vo_instance = this;
+  frame->vo_frame.driver = this_gen;
 
   aspect = this->aspectratio;
   oheight = this->oheight;
@@ -255,7 +230,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 	/* FIXME: Disable reset of mpeg_source 
 	 * video_out.c can call us without the DXR3_VO_UPDATE_FLAG in
 	 * the still frames code. Needs a better fix... */
-	/* this->mpeg_source = 0; */
+	this->mpeg_source = 0;
   }
 
   /* for mpeg source, we don't have to do much. */
@@ -431,7 +406,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
 	dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen;
-	dxr3_driver_t *this = frame->vo_instance;
+	dxr3_driver_t *this = (dxr3_driver_t *) frame_gen->driver;
 	if (this->mpeg_source == 0 && this->enc && this->enc->on_frame_copy)
 		this->enc->on_frame_copy(this, frame, src);
 }
@@ -476,7 +451,6 @@ void dxr3_exit (vo_driver_t *this_gen)
 
 	if(this->overlay_enabled)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF);
-	dxr3_set_vo(this, 0);
 }
 
 void dxr3_update_add_bars(void *data, cfg_entry_t* entry)
@@ -508,6 +482,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	char tmpstr[100];
 	const char *encoder; 
 	char *available_encoders,*default_encoder;
+	char *confstr;
+	int dashpos;
 
 	/*
 	* allocate plugin struct
@@ -542,12 +518,25 @@ printf("dxr3_video_out:init_plugin\n");
 	
 	this->enhanced_mode = config->register_bool(config,"dxr3.enc_alt_play_mode", 1, "dxr3: use alternate play mode for mpeg encoder playback","Enabling this option will utilise a slightly different play mode",dxr3_update_enhanced_mode,this);
 	/* open control device */
-	this->devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV,NULL,NULL,NULL,NULL);
+	confstr = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV,NULL,NULL,NULL,NULL);
+	strncpy(this->devname, confstr, 128);
+	this->devname[127] = '\0';
+	dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
+	if (this->devname[dashpos] == '-') {
+		/* use new device naming scheme with trailing number */
+		strncpy(this->devnum, &this->devname[dashpos], 3);
+		this->devname[dashpos] = '\0';
+	} else {
+		/* use old device naming scheme without trailing number */
+		/* FIXME: remove this when everyone uses em8300 >=0.12.0 */
+		this->devnum[0] = '\0';
+	}
 
-	printf("dxr3: Entering video init, devname=%s.\n",this->devname);
-	if ((this->fd_control = open(this->devname, O_WRONLY)) < 0) {
+	snprintf (tmpstr, sizeof(tmpstr), "%s%s", this->devname, this->devnum);
+	printf("dxr3: Entering video init, devname=%s.\n",tmpstr);
+	if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
 		printf("dxr3: Failed to open control device %s (%s)\n",
-			this->devname, strerror(errno));
+			tmpstr, strerror(errno));
 		return 0;
 	}
         /* output mpeg to file instead of dxr3? */
@@ -562,7 +551,7 @@ printf("dxr3_video_out:init_plugin\n");
 	}
 	else {        
 	 	/* open video device */
-		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", this->devname);
+		snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
 		if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
 			printf("dxr3: failed to open video device %s (%s)\n",
 				tmpstr, strerror(errno));
@@ -617,8 +606,6 @@ printf("dxr3_video_out:init_plugin\n");
 		);
 	}
 
-	gather_screen_vars(this, visual_gen);
-	
 	/* default values */
 	this->overlay_enabled = 0;
 	this->aspectratio = ASPECT_FULL;
@@ -626,11 +613,11 @@ printf("dxr3_video_out:init_plugin\n");
 	dxr3_read_config(this);
 	
 	if (this->overlay_enabled) {
+		gather_screen_vars(this, visual_gen);
 		dxr3_get_keycolor(this);
 		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
 	}
 
-	dxr3_set_vo(this, 1);
 	return &this->vo_driver;
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.16 2002/03/05 20:39:05 jcdutton Exp $
+ * $Id: dxr3_vo_core.c,v 1.17 2002/03/07 13:33:44 jcdutton Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -287,7 +287,7 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		if (value > ASPECT_FULL)
 			value = ASPECT_ANAMORPHIC;
 		this->aspectratio = value;
-		fullscreen = is_fullscreen(this);
+		fullscreen = this->overlay_enabled ? is_fullscreen(this) : 0;
 
 		if (value == ASPECT_ANAMORPHIC) {
 			fprintf(stderr, "dxr3_vo: setting aspect ratio to anamorphic\n");

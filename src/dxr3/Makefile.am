@@ -1,6 +1,6 @@
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ $(LINUX_INCLUDE)
 
-EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c 
+EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c nav_read.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -18,7 +18,7 @@ endif
 
 lib_LTLIBRARIES = $(dxr3_modules) 
 
-xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c
+xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c nav_read.c
 xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = dxr3_video_out.c \

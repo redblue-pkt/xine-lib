@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.13 2002/02/25 23:44:05 jcdutton Exp $
+ * $Id: dxr3_video_out.h,v 1.14 2002/03/07 13:33:44 jcdutton Exp $
  *
  */
 
@@ -93,7 +93,8 @@ typedef struct dxr3_driver_s {
 	int		mpeg_source; /* receiving mpeg data or raw YUV? */
 	int		enhanced_mode; /* enhanced play mode */
 	em8300_bcs_t 	bcs;
-	const char	*devname;
+	char		devname[128];
+	char		devnum[3];
 
 	/* for encoder plugin */
 	encoder_data_t	*enc; /* encoder data */
@@ -141,7 +142,6 @@ typedef struct dxr3_frame_s {
   uint8_t       *mem; 		/* allocated for YV12 or YUY2 buffers */
   uint8_t       *real_base[3]; 	/* yuv/yuy2 buffers in mem aligned on 16 */
   int           format;
-  dxr3_driver_t *vo_instance; 	/* points to self, for use in dxr3_frame_copy */
   int           copy_calls; 	/* counts calls to dxr3_frame_copy function */
   int		swap_fields;	/* shifts Y buffer one line to exchange odd/even lines*/
 } dxr3_frame_t;

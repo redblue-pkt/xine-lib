@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.61 2002/03/05 21:54:31 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.62 2002/03/07 13:33:44 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -78,20 +78,22 @@
 #include "xine_internal.h"
 #include "buffer.h"
 #include "xine-engine/bswap.h"
+#include "nav_types.h"
+#include "nav_read.h"
 
 /* for DXR3_VO_UPDATE_FLAG */
 #include "dxr3_video_out.h"
 
 #define LOOKUP_DEV "dxr3.devicename"
 #define DEFAULT_DEV "/dev/em8300"
-static char *devname;
+static char devname[128];
+static char devnum[3];
 
 /* lots of poohaa about pts things */
-#define LOG_PTS 0 
+#define LOG_PTS 0
 #define LOG_SPU 0 
 
 #define MV_COMMAND 0
-#define MV_STATUS  1
 #ifndef MVCOMMAND_SCAN
  #define MVCOMMAND_SCAN 4
 #endif
@@ -104,7 +106,7 @@ typedef struct dxr3_decoder_s {
 	
 	int fd_control;
 	int fd_video;
-	int last_pts;
+	int64_t last_pts;
 	scr_plugin_t *scr;
 	int scr_prio;
 	int width;
@@ -112,7 +114,7 @@ typedef struct dxr3_decoder_s {
 	int aspect;
 	int frame_rate_code;
 	int repeat_first_field;
-	/* try to sync PTS every frame. will be disabled if non-progessive
+	/* try to sync pts every frame. will be disabled if non-progessive
 	   video is detected via repeat first field */
 	int sync_every_frame;
 	/* if disabled by repeat first field, retry after 500 frames */
@@ -122,17 +124,6 @@ typedef struct dxr3_decoder_s {
 	int in_buffer_fill;
 	pthread_t decoder_thread; /* reference to self */
 } dxr3_decoder_t;
-
-/* Function to check whether the dxr3 video out plugin is active.
- * Without it, we can't work and must give it to libmpeg2.
- * We (ab)use a config value for this (set by dxr3 video out init/exit)
- */
-static int dxr3_check_vo(config_values_t* cfg) 
-{
-	cfg_entry_t* entry;
-	entry = cfg->lookup_entry(cfg, "dxr3.active");
-	return (entry && entry->num_value);
-}
 
 static int dxr3_tested = 0;
 static int dxr3_ok;
@@ -162,7 +153,7 @@ static void dxr3_presence_test( xine_t* xine)
    4 	- Play intra frames only (for FFWD/FBackward)
    6 	- Alternate playmode - not much is known about this mode
      	  other than it buffers frames, possibly re-organising them
-     	  on-the-fly to match SCR vs PTS values
+     	  on-the-fly to match scr vs pts values
    0x11 - Flush the onboard buffer???????
    0x10 - as above??? 
 */
@@ -179,7 +170,8 @@ typedef struct dxr3scr_s {
 	scr_plugin_t scr;
 	int fd_control;
 	int priority;
-	int offset; /* a little offset < 7200 */
+	int64_t offset;     /* difference between real scr and internal dxr3 clock */
+	uint32_t last_pts;  /* last known value of internal dxr3 clock to detect wrap around */
 } dxr3scr_t;
 
 static int dxr3scr_get_priority (scr_plugin_t *scr) {
@@ -244,25 +236,33 @@ static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 
 
 /* *** dxr3scr_adjust ***
-   Adjusts the SCR value of the card to match that given.
-   This function is only called if the dxr3 SCR plugin is
+   Adjusts the scr value of the card to match that given.
+   This function is only called if the dxr3 scr plugin is
    _NOT_ master...
    Harm: wish that were so. It's called by audio_out
    (those adjusting master clock x->y messages)
 */
 static void dxr3scr_adjust (scr_plugin_t *scr, int64_t vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
-	uint32_t cpts;
-	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &cpts))
+	uint32_t cpts32;
+	int32_t offset32;
+	int64_t cpts;
+	
+	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &cpts32))
 		printf("dxr3scr: adjust get failed (%s)\n", strerror(errno));
-	cpts <<= 1;
+	cpts = (int64_t)cpts32 << 1;
+	self->last_pts = cpts32;
 	self->offset = vpts - cpts;
-	/* kernel driver ignores diffs < 7200 */
-	if (self->offset < -7200 || self->offset > 7200) {
-		vpts >>= 1;
-		if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts))
+	offset32 = self->offset / 4;
+	/* kernel driver ignores diffs < 7200, so abs(offste32) must be > 7200 / 4 */
+	if (offset32 < -7200/4 || offset32 > 7200/4) {
+		uint32_t vpts32 = vpts >> 1;
+		if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
 			printf("dxr3scr: adjust set failed (%s)\n", strerror(errno));
-		self->offset = 0;
+		self->last_pts = vpts32;
+		self->offset &= ~0x1FFFFFFFF;
+		/* the internal clock in the dxr3 is 33 bits wide, so the upper bits
+		   remain as an offset */
 	}
 }
 
@@ -273,14 +273,15 @@ static void dxr3scr_adjust (scr_plugin_t *scr, int64_t vpts) {
 */
 static void dxr3scr_start (scr_plugin_t *scr, int64_t start_vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
-	start_vpts >>= 1;
+	uint32_t vpts32 = start_vpts >> 1;
 
-	self->offset = 0;
-	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &start_vpts))
+	self->last_pts = vpts32;
+	self->offset = start_vpts & ~0x1FFFFFFFF;
+	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
 		printf("dxr3scr: start failed (%s)\n", strerror(errno));
-	/* mis-use start_vpts */
-	start_vpts = 0x900;
-	ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &start_vpts);
+	/* mis-use vpts32 */
+	vpts32 = 0x900;
+	ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &vpts32);
 }
 
 
@@ -295,8 +296,11 @@ static int64_t dxr3scr_get_current (scr_plugin_t *scr) {
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
 		printf("dxr3scr: get current failed (%s)\n", strerror(errno));
+	if (pts < self->last_pts) /* wrap around detected, compensate with offset */
+		self->offset += (int64_t)1 << 33;
+	self->last_pts = pts;
 
-	return (pts << 1) + self->offset;
+	return ((int64_t)pts << 1) + self->offset;
 }
 
 
@@ -305,6 +309,7 @@ static int64_t dxr3scr_get_current (scr_plugin_t *scr) {
 */
 static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 	dxr3scr_t *self;
+	char tmpstr[128];
 
 	self = malloc(sizeof(*self));
 	memset(self, 0, sizeof(*self));
@@ -317,10 +322,12 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 	self->scr.get_current       = dxr3scr_get_current;
 
 	self->offset = 0;
+	self->last_pts = 0;
 
-	if ((self->fd_control = open (devname, O_WRONLY)) < 0) {
+	snprintf (tmpstr, sizeof(tmpstr), "%s%s", devname, devnum);
+	if ((self->fd_control = open (tmpstr, O_WRONLY)) < 0) {
 		printf("dxr3scr: Failed to open control device %s (%s)\n",
-		 devname, strerror(errno));
+		 tmpstr, strerror(errno));
 		return NULL;
 	}
 
@@ -332,10 +339,6 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 
 static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 {
-	if (! dxr3_check_vo(((dxr3_decoder_t*)this_gen)->config)) {
-		/* dxr3 video out is not active. Play dead. */
-		return 0;
-	}
 	buf_type &= 0xFFFF0000;
 	return (buf_type == BUF_VIDEO_MPEG);
 }
@@ -343,36 +346,41 @@ static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
+	char tmpstr[128];
 
-	printf("dxr3: Entering video init, devname=%s.\n",devname);
+	snprintf (tmpstr, sizeof(tmpstr), "%s%s", devname, devnum);
+	printf("dxr3: Entering video init, devname=%s.\n",tmpstr);
    
 	this->fd_video = -1; /* open later */
 
-	if ((this->fd_control = open (devname, O_WRONLY)) < 0) {
+	if ((this->fd_control = open (tmpstr, O_WRONLY)) < 0) {
 		printf("dxr3: Failed to open control device %s (%s)\n",
-		 devname, strerror(errno));
+		 tmpstr, strerror(errno));
 		return;
 	}
 
 	video_out->open(video_out);
 	this->video_out = video_out;
 
-	this->last_pts = 0;
+	this->last_pts = this->video_decoder.metronom->
+		get_current_time(this->video_decoder.metronom);
 	this->decoder_thread = pthread_self();
 
-	this->scr = dxr3scr_init(this);
-	this->video_decoder.metronom->register_scr(
-	 this->video_decoder.metronom, this->scr);
+	if (!this->scr) {
+		this->scr = dxr3scr_init(this);
+		/* dxr3_init is called while the master scr already runs.
+		   therefore the scr must be started here */
+		this->scr->start(this->scr, this->video_decoder.metronom->
+			get_current_time(this->video_decoder.metronom));
+		this->video_decoder.metronom->register_scr(
+			this->video_decoder.metronom, this->scr);
 
-	if (this->video_decoder.metronom->scr_master == this->scr) {
-		printf("dxr3: dxr3scr plugin is master\n");
+		if (this->video_decoder.metronom->scr_master == this->scr) {
+			printf("dxr3: dxr3scr plugin is master\n");
+		} else {
+			printf("dxr3: dxr3scr plugin is NOT master\n");
+		}
 	}
-	else {
-		printf("dxr3: dxr3scr plugin is NOT master\n");
-	}
-	/* dxr3_init is called while the master scr already runs.
-	   therefore the scr must be started here */
-	this->scr->start(this->scr, 0);
 }
 
 
@@ -446,8 +454,8 @@ static void dxr3_flush (video_decoder_t *this_gen)
 	/* Don't flush, causes still images to disappear. We don't seem
 	 * to need it anyway... */
 	printf("dxr3_decoder: flush requested, disabled for the moment.\n");
-	/* dxr3_mvcommand(this->fd_control, 0x11); */
-	this->have_header_info = 0;
+	/* dxr3_mvcommand(this->fd_control, 0x11);
+	this->have_header_info = 0; */
 	if (this->fd_video >= 0)
 		fsync(this->fd_video);
 }
@@ -457,7 +465,8 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
-	int vpts, i, duration, skip;
+	int64_t vpts;
+	int i, duration, skip;
         vo_frame_t *img;
 	uint8_t *buffer, byte;
 	uint32_t shift;
@@ -556,15 +565,16 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              DXR3_VO_UPDATE_FLAG);
 		img->pts=buf->pts;
 		img->bad_frame = 0;
+		img->duration = duration;
 		/* draw calls metronom->got_video_frame with img pts and scr
-		   and stores the return value back in img->PTS
+		   and stores the return value in img->vpts
 		   Calling draw with buf->pts==0 is okay; metronome will
 		   extrapolate a value. */
 		skip = img->draw(img);
 	        if (skip <= 0) { /* don't skip */
 			vpts = img->pts; /* copy so we can free img */
 		}
-		else { /* metronom says skip, so don't set PTS */
+		else { /* metronom says skip, so don't set pts */
 			printf("dxr3: skip = %d\n", skip);
 			vpts = 0;
 		}
@@ -590,7 +600,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	 * wants to open it) */
 	if (this->fd_video < 0) {	
 		char tmpstr[128];
-		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
+		snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", devname, devnum);
 		if ((this->fd_video = open (tmpstr, O_WRONLY | O_NONBLOCK)) < 0) {
 			printf("dxr3: Failed to open video device %s (%s)\n",
 				tmpstr, strerror(errno)); 
@@ -602,26 +612,27 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	 * FIXME: the exact conditions here are a bit uncertain... */
 	if (vpts)
 	{
-		int delay;
+		int64_t delay;
 		delay = vpts - this->video_decoder.metronom->get_current_time(
 				this->video_decoder.metronom);
 #if LOG_PTS
-		printf("dxr3: SETPTS got %d expected = %d (delta %d) delay = %d\n", 
+		printf("dxr3: SETPTS got %lld expected = %lld (delta %lld) delay = %lld\n", 
 			vpts, this->last_pts, vpts-this->last_pts, delay);
 #endif
 		this->last_pts = vpts;
 		/* SETPTS only if less then one second in the future and
-		 * either buffer has PTS or sync_every_frame is set */
+		 * either buffer has pts or sync_every_frame is set */
 		if ((delay > 0) && (delay < 90000) &&
 		    (this->sync_every_frame || buf->pts)) {
+			uint32_t vpts32 = vpts;
 			/* update the dxr3's current pts value */	
-			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
+			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts32))
 				printf("dxr3: set video pts failed (%s)\n",
 					 strerror(errno));
 		}
 		if (delay >= 90000) {
 			/* frame more than 1 sec ahead */
-			printf("dxr3: WARNING: vpts %d is %.02f seconds ahead of time!\n",
+			printf("dxr3: WARNING: vpts %lld is %.02f seconds ahead of time!\n",
 				vpts, delay/90000.0); 
 		}
 		if (delay < 0) {
@@ -630,7 +641,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	}
 #if LOG_PTS
 	else if (buf->pts) {
-		printf("dxr3: skip buf->PTS = %Lu (no vpts) last_vpts = %d\n", 
+		printf("dxr3: skip buf->pts = %lld (no vpts) last_vpts = %lld\n", 
 			buf->pts, this->last_pts);
 	}
 #endif
@@ -714,6 +725,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 {
 	dxr3_decoder_t *this ;
 	config_values_t *cfg;
+	char *tmpstr;
+	int dashpos;
 
 	if (iface_version != 5) {
 		printf( "dxr3: plugin doesn't support plugin API version %d.\n"
@@ -724,7 +737,19 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	}
  
 	cfg = xine->config;
-	devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Dxr3: Device Name",NULL,NULL,NULL);
+	tmpstr = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Dxr3: Device Name",NULL,NULL,NULL);
+	strncpy(devname, tmpstr, 128);
+	devname[127] = '\0';
+	dashpos = strlen(devname) - 2; /* the dash in the new device naming scheme would be here */
+	if (devname[dashpos] == '-') {
+		/* use new device naming scheme with trailing number */
+		strncpy(devnum, &devname[dashpos], 3);
+		devname[dashpos] = '\0';
+	} else {
+		/* use old device naming scheme without trailing number */
+		/* FIXME: remove this when everyone uses em8300 >=0.12.0 */
+		devnum[0] = '\0';
+	}
 
 	dxr3_presence_test ( xine );
 	if (!dxr3_ok) return NULL;
@@ -745,6 +770,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->repeat_first_field = 0;
 	this->sync_every_frame = 1;
 
+	this->scr = NULL;
 	this->scr_prio = cfg->register_num(cfg, "dxr3.scr_priority", 10, "Dxr3: SCR plugin priority",NULL,NULL,NULL); 
         
 	this->sync_every_frame = cfg->register_bool(cfg,
@@ -791,16 +817,15 @@ typedef struct spudec_decoder_s {
 	vo_instance_t   	*vo_out;
 	int 			fd_spu;
 	int			menu; /* are we in a menu? */
+	pci_t			pci;
+	uint32_t		buttonN;  /* currently highlighted button */
+	int64_t			button_vpts; /* time to show the menu enter button */
 	xine_t			*xine;
 } spudec_decoder_t;
 
 static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type)
 {
 	int type = buf_type & 0xFFFF0000;
-	if (! dxr3_check_vo(((spudec_decoder_t*)this_gen)->xine->config) ) {
-		/* dxr3 video out is not active. Play dead. */
-		return 0;
-	}
 	return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT || 
 		type == BUF_SPU_NAV || type == BUF_SPU_SUBP_CONTROL);
 }
@@ -814,7 +839,7 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
 	this->vo_out = vo_out;
 
 	/* open spu device */
-	snprintf (tmpstr, sizeof(tmpstr), "%s_sp", devname);
+	snprintf (tmpstr, sizeof(tmpstr), "%s_sp%s", devname, devnum);
 	if ((this->fd_spu = open (tmpstr, O_WRONLY)) < 0) {
 		printf("dxr3: Failed to open spu device %s (%s)\n",
 		 tmpstr, strerror(errno));
@@ -841,6 +866,39 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 	ssize_t written;
 	uint32_t stream_id = buf->type & 0x1f ;
 	
+	if (this->button_vpts &&
+		this->spu_decoder.metronom->get_current_time(this->spu_decoder.metronom) > this->button_vpts) {
+		/* we have a scheduled menu enter button and it's time to show it now */
+		em8300_button_t button;
+		int buttonNr;
+		btni_t *button_ptr;
+		
+		buttonNr = this->buttonN;
+		
+		if (this->pci.hli.hl_gi.fosl_btnn > 0)
+			buttonNr = this->pci.hli.hl_gi.fosl_btnn ;
+		
+		if ((buttonNr <= 0) || (buttonNr > this->pci.hli.hl_gi.btn_ns)) {
+			printf("dxr3_spu: Unable to select button number %i as it doesn't exist. Forcing button 1\n", buttonNr);
+			buttonNr = 1;
+		}
+		
+		button_ptr = &this->pci.hli.btnit[buttonNr-1];
+		button.left = button_ptr->x_start;
+		button.top  = button_ptr->y_start;
+		button.right = button_ptr->x_end;
+		button.bottom = button_ptr->y_end;
+		button.color = this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] >> 16;
+		button.contrast = this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] & 0xffff;
+		
+#if LOG_SPU
+		printf("dxr3_spu: now showing menu enter button %i.\n", buttonNr);
+#endif
+		ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &button);
+		this->button_vpts = 0;
+		this->pci.hli.hl_gi.hli_s_ptm = 0;
+	}
+	
 	if (buf->type == BUF_SPU_CLUT) {
 #if LOG_SPU
         printf ("dxr3_spu: BUF_SPU_CLUT\n" );
@@ -866,9 +924,28 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 	}
         if(buf->type == BUF_SPU_NAV){
 #if LOG_SPU
-          printf ("dxr3_spu: Got NAV packet\n");
+		printf("dxr3_spu: Got NAV packet\n");
 #endif
-     	  return;
+		uint8_t *p;
+		pci_t *pci;
+		
+		p = buf->content;
+		/* just watch out for menus */
+		if (p[3] == 0xbf && p[6] == 0x00) { /* Private stream 2 */
+			pci=xine_xmalloc(sizeof(pci_t));
+			nav_read_pci(pci, p + 7);
+			
+			if (pci->hli.hl_gi.hli_ss == 1)
+				/* menu ahead, remember pci for later evaluation */
+				xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
+			
+			if ((pci->hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
+				/* leaving menu */
+				xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
+				ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+			}
+		}
+		return;
 	}
 	/* Is this also needed for subpicture? */
 	if (buf->decoder_info[0] == 0) {
@@ -892,19 +969,32 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 #endif
           return;
         }
+	if ( (this->menu == 0) && (this->xine->spu_channel & 0x80) ) { 
+#if LOG_SPU
+	  printf ("dxr3_spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
+#endif
+	  return;
+	}
 //        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
         /* Hide any previous button highlights */
 	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
 	if (buf->pts) {
-		int vpts;
+		int64_t vpts;
+		uint32_t vpts32;
+		
 		vpts = this->spu_decoder.metronom->got_spu_packet
 		 (this->spu_decoder.metronom, buf->pts, 0, buf->scr);
 #if LOG_SPU
-                printf ("dxr3_spu: PTS=%Lu VPTS=%u\n", buf->pts, vpts);
+                printf ("dxr3_spu: pts=%lld vpts=%lld\n", buf->pts, vpts);
 #endif
-
-		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
+		vpts32 = vpts;
+		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts32))
 			printf("dxr3: spu setpts failed (%s)\n", strerror(errno));
+			
+		if (buf->pts == this->pci.hli.hl_gi.hli_s_ptm)
+			/* schedule the menu enter button for current packet's vpts, so
+			that the card has decoded this SPU when we try to show the button */
+			this->button_vpts = vpts;
 	}
 
 
@@ -956,6 +1046,9 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 //	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
 	break;
       }
+      
+      this->buttonN = but->buttonN;
+      
       btn.color = btn.contrast = 0;
 #if LOG_SPU
         printf ("dxr3_spu: buttonN = %u\n",but->buttonN);
@@ -1027,6 +1120,8 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
 {
   spudec_decoder_t *this;
   config_values_t  *cfg;
+  char *tmpstr;
+  int dashpos;
 
   if (iface_version != 4) {
     printf( "dxr3: plugin doesn't support plugin API version %d.\n"
@@ -1037,7 +1132,19 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   }
 
   cfg = xine->config;
-  devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, NULL,NULL,NULL,NULL);
+  tmpstr = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, NULL,NULL,NULL,NULL);
+  strncpy(devname, tmpstr, 128);
+  devname[127] = '\0';
+  dashpos = strlen(devname) - 2; /* the dash in the new device naming scheme would be here */
+  if (devname[dashpos] == '-') {
+	/* use new device naming scheme with trailing number */
+	strncpy(devnum, &devname[dashpos], 3);
+	devname[dashpos] = '\0';
+  } else {
+	/* use old device naming scheme without trailing number */
+	/* FIXME: remove this when everyone uses em8300 >=0.12.0 */
+	devnum[0] = '\0';
+  }
 
   dxr3_presence_test ( xine );
   if (!dxr3_ok) {
@@ -1056,6 +1163,10 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   this->xine				= xine;
   this->menu				= 0;
   this->fd_spu				= 0;
+  this->pci.hli.hl_gi.hli_ss		= 0;
+  this->pci.hli.hl_gi.hli_s_ptm		= 0;
+  this->buttonN				= 1;
+  this->button_vpts			= 0;
   
   xine_register_event_listener(xine, spudec_event_listener, this);
   
