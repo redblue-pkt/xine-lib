@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.158 2003/05/06 20:50:12 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.159 2003/05/11 12:59:38 tmattern Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -90,6 +90,8 @@ typedef struct {
 
   int                       current_width, current_height;
   int64_t                   current_duration;
+  int                       frame_drop_limit;
+  int                       frame_drop_cpt;
 } vos_t;
 
 /*
@@ -333,7 +335,24 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     /* avoid division by zero */
     if( img->duration <= 0 )
       img->duration = 3000;
-    frames_to_skip = ((-1 * diff) / img->duration + 2) * 2;
+    
+    /* Frame dropping slow start:
+     *   The engine starts to drop frames if there is less than frame_drop_limit
+     *   frames in advance. There might be a problem just after a seek because
+     *   there is no frame in advance yet.
+     *   The following code increases progressively the frame_drop_limit (-2 -> 3)
+     *   after a seek to give a chance to the engine to display the first frames
+     *   smootly before starting to drop frames if the decoder is really too
+     *   slow.
+     */
+    if (stream->first_frame_flag == 2)
+      this->frame_drop_cpt = 10;
+
+    if (this->frame_drop_cpt) {
+      this->frame_drop_limit = 3 - (this->frame_drop_cpt / 2);
+      this->frame_drop_cpt--;
+    }
+    frames_to_skip = ((-1 * diff) / img->duration + this->frame_drop_limit) * 2;
 
     if (frames_to_skip<0)
       frames_to_skip = 0;
@@ -1434,6 +1453,9 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->overlay_source        = video_overlay_new_instance();
   this->overlay_source->init (this->overlay_source);
   this->overlay_enabled       = 1;
+
+  this->frame_drop_limit      = 3;
+  this->frame_drop_cpt        = 0;
 
   num_frame_buffers = driver->get_property (driver, VO_PROP_MAX_NUM_FRAMES);
 
