@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.18 2003/01/13 23:36:01 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.19 2003/01/15 23:37:21 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -92,6 +92,7 @@ struct vidix_driver_s {
   vidix_yuv_t         dstrides;
   int                 vidix_started;
   int                 next_frame;
+  vidix_frame_t      *current;
 
   int                 use_colourkey;
   uint32_t            colourkey;
@@ -302,8 +303,6 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
       printf("video_out_vidix: error. (unknown frame format)\n");
       break;
    }
-   
-   frame->vo_frame.displayed(&frame->vo_frame);
 }
 
 
@@ -570,6 +569,8 @@ static void vidix_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, v
   }
 }
 
+static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen);
+
 static int vidix_redraw_needed (vo_driver_t *this_gen) {
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   int ret = 0;
@@ -577,8 +578,10 @@ static int vidix_redraw_needed (vo_driver_t *this_gen) {
 
   if( vo_scale_redraw_needed( &this->sc ) ) {
 
-    vidix_compute_output_size (this);
-    vidix_clean_output_area(this);
+    if(this->current) {
+      this->sc.force_redraw = 1;
+      vidix_display_frame(this_gen, (vo_frame_t *) this->current);
+    }
 
     ret = 1;
   }
@@ -610,16 +613,24 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   }
     
   /* 
-   * tell gui that we are about to display a frame,
-   * ask for offset and output size
+   * check if we have to reconfigure vidix because of
+   * format/window position change
    */
-  vidix_redraw_needed (this_gen);
-    
+  if(vo_scale_redraw_needed(&this->sc)) {
+    vidix_compute_output_size(this);
+    vidix_clean_output_area(this);
+  }
+  
   write_frame_sfb(this, frame);
   if( this->vidix_play.num_frames > 1 ) {
     vdlPlaybackFrameSelect(this->vidix_handler,this->next_frame);
     this->next_frame=(this->next_frame+1)%this->vidix_play.num_frames;
   }
+  
+  if((this->current != NULL) && (this->current != frame)) {
+    frame->vo_frame.displayed(&this->current->vo_frame);
+  }
+  this->current = frame;  
   
   pthread_mutex_unlock(&this->mutex);
 }
@@ -841,6 +852,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->sc.user_data         = visual->user_data;
   
   this->config            = config;
+  
+  this->current           = NULL;
   
   this->capabilities      = 0;
 
