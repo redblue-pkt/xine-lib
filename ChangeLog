@@ -1,4 +1,4 @@
-xine (0.9.11) unstable; urgency=low
+xine-lib (0.9.11) unstable; urgency=low
   
   * sync with ffmpeg cvs
   * some endianess and 64bit machine fixes
@@ -7,6 +7,7 @@ xine (0.9.11) unstable; urgency=low
   * new RoQ demuxer
   * RoQ video decoder
   * RoQ audio decoder
+  * new SVQ1 decoder
   * new QuickTime demuxer
   * DXR3 overlay mode fixed
   * DXR3 support for libfame 0.8.10 and above
@@ -15,6 +16,7 @@ xine (0.9.11) unstable; urgency=low
   * TV fullscreen support using nvtvd
   * better support for gcc 3.1 (libmpeg2)
   * assorted open source ADPCM audio decoders
+  * support setting config options using "opt:" pseudo MRLs
 
  -- Guenter Bartsch <guenter@users.sourceforge.net>
  

@@ -20,7 +20,7 @@ dnl   XINE_SUB += 1; continue with LT_* values below
 dnl
 XINE_MAJOR=0
 XINE_MINOR=9
-XINE_SUB=10
+XINE_SUB=11
 
 
 dnl The libtool version numbers (LT_*); Don't even think about faking this!
@@ -38,9 +38,9 @@ dnl    if (any interfaces have been _removed_ or incompatibly changed)
 dnl       AGE = 0;
 dnl }
 
-LT_CURRENT=0
+LT_CURRENT=1
 LT_REVISION=0
-LT_AGE=0
+LT_AGE=1
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then

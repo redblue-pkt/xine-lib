@@ -2,8 +2,6 @@ xine-lib (0.9.11-1) unstable; urgency=low
 
   * new upstream release
     - pads Xv images, so width % 4 == 0 (closes: #134997)
-    - AVI demuxer checks for CAP_SEEKABLE (closes: #132771)
-  
   
  -- Siggi Langauf <siggi@debian.org>  Thu, 20 Jun 2002 00:11:37 +0200
 

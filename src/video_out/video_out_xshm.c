@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.76 2002/06/12 12:22:38 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.77 2002/06/20 17:47:13 siggi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1368,6 +1368,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   case TrueColor:
     switch (this->depth) {
     case 24:
+    case 32:
       if (this->bpp == 32) {
 	if (this->visual->red_mask == 0x00ff0000)
 	  mode = MODE_32_RGB;

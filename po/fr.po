@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-12 15:57+0200\n"
+"POT-Creation-Date: 2002-06-20 18:56+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -13,38 +13,38 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8-bit\n"
 
-#: src/audio_out/audio_alsa_out.c:189 src/audio_out/audio_alsa_out.c:711
-#: src/audio_out/audio_alsa_out.c:893 src/audio_out/audio_alsa_out.c:937
+#: src/audio_out/audio_alsa_out.c:189 src/audio_out/audio_alsa_out.c:721
+#: src/audio_out/audio_alsa_out.c:903 src/audio_out/audio_alsa_out.c:947
 msgid "device used for mono output"
 msgstr "périphérique utilisé pour la sortie mono"
 
-#: src/audio_out/audio_alsa_out.c:199 src/audio_out/audio_alsa_out.c:900
+#: src/audio_out/audio_alsa_out.c:199 src/audio_out/audio_alsa_out.c:910
 msgid "device used for stereo output"
 msgstr "périphérique utilisé pour la sortie stéréo"
 
-#: src/audio_out/audio_alsa_out.c:209 src/audio_out/audio_alsa_out.c:907
+#: src/audio_out/audio_alsa_out.c:209 src/audio_out/audio_alsa_out.c:917
 msgid "device used for 4-channel output"
 msgstr "périphérique utilisé pour la sortie 4 canaux"
 
-#: src/audio_out/audio_alsa_out.c:219 src/audio_out/audio_alsa_out.c:914
+#: src/audio_out/audio_alsa_out.c:219 src/audio_out/audio_alsa_out.c:924
 msgid "device used for 5-channel output"
 msgstr "périphérique utilisé pour la sortie 5 canaux"
 
 #: src/audio_out/audio_alsa_out.c:229 src/audio_out/audio_alsa_out.c:240
-#: src/audio_out/audio_alsa_out.c:921 src/audio_out/audio_alsa_out.c:928
+#: src/audio_out/audio_alsa_out.c:931 src/audio_out/audio_alsa_out.c:938
 msgid "device used for 5.1-channel output"
 msgstr "périphérique utilisé pour la sortie 5.1 canaux"
 
-#: src/audio_out/audio_alsa_out.c:845 src/audio_out/audio_alsa_out.c:1047
+#: src/audio_out/audio_alsa_out.c:855 src/audio_out/audio_alsa_out.c:1057
 msgid "alsa mixer device"
 msgstr "périphérique du mixeur alsa"
 
-#: src/audio_out/audio_alsa_out.c:984 src/audio_out/audio_alsa_out.c:997
-#: src/audio_out/audio_alsa_out.c:1010 src/audio_out/audio_alsa_out.c:1028
+#: src/audio_out/audio_alsa_out.c:994 src/audio_out/audio_alsa_out.c:1007
+#: src/audio_out/audio_alsa_out.c:1020 src/audio_out/audio_alsa_out.c:1038
 msgid "used to inform xine about what the sound card can do"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1080
+#: src/audio_out/audio_alsa_out.c:1090
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr "plugin de sortie audio de xine utilisant les pilotes/périphérique alsa"
 
@@ -57,44 +57,44 @@ msgstr ""
 msgid "xine audio output plugin using esd"
 msgstr "plugin de sortie audio de xine utilisant les pilotes/périphérique alsa"
 
-#: src/audio_out/audio_oss_out.c:636
+#: src/audio_out/audio_oss_out.c:638
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:704
+#: src/audio_out/audio_oss_out.c:706
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:771
+#: src/audio_out/audio_oss_out.c:773
 msgid "Adjust a/v sync for OSS softsync"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:772
+#: src/audio_out/audio_oss_out.c:774
 msgid "Use this to manually adjust a/v sync if you're using softsync"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:794
+#: src/audio_out/audio_oss_out.c:796
 msgid "Enable 4.0 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:805
+#: src/audio_out/audio_oss_out.c:807
 msgid "Enable 5.0 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:816
+#: src/audio_out/audio_oss_out.c:818
 msgid "Enable 5.1 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:827
+#: src/audio_out/audio_oss_out.c:829
 msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:843
+#: src/audio_out/audio_oss_out.c:845
 #, fuzzy
 msgid "oss mixer device"
 msgstr "périphérique du mixeur alsa"
 
-#: src/audio_out/audio_oss_out.c:915
+#: src/audio_out/audio_oss_out.c:917
 #, fuzzy
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "plugin de sortie audio de xine utilisant les pilotes/périphérique alsa"
@@ -263,11 +263,11 @@ msgstr "demux_avi: codec vidéo inconnu '%.4s'\n"
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: le codec vidéo est '%s'\n"
 
-#: src/demuxers/demux_avi.c:1497 src/demuxers/demux_avi.c:1574
+#: src/demuxers/demux_avi.c:1503 src/demuxers/demux_avi.c:1580
 msgid "valid mrls ending for avi demuxer"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1561
+#: src/demuxers/demux_avi.c:1567
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -358,27 +358,27 @@ msgstr ""
 "           plugin de demultiplexage ne correspondent pas.\n"
 "Installer la version courante des plugins de demultiplexage peux aider.\n"
 
-#: src/demuxers/demux_qt.c:1208 src/demuxers/demux_qt.c:1453
+#: src/demuxers/demux_qt.c:1256 src/demuxers/demux_qt.c:1501
 msgid "valid mrls ending for qt demuxer"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1275
+#: src/demuxers/demux_qt.c:1323
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
 msgstr ""
 "demux_qt: Fichier Apple Quicktime, %stemps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_qt.c:1281
+#: src/demuxers/demux_qt.c:1329
 #, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1290
+#: src/demuxers/demux_qt.c:1338
 #, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"
 msgstr "demux_qt: audio '%c%c%c%c' @ %d Hz, %d bits, %d canal%c\n"
 
-#: src/demuxers/demux_qt.c:1440
+#: src/demuxers/demux_qt.c:1488
 #, c-format
 msgid ""
 "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -493,36 +493,36 @@ msgstr ""
 msgid "invalid FILM chunk size\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:240
+#: src/demuxers/demux_film.c:242
 msgid "unrecognized FILM chunk\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:503 src/demuxers/demux_film.c:746
+#: src/demuxers/demux_film.c:509 src/demuxers/demux_film.c:754
 msgid "valid mrls ending for film demuxer"
 msgstr ""
 
-#: src/demuxers/demux_film.c:552
+#: src/demuxers/demux_film.c:558
 #, fuzzy, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
 msgstr ""
 "demux_qt: Fichier Apple Quicktime, %stemps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_film.c:561
+#: src/demuxers/demux_film.c:567
 #, fuzzy, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
 msgstr "demux_qt: audio '%c%c%c%c' @ %d Hz, %d bits, %d canal%c\n"
 
-#: src/demuxers/demux_film.c:571
+#: src/demuxers/demux_film.c:577
 #, fuzzy, c-format
 msgid "demux_film: unknown video codec %c%c%c%c\n"
 msgstr "demux_avi: codec vidéo inconnu '%.4s'\n"
 
-#: src/demuxers/demux_film.c:581
+#: src/demuxers/demux_film.c:587
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:733
+#: src/demuxers/demux_film.c:741
 #, fuzzy, c-format
 msgid ""
 "demux_film: plugin doesn't support plugin API version %d.\n"
@@ -1090,11 +1090,11 @@ msgstr ""
 msgid "input_http: Location redirection not implemented\n"
 msgstr ""
 
-#: src/input/input_http.c:632
+#: src/input/input_http.c:640
 msgid "http network stream input plugin"
 msgstr ""
 
-#: src/input/input_http.c:673
+#: src/input/input_http.c:681
 #, c-format
 msgid ""
 "http input plugin doesn't support plugin API version %d.\n"
@@ -1108,121 +1108,121 @@ msgstr ""
 "d'entrée ne correspondent pas.\n"
 "Installer la version courante des plugins d'entrée peux aider.\n"
 
-#: src/input/input_cda.c:438 src/input/input_cda.c:496
+#: src/input/input_cda.c:435 src/input/input_cda.c:493
 #, c-format
 msgid "input_cda: fopen(%s) failed: %s\n"
 msgstr "input_cda: fopen(%s) à échoué: %s\n"
 
-#: src/input/input_cda.c:585
+#: src/input/input_cda.c:582
 #, c-format
 msgid "input_cda: server '%s:%d' successfuly connected.\n"
 msgstr "input_cda: serveur '%s:%d' connecté avec succés.\n"
 
-#: src/input/input_cda.c:590
+#: src/input/input_cda.c:587
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
 msgstr "input_cda: l'ouverture du serveur '%s:%d' a échouée: %s\n"
 
-#: src/input/input_cda.c:758
+#: src/input/input_cda.c:755
 #, c-format
 msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
 msgstr "input_cda: l'ioctl(CDROMSUBCHNL) a échouée: %s.\n"
 
-#: src/input/input_cda.c:825
+#: src/input/input_cda.c:822
 #, c-format
 msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:960
+#: src/input/input_cda.c:957
 #, c-format
 msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:966
+#: src/input/input_cda.c:963
 #, c-format
 msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:972
+#: src/input/input_cda.c:969
 #, c-format
 msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:978
+#: src/input/input_cda.c:975
 #, c-format
 msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:999
+#: src/input/input_cda.c:997
 #, c-format
 msgid "input_cda: No rights to open %s.\n"
 msgstr "input_cda: pas de droits pour ouvrir %s.\n"
 
-#: src/input/input_cda.c:1002
+#: src/input/input_cda.c:1000
 #, c-format
 msgid "input_cda: open(%s) failed: %s.\n"
 msgstr "input_cda: open(%s) a échoué: %s.\n"
 
-#: src/input/input_cda.c:1096
+#: src/input/input_cda.c:1094
 #, c-format
 msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1101 src/input/input_cda.c:1117
-#: src/input/input_cda.c:1122
+#: src/input/input_cda.c:1099 src/input/input_cda.c:1115
+#: src/input/input_cda.c:1120
 #, c-format
 msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1107
+#: src/input/input_cda.c:1105
 #, c-format
 msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1113
+#: src/input/input_cda.c:1111
 #, c-format
 msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1153
+#: src/input/input_cda.c:1151
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1161
+#: src/input/input_cda.c:1159
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1198
+#: src/input/input_cda.c:1196
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1221
+#: src/input/input_cda.c:1219
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1404
+#: src/input/input_cda.c:1401
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
 msgstr "input_cda: MRL malformée. Utilisez cda://<piste #>\n"
 
-#: src/input/input_cda.c:1410
+#: src/input/input_cda.c:1407
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
 msgstr "input_cda: piste %d invalide (limites correctes: 1 .. %d)\n"
 
-#: src/input/input_cda.c:1493
+#: src/input/input_cda.c:1490
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
 msgstr "input_cda: erreur seek depuis origine %d non implémentée!\n"
 
-#: src/input/input_cda.c:1609
+#: src/input/input_cda.c:1606
 msgid "cd audio plugin as shipped with xine"
 msgstr "plugin d'entrée pour lecture de CD audio fournis avec xine"
 
-#: src/input/input_cda.c:1797
+#: src/input/input_cda.c:1794
 #, c-format
 msgid ""
 "cda input plugin doesn't support plugin API version %d.\n"
@@ -1236,19 +1236,19 @@ msgstr ""
 "d'entrée ne correspondent pas.\n"
 "Installer la version courante des plugins d'entrée peux aider.\n"
 
-#: src/input/input_cda.c:1844
+#: src/input/input_cda.c:1842
 msgid "path to your local cd audio device file"
 msgstr ""
 
-#: src/input/input_cda.c:1849
+#: src/input/input_cda.c:1847
 msgid "cddbp server name"
 msgstr ""
 
-#: src/input/input_cda.c:1853
+#: src/input/input_cda.c:1851
 msgid "cddbp server port"
 msgstr ""
 
-#: src/input/input_cda.c:1860
+#: src/input/input_cda.c:1858
 msgid "cddbp cache directory"
 msgstr ""
 
@@ -1326,11 +1326,11 @@ msgstr ""
 msgid "disable all video scaling (faster!)"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1425
+#: src/video_out/video_out_xshm.c:1426
 msgid "gamma correction for XShm driver"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1444
+#: src/video_out/video_out_xshm.c:1445
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr ""
 
@@ -1419,62 +1419,62 @@ msgstr ""
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:402
+#: src/xine-engine/xine.c:415
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:413
+#: src/xine-engine/xine.c:426
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:423
+#: src/xine-engine/xine.c:436
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:430
+#: src/xine-engine/xine.c:443
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:458
+#: src/xine-engine/xine.c:471
 msgid "xine_play: demuxer failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:587
+#: src/xine-engine/xine.c:600
 msgid "logo mrl, displayed in video output window"
 msgstr ""
 
-#: src/xine-engine/xine.c:1009
+#: src/xine-engine/xine.c:1022
 msgid "stream format"
 msgstr ""
 
-#: src/xine-engine/xine.c:1010
+#: src/xine-engine/xine.c:1023
 msgid "messages"
 msgstr "messages"
 
-#: src/xine-engine/xine.c:1011
+#: src/xine-engine/xine.c:1024
 msgid "plugin"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:722
+#: src/xine-engine/audio_out.c:730
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:725
+#: src/xine-engine/audio_out.c:733
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:753
+#: src/xine-engine/audio_out.c:761
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:757
+#: src/xine-engine/audio_out.c:765
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:758
+#: src/xine-engine/audio_out.c:766
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
@@ -1556,7 +1556,7 @@ msgstr ""
 msgid "audio decoder plugin found : %s\n"
 msgstr ""
 
-#: src/liblpcm/xine_decoder.c:188
+#: src/liblpcm/xine_decoder.c:187
 #, fuzzy, c-format
 msgid ""
 "liblpcm: plugin doesn't support plugin API version %d.\n"
