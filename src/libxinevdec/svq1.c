@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.4 2002/07/15 21:42:34 esnel Exp $
+ * $Id: svq1.c,v 1.5 2002/07/15 22:07:18 esnel Exp $
  */
 
 #include <stdio.h>
@@ -1352,7 +1352,7 @@ static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitches[3]) {
 
       /* interpolate and store two lines */
       vscale_chroma_line (dst, pitches[i], cr1, cr2, (svq1->width / 2));
-      dst += pitches[i];
+      dst += 2*pitches[i];
 
       /* swap buffers */
       tmp = cr2;
