@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.41 2001/12/16 21:52:04 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.42 2001/12/19 13:40:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -496,6 +496,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
           this->video_stream_starting ) {
       this->video_discontinuity = 0;
       this->video_stream_starting = 0;
+      this->wrap_diff_counter = 0;
 
       this->video_wrap_offset += this->last_video_pts - pts 
 	+ (this->num_video_vpts_guessed+1) * this->avg_frame_duration;
@@ -510,7 +511,8 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
      * audio and video wrap are not allowed to differ for too long
      */
     if ( !this->audio_stream_starting && this->have_audio
-	 && (this->video_wrap_offset != this->audio_wrap_offset)) {
+	 && (this->video_wrap_offset != this->audio_wrap_offset) 
+	 && !this->video_discontinuity && !this->audio_discontinuity ) {
       this->wrap_diff_counter++;
 
       if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
@@ -676,6 +678,7 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
     if ( this->audio_discontinuity || this->audio_stream_starting ) {
       this->audio_discontinuity = 0;
       this->audio_stream_starting = 0;
+      this->wrap_diff_counter = 0;
 
       this->audio_wrap_offset += this->last_audio_pts - pts
 	+ this->num_audio_samples_guessed
@@ -691,7 +694,8 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
      * for too long
      */
 
-    if ( this->video_wrap_offset != this->audio_wrap_offset ) {
+    if ( this->video_wrap_offset != this->audio_wrap_offset       
+	 && !this->video_discontinuity && !this->audio_discontinuity ) {
       this->wrap_diff_counter++;
 
       if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
