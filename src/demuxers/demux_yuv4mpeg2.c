@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.24 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.25 2003/07/30 22:00:42 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -186,7 +186,7 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
 
   while(bytes_remaining) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type = BUF_VIDEO_YV12;
+    buf->type = BUF_VIDEO_I420;
     buf->extra_info->input_pos = current_file_pos;
     buf->extra_info->input_length = this->data_size;
     buf->pts = pts;
@@ -237,7 +237,7 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
-  buf->type = BUF_VIDEO_YV12;
+  buf->type = BUF_VIDEO_I420;
   this->video_fifo->put (this->video_fifo, buf);
 }
 
