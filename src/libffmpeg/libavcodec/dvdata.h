@@ -37,6 +37,7 @@ typedef struct DVprofile {
     int              ltc_divisor;         /* FPS from the LTS standpoint */
     int              height;              /* picture height in pixels */
     int              width;               /* picture width in pixels */
+    AVRational       sar[2];              /* sample aspect ratios for 4:3 and 16:9 */
     const uint16_t  *video_place;         /* positions of all DV macro blocks */
     enum PixelFormat pix_fmt;             /* picture pixel format */
     
@@ -50,6 +51,11 @@ typedef struct DVprofile {
 
 #define NB_DV_VLC 409
 
+/* 
+ * There's a catch about the following three tables: the mapping they establish
+ * between (run, level) and vlc is not 1-1. So you have to watch out for that
+ * when building misc. tables. E.g. (1, 0) can be either 0x7cf or 0x1f82. 
+ */
 static const uint16_t dv_vlc_bits[409] = {
  0x0000, 0x0002, 0x0007, 0x0008, 0x0009, 0x0014, 0x0015, 0x0016,
  0x0017, 0x0030, 0x0031, 0x0032, 0x0033, 0x0068, 0x0069, 0x006a,
@@ -268,19 +274,6 @@ static const uint8_t dv_vlc_level[409] = {
  240, 241, 242, 243, 244, 245, 246, 247,
  248, 249, 250, 251, 252, 253, 254, 255,
   0,
-};
-
-/* Specific zigzag scan for 248 idct. NOTE that unlike the
-   specification, we interleave the fields */
-static const uint8_t dv_248_zigzag[64] = {
-  0,  8,  1,  9, 16, 24,  2, 10,
- 17, 25, 32, 40, 48, 56, 33, 41,
- 18, 26,  3, 11,  4, 12, 19, 27,
- 34, 42, 49, 57, 50, 58, 35, 43,
- 20, 28,  5, 13,  6, 14, 21, 29,
- 36, 44, 51, 59, 52, 60, 37, 45,
- 22, 30,  7, 15, 23, 31, 38, 46,
- 53, 61, 54, 62, 39, 47, 55, 63,
 };
 
 /* unquant tables (not used directly) */
@@ -1306,6 +1299,7 @@ static const DVprofile dv_profiles[] = {
       .frame_rate_base = 1001,
       .height = 480,
       .width = 720,
+      .sar = {{72, 79}, {96, 79}},
       .video_place = dv_place_411,
       .pix_fmt = PIX_FMT_YUV411P,
       .audio_stride = 90,
@@ -1321,6 +1315,7 @@ static const DVprofile dv_profiles[] = {
       .ltc_divisor = 25,
       .height = 576,
       .width = 720,
+      .sar = {{128, 117}, {512, 351}},
       .video_place = dv_place_420,
       .pix_fmt = PIX_FMT_YUV420P,
       .audio_stride = 108,
@@ -1336,6 +1331,7 @@ static const DVprofile dv_profiles[] = {
       .ltc_divisor = 25,
       .height = 576,
       .width = 720,
+      .sar = {{128, 117}, {512, 351}},
       .video_place = dv_place_411P,
       .pix_fmt = PIX_FMT_YUV411P,
       .audio_stride = 108,

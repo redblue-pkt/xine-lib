@@ -58,10 +58,6 @@ typedef struct XanContext {
 
 } XanContext;
 
-#undef BE_16
-#undef LE_16
-#undef LE_32
-
 #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
 #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
 #define LE_32(x)  ((((uint8_t*)(x))[3] << 24) | \
@@ -72,8 +68,6 @@ typedef struct XanContext {
 /* RGB -> YUV conversion stuff */
 #define SCALEFACTOR 65536
 #define CENTERSAMPLE 128
-
-#undef COMPUTE_Y
 
 #define COMPUTE_Y(r, g, b) \
   (unsigned char) \
@@ -122,7 +116,7 @@ static int xan_decode_init(AVCodecContext *avctx)
 
     if ((avctx->codec->id == CODEC_ID_XAN_WC3) && 
         (s->avctx->palctrl == NULL)) {
-        printf (" WC3 Xan video: palette expected.\n");
+        av_log(avctx, AV_LOG_ERROR, " WC3 Xan video: palette expected.\n");
         return -1;
     }
 
@@ -342,7 +336,7 @@ static void inline xan_wc3_build_palette(XanContext *s,
         break;
 
     default:
-        printf (" Xan WC3: Unhandled colorspace\n");
+        av_log(s->avctx, AV_LOG_ERROR, " Xan WC3: Unhandled colorspace\n");
         break;
     }
 }
@@ -463,7 +457,7 @@ static void inline xan_wc3_output_pixel_run(XanContext *s,
         break;
 
     default:
-        printf (" Xan WC3: Unhandled colorspace\n");
+        av_log(s->avctx, AV_LOG_ERROR, " Xan WC3: Unhandled colorspace\n");
         break;
     }
 }
@@ -606,7 +600,7 @@ static void inline xan_wc3_copy_pixel_run(XanContext *s,
         break;
 
     default:
-        printf (" Xan WC3: Unhandled colorspace\n");
+        av_log(s->avctx, AV_LOG_ERROR, " Xan WC3: Unhandled colorspace\n");
         break;
     }
 }
@@ -767,7 +761,7 @@ static int xan_decode_frame(AVCodecContext *avctx,
     }
 
     if (avctx->get_buffer(avctx, &s->current_frame)) {
-        printf ("  Xan Video: get_buffer() failed\n");
+        av_log(s->avctx, AV_LOG_ERROR, "  Xan Video: get_buffer() failed\n");
         return -1;
     }
     s->current_frame.reference = 3;

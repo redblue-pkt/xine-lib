@@ -556,7 +556,6 @@ static uint16_t svq1_packet_checksum (uint8_t *data, int length, int value) {
   return value;
 }
 
-#if 0
 static uint16_t svq1_component_checksum (uint16_t *pixels, int pitch,
                                          int width, int height, int value) {
   int x, y;
@@ -571,7 +570,6 @@ static uint16_t svq1_component_checksum (uint16_t *pixels, int pitch,
 
   return value;
 }
-#endif
 
 static void svq1_parse_string (GetBitContext *bitbuf, uint8_t *out) {
   uint8_t seed;
@@ -615,7 +613,7 @@ static int svq1_decode_frame_header (GetBitContext *bitbuf,MpegEncContext *s) {
 
       svq1_parse_string (bitbuf, (char *) msg);
 
-      printf ("embedded message: \"%s\"\n", (char *) msg);
+      av_log(s->avctx, AV_LOG_INFO, "embedded message: \"%s\"\n", (char *) msg);
     }
 
     skip_bits (bitbuf, 2);
@@ -791,7 +789,6 @@ static int svq1_decode_init(AVCodecContext *avctx)
     s->codec_id= avctx->codec->id;
     avctx->pix_fmt = PIX_FMT_YUV410P;
     avctx->has_b_frames= 1; // not true, but DP frames and these behave like unidirectional b frames
-    s->flags= avctx->flags;
     if (MPV_common_init(s) < 0) return -1;
 
     init_vlc(&svq1_block_type, 2, 4,

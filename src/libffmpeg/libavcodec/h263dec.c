@@ -1,6 +1,7 @@
 /*
  * H.263 decoder
  * Copyright (c) 2001 Fabrice Bellard.
+ * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,17 +29,6 @@
 
 //#define DEBUG
 //#define PRINT_FRAME_TIME
-#ifdef PRINT_FRAME_TIME
-static inline long long rdtsc()
-{
-	long long l;
-	asm volatile(	"rdtsc\n\t"
-		: "=A" (l)
-	);
-//	printf("%d\n", int(l/1000));
-	return l;
-}
-#endif
 
 int ff_h263_decode_init(AVCodecContext *avctx)
 {
@@ -62,9 +52,10 @@ int ff_h263_decode_init(AVCodecContext *avctx)
     /* select sub codec */
     switch(avctx->codec->id) {
     case CODEC_ID_H263:
-        s->gob_number = 0;
+        s->unrestricted_mv= 0;
         break;
     case CODEC_ID_MPEG4:
+        s->decode_mb= ff_mpeg4_decode_mb;
         s->time_increment_bits = 4; /* default value for broken headers */
         s->h263_pred = 1;
         s->low_delay = 0; //default, might be overriden in the vol header during header parsing
@@ -95,7 +86,6 @@ int ff_h263_decode_init(AVCodecContext *avctx)
         s->msmpeg4_version=5;
         break;
     case CODEC_ID_H263I:
-        s->h263_intel = 1;
         break;
     case CODEC_ID_FLV1:
         s->h263_flv = 1;
@@ -155,8 +145,7 @@ static int decode_slice(MpegEncContext *s){
     s->resync_mb_x= s->mb_x;
     s->resync_mb_y= s->mb_y;
 
-    s->y_dc_scale= s->y_dc_scale_table[ s->qscale ];
-    s->c_dc_scale= s->c_dc_scale_table[ s->qscale ];
+    ff_set_qscale(s, s->qscale);
     
     if(s->partitioned_frame){
         const int qscale= s->qscale;
@@ -170,9 +159,7 @@ static int decode_slice(MpegEncContext *s){
         s->first_slice_line=1;
         s->mb_x= s->resync_mb_x;
         s->mb_y= s->resync_mb_y;
-        s->qscale= qscale;
-        s->y_dc_scale= s->y_dc_scale_table[ s->qscale ];
-        s->c_dc_scale= s->c_dc_scale_table[ s->qscale ];
+        ff_set_qscale(s, qscale);
     }
 
     for(; s->mb_y < s->mb_height; s->mb_y++) {
@@ -217,6 +204,8 @@ static int decode_slice(MpegEncContext *s){
                 const int xy= s->mb_x + s->mb_y*s->mb_stride;
                 if(ret==SLICE_END){
                     MPV_decode_mb(s, s->block);
+                    if(s->loop_filter)
+                        ff_h263_loop_filter(s);
 
 //printf("%d %d %d %06X\n", s->mb_x, s->mb_y, s->gb.size*8 - get_bits_count(&s->gb), show_bits(&s->gb, 24));
                     ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_END|DC_END|MV_END)&part_mask);
@@ -230,17 +219,19 @@ static int decode_slice(MpegEncContext *s){
                     }
                     return 0; 
                 }else if(ret==SLICE_NOEND){
-                    fprintf(stderr,"Slice mismatch at MB: %d\n", xy);
+                    av_log(s->avctx, AV_LOG_ERROR, "Slice mismatch at MB: %d\n", xy);
                     ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x+1, s->mb_y, (AC_END|DC_END|MV_END)&part_mask);
                     return -1;
                 }
-                fprintf(stderr,"Error at MB: %d\n", xy);
+                av_log(s->avctx, AV_LOG_ERROR, "Error at MB: %d\n", xy);
                 ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_ERROR|DC_ERROR|MV_ERROR)&part_mask);
     
                 return -1;
             }
 
             MPV_decode_mb(s, s->block);
+            if(s->loop_filter)
+                ff_h263_loop_filter(s);
         }
         
         ff_draw_horiz_band(s, s->mb_y*16, 16);
@@ -292,17 +283,17 @@ static int decode_slice(MpegEncContext *s){
             max_extra+= 256*256*256*64;
         
         if(left>max_extra){
-            fprintf(stderr, "discarding %d junk bits at end, next would be %X\n", left, show_bits(&s->gb, 24));
+            av_log(s->avctx, AV_LOG_ERROR, "discarding %d junk bits at end, next would be %X\n", left, show_bits(&s->gb, 24));
         }
         else if(left<0){
-            fprintf(stderr, "overreading %d bits\n", -left);
+            av_log(s->avctx, AV_LOG_ERROR, "overreading %d bits\n", -left);
         }else
             ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x-1, s->mb_y, AC_END|DC_END|MV_END);
         
         return 0;
     }
 
-    fprintf(stderr, "slice end not reached but screenspace end (%d left %06X, score= %d)\n", 
+    av_log(s->avctx, AV_LOG_ERROR, "slice end not reached but screenspace end (%d left %06X, score= %d)\n", 
             s->gb.size_in_bits - get_bits_count(&s->gb),
             show_bits(&s->gb, 24), s->padding_bug_score);
             
@@ -402,6 +393,7 @@ uint64_t time= rdtsc();
     printf("bytes=%x %x %x %x\n", buf[0], buf[1], buf[2], buf[3]);
 #endif
     s->flags= avctx->flags;
+    s->flags2= avctx->flags2;
 
     *data_size = 0;
 
@@ -426,7 +418,7 @@ uint64_t time= rdtsc();
         }else if(s->codec_id==CODEC_ID_H263){
             next= h263_find_frame_end(s, buf, buf_size);
         }else{
-            fprintf(stderr, "this codec doesnt support truncated bitstreams\n");
+            av_log(s->avctx, AV_LOG_ERROR, "this codec doesnt support truncated bitstreams\n");
             return -1;
         }
         
@@ -434,9 +426,10 @@ uint64_t time= rdtsc();
             return buf_size;
     }
 
+    
 retry:
     
-    if(s->bitstream_buffer_size && buf_size<20){ //divx 5.01+ frame reorder
+    if(s->bitstream_buffer_size && (s->divx_packed || buf_size<20)){ //divx 5.01+/xvid frame reorder
         init_get_bits(&s->gb, s->bitstream_buffer, s->bitstream_buffer_size*8);
     }else
         init_get_bits(&s->gb, buf, buf_size*8);
@@ -445,6 +438,12 @@ retry:
     if (!s->context_initialized) {
         if (MPV_common_init(s) < 0) //we need the idct permutaton for reading a custom matrix
             return -1;
+    }
+    
+    //we need to set current_picture_ptr before reading the header, otherwise we cant store anyting im there
+    if(s->current_picture_ptr==NULL || s->current_picture_ptr->data[0]){
+        int i= ff_find_unused_picture(s, 0);
+        s->current_picture_ptr= &s->picture[i];
     }
       
     /* let's go :-) */
@@ -463,7 +462,7 @@ retry:
 
         if(s->flags& CODEC_FLAG_LOW_DELAY)
             s->low_delay=1;
-    } else if (s->h263_intel) {
+    } else if (s->codec_id == CODEC_ID_H263I) {
         ret = intel_h263_decode_picture_header(s);
     } else if (s->h263_flv) {
         ret = flv_h263_decode_picture_header(s);
@@ -475,7 +474,7 @@ retry:
 
     /* skip if the header was thrashed */
     if (ret < 0){
-        fprintf(stderr, "header damaged\n");
+        av_log(s->avctx, AV_LOG_ERROR, "header damaged\n");
         return -1;
     }
     
@@ -585,7 +584,7 @@ retry:
     }
 
     if(avctx->debug & FF_DEBUG_BUGS)
-        printf("bugs: %X lavc_build:%d xvid_build:%d divx_version:%d divx_build:%d %s\n", 
+        av_log(s->avctx, AV_LOG_DEBUG, "bugs: %X lavc_build:%d xvid_build:%d divx_version:%d divx_build:%d %s\n", 
                s->workaround_bugs, s->lavc_build, s->xvid_build, s->divx_version, s->divx_build,
                s->divx_packed ? "p" : "");
     
@@ -681,21 +680,26 @@ retry:
     /* divx 5.01+ bistream reorder stuff */
     if(s->codec_id==CODEC_ID_MPEG4 && s->bitstream_buffer_size==0 && s->divx_packed){
         int current_pos= get_bits_count(&s->gb)>>3;
+        int startcode_found=0;
 
         if(   buf_size - current_pos > 5 
            && buf_size - current_pos < BITSTREAM_BUFFER_SIZE){
             int i;
-            int startcode_found=0;
             for(i=current_pos; i<buf_size-3; i++){
                 if(buf[i]==0 && buf[i+1]==0 && buf[i+2]==1 && buf[i+3]==0xB6){
                     startcode_found=1;
                     break;
                 }
             }
-            if(startcode_found){
-                memcpy(s->bitstream_buffer, buf + current_pos, buf_size - current_pos);
-                s->bitstream_buffer_size= buf_size - current_pos;
-            }
+        }
+        if(s->gb.buffer == s->bitstream_buffer && buf_size>20){ //xvid style
+            startcode_found=1;
+            current_pos=0;
+        }
+
+        if(startcode_found){
+            memcpy(s->bitstream_buffer, buf + current_pos, buf_size - current_pos);
+            s->bitstream_buffer_size= buf_size - current_pos;
         }
     }
 
@@ -707,10 +711,10 @@ assert(s->current_picture.pict_type == s->current_picture_ptr->pict_type);
 assert(s->current_picture.pict_type == s->pict_type);
     if(s->pict_type==B_TYPE || s->low_delay){
         *pict= *(AVFrame*)&s->current_picture;
-        ff_print_debug_info(s, s->current_picture_ptr);
+        ff_print_debug_info(s, pict);
     } else {
         *pict= *(AVFrame*)&s->last_picture;
-        ff_print_debug_info(s, s->last_picture_ptr);
+        ff_print_debug_info(s, pict);
     }
 
     /* Return the Picture timestamp as the frame number */

@@ -30,10 +30,6 @@
 #include "avcodec.h"
 #include "dsputil.h"
 
-#ifndef INT64_MAX
-#define INT64_MAX 9223372036854775807LL
-#endif
-
 #define VLC_BITS 11
 
 typedef enum Predictor{
@@ -219,7 +215,7 @@ static int generate_bits_table(uint32_t *dst, uint8_t *len_table){
                 dst[index]= bits++;
         }
         if(bits & 1){
-            fprintf(stderr, "Error generating huffman table\n");
+            av_log(NULL, AV_LOG_ERROR, "Error generating huffman table\n");
             return -1;
         }
         bits >>= 1;
@@ -227,7 +223,6 @@ static int generate_bits_table(uint32_t *dst, uint8_t *len_table){
     return 0;
 }
 
-#ifdef CONFIG_ENCODERS
 static void generate_len_table(uint8_t *dst, uint64_t *stats, int size){
     uint64_t counts[2*size];
     int up[2*size];
@@ -283,7 +278,6 @@ static void generate_len_table(uint8_t *dst, uint64_t *stats, int size){
         if(i==size) break;
     }
 }
-#endif
 
 static int read_huffman_tables(HYuvContext *s, uint8_t *src, int length){
     GetBitContext gb;
@@ -435,8 +429,6 @@ s->bgr32=1;
     return 0;
 }
 
-#ifdef CONFIG_ENCODERS
-
 static void store_table(HYuvContext *s, uint8_t *len){
     int i;
     int index= s->avctx->extradata_size;
@@ -484,7 +476,7 @@ static int encode_init(AVCodecContext *avctx)
     switch(avctx->pix_fmt){
     case PIX_FMT_YUV420P:
         if(avctx->strict_std_compliance>=0){
-            fprintf(stderr, "YV12-huffyuv is experimental, there WILL be no compatbility! (use (v)strict=-1)\n");
+            av_log(avctx, AV_LOG_ERROR, "YV12-huffyuv is experimental, there WILL be no compatbility! (use (v)strict=-1)\n");
             return -1;
         }
         s->bitstream_bpp= 12;
@@ -493,7 +485,7 @@ static int encode_init(AVCodecContext *avctx)
         s->bitstream_bpp= 16;
         break;
     default:
-        fprintf(stderr, "format not supported\n");
+        av_log(avctx, AV_LOG_ERROR, "format not supported\n");
         return -1;
     }
     avctx->bits_per_sample= s->bitstream_bpp;
@@ -557,8 +549,6 @@ static int encode_init(AVCodecContext *avctx)
     return 0;
 }
 
-#endif
-
 static void decode_422_bitstream(HYuvContext *s, int count){
     int i;
 
@@ -582,8 +572,6 @@ static void decode_gray_bitstream(HYuvContext *s, int count){
         s->temp[0][2*i+1]= get_vlc2(&s->gb, s->vlc[0].table, VLC_BITS, 3); 
     }
 }
-
-#ifdef CONFIG_ENCODERS
 
 static void encode_422_bitstream(HYuvContext *s, int count){
     int i;
@@ -622,8 +610,6 @@ static void encode_gray_bitstream(HYuvContext *s, int count){
         }
     }
 }
-
-#endif
 
 static void decode_bgr_bitstream(HYuvContext *s, int count){
     int i;
@@ -713,7 +699,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, uint8
 
     p->reference= 0;
     if(avctx->get_buffer(avctx, p) < 0){
-        fprintf(stderr, "get_buffer() failed\n");
+        av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
 
@@ -734,7 +720,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, uint8
             p->data[0][1]= get_bits(&s->gb, 8);
             p->data[0][0]= get_bits(&s->gb, 8);
             
-            fprintf(stderr, "YUY2 output isnt implemenetd yet\n");
+            av_log(avctx, AV_LOG_ERROR, "YUY2 output isnt implemenetd yet\n");
             return -1;
         }else{
         
@@ -906,11 +892,11 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, uint8
                 draw_slice(s, height); // just 1 large slice as this isnt possible in reverse order
                 break;
             default:
-                fprintf(stderr, "prediction type not supported!\n");
+                av_log(avctx, AV_LOG_ERROR, "prediction type not supported!\n");
             }
         }else{
 
-            fprintf(stderr, "BGR24 output isnt implemenetd yet\n");
+            av_log(avctx, AV_LOG_ERROR, "BGR24 output isnt implemenetd yet\n");
             return -1;
         }
     }
@@ -935,8 +921,6 @@ static int decode_end(AVCodecContext *avctx)
 
     return 0;
 }
-
-#ifdef CONFIG_ENCODERS
 
 static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size, void *data){
     HYuvContext *s = avctx->priv_data;
@@ -1061,7 +1045,7 @@ static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size,
             }
         }        
     }else{
-        fprintf(stderr, "Format not supported!\n");
+        av_log(avctx, AV_LOG_ERROR, "Format not supported!\n");
     }
     emms_c();
     
@@ -1098,8 +1082,6 @@ static int encode_end(AVCodecContext *avctx)
     
     return 0;
 }
-
-#endif
 
 static const AVOption huffyuv_options[] =
 {

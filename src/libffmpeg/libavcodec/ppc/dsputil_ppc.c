@@ -25,6 +25,7 @@
 #include "dsputil_altivec.h"
 #endif
 
+extern void fdct_altivec(int16_t *block);
 extern void idct_put_altivec(uint8_t *dest, int line_size, int16_t *block);
 extern void idct_add_altivec(uint8_t *dest, int line_size, int16_t *block);
 
@@ -48,6 +49,7 @@ static unsigned char* perfname[] = {
   "fft_calc_altivec",
   "gmc1_altivec",
   "dct_unquantize_h263_altivec",
+  "fdct_altivec",
   "idct_add_altivec",
   "idct_put_altivec",
   "put_pixels16_altivec",
@@ -238,13 +240,13 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
         mm_flags |= MM_ALTIVEC;
         
         // Altivec specific optimisations
-        c->pix_abs16x16_x2 = pix_abs16x16_x2_altivec;
-        c->pix_abs16x16_y2 = pix_abs16x16_y2_altivec;
-        c->pix_abs16x16_xy2 = pix_abs16x16_xy2_altivec;
-        c->pix_abs16x16 = pix_abs16x16_altivec;
-        c->pix_abs8x8 = pix_abs8x8_altivec;
-        c->sad[0]= sad16x16_altivec;
-        c->sad[1]= sad8x8_altivec;
+        c->pix_abs[0][1] = sad16_x2_altivec;
+        c->pix_abs[0][2] = sad16_y2_altivec;
+        c->pix_abs[0][3] = sad16_xy2_altivec;
+        c->pix_abs[0][0] = sad16_altivec;
+        c->pix_abs[1][0] = sad8_altivec;
+        c->sad[0]= sad16_altivec;
+        c->sad[1]= sad8_altivec;
         c->pix_norm1 = pix_norm1_altivec;
         c->sse[1]= sse8_altivec;
         c->sse[0]= sse16_altivec;
@@ -269,6 +271,14 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
         c->put_no_rnd_pixels_tab[0][3] = put_no_rnd_pixels16_xy2_altivec;
         
 	c->gmc1 = gmc1_altivec;
+
+#ifdef CONFIG_ENCODERS
+	if (avctx->dct_algo == FF_DCT_AUTO ||
+	    avctx->dct_algo == FF_DCT_ALTIVEC)
+	{
+	    c->fdct = fdct_altivec;
+	}
+#endif //CONFIG_ENCODERS
 
         if ((avctx->idct_algo == FF_IDCT_AUTO) ||
                 (avctx->idct_algo == FF_IDCT_ALTIVEC))

@@ -1,6 +1,8 @@
 /*
  * utils for libavcodec
  * Copyright (c) 2001 Fabrice Bellard.
+ * Copyright (c) 2003 Michel Bardiaux for the av_log API
+ * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,6 +27,7 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
+#include <stdarg.h>
 
 void *av_mallocz(unsigned int size)
 {
@@ -123,13 +126,14 @@ typedef struct InternalBuffer{
     int last_pic_num;
     uint8_t *base[4];
     uint8_t *data[4];
+    int linesize[4];
 }InternalBuffer;
 
 #define INTERNAL_BUFFER_SIZE 32
 
 #define ALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
-static void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
+void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
     int w_align= 1;    
     int h_align= 1;    
     
@@ -170,6 +174,7 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     int w= s->width;
     int h= s->height;
     InternalBuffer *buf;
+    int *picture_number;
     
     assert(pic->data[0]==NULL);
     assert(INTERNAL_BUFFER_SIZE > s->internal_buffer_count);
@@ -186,10 +191,12 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
 #endif
      
     buf= &((InternalBuffer*)s->internal_buffer)[s->internal_buffer_count];
-
+    picture_number= &(((InternalBuffer*)s->internal_buffer)[INTERNAL_BUFFER_SIZE-1]).last_pic_num; //FIXME ugly hack
+    (*picture_number)++;
+    
     if(buf->base[0]){
-        pic->age= pic->coded_picture_number - buf->last_pic_num;
-        buf->last_pic_num= pic->coded_picture_number;
+        pic->age= *picture_number - buf->last_pic_num;
+        buf->last_pic_num= *picture_number;
     }else{
         int h_chroma_shift, v_chroma_shift;
         int s_align, pixel_size;
@@ -231,24 +238,25 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
             const int h_shift= i==0 ? 0 : h_chroma_shift;
             const int v_shift= i==0 ? 0 : v_chroma_shift;
 
-            pic->linesize[i]= ALIGN(pixel_size*w>>h_shift, s_align);
+            buf->linesize[i]= ALIGN(pixel_size*w>>h_shift, s_align);
 
-            buf->base[i]= av_mallocz((pic->linesize[i]*h>>v_shift)+16); //FIXME 16
+            buf->base[i]= av_mallocz((buf->linesize[i]*h>>v_shift)+16); //FIXME 16
             if(buf->base[i]==NULL) return -1;
-            memset(buf->base[i], 128, pic->linesize[i]*h>>v_shift);
+            memset(buf->base[i], 128, buf->linesize[i]*h>>v_shift);
         
             if(s->flags&CODEC_FLAG_EMU_EDGE)
                 buf->data[i] = buf->base[i];
             else
-                buf->data[i] = buf->base[i] + ALIGN((pic->linesize[i]*EDGE_WIDTH>>v_shift) + (EDGE_WIDTH>>h_shift), s_align);
+                buf->data[i] = buf->base[i] + ALIGN((buf->linesize[i]*EDGE_WIDTH>>v_shift) + (EDGE_WIDTH>>h_shift), s_align);
         }
         pic->age= 256*256*256*64;
-        pic->type= FF_BUFFER_TYPE_INTERNAL;
     }
+    pic->type= FF_BUFFER_TYPE_INTERNAL;
 
     for(i=0; i<4; i++){
         pic->base[i]= buf->base[i];
         pic->data[i]= buf->data[i];
+        pic->linesize[i]= buf->linesize[i];
     }
     s->internal_buffer_count++;
 
@@ -283,7 +291,39 @@ void avcodec_default_release_buffer(AVCodecContext *s, AVFrame *pic){
 //printf("R%X\n", pic->opaque);
 }
 
-static enum PixelFormat avcodec_default_get_format(struct AVCodecContext *s, enum PixelFormat * fmt){
+int avcodec_default_reget_buffer(AVCodecContext *s, AVFrame *pic){
+    AVFrame temp_pic;
+    int i;
+
+    /* If no picture return a new buffer */
+    if(pic->data[0] == NULL) {
+        /* We will copy from buffer, so must be readable */
+        pic->buffer_hints |= FF_BUFFER_HINTS_READABLE;
+        return s->get_buffer(s, pic);
+    }
+
+    /* If internal buffer type return the same buffer */
+    if(pic->type == FF_BUFFER_TYPE_INTERNAL)
+        return 0;
+
+    /*
+     * Not internal type and reget_buffer not overridden, emulate cr buffer
+     */
+    temp_pic = *pic;
+    for(i = 0; i < 4; i++)
+        pic->data[i] = pic->base[i] = NULL;
+    pic->opaque = NULL;
+    /* Allocate new frame */
+    if (s->get_buffer(s, pic))
+        return -1;
+    /* Copy image data from old buffer to new buffer */
+    img_copy((AVPicture*)pic, (AVPicture*)&temp_pic, s->pix_fmt, s->width,
+             s->height);
+    s->release_buffer(s, &temp_pic); // Release old frame
+    return 0;
+}
+
+enum PixelFormat avcodec_default_get_format(struct AVCodecContext *s, enum PixelFormat * fmt){
     return fmt[0];
 }
 
@@ -315,10 +355,12 @@ void avcodec_get_context_defaults(AVCodecContext *s){
     s->lmin= FF_QP2LAMBDA * s->qmin;
     s->lmax= FF_QP2LAMBDA * s->qmax;
     s->sample_aspect_ratio= (AVRational){0,1};
+    s->ildct_cmp= FF_CMP_VSAD;
     
     s->intra_quant_bias= FF_DEFAULT_QUANT_BIAS;
     s->inter_quant_bias= FF_DEFAULT_QUANT_BIAS;
     s->palctrl = NULL;
+    s->reget_buffer= avcodec_default_reget_buffer;
 }
 
 /**
@@ -491,8 +533,7 @@ AVCodec *avcodec_find_decoder_by_name(const char *name)
     return NULL;
 }
 
-#if 0
-static AVCodec *avcodec_find(enum CodecID id)
+AVCodec *avcodec_find(enum CodecID id)
 {
     AVCodec *p;
     p = first_avcodec;
@@ -503,7 +544,6 @@ static AVCodec *avcodec_find(enum CodecID id)
     }
     return NULL;
 }
-#endif
 
 void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
 {
@@ -763,3 +803,57 @@ int64_t av_rescale(int64_t a, int b, int c){
 
     return ((h/c)<<32) + l/c;
 }
+
+/* av_log API */
+
+#ifdef AV_LOG_TRAP_PRINTF
+#undef stderr
+#undef fprintf
+#endif
+
+static int av_log_level = AV_LOG_DEBUG;
+
+static void av_log_default_callback(AVCodecContext* avctx, int level, const char* fmt, va_list vl)
+{
+    static int print_prefix=1;
+
+    if(level>av_log_level)
+	    return;
+    if(avctx && print_prefix)
+        fprintf(stderr, "[%s @ %p]", avctx->codec ? avctx->codec->name : "?", avctx);
+        
+    print_prefix= (int)strstr(fmt, "\n");
+        
+    vfprintf(stderr, fmt, vl);
+}
+
+static void (*av_log_callback)(AVCodecContext*, int, const char*, va_list) = av_log_default_callback;
+
+void av_log(AVCodecContext* avctx, int level, const char *fmt, ...)
+{
+    va_list vl;
+    va_start(vl, fmt);
+    av_vlog(avctx, level, fmt, vl);
+    va_end(vl);
+}
+
+void av_vlog(AVCodecContext* avctx, int level, const char *fmt, va_list vl)
+{
+    av_log_callback(avctx, level, fmt, vl);
+}
+
+int av_log_get_level(void)
+{
+    return av_log_level;
+}
+
+void av_log_set_level(int level)
+{
+    av_log_level = level;
+}
+
+void av_log_set_callback(void (*callback)(AVCodecContext*, int, const char*, va_list))
+{
+    av_log_callback = callback;
+}
+

@@ -47,15 +47,11 @@ typedef struct RpzaContext {
     AVCodecContext *avctx;
     DSPContext dsp;
     AVFrame frame;
-    AVFrame prev_frame;
 
     unsigned char *buf;
     int size;
 
 } RpzaContext;
-
-#undef BE_16
-#undef BE_32
 
 #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
 #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
@@ -74,7 +70,7 @@ typedef struct RpzaContext {
     total_blocks--; \
     if (total_blocks < 0) \
     { \
-        printf("warning: block counter just went negative (this should not happen)\n"); \
+        av_log(s->avctx, AV_LOG_ERROR, "warning: block counter just went negative (this should not happen)\n"); \
         return; \
     } \
 }
@@ -93,7 +89,6 @@ static void rpza_decode_stream(RpzaContext *s)
     unsigned char index, idx;
     unsigned short ta, tb;
     unsigned short *pixels = (unsigned short *)s->frame.data[0];
-    unsigned short *prev_pixels = (unsigned short *)s->prev_frame.data[0];
 
     int row_ptr = 0;
     int pixel_ptr = 0;
@@ -103,7 +98,7 @@ static void rpza_decode_stream(RpzaContext *s)
 
     /* First byte is always 0xe1. Warn if it's different */
     if (s->buf[stream_ptr] != 0xe1)
-        printf("First chunk byte is 0x%02x instead of 0x1e\n",
+        av_log(s->avctx, AV_LOG_ERROR, "First chunk byte is 0x%02x instead of 0x1e\n",
             s->buf[stream_ptr]);
 
     /* Get chunk size, ingnoring first byte */
@@ -112,7 +107,7 @@ static void rpza_decode_stream(RpzaContext *s)
 
     /* If length mismatch use size from MOV file and try to decode anyway */
     if (chunk_size != s->size)
-        printf("MOV chunk size != encoded chunk size; using MOV chunk size\n");
+        av_log(s->avctx, AV_LOG_ERROR, "MOV chunk size != encoded chunk size; using MOV chunk size\n");
 
     chunk_size = s->size;
 
@@ -143,15 +138,7 @@ static void rpza_decode_stream(RpzaContext *s)
         /* Skip blocks */
         case 0x80:
             while (n_blocks--) {
-                block_ptr = row_ptr + pixel_ptr;
-                for (pixel_y = 0; pixel_y < 4; pixel_y++) {
-                    for (pixel_x = 0; pixel_x < 4; pixel_x++){
-                        pixels[block_ptr] = prev_pixels[block_ptr];
-                        block_ptr++;
-                    }
-                    block_ptr += row_inc;
-                }
-                ADVANCE_BLOCK();
+              ADVANCE_BLOCK();
             }
             break;
 
@@ -239,7 +226,7 @@ static void rpza_decode_stream(RpzaContext *s)
 
         /* Unknown opcode */
         default:
-            printf("Unknown opcode %d in rpza chunk."
+            av_log(s->avctx, AV_LOG_ERROR, "Unknown opcode %d in rpza chunk."
                  " Skip remaining %d bytes of chunk data.\n", opcode,
                  chunk_size - stream_ptr);
             return;
@@ -256,7 +243,7 @@ static int rpza_decode_init(AVCodecContext *avctx)
     avctx->has_b_frames = 0;
     dsputil_init(&s->dsp, avctx);
 
-    s->frame.data[0] = s->prev_frame.data[0] = NULL;
+    s->frame.data[0] = NULL;
 
     return 0;
 }
@@ -267,22 +254,21 @@ static int rpza_decode_frame(AVCodecContext *avctx,
 {
     RpzaContext *s = (RpzaContext *)avctx->priv_data;
 
+    /* no supplementary picture */
+    if (buf_size == 0)
+        return 0;
+
     s->buf = buf;
     s->size = buf_size;
 
     s->frame.reference = 1;
-    if (avctx->get_buffer(avctx, &s->frame)) {
-        printf ("  RPZA Video: get_buffer() failed\n");
+    s->frame.buffer_hints = FF_BUFFER_HINTS_VALID | FF_BUFFER_HINTS_PRESERVE | FF_BUFFER_HINTS_REUSABLE;
+    if (avctx->reget_buffer(avctx, &s->frame)) {
+        av_log(avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
         return -1;
     }
 
     rpza_decode_stream(s);
-
-    if (s->prev_frame.data[0])
-        avctx->release_buffer(avctx, &s->prev_frame);
-
-    /* shuffle frames */
-    s->prev_frame = s->frame;
 
     *data_size = sizeof(AVFrame);
     *(AVFrame*)data = s->frame;
@@ -295,8 +281,8 @@ static int rpza_decode_end(AVCodecContext *avctx)
 {
     RpzaContext *s = (RpzaContext *)avctx->priv_data;
 
-    if (s->prev_frame.data[0])
-        avctx->release_buffer(avctx, &s->prev_frame);
+    if (s->frame.data[0])
+        avctx->release_buffer(avctx, &s->frame);
 
     return 0;
 }

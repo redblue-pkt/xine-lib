@@ -57,7 +57,7 @@ static int decode_frame(AVCodecContext *avctx,
 
     p->reference= 0;
     if(avctx->get_buffer(avctx, p) < 0){
-        fprintf(stderr, "get_buffer() failed\n");
+        av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
     p->pict_type= I_TYPE;
@@ -158,14 +158,12 @@ static int decode_init(AVCodecContext *avctx){
     return 0;
 }
 
-#ifdef CONFIG_ENCODERS
 static int encode_init(AVCodecContext *avctx){
  
     common_init(avctx);
     
     return 0;
 }
-#endif
 
 static int decode_end(AVCodecContext *avctx){
 

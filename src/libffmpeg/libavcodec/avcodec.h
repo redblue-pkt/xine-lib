@@ -13,6 +13,7 @@ extern "C" {
 
 #include "common.h"
 #include "rational.h"
+#include <sys/types.h> /* size_t */
 
 /* FIXME: We cannot use ffmpeg's XvMC capabilities, since that would require
  * linking the ffmpeg plugin against XvMC libraries, which is a bad thing,
@@ -23,7 +24,7 @@ extern "C" {
 
 #define FFMPEG_VERSION_INT     0x000408
 #define FFMPEG_VERSION         "0.4.8"
-#define LIBAVCODEC_BUILD       4688
+#define LIBAVCODEC_BUILD       4699
 
 #define LIBAVCODEC_VERSION_INT FFMPEG_VERSION_INT
 #define LIBAVCODEC_VERSION     FFMPEG_VERSION
@@ -39,6 +40,7 @@ enum CodecID {
     CODEC_ID_MPEG2VIDEO_XVMC,
     CODEC_ID_H263,
     CODEC_ID_RV10,
+    CODEC_ID_RV20,
     CODEC_ID_MP2,
     CODEC_ID_MP3, /* prefered ID for MPEG Audio layer 1, 2 or3 decoding */
     CODEC_ID_VORBIS,
@@ -90,6 +92,14 @@ enum CodecID {
     CODEC_ID_MSRLE,
     CODEC_ID_MSVIDEO1,
     CODEC_ID_IDCIN,
+    CODEC_ID_8BPS,
+    CODEC_ID_SMC,
+    CODEC_ID_FLIC,
+    CODEC_ID_TRUEMOTION1,
+    CODEC_ID_VMDVIDEO,
+    CODEC_ID_VMDAUDIO,
+    CODEC_ID_MSZH,
+    CODEC_ID_ZLIB,
 
     /* various pcm "codecs" */
     CODEC_ID_PCM_S16LE,
@@ -232,7 +242,7 @@ static const __attribute__((unused)) int Motion_Est_QTab[] =
 */
 
 #define CODEC_FLAG_QSCALE 0x0002  ///< use fixed qscale 
-#define CODEC_FLAG_4MV    0x0004  ///< 4 MV per MB allowed 
+#define CODEC_FLAG_4MV    0x0004  ///< 4 MV per MB allowed / Advanced prediction for H263
 #define CODEC_FLAG_QPEL   0x0010  ///< use qpel MC 
 #define CODEC_FLAG_GMC    0x0020  ///< use GMC 
 #define CODEC_FLAG_MV0    0x0040  ///< always try a MB with MV=<0,0> 
@@ -260,15 +270,18 @@ static const __attribute__((unused)) int Motion_Est_QTab[] =
 #define CODEC_FLAG_AC_PRED        0x01000000 ///< H263 Advanced intra coding / MPEG4 AC prediction
 #define CODEC_FLAG_H263P_UMV      0x02000000 ///< Unlimited motion vector  
 #define CODEC_FLAG_CBP_RD         0x04000000 ///< use rate distortion optimization for cbp
-/* For advanced prediction mode, we reuse the 4MV flag */
+#define CODEC_FLAG_QP_RD          0x08000000 ///< use rate distortion optimization for qp selectioon
+#define CODEC_FLAG_H263P_AIV      0x00000008 ///< H263 Alternative inter vlc
+#define CODEC_FLAG_OBMC           0x00000001 ///< OBMC
+#define CODEC_FLAG_LOOP_FILTER    0x00000800 ///< loop filter
+#define CODEC_FLAG_H263P_SLICE_STRUCT 0x10000000
+#define CODEC_FLAG_INTERLACED_ME  0x20000000 ///< interlaced motion estimation
+#define CODEC_FLAG_SVCD_SCAN_OFFSET 0x40000000 ///< will reserve space for SVCD scan offset user data
+#define CODEC_FLAG_CLOSED_GOP     0x80000000
 /* Unsupported options :
  * 		Syntax Arithmetic coding (SAC)
- * 		Deblocking filter internal loop
- * 		Slice structured
  * 		Reference Picture Selection
- * 		Independant Segment Decoding
- * 		Alternative Inter * 		VLC
- * 		Modified Quantization */
+ * 		Independant Segment Decoding */
 /* /Fx */
 /* codec capabilities */
 
@@ -282,6 +295,30 @@ static const __attribute__((unused)) int Motion_Est_QTab[] =
    used */
 #define CODEC_CAP_PARSE_ONLY      0x0004
 #define CODEC_CAP_TRUNCATED       0x0008
+
+//the following defines might change, so dont expect compatibility if u use them
+#define MB_TYPE_INTRA4x4   0x0001
+#define MB_TYPE_INTRA16x16 0x0002 //FIXME h264 specific
+#define MB_TYPE_INTRA_PCM  0x0004 //FIXME h264 specific
+#define MB_TYPE_16x16      0x0008
+#define MB_TYPE_16x8       0x0010
+#define MB_TYPE_8x16       0x0020
+#define MB_TYPE_8x8        0x0040
+#define MB_TYPE_INTERLACED 0x0080
+#define MB_TYPE_DIRECT2     0x0100 //FIXME
+#define MB_TYPE_ACPRED     0x0200
+#define MB_TYPE_GMC        0x0400
+#define MB_TYPE_SKIP       0x0800
+#define MB_TYPE_P0L0       0x1000
+#define MB_TYPE_P1L0       0x2000
+#define MB_TYPE_P0L1       0x4000
+#define MB_TYPE_P1L1       0x8000
+#define MB_TYPE_L0         (MB_TYPE_P0L0 | MB_TYPE_P1L0)
+#define MB_TYPE_L1         (MB_TYPE_P0L1 | MB_TYPE_P1L1)
+#define MB_TYPE_L0L1       (MB_TYPE_L0   | MB_TYPE_L1)
+#define MB_TYPE_QUANT      0x00010000
+#define MB_TYPE_CBP        0x00020000
+//Note bits 24-31 are reserved for codec specific use (h264 ref0, mpeg1 0mv, ...)
 
 /**
  * Pan Scan area.
@@ -406,6 +443,28 @@ typedef struct AVPanScan{
     uint8_t *mbskip_table;\
 \
     /**\
+     * Motion vector table\
+     * - encoding: unused\
+     * - decoding: set by lavc\
+     */\
+    int16_t (*motion_val[2])[2];\
+\
+    /**\
+     * Macroblock type table\
+     * mb_type_base + mb_width + 2\
+     * - encoding: unused\
+     * - decoding: set by lavc\
+     */\
+    uint32_t *mb_type;\
+\
+    /**\
+     * Macroblock size: (0->16x16, 1->8x8, 2-> 4x4, 3-> 2x2)\
+     * - encoding: unused\
+     * - decoding: set by lavc\
+     */\
+    uint8_t motion_subsample_log2;\
+\
+    /**\
      * for some private data of the user\
      * - encoding: unused\
      * - decoding: set by user\
@@ -467,6 +526,13 @@ typedef struct AVPanScan{
      * - decoding: set by lavc (default 0)\
      */\
     int palette_has_changed;\
+    \
+    /**\
+     * Codec suggestion on buffer type if != 0\
+     * - encoding: unused\
+     * - decoding: set by lavc (before get_buffer() call))\
+     */\
+    int buffer_hints;\
 
 #define FF_QSCALE_TYPE_MPEG1	0
 #define FF_QSCALE_TYPE_MPEG2	1
@@ -483,6 +549,11 @@ typedef struct AVPanScan{
 #define FF_S_TYPE 4 // S(GMC)-VOP MPEG4
 #define FF_SI_TYPE 5
 #define FF_SP_TYPE 6
+
+#define FF_BUFFER_HINTS_VALID    0x01 // Buffer hints value is meaningful (if 0 ignore)
+#define FF_BUFFER_HINTS_READABLE 0x02 // Codec will read from buffer
+#define FF_BUFFER_HINTS_PRESERVE 0x04 // User must not alter buffer content
+#define FF_BUFFER_HINTS_REUSABLE 0x08 // Codec will reuse the buffer (update)
 
 /**
  * Audio Video Frame.
@@ -682,11 +753,8 @@ typedef struct AVCodecContext {
     
     void *priv_data;
 
-    /* The following data is for RTP friendly coding */
-    /* By now only H.263/H.263+/MPEG4 coder honours this   */
-    int rtp_mode;   /* 1 for activate RTP friendly-mode           */
-                    /* highers numbers represent more error-prone */
-                    /* enviroments, by now just "1" exist         */
+    /* unused, FIXME remove*/
+    int rtp_mode;
     
     int rtp_payload_size;   /* The size of the RTP payload, the coder will  */
                             /* do it's best to deliver a chunk with size    */
@@ -902,6 +970,8 @@ typedef struct AVCodecContext {
 
     /**
      * qscale factor between p and i frames.
+     * if > 0 then the last p frame quantizer will be used (q= lastp_q*factor+offset)
+     * if < 0 then normal ratecontrol will be done (q= -normal_q*factor+offset)
      * - encoding: set by user.
      * - decoding: unused
      */
@@ -909,8 +979,6 @@ typedef struct AVCodecContext {
     
     /**
      * qscale offset between p and i frames.
-     * if > 0 then the last p frame quantizer will be used (q= lastp_q*factor+offset)
-     * if < 0 then normal ratecontrol will be done (q= -normal_q*factor+offset)
      * - encoding: set by user.
      * - decoding: unused
      */
@@ -1054,6 +1122,7 @@ typedef struct AVCodecContext {
     
     /**
      * sample aspect ratio (0 if unknown).
+     * numerator and denominator must be relative prime and smaller then 256 for some video standards
      * - encoding: set by user.
      * - decoding: set by lavc.
      */
@@ -1078,14 +1147,26 @@ typedef struct AVCodecContext {
 #define FF_DEBUG_MB_TYPE   8
 #define FF_DEBUG_QP        16
 #define FF_DEBUG_MV        32
-#define FF_DEBUG_VIS_MV    0x00000040
+//#define FF_DEBUG_VIS_MV    0x00000040
 #define FF_DEBUG_SKIP      0x00000080
 #define FF_DEBUG_STARTCODE 0x00000100
 #define FF_DEBUG_PTS       0x00000200
 #define FF_DEBUG_ER        0x00000400
 #define FF_DEBUG_MMCO      0x00000800
 #define FF_DEBUG_BUGS      0x00001000
+#define FF_DEBUG_VIS_QP    0x00002000
+#define FF_DEBUG_VIS_MB_TYPE 0x00004000
     
+    /**
+     * debug.
+     * - encoding: set by user.
+     * - decoding: set by user.
+     */
+    int debug_mv;
+#define FF_DEBUG_VIS_MV_P_FOR  0x00000001 //visualize forward predicted MVs of P frames
+#define FF_DEBUG_VIS_MV_B_FOR  0x00000002 //visualize forward predicted MVs of B frames
+#define FF_DEBUG_VIS_MV_B_BACK 0x00000004 //visualize backward predicted MVs of B frames
+
     /**
      * error.
      * - encoding: set by lavc if flags&CODEC_FLAG_PSNR
@@ -1125,6 +1206,12 @@ typedef struct AVCodecContext {
      * - decoding: unused
      */
     int mb_cmp;
+    /**
+     * interlaced dct compare function
+     * - encoding: set by user.
+     * - decoding: unused
+     */
+    int ildct_cmp;
 #define FF_CMP_SAD  0
 #define FF_CMP_SSE  1
 #define FF_CMP_SATD 2
@@ -1133,6 +1220,8 @@ typedef struct AVCodecContext {
 #define FF_CMP_BIT  5
 #define FF_CMP_RD   6
 #define FF_CMP_ZERO 7
+#define FF_CMP_VSAD 8
+#define FF_CMP_VSSE 9
 #define FF_CMP_CHROMA 256
     
     /**
@@ -1365,7 +1454,63 @@ typedef struct AVCodecContext {
      * - decoding: set by user.
      */
     struct AVPaletteControl *palctrl;
+
+    /**
+     * noise reduction strength
+     * - encoding: set by user.
+     * - decoding: unused
+     */
+    int noise_reduction;
     
+    /**
+     * called at the beginning of a frame to get cr buffer for it.
+     * buffer type (size, hints) must be the same. lavc won't check it.
+     * lavc will pass previous buffer in pic, function should return
+     * same buffer or new buffer with old frame "painted" into it.
+     * if pic.data[0] == NULL must behave like get_buffer().
+     * - encoding: unused
+     * - decoding: set by lavc, user can override
+     */
+    int (*reget_buffer)(struct AVCodecContext *c, AVFrame *pic);
+
+    /**
+     * number of bits which should be loaded into the rc buffer before decoding starts
+     * - encoding: set by user.
+     * - decoding: unused
+     */
+    int rc_initial_buffer_occupancy;
+
+    /**
+     *
+     * - encoding: set by user.
+     * - decoding: unused
+     */
+    int inter_threshold;
+
+    /**
+     * CODEC_FLAG2_*.
+     * - encoding: set by user.
+     * - decoding: set by user.
+     */
+    int flags2;
+
+    /**
+     * simulates errors in the bitstream to test error concealment.
+     * - encoding: set by user.
+     * - decoding: unused.
+     */
+    int error_rate;
+    
+    /**
+     * MP3 antialias algorithm, see FF_AA_* below.
+     * - encoding: unused
+     * - decoding: set by user
+     */
+    int antialias_algo;
+#define FF_AA_AUTO    0
+#define FF_AA_FASTINT 1 //not implemented yet
+#define FF_AA_INT     2
+#define FF_AA_FLOAT   3
 } AVCodecContext;
 
 
@@ -1446,7 +1591,8 @@ typedef struct AVPicture {
  * This structure defines a method for communicating palette changes
  * between and demuxer and a decoder.
  */
-#define AVPALETTE_SIZE 256
+#define AVPALETTE_SIZE 1024
+#define AVPALETTE_COUNT 256
 typedef struct AVPaletteControl {
 
     /* demuxer sets this to 1 to indicate the palette has changed;
@@ -1457,7 +1603,7 @@ typedef struct AVPaletteControl {
      * the individual palette components should be on a 8-bit scale; if
      * the palette data comes from a IBM VGA native format, the component
      * data is probably 6 bits in size and needs to be scaled */
-    unsigned int palette[AVPALETTE_SIZE];
+    unsigned int palette[AVPALETTE_COUNT];
 
 } AVPaletteControl;
 
@@ -1472,6 +1618,7 @@ extern AVCodec h263_encoder;
 extern AVCodec h263p_encoder;
 extern AVCodec flv_encoder;
 extern AVCodec rv10_encoder;
+extern AVCodec rv20_encoder;
 extern AVCodec mjpeg_encoder;
 extern AVCodec ljpeg_encoder;
 extern AVCodec mpeg4_encoder;
@@ -1487,6 +1634,7 @@ extern AVCodec asv2_encoder;
 extern AVCodec vcr1_encoder;
 extern AVCodec ffv1_encoder;
 extern AVCodec mdec_encoder;
+extern AVCodec zlib_encoder;
 
 extern AVCodec h263_decoder;
 extern AVCodec mpeg4_decoder;
@@ -1497,10 +1645,12 @@ extern AVCodec wmv1_decoder;
 extern AVCodec wmv2_decoder;
 extern AVCodec mpeg1video_decoder;
 extern AVCodec mpeg2video_decoder;
+extern AVCodec mpegvideo_decoder;
 extern AVCodec mpeg_xvmc_decoder;
 extern AVCodec h263i_decoder;
 extern AVCodec flv_decoder;
 extern AVCodec rv10_decoder;
+extern AVCodec rv20_decoder;
 extern AVCodec svq1_decoder;
 extern AVCodec svq3_decoder;
 extern AVCodec dvvideo_decoder;
@@ -1542,6 +1692,14 @@ extern AVCodec msrle_decoder;
 extern AVCodec msvideo1_decoder;
 extern AVCodec vqa_decoder;
 extern AVCodec idcin_decoder;
+extern AVCodec eightbps_decoder;
+extern AVCodec smc_decoder;
+extern AVCodec flic_decoder;
+extern AVCodec vmdvideo_decoder;
+extern AVCodec vmdaudio_decoder;
+extern AVCodec truemotion1_decoder;
+extern AVCodec mszh_decoder;
+extern AVCodec zlib_decoder;
 extern AVCodec ra_144_decoder;
 extern AVCodec ra_288_decoder;
 extern AVCodec roq_dpcm_decoder;
@@ -1811,6 +1969,61 @@ typedef enum {
  */
 int avcodec(void* handle, avc_cmd_t cmd, void* pin, void* pout);
 
+/* frame parsing */
+typedef struct AVCodecParserContext {
+    void *priv_data;
+    struct AVCodecParser *parser;
+    int64_t frame_offset; /* offset of the current frame */
+    int64_t cur_offset; /* current offset 
+                           (incremented by each av_parser_parse()) */
+    int64_t last_frame_offset; /* offset of the last frame */
+    /* video info */
+    int pict_type; /* XXX: put it back in AVCodecContext */
+    int repeat_pict; /* XXX: put it back in AVCodecContext */
+    int64_t pts;     /* pts of the current frame */
+    int64_t dts;     /* dts of the current frame */
+
+    /* private data */
+    int64_t last_pts;
+    int64_t last_dts;
+
+#define AV_PARSER_PTS_NB 4
+    int cur_frame_start_index;
+    int64_t cur_frame_offset[AV_PARSER_PTS_NB];
+    int64_t cur_frame_pts[AV_PARSER_PTS_NB];
+    int64_t cur_frame_dts[AV_PARSER_PTS_NB];
+} AVCodecParserContext;
+
+typedef struct AVCodecParser {
+    int codec_ids[3]; /* several codec IDs are permitted */
+    int priv_data_size;
+    int (*parser_init)(AVCodecParserContext *s);
+    int (*parser_parse)(AVCodecParserContext *s, 
+                        AVCodecContext *avctx,
+                        uint8_t **poutbuf, int *poutbuf_size, 
+                        const uint8_t *buf, int buf_size);
+    void (*parser_close)(AVCodecParserContext *s);
+    struct AVCodecParser *next;
+} AVCodecParser;
+
+extern AVCodecParser *av_first_parser;
+
+void av_register_codec_parser(AVCodecParser *parser);
+AVCodecParserContext *av_parser_init(int codec_id);
+int av_parser_parse(AVCodecParserContext *s, 
+                    AVCodecContext *avctx,
+                    uint8_t **poutbuf, int *poutbuf_size, 
+                    const uint8_t *buf, int buf_size,
+                    int64_t pts, int64_t dts);
+void av_parser_close(AVCodecParserContext *s);
+
+extern AVCodecParser mpegvideo_parser;
+extern AVCodecParser mpeg4video_parser;
+extern AVCodecParser h263_parser;
+extern AVCodecParser h264_parser;
+extern AVCodecParser mpegaudio_parser;
+extern AVCodecParser ac3_parser;
+
 /* memory */
 void *av_malloc(unsigned int size);
 void *av_mallocz(unsigned int size);
@@ -1828,6 +2041,31 @@ void *__av_mallocz_static(void** location, unsigned int size);
 
 /* add by bero : in adx.c */
 int is_adx(const unsigned char *buf,size_t bufsize);
+
+void img_copy(AVPicture *dst, const AVPicture *src,
+              int pix_fmt, int width, int height);
+
+/* av_log API */
+
+#include <stdarg.h>
+
+#define AV_LOG_ERROR 0
+#define AV_LOG_INFO 1
+#define AV_LOG_DEBUG 2
+
+extern void av_log(AVCodecContext*, int level, const char *fmt, ...) __attribute__ ((__format__ (__printf__, 3, 4)));
+extern void av_vlog(AVCodecContext*, int level, const char *fmt, va_list);
+extern int av_log_get_level(void);
+extern void av_log_set_level(int);
+extern void av_log_set_callback(void (*)(AVCodecContext*, int, const char*, va_list));
+
+#undef  AV_LOG_TRAP_PRINTF
+#ifdef AV_LOG_TRAP_PRINTF
+#define printf DO NOT USE
+#define fprintf DO NOT USE
+#undef stderr
+#define stderr DO NOT USE
+#endif
 
 #ifdef __cplusplus
 }

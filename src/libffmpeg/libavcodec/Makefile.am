@@ -13,6 +13,7 @@ noinst_LTLIBRARIES = libavcodec.la
 
 libavcodec_la_SOURCES = \
 	4xm.c \
+	8bps.c \
 	adpcm.c \
 	asv1.c \
 	cabac.c \
@@ -24,6 +25,8 @@ libavcodec_la_SOURCES = \
 	dv.c \
 	error_resilience.c \
 	eval.c \
+	faandct.c \
+	flicvideo.c \
 	fft.c \
 	golomb.c \
 	h263.c \
@@ -37,6 +40,7 @@ libavcodec_la_SOURCES = \
 	jfdctfst.c \
 	jfdctint.c \
 	jrevdct.c \
+	lcl.c \
 	mdct.c \
 	mace.c \
 	mem.c \
@@ -57,9 +61,12 @@ libavcodec_la_SOURCES = \
 	rpza.c \
 	rv10.c \
 	simple_idct.c \
+	smc.c \
 	svq1.c \
+	truemotion1.c \
 	utils.c \
 	vcr1.c \
+	vmdav.c \
 	vp3.c \
 	vqavideo.c \
 	wmadec.c \
@@ -79,7 +86,6 @@ noinst_HEADERS = \
 	common.h \
 	dsputil.h \
 	dvdata.h \
-	fastmemcpy.h \
 	golomb.h \
 	imgconvert_template.h \
 	indeo3data.h \
@@ -101,5 +107,6 @@ noinst_HEADERS = \
 	sp5x.h \
 	svq1_cb.h \
 	svq1_vlc.h \
+	truemotion1data.h \
 	vp3data.h \
 	wmadata.h

@@ -206,7 +206,7 @@ static void prodsum(float *tgt, float *src, int len, int n)
   }
 }
 
-static void * decode_block(AVCodecContext * avctx, unsigned char *in, signed short int *out,unsigned len)
+void * decode_block(AVCodecContext * avctx, unsigned char *in, signed short int *out,unsigned len)
 {
   int x,y;
   Real288_internal *glob=avctx->priv_data;
@@ -244,7 +244,7 @@ static int ra288_decode_frame(AVCodecContext * avctx,
     int i,j;
     if(buf_size<w*h)
     {
-	fprintf(stderr,"ffra288: Error! Input buffer is too small [%d<%d]\n",buf_size,w*h);
+	av_log(avctx, AV_LOG_ERROR, "ffra288: Error! Input buffer is too small [%d<%d]\n",buf_size,w*h);
 	return 0;
     }
     datao = data;
@@ -255,12 +255,12 @@ static int ra288_decode_frame(AVCodecContext * avctx,
 	    data=decode_block(avctx,&buf[j*cfs+cfs*i*h/2],(signed short *)data,cfs);
 	    bret += cfs;
     }
-    *data_size = (char *)data - (char *)datao;
+    *data_size = data - datao;
     return bret;
   }
   else
   {
-    fprintf(stderr,"ffra288: Error: need extra data!!!\n");
+    av_log(avctx, AV_LOG_ERROR, "ffra288: Error: need extra data!!!\n");
     return 0;
   }
 }

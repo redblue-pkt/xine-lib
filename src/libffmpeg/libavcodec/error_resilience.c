@@ -1,7 +1,7 @@
 /*
  * Error resilience / concealment
  *
- * Copyright (c) 2002 Michael Niedermayer <michaelni@gmx.at>
+ * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -209,8 +209,8 @@ static void h_block_filter(MpegEncContext *s, uint8_t *dst, int w, int h, int st
             int left_damage =  left_status&(DC_ERROR|AC_ERROR|MV_ERROR);
             int right_damage= right_status&(DC_ERROR|AC_ERROR|MV_ERROR);
             int offset= b_x*8 + b_y*stride*8;
-            int16_t *left_mv=  s->motion_val[s->block_wrap[0]*((b_y<<(1-is_luma)) + 1) + ( b_x   <<(1-is_luma))];
-            int16_t *right_mv= s->motion_val[s->block_wrap[0]*((b_y<<(1-is_luma)) + 1) + ((b_x+1)<<(1-is_luma))];
+            int16_t *left_mv=  s->current_picture.motion_val[0][s->block_wrap[0]*((b_y<<(1-is_luma)) + 1) + ( b_x   <<(1-is_luma))];
+            int16_t *right_mv= s->current_picture.motion_val[0][s->block_wrap[0]*((b_y<<(1-is_luma)) + 1) + ((b_x+1)<<(1-is_luma))];
             
             if(!(left_damage||right_damage)) continue; // both undamaged
             
@@ -269,8 +269,8 @@ static void v_block_filter(MpegEncContext *s, uint8_t *dst, int w, int h, int st
             int top_damage =      top_status&(DC_ERROR|AC_ERROR|MV_ERROR);
             int bottom_damage= bottom_status&(DC_ERROR|AC_ERROR|MV_ERROR);
             int offset= b_x*8 + b_y*stride*8;
-            int16_t *top_mv=    s->motion_val[s->block_wrap[0]*(( b_y   <<(1-is_luma)) + 1) + (b_x<<(1-is_luma))];
-            int16_t *bottom_mv= s->motion_val[s->block_wrap[0]*(((b_y+1)<<(1-is_luma)) + 1) + (b_x<<(1-is_luma))];
+            int16_t *top_mv=    s->current_picture.motion_val[0][s->block_wrap[0]*(( b_y   <<(1-is_luma)) + 1) + (b_x<<(1-is_luma))];
+            int16_t *bottom_mv= s->current_picture.motion_val[0][s->block_wrap[0]*(((b_y+1)<<(1-is_luma)) + 1) + (b_x<<(1-is_luma))];
             
             if(!(top_damage||bottom_damage)) continue; // both undamaged
             
@@ -380,8 +380,8 @@ int score_sum=0;
                     int best_pred=0;
                     const int mot_stride= mb_width*2+2;
                     const int mot_index= mb_x*2 + 1 + (mb_y*2+1)*mot_stride;
-                    int prev_x= s->motion_val[mot_index][0];
-                    int prev_y= s->motion_val[mot_index][1];
+                    int prev_x= s->current_picture.motion_val[0][mot_index][0];
+                    int prev_y= s->current_picture.motion_val[0][mot_index][1];
 
                     if((mb_x^mb_y^pass)&1) continue;
                     
@@ -406,23 +406,23 @@ int score_sum=0;
                     none_left=0;
                     
                     if(mb_x>0 && fixed[mb_xy-1]){
-                        mv_predictor[pred_count][0]= s->motion_val[mot_index - 2][0];
-                        mv_predictor[pred_count][1]= s->motion_val[mot_index - 2][1];
+                        mv_predictor[pred_count][0]= s->current_picture.motion_val[0][mot_index - 2][0];
+                        mv_predictor[pred_count][1]= s->current_picture.motion_val[0][mot_index - 2][1];
                         pred_count++;
                     }
                     if(mb_x+1<mb_width && fixed[mb_xy+1]){
-                        mv_predictor[pred_count][0]= s->motion_val[mot_index + 2][0];
-                        mv_predictor[pred_count][1]= s->motion_val[mot_index + 2][1];
+                        mv_predictor[pred_count][0]= s->current_picture.motion_val[0][mot_index + 2][0];
+                        mv_predictor[pred_count][1]= s->current_picture.motion_val[0][mot_index + 2][1];
                         pred_count++;
                     }
                     if(mb_y>0 && fixed[mb_xy-mb_stride]){
-                        mv_predictor[pred_count][0]= s->motion_val[mot_index - mot_stride*2][0];
-                        mv_predictor[pred_count][1]= s->motion_val[mot_index - mot_stride*2][1];
+                        mv_predictor[pred_count][0]= s->current_picture.motion_val[0][mot_index - mot_stride*2][0];
+                        mv_predictor[pred_count][1]= s->current_picture.motion_val[0][mot_index - mot_stride*2][1];
                         pred_count++;
                     }
                     if(mb_y+1<mb_height && fixed[mb_xy+mb_stride]){
-                        mv_predictor[pred_count][0]= s->motion_val[mot_index + mot_stride*2][0];
-                        mv_predictor[pred_count][1]= s->motion_val[mot_index + mot_stride*2][1];
+                        mv_predictor[pred_count][0]= s->current_picture.motion_val[0][mot_index + mot_stride*2][0];
+                        mv_predictor[pred_count][1]= s->current_picture.motion_val[0][mot_index + mot_stride*2][1];
                         pred_count++;
                     }
                     if(pred_count==0) continue;
@@ -467,8 +467,8 @@ int score_sum=0;
                     pred_count++;
 
                     /* last MV */
-                    mv_predictor[pred_count][0]= s->motion_val[mot_index][0];
-                    mv_predictor[pred_count][1]= s->motion_val[mot_index][1];
+                    mv_predictor[pred_count][0]= s->current_picture.motion_val[0][mot_index][0];
+                    mv_predictor[pred_count][1]= s->current_picture.motion_val[0][mot_index][1];
                     pred_count++;                    
                     
                     s->mv_dir = MV_DIR_FORWARD;
@@ -485,8 +485,8 @@ int score_sum=0;
                         int score=0;
                         uint8_t *src= s->current_picture.data[0] + mb_x*16 + mb_y*16*s->linesize;
 
-                        s->motion_val[mot_index][0]= s->mv[0][0][0]= mv_predictor[j][0];
-                        s->motion_val[mot_index][1]= s->mv[0][0][1]= mv_predictor[j][1];
+                        s->current_picture.motion_val[0][mot_index][0]= s->mv[0][0][0]= mv_predictor[j][0];
+                        s->current_picture.motion_val[0][mot_index][1]= s->mv[0][0][1]= mv_predictor[j][1];
 
                         decode_mb(s);
                         
@@ -517,9 +517,9 @@ int score_sum=0;
                         }
                     }
 score_sum+= best_score;
-//FIXME no need to set s->motion_val[mot_index][0] explicit
-                    s->motion_val[mot_index][0]= s->mv[0][0][0]= mv_predictor[best_pred][0];
-                    s->motion_val[mot_index][1]= s->mv[0][0][1]= mv_predictor[best_pred][1];
+//FIXME no need to set s->current_picture.motion_val[0][mot_index][0] explicit
+                    s->current_picture.motion_val[0][mot_index][0]= s->mv[0][0][0]= mv_predictor[best_pred][0];
+                    s->current_picture.motion_val[0][mot_index][1]= s->mv[0][0][1]= mv_predictor[best_pred][1];
 
                     decode_mb(s);
 
@@ -582,8 +582,8 @@ static int is_intra_more_likely(MpegEncContext *s){
                 uint8_t *mb_ptr     = s->current_picture.data[0] + mb_x*16 + mb_y*16*s->linesize;
                 uint8_t *last_mb_ptr= s->last_picture.data   [0] + mb_x*16 + mb_y*16*s->linesize;
     
-		is_intra_likely += s->dsp.pix_abs16x16(last_mb_ptr, mb_ptr                    , s->linesize);
-                is_intra_likely -= s->dsp.pix_abs16x16(last_mb_ptr, last_mb_ptr+s->linesize*16, s->linesize);
+		is_intra_likely += s->dsp.sad[0](NULL, last_mb_ptr, mb_ptr                    , s->linesize, 16);
+                is_intra_likely -= s->dsp.sad[0](NULL, last_mb_ptr, last_mb_ptr+s->linesize*16, s->linesize, 16);
             }else{
                 if(IS_INTRA(s->current_picture.mb_type[mb_xy]))
                    is_intra_likely++;
@@ -669,14 +669,20 @@ void ff_er_frame_end(MpegEncContext *s){
     
     if(!s->error_resilience || s->error_count==0) return;
 
-    fprintf(stderr, "concealing errors\n");
+    av_log(s->avctx, AV_LOG_INFO, "concealing errors\n");
     
-    if(s->motion_val == NULL){
+    if(s->current_picture.motion_val[0] == NULL){
         int size = (2 * s->mb_width + 2) * (2 * s->mb_height + 2);
+        Picture *pic= s->current_picture_ptr;
         
-        fprintf(stderr, "Warning MVs not available\n");
-        
-        s->motion_val= av_mallocz(size * 2 * sizeof(int16_t));
+        av_log(s->avctx, AV_LOG_ERROR, "Warning MVs not available\n");
+            
+        for(i=0; i<2; i++){
+            pic->motion_val_base[i]= av_mallocz((size+1) * 2 * sizeof(uint16_t)); //FIXME size
+            pic->motion_val[i]= pic->motion_val_base[i]+1;
+        }
+        pic->motion_subsample_log2= 3;
+        s->current_picture= *s->current_picture_ptr;
     }
     
     if(s->avctx->debug&FF_DEBUG_ER){
@@ -684,9 +690,9 @@ void ff_er_frame_end(MpegEncContext *s){
             for(mb_x=0; mb_x<s->mb_width; mb_x++){
                 int status= s->error_status_table[mb_x + mb_y*s->mb_stride];
             
-                printf("%2X ", status); 
+                av_log(s->avctx, AV_LOG_DEBUG, "%2X ", status); 
             }
-            printf("\n");
+            av_log(s->avctx, AV_LOG_DEBUG, "\n");
         }
     }
     
@@ -843,13 +849,13 @@ void ff_er_frame_end(MpegEncContext *s){
                 int j;
                 s->mv_type = MV_TYPE_8X8;
                 for(j=0; j<4; j++){
-                    s->mv[0][j][0] = s->motion_val[ mb_index + (j&1) + (j>>1)*s->block_wrap[0] ][0];
-                    s->mv[0][j][1] = s->motion_val[ mb_index + (j&1) + (j>>1)*s->block_wrap[0] ][1];
+                    s->mv[0][j][0] = s->current_picture.motion_val[0][ mb_index + (j&1) + (j>>1)*s->block_wrap[0] ][0];
+                    s->mv[0][j][1] = s->current_picture.motion_val[0][ mb_index + (j&1) + (j>>1)*s->block_wrap[0] ][1];
                 }
             }else{
                 s->mv_type = MV_TYPE_16X16;
-                s->mv[0][0][0] = s->motion_val[ mb_x*2+1 + (mb_y*2+1)*s->block_wrap[0] ][0];
-                s->mv[0][0][1] = s->motion_val[ mb_x*2+1 + (mb_y*2+1)*s->block_wrap[0] ][1];
+                s->mv[0][0][0] = s->current_picture.motion_val[0][ mb_x*2+1 + (mb_y*2+1)*s->block_wrap[0] ][0];
+                s->mv[0][0][1] = s->current_picture.motion_val[0][ mb_x*2+1 + (mb_y*2+1)*s->block_wrap[0] ][1];
             }
         
 	    s->dsp.clear_blocks(s->block[0]);
@@ -882,10 +888,10 @@ void ff_er_frame_end(MpegEncContext *s){
                     int time_pp= s->pp_time;
                     int time_pb= s->pb_time;
             
-                    s->mv[0][0][0] = s->motion_val[xy][0]*time_pb/time_pp;
-                    s->mv[0][0][1] = s->motion_val[xy][1]*time_pb/time_pp;
-                    s->mv[1][0][0] = s->motion_val[xy][0]*(time_pb - time_pp)/time_pp;
-                    s->mv[1][0][1] = s->motion_val[xy][1]*(time_pb - time_pp)/time_pp;
+                    s->mv[0][0][0] = s->next_picture.motion_val[0][xy][0]*time_pb/time_pp;
+                    s->mv[0][0][1] = s->next_picture.motion_val[0][xy][1]*time_pb/time_pp;
+                    s->mv[1][0][0] = s->next_picture.motion_val[0][xy][0]*(time_pb - time_pp)/time_pp;
+                    s->mv[1][0][1] = s->next_picture.motion_val[0][xy][1]*(time_pb - time_pp)/time_pp;
                 }else{
                     s->mv[0][0][0]= 0;
                     s->mv[0][0][1]= 0;

@@ -207,7 +207,7 @@ static inline int asv1_decode_block(ASV1Context *a, DCTELEM block[64]){
         if(ccp){
             if(ccp == 16) break;
             if(ccp < 0 || i>=10){
-                printf("coded coeff pattern damaged\n");
+                av_log(a->avctx, AV_LOG_ERROR, "coded coeff pattern damaged\n");
                 return -1;
             }
 
@@ -415,7 +415,7 @@ static int decode_frame(AVCodecContext *avctx,
 
     p->reference= 0;
     if(avctx->get_buffer(avctx, p) < 0){
-        fprintf(stderr, "get_buffer() failed\n");
+        av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
     p->pict_type= I_TYPE;
@@ -481,8 +481,6 @@ for(i=0; i<s->avctx->extradata_size; i++){
     return (get_bits_count(&a->gb)+31)/32*4;
 }
 
-#ifdef CONFIG_ENCODERS
-
 static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size, void *data){
     ASV1Context * const a = avctx->priv_data;
     AVFrame *pict = data;
@@ -537,8 +535,6 @@ static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size,
     return size*4;
 }
 
-#endif
-
 static void common_init(AVCodecContext *avctx){
     ASV1Context * const a = avctx->priv_data;
 
@@ -565,7 +561,7 @@ static int decode_init(AVCodecContext *avctx){
 
     a->inv_qscale= ((uint8_t*)avctx->extradata)[0];
     if(a->inv_qscale == 0){
-        printf("illegal qscale 0\n");
+        av_log(avctx, AV_LOG_ERROR, "illegal qscale 0\n");
         if(avctx->codec_id == CODEC_ID_ASV1)
             a->inv_qscale= 6;
         else
@@ -585,8 +581,6 @@ static int decode_init(AVCodecContext *avctx){
 
     return 0;
 }
-
-#ifdef CONFIG_ENCODERS
 
 static int encode_init(AVCodecContext *avctx){
     ASV1Context * const a = avctx->priv_data;
@@ -611,8 +605,6 @@ static int encode_init(AVCodecContext *avctx){
 
     return 0;
 }
-
-#endif
 
 static int decode_end(AVCodecContext *avctx){
     ASV1Context * const a = avctx->priv_data;

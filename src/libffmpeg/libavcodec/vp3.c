@@ -216,12 +216,14 @@ static int ModeAlphabet[7][CODING_MODE_COUNT] =
 typedef struct Vp3DecodeContext {
     AVCodecContext *avctx;
     int theora, theora_tables;
+    int version;
     int width, height;
     AVFrame golden_frame;
     AVFrame last_frame;
     AVFrame current_frame;
     int keyframe;
     DSPContext dsp;
+    int flipped_image;
 
     int quality_index;
     int last_quality_index;
@@ -301,6 +303,9 @@ typedef struct Vp3DecodeContext {
     uint8_t qscale_table[2048]; //FIXME dynamic alloc (width+15)/16
 } Vp3DecodeContext;
 
+static int theora_decode_comments(AVCodecContext *avctx, GetBitContext gb);
+static int theora_decode_tables(AVCodecContext *avctx, GetBitContext gb);
+
 /************************************************************************
  * VP3 I/DCT
  ************************************************************************/
@@ -314,7 +319,7 @@ typedef struct Vp3DecodeContext {
 #define xC6S2 25080
 #define xC7S1 12785
 
-static void vp3_idct_c(int16_t *input_data, int16_t *dequant_matrix, 
+void vp3_idct_c(int16_t *input_data, int16_t *dequant_matrix, 
     int16_t *output_data)
 {
     int32_t intermediate_data[64];
@@ -548,7 +553,7 @@ static void vp3_idct_c(int16_t *input_data, int16_t *dequant_matrix,
     }
 }
 
-static void vp3_idct_put(int16_t *input_data, int16_t *dequant_matrix, 
+void vp3_idct_put(int16_t *input_data, int16_t *dequant_matrix, 
     uint8_t *dest, int stride)
 {
     int16_t transformed_data[64];
@@ -574,7 +579,7 @@ static void vp3_idct_put(int16_t *input_data, int16_t *dequant_matrix,
     }
 }
 
-static void vp3_idct_add(int16_t *input_data, int16_t *dequant_matrix, 
+void vp3_idct_add(int16_t *input_data, int16_t *dequant_matrix, 
     uint8_t *dest, int stride)
 {
     int16_t transformed_data[64];
@@ -1109,7 +1114,7 @@ static void unpack_token(GetBitContext *gb, int token, int *zero_run,
         break;
 
     default:
-        printf ("  vp3: help! Got a bad token: %d > 31\n", token);
+        av_log(NULL, AV_LOG_ERROR, "  vp3: help! Got a bad token: %d > 31\n", token);
         break;
 
   }
@@ -1549,7 +1554,7 @@ static int unpack_superblocks(Vp3DecodeContext *s, GetBitContext *gb)
             /* if the fragment is in bounds, check its coding status */
             current_fragment = s->superblock_fragments[i * 16 + j];
             if (current_fragment >= s->fragment_count) {
-                printf ("  vp3:unpack_superblocks(): bad fragment number (%d >= %d)\n",
+                av_log(s->avctx, AV_LOG_ERROR, "  vp3:unpack_superblocks(): bad fragment number (%d >= %d)\n",
                     current_fragment, s->fragment_count);
                 return 1;
             }
@@ -1685,7 +1690,7 @@ static int unpack_modes(Vp3DecodeContext *s, GetBitContext *gb)
                     (s->macroblock_coding[current_macroblock] == MODE_COPY))
                     continue;
                 if (current_macroblock >= s->macroblock_count) {
-                    printf ("  vp3:unpack_modes(): bad macroblock number (%d >= %d)\n",
+                    av_log(s->avctx, AV_LOG_ERROR, "  vp3:unpack_modes(): bad macroblock number (%d >= %d)\n",
                         current_macroblock, s->macroblock_count);
                     return 1;
                 }
@@ -1703,7 +1708,7 @@ static int unpack_modes(Vp3DecodeContext *s, GetBitContext *gb)
                     if (current_fragment == -1)
                         continue;
                     if (current_fragment >= s->fragment_count) {
-                        printf ("  vp3:unpack_modes(): bad fragment number (%d >= %d)\n",
+                        av_log(s->avctx, AV_LOG_ERROR, "  vp3:unpack_modes(): bad fragment number (%d >= %d)\n",
                             current_fragment, s->fragment_count);
                         return 1;
                     }
@@ -1764,14 +1769,14 @@ static int unpack_vectors(Vp3DecodeContext *s, GetBitContext *gb)
                     (s->macroblock_coding[current_macroblock] == MODE_COPY))
                     continue;
                 if (current_macroblock >= s->macroblock_count) {
-                    printf ("  vp3:unpack_vectors(): bad macroblock number (%d >= %d)\n",
+                    av_log(s->avctx, AV_LOG_ERROR, "  vp3:unpack_vectors(): bad macroblock number (%d >= %d)\n",
                         current_macroblock, s->macroblock_count);
                     return 1;
                 }
 
                 current_fragment = s->macroblock_fragments[current_macroblock * 6];
                 if (current_fragment >= s->fragment_count) {
-                    printf ("  vp3:unpack_vectors(): bad fragment number (%d >= %d\n",
+                    av_log(s->avctx, AV_LOG_ERROR, "  vp3:unpack_vectors(): bad fragment number (%d >= %d\n",
                         current_fragment, s->fragment_count);
                     return 1;
                 }
@@ -1887,7 +1892,7 @@ static int unpack_vectors(Vp3DecodeContext *s, GetBitContext *gb)
                     if (current_fragment == -1)
                         continue;
                     if (current_fragment >= s->fragment_count) {
-                        printf ("  vp3:unpack_vectors(): bad fragment number (%d >= %d)\n",
+                        av_log(s->avctx, AV_LOG_ERROR, "  vp3:unpack_vectors(): bad fragment number (%d >= %d)\n",
                             current_fragment, s->fragment_count);
                         return 1;
                     }
@@ -1929,7 +1934,7 @@ static int unpack_vlcs(Vp3DecodeContext *s, GetBitContext *gb,
     if ((first_fragment >= s->fragment_count) ||
         (last_fragment >= s->fragment_count)) {
 
-        printf ("  vp3:unpack_vlcs(): bad fragment number (%d -> %d ?)\n",
+        av_log(s->avctx, AV_LOG_ERROR, "  vp3:unpack_vlcs(): bad fragment number (%d -> %d ?)\n",
             first_fragment, last_fragment);
         return 0;
     }
@@ -2365,7 +2370,8 @@ static void render_fragments(Vp3DecodeContext *s,
         output_plane = s->current_frame.data[0];
         last_plane = s->last_frame.data[0];
         golden_plane = s->golden_frame.data[0];
-        stride = -s->current_frame.linesize[0];
+        stride = s->current_frame.linesize[0];
+	if (!s->flipped_image) stride = -stride;
         upper_motion_limit = 7 * s->current_frame.linesize[0];
         lower_motion_limit = height * s->current_frame.linesize[0] + width - 8;
     } else if (plane == 1) {
@@ -2373,7 +2379,8 @@ static void render_fragments(Vp3DecodeContext *s,
         output_plane = s->current_frame.data[1];
         last_plane = s->last_frame.data[1];
         golden_plane = s->golden_frame.data[1];
-        stride = -s->current_frame.linesize[1];
+        stride = s->current_frame.linesize[1];
+	if (!s->flipped_image) stride = -stride;
         upper_motion_limit = 7 * s->current_frame.linesize[1];
         lower_motion_limit = height * s->current_frame.linesize[1] + width - 8;
     } else {
@@ -2381,7 +2388,8 @@ static void render_fragments(Vp3DecodeContext *s,
         output_plane = s->current_frame.data[2];
         last_plane = s->last_frame.data[2];
         golden_plane = s->golden_frame.data[2];
-        stride = -s->current_frame.linesize[2];
+        stride = s->current_frame.linesize[2];
+	if (!s->flipped_image) stride = -stride;
         upper_motion_limit = 7 * s->current_frame.linesize[2];
         lower_motion_limit = height * s->current_frame.linesize[2] + width - 8;
     }
@@ -2393,12 +2401,13 @@ static void render_fragments(Vp3DecodeContext *s,
         for (x = 0; x < width; x += 8, i++) {
 
             if ((i < 0) || (i >= s->fragment_count)) {
-                printf ("  vp3:render_fragments(): bad fragment number (%d)\n", i);
+                av_log(s->avctx, AV_LOG_ERROR, "  vp3:render_fragments(): bad fragment number (%d)\n", i);
                 return;
             }
 
             /* transform if this block was coded */
-            if (s->all_fragments[i].coding_method != MODE_COPY) {
+            if ((s->all_fragments[i].coding_method != MODE_COPY) &&
+		!((s->avctx->flags & CODEC_FLAG_GRAY) && plane)) {
 
                 if ((s->all_fragments[i].coding_method == MODE_USING_GOLDEN) ||
                     (s->all_fragments[i].coding_method == MODE_GOLDEN_MV))
@@ -2424,7 +2433,7 @@ static void render_fragments(Vp3DecodeContext *s,
                     src_x= (motion_x>>1) + x;
                     src_y= (motion_y>>1) + y;
 if ((motion_x == 0xbeef) || (motion_y == 0xbeef))
-printf (" help! got beefy vector! (%X, %X)\n", motion_x, motion_y);
+av_log(s->avctx, AV_LOG_ERROR, " help! got beefy vector! (%X, %X)\n", motion_x, motion_y);
 
                     motion_halfpel_index = motion_x & 0x01;
                     motion_source += (motion_x >> 1);
@@ -2436,6 +2445,7 @@ printf (" help! got beefy vector! (%X, %X)\n", motion_x, motion_y);
                     if(src_x<0 || src_y<0 || src_x + 9 >= width || src_y + 9 >= height){
                         uint8_t *temp= s->edge_emu_buffer;
                         if(stride<0) temp -= 9*stride;
+			else temp += 9*stride;
 
                         ff_emulated_edge_mc(temp, motion_source, stride, 9, 9, src_x, src_y, width, height);
                         motion_source= temp;
@@ -2547,6 +2557,53 @@ static void vp3_calculate_pixel_addresses(Vp3DecodeContext *s)
     }
 }
 
+/* FIXME: this should be merged with the above! */
+static void theora_calculate_pixel_addresses(Vp3DecodeContext *s) 
+{
+
+    int i, x, y;
+
+    /* figure out the first pixel addresses for each of the fragments */
+    /* Y plane */
+    i = 0;
+    for (y = 1; y <= s->fragment_height; y++) {
+        for (x = 0; x < s->fragment_width; x++) {
+            s->all_fragments[i++].first_pixel = 
+                s->golden_frame.linesize[0] * y * FRAGMENT_PIXELS -
+                    s->golden_frame.linesize[0] +
+                    x * FRAGMENT_PIXELS;
+            debug_init("  fragment %d, first pixel @ %d\n", 
+                i-1, s->all_fragments[i-1].first_pixel);
+        }
+    }
+
+    /* U plane */
+    i = s->u_fragment_start;
+    for (y = 1; y <= s->fragment_height / 2; y++) {
+        for (x = 0; x < s->fragment_width / 2; x++) {
+            s->all_fragments[i++].first_pixel = 
+                s->golden_frame.linesize[1] * y * FRAGMENT_PIXELS -
+                    s->golden_frame.linesize[1] +
+                    x * FRAGMENT_PIXELS;
+            debug_init("  fragment %d, first pixel @ %d\n", 
+                i-1, s->all_fragments[i-1].first_pixel);
+        }
+    }
+
+    /* V plane */
+    i = s->v_fragment_start;
+    for (y = 1; y <= s->fragment_height / 2; y++) {
+        for (x = 0; x < s->fragment_width / 2; x++) {
+            s->all_fragments[i++].first_pixel = 
+                s->golden_frame.linesize[2] * y * FRAGMENT_PIXELS -
+                    s->golden_frame.linesize[2] +
+                    x * FRAGMENT_PIXELS;
+            debug_init("  fragment %d, first pixel @ %d\n", 
+                i-1, s->all_fragments[i-1].first_pixel);
+        }
+    }
+}
+
 /*
  * This is the ffmpeg/libavcodec API init function.
  */
@@ -2558,6 +2615,11 @@ static int vp3_decode_init(AVCodecContext *avctx)
     int c_height;
     int y_superblock_count;
     int c_superblock_count;
+
+    if (avctx->codec_tag == MKTAG('V','P','3','0'))
+	s->version = 0;
+    else
+	s->version = 1;
 
     s->avctx = avctx;
 #if 0
@@ -2704,32 +2766,60 @@ static int vp3_decode_frame(AVCodecContext *avctx,
     
     if (s->theora && get_bits1(&gb))
     {
-	printf("Theora: bad frame indicator\n");
-	return -1;
+	int ptype = get_bits(&gb, 7);
+
+	skip_bits(&gb, 6*8); /* "theora" */
+	
+	switch(ptype)
+	{
+	    case 1:
+		theora_decode_comments(avctx, gb);
+		break;
+	    case 2:
+		theora_decode_tables(avctx, gb);
+    		init_dequantizer(s);
+		break;
+	    default:
+		av_log(avctx, AV_LOG_ERROR, "Unknown Theora config packet: %d\n", ptype);
+	}
+	return buf_size;
     }
 
     s->keyframe = !get_bits1(&gb);
-    if (s->theora && s->keyframe)
-    {
-	if (get_bits1(&gb))
-	    printf("Theora: warning, unsupported keyframe coding type?!\n");
-	skip_bits(&gb, 2); /* reserved? */
-    }
-    else
+    if (!s->theora)
 	skip_bits(&gb, 1);
     s->last_quality_index = s->quality_index;
     s->quality_index = get_bits(&gb, 6);
+    if (s->theora >= 0x030300)
+        skip_bits1(&gb);
 
-    debug_vp3(" VP3 %sframe #%d: Q index = %d\n",
-	s->keyframe?"key":"", counter, s->quality_index);
+    if (s->avctx->debug & FF_DEBUG_PICT_INFO)
+	av_log(s->avctx, AV_LOG_INFO, " VP3 %sframe #%d: Q index = %d\n",
+	    s->keyframe?"key":"", counter, s->quality_index);
     counter++;
 
     if (s->quality_index != s->last_quality_index)
         init_dequantizer(s);
 
     if (s->keyframe) {
-        /* skip the other 2 header bytes for now */
-        if (!s->theora) skip_bits(&gb, 16);
+	if (!s->theora)
+	{
+	    skip_bits(&gb, 4); /* width code */
+	    skip_bits(&gb, 4); /* height code */
+	    if (s->version)
+	    {
+		s->version = get_bits(&gb, 5);
+		if (counter == 1)
+		    av_log(s->avctx, AV_LOG_DEBUG, "VP version: %d\n", s->version);
+	    }
+	}
+	if (s->version || s->theora)
+	{
+    	    if (get_bits1(&gb))
+    	        av_log(s->avctx, AV_LOG_ERROR, "Warning, unsupported keyframe coding type?!\n");
+	    skip_bits(&gb, 2); /* reserved? */
+	}
+
         if (s->last_frame.data[0] == s->golden_frame.data[0]) {
             if (s->golden_frame.data[0])
                 avctx->release_buffer(avctx, &s->golden_frame);
@@ -2743,7 +2833,7 @@ static int vp3_decode_frame(AVCodecContext *avctx,
 
         s->golden_frame.reference = 3;
         if(avctx->get_buffer(avctx, &s->golden_frame) < 0) {
-            printf("vp3: get_buffer() failed\n");
+            av_log(s->avctx, AV_LOG_ERROR, "vp3: get_buffer() failed\n");
             return -1;
         }
 
@@ -2752,13 +2842,17 @@ static int vp3_decode_frame(AVCodecContext *avctx,
 
         /* time to figure out pixel addresses? */
         if (!s->pixel_addresses_inited)
-            vp3_calculate_pixel_addresses(s);
-
+	{
+	    if (!s->flipped_image)
+        	vp3_calculate_pixel_addresses(s);
+	    else
+		theora_calculate_pixel_addresses(s);
+	}
     } else {
         /* allocate a new current frame */
         s->current_frame.reference = 3;
         if(avctx->get_buffer(avctx, &s->current_frame) < 0) {
-            printf("vp3: get_buffer() failed\n");
+            av_log(s->avctx, AV_LOG_ERROR, "vp3: get_buffer() failed\n");
             return -1;
         }
     }
@@ -2786,7 +2880,7 @@ if (!s->keyframe) {
         unpack_vectors(s, &gb) ||
         unpack_dct_coeffs(s, &gb)) {
 
-        printf("  vp3: could not decode frame\n");
+        av_log(s->avctx, AV_LOG_ERROR, "  vp3: could not decode frame\n");
         return -1;
     }
 
@@ -2850,16 +2944,28 @@ static int vp3_decode_end(AVCodecContext *avctx)
     return 0;
 }
 
-/* current version is 3.2.0 */
-
 static int theora_decode_header(AVCodecContext *avctx, GetBitContext gb)
 {
     Vp3DecodeContext *s = avctx->priv_data;
+    int major, minor, micro;
 
-    skip_bits(&gb, 8); /* version major */
-    skip_bits(&gb, 8); /* version minor */
-    skip_bits(&gb, 8); /* version micro */
-    
+    major = get_bits(&gb, 8); /* version major */
+    minor = get_bits(&gb, 8); /* version minor */
+    micro = get_bits(&gb, 8); /* version micro */
+    av_log(avctx, AV_LOG_INFO, "Theora bitstream version %d.%d.%d\n",
+	major, minor, micro);
+
+    /* FIXME: endianess? */
+    s->theora = (major << 16) | (minor << 8) | micro;
+
+    /* 3.3.0 aka alpha3 has the same frame orientation as original vp3 */
+    /* but previous versions have the image flipped relative to vp3 */
+    if (s->theora < 0x030300)
+    {
+	s->flipped_image = 1;
+        av_log(avctx, AV_LOG_DEBUG, "Old (<alpha3) Theora bitstream, flipped image\n");
+    }
+
     s->width = get_bits(&gb, 16) << 4;
     s->height = get_bits(&gb, 16) << 4;
     
@@ -2874,11 +2980,18 @@ static int theora_decode_header(AVCodecContext *avctx, GetBitContext gb)
     skip_bits(&gb, 24); /* aspect numerator */
     skip_bits(&gb, 24); /* aspect denumerator */
     
-    skip_bits(&gb, 5); /* keyframe frequency force */
+    if (s->theora < 0x030300)
+	skip_bits(&gb, 5); /* keyframe frequency force */
     skip_bits(&gb, 8); /* colorspace */
     skip_bits(&gb, 24); /* bitrate */
 
     skip_bits(&gb, 6); /* last(?) quality index */
+    
+    if (s->theora >= 0x030300)
+    {
+	skip_bits(&gb, 5); /* keyframe frequency force */
+	skip_bits(&gb, 5); /* spare bits */
+    }
     
 //    align_get_bits(&gb);
     
@@ -2895,14 +3008,17 @@ static int theora_decode_comments(AVCodecContext *avctx, GetBitContext gb)
     int nb_comments, i, tmp;
 
     tmp = get_bits(&gb, 32);
-    while(tmp-=8)
-	skip_bits(&gb, 8);
+    tmp = be2me_32(tmp);
+    while(tmp--)
+	    skip_bits(&gb, 8);
 
     nb_comments = get_bits(&gb, 32);
+    nb_comments = be2me_32(nb_comments);
     for (i = 0; i < nb_comments; i++)
     {
 	tmp = get_bits(&gb, 32);
-	while(tmp-=8)
+	tmp = be2me_32(tmp);
+	while(tmp--)
 	    skip_bits(&gb, 8);
     }
     
@@ -2933,6 +3049,8 @@ static int theora_decode_tables(AVCodecContext *avctx, GetBitContext gb)
     /* inter coeffs */
     for (i = 0; i < 64; i++)
 	s->coded_inter_dequant[i] = get_bits(&gb, 8);
+
+    /* FIXME: read huffmann tree.. */
     
     s->theora_tables = 1;
     

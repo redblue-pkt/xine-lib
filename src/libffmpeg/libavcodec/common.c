@@ -1,6 +1,7 @@
 /*
  * Common bit i/o utils
  * Copyright (c) 2000, 2001 Fabrice Bellard.
+ * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -48,7 +49,6 @@ void init_put_bits(PutBitContext *s, uint8_t *buffer, int buffer_size)
 {
     s->buf = buffer;
     s->buf_end = s->buf + buffer_size;
-    s->data_out_size = 0;
 #ifdef ALT_BITSTREAM_WRITER
     s->index=0;
     ((uint32_t*)(s->buf))[0]=0;
@@ -60,15 +60,16 @@ void init_put_bits(PutBitContext *s, uint8_t *buffer, int buffer_size)
 #endif
 }
 
-#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+//#ifdef CONFIG_ENCODERS
+#if 1
 
 /* return the number of bits output */
-int64_t get_bit_count(PutBitContext *s)
+int get_bit_count(PutBitContext *s)
 {
 #ifdef ALT_BITSTREAM_WRITER
-    return s->data_out_size * 8 + s->index;
+    return s->index;
 #else
-    return (s->buf_ptr - s->buf + s->data_out_size) * 8 + 32 - (int64_t)s->bit_left;
+    return (s->buf_ptr - s->buf) * 8 + 32 - s->bit_left;
 #endif
 }
 
@@ -196,7 +197,8 @@ void align_get_bits(GetBitContext *s)
 int check_marker(GetBitContext *s, const char *msg)
 {
     int bit= get_bits1(s);
-    if(!bit) printf("Marker bit missing %s\n", msg);
+    if(!bit)
+	    av_log(NULL, AV_LOG_INFO, "Marker bit missing %s\n", msg);
 
     return bit;
 }
@@ -281,11 +283,11 @@ static int build_table(VLC *vlc, int table_nb_bits,
                 nb = 1 << (table_nb_bits - n);
                 for(k=0;k<nb;k++) {
 #ifdef DEBUG_VLC
-                    printf("%4x: code=%d n=%d\n",
+                    av_log(NULL, AV_LOG_DEBUG, "%4x: code=%d n=%d\n",
                            j, i, n);
 #endif
                     if (table[j][1] /*bits*/ != 0) {
-                        fprintf(stderr, "incorrect codes\n");
+                        av_log(NULL, AV_LOG_ERROR, "incorrect codes\n");
                         av_abort();
                     }
                     table[j][1] = n; //bits

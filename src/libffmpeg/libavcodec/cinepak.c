@@ -37,9 +37,6 @@
 
 #define PALETTE_COUNT 256
 
-#undef BE_16
-#undef BE_32
-
 #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
 #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
                    (((uint8_t*)(x))[1] << 16) | \
@@ -421,7 +418,7 @@ static int cinepak_decode_frame(AVCodecContext *avctx,
     s->size = buf_size;
 
     if (avctx->get_buffer(avctx, &s->frame)) {
-        printf ("  Cinepak: get_buffer() failed\n");
+        av_log(avctx, AV_LOG_ERROR, "  Cinepak: get_buffer() failed\n");
         return -1;
     }
 
