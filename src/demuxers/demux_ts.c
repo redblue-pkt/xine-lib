@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.99 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.100 2004/01/27 00:37:30 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -161,7 +161,8 @@
  */
 #define PKT_SIZE 188
 #define BODY_SIZE (188 - 4)
-#define MAX_PIDS ((BODY_SIZE - 1 - 13) / 4)
+/* more PIDS are needed due "auto-detection". 40 spare media entries  */
+#define MAX_PIDS ((BODY_SIZE - 1 - 13) / 4) + 40
 #define MAX_PMTS ((BODY_SIZE - 1 - 13) / 4)
 #define SYNC_BYTE   0x47
 
@@ -1574,7 +1575,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
    * audio/video pid auto-detection, if necessary
    */
     
-  if (payload_unit_start_indicator){
+  if (payload_unit_start_indicator && this->media_num < MAX_PIDS){
     /* FIXME: This is faulty assumption.
      *        This might be a PAT or PMT and not a PES.
      */ 
