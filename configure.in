@@ -409,52 +409,40 @@ i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-*)
 
 	if test x"$sarchopt" != "xno"; then
 	    [
+	    archopt_val=
+
 	    case "$host_alias" in
 	    i386-*) # *BSD return this even on a P III #-))
-		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i386"
-		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i386"
-		;;
+		archopt_val=i386 ;;
 	    i486-*) # oh dear!
-		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i486"
-		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i486"
-		;;
+		archopt_val=i486 ;;
 	    i586-*)
-		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentium"
-		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentium"
-		;;
+		archopt_val=pentium ;;
 	    i686-*)
+		archopt_val=pentiumpro
 		if test x"$check_athlon" = "xyes"; then
 		    if test -f /proc/cpuinfo; then
 			modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
 			case "$modelname" in
 			*Athlon* | *Duron* | *K7*)
-			    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=$k7cpu"
-			    DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=$k7cpu"
-			    ;;
-			*)
-			    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentiumpro"
-			    DEBUG_CFLAGS="$DEBUG_CFLAGS $X_CFLAGS $sarchopt=pentiumpro"
-			    ;;
+			    archopt_val="$k7cpu" ;;
 			esac
 		    fi 
-		else
-		    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentiumpro"
-		    DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentiumpro"
 		fi
 		;;
 	    k6-*)
-		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k6"
-		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k6"		
-		;;
+		archopt_val=k6 ;;
 	    k7-*)
-		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k7"
-		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k7"
-		;;
+		archopt_val=k7 ;;
 	    athlon-*)
-		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=athlon"
-		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=athlon"
-		;;
-	    esac]
+		archopt_val=athlon ;;
+	    esac
+
+	    if test x"$archopt_val" != x; then
+		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=$archopt_val"
+		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=$archopt_val"
+	    fi
+	    ]
 	fi
 
     else
