@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.12 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: fli.c,v 1.13 2002/12/22 20:36:24 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -116,6 +116,7 @@ void decode_fli_frame(fli_decoder_t *this) {
   int update_whole_frame = 0;   /* palette change flag */
   int ghost_pixel_ptr;
   int ghost_y_ptr;
+  int pixel_countdown;
 
   frame_size = LE_32(&this->buf[stream_ptr]);
   stream_ptr += 6;  /* skip the magic number */
@@ -158,9 +159,9 @@ void decode_fli_frame(fli_decoder_t *this) {
           g = this->buf[stream_ptr + 1] << color_shift;
           b = this->buf[stream_ptr + 2] << color_shift;
 
-          this->yuv_palette[palette_ptr1++] = COMPUTE_Y(r,g, b);
-          this->yuv_palette[palette_ptr1++] = COMPUTE_U(r,g, b);
-          this->yuv_palette[palette_ptr1++] = COMPUTE_V(r,g, b);
+          this->yuv_palette[palette_ptr1++] = COMPUTE_Y(r, g, b);
+          this->yuv_palette[palette_ptr1++] = COMPUTE_U(r, g, b);
+          this->yuv_palette[palette_ptr1++] = COMPUTE_V(r, g, b);
 
           palette_ptr1++;
           stream_ptr += 3;
@@ -306,44 +307,42 @@ void decode_fli_frame(fli_decoder_t *this) {
       break;
 
     case FLI_BRUN:
-      /* byte run compression */
-      y_ptr = 0;
+      /* Byte run compression: This chunk type only occurs in the first
+       * FLI frame and it will update the entire frame. Take a lazy
+       * approach and update only the ghost image. Then let the ghost
+       * image updater at the end of the decoder handle the rest. */
+      update_whole_frame = 1;
       ghost_y_ptr = 0;
       for (lines = 0; lines < this->height; lines++) {
-        pixel_ptr = y_ptr;
         ghost_pixel_ptr = ghost_y_ptr;
-        line_packets = this->buf[stream_ptr++];
-        for (i = 0; i < line_packets; i++) {
+        /* disregard the line packets; instead, iterate through all
+         * pixels on a row */
+        stream_ptr++;
+        pixel_countdown = this->width;
+        while (pixel_countdown > 0) {
           byte_run = this->buf[stream_ptr++];
           if (byte_run > 0) {
             palette_ptr1 = (palette_idx1 = this->buf[stream_ptr++]) * 4;
             for (j = 0; j < byte_run; j++) {
               this->ghost_image[ghost_pixel_ptr++] = palette_idx1;
-              this->yuv_planes.y[pixel_ptr] = 
-                this->yuv_palette[palette_ptr1 + 0];
-              this->yuv_planes.u[pixel_ptr] = 
-                this->yuv_palette[palette_ptr1 + 1];
-              this->yuv_planes.v[pixel_ptr] = 
-                this->yuv_palette[palette_ptr1 + 2];
-              pixel_ptr++;
+              pixel_countdown--;
+              if (pixel_countdown < 0)
+                printf ("fli warning: pixel_countdown < 0 (%d)\n", 
+                  pixel_countdown);
             }
           } else {  /* copy bytes if byte_run < 0 */
             byte_run = -byte_run;
             for (j = 0; j < byte_run; j++) {
               palette_ptr1 = (palette_idx1 = this->buf[stream_ptr++]) * 4;
               this->ghost_image[ghost_pixel_ptr++] = palette_idx1;
-              this->yuv_planes.y[pixel_ptr] = 
-                this->yuv_palette[palette_ptr1 + 0];
-              this->yuv_planes.u[pixel_ptr] = 
-                this->yuv_palette[palette_ptr1 + 1];
-              this->yuv_planes.v[pixel_ptr] = 
-                this->yuv_palette[palette_ptr1 + 2];
-              pixel_ptr++;
+              pixel_countdown--;
+              if (pixel_countdown < 0)
+                printf ("fli warning: pixel_countdown < 0 (%d)\n", 
+                  pixel_countdown);
             }
           }
         }
 
-        y_ptr += this->yuv_planes.row_width;
         ghost_y_ptr += this->width;
       }
       break;
@@ -388,8 +387,6 @@ void decode_fli_frame(fli_decoder_t *this) {
         this->yuv_planes.v[pixel_ptr] = this->yuv_palette[palette_ptr1 + 2];
         pixel_ptr++;
       }
-
-      pixel_ptr += 2;
     }
   }
 
@@ -426,8 +423,8 @@ static void fli_decode_data (video_decoder_t *this_gen,
     if(this->buf)
       free(this->buf);
 
-    this->width = (LE_16(&buf->content[8]) + 3) & ~0x03;
-    this->height = (LE_16(&buf->content[10]) + 3) & ~0x03;
+    this->width = LE_16(&buf->content[8]);
+    this->height = LE_16(&buf->content[10]);
     this->video_step = buf->decoder_info[1];
 
     this->ghost_image = xine_xmalloc(this->width * this->height);
@@ -441,6 +438,10 @@ static void fli_decode_data (video_decoder_t *this_gen,
 
     this->stream->video_out->open (this->stream->video_out, this->stream);
     this->decoder_ok = 1;
+
+    /* load the stream/meta info */
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("FLI/FLC Video");
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {
