@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.8\n"
-"POT-Creation-Date: 2002-04-29 22:45+0200\n"
+"POT-Creation-Date: 2002-05-02 16:47+0100\n"
 "PO-Revision-Date: 2002-02-20 00:00+0100\n"
 "Last-Translator: Juan Manuel García Molina <juanma_gm@wanadoo.es>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -749,121 +749,121 @@ msgstr ""
 "de entrada.\n"
 "Instalar los plugins de entrada actuales debería ser de ayuda.\n"
 
-#: src/input/input_cda.c:437 src/input/input_cda.c:495
+#: src/input/input_cda.c:438 src/input/input_cda.c:496
 #, c-format
 msgid "input_cda: fopen(%s) failed: %s\n"
 msgstr "input_cda: falló fopen(%s): %s\n"
 
-#: src/input/input_cda.c:584
+#: src/input/input_cda.c:585
 #, c-format
 msgid "input_cda: server '%s:%d' successfuly connected.\n"
 msgstr "input_cda: servidor '%s:%d' conectado con éxito.\n"
 
-#: src/input/input_cda.c:589
+#: src/input/input_cda.c:590
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
 msgstr "input_cda: fallo al abrir el servidor '%s:%d': %s\n"
 
-#: src/input/input_cda.c:757
+#: src/input/input_cda.c:758
 #, c-format
 msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDROM_MEDIA_CHANGED): %s.\n"
 
-#: src/input/input_cda.c:824
+#: src/input/input_cda.c:825
 #, c-format
 msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDROMSUBCHNL): %s.\n"
 
-#: src/input/input_cda.c:959
+#: src/input/input_cda.c:960
 #, c-format
 msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDIOCSTART): %s.\n"
 
-#: src/input/input_cda.c:965
+#: src/input/input_cda.c:966
 #, c-format
 msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDROMSTART): %s.\n"
 
-#: src/input/input_cda.c:971
+#: src/input/input_cda.c:972
 #, c-format
 msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDIOCPLAYMSF): %s.\n"
 
-#: src/input/input_cda.c:977
+#: src/input/input_cda.c:978
 #, c-format
 msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDROMPLAYMSF): %s.\n"
 
-#: src/input/input_cda.c:998
+#: src/input/input_cda.c:999
 #, c-format
 msgid "input_cda: No rights to open %s.\n"
 msgstr "input_cda: No tiene derechos para abrir %s.\n"
 
-#: src/input/input_cda.c:1001
+#: src/input/input_cda.c:1002
 #, c-format
 msgid "input_cda: open(%s) failed: %s.\n"
 msgstr "input_cda: falló open(%s): %s.\n"
 
-#: src/input/input_cda.c:1095
+#: src/input/input_cda.c:1096
 #, c-format
 msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
 msgstr "input_cda: falló ioctl(CDROMCLOSETRAY): %s\n"
 
-#: src/input/input_cda.c:1100 src/input/input_cda.c:1116
-#: src/input/input_cda.c:1121
+#: src/input/input_cda.c:1101 src/input/input_cda.c:1117
+#: src/input/input_cda.c:1122
 #, c-format
 msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
 msgstr "input_cda: falló ioctl(CDROMEJECT): %s\n"
 
-#: src/input/input_cda.c:1106
+#: src/input/input_cda.c:1107
 #, c-format
 msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
 msgstr "input_cda: falló ioctl(CDROM_DRIVE_STATUS): %s\n"
 
-#: src/input/input_cda.c:1112
+#: src/input/input_cda.c:1113
 #, c-format
 msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
 msgstr "input_cda: falló ioctl(CDROMALLOW): %s\n"
 
-#: src/input/input_cda.c:1152
+#: src/input/input_cda.c:1153
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDIOREADTOCHEADER): %s.\n"
 
-#: src/input/input_cda.c:1160
+#: src/input/input_cda.c:1161
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDROMREADTOCHDR): %s.\n"
 
-#: src/input/input_cda.c:1197
+#: src/input/input_cda.c:1198
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDIOREADTOCENTRYS): %s.\n"
 
-#: src/input/input_cda.c:1220
+#: src/input/input_cda.c:1221
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
 msgstr "input_cda: falló ioctl(CDROMREADTOCENTRY): %s.\n"
 
-#: src/input/input_cda.c:1403
+#: src/input/input_cda.c:1404
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
 msgstr "input_cda: MRL mal formada. Use cda://<núm. pista>\n"
 
-#: src/input/input_cda.c:1409
+#: src/input/input_cda.c:1410
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
 msgstr "input_cda: pista no válida %d (rango válido: 1 .. %d)\n"
 
-#: src/input/input_cda.c:1492
+#: src/input/input_cda.c:1493
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
 msgstr "input_cda: erro de posicionamiento en el origen %d no implementado\n"
 
-#: src/input/input_cda.c:1608
+#: src/input/input_cda.c:1609
 msgid "cd audio plugin as shipped with xine"
 msgstr "plugin de cd audio incluido en xine"
 
-#: src/input/input_cda.c:1796
+#: src/input/input_cda.c:1797
 #, c-format
 msgid ""
 "cda input plugin doesn't support plugin API version %d.\n"
@@ -877,12 +877,12 @@ msgstr ""
 "de entrada.\n"
 "Instalar los plugins de entrada actuales debería ser de ayuda.\n"
 
-#: src/xine-engine/video_out.c:375
+#: src/xine-engine/video_out.c:310
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d marcos llegados, %d frames saltados, %d frames descartados\n"
 
-#: src/xine-engine/video_out.c:413
+#: src/xine-engine/video_out.c:348
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -890,67 +890,67 @@ msgid ""
 msgstr ""
 "video_out: descartando imagen con pts %lld porque es antigua (dif : %lld).\n"
 
-#: src/xine-engine/video_out.c:1002
+#: src/xine-engine/video_out.c:880
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: no se puede crear un hilo (%s)\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1005
+#: src/xine-engine/video_out.c:883
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr "video_out: esto no debería ocurrir. Por favor, reinicie xine.\n"
 
-#: src/xine-engine/xine.c:89
+#: src/xine-engine/xine.c:122
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr "xine_notify_stream_finished: no se puede crear un hilo nuevo (%s)\n"
 
-#: src/xine-engine/xine.c:244
+#: src/xine-engine/xine.c:287
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr "%s(%d) primera fase incorrecta = %d\n"
 
-#: src/xine-engine/xine.c:353
+#: src/xine-engine/xine.c:396
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: no se puede encontrar el plugin de entrada para este MRL\n"
 
-#: src/xine-engine/xine.c:365
+#: src/xine-engine/xine.c:408
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr "usando el plugin de entrada '%s' para el MRL '%s'\n"
 
-#: src/xine-engine/xine.c:375
+#: src/xine-engine/xine.c:418
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr "xine: no se pudo encontrar el demultiplexor para >%s<\n"
 
-#: src/xine-engine/xine.c:383
+#: src/xine-engine/xine.c:426
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr "detectado el formato de capa del sistema '%s'.\n"
 
-#: src/xine-engine/xine.c:411
+#: src/xine-engine/xine.c:454
 msgid "xine_play: demuxer failed to start\n"
 msgstr "xine_play: fallo al iniciar el demultiplexor\n"
 
-#: src/xine-engine/xine.c:940
+#: src/xine-engine/xine.c:984
 msgid "stream format"
 msgstr "formato de stream"
 
-#: src/xine-engine/xine.c:941
+#: src/xine-engine/xine.c:985
 msgid "messages"
 msgstr "mensajes"
 
-#: src/xine-engine/xine.c:942
+#: src/xine-engine/xine.c:986
 msgid "plugin"
 msgstr "plugin"
 
-#: src/xine-engine/load_plugins.c:101 src/xine-engine/load_plugins.c:460
+#: src/xine-engine/load_plugins.c:100 src/xine-engine/load_plugins.c:455
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
 msgstr "%s(%s@%d): el parámetro no debería ser nulo, terminando\n"
 
-#: src/xine-engine/load_plugins.c:139
+#: src/xine-engine/load_plugins.c:138
 #, c-format
 msgid ""
 "load_plugins: cannot open demux plugin %s:\n"
@@ -959,17 +959,17 @@ msgstr ""
 "load_plugins: no se puede abrir el plugin demultiplexor %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:154
+#: src/xine-engine/load_plugins.c:153
 #, c-format
 msgid "load_plugins: demux plugin found : %s\n"
 msgstr "load_plugins: encontrado plugin demultiplexor : %s\n"
 
-#: src/xine-engine/load_plugins.c:162
+#: src/xine-engine/load_plugins.c:161
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
 msgstr ""
 "load_plugins: demasiados plugins demultiplexores instalados, saliendo.\n"
 
-#: src/xine-engine/load_plugins.c:301
+#: src/xine-engine/load_plugins.c:300
 #, c-format
 msgid ""
 "load_plugins: cannot open input plugin %s:\n"
@@ -978,12 +978,12 @@ msgstr ""
 "load_plugins: no se puede abrir el plugin de entrada %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:314
+#: src/xine-engine/load_plugins.c:313
 #, c-format
 msgid "load_plugins: input plugin found : %s\n"
 msgstr "load_plugins: encontrado plugin de entrada: %s\n"
 
-#: src/xine-engine/load_plugins.c:322
+#: src/xine-engine/load_plugins.c:321
 #, c-format
 msgid ""
 "load_plugins: %s is no valid input plugin (lacks init_input_plugin() "
@@ -992,12 +992,12 @@ msgstr ""
 "load_plugins: %s no es un plugin válido (carece de la función "
 "init_input_plugin())\n"
 
-#: src/xine-engine/load_plugins.c:326
+#: src/xine-engine/load_plugins.c:325
 #, c-format
 msgid "%s(%d): too many input plugins installed, exiting.\n"
 msgstr "%s(%d): demasiados plugins de entrada instalados, saliendo.\n"
 
-#: src/xine-engine/load_plugins.c:339
+#: src/xine-engine/load_plugins.c:338
 #, c-format
 msgid ""
 "load_plugins: no input plugins found in %s! - Did you install xine "
@@ -1006,7 +1006,7 @@ msgstr ""
 "load_plugins: no se encontraron plugins de entrada en %s - ¿Instaló xine "
 "correctamente?\n"
 
-#: src/xine-engine/load_plugins.c:525
+#: src/xine-engine/load_plugins.c:520
 #, c-format
 msgid ""
 "load_plugins: failed to load plugin %s:\n"
@@ -1015,17 +1015,17 @@ msgstr ""
 "load_plugins: fallo al cargar el plugin %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:564
+#: src/xine-engine/load_plugins.c:553
 #, c-format
 msgid "spu decoder plugin found : %s\n"
 msgstr "encontrado plugin decodificador spu: %s\n"
 
-#: src/xine-engine/load_plugins.c:608
+#: src/xine-engine/load_plugins.c:586
 #, c-format
 msgid "video decoder plugin found : %s\n"
 msgstr "encontrado plugin decodificador de vídeo: %s\n"
 
-#: src/xine-engine/load_plugins.c:647
+#: src/xine-engine/load_plugins.c:616
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr "encontrado plugin decodificador de audio: %s\n"
