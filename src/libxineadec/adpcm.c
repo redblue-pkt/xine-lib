@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.25 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: adpcm.c,v 1.26 2003/01/07 06:26:25 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -51,6 +51,13 @@ static int ima_adpcm_step[89] = {
   2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358,
   5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
   15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
+};
+
+static int dialogic_ima_step[49] = {
+  16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
+  50, 55, 60, 66, 73, 80, 88, 97, 107, 118, 130, 143,
+  157, 173, 190, 209, 230, 253, 279, 307, 337, 371, 408, 449,
+  494, 544, 598, 658, 724, 796, 876, 963, 1060, 1166, 1282, 1411, 1552
 };
 
 static int ima_adpcm_index[16] = {
@@ -1064,6 +1071,82 @@ static void ea_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   this->size = 0;
 }
 
+/* clamp a number between 0 and 48 */
+#define CLAMP_0_TO_48(x)  if (x < 0) x = 0; else if (x > 48) x = 48;
+/* clamp a number within a signed 12-bit range */
+#define CLAMP_S12(x)  if (x < -2048) x = -2048; \
+  else if (x > 2048) x = 2048;
+static void dialogic_ima_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+
+  int i;
+  unsigned int out_ptr = 0;
+  audio_buffer_t *audio_buffer;
+  unsigned int block_size;
+
+  /* IMA ADPCM work variables */
+  /* the predictor and index values are initialized to 0 and maintained
+   * throughout the entire stream */
+  static int predictor = 0;
+  static int index = 16;
+  int step = index;
+  int diff;
+  int sign;
+  int delta;
+
+  /* fetch the size for this block and check if the decode buffer needs
+   * to increase */
+  block_size = buf->size * 2;  /* 2 samples / byte */
+  if (block_size > this->out_block_size) {
+    this->out_block_size = block_size;
+    if (this->decode_buffer) {
+      free(this->decode_buffer);
+    }
+    this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
+  }
+
+  /* break apart the nibbles */
+  for (i = 0; i < this->size; i++) {
+    this->decode_buffer[out_ptr++] = this->buf[i] >> 4;
+    this->decode_buffer[out_ptr++] = this->buf[i] & 0xF;
+  }
+
+  /* decode the nibbles in place using an alternate IMA step table */
+  for (i = 0; i < out_ptr; i++) {
+
+    delta = this->decode_buffer[i];
+    index += ima_adpcm_index[delta];
+    CLAMP_0_TO_48(index);
+
+    sign = delta & 8;
+    delta = delta & 7;
+
+    diff = step >> 3;
+    if (delta & 4) diff += step;
+    if (delta & 2) diff += step >> 1;
+    if (delta & 1) diff += step >> 2;
+
+    if (sign)
+      predictor -= diff;
+    else
+      predictor += diff;
+
+    CLAMP_S12(predictor);
+    this->decode_buffer[i] = predictor << 4;
+    step = dialogic_ima_step[index];
+  }
+
+  /* dispatch the decoded audio */
+  audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
+  audio_buffer->vpts = buf->pts;
+  audio_buffer->num_frames = out_ptr;
+  xine_fast_memcpy(audio_buffer->mem, this->decode_buffer, out_ptr * 2);
+
+  this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
+
+  /* reset buffer */
+  this->size = 0;
+}
+
 static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
@@ -1122,6 +1205,11 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           strdup("EA ADPCM");
         break;
 
+      case BUF_AUDIO_DIALOGIC_IMA:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("Dialogic IMA ADPCM");
+        break;
+
     }
     this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
@@ -1169,7 +1257,9 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     /* the decoder will not know the size of the output buffer until
      * an audio packet comes through */
-    if ((buf->type == BUF_AUDIO_SMJPEG_IMA) || (buf->type == BUF_AUDIO_EA_ADPCM)) {
+    if ((buf->type == BUF_AUDIO_SMJPEG_IMA) ||
+        (buf->type == BUF_AUDIO_EA_ADPCM) ||
+        (buf->type == BUF_AUDIO_DIALOGIC_IMA)) {
       this->in_block_size = this->out_block_size = 0;
       this->decode_buffer = NULL;
     }
@@ -1242,6 +1332,10 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       case BUF_AUDIO_EA_ADPCM:
         ea_adpcm_decode_block(this, buf);
+        break;
+
+      case BUF_AUDIO_DIALOGIC_IMA:
+        dialogic_ima_decode_block(this, buf);
         break;
     }
   }
@@ -1332,6 +1426,7 @@ static uint32_t audio_types[] = {
   BUF_AUDIO_QTIMAADPCM, BUF_AUDIO_DK3ADPCM,
   BUF_AUDIO_DK4ADPCM, BUF_AUDIO_SMJPEG_IMA,
   BUF_AUDIO_VQA_IMA, BUF_AUDIO_EA_ADPCM, 
+  BUF_AUDIO_DIALOGIC_IMA,
   0
  };
 

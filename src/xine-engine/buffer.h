@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.91 2003/01/02 05:51:34 tmmm Exp $
+ * $Id: buffer.h,v 1.92 2003/01/07 06:26:25 tmmm Exp $
  *
  *
  * contents:
@@ -187,6 +187,7 @@ extern "C" {
 #define BUF_AUDIO_INTERPLAY	0x03270000
 #define BUF_AUDIO_XA_ADPCM	0x03280000
 #define BUF_AUDIO_WESTWOOD	0x03290000
+#define BUF_AUDIO_DIALOGIC_IMA	0x032A0000
 
 /* spu buffer types:    */
  
