@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.16 2004/04/23 21:59:04 miguelfreitas Exp $
+ * $Id: real.c,v 1.17 2004/04/24 16:55:42 miguelfreitas Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -441,7 +441,7 @@ static int select_mlti_data(const char *mlti_chunk, int mlti_size, int selection
  * looking at stream description.
  */
 
-rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth) {
+rmff_header_t *real_parse_sdp(char *data, char **stream_rules, uint32_t bandwidth) {
 
   sdpplin_t *desc;
   rmff_header_t *header;
@@ -486,7 +486,7 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
     for (j=0; j<n; j++) {
       lprintf("asmrp rule match: %u for stream %u\n", rulematches[j], desc->stream[i]->stream_id);
       sprintf(b,"stream=%u;rule=%u,", desc->stream[i]->stream_id, rulematches[j]);
-      xine_buffer_strcat(stream_rules, b);
+      xine_buffer_strcat(*stream_rules, b);
     }
 
     if (!desc->stream[i]->mlti_data) return NULL;
@@ -517,8 +517,8 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
       avg_packet_size=desc->stream[i]->avg_packet_size;
   }
   
-  if (stream_rules && strlen(stream_rules) && stream_rules[strlen(stream_rules)-1] == ',')
-    stream_rules[strlen(stream_rules)-1]=0; /* delete last ',' in stream_rules */
+  if (*stream_rules && strlen(*stream_rules) && (*stream_rules)[strlen(*stream_rules)-1] == ',')
+    (*stream_rules)[strlen(*stream_rules)-1]=0; /* delete last ',' in stream_rules */
 
   header->prop=rmff_new_prop(
       max_bit_rate,
@@ -539,7 +539,7 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
   return header;
 }
 
-int real_get_rdt_chunk(rtsp_t *rtsp_session, char **buffer) {
+int real_get_rdt_chunk(rtsp_t *rtsp_session, unsigned char **buffer) {
 
   int n=1;
   uint8_t header[8];
@@ -667,7 +667,7 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   /* parse sdp (sdpplin) and create a header and a subscribe string */
   subscribe=xine_buffer_init(256);
   strcpy(subscribe, "Subscribe: ");
-  h=real_parse_sdp(description, subscribe, bandwidth);
+  h=real_parse_sdp(description, &subscribe, bandwidth);
   if (!h) {
     xine_buffer_free(subscribe);
     xine_buffer_free(buf);

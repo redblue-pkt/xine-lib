@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.15 2004/04/23 21:59:04 miguelfreitas Exp $
+ * $Id: rtsp_session.c,v 1.16 2004/04/24 16:55:42 miguelfreitas Exp $
  *
  * high level interface to rtsp servers.
  */
