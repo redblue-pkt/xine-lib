@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2002/10/18 14:20:58 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.35 2002/10/18 15:29:19 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -49,6 +49,7 @@ int a52file;
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
+  config_values_t *config;
 } a52dec_class_t;
 
 typedef struct a52dec_decoder_s {
@@ -435,10 +436,9 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
 static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   a52dec_decoder_t *this ;
+  config_values_t *cfg;
   printf ("liba52:open_plugin called\n");
-//  config_values_t *cfg;
 
-//  cfg = xine->config;
   this = (a52dec_decoder_t *) malloc (sizeof (a52dec_decoder_t));
   memset(this, 0, sizeof (a52dec_decoder_t));
 
@@ -447,9 +447,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.dispose             = a52dec_dispose;
   this->stream                            = stream;
   this->class                             = (a52dec_class_t *) class_gen;
-  
-  this->a52_level = (float) 1.0;
-#if 0
+  cfg = this->class->config;  
+
   this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
 						 0, 200,
 						 _("a/52 volume control"),
@@ -460,7 +459,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
 						      _("enable audio downmixing to 2.0 surround stereo"),
 						      NULL, 0, NULL, NULL);
-#endif
 
   /* int i; */
 
@@ -585,6 +583,8 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->decoder_class.get_identifier  = get_identifier;
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
+
+  this->config = xine->config;
 
   printf ("liba52:init_plugin called\n");
   return this;
