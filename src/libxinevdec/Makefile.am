@@ -19,7 +19,8 @@ lib_LTLIBRARIES = \
 	xineplug_decode_qtrpza.la \
 	xineplug_decode_wc3video.la \
 	xineplug_decode_qtrle.la \
-	xineplug_decode_interplayvideo.la 
+	xineplug_decode_interplayvideo.la \
+	xineplug_decode_yuv_frames.la
 
 xineplug_decode_cinepak_la_SOURCES = cinepak.c
 xineplug_decode_cinepak_la_LIBADD = $(XINE_LIB)
@@ -80,6 +81,10 @@ xineplug_decode_qtrle_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_interplayvideo_la_SOURCES = interplayvideo.c
 xineplug_decode_interplayvideo_la_LIBADD = $(XINE_LIB)
 xineplug_decode_interplayvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_decode_yuv_frames_la_SOURCES = yuv_frames.c
+xineplug_decode_yuv_frames_la_LIBADD = $(XINE_LIB)
+xineplug_decode_yuv_frames_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = svq1_codebooks.h
 
