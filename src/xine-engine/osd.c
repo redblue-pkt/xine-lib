@@ -815,6 +815,38 @@ static void update_text_palette(void *this_gen, xine_cfg_entry_t *entry)
   printf("osd: text palette will be %s\n", textpalettes_str[this->textpalette] );
 }
 
+static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
+			    int x1, int y1, int width, int height,
+			    uint8_t *palette_map)
+{
+  int y, x;
+
+#ifdef LOG_DEBUG  
+  printf("osd_draw_bitmap %p at (%d,%d) %dx%d\n",osd, x1,y1, width,height );
+#endif
+
+  /* update clipping area */
+  osd->x1 = MIN( osd->x1, x1 );
+  osd->x2 = MAX( osd->x2, x1+width );
+  osd->y1 = MIN( osd->y1, y1 );
+  osd->y2 = MAX( osd->y2, y1+height );
+
+  for( y=0; y<height; y++ ) {
+    if ( palette_map ) {
+      int src_offset = y * width;
+      int dst_offset = (y1+y) * osd->width + x1;
+      /* Slow copy with palette translation, the map describes how to
+         convert color indexes in the source bitmap to indexes in the
+         osd palette */
+      for ( x=0; x<width; x++ ) {
+	osd->area[dst_offset+x] = palette_map[bitmap[src_offset+x]];
+      }
+    } else {
+      /* Fast copy with direct mapping */
+      memcpy(osd->area + (y1+y) * osd->width + x1, bitmap + y * width, width);
+    }
+  }
+}
 
 /*
  * initialize the osd rendering engine
@@ -870,6 +902,7 @@ osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, conf
   this->render_text        = osd_render_text;
   this->get_text_size      = osd_get_text_size;
   this->close              = osd_renderer_close;
+  this->draw_bitmap        = osd_draw_bitmap;
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.39 2003/02/06 10:59:02 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.40 2003/02/11 16:42:43 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -565,6 +565,12 @@ void xine_osd_set_text_palette(xine_osd_t *this, int palette_number, int color_b
 
 void xine_osd_get_palette(xine_osd_t *this, uint32_t *color, uint8_t *trans) {
   this->osd.renderer->get_palette(&this->osd, color, trans);
+}
+
+void xine_osd_draw_bitmap(xine_osd_t *this, uint8_t *bitmap,
+			    int x1, int y1, int width, int height,
+			    uint8_t *palette_map) {
+  this->osd.renderer->draw_bitmap(&this->osd, bitmap, x1, y1, width, height, palette_map);
 }
 
 const char *const *xine_post_list_inputs(xine_post_t *this_gen) {

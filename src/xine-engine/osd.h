@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.11 2002/11/20 18:41:14 mroi Exp $
+ * $Id: osd.h,v 1.12 2003/02/11 16:42:42 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -167,6 +167,13 @@ struct osd_renderer_s {
    */
   void (*clear) (osd_object_t *osd );
     
+  /*
+   * paste a bitmap with optional palette mapping
+   */
+  void (*draw_bitmap) (osd_object_t *osd, uint8_t *bitmap,
+		       int x1, int y1, int width, int height,
+		       uint8_t *palette_map);
+
   /* private stuff */
 
   pthread_mutex_t             osd_mutex;

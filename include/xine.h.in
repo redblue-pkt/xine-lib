@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.58 2003/01/29 02:33:35 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.59 2003/02/11 16:42:40 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1342,6 +1342,9 @@ void        xine_osd_draw_rect     (xine_osd_t *self, int x1, int y1,
 				    int color, int filled );
 void        xine_osd_draw_text     (xine_osd_t *self, int x1, int y1,
 				    const char *text, int color_base);
+void        xine_osd_draw_bitmap   (xine_osd_t *self, uint8_t *bitmap,
+				    int x1, int y1, int width, int height,
+				    uint8_t *palette_map);
 void        xine_osd_get_text_size (xine_osd_t *self, const char *text,
 				    int *width, int *height);
 void        xine_osd_set_font      (xine_osd_t *self, const char *fontname,
