@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.5 2001/05/07 02:25:00 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.6 2001/05/11 17:15:45 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -682,7 +682,7 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
     perror ("unable to open /dev/cdroms/cdrom");
 #else
     perror ("unable to open /dev/cdrom");
-#endi
+#endif
     return NULL;
   }
 
