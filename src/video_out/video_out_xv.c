@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.209 2004/12/20 23:09:20 hadess Exp $
+ * $Id: video_out_xv.c,v 1.210 2005/03/06 09:55:35 tmattern Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -773,7 +773,8 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   if (this->deinterlace_enabled && this->deinterlace_method
       && frame->format == XINE_IMGFMT_YV12
-      && deinterlace_yuv_supported( this->deinterlace_method ) == 1)
+      && (deinterlace_yuv_supported( this->deinterlace_method ) == 1
+	  || this->deinterlace_method ==  DEINTERLACE_ONEFIELDXV))
     xv_deinterlace_frame (this);
 
   /*
