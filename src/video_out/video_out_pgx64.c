@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.20 2002/12/18 21:38:58 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.21 2002/12/20 17:41:18 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -346,7 +346,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     write_reg(this, SCALER_BUF0_OFFSET_U, frame->buf_u);
     write_reg(this, SCALER_BUF0_OFFSET_V, frame->buf_v);
     write_reg(this, SCALER_BUF_PITCH, frame->pitch);
-    write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | OVERLAY_X_Y_LOCK);
+    write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
     write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
     write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     write_reg(this, SCALER_HEIGHT_WIDTH, (frame->width << 16) | (this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height));
@@ -355,7 +355,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
       int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
       int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
 
-      write_reg(this, OVERLAY_EXCLUSIVE_VERT, (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
+      write_reg(this, OVERLAY_EXCLUSIVE_VERT, (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
       write_reg(this, OVERLAY_EXCLUSIVE_HORZ,  horz_start | (horz_end << 8) | (((this->fb_width/8) - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
     }
     else {
