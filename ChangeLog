@@ -24,6 +24,9 @@ xine-lib (1-beta5)
   * libdvdnav updated to 0.1.5: miscellaneous fixes
   * HuffYUV video decoding via ffmpeg
   * vidixfb vo driver for vidix overlay on linux frame buffer
+  * video processing api race condition fixes and other updates
+  * make number of video buffer configurable by the user
+    (performance tuning option)
 
 xine-lib (1-beta4)
   * http input fixes
