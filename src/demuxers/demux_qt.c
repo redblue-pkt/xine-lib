@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.189 2004/07/07 01:07:58 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.190 2004/08/18 21:41:58 jstembridge Exp $
  *
  */
 
@@ -93,14 +93,14 @@ typedef unsigned int qt_atom;
 #define WAVE_ATOM QT_ATOM('w', 'a', 'v', 'e')
 #define FRMA_ATOM QT_ATOM('f', 'r', 'm', 'a')
 
-#define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
-#define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
-#define SAMR_FOURCC QT_ATOM('s', 'a', 'm', 'r')
-#define ALAC_FOURCC QT_ATOM('a', 'l', 'a', 'c')
-#define DRMS_FOURCC QT_ATOM('d', 'r', 'm', 's')
-#define TWOS_FOURCC QT_ATOM('t', 'w', 'o', 's')
-#define SOWT_FOURCC QT_ATOM('s', 'o', 'w', 't')
-#define RAW_FOURCC  QT_ATOM('r', 'a', 'w', ' ')
+#define IMA4_FOURCC ME_FOURCC('i', 'm', 'a', '4')
+#define MP4A_FOURCC ME_FOURCC('m', 'p', '4', 'a')
+#define SAMR_FOURCC ME_FOURCC('s', 'a', 'm', 'r')
+#define ALAC_FOURCC ME_FOURCC('a', 'l', 'a', 'c')
+#define DRMS_FOURCC ME_FOURCC('d', 'r', 'm', 's')
+#define TWOS_FOURCC ME_FOURCC('t', 'w', 'o', 's')
+#define SOWT_FOURCC ME_FOURCC('s', 'o', 'w', 't')
+#define RAW_FOURCC  ME_FOURCC('r', 'a', 'w', ' ')
 
 #define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
 #define META_ATOM QT_ATOM('m', 'e', 't', 'a')
@@ -258,6 +258,9 @@ typedef struct {
 
   /* flags that indicate how a trak is supposed to be used */
   unsigned int flags;
+  
+  /* formattag-like field that specifies codec in mp4 files */
+  unsigned int object_type_id;
   
   /* decoder data pass information to the AAC decoder */
   void *decoder_config;
@@ -816,6 +819,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
   trak->current_frame = 0;
   trak->timescale = 0;
   trak->flags = 0;
+  trak->object_type_id = 0;
   trak->decoder_config = NULL;
   trak->decoder_config_len = 0;
   trak->stsd_atoms_count = 0;
@@ -1078,7 +1082,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
           /* special case time: some ima4-encoded files don't have the
            * extra header; compensate */
-          if (BE_32(&trak_atom[atom_pos + 0x0]) == IMA4_FOURCC) {
+          if (trak->stsd_atoms[k].audio.codec_fourcc == IMA4_FOURCC) {
             trak->stsd_atoms[k].audio.samples_per_packet = 64;
             trak->stsd_atoms[k].audio.bytes_per_packet = 34;
             trak->stsd_atoms[k].audio.bytes_per_frame = 34 * 
@@ -1124,16 +1128,16 @@ static qt_error parse_trak_atom (qt_trak *trak,
             trak->stsd_atoms[k].audio.vbr = 0;
 
           /* if this is MP4 audio, mark the trak as VBR */
-          if (BE_32(&trak_atom[atom_pos + 0x0]) == MP4A_FOURCC)
+          if (trak->stsd_atoms[k].audio.codec_fourcc == MP4A_FOURCC)
             trak->stsd_atoms[k].audio.vbr = 1;
 
-          if (BE_32(&trak_atom[atom_pos + 0x0]) == SAMR_FOURCC)
+          if (trak->stsd_atoms[k].audio.codec_fourcc == SAMR_FOURCC)
             trak->stsd_atoms[k].audio.vbr = 1;
 
-          if (BE_32(&trak_atom[atom_pos + 0x0]) == ALAC_FOURCC)
+          if (trak->stsd_atoms[k].audio.codec_fourcc == ALAC_FOURCC)
             trak->stsd_atoms[k].audio.vbr = 1;
 
-          if (BE_32(&trak_atom[atom_pos + 0x0]) == DRMS_FOURCC) {
+          if (trak->stsd_atoms[k].audio.codec_fourcc == DRMS_FOURCC) {
             last_error = QT_DRM_NOT_SUPPORTED;
             goto free_trak;
           }
@@ -1211,7 +1215,9 @@ static qt_error parse_trak_atom (qt_trak *trak,
         j += 2;
         if( trak_atom[j++] == 0x04 ) {
           j += mp4_read_descr_len( &trak_atom[j], &len );
-          j += 13;
+          trak->object_type_id = trak_atom[j++];
+          debug_atom_load("      object type id is %d\n", trak->object_type_id);
+          j += 12;
           if( trak_atom[j++] == 0x05 ) {
             j += mp4_read_descr_len( &trak_atom[j], &len );
             debug_atom_load("      decoder config is %d (0x%X) bytes long\n",
@@ -2496,8 +2502,22 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
   if (this->qt->audio_trak != -1) {
 
-    audio_trak->properties->audio.codec_buftype = 
-      _x_formattag_to_buf_audio(audio_trak->properties->audio.codec_fourcc);
+    /* in mp4 files the audio fourcc is always 'mp4a' - the codec is
+     * specified by the object type id field in the esds atom */
+    if(audio_trak->properties->audio.codec_fourcc == MP4A_FOURCC) {
+      switch(audio_trak->object_type_id) {
+        case 107:
+          audio_trak->properties->audio.codec_buftype = BUF_AUDIO_MPEG;
+          break;
+        default:
+          /* default to AAC if we have no better idea */
+          audio_trak->properties->audio.codec_buftype = BUF_AUDIO_AAC;
+          break;
+      }
+    } else {
+      audio_trak->properties->audio.codec_buftype = 
+        _x_formattag_to_buf_audio(audio_trak->properties->audio.codec_fourcc);
+    }
 
     if( !audio_trak->properties->audio.codec_buftype &&
          audio_trak->properties->audio.codec_fourcc )
