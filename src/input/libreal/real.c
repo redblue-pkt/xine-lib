@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.19 2004/09/08 15:09:30 miguelfreitas Exp $
+ * $Id: real.c,v 1.20 2004/12/15 12:53:46 miguelfreitas Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -604,6 +604,8 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, unsigned char **buffer) {
   return (n <= 0) ? 0 : n+12;
 }
 
+//! maximum size of the rtsp description, must be < INT_MAX
+#define MAX_DESC_BUF (20 * 1024 * 1024)
 rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwidth) {
 
   char *description=NULL;
@@ -651,6 +653,13 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
     lprintf("real: got no Content-length!\n");
   else
     size=atoi(rtsp_search_answers(rtsp_session,"Content-length"));
+
+  if (size > MAX_DESC_BUF) {
+    printf("real: Content-length for description too big (> %uMB)!\n",
+           MAX_DESC_BUF/(1024*1024) );
+    xine_buffer_free(buf);
+    return NULL;
+  }
 
   if (!rtsp_search_answers(rtsp_session,"ETag"))
     lprintf("real: got no ETag!\n");

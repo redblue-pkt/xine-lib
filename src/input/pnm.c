@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.20 2003/12/12 22:53:15 jstembridge Exp $
+ * $Id: pnm.c,v 1.21 2004/12/15 12:53:36 miguelfreitas Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -205,16 +205,21 @@ static unsigned int pnm_get_chunk(pnm_t *p,
                          char *data, int *need_response) {
 
   unsigned int chunk_size;
-  int n;
+  unsigned int n;
   char *ptr;
- 
+
+  if( max < PREAMBLE_SIZE )
+    return -1;
+    
   /* get first PREAMBLE_SIZE bytes and ignore checksum */
   _x_io_tcp_read (p->stream, p->s, data, CHECKSUM_SIZE);
   if (data[0] == 0x72)
     _x_io_tcp_read (p->stream, p->s, data, PREAMBLE_SIZE);
   else
     _x_io_tcp_read (p->stream, p->s, data+CHECKSUM_SIZE, PREAMBLE_SIZE-CHECKSUM_SIZE);
-  
+
+  max -= PREAMBLE_SIZE;
+    
   *chunk_type = be2me_32(*((uint32_t *)data));
   chunk_size = be2me_32(*((uint32_t *)(data+4)));
 
@@ -222,7 +227,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
     case PNA_TAG:
       *need_response=0;
       ptr=data+PREAMBLE_SIZE;
+
+      if( max < 1 )
+        return -1;
       _x_io_tcp_read (p->stream, p->s, ptr++, 1);
+      max -= 1;
 
       while(1) {
 	/* The pna chunk is devided into subchunks.
@@ -235,17 +244,29 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	 * if first byte is 'F', we got an error
 	 */
 
+        if( max < 2 )
+          return -1;
         _x_io_tcp_read (p->stream, p->s, ptr, 2);
+        max -= 2;
+        
 	if (*ptr == 'X') /* checking for server message */
 	{
 	  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: got a message from server:\n");
+          if( max < 1 )
+            return -1;
 	  _x_io_tcp_read (p->stream, p->s, ptr+2, 1);
+          max -= 1;
 
 	  /* two bytes of message length*/
 	  n=be2me_16(*(uint16_t*)(ptr+1));
 
 	  /* message itself */
+          if( max < n )
+            return -1;
 	  _x_io_tcp_read (p->stream, p->s, ptr+3, n);
+          max -= n;
+          if( max < 1 )
+            return -1;
 	  ptr[3+n]=0;
 	  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "%s\n", ptr+3);
 	  return -1;
@@ -265,10 +286,15 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	}
 	if (*ptr != 0x4f) break;
 	n=ptr[1];
-	_x_io_tcp_read (p->stream, p->s, ptr+2, n);
+        if( max < n )
+          return -1;
+        _x_io_tcp_read (p->stream, p->s, ptr+2, n);
 	ptr+=(n+2);
+        max-=n;
       }
       /* the checksum of the next chunk is ignored here */
+      if( max < 1 )
+        return -1;
       _x_io_tcp_read (p->stream, p->s, ptr+2, 1);
       ptr+=3;
       chunk_size=ptr-data;
@@ -278,11 +304,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
     case PROP_TAG:
     case MDPR_TAG:
     case CONT_TAG:
-      if (chunk_size > max) {
+      if (chunk_size > max || chunk_size < PREAMBLE_SIZE) {
         xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "error: max chunk size exeeded (max was 0x%04x)\n", max);
+#ifdef LOG
 	/* reading some bytes for debugging */
         n=_x_io_tcp_read (p->stream, p->s, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
-#ifdef LOG
         xine_hexdump(data,n+PREAMBLE_SIZE);
 #endif
         return -1;
