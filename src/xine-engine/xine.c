@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.286 2004/03/23 22:54:31 valtri Exp $
+ * $Id: xine.c,v 1.287 2004/04/05 17:58:54 hadess Exp $
  */
 
 /*
@@ -1182,6 +1182,8 @@ int xine_eject (xine_stream_t *stream) {
 
 void xine_dispose (xine_stream_t *stream) {
 
+  xine_stream_t *s;
+
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_dispose\n");
 
   stream->status = XINE_STATUS_QUIT;
@@ -1219,6 +1221,16 @@ void xine_dispose (xine_stream_t *stream) {
   pthread_cond_destroy  (&stream->first_frame_reached);
 
   stream->metronom->exit (stream->metronom);
+
+  pthread_mutex_lock(&stream->xine->streams_lock);
+  for (s = xine_list_first_content(stream->xine->streams);
+       s; s = xine_list_next_content(stream->xine->streams)) {
+    if (s == stream) {
+      xine_list_delete_current (stream->xine->streams);
+      break;
+    }
+  }
+  pthread_mutex_unlock(&stream->xine->streams_lock);
 
   free (stream->current_extra_info);
   free (stream->video_decoder_extra_info);
