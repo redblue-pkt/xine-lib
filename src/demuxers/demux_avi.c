@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.184 2003/12/03 03:14:32 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.185 2003/12/23 16:58:25 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -555,9 +555,8 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
     }
     if (!valid_chunk) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
-                _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %ll\n"),
-                data[0], data[1], data[2], data[3],
-                chunk_pos, chunk_len);
+                _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %lld\n"),
+                data[0], data[1], data[2], data[3], chunk_pos);
     }
     chunk_pos = this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
     if (chunk_pos != this->idx_grow.nexttagoffset)
@@ -1321,9 +1320,8 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
       }
     }
     xine_log (this->stream->xine, XINE_LOG_MSG,
-              _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %ll\n"),
-              data[0], data[1], data[2], data[3],
-              this->input->get_current_pos(this->input), *len);
+              _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %lld\n"),
+              data[0], data[1], data[2], data[3], this->input->get_current_pos(this->input));
     return AVI_HEADER_UNKNOWN;
   }
   /* unreachable code */
