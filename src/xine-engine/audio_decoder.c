@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.7 2001/05/01 00:55:23 guenter Exp $
+ * $Id: audio_decoder.c,v 1.8 2001/05/24 15:31:31 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -69,7 +69,7 @@ void *audio_decoder_loop (void *this_gen) {
       case BUF_AUDIO_LPCM:
       case BUF_AUDIO_AVI:
       
-	printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type);
+	/* printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type); */
 
 	/* update track map */
 
@@ -79,7 +79,7 @@ void *audio_decoder_loop (void *this_gen) {
 	  
 	if ( (i==this->audio_track_map_entries) || (this->audio_track_map[i] != buf->type) ) {
 
-	  printf ("audio_decoder: inserting audio type %08x into track map\n", buf->type);
+	  /* printf ("audio_decoder: inserting audio type %08x into track map\n", buf->type); */
 	  
 	  j = this->audio_track_map_entries;
 	  while (j>i) {
@@ -90,7 +90,7 @@ void *audio_decoder_loop (void *this_gen) {
 	  this->audio_track_map_entries++;
 
 	  if (i<=this->audio_channel) {
-	    printf ("audio_decoder: resetting audio decoder because of new channel\n");
+	    /* printf ("audio_decoder: resetting audio decoder because of new channel\n"); */
 	    
 	    if (this->cur_audio_decoder_plugin) {
 	      this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
@@ -105,7 +105,7 @@ void *audio_decoder_loop (void *this_gen) {
 
 	  int streamtype = (buf->type>>16) & 0xFF;
 
-	  printf ("audio_decoder_c: buffer is from the right track => decode it\n");
+	  /* printf ("audio_decoder_c: buffer is from the right track => decode it\n"); */
 
 
 	  decoder = this->audio_decoder_plugins [streamtype];
@@ -166,8 +166,6 @@ void audio_decoder_init (xine_t *this) {
   this->audio_fifo = fifo_buffer_new (1500, 4096);
 
   pthread_create (&this->audio_thread, NULL, audio_decoder_loop, this) ;
-
-  printf ("audio_decoder_init: audio thread created\n");
 }
 
 void audio_decoder_shutdown (xine_t *this) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.3 2001/04/30 21:55:27 guenter Exp $
+ * $Id: buffer.c,v 1.4 2001/05/24 15:31:31 guenter Exp $
  *
  *
  * contents:
@@ -142,7 +142,7 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
     if (fifo->first==NULL)
       fifo->last = NULL;
 
-    buffer_pool_free (buf);
+    buf->free_buffer(buf);
   }
 
   pthread_mutex_unlock (&fifo->mutex);

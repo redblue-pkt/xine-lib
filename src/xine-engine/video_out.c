@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.5 2001/05/22 23:07:49 guenter Exp $
+ * $Id: video_out.c,v 1.6 2001/05/24 15:31:31 guenter Exp $
  *
  */
 
@@ -148,7 +148,6 @@ static void *video_out_loop (void *this_gen) {
 
   signal (SIGALRM, video_timer_handler);
 
-
   video_step = this->metronom->get_video_rate (this->metronom);
   vo_set_timer (video_step);
 
@@ -166,7 +165,7 @@ static void *video_out_loop (void *this_gen) {
 
     cur_pts = this->metronom->get_current_time (this->metronom);
     
-    xprintf (VERBOSE|VIDEO, "video_out : vo_video_out called at audio pts %d\n", cur_pts);
+    xprintf (VERBOSE|VIDEO, "video_out : video loop iteration at audio pts %d\n", cur_pts);
     
     img = this->display_img_buf_queue->first;
     
@@ -240,7 +239,7 @@ static void *video_out_loop (void *this_gen) {
 
     
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
-    this->driver->display_frame (this->driver, img);
+    this->driver->display_frame (this->driver, img); 
   }
   return NULL;
 }
@@ -263,7 +262,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   vo_frame_t *img;
 
-  printf ("video_out: vo_get_frame\n");
+  /* printf ("video_out: vo_get_frame\n"); */
 
   if (this->pts_per_frame != duration) {
     this->pts_per_frame = duration;
@@ -284,7 +283,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   pthread_mutex_unlock (&img->mutex);
   
-  printf ("video_out: vo_get_frame done\n");
+  /* printf ("video_out: vo_get_frame done\n"); */
 
   return img;
 }
@@ -360,6 +359,8 @@ static int vo_frame_draw (vo_frame_t *img) {
 
   xprintf (VERBOSE|VIDEO,"video_out: got image. vpts for picture is %d\n", pic_vpts);
 
+  /* printf ("video_out: got image. vpts for picture is %d\n", pic_vpts); */
+
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
@@ -373,6 +374,7 @@ static int vo_frame_draw (vo_frame_t *img) {
 
       this->num_frames_discarded++;
       xprintf (VERBOSE|VIDEO, "vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
+      printf ("vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
 
       return frames_to_skip;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.5 2001/05/06 14:25:42 guenter Exp $
+ * $Id: video_out.h,v 1.6 2001/05/24 15:31:31 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -128,8 +128,8 @@ struct vo_instance_s {
   int                video_loop_running;
   pthread_t          video_thread;
 
-  uint32_t           pts_per_half_frame;
-  uint32_t           pts_per_frame;
+  int                pts_per_half_frame;
+  int                pts_per_frame;
 
   int                num_frames_delivered;
   int                num_frames_skipped;

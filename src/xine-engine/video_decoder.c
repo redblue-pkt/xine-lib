@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.12 2001/05/22 23:07:49 guenter Exp $
+ * $Id: video_decoder.c,v 1.13 2001/05/24 15:31:31 guenter Exp $
  *
  */
 
@@ -37,18 +37,12 @@ void *video_decoder_loop (void *this_gen) {
 
   while (running) {
 
-    printf ("video_decoder: get buffer\n");
-
     buf = this->video_fifo->get (this->video_fifo);
-
-    printf ("video_decoder: processing buffer\n");
 
     /* gVD.mnCurInputPos = pBuf->nInputPos; */
 
     switch (buf->type) {
     case BUF_CONTROL_START:
-
-      printf ("video_decoder: found start of stream\n");
 
       if (this->cur_video_decoder_plugin) {
 	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
@@ -66,13 +60,9 @@ void *video_decoder_loop (void *this_gen) {
 
       streamtype = (buf->type>>16) & 0xFF;
       
-      printf ("video_decoder: processing buffer type= %08x (%02x), size=%d\n", buf->type,streamtype, buf->size);
-
       decoder = this->video_decoder_plugins [streamtype];
 
       if (decoder) {
-
-	printf ("video_decoder: decoder found.\n");
 
 	if (this->cur_video_decoder_plugin != decoder) {
 
@@ -84,14 +74,12 @@ void *video_decoder_loop (void *this_gen) {
 
 	}
 	
-	decoder->decode_data (this->cur_video_decoder_plugin, buf);
+	decoder->decode_data (this->cur_video_decoder_plugin, buf); 
       }
 
       break;
 
     case BUF_CONTROL_END:
-
-      printf ("video_decoder: found end of stream\n");
 
       if (this->cur_video_decoder_plugin) {
 	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);

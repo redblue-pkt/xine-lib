@@ -183,11 +183,11 @@ static int parse_chunk (mpeg2dec_t * mpeg2dec, int code, uint8_t * buffer, uint3
 	    (picture->second_field)) {
 	  if (picture->picture_coding_type == B_TYPE) {
 	    picture->throwaway_frame->bFrameBad = !mpeg2dec->drop_frame;
-	    picture->throwaway_frame->draw (picture->throwaway_frame);
+	    picture->throwaway_frame->draw (picture->throwaway_frame);  
             picture->throwaway_frame->free (picture->throwaway_frame);
  	  } else {
 	    picture->forward_reference_frame->bFrameBad = !mpeg2dec->drop_frame;
-	    picture->forward_reference_frame->draw (picture->forward_reference_frame);
+	    picture->forward_reference_frame->draw (picture->forward_reference_frame);  
 	  }
 	  bFlipPage = 1;
 	} else
