@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.45 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_mms.c,v 1.46 2004/02/17 13:40:57 valtri Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -70,6 +70,9 @@ const char * mms_bandwidth_strs[]={"14.4 Kbps (Modem)", "19.2 Kbps (Modem)",
                                    "393.2 Kbps (Cable/DSL)","524.3 Kbps (Cable/DSL)",
                                    "1.5 Mbps (T1)", "10.5 Mbps (LAN)", NULL};
 
+/* connection methods */
+const char *mms_protocol_strs[]={"auto", "TCP", "HTTP", NULL};
+
 typedef struct {
   input_plugin_t   input_plugin;
 
@@ -95,6 +98,7 @@ typedef struct {
   input_class_t       input_class;
   
   mms_input_plugin_t *ip;
+  int                 protocol;    /* autoprobe, mmst or mmsh */
 
   xine_t             *xine;
 } mms_input_class_t;
@@ -309,6 +313,15 @@ static void bandwidth_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   }
 }
 
+static void protocol_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
+  mms_input_class_t *class = (mms_input_class_t*) this_gen;
+
+  lprintf ("protocol_changed_cb %d\n", entry->num_value);
+
+  if (!class) return;
+  class->protocol = entry->num_value;
+}
+
 static int mms_plugin_open (input_plugin_t *this_gen) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   mms_t              *mms  = NULL;
@@ -355,7 +368,7 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   lprintf ("trying to open '%s'\n", mrl);
 
   if (!strncasecmp (mrl, "mms://", 6)) {
-    protocol = PROTOCOL_UNDEFINED;
+    protocol = cls->protocol;
   } else if (!strncasecmp (mrl, "mmst://", 7)) {
     protocol =   PROTOCOL_MMST;
   } else if (!strncasecmp (mrl, "mmsh://", 7)) {
@@ -434,9 +447,18 @@ static void *init_class (xine_t *xine, void *data) {
 
   xine->config->register_enum(xine->config, "input.mms_network_bandwidth", 10,
 			      (char **)mms_bandwidth_strs,
-			      "Network bandwidth",
+			      _("Network bandwidth"),
 			      NULL, 0, bandwidth_changed_cb, (void*) this);
-  
+
+  this->protocol = xine->config->register_enum(xine->config,
+    "input.mms_protocol", 
+    0, 
+    (char **)mms_protocol_strs, 
+    _("MMS protocol"),
+    _("Select the protocol above MMS. TCP is better but you may need HTTP behind the firewall."),
+     20, 
+     protocol_changed_cb, (void*)this);
+
   return this;
 }
 
