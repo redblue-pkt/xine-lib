@@ -105,7 +105,7 @@ dnl
 case $host in
   *-*-freebsd*)
     THREAD_LIBS="-pthread"
-    CFLAGS="$CFLAGS -I/usr/local/include -L/usr/local/lib"
+    CFLAGS="$CFLAGS -I/usr/local/include -L/usr/local/lib -D_THREAD_SAFE"
     CPPFLAGS="$CPPFLAGS -I/usr/local/include -L/usr/local/lib"
     ;;
   *)
