@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.28 2002/01/03 20:57:30 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.29 2002/01/06 00:46:54 guenter Exp $
  *
  *
  * contents:
@@ -116,6 +116,7 @@ extern "C" {
 #define BUF_AUDIO_LH            0x030b0000
 #define BUF_AUDIO_VOXWARE       0x030c0000
 #define BUF_AUDIO_ACELPNET      0x030d0000
+#define BUF_AUDIO_AAC           0x030e0000
 
 /* spu buffer types:    */
  
