@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.138 2002/10/16 21:11:50 guenter Exp $
+ * $Id: video_out_xv.c,v 1.139 2002/10/16 21:20:19 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -127,8 +127,6 @@ struct xv_driver_s {
   xv_frame_t         deinterlace_frame;
   int                deinterlace_method;
   int                deinterlace_enabled;
-
-  char               scratch[256];
 
   int                use_colorkey;
   uint32_t           colorkey;
@@ -1028,7 +1026,7 @@ static void xv_check_capability (xv_driver_t *this,
 				    NULL, 10, xv_property_callback, &this->props[property]);
     }
     
-    entry = this->config->lookup_entry (this->config, this->scratch);
+    entry = this->config->lookup_entry (this->config, config_name);
     
     this->props[property].entry = entry;
   
