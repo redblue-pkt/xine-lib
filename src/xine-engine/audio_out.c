@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.127 2003/05/24 10:53:47 jstembridge Exp $
+ * $Id: audio_out.c,v 1.128 2003/05/25 21:34:59 tmattern Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -209,7 +209,7 @@ typedef struct {
   int             audio_paused;
   pthread_t       audio_thread;
 
-  int             audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
+  int64_t         audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
   int32_t         frames_per_kpts;      /* frames per 1024/90000 sec                  */
   
   ao_format_t     input, output;        /* format conversion done at audio_out.c */
@@ -997,7 +997,7 @@ static void *ao_loop (void *this_gen) {
       delay += this->passthrough_offset;
 
     if(this->frames_per_kpts)
-      hw_vpts += delay * 1024 / this->frames_per_kpts;
+      hw_vpts += (delay * 1024) / this->frames_per_kpts;
   
     /*
      * calculate gap:
@@ -1278,10 +1278,10 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
 
   this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
   /* FIXME: If this->frames_per_kpts line goes after this->audio_step line, xine crashes with FPE, when compiled with gcc 3.0.1!!! Why? */ 
-  this->frames_per_kpts   = this->output.rate * 1024 / 90000;
-  this->audio_step        = ( (uint32_t)(90000) * (uint32_t)(32768) )/ this->input.rate;
+  this->frames_per_kpts   = (this->output.rate * 1024) / 90000;
+  this->audio_step        = ((int64_t)90000 * (int64_t)32768) / (int64_t)this->input.rate;
 #ifdef LOG
-  printf ("audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
+  printf ("audio_out : audio_step %lld pts per 32768 frames\n", this->audio_step);
 #endif
 
   return this->output.rate;
