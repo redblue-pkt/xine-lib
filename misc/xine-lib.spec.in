@@ -419,6 +419,7 @@ Summary:        libxine video output plugin using XVideo-extension with motion c
 Summary(de):    libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
 Group:          Development/Libraries
 Obsoletes:      libxine0-xvmc
+Autoreqprov:    Off
 
 %description xvmc
 libxine video output plugin using XVideo-extension with motion compensation
@@ -664,7 +665,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %endif
 
 %if %BUILD_SDL
-%files sdl -f ../filelist_libxine1_dxr3
+%files sdl -f ../filelist_libxine1_sdl
 %endif
 
 %if %BUILD_AA
