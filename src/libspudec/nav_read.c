@@ -25,6 +25,11 @@
 #include "bswap.h"
 #include "nav_types.h"
 #include "nav_read.h"
+#include "nav_print.h"
+
+/*
+#define LOG_NAV_READ
+*/
 
 void nav_read_pci(pci_t *pci, unsigned char *buffer) {
   int i, j;
@@ -87,6 +92,10 @@ void nav_read_pci(pci_t *pci, unsigned char *buffer) {
   }
 #endif
 
+  /* Debug */
+#ifdef LOG_NAV_READ
+  navPrint_PCI(pci);
+#endif
 
   /* Asserts */
 
