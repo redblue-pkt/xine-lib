@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "contrib/dirent" /I "contrib/pthreads" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/dirent" /I "contrib/pthreads" /I "../src/xine-engine" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -71,7 +71,7 @@ LINK32=link.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "contrib/dirent" /I "contrib/pthreads" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../include" /I "../lib" /I "include" /I "include/msvc" /I "contrib/dirent" /I "contrib/pthreads" /I "../src/xine-engine" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -90,189 +90,218 @@ LINK32=link.exe
 
 # Name "libxinesuppt - Win32 Release"
 # Name "libxinesuppt - Win32 Debug"
+
 # Begin Group "Source Files ( pthreads )"
 
 # PROP Default_Filter ""
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\attr.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\barrier.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\cancel.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\cleanup.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\condvar.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\create.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\dll.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\errno.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\exit.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\fork.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\global.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\misc.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\mutex.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\nonportable.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\private.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\rwlock.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\sched.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\sched.h
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\semaphore.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\signal.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\spin.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\sync.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\pthreads\tsd.c
 # End Source File
+
 # End Group
+
 # Begin Group "DLL Defs"
 
 # PROP Default_Filter ""
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\libxinesupport.def
 # End Source File
+
 # End Group
+
 # Begin Group "Source Files ( zlib )"
 
 # PROP Default_Filter ""
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\adler32.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\compress.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\crc32.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\deflate.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\gzio.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\infblock.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\infcodes.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\inffast.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\inflate.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\inftrees.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\infutil.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\trees.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\uncompr.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\zlib\zutil.c
 # End Source File
-# End Group
-# Begin Group "Source Files ( other )"
 
-# PROP Default_Filter ""
 # End Group
-# Begin Group "Source Files ( timer )"
 
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\contrib\timer\timer.c
-# End Source File
-# End Group
 # Begin Group "Source Files ( dirent )"
-
 # PROP Default_Filter ""
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\contrib\dirent\dirent.c
 # End Source File
+
 # End Group
+
+# Begin Group "Source Files ( posix )"
+# PROP Default_Filter ""
+
+# Begin Source File
+SOURCE=..\lib\basename.c
+# End Source File
+
+# Begin Source File
+SOURCE=..\lib\gettimeofday.c
+# End Source File
+
+# Begin Source File
+SOURCE=..\lib\hstrerror.c
+# End Source File
+
+# Begin Source File
+SOURCE=..\lib\setenv.c
+# End Source File
+
+# Begin Source File
+SOURCE=..\lib\strndup.c
+# End Source File
+
+# Begin Source File
+SOURCE=..\lib\strsep.c
+# End Source File
+
+# Begin Source File
+SOURCE=..\lib\strtok_r.c
+# End Source File
+
+# End Group
+
 # End Target
 # End Project

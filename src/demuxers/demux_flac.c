@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.5 2004/07/09 13:16:59 f1rmb Exp $
+ * $Id: demux_flac.c,v 1.6 2004/09/20 19:30:04 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -142,7 +142,7 @@ static int open_flac_file(demux_flac_t *flac) {
       flac->channels = ((flac->sample_rate >> 9) & 0x07) + 1;
       flac->bits_per_sample = ((flac->sample_rate >> 4) & 0x1F) + 1;
       flac->sample_rate >>= 12;
-      flac->total_samples = BE_64(&streaminfo[10]) & 0x0FFFFFFFFFLL;  /* 36 bits */
+      flac->total_samples = BE_64(&streaminfo[10]) & UINT64_C(0x0FFFFFFFFF);  /* 36 bits */
       lprintf ("%d Hz, %d bits, %d channels, %lld total samples\n", 
         flac->sample_rate, flac->bits_per_sample, 
         flac->channels, flac->total_samples);

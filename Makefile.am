@@ -6,7 +6,7 @@ AUTOMAKE_OPTIONS = 1.3
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = doc m4 intl po misc include src win32
+SUBDIRS = doc m4 intl po misc include lib src win32
 
 DEBFILES = debian/README.Debian debian/changelog debian/control \
 	debian/copyright debian/rules debian/compat \

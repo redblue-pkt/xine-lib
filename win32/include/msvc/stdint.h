@@ -27,7 +27,7 @@ details. */
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: stdint.h,v 1.1 2004/04/06 19:20:21 valtri Exp $
+ * $Id: stdint.h,v 1.2 2004/09/20 19:30:08 valtri Exp $
  */
 
 /* Modified original CygWin version for using by MSVC port. */
@@ -35,60 +35,73 @@ details. */
 #ifndef _STDINT_H
 #define _STDINT_H
 
-/* Exact-width integer types */
+/* Macros for minimum-width integer constant expressions */
 
-#include <inttypes.h>
+#define INT8_C(x) x
+#define INT16_C(x) x
+#define INT32_C(x) x ## L
+#define INT64_C(x) x ## I64
+
+#define UINT8_C(x) x ## U
+#define UINT16_C(x) x ## U
+#define UINT32_C(x) x ## UL
+#define UINT64_C(x) x ## UI64
+
+/* Macros for greatest-width integer constant expressions */
+
+#define INTMAX_C(x) x ## I64
+#define UINTMAX_C(x) x ## UI64
 
 /* Limits of exact-width integer types */
 
 #define INT8_MIN (-128)
 #define INT16_MIN (-32768)
 #define INT32_MIN (-2147483647 - 1)
-#define INT64_MIN (-9223372036854775807LL - 1LL)
+#define INT64_MIN (-INT64_C(9223372036854775807) - 1)
 
 #define INT8_MAX (127)
 #define INT16_MAX (32767)
 #define INT32_MAX (2147483647)
-#define INT64_MAX (9223372036854775807LL)
+#define INT64_MAX (INT64_C(9223372036854775807))
 
 #define UINT8_MAX (255)
 #define UINT16_MAX (65535)
 #define UINT32_MAX (4294967295UL)
-#define UINT64_MAX (18446744073709551615ULL)
+#define UINT64_MAX (UINT64_C(18446744073709551615))
 
 /* Limits of minimum-width integer types */
 
 #define INT_LEAST8_MIN (-128)
 #define INT_LEAST16_MIN (-32768)
 #define INT_LEAST32_MIN (-2147483647 - 1)
-#define INT_LEAST64_MIN (-9223372036854775807LL - 1LL)
+#define INT_LEAST64_MIN (-INT64_C(9223372036854775807) - 1)
 
 #define INT_LEAST8_MAX (127)
 #define INT_LEAST16_MAX (32767)
 #define INT_LEAST32_MAX (2147483647)
-#define INT_LEAST64_MAX (9223372036854775807LL)
+#define INT_LEAST64_MAX (INT64_C(9223372036854775807))
 
 #define UINT_LEAST8_MAX (255)
 #define UINT_LEAST16_MAX (65535)
 #define UINT_LEAST32_MAX (4294967295UL)
-#define UINT_LEAST64_MAX (18446744073709551615ULL)
+#define UINT_LEAST64_MAX (UINT64_C(18446744073709551615))
 
 /* Limits of fastest minimum-width integer types */
 
 #define INT_FAST8_MIN (-128)
 #define INT_FAST16_MIN (-2147483647 - 1)
 #define INT_FAST32_MIN (-2147483647 - 1)
-#define INT_FAST64_MIN (-9223372036854775807LL - 1LL)
+#define INT_FAST64_MIN (-INT64_C(9223372036854775807) - 1)
 
 #define INT_FAST8_MAX (127)
 #define INT_FAST16_MAX (2147483647)
 #define INT_FAST32_MAX (2147483647)
-#define INT_FAST64_MAX (9223372036854775807LL)
+#define INT_FAST64_MAX (INT64_C(9223372036854775807))
 
 #define UINT_FAST8_MAX (255)
 #define UINT_FAST16_MAX (4294967295UL)
 #define UINT_FAST32_MAX (4294967295UL)
-#define UINT_FAST64_MAX (18446744073709551615ULL)
+#define UINT_FAST64_MAX (UINT64_C(18446744073709551615))
 
 /* Limits of integer types capable of holding object pointers */
 
@@ -98,9 +111,9 @@ details. */
 
 /* Limits of greatest-width integer types */
 
-#define INTMAX_MIN (-9223372036854775807LL - 1LL)
-#define INTMAX_MAX (9223372036854775807LL)
-#define UINTMAX_MAX (18446744073709551615ULL)
+#define INTMAX_MIN (-INT64_C(9223372036854775807) - 1)
+#define INTMAX_MAX (INT64_C(9223372036854775807))
+#define UINTMAX_MAX (UINT64_C(18446744073709551615))
 
 /* Limits of other integer types */
 
@@ -134,22 +147,5 @@ details. */
 #define WINT_MIN (-2147483647 - 1)
 #define WINT_MAX (2147483647)
 #endif
-
-/* Macros for minimum-width integer constant expressions */
-
-#define INT8_C(x) x
-#define INT16_C(x) x
-#define INT32_C(x) x ## L
-#define INT64_C(x) x ## LL
-
-#define UINT8_C(x) x ## U
-#define UINT16_C(x) x ## U
-#define UINT32_C(x) x ## UL
-#define UINT64_C(x) x ## ULL
-
-/* Macros for greatest-width integer constant expressions */
-
-#define INTMAX_C(x) x ## L
-#define UINTMAX_C(x) x ## UL
 
 #endif /* _STDINT_H */

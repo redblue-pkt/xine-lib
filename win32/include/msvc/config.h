@@ -609,3 +609,5 @@
 
 /* define ssize_t to __int64 if it's missing in default includes */
 #define ssize_t __int64
+
+#include "os_internal.h"

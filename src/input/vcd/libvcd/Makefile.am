@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = libvcd
 
-INCLUDES = $(LIBCDIO_CFLAGS)
+INCLUDES = $(LIBCDIO_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/lib
 
 libvcd_SRCS = \
 	vcd.c \

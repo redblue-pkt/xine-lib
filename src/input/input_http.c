@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.97 2004/09/18 20:50:09 zonque Exp $
+ * $Id: input_http.c,v 1.98 2004/09/20 19:30:04 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -172,7 +172,7 @@ static int _x_use_proxy(http_input_class_t *this, const char *host) {
   if ((info = gethostbyname(host)) == NULL) {
     xine_log(this->xine, XINE_LOG_MSG, 
         _("input_http: gethostbyname(%s) failed: %s\n"), host,
-        xine_hstrerror(h_errno));
+        hstrerror(h_errno));
     return 1;
   }
   if (!info->h_name) return 1;

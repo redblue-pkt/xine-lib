@@ -1,3 +1,5 @@
+  * build system improvements: replacement functions, better work with headers
+
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
   * Fixed Xv initialization to enable multiple instances of the Xv plugin

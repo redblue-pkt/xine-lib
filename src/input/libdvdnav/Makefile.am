@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CPPFLAGS = -D_LARGEFILE64_SOURCE -DDVDNAV_COMPILE
+AM_CPPFLAGS = -D_LARGEFILE64_SOURCE -DDVDNAV_COMPILE -DHAVE_DLFCN_H
 
 noinst_LTLIBRARIES = libdvdnav.la
 

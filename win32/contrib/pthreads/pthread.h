@@ -978,11 +978,6 @@ int * _errno( void );
  * actually exist on WIN32.
  */
 
-#if !defined(__MINGW32__)
-#define strtok_r( _s, _sep, _lasts ) \
-	( *(_lasts) = strtok( (_s), (_sep) ) )
-#endif /* !__MINGW32__ */
-
 #define asctime_r( _tm, _buf ) \
 	( strcpy( (_buf), asctime( (_tm) ) ), \
 	  (_buf) )

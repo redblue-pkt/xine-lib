@@ -29,34 +29,20 @@
 
 #include <stdint.h>
 
-#define int8_t			signed char
-#define int16_t			signed short
-#define int32_t			signed long
-#define int64_t			signed hyper
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned long
-#define uint64_t		unsigned hyper
-
-#define intptr_t		signed int
-#define uintptr_t		unsigned int
-
-#define __int8_t        int8_t
-#define __int16_t       int16_t
-#define __int32_t       int32_t
-#define __int64_t       int64_t
-
-#define __uint8_t       uint8_t
-#define __uint16_t      uint16_t
-#define __uint32_t      uint32_t
-#define __uint64_t      uint64_t
-
-#define __intptr_t      intptr_t
-#define __uintptr_t     uintptr_t
-
-typedef __int64         ulonglong;
-typedef __int64         longlong;
+typedef __int8 int8_t;
+typedef unsigned __int8 uint8_t;
+typedef __int16 int16_t;
+typedef unsigned __int16 uint16_t;
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+typedef int intptr_t;
+typedef unsigned int uintptr_t;
+typedef __int64 intmax_t;
+typedef unsigned __int64 uintmax_t;
+typedef signed __int64 intmax_t;
+typedef unsigned __int64 uintmax_t;
 
 #define __WORDSIZE 32
 
@@ -187,6 +173,15 @@ typedef __int64         longlong;
 # define PRIuPTR        __PRIPTR_PREFIX "u"
 # define PRIxPTR        __PRIPTR_PREFIX "x"
 # define PRIXPTR        __PRIPTR_PREFIX "X"
+
+
+/* Macros for scanning `intmax_t' and `uintmax_t'. */
+#define SCNdMAX         __PRI64_PREFIX "d"
+#define SCNiMAX         __PRI64_PREFIX "i"
+#define SCNoMAX         __PRI64_PREFIX "o"
+#define SCNuMAX         __PRI64_PREFIX "u"
+#define SCNxMAX         __PRI64_PREFIX "x"
+#define SCNXMAX         __PRI64_PREFIX "X"
 
 #endif /* !defined __cplusplus || defined __STDC_FORMAT_MACROS */
 

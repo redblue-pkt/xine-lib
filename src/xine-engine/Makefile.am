@@ -1,4 +1,5 @@
 include $(top_srcdir)/misc/Makefile.common
+include $(top_srcdir)/lib/Makefile.common
 
 AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS)
 
@@ -9,7 +10,6 @@ XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la
 INTERNAL_ZLIB_LIB = $(top_builddir)/win32/contrib/zlib/libzlib.la
 DIRENT_LIB = $(top_builddir)/win32/contrib/libdirent.la
 INTERNAL_PTHREAD_LIB = $(top_builddir)/win32/contrib/pthreads/libpthread.la
-TIMER_LIB = $(top_builddir)/win32/contrib/libtimer.la
 DEF_FILE = libxine-$(XINE_MAJOR).def
 if !HAVE_ZLIB
 zlib_dep = $(INTERNAL_ZLIB_LIB)
@@ -17,7 +17,6 @@ endif
 if WIN32
 dirent_lib = $(DIRENT_LIB)
 pthread_dep = $(INTERNAL_PTHREAD_LIB)
-timer_lib = $(TIMER_LIB)
 def_ldflags="-Wl,--output-def,$(DEF_FILE)"
 endif
 
@@ -32,10 +31,10 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 EXTRA_DIST = lrb.c lrb.h
 
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(zlib_dep) \
-                          $(dirent_lib) $(pthread_dep) $(timer_lib)
+                          $(dirent_lib) $(pthread_dep) $(LIBXINEPOSIX)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) \
-                    $(dirent_lib) $(timer_lib)
+                    $(dirent_lib) $(LIBXINEPOSIX)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) $(def_ldflags)
@@ -71,6 +70,3 @@ $(INTERNAL_ZLIB_LIB):
 
 $(DIRENT_LIB):
 	$(MAKE) -C $(top_builddir)/win32/contrib libdirent.la
-
-$(TIMER_LIB):
-	$(MAKE) -C $(top_builddir)/win32/contrib libtimer.la

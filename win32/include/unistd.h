@@ -30,9 +30,7 @@
 #include <errno.h>
 #include <direct.h>
 
-#include <timer.h>
-
-#include <config.h>
+#include "config.h"
 
 #ifndef _SYS_UNISTD_H_
 #define _SYS_UNISTD_H_

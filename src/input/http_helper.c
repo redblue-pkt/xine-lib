@@ -19,19 +19,17 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.2 2004/03/03 20:09:12 mroi Exp $ 
+ * $Id: http_helper.c,v 1.3 2004/09/20 19:30:04 valtri Exp $ 
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <string.h>
+
 #include "xine_internal.h"
 #include "http_helper.h"
-
-static char *_strndup(const char *s, size_t n) {
-  char *ret;
-  
-  ret = malloc (n + 1);
-  strncpy(ret, s, n);
-  ret[n] = '\0';
-  return ret;
-}
 
 int _x_parse_url (char *url, char **proto, char** host, int *port,
                          char **user, char **password, char **uri) {
@@ -64,7 +62,7 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
   if (!start || (start == url))
     goto error;
   
-  *proto = _strndup(url, start - url);
+  *proto = strndup(url, start - url);
 
   /* user:password */
   start += 3;
@@ -77,12 +75,12 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
   if (at) {
     authcolon = strchr(start, ':');
     if(authcolon && authcolon < at) {
-      *user = _strndup(start, authcolon - start);
-      *password = _strndup(authcolon + 1, at - authcolon - 1);
+      *user = strndup(start, authcolon - start);
+      *password = strndup(authcolon + 1, at - authcolon - 1);
       if ((authcolon == start) || (at == (authcolon + 1))) goto error;
     } else {
       /* no password */
-      *user = _strndup(start, at - start);
+      *user = strndup(start, at - start);
       if (at == start) goto error;
     }
     start = at + 1;
@@ -96,18 +94,18 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
     portcolon = strchr(start, ':');
     if (slash) {
       if (portcolon && portcolon < slash) {
-        *host = _strndup(start, portcolon - start);
+        *host = strndup(start, portcolon - start);
         if (portcolon == start) goto error;
         *port = strtol(portcolon + 1, &strtol_err, 10);
         if ((strtol_err != slash) || (strtol_err == portcolon + 1))
           goto error;
       } else {
-        *host = _strndup(start, slash - start);
+        *host = strndup(start, slash - start);
         if (slash == start) goto error;
       }
     } else {
       if (portcolon) {
-        *host = _strndup(start, portcolon - start);
+        *host = strndup(start, portcolon - start);
         if (portcolon < end) {
           *port = strtol(portcolon + 1, &strtol_err, 10);
           if (*strtol_err != '\0') goto error;
@@ -126,7 +124,7 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
     hostendbracket = strchr(start, ']');
     if (hostendbracket != NULL) {
       if (hostendbracket == start + 1) goto error;
-      *host = _strndup(start + 1, hostendbracket - start - 1);
+      *host = strndup(start + 1, hostendbracket - start - 1);
 
       if (hostendbracket < end) {
         /* Might have a trailing port */

@@ -4,7 +4,6 @@
 EXPORTS
 
 ;---- xine-utils ----
-gettimeofday
 xine_mm_accel
 xine_fast_memcpy
 xine_probe_fast_memcpy
@@ -35,8 +34,6 @@ xine_list_append_content
 xine_list_insert_content
 xine_list_delete_current
 
-xine_basename
-
 xine_buffer_init
 _xine_buffer_free
 xine_buffer_dup
@@ -57,6 +54,8 @@ xml_parser_dump_tree
 
 lexer_init
 lexer_get_token
+
+xine_guess_spu_encoding
 
 ;---- xine-engine ----
 xine_init
@@ -247,6 +246,8 @@ _x_io_select
 _x_io_tcp_connect
 _x_io_tcp_read
 _x_io_tcp_write
+_x_io_tcp_read_line
+_x_io_tcp_connect_finish
 _x_io_file_read
 _x_io_file_write
 
@@ -264,6 +265,7 @@ _x_meta_info_get
 _x_meta_info_get_public
 
 _x_get_current_info
+_x_spu_decoder_sleep
 
 init_yuv_conversion
 init_yuv_planes

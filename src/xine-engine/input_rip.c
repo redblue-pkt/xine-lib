@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.23 2004/09/17 19:21:46 valtri Exp $
+ * $Id: input_rip.c,v 1.24 2004/09/20 19:30:05 valtri Exp $
  */
 
 /* TODO:
@@ -44,6 +44,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -569,7 +572,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   this->savepos = 0;
 
   fnc = strdup(filename);
-  target_basename = xine_basename(fnc);
+  target_basename = basename(fnc);
   dir_file_concat(target, MAX_TARGET_LEN, stream->xine->save_path, 
                   target_basename);
   strcpy(target_no, target);

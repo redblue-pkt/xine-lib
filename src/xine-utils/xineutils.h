@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.92 2004/09/06 18:34:39 valtri Exp $
+ * $Id: xineutils.h,v 1.93 2004/09/20 19:30:05 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -577,27 +577,6 @@ typedef	union {
 #endif /*ARCH_X86 */
 
 
-#ifndef HAVE_LSTAT
-#  define lstat(FILENAME, BUF) stat((FILENAME), (BUF))
-#endif
-
-
-#ifdef _MSC_VER
-#  define snprintf _snprintf
-#  define vsnprintf _vsnprintf
-#endif
-
-
-#ifdef WIN32
-#  ifndef strcasecmp
-#    define strcasecmp _stricmp
-#  endif
-#  ifndef strncasecmp
-#    define strncasecmp _strnicmp
-#  endif
-#endif
-
-
 		     /* Optimized/fast memcpy */
 
 /*
@@ -679,78 +658,10 @@ void xine_strdupa(char *dest, char *src);
                                 }                                           \
                               } while(0)
 
-/* Shamefully copied from glibc 2.2.3 */
-#ifdef HAVE_STRPBRK
-#define xine_strpbrk strpbrk
-#else
-static inline char *_private_strpbrk(const char *s, const char *accept) {
-
-  while(*s != '\0') {
-    const char *a = accept;
-    while(*a != '\0')
-      if(*a++ == *s)
-	return(char *) s;
-    ++s;
-  }
-
-  return NULL;
-}
-#define xine_strpbrk _private_strpbrk
-#endif
-
-#if defined HAVE_STRSEP && !defined(_MSC_VER)
-#define xine_strsep strsep
-#else
-static inline char *_private_strsep(char **stringp, const char *delim) {
-  char *begin, *end;
-
-  begin = *stringp;
-  if(begin == NULL)
-    return NULL;
-
-  if(delim[0] == '\0' || delim[1] == '\0') {
-    char ch = delim[0];
-
-    if(ch == '\0')
-      end = NULL;
-    else {
-      if(*begin == ch)
-	end = begin;
-      else if(*begin == '\0')
-	end = NULL;
-      else
-	end = strchr(begin + 1, ch);
-    }
-  }
-  else
-    end = xine_strpbrk(begin, delim);
-
-  if(end) {
-    *end++ = '\0';
-    *stringp = end;
-  }
-  else
-    *stringp = NULL;
-
-  return begin;
-}
-#define xine_strsep _private_strsep
-#endif
-
-
-#ifdef HAVE_SETENV
-#define	xine_setenv	setenv
-#else
-static inline void _private_setenv(const char *name, const char *val, int _xx) {
-  int  len  = strlen(name) + strlen(val) + 2;
-  char *env = (char *)malloc(len);
-
-  sprintf(env, "%s%c%s", name, '=', val);
-  putenv(env);
-  /*free(env); The string passed to putenv must not be freed*/
-}
-#define	xine_setenv	_private_setenv
-#endif
+/* compatibility macros */
+#define xine_strpbrk(S, ACCEPT) strpbrk((S), (ACCEPT))
+#define xine_strsep(STRINGP, DELIM) strsep((STRINGP), (DELIM))
+#define xine_setenv(NAME, VAL, XX) setenv((NAME), (VAL), (XX))
 
 /*
  * Color Conversion Utility Functions
@@ -1117,16 +1028,6 @@ char *xine_get_system_encoding(void);
  * guess default encoding for the subtitles
  */
 const char *xine_guess_spu_encoding(void);
-
-/**
- * get base name
- */
-char *xine_basename (char *name);
-
-/**
- * get error descriptions in DNS lookups
- */
-const char *xine_hstrerror(int err);
 
 #if defined(__CYGWIN__) || defined(WIN32)
 char *exec_path_append_subdir(char * string);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.128 2004/09/06 18:34:38 valtri Exp $
+ * $Id: xine.h.in,v 1.129 2004/09/20 19:30:03 valtri Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -48,14 +48,20 @@ extern "C" {
 #endif
 
 #include <sys/types.h>
-#include <inttypes.h>
 #include <sys/time.h>
 #include <time.h>
 
 #ifdef WIN32
-#  include <windows.h>
-#  include <windowsx.h>
+#include <windows.h>
+#include <windowsx.h>
 #endif
+
+#ifdef XINE_COMPILE
+#include <inttypes.h>
+#else
+#include <xine/os_types.h>
+#endif
+
 
 /* This enables some experimental features. These are not part of the
  * official libxine API, so use them only, if you absolutely need them.
@@ -70,7 +76,6 @@ extern "C" {
  * compatible. However, removal is likely to occur as soon as possible.
  */
 /* #define XINE_DISABLE_DEPRECATED_FEATURES */
-
 
 /*********************************************************************
  * xine opaque data types                                            *

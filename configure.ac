@@ -4,6 +4,7 @@ dnl
 
 AC_INIT
 AC_CONFIG_SRCDIR([src/xine-engine/xine.c])
+AC_CONFIG_LIBOBJ_DIR([lib])
 
 dnl
 dnl Require autoconf version 2.53
@@ -164,7 +165,8 @@ AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_CHECK_SIZEOF(long)
 dnl AC_CHECK_TYPES([ptrdiff_t])
-AC_CHECK_GENERATE_INTTYPES([include])
+dnl For systems without inttypes.h would be needed extend generated replacement.
+dnl AC_CHECK_GENERATE_INTTYPES([lib])
 AC_CHECK_TYPE(ssize_t, :, AC_DEFINE(ssize_t, __int64, [define ssize_t to __int64 if it's missing in default includes]))
 
 
@@ -209,8 +211,7 @@ case "$host" in
       THREAD_LIBS='$(top_builddir)/win32/contrib/pthreads/libpthread.la'
       THREAD_CFLAGS_CONFIG=" "
       THREAD_LIBS_CONFIG=" "
-      WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include -I$(top_srcdir)/win32/contrib/dirent -I$(top_srcdir)/win32/contrib/timer'
-      CFLAGS="-DHAVE_NANOSLEEP $CFLAGS"
+      WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include -I$(top_srcdir)/win32/contrib/dirent'
       LIBS="-lwinmm -lwsock32 $LIBS"
       GOOM_LIBS="-liberty"
 
@@ -1380,10 +1381,15 @@ dnl ---------------------------------------------
 dnl Some extra checks.
 dnl ---------------------------------------------
 
+AC_SYS_LARGEFILE
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk basename hstrerror lstat memset setenv])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset])
 AC_FUNC_FSEEKO
-AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h sys/times.h sys/ioctl.h)
+AC_DEFINE(_GNU_SOURCE)
+AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h sys/times.h sys/ioctl.h)
+AC_REPLACE_FUNCS(basename gettimeofday hstrerror setenv strndup strpbrk strsep strtok_r)
+AH_BOTTOM([/* include internal system specific header */
+#include "os_internal.h"])
 
 
 dnl ---------------------------------------------
@@ -1931,7 +1937,7 @@ dnl ---------------------------------------------
 dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl ---------------------------------------------
 
-INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_CPPFLAGS) $(THREAD_INCLUDES) $(ZLIB_INCLUDES)'
+INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_CPPFLAGS) $(THREAD_INCLUDES) $(ZLIB_INCLUDES) -I$(top_srcdir)/lib'
 AC_SUBST(INCLUDES)
 
 
@@ -2009,6 +2015,7 @@ doc/faq/Makefile
 include/Makefile
 include/xine.h
 intl/Makefile
+lib/Makefile
 m4/Makefile
 misc/Makefile
 misc/SlackBuild

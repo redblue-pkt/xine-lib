@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001 Rich Wareham <richwareham@users.sourceforge.net>
+ * Copyright (C) 2001-2004 Rich Wareham <richwareham@users.sourceforge.net>
  * 
  * This file is part of libdvdnav, a DVD navigation library.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.14 2004/03/16 11:43:38 mroi Exp $
+ * $Id: dvdnav_internal.h,v 1.15 2004/09/20 19:30:04 valtri Exp $
  *
  */
 
@@ -47,7 +47,7 @@ typedef CRITICAL_SECTION pthread_mutex_t;
 
 /* replacement gettimeofday implementation */
 #include <sys/timeb.h>
-static inline int gettimeofday( struct timeval *tv, void *tz )
+static inline int _private_gettimeofday( struct timeval *tv, void *tz )
 {
   struct timeb t;
   ftime( &t );
@@ -55,6 +55,7 @@ static inline int gettimeofday( struct timeval *tv, void *tz )
   tv->tv_usec = t.millitm * 1000;
   return 0;
 }
+#define gettimeofday(TV, TZ) _private_gettimeofday((TV), (TZ))
 #include <io.h> /* read() */
 #define lseek64 _lseeki64
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.33 2004/09/12 19:23:36 mroi Exp $
+ * $Id: utils.c,v 1.34 2004/09/20 19:30:05 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -31,7 +31,7 @@
 
 #include <errno.h>
 #include <pwd.h>
-#include <netdb.h>
+#include <time.h>
 #include <unistd.h>
 
 #if HAVE_EXECINFO_H
@@ -46,11 +46,7 @@
 #include <langinfo.h>
 #endif
 
-#if HAVE_LIBGEN_H
-#include <libgen.h>
-#endif
-
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(WIN32)
 #include <windows.h>
 #endif
 
@@ -418,7 +414,11 @@ void xine_usec_sleep(unsigned usec) {
   ts.tv_nsec = (usec % 1000000) * 1000;
   nanosleep(&ts, NULL);
 #else
+#  if WIN32
+  Sleep(usec / 1000);
+#  else
   usleep(usec);
+#  endif
 #endif
 }
 
@@ -553,66 +553,4 @@ const char *xine_guess_spu_encoding(void) {
   }
 
   return "iso-8859-1";
-}
-
-
-#ifndef HAVE_BASENAME
-#define FILESYSTEM_PREFIX_LEN(filename) 0
-#define ISSLASH(C) ((C) == '/')
-#endif
-
-/*
- * get base name
- *
- * (adopted from sh-utils)
- */
-char *xine_basename (char *name) {
-#ifndef HAVE_BASENAME
-  char const *base = name + FILESYSTEM_PREFIX_LEN (name);
-  char const *p;
-
-  for (p = base; *p; p++)
-    {
-      if (ISSLASH (*p))
-	{
-	  /* Treat multiple adjacent slashes like a single slash.  */
-	  do p++;
-	  while (ISSLASH (*p));
-
-	  /* If the file name ends in slash, use the trailing slash as
-	     the basename if no non-slashes have been found.  */
-	  if (! *p)
-	    {
-	      if (ISSLASH (*base))
-		base = p - 1;
-	      break;
-	    }
-
-	  /* *P is a non-slash preceded by a slash.  */
-	  base = p;
-	}
-    }
-
-  return (char *) base;
-#else
-  return basename(name);
-#endif
-}
-
-/**
- * get error descriptions in DNS lookups
- */
-const char *xine_hstrerror(int err) {
-#ifndef HAVE_HSTRERROR
-  switch (err) {
-    case 0: return _("No error");
-    case HOST_NOT_FOUND: return _("Unknown host");
-    case NO_DATA: return _("No address associated with name");
-    case NO_RECOVERY: return _("Unknown server error");
-    case TRY_AGAIN: return _("Host name lookup failure");
-    default: return _("Unknown error");
-  }
-#else
-  return hstrerror(err);
-#endif
 }
