@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.132 2003/12/06 12:03:44 rockyb Exp $
+ * $Id: demux_mpeg.c,v 1.133 2003/12/20 14:13:34 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -296,13 +296,21 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     /* SVCD OGT subtitles are in stream 0x70 */
     if((this->dummy_space[0] & 0xFF) == 0x70) {
+      int spu_id = this->dummy_space[1] & 0x03;
 
       buf = this->input->read_block (this->input, this->video_fifo, len-1);
 
-      buf->type      = BUF_SPU_SVCD + (this->dummy_space[0] & 0x03);
+      buf->type      = BUF_SPU_SVCD + spu_id;
       buf->pts       = pts;
 
+      /* There is a bug in WinSubMux doesn't redo PACK headers in 
+	 the private stream 1. This might cause the below to mess up.
+      if( !preview_mode )
+        check_newpts( this, this->pts, PTS_VIDEO );
+      */
       this->video_fifo->put (this->video_fifo, buf);
+      lprintf ("SPU SVCD PACK (pts: %lld, spu id: %d) put on FIFO\n", 
+	       buf->pts, spu_id);
 
       return;
     }
