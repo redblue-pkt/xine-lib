@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.97 2002/11/08 07:53:52 tmattern Exp $
+ * $Id: metronom.c,v 1.98 2002/11/08 18:47:19 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -344,11 +344,7 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 #ifdef LOG
     printf ("metronom: DISC_STREAMSTART\n");
 #endif
-    if (this->video_vpts > this->audio_vpts)
-      this->vpts_offset = this->audio_vpts = this->video_vpts;
-    else
-      this->vpts_offset = this->video_vpts = this->audio_vpts;
-    
+    this->vpts_offset = this->video_vpts;
     this->video_discontinuity_pts = disc_off;
     this->audio_discontinuity_pts = disc_off;
     this->in_video_discontinuity  = 0;
@@ -418,13 +414,10 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   if (this->in_video_discontinuity) {
     this->in_video_discontinuity--;
 
-    if (pts) {
-      diff = pts - this->video_discontinuity_pts;
-      if (abs(diff) < VIDEO_DRIFT_TOLERANCE) {
-        this->in_video_discontinuity = 0;
-      } else {
-        pts = 0; /* ignore pts during discontinuities */
-      }
+    if (pts  && (pts > this->video_discontinuity_pts)) {
+      this->in_video_discontinuity = 0;
+    } else {
+      pts = 0; /* ignore pts during discontinuities */
     }
   }
   
@@ -552,13 +545,10 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   if (this->in_audio_discontinuity) {
     this->in_audio_discontinuity--;
 
-    if (pts) {
-      diff = pts - this->audio_discontinuity_pts;
-      if (abs(diff) < AUDIO_DRIFT_TOLERANCE) {
-        this->in_audio_discontinuity = 0;
-      } else {
-        pts = 0; /* ignore pts during discontinuities */
-      }
+    if (pts && (pts > this->audio_discontinuity_pts)) {
+      this->in_audio_discontinuity = 0;
+    } else {
+      pts = 0; /* ignore pts during discontinuities */
     }
   }
 
