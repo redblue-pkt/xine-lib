@@ -8,10 +8,13 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_real.la
+lib_LTLIBRARIES = xineplug_decode_real.la xineplug_decode_real_audio.la
 
 xineplug_decode_real_la_SOURCES = xine_decoder.c
 xineplug_decode_real_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_decode_real_audio_la_SOURCES = audio_decoder.c
+xineplug_decode_real_audio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 debug:
 #	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(OGG_CFLAGS) $(VORBIS_CFLAGS)"

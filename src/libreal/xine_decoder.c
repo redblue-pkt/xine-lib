@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2002/11/22 17:03:38 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2002/11/22 23:37:40 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -97,9 +97,6 @@ typedef struct {
         int format;
 } rv_init_t;
 
-#define DISPLAY_WIDTH  320
-#define DISPLAY_HEIGHT 256
-
 static void hexdump (char *buf, int length) {
 
   int i;
@@ -132,14 +129,6 @@ static void hexdump (char *buf, int length) {
 }
 
 
-typedef struct dp_hdr_s {
-  uint32_t chunks;	/* number of chunks             */
-  uint32_t timestamp;   /* timestamp from packet header */
-  uint32_t len;	        /* length of actual data        */
-  uint32_t chunktab;	/* offset to chunk offset array */
-} dp_hdr_t;
-
-
 static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
   real_class_t      *cls  = this->cls;
@@ -154,7 +143,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
     unsigned int* extrahdr = (unsigned int*) (buf->content+28);
     int           result;
-    rv_init_t     init_data = {11, DISPLAY_WIDTH, DISPLAY_HEIGHT, 0, 0, 
+    rv_init_t     init_data = {11, 0, 0, 0, 0, 
 			       0, 1, 0}; /* rv30 */
 
     init_data.w = BE_16(&buf->content[12]);
@@ -383,7 +372,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
  */
 
 static char *get_identifier (video_decoder_class_t *this) {
-  return "realdec";
+  return "realvdec";
 }
 
 static char *get_description (video_decoder_class_t *this) {
