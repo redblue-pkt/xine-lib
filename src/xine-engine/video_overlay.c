@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.11 2002/01/06 19:18:27 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.12 2002/01/06 19:48:18 jcdutton Exp $
  *
  */
 
@@ -362,7 +362,7 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 
       case EVENT_FREE_HANDLE:
 #ifdef LOG_DEBUG
-        printf ("video_overlay: HIDE SPU NOW\n");
+        printf ("video_overlay: FREE SPU NOW\n");
 #endif
         free(this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL; 

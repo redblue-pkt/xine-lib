@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2002/01/06 19:18:27 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.54 2002/01/06 19:48:16 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -296,7 +296,6 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
           return;
         }
         this->event.object.handle = this->menu_handle;
-        this->event.object.pts = this->menu_handle;
         
         xine_fast_memcpy(this->event.object.overlay, 
                &this->overlay,
@@ -397,6 +396,28 @@ static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   }
   if (pci->hli.hl_gi.hli_ss == 1) {
     xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
+  }
+  if ( (pci->hli.hl_gi.hli_ss == 0) &&
+    (this->pci.hli.hl_gi.hli_ss == 1) ) {
+    xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
+    /* Hide menu spu between menus */
+    printf("libspudec:nav:SHOULD HIDE SPU here\n");
+    if( this->menu_handle < 0 ) {
+      this->menu_handle = this->vo_out->overlay_source->get_handle(this->vo_out->overlay_source,1);
+    }
+    if( this->menu_handle >= 0 ) {
+      metronom_t *metronom = this->xine->metronom;
+      this->event.object.handle = this->menu_handle;
+      this->event.event_type = EVENT_HIDE_SPU;
+      /* if !vpts then we are near a discontinuity but video_out havent detected
+         it yet and we cannot provide correct vpts values. use current_time 
+         instead as an aproximation.
+      */
+      this->event.vpts = metronom->got_spu_packet(metronom, pci->pci_gi.vobu_s_ptm, 0, 0);
+      this->vo_out->overlay_source->add_event(this->vo_out->overlay_source, (void *)&this->event);
+    } else {
+      printf("libspudec: No video_overlay handles left for menu\n");
+    }
   }
   free(pci);
   free(dsi);
