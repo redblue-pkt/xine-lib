@@ -373,6 +373,203 @@
     <para></para>
   </sect1>
   <sect1>
+    <title>Overlays and OSD</title>
+    <para>
+    The roots of xine overlays capabilities are DVD subpictures and subtitles support 
+    (also known as 'spu'). The DVD subtitles are encoded in a RLE (Run Length Encoding - the
+    most simple compressing technique) format, with a palette of colors and transparency
+    levels. You probably thought that subtitles were just simple text saved into DVDs, right?
+    Wrong, they are bitmaps.
+    </para>
+    <para>
+    In order to optimize to the most common case, xine internal format for screen overlays
+    is a similar representation to the 'spu' data. This brings not only performance 
+    benefit (since blending functions may skip large image areas due to RLE) but also
+    compatibility: it's possible to reencode any xine overlay to the original spu format
+    for displaying with mpeg hardware decoders like DXR3.
+    </para>
+    <para>
+    Displaying subtitles requires the ability to sync them to the video stream. This
+    is done using the same kind of pts/vpts stuff of a-v sync code. DVD subtitles,
+    for example, may request: show this spu at pts1 and hide it at pts2. This brings the
+    concept of the 'video overlay manager', that is a event-driven module for managing
+    overlay's showing and hiding. 
+    </para>
+    <para>
+    The drawback of using internal RLE format is the difficulty in manipulating it
+    as graphic. To overcome that we created the 'OSD renderer', where OSD stands
+    for On Screen Display just like in TV sets. The osd renderer is a module 
+    providing simple graphic primitives (lines, rectagles, draw text etc) over
+    a "virtual" bitmap area. Everytime we want to show that bitmap it will 
+    be RLE encoded and sent to the overlay manager for displaying.
+    </para>
+    <mediaobject>
+    <imageobject>
+      <imagedata fileref="overlays.png" format="PNG">
+    </imageobject>
+    <imageobject>
+      <imagedata fileref="overlays.eps" format="EPS">
+    </imageobject>
+    <caption>
+    <para> overlays architecture </para>
+    </caption>
+    </mediaobject>
+    <sect2>
+      <title>Overlay Manager</title>
+      <para>
+      The overlay manager interface is available to any xine plugin. It's a bit unlikely
+      to be used directly, anyway here's a code snipped for enqueueing an overlay for
+      displaying:
+      <programlisting>
+  video_overlay_event_t       event;
+
+  event.object.handle = this->video_overlay->get_handle(this->video_overlay,0);
+
+  memset( this->event.object.overlay, 0, sizeof(*this->event.object.overlay) );
+  
+  /* set position and size for this overlay */
+  event.object.overlay->x = 0;
+  event.object.overlay->y = 0;
+  event.object.overlay->width = 100;
+  event.object.overlay->height = 100;
+
+  /* clipping region is mostly used by dvd menus for highlighting buttons */ 
+  event.object.overlay->clip_top    = 0;
+  event.object.overlay->clip_bottom = image_height;
+  event.object.overlay->clip_left   = 0;
+  event.object.overlay->clip_right  = image_width;
+
+  /* the hard part: provide a RLE image */   
+  event.object.overlay->rle = something;
+
+  /* palette must contain YUV values for each color index */
+  memcpy(event.object.overlay->clip_color, color, sizeof(color)); 
+  
+  /* this table contains transparency level for each color index.
+     0 = completely transparent, 15 - completely opaque */
+  memcpy(event.object.overlay->clip_trans, trans, sizeof(trans)); 
+  
+  /* set the event type and time for displaying */
+  event.event_type = EVENT_SHOW_SPU;
+  event.vpts = 0; /* zero is a special vpts value, it means 'now' */
+  video_overlay->add_event(video_overlay,(void *)&amp;event);
+      </programlisting>
+      </para>
+    </sect2>
+    <sect2>
+      <title>OSD Renderer</title>
+      <para>
+      OSD is a general API for rendereing stuff over playing video. It's available both
+      to xine plugins and to frontends.
+      </para>
+      <para>
+      The first thing you need is to allocate a OSD object for drawing from the 
+      renderer. The code below allocates a 300x200 area. This size can't be changed
+      during the lifetime of a OSD object, but it's possible to place it anywhere 
+      over the image.
+      </para>
+      <programlisting>
+  osd_object_t osd;
+  
+  osd = this->osd_renderer->new_object (osd_renderer, 300, 200);
+      </programlisting>
+      <para>
+      Now we may want to set font and color for text rendering. Although we will
+      refer to fonts over this document, in fact it can be any kind of bitmap. Font
+      files are searched and loaded during initialization from /usr/[local]/share/xine/fonts/
+      and ~/.xine/fonts. There's a sample utility to convert truetype fonts at 
+      /xine-lib/misc/xine-fontconv.c. Palette may be manipulated directly, however most of 
+      the time it's convenient to use pre-defined text palettes.
+      </para>
+      <programlisting>
+  /* set sans serif 24 font */
+  osd_renderer->set_font (osd, "sans", 24);
+  
+  /* copy pre-defined colors for white, black border, transparent background to
+     starting at the index used by the first text palette */
+  osd_renderer->set_text_palette (osd, TEXTPALETTE_WHITE_BLACK_TRANSPARENT, OSD_TEXT1 );
+  
+  /* copy pre-defined colors for white, no border, translucid background to
+     starting at the index used by the second text palette */
+  osd_renderer->set_text_palette (osd, TEXTPALETTE_WHITE_NONE_TRANSLUCID, OSD_TEXT2 );
+      </programlisting>
+      <para>
+      Now render the text and show it:
+      </para>
+      <programlisting>
+  osd_renderer->render_text(osd, 0, 0, "white text, black border", OSD_TEXT1 );
+  
+  osd_renderer->render_text(osd, 0, 30, "white text, no border", OSD_TEXT2 );
+      
+  osd_renderer->show(osd, 0); /* 0 stands for 'now' */
+      </programlisting>
+      <para> There's a 1:1 mapping between OSD objects and overlays, therefore the
+      second time you send an OSD object for displaying it will actually substitute
+      the first image. By using set_position() function we can move overlay
+      over the video.
+      </para>
+      <programlisting>
+  for( i=0; i &lt; 100; i+=10 ) {
+    osd_renderer->set_position(osd, i, i );
+    osd_renderer->show(osd, 0);
+    sleep(1);
+  }
+  osd_renderer->hide(osd, 0);
+      </programlisting>
+      <para>
+      For additional functions please check osd.h.
+      </para>
+      <sect3>
+        <title>OSD palette notes</title>
+        <para>
+        The palette functions demand some additional explanation, skip this if you
+        just want to write text fast without worring with details! :)
+        </para>
+        <para>
+        We have a 256-entry palette, each one defining yuv and transparency levels.
+        Although xine fonts are bitmaps and may use any index they want, we have
+        defined a small convention:
+        </para>
+        <programlisting>
+/* 
+   Palette entries as used by osd fonts:
+
+   0: not used by font, always transparent
+   1: font background, usually transparent, may be used to implement
+      translucid boxes where the font will be printed.
+   2-5: transition between background and border (usually only alpha
+        value changes).
+   6: font border. if the font is to be displayed without border this
+      will probably be adjusted to font background or near.
+   7-9: transition between border and foreground
+   10: font color (foreground)   
+*/
+        </programlisting>
+        <para>
+        The so called 'transitions' are used to implement font anti-aliasing. That
+        convention requires that any font file must use only the colors from 1 to 10.
+        When we use the set_text_palette() function we are just copying 11 palette
+        entries to the specified base index. 
+        </para>
+        <para>
+        That base index is the same we pass to render_text() function to use the
+        text palette. With this scheme is possible to have several diferent text
+        colors at the same time and also draw fonts over custom background.
+        </para>
+        <programlisting>
+  /* obtains size the text will occupy */
+  renderer->get_text_size (osd, text, &amp;width, &amp;height);
+  
+  /* draws a box using font background color (translucid) */
+  renderer->filled_rect(osd, x1, y1, x1+width, y1+height, OSD_TEXT2 + 1 );
+
+  /* render text */     
+  renderer->render_text(osd, x1, y1, text, OSD_TEXT2 );
+        </programlisting>
+      </sect3>
+    </sect2>
+  </sect1>
+  <sect1>
     <title>Plugin architecture</title>
     <para>
     xine plugins are built as shared libraries that export at least one
