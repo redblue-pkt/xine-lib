@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.53 2002/11/19 00:45:41 miguelfreitas Exp $
+ * $Id: spu.c,v 1.54 2002/11/19 13:31:03 jcdutton Exp $
  *
  */
 
@@ -65,6 +65,7 @@
 #define LOG_DEBUG 1
 #define LOG_BUTTON 1
 #define LOG_NAV 1
+#define BIRDCAGE_HACK 1
 */
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
@@ -511,6 +512,13 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
+#ifdef BIRDCAGE_HACK
+        ovl->trans[3] = 15;
+        ovl->trans[2] = 15;
+        ovl->trans[1] = 15;
+        ovl->trans[0] = 8;
+#endif
+
 /* FIXME: Force invisible SPUs to be visible. */
 /*
       if ( (trans->entry0 | trans->entry1 | trans->entry2 | trans->entry3) == 0) {
