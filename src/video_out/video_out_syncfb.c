@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.61 2002/04/03 15:34:17 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.62 2002/04/20 17:12:12 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -571,11 +571,11 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
   y_factor = (double) this->gui_height / (double) this->ideal_height;
   
   if(x_factor < y_factor) {
-    this->output_width   = (double) this->ideal_width  * x_factor;
+    this->output_width   = (double) this->gui_width;
     this->output_height  = (double) this->ideal_height * x_factor;
   } else {
     this->output_width   = (double) this->ideal_width  * y_factor;
-    this->output_height  = (double) this->ideal_height * y_factor;
+    this->output_height  = (double) this->gui_height;
   }
 
   this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
