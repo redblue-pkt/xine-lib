@@ -56,8 +56,9 @@ int decode_header(struct frame *fr,unsigned long newhead)
       fr->sampling_frequency = 6 + ((newhead>>10)&0x3);
     }
     else {
-      int dummy;
+      /*int dummy;*/
       fr->sampling_frequency = ((newhead>>10)&0x3) + (fr->lsf*3); 
+      /*
       dummy = (newhead>>10)&0x3;
       switch (dummy) {
       case 0:
@@ -73,7 +74,8 @@ int decode_header(struct frame *fr,unsigned long newhead)
         fprintf (stderr, "invalid sampling rate\n");
         fr->sample_rate = 44100;
         break;
-      }
+      }*/
+      fr->sample_rate = freqs[fr->sampling_frequency];
     }
 
     fr->error_protection = ((newhead>>16)&0x1)^0x1;
