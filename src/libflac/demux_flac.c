@@ -109,10 +109,10 @@ flac_read_callback (const FLAC__SeekableStreamDecoder *decoder,
 
     lprintf("Read %lld / %u bytes into buffer\n", offset, *bytes);
 
-    *bytes = offset;
     /* This is the way to detect EOF with xine input plugins */
-    if ( (offset != *bytes) && (*bytes != 0) )
+    if ( offset <= 0 && *bytes != 0 )
     {
+      *bytes = offset;
       lprintf("Marking EOF\n");
       
       this->status = DEMUX_FINISHED;
@@ -120,6 +120,7 @@ flac_read_callback (const FLAC__SeekableStreamDecoder *decoder,
     }
     else
     {
+      *bytes = offset;
       lprintf("Read was perfect\n");
     
       return FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_OK;
