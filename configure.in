@@ -1009,7 +1009,7 @@ case "`id`" in
       ACLOCAL_DIR="`eval $ACLOCAL --print-ac-dir`"
       AC_MSG_RESULT($ACLOCAL_DIR)
     else
-      ACLOCAL_DIR="/usr/local/share/aclocal"
+      ACLOCAL_DIR="${prefix}/share/aclocal"
       AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
     fi
     escapedprefix="`echo $prefix | sed -e 's/\\//\\\\\//g'`"
