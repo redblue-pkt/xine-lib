@@ -33,4 +33,8 @@ void nbc_check_buffers (nbc_t *this);
 
 void nbc_close (nbc_t *this);
 
+void nbc_set_high_water_mark(nbc_t *this, int value);
+
+void nbc_set_low_water_mark(nbc_t *this, int value);
+
 #endif

@@ -132,3 +132,10 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   return this;
 }
 
+void nbc_set_high_water_mark(nbc_t *this, int value) {
+  this->high_water_mark = value;
+}
+
+void nbc_set_low_water_mark(nbc_t *this, int value) {
+  this->low_water_mark = value;
+}
