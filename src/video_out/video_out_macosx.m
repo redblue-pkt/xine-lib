@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.8 2004/10/13 15:19:20 athp Exp $
+ * $Id: video_out_macosx.m,v 1.9 2004/10/20 04:58:13 athp Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -38,6 +38,7 @@
 #define LOG
 */
 
+#include "alphablend.h"
 #include "video_out.h"
 #include "vo_scale.h"
 #include "xine.h"
@@ -211,6 +212,25 @@ static void macosx_display_frame(vo_driver_t *vo_driver, vo_frame_t *vo_frame) {
   frame->vo_frame.free(&frame->vo_frame);
 }
 
+static void macosx_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
+                                  vo_overlay_t *overlay) {
+  macosx_driver_t *this = (macosx_driver_t *) this_gen;
+  macosx_frame_t *frame = (macosx_frame_t *) frame_gen;
+
+  /* TODO: should check here whether the overlay has changed or not: use a
+   * ovl_changed boolean variable similarly to video_out_xv */
+  if (overlay->rle) {
+    if (frame->format == XINE_IMGFMT_YV12)
+      /* TODO: It may be possible to accelerate the blending via Quartz
+       * Extreme ... */
+      blend_yuv(frame->vo_frame.base, overlay,
+          frame->width, frame->height, frame->vo_frame.pitches);
+    else
+      blend_yuy2(frame->vo_frame.base[0], overlay,
+          frame->width, frame->height, frame->vo_frame.pitches[0]);
+  }
+}
+
 static int macosx_get_property(vo_driver_t *vo_driver, int property) {
   macosx_driver_t  *driver = (macosx_driver_t *)vo_driver;
   
@@ -294,9 +314,9 @@ static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *
   driver->vo_driver.get_capabilities     = macosx_get_capabilities;
   driver->vo_driver.alloc_frame          = macosx_alloc_frame;
   driver->vo_driver.update_frame_format  = macosx_update_frame_format;
-  driver->vo_driver.overlay_begin        = NULL;
-  driver->vo_driver.overlay_blend        = NULL;
-  driver->vo_driver.overlay_end          = NULL;
+  driver->vo_driver.overlay_begin        = NULL; /* not used */
+  driver->vo_driver.overlay_blend        = macosx_overlay_blend;
+  driver->vo_driver.overlay_end          = NULL; /* not used */
   driver->vo_driver.display_frame        = macosx_display_frame;
   driver->vo_driver.get_property         = macosx_get_property;
   driver->vo_driver.set_property         = macosx_set_property;
