@@ -150,6 +150,61 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
   /*printf("mpeg2dec: rff=%u\n",frame->repeat_first_field);*/
 } 
 
+static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
+
+  picture_t * picture = mpeg2dec->picture;
+
+  mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = picture->frame_width;
+  mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = picture->frame_height;
+
+  switch (picture->aspect_ratio_information) {
+  case 3:  /* anamorphic     */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 /9.0;
+    break;
+  case 4:         /* 2.11:1 */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11/1.0;
+    break;
+  case 1:      /* square pels */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
+    break;
+  default:
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
+    break;
+  }
+
+  switch (mpeg2dec->picture->frame_rate_code) {
+  case 1: /* 23.976 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3913;
+    break;
+  case 2: /* 24 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3750;
+    break;
+  case 3: /* 25 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3600;
+    break;
+  case 4: /* 29.97 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3003;
+    break;
+  case 5: /* 30 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3000;
+    break;
+  case 6: /* 50 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1800;
+    break;
+  case 7: /* 59.94 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1525;
+    break;
+  case 8: /* 60 fps */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1509;
+    break;
+  default:
+       /* printf ("invalid/unknown frame rate code : %d \n",
+               frame->frame_rate_code); */
+    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3000;
+  }
+}
+
+
 static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 			       uint8_t * buffer)
 {
@@ -295,15 +350,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    || (picture->frame_height != picture->coded_picture_height)) {
             xine_frame_change_event_t notify_event;
 
-	    xine_log (mpeg2dec->xine, XINE_LOG_FORMAT,
-		      "libmpeg2: frame size is %d x %d, ratio is %d\n",
-		      picture->frame_width, picture->frame_height,
-		      picture->frame_rate_code);
-            
-	    printf ("libmpeg2: frame size has changed to from %d x %d to %d x %d\n",
-		    picture->frame_width, picture->frame_height,
-		    picture->coded_picture_width, picture->coded_picture_height);
-	    
+	    remember_metainfo (mpeg2dec);
+
 	    notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
 	    notify_event.width = picture->coded_picture_width;
 	    notify_event.height = picture->coded_picture_height;
@@ -315,8 +363,6 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	  
 	    if (picture->backward_reference_frame) 
 	      picture->backward_reference_frame->free (picture->backward_reference_frame);
-
-	    printf ("libmpeg2: old frames freed.\n"); 
 
 	    mpeg2dec->is_sequence_needed = 0;
 	    picture->forward_reference_frame = NULL;
@@ -639,13 +685,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	picture->frame_width  = picture->coded_picture_width;
 	picture->frame_height = picture->coded_picture_height;
 
-	xine_log (mpeg2dec->xine, XINE_LOG_FORMAT,
-		  "libmpeg2: frame size is %d x %d\n",
-		  picture->frame_width, picture->frame_height);
-            
-	printf ("libmpeg2: frame size %d x %d\n",
-		picture->frame_width, picture->frame_height);
-            
+	remember_metainfo (mpeg2dec);
+
 	notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
 	notify_event.width = picture->coded_picture_width;
 	notify_event.height = picture->coded_picture_height;

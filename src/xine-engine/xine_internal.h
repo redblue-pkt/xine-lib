@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.99 2002/09/13 18:25:23 guenter Exp $
+ * $Id: xine_internal.h,v 1.100 2002/09/18 00:51:34 guenter Exp $
  *
  */
 
@@ -131,10 +131,9 @@ struct audio_decoder_s {
  * log constants
  */
 
-#define XINE_LOG_FORMAT    0 /* stream format, decoders, video size... */
-#define XINE_LOG_MSG       1 /* warnings, errors, ... */
-#define XINE_LOG_PLUGIN    2
-#define XINE_LOG_NUM       3 /* # of log buffers defined */
+#define XINE_LOG_MSG       0 /* warnings, errors, ... */
+#define XINE_LOG_PLUGIN    1
+#define XINE_LOG_NUM       2 /* # of log buffers defined */
 
 #define XINE_STREAM_INFO_MAX 99
 
@@ -246,6 +245,8 @@ struct xine_s {
   /* stream meta information */
   int                        stream_info[XINE_STREAM_INFO_MAX];
   char                      *meta_info  [XINE_STREAM_INFO_MAX];
+
+  int                        header_sent_counter; /* wait for headers sent */
 };
 
 /*
@@ -274,6 +275,8 @@ void audio_decoder_shutdown      (xine_t *this);
 void xine_demux_flush_engine     (xine_t *this);
 
 void xine_demux_control_newpts   (xine_t *this, int64_t pts, uint32_t flags );
+
+void xine_demux_control_headers_done (xine_t *this );
 
 void xine_demux_control_start    (xine_t *this );
 

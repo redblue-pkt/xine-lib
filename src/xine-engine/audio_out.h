@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.33 2002/09/04 23:31:13 guenter Exp $
+ * $Id: audio_out.h,v 1.34 2002/09/18 00:51:34 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H

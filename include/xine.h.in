@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.15 2002/09/17 11:54:55 f1rmb Exp $
+ * $Id: xine.h.in,v 1.16 2002/09/18 00:51:33 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -296,16 +296,16 @@ int xine_register_report_codec_cb(xine_p self,
  * xine engine parameters
  */
 
-#define XINE_PARAM_SPEED                   1
-#define XINE_PARAM_AV_OFFSET               2
-#define XINE_PARAM_AUDIO_CHANNEL_LOGICAL   3  
-#define XINE_PARAM_SPU_CHANNEL             4  
+#define XINE_PARAM_SPEED                   1 /* see below                   */
+#define XINE_PARAM_AV_OFFSET               2 /* unit: 1/90000 sec           */
+#define XINE_PARAM_AUDIO_CHANNEL_LOGICAL   3 /* -1 => auto, -2 => off       */ 
+#define XINE_PARAM_SPU_CHANNEL             4 
 #define XINE_PARAM_VIDEO_CHANNEL           5  
-#define XINE_PARAM_AUDIO_VOLUME            6
-#define XINE_PARAM_AUDIO_MUTE              7
-#define XINE_PARAM_AUDIO_COMPR_LEVEL       8
-#define XINE_PARAM_AUDIO_AMP_LEVEL         9
-#define XINE_PARAM_AUDIO_REPORT_LEVEL     10
+#define XINE_PARAM_AUDIO_VOLUME            6 /* 0..255                      */
+#define XINE_PARAM_AUDIO_MUTE              7 /* 1=>mute, 0=>unmute          */
+#define XINE_PARAM_AUDIO_COMPR_LEVEL       8 /* 0..255                      */
+#define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, 100=>100% (default) */
+#define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
 
 /* stream format detection strategies */
 
@@ -346,17 +346,20 @@ int xine_register_report_codec_cb(xine_p self,
 
 /* xine_get_stream_info */
 
-#define XINE_STREAM_INFO_WIDTH             0
-#define XINE_STREAM_INFO_HEIGHT            1
-#define XINE_STREAM_INFO_SEEKABLE          2
-#define XINE_STREAM_INFO_VIDEO_FOURCC      3
-#define XINE_STREAM_INFO_VIDEO_CHANNELS    4
-#define XINE_STREAM_INFO_VIDEO_STREAMS     5
-#define XINE_STREAM_INFO_AUDIO_FOURCC      6
-#define XINE_STREAM_INFO_AUDIO_CHANNELS    7
-#define XINE_STREAM_INFO_AUDIO_BITS        8
-#define XINE_STREAM_INFO_AUDIO_SAMPLERATE  9
-#define XINE_STREAM_INFO_HAS_CHAPTERS      10
+#define XINE_STREAM_INFO_BITRATE           0
+#define XINE_STREAM_INFO_SEEKABLE          1
+#define XINE_STREAM_INFO_VIDEO_WIDTH       2
+#define XINE_STREAM_INFO_VIDEO_HEIGHT      3
+#define XINE_STREAM_INFO_VIDEO_RATIO       4 /* *10000 */
+#define XINE_STREAM_INFO_VIDEO_CHANNELS    5
+#define XINE_STREAM_INFO_VIDEO_STREAMS     6
+#define XINE_STREAM_INFO_VIDEO_BITRATE     7
+#define XINE_STREAM_INFO_FRAME_DURATION    8 /* 1/90000 sec */
+#define XINE_STREAM_INFO_AUDIO_CHANNELS    9
+#define XINE_STREAM_INFO_AUDIO_BITS        10
+#define XINE_STREAM_INFO_AUDIO_SAMPLERATE  11
+#define XINE_STREAM_INFO_AUDIO_BITRATE     12
+#define XINE_STREAM_INFO_HAS_CHAPTERS      13
 
 /* xine_get_meta_info */
 
@@ -366,6 +369,10 @@ int xine_register_report_codec_cb(xine_p self,
 #define XINE_META_INFO_GENRE               3
 #define XINE_META_INFO_ALBUM               4
 #define XINE_META_INFO_YEAR                5
+#define XINE_META_INFO_VIDEOCODEC          6
+#define XINE_META_INFO_AUDIOCODEC          7
+#define XINE_META_INFO_SYSTEMLAYER         8
+#define XINE_META_INFO_INPUT_PLUGIN        9
 
 /*
  * video stuff 
@@ -380,16 +387,16 @@ int xine_register_report_codec_cb(xine_p self,
 #define XINE_VISUAL_TYPE_DFB               5
 	
 /* video parameters */       
-#define XINE_PARAM_VO_DEINTERLACE          0x01000000
-#define XINE_PARAM_VO_ASPECT_RATIO         0x01000001
-#define XINE_PARAM_VO_HUE                  0x01000002
-#define XINE_PARAM_VO_SATURATION           0x01000003
-#define XINE_PARAM_VO_CONTRAST             0x01000004
-#define XINE_PARAM_VO_BRIGHTNESS           0x01000005
-#define XINE_PARAM_VO_ZOOM_X               0x01000008
-#define XINE_PARAM_VO_ZOOM_Y               0x0100000d
-#define XINE_PARAM_VO_PAN_SCAN             0x01000009         
-#define XINE_PARAM_VO_TVMODE               0x0100000a
+#define XINE_PARAM_VO_DEINTERLACE          0x01000000 /* bool               */
+#define XINE_PARAM_VO_ASPECT_RATIO         0x01000001 /* see below          */
+#define XINE_PARAM_VO_HUE                  0x01000002 /* 0..65535           */
+#define XINE_PARAM_VO_SATURATION           0x01000003 /* 0..65535           */
+#define XINE_PARAM_VO_CONTRAST             0x01000004 /* 0..65535           */
+#define XINE_PARAM_VO_BRIGHTNESS           0x01000005 /* 0..65535           */
+#define XINE_PARAM_VO_ZOOM_X               0x01000008 /* percent            */
+#define XINE_PARAM_VO_ZOOM_Y               0x0100000d /* percent            */
+#define XINE_PARAM_VO_PAN_SCAN             0x01000009 /* bool               */
+#define XINE_PARAM_VO_TVMODE               0x0100000a /* ???                */
 
 #define XINE_VO_ZOOM_STEP                  100
 #define XINE_VO_ZOOM_MAX                   400

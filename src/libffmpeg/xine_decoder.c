@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.54 2002/09/05 22:18:56 mroi Exp $
+ * $Id: xine_decoder.c,v 1.55 2002/09/18 00:51:33 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -191,10 +191,6 @@ static void find_sequence_header (ff_decoder_t *this,
       width = ((height >> 12) + 15) & ~15;
       height = ((height & 0xfff) + 15) & ~15;
 
-      xine_log (this->xine, XINE_LOG_FORMAT,
-		"ffmpeg: frame size is %d x %d\n",
-		width, height);
-
       this->bih.biWidth  = width;
       this->bih.biHeight = height;
 
@@ -230,6 +226,13 @@ static void find_sequence_header (ff_decoder_t *this,
 		frame_rate_code); 
 	this->video_step      = 3000;
       }
+
+      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = width;
+      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = height;
+      this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
+
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("mpeg-1 (ffmpeg)");
 
       /*
        * init codec
@@ -288,6 +291,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
     this->video_step = buf->decoder_info[1];
 
+    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->bih.biWidth;
+    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->bih.biHeight;
+    this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
+
     /* init codec */
 
     codec_type = buf->type & 0xFFFF0000;
@@ -295,40 +302,62 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     switch (codec_type) {
     case BUF_VIDEO_MSMPEG4_V1:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V1);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("ms mpeg-4 v1 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V2:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V2);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("ms mpeg-4 v2 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V3:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("ms mpeg-4 v3 (ffmpeg)");
       break;
     case BUF_VIDEO_WMV7:
       codec = avcodec_find_decoder (CODEC_ID_WMV1);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("ms wmv 7 (ffmpeg)");
       break;
     case BUF_VIDEO_MPEG4 :
     case BUF_VIDEO_XVID :
     case BUF_VIDEO_DIVX5 :
       codec = avcodec_find_decoder (CODEC_ID_MPEG4);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("mpeg-4 (ffmpeg)");
       break;
     case BUF_VIDEO_JPEG:
     case BUF_VIDEO_MJPEG:
       codec = avcodec_find_decoder (CODEC_ID_MJPEG);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("mjpeg (ffmpeg)");
       break;
     case BUF_VIDEO_I263:
       codec = avcodec_find_decoder (CODEC_ID_H263I);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("i263 (ffmpeg)");
       break;
     case BUF_VIDEO_H263:
       codec = avcodec_find_decoder (CODEC_ID_H263);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("h263 (ffmpeg)");
       break;
     case BUF_VIDEO_RV10:
       codec = avcodec_find_decoder (CODEC_ID_RV10);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("real video 1.0 (ffmpeg)");
       break;
     case BUF_VIDEO_SORENSON_V1:
       codec = avcodec_find_decoder (CODEC_ID_SVQ1);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("sorenson svq 1 (ffmpeg)");
       break;
     default:
       printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
 	      buf->type & 0xFFFF0000);
+      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("unknown (ffmpeg)");
     }
 
     if (!codec) {

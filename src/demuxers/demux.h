@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.18 2002/09/05 22:18:50 mroi Exp $
+ * $Id: demux.h,v 1.19 2002/09/18 00:51:33 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    10
+#define DEMUXER_PLUGIN_IFACE_VERSION    11
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -63,6 +63,8 @@ struct demux_plugin_s
    * ask demuxer to open the given stream (input-plugin) 
    * using the content-detection method specified in <stage>
    *
+   * demuxer should send header/preview packages in this stage
+   *
    * return values: 
    *    DEMUX_CAN_HANDLE    on success
    *    DEMUX_CANNOT_HANDLE on failure
@@ -86,9 +88,7 @@ struct demux_plugin_s
    *                           starting the demuxer)
    */
 
-  int (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
-		 fifo_buffer_t *audio_fifo, 
-		 off_t start_pos, int start_time);
+  int (*start) (demux_plugin_t *this, off_t start_pos, int start_time);
 
   /*
    * ask running demux thread to seek 
@@ -119,7 +119,7 @@ struct demux_plugin_s
    * close demuxer, free all resources
    */
 
-  void (*close) (demux_plugin_t *this) ;
+  void (*dispose) (demux_plugin_t *this) ;
 
   /*
    * returns DEMUX_OK or  DEMUX_FINISHED 
@@ -133,7 +133,7 @@ struct demux_plugin_s
 
   char* (*get_identifier) (void);
   
- /*
+  /*
    * return MIME types supported for this plugin
    */
 

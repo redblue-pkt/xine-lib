@@ -75,6 +75,21 @@ void xine_demux_control_newpts( xine_t *this, int64_t pts, uint32_t flags ) {
   }
 }
 
+void xine_demux_control_headers_done (xine_t *this) {
+
+  buf_element_t *buf;
+      
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type = BUF_CONTROL_HEADERS_DONE;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if (this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = BUF_CONTROL_HEADERS_DONE;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+}
+
 void xine_demux_control_start( xine_t *this ) {
 
   buf_element_t *buf;

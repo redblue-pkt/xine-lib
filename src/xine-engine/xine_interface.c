@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.13 2002/09/16 15:09:36 jcdutton Exp $
+ * $Id: xine_interface.c,v 1.14 2002/09/18 00:51:34 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -419,15 +419,18 @@ uint32_t xine_get_stream_info (xine_p this, int info) {
       return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_CHAPTERS;
     return 0;
 
-  case XINE_STREAM_INFO_WIDTH:
-  case XINE_STREAM_INFO_HEIGHT:
-  case XINE_STREAM_INFO_VIDEO_FOURCC:
+  case XINE_STREAM_INFO_BITRATE:
+  case XINE_STREAM_INFO_VIDEO_WIDTH:
+  case XINE_STREAM_INFO_VIDEO_HEIGHT:
+  case XINE_STREAM_INFO_VIDEO_RATIO:
   case XINE_STREAM_INFO_VIDEO_CHANNELS:
   case XINE_STREAM_INFO_VIDEO_STREAMS:
-  case XINE_STREAM_INFO_AUDIO_FOURCC:
+  case XINE_STREAM_INFO_VIDEO_BITRATE:
+  case XINE_STREAM_INFO_FRAME_DURATION:
   case XINE_STREAM_INFO_AUDIO_CHANNELS:
   case XINE_STREAM_INFO_AUDIO_BITS:
   case XINE_STREAM_INFO_AUDIO_SAMPLERATE:
+  case XINE_STREAM_INFO_AUDIO_BITRATE:
     return this->stream_info[info];
 
   default:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2002/09/05 22:19:00 mroi Exp $
+ * $Id: xine_decoder.c,v 1.19 2002/09/18 00:51:34 guenter Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -63,6 +63,8 @@ typedef struct vorbis_decoder_s {
 
   int               header_count;
 
+  xine_t           *xine;
+
 } vorbis_decoder_t;
 
 
@@ -90,6 +92,53 @@ static void vorbis_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   printf ("libvorbis: init\n"); 
 #endif
 
+}
+
+/* Known vorbis comment keys from ogg123 sources*/
+static struct {
+  char *key;         /* includes the '=' for programming convenience */
+  int   xine_metainfo_index;
+} vorbis_comment_keys[] = {
+  {"ARTIST=", XINE_META_INFO_ARTIST},
+  {"ALBUM=", XINE_META_INFO_ALBUM},
+  {"TITLE=", XINE_META_INFO_TITLE},
+  {"GENRE=", XINE_META_INFO_GENRE},
+  {"DESCRIPTION=", XINE_META_INFO_COMMENT},
+  {"DATE=", XINE_META_INFO_YEAR},
+  {NULL, 0}
+};
+
+static void get_metadata (vorbis_decoder_t *this) {
+
+  char **ptr=this->vc.user_comments;
+  while(*ptr){
+
+    char *comment = *ptr;
+    int i;
+
+#ifdef LOG
+    printf("libvorbis: %s\n", comment);
+#endif
+
+    for (i = 0; vorbis_comment_keys[i].key != NULL; i++) {
+
+      if ( !strncasecmp (vorbis_comment_keys[i].key, comment,
+			 strlen(vorbis_comment_keys[i].key)) ) {
+
+#ifdef LOG
+	printf ("libvorbis: known metadata %d %d\n",
+		i, vorbis_comment_keys[i].xine_metainfo_index);
+#endif
+
+	this->xine->meta_info[vorbis_comment_keys[i].xine_metainfo_index] 
+	  = strdup (comment + strlen(vorbis_comment_keys[i].key));
+
+      }
+    }
+    ++ptr;
+  }
+
+  this->xine->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("vorbis");
 }
 
 static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -120,16 +169,8 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       
 	int mode = AO_CAP_MODE_MONO;
 	
-	{
-	  char **ptr=this->vc.user_comments;
-	  while(*ptr){
-	    printf("libvorbis: %s\n",*ptr);
-	    ++ptr;
-	  }
-	  printf ("\nlibvorbis: bitstream is %d channel(s), %ldHz\n",
-		  this->vi.channels, this->vi.rate);
-	  printf("libvorbis: encoded by: %s\n\n",this->vc.vendor);
-	}
+	get_metadata (this);
+
 	
 	switch (this->vi.channels) {
 	case 1: 
@@ -249,6 +290,7 @@ static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
   this->audio_decoder.close               = vorbis_close;
   this->audio_decoder.get_identifier      = vorbis_get_id;
   this->audio_decoder.dispose             = vorbis_dispose;
+  this->xine                              = xine;
   
   return (audio_decoder_t *) this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.158 2002/09/15 11:35:09 jcdutton Exp $
+ * $Id: xine.c,v 1.159 2002/09/18 00:51:34 guenter Exp $
  *
  * top-level xine functions
  *
@@ -365,11 +365,23 @@ static int find_demuxer(xine_t *this) {
 
 int xine_open_internal (xine_t *this, const char *mrl) {
 
-  printf ("xine_open: mrl '%s'\n", mrl);
+  printf ("xine: open mrl '%s'\n", mrl);
 
-  if (this->speed != XINE_SPEED_NORMAL) {
-    xine_set_speed_internal (this, XINE_SPEED_NORMAL);
+  /* 
+   * is this an 'opt:' mrlstyle ? 
+   */ 
+  if (xine_config_change_opt(this->config, mrl)) {
+    xine_event_t event;
+    
+    this->status = XINE_STATUS_STOP;
+    
+    event.type = XINE_EVENT_PLAYBACK_FINISHED;
+    pthread_mutex_unlock (&this->xine_lock);
+    xine_send_event (this, &event);
+    pthread_mutex_lock (&this->xine_lock);
+    return 1;
   }
+
   /*
    * stop engine only for different mrl
    */
@@ -377,6 +389,11 @@ int xine_open_internal (xine_t *this, const char *mrl) {
   if ((this->status == XINE_STATUS_PLAY && strcmp (mrl, this->cur_mrl)) 
       || (this->status == XINE_STATUS_LOGO)) {
     
+    printf ("xine: stopping engine\n");
+
+    if (this->speed != XINE_SPEED_NORMAL) 
+      xine_set_speed_internal (this, XINE_SPEED_NORMAL);
+
     if(this->cur_demuxer_plugin) {
       this->playing_logo = 0;
       this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
@@ -394,37 +411,30 @@ int xine_open_internal (xine_t *this, const char *mrl) {
       this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
     this->status = XINE_STATUS_STOP;
-  } else {
   }
 
-  if (strcmp (mrl, this->cur_mrl)) {
-    /* Is it an 'opt:' mrlstyle ? */ 
-    if (xine_config_change_opt(this->config, mrl)) {
-      xine_event_t event;
-    
-      this->status = XINE_STATUS_STOP;
-    
-      event.type = XINE_EVENT_PLAYBACK_FINISHED;
-      pthread_mutex_unlock (&this->xine_lock);
-      xine_send_event (this, &event);
-      pthread_mutex_lock (&this->xine_lock);
-      return 1;
-    }
-  }
-
-  if (this->status == XINE_STATUS_STOP ) {
+  if (this->status == XINE_STATUS_STOP) {
 
     plugin_node_t *node;
-    int            i;
+    int            i, header_count;
 
     /*
-     * reset metainfo 
+     * (1/3) reset metainfo 
      */
     
     for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
       this->stream_info[i] = 0;
-      this->meta_info  [i] = NULL;
+      if (this->meta_info[i]) {
+	free (this->meta_info[i]);
+	this->meta_info[i] = NULL;
+      }
     }
+
+    /* 
+     * (2/3) start engine for new mrl'
+     */
+
+    printf ("xine: starting engine for new mrl\n");
 
     /*
      * find input plugin
@@ -444,7 +454,7 @@ int xine_open_internal (xine_t *this, const char *mrl) {
     }
 
     if (!this->cur_input_plugin) {
-      xine_log (this, XINE_LOG_FORMAT, 
+      xine_log (this, XINE_LOG_MSG, 
 	        _("xine: cannot find input plugin for this MRL\n"));
       this->cur_demuxer_plugin = NULL;
       this->err = XINE_ERROR_NO_INPUT_PLUGIN;
@@ -452,37 +462,46 @@ int xine_open_internal (xine_t *this, const char *mrl) {
       return 0;
     }
   
-    printf ("xine: using input plugin >%s< for this MRL (%s).\n", 
-	    this->cur_input_plugin->get_identifier(this->cur_input_plugin), mrl);
-
-    xine_log (this, XINE_LOG_FORMAT, 
-	      _("using input plugin '%s' for MRL '%s'\n"),
-	      this->cur_input_plugin->get_identifier(this->cur_input_plugin), 
-	      mrl);
+    this->meta_info[XINE_META_INFO_INPUT_PLUGIN] 
+      = strdup (this->cur_input_plugin->get_identifier(this->cur_input_plugin));
 
     /*
      * find demuxer plugin
      */
+    header_count = this->header_sent_counter+1;
 
     if (!find_demuxer(this)) {
-      xine_log (this, XINE_LOG_FORMAT,
+      xine_log (this, XINE_LOG_MSG,
 	        _("xine: couldn't find demuxer for >%s<\n"), mrl);
       this->cur_input_plugin->close(this->cur_input_plugin);
       this->err = XINE_ERROR_NO_DEMUXER_PLUGIN;
       return 0;
     }
 
-    xine_log (this, XINE_LOG_FORMAT,
-	      _("system layer format '%s' detected.\n"),
-	      this->cur_demuxer_plugin->get_identifier());
+    this->meta_info[XINE_META_INFO_SYSTEMLAYER] 
+      = strdup (this->cur_demuxer_plugin->get_identifier());
+
+    /* FIXME: ?? limited length ??? */
+    strncpy (this->cur_mrl, mrl, 1024);
+
+    printf ("xine: engine start successful - waiting for headers to be sent\n");
+
+    /*
+     * (3/3) wait for headers to be sent and decoded
+     */
+
+    while (header_count>this->header_sent_counter) {
+      printf ("xine: waiting for headers.\n");
+      xine_usec_sleep (20000);
+    }
+
+    printf ("xine: xine_open done.\n");
+
+    return 1;
   }
 
-  /* FIXME: ?? limited length ??? */
-  strncpy (this->cur_mrl, mrl, 1024);
-
-  printf ("xine: xine_open done.\n");
-
-  return 1;
+  printf ("xine: xine_open ignored (same mrl, already playing)\n");
+  return 0;
 }
 
 int xine_play_internal (xine_t *this, int start_pos, int start_time) {
@@ -493,8 +512,11 @@ int xine_play_internal (xine_t *this, int start_pos, int start_time) {
 
   printf ("xine: xine_play_internal\n");
 
+  if (this->speed != XINE_SPEED_NORMAL) 
+    xine_set_speed_internal (this, XINE_SPEED_NORMAL);
+
   /*
-   * start demuxer
+   * start/seek demuxer
    */
   if (start_pos) {
     /* FIXME: do we need to protect concurrent access to input plugin here? */
@@ -507,8 +529,6 @@ int xine_play_internal (xine_t *this, int start_pos, int start_time) {
   if (this->status == XINE_STATUS_STOP) {
 
     demux_status = this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
-						    this->video_fifo,
-						    this->audio_fifo, 
 						    pos, start_time);
   } else {
     demux_status = this->cur_demuxer_plugin->seek (this->cur_demuxer_plugin,
@@ -534,6 +554,8 @@ int xine_play_internal (xine_t *this, int start_pos, int start_time) {
     if( !this->playing_logo )
       this->curtime_needed_for_osd = 5;
   }
+
+  printf ("xine: xine_play_internal ...done\n");
 
   return 1;
 }             
@@ -693,6 +715,16 @@ xine_p xine_new (void) {
   this->cur_input_plugin       = NULL;
   this->cur_spu_decoder_plugin = NULL;
   this->report_codec_cb        = NULL; 
+  this->header_sent_counter    = 0;
+
+  /* 
+   * meta info
+   */
+
+  for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
+    this->stream_info[i] = 0;
+    this->meta_info  [i] = NULL;
+  }
 
   /* 
    * plugins
@@ -1052,7 +1084,6 @@ int xine_get_log_section_count (xine_p this_ro) {
 const char *const *xine_get_log_names (xine_p this_ro) {
   static const char *log_sections[XINE_LOG_NUM + 1];
 
-  log_sections[XINE_LOG_FORMAT]   = _("stream format");
   log_sections[XINE_LOG_MSG]      = _("messages");  
   log_sections[XINE_LOG_PLUGIN]   = _("plugin");
   log_sections[XINE_LOG_NUM]      = NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.41 2002/09/05 22:18:52 mroi Exp $
+ * $Id: demux_ogg.c,v 1.42 2002/09/18 00:51:33 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -181,8 +181,13 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
 
   /* use pts for bitrate measurement */
 
-  if (pts>180000) 
+  if (pts>180000) {
     this->avg_bitrate = this->input->get_current_pos (this->input) * 8 * 90000/ pts;
+
+    if (this->avg_bitrate<1)
+      this->avg_bitrate = 1;
+
+  }
 }
 
 /* 
@@ -382,17 +387,15 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      +this->num_audio_streams++;
 
 	    this->preview_buffers[stream_num] = 3;
-	    
-	    xine_log (this->xine, XINE_LOG_FORMAT,
-		      _("ogg: vorbis audio stream detected\n"));
 
 	    vorbis_info_init(&vi);
 	    vorbis_comment_init(&vc);
 	    if (vorbis_synthesis_headerin(&vi, &vc, &op) >= 0) {
 	      
-	      xine_log (this->xine, XINE_LOG_FORMAT,
-			_("ogg: vorbis avg. bitrate %d, samplerate %d\n"),
-			vi.bitrate_nominal, vi.rate);
+	      this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE]
+		= vi.bitrate_nominal;
+	      this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE]
+		= vi.rate;
 	      
 	      this->samplerate[stream_num] = vi.rate;
 	      
@@ -404,7 +407,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    } else {
 	      this->samplerate[stream_num] = 44100;
 	      this->preview_buffers[stream_num] = 0;
-	      xine_log (this->xine, XINE_LOG_FORMAT,
+	      xine_log (this->xine, XINE_LOG_MSG,
 			_("ogg: vorbis audio track indicated but no vorbis stream header found.\n"));
 	    }
 
@@ -459,10 +462,16 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    buf->size = sizeof (xine_bmiheader);	  
 	    buf->type = this->buf_types[stream_num];
 
-	    xine_log (this->xine, XINE_LOG_FORMAT,
-		      _("ogg: video format %.4s, frame size %d x %d, %d fps\n"),
-			&bih.biCompression, bih.biWidth, bih.biHeight,
-			90000/this->frame_duration);
+	    /*
+	     * video metadata
+	     */
+
+	    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
+	      = oggh->hubba.video.width;
+	    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
+	      = oggh->hubba.video.height;
+	    this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]
+	      = this->frame_duration;
 
 	    this->avg_bitrate += 500000; /* FIXME */
 
@@ -532,6 +541,20 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      this->samplerate[stream_num] = oggh->samples_per_unit;
 	    
 	      this->avg_bitrate += oggh->hubba.audio.avgbytespersec*8;
+
+	      /*
+	       * audio metadata
+	       */
+
+	      this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS]
+		= oggh->hubba.audio.channels;
+	      this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS]
+		= oggh->bits_per_sample;
+	      this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE]
+		= oggh->samples_per_unit;
+	      this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE]
+		= oggh->hubba.audio.avgbytespersec*8;
+
 	    } else /* no audio_fifo there */
 	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
 
@@ -594,10 +617,16 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      printf ("demux_ogg: frame duration   %d\n", this->frame_duration);
 #endif
 
-	      xine_log (this->xine, XINE_LOG_FORMAT,
-			_("ogg: video format %.4s, frame size %d x %d, %d fps\n"),
-			&bih.biCompression, bih.biWidth, bih.biHeight,
-			90000/this->frame_duration);
+	      /*
+	       * video metadata
+	       */
+
+	      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
+		= bih.biWidth;
+	      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
+		= bih.biHeight;
+	      this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]
+		= this->frame_duration;
 
 	      this->avg_bitrate += 500000; /* FIXME */
 
@@ -631,15 +660,13 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
 
 	    } else {
-	      xine_log (this->xine, XINE_LOG_FORMAT,
-			_("ogg: old header detected but stream type is unknown\n"));
+	      printf ("demux_ogg: old header detected but stream type is unknown\n");
 	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
 	    }
 	    
 	  } else {
-	    xine_log (this->xine, XINE_LOG_FORMAT,
-		      _("ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n"),
-		      op.packet);
+	    printf ("demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
+		    op.packet);
 	    
 	    hex_dump (op.packet, op.bytes);
 	    
@@ -832,7 +859,7 @@ static void *demux_ogg_loop (void *this_gen) {
   return NULL;
 }
 
-static void demux_ogg_close (demux_plugin_t *this_gen) {
+static void demux_ogg_dispose (demux_plugin_t *this_gen) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   free (this);
@@ -871,16 +898,12 @@ static int demux_ogg_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static int demux_ogg_start (demux_plugin_t *this_gen,
-			     fifo_buffer_t *video_fifo, 
-			     fifo_buffer_t *audio_fifo,
-			     off_t start_pos, int start_time) {
-
-  demux_ogg_t *this = (demux_ogg_t *) this_gen;
-  int          err;
+static int send_headers (demux_ogg_t *this) {
 
   pthread_mutex_lock( &this->mutex );
-  err = 1;
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
 
   this->status = DEMUX_OK;
 
@@ -889,8 +912,6 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
    */
 
   if( !this->thread_running ) {
-    this->video_fifo  = video_fifo;
-    this->audio_fifo  = audio_fifo;
 
     this->last_pts[0]   = 0;
     this->last_pts[1]   = 0;
@@ -917,7 +938,29 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
   if (this->status == DEMUX_OK) {
     /* send header */
     demux_ogg_send_header (this);
+
+    xine_demux_control_headers_done (this->xine);
+
+
+    printf ("demux_ogg: headers sent, avg bitrate is %lld\n",
+	    this->avg_bitrate);
+
+    pthread_mutex_unlock (&this->mutex);
+    return DEMUX_CAN_HANDLE;
   }
+
+  pthread_mutex_unlock (&this->mutex);
+  return DEMUX_CANNOT_HANDLE;
+}
+
+static int demux_ogg_start (demux_plugin_t *this_gen,
+			    off_t start_pos, int start_time) {
+
+  demux_ogg_t *this = (demux_ogg_t *) this_gen;
+  int          err;
+
+  pthread_mutex_lock( &this->mutex );
+  err = 1;
 
   /*
    * seek to start position
@@ -973,10 +1016,9 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
 
 static int demux_ogg_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
-  demux_ogg_t *this = (demux_ogg_t *) this_gen;
+  /* demux_ogg_t *this = (demux_ogg_t *) this_gen; */
 
-  return demux_ogg_start (this_gen, this->video_fifo, this->audio_fifo,
-			  start_pos, start_time);
+  return demux_ogg_start (this_gen, start_pos, start_time);
 }
 
 static int demux_ogg_open(demux_plugin_t *this_gen,
@@ -1001,7 +1043,7 @@ static int demux_ogg_open(demux_plugin_t *this_gen,
 	      && (buf[2] == 'g')
 	      && (buf[3] == 'S')) {
 	    this->input = input;
-	    return DEMUX_CAN_HANDLE;
+	    return send_headers(this);
 	  }
 	}
       }
@@ -1012,7 +1054,7 @@ static int demux_ogg_open(demux_plugin_t *this_gen,
 	    && (buf[2] == 'g')
 	    && (buf[3] == 'S')) {
 	  this->input = input;
-	  return DEMUX_CAN_HANDLE;
+	  return send_headers(this);
 	}
       }
     }
@@ -1045,7 +1087,7 @@ static int demux_ogg_open(demux_plugin_t *this_gen,
       
       if(!strcasecmp((ending + 1), m)) {
 	this->input = input;
-	return DEMUX_CAN_HANDLE;
+	return send_headers(this);
       }
     }
   }
@@ -1090,7 +1132,7 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_ogg_start;
   this->demux_plugin.seek              = demux_ogg_seek;
   this->demux_plugin.stop              = demux_ogg_stop;
-  this->demux_plugin.close             = demux_ogg_close;
+  this->demux_plugin.dispose           = demux_ogg_dispose;
   this->demux_plugin.get_status        = demux_ogg_get_status;
   this->demux_plugin.get_identifier    = demux_ogg_get_id;
   this->demux_plugin.get_stream_length = demux_ogg_get_stream_length;

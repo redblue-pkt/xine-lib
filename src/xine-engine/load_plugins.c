@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.93 2002/09/16 21:49:35 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.94 2002/09/18 00:51:34 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -929,7 +929,7 @@ void dispose_plugins (xine_t *this) {
     demux_plugin_t *dp = node->plugin;
 
     if (dp)
-      dp->close (dp);
+      dp->dispose (dp);
 
     node = xine_list_next_content (this->plugin_catalog->demux);
   }

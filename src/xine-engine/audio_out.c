@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.64 2002/09/04 23:31:13 guenter Exp $
+ * $Id: audio_out.c,v 1.65 2002/09/18 00:51:34 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -531,9 +531,29 @@ static int ao_open(ao_instance_t *this,
  
   int output_sample_rate, err;
 
-  xine_log (this->xine, XINE_LOG_FORMAT,
-	    "audio_out: stream audio format is %d kHz sampling rate, %d bits. mode is %d.\n",
-	    rate, bits, mode);
+  /* 
+   * set metainfo
+   */
+
+  switch (mode) {
+  case AO_CAP_MODE_MONO:
+    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 1;
+  case AO_CAP_MODE_STEREO:
+    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
+  case AO_CAP_MODE_4CHANNEL:
+    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
+  case AO_CAP_MODE_5CHANNEL:
+    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 5;
+  case AO_CAP_MODE_5_1CHANNEL:
+    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
+  case AO_CAP_MODE_A52:
+  case AO_CAP_MODE_AC5:
+  default:
+    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 255; /* unknown */
+  }
+  
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS]       = bits;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
 
   this->input.mode            = mode;
   this->input.rate            = rate;

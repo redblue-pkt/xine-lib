@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.96 2002/09/04 23:31:13 guenter Exp $
+ * $Id: video_decoder.c,v 1.97 2002/09/18 00:51:34 guenter Exp $
  *
  */
 
@@ -97,6 +97,10 @@ void *video_decoder_loop (void *this_gen) {
 #endif
 
     switch (buf->type & 0xffff0000) {
+    case BUF_CONTROL_HEADERS_DONE:
+      this->header_sent_counter++;
+      break;
+
     case BUF_CONTROL_START:
       
       if (this->cur_video_decoder_plugin) {
@@ -279,12 +283,9 @@ void *video_decoder_loop (void *this_gen) {
 	    this->cur_video_decoder_plugin = decoder;
 	    this->cur_video_decoder_plugin->init (this->cur_video_decoder_plugin, this->video_out);
 	    
-	    printf ("video_decoder: using decoder >%s< \n",
-		    decoder->get_identifier());
+	    this->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	      = strdup (decoder->get_identifier());
 
-	    xine_log (this, XINE_LOG_FORMAT, "using video decoder plugin '%s'\n",
-		      decoder->get_identifier());
-    
 	    xine_report_codec( this, XINE_CODEC_VIDEO, 0, buf->type, 1);
 	    
 	    ui_event.event.type = XINE_EVENT_OUTPUT_VIDEO;
@@ -355,12 +356,17 @@ void video_decoder_shutdown (xine_t *this) {
   buf_element_t *buf;
   void          *p;
 
+  printf ("video_decoder: shutdown...\n");
+
   /* this->video_fifo->clear(this->video_fifo); */
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  printf ("video_decoder: shutdown...2\n");
   buf->type = BUF_CONTROL_QUIT;
   this->video_fifo->put (this->video_fifo, buf);
+  printf ("video_decoder: shutdown...3\n");
 
   pthread_join (this->video_thread, &p);
+  printf ("video_decoder: shutdown...4\n");
 }
 
