@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.123 2002/10/20 18:23:33 guenter Exp $
+ * $Id: demux_avi.c,v 1.124 2002/10/20 19:03:43 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1521,14 +1521,14 @@ static int demux_avi_start (demux_plugin_t *this_gen,
        * yeah, i know this implementation is pathetic (gb)
        */
 
-      if ((audio_pts>video_pts) && (this->avi->audio[i]->audio_posc>0)) {
+      if ((audio_pts>video_pts) && (this->avi->audio[i]->audio_posc>0)) 
 	this->avi->audio[i]->audio_posc--;
-        aie = audio_cur_index_entry(this, this->avi->audio[i]);
-	if (aie) {
-	  while ((this->avi->audio[i]->audio_posb<aie->len)
-		 && ((audio_pts=get_audio_pts(this, i, this->avi->audio[i]->audio_posc , aie->tot, this->avi->audio[i]->audio_posb)) < video_pts))
-	    this->avi->audio[i]->audio_posb++;   
-	}
+
+      aie = audio_cur_index_entry(this, this->avi->audio[i]);
+      if (aie) {
+	while ((this->avi->audio[i]->audio_posb<aie->len)
+	       && ((audio_pts=get_audio_pts(this, i, this->avi->audio[i]->audio_posc , aie->tot, this->avi->audio[i]->audio_posb)) < video_pts))
+	  this->avi->audio[i]->audio_posb++;   
       }
     }
   }
