@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.122 2003/01/10 11:57:19 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.123 2003/01/10 19:15:17 miguelfreitas Exp $
  *
  */
 
@@ -128,7 +128,6 @@ struct extra_info_s {
   uint32_t              frame_number; /* number of current frame if known */
   
   int                   seek_count; /* internal engine use */
-  pthread_mutex_t       lock;       /* keep consistency */
   int64_t               vpts;       /* set on output layers only */ 
 };
 
@@ -235,6 +234,7 @@ struct xine_stream_s {
   int                        demux_action_pending;
 
   extra_info_t              *current_extra_info;
+  pthread_mutex_t            current_extra_info_lock;
   int                        video_seek_count;
 
   xine_post_out_t            video_source;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.131 2003/01/10 13:12:20 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.132 2003/01/10 19:15:16 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -357,7 +357,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 #ifdef LOG
     printf ("video_out: bad_frame\n");
 #endif
+    pthread_mutex_lock( &stream->current_extra_info_lock );
     extra_info_merge( stream->current_extra_info, img->extra_info );
+    pthread_mutex_unlock( &stream->current_extra_info_lock );
 
     this->num_frames_skipped++;
   }
@@ -491,7 +493,9 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
       
       img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
   
+      pthread_mutex_lock( &img->stream->current_extra_info_lock );
       extra_info_merge( img->stream->current_extra_info, img->extra_info );
+      pthread_mutex_unlock( &img->stream->current_extra_info_lock );
 
       /* when flushing frames, keep the first one as backup */
       if( this->flush_frames ) {
@@ -656,7 +660,9 @@ static void overlay_and_display_frame (vos_t *this,
   if( img->copy && !img->copy_called )
     vo_frame_driver_copy(img);
   
+  pthread_mutex_lock( &img->stream->current_extra_info_lock );
   extra_info_merge( img->stream->current_extra_info, img->extra_info );
+  pthread_mutex_unlock( &img->stream->current_extra_info_lock );
 
   if (this->overlay_source) {
     this->overlay_source->multiple_overlay_blend (this->overlay_source, 

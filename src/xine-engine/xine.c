@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.210 2003/01/10 13:12:21 miguelfreitas Exp $
+ * $Id: xine.c,v 1.211 2003/01/10 19:15:17 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -370,6 +370,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_cond_init  (&stream->counter_changed, NULL);
   pthread_mutex_init (&stream->first_frame_lock, NULL);
   pthread_cond_init  (&stream->first_frame_reached, NULL);
+  pthread_mutex_init (&stream->current_extra_info_lock, NULL);
 
   /*
    * event queues
@@ -751,7 +752,9 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
    * start/seek demux
    */
   if (start_pos) {
+    pthread_mutex_lock( &stream->current_extra_info_lock );
     len = stream->current_extra_info->input_length;
+    pthread_mutex_unlock( &stream->current_extra_info_lock );
     /* FIXME: do we need to protect concurrent access to input plugin here? */
     if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
     share = (double) start_pos / 65535;
@@ -790,7 +793,9 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   pthread_mutex_lock (&stream->first_frame_lock);
   stream->first_frame_flag = 1;
   pthread_mutex_unlock (&stream->first_frame_lock);
+  pthread_mutex_lock( &stream->current_extra_info_lock );
   extra_info_reset( stream->current_extra_info );
+  pthread_mutex_unlock( &stream->current_extra_info_lock );
 
   printf ("xine: xine_play_internal ...done\n");
 
@@ -854,6 +859,7 @@ void xine_dispose (xine_stream_t *stream) {
   pthread_mutex_destroy (&stream->counter_lock);
   pthread_mutex_destroy (&stream->osd_lock);
   pthread_mutex_destroy (&stream->event_queues_lock);
+  pthread_mutex_destroy (&stream->current_extra_info_lock);
   pthread_cond_destroy (&stream->counter_changed);
 
   stream->metronom->exit (stream->metronom);
@@ -1017,9 +1023,13 @@ static int xine_get_current_position (xine_stream_t *stream) {
     return -1; /* position not yet known */  
   }
   
+  pthread_mutex_lock( &stream->current_extra_info_lock );
   len = stream->current_extra_info->input_length;
+  share = (double) stream->current_extra_info->input_pos;
+  pthread_mutex_unlock( &stream->current_extra_info_lock );
+
   if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
-  share = (double) stream->current_extra_info->input_pos / (double) len * 65535;
+  share /= (double) len * 65536;
 
   pthread_mutex_unlock (&stream->frontend_lock);
 
@@ -1084,8 +1094,11 @@ int xine_get_pos_length (xine_stream_t *stream, int *pos_stream,
   
   if (pos_stream)
     *pos_stream  = pos; 
-  if (pos_time)
+  if (pos_time) {
+    pthread_mutex_lock( &stream->current_extra_info_lock );
     *pos_time    = stream->current_extra_info->input_time;
+    pthread_mutex_unlock( &stream->current_extra_info_lock );
+  }
   if (length_time)
     *length_time = xine_get_stream_length (stream) * 1000;
 
