@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.152 2003/01/03 13:32:56 rockyb Exp $
+ * $Id: demux_mpeg_block.c,v 1.153 2003/01/04 14:48:12 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1209,6 +1209,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 19, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

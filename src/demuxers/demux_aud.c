@@ -32,7 +32,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.1 2003/01/02 06:10:49 tmmm Exp $
+ * $Id: demux_aud.c,v 1.2 2003/01/04 14:48:11 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -382,7 +382,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_aud_init_plugin (xine_t *xine, void *data) {
 
   demux_aud_class_t     *this;
 
@@ -403,9 +403,10 @@ static void *init_plugin (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-
+#if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 19, "aud", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "aud", XINE_VERSION_CODE, NULL, demux_aud_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+#endif

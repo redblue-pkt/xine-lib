@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.72 2002/12/29 16:48:34 mroi Exp $
+ * $Id: input_file.c,v 1.73 2003/01/04 14:48:12 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -71,7 +71,20 @@ typedef struct {
 
 static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
 
-  return INPUT_CAP_SEEKABLE;
+  struct stat          buf ;
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  if (this->fh <0)
+    return 0;
+
+  if (fstat (this->fh, &buf) == 0) {
+    if (S_ISREG(buf.st_mode))
+      return INPUT_CAP_SEEKABLE;
+    else
+      return 0;
+  } else
+    perror ("system call fstat");
+  return 0;
 }
 
 

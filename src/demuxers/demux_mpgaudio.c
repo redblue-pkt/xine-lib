@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.86 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.87 2003/01/04 14:48:12 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -645,7 +645,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_class (xine_t *xine, void *data) {
+void *demux_mpgaudio_init_class (xine_t *xine, void *data) {
   
   demux_mpgaudio_class_t     *this;
   
@@ -668,8 +668,10 @@ static void *init_class (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
+#if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 19, "mp3", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 20, "mp3", XINE_VERSION_CODE, NULL, demux_mpgaudio_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+#endif

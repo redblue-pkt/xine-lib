@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mng.c,v 1.3 2002/12/22 17:49:50 komadori Exp $
+ * $Id: demux_mng.c,v 1.4 2003/01/04 14:48:12 miguelfreitas Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -398,6 +398,6 @@ static void *init_plugin(xine_t *xine, void *data)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 19, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
+  { PLUGIN_DEMUX, 20, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

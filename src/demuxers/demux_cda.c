@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.37 2002/12/21 12:56:44 miguelfreitas Exp $
+ * $Id: demux_cda.c,v 1.38 2003/01/04 14:48:11 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -268,7 +268,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_cda_init_plugin (xine_t *xine, void *data) {
 
   demux_cda_class_t     *this;
 
@@ -290,8 +290,10 @@ static void *init_plugin (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
+#if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 19, "cda", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "cda", XINE_VERSION_CODE, NULL, demux_cda_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+#endif

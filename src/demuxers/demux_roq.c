@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.34 2002/12/23 04:29:56 tmmm Exp $
+ * $Id: demux_roq.c,v 1.35 2003/01/04 14:48:12 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -508,7 +508,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_roq_init_plugin (xine_t *xine, void *data) {
 
   demux_roq_class_t     *this;
 
@@ -530,8 +530,10 @@ static void *init_plugin (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
+#if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 19, "roq", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "roq", XINE_VERSION_CODE, NULL, demux_roq_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+#endif

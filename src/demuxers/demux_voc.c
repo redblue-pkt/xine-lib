@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.21 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: demux_voc.c,v 1.22 2003/01/04 14:48:12 miguelfreitas Exp $
  *
  */
 
@@ -413,7 +413,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_voc_init_plugin (xine_t *xine, void *data) {
 
   demux_voc_class_t     *this;
 
@@ -435,8 +435,10 @@ static void *init_plugin (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
+#if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 19, "voc", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+#endif

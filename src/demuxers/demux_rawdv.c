@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_rawdv.c,v 1.1 2002/12/23 21:29:59 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.2 2003/01/04 14:48:12 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  * 
@@ -140,22 +140,34 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
   demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
   buf_element_t *buf;
   xine_bmiheader *bih;
-  unsigned char scratch[4];
+  unsigned char scratch[4], scratch2[4];
+  int i;
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
 
   xine_demux_control_start(this->stream);
   
-  if ( !(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) {
-    printf("demux_rawdv: not seekable, can't handle!\n");
-    return;
+  if ((this->input->get_capabilities(this->input)) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if( this->input->read (this->input, scratch, 4) != 4 )
+      return;
+    this->input->seek(this->input, 0, SEEK_SET);
   }
-  
-  this->input->seek(this->input, 0, SEEK_SET);
-  if( this->input->read (this->input, scratch, 4) != 4 )
-    return;
-  this->input->seek(this->input, 0, SEEK_SET);
+  else {
+    if( this->input->read (this->input, scratch, 4) != 4 )
+      return;
+    if( !(scratch[3] & 0x80) )
+      i = NTSC_FRAME_SIZE;
+    else
+      i = PAL_FRAME_SIZE;
+    i -= 4;
+    while (i > 0) {
+      if( this->input->read (this->input, scratch2, 4) != 4 )
+        return;
+      i -= 4;
+    }
+  }
   
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   buf->content = buf->mem;
@@ -201,6 +213,11 @@ static int demux_raw_dv_seek (demux_plugin_t *this_gen,
   demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
 
   
+  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) {
+    this->status = DEMUX_OK;
+    return this->status;
+  }
+
   if( !start_pos && start_time ) {
     start_pos = (start_time * 90000 / this->duration) * this->frame_size;
   }
@@ -341,6 +358,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 19, "rawdv", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "rawdv", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

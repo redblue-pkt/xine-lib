@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.2 2002/12/31 04:01:32 tmmm Exp $
+ * $Id: demux_ipmovie.c,v 1.3 2003/01/04 14:48:12 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -768,7 +768,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_ipmovie_init_plugin (xine_t *xine, void *data) {
 
   demux_ipmovie_class_t     *this;
 
@@ -790,9 +790,10 @@ static void *init_plugin (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
+#if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 19, "ipmovie", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "ipmovie", XINE_VERSION_CODE, NULL, demux_ipmovie_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
+#endif

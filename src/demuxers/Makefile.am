@@ -26,34 +26,20 @@ endif
 XINELIB = $(top_builddir)/src/xine-engine/libxine.la
 
 lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) \
+	xineplug_dmx_games.la \
+	xineplug_dmx_audio.la \
 	xineplug_dmx_mpeg_ts.la \
 	xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_block.la \
 	xineplug_dmx_mpeg.la \
-	xineplug_dmx_mpeg_audio.la \
 	xineplug_dmx_mpeg_elem.la \
 	xineplug_dmx_qt.la \
-	xineplug_dmx_cda.la \
-	xineplug_dmx_film.la \
-	xineplug_dmx_roq.la \
 	xineplug_dmx_fli.la \
 	xineplug_dmx_smjpeg.la \
-	xineplug_dmx_wav.la \
-	xineplug_dmx_idcin.la \
-	xineplug_dmx_wc3movie.la \
-	xineplug_dmx_vqa.la \
-	xineplug_dmx_voc.la \
-	xineplug_dmx_aiff.la \
-	xineplug_dmx_snd.la \
 	xineplug_dmx_yuv4mpeg2.la \
 	xineplug_dmx_real.la \
-	xineplug_dmx_realaudio.la \
-	xineplug_dmx_eawve.la \
 	xineplug_dmx_rawdv.la \
-	xineplug_dmx_ipmovie.la \
-	xineplug_dmx_str.la \
-	xineplug_dmx_pva.la \
-	xineplug_dmx_aud.la 
+	xineplug_dmx_pva.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(XINELIB)
@@ -70,10 +56,6 @@ xineplug_dmx_mpeg_block_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYM
 xineplug_dmx_mpeg_la_SOURCES = demux_mpeg.c
 xineplug_dmx_mpeg_la_LIBADD = $(XINELIB)
 xineplug_dmx_mpeg_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_mpeg_audio_la_SOURCES = demux_mpgaudio.c
-xineplug_dmx_mpeg_audio_la_LIBADD = -lm $(XINELIB)
-xineplug_dmx_mpeg_audio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_mpeg_elem_la_SOURCES = demux_elem.c
 xineplug_dmx_mpeg_elem_la_LIBADD = $(XINELIB)
@@ -95,18 +77,6 @@ xineplug_dmx_asf_la_SOURCES = demux_asf.c
 xineplug_dmx_asf_la_LIBADD = $(XINELIB)
 xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_cda_la_SOURCES = demux_cda.c
-xineplug_dmx_cda_la_LIBADD = $(XINELIB)
-xineplug_dmx_cda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_film_la_SOURCES = demux_film.c
-xineplug_dmx_film_la_LIBADD = $(XINELIB)
-xineplug_dmx_film_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_roq_la_SOURCES = demux_roq.c
-xineplug_dmx_roq_la_LIBADD = $(XINELIB)
-xineplug_dmx_roq_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
 xineplug_dmx_fli_la_SOURCES = demux_fli.c
 xineplug_dmx_fli_la_LIBADD = $(XINELIB)
 xineplug_dmx_fli_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
@@ -114,34 +84,6 @@ xineplug_dmx_fli_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_dmx_smjpeg_la_SOURCES = demux_smjpeg.c
 xineplug_dmx_smjpeg_la_LIBADD = $(XINELIB)
 xineplug_dmx_smjpeg_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_wav_la_SOURCES = demux_wav.c
-xineplug_dmx_wav_la_LIBADD = $(XINELIB)
-xineplug_dmx_wav_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_idcin_la_SOURCES = demux_idcin.c
-xineplug_dmx_idcin_la_LIBADD = $(XINELIB)
-xineplug_dmx_idcin_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_wc3movie_la_SOURCES = demux_wc3movie.c
-xineplug_dmx_wc3movie_la_LIBADD = $(XINELIB)
-xineplug_dmx_wc3movie_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_vqa_la_SOURCES = demux_vqa.c
-xineplug_dmx_vqa_la_LIBADD = $(XINELIB)
-xineplug_dmx_vqa_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_voc_la_SOURCES = demux_voc.c
-xineplug_dmx_voc_la_LIBADD = $(XINELIB)
-xineplug_dmx_voc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_aiff_la_SOURCES = demux_aiff.c
-xineplug_dmx_aiff_la_LIBADD = $(XINELIB)
-xineplug_dmx_aiff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_snd_la_SOURCES = demux_snd.c
-xineplug_dmx_snd_la_LIBADD = $(XINELIB)
-xineplug_dmx_snd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_yuv4mpeg2_la_SOURCES = demux_yuv4mpeg2.c
 xineplug_dmx_yuv4mpeg2_la_LIBADD = $(XINELIB)
@@ -151,14 +93,6 @@ xineplug_dmx_real_la_SOURCES = demux_real.c
 xineplug_dmx_real_la_LIBADD = $(XINELIB)
 xineplug_dmx_real_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_realaudio_la_SOURCES = demux_realaudio.c
-xineplug_dmx_realaudio_la_LIBADD = $(XINELIB)
-xineplug_dmx_realaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_eawve_la_SOURCES = demux_eawve.c
-xineplug_dmx_eawve_la_LIBADD = $(XINELIB)
-xineplug_dmx_eawve_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
 xineplug_dmx_rawdv_la_SOURCES = demux_rawdv.c
 xineplug_dmx_rawdv_la_LIBADD = $(XINELIB)
 xineplug_dmx_rawdv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
@@ -167,21 +101,22 @@ xineplug_dmx_mng_la_SOURCES = demux_mng.c
 xineplug_dmx_mng_la_LIBADD = $(XINELIB) $(ZLIB_LIBS) $(MNG_LIBS)
 xineplug_dmx_mng_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_ipmovie_la_SOURCES = demux_ipmovie.c
-xineplug_dmx_ipmovie_la_LIBADD = $(XINELIB)
-xineplug_dmx_ipmovie_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_dmx_str_la_SOURCES = demux_str.c
-xineplug_dmx_str_la_LIBADD = $(XINELIB)
-xineplug_dmx_str_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
 xineplug_dmx_pva_la_SOURCES = demux_pva.c
 xineplug_dmx_pva_la_LIBADD = $(XINELIB)
 xineplug_dmx_pva_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_aud_la_SOURCES = demux_aud.c
-xineplug_dmx_aud_la_LIBADD = $(XINELIB)
-xineplug_dmx_aud_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_dmx_games_la_SOURCES = group_games.c demux_eawve.c \
+				demux_idcin.c demux_ipmovie.c demux_roq.c \
+				demux_vqa.c demux_wc3movie.c demux_str.c
+xineplug_dmx_games_la_LIBADD = $(XINELIB)
+xineplug_dmx_games_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_audio_la_SOURCES = group_audio.c demux_aud.c demux_aiff.c \
+				demux_cda.c demux_mpgaudio.c demux_realaudio.c \
+				demux_snd.c demux_voc.c demux_wav.c
+xineplug_dmx_audio_la_LIBADD = $(XINELIB)
+xineplug_dmx_audio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
 
 include_HEADERS = demux.h
 noinst_HEADERS = asfheader.h qtpalette.h

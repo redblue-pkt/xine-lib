@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.20 2002/12/21 12:56:44 miguelfreitas Exp $
+ * $Id: demux_aiff.c,v 1.21 2003/01/04 14:48:11 miguelfreitas Exp $
  *
  */
 
@@ -443,7 +443,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_aiff_init_plugin (xine_t *xine, void *data) {
 
   demux_aiff_class_t     *this;
 
@@ -465,8 +465,10 @@ static void *init_plugin (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
+#if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 19, "aiff", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 20, "aiff", XINE_VERSION_CODE, NULL, demux_aiff_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+#endif
