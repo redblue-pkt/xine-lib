@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.8 2001/06/02 21:44:01 guenter Exp $
+ * $Id: input_vcd.c,v 1.9 2001/06/09 11:39:20 heikos Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -153,7 +153,7 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   te.address_format = CD_LBA_FORMAT;
   te.starting_track = 0;
   te.data_len = ntracks * sizeof(struct cd_toc_entry);
-  te.data = gVCD.tocent;
+  te.data = this->tocent;
   
   if ( ioctl(this->fd, CDIOREADTOCENTRYS, &te) == -1 ){
     fprintf (stderr, "input_vcd: error in ioctl CDROMREADTOCENTRY\n");
