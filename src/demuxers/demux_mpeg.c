@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.6 2001/04/29 23:22:32 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.7 2001/04/30 21:55:26 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -495,10 +495,14 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 
   this->status     = DEMUX_OK;
 
+  printf ("demux_mpeg: seek...\n");
+
   if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
     xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
     this->input->seek (this->input, pos+4, SEEK_SET);
   }
+
+  printf ("demux_mpeg: create start packages...\n");
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
@@ -507,6 +511,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
   buf->type    = BUF_CONTROL_START;
   this->audio_fifo->put (this->audio_fifo, buf);
 
+  printf ("demux_mpeg: create thread...\n");
+
   pthread_create (&this->thread, NULL, demux_mpeg_loop, this) ;
 }
 
@@ -514,6 +520,8 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
 			   input_plugin_t *input, int stage) {
 
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
+
+  this->input = input;
 
   switch(stage) {
     

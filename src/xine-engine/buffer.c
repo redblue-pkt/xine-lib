@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.2 2001/04/24 15:47:32 guenter Exp $
+ * $Id: buffer.c,v 1.3 2001/04/30 21:55:27 guenter Exp $
  *
  *
  * contents:
@@ -176,8 +176,10 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
   buf_size += buf_size % alignment;
 
+  /*
   printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n", 
 	  num_buffers, (long int) buf_size, alignment);
+	  */
   multi_buffer = xmalloc_aligned (alignment, num_buffers * buf_size);
 
   this->buffer_pool_top = NULL;
@@ -200,6 +202,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
     buffer_pool_free (buf);
   }
   this->buffer_pool_num_free = num_buffers;
+  this->buffer_pool_alloc    = buffer_pool_alloc;
 
   return this;
 }

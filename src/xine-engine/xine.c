@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.10 2001/04/29 01:09:23 guenter Exp $
+ * $Id: xine.c,v 1.11 2001/04/30 21:55:27 guenter Exp $
  *
  * top-level xine functions
  *
@@ -195,6 +195,8 @@ static void xine_play_internal (xine_t *this, char *MRL,
   /*
    * find input plugin
    */
+
+  printf ("xine: looking for an input plugin...\n");
    
   this->cur_input_plugin = NULL;
 
@@ -211,14 +213,20 @@ static void xine_play_internal (xine_t *this, char *MRL,
     return;
   }
   
+  printf ("xine: using input plugin >%s< for this MRL.\n", this->cur_input_plugin->get_identifier(this->cur_input_plugin));
+
   /*
    * find demuxer plugin
    */
+
+  printf ("xine: looking for a demuxer plugin...\n");
 
   if(!find_demuxer(this, MRL)) {
     printf ("error: couldn't find demuxer for >%s<\n", MRL);
     return;
   }
+
+  printf ("xine: using demuxer plugin >%s< for this MRL.\n", this->cur_demuxer_plugin->get_identifier());
   
   /*
    * Init SPU decoder with colour lookup table. 
@@ -240,6 +248,8 @@ static void xine_play_internal (xine_t *this, char *MRL,
   /*
    * start demuxer
    */
+
+  printf ("xine: starting demuxer ...\n");
   
   if (spos) {
     len = this->cur_input_plugin->get_length (this->cur_input_plugin);
@@ -259,7 +269,10 @@ static void xine_play_internal (xine_t *this, char *MRL,
    * start clock
    */
 
+  printf ("xine: starting clock ...\n");
   this->metronom->start_clock (this->metronom, 0);
+
+  printf ("xine: play_internal done.\n");
 }
 
 /*
