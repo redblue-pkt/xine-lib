@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.76 2002/11/06 23:20:45 f1rmb Exp $
+ * $Id: audio_out.c,v 1.77 2002/11/07 22:39:55 heikos Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -542,7 +542,7 @@ static void *ao_loop (void *this_gen) {
     }
     /* pthread_mutex_lock( &this->driver_lock ); What is this lock for ? */
     delay = this->driver->delay(this->driver);
-    while (delay <=0 && this->audio_loop_running) {
+    while (delay < 0 && this->audio_loop_running) {
       /* Get the audio card into RUNNING state. */
       ao_fill_gap (this, 10000); /* FIXME, this PTS of 1000 should == period size */
       delay = this->driver->delay(this->driver);
