@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.30 2004/08/27 19:33:37 valtri Exp $
+ * $Id: utils.c,v 1.31 2004/09/01 18:19:51 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -259,7 +259,7 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
   return ptr;
 }
 
-#if defined(WIN32)
+#if defined(__CYGWIN__) || defined(WIN32)
 
 /* Ridiculous hack to return valid xine support
  * directories. These should be read from

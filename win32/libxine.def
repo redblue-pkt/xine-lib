@@ -4,6 +4,7 @@
 EXPORTS
 
 ;---- xine-utils ----
+gettimeofday
 xine_mm_accel
 xine_fast_memcpy
 xine_probe_fast_memcpy
@@ -283,5 +284,4 @@ v_g_table
 v_b_table
 yv12_to_yv12
 yuy2_to_yuy2
-
 

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.183 2004/08/02 12:51:11 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.184 2004/09/01 18:19:50 valtri Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -450,7 +450,7 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-           "inserting %" PRId64 " 0-frames to fill a gap of %" PRId64 " pts\n", num_frames, pts_len);
+           "audio_out: inserting %" PRId64 " 0-frames to fill a gap of %" PRId64 " pts\n", num_frames, pts_len);
 
   if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
@@ -1274,7 +1274,7 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
 
   if ( output_sample_rate == 0) {
     this->driver_open = 0;
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "open failed!\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: open failed!\n");
     return 0;
   } else {
     this->driver_open = 1;
@@ -1452,7 +1452,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
   /* close driver if no streams left */
   if (!cur && !this->grab_only) {
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "no streams left, closing driver\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: no streams left, closing driver\n");
 
     if (this->audio_loop_running) {
       /* make sure there are no more buffers on queue */
@@ -2056,7 +2056,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
       _x_abort();
       
     } else
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "thread created\n");
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: thread created\n");
     
     pthread_attr_destroy(&pth_attrs);
   }

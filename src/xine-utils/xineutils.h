@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.90 2004/08/27 19:33:37 valtri Exp $
+ * $Id: xineutils.h,v 1.91 2004/09/01 18:19:51 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -54,17 +54,6 @@ extern "C" {
 
 #include <stdio.h>
 #include <string.h>
-
-#ifdef WIN32
-/* Ridiculous hack to return valid xine support
- * directories. These should be read from
- * a registry entry set at install time.
- */
- /*
-#  define XINE_PLUGINDIR  exec_path_append_subdir( "plugins" )
-#  define XINE_FONTDIR    exec_path_append_subdir( "plugins" )
-#  define XINE_LOCALEDIR  exec_path_append_subdir( "plugins" )*/
-#endif
 
   /*
    * debugable mutexes
@@ -1120,7 +1109,7 @@ char *xine_basename (char *name);
  */
 const char *xine_hstrerror(int err);
 
-#ifdef WIN32
+#if defined(__CYGWIN__) || defined(WIN32)
 char *exec_path_append_subdir(char * string);
 #endif
 

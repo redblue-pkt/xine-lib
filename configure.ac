@@ -210,8 +210,8 @@ case "$host" in
       THREAD_CFLAGS_CONFIG=" "
       THREAD_LIBS_CONFIG=" "
       WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include -I$(top_srcdir)/win32/contrib/dirent -I$(top_srcdir)/win32/contrib/timer'
-      CFLAGS="$CFLAGS -DHAVE_NANOSLEEP"
-      LIBS="$LIBS -lwinmm -lwsock32"
+      CFLAGS="-DHAVE_NANOSLEEP $CFLAGS"
+      LIBS="-lwinmm -lwsock32 $LIBS"
       GOOM_LIBS="-liberty"
 
       need_internal_zlib=yes
@@ -436,6 +436,7 @@ AC_SUBST(ZLIB_LIBS_CONFIG)
 dnl ---------------------------------------------
 dnl Check for OpenGL & [GLut | GLU]
 dnl ---------------------------------------------
+
 AM_PATH_OPENGL()
 
 
@@ -1419,14 +1420,9 @@ dnl Some extra checks.
 dnl ---------------------------------------------
 
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk basename hstrerror memset])
-AC_CHECK_FUNC(setenv, [
-  AC_DEFINE(HAVE_SETENV, 1, [Define this if you have setenv function])
-  ac_have_setenv=yes
-])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk basename hstrerror memset setenv])
 AC_FUNC_FSEEKO
 AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h sys/times.h sys/ioctl.h)
-AM_CONDITIONAL(HAVE_SETENV, test x$ac_have_setenv = "xyes")
 
 
 dnl ---------------------------------------------
@@ -1626,6 +1622,9 @@ case "$host_or_hostalias" in
 	enable_w32dll="yes"
 
         case "$host_or_hostalias" in
+	*-*-mingw*)
+	  enable_w32dll="no" 
+	  ;;
 	*-*-cygwin) 
           enable_w32dll="no" 
           LIBS="$LIBS @INTLLIBS@"
@@ -1898,21 +1897,36 @@ fi
 if test "x$exec_prefix" = xNONE; then
    exec_prefix='${prefix}'
 fi
-XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
-eval XINE_PLUGINPATH=`eval echo "$XINE_PLUGINDIR"`
-AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH",[Define this to plugins directory location])
+if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
+  dnl installation directories
+  eval XINE_PLUGINDIR="${bindir}/plugins"
+  eval XINE_FONTDIR="${bindir}/fonts"
+  eval XINE_LOCALEDIR="${bindir}/locale"
+  dnl directories from xine-config
+  XINE_PLUGINPATH="\`basedir \$0\`/plugins"
+  XINE_FONTPATH="\`basedir \$0\`/fonts"
+  XINE_LOCALEPATH="\`basedir \$0\`/locale"
+  dnl runtime directories
+  AC_DEFINE(XINE_PLUGINDIR,[exec_path_append_subdir("plugins")],[Define this to plugins directory location])
+  AC_DEFINE(XINE_FONTDIR,[exec_path_append_subdir("fonts")],[Define this to osd fonts dir location])
+  AC_DEFINE(XINE_LOCALEDIR,[exec_path_append_subdir("locale")],[Path where catalog files will be.])
+else
+  dnl installation directories
+  XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
+  XINE_FONTDIR="${datadir}/xine/libxine$XINE_MAJOR/fonts"
+  XINE_LOCALEDIR="${datadir}/locale"
+  dnl directories from xine-config and runtime directories
+  eval XINE_PLUGINPATH=`eval echo "$XINE_PLUGINDIR"`
+  eval XINE_FONTPATH="$XINE_FONTDIR"
+  eval XINE_LOCALEPATH="$XINE_LOCALEDIR"
+  dnl defining runtime directories
+  AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH",[Define this to plugins directory location])
+  AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
+  AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH",[Path where catalog files will be.])
+fi
 AC_SUBST(XINE_PLUGINPATH)
-
-XINE_FONTDIR="${datadir}/xine/libxine$XINE_MAJOR/fonts"
-eval XINE_FONTPATH="$XINE_FONTDIR"
-AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
 AC_SUBST(XINE_FONTPATH)
-
-XINE_LOCALEDIR="${datadir}/locale"
-eval XINE_LOCALEPATH="$XINE_LOCALEDIR"
-AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH",[Path where catalog files will be.])
 AC_SUBST(XINE_LOCALEPATH)
-
 AC_SUBST(XINE_PLUGINDIR)
 AC_SUBST(XINE_FONTDIR)
 AC_SUBST(XINE_LOCALEDIR)

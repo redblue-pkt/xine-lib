@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.185 2004/08/28 20:03:42 valtri Exp $
+ * $Id: load_plugins.c,v 1.186 2004/09/01 18:19:50 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -512,7 +512,7 @@ static void collect_plugins(xine_t *this, char *path){
 	    printf("load_plugins: %s not cached\n", str);
 #endif
 
-	  if(!info && !(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
+	  if(!info && (lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL)) == NULL) {
 	    char *error = dlerror();
 	    /* too noisy -- but good to catch unresolved references */
 	    xprintf(this, XINE_VERBOSITY_LOG, 
@@ -636,7 +636,7 @@ static void *_load_plugin_class(xine_t *this,
 
   void *lib;
 
-  if(!(lib = dlopen (filename, RTLD_LAZY | RTLD_GLOBAL))) {
+  if((lib = dlopen (filename, RTLD_LAZY | RTLD_GLOBAL)) == NULL) {
     char *error = dlerror();
 
     xine_log (this, XINE_LOG_PLUGIN,
@@ -979,33 +979,33 @@ static void load_cached_catalog (xine_t *this) {
  */
 void _x_scan_plugins (xine_t *this) {
   
-  const char *homedir;
-  char *plugindir;
-  char *pluginpath;
+  char *homedir, *plugindir, *pluginpath;
   int i,j;
   int lenpluginpath;
   
   lprintf("_x_scan_plugins()\n");
 
-/* TODO - This needs to be fixed for WIN32 */
-#ifndef WIN32
   if (this == NULL || this->config == NULL) {
     fprintf(stderr, "%s(%s@%d): parameter should be non null, exiting\n",
 	    __FILE__, __XINE_FUNCTION__, __LINE__);
     _x_abort();
   }
-#endif
 
-  homedir = xine_get_homedir();
+  homedir = strdup(xine_get_homedir());
   this->plugin_catalog = _new_catalog();
   load_cached_catalog (this);
 
-  if ( !(pluginpath = getenv("XINE_PLUGIN_PATH")) ){
-#ifndef WIN32
-    pluginpath = "~/.xine/plugins:" XINE_PLUGINDIR;
-#else
-	pluginpath = XINE_PLUGINDIR;
-#endif
+  if ((pluginpath = getenv("XINE_PLUGIN_PATH")) != NULL) {
+    pluginpath = strdup(pluginpath);
+  } else {
+    char *str1, *str2;
+    int len;
+
+    str1 = "~/.xine/plugins";
+    str2 = XINE_PLUGINDIR;
+    len = strlen(str1) + strlen(str2) + 2;
+    pluginpath = xine_xmalloc(len);
+    snprintf(pluginpath, len, "%s:%s", str1, str2);
   }
   plugindir = xine_xmalloc(strlen(pluginpath)+strlen(homedir)+2);
   j=0;
@@ -1029,6 +1029,8 @@ void _x_scan_plugins (xine_t *this) {
     }
   }
   free(plugindir);
+  free(pluginpath);
+  free(homedir);
 
   save_catalog (this);
     
