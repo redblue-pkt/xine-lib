@@ -18,6 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * done by Daniel Mack <xine@zonque.org>
+ * modified by Rich Wareham <richwareham@users.sourceforge.net>
  *
  * See http://developer.apple.com/technotes/tn2002/tn2091.html
  * and http://developer.apple.com/documentation/MusicAudio/Reference/CoreAudio/index.html
@@ -54,7 +55,10 @@
 #define AO_OUT_COREAUDIO_IFACE_VERSION 8
 
 #define GAP_TOLERANCE        AO_MAX_GAP 
-#define BUFSIZE              0xffffff
+#define BUFSIZE              30720
+/* Number of seconds to wait for buffered data to arrive/be used
+ * before giving up. */
+#define BUFFER_TIMEOUT       1
 
 typedef struct coreaudio_driver_s {
 
@@ -76,12 +80,16 @@ typedef struct coreaudio_driver_s {
   AudioUnit      converter_unit;
 
   uint8_t        buf[BUFSIZE];
-  uint32_t       buf_readpos;
-  uint32_t       buf_writepos;
+  uint32_t       buf_head;
   uint32_t       last_block_size;
+  uint32_t       buffered;
+
+  int            mute;
+  Float32        pre_mute_volume;
   
   pthread_mutex_t mutex;
-  
+  pthread_cond_t  buffer_ready_for_reading;
+  pthread_cond_t  buffer_ready_for_writing;
 } coreaudio_driver_t;
 
 typedef struct {
@@ -90,6 +98,15 @@ typedef struct {
   config_values_t      *config;
   xine_t               *xine;
 } coreaudio_class_t;
+
+inline void set_to_future(struct timespec *spec);
+
+inline void set_to_future(struct timespec *spec) {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  spec->tv_sec = tv.tv_sec + BUFFER_TIMEOUT;
+  spec->tv_nsec = tv.tv_usec * 1000;
+}
 
 /* this function is called every time the CoreAudio sytem wants us to
  * supply some data */
@@ -100,30 +117,62 @@ static OSStatus ao_coreaudio_render_proc (coreaudio_driver_t *this,
                                           unsigned int inNumberFrames,
                                           AudioBufferList * ioData) {
     int32_t i = 0;
+    int32_t buffer_progress = 0;
+    int32_t buffer_size = 0;
+    int32_t chunk_size = 0;
     int32_t req_size = 0;
+    struct timespec future;
 
-    for (i = 0; i < ioData->mNumberBuffers; i++)
-        req_size += ioData->mBuffers[i].mDataByteSize;
+    this->buffered = 0;
 
-    if (this->buf_writepos - this->buf_readpos < req_size) {
-        /* not enough data available, insert the sound of silence. */
-        for (i = 0; i < ioData->mNumberBuffers; i++)
-            memset (ioData->mBuffers[i].mData, 0, ioData->mBuffers[i].mDataByteSize);
-        return noErr;
-    }
+    while(i < ioData->mNumberBuffers) {
+      buffer_size = ioData->mBuffers[i].mDataByteSize;
 
-    pthread_mutex_lock (&this->mutex);
+      pthread_mutex_lock (&this->mutex);
+      if(this->buf_head < ((BUFSIZE) >> 2)) {
+        set_to_future(&future);
+        if(pthread_cond_timedwait 
+             (&this->buffer_ready_for_reading, &this->mutex, &future) == ETIMEDOUT)
+        {
+          /* Timed out, give up and fill remainder with silence. */
+          while(i < ioData->mNumberBuffers) {
+            memset(ioData->mBuffers[i].mData, 0, ioData->mBuffers[i].mDataByteSize);
+            i++;
+          }
+          pthread_mutex_unlock (&this->mutex);
+          return noErr;
+        }
+      }
+      
+      if(this->buf_head < buffer_size - buffer_progress) {
+        chunk_size = this->buf_head;
+      } else {
+        chunk_size = buffer_size - buffer_progress;
+      }
     
-    for (i = 0; i < ioData->mNumberBuffers; i++) {
-        memcpy (ioData->mBuffers[i].mData, &this->buf[this->buf_readpos], 
-                        ioData->mBuffers[i].mDataByteSize);
-        this->buf_readpos += ioData->mBuffers[i].mDataByteSize;
+      xine_fast_memcpy (ioData->mBuffers[i].mData, this->buf, chunk_size);
+      if(chunk_size < this->buf_head) {
+        memmove(this->buf, &(this->buf[chunk_size]), this->buf_head - chunk_size);
+      }
+      this->buf_head -= chunk_size;
+      buffer_progress += chunk_size;
+      this->buffered += chunk_size;
+      req_size += chunk_size;
+
+      if(this->buf_head < ((BUFSIZE) >> 2)) {
+        pthread_cond_broadcast (&this->buffer_ready_for_writing);
+      }
+
+      pthread_mutex_unlock (&this->mutex);
+
+      if(buffer_progress == buffer_size) {
+        i++;
+        buffer_progress = 0;
+      }
     }
 
     this->last_block_size = req_size;
-	
-    pthread_mutex_unlock (&this->mutex);
-    
+
     return noErr;
 }
 
@@ -153,10 +202,12 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
   this->bits_per_sample = bits;
   this->capabilities = AO_CAP_16BITS | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL;
   this->bytes_per_frame = this->num_channels * (bits / 8);
-  this->buf_readpos = 0;
-  this->buf_writepos = 0;
+  this->buf_head = 0;
   this->last_block_size = 0;
+  this->buffered = 0;
   pthread_mutex_init (&this->mutex, NULL);
+  pthread_cond_init (&this->buffer_ready_for_reading, NULL);
+  pthread_cond_init (&this->buffer_ready_for_writing, NULL);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
            "audio_coreaudio_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
@@ -274,27 +325,44 @@ static int ao_coreaudio_write(ao_driver_t *this_gen, int16_t *data,
                          uint32_t num_frames)
 {
   coreaudio_driver_t *this = (coreaudio_driver_t *) this_gen;
+  int remaining_bytes;
 
-  pthread_mutex_lock (&this->mutex);
+  /* In total we want to write num_frames * this->bytes_per_frame */
+  remaining_bytes = num_frames * this->bytes_per_frame;
 
-  if (this->buf_readpos > BUFSIZE / 2) {
-      memmove (this->buf, &this->buf[this->buf_readpos], 
-                 (this->buf_writepos - this->buf_readpos));
-      this->buf_writepos -= this->buf_readpos;
-      this->buf_readpos = 0;
+  while(remaining_bytes > 0) {
+    int32_t chunk_size;
+    struct timespec future;
+
+    pthread_mutex_lock (&this->mutex);
+    if(this->buf_head > ((3 * BUFSIZE)>>2)) {
+      set_to_future(&future);
+      if(pthread_cond_timedwait 
+           (&this->buffer_ready_for_writing, &this->mutex, &future) == ETIMEDOUT)
+      {
+        /* Timed out, give up. */
+        pthread_mutex_unlock (&this->mutex);
+        return 0;
+      }
+    }
+
+    /* Write as many bytes as possible from buf_head -> end of buffer */
+    if(remaining_bytes > BUFSIZE - this->buf_head) {
+      chunk_size = BUFSIZE - this->buf_head;
+    } else {
+      chunk_size = remaining_bytes;
+    }
+    
+    xine_fast_memcpy(&(this->buf[this->buf_head]), data, chunk_size);
+    this->buf_head += chunk_size;
+    remaining_bytes -= chunk_size; 
+
+    if(this->buf_head > 0) {
+      pthread_cond_broadcast (&this->buffer_ready_for_reading);
+    }
+
+    pthread_mutex_unlock (&this->mutex);
   }
-
-  if (this->buf_writepos + (num_frames * this->bytes_per_frame) > BUFSIZE) {
-      /* buffer overflow */
-      //printf ("CoreAudio: audio buffer overflow!\n");
-      pthread_mutex_unlock (&this->mutex);
-      return 1;
-  }
-
-  memcpy (&this->buf[this->buf_writepos], data, num_frames * this->bytes_per_frame);
-  this->buf_writepos += num_frames * this->bytes_per_frame;
-  
-  pthread_mutex_unlock (&this->mutex);
 
   return 1;
 }
@@ -303,8 +371,8 @@ static int ao_coreaudio_write(ao_driver_t *this_gen, int16_t *data,
 static int ao_coreaudio_delay (ao_driver_t *this_gen)
 {
   coreaudio_driver_t *this = (coreaudio_driver_t *) this_gen;
-  return (this->buf_writepos - this->buf_readpos + this->last_block_size) 
-		  / this->bytes_per_frame;
+  return (this->last_block_size + this->buffered + this->buf_head)
+          / this->bytes_per_frame;
 }
 
 static void ao_coreaudio_close(ao_driver_t *this_gen)
@@ -335,6 +403,8 @@ static void ao_coreaudio_close(ao_driver_t *this_gen)
   }
 
   pthread_mutex_destroy (&this->mutex);
+  pthread_cond_destroy (&this->buffer_ready_for_reading);
+  pthread_cond_destroy (&this->buffer_ready_for_writing);
 }
 
 static uint32_t ao_coreaudio_get_capabilities (ao_driver_t *this_gen) {
@@ -358,11 +428,19 @@ static int ao_coreaudio_get_property (ao_driver_t *this_gen, int property) {
   switch(property) {
     case AO_PROP_PCM_VOL:
     case AO_PROP_MIXER_VOL:
-        AudioUnitGetParameter (this->au_unit,
+	if(!(this->mute)) {
+	  AudioUnitGetParameter (this->au_unit,
                                kHALOutputParam_Volume,
                                kAudioUnitScope_Output,
                                0, &val);
+	} else {
+	  val = this->pre_mute_volume;	
+	}
         return (int) (val * 12);
+	break;
+    case AO_PROP_MUTE_VOL:
+	return this->mute;
+	break;
   }
 
   return 0;
@@ -375,12 +453,44 @@ static int ao_coreaudio_set_property (ao_driver_t *this_gen, int property, int v
   switch(property) {
     case AO_PROP_PCM_VOL:
     case AO_PROP_MIXER_VOL:
-        val = value / 12.0;
-        AudioUnitSetParameter (this->au_unit,
-                               kHALOutputParam_Volume,
-                               kAudioUnitScope_Output,
-                               0, val, 0);
+        if(!this->mute) {
+          val = value / 12.0;
+          AudioUnitSetParameter (this->au_unit,
+                          kHALOutputParam_Volume,
+                          kAudioUnitScope_Output,
+                          0, val, 0);
+        }
         return value;
+	break;
+    case AO_PROP_MUTE_VOL:
+	if(value) {
+          /* Should mute */
+          if(!(this->mute)) {
+            AudioUnitGetParameter (this->au_unit,
+                            kHALOutputParam_Volume,
+                            kAudioUnitScope_Output,
+                            0, &(this->pre_mute_volume));
+            
+            AudioUnitSetParameter (this->au_unit,
+                            kHALOutputParam_Volume,
+                            kAudioUnitScope_Output,
+                            0, 0, 0);
+            
+            this->mute = 1;
+          }
+        } else {
+          /* Should un-mute */
+          if(this->mute) {
+            AudioUnitSetParameter (this->au_unit,
+                            kHALOutputParam_Volume,
+                            kAudioUnitScope_Output,
+                            0, this->pre_mute_volume, 0);
+            
+            this->mute = 0;
+          }
+	}
+	return value;
+	break;
   }
   
   return ~value;
@@ -400,8 +510,9 @@ static int ao_coreaudio_ctrl(ao_driver_t *this_gen, int cmd, ...) {
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
-	this->buf_readpos = 0;
-	this->buf_writepos = 0;
+        AudioUnitReset (this->au_unit, kAudioUnitScope_Input, 0);
+        this->last_block_size = 0;
+        this->buf_head = 0;
     break;
   }
 
@@ -423,6 +534,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO;
 
   this->sample_rate  = 0;
+  this->mute = 0;
+  this->pre_mute_volume = 0;
 
   this->ao_driver.get_capabilities    = ao_coreaudio_get_capabilities;
   this->ao_driver.get_property        = ao_coreaudio_get_property;
