@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.34 2003/02/28 02:51:52 storri Exp $
+ * $Id: xineutils.h,v 1.35 2003/02/28 21:57:17 jkeil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -42,7 +42,9 @@ extern "C" {
   
 #include <stdio.h>
 #include <string.h>
+#if HAVE_EXECINFO_H
 #include <execinfo.h>
+#endif
 
 #ifdef __SUNPRO_C
 #define inline
@@ -796,6 +798,7 @@ extern int v_b_table[256];
 static void
 print_trace (void)
 {
+#if HAVE_BACKTRACE
   void *array[10];
   size_t size;
   char **strings;
@@ -810,6 +813,11 @@ print_trace (void)
      printf ("%s\n", strings[i]);
   }
   free (strings);
+#elif HAVE_PRINTSTACK
+  printstack(STDOUT_FILENO);
+#else
+  printf("stack backtrace not available.\n");
+#endif
 }
 
 /**
@@ -819,7 +827,7 @@ print_trace (void)
 #define XINE_ASSERT(exp, desc, args...)                         \
   if (!(exp)) {                                                 \
     printf("%s:%s:%d: assertion `" #exp "' failed. " desc "\n\n", \
-        __FILE__, __FUNCTION__, __LINE__, ##args);              \
+        __FILE__, __XINE_FUNCTION__, __LINE__, ##args);         \
     print_trace();                                              \
     abort();                                                    \
   }
