@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.9 2002/10/14 15:47:43 guenter Exp $
+ * $Id: video_overlay.h,v 1.10 2002/10/17 17:44:01 mroi Exp $
  *
  */
 
@@ -25,7 +25,6 @@
 #define HAVE_VIDEO_OVERLAY_H
 
 #include "xine_internal.h"
-#include "events.h"
 
 #ifdef	__GNUC__
 #define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{y: (_y), cr: (_cr), cb: (_cb)}
