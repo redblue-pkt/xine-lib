@@ -48,7 +48,7 @@ Mike Melanson <melanson@pcisys.net>
 
 Robin KAY <komadori@myrealbox.com>
   pgx64[fb] video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
-  decoder, various bugfixes
+  decoder, SunPro compiler fixes, various bugfixes
 
 Stephen Torri <storri@users.sourceforge.net>
   Automake, autoconf, libtool development, and build fixes,

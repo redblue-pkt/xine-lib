@@ -950,7 +950,13 @@ case "$host_or_hostalias" in
 	cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
         AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])		dnl uses gnu c asm extensions
     else
-	cc_optimize_cflags="-O"
+	case `uname -m` in
+	sun4c) cpu_cflags="-xarch=v7 -xchip=ultra2" ;;
+	sun4m) cpu_cflags="-xarch=v8 -xchip=ultra2" ;;
+	sun4u) cpu_cflags="-xarch=v8plusa -xchip=ultra2" ;;
+	esac
+
+	cc_optimize_cflags="-xO5 $cpu_cflags -xCC"
 	cc_debug_cflags="-O"
     	AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])		dnl use portable version with non-gcc
     fi
