@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.15 2001/11/20 17:32:22 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.16 2001/11/24 16:32:35 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,7 +51,7 @@
 #define	AUDIO_PRECISION_16	16
 #endif
 
-#define AO_SUN_IFACE_VERSION 2
+#define AO_SUN_IFACE_VERSION 3
 
 #define GAP_TOLERANCE         5000
 #define GAP_NONRT_TOLERANCE  15000
@@ -385,10 +385,6 @@ static int ao_sun_write(ao_driver_t *this_gen,
 static void ao_sun_close(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
-#ifdef	__svr4__
-  /* remove buffered data from audio driver's STREAMS queue */
-  ioctl(this->audio_fd, I_FLUSH, FLUSHW);
-#endif
   close(this->audio_fd);
   this->audio_fd = -1;
 }
@@ -467,12 +463,21 @@ static int ao_sun_set_property (ao_driver_t *this_gen, int property, int value) 
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   sun_driver_t	  *this;
-  char            *devname = "/dev/audio";
+  char            *devname;
   int              audio_fd;
   int              status;
   audio_info_t	   info;
 
   this = (sun_driver_t *) malloc (sizeof (sun_driver_t));
+
+  /* Fill the .xinerc file with options */ 
+  devname = config->register_string(config,
+				    "audio.sun_audio_device",
+				    "/dev/audio",
+				    "device used for audio output with the 'Sun' audio plugin",
+				    NULL,
+				    NULL,
+				    NULL);
 
   /*
    * find best device driver/channel
