@@ -66,6 +66,11 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec);
 int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port);
 
 /*
+ * wait for finish connection
+ */
+int _x_io_tcp_connect_finish(xine_stream_t *stream, int fd, int timeout_msec);
+
+/*
  * read from tcp socket checking demux_action_pending
  *
  * network input plugins should use this function in order to
@@ -106,5 +111,10 @@ off_t _x_io_file_read (xine_stream_t *stream, int fd, char *buf, off_t todo);
  * aborts with zero if *abort is set
  */
 off_t _x_io_file_write (xine_stream_t *stream, int fd, char *buf, off_t todo);
+
+/*
+ * read a string from socket, return size length
+ */
+int _x_io_tcp_read_line(xine_stream_t *stream, int sock, char *str, int size);
 
 #endif

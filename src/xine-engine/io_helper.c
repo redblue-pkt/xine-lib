@@ -233,6 +233,33 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
 }
 
 
+/*
+ * wait for finish connection
+ */
+int _x_io_tcp_connect_finish(xine_stream_t *stream, int fd, int timeout_msec) {
+  int ret;
+  
+  ret = _x_io_select(stream, fd, XIO_WRITE_READY, timeout_msec);
+
+  /* find out, if connection is successfull */
+  if (ret == XIO_READY) {
+    socklen_t len = sizeof(int);
+    int err;
+    
+    if ((getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len)) == -1) {
+      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, _("failed to get status of socket"), strerror(errno), NULL);
+      return XIO_ERROR;
+    }
+    if (err) {
+      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(errno), NULL);
+      return XIO_ERROR;
+    }
+  }
+
+  return ret;
+}
+
+
 static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off_t todo) {
 
   off_t ret = -1;
@@ -310,4 +337,30 @@ off_t _x_io_file_read (xine_stream_t *stream, int s, char *buf, off_t todo) {
 
 off_t _x_io_file_write (xine_stream_t *stream, int s, char *buf, off_t todo) {
   return xio_rw_abort (stream, s, XIO_FILE_WRITE, buf, todo);
+}
+
+/*
+ * read a string from socket, return size length
+ */
+int _x_io_tcp_read_line(xine_stream_t *stream, int sock, char *str, int size) {
+  int i = 0;
+  char c;
+  off_t r;
+
+  while ((r = xio_rw_abort(stream, sock, XIO_TCP_READ, &c, 1)) != -1) {
+    if (c == '\r' || c == '\n')
+      break;
+    if (i > size)
+      break;
+
+    str[i] = c;
+    i++;
+  }
+
+  if (r != -1)
+    r = xio_rw_abort(stream, sock, XIO_TCP_READ, &c, 1);
+
+  str[i] = '\0';
+
+  return (int)r;
 }
