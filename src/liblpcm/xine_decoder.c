@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/08/30 23:43:49 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/08/31 01:07:55 jcdutton Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -43,6 +43,7 @@ typedef struct lpcm_decoder_s {
 
   uint32_t         pts;
   uint32_t         last_pts;
+  uint32_t         last_size;
   uint32_t         rate;
   
   ao_instance_t  *audio_out;
@@ -63,6 +64,7 @@ void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->output_open   = 0;
   this->pts           = 0;
   this->last_pts      = 0;
+  this->last_size     = 0;
   this->rate          = 0;
 }
 
@@ -71,16 +73,14 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
   int16_t *sample_buffer=(int16_t *)buf->content;
-  
-  if (buf->decoder_info[0] == 0)
-    return;
-  if (buf->PTS > 0) {
     this->last_pts=this->pts; 
     this->pts = buf->PTS; 
-  }
+  if (buf->decoder_info[0] == 0)
+    return;
   if ((this->last_pts > 0) && (this->pts > 0) && (this->rate == 0)) {
-    this->rate=(45000 * buf->size)/(this->pts-this->last_pts);
+    this->rate=(22500 * this->last_size)/(this->pts-this->last_pts);
   }
+  this->last_size=buf->size;
   if (this->rate == 0) 
     return;
   if (!this->output_open) {      
@@ -104,7 +104,7 @@ void lpcm_close (audio_decoder_t *this_gen) {
 
   if (this->output_open) 
     this->audio_out->close (this->audio_out);
-
+  printf("LPCM:Close\n");
   this->output_open = 0;
 }
 
