@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.202 2004/05/27 11:10:11 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.203 2004/05/29 22:31:49 tmmm Exp $
  *
  * demultiplexer for avi streams
  *
@@ -749,6 +749,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
   int auds_strf_seen = 0;
   int num_stream = 0;
   uint8_t data[256];
+  int strf_size;
 
   /* Create avi_t structure */
   lprintf("start\n");
@@ -938,7 +939,9 @@ static avi_t *AVI_init(demux_avi_t *this) {
       i += 8;
 	  
     } else if(strncasecmp(hdrl_data + i, "strf", 4) == 0) {
-      i += 8;
+      i += 4;
+      strf_size = LE_32(hdrl_data + i);
+      i += 4;
       if(lasttag == 1) {
         /* lprintf ("size : %d\n",sizeof(AVI->bih)); */
         AVI->bih = (xine_bmiheader *)
@@ -972,10 +975,21 @@ static avi_t *AVI_init(demux_avi_t *this) {
           lprintf ("number of colors exceeded 256 (%d)", AVI->palette_count);
           AVI->palette_count = 256;
         }
-        for (j = 0; j < AVI->palette_count; j++) {
-          AVI->palette[j].b = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 0);
-          AVI->palette[j].g = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 1);
-          AVI->palette[j].r = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 2);
+        if ((strf_size - sizeof(xine_bmiheader)) >= (AVI->palette_count * 4)) {
+          /* load the palette from the end of the strf chunk */
+          for (j = 0; j < AVI->palette_count; j++) {
+            AVI->palette[j].b = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 0);
+            AVI->palette[j].g = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 1);
+            AVI->palette[j].r = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 2);
+          }
+        } else {
+          /* generate a greyscale palette */
+          AVI->palette_count = 256;
+          for (j = 0; j < AVI->palette_count; j++) {
+            AVI->palette[j].r = j;
+            AVI->palette[j].g = j;
+            AVI->palette[j].b = j;
+          }
         }
 
       } else if(lasttag == 2) {
@@ -1857,8 +1871,11 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   }
   this->no_audio = 0;
 
-  this->avi->video_type = _x_fourcc_to_buf_video(this->avi->bih->biCompression);
-  
+  if (!this->avi->bih->biCompression)
+    this->avi->video_type = BUF_VIDEO_RGB;
+  else
+    this->avi->video_type = _x_fourcc_to_buf_video(this->avi->bih->biCompression);
+
   for(i=0; i < this->avi->n_audio; i++) {
     this->avi->audio[i]->audio_type = _x_formattag_to_buf_audio (this->avi->audio[i]->wavex->wFormatTag);
 
@@ -1914,6 +1931,13 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
       return;
     }
     
+    /* wait, before sending out the video header, one more special case hack:
+     * if the video type is RGB, indicate that it is upside down with a 
+     * negative height */
+    if (this->avi->video_type == BUF_VIDEO_RGB) {
+      this->avi->bih->biHeight = -this->avi->bih->biHeight;
+    }
+
     buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
                          BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = this->video_step;
@@ -1922,8 +1946,9 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     
     if (this->avi->video_type) {
       this->avi->compressor = this->avi->bih->biCompression;
-    } else
+    } else {
       this->avi->video_type = _x_fourcc_to_buf_video(this->avi->compressor);
+    }
 
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
                          this->avi->compressor);
