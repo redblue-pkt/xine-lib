@@ -688,6 +688,31 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 #endif
 }
 
+/* Linear Blend filter - C version contributed by Rogerio Brito. */
+static void deinterlace_linearblend_yuv( uint8_t *pdst, uint8_t *psrc[],
+                                         int width, int height )
+{
+  register int x, y, z;
+  register uint8_t *src = psrc[0];
+  register uint8_t *dst = pdst;
+
+  for (y = 0; y < height-1; ++y) {
+    for (x = 0; x <= width; ++x) {
+      /* computes avg of: 1*current line + 2*next line + 1*line after that */
+      z = y*width + x;
+      dst[z] = (src[z] + 2*src[z+width] + src[z + (2*width)]) >> 2;
+      /* the above is trying to help the compiler, but is is actually doing:
+       * dst[y*width + x] =
+       *   (src[y*width + x] + 2*src[(y+1)*width + x] + src[(y+2)*width + x])/4;
+       */
+    }
+  }
+  /* copies the last two lines */
+  xine_fast_memcpy(dst + y*width, src + y*width, width);
+  ++y;
+  xine_fast_memcpy(dst + y*width, src + y*width, width);
+}
+
 static int check_for_mmx(void)
 {
 #ifdef ARCH_X86
@@ -760,8 +785,8 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
     case DEINTERLACE_LINEARBLEND:
       if( check_for_mmx() )
         deinterlace_linearblend_yuv_mmx(pdst,psrc,width,height);
-      else /* FIXME: provide an alternative? */
-        abort_mmx_missing();
+      else
+        deinterlace_linearblend_yuv(pdst,psrc,width,height);
       break;
     default:
       printf("deinterlace: unknow method %d.\n",method);
