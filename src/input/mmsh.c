@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.6 2003/01/15 01:05:24 tmattern Exp $
+ * $Id: mmsh.c,v 1.7 2003/01/15 20:08:24 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -51,22 +51,20 @@
 /*
 #define LOG
 */
-#define MMSH_PORT 80
-
-#define BUF_SIZE 102400
-
-#define CMD_HEADER_LEN   48
-#define CMD_BODY_LEN   1024
 
 #define USERAGENT "User-Agent: NSPlayer/7.1.0.3055\r\n"
 #define CLIENTGUID "Pragma: xClientGUID={c77e7400-738a-11d2-9add-0020af0a3278}\r\n"
 
+
+#define MMSH_PORT                  80
 #define MMSH_SEEKABLE               1
 #define MMSH_LIVE                   2
 #define CHUNK_HEADER_LENGTH        12
 #define CHUNK_TYPE_DATA        0x4424
 #define CHUNK_TYPE_END         0x4524
 #define CHUNK_TYPE_ASF_HEADER  0x4824
+#define CHUNK_SIZE              16384
+#define ASF_HEADER_SIZE          8192
  
 static const char* mmsh_FirstRequest =
     "GET %s HTTP/1.0\r\n"
@@ -139,11 +137,6 @@ struct mmsh_s {
   char         *file;
   char         *url;
 
-  /* command to send */
-  char          scmd[CMD_HEADER_LEN + CMD_BODY_LEN];
-  char         *scmd_body; /* pointer to &scmd[CMD_HEADER_LEN] */
-  int           scmd_len; /* num bytes written in header */
-
   char          str[1024]; /* scratch buffer to built strings */
 
   int           stream_type;  /* seekable or broadcast */
@@ -154,12 +147,12 @@ struct mmsh_s {
   uint16_t      chunk_type;
   uint16_t      chunk_length;
   uint16_t      chunk_seq_number;
-  uint8_t       buf[BUF_SIZE];
+  uint8_t       buf[CHUNK_SIZE];
   
   int           buf_size;
   int           buf_read;
 
-  uint8_t       asf_header[8192];
+  uint8_t       asf_header[ASF_HEADER_SIZE];
   uint32_t      asf_header_len;
   uint32_t      asf_header_read;
   int           seq_num;
@@ -268,16 +261,6 @@ static int host_connect(const char *host, int port) {
   return -1;
 }
 
-static void put_32 (mmsh_t *this, uint32_t value) {
-
-  this->scmd[this->scmd_len    ] = value & 0xff;
-  this->scmd[this->scmd_len + 1] = (value  >> 8) & 0xff;
-  this->scmd[this->scmd_len + 2] = (value  >> 16) & 0xff;
-  this->scmd[this->scmd_len + 3] = (value  >> 24) & 0xff;
-
-  this->scmd_len += 4;
-}
-
 static uint32_t get_64 (uint8_t *buffer, int offset) {
 
   uint64_t ret;
@@ -381,21 +364,6 @@ static int send_command (mmsh_t *this, char *cmd)  {
   }
   return 1;
 }
-
-static void string_utf16(char *dest, char *src, int len) {
-  int i;
-
-  memset (dest, 0, 1000);
-
-  for (i = 0; i < len; i++) {
-    dest[i * 2] = src[i];
-    dest[i * 2 + 1] = 0;
-  }
-
-  dest[i * 2] = 0;
-  dest[i * 2 + 1] = 0;
-}
-
 
 static int get_answer (mmsh_t *this) {
  
@@ -533,36 +501,38 @@ static int get_chunk_header (mmsh_t *this) {
 }
 
 static int get_header (mmsh_t *this) {
-
   int len = 0;
-  int done = 0;
   
   this->asf_header_len = 0;
 
   /* read chunk */
-  while (!done) {
+  while (1) {
     if (get_chunk_header(this)) {
-    
       if (this->chunk_type == CHUNK_TYPE_ASF_HEADER) {
-        len = read_timeout (this->s, this->asf_header + this->asf_header_len,
-                            this->chunk_length);
-        this->asf_header_len += len;
-        if (!len) {
-          done = 1;
+        if ((this->asf_header_len + this->chunk_length) > ASF_HEADER_SIZE) {
+          printf ("libmmsh: the asf header exceed %d bytes\n", ASF_HEADER_SIZE);
+          return 0;
+        } else {
+          len = read_timeout (this->s, this->asf_header + this->asf_header_len,
+                              this->chunk_length);
+          this->asf_header_len += len;
+          if (len != this->chunk_length) {
+            return 0;
+          }
         }
       } else {
-        done = 1;
+        break;
       }
     } else {
       return 0;
     }
   }
   
-  if (!len) {
+  /* read the first data chunk */
+  len = read_timeout (this->s, this->buf, this->chunk_length);
+  if (len != this->chunk_length) {
     return 0;
   } else {
-    /* read the first data chunk */
-    len = read_timeout (this->s, this->buf, this->chunk_length);
     this->buf_size = this->packet_length;
     return 1;
   }
@@ -982,7 +952,6 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   get_header(this);
   interp_header(this);
   
-  /* FIXME: find something better */
   for (i = 0; i < this->num_stream_ids; i++) {
     if ((this->stream_ids[i] != audio_stream) &&
         (this->stream_ids[i] != video_stream)) {
@@ -1013,15 +982,19 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 
 
 static int get_media_packet (mmsh_t *this) {
-  int len;
+  int len = 0;
 
 #ifdef LOG
   printf("libmms: get_media_packet: this->packet_length: %d\n", this->packet_length);
 #endif
   
   if( get_chunk_header(this)) {
-    len = read_timeout (this->s, this->buf, this->chunk_length);
-  
+    if (this->chunk_length > CHUNK_SIZE) {
+      printf("libmms: invalid chunk length\n");
+      return 0;
+    } else {
+      len = read_timeout (this->s, this->buf, this->chunk_length);
+    }
     if (len) {
       /* implicit padding (with "random" data) */
       this->buf_size = this->packet_length;
