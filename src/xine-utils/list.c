@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.8 2004/04/16 16:34:23 hadess Exp $
+ * $Id: list.c,v 1.9 2004/12/20 21:38:24 mroi Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -151,7 +151,7 @@ void xine_list_append_priority_content (xine_list_t *l, void *content, int prior
     cur = l->first;
 
     while(1) {
-      if( priority >= cur->priority ) {
+      if( priority > cur->priority ) {
         node->next = cur;
         node->prev = cur->prev;
 

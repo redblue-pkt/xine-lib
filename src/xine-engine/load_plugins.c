@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.191 2004/12/12 22:01:31 mroi Exp $
+ * $Id: load_plugins.c,v 1.192 2004/12/20 21:38:25 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -161,7 +161,7 @@ static void map_decoders (xine_t *this) {
       /* find the right place based on the priority */
       for (pos = 0; pos < PLUGINS_PER_TYPE; pos++)
 	if (!catalog->audio_decoder_map[streamtype][pos] ||
-	    get_decoder_priority(this, catalog->audio_decoder_map[streamtype][pos]) <= priority)
+	    priority > get_decoder_priority(this, catalog->audio_decoder_map[streamtype][pos]))
 	  break;
 
       /* shift the decoder list for this type by one to make room for new decoder */
@@ -200,7 +200,7 @@ static void map_decoders (xine_t *this) {
       /* find the right place based on the priority */
       for (pos = 0; pos < PLUGINS_PER_TYPE; pos++)
 	if (!catalog->video_decoder_map[streamtype][pos] ||
-	    get_decoder_priority(this, catalog->video_decoder_map[streamtype][pos]) <= priority)
+	    priority > get_decoder_priority(this, catalog->video_decoder_map[streamtype][pos]))
 	  break;
 
       /* shift the decoder list for this type by one to make room for new decoder */
@@ -238,7 +238,7 @@ static void map_decoders (xine_t *this) {
       /* find the right place based on the priority */
       for (pos = 0; pos < PLUGINS_PER_TYPE; pos++)
 	if (!catalog->spu_decoder_map[streamtype][pos] ||
-	    get_decoder_priority(this, catalog->spu_decoder_map[streamtype][pos]) <= priority)
+	    priority > get_decoder_priority(this, catalog->spu_decoder_map[streamtype][pos]))
 	  break;
 
       /* shift the decoder list for this type by one to make room for new decoder */
@@ -1393,7 +1393,7 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
 	  break;
 	}
 
-      } else {
+      } else if( vo_info->priority >= 0 ) {
 
 	driver = _load_video_driver (this, node, visual);
 
