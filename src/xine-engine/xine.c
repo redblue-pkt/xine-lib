@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.269 2003/11/22 21:19:09 f1rmb Exp $
+ * $Id: xine.c,v 1.270 2003/11/25 01:14:04 miguelfreitas Exp $
  */
 
 /*
@@ -1113,10 +1113,10 @@ void xine_dispose (xine_stream_t *stream) {
   _x_audio_decoder_shutdown (stream);
 
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "shutdown video\n");
+  _x_video_decoder_shutdown (stream);
+
   if (stream->osd_renderer)
     stream->osd_renderer->close( stream->osd_renderer );
-
-  _x_video_decoder_shutdown (stream);
 
   pthread_mutex_destroy (&stream->info_mutex);
   pthread_mutex_destroy (&stream->meta_mutex);
