@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2003/06/19 20:07:48 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.10 2003/07/07 19:36:50 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -131,7 +131,6 @@ static int collect_data (theora_decoder_t *this, buf_element_t *buf ) {
     if ( this->done != this->op.bytes ) {
       printf ("libtheora: A packet changed its size during transfer - rejected\n");
       printf ("           size %d    should be %ld\n", this->done , this->op.bytes);
-      show_op_stats(this);
       this->op.bytes=this->done;
     }
     return 1;
