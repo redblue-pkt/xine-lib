@@ -12,12 +12,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.105 2003/03/23 17:12:30 holstsn Exp $
+ * $Id: buffer.h,v 1.106 2003/03/30 15:19:46 tmattern Exp $
  *
  *
  * contents:
@@ -158,7 +158,7 @@ extern "C" {
 #define BUF_AUDIO_DTS		0x03050000
 #define BUF_AUDIO_MSADPCM	0x03060000
 #define BUF_AUDIO_MSIMAADPCM	0x03070000
-#define BUF_AUDIO_MSGSM		0x03080000 
+#define BUF_AUDIO_MSGSM		0x03080000
 #define BUF_AUDIO_VORBIS        0x03090000
 #define BUF_AUDIO_IMC           0x030a0000
 #define BUF_AUDIO_LH            0x030b0000
@@ -199,7 +199,7 @@ extern "C" {
 #define BUF_AUDIO_WMAV		0x032E0000
 
 /* spu buffer types:    */
- 
+
 #define BUF_SPU_BASE		0x04000000
 #define BUF_SPU_DVD		0x04000000
 #define BUF_SPU_TEXT            0x04010000
@@ -226,7 +226,7 @@ struct buf_element_s {
   unsigned char        *content;   /* start of raw content in mem (without header etc) */
 
   int32_t               size ;     /* size of _content_                                     */
-  int32_t               max_size;  /* size of pre-allocated memory pointed to by "mem"      */ 
+  int32_t               max_size;  /* size of pre-allocated memory pointed to by "mem"      */
   uint32_t              type;
   int64_t               pts;       /* presentation time stamp, used for a/v sync            */
   int64_t               disc_off;  /* discontinuity offset                                  */
@@ -443,10 +443,12 @@ struct fifo_buffer_s
   /* the same as put but insert at the head of the fifo */
   void (*insert) (fifo_buffer_t *fifo, buf_element_t *buf);
 
+  void (*register_put_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *), void *cb_data);
+  void (*register_get_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *), void *cb_data);
+
   /*
    * private variables for buffer pool management
    */
-
   buf_element_t   *buffer_pool_top;    /* a stack actually */
   pthread_mutex_t  buffer_pool_mutex;
   pthread_cond_t   buffer_pool_cond_not_empty;
@@ -454,6 +456,10 @@ struct fifo_buffer_s
   int		   buffer_pool_capacity;
   int		   buffer_pool_buf_size;
   void            *buffer_pool_base; /*used to free mem chunk */
+  void           (*put_cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
+  void           (*get_cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
+  void            *put_cb_data;
+  void            *get_cb_data;
 } ;
 
 /*

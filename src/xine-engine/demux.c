@@ -160,7 +160,7 @@ void xine_demux_control_start( xine_stream_t *stream ) {
 void xine_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
 
   buf_element_t *buf;
-      
+
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_END;
   buf->decoder_flags = flags;
@@ -174,15 +174,32 @@ void xine_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
   }
 }
 
+void xine_demux_control_nop( xine_stream_t *stream, uint32_t flags ) {
+
+  buf_element_t *buf;
+
+  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
+  buf->type = BUF_CONTROL_NOP;
+  buf->decoder_flags = flags;
+  stream->video_fifo->put (stream->video_fifo, buf);
+
+  if (stream->audio_fifo) {
+    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
+    buf->type = BUF_CONTROL_NOP;
+    buf->decoder_flags = flags;
+    stream->audio_fifo->put (stream->audio_fifo, buf);
+  }
+}
+
 static void *demux_loop (void *stream_gen) {
 
   xine_stream_t *stream = (xine_stream_t *)stream_gen;
   int status;
-  
+
 #ifdef LOG
   printf ("demux: loop starting...\n");
 #endif
-    
+
   pthread_mutex_lock( &stream->demux_lock );
 
   /* do-while needed to seek after demux finished */
@@ -208,13 +225,9 @@ static void *demux_loop (void *stream_gen) {
 #ifdef LOG
     printf ("demux: main demuxer loop finished (status: %d)\n", status);
 #endif
-    /* Avoid deadlock with net_buf_ctrl */
-    stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_NORMAL);
-    stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
-    if (stream->audio_out)
-      stream->audio_out->set_property(stream->audio_out,AO_PROP_PAUSED,0);
 
     /* wait before sending end buffers: user might want to do a new seek */
+    xine_demux_control_nop(stream, BUF_FLAG_END_STREAM);
     while(stream->demux_thread_running &&
           ((!stream->video_fifo || stream->video_fifo->size(stream->video_fifo)) ||
            (stream->audio_out

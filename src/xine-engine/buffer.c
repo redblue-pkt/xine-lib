@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -12,12 +12,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.26 2003/03/03 07:37:23 esnel Exp $
+ * $Id: buffer.c,v 1.27 2003/03/30 15:19:46 tmattern Exp $
  *
  *
  * contents:
@@ -65,7 +65,7 @@ static void buffer_pool_free (buf_element_t *element) {
  */
 
 static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
-  
+
   buf_element_t *buf;
 
   pthread_mutex_lock (&this->buffer_pool_mutex);
@@ -109,9 +109,9 @@ static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
     this->buffer_pool_num_free--;
 
   } else {
-    
+
     buf = NULL;
-    
+
   }
 
   pthread_mutex_unlock (&this->buffer_pool_mutex);
@@ -132,12 +132,15 @@ static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
  * append buffer element to fifo buffer
  */
 static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
-  
+
   pthread_mutex_lock (&fifo->mutex);
 
-  if (fifo->last) 
+  if (fifo->put_cb)
+    fifo->put_cb(fifo, element, fifo->put_cb_data);
+
+  if (fifo->last)
     fifo->last->next = element;
-  else 
+  else
     fifo->first = element;
 
   fifo->last = element;
@@ -154,15 +157,15 @@ static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
  * insert buffer element to fifo buffer (demuxers MUST NOT call this one)
  */
 static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
-  
+
   pthread_mutex_lock (&fifo->mutex);
 
   element->next = fifo->first;
   fifo->first = element;
-  
+
   if( !fifo->last )
     fifo->last = element;
-    
+
   fifo->fifo_size++;
   fifo->fifo_data_size += element->size;
 
@@ -193,6 +196,9 @@ static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
 
   fifo->fifo_size--;
   fifo->fifo_data_size -= buf->size;
+
+  if (fifo->get_cb)
+    fifo->get_cb(fifo, buf, fifo->get_cb_data);
 
   pthread_mutex_unlock (&fifo->mutex);
 
@@ -227,6 +233,7 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
 	fifo->last = prev;
 
       fifo->fifo_size--;
+      fifo->fifo_data_size -= buf->size;
 
       buf->free_buffer(buf);
     } else
@@ -318,6 +325,34 @@ static void fifo_buffer_dispose (fifo_buffer_t *this) {
 }
 
 /*
+ * Register a "put" callback
+ */
+static void fifo_register_put_cb (fifo_buffer_t *this,
+                                  void (*cb)(fifo_buffer_t *this,
+                                             buf_element_t *buf,
+                                             void *data_cb),
+                                  void *data_cb) {
+  pthread_mutex_lock(&this->mutex);
+  this->put_cb = cb;
+  this->put_cb_data = data_cb;
+  pthread_mutex_unlock(&this->mutex);
+}
+
+/*
+ * Register a "get" callback
+ */
+static void fifo_register_get_cb (fifo_buffer_t *this,
+                                  void (*cb)(fifo_buffer_t *this,
+                                             buf_element_t *buf,
+                                             void *data_cb),
+                                  void *data_cb) {
+  pthread_mutex_lock(&this->mutex);
+  this->get_cb = cb;
+  this->get_cb_data = data_cb;
+  pthread_mutex_unlock(&this->mutex);
+}
+
+/*
  * allocate and initialize new (empty) fifo buffer
  */
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
@@ -340,7 +375,8 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->num_free        = fifo_buffer_num_free;
   this->data_size	= fifo_buffer_data_size;
   this->dispose		= fifo_buffer_dispose;
-
+  this->register_get_cb = fifo_register_get_cb;
+  this->register_put_cb = fifo_register_put_cb;
   pthread_mutex_init (&this->mutex, NULL);
   pthread_cond_init (&this->not_empty, NULL);
 
@@ -384,7 +420,10 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->buffer_pool_buf_size  = buf_size;
   this->buffer_pool_alloc     = buffer_pool_alloc;
   this->buffer_pool_try_alloc = buffer_pool_try_alloc;
-
+  this->get_cb                = NULL;
+  this->put_cb                = NULL;
+  this->get_cb_data           = NULL;
+  this->put_cb_data           = NULL;
   return this;
 }
 

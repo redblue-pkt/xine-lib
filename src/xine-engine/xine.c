@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.239 2003/03/27 18:57:10 miguelfreitas Exp $
+ * $Id: xine.c,v 1.240 2003/03/30 15:19:46 tmattern Exp $
  *
  * top-level xine functions
  *
@@ -782,11 +782,11 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	free(config_entry);
       }
     }
-    
+
   }
 
   if (!stream->demux_plugin) {
-  
+
     /*
      * find a demux plugin
      */
@@ -796,6 +796,10 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 
       stream->status = XINE_STATUS_STOP;
+
+      /* force the engine to unregister fifo callbacks */
+      xine_demux_control_nop(stream, BUF_FLAG_END_STREAM);
+
       return 0;
     }
 
@@ -807,7 +811,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
   }
 
-  xine_log (stream->xine, XINE_LOG_MSG, 
+  xine_log (stream->xine, XINE_LOG_MSG,
 	    "xine: found demuxer plugin: %s\n",
 	    stream->demux_plugin->demux_class->get_description(stream->demux_plugin->demux_class));
 
@@ -820,7 +824,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
    */
   stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
   stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
-  
+
   /*
    * send and decode headers
    */
@@ -834,7 +838,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     stream->demux_plugin->dispose (stream->demux_plugin);
     stream->demux_plugin = NULL;
 
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
       printf ("xine: demux disposed\n");
 
     stream->input_plugin->dispose (stream->input_plugin);
@@ -846,15 +850,15 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     /*if (stream->audio_out)
       stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
     */
-    
+
     stream->status = XINE_STATUS_STOP;
 
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
       printf ("xine: return from xine_open_internal\n");
 
     return 0;
   }
-  
+
   xine_demux_control_headers_done (stream);
 
 #ifdef LOG
@@ -874,7 +878,7 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
 #endif
 
   ret = xine_open_internal (stream, mrl);
-  
+
   pthread_mutex_unlock (&stream->frontend_lock);
 
   return ret;
@@ -887,10 +891,10 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   off_t      pos, len;
   int        demux_status;
 
-  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
     printf ("xine: xine_play\n");
 
-  if (stream->xine->clock->speed != XINE_SPEED_NORMAL) 
+  if (stream->xine->clock->speed != XINE_SPEED_NORMAL)
     xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
 
   /* Wait until the first frame produced by the previous
@@ -917,21 +921,21 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     len = stream->current_extra_info->input_length;
     pthread_mutex_unlock( &stream->current_extra_info_lock );
     /* FIXME: do we need to protect concurrent access to input plugin here? */
-    if ((len == 0) && stream->input_plugin) 
+    if ((len == 0) && stream->input_plugin)
       len = stream->input_plugin->get_length (stream->input_plugin);
     share = (double) start_pos / 65535;
     pos = (off_t) (share * len) ;
   } else
     pos = 0;
-  
+
   if (!stream->demux_plugin) {
-    xine_log (stream->xine, XINE_LOG_MSG, 
+    xine_log (stream->xine, XINE_LOG_MSG,
 	      _("xine_play: no demux available\n"));
     stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
-    
+
     return 0;
-  }    
-  
+  }
+
   stream->demux_action_pending = 1;
   pthread_mutex_lock( &stream->demux_lock );
   demux_status = stream->demux_plugin->seek (stream->demux_plugin,
@@ -940,18 +944,18 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   pthread_mutex_unlock( &stream->demux_lock );
 
   if (demux_status != DEMUX_OK) {
-    xine_log (stream->xine, XINE_LOG_MSG, 
+    xine_log (stream->xine, XINE_LOG_MSG,
 	      _("xine_play: demux failed to start\n"));
-    
+
     stream->err = XINE_ERROR_DEMUX_FAILED;
-    
+
     return 0;
-    
+
   } else {
     xine_demux_start_thread( stream );
     stream->status = XINE_STATUS_PLAY;
   }
-  
+
   pthread_mutex_lock (&stream->first_frame_lock);
   stream->first_frame_flag = 1;
   pthread_mutex_unlock (&stream->first_frame_lock);
@@ -959,11 +963,11 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   extra_info_reset( stream->current_extra_info );
   pthread_mutex_unlock( &stream->current_extra_info_lock );
 
-  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
     printf ("xine: xine_play_internal ...done\n");
 
   return 1;
-}             
+}
 
 int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
 
@@ -1004,7 +1008,7 @@ int xine_eject (xine_stream_t *stream) {
 
 void xine_dispose (xine_stream_t *stream) {
 
-  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
     printf ("xine: xine_dispose\n");
 
   stream->status = XINE_STATUS_QUIT;
@@ -1315,7 +1319,7 @@ static int xine_get_stream_length (xine_stream_t *stream) {
   return 0;
 }
 
-int xine_get_pos_length (xine_stream_t *stream, int *pos_stream, 
+int xine_get_pos_length (xine_stream_t *stream, int *pos_stream,
 			 int *pos_time, int *length_time) {
   
   int pos = xine_get_current_position (stream); /* force updating extra_info */
