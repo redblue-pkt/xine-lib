@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.134 2004/12/08 18:19:18 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.135 2004/12/10 09:52:23 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -76,6 +76,7 @@ extern "C" {
  * compatible. However, removal is likely to occur as soon as possible.
  */
 /* #define XINE_DISABLE_DEPRECATED_FEATURES */
+
 
 /*********************************************************************
  * xine opaque data types                                            *
@@ -305,7 +306,7 @@ void xine_set_param (xine_stream_t *stream, int param, int value);
 int  xine_get_param (xine_stream_t *stream, int param);
 
 /*
- * xine engine parameters
+ * xine stream parameters
  */
 #define XINE_PARAM_SPEED                   1 /* see below                   */
 #define XINE_PARAM_AV_OFFSET               2 /* unit: 1/90000 sec           */
