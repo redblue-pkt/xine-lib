@@ -536,6 +536,7 @@ void nbc_close (nbc_t *this) {
   this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 
   pthread_mutex_unlock(&this->mutex);
+  pthread_mutex_destroy(&this->mutex);
   
   free (this);
   xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close: done\n");
