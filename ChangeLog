@@ -1,3 +1,4 @@
+  * catch SIGSEGV during libdivxdecore version probing. see README.divx4.
   
 xine (0.9.3) unstable; urgency=low
 
