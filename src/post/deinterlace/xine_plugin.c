@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.18 2003/10/23 20:12:34 mroi Exp $
+ * $Id: xine_plugin.c,v 1.19 2003/10/29 23:36:18 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -150,7 +150,8 @@ static int set_parameters (xine_post_t *this_gen, void *param_gen) {
 
   pthread_mutex_lock (&this->lock);
 
-  if( this->enabled != param->enabled )
+  if( this->enabled != param->enabled ||
+      this->cheap_mode != param->cheap_mode )
     _flush_frames(this);
 
   this->cur_method = param->method;
@@ -476,16 +477,8 @@ static int deinterlace_set_property(xine_video_port_t *port_gen, int property, i
   if( property == XINE_PARAM_VO_DEINTERLACE && this->cur_method ) {
     pthread_mutex_lock (&this->lock);
 
-    if( this->enabled != value ) {
-      int i;
-    
-      for( i = 0; i < NUM_RECENT_FRAMES; i++ ) {
-        if( this->recent_frame[i] ) {
-          this->recent_frame[i]->free(this->recent_frame[i]);
-          this->recent_frame[i] = NULL;
-        }
-      }
-    }
+    if( this->enabled != value )
+      _flush_frames(this);
 
     this->enabled = value;
 
@@ -531,7 +524,8 @@ static vo_frame_t *deinterlace_get_frame(xine_video_port_t *port_gen, uint32_t w
 
   /* do not intercept if not enabled or not interlaced */
   if( this->enabled && this->cur_method &&
-      (flags & VO_INTERLACED_FLAG) ) {
+      (flags & VO_INTERLACED_FLAG) && 
+      (format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2) ) {
     post_intercept_video_frame(frame, port);
     /* replace with our own draw function */
     frame->draw = deinterlace_draw;
@@ -635,7 +629,8 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
     for(i = 0; i < NUM_RECENT_FRAMES; i++ ) {
       if( this->recent_frame[i] && 
           (this->recent_frame[i]->width != frame->width || 
-           this->recent_frame[i]->height != frame->height) ) { 
+           this->recent_frame[i]->height != frame->height || 
+           this->recent_frame[i]->format != yuy2_frame->format ) ) { 
         this->recent_frame[i]->free(this->recent_frame[i]);
         this->recent_frame[i] = NULL;
       }
