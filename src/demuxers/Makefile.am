@@ -35,6 +35,7 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) $(image_module) \
 	xineplug_dmx_mpeg_block.la \
 	xineplug_dmx_mpeg.la \
 	xineplug_dmx_mpeg_elem.la \
+	xineplug_dmx_mpeg_pes.la \
 	xineplug_dmx_qt.la \
 	xineplug_dmx_fli.la \
 	xineplug_dmx_yuv4mpeg2.la \
@@ -65,11 +66,9 @@ xineplug_dmx_mpeg_elem_la_SOURCES = demux_elem.c
 xineplug_dmx_mpeg_elem_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-##remove me on pes reactivation
-EXTRA_DIST = demux_pes.c
-#xineplug_dmx_mpeg_pes_la_SOURCES = demux_pes.c
-#xineplug_dmx_mpeg_pes_la_LIBADD = $(XINE_LIB)
-#xineplug_dmx_mpeg_pes_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_dmx_mpeg_pes_la_SOURCES = demux_mpeg_pes.c
+xineplug_dmx_mpeg_pes_la_LIBADD = $(XINE_LIB)
+xineplug_dmx_mpeg_pes_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
 xineplug_dmx_mpeg_ts_la_LIBADD = $(XINE_LIB)
