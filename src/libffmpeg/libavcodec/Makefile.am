@@ -4,7 +4,7 @@
 
 #CFLAGS = -D_FILE_OFFSET_BITS=64 @GLOBAL_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
-CFLAGS = @CFLAGS@ -D_FILE_OFFSET_BITS=64 -Wall -DXINE_COMPILE -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+CFLAGS = @GLOBAL_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -27,7 +27,7 @@ noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h   dsputil_mmx_avg.h\
 		 mpeg12data.h
 
 debug:
-	@$(MAKE) CFLAGS="-D_FILE_OFFSET_BITS=64 -Wall -DDEBUG -O -finline-functions -g -DXINE_COMPILE -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
+	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
