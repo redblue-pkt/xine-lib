@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.82 2003/05/08 21:14:44 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.83 2003/05/09 17:57:14 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1243,6 +1243,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_PVR_REPORT_NAME      202
 #define XINE_EVENT_PVR_REALTIME         203
 #define XINE_EVENT_PVR_PAUSE            204
+#define XINE_EVENT_SET_MPEG_DATA        205
 
 /*
  * xine event struct
@@ -1376,15 +1377,39 @@ typedef struct {
   int frame_width;              /* scaled frame width */
   int frame_height;             /* scaled frame height */
 
+  /* let some spare space so we can add new fields without breaking
+   * binary api compatibility. note that this struct still marked as
+   * "experimental feature" so frontends should not be using it anyway.
+   */
+  uint32_t spare[20];
+
+  /* used by pvr plugin */
+  int32_t session_id;           /* -1 stops pvr recording */
+     
+} xine_set_v4l2_data_t;
+
+/*
+ * configuration options for plugins that can do a kind of mpeg encoding
+ * note: highly experimental api :)
+ */
+typedef struct {
+
   /* mpeg2 parameters */
   int bitrate_vbr;              /* 1 = vbr, 0 = cbr */
   int bitrate_mean;             /* mean (target) bitrate in kbps*/
   int bitrate_peak;             /* peak (max) bitrate in kbps */
   int gop_size;                 /* GOP size in frames */
+  int gop_closure;              /* open/closed GOP */
+  int b_frames;                 /* number of B frames to use */
+  int aspect_ratio;             /* XINE_VO_ASPECT_xxx */
   
-  /* used by pvr plugin */
-  int32_t session_id;           /* -1 stops pvr recording */
-} xine_set_v4l2_data_t;
+  /* let some spare space so we can add new fields without breaking
+   * binary api compatibility. note that this struct still marked as
+   * "experimental feature" so frontends should not be using it anyway.
+   */
+  uint32_t spare[20];
+
+} xine_set_mpeg_data_t;
 
 /* 
  * ask pvr to save (ie. do not discard) the current session

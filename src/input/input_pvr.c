@@ -30,11 +30,7 @@
  *
  * requires:
  *   - audio.av_sync_method=resample
- *   - ivtv driver must be set to send dvd-like mpeg2 stream:
- *     ivtv-api.c:
- *      data[0] = 10;
- *      x = ivtv_api(itv->enc_mbox, &itv->enc_sem_w, IVTV_API_ASSIGN_STREAM_TYPE,
- *                   &result,1, &data[0]);
+ *   - ivtv driver (09 May 2003 cvs is known to work)
  *
  * MRL: 
  *   pvr:/<prefix_to_tmp_files>!<prefix_to_saved_files>!<max_page_age>
@@ -42,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.20 2003/05/08 21:13:56 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.21 2003/05/09 17:57:15 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -136,6 +132,39 @@
 /*
 #define SCRLOG 1
 */
+
+#ifdef USE_V4L2
+/* external API borrowed from ivtv.h */
+#define IVTV_IOC_G_CODEC	0xFFEE7703
+#define IVTV_IOC_S_CODEC	0xFFEE7704
+
+/* Stream types */
+#define IVTV_STREAM_PS		0
+#define IVTV_STREAM_TS		1
+#define IVTV_STREAM_MPEG1	2
+#define IVTV_STREAM_PES_AV	3
+#define IVTV_STREAM_PES_V	5
+#define IVTV_STREAM_PES_A	7
+#define IVTV_STREAM_DVD		10
+
+/* For use with IVTV_IOC_G_CODEC and IVTV_IOC_S_CODEC */
+struct ivtv_ioctl_codec {
+	uint32_t aspect;
+	uint32_t audio;
+	uint32_t bframes;
+	uint32_t bitrate;
+	uint32_t bitrate_peak;
+	uint32_t dnr_mode;
+	uint32_t dnr_spatial;
+	uint32_t dnr_temporal;
+	uint32_t dnr_type;
+	uint32_t framerate;
+	uint32_t framespergop;
+	uint32_t gop_closure;
+	uint32_t pulldown;
+	uint32_t stream_type;
+};
+#endif
 
 typedef struct pvrscr_s pvrscr_t;
 
@@ -1298,7 +1327,10 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
   int                  dev_fd;
   int64_t              time;
   int                  err;
-  
+#ifdef USE_V4L2
+  struct ivtv_ioctl_codec codec;
+#endif
+    
   aux = &this->mrl[4];
 
   dev_fd = open (PVR_DEVICE, O_RDWR);
@@ -1306,7 +1338,21 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
     printf("input_pvr: error opening device %s\n", PVR_DEVICE );
     return 0;
   }
-  
+
+#ifdef USE_V4L2
+  if (ioctl(dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
+    printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
+  } else {
+    codec.bitrate	= 6000000;
+    codec.bitrate_peak	= 9000000;
+    codec.stream_type	= IVTV_STREAM_DVD;
+
+    if (ioctl(dev_fd, IVTV_IOC_S_CODEC, &codec) < 0) {
+      printf("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n");
+    }
+  }
+#endif
+    
   this->dev_fd       = dev_fd;
   
   /* register our own scr provider */   
