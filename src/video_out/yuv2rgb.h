@@ -72,6 +72,9 @@ struct yuv2rgb_s {
 
   uint8_t      *fast_rgb;
   scale_line_func_t scale_line;
+  
+  int          gamma;
+  int          entry_size;
 } ;
 
 
@@ -88,10 +91,18 @@ int yuv2rgb_setup (yuv2rgb_t *this,
 		   int dest_width, int dest_height,
 		   int rgb_stride);
 
+/* adjust gamma (-100 to 100 looks fine) */
+void yuv2rgb_set_gamma (yuv2rgb_t *this, int gamma);
+
+/* get gamma value */
+int yuv2rgb_get_gamma (yuv2rgb_t *this);
+                   
+                   
 /*
  * internal stuff below this line
  */
 
+void mmx_yuv2rgb_set_gamma(int gamma);
 void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode, int swapped);
 void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode, int swapped);
 void yuv2rgb_init_mlib (yuv2rgb_t *this, int mode, int swapped);

@@ -49,6 +49,27 @@ do {				\
 	movq_r2m (src, dest);	\
 } while (0)
 
+static mmx_t mmx_subYw = {0x1010101010101010};
+static mmx_t mmx_addYw = {0x0000000000000000};
+
+void mmx_yuv2rgb_set_gamma(int gamma) 
+{
+int a,s,i;
+
+  if( gamma <= 16 ) {
+    a = 0;
+    s = 16 - gamma;
+  } else {
+    a = gamma - 16;
+    s = 0;
+  }
+  
+  for( i = 0; i < 8; i++ ) {
+    *((unsigned char *)&mmx_subYw + i) = s;
+    *((unsigned char *)&mmx_addYw + i) = a;
+  }
+}
+
 static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     static mmx_t mmx_80w = {0x0080008000800080};
@@ -56,15 +77,14 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
     static mmx_t mmx_U_blue = {0x4093409340934093};
     static mmx_t mmx_V_red = {0x3312331233123312};
     static mmx_t mmx_V_green = {0xe5fce5fce5fce5fc};
-    static mmx_t mmx_10w = {0x1010101010101010};
     static mmx_t mmx_00ffw = {0x00ff00ff00ff00ff};
     static mmx_t mmx_Y_coeff = {0x253f253f253f253f};
 
     movq_m2r (*py, mm6);		// mm6 = Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0
     pxor_r2r (mm4, mm4);		// mm4 = 0
 
-    psubusb_m2r (mmx_10w, mm6);		// Y -= 16
-
+    psubusb_m2r (mmx_subYw, mm6);	// Y -= 16
+    paddusb_m2r (mmx_addYw, mm6);
 
     movd_m2r (*pu, mm0);		// mm0 = 00 00 00 00 u3 u2 u1 u0
     movq_r2r (mm6, mm7);		// mm7 = Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0

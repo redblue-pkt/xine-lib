@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.48 2001/10/22 00:52:10 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.49 2001/10/29 02:15:22 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -346,7 +346,7 @@ static void dispose_ximage (xshm_driver_t *this,
  */
 
 static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2;
+  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
 }
 
 static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
@@ -843,6 +843,8 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
 
   if ( property == VO_PROP_ASPECT_RATIO) {
     return this->user_ratio ;
+  } else if ( property == VO_PROP_BRIGHTNESS) {
+    return yuv2rgb_get_gamma(this->yuv2rgb);
   } else {
     printf ("video_out_xshm: tried to get unsupported property %d\n", property);
   }
@@ -880,6 +882,10 @@ static int xshm_set_property (vo_driver_t *this_gen,
     this->gui_changed |= GUI_ASPECT_CHANGED;
     printf("video_out_xshm: aspect ratio changed to %s\n",
 	   aspect_ratio_name(value));
+  } else if ( property == VO_PROP_BRIGHTNESS) {
+    yuv2rgb_set_gamma(this->yuv2rgb,value);
+    this->config->set_int (this->config, "xshm_gamma", value);
+    printf("video_out_xshm: gamma changed to %d\n",value);
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
   }
@@ -891,9 +897,13 @@ static void xshm_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   /* xshm_driver_t *this = (xshm_driver_t *) this_gen;  */
-
-  *min = 0;
-  *max = 0;
+  if ( property == VO_PROP_BRIGHTNESS) {
+    *min = -100;
+    *max = +100;
+  } else {
+    *min = 0;
+    *max = 0;
+  }
 }
 
 
@@ -1330,6 +1340,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   }
 
   this->yuv2rgb = yuv2rgb_init (mode, swapped, this->fast_rgb);
+  yuv2rgb_set_gamma(this->yuv2rgb, config->lookup_int (config, "xshm_gamma", 0));
 
   return &this->vo_driver;
 }

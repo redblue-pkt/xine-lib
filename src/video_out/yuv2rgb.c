@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.25 2001/10/21 00:18:22 miguelfreitas Exp $
+ * $Id: yuv2rgb.c,v 1.26 2001/10/29 02:15:22 miguelfreitas Exp $
  */
 
 #include "config.h"
@@ -2251,7 +2251,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode, int swapped)
     fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
     exit (1);
   }
-
+  
   for (i = 0; i < 256; i++) {
     this->table_rV[i] = (((uint8_t *) table_r) +
 			 entry_size * div_round (crv * (i-128), 76309));
@@ -2261,6 +2261,8 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode, int swapped)
     this->table_bU[i] = (((uint8_t *)table_b) +
 			 entry_size * div_round (cbu * (i-128), 76309));
   }
+  this->gamma = 0;
+  this->entry_size = entry_size;
 }
 
 static uint32_t yuv2rgb_single_pixel_32 (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
@@ -3015,3 +3017,22 @@ yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap) {
   return this;
 }
 
+void yuv2rgb_set_gamma (yuv2rgb_t *this, int gamma)
+{
+  int i;
+  
+  for (i = 0; i < 256; i++) {
+    (uint8_t *)this->table_rV[i] += this->entry_size*(gamma - this->gamma);
+    (uint8_t *)this->table_gU[i] += this->entry_size*(gamma - this->gamma);
+    (uint8_t *)this->table_bU[i] += this->entry_size*(gamma - this->gamma);
+  }
+#ifdef ARCH_X86
+  mmx_yuv2rgb_set_gamma(gamma);
+#endif  
+  this->gamma = gamma;
+}
+
+int yuv2rgb_get_gamma (yuv2rgb_t *this)
+{
+  return this->gamma;
+}
