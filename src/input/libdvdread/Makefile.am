@@ -10,6 +10,7 @@ libdvdread_la_SOURCES = \
 	dvd_udf.c \
 	ifo_read.c \
         ifo_print.c \
+	md5.c \
 	nav_read.c \
 	nav_print.c
 
@@ -23,6 +24,7 @@ noinst_HEADERS = \
 	ifo_types.h \
 	ifo_read.h \
         ifo_print.h \
+	md5.h \
 	nav_types.h \
 	nav_read.h \
 	nav_print.h
