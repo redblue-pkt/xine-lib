@@ -1,21 +1,3 @@
---- common.h.old	2004-01-10 22:45:44.000000000 +0100
-+++ common.h	2004-01-10 22:46:20.000000000 +0100
-@@ -290,6 +290,7 @@
-   }
- 
- 
-+#ifndef HAVE_LRINTF
-   #ifdef _WIN32
-     #define HAS_LRINTF
-     static INLINE int lrintf(float f)
-@@ -316,6 +317,7 @@
-         return i;
-     }
-   #endif
-+#endif
- 
- 
-   #ifdef __ICL /* only Intel C compiler has fmath ??? */
 diff -u -p -r1.1.1.1 common.h
 --- common.h	26 Jul 2004 15:27:56 -0000	1.1.1.1
 +++ common.h	30 Jul 2004 00:08:55 -0000
@@ -86,6 +68,22 @@ diff -u -p -r1.1.1.1 common.h
  #endif
  
  #ifdef WORDS_BIGENDIAN
+@@ -292,6 +290,7 @@
+   }
+ 
+ 
++#ifndef HAVE_LRINTF
+   #ifdef _WIN32
+     #define HAS_LRINTF
+     static INLINE int lrintf(float f)
+@@ -318,6 +317,7 @@
+         return i;
+     }
+   #endif
++#endif
+ 
+ 
+   #ifdef __ICL /* only Intel C compiler has fmath ??? */
 diff -u -p -r1.1.1.1 bits.h
 --- bits.h	26 Jul 2004 15:27:56 -0000	1.1.1.1
 +++ bits.h	30 Jul 2004 09:35:55 -0000
