@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.8 2002/03/26 19:43:42 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.9 2002/04/26 17:19:04 jkeil Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -430,8 +430,7 @@ static void opengl_compute_ideal_size (opengl_driver_t *this,
 	case 0:                             /* forbidden -> 4:3 */
 	    printf ("video_out_opengl: invalid ratio, using 4:3\n");
 	default:
-	    printf ("video_out_opengl: unknown aspect ratio (%d) in stream => using 
-4:3\n",
+	    printf ("video_out_opengl: unknown aspect ratio (%d) in stream => using 4:3\n",
 		    ratio_code);
 	case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
 	    desired_ratio = 4.0 / 3.0;
