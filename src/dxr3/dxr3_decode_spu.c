@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.30 2003/01/13 18:09:54 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.31 2003/02/25 14:33:40 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -435,8 +435,6 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     uint32_t vpts32;
     
     vpts = this->stream->metronom->got_spu_packet(this->stream->metronom, buf->pts);
-    /* estimate with current time, when metronom doesn't know */
-    if (!vpts) vpts = this->stream->xine->clock->get_current_time(this->stream->xine->clock);
 #if LOG_PTS
     printf("dxr3_decode_spu: pts = %lld vpts = %lld\n", buf->pts, vpts);
 #endif
