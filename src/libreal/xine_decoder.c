@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.69 2004/04/26 17:50:07 mroi Exp $
+ * $Id: xine_decoder.c,v 1.70 2004/05/13 21:15:33 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -184,16 +184,16 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   else
     this->ratio  = (double)this->width / (double)this->height;
 
-  if(buf->decoder_flags & BUF_FLAG_FRAMERATE)
-    this->duration = buf->decoder_info[0];
-  else {
-    this->fps      = (double) BE_16(&buf->content[22]) + 
-                     ((double) BE_16(&buf->content[24]) / 65536.0);
-    this->duration = 90000.0 / this->fps;
-  }
+  /* While the framerate is stored in the header it sometimes doesn't bear
+   * much resemblence to the actual frequency of frames in the file. Hence
+   * it's better to just let the engine estimate the frame duration for us */ 
+#if 0
+  this->fps      = (double) BE_16(&buf->content[22]) + 
+                   ((double) BE_16(&buf->content[24]) / 65536.0);
+  this->duration = 90000.0 / this->fps;
+#endif
   
   lprintf("this->ratio=%d\n", this->ratio);
-  lprintf("this->duration=%d\n", this->duration);
   
   lprintf ("init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
 	   "this->width=%d(0x%x), this->height=%d(0x%x)\n",
@@ -274,7 +274,16 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     /* real_find_sequence_header (&this->real, buf->content, buf->content + buf->size);*/
-  } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    return;
+  }
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->duration = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, 
+                         this->duration);
+  }
+
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
     this->decoder_ok = init_codec (this, buf);
     if( !this->decoder_ok )
@@ -282,15 +291,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
   } else if (this->decoder_ok && this->context) {
   
-    /* Frame duration can be passed from demuxer to override value in
-     * real video header */
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
-      this->duration = buf->decoder_info[0];
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, 
-                         this->duration);
-    }
-
     /* Each frame starts with BUF_FLAG_FRAME_START and ends with
      * BUF_FLAG_FRAME_END.
      * The last buffer contains the chunk offset table.
@@ -372,7 +372,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
   #endif
 
         /* Sometimes the stream contains video of a different size
-         * to that specified in the realmedia file */
+         * to that specified in the realmedia header */
         if(transform_out[0] && ((transform_out[3] != this->width) ||
                                 (transform_out[4] != this->height))) {
           this->width  = transform_out[3];
@@ -392,7 +392,9 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
                                                   XINE_IMGFMT_YV12,
                                                   VO_BOTH_FIELDS);
 
-        img->pts = this->pts;
+        /* the binary codec seems to correct the strange timestamps (for b-frames?)
+         * so use the one it returns */
+        img->pts = transform_out[2] * 90;
         img->duration  = this->duration;
         _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
         img->bad_frame = 0;
