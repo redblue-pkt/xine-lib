@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.4 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: x11osd.c,v 1.5 2003/12/06 14:25:24 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -79,10 +79,10 @@ x11osd_expose (x11osd * osd)
 {
   assert (osd);
 
-  if( !osd->clean ) {
+  XShapeCombineMask (osd->display, osd->window, ShapeBounding, 0, 0,
+                     osd->mask_bitmap, ShapeSet);
 
-    XShapeCombineMask (osd->display, osd->window, ShapeBounding, 0, 0,
-                       osd->mask_bitmap, ShapeSet);
+  if( !osd->clean ) {
 
     if( !osd->mapped )
       XMapRaised (osd->display, osd->window);
