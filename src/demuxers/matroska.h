@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.1 2004/01/05 00:40:54 tmattern Exp $
+ * $Id: matroska.h,v 1.2 2004/01/05 20:52:31 miguelfreitas Exp $
  *
  */
 #ifndef MATROSKA_H
@@ -211,7 +211,8 @@ typedef struct {
 
   matroska_video_track_t  *video_track;
   matroska_audio_track_t  *audio_track;
-  
+
+  int64_t                  last_pts;  
 } matroska_track_t;
 
 /* IDs in the tags master */
