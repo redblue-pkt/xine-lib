@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-05-23 14:09+0200\n"
+"POT-Creation-Date: 2002-06-01 16:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,99 +14,91 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/demuxers/demux_ts.c:319
+#: src/demuxers/demux_ts.c:346
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:325
+#: src/demuxers/demux_ts.c:352
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:335
+#: src/demuxers/demux_ts.c:362
 #, c-format
 msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:399
+#: src/demuxers/demux_ts.c:437
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:535
+#: src/demuxers/demux_ts.c:566
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:548
+#: src/demuxers/demux_ts.c:575
 #, c-format
-msgid "demux_ts: dropped input packet cc: %d expected: %d\n"
+msgid "demux_ts: unexpected cc %d (expected %d)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:562
-msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
+#: src/demuxers/demux_ts.c:598
+msgid "demux_ts: corrupted pes encountered\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:570
-msgid "demux_ts: broken pes encountered\n"
-msgstr ""
-
-#: src/demuxers/demux_ts.c:671
+#: src/demuxers/demux_ts.c:700
 msgid "demux error! PMT with invalid pointer\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:776
+#: src/demuxers/demux_ts.c:804
 #, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:791
+#: src/demuxers/demux_ts.c:819
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:808
+#: src/demuxers/demux_ts.c:836
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:927
-msgid "RE-Sync failed\n"
-msgstr ""
-
-#: src/demuxers/demux_ts.c:1075
+#: src/demuxers/demux_ts.c:1195
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1080
+#: src/demuxers/demux_ts.c:1200
 msgid "demux error! transport error\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1128
+#: src/demuxers/demux_ts.c:1263
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1313
+#: src/demuxers/demux_ts.c:1476
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1417
+#: src/demuxers/demux_ts.c:1587
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1491
+#: src/demuxers/demux_ts.c:1687
 #, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
-"          this means there's a version mismatch between xine and "
-"this           demuxer plugin.\n"
-"Installing current demux plugins should help.\n"
+"          This means there's a version mismatch between xine and this "
+"demuxer plugin.\n"
+"          Installing current demux plugins should help.\n"
 msgstr ""
 
 #: src/demuxers/demux_avi.c:659
@@ -838,43 +830,43 @@ msgstr ""
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:292
+#: src/xine-engine/xine.c:295
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:400
+#: src/xine-engine/xine.c:403
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:411
+#: src/xine-engine/xine.c:414
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:421
+#: src/xine-engine/xine.c:424
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:428
+#: src/xine-engine/xine.c:431
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:456
+#: src/xine-engine/xine.c:459
 msgid "xine_play: demuxer failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1004
+#: src/xine-engine/xine.c:1007
 msgid "stream format"
 msgstr ""
 
-#: src/xine-engine/xine.c:1005
+#: src/xine-engine/xine.c:1008
 msgid "messages"
 msgstr ""
 
-#: src/xine-engine/xine.c:1006
+#: src/xine-engine/xine.c:1009
 msgid "plugin"
 msgstr ""
 

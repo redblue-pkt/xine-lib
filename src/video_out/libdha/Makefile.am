@@ -11,18 +11,24 @@ endif
 noinst_LTLIBRARIES = $(dha_lib)
 
 libdha_la_SOURCES = libdha.c mtrr.c pci.c pci_names.c mmi.c
-libdha_la_DEPENDENCIES = pci_names.c
 
 EXTRA_PROGRAMS = test
 
 test_SOURCES = test.c
 test_LDADD = $(top_builddir)/src/video_out/libdha/libdha.la
 
-noinst_HEADERS = AsmMacros.h  libdha.h
+noinst_HEADERS = AsmMacros.h libdha.h
 
 ## for OpenBSD LIBS += -li386
-pci_names.c:
-	$(AWK) -f pci_db2c.awk oth/pci.db
+
+## We have to create some files, on the fly, this is why this rule is needed.
+pci_names.lo:
+	$(AWK) -f $(top_srcdir)/src/video_out/libdha/pci_db2c.awk \
+	  $(top_srcdir)/src/video_out/libdha/oth/pci.db
+	source='$*.c' object='$@' libtool=yes \
+	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' \
+	$(CCDEPMODE) $(depcomp) \
+	$(LTCOMPILE) -c -o $@ `test -f $*.c || echo '$(srcdir)/'`$*.c
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @STATIC@ -DXINE_COMPILE"

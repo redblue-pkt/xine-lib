@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-05-02 16:47+0100\n"
+"POT-Creation-Date: 2002-06-01 16:23+0200\n"
 "PO-Revision-Date: 2002-02-15 15:08+0200\n"
 "Last-Translator: Tomá¹ Kovár <tomask@mac.com>\n"
 "Language-Team: Slovak <ski18n@lists.isternet.sk>\n"
@@ -14,18 +14,18 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/demuxers/demux_ts.c:316
+#: src/demuxers/demux_ts.c:346
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr ""
 "demux_ts: OPRAVMA: (nepodporované) PAT presahuje do viacerých paketov TS\n"
 
-#: src/demuxers/demux_ts.c:322
+#: src/demuxers/demux_ts.c:352
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
 "demux_ts: OPRAVMA: (nepodporované) PAT pozostáva z viacerých (%d) sekcií\n"
 
-#: src/demuxers/demux_ts.c:332
+#: src/demuxers/demux_ts.c:362
 #, c-format
 msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
@@ -34,36 +34,31 @@ msgstr ""
 "demux_ts: chyba pri demultiplexácií! PAT s neplatným CRC32: packat_crc: %.8x "
 "calc_crc32: %.8x\n"
 
-#: src/demuxers/demux_ts.c:396
+#: src/demuxers/demux_ts.c:437
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr "demux_ts: chyba %02x %02x %02x (malo by by» 0x000001)\n"
 
-#: src/demuxers/demux_ts.c:533
+#: src/demuxers/demux_ts.c:566
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr "nedostupné fifo (%d)\n"
 
-#: src/demuxers/demux_ts.c:545
-#, c-format
-msgid "demux_ts: dropped input packet cc: %d expected: %d\n"
+#: src/demuxers/demux_ts.c:575
+#, fuzzy, c-format
+msgid "demux_ts: unexpected cc %d (expected %d)\n"
 msgstr "demux_ts: zahodený vstupný paket cc: %d oèakávaný: %d\n"
 
-#: src/demuxers/demux_ts.c:559
-msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
-msgstr ""
-"demux_ts: príznak PUSI je nastavený ale nie je prítomná hlavièka\n"
-"PES (po¹kodený prúd)?\n"
-
-#: src/demuxers/demux_ts.c:567
-msgid "demux_ts: broken pes encountered\n"
+#: src/demuxers/demux_ts.c:598
+#, fuzzy
+msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts: nájdený po¹kodený pes\n"
 
-#: src/demuxers/demux_ts.c:670
+#: src/demuxers/demux_ts.c:700
 msgid "demux error! PMT with invalid pointer\n"
 msgstr "chyba pri demultiplexácií! PMT s neplatným smerníkom\n"
 
-#: src/demuxers/demux_ts.c:775
+#: src/demuxers/demux_ts.c:804
 #, fuzzy, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
@@ -72,94 +67,90 @@ msgstr ""
 "demux_ts: chyba pri demultiplexácií! PMT s neplatným CRC32: packet_crc32: %"
 "#.8x calc_crc32: %#.8x\n"
 
-#: src/demuxers/demux_ts.c:790
+#: src/demuxers/demux_ts.c:819
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr "chyba pri demultiplexácií! PMT s nekonzistentnou då¾kou progInfo\n"
 
-#: src/demuxers/demux_ts.c:807
+#: src/demuxers/demux_ts.c:836
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr "chyba pri demultiplexácií! PMT s nekonzistentnou då¾kou streamInfo\n"
 
-#: src/demuxers/demux_ts.c:926
-msgid "RE-Sync failed\n"
-msgstr "resynchronizácia zlyhala\n"
-
-#: src/demuxers/demux_ts.c:1074
+#: src/demuxers/demux_ts.c:1195
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr "chyba pri demultiplexácií! Neplatný synchronizaèný bajt ts %.2x\n"
 
-#: src/demuxers/demux_ts.c:1079
+#: src/demuxers/demux_ts.c:1200
 msgid "demux error! transport error\n"
 msgstr "chyba pri demultiplexácií! Chyba transportu\n"
 
-#: src/demuxers/demux_ts.c:1127
+#: src/demuxers/demux_ts.c:1263
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr "demux_ts: chyba pri demultiplexácií! Neplatná veµkos» dát %d\n"
 
-#: src/demuxers/demux_ts.c:1300
+#: src/demuxers/demux_ts.c:1476
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr "demux %u ts_open!\n"
 
-#: src/demuxers/demux_ts.c:1402
+#: src/demuxers/demux_ts.c:1587
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: nemo¾no vytvori» nové vlákno (%s)\n"
 
-#: src/demuxers/demux_ts.c:1470
-#, c-format
+#: src/demuxers/demux_ts.c:1687
+#, fuzzy, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
-"          this means there's a version mismatch between xine and "
-"this           demuxer plugin.\n"
-"Installing current demux plugins should help.\n"
+"          This means there's a version mismatch between xine and this "
+"demuxer plugin.\n"
+"          Installing current demux plugins should help.\n"
 msgstr ""
 "demux_ts: modul nepodporuje API modulov vo verzii %d.\n"
 "          To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "          In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
-#: src/demuxers/demux_avi.c:369
+#: src/demuxers/demux_avi.c:659
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index avi súboru je po¹kodený\n"
 
-#: src/demuxers/demux_avi.c:1011
+#: src/demuxers/demux_avi.c:1256
 #, fuzzy, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_asf: video formát: %s\n"
 
-#: src/demuxers/demux_avi.c:1013
+#: src/demuxers/demux_avi.c:1258
 #, fuzzy, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: veµkos» rámca videa %d x %d\n"
 
-#: src/demuxers/demux_avi.c:1016
+#: src/demuxers/demux_avi.c:1261
 #, fuzzy, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: formát videa = %s, formát zvuku = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1024
+#: src/demuxers/demux_avi.c:1269
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: neznámy typ zvuku 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1030
+#: src/demuxers/demux_avi.c:1275
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: typ zvuku je %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1142
+#: src/demuxers/demux_avi.c:1412
 #, fuzzy, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_qt: neznámy video kodek >%s<\n"
 
-#: src/demuxers/demux_avi.c:1150
+#: src/demuxers/demux_avi.c:1419
 #, fuzzy, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: video codec >%s<\n"
 
-#: src/demuxers/demux_avi.c:1336
+#: src/demuxers/demux_avi.c:1606
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -171,12 +162,12 @@ msgstr ""
 "           To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
-#: src/demuxers/demux_mpeg.c:937
+#: src/demuxers/demux_mpeg.c:956
 #, fuzzy
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr "Mali by ste urèit typ prúdu mpeg (mpeg1 alebo mpeg2).\n"
 
-#: src/demuxers/demux_mpeg_block.c:287
+#: src/demuxers/demux_mpeg_block.c:347
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -184,7 +175,7 @@ msgstr ""
 "demux_mpeg_block: príli¹ mnoho chýb, prehrávanie sa zastavuje. Mô¾e by» "
 "tento prúd skramblovaný?\n"
 
-#: src/demuxers/demux_mpeg_block.c:446
+#: src/demuxers/demux_mpeg_block.c:466
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -193,33 +184,42 @@ msgstr ""
 "demux_mpeg_block: varovanie: hlavièka pes indikuje, ¾e tento prúd mô¾e by» "
 "za¹ifrovaný (re¾im ¹ifrovania %d)\n"
 
-#: src/demuxers/demux_mpgaudio.c:158
-#, c-format
-msgid "mpgaudio: bitrate = %.2fkbps\n"
-msgstr "mpgaudio: bitrate = %.2fkbps\n"
+#: src/demuxers/demux_mpeg_block.c:1053
+msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
+msgstr ""
 
-#: src/demuxers/demux_qt.c:3976
+#: src/demuxers/demux_mpgaudio.c:184
+#, c-format
+msgid "demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"
+msgstr ""
+
+#: src/demuxers/demux_mpgaudio.c:406
+#, fuzzy
+msgid "demux_mpgaudio: no audio driver!\n"
+msgstr "demux_mpgaudio_block: stop...ignorované\n"
+
+#: src/demuxers/demux_qt.c:3993
 #, fuzzy, c-format
 msgid "demux_qt: unknown video codec '%s'\n"
 msgstr "demux_qt: neznámy video kodek >%s<\n"
 
-#: src/demuxers/demux_qt.c:4221
+#: src/demuxers/demux_qt.c:4247
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
 msgstr ""
 "demux_qt: video kodek %s (%f fps), zvukový kodek %s (ld Hz, %d bitov)\n"
 
-#: src/demuxers/demux_ogg.c:223
+#: src/demuxers/demux_ogg.c:225
 #, fuzzy
 msgid "ogg: vorbis audio stream detected\n"
 msgstr "èasovaè: koniec zvukového prúdu\n"
 
-#: src/demuxers/demux_ogg.c:279
+#: src/demuxers/demux_ogg.c:281
 #, fuzzy, c-format
 msgid "ogg: unknown stream type (signature >%.8s<)\n"
 msgstr "demux_ogg: neznámy typ prúdu, signatúra: >%.8s<\n"
 
-#: src/demuxers/demux_ogg.c:665
+#: src/demuxers/demux_ogg.c:697
 #, c-format
 msgid ""
 "demux_ogg: plugin doesn't support plugin API version %d.\n"
@@ -231,38 +231,38 @@ msgstr ""
 "           To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
-#: src/demuxers/demux_asf.c:339
+#: src/demuxers/demux_asf.c:340
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 msgstr "demux_asf: audio formát: %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_asf.c:402
+#: src/demuxers/demux_asf.c:403
 #, c-format
 msgid "demux_asf: video format : %s\n"
 msgstr "demux_asf: video formát: %s\n"
 
-#: src/demuxers/demux_asf.c:460
+#: src/demuxers/demux_asf.c:461
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr ""
 "demux_asf. då¾ka prúdu je %d sekúnd, rýchlos» je %d bajtov za sekundu\n"
 
-#: src/demuxers/demux_asf.c:1283
+#: src/demuxers/demux_asf.c:1294
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: titul         : %s\n"
 
-#: src/demuxers/demux_asf.c:1285
+#: src/demuxers/demux_asf.c:1296
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: autor         : %s\n"
 
-#: src/demuxers/demux_asf.c:1287
+#: src/demuxers/demux_asf.c:1298
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: autorské práva: %s\n"
 
-#: src/demuxers/demux_asf.c:1289
+#: src/demuxers/demux_asf.c:1300
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: komentár      : %s\n"
@@ -287,11 +287,11 @@ msgstr "input_net: nemo¾no zisti» adresu '%s'.\n"
 msgid "input_net: unable to connect to '%s'.\n"
 msgstr "input_net: nemo¾no sa pripoji» k '%s'.\n"
 
-#: src/input/input_net.c:300
+#: src/input/input_net.c:302
 msgid "net input plugin as shipped with xine"
 msgstr "modul vstupu zo siete dodávaný so xine"
 
-#: src/input/input_net.c:342
+#: src/input/input_net.c:344
 #, c-format
 msgid ""
 "net input plugin doesn't support plugin API version %d.\n"
@@ -371,11 +371,11 @@ msgstr ""
 msgid "unable to allocate input buffer.\n"
 msgstr "nemo¾no alokova» vstupný buffer.\n"
 
-#: src/input/input_stdin_fifo.c:321
+#: src/input/input_stdin_fifo.c:322
 msgid "stdin/fifo input plugin as shipped with xine"
 msgstr "modul vstupu zo ¹tandardného vstupu/fifo dodávaný so xine"
 
-#: src/input/input_stdin_fifo.c:356
+#: src/input/input_stdin_fifo.c:357
 #, c-format
 msgid ""
 "stdin/fifo input plugin doesn't support plugin API version %d.\n"
@@ -389,8 +389,8 @@ msgstr ""
 "To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
-#: src/input/input_dvd.c:145 src/input/input_dvd.c:692
-#: src/input/input_dvd.c:752
+#: src/input/input_dvd.c:145 src/input/input_dvd.c:693
+#: src/input/input_dvd.c:753
 #, c-format
 msgid "input_dvd: unable to open dvd drive (%s): %s\n"
 msgstr "input_dvd: nemo¾no otvori» dvd mechaniku (%s): %s\n"
@@ -422,87 +422,88 @@ msgstr ""
 "           Predpokladá sa, ¾e disk nie je za¹ifrovaný.\n"
 
 #: src/input/input_dvd.c:346
+#, fuzzy
 msgid ""
 "\n"
-"input_dvd: Sorry, xine doesn't play encrypted DVDs. The legal status of CSS\n"
-"           decryption is unclear and we will not provide such code.\n"
-"\n"
+"input_dvd: Sorry, this plugin doesn't play encrypted DVDs. The legal status\n"
+"           of CSS decryption is unclear and we can't provide such code.\n"
+"           Please check http://dvd.sf.net for more information.\n"
 msgstr ""
 "\n"
 "input_dvd: Prepáè, xine nemô¾e prehráva» za¹ifrované disky DVD. Právny stav\n"
 "           de¹ifrovania CSS je nejasný a my takýto kód nemô¾eme poskytnú».\n"
 "\n"
 
-#: src/input/input_dvd.c:354
+#: src/input/input_dvd.c:355
 #, c-format
 msgid "input_dvd: cannot open file >%s<\n"
 msgstr "input_dvd: nemo¾no otvori» súbor >%s<\n"
 
-#: src/input/input_dvd.c:399
+#: src/input/input_dvd.c:400
 #, c-format
 msgid "input_dvd: Unable to find >%s< on dvd.\n"
 msgstr "input_dvd: Nemo¾no nájs» >%s< na dvd.\n"
 
-#: src/input/input_dvd.c:434
+#: src/input/input_dvd.c:435
 #, c-format
 msgid "input_dvd: error read: %Ld bytes is not a sector!\n"
 msgstr "input_dvd: chyba pri èítaní: %Ld bajtov nie je sektor!\n"
 
-#: src/input/input_dvd.c:451
+#: src/input/input_dvd.c:452
 #, c-format
 msgid "input_dvd: read error in input_dvd plugin (%s)\n"
 msgstr "input_dvd: chyba pri èítaní v module input_dvd (%s)\n"
 
-#: src/input/input_dvd.c:455
+#: src/input/input_dvd.c:456
 #, c-format
 msgid "input_dvd: short read in input_dvd (%d != %d)\n"
 msgstr "input_dvd: krátke èítanie v module input_dvd (%d != %d)\n"
 
-#: src/input/input_dvd.c:474
+#: src/input/input_dvd.c:475
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
 msgstr ""
 "input_dvd: chyba pri èítaní v module input_dvd: %d bajtov nie je sektor!\n"
 
-#: src/input/input_dvd.c:486
+#: src/input/input_dvd.c:487
 msgid "input_dvd: read error in input_dvd plugin\n"
 msgstr "input_dvd: chyba pri èítaní v module input_dvd\n"
 
-#: src/input/input_dvd.c:519
+#: src/input/input_dvd.c:520
 #, c-format
 msgid "input_dvd: seek: %d is an unknown origin\n"
 msgstr "input_dvd: preskoèenie: %d je neznámenho pôvodu\n"
 
-#: src/input/input_dvd.c:560
+#: src/input/input_dvd.c:561
 #, c-format
 msgid "input_dvd: CDROMCLOSETRAY failed: %s\n"
 msgstr "input_dvd: zlyhalo ioctl CDROMCLOSETRAY: %s\n"
 
-#: src/input/input_dvd.c:566 src/input/input_dvd.c:583
+#: src/input/input_dvd.c:567 src/input/input_dvd.c:584
 #, c-format
 msgid "input_dvd: CDROMEJECT failed: %s\n"
 msgstr "input_dvd: zlyhalo ioctl CDROMEJECT: %s\n"
 
-#: src/input/input_dvd.c:572
+#: src/input/input_dvd.c:573
 #, c-format
 msgid "input_dvd: CDROM_DRIVE_STATUS failed: %s\n"
 msgstr "input_dvd: zlyhalo ioctl CDROM_DRIVE_STATUS: %s\n"
 
-#: src/input/input_dvd.c:588
+#: src/input/input_dvd.c:589
 #, c-format
 msgid "ioctl(cdromallow): %s"
 msgstr "ioctl(cdromallow): %s"
 
-#: src/input/input_dvd.c:591
+#: src/input/input_dvd.c:592
 #, c-format
 msgid "ioctl(cdromeject): %s"
 msgstr "ioctl(cdromeject): %s"
 
-#: src/input/input_dvd.c:618
+#: src/input/input_dvd.c:619
 msgid "dvd device input plugin as shipped with xine"
 msgstr "modul vstupu z dvd dodávaný so xine"
 
-#: src/input/input_dvd.c:813
+#: src/input/input_dvd.c:814
 #, c-format
 msgid ""
 "dvd input plugin doesn't support plugin API version %d.\n"
@@ -871,12 +872,12 @@ msgstr ""
 "To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
-#: src/xine-engine/video_out.c:310
+#: src/xine-engine/video_out.c:308
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "doruèených %d rámcov, preskoèených %d rámcov, zahodených %d rámcov\n"
 
-#: src/xine-engine/video_out.c:348
+#: src/xine-engine/video_out.c:351
 #, fuzzy, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -885,58 +886,58 @@ msgstr ""
 "video_out: zahadzuje sa obraz s PTS %d, preto¾e u¾ je príli¹ starý (rozdiel: "
 "%d > %d).\n"
 
-#: src/xine-engine/video_out.c:880
+#: src/xine-engine/video_out.c:890
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: nemo¾no vytvori» vlákno (%s)\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:883
+#: src/xine-engine/video_out.c:893
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr "video_out: prepáè, toto sa nemalo sta», re¹tartuj xine.\n"
 
-#: src/xine-engine/xine.c:122
+#: src/xine-engine/xine.c:134
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr "xine_notify_stream_finished: nemo¾no vytvori» nové vlákno (%s)\n"
 
-#: src/xine-engine/xine.c:287
+#: src/xine-engine/xine.c:295
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr "%s(%d) nesprávny prvý prechod = %d!!\n"
 
-#: src/xine-engine/xine.c:396
+#: src/xine-engine/xine.c:403
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nemo¾no nájs» modul vstupu pre toto MRL\n"
 
-#: src/xine-engine/xine.c:408
+#: src/xine-engine/xine.c:414
 #, fuzzy, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr "xine: pou¾ije modul vstupu >%s< pre MRL (%s).\n"
 
-#: src/xine-engine/xine.c:418
+#: src/xine-engine/xine.c:424
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr "xine: nemo¾no nájs» demultiplexer pre >%s<\n"
 
-#: src/xine-engine/xine.c:426
+#: src/xine-engine/xine.c:431
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:454
+#: src/xine-engine/xine.c:459
 msgid "xine_play: demuxer failed to start\n"
 msgstr "xine_play: demultiplexer nena¹tartoval\n"
 
-#: src/xine-engine/xine.c:984
+#: src/xine-engine/xine.c:1007
 msgid "stream format"
 msgstr ""
 
-#: src/xine-engine/xine.c:985
+#: src/xine-engine/xine.c:1008
 msgid "messages"
 msgstr "správy"
 
-#: src/xine-engine/xine.c:986
+#: src/xine-engine/xine.c:1009
 msgid "plugin"
 msgstr "modul"
 
@@ -1026,6 +1027,17 @@ msgstr "nájdený modul video dekodéra: %s\n"
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr "nájdený modul audio dekodéra: %s\n"
+
+#~ msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
+#~ msgstr ""
+#~ "demux_ts: príznak PUSI je nastavený ale nie je prítomná hlavièka\n"
+#~ "PES (po¹kodený prúd)?\n"
+
+#~ msgid "RE-Sync failed\n"
+#~ msgstr "resynchronizácia zlyhala\n"
+
+#~ msgid "mpgaudio: bitrate = %.2fkbps\n"
+#~ msgstr "mpgaudio: bitrate = %.2fkbps\n"
 
 #~ msgid "demux_ts: stop...\n"
 #~ msgstr "demux_ts: stop...\n"
@@ -1189,9 +1201,6 @@ msgstr "nájdený modul audio dekodéra: %s\n"
 #~ "verzie.\n"
 #~ "                  In¹talácia aktuálneho demultiplexného modulu by mala "
 #~ "pomôc».\n"
-
-#~ msgid "demux_mpgaudio_block: stop...ignored\n"
-#~ msgstr "demux_mpgaudio_block: stop...ignorované\n"
 
 #~ msgid "demux_mpgaudio: can't create new thread (%s)\n"
 #~ msgstr "demux_mpgaudio: nemo¾no vytvori» nové vlákno (%s)\n"
