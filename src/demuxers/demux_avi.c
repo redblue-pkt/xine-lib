@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.81 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_avi.c,v 1.82 2002/05/04 17:26:15 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1237,11 +1237,10 @@ static int demux_avi_open(demux_plugin_t *this_gen,
     
     this->input = input;
 
-    if (strncmp(this->last_mrl, input->get_mrl (input), 1024)) {
-      if (this->avi)
-	AVI_close (this->avi);
-      this->avi = AVI_init (this);
-    }
+    if (this->avi)
+      AVI_close (this->avi);
+
+    this->avi = AVI_init (this);
 
     if (this->avi) {
 
@@ -1278,11 +1277,10 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 
 	  this->input = input;
 	  
-	  if (strncmp(this->last_mrl, input->get_mrl (input), 1024)) {
-	    if (this->avi)
-	      AVI_close (this->avi);
-	    this->avi = AVI_init (this);
-	  }
+	  if (this->avi)
+	    AVI_close (this->avi);
+
+	  this->avi = AVI_init (this);
 	  
 	  if (this->avi) {
 	    strncpy(this->last_mrl, input->get_mrl (input), 1024);
