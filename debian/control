@@ -30,7 +30,7 @@ Package: libxine1
 Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ${shlibs:Recommends}
-Suggests: ${shlibs:Suggests}
+Suggests: ${shlibs:Suggests}, libartsc0
 Conflicts: sinek(<<0.7), xine-ui (<< 0.9.10)
 Replaces: xine-dvdnav
 Description: the xine video/media player library, binary files
