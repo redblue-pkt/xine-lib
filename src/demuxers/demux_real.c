@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.88 2004/01/29 22:33:00 jstembridge Exp $
+ * $Id: demux_real.c,v 1.89 2004/01/29 23:00:05 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -662,26 +662,11 @@ unknown:
     buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
     buf->content = buf->mem;
     
-    if(this->video_stream->buf_type == BUF_VIDEO_RV10) {
-      xine_bmiheader bih;
+    memcpy(buf->content, this->video_stream->mdpr->type_specific_data,
+           this->video_stream->mdpr->type_specific_len);
 
-      bih.biWidth       = BE_16(this->video_stream->mdpr->type_specific_data + 12);
-      bih.biHeight      = BE_16(this->video_stream->mdpr->type_specific_data + 14);
-      bih.biCompression = BE_32(this->video_stream->mdpr->type_specific_data + 30);
-      bih.biSize        = sizeof(bih);
-      
-      lprintf("setting size to w:%u h:%u for RV10\n", bih.biWidth, bih.biHeight);
-      lprintf("setting sub-codec to %X for RV10\n", bih.biCompression);
-      memcpy(buf->content, &bih, bih.biSize);
-      buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-    } else {
-      memcpy(buf->content, this->video_stream->mdpr->type_specific_data,
-             this->video_stream->mdpr->type_specific_len);
-
-      buf->size = this->video_stream->mdpr->type_specific_len;
-      buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
-    }
-
+    buf->size                   = this->video_stream->mdpr->type_specific_len;
+    buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
     buf->type                   = this->video_stream->buf_type;
     buf->extra_info->input_pos  = 0;
     buf->extra_info->input_time = 0;
