@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.46 2001/06/25 08:33:58 guenter Exp $
+ * $Id: video_out_xv.c,v 1.47 2001/06/25 09:51:47 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -525,7 +525,7 @@ static void xv_calc_format (xv_driver_t *this,
   }
 
   /* little hack to zoom mpeg1 / other small streams  by default*/
-  if (ideal_width<400) {
+  if ( this->use_shm && (ideal_width<400)) {
     ideal_width  *=2;
     ideal_height *=2;
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.11 2001/06/24 22:20:26 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.12 2001/06/25 09:51:47 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -454,7 +454,7 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
   }
 
   /* little hack to zoom mpeg1 / other small streams  by default*/
-  if (ideal_width<400) {
+  if ( this->use_shm && (ideal_width<400)) {
     ideal_width  *=2;
     ideal_height *=2;
   }
