@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.17 2002/10/12 17:11:59 jkeil Exp $
+ * $Id: demux_wc3movie.c,v 1.18 2002/10/23 01:32:27 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,13 +72,11 @@
 
 #define PREAMBLE_SIZE 8
 
-#define VALID_ENDS   "mve"
-
 typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t       *stream;
 
   config_values_t     *config;
 
@@ -110,7 +108,18 @@ typedef struct {
   off_t                data_start;
   off_t                data_size;
 
+  char                 last_mrl[1024];
 } demux_mve_t;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_mve_class_t;
 
 /* bizarre palette lookup table */
 const unsigned char wc3_pal_lookup[] = {
@@ -197,7 +206,7 @@ static void *demux_mve_loop (void *this_gen) {
 
             /* reset pts */
             video_pts = 0;
-            xine_demux_control_newpts(this->xine, 0, BUF_FLAG_SEEK);
+            xine_demux_control_newpts(this->stream, 0, BUF_FLAG_SEEK);
             this->seek_flag = 0;
 
           } else {
@@ -217,7 +226,7 @@ static void *demux_mve_loop (void *this_gen) {
           palette_number = LE_32(&preamble[0]);
 
           if (palette_number >= this->number_of_shots) {
-            xine_log(this->xine, XINE_LOG_MSG,
+            xine_log(this->stream->xine, XINE_LOG_MSG,
               _("demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"),
               palette_number, this->number_of_shots);
             this->status = DEMUX_FINISHED;
@@ -335,7 +344,7 @@ static void *demux_mve_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -343,7 +352,73 @@ static void *demux_mve_loop (void *this_gen) {
   return NULL;
 }
 
-static int load_mve_and_send_headers(demux_mve_t *this) {
+static void demux_mve_send_headers(demux_plugin_t *this_gen) {
+
+  demux_mve_t *this = (demux_mve_t *) this_gen;
+  buf_element_t *buf;
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->wave.nChannels;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->wave.nSamplesPerSec;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->wave.wBitsPerSample;
+
+  /* send start buffers */
+  xine_demux_control_start(this->stream);
+
+  /* send init info to decoders */
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_info[0] = 0;
+  buf->decoder_info[1] = WC3_PTS_INC;  /* initial video_step */
+  /* really be a rebel: No structure at all, just put the video width
+   * and height straight into the buffer, BE_16 format */
+  buf->content[0] = (this->video_width >> 8) & 0xFF;
+  buf->content[1] = (this->video_width >> 0) & 0xFF;
+  buf->content[2] = (this->video_height >> 8) & 0xFF;
+  buf->content[3] = (this->video_height >> 0) & 0xFF;
+  buf->size = 4;
+  buf->type = BUF_VIDEO_WC3;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if (this->audio_fifo) {
+    this->wave.wFormatTag = 1;
+    this->wave.nChannels = 1;
+    this->wave.nSamplesPerSec = 22050;
+    this->wave.wBitsPerSample = 16;
+    this->wave.nBlockAlign = (this->wave.wBitsPerSample / 8) * this->wave.nChannels;
+    this->wave.nAvgBytesPerSec = this->wave.nBlockAlign * this->wave.nSamplesPerSec;
+
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = BUF_AUDIO_LPCM_LE;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->wave.nSamplesPerSec;
+    buf->decoder_info[2] = this->wave.wBitsPerSample;
+    buf->decoder_info[3] = this->wave.nChannels;
+    buf->content = (void *)&this->wave;
+    buf->size = sizeof(this->wave);
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  xine_demux_control_headers_done (this->stream);
+
+  pthread_mutex_unlock (&this->mutex);
+}
+
+/* returns 1 if the MVE file was opened successfully, 0 otherwise */
+static int open_mve_file(demux_mve_t *this) {
 
   unsigned char preamble[PREAMBLE_SIZE];
   unsigned int chunk_tag;
@@ -353,13 +428,6 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
   unsigned char r, g, b;
   int temp;
 
-  pthread_mutex_lock(&this->mutex);
-
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
-
-  this->status = DEMUX_OK;
-
   /* these are the frame dimensions unless others are found */
   this->video_width = WC3_USUAL_WIDTH;
   this->video_height = WC3_USUAL_HEIGHT;
@@ -368,11 +436,8 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
    * in the _PC_ chunk; take it for granted that it will always appear at
    * position 0x1C */
   this->input->seek(this->input, 0x1C, SEEK_SET);
-  if (this->input->read(this->input, preamble, 4) != 4) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
+  if (this->input->read(this->input, preamble, 4) != 4)
+    return 0;
   this->number_of_shots = LE_32(&preamble[0]);
 
   /* allocate space for the shot offset index and set offsets to 0 */
@@ -390,28 +455,20 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
   for (i = 0; i < this->number_of_shots; i++) {
     /* make sure there was a valid palette chunk preamble */
     if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-      PREAMBLE_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_CANNOT_HANDLE;
-    }
+      PREAMBLE_SIZE)
+      return 0;
 
     if ((BE_32(&preamble[0]) != PALT_TAG) || 
         (BE_32(&preamble[4]) != PALETTE_CHUNK_SIZE)) {
-      xine_log(this->xine, XINE_LOG_MSG,
+      xine_log(this->stream->xine, XINE_LOG_MSG,
         _("demux_wc3movie: There was a problem while loading palette chunks\n"));
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_CANNOT_HANDLE;
+      return 0;
     }
 
     /* load the palette chunk */
     if (this->input->read(this->input, disk_palette, PALETTE_CHUNK_SIZE) !=
-      PALETTE_CHUNK_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_CANNOT_HANDLE;
-    }
+      PALETTE_CHUNK_SIZE)
+      return 0;
 
     /* convert and store the palette */
     for (j = 0; j < PALETTE_SIZE; j++) {
@@ -438,11 +495,8 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
   while (chunk_tag != BRCH_TAG) {
 
     if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-      PREAMBLE_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_CANNOT_HANDLE;
-    }
+      PREAMBLE_SIZE)
+      return 0;
 
     chunk_tag = BE_32(&preamble[0]);
     /* round up to the nearest even size */
@@ -456,25 +510,20 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
 
       case BNAM_TAG:
         /* load the name into the stream attributes */
-        this->xine->meta_info[XINE_META_INFO_TITLE] = xine_xmalloc(chunk_size);
+        this->stream->meta_info[XINE_META_INFO_TITLE] = 
+          xine_xmalloc(chunk_size);
         if (this->input->read(this->input, 
-          this->xine->meta_info[XINE_META_INFO_TITLE], chunk_size) !=
-          chunk_size) {
-          this->status = DEMUX_FINISHED;
-          pthread_mutex_unlock(&this->mutex);
-          return DEMUX_CANNOT_HANDLE;
-        }
+          this->stream->meta_info[XINE_META_INFO_TITLE], chunk_size) !=
+          chunk_size)
+          return 0;
         break;
 
       case SIZE_TAG:
         /* override the default width and height */
         /* reuse the preamble bytes */
         if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-          PREAMBLE_SIZE) {
-          this->status = DEMUX_FINISHED;
-          pthread_mutex_unlock(&this->mutex);
-          return DEMUX_CANNOT_HANDLE;
-        }
+          PREAMBLE_SIZE)
+          return 0;
         this->video_width = BE_32(&preamble[0]);
         this->video_height = BE_32(&preamble[4]);
         break;
@@ -502,81 +551,7 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
 
   this->data_size = this->input->get_length(this->input) - this->data_start;
 
-  /* load stream information */
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->wave.nChannels;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->wave.nSamplesPerSec;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->wave.wBitsPerSample;
-
-  xine_demux_control_headers_done (this->xine);
-
-  pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
-}
-
-static int demux_mve_open(demux_plugin_t *this_gen, input_plugin_t *input,
-                          int stage) {
-  demux_mve_t *this = (demux_mve_t *) this_gen;
-  char header[16];
-
-  this->input = input;
-
-  switch(stage) {
-  case STAGE_BY_CONTENT: {
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
-      return DEMUX_CANNOT_HANDLE;
-
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, header, 16) != 16)
-      return DEMUX_CANNOT_HANDLE;
-
-    if ((BE_32(&header[0]) == FORM_TAG) &&
-        (BE_32(&header[8]) == MOVE_TAG) &&
-        (BE_32(&header[12]) == PC_TAG))
-      return load_mve_and_send_headers(this);
-
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
-
-    MRL = input->get_mrl (input);
-
-    suffix = strrchr(MRL, '.');
-
-    if(!suffix)
-      return DEMUX_CANNOT_HANDLE;
-
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                                                            "mrl.ends_mve", VALID_ENDS,
-                                                            _("valid mrls ending for mve demuxer"),
-                                                            NULL, 10, NULL, NULL)));    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
-
-      while(*m == ' ' || *m == '\t') m++;
-
-      if(!strcasecmp((suffix + 1), m))
-        return load_mve_and_send_headers(this);
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-
-  }
-
-  return DEMUX_CANNOT_HANDLE;
+  return 1;
 }
 
 static int demux_mve_seek (demux_plugin_t *this_gen,
@@ -586,7 +561,6 @@ static int demux_mve_start (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
   demux_mve_t *this = (demux_mve_t *) this_gen;
-  buf_element_t *buf;
   int err;
 
   demux_mve_seek(this_gen, start_pos, start_time);
@@ -594,46 +568,8 @@ static int demux_mve_start (demux_plugin_t *this_gen,
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
 
-    /* send start buffers */
-    xine_demux_control_start(this->xine);
-
     /* send new pts */
-    xine_demux_control_newpts(this->xine, 0, 0);
-
-    /* send init info to decoders */
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER;
-    buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = WC3_PTS_INC;  /* initial video_step */
-    /* really be a rebel: No structure at all, just put the video width
-     * and height straight into the buffer, BE_16 format */
-    buf->content[0] = (this->video_width >> 8) & 0xFF;
-    buf->content[1] = (this->video_width >> 0) & 0xFF;
-    buf->content[2] = (this->video_height >> 8) & 0xFF;
-    buf->content[3] = (this->video_height >> 0) & 0xFF;
-    buf->size = 4;
-    buf->type = BUF_VIDEO_WC3;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if (this->audio_fifo) {
-      this->wave.wFormatTag = 1;
-      this->wave.nChannels = 1;
-      this->wave.nSamplesPerSec = 22050;
-      this->wave.wBitsPerSample = 16;
-      this->wave.nBlockAlign = (this->wave.wBitsPerSample / 8) * this->wave.nChannels;
-      this->wave.nAvgBytesPerSec = this->wave.nBlockAlign * this->wave.nSamplesPerSec;
-
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = BUF_AUDIO_LPCM_LE;
-      buf->decoder_flags = BUF_FLAG_HEADER;
-      buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = this->wave.nSamplesPerSec;
-      buf->decoder_info[2] = this->wave.wBitsPerSample;
-      buf->decoder_info[3] = this->wave.nChannels;
-      buf->content = (void *)&this->wave;
-      buf->size = sizeof(this->wave);
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
@@ -757,7 +693,7 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
 
   this->status = DEMUX_OK;
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
   pthread_mutex_unlock(&this->mutex);
 
   return 0;
@@ -781,13 +717,15 @@ static void demux_mve_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_mve_dispose (demux_plugin_t *this_gen) {
   demux_mve_t *this = (demux_mve_t *) this_gen;
+
+  demux_mve_stop(this_gen);
 
   free(this->palettes);
   free(this);
@@ -796,11 +734,7 @@ static void demux_mve_dispose (demux_plugin_t *this_gen) {
 static int demux_mve_get_status (demux_plugin_t *this_gen) {
   demux_mve_t *this = (demux_mve_t *) this_gen;
 
-  return this->status;
-}
-
-static char *demux_mve_get_id(void) {
-  return "WC3 MOVIE";
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
 static int demux_mve_get_stream_length (demux_plugin_t *this_gen) {
@@ -808,37 +742,131 @@ static int demux_mve_get_stream_length (demux_plugin_t *this_gen) {
   return 0;
 }
 
-static char *demux_mve_get_mimetypes(void) {
-  return NULL;
-}
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
 
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_mve_t    *this;
+  unsigned char header[16];
 
-static void *init_demuxer_plugin(xine_t *xine, void *data) {
-  demux_mve_t *this;
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_mve.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
 
-  this         = (demux_mve_t *) xine_xmalloc(sizeof(demux_mve_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this         = xine_xmalloc (sizeof (demux_mve_t));
+  this->stream = stream;
+  this->input  = input;
 
-  (void *) this->config->register_string(this->config,
-                                         "mrl.ends_mve", VALID_ENDS,
-                                         _("valid mrls ending for mve demuxer"),
-                                         NULL, 10, NULL, NULL);
-  
-  this->demux_plugin.open              = demux_mve_open;
+  this->demux_plugin.send_headers      = demux_mve_send_headers;
   this->demux_plugin.start             = demux_mve_start;
   this->demux_plugin.seek              = demux_mve_seek;
   this->demux_plugin.stop              = demux_mve_stop;
   this->demux_plugin.dispose           = demux_mve_dispose;
   this->demux_plugin.get_status        = demux_mve_get_status;
-  this->demux_plugin.get_identifier    = demux_mve_get_id;
   this->demux_plugin.get_stream_length = demux_mve_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_mve_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init(&this->mutex, NULL);
+  pthread_mutex_init (&this->mutex, NULL);
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    input->seek(input, 0, SEEK_SET);
+    if (input->read(input, header, 16) != 16)
+      return DEMUX_CANNOT_HANDLE;
+
+    if ((BE_32(&header[0]) != FORM_TAG) ||
+        (BE_32(&header[8]) != MOVE_TAG) ||
+        (BE_32(&header[12]) != PC_TAG)) {
+      free (this);
+      return NULL;
+    }
+
+    if (!open_mve_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".mve", 4)) {
+      free (this);
+      return NULL;
+    }
+
+    if (!open_mve_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  }
+
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "Wing Commander III Movie (MVE) demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "WC3 Movie";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "mve";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_mve_class_t *this = (demux_mve_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_mve_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_mve_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
+  return this;
 }
 
 /*
@@ -847,6 +875,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "wc3movie", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "wc3movie", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
