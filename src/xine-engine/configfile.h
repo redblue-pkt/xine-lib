@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.24 2003/07/31 11:59:10 mroi Exp $
+ * $Id: configfile.h,v 1.25 2003/07/31 12:04:55 mroi Exp $
  *
  * config file management
  *
@@ -191,7 +191,7 @@ struct config_values_s {
   pthread_mutex_t      config_lock;
   
   /*
-   * current config files version number
+   * current config file's version number
    */
   int current_version;
 };
