@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: upmix.c,v 1.1 2004/05/15 15:32:47 jcdutton Exp $
+ * $Id: upmix.c,v 1.2 2004/05/15 18:22:26 jcdutton Exp $
  *
  */
 
@@ -32,6 +32,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "post.h"
+#include "dsp.h"
 
 #define FPS 20
 
@@ -49,6 +50,39 @@ struct post_class_upmix_s {
 
   xine_t             *xine;
 };
+                                                                                                                           
+/* Q value for low-pass filter */
+#define Q 1.0
+                                                                                                                           
+/* Analog domain biquad section */
+typedef struct{
+  float a[3];           // Numerator coefficients
+  float b[3];           // Denominator coefficients
+} biquad_t;
+                                                                                                                           
+/* S-parameters for designing 4th order Butterworth filter */
+static biquad_t s_param[2] = {{{1.0,0.0,0.0},{1.0,0.765367,1.0}},
+                         {{1.0,0.0,0.0},{1.0,1.847759,1.0}}};
+                                                                                                                           
+/* Data for specific instances of this filter */
+typedef struct af_sub_s
+{
+  float w[2][4];        /* Filter taps for low-pass filter */
+  float q[2][2];        /* Circular queues */
+  float fc;             /* Cutoff frequency [Hz] for low-pass filter */
+  float k;              /* Filter gain */
+}af_sub_t;
+
+#ifndef IIR
+#define IIR(in,w,q,out) { \
+  float h0 = (q)[0]; \
+  float h1 = (q)[1]; \
+  float hn = (in) - h0 * (w)[0] - h1 * (w)[1];  \
+  out = hn + h0 * (w)[2] + h1 * (w)[3];  \
+  (q)[1] = h0; \
+  (q)[0] = hn; \
+}
+#endif
 
 struct post_plugin_upmix_s {
   post_plugin_t post;
@@ -65,6 +99,7 @@ struct post_plugin_upmix_s {
   int data_idx;
   short data [2][NUMSAMPLES];
   audio_buffer_t *buf;   /* dummy buffer just to hold a copy of audio data */
+  af_sub_t *sub;
 
   int channels;
   int channels_out;
@@ -129,6 +164,22 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   } else {
     this->channels_out=2;
   }
+
+  this->sub = xine_xmalloc(sizeof(af_sub_t));
+  if (!this->sub) {
+    return 0;
+  }
+  this->sub->fc = 60;    /* LFE Cutoff frequency 60Hz */
+  this->sub->k = 1.0;
+    if((-1 == szxform(s_param[0].a, s_param[0].b, Q, this->sub->fc,
+       (float)rate, &this->sub->k, this->sub->w[0])) ||
+       (-1 == szxform(s_param[1].a, s_param[1].b, Q, this->sub->fc,
+       (float)rate, &this->sub->k, this->sub->w[1]))) {
+    free(this->sub);
+    this->sub=NULL;
+    return 0;
+  }
+
   this->samples_per_frame = rate / FPS;
   this->data_idx = 0;
 
@@ -153,7 +204,7 @@ static void upmix_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream 
   _x_post_dec_usage(port);
 }
 
-int upmix_frames_2to51_16bit(uint8_t *dst8, uint8_t *src8, int num_frames) {
+static int upmix_frames_2to51_16bit(uint8_t *dst8, uint8_t *src8, int num_frames, af_sub_t *sub) {
   int16_t *dst=(int16_t *)dst8;
   int16_t *src=(int16_t *)src8;
 
@@ -163,16 +214,26 @@ int upmix_frames_2to51_16bit(uint8_t *dst8, uint8_t *src8, int num_frames) {
   int dst_num_channels=6;
   int src_frame;
   int dst_frame;
+  float sample;
+  int32_t sum;
   
   for (frame=0;frame < num_frames; frame++) {
     dst_frame=frame*dst_num_channels*bytes_per_sample;
     src_frame=frame*src_num_channels*bytes_per_sample;
     dst[dst_frame] = src[src_frame];
     dst[dst_frame+(1*bytes_per_sample)] = src[src_frame+(1*bytes_per_sample)];
-    dst[dst_frame+(2*bytes_per_sample)] = (src[src_frame] - src[src_frame+(1*bytes_per_sample)]) / 2; /* try a bit of dolby */
+    /* try a bit of dolby */
+    /* FIXME: Dobly surround is a bit more complicated than this, but this is a start. */
+    dst[dst_frame+(2*bytes_per_sample)] = (src[src_frame] - src[src_frame+(1*bytes_per_sample)]) / 2;
     dst[dst_frame+(3*bytes_per_sample)] = (src[src_frame] - src[src_frame+(1*bytes_per_sample)]) / 2;
-    dst[dst_frame+(4*bytes_per_sample)] = (src[src_frame] + src[src_frame+(1*bytes_per_sample)]) / 2;
-    dst[dst_frame+(5*bytes_per_sample)] = 0;
+    sum = ((int32_t)src[src_frame] + (int32_t)src[src_frame+(1*bytes_per_sample)]) / 2;
+    dst[dst_frame+(4*bytes_per_sample)] = (int16_t)sum;
+    /* Create the LFE channel using a low pass filter */
+    /* filter feature ported from mplayer */
+    sample = (1.0/SHRT_MAX)*((float)sum);
+    IIR(sample * sub->k, sub->w[0], sub->q[0], sample);
+    IIR(sample , sub->w[1], sub->q[1], sample);
+    dst[dst_frame+(5*bytes_per_sample)] = (int16_t)(sample * SHRT_MAX);
   }
   return frame;
 }
@@ -213,8 +274,6 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
       this->buf->format.rate = port->rate;
       this->buf->format.mode = AO_CAP_MODE_5_1CHANNEL;
       _x_extra_info_merge( this->buf->extra_info, buf->extra_info); 
-      //  xine_stream_t     *stream; /* stream that send that buffer */
-      /* FIXME: This does 2 to 5.1 channel upmix */
       step_channel = this->buf->format.bits>>3;
       dst_step_frame = this->channels_out*step_channel;
       src_step_frame = this->channels*step_channel;
@@ -226,78 +285,18 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
       data8src=(int8_t*)buf->mem;
       data8src+=num_frames_processed*src_step_frame;
       data8dst=(int8_t*)this->buf->mem;
-      num_frames_done = upmix_frames_2to51_16bit(data8dst, data8src, num_frames);
+      num_frames_done = upmix_frames_2to51_16bit(data8dst, data8src, num_frames, this->sub);
       this->buf->num_frames = num_frames_done;
       num_frames_processed+= num_frames_done;
       /* pass data to original port */
       port->original_port->put_buffer(port->original_port, this->buf, stream );  
     }
   }
-  //printf("num_frames_done=%d, num_frames=%d\n",num_frames_done, num_frames); 
   /* free data from origial buffer */
   buf->num_frames=0; /* UNDOCUMENTED, but hey, it works! Force old audio_out buffer free. */
   port->original_port->put_buffer(port->original_port, buf, stream );  
-  /* pass data to original port */
   
-  /* we must not use original data anymore, it should have already being moved
-   * to the fifo of free audio buffers. just use our private copy instead.
-   */
-
   return;
-
-  buf = this->buf; 
-
-  this->sample_counter += buf->num_frames;
-  
-  j = (this->channels >= 2) ? 1 : 0;
-
-  do {
-    
-    if( port->bits == 8 ) {
-      data8 = (int8_t *)buf->mem;
-      data8 += samples_used * this->channels;
-  
-      /* scale 8 bit data to 16 bits and convert to signed as well */
-      for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
-           i++, this->data_idx++, data8 += this->channels ) {
-        this->data[0][this->data_idx] = ((int16_t)data8[0] << 8) - 0x8000;
-        this->data[1][this->data_idx] = ((int16_t)data8[j] << 8) - 0x8000;
-      }
-    } else {
-      data = buf->mem;
-      data += samples_used * this->channels;
-  
-      for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
-           i++, this->data_idx++, data += this->channels ) {
-        this->data[0][this->data_idx] = data[0];
-        this->data[1][this->data_idx] = data[j];
-      }
-    }
-  
-    if( this->sample_counter >= this->samples_per_frame &&
-        this->data_idx == NUMSAMPLES ) {
-  
-      this->data_idx = 0;
-      samples_used += this->samples_per_frame;
-  
-      frame = this->vo_port->get_frame (this->vo_port, FOO_WIDTH, FOO_HEIGHT,
-                                        this->ratio, XINE_IMGFMT_YUY2,
-                                        VO_BOTH_FIELDS);
-      frame->extra_info->invalid = 1;
-      frame->bad_frame = 0;
-      frame->duration = 90000 * this->samples_per_frame / port->rate;
-      frame->pts = pts;
-      this->metronom->got_video_frame(this->metronom, frame);
-      
-      this->sample_counter -= this->samples_per_frame;
-
-      memset(frame->base[0], this->current_yuv_byte, FOO_WIDTH * FOO_HEIGHT * 2);
-      this->current_yuv_byte += 3;
-
-      frame->draw(frame, NULL);
-      frame->free(frame);
-    }
-  } while( this->sample_counter >= this->samples_per_frame );
 }
 
 static void upmix_dispose(post_plugin_t *this_gen)
@@ -305,9 +304,8 @@ static void upmix_dispose(post_plugin_t *this_gen)
   post_plugin_upmix_t *this = (post_plugin_upmix_t *)this_gen;
 
   if (_x_post_dispose(this_gen)) {
-
     this->metronom->exit(this->metronom);
-
+    if (this->sub) free(this->sub);
     free(this);
   }
 }
