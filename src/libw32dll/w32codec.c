@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.67 2002/03/22 20:46:18 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.68 2002/03/22 21:57:16 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -819,13 +819,11 @@ static void w32v_close (video_decoder_t *this_gen) {
 
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
-  printf("w32v_close: enter\n");
   pthread_mutex_lock(&win32_codec_mutex);
 #ifdef SYNC_SHUTDOWN
   if( !w32a_instance || (w32a_instance && !w32a_instance->decoder_ok) )
 #endif
   {
-    printf("w32v_close: deinitializing dlls\n");
     if ( !this->ds_driver ) {
     } else {
       if( this->ds_dec )
@@ -1228,13 +1226,11 @@ static void w32a_close (audio_decoder_t *this_gen) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
   
-  printf("w32a_close: enter\n");
   pthread_mutex_lock(&win32_codec_mutex);
 #ifdef SYNC_SHUTDOWN
   if( !w32v_instance || (w32v_instance && !w32v_instance->decoder_ok) )
 #endif
   {
-    printf("w32a_close: deinitializing dlls\n");
     if( !this->ds_driver ) {
       if( this->srcstream )
         acmStreamClose(this->srcstream, 0);
