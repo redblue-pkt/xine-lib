@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.31 2003/01/13 01:11:57 tmattern Exp $
+ * $Id: input_mms.c,v 1.32 2003/01/15 00:18:23 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -100,7 +100,7 @@ typedef struct {
 static off_t mms_plugin_read (input_plugin_t *this_gen, 
                               char *buf, off_t len) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
-  off_t               n;
+  off_t               n = 0;
 
 #ifdef LOG
   printf ("mms_plugin_read: %lld bytes ...\n",
@@ -179,7 +179,8 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   }
 
   while (this->curpos<dest) {
-    int n, diff;
+    int n = 0;
+    int diff;
 
     diff = dest - this->curpos;
 
@@ -207,7 +208,7 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 
 static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
   mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; 
-  off_t                 length;
+  off_t                 length = 0;
 
   if (!this->mms)
     return 0;
@@ -327,9 +328,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   mms_input_class_t  *cls = (mms_input_class_t *) cls_gen;
   mms_input_plugin_t *this;
-  mms_t              *mms;
-  mmsh_t             *mmsh;
-  char               *mrl = strdup(data);
+  mms_t              *mms  = NULL;
+  mmsh_t             *mmsh = NULL;
+  char               *mrl  = strdup(data);
   xine_cfg_entry_t    bandwidth_entry;
   int                 protocol;
   
@@ -359,8 +360,11 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   switch (this->protocol) {
     case PROTOCOL_UNDEFINED:
       mms = mms_connect (stream, mrl, this->bandwidth);
-      if (!mms) {
+      if (mms) {
+        protocol = PROTOCOL_MMST;
+      } else {
         mmsh = mmsh_connect (stream, mrl, this->bandwidth);
+        protocol = PROTOCOL_MMSH;
       }
       break;
     case PROTOCOL_MMST:
