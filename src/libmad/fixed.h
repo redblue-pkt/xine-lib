@@ -1,6 +1,6 @@
 /*
  * libmad - MPEG audio decoder library
- * Copyright (C) 2000-2001 Robert Leslie
+ * Copyright (C) 2000-2004 Underbit Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,15 +16,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: fixed.h,v 1.2 2002/04/30 18:46:58 miguelfreitas Exp $
+ * $Id: fixed.h,v 1.3 2004/04/28 19:57:40 mroi Exp $
  */
 
 # ifndef LIBMAD_FIXED_H
 # define LIBMAD_FIXED_H
 
-/* sizeof(int) must be greater or equal to 4 for  every 
-   plataform we intend to compile xine for.             */
-#define SIZEOF_INT 4
 # if SIZEOF_INT >= 4
 typedef   signed int mad_fixed_t;
 
@@ -211,6 +208,21 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 	    : "cc");  \
        __result;  \
     })
+#   elif defined(OPT_INTEL)
+/*
+ * Alternate Intel scaling that may or may not perform better.
+ */
+#    define mad_f_scale64(hi, lo)  \
+    ({ mad_fixed_t __result;  \
+       asm ("shrl %3,%1\n\t"  \
+	    "shll %4,%2\n\t"  \
+	    "orl %2,%1"  \
+	    : "=rm" (__result)  \
+	    : "0" (lo), "r" (hi),  \
+	      "I" (MAD_F_SCALEBITS), "I" (32 - MAD_F_SCALEBITS)  \
+	    : "cc");  \
+       __result;  \
+    })
 #   else
 #    define mad_f_scale64(hi, lo)  \
     ({ mad_fixed_t __result;  \
@@ -235,12 +247,8 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
  */
 # if 1
 /*
- * There's a bug somewhere, possibly in the compiler, that sometimes makes
- * this necessary instead of the default implementation via MAD_F_MLX and
- * mad_f_scale64. It may be related to the use (or lack) of
- * -finline-functions and/or -fstrength-reduce.
- *
- * This is also apparently faster than MAD_F_MLX/mad_f_scale64.
+ * This is faster than the default implementation via MAD_F_MLX() and
+ * mad_f_scale64().
  */
 #  define mad_f_mul(x, y)  \
     ({ mad_fixed64hi_t __hi;  \
@@ -278,7 +286,7 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
     ({ mad_fixed_t __result;  \
        asm ("movs	%0, %1, lsr %3\n\t"  \
 	    "adc	%0, %0, %2, lsl %4"  \
-	    : "=r" (__result)  \
+	    : "=&r" (__result)  \
 	    : "r" (lo), "r" (hi),  \
 	      "M" (MAD_F_SCALEBITS), "M" (32 - MAD_F_SCALEBITS)  \
 	    : "cc");  \
@@ -346,58 +354,69 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 # elif defined(FPM_PPC)
 
 /*
- * This PowerPC version is tuned for the 4xx embedded processors. It is
- * effectively a tuned version of FPM_64BIT. It is a little faster and just
- * as accurate. The disposition of the least significant bit depends on
- * OPT_ACCURACY via mad_f_scale64().
+ * This PowerPC version is fast and accurate; the disposition of the least
+ * significant bit depends on OPT_ACCURACY via mad_f_scale64().
  */
 #  define MAD_F_MLX(hi, lo, x, y)  \
-    asm ("mulhw %1, %2, %3\n\t"  \
-	 "mullw %0, %2, %3"  \
-	 : "=&r" (lo), "=&r" (hi)  \
-	 : "%r" (x), "r" (y))
-
-#  define MAD_F_MLA(hi, lo, x, y)  \
-    ({ mad_fixed64hi_t __hi;  \
-       mad_fixed64lo_t __lo;  \
-       MAD_F_MLX(__hi, __lo, (x), (y));  \
-       asm ("addc %0, %2, %3\n\t"  \
-	    "adde %1, %4, %5"  \
-	    : "=r" (lo), "=r" (hi)  \
-	    : "%r" (__lo), "0" (lo), "%r" (__hi), "1" (hi));  \
-    })
+    do {  \
+      asm ("mullw %0,%1,%2"  \
+	   : "=r" (lo)  \
+	   : "%r" (x), "r" (y));  \
+      asm ("mulhw %0,%1,%2"  \
+	   : "=r" (hi)  \
+	   : "%r" (x), "r" (y));  \
+    }  \
+    while (0)
 
 #  if defined(OPT_ACCURACY)
 /*
- * This is accurate and ~2 - 2.5 times slower than the unrounded version.
- *
- * The __volatile__ improves the generated code by another 5% (fewer spills
- * to memory); eventually they should be removed.
+ * This gives best accuracy but is not very fast.
+ */
+#   define MAD_F_MLA(hi, lo, x, y)  \
+    ({ mad_fixed64hi_t __hi;  \
+       mad_fixed64lo_t __lo;  \
+       MAD_F_MLX(__hi, __lo, (x), (y));  \
+       asm ("addc %0,%2,%3\n\t"  \
+	    "adde %1,%4,%5"  \
+	    : "=r" (lo), "=r" (hi)  \
+	    : "%r" (lo), "r" (__lo),  \
+	      "%r" (hi), "r" (__hi)  \
+	    : "xer");  \
+    })
+#  endif
+
+#  if defined(OPT_ACCURACY)
+/*
+ * This is slower than the truncating version below it.
  */
 #   define mad_f_scale64(hi, lo)  \
-    ({ mad_fixed_t __result;  \
-       mad_fixed64hi_t __hi_;  \
-       mad_fixed64lo_t __lo_;  \
-       asm __volatile__ ("addc %0, %2, %4\n\t"  \
-			 "addze %1, %3"  \
-	    : "=r" (__lo_), "=r" (__hi_)  \
-	    : "r" (lo), "r" (hi), "r" (1 << (MAD_F_SCALEBITS - 1)));  \
-       asm __volatile__ ("rlwinm %0, %2,32-%3,0,%3-1\n\t"  \
-			 "rlwimi %0, %1,32-%3,%3,31"  \
-	    : "=&r" (__result)  \
-	    : "r" (__lo_), "r" (__hi_), "I" (MAD_F_SCALEBITS));  \
-	    __result;  \
+    ({ mad_fixed_t __result, __round;  \
+       asm ("rotrwi %0,%1,%2"  \
+	    : "=r" (__result)  \
+	    : "r" (lo), "i" (MAD_F_SCALEBITS));  \
+       asm ("extrwi %0,%1,1,0"  \
+	    : "=r" (__round)  \
+	    : "r" (__result));  \
+       asm ("insrwi %0,%1,%2,0"  \
+	    : "+r" (__result)  \
+	    : "r" (hi), "i" (MAD_F_SCALEBITS));  \
+       asm ("add %0,%1,%2"  \
+	    : "=r" (__result)  \
+	    : "%r" (__result), "r" (__round));  \
+       __result;  \
     })
 #  else
 #   define mad_f_scale64(hi, lo)  \
     ({ mad_fixed_t __result;  \
-       asm ("rlwinm %0, %2,32-%3,0,%3-1\n\t"  \
-	    "rlwimi %0, %1,32-%3,%3,31"  \
+       asm ("rotrwi %0,%1,%2"  \
 	    : "=r" (__result)  \
-	    : "r" (lo), "r" (hi), "I" (MAD_F_SCALEBITS));  \
-	    __result;  \
+	    : "r" (lo), "i" (MAD_F_SCALEBITS));  \
+       asm ("insrwi %0,%1,%2,0"  \
+	    : "+r" (__result)  \
+	    : "r" (hi), "i" (MAD_F_SCALEBITS));  \
+       __result;  \
     })
-#  endif  /* OPT_ACCURACY */
+#  endif
 
 #  define MAD_F_SCALEBITS  MAD_F_FRACBITS
 
@@ -431,8 +450,8 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 
 # if !defined(mad_f_mul)
 #  define mad_f_mul(x, y)  \
-    ({ mad_fixed64hi_t __hi;  \
-       mad_fixed64lo_t __lo;  \
+    ({ register mad_fixed64hi_t __hi;  \
+       register mad_fixed64lo_t __lo;  \
        MAD_F_MLX(__hi, __lo, (x), (y));  \
        mad_f_scale64(__hi, __lo);  \
     })
@@ -472,8 +491,9 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 #  define MAD_F_SCALEBITS  MAD_F_FRACBITS
 # endif
 
-/* miscellaneous C routines */
+/* C routines */
 
 mad_fixed_t mad_f_abs(mad_fixed_t);
+mad_fixed_t mad_f_div(mad_fixed_t, mad_fixed_t);
 
 # endif
