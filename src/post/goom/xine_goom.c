@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.18 2003/01/04 19:35:15 tmmm Exp $
+ * $Id: xine_goom.c,v 1.19 2003/01/05 22:50:37 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -36,7 +36,8 @@
 #include "goom_config.h"
 #include "goom_core.h"
 
-#define FPS 10
+#define NUMSAMPLES  512
+#define FPS          10
 
 #define GOOM_WIDTH  320
 #define GOOM_HEIGHT 240
@@ -376,109 +377,116 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   uint8_t *goom_frame, *goom_frame_end;
   int16_t *data;
   int8_t *data8;
+  int samples_used = 0;
+  uint64_t vpts = buf->vpts;
   int i, j;
   uint8_t *dest_ptr;
 
   this->sample_counter += buf->num_frames;
   
   j = (this->channels >= 2) ? 1 : 0;
-        
-  if( this->bits == 8 ) {        
-    data8 = (int8_t *)buf->mem;
+
+  do {
     
-    /* scale 8 bit data to 16 bits and convert to signed as well */
-    for( i = 0; i < buf->num_frames && this->data_idx < 512;
-         i++, this->data_idx++, data8 += this->channels ) {
-      this->data[0][this->data_idx] = ((int16_t)data8[0] << 8) - 0x8000;
-      this->data[1][this->data_idx] = ((int16_t)data8[j] << 8) - 0x8000;
-    }
-  } else {
-    data = buf->mem;
-    
-    for( i = 0; i < buf->num_frames && this->data_idx < 512; 
-         i++, this->data_idx++, data += this->channels ) {
-      this->data[0][this->data_idx] = data[0];
-      this->data[1][this->data_idx] = data[j];
-    }
-  }
+    if( this->bits == 8 ) {
+      data8 = (int8_t *)buf->mem;
+      data8 += samples_used * this->channels;
   
-  
-  if( this->sample_counter >= this->samples_per_frame &&
-      this->data_idx == 512 ) {
-    
-    this->data_idx = 0;
-        
-    goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
-
-    frame = this->vo_port->get_frame (this->vo_port, this->class->width, this->class->height,
-                                      XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
-                                      VO_BOTH_FIELDS);
-    frame->pts = buf->vpts;
-    frame->duration = 90000 * this->sample_counter / this->sample_rate;
-  
-    /* Try to be fast */
-    dest_ptr = frame -> base[0];
-    goom_frame_end = goom_frame + 4 * (this->class->width * this->class->height);
-
-    if ((this->class->csc_method == 1) && 
-        (xine_mm_accel() & MM_ACCEL_X86_MMX)) {
-      int plane_ptr = 0;
-
-      while (goom_frame < goom_frame_end) {
-        uint8_t r, g, b;
-      
-        /* don't take endianness into account since MMX is only available
-         * on Intel processors */
-        b = *goom_frame; goom_frame++;
-        g = *goom_frame; goom_frame++;
-        r = *goom_frame; goom_frame += 2;
-
-        this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
-        this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
-        this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
-        plane_ptr++;
+      /* scale 8 bit data to 16 bits and convert to signed as well */
+      for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
+           i++, this->data_idx++, data8 += this->channels ) {
+        this->data[0][this->data_idx] = ((int16_t)data8[0] << 8) - 0x8000;
+        this->data[1][this->data_idx] = ((int16_t)data8[j] << 8) - 0x8000;
       }
-
-
-      yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
-
     } else {
+      data = buf->mem;
+      data += samples_used * this->channels;
+  
+      for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
+           i++, this->data_idx++, data += this->channels ) {
+        this->data[0][this->data_idx] = data[0];
+        this->data[1][this->data_idx] = data[j];
+      }
+    }
+  
+    if( this->sample_counter >= this->samples_per_frame &&
+        this->data_idx == NUMSAMPLES ) {
+  
+      this->data_idx = 0;
+      samples_used += this->samples_per_frame;
+        
+      goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
 
-      while (goom_frame < goom_frame_end) {
-        uint8_t r1, g1, b1, r2, g2, b2;
+      frame = this->vo_port->get_frame (this->vo_port, this->class->width, this->class->height,
+                                        XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
+                                        VO_BOTH_FIELDS);
+      
+      frame->pts = vpts;
+      vpts = 0;
+      frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
+      this->sample_counter -= this->samples_per_frame;
+  
+      /* Try to be fast */
+      dest_ptr = frame -> base[0];
+      goom_frame_end = goom_frame + 4 * (this->class->width * this->class->height);
+
+      if ((this->class->csc_method == 1) && 
+          (xine_mm_accel() & MM_ACCEL_X86_MMX)) {
+        int plane_ptr = 0;
+
+        while (goom_frame < goom_frame_end) {
+          uint8_t r, g, b;
+      
+          /* don't take endianness into account since MMX is only available
+           * on Intel processors */
+          b = *goom_frame; goom_frame++;
+          g = *goom_frame; goom_frame++;
+          r = *goom_frame; goom_frame += 2;
+
+          this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+          this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+          this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+          plane_ptr++;
+        }
+
+        yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
+
+      } else {
+
+        while (goom_frame < goom_frame_end) {
+          uint8_t r1, g1, b1, r2, g2, b2;
       
 #ifdef __BIG_ENDIAN__
-        goom_frame ++;
-        r1 = *goom_frame; goom_frame++;
-        g1 = *goom_frame; goom_frame++;
-        b1 = *goom_frame; goom_frame += 2;
-        r2 = *goom_frame; goom_frame++;
-        g2 = *goom_frame; goom_frame++;
-        b2 = *goom_frame; goom_frame++;
+          goom_frame ++;
+          r1 = *goom_frame; goom_frame++;
+          g1 = *goom_frame; goom_frame++;
+          b1 = *goom_frame; goom_frame += 2;
+          r2 = *goom_frame; goom_frame++;
+          g2 = *goom_frame; goom_frame++;
+          b2 = *goom_frame; goom_frame++;
 #else
-        b1 = *goom_frame; goom_frame++;
-        g1 = *goom_frame; goom_frame++;
-        r1 = *goom_frame; goom_frame += 2;
-        b2 = *goom_frame; goom_frame++;
-        g2 = *goom_frame; goom_frame++;
-        r2 = *goom_frame; goom_frame += 2;
+          b1 = *goom_frame; goom_frame++;
+          g1 = *goom_frame; goom_frame++;
+          r1 = *goom_frame; goom_frame += 2;
+          b2 = *goom_frame; goom_frame++;
+          g2 = *goom_frame; goom_frame++;
+          r2 = *goom_frame; goom_frame += 2;
 #endif
       
-        *dest_ptr = COMPUTE_Y(r1, g1, b1);
-        dest_ptr++;
-        *dest_ptr = COMPUTE_U(r1, g1, b1);
-        dest_ptr++;
-        *dest_ptr = COMPUTE_Y(r2, g2, b2);
-        dest_ptr++;
-        *dest_ptr = COMPUTE_V(r2, g2, b2);
-        dest_ptr++;
+          *dest_ptr = COMPUTE_Y(r1, g1, b1);
+          dest_ptr++;
+          *dest_ptr = COMPUTE_U(r1, g1, b1);
+          dest_ptr++;
+          *dest_ptr = COMPUTE_Y(r2, g2, b2);
+          dest_ptr++;
+          *dest_ptr = COMPUTE_V(r2, g2, b2);
+          dest_ptr++;
+        }
       }
-    }
 
-    frame->draw(frame, stream);
-    frame->free(frame);
-    
-    this->sample_counter = 0;
-  }
+      frame->draw(frame, stream);
+      frame->free(frame);
+    }
+  } while( this->sample_counter >= this->samples_per_frame );
   port->original_port->put_buffer(port->original_port, buf, stream );  
 }
