@@ -758,7 +758,7 @@
     <para>
       Use something like:
       <programlisting>
-        cat stream.mpg | gxine stdin://
+        cat stream.mpg | gxine stdin:/
       </programlisting>    
     </para>
   </sect1>
@@ -1390,9 +1390,17 @@
       Might be a soundcard problem, if it only comes in longer intervals.
       Your soundcard does not keep it's sampling frequency accurately 
       enough, which results in audio and video
-      getting out of sync and xine has to compensate. 
-      Maybe switching to different drivers (alsa to oss or vise-versa)
-      can help here.
+      getting out of sync and xine has to compensate. If you see the message
+      only from time to time, you might remedy it by using the resampling sync
+      method. You can do this by setting the configuration entry
+      <parameter>audio.av_sync_method</parameter> to <parameter>resample</parameter>.
+    </para>
+    <pata>
+      If you receive the metronom message more often,
+      maybe switching to different drivers (alsa to oss or vise-versa)
+      can help here. It has also been reported that setting the configuration
+      entry <parameter>audio.force_rate</parameter> to the native sampling
+      rate of your soundcard (try 44100 and 48000) helps sometimes.
     </para>
     <para>
       Another, whole different possibility is that you have some background
@@ -1403,6 +1411,30 @@
       Occasional messages of "fixing sound card drift" may happen on start and
       when playing a long stream (like a movie). This is normal behaviour, 
       nothing to worry about.
+    </para>
+  </sect1>
+
+  <sect1>
+    <title>xine seems to lose sound arbitrarily during playback, especially with DVDs</title>
+    
+    <para>
+      You are using the OSS audio output plugin, right? In order to keep video and audio
+      in sync, xine regularly queries the audio driver for the amount of delay induced by
+      the current length of the driver's audio buffer. Unfortunately some OSS drivers seem
+      to be broken because the can return strange values here. This confuses the xine audio
+      subsystem and makes it drop audio.
+    </para>
+    <para>
+      You should try the various settings of the
+      configuration entry <parameter>audio.oss_sync_method</parameter>. The options
+      <parameter>getodelay</parameter> and <parameter>getoptr</parameter> ask the driver and
+      might therefore show the problem. But chances are that only one is broken and the other
+      works, so you should try them both first, since they are the most accurate.
+      The option <parameter>probebuffer</parameter> does not ask the driver directly but
+      tries to determine the buffer length from outside. This should work with any driver
+      and is the way to go, of the driver dependent methods fail.
+      <parameter>softsync</parameter> is the least accurate and should be used only in
+      emergency situations.
     </para>
   </sect1>
 </chapter>
