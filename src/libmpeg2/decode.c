@@ -476,10 +476,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      else
 		mpeg2dec->drop_frame = 1;		
 	    } else {
-		int flags = VO_INTERLACED_FLAG | picture->picture_structure;
+		int flags = picture->picture_structure;
+		if (!picture->mpeg1) flags |= VO_INTERLACED_FLAG;
 		if (mpeg2dec->force_pan_scan) flags |= VO_PAN_SCAN_FLAG;
 		if (mpeg2dec->new_sequence) flags |= VO_NEW_SEQUENCE_FLAG;
-		
+
 		if ( picture->current_frame && 
 		     picture->current_frame != picture->backward_reference_frame &&
 		     picture->current_frame != picture->forward_reference_frame ) {
