@@ -1031,6 +1031,13 @@ case "$host_or_hostalias" in
 	AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
 	enable_ffmmx="yes"
 	enable_w32dll="yes"
+
+        case "$host_or_hostalias" in
+	*-*-cygwin) 
+          enable_w32dll="no" 
+	  LDFLAGS="$LDFLAGS -no-undefined @INTLLIBS@"
+	  ;;
+	esac
     else
 	dnl add x86 specific cc CFLAGS
 	CFLAGS="$CFLAGS -O"
