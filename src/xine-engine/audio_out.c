@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.51 2002/04/01 12:09:09 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.52 2002/04/14 00:24:45 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -276,6 +276,10 @@ static void *ao_loop (void *this_gen) {
 
     buf = fifo_remove (this->out_fifo);
     bufs_since_sync++;
+
+#ifdef LOG
+    printf ("audio_out: got a buffer\n");
+#endif
 
     do {
       delay = this->driver->delay(this->driver);

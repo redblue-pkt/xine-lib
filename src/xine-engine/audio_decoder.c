@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.70 2002/04/09 03:38:01 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.71 2002/04/14 00:24:45 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -61,7 +61,7 @@ void *audio_decoder_loop (void *this_gen) {
 
     
 #ifdef LOG
-    printf ("audio_loop: got package pts = %d, type = %08x\n", 
+    printf ("audio_loop: got package pts = %lld, type = %08x\n", 
 	    buf->pts, buf->type); 
 #endif    
 
