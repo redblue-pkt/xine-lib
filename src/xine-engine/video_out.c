@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.73 2002/02/17 00:06:58 guenter Exp $
+ * $Id: video_out.c,v 1.74 2002/02/17 15:53:28 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -61,7 +61,7 @@
 #endif
 
 
-#define VIDEO_OUT_LOG
+#define LOG
 
 
 #define NUM_FRAME_BUFFERS     15
@@ -220,13 +220,13 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this_gen,
   vo_frame_t *img;
   vos_t      *this = (vos_t *) this_gen;
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   printf ("video_out: get_frame (%d x %d)\n", width, height);
 #endif
 
   img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   printf ("video_out: got a frame -> pthread_mutex_lock (&img->mutex)\n");
 #endif
 
@@ -246,7 +246,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this_gen,
 
   pthread_mutex_unlock (&img->mutex);
   
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   printf ("video_out: get_frame (%d x %d) done\n", width, height);
 #endif
 
@@ -268,7 +268,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   cur_vpts = this->metronom->get_current_time(this->metronom);
   this->last_delivery_pts = cur_vpts;
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   printf ("video_out: got image at master vpts %lld. vpts for picture is %lld (pts was %lld)\n",
 	  cur_vpts, pic_vpts, img->pts);
 #endif
@@ -278,7 +278,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   diff = pic_vpts - cur_vpts;
   frames_to_skip = ((-1 * diff) / img->duration + 3) * 2;
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   printf ("video_out: delivery diff : %lld, current vpts is %lld\n",
 	  diff, cur_vpts);
 #endif
@@ -293,7 +293,7 @@ static int vo_frame_draw (vo_frame_t *img) {
     if (diff<(-1 * img->duration) && img->drawn != 2 ) {
 
       this->num_frames_discarded++;
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
       printf ("video_out: frame rejected, %d frames to skip\n", frames_to_skip);
 #endif
 
@@ -315,7 +315,7 @@ static int vo_frame_draw (vo_frame_t *img) {
      * put frame into FIFO-Buffer
      */
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
     printf ("video_out: frame is ok => appending to display buffer\n");
 #endif
 
@@ -412,7 +412,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 	  
 	if (this->img_backup) {
 	  pthread_mutex_lock (&this->img_backup->mutex);
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
 	  printf("video_out: overwriting frame backup\n");
 #endif
 	  this->img_backup->display_locked = 0;
@@ -458,7 +458,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 
   if (!img) {
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
     printf ("video_out: no frame\n");
 #endif
 
@@ -469,7 +469,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 
       if (this->img_backup) {
 	pthread_mutex_lock (&this->img_backup->mutex);
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
 	printf("video_out: overwriting frame backup\n");
 #endif
 	this->img_backup->display_locked = 0;
@@ -498,7 +498,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 
     if (this->img_backup) {
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
       printf("video_out: generating still frame (cur_vpts = %lld) \n",
 	     cur_vpts);
 #endif
@@ -515,7 +515,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 
     } else {
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
       printf ("video_out: no frame, but no backup frame\n");
 #endif
 
@@ -531,7 +531,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      * time to display frame "img" ?
      */
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
     printf ("video_out: diff %lld\n", diff);
 #endif
 
@@ -578,7 +578,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 static void overlay_and_display_frame (vos_t *this, 
 				       vo_frame_t *img) {
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   printf ("video_out: displaying image with vpts = %lld\n", 
 	  img->vpts);
 #endif
@@ -586,7 +586,7 @@ static void overlay_and_display_frame (vos_t *this,
   pthread_mutex_lock (&img->mutex);
   img->driver_locked = 1;
   
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   if (!img->display_locked)
     printf ("video_out: ALERT! frame was not locked for display queue\n");
 #endif
@@ -594,7 +594,7 @@ static void overlay_and_display_frame (vos_t *this,
   img->display_locked = 0;
   pthread_mutex_unlock (&img->mutex);
   
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
   printf ("video_out: passing to video driver image with pts = %lld\n", 
 	  img->vpts);
 #endif
@@ -628,7 +628,7 @@ static void *video_out_loop (void *this_gen) {
   frame_duration = 1500; /* default */
   next_frame_vpts = this->metronom->get_current_time (this->metronom);
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
     printf ("video_out: loop starting...\n");
 #endif
 
@@ -639,7 +639,7 @@ static void *video_out_loop (void *this_gen) {
      */
 
     vpts = this->metronom->get_current_time (this->metronom);
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
     printf ("video_out: loop iteration at %lld\n", vpts);
 #endif
     expire_frames (this, vpts);
@@ -650,7 +650,7 @@ static void *video_out_loop (void *this_gen) {
      */
 
     if (img) {
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
       printf ("video_out: displaying frame (id=%d)\n", img->id);
 #endif
       overlay_and_display_frame (this, img);
@@ -667,7 +667,7 @@ static void *video_out_loop (void *this_gen) {
       if (this->xine->cur_video_decoder_plugin) {
 	this->xine->cur_video_decoder_plugin->flush(this->xine->cur_video_decoder_plugin);
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
 	printf ("video_out: flushing current video decoder plugin\n");
 #endif
       }
@@ -685,7 +685,7 @@ static void *video_out_loop (void *this_gen) {
       next_frame_vpts += frame_duration;
     }
     
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
     printf ("video_out: next_frame_vpts is %lld\n", next_frame_vpts);
 #endif
  
@@ -694,7 +694,7 @@ static void *video_out_loop (void *this_gen) {
 
       usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
 
-#ifdef VIDEO_OUT_LOG
+#ifdef LOG
       printf ("video_out: %lld usec to sleep at master vpts %lld\n", 
 	      usec_to_sleep, vpts);
 #endif
@@ -865,7 +865,10 @@ static void vo_exit (vo_instance_t *this_gen) {
 
   vos_t      *this = (vos_t *) this_gen;
 
+#ifdef LOG
   printf ("video_out: vo_exit...\n");
+#endif
+
   if (this->video_loop_running) {
     void *p;
 
@@ -878,7 +881,9 @@ static void vo_exit (vo_instance_t *this_gen) {
 
   this->driver->exit (this->driver);
 
+#ifdef LOG
   printf ("video_out: vo_exit... done\n");
+#endif
 }
 
 static vo_frame_t *vo_get_last_frame (vo_instance_t *this_gen) {

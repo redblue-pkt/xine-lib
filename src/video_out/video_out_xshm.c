@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.58 2002/02/17 00:06:58 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.59 2002/02/17 15:53:28 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -59,7 +59,9 @@
 #include "yuv2rgb.h"
 #include "xineutils.h"
 
+/*
 #define LOG
+*/
 
 extern int XShmGetEventBase(Display *);
 
@@ -365,6 +367,10 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   /*xshm_driver_t *this = (xshm_driver_t *) vo_img->driver; */
 
+#ifdef LOG
+  printf ("video_out_xshm: copy... (format %d)\n", frame->format);
+#endif
+
   if (frame->format == IMGFMT_YV12) {
     frame->yuv2rgb->yuv2rgb_fun (frame->yuv2rgb, frame->rgb_dst,
 				 src[0], src[1], src[2]);
@@ -376,6 +382,9 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   }
   
   frame->rgb_dst += frame->stripe_inc; 
+#ifdef LOG
+  printf ("video_out_xshm: copy...done\n");
+#endif
 }
 
 static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -571,6 +580,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       || (height != frame->height)
       || (ratio_code != frame->ratio_code)
       || (flags != frame->flags)
+      || (format != frame->format)
       || (this->user_ratio != frame->user_ratio)) {
 
     do_adapt = 1;
@@ -583,6 +593,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     frame->height     = height;
     frame->ratio_code = ratio_code;
     frame->flags      = flags;
+    frame->format     = format;
     frame->user_ratio = this->user_ratio;
 
     xshm_compute_ideal_size (this, frame);

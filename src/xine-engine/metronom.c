@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.54 2002/02/16 23:37:55 guenter Exp $
+ * $Id: metronom.c,v 1.55 2002/02/17 15:53:28 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,9 +49,9 @@
 
 #define METRONOM_REPORT
 
-
+/*
 #define METRONOM_LOG
-
+*/
 
 /*
  * ****************************************

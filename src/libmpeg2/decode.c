@@ -446,6 +446,9 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
 
   picture_t *picture = mpeg2dec->picture;
 
+  if (!picture)
+    return;
+
   if (picture->backward_reference_frame && !picture->backward_reference_frame->drawn
       && !picture->backward_reference_frame->bad_frame) {
 
