@@ -357,4 +357,7 @@ Julio Sánchez <j.sanchezf@terra.es>
 Stuart Caie <kyzer@4u.net>
   Playstation STR file demuxer, CD-ROM/XA ADPCM decoder
 
+Markus Plail <xine-user@gitteundmarkus.de>
+  DTS passthrough improvements
+
 (let us know if we've forgotten anyone)
