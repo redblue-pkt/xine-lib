@@ -10,6 +10,7 @@ xine-lib (1-rc4)
   * fix runtime audio channel selection, specially for ogg/ogm streams
   * preliminary matroska support
   * support for AAC audio in RealMedia files
+  * implement chapter skipping in ogm files
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

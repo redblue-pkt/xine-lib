@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.136 2004/01/16 16:03:53 andruil Exp $
+ * $Id: demux_ogg.c,v 1.137 2004/01/23 09:25:24 andruil Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -142,6 +142,7 @@ typedef struct demux_ogg_s {
 
   char                 *title;
   chapter_info_t       *chapter_info;
+  xine_event_queue_t   *event_queue;
 } demux_ogg_t ;
 
 typedef struct {
@@ -374,6 +375,39 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
       this->avg_bitrate = 1;
 
   }
+}
+
+static void ogg_handle_event (demux_ogg_t *this) {
+  xine_event_t *event;
+
+  while ((event = xine_event_get(this->event_queue))) {
+    switch(event->type) {
+    case XINE_EVENT_INPUT_NEXT:
+      {
+        if (this->chapter_info) {
+          int c_chap = this->chapter_info->current_chapter;
+          if (c_chap+1 < this->chapter_info->max_chapter) {
+            int start_time = this->chapter_info->entries[c_chap+1].start_pts / 90;
+            this->demux_plugin.seek((demux_plugin_t *)this, 0, start_time, 1);
+          }
+        }
+      }
+      break;
+    case XINE_EVENT_INPUT_PREVIOUS:
+      {
+        if (this->chapter_info) {
+          int c_chap = this->chapter_info->current_chapter;
+          if (c_chap >= 1) {
+            int start_time = this->chapter_info->entries[c_chap-1].start_pts / 90;
+            this->demux_plugin.seek((demux_plugin_t *)this, 0, start_time, 1);
+          }
+        }
+      }
+      break;
+    }
+    xine_event_free(event);
+  }
+  return;
 }
 
 /*
@@ -1175,9 +1209,10 @@ static void send_header (demux_ogg_t *this) {
       }
 
       /* send preview buffer */
-      if (this->si[stream_num]->headers) {
+      if (this->si[stream_num]->headers > 0 ||
+          op.packet[0] == PACKET_TYPE_COMMENT) {
         lprintf ("sending preview buffer of stream type %08x\n",
-        this->si[stream_num]->buf_types);
+                 this->si[stream_num]->buf_types);
 
         send_ogg_buf (this, &op, stream_num, BUF_FLAG_HEADER);
         this->si[stream_num]->headers --;
@@ -1216,6 +1251,8 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
 
   ogg_packet op;
 
+  ogg_handle_event(this);
+
   lprintf ("send package...\n");
 
   if (!read_ogg_packet(this)) {
@@ -1247,7 +1284,7 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
   ogg_stream_pagein(&this->si[stream_num]->oss, &this->og);
 
   if (ogg_page_bos(&this->og)) {
-    lprintf ("beginning of stream\ndemux_ogg: serial number %d - discard\n",
+    lprintf ("beginning of stream: serial number %d - discard\n",
              ogg_page_serialno (&this->og));
     while (ogg_stream_packetout(&this->si[stream_num]->oss, &op) == 1) ;
     return this->status;
@@ -1365,6 +1402,8 @@ static void demux_ogg_dispose (demux_plugin_t *this_gen) {
   if (this->title){
     free (this->title);
   }
+  if (this->event_queue)
+    xine_event_dispose_queue (this->event_queue);
 
   free (this);
 }
@@ -1486,6 +1525,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
 
     for (i=0; i<this->num_streams; i++) {
       this->si[i]->header_granulepos = -1;
+      ogg_stream_reset(&this->si[i]->oss);
     }
 
     /*some strange streams have no syncpoint flag set at the beginning*/	 
@@ -1552,7 +1592,13 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
 }
 
 static uint32_t demux_ogg_get_capabilities(demux_plugin_t *this_gen) {
-  return DEMUX_CAP_SPULANG | DEMUX_CAP_AUDIOLANG;
+  demux_ogg_t *this = (demux_ogg_t *) this_gen; 
+  int cap_chapter = 0;
+
+  if (this->chapter_info)
+    cap_chapter = DEMUX_CAP_CHAPTERS;
+
+  return DEMUX_CAP_SPULANG | DEMUX_CAP_AUDIOLANG | cap_chapter;
 }
 
 static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
@@ -1689,6 +1735,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   this->chapter_info = 0;
   this->title = 0;
+  this->event_queue = xine_event_new_queue (this->stream);
 
   return &this->demux_plugin;
 }

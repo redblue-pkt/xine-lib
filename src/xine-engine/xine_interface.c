@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.76 2004/01/11 15:31:53 mroi Exp $
+ * $Id: xine_interface.c,v 1.77 2004/01/23 09:26:16 andruil Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -566,8 +566,12 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
     return 0;
 
   case XINE_STREAM_INFO_HAS_CHAPTERS:
+    if (stream->demux_plugin)
+      if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_CHAPTERS)
+        return 1;
     if (stream->input_plugin)
-      return stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_CHAPTERS;
+      if (stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_CHAPTERS)
+        return 1;
     return 0;
 
   case XINE_STREAM_INFO_BITRATE:

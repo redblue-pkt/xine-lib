@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.35 2004/01/12 17:35:14 miguelfreitas Exp $
+ * $Id: demux.h,v 1.36 2004/01/23 09:24:52 andruil Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -188,6 +188,18 @@ struct demux_plugin_s {
 
 #define DEMUX_CAP_AUDIOLANG            0x00000008
 #define DEMUX_CAP_SPULANG              0x00000010
+
+/*
+ * DEMUX_CAP_CHAPTERS:
+ *   The media streams provided by this plugin have an internal
+ *   structure dividing it into segments usable for navigation.
+ *   For those plugins, the behaviour of the skip button in UIs
+ *   should be changed from "next MRL" to "next chapter" by
+ *   sending XINE_EVENT_INPUT_NEXT.
+ *   Same bits as INPUT capabilities.
+ */
+
+#define DEMUX_CAP_CHAPTERS             0x00000080
 
 
 #define DEMUX_OPTIONAL_UNSUPPORTED    0
