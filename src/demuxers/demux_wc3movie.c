@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.34 2003/02/22 01:38:10 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.35 2003/02/22 14:06:48 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -384,6 +384,7 @@ static int open_mve_file(demux_mve_t *this) {
   int temp;
   unsigned char header[WC3_HEADER_SIZE];
   unsigned char preview[MAX_PREVIEW_SIZE];
+  void *title;
 
   /* these are the frame dimensions unless others are found */
   this->video_width = WC3_USUAL_WIDTH;
@@ -436,20 +437,28 @@ static int open_mve_file(demux_mve_t *this) {
   for (i = 0; i < this->number_of_shots; i++) {
     /* make sure there was a valid palette chunk preamble */
     if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-      PREAMBLE_SIZE)
+      PREAMBLE_SIZE) {
+      free (this->palettes);
+      free (this->shot_offsets);
       return 0;
+    }
 
     if ((BE_32(&preamble[0]) != PALT_TAG) || 
         (BE_32(&preamble[4]) != PALETTE_CHUNK_SIZE)) {
       xine_log(this->stream->xine, XINE_LOG_MSG,
         _("demux_wc3movie: There was a problem while loading palette chunks\n"));
+      free (this->palettes);
+      free (this->shot_offsets);
       return 0;
     }
 
     /* load the palette chunk */
     if (this->input->read(this->input, disk_palette, PALETTE_CHUNK_SIZE) !=
-      PALETTE_CHUNK_SIZE)
+      PALETTE_CHUNK_SIZE) {
+      free (this->palettes);
+      free (this->shot_offsets);
       return 0;
+    }
 
     /* convert and store the palette */
     for (j = 0; j < PALETTE_SIZE; j++) {
@@ -473,11 +482,16 @@ static int open_mve_file(demux_mve_t *this) {
    * BNAM, SIZE and perhaps others; traverse chunks until first BRCH
    * chunk is found */
   chunk_tag = 0;
+  title = NULL;
   while (chunk_tag != BRCH_TAG) {
 
     if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-      PREAMBLE_SIZE)
+      PREAMBLE_SIZE) {
+      free (title);
+      free (this->palettes);
+      free (this->shot_offsets);
       return 0;
+    }
 
     chunk_tag = BE_32(&preamble[0]);
     /* round up to the nearest even size */
@@ -491,20 +505,25 @@ static int open_mve_file(demux_mve_t *this) {
 
       case BNAM_TAG:
         /* load the name into the stream attributes */
-        this->stream->meta_info[XINE_META_INFO_TITLE] = 
-          xine_xmalloc(chunk_size);
-        if (this->input->read(this->input, 
-          this->stream->meta_info[XINE_META_INFO_TITLE], chunk_size) !=
-          chunk_size)
+        title = realloc (title, chunk_size);
+        if (this->input->read(this->input, title, chunk_size) != chunk_size) {
+          free (title);
+          free (this->palettes);
+          free (this->shot_offsets);
           return 0;
+        }
         break;
 
       case SIZE_TAG:
         /* override the default width and height */
         /* reuse the preamble bytes */
         if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-          PREAMBLE_SIZE)
+          PREAMBLE_SIZE) {
+          free (title);
+          free (this->palettes);
+          free (this->shot_offsets);
           return 0;
+        }
         this->video_width = BE_32(&preamble[0]);
         this->video_height = BE_32(&preamble[4]);
         break;
@@ -533,6 +552,8 @@ static int open_mve_file(demux_mve_t *this) {
   this->data_size = this->input->get_length(this->input) - this->data_start;
 
   this->video_pts = 0;
+
+  this->stream->meta_info[XINE_META_INFO_TITLE] = title;
 
   return 1;
 }
@@ -653,6 +674,7 @@ static void demux_mve_dispose (demux_plugin_t *this_gen) {
   demux_mve_t *this = (demux_mve_t *) this_gen;
 
   free(this->palettes);
+  free(this->shot_offsets);
   free(this);
 }
 

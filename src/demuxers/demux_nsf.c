@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.9 2003/01/26 15:56:21 tmmm Exp $
+ * $Id: demux_nsf.c,v 1.10 2003/02/22 14:06:47 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -177,6 +177,8 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
       this->new_song = 0;
       sprintf(title, "%s, song %d/%d", 
         this->title, this->current_song, this->total_songs);
+      if (this->stream->meta_info[XINE_META_INFO_TITLE])
+        free (this->stream->meta_info[XINE_META_INFO_TITLE]);
       this->stream->meta_info[XINE_META_INFO_TITLE] = strdup(title);
       xine_demux_control_newpts(this->stream, this->current_pts, 0);
 
