@@ -923,13 +923,7 @@ static void *init_class (xine_t *xine, void *data) {
   return audiox;
 }
 
-static uint32_t audio_types[] = {
-  BUF_AUDIO_DIRECTX,
-  0
- };
-
-static decoder_info_t dec_info_audio = {
-  audio_types,         /* supported types */
+static ao_info_t ao_info_directx = {
   1                    /* priority        */
 };
 
@@ -938,7 +932,7 @@ static decoder_info_t dec_info_audio = {
  */
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_OUT, AO_DIRECTX_IFACE_VERSION, "directx", XINE_VERSION_CODE, &dec_info_audio, init_class },
+  { PLUGIN_AUDIO_OUT, AO_DIRECTX_IFACE_VERSION, "directx", XINE_VERSION_CODE, &ao_info_directx, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.108 2003/04/22 23:30:52 tchamp Exp $
+ * $Id: buffer.h,v 1.109 2003/04/23 16:15:01 mroi Exp $
  *
  *
  * contents:
@@ -197,7 +197,6 @@ extern "C" {
 #define BUF_AUDIO_FLAC		0x032C0000
 #define BUF_AUDIO_DV		0x032D0000
 #define BUF_AUDIO_WMAV		0x032E0000
-#define BUF_AUDIO_DIRECTX	0x032F0000
 
 /* spu buffer types:    */
 
