@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.h,v 1.3 2004/12/29 16:09:50 jcdutton Exp $
+  $Id: vcdplayer.h,v 1.4 2004/12/29 16:16:52 jcdutton Exp $
 
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -300,6 +300,13 @@ vcdplayer_seek (vcdplayer_t *p_vcdplayer, off_t offset, int origin);
  */
 void 
 vcdplayer_send_button_update(vcdplayer_t *p_vcdplayer, int mode);
+
+#ifndef LIBVCD_VERSION
+/* Older version of vcdimager. You really should consider using 0.7.21
+   or later as that has bug and memory leak fixes. */
+lid_t
+vcdplayer_selection2lid (vcdplayer_t *p_vcdplayer, int entry_num); 
+#endif
 
 #endif /* _VCDPLAYER_H_ */
 /* 

@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.8 2004/12/29 16:09:50 jcdutton Exp $
+  $Id: vcdplayer.c,v 1.9 2004/12/29 16:16:52 jcdutton Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -714,13 +714,6 @@ _vcdplayer_set_origin(vcdplayer_t *p_vcdplayer)
   if (p_vcdplayer->handle_events()) goto skip_next_play; \
   p_vcdplayer->sleep(250000);                            
 /*  if (p_vcdplayer->i_still) p_vcdplayer->force_redisplay();    */
-
-#ifndef LIBVCD_VERSION
-/* Older version of vcdimager. You really should consider using 0.7.21
-   or later as that has bug and memory leak fixes. */
-lid_t
-vcdplayer_selection2lid (vcdplayer_t *p_vcdplayer, int entry_num); 
-#endif
 
 /* Handles PBC navigation when reaching the end of a play item. */
 static vcdplayer_read_status_t
