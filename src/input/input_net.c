@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -58,24 +58,12 @@
 
 extern int errno;
 
-#if !defined(NDELAY) && defined(O_NDELAY)
-#define	FNDELAY	O_NDELAY
-#endif
-
 #ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
 #define LOG_MSG(xine, message, args...) {                            \
     xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
     printf(message, ##args);                                         \
   }
 #else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
 #define LOG_MSG(xine, ...) {                                         \
     xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
@@ -108,90 +96,53 @@ typedef struct {
 
 
 static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
-	int s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	
-	struct sockaddr_in sin;
-	
-	fd_set wfd;
-	struct timeval tv;
-	
-	if(s==-1)
-	{
-		LOG_MSG_STDERR(xine, _("socket(): %s\n"), strerror(errno));
-		return -1;
-	}
-	
-	if(fcntl(s, F_SETFL, FNDELAY)==-1)
-	{
-		LOG_MSG_STDERR(xine, _("fcntl(nonblocking): %s\n"), strerror(errno));
-		close(s);
-		return -1;
-	}
 
-	sin.sin_family = AF_INET;	
-	sin.sin_addr   = ia;
-	sin.sin_port   = htons(port);
-	
-	if(connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS)
-	{
-		LOG_MSG_STDERR(xine, _("connect(): %s\n"), strerror(errno));
-		close(s);
-		return -1;
-	}	
-	
-	tv.tv_sec = 60;		/* We use 60 second timeouts for now */
-	tv.tv_usec = 0;
-	
-	FD_ZERO(&wfd);
-	FD_SET(s, &wfd);
-	
-	switch(select(s+1, NULL, &wfd, NULL, &tv))
-	{
-		case 0:
-			/* Time out */
-			close(s);
-			return -1;
-		case -1:
-			/* Ermm.. ?? */
-			LOG_MSG(xine, _("select(): %s\n"), strerror(errno));
-			close(s);
-			return -1;
-	}
-	
-	return s;
+  int                s;
+  struct sockaddr_in sin;
+  fd_set             wfd;
+
+  s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (s==-1) {
+    LOG_MSG(xine, _("input_net: socket(): %s\n"), strerror(errno));
+    return -1;
+  }
+
+  sin.sin_family = AF_INET;	
+  sin.sin_addr   = ia;
+  sin.sin_port   = htons(port);
+  
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
+    LOG_MSG (xine, _("input_net: connect(): %s\n"), strerror(errno));
+    close(s);
+    return -1;
+  }	
+
+  return s;
 }
 
 static int host_connect(const char *host, int port, xine_t *xine) {
-	struct hostent *h;
-	int i;
-	int s;
+  struct hostent *h;
+  int             i;
+  int             s;
 	
-	h=gethostbyname(host);
-	if(h==NULL)
-	{
-		LOG_MSG_STDERR(xine, _("unable to resolve '%s'.\n"), host);
-		return -1;
-	}
+  h = gethostbyname(host);
+  if (h==NULL) {
+    LOG_MSG (xine, _("input_net: unable to resolve '%s'.\n"), host);
+    return -1;
+  }
 	
-	
-	for(i=0; h->h_addr_list[i]; i++)
-	{
-		struct in_addr ia;
-		memcpy(&ia, h->h_addr_list[i],4);
-		s = host_connect_attempt(ia, port, xine);
-		if(s != -1)
-			return s;
-	}
-	LOG_MSG_STDERR(xine, _("unable to connect to '%s'.\n"), host);
-	return -1;
-}
-/* **************************************************************** */
-/*                          END OF PRIVATES                         */
-/* **************************************************************** */
+  for (i=0; h->h_addr_list[i]; i++) {
+    struct in_addr ia;
+    memcpy (&ia, h->h_addr_list[i],4);
+    s = host_connect_attempt (ia, port, xine);
+    if (s != -1)
+      return s;
+  }
 
-/*
- *
- */
+  LOG_MSG (xine, _("input_net: unable to connect to '%s'.\n"), host);
+  return -1;
+}
+
 static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   char *filename;
@@ -238,48 +189,58 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t len) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n, total;
-  int fifo_fill;
+  int fifo_fill, video_fill, audio_fill;
 
-  fifo_fill = this->xine->video_fifo->size(this->xine->video_fifo);
+  video_fill = this->xine->video_fifo->size(this->xine->video_fifo);
+  
+  if (this->xine->audio_fifo)
+    audio_fill = this->xine->audio_fifo->size(this->xine->audio_fifo);
+  else
+    audio_fill = 0;
+
+  if (audio_fill > video_fill)
+    fifo_fill = audio_fill;
+  else
+    fifo_fill = video_fill;
+
+#ifdef LOG
+  printf ("input_net: fifo_fill: %d, time is %d\n", fifo_fill, 
+	  this->xine->metronom->get_current_time (this->xine->metronom));
+#endif
 
   if (fifo_fill<LOW_WATER_MARK) {
     
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
-    this->buffering = 1;
     this->scr->adjustable = 0;
-    printf ("input_net: buffering...\n");
+    if (!this->buffering) {
+      this->buffering = 1;
+      printf ("input_net: buffering...\n");
+    } else {
+      this->buffering++;
+      if ((this->buffering % 100) == 0)
+	printf ("."); fflush(stdout);
+    }
 
   } else if ( (fifo_fill>HIGH_WATER_MARK) && (this->buffering)) {
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
     this->buffering = 0;
     this->scr->adjustable = 1;
-    printf ("input_net: buffering...done\n");
+    printf ("\ninput_net: buffering...done\n");
   }
 
-  /*
-  printf ("input_net: read at pts %d\n",
-	  this->xine->metronom->get_current_time (this->xine->metronom));
-  */
-  /*
-
-  if (this->curpos==0) {
-    this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
-    this->buffering = 1;
-    printf ("input_net: buffering...\n");
-  } else if ((this->curpos>PREBUF_SIZE) && this->buffering) {
-    this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
-    this->buffering = 0;
-    printf ("input_net: buffering...finished\n");
-  }
-*/
+#ifdef LOG
+  printf ("input_net: reading %d bytes...\n", len);
+#endif
 
   total=0;
   while (total<len){ 
     n = read (this->fh, &buf[total], len-total);
-    /*
+
+#ifdef LOG
     printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n",
 	    n,total,len);
-    */
+#endif
+  
     if (n > 0){
       this->curpos += n;
       total += n;
