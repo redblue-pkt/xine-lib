@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.176 2004/05/16 17:58:16 tmattern Exp $
+ * $Id: load_plugins.c,v 1.177 2004/06/05 16:06:13 jcdutton Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -583,7 +583,10 @@ static void collect_plugins(xine_t *this, char *path){
 			_("load_plugins: can't get plugin info from %s:\n%s\n"), str, error);
 	    }
 	    if( lib )
-	      dlclose(lib);
+#ifdef HOST_OS_DARWIN
+		if (dlsym (lib, "plugin_contains_objc_code") == NULL)
+#endif
+	      	    dlclose(lib);
 	  }
 	  break;
 	case S_IFDIR:

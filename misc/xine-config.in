@@ -21,6 +21,7 @@ Options:
 	[--datadir]
 	[--scriptdir]
 	[--localedir]
+	[--objcflags]
 EOF
 	exit $1
 }
@@ -76,6 +77,9 @@ while test $# -gt 0; do
     --localedir)
       echo_localedir=yes
       ;;
+    --objcflags)
+      echo_objcflags=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -113,4 +117,7 @@ if test "$echo_scriptdir" = "yes"; then
 fi
 if test "$echo_localedir" = "yes"; then
       echo "@XINE_LOCALEPATH@"
+fi
+if test "$echo_objcflags" = "yes"; then
+      echo "@OBJCFLAGS@"
 fi
