@@ -475,9 +475,11 @@ Koos Vriezen <koos.vriezen@xs4all.nl>
 Ian MacIntosh <ian_macintosh@users.sourceforge.net>
   Video resizing using mediaLib
 
-Mike Lampard <mike_lampard@hotmail.com>
+Mike Lampard <mlampard@users.sourceforge.net>
+  Overlay support for the DXR3 MPEG decoder
   Pan & Scan support for the DXR3 MPEG decoder
-  DVB user interface improvements
+  DVB plugin
+  DVB subtitle plugin
 
 Moritz Bunkus <moritz@bunkus.org>
   Seeking support for the Matroska demuxer.
