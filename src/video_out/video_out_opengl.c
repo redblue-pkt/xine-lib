@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.46 2005/04/05 13:27:35 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.47 2005/04/06 16:12:02 mshopf Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -50,9 +50,12 @@
 #include <ctype.h>
 #include <pthread.h>
 
+/* We are not legacy, but we provide our own glext.h */
+#define GL_GLEXT_LEGACY 1
 #include <GL/gl.h>
 #include <GL/glx.h>
 #include <GL/glu.h>
+#include "glext.h"
 
 #include "xine.h"
 #include "video_out.h"
@@ -75,6 +78,7 @@
 #if     defined (_WIN32)
 #define getaddr(x) wglGetProcAddress(x)
 #else
+/* !@#$% ARB. What on earth drove them to nuke that definition in 1.4?!? */
 extern void *glXGetProcAddressARB(const GLubyte *procName);
 #define getaddr(x) glXGetProcAddressARB(x)
 #endif
