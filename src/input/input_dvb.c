@@ -21,7 +21,12 @@
  * input plugin for Digital TV (Digital Video Broadcast - DVB) devices
  * e.g. Hauppauge WinTV Nova supported by DVB drivers from Convergence
  *
- * TODO: (not in any order)
+ * DONE: 
+ * - Use EIT info for current/next programming OSD
+ * - Pause recording
+ * - allow user to select card to use, rather than hard-code to adapter0
+ * -  
+ * TODO/Wishlist: (not in any order)
  * - Parse all Administrative PIDs - NIT,SDT,CAT etc
  * - As per James' suggestion, we need a way for the demuxer
  *   to request PIDs from the input plugin.
@@ -30,14 +35,20 @@
  *   Alevtd can read it.
  * - Allow the user to view one set of PIDs (channel) while
  *   recording another on the same transponder - this will require either remuxing or
- *   perhaps bypassing the demuxer completely - we could easily have access to the 
+ *   perhaps bypassing the TS demuxer completely - we could easily have access to the 
  *   individual audio/video streams via seperate read calls, so send them to the decoders
  *   and save the TS output to disk instead of passing it to the demuxer.
  *   This also gives us full control over the streams being played..hmm..control...
- * - Parse and use EIT for programming info. - DONE (well, partially)...
+ * - Parse and use full EIT for programming info.
  * - Allow the user to find and tune new stations from within xine, and
  *   do away with the need for dvbscan & channels.conf file.
- *
+ * - Enable use of Conditional Access devices for scrambled content.
+ * - if multiple cards are available, optionally use these to record/gather si info, 
+ *   and leave primary card for viewing.
+ * - allow for handing off of EPG data to specialised frontends, instead of displaying via
+ *   OSD - this will allow for filtering/searching of epg data - useful for automatic recording :)
+ * - Parse EPG info directly from TS to allow for constant updates, or read from a separate thread.  
+ *   Activating EPG will currently block the calling thread, which may cause issues with recording.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -768,7 +779,7 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   struct dvb_frontend_event event;
   unsigned int strength;
 
-   /* discard stale QPSK events */
+   /* discard stale events */
   while (1) {
     if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) == -1)
         break;
@@ -955,7 +966,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 
   section_len = getbits(tmpbuffer,12,12);
   result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer+5,section_len);
-
+  
   if(result!=section_len)
     xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: error reading in the PAT table\n");
 
@@ -983,7 +994,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
     /* next - the PMT */
   xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PMT filter for pid %x\n",this->channels[this->channel].pmtpid);
 
-  dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
+  dvb_set_sectfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid, DMX_PES_OTHER, 2, 0xff);
 
   if(poll(&pfd,1,15000)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
   {
@@ -992,14 +1003,14 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
   }
-  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer,4);
+  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer,3);
 
-  section_len = getbits (bufptr, 20, 12);
-  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer+4,section_len);
+  section_len = getbits (bufptr, 12, 12);
+  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer+3,section_len);
 
   ioctl(tuner->fd_pidfilter[INTERNAL_FILTER], DMX_STOP);
 
-  parse_pmt(this,tmpbuffer+9,section_len);
+  parse_pmt(this,tmpbuffer+8,section_len);
   
 /*
   dvb_set_pidfilter(this, TSDTFILTER, 0x02,DMX_PES_OTHER,DMX_OUT_TS_TAP);
