@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.10 2001/11/15 00:29:39 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.11 2001/11/16 17:53:10 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -63,7 +63,10 @@ typedef struct {
   int               seq;
 
   int               frag_offset;
-
+  int               timestamp;
+  int               ts_per_kbyte;
+  int               defrag;
+    
   uint32_t          buf_type;
   int               stream_id;
   fifo_buffer_t    *fifo;
@@ -325,8 +328,12 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
   this->streams[this->num_streams].stream_id   = stream_id;
   this->streams[this->num_streams].frag_offset = 0;
   this->streams[this->num_streams].seq         = 0;
-  if( !this->streams[this->num_streams].buffer )
-    this->streams[this->num_streams].buffer = malloc( DEFRAG_BUFSIZE );
+  if (this->reorder_h > 1 && this->reorder_w > 1 ) {
+    if( !this->streams[this->num_streams].buffer )
+      this->streams[this->num_streams].buffer = malloc( DEFRAG_BUFSIZE );
+    this->streams[this->num_streams].defrag = 1;
+  } else
+    this->streams[this->num_streams].defrag = 0;
   
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->content = buf->mem;
@@ -370,9 +377,8 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
   this->streams[this->num_streams].fifo         = this->video_fifo;
   this->streams[this->num_streams].stream_id    = stream_id;
   this->streams[this->num_streams].frag_offset  = 0;
-  if( !this->streams[this->num_streams].buffer )
-    this->streams[this->num_streams].buffer = malloc( DEFRAG_BUFSIZE );
-
+  this->streams[this->num_streams].defrag = 0;
+  
   /* 
   printf ("demux_asf: video format : %.4s\n", (char*)&bih->biCompression);
   */
@@ -479,12 +485,13 @@ static int asf_read_header (demux_asf_t *this) {
 	this->input->read (this->input, (uint8_t *) &this->wavex[9], this->wavex[8]);
 	*/
         if (!memcmp(&g, &audio_conceal_interleave, sizeof(GUID))) {
-          printf("demux_asf: audio conceal interleave detected\n");
 	  this->input->read (this->input, buffer, 6);
           this->reorder_h=buffer[0];
           this->reorder_w=(buffer[2]<<8)|buffer[1];
           this->reorder_b=(buffer[4]<<8)|buffer[3];
   	  this->reorder_w/=this->reorder_b;
+          printf("demux_asf: audio conceal interleave detected (%d x %d x %d)\n",
+             this->reorder_w, this->reorder_h, this->reorder_b );
 	} else {
 	  this->reorder_b=this->reorder_h=this->reorder_w=1;        
         }
@@ -620,8 +627,7 @@ static void hexdump (unsigned char *data, int len) {
 
 }
 
-#if 0 /* old version -> don't defrag */
-static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream, 
+static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream, 
 			     int frag_offset, int seq, int timestamp, 
 			     int frag_len, int payload_size) {
 
@@ -657,49 +663,46 @@ static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream,
   hexdump (buf->content, frag_len);
   */
   if( frag_len > stream->fifo->buffer_pool_buf_size )
-    printf("demux_asf: fragment may be larger than fifo buffer (frag_len=%d)\n", frag_len );
-  
-  stream->frag_offset += frag_len;
+    printf("demux_asf: fragment larger than fifo buffer (frag_len=%d)\n", frag_len );
+  else {
+    stream->frag_offset += frag_len;
 
-  if (stream->fifo == this->video_fifo) {
-    buf->input_pos  = this->input->get_current_pos (this->input);
-    buf->input_time = buf->input_pos / this->rate;
-  } else {
-    buf->input_pos  = 0 ;
-    buf->input_time = 0 ;
-  }
-  buf->PTS        = timestamp * 90;
-  buf->SCR        = timestamp * 90;
-  buf->type       = stream->buf_type;
-  buf->size       = frag_len;
+    if (stream->fifo == this->video_fifo) {
+      buf->input_pos  = this->input->get_current_pos (this->input);
+      buf->input_time = buf->input_pos / this->rate;
+    } else {
+      buf->input_pos  = 0 ;
+      buf->input_time = 0 ;
+    }
+    buf->PTS        = timestamp * 90;
+    buf->SCR        = timestamp * 90;
+    buf->type       = stream->buf_type;
+    buf->size       = frag_len;
   
   /* test if whole packet read */
   
-  if (stream->frag_offset == payload_size) {
-    buf->decoder_info[0] = 2;
-    stream->frag_offset = 0;
-  } else 
-    buf->decoder_info[0] = 1;
+    if (stream->frag_offset == payload_size) {
+      buf->decoder_info[0] = 2;
+      stream->frag_offset = 0;
+    } else 
+      buf->decoder_info[0] = 1;
 
-  if (stream->fifo == this->audio_fifo && 
-      this->reorder_h > 1 && this->reorder_w > 1 ) {
-    asf_reorder(this,buf->content,frag_len);
+    stream->fifo->put (stream->fifo, buf);
   }
-
-      
-  stream->fifo->put (stream->fifo, buf);
 }
-#endif
-
-#if 1
 
 
-static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream, 
+static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream, 
 			     int frag_offset, int seq, int timestamp, 
 			     int frag_len, int payload_size) {
 
   buf_element_t *buf;
 
+  /*
+  printf("asf_send_buffer seq=%d frag_offset=%d frag_len=%d\n",
+    seq, frag_offset, frag_len );
+  */
+  
   if (stream->frag_offset == 0) {
     /* new packet */
     stream->seq = seq;
@@ -738,12 +741,12 @@ static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream,
             buf->input_time = 0 ;
           }
           
-          /* FIXME: should we interpolate the timestamps??? */
-          buf->PTS        = timestamp * 90;
-          buf->SCR        = timestamp * 90;
+          buf->PTS        = stream->timestamp * 90 + stream->ts_per_kbyte * 
+                            (p-stream->buffer) / 1024; 
+          buf->SCR        = buf->PTS;
           buf->type       = stream->buf_type;
           buf->size       = bufsize;
-
+          
           stream->frag_offset -= bufsize;
           p+=bufsize;
           
@@ -768,7 +771,16 @@ static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream,
       }
     }
   }
-
+      
+  
+  if( frag_offset ) {
+    if( timestamp )
+      stream->ts_per_kbyte = (timestamp - stream->timestamp) * 1024 * 90 / frag_offset;
+  } else {
+    stream->ts_per_kbyte = 0;
+    stream->timestamp = timestamp;
+  }
+  
   if( stream->frag_offset + frag_len > DEFRAG_BUFSIZE )
     printf("demux_asf: buffer overflow on defrag!\n");
   else {  
@@ -782,7 +794,6 @@ static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream,
   */
 }
 
-#endif
 
 static void asf_read_packet(demux_asf_t *this) {
 
@@ -886,9 +897,14 @@ static void asf_read_packet(demux_asf_t *this) {
       printf ("demux_asf: sending grouped object, len = %d\n", object_length);
       */
 
-      if (stream)
-	asf_send_buffer (this, stream, 0, seq, timestamp, 
+      if (stream) {
+	if (stream->defrag)
+          asf_send_buffer_defrag (this, stream, 0, seq, timestamp, 
 			 object_length, object_length);
+        else
+          asf_send_buffer_nodefrag (this, stream, 0, seq, timestamp, 
+			 object_length, object_length);
+      }
       else {
 	printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
 	this->input->seek (this->input, object_length, SEEK_CUR);
@@ -931,9 +947,12 @@ static void asf_read_packet(demux_asf_t *this) {
 
     
     if (stream) {
-
-      asf_send_buffer (this, stream, frag_offset, seq, timestamp, frag_len, payload_size);
-      
+      if (stream->defrag)
+        asf_send_buffer_defrag (this, stream, frag_offset, seq, timestamp, 
+                                frag_len, payload_size);
+      else
+        asf_send_buffer_nodefrag (this, stream, frag_offset, seq, timestamp,
+                                  frag_len, payload_size);
     } else {
       printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
       this->input->seek (this->input, frag_len, SEEK_CUR);
