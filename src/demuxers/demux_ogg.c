@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.68 2003/03/07 12:51:47 guenter Exp $
+ * $Id: demux_ogg.c,v 1.69 2003/04/06 01:17:11 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -44,7 +44,7 @@
 
 /*
 #define LOG
-*/
+ */
 
 #define CHUNKSIZE                8500
 #define PACKET_TYPE_HEADER       0x01
@@ -62,6 +62,7 @@
 
 #define WRAP_THRESHOLD           900000
 
+#define SUB_BUFSIZE 1024
 
 typedef struct demux_ogg_s {
   demux_plugin_t        demux_plugin;
@@ -89,6 +90,7 @@ typedef struct demux_ogg_s {
 
   int                   num_audio_streams;
   int                   num_video_streams;
+  int                   num_spu_streams;
 
   off_t                 avg_bitrate;
 
@@ -279,6 +281,87 @@ static void send_ogg_buf (demux_ogg_t *this,
       
       this->video_fifo->put (this->video_fifo, buf);
       
+    }
+  } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_SPU_BASE) {
+
+    buf_element_t *buf;
+    int hdrlen,i,ignore;
+    char *subtitle,*str;
+    int lenbytes;
+    int lines,start,end;
+    uint32_t *val;
+
+    hdrlen = (*op->packet & PACKET_LEN_BITS01) >> 6;
+    hdrlen |= (*op->packet & PACKET_LEN_BITS2) << 1;
+
+    for (i = 0, lenbytes = 0; i < hdrlen; i++) {
+      lenbytes = lenbytes << 8;
+      lenbytes += *((unsigned char *) op->packet + hdrlen - i);
+    }
+
+    if (op->packet[0] == PACKET_TYPE_HEADER ) {
+#ifdef LOG
+      printf ("demux_ogg: Textstreamheaderpacket");
+#endif
+    } else if (op->packet[0] == PACKET_TYPE_COMMENT ) {
+#ifdef LOG
+      printf ("demux_ogg: textstreamheaderpacket");
+#endif
+    } else {
+      subtitle = (char *)&op->packet[hdrlen + 1];
+      if ((strlen(subtitle) > 1) || (*subtitle != ' ')) {
+
+	start = op->granulepos;
+	end = start+lenbytes;
+
+	buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+
+	buf->type = this->buf_types[stream_num];
+	buf->pts = 0;
+       
+	val = (uint32_t * )buf->content;
+
+	/*num_lines will be set later, when we know the correct value*/
+	*val++ = 0;
+
+	/*times are in ms*/
+	*val++ = 1;
+	*val++ = start;
+	*val++ = end;
+	str = (char *)val;
+
+       for ( i=0, ignore=0, lines=0 ; i<strlen(subtitle) ; i++ ) {
+	 /*fixme: the maximum SUB_BUFSIZE isn't considered*/
+	 /*fixme: font tags aren't ignored correctly*/
+	 switch (subtitle[i]) {
+	 case '<':
+	   ignore=1;
+	   break;
+	 case '>':
+	   ignore=0;
+	   break;
+	 case 13:
+	   if (ignore==0) {
+	     str[0]=0;
+	     lines++;
+	     str+=1;
+	   }
+	   break;
+	 default:
+	   if (ignore==0) {
+	     str[0]=subtitle[i];
+	     str+=1;
+	   }
+	   break;
+	 }
+	 str[0]=0;
+       }
+
+       val = (uint32_t * )buf->content;
+       *val = lines;
+
+       this->video_fifo->put (this->video_fifo, buf);
+      }
     }
   }
 }
@@ -679,7 +762,14 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      printf ("demux_ogg: old header detected but stream type is unknown\n");
 	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
 	    }
-	    
+	  } else if (!strncmp (&op.packet[1], "text", 4)) {
+	    int channel=0;
+#ifdef LOG
+	    printf ("demux_ogg: textstream detected.\n");
+#endif
+	    this->preview_buffers[stream_num] = 2;
+	    channel= this->num_spu_streams++;
+	    this->buf_types[stream_num] = BUF_SPU_TEXT | channel;
 	  } else {
 	    printf ("demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
 		    op.packet);
@@ -872,6 +962,7 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
   this->num_streams       = 0;
   this->num_audio_streams = 0;
   this->num_video_streams = 0;
+  this->num_spu_streams   = 0;
   this->avg_bitrate       = 1;
   
   this->input->seek (this->input, 0, SEEK_SET);
@@ -889,6 +980,7 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
 
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = this->num_video_streams>0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = this->num_audio_streams>0;
+  this->stream->stream_info[XINE_STREAM_INFO_MAX_SPU_CHANNEL] = this->num_spu_streams;
 }
 
 static int demux_ogg_seek (demux_plugin_t *this_gen,
@@ -1098,3 +1190,7 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 20, "ogg", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+
+
+
+

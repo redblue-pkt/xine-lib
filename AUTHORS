@@ -370,6 +370,7 @@ Dan Dennedy <dan@dennedy.org>
 
 Andreas Heinchen <andreas.heinchen@gmx.de>
   xvid/divx/mpeg4 testing, patches and bugfixes
+  OGM subtitles support
 
 Mariusz Pekala <skoot@qi.pl>
   vplayer subtitle format fixes
