@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.75 2002/04/09 03:38:01 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.76 2002/04/09 04:35:17 miguelfreitas Exp $
  *
  */
 
@@ -609,6 +609,7 @@ int    xine_get_log_section_count (xine_t *this);
 #define XINE_ERROR_NONE              0
 #define XINE_ERROR_NO_INPUT_PLUGIN   1
 #define XINE_ERROR_NO_DEMUXER_PLUGIN 2
+#define XINE_ERROR_DEMUXER_FAILED    3
 
 int xine_get_error (xine_t *this);
 

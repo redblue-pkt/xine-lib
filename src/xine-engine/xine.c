@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.114 2002/04/09 03:38:01 miguelfreitas Exp $
+ * $Id: xine.c,v 1.115 2002/04/09 04:35:17 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -402,12 +402,19 @@ int xine_play (xine_t *this, char *mrl,
 				     pos, start_time);
   
   if (this->cur_demuxer_plugin->get_status(this->cur_demuxer_plugin) != DEMUX_OK) {
+    
     xine_log (this, XINE_LOG_MSG, 
 	      _("xine_play: demuxer failed to start\n"));
+    
+    this->err = XINE_ERROR_DEMUXER_FAILED;
     
     if( this->status == XINE_STOP )      
       this->cur_input_plugin->close(this->cur_input_plugin);
   
+    pthread_mutex_unlock (&this->xine_lock);
+
+    return 0;
+    
   } else {
 
     this->status = XINE_PLAY;
