@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.105 2003/09/01 00:51:45 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.106 2003/09/01 04:08:41 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -321,22 +321,14 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          10, NULL,
                                          NULL);
     break;
+  case AO_CAP_MODE_4_1CHANNEL:
   case AO_CAP_MODE_5CHANNEL:
-    this->num_channels = 5;
-    pcm_device = config->register_string(config,
-                                         "audio.alsa_surround50_device",
-                                         "surround51",
-                                         _("device used for 5-channel output"),
-                                         NULL,
-                                         10, NULL,
-                                         NULL);
-    break;
   case AO_CAP_MODE_5_1CHANNEL:
     this->num_channels = 6;
     pcm_device = config->register_string(config,
                                          "audio.alsa_surround51_device",
                                          "surround51",
-                                         _("device used for 5.1-channel output"),
+                                         _("device used for 5+ channel output"),
                                          NULL,
                                          10, NULL,
                                          NULL);
@@ -1205,13 +1197,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       10, NULL,
 				       NULL);
   pcm_device = config->register_string(config,
-				       "audio.alsa_surround50_device",
-				       "surround51",
-				       _("device used for 5-channel output"),
-				       NULL,
-                                       10, NULL,
-				       NULL);
-  pcm_device = config->register_string(config,
 				       "audio.alsa_surround51_device",
 				       "surround51",
 				       _("device used for 5.1-channel output"),
@@ -1298,7 +1283,21 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   } else if (class->xine->verbosity >= XINE_VERBOSITY_LOG) {
     printf ("(4-channel not enabled in xine config) " );
   }
-  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 5)) && 
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
+        config->register_bool (config,
+                               "audio.four_lfe_channel",
+                               0,
+                               _("used to inform xine about what the sound card can do"),
+                               NULL,
+                               0, NULL,
+                               NULL) ) {
+    this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
+    if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("4.1-channel ");
+  } else if (class->xine->verbosity >= XINE_VERBOSITY_LOG) {
+    printf ("(4.1-channel not enabled in xine config) " );
+  }
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
         config->register_bool (config,
                                "audio.five_channel",
                                0,

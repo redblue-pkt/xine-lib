@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.57 2003/08/26 21:18:32 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.58 2003/09/01 04:08:41 jcdutton Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -279,14 +279,22 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_only
 #define AO_CAP_MODE_STEREO      0x00000008 /* driver supports stereo output */
 /* 1 sample ==  8 bytes (L,R,LR,RR)       */
 #define AO_CAP_MODE_4CHANNEL    0x00000010 /* driver supports 4 channels    */
-/* 1 sample == 10 bytes (L,R,LR,RR,C)     */
-#define AO_CAP_MODE_5CHANNEL    0x00000020 /* driver supports 5 channels    */
+/*
+ * Sound cards generally support, 1,2,4,6 channels, but rarely 5.
+ * So xine will take 4.1, 5 and 6 channel a52 streams and
+ * down or upmix it correctly to fill the 6 output channels.
+ * Are there any requests for 2.1 out there?
+ */
+/* 1 sample == 12 bytes (L,R,LR,RR,Null,LFE)   */
+#define AO_CAP_MODE_4_1CHANNEL  0x00000020 /* driver supports 4.1 channels  */
+/* 1 sample == 12 bytes (L,R,LR,RR,C, Null)     */
+#define AO_CAP_MODE_5CHANNEL    0x00000040 /* driver supports 5 channels    */
 /* 1 sample == 12 bytes (L,R,LR,RR,C,LFE) */
-#define AO_CAP_MODE_5_1CHANNEL  0x00000040 /* driver supports 5.1 channels  */
-#define AO_CAP_MIXER_VOL        0x00000080 /* driver supports mixer control */
-#define AO_CAP_PCM_VOL          0x00000100 /* driver supports pcm control   */
-#define AO_CAP_MUTE_VOL         0x00000200 /* driver can mute volume        */
-#define AO_CAP_8BITS            0x00000400 /* driver support 8-bit samples  */
+#define AO_CAP_MODE_5_1CHANNEL  0x00000080 /* driver supports 5.1 channels  */
+#define AO_CAP_MIXER_VOL        0x00000100 /* driver supports mixer control */
+#define AO_CAP_PCM_VOL          0x00000200 /* driver supports pcm control   */
+#define AO_CAP_MUTE_VOL         0x00000400 /* driver can mute volume        */
+#define AO_CAP_8BITS            0x00000800 /* driver support 8-bit samples  */
 
 /* properties supported by get/set_property() */
 #define AO_PROP_MIXER_VOL       0

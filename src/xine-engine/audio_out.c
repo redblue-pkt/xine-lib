@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.139 2003/08/29 20:35:44 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.140 2003/09/01 04:08:41 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -480,8 +480,8 @@ static int mode_channels( int mode ) {
     return 2;
   case AO_CAP_MODE_4CHANNEL:
     return 4;
+  case AO_CAP_MODE_4_1CHANNEL:
   case AO_CAP_MODE_5CHANNEL:
-    return 5;
   case AO_CAP_MODE_5_1CHANNEL:
     return 6;
   }
@@ -675,12 +675,8 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
 				   this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
       break;
+    case AO_CAP_MODE_4_1CHANNEL:
     case AO_CAP_MODE_5CHANNEL:
-      ensure_buffer_size(this->frame_buf[1], 10, num_output_frames);
-      audio_out_resample_5channel (buf->mem, buf->num_frames,
-				   this->frame_buf[1]->mem, num_output_frames);
-      buf = swap_frame_buffers(this);
-      break;
     case AO_CAP_MODE_5_1CHANNEL:
       ensure_buffer_size(this->frame_buf[1], 12, num_output_frames);
       audio_out_resample_6channel (buf->mem, buf->num_frames,
@@ -1290,9 +1286,8 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
   case AO_CAP_MODE_4CHANNEL:
     stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
     break;
+  case AO_CAP_MODE_4_1CHANNEL:
   case AO_CAP_MODE_5CHANNEL:
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 5;
-    break;
   case AO_CAP_MODE_5_1CHANNEL:
     stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
     break;

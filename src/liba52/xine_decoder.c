@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.54 2003/08/25 21:51:40 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.55 2003/09/01 04:08:41 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -175,6 +175,14 @@ static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
   }
 }
 
+static inline void mute_channel (int16_t * s16, int num_channels) {
+  int i;
+
+  for (i = 0; i < 256; i++) {
+    s16[num_channels*i] = 0;
+  }
+}
+
 static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int preview_mode) {
 
   int output_mode = AO_CAP_MODE_STEREO;
@@ -212,10 +220,16 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 
     this->have_lfe = a52_output_flags & A52_LFE;
     if (this->have_lfe)
-      output_mode = AO_CAP_MODE_5_1CHANNEL;
+      if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
+        output_mode = AO_CAP_MODE_5_1CHANNEL;
+      } else if (this->audio_caps & AO_CAP_MODE_4_1CHANNEL) {
+        output_mode = AO_CAP_MODE_4_1CHANNEL;
+      } else {
+        printf("liba52: WHAT DO I DO!!!\n");
+        output_mode = this->ao_flags_map[a52_output_flags];
+      }
     else
       output_mode = this->ao_flags_map[a52_output_flags];
-
     /*
      * (re-)open output device
      */
@@ -270,12 +284,21 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 	float_to_int (&samples[2*256], int_samples+(i*256*4)+2, 4); /* RL */
 	float_to_int (&samples[3*256], int_samples+(i*256*4)+3, 4); /* RR */
 	break;
+      case AO_CAP_MODE_4_1CHANNEL:
+	float_to_int (&samples[0*256], int_samples+(i*256*6)+5, 6); /* LFE */
+	float_to_int (&samples[1*256], int_samples+(i*256*6)+0, 6); /* L   */
+        float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /* R   */
+	float_to_int (&samples[3*256], int_samples+(i*256*6)+2, 6); /* RL */
+	float_to_int (&samples[4*256], int_samples+(i*256*6)+3, 6); /* RR */
+	mute_channel ( int_samples+(i*256*6)+4, 6); /* C */
+	break;
       case AO_CAP_MODE_5CHANNEL:
-	float_to_int (&samples[0*256], int_samples+(i*256*5)+0, 5); /*  L */
-	float_to_int (&samples[1*256], int_samples+(i*256*5)+4, 5); /*  C */
-	float_to_int (&samples[2*256], int_samples+(i*256*5)+1, 5); /*  R */
-	float_to_int (&samples[3*256], int_samples+(i*256*5)+2, 5); /* RL */
-	float_to_int (&samples[4*256], int_samples+(i*256*5)+3, 5); /* RR */
+	float_to_int (&samples[0*256], int_samples+(i*256*6)+0, 6); /*  L */
+        float_to_int (&samples[1*256], int_samples+(i*256*6)+4, 6); /*  C */
+	float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /*  R */
+	float_to_int (&samples[3*256], int_samples+(i*256*6)+2, 6); /* RL */
+	float_to_int (&samples[4*256], int_samples+(i*256*6)+3, 6); /* RR */
+	mute_channel ( int_samples+(i*256*6)+5, 6); /* LFE */
 	break;
       case AO_CAP_MODE_5_1CHANNEL:
 	float_to_int (&samples[0*256], int_samples+(i*256*6)+5, 6); /* lfe */
@@ -568,6 +591,13 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
       this->a52_flags_map[A52_3F2R]   = A52_3F2R;
       this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
       this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_5CHANNEL;
+
+    } else if (this->audio_caps & AO_CAP_MODE_4_1CHANNEL) {
+
+      this->a52_flags_map[A52_2F2R]   = A52_2F2R;
+      this->a52_flags_map[A52_3F2R]   = A52_2F2R | A52_LFE;
+      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_4CHANNEL;
 
     } else if (this->audio_caps & AO_CAP_MODE_4CHANNEL) {
 
