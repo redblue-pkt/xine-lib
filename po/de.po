@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
-"POT-Creation-Date: 2003-02-24 23:11+0100\n"
+"POT-Creation-Date: 2003-03-07 23:47+0100\n"
 "PO-Revision-Date: 2003-02-18 09:04+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -14,39 +14,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: src/audio_out/audio_alsa_out.c:193 src/audio_out/audio_alsa_out.c:827
-#: src/audio_out/audio_alsa_out.c:1013 src/audio_out/audio_alsa_out.c:1057
+#: src/audio_out/audio_alsa_out.c:193 src/audio_out/audio_alsa_out.c:825
+#: src/audio_out/audio_alsa_out.c:1011 src/audio_out/audio_alsa_out.c:1055
 msgid "device used for mono output"
 msgstr "Gerät für Monoausgabe"
 
-#: src/audio_out/audio_alsa_out.c:203 src/audio_out/audio_alsa_out.c:1020
+#: src/audio_out/audio_alsa_out.c:203 src/audio_out/audio_alsa_out.c:1018
 msgid "device used for stereo output"
 msgstr "Gerät für Stereoausgabe"
 
-#: src/audio_out/audio_alsa_out.c:213 src/audio_out/audio_alsa_out.c:1027
+#: src/audio_out/audio_alsa_out.c:213 src/audio_out/audio_alsa_out.c:1025
 msgid "device used for 4-channel output"
 msgstr "Gerät für 4-Kanalausgabe"
 
-#: src/audio_out/audio_alsa_out.c:223 src/audio_out/audio_alsa_out.c:1034
+#: src/audio_out/audio_alsa_out.c:223 src/audio_out/audio_alsa_out.c:1032
 msgid "device used for 5-channel output"
 msgstr "Gerät für 5-Kanalausgabe"
 
 #: src/audio_out/audio_alsa_out.c:233 src/audio_out/audio_alsa_out.c:244
-#: src/audio_out/audio_alsa_out.c:1041 src/audio_out/audio_alsa_out.c:1048
+#: src/audio_out/audio_alsa_out.c:1039 src/audio_out/audio_alsa_out.c:1046
 msgid "device used for 5.1-channel output"
 msgstr "Gerät für 5.1-Kanalausgabe"
 
-#: src/audio_out/audio_alsa_out.c:959 src/audio_out/audio_alsa_out.c:1172
+#: src/audio_out/audio_alsa_out.c:957 src/audio_out/audio_alsa_out.c:1170
 msgid "alsa mixer device"
 msgstr "ALSA Mixergerät"
 
-#: src/audio_out/audio_alsa_out.c:1111 src/audio_out/audio_alsa_out.c:1124
-#: src/audio_out/audio_alsa_out.c:1137 src/audio_out/audio_alsa_out.c:1155
+#: src/audio_out/audio_alsa_out.c:1109 src/audio_out/audio_alsa_out.c:1122
+#: src/audio_out/audio_alsa_out.c:1135 src/audio_out/audio_alsa_out.c:1153
 msgid "used to inform xine about what the sound card can do"
 msgstr ""
 "Wird gebraucht, um xine über die Fähigkeiten der Soundkarte zu informieren"
 
-#: src/audio_out/audio_alsa_out.c:1205
+#: src/audio_out/audio_alsa_out.c:1203
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt ALSA-kompatibles Gerät/Treiber"
 
@@ -58,53 +58,53 @@ msgstr "Verzögerung der esd Audioausgabe (Verändert A/V Synchronisation)"
 msgid "xine audio output plugin using esound"
 msgstr "xine Soundausgabe benutzt esound"
 
-#: src/audio_out/audio_oss_out.c:702
+#: src/audio_out/audio_oss_out.c:710
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
 msgstr "/dev/dsp# Gerät für OSS-Soundausgabe, -1 für automatische Erkennung"
 
-#: src/audio_out/audio_oss_out.c:770
+#: src/audio_out/audio_oss_out.c:779
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr "A/V Synchronisationmethode für OSS, abhängig von Treiber/Hardware"
 
-#: src/audio_out/audio_oss_out.c:837
+#: src/audio_out/audio_oss_out.c:854
 msgid "Adjust a/v sync for OSS softsync"
 msgstr "A/V Synchronisationsanpassung für OSS SoftSync"
 
-#: src/audio_out/audio_oss_out.c:838
+#: src/audio_out/audio_oss_out.c:855
 msgid "Use this to manually adjust a/v sync if you're using softsync"
 msgstr ""
 "Benutze dies um die A/V Synchronisation manuell anzupassen, falls SoftSync "
 "benutzt wird"
 
-#: src/audio_out/audio_oss_out.c:872
+#: src/audio_out/audio_oss_out.c:892
 msgid "Enable 4.0 channel analog surround output"
 msgstr "Aktiviere analogen 4.0-Kanalraumklang"
 
-#: src/audio_out/audio_oss_out.c:883
+#: src/audio_out/audio_oss_out.c:904
 msgid "Enable 5.0 channel analog surround output"
 msgstr "Aktiviere analogen 5.0-Kanalraumklang"
 
-#: src/audio_out/audio_oss_out.c:894
+#: src/audio_out/audio_oss_out.c:916
 msgid "Enable 5.1 channel analog surround output"
 msgstr "Aktiviere analogen 5.1-Kanalraumklang"
 
-#: src/audio_out/audio_oss_out.c:905
+#: src/audio_out/audio_oss_out.c:928
 msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr "Aktiviere digitalen A52 / AC5 Raumklang via SPDIF"
 
-#: src/audio_out/audio_oss_out.c:921
+#: src/audio_out/audio_oss_out.c:945
 msgid "oss mixer device"
 msgstr "OSS Mixergerät"
 
-#: src/audio_out/audio_oss_out.c:995
+#: src/audio_out/audio_oss_out.c:1020
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt OSS-kompatibles Gerät/Treiber"
 
-#: src/audio_out/audio_sun_out.c:878
+#: src/audio_out/audio_sun_out.c:888
 msgid "device used for audio output with the 'Sun' audio plugin"
 msgstr "Gerät für Soundausgabe mit 'Sun'-Audio-Plugin"
 
-#: src/audio_out/audio_sun_out.c:966
+#: src/audio_out/audio_sun_out.c:965
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt SUN-kompatibles Gerät/Treiber"
 
@@ -120,23 +120,23 @@ msgstr "Maximaler Zwischenraum für IRIXAL Soundausgabe in 1/90000s"
 msgid "xine audio output plugin using IRIX libaudio"
 msgstr "xine Soundausgabe benutzt IRIX-kompatibles Gerät/Treiber"
 
-#: src/demuxers/demux_avi.c:427
+#: src/demuxers/demux_avi.c:435
 msgid "Restoring index..."
 msgstr "Stelle Index wiederher..."
 
-#: src/demuxers/demux_avi.c:658
+#: src/demuxers/demux_avi.c:673
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: AVI-Index ist fehlerhaft\n"
 
-#: src/demuxers/demux_pes.c:529 src/demuxers/demux_pes.c:612
+#: src/demuxers/demux_pes.c:533 src/demuxers/demux_pes.c:616
 msgid "valid mrls for pes demuxer"
 msgstr "Gültige MRLs für PES-Demultiplexer"
 
-#: src/demuxers/demux_pes.c:559 src/demuxers/demux_pes.c:616
+#: src/demuxers/demux_pes.c:563 src/demuxers/demux_pes.c:620
 msgid "valid mrls ending for pes demuxer"
 msgstr "Gültige MRL-Endungen für PES-Demultiplexer"
 
-#: src/demuxers/demux_ogg.c:387
+#: src/demuxers/demux_ogg.c:390
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr "ogg: vorbis Tonspur erkannt, aber kein Heder im Datenstrom gefunden.\n"
 
@@ -165,23 +165,23 @@ msgstr ""
 "demux_mpeg_block: Warnung: PES-Header deutet an, das dieser Datenstrom "
 "verschlüsselt sein könnte (Verschlüsselungsmodus %d)\n"
 
-#: src/demuxers/demux_roq.c:409
+#: src/demuxers/demux_roq.c:410
 msgid "demux_roq.c: input not seekable, can not handle!\n"
 msgstr "demux_roq.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_fli.c:305
+#: src/demuxers/demux_fli.c:306
 msgid "demux_fli.c: input not seekable, can not handle!\n"
 msgstr "demux_fli.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_smjpeg.c:417
+#: src/demuxers/demux_smjpeg.c:418
 msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
 msgstr "demux_smjpeg.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_wav.c:322
+#: src/demuxers/demux_wav.c:323
 msgid "demux_wav.c: input not seekable, can not handle!\n"
 msgstr "demux_wav.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_aiff.c:352
+#: src/demuxers/demux_aiff.c:353
 msgid "demux_aiff.c: input not seekable, can not handle!\n"
 msgstr "demux_aiff.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
@@ -194,7 +194,7 @@ msgstr "demux_snd: Ungültige Header-Parameter\n"
 msgid "demux_snd: unsupported audio type: %d\n"
 msgstr "demux_snd: Unbekannter Audiotyp: %d\n"
 
-#: src/demuxers/demux_snd.c:322
+#: src/demuxers/demux_snd.c:323
 msgid "demux_snd.c: input not seekable, can not handle!\n"
 msgstr "demux_snd.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
@@ -212,7 +212,7 @@ msgstr ""
 "Unbekannter VOC-Kompressionstyp (0x%02X); bitte bei den xine-Entwicklern "
 "melden\n"
 
-#: src/demuxers/demux_voc.c:321
+#: src/demuxers/demux_voc.c:322
 msgid "demux_voc.c: input not seekable, can not handle!\n"
 msgstr "demux_voc.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
@@ -255,76 +255,91 @@ msgstr "input_net: Kann keine Verbindung zu '%s' herstellen.\n"
 msgid "net input plugin as shipped with xine"
 msgstr "Mit xine ausgeliefertes net Plugin"
 
-#: src/input/input_rtp.c:154
+#: src/input/input_rtp.c:164
 #, c-format
 msgid "socket(): %s.\n"
 msgstr "socket(): %s.\n"
 
-#: src/input/input_rtp.c:164
+#: src/input/input_rtp.c:176
+#, fuzzy, c-format
+msgid "setsockopt(SO_RCVBUF): %s.\n"
+msgstr "socket(): %s.\n"
+
+#: src/input/input_rtp.c:182
 #, c-format
 msgid "bind(): %s.\n"
 msgstr "bind(): %s.\n"
 
-#: src/input/input_rtp.c:182
+#: src/input/input_rtp.c:200
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
 msgstr "setsockopt(IP_ADD_MEMBERSHIP) abgbrochen (multicast Kernel?): %s.\n"
 
-#: src/input/input_rtp.c:202
+#: src/input/input_rtp.c:220
 #, c-format
 msgid "unable to resolve '%s'.\n"
 msgstr "Kann '%s' nicht auflösen.\n"
 
-#: src/input/input_rtp.c:215
-#, c-format
-msgid "unable to connect to '%s'.\n"
+#: src/input/input_rtp.c:233
+#, fuzzy, c-format
+msgid "unable to bind to '%s'.\n"
 msgstr "Kann keine Verbindung zu '%s' herstellen.\n"
 
-#: src/input/input_rtp.c:238
-msgid "OUCH - ran out of buffers\n"
-msgstr "OUCH - Es steht kein Speicher mehr zur Verfügung\n"
+#: src/input/input_rtp.c:262
+#, fuzzy, c-format
+msgid "recv(): %s.\n"
+msgstr "socket(): %s.\n"
 
-#: src/input/input_rtp.c:268
-#, c-format
-msgid "OUCH - dropped input packet %d %d\n"
-msgstr "OUCH - Packet %d %d verworfen\n"
+#: src/input/input_rtp.c:489
+#, fuzzy
+msgid "RTP: waiting for preview data\n"
+msgstr "metronom: Warte auf Anfang von Video...\n"
 
-#: src/input/input_rtp.c:309
+#: src/input/input_rtp.c:495
+msgid "RTP: waiting for preview data: timeout\n"
+msgstr ""
+
+#: src/input/input_rtp.c:532
+msgid "RTP: stopping reading thread...\n"
+msgstr ""
+
+#: src/input/input_rtp.c:537
+msgid "RTP: reading thread terminated\n"
+msgstr ""
+
+#: src/input/input_rtp.c:581
 #, c-format
 msgid "Opening >%s<\n"
 msgstr "Öffne >%s<\n"
 
-#: src/input/input_rtp.c:337
+#: src/input/input_rtp.c:602
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
 msgstr "input_rtp: Kann neuen Thread (%s) nicht erstellen\n"
 
-#: src/input/input_rtp.c:440
-msgid "rtp input plugin as shipped with xine"
-msgstr "Mit xine ausgeliefertes rtp Plugin"
+#: src/input/input_rtp.c:631
+#, fuzzy
+msgid "RTP and UDP input plugin as shipped with xine"
+msgstr "Mit xine ausgeliefertes net Plugin"
 
-#: src/input/input_rtp.c:508 src/input/input_rtp.c:513
-msgid "unable to allocate input buffer.\n"
-msgstr "Puffer kann nicht eingerichtet werden.\n"
-
-#: src/input/input_stdin_fifo.c:364
+#: src/input/input_stdin_fifo.c:384
 msgid "stdin streaming input plugin"
 msgstr "Standardeingabe Streaming-Plugin"
 
-#: src/input/input_file.c:124
+#: src/input/input_file.c:110
 #, c-format
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: Lesefehler (%s)\n"
 
-#: src/input/input_file.c:457
+#: src/input/input_file.c:440
 msgid "file input plugin"
 msgstr "Datei Plugin"
 
-#: src/input/input_file.c:816
+#: src/input/input_file.c:799
 msgid "file browsing start location"
 msgstr "Startverzeichnis für Dateisuche"
 
-#: src/input/input_file.c:823
+#: src/input/input_file.c:806
 msgid "list hidden files"
 msgstr "Versteckte Dateien anzeigen"
 
@@ -364,48 +379,48 @@ msgstr "input_http: Lesefehler\n"
 msgid "input_http: read error %d\n"
 msgstr "input_http: Lesefehler %d\n"
 
-#: src/input/input_http.c:730
+#: src/input/input_http.c:714
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
 msgstr "input_http: Öffne >/%s< auf Rechner >%s<"
 
-#: src/input/input_http.c:734
+#: src/input/input_http.c:718
 #, c-format
 msgid "%s via proxy >%s<"
 msgstr "%s über Proxy >%s<"
 
-#: src/input/input_http.c:814
+#: src/input/input_http.c:798
 msgid "input_http: EAGAIN\n"
 msgstr "input_http: EAGAIN\n"
 
-#: src/input/input_http.c:817
+#: src/input/input_http.c:801
 msgid "input_http: read error\n"
 msgstr "input_http: Lesefehler\n"
 
-#: src/input/input_http.c:849
+#: src/input/input_http.c:833
 msgid "input_http: invalid http answer\n"
 msgstr "input_http: Ungültige http-Antwort\n"
 
-#: src/input/input_http.c:860
+#: src/input/input_http.c:844
 #, c-format
 msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
 msgstr "input_http: 3xx Weiterleitung nicht implementiert: >%d %s<\n"
 
-#: src/input/input_http.c:867
+#: src/input/input_http.c:851
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
 msgstr "input_http: http-Status ungleich 2xx: >%d %s<\n"
 
-#: src/input/input_http.c:878
+#: src/input/input_http.c:862
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
 msgstr "input_http: Inhaltslänge = %Ld bytes\n"
 
-#: src/input/input_http.c:884
+#: src/input/input_http.c:868
 msgid "input_http: Location redirection not implemented\n"
 msgstr "input_http: Weiterleitung nicht implementiert\n"
 
-#: src/input/input_http.c:956
+#: src/input/input_http.c:940
 msgid "http input plugin"
 msgstr "http Plugin"
 
@@ -430,40 +445,44 @@ msgstr "xine Videoausgabe benutzt SyncFB-Modul für Matrox G200/G400-Karten"
 msgid "syncfb (teletux) device node"
 msgstr "Gerät für SyncFB (TeleTUX)"
 
-#: src/video_out/video_out_xshm.c:1120 src/video_out/video_out_fb.c:965
+#: src/video_out/video_out_xshm.c:1132 src/video_out/video_out_fb.c:965
 msgid "disable all video scaling (faster!)"
 msgstr "Alle Videoskalierungen deaktivieren (schneller!)"
 
-#: src/video_out/video_out_xshm.c:1271
+#: src/video_out/video_out_xshm.c:1288
 msgid "gamma correction for XShm driver"
 msgstr "Gamma-Korrektur für XShm-Treiber"
 
-#: src/video_out/video_out_xshm.c:1295
+#: src/video_out/video_out_xshm.c:1312
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr "xine Videoausgabe benutzt 'MIX X Shared Memory' Erweiterung"
 
-#: src/video_out/video_out_xv.c:1248
+#: src/video_out/video_out_xv.c:1284
 msgid "Colorkey used for Xv video overlay"
 msgstr "Farbschlüssel für Xv Videooverlay"
 
-#: src/video_out/video_out_xv.c:1255
+#: src/video_out/video_out_xv.c:1291
 msgid "Make Xv autopaint its colorkey"
 msgstr "Xv automatisch Farbschlüssel zeichnen lassen"
 
-#: src/video_out/video_out_xv.c:1262
+#: src/video_out/video_out_xv.c:1298
 msgid "bilinear scaling mode (permedia 2/3)"
 msgstr "Bilineare Skalierung (Permedia 2/3)"
 
-#: src/video_out/video_out_xv.c:1268
+#: src/video_out/video_out_xv.c:1304
 msgid "double buffer to sync video to the retrace"
 msgstr "Schattenpuffer zur Synchronisation mit Strahlenrücklauf"
 
-#: src/video_out/video_out_xv.c:1320
+#: src/video_out/video_out_xv.c:1357
+msgid "workaround for some (buggy) XVideo drivers"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1362
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
 msgstr ""
 "Software Deinterlacing Methode (Taste 'i' schaltet Deinterlacing ein/aus)"
 
-#: src/video_out/video_out_xv.c:1336
+#: src/video_out/video_out_xv.c:1378
 msgid "xine video output plugin using the MIT X video extension"
 msgstr "xine Videoausgabe benutzt 'MIX XVideo' Erweiterung"
 
@@ -480,15 +499,15 @@ msgstr "xine Videoausgabe benutzt Linux Framebuffer"
 msgid "xine video output plugin using the Simple Direct Media Layer"
 msgstr "xine Videoausgabe benutzt 'Simple Direct Media Layer'"
 
-#: src/video_out/video_out_opengl.c:946
+#: src/video_out/video_out_opengl.c:950
 msgid "gamma correction for OpenGL driver"
 msgstr "Gamma-Korrektur für OpenGL-Treiber"
 
-#: src/video_out/video_out_opengl.c:963
+#: src/video_out/video_out_opengl.c:967
 msgid "xine video output plugin using OpenGL - TNG"
 msgstr "xine Videoausgabe mit OpenGL - TNG"
 
-#: src/video_out/video_out_directfb.c:564
+#: src/video_out/video_out_directfb.c:563
 msgid "xine video output plugin using the DirectFB library."
 msgstr "xine Videoausgabe benutzt DirectFB-Bibliothek"
 
@@ -506,12 +525,12 @@ msgstr "xine Videoausgabe benutzt Linux Framebuffer"
 msgid "NVidia TV-Out support."
 msgstr "Unterstützung für NVidia TV-Ausgang"
 
-#: src/xine-engine/video_out.c:396
+#: src/xine-engine/video_out.c:395
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %d Bilder verworfen\n"
 
-#: src/xine-engine/video_out.c:510
+#: src/xine-engine/video_out.c:509
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -520,88 +539,88 @@ msgstr ""
 "video_out : Verwerfe Bild mit pts %lld, weil es zu alt ist (Unterschied: %"
 "lld).\n"
 
-#: src/xine-engine/video_out.c:1446
+#: src/xine-engine/video_out.c:1445
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: Kann Thread (%s) nicht erzeugen\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1449
+#: src/xine-engine/video_out.c:1448
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out : Ups, das sollte eigentlich nicht passieren, bitte xine "
 "neustarten.\n"
 
-#: src/xine-engine/xine.c:515 src/xine-engine/xine.c:764
+#: src/xine-engine/xine.c:516 src/xine-engine/xine.c:767
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: Kann kein Plugin für diese MRL finden\n"
 
-#: src/xine-engine/xine.c:551
+#: src/xine-engine/xine.c:547
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: Demultiplexer-Plugins %s startete nicht\n"
 
-#: src/xine-engine/xine.c:590
+#: src/xine-engine/xine.c:583
 #, fuzzy, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
 msgstr "xine: Demultiplexer-Plugins %s startete nicht\n"
 
-#: src/xine-engine/xine.c:788
+#: src/xine-engine/xine.c:794
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: Kann keinen Demultiplexer für >%s< finden\n"
 
-#: src/xine-engine/xine.c:824
+#: src/xine-engine/xine.c:831
 msgid "xine: demuxer failed to start\n"
 msgstr "xine: Demultiplexer-Plugins startete nicht\n"
 
-#: src/xine-engine/xine.c:917
+#: src/xine-engine/xine.c:927
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: Kein Demultiplexer vorhanden\n"
 
-#: src/xine-engine/xine.c:932
+#: src/xine-engine/xine.c:942
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: Demultiplexer startete nicht\n"
 
-#: src/xine-engine/xine.c:1424
+#: src/xine-engine/xine.c:1464
 msgid "messages"
 msgstr "Nachrichten"
 
-#: src/xine-engine/xine.c:1425
+#: src/xine-engine/xine.c:1465
 msgid "plugin"
 msgstr "Plugin"
 
-#: src/xine-engine/audio_out.c:1515
+#: src/xine-engine/audio_out.c:1525
 msgid "choose method to sync audio and video"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1516
+#: src/xine-engine/audio_out.c:1526
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1522
+#: src/xine-engine/audio_out.c:1532
 msgid "adjust whether resampling is done or not"
 msgstr "Audiofrequenz anpassen oder nicht"
 
-#: src/xine-engine/audio_out.c:1525
+#: src/xine-engine/audio_out.c:1535
 msgid "if !=0 always resample to given rate"
 msgstr "Wenn !=0, immer auf diese Frequenz anpassen"
 
-#: src/xine-engine/audio_out.c:1531
+#: src/xine-engine/audio_out.c:1541
 msgid "adjust if audio is offsync"
 msgstr "Anpassen, wenn Audio nicht synchron ist"
 
-#: src/xine-engine/audio_out.c:1577
+#: src/xine-engine/audio_out.c:1587
 msgid "Audio volume"
 msgstr "Lautstärke"
 
-#: src/xine-engine/audio_out.c:1581
+#: src/xine-engine/audio_out.c:1591
 msgid "restore volume level at startup"
 msgstr "Läustärke beim Starten wiederherstellen"
 
-#: src/xine-engine/audio_out.c:1582
+#: src/xine-engine/audio_out.c:1592
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 "Wenn nicht angewählte, wird xine die Lautstärke beim Starten unverändert "
@@ -898,6 +917,18 @@ msgstr "MS RLE: Bildzeiger außerhalb des gültigen Bereichs (2)\n"
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: Dekodierung beende mit überschüssigen Bytes (%d < %d)\n"
+
+#~ msgid "OUCH - ran out of buffers\n"
+#~ msgstr "OUCH - Es steht kein Speicher mehr zur Verfügung\n"
+
+#~ msgid "OUCH - dropped input packet %d %d\n"
+#~ msgstr "OUCH - Packet %d %d verworfen\n"
+
+#~ msgid "rtp input plugin as shipped with xine"
+#~ msgstr "Mit xine ausgeliefertes rtp Plugin"
+
+#~ msgid "unable to allocate input buffer.\n"
+#~ msgstr "Puffer kann nicht eingerichtet werden.\n"
 
 #~ msgid "demux_mpgaudio: no audio driver!\n"
 #~ msgstr "demux_mpgaudio: Kein Audio-Treiber!\n"
@@ -2385,9 +2416,6 @@ msgstr "MS RLE: Dekodierung beende mit überschüssigen Bytes (%d < %d)\n"
 
 #~ msgid "metronom: audio stream start ignored\n"
 #~ msgstr "metronom: Beginn des Audio-Datenstroms ignoriert\n"
-
-#~ msgid "metronom: waiting for video to start...\n"
-#~ msgstr "metronom: Warte auf Anfang von Video...\n"
 
 #~ msgid "metronom: audio stream start...done\n"
 #~ msgstr "metronom: Anfang des Audio-Datenstroms...Fertig\n"
