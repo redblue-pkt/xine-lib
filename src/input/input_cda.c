@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.10 2001/12/10 23:40:32 f1rmb Exp $
+ * $Id: input_cda.c,v 1.11 2001/12/11 00:04:09 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -893,7 +893,7 @@ static int _cda_get_status_cd(cdainfo_t *cda) {
     if(cda->status == CDA_PLAY) {
       _cda_stop_cd(cda);
       cda->status = CDA_STOP;
-      cda->cur_pos = cda->track[cda->cur_track - 1].length;
+      cda->cur_pos = 0;
     }
   }
 
@@ -1210,7 +1210,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
   
   for(i = 0; i  <= cda->num_tracks; i++) {
     cda->track[i].track  = i + 1;
-    cda->track[i].type   = (entry.cdte_ctrl & CDROM_DATA_TRACK) ? CDDATA : CDAUDIO; /* FIXME */
+    cda->track[i].type   = (cdte.data[i].control & CDROM_DATA_TRACK) ? CDDATA : CDAUDIO;
     cda->track[i].length = cdte.data[i].addr.msf.minute * 60 + cdte.data[i].addr.msf.second;
     cda->track[i].start  = cda->track[i].length * 75 + cdte.data[i].addr.msf.frame;
     cda->track[i].title  = NULL;
