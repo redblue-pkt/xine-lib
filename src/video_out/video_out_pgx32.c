@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.8 2004/05/02 20:00:57 mroi Exp $
+ * $Id: video_out_pgx32.c,v 1.9 2004/05/25 23:24:04 komadori Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -143,9 +143,6 @@ typedef struct {
 
   xine_t *xine;
   config_values_t *config;
-
-  pthread_mutex_t mutex;
-  int instance_count;
 } pgx32_driver_class_t;
 
 typedef struct {
@@ -162,11 +159,6 @@ typedef struct {
 
   pgx32_driver_class_t *class;
 
-  pgx32_frame_t *current;
-
-  int fbfd, fb_width, fb_height, fb_depth;
-  uint8_t *vbase;
-
   Display *display;
   int screen, depth;
   Visual *visual;
@@ -174,8 +166,89 @@ typedef struct {
   GC gc;
   Dga_drawable dgadraw;
 
+  int devfd, fb_width, fb_height, fb_depth;
+  uint8_t *vbase;
+
+  pgx32_frame_t *current;
+
   int delivered_format, deinterlace_en;
 } pgx32_driver_t;
+
+/*
+ * Setup X11/DGA
+ */
+
+static int setup_dga(pgx32_driver_t *this)
+{
+  XWindowAttributes win_attrs;
+
+  XLockDisplay(this->display);
+  this->dgadraw = XDgaGrabDrawable(this->display, this->drawable);
+  if (!this->dgadraw) {
+    xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: can't grab DGA drawable for video window\n"));
+    XUnlockDisplay(this->display);
+    return 0;
+  }
+
+  /* If the framebuffer hasn't already been mapped then open it and check it's
+   * a supported type.
+   */
+  if (!this->vbase) {
+    char *devname;
+    struct vis_identifier ident;
+    struct fbgattr attr;
+
+    DGA_DRAW_LOCK(this->dgadraw, -1);
+    this->devfd = dga_draw_devfd(this->dgadraw);
+    devname     = dga_draw_devname(this->dgadraw);
+    DGA_DRAW_UNLOCK(this->dgadraw);
+
+    if (ioctl(this->devfd, VIS_GETIDENTIFIER, &ident) < 0) {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: ioctl failed, bad device (%s)\n"), devname);
+      XDgaUnGrabDrawable(this->dgadraw);
+      XUnlockDisplay(this->display);
+      return 0;
+    }
+
+    if (strcmp("TSIgfxp", ident.name) != 0) {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: '%s' is not a pgx32 framebuffer device\n"), devname);    
+      XDgaUnGrabDrawable(this->dgadraw);
+      XUnlockDisplay(this->display);
+      return 0;
+    }
+
+    if (ioctl(this->devfd, FBIOGATTR, &attr) < 0) {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: ioctl failed, bad device (%s)\n"), devname);
+      XDgaUnGrabDrawable(this->dgadraw);
+      XUnlockDisplay(this->display);
+      return 0;
+    }
+
+    this->fb_width  = attr.fbtype.fb_width;
+    this->fb_height = attr.fbtype.fb_height;
+    this->fb_depth  = attr.fbtype.fb_depth;
+  }
+
+  this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+  XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+  this->depth  = win_attrs.depth;
+  this->visual = win_attrs.visual;
+  XUnlockDisplay(this->display);
+
+  return 1;
+}
+
+/*
+ * Cleanup X11/DGA
+ */
+
+static void cleanup_dga(pgx32_driver_t *this)
+{
+  XLockDisplay(this->display);
+  XFreeGC(this->display, this->gc);
+  XDgaUnGrabDrawable(this->dgadraw);
+  XUnlockDisplay(this->display);
+}
 
 /*
  * Dispose of any allocated image data within a pgx32_frame_t
@@ -647,18 +720,15 @@ static int pgx32_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
 
   switch (data_type) {
     case XINE_GUI_SEND_DRAWABLE_CHANGED: {
-      XWindowAttributes win_attrs;
-
       XLockDisplay(this->display);
-      XDgaUnGrabDrawable(this->dgadraw);
-      XFreeGC(this->display, this->gc);
+      cleanup_dga(this);
       this->drawable = (Drawable)data;
-      this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
-      this->dgadraw  = XDgaGrabDrawable(this->display, this->drawable);
-      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-      this->depth  = win_attrs.depth;
-      this->visual = win_attrs.visual;
+      if (!setup_dga(this)) {
+        /* FIXME! There should be a better way to handle this */
+        _x_abort();
+      }
       XUnlockDisplay(this->display);
+
     }
     break;
 
@@ -701,19 +771,10 @@ static void pgx32_dispose(vo_driver_t *this_gen)
 {
   pgx32_driver_t *this = (pgx32_driver_t *)(void *)this_gen;
 
-  XLockDisplay (this->display);
-  XDgaUnGrabDrawable(this->dgadraw);
-  XFreeGC(this->display, this->gc);
-  XUnlockDisplay (this->display);
+  cleanup_dga(this);
 
   munmap(this->vbase, GFXP_VRAM_MMAPLEN);
   munmap(this->vbase+GFXP_REGSBASE, GFXP_REGS_MMAPLEN);
-  close(this->fbfd);
-
-  pthread_mutex_lock(&this->class->mutex);
-  this->class->instance_count--;
-  pthread_mutex_unlock(&this->class->mutex);
-  
   free(this);
 }
 
@@ -725,7 +786,6 @@ static void pgx32_dispose_class(video_driver_class_t *class_gen)
 {
   pgx32_driver_class_t *class = (pgx32_driver_class_t *)(void *)class_gen;
 
-  pthread_mutex_destroy(&class->mutex);
   free(class);
 }
 
@@ -737,59 +797,7 @@ static vo_info_t vo_info_pgx32 = {
 static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const void *visual_gen)
 {
   pgx32_driver_class_t *class = (pgx32_driver_class_t *)(void *)class_gen;
-  char *devname;
-  int fbfd;
-  struct vis_identifier ident;
-  struct fbgattr attr;
-  uint8_t *vbase;
   pgx32_driver_t *this;
-  XWindowAttributes win_attrs;
-
-  pthread_mutex_lock(&class->mutex);
-  if (class->instance_count > 0) {
-    pthread_mutex_unlock(&class->mutex);
-    return NULL;
-  }
-  class->instance_count++;
-  pthread_mutex_unlock(&class->mutex);
-
-  devname = class->config->register_string(class->config, "video.pgx32_device", "/dev/fb",
-    _("PGX32 device path"),
-    _("Specifies the file name for the PGX32 device to be used."),
-    20, NULL, NULL);
-
-  if ((fbfd = open(devname, O_RDWR)) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: can't open framebuffer device '%s'\n"), devname);
-    return NULL;
-  }
-
-  if (ioctl(fbfd, VIS_GETIDENTIFIER, &ident) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: ioctl failed, bad device\n"));
-    close(fbfd);
-    return NULL;
-  }
-
-  if (strcmp("TSIgfxp", ident.name) != 0) {
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: '%s' is not a pgx32 framebuffer device\n"), devname);    
-    close(fbfd);
-    return NULL;
-  }
-
-  if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: ioctl failed, bad device\n"));
-    close(fbfd);
-    return NULL;
-  }
-
-  if ((vbase = mmap(0, GFXP_VRAM_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0x04000000)) == MAP_FAILED) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: unable to memory map framebuffer\n");
-    return 0;
-  }
-  if (mmap(vbase+GFXP_REGSBASE, GFXP_REGS_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fbfd, 0x02000000) == MAP_FAILED) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: unable to memory map framebuffer\n");
-    munmap(vbase, GFXP_VRAM_MMAPLEN);
-    return 0;
-  }
 
   this = (pgx32_driver_t *)xine_xmalloc(sizeof(pgx32_driver_t));
   if (!this) {
@@ -818,24 +826,28 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
 
   this->class = class;
 
-  this->fbfd      = fbfd;
-  this->fb_width  = attr.fbtype.fb_width;
-  this->fb_height = attr.fbtype.fb_height;
-  this->fb_depth  = attr.fbtype.fb_depth;
-  this->vbase     = vbase;
-
   this->display  = ((x11_visual_t *)visual_gen)->display;
   this->screen   = ((x11_visual_t *)visual_gen)->screen;
   this->drawable = ((x11_visual_t *)visual_gen)->d;
 
-  XLockDisplay(this->display);
-  this->gc      = XCreateGC(this->display, this->drawable, 0, NULL);
-  this->dgadraw = XDgaGrabDrawable(this->display, this->drawable);
+  if (!setup_dga(this)) {
+    free(this);
+    return NULL;
+  }
 
-  XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-  this->depth  = win_attrs.depth;
-  this->visual = win_attrs.visual;
-  XUnlockDisplay(this->display);
+  if ((this->vbase = mmap(0, GFXP_VRAM_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0x04000000)) == MAP_FAILED) {
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: unable to memory map framebuffer\n");
+    cleanup_dga(this);
+    free(this);
+    return NULL;
+  }
+  if (mmap(this->vbase+GFXP_REGSBASE, GFXP_REGS_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, this->devfd, 0x02000000) == MAP_FAILED) {
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: unable to memory map framebuffer\n");
+    munmap(this->vbase, GFXP_VRAM_MMAPLEN);
+    cleanup_dga(this);
+    free(this);
+    return NULL;
+  }
 
   return (vo_driver_t *)this;
 }
@@ -868,8 +880,6 @@ static void *pgx32_init_class(xine_t *xine, void *visual_gen)
 
   class->xine   = xine;
   class->config = xine->config;
-
-  pthread_mutex_init(&class->mutex, NULL);
 
   return class;
 }

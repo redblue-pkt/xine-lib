@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.64 2004/05/23 15:11:34 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.65 2004/05/25 23:26:41 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -129,9 +129,6 @@ typedef struct {
 
   xine_t *xine;
   config_values_t *config;
-
-  pthread_mutex_t mutex;
-  int instance_count;
 } pgx64_driver_class_t;
 
 typedef struct {
@@ -149,22 +146,22 @@ typedef struct {
 
   pgx64_driver_class_t *class;
 
+  Display *display;
+  int screen, depth;
+  Drawable drawable;
+  Dga_drawable dgadraw;
+  GC gc;
+  Visual *visual;
+  Colormap cmap;
+
+  int devfd, fb_width, fb_height, fb_depth;
+  uint32_t free_top, free_bottom, free_mark, buffers[2][3];
+  uint8_t *vbase, *buffer_ptrs[2][3];
+
   pgx64_frame_t *current;
   pgx64_frame_t *multibuf[MAX_MULTIBUF_FRAMES];
   pgx64_frame_t *detained[MAX_DETAINED_FRAMES];
   int multibuf_frames, detained_frames;
-
-  int fbfd, fb_width, fb_height, fb_depth;
-  uint32_t free_top, free_bottom, free_mark, buffers[2][3];
-  uint8_t *vbase, *buffer_ptrs[2][3];
-
-  Display *display;
-  int screen, depth;
-  Visual *visual;
-  Drawable drawable;
-  Colormap cmap;
-  GC gc;
-  Dga_drawable dgadraw;
 
   int chromakey_en, chromakey_changed, chromakey_regen_needed;
   pthread_mutex_t chromakey_mutex;
@@ -178,6 +175,128 @@ typedef struct {
 #define BUF_MODE_NOT_MULTI 1
 #define BUF_MODE_SINGLE    2
 #define BUF_MODE_DOUBLE    3
+
+/*
+ * Setup X11/DGA
+ */
+
+static int setup_dga(pgx64_driver_t *this)
+{
+  Atom VIDEO_OVERLAY_WINDOW, VIDEO_OVERLAY_IN_USE, type_return;
+  int format_return;
+  unsigned long nitems_return, bytes_after_return;
+  unsigned char *prop_return;
+  XWindowAttributes win_attrs;
+
+  XLockDisplay(this->display);
+  this->dgadraw = XDgaGrabDrawable(this->display, this->drawable);
+  if (!this->dgadraw) {
+    xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: can't grab DGA drawable for video window\n"));
+    XUnlockDisplay(this->display);
+    return 0;
+  }
+
+  /* If the framebuffer hasn't already been mapped then open it and check it's
+   * a supported type. We don't use the file descriptor returned from
+   * dga_draw_devfd() because the FBIOVERTICAL ioctl doesn't work with it.
+   */
+  if (!this->vbase) {
+    char *devname;
+    struct fbgattr attr;
+
+    DGA_DRAW_LOCK(this->dgadraw, -1);
+    devname = dga_draw_devname(this->dgadraw);
+    DGA_DRAW_UNLOCK(this->dgadraw);
+
+    if ((this->devfd = open(devname, O_RDWR)) < 0) {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: can't open framebuffer device '%s'\n"), devname);
+      XDgaUnGrabDrawable(this->dgadraw);
+      XUnlockDisplay(this->display);
+      return 0;
+    }
+
+    if (ioctl(this->devfd, FBIOGATTR, &attr) < 0) {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: ioctl failed, bad device (%s)\n"), devname);
+      close(this->devfd);
+      XDgaUnGrabDrawable(this->dgadraw);
+      XUnlockDisplay(this->display);
+      return 0;
+    }
+
+    if (attr.real_type != 22) {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: '%s' is not a pgx64/pgx24 framebuffer device\n"), devname);
+      close(this->devfd);
+      XDgaUnGrabDrawable(this->dgadraw);
+      XUnlockDisplay(this->display);
+      return 0;
+    }
+
+    this->fb_width    = attr.fbtype.fb_width;
+    this->fb_height   = attr.fbtype.fb_height;
+    this->fb_depth    = attr.fbtype.fb_depth;
+    this->free_top    = attr.sattr.dev_specific[0];
+    this->free_bottom = attr.sattr.dev_specific[5] + attr.fbtype.fb_size;
+  }
+
+  VIDEO_OVERLAY_WINDOW = XInternAtom(this->display, "VIDEO_OVERLAY_WINDOW", False);
+  VIDEO_OVERLAY_IN_USE = XInternAtom(this->display, "VIDEO_OVERLAY_IN_USE", False);
+
+  XGrabServer(this->display);
+  if (XGetWindowProperty(this->display, RootWindow(this->display, this->screen), VIDEO_OVERLAY_WINDOW, 0, 1, False, XA_WINDOW, &type_return, &format_return, &nitems_return, &bytes_after_return, &prop_return) == Success) {
+    Window wins = *(Window *)(void *)prop_return;
+
+    XFree(prop_return);
+    if ((type_return == XA_WINDOW) && (format_return == 32) && (nitems_return == 1)) {
+      if (XGetWindowProperty(this->display, wins, VIDEO_OVERLAY_IN_USE, 0, 0, False, AnyPropertyType, &type_return, &format_return, &nitems_return, &bytes_after_return, &prop_return) == Success) {
+        XFree(prop_return);
+        if (type_return != None) {
+          xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: video overlay on this screen is already in use\n"));
+          close(this->devfd);
+          XUngrabServer(this->display);
+          XDgaUnGrabDrawable(this->dgadraw);
+          XUnlockDisplay(this->display);
+          return 0;
+        }
+      }
+    }
+  }
+
+  if (!(XChangeProperty(this->display, RootWindow(this->display, this->screen), VIDEO_OVERLAY_WINDOW, XA_WINDOW, 32, PropModeReplace, (unsigned char *)&this->drawable, 1) &&
+        XChangeProperty(this->display, this->drawable, VIDEO_OVERLAY_IN_USE, XA_STRING, 8, PropModeReplace, NULL, 0))) {
+    xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: unable to set window properties\n"));
+    close(this->devfd);
+    XUngrabServer(this->display);
+    XDgaUnGrabDrawable(this->dgadraw);
+    XUnlockDisplay(this->display);
+    return 0;
+  }
+  XUngrabServer(this->display);
+  
+  this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+  XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+  this->depth  = win_attrs.depth;
+  this->visual = win_attrs.visual;
+  this->cmap   = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
+  XSetWindowColormap(this->display, this->drawable, this->cmap);
+  XUnlockDisplay(this->display);
+
+  return 1;
+}
+
+/*
+ * Cleanup X11/DGA
+ */
+
+static void cleanup_dga(pgx64_driver_t *this)
+{
+  XLockDisplay(this->display);
+  XFreeColormap(this->display, this->cmap);
+  XFreeGC(this->display, this->gc);
+  XDeleteProperty(this->display, this->drawable, XInternAtom(this->display, "VIDEO_OVERLAY_WINDOW", True));
+  XDeleteProperty(this->display, this->drawable, XInternAtom(this->display, "VIDEO_OVERLAY_IN_USE", True));
+  XDgaUnGrabDrawable(this->dgadraw);
+  XUnlockDisplay(this->display);
+}
 
 /*
  * Dispose of any allocated image data within a pgx64_frame_t
@@ -224,7 +343,7 @@ static void repaint_output_area(pgx64_driver_t *this)
 
   XLockDisplay(this->display);
   XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-  for (i=0;i<4;i++) {
+  for (i=0; i<4; i++) {
     XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[i].x, this->vo_scale.border[i].y, this->vo_scale.border[i].w, this->vo_scale.border[i].h);
   }
 
@@ -288,7 +407,7 @@ static void pgx64_frame_proc_frame(vo_frame_t *frame_gen)
 
   frame->vo_frame.proc_called = 1;
 
-  for (i=0;i<frame->planes;i++) {
+  for (i=0; i<frame->planes; i++) {
     memcpy(frame->buffer_ptrs[i], frame->vo_frame.base[i], frame->lengths[i]);
   }
 }
@@ -300,7 +419,7 @@ static void pgx64_frame_proc_slice(vo_frame_t *frame_gen, uint8_t **src)
 
   frame->vo_frame.proc_called = 1;
 
-  for (i=0;i<frame->planes;i++) {
+  for (i=0; i<frame->planes; i++) {
     len = (frame->lengths[i] - frame->stripe_offsets[i] < frame->stripe_lengths[i]) ? frame->lengths[i] - frame->stripe_offsets[i] : frame->stripe_lengths[i];
     memcpy(frame->buffer_ptrs[i]+frame->stripe_offsets[i], src[i], len);
     frame->stripe_offsets[i] += len;
@@ -398,7 +517,7 @@ static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
       break;
     }
 
-    for (i=0;i<frame->planes;i++) {
+    for (i=0; i<frame->planes; i++) {
       if (!frame->vo_frame.base[i]) {
         xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: frame plane malloc failed\n");
         _x_abort();
@@ -521,7 +640,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     int i;
 
     if (frame->vo_frame.proc_slice != pgx64_frame_proc_slice) {
-      for (i=0;i<frame->planes;i++) {
+      for (i=0; i<frame->planes; i++) {
         if ((frame->buffers[i] = vram_alloc(this, frame->lengths[i])) < 0) {
           if (this->detained_frames < MAX_DETAINED_FRAMES) {
             this->detained[this->detained_frames++] = frame;
@@ -546,7 +665,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       this->multibuf[this->multibuf_frames++] = frame;
     }
 
-    for (i=0;i<frame->planes;i++) {
+    for (i=0; i<frame->planes; i++) {
       vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(frame->buffers[i]);
     }
   }
@@ -555,7 +674,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     int i, j;
 
     if (this->buf_mode == BUF_MODE_NOT_MULTI) {
-      for (i=0;i<frame->planes;i++) {
+      for (i=0; i<frame->planes; i++) {
         if ((this->buffers[0][i] = vram_alloc(this, frame->lengths[i])) < 0) {
           xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: insuffucient video memory\n"));
           return;
@@ -566,7 +685,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
 
       this->buf_mode = BUF_MODE_DOUBLE;
-      for (i=0;i<frame->planes;i++) {
+      for (i=0; i<frame->planes; i++) {
         if ((this->buffers[1][i] = vram_alloc(this, frame->lengths[i])) < 0) {
           xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Warning: low video memory, double-buffering disabled\n"));
           this->buf_mode = BUF_MODE_SINGLE;
@@ -578,27 +697,27 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
 
       if (this->buf_mode == BUF_MODE_SINGLE) {
-        for (i=0;i<frame->planes;i++) {
+        for (i=0; i<frame->planes; i++) {
           this->buffers[1][i] = this->buffers[0][i];
           this->buffer_ptrs[1][i] = this->vbase + this->buffers[1][i];
         }
       }
 
-      for (i=0;i<2;i++) {
-        for (j=0;j<frame->planes;j++) {
+      for (i=0; i<2; i++) {
+        for (j=0; j<frame->planes; j++) {
           vregs[scaler_regs_table[i][j]] = le2me_32(this->buffers[i][j]);
         }
       }
     }
 
-    for (i=0;i<frame->planes;i++) {
+    for (i=0; i<frame->planes; i++) {
       memcpy(this->buffer_ptrs[this->dblbuf_select][i], frame->vo_frame.base[i], frame->lengths[i]);
     }
   }
 
   vregs[CAPTURE_CONFIG] = this->dblbuf_select ? le2me_32(CAPTURE_CONFIG_BUF1) : le2me_32(CAPTURE_CONFIG_BUF0);
   this->dblbuf_select = 1 - this->dblbuf_select;
-  ioctl(this->fbfd, FBIOVERTICAL);
+  ioctl(this->devfd, FBIOVERTICAL);
 
   if (this->current != NULL) {
     this->current->vo_frame.free(&this->current->vo_frame);
@@ -709,7 +828,7 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
           src_trans = (uint8_t *)&overlay->trans;
         }
 
-        for (j=max_palette_colour[use_clip_palette]+1;j<=overlay->rle[i].color;j++) {
+        for (j=max_palette_colour[use_clip_palette]+1; j<=overlay->rle[i].color; j++) {
           if (src_trans[j]) {
             XColor col;
             int y, u, v, r, g, b;
@@ -928,19 +1047,13 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
 
   switch (data_type) {
     case XINE_GUI_SEND_DRAWABLE_CHANGED: {
-      XWindowAttributes win_attrs;
-
       XLockDisplay(this->display);
-      XDgaUnGrabDrawable(this->dgadraw);
-      XFreeGC(this->display, this->gc);
+      cleanup_dga(this);
       this->drawable = (Drawable)data;
-      this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
-      this->dgadraw  = XDgaGrabDrawable(this->display, this->drawable);
-      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-      this->depth  = win_attrs.depth;
-      this->visual = win_attrs.visual;
-      this->cmap   = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
-      XSetWindowColormap(this->display, this->drawable, this->cmap);
+      if (!setup_dga(this)) {
+        /* FIXME! There should be a better way to handle this */
+        _x_abort();
+      }
       XUnlockDisplay(this->display);
     }
     break;
@@ -971,7 +1084,7 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
 static int pgx64_redraw_needed(vo_driver_t *this_gen)
 {
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
-  int modif = 0;
+  int modif;
 
   XLockDisplay(this->display);
   DGA_DRAW_LOCK(this->dgadraw, -1);
@@ -996,19 +1109,10 @@ static void pgx64_dispose(vo_driver_t *this_gen)
   vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
   vregs[OVERLAY_SCALE_CNTL] = 0;
 
-  XLockDisplay (this->display);
-  XFreeColormap(this->display, this->cmap);
-  XDgaUnGrabDrawable(this->dgadraw);
-  XFreeGC(this->display, this->gc);
-  XUnlockDisplay (this->display);
+  cleanup_dga(this);
 
   munmap(this->vbase, M64_MMAPLEN);
-  close(this->fbfd);
-
-  pthread_mutex_lock(&this->class->mutex);
-  this->class->instance_count--;
-  pthread_mutex_unlock(&this->class->mutex);
-  
+  close(this->devfd);
   free(this);
 }
 
@@ -1042,7 +1146,6 @@ static void pgx64_dispose_class(video_driver_class_t *class_gen)
 {
   pgx64_driver_class_t *class = (pgx64_driver_class_t *)(void *)class_gen;
 
-  pthread_mutex_destroy(&class->mutex);
   free(class);
 }
 
@@ -1054,48 +1157,7 @@ static vo_info_t vo_info_pgx64 = {
 static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const void *visual_gen)
 {
   pgx64_driver_class_t *class = (pgx64_driver_class_t *)(void *)class_gen;
-  char *devname;
-  int fbfd;
-  struct fbgattr attr;
-  uint8_t *vbase;
   pgx64_driver_t *this;
-  XWindowAttributes win_attrs;
-
-  pthread_mutex_lock(&class->mutex);
-  if (class->instance_count > 0) {
-    pthread_mutex_unlock(&class->mutex);
-    return NULL;
-  }
-  class->instance_count++;
-  pthread_mutex_unlock(&class->mutex);
-
-  devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb",
-    _("PGX64/PGX24 device path"),
-    _("Specifies the file name for the PGX64/PGX24 device to be used.\n"),
-    20, NULL, NULL);
-
-  if ((fbfd = open(devname, O_RDWR)) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: can't open framebuffer device '%s'\n"), devname);
-    return NULL;
-  }
-
-  if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: ioctl failed, bad device\n"));
-    close(fbfd);
-    return NULL;
-  }
-
-  if (attr.real_type != 22) {
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: '%s' is not a pgx64/pgx24 framebuffer device\n"), devname);
-    close(fbfd);
-    return NULL;
-  }
-
-  if ((vbase = mmap(0, M64_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
-    close(fbfd);
-    return NULL;
-  }
 
   this = (pgx64_driver_t *)xine_xmalloc(sizeof(pgx64_driver_t));
   if (!this) {
@@ -1124,28 +1186,22 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
 
   this->class = class;
 
-  this->fbfd        = fbfd;
-  this->fb_width    = attr.fbtype.fb_width;
-  this->fb_height   = attr.fbtype.fb_height;
-  this->fb_depth    = attr.fbtype.fb_depth;
-  this->free_top    = attr.sattr.dev_specific[0];
-  this->free_bottom = attr.sattr.dev_specific[5] + attr.fbtype.fb_size;
-  this->vbase       = vbase;
-
   this->display  = ((x11_visual_t *)visual_gen)->display;
   this->screen   = ((x11_visual_t *)visual_gen)->screen;
   this->drawable = ((x11_visual_t *)visual_gen)->d;
 
-  XLockDisplay(this->display);
-  this->gc      = XCreateGC(this->display, this->drawable, 0, NULL);
-  this->dgadraw = XDgaGrabDrawable(this->display, this->drawable);
+  if (!setup_dga(this)) {
+    free(this);
+    return NULL;
+  }
 
-  XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-  this->depth  = win_attrs.depth;
-  this->visual = win_attrs.visual;
-  this->cmap   = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
-  XSetWindowColormap(this->display, this->drawable, this->cmap);
-  XUnlockDisplay(this->display);
+  if ((this->vbase = mmap(0, M64_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0)) == MAP_FAILED) {
+    xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
+    cleanup_dga(this);
+    close(this->devfd);
+    free(this);
+    return NULL;
+  }
 
   this->colour_key  = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1,
     _("video overlay colour key"),
@@ -1202,8 +1258,6 @@ static void *pgx64_init_class(xine_t *xine, void *visual_gen)
 
   class->xine   = xine;
   class->config = xine->config;
-
-  pthread_mutex_init(&class->mutex, NULL);
 
   return class;
 }
