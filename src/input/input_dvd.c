@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.102 2002/10/24 15:06:55 jkeil Exp $
+ * $Id: input_dvd.c,v 1.103 2002/10/25 15:36:19 mroi Exp $
  *
  */
 
@@ -203,7 +203,7 @@ static void device_change_cb(void *data, xine_cfg_entry_t *cfg) {
 static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
   trace_print("Called\n");
 
-  return INPUT_CAP_BLOCK | INPUT_CAP_CLUT |
+  return INPUT_CAP_BLOCK |
 #if CAN_SEEK
     INPUT_CAP_SEEKABLE | INPUT_CAP_VARIABLE_BITRATE | 
 #endif
@@ -1662,6 +1662,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.103  2002/10/25 15:36:19  mroi
+ * remove obviously obsolete INPUT_CAP_CLUT and INPUT_OPTIONAL_DATA_CLUT
+ *
  * Revision 1.102  2002/10/24 15:06:55  jkeil
  * C99 version of macro definition with variable number of arguments added
  *

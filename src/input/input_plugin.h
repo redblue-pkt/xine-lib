@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.35 2002/10/21 12:57:51 mroi Exp $
+ * $Id: input_plugin.h,v 1.36 2002/10/25 15:36:22 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -178,14 +178,6 @@ struct input_plugin_s {
 
 #define INPUT_CAP_BLOCK                0x00000002
 
-/* 
- * INPUT_CAP_CLUT:
- *   input plugin can provide an spu color lookup table 
- *   (dvd-specific?)
- */
-
-#define INPUT_CAP_CLUT                 0x00000004
-
 /*
  * INPUT_CAP_AUDIOLANG:
  * INPUT_CAP_SPULANG:
@@ -231,7 +223,6 @@ struct input_plugin_s {
 #define INPUT_OPTIONAL_UNSUPPORTED    0
 #define INPUT_OPTIONAL_SUCCESS        1
 
-#define INPUT_OPTIONAL_DATA_CLUT      1
 #define INPUT_OPTIONAL_DATA_AUDIOLANG 2
 #define INPUT_OPTIONAL_DATA_SPULANG   3
 #define INPUT_OPTIONAL_DATA_TEXTSPU0  4
