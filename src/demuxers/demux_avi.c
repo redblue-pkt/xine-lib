@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.124 2002/10/20 19:03:43 guenter Exp $
+ * $Id: demux_avi.c,v 1.125 2002/10/20 21:15:07 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1665,6 +1665,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   return &this->demux_plugin;
 }
 
+/*
+ * demux avi class
+ */
+
 static char *get_description (demux_class_t *this_gen) {
   return "AVI/RIFF demux plugin";
 }
@@ -1689,7 +1693,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+static void *init_class (xine_t *xine, void *data) {
   
   demux_avi_class_t     *this;
   
@@ -1713,6 +1717,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "avi", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 14, "avi", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.31 2002/10/20 18:23:33 guenter Exp $
+ * $Id: xine_decoder.c,v 1.32 2002/10/20 21:15:07 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -113,7 +113,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
 
 #ifdef LOG
-  printf ("libmad: decode data, decoder_info[0]: %d\n", buf->decoder_info[0]);
+  printf ("libmad: decode data, decoder_flags: %d\n", buf->decoder_flags);
 #endif  
 
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {

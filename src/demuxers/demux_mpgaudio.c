@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.67 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_mpgaudio.c,v 1.68 2002/10/20 21:15:07 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -45,9 +45,8 @@
 #define LOG
 */
 
-#define DEMUX_MPGAUDIO_IFACE_VERSION 3
+#define NUM_PREVIEW_BUFFERS  10
 
-#define VALID_ENDS                   "mp3,mp2,mpa,mpega"
 #define WRAP_THRESHOLD       120000
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
@@ -61,12 +60,9 @@ typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
-
-  config_values_t     *config;
+  xine_stream_t       *stream;
 
   fifo_buffer_t       *audio_fifo;
-  fifo_buffer_t       *video_fifo;
 
   input_plugin_t      *input;
 
@@ -86,6 +82,15 @@ typedef struct {
 
 } demux_mpgaudio_t ;
 
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+
+} demux_mpgaudio_class_t;
 
 /* bitrate table tabsel_123[mpeg version][layer][bitrate index] */
 const int tabsel_123[2][3][16] = {
@@ -177,13 +182,13 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
       chomp (tag.album);
       chomp (tag.comment);
 
-      this->xine->meta_info [XINE_META_INFO_TITLE]
+      this->stream->meta_info [XINE_META_INFO_TITLE]
 	= strdup (tag.title);
-      this->xine->meta_info [XINE_META_INFO_ARTIST]
+      this->stream->meta_info [XINE_META_INFO_ARTIST]
 	= strdup (tag.artist);
-      this->xine->meta_info [XINE_META_INFO_ALBUM]
+      this->stream->meta_info [XINE_META_INFO_ALBUM]
 	= strdup (tag.album);
-      this->xine->meta_info [XINE_META_INFO_COMMENT]
+      this->stream->meta_info [XINE_META_INFO_COMMENT]
 	= strdup (tag.comment);
 
     }
@@ -224,14 +229,14 @@ static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead) {
   if( !this->bitrate ) /* bitrate can't be zero, default to 128 */
     this->bitrate = 128;
 
-  if (!this->xine->meta_info[XINE_META_INFO_AUDIOCODEC]) {
+  if (!this->stream->meta_info[XINE_META_INFO_AUDIOCODEC]) {
 
     char *str = malloc (80);
 
     sprintf (str, "mpeg %s audio layer %d", ver, lay);
-    this->xine->meta_info[XINE_META_INFO_AUDIOCODEC] = str;
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = str;
 
-    this->xine->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate*1000;
+    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate*1000;
   }
     
   this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1000 / 8));
@@ -246,10 +251,10 @@ static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
   if( pts &&
       (this->send_newpts || (this->last_pts && abs(diff)>WRAP_THRESHOLD) ) ) {
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
+      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->xine, pts, 0);
+      xine_demux_control_newpts(this->stream, pts, 0);
     }
     this->send_newpts = 0;
   }
@@ -258,12 +263,13 @@ static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
     this->last_pts = pts;
 }
 
-static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
+static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
 
   buf_element_t *buf = NULL;
-  uint32_t head;
-  off_t buffer_pos;
-  uint64_t pts = 0;
+  uint32_t       head;
+  off_t          buffer_pos;
+  uint64_t       pts = 0;
+  int            worked = 0;
 
   buffer_pos = this->input->get_current_pos(this->input);
   if(this->audio_fifo)
@@ -306,23 +312,21 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
   buf->pts             = pts;
   buf->type            = BUF_AUDIO_MPEG;
   buf->decoder_info[0] = 1;
+  buf->decoder_flags   = decoder_flags;
+
+  worked = (buf->size == 2048);
 
   if(this->audio_fifo)
     this->audio_fifo->put(this->audio_fifo, buf);
 
-  return (buf->size == 2048);
+  return worked;
 }
 
 static void *demux_mpgaudio_loop (void *this_gen) {
+
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-  buf_element_t *buf;
 
   pthread_mutex_lock( &this->mutex );
-  
-  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-  buf->type = BUF_CONTROL_NOP;
-  buf->decoder_flags = BUF_FLAG_NO_VIDEO;
-  this->video_fifo->put(this->video_fifo, buf);
   
   /* do-while needed to seek after demux finished */
   do {
@@ -330,7 +334,7 @@ static void *demux_mpgaudio_loop (void *this_gen) {
     /* main demuxer loop */
     while(this->status == DEMUX_OK) {
 
-      if (!demux_mpgaudio_next(this))
+      if (!demux_mpgaudio_next (this, 0))
         this->status = DEMUX_FINISHED;
 
       /* someone may want to interrupt us */
@@ -353,7 +357,7 @@ static void *demux_mpgaudio_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
   printf ("demux_mpgaudio: demux loop finished.\n");
 
@@ -383,9 +387,9 @@ static void demux_mpgaudio_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
@@ -434,41 +438,56 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
   return head;
 }
 
-static int demux_mpgaudio_send_headers (demux_mpgaudio_t *this) {
+static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
+
+  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
   pthread_mutex_lock (&this->mutex);
-
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
 
   this->stream_length = 0;
   this->bitrate       = 0;
   this->last_pts      = 0;
 
-  if (!this->audio_fifo) {
-    xine_log (this->xine, XINE_LOG_MSG, _("demux_mpgaudio: no audio driver!\n") );
-    pthread_mutex_unlock( &this->mutex );
-    return DEMUX_CANNOT_HANDLE;
-  }
-  
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     uint32_t head;
 
-    if( !this->thread_running ) {
+    if (!this->thread_running) {
+
       head = demux_mpgaudio_read_head(this->input);
 
       if (mpg123_head_check(head))
          mpg123_decode_header(this,head);
 
       read_id3_tags (this);
+
     }
   }
 
-  xine_demux_control_headers_done (this->xine);
+  /*
+   * send preview buffers
+   */
+    
+  if (!this->thread_running) {
+    int i;
+
+    xine_demux_control_start (this->stream);
+
+    if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) 
+      this->input->seek (this->input, 0, SEEK_SET);
+    
+    for (i=0; i<NUM_PREVIEW_BUFFERS; i++) {
+      if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
+	break;
+      }
+    }
+  }
+
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
 }
 
 static int demux_mpgaudio_start (demux_plugin_t *this_gen,
@@ -493,8 +512,6 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
   this->send_newpts = 1;
 
   if( !this->thread_running ) {
-    xine_demux_control_start(this->xine);
-    
     /*
      * now start demuxing
      */
@@ -511,7 +528,7 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
   }
   else {
     this->buf_flag_seek = 1;
-    xine_demux_flush_engine(this->xine);
+    xine_demux_flush_engine(this->stream);
   }
   /* this->status is saved because we can be interrupted between
    * pthread_mutex_unlock and return
@@ -528,125 +545,6 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
   return demux_mpgaudio_start (this_gen, start_pos, start_time);
 }
 
-static int demux_mpgaudio_open(demux_plugin_t *this_gen,
-			       input_plugin_t *input, int stage) {
-  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-  unsigned char riff_check[RIFF_CHECK_BYTES];
-  int i;
-
-  switch(stage) {
-    
-  case STAGE_BY_CONTENT: {
-    uint32_t head;
-    
-    if(!input)
-      return DEMUX_CANNOT_HANDLE;
-
-    head = demux_mpgaudio_read_head(input);
-
-#ifdef LOG
-    printf ("demux_mpgaudio: head is %x\n", head);
-#endif
-
-    if (head == RIFF_TAG) {
-#ifdef LOG
-      printf (" **** found RIFF tag\n");
-#endif
-      /* skip the remaining 12 bytes of the RIFF tag */
-      input->seek(input, 12, SEEK_CUR);
-
-      /* get the length of the next chunk */
-      if (input->read(input, riff_check, 4) != 4)
-        return DEMUX_CANNOT_HANDLE;
-      /* head gets to be a generic variable in this case */
-      head = LE_32(&riff_check[0]);
-      /* skip over the chunk and the 'data' tag and length */
-      input->seek(input, head + 8, SEEK_CUR);
-
-      /* load the next, I don't know...n bytes, and check for a valid
-       * MPEG audio header */
-      if (input->read(input, riff_check, RIFF_CHECK_BYTES) !=
-        RIFF_CHECK_BYTES)
-        return DEMUX_CANNOT_HANDLE;
-
-      for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
-        head = BE_32(&riff_check[i]);
-#ifdef LOG
-	printf ("demux_mpgaudio: **** mpg123: checking %08X\n", head);
-#endif
-        if (mpg123_head_check(head)) {
-          this->input = input;
-          return demux_mpgaudio_send_headers (this);
-        }
-      }
-    } else {
-      if (mpg123_head_check(head)) {
-        this->input = input;
-        return demux_mpgaudio_send_headers (this);
-      }
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-  
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
-
-    MRL = input->get_mrl (input);
-
-#ifdef LOG
-    printf ("demux_mpgaudio: stage by extension %s\n", MRL);
-#endif
-
-    if (!strncmp (MRL, "ice ://", 7)) {
-      this->input = input;
-      return demux_mpgaudio_send_headers (this);
-    }
-    
-    suffix = strrchr(MRL, '.');
-    
-    if(!suffix)
-      return DEMUX_CANNOT_HANDLE;
-    
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-							    "mrl.ends_mgaudio", VALID_ENDS,
-							    _("valid mrls ending for mpeg audio demuxer"),
-							    NULL, 20, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
-      
-      while(*m == ' ' || *m == '\t') m++;
-      
-      if(!strcasecmp((suffix + 1), m)) {
-	this->input = input;
-	return demux_mpgaudio_send_headers (this);
-      }
-    }
-  }
-  break;
-  
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-  }
-  
-  return DEMUX_CANNOT_HANDLE;
-}
-
-static char *demux_mpgaudio_get_id(void) {
-  return "MPGAUDIO";
-}
-
-static char *demux_mpgaudio_get_mimetypes(void) {
-  return "audio/mpeg2: mp2: MPEG audio;"
-         "audio/x-mpeg2: mp2: MPEG audio;"
-         "audio/mpeg3: mp3: MPEG audio;"
-         "audio/x-mpeg3: mp3: MPEG audio;"
-         "audio/mpeg: mpa,abs,mpega: MPEG audio;"
-         "audio/x-mpeg: mpa,abs,mpega: MPEG audio;";
-}
-
 static void demux_mpgaudio_dispose (demux_plugin_t *this) {
   free (this);
 }
@@ -660,35 +558,171 @@ static int demux_mpgaudio_get_stream_length (demux_plugin_t *this_gen) {
     return 0;
 }
 
-
-static void *init_demuxer_plugin (xine_t *xine, void *data) {
-
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream, 
+				    input_plugin_t *input_gen) {
+  
   demux_mpgaudio_t *this;
+  input_plugin_t   *input = (input_plugin_t *) input_gen;
+  unsigned char     riff_check[RIFF_CHECK_BYTES];
+  int               i;
 
-  this         = xine_xmalloc (sizeof (demux_mpgaudio_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  if (!stream->audio_fifo) {
+    xine_log (stream->xine, XINE_LOG_MSG, _("demux_mpgaudio: no audio driver!\n") );
+    return NULL;
+  }
+  
+  switch (stream->content_detection_method) {
+    
+  case METHOD_BY_CONTENT: {
+    uint32_t head;
+    
+    head = demux_mpgaudio_read_head (input);
 
-  (void*) this->config->register_string(this->config,
-					"mrl.ends_mgaudio", VALID_ENDS,
-					_("valid mrls ending for mpeg audio demuxer"),
-					NULL, 20, NULL, NULL);
+#ifdef LOG
+    printf ("demux_mpgaudio: head is %x\n", head);
+#endif
 
-  this->demux_plugin.open              = demux_mpgaudio_open;
+    if (head == RIFF_TAG) {
+      int ok;
+
+#ifdef LOG
+      printf ("demux_mpgaudio: **** found RIFF tag\n");
+#endif
+      /* skip the remaining 12 bytes of the RIFF tag */
+      input->seek(input, 12, SEEK_CUR);
+
+      /* get the length of the next chunk */
+      if (input->read(input, riff_check, 4) != 4)
+        return NULL;
+      /* head gets to be a generic variable in this case */
+      head = LE_32(&riff_check[0]);
+      /* skip over the chunk and the 'data' tag and length */
+      input->seek(input, head + 8, SEEK_CUR);
+
+      /* load the next, I don't know...n bytes, and check for a valid
+       * MPEG audio header */
+      if (input->read(input, riff_check, RIFF_CHECK_BYTES) !=
+        RIFF_CHECK_BYTES)
+        return NULL;
+
+      ok = 0;
+      for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
+        head = BE_32(&riff_check[i]);
+#ifdef LOG
+	printf ("demux_mpgaudio: **** mpg123: checking %08X\n", head);
+#endif
+        if (mpg123_head_check(head)) 
+	  ok = 1;
+      }
+      if (!ok)
+	return NULL;
+
+    } else if (!mpg123_head_check(head)) 
+	return NULL;
+  }
+  break;
+  
+  case METHOD_BY_EXTENSION: {
+    char *suffix;
+    char *MRL;
+
+    MRL = input->get_mrl (input);
+
+#ifdef LOG
+    printf ("demux_mpgaudio: stage by extension %s\n", MRL);
+#endif
+
+    if (strncmp (MRL, "ice ://", 7)) {
+    
+      suffix = strrchr(MRL, '.');
+    
+      if (!suffix)
+	return NULL;
+    
+      if ( strncasecmp ((suffix+1), "mp3", 3)
+	   && strncasecmp ((suffix+1), "mp2", 3)
+	   && strncasecmp ((suffix+1), "mpa", 3)
+	   && strncasecmp ((suffix+1), "mpega", 5))
+	return NULL;
+    }
+  }
+  break;
+  
+  default:
+    return NULL;
+  }
+  
+  this = xine_xmalloc (sizeof (demux_mpgaudio_t));
+
+  this->demux_plugin.send_headers      = demux_mpgaudio_send_headers;
   this->demux_plugin.start             = demux_mpgaudio_start;
   this->demux_plugin.seek              = demux_mpgaudio_seek;
   this->demux_plugin.stop              = demux_mpgaudio_stop;
   this->demux_plugin.dispose           = demux_mpgaudio_dispose;
   this->demux_plugin.get_status        = demux_mpgaudio_get_status;
-  this->demux_plugin.get_identifier    = demux_mpgaudio_get_id;
   this->demux_plugin.get_stream_length = demux_mpgaudio_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_mpgaudio_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
   
-  this->status = DEMUX_FINISHED;
+  this->input      = input;
+  this->audio_fifo = stream->audio_fifo;
+  this->status     = DEMUX_FINISHED;
+  this->stream     = stream;
+
   pthread_mutex_init( &this->mutex, NULL );
   
+  return &this->demux_plugin;
+}
+
+/*
+ * demux mpegaudio class
+ */
+
+static char *get_description (demux_class_t *this_gen) {
+  return "MPEG audio demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "MPEGAUDIO";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "mp3 mp2 mpa mpega";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return "audio/mpeg2: mp2: MPEG audio;"
+         "audio/x-mpeg2: mp2: MPEG audio;"
+         "audio/mpeg3: mp3: MPEG audio;"
+         "audio/x-mpeg3: mp3: MPEG audio;"
+         "audio/mpeg: mpa,abs,mpega: MPEG audio;"
+         "audio/x-mpeg: mpa,abs,mpega: MPEG audio;";
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_mpgaudio_class_t *this = (demux_mpgaudio_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *data) {
+  
+  demux_mpgaudio_class_t     *this;
+  
+  this         = xine_xmalloc (sizeof (demux_mpgaudio_class_t));
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
   return this;
 }
+
+
 
 /*
  * exported plugin catalog entry
@@ -696,6 +730,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "mp3", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "mp3", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
