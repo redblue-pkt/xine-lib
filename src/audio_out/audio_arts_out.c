@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.1 2001/06/24 07:17:37 guenter Exp $
+ * $Id: audio_arts_out.c,v 1.2 2001/07/30 10:15:17 guenter Exp $
  */
 
 /* required for swab() */
@@ -178,19 +178,18 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   int32_t          gap;
   int              bDropPackage;
   uint16_t         sample_buffer[10000];
-/*  count_info       info; */
-/*  int              pos; */
   
   if (this->audio_stream<0)
     return 1;
 
-  xprintf (VERBOSE|AUDIO, "audio_arts_out: got %d samples, vpts=%d\n",
-	   num_samples, vpts);
+  xprintf (VERBOSE|AUDIO, "audio_arts_out: got %d samples, vpts=%d\n pts=%d\n",
+	   num_samples, vpts, pts_);
 
   vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
 
   if (vpts<this->last_audio_vpts) {
     /* reject this */
+    xprintf (VERBOSE|AUDIO, "audio_arts_out: rejected sample vpts=%d, last_audio_vpts=%d\n", vpts, this->last_audio_vpts);
 
     return 1;
   }
@@ -202,39 +201,17 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
    */
 
   buffer_vpts = this->metronom->get_current_time (this->metronom);
-
   buffer_vpts += this->latency * 90;
-
-/*
-  if (this->audio_started) {
-    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
-    pos = info.bytes;
-  } else
-
-    pos = 0;
-*/
-
-//  if (pos>this->bytes_in_buffer) /* buffer ran dry */ 
-//    this->bytes_in_buffer = pos;
-
-//  buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
-
-
-  /*
-  printf ("audio_arts_out: got audio package vpts = %d, buffer_vpts = %d\n",
-	  vpts, buffer_vpts);
-  */
 
   /*
    * calculate gap:
    */
 
-
   gap = vpts - buffer_vpts;
-
+  xprintf (VERBOSE|AUDIO, "audio_arts_out: buff=%d buf_vpts=%d gap=%d\n",
+           this->bytes_in_buffer, buffer_vpts, gap);
   
   bDropPackage = 0;
-
 
   if (gap>GAP_TOLERANCE) {
     ao_fill_gap (this, gap);
@@ -246,12 +223,12 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   } else if (gap<-GAP_TOLERANCE) {
     bDropPackage = 1;
+    xprintf (VERBOSE|AUDIO, "audio_arts_out: audio package (vpts = %d)"
+		    "dropped\n", vpts);
   }
 
 
-  /*
-   * resample and output samples
-   */
+  /* resample and output samples */
   if(this->mode == AO_CAP_MODE_AC3) bDropPackage=0;
 
   if (!bDropPackage) {
@@ -294,16 +271,11 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
       break;
     }
 
-    xprintf (AUDIO|VERBOSE, "audio_arts_out :audio package written\n");
+    xprintf (AUDIO|VERBOSE, "audio_arts_out: audio package written\n");
     
-    /*
-     * step values
-     */
-    
+    /* step values */
     this->bytes_in_buffer += num_output_samples * 2 * this->num_channels;
     this->audio_started    = 1;
-  } else {
-    printf ("audio_arts_out: audio package (vpts = %d) dropped\n", vpts);
   }
 
   return 1;
