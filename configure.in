@@ -105,6 +105,8 @@ dnl
 case $host in
   *-*-freebsd*)
     THREAD_LIBS="-pthread"
+    CFLAGS="$CFLAGS -I/usr/local/include -L/usr/local/lib"
+    CPPFLAGS="$CPPFLAGS -I/usr/local/include -L/usr/local/lib"
     ;;
   *)
     AC_CHECK_LIB(pthread, pthread_create,
