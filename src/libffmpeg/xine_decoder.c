@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.40 2002/06/07 02:40:46 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.41 2002/06/09 21:09:58 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -149,11 +149,16 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       printf ("ffmpeg: couldn't find decoder\n");
       return;
     }
-
+ 
+    /* force (width % 8 == 0), otherwise there will be 
+     * display problems with Xv.
+     */
+    this->bih.biWidth = (this->bih.biWidth + 7) & (~7);
+  
     memset(&this->context, 0, sizeof(this->context));
     this->context.width = this->bih.biWidth;
     this->context.height = this->bih.biHeight;
-
+    
     if (avcodec_open (&this->context, codec) < 0) {
       printf ("ffmpeg: couldn't open decoder\n");
       return;
