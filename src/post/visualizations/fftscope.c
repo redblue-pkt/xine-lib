@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.7 2003/02/10 00:02:45 tmattern Exp $
+ * $Id: fftscope.c,v 1.8 2003/02/11 08:58:15 tmattern Exp $
  *
  */
 
@@ -64,6 +64,7 @@ struct post_plugin_fftscope_s {
   uint8_t amp_max_y[MAXCHANNELS][NUMSAMPLES / 2];
   uint8_t amp_max_u[MAXCHANNELS][NUMSAMPLES / 2];
   uint8_t amp_max_v[MAXCHANNELS][NUMSAMPLES / 2];
+  int     amp_age[MAXCHANNELS][NUMSAMPLES / 2];
   audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
 
   int bits;
@@ -271,8 +272,8 @@ void fade_out_yuv(uint8_t *y, uint8_t *u, uint8_t *v, float factor) {
 static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
 
   int i, j, c;
-  int map_ptr, map_ptr_2;
-  int amp_int;
+  int map_ptr, map_ptr_bkp;
+  int amp_int, amp_max, x;
   float amp_float;
   uint32_t yuy2_pair, yuy2_pair_max, yuy2_white;
   int c_delta;
@@ -337,7 +338,7 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
       map_ptr = ((FFT_HEIGHT * (c+1) / this->channels -1 ) * FFT_WIDTH + i * 2) / 2;
-      map_ptr_2 = map_ptr;
+      map_ptr_bkp = map_ptr;
       amp_float = amp(i, this->wave[c], LOG_BITS);
       if (amp_float == 0)
         amp_int = 0;
@@ -357,23 +358,46 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
         (this->amp_max_u[c][i] << 16) |
         (this->amp_max_y[c][i] << 8) |
         this->amp_max_v[c][i]);
-      for (j = amp_int; j < this->amp_max[c][i]; j++, map_ptr -= FFT_WIDTH / 2)
-        ((uint32_t *)frame->base[0])[map_ptr] = yuy2_pair_max;
 
-      /* white top max */
-      ((uint32_t *)frame->base[0])[map_ptr] = yuy2_white;
+      /* gravity */
+      this->amp_age[c][i]++;
+      if (this->amp_age[c][i] < 10) {
+        amp_max = this->amp_max[c][i];
+      } else {
+        x = this->amp_age[c][i] - 10;
+        amp_max = this->amp_max[c][i] - x * x;
+      }
 
-      if (amp_int > this->amp_max[c][i]) {
-        this->amp_max[c][i] = amp_int - 1;
+      /* new peak ? */
+      if (amp_int > amp_max) {
+        this->amp_max[c][i] = amp_int;
+        this->amp_age[c][i] = 0;
         this->amp_max_y[c][i] = 0x7f;
         this->amp_max_u[c][i] = this->u_current;
         this->amp_max_v[c][i] = this->v_current;
         fade_out_yuv(&this->amp_max_y[c][i], &this->amp_max_u[c][i],
           &this->amp_max_v[c][i], 0.5);
+        amp_max = amp_int;
       } else {
-        this->amp_max[c][i]--;
         fade_out_yuv(&this->amp_max_y[c][i], &this->amp_max_u[c][i],
           &this->amp_max_v[c][i], 0.95);
+      }
+
+      /* draw peaks */
+      for (j = amp_int; j < (amp_max - 1); j++, map_ptr -= FFT_WIDTH / 2)
+        ((uint32_t *)frame->base[0])[map_ptr] = yuy2_pair_max;
+
+      /* top */
+      ((uint32_t *)frame->base[0])[map_ptr] = yuy2_white;
+
+      /* persistence of top */
+      if (this->amp_age[c][i] >= 10) {
+        x = this->amp_age[c][i] - 10;
+        x = 0x4f - x;
+        if (x < 0) x = 0;
+        ((uint32_t *)frame->base[0])[map_ptr_bkp -
+          this->amp_max[c][i] * (FFT_WIDTH / 2)] =
+            be2me_32((x << 24) | (0x80 << 16) | (x << 8) | 0x80);
       }
     }
   }
@@ -460,6 +484,7 @@ static int fftscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
 
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_fftscope_t *this = (post_plugin_fftscope_t *)port->post;
+  int c, i;
 
   this->bits = bits;
   this->mode = mode;
@@ -471,6 +496,16 @@ static int fftscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   this->stream = stream;
   this->data_idx = 0;
   fft_init(LOG_BITS);
+
+  for (c = 0; c < this->channels; c++) {
+    for (i = 0; i < (NUMSAMPLES / 2); i++) {
+      this->amp_max[c][i]   = 0;
+      this->amp_max_y[c][i] = 0;
+      this->amp_max_u[c][i] = 0;
+      this->amp_max_v[c][i] = 0;
+      this->amp_age[c][i]   = 0;
+    }
+  }
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
@@ -485,9 +520,9 @@ static void fftscope_port_close(xine_audio_port_t *port_gen, xine_stream_t *stre
   port->original_port->close(port->original_port, stream );
 }
 
-static void fftscope_port_put_buffer (xine_audio_port_t *port_gen, 
+static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
                              audio_buffer_t *buf, xine_stream_t *stream) {
-  
+
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_fftscope_t *this = (post_plugin_fftscope_t *)port->post;
   vo_frame_t         *frame;
@@ -595,7 +630,7 @@ static post_plugin_t *fftscope_open_plugin(post_class_t *class_gen, int inputs,
   post_fftscope_out_t    *output = (post_fftscope_out_t *)malloc(sizeof(post_fftscope_out_t));
   post_fftscope_out_t    *outputv = (post_fftscope_out_t *)malloc(sizeof(post_fftscope_out_t));
   post_audio_port_t  *port;
-  
+
   if (!this || !input || !output || !outputv || !video_target || !video_target[0] ||
       !audio_target || !audio_target[0] ) {
     free(this);
@@ -609,13 +644,13 @@ static post_plugin_t *fftscope_open_plugin(post_class_t *class_gen, int inputs,
   this->stream  = NULL;
   this->vo_port = video_target[0];
   this->buf.mem = NULL;
-  this->buf.mem_size = 0;  
+  this->buf.mem_size = 0;
 
   port = post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = fftscope_port_open;
   port->port.close = fftscope_port_close;
   port->port.put_buffer = fftscope_port_put_buffer;
-  
+
   input->name = "audio in";
   input->type = XINE_POST_DATA_AUDIO;
   input->data = (xine_audio_port_t *)&port->port;
@@ -625,26 +660,26 @@ static post_plugin_t *fftscope_open_plugin(post_class_t *class_gen, int inputs,
   output->out.data   = (xine_audio_port_t **)&port->original_port;
   output->out.rewire = fftscope_rewire_audio;
   output->post       = this;
-  
+
   outputv->out.name   = "generated video";
   outputv->out.type   = XINE_POST_DATA_VIDEO;
   outputv->out.data   = (xine_video_port_t **)&this->vo_port;
   outputv->out.rewire = fftscope_rewire_video;
   outputv->post       = this;
-  
+
   this->post.xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *) * 2);
   this->post.xine_post.audio_input[0] = &port->port;
   this->post.xine_post.audio_input[1] = NULL;
   this->post.xine_post.video_input    = (xine_video_port_t **)malloc(sizeof(xine_video_port_t *) * 1);
   this->post.xine_post.video_input[0] = NULL;
-  
+
   this->post.input  = xine_list_new();
   this->post.output = xine_list_new();
-  
+
   xine_list_append_content(this->post.input, input);
   xine_list_append_content(this->post.output, output);
   xine_list_append_content(this->post.output, outputv);
-  
+
   this->post.dispose = fftscope_dispose;
 
   return &this->post;
