@@ -279,6 +279,24 @@ static int osd_hide (osd_object_t *osd, uint32_t vpts) {
   return 1;
 }
 
+
+/*
+ * clear an osd object, so that it can be used for rendering a new image
+ */
+
+static void osd_clear (osd_object_t *osd) {
+#ifdef LOG_DEBUG
+  printf("osd_clear\n");
+#endif
+
+  memset(osd->area, 0, osd->width * osd->height);
+  osd->x1 = osd->width;
+  osd->y1 = osd->height;
+  osd->x2 = 0;
+  osd->y2 = 0;
+}
+
+
 /*
  * Bresenham line implementation on osd object
  */
@@ -849,6 +867,7 @@ osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, conf
   this->get_palette        = osd_get_palette;
   this->set_position       = osd_set_position;
   this->set_font           = osd_set_font;
+  this->clear              = osd_clear;
   this->line               = osd_line;
   this->filled_rect        = osd_filled_rect;
   this->render_text        = osd_render_text;

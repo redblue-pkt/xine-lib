@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.67 2001/12/27 14:30:30 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.68 2002/01/05 21:54:17 miguelfreitas Exp $
  *
  */
 
@@ -55,7 +55,7 @@ extern "C" {
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
 #define DECODER_PLUGIN_MAX     256
-#define DECODER_PLUGIN_IFACE_VERSION      4
+#define DECODER_PLUGIN_IFACE_VERSION      5
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
 #define XINE_MAX_EVENT_LISTENERS 50

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2001/12/29 04:32:36 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.16 2002/01/05 21:54:17 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -466,14 +466,15 @@ static char *divx4_get_id(void) {
 
 /* This is pretty generic. I took the liberty to increase the
    priority over that of libffmpeg :-) */
-video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *cfg) {
+video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   divx4_decoder_t *this ;
   char *libdecore_name;
   void *libdecore_handle;
   decoreFunc libdecore_func = 0;
+  config_values_t *cfg;
 
-  if (iface_version != 4) {
+  if (iface_version != 5) {
     printf( "divx4: plugin doesn't support plugin API version %d.\n"
 	    "divx4: this means there's a version mismatch between xine and this "
 	    "divx4: decoder plugin.\nInstalling current plugins should help.\n",
@@ -481,7 +482,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
     
     return NULL;
   }
-
+  cfg = xine->config;
+  
   /* Try to dlopen libdivxdecore, then look for decore function 
      if it fails, print a message and return 0 so that xine ignores
      us from then on. */

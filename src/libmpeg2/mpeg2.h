@@ -44,11 +44,9 @@ typedef struct mpeg2dec_s {
     uint8_t code;
 
     uint32_t pts, scr;
-
+    
+    xine_t *xine;
 } mpeg2dec_t ;
-
-
-
 
 
 /* initialize mpegdec with a opaque user pointer */
@@ -65,5 +63,6 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec,
 void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				 uint8_t * data_start, uint8_t * data_end);
 
-
 void mpeg2_flush (mpeg2dec_t * mpeg2dec);
+
+void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer);

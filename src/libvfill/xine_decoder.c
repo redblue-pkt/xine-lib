@@ -121,11 +121,11 @@ static char *videofill_get_id(void) {
   return "videofill";
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *cfg) {
+video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   videofill_decoder_t *this ;
 
-  if (iface_version != 4) {
+  if (iface_version != 5) {
     printf( "videofill: plugin doesn't support plugin API version %d.\n"
 	    "videofill: this means there's a version mismatch between xine and this "
 	    "videofill: decoder plugin.\nInstalling current plugins should help.\n",

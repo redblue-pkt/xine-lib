@@ -58,6 +58,8 @@ extern "C" {
 #define XINE_EVENT_INPUT_ANGLE_NEXT     20
 #define XINE_EVENT_INPUT_ANGLE_PREVIOUS 21
 #define XINE_EVENT_SPU_FORCEDISPLAY	22
+#define XINE_EVENT_FRAME_CHANGE         23
+#define XINE_EVENT_CLOSED_CAPTION       24
 
 /*
  * generic event type.
@@ -105,6 +107,25 @@ typedef struct {
   int              handled;
 } xine_next_mrl_event_t;
 
+/*
+ * notify frame change
+ */
+typedef struct {
+  xine_event_t     event;
+  int              width;
+  int              height;
+} xine_frame_change_event_t;
+
+/*
+ * closed caption
+ */
+typedef struct {
+  xine_event_t     event;
+  uint8_t          *buffer;
+  uint32_t         buf_len;
+  uint32_t         pts;
+  uint32_t         scr;
+} xine_closed_caption_event_t;
 
 #ifdef __cplusplus
 }

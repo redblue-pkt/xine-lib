@@ -33,6 +33,8 @@
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "xineutils.h"
+#include "xine_internal.h"
+#include "events.h"
 
 #define BUFFER_SIZE (224 * 1024)
 
@@ -179,6 +181,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 	break;
 
+    case 0xb2: /* user data code */
+        process_userdata(mpeg2dec, buffer);
+        break;
+
     case 0xb3:	/* sequence_header_code */
 	if (header_process_sequence_header (picture, buffer)) {
   	    printf ("libmpeg2: bad sequence header\n");
@@ -186,10 +192,16 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	} else if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
-
+            xine_frame_change_event_t notify_event;
+            
 	    printf ("mpeg2dec: frame size has changed to from %d x %d to %d x %d\n",
 		    picture->frame_width, picture->frame_height,
 		    picture->coded_picture_width, picture->coded_picture_height);
+	    
+	    notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
+	    notify_event.width = picture->coded_picture_width;
+	    notify_event.height = picture->coded_picture_height;
+	    xine_send_event(mpeg2dec->xine, &notify_event.event);
 
 	    if (picture->forward_reference_frame) 
 	      picture->forward_reference_frame->free (picture->forward_reference_frame);
@@ -468,12 +480,19 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       }
 	  
       if (mpeg2dec->is_sequence_needed) {
+        xine_frame_change_event_t notify_event;
+	
 	mpeg2dec->is_sequence_needed = 0;
 	picture->frame_width  = picture->coded_picture_width;
 	picture->frame_height = picture->coded_picture_height;
 
 	printf ("mpeg2dec: frame size %d x %d\n",
 		picture->frame_width, picture->frame_height);
+            
+	notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
+	notify_event.width = picture->coded_picture_width;
+	notify_event.height = picture->coded_picture_height;
+	xine_send_event(mpeg2dec->xine, &notify_event.event);
       }
     } else if (code == 0xb5) {	/* extension_start_code */
       if (header_process_extension (picture, mpeg2dec->chunk_buffer)) {
@@ -484,3 +503,30 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
   }
 }
 
+/* Find the end of the userdata field in an MPEG-2 stream */
+static uint8_t *find_end(uint8_t *buffer)
+{
+  uint8_t *current = buffer;
+  while(1) {
+    if (current[0] == 0 && current[1] == 0 && current[2] == 1)
+      break;
+    current++;
+  }
+  return current;
+}
+
+static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
+{
+  /* check if user data denotes closed captions */
+  if (buffer[0] == 'C' && buffer[1] == 'C') {
+    xine_closed_caption_event_t event;
+    uint8_t *end = find_end(buffer);
+
+    event.event.type = XINE_EVENT_CLOSED_CAPTION;
+    event.buffer = &buffer[2];
+    event.buf_len = end - &buffer[2];
+    event.pts = mpeg2dec->pts;
+    event.scr = mpeg2dec->scr;
+    xine_send_event(mpeg2dec->xine, &event.event);
+  }
+}

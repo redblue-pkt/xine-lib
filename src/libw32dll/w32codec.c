@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.52 2001/12/27 20:07:25 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.53 2002/01/05 21:54:17 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -94,7 +94,7 @@ typedef struct w32v_decoder_s {
   void             *img_buffer;
   int               size;
   long		    outfmt;
-
+  
   /* profiler */
   int		   prof_rgb2yuv;
 
@@ -675,8 +675,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       if(ret) {
 	printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
 	img->bad_frame = 1;
-      } else
+      } else {
 	img->bad_frame = 0;
+      }
       
       if (img->copy) {
 	int height = abs(this->o_bih.biHeight);
@@ -1115,11 +1116,12 @@ static char *w32a_get_id(void) {
   return "vfw (win32) audio decoder";
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *cfg) {
+video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   w32v_decoder_t *this ;
+  config_values_t *cfg;
 
-  if (iface_version != 4) {
+  if (iface_version != 5) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
@@ -1127,7 +1129,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
     
     return NULL;
   }
-
+  cfg = xine->config;
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
 					 "path to win32 codec dlls",
 					 NULL, NULL, NULL);
@@ -1149,12 +1151,12 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   return (video_decoder_t *) this;
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *cfg) {
+audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   w32a_decoder_t *this ;
-
+  config_values_t *cfg;
   
-  if (iface_version != 4) {
+  if (iface_version != 5) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
@@ -1163,6 +1165,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
     return NULL;
   }
 
+  cfg = xine->config;
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
 					 "path to win32 codec dlls",
 					 NULL, NULL, NULL);

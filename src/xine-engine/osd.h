@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.5 2001/12/13 23:15:02 guenter Exp $
+ * $Id: osd.h,v 1.6 2002/01/05 21:54:17 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -33,6 +33,7 @@ typedef struct osd_object_s osd_object_t;
 typedef struct osd_renderer_s osd_renderer_t;
 typedef struct osd_font_s osd_font_t;
 
+/* WARNING: this should be kept in sync with include/xine.h.tmpl.in */
 struct osd_renderer_s {
 
   /*
@@ -123,7 +124,12 @@ struct osd_renderer_s {
    * osd objects are closed
    */
   void (*close) (osd_renderer_t *this);
-  
+
+  /*
+   * clear an osd object
+   */
+  void (*clear) (osd_object_t *osd );
+    
   /* private stuff */
 
   pthread_mutex_t             osd_mutex;
