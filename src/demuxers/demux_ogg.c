@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.149 2004/07/10 10:06:30 athp Exp $
+ * $Id: demux_ogg.c,v 1.150 2004/07/10 14:08:49 athp Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1754,7 +1754,7 @@ static int detect_ogg_content (int detection_method, demux_class_t *class_gen,
       mrl = input->get_mrl (input);
       extensions = class_gen->get_extensions (class_gen);
 
-      if (!_x_demux_check_extension (mrl, extensions))
+      if (_x_demux_check_extension (mrl, extensions))
         return 1;
       else
         return 0;
@@ -1816,7 +1816,7 @@ static int detect_anx_content (int detection_method, demux_class_t *class_gen,
       mrl = input->get_mrl (input);
       extensions = class_gen->get_extensions (class_gen);
 
-      if (!_x_demux_check_extension (mrl, extensions))
+      if (_x_demux_check_extension (mrl, extensions))
         return 1;
       else
         return 0;
