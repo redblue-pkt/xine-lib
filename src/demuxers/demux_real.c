@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.52 2003/05/25 20:24:19 jstembridge Exp $
+ * $Id: demux_real.c,v 1.53 2003/05/26 11:57:45 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -194,7 +194,7 @@ static void hexdump (char *buf, int length) {
     printf ("%02x", c);
 
     if ((i % 16) == 15)
-      printf ("\ndemux_real 0x%04x: ", i);
+      printf ("\ndemux_real: 0x%04x: ", i);
 
     if ((i % 2) == 1)
       printf (" ");
@@ -215,7 +215,7 @@ static void real_parse_index(demux_real_t *this) {
   
   while(next_index_chunk) {
 #ifdef LOG
-    printf("demux_real: reading index chunk at %lld\n", next_index_chunk);
+    printf("demux_real: reading index chunk at %llX\n", next_index_chunk);
 #endif
     
     /* Seek to index chunk */  
@@ -408,7 +408,7 @@ static void real_parse_headers (demux_real_t *this) {
     chunk_size = BE_32(&preamble[4]);
 
 #ifdef LOG
-    printf ("demux_real: chunktype %.4s len %d\n", &chunk_type, chunk_size);
+    printf ("demux_real: chunktype %.4s len %d\n", (char *) &chunk_type, chunk_size);
 #endif
 
     switch (chunk_type) {
@@ -433,6 +433,14 @@ static void real_parse_headers (demux_real_t *this) {
         this->index_start   = BE_32(&chunk_buffer[30]);
         this->data_start    = BE_32(&chunk_buffer[34]);
 	this->avg_bitrate   = BE_32(&chunk_buffer[6]); 
+        
+#ifdef LOG
+        printf("demux_real: PROP: packet count: %d\n", this->packet_count);
+        printf("demux_real: PROP: duration: %d ms\n", this->duration);
+        printf("demux_real: PROP: index start: %llX\n", this->index_start);
+        printf("demux_real: PROP: data start: %llX\n", this->data_start);
+        printf("demux_real: PROP: average bit rate: %lld\n", this->avg_bitrate);
+#endif
 
 	if (this->avg_bitrate<1)
 	  this->avg_bitrate = 1;
