@@ -480,6 +480,23 @@ i have problems when using xine on FreeBSD, Solaris
 check out the the corresponding README files in the doc directory
 
 
+what is aalib? how do I use it in xine?
+---------------------------------------
+
+aalib is an ascii art library. xine comes with an aalib video output
+plugin so you can watch movies in your xterm, on the console or
+on your old vt100 - very cool, btw ;>
+
+to use it simply make sure you have aalib installed correctly before
+you configure/build xine-lib and xine-ui. Besides the "xine" binary
+a "aaxine" binary should get built and installed, so you can use something 
+like
+
+aaxine foo.mpg
+
+to use aalib video output.
+
+
 i think I found a bug!
 ----------------------
 
