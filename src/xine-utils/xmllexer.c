@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.7 2003/12/09 00:02:39 f1rmb Exp $
+ *  $Id: xmllexer.c,v 1.8 2004/05/31 17:37:49 tmattern Exp $
  *
  */
 
@@ -325,6 +325,7 @@ int lexer_get_token(char * tok, int tok_size) {
 	  case ' ':
 	  case '\t':
 	  case '=':
+	  case '/':
 	    tok[tok_pos] = '\0';
 	    return T_IDENT;
 	    break;
