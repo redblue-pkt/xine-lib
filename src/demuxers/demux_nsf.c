@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * Id:$
+ * $Id: demux_nsf.c,v 1.3 2003/01/08 06:59:48 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
