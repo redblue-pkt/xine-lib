@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.1 2002/08/16 14:56:42 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.2 2002/09/04 00:37:53 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -44,6 +44,7 @@
 #include "video_out_x11.h"
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "alphablend.h"
 
 #define ADDRSPACE 8388608
 #define REGBASE   8386560
@@ -490,6 +491,14 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 
 static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
 {
+  if (overlay->rle) {
+    if (frame->format == IMGFMT_YV12) {
+      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height);
+    }
+    else {
+      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height);
+    }
+  }
 }
 
 static int pgx64_get_property(pgx64_driver_t *this, int property)
