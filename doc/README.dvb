@@ -12,19 +12,15 @@ cards should be supported (e.g. the Hauppauge WinTV Nova DVB-S card).
 driver download and installation
 --------------------------------
 
-Download and install the drivers from http://www.linuxtv.org CVS:
-
-# cvs -d :pserver:anonymous@linuxtv.org:/cvs/linuxtv login
-
-[empty password]
-
-# cvs -d :pserver:anonymous@linuxtv.org:/cvs/linuxtv co DVB
+Download and install the drivers from http://www.linuxtv.org, the 1.0.0 release
+should work fine. 
 
 You will need kernel sources configured for your configuration for 
-a successfull build, preferably in /usr/src/linux. Once you have that
-you should be ready to compile the driver
+a successfull build, preferably in /usr/src/linux plus a link to them in
+/lib/modules/<kernel-version>/build. Once you have that you should be ready 
+to compile the driver
 
-# cd DVB/driver
+# cd linuxtv-dvb-1.0.0/driver
 # make
 
 if that doesn't fail, do a
@@ -47,13 +43,30 @@ install a channel list
 
 xine's dvb input plugin needs a channel/transponder list that fits your 
 dvb equipment. xine now uses the channels.conf format of szap, czap and 
-tzap as appropriate for DVB-S, DVB-C and DVB-T.
+tzap as appropriate for DVB-S, DVB-C and DVB-T. it will search the channel
+list file in ~/.xine/channels.conf
 
-You should be able to find example channel config files in
+channel list format for DVB-S:
 
-DVB/apps/szap
+NBC         :11053   :h  :1        :27500      :550 :551 :1:8008
+station name:freqency:h/v:sat no   :symbol rate:vpid:apid:?:????
 
-as checked out from CVS.
+you automatically scan for all available channels using the scan utility
+which comes with the dvb package. compile it using something like
+
+# cd linuxtv-dvb-1.0.0/apps/scan
+# make
+
+then start scanning
+
+# scan >channels.conf
+
+this can take a while. in a DiSEqC environment, use the -s N switch to select
+different sattelites to scan and paste the results in one big channels.conf file.
+
+HINT: you might want to manually sort the channels.conf file to have your favourite
+channels at the top and maybe remove scrambled channels which you don't have access to.
+
 
 using xine to watch digital television
 --------------------------------------
@@ -72,4 +85,14 @@ you have selected.
 HINT: if audio or video is stuttering, pause (space key) shortly
 to give xine a chance to fill up it's buffers.
 
+
+recording digital television
+----------------------------
+
+there is a very simple vcr-like feature built into the xine engine. just press
+MENU2 (that is F2 in gxine for example) to start/stop recording the currently
+displayed program to your local disc. a small osd in the upper left corner of
+your screen will tell you the file name the recorded stream is written to.
+
 Have fun.
+
