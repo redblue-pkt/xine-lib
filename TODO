@@ -2,11 +2,7 @@
 Assigned tasks
 ==============
 
-- FreeBSD port
-
-  D. J. HAWKEY JR.
-
-- xitk-ui: filebrowser, toolkit, ...
+- xitk-ui 
 
   Daniel
 
@@ -14,28 +10,17 @@ Assigned tasks
 
   Peter Weissgerber 
 
-- libac3 reentrant, downmixing, standards compliance
-
-  Michel
-
 - a gtk/gnome gui, perhaps by building a bonobo component?
   this should be possible now, xine is a library and can be embedded
   in other applications
 
   Sean Middleditch
 
-- navigation support
+- navigation support, subtitle decoder
 
   James Courtier-Dutton, 
-  Rich Wareham
-
-- subtitle decoder
-
-  James Courtier-Dutton
-
-- aalib output
-
-  Heiko, Guenter
+  Rich Wareham,
+  Siggi Langauf
 
 - Solaris(SPARC/intel) port
 
@@ -57,17 +42,17 @@ Assigned tasks
  
   Philip Stadermann
 
-- IRIX port
-
-  Matthias Hopf
-
 - a quicktime demuxer, based on openquicktime
 
-  guenter
+  Guenter
 
 - optimize DVD raw device support by reading data in larger chunks
 
-  guenter
+  Guenter
+
+- ogg/vorbis support
+
+  Guenter 
 
 Open Tasks
 ==========
@@ -83,12 +68,10 @@ Open Tasks
   (pretty much like the libwin32) this could enable 3ivx support btw
 - port to other OS (Net/OpenBSD, Win32 ...?)
 - deinterlace filters
-- IRIX audio output
 - asd support
 - xine hacker's guide
-- support for xanim codecs
-- ogg/vorbis support
-
-
+- MicroDVD support
+- timed script subtitle support (various formats)
+- video output synced to vertical blank
 
 
