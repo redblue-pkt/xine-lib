@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.13 2001/08/17 13:34:25 heikos Exp $
+ * $Id: dxr3_decoder.c,v 1.14 2001/08/25 21:21:01 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -94,13 +94,36 @@ static int dxr3scr_get_priority (scr_plugin_t *scr) {
 	return self->priority;
 }
 
-static void dxr3scr_set_speed (scr_plugin_t *scr, float ticks_ps) {
+static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
-	int em_speed = ticks_ps * 2304.0 / 90e3; /* 2304.0 == 0x900 */
+	uint32_t em_speed;
 
+	switch(speed){
+	case SPEED_PAUSE:
+		em_speed = 0;
+		break;
+	case SPEED_SLOW_4:
+		em_speed = 0x900/4;
+		break;
+	case SPEED_SLOW_2:
+		em_speed = 0x900/2;
+		break;
+	case SPEED_NORMAL:
+		em_speed = 0x900;
+		break;
+	case SPEED_FAST_2:
+		em_speed = 0x900*2;
+		break;
+	case SPEED_FAST_4:
+		em_speed = 0x900*4;
+		break;
+	default:
+		em_speed = 0x900;
+	}
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &em_speed))
 		fprintf(stderr, "dxr3scr: failed to set speed (%s)\n", strerror(errno));
-	printf("dxr3scr: set speed to %x\n", em_speed);
+
+	return speed;
 }
 
 static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
@@ -138,7 +161,7 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 	self = malloc(sizeof(*self));
 	memset(self, 0, sizeof(*self));
 
-	self->scr.interface_version = 1;
+	self->scr.interface_version = 2;
 	self->scr.get_priority      = dxr3scr_get_priority;
 	self->scr.set_speed         = dxr3scr_set_speed;
 	self->scr.adjust            = dxr3scr_adjust;
