@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.28 2003/01/13 18:09:58 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.29 2003/02/18 12:58:44 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -44,7 +44,7 @@
 #include "video_out_dxr3.h"
 #include "dxr3.h"
 
-#define LOG_VID 1
+#define LOG_VID 0
 #define LOG_PTS 0
 
 /* the number of frames to pass after an out-of-sync situation

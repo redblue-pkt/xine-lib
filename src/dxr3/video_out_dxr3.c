@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.72 2003/02/13 14:32:17 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.73 2003/02/18 12:58:44 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -62,7 +62,7 @@
 #include "dxr3.h"
 #include "video_out_dxr3.h"
 
-#define LOG_VID 1
+#define LOG_VID 0
 #define LOG_OVR 0
 
 
