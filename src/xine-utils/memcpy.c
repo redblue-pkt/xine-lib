@@ -168,10 +168,15 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
   /* PREFETCH has effect even for MOVSB instruction ;) */
   __asm__ __volatile__ (
     "   prefetchnta (%0)\n"
+    "   prefetchnta 32(%0)\n"
     "   prefetchnta 64(%0)\n"
+    "   prefetchnta 96(%0)\n"
     "   prefetchnta 128(%0)\n"
+    "   prefetchnta 160(%0)\n"
     "   prefetchnta 192(%0)\n"
+    "   prefetchnta 224(%0)\n"
     "   prefetchnta 256(%0)\n"
+    "   prefetchnta 288(%0)\n"
     : : "r" (from) );
 
   if(len >= MIN_LEN)
@@ -193,6 +198,7 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
       {
         __asm__ __volatile__ (
         "prefetchnta 320(%0)\n"
+       "prefetchnta 352(%0)\n"
         "movups (%0), %%xmm0\n"
         "movups 16(%0), %%xmm1\n"
         "movups 32(%0), %%xmm2\n"
@@ -215,6 +221,7 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
       {
         __asm__ __volatile__ (
         "prefetchnta 320(%0)\n"
+       "prefetchnta 352(%0)\n"
         "movaps (%0), %%xmm0\n"
         "movaps 16(%0), %%xmm1\n"
         "movaps 32(%0), %%xmm2\n"
@@ -300,10 +307,15 @@ void * mmx2_memcpy(void * to, const void * from, size_t len)
   /* PREFETCH has effect even for MOVSB instruction ;) */
   __asm__ __volatile__ (
     "   prefetchnta (%0)\n"
+    "   prefetchnta 32(%0)\n"
     "   prefetchnta 64(%0)\n"
+    "   prefetchnta 96(%0)\n"
     "   prefetchnta 128(%0)\n"
+    "   prefetchnta 160(%0)\n"
     "   prefetchnta 192(%0)\n"
+    "   prefetchnta 224(%0)\n"
     "   prefetchnta 256(%0)\n"
+    "   prefetchnta 288(%0)\n"
     : : "r" (from) );
 
   if(len >= MIN_LEN)
@@ -323,6 +335,7 @@ void * mmx2_memcpy(void * to, const void * from, size_t len)
     {
       __asm__ __volatile__ (
       "prefetchnta 320(%0)\n"
+      "prefetchnta 352(%0)\n"
       "movq (%0), %%mm0\n"
       "movq 8(%0), %%mm1\n"
       "movq 16(%0), %%mm2\n"
