@@ -197,6 +197,9 @@ Contributions
     many translation files and man pages updates/fixes
 
   Tomas Kovar <tomask@mac.com>
-    slovak internationalization files.
-
+    slovak internationalization files (xine lib).
+ 
+  Daniel Bena <Daniel.Bena@dm-drogeriemarkt.sk>
+    slovak internationalization files (xine ui).
+	
     (let us know if we've forgotten anyone)

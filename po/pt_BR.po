@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-02-18 17:11+0100\n"
+"POT-Creation-Date: 2002-02-21 01:28+0100\n"
 "PO-Revision-Date: 2002-01-22 18:31GMT-3\n"
 "Last-Translator: Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>\n"
 "Language-Team: Portuguese (Brazilian) <pt_BR@li.org>\n"
@@ -911,12 +911,12 @@ msgstr ""
 "plugin de entrada.\n"
 "Instalar os plugins de entrada atuais deve ajudar.\n"
 
-#: src/xine-engine/video_out.c:346
+#: src/xine-engine/video_out.c:324
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d quadros enviados, %d quadros pulados, %d quadros descartados\n"
 
-#: src/xine-engine/video_out.c:399
+#: src/xine-engine/video_out.c:377
 #, fuzzy, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -925,20 +925,20 @@ msgstr ""
 "video_out : descartando imagem com pts %d porque é muito velha (diff : %d > %"
 "d).\n"
 
-#: src/xine-engine/video_out.c:1010
+#: src/xine-engine/video_out.c:996
 #, fuzzy, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out : não consigo criar thread (%s)\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1013
+#: src/xine-engine/video_out.c:999
 #, fuzzy
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out : desculpe, isto não deveria acontecer, reinicie o xine por "
 "favor.\n"
 
-#: src/xine-engine/video_out.c:1016
+#: src/xine-engine/video_out.c:1002
 #, fuzzy
 msgid "video_out: thread created\n"
 msgstr "video_out : thread criad\n"

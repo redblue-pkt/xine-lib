@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-02-18 17:11+0100\n"
+"POT-Creation-Date: 2002-02-21 01:28+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -841,29 +841,29 @@ msgid ""
 "Installing current input plugins should help.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:346
+#: src/xine-engine/video_out.c:324
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:399
+#: src/xine-engine/video_out.c:377
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:1010
+#: src/xine-engine/video_out.c:996
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr ""
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1013
+#: src/xine-engine/video_out.c:999
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:1016
+#: src/xine-engine/video_out.c:1002
 msgid "video_out: thread created\n"
 msgstr ""
 
