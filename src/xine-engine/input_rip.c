@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.15 2003/11/23 23:20:58 valtri Exp $
+ * $Id: input_rip.c,v 1.16 2003/11/23 23:43:35 valtri Exp $
  */
 
 /* TODO:
@@ -180,12 +180,9 @@ static uint32_t rip_plugin_get_capabilities(input_plugin_t *this_gen) {
 
   caps = this->main_input_plugin->get_capabilities(this->main_input_plugin);
   
-  if (this->regular && (caps & INPUT_CAP_SEEKABLE) == 0) {
-  /* if we have non-seekable input (and we emulate it),
-   * don't seek to end of stream when it isn't necessary */
-    caps |= INPUT_CAP_SLOW_SEEK;
+  if (this->regular)
     caps |= INPUT_CAP_SEEKABLE;
-  }
+
   if (this->preview) caps |= INPUT_CAP_PREVIEW;
   return caps;
 }
