@@ -111,14 +111,14 @@ through via the wheel on many mouses.  Use the left mouse button to switch to
 the channel you've selected.  The side buttons (6 & 7) can be used to rapidly switch
 to previous/next channels, if they are available on your mouse.
 
-You can use MENU3 (F2 in xine) to zoom into the centre of a videostream.
+You can use MENU3 (F2 in xine-ui, F3 in gxine) to zoom into the centre of a videostream.
 This will allow you to view 4:3 content that has been embedded into a 
 16:9 stream in fullscreen (no more black borders).  Press the key again
 to return to normal viewing.  There is also an option in the xine
 preferences to zoom automatically when using xine to view DVB.
 
-MENU7 (F6 in xine) will toggle viewing of the current channels' Electronic Program Guide
-(information on the current/next program) on the OSD, if available.
+MENU7 (F6 in xine-ui or F7 in gxine) will toggle viewing of the current channels' 
+Electronic Program Guide (information on the current/next program) on the OSD, if available.
 
 HINT: if audio or video is stuttering, pause (space key) shortly
 to give xine a chance to fill up it's buffers.  If watching a large HDTV stream, you
@@ -130,14 +130,14 @@ recording digital television
 ----------------------------
 
 there is a very simple vcr-like feature built into the xine engine. just press
-MENU2 (that is F2 in gxine, or F1 in xine for example) to start/stop recording 
+MENU2 (that is F2 in gxine, or F1 in xine-ui for example) to start/stop recording 
 the currently displayed program to your local disc. a small osd in the upper 
 left corner of your screen will tell you the file name the recorded stream is 
 written to.  You can select the directory to save to in the xine configuration under 
 the MISC tab, otherwise the plugin will record to your home directory.  You can
-pause the recording at any time by pressing MENU4 (F3 in xine-ui).  An OSD in the top
-left hand corner will notify you of the status of the recording. Pressing MENU4 again 
-will resume recording.
+pause the recording at any time by pressing MENU4 (F3 in xine-ui, F4 in gxine).  
+An OSD in the top left hand corner will notify you of the status of the recording. 
+Pressing MENU4 again will resume recording.
 
 Have fun.
 
