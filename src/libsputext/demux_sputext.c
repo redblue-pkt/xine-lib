@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.13 2003/03/26 11:06:56 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.14 2003/03/26 18:51:55 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -92,6 +92,7 @@ typedef struct {
   int                cur;            /* current subtitle           */
   int                format;         /* constants see below        */     
   subtitle_t        *previous_aqt_sub ;
+  char               next_line[SUB_BUFSIZE]; /* a buffer for next line read from file */
 
 } demux_sputext_t;
 
@@ -363,49 +364,55 @@ static subtitle_t *sub_read_line_third(demux_sputext_t *this,subtitle_t *current
 
 static subtitle_t *sub_read_line_vplayer(demux_sputext_t *this,subtitle_t *current) {
   char line[1001];
-  char line2[1001];
   int a1,a2,a3,b1,b2,b3;
-  char *p=NULL, *next;
-  int i,len,len2,plen;
-
-  bzero (current, sizeof(subtitle_t));
+  char *p=NULL, *next, *p2;
+  int i;
   
-  while (!current->text[0]) {
-    if (!read_line_from_input(this, line, 1000)) return NULL;
-    if ((len=sscanf (line, "%d:%d:%d:%n",&a1,&a2,&a3,&plen)) < 3)
-      continue;
-    if (!read_line_from_input(this, line2, 1000)) return NULL;
-    if ((len2=sscanf (line2, "%d:%d:%d:",&b1,&b2,&b3)) < 3)
-      continue;
-    /* przewiñ o linijkê do ty³u: */
-    this->input->seek(this->input, -strlen(line2), SEEK_CUR);
+  bzero (current, sizeof(subtitle_t));
     
+  while (!current->text[0]) {
+    if( this->next_line[0] == '\0' ) { /* if the buffer is empty.... */
+      if( !read_line_from_input(this, line, 1000) ) return NULL;
+    } else {
+      /* ... get the current line from buffer. */
+      strncpy( line, this->next_line, 1000);
+      line[1000] = '\0'; /* I'm scared. This makes me feel better. */
+      this->next_line[0] = '\0'; /* mark the buffer as empty. */
+    }
+    /* Initialize buffer with next line */
+    if( ! read_line_from_input( this, this->next_line, 1000) ) {
+      this->next_line[0] = '\0';
+      return NULL;
+    }
+    if( (sscanf( line,            "%d:%d:%d:", &a1, &a2, &a3) < 3) ||
+        (sscanf( this->next_line, "%d:%d:%d:", &b1, &b2, &b3) < 3) )
+      continue;
     current->start = a1*360000+a2*6000+a3*100;
     current->end   = b1*360000+b2*6000+b3*100;
     if ((current->end - current->start) > 1000) 
       current->end = current->start + 1000; /* not too long though.  */
     /* teraz czas na wkopiowanie stringu */
-    p=line;	
+    p=line;
     /* finds the body of the subtitle_t */
     for (i=0; i<3; i++){              
-      p=strchr(p,':')+1;
+      p2=strchr( p, ':');
+      if( p2 == NULL ) break;
+      p=p2+1;
     } 
+      
+    next=p;
     i=0;
-    
-    if (*p!='|') {
-      next = p,i=0;
-      while ((next =sub_readtext (next, &(current->text[i])))) {
-	if (current->text[i]==ERR) 
-	  return ERR;
-	i++;
-	if (i>=SUB_MAX_TEXT) { 
-	  printf ("Too many lines in a subtitle\n");
-	  current->lines=i;
-	  return current;
-	}
+    while( (next = sub_readtext( next, &(current->text[i]))) ) {
+      if (current->text[i]==ERR) 
+        return ERR;
+      i++;
+      if (i>=SUB_MAX_TEXT) { 
+        printf ("Too many lines in a subtitle\n");
+        current->lines=i;
+        return current;
       }
-      current->lines=i+1;
     }
+    current->lines=++i;
   }
   return current;
 }
@@ -689,7 +696,6 @@ static int sub_autodetect (demux_sputext_t *this) {
 
 static subtitle_t *sub_read_file (demux_sputext_t *this) {
 
-  demux_sputext_class_t *class = (demux_sputext_class_t *)this->demux_plugin.demux_class;
   int n_max;
   subtitle_t *first;
   subtitle_t * (*func[])(demux_sputext_t *this,subtitle_t *dest)=
@@ -739,7 +745,6 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     if (sub==ERR) 
       ++this->errs; 
     else {
-      int i;
       if (this->num > 0 && first[this->num-1].end == -1) {
 	first[this->num-1].end = sub->start;
       }
