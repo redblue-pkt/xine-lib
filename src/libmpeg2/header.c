@@ -89,9 +89,9 @@ static uint32_t get_bits(uint8_t *buffer, uint32_t count, uint32_t *bit_position
       bit_mask ^=  ((1 << (bit_offset-count)) - 1);
       bit_bite = count;
     }
-#ifdef LOG_PAN_SCAN
+    /*
     printf("Byte=0x%02x Bitmask=0x%04x byte_offset=%u bit_offset=%u bit_byte=%u count=%u\n",buffer[byte_offset], bit_mask, byte_offset, bit_offset, bit_bite,count);
-#endif
+    */
     result = (result << bit_bite) | ((buffer[byte_offset] & bit_mask) >> (bit_offset-bit_bite));
     *bit_position+=bit_bite;
     count-=bit_bite;
@@ -213,10 +213,10 @@ static int header_process_sequence_extension (picture_t * picture,
 	picture->coded_picture_height =
 	    (picture->coded_picture_height + 31) & ~31;
 
-    /*
+/*
     printf ("libmpeg2: sequence extension+5 : %08x (%d)\n",
 	    buffer[5], buffer[5] % 0x80);
-    */
+ */
 
     /* MPEG1 - for testing only */
     picture->mpeg1 = 0;
@@ -228,6 +228,9 @@ static int header_process_quant_matrix_extension (picture_t * picture,
 						  uint8_t * buffer)
 {
     int i;
+#ifdef LOG_PAN_SCAN     
+    printf ("libmpeg2: quant_matrix extension\n");
+#endif
 
     if (buffer[0] & 8) {
 	for (i = 0; i < 64; i++)
@@ -247,6 +250,9 @@ static int header_process_quant_matrix_extension (picture_t * picture,
 
 static int header_process_picture_coding_extension (picture_t * picture, uint8_t * buffer)
 {
+/*
+    printf ("libmpeg2: picture_coding_extension\n");
+ */
     /* pre subtract 1 for use later in compute_motion_vector */
     picture->f_motion.f_code[0] = (buffer[0] & 15) - 1;
     picture->f_motion.f_code[1] = (buffer[1] >> 4) - 1;
@@ -302,14 +308,15 @@ static int header_process_sequence_display_extension (picture_t * picture, uint8
   printf("     display_vertical_size %u\n", picture->display_vertical_size);
 #endif
 
-
   return 0;
 }
 
 static int header_process_picture_display_extension (picture_t * picture, uint8_t * buffer) {
-  /* FIXME: implement. */
   uint32_t bit_position;
   uint32_t padding;
+#ifdef LOG_PAN_SCAN     
+    printf ("libmpeg2: picture_display_extension\n");
+#endif
   bit_position = 0; 
   padding = get_bits(buffer, 4, &bit_position);
   picture->frame_centre_horizontal_offset = get_bits(buffer, 16, &bit_position);
@@ -322,6 +329,9 @@ static int header_process_picture_display_extension (picture_t * picture, uint8_
     picture->frame_centre_horizontal_offset,
     picture->frame_centre_vertical_offset);
 #endif
+//  printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+//  close(stdout);
+//  _exit(0);
 
   return 0;
 }
@@ -379,6 +389,34 @@ int header_process_extension (picture_t * picture, uint8_t * buffer)
     }
 
     return 0;
+}
+
+int header_process_group_of_pictures (picture_t * picture, uint8_t * buffer) {
+  uint32_t bit_position;
+  uint32_t padding;
+  bit_position = 0;
+  picture->drop_frame_flag = get_bits(buffer, 1, &bit_position);
+  picture->time_code_hours = get_bits(buffer, 5, &bit_position);
+  picture->time_code_minutes = get_bits(buffer, 6, &bit_position);
+  padding = get_bits(buffer, 1, &bit_position);
+  picture->time_code_seconds = get_bits(buffer, 6, &bit_position);
+  picture->time_code_pictures = get_bits(buffer, 6, &bit_position);
+  picture->closed_gop = get_bits(buffer, 1, &bit_position);
+  picture->broken_link = get_bits(buffer, 1, &bit_position);
+
+#ifdef LOG_PAN_SCAN     
+  printf("Group of pictures\n");
+  printf("     drop_frame_flag: %u\n", picture->drop_frame_flag);
+  printf("     time_code: HH:MM:SS:Pictures %02u:%02u:%02u:%02u\n", 
+         picture->time_code_hours,
+         picture->time_code_minutes,
+         picture->time_code_seconds,
+         picture->time_code_pictures);
+  printf("     closed_gop: %u\n", picture->closed_gop);
+  printf("     bloken_link: %u\n", picture->broken_link);
+#endif
+
+  return 0;
 }
 
 int header_process_picture_header (picture_t *picture, uint8_t * buffer)

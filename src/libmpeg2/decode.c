@@ -128,12 +128,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 {
     picture_t * picture;
     int is_frame_done;
-//    printf("libmpeg2:code=0x%02x\n",code);
-
-    /*
-    printf ("libmpeg2: parse_chunk 0x%02x\n", code);   
-    */
-
+/*
+    if (code >= 0xb0) { 
+      printf ("libmpeg2: parse_chunk 0x%02x\n", code);   
+    }
+*/
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed) {
       if (code != 0xb3) {
@@ -286,9 +285,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
       printf ("libmpeg2:SEQUENCE END CODE NOT HANDLED!\n");
 #endif
     case 0xb8:	/* group of pictures start code */
-#ifdef LOG_PAN_SCAN
-      printf ("libmpeg2:GROUP of PICTURES NOT HANDLED!\n");
-#endif
+	if (header_process_group_of_pictures (picture, buffer)) {
+	    fprintf (stderr, "bad group of pictures\n");
+	    exit (1);
+	}
     default:
 	if (code >= 0xb9)
 	    fprintf (stderr, "stream not demultiplexed ?\n");

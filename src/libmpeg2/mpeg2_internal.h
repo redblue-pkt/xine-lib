@@ -146,6 +146,13 @@ typedef struct picture_s {
     uint32_t matrix_coefficients;
     uint32_t display_horizontal_size;
     uint32_t display_vertical_size;
+    uint32_t drop_frame_flag;
+    uint32_t time_code_hours;
+    uint32_t time_code_minutes;
+    uint32_t time_code_seconds;
+    uint32_t time_code_pictures;
+    uint32_t closed_gop;
+    uint32_t broken_link;
 
 } picture_t;
 
@@ -165,6 +172,7 @@ void header_state_init (picture_t * picture);
 int header_process_picture_header (picture_t * picture, uint8_t * buffer);
 int header_process_sequence_header (picture_t * picture, uint8_t * buffer);
 int header_process_extension (picture_t * picture, uint8_t * buffer);
+int header_process_group_of_pictures (picture_t * picture, uint8_t * buffer);
 
 /* idct.c */
 void idct_init (void);
