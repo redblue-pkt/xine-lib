@@ -2227,6 +2227,7 @@ echo "     - 14k4          - 28k8"
 echo "     - MS ADPCM      - IMA ADPCM"
 echo "     - XA ADPCM      - Game DPCM/ADPCM"
 echo "     - Mace 3:13     - Mace 6:1"
+echo "     - FLAC"
 if test x"$no_vorbis" != "xyes"; then
   echo "   - vorbis"
 fi

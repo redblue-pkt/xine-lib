@@ -22,6 +22,7 @@
   * DXR3: fix crash after playing non-MPEG content
   * add support for XVR-100 (Radeon-based) framebuffers to video_out_pgx64
   * support DTS audio in AVI
+  * revised FLAC playback subsystem
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
