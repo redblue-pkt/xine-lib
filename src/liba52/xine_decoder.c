@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/09/18 11:37:08 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/10/19 23:04:35 matt2000 Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -61,8 +61,8 @@ typedef struct a52dec_decoder_s {
   float            a52_level;
   int              have_lfe;
 
-  int              a52_flags_map[8];
-  int              ao_flags_map[8];
+  int              a52_flags_map[11];
+  int              ao_flags_map[11];
 
   int16_t          int_samples [6 * 256 * 6];
   sample_t        *samples;
@@ -74,7 +74,8 @@ typedef struct a52dec_decoder_s {
   int              output_open;
   int              output_mode;
 
-  int              disable_dynrng ;
+  int              disable_dynrng;
+  int              enable_surround_downmix;
 } a52dec_decoder_t;
 
 int a52dec_can_handle (audio_decoder_t *this_gen, int buf_type) {
@@ -106,14 +107,15 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
     this->bypass_mode = 1;
   else {
     this->bypass_mode = 0;
-
+     
     this->a52_flags_map[A52_MONO]   = A52_MONO;
-    this->a52_flags_map[A52_STEREO] = A52_STEREO;
-    this->a52_flags_map[A52_3F]     = A52_STEREO; 
-    this->a52_flags_map[A52_2F1R]   = A52_STEREO; 
-    this->a52_flags_map[A52_3F1R]   = A52_STEREO; 
-    this->a52_flags_map[A52_2F2R]   = A52_STEREO;
-    this->a52_flags_map[A52_3F2R]   = A52_STEREO;
+    this->a52_flags_map[A52_STEREO] = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F]     = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_2F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
+    this->a52_flags_map[A52_3F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
+    this->a52_flags_map[A52_2F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_DOLBY]  = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
     
     this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
     this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_STEREO;
@@ -122,6 +124,7 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
     this->ao_flags_map[A52_3F1R]    = AO_CAP_MODE_STEREO;
     this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_STEREO;
     this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[A52_DOLBY]   = AO_CAP_MODE_STEREO;
 
     /* find best mode */
     if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
@@ -472,7 +475,8 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this->a52_level = (float) cfg->lookup_int (cfg, "a52_level", 100) / 100.0;
   this->disable_dynrng = !cfg->lookup_int (cfg, "a52_dynrng", 0);
-  
+  this->enable_surround_downmix = cfg->lookup_int(cfg, "a52_surround_downmix", 0);
+
   return (audio_decoder_t *) this;
 }
 
