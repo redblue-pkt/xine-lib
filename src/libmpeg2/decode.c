@@ -120,19 +120,31 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
                frame->frame_rate_code); */
     frame->duration      = 3000;
   }
- /* FIXME: We should try to recognise patterns in the repeat first field(rff)
-    values. In NTSC mpeg2 streams, a trick is used to convert a 24 fps film into 29.97 fps for NTSC TV. The rff flag is used to make some of the 24 fps fields last for two fields on the TV screen. This is because the TV screen has a fixed frame rate, and cannot be varied. On a computer screen, we can have almost any frame rate we wish, so to get a much smoother picture, we should not repeat any frames, but in fact just play them back at 24 fps instead of playing some frames longer than others. So the comments below tell us how we are currently doing it for both computer screen and any TV out device, but not how we SHOULD try to do it for a computer screen.
-  */ 
-  if( frame->repeat_first_field ) {
-    if( !mpeg2dec->picture->progressive_sequence &&
-         mpeg2dec->picture->progressive_frame ) {
-      /* decoder should output 3 fields, so adjust duration to
-         count on this extra field time */
-      frame->duration += frame->duration/2;     
-    } else if( mpeg2dec->picture->progressive_sequence ) {
-      /* for progressive sequences the output should repeat the
-         frame 1 or 2 times depending on top_field_first flag. */
-      frame->duration *= (mpeg2dec->picture->top_field_first)?3:2;
+  
+  /* this should be used to detect any special rff pattern */
+  mpeg2dec->rff_pattern = mpeg2dec->rff_pattern << 1;
+  mpeg2dec->rff_pattern |= !!frame->repeat_first_field;
+
+  if( ((mpeg2dec->rff_pattern & 0xff) == 0xaa ||
+      (mpeg2dec->rff_pattern & 0xff) == 0x55) &&
+      !mpeg2dec->picture->progressive_sequence &&
+       mpeg2dec->picture->progressive_frame ) {
+    /* special case for ntsc 3:2 pulldown */
+    frame->duration += frame->duration/4;     
+  }
+  else
+  {  
+    if( frame->repeat_first_field ) {
+      if( !mpeg2dec->picture->progressive_sequence &&
+           mpeg2dec->picture->progressive_frame ) {
+        /* decoder should output 3 fields, so adjust duration to
+           count on this extra field time */
+        frame->duration += frame->duration/2;     
+      } else if( mpeg2dec->picture->progressive_sequence ) {
+        /* for progressive sequences the output should repeat the
+           frame 1 or 2 times depending on top_field_first flag. */
+        frame->duration *= (mpeg2dec->picture->top_field_first)?3:2;
+      }
     }
   }
   
@@ -179,11 +191,12 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      if (picture->mpeg1) 
 	        picture->current_frame->pts = 0;
 
+	      get_frame_duration(mpeg2dec, picture->current_frame);
 	      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
 	      picture->current_frame->drawn = 1;
 	    }
 	  } else if (picture->forward_reference_frame && !picture->forward_reference_frame->drawn) {
-            get_frame_duration(mpeg2dec, picture->forward_reference_frame);
+	    get_frame_duration(mpeg2dec, picture->forward_reference_frame);
 	    mpeg2dec->frames_to_drop = picture->forward_reference_frame->draw (picture->forward_reference_frame);
 	    picture->forward_reference_frame->drawn = 1;
 	  }
@@ -379,8 +392,6 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
                 picture->current_frame->top_field_first    = picture->top_field_first;
                 picture->current_frame->repeat_first_field = picture->repeat_first_field;
 
-		get_frame_duration(mpeg2dec, picture->current_frame);
-
 #ifdef LOG
 		printf ("libmpeg2: decoding frame %d, type %s\n",
 			picture->current_frame->id, picture->picture_coding_type == I_TYPE ? "I" :
@@ -486,6 +497,7 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
 	    picture->current_frame->id);
     
     picture->current_frame->drawn = 1;
+    get_frame_duration(mpeg2dec, picture->current_frame);
     
     /* output a copy instead of the frame used by decoder */
     img = picture->current_frame->instance->duplicate_frame(picture->current_frame->instance, 

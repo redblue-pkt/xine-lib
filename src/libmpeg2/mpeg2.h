@@ -44,7 +44,7 @@ typedef struct mpeg2dec_s {
     uint8_t code;
 
     int64_t pts;
-    uint32_t last_repeat_first_field; 
+    uint32_t rff_pattern; 
     xine_t *xine;
 } mpeg2dec_t ;
 
