@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: mdct.h,v 1.2 2002/08/09 22:36:36 miguelfreitas Exp $
+** $Id: mdct.h,v 1.3 2002/12/16 19:00:40 miguelfreitas Exp $
 **/
 
 #ifndef __MDCT_H__
@@ -26,42 +26,9 @@
 extern "C" {
 #endif
 
-#ifdef USE_FFTW
-#include <fftw.h>
-#else
 #include "cfft.h"
-#endif
 
-typedef struct {
-    real_t sin;
-    real_t cos;
-} faad_sincos;
-
-#ifndef USE_FFTW
-typedef struct {
-    real_t re;
-    real_t im;
-} faad_complex;
-#endif
-
-typedef struct {
-    faad_sincos *sincos;
-#ifdef USE_FFTW
-    fftw_complex *Z1;
-    fftw_complex *Z2;
-    fftw_plan plan_backward;
-#ifdef LTP_DEC
-    fftw_plan plan_forward;
-#endif
-#else
-    real_t *Z1;
-    faad_complex *Z2;
-    cfft_info cfft;
-#endif
-    uint16_t N;
-} mdct_info;
-
-void faad_mdct_init(mdct_info *mdct, uint16_t N);
+mdct_info *faad_mdct_init(uint16_t N);
 void faad_mdct_end(mdct_info *mdct);
 void faad_imdct(mdct_info *mdct, real_t *X_in, real_t *X_out);
 void faad_mdct(mdct_info *mdct, real_t *X_in, real_t *X_out);

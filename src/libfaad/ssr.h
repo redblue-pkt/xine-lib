@@ -16,42 +16,33 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: pns.h,v 1.2 2002/12/16 19:00:57 miguelfreitas Exp $
+** $Id: ssr.h,v 1.1 2002/12/16 19:01:29 miguelfreitas Exp $
 **/
 
-#ifndef __PNS_H__
-#define __PNS_H__
+#ifndef __SSR_H__
+#define __SSR_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "common.h"
+#define SSR_BANDS 4
+#define PQFTAPS 96
 
-#include "syntax.h"
-
-#define NOISE_OFFSET 90
-/* #define MEAN_NRG 1.537228e+18 */ /* (2^31)^2 / 3 */
-#ifdef FIXED_POINT
-#define ISQRT_MEAN_NRG 0x1DC7 /* sqrt(1/sqrt(MEAN_NRG)) */
-#else
-#define ISQRT_MEAN_NRG 8.0655e-10 /* 1/sqrt(MEAN_NRG) */
-#endif
+void ssr_decode(ssr_info *ssr, fb_info *fb, uint8_t window_sequence,
+                uint8_t window_shape, uint8_t window_shape_prev,
+                real_t *freq_in, real_t *time_out, real_t *overlap,
+                real_t ipqf_buffer[SSR_BANDS][96/4],
+                real_t *prev_fmd, uint16_t frame_len);
 
 
-void pns_decode(ic_stream *ics_left, ic_stream *ics_right,
-                real_t *spec_left, real_t *spec_right, uint16_t frame_len,
-                uint8_t channel_pair);
+static void ssr_gain_control(ssr_info *ssr, real_t *data, real_t *output,
+                             real_t *overlap, real_t *prev_fmd, uint8_t band,
+                             uint8_t window_sequence, uint16_t frame_len);
+static void ssr_gc_function(ssr_info *ssr, real_t *prev_fmd,
+                            real_t *gc_function, uint8_t window_sequence,
+                            uint16_t frame_len);
 
-static INLINE int32_t random2();
-static void gen_rand_vector(real_t *spec, int16_t scale_factor, uint16_t size);
-
-static INLINE uint8_t is_noise(ic_stream *ics, uint8_t group, uint8_t sfb)
-{
-    if (ics->sfb_cb[group][sfb] == NOISE_HCB)
-        return 1;
-    return 0;
-}
 
 #ifdef __cplusplus
 }

@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: ic_predict.h,v 1.1 2002/07/14 23:43:01 miguelfreitas Exp $
+** $Id: ic_predict.h,v 1.2 2002/12/16 19:00:20 miguelfreitas Exp $
 **/
 
 #ifdef MAIN_DEC
@@ -28,17 +28,9 @@
 extern "C" {
 #endif
 
-#define ALPHA      0.90625f
-#define A          0.953125f
-#define B          0.953125f
-
-
-/* used to save the state */
-typedef struct {
-    real_t r[2];
-    real_t KOR[2];
-    real_t VAR[2];
-} pred_state;
+#define ALPHA      REAL_CONST(0.90625)
+#define A          REAL_CONST(0.953125)
+#define B          REAL_CONST(0.953125)
 
 
 void pns_reset_pred_state(ic_stream *ics, pred_state *state);

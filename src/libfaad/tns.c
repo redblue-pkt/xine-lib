@@ -16,13 +16,78 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: tns.c,v 1.1 2002/07/14 23:43:02 miguelfreitas Exp $
+** $Id: tns.c,v 1.2 2002/12/16 19:02:10 miguelfreitas Exp $
 **/
 
 #include "common.h"
+#include "structs.h"
 
 #include "syntax.h"
 #include "tns.h"
+
+#ifdef FIXED_POINT
+static real_t tns_coef_0_3[] =
+{
+    0x0, 0x6F13013, 0xC8261BA, 0xF994E02,
+    0xF03E3A3A, 0xF224C28C, 0xF5B72457, 0xFA8715E3,
+    0xF90ECFED, 0xF37D9E46, 0xF066B1FE, 0xF066B1FE,
+    0xF03E3A3A, 0xF224C28C, 0xF5B72457, 0xFA8715E3
+};
+static real_t tns_coef_0_4[] =
+{
+    0x0, 0x3539B35, 0x681FE48, 0x9679182,
+    0xBE3EBD4, 0xDDB3D74, 0xF378709, 0xFE98FCA,
+    0xF011790B, 0xF09C5CB7, 0xF1AD6942, 0xF33B524A,
+    0xF5388AEB, 0xF793BBDF, 0xFA385AA9, 0xFD0F5CAB
+};
+static real_t tns_coef_1_3[] =
+{
+    0x0, 0x6F13013, 0xF5B72457, 0xFA8715E3,
+    0xF994E02, 0xC8261BA, 0xF5B72457, 0xFA8715E3,
+    0xF90ECFED, 0xF37D9E46, 0xF5B72457, 0xFA8715E3,
+    0xF37D9E46, 0xF90ECFED, 0xF5B72457, 0xFA8715E3
+};
+static real_t tns_coef_1_4[] =
+{
+    0x0, 0x3539B35, 0x681FE48, 0x9679182,
+    0xF5388AEB, 0xF793BBDF, 0xFA385AA9, 0xFD0F5CAB,
+    0xFE98FCA, 0xF378709, 0xDDB3D74, 0xBE3EBD4,
+    0xF5388AEB, 0xF793BBDF, 0xFA385AA9, 0xFD0F5CAB
+};
+#else
+#ifdef _MSC_VER
+#pragma warning(disable:4305)
+#pragma warning(disable:4244)
+#endif
+static real_t tns_coef_0_3[] =
+{
+    0.0, 0.4338837391, 0.7818314825, 0.9749279122,
+    -0.9848077530, -0.8660254038, -0.6427876097, -0.3420201433,
+    -0.4338837391, -0.7818314825, -0.9749279122, -0.9749279122,
+    -0.9848077530, -0.8660254038, -0.6427876097, -0.3420201433
+};
+static real_t tns_coef_0_4[] =
+{
+    0.0, 0.2079116908, 0.4067366431, 0.5877852523,
+    0.7431448255, 0.8660254038, 0.9510565163, 0.9945218954,
+    -0.9957341763, -0.9618256432, -0.8951632914, -0.7980172273,
+    -0.6736956436, -0.5264321629, -0.3612416662, -0.1837495178
+};
+static real_t tns_coef_1_3[] =
+{
+    0.0, 0.4338837391, -0.6427876097, -0.3420201433,
+    0.9749279122, 0.7818314825, -0.6427876097, -0.3420201433,
+    -0.4338837391, -0.7818314825, -0.6427876097, -0.3420201433,
+    -0.7818314825, -0.4338837391, -0.6427876097, -0.3420201433
+};
+static real_t tns_coef_1_4[] =
+{
+    0.0, 0.2079116908, 0.4067366431, 0.5877852523,
+    -0.6736956436, -0.5264321629, -0.3612416662, -0.1837495178,
+    0.9945218954, 0.9510565163, 0.8660254038, 0.7431448255,
+    -0.6736956436, -0.5264321629, -0.3612416662, -0.1837495178
+};
+#endif
 
 
 /* TNS decoding for one channel and frame */
@@ -55,9 +120,11 @@ void tns_decode_frame(ic_stream *ics, tns_info *tns, uint8_t sr_index,
                 tns->coef_compress[w][f], tns->coef[w][f], lpc);
 
             start = ics->swb_offset[min(bottom,
-                min(tns_max_bands(ics, sr_index, object_type), ics->max_sfb))];
+                min(tns_max_bands(ics, sr_index, object_type, frame_len),
+                ics->max_sfb))];
             end = ics->swb_offset[min(top,
-                min(tns_max_bands(ics, sr_index, object_type), ics->max_sfb))];
+                min(tns_max_bands(ics, sr_index, object_type, frame_len),
+                ics->max_sfb))];
 
             if ((size = end - start) <= 0)
                 continue;
@@ -105,9 +172,11 @@ void tns_encode_frame(ic_stream *ics, tns_info *tns, uint8_t sr_index,
                 tns->coef_compress[w][f], tns->coef[w][f], lpc);
 
             start = ics->swb_offset[min(bottom,
-                min(tns_max_bands(ics, sr_index, object_type), ics->max_sfb))];
+                min(tns_max_bands(ics, sr_index, object_type, frame_len),
+                ics->max_sfb))];
             end = ics->swb_offset[min(top,
-                min(tns_max_bands(ics, sr_index, object_type), ics->max_sfb))];
+                min(tns_max_bands(ics, sr_index, object_type, frame_len),
+                ics->max_sfb))];
 
             if ((size = end - start) <= 0)
                 continue;
@@ -130,39 +199,35 @@ static void tns_decode_coef(uint8_t order, uint8_t coef_res_bits, uint8_t coef_c
                             uint8_t *coef, real_t *a)
 {
     uint8_t i, m;
-    uint8_t coef_res2, s_mask, n_mask;
     real_t tmp2[TNS_MAX_ORDER+1], b[TNS_MAX_ORDER+1];
-    real_t iqfac;
-
-    /* Some internal tables */
-    static uint8_t sgn_mask[] = { 0x2, 0x4, 0x8 };
-    static uint8_t neg_mask[] = { ~0x3, ~0x7, ~0xf };
-
-    /* size used for transmission */
-    coef_res2 = coef_res_bits - coef_compress;
-    s_mask = sgn_mask[coef_res2 - 2]; /* mask for sign bit */
-    n_mask = neg_mask[coef_res2 - 2]; /* mask for padding neg. values */
 
     /* Conversion to signed integer */
     for (i = 0; i < order; i++)
     {
-        int8_t tmp = (coef[i] & s_mask) ? (coef[i] | n_mask) : coef[i];
-
-        /* Inverse quantization */
-        if (tmp >= 0)
-            iqfac = ((1 << (coef_res_bits-1)) - 0.5f) / M_PI_2;
-        else
-            iqfac = ((1 << (coef_res_bits-1)) + 0.5f) / M_PI_2;
-
-        tmp2[i] = (real_t)sin(tmp / iqfac);
+        if (coef_compress == 0)
+        {
+            if (coef_res_bits == 3)
+            {
+                tmp2[i] = tns_coef_0_3[coef[i]];
+            } else {
+                tmp2[i] = tns_coef_0_4[coef[i]];
+            }
+        } else {
+            if (coef_res_bits == 3)
+            {
+                tmp2[i] = tns_coef_1_3[coef[i]];
+            } else {
+                tmp2[i] = tns_coef_1_4[coef[i]];
+            }
+        }
     }
 
     /* Conversion to LPC coefficients */
-    a[0] = 1;
+    a[0] = COEF_CONST(1.0);
     for (m = 1; m <= order; m++)
     {
         for (i = 1; i < m; i++) /* loop only while i<m */
-            b[i] = a[i] + MUL(tmp2[m-1], a[m-i]);
+            b[i] = a[i] + MUL_C_C(tmp2[m-1], a[m-i]);
 
         for (i = 1; i < m; i++) /* loop only while i<m */
             a[i] = b[i];
@@ -195,7 +260,7 @@ static void tns_ar_filter(real_t *spectrum, uint16_t size, int8_t inc, real_t *l
         y = *spectrum;
 
         for (j = 0; j < order; j++)
-            y -= MUL(lpc[j+1], state[j]);
+            y -= MUL_R_C(state[j], lpc[j+1]);
 
         for (j = order-1; j > 0; j--)
             state[j] = state[j-1];
@@ -223,14 +288,14 @@ static void tns_ma_filter(real_t *spectrum, uint16_t size, int8_t inc, real_t *l
     real_t y, state[TNS_MAX_ORDER];
 
     for (i = 0; i < order; i++)
-        state[i] = 0;
+        state[i] = REAL_CONST(0.0);
 
     for (i = 0; i < size; i++)
     {
         y = *spectrum;
 
         for (j = 0; j < order; j++)
-            y += MUL(lpc[j+1], state[j]);
+            y += MUL_R_C(state[j], lpc[j+1]);
 
         for (j = order-1; j > 0; j--)
             state[j] = state[j-1];
@@ -241,7 +306,7 @@ static void tns_ma_filter(real_t *spectrum, uint16_t size, int8_t inc, real_t *l
     }
 }
 
-static uint8_t tns_max_bands_table[12][5] =
+static uint8_t tns_max_bands_table[12][6] =
 {
     /* entry for each sampling rate
      * 1    Main/LC long window
@@ -249,37 +314,43 @@ static uint8_t tns_max_bands_table[12][5] =
      * 3    SSR long window
      * 4    SSR short window
      * 5    LD 512 window
+     * 6    LD 480 window
      */
-    { 31,  9, 28, 7, 0  },       /* 96000 */
-    { 31,  9, 28, 7, 0  },       /* 88200 */
-    { 34, 10, 27, 7, 0  },       /* 64000 */
-    { 40, 14, 26, 6, 31 },       /* 48000 */
-    { 42, 14, 26, 6, 32 },       /* 44100 */
-    { 51, 14, 26, 6, 37 },       /* 32000 */
-    { 46, 14, 29, 7, 31 },       /* 24000 */
-    { 46, 14, 29, 7, 31 },       /* 22050 */
-    { 42, 14, 23, 8, 0  },       /* 16000 */
-    { 42, 14, 23, 8, 0  },       /* 12000 */
-    { 42, 14, 23, 8, 0  },       /* 11025 */
-    { 39, 14, 19, 7, 0  },       /* 8000  */
+    { 31,  9, 28, 7, 0,  0  },       /* 96000 */
+    { 31,  9, 28, 7, 0,  0  },       /* 88200 */
+    { 34, 10, 27, 7, 0,  0  },       /* 64000 */
+    { 40, 14, 26, 6, 31, 31 },       /* 48000 */
+    { 42, 14, 26, 6, 32, 32 },       /* 44100 */
+    { 51, 14, 26, 6, 37, 37 },       /* 32000 */
+    { 46, 14, 29, 7, 31, 30 },       /* 24000 */
+    { 46, 14, 29, 7, 31, 30 },       /* 22050 */
+    { 42, 14, 23, 8, 0,  0  },       /* 16000 */
+    { 42, 14, 23, 8, 0,  0  },       /* 12000 */
+    { 42, 14, 23, 8, 0,  0  },       /* 11025 */
+    { 39, 14, 19, 7, 0,  0  },       /* 8000  */
 };
 
 static uint8_t tns_max_bands(ic_stream *ics, uint8_t sr_index,
-                             uint8_t object_type)
+                             uint8_t object_type, uint16_t frame_len)
 {
     uint8_t i;
 
     i = (ics->window_sequence == EIGHT_SHORT_SEQUENCE) ? 1 : 0;
 #ifdef LD_DEC
     if (object_type == LD)
-        i = 4;
+    {
+        if (frame_len == 512)
+            i = 4;
+        else
+            i = 5;
+    }
 #endif
 
     return tns_max_bands_table[sr_index][i];
 }
 
 static uint8_t tns_max_order(ic_stream *ics, uint8_t sr_index,
-                         uint8_t object_type)
+                             uint8_t object_type)
 {
     /* Correction in 14496-3 Cor. 1
        Works like MPEG2-AAC (13818-7) now
@@ -296,14 +367,15 @@ static uint8_t tns_max_order(ic_stream *ics, uint8_t sr_index,
         switch (object_type)
         {
         case MAIN:
-            return 20;
         case LTP:
-            return 20;
+        case ER_LTP:
 #ifdef LD_DEC
         case LD:
-            return 20;
 #endif
+            return 20;
         case LC:
+        case ER_LC:
+        case DRM_ER_LC:
         case SSR:
             return 12;
         }

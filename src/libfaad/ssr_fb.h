@@ -16,28 +16,29 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: pulse.c,v 1.2 2002/12/16 19:00:59 miguelfreitas Exp $
+** $Id: ssr_fb.h,v 1.1 2002/12/16 19:01:38 miguelfreitas Exp $
 **/
 
-#include "common.h"
-#include "structs.h"
+#ifndef __SSR_FB_H__
+#define __SSR_FB_H__
 
-#include "syntax.h"
-#include "pulse.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void pulse_decode(ic_stream *ics, int16_t *spec_data)
-{
-    uint8_t i;
-    uint16_t k;
-    pulse_info *pul = &(ics->pul);
+fb_info *ssr_filter_bank_init(uint16_t frame_len);
+void ssr_filter_bank_end(fb_info *fb);
 
-    k = ics->swb_offset[pul->pulse_start_sfb];
+/*non overlapping inverse filterbank */
+void ssr_ifilter_bank(fb_info *fb,
+                      uint8_t window_sequence,
+                      uint8_t window_shape,
+                      uint8_t window_shape_prev,
+                      real_t *freq_in,
+                      real_t *time_out,
+                      uint16_t frame_len);
 
-    for(i = 0; i <= pul->number_pulse; i++) {
-        k += pul->pulse_offset[i];
-        if (spec_data[k] > 0)
-            spec_data[k] += pul->pulse_amp[i];
-        else
-            spec_data[k] -= pul->pulse_amp[i];
-    }
+#ifdef __cplusplus
 }
+#endif
+#endif

@@ -16,10 +16,12 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: mp4.c,v 1.2 2002/08/09 22:36:36 miguelfreitas Exp $
+** $Id: mp4.c,v 1.3 2002/12/16 19:00:42 miguelfreitas Exp $
 **/
 
 #include "common.h"
+#include "structs.h"
+
 #include "bits.h"
 #include "mp4.h"
 #include "data.h"
@@ -34,7 +36,11 @@ static uint8_t ObjectTypesTable[32] = {
     0, /*  1 AAC Main */
 #endif
     1, /*  2 AAC LC */
+#ifdef SSR_DEC
+    1, /*  3 AAC SSR */
+#else
     0, /*  3 AAC SSR */
+#endif
 #ifdef LTP_DEC
     1, /*  4 AAC LTP */
 #else
@@ -95,6 +101,7 @@ static uint8_t ObjectTypesTable[32] = {
 
 /* Table 1.6.1 */
 int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
+                                   uint32_t buffer_size,
                                    uint32_t *samplerate,
                                    uint8_t *channels,
                                    uint8_t *sf_index,
@@ -105,9 +112,11 @@ int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
                                    uint8_t *frameLengthFlag)
 {
     bitfile ld;
+    uint8_t ep_config = 0;
+    int8_t result = 0;
     uint8_t ObjectTypeIndex, SamplingFrequencyIndex, ChannelsConfiguration;
 
-    faad_initbits(&ld, pBuffer);
+    faad_initbits(&ld, pBuffer, buffer_size);
     faad_byte_align(&ld);
 
     ObjectTypeIndex = (uint8_t)faad_getbits(&ld, 5
@@ -126,19 +135,21 @@ int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
     *sf_index = SamplingFrequencyIndex;
     *object_type = ObjectTypeIndex;
 
-
     if (ObjectTypesTable[ObjectTypeIndex] != 1)
     {
+        faad_endbits(&ld);
         return -1;
     }
 
     if (*samplerate == 0)
     {
+        faad_endbits(&ld);
         return -2;
     }
 
     if (ChannelsConfiguration > 7)
     {
+        faad_endbits(&ld);
         return -3;
     }
 
@@ -147,28 +158,39 @@ int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
         ObjectTypeIndex == 3 || ObjectTypeIndex == 4 ||
         ObjectTypeIndex == 6 || ObjectTypeIndex == 7)
     {
-        return GASpecificConfig(&ld, channels, ObjectTypeIndex,
+        result = GASpecificConfig(&ld, channels, ObjectTypeIndex,
+#ifdef ERROR_RESILIENCE
             aacSectionDataResilienceFlag,
             aacScalefactorDataResilienceFlag,
             aacSpectralDataResilienceFlag,
+#endif
             frameLengthFlag);
 #ifdef ERROR_RESILIENCE
     } else if (ObjectTypeIndex >= ER_OBJECT_START) { /* ER */
-        int8_t result = GASpecificConfig(&ld, channels, ObjectTypeIndex,
+        result = GASpecificConfig(&ld, channels, ObjectTypeIndex,
+#ifdef ERROR_RESILIENCE
             aacSectionDataResilienceFlag,
             aacScalefactorDataResilienceFlag,
             aacSpectralDataResilienceFlag,
+#endif
             frameLengthFlag);
-        uint8_t ep_config = (uint8_t)faad_getbits(&ld, 2
+        ep_config = (uint8_t)faad_getbits(&ld, 2
             DEBUGVAR(1,143,"parse_audio_decoder_specific_info(): epConfig"));
-        if (ep_config != 0)
-            return -5;
 
-        return result;
+        if (ep_config != 0)
+            result = -5;
 #endif
     } else {
-        return -4;
+        result = -4;
     }
 
-    return 0;
+#ifdef SSR_DEC
+    /* shorter frames not allowed for SSR */
+    if ((ObjectTypeIndex == 4) && *frameLengthFlag)
+        return -6;
+#endif
+
+    faad_endbits(&ld);
+
+    return result;
 }

@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: common.h,v 1.3 2002/10/22 04:46:22 storri Exp $
+** $Id: common.h,v 1.4 2002/12/16 18:59:56 miguelfreitas Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -26,16 +26,7 @@
 extern "C" {
 #endif
 
-
-#ifdef LINUX
-#define INLINE inline
-#else
-#ifdef _WIN32
 #define INLINE __inline
-#else
-#define INLINE
-#endif
-#endif
 
 #ifndef max
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -44,28 +35,21 @@ extern "C" {
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#ifndef LN2
-#define LN2 0.6931471805599453
-#endif
-
-#ifndef LN05
-#define LN05 -LN2
-#endif
 
 /* COMPILE TIME DEFINITIONS */
 
-/* use the somewhat faster, but a lot larger FFTW library */
-/* #define USE_FFTW */
-
 /* use double precision */
 /* #define USE_DOUBLE_PRECISION */
+/* use fixed point reals */
+//#define FIXED_POINT
 
-/* #define SBR */
 #define ERROR_RESILIENCE
 
 
 /* Allow decoding of MAIN profile AAC */
 #define MAIN_DEC
+/* Allow decoding of SSR profile AAC */
+#define SSR_DEC
 /* Allow decoding of LTP profile AAC */
 #define LTP_DEC
 /* Allow decoding of LD profile AAC */
@@ -84,48 +68,140 @@ extern "C" {
 
 /* END COMPILE TIME DEFINITIONS */
 
+#ifndef FIXED_POINT
+#define POW_TABLE_SIZE 200
+#endif
+
 
 #if defined(_WIN32)
 
 
+typedef unsigned __int64 uint64_t;
 typedef unsigned __int32 uint32_t;
 typedef unsigned __int16 uint16_t;
 typedef unsigned __int8 uint8_t;
+typedef __int64 int64_t;
 typedef __int32 int32_t;
 typedef __int16 int16_t;
 typedef __int8  int8_t;
 typedef float float32_t;
 
 
-#elif defined(LINUX) || defined(DJGPP)
-
-
-#if defined(LINUX)
-#include <stdint.h>
 #else
+
+#ifdef HAVE_CONFIG_H
+#  include "../config.h"
+#endif
+
+#include <stdio.h>
+#if HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#if HAVE_SYS_STAT_H
+# include <sys/stat.h>
+#endif
+#if STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# if HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
+#if HAVE_STRING_H
+# if !STDC_HEADERS && HAVE_MEMORY_H
+#  include <memory.h>
+# endif
+# include <string.h>
+#endif
+#if HAVE_STRINGS_H
+# include <strings.h>
+#endif
+#if HAVE_INTTYPES_H
+# include <inttypes.h>
+#else
+# if HAVE_STDINT_H
+#  include <stdint.h>
+# else
+/* we need these... */
+typedef unsigned long long uint64_t;
 typedef unsigned long uint32_t;
 typedef unsigned short uint16_t;
 typedef unsigned char uint8_t;
+typedef long long int64_t;
 typedef long int32_t;
 typedef short int16_t;
 typedef char int8_t;
+# endif
+#endif
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
+#ifndef HAVE_FLOAT32_T
 typedef float float32_t;
 #endif
 
-
-#else /* Some other OS */
-
-
-#include <inttypes.h>
+#if STDC_HEADERS
+# include <string.h>
+#else
+# if !HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+# if !HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy((s), (d), (n))
+#  define memmove(d, s, n) bcopy((s), (d), (n))
+# endif
+#endif
 
 #endif
 
+#ifdef WORDS_BIGENDIAN
+#define ARCH_IS_BIG_ENDIAN
+#endif
 
-#ifndef USE_DOUBLE_PRECISION
+/* FIXED_POINT doesn't work with MAIN and SSR yet */
+#ifdef FIXED_POINT
+  #undef MAIN_DEC
+  #undef SSR_DEC
+#endif
+
+
+#if defined(FIXED_POINT)
+
+  #ifdef HAS_MATHF_H
+    #include <mathf.h>
+  #else
+    #include <math.h>
+  #endif
+
+  #include "fixed.h"
+
+#elif defined(USE_DOUBLE_PRECISION)
+
+  typedef double real_t;
+
+  #include <math.h>
+
+  #define MUL(A,B) ((A)*(B))
+  #define MUL_C_C(A,B) ((A)*(B))
+  #define MUL_R_C(A,B) ((A)*(B))
+
+  #define REAL_CONST(A) ((real_t)A)
+  #define COEF_CONST(A) ((real_t)A)
+
+#else /* Normal floating point operation */
 
   typedef float real_t;
 
   #define MUL(A,B) ((A)*(B))
+  #define MUL_C_C(A,B) ((A)*(B))
+  #define MUL_R_C(A,B) ((A)*(B))
+
+  #define REAL_CONST(A) ((real_t)A)
+  #define COEF_CONST(A) ((real_t)A)
 
   #ifdef __ICL /* only Intel C compiler has fmath ??? */
 
@@ -134,7 +210,6 @@ typedef float float32_t;
     #define sin sinf
     #define cos cosf
     #define log logf
-    #define exp expf
     #define floor floorf
     #define ceil ceilf
     #define sqrt sqrtf
@@ -145,6 +220,7 @@ typedef float float32_t;
 
 #ifdef HAVE_SINF
 #  define sin sinf
+#error
 #endif
 #ifdef HAVE_COSF
 #  define cos cosf
@@ -158,7 +234,7 @@ typedef float float32_t;
 #ifdef HAVE_FLOORF
 #  define floor floorf
 #endif
-#ifdef HAVE_FLOORF
+#ifdef HAVE_CEILF
 #  define ceil ceilf
 #endif
 #ifdef HAVE_SQRTF
@@ -167,19 +243,11 @@ typedef float float32_t;
 
   #endif
 
-#else
-
-  typedef double real_t;
-  #include <math.h>
-
-  #define MUL(A,B) ((A)*(B))
-
 #endif
 
-typedef struct {
-    real_t re;
-    real_t im;
-} complex_t;
+typedef real_t complex_t[2];
+#define RE(A) A[0]
+#define IM(A) A[1]
 
 
 /* common functions */
@@ -191,6 +259,7 @@ uint32_t int_log2(uint32_t val);
 #ifndef M_PI_2 /* PI/2 */
 #define M_PI_2 1.57079632679489661923
 #endif
+
 
 #ifdef __cplusplus
 }

@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: specrec.c,v 1.1 2002/07/14 23:43:01 miguelfreitas Exp $
+** $Id: specrec.c,v 1.2 2002/12/16 19:01:14 miguelfreitas Exp $
 **/
 
 /*
@@ -27,10 +27,13 @@
 */
 
 #include "common.h"
+#include "structs.h"
 
+#include <string.h>
 #include "specrec.h"
 #include "syntax.h"
 #include "data.h"
+#include "iq_table.h"
 
 
 #define bit_set(A, B) ((A) & (1<<(B)))
@@ -48,10 +51,11 @@
     in section named section. This offset depends on window_sequence and
     scale_factor_grouping and is needed to decode the spectral_data().
 */
-uint8_t window_grouping_info(ic_stream *ics, uint8_t fs_index,
-                             uint8_t object_type, uint16_t frame_len)
+uint8_t window_grouping_info(faacDecHandle hDecoder, ic_stream *ics)
 {
     uint8_t i, g;
+
+    uint8_t sf_index = hDecoder->sf_index;
 
     switch (ics->window_sequence) {
     case ONLY_LONG_SEQUENCE:
@@ -61,12 +65,15 @@ uint8_t window_grouping_info(ic_stream *ics, uint8_t fs_index,
         ics->num_window_groups = 1;
         ics->window_group_length[ics->num_window_groups-1] = 1;
 #ifdef LD_DEC
-        if (object_type == LD)
+        if (hDecoder->object_type == LD)
         {
-            ics->num_swb = num_swb_512_window[fs_index];
+            if (hDecoder->frameLength == 512)
+                ics->num_swb = num_swb_512_window[sf_index];
+            else /* if (hDecoder->frameLength == 480) */
+                ics->num_swb = num_swb_480_window[sf_index];
         } else {
 #endif
-            ics->num_swb = num_swb_1024_window[fs_index];
+            ics->num_swb = num_swb_1024_window[sf_index];
 #ifdef LD_DEC
         }
 #endif
@@ -74,24 +81,33 @@ uint8_t window_grouping_info(ic_stream *ics, uint8_t fs_index,
         /* preparation of sect_sfb_offset for long blocks */
         /* also copy the last value! */
 #ifdef LD_DEC
-        if (object_type == LD)
+        if (hDecoder->object_type == LD)
         {
-            for (i = 0; i < ics->num_swb; i++)
+            if (hDecoder->frameLength == 512)
             {
-                ics->sect_sfb_offset[0][i] = swb_offset_512_window[fs_index][i];
-                ics->swb_offset[i] = swb_offset_512_window[fs_index][i];
+                for (i = 0; i < ics->num_swb; i++)
+                {
+                    ics->sect_sfb_offset[0][i] = swb_offset_512_window[sf_index][i];
+                    ics->swb_offset[i] = swb_offset_512_window[sf_index][i];
+                }
+            } else /* if (hDecoder->frameLength == 480) */ {
+                for (i = 0; i < ics->num_swb; i++)
+                {
+                    ics->sect_sfb_offset[0][i] = swb_offset_480_window[sf_index][i];
+                    ics->swb_offset[i] = swb_offset_480_window[sf_index][i];
+                }
             }
-            ics->sect_sfb_offset[0][ics->num_swb] = frame_len;
-            ics->swb_offset[ics->num_swb] = frame_len;
+            ics->sect_sfb_offset[0][ics->num_swb] = hDecoder->frameLength;
+            ics->swb_offset[ics->num_swb] = hDecoder->frameLength;
         } else {
 #endif
             for (i = 0; i < ics->num_swb; i++)
             {
-                ics->sect_sfb_offset[0][i] = swb_offset_1024_window[fs_index][i];
-                ics->swb_offset[i] = swb_offset_1024_window[fs_index][i];
+                ics->sect_sfb_offset[0][i] = swb_offset_1024_window[sf_index][i];
+                ics->swb_offset[i] = swb_offset_1024_window[sf_index][i];
             }
-            ics->sect_sfb_offset[0][ics->num_swb] = frame_len;
-            ics->swb_offset[ics->num_swb] = frame_len;
+            ics->sect_sfb_offset[0][ics->num_swb] = hDecoder->frameLength;
+            ics->swb_offset[ics->num_swb] = hDecoder->frameLength;
 #ifdef LD_DEC
         }
 #endif
@@ -100,11 +116,11 @@ uint8_t window_grouping_info(ic_stream *ics, uint8_t fs_index,
         ics->num_windows = 8;
         ics->num_window_groups = 1;
         ics->window_group_length[ics->num_window_groups-1] = 1;
-        ics->num_swb = num_swb_128_window[fs_index];
+        ics->num_swb = num_swb_128_window[sf_index];
 
         for (i = 0; i < ics->num_swb; i++)
-            ics->swb_offset[i] = swb_offset_128_window[fs_index][i];
-        ics->swb_offset[ics->num_swb] = frame_len/8;
+            ics->swb_offset[i] = swb_offset_128_window[sf_index][i];
+        ics->swb_offset[ics->num_swb] = hDecoder->frameLength/8;
 
         for (i = 0; i < ics->num_windows-1; i++) {
             if (bit_set(ics->scale_factor_grouping, 6-i) == 0)
@@ -127,10 +143,10 @@ uint8_t window_grouping_info(ic_stream *ics, uint8_t fs_index,
             {
                 if (i+1 == ics->num_swb)
                 {
-                    width = (frame_len/8) - swb_offset_128_window[fs_index][i];
+                    width = (hDecoder->frameLength/8) - swb_offset_128_window[sf_index][i];
                 } else {
-                    width = swb_offset_128_window[fs_index][i+1] -
-                        swb_offset_128_window[fs_index][i];
+                    width = swb_offset_128_window[sf_index][i+1] -
+                        swb_offset_128_window[sf_index][i];
                 }
                 width *= ics->window_group_length[g];
                 ics->sect_sfb_offset[g][sect_sfb++] = offset;
@@ -166,7 +182,6 @@ uint8_t window_grouping_info(ic_stream *ics, uint8_t fs_index,
 */
 void quant_to_spec(ic_stream *ics, real_t *spec_data, uint16_t frame_len)
 {
-    int8_t i;
     uint8_t g, sfb, win;
     uint16_t width, bin;
     real_t *start_inptr, *start_win_ptr, *win_ptr;
@@ -175,17 +190,7 @@ void quant_to_spec(ic_stream *ics, real_t *spec_data, uint16_t frame_len)
     real_t *tmp_spec_ptr, *spec_ptr;
 
     tmp_spec_ptr = tmp_spec;
-    for (i = frame_len/16-1; i >= 0; --i)
-    {
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-        *tmp_spec_ptr++ = 0; *tmp_spec_ptr++ = 0;
-    }
+    memset(tmp_spec_ptr, 0, frame_len*sizeof(real_t));
 
     spec_ptr = spec_data;
     tmp_spec_ptr = tmp_spec;
@@ -212,10 +217,12 @@ void quant_to_spec(ic_stream *ics, real_t *spec_data, uint16_t frame_len)
 
                 for (bin = 0; bin < width; bin += 4)
                 {
-                    *tmp_spec_ptr++ = *spec_ptr++;
-                    *tmp_spec_ptr++ = *spec_ptr++;
-                    *tmp_spec_ptr++ = *spec_ptr++;
-                    *tmp_spec_ptr++ = *spec_ptr++;
+                    tmp_spec_ptr[0] = spec_ptr[0];
+                    tmp_spec_ptr[1] = spec_ptr[1];
+                    tmp_spec_ptr[2] = spec_ptr[2];
+                    tmp_spec_ptr[3] = spec_ptr[3];
+                    tmp_spec_ptr += 4;
+                    spec_ptr += 4;
                 }
 
                 win_ptr += win_inc;
@@ -228,57 +235,42 @@ void quant_to_spec(ic_stream *ics, real_t *spec_data, uint16_t frame_len)
     spec_ptr = spec_data;
     tmp_spec_ptr = tmp_spec;
 
-    for (i = frame_len/16 - 1; i >= 0; --i)
-    {
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-        *spec_ptr++ = *tmp_spec_ptr++; *spec_ptr++ = *tmp_spec_ptr++;
-    }
+    memcpy(spec_ptr, tmp_spec_ptr, frame_len*sizeof(real_t));
 }
 
-void build_tables(real_t *iq_table, real_t *pow2_table)
+#ifndef FIXED_POINT
+void build_tables(real_t *pow2_table)
 {
     uint16_t i;
-
-    /* build pow(x, 4/3) table for inverse quantization */
-    for(i = 0; i < IQ_TABLE_SIZE; i++)
-    {
-        iq_table[i] = (real_t)exp(log(i) * 4.0/3.0);
-    }
 
     /* build pow(2, 0.25*x) table for scalefactors */
     for(i = 0; i < POW_TABLE_SIZE; i++)
     {
-        pow2_table[i] = (real_t)exp(LN2 * 0.25 * (i-100));
+        pow2_table[i] = REAL_CONST(pow(2.0, 0.25 * (i-100)));
     }
 }
+#endif
 
-static INLINE real_t iquant(int16_t q, real_t *iq_table)
+static INLINE real_t iquant(int16_t q)
 {
     if (q > 0)
     {
         if (q < IQ_TABLE_SIZE)
             return iq_table[q];
         else
-            return MUL(iq_table[q>>3], 16);
+            return iq_table[q>>3] * 16;
     } else if (q < 0) {
         q = -q;
         if (q < IQ_TABLE_SIZE)
             return -iq_table[q];
         else
-          return -MUL(iq_table[q>>3], 16);
+          return -iq_table[q>>3] * 16;
     } else {
-        return 0.0f;
+        return 0;
     }
 }
 
-void inverse_quantization(real_t *x_invquant, int16_t *x_quant, real_t *iq_table,
-                          uint16_t frame_len)
+void inverse_quantization(real_t *x_invquant, int16_t *x_quant, uint16_t frame_len)
 {
     int8_t i;
     int16_t *in_ptr = x_quant;
@@ -286,31 +278,53 @@ void inverse_quantization(real_t *x_invquant, int16_t *x_quant, real_t *iq_table
 
     for(i = frame_len/8-1; i >= 0; --i)
     {
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
-        *out_ptr++ = iquant(*in_ptr++, iq_table);
+        *out_ptr++ = iquant(*in_ptr++);
+        *out_ptr++ = iquant(*in_ptr++);
+        *out_ptr++ = iquant(*in_ptr++);
+        *out_ptr++ = iquant(*in_ptr++);
+        *out_ptr++ = iquant(*in_ptr++);
+        *out_ptr++ = iquant(*in_ptr++);
+        *out_ptr++ = iquant(*in_ptr++);
+        *out_ptr++ = iquant(*in_ptr++);
     }
 }
 
+#ifndef FIXED_POINT
 static INLINE real_t get_scale_factor_gain(uint16_t scale_factor, real_t *pow2_table)
 {
     if (scale_factor < POW_TABLE_SIZE)
         return pow2_table[scale_factor];
     else
-        return (real_t)exp(LN2 * 0.25 * (scale_factor - 100));
+        return REAL_CONST(pow(2.0, 0.25 * (scale_factor - 100)));
 }
+#else
+static real_t pow2_table[] =
+{
+    COEF_CONST(0.59460355750136),
+    COEF_CONST(0.70710678118655),
+    COEF_CONST(0.84089641525371),
+    COEF_CONST(1.0),
+    COEF_CONST(1.18920711500272),
+    COEF_CONST(1.41421356237310),
+    COEF_CONST(1.68179283050743)
+};
+#endif
 
+#ifdef FIXED_POINT
+void apply_scalefactors(ic_stream *ics, real_t *x_invquant, uint16_t frame_len)
+#else
 void apply_scalefactors(ic_stream *ics, real_t *x_invquant, real_t *pow2_table,
                         uint16_t frame_len)
+#endif
 {
     uint8_t g, sfb;
     uint16_t top;
-    real_t *fp, scale;
+    real_t *fp;
+#ifndef FIXED_POINT
+    real_t scale;
+#else
+    int32_t exp, frac;
+#endif
     uint8_t groups = 0;
     uint16_t nshort = frame_len/8;
 
@@ -328,15 +342,44 @@ void apply_scalefactors(ic_stream *ics, real_t *x_invquant, real_t *pow2_table,
         {
             top = ics->sect_sfb_offset[g][sfb+1];
 
+#ifndef FIXED_POINT
             scale = get_scale_factor_gain(ics->scale_factors[g][sfb], pow2_table);
+#else
+            exp = (ics->scale_factors[g][sfb] - 100) / 4;
+            frac = (ics->scale_factors[g][sfb] - 100) % 4;
+#endif
 
             /* minimum size of a sf band is 4 and always a multiple of 4 */
-            for ( ; k < top; k+=4)
+            for ( ; k < top; k += 4)
             {
-                *fp = MUL(*fp, scale); fp++;
-                *fp = MUL(*fp, scale); fp++;
-                *fp = MUL(*fp, scale); fp++;
-                *fp = MUL(*fp, scale); fp++;
+#ifndef FIXED_POINT
+                fp[0] = MUL(fp[0],scale);
+                fp[1] = MUL(fp[1],scale);
+                fp[2] = MUL(fp[2],scale);
+                fp[3] = MUL(fp[3],scale);
+#else
+                if (exp < 0)
+                {
+                    fp[0] >>= -exp;
+                    fp[1] >>= -exp;
+                    fp[2] >>= -exp;
+                    fp[3] >>= -exp;
+                } else {
+                    fp[0] <<= exp;
+                    fp[1] <<= exp;
+                    fp[2] <<= exp;
+                    fp[3] <<= exp;
+                }
+
+                if (frac)
+                {
+                    fp[0] = MUL_R_C(fp[0],pow2_table[frac + 3]);
+                    fp[1] = MUL_R_C(fp[1],pow2_table[frac + 3]);
+                    fp[2] = MUL_R_C(fp[2],pow2_table[frac + 3]);
+                    fp[3] = MUL_R_C(fp[3],pow2_table[frac + 3]);
+                }
+#endif
+                fp += 4;
             }
         }
         groups += ics->window_group_length[g];

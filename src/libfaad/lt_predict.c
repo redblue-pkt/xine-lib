@@ -16,11 +16,12 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: lt_predict.c,v 1.1 2002/07/14 23:43:01 miguelfreitas Exp $
+** $Id: lt_predict.c,v 1.2 2002/12/16 19:00:34 miguelfreitas Exp $
 **/
 
 
 #include "common.h"
+#include "structs.h"
 
 #ifdef LTP_DEC
 
@@ -32,8 +33,14 @@
 
 static real_t codebook[8] =
 {
-    0.570829f, 0.696616f, 0.813004f, 0.911304f, 0.984900f, 1.067894f,
-    1.194601f, 1.369533f
+    COEF_CONST(0.570829),
+    COEF_CONST(0.696616),
+    COEF_CONST(0.813004),
+    COEF_CONST(0.911304),
+    COEF_CONST(0.984900),
+    COEF_CONST(1.067894),
+    COEF_CONST(1.194601),
+    COEF_CONST(1.369533)
 };
 
 void lt_prediction(ic_stream *ics, ltp_info *ltp, real_t *spec,
@@ -52,15 +59,15 @@ void lt_prediction(ic_stream *ics, ltp_info *ltp, real_t *spec,
         {
             num_samples = frame_len << 1;
 
-            x_est = malloc(num_samples*sizeof(real_t));
-            X_est = malloc(num_samples*sizeof(real_t));
+            x_est = (real_t*)malloc(num_samples*sizeof(real_t));
+            X_est = (real_t*)malloc(num_samples*sizeof(real_t));
 
             for(i = 0; i < num_samples; i++)
             {
                 /* The extra lookback M (N/2 for LD, 0 for LTP) is handled
                    in the buffer updating */
-                x_est[i] = MUL(codebook[ltp->coef],
-                    lt_pred_stat[num_samples + i - ltp->lag]);
+                x_est[i] = MUL_R_C(lt_pred_stat[num_samples + i - ltp->lag],
+                    codebook[ltp->coef]);
             }
 
             filter_bank_ltp(fb, ics->window_sequence, win_shape, win_shape_prev,
