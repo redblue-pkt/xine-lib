@@ -32,7 +32,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.7 2003/04/02 03:20:40 tmmm Exp $
+ * $Id: demux_aud.c,v 1.8 2003/04/02 05:14:10 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -126,18 +126,18 @@ static int open_aud_file(demux_aud_t *this) {
   if ((this->audio_samplerate < 8000) || (this->audio_samplerate > 48000))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, AUD_HEADER_SIZE, SEEK_SET);
-  }
-
   if (header[11] == 1)
     this->audio_type = BUF_AUDIO_WESTWOOD;  
   else if (header[11] == 99)
     this->audio_type = BUF_AUDIO_VQA_IMA;  
   else
     return 0;
+
+  /* file is qualified; if the input was not seekable, skip over the header
+   * bytes in the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->input->seek(this->input, AUD_HEADER_SIZE, SEEK_SET);
+  }
 
   /* flag 0 indicates stereo */
   this->audio_channels = (header[10] & 0x1) + 1;
