@@ -7,7 +7,6 @@ $(XINE_LIB):
 install-data-hook:
 	@if test $$MAKELEVEL -le 4 ; then \
 	  find $(DESTDIR)$(XINE_PLUGINDIR) -name "*.la" -exec rm {} \; \
-	  rm -f $(DESTDIR)$(XINE_PLUGINDIR)/*/*.la ; \
 	  if test -x "$(top_srcdir)/post-install.sh" ; then \
 	    $(top_srcdir)/post-install.sh ; \
 	  fi \
