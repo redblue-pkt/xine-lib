@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.5 2002/06/12 12:22:33 f1rmb Exp $
+ * $Id: demux_roq.c,v 1.6 2002/06/19 16:33:01 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -506,7 +506,7 @@ static void demux_roq_stop (demux_plugin_t *this_gen) {
 }
 
 static void demux_roq_close (demux_plugin_t *this) {
-
+  free(this);
 }
 
 static int demux_roq_get_status (demux_plugin_t *this_gen) {

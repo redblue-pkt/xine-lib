@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.12 2002/06/16 00:53:39 jcdutton Exp $
+ * $Id: demux_film.c,v 1.13 2002/06/19 16:33:00 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -195,6 +195,8 @@ static int open_film_file(demux_film_t *film)
 
     case STAB_TAG:
       /* load the sample table */
+      if (film->sample_table)
+        free(film->sample_table);
       film->frequency = BE_32(&film_header[i + 8]);
       film->sample_count = BE_32(&film_header[i + 12]);
       film->sample_table =
@@ -704,9 +706,11 @@ static void demux_film_stop (demux_plugin_t *this_gen) {
 static void demux_film_close (demux_plugin_t *this_gen) {
   demux_film_t *this = (demux_film_t *) this_gen;
 
-  free(this->sample_table);
-  free(this);
   pthread_mutex_destroy (&this->mutex);
+
+  if (this->sample_table)
+    free(this->sample_table);
+  free(this);
 }
 
 static int demux_film_get_status (demux_plugin_t *this_gen) {

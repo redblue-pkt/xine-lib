@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.54 2002/06/18 06:45:51 tmmm Exp $
+ * $Id: demux_qt.c,v 1.55 2002/06/19 16:33:00 esnel Exp $
  *
  */
 
@@ -1449,8 +1449,8 @@ static void demux_qt_close (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
   free_qt_info(this->qt);
-  free(this);
   pthread_mutex_destroy (&this->mutex);
+  free(this);
 }
 
 static int demux_qt_get_status (demux_plugin_t *this_gen) {
