@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIR = libvcd
+SUBDIRS = libvcd
 
 INCLUDES = $(LIBCDIO_CFLAGS)
 
