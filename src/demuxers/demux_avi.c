@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.157 2003/05/29 16:51:30 jstembridge Exp $
+ * $Id: demux_avi.c,v 1.158 2003/05/29 17:54:16 jstembridge Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1474,6 +1474,10 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
         buf->decoder_info[3] = a->wavex->nChannels; /* Audio bits */
         this->audio_fifo->put (this->audio_fifo, buf);
       }
+
+      if(this->avi->n_audio == 1)
+        this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = 
+          this->avi->audio[0]->wavex->wFormatTag;
     }
 
     /*
