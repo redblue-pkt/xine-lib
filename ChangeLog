@@ -1,3 +1,6 @@
+xine-lib (1-beta7)
+
+	
 xine-lib (1-beta6)
   * inform the width and height for the v4l input plugin
   * ffmpeg aspect ratio detection code fixed
