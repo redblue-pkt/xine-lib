@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2003/01/29 17:21:13 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.54 2003/02/14 00:13:00 miguelfreitas Exp $
  *
  */
 
@@ -36,8 +36,9 @@
 #include "xineutils.h"
 #include "osd.h"
 
-
+/*
 #define LOG 1
+*/
 
 #define SUB_MAX_TEXT  5
 
@@ -339,7 +340,7 @@ static void spudec_reset (spu_decoder_t *this_gen) {
 }
 
 static void spudec_discontinuity (spu_decoder_t *this_gen) {
-  sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
+  /* sputext_decoder_t *this = (sputext_decoder_t *) this_gen; */
 
 }
 

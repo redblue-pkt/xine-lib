@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.10 2003/01/23 16:12:19 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.11 2003/02/14 00:13:00 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -48,9 +48,9 @@
 #include "xineutils.h"
 #include "../demuxers/demux.h"
 
-
+/*
 #define LOG 1
-
+*/
 
 #define ERR (void *)-1
 #define SUB_MAX_TEXT  5
