@@ -62,6 +62,7 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
     mpeg2dec->output = output;
     mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
     mpeg2dec->code = 0xb4;
+    mpeg2dec->seek_mode = 1;
 
     memset (mpeg2dec->picture, 0, sizeof (picture_t));
 
@@ -153,6 +154,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    break;
 	  }
 	}
+
 	break;
 
     case 0xb3:	/* sequence_header_code */
@@ -170,6 +172,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 					     IMGFMT_YV12,
 					     picture->frame_duration);
 	    picture->forward_reference_frame->PTS = 0;
+	    picture->forward_reference_frame->bFrameBad = 1;
 	    picture->backward_reference_frame =
   	        mpeg2dec->output->get_frame (mpeg2dec->output,
 					     picture->coded_picture_width,
@@ -178,6 +181,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 					     IMGFMT_YV12,
 					     picture->frame_duration);
 	    picture->backward_reference_frame->PTS = 0;
+	    picture->backward_reference_frame->bFrameBad = 1;
 	    
 	}
 	break;
@@ -293,6 +297,12 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     ret = 0;
     mpeg2dec->pts = pts;
 
+    if (mpeg2dec->seek_mode) {
+      mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
+      mpeg2dec->code = 0xb4;
+      mpeg2dec->seek_mode = 0;
+    }
+
     while (current != end) {
 	code = mpeg2dec->code;
 	current = copy_chunk (mpeg2dec, current, end);
@@ -328,44 +338,53 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
 void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				 uint8_t * current, uint8_t * end){
 
-    uint8_t code;
-    picture_t *picture = mpeg2dec->picture;
+  uint8_t code;
+  picture_t *picture = mpeg2dec->picture;
 
-    while (current != end) {
-	code = mpeg2dec->code;
-	current = copy_chunk (mpeg2dec, current, end);
-	if (current == NULL)
-	    return ;
+  while (current != end) {
+    code = mpeg2dec->code;
+    current = copy_chunk (mpeg2dec, current, end);
+    if (current == NULL)
+      return ;
 
-	if (code == 0xb3) {	/* sequence_header_code */
-	    if (header_process_sequence_header (picture, mpeg2dec->chunk_buffer)) {
-	        printf ("libmpeg2: bad sequence header\n");
-		return;
-	    }
+    stats_header (code, mpeg2dec->chunk_buffer);
+
+    if (code == 0xb3) {	/* sequence_header_code */
+      if (header_process_sequence_header (picture, mpeg2dec->chunk_buffer)) {
+	printf ("libmpeg2: bad sequence header\n");
+	continue;
+      }
 	  
-	    if (mpeg2dec->is_sequence_needed) {
-	        printf ("libmpeg2: found sequence header! :-)\n");
+      if (mpeg2dec->is_sequence_needed) {
+	printf ("libmpeg2: found sequence header! :-)\n");
 
-	        mpeg2dec->is_sequence_needed = 0;
-		picture->forward_reference_frame =
-		    mpeg2dec->output->get_frame (mpeg2dec->output,
-						 picture->coded_picture_width,
-						 picture->coded_picture_height,
-						 picture->aspect_ratio_information,
-						 IMGFMT_YV12,
-						 picture->frame_duration);
-		picture->forward_reference_frame->PTS = 0;
-		picture->backward_reference_frame =
-		    mpeg2dec->output->get_frame (mpeg2dec->output,
-						 picture->coded_picture_width,
-						 picture->coded_picture_height,
-						 picture->aspect_ratio_information,
-						 IMGFMT_YV12,
-						 picture->frame_duration);
-		picture->backward_reference_frame->PTS = 0;
+	mpeg2dec->is_sequence_needed = 0;
+	picture->forward_reference_frame =
+	  mpeg2dec->output->get_frame (mpeg2dec->output,
+				       picture->coded_picture_width,
+				       picture->coded_picture_height,
+				       picture->aspect_ratio_information,
+				       IMGFMT_YV12,
+				       picture->frame_duration);
+	picture->forward_reference_frame->PTS = 0;
+	picture->forward_reference_frame->bFrameBad = 1;
+	picture->backward_reference_frame =
+	  mpeg2dec->output->get_frame (mpeg2dec->output,
+				       picture->coded_picture_width,
+				       picture->coded_picture_height,
+				       picture->aspect_ratio_information,
+				       IMGFMT_YV12,
+				       picture->frame_duration);
+	picture->backward_reference_frame->PTS = 0;
+	picture->backward_reference_frame->bFrameBad = 1;
 	    
-	    }
-	}
+      }
+    } else if (code == 0xb5) {	/* extension_start_code */
+      if (header_process_extension (picture, mpeg2dec->chunk_buffer)) {
+	printf ("mpeg2dec: bad extension\n");
+	continue ;
+      }
     }
+  }
 }
 
