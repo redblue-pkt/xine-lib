@@ -1,7 +1,7 @@
 
 SUBDIRS = man hackersguide
 
-EXTRA_DIST = $(docs_DOCS) README dataflow.dia
+EXTRA_DIST = $(docs_DOCS) README README.plugins MRLs dataflow.dia
 
 docdir = $(prefix)/share/doc/xine
 docs_DOCS = 
