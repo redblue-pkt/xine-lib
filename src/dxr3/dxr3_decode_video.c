@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.20 2002/11/12 21:29:34 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.21 2002/11/17 17:55:21 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -559,15 +559,14 @@ static void dxr3_dispose(video_decoder_t *this_gen)
   if (this->scr) {
     metronom->unregister_scr(metronom, &this->scr->scr_plugin);
     this->scr->scr_plugin.exit(&this->scr->scr_plugin);
-    this->scr = NULL;
   }
   
+  dxr3_mvcommand(this->fd_control, MVCOMMAND_FLUSHBUF);
+  
   if (this->fd_video >= 0) close(this->fd_video);
-  this->fd_video = -1;
+  close(this->fd_control);
   
   this->stream->video_out->close(this->stream->video_out);
-  
-  this->have_header_info = 0;
   this->class->instance  = 0;
   
   free(this);
