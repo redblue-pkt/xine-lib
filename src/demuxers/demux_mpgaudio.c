@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.110 2003/09/28 23:53:32 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.111 2003/10/04 10:54:14 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -663,27 +663,33 @@ static int id3v22_parse_tag(demux_mpgaudio_t *this, int8_t *mp3_frame_header) {
 
   if (id3v2_parse_header(this, mp3_frame_header, &tag_header)) {
 
-    while ((pos + 6) < tag_header.size) {
-      if (id3v22_parse_frame_header(this, &tag_frame_header)) {
-        pos += 6;
-        if (tag_frame_header.id && tag_frame_header.size) {
-          if ((pos + tag_frame_header.size) < tag_header.size) {
-            if (!id3v22_interp_frame(this, &tag_frame_header)) {
-              lprintf("invalid frame content\n");
+    if (tag_header.flags & ID3V2_COMPRESS_FLAG) {
+      /* compressed tag ? just skip it */
+      this->input->seek (this->input, tag_header.size - pos, SEEK_CUR);
+    } else {
+
+      while ((pos + 6) < tag_header.size) {
+        if (id3v22_parse_frame_header(this, &tag_frame_header)) {
+          pos += 6;
+          if (tag_frame_header.id && tag_frame_header.size) {
+            if ((pos + tag_frame_header.size) < tag_header.size) {
+              if (!id3v22_interp_frame(this, &tag_frame_header)) {
+                lprintf("invalid frame content\n");
+              }
+            } else {
+              lprintf("invalid frame header\n");
+              return 0;
             }
+            pos += tag_frame_header.size;
           } else {
-            lprintf("invalid frame header\n");
-            return 0;
+            /* end of frames, the rest is padding */
+            this->input->seek (this->input, tag_header.size - pos, SEEK_CUR);
+            return 1;
           }
-          pos += tag_frame_header.size;
         } else {
-          /* end of frames, the rest is padding */
-          this->input->seek (this->input, tag_header.size - pos, SEEK_CUR);
-          return 1;
+          lprintf("id3v2_parse_frame_header problem\n");
+          return 0;
         }
-      } else {
-        lprintf("id3v2_parse_frame_header problem\n");
-        return 0;
       }
     }
     return 1;
@@ -933,22 +939,22 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
       if (this->is_vbr && (this->xflags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
         /* vbr  */
         start_pos = xing_get_seek_point(this, start_time);
-        lprintf("time seek: vbr\n");
+        lprintf("time seek: vbr: time=%d, pos=%lld\n", start_time, start_pos);
       } else {
         /* cbr  */
         start_pos = start_time * this->input->get_length(this->input) /
-                    this->stream_length;
-        lprintf("time seek: cbr\n");
+                    (1000 * this->stream_length);
+        lprintf("time seek: cbr: time=%d, pos=%lld\n", start_time, start_pos);
       }
     } else {
       if (this->is_vbr && (this->xflags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
         /* vbr  */
         start_time = xing_get_seek_time(this, start_pos);
-        lprintf("pos seek: vbr\n");
+        lprintf("pos seek: vbr: time=%d, pos=%lld\n", start_time, start_pos);
       } else {
         /* cbr  */
         start_time = (1000 * start_pos * this->stream_length) / this->input->get_length(this->input);
-        lprintf("pos seek: cbr\n");
+        lprintf("pos seek: cbr: time=%d, pos=%lld\n", start_time, start_pos);
       }
     }
     this->cur_fpts = 90 * start_time;
