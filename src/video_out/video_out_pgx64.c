@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.7 2002/10/10 20:00:28 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.8 2002/10/12 01:34:46 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -97,11 +97,21 @@ static char *deinterlace_methods[] = {"one field",
 #endif
                                       NULL};
 
+typedef struct {
+  vo_frame_t vo_frame;
+
+  int lengths[3];  
+  uint32_t buf_y, buf_u, buf_v;
+  int width, height, ratio_code, format;
+} pgx64_frame_t;
+
 typedef struct {   
   xine_vo_driver_t vo_driver;
   vo_scale_t vo_scale;
   xine_t *xine;
   config_values_t *config;
+  pgx64_frame_t *current;
+ 
   int visual_type;
   Display *display;
   int screen;
@@ -116,14 +126,6 @@ typedef struct {
   int colour_key, brightness, saturation;
   int deinterlace, deinterlace_method;
 } pgx64_driver_t;
-
-typedef struct {
-  vo_frame_t vo_frame;
-
-  int lengths[3];  
-  uint32_t buf_y, buf_u, buf_v;
-  int width, height, ratio_code, format;
-} pgx64_frame_t;
 
 static void pgx64_config_changed(pgx64_driver_t*, xine_cfg_entry_t*);
 static uint32_t pgx64_get_capabilities(pgx64_driver_t*);
@@ -159,34 +161,6 @@ static void dispose_frame_internals(pgx64_frame_t *frame)
 }
 
 /*
- * Paint the output area with the colour key and black borders
- */
-
-static void repaint_output_area(pgx64_driver_t *this)
-{
-  switch (this->visual_type) {
-    case XINE_VISUAL_TYPE_X11: {
-      XLockDisplay(this->display);
-      XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[0].x, this->vo_scale.border[0].y, this->vo_scale.border[0].w, this->vo_scale.border[0].h);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[1].x, this->vo_scale.border[1].y, this->vo_scale.border[1].w, this->vo_scale.border[1].h);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[2].x, this->vo_scale.border[2].y, this->vo_scale.border[2].w, this->vo_scale.border[2].h);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[3].x, this->vo_scale.border[3].y, this->vo_scale.border[3].w, this->vo_scale.border[3].h);
-      XSetForeground(this->display, this->gc, this->colour_key);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
-      XFlush(this->display);
-      XUnlockDisplay(this->display);
-    }
-    break;
-
-    case XINE_VISUAL_TYPE_FB: {
-      /* FIXME: Do this properly */
-      write_reg(this, OVERLAY_KEY_CNTL, 0x00000010);
-    }
-  }
-}
-
-/*
  * Read and write to the little endian framebuffer registers
  */
 
@@ -218,15 +192,43 @@ static inline void clear_reg_bits(pgx64_driver_t *this, int reg, uint32_t mask)
 static inline uint32_t read_gsr()
 {
   uint32_t gsr;
-  asm ("rd	%%gsr, %0" : "=r" (gsr));
+  asm ("rd      %%gsr, %0" : "=r" (gsr));
   return gsr;
 }
 
 static inline void write_gsr(uint32_t gsr)
 {
-  asm ("wr	%0, %%g0, %%gsr" : : "r" (gsr));
+  asm ("wr      %0, %%g0, %%gsr" : : "r" (gsr));
 }
 #endif
+
+/*
+ * Paint the output area with the colour key and black borders
+ */
+
+static void repaint_output_area(pgx64_driver_t *this)
+{
+  switch (this->visual_type) {
+    case XINE_VISUAL_TYPE_X11: {
+      XLockDisplay(this->display);
+      XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
+      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[0].x, this->vo_scale.border[0].y, this->vo_scale.border[0].w, this->vo_scale.border[0].h);
+      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[1].x, this->vo_scale.border[1].y, this->vo_scale.border[1].w, this->vo_scale.border[1].h);
+      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[2].x, this->vo_scale.border[2].y, this->vo_scale.border[2].w, this->vo_scale.border[2].h);
+      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[3].x, this->vo_scale.border[3].y, this->vo_scale.border[3].w, this->vo_scale.border[3].h);
+      XSetForeground(this->display, this->gc, this->colour_key);
+      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
+      XFlush(this->display);
+      XUnlockDisplay(this->display);
+    }
+    break;
+
+    case XINE_VISUAL_TYPE_FB: {
+      /* FIXME: Do this properly */
+      write_reg(this, OVERLAY_KEY_CNTL, 0x00000010);
+    }
+  }
+}
 
 /*
  * Initialize plugin
@@ -267,8 +269,9 @@ static pgx64_driver_t* init_plugin(xine_t *xine)
   }
   memset(this, 0, sizeof(pgx64_driver_t));
 
-  this->xine   = xine;
-  this->config = xine->config;
+  this->xine    = xine;
+  this->config  = xine->config;
+  this->current = NULL;
 
   this->vo_driver.get_capabilities     = (void*)pgx64_get_capabilities;
   this->vo_driver.alloc_frame          = (void*)pgx64_alloc_frame;
@@ -309,6 +312,7 @@ static pgx64_driver_t* init_plugin(xine_t *xine)
   write_reg(this, CAPTURE_CONFIG, 0x00000000);
   write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
   write_reg(this, OVERLAY_KEY_CNTL, 0x00000050);
+  write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
   write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, 0x00ffffff);
 
   return this;
@@ -446,7 +450,6 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     write_reg(this, SCALER_BUF_PITCH, this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->width*2 : frame->width);
     write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
     write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height));
-    write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
     write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     write_reg(this, SCALER_HEIGHT_WIDTH, (frame->width << 16) | (this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height));
     set_reg_bits(this, OVERLAY_SCALE_CNTL, OVERLAY_EN);
@@ -506,7 +509,10 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     memcpy(this->fbbase+frame->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
   }
 
-  frame->vo_frame.displayed(&frame->vo_frame);
+  if ((this->current != NULL) && (this->current != frame)) {
+    frame->vo_frame.displayed(&this->current->vo_frame);
+  }
+  this->current = frame;
 }
 
 static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
@@ -585,7 +591,8 @@ static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
 
     case VO_PROP_COLORKEY: {
       this->colour_key = value;
-      this->vo_scale.force_redraw = 1;
+      write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
+      repaint_output_area(this);
     }
     break;
   }
@@ -653,8 +660,10 @@ static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *da
 static int pgx64_redraw_needed(pgx64_driver_t *this)
 {
   if (vo_scale_redraw_needed(&this->vo_scale)) {
-    vo_scale_compute_output_size(&this->vo_scale);
-    repaint_output_area(this);
+    if (this->current != NULL) {
+      this->vo_scale.force_redraw = 1;
+      pgx64_display_frame(this, this->current);
+    }
 
     return 1;
   }
