@@ -1,5 +1,5 @@
 /*****************************************************************************
-** $Id: greedy2frame_template.c,v 1.5 2004/01/05 12:15:55 siggi Exp $
+** $Id: greedy2frame_template.c,v 1.6 2004/02/12 20:53:31 mroi Exp $
 ******************************************************************************
 ** Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 ** port copyright (c) 2003 Miguel Freitas
@@ -19,6 +19,12 @@
 ** CVS Log
 **
 ** $Log: greedy2frame_template.c,v $
+** Revision 1.6  2004/02/12 20:53:31  mroi
+** my gcc (partly 3.4 already) optimizes these away, because they are only used
+** inside inline assembler (which the compiler does not recognize); so actually
+** the code is wrong (the asm parts should list these as inputs), but telling
+** the compiler to keep them is the easier fix
+**
 ** Revision 1.5  2004/01/05 12:15:55  siggi
 ** wonder why Mike isn't complaining about C++ style comments, any more...
 **
@@ -76,10 +82,10 @@
 
 #if !defined(MASKS_DEFINED)
 #define MASKS_DEFINED
-  static const int64_t YMask    = 0x00ff00ff00ff00ffll;
-  static const int64_t Mask = 0x7f7f7f7f7f7f7f7fll;
-  static const int64_t DwordOne = 0x0000000100000001ll;    
-  static const int64_t DwordTwo = 0x0000000200000002ll;    
+  static const int64_t __attribute__((__used__)) YMask    = 0x00ff00ff00ff00ffll;
+  static const int64_t __attribute__((__used__)) Mask = 0x7f7f7f7f7f7f7f7fll;
+  static const int64_t __attribute__((__used__)) DwordOne = 0x0000000100000001ll;    
+  static const int64_t __attribute__((__used__)) DwordTwo = 0x0000000200000002ll;    
   static int64_t qwGreedyTwoFrameThreshold;
 #endif
 
