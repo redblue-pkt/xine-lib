@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.120 2002/10/19 19:47:27 guenter Exp $
+ * $Id: demux_avi.c,v 1.121 2002/10/19 23:39:18 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -68,6 +68,10 @@
 #include "libw32dll/wine/avifmt.h"
 #include "libw32dll/wine/windef.h"
 #include "libw32dll/wine/vfw.h"
+
+/*
+#define LOG
+*/
 
 #define MAX_AUDIO_STREAMS 8
 
@@ -1048,6 +1052,12 @@ static int demux_avi_next (demux_avi_t *this) {
 
     audio_pts =
       get_audio_pts (this, i, audio->audio_posc, aie->tot, audio->audio_posb);
+
+#ifdef LOG
+    printf ("demux_avi: video_pts %lld audio_pts %lld\n", 
+	    video_pts, audio_pts);
+#endif
+
     if (!this->no_audio && (audio_pts < video_pts)) {
 
       if (this->audio_fifo) {
@@ -1365,11 +1375,11 @@ static int demux_avi_start (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
   demux_avi_t    *this = (demux_avi_t *) this_gen;
-  int             i;
   int64_t         video_pts = 0, max_pos, min_pos = 0, cur_pos;
   int             err;
   video_index_entry_t *vie = NULL;
   int             status;
+  int64_t         audio_pts;
 
   pthread_mutex_lock( &this->mutex );
    
@@ -1399,6 +1409,7 @@ static int demux_avi_start (demux_plugin_t *this_gen,
     if (idx_grow(this, start_time_stopper, &video_pts) < 0) 
       this->status = DEMUX_FINISHED;
   }
+
   if (this->status == DEMUX_OK) {
     if (start_pos || start_time) {
       max_pos = this->avi->video_idx.video_frames - 1;
@@ -1449,8 +1460,14 @@ static int demux_avi_start (demux_plugin_t *this_gen,
    * audio position we're looking for will be pretty close to the video
    * position we've already found, so we won't be seeking though the
    * file much at this point. */
+
+  printf ("demux_avi: video_pts = %lld\n", video_pts);
+
+  audio_pts = 77777777;
+
   if (!this->no_audio && this->status == DEMUX_OK) {
     audio_index_entry_t *aie;
+    int i;
     for(i=0; i < this->avi->n_audio; i++) {
       max_pos=this->avi->audio[i]->audio_idx.audio_chunks-1;
       min_pos=0;
@@ -1458,11 +1475,15 @@ static int demux_avi_start (demux_plugin_t *this_gen,
         cur_pos = this->avi->audio[i]->audio_posc=(max_pos+min_pos)/2;
         aie = audio_cur_index_entry(this, this->avi->audio[i]);
         if (aie) {
-          if (get_audio_pts(this, i, cur_pos, aie->tot, 0) >= video_pts) {
+          if ( (audio_pts=get_audio_pts(this, i, cur_pos, aie->tot, 0)) >= video_pts) {
             max_pos = cur_pos;
           } else {
             min_pos = cur_pos+1;
           }
+#ifdef LOG
+	  printf ("demux_avi: audio_pts = %lld %lld < %lld < %lld\n", 
+		  audio_pts, min_pos, cur_pos, max_pos);
+#endif
         } else {
           if (cur_pos>min_pos) {
             max_pos = cur_pos;
@@ -1472,6 +1493,25 @@ static int demux_avi_start (demux_plugin_t *this_gen,
             break;
           }
         }
+      }
+#ifdef LOG
+      printf ("demux_avi: audio_pts = %lld\n", audio_pts);
+#endif
+
+      /*
+       * try to make audio pos more accurate for long index entries
+       *
+       * yeah, i know this implementation is pathetic (gb)
+       */
+
+      if ((audio_pts>video_pts) && (this->avi->audio[i]->audio_posc>0)) {
+	this->avi->audio[i]->audio_posc--;
+        aie = audio_cur_index_entry(this, this->avi->audio[i]);
+	if (aie) {
+	  while ((this->avi->audio[i]->audio_posb<aie->len)
+		 && ((audio_pts=get_audio_pts(this, i, this->avi->audio[i]->audio_posc , aie->tot, this->avi->audio[i]->audio_posb)) < video_pts))
+	    this->avi->audio[i]->audio_posb++;   
+	}
       }
     }
   }
