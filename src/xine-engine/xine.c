@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.146 2002/07/30 00:26:45 miguelfreitas Exp $
+ * $Id: xine.c,v 1.147 2002/08/01 22:30:55 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -370,6 +370,7 @@ int xine_play_internal (xine_t *this, char *mrl,
   if ((this->status == XINE_PLAY && strcmp (mrl, this->cur_mrl)) || (this->status == XINE_LOGO)) {
     
     if(this->cur_demuxer_plugin) {
+      this->playing_logo = 0;
       this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     }
     
