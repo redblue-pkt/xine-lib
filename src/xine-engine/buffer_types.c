@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.40 2002/09/01 04:24:35 tmmm Exp $
+ * $Id: buffer_types.c,v 1.41 2002/09/01 21:14:12 tmmm Exp $
  *
  *
  * contents:
@@ -458,10 +458,12 @@ static video_db_t video_db[] = {
 {
   {
     meFOURCC('X', 'x', 'a', 'n'),
+    meFOURCC('X', 'X', 'A', 'N'),
+    meFOURCC('x', 'x', 'a', 'n'),
     0
   },
   BUF_VIDEO_XXAN,
-  "Blue Mu Productions Codec (?)"
+  "Wing Commander IV Video Codec"
 },
 { { 0 }, 0, "last entry" }
 };
