@@ -8,6 +8,9 @@ xine-lib (1-beta10)
   * much more accurate time display with DVDs
   * xine health check fixes for non-mtrr machines
   * fixes for high-bandwidth RV30 streams
+  * fix for vplayer format subtitles
+  * fix for distorted display of some DVD menus
+  * DVD title/part MRLs (dvd:/<title>.<part>) work much more reliable
 	
 xine-lib (1-beta9)
   * implement XINE_PARAM_AUDIO_AMP_LEVEL so xine's volume can be
