@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.48 2001/10/20 02:01:51 guenter Exp $
+ * $Id: audio_decoder.c,v 1.49 2001/10/20 11:51:11 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -301,11 +301,7 @@ void audio_decoder_shutdown (xine_t *this) {
 
 int xine_get_audio_channel (xine_t *this) {
 
-  printf ("audio type : %d\n", this->audio_type);
-
-  return 0;
-
-  /* return this->audio_type & 0xFFFF; */
+  return this->audio_type & 0xFFFF; 
 }
 
 void xine_select_audio_channel (xine_t *this, int channel) {
