@@ -21,7 +21,7 @@
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
  * 
- * $Id: rgb.c,v 1.8 2002/10/06 03:48:13 komadori Exp $
+ * $Id: rgb.c,v 1.9 2002/10/20 17:47:00 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -38,11 +38,17 @@
 
 #define VIDEOBUFSIZE 128*1024
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} rgb_class_t;
+
 typedef struct rgb_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */
 
+  rgb_class_t      *class;
+  xine_stream_t    *stream;
+
   /* these are traditional variables in a video decoder object */
-  vo_instance_t    *video_out;   /* object that will receive frames */
   uint64_t          video_step;  /* frame duration in pts units */
   int               decoder_ok;  /* current decoder status */
   int               skipframes;
@@ -59,17 +65,6 @@ typedef struct rgb_decoder_s {
   yuv_planes_t      yuv_planes;
   
 } rgb_decoder_t;
-
-static void rgb_init (video_decoder_t *this_gen, 
-  vo_instance_t *video_out) {
-  rgb_decoder_t *this = (rgb_decoder_t *) this_gen;
-
-  /* set our own video_out object to the one that xine gives us */
-  this->video_out  = video_out;
-
-  /* indicate that the decoder is not quite ready yet */
-  this->decoder_ok = 0;
-}
 
 static void rgb_decode_data (video_decoder_t *this_gen,
   buf_element_t *buf) {
@@ -104,7 +99,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
   }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
 
     if(this->buf)
       free(this->buf);
@@ -119,10 +114,10 @@ static void rgb_decode_data (video_decoder_t *this_gen,
     if (this->buf)
       free (this->buf);
     this->bufsize = VIDEOBUFSIZE;
-    this->buf = malloc(this->bufsize);
+    this->buf = xine_xmalloc(this->bufsize);
     this->size = 0;
 
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
     init_yuv_planes(&this->yuv_planes, this->width, this->height);
@@ -144,7 +139,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
-      img = this->video_out->get_frame (this->video_out,
+      img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
                                         XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
@@ -239,11 +234,9 @@ static void rgb_reset (video_decoder_t *this_gen) {
 }
 
 /*
- * This function is called when xine shuts down the decoder. It should
- * free any memory and release any other resources allocated during the
- * execution of the decoder.
+ * This function frees the video decoder instance allocated to the decoder.
  */
-static void rgb_close (video_decoder_t *this_gen) {
+static void rgb_dispose (video_decoder_t *this_gen) {
   rgb_decoder_t *this = (rgb_decoder_t *) this_gen;
 
   if (this->buf) {
@@ -253,39 +246,55 @@ static void rgb_close (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {
     this->decoder_ok = 0;
-    this->video_out->close(this->video_out);
+    this->stream->video_out->close(this->stream->video_out);
   }
-}
 
-/*
- * This function returns the human-readable ID string to identify 
- * this decoder.
- */
-static char *rgb_get_id(void) {
-  return "Raw RGB";
-}
-
-/*
- * This function frees the video decoder instance allocated to the decoder.
- */
-static void rgb_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  rgb_decoder_t *this ;
+  rgb_decoder_t  *this ;
 
-  this = (rgb_decoder_t *) malloc (sizeof (rgb_decoder_t));
-  memset(this, 0, sizeof (rgb_decoder_t));
+  this = (rgb_decoder_t *) xine_xmalloc (sizeof (rgb_decoder_t));
 
-  this->video_decoder.init                = rgb_init;
   this->video_decoder.decode_data         = rgb_decode_data;
   this->video_decoder.flush               = rgb_flush;
   this->video_decoder.reset               = rgb_reset;
-  this->video_decoder.close               = rgb_close;
-  this->video_decoder.get_identifier      = rgb_get_id;
   this->video_decoder.dispose             = rgb_dispose;
+  this->size                              = 0;
+
+  this->stream                            = stream;
+  this->class                             = (rgb_class_t *) class_gen;
+
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "RGB";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Raw RGB video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  rgb_class_t *this;
+
+  this = (rgb_class_t *) xine_xmalloc (sizeof (rgb_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
 
   return this;
 }
@@ -306,6 +315,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "rgb", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "rgb", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
