@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.4 2003/01/14 23:40:56 tmattern Exp $
+ * $Id: mmsh.c,v 1.5 2003/01/15 00:53:40 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -211,7 +211,7 @@ static ssize_t read_timeout(int fd, void *buf, size_t count) {
   }
 
 #ifdef LOG
-  /* printf ("mmsh: read completed %d/%d\n", total, count); */
+  /* printf ("libmmsh: read completed %d/%d\n", total, count); */
 #endif
 
   return total;
@@ -996,7 +996,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   report_progress (stream, 100);
 
 #ifdef LOG
-  printf(" mmsh_connect: passed\n" );
+  printf("libmms: mmsh_connect: passed\n" );
 #endif
   return this;
 
@@ -1014,7 +1014,7 @@ static int get_media_packet (mmsh_t *this) {
   int len;
 
 #ifdef LOG
-  printf("this->packet_length: %d\n", this->packet_length);
+  printf("libmms: get_media_packet: this->packet_length: %d\n", this->packet_length);
 #endif
   
   if( get_chunk_header(this)) {

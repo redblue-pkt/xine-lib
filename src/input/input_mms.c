@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.32 2003/01/15 00:18:23 tmattern Exp $
+ * $Id: input_mms.c,v 1.33 2003/01/15 00:53:40 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -103,7 +103,7 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
   off_t               n = 0;
 
 #ifdef LOG
-  printf ("mms_plugin_read: %lld bytes ...\n",
+  printf ("input_mms: mms_plugin_read: %lld bytes ...\n",
           len);
 #endif
 
@@ -130,7 +130,7 @@ static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen,
   int                   total_bytes;
 
 #ifdef LOG
-  printf ("mms_plugin_read_block: %lld bytes...\n",
+  printf ("input_mms: mms_plugin_read_block: %lld bytes...\n",
           todo);
 #endif
 
@@ -154,7 +154,7 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   off_t                 dest = this->curpos;
 
 #ifdef LOG
-  printf ("mms_plugin_seek: %lld offset, %d origin...\n",
+  printf ("input_mms: mms_plugin_seek: %lld offset, %d origin...\n",
           offset, origin);
 #endif
 
