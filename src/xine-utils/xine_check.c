@@ -331,9 +331,12 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   Display               *dpy;
   unsigned int          ver, rev, eventB, reqB, errorB;
   char                  *disname = NULL;
-  void                  *dl_handle;
+  void                  *x11_handle, *xv_handle;
   Display               *(*xopendisplay)(char*);
   char                  *(*xdisplayname)(char*);
+  int                   (*xvqueryextension)(Display*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*);
+  int                   (*xvqueryadaptors)(Display*, Window, unsigned int*, XvAdaptorInfo**);
+  XvImageFormatValues   *(*xvlistimageformats)(Display*, XvPortID, int*);
   char                  *err = NULL;
   int                   formats, adaptors, i;
   XvImageFormatValues   *img_formats;
@@ -345,55 +348,89 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
 
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
 
-  /* Get reference to XOpenDisplay */
   dlerror(); /* clear error code */
-  dl_handle = dlopen("libX11.so", RTLD_LAZY);
-  if(!dl_handle) {
+  x11_handle = dlopen("libX11.so", RTLD_LAZY);
+  if(!x11_handle) {
     hc->msg = dlerror();
     hc->status = XINE_HEALTH_CHECK_FAIL;
     return hc;
   }
 
-  xopendisplay = dlsym(dl_handle,"XOpenDisplay");
-
+  /* Get reference to XOpenDisplay */
+  xopendisplay = dlsym(x11_handle,"XOpenDisplay");
   if((err = dlerror()) != NULL) {
     hc->msg = err;
     hc->status = XINE_HEALTH_CHECK_FAIL;
+    dlclose(x11_handle);
     return hc;
   }
 
   /* Get reference to XDisplayName */
-  dlerror(); /* clear error code */
-  dl_handle = dlopen("libX11.so", RTLD_LAZY);
-  if(!dl_handle) {
-    hc->msg = dlerror();
-    hc->status = XINE_HEALTH_CHECK_FAIL;
-    return hc;
-  }
-
-  xdisplayname = dlsym(dl_handle,"XDisplayName");
-
+  xdisplayname = dlsym(x11_handle,"XDisplayName");
   if((err = dlerror()) != NULL) {
     hc->msg = err;
     hc->status = XINE_HEALTH_CHECK_FAIL;
+    dlclose(x11_handle);
     return hc;
   }
-  dlclose(dl_handle);
+  
+  dlerror(); /* clear error code */
+  xv_handle = dlopen("libXv.so", RTLD_LAZY);
+  if(!xv_handle) {
+    hc->msg = dlerror();
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    dlclose(x11_handle);
+    return hc;
+  }
 
+  /* Get reference to XvQueryExtension */
+  xvqueryextension = dlsym(xv_handle,"XvQueryExtension");
+  if((err = dlerror()) != NULL) {
+    hc->msg = err;
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    dlclose(x11_handle);
+    dlclose(xv_handle);
+    return hc;
+  }
+  
+  /* Get reference to XvQueryAdaptors */
+  xvqueryadaptors = dlsym(xv_handle,"XvQueryAdaptors");
+  if((err = dlerror()) != NULL) {
+    hc->msg = err;
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    dlclose(x11_handle);
+    dlclose(xv_handle);
+    return hc;
+  }
+  
+  /* Get reference to XvListImageFormats */
+  xvlistimageformats = dlsym(xv_handle,"XvListImageFormats");
+  if((err = dlerror()) != NULL) {
+    hc->msg = err;
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    dlclose(x11_handle);
+    dlclose(xv_handle);
+    return hc;
+  }
+  
   if(!(dpy = (*xopendisplay)(disname))) {
 
     if (!disname) {
       disname = (*xdisplayname)(NULL);
     }
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n", disname);
+    dlclose(x11_handle);
+    dlclose(xv_handle);
     return hc;
   }
 
-  if((Success != XvQueryExtension(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
+  if((Success != xvqueryextension(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
     if (!disname) {
       disname = xdisplayname(NULL);
     }
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n",disname);
+    dlclose(x11_handle);
+    dlclose(xv_handle);
     return hc;
   }
   else {
@@ -404,13 +441,15 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
    * check adaptors, search for one that supports (at least) yuv12
    */
 
-  if (Success != XvQueryAdaptors(dpy,DefaultRootWindow(dpy),
+  if (Success != xvqueryadaptors(dpy,DefaultRootWindow(dpy),
 				 &adaptors,&adaptor_info))  {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "video_out_xv: XvQueryAdaptors failed.\n");
+    dlclose(x11_handle);
+    dlclose(xv_handle);
     return hc;
   }
 
-  img_formats = XvListImageFormats (dpy, adaptor_info->base_id, &formats);
+  img_formats = xvlistimageformats (dpy, adaptor_info->base_id, &formats);
 
   for(i = 0; i < formats; i++) {
 
@@ -427,6 +466,9 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     }
   }
 
+  dlclose(x11_handle);
+  dlclose(xv_handle);
+  
   return hc;
 #else
   hc->title       = "Check for MIT Xv extension";
