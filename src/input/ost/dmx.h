@@ -92,10 +92,10 @@ typedef struct dmxFilter
 } dmxFilter_t;
 
 
-struct dmxFrontEnd
+/*struct dmxFrontEnd
 {
-  /*TBD             tbd; */
-};
+  TBD             tbd;
+};*/
 
 
 struct dmxSctFilterParams
