@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.3 2001/04/20 18:01:55 guenter Exp $
+ * $Id: xine_internal.h,v 1.4 2001/04/21 00:14:41 f1rmb Exp $
  *
  */
 
@@ -31,8 +31,14 @@
 #include "audio_out.h"
 #include "metronom.h"
 
-#define INPUT_PLUGIN_MAX   50
-#define DEMUXER_PLUGIN_MAX 50
+#define INPUT_PLUGIN_MAX       50
+#define DEMUXER_PLUGIN_MAX     50
+#define CODEC_PLUGIN_IFACE_VERSION      1
+#define CODEC_PLUGIN_MAX       50
+#define AUDIO_OUT_PLUGIN_IFACE_VERSION  1
+#define AUDIO_OUT_PLUGIN_MAX   50
+#define VIDEO_OUT_PLUGIN_IFACE_VERSIO  1
+#define VIDEO_OUT_PLUGIN_MAX   50
 
 /* nStatus : current xine status */
 typedef void (*gui_status_callback_func_t)(int nStatus);
@@ -202,11 +208,36 @@ char **xine_get_autoplay_input_plugin_ids (xine_t *this) ;
  */
 char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
 
+
 /* 
  * Load input/demux/audio_out/video_out plugins
- * prototypes of load_plugins.c functions.
  */
-void xine_load_demux_plugins (xine_t *this);
-void xine_load_input_plugins (xine_t *this);
+/* plugin names scheme */
+#define XINE_INPUT_PLUGIN_PREFIXNAME            "xineplug_inp_"
+#define XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH     13
+
+#define XINE_DEMUXER_PLUGIN_PREFIXNAME          "xineplug_dmx_"
+#define XINE_DEMUXER_PLUGIN_PREFIXNAME_LENGTH   13
+
+#define XINE_VIDEO_OUT_PLUGIN_PREFIXNAME        "xineplug_vo_out_"
+#define XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH 16
+
+#define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME        "xineplug_ao_out_"
+#define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH 16
+
+#define XINE_CODEC_PLUGIN_PREFIXNAME            "xineplug_codec_"
+#define XINE_CODEC_PLUGIN_PREFIXNAME_LENGTH     15
+
+/* prototypes of load_plugins.c functions. */
+void load_demux_plugins (xine_t *this, 
+			 config_values_t *config, int iface_version);
+void load_input_plugins (xine_t *this, 
+			 config_values_t *config, int iface_version);
+void load_video_out_plugins (xine_t *this, 
+			     config_values_t *config, int iface_version);
+void load_audio_out_plugins (xine_t *this, 
+			     config_values_t *config, int iface_version);
+void load_codec_plugins (xine_t *this, 
+			 config_values_t *config, int iface_version);
 
 #endif

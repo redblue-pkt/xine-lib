@@ -3,35 +3,40 @@
 ##
 
 #CFLAGS += @GLOBAL_CFLAGS@
-CFLAGS += -D_FILE_OFFSET_BITS=64 -Wall -DXINE_COMPILE
+CFLAGS = @CFLAGS@ -D_FILE_OFFSET_BITS=64 -Wall -DXINE_COMPILE
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-#lib_LTLIBRARIES = input_file.la input_net.la input_dvd.la input_vcd.la \
-#	input_stdin_fifo.la
-lib_LTLIBRARIES = input_file.la
+##
+# IMPORTANT:
+# ---------
+# All of xine input plugins should be named like the scheme "xineplug_inp_"
+#
 
-#input_dvd_la_SOURCES = input_dvd.c dvd_udf.c
-#input_dvd_la_LDFLAGS = -avoid-version -module -Wl,-soname,input_dvd.so
-#input_dvd_la_LIBADD =
+#lib_LTLIBRARIES = xineplug_inp_net.la xineplug_inp_dvd.la \
+#	xineplug_inp_vcd.la xineplug_inp_stdin_fifo.la \
+#	xineplug_inp_rtp.la
+lib_LTLIBRARIES = xineplug_inp_file.la
 
-input_file_la_SOURCES = input_file.c
-input_file_la_LDFLAGS = -avoid-version -module -Wl,-soname,input_file.so
-input_file_la_LIBADD =
+xineplug_inp_file_la_SOURCES = input_file.c
+xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
-#input_net_la_SOURCES = input_net.c
-#input_net_la_LDFLAGS = -avoid-version -module -Wl,-soname,input_net.so
-#input_net_la_LIBADD =
+#xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c
+#xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
-#input_vcd_la_SOURCES = input_vcd.c
-#input_vcd_la_LDFLAGS = -avoid-version -module -Wl,-soname,input_vcd.so
-#input_vcd_la_LIBADD =
+#xineplug_inp_net_la_SOURCES = input_net.c
+#xineplug_inp_net_la_LDFLAGS = -avoid-version -module
 
-#input_stdin_fifo_la_SOURCES = input_stdin_fifo.c
-#input_stdin_fifo_la_LDFLAGS = -avoid-version -module -Wl,-soname,input_stdin_fifo.so
+#xineplug_inp_vcd_la_SOURCES = input_vcd.c
+#xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
 
+#xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c
+#xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module
+
+#xineplug_inp_rtp_la_SOURCES = input_rtp.c
+#xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = dvd_udf.h

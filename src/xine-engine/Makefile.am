@@ -6,20 +6,15 @@ CFLAGS = @GLOBAL_CFLAGS@
 
 lib_LTLIBRARIES = libxine.la
 
-if HAVE_W32DLL
-W32_LIBS = $(top_srcdir)/src/libw32dll/libw32dll.la
-endif
-
 ##libxine_la_SOURCES = xine.c buffer.c metronom.c configfile.c \
 ##	monitor.c utils.c audio_decoder.c video_decoder.c load_plugins.c
-libxine_la_SOURCES = metronom.c configfile.c monitor.c utils.c cpu_accel.c
+libxine_la_SOURCES = metronom.c configfile.c monitor.c utils.c cpu_accel.c \
+	load_plugins.c
 libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
-	$(top_srcdir)/src/demuxers/libdemux.la   \
 	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \
 	$(top_srcdir)/src/libac3/libac3.la       \
 	$(top_srcdir)/src/libmpg123/libmpg123.la \
-	$(W32_LIBS)                              \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
 	$(DYNAMIC_LD_LIBS)
@@ -41,11 +36,9 @@ debug:
 
 
 libsdeps:
-##	@cd $(top_builddir)/src/demuxers  &&  $(MAKE) libdemux.la
-##	@cd $(top_builddir)/src/libmpeg2  &&  $(MAKE) libmpeg2.la
-##	@cd $(top_builddir)/src/libac3    && $(MAKE) libac3.la
-##	@cd $(top_builddir)/src/libmpg123 && $(MAKE) libmpg123.la
-##@W32DLL_DEP@	@cd $(top_builddir)/src/libw32dll && $(MAKE) libw32dll.la
+	@cd $(top_builddir)/src/libmpeg2  &&  $(MAKE) libmpeg2.la
+	@cd $(top_builddir)/src/libac3    && $(MAKE) libac3.la
+	@cd $(top_builddir)/src/libmpg123 && $(MAKE) libmpg123.la
 ##	@cd $(top_builddir)/src/libspudec && $(MAKE) libspudec.la
 
 

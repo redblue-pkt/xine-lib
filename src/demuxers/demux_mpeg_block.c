@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.3 2001/04/21 00:14:40 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -494,7 +494,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
   return DEMUX_CANNOT_HANDLE;
 }
 
-static char *demux_mpeg_block_get_id(demux_plugin_t *this) {
+static char *demux_mpeg_block_get_id(void) {
   return "MPEG_BLOCK";
 }
 
@@ -502,18 +502,32 @@ static void demux_mpeg_block_close (demux_plugin_t *this) {
   /* nothing */
 }
 
-demux_plugin_t *init_demux_mpeg_block(config_values_t *cfg, uint32_t xd) {
+demux_plugin_t *init_demux_mpeg_block(int iface, config_values_t *config) {
 
   demux_mpeg_block_t *this = xmalloc (sizeof (demux_mpeg_block_t));
 
-  xine_debug = xd;
+  switch (iface) {
 
-  this->demux_plugin.open           = demux_mpeg_block_open;
-  this->demux_plugin.start          = demux_mpeg_block_start;
-  this->demux_plugin.stop           = demux_mpeg_block_stop;
-  this->demux_plugin.close          = demux_mpeg_block_close;
-  this->demux_plugin.get_status     = demux_mpeg_block_get_status;
-  this->demux_plugin.get_identifier = demux_mpeg_block_get_id;
-
-  return (demux_plugin_t *) this;
+  case 1:
+    // FIXME xine_debug = xd;
+    this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
+    this->demux_plugin.open              = demux_mpeg_block_open;
+    this->demux_plugin.start             = demux_mpeg_block_start;
+    this->demux_plugin.stop              = demux_mpeg_block_stop;
+    this->demux_plugin.close             = demux_mpeg_block_close;
+    this->demux_plugin.get_status        = demux_mpeg_block_get_status;
+    this->demux_plugin.get_identifier    = demux_mpeg_block_get_id;
+    
+    return (demux_plugin_t *) this;
+    break;
+    
+  default:
+    fprintf(stderr,
+	    "Demuxer plugin doesn't support plugin API version %d.\n"
+	    "PLUGIN DISABLED.\n"
+	    "This means there's a version mismatch between xine and this "
+	    "demuxer plugin.\nInstalling current input plugins should help.\n",
+	    iface);
+    return NULL;
+  }
 }

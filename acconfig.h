@@ -25,8 +25,5 @@
 /* Define this to plugins directory location */
 #undef XINE_PLUGINDIR
 
-/* Define this to demuxers plugins directory location */
-#undef XINE_DEMUXDIR
-
 /* Define this to skins directory location */
 #undef XINE_SKINDIR

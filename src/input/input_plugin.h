@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.1 2001/04/18 22:34:05 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.2 2001/04/21 00:14:41 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -28,7 +28,7 @@
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_INTERFACE_VERSION   1
+#define INPUT_PLUGIN_IFACE_VERSION   1
  
 #ifndef CLUT_T
 #define CLUT_T
@@ -170,9 +170,5 @@ typedef struct input_plugin_s
  * try to initialize the plugin with given interface version
  * and configuration options
  */
-input_plugin_t *get_input_plugin (int requested_interface,
-				 config_values_t *config);
-
-
 
 #endif

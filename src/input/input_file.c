@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: input_file.c,v 1.3 2001/04/21 00:14:40 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -150,7 +150,7 @@ static char *file_plugin_get_identifier (void) {
 
 
 static input_plugin_t plugin_info = {
-  INPUT_INTERFACE_VERSION,
+  INPUT_PLUGIN_IFACE_VERSION,
   file_plugin_get_capabilities,
   file_plugin_open,
   file_plugin_read,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.3 2001/04/21 00:14:40 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -960,23 +960,36 @@ static int demux_avi_open(demux_plugin_t *this_gen, input_plugin_t *input, int s
   return DEMUX_CANNOT_HANDLE;
 }
 
-static char *demux_avi_get_id(demux_plugin_t *this) {
+static char *demux_avi_get_id(void) {
   return "AVI";
 }
 
-demux_plugin_t *init_demux_avi(config_values_t *cfg, uint32_t xd) {
+demux_plugin_t *init_demux_plugin(int iface, config_values_t *config) {
 
   demux_avi_t *this = xmalloc (sizeof (demux_avi_t));
 
-  xine_debug = xd;
+  switch (iface) {
 
-  this->demux_plugin.open           = demux_avi_open;
-  this->demux_plugin.start          = demux_avi_start;
-  this->demux_plugin.stop           = demux_avi_stop;
-  this->demux_plugin.close          = demux_avi_close;
-  this->demux_plugin.get_status     = demux_avi_get_status;
-  this->demux_plugin.get_identifier = demux_avi_get_id;
+  case 1:
+    //FIXME  xine_debug = xd;
+    this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
+    this->demux_plugin.open              = demux_avi_open;
+    this->demux_plugin.start             = demux_avi_start;
+    this->demux_plugin.stop              = demux_avi_stop;
+    this->demux_plugin.close             = demux_avi_close;
+    this->demux_plugin.get_status        = demux_avi_get_status;
+    this->demux_plugin.get_identifier    = demux_avi_get_id;
 
+    return (demux_plugin_t *) this;
+    break;
 
-  return (demux_plugin_t *) this;
+  default:
+    fprintf(stderr,
+	    "Demuxer plugin doesn't support plugin API version %d.\n"
+	    "PLUGIN DISABLED.\n"
+	    "This means there's a version mismatch between xine and this "
+	    "demuxer plugin.\nInstalling current input plugins should help.\n",
+	    iface);
+    return NULL;
+  }
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: xine.c,v 1.3 2001/04/21 00:14:41 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -442,9 +442,10 @@ static void xine_pause (xine_t *this) {
 /*
  *
  */
-xine_t *xine_init (vo_instance_t *vo, ao_instance_t *ao,
+xine_t *xine_init (vo_instance_t *vo, 
+		   ao_functions_t *ao,
 		   gui_status_callback_func_t gui_status_callback,
-		   int demux_strategy, uint32_t debug_lvl) {
+		   config_values_t *config, int demux_strategy, uint32_t debug_lvl) {
 
   xine_t *this = xmalloc (sizeof (xine_t));
   int err;
@@ -474,7 +475,7 @@ xine_t *xine_init (vo_instance_t *vo, ao_instance_t *ao,
    * init demuxer
    */
   
-  xine_load_demux_plugins();
+  load_demux_plugins(this, config, DEMUXER_PLUGIN_IFACE_VERSION);
 
   this->audio_channel = 0;
   this->spu_channel   = -1;
@@ -508,7 +509,7 @@ xine_t *xine_init (vo_instance_t *vo, ao_instance_t *ao,
    * load input plugins
    */
   
-  xine_load_input_plugins ();
+  load_input_plugins (this, config, INPUT_PLUGIN_IFACE_VERSION);
   
   printf ("xine_init: plugins loaded\n");
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: demux.h,v 1.3 2001/04/21 00:14:40 f1rmb Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -30,6 +30,8 @@
 #else
 #include "input_plugin.h"
 #endif
+
+#define DEMUXER_PLUGIN_IFACE_VERSION    1
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -54,6 +56,11 @@ typedef struct demux_plugin_s demux_plugin_t;
 
 struct demux_plugin_s
 {
+  /*
+   * plugin interface version, lower versions _may_ be supported
+   */
+  int interface_version;
+
   /*
    * ask demuxer to open the given stream (input-plugin) 
    * using the content-detection method specified in <stage>
@@ -98,7 +105,7 @@ struct demux_plugin_s
    * return human readable identifier for this plugin
    */
 
-  char* (*get_identifier) (demux_plugin_t *this);
+  char* (*get_identifier) (void);
 
 } ;
 
@@ -107,19 +114,9 @@ struct demux_plugin_s
  *
  * make sure you provide this (and only this!) function call:
  *
- * demux_plugin_t *init_demux_plugin (config_values_t *cfg, uint32_t xd);
+ * demux_plugin_t *init_demux_plugin (int iface_version, config_values_t *cfg);
  *
  */
-
-demux_plugin_t *init_demux_mpeg (config_values_t *cfg, uint32_t xd);
-
-demux_plugin_t *init_demux_mpeg_block (config_values_t *cfg, uint32_t xd);
-
-demux_plugin_t *init_demux_avi (config_values_t *cfg, uint32_t xd);
-
-demux_plugin_t *init_demux_mpeg_audio (config_values_t *cfg, uint32_t xd);
-
-demux_plugin_t *init_demux_mpeg_elem(config_values_t *cfg, uint32_t xd);
 
 #endif
 

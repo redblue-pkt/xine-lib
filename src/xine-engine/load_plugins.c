@@ -17,10 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.3 2001/04/21 00:14:41 f1rmb Exp $
  *
  *
- * Load input/demux/audio_out/video_out plugins
+ * Load input/demux/audio_out/video_out/codec plugins
  *
  */
 
@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <dlfcn.h>
+#include <string.h>
 
 #include "xine_internal.h"
 #include "demuxers/demux.h"
@@ -41,23 +42,16 @@
 #include "configfile.h"
 #include "monitor.h"
 
-/* debugging purposes only */
-extern  uint32_t xine_debug;
-
 /*
  *
  */
-void xine_load_demux_plugins (xine_t *this) {
+void load_demux_plugins (xine_t *this, 
+			 config_values_t *config, int iface_version) {
   DIR *dir;
 
-  this->demuxer_plugins[0]    = *(init_demux_mpeg (xine_debug));
-  this->demuxer_plugins[1]    = *(init_demux_mpeg_block (xine_debug));
-  this->demuxer_plugins[2]    = *(init_demux_avi (xine_debug));
-  this->demuxer_plugins[3]    = *(init_demux_mpeg_audio (xine_debug));
-  this->demuxer_plugins[4]    = *(init_demux_mpeg_elem (xine_debug));
-  this->num_demuxer_plugins   = 5;
+  this->num_demuxer_plugins = 0;
 
-  dir = opendir (XINE_DEMUXDIR) ;
+  dir = opendir (XINE_PLUGINDIR) ;
   
   if (dir) {
     struct dirent *pEntry;
@@ -68,7 +62,9 @@ void xine_load_demux_plugins (xine_t *this) {
       
       int nLen = strlen (pEntry->d_name);
       
-      if ((strncasecmp(pEntry->d_name, "demux_", 6) == 0) && 
+      if ((strncasecmp(pEntry->d_name, 
+		       XINE_DEMUXER_PLUGIN_PREFIXNAME, 
+		       XINE_DEMUXER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
 	  ((pEntry->d_name[nLen-3]=='.') 
 	   && (pEntry->d_name[nLen-2]=='s')
 	   && (pEntry->d_name[nLen-1]=='o'))) {
@@ -77,7 +73,7 @@ void xine_load_demux_plugins (xine_t *this) {
 	 * demux plugin found => load it
 	 */
 	
-	sprintf (str, "%s/%s", XINE_DEMUXDIR, pEntry->d_name);
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n", 
@@ -85,21 +81,19 @@ void xine_load_demux_plugins (xine_t *this) {
 	  exit(1);
 	}
 	else {
-	  void *(*getinfo) (fifobuf_functions_t *, uint32_t);
+	  void *(*initplug) (int, config_values_t *);
 	  
-	  if((getinfo = dlsym(plugin, "demux_plugin_getinfo")) != NULL) {
-	    demux_functions_t *dxp;
+	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
+	    demux_plugin_t *dxp;
 	      
-	    dxp = (demux_functions_t *) getinfo(this->fifo_funcs, xine_debug);
-	    dxp->handle = plugin;
-	    dxp->filename = str;
+	    dxp = (demux_plugin_t *) initplug(iface_version, config);
 	    this->demuxer_plugins[this->num_demuxer_plugins] = *dxp; 
 	    
-	    
-	    printf("demux plugin found : %s(%s)\n", 
-		   this->demuxer_plugins[this->num_demuxer_plugins].filename,
-		   pEntry->d_name);
-	    
+	    printf("demux plugin found : %s(ID: %s, iface: %d)\n", 
+		   str,   
+		   this->demuxer_plugins[this->num_demuxer_plugins].get_identifier(),
+		   this->demuxer_plugins[this->num_demuxer_plugins].interface_version);
+
 	    this->num_demuxer_plugins++;
 	  }
 	  
@@ -113,9 +107,6 @@ void xine_load_demux_plugins (xine_t *this) {
     }
   }
   
-  if (this->num_demuxer_plugins == 5)
-    printf ("No extra demux plugins found in %s\n", XINE_DEMUXDIR);
-  
   /*
    * init demuxer
    */
@@ -126,7 +117,8 @@ void xine_load_demux_plugins (xine_t *this) {
 /*
  *
  */
-void xine_load_input_plugins (xine_t *this) {
+void load_input_plugins (xine_t *this, 
+			 config_values_t *config, int iface_version) {
   DIR *dir;
   
   this->num_input_plugins = 0;
@@ -143,7 +135,9 @@ void xine_load_input_plugins (xine_t *this) {
       
       int nLen = strlen (pEntry->d_name);
       
-      if ((strncasecmp(pEntry->d_name, "input_", 6) == 0) &&
+      if ((strncasecmp(pEntry->d_name,
+ 		       XINE_INPUT_PLUGIN_PREFIXNAME, 
+		       XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
 	  ((pEntry->d_name[nLen-3]=='.') 
 	  && (pEntry->d_name[nLen-2]=='s')
 	  && (pEntry->d_name[nLen-1]=='o'))) {
@@ -160,24 +154,20 @@ void xine_load_input_plugins (xine_t *this) {
 	  exit(1);
 	}
 	else {
-	  void *(*getinfo) (uint32_t);
+	  void *(*initplug) (int, config_values_t *);
 	  
-	  if((getinfo = dlsym(plugin, "input_plugin_getinfo")) != NULL) {
-	    input_plugin_t *ipp;
+	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
+	    input_plugin_t *ip;
+	      
+	    ip = (input_plugin_t *) initplug(iface_version, config);
+	    this->input_plugins[this->num_input_plugins] = *ip; 
 	    
-	    ipp = (input_plugin_t *) getinfo(xine_debug);
-	    ipp->handle = plugin;
-	    ipp->filename = str;
-	    this->input_plugins[this->num_input_plugins] = *ipp; 
-	    
-	    this->input_plugins[this->num_input_plugins].init();
-	    
-	    printf("input plugin found : %s(%s)\n", 
-		   this->input_plugins[this->num_input_plugins].filename,
-		   pEntry->d_name);
-	    
+	    printf("input plugin found : %s(ID: %s, iface: %d)\n", 
+		   str,   
+		   this->input_plugins[this->num_input_plugins].get_identifier(),
+		   this->input_plugins[this->num_input_plugins].interface_version);
+
 	    this->num_input_plugins++;
-	    
 	  }
 	  
 	  if(this->num_input_plugins > INPUT_PLUGIN_MAX) {
@@ -196,4 +186,22 @@ void xine_load_input_plugins (xine_t *this) {
     exit (1);
   }
   
+}
+
+void load_video_out_plugins (xine_t *this, 
+			     config_values_t *config, int iface_version) {
+
+  // Not implemented yet.
+}
+
+void load_audio_out_plugins (xine_t *this, 
+			     config_values_t *config, int iface_version) {
+
+  // Not implemented yet.
+}
+
+void load_codec_plugins (xine_t *this, 
+			 config_values_t *config, int iface_version) {
+
+  // Not implemented yet.
 }

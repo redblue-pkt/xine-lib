@@ -43,7 +43,7 @@ docs:
 
 erase-docs:
 	@rm -rf xine-lib-API/html
-	@rm xine-lib-API/xine_header.html xine-lib-API/xine_logo.png
+	@rm -f xine-lib-API/xine_header.html xine-lib-API/xine_logo.png
 
 
 debug:
