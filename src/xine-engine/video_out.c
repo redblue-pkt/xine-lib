@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.129 2003/01/08 14:21:27 esnel Exp $
+ * $Id: video_out.c,v 1.130 2003/01/08 21:21:12 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -741,7 +741,9 @@ static void paused_loop( vos_t *this, int64_t vpts )
       }  
     }
     
+    pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
     xine_usec_sleep (20000);
+    pthread_mutex_lock( &this->free_img_buf_queue->mutex );
   } 
   
   this->free_img_buf_queue->locked_for_read = 0;
