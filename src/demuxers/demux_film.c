@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.13 2002/06/19 16:33:00 esnel Exp $
+ * $Id: demux_film.c,v 1.14 2002/07/05 03:58:55 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -81,8 +81,13 @@ typedef struct {
   pthread_mutex_t      mutex;
   int                  send_end_buffers;
 
-  off_t                start;
+  off_t                data_start;
+  off_t                data_end;
   int                  status;
+
+  /* when this flag is set, demuxer only dispatches audio samples until if
+   * encounters a video keyframe, then it starts sending every frame again */
+  int                  waiting_for_keyframe;
 
   char                 version[4];
 
@@ -125,6 +130,10 @@ static int open_film_file(demux_film_t *film)
   film->sample_rate = 0;
   film->audio_bits = 0;
   film->audio_channels = 0;
+  film->waiting_for_keyframe = 0;
+
+  /* get the ending offset */
+  film->data_end = film->input->get_length(film->input);
 
   /* reset the file */
   film->input->seek(film->input, 0, SEEK_SET);
@@ -151,6 +160,9 @@ static int open_film_file(demux_film_t *film)
     film_header_size) {
     return 0;
   }
+
+  /* get the starting offset */
+  film->data_start = film->input->get_current_pos(film->input);
 
   /* traverse the FILM header */
   i = 0;
@@ -261,17 +273,22 @@ static void *demux_film_loop (void *this_gen) {
   unsigned int remaining_sample_bytes;
   int64_t last_frame_pts = 0;
 
+  pthread_mutex_lock( &this->mutex );
+
   /* do-while needed to seek after demux finished */
   do {
     /* main demuxer loop */
     while (this->status == DEMUX_OK) {
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
 
       i = this->current_sample;
 
       /* if there is an incongruency between last and current sample, it
        * must be time to send a new pts */
       if (this->last_sample + 1 != this->current_sample) {
-printf ("************ sending new pts\n");
         xine_demux_flush_engine(this->xine);
 
         /* send new pts */
@@ -281,10 +298,26 @@ printf ("************ sending new pts\n");
         last_frame_pts = 0;
       }
 
+      this->last_sample = this->current_sample;
+      this->current_sample++;
+
       /* check if all the samples have been sent */
       if (i >= this->sample_count) {
         this->status = DEMUX_FINISHED;
         break;
+      }
+
+      /* check if we're only sending audio samples until the next keyframe */
+      if ((this->waiting_for_keyframe) && 
+          (this->sample_table[i].syncinfo1 != 0xFFFFFFFF)) {
+        if ((this->sample_table[i].syncinfo1 & 0x80000000) == 0) {
+          this->waiting_for_keyframe = 0;
+        } else {
+          /* move on to the next sample */
+          this->last_sample = this->current_sample;
+          this->current_sample++;
+          continue;
+        }
       }
 
       if ((this->sample_table[i].syncinfo1 != 0xFFFFFFFF) &&
@@ -433,14 +466,6 @@ printf ("************ sending new pts\n");
           this->audio_fifo->put(this->audio_fifo, buf);
         }
       }
-
-      this->last_sample = this->current_sample;
-      this->current_sample++;
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      pthread_mutex_lock( &this->mutex );
-     
     }
   
     /* wait before sending end buffers: user might want to do a new seek */
@@ -643,8 +668,10 @@ static int demux_film_start (demux_plugin_t *this_gen,
 static int demux_film_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
   demux_film_t *this = (demux_film_t *) this_gen;
-  int i;
   int best_index;
+  int left, middle, right;
+  int found;
+  int64_t keyframe_pts;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -653,27 +680,55 @@ static int demux_film_seek (demux_plugin_t *this_gen,
     return this->status;
   }
 
-printf ("seek: start pos, time = %lld, %d\n", start_pos, start_time);
+  /* perform a binary search on the sample table, testing the offset 
+   * boundaries first */
+  if (start_pos <= this->data_start)
+    best_index = 0;
+  else if (start_pos >= this->data_end) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock( &this->mutex );
+    return this->status;
+  } else {
+    left = 0;
+    right = this->sample_count;
+    found = 0;
 
-  /* perform a linear search through the table to get the closest offset */
-  best_index = this->sample_count - 1;
-  for (i = 0; i < this->sample_count; i++) {
-    if (this->sample_table[i].sample_offset > start_pos) {
-      best_index = i;
-      break;
+    while (!found) {
+      middle = (left + right) / 2;
+      if ((start_pos >= this->sample_table[middle].sample_offset) &&
+          (start_pos <= this->sample_table[middle].sample_offset + 
+           this->sample_table[middle].sample_size)) {
+        found = 1;
+      } else if (start_pos < this->sample_table[middle].sample_offset) {
+        right = middle;
+      } else {
+        left = middle;
+      }
     }
+
+    best_index = middle;
   }
 
-printf ("best index guess = %d\n", best_index);
   /* search back in the table for the nearest keyframe */
   while (best_index--) {
     if ((this->sample_table[best_index].syncinfo1 & 0x80000000) == 0) {
-      this->current_sample = best_index;
       break;
     }
   }
 
-printf ("actual new index = %d\n", this->current_sample);
+  /* not done yet; now that the nearest keyframe has been found, seek
+   * back to the first audio frame that has a pts less than or equal to
+   * that of the keyframe */
+  this->waiting_for_keyframe = 1;
+  keyframe_pts = this->sample_table[best_index].pts;
+  while (best_index--) {
+    if ((this->sample_table[best_index].syncinfo1 == 0xFFFFFFFF) &&
+        (this->sample_table[best_index].pts < keyframe_pts)) {
+      break;
+    }
+  }
+
+  this->current_sample = best_index;
   this->status = DEMUX_OK;
   pthread_mutex_unlock( &this->mutex );
 
@@ -691,6 +746,8 @@ static void demux_film_stop (demux_plugin_t *this_gen) {
     pthread_mutex_unlock( &this->mutex );
     return;
   }
+
+  this->current_sample = this->last_sample = 0;
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
