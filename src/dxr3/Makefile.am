@@ -16,7 +16,7 @@ endif
 
 lib_LTLIBRARIES = $(dxr3_modules) 
 
-xineplug_decode_dxr3_video_la_SOURCES = dxr3_decode_video.c
+xineplug_decode_dxr3_video_la_SOURCES = dxr3_decode_video.c dxr3_scr.c
 xineplug_decode_dxr3_video_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c nav_read.c
@@ -28,7 +28,7 @@ xineplug_vo_out_dxr3_la_LIBADD = $(X_LIBS) -lXext
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version \
 		-module $(link_fame) $(link_rte) $(X_LIBS)
 
-noinst_HEADERS = nav_types.h nav_read.h alphablend.h bswap.h dxr3_video_out.h
+noinst_HEADERS = dxr3.h dxr3_scr.h dxr3_video_out.h nav_types.h nav_read.h alphablend.h bswap.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LINUX_INCLUDE)"

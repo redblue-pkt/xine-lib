@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.15 2002/04/04 00:08:36 miguelfreitas Exp $
+ * $Id: dxr3_video_out.c,v 1.16 2002/05/06 11:26:37 jcdutton Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -162,13 +162,13 @@ int dxr3_fame_init(dxr3_driver_t *);
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
-	return VO_CAP_YV12 | VO_CAP_YUY2 |
-		VO_CAP_SATURATION | VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST;
+  return VO_CAP_YV12 | VO_CAP_YUY2 |
+    VO_CAP_SATURATION | VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST;
 }
 
 static void dummy_frame_field (vo_frame_t *vo_img, int which_field)
 {
-	/* dummy function */
+  /* dummy function */
 }
 
 static void dxr3_frame_dispose (vo_frame_t *frame_gen)
@@ -201,9 +201,9 @@ static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
 }
 
 static void dxr3_update_frame_format (vo_driver_t *this_gen,
-				      vo_frame_t *frame_gen,
-				      uint32_t width, uint32_t height,
-				      int ratio_code, int format, int flags)
+              vo_frame_t *frame_gen,
+              uint32_t width, uint32_t height,
+              int ratio_code, int format, int flags)
 {
   dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
   int aspect,i;  
@@ -213,7 +213,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   /* update the overlay window co-ords if required */
   dxr3_overlay_update(this);
 
-  /* reset the copy calls counter (number of calls to dxr3_frame_copy) */	
+  /* reset the copy calls counter (number of calls to dxr3_frame_copy) */  
   frame->copy_calls = 0;
   frame->vo_frame.driver = this_gen;
 
@@ -221,49 +221,49 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   oheight = this->oheight;
 
   if (format == IMGFMT_MPEG) { /* talking to dxr3 decoder */
-	int aspect;
-	/* a bit of a hack. we must release the em8300_mv fd for
-	 * the dxr3 decoder plugin */
-	if (this->fd_video >= 0) {
-		close(this->fd_video);
-		this->fd_video = CLOSED_FOR_DECODER;
-	}
-	/* for mpeg source, we don't have to do much. */
-	this->video_width  = width;
-	this->video_height = height;
-	this->video_aspect = ratio_code;
-	/* remember, there are no buffers malloc'ed for this frame!
-	 * the dxr3 decoder plugin is cool about this */
-	frame->width  = width;
-	frame->height = height;
-	frame->oheight = oheight;
-	if (frame->mem) {
-		free (frame->mem);
-		frame->mem = NULL;
-		frame->real_base[0] = frame->real_base[1] 
-			= frame->real_base[2] = NULL;
-		frame_gen->base[0] = frame_gen->base[1] 
-			= frame_gen->base[2] = NULL;
-	}
-	if (ratio_code < 3 || ratio_code>4)
-	  aspect = ASPECT_FULL;
-	else
-	  aspect = ASPECT_ANAMORPHIC;
-	if(this->aspectratio!=aspect)
-	  dxr3_set_property ((vo_driver_t*)this, VO_PROP_ASPECT_RATIO, aspect);
-	return;
+  int aspect;
+  /* a bit of a hack. we must release the em8300_mv fd for
+   * the dxr3 decoder plugin */
+  if (this->fd_video >= 0) {
+    close(this->fd_video);
+    this->fd_video = CLOSED_FOR_DECODER;
+  }
+  /* for mpeg source, we don't have to do much. */
+  this->video_width  = width;
+  this->video_height = height;
+  this->video_aspect = ratio_code;
+  /* remember, there are no buffers malloc'ed for this frame!
+   * the dxr3 decoder plugin is cool about this */
+  frame->width  = width;
+  frame->height = height;
+  frame->oheight = oheight;
+  if (frame->mem) {
+    free (frame->mem);
+    frame->mem = NULL;
+    frame->real_base[0] = frame->real_base[1] 
+      = frame->real_base[2] = NULL;
+    frame_gen->base[0] = frame_gen->base[1] 
+      = frame_gen->base[2] = NULL;
+  }
+  if (ratio_code < 3 || ratio_code>4)
+    aspect = ASPECT_FULL;
+  else
+    aspect = ASPECT_ANAMORPHIC;
+  if(this->aspectratio!=aspect)
+    dxr3_set_property ((vo_driver_t*)this, VO_PROP_ASPECT_RATIO, aspect);
+  return;
   }
 
   /* the following is for the mpeg encoding part only */
   
   if (this->fd_video == CLOSED_FOR_DECODER) { /* decoder should have released it */
-	this->fd_video = CLOSED_FOR_ENCODER; /* allow encoder to reopen it */
-	this->need_redraw = 1;
+  this->fd_video = CLOSED_FOR_ENCODER; /* allow encoder to reopen it */
+  this->need_redraw = 1;
   }
 
   if (this->add_bars == 0) {
-	/* don't add black bars; assume source is in 4:3 */
-	ratio_code = XINE_ASPECT_RATIO_4_3;
+  /* don't add black bars; assume source is in 4:3 */
+  ratio_code = XINE_ASPECT_RATIO_4_3;
   }
 
   /* check aspect ratio, see if we need to add black borders */
@@ -308,16 +308,16 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
     if (! this->enc) {
       /* no encoder plugin! Let's bug the user! */
       printf(
-	"dxr3: ********************************************************\n"
-	"dxr3: *                                                      *\n"
-	"dxr3: * need an mpeg encoder to play non-mpeg videos on dxr3 *\n"
-	"dxr3: * read the README.dxr3 for details.                    *\n"
-	"dxr3: * (if you get this message while trying to play an     *\n"
-	"dxr3: * mpeg video, there is something wrong with the dxr3   *\n"
-	"dxr3: * decoder plugin. check if it is set up correctly)     *\n"
-	"dxr3: *                                                      *\n"
-	"dxr3: ********************************************************\n"
-	);
+  "dxr3: ********************************************************\n"
+  "dxr3: *                                                      *\n"
+  "dxr3: * need an mpeg encoder to play non-mpeg videos on dxr3 *\n"
+  "dxr3: * read the README.dxr3 for details.                    *\n"
+  "dxr3: * (if you get this message while trying to play an     *\n"
+  "dxr3: * mpeg video, there is something wrong with the dxr3   *\n"
+  "dxr3: * decoder plugin. check if it is set up correctly)     *\n"
+  "dxr3: *                                                      *\n"
+  "dxr3: ********************************************************\n"
+  );
     }
 
     if (this->enc && this->enc->on_update_format)
@@ -327,7 +327,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
   /* if dimensions changed, we need to re-allocate frame memory */
   if ((frame->width != width) || (frame->height != height) || 
-	(frame->oheight != oheight)) {
+  (frame->oheight != oheight)) {
     if (frame->mem) {
       free (frame->mem);
       frame->mem = NULL;
@@ -340,7 +340,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       /* planar format, only base[0] */
       /* add one extra line for field swap stuff */
       frame->real_base[0] = malloc_aligned(16, (image_size+width)*2, 
-		(void**)&frame->mem);
+    (void**)&frame->mem);
       /* don't use first line */
       frame->real_base[0] += width * 2;
       frame->real_base[1] = frame->real_base[2] = 0;
@@ -352,7 +352,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       /* fill with black (yuy2 16,128,16,128,...) */
       memset(frame->real_base[0], 128, 2*image_size); /* U and V */
       for (i=0; i<2*image_size; i+=2)
-	*(frame->real_base[0]+i) = 16; /* Y */
+  *(frame->real_base[0]+i) = 16; /* Y */
     }
     else { /* IMGFMT_YV12 */
       image_size = width * oheight; /* includes black bars */
@@ -377,18 +377,18 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   }
      
   if (this->swap_fields != frame->swap_fields) {
-	if (format == IMGFMT_YUY2) {
-		if (this->swap_fields) 
-			frame->vo_frame.base[0] -= width *2;
-		else  
-			frame->vo_frame.base[0] += width *2;
-	}
-	else {
-		if (this->swap_fields) 
-			frame->vo_frame.base[0] -= width;
-		else  
-			frame->vo_frame.base[0] += width;
-	}
+  if (format == IMGFMT_YUY2) {
+    if (this->swap_fields) 
+      frame->vo_frame.base[0] -= width *2;
+    else  
+      frame->vo_frame.base[0] += width *2;
+  }
+  else {
+    if (this->swap_fields) 
+      frame->vo_frame.base[0] -= width;
+    else  
+      frame->vo_frame.base[0] += width;
+  }
   }
  
   frame->width  = width;
@@ -402,24 +402,24 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
 int dxr3_redraw_needed(vo_driver_t *this_gen)
 {
-	dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
-	
-	dxr3_overlay_update(this);
+  dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+  
+  dxr3_overlay_update(this);
 
-	if (this->need_redraw) {
-		this->need_redraw = 0;
-  		return 1;
-	}
+  if (this->need_redraw) {
+    this->need_redraw = 0;
+      return 1;
+  }
 
-	return 0;
+  return 0;
 }
 
 static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
-	dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen;
-	dxr3_driver_t *this = (dxr3_driver_t *) frame_gen->driver;
-	if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_frame_copy)
-		this->enc->on_frame_copy(this, frame, src);
+  dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen;
+  dxr3_driver_t *this = (dxr3_driver_t *) frame_gen->driver;
+  if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_frame_copy)
+    this->enc->on_frame_copy(this, frame, src);
 }
 
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
@@ -439,197 +439,197 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
  vo_overlay_t *overlay)
 {
-	/* FIXME: We only blend non-mpeg frames here.
-	   Is there any way to provide overlays for mpeg content? Subpictures? */
-	if ( frame_gen->format != IMGFMT_MPEG )
-	{
-		dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
-		
-		if (overlay->rle) {
-			if( frame_gen->format == IMGFMT_YV12 )
-				blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
-			else
-				blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
-		}
-	}
+  /* FIXME: We only blend non-mpeg frames here.
+     Is there any way to provide overlays for mpeg content? Subpictures? */
+  if ( frame_gen->format != IMGFMT_MPEG )
+  {
+    dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
+    
+    if (overlay->rle) {
+      if( frame_gen->format == IMGFMT_YV12 )
+        blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
+      else
+        blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
+    }
+  }
 }
 
 void dxr3_exit (vo_driver_t *this_gen)
 {
-	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
+  dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
 
-	if (this->enc && this->enc->on_close)
-		this->enc->on_close(this);
-	printf("dxr3: vo exit called\n");
+  if (this->enc && this->enc->on_close)
+    this->enc->on_close(this);
+  printf("dxr3: vo exit called\n");
 
-	if(this->overlay_enabled)
-		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF);
+  if(this->overlay_enabled)
+    dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF);
 }
 
 void dxr3_update_add_bars(void *data, cfg_entry_t* entry)
 {
-	dxr3_driver_t* this = (dxr3_driver_t*)data;
-	this->add_bars = entry->num_value;
-	printf("dxr3: add bars to correct a.r. is %s\n", 
-		(this->add_bars ? "on" : "off"));
+  dxr3_driver_t* this = (dxr3_driver_t*)data;
+  this->add_bars = entry->num_value;
+  printf("dxr3: add bars to correct a.r. is %s\n", 
+    (this->add_bars ? "on" : "off"));
 }
 
 void dxr3_update_swap_fields(void *data, cfg_entry_t* entry)
 {
-	dxr3_driver_t* this = (dxr3_driver_t*)data;
-	this->swap_fields = entry->num_value;
-	printf("dxr3: set swap field to %s\n", 
-		(this->swap_fields ? "on" : "off"));
+  dxr3_driver_t* this = (dxr3_driver_t*)data;
+  this->swap_fields = entry->num_value;
+  printf("dxr3: set swap field to %s\n", 
+    (this->swap_fields ? "on" : "off"));
 }
 
 static void dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry)
 {
-	((dxr3_driver_t*)this_gen)->enhanced_mode = entry->num_value;
-	printf("dxr3: encode: set enhanced mode to %s\n", 
-		(entry->num_value ? "on" : "off"));
+  ((dxr3_driver_t*)this_gen)->enhanced_mode = entry->num_value;
+  printf("dxr3: encode: set enhanced mode to %s\n", 
+    (entry->num_value ? "on" : "off"));
 }
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 {
-	dxr3_driver_t *this;
-	char tmpstr[100];
-	const char *encoder; 
-	char *available_encoders,*default_encoder;
-	char *confstr;
-	int dashpos;
+  dxr3_driver_t *this;
+  char tmpstr[100];
+  const char *encoder; 
+  char *available_encoders,*default_encoder;
+  char *confstr;
+  int dashpos;
 
-	/*
-	* allocate plugin struct
-	*/
+  /*
+  * allocate plugin struct
+  */
 printf("dxr3_video_out:init_plugin\n");
 
-	this = malloc (sizeof (dxr3_driver_t));
+  this = malloc (sizeof (dxr3_driver_t));
 
-	if (!this) {
-		printf ("video_out_dxr3: malloc failed\n");
-		return NULL;
-	}
+  if (!this) {
+    printf ("video_out_dxr3: malloc failed\n");
+    return NULL;
+  }
 
-	memset (this, 0, sizeof(dxr3_driver_t));
+  memset (this, 0, sizeof(dxr3_driver_t));
 
-	this->vo_driver.get_capabilities     = dxr3_get_capabilities;
-	this->vo_driver.alloc_frame          = dxr3_alloc_frame;
-	this->vo_driver.update_frame_format  = dxr3_update_frame_format;
-	this->vo_driver.display_frame        = dxr3_display_frame;
-	this->vo_driver.overlay_blend        = dxr3_overlay_blend;
-	this->vo_driver.get_property         = dxr3_get_property;
-	this->vo_driver.set_property         = dxr3_set_property;
-	this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
-	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
-	this->vo_driver.redraw_needed        = dxr3_redraw_needed;
-	this->vo_driver.exit                 = dxr3_exit;
-	this->config=config;
+  this->vo_driver.get_capabilities     = dxr3_get_capabilities;
+  this->vo_driver.alloc_frame          = dxr3_alloc_frame;
+  this->vo_driver.update_frame_format  = dxr3_update_frame_format;
+  this->vo_driver.display_frame        = dxr3_display_frame;
+  this->vo_driver.overlay_blend        = dxr3_overlay_blend;
+  this->vo_driver.get_property         = dxr3_get_property;
+  this->vo_driver.set_property         = dxr3_set_property;
+  this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
+  this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
+  this->vo_driver.redraw_needed        = dxr3_redraw_needed;
+  this->vo_driver.exit                 = dxr3_exit;
+  this->config=config;
 
-	this->swap_fields = config->register_bool(config, "dxr3.enc_swap_fields", 0, "swap odd and even lines", NULL, dxr3_update_swap_fields, this);
+  this->swap_fields = config->register_bool(config, "dxr3.enc_swap_fields", 0, "swap odd and even lines", NULL, dxr3_update_swap_fields, this);
 
-	this->add_bars = config->register_bool(config, "dxr3.enc_add_bars", 1, "Add black bars to correct aspect ratio", "If disabled, will assume source has 4:3 a.r.", dxr3_update_add_bars, this);
-	
-	this->enhanced_mode = config->register_bool(config,"dxr3.enc_alt_play_mode", 1, "dxr3: use alternate play mode for mpeg encoder playback","Enabling this option will utilise a slightly different play mode",dxr3_update_enhanced_mode,this);
-	/* open control device */
-	confstr = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV,NULL,NULL,NULL,NULL);
-	strncpy(this->devname, confstr, 128);
-	this->devname[127] = '\0';
-	dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
-	if (this->devname[dashpos] == '-') {
-		/* use new device naming scheme with trailing number */
-		strncpy(this->devnum, &this->devname[dashpos], 3);
-		this->devname[dashpos] = '\0';
-	} else {
-		/* use old device naming scheme without trailing number */
-		/* FIXME: remove this when everyone uses em8300 >=0.12.0 */
-		this->devnum[0] = '\0';
-	}
+  this->add_bars = config->register_bool(config, "dxr3.enc_add_bars", 1, "Add black bars to correct aspect ratio", "If disabled, will assume source has 4:3 a.r.", dxr3_update_add_bars, this);
+  
+  this->enhanced_mode = config->register_bool(config,"dxr3.enc_alt_play_mode", 1, "dxr3: use alternate play mode for mpeg encoder playback","Enabling this option will utilise a slightly different play mode",dxr3_update_enhanced_mode,this);
+  /* open control device */
+  confstr = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV,NULL,NULL,NULL,NULL);
+  strncpy(this->devname, confstr, 128);
+  this->devname[127] = '\0';
+  dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
+  if (this->devname[dashpos] == '-') {
+    /* use new device naming scheme with trailing number */
+    strncpy(this->devnum, &this->devname[dashpos], 3);
+    this->devname[dashpos] = '\0';
+  } else {
+    /* use old device naming scheme without trailing number */
+    /* FIXME: remove this when everyone uses em8300 >=0.12.0 */
+    this->devnum[0] = '\0';
+  }
 
-	snprintf (tmpstr, sizeof(tmpstr), "%s%s", this->devname, this->devnum);
-	printf("dxr3: Entering video init, devname=%s.\n",tmpstr);
-	if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
-		printf("dxr3: Failed to open control device %s (%s)\n",
-			tmpstr, strerror(errno));
-		return 0;
-	}
+  snprintf (tmpstr, sizeof(tmpstr), "%s%s", this->devname, this->devnum);
+  printf("dxr3: Entering video init, devname=%s.\n",tmpstr);
+  if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
+    printf("dxr3: Failed to open control device %s (%s)\n",
+      tmpstr, strerror(errno));
+    return 0;
+  }
         /* output mpeg to file instead of dxr3? */
         this->file_out = config->register_string(config, "dxr3.outputfile", "<none>", "dxr3: output file of encoded mpeg video for debugging",NULL,NULL,NULL);
 
         if (this->file_out && strcmp(this->file_out, "<none>")) {
-		this->fd_video = open(this->file_out, O_WRONLY | O_CREAT);
-		if (this->fd_video < 0) {
-			perror("dxr3: failed to open output file");
-			return 0;
-		}
-	}
-	else {        
-	 	/* open video device */
-		snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
-		if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
-			printf("dxr3: failed to open video device %s (%s)\n",
-				tmpstr, strerror(errno));
-			return 0;
-		}
-	        /* close now and and let the encoders reopen if they want */
-	        close(this->fd_video);
-        	this->fd_video = CLOSED_FOR_DECODER;
-	}
+    this->fd_video = open(this->file_out, O_WRONLY | O_CREAT);
+    if (this->fd_video < 0) {
+      perror("dxr3: failed to open output file");
+      return 0;
+    }
+  }
+  else {        
+     /* open video device */
+    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
+    if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
+      printf("dxr3: failed to open video device %s (%s)\n",
+        tmpstr, strerror(errno));
+      return 0;
+    }
+          /* close now and and let the encoders reopen if they want */
+          close(this->fd_video);
+          this->fd_video = CLOSED_FOR_DECODER;
+  }
 
-	/* which encoder to use? Whadda we got? */
-	default_encoder = 0;
-	/* memory leak... but config doesn't copy our help string :-( */
-	available_encoders = malloc(256);
-	strcpy(available_encoders, "Mpeg1 encoder. Options: ");
+  /* which encoder to use? Whadda we got? */
+  default_encoder = 0;
+  /* memory leak... but config doesn't copy our help string :-( */
+  available_encoders = malloc(256);
+  strcpy(available_encoders, "Mpeg1 encoder. Options: ");
 #ifdef HAVE_LIBFAME
-	default_encoder = "fame";
-	strcat(available_encoders, "\"fame\" (very fast, good quality) ");
+  default_encoder = "fame";
+  strcat(available_encoders, "\"fame\" (very fast, good quality) ");
 #endif
 #ifdef HAVE_LIBRTE
-	default_encoder = "rte"; 
-	strcat(available_encoders, "\"rte\" (fast, high quality) ");
+  default_encoder = "rte"; 
+  strcat(available_encoders, "\"rte\" (fast, high quality) ");
 #endif
-	printf("dxr3: %s\n", available_encoders);
-	this->enc = 0;
-	if (default_encoder) { 
-		encoder = config->register_string(config, "dxr3.encoder", 
-			default_encoder, available_encoders, NULL, NULL, NULL);
+  printf("dxr3: %s\n", available_encoders);
+  this->enc = 0;
+  if (default_encoder) { 
+    encoder = config->register_string(config, "dxr3.encoder", 
+      default_encoder, available_encoders, NULL, NULL, NULL);
 #ifdef HAVE_LIBRTE
-		if (! strcmp(encoder, "rte"))
-			if ( dxr3_rte_init(this) )
-				return 0;
+    if (! strcmp(encoder, "rte"))
+      if ( dxr3_rte_init(this) )
+        return 0;
 #endif
 #ifdef HAVE_LIBFAME
-		if (! strcmp(encoder, "fame"))
-			if ( dxr3_fame_init(this) )
-				return 0;
+    if (! strcmp(encoder, "fame"))
+      if ( dxr3_fame_init(this) )
+        return 0;
 #endif
-		if (this->enc == 0) {
-			printf(
+    if (this->enc == 0) {
+      printf(
 "dxr3: mpeg encoder \"%s\" not compiled in or not supported.\n"
 "dxr3: valid options are %s\n", encoder, available_encoders);
-		}
-	}
-	else {
-		printf(
+    }
+  }
+  else {
+    printf(
 "dxr3: no mpeg encoder compiled in.\n"
 "dxr3: that's ok, you don't need if for mpeg video like DVDs, but\n"
 "dxr3: you will not be able to play non-mpeg content using this video out\n"
 "dxr3: driver. See the README.dxr3 for details on configuring an encoder.\n" 
-		);
-	}
-	
-	/* default values */
-	this->overlay_enabled = 0;
-	this->aspectratio = ASPECT_FULL;
+    );
+  }
+  
+  /* default values */
+  this->overlay_enabled = 0;
+  this->aspectratio = ASPECT_FULL;
 
-	dxr3_read_config(this, visual_gen);
-	
-	if (this->overlay_enabled) {
-		dxr3_get_keycolor(this);
-		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
-	}
+  dxr3_read_config(this, visual_gen);
+  
+  if (this->overlay_enabled) {
+    dxr3_get_keycolor(this);
+    dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
+  }
 
-	return &this->vo_driver;
+  return &this->vo_driver;
 }
 
 static vo_info_t vo_info_dxr3 = {
@@ -642,7 +642,7 @@ static vo_info_t vo_info_dxr3 = {
 
 vo_info_t *get_video_out_plugin_info()
 {
-	return &vo_info_dxr3;
+  return &vo_info_dxr3;
 }
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.19 2002/04/04 00:08:36 miguelfreitas Exp $
+ * $Id: dxr3_video_out.h,v 1.20 2002/05/06 11:26:37 jcdutton Exp $
  *
  */
 
@@ -63,105 +63,105 @@
 #define CLOSED_FOR_ENCODER -2
 
 struct coeff {
-    	float 	k,m;
+      float   k,m;
 };
 
 typedef struct {
-	int 	fd_control;
+  int   fd_control;
 
-	int 	xoffset;
-	int 	yoffset;
-	int 	xcorr;
-	int 	jitter;
-	int 	stability;
-	int 	colorkey;
-	float 	color_interval;
-	int 	screen_xres;
-	int 	screen_yres;
-	int 	screen_depth;
+  int   xoffset;
+  int   yoffset;
+  int   xcorr;
+  int   jitter;
+  int   stability;
+  int   colorkey;
+  float   color_interval;
+  int   screen_xres;
+  int   screen_yres;
+  int   screen_depth;
 
-	struct coeff colcal_upper[3];
-	struct coeff colcal_lower[3];
+  struct coeff colcal_upper[3];
+  struct coeff colcal_lower[3];
 } dxr3_overlay_t;
 
 typedef enum { ENC_FAME, ENC_RTE } encoder_type;
 typedef struct encoder_data_s encoder_data_t;
 
 typedef struct dxr3_driver_s {
-	vo_driver_t     vo_driver;
-	config_values_t *config;
-	int 		fd_control;
-        int 		fd_video;
-	int 		aspectratio;
-	int 		tv_mode;
-	int		enhanced_mode; /* enhanced play mode */
-	int		need_redraw;
-	em8300_bcs_t 	bcs;
-	char		devname[128];
-	char		devnum[3];
+  vo_driver_t     vo_driver;
+  config_values_t *config;
+  int     fd_control;
+        int     fd_video;
+  int     aspectratio;
+  int     tv_mode;
+  int    enhanced_mode; /* enhanced play mode */
+  int    need_redraw;
+  em8300_bcs_t   bcs;
+  char    devname[128];
+  char    devnum[3];
 
-	/* for encoder plugin */
-	encoder_data_t	*enc; /* encoder data */
-	double		fps; /* frames per second */
-	int		format; /* color format */
-	const char	*file_out;
-	int		swap_fields; /* swap fields */
-	int		add_bars; /* add black bars to correct a.r. */
-	/* height after adding black bars to correct a.r. */
-        int 		oheight; 
-	int		top_bar; /* number of lines in top black bar */
-	/* input height (before adding black bars) */
-	int 		video_iheight; 
-	/* output height (after adding bars) */
-	int 		video_height;  
+  /* for encoder plugin */
+  encoder_data_t  *enc; /* encoder data */
+  double    fps; /* frames per second */
+  int    format; /* color format */
+  const char  *file_out;
+  int    swap_fields; /* swap fields */
+  int    add_bars; /* add black bars to correct a.r. */
+  /* height after adding black bars to correct a.r. */
+        int     oheight; 
+  int    top_bar; /* number of lines in top black bar */
+  /* input height (before adding black bars) */
+  int     video_iheight; 
+  /* output height (after adding bars) */
+  int     video_height;  
 
-	/* for overlay */
-	dxr3_overlay_t overlay;
-	Display 	*display;
-	Drawable 	win;
-	GC 		gc;     
-	XColor 		color;
-	int 		xpos, ypos;
-	int 		width, height; 
-	int 		overlay_enabled;
-	int		tv_switchable;	/* can switch from overlay<->tvout */
-	int		fullscreen_rectangle;
-	float 		desired_ratio;
+  /* for overlay */
+  dxr3_overlay_t overlay;
+  Display   *display;
+  Drawable   win;
+  GC     gc;     
+  XColor     color;
+  int     xpos, ypos;
+  int     width, height; 
+  int     overlay_enabled;
+  int    tv_switchable;  /* can switch from overlay<->tvout */
+  int    fullscreen_rectangle;
+  float     desired_ratio;
 
-	int 		zoom_enabled;   /* zoomed 16:9 mode */
+  int     zoom_enabled;   /* zoomed 16:9 mode */
 
-	int 		video_width;
-	int 		video_aspect;
-	
-	char 		*user_data;
+  int     video_width;
+  int     video_aspect;
+  
+  char     *user_data;
 
-	void (*frame_output_cb) (void *user_data,
-        	               int video_width, int video_height,
-                	       int *dest_x, int *dest_y,
+  void (*frame_output_cb) (void *user_data,
+                         int video_width, int video_height,
+                         int *dest_x, int *dest_y,
                                int *dest_height, int *dest_width,
                                int *win_x, int *win_u);
                                
-/*	void 		(*frame_output_cb) (char *userdata, int video_width, 
-				int video_height, int *dest_x,
-		        	int *dest_y, int *dest_height, int *dest_width);
+/*  void     (*frame_output_cb) (char *userdata, int video_width, 
+        int video_height, int *dest_x,
+              int *dest_y, int *dest_height, int *dest_width);
 */
 } dxr3_driver_t;
 
 typedef struct dxr3_frame_s {
   vo_frame_t    vo_frame;
   int           width, height,oheight;
-  uint8_t       *mem; 		/* allocated for YV12 or YUY2 buffers */
-  uint8_t       *real_base[3]; 	/* yuv/yuy2 buffers in mem aligned on 16 */
-  int           copy_calls; 	/* counts calls to dxr3_frame_copy function */
-  int		swap_fields;	/* shifts Y buffer one line to exchange odd/even lines*/
+  uint8_t       *mem;     /* allocated for YV12 or YUY2 buffers */
+  uint8_t       *real_base[3];   /* yuv/yuy2 buffers in mem aligned on 16 */
+  int           copy_calls;   /* counts calls to dxr3_frame_copy function */
+  int    swap_fields;  /* shifts Y buffer one line to exchange odd/even lines*/
 } dxr3_frame_t;
 
 struct encoder_data_s {
-	encoder_type type;
-	int (*on_update_format)(dxr3_driver_t *);
-	int (*on_frame_copy)(dxr3_driver_t *, dxr3_frame_t *, uint8_t **src);
-	int (*on_display_frame)(dxr3_driver_t *, dxr3_frame_t *);
-	int (*on_close)(dxr3_driver_t *);
+  encoder_type type;
+  int (*on_update_format)(dxr3_driver_t *);
+  int (*on_frame_copy)(dxr3_driver_t *, dxr3_frame_t *, uint8_t **src);
+  int (*on_display_frame)(dxr3_driver_t *, dxr3_frame_t *);
+  int (*on_close)(dxr3_driver_t *);
 }; 
 
 /* func definitions */
@@ -172,9 +172,9 @@ int dxr3_overlay_set_mode(dxr3_overlay_t *this, int mode);
 int dxr3_overlay_set_attributes(dxr3_overlay_t *this);
 int dxr3_overlay_set_screen(dxr3_overlay_t *this);
 int dxr3_overlay_set_window(dxr3_overlay_t *this,
-				 int xpos, int ypos, int width, int height);
+         int xpos, int ypos, int width, int height);
 void dxr3_overlay_adapt_area(dxr3_driver_t *this,
-				 int xpos, int ypos, int width, int height);
+         int xpos, int ypos, int width, int height);
 void dxr3_overlay_update(dxr3_driver_t *this);
 void dxr3_overlay_buggy_preinit(dxr3_overlay_t *this, int fd);
 int dxr3_overlay_read_state(dxr3_overlay_t *this);
