@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/09/11 14:10:04 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/09/12 17:33:34 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -72,6 +72,8 @@ static void mad_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   mad_stream_init (&this->stream);
   mad_frame_init  (&this->frame);
 
+  /* printf ("libmad: init\n"); */
+
 }
 
 /* utility to scale and round samples to 16 bits */
@@ -111,8 +113,9 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
 
-  /*  printf ("libmad: decode data\n");
-      fflush (stdout); */
+  /*
+  printf ("libmad: decode data, decoder_info[0]: %d\n", buf->decoder_info[0]);
+  */
 
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {
     printf ("libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
@@ -127,9 +130,8 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->bytes_in_buffer += buf->size;
 
     /*
-      printf ("libmad: decode data - doing it\n");
-      fflush (stdout);
-      */
+    printf ("libmad: decode data - doing it\n");
+    */
 
     mad_stream_buffer (&this->stream, this->buffer, 
 		       this->bytes_in_buffer);
