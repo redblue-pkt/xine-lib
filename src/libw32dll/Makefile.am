@@ -6,7 +6,7 @@ if HAVE_W32DLL
 w32dll_codec = xineplug_decode_w32dll.la
 endif
 
-# LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -19,12 +19,15 @@ lib_LTLIBRARIES = $(w32dll_codec)
 
 xineplug_decode_w32dll_la_SOURCES = w32codec.c
 xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module
-xineplug_decode_w32dll_la_LIBADD = wine/libwine.la
+xineplug_decode_w32dll_la_LIBADD = $(top_builddir)/src/libw32dll/wine/libwine.la
 
 noinst_HEADERS = w32codec.h
 
 debug:
-	$(MAKE) CFLAGS="$(CFLAGS) -g -DSTATIC_WIN32_PATH"
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) \
+	done;
+	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
