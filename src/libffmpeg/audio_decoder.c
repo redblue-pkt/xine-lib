@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.12 2004/07/03 16:47:55 tmattern Exp $
+ * $Id: audio_decoder.c,v 1.13 2005/03/06 07:15:05 tmmm Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -122,7 +122,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   audio_buffer_t *audio_buffer;
   int bytes_to_send;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if ( (buf->decoder_flags & BUF_FLAG_HEADER) &&
+      !(buf->decoder_flags & BUF_FLAG_SPECIAL) ) {
 
     /* accumulate init data */
     ff_audio_ensure_buffer_size(this, this->size + buf->size);
@@ -212,6 +213,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
        * bits/sample for some codecs (e.g. MS ADPCM) */
       this->audio_bits = 16;  
   
+      this->context->bits_per_sample = this->audio_bits;
       this->context->sample_rate = this->audio_sample_rate;
       this->context->channels    = this->audio_channels;
       this->context->codec_id    = this->codec->id;
@@ -236,7 +238,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
              (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
 
     this->context->extradata_size = buf->decoder_info[2];
-    this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+    this->context->extradata = xine_xmalloc(buf->decoder_info[2] +
+      FF_INPUT_BUFFER_PADDING_SIZE);
     memcpy(this->context->extradata, buf->decoder_info_ptr[2],
       buf->decoder_info[2]);
 
