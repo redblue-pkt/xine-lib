@@ -1,0 +1,1464 @@
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+<!ENTITY intro SYSTEM "intro.sgml">
+]>
+
+<book>
+
+<bookinfo>
+  <title>The xine engine FAQ</title>
+  <titleabbrev>xine FAQ</titleabbrev>
+  <copyright>
+    <year>2001-2003</year>
+    <holder>the xine project team</holder>
+  </copyright>
+</bookinfo>
+
+<chapter id="general">
+
+  <title>General questions about xine and this document</title>
+
+  <sect1>
+
+    <title>What is the xine engine?</title>
+
+    <para> 
+      The xine engine is a free media player engine. It comes in the form of
+      a shared libarary and is typically used by media player frontends
+      and other multimedia applications for playback of multimedia streams
+      such as movies, radio/tv network streams, DVDs, VCDs.
+    </para>
+
+  </sect1>
+
+  <sect1>
+    
+    <title> What's the aim and scope of this text? </title>
+
+    <para>
+      The primary goal of this FAQ is to cover all recurring questions related
+      to the xine engine. Frontend specific questions are not covered here.
+    </para>
+
+  </sect1>
+
+  <sect1>
+
+    <title> My question is not yet covered here - where can I ask for help? </title>
+
+    <para>
+      First of all be sure that your question is really not covered here and
+      that you haven't just been a bit too lazy to read through all of this
+      text. ;-). Also check out the xine HOWTO and documentation specific to
+      the frontend (e.g. <command> xine-ui </command> or <command> gxine </command> or 
+      <command> totem </command>).
+    </para>
+    
+    <para>
+      That said - you are welcome to mail to our user mailing list:
+    
+      <email>xine-user@lists.sourceforge.net</email>
+
+      Please provide some info about your setup so people have a chance to
+      help you, e.g. include information about your audio/video hardware
+      and drivers you use, operating system, cpu type and some console
+      output/any error messages. Also include command line parameters you
+      have specified and information about the type of stream you're
+      trying to play back. Also very important is the version of xine
+      you're using and information about any additional plugins you
+      may have installed on your system.
+    </para>
+
+  </sect1>
+
+  <sect1>
+
+    <title> What are those xine-lib, xine-ui, gxine, ... modules in cvs for? </title>
+
+    <para>
+      Some time ago xine just became too complex to be just one big program.
+      Therefore it was split into two major parts.
+    </para>
+    
+    <para>
+      xine-lib is simply speaking the engine of xine. It contains all plugins
+      and is necessary to run anything that relies on xine (this is the part that
+      is covered in this FAQ).
+    </para>
+
+    <para>
+      Then there are frontends - applications that use xine. The most
+      common frontend is that of a media player. There are currently
+      two frontends being developed in the xine project, xine-ui (skinned
+      dvd-player style frontend directly based on xlib) and gxine,
+      a desktop media-player style frontend using the standard gtk widget set
+      and comes with a mozilla browser plugin.
+      External projects like sinek and totem develop additional frontends.
+      In the future you will likely see more and different types of apllications
+      being developed which will use the xine engine for video processing
+      and other multimedia purposes.
+    <para>
+
+    <para>
+      If you simply want a media/dvd player, you'll need to install xine-lib
+      first and then choose and install a player frontend like xine-ui or gxine.
+    </para>
+
+    <para>
+      Other modules in CVS: <filename>xine-plugin</filename> a mozilla browser plugin
+      for streaming media playback using xine, <filename>xine-www</filename> the
+      xine project website sources.
+    </para>
+
+  </sect1>
+
+  <sect1>
+
+    <title> Where and how do I get the latest development version? </title>
+
+    <para>
+      Be advised that end-users should stick to the official xine releases.
+      CVS is only intended for developers.
+    </para>
+    
+    <para>
+      To check out xine-modules from CVS, first do this:
+    </para>
+    <para>
+     <command> cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine login </command>
+     [empty password]
+    </para>
+    <para>
+      then, to check out individual modules (e.g. <filename>xine-lib</filename>, 
+      <filename>gxine</filename>, <filename>xine-ui</filename>):
+    </para>
+    <para>
+    <command>cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine co modulename</command>
+    </para>
+
+  </sect1>
+
+  <sect1>
+
+    <title> Where can I find pre-compiled binaries, e.g. RPMs? </title>
+
+    <para>
+      The xine project does not provide pre-compiled binaries for legal
+      reasons (some parts of xine may be covered by patents in some countries).
+      Some OS projects/vendors (e.g. debian, freebsd, ...) offer binaries
+      for their distributions - please contact them for further info.
+      You can also find links to third parties providing xine RPMs on
+      the xine homepage.
+    </para>
+    
+    <para>
+      See the next chapter of this FAQ for instructions on how to build xine
+      from source.
+    </para>
+
+  </sect1>
+
+</chapter>
+
+<chapter id="building">
+
+  <title> Building and installing xine from source </title>
+
+  <sect1>
+
+    <title> What do I need to compile everything properly? </title>
+
+    <para>
+      First of all an official and stable release of gcc. Also be aware 
+      that patched gcc versions may break parts of xine and are therefore 
+      not supported by the xine project.
+    </para>
+    
+    <para>
+      Furthermore you'll have to use GNU make to compile xine. On most GNU/Linux
+      systems "make" is GNU make - on other platforms use "gmake" instead.
+      Also, zlib iss required (including the appropriate header files, which are
+      often found in a package called zlib-devel or similar.)
+    </para>
+
+    <para>
+      If you want to compile xine from CVS, you'll need to have the autobuild tools
+      installed (automake, autoconf and libtool - in recent versions).
+    </para>
+
+    <para>
+      Frontends might need additional libraries, e.g. for gxine you'll need to have
+      GTK installed. Make sure you have not only the shared libraries themselves
+      but also the header files (often packaged seperately as so-called -dev packages)
+      on your system.
+    </para>
+
+    <para>
+      Some plugins that come with the xine engine need additional libraries (otherwise
+      they will not be built). For example, libogg and libvorbis (plus their include files)
+      are needed for ogg/vorbis support. 
+    </para>
+
+    <para>
+      Don't worry about this too much right now, xine's <command>configure</command>
+      (see below) will check for all the stuff needed and will tell you what's missing
+      (which means that you should check the output it produces carefully ;) )
+    </para>
+  </sect1>
+
+  <sect1>
+
+    <title> How do I compile xine? </title>
+
+    <sect2>
+    
+      <title> Simple build instructions for beginners </title>
+
+      <para>
+        Download the latest xine-lib and gxine/xine-ui tarballs, then follow
+        these instruction. To unpack a tarball, use:
+      </para>
+      <programlisting>
+        tar xfvz tarballname.tar.gz
+      </programlisting>
+      <para>
+        The following instructions will install xine in <filename>/usr/local</filename> for all
+        users. You need root privileges to do this on most systems.
+      </para>
+      <para>
+        First unpack xine-lib, then:
+      </para>
+      <programlisting>
+        ./configure
+	make install
+      </programlisting>
+      <para>
+        Make sure your <filename>/etc/ld.so.conf</filename> contains 
+	<filename>/usr/local/lib</filename>, then:
+      </para>
+      <programlisting>
+        ldconfig
+      </programlisting>
+      <para>
+        Now unpack your frontend (gxine or xine-ui or ...), then:
+      </para>
+      <programlisting>
+        ./configure
+	make install
+      </programlisting>
+
+    </sect2>    
+
+    <sect2>
+    
+      <title> Complete build instructions </title>
+
+      <para>
+        The build process is the same for all of the xine modules.
+      </para>
+      <para>
+        You have to start with xine-lib. If built and installed successfully, you
+        can continue with the frontend(s).
+      </para>
+      <para>
+        If you have installed xine-lib to a non-standard prefix, make sure you
+        that you have <filename>$prefix/bin</filename> in your PATH and that your linker finds
+        libs in <filename> $prefix/lib </filename> - otherwise trying to build modules that
+        rely on xine-lib will fail with configure complaining about not
+        finding certain parts of libxine. Using bash you can do something like:
+      </para>
+      <programlisting>
+      export PATH="$prefix/bin:$PATH"
+      export LD_LIBRARY_PATH="$prefix/lib:$LD_LIBRARY_PATH"
+      </programlisting>
+      <para>
+        to make sure libxine can be found by the frontend(s).
+      </para>
+      <para>
+        Last but not least. Here the build instructions. As stated earlier,
+        those are the same for every xine module.
+      </para>
+      <programlisting>
+      ./cvscompile.sh [-> *only* if you checked your sources out of CVS]
+      ./configure
+      make
+      make install
+      </programlisting>
+
+    </sect2>    
+
+  </sect1>
+
+  <sect1>
+
+    <title> Making your own RPM packages (xine-lib, xine-ui) </title>
+
+    <para>
+      Basically you will only have to issue one command, if you have just
+      downloaded a source tarball from our web site:
+    </para>
+    
+    <para>
+      <command> rpm -ta THE_NAME_OF_YOUR_SOURCE_TAR_BALL </command>
+    </para>
+    
+    <para>
+      This will start the binary and source RPM building. After compiling is
+      finished, a binary rpm is placed in your rpm binary directory which is
+      usally <filename>/usr/src/RPM/RPMS/[YOUR_ARCHITECTURE]</filename> and a source RPM is written
+      to your rpm source dir (e.g. <filename>/usr/src/RPM/SRPMS</filename>).
+    </para>
+    
+    <para>
+      In case that you have a fresh CVS checkout, you will need to do the
+      following first in order to get a tarball release out of it which you
+      can later use with the <command> rpm -ta </command> command above:
+    </para>
+    
+    <para>
+      <command> ./cvscompile.sh && make clean && make dist </command>
+    </para>
+    
+    <para>
+      In any case, please keep in mind that you have to build and install
+      xine-lib first before you can proceed with xine-ui.
+    </para>
+    
+  </sect1>
+
+  <sect1>
+
+    <title> Can I provide additional CFLAGS for compilation? </title>
+
+    <para>
+      Yes, you can do so by setting the CFLAGS variable and then run
+      configure again.
+    </para>
+    
+    <para>
+      This can be useful to specify additional include paths or library paths
+      to the compiler.
+    </para>
+
+    <para>
+      Example: <command> export CFLAGS="-I/usr/include -L/home/guenter/xine_libs" </command>
+    </para>
+
+  </sect1>
+
+  <sect1>
+
+    <title> Are there binaries for my AMD K7 (Athlon (TM) ) available? Can I build them? </title>
+
+    <para>
+      If you have a recent gcc you can try to compile "more" k7 support in (esp.
+      better instruction scheduling). If the configure script should fail to
+      detect your processor/gcc correctly, try setting the xine_BUILD envvar
+      explicitly to a valid description string for your configuration, e.g.
+    </para>
+    
+    <programlisting>
+    export xine_BUILD=k7-pc-linux-gnu
+    rm -f config.cache
+    ./cvscompile.sh
+    make
+    make install
+    </programlisting>
+
+  </sect1>
+
+  <sect1>
+
+    <title> Build problems: xine engine (xine-lib) </title>
+
+    <sect2>
+
+      <title> The package doesn't compile at all! </title>
+
+      <para>
+        In order to be able to compile xine-lib, you need (amongst other things)
+        the zlib compression library plus the appropriate headers, which are
+        often found in a package called zlib-devel or similar.
+      </para>
+    
+      <para>
+        Read again carefully the output <command>./configure</command>
+	produced and/or compiler warnings and error reports, they often contain
+	helpfull information to find out what's going on. If you're stuck here
+	and decide to post your problem on the xine-user mailing list,
+	make sure you include these outputs.
+      </para>
+
+    </sect2>
+    <sect2>
+
+      <title> The Xv video-out plugin fails to compile! </title>
+
+      <para>
+        If you want to have Xv support compiled in, make sure you either have
+        a shared Xv library on your system, e.g. 
+	<command> ls /usr/X11R6/lib/libXv* </command>
+        should give you some .so libs, like this:
+        <programlisting>
+          /usr/X11R6/lib/libXv.a
+          /usr/X11R6/lib/libXv.so
+          /usr/X11R6/lib/libXv.so.1
+        </programlisting>
+      </para>
+    
+      <para>
+        Alternatively you need to have libtool 1.4 or newer installed. If not
+        and you only got libXv.a you can create the shared versions yourself:
+        <programlisting>
+          ld --whole-archive -shared -o libXv.so.1 libXv.a
+          ln -s libXv.so.1 libXv.so
+          ldconfig
+        </programlisting>
+      </para>
+
+      <para>
+        Now you should be ready to build the Xv video-out plugin on your system.
+      </para>
+
+    </sect2>
+
+  </sect1>
+
+  <sect1>
+
+    <title> Build problems: frontend (gxine/xine-ui/...) </title>
+
+    <sect2>
+
+      <title> I have installed xine-lib but the frontend complains about not finding it!</title>
+
+      <para>
+        First of all take a closer look at the compilation instructions above again. 
+	You will probably find your answer there right away.
+      </para>
+    
+      <para>
+        As stated there (there again that hint *grin*), make sure that you
+        have <filename> $prefix/bin </filename> in your path and that your 
+	linker is able to find
+        libraries installed in <filename>$prefix/lib</filename> (by the way, $prefix is where you
+        installed your xine-lib to earlier (yes, installing xine-lib with
+        <command> make install </command> would be a good idea before trying to compile 
+	the frontend ;)).
+      </para>
+
+    </sect2>
+  </sect1>
+
+  <sect1>
+
+    <title> Can I install xine in my home directory (without being root) ? </title>
+
+    <para>
+      yes. first set up a subdir where you install your private software, eg
+    </para>
+    <programlisting>
+      $ mkdir ~/usr
+    </programlisting>
+    <para>
+      then you have to set a few environment variables - it's probably a good
+      idea to add this to your <filename> ~/.bashrc </filename> (or somewhere similar):
+    </para>
+    <programlisting>
+      export PATH="$HOME/usr/bin:$PATH"
+      export LD_LIBRARY_PATH="$HOME/usr/lib:$LD_LIBRARY_PATH"
+      export CFLAGS="-I$HOME/usr/include -L$HOME/usr/lib -O3"
+      export ACLOCAL_FLAGS="-I $HOME/usr/share/aclocal"
+    </programlisting>
+    <para>
+      now you can unpack tarballs e.g. in <filename>~/usr/src</filename> 
+      (<command>mkdir  ~/usr/src</command> if necessary) and do a
+    </para>
+    <programlisting>
+      $ ./configure --prefix=$HOME/usr
+      $ make install
+    </programlisting>
+  </sect1>
+
+  <sect1>
+
+    <title> </title>
+
+    <para>
+    </para>
+    
+    <para>
+    </para>
+
+  </sect1>
+
+
+</chapter>
+
+<chapter id="playback">
+
+  <title>Playback of various stream types</title>
+  
+  <sect1>
+
+    <title>DVD Playback with xine</title>
+
+    <sect2>
+
+      <title>How do I play back DVDs with xine?</title>
+  
+      <para>
+        Newer xine (1.0.x) releases come with a full-featured
+        DVD plugin that should be able to handle any unencrypted,
+        non-locked DVD with full menu navigation support. No external
+        plugins are required anymore here.
+      </para>
+
+      <para>
+        To get DVD playback working, first make sure you have
+        a symlink <filename>/dev/dvd</filename> pointing to your
+        DVD device on your system. For example, if your DVD drive
+        is the master ide drive on the second IDE channel,
+        <filename>/dev/dvd</filename> should point to
+        <filename>/dev/hdc</filename>. Please note that if you
+        are using the ide-scsi emulation on your system, it is
+        likely that you dvd drive got mapped to a scsi device
+        node even though it is an ide drive. In that case first
+        check out you boot/kernel logs (or run <command> cdrecord -scanbus </command>)
+        to find out which device it got mapped to and set the
+        symlink accordingly (should be something like <filename>/dev/scd0</filename>,
+        <filename>/dev/scd1</filename>, ... in that case).
+        Also make sure you (as a user) have sufficient (read) permissions
+        on your dvd drive (this could mean you either have to change the device
+        permissions or add your user to a special group 
+	(e.g. <command>addgroup cdrom username</command>),
+        depending on your setup and/or distribution.
+      </para>
+
+      <para>
+        It is highly recommended to switch DMA mode on for yout DVD drive
+        (without it even very recent machines will have trouble producing
+        smooth video output). Use a command like
+        <command>hdparm -d 1 device</command>
+        on your dvd device. Please note that even if you're using ide-scsi
+        you will have to set the dma flag on the ide device node (e.g. 
+        <filename>/dev/hdc</filename>), not the mapped <filename>/dev/scd</filename>
+        scsi device.
+      </para>
+
+      <para>
+        To be able to play back encrypted dvds you need to have
+        libdvdcss installed on your system (please check if this is legal where
+        you live).
+      </para>
+
+      <para> 
+        Newer (post-2000) dvd drives (so-called RPC-2 drives) check the dvd
+        region, which means they'll prevent you from playing back dvds that have
+        a different region code from what the drive is set up for (most drives
+        come with a factory setting of region 0 so they can only play back
+        region 0 dvds and there are not many of those available). The easiest
+        way to handle this is to use the regionset utility from
+        <ulink url="http://www.linuxtv.org/download/dvd/dvd_disc_20000215.tar.gz">
+        http://www.linuxtv.org/download/dvd/dvd_disc_20000215.tar.gz</ulink>.
+      </para>
+
+      <para>
+        Once you have everything set up, try something like
+	<command> gxine dvd:// </command> or <command> xine -p dvd:// </command>
+	to start dvd playback. Some frontend also offer so-called autoplay
+	buttons or menu entries that start dvd playback immediately. 
+      </para>
+
+      <para>
+        Important: do not try to mount the DVD. Just insert it and hit the DVD autoplay
+	button or start xine from the command line.
+      </para>
+
+      <para>
+        If things do not work as expected, try running the <command> xine-check </command>
+	shellscript that comes with libxine to see if this gives you further hints on
+	what could be wrong.
+      </para>
+
+    </sect2>
+
+    <sect2>
+       <title> DVD playback works, but it takes a long time until playback starts </title>
+       <para>
+         This points to a region code problem. Some versions of libdvdcss can play
+	 back DVDs from other regions than the RPC-2 DVD drive is set up for,
+	 but this usually means a cryptographic attack (which takes time) has
+	 to be used to access the DVD.
+       </para>
+
+       <para>
+         You can download a tool to set the region code of RPC-Drives here:
+	 <ulink url="http://linuxtv.org/download/dvd/dvd_disc_20000215_css.tar.gz">
+	 http://linuxtv.org/download/dvd/dvd_disc_20000215_css.tar.gz
+	 </ulink>
+       </para>
+
+       <para>
+         Warning: Please be aware that the number of region code changes in RPC-2
+         drives is limited (usually about 5 times), after that your drive will
+         stay locked to the region you last set it up for.
+       </para>
+    </sect2>    
+
+    <sect2>
+       <title>  I have problems setting up my RPC-2 drive for the right region! </title>
+       <para>
+         You can download a tool to set the region code of RPC-Drives here:
+	 <ulink url="http://linuxtv.org/download/dvd/dvd_disc_20000215_css.tar.gz">
+	 http://linuxtv.org/download/dvd/dvd_disc_20000215_css.tar.gz
+	 </ulink>
+       </para>
+
+       <para>
+         Warning: Please be aware that the number of region code changes in RPC-2
+         drives is limited (usually about 5 times), after that your drive will
+         stay locked to the region you last set it up for.
+       </para>
+    </sect2>    
+  </sect1>
+
+  <sect1>
+
+    <title> Can I watch Video CDs (VCDs)? SVCDS ? CD-i?</title>
+
+    <para>
+      xine supports VCD and SVCD playback out-of-the box. Similar to DVDs,
+      make sure you have a <filename>/dev/cdrom</filename> alias pointing
+      to your CDROM drive which you will use to play back the (S)VCD.
+    </para>
+
+    <para>
+      At the moment, CD-i formats are not supported by xine.
+    </para>
+
+    <para>
+      Do not try to mount the (S)VCD. Simply insert it into your CDROM drive
+      and hit the VCD autoplay button or start something like
+      <programlisting>
+      gxine VCD://
+      </programlisting>
+      from the command line.
+    </para>
+
+  </sect1>
+
+  <sect1>
+
+    <title> Can I watch Quicktime (.mov, .mp4) files using xine? </title>
+
+    <para>
+       Quicktime is just a system layer (container format) which can contain various 
+       different audio and video formats. The system layer itself is fully supported
+       in xine. However, only very few typically used quicktime audio/video codecs
+       are natively supported yet. Luckily, if you are using a x86 compatible machine
+       (any recent PC hardware should do) you can install and use the original
+       Quicktime DLLs and watch most streams (trailers) that can be downloaded from the net.
+    </para>
+
+    <para>
+       Possibly the most convenient way to get the Quicktime DLLs is to download
+       them from the mplayer website 
+       <ulink url="http://www1.mplayerhq.hu/MPlayer/releases/codecs/">
+       http://www1.mplayerhq.hu/MPlayer/releases/codecs/</ulink>.
+       The package is called "QuickTime5 DLLs". Unpack it and move everything you find
+       inside to <filename>/usr/lib/win32</filename> (actually you can place them
+       anywhere you want, e.g. someplace in your homedirectory, but then you'll
+       have to set <parameter>codec.win32_path</parameter> in your
+       xine config file accordingly). Restart xine then and you should be
+       able to watch Quicktime trailers.
+    </para>       
+
+  </sect1>
+
+  <sect1>
+
+    <title> Real Network files/streams </title>
+    
+    <sect2>
+      <title> Can I watch Real (.rm, .ram) files using xine ? </title>
+
+      <para>
+        The situation with real files and streams is pretty similar to the situation
+	with Quicktime Streams (see above). Most newer real audio and video formats
+	are only supported by using binary-only codecs which are available from
+	real networks but are not included in xine.
+      </para>
+
+      <para>
+        One way to get these codecs is to download and install RealPlayer from
+	RealNetworks, for example in <filename>/usr/local/RealPlayer8</filename> or
+	<filename>/opt/RealPlayer8</filename>. If you installed it in one of these
+	places, xine should automatically find and use the real binary codecs.
+	If it doesn't work, try to find out the exact path to where the real codecs
+	are installed on your system (look for a file named <filename>rv30.so.6.0</filename>
+	which should reside in a directory called <filename>Codecs</filename> in the
+	directory where you have installed RealPlayer in) and set
+	<parameter>codec.real_codecs_path</parameter> in your xine config file
+	accordingly.
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title> What about (live) network streams (pnm://, rtsp:// style urls) ? </title>
+
+      <para>
+        xine supports both pnm and rtsp streaming. However, digging out the actual
+	pnm/rtsp url can be tricky as they're often packed into heavy JavaScript and
+	HTML code on most websites. You can either use a combination of your
+	browser's "save source" function and wget or use a xine browser plugin
+	(currenlty the gxine frontend comes with a simple mozilla plugin,
+	for example). When you decided to dig out the url by hand don't get fooled
+	by the many redirectors that are often placed around the actual url.
+	Use wget to download any http://-style urls and use less to look inside
+	the downloaded .ra/.ram files where you will find the actual pnm/rtsp
+	url which can be opened using xine.
+      </para>
+
+    </sect2>
+
+  <sect1>
+
+    <title> Can I watch Windows Media (.asf/.wmv) files using xine? </title>
+
+    <para>
+      While the container format (system layer) ASF (wmv is just an alias)
+      is fully supported in xine, for newer windows media 8 and 9 based streams
+      you'll need to install windows binary codecs (.DLLs).
+    </para>
+
+    <para>
+       Possibly the most convenient way to get the windows DLLs is to download
+       them from the mplayer website 
+       <ulink url="http://www1.mplayerhq.hu/MPlayer/releases/codecs/">
+       http://www1.mplayerhq.hu/MPlayer/releases/codecs/</ulink>.
+       The package is called "Win32 Codecpack". Unpack it and move everything you find
+       inside to <filename>/usr/lib/win32</filename> (actually you can place them
+       anywhere you want, e.g. someplace in your homedirectory, but then you'll
+       have to set <parameter>codec.win32_path</parameter> in your
+       xine config file accordingly). Restart xine then and you should be
+       able to watch windows media streams.
+    </para>       
+
+  </sect1>
+
+  <sect1>
+
+    <title> Can I watch Digital TV (Digital Video Broadcast) using xine ? </title>
+
+    <para>
+      At the time of this writing DVB support is a very new and experimental
+      feature in xine. The number of supported cards is pretty limited at the moment.
+      See <filename>doc/README.dvb</filename> (in the xine-lib tarball) for details.
+    </para>
+
+  </sect1>
+
+  <sect1>
+
+    <title>How do I play streams from STDIN?</title>
+    
+    <para>
+      Use something like:
+      <programlisting>
+        cat stream.mpg | gxine stdin://
+      </programlisting>    
+    </para>
+  </sect1>
+
+  <sect1>
+
+    <title> How can I watch files with external AVI subtitles?</title>
+    
+    <para>
+      This is not supported in current xine 1.0.x releases (but it is being
+      actively worked on, so please be patient :) ). In xine 0.9.13
+      this used to be:
+      <programlisting>
+        xine foo.avi%bar.sub
+      </programlisting>    
+    </para>
+  </sect1>
+
+</chapter>
+
+<chapter id="running">
+
+  <title> Running xine </title>
+  
+  <sect1>
+
+    <title>I have a lot of dropped frames - what can I do?</title>
+    
+    <para>
+      Your hardware might be too slow for xine. Make sure you turn on all
+      speed optimizing options. A few things you should check:
+
+      <itemizedlist>
+        <listitem>
+	  <para>
+            first of all, run the <command>xine-check</command> script included in xine-lib
+            package (probably already installed in your system).
+	    <command>xine-check</command> will report several of the most common problems
+            listed here. Sample output from xine-check:
+            <programlisting>
+              $ xine-check
+              Please be patient, this script may take a while to run...
+              [ good ] you're using Linux, doing specific tests
+              [ good ] looks like you have a /proc filesystem mounted.
+              [ good ] You seem to have a reasonable kernel version (2.4.18)
+              [ good ] intel compatible processor, checking MTRR support
+              [ good ] you have MTRR support and there are some ranges set.
+              [ good ] found the player at /usr/local/bin/xine
+              [ good ] /usr/local/bin/xine is in your PATH
+              [ good ] found /usr/local/bin/xine-config in your PATH
+              [ good ] plugin directory /usr/local/lib/xine/plugins exists.
+              [ good ] found input plugins
+              [ good ] found demux plugins
+              [ good ] found decoder plugins
+              [ good ] found video_out plugins
+              [ good ] found audio_out plugins
+              [ good ] skin directory /usr/local/share/xine/skins exists.
+              [ good ] found logo in /usr/local/share/xine/skins
+              [ good ] I even found some skins.
+              [ good ] /dev/cdrom points to /dev/hdc
+              [ good ] /dev/dvd points to /dev/hdc
+              [ good ] DMA is enabled for your DVD drive
+              [ good ] found xvinfo: X-Video Extension version 2.2
+              [ good ] your Xv extension supports YUV overlays (improves MPEG performance)
+              [ good ] your Xv extension supports packed YUV overlays
+              [ good ] Xv ports:  YUY2 YV12 I420 UYVY      
+            </programlisting>
+	  </para>
+  	</listitem>
+	<listitem>
+	  <para>
+  	    use a recent kernel which is optimized for your hardware
+	  </para>
+  	</listitem>
+	<listitem>
+	  <para>
+  	    use the latest gas/gcc
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    close other applications (use a tool like "top" to find out
+            what applications are using up CPU power)
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    if you are not using Xv, make sure your display is set up
+            to 16bpp, not 24 or higher (reduces memory bandwith)
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    make sure the hard drive (or cdrom/dvd drive) which supplies the
+            video data is in DMA mode (if supported) 
+	  </para>
+	  <para>
+	    On most linux-based systems, you can use hdparm to check this. 
+            Example:
+	    <programlisting>
+              hdparm /dev/hda
+
+              ...
+              using_dma    =  1 (on)
+              ...
+	    </programlisting>
+	  </para>
+	  <para>
+  	    You can enable DMA mode with the following command:
+	    <programlisting>
+              hdparm -d1 device_of_your_drive_that_supplies_video_data
+	    </programlisting>
+	  </para>
+	  <para>
+            More information about this may be found here:
+            <ulink url="http://oreilly.linux.com/pub/a/linux/2000/06/29/hdparm.html">
+	    http://oreilly.linux.com/pub/a/linux/2000/06/29/hdparm.html
+	    </ulink>
+	  </para>
+	</listitem>
+	<listitem>
+  	  <para>
+            xine needs high speed memory access which depends on your chip set.
+            Make sure you enable all speed-improving options. 
+	  </para>
+	  <para>
+	    Especially the via apollo pro chipset is known to be quite weird,
+            (most of all on my gigabyte board). If you can't configure the ram
+            access thoroughly using the bios you might want to try some really
+            nasty tricks, as explained on (for example):
+	  </para>
+	  <para>
+	  <ulink url="http://www.overclockers.com/tips105/index03.asp">http://www.overclockers.com/tips105/index03.asp</ulink>
+	  </para>
+	  <para>
+	    This website centers around a windows-tool to tweak the chipset, you
+            can do the same on FreeBSD with <command>pciconf</command>. 
+	    On some linux distributions there are similar tools.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	     a nice performance tuning tool can be found here:
+	     <ulink url="http://powertweak.sourceforge.net">http://powertweak.sourceforge.net</ulink>
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    enable MTRR support in your kernel. If you are still using XFree 3.x,
+            you'll have to tell the kernel yourself where the graphics memory is.
+            You'll find details about that in the linux dvd howto.	
+	  </para>
+	  <para>
+            If you're using XFree 4.x, enabling MTRR support in your kernel should
+            be enough.
+	  </para>
+	  <para>
+	    Try a <command> cat /proc/mtrr </command> - if the file exists and you find an entry
+            corresponding to the amount of graphics memory you have, everything
+            should be fine.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    set up and use raw devices for dvd access.
+	  </para>
+	  <para>
+            Raw devices should be available in linux kernel 2.4.x and there are
+            patches for older kernels available from:
+	    <ulink url="ftp://ftp.kernel.org/pub/linux/kernel/people/sct/raw-io/">
+	    ftp://ftp.kernel.org/pub/linux/kernel/people/sct/raw-io/
+	    </ulink>
+	  </para>
+	  <para>
+	    To use raw devices, first connect a free raw device to your dvd
+            device, use something like:
+	    <programlisting>
+  	      raw /dev/raw1 /dev/hdc
+	    </programlisting>
+	  </para>
+	  <para>
+	    then create a link named "rdvd" pointing to that raw device:
+	    <programlisting>
+  	      raw /dev/raw1 /dev/hdc
+	    </programlisting>
+	  </para>
+      </itemizedlist>
+
+  </sect1>
+
+  <sect1>
+
+    <title>I have problems when using xine on FreeBSD, Solaris, ... !</title>
+    
+    <para>
+      Check out the the corresponding README files in the directory <filename>xine-ui/doc</filename>
+    </para>
+  </sect1>
+
+
+  <sect1>
+
+    <title> What is aalib? How do I use it in xine? </title>
+    
+    <para>
+      aalib is an ascii art library. xine comes with an aalib video output
+      plugin so you can watch movies in your xterm, on the console or on your
+      old vt100 - very cool ;>
+    </para>
+    <para>
+      To use it make sure you have aalib installed correctly before you
+      configure/build xine-lib and xine-ui. In addition to the <command>xine</command> binary a
+      binary named <command>aaxine</command> should get built and installed. You can then use
+      something like:      
+      <programlisting>
+        aacine foo.mpg
+      </programlisting>
+      to use aalib video output.
+    </para>
+  </sect1>
+
+  <sect1>
+
+    <title>What do all these ~/.xine/config entries mean?</title>
+    
+    <para>
+      You can find information about them in <filename>xine-ui/doc/README.config_en</filename>.
+    </para>
+  </sect1>
+</chapter>
+
+<chapter id="audio">
+
+  <title> Audio related questions </title>
+  
+  <sect1>
+
+    <title>What audio drivers does xine support? OSS? Alsa? Arts? Esd?</title>
+    
+    <para>
+      Currently xine support audio output via OSS (kernel audio drivers),
+      ALSA 0.9.x (ALSA 0.5.x is no longer supported), arts (KDE's sound daemon)
+      and esound (esd, gnome's sound daemon - not recommended because it has
+      serious issues with a/v sync).
+    </para>
+  </sect1>
+
+  <sect1>
+
+    <title> When I'm watching a movie, the sound effects ar much higher volume than the voices</title>
+    
+    <para>
+      Congratulations, you seem to have an original movie audio track there.
+    </para>
+    <para>
+      Uhm. So you don't like it. Well, there are two things you can do:
+
+      <itemizedlist>
+        <listitem>
+	  <para>
+	    You can enable xine's audio compressor. Most frontends have
+	    a settings window and in that you'll find a slider for the
+	    compressor setting. The values are percent values, so a 
+	    slider setting of 200 means that xine will double the volume
+	    of silent parts of the movie (loud parts stay the same).
+	  </para>
+	</listitem>
+        <listitem>
+	  <para>
+	    If you have a dolby digital (AC3) soundtrack, you can try
+	    to enable liba52's dynamic range compression setting
+	    <programlisting>
+	      codec.a52_dynrng:1
+	    </programlisting>
+	    in your xine config file (or use some gui config dialog).
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+    </para>
+  </sect1>
+  <sect1>
+
+    <title> When I play this stream, xine shows video but there's no audio!</title>
+    
+    <para>
+      Well, first try a different audio driver (<command> gxine -A oss </command>,
+      <command> gxine -A arts </command> ...). 
+    </para>
+    <para>
+      If this problem only occurs with one specific stream, maybe switching to
+      a different audio channel (using the gui) helps. Some DVD streams have
+      audio on strange channels.
+    </para>
+    <para>
+      If all this doesn't help, maybe you're missing an audio codec or you found
+      a bug. If you decide to post your problem on the xine-user mailing list,
+      make sure to include all console output xine produced and also clearly 
+      state what type of stream you tried to play back or, even better, make 
+      a test stream available somewhere for developers to download and try.
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>Can xine produce 4-/5-channel surround audio output?</title>
+    
+    <para>
+      Yep, it can do that using OSS or ALSA drivers, provided that the driver
+      supports it. On startup xine tells you what modes are supported by your
+      audio driver, e.g:
+      <programlisting>
+        audio_alsa_out : supported modes are mono stereo (4-channel not enabled
+          in xine config) (5-channel not enabled in xine config) (5.1-channel not
+          enabled in xine config) (a/52 and DTS pass-through not enabled in xine
+          config)
+      </programlisting>
+    </para>
+    <para>
+      On this machine 4-channel surround would be possible. However, since xine
+      cannot detect if there are actually speakers connected to the additional
+      channels, you'll have to activate that feature manually.
+    </para>
+    <para>
+      You can do this either in the config dialog while xine is running (press
+      the config button on the xine panel and go to the AUDIO tab) or have it
+      the complicated way by editing the config file yourself which is located
+      in your home directory in <filename>.gxine</filename>/<filename>.xine</filename>:
+      <programlisting>
+        # 4-channel:
+          audio.four_channel:1
+ 
+        # 5-channel:
+          audio.five_channel:1
+
+        # 5.1-channel
+          audio.five_lfe_channel:0
+      </programlisting>
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>What about ac3 output via spdif to an external ac3 decoder?</title>
+    
+    <para>
+      xine can do that too. Pretty much the same story as for 4-/5-channel
+      surround (see above). You can either use the config dialog or edit
+      the config file (<filename>~/.xine/config</filename>/<filename>~/.gxine/config</filename>) 
+      yourself:
+      <programlisting>
+        audio.a52_pass_through:1
+      </programlisting>
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>Changing the volume with the GUI control has not affect! What's up!?</title>
+    
+    <para>
+      Some xine drivers do not support volume changing although the GUI
+      will show the volume bar. Usually this is not xines fault: aRts C
+      API, for example, doesn't offer any volume property to applications.
+      Similarly, with ac3 pass through it is not possible to set the volume.
+    </para>
+  </sect1>
+
+</chapter>
+
+<chapter id="video">
+
+  <title> Video related questions </title>
+  <sect1>
+
+    <title>I can hear the audio - but I don't see a picture!</title>
+    
+    <para>
+      Probably your hardware is simply too slow - see above for some
+      hints on how to speed things up.
+    </para>
+  </sect1>
+
+  <sect1>
+
+    <title>How can I make xine use the Xv extension and what drivers do I need?</title>
+    
+    <para>
+      xine will normally use Xv by default if it is available. In some cases
+      you might need to choose Xv playback manually (when the <filename>~/.xine/config</filename>
+      file for some reason says that you want to use XShm):
+      <programlisting>
+       xine -V Xv foo.mpg
+      </programlisting>
+    </para>
+    <para>
+      If this doesn't work for you, it may be possible that Xv is not present
+      on your system.
+    </para>
+    <para>
+      First you need to install/use XFree 4.x. Once you got that you have to
+      make sure the XFree drivers you're using are supporting Xv on your
+      hardware. Here are some locations to look for suitable drivers:
+      <programlisting>
+       CARDS WITH OUT-OF-THE-BOX XV SUPPORT IN XFREE86 4.x:
+       
+         3dfx (voodoo)     (URL: ?)
+         i815              (URL: ?)
+         Matrox G200/G400  (URL: www.matrox.com)
+         NVidia            (URL: www.nvidia.com)
+         Permedia 2/3      (URL: ?)
+       
+       CARDS WITH YET UNKNOWN STATUS:
+       
+         ATI cards         (take a look at GATOS: www.linuxvideo.org/gatos/)
+         Savage            (URL: www.probo.com/timr/savage40.html)
+      </programlisting>      
+  </sect1>
+  <sect1>
+
+    <title>Some parts of my X Desktop get transparent when xine plays the video!</title>
+    
+    <para>
+      Looks like some colors on your GUI match the colorkey Xv uses. You can
+      change the colorkey value to avoid this. There should be a line like:
+      <programlisting>
+        video.XV_COLORKEY:2110
+      </programlisting>
+      in your <filename>~/.xine/config</filename> file where you can change the color that's used
+      by xine for the video overlay.
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>The aspect ratio of the video is wrong!</title>
+    
+    <para>
+    Try pressing "a" to change the aspect ratio
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>What is the difference between discarded and skipped frames?</title>
+    
+    <para>
+    Sometimes xine will output a message like that:
+    <programlisting>
+    200 frames delivered, XX frames skipped, YY frames discarded
+    </programlisting>
+    </para>
+    <para>
+      The difference between these counters is a little subtle for the non
+      developer. There are two threads running in order to display video:
+      the decoder thread will deliver frames to the video output thread. 
+      The later is responsible for scheduling the frames to be displayed at
+      the right time.
+    </para>
+    <para>
+      If your system can't keep up with decoding requirements, decoder will
+      deliver overdue frames. Imagine if it finished decoding the frame
+      tagged for displaying at 11:30 but xine clock marks 11:31. When this
+      situation is detected, xine will try to skip decoding a few frames
+      to recover. Not every decoder may support this feature.
+    </para>
+    <para>
+      When the frame is decoded to be show somewhere in future but the
+      output thread doesn't get scheduled in time by the operating system
+      to complete the operation, the frame is discarded. One cause might
+      be the disk access operation, which may halt the system for a few
+      miliseconds without DMA. See section above.
+    </para>
+    <para>
+      Note that if a decoder can't skip frames for some reason, you would
+      never see frames skipped (they would be all discarded).
+    </para>
+  </sect1>
+
+</chapter>
+
+<chapter id="errors">
+
+  <title> Error Messages: What they mean and what you can do</title>
+  <sect1>
+
+    <title>Starting xine fails with complains about audio drivers/devices!</title>
+    
+    <para>
+      You can select the audio driver using the -A option. So try:
+      <programlisting>
+        xine -A null
+      </programlisting>
+      If you have ALSA drivers installed, try:
+      <programlisting>
+        xine -A alsa
+      </programlisting>
+      If you run ESD (not recommended), try:
+      <programlisting>
+        xine -A esd
+      </programlisting>
+      If you run artsd, try:
+      <programlisting>
+        xine -A arts
+      </programlisting>
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>"no video port found"</title>
+    
+    <para>
+      You got the Xv extension, but your video card driver doesn't support it.
+      First try to find a driver that does support Xv on your hardware (check
+      your graphics card vendor). If your driver has Xv support but you can't
+      get it working, try at a lower resolution (1024x768 is enough even for
+      anamorphic mpeg-2).    
+    </para>
+    <para>
+      If all that fails, you can still use plain X11/XShm:
+      <programlisting>
+        gxine -V XShm foo.vob
+      </programlisting>
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>Unable to open dvd drive (/dev/dvd)</title>
+    
+    <para>
+      You probably don't have /dev/dvd (check that). If so, simply create a
+      link /dev/dvd that points to your DVD device. Something like...
+      <programlisting>
+        cd /dev
+        ln -s hdc dvd
+      </programlisting>
+       ...should do the job.
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>"demux error! 00 00 00 (should be 0x000001)"</title>
+    
+    <para>
+      Probably xine can't access your input source. Most commonly this happens
+      when you're trying to play locked/encrypted DVDs. Remember that xine
+      can't play such DVDs out-of-the box for legal reasons (see above).
+    </para>
+    <para>
+      If it is legal where you life, you can try to install libdvdcss. Once
+      you have done that and re-start xine, it should automatically detect
+      and use it to play back encrypted DVDs.
+    </para>
+    <para>
+      Another reason could be that your (RPC-2) DVD drive isn't set up
+      for the right region (see above).
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>"audio driver 'oss' failed, using null driver instead"</title>
+    
+    <para>
+       First of all, make sure that your OSS Audio drivers are working (i.e.
+       you can play music with other software). Maybe you're using alsa?
+       If so, try <command> gxine -A alsa </command> to see if this helps.
+    </para>
+    <para>
+      The most common reason for oss not working is that some other program is accesing
+      your audio device. If you're using linux, the command <command>fuser /dev/dsp</command>
+      should give you the PID of the process.
+    </para>
+    <para>
+      If you are using GNOME, chances are that this is caused by ESD. Now you
+      have two possibilities. Either deactivate ESD (temporarily) by right
+      clicking on the sound monitor applet and selecting "Place Esound in
+      standby" or just kill it. Then xine will use OSS audio output. The other
+      method is to make xine use ESD for audio output with:      
+      <programlisting>
+        gxine -A esd
+      </programlisting>
+      This may result in worse playback - exact syncronization is not possible
+      with esd, so using oss should be preferred.
+    </para>
+    <para>
+      If you are using KDE, there is the possibility that the aRts sound
+      daemon is currently running and thus blocking your sound device. You
+      can check that by starting the aRts control (in your KDE menu it should
+      be under Multimedia). If it is running, you can either use the aRts
+      audio output plugin:
+      <programlisting>
+        gxine -A arts
+      </programlisting>
+      Or you suspend the aRts daemon by checking the appropriate option in
+      your aRts control. (recommended)
+    </para>
+    <para>
+      Newer versions of arts have an auto-suspend mode - this can lead to
+      some nondeterministic behaviour of xine if it is set up to use
+      the audio device directly. Using arts is recommended in that case,
+      however you will loose the ability to do four/five channel audio output.
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>video_out: throwing away image with pts xxx because it's too old</title>
+    
+    <para>
+      This is a performance related problem.
+      
+      If you have a fast computer and this message shows from time to
+      time playing dvd/cdrom, it's very likely that your drive is not
+      DMA enabled. 
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>"No video plugin available to decode 'xxxxxx'."</title>
+    
+    <para>
+      You have tried to play a stream using a unknown or unhandled codec.
+      Possibly the file uses some obscure proprietary format and no
+      information is available on how to decode it.
+    </para>
+    <para>
+      If you're on an x86 platform (e.g. PC hardware) you might want to
+      try installing binary-only windows medial, real networks and
+      quicktime codecs (see above).
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</title>
+    
+    <para>
+      You probably don't have the win32 dll needed to decode this file.
+    </para>
+  </sect1>
+  <sect1>
+
+    <title>xine just crashed on me - i didn't get any error message</title>
+    
+    <para>
+      OK, yes, that shouldn't happen and you're upset. We can understand that.
+      But, to help you and of course to fix this, we need some information.
+      So, let's go through the checklist and maybe prepare a nice bug report
+      for the xine-user mailing list:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+        <para>
+	  did xine really crash (segfault) or did it hang (deadlock) ?
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  can you reproduce the bug? (e.g. do you remember what you
+	  did and when you do it again it crashes again?) 
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  check the console output (and include it in a bug report), maybe earlier
+	  there is some output that points to the problem.
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  Your X server just froze on you? unfortunately that's a know problem
+	  with some chipsets and drivers (most commonly Savage chipsets) when
+	  using Xv. You might want to try running <command> gxine -V XShm </command>
+	  to see if the problem is related to the Xv driver.  This will unfortunately 
+	  be much slower, as lots of things are now done
+	  in software instead of hardware scaling/colour space conversion.
+	</para>
+	<para>
+  	  Maybe at the time you read this, there's an XFree upgrade which fixes
+          this for the Savage driver. If that works for you, please notify the xine crew at
+	  <email> xine-user@lists.sf.net </email>, so they can update this FAQ!
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  Even though we try to make each release as bug free as possible, xine is
+          still under heavy development (nice excuse, isn't it? *grin*).
+	</para>
+	<para>
+	  Please take a look at our bug report form which is located in the xine-lib
+          package (doc/bug_report_form). Fill it out accordingly and sent it to our
+          user mailing list: <email>xine-user@lists.sourceforge.net</email>
+	</para>
+	<para>
+          Thanks for taking the time to help improve xine.
+	</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+</chapter>
+

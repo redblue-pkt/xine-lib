@@ -1162,6 +1162,7 @@ doc/man/Makefile
 doc/man/en/Makefile
 doc/man/en/man3/Makefile
 doc/hackersguide/Makefile
+doc/faq/Makefile
 include/Makefile
 include/xine.h
 intl/Makefile

@@ -1,5 +1,5 @@
 
-SUBDIRS = man hackersguide
+SUBDIRS = man hackersguidea faq
 
 EXTRA_DIST = $(docs_DOCS) README README.plugins MRLs dataflow.dia README.dvb dvb_channels
 
