@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.101 2004/07/30 19:08:47 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.102 2004/08/17 19:49:51 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -201,7 +201,7 @@ static void real_parse_index(demux_real_t *this) {
       version = BE_16(&index_chunk_header[8]);
       if(version != 0) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                "unknown object version in INDX: 0x%04x\n", version);
+                "demux_real: unknown object version in INDX: 0x%04x\n", version);
         break;
       }
 
@@ -389,7 +389,7 @@ static void real_parse_headers (demux_real_t *this) {
       
         if(version != 0) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                  "unknown object version in PROP: 0x%04x\n", version);
+                  "demuxe_real: unknown object version in PROP: 0x%04x\n", version);
           free(chunk_buffer);
           this->status = DEMUX_FINISHED;
           return;
@@ -418,7 +418,7 @@ static void real_parse_headers (demux_real_t *this) {
 
         if (version != 0) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                  "unknown object version in MDPR: 0x%04x\n", version);
+                  "demux_real: unknown object version in MDPR: 0x%04x\n", version);
           free(chunk_buffer);
           continue;
         }
@@ -432,7 +432,7 @@ static void real_parse_headers (demux_real_t *this) {
 
           if(this->num_audio_streams == MAX_AUDIO_STREAMS) {
             xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                    "maximum number of audio stream exceeded\n");
+                    "demux_real: maximum number of audio stream exceeded\n");
             goto unknown;
           }
           
@@ -471,7 +471,7 @@ static void real_parse_headers (demux_real_t *this) {
 
           if(this->num_video_streams == MAX_VIDEO_STREAMS) {
             xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                    "maximum number of video stream exceeded\n");
+                    "demux_real: maximum number of video stream exceeded\n");
             goto unknown;
           }
           
@@ -498,7 +498,7 @@ unknown:
 
         if(version != 0) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                  "unknown object version in CONT: 0x%04x\n", version);
+                  "demux_real: unknown object version in CONT: 0x%04x\n", version);
           free(chunk_buffer);
           continue;
         }
@@ -548,7 +548,7 @@ unknown:
       version = BE_16(&data_chunk_header[0]);
       if(version != 0) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                  "unknown object version in DATA: 0x%04x\n", version);
+                  "demux_real: unknown object version in DATA: 0x%04x\n", version);
           this->status = DEMUX_FINISHED;
           return;
       }
@@ -595,7 +595,7 @@ unknown:
     
       if((len = this->input->read(this->input, search_buffer, MAX_PREVIEW_SIZE)) <= 0) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-                "failed to read header\n");
+                "demux_real: failed to read header\n");
         this->status = DEMUX_FINISHED;
         return;
       }
@@ -604,7 +604,7 @@ unknown:
     } else if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
       if((len = this->input->get_optional_data(this->input, search_buffer, INPUT_OPTIONAL_DATA_PREVIEW)) <= 0) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-                "failed to read header\n");
+                "demux_real: failed to read header\n");
         this->status = DEMUX_FINISHED;
         return;
       }
@@ -613,7 +613,7 @@ unknown:
       offset = this->data_start + 18;
     } else {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-              "unable to search for correct stream\n");
+              "demux_real: unable to search for correct stream\n");
       this->status = DEMUX_FINISHED;
       return;
     }
@@ -656,7 +656,7 @@ unknown:
   if((!this->video_stream && this->num_video_streams) ||
      (!this->audio_stream && this->num_audio_streams)) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            "unable to determine which audio/video streams to play\n");
+            "demux_real: unable to determine which audio/video streams to play\n");
     this->status = DEMUX_FINISHED;
     return;
   }
@@ -720,7 +720,7 @@ unknown:
         
         if(version != 5) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                  "unsupported audio header version for AAC: %d\n", version);
+                  "demux_real: unsupported audio header version for AAC: %d\n", version);
           buf->free_buffer(buf);
           goto unsupported;
         }
@@ -944,7 +944,7 @@ static uint32_t real_fix_timestamp (demux_real_t *this, uint8_t *hdr, uint32_t t
       break;
     default:
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-              "unknown pict_type: %d\n", pict_type);
+              "demux_real: unknown pict_type: %d\n", pict_type);
       ts_out = 0;
       break;
   }
@@ -983,7 +983,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       DATA_PACKET_HEADER_SIZE) {
 
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-             "read failed. wanted %d bytes, but got only %d\n", DATA_PACKET_HEADER_SIZE, size);
+             "demux_real: failed to read data packet header\n");
 
     this->status = DEMUX_FINISHED;
     return this->status;
@@ -1001,7 +1001,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   version = BE_16(&header[0]);
   if(version > 1) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "unknown object version in data packet: 0x%04x\n", version);
+            "demux_real: unknown object version in data packet: 0x%04x\n", version);
     this->status = DEMUX_FINISHED;
     return this->status;
   }
@@ -1197,7 +1197,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       
         if(this->input->read(this->input, buf->content, buf->size) < buf->size) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-                  "read error %d/%d\n", n, fragment_size);
+                  "demux_real: failed to read video fragment");
           buf->free_buffer(buf);
           this->status = DEMUX_FINISHED;
           return this->status;
@@ -1300,7 +1300,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
              this->audio_stream->buf_type, 0, normpos, 
              input_time, this->duration, 0) < 0) {
 
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                  "demux_real: failed to read AAC frame\n");
 
           free(sizes);
           this->status = DEMUX_FINISHED;
@@ -1316,7 +1317,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
            this->audio_stream->buf_type, 0, normpos,
            input_time, this->duration, 0) < 0) {
 
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                "demux_real: failed to read audio chunk\n");
 
         this->status = DEMUX_FINISHED;
         return this->status;
