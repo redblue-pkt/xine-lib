@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.1 2002/12/01 14:52:55 mroi Exp $
+ * $Id: invert.c,v 1.2 2002/12/01 19:05:57 mroi Exp $
  */
  
 /*
@@ -188,6 +188,7 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
   inverted_frame->pts = frame->pts;
   inverted_frame->duration = frame->duration;
+  inverted_frame->bad_frame = frame->bad_frame;
   
   switch (inverted_frame->format) {
   case XINE_IMGFMT_YUY2:
@@ -204,20 +205,20 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     size = inverted_frame->pitches[1] * ((inverted_frame->height + 1) / 2);
     for (i = 0; i < size; i++)
       inverted_frame->base[1][i] = 0xff - frame->base[1][i];
-    /* U */
+    /* V */
     size = inverted_frame->pitches[2] * ((inverted_frame->height + 1) / 2);
     for (i = 0; i < size; i++)
       inverted_frame->base[2][i] = 0xff - frame->base[2][i];
     break;
   default:
-    printf("invert: cannot handle image format %i\n", frame->format);
+    printf("invert: cannot handle image format %d\n", frame->format);
     inverted_frame->free(inverted_frame);
-    inverted_frame = frame;
+    post_restore_video_frame(frame, port);
+    return frame->draw(frame, stream);
   } 
   post_restore_video_frame(frame, port);
   skip = inverted_frame->draw(inverted_frame, stream);
-  if (frame != inverted_frame)
-    inverted_frame->free(inverted_frame);
+  inverted_frame->free(inverted_frame);
   frame->vpts = inverted_frame->vpts;
   
   return skip;
