@@ -31,6 +31,7 @@ required for 1.0
 - prepare architecture for post effect plugins (michael)
 - input_net (guenter)
 - fix documentation
+- avoid file name clashes between libxine1 and libxine0.x.y
 
 optional
 -------
