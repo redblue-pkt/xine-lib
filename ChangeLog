@@ -3,6 +3,8 @@ xine-lib (1-beta11)
   * fix input_net (tcp) seeking
   * network input plugins do not freeze when no data is available
   * fix seeking in ogg files
+  * fix av/desync in ogmfiles
+  * fix ac3 in ogm support
 
 xine-lib (1-beta10)
   * loading and displaying png images (e.g. for logos)

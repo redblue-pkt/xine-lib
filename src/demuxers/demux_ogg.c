@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.79 2003/04/15 03:41:23 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.80 2003/04/15 23:54:40 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -611,7 +611,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      
 	    memcpy(str, &locsubtype, 4);
 	    str[4] = 0;
-	    codec = atoi(str);
+	    codec = strtoul(str, NULL, 16);
 	      
 	    channel= this->num_audio_streams++;
 	      
