@@ -6,9 +6,6 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-# This is the debhelper compatability version to use.
-export DH_COMPAT=2
-
 # assuming created lib in src/xine-engine/.libs/libxine.so.<version>
 version=`ls src/xine-engine/.libs/libxine*.so.* | \
  awk '{if (match($$0,/[0-9]+\.[0-9]+\.[0-9]+$$/)) print substr($$0,RSTART)}'`
@@ -20,15 +17,15 @@ major=`ls src/xine-engine/.libs/libxine*.so.* | \
 DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
-
-ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-        CFLAGS += -g
+CFLAGS += -g
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
 endif
 INSTALL_TARGET := install
 BUILD_TARGET := all
 ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
-        INSTALL_TARGET := install-debug
-        BUILD_TARGET := debug
+	INSTALL_TARGET := install-debug
+	BUILD_TARGET := debug
 endif
 
 DEB_HOST_GNU_OPTION := 
@@ -82,11 +79,8 @@ install: build
 	dh_clean -k
 	dh_installdirs
 
-	$(MAKE) install prefix=$(CURDIR)/debian/libxine-dev/usr \
-			LIBRARY_PATH=$(CURDIR)/debian/libxine-dev/usr/lib
-	mkdir -p $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides
-	cp $(CURDIR)/debian/overrides.libxine \
-           $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides/libxine$(major)
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp \
+			LIBRARY_PATH=$(CURDIR)/debian/tmp/usr/lib
 
 binary-indep: build install
 # We have nothing architecture-independant to do.
@@ -98,17 +92,8 @@ binary-arch: build install
 	#
 	# build libxine${major} package by moving files from libxine-dev
 	#
-	dh_movefiles --sourcedir=debian/libxine-dev -plibxine$(major)  \
-	usr/lib/libxine*.so.$(major)                                         \
-	usr/lib/libxine*.so.$(version)                                       \
-	$(shell cd debian/libxine-dev; find usr/lib/xine/plugins -name \*.so) \
-	usr/share/xine                                                       \
-	usr/share/locale
-
-#	dh_installdebconf	
+	dh_install --sourcedir=debian/tmp --list-missing
 	dh_installdocs
-	dh_installexamples
-	dh_installmenu
 	dh_installchangelogs -k ChangeLog
 	dh_link
 	dh_strip

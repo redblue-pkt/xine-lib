@@ -1,4 +1,17 @@
-xine-lib (1-beta5-1) unstable; urgency=low
+xine-lib (1-beta8-1) unstable; urgency=low
+
+  * Add pmhahn as Uploaders.
+  * New upstream release.
+  * Standards-Version 3.5.9:
+    - debhelper 4
+    - Use 'noopt' instead of 'debug'
+    - Remove overrides for plugin shared libraries.
+  * Provide non-developer documentation in library package.
+  * Build with dxr3 support (closes: #117170)
+
+ -- Philipp Matthias Hahn <pmhahn@debian.org>  Fri, 14 Mar 2003 10:03:16 +0100
+
+xine-lib (1-beta6-1) unstable; urgency=low
 
   * new upstream release
   * updated artsc build dependancy

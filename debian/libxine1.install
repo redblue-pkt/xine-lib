@@ -1,0 +1,15 @@
+usr/lib/libxine*.so.*
+usr/lib/xine/plugins/*/post/*.so
+usr/lib/xine/plugins/*/*.so
+usr/lib/xine/plugins/*/vidix/*.so
+usr/share/doc/xine/faq
+usr/share/doc/xine/README
+usr/share/doc/xine/README.config_en
+usr/share/doc/xine/README.dvb
+usr/share/doc/xine/README.dxr3
+usr/share/doc/xine/README.dxr3_pl
+usr/share/doc/xine/README.opengl
+usr/share/doc/xine/README.syncfb
+usr/share/doc/xine/README.tvmode
+usr/share/locale
+usr/share/xine

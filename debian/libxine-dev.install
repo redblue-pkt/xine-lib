@@ -1,0 +1,16 @@
+usr/bin/xine-config
+usr/include
+usr/lib/libxine.la
+usr/lib/libxine*.so
+usr/lib/pkgconfig/libxine.pc
+usr/lib/xine/plugins/*/*.la
+usr/lib/xine/plugins/*/post/*.la
+usr/lib/xine/plugins/*/vidix/*.la
+usr/share/aclocal/xine.m4
+usr/share/man/man1/xine-config.1
+usr/share/doc/xine/README.freebsd
+usr/share/doc/xine/README.irix
+usr/share/doc/xine/README.mrl
+usr/share/doc/xine/README.plugins
+usr/share/doc/xine/README.solaris
+usr/share/doc/xine/dataflow.dia

@@ -2,14 +2,15 @@ Source: xine-lib
 Section: libs
 Priority: optional
 Maintainer: Siggi Langauf <siggi@debian.org>
-Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), xlibs-dev (>> 4.1), libesd0-dev, libz-dev, libartsc0-dev (>>1.1.0), liblircclient-dev, libogg-dev, libvorbis-dev, libasound2-dev, libflac-dev (>>1.1.0), libgnomevfs2-dev
+Uploaders: Philipp Matthias Hahn <pmhahn@debian.org>
+Build-Depends: debhelper (>= 4.0.0), aalib1-dev (>= 1.4p5-2), xlibs-dev (>> 4.1), libesd0-dev, zlib1g-dev | libz-dev, libartsc0-dev (>>1.1.0), liblircclient-dev, libogg-dev, libvorbis-dev, libasound2-dev, libflac-dev (>>1.1.0), libgnomevfs2-dev
 Build-Conflicts: libdvdnav-dev
-Standards-Version: 3.2.1
+Standards-Version: 3.5.9
 
 Package: libxine-dev
 Architecture: any
 Section: devel
-Depends: libxine1 (= ${Source-Version}), libc6-dev, xlibs-dev, libz-dev, slang1-dev
+Depends: libxine1 (= ${Source-Version}), libc6-dev, xlibs-dev, zlib1g-dev | libz-dev, slang1-dev
 Conflicts: xine-ui (<< 0.9.10)
 Description: the xine video player library, development packages
  This contains development files (headers, documentation and the like)
