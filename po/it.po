@@ -1,19 +1,19 @@
-# translation of xine-lib.po to italiano
+# translation of xine-lib.po to Italiano
 # This file is distributed under the same license as the PACKAGE package.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# Giovanni Venturi <jumpyj@libero.it>, 2003
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
+# Giovanni Venturi <jumpyj@libero.it>, 2003.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib\n"
 "POT-Creation-Date: 2003-09-19 17:32+0200\n"
-"PO-Revision-Date: 2003-04-16 15:24+0200\n"
+"PO-Revision-Date: 2003-10-18 21:19+0200\n"
 "Last-Translator: Giovanni Venturi <jumpyj@libero.it>\n"
-"Language-Team: italiano <kde-i18n-it@mail.kde.org>\n"
+"Language-Team: Italiano <kde-i18n-it@mail.kde.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.1\n"
+"X-Generator: KBabel 1.2\n"
 
 #: src/audio_out/audio_alsa_out.c:304 src/audio_out/audio_alsa_out.c:997
 #: src/audio_out/audio_alsa_out.c:1212 src/audio_out/audio_alsa_out.c:1249
@@ -29,9 +29,8 @@ msgid "device used for 4-channel output"
 msgstr "dispositivo usato per output a 4 canali"
 
 #: src/audio_out/audio_alsa_out.c:336
-#, fuzzy
 msgid "device used for 5+ channel output"
-msgstr "dispositivo usato per output a 5 canali"
+msgstr "dispositivo usato per output a 5+ canali"
 
 #: src/audio_out/audio_alsa_out.c:347 src/audio_out/audio_alsa_out.c:1233
 #: src/audio_out/audio_alsa_out.c:1240
@@ -60,9 +59,8 @@ msgid "xine audio output plugin using kde artsd"
 msgstr "plugin output audio di xine che usa artsd di KDE"
 
 #: src/audio_out/audio_directx_out.c:882 src/audio_out/audio_directx_out.c:902
-#, fuzzy
 msgid "xine audio output plugin for win32 using directx"
-msgstr "plugin output audio di xine che usa artsd di KDE"
+msgstr "plugin output audio di xine che usa directx per win32"
 
 #: src/audio_out/audio_esd_out.c:532
 msgid "esd audio output latency (adjust a/v sync)"
@@ -81,9 +79,8 @@ msgid "xine audio output plugin using IRIX libaudio"
 msgstr "plugin output audio di xine che usa libaudio di IRIX"
 
 #: src/audio_out/audio_none_out.c:219
-#, fuzzy
 msgid "xine dummy audio output plugin"
-msgstr "pluging output audio di xine che usa esound"
+msgstr "pluging output audio dummy di xine"
 
 #: src/audio_out/audio_oss_out.c:718
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
@@ -161,40 +158,45 @@ msgstr ""
 #: src/demuxers/demux_mpeg_block.c:647
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
 msgstr ""
+"demux_mpeg_block: attenzione: l'intestazione PES ha riservato 10 bit non "
+"trovati\n"
 
 #: src/demuxers/demux_mpeg_block.c:658
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_mpeg_block: warning: PES header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
-"demux_mpeg_block: attenzione: l'intestazione pes indica che questo stream "
+"demux_mpeg_block: attenzione: l'intestazione PES indica che questo stream "
 "può essere cifrato (modalità di cifratura %d)\n"
 
 #: src/demuxers/demux_mpeg_pes.c:320
 #, c-format
 msgid "demux_mpeg_pes: warning: PACK stream id=0x%x decode failed.\n"
 msgstr ""
+"demux_mpeg_pes: attenzione: lo stream PACK con id=0x%x non è riuscito nella "
+"decodifica.\n"
 
 #: src/demuxers/demux_mpeg_pes.c:670
 msgid "demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"
 msgstr ""
+"demux_mpeg_pes: attenzione: l'intestazione PES ha riservato 10 bit non "
+"trovati\n"
 
 #: src/demuxers/demux_mpeg_pes.c:682
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_mpeg_pes: warning: PES header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
-"demux_mpeg_block: attenzione: l'intestazione pes indica che questo stream "
+"demux_mpeg_block: attenzione: l'intestazione PES indica che questo stream "
 "può essere cifrato (modalità di cifratura %d)\n"
 
 #: src/demuxers/demux_nsf.c:302 src/demuxers/demux_pva.c:423
 #: src/demuxers/demux_roq.c:399 src/demuxers/demux_smjpeg.c:403
 #: src/demuxers/demux_str.c:557
-#, fuzzy
 msgid "input not seekable, can not handle!\n"
-msgstr "demux_roq.c: input non ricercabile, non è trattabile!\n"
+msgstr "non ci si può spostare nell'input, non è gestibile!\n"
 
 #: src/demuxers/demux_ogg.c:770
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
@@ -286,15 +288,15 @@ msgstr "Abilita questa opzione per stream con durata dei frame errata."
 
 #: src/dxr3/dxr3_mpeg_encoders.c:189
 msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
-msgstr "Dxr3enc: rte tasso di bit di output mpeg (kbit/s)"
+msgstr "Dxr3enc: bitrate di output mpeg RTE (kbit/s)"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:190
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
 msgstr ""
-"Il tasso di bit che la libreria librte di codifica mpeg dovrebbe usare per "
-"modo di codifica di dxr3"
+"Il bitrate che la libreria librte di codifica mpeg dovrebbe usare per modo "
+"di codifica di dxr3"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:391
 msgid "Dxr3enc: fame mpeg encoding quality"
@@ -371,33 +373,31 @@ msgstr "dxr3 preferiva il modo TV"
 
 #: src/input/input_cdda.c:2608
 msgid "CD Digital Audio (aka. CDDA)"
-msgstr ""
+msgstr "Audio Digitale CD (detto CDDA)"
 
 #: src/input/input_cdda.c:2659
-#, fuzzy
 msgid "device used for cdda drive"
-msgstr "dispositivo usato per output a 4 canali"
+msgstr "dispositivo usato per l'unità CDDA"
 
 #: src/input/input_cdda.c:2663
 msgid "use cddb feature"
-msgstr ""
+msgstr "usa funzionalità CDDB"
 
 #: src/input/input_cdda.c:2667
 msgid "cddbp server name"
-msgstr ""
+msgstr "nome server CDDBP"
 
 #: src/input/input_cdda.c:2671
 msgid "cddbp server port"
-msgstr ""
+msgstr "porta server CDDBP"
 
 #: src/input/input_cdda.c:2676
 msgid "cddbp cache directory"
-msgstr ""
+msgstr "derectory per cache CDDBP"
 
 #: src/input/input_dvb.c:1012
-#, fuzzy
 msgid "DVB (Digital TV) input plugin"
-msgstr "plugin di input del file"
+msgstr "plugin di input per DVB (TV Digitale)"
 
 #: src/input/input_file.c:115
 #, c-format
@@ -419,7 +419,7 @@ msgstr "mostra file nascosti"
 #: src/input/input_gnome_vfs.c:212
 #, fuzzy
 msgid "gnome-vfs input plugin as shipped with xine"
-msgstr "plugin di input della rete trasportato così con xine"
+msgstr "plugin di input gnome-vfs  con xine"
 
 #: src/input/input_http.c:415 src/input/input_http.c:436
 #, c-format
@@ -428,7 +428,7 @@ msgstr "input_http: errore di lettura %d\n"
 
 #: src/input/input_http.c:647
 msgid "Connecting HTTP server..."
-msgstr ""
+msgstr "Connessione in corso al server HTTP..."
 
 #: src/input/input_http.c:813
 msgid "input_http: invalid http answer\n"
@@ -455,24 +455,23 @@ msgstr "plugin di input http"
 
 #: src/input/input_http.c:973
 msgid "http proxy username"
-msgstr ""
+msgstr "nome utente proxy http"
 
 #: src/input/input_http.c:976
 msgid "http proxy password"
-msgstr ""
+msgstr "password proxy http"
 
 #: src/input/input_http.c:979
 msgid "http proxy host"
-msgstr ""
+msgstr "host proxy http"
 
 #: src/input/input_http.c:983
 msgid "http proxy port"
-msgstr ""
+msgstr "porta proxy http"
 
 #: src/input/input_mms.c:417
-#, fuzzy
 msgid "mms streaming input plugin"
-msgstr "plugin di input per lo stream di stdin"
+msgstr "plugin di input per lo stream mms"
 
 #: src/input/input_net.c:115
 #, c-format
@@ -499,13 +498,12 @@ msgid "net input plugin as shipped with xine"
 msgstr "plugin di input della rete trasportato così con xine"
 
 #: src/input/input_pnm.c:272
-#, fuzzy
 msgid "pnm streaming input plugin"
-msgstr "plugin di input per lo stream di stdin"
+msgstr "plugin di input per lo stream pnm"
 
 #: src/input/input_pvr.c:1562
 msgid "WinTV-PVR 250/350 input plugin"
-msgstr ""
+msgstr "plugin di input WinTV-PVR 250/350"
 
 #: src/input/input_rtp.c:167
 #, c-format
@@ -573,47 +571,40 @@ msgid "RTP and UDP input plugin as shipped with xine"
 msgstr "plugin input RTP e UDP tarsportati così con xine"
 
 #: src/input/input_rtsp.c:288
-#, fuzzy
 msgid "rtsp streaming input plugin"
-msgstr "plugin di input per lo stream di stdin"
+msgstr "plugin di input per lo stream rtsp"
 
 #: src/input/input_stdin_fifo.c:352
 msgid "stdin streaming input plugin"
 msgstr "plugin di input per lo stream di stdin"
 
 #: src/input/input_v4l.c:359
-#, fuzzy
 msgid "Buffer underrun..."
-msgstr "Sto bufferizzando..."
+msgstr "Buffer underrun..."
 
 #: src/input/input_v4l.c:363
-#, fuzzy
 msgid "Buffer overrun..."
-msgstr "Sto bufferizzando..."
+msgstr "Buffer overrun..."
 
 #: src/input/input_v4l.c:366
 msgid "Adjusting..."
-msgstr ""
+msgstr "Sto aggiustando..."
 
 #: src/input/input_v4l.c:1930
-#, fuzzy
 msgid "v4l tv input plugin"
-msgstr "plugin di input del file"
+msgstr "plugin di input TV v4l"
 
 #: src/input/input_v4l.c:1934
-#, fuzzy
 msgid "v4l radio input plugin"
-msgstr "plugin di input del file"
+msgstr "plugin di input radio v4l"
 
 #: src/input/input_v4l.c:1967
-#, fuzzy
 msgid "path to the v4l video device"
-msgstr "percorso del file locale del dispositivo VCD"
+msgstr "percorso del dispositivo video v4l"
 
 #: src/input/input_v4l.c:1992
-#, fuzzy
 msgid "path to the v4l radio device"
-msgstr "percorso del file locale del dispositivo VCD"
+msgstr "percorso del dispositivo radio v4l"
 
 #: src/input/input_vcd.c:912
 msgid "Video CD input plugin"
@@ -625,25 +616,25 @@ msgstr "percorso del file locale del dispositivo VCD"
 
 #: src/input/mms.c:649
 msgid "Connecting MMS server (over tcp)..."
-msgstr ""
+msgstr "Connessione in corso al server MMS (su TCP)..."
 
 #: src/input/mmsh.c:382
-#, fuzzy, c-format
+#, c-format
 msgid "libmmsh: 3xx redirection not implemented: >%d %s<\n"
-msgstr "input_http: 3xx ridirezione: >%d %s<\n"
+msgstr "libmmsh: ridirezione 3xx non implementata: >%d %s<\n"
 
 #: src/input/mmsh.c:388
-#, fuzzy, c-format
+#, c-format
 msgid "libmmsh: http status not 2xx: >%d %s<\n"
-msgstr "input_http: lo stato di http non è 2xx: >%d %s<\n"
+msgstr "libmmsh: lo stato di http non è 2xx: >%d %s<\n"
 
 #: src/input/mmsh.c:395
 msgid "libmmsh: Location redirection not implemented\n"
-msgstr ""
+msgstr "libmmsh: redirezione della posizione non implementata\n"
 
 #: src/input/mmsh.c:725
 msgid "Connecting MMS server..."
-msgstr ""
+msgstr "Connessione in corso al server MMS..."
 
 #: src/input/net_buf_ctrl.c:81
 msgid "Buffering..."
@@ -683,33 +674,31 @@ msgid "ffmpeg mpeg-4 postprocessing quality"
 msgstr "ffmpeg mpeg-4 qualità di post elaborazione"
 
 #: src/libffmpeg/xine_encoder.c:156
-#, fuzzy
 msgid "Dxr3enc: libavcodec mpeg output bitrate (kbit/s)"
-msgstr "Dxr3enc: rte tasso di bit di output mpeg (kbit/s)"
+msgstr "Dxr3enc: bitrate di output mpeg libavcodec (kbit/s)"
 
 #: src/libffmpeg/xine_encoder.c:157
-#, fuzzy
 msgid ""
 "The bitrate the libavcodec mpeg encoder should use for dxr3's encoding mode"
 msgstr ""
-"Il tasso di bit che la libreria librte di codifica mpeg dovrebbe usare per "
+"Il bitrate che la libreria libavcodec di codifica mpeg dovrebbe usare per "
 "modo di codifica di dxr3"
 
 #: src/libffmpeg/xine_encoder.c:163
 msgid "Dxr3enc: Use quantizer instead of bitrate"
-msgstr ""
+msgstr "Dxr3enc: si affida al quantizzatore invece del bitrate"
 
 #: src/libffmpeg/xine_encoder.c:168
 msgid "Dxr3enc: Minimum quantizer"
-msgstr ""
+msgstr "Dxr3enc: quantizzatore minimo"
 
 #: src/libffmpeg/xine_encoder.c:172
 msgid "Dxr3enc: Maximum quantizer"
-msgstr ""
+msgstr "Dxr3enc: quantizzatore massimo"
 
 #: src/libreal/audio_decoder.c:693 src/libreal/xine_decoder.c:610
 msgid "path to real player codecs, if installed"
-msgstr ""
+msgstr "percorso per i codec di Real Player, se installato"
 
 #: src/libspucc/xine_decoder.c:223
 msgid "Enable closed captions in MPEG-2 streams"
@@ -736,24 +725,20 @@ msgid "Center-adjust closed captions"
 msgstr "Didascalie centrate"
 
 #: src/libsputext/xine_decoder.c:466
-#, fuzzy
 msgid "Subtitle size (relative window size)"
-msgstr "dimensione sottotitoli (dimensione finestra relativa)"
+msgstr "Dimensione sottotitolo (dimensione finestra relativa)"
 
 #: src/libsputext/xine_decoder.c:471
-#, fuzzy
 msgid "Subtitle vertical offset (relative window size)"
-msgstr "spostamento verticale sottotitolo (dimensione finestra relativa)"
+msgstr "Spostamento verticale sottotitolo (dimensione finestra relativa)"
 
 #: src/libsputext/xine_decoder.c:476
-#, fuzzy
 msgid "Font for external subtitles"
-msgstr "fonte per sottotitoli esterni"
+msgstr "Font per sottotitoli esterni"
 
 #: src/libsputext/xine_decoder.c:481
-#, fuzzy
 msgid "Encoding of subtitles"
-msgstr "codifica dei sottotitoli"
+msgstr "Codifica dei sottotitoli"
 
 #: src/libsputext/xine_decoder_ogm.c:493
 msgid "font for external subtitles"
@@ -831,21 +816,27 @@ msgstr ""
 #: src/libxinevdec/qtrpza.c:83 src/libxinevdec/qtsmc.c:100
 msgid "warning: block counter just went negative (this should not happen)\n"
 msgstr ""
+"attenzione: il contatore dei blocchi è appena diventato negativo (ciò non "
+"dovrebbe succedere)\n"
 
 #: src/libxinevdec/qtrpza.c:129
 #, c-format
 msgid "First chunk byte is 0x%02x instead of 0x1e\n"
-msgstr ""
+msgstr "Il primo pezzo di byte è 0x%02x invece di 0x1e\n"
 
 #: src/libxinevdec/qtrpza.c:138
 msgid "MOV chunk size != encoded chunk size; using MOV chunk size\n"
 msgstr ""
+"dimensione della parte MOV diversa dalla dimensione del pezzo codificato; si "
+"usa la dimensione della parte MOV\n"
 
 #: src/libxinevdec/qtrpza.c:271
 #, c-format
 msgid ""
 "Unknown opcode %d in rpza chunk. Skip remaining %d bytes of chunk data.\n"
 msgstr ""
+"Codice operativo %d sconosciuto nella parte rpza. Si saltano i restanti %d "
+"byte della parte di dati.\n"
 
 #: src/libxinevdec/qtsmc.c:139
 #, c-format
@@ -853,32 +844,44 @@ msgid ""
 "warning: MOV chunk size != encoded chunk size (%d != %d); using MOV chunk "
 "size\n"
 msgstr ""
+"attenzione: la dimensione della parte MOV è diversa dalla dimensione della "
+"parte codificata (%d != %d); si usa la dimensione della parte MOV\n"
 
 #: src/libxinevdec/qtsmc.c:151
 #, c-format
 msgid ""
 "SMC decoder just went out of bounds (stream ptr = %d, chunk size = %d)\n"
 msgstr ""
+"Il decodificatore SMC ha appena superato i limiti (puntatore stream = %d, "
+"dimensione pezzo = %d)\n"
 
 #: src/libxinevdec/qtsmc.c:158
 #, c-format
 msgid "SMC decoder just went out of bounds (row ptr = %d, height = %d)\n"
 msgstr ""
+"Il decodificatore SMC ha appena superato i limiti (puntatore di riga = %d, "
+"altezza = %d)\n"
 
 #: src/libxinevdec/qtsmc.c:181
 #, c-format
 msgid "encountered repeat block opcode (%02X) but no blocks rendered yet\n"
 msgstr ""
+"Si sono incontrati ripetutamente blocchi di codice operativo (%02X) ma non "
+"si ne è ancora tradotto nessun\n"
 
 #: src/libxinevdec/qtsmc.c:219
 #, c-format
 msgid ""
 "encountered repeat block opcode (%02X) but not enough blocks rendered yet\n"
 msgstr ""
+"Si sono incontrati ripetutamente blocchi di codice operativo (%02X) ma non "
+"sono ancora sufficienti per essere tradotti\n"
 
 #: src/libxinevdec/qtsmc.c:490
 msgid "0xF0 opcode seen in SMC chunk (xine developers would like to know)\n"
 msgstr ""
+"Codice operativo 0xF0 visto in pezzi di SMC (agli sviluppatori di xine "
+"piacerebbe saperlo)\n"
 
 #: src/libxvid/xine_decoder.c:222
 #, c-format
@@ -896,39 +899,39 @@ msgstr ""
 
 #: src/post/goom/xine_goom.c:209
 msgid "Frames per second to generate with Goom"
-msgstr ""
+msgstr "Frame per secondo da generare con Goom"
 
 #: src/post/goom/xine_goom.c:213
 msgid "Goom image width in pixels"
-msgstr ""
+msgstr "Larghezza in pixel di immagine Goom"
 
 #: src/post/goom/xine_goom.c:217
 msgid "Goom image height in pixels"
-msgstr ""
+msgstr "Altezza in pixel di immagine Goom"
 
 #: src/post/goom/xine_goom.c:223
 msgid "Colorspace conversion method used by Goom"
-msgstr ""
+msgstr "Metodo di conversione dello spazio dei colori usato da Goom"
 
 #: src/post/mosaico/mosaico.c:169
 msgid "Default x position"
-msgstr ""
+msgstr "Posizione predefinita x"
 
 #: src/post/mosaico/mosaico.c:171
 msgid "Default y position"
-msgstr ""
+msgstr "Posizione predefinita y"
 
 #: src/post/mosaico/mosaico.c:173
 msgid "Default width"
-msgstr ""
+msgstr "Larghezza predefinita"
 
 #: src/post/mosaico/mosaico.c:175
 msgid "Default height"
-msgstr ""
+msgstr "Altezza predefinita"
 
 #: src/post/mosaico/switch.c:124
 msgid "Default active stream"
-msgstr ""
+msgstr "Stream attivo predefinito"
 
 #: src/video_out/video_out_aa.c:301
 msgid "xine video output plugin using the ascii-art library"
@@ -940,9 +943,8 @@ msgstr "plugin di output video di xine che usa la libreria DirectFB."
 
 #: src/video_out/video_out_directx.c:1205
 #: src/video_out/video_out_directx.c:1225
-#, fuzzy
 msgid "xine video output plugin for win32 using directx"
-msgstr "plugin di output video di xine che usa libvidix per x11"
+msgstr "plugin di output video di xine per win32 che usa directx"
 
 #: src/video_out/video_out_fb.c:772
 msgid "framebuffer device"
@@ -958,9 +960,8 @@ msgstr ""
 "plugin di output video di xine che usa il dispositivo frame buffer di Linux"
 
 #: src/video_out/video_out_none.c:274
-#, fuzzy
 msgid "xine video output plugin which displays nothing"
-msgstr "plugin di output video di xine che usa libvidix per x11"
+msgstr "plugin di output video di xine che non visualizza nulla"
 
 #: src/video_out/video_out_opengl.c:951
 msgid "gamma correction for OpenGL driver"
@@ -976,9 +977,8 @@ msgstr "plugin di output video di xine che usa l'SDML"
 
 #. printf("video_out_stk: get_description()\n");
 #: src/video_out/video_out_stk.c:430
-#, fuzzy
 msgid "xine video output plugin using the Libstk Surface Set-top Toolkit"
-msgstr "plugin di output video di xine che usa la libreria art ascii"
+msgstr "plugin di output video di xine che usa Libstk Surface Set-top Toolkit"
 
 #: src/video_out/video_out_syncfb.c:1005
 msgid ""
@@ -1079,62 +1079,63 @@ msgstr ""
 #: src/xine-engine/configfile.c:679
 msgid "The current config file has been modified by a newer version of xine."
 msgstr ""
+"Il file di configurazione corrente è stato modificato da una nuova versione "
+"di xine."
 
 #: src/xine-engine/input_rip.c:118 src/xine-engine/input_rip.c:237
 #, c-format
 msgid "input_rip: reading of saved data failed: %s\n"
-msgstr ""
+msgstr "input_rip: la lettura di dati salvati non è riuscita: %s\n"
 
 #: src/xine-engine/input_rip.c:133
-#, fuzzy
 msgid "input_rip: reading by input plugin failed\n"
-msgstr "plugin di input per lo stream di stdin"
+msgstr "input_rip: la lettura tramite plugin di input non è riuscita\n"
 
 #: src/xine-engine/input_rip.c:142 src/xine-engine/input_rip.c:268
 #: src/xine-engine/input_rip.c:560
 #, c-format
 msgid "input_rip: error writing to file %lld bytes: %s\n"
-msgstr ""
+msgstr "input_rip: errore scrivendo nel file %lld byte: %s\n"
 
 #: src/xine-engine/input_rip.c:164
 msgid "input_rip: open() function should never be called\n"
-msgstr ""
+msgstr "input_rip: la funzione open() non dovrebbe mai essere chiamata\n"
 
 #: src/xine-engine/input_rip.c:292 src/xine-engine/input_rip.c:397
 msgid "input_rip: seeking failed\n"
-msgstr ""
+msgstr "input_rip: spostamento non riuscito\n"
 
 #: src/xine-engine/input_rip.c:348 src/xine-engine/input_rip.c:367
 #, c-format
 msgid "input_rip: seeking failed: %s\n"
-msgstr ""
+msgstr "input_rip: spostamento non riuscito: %s\n"
 
 #: src/xine-engine/input_rip.c:375
 #, c-format
 msgid "input_rip: %lld bytes dropped\n"
-msgstr ""
+msgstr "input_rip: %lld byte eliminati\n"
 
 #: src/xine-engine/input_rip.c:491
 msgid "input_rip: input plugin not defined!\n"
-msgstr ""
+msgstr "input_rip: plugin di input non definiti!\n"
 
 #: src/xine-engine/input_rip.c:497
 msgid "input_rip: ripping/caching is not permitted!\n"
-msgstr ""
+msgstr "input_rip: estrazione/caching non permessa!\n"
 
 #: src/xine-engine/input_rip.c:503
 msgid "input_rip: file name not given!\n"
-msgstr ""
+msgstr "input_rip: nome file non dato!\n"
 
 #: src/xine-engine/input_rip.c:516
-#, fuzzy, c-format
+#, c-format
 msgid "input_rip: stat on the file %s failed: %s\n"
-msgstr "input_rtp: impossibile creare nuova thread (%s)\n"
+msgstr "input_rip: stat sul file %s non riuscito: %s\n"
 
 #: src/xine-engine/input_rip.c:529
 #, c-format
 msgid "input_rip: error opening file %s: %s\n"
-msgstr ""
+msgstr "input_rip: errore aprendo il file %s: %s\n"
 
 #: src/xine-engine/load_plugins.c:281
 #, c-format
@@ -1189,9 +1190,10 @@ msgid "osd: can't find out current locale character set\n"
 msgstr "osd: non trovo l'insieme di caratteri locali corrente\n"
 
 #: src/xine-engine/osd.c:842
-#, fuzzy, c-format
+#, c-format
 msgid "osd: unsupported conversion %s -> UCS-2, no conversion performed\n"
-msgstr "osd: converisone non supportata %s -> UCS-2\n"
+msgstr ""
+"osd: converisone non supportata %s -> UCS-2, nessuna conversione eseguita\n"
 
 #: src/xine-engine/osd.c:891 src/xine-engine/osd.c:1037
 msgid "osd: font isn't defined\n"
@@ -1229,21 +1231,21 @@ msgstr ""
 
 #: src/xine-engine/vo_scale.c:358
 msgid "horizontal image position in the output window"
-msgstr ""
+msgstr "posizione immagine orizzontale nella finestra di output"
 
 #: src/xine-engine/vo_scale.c:362
 msgid "vertical image position in the output window"
-msgstr ""
+msgstr "posizione immagine verticale nella finestra di output"
 
 #: src/xine-engine/xine.c:518
-#, fuzzy, c-format
+#, c-format
 msgid "xine: cannot find input plugin for MRL [%s]\n"
-msgstr "xine: non trovo il plugin input per questo MRL\n"
+msgstr "xine: non si trova il plugin di input per MRL [%s]\n"
 
 #: src/xine-engine/xine.c:533
-#, fuzzy, c-format
+#, c-format
 msgid "xine: input plugin cannot open MRL [%s]\n"
-msgstr "xine: non trovo il plugin input per questo MRL\n"
+msgstr "xine: il plugin di input non può aprire MRL [%s]\n"
 
 #: src/xine-engine/xine.c:561
 #, c-format
@@ -1251,9 +1253,8 @@ msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: demuxer specificato %s fallito all'avvio\n"
 
 #: src/xine-engine/xine.c:597
-#, fuzzy
 msgid "xine: join rip input plugin\n"
-msgstr "plugin di input per Video CD"
+msgstr "xine: condividi il plugin di input d'estrazione\n"
 
 #: src/xine-engine/xine.c:634
 #, c-format
@@ -1291,6 +1292,9 @@ msgstr "Metodo memcopy per far usare a xine grossi pezzi di molti dati."
 
 #~ msgid "Enable A52 / AC5 digital audio output via spdif"
 #~ msgstr "Abilita l'output audio digitale A52 / AC5 via spdif"
+
+#~ msgid "demux_roq.c: input not seekable, can not handle!\n"
+#~ msgstr "demux_roq.c: input non ricercabile, non è trattabile!\n"
 
 #~ msgid "demux_fli.c: input not seekable, can not handle!\n"
 #~ msgstr "demux_fli.c: input non ricercabile, non è trattabile!\n"
@@ -1342,6 +1346,3 @@ msgstr "Metodo memcopy per far usare a xine grossi pezzi di molti dati."
 
 #~ msgid "demux_snd.c: input not seekable, can not handle!\n"
 #~ msgstr "demux_snd.c: input non ricercabile, non è trattabile!\n"
-
-#~ msgid "demux_voc.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_voc.c: input non ricercabile, non è trattabile!\n"
