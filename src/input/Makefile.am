@@ -5,7 +5,7 @@
 EXTRA_DIST = input_dvd.c input_vcd.c input_gnome_vfs.c input_rtp.c
 
 if HAVE_DVDNAV
-SUBDIRS = dvb libreal librtsp libdvdread
+SUBDIRS = dvb libreal librtsp
 else
 SUBDIRS = dvb libreal librtsp libdvdread libdvdnav
 endif
