@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.76 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.77 2004/01/11 15:55:42 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1071,8 +1071,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   } else if (this->audio_fifo && this->audio_stream &&
              (stream == this->audio_stream->mdpr->stream_number)) {
 
-    buf_element_t *buf;
-    int            n;
+    int            input_time;
+    off_t          input_length;
 
     lprintf ("audio chunk detected.\n");
 
@@ -1081,44 +1081,31 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     else
       this->audio_need_keyframe = 0;
     
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-
-    buf->content       = buf->mem;
-    buf->pts           = pts;
-    buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
-    
     /* if we have a seekable stream then use the timestamp for the data
      * packet for more accurate seeking - if not then estimate time using
      * average bitrate */
     if(this->audio_stream->index)
-      buf->extra_info->input_time = timestamp;
+      input_time = timestamp;
     else
-      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
-                                           * 8 * 1000 / this->avg_bitrate); 
-
-    buf->type          = this->audio_stream->buf_type;
-    buf->decoder_flags = 0;
-    buf->size          = size;
-
-    if(this->data_start && this->data_chunk_size)
-      buf->extra_info->input_length = this->data_start + 18 + this->data_chunk_size;
-        
-    if(this->duration)
-      buf->extra_info->total_time = this->duration;
+      input_time = (int)((int64_t) this->input->get_current_pos(this->input) 
+                         * 8 * 1000 / this->avg_bitrate);     
     
+    if(this->data_start && this->data_chunk_size)
+      input_length = this->data_start + 18 + this->data_chunk_size;
+    else
+      input_length = 0;
+          
     check_newpts (this, pts, PTS_AUDIO, 0);
+        
+    if(_x_demux_read_send_data(this->audio_fifo, this->input, size, pts, 
+         this->audio_stream->buf_type, 0, this->input->get_current_pos(this->input), 
+         input_length, input_time, this->duration, 0) < 0) {
 
-    n = this->input->read (this->input, buf->content, size);
-
-    if (n<size || size < 0) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
 
-      buf->free_buffer(buf);
       this->status = DEMUX_FINISHED;
       return this->status;
     }
-
-    this->audio_fifo->put (this->audio_fifo, buf);  
 
     /* FIXME: dp->flags = (flags & 0x2) ? 0x10 : 0; */
 
