@@ -15,8 +15,7 @@ libxine_la_DEPENDENCIES = @INTLLIBS@
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) -lm
 
 libxine_la_LDFLAGS =  \
-	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
-	-release $(LT_RELEASE) 
+	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 include_HEADERS  = buffer.h metronom.h configfile.h \
         audio_out.h resample.h video_out.h xine_internal.h spu_decoder.h \

@@ -16,19 +16,38 @@ dnl AC_PREREQ_LIBTOOL(1.4.0,,AC_MSG_ERROR(*** You should have libtool >= 1.4 ins
 
 
 dnl Making releases:
-dnl   XINE_SUB += 1;
-dnl   XINE_IFACE_AGE += 1;
-dnl   XINE_BIN_AGE += 1;
-dnl if any functions have been added, set XINE_IFACE_AGE to 0.
-dnl if backwards compatibility has been broken,
-dnl set XINE_BIN_AGE _and_ XINE_IFACE_AGE to 0.
+dnl   XINE_SUB += 1; continue with LT_* values below
 dnl
 XINE_MAJOR=0
 XINE_MINOR=9
 XINE_SUB=10
-XINE_PRE="cvs"
-XINE_IFACE_AGE=0
-XINE_BIN_AGE=0
+
+
+dnl The libtool version numbers (LT_*); Don't even think about faking this!
+dnl 
+dnl immediately before every release do:
+dnl ===================================
+dnl if (the interface is totally unchanged from previous release)
+dnl    LT_REVISION ++;
+dnl else { /* interfaces have been added, removed or changed */
+dnl    LT_REVISION = 0;
+dnl    LT_CURRENT ++;
+dnl    if (any interfaces have been _added_ since last release)
+dnl       AGE ++;
+dnl    if (any interfaces have been _removed_ or incompatibly changed)
+dnl       AGE = 0;
+dnl }
+
+LT_CURRENT=0
+LT_REVISION=0
+LT_AGE=0
+
+dnl for a release tarball do "rm .cvsversion" before "make dist"
+if test -f .cvsversion; then
+  XINE_PRE="cvs"
+else
+  XINE_PRE=""
+fi
 
 AC_SUBST(XINE_MAJOR)
 AC_SUBST(XINE_MINOR)
@@ -40,25 +59,6 @@ AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR)
 AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR)
 AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB)
 
-dnl this is only for pre-1.0 releases (ie with unstable interface)
-LT_RELEASE=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB
-LT_CURRENT=0
-LT_REVISION=0
-LT_AGE=0
-
-dnl non-devel releases should not use LT_RELEASE but something like this:
-dnl
-dnl LT_REVISION=$XINE_SUB
-dnl LT_CURRENT=`expr $XINE_MAJOR + $XINE_MINOR`
-dnl LT_AGE=$XINE_MINOR
-dnl
-dnl !! This only works if subminor releases don't have any interface changes,
-dnl !! minor releases _only add_ interfaces and major releases remove at least
-dnl !! one interface
-dnl otherwise, the LT_* variables must be set according to
-dnl <info:(libtool)Updating version info>
-
-AC_SUBST(LT_RELEASE)
 AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
@@ -1050,8 +1050,8 @@ echo " * decoder plugins:"
 echo "   - a52             - dts"
 echo "   - mpeg2           - spu"
 echo "   - ffmpeg          - mad"
-echo "   - divx4           - cinepak"
-echo "   - msvc            - cyuv"
+echo "   - cyuv            - divx4"
+echo "   - cinepak         - msvc"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi
