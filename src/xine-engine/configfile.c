@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.7 2001/11/18 15:08:31 guenter Exp $
+ * $Id: configfile.c,v 1.8 2001/11/18 21:38:23 miguelfreitas Exp $
  *
  * config file management - implementation
  *
@@ -459,7 +459,6 @@ static void config_file_save (config_values_t *this) {
 	fprintf (f_config, "\n");
 	break;
       case CONFIG_TYPE_ENUM: {
-	int i;
 	char **value;
 	
 	fprintf (f_config, "# {");
@@ -473,13 +472,7 @@ static void config_file_save (config_values_t *this) {
 		 entry->num_default);
 	fprintf (f_config, "%s:", entry->key);
 	
-	i = 0; value = entry->enum_values;
-	while (i< (entry->num_value-1)) {
-	  i++;
-	  value++;
-	}
-	  
-	fprintf (f_config, "%s\n", *value);
+	fprintf (f_config, "%s\n", entry->enum_values[entry->num_value]);
 	fprintf (f_config, "\n");
 	break;
       }
@@ -570,6 +563,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.8  2001/11/18 21:38:23  miguelfreitas
+ * fix enum value saving
+ *
  * Revision 1.7  2001/11/18 15:08:31  guenter
  * more cleanups, config stuff bugfixes
  *
