@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,21 +40,22 @@
 #include <sys/ioctl.h>
 #include <inttypes.h>
 
-#include "xine/xine.h"
-#include "xine/monitor.h"
-#include "xine/audio_out.h"
+#include "xine_internal.h"
+#include "monitor.h"
+#include "audio_out.h"
 #include "resample.h"
-#include "xine/metronom.h"
-#include "xine/ac3.h"
-#include "xine/utils.h"
+#include "metronom.h"
+#include "libac3/ac3.h"
+#include "utils.h"
+#include "metronom.h"
+
+#define AO_OUT_OSS_IFACE_VERSION 1
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
 
 #define GAP_TOLERANCE        15000
 #define MAX_MASTER_CLOCK_DIV  5000
-
-extern uint32_t xine_debug;
 
 #define DSP_TEMPLATE "/dev/dsp%d"
 
@@ -88,7 +89,8 @@ static audio_oss_globals_t gAudioOSS;
 /*
  * open the audio device for writing to
  */
-static int ao_open(uint32_t bits, uint32_t rate, int mode)
+static int ao_open(metronom_t *metronom, 
+		   uint32_t bits, uint32_t rate, int mode)
 {
   int tmp;
   int fsize;
@@ -157,7 +159,7 @@ static int ao_open(uint32_t bits, uint32_t rate, int mode)
 
   xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 samples\n", gAudioOSS.audio_step);
 
-  metronom_set_audio_rate (gAudioOSS.audio_step);
+  metronom->set_audio_rate(metronom, gAudioOSS.audio_step);
 
   /*
    * audio buffer size handling
@@ -230,7 +232,8 @@ static void ao_fill_gap (uint32_t pts_len) {
   gAudioOSS.last_vpts += pts_len;
 }
 
-static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples, 
+static void ao_write_audio_data(metronom_t *metronom,
+				int16_t* output_samples, uint32_t num_samples, 
 				uint32_t pts_)
 {
 
@@ -245,7 +248,7 @@ static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples,
   if (gAudioOSS.audio_fd<0)
     return;
 
-  vpts        = metronom_got_audio_samples (pts_, num_samples);
+  vpts        = metronom->got_audio_samples (metronom, pts_, num_samples);
 
   xprintf (VERBOSE|AUDIO, "audio_oss_out: got %d samples, vpts=%d, last_vpts=%d\n",
 	   num_samples, vpts, gAudioOSS.last_vpts);
@@ -275,7 +278,7 @@ static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples,
    */
 
   audio_vpts  = ao_get_current_vpts () ;
-  master_vpts = metronom_get_current_time ();
+  master_vpts = metronom->get_current_time (metronom);
   diff        = audio_vpts - master_vpts;
 
   xprintf (AUDIO|VERBOSE, "audio_oss_out: syncing on master clock: audio_vpts=%d master_vpts=%d\n",
@@ -316,7 +319,7 @@ static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples,
   
   if (abs(diff)>MAX_MASTER_CLOCK_DIV) {
     printf ("master clock adjust time %d -> %d (diff: %d)\n", master_vpts, audio_vpts, diff); 
-    metronom_adjust_clock (audio_vpts); 
+    metronom->adjust_clock (metronom, audio_vpts); 
   }
   
 
@@ -367,22 +370,30 @@ static int ao_is_mode_supported (int mode) {
   return ((mode == AO_MODE_STEREO) || (mode == AO_MODE_MONO));
 }
 
+static char *ao_get_ident(void) {
+  return "OSS";
+}
+
 static ao_functions_t audio_ossout = {
+  AO_OUT_OSS_IFACE_VERSION,
   ao_is_mode_supported,
   ao_open,
   ao_write_audio_data,
   ao_close,
+  ao_get_ident
 };
 
 
-ao_functions_t *audio_ossout_init (void) 
-{
+ao_functions_t *init_audio_out_plugin (int iface, config_values_t *config) {
   int   caps;
   char  devname[] = "/dev/dsp\0\0\0";
   int   best_rate;
   int   rate ;
   int   devnum;
   int   audio_fd;
+
+
+  /*  FIXME: add iface check */
 
   /*
    * find best device driver/channel

@@ -10,6 +10,8 @@
 
 #include "mpg123.h"
 
+#include "metronom.h"
+
 void I_step_one(unsigned int balloc[], unsigned int scale_index[2][SBLIMIT],struct frame *fr)
 {
   unsigned int *ba=balloc;
@@ -111,7 +113,7 @@ void I_step_two(real fraction[2][SBLIMIT],unsigned int balloc[2*SBLIMIT],
   }
 }
 
-void do_layer1(mpgaudio_t *mp, uint32_t pts)
+void do_layer1(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts)
 {
   int clip=0;
   struct frame *fr = &mp->fr;
@@ -145,14 +147,14 @@ void do_layer1(mpgaudio_t *mp, uint32_t pts)
   }
   
   if (!mp->is_output_initialized) {
-    mp->ao_output->open (16, fr->sample_rate, 
+    mp->ao_output->open (metronom, 16, fr->sample_rate, 
 			 stereo-1 ? AO_MODE_STEREO: AO_MODE_MONO);
     mp->is_output_initialized = 1;
 
     printf ("layer1\n");
   }
 
-  mp->ao_output->write_audio_data ((int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), pts);
+  mp->ao_output->write_audio_data (metronom, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), pts);
 				   
 }
 

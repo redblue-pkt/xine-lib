@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.8 2001/04/26 21:40:17 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.9 2001/04/27 10:42:38 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -345,7 +345,7 @@ void load_audio_out_plugins (xine_t *this,
 
 }
 
-vo_driver_t *load_video_output_plugin(config_values_t *config,
+vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 				      char *filename, char *id, 
 				      int visual_type, void *visual) {
   DIR *dir;
@@ -372,6 +372,7 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
  		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME, 
 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
 	  ((pEntry->d_name[nLen-3]=='.') 
+
 	   && (pEntry->d_name[nLen-2]=='s')
 	   && (pEntry->d_name[nLen-1]=='o'))) {
 	
@@ -386,7 +387,7 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
 	      exit(1);
 	    }
 	    else {
-	      void *(*initplug) (int, config_values_t *, int, void *);
+	      void *(*initplug) (int, config_values_t *, void *, int);
 	      
 	      if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
 		
@@ -408,7 +409,7 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
 	    exit(1);
 	  }
 	  else {
-	    void *(*initplug) (int, config_values_t *, int, void *);
+	    void *(*initplug) (int, config_values_t *, void *, int);
 	    
 	    if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
 	      
@@ -435,20 +436,92 @@ char **enum_video_output_plugins(int visual_type) {
   return NULL;
 }
 
-ao_functions_t *load_audio_output_plugin(char *filename, char *id) {
-
-  if(filename == NULL && id == NULL)
+ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
+					      char *filename, char *id) {
+  DIR *dir;
+  ao_functions_t *aod;
+  
+  if(filename == NULL && id == NULL) {
+    printf("%s(%s@%d): parameter(s) should be non null.\n",
+	   __FILE__, __FUNCTION__, __LINE__);
     return NULL;
-
-  // Not implemented
-
+  }
+  
+  dir = opendir (XINE_PLUGINDIR);
+  
+  if (dir) {
+    struct dirent *pEntry;
+    
+    while ((pEntry = readdir (dir)) != NULL) {
+      char str[1024];
+      void *plugin;
+      
+      int nLen = strlen (pEntry->d_name);
+      
+      if ((strncasecmp(pEntry->d_name,
+ 		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME, 
+		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
+	  ((pEntry->d_name[nLen-3]=='.') 
+	   && (pEntry->d_name[nLen-2]=='s')
+	   && (pEntry->d_name[nLen-1]=='o'))) {
+	
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+	
+	if(filename) { /* load by name */
+	  if(!strncasecmp(filename, pEntry->d_name, strlen(pEntry->d_name))) {
+	    
+	    if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	      fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
+		      __FILE__, __LINE__, str, dlerror());
+	      exit(1);
+	    }
+	    else {
+	      void *(*initplug) (int, config_values_t *);
+	      
+	      if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
+		
+		aod = (ao_functions_t *) initplug(AUDIO_OUT_PLUGIN_IFACE_VERSION, config);
+		
+		printf("audio output plugin found : %s(ID: %s, iface: %d)\n",
+		       str, aod->get_identifier(), aod->interface_version);
+		
+		return aod;
+	      } 
+	    }   
+	  }
+	}
+	else { /* load by ID */
+	  if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	    fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
+		    __FILE__, __LINE__, str, dlerror());
+	    exit(1);
+	  }
+	  else {
+	    void *(*initplug) (int, config_values_t *);
+	    
+	    if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
+	      
+	      aod = (ao_functions_t *) initplug(AUDIO_OUT_PLUGIN_IFACE_VERSION,
+						config);
+	      
+	      printf("audio output plugin found : %s(ID: %s, iface: %d)\n",
+		     str, aod->get_identifier(), aod->interface_version);
+	      
+	      if(!strcasecmp(id, aod->get_identifier())) {
+		return aod;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
   return NULL;
 }
+
 char **enum_audio_output_plugins(int output_type) {
 
   // Not implemented
 
   return NULL;
 }
-
-

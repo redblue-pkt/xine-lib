@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.11 2001/04/26 11:31:36 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.12 2001/04/27 10:42:38 f1rmb Exp $
  *
  */
 
@@ -36,7 +36,6 @@
 #define DECODER_PLUGIN_MAX     50
 #define CODEC_PLUGIN_IFACE_VERSION      1
 #define CODEC_PLUGIN_MAX       50
-#define AUDIO_OUT_PLUGIN_IFACE_VERSION  1
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
 #define VIDEO_DECODER_PLUGIN_MAX 50
@@ -61,7 +60,8 @@ struct video_decoder_s {
 
   void (*init) (video_decoder_t *this, vo_instance_t *video_out);
 
-  void (*decode_data) (video_decoder_t *this, buf_element_t *buf);
+  void (*decode_data) (metronom_t *metronom,
+		       video_decoder_t *this, buf_element_t *buf);
 
   void (*release_img_buffers) (video_decoder_t *this);
 
@@ -85,7 +85,8 @@ struct audio_decoder_s {
 
   void (*init) (audio_decoder_t *this, ao_functions_t *audio_out);
 
-  void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
+  void (*decode_data) (metronom_t *metronom,
+		       audio_decoder_t *this, buf_element_t *buf);
 
   void (*close) (audio_decoder_t *this);
 
@@ -346,12 +347,15 @@ void load_decoder_plugins (xine_t *this,
 #define VIDEO_OUTPUT_TYPE_PROBE 1
 #define VIDEO_OUTPUT_TYPE_X11   2
 #define VIDEO_OUTPUT_TYPE_FB    3
-vo_driver_t *load_video_output_plugin(config_values_t *config,
-				      char *filename, char *id, 
-				      int visual_type, void *visual);
+vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
+					   char *filename, char *id, 
+					   int visual_type, void *visual);
 #define AUDIO_OUTPUT_TYPE_GETID    0
 #define AUDIO_OUTPUT_TYPE_PROBE    1
 #define AUDIO_OUTPUT_TYPE_OSS      2
 #define AUDIO_OUTPUT_TYPE_ALSA     3
 #define AUDIO_OUTPUT_TYPE_ESD      4
+ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
+					      char *filename, char *id);
 #endif
+

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.7 2001/04/24 15:47:32 guenter Exp $
+ * $Id: video_decoder.c,v 1.8 2001/04/27 10:42:38 f1rmb Exp $
  *
  */
 
@@ -69,7 +69,8 @@ void *video_decoder_loop (void *this_gen) {
 
 	}
 	
-	decoder->decode_data (this->cur_video_decoder_plugin, buf);
+	decoder->decode_data (this->metronom,
+			      this->cur_video_decoder_plugin, buf);
       }
 
       break;

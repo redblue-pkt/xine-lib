@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.1 2001/04/18 22:36:07 f1rmb Exp $
+ * $Id: metronom.h,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -176,4 +176,3 @@ struct metronom_s {
 metronom_t *metronom_init ();
 
 #endif
-

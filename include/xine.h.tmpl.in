@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.8 2001/04/26 21:08:27 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.9 2001/04/27 10:42:38 f1rmb Exp $
  *
  */
 
@@ -328,15 +328,17 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
 #define VIDEO_OUTPUT_TYPE_PROBE 1
 #define VIDEO_OUTPUT_TYPE_X11   2
 #define VIDEO_OUTPUT_TYPE_FB    3
-vo_driver_t *load_video_output_plugin(config_values_t *config,
-				      char *filename, char *id, 
-				      int visual_type, void *visual);
+vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
+					   char *filename, char *id, 
+					   int visual_type, void *visual);
 /* audio_type */
 #define AUDIO_OUTPUT_TYPE_GETID    0
 #define AUDIO_OUTPUT_TYPE_PROBE    1
 #define AUDIO_OUTPUT_TYPE_OSS      2
 #define AUDIO_OUTPUT_TYPE_ALSA     3
 #define AUDIO_OUTPUT_TYPE_ESD      4
+ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
+					      char *filename, char *id);
 
 /** @} end of loadpluginsgroup */
 

@@ -48,6 +48,7 @@
 #include "sanity_check.h"
 
 #include "audio_out.h"
+#include "metronom.h"
 #include "attributes.h"
 
 
@@ -193,7 +194,8 @@ void ac3_reset ()
 
 }
 
-size_t ac3_decode_data (uint8_t *data_start, uint8_t *data_end, uint32_t pts_)
+size_t ac3_decode_data (metronom_t *metronom, 
+			uint8_t *data_start, uint8_t *data_end, uint32_t pts_)
 {
 	uint32_t i;
 
@@ -284,16 +286,18 @@ size_t ac3_decode_data (uint8_t *data_start, uint8_t *data_end, uint32_t pts_)
 		}
 
 		if (!is_output_initialized) {
-			ac3_output.open (16, syncinfo.sampling_rate, 
+			ac3_output.open (metronom, 16, syncinfo.sampling_rate, 
 					 (ac3_config.flags & AO_MODE_AC3) ? AO_MODE_AC3 : AO_MODE_STEREO);
 			is_output_initialized = 1;
 		}
 
 		if ((ac3_config.flags & AO_MODE_AC3) == 0) {
-			ac3_output.write_audio_data(s16_samples, 256*6, pts_);
+			ac3_output.write_audio_data(metronom,
+						    s16_samples, 256*6, pts_);
 		}
 		else {
-			ac3_output.write_audio_data(s16_samples_out, 6 * 256, pts_);
+			ac3_output.write_audio_data(metronom, 
+						    s16_samples_out, 6 * 256, pts_);
 		}
 
 		pts_ = 0;

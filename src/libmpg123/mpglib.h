@@ -18,14 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpglib.h,v 1.1 2001/04/18 22:34:49 f1rmb Exp $
+ * $Id: mpglib.h,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
  */
 
 #ifndef HAVE_MPGLIB_H
 #define HAVE_MPGLIB_H
 
 #include <inttypes.h>
+
 #include "audio_out.h"
+#include "metronom.h"
 
 typedef struct mpstr {
   unsigned char   bsspace[2][MAXFRAMESIZE+512]; /* MAXFRAMESIZE */
@@ -58,7 +60,8 @@ mpgaudio_t  *mpg_audio_init (ao_functions_t *ao_output);
 
 void mpg_audio_reset (mpgaudio_t *mp);
 
-void mpg_audio_decode_data (mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
+void mpg_audio_decode_data (metronom_t *metronom, 
+			    mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
 			    uint32_t pts);
 
 #ifdef __cplusplus
@@ -66,3 +69,4 @@ void mpg_audio_decode_data (mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
 #endif
 
 #endif
+

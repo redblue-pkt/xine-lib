@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_alsa_out.c,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,22 +36,21 @@
 //#include <linux/asoundid.h>
 
 #include <inttypes.h>
-#include "xine/xine.h"
-#include "xine/monitor.h"
-#include "xine/audio_out.h"
-#include "xine/metronom.h"
+#include "xine_internal.h"
+#include "monitor.h"
+#include "audio_out.h"
+#include "metronom.h"
 #include "resample.h"
-#include "xine/ac3.h"
-#include "xine/utils.h"
+#include "libac3/ac3.h"
+#include "utils.h"
+
+#define AO_OUT_ALSA_IFACE_VERSION 1
 
 #define AUDIO_NUM_FRAGMENTS    15
 #define AUDIO_FRAGMENT_SIZE  8192
 
 #define GAP_TOLERANCE        15000
 #define MAX_MASTER_CLOCK_DIV  5000
-
-extern uint32_t xine_debug;
-
 
 typedef struct _audio_alsa_globals {
 
@@ -157,7 +156,8 @@ static void alsa_set_frag(int fragment_size, int fragment_count) {
 /*
  * open the audio device for writing to
  */
-static int ao_open(uint32_t bits, uint32_t rate, int ao_mode) {
+static int ao_open(metronom_t *metronom,
+		   uint32_t bits, uint32_t rate, int ao_mode) {
   int                       channels;
   int                       subdevice = 0;
   int                       direction = SND_PCM_OPEN_PLAYBACK;  
@@ -290,7 +290,7 @@ static int ao_open(uint32_t bits, uint32_t rate, int ao_mode) {
   xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 samples\n",
 	   gAudioALSA.audio_step);
 
-  metronom_set_audio_rate (gAudioALSA.audio_step);
+  metronom->set_audio_rate (metronom, gAudioALSA.audio_step);
 
   memcpy(&pcm_chan_params.format, &pcm_format, sizeof(snd_pcm_format_t));
 
@@ -419,7 +419,8 @@ static uint32_t ao_get_current_vpts (void) {
 /*
  *
  */
-static void ao_put_samples(int16_t* output_samples, 
+static void ao_put_samples(metronom_t *metronom,
+			   int16_t* output_samples, 
 			   uint32_t num_samples, uint32_t pts_) {
   uint32_t                  vpts;
   uint32_t                  audio_vpts;
@@ -441,7 +442,7 @@ static void ao_put_samples(int16_t* output_samples,
   //    alsa_set_frag(num_samples, 6);
   //  }
   
-  vpts = metronom_got_audio_samples (pts_, num_samples);
+  vpts = metronom->got_audio_samples (metronom, pts_, num_samples);
 
   /*
    * check if these samples "fit" in the audio output buffer
@@ -465,7 +466,7 @@ static void ao_put_samples(int16_t* output_samples,
    */
 
   audio_vpts  = ao_get_current_vpts () ;
-  master_vpts = metronom_get_current_time ();
+  master_vpts = metronom->get_current_time (metronom);
   diff        = audio_vpts - master_vpts;
 
   xprintf (VERBOSE|AUDIO,"audio_alsa_out: syncing on master clock: "
@@ -485,7 +486,7 @@ static void ao_put_samples(int16_t* output_samples,
 
   if (abs(diff) > MAX_MASTER_CLOCK_DIV) {
     printf ("master clock adjust time %d -> %d\n", master_vpts, audio_vpts);
-    metronom_adjust_clock (audio_vpts);
+    metronom->adjust_clock (metronom, audio_vpts);
   }
 
   /*
@@ -597,15 +598,21 @@ static int ao_is_mode_supported (int mode) {
   return 0;
 }
 
+static char *ao_get_ident(void) {
+  return "ALSA";
+}
+
 /* ------------------------------------------------------------------------- */
 /*
  *
  */
 static ao_functions_t audio_alsaout = {
+  AO_OUT_ALSA_IFACE_VERSION,
   ao_is_mode_supported,
   ao_open,
   ao_put_samples,
-  ao_close
+  ao_close,
+  ao_get_ident
 };
 /* ------------------------------------------------------------------------- */
 /*
@@ -617,7 +624,7 @@ static void sighandler(int signum) {
 /*
  *
  */
-ao_functions_t *audio_alsaout_init(void) {
+ao_functions_t *audio_alsaout_init(int iface, config_values_t *config) {
   int                      best_rate;
   int                      devnum;
   int                      err;
@@ -636,6 +643,7 @@ ao_functions_t *audio_alsaout_init(void) {
   else {
     snd_default_card = snd_defaults_card();
     if((err = snd_card_load(snd_default_card)) < 0) {
+
       perr("snd_card_load() failed: %s\n", snd_strerror(err));
     }
     xprintf (VERBOSE|AUDIO, "%d card(s) installed. Default = %d\n",
@@ -759,3 +767,4 @@ ao_functions_t *audio_alsaout_init(void) {
 
   return &audio_alsaout;
 }
+

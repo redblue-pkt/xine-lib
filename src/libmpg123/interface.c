@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: interface.c,v 1.1 2001/04/18 22:34:36 f1rmb Exp $
+ * $Id: interface.c,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
  */
 
 #include <stdlib.h>
@@ -68,7 +68,8 @@ int head_check(struct mpstr *mp)
   return 1;
 }
 
-void mpg_audio_decode_data (mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
+void mpg_audio_decode_data (metronom_t *metronom,
+			    mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
 			    uint32_t pts) 
 {
   /* printf ("mpg123: decoding package\n"); */
@@ -124,13 +125,13 @@ void mpg_audio_decode_data (mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
     /* printf ("layer : %d\n",mp->fr.lay);  */
     switch(mp->fr.lay) {
     case 1:
-      do_layer1(mp, pts_for_package);
+      do_layer1(metronom, mp, pts_for_package);
       break;
     case 2:
-      do_layer2(mp, pts_for_package);
+      do_layer2(metronom, mp, pts_for_package);
       break;
     case 3:
-      do_layer3(mp, pts_for_package);
+      do_layer3(metronom, mp, pts_for_package);
       break;
     }
 

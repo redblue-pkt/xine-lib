@@ -31,18 +31,18 @@
 #include <sys/time.h>
 #include <inttypes.h>
 
-#include "xine/xine.h"
-#include "xine/monitor.h"
-#include "xine/audio_out.h"
+#include "xine_internal.h"
+#include "monitor.h"
+#include "audio_out.h"
 #include "resample.h"
-#include "xine/metronom.h"
-#include "xine/ac3.h"
-#include "xine/utils.h"
+#include "metronom.h"
+#include "libac3/ac3.h"
+#include "utils.h"
+
+#define AO_OUT_ESD_IFACE_VERSION 1
 
 #define GAP_TOLERANCE        15000
 #define MAX_MASTER_CLOCK_DIV  5000
-
-extern uint32_t xine_debug;
 
 typedef struct _audio_esd_globals {
 
@@ -73,7 +73,8 @@ static audio_esd_globals_t gAudioESD;
 /*
  * open the audio device for writing to
  */
-static int ao_open(uint32_t bits, uint32_t rate, int mode)
+static int ao_open(metronom_t *metronom, 
+		   uint32_t bits, uint32_t rate, int mode)
 {
   esd_format_t format;
 
@@ -132,7 +133,7 @@ static int ao_open(uint32_t bits, uint32_t rate, int mode)
 
   xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 samples\n", gAudioESD.audio_step);
 
-  metronom_set_audio_rate (gAudioESD.audio_step);
+  metronom->set_audio_rate (metronom, gAudioESD.audio_step);
 
   return 1;
 }
@@ -178,7 +179,8 @@ static void ao_fill_gap (uint32_t pts_len) {
   gAudioESD.last_vpts += pts_len;
 }
 
-static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples, 
+static void ao_write_audio_data(metronom_t *metronom,
+				int16_t* output_samples, uint32_t num_samples, 
 				uint32_t pts_)
 {
 
@@ -193,7 +195,7 @@ static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples,
   if (gAudioESD.audio_fd<0)
     return;
 
-  vpts        = metronom_got_audio_samples (pts_, num_samples);
+  vpts        = metronom->got_audio_samples (metronom, pts_, num_samples);
 
   xprintf (VERBOSE|AUDIO, "audio_esd_out: got %d samples, vpts=%d, last_vpts=%d\n",
 	   num_samples, vpts, gAudioESD.last_vpts);
@@ -223,7 +225,7 @@ static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples,
    */
 
   audio_vpts  = ao_get_current_vpts () ;
-  master_vpts = metronom_get_current_time ();
+  master_vpts = metronom->get_current_time (metronom);
   diff        = audio_vpts - master_vpts;
 
   xprintf (AUDIO|VERBOSE, "audio_esd_out: syncing on master clock: audio_vpts=%d master_vpts=%d\n",
@@ -239,7 +241,7 @@ static void ao_write_audio_data(int16_t* output_samples, uint32_t num_samples,
 
   if (abs(diff)>MAX_MASTER_CLOCK_DIV) {
     printf ("master clock adjust time %d -> %d (diff: %d)\n", master_vpts, audio_vpts, diff); 
-    metronom_adjust_clock (audio_vpts); 
+    metronom->adjust_clock (metronom, audio_vpts); 
   }
 
   /*
@@ -289,15 +291,21 @@ static int ao_is_mode_supported (int mode) {
   return ((mode == AO_MODE_STEREO) || (mode == AO_MODE_MONO));
 }
 
+static char *ao_get_ident(void) {
+  return "ESD";
+}
+
 static ao_functions_t audio_esdout = {
+  AO_OUT_ESD_IFACE_VERSION,
   ao_is_mode_supported,
   ao_open,
   ao_write_audio_data,
   ao_close,
+  ao_get_ident
 };
 
 
-ao_functions_t *audio_esdout_init (void) 
+ao_functions_t *audio_esdout_init (int iface, config_values_t *config)
 {
   int audio_fd;
 
