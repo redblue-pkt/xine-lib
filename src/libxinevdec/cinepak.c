@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.15 2002/10/18 23:43:25 tmmm Exp $
+ * $Id: cinepak.c,v 1.16 2002/10/20 16:47:05 tmmm Exp $
  */
 
 #include <stdlib.h>
@@ -51,10 +51,16 @@ typedef struct {
   cvid_codebook_t   v1_codebook[256];
 } cvid_strip_t;
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} cvid_class_t;
+
 typedef struct cvid_decoder_s {
   video_decoder_t   video_decoder;
 
-  vo_instance_t	   *video_out;
+  cvid_class_t       *class;
+
+  xine_stream_t    *stream;
   int64_t           video_step;
   int		    decoder_ok;
 
@@ -310,13 +316,6 @@ static void cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size)
   }
 }
 
-static void cvid_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
-  cvid_decoder_t *this = (cvid_decoder_t *) this_gen;
-
-  this->video_out  = video_out;
-  this->decoder_ok = 0;
-}
-
 static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   cvid_decoder_t *this = (cvid_decoder_t *) this_gen;
 
@@ -358,7 +357,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->buf = malloc(this->bufsize);
     this->size = 0;
 
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
   } else if (this->decoder_ok) {
@@ -383,7 +382,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       cinepak_decode_frame (this, this->buf, this->size);
 
-      img = this->video_out->get_frame (this->video_out,
+      img = this->stream->video_out->get_frame (this->stream->video_out,
 					this->biWidth, this->biHeight,
 					XINE_VO_ASPECT_SQUARE,
 					XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
@@ -449,7 +448,7 @@ static void cvid_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
-static void cvid_close (video_decoder_t *this_gen) {
+static void cvid_dispose (video_decoder_t *this_gen) {
   cvid_decoder_t *this = (cvid_decoder_t *) this_gen;
 
   if (this->img_buffer) {
@@ -464,34 +463,57 @@ static void cvid_close (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {  
     this->decoder_ok = 0;
-    this->video_out->close(this->video_out);
+    this->stream->video_out->close(this->stream->video_out);
   }
-}
 
-static char *cvid_get_id(void) {
-  return "cinepak";
-}
-
-static void cvid_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  cvid_decoder_t *this ;
+  cvid_decoder_t  *this ;
 
   this = (cvid_decoder_t *) malloc (sizeof (cvid_decoder_t));
-  memset(this, 0, sizeof (cvid_decoder_t));
 
-  this->video_decoder.init                = cvid_init;
   this->video_decoder.decode_data         = cvid_decode_data;
   this->video_decoder.flush               = cvid_flush;
   this->video_decoder.reset               = cvid_reset;
-  this->video_decoder.close               = cvid_close;
-  this->video_decoder.get_identifier      = cvid_get_id;
   this->video_decoder.dispose             = cvid_dispose;
+  this->size                              = 0;
 
-  return (video_decoder_t *) this;
+  this->stream                            = stream;
+  this->class                             = (cvid_class_t *) class_gen;
+
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "Cinepak";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Cinepak (CVID) video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  cvid_class_t *this;
+
+  this = (cvid_class_t *) malloc (sizeof (cvid_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  return this;
 }
 
 /*
@@ -510,6 +532,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
