@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.10 2004/01/04 22:26:29 mroi Exp $
+ * $Id: xine_encoder.c,v 1.11 2004/03/03 20:20:39 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -181,7 +181,15 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->context->me_method = ME_ZERO; /*motion estimation type*/
   
   this->context->frame_rate = 90000;
-  this->context->frame_rate_base = frame->vo_frame.duration;
+  if (frame->vo_frame.duration > 90000 / 24)
+    this->context->frame_rate_base = 90000 / 24;
+  else if (frame->vo_frame.duration < 90000 / 60)
+    this->context->frame_rate_base = 90000 / 60;
+  else
+    this->context->frame_rate_base = frame->vo_frame.duration;
+  /* ffmpeg can complain about illegal framerates, but since this seems no
+   * problem for the DXR3, we just tell ffmpeg to be more lax with */
+  this->context->strict_std_compliance = -1;
   
   /* open avcodec */
   if (avcodec_open(this->context, codec) < 0) {
