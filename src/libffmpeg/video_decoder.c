@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.38 2004/12/16 13:59:05 mroi Exp $
+ * $Id: video_decoder.c,v 1.39 2004/12/16 19:26:34 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -988,7 +988,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
                                         this->size);
           }
         }
-        if (len < 0) {
+        if ((len < 0) || (len > this->size)) {
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
                    "ffmpeg_video_dec: error decompressing frame\n");
           this->size = 0;
