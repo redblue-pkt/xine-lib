@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.25 2002/10/22 16:46:25 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.26 2002/11/02 14:39:51 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -766,7 +766,6 @@ static int ao_sun_get_property (xine_ao_driver_t *this_gen, int property) {
 
   switch(property) {
   case AO_PROP_MIXER_VOL:
-    break;
   case AO_PROP_PCM_VOL:
     if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
       return 0;
@@ -794,7 +793,6 @@ static int ao_sun_set_property (xine_ao_driver_t *this_gen, int property, int va
 
   switch(property) {
   case AO_PROP_MIXER_VOL:
-    break;
   case AO_PROP_PCM_VOL:
     info.play.gain = value * AUDIO_MAX_GAIN / 100;
     if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
@@ -953,7 +951,7 @@ static xine_ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, co
   this->ao_driver.get_gap_tolerance     = ao_sun_get_gap_tolerance;
   this->ao_driver.control		= ao_sun_ctrl;
 
-  return this;
+  return &this->ao_driver;
 }
 
 /*
