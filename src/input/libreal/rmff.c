@@ -17,12 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.c,v 1.1 2002/12/12 22:14:55 holstsn Exp $
+ * $Id: rmff.c,v 1.2 2002/12/15 01:51:36 holstsn Exp $
  *
  * functions for real media file format
  * adopted from joschkas real tools
  */
 
+#include <xineutils.h>
 #include "rmff.h"
 
 /*
@@ -491,26 +492,17 @@ rmff_header_t *rmff_scan_header(const char *data) {
 rmff_header_t *rmff_scan_header_stream(int fd) {
 
   rmff_header_t *header;
-  char *buf=malloc(sizeof(char)*1024);
-  int fill=0;
-  int size=1024;
+  char *buf=xine_buffer_init(1024);
+  int index=0;
   uint32_t chunk_type;
   uint32_t chunk_size;
-  char *ptr=buf;
 
   do {
-    if (size-fill < 8) {
-      size+=1024;
-      buf=realloc(buf, sizeof(char)*size);
-      ptr=buf+fill;
-    }
-    read(fd, ptr, 8);
-    chunk_type=BE_32(ptr);
-    ptr+=4;
-    fill+=4;
-    chunk_size=BE_32(ptr);
-    ptr+=4;
-    fill+=4;
+    xine_buffer_ensure_size(buf, index+8);
+    read(fd, buf+index, 8);
+    chunk_type=BE_32(buf+index); index+=4;
+    chunk_size=BE_32(buf+index); index+=4;
+
     switch (chunk_type) {
       case DATA_TAG:
         chunk_size=18;
@@ -518,25 +510,20 @@ rmff_header_t *rmff_scan_header_stream(int fd) {
       case CONT_TAG:
       case RMF_TAG:
       case PROP_TAG:
-        if (size-fill < (chunk_size-8)) {
-          size+=1024;
-          buf=realloc(buf, sizeof(char)*size);
-          ptr=buf+fill;
-        }
-        read(fd, ptr, (chunk_size-8));
-        ptr+=(chunk_size-8);
-        fill+=(chunk_size-8);
+        xine_buffer_ensure_size(buf, index+chunk_size-8);
+        read(fd, buf+index, (chunk_size-8));
+	index+=(chunk_size-8);
         break;
       default:
         printf("rmff_scan_header_stream: unknown chunk");
-        hexdump(ptr-8, 8);
+        hexdump(buf+index-8, 8);
         chunk_type=DATA_TAG;
     }
   } while (chunk_type != DATA_TAG);
 
   header = rmff_scan_header(buf);
 
-  free(buf);
+  xine_buffer_free(buf);
 
   return header;
 }
