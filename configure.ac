@@ -245,7 +245,10 @@ if test x$enable_mlib = xyes; then
     fi
 
     AC_CHECK_LIB(mlib, mlib_VideoAddBlock_U8_S16,
-               [ LIBS="$LIBS -L$mlibhome/lib -lmlib" 
+	[ saved_CPPFLAGS="$CPPFLAGS"
+	  CPPFLAGS="$CPPFLAGS -I$mlibhome/include"
+	  AC_CHECK_HEADER(mlib_video.h,
+	       [ LIBS="$LIBS -L$mlibhome/lib -lmlib" 
                  LIBMPEG2_CONFIG_OBJS="$LIBMPEG2_CONFIG_OBJS idct_mlib.lo motion_comp_mlib.lo" 
                  LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I$mlibhome/include" 
                  LIBA52_CFLAGS="$LIBA52_CFLAGS -I$mlibhome/include" 
@@ -254,8 +257,10 @@ if test x$enable_mlib = xyes; then
 		 AC_DEFINE(HAVE_MLIB,1,[Define this if you have mlib installed])
                  AC_DEFINE(LIBMPEG2_MLIB,1,[Define this if you have mlib installed])
 		 AC_DEFINE(LIBA52_MLIB,1,[Define this if you have mlib installed])
-		 ac_have_mlib=yes],
-               , -L/opt/SUNWmlib/lib)
+		 ac_have_mlib=yes
+	       ],)
+	  CPPFLAGS="$saved_CPPFLAGS"
+	], , -L$mlibhome/lib)
     AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
 fi
 AC_SUBST(MLIB_CFLAGS)
