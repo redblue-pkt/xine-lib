@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.148 2003/03/06 16:49:33 guenter Exp $
+ * $Id: video_out.c,v 1.149 2003/03/24 18:30:12 holstsn Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -684,7 +684,12 @@ static void overlay_and_display_frame (vos_t *this,
     vo_frame_driver_copy(img);
   
   pthread_mutex_lock( &img->stream->current_extra_info_lock );
-  extra_info_merge( img->stream->current_extra_info, img->extra_info );
+  {
+    int64_t diff;
+    diff = img->extra_info->vpts - img->stream->current_extra_info->vpts;
+    if ((diff > 3000) || (diff<-300000)) 
+      extra_info_merge( img->stream->current_extra_info, img->extra_info );
+  }
   pthread_mutex_unlock( &img->stream->current_extra_info_lock );
 
   if (this->overlay_source) {
