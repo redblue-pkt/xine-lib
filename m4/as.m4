@@ -11,7 +11,11 @@ AC_REQUIRE([AC_PROG_CC])
 # Set ASFLAGS if not already set.
 : ${ASFLAGS='$(CFLAGS)'}
 # Set ASCOMPILE if not already set.
+if test $AS = '$''('CC')'; then
+: ${ASCOMPILE='$(AS) $(AM_ASFLAGS) $(ASFLAGS) -c'}
+else
 : ${ASCOMPILE='$(AS) $(AM_ASFLAGS) $(ASFLAGS)'}
+fi
 AC_SUBST(AS)
 AC_SUBST(ASFLAGS)
 AC_SUBST(ASCOMPILE)])
