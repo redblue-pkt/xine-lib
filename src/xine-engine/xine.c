@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.78 2001/11/20 14:03:15 miguelfreitas Exp $
+ * $Id: xine.c,v 1.79 2001/11/22 02:14:12 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -243,6 +243,11 @@ void xine_play (xine_t *this, char *mrl,
       else
 	this->cur_input_plugin->stop(this->cur_input_plugin);
     }
+
+    /* this will make output threads discard about everything
+       (seeking should be faster!) */
+    this->metronom->adjust_clock(this->metronom,
+      this->metronom->get_current_time(this->metronom) + 30 * 90000 );
 
     this->status = XINE_STOP;
   }
