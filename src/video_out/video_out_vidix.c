@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.20 2003/01/16 01:45:28 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.21 2003/01/16 09:51:34 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -233,24 +233,26 @@ static void write_frame_YUV420P3(vidix_driver_t* this, vidix_frame_t* frame)
    uint8_t* dst8 = (this->vidix_mem + 
                     this->vidix_play.offsets[this->next_frame] +
                     this->vidix_play.offset.y);
-   int h, half_width = (frame->width/2);
+   int h;
    
    for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, y, frame->width);
-      y    += frame->width;
+      xine_fast_memcpy(dst8, y, frame->vo_frame.pitches[0]);
+      y    += frame->vo_frame.pitches[0];
       dst8 += this->dstrides.y;
    }
 
    dst8 = (this->vidix_mem + 
            this->vidix_play.offsets[this->next_frame]);
    for(h = 0; h < (frame->height / 2); h++) {
-      xine_fast_memcpy((dst8 + this->vidix_play.offset.v), cb, half_width);
-      xine_fast_memcpy((dst8 + this->vidix_play.offset.u), cr, half_width);
+      xine_fast_memcpy(dst8 + this->vidix_play.offset.v, cb,
+                       frame->vo_frame.pitches[2]);
+      xine_fast_memcpy(dst8 + this->vidix_play.offset.u, cr, 
+                       frame->vo_frame.pitches[1]);
       
-      cb   += half_width;
-      cr   += half_width;
+      cb   += frame->vo_frame.pitches[2];
+      cr   += frame->vo_frame.pitches[1];
    
-      dst8 += (this->dstrides.y / 2);
+      dst8 += (this->dstrides.v / 2);
    }
 }
 
