@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.33 2001/07/24 18:04:22 guenter Exp $
+ * $Id: load_plugins.c,v 1.34 2001/07/27 21:46:59 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -788,8 +788,10 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls) {
     if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
       if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
 
-	if(ip->get_autoplay_list)
+	if(ip->get_autoplay_list) {
 	  autoplay_mrls = ip->get_autoplay_list(ip, num_mrls);
+	  this->cur_input_plugin = this->input_plugins[i];
+	}
 
       }
       goto autoplay_mrls_done;
@@ -821,8 +823,10 @@ mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl, in
     if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
       if(((ip->get_capabilities(ip)) & INPUT_CAP_GET_DIR)) {
 
-	if(ip->get_dir)
+	if(ip->get_dir) {
 	  browse_mrls = ip->get_dir(ip, start_mrl, num_mrls);
+	  this->cur_input_plugin = this->input_plugins[i];
+	}
 
       }
       goto browse_mrls_done;

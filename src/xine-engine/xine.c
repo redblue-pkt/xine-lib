@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.37 2001/07/26 11:12:26 f1rmb Exp $
+ * $Id: xine.c,v 1.38 2001/07/27 21:46:59 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -93,7 +93,12 @@ void xine_stop (xine_t *this) {
   
   if(this->cur_input_plugin) {
     this->cur_input_plugin->close(this->cur_input_plugin);
-    this->cur_input_plugin = NULL;
+    /*
+     * If we set it to NULL, xine_eject() will not work after
+     * a xine_stop() call.
+     * 
+     * this->cur_input_plugin = NULL;
+     */
   }
 
   printf ("xine_stop: done\n");
