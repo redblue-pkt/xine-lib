@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.107 2002/12/06 20:16:35 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.108 2002/12/12 01:52:21 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -739,20 +739,23 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         flags |= ICDECOMPRESS_NOTKEYFRAME;
       if( this->skipframes )
         flags |= ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL;
-      
+
+      if( this->skipframes && (buf->type & ~0xff) != BUF_VIDEO_IV32 )
+        img_buffer = NULL;
+              
       pthread_mutex_lock(&win32_codec_mutex);
       if( !this->ds_driver )
         ret = (!this->ex_functions)
               ?ICDecompress(this->hic, flags,
 			    this->bih, this->buf, &this->o_bih, 
-			    (this->skipframes)?NULL:img_buffer)
+			    img_buffer)
               :ICDecompressEx(this->hic, flags,
 			    this->bih, this->buf, &this->o_bih,
-			    (this->skipframes)?NULL:img_buffer); 
+			    img_buffer); 
       else {
         ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, this->size,
                             buf->decoder_flags & BUF_FLAG_KEYFRAME,
-                            (this->skipframes)?NULL:img_buffer);
+                            img_buffer);
       }
       pthread_mutex_unlock(&win32_codec_mutex);
                          
