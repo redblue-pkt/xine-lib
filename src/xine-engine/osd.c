@@ -143,6 +143,15 @@ static int osd_show (osd_object_t *osd, int64_t vpts ) {
  
     this->event.object.handle = osd->handle;
 
+    if(osd->x1 > osd->width)
+      osd->x1 = osd->width;
+    if(osd->x2 > osd->width)
+      osd->x2 = osd->width;
+    if(osd->y1 > osd->height)
+      osd->y1 = osd->height;
+    if(osd->y2 > osd->height)
+      osd->y2 = osd->height;
+    
     memset( this->event.object.overlay, 0, sizeof(*this->event.object.overlay) );
     this->event.object.overlay->x = osd->display_x + osd->x1;
     this->event.object.overlay->y = osd->display_y + osd->y1;
@@ -260,6 +269,7 @@ static void osd_clear (osd_object_t *osd) {
  */
 
 static void osd_point (osd_object_t *osd, int x, int y, int color) {
+  uint8_t *c;
   
 #ifdef LOG_DEBUG
   printf("osd_point %p (%d x %d)\n", osd, x, y);
@@ -270,8 +280,10 @@ static void osd_point (osd_object_t *osd, int x, int y, int color) {
   osd->x2 = MAX(osd->x2, (x + 1));
   osd->y1 = MIN(osd->y1, y);
   osd->y2 = MAX(osd->y2, (y + 1));
-  
-  *(osd->area + y * osd->width + x) = color;
+
+  c = osd->area + y * osd->width + x;
+  if(c <= (osd->area + (osd->width * osd->height)))
+    *c = color;
 }
 
 /*
@@ -318,7 +330,12 @@ static void osd_line (osd_object_t *osd,
     
     while(x1<x2)
     {
-      *c++ = color;
+
+      if(c <= (osd->area + osd->width * osd->width))
+	*c = color;
+
+      c++;
+      
       x1++;
       if( d<0 ) {
         d+=inc1;
@@ -343,15 +360,18 @@ static void osd_line (osd_object_t *osd,
     c = osd->area + y1 * osd->width + x1;
 
     while(y1<y2) {
-      *c = color;
+
+      if(c <= (osd->area + osd->width * osd->width))
+	*c = color;
+      
       c += osd->width;
       y1++;
       if( d<0 ) {
-        d+=inc1;
+	d+=inc1;
       } else {
-        x1+=inc;
-        d+=inc2;
-        c = osd->area + y1 * osd->width + x1;
+	x1+=inc;
+	d+=inc2;
+	c = osd->area + y1 * osd->width + x1;
       }
     }
   }
@@ -664,8 +684,14 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       for( y = 0; y < font->fontchar[i].height; y++ ) {
 	int width = font->fontchar[i].width;
 	uint8_t *s = src, *d = dst;
-	while (s < src + width)
-	  *d++ = *s++ + (uint8_t) color_base;
+
+	while (s < src + width) {
+	  if(d <= (osd->area + (osd->width * osd->height)))
+	    *d = *s + (uint8_t) color_base;
+	  
+	  d++;
+	  s++;
+	}
         src += font->fontchar[i].width;
         dst += osd->width;
       }
