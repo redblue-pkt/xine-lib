@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.61 2004/01/12 17:35:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.62 2004/01/12 22:00:37 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -71,17 +71,14 @@ typedef struct realdec_decoder_s {
 
   uint32_t         width, height;
   double           ratio;
+  double           fps;
 
   uint8_t         *chunk_buffer;
   int              chunk_buffer_size;
   int              chunk_buffer_max;
 
-  int              num_chunks;
-  uint8_t         *chunk_tab;
-  int              chunk_tab_size;
-
-  uint64_t         pts;
-  uint64_t         duration;
+  int64_t          pts;
+  int              duration;
 
   uint8_t         *frame_buffer;
   int              frame_size;
@@ -183,6 +180,12 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   this->height = (init_data.h + 1) & (~1);
   this->ratio  = (double)this->width / (double)this->height;
 
+  this->fps      = (double) BE_16(&buf->content[22]) + 
+                   ((double) BE_16(&buf->content[24]) / 65536.0);
+  this->duration = 90000.0 / this->fps;
+  
+  lprintf("this->duration=%d\n", this->duration);
+  
   lprintf ("init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
 	   "this->width=%d(0x%x), this->height=%d(0x%x)\n",
 	   init_data.w, init_data.w,
@@ -286,9 +289,11 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
       }
       
-      if ((this->chunk_buffer_size + buf->size) > BUF_SIZE) {
-        lprintf ("the frame is too long\n");
-        return;
+      if ((this->chunk_buffer_size + buf->size) > this->chunk_buffer_max) {
+        lprintf("increasing chunk buffer size\n");
+      
+        this->chunk_buffer_max *= 2;
+        this->chunk_buffer = realloc(this->chunk_buffer, this->chunk_buffer_max);
       }
 
       xine_fast_memcpy (this->chunk_buffer + this->chunk_buffer_size,
@@ -312,22 +317,19 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
         lprintf ("chunk table\n");
 
-        this->num_chunks = buf->decoder_info[2];
-        this->chunk_tab = buf->decoder_info_ptr[2];
-        this->chunk_tab_size = 8 * (this->num_chunks + 1);
-
-        this->duration = buf->decoder_info[3];
+        if(buf->decoder_info[3])
+          this->duration = buf->decoder_info[3];
 
         transform_in[0] = this->chunk_buffer_size; /* length of the packet (sub-packets appended) */
         transform_in[1] = 0;                       /* unknown, seems to be unused  */
-        transform_in[2] = this->num_chunks;        /* number of sub-packets - 1 */
-        transform_in[3] = (uint32_t) this->chunk_tab; /* table of sub-packet offsets */
+        transform_in[2] = buf->decoder_info[2];    /* number of sub-packets - 1 */
+        transform_in[3] = (uint32_t) buf->decoder_info_ptr[2]; /* table of sub-packet offsets */
         transform_in[4] = 0;                       /* unknown, seems to be unused  */
         transform_in[5] = this->pts / 90;          /* timestamp (the integer value from the stream) */
 
 #ifdef LOG
         printf ("libreal: got %d chunks\n",
-                this->num_chunks);
+                buf->decoder_info[2] + 1);
 
         printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
         xine_hexdump (this->chunk_buffer, this->chunk_buffer_size);
@@ -336,7 +338,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
         xine_hexdump ((uint8_t *) transform_in, 6 * 4);
 
         printf ("libreal: chunk_table:\n");
-        xine_hexdump ((uint8_t *) this->chunk_tab, this->chunk_tab_size);
+        xine_hexdump ((uint8_t *) buf->decoder_info_ptr[2], buf->size);
 #endif
 
         result = this->rvyuv_transform (this->chunk_buffer,
@@ -463,7 +465,6 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   this->cls                               = cls;
 
   this->context    = 0;
-  this->num_chunks = 0;
   this->pts        = 0;
 
   this->duration   = 0;
