@@ -26,6 +26,7 @@ nodes:
 all: $(KERNEL_MODULE)
 
 install-exec-local: $(KERNEL_MODULE)
+if HAVE_LINUX
 	@$(NORMAL_INSTALL)
 	$(mkinstalldirs) $(DESTDIR)$(moddir)
 	@list='$(KERNEL_MODULE)'; \
@@ -39,15 +40,18 @@ install-exec-local: $(KERNEL_MODULE)
 	if test ! -c /dev/dhahelper; then \
 	  $(MAKE) nodes; \
 	fi
+endif
 
 
 uninstall-local:
+if HAVE_LINUX
 	@$(NORMAL_UNINSTALL)
 	@list='$(KERNEL_MODULE)'; \
 	for p in $$list; do \
 	  echo "rm -f $(DESTDIR)$(moddir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
 	  rm -f $(DESTDIR)$(moddir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	done
+endif
 
 debug:
 install-debug: install
