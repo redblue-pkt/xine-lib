@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.3 2002/10/06 03:48:13 komadori Exp $
+ * $Id: qtrle.c,v 1.4 2002/10/22 05:40:01 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -38,11 +38,17 @@
 
 #define VIDEOBUFSIZE 128*1024
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} qtrle_class_t;
+
 typedef struct qtrle_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */
 
+  qtrle_class_t    *class;
+  xine_stream_t    *stream;
+
   /* these are traditional variables in a video decoder object */
-  vo_instance_t    *video_out;   /* object that will receive frames */
   uint64_t          video_step;  /* frame duration in pts units */
   int               decoder_ok;  /* current decoder status */
   int               skipframes;
@@ -668,22 +674,6 @@ static void decode_qtrle_32(qtrle_decoder_t *this) {
  *************************************************************************/
 
 /*
- * This function is responsible is called to initialize the video decoder
- * for use. Initialization usually involves setting up the fields in your
- * private video decoder object.
- */
-static void qtrle_init (video_decoder_t *this_gen, 
-  vo_instance_t *video_out) {
-  qtrle_decoder_t *this = (qtrle_decoder_t *) this_gen;
-
-  /* set our own video_out object to the one that xine gives us */
-  this->video_out  = video_out;
-
-  /* indicate that the decoder is not quite ready yet */
-  this->decoder_ok = 0;
-}
-
-/*
  * This function receives a buffer of data from the demuxer layer and
  * figures out how to handle it based on its header flags.
  */
@@ -715,7 +705,7 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
   }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
 
     if(this->buf)
       free(this->buf);
@@ -734,7 +724,7 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
 
     init_yuv_planes(&this->yuv_planes, this->width, this->height);
 
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
     return;
@@ -754,7 +744,7 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
-      img = this->video_out->get_frame (this->video_out,
+      img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
                                         XINE_VO_ASPECT_DONT_TOUCH,
                                         XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
@@ -834,11 +824,10 @@ static void qtrle_reset (video_decoder_t *this_gen) {
 }
 
 /*
- * This function is called when xine shuts down the decoder. It should
- * free any memory and release any other resources allocated during the
- * execution of the decoder.
+ * This function frees the video decoder instance allocated to the decoder.
  */
-static void qtrle_close (video_decoder_t *this_gen) {
+static void qtrle_dispose (video_decoder_t *this_gen) {
+
   qtrle_decoder_t *this = (qtrle_decoder_t *) this_gen;
 
   if (this->buf) {
@@ -848,46 +837,57 @@ static void qtrle_close (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {
     this->decoder_ok = 0;
-    this->video_out->close(this->video_out);
+    this->stream->video_out->close(this->stream->video_out);
   }
-}
 
-/*
- * This function returns the human-readable ID string to identify 
- * this decoder.
- */
-static char *qtrle_get_id(void) {
-  return "QT RLE";
-}
-
-/*
- * This function frees the video decoder instance allocated to the decoder.
- */
-static void qtrle_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-/*
- * This function should be the plugin's only advertised function to the
- * outside world. It allows xine to query the plugin module for the addresses
- * to the necessary functions in the video decoder object.
- */
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  qtrle_decoder_t *this ;
+  qtrle_decoder_t  *this ;
 
-  this = (qtrle_decoder_t *) malloc (sizeof (qtrle_decoder_t));
-  memset(this, 0, sizeof (qtrle_decoder_t));
+  this = (qtrle_decoder_t *) xine_xmalloc (sizeof (qtrle_decoder_t));
 
-  this->video_decoder.init                = qtrle_init;
   this->video_decoder.decode_data         = qtrle_decode_data;
   this->video_decoder.flush               = qtrle_flush;
   this->video_decoder.reset               = qtrle_reset;
-  this->video_decoder.close               = qtrle_close;
-  this->video_decoder.get_identifier      = qtrle_get_id;
   this->video_decoder.dispose             = qtrle_dispose;
+  this->size                              = 0;
 
-  return (video_decoder_t *) this;
+  this->stream                            = stream;
+  this->class                             = (qtrle_class_t *) class_gen;
+
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "QT RLE";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Quicktime Animation (RLE) video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  qtrle_class_t *this;
+
+  this = (qtrle_class_t *) xine_xmalloc (sizeof (qtrle_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  return this;
 }
 
 /*
@@ -905,6 +905,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
