@@ -636,7 +636,7 @@ CPPFLAGS="$CPPFLAGS -I/usr/openwin/include"
 AC_CHECK_LIB(dga, XDgaGrabDrawable, [
 	AC_CHECK_HEADER(dga/dga.h, [
 	        SUNDGA_CFLAGS="-I/usr/openwin/include"
-		SUNDGA_LIBS="-L/usr/openwin/lib -ldga"
+		SUNDGA_LIBS="-L/usr/openwin/lib -R/usr/openwin/lib -ldga"
 		ac_have_sundga=yes
 	], )
 ], , "-L/usr/openwin/lib")
