@@ -21,7 +21,7 @@
  * player. It really works too! It will output a continuous sine wave in
  * place of the data it should actually send.
  *
- * $Id: fooaudio.c,v 1.1 2002/11/02 20:55:23 tmmm Exp $
+ * $Id: fooaudio.c,v 1.2 2002/11/11 05:01:35 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -96,6 +96,10 @@ static void fooaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->buf = xine_xmalloc(AUDIOBUFSIZE);
     this->bufsize = AUDIOBUFSIZE;
     this->size = 0;
+
+    /* take this opportunity to initialize stream/meta information */
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup("fooaudio");
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
     /* peform any other required initialization */
     this->last_pts = -1;

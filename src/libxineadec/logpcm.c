@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.7 2002/11/03 06:08:54 tmmm Exp $
+ * $Id: logpcm.c,v 1.8 2002/11/11 05:01:32 tmmm Exp $
  *
  */
 
@@ -158,6 +158,12 @@ static void logpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->buf = xine_xmalloc(AUDIOBUFSIZE);
     this->bufsize = AUDIOBUFSIZE;
     this->size = 0;
+
+    /* stream/meta info */
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = 
+      (buf->type == BUF_AUDIO_MULAW) ? strdup("mu-law log PCM") :
+      strdup("A-law log PCM");
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
     /* pre-calculate the possible log values */
     if (buf->type == BUF_AUDIO_MULAW)

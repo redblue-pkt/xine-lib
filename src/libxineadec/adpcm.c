@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.21 2002/11/03 06:08:54 tmmm Exp $
+ * $Id: adpcm.c,v 1.22 2002/11/11 05:01:31 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -1078,6 +1078,52 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->buf = xine_xmalloc(AUDIOBUFSIZE);
     this->bufsize = AUDIOBUFSIZE;
     this->size = 0;
+
+    /* load the stream information */
+    switch (buf->type) {
+
+      case BUF_AUDIO_MSADPCM:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("Microsoft ADPCM");
+        break;
+
+      case BUF_AUDIO_MSIMAADPCM:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("Microsoft IMA ADPCM");
+        break;
+
+      case BUF_AUDIO_QTIMAADPCM:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("QT IMA ADPCM");
+        break;
+
+      case BUF_AUDIO_DK3ADPCM:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("Duck DK3 ADPCM");
+        break;
+
+      case BUF_AUDIO_DK4ADPCM:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("Duck DK4 ADPCM");
+        break;
+
+      case BUF_AUDIO_SMJPEG_IMA:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("SMJPEG IMA ADPCM");
+        break;
+
+      case BUF_AUDIO_VQA_IMA:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("VQA IMA ADPCM");
+        break;
+
+      case BUF_AUDIO_EA_ADPCM:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("EA ADPCM");
+        break;
+
+    }
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
     /* if the data was transported in an MS-type file (packet size will be
      * non-0 indicating an audio header), create a decode buffer */
