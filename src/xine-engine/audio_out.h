@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.44 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.45 2002/12/24 14:00:57 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -253,6 +253,7 @@ struct xine_audio_port_s {
 
   int64_t         passthrough_offset;
   int             flush_audio_driver;
+  int             discard_buffers;
 
   int             do_compress;
   double          compression_factor;   /* current compression */
@@ -320,6 +321,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) ;
 #define AO_PROP_PCM_VOL         1
 #define AO_PROP_MUTE_VOL        2
 #define AO_PROP_COMPRESSOR      3
+#define AO_PROP_DISCARD_BUFFERS 4
 
 
 /* audio device control ops */

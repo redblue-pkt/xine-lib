@@ -59,6 +59,10 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
     stream->audio_fifo->put (stream->audio_fifo, buf);
   }
       
+  if (stream->audio_out) {
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
+  }
+  
   /* on seeking we must wait decoder fifos to process before doing flush. 
    * otherwise we flush too early (before the old data has left decoders)
    */
@@ -70,6 +74,7 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
 
   if (stream->audio_out) {
     stream->audio_out->flush(stream->audio_out);
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
   }
 }
 

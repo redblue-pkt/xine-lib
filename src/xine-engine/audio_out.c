@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.92 2002/12/22 23:30:29 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.93 2002/12/24 14:00:55 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -523,30 +523,15 @@ static void *ao_loop (void *this_gen) {
 #endif
     }
 
+    if (this->discard_buffers) {
+      fifo_append (this->free_fifo, in_buf);
+      in_buf = NULL;
+        
+      if( !this->flush_audio_driver )
+        continue;
+    }
+    
     if (this->flush_audio_driver) {
-      audio_buffer_t *buf;
-      int             num_buffers;
-#ifdef LOG
-      printf ("audio_out: flush audio driver\n");
-#endif
-      pthread_mutex_lock (&this->out_fifo->mutex);
-
-      num_buffers = this->out_fifo->num_buffers;
-
-      printf ("audio_out: flush fifo (%d buffers)\n", num_buffers);
-
-      while ( num_buffers-- ) {
-        buf = fifo_remove_int (this->out_fifo);
-        fifo_append (this->free_fifo, buf);
-      }
-      
-      pthread_mutex_unlock (&this->out_fifo->mutex);
-      
-      if (in_buf) {
-        fifo_append (this->free_fifo, in_buf);
-        in_buf = NULL;
-      }
-      
       this->control(this, AO_CTRL_FLUSH_BUFFERS);
       this->flush_audio_driver = 0;
       continue;
@@ -1003,6 +988,10 @@ static int ao_get_property (xine_audio_port_t *this, int property) {
   case AO_PROP_COMPRESSOR:
     ret = this->compression_factor_max*100;
     break;
+  
+  case AO_PROP_DISCARD_BUFFERS:
+    ret = this->discard_buffers;
+    break;
 
   default:
     pthread_mutex_lock( &this->driver_lock );
@@ -1022,6 +1011,11 @@ static int ao_set_property (xine_audio_port_t *this, int property, int value) {
     this->do_compress =  (this->compression_factor_max >1.0);
 
     ret = this->compression_factor_max*100;
+    break;
+  
+  case AO_PROP_DISCARD_BUFFERS:
+    this->discard_buffers = value;
+    ret = this->discard_buffers;
     break;
 
   default:
@@ -1053,6 +1047,7 @@ static void ao_flush (xine_audio_port_t *this) {
   audio_buffer_t *buf;
 
   if( this->audio_loop_running ) {
+    this->discard_buffers    = 1;
     this->flush_audio_driver = 1;
     
     buf = fifo_remove (this->free_fifo);
@@ -1062,6 +1057,7 @@ static void ao_flush (xine_audio_port_t *this) {
     /* do not try this in paused mode */
     while( this->flush_audio_driver )
       xine_usec_sleep (20000); /* pthread_cond_t could be used here */
+    this->discard_buffers    = 0;
   }
 }
 
@@ -1095,6 +1091,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
   this->audio_loop_running     = 0;
   this->audio_paused           = 0;
   this->flush_audio_driver     = 0;
+  this->discard_buffers        = 0;
   this->zero_space             = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
   this->gap_tolerance          = driver->get_gap_tolerance (this->driver);
 
