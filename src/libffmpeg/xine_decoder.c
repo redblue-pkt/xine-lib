@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2001/09/26 01:18:19 guenter Exp $
+ * $Id: xine_decoder.c,v 1.16 2001/10/21 00:18:22 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -37,6 +37,7 @@
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
+#include "memcpy.h"
 
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
@@ -196,7 +197,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     
   } else if (this->decoder_ok) {
 
-    memcpy (&this->buf[this->size], buf->content, buf->size);
+    fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
 
@@ -242,7 +243,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	for (y=0; y<this->biHeight; y++) {
 	  
-	  memcpy (dy, sy, this->biWidth);
+	  fast_memcpy (dy, sy, this->biWidth);
 	  
 	  dy += this->biWidth;
 	  
@@ -253,8 +254,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	  if (this->context.pix_fmt != PIX_FMT_YUV444P) {
 	  
-	    memcpy (du, su, this->biWidth/2);
-	    memcpy (dv, sv, this->biWidth/2);
+	    fast_memcpy (du, su, this->biWidth/2);
+	    fast_memcpy (dv, sv, this->biWidth/2);
 
 	  } else {
 

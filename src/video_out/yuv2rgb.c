@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.24 2001/10/09 22:20:11 miguelfreitas Exp $
+ * $Id: yuv2rgb.c,v 1.25 2001/10/21 00:18:22 miguelfreitas Exp $
  */
 
 #include "config.h"
@@ -37,7 +37,7 @@
 #include "cpu_accel.h"
 #include "monitor.h"
 #include "utils.h"
-
+#include "memcpy.h"
 
 static int prof_scale_line = -1;
 
@@ -1131,7 +1131,7 @@ static void scale_line_1_1 (uint8_t *source, uint8_t *dest,
 			    int width, int step) {
 
   profiler_start_count(prof_scale_line);
-  memcpy(dest, source, width);
+  fast_memcpy(dest, source, width);
   profiler_stop_count(prof_scale_line);
 }
 

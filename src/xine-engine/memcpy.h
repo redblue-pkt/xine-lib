@@ -22,10 +22,12 @@
 #ifndef HAVE_MEMCPY_H
 #define HAVE_MEMCPY_H
 
-
 /* optimized/fast memcpy */
 extern void *(* fast_memcpy)(void *to, const void *from, size_t len);
 
+#ifdef HAVE_XINE_INTERNAL_H
 /* benchmark available memcpy methods */
 void probe_fast_memcpy(config_values_t *config);
+#endif
+
 #endif

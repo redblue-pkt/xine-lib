@@ -31,6 +31,7 @@
 #include "video_out.h"
 #include "buffer.h"
 #include "xine_internal.h"
+#include "memcpy.h"
 
 /* The videofill decoder's job in life is to copy the last frame displayed into
  * the current display queue, incrementing the PTS value accordingly. It probably
@@ -78,9 +79,9 @@ static void videofill_decode_data (video_decoder_t *this_gen, buf_element_t *buf
 
     image_size = last_img->width * last_img->height;
 
-    memcpy(img->base[0], last_img->base[0], image_size);
-    memcpy(img->base[1], last_img->base[1], image_size >> 2);
-    memcpy(img->base[2], last_img->base[2], image_size >> 2);
+    fast_memcpy(img->base[0], last_img->base[0], image_size);
+    fast_memcpy(img->base[1], last_img->base[1], image_size >> 2);
+    fast_memcpy(img->base[2], last_img->base[2], image_size >> 2);
 
     img->PTS = 0;
     img->bad_frame = 0;
