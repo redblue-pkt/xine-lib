@@ -74,8 +74,9 @@ noinst_HEADERS = \
 	winuser.h \
 	wrapper.h
 
-stubs.lo: stubs.s
-	$(CC) -c $(srcdir)/stubs.s -o stubs.lo
+%.lo: %.s
+	$(CCASCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
 
-wrapper.lo: wrapper.S
-	$(CC) -c $(srcdir)/wrapper.S -o wrapper.lo
+%.lo: %.S
+	$(CCASCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
+

@@ -12,9 +12,9 @@ AC_REQUIRE([AC_PROG_CC])
 : ${CCASFLAGS='$(CFLAGS)'}
 # Set ASCOMPILE if not already set.
 if test $CCAS = '$'CC; then
-: ${CCASCOMPILE='$(CCAS) $(AM_ASFLAGS) $(CCASFLAGS) -c'}
+: ${CCASCOMPILE='$(LIBTOOL) --mode=compile $(CCAS) $(AM_ASFLAGS) $(CCASFLAGS) -c'}
 else
-: ${CCASCOMPILE='$(CCAS) $(AM_ASFLAGS) $(CCASFLAGS)'}
+: ${CCASCOMPILE='$(LIBTOOL) --mode=compile $(CCAS) $(AM_ASFLAGS) $(CCASFLAGS)'}
 fi
 AC_SUBST(CCAS)
 AC_SUBST(CCASFLAGS)
