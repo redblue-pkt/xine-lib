@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.9 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: audio_out.h,v 1.10 2001/08/23 21:40:05 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -58,7 +58,7 @@ struct ao_driver_s {
    * open the driver and make it ready to receive audio data 
    * buffers may be flushed(!)
    *
-   * return value: <=0 : failure, 1 : ok
+   * return value: 0 : failure, >0 : output sample rate
    */
   int (*open)(ao_driver_t *this, uint32_t bits, uint32_t rate, int mode);
 
@@ -123,7 +123,7 @@ struct ao_instance_s {
 
   /* open display driver for video output */
   int (*open) (ao_instance_t *this,
-	uint32_t bits, uint32_t rate, int mode);
+	       uint32_t bits, uint32_t rate, int mode);
 
   /*
    * write audio data to output buffer
@@ -135,8 +135,8 @@ struct ao_instance_s {
    */
 
   int (*write)(ao_driver_t *this,
-                          int16_t* audio_data, uint32_t num_frames,
-                          uint32_t pts);
+	       int16_t* audio_data, uint32_t num_frames,
+	       uint32_t pts);
 
   /* audio driver is no longer used by decoder => close */
   void (*close) (ao_instance_t *self);
@@ -146,37 +146,30 @@ struct ao_instance_s {
 
   /* private stuff */
 
-  ao_driver_t       *driver;
-  metronom_t        *metronom;
+  ao_driver_t    *driver;
+  metronom_t     *metronom;
 
-  int                audio_loop_running;
-  pthread_t          audio_thread;
-  int            audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
-  int32_t        frames_per_kpts;       /* bytes per 1024/90000 sec                   */
-  int32_t        output_frame_rate, input_frame_rate;
-  double         frame_rate_factor;
-  uint32_t       num_channels;
-  uint32_t 	 frames_in_buffer;  /* a frame is equivalent to one sample in each channel. */
-  int            audio_started;
-  int            audio_has_realtime;   /* OSS driver supports real-time              */
-  uint32_t       last_audio_vpts;
-  int            resample_conf;
-  int            do_resample;
-  int	 	 mode;
-  uint16_t      *frame_buffer;
-  int16_t       *zero_space;
-  int                pts_per_half_frame;
-  int                pts_per_frame;
- 
-  int                num_frames_delivered;
-  int                num_frames_skipped;
-  int                num_frames_discarded;
+  int             audio_loop_running;
+  pthread_t       audio_thread;
+
+  int             audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
+  int32_t         frames_per_kpts;      /* frames per 1024/90000 sec                  */
+  int32_t         output_frame_rate, input_frame_rate;
+  double          frame_rate_factor;
+  uint32_t        num_channels;
+  int             audio_started;
+  uint32_t        last_audio_vpts;
+  int             resample_conf;
+  int             do_resample;
+  int	 	  mode;
+  uint16_t       *frame_buffer;
+  int16_t        *zero_space;
 };
 
 /* This initiates the audio_out sync routines
  * found in ./src/xine-engine/audio_out.c
  */
-ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom) ;
+ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom, config_values_t *config) ;
 /*
  * to build a dynamic audio output plugin,
  * you have to implement these driver:

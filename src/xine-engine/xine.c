@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.45 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: xine.c,v 1.46 2001/08/23 21:40:05 guenter Exp $
  *
  * top-level xine functions
  *
@@ -515,7 +515,7 @@ xine_t *xine_init (vo_driver_t *vo,
   video_decoder_init (this);
 
   if(ao) {
-    this->audio_out = ao_new_instance (ao, this->metronom);
+    this->audio_out = ao_new_instance (ao, this->metronom, config);
 //    this->audio_out = ao;
 //    this->audio_out->connect (this->audio_out, this->metronom);
   }

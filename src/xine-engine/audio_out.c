@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.6 2001/08/22 16:20:13 guenter Exp $
+ * $Id: audio_out.c,v 1.7 2001/08/23 21:40:05 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -66,118 +66,128 @@
 #include "metronom.h"
 #include "utils.h"
 
-/* bufsize must be a multiple of 3 and 5 for 5.0 and 5.1 channel playback! */
-#define ZERO_BUF_SIZE        15360
+#define ZERO_BUF_SIZE         5000
 
 #define GAP_TOLERANCE         5000
 #define MAX_GAP              90000
 
 struct frmsize_s
 {
-                uint16_t bit_rate;
-                uint16_t frm_size[3];
+  uint16_t bit_rate;
+  uint16_t frm_size[3];
 };
 
 
 static const struct frmsize_s frmsizecod_tbl[64] =
 {
-                { 32  ,{64   ,69   ,96   } },
-                { 32  ,{64   ,70   ,96   } },
-                { 40  ,{80   ,87   ,120  } },
-                { 40  ,{80   ,88   ,120  } },
-                { 48  ,{96   ,104  ,144  } },
-                { 48  ,{96   ,105  ,144  } },
-                { 56  ,{112  ,121  ,168  } },
-                { 56  ,{112  ,122  ,168  } },
-                { 64  ,{128  ,139  ,192  } },
-                { 64  ,{128  ,140  ,192  } },
-                { 80  ,{160  ,174  ,240  } },
-                { 80  ,{160  ,175  ,240  } },
-                { 96  ,{192  ,208  ,288  } },
-                { 96  ,{192  ,209  ,288  } },
-                { 112 ,{224  ,243  ,336  } },
-                { 112 ,{224  ,244  ,336  } },
-                { 128 ,{256  ,278  ,384  } },
-                { 128 ,{256  ,279  ,384  } },
-                { 160 ,{320  ,348  ,480  } },
-                { 160 ,{320  ,349  ,480  } },
-                { 192 ,{384  ,417  ,576  } },
-                { 192 ,{384  ,418  ,576  } },
-                { 224 ,{448  ,487  ,672  } },
-                { 224 ,{448  ,488  ,672  } },
-                { 256 ,{512  ,557  ,768  } },
-                { 256 ,{512  ,558  ,768  } },
-                { 320 ,{640  ,696  ,960  } },
-                { 320 ,{640  ,697  ,960  } },
-                { 384 ,{768  ,835  ,1152 } },
-                { 384 ,{768  ,836  ,1152 } },
-                { 448 ,{896  ,975  ,1344 } },
-                { 448 ,{896  ,976  ,1344 } },
-                { 512 ,{1024 ,1114 ,1536 } },
-                { 512 ,{1024 ,1115 ,1536 } },
-                { 576 ,{1152 ,1253 ,1728 } },
-                { 576 ,{1152 ,1254 ,1728 } },
-                { 640 ,{1280 ,1393 ,1920 } },
-                { 640 ,{1280 ,1394 ,1920 } }
+  { 32  ,{64   ,69   ,96   } },
+  { 32  ,{64   ,70   ,96   } },
+  { 40  ,{80   ,87   ,120  } },
+  { 40  ,{80   ,88   ,120  } },
+  { 48  ,{96   ,104  ,144  } },
+  { 48  ,{96   ,105  ,144  } },
+  { 56  ,{112  ,121  ,168  } },
+  { 56  ,{112  ,122  ,168  } },
+  { 64  ,{128  ,139  ,192  } },
+  { 64  ,{128  ,140  ,192  } },
+  { 80  ,{160  ,174  ,240  } },
+  { 80  ,{160  ,175  ,240  } },
+  { 96  ,{192  ,208  ,288  } },
+  { 96  ,{192  ,209  ,288  } },
+  { 112 ,{224  ,243  ,336  } },
+  { 112 ,{224  ,244  ,336  } },
+  { 128 ,{256  ,278  ,384  } },
+  { 128 ,{256  ,279  ,384  } },
+  { 160 ,{320  ,348  ,480  } },
+  { 160 ,{320  ,349  ,480  } },
+  { 192 ,{384  ,417  ,576  } },
+  { 192 ,{384  ,418  ,576  } },
+  { 224 ,{448  ,487  ,672  } },
+  { 224 ,{448  ,488  ,672  } },
+  { 256 ,{512  ,557  ,768  } },
+  { 256 ,{512  ,558  ,768  } },
+  { 320 ,{640  ,696  ,960  } },
+  { 320 ,{640  ,697  ,960  } },
+  { 384 ,{768  ,835  ,1152 } },
+  { 384 ,{768  ,836  ,1152 } },
+  { 448 ,{896  ,975  ,1344 } },
+  { 448 ,{896  ,976  ,1344 } },
+  { 512 ,{1024 ,1114 ,1536 } },
+  { 512 ,{1024 ,1115 ,1536 } },
+  { 576 ,{1152 ,1253 ,1728 } },
+  { 576 ,{1152 ,1254 ,1728 } },
+  { 640 ,{1280 ,1393 ,1920 } },
+  { 640 ,{1280 ,1394 ,1920 } }
 };
 
 /*
  * open the audio device for writing to
  */
-static int ao_open(ao_instance_t *self,
+static int ao_open(ao_instance_t *this,
 		   uint32_t bits, uint32_t rate, int mode)
 { 
-  int result;
-  if ((result=self->driver->open(self->driver,bits,rate,mode))<0) {
-    printf("open failed!\n");
+  int output_sample_rate;
+  if ((output_sample_rate=this->driver->open(this->driver,bits,rate,mode)) == 0) {
+    printf("audio_out: open failed!\n");
     return -1;
   }; 
 
-  self->mode                  = mode;
-  self->input_frame_rate      = rate;
-  self->frames_in_buffer      = 0;
-  self->audio_started         = 0;
-  self->last_audio_vpts       = 0;
-  self->do_resample           = 0; /* Resampling currently not working. */
+  printf("audio_out: output sample rate %d\n", output_sample_rate);
 
-  self->output_frame_rate=rate;
-  self->num_channels = self->driver->num_channels(self->driver); 
+  this->mode                  = mode;
+  this->input_frame_rate      = rate;
+  this->audio_started         = 0;
+  this->last_audio_vpts       = 0;
 
-  self->frame_rate_factor = (double) self->output_frame_rate / (double) self->input_frame_rate; /* always produces 1 at the moment */
-  self->audio_step         = (uint32_t) 90000 * (uint32_t) 32768
-	                                   / self->input_frame_rate;
-  self->frames_per_kpts     = self->output_frame_rate * self->num_channels * 2 * 1024 / 90000;
-  xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 frames\n", self->audio_step);
+  this->output_frame_rate     = output_sample_rate;
 
-  self->metronom->set_audio_rate(self->metronom, self->audio_step);
+  switch (this->resample_conf) {
+  case 1: /* force off */
+    this->do_resample = 0;
+    break;
+  case 2: /* force on */
+    this->do_resample = 1;
+    break;
+  default: /* AUTO */
+    this->do_resample = this->output_frame_rate != this->input_frame_rate;
+  }
+  if (this->do_resample) 
+    printf("audio_out: will resample audio from %d to %d\n",
+	   this->input_frame_rate, this->output_frame_rate);
 
+  this->num_channels      = this->driver->num_channels(this->driver); 
+
+  this->frame_rate_factor = (double) this->output_frame_rate / (double) this->input_frame_rate; 
+  this->audio_step        = (uint32_t) 90000 * (uint32_t) 32768 / this->input_frame_rate;
+  this->frames_per_kpts   = this->output_frame_rate * 1024 / 90000;
+  xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
+
+  this->metronom->set_audio_rate(this->metronom, this->audio_step);
 
   return 1;
 }
 
-static void ao_fill_gap (ao_instance_t *self, uint32_t pts_len) {
+static void ao_fill_gap (ao_instance_t *this, uint32_t pts_len) {
 
-  int num_bytes ;
+  int num_frames ;
   xprintf (VERBOSE|AUDIO, "audio_out : fill_gap\n");
 
   if (pts_len > MAX_GAP)
     pts_len = MAX_GAP;
-  num_bytes = pts_len * self->frames_per_kpts / 1024;
-  num_bytes = (num_bytes / (2*self->num_channels)) * (2*self->num_channels);
 
-  if(self->mode == AO_CAP_MODE_AC3) return; /* FIXME */
+  num_frames = pts_len * this->frames_per_kpts / 1024;
 
-  printf ("audio_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
+  if (this->mode == AO_CAP_MODE_AC3) return; /* FIXME */
 
-  self->frames_in_buffer += num_bytes;
+  printf ("audio_out: inserting %d 0-frames to fill a gap of %d pts\n",num_frames, pts_len);
 
-  while (num_bytes > 0) {
-    if (num_bytes > ZERO_BUF_SIZE) {
-      self->driver->write(self->driver, self->zero_space, ZERO_BUF_SIZE);
-      num_bytes -= ZERO_BUF_SIZE;
+  while (num_frames > 0) {
+    if (num_frames > ZERO_BUF_SIZE) {
+      this->driver->write(this->driver, this->zero_space, ZERO_BUF_SIZE);
+      num_frames -= ZERO_BUF_SIZE;
     } else {
-      self->driver->write(self->driver, self->zero_space, num_bytes);
-      num_bytes = 0;
+      this->driver->write(this->driver, this->zero_space, num_frames);
+      num_frames = 0;
     }
   }
 }
@@ -189,7 +199,7 @@ static void ao_fill_gap (ao_instance_t *self, uint32_t pts_len) {
  * So it has moved to here.
  */
 
-void write_pause_burst(ao_instance_t *self, int error)
+void write_pause_burst(ao_instance_t *this, int error)
 {
   unsigned char buf[8192];
   unsigned short *sbuf = (unsigned short *)&buf[0];
@@ -209,139 +219,134 @@ void write_pause_burst(ao_instance_t *self, int error)
   sbuf[5] = 0x0000;
   
   memset(&sbuf[6], 0, 6144 - 96);
-  self->driver->write(self->driver, sbuf, 6144 / 4);
+  this->driver->write(this->driver, sbuf, 6144 / 4);
 }
 
-static int ao_write(ao_instance_t *self,
+static int ao_write(ao_instance_t *this,
 		    int16_t* output_frames, uint32_t num_frames,
-		    uint32_t pts_)
+		    uint32_t pts)
 {
-  uint32_t         vpts, buffer_vpts;
-  int32_t          gap;
-  int              bDropPackage;
-  int              pos;
-  int      frame_size;
-  int      fscod;
-  int      frmsizecod;
-  uint8_t  *data;
+  uint32_t    vpts, buffer_vpts;
+  int32_t     gap;
+  int         bDropPackage;
+  int         delay;
+  int         frame_size;
+  int         fscod;
+  int         frmsizecod;
+  uint8_t    *data;
   
-  if (self->driver<0)
+  if (this->driver<0)
     return 1;
 
-  vpts = self->metronom->got_audio_samples (self->metronom, pts_, num_frames);
+  vpts = this->metronom->got_audio_samples (this->metronom, pts, num_frames);
 
   xprintf (VERBOSE|AUDIO, "audio_out: got %d frames, vpts=%d pts=%d\n",
-           num_frames, vpts,pts_);
+           num_frames, vpts, pts);
 
-  if (vpts<self->last_audio_vpts) {
-    /* reject self */
-  xprintf (VERBOSE|AUDIO, "audio_out: rejected frame vpts=%d, last_audio_vpts=%d\n", vpts,self->last_audio_vpts)
+  if (vpts<this->last_audio_vpts) {
+    /* reject this */
+    xprintf (VERBOSE|AUDIO, "audio_out: rejected frame vpts=%d, last_audio_vpts=%d\n", vpts,this->last_audio_vpts)
 
     return 1;
   }
 
-  self->last_audio_vpts = vpts;
+  this->last_audio_vpts = vpts;
 
   bDropPackage = 0;
 
-  if ( self->audio_has_realtime || !self->audio_started ) {
-
-    /*
-     * where, in the timeline is the "end" of the audio buffer at the moment?
-     */
-    
-    buffer_vpts = self->metronom->get_current_time (self->metronom);
-    
-    if (self->audio_started) {
-      pos = self->driver->delay(self->driver);
-    } else
-      pos = 0;
-    if ( (self->mode==AO_CAP_MODE_AC3) && (pos>10) ) pos-=10; /* External AC3 decoder delay correction */
-    
-    if (pos>self->frames_in_buffer) /* buffer ran dry */
-      self->frames_in_buffer = pos;
-    
-    buffer_vpts += (self->frames_in_buffer - pos) * 1024 / self->frames_per_kpts;
-    
-    /*
-     * calculate gap:
-     */
-    
-    gap = vpts - buffer_vpts;
-    xprintf (VERBOSE|AUDIO, "audio_out: buff=%d pos=%d buf_vpts=%d gap=%d\n",
-	     self->frames_in_buffer, pos,buffer_vpts,gap);
-    
-    if (gap>GAP_TOLERANCE) {
-      ao_fill_gap (self, gap);
-      
-      /* keep xine responsive */
-      
-      if (gap>MAX_GAP)
-	return 0;
-      
-    } else if (gap<-GAP_TOLERANCE) {
-      bDropPackage = 1;
-      xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d)"
-	       "dropped\n", vpts, gap);
-    }
-    
-  } /* has realtime */
+  /*
+   * where, in the timeline is the "end" of the audio buffer at the moment?
+   */
   
+  buffer_vpts = this->metronom->get_current_time (this->metronom);
+    
+  if (this->audio_started)
+    delay = this->driver->delay(this->driver);
+  else
+    delay = 0;
+
+  /* External AC3 decoder delay correction */
+  if (this->mode==AO_CAP_MODE_AC3) 
+    delay+=10; 
+
+  buffer_vpts += delay * 1024 / this->frames_per_kpts;
+    
+  /*
+   * calculate gap:
+   */
+  
+  gap = vpts - buffer_vpts;
+  
+  if (gap>GAP_TOLERANCE) {
+    ao_fill_gap (this, gap);
+    
+    /* keep xine responsive */
+      
+    if (gap>MAX_GAP)
+      return 0;
+      
+  } else if (gap<-GAP_TOLERANCE) {
+    bDropPackage = 1;
+    xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d)"
+	     "dropped\n", vpts, gap);
+  }
+    
   /*
    * resample and output frames
    */
-  if(self->mode == AO_CAP_MODE_AC3) bDropPackage=0;
+  if (this->mode == AO_CAP_MODE_AC3) 
+    bDropPackage=0;
 
   if (!bDropPackage) {
-    int num_output_frames = num_frames * (self->output_frame_rate) / self->input_frame_rate;
+    int num_output_frames = (double) num_frames * this->frame_rate_factor;
 
-    if ((!self->do_resample) && (self->mode != AO_CAP_MODE_AC3)) {
+    if ((!this->do_resample) && (this->mode != AO_CAP_MODE_AC3)) {
       xprintf (VERBOSE|AUDIO, "audio_out: writing without resampling\n");
-      self->driver->write(self->driver, output_frames,
-            num_output_frames );
-    } else switch (self->mode) {
+      this->driver->write (this->driver, output_frames,
+			   num_output_frames );
+    } else switch (this->mode) {
     case AO_CAP_MODE_MONO:
       audio_out_resample_mono (output_frames, num_frames,
-                               self->frame_buffer, num_output_frames);
-      self->driver->write(self->driver, self->frame_buffer, num_output_frames);
+                               this->frame_buffer, num_output_frames);
+      this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
     case AO_CAP_MODE_STEREO:
       audio_out_resample_stereo (output_frames, num_frames,
-                                 self->frame_buffer, num_output_frames);
-      self->driver->write(self->driver, self->frame_buffer, num_output_frames);
+                                 this->frame_buffer, num_output_frames);
+      this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
     case AO_CAP_MODE_4CHANNEL:
       audio_out_resample_4channel (output_frames, num_frames,
-                                   self->frame_buffer, num_output_frames);
-      self->driver->write(self->driver, self->frame_buffer, num_output_frames);
+                                   this->frame_buffer, num_output_frames);
+      this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
     case AO_CAP_MODE_5CHANNEL:
       audio_out_resample_5channel (output_frames, num_frames,
-                                   self->frame_buffer, num_output_frames);
-      self->driver->write(self->driver, self->frame_buffer, num_output_frames);
+                                   this->frame_buffer, num_output_frames);
+      this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
     case AO_CAP_MODE_5_1CHANNEL:
       audio_out_resample_6channel (output_frames, num_frames,
-                                   self->frame_buffer, num_output_frames);
-      self->driver->write(self->driver, self->frame_buffer, num_output_frames);
+                                   this->frame_buffer, num_output_frames);
+      this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
     case AO_CAP_MODE_AC3:
       num_output_frames = (num_frames+8)/4;
-      self->frame_buffer[0] = 0xf872;  /* spdif syncword */
-      self->frame_buffer[1] = 0x4e1f;  /* .............  */
-      self->frame_buffer[2] = 0x0001;  /* AC3 data       */
+      this->frame_buffer[0] = 0xf872;  /* spdif syncword */
+      this->frame_buffer[1] = 0x4e1f;  /* .............  */
+      this->frame_buffer[2] = 0x0001;  /* AC3 data       */
 
       data = (uint8_t *)&output_frames[1]; /* skip AC3 sync */
       fscod = (data[2] >> 6) & 0x3;
       frmsizecod = data[2] & 0x3f;
       frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] << 4;
-      self->frame_buffer[3] = frame_size;
+      this->frame_buffer[3] = frame_size;
 
       /* ac3 seems to be swabbed data */
-      swab(output_frames,self->frame_buffer+4,  num_frames  );
-      self->driver->write(self->driver, self->zero_space, 2); /* Prevents crackle at start. */
-      self->driver->write(self->driver, self->frame_buffer, num_output_frames);
-      self->driver->write(self->driver, self->zero_space, 1534-num_output_frames);
+      swab(output_frames,this->frame_buffer+4,  num_frames  );
+      this->driver->write(this->driver, this->zero_space, 2); /* Prevents crackle at start. */
+      this->driver->write(this->driver, this->frame_buffer, num_output_frames);
+      this->driver->write(this->driver, this->zero_space, 1534-num_output_frames);
       num_output_frames=num_output_frames;
       break;
     }
@@ -352,8 +357,7 @@ static int ao_write(ao_instance_t *self,
      * step values
      */
 
-    self->frames_in_buffer += num_output_frames ;
-    self->audio_started    = 1;
+    this->audio_started    = 1;
   }
 
   return 1;
@@ -361,34 +365,37 @@ static int ao_write(ao_instance_t *self,
 }
 
 
-static void ao_close(ao_instance_t *self)
+static void ao_close(ao_instance_t *this)
 {
-  self->driver->close(self->driver);  
+  this->driver->close(this->driver);  
 }
 
-static uint32_t ao_get_capabilities (ao_instance_t *self) {
+static uint32_t ao_get_capabilities (ao_instance_t *this) {
   uint32_t result;
-  result=self->driver->get_capabilities(self->driver);  
+  result=this->driver->get_capabilities(this->driver);  
   return result;
 }
 
-ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom) {
+ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom, 
+				config_values_t *config) {
 
-  ao_instance_t *self;
+  ao_instance_t *this;
 
-  self = xmalloc (sizeof (ao_instance_t)) ;
+  this = xmalloc (sizeof (ao_instance_t)) ;
 
-  self->driver                = driver;
-  self->metronom              = metronom;
+  this->driver                = driver;
+  this->metronom              = metronom;
 
-  self->open                  = ao_open;
-  self->write                 = ao_write;
-  self->close                 = ao_close;
-  self->get_capabilities      = ao_get_capabilities;
-  self->audio_loop_running    = 0;
-  self->frame_buffer          = xmalloc (40000);
-  self->zero_space            = xmalloc (ZERO_BUF_SIZE);
+  this->open                  = ao_open;
+  this->write                 = ao_write;
+  this->close                 = ao_close;
+  this->get_capabilities      = ao_get_capabilities;
+  this->audio_loop_running    = 0;
+  this->frame_buffer          = xmalloc (40000);
+  this->zero_space            = xmalloc (ZERO_BUF_SIZE * 2 * 6);
 
-  return self;
+  this->resample_conf = config->lookup_int (config, "audio_resample_mode", 0);
+
+  return this;
 }
 

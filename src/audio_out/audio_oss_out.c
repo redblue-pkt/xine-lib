@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.31 2001/08/22 10:51:05 jcdutton Exp $
+ * $Id: audio_oss_out.c,v 1.32 2001/08/23 21:40:05 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -32,7 +32,7 @@
  * when dealing with audio_bytes instead of audio_frames.
  *
  * The number of samples passed to/from the audio driver is also sent in units of audio_frames.
- *              `
+ *              
  */
 
 /* required for swab() */
@@ -110,7 +110,6 @@ typedef struct oss_driver_s {
   int            mode;
 
   int32_t        output_sample_rate, input_sample_rate;
-  double         sample_rate_factor;
   uint32_t       num_channels;
   uint32_t	 bits_per_sample;
   uint32_t	 bytes_per_frame;
@@ -118,52 +117,53 @@ typedef struct oss_driver_s {
   
   int            audio_started;
   int            audio_has_realtime;   /* OSS driver supports real-time              */
+  int            static_delay;         /* estimated delay for non-realtime drivers   */
 } oss_driver_t;
 
 /*
  * open the audio device for writing to
  */
-static int ao_oss_open(ao_driver_t *self_gen,
-		   uint32_t bits, uint32_t rate, int mode)
+static int ao_oss_open(ao_driver_t *this_gen,
+		       uint32_t bits, uint32_t rate, int mode)
 {
-  oss_driver_t *self = (oss_driver_t *) self_gen;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
   int tmp;
 
   printf ("audio_oss_out: ao_open rate=%d, mode=%d\n", rate, mode);
 
-  if ( (mode & self->capabilities) == 0 ) {
+  if ( (mode & this->capabilities) == 0 ) {
     printf ("audio_oss_out: unsupported mode %08x\n", mode);
-    return -1;
+    return 0;
   }
 
-  if (self->audio_fd > -1) {
+  if (this->audio_fd > -1) {
 
-    if ( (mode == self->mode) && (rate == self->input_sample_rate) ) {
-      return 1;
+    if ( (mode == this->mode) && (rate == this->input_sample_rate) ) {
+      return this->output_sample_rate;
     }
 
-    close (self->audio_fd);
+    close (this->audio_fd);
   }
   
-  self->mode                   = mode;
-  self->input_sample_rate      = rate;
-  self->bits_per_sample        = bits;
-  self->bytes_in_buffer        = 0;
-  self->audio_started          = 0;
+  this->mode                   = mode;
+  this->input_sample_rate      = rate;
+  this->bits_per_sample        = bits;
+  this->bytes_in_buffer        = 0;
+  this->audio_started          = 0;
 
   /*
    * open audio device
    */
 
-  self->audio_fd=open(self->audio_dev,O_WRONLY|O_NDELAY);
-  if(self->audio_fd < 0) {
+  this->audio_fd=open(this->audio_dev,O_WRONLY|O_NDELAY);
+  if(this->audio_fd < 0) {
     printf("audio_oss_out: Opening audio device %s: %s\n",
-	   self->audio_dev, strerror(errno));
-    return -1;
+	   this->audio_dev, strerror(errno));
+    return 0;
   }
   
   /* We wanted non blocking open but now put it back to normal */
-  fcntl(self->audio_fd, F_SETFL, fcntl(self->audio_fd, F_GETFL)&~FNDELAY);
+  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL)&~FNDELAY);
 
   /*
    * configure audio device
@@ -171,29 +171,29 @@ static int ao_oss_open(ao_driver_t *self_gen,
    */
   if(!(mode & AO_CAP_MODE_AC3)) {
     tmp = (mode & AO_CAP_MODE_STEREO) ? 1 : 0;
-    ioctl(self->audio_fd,SNDCTL_DSP_STEREO,&tmp);
+    ioctl(this->audio_fd,SNDCTL_DSP_STEREO,&tmp);
 
     tmp = bits;
-    ioctl(self->audio_fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
+    ioctl(this->audio_fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
 
-    tmp = self->input_sample_rate;
+    tmp = this->input_sample_rate;
 #ifdef FORCE_44K_MAX
     if(tmp > 44100)
        tmp = 44100;
 #endif
-    if (ioctl(self->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
+    if (ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
 
-      printf ("audio_oss_out: warning: sampling rate %d Hz not supported, trying 44100 Hz\n", self->input_sample_rate);
+      printf ("audio_oss_out: warning: sampling rate %d Hz not supported, trying 44100 Hz\n", this->input_sample_rate);
 
       tmp = 44100;
-      if (ioctl(self->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
+      if (ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
         printf ("audio_oss_out: error: 44100 Hz sampling rate not supported\n");
-        return -1;
+        return 0;
       }
     }
-    self->output_sample_rate = tmp;
+    this->output_sample_rate = tmp;
     xprintf (VERBOSE|AUDIO, "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n",
-	   self->input_sample_rate, self->output_sample_rate);
+	     this->input_sample_rate, this->output_sample_rate);
   }
   /*
    * set number of channels / ac3 throughput
@@ -202,43 +202,43 @@ static int ao_oss_open(ao_driver_t *self_gen,
   switch (mode) {
   case AO_CAP_MODE_MONO:
     tmp = 1;
-    ioctl(self->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
-    self->num_channels = tmp;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
     break;
   case AO_CAP_MODE_STEREO:
     tmp = 2;
-    ioctl(self->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
-    self->num_channels = tmp;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
     break;
   case AO_CAP_MODE_4CHANNEL:
     tmp = 4;
-    ioctl(self->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
-    self->num_channels = tmp;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
     break;
   case AO_CAP_MODE_5CHANNEL:
     tmp = 5;
-    ioctl(self->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
-    self->num_channels = tmp;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
     break;
   case AO_CAP_MODE_5_1CHANNEL:
     tmp = 6;
-    ioctl(self->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
-    self->num_channels = tmp;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
     break;
   case AO_CAP_MODE_AC3:
     tmp = AFMT_AC3;
-    if (ioctl(self->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
+    if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
         printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
-	return -1;
+	return 0;
     }
-    self->num_channels = 2; /* FIXME: is this correct ? */
-    self->output_sample_rate = self->input_sample_rate;
+    this->num_channels = 2; /* FIXME: is this correct ? */
+    this->output_sample_rate = this->input_sample_rate;
     printf ("audio_oss_out : AO_CAP_MODE_AC3\n");
     break;
   }
 
-  printf ("audio_oss_out : %d channels output\n",self->num_channels);
-  self->bytes_per_frame=(self->bits_per_sample*self->num_channels)/8;
+  printf ("audio_oss_out : %d channels output\n",this->num_channels);
+  this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
   
   /*
    * audio buffer size handling
@@ -257,18 +257,18 @@ static int ao_oss_open(ao_driver_t *self_gen,
 
   xprintf (VERBOSE|AUDIO, "Audio buffer fragment info : %x\n",tmp);
 
-  ioctl(self->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
+  ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
 
   /*
    * Final check of realtime capability, make sure GETOPTR
    * doesn't return an error.
    */
-  if ( self->audio_has_realtime && !checked_getoptr ) {
+  if ( this->audio_has_realtime && !checked_getoptr ) {
     count_info info;
-    int ret = ioctl(self->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+    int ret = ioctl(this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
     if ( ret == -1 && errno == EINVAL ) {
-      self->audio_has_realtime = 0;
+      this->audio_has_realtime = 0;
       printf("audio_oss_out: Audio driver SNDCTL_DSP_GETOPTR reports %s,"
 		" disabling realtime sync...\n", strerror(errno) );
       printf("audio_oss_out: ...Will use video master clock for soft-sync instead\n");
@@ -277,27 +277,42 @@ static int ao_oss_open(ao_driver_t *self_gen,
     checked_getoptr = 1;
   }
 
-  return 1;
+  return this->output_sample_rate;
 }
 
-static int ao_oss_num_channels(ao_driver_t *self_gen) 
+static int ao_oss_num_channels(ao_driver_t *this_gen) 
 {
-  oss_driver_t *self = (oss_driver_t *) self_gen;
-  return self->num_channels;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  return this->num_channels;
 }
 
-static int ao_oss_bytes_per_frame(ao_driver_t *self_gen)
+static int ao_oss_bytes_per_frame(ao_driver_t *this_gen)
 {
-  oss_driver_t *self = (oss_driver_t *) self_gen;
-  return self->bytes_per_frame;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  return this->bytes_per_frame;
 }
 
-static int ao_oss_delay(ao_driver_t *self_gen)
+static int ao_oss_delay(ao_driver_t *this_gen)
 {
-  count_info info;
-  oss_driver_t *self = (oss_driver_t *) self_gen;
-  ioctl (self->audio_fd, SNDCTL_DSP_GETOPTR, &info);
-  return info.bytes / self->bytes_per_frame;
+  count_info    info;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  int           bytes_left;
+
+  if (this->audio_has_realtime) {
+    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+
+    /* calc delay */
+
+    bytes_left = this->bytes_in_buffer - info.bytes;
+
+    if (bytes_left<=0) /* buffer ran dry */
+      bytes_left = 0;
+  } else {
+    bytes_left = this->static_delay;
+  }
+
+
+  return bytes_left / this->bytes_per_frame;
 }
 
  /* Write audio samples
@@ -305,41 +320,43 @@ static int ao_oss_delay(ao_driver_t *self_gen)
   * audio frames are equivalent one sample on each channel.
   * I.E. Stereo 16 bits audio frames are 4 bytes.
   */
-static int ao_oss_write(ao_driver_t *self_gen,
-                               int16_t* frame_buffer, uint32_t num_frames)
+static int ao_oss_write(ao_driver_t *this_gen,
+			int16_t* frame_buffer, uint32_t num_frames)
 {
-  oss_driver_t *self = (oss_driver_t *) self_gen;
-      return write(self->audio_fd, frame_buffer, num_frames * self->bytes_per_frame); 
+  oss_driver_t *this = (oss_driver_t *) this_gen;
 
+  this->bytes_in_buffer += num_frames * this->bytes_per_frame;
+
+  return write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame); 
 }
 
-static void ao_oss_close(ao_driver_t *self_gen)
+static void ao_oss_close(ao_driver_t *this_gen)
 {
-  oss_driver_t *self = (oss_driver_t *) self_gen;
-  close(self->audio_fd);
-  self->audio_fd = -1;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  close(this->audio_fd);
+  this->audio_fd = -1;
 }
 
-static uint32_t ao_oss_get_capabilities (ao_driver_t *self_gen) {
-  oss_driver_t *self = (oss_driver_t *) self_gen;
-  return self->capabilities;
+static uint32_t ao_oss_get_capabilities (ao_driver_t *this_gen) {
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  return this->capabilities;
 }
 
-static void ao_oss_exit(ao_driver_t *self_gen)
+static void ao_oss_exit(ao_driver_t *this_gen)
 {
-  oss_driver_t *self = (oss_driver_t *) self_gen;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
   
-  if (self->audio_fd != -1)
-    close(self->audio_fd);
+  if (this->audio_fd != -1)
+    close(this->audio_fd);
 
-  free (self);
+  free (this);
 }
 
 /*
  *
  */
-static int ao_oss_get_property (ao_driver_t *self_gen, int property) {
-  oss_driver_t *self = (oss_driver_t *) self;
+static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
+  oss_driver_t *this = (oss_driver_t *) this;
 
   /* FIXME: implement some properties
   switch(property) {
@@ -357,8 +374,8 @@ static int ao_oss_get_property (ao_driver_t *self_gen, int property) {
 /*
  *
  */
-static int ao_oss_set_property (ao_driver_t *self_gen, int property, int value) {
-  oss_driver_t *self = (oss_driver_t *) self;
+static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) {
+  oss_driver_t *this = (oss_driver_t *) this;
 
   /* FIXME: Implement property support.
   switch(property) {
@@ -376,7 +393,7 @@ static int ao_oss_set_property (ao_driver_t *self_gen, int property, int value) 
 
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
-  oss_driver_t *self;
+  oss_driver_t *this;
   int              caps;
 #ifdef CONFIG_DEVFS_FS
   char             devname[] = "/dev/sound/dsp\0\0\0";
@@ -389,7 +406,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   int              audio_fd;
   int              num_channels, status, arg;
 
-  self = (oss_driver_t *) malloc (sizeof (oss_driver_t));
+  this = (oss_driver_t *) malloc (sizeof (oss_driver_t));
 
   /*
    * find best device driver/channel
@@ -402,11 +419,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   devnum = config->lookup_int (config, "oss_device_num", -1);
 
   if (devnum >= 0) {
-    sprintf (self->audio_dev, DSP_TEMPLATE, devnum);
+    sprintf (this->audio_dev, DSP_TEMPLATE, devnum);
     devnum = 30; /* skip while loop */
   } else {
     devnum = 0;
-    sprintf (self->audio_dev, "/dev/dsp");
+    sprintf (this->audio_dev, "/dev/dsp");
   }
 
   while (devnum<16) {
@@ -420,14 +437,14 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
       rate = 48000;
       ioctl(audio_fd,SNDCTL_DSP_SPEED, &rate);
       if (rate>best_rate) {
-	strncpy (self->audio_dev, devname, 19);
+	strncpy (this->audio_dev, devname, 19);
 	best_rate = rate;
       }
       
       close (audio_fd);
     } /*else
       printf("audio_oss_out: opening audio device %s failed:\n%s\n",
-	     self->audio_dev, strerror(errno));
+	     this->audio_dev, strerror(errno));
 	     */
 
     sprintf(devname, DSP_TEMPLATE, devnum);
@@ -438,18 +455,18 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    * open that device
    */
 
-  audio_fd=open(self->audio_dev, O_WRONLY|O_NDELAY);
+  audio_fd=open(this->audio_dev, O_WRONLY|O_NDELAY);
 
   if(audio_fd < 0) 
   {
     printf("audio_oss_out: opening audio device %s failed:\n%s\n",
-	   self->audio_dev, strerror(errno));
+	   this->audio_dev, strerror(errno));
 
-    free (self);
+    free (this);
     return NULL;
 
   } else
-    xprintf (VERBOSE|AUDIO, " %s\n", self->audio_dev);
+    xprintf (VERBOSE|AUDIO, " %s\n", this->audio_dev);
 
   /*
    * set up driver to reasonable values for capabilities tests
@@ -468,38 +485,38 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   if ((caps & DSP_CAP_REALTIME) > 0) {
     xprintf (VERBOSE|AUDIO, "audio_oss_out : realtime check: passed :-)\n");
-    self->audio_has_realtime = 1;
+    this->audio_has_realtime = 1;
   } else {
     printf ("audio_oss_out : realtime check: *FAILED* :-(((((\n");
-    self->audio_has_realtime = 0;
+    this->audio_has_realtime = 0;
   }
 
-  if( !self->audio_has_realtime ) {
+  if( !this->audio_has_realtime ) {
     printf("audio_oss_out: Audio driver realtime sync disabled...\n");
     printf("audio_oss_out: ...Will use video master clock for soft-sync instead\n");
     printf("audio_oss_out: ...There may be audio/video synchronization issues\n");
   }
 
-  self->capabilities = 0;
+  this->capabilities = 0;
 
   printf ("audio_oss_out : supported modes are ");
   num_channels = 1; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==1) ) {
-    self->capabilities |= AO_CAP_MODE_MONO;
+    this->capabilities |= AO_CAP_MODE_MONO;
     printf ("mono ");
   }
   num_channels = 2; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==2) ) {
-    self->capabilities |= AO_CAP_MODE_STEREO;
+    this->capabilities |= AO_CAP_MODE_STEREO;
     printf ("stereo ");
   }
   num_channels = 4; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==4) ) {
     if (config->lookup_int (config, "four_channel", 0)) {
-      self->capabilities |= AO_CAP_MODE_4CHANNEL;
+      this->capabilities |= AO_CAP_MODE_4CHANNEL;
       printf ("4-channel ");
     } else
       printf ("(4-channel not enabled in .xinerc) " );
@@ -508,7 +525,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==5) ) {
     if (config->lookup_int (config, "five_channel", 0)) {
-      self->capabilities |= AO_CAP_MODE_5CHANNEL;
+      this->capabilities |= AO_CAP_MODE_5CHANNEL;
       printf ("5-channel ");
     } else
       printf ("(5-channel not enabled in .xinerc) " );
@@ -517,7 +534,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==6) ) {
     if (config->lookup_int (config, "five_lfe_channel", 0)) {
-      self->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+      this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
       printf ("5.1-channel ");
     } else
       printf ("(5.1-channel not enabled in .xinerc) " );
@@ -526,7 +543,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
   if (caps & AFMT_AC3) {
     if (config->lookup_int (config, "ac3_pass_through", 0)) {
-      self->capabilities |= AO_CAP_MODE_AC3;
+      this->capabilities |= AO_CAP_MODE_AC3;
       printf ("ac3-pass-through ");
     } else 
       printf ("(ac3-pass-through not enabled in .xinerc)");
@@ -536,21 +553,23 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   close (audio_fd);
 
-  self->output_sample_rate = 0;
-  self->audio_fd = -1;
+  this->output_sample_rate = 0;
+  this->audio_fd = -1;
 
-  self->ao_driver.get_capabilities    = ao_oss_get_capabilities;
-  self->ao_driver.get_property        = ao_oss_get_property;
-  self->ao_driver.set_property        = ao_oss_set_property;
-  self->ao_driver.open                = ao_oss_open;
-  self->ao_driver.num_channels        = ao_oss_num_channels;
-  self->ao_driver.bytes_per_frame     = ao_oss_bytes_per_frame;
-  self->ao_driver.delay               = ao_oss_delay;
-  self->ao_driver.write		      = ao_oss_write;
-  self->ao_driver.close               = ao_oss_close;
-  self->ao_driver.exit                = ao_oss_exit;
+  this->static_delay = config->lookup_int (config, "oss_static_delay", 1000);
 
-  return &self->ao_driver;
+  this->ao_driver.get_capabilities    = ao_oss_get_capabilities;
+  this->ao_driver.get_property        = ao_oss_get_property;
+  this->ao_driver.set_property        = ao_oss_set_property;
+  this->ao_driver.open                = ao_oss_open;
+  this->ao_driver.num_channels        = ao_oss_num_channels;
+  this->ao_driver.bytes_per_frame     = ao_oss_bytes_per_frame;
+  this->ao_driver.delay               = ao_oss_delay;
+  this->ao_driver.write		      = ao_oss_write;
+  this->ao_driver.close               = ao_oss_close;
+  this->ao_driver.exit                = ao_oss_exit;
+
+  return &this->ao_driver;
 }
 
 static ao_info_t ao_info_oss = {
