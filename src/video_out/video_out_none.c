@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.11 2003/02/14 14:48:08 guenter Exp $
+ * $Id: video_out_none.c,v 1.12 2003/02/19 13:41:07 esnel Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -65,14 +65,7 @@ static void free_framedata(none_frame_t* frame) {
   if(frame->vo_frame.base[0]) {
     free(frame->vo_frame.base[0]);
     frame->vo_frame.base[0] = NULL;
-  }
-
-  if(frame->vo_frame.base[1]) {
-    free(frame->vo_frame.base[1]);
     frame->vo_frame.base[1] = NULL;
-  }
-  if(frame->vo_frame.base[2]) {
-    free(frame->vo_frame.base[2]);
     frame->vo_frame.base[2] = NULL;
   }
 }
