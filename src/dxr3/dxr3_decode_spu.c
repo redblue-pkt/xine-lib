@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.42 2003/12/07 15:34:29 f1rmb Exp $
+ * $Id: dxr3_decode_spu.c,v 1.43 2003/12/08 11:38:26 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -356,7 +356,6 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 	  } else {
 	    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "no working menu button found\n");
-	    abort();
 	  }
 	}
       }
