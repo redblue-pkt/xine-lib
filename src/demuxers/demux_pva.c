@@ -21,7 +21,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.3 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_pva.c,v 1.4 2003/01/16 22:25:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,6 +43,11 @@
 
 #define PVA_PREAMBLE_SIZE 8
 
+#define WRAP_THRESHOLD       120000
+
+#define PTS_AUDIO 0
+#define PTS_VIDEO 1
+
 typedef struct {
 
   demux_plugin_t       demux_plugin;
@@ -60,6 +65,10 @@ typedef struct {
   int                  thread_running;
   pthread_mutex_t      mutex;
   int                  send_end_buffers;
+  
+  int                  send_newpts;
+  int                  buf_flag_seek;
+  int64_t              last_pts[2];
 
   off_t                data_start;
   off_t                data_size;
@@ -78,6 +87,35 @@ typedef struct {
   xine_t           *xine;
   config_values_t  *config;
 } demux_pva_class_t;
+
+
+/* redefine abs as macro to handle 64-bit diffs.
+   i guess llabs may not be available everywhere */
+#define abs(x) ( ((x)<0) ? -(x) : (x) )
+
+static void check_newpts( demux_pva_t *this, int64_t pts, int video )
+{
+  int64_t diff;
+
+  diff = pts - this->last_pts[video];
+
+  if( pts &&
+      (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
+
+    if (this->buf_flag_seek) {
+      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      this->buf_flag_seek = 0;
+    } else {
+      xine_demux_control_newpts(this->stream, pts, 0);
+    }
+    this->send_newpts = 0;
+    this->last_pts[1-video] = 0;
+  }
+
+  if( pts )
+    this->last_pts[video] = pts;
+}
+
 
 
 /* returns 1 if the PVA file was opened successfully, 0 otherwise */
@@ -115,10 +153,13 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
   unsigned char preamble[PVA_PREAMBLE_SIZE];
   unsigned char pts_buf[4];
   off_t current_file_pos;
+  int64_t pts;
 
   if (this->input->read(this->input, preamble, PVA_PREAMBLE_SIZE) !=
-    PVA_PREAMBLE_SIZE)
-    return 0;
+    PVA_PREAMBLE_SIZE) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
 
   /* make sure the signature is there */
   if ((preamble[0] != 'A') || (preamble[1] != 'V')) {
@@ -132,25 +173,26 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
     this->data_start;
 
   if (preamble[2] == 1) {
-
+    
     /* video */
-    buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
 
     /* load the pts if it is the first thing in the chunk */
     if (preamble[5] & 0x10) {
       if (this->input->read(this->input, pts_buf, 4) != 4) {
-        buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         return this->status;
       }
       chunk_size -= 4;
-      buf->pts = BE_32(&pts_buf[0]);
+      pts = BE_32(&pts_buf[0]);
+      check_newpts( this, pts, PTS_VIDEO );
     } else
-      buf->pts = 0;
+      pts = 0;
 
     while (chunk_size) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_MPEG;
+      buf->pts = pts;
+      pts = 0;
       buf->extra_info->input_pos = current_file_pos;
       buf->extra_info->input_length = this->data_size;
       buf->extra_info->input_time = buf->pts / 90;
@@ -251,8 +293,7 @@ static int demux_pva_seek (demux_plugin_t *this_gen,
   /* if thread is not running, initialize demuxer */
   if( !this->stream->demux_thread_running ) {
 
-    /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    this->send_newpts = 1;
 
     this->status = DEMUX_OK;
 

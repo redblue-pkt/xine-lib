@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.75 2003/01/10 21:11:10 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.76 2003/01/16 22:25:54 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -188,6 +188,11 @@
 #define ISO13522_STREAM  0xF3
 #define PROG_STREAM_DIR  0xFF
 
+#define WRAP_THRESHOLD       120000
+
+#define PTS_AUDIO 0
+#define PTS_VIDEO 1
+
 /*
 **
 ** DATA STRUCTURES
@@ -255,8 +260,6 @@ typedef struct {
    */
   unsigned int     programNumber;
   unsigned int     pcrPid;
-  int64_t          PCR;
-  int64_t          last_PCR;
   unsigned int     pid;
   unsigned int     pid_count;
   unsigned int     videoPid;
@@ -266,7 +269,7 @@ typedef struct {
   char             audioLang[4];
   
   int              send_end_buffers;
-  int              ignore_scr_discont;
+  int64_t          last_pts[2];
   int              send_newpts;
   int              buf_flag_seek;
 
@@ -321,14 +324,23 @@ static uint32_t demux_ts_compute_crc32(demux_ts_t*this, uint8_t *data,
   return crc32;
 }
 
-static void check_newpts( demux_ts_t*this, int64_t pts ) {
+/* redefine abs as macro to handle 64-bit diffs.
+   i guess llabs may not be available everywhere */
+#define abs(x) ( ((x)<0) ? -(x) : (x) )
+
+static void check_newpts( demux_ts_t *this, int64_t pts, int video )
+{
+  int64_t diff;
 
 #ifdef TS_LOG
   printf ("demux_ts: check_newpts %lld, send_newpts %d, buf_flag_seek %d\n",
 	  pts, this->send_newpts, this->buf_flag_seek);
 #endif
-  
-  if (this->send_newpts && pts) {
+
+  diff = pts - this->last_pts[video];
+
+  if( pts &&
+      (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
     if (this->buf_flag_seek) {
       xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -337,8 +349,11 @@ static void check_newpts( demux_ts_t*this, int64_t pts ) {
       xine_demux_control_newpts(this->stream, pts, 0);
     }
     this->send_newpts = 0;
-    this->ignore_scr_discont = 1;
+    this->last_pts[1-video] = 0;
   }
+
+  if( pts )
+    this->last_pts[video] = pts;
 }
 
 
@@ -765,7 +780,6 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
 
     } else {
 
-      check_newpts(this, m->pts);
       m->corrupted_pes = 0;
       m->buf = m->fifo->buffer_pool_alloc(m->fifo);
       memcpy(m->buf->mem, ts+len-m->size, m->size);
@@ -1455,35 +1469,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
   if( adaptation_field_control & 0x2 ){
     uint32_t adaptation_field_length = originalPkt[4];
     if (adaptation_field_length > 0) {
-      this->PCR = demux_ts_adaptation_field_parse (originalPkt+5,
-						   adaptation_field_length);
-
-      if (pid == this->pcrPid && this->PCR)  {  
-	int64_t scr_diff = this->PCR - this->last_PCR;
-	
-	/* note: comparing (abs(scr_diff) > 90000) isn't reliable
-         * below because abs() give inconsistent results on int64_t
-         * types */
-	if ( (scr_diff > 90000 || scr_diff < -90000) && !this->send_newpts && 
-	     !this->ignore_scr_discont ) {
-	  
-	  buf_element_t *buf;
-	  
-	  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-	  buf->type = BUF_CONTROL_DISCONTINUITY;
-	  buf->disc_off = scr_diff;
-	  this->video_fifo->put (this->video_fifo, buf);
-	  
-	  if (this->audio_fifo) {
-	    buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
-	    buf->type = BUF_CONTROL_DISCONTINUITY;
-	    buf->disc_off = scr_diff;
-	    this->audio_fifo->put (this->audio_fifo, buf);
-	  }
-	}
-	this->last_PCR = this->PCR;
-	this->ignore_scr_discont = 0;
-      }
+      demux_ts_adaptation_field_parse (originalPkt+5, adaptation_field_length);
     }
     /*
      * Skip adaptation header.
@@ -1516,7 +1502,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 	demux_ts_pes_new(this, this->media_num++, pid, this->video_fifo, t);
       }
     } else if (t == PRIVATE_STREAM1 ||
-	       t >= AUDIO_STREAM_S && t <= AUDIO_STREAM_E) {
+	       (t >= AUDIO_STREAM_S && t <= AUDIO_STREAM_E)) {
       if ( this->audioPid == INVALID_PID) {
 
 	printf ("demux_ts: auto-detected audio pid %d\n",
@@ -1543,6 +1529,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 #ifdef TS_LOG
       printf ("demux_ts: Video pid: %.4x\n", pid);
 #endif
+      check_newpts(this, this->media[this->videoMedia].pts, PTS_VIDEO);
       demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia,
 			   payload_unit_start_indicator, continuity_counter,
 			   data_len);
@@ -1552,6 +1539,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 #ifdef TS_LOG
       printf ("demux_ts: Audio pid: %.4x\n", pid);
 #endif
+      check_newpts(this, this->media[this->audioMedia].pts, PTS_AUDIO);
       demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia,
 			   payload_unit_start_indicator, continuity_counter,
 			   data_len);
@@ -1693,14 +1681,12 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
   this->input->seek (this->input, 0, SEEK_SET);
 
   this->send_newpts = 1;
-  this->ignore_scr_discont = 0;
   
   demux_ts_build_crc32_table (this);
   
   this->status = DEMUX_OK ;
 
   this->send_end_buffers  = 1;
-  this->last_PCR          = 0;
   this->scrambled_npids   = 0;
   
   /* DVBSUB */
@@ -1729,7 +1715,6 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
   }
 
   this->send_newpts = 1;
-  this->ignore_scr_discont = 0;
   
   for (i=0; i<MAX_PIDS; i++) {
     demux_ts_media *m = &this->media[i];
@@ -1967,7 +1952,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   this->programNumber = INVALID_PROGRAM;
   this->pcrPid = INVALID_PID;
-  this->PCR    = 0;
   this->scrambled_npids = 0;
   this->videoPid = INVALID_PID;
   this->audioPid = INVALID_PID;
