@@ -128,6 +128,8 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	
 	    this->decoder_running = 1;
 	    this->skip_frames = 0;
+	    printf ("xvid: WARNING: using libxvidcore.so to decode video. some versions of\n"
+	            "      this library have been reported to cause segmentation faults.\n" );
 	} else {
 	    printf ("xvid: cannot initialize xvid decoder, error = %d.\n", xerr);
 	    return;
