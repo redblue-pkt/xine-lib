@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2003/04/25 00:23:21 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.27 2003/05/01 20:36:07 heinchen Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -79,6 +79,10 @@ static void vorbis_reset (audio_decoder_t *this_gen) {
 }
 
 static void vorbis_discontinuity (audio_decoder_t *this_gen) {
+
+  vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
+
+  this->pts=0;
 }
 
 /* Known vorbis comment keys from ogg123 sources*/
@@ -207,6 +211,9 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if(vorbis_synthesis(&this->vb,op)==0) 
       vorbis_synthesis_blockin(&this->vd,&this->vb);
 
+    if (buf->pts!=0)
+      this->pts=buf->pts;
+
     while ((samples=vorbis_synthesis_pcmout(&this->vd,&pcm))>0){
 
       int i,j;
@@ -237,7 +244,8 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	}
       }
 
-      audio_buffer->vpts       = buf->pts;
+      audio_buffer->vpts       = this->pts;
+      this->pts=0;
       audio_buffer->num_frames = bout;
 
       this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
