@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.2 2002/08/08 21:55:54 richwareham Exp $
+ * $Id: searching.c,v 1.3 2002/08/09 22:52:14 mroi Exp $
  *
  */
 
@@ -25,11 +25,11 @@
 #include "config.h"
 #endif
 
-#include <dvdnav.h>
+#include "dvdnav.h"
 #include "dvdnav_internal.h"
 
 #include "vm.h"
-#include <nav_types.h>
+#include "nav_types.h"
 
 /* Searching API calls */
 

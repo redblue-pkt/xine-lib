@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.2 2002/08/08 21:55:54 richwareham Exp $
+ * $Id: dvdnav.c,v 1.3 2002/08/09 22:52:14 mroi Exp $
  *
  */
 
@@ -30,11 +30,11 @@
 */
 
 #include <pthread.h>
-#include <dvdnav.h>
+#include "dvdnav.h"
 #include "dvdnav_internal.h"
 #include "read_cache.h"
 
-#include <nav_read.h>
+#include "nav_read.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -995,6 +995,10 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.3  2002/08/09 22:52:14  mroi
+ * change includes from system include to local include where the file is in
+ * our tree now to avoid version clashes
+ *
  * Revision 1.2  2002/08/08 21:55:54  richwareham
  * Changed loads of #include <dvdread/...> to #include <...>
  *
