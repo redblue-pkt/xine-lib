@@ -720,7 +720,7 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
    DBGPRINT("Opening radio device\n");
 
    entry = this->stream->xine->config->lookup_entry(
-	 this->stream->xine->config, "input.v4l_audio_device_path");
+	 this->stream->xine->config, "input.v4l_radio_device_path");
 
    this->radio_fd = open(entry->str_value, O_RDWR);
 
