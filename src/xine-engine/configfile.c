@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.2 2001/06/15 10:17:53 f1rmb Exp $
+ * $Id: configfile.c,v 1.3 2001/06/15 11:08:13 f1rmb Exp $
  *
  * config file management - implementation
  *
@@ -98,6 +98,9 @@ static char *config_file_lookup_str (config_values_t *this,
 				     char *key, char*str_default) {
   cfg_entry_t *entry;
 
+  if(key == NULL)
+    return ((str_default != NULL) ? str_default : NULL);
+  
   entry = config_file_search (this, key);
 
   if (entry)
@@ -117,6 +120,9 @@ static int config_file_lookup_int (config_values_t *this,
 
   cfg_entry_t *entry;
   char str[25];
+
+  if(key == NULL)
+    return n_default;
 
   entry = config_file_search (this, key);
 
@@ -142,6 +148,9 @@ static void config_file_set_int (config_values_t *this,
   
   cfg_entry_t *entry;
 
+  if(key == NULL)
+    return;
+
   entry = config_file_search (this, key);
 
   if (entry) {
@@ -162,6 +171,9 @@ static void config_file_set_str (config_values_t *this,
 				 char *key, char *value) {
 
   cfg_entry_t *entry;
+
+  if(key == NULL || value == NULL)
+    return;
 
   entry = config_file_search (this, key);
 
@@ -278,6 +290,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.3  2001/06/15 11:08:13  f1rmb
+ * Check arguments in public functions.
+ *
  * Revision 1.2  2001/06/15 10:17:53  f1rmb
  * Passing NULL to config_file_lookup_str() is valid.
  *
