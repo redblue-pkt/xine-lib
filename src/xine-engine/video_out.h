@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.4 2001/04/28 19:47:42 guenter Exp $
+ * $Id: video_out.h,v 1.5 2001/05/06 14:25:42 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -117,30 +117,6 @@ struct vo_instance_s {
   /* called on xine exit */
   void (*exit) (vo_instance_t *this);
 
-  /* get/set driver properties, flags see below */
-  int (*get_property) (vo_instance_t *this, int nProperty);
-
-  /* set a property - returns value on succ, ~value otherwise*/
-  int (*set_property) (vo_instance_t *this, 
-		       int nProperty, int value);
-  void (*get_property_min_max) (vo_instance_t *this, 
-				int nProperty, int *min, int *max);
-
-  /*
-   * handle events for video window (e.g. expose)
-   * parameter will typically be something like a pointer
-   * to an XEvent structure for X11 drivers, but
-   * may be something different for, say, fb drivers
-   */
-  void (*handle_event) (vo_instance_t *this, void *event) ;
-
-  /*
-   * get whatever is usefull to contact the window/video output
-   * (mostly usefull for the gui if it wants to access
-   * the video output window)
-   */
-  void* (*get_window) (vo_instance_t *this);
-
   /* private stuff */
 
   vo_driver_t       *driver;
@@ -163,17 +139,14 @@ struct vo_instance_s {
 
 /* constants for the get/set property functions */
 
-#define VO_PROP_WINDOW_VISIBLE  0
-#define VO_PROP_CURSOR_VISIBLE  1
-#define VO_PROP_FULLSCREEN      2
-#define VO_PROP_INTERLACED      3
-#define VO_PROP_ASPECT_RATIO    4
-#define VO_PROP_HUE             5
-#define VO_PROP_SATURATION      6
-#define VO_PROP_CONTRAST        7
-#define VO_PROP_BRIGHTNESS      8 
-#define VO_PROP_COLORKEY        9 
-#define VO_NUM_PROPERTIES      10
+#define VO_PROP_INTERLACED      0
+#define VO_PROP_ASPECT_RATIO    1
+#define VO_PROP_HUE             2
+#define VO_PROP_SATURATION      3
+#define VO_PROP_CONTRAST        4
+#define VO_PROP_BRIGHTNESS      5 
+#define VO_PROP_COLORKEY        6 
+#define VO_NUM_PROPERTIES       7
 
 /* image formats that can be supported by display drivers: */
 
@@ -236,6 +209,10 @@ struct vo_driver_s {
 
   /* display a given frame */
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
+
+  /*
+   * these can be used by the gui directly:
+   */
   
   int (*get_property) (vo_driver_t *this, int property);
   int (*set_property) (vo_driver_t *this, 
@@ -243,11 +220,15 @@ struct vo_driver_s {
   void (*get_property_min_max) (vo_driver_t *this,
 				int property, int *min, int *max);
 
-  void (*handle_event) (vo_driver_t *this, void *event) ;
-  void* (*get_window) (vo_driver_t *this);
+  /*
+   * general purpose communication channel between gui and driver
+   *
+   * this should be used to propagate events, display data, window sizes
+   * etc. to the driver
+   */
 
-  /* set logo visibility */
-  void (*set_logo_mode) (vo_driver_t *this, int show_logo);
+  int (*gui_data_exchange) (vo_driver_t *this, int data_type,
+			    void *data);
 
   void (*exit) (vo_driver_t *this);
 

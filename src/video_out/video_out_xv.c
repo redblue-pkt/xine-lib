@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.12 2001/05/04 10:14:54 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.13 2001/05/06 14:25:42 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -88,13 +88,8 @@ typedef struct xv_driver_s {
   Display         *display;
   int              screen;
   unsigned int     xv_format_rgb, xv_format_yv12, xv_format_yuy2;
-  int              depth;
-  XColor           black;
   XVisualInfo      vinfo;
-  Window           window;
-  XClassHint      *xclasshint;
   GC               gc;
-  int              CompletionType;
   unsigned int     xv_port;
 
   xv_property_t    props[VO_NUM_PROPERTIES];
@@ -118,39 +113,7 @@ typedef struct xv_driver_s {
   int              fullscreen_height;
   int              in_fullscreen;    /* is the window in fullscreen mode? */
 
-  Cursor           cursor[2];        /* Cursor pointers */
-
 } xv_driver_t;
-
-/*
- * Cursors creation
- */
-static unsigned char bm_no_data[] = { 0,0,0,0, 0,0,0,0 };
-static void xv_create_cursors (xv_driver_t *this) {
-  Pixmap bm_no;
-
-  bm_no = XCreateBitmapFromData(this->display, this->window, bm_no_data, 8, 8);
-  this->cursor[0] = XCreatePixmapCursor(this->display, bm_no, bm_no,
-					&this->black, &this->black, 0, 0);
-  this->cursor[1] = XCreateFontCursor(this->display,XC_left_ptr);
-}
-
-/* Hide/Show cursor */
-static void xv_display_cursor(vo_driver_t *this_gen, int value) {
-  xv_driver_t *this = (xv_driver_t *) this_gen;
-  
-  XDefineCursor(this->display, this->window, this->cursor[value]);
-}
-
-/* Hide/Show output window */
-static void xv_display_window(vo_driver_t *this_gen, int value) {
-  xv_driver_t *this = (xv_driver_t *) this_gen;
-
-  if(value == 1)
-    XMapRaised (this->display, this->window);
-  else
-    XUnmapWindow (this->display, this->window);
-}
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
@@ -370,192 +333,6 @@ static void xv_calc_format (xv_driver_t *this, int width, int height, int ratio_
   }
 }
 
-typedef struct
-{
-  int          flags;
-  int          functions;
-  int          decorations;
-  int          input_mode;
-  int          status;
-} MWMHints;
-
-#define MWM_HINTS_DECORATIONS   (1L << 1)
-#define PROP_MWM_HINTS_ELEMENTS 5
-
-static void xv_setup_window (xv_driver_t *this) {
-
-  static char          *window_title = "xine Xv video output";
-  XSizeHints            hint;
-  XWMHints             *wm_hint;
-  XSetWindowAttributes  attr;
-  Atom                  prop;
-  Atom                  wm_delete_window;
-  MWMHints              mwmhints;
-  XEvent                xev;
-  XGCValues             xgcv;
-
-  XLockDisplay (this->display);
-
-  if (this->props[VO_PROP_FULLSCREEN].value) {
-
-    if (this->window) {
-
-      if (this->in_fullscreen) {
-	XUnlockDisplay (this->display);
-	return;
-      }
-
-      XDestroyWindow(this->display, this->window);
-      this->window = 0;
-
-    }
-
-    this->in_fullscreen = 1;
-
-    /*
-     * open fullscreen window
-     */
-
-    attr.background_pixel  = this->black.pixel;
-
-    this->window = XCreateWindow (this->display, RootWindow (this->display, this->screen), 
-				  0, 0, this->fullscreen_width, this->fullscreen_height, 
-				  0, this->depth, CopyFromParent, this->vinfo.visual,
-				  CWBackPixel, &attr);
-
-    if (this->xclasshint != NULL)
-      XSetClassHint(this->display, this->window, this->xclasshint);
-
-    /*
-     * wm, no borders please
-     */
-    
-    prop = XInternAtom(this->display, "_MOTIF_WM_HINTS", False);
-    mwmhints.flags = MWM_HINTS_DECORATIONS;
-    mwmhints.decorations = 0;
-    XChangeProperty(this->display, this->window, prop, prop, 32,
-		    PropModeReplace, (unsigned char *) &mwmhints,
-		    PROP_MWM_HINTS_ELEMENTS);
-    XSetTransientForHint(this->display, this->window, None);
-    XRaiseWindow(this->display, this->window);
-
-  } else {
-
-    if (this->window) {
-
-      if (this->in_fullscreen) {
-	XDestroyWindow(this->display, this->window);
-	this->window = 0;
-      } else {
-	
-	XResizeWindow (this->display, this->window, 
-		       this->output_width, this->output_height);
-
-	XUnlockDisplay (this->display);
-	
-	return;
-	
-      }
-    }
-
-    this->in_fullscreen = 0;
-
-    hint.x = 0;
-    hint.y = 0;
-    hint.width  = this->output_width;
-    hint.height = this->output_height;
-    hint.flags  = PPosition | PSize;
-
-    /*
-    theCmap   = XCreateColormap(gDisplay, RootWindow(gDisplay,gXv.screen), 
-    gXv.vinfo.visual, AllocNone); */
-  
-    attr.background_pixel  = this->black.pixel;
-    attr.border_pixel      = 1;
-    /* attr.colormap          = theCmap; */
-    
-
-    this->window = XCreateWindow(this->display, RootWindow(this->display, this->screen),
-				 hint.x, hint.y, hint.width, hint.height, 4, 
-				 this->depth, CopyFromParent, this->vinfo.visual,
-				 CWBackPixel | CWBorderPixel , &attr);
-
-    if (this->xclasshint != NULL)
-      XSetClassHint(this->display, this->window, this->xclasshint);
-
-    
-    /* Tell other applications about this window */
-
-    XSetStandardProperties(this->display, this->window, window_title, window_title, 
-			   None, NULL, 0, &hint);
-
-  }
-  
-  XSelectInput(this->display, this->window, StructureNotifyMask | ExposureMask | KeyPressMask | ButtonPressMask);
-
-  wm_hint = XAllocWMHints();
-  if (wm_hint != NULL) {
-    wm_hint->input = True;
-    wm_hint->initial_state = NormalState;
-    wm_hint->flags = InputHint | StateHint;
-    XSetWMHints(this->display, this->window, wm_hint);
-    XFree(wm_hint);
-  }
-
-  /* FIXME
-  wm_delete_window = XInternAtom(this->display, "WM_DELETE_WINDOW", False);
-  XSetWMProtocols(this->display, this->window, &wm_delete_window, 1);
-  */
-
-  /* Map window. */
-  
-  XMapRaised(this->display, this->window);
-  
-  /* Wait for map. */
-
-  do  {
-    XMaskEvent(this->display, 
-	       StructureNotifyMask, 
-	       &xev) ;
-  } while (xev.type != MapNotify || xev.xmap.event != this->window);
-
-  XFlush(this->display);
-  XSync(this->display, False);
-  
-  this->gc = XCreateGC(this->display, this->window, 0L, &xgcv);
-
-  if (this->in_fullscreen) {
-    XSetInputFocus (this->display, this->window, RevertToNone, CurrentTime);
-    XMoveWindow (this->display, this->window, 0, 0);
-  }
-
-  XUnlockDisplay (this->display);
-
-  /* drag and drop FIXME: move this to the GUI */
-
-  /* 
-  if(!gXv.xdnd)
-    gXv.xdnd = (DND_struct_t *) malloc(sizeof(DND_struct_t));
-  
-  gui_init_dnd(gXv.xdnd);
-  gui_dnd_set_callback (gXv.xdnd, gui_dndcallback);
-  gui_make_window_dnd_aware (gXv.xdnd, gXv.window);
-  */
-
-  /*
-   * make cursor disappear
-   */
-
-  /* FIXME: implement in a clean way
-
-    Cursor not already created.
-  if(gXv.current_cursor == -1) {
-    create_cursor_xv(theCmap);
-    gXv.current_cursor = SHOW_CURSOR;
-  };
-  */
-}
-
 static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
@@ -613,16 +390,7 @@ static int xv_set_property (vo_driver_t *this_gen,
 
     return this->props[property].value;
   } else {
-    /* FIXME: implement these props */
     switch (property) {
-    case VO_PROP_WINDOW_VISIBLE:
-      this->props[property].value = value;
-      xv_display_window(this_gen, this->props[property].value);
-      break;
-    case VO_PROP_CURSOR_VISIBLE:
-      this->props[property].value = value;
-      xv_display_cursor(this_gen, this->props[property].value);
-      break;
     case VO_PROP_FULLSCREEN:
       this->props[property].value = value;
       xv_setup_window(this);
@@ -650,21 +418,8 @@ static void xv_get_property_min_max (vo_driver_t *this_gen,
   *max = this->props[property].max;
 }
 
-static void xv_handle_event (vo_driver_t *this_gen, void *event_gen) {
-
-  /* FIXME: implement */
-
-}
-
-static void* xv_get_window (vo_driver_t *this_gen) {
-  xv_driver_t *this = (xv_driver_t *) this_gen;
-
-  return &this->window;
-}
-
-static void xv_set_logo_mode (vo_driver_t *this_gen, int show_logo) {
-
-  /* FIXME: implement */
+static void xv_gui_data_exchange (vo_driver_t *this, int data_type, void *data) {
+  /* FIXME : implement */
 }
 
 static void xv_exit (vo_driver_t *this_gen) {
@@ -724,7 +479,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   int                   nattr;
   double                res_h, res_v;
   XColor                ignored;
-  XWindowAttributes     attribs;
   int                   dummy_a, dummy_b;
 #ifdef HAVE_XINERAMA
   int                   screens;
@@ -804,30 +558,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   this->vo_driver.get_property         = xv_get_property;
   this->vo_driver.set_property         = xv_set_property;
   this->vo_driver.get_property_min_max = xv_get_property_min_max;
-  this->vo_driver.handle_event         = xv_handle_event;
-  this->vo_driver.get_window           = xv_get_window;
-  this->vo_driver.set_logo_mode        = xv_set_logo_mode;
+  this->vo_driver.gui_data_exchange    = xv_data_exchange;
   this->vo_driver.exit                 = xv_exit;
-
-  if (XAllocNamedColor (display, DefaultColormap (display, this->screen), 
-			"black", &this->black, &ignored) == 0) {
-    fprintf (stderr, "video_out_xv: cannot allocate color black\n");
-    exit(1);
-  }
-
-  XGetWindowAttributes(display, DefaultRootWindow(display), &attribs);
-
-  this->depth = attribs.depth;
-  
-  if (this->depth != 15 && this->depth != 16 && this->depth != 24 && this->depth != 32)  {
-    /* The root window may be 8bit but there might still be
-     * visuals with other bit depths. For example this is the 
-     * case on Sun/Solaris machines.
-     */
-    this->depth = 24;
-  }
-
-  XMatchVisualInfo(display, this->screen, this->depth, TrueColor, &this->vinfo);
 
   /*
    * init properties

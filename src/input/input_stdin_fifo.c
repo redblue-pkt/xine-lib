@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.2 2001/05/06 02:37:59 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.3 2001/05/06 14:25:42 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,7 +72,8 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
 
   } 
   else {
-    filename = (char *) mrl;
+    /* filename = (char *) mrl; */
+    return 0;
   }
   
   xprintf (VERBOSE|INPUT, "Opening >%s<\n",filename);
