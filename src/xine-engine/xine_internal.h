@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.64 2001/12/13 00:52:01 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.65 2001/12/13 22:47:14 miguelfreitas Exp $
  *
  */
 
@@ -195,6 +195,7 @@ struct xine_s {
   
   osd_renderer_t            *osd_renderer;
   osd_object_t              *osd;
+  int                        osd_display;
 
   ao_instance_t             *audio_out;
   fifo_buffer_t             *audio_fifo;

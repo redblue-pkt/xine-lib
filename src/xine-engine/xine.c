@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.90 2001/12/13 18:32:16 miguelfreitas Exp $
+ * $Id: xine.c,v 1.91 2001/12/13 22:47:14 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -95,20 +95,30 @@ static void xine_internal_osd (xine_t *this, char *str,
   uint32_t seconds;
   char tstr[256];
 
-  this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
-  this->osd_renderer->render_text (this->osd, 0, 5, str);
-
-  seconds = this->cur_input_time;
-
-  sprintf (tstr, "%02d:%02d:%02d", 
-	   seconds / (60 * 60),
-	   (seconds % (60*60)) / 60,
-	   seconds % 60);
+  if( this->osd_display ) {
+   
+    this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
+    this->osd_renderer->render_text (this->osd, 0, 5, str);
   
-  this->osd_renderer->render_text (this->osd, 70, 5, tstr);
+    seconds = this->cur_input_time;
+  
+    sprintf (tstr, "%02d:%02d:%02d", 
+             seconds / (60 * 60),
+             (seconds % (60*60)) / 60,
+             seconds % 60);
+    
+    this->osd_renderer->render_text (this->osd, 70, 5, tstr);
+  
+    this->osd_renderer->show (this->osd, start_time);
+    this->osd_renderer->hide (this->osd, start_time+duration);
+  }
+}
 
-  this->osd_renderer->show (this->osd, start_time);
-  this->osd_renderer->hide (this->osd, start_time+duration);
+static void update_osd_display(void *this_gen, cfg_entry_t *entry)
+{
+  xine_t *this = (xine_t *) this_gen;
+  
+  this->osd_display = entry->num_value;
 }
 
 void xine_stop_internal (xine_t *this) {
@@ -485,6 +495,10 @@ xine_t *xine_init (vo_driver_t *vo,
   this->osd_renderer->set_text_palette (this->osd, TEXTPALETTE_WHITE_BLACK_TRANSPARENT );
   this->osd_renderer->set_position (this->osd, 10,10);
 
+  this->osd_display = config->register_bool(config, "misc.osd_display", 1,
+                                            "Show status on play, pause, ff, ...", NULL,
+                                            update_osd_display, this );
+  
   if(ao) 
     this->audio_out = ao_new_instance (ao, this->metronom, config);
 
