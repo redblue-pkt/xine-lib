@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.36 2002/08/24 01:23:45 guenter Exp $
+ * $Id: demux_ogg.c,v 1.37 2002/08/28 20:56:42 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -121,6 +121,7 @@ typedef struct demux_ogg_s {
   ogg_stream_state      oss[MAX_STREAMS];
   uint32_t              buf_types[MAX_STREAMS];
   int                   samplerate[MAX_STREAMS];
+  int                   preview_buffers[MAX_STREAMS];
   int                   num_streams;
 
   int                   num_audio_streams;
@@ -326,7 +327,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
   char      *buffer;
   long       bytes;
 
-  int        num_preview_buffers = 10;
+  int        done = 0;
 
   ogg_packet op;
   
@@ -334,7 +335,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
     printf ("demux_ogg: detecting stream types...\n");
 #endif
 
-  while (num_preview_buffers>0) {
+  while (!done) {
 
     int ret = ogg_sync_pageout(&this->oy,&this->og);
   
@@ -392,6 +393,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	    this->buf_types[stream_num] = BUF_AUDIO_VORBIS
 	      +this->num_audio_streams++;
+
+	    this->preview_buffers[stream_num] = 3;
 	    
 	    xine_log (this->xine, XINE_LOG_FORMAT,
 		      _("ogg: vorbis audio stream detected\n"));
@@ -413,6 +416,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      
 	    } else {
 	      this->samplerate[stream_num] = 44100;
+	      this->preview_buffers[stream_num] = 0;
 	      xine_log (this->xine, XINE_LOG_FORMAT,
 			_("ogg: vorbis audio track indicated but no vorbis stream header found.\n"));
 	    }
@@ -434,6 +438,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    channel = this->num_video_streams++;
 
 	    this->buf_types[stream_num] = fourcc_to_buf_video (oggh->subtype) | channel;
+	    this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 
 #ifdef LOG
 	    printf ("demux_ogg: subtype          %.4s\n", &oggh->subtype);
@@ -536,6 +541,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      buf->decoder_info[3] = oggh->hubba.audio.channels;
 	      this->audio_fifo->put (this->audio_fifo, buf);
 	      
+	      this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 	      this->samplerate[stream_num] = oggh->samples_per_unit;
 	    
 	      this->avg_bitrate += oggh->hubba.audio.avgbytespersec*8;
@@ -549,6 +555,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    printf ("demux_ogg: older direct show filter-generated stream header detected.\n");
 	    hex_dump (op.packet, op.bytes);
 #endif
+	    this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 
 	    if ( (*(int32_t*)(op.packet+96)==0x05589f80) && (op.bytes>=184)) {
 
@@ -664,9 +671,25 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	send_ogg_buf (this, &op, stream_num, BUF_FLAG_PREVIEW);
 
-	if (!ogg_page_bos(&this->og)) 
-	  num_preview_buffers --;
+	if (!ogg_page_bos(&this->og)) {
 
+	  int i;
+
+	  /* are we finished ? */
+	  this->preview_buffers[stream_num] --;
+	  
+	  done = 1;
+
+	  for (i=0; i<this->num_streams; i++) {
+	    if (this->preview_buffers[i]>0)
+	      done = 0;
+
+#ifdef LOG
+	    printf ("demux_ogg: %d preview buffers left to send from stream %d\n",
+		    this->preview_buffers[i], i);
+#endif
+	  }
+	}
       }
     }
   }
