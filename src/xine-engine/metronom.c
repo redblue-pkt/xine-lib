@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.107 2002/12/23 00:51:31 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.108 2002/12/23 10:03:50 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -186,7 +186,9 @@ static scr_plugin_t* unixscr_init () {
   pthread_mutex_init (&this->lock, NULL);
   
   unixscr_set_speed (&this->scr, XINE_SPEED_PAUSE);
+#ifdef LOG
   printf("xine-scr_init: complete\n");
+#endif
 
   return &this->scr;
 }
@@ -202,7 +204,9 @@ static scr_plugin_t* unixscr_init () {
 static void metronom_start_clock (metronom_clock_t *this, int64_t pts) {
   scr_plugin_t** scr;
 
+#ifdef LOG
   printf ("metronom: start_clock (at %lld)\n", pts);
+#endif
 
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
     if (*scr) (*scr)->start(*scr, pts);
@@ -303,12 +307,12 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
   }
   
   if ( this->video_vpts < this->clock->get_current_time(this->clock) ||
-       type == DISC_STREAMSTART ) {
+       type == DISC_STREAMSTART || type == DISC_STREAMSEEK ) {
     this->video_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
     printf ("metronom: video vpts adjusted with prebuffer to %lld\n", this->video_vpts);
   }
   if ( this->audio_vpts < this->clock->get_current_time(this->clock) ||
-       type == DISC_STREAMSTART ) {
+       type == DISC_STREAMSTART || type == DISC_STREAMSEEK ) {
     this->audio_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
     printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", this->audio_vpts);
   }
