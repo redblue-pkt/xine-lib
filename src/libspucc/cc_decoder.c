@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.10 2002/03/20 18:42:38 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.11 2002/03/20 18:50:37 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -250,7 +250,7 @@ struct cc_renderer_s {
      that as the vpts of the hide event upon an osd free.
   */
 #warning "FIXME: bug in OSD or SPU?"
-  int display_vpts;           /* vpts of currently displayed caption */
+  int64_t display_vpts;       /* vpts of currently displayed caption */
 
   /* this variable is an even worse hack: in some rare cases, the pts
      information on the DVD gets out of sync with the caption information.
@@ -260,7 +260,7 @@ struct cc_renderer_s {
      the next show event's vpts  to be at least equal to the hide event's 
      vpts.
   */
-  int last_hide_vpts;
+  int64_t last_hide_vpts;
      
   metronom_t *metronom;       /* the active xine metronom */
 
@@ -766,11 +766,11 @@ static void ccmem_exit(cc_memory_t *this)
 
 /*----------------- cc_renderer_t methods -------------------------------*/
 
-static uint32_t cc_renderer_calc_vpts(cc_renderer_t *this, int64_t pts,
+static int64_t cc_renderer_calc_vpts(cc_renderer_t *this, int64_t pts,
 				      uint32_t ntsc_frame_offset)
 {
   metronom_t *metronom = this->metronom;
-  uint32_t vpts = metronom->got_spu_packet(metronom, pts, 0);
+  int64_t vpts = metronom->got_spu_packet(metronom, pts, 0);
   return vpts + ntsc_frame_offset * NTSC_FRAME_DURATION;
 }
 
@@ -988,7 +988,7 @@ static void cc_show_displayed(cc_decoder_t *this)
 #endif
 
   if (cc_onscreen_displayable(this)) {
-    uint32_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
+    int64_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
 					  this->f_offset);
 #ifdef LOG_DEBUG
     printf("cc_decoder: cc_show_displayed: showing caption %u at vpts %u\n", this->capid, vpts);
