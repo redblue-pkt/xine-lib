@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.69 2003/11/12 19:58:19 f1rmb Exp $
+ * $Id: input_http.c,v 1.70 2003/11/14 23:00:41 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -259,8 +259,7 @@ static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
   return 0;
 }
 
-static int http_plugin_basicauth (const char *user, const char *password,
-				  char* dest, int len) {
+static int http_plugin_basicauth (const char *user, const char *password, char* dest, int len) {
   static char *enctable="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
   char        *tmp;
   char        *sptr;
@@ -857,8 +856,8 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
         }
 	
 	if (!strncasecmp(this->buf, "Location: ", 10)) {
-	  char *href = strdup (this->buf + 10);
-
+	  char *href = (this->buf + 10);
+	  
 	  lprintf ("input_http: trying to open target of redirection: >%s<\n", href);
 
           strncpy (this->mrlbuf, href, BUFSIZE);
