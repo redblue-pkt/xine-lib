@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.9 2002/01/06 18:27:47 jcdutton Exp $
+ * $Id: spu.h,v 1.10 2002/03/25 13:57:25 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -62,7 +62,7 @@ typedef struct {
 
   u_int    cmd_offs;
 
-  u_int PTS;        /* Base PTS of this sequence */
+  int64_t pts;        /* Base PTS of this sequence */
   int finished;     /* Has this sequence been finished? */
 } spu_seq_t;
 
@@ -75,7 +75,7 @@ typedef struct {
   int b_left,   o_left;
   int b_right,  o_right;
 
-  u_int next_pts;   /* pts of next sub-sequence */
+  int64_t next_pts;   /* pts of next sub-sequence */
   int modified;     /* Was the sub-picture modified? */
   int visible;      /* Must the sub-picture be shown? */
   int menu;         /* This overlay is a menu */
@@ -87,21 +87,13 @@ typedef struct {
   uint32_t clut[16];
 } spu_state_t;
 
-int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len);
-int spu_next_event (spu_state_t *state, spu_seq_t* seq, int pts);
-void spu_do_commands (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
-void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
-void spu_discover_clut (spu_state_t *state, vo_overlay_t *ovl);
-void spu_update_menu (spu_state_t *state, vo_overlay_t *ovl);
-
-
 typedef struct spudec_stream_state_s {
   spu_seq_t        ra_seq;
   uint32_t         ra_complete;
   uint32_t         stream_filter;
   spu_state_t      state;
-  uint32_t         vpts;
-  uint32_t         pts;
+  int64_t          vpts;
+  int64_t          pts;
   int32_t          overlay_handle;
 } spudec_stream_state_t;
 
@@ -109,19 +101,14 @@ typedef struct spudec_decoder_s {
   spu_decoder_t    spu_decoder;
 
   xine_t          *xine;
-/*  spu_seq_t	   seq_list[NUM_SEQ_BUFFERS]; */
-  spu_seq_t       *cur_seq;
   spudec_stream_state_t spu_stream_state[MAX_STREAMS];
   
   video_overlay_event_t      event;
   video_overlay_object_t     object;  
   int32_t          menu_handle;
   
-  spu_seq_t       *ra_seq;
-  int              ra_complete;
-
-  uint32_t         ovl_pts;
-  uint32_t         buf_pts;
+  int64_t          ovl_pts;
+  int64_t          buf_pts;
   spu_state_t      state;
 
   vo_instance_t   *vo_out;
@@ -132,5 +119,16 @@ typedef struct spudec_decoder_s {
   uint32_t         buttonN;  /* Current button number for highlights */
 } spudec_decoder_t;
 
+int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len);
+int spu_next_event (spu_state_t *state, spu_seq_t* seq, int64_t pts);
+void spu_do_commands (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
+void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
+void spu_discover_clut (spu_state_t *state, vo_overlay_t *ovl);
+void spu_update_menu (spu_state_t *state, vo_overlay_t *ovl);
+void spudec_reset (spudec_decoder_t *this);
+void spudec_print_overlay( vo_overlay_t *overlay );
+void spudec_copy_nav_to_spu( spudec_decoder_t *this );
+void spu_process( spudec_decoder_t *this, uint32_t stream_id);
+void spudec_decode_nav( spudec_decoder_t *this, buf_element_t *buf);
 
 #endif

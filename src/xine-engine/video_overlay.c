@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.17 2002/03/21 16:21:03 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.18 2002/03/25 13:57:25 jcdutton Exp $
  *
  */
 
@@ -445,6 +445,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
           /* If rle is not empty, free it first */
           if(overlay->rle) {
             free (overlay->rle);
+            overlay->rle=NULL;
           }
 #ifdef LOG_DEBUG
 	  printf("video_overlay.c:Menu SPU area is (%u,%u)-(%u,%u), display = 1\n",
