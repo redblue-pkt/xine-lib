@@ -136,10 +136,18 @@ inline void dprintf(const char* fmt,...) {}
 
 #else
 
+#if __GNUC__
 #ifdef DEBUG
 #define dprintf(fmt,args...) printf(fmt, ## args)
 #else
 #define dprintf(fmt,args...)
+#endif
+#else
+#ifdef DEBUG
+#define dprintf(...) printf(__VA_ARGS__)
+#else
+#define dprintf(...)
+#endif
 #endif
 
 #endif /* !CONFIG_WIN32 */
