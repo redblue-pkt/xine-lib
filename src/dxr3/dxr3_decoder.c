@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.14 2001/08/25 21:21:01 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.15 2001/09/23 08:11:11 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -182,7 +182,8 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 
 static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 {
-	return (buf_type & 0xFFFF0000) == BUF_VIDEO_MPEG ;
+	buf_type &= 0xFFFF0000;
+	return (buf_type == BUF_VIDEO_MPEG) || (buf_type == BUF_VIDEO_FILL);
 }
 
 static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
@@ -218,6 +219,9 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
+
+	/* Ignore videofill packets */
+	if (buf->type == BUF_VIDEO_FILL) return;
 
 	/* The dxr3 does not need the preview-data */
 	if (buf->decoder_info[0] == 0) return;
