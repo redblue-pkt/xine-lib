@@ -1,8 +1,10 @@
 xine-lib (0.9.1-1) unstable; urgency=low
 
   * new upstream release (mostly bugfix release, new deinterlacer)
+  * re-added ALSA (0.5.x) plugin
+  * now ships with aRts audio plugin
 
- -- Siggi Langauf <siggi@debian.org>  Tue, 18 Sep 2001 01:33:39 +0200
+ -- Siggi Langauf <siggi@debian.org>  Tue, 18 Sep 2001 11:13:34 +0200
 
 xine-lib (0.9.0-2) unstable; urgency=low
 
