@@ -1,5 +1,7 @@
 xine (0.9.5) unstable; urgency=low
 
+  * catch segfaults when loading plugins
+  * test OS support for SSE instructions
   * new win32 codecs supported (including Windows Media Video 7/8)
   * libwin32dll bugfixes and DirectShow support
   * demux_asf reworked to handle asf oddities
