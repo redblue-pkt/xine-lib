@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.64 2004/01/13 20:44:22 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.65 2004/02/05 00:01:39 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -342,7 +342,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
         xine_hexdump ((uint8_t *) transform_in, 6 * 4);
 
         printf ("libreal: chunk_table:\n");
-        xine_hexdump ((uint8_t *) buf->decoder_info_ptr[2], buf->size);
+        xine_hexdump ((uint8_t *) buf->decoder_info_ptr[2], 
+                      2*(buf->decoder_info[2]+1)*sizeof(uint32_t));
 #endif
 
         result = this->rvyuv_transform (this->chunk_buffer,
