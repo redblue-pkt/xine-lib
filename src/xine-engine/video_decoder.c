@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.22 2001/06/14 10:48:24 guenter Exp $
+ * $Id: video_decoder.c,v 1.23 2001/06/16 14:34:49 guenter Exp $
  *
  */
 
@@ -139,15 +139,6 @@ void video_decoder_init (xine_t *this) {
   this->video_fifo = fifo_buffer_new (1500, 4096);
 
   pthread_create (&this->video_thread, NULL, video_decoder_loop, this) ;
-}
-
-void video_decoder_stop (xine_t *this) {
-  this->video_fifo->clear(this->video_fifo);
-
-  if (this->cur_video_decoder_plugin) {
-    this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
-    this->cur_video_decoder_plugin = NULL;
-  }
 }
 
 void video_decoder_shutdown (xine_t *this) {

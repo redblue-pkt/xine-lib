@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.23 2001/06/14 09:19:44 guenter Exp $
+ * $Id: xine.c,v 1.24 2001/06/16 14:34:49 guenter Exp $
  *
  * top-level xine functions
  *
@@ -67,9 +67,6 @@ void xine_notify_stream_finished (xine_t *this) {
   
 }
 
-/*
- *
- */
 void xine_stop (xine_t *this) {
 
   if (!this->cur_input_plugin) 
@@ -88,9 +85,6 @@ void xine_stop (xine_t *this) {
     this->cur_input_plugin->close(this->cur_input_plugin);
     this->cur_input_plugin = NULL;
   }
-
-  video_decoder_stop (this);
-  audio_decoder_stop (this);
 
   this->spu_fifo->clear(this->spu_fifo);
 
@@ -167,9 +161,6 @@ static int find_demuxer(xine_t *this, const char *MRL) {
   return 0;
 }
 
-/*
- *
- */
 static void xine_play_internal (xine_t *this, char *MRL, 
 				int spos, off_t pos) {
 
@@ -273,9 +264,6 @@ static void xine_play_internal (xine_t *this, char *MRL,
   printf ("xine: play_internal done.\n");
 }
 
-/*
- *
- */
 void xine_play (xine_t *this, char *MRL, int spos) {
 
   pthread_mutex_lock (&this->xine_lock);
@@ -286,9 +274,6 @@ void xine_play (xine_t *this, char *MRL, int spos) {
   pthread_mutex_unlock (&this->xine_lock);
 }
 
-/*
- *
- */
 int xine_eject (xine_t *this) {
   
   if(this->cur_input_plugin == NULL) 
@@ -308,9 +293,6 @@ int xine_eject (xine_t *this) {
   return 0;
 }
 
-/*
- *
- */
 void xine_exit (xine_t *this) {
 
   /*
@@ -344,9 +326,6 @@ void xine_exit (xine_t *this) {
   printf ("xine_exit: bye!\n");
 }
 
-/*
- *
- */
 void xine_pause (xine_t *this) {
 
   pthread_mutex_lock (&this->xine_lock);
@@ -386,9 +365,6 @@ void xine_pause (xine_t *this) {
   pthread_mutex_unlock (&this->xine_lock);
 }
 
-/*
- *
- */
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
 		   gui_status_callback_func_t gui_status_callback,
@@ -458,17 +434,11 @@ xine_t *xine_init (vo_driver_t *vo,
   return this;
 }
 
-/*
- *
- */
 int xine_get_audio_channel (xine_t *this) {
 
   return this->audio_channel;
 }
 
-/*
- *
- */
 void xine_select_audio_channel (xine_t *this, int channel) {
 
   pthread_mutex_lock (&this->xine_lock);
@@ -480,17 +450,11 @@ void xine_select_audio_channel (xine_t *this, int channel) {
   pthread_mutex_unlock (&this->xine_lock);
 }
 
-/*
- *
- */
 int xine_get_spu_channel (xine_t *this) {
 
   return this->spu_channel;
 }
 
-/*
- *
- */
 void xine_select_spu_channel (xine_t *this, int channel) {
 
   pthread_mutex_lock (&this->xine_lock);
@@ -500,9 +464,6 @@ void xine_select_spu_channel (xine_t *this, int channel) {
   pthread_mutex_unlock (&this->xine_lock);
 }
 
-/*
- *
- */
 int xine_get_current_position (xine_t *this) {
 
   off_t len;
@@ -526,9 +487,6 @@ int xine_get_current_position (xine_t *this) {
   return (int) share;
 }
 
-/*
- *
- */
 int xine_get_status(xine_t *this) {
 
   return this->status;

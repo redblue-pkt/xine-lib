@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.17 2001/06/14 10:48:24 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.18 2001/06/16 14:34:48 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -153,7 +153,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
     if(this->audio_fifo)
       buf = this->input->read_block (this->input, this->audio_fifo, nLen-4);
     else {
-      buf = this->input->read (this->input, this->dummy_space, nLen);
+      this->input->read (this->input, this->dummy_space, nLen);
       return;
     }
     
@@ -375,7 +375,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
     if(this->audio_fifo) {
       buf = this->input->read_block (this->input, this->audio_fifo, nLen);
     } else {
-      buf = this->input->read (this->input, this->dummy_space, nLen);
+      this->input->read (this->input, this->dummy_space, nLen);
       return;
     }
 
@@ -543,10 +543,25 @@ static void *demux_mpeg_loop (void *this_gen) {
 static void demux_mpeg_stop (demux_plugin_t *this_gen) {
   void *p;
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
+  buf_element_t *buf;
 
   this->status = DEMUX_FINISHED;
 
   pthread_join (this->thread, &p);
+
+  this->video_fifo->clear(this->video_fifo);
+  this->audio_fifo->clear(this->audio_fifo);
+
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type    = BUF_CONTROL_END;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_END;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+  
 }
 
 static int demux_mpeg_get_status (demux_plugin_t *this_gen) {

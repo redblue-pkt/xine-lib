@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.14 2001/06/10 13:59:33 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.15 2001/06/16 14:34:48 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -363,10 +363,25 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   void *p;
+  buf_element_t *buf;
 
   this->status = DEMUX_FINISHED;
 
   pthread_join (this->thread, &p);
+
+  this->video_fifo->clear(this->video_fifo);
+  this->audio_fifo->clear(this->audio_fifo);
+
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type    = BUF_CONTROL_END;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_END;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+  
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {

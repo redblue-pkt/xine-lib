@@ -82,6 +82,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     if (mpeg2dec->is_sequence_needed && (code != 0xb3))
 	return 0;
 
+    if (mpeg2dec->is_frame_needed && (code != 0x00))
+	return 0;
+
     stats_header (code, buffer);
 
     picture = mpeg2dec->picture;
@@ -93,7 +96,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
 
-	    picture->current_frame->bFrameBad = mpeg2dec->drop_frame;
+	    picture->current_frame->bFrameBad |= mpeg2dec->drop_frame;
 
 	    if (picture->picture_coding_type == B_TYPE) {
 	      if (picture->mpeg1)
@@ -119,6 +122,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    fprintf (stderr, "bad picture header\n");
 	    exit (1);
 	}
+
+	mpeg2dec->is_frame_needed=0;
 
 	if (!picture->second_field) {
 	  /* find out if we want to skip this frame */
@@ -229,6 +234,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 			picture->backward_reference_frame;
 		    picture->backward_reference_frame = picture->current_frame;
 		}
+		picture->current_frame->bFrameBad = 0;
 		picture->current_frame->PTS = mpeg2dec->pts;
 		mpeg2dec->pts = 0;
 
@@ -301,6 +307,8 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
       mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
       mpeg2dec->code = 0xb4;
       mpeg2dec->seek_mode = 0;
+      mpeg2dec->shift = 0xffffff00;
+      mpeg2dec->is_frame_needed = 1;
     }
 
     while (current != end) {
@@ -310,6 +318,7 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
 	    return ret;
 	ret += parse_chunk (mpeg2dec, code, mpeg2dec->chunk_buffer);
     }
+
     return ret;
 }
 
@@ -318,7 +327,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     static uint8_t finalizer[] = {0,0,1,0xb4};
     picture_t *picture = mpeg2dec->picture;
 
-    mpeg2_decode_data (mpeg2dec, finalizer, finalizer+4, 0);
+    /* mpeg2_decode_data (mpeg2dec, finalizer, finalizer+4, 0); */
 
     if (picture->throwaway_frame) 
       picture->throwaway_frame->free (picture->throwaway_frame);
@@ -356,7 +365,6 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       }
 	  
       if (mpeg2dec->is_sequence_needed) {
-	printf ("libmpeg2: found sequence header! :-)\n");
 
 	mpeg2dec->is_sequence_needed = 0;
 	picture->forward_reference_frame =

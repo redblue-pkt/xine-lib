@@ -32,7 +32,7 @@ typedef struct mpeg2dec_s {
     int is_sequence_needed;
     int frames_to_drop, drop_frame;
     int in_slice;
-    int seek_mode;
+    int seek_mode, is_frame_needed;
 
     /* the maximum chunk size is determined by vbv_buffer_size */
     /* which is 224K for MP@ML streams. */

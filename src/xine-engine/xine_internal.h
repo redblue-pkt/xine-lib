@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.21 2001/06/10 23:10:52 heikos Exp $
+ * $Id: xine_internal.h,v 1.22 2001/06/16 14:34:49 guenter Exp $
  *
  */
 
@@ -289,8 +289,6 @@ void xine_notify_stream_finished (xine_t *this);
 
 void video_decoder_init (xine_t *this);
 
-void video_decoder_stop (xine_t *this);
-
 /*
  * quit video thread
  */
@@ -303,8 +301,6 @@ void video_decoder_shutdown (xine_t *this);
  */
 
 void audio_decoder_init (xine_t *this);
-
-void audio_decoder_stop (xine_t *this);
 
 /*
  * quit audio thread

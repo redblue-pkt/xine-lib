@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.17 2001/06/09 19:05:59 guenter Exp $
+ * $Id: demux_avi.c,v 1.18 2001/06/16 14:34:48 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -845,8 +845,9 @@ static void *demux_avi_loop (void *this_gen) {
 }
 
 static void demux_avi_stop (demux_plugin_t *this_gen) {
-  void        *p;
-  demux_avi_t *this = (demux_avi_t *) this_gen;
+  void          *p;
+  demux_avi_t   *this = (demux_avi_t *) this_gen;
+  buf_element_t *buf;
 
   this->status = DEMUX_FINISHED;
   
@@ -854,6 +855,21 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
 
   AVI_close (this->avi);
   this->avi = NULL;
+
+
+  this->video_fifo->clear(this->video_fifo);
+  this->audio_fifo->clear(this->audio_fifo);
+
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type    = BUF_CONTROL_END;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_END;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+  
 }
 
 static void demux_avi_close (demux_plugin_t *this_gen) {
