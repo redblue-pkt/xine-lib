@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.100 2003/01/13 23:02:51 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.101 2003/01/30 20:40:42 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -76,6 +76,7 @@
 /*
 #define LOG
 */
+#define LOG_RESAMPLE_SYNC
 
 #define NUM_AUDIO_BUFFERS       32
 #define AUDIO_BUF_SIZE       32768
@@ -108,6 +109,30 @@
 #define SYNC_BUF_INTERVAL   NUM_AUDIO_BUFFERS / 2
 #define SYNC_GAP_RATE       4
 
+/* Alternative for metronom feedback: fix sound card clock drift
+ * by resampling all audio data, so that the sound card keeps in
+ * sync with the system clock. This may help, if one uses a DXR3/H+
+ * decoder board. Those have their own clock (which serves as xine's
+ * master clock) and can only operate at fixed frame rates (if you
+ * want smooth playback). Resampling then avoids A/V sync problems,
+ * gaps filled with 0-frames and jerky video playback due to different
+ * clock speeds of the sound card and DXR3/H+.
+ */
+#define RESAMPLE_SYNC_WINDOW 50
+#define RESAMPLE_MAX_GAP_DIFF 150
+#define RESAMPLE_REDUCE_GAP_THRESHOLD 200
+
+
+
+typedef struct {
+  double   last_factor;
+  int      window;
+  int      reduce_gap;
+  uint64_t window_duration, last_vpts;
+  int64_t  recent_gap[8], last_avg_gap;
+  int      valid;
+} resample_sync_t;
+
 
 typedef struct {
  
@@ -131,7 +156,13 @@ typedef struct {
   
   ao_format_t     input, output;        /* format conversion done at audio_out.c */
   double          frame_rate_factor;
-  
+  double          output_frame_excess;  /* used to keep track of 'half' frames */
+
+  int             av_sync_method_conf;
+  resample_sync_t resample_sync_info;
+  int             resample_sync_method; /* fix sound card clock drift by resampling */
+  double          resample_sync_factor; /* correct buffer length by this factor
+                                         * to sync audio hardware to (dxr3) clock */
   int             resample_conf;
   int             force_rate;           /* force audio output rate to this value if non-zero */
   int             do_resample;
@@ -406,7 +437,7 @@ static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
 }
 
 static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
-  double          acc_output_frames, output_frame_excess = 0;
+  double          acc_output_frames;
   int             num_output_frames ;
 
   /*
@@ -422,22 +453,25 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
 
   /* calculate number of output frames (after resampling) */
   acc_output_frames = (double) buf->num_frames * this->frame_rate_factor
-    + output_frame_excess;
+    * this->resample_sync_factor + this->output_frame_excess;
 
   /* Truncate to an integer */
   num_output_frames = acc_output_frames;
-
+    
   /* Keep track of the amount truncated */
-  output_frame_excess = acc_output_frames - (double) num_output_frames;
+  this->output_frame_excess = acc_output_frames - (double) num_output_frames;
+  if ( this->output_frame_excess != 0 &&
+       !this->do_resample && !this->resample_sync_method)
+    this->output_frame_excess = 0;
       
 #ifdef LOG
   printf ("audio_out: outputting %d frames\n", num_output_frames);
 #endif
-      
+
   /* convert 8 bit samples as needed */
-  if( this->input.bits == 8 &&
-      (this->do_resample || this->output.bits != 8 ||
-       this->input.mode != this->output.mode ) ) {
+  if ( this->input.bits == 8 &&
+       (this->resample_sync_method || this->do_resample || 
+        this->output.bits != 8 || this->input.mode != this->output.mode) ) {
     ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
 		       buf->num_frames );
     audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
@@ -446,7 +480,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   }
 
   /* check if resampling may be skipped */
-  if ( this->do_resample &&  
+  if ( (this->resample_sync_method || this->do_resample) &&  
        buf->num_frames != num_output_frames ) {
     switch (this->input.mode) {
     case AO_CAP_MODE_MONO:
@@ -518,7 +552,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   }
 
   /* convert back to 8 bits after resampling */
-  if( this->output.bits == 8 && (this->do_resample || 
+  if( this->output.bits == 8 && (this->resample_sync_method || this->do_resample ||
 				 this->input.mode != this->output.mode) ) {
     ensure_buffer_size(this->frame_buf[1], 1*mode_channels(this->output.mode),
 		       buf->num_frames );
@@ -527,6 +561,122 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
     buf = swap_frame_buffers(this);
   }
   return buf;
+}
+
+
+static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
+
+  /* Calculates the drift factor used to resample the audio data to
+   * keep in sync with system (or dxr3) clock.
+   *
+   * To compensate the sound card drift it is necessary to know, how many audio
+   * frames need to be added (or removed) via resampling. This function waits for
+   * RESAMPLE_SYNC_WINDOW audio buffers to be sent to the card and keeps track
+   * of their total duration in vpts. With the measured gap difference between
+   * the reported gap values at the beginning and at the end of this window the
+   * required resampling factor is calculated:
+   *
+   * resample_factor = (duration + gap_difference) / duration
+   *
+   * This factor is then used in prepare_samples() to resample the audio
+   * buffers as needed so we keep in sync with the system (or dxr3) clock.
+   */
+
+  resample_sync_t *info = &this->resample_sync_info;
+  int64_t avg_gap = 0;
+  double factor;
+  int i;
+
+  if (abs(gap) > AO_MAX_GAP) {
+    /* drop buffers or insert 0-frames in audio out loop */
+    info->valid = 0;
+    return -1;
+  }
+
+  if ( ! info->valid) {
+    this->resample_sync_factor = 1.0;
+    info->window = 0;
+    info->reduce_gap = 0;
+    info->last_avg_gap = gap;
+    info->last_factor = 0;
+    info->window_duration = info->last_vpts = 0;
+    info->valid = 1;
+  }
+
+  /* calc average gap (to compensate small errors during measurement) */
+  for (i = 0; i < 7; i++) info->recent_gap[i] = info->recent_gap[i + 1];
+  info->recent_gap[i] = gap;
+  for (i = 0; i < 8; i++) avg_gap += info->recent_gap[i];
+  avg_gap /= 8;
+
+
+  /* gap too big? Change sample rate so that gap converges towards 0. */
+
+  if (abs(avg_gap) > RESAMPLE_REDUCE_GAP_THRESHOLD && !info->reduce_gap) {
+    info->reduce_gap = 1;
+    this->resample_sync_factor = (avg_gap < 0) ? 0.995 : 1.005;
+#ifdef LOG_RESAMPLE_SYNC
+    printf("audio_out: sample rate adjusted to reduce gap: gap=%lld\n", avg_gap);
+#endif
+    return 0;
+
+  } else if (info->reduce_gap && abs(avg_gap) < 50) {
+    info->reduce_gap = 0;
+    info->valid = 0;
+#ifdef LOG_RESAMPLE_SYNC
+    printf("audio_out: gap successfully reduced\n");
+#endif
+    return 0;
+
+  } else if (info->reduce_gap) {
+    /* re-check, because the gap might suddenly change its sign,
+     * also slow down, when getting close to zero (-300<gap<300) */
+    if (abs(avg_gap) > 300)
+      this->resample_sync_factor = (avg_gap < 0) ? 0.995 : 1.005;
+    else
+      this->resample_sync_factor = (avg_gap < 0) ? 0.998 : 1.002;
+    return 0;
+  }
+
+
+  if (info->window > RESAMPLE_SYNC_WINDOW) {
+
+    /* adjust drift correction */
+
+    int64_t gap_diff = avg_gap - info->last_avg_gap;
+    int num_frames;
+
+    if (gap_diff < RESAMPLE_MAX_GAP_DIFF) {
+#ifdef LOG_RESAMPLE_SYNC
+      /* if we are already resampling to a different output rate, consider
+       * this during calculation */
+      num_frames = (this->do_resample) ? (buf->num_frames * this->frame_rate_factor)
+        : buf->num_frames;
+      printf("audio_out: gap=%5lld;  gap_diff=%5lld;  frame_diff=%3.0f;  drift_factor=%f\n",
+             avg_gap, gap_diff, num_frames * info->window * info->last_factor,
+             this->resample_sync_factor);
+#endif
+      /* we want to add factor * num_frames to each buffer */
+      factor = (double)gap_diff / (double)info->window_duration + info->last_factor;
+      info->last_factor = factor;
+      this->resample_sync_factor = 1.0 + factor;
+
+      info->last_avg_gap = avg_gap;
+      info->window_duration = 0;
+      info->window = 0;
+    } else
+      info->valid = 0;
+
+  } else {
+
+    /* collect data for next adjustment */
+    if (info->window > 0)
+      info->window_duration += buf->vpts - info->last_vpts;
+    info->last_vpts = buf->vpts;
+    info->window++;
+  } 
+
+  return 0;
 }
 
 
@@ -660,11 +810,22 @@ static void *ao_loop (void *this_gen) {
 	    hw_vpts, in_buf->vpts, gap);
 #endif
 
+    if (this->resample_sync_method) {
+      /* Correct sound card drift via resampling. If gap is too big to
+       * be corrected this way, we use the fallback: drop/insert frames.
+       * This function only calculates the drift correction factor. The
+       * actual resampling is done by prepare_samples().
+       */
+      resample_rate_adjust(this, gap, in_buf);
+    } else {
+      this->resample_sync_factor = 1.0;
+    }
+
     /*
      * output audio data synced to master clock
      */
     /* pthread_mutex_lock( &this->driver_lock ); */
-    
+
     if (gap < (-1 * AO_MAX_GAP) || !in_buf->num_frames ) {
 
       /* drop package */
@@ -681,11 +842,13 @@ static void *ao_loop (void *this_gen) {
 
       
       /* for small gaps ( tolerance < abs(gap) < AO_MAX_GAP ) 
-       * feedback them into metronom's vpts_offset. 
+       * feedback them into metronom's vpts_offset (when using
+       * metronom feedback for A/V sync)
        */
     } else if ( abs(gap) < AO_MAX_GAP && abs(gap) > this->gap_tolerance &&
-           cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
-           bufs_since_sync >= SYNC_BUF_INTERVAL ) {
+                cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
+                bufs_since_sync >= SYNC_BUF_INTERVAL &&
+                !this->resample_sync_method ) {
 	xine_stream_t *stream;
 #ifdef LOG
         printf ("audio_out: audio_loop: ADJ_VPTS\n"); 
@@ -897,6 +1060,19 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
   this->output.mode           = mode;
   this->output.rate           = output_sample_rate;
   this->output.bits           = bits;
+
+  switch (this->av_sync_method_conf) {
+  case 0:
+    this->resample_sync_method = 0;
+    break;
+  case 1:
+    this->resample_sync_method = 1;
+    break;
+  default:
+    this->resample_sync_method = 0;
+    break;
+  }
+  this->resample_sync_info.valid = 0;
 
   switch (this->resample_conf) {
   case 1: /* force off */
@@ -1242,6 +1418,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
   aos_t           *this;
   int              i;
   static     char *resample_modes[] = {"auto", "off", "on", NULL};
+  static     char *av_sync_methods[] = {"metronom feedback", "resample", NULL};
 
   this = xine_xmalloc (sizeof (aos_t)) ;
 
@@ -1274,6 +1451,13 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
   if (!grab_only)
     this->gap_tolerance          = driver->get_gap_tolerance (this->driver);
 
+  this->av_sync_method_conf = config->register_enum(config, "audio.av_sync_method", 0,
+                                                    av_sync_methods,
+                                                    _("choose method to sync audio and video"),
+                                                    _("'resample' might be better if you use a "
+                                                      "DXR3/H+ card and (analog) audio is "
+                                                      "processed by your sound card"),
+                                                    30, NULL, NULL);
   this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
 					       resample_modes,
 					       _("adjust whether resampling is done or not"),
