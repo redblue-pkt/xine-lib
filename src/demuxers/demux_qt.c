@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.89 2002/09/30 01:16:15 tmmm Exp $
+ * $Id: demux_qt.c,v 1.90 2002/10/01 03:52:53 tmmm Exp $
  *
  */
 
@@ -1600,7 +1600,7 @@ printf ("you %d) audio frame, size %d, pts %lld\n",
         while (remaining_sample_bytes) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
           buf->type = this->qt->audio_type;
-          buf->input_pos = this->qt->frames[i].offset;
+          buf->input_pos = this->qt->frames[i].offset - this->data_start;
           buf->input_length = this->data_size;
           buf->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
@@ -1685,7 +1685,7 @@ static int demux_qt_send_headers (demux_qt_t *this) {
   this->data_size =
     this->qt->frames[this->qt->frame_count - 1].offset +
     this->qt->frames[this->qt->frame_count - 1].size -
-    this->data_size;
+    this->data_start;
 
   this->bih.biWidth = this->qt->video_width;
   this->bih.biHeight = this->qt->video_height;
@@ -1943,10 +1943,11 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   }
 
   /* search back in the table for the nearest keyframe */
-  while (best_index--) {
+  while (best_index) {
     if (this->qt->frames[best_index].keyframe) {
       break;
     }
+    best_index--;
   }
 
   /* not done yet; now that the nearest keyframe has been found, seek
@@ -1954,11 +1955,12 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
    * that of the keyframe */
   this->waiting_for_keyframe = 1;
   keyframe_pts = this->qt->frames[best_index].pts;
-  while (best_index--) {
+  while (best_index) {
     if ((this->qt->frames[best_index].type == MEDIA_AUDIO) &&
         (this->qt->frames[best_index].pts < keyframe_pts)) {
       break;
     }
+    best_index--;
   }
 
   this->current_frame = best_index;
