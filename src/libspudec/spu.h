@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.8 2002/01/05 21:29:37 jcdutton Exp $
+ * $Id: spu.h,v 1.9 2002/01/06 18:27:47 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -129,6 +129,7 @@ typedef struct spudec_decoder_s {
   int              ovl_caps;
   int              output_open;
   pci_t            pci;
+  uint32_t         buttonN;  /* Current button number for highlights */
 } spudec_decoder_t;
 
 

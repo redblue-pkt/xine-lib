@@ -62,6 +62,7 @@ struct spu_button_s {
   uint16_t left, right;
   uint16_t top, bottom;
   uint32_t pts;
+  uint32_t buttonN;
 };
 
 typedef struct spu_cltbl_s spu_cltbl_t;

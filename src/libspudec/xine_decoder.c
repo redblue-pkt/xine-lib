@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.51 2002/01/05 21:29:37 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.52 2002/01/06 18:27:47 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -125,19 +125,22 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
   return;
 } 
 static void spudec_copy_nav_to_spu(spudec_decoder_t *this) {
-  int button = 1;
+  int button;
   btni_t *button_ptr;
   int i;
+
+  button = this->buttonN;
   /* FIXME: Need to communicate with dvdnav vm to get/set 
     "self->vm->state.HL_BTNN_REG" info. 
+    now done via button events from dvdnav.
    */
   if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
     button = this->pci.hli.hl_gi.fosl_btnn ;
   }
   if((button <= 0) || (button > this->pci.hli.hl_gi.btn_ns)) {
-    printf("Unable to select button number %i as it doesn't exist",
+    printf("libspudec:xine_decoder.c:Unable to select button number %i as it doesn't exist. Forcing button 1",
 	      button);
-    return ;
+    button = 1;
   }
   /* FIXME:Only the first grouping of buttons are used at the moment */
   button_ptr = &this->pci.hli.btnit[button-1];
@@ -589,6 +592,9 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
         overlay_event->object.handle = this->menu_handle;
         overlay_event->object.overlay=overlay;
         overlay_event->event_type = EVENT_MENU_BUTTON;
+        printf ("libspudec:xine_decoder.c:spudec_event_listener:buttonN = %u\n",
+          but->buttonN);
+        this->buttonN = but->buttonN;
         overlay->clip_top = but->top;
         overlay->clip_bottom = but->bottom;
         overlay->clip_left = but->left;
@@ -652,6 +658,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->xine                            = xine;
   
   this->menu_handle = -1;
+  this->buttonN = 1;
   this->event.object.overlay = malloc(sizeof(vo_overlay_t));
  
   xine_register_event_listener(xine, spudec_event_listener, this);
