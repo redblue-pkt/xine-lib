@@ -71,7 +71,7 @@ extern int errno;
 #endif
 
 #define NET_BS_LEN 2324
-#define PREBUF_SIZE 10000000
+#define PREBUF_SIZE 100000
 
 typedef struct {
   input_plugin_t   input_plugin;
