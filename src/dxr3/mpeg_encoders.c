@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpeg_encoders.c,v 1.4 2001/12/24 16:01:15 hrm Exp $
+ * $Id: mpeg_encoders.c,v 1.5 2002/03/14 13:56:49 richwareham Exp $
  *
  * mpeg encoders for the dxr3 video out plugin.  
  */ 
@@ -178,7 +178,7 @@ static int rte_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame )
 		return 0;
 	}
 	size = frame->width * frame->oheight;
-	if (frame->format == IMGFMT_YV12)
+	if (frame->vo_frame.format == IMGFMT_YV12)
 		xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size*3/2);
 	else
 		xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size*2);

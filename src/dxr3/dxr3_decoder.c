@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.65 2002/03/11 12:31:25 guenter Exp $
+ * $Id: dxr3_decoder.c,v 1.66 2002/03/14 13:56:49 richwareham Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -256,15 +256,13 @@ static void dxr3scr_adjust (scr_plugin_t *scr, int64_t vpts) {
 	self->last_pts = cpts32;
 	self->offset = vpts - cpts;
 	offset32 = self->offset / 4;
-	/* kernel driver ignores diffs < 7200, so abs(offste32) must be > 7200 / 4 */
+	/* kernel driver ignores diffs < 7200, so abs(offset32) must be > 7200 / 4 */
 	if (offset32 < -7200/4 || offset32 > 7200/4) {
 		uint32_t vpts32 = vpts >> 1;
 		if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
 			printf("dxr3scr: adjust set failed (%s)\n", strerror(errno));
 		self->last_pts = vpts32;
-		self->offset &= ~0x1FFFFFFFF;
-		/* the internal clock in the dxr3 is 33 bits wide, so the upper bits
-		   remain as an offset */
+		self->offset = vpts - ((int64_t)vpts32 << 1);
 	}
 	pthread_mutex_unlock(&self->mutex);
 }
@@ -280,7 +278,7 @@ static void dxr3scr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
 	pthread_mutex_lock(&self->mutex);
 	self->last_pts = vpts32;
-	self->offset = start_vpts & ~0x1FFFFFFFF;
+	self->offset = start_vpts - ((int64_t)vpts32 << 1);
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
 		printf("dxr3scr: start failed (%s)\n", strerror(errno));
 	/* mis-use vpts32 */
@@ -1007,7 +1005,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		uint32_t vpts32;
 		
 		vpts = this->spu_decoder.metronom->got_spu_packet
-		 (this->spu_decoder.metronom, buf->pts, 0, buf->scr);
+		 (this->spu_decoder.metronom, buf->pts, 0);
 #if LOG_SPU
                 printf ("dxr3_spu: pts=%lld vpts=%lld\n", buf->pts, vpts);
 #endif
