@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.67 2003/08/31 17:27:28 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.68 2003/10/19 16:32:08 jstembridge Exp $
  *
  *
  * contents:
@@ -886,6 +886,14 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_DV,
   "DV Audio"
+},
+{
+  {
+    meFOURCC('l', 'p', 'c', 'J'),
+    0
+  },
+  BUF_AUDIO_14_4,
+  "Real 14.4"
 },
 {
   {
