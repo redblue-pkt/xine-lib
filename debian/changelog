@@ -1,11 +1,9 @@
-xine-lib (0.5.1-1.sl1) unstable; urgency=low
+xine-lib (0.5.2-1) unstable; urgency=low
 
-  => this is a prerelease for bug-finding purposes
+  * new upstream release features major rewrites of timing and audio output
+  * added configure support for m68k (libmad still won't compile on m68k!)
 
-  * some endianness fixes 
-  * added configure support for m68k (please test!)
-
- -- Siggi Langauf <siggi@debian.org>  Thu, 30 Aug 2001 23:44:47 +0200
+ -- Siggi Langauf <siggi@debian.org>  Sun,  2 Sep 2001 18:04:44 +0200
 
 xine-lib (0.5.1-1) unstable; urgency=low
 

@@ -52,7 +52,10 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/xine-lib.
-	$(MAKE) install prefix=$(CURDIR)/debian/libxine-dev/usr 
+	$(MAKE) install prefix=$(CURDIR)/debian/libxine-dev/usr
+	mkdir -p $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides
+	cp $(CURDIR)/debian/overrides.libxine \
+           $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides/libxine$(major)
 
 # Build architecture-independent files here.
 binary-indep: build install
