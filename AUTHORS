@@ -379,4 +379,8 @@ Andreas Heinchen <andreas.heinchen@gmx.de>
 Mariusz Pekala <skoot@qi.pl>
   vplayer subtitle format fixes
 
+Tim Champagne <tchamp@aurasoft.com>
+Matthew Grooms
+  msvc win32 port
+
 (let us know if we've forgotten anyone)
