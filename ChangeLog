@@ -1,9 +1,12 @@
-xine-lib (1-rc4)
+xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
   * auto hidding of the subtitles
   * raw AAC file demuxer
   * fix starvation problem with kernel 2.6 NPTL
   * not overwrite the files by saving plugin
+  * deinterlace fixes (detect mpeg1 as progressive and correct handling
+    of top_field_first)
+  * ogg/ogm demuxer fixes for big endian machines
 
 xine-lib (1-rc3)
   * fix dvd menu blending when using tvtime plugin (yuy2 blend)
