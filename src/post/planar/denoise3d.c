@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: denoise3d.c,v 1.1 2003/06/29 18:56:24 miguelfreitas Exp $
+ * $Id: denoise3d.c,v 1.2 2003/07/03 02:24:28 miguelfreitas Exp $
  *
  * mplayer's denoise3d
  * Copyright (C) 2003 Daniel Moreno <comac@comac.darktech.org>
@@ -365,10 +365,10 @@ static void denoise3d_close(xine_video_port_t *port_gen, xine_stream_t *stream)
 
 #define LowPass(Prev, Curr, Coef) (((Prev)*Coef[Prev - Curr] + (Curr)*(65536-(Coef[Prev - Curr]))) / 65536)
 
-static void deNoise(unsigned char *Frame,        // mpi->planes[x]
-                    unsigned char *FramePrev,    // pmpi->planes[x]
-                    unsigned char *FrameDest,    // dmpi->planes[x]
-                    unsigned char *LineAnt,      // vf->priv->Line (width bytes)
+static void deNoise(unsigned char *Frame,        
+                    unsigned char *FramePrev,    
+                    unsigned char *FrameDest,    
+                    unsigned char *LineAnt,      
                     int W, int H, int sStride, int pStride, int dStride,
                     int *Horizontal, int *Vertical, int *Temporal)
 {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.1 2003/06/29 18:56:24 miguelfreitas Exp $
+ * $Id: eq2.c,v 1.2 2003/07/03 02:24:28 miguelfreitas Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -113,8 +113,6 @@ void affine_1d_MMX (eq2_param_t *par, unsigned char *dst, unsigned char *src,
   short    brvec[4];
   short    contvec[4];
   
-//  printf("\nmmx: src=%p dst=%p w=%d h=%d ds=%d ss=%d\n",src,dst,w,h,dstride,sstride);
-
   contrast = (int) (par->c * 256 * 16);
   brightness = ((int) (100.0 * par->b + 100.0) * 511) / 200 - 128 - contrast / 32;
 

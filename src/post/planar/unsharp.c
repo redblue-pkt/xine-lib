@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.1 2003/06/29 18:56:24 miguelfreitas Exp $
+ * $Id: unsharp.c,v 1.2 2003/07/03 02:24:28 miguelfreitas Exp $
  *
  * mplayer's unsharp
  * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
@@ -40,7 +40,7 @@
 #define        MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
-//===========================================================================//
+/*===========================================================================*/
 
 #define MIN_MATRIX_SIZE 3
 #define MAX_MATRIX_SIZE 63
@@ -58,7 +58,7 @@ struct vf_priv_s {
 };
 
 
-//===========================================================================//
+/*===========================================================================*/
 
 /* This code is based on :
 
@@ -74,7 +74,7 @@ static void unsharp( uint8_t *dst, uint8_t *src, int dstStride, int srcStride, i
 
     uint32_t **SC = fp->SC;
     uint32_t SR[MAX_MATRIX_SIZE-1], Tmp1, Tmp2;
-    uint8_t* src2 = src; // avoid gcc warning
+    uint8_t* src2 = src; 
 
     int32_t res;
     int x, y, z;
@@ -203,13 +203,11 @@ static int set_parameters (xine_post_t *this_gen, void *param_gen) {
     memcpy( &this->params, param, sizeof(unsharp_parameters_t) );
 
   fp = &this->priv.lumaParam;
-  // min/max & odd
   fp->msizeX = 1 | MIN( MAX( param->luma_matrix_width, MIN_MATRIX_SIZE ), MAX_MATRIX_SIZE );
   fp->msizeY = 1 | MIN( MAX( param->luma_matrix_height, MIN_MATRIX_SIZE ), MAX_MATRIX_SIZE );
   fp->amount = param->luma_amount;
 
   fp = &this->priv.chromaParam;
-  // min/max & odd
   fp->msizeX = 1 | MIN( MAX( param->chroma_matrix_width, MIN_MATRIX_SIZE ), MAX_MATRIX_SIZE );
   fp->msizeY = 1 | MIN( MAX( param->chroma_matrix_height, MIN_MATRIX_SIZE ), MAX_MATRIX_SIZE );
   fp->amount = param->chroma_amount;
@@ -504,7 +502,6 @@ static int unsharp_draw(vo_frame_t *frame, xine_stream_t *stream)
        this->priv.width = frame->width;
        this->priv.height = frame->height;
 
-       // allocate buffers
        fp = &this->priv.lumaParam;
        memset( fp->SC, 0, sizeof( fp->SC ) );
        stepsX = fp->msizeX/2;
