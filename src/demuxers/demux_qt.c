@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.66 2002/07/16 05:15:05 tmmm Exp $
+ * $Id: demux_qt.c,v 1.67 2002/07/16 17:32:30 miguelfreitas Exp $
  *
  */
 
@@ -233,6 +233,8 @@ typedef struct {
   unsigned int video_type;
   unsigned int video_width;
   unsigned int video_height;
+  void *video_decoder_config;
+  int video_decoder_config_len;
 
   qt_frame *frames;
   unsigned int frame_count;
@@ -303,6 +305,7 @@ qt_info *create_qt_info(void) {
   info->audio_decoder_config = NULL;
 
   info->video_codec = 0;
+  info->video_decoder_config = NULL;
 
   info->last_error = QT_OK;
 
@@ -317,6 +320,8 @@ void free_qt_info(qt_info *info) {
       free(info->frames);
     if(info->audio_decoder_config)
       free(info->audio_decoder_config);
+    if(info->video_decoder_config)
+      free(info->video_decoder_config);
     free(info);
     info = NULL;
   }
@@ -877,6 +882,13 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       info->video_height = sample_tables[i].media_description.video.height;
       info->video_codec =
         sample_tables[i].media_description.video.codec_format;
+      
+      /* fixme: there may be multiple trak with decoder_config. 
+         i don't know if we should choose one or concatenate everything? */
+      if( sample_tables[i].frame_count > 1 && sample_tables[i].decoder_config ) {
+        info->video_decoder_config = sample_tables[i].decoder_config;
+        info->video_decoder_config_len = sample_tables[i].decoder_config_len;
+      }
 
     } else if (sample_tables[i].type == MEDIA_AUDIO) {
 
@@ -1418,6 +1430,15 @@ static int demux_qt_start (demux_plugin_t *this_gen,
     buf->size = sizeof(this->bih);
     buf->type = this->qt->video_type;
     this->video_fifo->put (this->video_fifo, buf);
+      
+    /* send header info to decoder. some mpeg4 streams need this */
+    if( this->qt->video_decoder_config ) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = this->qt->video_type;
+      buf->size = this->qt->video_decoder_config_len;
+      buf->content = this->qt->video_decoder_config;      
+      this->video_fifo->put (this->video_fifo, buf);
+    }
 
     if (this->audio_fifo && this->qt->audio_type) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
