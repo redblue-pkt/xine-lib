@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.39 2003/03/31 19:31:58 tmmm Exp $
+ * $Id: demux_wav.c,v 1.40 2003/04/11 18:16:48 jcdutton Exp $
  *
  */
 
@@ -196,7 +196,6 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
     }
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type = this->audio_type;
     buf->extra_info->input_pos = current_file_pos;
     buf->extra_info->input_length = this->data_size;
     buf->extra_info->input_time = current_pts / 90;
@@ -215,9 +214,36 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
       break;
     }
 
+#if 0
+    for(n=0;n<20;n++) {
+      printf("%x ",buf->content[n]);
+    }
+    printf("\n");
+#endif
+
+    if (this->audio_type == BUF_AUDIO_LPCM_LE) {
+      if (buf->content[0] == 0x72 &&
+          buf->content[1] == 0xf8 &&
+          buf->content[2] == 0x1f &&
+          buf->content[3] == 0x4e ) {
+        this->audio_type = BUF_AUDIO_DNET;
+        buf->content+=8;
+      }
+    } else if (this->audio_type == BUF_AUDIO_DNET) {
+      buf->content+=8;
+      buf->pts=0; /* We don't need pts values for only audio streams. */
+    }
+#if 0
+    for(n=0;n<20;n++) {
+      printf("%x ",buf->content[n]);
+    }
+    printf("\n");
+#endif
+ 
     if (!remaining_sample_bytes)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
+    buf->type = this->audio_type;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 
