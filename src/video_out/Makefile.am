@@ -5,11 +5,11 @@ EXTRA_DIST = video_out_directfb.c video_out_opengl.c
 VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/vidix
 
-AM_CFLAGS = $(X_CFLAGS) $(LIBMPEG2_CFLAGS) \
+AM_CFLAGS = $(X_CFLAGS) \
 	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
 	$(AALIB_CFLAGS)
 
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) \
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) \
 	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
 	$(AALIB_CFLAGS)
 
