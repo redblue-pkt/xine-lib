@@ -12,6 +12,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * time-based seeking in ogg-streams
   * improved support for ogg-streams containing video (so-called ogm streams)
   * spu encoding for full overlay support with dxr3
+  * icecast/shoutcast support
 
 xine-lib (0.9.13) unstable; urgency=low
 
