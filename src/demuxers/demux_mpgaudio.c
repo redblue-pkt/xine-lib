@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.114 2003/10/05 16:15:49 komadori Exp $
+ * $Id: demux_mpgaudio.c,v 1.115 2003/10/10 22:17:18 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -708,7 +708,7 @@ static int mpg123_read_frame_header(demux_mpgaudio_t *this, uint8_t *header_buf,
   }
 
   len = this->input->read(this->input, header_buf + 4 - bytes, bytes);
-  if (len != bytes) {
+  if (len != ((off_t) bytes)) {
     return 0;
   }
   return 1;
@@ -838,8 +838,10 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
     /* check ID3 v1 at the end of the stream */
     pos = this->input->get_length(this->input) - 128;
-    this->input->seek (this->input, pos, SEEK_SET);
-    read_id3_tags (this);
+    if(pos > 0) {
+      this->input->seek (this->input, pos, SEEK_SET);
+      read_id3_tags (this);
+    }
   }
 
   /*
@@ -942,10 +944,16 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
         start_pos = xing_get_seek_point(this, start_time);
         lprintf("time seek: vbr: time=%d, pos=%lld\n", start_time, start_pos);
       } else {
-        /* cbr  */
-        start_pos = start_time * this->input->get_length(this->input) /
-                    (1000 * this->stream_length);
-        lprintf("time seek: cbr: time=%d, pos=%lld\n", start_time, start_pos);
+	off_t input_length = this->input->get_length(this->input);
+
+	if((input_length > 0) && (this->stream_length > 0)) {
+	  /* cbr  */
+	  start_pos = start_time * input_length / (1000 * this->stream_length);
+	  lprintf("time seek: cbr: time=%d, pos=%lld\n", start_time, start_pos);
+	}
+	else
+	  goto __done;
+	
       }
     } else {
       if (this->is_vbr && (this->xflags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
@@ -953,14 +961,24 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
         start_time = xing_get_seek_time(this, start_pos);
         lprintf("pos seek: vbr: time=%d, pos=%lld\n", start_time, start_pos);
       } else {
-        /* cbr  */
-        start_time = (1000 * start_pos * this->stream_length) / this->input->get_length(this->input);
-        lprintf("pos seek: cbr: time=%d, pos=%lld\n", start_time, start_pos);
+ 	off_t input_length = this->input->get_length(this->input);
+	
+ 	if((input_length > 0) && (this->stream_length > 0)) {
+ 	  /* cbr  */
+ 	  start_time = (1000 * start_pos * this->stream_length) / input_length;
+ 	  lprintf("pos seek: cbr\n");
+ 	}
+ 	else
+ 	  goto __done;
+
       }
     }
+
     this->cur_fpts = 90 * start_time;
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
+
+ __done:
 
   this->status = DEMUX_OK;
   this->send_newpts = 1;
@@ -1102,25 +1120,16 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   case METHOD_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-
-    MRL = input->get_mrl (input);
-
-    lprintf("demux_mpgaudio: stage by extension %s\n", MRL);
-
-    if (strncmp (MRL, "ice :/", 6)) {
+    char *mrl = input->get_mrl(input);
     
-      suffix = strrchr(MRL, '.');
+    lprintf ("demux_mpgaudio: stage by extension %s\n", mrl);
     
-      if (!suffix)
-	return NULL;
-    
-      if ( strncasecmp ((suffix+1), "mp3", 3)
-	   && strncasecmp ((suffix+1), "mp2", 3)
-	   && strncasecmp ((suffix+1), "mpa", 3)
-	   && strncasecmp ((suffix+1), "mpega", 5))
-	return NULL;
+    if (strncmp (mrl, "ice :/", 6)) {
+      char *extensions = class_gen->get_extensions (class_gen);
+      
+      if (!xine_demux_check_extension (mrl, extensions))
+  	return NULL;
+      
     }
   }
   break;
