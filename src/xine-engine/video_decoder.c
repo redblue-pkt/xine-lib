@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.6 2001/04/23 22:43:59 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.7 2001/04/24 15:47:32 guenter Exp $
  *
  */
 
@@ -110,18 +110,7 @@ void *video_decoder_loop (void *this_gen) {
 
 void video_decoder_init (xine_t *this) {
 
-  int i;
-  
-  this->cur_video_decoder_plugin = NULL;
-  for (i=0; i<DECODER_PLUGIN_MAX; i++)
-    this->video_decoder_plugins[i] = NULL;
-
-  /* FIXME: load video decoder plugins
-  this->video_decoders[0x00] = init_video_decoder_mpeg2dec ();
-  this->video_decoders[0x03] = init_video_decoder_avi ();
-  */
-
-  this->video_fifo = fifo_buffer_new ();
+  this->video_fifo = fifo_buffer_new (1500, 4096);
 
   pthread_create (&this->video_thread, NULL, video_decoder_loop, this) ;
 
@@ -135,7 +124,7 @@ void video_decoder_shutdown (xine_t *this) {
 
   this->video_fifo->clear(this->video_fifo);
 
-  buf = this->video_fifo->buffer_pool_alloc ();
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type = BUF_CONTROL_QUIT;
   this->video_fifo->put (this->video_fifo, buf);
 

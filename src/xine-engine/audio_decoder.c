@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.3 2001/04/23 22:43:59 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.4 2001/04/24 15:47:32 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -117,20 +117,7 @@ void *audio_decoder_loop (void *this_gen) {
 
 void audio_decoder_init (xine_t *this) {
 
-  int i;
-
-  this->cur_audio_decoder_plugin = NULL;
-  for (i=0; i<AUDIO_OUT_PLUGIN_MAX; i++)
-    this->audio_decoder_plugins[i] = NULL;
-
-  /* FIXME: dynamically load these
-  this->audio_decoders[BUF_AC3AUDIO]  = init_audio_decoder_ac3dec ();
-  this->audio_decoders[BUF_MPEGAUDIO] = init_audio_decoder_mpg123 ();
-  this->audio_decoders[BUF_MSAUDIO]   = init_audio_decoder_msaudio ();
-  this->audio_decoders[BUF_LINEARPCM] = init_audio_decoder_linearpcm ();
-  */
-
-  this->audio_fifo = fifo_buffer_new ();
+  this->audio_fifo = fifo_buffer_new (1500, 4096);
 
   pthread_create (&this->audio_thread, NULL, audio_decoder_loop, this) ;
 
@@ -144,7 +131,7 @@ void audio_decoder_shutdown (xine_t *this) {
 
   this->audio_fifo->clear(this->audio_fifo);
 
-  buf = this->audio_fifo->buffer_pool_alloc ();
+  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->type = BUF_CONTROL_QUIT;
   this->audio_fifo->put (this->audio_fifo, buf);
 

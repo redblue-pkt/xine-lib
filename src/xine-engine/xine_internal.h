@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.8 2001/04/23 22:43:59 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.9 2001/04/24 15:47:32 guenter Exp $
  *
  */
 
@@ -336,11 +336,8 @@ void audio_decoder_shutdown (xine_t *this);
 #define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME        "xineplug_ao_out_"
 #define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH 16
 
-#define XINE_AUDIO_DECODER_PLUGIN_PREFIXNAME         "xineplug_ao_dec_"
-#define XINE_AUDIO_DECODER_PLUGIN_PREFIXNAME_LENGTH  16
-
-#define XINE_VIDEO_DECODER_PLUGIN_PREFIXNAME         "xineplug_vo_dec_"
-#define XINE_VIDEO_DECODER_PLUGIN_PREFIXNAME_LENGTH  16
+#define XINE_DECODER_PLUGIN_PREFIXNAME          "xineplug_decode_"
+#define XINE_DECODER_PLUGIN_PREFIXNAME_LENGTH   16
 
 /* prototypes of load_plugins.c functions. */
 void load_demux_plugins (xine_t *this, 
@@ -351,7 +348,7 @@ void load_video_out_plugins (xine_t *this,
 			     config_values_t *config, int iface_version);
 void load_audio_out_plugins (xine_t *this, 
 			     config_values_t *config, int iface_version);
-void load_codec_plugins (xine_t *this, 
-			 config_values_t *config, int iface_version);
+void load_decoder_plugins (xine_t *this, 
+			   config_values_t *config, int iface_version);
 
 #endif

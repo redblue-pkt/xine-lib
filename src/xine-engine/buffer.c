@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.1 2001/04/18 22:36:01 f1rmb Exp $
+ * $Id: buffer.c,v 1.2 2001/04/24 15:47:32 guenter Exp $
  *
  *
  * contents:
@@ -41,185 +41,168 @@
 #include "utils.h"
 
 /*
- * global variables
- */
-
-buf_element_t   *gBufferPoolTop;    /* a stack actually */
-pthread_mutex_t  gBufferPoolMutex;
-pthread_cond_t   gBufferPoolCondNotEmpty;
-int              gBufferPoolNumFree;
-
-/*
  * put a previously allocated buffer element back into the buffer pool
  */
-static void buffer_pool_free (buf_element_t *pBufElement) {
+static void buffer_pool_free (buf_element_t *element) {
 
-  pthread_mutex_lock (&gBufferPoolMutex);
+  fifo_buffer_t *this = (fifo_buffer_t *) element->source;
 
-  pBufElement->next = gBufferPoolTop;
-  gBufferPoolTop = pBufElement;
+  pthread_mutex_lock (&this->buffer_pool_mutex);
 
-  gBufferPoolNumFree++;
+  element->next = this->buffer_pool_top;
+  this->buffer_pool_top = element;
 
-  pthread_cond_signal (&gBufferPoolCondNotEmpty);
+  this->buffer_pool_num_free++;
 
-  pthread_mutex_unlock (&gBufferPoolMutex);
+  pthread_cond_signal (&this->buffer_pool_cond_not_empty);
+
+  pthread_mutex_unlock (&this->buffer_pool_mutex);
 }
 
 /*
  * check if there are no more free elements
  */
-static int buffer_pool_isempty (void) {
-  return gBufferPoolNumFree<7;
-}
-
-/*
- * check if there are no more free elements
- */
-static buf_element_t *buffer_pool_alloc (void) {
+static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   
-  buf_element_t *pBuf;
+  buf_element_t *buf;
 
-  pthread_mutex_lock (&gBufferPoolMutex);
+  pthread_mutex_lock (&this->buffer_pool_mutex);
 
-  while (!gBufferPoolTop) {
-    pthread_cond_wait (&gBufferPoolCondNotEmpty, &gBufferPoolMutex);
+  while (!this->buffer_pool_top) {
+    pthread_cond_wait (&this->buffer_pool_cond_not_empty, &this->buffer_pool_mutex);
   }
 
-  pBuf = gBufferPoolTop;
-  gBufferPoolTop = gBufferPoolTop->next;
-  gBufferPoolNumFree--;
+  buf = this->buffer_pool_top;
+  this->buffer_pool_top = this->buffer_pool_top->next;
+  this->buffer_pool_num_free--;
 
-  pthread_mutex_unlock (&gBufferPoolMutex);
+  pthread_mutex_unlock (&this->buffer_pool_mutex);
 
-  return pBuf;
+  return buf;
 }
 
 /*
  * append buffer element to fifo buffer
  */
-static void fifo_buffer_put (fifo_buffer_t *pFifo, buf_element_t *pBufElement) {
+static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
   
-  pthread_mutex_lock (&pFifo->mMutex);
+  pthread_mutex_lock (&fifo->mutex);
 
-  if (pFifo->mpLast) 
-    pFifo->mpLast->next = pBufElement;
+  if (fifo->last) 
+    fifo->last->next = element;
   else 
-    pFifo->mpFirst = pBufElement;
+    fifo->first = element;
 
-  pFifo->mpLast  = pBufElement;
-  pBufElement->next = NULL;
+  fifo->last  = element;
+  element->next = NULL;
 
-  pthread_cond_signal (&pFifo->mNotEmpty);
+  pthread_cond_signal (&fifo->not_empty);
 
-  pthread_mutex_unlock (&pFifo->mMutex);
+  pthread_mutex_unlock (&fifo->mutex);
 }
 
 /*
  * get element from fifo buffer
  */
-static buf_element_t *fifo_buffer_get (fifo_buffer_t *pFifo) {
+static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
 
-  buf_element_t *pBuf;
+  buf_element_t *buf;
   
-  pthread_mutex_lock (&pFifo->mMutex);
+  pthread_mutex_lock (&fifo->mutex);
 
-  while (pFifo->mpFirst==NULL) {
-    pthread_cond_wait (&pFifo->mNotEmpty, &pFifo->mMutex);
+  while (fifo->first==NULL) {
+    pthread_cond_wait (&fifo->not_empty, &fifo->mutex);
   }
 
-  pBuf = pFifo->mpFirst;
+  buf = fifo->first;
 
-  pFifo->mpFirst = pFifo->mpFirst->next;
-  if (pFifo->mpFirst==NULL)
-    pFifo->mpLast = NULL;
+  fifo->first = fifo->first->next;
+  if (fifo->first==NULL)
+    fifo->last = NULL;
 
-  pthread_mutex_unlock (&pFifo->mMutex);
+  pthread_mutex_unlock (&fifo->mutex);
 
-  return pBuf;
+  return buf;
 }
 
 /*
  * clear buffer (put all contained buffer elements back into buffer pool)
  */
-static void fifo_buffer_clear (fifo_buffer_t *pFifo) {
+static void fifo_buffer_clear (fifo_buffer_t *fifo) {
   
-  buf_element_t *pBuf;
+  buf_element_t *buf;
 
-  pthread_mutex_lock (&pFifo->mMutex);
+  pthread_mutex_lock (&fifo->mutex);
 
-  while (pFifo->mpFirst != NULL) {
+  while (fifo->first != NULL) {
 
-    pBuf = pFifo->mpFirst;
+    buf = fifo->first;
 
-    pFifo->mpFirst = pFifo->mpFirst->next;
-    if (pFifo->mpFirst==NULL)
-      pFifo->mpLast = NULL;
+    fifo->first = fifo->first->next;
+    if (fifo->first==NULL)
+      fifo->last = NULL;
 
-    buffer_pool_free (pBuf);
+    buffer_pool_free (buf);
   }
 
-  pthread_mutex_unlock (&pFifo->mMutex);
+  pthread_mutex_unlock (&fifo->mutex);
 }
 
 /*
  * allocate and initialize new (empty) fifo buffer
  */
-static fifo_buffer_t *fifo_buffer_new (void) {
+fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
-  fifo_buffer_t *pFifo;
+  fifo_buffer_t *this;
+  int            i;
+  int            alignment = 2048;
+  char          *multi_buffer = NULL;
 
-  pFifo = xmalloc (sizeof (fifo_buffer_t));
+  this = xmalloc (sizeof (fifo_buffer_t));
 
-  pFifo->mpFirst           = NULL;
-  pFifo->mpLast            = NULL;
-  pFifo->fifo_buffer_put   = fifo_buffer_put;
-  pFifo->fifo_buffer_get   = fifo_buffer_get;
-  pFifo->fifo_buffer_clear = fifo_buffer_clear;
+  this->first           = NULL;
+  this->last            = NULL;
+  this->put             = fifo_buffer_put;
+  this->get             = fifo_buffer_get;
+  this->clear           = fifo_buffer_clear;
 
-  pthread_mutex_init (&pFifo->mMutex, NULL);
-  pthread_cond_init (&pFifo->mNotEmpty, NULL);
+  pthread_mutex_init (&this->mutex, NULL);
+  pthread_cond_init (&this->not_empty, NULL);
 
-  return pFifo;
-}
+  /*
+   * init buffer pool, allocate nNumBuffers of buf_size bytes each 
+   */
 
-/*
- * init buffer pool, allocate nNumBuffers of buf_size bytes each 
- */
-fifobuf_functions_t *buffer_pool_init (int nNumBuffers, uint32_t buf_size) {
 
-  int i;
-  const int alignment = 2048;
-  char *pMultiBuffer = NULL;
+  buf_size += buf_size % alignment;
 
-  if ((buf_size % alignment) == 0) {
-    printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n", nNumBuffers, (long int)buf_size, alignment);
-      pMultiBuffer = xmalloc_aligned (alignment, nNumBuffers * buf_size);
-  }
+  printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n", 
+	  num_buffers, (long int) buf_size, alignment);
+  multi_buffer = xmalloc_aligned (alignment, num_buffers * buf_size);
 
-  gBufferPoolTop = NULL;
+  this->buffer_pool_top = NULL;
 
-  pthread_mutex_init (&gBufferPoolMutex, NULL);
-  pthread_cond_init (&gBufferPoolCondNotEmpty, NULL);
+  pthread_mutex_init (&this->buffer_pool_mutex, NULL);
+  pthread_cond_init (&this->buffer_pool_cond_not_empty, NULL);
 
-  for (i = 0; i<nNumBuffers; i++) {
-    buf_element_t *pBuf;
+  for (i = 0; i<num_buffers; i++) {
+    buf_element_t *buf;
 
-    pBuf = xmalloc (sizeof (buf_element_t));
+    buf = xmalloc (sizeof (buf_element_t));
 
-    if (pMultiBuffer != NULL) {
-        pBuf->pMem = pMultiBuffer;
-        pMultiBuffer += buf_size;
-    }
-    else
-        pBuf->pMem = malloc_aligned (buf_size, alignment);
+    buf->mem = multi_buffer;
+    multi_buffer += buf_size;
 
-    pBuf->nMaxSize = buf_size;
-    pBuf->free_buffer = buffer_pool_free;
+    buf->max_size    = buf_size;
+    buf->free_buffer = buffer_pool_free;
+    buf->source      = this;
     
-    buffer_pool_free (pBuf);
+    buffer_pool_free (buf);
   }
-  gBufferPoolNumFree = nNumBuffers;
+  this->buffer_pool_num_free = num_buffers;
 
-  return &fifobuf_op;
+  return this;
 }
+
+
+

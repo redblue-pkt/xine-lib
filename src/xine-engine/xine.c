@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.5 2001/04/23 00:34:59 guenter Exp $
+ * $Id: xine.c,v 1.6 2001/04/24 15:47:32 guenter Exp $
  *
  * top-level xine functions
  *
@@ -58,17 +58,6 @@
 
 /* debugging purposes only */
 uint32_t   xine_debug;
-
-/*
-#define TEST_FILE 
-*/
-#ifdef TEST_FILE
-int        gTestFile=-1; 
-#endif
-
-/*
- * xine global variables
- */
 
 void xine_notify_stream_finished (xine_t *this) {
   printf ("xine_notify_stream_finished\n");

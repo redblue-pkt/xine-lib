@@ -169,7 +169,7 @@ main ()
           CFLAGS="$CFLAGS $XINE_CFLAGS"
           LIBS="$LIBS $XINE_LIBS"
           AC_TRY_LINK([
-#include <xine/xine.h>
+#include <xine.h>
 #include <stdio.h>
 ],      [ return ((XINE_MAJOR_VERSION) || (XINE_MINOR_VERSION) || (XINE_SUB_VERSION)); ],
         [ echo "*** The test program compiled, but did not run. This usually means"

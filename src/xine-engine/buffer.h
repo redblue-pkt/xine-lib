@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.1 2001/04/18 22:36:05 f1rmb Exp $
+ * $Id: buffer.h,v 1.2 2001/04/24 15:47:32 guenter Exp $
  *
  *
  * contents:
@@ -100,6 +100,9 @@ struct buf_element_s {
 
   void (*free_buffer) (buf_element_t *buf);
 
+  void                 *source;   /* pointer to source of this buffer for */
+                                  /* free_buffer                          */
+
 } ;
 
 typedef struct fifo_buffer_s fifo_buffer_t;
@@ -127,21 +130,24 @@ struct fifo_buffer_s
    * buffer allocation functions
    */
 
-  buf_element_t *(*buffer_pool_alloc) (void);
+  buf_element_t *(*buffer_pool_alloc) (fifo_buffer_t *this);
 
+  /*
+   * private variables for buffer pool management
+   */
+
+  buf_element_t   *buffer_pool_top;    /* a stack actually */
+  pthread_mutex_t  buffer_pool_mutex;
+  pthread_cond_t   buffer_pool_cond_not_empty;
+  int              buffer_pool_num_free;
 } ;
 
 /*
- * allocate and initialize new (empty) fifo buffer
+ * allocate and initialize new (empty) fifo buffer,
+ * init buffer pool for it:
+ * allocate num_buffers of buf_size bytes each 
  */
 
-fifo_buffer_t *fifo_buffer_new (void);
-
-/*
- * init global buffer pool, 
- * allocate nNumBuffers of buf_size bytes each 
- */
-
-void buffer_pool_init (int num_buffers, uint32_t buf_size);
+fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size);
 
 #endif

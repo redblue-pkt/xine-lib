@@ -9,7 +9,7 @@ CFLAGS = -I wine -fno-omit-frame-pointer \
 SUBDIRS = wine
 
 if HAVE_W32DLL
-w32dll_codec = xineplug_codec_w32dll.la
+w32dll_codec = xineplug_decode_w32dll.la
 endif
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
@@ -19,15 +19,15 @@ libdir = $(XINE_PLUGINDIR)
 ##
 # IMPORTANT:
 # ---------
-# All of xine codecs should be named like the scheme "xineplug_codec_"
+# All of xine codecs should be named like the scheme "xineplug_decode_"
 #
 lib_LTLIBRARIES = $(w32dll_codec)
 
-xineplug_codec_w32dll_la_SOURCES = afl.c elfdll.c module.c \
+xineplug_decode_w32dll_la_SOURCES = afl.c elfdll.c module.c \
 	pe_resource.c resource.c win32.c driver.c ext.c \
 	pe_image.c registry.c vfl.c ##FIXME: w32codec.c
-xineplug_codec_w32dll_la_LDFLAGS = -avoid-version -module
-xineplug_codec_w32dll_la_LIBADD = stubs.lo
+xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module
+xineplug_decode_w32dll_la_LIBADD = stubs.lo
 
 noinst_HEADERS = loader.h registry.h win32.h wineacm.h w32codec.h
 

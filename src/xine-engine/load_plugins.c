@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.4 2001/04/23 22:43:59 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.5 2001/04/24 15:47:32 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -188,12 +188,31 @@ void load_input_plugins (xine_t *this,
   
 }
 
-
-void load_video_decoder_plugins (xine_t *this, 
-				 config_values_t *config, int iface_version) {
+/*
+ * load audio and video decoder plugins 
+ */
+void load_decoder_plugins (xine_t *this, 
+			   config_values_t *config, int iface_version) {
   DIR *dir;
+  int  i;
+
+  /*
+   * clean up first
+   */
 
   this->num_video_decoder_plugins = 0;
+  this->cur_video_decoder_plugin = NULL;
+  for (i=0; i<DECODER_PLUGIN_MAX; i++)
+    this->video_decoder_plugins[i] = NULL;
+
+  this->num_audio_decoder_plugins = 0;
+  this->cur_audio_decoder_plugin = NULL;
+  for (i=0; i<AUDIO_OUT_PLUGIN_MAX; i++)
+    this->audio_decoder_plugins[i] = NULL;
+
+  /*
+   * now scan for decoder plugins
+   */
 
   dir = opendir (XINE_PLUGINDIR) ;
   
@@ -207,14 +226,14 @@ void load_video_decoder_plugins (xine_t *this,
       int nLen = strlen (pEntry->d_name);
       
       if ((strncasecmp(pEntry->d_name, 
-		       XINE_VIDEO_DECODER_PLUGIN_PREFIXNAME, 
-		       XINE_VIDEO_DECODER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
+		       XINE_DECODER_PLUGIN_PREFIXNAME, 
+		       XINE_DECODER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
 	  ((pEntry->d_name[nLen-3]=='.') 
 	   && (pEntry->d_name[nLen-2]=='s')
 	   && (pEntry->d_name[nLen-1]=='o'))) {
 	
 	/*
-	 * video decoder plugin found => load it
+	 * decoder plugin found => load it
 	 */
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
@@ -227,6 +246,10 @@ void load_video_decoder_plugins (xine_t *this,
 	else {
 	  void *(*initplug) (int, config_values_t *);
 	  
+	  /*
+	   * does this plugin provide an video decoder plugin?
+	   */
+
 	  if((initplug = dlsym(plugin, "init_video_decoder_plugin")) != NULL) {
 	    video_decoder_t *vdp;
 	      
@@ -246,57 +269,16 @@ void load_video_decoder_plugins (xine_t *this,
 		    " exiting.\n", __FILE__, __LINE__);
 	    exit(1);
 	  }
-	}
-      }
-    }
-  }
-  
-  this->cur_video_decoder_plugin = NULL;
-}
 
-void load_audio_decoder_plugins (xine_t *this, 
-				 config_values_t *config, int iface_version) {
-  DIR *dir;
+	  /*
+	   * does this plugin provide an audio decoder plugin?
+	   */
 
-  this->num_audio_decoder_plugins = 0;
-
-  dir = opendir (XINE_PLUGINDIR) ;
-  
-  if (dir) {
-    struct dirent *pEntry;
-    
-    while ((pEntry = readdir (dir)) != NULL) {
-      char str[1024];
-      void *plugin;
-      
-      int nLen = strlen (pEntry->d_name);
-      
-      if ((strncasecmp(pEntry->d_name, 
-		       XINE_AUDIO_DECODER_PLUGIN_PREFIXNAME, 
-		       XINE_AUDIO_DECODER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
-	  ((pEntry->d_name[nLen-3]=='.') 
-	   && (pEntry->d_name[nLen-2]=='s')
-	   && (pEntry->d_name[nLen-1]=='o'))) {
-	
-	/*
-	 * audio decoder plugin found => load it
-	 */
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n", 
-		  __FILE__, __LINE__, str, dlerror());
-	  exit(1);
-	}
-	else {
-	  void *(*initplug) (int, config_values_t *);
-	  
 	  if((initplug = dlsym(plugin, "init_audio_decoder_plugin")) != NULL) {
-	    audio_decoder_t *vdp;
+	    audio_decoder_t *adp;
 	      
-	    vdp = (audio_decoder_t *) initplug(iface_version, config);
-	    this->audio_decoder_plugins[this->num_audio_decoder_plugins] = vdp; 
+	    adp = (audio_decoder_t *) initplug(iface_version, config);
+	    this->audio_decoder_plugins[this->num_audio_decoder_plugins] = adp; 
 	    
 	    printf("audio decoder plugin found : %s(ID: %s, iface: %d)\n", 
 		   str,   
@@ -311,13 +293,17 @@ void load_audio_decoder_plugins (xine_t *this,
 		    " exiting.\n", __FILE__, __LINE__);
 	    exit(1);
 	  }
+
+
 	}
       }
     }
   }
   
+  this->cur_video_decoder_plugin = NULL;
   this->cur_audio_decoder_plugin = NULL;
 }
+
 
 void load_video_out_plugins (xine_t *this, 
 			     config_values_t *config, int iface_version) {
@@ -326,11 +312,6 @@ void load_video_out_plugins (xine_t *this,
 
 void load_audio_out_plugins (xine_t *this, 
 			     config_values_t *config, int iface_version) {
-
-}
-
-void load_codec_plugins (xine_t *this, 
-			 config_values_t *config, int iface_version) {
 
 }
 
