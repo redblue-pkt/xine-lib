@@ -1,5 +1,6 @@
 xine (0.9.next) unstable; urgency=low
 
+  * demux_asf big fragments handling
   * working setup dialog (experimental)
   * dxr3 bugfixes
   * sun audio interface version fixed
