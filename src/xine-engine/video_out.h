@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2001 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.18 2001/09/12 19:50:41 guenter Exp $
+ * $Id: video_out.h,v 1.19 2001/09/16 15:21:13 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -166,14 +166,15 @@ struct vo_instance_s {
 
 /* constants for the get/set property functions */
 
-#define VO_PROP_INTERLACED      0
-#define VO_PROP_ASPECT_RATIO    1
-#define VO_PROP_HUE             2
-#define VO_PROP_SATURATION      3
-#define VO_PROP_CONTRAST        4
-#define VO_PROP_BRIGHTNESS      5 
-#define VO_PROP_COLORKEY        6 
-#define VO_NUM_PROPERTIES       7
+#define VO_PROP_INTERLACED        0
+#define VO_PROP_ASPECT_RATIO      1
+#define VO_PROP_HUE               2
+#define VO_PROP_SATURATION        3
+#define VO_PROP_CONTRAST          4
+#define VO_PROP_BRIGHTNESS        5
+#define VO_PROP_COLORKEY          6
+#define VO_PROP_SOFT_DEINTERLACE  7
+#define VO_NUM_PROPERTIES         8
 
 /* image formats that can be supported by display drivers: */
 
@@ -238,7 +239,7 @@ struct vo_driver_s {
    * (re-)allocate memory if necessary
    */
   void (*update_frame_format) (vo_driver_t *this, vo_frame_t *img,
-			       uint32_t width, uint32_t height, 
+			       uint32_t width, uint32_t height,
 			       int ratio_code, int format, int flags);
 
   /* display a given frame */
@@ -250,7 +251,7 @@ struct vo_driver_s {
   /*
    * these can be used by the gui directly:
    */
-  
+
   int (*get_property) (vo_driver_t *this, int property);
   int (*set_property) (vo_driver_t *this, 
 		       int property, int value);
