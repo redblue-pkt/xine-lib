@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.4 2002/07/09 12:45:18 f1rmb Exp $
+ * $Id: tvmode.c,v 1.5 2002/07/12 20:36:04 f1rmb Exp $
  *
  * tvmode - TV output selection
  *
@@ -33,11 +33,9 @@
 #include <unistd.h>
 
 #include "nvtvd.h"
-/* FIXME: how to include that? */
-/*#include "xine.h" */
+
 #include "xine_internal.h"
 #include "xineutils.h"
-
 
 /*
  * PRIVATE
@@ -267,8 +265,8 @@ static void  _tvmode_init(xine_t *this) {
 void xine_tvmode_init (xine_t *this) {
   
   tvmode_enabled = this->config->register_bool(this->config, "misc.nv_tvmode", 0,
-					       _("Show status on play, pause, ff, ..."), NULL,
-					       nvtvmode_enable_cb, this);
+					       _("NVidia TV-Out support."),
+					       NULL, nvtvmode_enable_cb, this);
   _tvmode_init(this);
 }
 

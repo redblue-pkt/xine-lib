@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.5 2002/07/12 20:19:20 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.6 2002/07/12 20:36:04 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -52,7 +52,6 @@
 #undef LOG
            
 
-#define LIBDIR "/usr/local/lib"
 #define NUM_FRAMES 1
 
 typedef struct vidix_driver_s vidix_driver_t;
