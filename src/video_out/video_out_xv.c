@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.61 2001/09/19 12:57:50 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.62 2001/09/19 23:12:24 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -403,6 +403,7 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
   frame->ratio_code = ratio_code;
 }
 
+#define DEINTERLACE_CROMA
 static void xv_deinterlace_frame (xv_driver_t *this) {
 
   uint8_t *recent_bitmaps[VO_NUM_RECENT_FRAMES];
@@ -428,11 +429,31 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     XUnlockDisplay (this->display);
   }
 
+#ifdef DEINTERLACE_CROMA
+
+  /* I don't think this is the right way to do it (deinterlacing croma by croma info).
+     DScaler deinterlaces croma together with luma, but it's easier for them because
+     they have that components 1:1 at the same table.
+  */
+  for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
+    recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
+    + frame->width*frame->height : NULL;
+  deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height,
+    recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
+  for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
+    recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
+    + frame->width*frame->height*5/4 : NULL;
+  deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height*5/4,
+    recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
+
+#else
 
   /* know bug: we are not deinterlacing Cb and Cr */
   memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
          frame->image->data + frame->width*frame->height,
          frame->width*frame->height*1/2);
+
+#endif
 
   for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
     recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data :
