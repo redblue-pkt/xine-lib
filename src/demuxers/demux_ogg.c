@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.75 2003/04/14 00:13:36 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.76 2003/04/14 00:52:42 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -113,6 +113,17 @@ typedef struct {
   xine_t           *xine;
   config_values_t  *config;
 } demux_ogg_class_t;
+
+static int find_stream (demux_ogg_t *this, int serno)
+{
+  int i;
+  for (i = 0; i<this->num_streams; i++) {
+    if (this->oss[i].serialno == serno) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 static void hex_dump (uint8_t *p, int length) {
   int i,j;
@@ -391,7 +402,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
   int        done = 0;
 
-  int        filelength,position,i;
+  int        filelength,position;
  
   ogg_packet op;
   
@@ -424,8 +435,6 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
     
       cur_serno = ogg_page_serialno (&this->og);
     
-      stream_num = -1;
-
       if (ogg_page_bos(&this->og)) {
 
 #ifdef LOG
@@ -439,14 +448,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	this->header_granulepos[stream_num] = -1;
 	this->num_streams++;
       } else {
-	int i;
-
-	for (i = 0; i<this->num_streams; i++) {
-	  if (this->oss[i].serialno == cur_serno) {
-	    stream_num = i;
-	    break;
-	  }
-	}
+	stream_num = find_stream(this, cur_serno);
 	if (stream_num == -1) {
 	  printf ("demux_ogg: help, stream with no beginning!\n");
 	  abort();
@@ -854,14 +856,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  }
 	  ogg_sync_wrote(&this->oy, bytes);
 	}
-	cur_serno = ogg_page_serialno (&this->og);
-	stream_num=-1;
-	for (i = 0; i<this->num_streams; i++) {
-	  if (this->oss[i].serialno == cur_serno) {
-	    stream_num=i;
-	    break;
-	  }
-	}
+	stream_num=find_stream(this, ogg_page_serialno (&this->og) );
 	if (stream_num!=-1) {
 	  if ((this->buf_types[stream_num] & 0xFF000000) == BUF_AUDIO_BASE) {
 	    if (this->time_length < ogg_page_granulepos(&this->og) * 1000 / this->samplerate[stream_num] )
@@ -882,8 +877,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 static void demux_ogg_send_content (demux_ogg_t *this) {
 
-  int i;
-  int stream_num = -1;
+  int stream_num;
   int cur_serno;
   
   char *buffer;
@@ -914,14 +908,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
     /* now we've got at least one new page */
     
     cur_serno = ogg_page_serialno (&this->og);
-
-    for (i = 0; i<this->num_streams; i++) {
-      if (this->oss[i].serialno == cur_serno) {
-	stream_num = i;
-	break;
-      }
-    }
-
+    stream_num=find_stream(this, cur_serno);
     if (stream_num < 0) {
       printf ("demux_ogg: error: unknown stream, serialnumber %d\n", cur_serno);
 
