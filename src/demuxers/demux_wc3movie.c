@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.9 2002/09/28 22:06:31 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.10 2002/09/28 22:47:01 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -156,13 +156,12 @@ static void *demux_mve_loop (void *this_gen) {
 
   demux_mve_t *this = (demux_mve_t *) this_gen;
   buf_element_t *buf = NULL;
+  int64_t text_pts = 0;
   int64_t audio_pts = 0;
   int64_t video_pts = 0;
   unsigned char preamble[PREAMBLE_SIZE];
   unsigned int chunk_tag;
   unsigned int chunk_size;
-  unsigned int audio_frames;
-  uint64_t total_frames = 0;
   off_t current_file_pos;
   unsigned int palette_number;
 
@@ -199,7 +198,7 @@ static void *demux_mve_loop (void *this_gen) {
           if (this->seek_flag) {
 
             /* reset pts */
-            video_pts = total_frames = 0;
+            video_pts = 0;
             xine_demux_control_newpts(this->xine, 0, BUF_FLAG_SEEK);
             this->seek_flag = 0;
 
@@ -239,13 +238,7 @@ static void *demux_mve_loop (void *this_gen) {
 
         } else if (chunk_tag == AUDI_TAG) {
 
-          audio_frames = 
-            chunk_size * 8 / this->wave.wBitsPerSample / 
-            this->wave.nChannels;
-          total_frames += audio_frames;
-          audio_pts = total_frames;
-          audio_pts *= 90000;
-          audio_pts /= this->wave.nSamplesPerSec;
+          audio_pts = video_pts - WC3_PTS_INC;
 
           while (chunk_size) {
             buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
@@ -305,6 +298,8 @@ static void *demux_mve_loop (void *this_gen) {
           video_pts += WC3_PTS_INC;
 
         } else if (chunk_tag == TEXT_TAG) {
+
+          text_pts = video_pts - WC3_PTS_INC;
 
           /* unhandled thus far */
           this->input->seek(this->input, chunk_size, SEEK_CUR);
