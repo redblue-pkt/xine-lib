@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *
@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.24 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: spu.h,v 1.25 2004/04/09 15:01:47 mroi Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -102,6 +102,13 @@ typedef struct {
   spu_decoder_class_t   decoder_class;
 } spudec_class_t;
 
+typedef struct pci_node_s pci_node_t;
+struct pci_node_s {
+  pci_t         pci;
+  uint64_t      vpts;
+  pci_node_t   *next;
+};
+
 typedef struct spudec_decoder_s {
   spu_decoder_t    spu_decoder;
 
@@ -118,16 +125,20 @@ typedef struct spudec_decoder_s {
   vo_overlay_t     overlay;
   int              ovl_caps;
   int              output_open;
-  pci_t            pci;
+  pthread_mutex_t  nav_pci_lock;
+  pci_node_t       pci_cur;
   uint32_t         buttonN;  /* Current button number for highlights */
-  int32_t button_filter; /* Allow highlight changes or not */
-  pthread_mutex_t nav_pci_lock;
+  int32_t          button_filter; /* Allow highlight changes or not */
   int64_t          last_event_vpts;
 } spudec_decoder_t;
 
 void spudec_reassembly (xine_t *xine, spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
 void spudec_process( spudec_decoder_t *this, int stream_id);
+/* the nav functions must be called with the nav_pci_lock held */
 void spudec_decode_nav( spudec_decoder_t *this, buf_element_t *buf);
+void spudec_clear_nav_list(spudec_decoder_t *this);
+void spudec_update_nav(spudec_decoder_t *this);
+void spudec_process_nav(spudec_decoder_t *this);
 int  spudec_copy_nav_to_overlay(xine_t *xine, pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
                                 vo_overlay_t * overlay, vo_overlay_t * base );
 

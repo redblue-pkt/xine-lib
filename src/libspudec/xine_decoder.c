@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.105 2004/03/03 20:09:14 mroi Exp $
+ * $Id: xine_decoder.c,v 1.106 2004/04/09 15:01:47 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -118,6 +118,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
 
+  /* check, if we need to process the next PCI from the list */
+  pthread_mutex_lock(&this->nav_pci_lock);
+  spudec_update_nav(this);
+  pthread_mutex_unlock(&this->nav_pci_lock);
+  
 #ifdef LOG_DEBUG
   printf("libspudec:got buffer type = %x\n", buf->type);
 #endif
@@ -164,9 +169,18 @@ static void spudec_reset (spu_decoder_t *this_gen) {
     this->spudec_stream_state[i].ra_seq.complete = 1;
     this->spudec_stream_state[i].ra_seq.broken = 0;
   }
+  
+  pthread_mutex_lock(&this->nav_pci_lock);
+  spudec_clear_nav_list(this);
+  pthread_mutex_unlock(&this->nav_pci_lock);
 }
 
 static void spudec_discontinuity (spu_decoder_t *this_gen) {
+  spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
+  
+  pthread_mutex_lock(&this->nav_pci_lock);
+  spudec_clear_nav_list(this);
+  pthread_mutex_unlock(&this->nav_pci_lock);
 }
 
 
@@ -188,6 +202,8 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
     this->spudec_stream_state[i].overlay_handle = -1;
     free (this->spudec_stream_state[i].ra_seq.buf);
   }
+  
+  spudec_clear_nav_list(this);
   pthread_mutex_destroy(&this->nav_pci_lock);
 
   free (this->event.object.overlay);
@@ -206,7 +222,8 @@ static int spudec_get_interact_info (spu_decoder_t *this_gen, void *data) {
  
   /*printf("get_interact_info() coping nav_pci\n");*/
   pthread_mutex_lock(&this->nav_pci_lock);
-  memcpy(data, &this->pci, sizeof(pci_t) );
+  spudec_update_nav(this);
+  memcpy(data, &this->pci_cur.pci, sizeof(pci_t) );
   pthread_mutex_unlock(&this->nav_pci_lock);
   return 1;
 
@@ -260,14 +277,15 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
       this->button_filter = 2;
     }
     pthread_mutex_lock(&this->nav_pci_lock);
+    spudec_update_nav(this);
     overlay_event->object.handle = this->menu_handle;
-    overlay_event->object.pts = this->pci.hli.hl_gi.hli_s_ptm;
+    overlay_event->object.pts = this->pci_cur.pci.hli.hl_gi.hli_s_ptm;
     overlay_event->object.overlay=overlay;
     overlay_event->event_type = OVERLAY_EVENT_MENU_BUTTON;
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec:Button Overlay\n");
 #endif
-    spudec_copy_nav_to_overlay(this->stream->xine, &this->pci, this->state.clut,
+    spudec_copy_nav_to_overlay(this->stream->xine, &this->pci_cur.pci, this->state.clut,
 			       this->buttonN, show-1, overlay, &this->overlay );
     pthread_mutex_unlock(&this->nav_pci_lock);
   } else {
@@ -318,6 +336,8 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
   this->event.object.overlay = xine_xmalloc(sizeof(vo_overlay_t));
  
   pthread_mutex_init(&this->nav_pci_lock, NULL);
+  this->pci_cur.pci.hli.hl_gi.hli_ss  = 0;
+  this->pci_cur.next                  = NULL;
 
   this->ovl_caps    = stream->video_out->get_capabilities(stream->video_out);
   this->output_open = 0;

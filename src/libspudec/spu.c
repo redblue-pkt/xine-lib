@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2002-2004 the xine project
  *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *
@@ -35,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.73 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: spu.c,v 1.74 2004/04/09 15:01:29 mroi Exp $
  *
  */
 
@@ -150,11 +151,23 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 //      self->vobu_length = self->dsi.dsi_gi.vobu_ea;
     }
   }
+  
+  /* NAV packets contain start and end presentation timestamps, which tell the
+   * application, when the highlight information in the NAV is supposed to be valid.
+   * We handle these timestamps only in a very stripped-down way: We keep a list
+   * of NAV packets (or better: the PCI part of them), tagged with a VPTS timestamp
+   * telling, when the NAV should be processed. However, we only enqueue a new node
+   * into this list, when we receive new highlight information during an already
+   * showing menu. This happens very rarerly on common DVDs, so it is of low impact.
+   * And we only check for processing of queued entries at some prominent
+   * locations in this SPU decoder. Since presentation timestamps rarely solve a real
+   * purpose on most DVDs, this is ok compared to the full-blown solution, which would
+   * require a separate thread managing the queue all the time. */
   pthread_mutex_lock(&this->nav_pci_lock);
   switch (pci.hli.hl_gi.hli_ss) {
     case 0:
       /* No Highlight information for this VOBU */
-      if ( this->pci.hli.hl_gi.hli_ss == 1) {
+      if ( this->pci_cur.pci.hli.hl_gi.hli_ss == 1) {
         /* Hide menu spu between menus */
 #ifdef LOG_BUTTON
         printf("libspudec:nav:SHOULD HIDE SPU here\n");
@@ -172,7 +185,8 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libspudec: No video_overlay handles left for menu\n");
         }
       }
-      xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+      spudec_clear_nav_list(this);
+      xine_fast_memcpy(&this->pci_cur.pci, &pci, sizeof(pci_t));
       /* incoming SPUs will be plain subtitles */
       this->event.object.object_type = 0;
       if (this->button_filter) {
@@ -192,42 +206,56 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       break;
     case 1: 
       /* All New Highlight information for this VOBU */
-      xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
-      /* incoming SPUs will be menus */
-      this->event.object.object_type = 1;
-      if (!this->button_filter) {
-	/* we possibly entered a menu, so we update the UI button info */
-	xine_event_t   event;
-	xine_ui_data_t data;
-	
-	event.type = XINE_EVENT_UI_NUM_BUTTONS;
-	event.data = &data;
-	event.data_length = sizeof(data);
-	data.num_buttons = pci.hli.hl_gi.btn_ns;
-	
-	xine_event_send(this->stream, &event);
+      if (this->pci_cur.pci.hli.hl_gi.hli_ss != 0 &&
+	  pci.hli.hl_gi.hli_s_ptm > this->pci_cur.pci.hli.hl_gi.hli_s_ptm) {
+	pci_node_t *node = &this->pci_cur;
+	printf("libspudec: DEBUG: allocating new PCI node for hli_s_ptm %d\n", pci.hli.hl_gi.hli_s_ptm);
+	/* append PCI at the end of the list */
+	while (node->next) node = node->next;
+	node->next = (pci_node_t *)xine_xmalloc(sizeof(pci_node_t));
+	node->next->vpts = this->stream->metronom->got_spu_packet(this->stream->metronom, pci.hli.hl_gi.hli_s_ptm);
+	node->next->next = NULL;
+	xine_fast_memcpy(&node->next->pci, &pci, sizeof(pci_t));
+      } else {
+        spudec_clear_nav_list(this);
+        /* menu ahead, remember PCI for later use */
+        xine_fast_memcpy(&this->pci_cur.pci, &pci, sizeof(pci_t));
+        spudec_process_nav(this);
       }
-      this->button_filter=1;
-      /*******************************
-       * We should do something about fosl_btnn, but
-       * until we can send the info to dvdnav, ignore it.
-       * if( pci.hli.hl_gi.fosl_btnn) {
-       *   this->buttonN = pci.hli.hl_gi.fosl_btnn;
-       * }
-       *******************************/
       break;
     case 2:
       /* Use Highlight information from previous VOBU */
-      this->pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
-      this->pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
-      this->pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
+      if (this->pci_cur.next) {
+	/* apply changes to last enqueued NAV */
+	pci_node_t *node = this->pci_cur.next;
+	while (node->next) node = node->next;
+	node->pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
+	node->pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
+	node->pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
+	spudec_update_nav(this);
+      } else {
+	this->pci_cur.pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
+	this->pci_cur.pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
+	this->pci_cur.pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
+      }
       break;
     case 3:
       /* Use Highlight information from previous VOBU except commands, which come from this VOBU */
-      this->pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
-      this->pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
-      this->pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
-      /* FIXME: Add command copying here */
+      if (this->pci_cur.next) {
+	/* apply changes to last enqueued NAV */
+	pci_node_t *node = this->pci_cur.next;
+	while (node->next) node = node->next;
+	node->pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
+	node->pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
+	node->pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
+	/* FIXME: Add command copying here */
+	spudec_update_nav(this);
+      } else {
+	this->pci_cur.pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
+	this->pci_cur.pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
+	this->pci_cur.pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
+	/* FIXME: Add command copying here */
+      }
       break;
    default:
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -236,6 +264,48 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   }
   pthread_mutex_unlock(&this->nav_pci_lock);
   return;
+}
+
+void spudec_clear_nav_list(spudec_decoder_t *this)
+{
+  while (this->pci_cur.next) {
+    pci_node_t *node = this->pci_cur.next->next;
+    free(this->pci_cur.next);
+    this->pci_cur.next = node;
+  }
+  /* invalidate current timestamp */
+  this->pci_cur.pci.hli.hl_gi.hli_s_ptm = (uint32_t)-1;
+}
+
+void spudec_update_nav(spudec_decoder_t *this)
+{
+  metronom_clock_t *clock = this->stream->xine->clock;
+  
+  if (this->pci_cur.next && this->pci_cur.next->vpts <= clock->get_current_time(clock)) {
+    pci_node_t *node = this->pci_cur.next;
+    xine_fast_memcpy(&this->pci_cur, this->pci_cur.next, sizeof(pci_node_t));
+    spudec_process_nav(this);
+    free(node);
+  }
+}
+
+void spudec_process_nav(spudec_decoder_t *this)
+{
+  /* incoming SPUs will be menus */
+  this->event.object.object_type = 1;
+  if (!this->button_filter) {
+    /* we possibly entered a menu, so we update the UI button info */
+    xine_event_t   event;
+    xine_ui_data_t data;
+    
+    event.type = XINE_EVENT_UI_NUM_BUTTONS;
+    event.data = &data;
+    event.data_length = sizeof(data);
+    data.num_buttons = this->pci_cur.pci.hli.hl_gi.btn_ns;
+    
+    xine_event_send(this->stream, &event);
+  }
+  this->button_filter=1;
 }
 
 void spudec_reassembly (xine_t *xine, spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
@@ -357,7 +427,7 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       printf ("spu: forced display:%s\n", this->state.forced_display ? "Yes" : "No" ); 
 #endif
       pthread_mutex_lock(&this->nav_pci_lock);
-      if (this->pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts) {
+      if (this->pci_cur.pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts) {
         if (this->state.visible == OVERLAY_EVENT_HIDE) {
           /* menus are hidden via nav packet decoding, not here */
 	  /* FIXME: James is not sure about this solution and may want to look this over.
@@ -366,10 +436,10 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
           pthread_mutex_unlock(&this->nav_pci_lock);
           continue;
         }
-        if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
+        if ( this->pci_cur.pci.hli.hl_gi.fosl_btnn > 0) {
 	  xine_event_t event;
 	  
-          this->buttonN     = this->pci.hli.hl_gi.fosl_btnn ;
+          this->buttonN     = this->pci_cur.pci.hli.hl_gi.fosl_btnn ;
           event.type        = XINE_EVENT_INPUT_BUTTON_FORCE;
 	  event.stream      = this->stream;
 	  event.data        = &this->buttonN;
@@ -380,13 +450,13 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
         fprintf(stderr, "libspudec:Full Overlay\n");
 #endif
         if (!spudec_copy_nav_to_overlay(this->stream->xine, 
-					&this->pci, this->state.clut, 
+					&this->pci_cur.pci, this->state.clut, 
 					this->buttonN, 0, &this->overlay, &this->overlay)) {
           /* current button does not exist -> use another one */
 	  xine_event_t event;
 	  
-	  if (this->buttonN > this->pci.hli.hl_gi.btn_ns)
-	    this->buttonN = this->pci.hli.hl_gi.btn_ns;
+	  if (this->buttonN > this->pci_cur.pci.hli.hl_gi.btn_ns)
+	    this->buttonN = this->pci_cur.pci.hli.hl_gi.btn_ns;
 	  else
 	    this->buttonN = 1;
           event.type        = XINE_EVENT_INPUT_BUTTON_FORCE;
@@ -395,7 +465,7 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
 	  event.data_length = sizeof(this->buttonN);
           xine_event_send(this->stream, &event);
 	  spudec_copy_nav_to_overlay(this->stream->xine, 
-				     &this->pci, this->state.clut, 
+				     &this->pci_cur.pci, this->state.clut, 
 				     this->buttonN, 0, &this->overlay, &this->overlay);
         }
       } else {
