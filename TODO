@@ -22,7 +22,6 @@ required for 1.0
 - opengl video output plugin (matthias)
 - irix audio output plugin (matthias)
 - input_dvd: detect errors, display useful error messages (guenter)
-- prepare architecture for post effect plugins (michael)
 - input_net (guenter)
 - fix documentation
 - avoid file name clashes between libxine1 and libxine0.x.y
