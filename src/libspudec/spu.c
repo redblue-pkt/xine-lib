@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.42 2002/07/19 17:16:39 mroi Exp $
+ * $Id: spu.c,v 1.43 2002/07/20 16:28:14 mroi Exp $
  *
  */
 
@@ -586,8 +586,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
     default:
       printf("libspudec: unknown seqence command (%02x)\n", buf[0]);
       /* FIXME: SPU should be dropped, and buffers resynced */
-      assert(0);
-      buf++;
+      buf = next_seq;
       break;
     }
   }
