@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.45 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.46 2002/12/22 15:03:04 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -51,7 +51,6 @@ typedef struct mpeg2dec_decoder_s {
   mpeg2_class_t   *class;
   xine_stream_t   *stream;
   xine_video_port_t *video_out;
-  pthread_mutex_t  lock; /* mutex for async flush */
 } mpeg2dec_decoder_t;
 
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -61,8 +60,6 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
   printf ("libmpeg2: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
 #endif
 
-  pthread_mutex_lock (&this->lock);
-  
   /* handle aspect hints from xine-dvdnav */
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
@@ -71,7 +68,6 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
         /* letterboxing is denied, we have to do pan&scan */
         this->mpeg2.force_aspect = XINE_VO_ASPECT_PAN_SCAN;
     }
-    pthread_mutex_unlock (&this->lock);
     return;
   }
   
@@ -83,8 +79,6 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		       buf->pts);
   }
 
-  pthread_mutex_unlock (&this->lock);
-
 #ifdef LOG
   printf ("libmpeg2: decode_data...done\n");
 #endif
@@ -93,34 +87,23 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 static void mpeg2dec_flush (video_decoder_t *this_gen) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-  pthread_mutex_lock (&this->lock);
 #ifdef LOG
   printf ("libmpeg2: flush\n");
 #endif
 
   mpeg2_flush (&this->mpeg2);
-
-  pthread_mutex_unlock (&this->lock);
 }
 
 static void mpeg2dec_reset (video_decoder_t *this_gen) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-  pthread_mutex_lock (&this->lock);
-
   mpeg2_reset (&this->mpeg2);
-
-  pthread_mutex_unlock (&this->lock);
 }
 
 static void mpeg2dec_discontinuity (video_decoder_t *this_gen) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-  pthread_mutex_lock (&this->lock);
-
   mpeg2_discontinuity (&this->mpeg2);
-
-  pthread_mutex_unlock (&this->lock);
 }
 
 static void mpeg2dec_dispose (video_decoder_t *this_gen) {
@@ -131,15 +114,10 @@ static void mpeg2dec_dispose (video_decoder_t *this_gen) {
   printf ("libmpeg2: close\n");
 #endif
 
-  pthread_mutex_lock (&this->lock);
-
   mpeg2_close (&this->mpeg2);
 
   this->video_out->close(this->video_out, this->stream);
 
-  pthread_mutex_unlock (&this->lock);
-
-  pthread_mutex_destroy (&this->lock);
   free (this);
 }
 
@@ -157,16 +135,11 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->stream                            = stream;
   this->class                             = (mpeg2_class_t *) class_gen;
   this->mpeg2.stream = stream;
-  pthread_mutex_init (&this->lock, NULL);
-
-  pthread_mutex_lock (&this->lock);
 
   mpeg2_init (&this->mpeg2, stream->video_out);
   stream->video_out->open(stream->video_out, stream);
   this->video_out = stream->video_out;
   this->mpeg2.force_aspect = 0;
-
-  pthread_mutex_unlock (&this->lock);
 
   return &this->video_decoder;
 }
