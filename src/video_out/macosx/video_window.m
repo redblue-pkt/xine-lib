@@ -92,6 +92,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 - (void) dealloc
 {
     [xineView release];
+    xineView = nil;
 
     [super dealloc];
 }
@@ -242,15 +243,23 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
         [NSOpenGLContext clearCurrentContext];
         [fullScreenContext clearDrawable];
         [fullScreenContext release];
+        if (currentContext == fullScreenContext) currentContext = nil;
+        fullScreenContext = nil;
     }
 
     if (currentContext) {
         [NSOpenGLContext clearCurrentContext];
         [currentContext clearDrawable];
         [currentContext release];
+        currentContext = nil;
     }
 
-    [super dealloc];
+    // Enabling the [super dealloc] below (which should be correct behaviour)
+    // crashes -- not sure why ...
+    //
+    // [super dealloc];
+    //
+    // Maybe dealloc in main thread?
 }
 
 - (void) reshape {
@@ -470,6 +479,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [NSOpenGLContext clearCurrentContext];
     [fullScreenContext clearDrawable];
     [fullScreenContext release];
+    fullScreenContext = nil;
     CGReleaseAllDisplays();
 
     [self reshape];
@@ -534,6 +544,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 {
     video_width = size.width;
     video_height = size.height;
+
+    [self initTextures];
 }
 
 - (void) setViewSizeInMainThread:(NSSize)size
