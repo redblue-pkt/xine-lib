@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.66 2003/04/13 16:02:54 tmattern Exp $
+ * $Id: input_vcd.c,v 1.67 2003/04/26 22:34:32 guenter Exp $
  *
  */
 
@@ -1098,6 +1098,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 12, "VCD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 13, "VCD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

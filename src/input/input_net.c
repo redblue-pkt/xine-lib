@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.45 2003/04/13 17:31:40 miguelfreitas Exp $
+ * $Id: input_net.c,v 1.46 2003/04/26 22:34:32 guenter Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -439,7 +439,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 12, "tcp", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 13, "tcp", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

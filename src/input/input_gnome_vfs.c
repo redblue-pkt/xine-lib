@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 2002 Bastien Nocera <hadess@hadess.net>
  * 
  * This file is part of totem,
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.8 2003/04/13 16:02:53 tmattern Exp $
+ * $Id: input_gnome_vfs.c,v 1.9 2003/04/26 22:34:32 guenter Exp $
  */
 
 
@@ -346,7 +346,7 @@ static void
 }
 
 plugin_info_t xine_plugin_info[] = {
-	{ PLUGIN_INPUT, 12, "gnomevfs", XINE_VERSION_CODE, NULL,
+	{ PLUGIN_INPUT, 13, "gnomevfs", XINE_VERSION_CODE, NULL,
 		init_input_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

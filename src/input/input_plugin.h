@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.47 2003/04/13 16:02:54 tmattern Exp $
+ * $Id: input_plugin.h,v 1.48 2003/04/26 22:34:32 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -29,7 +29,7 @@
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   12
+#define INPUT_PLUGIN_IFACE_VERSION   13
  
 typedef struct input_class_s input_class_t ;
 typedef struct input_plugin_s input_plugin_t;

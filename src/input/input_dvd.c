@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.155 2003/04/26 00:19:21 hadess Exp $
+ * $Id: input_dvd.c,v 1.156 2003/04/26 22:34:32 guenter Exp $
  *
  */
 
@@ -1616,6 +1616,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.156  2003/04/26 22:34:32  guenter
+ * bump up input plugin interface version number
+ *
  * Revision 1.155  2003/04/26 00:19:21  hadess
  * - shush
  *
@@ -2041,6 +2044,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 12, "DVD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 13, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
