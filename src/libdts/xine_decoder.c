@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.55 2004/06/07 11:03:18 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.56 2004/07/18 17:31:40 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -49,6 +49,7 @@
 #include "buffer.h"
 #include "dts.h"
 
+#define MAX_AC5_FRAME 4096
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -70,7 +71,7 @@ typedef struct {
   int              sync_state;
   int              ac5_length, ac5_pcm_length, frame_todo;
   uint32_t         syncdword;
-  uint8_t          frame_buffer[3840];
+  uint8_t          frame_buffer[MAX_AC5_FRAME];
   uint8_t         *frame_ptr;
 
   int              output_open;
@@ -202,7 +203,7 @@ static void dts_decode_frame (dts_decoder_t *this, int64_t pts, int preview_mode
       }
 #endif
 
-      lprintf("length=%d loop=%d pts=%lld\n",this->ac5_pcm_length,n,audio_buffer->vpts);
+      lprintf("length=%d pts=%lld\n",this->ac5_pcm_length,audio_buffer->vpts);
 
       audio_buffer->num_frames = this->ac5_pcm_length;
 
@@ -359,13 +360,27 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    this->sync_state = 1;
 	    this->frame_ptr = this->frame_buffer+4;
             this->pts = buf->pts;
+            break;
+	  }
+          if ((this->syncdword == 0xff1f00e8)) {
+
+            lprintf ("sync found: syncdword=0x%x\n", this->syncdword);
+	    this->frame_buffer[0] = 0xff;
+	    this->frame_buffer[1] = 0x1f;
+	    this->frame_buffer[2] = 0x00;
+	    this->frame_buffer[3] = 0xe8;
+
+	    this->sync_state = 1;
+	    this->frame_ptr = this->frame_buffer+4;
+            this->pts = buf->pts;
+            break;
 	  }
           break;
 
     case 1:  /* Looking for enough bytes for sync_info. */
           sync_start = current - 1;
 	  *this->frame_ptr++ = *current++;
-          if ((this->frame_ptr - this->frame_buffer) > 16) {
+          if ((this->frame_ptr - this->frame_buffer) > 19) {
 	    int old_dts_flags       = this->dts_flags;
 	    int old_dts_sample_rate = this->dts_sample_rate;
 	    int old_dts_bit_rate    = this->dts_bit_rate;
@@ -374,8 +389,10 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 					       &this->dts_flags,
 					       &this->dts_sample_rate,
 					       &this->dts_bit_rate, &(this->ac5_pcm_length));
+	    lprintf("ac5_length=%d\n",this->ac5_length);
+	    lprintf("dts_sample_rate=%d\n",this->dts_sample_rate);
 
-            if (this->ac5_length < 80) { /* Invalid dts ac5_pcm_length */
+            if ( (this->ac5_length < 80) || (this->ac5_length > MAX_AC5_FRAME) ) { /* Invalid dts ac5_pcm_length */
 	      this->syncdword = 0;
 	      current = sync_start;
 	      this->sync_state = 0;
@@ -384,7 +401,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
             lprintf("Frame length = %d\n",this->ac5_pcm_length);
 
-	    this->frame_todo = this->ac5_length - 17;
+	    this->frame_todo = this->ac5_length - 20;
 	    this->sync_state = 2;
 	    if (!_x_meta_info_get(this->stream, XINE_META_INFO_AUDIOCODEC) ||
 	        old_dts_flags       != this->dts_flags ||
