@@ -386,4 +386,7 @@ Matthew Grooms
 Conrad Parker <conrad@metadecks.org>
   speex support
 
+Marcel Janssen <korgull@home.nl>
+  libavcodec MPEG encoder for DXR3
+
 (let us know if we've forgotten anyone)
