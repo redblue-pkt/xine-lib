@@ -696,6 +696,12 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       free (mpeg2dec->picture_base);
       mpeg2dec->picture = NULL;
     }
+    
+    if ( mpeg2dec->cc_dec) {
+      /* dispose the closed caption decoder */
+      mpeg2dec->cc_dec->dispose(mpeg2dec->cc_dec);
+      mpeg2dec->cc_dec = NULL;
+    }
 }
 
 void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
@@ -767,17 +773,23 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
 {
   /* check if user data denotes closed captions */
   if (buffer[0] == 'C' && buffer[1] == 'C') {
-#if 0
-    /* FIXME: find an event-less solution */
-    xine_closed_caption_event_t event;
-    uint8_t *end = find_end(buffer);
-
-    event.event.type = XINE_EVENT_CLOSED_CAPTION;
-    event.buffer = &buffer[2];
-    event.buf_len = end - &buffer[2];
-    event.pts = mpeg2dec->pts;
-    xine_send_event(mpeg2dec->xine, &event.event);
-#endif
-
+    
+    if (!mpeg2dec->cc_dec)
+      /* open the closed caption decoder first */
+      mpeg2dec->cc_dec = get_spu_decoder(mpeg2dec->stream, (BUF_SPU_CC >> 16) & 0xff);
+    
+    if (mpeg2dec->cc_dec) {
+      buf_element_t *buf;
+      
+      buf = mpeg2dec->stream->video_fifo->buffer_pool_alloc (mpeg2dec->stream->video_fifo);
+      buf->type = BUF_SPU_CC;
+      buf->content = &buffer[2];
+      buf->pts = mpeg2dec->pts;
+      buf->size = find_end(buffer) - &buffer[2];
+      
+      mpeg2dec->cc_dec->decode_data(mpeg2dec->cc_dec, buf);
+      
+      buf->free_buffer(buf);
+    }
   }
 }

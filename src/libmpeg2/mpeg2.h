@@ -47,6 +47,10 @@ typedef struct mpeg2dec_s {
     uint32_t rff_pattern; 
     int force_aspect;
     xine_stream_t *stream;
+    
+    /* a spu decoder for possible closed captions */
+    spu_decoder_t *cc_dec;
+    
 } mpeg2dec_t ;
 
 
