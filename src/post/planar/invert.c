@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.9 2003/05/31 18:33:30 miguelfreitas Exp $
+ * $Id: invert.c,v 1.10 2003/06/29 18:56:24 miguelfreitas Exp $
  */
  
 /*
@@ -29,8 +29,9 @@
 
 
 /* plugin class initialization function */
-static void *invert_init_plugin(xine_t *xine, void *);
+void *invert_init_plugin(xine_t *xine, void *);
 
+#if 0 /* moved to planar.c */
 
 /* plugin catalog information */
 post_info_t invert_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
@@ -41,6 +42,7 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
+#endif
 
 /* plugin structure */
 typedef struct post_invert_out_s post_invert_out_t;
@@ -75,7 +77,7 @@ static void           invert_close(xine_video_port_t *port_gen, xine_stream_t *s
 static int            invert_draw(vo_frame_t *frame, xine_stream_t *stream);
 
 
-static void *invert_init_plugin(xine_t *xine, void *data)
+void *invert_init_plugin(xine_t *xine, void *data)
 {
   post_class_t *class = (post_class_t *)malloc(sizeof(post_class_t));
   

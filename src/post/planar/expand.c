@@ -31,9 +31,9 @@
 
 
 /* plugin class initialization function */
-static void *expand_init_plugin(xine_t *xine, void *);
+void *expand_init_plugin(xine_t *xine, void *);
 
-
+#if 0 /* moved to planar.c */
 /* plugin catalog information */
 post_info_t expand_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
@@ -42,7 +42,7 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_POST, 3, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
+#endif
 
 /* plugin structure */
 typedef struct post_expand_out_s post_expand_out_t;
@@ -77,7 +77,7 @@ static void           expand_close(xine_video_port_t *port_gen, xine_stream_t *s
 static int            expand_draw(vo_frame_t *frame, xine_stream_t *stream);
 
 
-static void *expand_init_plugin(xine_t *xine, void *data)
+void *expand_init_plugin(xine_t *xine, void *data)
 {
   post_class_t *class = (post_class_t *)malloc(sizeof(post_class_t));
   
