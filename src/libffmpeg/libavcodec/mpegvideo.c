@@ -101,6 +101,8 @@ int MPV_common_init(MpegEncContext *s)
     int c_size, i;
     UINT8 *pict;
 
+    s->waiting_for_keyframe = 1;
+
     if (s->out_format == FMT_H263) 
         s->dct_unquantize = dct_unquantize_h263_c;
     else
@@ -212,6 +214,7 @@ int MPV_common_init(MpegEncContext *s)
         if (s->aux_picture_base[i])
             free(s->aux_picture_base[i]);
     }
+
     return -1;
 }
 

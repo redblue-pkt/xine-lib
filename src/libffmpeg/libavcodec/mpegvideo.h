@@ -181,6 +181,8 @@ typedef struct MpegEncContext {
     DCTELEM block[6][64] __align8;
     void (*dct_unquantize)(struct MpegEncContext *s, 
                            DCTELEM *block, int n, int qscale);
+
+    int waiting_for_keyframe;
 } MpegEncContext;
 
 int MPV_common_init(MpegEncContext *s);

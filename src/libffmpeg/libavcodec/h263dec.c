@@ -114,6 +114,14 @@ static int h263_decode_frame(AVCodecContext *avctx,
     if (ret < 0)
         return -1;
 
+    /* make sure we start with an I-frame */
+    if (s->waiting_for_keyframe) {
+      if (s->pict_type != I_TYPE)
+	return -1;
+      else
+	s->waiting_for_keyframe = 0;
+    }
+
     MPV_frame_start(s);
 
 #ifdef DEBUG

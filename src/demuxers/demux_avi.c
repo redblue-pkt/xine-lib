@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.34 2001/09/04 16:19:27 guenter Exp $
+ * $Id: demux_avi.c,v 1.35 2001/09/05 17:08:18 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -501,7 +501,7 @@ static avi_t *AVI_init(demux_avi_t *this)
 	      || ( (data[2]=='w' || data[2]=='W') &&
 		   (data[3]=='b' || data[3]=='B') ) )
 	    {
-	      avi_add_index_entry(this, AVI,data,0,this->input->seek(this->input, 0, SEEK_CUR)-8,n);
+	      avi_add_index_entry(this, AVI, data, AVIIF_KEYFRAME, this->input->seek(this->input, 0, SEEK_CUR)-8, n);
 	    }
 
 	  this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
