@@ -1218,7 +1218,6 @@ extern AVCodec oggvorbis_decoder;
 extern AVCodec cyuv_decoder;
 extern AVCodec h264_decoder;
 extern AVCodec indeo3_decoder;
-extern AVCodec vp3_decoder;
 
 /* pcm codecs */
 #define PCM_CODEC(id, name) \
