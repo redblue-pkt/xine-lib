@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.27 2003/03/06 22:59:35 hadess Exp $
+ * $Id: xine_goom.c,v 1.28 2003/03/11 17:40:30 jkeil Exp $
  *
  * GOOM post plugin.
  *
@@ -352,7 +352,7 @@ static void goom_class_dispose(post_class_t *class_gen)
 static void goom_dispose(post_plugin_t *this_gen)
 {
   post_plugin_goom_t *this = (post_plugin_goom_t *)this_gen;
-  xine_post_out_t *output = (xine_post_out_t *)xine_list_first_content(this_gen->output);
+  xine_post_out_t *output = (xine_post_out_t *)xine_list_last_content(this_gen->output);
   xine_video_port_t *port = *(xine_video_port_t **)output->data;
 
   goom_close();

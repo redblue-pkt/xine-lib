@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.5 2003/02/22 14:21:37 mroi Exp $
+ * $Id: oscope.c,v 1.6 2003/03/11 17:40:32 jkeil Exp $
  *
  */
 
@@ -311,7 +311,7 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
 static void oscope_dispose(post_plugin_t *this_gen)
 {
   post_plugin_oscope_t *this = (post_plugin_oscope_t *)this_gen;
-  xine_post_out_t *output = (xine_post_out_t *)xine_list_first_content(this_gen->output);
+  xine_post_out_t *output = (xine_post_out_t *)xine_list_last_content(this_gen->output);
   xine_video_port_t *port = *(xine_video_port_t **)output->data;
 
   if (this->stream)
