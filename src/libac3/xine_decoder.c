@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2001/07/10 22:11:06 guenter Exp $
+ * $Id: xine_decoder.c,v 1.13 2001/07/14 17:45:07 jcdutton Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -139,7 +139,7 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
 
     /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
        defaults are ok */
-    } else {
+    } else if (!(this->audio_caps & AO_CAP_MODE_STEREO)) {
       printf ("HELP! a mono-only audio driver?!\n");
 
       this->ac3_flags_map[AC3_MONO]   = AC3_MONO;

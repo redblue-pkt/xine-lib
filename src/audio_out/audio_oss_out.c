@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.19 2001/06/24 23:08:42 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.20 2001/07/14 17:45:06 jcdutton Exp $
  */
 
 /* required for swab() */
@@ -284,11 +284,12 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
 
-  xprintf (VERBOSE|AUDIO, "audio_oss_out: got %d samples, vpts=%d\n",
-	   num_samples, vpts);
+  xprintf (VERBOSE|AUDIO, "audio_oss_out: got %d samples, vpts=%d pts=%d\n",
+	   num_samples, vpts,pts_);
 
   if (vpts<this->last_audio_vpts) {
     /* reject this */
+  xprintf (VERBOSE|AUDIO, "audio_oss_out: rejected sample vpts=%d, last_audio_vpts=%d\n", vpts,this->last_audio_vpts)
 
     return 1;
   }
@@ -313,15 +314,12 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
 
   /*
-  printf ("audio_oss_out: got audio package vpts = %d, buffer_vpts = %d\n",
-	  vpts, buffer_vpts);
-  */
-
-  /*
    * calculate gap:
    */
 
   gap = vpts - buffer_vpts;
+  xprintf (VERBOSE|AUDIO, "audio_oss_out: buff=%d pos=%d buf_vpts=%d gap=%d\n",
+	   this->bytes_in_buffer, pos,buffer_vpts,gap);
 
   bDropPackage = 0;
   
