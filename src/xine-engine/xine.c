@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.218 2003/01/13 16:26:48 mroi Exp $
+ * $Id: xine.c,v 1.219 2003/01/13 17:47:35 mroi Exp $
  *
  * top-level xine functions
  *
@@ -634,7 +634,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    subtitle_mrl[strlen(tmp)] = '\0';
 	  }
 	  stream->slave = xine_stream_new (stream->xine, NULL, stream->video_out );
-	  stream->slave_affection = XINE_MASTER_SLAVE_PLAY || XINE_MASTER_SLAVE_STOP;
+	  stream->slave_affection = XINE_MASTER_SLAVE_PLAY | XINE_MASTER_SLAVE_STOP;
 	  if( xine_open( stream->slave, subtitle_mrl ) ) {
 	    printf("xine: subtitle mrl opened\n");
 	    stream->slave->master = stream;
