@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.72 2002/07/19 14:07:38 pmhahn Exp $
+ * $Id: demux_qt.c,v 1.73 2002/07/19 14:37:34 miguelfreitas Exp $
  *
  */
 
@@ -407,6 +407,10 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   /* default type */
   sample_table->type = MEDIA_OTHER;
 
+  /* video size not yet known */
+  sample_table->media_description.video.width = 0;
+  sample_table->media_description.video.height = 0;
+
   /* search for media type atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
     current_atom = BE_32(&trak_atom[i]);
@@ -424,9 +428,21 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
     current_atom = BE_32(&trak_atom[i]);
 
-    if (current_atom == TKHD_ATOM)
+    if (current_atom == TKHD_ATOM) {
       sample_table->flags = BE_16(&trak_atom[i + 6]);
-    else if (current_atom == ELST_ATOM) {
+
+      if (sample_table->type == MEDIA_VIDEO) {
+        /* fetch display parameters */
+        if( !sample_table->media_description.video.width ||
+            !sample_table->media_description.video.height ) {
+
+          sample_table->media_description.video.width =
+            BE_16(&trak_atom[i + 0x50]);
+          sample_table->media_description.video.height =
+            BE_16(&trak_atom[i + 0x54]); 
+        }
+      }
+    } else if (current_atom == ELST_ATOM) {
 
       /* there should only be one edit list table */
       if (sample_table->edit_list_table) {
@@ -458,10 +474,12 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       if (sample_table->type == MEDIA_VIDEO) {
 
         /* fetch video parameters */
-        sample_table->media_description.video.width =
-          BE_16(&trak_atom[i + 0x2C]);
-        sample_table->media_description.video.height =
-          BE_16(&trak_atom[i + 0x2E]);
+        if( BE_16(&trak_atom[i + 0x2C]) && BE_16(&trak_atom[i + 0x2E]) ) {
+          sample_table->media_description.video.width =
+            BE_16(&trak_atom[i + 0x2C]);
+          sample_table->media_description.video.height =
+            BE_16(&trak_atom[i + 0x2E]);
+        }
         sample_table->media_description.video.codec_format =
           *(uint32_t *)&trak_atom[i + 0x10];
 
