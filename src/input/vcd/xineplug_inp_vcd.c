@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.12 2004/03/05 17:50:29 mroi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.13 2004/03/24 04:25:06 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -174,6 +174,7 @@ vcd_get_default_device(vcd_input_class_t *class, bool log_msg_if_fail)
     }
     class->vcd_device = strdup(cd_drives[0]);
     cdio_free_device_list(cd_drives);
+    free(cd_drives);
   }
   return true;
 }
