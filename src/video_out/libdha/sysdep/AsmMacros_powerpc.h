@@ -56,7 +56,11 @@ static __inline__ unsigned long inl(short port)
 #define intr_enable()
 
 #else
-#include "sysdep/AsmMacros_generic.h"
+ #ifdef linux
+  /*nothing*/
+ #else
+  #include "sysdep/AsmMacros_generic.h"
+ #endif
 #endif
 
 #endif

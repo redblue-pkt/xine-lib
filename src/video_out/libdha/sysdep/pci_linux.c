@@ -20,6 +20,10 @@ int dhahelper_initialized = 0;
 int dhahelper_fd = 0;
 #endif
 
+#if defined(__sparc__) || defined(__powerpc__)
+#define iopl(x) (0)
+#endif
+
 static __inline__ int enable_os_io(void)
 {
 #ifdef CONFIG_DHAHELPER

@@ -5,7 +5,6 @@
 */
 
 static int pci_config_type( void ) { return 1; }
-
 #ifdef linux
 #include <fcntl.h>
 #include <sys/io.h>
@@ -139,11 +138,8 @@ static void pci_config_write_long(
     val = bswap_32(val);
     sprintf(path,"/proc/bus/pci/%02d/%02x.0", bus, dev);
     fd = open(path,O_RDONLY|O_SYNC);
-    if (fd == -1) {
-	    retval=0;
-    }
-    else pwrite(fd, &val, 4, cmd);
     if (fd > 0) {
+	    pwrite(fd, &val, 4, cmd);
 	    close(fd);
     }
 }
@@ -160,14 +156,10 @@ static void pci_config_write_word(
     val = bswap_16(val);
     sprintf(path,"/proc/bus/pci/%02d/%02x.0", bus, dev);
     fd = open(path,O_RDONLY|O_SYNC);
-    if (fd == -1) {
-	    retval=0;
-    }
-    else pwrite(fd, &val, 2, cmd);
     if (fd > 0) {
+	    pwrite(fd, &val, 2, cmd);
 	    close(fd);
     }
-    return retval;
 }
 
 static void pci_config_write_byte(
@@ -181,14 +173,10 @@ static void pci_config_write_byte(
     int fd;
     sprintf(path,"/proc/bus/pci/%02d/%02x.0", bus, dev);
     fd = open(path,O_RDONLY|O_SYNC);
-    if (fd == -1) {
-	    retval=0;
-    }
-    else pwrite(fd, &retval, 1, cmd);
     if (fd > 0) {
+	    pwrite(fd, &val, 1, cmd);
 	    close(fd);
     }
-    return retval;
 }
 #else
 static long pci_config_read_long(

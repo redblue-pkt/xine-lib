@@ -35,8 +35,8 @@ typedef struct pciinfo_s
 {
   int		bus,card,func;			/* PCI/AGP bus:card:func */
   unsigned short vendor,device;			/* Card vendor+device ID */
-  unsigned	base0,base1,base2,baserom;	/* Memory and I/O base addresses */
-  unsigned	base3,base4,base5;		/* Memory and I/O base addresses */
+  unsigned long base0,base1,base2,baserom;	/* Memory and I/O base addresses */
+  unsigned long base3,base4,base5;		/* Memory and I/O base addresses */
   unsigned char irq,ipin,gnt,lat;		/* assigned IRQ parameters for this card */
 //  unsigned	base0_limit, base1_limit, base2_limit, baserom_limit;
 }pciinfo_t;
@@ -93,12 +93,36 @@ extern void	bm_close( void );
 extern int	bm_virt_to_phys( void * virt_addr, unsigned long length,
 			    unsigned long * parray );
 		/* Converts virtual memory addresses into bus address
-		   Works in the same way as bm_virt_to_phys. */
+		   Works in the same way as bm_virt_to_phys.
+		   WARNING: This function will be die after implementing
+		   bm_alloc_pci_shmem() because we really can't pass
+		   any memory address to card. Example: 64-bit linear address
+		   can't be passed into 32-bit card. Even more - some old
+		   cards can access 24-bit address space only */
 extern int	bm_virt_to_bus( void * virt_addr, unsigned long length,
 			    unsigned long * barray );
 
-extern void *	bm_alloc_pa( unsigned long length );
-extern void	bm_free_pa( void * virt_addr, unsigned long length );
+		/* NOTE: bm_alloc_pci_shmem() and bm_free_pci_shmem()
+			 are still not implemented!
+			 arguments:
+			 pciinfo_t - specifies pci card for which memory should be shared
+			 bitness   - can be 16,24,32,64 specifies addressing possibilities
+				     of the card
+			 length    - specifies size of memory which should allocated
+			 op        - specifies direction as combination flags TO_CARD,FROM_CARD
+			 Return value - should be tuned
+			 we need to have something like this:
+			 struct pci_shmem
+			 {
+			    void * handler;
+			    void * virt_addr
+			    void * array_of_bus_addr[];
+			    unsigned long length;
+			 }
+		   NOTE2: After finalizing of these functions bm_virt_to_bus() will be die */
+extern void *	bm_alloc_pci_shmem(pciinfo_t *, unsigned mem_bitness, unsigned long length,int op );
+extern void	bm_free_pci_shmem(void * pci_shmem);
+
 extern int	bm_lock_mem( const void * addr, unsigned long length );
 extern int	bm_unlock_mem( const void * addr, unsigned long length );
 

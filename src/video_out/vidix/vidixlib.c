@@ -386,3 +386,95 @@ int	  vdlSetOemEffect(VDL_HANDLE handle, const vidix_oem_fx_t * f)
 {
   return t_vdl(handle)->set_fx ? t_vdl(handle)->set_fx(f) : ENOSYS;
 }
+
+/* ABI related extensions */
+vidix_capability_t *	vdlAllocCapabilityS( void )
+{
+    vidix_capability_t *retval;
+    retval=malloc(sizeof(vidix_capability_t));
+    if(retval) memset(retval,0,sizeof(vidix_capability_t));
+    return retval;
+}
+
+vidix_fourcc_t *		vdlAllocFourccS( void )
+{
+    vidix_fourcc_t *retval;
+    retval=malloc(sizeof(vidix_fourcc_t));
+    if(retval) memset(retval,0,sizeof(vidix_fourcc_t));
+    return retval;
+}
+
+vidix_yuv_t *		vdlAllocYUVS( void )
+{
+    vidix_yuv_t *retval;
+    retval=malloc(sizeof(vidix_yuv_t));
+    if(retval) memset(retval,0,sizeof(vidix_yuv_t));
+    return retval;
+}
+
+vidix_rect_t *		vdlAllocRectS( void )
+{
+    vidix_rect_t *retval;
+    retval=malloc(sizeof(vidix_rect_t));
+    if(retval) memset(retval,0,sizeof(vidix_rect_t));
+    return retval;
+}
+
+vidix_playback_t *	vdlAllocPlaybackS( void )
+{
+    vidix_playback_t *retval;
+    retval=malloc(sizeof(vidix_playback_t));
+    if(retval) memset(retval,0,sizeof(vidix_playback_t));
+    return retval;
+}
+
+vidix_grkey_t *		vdlAllocGrKeyS( void )
+{
+    vidix_grkey_t *retval;
+    retval=malloc(sizeof(vidix_grkey_t));
+    if(retval) memset(retval,0,sizeof(vidix_grkey_t));
+    return retval;
+}
+
+vidix_video_eq_t *	vdlAllocVideoEqS( void )
+{
+    vidix_video_eq_t *retval;
+    retval=malloc(sizeof(vidix_video_eq_t));
+    if(retval) memset(retval,0,sizeof(vidix_video_eq_t));
+    return retval;
+}
+
+vidix_deinterlace_t *	vdlAllocDeinterlaceS( void )
+{
+    vidix_deinterlace_t *retval;
+    retval=malloc(sizeof(vidix_deinterlace_t));
+    if(retval) memset(retval,0,sizeof(vidix_deinterlace_t));
+    return retval;
+}
+
+vidix_dma_t *		vdlAllocDmaS( void )
+{
+    vidix_dma_t *retval;
+    retval=malloc(sizeof(vidix_dma_t));
+    if(retval) memset(retval,0,sizeof(vidix_dma_t));
+    return retval;
+}
+
+vidix_oem_fx_t *		vdlAllocOemFxS( void )
+{
+    vidix_oem_fx_t *retval;
+    retval=malloc(sizeof(vidix_oem_fx_t));
+    if(retval) memset(retval,0,sizeof(vidix_oem_fx_t));
+    return retval;
+}
+
+void	vdlFreeCapabilityS(vidix_capability_t * _this) { free(_this); }
+void 	vdlFreeFourccS( vidix_fourcc_t * _this ) { free(_this); }
+void	vdlFreePlaybackS( vidix_playback_t * _this ) { free(_this); }
+void	vdlFreeYUVS( vidix_yuv_t * _this) { free(_this); }
+void	vdlFreeRectS( vidix_rect_t * _this) { free(_this); }
+void	vdlFreeGrKeyS( vidix_grkey_t * _this) { free(_this); }
+void	vdlFreeVideoEqS( vidix_video_eq_t * _this) { free(_this); }
+void	vdlFreeDeinterlaceS( vidix_deinterlace_t * _this) { free(_this); }
+void	vdlFreeDmaS( vidix_dma_t * _this) { free(_this); }
+void	vdlFreeOemFxS( vidix_oem_fx_t * _this) { free(_this); }

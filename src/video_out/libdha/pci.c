@@ -55,6 +55,11 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include "kernelhelper/dhahelper.h"
+
 #ifdef __unix__
 #include <unistd.h>
 #endif
@@ -507,7 +512,7 @@ static void identify_card(struct pci_config_reg *pcr)
 }
 
 /*main(int argc, char *argv[])*/
-int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
+static int __pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
 {
     unsigned int idx;
     struct pci_config_reg pcr;
@@ -704,11 +709,64 @@ int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
 #endif
 #endif
 
+int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
+{
+  int libdha_fd;
+  if ( (libdha_fd = open("/dev/dhahelper",O_RDWR)) < 0)
+  {
+	return __pci_scan(pci_list,num_pci);
+  }
+  else
+  {
+	dhahelper_pci_device_t pci_dev;
+	unsigned idx;
+	idx = 0;
+	while(ioctl(libdha_fd, DHAHELPER_PCI_FIND, &pci_dev)==0)
+	{
+	    pci_list[idx].bus = pci_dev.bus;
+	    pci_list[idx].card = pci_dev.card;
+	    pci_list[idx].func = pci_dev.func;
+	    pci_list[idx].vendor = pci_dev.vendor;
+	    pci_list[idx].device = pci_dev.device;
+	    pci_list[idx].base0 = pci_dev.base0?pci_dev.base0:0xFFFFFFFF;
+	    pci_list[idx].base1 = pci_dev.base1?pci_dev.base1:0xFFFFFFFF;
+	    pci_list[idx].base2 = pci_dev.base2?pci_dev.base2:0xFFFFFFFF;
+	    pci_list[idx].baserom = pci_dev.baserom?pci_dev.baserom:0x000C0000;
+	    pci_list[idx].base3 = pci_dev.base3?pci_dev.base3:0xFFFFFFFF;
+	    pci_list[idx].base4 = pci_dev.base4?pci_dev.base4:0xFFFFFFFF;
+	    pci_list[idx].base5 = pci_dev.base5?pci_dev.base5:0xFFFFFFFF;
+	    pci_list[idx].irq = pci_dev.irq;
+	    pci_list[idx].ipin = pci_dev.ipin;
+	    pci_list[idx].gnt = pci_dev.gnt;
+	    pci_list[idx].lat = pci_dev.lat;
+	    idx++;
+	}
+	*num_pci=idx;
+	close(libdha_fd);
+  }
+  return 0;
+}
+
 int pci_config_read(unsigned char bus, unsigned char dev, unsigned char func,
 		    unsigned char cmd, int len, unsigned long *val)
 {
     int ret;
-    
+    int dhahelper_fd;
+    if ( (dhahelper_fd = open("/dev/dhahelper",O_RDWR)) > 0)
+    {
+	int retval;
+	dhahelper_pci_config_t pcic;
+	pcic.operation = PCI_OP_READ;
+	pcic.bus = bus;
+	pcic.dev = dev;
+	pcic.func = func;
+	pcic.cmd = cmd;
+	pcic.size = len;
+	retval = ioctl(dhahelper_fd, DHAHELPER_PCI_CONFIG, &pcic);
+	close(dhahelper_fd);
+	*val = pcic.ret;
+	return retval;
+    }
     ret = enable_app_io();
     if (ret != 0)
 	return(ret);
@@ -737,6 +795,22 @@ int pci_config_write(unsigned char bus, unsigned char dev, unsigned char func,
 {
     int ret;
     
+    int dhahelper_fd;
+    if ( (dhahelper_fd = open("/dev/dhahelper",O_RDWR)) > 0)
+    {
+	int retval;
+	dhahelper_pci_config_t pcic;
+	pcic.operation = PCI_OP_WRITE;
+	pcic.bus = bus;
+	pcic.dev = dev;
+	pcic.func = func;
+	pcic.cmd = cmd;
+	pcic.size = len;
+	pcic.ret = val;
+	retval = ioctl(dhahelper_fd, DHAHELPER_PCI_CONFIG, &pcic);
+	close(dhahelper_fd);
+	return retval;
+    }
     ret = enable_app_io();
     if (ret != 0)
 	return ret;

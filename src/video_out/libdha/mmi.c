@@ -58,8 +58,10 @@ int bm_virt_to_bus( void * virt_addr, unsigned long length, unsigned long * barr
     return ENXIO;
 }
 
-void *	bm_alloc_pa( unsigned long length )
+void *	bm_alloc_pci_shmem(pciinfo_t *pi, unsigned mem_bitness, unsigned long length,int op )
 {
+    printf("libdha: Pure virtual function call - bm_alloc_pci_shmem()\n");
+#if 0
     dhahelper_mem_t vmi;
     vmi.length = length;
     if(libdha_fd > 0) 
@@ -68,10 +70,13 @@ void *	bm_alloc_pa( unsigned long length )
 		return vmi.addr;
     }
     return 0;
+#endif
 }
 
-void	bm_free_pa( void * virt_addr, unsigned long length )
+void	bm_free_pci_shmem(void * pci_shmem)
 {
+    printf("libdha: Pure virtual function call - bm_free_pci_shmem()\n");
+#if 0
     dhahelper_mem_t vmi;
     vmi.addr = virt_addr;
     vmi.length = length;
@@ -79,6 +84,7 @@ void	bm_free_pa( void * virt_addr, unsigned long length )
     {
 	ioctl(libdha_fd,DHAHELPER_FREE_PA,&vmi);
     }
+#endif
 }
 
 int	bm_lock_mem( const void *addr, unsigned long length )

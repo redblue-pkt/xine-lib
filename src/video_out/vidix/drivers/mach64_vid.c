@@ -523,6 +523,7 @@ typedef struct saved_regs_s
     uint32_t overlay_graphics_key_clr;
     uint32_t overlay_graphics_key_msk;
     uint32_t overlay_key_cntl;
+    uint32_t bus_cntl;
 }saved_regs_t;
 static saved_regs_t savreg;
 
@@ -534,6 +535,7 @@ static void save_regs( void )
     savreg.overlay_graphics_key_clr	= INREG(OVERLAY_GRAPHICS_KEY_CLR);
     savreg.overlay_graphics_key_msk	= INREG(OVERLAY_GRAPHICS_KEY_MSK);
     savreg.overlay_key_cntl		= INREG(OVERLAY_KEY_CNTL);
+    savreg.bus_cntl			= INREG(BUS_CNTL);
 }
 
 static void restore_regs( void )
@@ -544,15 +546,16 @@ static void restore_regs( void )
     OUTREG(OVERLAY_GRAPHICS_KEY_CLR,savreg.overlay_graphics_key_clr);
     OUTREG(OVERLAY_GRAPHICS_KEY_MSK,savreg.overlay_graphics_key_msk);
     OUTREG(OVERLAY_KEY_CNTL,savreg.overlay_key_cntl);
+    OUTREG(BUS_CNTL,savreg.bus_cntl|BUS_MASTER_DIS);
 }
 
-static int forced_irq=UINT_MAX;
+static int forced_irq=INT_MAX;
 static int can_use_irq=0;
 static int irq_installed=0;
 static void init_irq(void)
 {
 	irq_installed=1;
-	if(forced_irq != UINT_MAX) pci_info.irq=forced_irq;
+	if(forced_irq != INT_MAX) pci_info.irq=forced_irq;
 	if(hwirq_install(pci_info.bus,pci_info.card,pci_info.func,
 			 2,CRTC_INT_CNTL,CRTC_BUSMASTER_EOL_INT) == 0)
 	{
@@ -976,6 +979,8 @@ for(i=0; i<32; i++){
 	  tmp = config->offset.u;
 	  config->offset.u = config->offset.v;
 	  config->offset.v = tmp;
+	  src_offset_u=config->offset.u;
+	  src_offset_v=config->offset.v;
 	}
     }
     else if(besr.fourcc == IMGFMT_YVU9)
@@ -1326,7 +1331,7 @@ static int mach64_transfer_frame( unsigned long ba_dma_desc,int sync_mode )
 {
     uint32_t crtc_int;
     mach64_wait_for_idle();
-    mach64_fifo_wait(10);
+    mach64_fifo_wait(4);
     OUTREG(BUS_CNTL,(INREG(BUS_CNTL)|BUS_EXT_REG_EN)&(~BUS_MASTER_DIS));
     crtc_int = INREG(CRTC_INT_CNTL);
     if(sync_mode && can_use_irq) OUTREG(CRTC_INT_CNTL,crtc_int|CRTC_BUSMASTER_EOL_INT|CRTC_BUSMASTER_EOL_INT_EN);
@@ -1351,6 +1356,8 @@ int VIDIX_NAME(vixQueryDMAStatus)( void )
 {
     int bm_off;
     unsigned crtc_int_cntl;
+    mach64_wait_for_idle();
+    mach64_fifo_wait(2);
     crtc_int_cntl = INREG(CRTC_INT_CNTL);
     bm_off = crtc_int_cntl & CRTC_BUSMASTER_EOL_INT;
 //    if(bm_off) OUTREG(CRTC_INT_CNTL,crtc_int_cntl | CRTC_BUSMASTER_EOL_INT);

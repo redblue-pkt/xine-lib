@@ -94,6 +94,33 @@ extern int	  vdlPlaybackCopyFrame(VDL_HANDLE, vidix_dma_t * );
 			/* Returns 0 if DMA is available else errno (EBUSY) */
 extern int	  vdlQueryDMAStatus( VDL_HANDLE );
 
+/*
+  ABI related extensions.
+  Note: you should use this functions if you are using shared version
+  of vidix.
+*/
+extern vidix_capability_t *	vdlAllocCapabilityS( void );
+extern vidix_fourcc_t *		vdlAllocFourccS( void );
+extern vidix_playback_t *	vdlAllocPlaybackS( void );
+extern vidix_yuv_t *		vdlAllocYUVS( void );
+extern vidix_rect_t *		vdlAllocRectS( void );
+extern vidix_grkey_t *		vdlAllocGrKeyS( void );
+extern vidix_video_eq_t *	vdlAllocVideoEqS( void );
+extern vidix_deinterlace_t *	vdlAllocDeinterlaceS( void );
+extern vidix_dma_t *		vdlAllocDmaS( void );
+extern vidix_oem_fx_t *		vdlAllocOemFxS( void );
+
+extern void	vdlFreeCapabilityS(vidix_capability_t * );
+extern void 	vdlFreeFourccS( vidix_fourcc_t * );
+extern void	vdlFreePlaybackS( vidix_playback_t * );
+extern void	vdlFreeYUVS( vidix_yuv_t * );
+extern void	vdlFreeRectS( vidix_rect_t * );
+extern void	vdlFreeGrKeyS( vidix_grkey_t * );
+extern void	vdlFreeVideoEqS( vidix_video_eq_t * );
+extern void	vdlFreeDeinterlaceS( vidix_deinterlace_t * );
+extern void	vdlFreeDmaS( vidix_dma_t * );
+extern void	vdlFreeOemFxS( vidix_oem_fx_t * );
+
 #ifdef __cplusplus
 }
 #endif

@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include "kernelhelper/dhahelper.h"
 #include "libdha.h"
 
 #if defined (__i386__) && defined (__NetBSD__)
@@ -22,10 +26,43 @@
 #endif
 #endif
 
-#if defined( __i386__ )
 int	mtrr_set_type(unsigned base,unsigned size,int type)
 {
-#ifdef linux
+    int dhahelper_fd;
+    dhahelper_fd = open("/dev/dhahelper",O_RDWR);
+    if(dhahelper_fd > 0)
+    {
+	int retval;
+	dhahelper_mtrr_t mtrrs;
+	mtrrs.operation = MTRR_OP_ADD;
+	mtrrs.start = base;
+	mtrrs.size = size;
+	mtrrs.type = type;
+	retval = ioctl(dhahelper_fd, DHAHELPER_ACK_IRQ, &mtrrs);
+	close(dhahelper_fd);
+	return retval;
+    }
+#if defined (__NetBSD__) && (__NetBSD_Version__) > 105240000
+    {
+    struct mtrr *mtrrp;
+    int n;
+
+    mtrrp = malloc(sizeof (struct mtrr));
+    mtrrp->base = base;
+    mtrrp->len = size;
+    mtrrp->type = type;  
+    mtrrp->flags = MTRR_VALID | MTRR_PRIVATE;
+    n = 1;
+
+    if (i386_set_mtrr(mtrrp, &n) < 0) {
+	free(mtrrp);
+	return errno;
+    }
+    free(mtrrp);
+    return 0;
+    }
+#else
+    {
     FILE * mtrr_fd;
     char * stype;
     switch(type)
@@ -48,37 +85,7 @@ int	mtrr_set_type(unsigned base,unsigned size,int type)
 	fclose(mtrr_fd);
 	return wr_len == strlen(sout) ? 0 : EPERM;
     }
-    return ENOSYS;
-#elif defined (__NetBSD__)
-#if __NetBSD_Version__ > 105240000
-    struct mtrr *mtrrp;
-    int n;
-
-    mtrrp = malloc(sizeof (struct mtrr));
-    mtrrp->base = base;
-    mtrrp->len = size;
-    mtrrp->type = type;  
-    mtrrp->flags = MTRR_VALID | MTRR_PRIVATE;
-    n = 1;
-
-    if (i386_set_mtrr(mtrrp, &n) < 0) {
-	free(mtrrp);
-	return errno;
     }
-    free(mtrrp);
-    return 0;
-#else
-    /* NetBSD prior to 1.5Y doesn't have MTRR support */
-    return ENOSYS;
 #endif
-#else
-#warning Please port MTRR stuff!!!
-    return ENOSYS;
-#endif
-}
-#else
-int	mtrr_set_type(unsigned base,unsigned size,int type)
-{
     return ENOSYS;
 }
-#endif

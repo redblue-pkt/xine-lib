@@ -58,6 +58,10 @@ typedef struct vidix_capability_s
 #define FLAG_NONE		0x00000000 /* No flags defined */
 #define FLAG_DMA		0x00000001 /* Card can use DMA */
 #define FLAG_EQ_DMA		0x00000002 /* Card can use DMA only if src pitch == dest pitch */
+#define FLAG_SYNC_DMA           0x00000004 /* Possible to wait for DMA
+					    * to finish.  See
+					    * BM_DMA_SYNC and
+					    * BM_DMA_BLOCK below */
 #define FLAG_UPSCALER		0x00000010 /* Card supports hw upscaling */
 #define FLAG_DOWNSCALER		0x00000020 /* Card supports hw downscaling */
 #define FLAG_SUBPIC		0x00001000 /* Card supports DVD subpictures */
@@ -108,7 +112,7 @@ extern int	vixQueryFourcc(vidix_fourcc_t *);
 
 typedef struct vidix_yuv_s
 {
-	unsigned y,u,v;
+	unsigned y,u,v,a;
 }vidix_yuv_t;
 
 typedef struct vidix_rect_s
@@ -251,8 +255,9 @@ typedef struct vidix_dma_s
 	unsigned 	dest_offset;	/* app -> driver. Destinition offset within of video memory */
 	unsigned 	size;		/* app -> driver. Size of transaction */
 #define BM_DMA_ASYNC		0
-#define BM_DMA_SYNC		1	/* means: wait dma transfer completion */
+#define BM_DMA_SYNC		1	/* await previous dma transfer completion */
 #define BM_DMA_FIXED_BUFFS	2	/* app -> driver: app uses buffers which are fixed in memory  */
+#define BM_DMA_BLOCK            4       /* block until the transfer is complete */
 	unsigned	flags;		/* app -> driver */
 	unsigned 	idx;		/* app -> driver: idx of src buffer */
 	void *		internal[VID_PLAY_MAXFRAMES];	/* for internal use by driver */

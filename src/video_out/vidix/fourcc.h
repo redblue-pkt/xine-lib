@@ -60,6 +60,9 @@
 #define IMGFMT_CLJR    vid_fourcc('C','L','J','R') /* 7.9 YUV 4:1:1 */
 #define IMGFMT_YUVP    vid_fourcc('Y','U','V','P') /* 24 Y0U0Y1V0 */
 #define IMGFMT_UYVP    vid_fourcc('U','Y','V','P') /* 24 U0Y0V0Y1 */
+#define IMGFMT_411P    vid_fourcc('4','1','1','P') /* 12 alias of Y41B */
+#define IMGFMT_422P    vid_fourcc('4','2','2','P') /* 16 alias of Y42B */
+#define IMGFMT_444P    vid_fourcc('4','4','4','P') /* 24 alias of Y44B */
 
 /*  Vendor-specific formats   */
 #define IMGFMT_WNVA    vid_fourcc('W','N','V','A') /* Winnov hw compress */

@@ -1361,7 +1361,7 @@ int VIDIX_NAME(vixInit)(const char *args)
 	}
     }
 
-    if (mga_verbose > 1) printf(MGA_MSG" hardware addresses: mmio: 0x%x, framebuffer: 0x%x\n",
+    if (mga_verbose > 1) printf(MGA_MSG" hardware addresses: mmio: 0x%lx, framebuffer: 0x%lx\n",
 				pci_info.base1, pci_info.base0);
 
     mga_mmio_base = map_phys_mem(pci_info.base1,0x4000);

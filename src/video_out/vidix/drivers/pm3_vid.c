@@ -1,7 +1,7 @@
 /**
     Driver for 3DLabs GLINT R3 and Permedia3 chips.
 
-    Copyright (C) 2002  Måns Rullgård
+    Copyright (C) 2002, 2003  Måns Rullgård
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -57,6 +57,8 @@ static void *pm3_mem;
 static int pm3_vidmem = PM3_VIDMEM;
 static int pm3_blank = 0;
 static int pm3_dma = 0;
+
+static int pm3_ckey_red, pm3_ckey_green, pm3_ckey_blue;
 
 static u_int page_size;
 
@@ -145,43 +147,57 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
 
 int VIDIX_NAME(vixInit)(const char *args)
 {
-    char *ac = strdup(args), *s, *opt;
+    if(args != NULL){
+	char *ac = strdup(args), *s, *opt;
 
-    opt = strtok_r(ac, ",", &s);
-    while(opt){
-	char *a = strchr(opt, '=');
+	opt = strtok_r(ac, ",", &s);
+	while(opt){
+	    char *a = strchr(opt, '=');
 
-	if(a)
-	    *a++ = 0;
-	if(!strcmp(opt, "mem")){
 	    if(a)
-		pm3_vidmem = strtol(a, NULL, 0);
-	} else if(!strcmp(opt, "blank")){
-	    pm3_blank = a? strtol(a, NULL, 0): 1;
+		*a++ = 0;
+	    if(!strcmp(opt, "mem")){
+		if(a)
+		    pm3_vidmem = strtol(a, NULL, 0);
+	    } else if(!strcmp(opt, "blank")){
+		pm3_blank = a? strtol(a, NULL, 0): 1;
+	    }
+
+	    opt = strtok_r(NULL, ",", &s);
 	}
 
-	opt = strtok_r(NULL, ",", &s);
+	free(ac);
     }
-
-    free(ac);
 
     pm3_reg_base = map_phys_mem(pci_info.base0, 0x20000);
     pm3_mem = map_phys_mem(pci_info.base1, 0x2000000);
 
     if(bm_open() == 0){
-	printf(PM3_MSG" Using DMA.\n");
-	pm3_cap.flags |= FLAG_DMA;
+	fprintf(stderr, PM3_MSG" DMA available.\n");
+	pm3_cap.flags |= FLAG_DMA | FLAG_SYNC_DMA;
 	page_size = sysconf(_SC_PAGESIZE);
 	hwirq_install(pci_info.bus, pci_info.card, pci_info.func,
 		      0, PM3IntFlags, -1);
+	WRITE_REG(PM3IntEnable, (1 << 7));
 	pm3_dma = 1;
     }
+
+    RAMDAC_GET_REG(PM3RD_VideoOverlayKeyR, pm3_ckey_red);
+    RAMDAC_GET_REG(PM3RD_VideoOverlayKeyG, pm3_ckey_green);
+    RAMDAC_GET_REG(PM3RD_VideoOverlayKeyB, pm3_ckey_blue);
 
     return 0;
 }
 
 void VIDIX_NAME(vixDestroy)(void)
 {
+    if(pm3_dma)
+	WRITE_REG(PM3IntEnable, 0);
+
+    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyR, pm3_ckey_red);
+    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyG, pm3_ckey_green);
+    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyB, pm3_ckey_blue);
+
     unmap_phys_mem(pm3_reg_base, 0x20000);
     unmap_phys_mem(pm3_mem, 0x2000000);
     hwirq_uninstall(pci_info.bus, pci_info.card, pci_info.func);
@@ -222,7 +238,8 @@ int VIDIX_NAME(vixQueryFourcc)(vidix_fourcc_t *to)
 }
 
 static int frames[VID_PLAY_MAXFRAMES], vid_base;
-static long overlay_mode, overlay_control, video_control, int_enable;
+static int overlay_mode, overlay_control, video_control, int_enable;
+static int rdoverlay_mode;
 static int src_w, drw_w;
 static int src_h, drw_h;
 static int drw_x, drw_y;
@@ -289,6 +306,7 @@ pm3_setup_overlay(vidix_playback_t *info)
 
     compute_scale_factor(&sw, &drw_w, &shrink, &zoom);
 
+    WAIT_FIFO(9);
     WRITE_REG(PM3VideoOverlayBase0, vid_base >> 1);
     WRITE_REG(PM3VideoOverlayStride, PM3VideoOverlayStride_STRIDE(src_w));
     WRITE_REG(PM3VideoOverlayWidth, PM3VideoOverlayWidth_WIDTH(sw));
@@ -326,10 +344,6 @@ pm3_setup_overlay(vidix_playback_t *info)
     RAMDAC_SET_REG(PM3RD_VideoOverlayYEndHigh,
 		   ((drw_y+drw_h) & 0xf00)>>8);
 
-    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyR, 0xff);
-    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyG, 0x00);
-    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyB, 0xff);
-
     overlay_mode =
 	1 << 5 |
 	format |
@@ -339,11 +353,37 @@ pm3_setup_overlay(vidix_playback_t *info)
 
     overlay_control = 
 	PM3RD_VideoOverlayControl_KEY_COLOR |
-	PM3RD_VideoOverlayControl_MODE_ALWAYS |
 	PM3RD_VideoOverlayControl_DIRECTCOLOR_ENABLED;
 }
 
-int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
+extern int
+VIDIX_NAME(vixSetGrKeys)(const vidix_grkey_t *key)
+{
+    if(key->ckey.op == CKEY_TRUE){
+	RAMDAC_SET_REG(PM3RD_VideoOverlayKeyR, key->ckey.red);
+	RAMDAC_SET_REG(PM3RD_VideoOverlayKeyG, key->ckey.green);
+	RAMDAC_SET_REG(PM3RD_VideoOverlayKeyB, key->ckey.blue);
+	rdoverlay_mode = PM3RD_VideoOverlayControl_MODE_MAINKEY;
+    } else {
+	rdoverlay_mode = PM3RD_VideoOverlayControl_MODE_ALWAYS;
+    }
+    RAMDAC_SET_REG(PM3RD_VideoOverlayControl,
+		   overlay_control | rdoverlay_mode);
+
+    return 0;
+}
+
+extern int
+VIDIX_NAME(vixGetGrKeys)(vidix_grkey_t *key)
+{
+    RAMDAC_GET_REG(PM3RD_VideoOverlayKeyR, key->ckey.red);
+    RAMDAC_GET_REG(PM3RD_VideoOverlayKeyG, key->ckey.green);
+    RAMDAC_GET_REG(PM3RD_VideoOverlayKeyB, key->ckey.blue);
+    return 0;
+}
+
+extern int
+VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 {
     unsigned int i;
     u_int frame_size;
@@ -403,10 +443,10 @@ int VIDIX_NAME(vixPlaybackOn)(void)
 
     WRITE_REG(PM3VideoOverlayMode,
 	      overlay_mode | PM3VideoOverlayMode_ENABLE);
+    overlay_control |= PM3RD_VideoOverlayControl_ENABLE;
     RAMDAC_SET_REG(PM3RD_VideoOverlayControl,
-		   overlay_control | PM3RD_VideoOverlayControl_ENABLE);
-    WRITE_REG(PM3VideoOverlayUpdate,
-	      PM3VideoOverlayUpdate_ENABLE);
+		   overlay_control | rdoverlay_mode);
+    WRITE_REG(PM3VideoOverlayUpdate, PM3VideoOverlayUpdate_ENABLE);
 
     if(pm3_blank)
 	WRITE_REG(PM3VideoControl,
@@ -418,20 +458,15 @@ int VIDIX_NAME(vixPlaybackOn)(void)
 
 int VIDIX_NAME(vixPlaybackOff)(void)
 {
+    overlay_control &= ~PM3RD_VideoOverlayControl_ENABLE;
     RAMDAC_SET_REG(PM3RD_VideoOverlayControl,
 		   PM3RD_VideoOverlayControl_DISABLE);
     WRITE_REG(PM3VideoOverlayMode,
 	      PM3VideoOverlayMode_DISABLE);
 
-    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyR, 0x01);
-    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyG, 0x01);
-    RAMDAC_SET_REG(PM3RD_VideoOverlayKeyB, 0xfe);
-
     if(video_control)
-	WRITE_REG(PM3VideoControl, video_control);
-
-    if(pm3_dma)
-	WRITE_REG(PM3IntEnable, 0);
+	WRITE_REG(PM3VideoControl,
+		  video_control & ~PM3VideoControl_DISPLAY_ENABLE);
 
     return 0;
 }
@@ -457,11 +492,10 @@ struct pm3_bydma_frame {
 };
 
 static struct pm3_bydma_frame *
-pm3_setup_bydma(vidix_dma_t *dma)
+pm3_setup_bydma(vidix_dma_t *dma, struct pm3_bydma_frame *bdf)
 {
     u_int size = dma->size;
     u_int pages = (size + page_size-1) / page_size;
-    struct pm3_bydma_frame *bdf;
     long baddr[pages];
     u_int i;
     uint32_t dest;
@@ -469,8 +503,13 @@ pm3_setup_bydma(vidix_dma_t *dma)
     if(bm_virt_to_bus(dma->src, dma->size, baddr))
 	return NULL;
 
-    bdf = malloc(sizeof(*bdf));
-    bdf->cmds = valloc(pages * sizeof(struct pm3_bydma_cmd));
+    if(!bdf){
+	bdf = malloc(sizeof(*bdf));
+	bdf->cmds = valloc(pages * sizeof(struct pm3_bydma_cmd));
+	if(dma->flags & BM_DMA_FIXED_BUFFS){
+	    mlock(bdf->cmds, page_size);
+	}
+    }
 
     dest = vid_base + dma->dest_offset;
     for(i = 0; i < pages; i++, dest += page_size, size -= page_size){
@@ -496,27 +535,19 @@ VIDIX_NAME(vixPlaybackCopyFrame)(vidix_dma_t *dma)
 {
     u_int frame = dma->idx;
     struct pm3_bydma_frame *bdf;
+    static int s = 0;
 
-    if(dma->internal[frame]){
-	bdf = dma->internal[frame];
-    } else {
-	if(!(bdf = pm3_setup_bydma(dma))){
-	    return -1;
-	} else if(dma->flags & BM_DMA_FIXED_BUFFS){
-	    if(mlock(bdf->cmds, page_size) == 0){
-		dma->internal[frame] = bdf;
-	    } else {
-		printf(PM3_MSG" Can't lock page @ %p\n", bdf->cmds);
-	    }
-	}
-    }
+    bdf = dma->internal[frame];
+    if(!bdf || !(dma->flags & BM_DMA_FIXED_BUFFS))
+	bdf = pm3_setup_bydma(dma, bdf);
+    if(!bdf)
+	return -1;
+
+    if(!dma->internal[frame])
+	dma->internal[frame] = bdf;
 
     if(dma->flags & BM_DMA_SYNC){
-	WRITE_REG(PM3IntEnable, (1 << 7));
-	while(READ_REG(PM3ByDMAReadMode) & PM3ByDMAReadMode_Active){
-	    hwirq_wait(pci_info.irq);
-	}
-	WRITE_REG(PM3IntEnable, 0);
+	hwirq_wait(pci_info.irq);
     }
 
     WAIT_FIFO(3);
@@ -529,6 +560,10 @@ VIDIX_NAME(vixPlaybackCopyFrame)(vidix_dma_t *dma)
 	      PM3ByDMAReadMode_Active |
 	      PM3ByDMAReadMode_Burst(7) |
 	      PM3ByDMAReadMode_Align);
+
+    if(dma->flags & BM_DMA_BLOCK){
+	hwirq_wait(pci_info.irq);
+    }
 
     return 0;
 }

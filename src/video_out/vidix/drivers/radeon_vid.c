@@ -26,7 +26,7 @@
 #define X_ADJUST 0
 #else
 #define RADEON_MSG "radeon_vid:"
-#define X_ADJUST (is_shift_required ? 8 : 0)
+#define X_ADJUST (((besr.chip_flags&R_OVL_SHIFT)==R_OVL_SHIFT)?8:0)
 #ifndef RADEON
 #define RADEON
 #endif
@@ -60,9 +60,6 @@ typedef struct
 
 #define VERBOSE_LEVEL 0
 static int __verbose = 0;
-#ifndef RAGE128
-static int is_shift_required=0;
-#endif
 typedef struct bes_registers_s
 {
   /* base address of yuv framebuffer */
@@ -117,7 +114,7 @@ typedef struct bes_registers_s
   
   int deinterlace_on;
   uint32_t deinterlace_pattern;
-  
+  unsigned chip_flags;
 } bes_registers_t;
 
 typedef struct video_registers_s
@@ -128,9 +125,6 @@ typedef struct video_registers_s
 }video_registers_t;
 
 static bes_registers_t besr;
-#ifndef RAGE128
-static int RadeonFamily=100;
-#endif
 #define DECLARE_VREG(name) { #name, name, 0 }
 static video_registers_t vregs[] = 
 {
@@ -262,6 +256,163 @@ static video_registers_t vregs[] =
   DECLARE_VREG(DMA_VID_ACT_DSCRPTR),
 #endif
 };
+
+#define R_FAMILY	0x000000FF
+#define R_100		0x00000001
+#define R_120		0x00000002
+#define R_150		0x00000003
+#define R_200		0x00000004
+#define R_250		0x00000005
+#define R_280		0x00000006
+#define R_300		0x00000007
+#define R_350		0x00000008
+#define R_OVL_SHIFT	0x00000100
+#define R_INTEGRATED	0x00000200
+
+typedef struct ati_card_ids_s
+{
+    unsigned short id;
+    unsigned flags;
+}ati_card_ids_t;
+
+static const ati_card_ids_t ati_card_ids[] = 
+{
+#ifdef RAGE128
+ /*
+    This driver should be compatible with Rage128 (pro) chips.
+    (include adaptive deinterlacing!!!).
+    Moreover: the same logic can be used with Mach64 chips.
+    (I mean: mach64xx, 3d rage, 3d rage IIc, 3D rage pro, 3d rage mobility).
+    but they are incompatible by i/o ports. So if enthusiasts will want
+    then they can redefine OUTREG and INREG macros and redefine OV0_*
+    constants. Also it seems that mach64 chips supports only: YUY2, YV12, UYVY
+    fourccs (422 and 420 formats only).
+  */
+/* Rage128 Pro GL */
+ { DEVICE_ATI_RAGE_128_PA_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PB_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PC_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PD_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PE_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PF_PRO, 0 },
+/* Rage128 Pro VR */
+ { DEVICE_ATI_RAGE_128_PG_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PH_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PI_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PJ_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PK_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PL_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PM_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PN_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PO_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PP_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PQ_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PR_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PS_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PT_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PU_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PV_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PW_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PX_PRO, 0 },
+/* Rage128 GL */
+ { DEVICE_ATI_RAGE_128_RE_SG, 0 },
+ { DEVICE_ATI_RAGE_128_RF_SG, 0 },
+ { DEVICE_ATI_RAGE_128_RG, 0 },
+ { DEVICE_ATI_RAGE_128_RK_VR, 0 },
+ { DEVICE_ATI_RAGE_128_RL_VR, 0 },
+ { DEVICE_ATI_RAGE_128_SE_4X, 0 },
+ { DEVICE_ATI_RAGE_128_SF_4X, 0 },
+ { DEVICE_ATI_RAGE_128_SG_4X, 0 },
+ { DEVICE_ATI_RAGE_128_SH, 0 },
+ { DEVICE_ATI_RAGE_128_SK_4X, 0 },
+ { DEVICE_ATI_RAGE_128_SL_4X, 0 },
+ { DEVICE_ATI_RAGE_128_SM_4X, 0 },
+ { DEVICE_ATI_RAGE_128_4X, 0 },
+ { DEVICE_ATI_RAGE_128_PRO, 0 },
+ { DEVICE_ATI_RAGE_128_PRO2, 0 },
+ { DEVICE_ATI_RAGE_128_PRO3, 0 },
+/* these seem to be based on rage 128 instead of mach64 */
+ { DEVICE_ATI_RAGE_MOBILITY_M3, 0 },
+ { DEVICE_ATI_RAGE_MOBILITY_M32, 0 },
+#else
+/* Radeon1 (indeed: Rage 256 Pro ;) */
+ { DEVICE_ATI_RADEON_R100_QD,		R_100|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_R100_QE,		R_100|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_R100_QF,		R_100|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_R100_QG,		R_100|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RS100_IGP320,	R_150|R_OVL_SHIFT|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_RS100_MOBILITY,	R_150|R_OVL_SHIFT|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_VE_QY,		R_120|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_VE_QZ,		R_120|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_MOBILITY_M7,	R_150|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_MOBILITY_M72,	R_150|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_MOBILITY_M6,	R_120|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_MOBILITY_M62,	R_120|R_OVL_SHIFT },
+/* Radeon2 (indeed: Rage 512 Pro ;) */
+ { DEVICE_ATI_RADEON_R200_BB,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QH,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QI,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QJ,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QK,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QL,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QM,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QN,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QO,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QH2,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QI2,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QJ2,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QK2,		R_200 },
+ { DEVICE_ATI_RADEON_R200_QL2,		R_200 },
+ { DEVICE_ATI_RADEON_RV200_QW,		R_150|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV200_QX,		R_150|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RS200_IGP330_340_350,R_200|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_RS200_MOBILITY,	R_200|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_R250_IG,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RS250_7000,	R_250|R_OVL_SHIFT|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_RS250_MOBILITY,	R_250|R_OVL_SHIFT|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_RV250_ID,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV250_IE,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV250_IF,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV250_IG,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV250_LD,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV250_LE,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV250_LF,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV250_LG,		R_250|R_OVL_SHIFT },
+ { DEVICE_ATI_RADEON_RV280_9200,	R_280 },
+ { DEVICE_ATI_RADEON_RV280_92002,	R_280 },
+ { DEVICE_ATI_RADEON_RV280_92003,	R_280 },
+ { DEVICE_ATI_RADEON_RV280_92004,	R_280 },
+ { DEVICE_ATI_RADEON_RV280_M9,		R_280 },
+ { DEVICE_ATI_RADEON_RV280_M92,		R_280 },
+ { DEVICE_ATI_RADEON_RV280_M93,		R_280 },
+ { DEVICE_ATI_RADEON_RV280_M94,		R_280 },
+/* Radeon3 (indeed: Rage 1024 Pro ;) */
+ { DEVICE_ATI_RADEON_R300,		R_300 },
+ { DEVICE_ATI_RADEON_R300_ND,		R_300 },
+ { DEVICE_ATI_RADEON_R300_NE,		R_300 },
+ { DEVICE_ATI_RADEON_R300_NF,		R_300 },
+ { DEVICE_ATI_RADEON_R300_NG,		R_300 },
+ { DEVICE_ATI_RADEON_RV300_9500,	R_300 },
+ { DEVICE_ATI_RADEON_RV300_95002,	R_300 },
+ { DEVICE_ATI_RADEON_RV300_95003,	R_300 },
+ { DEVICE_ATI_RADEON_RS300_9000,	R_300|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_RS300_MOBILITY,	R_300|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_RS300_5836,	R_300|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_RS300_5837,	R_300|R_INTEGRATED },
+ { DEVICE_ATI_RADEON_R350,		R_350 },
+ { DEVICE_ATI_RADEON_R3502,		R_350 },
+ { DEVICE_ATI_RADEON_R3503,		R_350 },
+ { DEVICE_ATI_RADEON_R3504,		R_350 },
+ { DEVICE_ATI_RADEON_R350_NH,		R_350 },
+ { DEVICE_ATI_RADEON_R350_NI,		R_350 },
+ { DEVICE_ATI_RADEON_R350_NJ,		R_350 },
+ { DEVICE_ATI_RADEON_R350_NK,		R_350 },
+ { DEVICE_ATI_RADEON_RV350_9600,	R_350 },
+ { DEVICE_ATI_RADEON_RV350_9600PRO,	R_350 },
+ { DEVICE_ATI_RADEON_RV350_NP,		R_350 }
+#endif
+};
+
 
 static void * radeon_mmio_base = 0;
 static void * radeon_mem_base = 0; 
@@ -765,7 +916,9 @@ GAMMA_SETTINGS r100_def_gamma[6] =
 static void make_default_gamma_correction( void )
 {
     size_t i;
-    if(RadeonFamily == 100){
+    if((besr.chip_flags & R_100)==R_100||
+	(besr.chip_flags & R_120)==R_120||
+	(besr.chip_flags & R_150)==R_150){
 	OUTREG(OV0_LIN_TRANS_A, 0x12A00000);
 	OUTREG(OV0_LIN_TRANS_B, 0x199018FE);
 	OUTREG(OV0_LIN_TRANS_C, 0x12A0F9B0);
@@ -818,110 +971,13 @@ static void radeon_vid_make_default(void)
 
 unsigned VIDIX_NAME(vixGetVersion)( void ) { return VIDIX_VERSION; }
 
-static unsigned short ati_card_ids[] = 
-{
-#ifdef RAGE128
- /*
-    This driver should be compatible with Rage128 (pro) chips.
-    (include adaptive deinterlacing!!!).
-    Moreover: the same logic can be used with Mach64 chips.
-    (I mean: mach64xx, 3d rage, 3d rage IIc, 3D rage pro, 3d rage mobility).
-    but they are incompatible by i/o ports. So if enthusiasts will want
-    then they can redefine OUTREG and INREG macros and redefine OV0_*
-    constants. Also it seems that mach64 chips supports only: YUY2, YV12, UYVY
-    fourccs (422 and 420 formats only).
-  */
-/* Rage128 Pro GL */
- DEVICE_ATI_RAGE_128_PA_PRO,
- DEVICE_ATI_RAGE_128_PB_PRO,
- DEVICE_ATI_RAGE_128_PC_PRO,
- DEVICE_ATI_RAGE_128_PD_PRO,
- DEVICE_ATI_RAGE_128_PE_PRO,
- DEVICE_ATI_RAGE_128_PF_PRO,
-/* Rage128 Pro VR */
- DEVICE_ATI_RAGE_128_PG_PRO,
- DEVICE_ATI_RAGE_128_PH_PRO,
- DEVICE_ATI_RAGE_128_PI_PRO,
- DEVICE_ATI_RAGE_128_PJ_PRO,
- DEVICE_ATI_RAGE_128_PK_PRO,
- DEVICE_ATI_RAGE_128_PL_PRO,
- DEVICE_ATI_RAGE_128_PM_PRO,
- DEVICE_ATI_RAGE_128_PN_PRO,
- DEVICE_ATI_RAGE_128_PO_PRO,
- DEVICE_ATI_RAGE_128_PP_PRO,
- DEVICE_ATI_RAGE_128_PQ_PRO,
- DEVICE_ATI_RAGE_128_PR_PRO,
- DEVICE_ATI_RAGE_128_PS_PRO,
- DEVICE_ATI_RAGE_128_PT_PRO,
- DEVICE_ATI_RAGE_128_PU_PRO,
- DEVICE_ATI_RAGE_128_PV_PRO,
- DEVICE_ATI_RAGE_128_PW_PRO,
- DEVICE_ATI_RAGE_128_PX_PRO,
-/* Rage128 GL */
- DEVICE_ATI_RAGE_128_RE_SG,
- DEVICE_ATI_RAGE_128_RF_SG,
- DEVICE_ATI_RAGE_128_RG,
- DEVICE_ATI_RAGE_128_RK_VR,
- DEVICE_ATI_RAGE_128_RL_VR,
- DEVICE_ATI_RAGE_128_SE_4X,
- DEVICE_ATI_RAGE_128_SF_4X,
- DEVICE_ATI_RAGE_128_SG_4X,
- DEVICE_ATI_RAGE_128_SH,
- DEVICE_ATI_RAGE_128_SK_4X,
- DEVICE_ATI_RAGE_128_SL_4X,
- DEVICE_ATI_RAGE_128_SM_4X,
- DEVICE_ATI_RAGE_128_4X,
- DEVICE_ATI_RAGE_128_PRO,
- DEVICE_ATI_RAGE_128_PRO2,
- DEVICE_ATI_RAGE_128_PRO3,
-/* these seem to be based on rage 128 instead of mach64 */
- DEVICE_ATI_RAGE_MOBILITY_M3,
- DEVICE_ATI_RAGE_MOBILITY_M32
-#else
-/* Radeons (indeed: Rage 256 Pro ;) */
- DEVICE_ATI_RADEON_R100_QD,
- DEVICE_ATI_RADEON_R100_QE,
- DEVICE_ATI_RADEON_R100_QF,
- DEVICE_ATI_RADEON_R100_QG,
- DEVICE_ATI_RADEON_VE_QY,
- DEVICE_ATI_RADEON_VE_QZ,
- DEVICE_ATI_RADEON_MOBILITY_M7,
- DEVICE_ATI_RADEON_MOBILITY_M72,
- DEVICE_ATI_RADEON_MOBILITY_M6,
- DEVICE_ATI_RADEON_MOBILITY_M62,
- DEVICE_ATI_RADEON_R200_BB,
- DEVICE_ATI_RADEON_R200_QH,
- DEVICE_ATI_RADEON_R200_QI,
- DEVICE_ATI_RADEON_R200_QJ,
- DEVICE_ATI_RADEON_R200_QK,
- DEVICE_ATI_RADEON_R200_QL,
- DEVICE_ATI_RADEON_R200_QH2,
- DEVICE_ATI_RADEON_R200_QI2,
- DEVICE_ATI_RADEON_R200_QJ2,
- DEVICE_ATI_RADEON_R200_QK2,
- DEVICE_ATI_RADEON_RV200_QW,
- DEVICE_ATI_RADEON_RV200_QX,
- DEVICE_ATI_RADEON_R250_ID,
- DEVICE_ATI_RADEON_R250_IE,
- DEVICE_ATI_RADEON_R250_IF,
- DEVICE_ATI_RADEON_R250_IG,
- DEVICE_ATI_RADEON_R250_LD,
- DEVICE_ATI_RADEON_R250_LE,
- DEVICE_ATI_RADEON_R250_LF,
- DEVICE_ATI_RADEON_R250_LG,
- DEVICE_ATI_RADEON_R300_ND,
- DEVICE_ATI_RADEON_R300_NE,
- DEVICE_ATI_RADEON_R300_NF,
- DEVICE_ATI_RADEON_R300_NG
-#endif
-};
 
 static int find_chip(unsigned chip_id)
 {
   unsigned i;
   for(i = 0;i < sizeof(ati_card_ids)/sizeof(unsigned short);i++)
   {
-    if(chip_id == ati_card_ids[i]) return i;
+    if(chip_id == ati_card_ids[i].id) return i;
   }
   return -1;
 }
@@ -977,72 +1033,7 @@ int VIDIX_NAME(vixProbe)( int verbose,int force )
 	dname = pci_device_name(VENDOR_ATI,lst[i].device);
 	dname = dname ? dname : "Unknown chip";
 	printf(RADEON_MSG" Found chip: %s\n",dname);
-#ifndef RAGE128 
-	if(idx != -1)
-	{
-          switch(ati_card_ids[idx]) {
-            /* Original radeon */
-            case DEVICE_ATI_RADEON_R100_QD:
-            case DEVICE_ATI_RADEON_R100_QE:
-            case DEVICE_ATI_RADEON_R100_QF:
-            case DEVICE_ATI_RADEON_R100_QG:
-              RadeonFamily = 100;
-              break;
-              
-            /* Radeon VE / Radeon Mobility */
-            case DEVICE_ATI_RADEON_VE_QY:
-            case DEVICE_ATI_RADEON_VE_QZ:
-            case DEVICE_ATI_RADEON_MOBILITY_M6:
-            case DEVICE_ATI_RADEON_MOBILITY_M62:
-              RadeonFamily = 120;
-              break;
-              
-            /* Radeon 7500 / Radeon Mobility 7500 */
-            case DEVICE_ATI_RADEON_RV200_QW:
-            case DEVICE_ATI_RADEON_RV200_QX: 
-            case DEVICE_ATI_RADEON_MOBILITY_M7:
-            case DEVICE_ATI_RADEON_MOBILITY_M72:
-              RadeonFamily = 150;
-              break;
-              
-            /* Radeon 8500 */
-            case DEVICE_ATI_RADEON_R200_BB:
-            case DEVICE_ATI_RADEON_R200_QH:
-            case DEVICE_ATI_RADEON_R200_QI:
-            case DEVICE_ATI_RADEON_R200_QJ:
-            case DEVICE_ATI_RADEON_R200_QK:
-            case DEVICE_ATI_RADEON_R200_QL:
-            case DEVICE_ATI_RADEON_R200_QH2:
-            case DEVICE_ATI_RADEON_R200_QI2:
-            case DEVICE_ATI_RADEON_R200_QJ2:
-            case DEVICE_ATI_RADEON_R200_QK2:
-              RadeonFamily = 200;
-              break;
-              
-            /* Radeon 9000 */
-            case DEVICE_ATI_RADEON_R250_ID:
-            case DEVICE_ATI_RADEON_R250_IE:
-            case DEVICE_ATI_RADEON_R250_IF:
-            case DEVICE_ATI_RADEON_R250_IG:
-            case DEVICE_ATI_RADEON_R250_LD:
-            case DEVICE_ATI_RADEON_R250_LE:
-            case DEVICE_ATI_RADEON_R250_LF:
-            case DEVICE_ATI_RADEON_R250_LG:
-              RadeonFamily = 250;
-              break;
-              
-            /* Radeon 9700 */
-            case DEVICE_ATI_RADEON_R300_ND:
-            case DEVICE_ATI_RADEON_R300_NE:
-            case DEVICE_ATI_RADEON_R300_NF:
-            case DEVICE_ATI_RADEON_R300_NG:
-              RadeonFamily = 300;
-              break;
-            default:
-              break;
-          }
-	}
-#endif
+	memset(&besr,0,sizeof(bes_registers_t));
 	if(force > PROBE_NORMAL)
 	{
 	    printf(RADEON_MSG" Driver was forced. Was found %sknown chip\n",idx == -1 ? "un" : "");
@@ -1052,7 +1043,9 @@ int VIDIX_NAME(vixProbe)( int verbose,int force )
 #else
 		printf(RADEON_MSG" Assuming it as Radeon1\n");
 #endif
+	    besr.chip_flags=R_100|R_OVL_SHIFT;
 	}
+	if(idx != -1) besr.chip_flags=ati_card_ids[idx].flags;
 	def_cap.device_id = lst[i].device;
 	err = 0;
 	memcpy(&pci_info,&lst[i],sizeof(pciinfo_t));
@@ -1206,7 +1199,6 @@ int VIDIX_NAME(vixInit)( const char *args )
   }
 #endif
   if((radeon_mem_base = map_phys_mem(pci_info.base0,radeon_ram_size))==(void *)-1) return ENOMEM;
-  memset(&besr,0,sizeof(bes_registers_t));
   radeon_vid_make_default();
   printf(RADEON_MSG" Video memory = %uMb\n",radeon_ram_size/0x100000);
   err = mtrr_set_type(pci_info.base0,radeon_ram_size,MTRR_TYPE_WRCOMB);
@@ -1214,19 +1206,8 @@ int VIDIX_NAME(vixInit)( const char *args )
 #ifndef RAGE128
   {
     memset(&rinfo,0,sizeof(rinfo_t));
-    if(RadeonFamily > 100) rinfo.hasCRTC2 = 1;
+    if((besr.chip_flags&R_100) != R_100) rinfo.hasCRTC2 = 1;
     
-  switch(RadeonFamily)
-    {
-    case 100:
-    case 120:
-    case 150:
-    case 250:
-      is_shift_required=1;
-      break;
-    default:
-      break;
-    }
     radeon_get_moninfo(&rinfo);
 	if(rinfo.hasCRTC2) {
 	    printf(RADEON_MSG" DVI port has %s monitor connected\n",GET_MON_NAME(rinfo.dviDispType));
@@ -2713,6 +2694,11 @@ static int radeon_vid_init_video( vidix_playback_t *config )
     if(radeon_is_interlace())	interlace_factor = 2;
     else			interlace_factor = 1;
     /* TODO: must be checked in doublescan mode!!! */
+    if((besr.chip_flags&R_INTEGRATED)==R_INTEGRATED)
+    {
+	/* Force the overlay clock on for integrated chips */
+        OUTPLL(VCLK_ECP_CNTL, (INPLL(VCLK_ECP_CNTL) | (1<<18)));
+    }
     horz_repl_factor = 1 << (uint32_t)((INPLL(VCLK_ECP_CNTL) & 0x300) >> 8);
     H_scale_ratio = (double)ceil(((double)dest_w+1)/horz_repl_factor)/src_w;
     V_scale_ratio = (double)(dest_h+1)/src_h;
@@ -3244,8 +3230,8 @@ static void set_gr_key( void )
 	besr.graphics_key_msk=(1<<dbpp)-1;
 	besr.ckey_cntl = VIDEO_KEY_FN_TRUE|GRAPHIC_KEY_FN_NE|CMP_MIX_AND;
 #else
-	besr.graphics_key_msk=(0xFF<<24)|besr.graphics_key_clr;
-	besr.ckey_cntl = VIDEO_KEY_FN_FALSE|GRAPHIC_KEY_FN_EQ|CMP_MIX_OR;
+	besr.graphics_key_msk=besr.graphics_key_clr;
+	besr.ckey_cntl = VIDEO_KEY_FN_TRUE|CMP_MIX_AND|GRAPHIC_KEY_FN_EQ;
 #endif
     }
     else
