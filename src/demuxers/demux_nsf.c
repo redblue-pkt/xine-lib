@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.3 2003/01/08 06:59:48 tmmm Exp $
+ * $Id: demux_nsf.c,v 1.4 2003/01/09 04:23:14 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -202,6 +202,7 @@ static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
 
   demux_nsf_t *this = (demux_nsf_t *) this_gen;
   buf_element_t *buf;
+  char copyright[100];
 
   this->video_fifo = this->stream->video_fifo;
   this->audio_fifo = this->stream->audio_fifo;
@@ -220,7 +221,8 @@ static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
 
   /* fill in title during send_chunk */
   this->stream->meta_info[XINE_META_INFO_ARTIST] = strdup(this->artist);
-  this->stream->meta_info[XINE_META_INFO_COMMENT] = strdup(this->copyright);
+  sprintf(copyright, "(C) %s", this->copyright);
+  this->stream->meta_info[XINE_META_INFO_COMMENT] = strdup(copyright);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
@@ -269,6 +271,7 @@ static int demux_nsf_seek (demux_plugin_t *this_gen,
   } else {
     this->current_song = start_pos * this->total_songs / this->filesize + 1;
     this->new_song = 1;
+    this->current_pts = 0;
     xine_demux_flush_engine(this->stream);
   }
 
