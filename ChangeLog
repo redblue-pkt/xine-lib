@@ -6,12 +6,16 @@ xine-lib (1-beta9)
   * fix mpgaudio demuxer to not try to falsely handle AVI files
   * fix mpeg demuxer to work with chunks bigger than xine's buffers
   * fix libmpeg2 to not wait endlessly for I/P frames,
-  fix MPEG artifacts on seek
+    fix MPEG artifacts on seek
   * fix the MP3 by content detection for some streams
   * fix segfault with non-multiple of 16 height video and XShm
   * fix BAD STATE error on seek with ALSA audio driver
   * fix artefacts when playing certain DivX video streams on i386
   * libavcodec divx/xvid qpel bug workaround ported from ffmpeg cvs
+  * libdvdnav: method to try-run VM operations,
+    now used for safer chapter skipping and menu jumps
+  * libdvdnav: do not rely on a 1:1 mapping between PTTs and PGs
+  * libdvdnav: do not rely on PGs to be physically layed out in sequence
 
 xine-lib (1-beta8)
   * fix DVD highlight problems
