@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.87 2002/09/09 13:57:12 mroi Exp $
+ * $Id: load_plugins.c,v 1.88 2002/09/09 15:12:59 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -215,7 +215,7 @@ static void collect_plugins(xine_t *this, char *path){
 		  
 	  plugin_name = str;
 		  
-	  if(!(lib = dlopen (str, RTLD_LAZY))) {
+	  if(!(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 			
 #ifdef LOG
 	    {
@@ -300,7 +300,7 @@ static void *_load_plugin(xine_t *this,
 
   void *lib;
 
-  if(!(lib = dlopen (filename, RTLD_LAZY))) {
+  if(!(lib = dlopen (filename, RTLD_LAZY | RTLD_GLOBAL))) {
 
     xine_log (this, XINE_LOG_PLUGIN,
 	      _("load_plugins: cannot (stage 2) open plugin lib %s:\n%s\n"),
