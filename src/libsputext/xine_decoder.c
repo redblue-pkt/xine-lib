@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/12/08 00:37:38 guenter Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/12/09 00:01:17 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -793,7 +793,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     if (!this->uses_time) {
 
-
       while ( (this->cur < this->num) 
 	      && (this->subtitles[this->cur].start < frame_num) )
 	this->cur++;
@@ -816,9 +815,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
       uint32_t start_tenth;
 
-      start_tenth = pts / 9000;
+      start_tenth = pts/900;
 
-      /* FIXME: untested */
+#ifdef LOG
+      printf ("sputext: searching for spu for %d\n", start_tenth);
+#endif
 
       while ( (this->cur < this->num) 
 	      && (this->subtitles[this->cur].start < start_tenth) )
@@ -827,14 +828,19 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       if (this->cur >= this->num)
 	return;
 
+#ifdef LOG
+      printf ("sputext: found >%s<, start %d, end %d\n", this->subtitles[this->cur].text[0],
+	      this->subtitles[this->cur].start, this->subtitles[this->cur].end);
+#endif
+
       subtitle = &this->subtitles[this->cur];
 
-      if (subtitle->start > start_tenth)
+      if (subtitle->start > (start_tenth+20))
 	return;
 
       pts += this->xine->metronom->video_wrap_offset;
 
-      pts_end = subtitle->end * 9000 + this->xine->metronom->video_wrap_offset;
+      pts_end = pts + (subtitle->end - subtitle->start)*900;
     }
 
     if (subtitle) {
@@ -857,6 +863,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       
       this->renderer->show (this->osd, pts );
       this->renderer->hide (this->osd, pts_end);
+
+#ifdef LOG
+      printf ("sputext: scheduling subtitle >%s< at %d until %d, current time is %d\n",
+	      subtitle->text[0], pts, pts_end, 
+	      this->xine->metronom->get_current_time (this->xine->metronom));
+#endif
 
     }
 
