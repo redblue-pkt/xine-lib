@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.50 2003/01/13 02:33:36 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.51 2003/01/13 14:26:17 mroi Exp $
  *
  */
 
@@ -209,7 +209,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 #endif
   }
   
-  spu_offset = this->stream->master->metronom->get_option (this->stream->metronom,
+  spu_offset = this->stream->master->metronom->get_option (this->stream->master->metronom,
                                                            METRONOM_SPU_OFFSET);
   start += (spu_offset / 90);
   end += (spu_offset / 90);
