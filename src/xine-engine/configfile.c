@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.70 2004/12/13 03:49:44 dsalt Exp $
+ * $Id: configfile.c,v 1.71 2004/12/13 10:58:33 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -88,10 +88,9 @@ static config_entry_translation_t config_entry_translation[] = {
   { "codec.ffmpeg_pp_quality",			"video.processing.ffmpeg_pp_quality" },
   { "codec.real_codecs_path",			"decoder.external.real_codecs_path" },
   { "codec.win32_path",				"decoder.external.win32_codecs_path" },
-/*{ "decoder.%s_priority",			"engine.decoder_priorities.%s" },*/
+  { "dxr3.alt_play_mode",			"dxr3.playback.alt_play_mode" },
   { "dxr3.color_interval",			"dxr3.output.keycolor_interval" },
   { "dxr3.correct_durations",			"dxr3.playback.correct_durations" },
-/*{ "dxr3.device_number",			"dxr3.device_number" },*/
   { "dxr3.devicename",				"" },
   { "dxr3.enc_add_bars",			"dxr3.encoding.add_bars" },
   { "dxr3.enc_alt_play_mode",			"dxr3.encoding.alt_play_mode" },
@@ -105,7 +104,6 @@ static config_entry_translation_t config_entry_translation[] = {
   { "dxr3.lavc_quantizer",			"dxr3.encoding.lavc_quantizer" },
   { "dxr3.preferred_tvmode",			"dxr3.output.tvmode" },
   { "dxr3.rte_bitrate",				"dxr3.encoding.rte_bitrate" },
-/*{ "dxr3.scr_priority",			"dxr3.scr_priority" },*/
   { "dxr3.shrink_overlay_area",			"dxr3.output.shrink_overlay_area" },
   { "dxr3.sync_every_frame",			"dxr3.playback.sync_every_frame" },
   { "dxr3.videoout_mode",			"dxr3.output.mode" },
