@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.58 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: spu.c,v 1.59 2003/02/12 17:29:30 heikos Exp $
  *
  */
 
@@ -45,7 +45,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <inttypes.h>
-#include <malloc.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
