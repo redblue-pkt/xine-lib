@@ -37,6 +37,8 @@ xine-lib (1-rc4)
   * added video output plugin for Sun PGX32 framebuffers
   * new video out plugin using CACA - Colored ASCII Art
   * fix a crash when using the gnome-vfs plugin with newer gnome-vfs versions
+  * new "file" (wave) audio out plugin
+    example: XINE_WAVE_OUTPUT=/tmp/file.wav xine -A file music.mp3
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
