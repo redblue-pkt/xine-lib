@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.59 2003/10/06 19:19:05 valtri Exp $
+ * $Id: xine_interface.c,v 1.60 2003/10/21 22:10:34 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -176,7 +176,6 @@ static int xine_config_get_current_entry (xine_t *this,
   entry->type           = config->cur->type;
   entry->str_value      = config->cur->str_value;
   entry->str_default    = config->cur->str_default;
-  entry->str_sticky     = config->cur->str_sticky;
   entry->num_value      = config->cur->num_value;
   entry->num_default    = config->cur->num_default;
   entry->range_min      = config->cur->range_min;

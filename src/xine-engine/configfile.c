@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.51 2003/10/20 08:36:56 valtri Exp $
+ * $Id: configfile.c,v 1.52 2003/10/21 22:10:34 f1rmb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -93,7 +93,6 @@ static cfg_entry_t *xine_config_add (config_values_t *this, const char *key) {
   entry->key           = copy_string (key);
   entry->type          = CONFIG_TYPE_UNKNOWN;
   entry->unknown_value = NULL;
-  entry->str_sticky    = NULL;
   entry->str_value     = NULL;
 
   /* extract parts of the new key */
@@ -242,16 +241,7 @@ static char *_xine_config_register_string (config_values_t *this,
     if(!entry->unknown_value)
       entry->unknown_value = copy_string(def_value);
 
-    /*
-     * Check for sticky string
-     */
-    if(entry->str_sticky) {
-      entry->str_value = (char *) xine_xmalloc(strlen(entry->unknown_value) +
-					       strlen(entry->str_sticky) + 1);
-      sprintf(entry->str_value, "%s%s", entry->unknown_value, entry->str_sticky);
-    }
-    else
-      entry->str_value = strdup(entry->unknown_value);
+    entry->str_value = strdup(entry->unknown_value);
 
   } else
     free (entry->str_default);
@@ -544,7 +534,6 @@ static void xine_config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src)
   dest->unknown_value = src->unknown_value;
   dest->str_value     = src->str_value;
   dest->str_default   = src->str_default;
-  dest->str_sticky    = src->str_sticky;
   dest->num_value     = src->num_value;
   dest->num_default   = src->num_default;
   dest->range_min     = src->range_min;

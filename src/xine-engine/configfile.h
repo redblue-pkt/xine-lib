@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.27 2003/10/21 16:04:05 mroi Exp $
+ * $Id: configfile.h,v 1.28 2003/10/21 22:10:34 f1rmb Exp $
  *
  * config file management
  *
@@ -64,7 +64,6 @@ struct cfg_entry_s {
   /* type string */
   char            *str_value;
   char            *str_default;
-  char            *str_sticky;
 
   /* common to range, enum, num, bool: */
 
