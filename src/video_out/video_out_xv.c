@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.45 2001/06/24 22:20:26 guenter Exp $
+ * $Id: video_out_xv.c,v 1.46 2001/06/25 08:33:58 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -216,7 +216,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 			      int width, int height, int format) {
 
   unsigned int  xv_format;
-  XvImage      *image;
+  XvImage      *image=NULL;
 
   switch (format) {
   case IMGFMT_YV12:
@@ -887,6 +887,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->xv_port           = xv_port;
   this->capabilities      = 0;
   this->expecting_event   = 0;
+  this->use_shm           = 1;
 
   XAllocNamedColor(this->display, 
 		   DefaultColormap(this->display, this->screen), 
