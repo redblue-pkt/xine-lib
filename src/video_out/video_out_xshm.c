@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.102 2003/02/02 11:21:34 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.103 2003/02/02 12:44:04 esnel Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -103,7 +103,9 @@ typedef struct xshm_driver_s {
   
   int                yuv2rgb_mode;
   int                yuv2rgb_swap;
-  int                yuv2rgb_gamma;
+  int                yuv2rgb_brightness;
+  int                yuv2rgb_contrast;
+  int                yuv2rgb_saturation;
   uint8_t           *yuv2rgb_cmap;
   yuv2rgb_factory_t *yuv2rgb_factory;
 
@@ -789,7 +791,11 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
   case VO_PROP_MAX_NUM_FRAMES:
     return 15;
   case VO_PROP_BRIGHTNESS:
-    return this->yuv2rgb_gamma;
+    return this->yuv2rgb_brightness;
+  case VO_PROP_CONTRAST:
+    return this->yuv2rgb_contrast;
+  case VO_PROP_SATURATION:
+    return this->yuv2rgb_saturation;
   default:
     printf ("video_out_xshm: tried to get unsupported property %d\n", 
 	    property);
@@ -813,8 +819,11 @@ static int xshm_set_property (vo_driver_t *this_gen,
 
   } else if ( property == VO_PROP_BRIGHTNESS) {
 
-    this->yuv2rgb_gamma = value;
-    this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, value);
+    this->yuv2rgb_brightness = value;
+    this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+					   this->yuv2rgb_brightness,
+					   this->yuv2rgb_contrast,
+					   this->yuv2rgb_saturation);
 
     this->sc.force_redraw = 1;
 #ifdef LOG
@@ -831,9 +840,15 @@ static void xshm_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   /* xshm_driver_t *this = (xshm_driver_t *) this_gen;  */
-  if ( property == VO_PROP_BRIGHTNESS) {
-    *min = -100;
-    *max = +100;
+  if (property == VO_PROP_BRIGHTNESS) {
+    *min = -128;
+    *max = +127;
+  } else if (property == VO_PROP_CONTRAST) {
+    *min = 0;
+    *max = 255;
+  } else if (property == VO_PROP_SATURATION) {
+    *min = 0;
+    *max = 255;
   } else {
     *min = 0;
     *max = 0;
@@ -1202,14 +1217,17 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
 
   this->yuv2rgb_mode  = mode;
   this->yuv2rgb_swap  = swapped;
-  this->yuv2rgb_gamma = config->register_range (config, "video.xshm_gamma", 0,
-						-100, 100, 
-						_("gamma correction for XShm driver"),
-						NULL, 0, NULL, NULL);
+  this->yuv2rgb_brightness = config->register_range (config, "video.xshm_gamma", 0,
+						     -128, 127,
+						     _("gamma correction for XShm driver"),
+						     NULL, 0, NULL, NULL);
 
   this->yuv2rgb_factory = yuv2rgb_factory_init (mode, swapped, 
 						this->yuv2rgb_cmap);
-  this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, this->yuv2rgb_gamma);
+  this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+					 this->yuv2rgb_brightness,
+					 this->yuv2rgb_contrast,
+					 this->yuv2rgb_saturation);
 
   return &this->vo_driver;
 }

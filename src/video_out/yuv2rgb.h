@@ -114,15 +114,11 @@ struct yuv2rgb_factory_s {
   yuv2rgb_t* (*create_converter) (yuv2rgb_factory_t *this);
 
   /* 
-   * adjust gamma (-100 to 100 looks fine) 
+   * set color space conversion levels
    * for all converters produced by this factory
    */
-  void (*set_gamma) (yuv2rgb_factory_t *this, int gamma);
-
-  /* 
-   * get gamma value 
-   */
-  int (*get_gamma) (yuv2rgb_factory_t *this);
+  void (*set_csc_levels) (yuv2rgb_factory_t *this,
+			  int brightness, int contrast, int saturation);
 
   /*
    * free resources

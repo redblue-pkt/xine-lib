@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.37 2003/02/02 11:21:35 esnel Exp $
+ * $Id: yuv2rgb.c,v 1.38 2003/02/02 12:44:05 esnel Exp $
  */
 
 #include "config.h"
@@ -3125,9 +3125,10 @@ yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
  * factory functions 
  */
 
-void yuv2rgb_set_gamma (yuv2rgb_factory_t *this, int gamma) {
+void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
+			     int brightness, int contrast, int saturation) {
 
-  int i;
+  int i, gamma = brightness;
   
   for (i = 0; i < 256; i++) {
     (uint8_t *)this->table_rV[i] += this->entry_size*(gamma - this->gamma);
@@ -3138,11 +3139,6 @@ void yuv2rgb_set_gamma (yuv2rgb_factory_t *this, int gamma) {
   mmx_yuv2rgb_set_gamma(gamma);
 #endif  
   this->gamma = gamma;
-}
-
-int yuv2rgb_get_gamma (yuv2rgb_factory_t *this) {
-
-  return this->gamma;
 }
 
 static void yuv2rgb_factory_dispose (yuv2rgb_factory_t *this) {
@@ -3166,8 +3162,7 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
   this->swapped             = swapped;
   this->cmap                = cmap;
   this->create_converter    = yuv2rgb_create_converter;
-  this->set_gamma           = yuv2rgb_set_gamma;
-  this->get_gamma           = yuv2rgb_get_gamma;
+  this->set_csc_levels      = yuv2rgb_set_csc_levels;
   this->dispose             = yuv2rgb_factory_dispose;
   this->matrix_coefficients = 6;
   this->table_base          = NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.22 2003/01/31 14:06:18 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.23 2003/02/02 12:44:03 esnel Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -641,7 +641,7 @@ static int fb_set_property(vo_driver_t *this_gen, int property, int value)
     case VO_PROP_BRIGHTNESS:
     this->yuv2rgb_gamma = value;
       this->yuv2rgb_factory->
-	set_gamma(this->yuv2rgb_factory, value);
+	set_csc_levels(this->yuv2rgb_factory, value, 128, 128);
     printf("video_out_fb: gamma changed to %d\n",value);
       break;
 
@@ -855,8 +855,8 @@ static int setup_yuv2rgb(fb_driver_t *this, config_values_t *config,
   this->yuv2rgb_factory = yuv2rgb_factory_init(this->yuv2rgb_mode,
 					       this->yuv2rgb_swap, 
 					       this->yuv2rgb_cmap);
-  this->yuv2rgb_factory->set_gamma(this->yuv2rgb_factory,
-				   this->yuv2rgb_gamma);
+  this->yuv2rgb_factory->set_csc_levels(this->yuv2rgb_factory,
+					this->yuv2rgb_gamma, 128, 128);
   
   return 1;
 }

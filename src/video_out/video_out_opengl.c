@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.23 2003/01/29 15:34:26 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.24 2003/02/02 12:44:03 esnel Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -770,7 +770,7 @@ static int opengl_set_property (vo_driver_t *this_gen,
 	break;
     case VO_PROP_BRIGHTNESS:
 	this->yuv2rgb_gamma = value;
-	this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, value);
+	this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory, value, 128, 128);
 	printf("video_out_opengl: gamma changed to %d\n",value);
 	break;
     default:
@@ -947,8 +947,8 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
 	  NULL, 0, NULL, NULL);
     this->yuv2rgb_factory = yuv2rgb_factory_init (YUV_FORMAT, YUV_SWAP_MODE, 
 						  this->yuv2rgb_cmap);
-    this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory,
-				      this->yuv2rgb_gamma);
+    this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+					   this->yuv2rgb_gamma, 128, 128);
     return &this->vo_driver;
 }
 
