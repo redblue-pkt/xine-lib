@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.123 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.124 2002/12/22 23:35:42 miguelfreitas Exp $
  *
  */
 
@@ -776,38 +776,8 @@ static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
 }
 
 static void flush_buffers(dvd_input_plugin_t *this) {
-  /*
-   * This code comes from xine_demux_flush_engine
-   * ---> so why do it here again??
-   */
-  xine_stream_t *stream = this->stream;  
-  buf_element_t *buf;
-  
-  stream->video_fifo->clear(stream->video_fifo);
 
-  if( stream->audio_fifo )
-    stream->audio_fifo->clear(stream->audio_fifo);
-  
-  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
-  buf->type            = BUF_CONTROL_RESET_DECODER;
-  stream->video_fifo->put (stream->video_fifo, buf);
-
-  if(stream->audio_fifo) {
-    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
-    buf->type            = BUF_CONTROL_RESET_DECODER;
-    stream->audio_fifo->put (stream->audio_fifo, buf);
-  }
-
-  if (stream->video_out) {
-    stream->video_out->flush(stream->video_out);
-  }
-
-  if (stream->audio_out) {
-    stream->audio_out->flush(stream->audio_out);
-  }
-
- this->stream->xine->clock->adjust_clock(this->stream->xine->clock,
-   this->stream->xine->clock->get_current_time(this->stream->xine->clock) + 30 * 90000 );
+  xine_demux_flush_engine(this->stream);
 }
 
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
@@ -1678,6 +1648,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.124  2002/12/22 23:35:42  miguelfreitas
+ * it doesn't make sense to reimplement flush here.
+ * (this is why xine_demux_flush_engine was created, to avoid redundant code)
+ *
  * Revision 1.123  2002/12/21 12:56:47  miguelfreitas
  * - add buf->decoder_info_ptr: portability for systems where pointer has
  *   different sizeof than integer.
