@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.2 2002/05/06 11:26:37 jcdutton Exp $
+ * $Id: dxr3_decode_video.c,v 1.3 2002/05/24 22:09:44 miguelfreitas Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -25,7 +25,6 @@
  * corresponding dxr3 device. Takes precedence over the libmpeg2
  * due to a higher priority.
  */
-
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -102,6 +101,8 @@ static int       dxr3_present(xine_t *xine);
 static int       dxr3_mvcommand(int fd_control, int command);
 static void      parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
 static int       get_duration(int framecode, int repeat_first_field);
+
+/* config callbacks */
 static void      dxr3_update_priority(void *this_gen, cfg_entry_t *entry);
 static void      dxr3_update_sync_mode(void *this_gen, cfg_entry_t *entry);
 static void      dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry);
@@ -111,7 +112,7 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
 {
   dxr3_decoder_t *this;
   config_values_t *cfg;
-  char *tmpstr;
+  const char *confstr;
   int dashpos;
   
   if (iface_version != 8) {
@@ -125,10 +126,11 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   if (!dxr3_present(xine)) return NULL;
   
   this = (dxr3_decoder_t *)malloc(sizeof (dxr3_decoder_t));
+  if (!this) return NULL;
   
   cfg = xine->config;
-  tmpstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
-  strncpy(this->devname, tmpstr, 128);
+  confstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
+  strncpy(this->devname, confstr, 128);
   this->devname[127] = '\0';
   dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
   if (this->devname[dashpos] == '-') {
@@ -240,7 +242,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
    */
   buffer = buf->content;
   shift = 0xffffff00;
-  for (i=0; i<buf->size; i++) {
+  for (i = 0; i < buf->size; i++) {
     byte = *buffer++;
     if (shift != 0x00000100) {
       shift = (shift | byte) << 8;

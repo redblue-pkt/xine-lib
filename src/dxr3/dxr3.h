@@ -17,8 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3.h,v 1.1 2002/05/06 11:26:37 jcdutton Exp $
+ * $Id: dxr3.h,v 1.2 2002/05/24 22:09:44 miguelfreitas Exp $
  */
+
+#ifndef HAVE_DXR3_H
+#define HAVE_DXR3_H
 
 #include <linux/em8300.h>
 
@@ -30,3 +33,5 @@
 
 /* image format used by dxr3_decoder to tag undecoded mpeg data */
 #define IMGFMT_MPEG (('G'<<24)|('E'<<16)|('P'<<8)|'M')
+
+#endif

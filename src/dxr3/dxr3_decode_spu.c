@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.2 2002/05/06 11:26:37 jcdutton Exp $
+ * $Id: dxr3_decode_spu.c,v 1.3 2002/05/24 22:09:44 miguelfreitas Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -25,7 +25,6 @@
  * corresponding dxr3 device. Also handles dvd menu button highlights.
  * Takes precedence over libspudec due to a higher priority.
  */
-
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -82,10 +81,10 @@ typedef struct dxr3_spudec_s {
   
   char                     devname[128];
   char                     devnum[3];
-  int                      fd_spu;  /* to access the dxr3 spu device */
+  int                      fd_spu;   /* to access the dxr3 spu device */
   
   dxr3_spu_stream_state_t  spu_stream_state[MAX_SPU_STREAMS];
-  int                      menu;    /* are we in a menu? */
+  int                      menu;     /* are we in a menu? */
   pci_t                    pci;
   uint32_t                 buttonN;  /* currently highlighted button */
 } dxr3_spudec_t;
@@ -94,7 +93,7 @@ typedef struct dxr3_spudec_s {
 spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
 {
   dxr3_spudec_t *this;
-  char *confstr;
+  const char *confstr;
   int dashpos;
   
   if (iface_version != 7) {
@@ -108,6 +107,7 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   if (!dxr3_present(xine)) return NULL;
   
   this = (dxr3_spudec_t *)malloc(sizeof(dxr3_spudec_t));
+  if (!this) return NULL;
   
   confstr = xine->config->register_string(xine->config,
     CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
@@ -195,7 +195,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
       printf("dxr3_decode_spu: failed to set CLUT (%s)\n", strerror(errno));
     return;
   }
-        if(buf->type == BUF_SPU_SUBP_CONTROL) {
+  if(buf->type == BUF_SPU_SUBP_CONTROL) {
     /* FIXME: is BUF_SPU_SUBP_CONTROL used anymore? */
     int i;
     uint32_t *subp_control = (uint32_t *)buf->content;
@@ -230,9 +230,18 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
       }
       
       if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
+        /* this is (or: should be, I hope I got this right) a
+           subpicture plane, that hides all menu buttons */
+        uint8_t empty_spu[] = {
+          0x00, 0x26, 0x00, 0x08, 0x80, 0x00, 0x00, 0x80,
+          0x00, 0x00, 0x00, 0x20, 0x01, 0x03, 0x00, 0x00,
+          0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x01, 0x00,
+          0x00, 0x01, 0x06, 0x00, 0x04, 0x00, 0x07, 0xFF,
+          0x00, 0x01, 0x00, 0x20, 0x02, 0xFF };
         /* leaving menu */
         this->pci.hli.hl_gi.hli_ss = 0;
         ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+        write(this->fd_spu, empty_spu, sizeof(empty_spu));
       }
     }
     return;

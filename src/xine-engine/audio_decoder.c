@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.72 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: audio_decoder.c,v 1.73 2002/05/24 22:09:44 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -266,7 +266,14 @@ void audio_decoder_init (xine_t *this) {
     return;
   }
   
-  this->audio_fifo = fifo_buffer_new (50, 8192);
+  /* The fifo size is based on dvd playback where buffers are filled
+   * with 2k of data. With 230 buffers and a typical audio data rate
+   * of 1.8 Mbit/s (four ac3 streams), the fifo can hold about 2 seconds
+   * of audio, wich should be enough to compensate for drive delays.
+   * We provide buffers of 8k size instead of 2k for demuxers sending
+   * larger chunks.
+   */
+  this->audio_fifo = fifo_buffer_new (230, 8192);
   this->audio_channel_user = -1;
   this->audio_channel_auto = 0;
   this->audio_type = 0;

@@ -22,13 +22,11 @@ xineplug_decode_dxr3_video_la_LDFLAGS = -avoid-version -module
 xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c nav_read.c
 xineplug_decode_dxr3_spu_la_LDFLAGS = -avoid-version -module
 
-xineplug_vo_out_dxr3_la_SOURCES = dxr3_video_out.c \
-		dxr3_vo_core.c mpeg_encoders.c alphablend.c
+xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c dxr3_mpeg_encoders.c alphablend.c
 xineplug_vo_out_dxr3_la_LIBADD = $(X_LIBS) -lXext
-xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version \
-		-module $(link_fame) $(link_rte) $(X_LIBS)
+xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(link_fame) $(link_rte) $(X_LIBS)
 
-noinst_HEADERS = dxr3.h dxr3_scr.h dxr3_video_out.h nav_types.h nav_read.h alphablend.h bswap.h
+noinst_HEADERS = dxr3.h dxr3_scr.h video_out_dxr3.h nav_types.h nav_read.h alphablend.h bswap.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LINUX_INCLUDE)"

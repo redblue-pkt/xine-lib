@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.1 2002/05/06 11:26:37 jcdutton Exp $
+ * $Id: dxr3_scr.c,v 1.2 2002/05/24 22:09:44 miguelfreitas Exp $
  */
 
 /* dxr3 scr plugin.
@@ -25,17 +25,14 @@
  * global time reference.
  */
 
-
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "dxr3.h"
-
 #include "dxr3_scr.h"
 
 #define LOG_SCR 0
@@ -51,13 +48,15 @@ static void    dxr3_scr_exit(scr_plugin_t *scr);
 
 /* helper function */
 static int     dxr3_mvcommand(int fd_control, int command);
+
+/* config callback */
 static void    dxr3_scr_update_priority(void *this_gen, cfg_entry_t *entry);
 
 
 dxr3_scr_t *dxr3_scr_init(xine_t *xine)
 {
   dxr3_scr_t *this;
-  char *confstr;
+  const char *confstr;
   
   this = (dxr3_scr_t *)malloc(sizeof(dxr3_scr_t));
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.84 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.85 2002/05/24 22:09:45 miguelfreitas Exp $
  *
  */
 
@@ -282,6 +282,13 @@ void video_decoder_init (xine_t *this) {
   struct sched_param   pth_params;
   int		       err;
 
+  /* The fifo size is based on dvd playback where buffers are filled
+   * with 2k of data. With 500 buffers and a typical video data rate
+   * of 4 Mbit/s, the fifo can hold about 2 seconds of video, wich
+   * should be enough to compensate for drive delays.
+   * We provide buffers of 8k size instead of 2k for demuxers sending
+   * larger chunks.
+   */
   this->video_fifo = fifo_buffer_new (500, 8192);
 
   pthread_attr_init(&pth_attrs);
