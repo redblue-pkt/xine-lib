@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.72 2002/04/09 13:53:52 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.73 2002/04/16 22:22:48 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -714,8 +714,15 @@ char **xine_list_video_output_plugins (int visual_type) {
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
 	    } else {
-	      printf ("load_plugins: %s has wrong visual type (%d) or interface version (%d)\n",
-		      str, vo_info->visual_type, vo_info->interface_version);
+	      
+	      if(vo_info->interface_version != VIDEO_OUT_DRIVER_IFACE_VERSION)
+		printf ("load_plugins: %s has wrong interface version (%d)\n",
+			str, vo_info->interface_version);
+#ifdef LOG
+	      else if(vo_info->visual_type != visual_type)
+		printf ("load_plugins: %s has wrong visual type (%d)\n",
+			str, vo_info->visual_type);
+#endif
 	    }
 	  } else {
 
