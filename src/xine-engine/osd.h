@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.19 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: osd.h,v 1.20 2003/11/19 19:43:23 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -337,8 +337,8 @@ static clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
     CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), /*5*/
     CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), /*6*/
     CLUT_Y_CR_CB_INIT(0x40, 0x84, 0x60), /*7*/
-    CLUT_Y_CR_CB_INIT(0xd0, 0x88, 0x40), /*8*/
-    CLUT_Y_CR_CB_INIT(0xe0, 0x8a, 0x00), /*9*/
+    CLUT_Y_CR_CB_INIT(0x70, 0x88, 0x40), /*8*/
+    CLUT_Y_CR_CB_INIT(0xb0, 0x8a, 0x20), /*9*/
     CLUT_Y_CR_CB_INIT(0xff, 0x90, 0x00), /*10*/
   },
 };
