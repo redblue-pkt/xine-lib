@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.120 2002/12/13 19:01:42 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.121 2002/12/13 21:31:38 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -669,14 +669,23 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
  */
 static void save_catalog (xine_t *this) {
 
-  FILE *fp;
-  char *cachefile;                                               
+  FILE       *fp;
+  char       *cachefile, *dirfile; 
   const char *relname = CACHE_CATALOG_FILE;
+  const char *dirname = CACHE_CATALOG_DIR;
     
   cachefile = (char *) xine_xmalloc(strlen(xine_get_homedir()) + 
                                     strlen(relname) + 3);
   sprintf(cachefile, "%s/%s", xine_get_homedir(), relname);
   
+  /* make sure homedir (~/.xine) exists */
+  dirfile = (char *) xine_xmalloc(strlen(xine_get_homedir()) + 
+				  strlen(dirname) + 3);
+  sprintf(dirfile, "%s/%s", xine_get_homedir(), dirname);
+  mkdir (dirfile, 0755);
+  printf ("\n\nsave_catalog: %s created\n", dirfile);
+  free (dirfile);
+
   if( (fp = fopen(cachefile,"w")) != NULL ) {
   
     fprintf(fp, "# this file is automatically created by xine, do not edit.\n\n");

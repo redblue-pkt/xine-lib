@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.8 2002/12/08 20:53:02 miguelfreitas Exp $
+ * $Id: plugin_catalog.h,v 1.9 2002/12/13 21:31:38 guenter Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -37,6 +37,7 @@
 
 #define CACHE_CATALOG_VERSION 0 
 #define CACHE_CATALOG_FILE    ".xine/catalog.cache"
+#define CACHE_CATALOG_DIR     ".xine"
 
 typedef struct {
   char            *filename;
