@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.62 2002/02/24 00:43:03 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.63 2002/02/24 15:14:39 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -128,6 +128,7 @@ typedef struct xshm_driver_s {
   GC                 gc;
   int                depth, bpp, bytes_per_pixel, image_byte_order;
   int                use_shm;
+  XColor             black;
   
   int                yuv2rgb_mode;
   int                yuv2rgb_swap;
@@ -781,6 +782,47 @@ static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
    }
 }
 
+static void clean_output_area (xshm_driver_t *this) {
+
+  XLockDisplay (this->display);
+
+  XSetForeground (this->display, this->gc, this->black.pixel);
+
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 this->gui_x, this->gui_y, 
+		 this->gui_width, this->gui_height);
+
+#if 0
+  int xoffset, yoffset;
+
+  xoffset  = (this->gui_width - frame->output_width) / 2   + this->gui_x;
+  yoffset  = (this->gui_height - frame->output_height) / 2 + this->gui_y;
+  
+  /* top black band */
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 this->gui_x, this->gui_y, 
+		 this->gui_width, yoffset - this->gui_y);
+
+  /* left black band */
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 this->gui_x, this->gui_y, 
+		 xoffset-this->gui_x, this->gui_height);
+
+  /* bottom black band */
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 this->gui_x, yoffset+frame->output_height,
+		 this->gui_width, this->gui_height - yoffset - frame->output_height);
+
+  /* right black band */
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 xoffset+frame->output_width, this->gui_y, 
+		 this->gui_width - xoffset - frame->output_width, this->gui_height);
+  
+#endif
+
+  XUnlockDisplay (this->display);
+}
+
 static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
@@ -817,35 +859,36 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 			   frame->output_width, frame->output_height, 
 			   &gui_x, &gui_y, &gui_width, &gui_height);
 
-    XLockDisplay (this->display);
-#ifdef LOG
-    printf ("video_out_xshm: display locked...\n");
-#endif
-
     if ( (this->gui_x != gui_x) || (this->gui_y != gui_y)
 	 || (this->gui_width != gui_width) 
 	 || (this->gui_height != gui_height) ) {
-
-      /* 
-       * clear unused areas of old video area 
-       *
-       * FIXME: really just clear those areas, not the whole window
-       *
-       */
-      XClearWindow(this->display, this->drawable);
 
       this->gui_x      = gui_x;
       this->gui_y      = gui_y;
       this->gui_width  = gui_width;
       this->gui_height = gui_height;
+
+      clean_output_area (this);
     }
     
-    if( this->cur_frame )
+    if (this->cur_frame) {
+
+      if ( (this->cur_frame->output_width != frame->output_width) 
+	   || (this->cur_frame->output_height != frame->output_height) )
+	clean_output_area (this);
+
       this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
+    }
+
     this->cur_frame = frame;
 
     xoffset  = (this->gui_width - frame->output_width) / 2   + this->gui_x;
     yoffset  = (this->gui_height - frame->output_height) / 2 + this->gui_y;
+
+    XLockDisplay (this->display);
+#ifdef LOG
+    printf ("video_out_xshm: display locked...\n");
+#endif
 
     if (this->use_shm) {
 
@@ -1166,6 +1209,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   int                   mode;
   int			swapped;
   int			cpu_byte_order;
+  XColor                dummy;
 
   visual = (x11_visual_t *) visual_gen;
   display = visual->display;
@@ -1226,6 +1270,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.gui_data_exchange    = xshm_gui_data_exchange;
   this->vo_driver.exit                 = xshm_exit;
   this->vo_driver.get_info             = get_video_out_plugin_info;
+
+  XAllocNamedColor (this->display,
+		    DefaultColormap (this->display, this->screen),
+		    "black", &this->black, &dummy);
 
 
   /*
