@@ -71,7 +71,7 @@ xine's future
 - implement lots of audio and video processing filters as post plugins, e.g.
   - scaling
   - colorspace conversion
-  - deinterlacing
+  - deinterlacing (already done)
   - audio resampling
   - compressor
   ...
