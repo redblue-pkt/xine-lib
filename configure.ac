@@ -1905,16 +1905,19 @@ echo "   - http          - mms"
 echo "   - pnm           - rtsp"
 echo "   - dvb"
 if test x"$have_cdrom_ioctls" = "xyes"; then
-  echo "   - dvd"
+  if test x"$external_dvdnav" = "xyes"; then
+    echo "   - dvd (external libs)"
+  else
+    echo "   - dvd (internal libs)"
+  fi
   if test x"$enable_vcdx" = "xyes"; then
     if test x"$external_vcdnav" = "xyes"; then
-      echo "   - vcdx (external libs)"
+      echo "   - vcd (external libs)"
     else
-      echo "   - vcdx (internal libs)"
+      echo "   - vcd (internal libs)"
     fi
-  else
-    echo "   - vcd"
   fi
+  echo "   - vcdo"
   echo "   - cdda"
 fi
 if test x"$no_gnome_vfs" = "xno"; then
