@@ -5,20 +5,22 @@ Guenter Bartsch <guenter@users.sourceforge.net>
   project lead, main xine programming
 
 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
-  various suggestions, bug and build fixes, alsa plugin, gui
+  various suggestions, bug and build fixes, alsa plugin,
+  main xine-ui programming
 
 Siegfried Langauf <siggi@users.sourceforge.net>
-  Debian package, user support, project administration
+  Debian package, user support, project administration,
+  plugin loader
 
 Miguel Freitas <miguel@cetuc.puc-rio.br>
-  many bug and deadlock fixes, bitrate detection, soft deinterlacer,
+  many bug and deadlock fixes, engine maintenance, soft deinterlacer,
   massive libwin32 updates
 
 Heiko Schaefer <heikos@users.sourceforge.net>
   FreeBSD support, testing, ideas
 
 Rich Wareham <richwareham@removethis.users.sourceforge.net>
-  subtitle support, navigation
+  subtitle support, navigation, libdvdnav
 
 Rocky Bernstein ~/<rocky@removethis.panix.com>
   Enhanced VCD support
@@ -38,7 +40,8 @@ Thibaut Mattern <tmattern@noos.fr>
   mms input plugin fixes, xml parser
 
 Michael Roitzsch <mroi@users.sourceforge.net>
-  several dxr3 fixes, massive engine contributions
+  several dxr3 fixes, massive engine contributions, multistream and
+  post plugin architecture
 
 Mike Melanson <melanson@pcisys.net>
   a whole bunch of file demuxers, lots of audio and video decoders,
@@ -244,7 +247,7 @@ Frantisek Dvorak <valtri@atlas.cz>
 Ian Goldberg <ian@cypherpunks.ca>
   streaming AVI support (plays growing files), >2GB AVI files
 
-Rogi';io Brito <rbrito@ime.usp.br>
+Rogerio Brito <rbrito@ime.usp.br>
   C version for linear blend deinterlacer
 
 Tim Ferguson <timf@mail.csse.monash.edu.au>
@@ -252,7 +255,7 @@ Tim Ferguson <timf@mail.csse.monash.edu.au>
 
 Andrew Patrikalakis <anrp@irulethe.net>
   powerpc assembly memcpy() implementaions with assistance from
-    Rogi';io Brito <rbrito@iname.com>
+    Rogerio Brito <rbrito@iname.com>
     Benjamin Herrenschmidt <benh@kernel.crashing.org>
     Michel Dzer <daenzer@debian.org>
     Others
