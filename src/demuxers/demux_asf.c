@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.94 2003/01/08 01:02:27 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.95 2003/01/09 02:57:32 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -55,7 +55,7 @@
 
 #define DEFRAG_BUFSIZE    65536
 
-#define WRAP_THRESHOLD       120000
+#define WRAP_THRESHOLD       5*90000
 
 #define PTS_AUDIO 0
 #define PTS_VIDEO 1
@@ -719,7 +719,7 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
   if (pts && (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD)) ) {
 
 #ifdef LOG
-    printf ("demux_asf: sending newpts %lld\n", pts);
+    printf ("demux_asf: sending newpts %lld (video = %d diff = %lld)\n", pts, video, diff);
 #endif
 
     if (this->buf_flag_seek) {
