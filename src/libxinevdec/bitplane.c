@@ -22,7 +22,7 @@
  * suitable for display under xine. It's based on the rgb-decoder
  * and the development documentation from the Amiga Developer CD
  *
- * $Id: bitplane.c,v 1.6 2004/02/25 18:57:36 manfredtremmel Exp $
+ * $Id: bitplane.c,v 1.7 2004/02/29 19:22:42 manfredtremmel Exp $
  */
 
 #include <stdio.h>
@@ -39,8 +39,9 @@
 
 #include "demuxers/iff.h"
 
-#define IFF_REPLACE_BYTE(ptr, old_data, new_data, colorindex ) { \
+#define IFF_REPLACE_BYTE_SIMPLE(ptr, old_data, new_data, colorindexx ) { \
   register uint8_t  *index_ptr = ptr; \
+  register uint8_t  colorindex = colorindexx; \
   *index_ptr    -= ((old_data & 0x80) ? colorindex : 0); \
   *index_ptr++  += ((new_data & 0x80) ? colorindex : 0); \
   *index_ptr    -= ((old_data & 0x40) ? colorindex : 0); \
@@ -60,221 +61,140 @@
   old_data       = new_data; \
 }
 
-#ifdef WORDS_BIGENDIAN
-#define IFF_REPLACE_SHORT(ptr, old_data, new_data, colorindex ) { \
+#define IFF_REPLACE_BYTE(ptr, yuvy, yuvu, yuvv, yuv_palette, old_data, new_data, colorindexx ) { \
   register uint8_t  *index_ptr = ptr; \
-  *index_ptr    -= ((old_data & 0x8000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x8000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x4000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x4000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x2000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x2000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x1000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x1000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0800) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0800) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0400) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0400) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0200) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0200) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0100) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0100) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0080) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0080) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0040) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0040) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0020) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0020) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0010) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0010) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0008) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0008) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0004) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0004) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0002) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0002) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0001) ? colorindex : 0); \
-  *index_ptr    += ((new_data & 0x0001) ? colorindex : 0); \
+  register uint8_t  colorindex = colorindexx; \
+  register uint8_t  *yuv_y = yuvy; \
+  register uint8_t  *yuv_u = yuvu; \
+  register uint8_t  *yuv_v = yuvv; \
+  *index_ptr    -= ((old_data & 0x80) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x80) ? colorindex : 0); \
+  yuv_index      = *index_ptr++ * 4; \
+  *yuv_y++       = yuv_palette[yuv_index++]; \
+  *yuv_u++       = yuv_palette[yuv_index++]; \
+  *yuv_v++       = yuv_palette[yuv_index]; \
+  *index_ptr    -= ((old_data & 0x40) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x40) ? colorindex : 0); \
+  yuv_index      = *index_ptr++ * 4; \
+  *yuv_y++       = yuv_palette[yuv_index++]; \
+  *yuv_u++       = yuv_palette[yuv_index++]; \
+  *yuv_v++       = yuv_palette[yuv_index]; \
+  *index_ptr    -= ((old_data & 0x20) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x20) ? colorindex : 0); \
+  yuv_index      = *index_ptr++ * 4; \
+  *yuv_y++       = yuv_palette[yuv_index++]; \
+  *yuv_u++       = yuv_palette[yuv_index++]; \
+  *yuv_v++       = yuv_palette[yuv_index]; \
+  *index_ptr    -= ((old_data & 0x10) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x10) ? colorindex : 0); \
+  yuv_index      = *index_ptr++ * 4; \
+  *yuv_y++       = yuv_palette[yuv_index++]; \
+  *yuv_u++       = yuv_palette[yuv_index++]; \
+  *yuv_v++       = yuv_palette[yuv_index]; \
+  *index_ptr    -= ((old_data & 0x08) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x08) ? colorindex : 0); \
+  yuv_index      = *index_ptr++ * 4; \
+  *yuv_y++       = yuv_palette[yuv_index++]; \
+  *yuv_u++       = yuv_palette[yuv_index++]; \
+  *yuv_v++       = yuv_palette[yuv_index]; \
+  *index_ptr    -= ((old_data & 0x04) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x04) ? colorindex : 0); \
+  yuv_index      = *index_ptr++ * 4; \
+  *yuv_y++       = yuv_palette[yuv_index++]; \
+  *yuv_u++       = yuv_palette[yuv_index++]; \
+  *yuv_v++       = yuv_palette[yuv_index]; \
+  *index_ptr    -= ((old_data & 0x02) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x02) ? colorindex : 0); \
+  yuv_index      = *index_ptr++ * 4; \
+  *yuv_y++       = yuv_palette[yuv_index++]; \
+  *yuv_u++       = yuv_palette[yuv_index++]; \
+  *yuv_v++       = yuv_palette[yuv_index]; \
+  *index_ptr    -= ((old_data & 0x01) ? colorindex : 0); \
+  *index_ptr    += ((new_data & 0x01) ? colorindex : 0); \
+  yuv_index      = *index_ptr * 4; \
+  *yuv_y         = yuv_palette[yuv_index++]; \
+  *yuv_u         = yuv_palette[yuv_index++]; \
+  *yuv_v         = yuv_palette[yuv_index]; \
   old_data       = new_data; \
 }
-#else
-#define IFF_REPLACE_SHORT(ptr, old_data, new_data, colorindex ) { \
-  register uint8_t  *index_ptr = ptr; \
-  *index_ptr    -= ((old_data & 0x0080) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0080) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0040) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0040) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0020) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0020) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0010) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0010) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0008) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0008) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0004) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0004) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0002) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0002) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0001) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0001) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x8000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x8000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x4000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x4000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x2000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x2000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x1000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x1000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0800) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0800) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0400) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0400) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0200) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x0200) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x0100) ? colorindex : 0); \
-  *index_ptr    += ((new_data & 0x0100) ? colorindex : 0); \
-  old_data       = new_data; \
-}
-#endif
 
-#ifdef WORDS_BIGENDIAN
-#define IFF_REPLACE_LONG(ptr, old_data, new_data, colorindex ) { \
-  register uint8_t  *index_ptr = ptr; \
-  *index_ptr    -= ((old_data & 0x80000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x80000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x40000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x40000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x20000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x20000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x10000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x10000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x08000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x08000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x04000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x04000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x02000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x02000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x01000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x01000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00800000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00800000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00400000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00400000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00200000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00200000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00100000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00100000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00080000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00080000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00040000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00040000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00020000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00020000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00010000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00010000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00008000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00008000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00004000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00004000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00002000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00002000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00001000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00001000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000800) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000800) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000400) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000400) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000200) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000200) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000100) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000100) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000080) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000080) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000040) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000040) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000020) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000020) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000010) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000010) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000008) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000008) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000004) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000004) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000002) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000002) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000001) ? colorindex : 0); \
-  *index_ptr    += ((new_data & 0x00000001) ? colorindex : 0); \
-  old_data       = new_data; \
+#define IFF_REPLACE_SHORT_SIMPLE(ptr_s, old_data_s, new_data_s, colorindexx_s ) { \
+  uint8_t  *xindex_ptr = (uint8_t *)ptr_s; \
+  uint8_t  *xold_data  = (uint8_t *)old_data_s; \
+  uint8_t  *xnew_data  = (uint8_t *)new_data_s; \
+  IFF_REPLACE_BYTE_SIMPLE(xindex_ptr, *xold_data, *xnew_data, colorindexx_s ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  IFF_REPLACE_BYTE_SIMPLE(xindex_ptr, *xold_data, *xnew_data, colorindexx_s ); \
 }
-#else
-#define IFF_REPLACE_LONG(ptr, old_data, new_data, colorindex ) { \
-  register uint8_t  *index_ptr = ptr; \
-  *index_ptr    -= ((old_data & 0x00000080) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000080) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000040) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000040) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000020) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000020) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000010) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000010) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000008) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000008) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000004) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000004) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000002) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000002) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000001) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000001) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00008000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00008000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00004000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00004000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00002000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00002000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00001000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00001000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000800) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000800) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000400) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000400) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000200) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000200) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00000100) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00000100) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00800000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00800000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00400000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00400000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00200000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00200000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00100000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00100000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00080000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00080000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00040000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00040000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00020000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00020000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x00010000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x00010000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x80000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x80000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x40000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x40000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x20000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x20000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x10000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x10000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x08000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x08000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x04000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x04000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x02000000) ? colorindex : 0); \
-  *index_ptr++  += ((new_data & 0x02000000) ? colorindex : 0); \
-  *index_ptr    -= ((old_data & 0x01000000) ? colorindex : 0); \
-  *index_ptr    += ((new_data & 0x01000000) ? colorindex : 0); \
-  old_data       = new_data; \
+
+#define IFF_REPLACE_SHORT(ptr_s, yuvy_s, yuvu_s, yuvv_s, yuv_palette_s, old_data_s, new_data_s, colorindexx_s ) { \
+  uint8_t  *xindex_ptr = (uint8_t *)ptr_s; \
+  uint8_t  *xold_data  = (uint8_t *)old_data_s; \
+  uint8_t  *xnew_data  = (uint8_t *)new_data_s; \
+  uint8_t  *xyuv_y = yuvy_s; \
+  uint8_t  *xyuv_u = yuvu_s; \
+  uint8_t  *xyuv_v = yuvv_s; \
+  IFF_REPLACE_BYTE(xindex_ptr, xyuv_y, xyuv_u, xyuv_v, yuv_palette_s, *xold_data, *xnew_data, colorindexx_s ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  xyuv_y     += 8; \
+  xyuv_u     += 8; \
+  xyuv_v     += 8; \
+  IFF_REPLACE_BYTE(xindex_ptr, xyuv_y, xyuv_u, xyuv_v, yuv_palette_s, *xold_data, *xnew_data, colorindexx_s ); \
 }
-#endif
+
+#define IFF_REPLACE_LONG_SIMPLE(ptr_l, old_data_l, new_data_l, colorindexx_l ) { \
+  uint8_t  *xindex_ptr = (uint8_t *)ptr_l; \
+  uint8_t  *xold_data  = (uint8_t *)old_data_l; \
+  uint8_t  *xnew_data  = (uint8_t *)new_data_l; \
+  IFF_REPLACE_BYTE_SIMPLE(xindex_ptr, *xold_data, *xnew_data, colorindexx_l ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  IFF_REPLACE_BYTE_SIMPLE(xindex_ptr, *xold_data, *xnew_data, colorindexx_l ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  IFF_REPLACE_BYTE_SIMPLE(xindex_ptr, *xold_data, *xnew_data, colorindexx_l ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  IFF_REPLACE_BYTE_SIMPLE(xindex_ptr, *xold_data, *xnew_data, colorindexx_l ); \
+}
+
+#define IFF_REPLACE_LONG(ptr_l, yuvy_l, yuvu_l, yuvv_l, yuv_palette_l, old_data_l, new_data_l, colorindexx_l ) { \
+  uint8_t  *xindex_ptr = (uint8_t *)ptr_l; \
+  uint8_t  *xold_data  = (uint8_t *)old_data_l; \
+  uint8_t  *xnew_data  = (uint8_t *)new_data_l; \
+  uint8_t  *xyuv_y = yuvy_l; \
+  uint8_t  *xyuv_u = yuvu_l; \
+  uint8_t  *xyuv_v = yuvv_l; \
+  IFF_REPLACE_BYTE(xindex_ptr, xyuv_y, xyuv_u, xyuv_v, yuv_palette_l, *xold_data, *xnew_data, colorindexx_l ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  xyuv_y     += 8; \
+  xyuv_u     += 8; \
+  xyuv_v     += 8; \
+  IFF_REPLACE_BYTE(xindex_ptr, xyuv_y, xyuv_u, xyuv_v, yuv_palette_l, *xold_data, *xnew_data, colorindexx_l ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  xyuv_y     += 8; \
+  xyuv_u     += 8; \
+  xyuv_v     += 8; \
+  IFF_REPLACE_BYTE(xindex_ptr, xyuv_y, xyuv_u, xyuv_v, yuv_palette_l, *xold_data, *xnew_data, colorindexx_l ); \
+  xindex_ptr += 8; \
+  xold_data++; \
+  xnew_data++; \
+  xyuv_y     += 8; \
+  xyuv_u     += 8; \
+  xyuv_v     += 8; \
+  IFF_REPLACE_BYTE(xindex_ptr, xyuv_y, xyuv_u, xyuv_v, yuv_palette_l, *xold_data, *xnew_data, colorindexx_l ); \
+}
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -286,34 +206,34 @@ typedef struct bitplane_decoder_s {
   bitplane_class_t *class;
   xine_stream_t    *stream;
 
-  /* these are traditional variables in a video decoder object */
-  uint64_t          video_step;  /* frame duration in pts units */
-  int               decoder_ok;  /* current decoder status */
+  /* these are traditional variables in a video decoder object    */
+  uint64_t          video_step;  /* frame duration in pts units   */
+  int               decoder_ok;  /* current decoder status        */
   int               skipframes;
 
-  unsigned char    *buf;         /* the accumulated buffer data */
-  int               bufsize;     /* the maximum size of buf */
-  int               size;        /* the current size of buf */
+  unsigned char    *buf;         /* the accumulated buffer data   */
+  int               bufsize;     /* the maximum size of buf       */
+  int               size;        /* the current size of buf       */
   int               size_uk;     /* size of unkompressed bitplane */
 
-  int               width_decode;/* the width of a video frame decoding*/
-  int               width;       /* the width of a video frame */
-  int               height;      /* the height of a video frame */
-  double            ratio;       /* the width to height ratio */
+  int               width;       /* the width of a video frame    */
+  int               height;      /* the height of a video frame   */
+  int               num_pixel;   /* number pixel                  */
+  double            ratio;       /* the width to height ratio     */
   int               bytes_per_pixel;
-  int               full_bytes_per_pixel;
   int               num_bitplanes;
   int               camg_mode;
+  int               is_ham;
 
   unsigned char     yuv_palette[256 * 4];
   unsigned char     rgb_palette[256 * 4];
   yuv_planes_t      yuv_planes;
+  yuv_planes_t      yuv_planes_hist;
 
   uint8_t          *buf_uk;      /* uncompressed buffer                */
   uint8_t          *buf_uk_hist; /* uncompressed buffer historic       */
   uint8_t          *index_buf;   /* index buffer (for indexed pics)    */
   uint8_t          *index_buf_hist;/* index buffer historic            */
-  uint8_t          *rgb_buf;     /* rgb buffer (for HAM and TrueColor) */
 
 } bitplane_decoder_t;
 
@@ -352,7 +272,7 @@ static uint8_t *bitplane_decode_byterun1 (uint8_t *compressed,
 }
 
 /* create a new buffer with "normal" index or rgb numbers out of a bitplane */
-static uint8_t *bitplane_decode_bitplane (uint8_t *bitplane_buffer,
+static void bitplane_decode_bitplane (uint8_t *bitplane_buffer,
   uint8_t *index_buf,
   int width,
   int height,
@@ -365,22 +285,36 @@ static uint8_t *bitplane_decode_bitplane (uint8_t *bitplane_buffer,
   int palette_index                     = 0;
   int i                                 = 0;
   int j                                 = 0;
+  int row_i                             = 0;
+  int row_j                             = 0;
+  int palette_offset                    = 0;
+  int palette_index_rowsize             = 0;
   uint8_t color                         = 0;
   uint8_t data                          = 0;
+  int bytes_per_pixel_8                 = bytes_per_pixel * 8;
+  int rowsize_num_bitplanes             = rowsize * num_bitplanes;
+  int width_bytes_per_pixel             = width * bytes_per_pixel;
   
-  for (i = 0; i < (width * height * bytes_per_pixel); index_buf[i++] = 0);
+  for (i = 0; i < (height * width_bytes_per_pixel); index_buf[i++] = 0);
 
   /* decode Bitplanes to RGB/Index Numbers */
   for (row_ptr = 0; row_ptr < height; row_ptr++) {
+
+    row_i                               = row_ptr * width_bytes_per_pixel;
+    row_j                               = row_ptr * rowsize_num_bitplanes;
+
     for (palette_index = 0; palette_index < num_bitplanes; palette_index++) {
+
+      palette_offset                    = ((palette_index > 15) ? 2 : (palette_index > 7) ? 1 : 0);
+      color                             = bitplainoffeset[palette_index];
+      palette_index_rowsize             = palette_index * rowsize;
+
       for (pixel_ptr = 0; pixel_ptr < rowsize; pixel_ptr++) {
-        i                               = (row_ptr * width * bytes_per_pixel) +
-                                          (pixel_ptr * bytes_per_pixel * 8) +
-                                          ((palette_index > 15) ? 2 : (palette_index > 7) ? 1 : 0);
-        j                               = (row_ptr * rowsize * num_bitplanes) +
-                                          (palette_index * rowsize) +
-                                          pixel_ptr;
-        color                           = bitplainoffeset[palette_index];
+        i                               = row_i +
+                                          (pixel_ptr * bytes_per_pixel_8) +
+                                          palette_offset;
+        j                               = row_j + palette_index_rowsize + pixel_ptr;
+
         data                            = bitplane_buffer[j];
         
         index_buf[i]                   += ((data & 0x80) ? color : 0);
@@ -401,71 +335,64 @@ static uint8_t *bitplane_decode_bitplane (uint8_t *bitplane_buffer,
       }
     }
   }
-  return index_buf;
 }
 
-/* create Buffer decode HAM6 and HAM8 to 24 Bit RGB color */
-static uint8_t *bitplane_decode_ham (uint8_t *ham_buffer,
-  uint8_t *truecolor_buf,
+/* create Buffer decode HAM6 and HAM8 to YUV color */
+static void bitplane_decode_ham (uint8_t *ham_buffer,
+  yuv_planes_t *yuv_planes,
   int width,
   int height,
   int num_bitplanes,
   int bytes_per_pixel,
   unsigned char *rgb_palette ) {
-  
-  int pixel_ptr                         = 0;
-  int row_ptr                           = 0;
-  int buf_ptr                           = 0;
+
+  uint8_t *ham_buffer_work              = ham_buffer;
+  uint8_t *ham_buffer_end               = &ham_buffer[(width * height)];
+  uint8_t *yuv_ptr_y                    = yuv_planes->y;
+  uint8_t *yuv_ptr_u                    = yuv_planes->u;
+  uint8_t *yuv_ptr_v                    = yuv_planes->v;
   int i                                 = 0;
   int j                                 = 0;
-  unsigned char r                       = 0;
-  unsigned char g                       = 0;
-  unsigned char b                       = 0;
+  uint8_t r                             = 0;
+  uint8_t g                             = 0;
+  uint8_t b                             = 0;
   /* position of special HAM-Bits differs in HAM6 and HAM8, detect them */
   int hambits                           = num_bitplanes > 6 ? 6 : 4;
         /* the other bits contain the real data, dreate a mask out of it */
   int maskbits                          = 8 - hambits;
   int mask                              = ( 1 << hambits ) - 1;
   
-  for (row_ptr = 0; row_ptr < height; row_ptr++) {
-    for (pixel_ptr = 0; pixel_ptr < width; pixel_ptr++) {
-      i                                 = (row_ptr * width) + pixel_ptr;
-      buf_ptr                           = (row_ptr * width * bytes_per_pixel) +
-                                          (pixel_ptr * bytes_per_pixel);
-      j                                 = ham_buffer[i];
-      switch ( j >> hambits ) {
-        case HAMBITS_CMAP:
-          /* Take colors from palette */
-          r                             = rgb_palette[(j & mask) * 4 + 0];
-          g                             = rgb_palette[(j & mask) * 4 + 1];
-          b                             = rgb_palette[(j & mask) * 4 + 2];
-          break;
-        case HAMBITS_BLUE:
-          /* keep red and green and modify blue */
-          b                             = ( j & mask ) << maskbits;
-          b                            |= b >> hambits;
-          break;
-        case HAMBITS_RED:
-          /* keep green and blue and modify red */
-          r                             = ( j & mask ) << maskbits;
-          r                            |= r >> hambits;
-          break;
-        case HAMBITS_GREEN:
-          /* keep red and blue and modify green */
-          g                             = ( j & mask ) << maskbits;
-          g                            |= g >> hambits;
-          break;
-        default:
-          break;
-      }
-      /* put colors to buffer */
-      truecolor_buf[buf_ptr++]          = r;
-      truecolor_buf[buf_ptr++]          = g;
-      truecolor_buf[buf_ptr]            = b;
+  for(; ham_buffer_work < ham_buffer_end; j = *ham_buffer_work++) {
+    i                                   = (j & mask);
+    switch ( j >> hambits ) {
+      case HAMBITS_CMAP:
+        /* Take colors from palette */
+        r                               = rgb_palette[i * 4 + 0];
+        g                               = rgb_palette[i * 4 + 1];
+        b                               = rgb_palette[i * 4 + 2];
+        break;
+      case HAMBITS_BLUE:
+        /* keep red and green and modify blue */
+        b                               = i << maskbits;
+        b                              |= b >> hambits;
+        break;
+      case HAMBITS_RED:
+        /* keep green and blue and modify red */
+        r                               = i << maskbits;
+        r                              |= r >> hambits;
+        break;
+      case HAMBITS_GREEN:
+        /* keep red and blue and modify green */
+        g                               = i << maskbits;
+        g                              |= g >> hambits;
+        break;
+      default:
+        break;
     }
+    *yuv_ptr_y++                        = COMPUTE_Y(r, g, b);
+    *yuv_ptr_u++                        = COMPUTE_U(r, g, b);
+    *yuv_ptr_v++                        = COMPUTE_V(r, g, b);
   }
-
-  return truecolor_buf;
 }
 
 /* decoding method 4 */
@@ -527,44 +454,41 @@ static void bitplane_set_dlta_short (uint8_t *current_buffer,
 }
 
 /* decoding method 5 */
-static void bitplane_dlta_5 (uint8_t *current_buffer,
-  uint8_t *index_buf,
-  uint8_t *delta,
-  int dsize,
-  int width,
-  int height,
-  int num_bitplanes ) {
+static void bitplane_dlta_5 (bitplane_decoder_t *this) {
   
-  uint32_t rowsize                      = width / 8;
-  uint32_t rowsize_all_planes           = rowsize * num_bitplanes;
+  uint32_t rowsize                      = this->width / 8;
+  uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
 
+  uint32_t yuv_index                    = 0;
   uint32_t delta_offset                 = 0;
   uint32_t palette_index                = 0;
   uint32_t pixel_ptr                    = 0;
+  uint32_t pixel_ptr_bit                = 0;
   uint32_t row_ptr                      = 0;
-  uint32_t *deltadata                   = (uint32_t *)delta;
+  uint32_t *deltadata                   = (uint32_t *)this->buf;
   uint8_t  *planeptr                    = NULL;
   uint8_t  *rowworkptr                  = NULL;
-  uint8_t  *picture_end                 = current_buffer + (rowsize_all_planes * height);
+  uint8_t  *picture_end                 = this->buf_uk + (rowsize_all_planes * this->height);
   uint8_t  *data                        = NULL;
-  uint8_t  *data_end                    = delta + dsize;
+  uint8_t  *data_end                    = this->buf + this->size;
   uint8_t  op_count                     = 0;
   uint8_t  op                           = 0;
   uint8_t  count                        = 0;
 
   /* Repeat for each plane */
-  for(palette_index = 0; palette_index < num_bitplanes; palette_index++) {
+  for(palette_index = 0; palette_index < this->num_bitplanes; palette_index++) {
 
-    planeptr                            = &current_buffer[(palette_index * rowsize)];
+    planeptr                            = &this->buf_uk[(palette_index * rowsize)];
     /* data starts at beginn of delta-Buffer + offset of the first */
     /* 32 Bit long word in the buffer. The buffer starts with 8    */
     /* of this Offset, for every bitplane (max 8) one              */
     delta_offset                        = BE_32(&deltadata[palette_index]);
 
     if (delta_offset > 0) {
-      data                              = delta + delta_offset;
+      data                              = this->buf + delta_offset;
       for( pixel_ptr = 0; pixel_ptr < rowsize; pixel_ptr++) {
         rowworkptr                      = planeptr + pixel_ptr;
+        pixel_ptr_bit                   = pixel_ptr * 8;
         row_ptr                         = 0;
         /* execute ops */
         for( op_count = *data++; op_count; op_count--) {
@@ -575,8 +499,16 @@ static void bitplane_dlta_5 (uint8_t *current_buffer,
             while(count--) {
               if (data > data_end || rowworkptr > picture_end)
                  return;
-              IFF_REPLACE_BYTE( &index_buf[((row_ptr * width) + (pixel_ptr * 8))],
-                                *rowworkptr, *data, bitplainoffeset[palette_index] );
+              yuv_index                 = ((row_ptr * this->width) + pixel_ptr_bit);
+              if( this->is_ham ) {
+                IFF_REPLACE_BYTE_SIMPLE(&this->index_buf[yuv_index],
+                                  *rowworkptr, *data, bitplainoffeset[palette_index] );
+              } else {
+                IFF_REPLACE_BYTE( &this->index_buf[yuv_index],
+                                  &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                  &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                  *rowworkptr, *data, bitplainoffeset[palette_index] );
+              }
               data++;
               rowworkptr               += rowsize_all_planes;
               row_ptr++;
@@ -588,8 +520,16 @@ static void bitplane_dlta_5 (uint8_t *current_buffer,
               while(count--) {
                 if (data > data_end || rowworkptr > picture_end)
                    return;
-                IFF_REPLACE_BYTE( &index_buf[((row_ptr * width) + (pixel_ptr * 8))],
-                                  *rowworkptr, *data, bitplainoffeset[palette_index] );
+                yuv_index               = ((row_ptr * this->width) + pixel_ptr_bit);
+                if( this->is_ham ) {
+                  IFF_REPLACE_BYTE_SIMPLE(&this->index_buf[yuv_index],
+                                    *rowworkptr, *data, bitplainoffeset[palette_index] );
+                } else {
+                  IFF_REPLACE_BYTE( &this->index_buf[yuv_index],
+                                    &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                    &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                    *rowworkptr, *data, bitplainoffeset[palette_index] );
+                }
                 rowworkptr             += rowsize_all_planes;
                 row_ptr++;
               }
@@ -607,46 +547,43 @@ static void bitplane_dlta_5 (uint8_t *current_buffer,
 }
 
 /* decoding method 7 (short version) */
-static void bitplane_dlta_7_short (uint8_t *current_buffer,
-  uint8_t *index_buf,
-  uint8_t *delta,
-  int dsize,
-  int width,
-  int height,
-  int num_bitplanes ) {
+static void bitplane_dlta_7_short (bitplane_decoder_t *this) {
 
-  uint32_t rowsize                      = width / 16;
-  uint32_t rowsize_all_planes           = rowsize * num_bitplanes;
+  uint32_t rowsize                      = this->width / 16;
+  uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
 
+  uint32_t yuv_index                    = 0;
   uint32_t opcode_offset                = 0;
   uint32_t data_offset                  = 0;
   uint32_t palette_index                = 0;
   uint32_t pixel_ptr                    = 0;
+  uint32_t pixel_ptr_bit                = 0;
   uint32_t row_ptr                      = 0;
-  uint32_t *deltadata                   = (uint32_t *)delta;
+  uint32_t *deltadata                   = (uint32_t *)this->buf;
   uint8_t  *planeptr                    = NULL;
   uint16_t *rowworkptr                  = NULL;
-  uint16_t *picture_end                 = (uint16_t *)(&current_buffer[(rowsize_all_planes * 2 * height)]);
+  uint16_t *picture_end                 = (uint16_t *)(&this->buf_uk[(rowsize_all_planes * 2 * this->height)]);
   uint16_t *data                        = NULL;
-  uint16_t *data_end                    = (uint16_t *)(&delta[dsize]);
+  uint16_t *data_end                    = (uint16_t *)(&this->buf[this->size]);
   uint8_t  *op_ptr                      = NULL;
   uint8_t  op_count                     = 0;
   uint8_t  op                           = 0;
   uint8_t  count                        = 0;
 
   /* Repeat for each plane */
-  for(palette_index = 0; palette_index < num_bitplanes; palette_index++) {
+  for(palette_index = 0; palette_index < this->num_bitplanes; palette_index++) {
 
-    planeptr                            = &current_buffer[(palette_index * rowsize * 2)];
+    planeptr                            = &this->buf_uk[(palette_index * rowsize * 2)];
     /* find opcode and data offset (up to 8 pointers, one for every bitplane */
     opcode_offset                       = BE_32(&deltadata[palette_index]);
     data_offset                         = BE_32(&deltadata[palette_index + 8]);
 
     if (opcode_offset > 0 && data_offset > 0) {
-      data                              = (uint16_t *)(&delta[data_offset]);
-      op_ptr                            = delta + opcode_offset;
+      data                              = (uint16_t *)(&this->buf[data_offset]);
+      op_ptr                            = this->buf + opcode_offset;
       for( pixel_ptr = 0; pixel_ptr < rowsize; pixel_ptr++) {
         rowworkptr                      = (uint16_t *)(&planeptr[pixel_ptr * 2]);
+        pixel_ptr_bit                   = pixel_ptr * 16;
         row_ptr                         = 0;
         /* execute ops */
         for( op_count = *op_ptr++; op_count; op_count--) {
@@ -657,10 +594,17 @@ static void bitplane_dlta_7_short (uint8_t *current_buffer,
             while(count--) {
               if (data > data_end || rowworkptr > picture_end)
                  return;
-/*              IFF_REPLACE_SHORT( &index_buf[((row_ptr * width) + (pixel_ptr * 16))],
-                                *rowworkptr, *data, bitplainoffeset[palette_index] );
-              data++;*/
-              *rowworkptr += *data++;
+              yuv_index                 = ((row_ptr * this->width) + pixel_ptr_bit);
+              if( this->is_ham ) {
+                IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                   rowworkptr, data, bitplainoffeset[palette_index] );
+              } else {
+                IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                   &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                   &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                   rowworkptr, data, bitplainoffeset[palette_index] );
+              }
+              data++;
               rowworkptr               += rowsize_all_planes;
               row_ptr++;
             }
@@ -671,9 +615,16 @@ static void bitplane_dlta_7_short (uint8_t *current_buffer,
               while(count--) {
                 if (data > data_end || rowworkptr > picture_end)
                    return;
-/*                IFF_REPLACE_SHORT( &index_buf[((row_ptr * width) + (pixel_ptr * 16))],
-                                  *rowworkptr, *data, bitplainoffeset[palette_index] );*/
-                *rowworkptr += *data;
+                yuv_index               = ((row_ptr * this->width) + pixel_ptr_bit);
+                if( this->is_ham ) {
+                  IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                     rowworkptr, data, bitplainoffeset[palette_index] );
+                } else {
+                  IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                     &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                     &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                     rowworkptr, data, bitplainoffeset[palette_index] );
+                }
                 rowworkptr             += rowsize_all_planes;
                 row_ptr++;
               }
@@ -691,45 +642,42 @@ static void bitplane_dlta_7_short (uint8_t *current_buffer,
 }
               
 /* decoding method 7 (long version) */
-static void bitplane_dlta_7_long (uint8_t *current_buffer,
-  uint8_t *index_buf,
-  uint8_t *delta,
-  int dsize,
-  int width,
-  int height,
-  int num_bitplanes ) {
+static void bitplane_dlta_7_long  (bitplane_decoder_t *this) {
   
-  uint32_t rowsize                      = width / 32;
-  uint32_t rowsize_all_planes           = rowsize * num_bitplanes;
+  uint32_t rowsize                      = this->width / 32;
+  uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
 
+  uint32_t yuv_index                    = 0;
   uint32_t opcode_offset                = 0;
   uint32_t data_offset                  = 0;
   uint32_t palette_index                = 0;
   uint32_t pixel_ptr                    = 0;
+  uint32_t pixel_ptr_bit                = 0;
   uint32_t row_ptr                      = 0;
-  uint32_t *deltadata                   = (uint32_t *)delta;
+  uint32_t *deltadata                   = (uint32_t *)this->buf;
   uint8_t  *planeptr                    = NULL;
   uint32_t *rowworkptr                  = NULL;
-  uint32_t *picture_end                 = (uint32_t *)(&current_buffer[(rowsize_all_planes * 4 * height)]);
+  uint32_t *picture_end                 = (uint32_t *)(&this->buf_uk[(rowsize_all_planes * 4 * this->height)]);
   uint32_t *data                        = NULL;
-  uint32_t *data_end                    = (uint32_t *)(&delta[dsize]);
+  uint32_t *data_end                    = (uint32_t *)(&this->buf[this->size]);
   uint8_t  *op_ptr                      = NULL;
   uint8_t  op_count                     = 0;
   uint8_t  op                           = 0;
   uint8_t  count                        = 0;
 
   /* Repeat for each plane */
-  for(palette_index = 0; palette_index < num_bitplanes; palette_index++) {
-    planeptr                            = &current_buffer[(palette_index * rowsize * 4)];
+  for(palette_index = 0; palette_index < this->num_bitplanes; palette_index++) {
+    planeptr                            = &this->buf_uk[(palette_index * rowsize * 4)];
     /* find opcode and data offset (up to 8 pointers, one for every bitplane */
     opcode_offset                       = BE_32(&deltadata[palette_index]);
     data_offset                         = BE_32(&deltadata[palette_index + 8]);
 
     if (opcode_offset > 0 && data_offset > 0) {
-      data                              = (uint32_t *)(&delta[data_offset]);
-      op_ptr                            = delta + opcode_offset;
+      data                              = (uint32_t *)(&this->buf[data_offset]);
+      op_ptr                            = this->buf + opcode_offset;
       for( pixel_ptr = 0; pixel_ptr < rowsize; pixel_ptr++) {
         rowworkptr                      = (uint32_t *)(&planeptr[pixel_ptr * 4]);
+        pixel_ptr_bit                   = pixel_ptr * 32;
         row_ptr                         = 0;
         /* execute ops */
         for( op_count = *op_ptr++; op_count; op_count--) {
@@ -740,8 +688,16 @@ static void bitplane_dlta_7_long (uint8_t *current_buffer,
             while(count--) {
               if (data > data_end || rowworkptr > picture_end)
                 return;
-              IFF_REPLACE_LONG( &index_buf[((row_ptr * width) + (pixel_ptr * 32))],
-                                *rowworkptr, *data, bitplainoffeset[palette_index] );
+              yuv_index                 = ((row_ptr * this->width) + pixel_ptr_bit);
+              if( this->is_ham ) {
+                IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
+                                   rowworkptr, data, bitplainoffeset[palette_index] );
+              } else {
+                IFF_REPLACE_LONG( &this->index_buf[yuv_index],
+                                   &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                   &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                   rowworkptr, data, bitplainoffeset[palette_index] );
+              }
               data++;
               rowworkptr               += rowsize_all_planes;
               row_ptr++;
@@ -753,8 +709,16 @@ static void bitplane_dlta_7_long (uint8_t *current_buffer,
               while(count--) {
                 if (data > data_end || rowworkptr > picture_end)
                   return;
-                IFF_REPLACE_LONG( &index_buf[((row_ptr * width) + (pixel_ptr * 32))],
-                                  *rowworkptr, *data, bitplainoffeset[palette_index] );
+                yuv_index               = ((row_ptr * this->width) + pixel_ptr_bit);
+                if( this->is_ham ) {
+                  IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
+                                     rowworkptr, data, bitplainoffeset[palette_index] );
+                } else {
+                  IFF_REPLACE_LONG( &this->index_buf[yuv_index],
+                                    &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                    &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                    rowworkptr, data, bitplainoffeset[palette_index] );
+                }
                 rowworkptr             += rowsize_all_planes;
                 row_ptr++;
               }
@@ -772,44 +736,41 @@ static void bitplane_dlta_7_long (uint8_t *current_buffer,
 }
 
 /* decoding method 8 short */
-static void bitplane_dlta_8_short (uint8_t *current_buffer,
-  uint8_t *index_buf,
-  uint8_t *delta,
-  int dsize,
-  int width,
-  int height,
-  int num_bitplanes ) {
-  
-  uint32_t rowsize                      = width / 16;
-  uint32_t rowsize_all_planes           = rowsize * num_bitplanes;
+static void bitplane_dlta_8_short (bitplane_decoder_t *this) {
 
+  uint32_t rowsize                      = this->width / 16;
+  uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
+
+  uint32_t yuv_index                    = 0;
   uint32_t delta_offset                 = 0;
   uint32_t palette_index                = 0;
   uint32_t pixel_ptr                    = 0;
   uint32_t row_ptr                      = 0;
-  uint32_t *deltadata                   = (uint32_t *)delta;
+  uint32_t pixel_ptr_bit                = 0;
+  uint32_t *deltadata                   = (uint32_t *)this->buf;
   uint16_t *planeptr                    = NULL;
   uint16_t *rowworkptr                  = NULL;
-  uint16_t *picture_end                 = (uint16_t *)(&current_buffer[(rowsize_all_planes * 2 * height)]);
+  uint16_t *picture_end                 = (uint16_t *)(&this->buf_uk[(rowsize_all_planes * 2 * this->height)]);
   uint16_t *data                        = NULL;
-  uint16_t *data_end                    = (uint16_t *)(&delta[dsize]);
+  uint16_t *data_end                    = (uint16_t *)(&this->buf[this->size]);
   uint16_t op_count                     = 0;
   uint16_t op                           = 0;
   uint16_t count                        = 0;
 
   /* Repeat for each plane */
-  for(palette_index = 0; palette_index < num_bitplanes; palette_index++) {
+  for(palette_index = 0; palette_index < this->num_bitplanes; palette_index++) {
 
-    planeptr                            = (uint16_t *)(&current_buffer[(palette_index * rowsize * 2)]);
+    planeptr                            = (uint16_t *)(&this->buf_uk[(palette_index * rowsize * 2)]);
     /* data starts at beginn of delta-Buffer + offset of the first */
     /* 32 Bit long word in the buffer. The buffer starts with 8    */
     /* of this Offset, for every bitplane (max 8) one              */
     delta_offset                        = BE_32(&deltadata[palette_index]);
 
     if (delta_offset > 0) {
-      data                              = (uint16_t *)(&delta[delta_offset]);
+      data                              = (uint16_t *)(&this->buf[delta_offset]);
       for( pixel_ptr = 0; pixel_ptr < rowsize; pixel_ptr++) {
         rowworkptr                      = planeptr + pixel_ptr;
+        pixel_ptr_bit                   = pixel_ptr * 16;
         row_ptr                         = 0;
         /* execute ops */
         op_count = BE_16(data);
@@ -823,8 +784,16 @@ static void bitplane_dlta_8_short (uint8_t *current_buffer,
             while(count--) {
               if (data > data_end || rowworkptr > picture_end)
                  return;
-              IFF_REPLACE_SHORT( &index_buf[((row_ptr * width) + (pixel_ptr * 16))],
-                                *rowworkptr, *data, bitplainoffeset[palette_index] );
+              yuv_index                 = ((row_ptr * this->width) + pixel_ptr_bit);
+              if( this->is_ham ) {
+                IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                   rowworkptr, data, bitplainoffeset[palette_index] );
+              } else {
+                IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                   &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                   &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                   rowworkptr, data, bitplainoffeset[palette_index] );
+              }
               data++;
               rowworkptr               += rowsize_all_planes;
               row_ptr++;
@@ -837,8 +806,16 @@ static void bitplane_dlta_8_short (uint8_t *current_buffer,
               while(count--) {
                 if (data > data_end || rowworkptr > picture_end)
                    return;
-                IFF_REPLACE_SHORT( &index_buf[((row_ptr * width) + (pixel_ptr * 16))],
-                                  *rowworkptr, *data, bitplainoffeset[palette_index] );
+                yuv_index               = ((row_ptr * this->width) + pixel_ptr_bit);
+                if( this->is_ham ) {
+                  IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                     rowworkptr, data, bitplainoffeset[palette_index] );
+                } else {
+                  IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                     &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                     &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                     rowworkptr, data, bitplainoffeset[palette_index] );
+                }
                 rowworkptr             += rowsize_all_planes;
                 row_ptr++;
               }
@@ -856,47 +833,44 @@ static void bitplane_dlta_8_short (uint8_t *current_buffer,
 }
 
 /* decoding method 8 long */
-static void bitplane_dlta_8_long (uint8_t *current_buffer,
-  uint8_t *index_buf,
-  uint8_t *delta,
-  int dsize,
-  int width,
-  int height,
-  int num_bitplanes ) {
-  
-  uint32_t rowsize                      = width / 32;
-  uint32_t rowsize_all_planes           = rowsize * num_bitplanes;
+static void bitplane_dlta_8_long (bitplane_decoder_t *this) {
 
+  uint32_t rowsize                      = this->width / 32;
+  uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
+
+  uint32_t yuv_index                    = 0;
   uint32_t delta_offset                 = 0;
   uint32_t palette_index                = 0;
   uint32_t pixel_ptr                    = 0;
+  uint32_t pixel_ptr_bit                = 0;
   uint32_t row_ptr                      = 0;
-  uint32_t *deltadata                   = (uint32_t *)delta;
+  uint32_t *deltadata                   = (uint32_t *)this->buf;
   uint32_t *planeptr                    = NULL;
   uint32_t *rowworkptr                  = NULL;
-  uint32_t *picture_end                 = (uint32_t *)(&current_buffer[(rowsize_all_planes * 4 * height)]);
+  uint32_t *picture_end                 = (uint32_t *)(&this->buf_uk[(rowsize_all_planes * 4 * this->height)]);
   uint32_t *data                        = NULL;
-  uint32_t *data_end                    = (uint32_t *)(&delta[dsize]);
+  uint32_t *data_end                    = (uint32_t *)(&this->buf[this->size]);
   uint32_t op_count                     = 0;
   uint32_t op                           = 0;
   uint32_t count                        = 0;
 
   /* Repeat for each plane */
-  for(palette_index = 0; palette_index < num_bitplanes; palette_index++) {
+  for(palette_index = 0; palette_index < this->num_bitplanes; palette_index++) {
 
-    planeptr                            = (uint32_t *)(&current_buffer[(palette_index * rowsize * 4)]);
+    planeptr                            = (uint32_t *)(&this->buf_uk[(palette_index * rowsize * 4)]);
     /* data starts at beginn of delta-Buffer + offset of the first */
     /* 32 Bit long word in the buffer. The buffer starts with 8    */
     /* of this Offset, for every bitplane (max 8) one              */
     delta_offset                        = BE_32(&deltadata[palette_index]);
 
     if (delta_offset > 0) {
-      data                              = (uint32_t *)(&delta[delta_offset]);
+      data                              = (uint32_t *)(&this->buf[delta_offset]);
       for( pixel_ptr = 0; pixel_ptr < rowsize; pixel_ptr++) {
         rowworkptr                      = planeptr + pixel_ptr;
+        pixel_ptr_bit                   = pixel_ptr * 32;
         row_ptr                         = 0;
         /* execute ops */
-        op_count = BE_32(data);
+        op_count                        = BE_32(data);
         data++;
         for( ; op_count; op_count--) {
           op                            = BE_32(data);
@@ -905,10 +879,20 @@ static void bitplane_dlta_8_long (uint8_t *current_buffer,
             /* Uniq ops */
             count                       = op & 0x7fffffff; /* get count */
             while(count--) {
-              if (data > data_end || rowworkptr > picture_end)
+              if (data > data_end || rowworkptr > picture_end) {
+                  printf("Fehler decoding (1)\n");
                  return;
-              IFF_REPLACE_LONG( &index_buf[((row_ptr * width) + (pixel_ptr * 32))],
-                                *rowworkptr, *data, bitplainoffeset[palette_index] );
+              }
+              yuv_index                 = ((row_ptr * this->width) + pixel_ptr_bit);
+              if( this->is_ham ) {
+                IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
+                                   rowworkptr, data, bitplainoffeset[palette_index] );
+              } else {
+                IFF_REPLACE_LONG( &this->index_buf[((row_ptr * this->width) + pixel_ptr_bit)],
+                                  &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                  &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                  rowworkptr, data, bitplainoffeset[palette_index] );
+              }
               data++;
               rowworkptr               += rowsize_all_planes;
               row_ptr++;
@@ -919,10 +903,20 @@ static void bitplane_dlta_8_long (uint8_t *current_buffer,
               count                     = BE_32(data);
               data++;
               while(count--) {
-                if (data > data_end || rowworkptr > picture_end)
-                   return;
-                IFF_REPLACE_LONG( &index_buf[((row_ptr * width) + (pixel_ptr * 32))],
-                                  *rowworkptr, *data, bitplainoffeset[palette_index] );
+                if (data > data_end || rowworkptr > picture_end) {
+                  printf("Fehler decoding (2)\n");
+                  return;
+                }
+                yuv_index               = ((row_ptr * this->width) + pixel_ptr_bit);
+                if( this->is_ham ) {
+                  IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
+                                     rowworkptr, data, bitplainoffeset[palette_index] );
+                } else {
+                  IFF_REPLACE_LONG( &this->index_buf[yuv_index],
+                                    &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                    &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                    rowworkptr, data, bitplainoffeset[palette_index] );
+                }
                 rowworkptr             += rowsize_all_planes;
                 row_ptr++;
               }
@@ -937,6 +931,7 @@ static void bitplane_dlta_8_long (uint8_t *current_buffer,
       }
     }
   }
+/*  bitplane_decode_bitplane(this->buf_uk, this->index_buf, this->width, this->height, this->num_bitplanes, 1);*/
 }
 
 static void bitplane_decode_data (video_decoder_t *this_gen,
@@ -948,8 +943,6 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
   AnimHeader *anhd                      = NULL;
   int i                                 = 0;
   int j                                 = 0;
-  int pixel_ptr                         = 0;
-  int row_ptr                           = 0;
   int buf_ptr                           = 0;
   unsigned char r                       = 0;
   unsigned char g                       = 0;
@@ -1007,33 +1000,26 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
       free(this->buf);
 
     bih                                 = (xine_bmiheader *) buf->content;
-    this->width                         = bih->biWidth;
-    this->width_decode                  = (bih->biWidth + 15) & ~0x0f;
+    this->width                         = (bih->biWidth + 15) & ~0x0f;
     this->height                        = bih->biHeight;
+    this->num_pixel                     = this->width * this->height;
     this->ratio                         = (double)this->width/(double)this->height;
     this->video_step                    = buf->decoder_info[1];
     /* Palette based Formates use up to 8 Bit per pixel, always use 8 Bit if less */
     this->bytes_per_pixel               = (bih->biBitCount + 1) / 8;
     if( this->bytes_per_pixel < 1 )
       this->bytes_per_pixel             = 1;
-    if(bih->biCompression & CAMG_HAM )
-      this->full_bytes_per_pixel        = 3;
-    else
-      this->full_bytes_per_pixel        = this->bytes_per_pixel;
 
     /* New Buffer for indexes (palette based formats) */
-    if( this->bytes_per_pixel < 3 )
-    {
-      this->index_buf                   = xine_xmalloc( (this->width_decode * this->height * this->bytes_per_pixel) );
-      this->index_buf_hist              = xine_xmalloc( (this->width_decode * this->height * this->bytes_per_pixel) );
-    }
+    this->index_buf                     = xine_xmalloc( this->num_pixel * this->bytes_per_pixel );
+    this->index_buf_hist                = xine_xmalloc( this->num_pixel * this->bytes_per_pixel );
     
-    /* New Buffer for RGB Colors */
-    if(this->full_bytes_per_pixel > 1)
-      this->rgb_buf                     = xine_xmalloc( (this->width_decode * this->height * this->full_bytes_per_pixel) );
-
     this->num_bitplanes                 = bih->biPlanes;
     this->camg_mode                     = bih->biCompression;
+    if( this->camg_mode & CAMG_HAM )
+      this->is_ham                      = 1;
+    else
+      this->is_ham                      = 0;
 
     if( buf->decoder_info[2]           != buf->decoder_info[3] &&
         buf->decoder_info[3]            > 0 ) {
@@ -1060,6 +1046,7 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
     this->size                          = 0;
 
     init_yuv_planes(&this->yuv_planes, this->width, this->height);
+    init_yuv_planes(&this->yuv_planes_hist, this->width, this->height);
 
     this->stream->video_out->open (this->stream->video_out, this->stream);
     this->decoder_ok                    = 1;
@@ -1110,7 +1097,7 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
        
         /* iterate through each row */
         buf_ptr                         = 0;
-        this->size_uk                   = (((this->width_decode * this->height) / 8) * this->num_bitplanes);
+        this->size_uk                   = (((this->num_pixel) / 8) * this->num_bitplanes);
       
         if( this->buf_uk_hist != NULL )
           xine_fast_memcpy (this->buf_uk_hist, this->buf_uk, this->size_uk);
@@ -1139,43 +1126,47 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
           default:
             break;
         }
-        if( this->bytes_per_pixel > 1 ) {
-          bitplane_decode_bitplane(   this->buf_uk,              /* bitplane buffer         */
-                                      this->rgb_buf,             /* rgb buffer, direct 24Bit*/
-                                      this->width_decode,        /* width                   */
-                                      this->height,              /* hight                   */
-                                      this->num_bitplanes,       /* number bitplanes        */
-                                      this->bytes_per_pixel);    /* used Bytes per pixel    */
-        } else {
-          bitplane_decode_bitplane(   this->buf_uk,              /* bitplane buffer         */
+        bitplane_decode_bitplane(     this->buf_uk,              /* bitplane buffer         */
                                       this->index_buf,           /* index buffer            */
-                                      this->width_decode,        /* width                   */
+                                      this->width,        /* width                   */
                                       this->height,              /* hight                   */
                                       this->num_bitplanes,       /* number bitplanes        */
                                       this->bytes_per_pixel);    /* used Bytes per pixel    */
 
-          if( this->buf_uk_hist == NULL ) {
-            this->buf_uk_hist           = xine_xmalloc( (this->size_uk) );
-            xine_fast_memcpy (this->buf_uk_hist, this->buf_uk, this->size_uk);
-            xine_fast_memcpy (this->index_buf_hist, this->index_buf,
-                              (this->width_decode * this->height * this->bytes_per_pixel));
+        if ((this->bytes_per_pixel == 1) &&
+            (this->is_ham == 0) ) {
+          buf_exchange                  = this->index_buf;
+          for (i = 0; i < (this->height * this->width); i++) {
+            j                           = *buf_exchange++ * 4;
+            this->yuv_planes.y[i]       = this->yuv_palette[j++];
+            this->yuv_planes.u[i]       = this->yuv_palette[j++];
+            this->yuv_planes.v[i]       = this->yuv_palette[j];
           }
+        }
+        if( this->buf_uk_hist == NULL ) {
+          this->buf_uk_hist             = xine_xmalloc( (this->size_uk) );
+          xine_fast_memcpy (this->buf_uk_hist, this->buf_uk, this->size_uk);
+          xine_fast_memcpy (this->index_buf_hist, this->index_buf,
+                            (this->num_pixel * this->bytes_per_pixel));
+          xine_fast_memcpy (this->yuv_planes_hist.y, this->yuv_planes.y, (this->num_pixel));
+          xine_fast_memcpy (this->yuv_planes_hist.u, this->yuv_planes.u, (this->num_pixel));
+          xine_fast_memcpy (this->yuv_planes_hist.v, this->yuv_planes.v, (this->num_pixel));
         }
       } else {
         /* when no start-picture is given, create a empty one */
         if( this->buf_uk_hist == NULL ) {
-          this->size_uk                 = (((this->width_decode * this->height) / 8) * this->num_bitplanes);
+          this->size_uk                 = (((this->num_pixel) / 8) * this->num_bitplanes);
           this->buf_uk                  = xine_xmalloc( (this->size_uk) );
           this->buf_uk_hist             = xine_xmalloc( (this->size_uk) );
           for (i = 0; i < this->size_uk; i++) {
-            this->buf_uk                = 0;
-            this->buf_uk_hist           = 0;
+            this->buf_uk[i]             = 0;
+            this->buf_uk_hist[i]        = 0;
           }
         }
         if( this->index_buf == NULL ) {
-          this->index_buf               = xine_xmalloc( (this->width_decode * this->height * this->bytes_per_pixel) );
-          this->index_buf_hist          = xine_xmalloc( (this->width_decode * this->height * this->bytes_per_pixel) );
-          for (i = 0; i < (this->width_decode * this->height * this->bytes_per_pixel); i++) {
+          this->index_buf               = xine_xmalloc( (this->num_pixel * this->bytes_per_pixel) );
+          this->index_buf_hist          = xine_xmalloc( (this->num_pixel * this->bytes_per_pixel) );
+          for (i = 0; i < (this->num_pixel * this->bytes_per_pixel); i++) {
             this->index_buf[i]          = 0;
             this->index_buf_hist[i]     = 0;
           }
@@ -1205,25 +1196,22 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
             break;
           /* also known as IFF-ANIM OPT4 (never seen in real world) */
           case IFF_ANHD_SLDELTA:
-            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT4 (SLDELTA)");
+            xine_log(this->stream->xine, XINE_LOG_MSG,
+                     _("bitplane: Anim Opt 4 is not supported at the moment\n"));
+            _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
+/*            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT4 (SLDELTA)");
             bitplane_set_dlta_short ( this->buf_uk_hist,
                                       this->index_buf_hist,
                                       this->buf,
                                       this->size,
                                       this->width,
                                       this->height,
-                                      this->num_bitplanes);
+                                      this->num_bitplanes);*/
             break;
           /* also known as IFF-ANIM OPT5 */
           case IFF_ANHD_BVDELTA:
             _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT5 (BVDELTA)");
-            bitplane_dlta_5 (         this->buf_uk_hist,
-                                      this->index_buf_hist,
-                                      this->buf,
-                                      this->size,
-                                      this->width,
-                                      this->height,
-                                      this->num_bitplanes);
+            bitplane_dlta_5(this);
             break;
           case IFF_ANHD_STEREOO5:
             xine_log(this->stream->xine, XINE_LOG_MSG,
@@ -1234,43 +1222,19 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
           case IFF_ANHD_OPT7:
             if(anhd->bits == 0) {
               _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT7 (SHORT)");
-              bitplane_dlta_7_short ( this->buf_uk_hist,
-                                      this->index_buf_hist,
-                                      this->buf,
-                                      this->size,
-                                      this->width,
-                                      this->height,
-                                      this->num_bitplanes);
+              bitplane_dlta_7_short(this);
             } else {
               _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT7 (LONG)");
-              bitplane_dlta_7_long (  this->buf_uk_hist,
-                                      this->index_buf_hist,
-                                      this->buf,
-                                      this->size,
-                                      this->width,
-                                      this->height,
-                                      this->num_bitplanes);
+              bitplane_dlta_7_long(this);
             }
             break;
           case IFF_ANHD_OPT8:
             if(anhd->bits == 0) {
               _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT8 (SHORT)");
-              bitplane_dlta_8_short ( this->buf_uk_hist,
-                                      this->index_buf_hist,
-                                      this->buf,
-                                      this->size,
-                                      this->width,
-                                      this->height,
-                                      this->num_bitplanes);
+              bitplane_dlta_8_short(this);
             } else {
               _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT8 (LONG)");
-              bitplane_dlta_8_long (  this->buf_uk_hist,
-                                      this->index_buf_hist,
-                                      this->buf,
-                                      this->size,
-                                      this->width,
-                                      this->height,
-                                      this->num_bitplanes);
+              bitplane_dlta_8_long(this);
             }
             break;
           case IFF_ANHD_ASCIIJ:
@@ -1294,46 +1258,42 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
         buf_exchange                    = this->index_buf;
         this->index_buf                 = this->index_buf_hist;
         this->index_buf_hist            = buf_exchange;
+        /* and also with yuv buffer */
+        buf_exchange                    = this->yuv_planes.y;
+        this->yuv_planes.y              = this->yuv_planes_hist.y;
+        this->yuv_planes_hist.y         = buf_exchange;
+        buf_exchange                    = this->yuv_planes.u;
+        this->yuv_planes.u              = this->yuv_planes_hist.u;
+        this->yuv_planes_hist.u         = buf_exchange;
+        buf_exchange                    = this->yuv_planes.v;
+        this->yuv_planes.v              = this->yuv_planes_hist.v;
+        this->yuv_planes_hist.v         = buf_exchange;
       }
 
-      /* HAM-pictrues need special handling */
-      if( this->camg_mode & CAMG_HAM ) {
-        /* HAM-Pictures must always be extended to 24-Bit RGB, so extended buffer is needed */
-        bitplane_decode_ham( this->index_buf,                /* HAM-bitplane buffer     */
-                             this->rgb_buf,                  /* 24 Bit RGB buffer       */
-                             this->width_decode,             /* width                   */
-                             this->height,                   /* hight                   */
-                             this->num_bitplanes,            /* number bitplanes        */
-                             this->full_bytes_per_pixel,     /* used Bytes per pixel    */
-                             this->rgb_palette);             /* Palette (RGB)           */
-      }
-
-      switch (this->full_bytes_per_pixel) {
+      switch (this->bytes_per_pixel) {
         case 1:
-          for (row_ptr = 0; row_ptr < this->height; row_ptr++) {
-            for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
-              i = (row_ptr * this->width_decode) + pixel_ptr;
-              j = (row_ptr * this->width) + pixel_ptr;
-              this->yuv_planes.y[j]     = this->yuv_palette[this->index_buf[i] * 4 + 0];
-              this->yuv_planes.u[j]     = this->yuv_palette[this->index_buf[i] * 4 + 1];
-              this->yuv_planes.v[j]     = this->yuv_palette[this->index_buf[i] * 4 + 2];
-            }
+          /* HAM-pictrues need special handling */
+          if( this->is_ham ) {
+            /* Decode HAM-Pictures to YUV */
+            bitplane_decode_ham( this->index_buf,            /* HAM-bitplane buffer     */
+                                 &(this->yuv_planes),        /* YUV buffer              */
+                                 this->width,                /* width                   */
+                                 this->height,               /* hight                   */
+                                 this->num_bitplanes,        /* number bitplanes        */
+                                 this->bytes_per_pixel,      /* used Bytes per pixel    */
+                                 this->rgb_palette);         /* Palette (RGB)           */
           }
           break;
         case 3:
-          for (row_ptr = 0; row_ptr < this->height; row_ptr++) {
-            for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
-              i                         = (row_ptr * this->width_decode * this->full_bytes_per_pixel) +
-                                          (pixel_ptr * this->full_bytes_per_pixel);
-              j                         = (row_ptr * this->width) + pixel_ptr;
-              r                         = this->rgb_buf[i++];
-              g                         = this->rgb_buf[i++];
-              b                         = this->rgb_buf[i];
+          buf_exchange                  = this->index_buf;
+          for (i = 0; i < (this->height * this->width); i++) {
+            r                           = *buf_exchange++;
+            g                           = *buf_exchange++;
+            b                           = *buf_exchange++;
 
-              this->yuv_planes.y[j]     = COMPUTE_Y(r, g, b);
-              this->yuv_planes.u[j]     = COMPUTE_U(r, g, b);
-              this->yuv_planes.v[j]     = COMPUTE_V(r, g, b);
-            }
+            this->yuv_planes.y[i]       = COMPUTE_Y(r, g, b);
+            this->yuv_planes.u[i]       = COMPUTE_U(r, g, b);
+            this->yuv_planes.v[i]       = COMPUTE_V(r, g, b);
           }
           break;
         default:
@@ -1402,9 +1362,9 @@ static void bitplane_dispose (video_decoder_t *this_gen) {
     this->index_buf_hist = NULL;
   }
 
-  if (this->rgb_buf) {
-    free (this->rgb_buf);
-    this->rgb_buf = NULL;
+  if (this->index_buf) {
+    free (this->index_buf);
+    this->index_buf = NULL;
   }
 
   if (this->decoder_ok) {
@@ -1433,7 +1393,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->buf                             = NULL;
   this->buf_uk                          = NULL;
   this->index_buf                       = NULL;
-  this->rgb_buf                         = NULL;
+  this->index_buf                         = NULL;
 
   return &this->video_decoder;
 }
