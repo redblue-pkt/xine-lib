@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.32 2002/12/01 15:11:02 mroi Exp $
+ * $Id: xine_interface.c,v 1.33 2002/12/12 01:58:37 tmmm Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -506,6 +506,7 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
   case XINE_STREAM_INFO_IGNORE_VIDEO:
   case XINE_STREAM_INFO_IGNORE_AUDIO:
   case XINE_STREAM_INFO_IGNORE_SPU:
+  case XINE_STREAM_INFO_VIDEO_HAS_STILL:
     return stream->stream_info[info];
 
   default:
