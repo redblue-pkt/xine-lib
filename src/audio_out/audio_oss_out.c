@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.78 2002/10/20 17:56:35 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.79 2002/10/20 23:58:52 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -168,9 +168,12 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
     return 0;
   }
 
+  pthread_mutex_lock (&this->lock);
+
   if (this->audio_fd > -1) {
 
     if ( (mode == this->mode) && (rate == this->input_sample_rate) ) {
+      pthread_mutex_unlock (&this->lock);
       return this->output_sample_rate;
     }
 
@@ -191,6 +194,7 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
   if(this->audio_fd < 0) {
     printf("audio_oss_out: Opening audio device %s: %s\n",
 	   this->audio_dev, strerror(errno));
+    pthread_mutex_unlock (&this->lock);
     return 0;
   }
   
@@ -216,6 +220,7 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
       tmp = 44100;
       if (ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
         printf ("audio_oss_out: error: 44100 Hz sampling rate not supported\n");
+	pthread_mutex_unlock (&this->lock);
         return 0;
       }
     }
@@ -289,6 +294,7 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
           printf("audio_oss_out: ioctl succeeded but set format to 0x%x.\n",tmp);
         else
           printf("audio_oss_out: The AFMT_U8 ioctl failed.\n");
+	pthread_mutex_unlock (&this->lock);
         return 0;
       } else {
 	printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_S16_NE.\n");
@@ -296,6 +302,7 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
           printf("audio_oss_out: ioctl succeeded but set format to 0x%x.\n",tmp);
         else
           printf("audio_oss_out: The AFMT_S16_NE ioctl failed.\n");
+	pthread_mutex_unlock (&this->lock);
         return 0;
       }          
     }
@@ -305,6 +312,7 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
     tmp = AFMT_AC3;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
       printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
+      pthread_mutex_unlock (&this->lock);
       return 0;
     }
     break;
@@ -331,6 +339,8 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
 
      ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
+
+  pthread_mutex_unlock (&this->lock);
 
   return this->output_sample_rate;
 }
