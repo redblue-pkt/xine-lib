@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.35 2002/03/11 12:31:26 guenter Exp $
+ * $Id: buffer.h,v 1.36 2002/03/16 20:53:50 guenter Exp $
  *
  *
  * contents:
@@ -168,6 +168,7 @@ struct buf_element_s {
 #define BUF_FLAG_PREVIEW     0x0010
 #define BUF_FLAG_END_USER    0x0020
 #define BUF_FLAG_END_STREAM  0x0040
+#define BUF_FLAG_FRAMERATE   0x0080
 
 typedef struct fifo_buffer_s fifo_buffer_t;
 struct fifo_buffer_s

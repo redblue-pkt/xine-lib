@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.39 2002/02/17 17:32:50 guenter Exp $
+ * $Id: input_file.c,v 1.40 2002/03/16 20:53:50 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -379,6 +379,9 @@ static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origi
 static off_t file_plugin_get_current_pos (input_plugin_t *this_gen){
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
+  if (this->fh <0)
+    return 0;
+
   return lseek (this->fh, 0, SEEK_CUR);
 }
 
@@ -389,6 +392,9 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
 
   struct stat          buf ;
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  if (this->fh <0)
+    return 0;
 
   if (fstat (this->fh, &buf) == 0) {
     return buf.st_size;

@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.20 2001/12/09 23:09:32 guenter Exp $
+ * $Id: input_plugin.h,v 1.21 2002/03/16 20:53:50 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -299,6 +299,7 @@ struct input_plugin_s
 #define INPUT_OPTIONAL_DATA_TEXTSPU0  4
 #define INPUT_OPTIONAL_DATA_TEXTSPU1  5
 #define INPUT_OPTIONAL_DATA_TEXTSPU2  6
+#define INPUT_OPTIONAL_DATA_PREVIEW   7
 
 /*
  * each input plugin _must_ implement this function:

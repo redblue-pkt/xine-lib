@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.64 2002/03/11 12:31:26 guenter Exp $
+ * $Id: w32codec.c,v 1.65 2002/03/16 20:53:50 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -46,7 +46,11 @@
 #include "buffer.h"
 #include "xineutils.h"
 #include "xine_internal.h"
- 
+
+/*
+#define LOG
+*/
+
 static GUID CLSID_Voxware =
 {
      0x73f7a062, 0x8829, 0x11d1,
@@ -89,7 +93,7 @@ typedef struct w32v_decoder_s {
   video_decoder_t   video_decoder;
 
   vo_instance_t    *video_out;
-  int               video_step;
+  int64_t           video_step;
   int               decoder_ok;
 
   BITMAPINFOHEADER  bih, o_bih; 
@@ -396,7 +400,9 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 
   w32v_init_rgb_ycc();
 
+#ifdef LOG
   printf ("w32codec: init codec...\n");
+#endif
 
   memset(&this->o_bih, 0, sizeof(BITMAPINFOHEADER));
   this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
@@ -569,18 +575,26 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
 static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
-  /*
-  printf ("w32codec: processing packet type = %08x, buf : %d, 
-          buf->decoder_info[0]=%d\n", 
-	  buf->type, buf, buf->decoder_info[0]);
-	  */
+  
+#ifdef LOG
+  printf ("w32codec: processing packet type = %08x, buf->decoder_flags=%08x\n", 
+	  buf->type, buf->decoder_flags);
+#endif
+
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     if ( buf->type & 0xff )
       return;
     
+#ifdef LOG
+    printf ("w32codec: processing header ...\n"); 
+#endif
+
     /* init package containing bih */
     memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
     this->video_step = buf->decoder_info[1];
+#ifdef LOG
+    printf ("w32codec: video_step is %lld\n", this->video_step);
+#endif
 
     pthread_mutex_lock(&win32_codec_name_mutex);
     win32_codec_name = get_vids_codec_name (this, buf->type);
@@ -596,7 +610,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     
   } else if (this->decoder_ok) {
 
-    /* printf ("w32codec: processing packet ...\n"); */
+#ifdef LOG
+    printf ("w32codec: processing packet ...\n"); 
+#endif
     if( (int) buf->size <= 0 )
         return;
        
@@ -617,6 +633,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     this->size += buf->size;
 
+    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+      this->video_step = buf->decoder_info[0];
+
     if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
 
       HRESULT     ret;
@@ -636,6 +655,10 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       img->duration = this->video_step;
 
+#ifdef LOG
+	printf ("w32codec: frame duration is %lld\n", this->video_step);
+#endif
+
       if (this->outfmt==IMGFMT_YUY2)
          img_buffer = img->base[0];
       
@@ -654,7 +677,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
                             (this->skipframes)?NULL:img_buffer);
       }
                          
-      if(!this->skipframes) {
+      if (!this->skipframes) {
         if (this->outfmt==IMGFMT_YUY2) {
 	  /* already decoded into YUY2 format by DLL */
 	  /*
@@ -718,12 +741,18 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       }
       
       img->pts = buf->pts;
-      if(ret || this->skipframes) {
-        if( !this->skipframes )
+      if (ret || this->skipframes) {
+        if (!this->skipframes)
 	  printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
 	img->bad_frame = 1;
+#ifdef LOG
+	printf ("w32codec: BAD FRAME, duration is %lld\n", img->duration);
+#endif
       } else {
 	img->bad_frame = 0;
+#ifdef LOG
+	printf ("w32codec: GOOD FRAME, duration is %lld\n\n", img->duration);
+#endif
       }
       
       if (img->copy && !this->skipframes) {
@@ -740,7 +769,12 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       }
 
       this->skipframes = img->draw(img);
-      if( this->skipframes < 0 )
+
+#ifdef LOG
+      printf ("w32codec: skipframes is %d\n", this->skipframes);
+#endif
+
+      if (this->skipframes < 0)
         this->skipframes = 0;
       img->free(img);
 
