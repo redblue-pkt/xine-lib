@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.19 2003/11/04 14:38:26 valtri Exp $
+ * $Id: utils.c,v 1.20 2003/12/04 22:15:25 jstembridge Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -167,7 +167,7 @@ void xine_print_trace (void) {
 }
 
 /* print a hexdump of length bytes from the data given in buf */
-void xine_hexdump (char *buf, int length) {
+void xine_hexdump (const char *buf, int length) {
   int i,j;
   unsigned char c;
 
