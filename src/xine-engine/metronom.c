@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.44 2001/12/24 00:45:03 guenter Exp $
+ * $Id: metronom.c,v 1.45 2001/12/25 14:39:01 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -250,7 +250,8 @@ static void metronom_video_stream_start (metronom_t *this) {
   this->last_video_scr            = 0;
   this->num_video_vpts_guessed    = 0;
 
-  this->video_wrap_offset         = PREBUFFER_PTS_OFFSET;
+  /* video_wrap_offset will be updated with the first pts */
+  /* this->video_wrap_offset         = PREBUFFER_PTS_OFFSET; */
   this->wrap_diff_counter         = 0;
 
   this->video_stream_running      = 1;
@@ -321,7 +322,8 @@ static void metronom_audio_stream_start (metronom_t *this) {
   this->last_audio_pts            = 0;
   this->last_audio_scr            = 0;
 
-  this->audio_wrap_offset         = PREBUFFER_PTS_OFFSET;
+  /* audio_wrap_offset will be updated with the first pts */
+  /* this->audio_wrap_offset         = PREBUFFER_PTS_OFFSET; */
   this->wrap_diff_counter         = 0;
 
   this->audio_stream_running      = 1;
@@ -508,7 +510,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
       this->video_stream_starting = 0;
       this->wrap_diff_counter = 0;
 
-      this->video_wrap_offset = this->video_vpts - pts ;
+      this->video_wrap_offset = this->video_vpts + this->avg_frame_duration - pts;
       /* + this->num_video_vpts_guessed * this->avg_frame_duration; */
       
       vpts = pts + this->video_wrap_offset;
@@ -655,7 +657,6 @@ static void metronom_expect_audio_discontinuity (metronom_t *this) {
   }
   
   if ( this->audio_vpts < this->video_vpts ) {
-    this->audio_wrap_offset += this->video_vpts - this->audio_vpts ;
     this->audio_vpts         = this->video_vpts;
     printf("metronom: audio vpts adjusted to %d\n", this->audio_vpts);
   }
