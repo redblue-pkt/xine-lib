@@ -81,13 +81,15 @@ void nbc_check_buffers (nbc_t *this) {
 
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
     this->xine->metronom->set_option (this->xine->metronom, METRONOM_SCR_ADJUSTABLE, 0);
-    this->xine->audio_out->audio_paused = 2;
+    if (this->xine->audio_out)
+      this->xine->audio_out->audio_paused = 2;
     this->buffering = 1;
 
   } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
     this->xine->metronom->set_option (this->xine->metronom, METRONOM_SCR_ADJUSTABLE, 1);
-    this->xine->audio_out->audio_paused = 0;
+    if (this->xine->audio_out)
+      this->xine->audio_out->audio_paused = 0;
     this->buffering = 0;
 
     this->xine->osd_renderer->hide (this->xine->osd, 0);
