@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.84 2003/04/27 15:56:45 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.85 2003/04/27 17:40:59 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -497,7 +497,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  if( !this->buf_types[stream_num] )
 	    this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
 	  this->buf_types[stream_num] |= channel;
-	  this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
+	  this->preview_buffers[stream_num] = 1; /* FIXME: don't know */
 
 #ifdef LOG
 	  printf ("demux_ogg: subtype          %.4s\n", &locsubtype);
@@ -623,7 +623,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    buf->decoder_info[3] = locchannels;
 	    this->audio_fifo->put (this->audio_fifo, buf);
 	      
-	    this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
+	    this->preview_buffers[stream_num] = 1; /* FIXME: don't know */
 	    this->factor[stream_num] = 90000;
 	    this->quotient[stream_num] = locsamples_per_unit;
 
@@ -654,7 +654,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  printf ("demux_ogg: older direct show filter-generated stream header detected.\n");
 	  hex_dump (op.packet, op.bytes);
 #endif
-	  this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
+	  this->preview_buffers[stream_num] = 1; /* FIXME: don't know */
 
 	  if ( (*(int32_t*)(op.packet+96)==0x05589f80) && (op.bytes>=184)) {
 
@@ -1031,6 +1031,11 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     }
 
     ogg_sync_reset(&this->oy);
+
+    /*some strange streams have no syncpoint flag set at the beginning*/
+    if (start_pos == 0)
+      this->keyframe_needed = 0;
+
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
 
