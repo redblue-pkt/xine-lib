@@ -396,15 +396,18 @@ AC_SUBST(INCLUDES)
 dnl
 dnl Get where .m4 should be installed.
 dnl
-AC_MSG_CHECKING(for aclocal directory)
-if(aclocal --version) < /dev/null > /dev/null 2>&1; then
-  ACLOCAL_DIR=`$ACLOCAL --print-ac-dir`
-  AC_MSG_RESULT($ACLOCAL_DIR)
-else
-  ACLOCAL_DIR="/usr/local/share/aclocal"
-  AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
+if test "`id -u`" = "0"; then
+  AC_MSG_CHECKING(for aclocal directory)
+  if(aclocal --version) < /dev/null > /dev/null 2>&1; then
+    ACLOCAL_DIR=`$ACLOCAL --print-ac-dir`
+    AC_MSG_RESULT($ACLOCAL_DIR)
+  else
+    ACLOCAL_DIR="/usr/local/share/aclocal"
+    AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
+  fi
+  AC_SUBST(ACLOCAL_DIR)
 fi
-AC_SUBST(ACLOCAL_DIR)
+AM_CONDITIONAL(INSTALL_M4, test x"$ACLOCAL_DIR" != "x")
 
 AC_CHECK_PROG(DOXYGEN, doxygen, doxygen, no)
 

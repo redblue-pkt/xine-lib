@@ -1,10 +1,12 @@
 ##
 ## Process this file with automake to produce Makefile.in
 ##
+if INSTALL_M4
 m4datadir = @ACLOCAL_DIR@
 m4data_DATA = xine.m4
+endif
 
-EXTRA_DIST = _xine.m4 alsa.m4 esd.m4 $(m4data_DATA)
+EXTRA_DIST = _xine.m4 alsa.m4 esd.m4 xine.m4
 
 debug:
 
