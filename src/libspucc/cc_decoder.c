@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.12 2002/03/24 14:15:37 guenter Exp $
+ * $Id: cc_decoder.c,v 1.13 2002/03/30 20:11:34 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -76,6 +76,7 @@ static int text_colormap[NUM_FG_COL] = {
   OSD_TEXT1, OSD_TEXT2, OSD_TEXT3, OSD_TEXT4, OSD_TEXT5, OSD_TEXT6, OSD_TEXT7
 };
 
+
 /* text colors */
 /* FIXME: The colors look fine on an XShm display, but they look *terrible*
    with the Xv display on the NVidia driver on a GeForce 3. The colors bleed
@@ -83,122 +84,123 @@ static int text_colormap[NUM_FG_COL] = {
    may be off, whether it is a bug in the NVidia Xv driver, or whether
    it is a bug in the blending functions.
 */
-static clut_t cc_text[NUM_FG_COL][TEXT_PALETTE_SIZE] = {
+typedef struct colorinfo_s {
+  clut_t bgcol;           /* text background color */
+  clut_t bordercol;       /* text border color */
+  clut_t textcol;         /* text color */
+} colorinfo_t;
+
+
+static colorinfo_t cc_text_trans[NUM_FG_COL] = {
   /* white, black border, translucid */
   {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
-    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
-    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //7
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //8
-    CLUT_Y_CR_CB_INIT(0xc0, 0x80, 0x80), //9
-    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //10
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80)
   },
 
   /* green, black border, translucid */
   {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
-    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //2
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //3
-    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //4
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //5
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
-    CLUT_Y_CR_CB_INIT(0x20, 0x6a, 0x65), //7
-    CLUT_Y_CR_CB_INIT(0x4a, 0x50, 0x55), //8
-    CLUT_Y_CR_CB_INIT(0x70, 0x3a, 0x45), //9
-    CLUT_Y_CR_CB_INIT(0x90, 0x22, 0x35), //10
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x90, 0x22, 0x35)
   },
 
   /* blue, black border, translucid */
   {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
-    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
-    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
-    CLUT_Y_CR_CB_INIT(0x0c, 0x7c, 0xa0), //7
-    CLUT_Y_CR_CB_INIT(0x18, 0x78, 0xc0), //8
-    CLUT_Y_CR_CB_INIT(0x20, 0x74, 0xe0), //9
-    CLUT_Y_CR_CB_INIT(0x29, 0x6e, 0xff), //10
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x29, 0x6e, 0xff)
   },
 
   /* cyan, black border, translucid */
   {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
-    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
-    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
-    CLUT_Y_CR_CB_INIT(0x28, 0x64, 0x8a), //7
-    CLUT_Y_CR_CB_INIT(0x50, 0x48, 0x94), //8
-    CLUT_Y_CR_CB_INIT(0x78, 0x2c, 0x9e), //9
-    CLUT_Y_CR_CB_INIT(0xaa, 0x10, 0xa6), //10
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0xaa, 0x10, 0xa6)
   },
 
   /* red, black border, translucid */
   {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
-    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
-    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
-    CLUT_Y_CR_CB_INIT(0x14, 0x9c, 0x77), //7
-    CLUT_Y_CR_CB_INIT(0x28, 0xb8, 0x6e), //8
-    CLUT_Y_CR_CB_INIT(0x3c, 0xd4, 0x65), //9
-    CLUT_Y_CR_CB_INIT(0x52, 0xf0, 0x5a), //10
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x52, 0xf0, 0x5a)
   },
 
   /* yellow, black border, translucid */
   {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
-    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
-    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
-    CLUT_Y_CR_CB_INIT(0x34, 0x84, 0x64), //7
-    CLUT_Y_CR_CB_INIT(0x68, 0x8a, 0x48), //8
-    CLUT_Y_CR_CB_INIT(0x9c, 0x8e, 0x2c), //9
-    CLUT_Y_CR_CB_INIT(0xd4, 0x92, 0x10), //10
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0xd4, 0x92, 0x10)
   },
 
   /* magenta, black border, translucid */
   {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
-    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
-    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
-    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
-    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
-    CLUT_Y_CR_CB_INIT(0x1a, 0x98, 0x92), //7
-    CLUT_Y_CR_CB_INIT(0x34, 0xb0, 0xa6), //8
-    CLUT_Y_CR_CB_INIT(0x4e, 0xc8, 0xb8), //9
-    CLUT_Y_CR_CB_INIT(0x6b, 0xde, 0xca), //10
-  },
-
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x6b, 0xde, 0xca)
+  }
 };
 
-static uint8_t cc_text_trans[NUM_FG_COL][TEXT_PALETTE_SIZE] = {
-  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
-  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
-  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
-  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
-  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
-  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
-  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 }
+static colorinfo_t cc_text_solid[NUM_FG_COL] = {
+  /* white, black border, solid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80)
+  },
+
+  /* green, black border, solid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x90, 0x22, 0x35)
+  },
+
+  /* blue, black border, solid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x29, 0x6e, 0xff)
+  },
+
+  /* cyan, black border, solid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0xaa, 0x10, 0xa6)
+  },
+
+  /* red, black border, solid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x52, 0xf0, 0x5a)
+  },
+
+  /* yellow, black border, solid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0xd4, 0x92, 0x10)
+  },
+
+  /* magenta, black border, solid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
+    CLUT_Y_CR_CB_INIT(0x6b, 0xde, 0xca)
+  }
+};
+
+
+
+static uint8_t cc_text_trans_alpha[TEXT_PALETTE_SIZE] = {
+  0, 8, 9, 10, 11, 12, 15, 15, 15, 15, 15
+};
+
+static uint8_t cc_text_solid_alpha[TEXT_PALETTE_SIZE] = {
+  0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
 };
 
 /* caption palette and alpha channel */
@@ -423,6 +425,20 @@ static void build_char_table(void)
 }
 
 
+static clut_t interpolate_color(clut_t src, clut_t dest, int steps,
+				int current_step)
+{
+  int diff_y = ((int) dest.y) - ((int) src.y);
+  int diff_cr = ((int) dest.cr) - ((int) src.cr);
+  int diff_cb = ((int) dest.cb) - ((int) src.cb);
+  int res_y = ((int) src.y) + (diff_y * current_step / (steps + 1));
+  int res_cr = ((int) src.cr) + (diff_cr * current_step / (steps + 1));
+  int res_cb = ((int) src.cb) + (diff_cb * current_step / (steps + 1));
+  clut_t res = CLUT_Y_CR_CB_INIT((uint8_t) res_y, (uint8_t) res_cr,
+				 (uint8_t) res_cb);
+  return res;
+}
+
 static void build_palette(void)
 {
   int i, j;
@@ -430,10 +446,33 @@ static void build_palette(void)
   memset(cc_palette, 0, sizeof (cc_palette));
   memset(cc_trans, 0, sizeof (cc_trans));
   for (i = 0; i < NUM_FG_COL; i++) {
-    for (j = 0; j < TEXT_PALETTE_SIZE; j++) {
-      cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] = *(uint32_t *) &cc_text[i][j];
-      cc_trans[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] = cc_text_trans[i][j];
+    /* background color */
+    cc_palette[i * TEXT_PALETTE_SIZE + 1 + OSD_TEXT1] =
+      *(uint32_t *) &cc_text_trans[i].bgcol;
+    /* background -> border */
+    for (j = 2; j <= 5; j++) {
+      clut_t col = interpolate_color(cc_text_trans[i].bgcol,
+				     cc_text_trans[i].bordercol, 4, j - 1);
+      cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] =
+	*(uint32_t *) &col;
     }
+    /* border color */
+    cc_palette[i * TEXT_PALETTE_SIZE + 6 + OSD_TEXT1] =
+      *(uint32_t *) &cc_text_trans[i].bordercol;
+    /* border -> foreground */
+    for (j = 7; j <= 9; j++) {
+      clut_t col = interpolate_color(cc_text_trans[i].bordercol,
+				     cc_text_trans[i].textcol, 3, j - 6);
+      cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] =
+	*(uint32_t *) &col;
+    }
+    /* foreground color */
+    cc_palette[i * TEXT_PALETTE_SIZE + 10 + OSD_TEXT1] =
+      *(uint32_t *) &cc_text_trans[i].textcol;
+
+    /* alpha values */
+    for (j = 0; j <= 10; j++)
+      cc_trans[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] = cc_text_trans_alpha[j];
   }
 }
 
@@ -1291,7 +1330,7 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
   this->pts = pts;
 
 #if LOG_DEBUG >= 2
-  printf("libspucc: decode_cc: got pts %u scr %u\n", pts, scr);
+  printf("libspucc: decode_cc: got pts %u\n", pts);
   {
     uint8_t *cur_d = buffer;
     printf("libspucc: decode_cc: codes: ");
