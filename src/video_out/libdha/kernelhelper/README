@@ -1,0 +1,34 @@
+dhahelper is small driver to provide some kernel function into userspace.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Main goal why you need to use that it's busmastering.
+(Btw, lacking of possibility to implement convertion of
+virtual addresses into physical in userspace caused
+implementing of so-called DRM drivers for Linux from
+XFree86 side).
+Second goal (still is unfinished) - provide possibility
+to control port and physical memory access through
+groups and access rights of this driver. (Unix way).
+
+Installation:
+~~~~~~~~~~~~~
+just type in this directory:
+make all install
+
+If you have compiled this driver first-time then
+type also:
+make nodes
+
+Porting:
+~~~~~~~~
+This driver was developed only for Linux.
+So if someone will port that on other unicies
+then any patches are gladly accepted.
+
+WARNING:
+~~~~~~~~
+This driver violates some kernel's security rules.
+To keep this driver from anonymous access I suggest
+you create new group for mplayerxp and /dev/dhahelper
+only.
+
+Good luck!

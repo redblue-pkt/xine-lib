@@ -205,6 +205,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc doc/hackersguide/*.sgml doc/hackersguide/*.fig doc/hackersguide/README
 %{_libdir}/libxine*.so
 %{_libdir}/libxine*.la
+%{_libdir}/vidix/*_vid.so
+%{_libdir}/vidix/*_vid.la
 %{_includedir}/xine.h
 %{_includedir}/xine/*.h
 %{_datadir}/aclocal/xine.m4

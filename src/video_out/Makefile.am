@@ -1,5 +1,9 @@
-CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) -DXINE_COMPILE $(SDL_CFLAGS)
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) -DXINE_COMPILE $(SDL_CFLAGS)
+SUBDIRS = libdha vidix
+
+VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix -I$(top_srcdir)/src/video_out/vidix
+
+CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) -DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS)
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) -DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -8,6 +12,9 @@ libdir = $(XINE_PLUGINDIR)
 if HAVE_X11
 xshm_module = xineplug_vo_out_xshm.la
 syncfb_module = xineplug_vo_out_syncfb.la
+if HAVE_VIDIX
+vidix_module = xineplug_vo_out_vidix.la
+endif
 if HAVE_XV
 xv_module = xineplug_vo_out_xv.la
 endif
@@ -40,7 +47,7 @@ endif
 # "xineplug_vo_out_*"
 
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module) $(aa_module) \
-                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module)
+                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module) $(vidix_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext \
@@ -79,6 +86,10 @@ xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
 xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS)
 xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
 
+xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c
+xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) $(top_builddir)/src/video_out/vidix/libvidix.la
+xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module
+
 noinst_HEADERS = yuv2rgb.h video_out_syncfb.h alphablend.h deinterlace.h
 
 include_HEADERS = video_out_x11.h
@@ -87,6 +98,9 @@ debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"
 
 install-debug: debug
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) || exit;\
+	done;
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
 ###
