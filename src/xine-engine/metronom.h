@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.18 2002/03/01 09:29:50 guenter Exp $
+ * $Id: metronom.h,v 1.19 2002/03/08 19:17:06 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -214,6 +214,7 @@ struct metronom_s {
   int             wrap_diff_counter;
 
   int64_t         last_video_pts;
+  int64_t         video_drift;
 
   int64_t         last_audio_pts;
   int             num_audio_samples_guessed;

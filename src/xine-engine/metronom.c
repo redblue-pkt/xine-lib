@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.62 2002/03/08 16:56:03 heikos Exp $
+ * $Id: metronom.c,v 1.63 2002/03/08 19:17:05 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -389,8 +389,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
        */
 
       if ( this->have_audio
-	   && (this->video_wrap_offset != this->audio_wrap_offset) 
-	   && !this->video_discontinuity && !this->audio_discontinuity ) {
+	   && (this->video_wrap_offset != this->audio_wrap_offset) ){
+
 	this->wrap_diff_counter++;
 	
 	if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
@@ -427,7 +427,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
       if (abs (diff) > VIDEO_DRIFT_TOLERANCE) {
 
-	this->video_vpts = vpts;
+	this->video_vpts  = vpts;
+	this->video_drift = 0;
 	/* following line is useless (wrap_offset=wrap_offset)  */
 	/* this->video_wrap_offset = vpts - pts; */
 
@@ -438,7 +439,9 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	
       } else if (diff) {
 
-	this->video_vpts -= diff / 8; /* FIXME: better heuristics ? */
+	this->video_drift = diff;
+
+	/* this->video_vpts -= diff / 8;*/ /* FIXME: better heuristics ? */
 	/* make wrap_offset consistent with the drift correction */
 	/* this->video_wrap_offset = this->video_vpts - pts; */
 	/* don't touch wrap here, wrap offsets are used for wrap compensation */
@@ -461,7 +464,9 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	  pts, this->video_vpts);
 #endif
 
-  this->video_vpts += duration;
+  this->video_vpts += duration - this->video_drift/30;
+
+  this->video_drift -= this->video_drift/30;
 
   pthread_mutex_unlock (&this->lock);
 }
@@ -556,8 +561,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
        * for too long
        */
       
-      if ( ( this->video_wrap_offset != this->audio_wrap_offset )
-	   && !this->video_discontinuity && !this->audio_discontinuity ) {
+      if ( this->video_wrap_offset != this->audio_wrap_offset ) {
 	this->wrap_diff_counter++;
 	
 	if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
@@ -772,6 +776,7 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   this->video_vpts                = PREBUFFER_PTS_OFFSET;
 
   this->last_video_pts            = 0;
+  this->video_drift               = 0;
 
   this->video_wrap_offset         = PREBUFFER_PTS_OFFSET;
   this->wrap_diff_counter         = 0;
