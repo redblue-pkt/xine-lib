@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.126 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_xshm.c,v 1.127 2004/03/07 13:27:10 tmattern Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -431,13 +431,17 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
   int             do_adapt;
-  int             gui_width, gui_height;
-  double          gui_pixel_aspect;
 
   flags &= VO_BOTH_FIELDS;
 
-  /* find out if we need to adapt this frame */
+  /* ask gui what output size we'll have for this frame */
+  /* get the gui_pixel_aspect before calling xshm_compute_ideal_size() */
+  this->sc.dest_size_cb (this->sc.user_data, width, height,
+  	                     this->sc.video_pixel_aspect,
+                         &this->sc.gui_width, &this->sc.gui_height,
+                         &this->sc.gui_pixel_aspect);
 
+  /* find out if we need to adapt this frame */
   do_adapt = 0;
 
   if ((width != frame->sc.delivered_width)
@@ -446,36 +450,37 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       || (flags != frame->flags)
       || (format != frame->format)
       || (this->sc.user_ratio != frame->sc.user_ratio)
+      || (this->sc.video_pixel_aspect != frame->sc.video_pixel_aspect)
       || (this->sc.gui_pixel_aspect != frame->sc.gui_pixel_aspect)) {
 
     do_adapt = 1;
 
     lprintf ("frame format (from decoder) has changed => adapt\n");
 
-    frame->sc.delivered_width  = width;
-    frame->sc.delivered_height = height;
-    frame->sc.delivered_ratio  = ratio;
-    frame->flags               = flags;
-    frame->format              = format;
-    frame->sc.user_ratio       = this->sc.user_ratio;
-    frame->sc.gui_pixel_aspect = this->sc.gui_pixel_aspect;
+    frame->sc.delivered_width    = width;
+    frame->sc.delivered_height   = height;
+    frame->sc.delivered_ratio    = ratio;
+    frame->flags                 = flags;
+    frame->format                = format;
+    frame->sc.user_ratio         = this->sc.user_ratio;
+    frame->sc.gui_pixel_aspect   = this->sc.gui_pixel_aspect;
+    frame->sc.video_pixel_aspect = this->sc.video_pixel_aspect;
 
     xshm_compute_ideal_size (this, frame);
+
+    /* xshm_compute_ideal_size() can modify video_pixel_aspect */
+    this->sc.video_pixel_aspect = frame->sc.video_pixel_aspect;
   }
-
-  /* ask gui what output size we'll have for this frame*/
-
-  this->sc.dest_size_cb (this->sc.user_data, frame->sc.delivered_width, frame->sc.delivered_height,
-			 frame->sc.video_pixel_aspect, &gui_width, &gui_height, &gui_pixel_aspect);
-  
-  if ((frame->sc.gui_width != gui_width) || (frame->sc.gui_height != gui_height) 
-      || (frame->sc.gui_pixel_aspect != gui_pixel_aspect)
-      || do_adapt) {
+ 
+  if ((frame->sc.gui_width != this->sc.gui_width) ||
+      (frame->sc.gui_height != this->sc.gui_height) ||
+      (frame->sc.gui_pixel_aspect != this->sc.gui_pixel_aspect) ||
+      do_adapt) {
     
     do_adapt = 1;
-    frame->sc.gui_width  = gui_width;
-    frame->sc.gui_height = gui_height;
-    frame->sc.gui_pixel_aspect = gui_pixel_aspect;
+    frame->sc.gui_width  = this->sc.gui_width;
+    frame->sc.gui_height = this->sc.gui_height;
+    frame->sc.gui_pixel_aspect = this->sc.gui_pixel_aspect;
     
     xshm_compute_rgb_size (this, frame);
     
