@@ -20,15 +20,16 @@ libdir = $(XINE_PLUGINDIR)
 if HAVE_X11
 xshm_module = xineplug_vo_out_xshm.la
 syncfb_module = xineplug_vo_out_syncfb.la
-if HAVE_VIDIX
-vidix_module = xineplug_vo_out_vidix.la
-endif
 if HAVE_XV
 xv_module = xineplug_vo_out_xv.la
 endif
 #if HAVE_OPENGL
 #opengl_module = xineplug_vo_out_opengl.la
 #endif
+endif
+
+if HAVE_VIDIX
+vidix_module = xineplug_vo_out_vidix.la
 endif
 
 if HAVE_SUNFB

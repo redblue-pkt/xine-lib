@@ -455,7 +455,9 @@ AM_CONDITIONAL(HAVE_SUNFB, [test x"$ac_have_sunfb" = "xyes"])
 dnl ---------------------------------------------
 dnl Check linux framebuffer device support
 dnl ---------------------------------------------
-AC_CHECK_HEADER(linux/fb.h, have_fb=yes,)
+AC_CHECK_HEADER(linux/fb.h,
+                [AC_DEFINE(HAVE_FB,1,[Define this if you have linux framebuffer support]),
+                 have_fb=yes],)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
 dnl ---------------------------------------------
@@ -540,20 +542,22 @@ enable_vidix="no"
 
 AC_MSG_CHECKING(for vidix support)
 if test x"$check_vidix" = "xyes" -a x"$ac_cv_prog_AWK" != "xno"; then
-  case "$host_or_hostalias" in
-    i?86-*-linux* | k?-*-linux* | athlon-*-linux*)
-      enable_vidix="yes"
-      enable_linux="yes"
-      ;;
-    i386-*-freebsd*)
-      enable_vidix="yes"
-      enable_dha_kmod="no"
-      ;;
-    *)
-      enable_dha_kmod="no"
-      enable_vidix="no"
-      ;;
-  esac
+  if test x"$no_x" != "xyes" -o x"$have_fb" = "xyes"; then
+    case "$host_or_hostalias" in
+      i?86-*-linux* | k?-*-linux* | athlon-*-linux*)
+        enable_vidix="yes"
+        enable_linux="yes"
+        ;;
+      i386-*-freebsd*)
+        enable_vidix="yes"
+        enable_dha_kmod="no"
+        ;;
+      *)
+        enable_dha_kmod="no"
+        enable_vidix="no"
+        ;;
+    esac
+  fi
 fi
 AC_MSG_RESULT($enable_vidix)
 
@@ -1481,10 +1485,25 @@ if test x"$have_dxr3" = "xyes"; then
   fi
 fi
 if test x"$enable_vidix" = "xyes"; then
+  echo $ECHO_N "   - vidix ("
+  
+  if test x"$no_x" != "xyes"; then
+    echo $ECHO_N "X11"
+    if test x"$have_fb" = "xyes"; then
+      echo $ECHO_N " and "
+    fi
+  fi
+    
+  if test x"$have_fb" = "xyes"; then
+      echo $ECHO_N "framebuffer"
+  fi
+  
+  echo $ECHO_N " support"
+
   if test x"$enable_dha_kmod" = "xyes"; then
-    echo "   - vidix (dhahelper)"
+    echo " with dhahelper)"
   else
-    echo "   - vidix"
+    echo ")"
   fi
 fi
 echo ""
