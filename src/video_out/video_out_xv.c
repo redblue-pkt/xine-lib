@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.203 2004/07/17 20:22:42 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.204 2004/07/19 22:07:41 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -94,6 +94,10 @@ typedef struct {
   xv_driver_t       *this;
 } xv_property_t;
 
+typedef struct {
+  char              *name;
+  int                value;
+} xv_portattribute_t;
 
 typedef struct {
   vo_frame_t         vo_frame;
@@ -143,6 +147,9 @@ struct xv_driver_s {
 
   int                use_colorkey;
   uint32_t           colorkey;
+
+  /* hold initial port attributes values to restore on exit */
+  xine_list_t       *port_attributes;
 
   int              (*x11_old_error_handler)  (Display *, XErrorEvent *);
 
@@ -1002,10 +1009,47 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
   return 0;
 }
 
+static void xv_store_port_attribute(xv_driver_t *this, char *name) {
+  Atom                 atom;
+  xv_portattribute_t  *attr;
+  
+  attr = (xv_portattribute_t *)malloc( sizeof(xv_portattribute_t) );
+  attr->name = strdup(name);
+  
+  XLockDisplay(this->display);
+  atom = XInternAtom (this->display, attr->name, False);
+  XvGetPortAttribute (this->display, this->xv_port, atom, &attr->value);
+  XUnlockDisplay(this->display);
+  
+  xine_list_append_content (this->port_attributes, attr);
+}
+
+static void xv_restore_port_attributes(xv_driver_t *this) {
+  Atom                 atom;
+  xv_portattribute_t  *attr;
+  
+  while ((attr = xine_list_first_content(this->port_attributes)) != NULL) {
+    xine_list_delete_current (this->port_attributes);
+  
+    XLockDisplay(this->display);
+    atom = XInternAtom (this->display, attr->name, False);
+    XvSetPortAttribute (this->display, this->xv_port, atom, attr->value);
+    XUnlockDisplay(this->display);
+        
+    free( attr->name );
+    free( attr );
+  }
+ 
+  xine_list_free( this->port_attributes );
+}
+
 static void xv_dispose (vo_driver_t *this_gen) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
   int          i;
 
+  /* restore port attributes to their initial values */
+  xv_restore_port_attributes(this);
+  
   if (this->deinterlace_frame.image) {
     XLockDisplay (this->display);
     dispose_ximage (this, &this->deinterlace_frame.shminfo,
@@ -1059,13 +1103,14 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
 /* called xlocked */
 static void xv_check_capability (xv_driver_t *this,
 				 int property, XvAttribute attr,
-				 int base_id, char *str_prop,
+				 int base_id,
 				 char *config_name,
 				 char *config_desc,
 				 char *config_help) {
   int          int_default;
   cfg_entry_t *entry;
-  
+  char        *str_prop = attr.name;
+   
   /*
    * some Xv drivers (Gatos ATI) report some ~0 as max values, this is confusing.
    */
@@ -1171,7 +1216,6 @@ static void xv_update_xv_pitch_alignment(void *this_gen, xine_cfg_entry_t *entry
 
   this->use_pitch_alignment = entry->num_value;
 }
-
 
 static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
   xv_class_t           *class = (xv_class_t *) class_gen;
@@ -1320,6 +1364,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   /*
    * check this adaptor's capabilities
    */
+  this->port_attributes = xine_list_new();
 
   XLockDisplay (this->display);
   attr = XvQueryPortAttributes(this->display, xv_port, &nattr);
@@ -1328,32 +1373,35 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
     for(k = 0; k < nattr; k++) {
       if((attr[k].flags & XvSettable) && (attr[k].flags & XvGettable)) {
+	/* store initial port attribute value */
+	xv_store_port_attribute(this, attr[k].name);
+	
 	if(!strcmp(attr[k].name, "XV_HUE")) {
 	  if (!strncmp(adaptor_info[adaptor_num].name, "NV", 2)) {
             xprintf (this->xine, XINE_VERBOSITY_NONE, "video_out_xv: ignoring broken XV_HUE settings on NVidia cards");
 	  } else {
 	    xv_check_capability (this, VO_PROP_HUE, attr[k],
-			         adaptor_info[adaptor_num].base_id, "XV_HUE",
+			         adaptor_info[adaptor_num].base_id,
 			         NULL, NULL, NULL);
 	  }
 	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
 	  xv_check_capability (this, VO_PROP_SATURATION, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_SATURATION",
+			       adaptor_info[adaptor_num].base_id,
 			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
 	  xv_check_capability (this, VO_PROP_BRIGHTNESS, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_BRIGHTNESS",
+			       adaptor_info[adaptor_num].base_id,
 			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
 	  xv_check_capability (this, VO_PROP_CONTRAST, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_CONTRAST",
+			       adaptor_info[adaptor_num].base_id,
 			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xv_check_capability (this, VO_PROP_COLORKEY, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY",
+			       adaptor_info[adaptor_num].base_id,
 			       "video.xv_colorkey",
 			       _("video overlay colour key"),
 			       _("The colour key is used to tell the graphics card where to "
@@ -1362,7 +1410,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 	  xv_check_capability (this, VO_PROP_AUTOPAINT_COLORKEY, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
+			       adaptor_info[adaptor_num].base_id,
 			       "video.xv_autopaint_colorkey",
 			       _("autopaint colour key"),
 			       _("Make Xv autopaint its colorkey."));
