@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.21 2002/10/26 14:35:04 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.22 2002/10/26 16:14:27 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -66,7 +66,7 @@ static decoder_info_t dxr3_spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 9, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
+  { PLUGIN_SPU_DECODER, 10, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -542,7 +542,7 @@ static int dxr3_present(xine_stream_t *stream)
     }
   }
 #ifdef LOG_SPU
-  printf("dxr3_decode_video: dxr3 %s\n", present ? "present" : "not present");
+  printf("dxr3_decode_spu: dxr3 %s\n", present ? "present" : "not present");
 #endif
   return present;
 }
