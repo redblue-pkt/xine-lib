@@ -252,7 +252,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libxine*.so.*
 %{_libdir}/xine/plugins/%{dirversion}/xineplug_*
 %{_libdir}/xine/plugins/%{dirversion}/post/*
-%{_datadir}/xine/fonts/*
+%{_datadir}/xine/libxine1/fonts/*
 %{_mandir}/man1/*
 %{_datadir}/locale/*
 
@@ -276,6 +276,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Dec 11 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- Update for libxine 1.0beta0, fonts-directory has been changed
 * Sat Dec 07 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added translation for finnish by Tuukka Pasanen <illuusio@mailcity.com>
 - some updates to german and english descriptions
