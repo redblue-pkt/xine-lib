@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.10 2001/07/27 22:00:27 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.11 2001/08/17 16:15:36 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -220,6 +220,13 @@ static void stdin_plugin_close(input_plugin_t *this_gen) {
 /*
  *
  */
+static void stdin_plugin_stop(input_plugin_t *this_gen) {
+  stdin_plugin_close(this_gen);
+}
+
+/*
+ *
+ */
 static char *stdin_plugin_get_description (input_plugin_t *this_gen) {
   return "stdin/fifo input plugin as shipped with xine";
 }
@@ -249,7 +256,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
 
-  if (iface != 2) {
+  if (iface != 3) {
     printf("rtp input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -273,6 +280,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->input_plugin.eject_media       = stdin_plugin_eject_media;
   this->input_plugin.get_mrl           = stdin_plugin_get_mrl;
   this->input_plugin.close             = stdin_plugin_close;
+  this->input_plugin.stop              = stdin_plugin_stop;
   this->input_plugin.get_description   = stdin_plugin_get_description;
   this->input_plugin.get_identifier    = stdin_plugin_get_identifier;
   this->input_plugin.get_autoplay_list = NULL;

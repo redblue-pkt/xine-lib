@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.18 2001/07/28 13:23:24 guenter Exp $
+ * $Id: input_dvd.c,v 1.19 2001/08/17 16:15:36 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -408,6 +408,13 @@ static void dvd_plugin_close (input_plugin_t *this_gen) {
 /*
  *
  */
+static void dvd_plugin_stop (input_plugin_t *this_gen) {
+  dvd_plugin_close(this_gen);
+}
+
+/*
+ *
+ */
 static char *dvd_plugin_get_description (input_plugin_t *this_gen) {
 
   return "dvd device input plugin as shipped with xine";
@@ -599,8 +606,8 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
   
-  if (iface != 2) {
-    printf("vcd input plugin doesn't support plugin API version %d.\n"
+  if (iface != 3) {
+    printf("dvd input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
 	   "plugin.\nInstalling current input plugins should help.\n",
@@ -627,6 +634,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->input_plugin.get_blocksize     = dvd_plugin_get_blocksize;
   this->input_plugin.eject_media       = dvd_plugin_eject_media;
   this->input_plugin.close             = dvd_plugin_close;
+  this->input_plugin.stop              = dvd_plugin_stop;
   this->input_plugin.get_identifier    = dvd_plugin_get_identifier;
   this->input_plugin.get_description   = dvd_plugin_get_description;
   this->input_plugin.get_dir           = dvd_plugin_get_dir;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.29 2001/08/12 15:12:54 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.30 2001/08/17 16:15:36 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -412,7 +412,7 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   return NULL;
 }
 
-static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
+static void demux_mpeg_block_close (demux_plugin_t *this_gen) {
   
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   buf_element_t *buf;
@@ -444,6 +444,11 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
     this->audio_fifo->put (this->audio_fifo, buf);
   }
   
+}
+
+static void demux_mpeg_block_stop (demux_plugin_t *this) {
+
+  demux_mpeg_block_close(this);
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
@@ -636,10 +641,6 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 
 static char *demux_mpeg_block_get_id(void) {
   return "MPEG_BLOCK";
-}
-
-static void demux_mpeg_block_close (demux_plugin_t *this) {
-  /* nothing */
 }
 
 demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.37 2001/08/13 12:52:33 ehasenle Exp $
+ * $Id: xine_internal.h,v 1.38 2001/08/17 16:15:37 f1rmb Exp $
  *
  */
 
@@ -120,7 +120,8 @@ typedef void (*gui_stream_end_cb_t)(int nStatus);
 #define XINE_STOP      0 
 #define XINE_PLAY      1 
 #define XINE_PAUSE     2 
-#define XINE_QUIT      3
+#define XINE_SEEK      3
+#define XINE_QUIT      4
 
 typedef struct xine_s xine_t;
 
@@ -215,6 +216,16 @@ xine_t *xine_init (vo_driver_t *vo,
  *
  */
 void xine_play (xine_t *this, char *MRL, int pos);
+
+
+/*
+ * seek the stream to pos, and play it
+ *
+ * name : mrl to open
+ * pos  : start position 0..65535
+ *
+ */
+void xine_seek (xine_t *this, char *MRL, int pos);
 
 
 /*

@@ -401,6 +401,13 @@ static void rtp_plugin_close (input_plugin_t *this_gen) {
 /*
  *
  */
+static void rtp_plugin_stop (input_plugin_t *this_gen) {
+  rtp_plugin_stop(this_gen);
+}
+
+/*
+ *
+ */
 static int rtp_plugin_eject_media (input_plugin_t *this_gen) {
 
   return 1;
@@ -450,7 +457,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
   
-  if (iface != 2) {
+  if (iface != 3) {
     printf("rtp input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -488,6 +495,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->input_plugin.get_blocksize     = rtp_plugin_get_blocksize;
   this->input_plugin.eject_media       = rtp_plugin_eject_media;
   this->input_plugin.close             = rtp_plugin_close;
+  this->input_plugin.stop              = rtp_plugin_stop;
   this->input_plugin.get_identifier    = rtp_plugin_get_identifier;
   this->input_plugin.get_description   = rtp_plugin_get_description;
   this->input_plugin.get_dir           = NULL;

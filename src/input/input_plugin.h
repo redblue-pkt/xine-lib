@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.11 2001/08/16 12:33:00 ehasenle Exp $
+ * $Id: input_plugin.h,v 1.12 2001/08/17 16:15:36 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -33,7 +33,7 @@ extern "C" {
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   2
+#define INPUT_PLUGIN_IFACE_VERSION   3
  
 /*
  * Return pointer of allocate/cleaned memory size *size*.
@@ -231,6 +231,12 @@ struct input_plugin_s
    * return current MRL
    */
   char * (*get_mrl) (input_plugin_t *this);
+
+
+  /*
+   * stop input source
+   */
+  void (*stop) (input_plugin_t *this);
 
 
   /*

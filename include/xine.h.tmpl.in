@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.35 2001/07/26 12:11:17 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.36 2001/08/17 16:15:36 f1rmb Exp $
  *
  */
 
@@ -111,7 +111,13 @@ extern "C" {
  * Quit status.
  * \sa xine_get_status()
  */
-#define XINE_QUIT      3
+#define XINE_SEEK      3
+/** 
+ * \def XINE_QUIT
+ * Quit status.
+ * \sa xine_get_status()
+ */
+#define XINE_QUIT      4
 
           /** @} end of status_group */
 
@@ -611,6 +617,19 @@ void xine_exit (xine_t *self);
  *
  */
 void xine_play (xine_t *self, char *MRL, int pos);
+
+/**
+ * \fn void xine_seek (xine_t *self, char *MRL, int pos)
+ * \brief Seek a stream to pos
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param MRL Media Resource Location to open
+ * \param pos Start from position (0..65535)
+ * \return Nothing
+ *
+ * Seek (already opened) stream and play it.
+ *
+ */
+void xine_seek (xine_t *self, char *MRL, int pos);
 
 /**
  * \fn void xine_pause (xine_t *self)

@@ -56,7 +56,6 @@ struct spu_decoder_s {
 
 };
 
-
 #define SPU_EVENT_BUTTON 0x100
 typedef struct spu_button_s spu_button_t;
 struct spu_button_s {

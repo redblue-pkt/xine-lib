@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.42 2001/08/16 19:58:37 ehasenle Exp $
+ * $Id: xine.c,v 1.43 2001/08/17 16:15:37 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -82,14 +82,13 @@ void xine_stop (xine_t *this) {
     return;
   }
 
-  this->status = XINE_STOP;
   printf ("xine_stop: stopping demuxer\n");
-  
+    
   if(this->cur_demuxer_plugin) {
-    this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+    this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
-
+  
   printf ("xine_stop: closing input\n");
   
   if(this->cur_input_plugin) {
@@ -101,7 +100,9 @@ void xine_stop (xine_t *this) {
      * this->cur_input_plugin = NULL;
      */
   }
-
+  
+  this->status = XINE_STOP;
+  
   printf ("xine_stop: done\n");
   
   pthread_mutex_unlock (&this->xine_lock);
@@ -263,12 +264,46 @@ void xine_play (xine_t *this, char *MRL, int spos) {
     pthread_mutex_unlock (&this->xine_lock);
     xine_pause(this);
     return;
+    break;
+
   case XINE_STOP:
     xine_play_internal (this, MRL, spos, (off_t) 0);
     break;
+
   default:
     printf ("xine_play: error, xine is not paused/stopped\n");
   }
+  pthread_mutex_unlock (&this->xine_lock);
+}
+
+void xine_seek (xine_t *this, char *MRL, int spos) {
+
+  pthread_mutex_lock (&this->xine_lock);
+
+  printf ("xine_seek\n");
+
+  switch (this->status) {
+  case XINE_PLAY:
+  case XINE_STOP:
+  case XINE_PAUSE:
+    this->status = XINE_SEEK;
+
+    if(this->cur_demuxer_plugin) {
+      this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+    }
+    
+    if(this->cur_input_plugin) {
+      this->cur_input_plugin->stop(this->cur_input_plugin);
+    }
+    
+    this->status = XINE_STOP;
+    xine_play_internal (this, MRL, spos, (off_t)0);
+    break;
+
+  default:
+    printf ("xine_play: error, unhandled status %d\n", this->status);
+  }
+
   pthread_mutex_unlock (&this->xine_lock);
 }
 
@@ -345,7 +380,6 @@ void xine_pause (xine_t *this) {
 	     this->cur_mrl, this->cur_input_pos);
 
     this->status = XINE_STOP;
-
     xine_play_internal (this, this->cur_mrl, 0, this->cur_input_pos);
     /* this->mnPausePos = 0; */
 
