@@ -369,6 +369,7 @@ static void osd_show_channel (dvb_input_plugin_t *this) {
     if ( (channel >= 0) && (channel < this->num_channels) )
       this->stream->osd_renderer->render_text (this->osd, 10, 10+i*35,
 					     this->channels[channel].name,
+					     "iso-8859-1",
 					     OSD_TEXT3);
     channel ++;
   }

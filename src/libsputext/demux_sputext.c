@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.12 2003/02/14 16:58:36 f1rmb Exp $
+ * $Id: demux_sputext.c,v 1.13 2003/03/26 11:06:56 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -42,7 +42,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <iconv.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -707,7 +706,6 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     sub_read_line_aqt
     
   };
-  iconv_t iconv_descr;
 
   this->format=sub_autodetect (this);
   if (this->format==-1) {
@@ -725,10 +723,9 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
   first = (subtitle_t *) xine_xmalloc(n_max*sizeof(subtitle_t));
   if(!first) return NULL;
     
-  iconv_descr=iconv_open(class->dst_encoding,class->src_encoding);
-
   while(1){
     subtitle_t *sub;
+
     if(this->num>=n_max){
       n_max+=16;
       first=realloc(first,n_max*sizeof(subtitle_t));
@@ -746,28 +743,9 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
       if (this->num > 0 && first[this->num-1].end == -1) {
 	first[this->num-1].end = sub->start;
       }
-      for(i=0; i<first[this->num].lines; i++)
-      { char *tmp;
-	char *in_buff, *out_buff;
-	int   in_len, out_len;
-
-	in_len=strlen(first[this->num].text[i])+1;
-	tmp=malloc(in_len);
-	in_buff=first[this->num].text[i];
-	out_buff=tmp;
-	out_len=in_len;
-	if ((size_t)(-1)!=iconv(iconv_descr,&in_buff,&in_len,&out_buff,&out_len))
-	{ free(first[this->num].text[i]);
-	  first[this->num].text[i]=tmp;
-	}
-	else {
-          printf("demux_sputext: Can't convert subtitle text\n");
-        }
-      }
       ++this->num; /* Error vs. Valid */
     }
   }
-  iconv_close(iconv_descr);
 
   printf ("demux_sputext: Read %i subtitles", this->num);
   if (this->errs) 
@@ -776,24 +754,6 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     printf (".\n");
   
   return first;
-}
-
-static void update_osd_src_encoding(void *this_gen, xine_cfg_entry_t *entry)
-{
-  demux_sputext_class_t *class = (demux_sputext_class_t *)this_gen;
-
-  class->src_encoding = entry->str_value;
-  
-  printf("demux_sputext: spu_src_encoding = %s\n", class->src_encoding );
-}
-
-static void update_osd_dst_encoding(void *this_gen, xine_cfg_entry_t *entry)
-{
-  demux_sputext_class_t *class = (demux_sputext_class_t *)this_gen;
-
-  class->dst_encoding = entry->str_value;
-  
-  printf("demux_sputext: spu_dst_encoding = %s\n", class->dst_encoding );
 }
 
 static int demux_sputext_next (demux_sputext_t *this_gen) {
@@ -1021,17 +981,6 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
   this->demux_class.get_mimetypes   = get_demux_mimetypes;
   this->demux_class.get_extensions  = get_demux_extensions;
   this->demux_class.dispose         = demux_class_dispose;
-
-  this->src_encoding  = xine->config->register_string(xine->config, 
-				"misc.spu_src_encoding", 
-				"windows-1250", 
-				_("source encoding of subtitles"), 
-				NULL, 10, update_osd_src_encoding, this);
-  this->dst_encoding  = xine->config->register_string(xine->config, 
-				"misc.spu_dst_encoding", 
-				"iso-8859-2", 
-				_("target encoding for subtitles (have to match font encoding)"), 
-				NULL, 10, update_osd_dst_encoding, this);
 
   return this;
 }

@@ -32,6 +32,9 @@
 #include <zlib.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <errno.h>
+#include <iconv.h>
+#include <langinfo.h>
 
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
@@ -43,6 +46,11 @@
 /*
 #define LOG_DEBUG 1
 */
+
+#define BINARY_SEARCH 1
+
+/* unicode value of alias character (it used if conversion fails) */
+#define ALIAS_CHARACTER ' '
 
 #ifdef MAX
 #undef MAX
@@ -478,7 +486,7 @@ static uint16_t gzread_i16(gzFile *fp) {
    load bitmap font into osd engine 
 */
 
-static void osd_renderer_load_font(osd_renderer_t *this, char *filename) {
+static int osd_renderer_load_font(osd_renderer_t *this, char *filename) {
 
   gzFile      *fp;
   osd_font_t  *font = NULL;
@@ -504,14 +512,14 @@ static void osd_renderer_load_font(osd_renderer_t *this, char *filename) {
     font->fontchar = malloc( sizeof(osd_fontchar_t) * font->num_fontchars );
 
 #ifdef LOG_DEBUG  
-    printf("osd: font %s %d\n",font->name, font->num_fontchars);
+    printf("osd: font %s %d\n", font->name, font->num_fontchars);
 #endif
     for( i = 0; i < font->num_fontchars; i++ ) {
       font->fontchar[i].code = gzread_i16(fp);
       font->fontchar[i].width = gzread_i16(fp);
       font->fontchar[i].height = gzread_i16(fp);
       font->fontchar[i].bmp = malloc(font->fontchar[i].width*font->fontchar[i].height);
-      if( gzread(fp,font->fontchar[i].bmp, 
+      if( gzread(fp, font->fontchar[i].bmp, 
             font->fontchar[i].width*font->fontchar[i].height) <= 0 )
         break;
     }
@@ -543,6 +551,7 @@ static void osd_renderer_load_font(osd_renderer_t *this, char *filename) {
   }
 
   pthread_mutex_unlock (&this->osd_mutex);
+  return ret;
 }
 
 /*
@@ -582,6 +591,7 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
       else
         this->fonts = font->next;
       free( font );
+      ret = 1;
       break;
     }
     last = font;
@@ -633,18 +643,46 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
 }
 
 
+#ifdef BINARY_SEARCH
 /*
- * render text on x,y position (8 bits version)
+ * search the character in the sorted array
+ */
+static int binsearch(osd_fontchar_t *array, size_t n, uint16_t code) {
+  size_t i, left, right;
+
+  if (!n) return 0;
+
+  left = 0;
+  right = n - 1;
+  while (right > left) {
+    i = (left + right) >> 1;
+    if (code <= array[i].code) right = i;
+    else left = i + 1;
+  }
+
+  return array[right].code == code ? right : n;
+}
+#endif
+
+
+/*
+ * render text on x,y position
  *  no \n yet
+ *  if encoding == NULL current locale encoding is used
  */
 static int osd_render_text (osd_object_t *osd, int x1, int y1,
-	                    const char *text, int color_base) {
+                            const char *text, const char *encoding,
+                            int color_base) {
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;
   int i, y;
   uint8_t *dst, *src;
-  int c;
+  iconv_t cd;
+  char *inbuf;
+  uint16_t unicode;
+  size_t inbytesleft;
+  int def_charset_flag = 0;
 
 #ifdef LOG_DEBUG  
   printf("osd_render_text %p (%d,%d) \"%s\"\n", osd, x1, y1, text);
@@ -658,23 +696,74 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
   pthread_mutex_lock (&this->osd_mutex);
   
-  font = osd->font;
+  if ((font = osd->font) == NULL) {
+    printf(_("osd: font isn't defined\n"));
+    pthread_mutex_unlock(&this->osd_mutex);
+    return 0;
+  }
 
   if( x1 < osd->x1 ) osd->x1 = x1;
   if( y1 < osd->y1 ) osd->y1 = y1;
 
-  while( font && *text ) {
-    c = *text & 0xff;
-    
+  inbuf = (char *)text;
+  inbytesleft = strlen(text);
+
+  if (!encoding) {
+#ifdef ENABLE_NLS
+    if ((encoding = nl_langinfo(CODESET)) == NULL) {
+      printf(_("osd: can't find out current locale character set\n"));
+      encoding = "iso-8859-1";
+      def_charset_flag = 1;
+    }
+#else
+    encoding = "iso-8859-1";
+    def_charset_flag = 1;
+#endif
+  }
+
+  /* prepare conversion to UCS-2 */
+  if ((cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
+    printf(_("osd: unsupported conversion %s -> UCS-2\n"), encoding);
+    if (!def_charset_flag) {
+      printf("osd: trying iso-8859-1 -> UCS-2\n");
+      if ((cd = iconv_open("UCS-2", "iso-8859-1")) == (iconv_t)-1) {
+        printf(_("osd: iconv_open() failed\n"));
+        pthread_mutex_unlock(&this->osd_mutex);
+        return 0;
+      }
+    }
+  }
+  
+  while( inbytesleft ) {
+    char *outbuf = (char*)&unicode;
+    size_t outbytesleft = 2;
+    size_t count;
+   
+    /* get unicode value */
+    count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+    if (count == (size_t)-1 && errno != E2BIG) {
+      /* unknown character or character wider than 16 bits, try skip one byte */
+      printf(_("osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", skipping\n"), 
+             inbuf[0] & 0xFF, encoding);
+      if (!inbytesleft) break;
+      inbytesleft--;
+      inbuf++;
+      unicode = ALIAS_CHARACTER;
+    }
+  
+#ifdef BINARY_SEARCH
+    i = binsearch(font->fontchar, font->num_fontchars, unicode);
+#else
     for( i = 0; i < font->num_fontchars; i++ ) {
-      if( font->fontchar[i].code == c )
+      if( font->fontchar[i].code == unicode )
         break;
     }
+#endif
 
 #ifdef LOG_DEBUG  
-    printf("font %s [%c:%d] %dx%d -> %d,%d\n",font->name, c, font->fontchar[i].code, 
-    font->fontchar[i].width, font->fontchar[i].height,
-    x1,y1);
+    printf("font %s [%d, U+%04X] %dx%d -> %d,%d\n", font->name, i, 
+           unicode, font->fontchar[i].code, font->fontchar[i].width, 
+           font->fontchar[i].height, x1, y1);
 #endif
 
     if ( i != font->num_fontchars ) {
@@ -701,8 +790,8 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       if( y1 + font->fontchar[i].height > osd->y2 ) 
         osd->y2 = y1 + font->fontchar[i].height;
     }
-    text++;
   }
+  iconv_close(cd);
   
   pthread_mutex_unlock (&this->osd_mutex);
 

@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.13 2003/03/08 17:22:16 f1rmb Exp $
+ * $Id: osd.h,v 1.14 2003/03/26 11:06:58 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -152,7 +152,7 @@ struct osd_renderer_s {
    * Use OSD_TEXT1, OSD_TEXT2, ... for some preasssigned color indices.
    */
   int (*render_text) (osd_object_t *osd, int x1, int y1, 
-		      const char *text, int color_base);
+		      const char *text, const char *encoding, int color_base);
 
   /*
    * get width and height of how text will be renderized

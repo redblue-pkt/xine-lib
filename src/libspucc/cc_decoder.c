@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.19 2003/03/08 14:11:52 mroi Exp $
+ * $Id: cc_decoder.c,v 1.20 2003/03/26 11:06:55 miguelfreitas Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -641,9 +641,11 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
 	buf[i - seg_pos[seg]] = this->cells[i].c;
       buf[seg_pos[seg + 1] - seg_pos[seg]] = '\0';
       ccrow_set_attributes(renderer, this, seg_attr[seg]);
+
+      /* text is already mapped from EIA-608 into iso-8859-1 */
       osd_renderer->render_text(renderer->cap_display,
-				x + cumulative_seg_width[seg], y, buf,
-				textcol);
+				x + cumulative_seg_width[seg], y, buf,          
+				"iso-8859-1", textcol);
     }
 
     pos = ccrow_find_next_text_part(this, endpos);

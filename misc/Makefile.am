@@ -28,4 +28,4 @@ maintainer-clean-generic:
 	-rm -f Makefile.in
 
 xine-fontconv:	xine-fontconv.c
-	$(CC) -g -o xine-fontconv xine-fontconv.c -lfreetype -lz -I/usr/include/freetype2
+	$(CC) -W -Wall -g -o xine-fontconv xine-fontconv.c -lz `freetype-config --cflags` `freetype-config --libs`

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.45 2003/03/08 20:25:52 guenter Exp $
+ * $Id: xine_interface.c,v 1.46 2003/03/26 11:06:59 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -565,7 +565,7 @@ void xine_osd_draw_rect(xine_osd_t *this, int x1, int y1, int x2, int y2, int co
 }
 
 void xine_osd_draw_text(xine_osd_t *this, int x1, int y1, const char *text, int color_base) {
-  this->osd.renderer->render_text(&this->osd, x1, y1, text, color_base);
+  this->osd.renderer->render_text(&this->osd, x1, y1, text, NULL, color_base);
 }
 
 void xine_osd_get_text_size(xine_osd_t *this, const char *text, int *width, int *height) {
