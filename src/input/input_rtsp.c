@@ -62,7 +62,9 @@ typedef struct {
 typedef struct {
   input_plugin_t   input_plugin;
 
-  rtsp_session_t           *rtsp;
+  rtsp_session_t  *rtsp;
+
+  xine_stream_t   *stream;
 
   char            *mrl;
   char            *public_mrl;
@@ -124,8 +126,10 @@ static off_t rtsp_plugin_seek (input_plugin_t *this_gen, off_t offset, int origi
 
   rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
 
+#ifdef LOG
   printf ("input_rtsp: seek %lld bytes, origin %d\n",
 	  offset, origin);
+#endif
 
   /* only realtive forward-seeking is implemented */
 
@@ -221,7 +225,7 @@ static int rtsp_plugin_open (input_plugin_t *this_gen) {
   printf ("input_rtsp: trying to open '%s'\n", mrl);
 #endif
 
-  rtsp = rtsp_session_start(this->mrl);
+  rtsp = rtsp_session_start(this->stream,this->mrl);
 
   if (!rtsp) {
 #ifdef LOG
@@ -249,6 +253,7 @@ static input_plugin_t *rtsp_class_get_instance (input_class_t *cls_gen, xine_str
 
   this = (rtsp_input_plugin_t *) xine_xmalloc (sizeof (rtsp_input_plugin_t));
 
+  this->stream  = stream;
   this->rtsp    = NULL;
   this->mrl     = mrl;
   /* since we handle only real streams yet, we can savely add
