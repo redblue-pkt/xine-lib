@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.42 2001/12/10 20:03:00 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.43 2001/12/16 00:56:25 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,6 +44,7 @@
 #include <sys/asoundlib.h>
 #include <sys/ioctl.h>
 #include <inttypes.h>
+#include <pthread.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -85,6 +86,7 @@ typedef struct alsa_driver_s {
   uint32_t      bytes_in_buffer;      /* number of bytes writen to audio hardware   */
 
   struct {
+    pthread_t          thread;
     char              *name;
     snd_mixer_t       *handle;
     snd_mixer_elem_t  *elem;
@@ -98,6 +100,22 @@ typedef struct alsa_driver_s {
 } alsa_driver_t;
 
 static snd_output_t *jcd_out;
+
+/*
+ * Wait (blocking) till a mixer event happen
+ */
+static void *ao_alsa_handle_event_thread(void *data) {
+  alsa_driver_t  *this = (alsa_driver_t *) data;
+
+  pthread_detach(pthread_self());
+
+  do {
+    snd_mixer_wait(this->mixer.handle, -1);
+    snd_mixer_handle_events(this->mixer.handle);
+  } while(1);
+  
+  pthread_exit(NULL);
+}
 
 static int ao_alsa_get_percent_from_volume(long val, long min, long max)
 {
@@ -405,7 +423,7 @@ static int ao_alsa_delay (ao_driver_t *this_gen)
   return delay;
 }
 
-void xrun(alsa_driver_t *this)
+static void xrun(alsa_driver_t *this) 
 {
   snd_pcm_status_t *status;
   int res;
@@ -479,6 +497,8 @@ static void ao_alsa_exit(ao_driver_t *this_gen)
 		     (ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
 						      this->mixer.min, this->mixer.max))) /2));
   config->save(config);
+
+  pthread_cancel(this->mixer.thread);
 
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
   free (this);
@@ -602,12 +622,12 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
   snd_ctl_card_info_alloca(&hw_info);
   pcm_device = config->register_string(config,
-                                         "audio.alsa_default_device",
-                                         "default",
-                                         "device used for mono output",
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_default_device",
+				       "default",
+				       "device used for mono output",
+				       NULL,
+				       NULL,
+				       NULL);
   
   if ((err = snd_ctl_open (&ctl_handle, pcm_device, 0)) < 0) {
     printf ("audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
@@ -641,9 +661,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     snd_mixer_close(this->mixer.handle);
     return;
   }
-  
-  //    snd_mixer_set_callback (mixer_handle, mixer_event);
-  
+
   if ((err = snd_mixer_load (this->mixer.handle)) < 0) {
     printf ("audio_alsa_out: snd_mixer_load(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
@@ -757,6 +775,20 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
       this->capabilities |= AO_CAP_MIXER_VOL;
     else
       this->capabilities |= AO_CAP_PCM_VOL;
+  }
+
+  /* Create a thread which wait/handle mixer events */
+  {
+    pthread_attr_t       pth_attrs;
+    struct sched_param   pth_params;
+    
+    pthread_attr_init(&pth_attrs);
+    
+    pthread_attr_getschedparam(&pth_attrs, &pth_params);
+    pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
+    pthread_attr_setschedparam(&pth_attrs, &pth_params);
+    
+    pthread_create(&this->mixer.thread, &pth_attrs, ao_alsa_handle_event_thread, (void *) this);
   }
 
 }
