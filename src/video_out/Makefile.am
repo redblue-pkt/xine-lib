@@ -137,4 +137,4 @@ xineplug_vo_out_directx_la_LIBADD = $(DIRECTX_VIDEO_LIBS) $(XINE_LIB)
 xineplug_vo_out_directx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h \
-	yuv2rgb.h video_out_win32.h x11osd.h
+	yuv2rgb.h x11osd.h
