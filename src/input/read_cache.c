@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.5 2001/10/05 17:36:28 jkeil Exp $
+ * $Id: read_cache.c,v 1.6 2001/10/05 18:45:07 jkeil Exp $
  */
 
 #include <sys/types.h>
@@ -223,7 +223,7 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
     } else {
       pthread_testcancel();
       if ((bytes_read = read (this->fd, mbuf->data, 2048*16)) != 2048*16) {
-	  if (bytes_read < 0) /* reading encrypted dvd without authentication? */
+	if (bytes_read < 0) /* reading encrypted dvd without authentication? */
 	  fprintf(stderr, "read_cache: read error (%s)\n", strerror (errno));
 	else
 	  fprintf(stderr, "read_cache: short read (%d != %d)\n", bytes_read, 2048*16);
@@ -238,24 +238,28 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
   }
 
   /* check for read errors */
-  if ( badr > mbuf->size_valid )
-    return NULL;
+  if ( badr > mbuf->size_valid ) {
 
-  /* create buf */
+    buf = NULL;
 
-  while (this->buf_pool_top==NULL) {
-    pthread_cond_wait (&this->buf_pool_not_empty, &this->lock);
+  } else {
+
+    /* create buf */
+
+    while (this->buf_pool_top==NULL) {
+      pthread_cond_wait (&this->buf_pool_not_empty, &this->lock);
+    }
+
+    buf = this->buf_pool_top;
+
+    this->buf_pool_top = this->buf_pool_top->next;
+
+    buf->mem     = mbuf->data + badr;
+    buf->content = buf->mem;
+    buf->source  = mbuf;
+    
+    mbuf->ref++;
   }
-
-  buf = this->buf_pool_top;
-
-  this->buf_pool_top = this->buf_pool_top->next;
-
-  buf->mem     = mbuf->data + badr;
-  buf->content = buf->mem;
-  buf->source  = mbuf;
-
-  mbuf->ref++;
 
   pthread_cleanup_pop (0);
   pthread_mutex_unlock (&this->lock);
