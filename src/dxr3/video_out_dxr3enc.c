@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3enc.c,v 1.6 2001/10/29 23:33:31 hrm Exp $
+ * $Id: video_out_dxr3enc.c,v 1.7 2001/10/31 21:57:46 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -99,20 +99,18 @@
  ***** Update 29/10/2001 (later) by Harm
  *
  * Added support for encoding using libavcodec from ffmpeg. See the defines
- * USE_LIBFAME and USE_LIBFFMPEG (mutually exclusive)
+ * USE_LIBFAME and USE_FFMPEG (mutually exclusive)
  * These defines are getting quite messy; there's three of them now.
  * Need to make some decisions soon :-)
  * 
- * If using libffmpeg, do not link against libavcodec from xine sources!
+ * If using ffmpeg, do not link against libavcodec from xine sources!
  * There's something wrong with that one, you'll get rubbish output.
  * Get the ffmpeg cvs, compile, then copy libavcodec.a to /usr/local/lib
  * or something.
  *
  * At the moment libffmpeg's encoder output is pretty crappy, with weird
- * ghost effects left and right of objects. I don't know
- * if we can improve that by meddling with the encoder's internal.
- * The only quality parameter available outside is bit_rate, currently
- * fixed at 5000 kbit/s. 
+ * ghost effects left and right of objects. At the moment using a fixed 
+ * quantizer value. Somewhat more cpu intensive than libfame.
  */
  
 #include <sys/types.h>
@@ -146,8 +144,9 @@ static char *devname;
 
 #include <math.h>
 
-/* buffer size for encoded mpeg1 stream; will hold one intra frame */
-#define DEFAULT_BUFFER_SIZE 1024*1024
+/* buffer size for encoded mpeg1 stream; will hold one intra frame 
+ * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */
+#define DEFAULT_BUFFER_SIZE 512*1024
 
 /* 1: enable to buffer the mpeg1 stream; 
  * 0: write to mpeg device immediately;
@@ -158,12 +157,14 @@ static char *devname;
  * 0: don't write to register */
 #define USE_MAGIC_REGISTER 1
 
+/* 1: use libfame for encoding
+ * 0: use libavcodec from ffmpeg for encoding */
 #define USE_LIBFAME 1
 
 #if USE_LIBFAME
-# define USE_LIBFFMPEG 0
+# define USE_FFMPEG 0
 #else
-# define USE_LIBFFMPEG 1
+# define USE_FFMPEG 1
 #endif
 
 #if USE_LIBFAME
@@ -175,9 +176,9 @@ fame_yuv_t yuv;
 fame_context_t *fc; /* needed for fame calls */
 #endif
 
-#if USE_LIBFFMPEG
+#if USE_FFMPEG
 /* use libffmpeg */
-#include "../libffmpeg/libavcodec/avcodec.h"
+#include <ffmpeg/avcodec.h>
 AVCodecContext *avc;
 AVPicture avp;
 AVCodec *avcodec;
@@ -531,19 +532,20 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
     
   }
 #endif
-#if USE_LIBFFMPEG
+#if USE_FFMPEG
   if (!avc)
   {
     avc = malloc(sizeof(AVCodecContext));
     memset(avc, 0, sizeof(AVCodecContext));
     buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
 
-    avc->bit_rate = 5000000;
+    avc->bit_rate = 0; /* using fixed quantizer */
     avc->width = width;
     avc->height = oheight;
     avc->gop_size = 0; /* only intra */
     avc->pix_fmt = PIX_FMT_YUV420P;
-
+    avc->flags = CODEC_FLAG_QSCALE; /* fix qscale = quality */
+    avc->quality = 2; /* 1-31 highest-lowest quality */
     /* start guessing the framerate */
     fps = 90000.0/frame->vo_frame.duration;
     avc->frame_rate = (int)(fps*FRAME_RATE_BASE + 0.5);
@@ -643,7 +645,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
     frame->mpeg_size = size;
 # endif
 #endif
-#if USE_LIBFFMPEG
+#if USE_FFMPEG
     avp.data[0] = y;
     avp.data[1] = u;
     avp.data[2] = v;
@@ -897,7 +899,7 @@ static void dxr3_exit (vo_driver_t *this_gen)
     free(buffer);
   }
 #endif
-#if USE_LIBFFMPEG
+#if USE_FFMPEG
   if (avc) {
     avcodec_close(avc);
     free(avc);
@@ -1027,7 +1029,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	/* fame context */
 	fc = 0;
 #endif
-#if USE_LIBFFMPEG
+#if USE_FFMPEG
 	avc = 0;
 	avcodec_init();
 	/* this register_all() is not really needed, but it gives us a good
