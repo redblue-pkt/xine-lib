@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.69 2002/10/20 23:54:20 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.70 2002/10/21 22:25:50 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -145,9 +145,9 @@ static void chomp (char *str) {
   int i,len;
 
   len = strlen(str);
-  i = len-1;
+  i = len - 1;
   
-  while (str[i]<=32) {
+  while ((str[i] <= 32) && (i >= 0)) {
     str[i] = 0;
     i--;
   }
@@ -173,9 +173,10 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
       printf ("demux_mpgaudio: id3 tag found\n");
 #endif
 
-      tag.title[29] =0;
-      tag.artist[29]=0;
-      tag.album[29] =0;
+      tag.title[29]   = 0;
+      tag.artist[29]  = 0;
+      tag.album[29]   = 0;
+      tag.comment[29] = 0;
 
       chomp (tag.title);
       chomp (tag.artist);
@@ -451,15 +452,15 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
 
+
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     uint32_t head;
-
     if (!this->thread_running) {
 
       head = demux_mpgaudio_read_head(this->input);
 
       if (mpg123_head_check(head))
-         mpg123_decode_header(this,head);
+        mpg123_decode_header(this,head);
 
       read_id3_tags (this);
 
@@ -480,13 +481,14 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
     
     for (i=0; i<NUM_PREVIEW_BUFFERS; i++) {
       if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
-	break;
+        break;
       }
     }
   }
 
   xine_demux_control_headers_done (this->stream);
 
+  
   pthread_mutex_unlock (&this->mutex);
 }
 
