@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2001/09/18 17:41:47 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.14 2001/09/23 17:44:33 jkeil Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -39,6 +39,7 @@
 #include "metronom.h"
 
 #include "libavcodec/avcodec.h"
+#include "libavcodec/dsputil.h"
 
 /* now this is ripped of wine's vfw.h */
 typedef struct {
@@ -213,7 +214,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 				  &got_picture, this->buf,
 				  this->size);
 #ifdef ARCH_X86
-      emms ();
+      emms_c ();
 #endif
 
       img = this->video_out->get_frame (this->video_out,
