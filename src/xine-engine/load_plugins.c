@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.140 2003/02/14 00:35:29 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.141 2003/02/23 21:32:48 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -470,12 +470,14 @@ static void _load_required_plugins(xine_t *this, xine_list_t *list) {
         
       /* in case of failure remove from list */
       if( !node->plugin_class ) {
-        xine_list_delete_current(list);
-        node = xine_list_prev_content(list); /* delete advances, so get previous */
-      }
-    }
-    
-    node = xine_list_next_content (list);
+
+        xine_list_delete_current (list);
+        node = list->cur->content;
+
+      } else
+	node = xine_list_next_content (list);
+    } else
+      node = xine_list_next_content (list);
   }
 }
 
