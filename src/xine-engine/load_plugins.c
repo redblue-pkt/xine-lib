@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.188 2004/11/13 17:01:36 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.189 2004/11/17 11:39:24 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -805,6 +805,9 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
   while (fgets (line, 1023, fp)) {
     if (line[0] == '#')
       continue;
+      
+    if( (value = strchr(line, '\r')) || (value = strchr(line, '\n')) )
+      *value = (char) 0; /* eliminate any cr/lf */
 
     if (line[0] == '[' && version_ok) {
       if((value = strchr (line, ']')))
@@ -813,7 +816,6 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
       if( node ) {
         xine_list_append_content (plugins, node);
       }
-      line[strlen(line)-1]= (char) 0; /* eliminate lf */
       node                = xine_xmalloc(sizeof(plugin_node_t));
       node->filename      = strdup(line+1);
       node->info          = xine_xmalloc(2*sizeof(plugin_info_t));
