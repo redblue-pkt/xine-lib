@@ -1,4 +1,4 @@
-nl Configure paths for XINE
+dnl Configure paths for XINE
 dnl
 dnl Copyright (C) 2001 Daniel Caujolle-Bert <segfault@club-internet.fr>
 dnl  
