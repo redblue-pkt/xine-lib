@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.12 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_asf.c,v 1.13 2001/11/17 19:39:17 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -844,7 +844,7 @@ static void asf_read_packet(demux_asf_t *this) {
     this->packet_size_left -= 4;
     break;
   default:
-    printf("demux_asf: unknow segtype %d\n",this->segtype);
+    printf("demux_asf: unknow segtype %x\n",this->segtype);
     frag_offset = get_le32(this);
     this->packet_size_left -= 4;
     break;
@@ -904,7 +904,9 @@ static void asf_read_packet(demux_asf_t *this) {
 			 object_length, object_length);
       }
       else {
+        /*
 	printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
+        */
 	this->input->seek (this->input, object_length, SEEK_CUR);
       }
 
@@ -952,7 +954,9 @@ static void asf_read_packet(demux_asf_t *this) {
         asf_send_buffer_nodefrag (this, stream, frag_offset, seq, timestamp,
                                   frag_len, payload_size);
     } else {
+      /*
       printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
+      */
       this->input->seek (this->input, frag_len, SEEK_CUR);
     }  
   }
