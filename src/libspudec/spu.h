@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.26 2004/06/21 16:19:41 mroi Exp $
+ * $Id: spu.h,v 1.27 2004/07/14 01:18:48 miguelfreitas Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -85,6 +85,7 @@ typedef struct {
   int32_t delay;        /* Delay in 90Khz / 1000 */
   int32_t need_clut;    /* doesn't have the right clut yet */
   int32_t cur_colors[4];/* current 4 colors been used */
+  int32_t vobsub;       /* vobsub must be aligned to bottom */
 
   uint32_t clut[16];
 } spudec_state_t;

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.107 2004/06/21 16:19:41 mroi Exp $
+ * $Id: xine_decoder.c,v 1.108 2004/07/14 01:18:48 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -108,7 +108,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     spudec_decode_nav(this,buf);
     return;
   }
-
+  
+  if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_VOBSUB_PACKAGE ) {
+    this->state.vobsub = 1;
+  }
+    
   /* check, if we need to process the next PCI from the list */
   pthread_mutex_lock(&this->nav_pci_lock);
   spudec_update_nav(this);
@@ -338,6 +342,7 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
 /* FIXME:Do we really need a default clut? */
   xine_fast_memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
   this->state.need_clut = 1;
+  this->state.vobsub = 0;
 
   return &this->spu_decoder;
 }

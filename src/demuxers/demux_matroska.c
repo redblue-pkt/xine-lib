@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.28 2004/06/13 21:28:53 miguelfreitas Exp $
+ * $Id: demux_matroska.c,v 1.29 2004/07/14 01:18:48 miguelfreitas Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -32,11 +32,13 @@
 #include "config.h"
 #endif
 
+#include <ctype.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <zlib.h>
 
 #define LOG_MODULE "demux_matroska"
 #define LOG_VERBOSE
@@ -57,6 +59,13 @@
 #define MAX_FRAMES               32
 
 #define WRAP_THRESHOLD        90000
+
+#if !defined(MIN)
+#define MIN(a, b)	((a)<(b)?(a):(b))
+#endif
+#if !defined(MAX)
+#define MAX(a, b)	((a)>(b)?(a):(b))
+#endif
 
 typedef struct {
   int                  track_num;
@@ -508,6 +517,166 @@ static void init_codec_vorbis(demux_matroska_t *this, matroska_track_t *track) {
   }
 }
 
+
+static int vobsub_parse_size(matroska_track_t *t, const char *start) {
+  if (sscanf(&start[6], "%dx%d", &t->sub_track->width,
+             &t->sub_track->height) == 2) {
+    lprintf("VobSub size: %ux%u\n", t->sub_track->width, t->sub_track->height);
+    return 1;
+  }
+  return 0;
+}
+
+static int vobsub_parse_palette(matroska_track_t *t, const char *start) {
+  int i, r, g, b, y, u, v, tmp;
+
+  start += 8;
+  while (isspace(*start))
+    start++;
+  for (i = 0; i < 16; i++) {
+    if (sscanf(start, "%06x", &tmp) != 1)
+      break;
+    r = tmp >> 16 & 0xff;
+    g = tmp >> 8 & 0xff;
+    b = tmp & 0xff;
+    y = MIN(MAX((int)(0.1494 * r + 0.6061 * g + 0.2445 * b), 0), 0xff);
+    u = MIN(MAX((int)(0.6066 * r - 0.4322 * g - 0.1744 * b) + 128, 0), 0xff);
+    v = MIN(MAX((int)(-0.08435 * r - 0.3422 * g + 0.4266 * b) + 128, 0), 0xff);
+    t->sub_track->palette[i] = y << 16 | u << 8 | v;
+    start += 6;
+    while ((*start == ',') || isspace(*start))
+      start++;
+  }
+  if (i == 16) {
+    lprintf("VobSub palette: %06x,%06x,%06x,%06x,%06x,%06x,%06x,%06x,%06x,"
+            "%06x,%06x,%06x,%06x,%06x,%06x,%06x\n", t->sub_track->palette[0],
+            t->sub_track->palette[1], t->sub_track->palette[2],
+            t->sub_track->palette[3], t->sub_track->palette[4],
+            t->sub_track->palette[5], t->sub_track->palette[6],
+            t->sub_track->palette[7], t->sub_track->palette[8],
+            t->sub_track->palette[9], t->sub_track->palette[10],
+            t->sub_track->palette[11], t->sub_track->palette[12],
+            t->sub_track->palette[13], t->sub_track->palette[14],
+            t->sub_track->palette[15]);
+    return 2;
+  }
+  return 0;
+}
+
+static int vobsub_parse_custom_colors(matroska_track_t *t, const char *start) {
+  int use_custom_colors, i;
+
+  start += 14;
+  while (isspace(*start))
+    start++;
+  use_custom_colors = 0;
+  if (!strncasecmp(start, "ON", 2) || (*start == '1'))
+    use_custom_colors = 1;
+  else if (!strncasecmp(start, "OFF", 3) || (*start == '0'))
+    use_custom_colors = 0;
+  lprintf("VobSub custom colors: %s\n", use_custom_colors ? "ON" : "OFF");
+  if ((start = strstr(start, "colors:")) != NULL) {
+    start += 7;
+    while (isspace(*start))
+      start++;
+    for (i = 0; i < 4; i++) {
+      if (sscanf(start, "%06x", &t->sub_track->colors[i]) != 1)
+        break;
+      start += 6;
+      while ((*start == ',') || isspace(*start))
+        start++;
+    }
+    if (i == 4) {
+      t->sub_track->custom_colors = 4;
+      lprintf("VobSub colors: %06x,%06x,%06x,%06x\n", t->sub_track->colors[0],
+              t->sub_track->colors[1], t->sub_track->colors[2],
+              t->sub_track->colors[3]);
+    }
+  }
+  if (!use_custom_colors)
+    t->sub_track->custom_colors = 0;
+  return 4;
+}
+
+static int vobsub_parse_forced_subs(matroska_track_t *t, const char *start) {
+  start += 12;
+  while (isspace(*start))
+    start++;
+  if (!strncasecmp(start, "on", 2) || (*start == '1'))
+    t->sub_track->forced_subs_only = 1;
+  else if (!strncasecmp(start, "off", 3) || (*start == '0'))
+    t->sub_track->forced_subs_only = 0;
+  else
+    return 0;
+  lprintf("VobSub forced subs: %d\n", t->sub_track->forced_subs_only);
+  return 8;
+}
+
+static void init_codec_vobsub(demux_matroska_t *this,
+                              matroska_track_t *track) {
+  int things_found, last;
+  char *buf, *pos, *start;
+  buf_element_t *buf_el;
+
+  lprintf("init_codec_vobsub for %d\n", track->track_num);
+
+  if ((track->codec_private == NULL) || (track->codec_private_len == 0))
+    return;
+
+  track->sub_track = calloc(1, sizeof(matroska_sub_track_t));
+  if (track->sub_track == NULL)
+    return;
+  things_found = 0;
+  buf = (char *)malloc(track->codec_private_len + 1);
+  if (buf == NULL)
+    return;
+  xine_fast_memcpy(buf, track->codec_private, track->codec_private_len);
+  buf[track->codec_private_len] = 0;
+  track->sub_track->type = 'v';
+
+  pos = buf;
+  start = buf;
+  last = 0;
+
+  do {
+    if ((*pos == 0) || (*pos == '\r') || (*pos == '\n')) {
+      if (*pos == 0)
+        last = 1;
+      *pos = 0;
+
+      if (!strncasecmp(start, "size: ", 6))
+        things_found |= vobsub_parse_size(track, start);
+      else if (!strncasecmp(start, "palette:", 8))
+        things_found |= vobsub_parse_palette(track, start);
+      else if (!strncasecmp(start, "custom colors:", 14))
+        things_found |= vobsub_parse_custom_colors(track, start);
+      else if (!strncasecmp(start, "forced subs:", 12))
+        things_found |= vobsub_parse_forced_subs(track, start);
+
+      if (last)
+        break;
+      do {
+        pos++;
+      } while ((*pos == '\r') || (*pos == '\n'));
+      start = pos;
+    } else
+      pos++;
+  } while (!last && (*start != 0));
+
+  free(buf);
+
+  if ((things_found & 2) == 2) {
+    buf_el = track->fifo->buffer_pool_alloc(track->fifo);
+    xine_fast_memcpy(buf_el->content, track->sub_track->palette,
+                     16 * sizeof(uint32_t));
+    buf_el->type = BUF_SPU_DVD;
+    buf_el->decoder_flags |= BUF_FLAG_SPECIAL;
+    buf_el->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+    buf_el->decoder_info[2] = SPU_DVD_SUBTYPE_CLUT;
+    track->fifo->put(track->fifo, buf_el);
+  }
+}
+
 static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
                               int decoder_flags,
                               uint8_t *data, int data_len,
@@ -664,6 +833,85 @@ static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
   }
 }
 
+
+/* Note: This function assumes that the VobSub track is compressed with zlib.
+ * This is not necessarily true - or not enough. The Matroska 'content
+ * encoding' elements allow for a layer of changes applied to the contents,
+ * e.g. compression or encryption. Anyway, only zlib compression is used
+ * at the moment, and everyone compresses the VobSubs.
+ */
+static void handle_vobsub (demux_plugin_t *this_gen, matroska_track_t *track,
+                           int decoder_flags,
+                           uint8_t *data, int data_len,
+                           int64_t data_pts, int data_duration,
+                           int input_normpos, int input_time) {
+  demux_matroska_t *this = (demux_matroska_t *) this_gen;
+  buf_element_t *buf;
+  z_stream zstream;
+  uint8_t *dest;
+  int old_data_len, result;
+
+  old_data_len = data_len;
+  zstream.zalloc = (alloc_func) 0;
+  zstream.zfree = (free_func) 0;
+  zstream.opaque = (voidpf) 0;
+  if (inflateInit (&zstream) != Z_OK) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "demux_matroska: VobSub: zlib inflateInit failed.\n");
+    return;
+  }
+  zstream.next_in = (Bytef *)data;
+  zstream.avail_in = data_len;
+
+  dest = (uint8_t *)malloc(data_len);
+  zstream.avail_out = data_len;
+  do {
+    data_len += 4000;
+    dest = (uint8_t *)realloc(dest, data_len);
+    zstream.next_out = (Bytef *)(dest + zstream.total_out);
+    result = inflate (&zstream, Z_NO_FLUSH);
+    if ((result != Z_OK) && (result != Z_STREAM_END)) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+              "demux_matroska: VobSub: zlib decompression failed.\n");
+      free(dest);
+      inflateEnd(&zstream);
+      return;
+    }
+    zstream.avail_out += 4000;
+  } while ((zstream.avail_out == 4000) &&
+           (zstream.avail_in != 0) && (result != Z_STREAM_END));
+
+  data_len = zstream.total_out;
+  inflateEnd(&zstream);
+
+  lprintf("VobSub: decompression for track %d from %d to %d\n",
+          (int)track->track_num, old_data_len, data_len);
+
+  buf = track->fifo->buffer_pool_alloc(track->fifo);
+
+  buf->size = data_len;
+  if (buf->max_size >= buf->size) {
+    buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL;
+    buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+    buf->decoder_info[2] = SPU_DVD_SUBTYPE_VOBSUB_PACKAGE;
+    buf->type = track->buf_type;
+
+    xine_fast_memcpy(buf->content, dest, data_len);
+    
+    buf->extra_info->input_normpos = input_normpos;
+    buf->extra_info->input_time    = input_time;
+
+    buf->pts = data_pts;
+    track->fifo->put(track->fifo, buf);
+
+  } else {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "demux_matroska: VobSub: data length is greater than fifo buffer length\n");
+    buf->free_buffer(buf);
+  }
+
+  free(dest);
+}
 
 static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
   ebml_parser_t *ebml = this->ebml;
@@ -888,6 +1136,11 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_USF\n");
       track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_utf8;
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_VOBSUB)) {
+      lprintf("MATROSKA_CODEC_ID_S_VOBSUB\n");
+      track->buf_type = BUF_SPU_DVD;
+      track->handle_content = handle_vobsub;
+      init_codec = init_codec_vobsub;
     } else {
       lprintf("unknown codec\n");
     }
@@ -2093,6 +2346,8 @@ static void demux_matroska_dispose (demux_plugin_t *this_gen) {
       free (track->video_track);
     if (track->audio_track)
       free (track->audio_track);
+    if (track->sub_track)
+      free (track->sub_track);
     
     free (track);
   }

@@ -36,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.76 2004/06/26 13:49:54 mroi Exp $
+ * $Id: spu.c,v 1.77 2004/07/14 01:18:48 miguelfreitas Exp $
  *
  */
 
@@ -486,6 +486,22 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       
       if (this->state.need_clut) {
         spudec_discover_clut(this->stream->xine, &this->state, &this->overlay);
+      }
+      
+      if (this->state.vobsub) {
+        int width, height;
+        int64_t duration;
+        
+        /*
+         * vobsubs are usually played with a scaled-down stream (not full DVD
+         * resolution), therefore we should try to realign it.
+         */
+        
+        this->stream->video_out->status(this->stream->video_out, NULL,
+                                        &width, &height, &duration );
+
+        this->overlay.x = (width - this->overlay.width) / 2;
+        this->overlay.y = height - this->overlay.height;
       }
       
       /* Subtitle */

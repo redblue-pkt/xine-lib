@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.7 2004/06/13 21:28:55 miguelfreitas Exp $
+ * $Id: matroska.h,v 1.8 2004/07/14 01:18:48 miguelfreitas Exp $
  *
  */
 #ifndef MATROSKA_H
@@ -201,6 +201,18 @@ typedef struct {
   int                      bits_per_sample;
 } matroska_audio_track_t;
 
+typedef struct {
+  char                     type;
+
+  /* The rest is used for VobSubs (type = 'v'). */
+  int                      width;
+  int                      height;
+  uint32_t                 palette[16];
+  int                      custom_colors;
+  uint32_t                 colors[4];
+  int                      forced_subs_only;
+} matroska_sub_track_t;
+
 typedef struct matroska_track_s matroska_track_t;
 struct matroska_track_s {
   int                      track_num;
@@ -218,6 +230,7 @@ struct matroska_track_s {
 
   matroska_video_track_t  *video_track;
   matroska_audio_track_t  *audio_track;
+  matroska_sub_track_t    *sub_track;
 
   int64_t                  last_pts;
 
@@ -275,6 +288,7 @@ struct matroska_track_s {
 #define MATROSKA_CODEC_ID_S_UTF8         "S_UTF8"        /* deprecated */
 #define MATROSKA_CODEC_ID_S_SSA          "S_SSA"         /* deprecated */
 #define MATROSKA_CODEC_ID_S_ASS          "S_ASS"         /* deprecated */
+#define MATROSKA_CODEC_ID_S_VOBSUB       "S_VOBSUB"
 
 /* block lacing */
 #define MATROSKA_NO_LACING               0x0
