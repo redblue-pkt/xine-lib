@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.90 2003/02/02 15:42:04 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.91 2003/02/04 09:50:22 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -448,9 +448,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       while (this->size>0) {
         
         /* DV frames can be completely skipped */
-        if( codec_type == BUF_VIDEO_DV && this->skipframes )
+        if( codec_type == BUF_VIDEO_DV && this->skipframes ) {
           len = this->size;
-        else
+	  got_picture = 1;
+	} else
 	  len = avcodec_decode_video (this->context, this->av_frame,
 				      &got_picture, &this->buf[offset],
 				      this->size);
