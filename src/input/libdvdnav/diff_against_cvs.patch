@@ -36,6 +36,15 @@
  
  #include <stdlib.h>
  #include <stdio.h>
+@@ -177,7 +177,7 @@
+   dvdnav_t *this;
+   
+   /* Create a new structure */
+-  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version from http://dvd.sf.net\n");
++  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version from http://xine.sf.net\n");
+ 
+   /* FIXME: We malloc() here, but if an error occurs inside dvdnav_open(),
+    * we return but never free() it.
 --- src/input/libdvdnav/dvdnav.h	Thu Jul 25 17:26:00 2002
 +++ src/input/libdvdnav/dvdnav.h	Fri Aug  9 22:01:19 2002
 @@ -40,7 +40,7 @@
