@@ -66,6 +66,9 @@
 /* Define this if you have GLut support available */
 #undef HAVE_GLUT
 
+/* Define this if you have GLU support available */
+#undef HAVE_GLU
+
 /* Define this if you have libXinerama installed */
 #undef HAVE_XINERAMA
 

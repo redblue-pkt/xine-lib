@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.3 2002/01/23 15:05:46 richwareham Exp $
+ * $Id: video_out_opengl.c,v 1.4 2002/01/23 23:27:10 f1rmb Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -71,7 +71,13 @@
 
 #include <GL/gl.h>
 #include <GL/glx.h>
+#ifdef HAVE_GLUT
 #include <GL/glut.h>
+#else
+#ifdef HAVE_GLU
+#include <GL/glu.h>
+#endif
+#endif
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -664,6 +670,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 		    (GLfloat)(this->window_width)/
 		    (GLfloat)(this->window_height),
 		    1.0f, 1000.0f);
+
     glMatrixMode (GL_MODELVIEW);
     glLoadIdentity ();	
 	
@@ -937,7 +944,7 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
 
   switch (data_type) {
   case GUI_SELECT_VISUAL:
-/*fprintf (stderr, "*** gui_select_visual ***\n"); */
+fprintf (stderr, "*** gui_select_visual ***\n");
     XLockDisplay (this->display);
     this->vinfo = glXChooseVisual (this->display, this->screen, glxAttrib);
     XUnlockDisplay (this->display);

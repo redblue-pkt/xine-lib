@@ -241,21 +241,32 @@ AC_PREREQ_LIBTOOL(1.4.0, xv_lib="libXv.a", xv_lib="libXv.so")
 
 
 dnl
-dnl Check for OpenGL & GLut
+dnl Check for OpenGL & [GLut | GLU]
 dnl
 AC_CHECK_LIB(GL, glBegin,
-             OPENGL_LIBS="-lGL"
-             ac_have_opengl="yes",,
-             -lGL)
+             [ ac_have_opengl="yes"
+               OPENGL_LIBS="-lGL" 
+	       AC_CHECK_LIB(glut, glutInit, dnl check for glut
+	                    [ ac_have_glut="yes"
+                              GLUT_LIBS="-lglut"
+	                      AC_DEFINE(HAVE_GLUT)
+			      AC_DEFINE(HAVE_OPENGL) ],
+	                    [ ac_have_glut="no" dnl fallback, check for GLU
+	                      AC_CHECK_LIB(GLU, gluPerspective,
+		                           [ ac_have_glu="yes"
+                                             GLU_LIBS="-lGLU" 
+		                             AC_DEFINE(HAVE_GLU)
+					     AC_DEFINE(HAVE_OPENGL) ],
+	                                   [ ac_have_glu="no" ], 
+                                           [$X_LIBS $X_PRE_LIBS $OPENGL_LIBS -lGLU $X_EXTRA_LIBS])], 
+	                    [$X_LIBS $X_PRE_LIBS -lglut $X_EXTRA_LIBS])
+             ],
+	     [],
+             [$X_LIBS $X_PRE_LIBS -lGL $X_EXTRA_LIBS])
 AC_SUBST(OPENGL_LIBS)
-AM_CONDITIONAL(HAVE_OPENGL, test x$ac_have_opengl = "xyes")
-
-AC_CHECK_LIB(glut, glutInit,
-             GLUT_LIBS="-lglut"
-             ac_have_glut="yes",,
-             -lglut)
 AC_SUBST(GLUT_LIBS)
-AM_CONDITIONAL(HAVE_GLUT, test x$ac_have_glut = "xyes")
+AC_SUBST(GLU_LIBS)
+AM_CONDITIONAL(HAVE_OPENGL, [ test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o x$ac_have_opengl = "xyes" -a x$ac_have_glu="xyes" ] )
 
 
 
@@ -921,6 +932,10 @@ if test x"$no_x" != "xyes"; then
     else
       echo "   - Xv (XVideo *shared*)"
     fi
+  fi
+  if test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o \
+	  x$ac_have_opengl = "xyes" -a x$ac_have_glu="xyes"; then	
+    echo "   - OpenGL"
   fi
 fi
 if test x$no_aalib != "xyes"; then
