@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.9 2002/09/08 16:20:09 mroi Exp $
+ * $Id: xine.h.in,v 1.10 2002/09/09 13:55:18 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -345,14 +345,14 @@ int xine_register_report_codec_cb(xine_p self,
 #define XINE_VISUAL_TYPE_DFB               5
 	
 /* video parameters */       
-#define XINE_PARAM_VO_DEINTERLACE          0x01000001
-#define XINE_PARAM_VO_ASPECT_RATIO         0x01000002
-#define XINE_PARAM_VO_HUE                  0x01000003
-#define XINE_PARAM_VO_SATURATION           0x01000004
-#define XINE_PARAM_VO_CONTRAST             0x01000005
-#define XINE_PARAM_VO_BRIGHTNESS           0x01000006
-#define XINE_PARAM_VO_ZOOM_X               0x01000007
-#define XINE_PARAM_VO_ZOOM_Y               0x01000008
+#define XINE_PARAM_VO_DEINTERLACE          0x01000000
+#define XINE_PARAM_VO_ASPECT_RATIO         0x01000001
+#define XINE_PARAM_VO_HUE                  0x01000002
+#define XINE_PARAM_VO_SATURATION           0x01000003
+#define XINE_PARAM_VO_CONTRAST             0x01000004
+#define XINE_PARAM_VO_BRIGHTNESS           0x01000005
+#define XINE_PARAM_VO_ZOOM_X               0x01000008
+#define XINE_PARAM_VO_ZOOM_Y               0x0100000d
 #define XINE_PARAM_VO_PAN_SCAN             0x01000009         
 #define XINE_PARAM_VO_TVMODE               0x0100000a
 
@@ -375,9 +375,9 @@ int xine_register_report_codec_cb(xine_p self,
  * audio stuff
  */
 
-#define XINE_PARAM_AO_MIXER_VOL            0x02000001
-#define XINE_PARAM_AO_PCM_VOL              0x02000002
-#define XINE_PARAM_AO_MUTE                 0x02000003
+#define XINE_PARAM_AO_MIXER_VOL            0x02000000
+#define XINE_PARAM_AO_PCM_VOL              0x02000001
+#define XINE_PARAM_AO_MUTE                 0x02000002
 
 /*
  * plugin management / autoplay / mrl browsing
