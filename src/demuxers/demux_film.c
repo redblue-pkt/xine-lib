@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.16 2002/07/05 17:31:59 mroi Exp $
+ * $Id: demux_film.c,v 1.17 2002/07/10 02:54:43 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -338,6 +338,8 @@ static void *demux_film_loop (void *this_gen) {
           buf->content = buf->mem;
           buf->type = this->video_type;
           buf->input_pos = this->sample_table[i].sample_offset;
+          buf->input_length = this->data_end;
+          buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
           buf->decoder_flags = 0;
 
@@ -403,6 +405,8 @@ static void *demux_film_loop (void *this_gen) {
           buf->content = buf->mem;
           buf->type = this->video_type;
           buf->input_pos = this->sample_table[i].sample_offset;
+          buf->input_length = this->data_end;
+          buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
           buf->decoder_flags = 0;
 
@@ -435,6 +439,8 @@ static void *demux_film_loop (void *this_gen) {
           buf->content = buf->mem;
           buf->type = this->audio_type;
           buf->input_pos = this->sample_table[i].sample_offset;
+          buf->input_length = this->data_end;
+          buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
           buf->decoder_flags = 0;
 
