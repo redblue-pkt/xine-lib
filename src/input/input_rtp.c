@@ -67,7 +67,6 @@
 #endif
 
 #include <stdio.h>
-#include <malloc.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
