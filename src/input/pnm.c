@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.14 2003/04/13 18:49:12 miguelfreitas Exp $
+ * $Id: pnm.c,v 1.15 2003/06/20 16:17:28 hadess Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -127,7 +127,7 @@ const unsigned char pnm_challenge[] = "0990f6b4508b51e801bd6da011ad7b56";
 const unsigned char pnm_timestamp[] = "[15/06/1999:22:22:49 00:00]";
 const unsigned char pnm_guid[]      = "3eac2411-83d5-11d2-f3ea-d7c3a51aa8b0";
 const unsigned char pnm_response[]  = "97715a899cbe41cee00dd434851535bf";
-const unsigned char client_string[] = "WinNT_4.0_6.0.6.45_plus32_MP60_en-US_686l";
+const unsigned char client_string[] = "WinNT_9.0_6.0.6.45_plus32_MP60_en-US_686l";
 
 #define PNM_HEADER_SIZE 11
 const unsigned char pnm_header[] = {
