@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.156 2003/12/07 15:34:30 f1rmb Exp $
+ * $Id: audio_out.c,v 1.157 2003/12/10 20:51:01 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1071,15 +1071,16 @@ static void *ao_loop (void *this_gen) {
       pthread_mutex_lock( &this->driver_lock );
       result = this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
       pthread_mutex_unlock( &this->driver_lock );
-      /* FIXME: USB device unplugged.
-       *        We should get the card into a closed state here, that involves closing
-       *        the PCM as well as the MIXER.
-       *        Maybe we should pause the stream until the USB device is plugged in again.
-       *        Return values 0 happen even if usb not unplugged, so needs further investigation.
-       */
-      xprintf(this->xine, XINE_VERBOSITY_LOG, _("write to sound card failed. Was a USB device unplugged ?\n"));
-
-      _x_assert(result >= 0);
+      
+      if( result < 0 ) {
+        /* FIXME: USB device unplugged.
+         *        We should get the card into a closed state here, that involves closing
+         *        the PCM as well as the MIXER.
+         *        Maybe we should pause the stream until the USB device is plugged in again.
+         *        Return values 0 happen even if usb not unplugged, so needs further investigation.
+         */
+        xprintf(this->xine, XINE_VERBOSITY_LOG, _("write to sound card failed. Was a USB device unplugged ?\n"));
+      }
       
       lprintf ("loop: next buf from fifo\n");
       fifo_append (this->free_fifo, in_buf);
