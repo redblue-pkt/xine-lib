@@ -1326,6 +1326,9 @@ fi
 if test x"$no_gnome_vfs" = "xno"; then
   echo "   - gnome-vfs"
 fi
+if test x"$have_v4l" = "xyes"; then
+  echo "   - v4l"
+fi
 echo ""
 
 dnl Demuxers
