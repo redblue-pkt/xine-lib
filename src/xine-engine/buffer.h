@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.133 2004/02/04 23:24:27 jstembridge Exp $
+ * $Id: buffer.h,v 1.134 2004/02/09 22:28:42 jstembridge Exp $
  *
  *
  * contents:
@@ -329,6 +329,10 @@ struct buf_element_s {
  * information for audio init is available from decoder_info[].
  * note: BUF_FLAG_HEADER must also be set.                            */
 #define BUF_FLAG_STDHEADER   0x0400 
+
+/* decoder_info[1] carries numerator for display aspect ratio
+ * decoder_info[2] carries denominator for display aspect ratio       */
+#define BUF_FLAG_ASPECT      0x0800
 
 
 /* Special buffer types:
