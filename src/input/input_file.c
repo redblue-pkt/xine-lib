@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.58 2002/09/15 14:05:37 mroi Exp $
+ * $Id: input_file.c,v 1.59 2002/09/19 00:23:29 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -890,12 +890,12 @@ static void *init_input_plugin (xine_t *xine, void *data) {
       strcpy(current_dir, ".");
 
     this->origin_path = config->register_string(this->config, "input.file_origin_path",
-						current_dir, _("origin path to grab file mrls"),
+						current_dir, _("file browsing start location"),
 						NULL, 0, origin_change_cb, (void *) this);
   }
   
   this->show_hidden_files = this->config->register_bool(this->config, "input.file_hidden_files", 
-							1, _("hidden files displaying."),
+							1, _("list hidden files"),
 							NULL, 10, hidden_bool_cb, (void *) this);
   
   return this;
