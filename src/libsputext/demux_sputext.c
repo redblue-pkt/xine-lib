@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.19 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.20 2003/08/04 01:37:58 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -708,6 +708,10 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     sub_read_line_aqt
     
   };
+
+  /* Rewind (sub_autodetect() needs to read input from the beginning) */
+  this->input->seek(this->input, 0, SEEK_SET);
+  this->buflen = 0;
 
   this->format=sub_autodetect (this);
   if (this->format==-1) {
