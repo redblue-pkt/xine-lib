@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.6 2002/12/22 00:35:04 komadori Exp $
+ * $Id: pnm.c,v 1.7 2002/12/26 14:57:33 holstsn Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -326,11 +326,11 @@ static void hexdump (char *buf, int length) {
  * pnm_get_chunk gets a chunk from stream
  * and returns number of bytes read 
  */
- 
+
 static unsigned int pnm_get_chunk(pnm_t *p, 
                          unsigned int max,
                          unsigned int *chunk_type,
-                         char *data) {
+                         char *data, int *need_response) {
 
   unsigned int chunk_size;
   int n;
@@ -341,45 +341,55 @@ static unsigned int pnm_get_chunk(pnm_t *p,
   if (data[0] == 0x72)
     rm_read (p->s, data, PREAMBLE_SIZE);
   else
-    rm_read (p->s, &data[CHECKSUM_SIZE], PREAMBLE_SIZE-CHECKSUM_SIZE);
+    rm_read (p->s, data+CHECKSUM_SIZE, PREAMBLE_SIZE-CHECKSUM_SIZE);
   
-  *chunk_type = BE_32(&data[0]);
-  chunk_size = BE_32(&data[4]);
+  *chunk_type = BE_32(data);
+  chunk_size = BE_32(data+4);
 
   switch (*chunk_type) {
     case PNA_TAG:
-      ptr=&data[PREAMBLE_SIZE];
-      rm_read (p->s, ptr, 0x0c - PREAMBLE_SIZE);
-      ptr+=0x0b-PREAMBLE_SIZE;
-      if (data[PREAMBLE_SIZE+0x01] == 'X') /* checking for server message */
-      {
-        printf("input_pnm: got a message from server:\n");   /* print message and exit */
-        n=BE_16(&data[PREAMBLE_SIZE+0x02]);
-        rm_read (p->s, &data[PREAMBLE_SIZE+0x04], n);
-        data[PREAMBLE_SIZE+0x04+n]=0;
-        printf("%s\n",&data[PREAMBLE_SIZE+0x04]);
-        return -1;
-      }
-      if (data[PREAMBLE_SIZE+0x01] == 'F')
-      {
-        printf("input_pnm: server error.\n");
-        return -1;
-      }
+      *need_response=0;
+      ptr=data+PREAMBLE_SIZE;
+      rm_read (p->s, ptr++, 1);
 
-      /* expecting following chunk format: 0x4f <chunk size> <data...> */
-      rm_read (p->s, ptr+1, 1);
-      while (*ptr == 0x4f) {
-        ptr++;
-        n=(*ptr);
-        ptr++;
-        rm_read (p->s, ptr, n+2);
-        ptr+=n;
+      while(1) {
+	/* expecting following chunk format: 0x4f <chunk size> <data...> */
+
+        rm_read (p->s, ptr, 2);
+	if (*ptr == 'X') /* checking for server message */
+	{
+	  printf("input_pnm: got a message from server:\n");
+	  rm_read (p->s, ptr+2, 1);
+	  n=BE_16(ptr+1);
+	  rm_read (p->s, ptr+3, n);
+	  ptr[3+n]=0;
+	  printf("%s\n",ptr+3);
+	  return -1;
+	}
+	
+	if (*ptr == 'F') /* checking for server error */
+	{
+	  printf("input_pnm: server error.\n");
+	  return -1;
+	}
+	if (*ptr == 'i')
+	{
+	  ptr+=2;
+	  *need_response=1;
+	  continue;
+	}
+	if (*ptr != 0x4f) break;
+	n=ptr[1];
+	rm_read (p->s, ptr+2, n);
+	ptr+=(n+2);
       }
       /* the checksum of the next chunk is ignored here */
-      rm_read (p->s, ptr+1, 1);
-      ptr++;
+      rm_read (p->s, ptr+2, 1);
+      ptr+=3;
       chunk_size=ptr-data;
       break;
+    case RMF_TAG:
+    case DATA_TAG:
     case PROP_TAG:
     case MDPR_TAG:
     case CONT_TAG:
@@ -396,6 +406,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
       chunk_size  = PREAMBLE_SIZE; 
       break;
   }
+
   return chunk_size;
 }
 
@@ -491,6 +502,7 @@ static void pnm_send_response(pnm_t *p, const char *response) {
   memcpy(&p->buffer[3], response, size);
 
   rm_write (p->s, p->buffer, size+3);
+
 }
 
 /*
@@ -501,13 +513,16 @@ static void pnm_send_response(pnm_t *p, const char *response) {
  * return 0 on error.  != 0 on success
  */
 
-static int pnm_get_headers(pnm_t *p) {
+static int pnm_get_headers(pnm_t *p, int *need_response) {
 
   uint32_t chunk_type;
   uint8_t  *ptr=p->header;
   uint8_t  *prop_hdr=NULL;
   int      chunk_size,size=0;
+  int      nr;
 /*  rmff_header_t *h; */
+
+  *need_response=0;
 
   while(1) {
     if (HEADER_SIZE-size<=0)
@@ -515,14 +530,19 @@ static int pnm_get_headers(pnm_t *p) {
       printf("input_pnm: header buffer overflow. exiting\n");
       return 0;
     }
-    chunk_size=pnm_get_chunk(p,HEADER_SIZE-size,&chunk_type,ptr);
+    chunk_size=pnm_get_chunk(p,HEADER_SIZE-size,&chunk_type,ptr,&nr);
     if (chunk_size < 0) return 0;
     if (chunk_type == 0) break;
     if (chunk_type == PNA_TAG)
     {
       memcpy(ptr, rm_header, RM_HEADER_SIZE);
       chunk_size=RM_HEADER_SIZE;
+      *need_response=nr;
     }
+    if (chunk_type == DATA_TAG)
+      chunk_size=0;
+    if (chunk_type == RMF_TAG)
+      chunk_size=0;
     if (chunk_type == PROP_TAG)
         prop_hdr=ptr;
     size+=chunk_size;
@@ -637,7 +657,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 
   /* send a keepalive                               */
   /* realplayer seems to do that every 43th package */
-  if (!(p->packet%43))  
+  if ((p->packet%43) == 42)  
   {
     rm_write(p->s,&keepalive,1);
   }
@@ -760,6 +780,7 @@ pnm_t *pnm_connect(const char *mrl) {
   int pathbegin, hostend;
   pnm_t *p=malloc(sizeof(pnm_t));
   int fd;
+  int need_response;
   
   if (strncmp(mrl,"pnm://",6))
   {
@@ -811,7 +832,7 @@ pnm_t *pnm_connect(const char *mrl) {
   p->s=fd;
 
   pnm_send_request(p,pnm_available_bandwidths[10]);
-  if (!pnm_get_headers(p)) {
+  if (!pnm_get_headers(p, &need_response)) {
     printf ("input_pnm: failed to set up stream\n");
     free(p->path);
     free(p->host);
@@ -819,7 +840,8 @@ pnm_t *pnm_connect(const char *mrl) {
     free(p);
     return NULL;
   }
-  pnm_send_response(p, pnm_response);
+  if (need_response)
+    pnm_send_response(p, pnm_response);
   p->ts_last[0]=0;
   p->ts_last[1]=0;
   
