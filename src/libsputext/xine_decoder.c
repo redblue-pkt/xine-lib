@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.84 2004/07/14 18:51:29 valtri Exp $
+ * $Id: xine_decoder.c,v 1.85 2004/07/22 14:21:31 mroi Exp $
  *
  */
 
@@ -295,7 +295,8 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   update_font_size(this, 0);
   
   if( strcmp(this->font, this->class->font) ) {
-    strcpy(this->font, this->class->font);
+    strncpy(this->font, this->class->font, FONTNAME_SIZE);
+    this->font[FONTNAME_SIZE - 1] = '\0';
     if( this->renderer )
       this->renderer->set_font (this->osd, this->class->font, this->font_size);
   }
@@ -323,14 +324,17 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
             char *p=this->text[line];
             for(b=0;b<chunks;b++) {
               char *c;
-              if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+              if(b==chunks-1) { /* if we are reading the last chunk, copy it completly */
                 strncpy(this->text[line+b],p,SUB_BUFSIZE);
-              else {
+                this->text[line+b][SUB_BUFSIZE - 1] = '\0';
+              } else {
                 for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
                 if(*c==' ') {
                   *c='\0';
-                  if(b) /* we are reading something that has to be moved to another line */
+                  if(b) { /* we are reading something that has to be moved to another line */
                     strncpy(this->text[line+b],p,SUB_BUFSIZE);
+                    this->text[line+b][SUB_BUFSIZE - 1] = '\0';
+                  }
                   p=c+1;
                 }
               }
@@ -361,13 +365,15 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
           char *p=buf;
           for(b=0;b<chunks;b++) {
             char *c;
-            if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+            if(b==chunks-1) { /* if we are reading the last chunk, copy it completly */
               strncpy(this->text[b],p,SUB_BUFSIZE);
-            else {
+              this->text[b][SUB_BUFSIZE - 1] = '\0';
+            } else {
               for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
               if(*c==' ') {
                 *c='\0';
                 strncpy(this->text[b],p,SUB_BUFSIZE);
+                this->text[b][SUB_BUFSIZE - 1] = '\0';
                 p=c+1;
               }
             }
@@ -403,14 +409,17 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
             char *p=this->text[line];
             for(b=0;b<chunks;b++) {
               char *c;
-              if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+              if(b==chunks-1) { /* if we are reading the last chunk, copy it completly */
                 strncpy(this->text[line+b],p,SUB_BUFSIZE);
-              else {
+                this->text[line+b][SUB_BUFSIZE - 1] = '\0';
+              } else {
                 for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
                 if(*c==' ') {
                   *c='\0';
-                  if(b) /* we are reading something that has to be moved to another line */
+                  if(b) { /* we are reading something that has to be moved to another line */
                     strncpy(this->text[line+b],p,SUB_BUFSIZE);
+                    this->text[line+b][SUB_BUFSIZE - 1] = '\0';
+                  }
                   p=c+1;
                 }
               }
@@ -441,13 +450,15 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
           char *p=buf;
           for(b=0;b<chunks;b++) {
             char *c;
-            if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+            if(b==chunks-1) { /* if we are reading the last chunk, copy it completly */
               strncpy(this->text[b],p,SUB_BUFSIZE);
-            else {
+              this->text[b][SUB_BUFSIZE - 1] = '\0';
+            } else {
               for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
               if(*c==' ') {
                 *c='\0';
                 strncpy(this->text[b],p,SUB_BUFSIZE);
+                this->text[b][SUB_BUFSIZE - 1] = '\0';
                 p=c+1;
               }
             }
@@ -748,7 +759,8 @@ static void update_osd_font(void *class_gen, xine_cfg_entry_t *entry)
 {
   sputext_class_t *class = (sputext_class_t *)class_gen;
 
-  strcpy(class->font, entry->str_value);
+  strncpy(class->font, entry->str_value, FONTNAME_SIZE);
+  class->font[FONTNAME_SIZE - 1] = '\0';
   
   xprintf(class->xine, XINE_VERBOSITY_DEBUG, "libsputext: spu_font = %s\n", class->font );
 }
@@ -840,13 +852,14 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 			      _("You can adjust the vertical position of the subtitle. "
 			        "The setting will be evaluated relative to the window size."),
 			      0, update_vertical_offset, this);
-  strcpy(this->font, xine->config->register_string(xine->config,
+  strncpy(this->font, xine->config->register_string(xine->config,
 				"misc.spu_font",
 				"sans",
 				_("font for subtitles"),
 				_("A font from the xine font directory to be used for the "
 				  "subtitle text."),
-				10, update_osd_font, this));
+				10, update_osd_font, this), FONTNAME_SIZE);
+  this->font[FONTNAME_SIZE - 1] = '\0';
   this->src_encoding  = xine->config->register_string(xine->config, 
 				"misc.spu_src_encoding", 
 				xine_guess_spu_encoding(),
