@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.2 2003/07/03 02:24:28 miguelfreitas Exp $
+ * $Id: eq2.c,v 1.3 2003/07/12 03:15:23 miguelfreitas Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -663,8 +663,11 @@ static int eq2_draw(vo_frame_t *frame, xine_stream_t *stream)
       yv12_frame->duration = frame->duration;
       extra_info_merge(yv12_frame->extra_info, frame->extra_info);
   
-      /* FIXME: implement! */
-      /* yuy2_to_yv12() */
+      yuy2_to_yv12(frame->base[0], frame->pitches[0],
+                   yv12_frame->base[0], yv12_frame->pitches[0],
+                   yv12_frame->base[1], yv12_frame->pitches[1],
+                   yv12_frame->base[2], yv12_frame->pitches[2],
+                   frame->width, frame->height);
   
     } else {
       yv12_frame = frame;
