@@ -1,5 +1,5 @@
 /*
-  $Id: vcdio.c,v 1.3 2004/09/07 19:29:49 valtri Exp $
+  $Id: vcdio.c,v 1.4 2004/12/29 09:23:56 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -57,25 +57,25 @@
 #include "vcdplayer.h"
 #include "vcdio.h"
 
-#define LOG_ERR(this, s, args...) \
-       if (this != NULL && this->log_err != NULL) \
-          this->log_err("%s:  "s, __func__ , ##args)
+#define LOG_ERR(p_vcdplayer, s, args...) \
+       if (p_vcdplayer != NULL && p_vcdplayer->log_err != NULL) \
+          p_vcdplayer->log_err("%s:  "s, __func__ , ##args)
 
 #define FREE_AND_NULL(ptr) if (NULL != ptr) free(ptr); ptr = NULL;
 
 /*! Closes VCD device specified via "this", and also wipes memory of it 
    from it inside "this". */
 int
-vcdio_close(vcdplayer_input_t *this) 
+vcdio_close(vcdplayer_t *p_vcdplayer) 
 {
-  this->opened = false;
+  p_vcdplayer->opened = false;
 
-  FREE_AND_NULL(this->current_vcd_device);
-  FREE_AND_NULL(this->track);
-  FREE_AND_NULL(this->segment);
-  FREE_AND_NULL(this->entry); 
+  FREE_AND_NULL(p_vcdplayer->psz_source);
+  FREE_AND_NULL(p_vcdplayer->track);
+  FREE_AND_NULL(p_vcdplayer->segment);
+  FREE_AND_NULL(p_vcdplayer->entry); 
   
-  return vcdinfo_close(this->vcd);
+  return vcdinfo_close(p_vcdplayer->vcd);
 }
 
 
@@ -86,37 +86,37 @@ vcdio_close(vcdplayer_input_t *this)
      to open new device. 
 */
 bool
-vcdio_open(vcdplayer_input_t *this, char *intended_vcd_device) 
+vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device) 
 {
-  vcdinfo_obj_t *obj = this->vcd;
+  vcdinfo_obj_t *p_vcdinfo = p_vcdplayer->vcd;
   unsigned int i;
 
   dbg_print(INPUT_DBG_CALL, "called with %s\n", intended_vcd_device);
 
-  if ( this->opened ) {
-    if ( strcmp(intended_vcd_device, this->current_vcd_device)==0 ) {
+  if ( p_vcdplayer->opened ) {
+    if ( strcmp(intended_vcd_device, p_vcdplayer->psz_source)==0 ) {
       /* Already open and the same device, so do nothing */
       return true;
     } else {
       /* Changing VCD device */
-      vcdio_close(this);
+      vcdio_close(p_vcdplayer);
     }
   }
 
-  if ( vcdinfo_open(&this->vcd, &intended_vcd_device, DRIVER_UNKNOWN, NULL) != 
+  if ( vcdinfo_open(&p_vcdplayer->vcd, &intended_vcd_device, DRIVER_UNKNOWN, NULL) != 
        VCDINFO_OPEN_VCD) {
     return false;
   }
 
-  obj = this->vcd;
+  p_vcdinfo = p_vcdplayer->vcd;
 
-  this->current_vcd_device=strdup(intended_vcd_device);
-  this->opened            = true;
-  this->num_LIDs          = vcdinfo_get_num_LIDs(obj);
+  p_vcdplayer->psz_source = strdup(intended_vcd_device);
+  p_vcdplayer->opened     = true;
+  p_vcdplayer->i_lids     = vcdinfo_get_num_LIDs(p_vcdinfo);
 
-  if (vcdinfo_read_psd (obj)) {
+  if (vcdinfo_read_psd (p_vcdinfo)) {
 
-    vcdinfo_visit_lot (obj, false);
+    vcdinfo_visit_lot (p_vcdinfo, false);
 
 #if FIXED
     /* 
@@ -125,8 +125,8 @@ vcdio_open(vcdplayer_input_t *this, char *intended_vcd_device)
        selection features in the extended PSD haven't been implemented,
        it's best then to not try to read this at all.
      */
-    if (vcdinfo_get_psd_x_size(obj))
-      vcdinfo_visit_lot (obj, true);
+    if (vcdinfo_get_psd_x_size(p_vcdinfo))
+      vcdinfo_visit_lot (p_vcdinfo, true);
 #endif 
 
   }
@@ -135,39 +135,45 @@ vcdio_open(vcdplayer_input_t *this, char *intended_vcd_device)
      Save summary info on tracks, segments and entries... 
    */
 
-  if ( 0 < (this->num_tracks = vcdinfo_get_num_tracks(obj)) ) {
-    this->track = (vcdplayer_play_item_info *) 
-      calloc(this->num_tracks, sizeof(vcdplayer_play_item_info));
+  if ( 0 < (p_vcdplayer->i_tracks = vcdinfo_get_num_tracks(p_vcdinfo)) ) {
+    p_vcdplayer->track = (vcdplayer_play_item_info_t *) 
+      calloc(p_vcdplayer->i_tracks, sizeof(vcdplayer_play_item_info_t));
     
-    for (i=0; i<this->num_tracks; i++) { 
-      unsigned int track_num=i+1;
-      this->track[i].size      = vcdinfo_get_track_sect_count(obj, track_num);
-      this->track[i].start_LSN = vcdinfo_get_track_lsn(obj, track_num);
+    for (i=0; i<p_vcdplayer->i_tracks; i++) { 
+      track_t i_track=i+1;
+      p_vcdplayer->track[i].size 
+        = vcdinfo_get_track_sect_count(p_vcdinfo, i_track);
+      p_vcdplayer->track[i].start_LSN 
+        = vcdinfo_get_track_lsn(p_vcdinfo, i_track);
     }
   } else 
-    this->track = NULL;
+    p_vcdplayer->track = NULL;
     
-  if ( 0 < (this->num_entries = vcdinfo_get_num_entries(obj)) ) {
-    this->entry = (vcdplayer_play_item_info *) 
-      calloc(this->num_entries, sizeof(vcdplayer_play_item_info));
+  if ( 0 < (p_vcdplayer->i_entries = vcdinfo_get_num_entries(p_vcdinfo)) ) {
+    p_vcdplayer->entry = (vcdplayer_play_item_info_t *) 
+      calloc(p_vcdplayer->i_entries, sizeof(vcdplayer_play_item_info_t));
 
-    for (i=0; i<this->num_entries; i++) { 
-      this->entry[i].size      = vcdinfo_get_entry_sect_count(obj, i);
-      this->entry[i].start_LSN = vcdinfo_get_entry_lsn(obj, i);
+    for (i=0; i<p_vcdplayer->i_entries; i++) { 
+      p_vcdplayer->entry[i].size
+        = vcdinfo_get_entry_sect_count(p_vcdinfo, i);
+      p_vcdplayer->entry[i].start_LSN 
+        = vcdinfo_get_entry_lsn(p_vcdinfo, i);
     }
   } else 
-    this->entry = NULL;
+    p_vcdplayer->entry = NULL;
   
-  if ( 0 < (this->num_segments = vcdinfo_get_num_segments(obj)) ) {
-    this->segment = (vcdplayer_play_item_info *) 
-      calloc(this->num_segments,  sizeof(vcdplayer_play_item_info));
+  if ( 0 < (p_vcdplayer->i_segments = vcdinfo_get_num_segments(p_vcdinfo)) ) {
+    p_vcdplayer->segment = (vcdplayer_play_item_info_t *) 
+      calloc(p_vcdplayer->i_segments,  sizeof(vcdplayer_play_item_info_t));
     
-    for (i=0; i<this->num_segments; i++) { 
-      this->segment[i].size        = vcdinfo_get_seg_sector_count(obj, i);
-      this->segment[i].start_LSN   = vcdinfo_get_seg_lsn(obj, i);
+    for (i=0; i<p_vcdplayer->i_segments; i++) { 
+      p_vcdplayer->segment[i].size 
+        = vcdinfo_get_seg_sector_count(p_vcdinfo, i);
+      p_vcdplayer->segment[i].start_LSN 
+        = vcdinfo_get_seg_lsn(p_vcdinfo, i);
     }
   } else 
-    this->segment = NULL;
+    p_vcdplayer->segment = NULL;
   
   return true;
 }
@@ -178,26 +184,26 @@ vcdio_open(vcdplayer_input_t *this, char *intended_vcd_device)
   if seeking failed, -1 is returned
 */
 off_t 
-vcdio_seek (vcdplayer_input_t *this, off_t offset, int origin) 
+vcdio_seek (vcdplayer_t *p_vcdplayer, off_t offset, int origin) 
 {
 
   switch (origin) {
   case SEEK_SET:
     {
-      lsn_t old_lsn = this->cur_lsn;
-      this->cur_lsn = this->origin_lsn + (offset / M2F2_SECTOR_SIZE);
+      lsn_t old_lsn = p_vcdplayer->i_lsn;
+      p_vcdplayer->i_lsn = p_vcdplayer->origin_lsn + (offset / M2F2_SECTOR_SIZE);
       
       dbg_print(INPUT_DBG_SEEK_SET, "seek_set to %ld => %u (start is %u)\n", 
-		(long int) offset, this->cur_lsn, this->origin_lsn);
+		(long int) offset, p_vcdplayer->i_lsn, p_vcdplayer->origin_lsn);
 
       /* Seek was successful. Invalidate entry location by setting
          entry number back to 1. Over time it will adjust upward 
          to the correct value. */
-      if ( !vcdplayer_pbc_is_on(this) 
-           && this->play_item.type != VCDINFO_ITEM_TYPE_TRACK 
-           && this->cur_lsn < old_lsn) {
+      if ( !vcdplayer_pbc_is_on(p_vcdplayer) 
+           && p_vcdplayer->play_item.type != VCDINFO_ITEM_TYPE_TRACK 
+           && p_vcdplayer->i_lsn < old_lsn) {
         dbg_print(INPUT_DBG_SEEK_SET, "seek_set entry backwards\n");
-        this->next_entry = 1;
+        p_vcdplayer->next_entry = 1;
       }
       break;
     }
@@ -206,22 +212,22 @@ vcdio_seek (vcdplayer_input_t *this, off_t offset, int origin)
     {
       off_t diff;
       if (offset) {
-        LOG_ERR(this, "%s: %d\n",
-                _("SEEK_CUR not implemented for nozero offset"), 
+        LOG_ERR(p_vcdplayer, "%s: %d\n",
+                _("SEEK_CUR not implemented for non-zero offset"), 
                 (int) offset);
         return (off_t) -1;
       }
       
-      if (this->slider_length == VCDPLAYER_SLIDER_LENGTH_TRACK) {
-        diff = this->cur_lsn - this->track_lsn;
+      if (p_vcdplayer->slider_length == VCDPLAYER_SLIDER_LENGTH_TRACK) {
+        diff = p_vcdplayer->i_lsn - p_vcdplayer->track_lsn;
         dbg_print(INPUT_DBG_SEEK_CUR, 
                   "current pos: %u, track diff %ld\n", 
-                  this->cur_lsn, (long int) diff);
+                  p_vcdplayer->i_lsn, (long int) diff);
       } else {
-        diff = this->cur_lsn - this->origin_lsn;
+        diff = p_vcdplayer->i_lsn - p_vcdplayer->origin_lsn;
         dbg_print(INPUT_DBG_SEEK_CUR, 
                   "current pos: %u, entry diff %ld\n", 
-                  this->cur_lsn, (long int) diff);
+                  p_vcdplayer->i_lsn, (long int) diff);
       }
       
       if (diff < 0) {
@@ -235,10 +241,10 @@ vcdio_seek (vcdplayer_input_t *this, off_t offset, int origin)
     }
     
   case SEEK_END:
-    LOG_ERR(this, "%s\n", _("SEEK_END not implemented yet."));
+    LOG_ERR(p_vcdplayer, "%s\n", _("SEEK_END not implemented yet."));
     return (off_t) -1;
   default:
-    LOG_ERR(this, "%s %d\n", _("seek not implemented yet for"),
+    LOG_ERR(p_vcdplayer, "%s %d\n", _("seek not implemented yet for"),
 	     origin);
     return (off_t) -1;
   }

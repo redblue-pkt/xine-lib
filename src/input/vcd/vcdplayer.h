@@ -1,7 +1,7 @@
 /* 
-  $Id: vcdplayer.h,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+  $Id: vcdplayer.h,v 1.2 2004/12/29 09:23:56 rockyb Exp $
 
-  Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 
 #define INPUT_DBG_META        1 /* Meta information */
 #define INPUT_DBG_EVENT       2 /* input (keyboard/mouse) events */
-#define INPUT_DBG_MRL         4 
+#define INPUT_DBG_MRL         4 /* MRL parsing */
 #define INPUT_DBG_EXT         8 /* Calls from external routines */
 #define INPUT_DBG_CALL       16 /* routine calls */
 #define INPUT_DBG_LSN        32 /* LSN changes */
@@ -93,18 +93,25 @@ typedef enum {
 typedef struct {
   lsn_t  start_LSN; /* LSN where play item starts */
   size_t size;      /* size in sector units of play item. */
-} vcdplayer_play_item_info;
+} vcdplayer_play_item_info_t;
 
 typedef int (*generic_fn)();
 
-typedef struct vcdplayer_input_struct {
+/* Value for indefinite wait period on a still frame */
+#define STILL_INDEFINITE_WAIT 255
+/* Value when we have yet to finish reading blocks of a frame. */
+#define STILL_READING          -5
+
+typedef struct vcdplayer_input_s {
   void             *user_data;  /* environment. Passed to called routines. */
   int32_t           buttonN;
   vcdinfo_obj_t     *vcd;       /* Pointer to libvcd structures. */
-  int               in_still;   /*  0 if not in still, 
-                                   -2 if in infinite loop
-                                   -5 if a still but haven't read wait time yet
-                                   >0 number of seconds yet to wait */
+
+  /*------------------------------------------------------------------
+    User-settable options 
+   --------------------------------------------------------------*/
+  unsigned int      i_debug;           /* Debugging mask */
+  unsigned int      i_blocks_per_read; /* number of blocks per read */
 
   /*------------------------------------------------------------------
     Callback functions - players and higher-level routines can use
@@ -122,7 +129,7 @@ typedef struct vcdplayer_input_struct {
   /* Function to flush sleep for a number of milliseconds. */
   void (*sleep) (unsigned int usecs); 
 
-  /* Function to flush sleep for a number of milliseconds. */
+  /* Function to force a redisplay. */
   void (*force_redisplay) (void); 
 
   /* Function to handle player events. Returns true if play item changed. */
@@ -134,20 +141,25 @@ typedef struct vcdplayer_input_struct {
   /*-------------------------------------------------------------
      Playback control fields 
    --------------------------------------------------------------*/
-  int              cur_lid;       /* LID that play item is in. Implies PBC is.
+  int                 i_still;    /*  0 if not in still, 
+                                      STILL_INDEFINITE_WAIT if indefinite time,
+                                      STILL_READING if don't have full picture,
+                                      else number of seconds yet to wait */
+
+  int                 i_lid;      /* LID that play item is in. Implies PBC is.
                                      on. VCDPLAYER_BAD_ENTRY if not none or 
                                      not in PBC */
-  PsdListDescriptor pxd;          /* If PBC is on, the relevant PSD/PLD */
-  int               pdi;          /* current pld index of pxd. -1 if 
+  PsdListDescriptor_t pxd;        /* If PBC is on, the relevant PSD/PLD */
+  int                 pdi;        /* current pld index of pxd. -1 if 
                                      no index*/
 
   vcdinfo_itemid_t play_item;     /* play-item, VCDPLAYER_BAD_ENTRY if none */
   vcdinfo_itemid_t loop_item;     /* Where do we loop back to? Meaningful only
                                      in a selection list */
-  int              loop_count;    /* # of times play-item has been played. 
+  int              i_loop;        /* # of times play-item has been played. 
                                      Meaningful only in a selection list.
                                    */
-  track_t          cur_track;     /* current track number. */
+  track_t          i_track;       /* current track number */
 
   /*-----------------------------------
      Navigation and location fields
@@ -159,29 +171,35 @@ typedef struct vcdplayer_input_struct {
   uint16_t   return_entry;  /* Entry index to use if return is pressed */
   uint16_t   default_entry; /* Default selection entry. */
 
-  lsn_t      cur_lsn;       /* LSN of where we are right now */
-  lsn_t      end_lsn;       /* LSN of end of current entry/segment/track. */
-  lsn_t      origin_lsn;    /* LSN of start of slider position. */
+  lsn_t      i_lsn;         /* LSN of where we are right now */
+  lsn_t      end_lsn;       /* LSN of end of current entry/segment/track.
+                               entry/segment/track. This block can be read 
+                               (and is not one after the "end"). */
+
+  lsn_t      origin_lsn;    /* LSN of start of seek/slider position. */
   lsn_t      track_lsn;     /* LSN of start track origin of track we are in. */
   lsn_t      track_end_lsn; /* LSN of end of current track (if entry). */
 
   /*--------------------------------------------------------------
-    Medium information
+    (S)VCD Medium information
    ---------------------------------------------------------------*/
-
-  char       *current_vcd_device;   /* VCD device currently open */
+  char       *psz_source;   /* VCD device currently open */
   bool       opened;                /* true if initialized */
 
-  track_t       num_tracks;   /* Number of tracks in medium */
-  segnum_t      num_segments; /* Number of segments in medium */
-  unsigned int  num_entries;  /* Number of entries in medium */
-  lid_t         num_LIDs;     /* Number of LIDs in medium  */
+  track_t       i_tracks;   /* # of playable MPEG tracks. This is 
+                                generally one less than the number
+                                of CD tracks as the first CD track
+                                is an ISO-9660 track and is not
+                                playable. */
+  segnum_t      i_segments; /* Number of segments in medium */
+  unsigned int  i_entries;  /* Number of entries in medium */
+  lid_t         i_lids;     /* Number of LIDs in medium  */
 
   /* Tracks, segment, and entry information. The number of entries for
-     each is given by the corresponding num_* field above.  */
-  vcdplayer_play_item_info *track;
-  vcdplayer_play_item_info *segment;
-  vcdplayer_play_item_info *entry;
+     each is given by the corresponding i_* field above.  */
+  vcdplayer_play_item_info_t *track;
+  vcdplayer_play_item_info_t *segment;
+  vcdplayer_play_item_info_t *entry;
 
   /*--------------------------------------------------------------
     Configuration variables
@@ -203,7 +221,7 @@ typedef struct vcdplayer_input_struct {
   /* Whether GUI slider is track size or entry size. */
   vcdplayer_slider_length_t slider_length; 
 
-} vcdplayer_input_t;
+} vcdplayer_t;
 
 /* vcdplayer_read return status */
 typedef enum {
@@ -221,8 +239,7 @@ typedef enum {
 /*!
   Return true if playback control (PBC) is on
 */
-bool
-vcdplayer_pbc_is_on(const vcdplayer_input_t *this);
+bool vcdplayer_pbc_is_on(const vcdplayer_t *p_vcdplayer);
 
 /*!
    Take a format string and expand escape sequences, that is sequences that
@@ -244,30 +261,30 @@ vcdplayer_pbc_is_on(const vcdplayer_input_t *this);
    %% : a %
 */
 char *
-vcdplayer_format_str(vcdplayer_input_t *this, const char format_str[]);
+vcdplayer_format_str(vcdplayer_t *p_vcdplayer, const char format_str[]);
 
 /*!
   Update next/prev/return/default navigation buttons. 
 */
 void
-vcdplayer_update_nav(vcdplayer_input_t *this);
+vcdplayer_update_nav(vcdplayer_t *p_vcdplayer);
 
 /*! Update the player title text. */
 void 
-vcdplayer_update_title_display(vcdplayer_input_t *this);
+vcdplayer_update_title_display(vcdplayer_t *p_vcdplayer);
 
 /*! Play title part. If part is -1, use the first title. */
 void
-vcdplayer_play(vcdplayer_input_t *this, vcdinfo_itemid_t itemid);
+vcdplayer_play(vcdplayer_t *p_vcdplayer, vcdinfo_itemid_t itemid);
 
 bool
-vcdplayer_open(vcdplayer_input_t *this, char *intended_vcd_device);
+vcdplayer_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device);
 
 /*!
   Read nlen bytes into buf and return the status back.
 */
 vcdplayer_read_status_t
-vcdplayer_read (vcdplayer_input_t *this, uint8_t *buf, const off_t nlen);
+vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *p_buf, const off_t nlen);
 
 /*!
   seek position, return new position 
@@ -275,17 +292,14 @@ vcdplayer_read (vcdplayer_input_t *this, uint8_t *buf, const off_t nlen);
   if seeking failed, -1 is returned
 */
 off_t 
-vcdplayer_seek (vcdplayer_input_t *this, off_t offset, int origin);
+vcdplayer_seek (vcdplayer_t *p_vcdplayer, off_t offset, int origin);
 
 /*!
   Get the number of tracks or titles of the VCD. The result is stored
   in "titles".
  */
 void 
-vcdplayer_send_button_update(vcdplayer_input_t *this, int mode);
-
-lid_t
-vcdplayer_selection2lid (vcdplayer_input_t *this, int entry_num);
+vcdplayer_send_button_update(vcdplayer_t *p_vcdplayer, int mode);
 
 #endif /* _VCDPLAYER_H_ */
 /* 

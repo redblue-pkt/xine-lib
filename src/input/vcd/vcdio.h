@@ -1,7 +1,7 @@
 /* 
-  $Id: vcdio.h,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+  $Id: vcdio.h,v 1.2 2004/12/29 09:23:56 rockyb Exp $
 
-  Copyright (C) 2002 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2004 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
   read nlen bytes, return number of bytes read.
 */
 off_t 
-vcdio_read (vcdplayer_input_t *this, char *buf, const off_t nlen);
+vcdio_read (vcdplayer_t *p_vcdplayer, char *psz_buf, const off_t nlen);
 
 /*! Opens VCD device and initializes things.
 
@@ -37,13 +37,13 @@ vcdio_read (vcdplayer_input_t *this, char *buf, const off_t nlen);
      to open new device. 
 */
 bool
-vcdio_open(vcdplayer_input_t *this, char *intended_vcd_device);
+vcdio_open(vcdplayer_t *p_vcdplayer, char *psz_device);
 
 /*! Closes VCD device specified via "this", and also wipes memory of it 
    from it inside "this". */
 /* FIXME Move player stuff to player. */
 int 
-vcdio_close(vcdplayer_input_t *this);
+vcdio_close(vcdplayer_t *p_vcdplayer);
 
 /*!
   From xine plugin spec:
@@ -53,7 +53,7 @@ vcdio_close(vcdplayer_input_t *this);
   if seeking failed, -1 is returned
 */
 off_t 
-vcdio_seek (vcdplayer_input_t *this, off_t offset, int origin);
+vcdio_seek (vcdplayer_t *p_vcdplayer, off_t offset, int origin);
 
 #endif /* _VCDIO_H_ */
 
