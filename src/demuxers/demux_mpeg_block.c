@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.85 2002/04/03 23:27:04 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.86 2002/04/06 02:23:38 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -75,6 +75,7 @@ typedef struct demux_mpeg_block_s {
   uint8_t              *scratch, *scratch_base;
 
   int64_t               last_scr;
+  int                   ignore_scr_discont;
   int64_t               nav_last_end_pts;
 } demux_mpeg_block_t ;
 
@@ -307,7 +308,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	    start_pts, end_pts);
 #endif
 
-    if (this->nav_last_end_pts != start_pts) {
+    if (this->nav_last_end_pts != start_pts && !preview_mode) {
 
 #ifdef LOG
       printf ("demux_mpeg_block: informing metronom about new start pts\n");
@@ -328,7 +329,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     }
     
     this->nav_last_end_pts = end_pts;
-    this->last_scr         = end_pts;
+    this->ignore_scr_discont = 1;
 
     /*
     for (i=0; i<120; i++)
@@ -348,7 +349,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	    scr, this->last_scr, scr_diff);
 #endif
 
-    if ((abs(scr_diff) > DISC_TRESHOLD) && !preview_mode) {
+    if ((abs(scr_diff) > DISC_TRESHOLD) && !preview_mode &&
+        !this->ignore_scr_discont) {
       
       buf_element_t *buf;
 
@@ -368,6 +370,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	this->audio_fifo->put (this->audio_fifo, buf);
       }
     }
+    this->ignore_scr_discont = 0;
     this->last_scr = scr;
   }
 
@@ -869,6 +872,7 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   this->last_scr         = 0;
   this->nav_last_end_pts = 0;
+  this->ignore_scr_discont = 0;
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 
@@ -921,6 +925,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   this->status   = DEMUX_OK ;
   this->last_scr = 0;
+  this->nav_last_end_pts = 0;
+  this->ignore_scr_discont = 0;
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_block_loop, this)) != 0) {
