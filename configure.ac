@@ -456,7 +456,7 @@ dnl ---------------------------------------------
 dnl Check linux framebuffer device support
 dnl ---------------------------------------------
 AC_CHECK_HEADER(linux/fb.h,
-                [AC_DEFINE(HAVE_FB,1,[Define this if you have linux framebuffer support]),
+                [AC_DEFINE(HAVE_FB,1,[Define this if you have linux framebuffer support])
                  have_fb=yes],)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
