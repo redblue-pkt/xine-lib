@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.217 2003/01/13 15:40:08 esnel Exp $
+ * $Id: xine.c,v 1.218 2003/01/13 16:26:48 mroi Exp $
  *
  * top-level xine functions
  *
@@ -218,7 +218,7 @@ void xine_stop (xine_stream_t *stream) {
   if (stream->video_out)
     stream->video_out->flush(stream->video_out);
   
-  if (stream->slave)
+  if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_STOP))
     xine_stop(stream->slave);
   
   pthread_mutex_unlock (&stream->frontend_lock);
@@ -634,6 +634,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    subtitle_mrl[strlen(tmp)] = '\0';
 	  }
 	  stream->slave = xine_stream_new (stream->xine, NULL, stream->video_out );
+	  stream->slave_affection = XINE_MASTER_SLAVE_PLAY || XINE_MASTER_SLAVE_STOP;
 	  if( xine_open( stream->slave, subtitle_mrl ) ) {
 	    printf("xine: subtitle mrl opened\n");
 	    stream->slave->master = stream;
@@ -866,7 +867,7 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
   pthread_mutex_lock (&stream->frontend_lock);
 
   ret = xine_play_internal (stream, start_pos, start_time/1000);
-  if( stream->slave )
+  if( stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_PLAY) )
     xine_play (stream->slave, start_pos, start_time/1000);
 
   pthread_mutex_unlock (&stream->frontend_lock);
@@ -904,6 +905,9 @@ void xine_dispose (xine_stream_t *stream) {
   
   if( stream->master != stream ) {
     stream->master->slave = NULL;  
+  }
+  if( stream->slave && stream->slave->master == stream ) {
+    stream->slave->master = NULL;
   }
 
   printf ("xine_exit: shutdown audio\n");
@@ -1364,7 +1368,11 @@ int xine_trick_mode (xine_stream_t *stream, int mode, int value) {
 int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
                          int affection) {
   master->slave = slave;
-  slave->master = master;       
+  master->slave_affection = affection;
+  /* respect transitivity: if our designated master already has a master
+   * of its own, we point to this master's master; if our master is a 
+   * standalone stream, its master pointer will point to itself */
+  slave->master = master->master;
   return 1;
 }                           
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.125 2003/01/13 02:15:07 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.126 2003/01/13 16:26:48 mroi Exp $
  *
  */
 
@@ -246,6 +246,7 @@ struct xine_stream_s {
   xine_post_out_t            audio_source;
   
   int                        slave_is_subtitle; /* ... and will be automaticaly disposed */
+  int                        slave_affection;   /* what operations need to be propagated down to the slave? */
   
   int                        err;
 };
