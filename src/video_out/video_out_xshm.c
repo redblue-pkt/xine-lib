@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.51 2001/11/18 03:53:24 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.52 2001/11/28 22:19:12 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -720,7 +720,7 @@ static void xshm_overlay_clut_yuv2rgb(xshm_driver_t  *this, vo_overlay_t *overla
   int i;
   clut_t* clut = (clut_t*) overlay->color;
 
-  for (i = 0; i < 4; i++) {
+  for (i = 0; i < sizeof(overlay->color)/sizeof(overlay->color[0]); i++) {
     *((uint32_t *)&clut[i]) =
                  this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb,
                  clut[i].y, clut[i].cb, clut[i].cr);

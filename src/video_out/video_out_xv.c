@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.80 2001/11/23 22:29:45 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.81 2001/11/28 22:19:12 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1364,7 +1364,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
 	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
-	  printf("XV_FILTER (%d->%d)/n",attr[k].min_value, attr[k].max_value); 
 	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
 					    attr[k].min_value, attr[k].max_value,
 					    "bilinear scaling mode (permedia 2/3)",

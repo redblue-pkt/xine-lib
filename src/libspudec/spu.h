@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.6 2001/10/20 17:51:59 jcdutton Exp $
+ * $Id: spu.h,v 1.7 2001/11/28 22:19:12 miguelfreitas Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -34,12 +34,10 @@
 
 #include <inttypes.h>
 #include "video_out.h"
+#include "video_overlay.h"
 
-#ifdef	__GNUC__
-#define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{y: (_y), cr: (_cr), cb: (_cb)}
-#else
-#define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{ (_cb), (_cr), (_y) }
-#endif
+#define NUM_SEQ_BUFFERS 50
+#define MAX_STREAMS 32
 
 typedef struct spu_clut_struct {
 #ifdef WORDS_BIGENDIAN
@@ -94,5 +92,42 @@ void spu_do_commands (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
 void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
 void spu_discover_clut (spu_state_t *state, vo_overlay_t *ovl);
 void spu_update_menu (spu_state_t *state, vo_overlay_t *ovl);
+
+
+typedef struct spudec_stream_state_s {
+  spu_seq_t        ra_seq;
+  uint32_t         ra_complete;
+  uint32_t         stream_filter;
+  spu_state_t      state;
+  uint32_t         vpts;
+  uint32_t         pts;
+  int32_t          overlay_handle;
+} spudec_stream_state_t;
+
+typedef struct spudec_decoder_s {
+  spu_decoder_t    spu_decoder;
+
+  xine_t          *xine;
+/*  spu_seq_t	   seq_list[NUM_SEQ_BUFFERS]; */
+  spu_seq_t       *cur_seq;
+  spudec_stream_state_t spu_stream_state[MAX_STREAMS];
+  
+  video_overlay_event_t      event;
+  video_overlay_object_t     object;  
+  int32_t          menu_handle;
+  
+  spu_seq_t       *ra_seq;
+  int              ra_complete;
+
+  uint32_t         ovl_pts;
+  uint32_t         buf_pts;
+  spu_state_t      state;
+
+  vo_instance_t   *vo_out;
+  vo_overlay_t     overlay;
+  int              ovl_caps;
+  int              output_open;
+} spudec_decoder_t;
+
 
 #endif

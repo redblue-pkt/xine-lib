@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.57 2001/11/20 14:03:15 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.58 2001/11/28 22:19:12 miguelfreitas Exp $
  *
  */
 
@@ -181,6 +181,8 @@ struct xine_s {
   video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
   video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
+  
+  void                      *osd_renderer;
 
   ao_instance_t             *audio_out;
   fifo_buffer_t             *audio_fifo;

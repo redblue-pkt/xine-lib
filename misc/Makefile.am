@@ -5,7 +5,8 @@ EXTRA_DIST = autogen.sh upload.pl SlackBuild.in SlackBuild build_rpms.sh \
 bin_SCRIPTS = xine-config
 
 datadir = $(XINE_SKINDIR)
-data_DATA = xine_logo.png
+#this is just a hack. osd fonts should be installed in another dir
+data_DATA = xine_logo.png vga.xinefont.gz
 
 debug:
 

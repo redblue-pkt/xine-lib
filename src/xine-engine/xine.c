@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.80 2001/11/24 23:52:40 miguelfreitas Exp $
+ * $Id: xine.c,v 1.81 2001/11/28 22:19:12 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -50,6 +50,7 @@
 #include "input/input_plugin.h"
 #include "metronom.h"
 #include "configfile.h"
+#include "osd.h"
 
 #include "xineutils.h"
 
@@ -434,7 +435,19 @@ xine_t *xine_init (vo_driver_t *vo,
 
   this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
-
+  this->osd_renderer = osd_renderer_init( this->video_out->overlay_source );
+  osd_renderer_load_font( this->osd_renderer, "vga" ); 
+  
+  /* just kidding. this will be removed before 0.9.7 */
+  {
+    osd_object_t *osd; 
+    osd = osd_open(this->osd_renderer, 120, 120);
+    osd_set_font(osd,"vga");
+    osd_render_text(osd,0,0,"\x0ff");
+    osd_set_position(osd,10,10);
+    osd_show(osd,0);
+  }
+  
   if(ao) 
     this->audio_out = ao_new_instance (ao, this->metronom, config);
 

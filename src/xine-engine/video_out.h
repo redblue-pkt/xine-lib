@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.30 2001/11/20 12:41:58 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.31 2001/11/28 22:19:12 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -53,6 +53,7 @@ typedef struct vo_driver_s vo_driver_t ;
 typedef struct vo_instance_s vo_instance_t;
 typedef struct img_buf_fifo_s img_buf_fifo_t;
 typedef struct vo_overlay_s vo_overlay_t;
+typedef struct video_overlay_instance_s video_overlay_instance_t;
 
 
 /* public part, video drivers may add private fields */
@@ -99,14 +100,6 @@ struct vo_frame_s {
   void (*dispose) (vo_frame_t *vo_img);
 };
 
-typedef struct ovl_src_s ovl_src_t;
-
-struct ovl_src_s {
-  void *src_gen;
-  vo_overlay_t* (*get_overlay) (ovl_src_t* self, int pts);
-  metronom_t* metronom;
-};
-
 struct vo_instance_s {
 
   uint32_t (*get_capabilities) (vo_instance_t *this); /* for constants see below */
@@ -132,11 +125,9 @@ struct vo_instance_s {
   vo_frame_t* (*get_last_frame) (vo_instance_t *this);
   
   /* overlay stuff */
-  void (*register_ovl_src) (vo_instance_t *this, ovl_src_t *ovl_src);
-  void (*unregister_ovl_src) (vo_instance_t *this, ovl_src_t *ovl_src);
   void (*enable_ovl) (vo_instance_t *this, int ovl_enable);
-  ovl_src_t         *overlay_source;
-  int                overlay_enabled;
+  video_overlay_instance_t *overlay_source;
+  int                       overlay_enabled;
 
   /* video driver is no longer used by decoder => close */
   void (*close) (vo_instance_t *this);
@@ -308,8 +299,8 @@ struct vo_overlay_s {
   int               width;         /* width of subpicture area         */
   int               height;        /* height of subpicture area        */
   
-  uint32_t          color[4];      /* color lookup table               */
-  uint8_t           trans[4];      /* mixer key table                  */
+  uint32_t          color[16];      /* color lookup table               */
+  uint8_t           trans[16];      /* mixer key table                  */
   int               rgb_clut;      /* true if clut was converted to rgb*/
 
   int               clip_top;
@@ -318,6 +309,26 @@ struct vo_overlay_s {
   int               clip_right;
 
 };
+
+
+/* API to video_overlay */
+struct video_overlay_instance_s {
+  void (*init) (video_overlay_instance_t *this_gen);
+  
+  int32_t (*get_handle) (video_overlay_instance_t *this_gen, int object_type );
+  
+  void (*free_handle) (video_overlay_instance_t *this_gen, int32_t handle);
+  
+  int32_t (*add_event) (video_overlay_instance_t *this_gen, void *event);
+  
+  void (*flush_events) (video_overlay_instance_t *this_gen );
+  
+  void (*multiple_overlay_blend) (video_overlay_instance_t *this_gen, int vpts, 
+                                  vo_driver_t *output, vo_frame_t *vo_img, int enabled);
+};
+
+video_overlay_instance_t *video_overlay_new_instance ();
+
 
 /*
  * build a video_out_instance from

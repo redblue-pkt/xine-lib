@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.57 2001/11/20 12:41:58 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.58 2001/11/28 22:19:12 miguelfreitas Exp $
  *
  */
 
@@ -297,16 +297,13 @@ static void *video_out_loop (void *this_gen) {
 #endif
 
     if (this->overlay_source) {
-      /* This is the only way for the spu decoder to get pts values
+      /* This is the only way for the overlay manager to get pts values
        * for flushing it's buffers. So don't remove it! */
-      vo_overlay_t *ovl;
-
       xine_profiler_start_count (prof_spu_blend);
 
-      ovl = this->overlay_source->get_overlay (this->overlay_source, img->PTS);
-      if (this->video_loop_running && ovl && this->driver->overlay_blend && this->overlay_enabled)
-	this->driver->overlay_blend (this->driver, img, ovl); 
-
+      this->overlay_source->multiple_overlay_blend (this->overlay_source, img->PTS, 
+                                                    this->driver, img,
+                                                    this->video_loop_running && this->overlay_enabled);
       xine_profiler_stop_count (prof_spu_blend);
     }
     
@@ -408,7 +405,11 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 }
 
 static void vo_close (vo_instance_t *this) {
-
+    
+  /* this will make sure all hide events were processed */
+  if (this->overlay_source)
+    this->overlay_source->flush_events (this->overlay_source);
+  
   if (this->video_loop_running) {
     void *p;
 
@@ -570,19 +571,6 @@ static int vo_frame_draw (vo_frame_t *img) {
   return frames_to_skip;
 }
 
-static void vo_register_ovl_src (vo_instance_t *this, ovl_src_t *ovl_src)
-{
-  this->overlay_source = ovl_src;
-  ovl_src->metronom = this->metronom;
-}
-
-static void vo_unregister_ovl_src (vo_instance_t *this, ovl_src_t *ovl_src)
-{
-  /* only remove the source if it is the same as registered */
-  if (this->overlay_source == ovl_src)
-    this->overlay_source = NULL;
-}
-
 static void vo_enable_overlay (vo_instance_t *this, int overlay_enabled) {
   this->overlay_enabled = overlay_enabled;
 }
@@ -602,8 +590,6 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->close                 = vo_close;
   this->exit                  = vo_exit;
   this->get_capabilities      = vo_get_capabilities;
-  this->register_ovl_src      = vo_register_ovl_src;
-  this->unregister_ovl_src    = vo_unregister_ovl_src;
   this->enable_ovl            = vo_enable_overlay;
 
   this->num_frames_delivered  = 0;
@@ -612,9 +598,12 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->free_img_buf_queue    = vo_new_img_buf_queue ();
   this->display_img_buf_queue = vo_new_img_buf_queue ();
   this->video_loop_running    = 0;
-  this->video_paused          = 0;
+  this->video_paused          = 0;          
   this->pts_per_frame         = 0;
   this->pts_per_half_frame    = 0;
+  
+  this->overlay_source        = video_overlay_new_instance();
+  this->overlay_source->init (this->overlay_source);
   this->overlay_enabled       = 1;
 
   for (i=0; i<NUM_FRAME_BUFFERS; i++) {

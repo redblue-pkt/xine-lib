@@ -9,8 +9,9 @@ lib_LTLIBRARIES = libxine.la
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c buffer_types.c \
-	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c
-libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) -lm 
+	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c \
+	video_overlay.c osd.c
+libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) -lm -lz
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
@@ -18,7 +19,7 @@ libxine_la_LDFLAGS =  \
 
 include_HEADERS  = buffer.h metronom.h configfile.h \
         audio_out.h resample.h video_out.h xine_internal.h spu_decoder.h \
-	events.h lrb.h
+	events.h lrb.h video_overlay.h osd.h
 
 noinst_HEADERS = bswap.h
 
