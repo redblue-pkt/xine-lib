@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.44 2003/01/31 14:06:15 miguelfreitas Exp $
+ * $Id: input_plugin.h,v 1.45 2003/02/13 16:24:27 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -219,6 +219,8 @@ struct input_plugin_s {
  *   input plugin knows something about audio/spu languages, 
  *   e.g. knows that audio stream #0 is english, 
  *   audio stream #1 is german, ...
+ *   *((int *)data) will provide the requested channel number
+ *   and awaits the language back in (char *)data
  */
 
 #define INPUT_CAP_AUDIOLANG            0x00000008

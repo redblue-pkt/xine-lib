@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.126 2003/02/11 15:17:10 mroi Exp $
+ * $Id: input_dvd.c,v 1.127 2003/02/13 16:24:27 mroi Exp $
  *
  */
 
@@ -1052,37 +1052,39 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
 
   case INPUT_OPTIONAL_DATA_AUDIOLANG: {
     uint16_t lang;
-    int8_t   channel;
+    int      channel = *((int *)data);
+    int8_t   dvd_channel;
     
     /* Be paranoid */
     if(this && this->stream && this->dvdnav) {
 
       if(!(dvdnav_is_domain_vts(this->dvdnav))) {
 	sprintf(data, "%s", "menu");
-	goto __audio_success;
+	if (channel <= 0)
+	  return INPUT_OPTIONAL_SUCCESS;
+	else
+	  return INPUT_OPTIONAL_UNSUPPORTED;
       }
       
-      channel = (int8_t) xine_get_audio_channel(this->stream);
-      /*  printf("input_dvd: ********* AUDIO CHANNEL = %d\n", channel); */
-      channel = dvdnav_get_audio_logical_stream(this->dvdnav, channel);
-      if(channel != -1) {
-	lang = dvdnav_audio_stream_to_lang(this->dvdnav, channel);
+      if (channel == -1)
+        dvd_channel = dvdnav_get_audio_logical_stream(this->dvdnav, this->stream->audio_channel_auto);
+      else
+        dvd_channel = dvdnav_get_audio_logical_stream(this->dvdnav, channel);
+
+      if(dvd_channel != -1) {
+	lang = dvdnav_audio_stream_to_lang(this->dvdnav, dvd_channel);
 	
-	if(lang != 0xffff) {
+	if(lang != 0xffff)
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
-	} 
-	else {
-	  sprintf(data, "%3i", xine_get_audio_channel(this->stream));
+	else
+	  sprintf(data, " %c%c", '?', '?');
+	return INPUT_OPTIONAL_SUCCESS;
+      } else {
+        if (channel == -1) {
+	  sprintf(data, "%s", "none");
+	  return INPUT_OPTIONAL_SUCCESS;
 	}
-      } 
-      else {
-	channel = xine_get_audio_channel(this->stream);
-	sprintf(data, "%3i", channel);
       }
-      
-    __audio_success:
-      /*  printf("input_dvd: ********** RETURNING '%s'\n", (char *)data); */
-      return INPUT_OPTIONAL_SUCCESS;
     } 
     return INPUT_OPTIONAL_UNSUPPORTED;
   }
@@ -1091,44 +1093,39 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
 
   case INPUT_OPTIONAL_DATA_SPULANG: {
     uint16_t lang;
-    int8_t channel;
+    int      channel = *((int *)data);
+    int8_t   dvd_channel;
     
     /* Be paranoid */
     if(this && this->stream && this->dvdnav) {
 
       if(!(dvdnav_is_domain_vts(this->dvdnav))) {
 	sprintf(data, "%s", "menu");
-	goto __spu_success;
-      }
-
-      channel = (int8_t) xine_get_spu_channel(this->stream);
-      /*  printf("input_dvd: ********* SPU CHANNEL = %i\n", channel); */
-      if(channel == -1)
-	channel = dvdnav_get_spu_logical_stream(this->dvdnav, this->stream->spu_channel);
-      else
-	channel = dvdnav_get_spu_logical_stream(this->dvdnav, channel);
-      
-      if(channel != -1) {
-	lang = dvdnav_spu_stream_to_lang(this->dvdnav, channel);
-
-	if(lang != 0xffff) {
-	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
-	} 
-	else {
-	  sprintf(data, "%3i", xine_get_spu_channel(this->stream));
-	}
-      } 
-      else {
-	channel = xine_get_spu_channel(this->stream);
-	if(channel == -1)
-	  sprintf(data, "%s", "none");
+	if (channel <= 0)
+	  return INPUT_OPTIONAL_SUCCESS;
 	else
-	  sprintf(data, "%3i", channel);
+	  return INPUT_OPTIONAL_UNSUPPORTED;
       }
-      
-    __spu_success:
-      /*  printf("input_dvd: ********** RETURNING '%s'\n", (char *)data); */
-      return INPUT_OPTIONAL_SUCCESS;
+
+      if(channel == -1)
+	dvd_channel = dvdnav_get_spu_logical_stream(this->dvdnav, this->stream->spu_channel_auto);
+      else
+	dvd_channel = dvdnav_get_spu_logical_stream(this->dvdnav, channel);
+
+      if(dvd_channel != -1) {
+	lang = dvdnav_spu_stream_to_lang(this->dvdnav, dvd_channel);
+
+	if(lang != 0xffff)
+	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
+	else
+	  sprintf(data, " %c%c", '?', '?');
+	return INPUT_OPTIONAL_SUCCESS;
+      } else {
+	if(channel == -1) {
+	  sprintf(data, "%s", "none");
+	  return INPUT_OPTIONAL_SUCCESS;
+	}
+      }
     }
     return INPUT_OPTIONAL_UNSUPPORTED;
   }
@@ -1655,6 +1652,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.127  2003/02/13 16:24:27  mroi
+ * use the requested channel number when querying for the language
+ * (the _cool_ menu in xine-ui displays the correct languages now)
+ *
  * Revision 1.126  2003/02/11 15:17:10  mroi
  * enable libdvdcss title key cache
  *
