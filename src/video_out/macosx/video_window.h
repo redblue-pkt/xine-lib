@@ -29,11 +29,11 @@ typedef enum {
 
 @interface XineOpenGLView : NSOpenGLView {
     IBOutlet id                    delegate;
-    int                            width, height;
+    int                            video_width, video_height;
     char *                         texture_buffer;
     unsigned long                  i_texture;
-    int                            initDone;
-    int                            isFullScreen;
+    BOOL                           initDone;
+    BOOL                           isFullScreen;
     XineVideoWindowFullScreenMode  fullscreen_mode;
     NSOpenGLContext *              opengl_context;
     NSOpenGLContext *              fullScreenContext;
@@ -45,12 +45,17 @@ typedef enum {
 - (void) drawRect: (NSRect) rect;
 - (void) goFullScreen: (XineVideoWindowFullScreenMode) mode;
 - (void) exitFullScreen;
-- (int) isFullScreen;
+- (BOOL) isFullScreen;
 - (void) reshape;
 - (void) initTextures;
 - (void) reloadTexture;
 - (char *) getTextureBuffer;
-- (void) setVideoSizeInMainThread:(int)w height:(int)h;
+- (void) setVideoSize:(NSSize)size;
+- (void) setViewSizeInMainThread:(NSSize)size;
+- (void) setNormalSize;
+- (void) setHalfSize;
+- (void) setDoubleSize;
+- (NSSize) videoSize;
 
 /* Delegate methods */
 - (id) delegate;
@@ -61,20 +66,15 @@ typedef enum {
 
 @interface XineVideoWindow : NSWindow {
     int               width, height;
-    int               keepAspectRatio;
+    BOOL              keepAspectRatio;
     XineOpenGLView   *openGLView;
 }
 
 - (void) setContentSize: (NSSize) size;
 - (void) displayTexture;
 - (XineOpenGLView *) getGLView;
-- (void) goFullScreen: (XineVideoWindowFullScreenMode) mode;
-- (void) exitFullScreen;
-- (void) setNormalSize;
-- (void) setHalfSize;
-- (void) setDoubleSize;
 - (void) fitToScreen;
-- (void) setKeepsAspectRatio: (int) i;
+- (void) setKeepsAspectRatio: (BOOL) i;
 - (int) keepsAspectRatio;
 @end
 
