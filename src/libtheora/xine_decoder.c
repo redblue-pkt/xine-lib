@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.21 2004/01/12 17:35:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.22 2004/03/08 10:34:42 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -175,17 +175,28 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
        !(buf->decoder_flags & BUF_FLAG_STDHEADER) ) {
     /*get the first 3 packets and decode the header during preview*/
 
-
-    if (this->hp_read<=2) {
-      /*decode three header packets*/
-      if (theora_decode_header(&this->t_info, &this->t_comment,&this->op)<0) {
-	printf ("libtheora: Was unable to decode header #%d, corrput stream?\n",this->hp_read);
-      } else {
+    if (this->hp_read==0) {
+      /*decode first hp*/
+      if (theora_decode_header(&this->t_info, &this->t_comment, &this->op)>=0) {
 	this->hp_read++;
+	return;
       }
     }
 
-    if (this->hp_read==3) {
+    if (this->hp_read==1) {
+      /*decode three header packets*/
+      if (theora_decode_header(&this->t_info, &this->t_comment,&this->op)) {
+	printf ("libtheora: Was unable to decode header #%d, corrupt stream?\n",this->hp_read);
+      } else {
+	this->hp_read++;
+	return;
+      }
+    }
+
+    if (this->hp_read==2) {
+      if (theora_decode_header(&this->t_info, &this->t_comment,&this->op)) {
+	printf ("libtheora: Was unable to decode header #%d, corrupt stream?\n",this->hp_read);
+      }
       /*headers are now decoded. initialize the decoder*/
       theora_decode_init (&this->t_state, &this->t_info);
       
@@ -309,7 +320,7 @@ static video_decoder_t *theora_open_plugin (video_decoder_class_t *class_gen, xi
   printf ("development. If the stream could not be played back go to\n");
   printf ("http://xine.sourceforge.net and get the latest release of xine.\n");
   printf ("This release will play back streams which have been encoded with\n");
-  printf ("libtheora-alpha2.\n");
+  printf ("libtheora-cvs.\n");
 
   this = (theora_decoder_t *) xine_xmalloc (sizeof (theora_decoder_t));
 
