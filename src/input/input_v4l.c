@@ -66,9 +66,9 @@
 /********** logging **********/
 #define LOG_MODULE "input_v4l"
 #define LOG_VERBOSE
-
+/*
 #define LOG 
-
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
