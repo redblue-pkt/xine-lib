@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.24 2003/11/03 23:58:18 f1rmb Exp $
+ * $Id: demux_sputext.c,v 1.25 2003/11/04 00:24:52 f1rmb Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -42,7 +42,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <errno.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -143,8 +142,8 @@ static char *read_line_from_input(demux_sputext_t *this, char *line, off_t len) 
   
   if ((len - this->buflen) > 512) {
     if((nread = this->input->read(this->input, 
-				  &this->buf[this->buflen], len - this->buflen)) == -1) {
-      lprintf("read failed: %s\n", strerror(errno));
+				  &this->buf[this->buflen], len - this->buflen)) < 0) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "read failed.\n");
       return NULL;
     }
   }
@@ -732,7 +731,10 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
   };
 
   /* Rewind (sub_autodetect() needs to read input from the beginning) */
-  this->input->seek(this->input, 0, SEEK_SET);
+  if(this->input->seek(this->input, 0, SEEK_SET) == -1) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "seek failed.\n");
+    return NULL;
+  }
   this->buflen = 0;
 
   this->format=sub_autodetect (this);
@@ -744,7 +746,10 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Detected subtitle file format: %d\n",this->format);
     
   /* Rewind */
-  this->input->seek(this->input, 0, SEEK_SET);
+  if(this->input->seek(this->input, 0, SEEK_SET) == -1) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "seek failed.\n");
+    return NULL;
+  }
   this->buflen = 0;
 
   this->num=0;n_max=32;
