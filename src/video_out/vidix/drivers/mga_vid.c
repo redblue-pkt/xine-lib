@@ -119,7 +119,11 @@ static int mga_next_frame = 0;
 
 static vidix_capability_t mga_cap =
 {
+#ifdef CRTC2
+    "Matrox MGA G200/G4x0/G5x0 YUV Video - with TV-out (second-head) support",
+#else    
     "Matrox MGA G200/G4x0/G5x0 YUV Video",
+#endif
     "Aaron Holtzman, Arpad Gereoffy, Alex Beregszaszi, Nick Kurshev",
     TYPE_OUTPUT,
     { 0, 0, 0, 0 },
@@ -1385,7 +1389,7 @@ int VIDIX_NAME(vixInit)(const char *args)
 	mga_irq=-1;
     }
 #else
-    printf("syncfb (mga): IRQ disabled in mga_vid.c\n");
+    printf(MGA_MSG" IRQ support disabled\n");
     mga_irq=-1;
 #endif
 #ifdef CRTC2
