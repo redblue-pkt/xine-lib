@@ -331,7 +331,7 @@ static void osd_line (osd_object_t *osd,
     while(x1<x2)
     {
 
-      if(c <= (osd->area + osd->width * osd->width))
+      if(c <= (osd->area + (osd->width * osd->height)))
 	*c = color;
 
       c++;
@@ -361,7 +361,7 @@ static void osd_line (osd_object_t *osd,
 
     while(y1<y2) {
 
-      if(c <= (osd->area + osd->width * osd->width))
+      if(c <= (osd->area + (osd->width * osd->height)))
 	*c = color;
       
       c += osd->width;
