@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.15 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: fftscope.c,v 1.16 2003/09/14 12:44:20 tmattern Exp $
  *
  */
 
@@ -33,23 +33,19 @@
 #include "xineutils.h"
 #include "post.h"
 #include "bswap.h"
+#include "fft.h"
 
 #define FPS 20
 
-#define FFT_WIDTH  512
-#define FFT_HEIGHT 256
+#define FFT_WIDTH   512
+#define FFT_HEIGHT  256
 
-#define NUMSAMPLES 512
-#define MAXCHANNELS  6
+#define NUMSAMPLES  512
+#define MAXCHANNELS   6
+
+#define FFT_BITS      9
 
 typedef struct post_plugin_fftscope_s post_plugin_fftscope_t;
-
-struct _complex
-{
-  double re;
-  double im;
-};
-typedef struct _complex complex;
 
 struct post_plugin_fftscope_s {
   post_plugin_t post;
@@ -61,7 +57,7 @@ struct post_plugin_fftscope_s {
   double ratio;
 
   int data_idx;
-  complex wave[MAXCHANNELS][NUMSAMPLES];
+  complex_t wave[MAXCHANNELS][NUMSAMPLES];
   int amp_max[MAXCHANNELS][NUMSAMPLES / 2];
   uint8_t amp_max_y[MAXCHANNELS][NUMSAMPLES / 2];
   uint8_t amp_max_u[MAXCHANNELS][NUMSAMPLES / 2];
@@ -80,173 +76,9 @@ struct post_plugin_fftscope_s {
   unsigned char v_current;
   int u_direction;
   int v_direction;
+  fft_t *fft;
 };
 
-/**************************************************************************
- * fftscope specific decode functions
- *************************************************************************/
-
-#define LOG_BITS 9
-
-# define                SINE(x)         SineTable[(x)]
-# define                COSINE(x)       CosineTable[(x)]
-# define                WINDOW(x)       WinTable[(x)]
-static double            *SineTable, *CosineTable, *WinTable;
-
-#define PERMUTE(x, y)   reverse((x), (y))
-
-/* Number of samples in one "frame" */
-#define SAMPLES         (1 << bits)
-#define REAL(x)         wave[(x)].re
-#define IMAG(x)         wave[(x)].im
-#define ALPHA           0.54
-
-/*
- *  Bit reverser for unsigned ints
- *  Reverses 'bits' bits.
- */
-inline const unsigned int
-reverse (unsigned int val, int bits)
-{
-  unsigned int retn = 0;
-
-  while (bits--)
-    {
-      retn <<= 1;
-      retn |= (val & 1);
-      val >>= 1;
-    }
-  return (retn);
-}
-
-/*
- *  Here is the real work-horse.
- *  It's a generic FFT, so nothing is lost or approximated.
- *  The samples in wave[] should be in order, and they
- *  will be decimated when fft() returns.
- */
-static void fft (complex wave[], int bits)
-{
-  register int  loop, loop1, loop2;
-  unsigned      i1;             /* going to right shift this */
-  int           i2, i3, i4, y;
-  double         a1, a2, b1, b2, z1, z2;
-
-  i1 = SAMPLES / 2;
-  i2 = 1;
-
-  /* perform the butterflys */
-
-  for (loop = 0; loop < bits; loop++)
-    {
-      i3 = 0;
-      i4 = i1;
-
-      for (loop1 = 0; loop1 < i2; loop1++)
-        {
-          y  = PERMUTE(i3 / (int)i1, bits);
-          z1 = COSINE(y);
-          z2 = -SINE(y);
-
-          for (loop2 = i3; loop2 < i4; loop2++)
-            {
-              a1 = REAL(loop2);
-              a2 = IMAG(loop2);
-
-              b1 = z1 * REAL(loop2+i1) - z2 * IMAG(loop2+i1);
-              b2 = z2 * REAL(loop2+i1) + z1 * IMAG(loop2+i1);
-
-              REAL(loop2) = a1 + b1;
-              IMAG(loop2) = a2 + b2;
-
-              REAL(loop2+i1) = a1 - b1;
-              IMAG(loop2+i1) = a2 - b2;
-            }
-
-          i3 += (i1 << 1);
-          i4 += (i1 << 1);
-        }
-
-      i1 >>= 1;
-      i2 <<= 1;
-    }
-}
-
-/*
- *  Initializer for FFT routines.  Currently only sets up tables.
- *  - Generates scaled lookup tables for sin() and cos()
- *  - Fills a table for the Hamming window function
- */
-static void fft_init (int bits)
-{
-  int i;
-  const double   TWOPIoN   = (atan(1.0) * 8.0) / (double)SAMPLES;
-  const double   TWOPIoNm1 = (atan(1.0) * 8.0) / (double)(SAMPLES - 1);
-
-  SineTable   = malloc (sizeof(double) * SAMPLES);
-  CosineTable = malloc (sizeof(double) * SAMPLES);
-  WinTable    = malloc (sizeof(double) * SAMPLES);
-  for (i=0; i < SAMPLES; i++)
-    {
-      SineTable[i]   = sin((double) i * TWOPIoN);
-      CosineTable[i] = cos((double) i * TWOPIoN);
-      /*
-       * Generalized Hamming window function.
-       * Set ALPHA to 0.54 for a hanning window. (Good idea)
-       */
-      WinTable[i] = ALPHA + ((1.0 - ALPHA)
-                                * cos (TWOPIoNm1 * (i - SAMPLES/2)));
-    }
-}
-
-/*
- *  Apply some windowing function to the samples.
- */
-static void window (complex wave[], int bits)
-{
-  int i;
-
-  for (i = 0; i < SAMPLES; i++)
-    {
-      REAL(i) *= WINDOW(i);
-      IMAG(i) *= WINDOW(i);
-    }
-}
-
-/*
- *  Calculate amplitude of component n in the decimated wave[] array.
- */
-static double amp (int n, complex wave[], int bits)
-{
-  n = PERMUTE (n, bits);
-  return (hypot (REAL(n), IMAG(n)));
-}
-
-/*
- *  Calculate phase of component n in the decimated wave[] array.
- */
-static double phase (int n, complex wave[], int bits)
-{
-  n = PERMUTE (n, bits);
-  if (REAL(n) != 0.0)
-    return (atan (IMAG(n) / REAL(n)));
-  else
-    return (0.0);
-}
-
-/*
- *  Scale sampled values.
- *  Do this *before* the fft.
- */
-static void scale (complex wave[], int bits)
-{
-  int i;
-
-  for (i = 0; i < SAMPLES; i++)  {
-    wave[i].re /= SAMPLES;
-    wave[i].im /= SAMPLES;
-  }
-}
 
 /*
  *  Fade out a YUV pixel
@@ -338,16 +170,16 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
 
   for (c = 0; c < this->channels; c++){
     /* perform FFT for channel data */
-    window(this->wave[c], LOG_BITS);
-    scale(this->wave[c], LOG_BITS);
-    fft(this->wave[c], LOG_BITS);
+    fft_window(this->fft, this->wave[c]);
+    fft_scale(this->wave[c], this->fft->bits);
+    fft_compute(this->fft, this->wave[c]);
 
     /* plot the FFT points for the channel */
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
       map_ptr = ((FFT_HEIGHT * (c+1) / this->channels -1 ) * FFT_WIDTH + i * 2) / 2;
       map_ptr_bkp = map_ptr;
-      amp_float = amp(i, this->wave[c], LOG_BITS);
+      amp_float = fft_amp(i, this->wave[c], FFT_BITS);
       if (amp_float == 0)
         amp_int = 0;
       else
@@ -505,7 +337,7 @@ static int fftscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   this->sample_rate = rate;
   this->stream = stream;
   this->data_idx = 0;
-  fft_init(LOG_BITS);
+  this->fft = fft_new(FFT_BITS);
 
   for (c = 0; c < this->channels; c++) {
     for (i = 0; i < (NUMSAMPLES / 2); i++) {
@@ -526,6 +358,8 @@ static void fftscope_port_close(xine_audio_port_t *port_gen, xine_stream_t *stre
   post_plugin_fftscope_t *this = (post_plugin_fftscope_t *)port->post;
 
   this->stream = NULL;
+  fft_dispose(this->fft);
+  this->fft = NULL;
 
   port->original_port->close(port->original_port, stream );
 }
