@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.45 2001/12/24 13:06:10 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.46 2002/02/08 13:13:47 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -87,6 +87,7 @@ typedef struct alsa_driver_s {
 
   struct {
     pthread_t          thread;
+    pthread_mutex_t    mutex;
     char              *name;
     snd_mixer_t       *handle;
     snd_mixer_elem_t  *elem;
@@ -109,7 +110,9 @@ static void *ao_alsa_handle_event_thread(void *data) {
 
   do {
     snd_mixer_wait(this->mixer.handle, -1);
+    pthread_mutex_lock(&this->mixer.mutex);
     snd_mixer_handle_events(this->mixer.handle);
+    pthread_mutex_unlock(&this->mixer.mutex);
   } while(1);
   
   pthread_exit(NULL);
@@ -499,6 +502,7 @@ static void ao_alsa_exit(ao_driver_t *this_gen)
 						      this->mixer.min, this->mixer.max))) /2));
   config->save(config);
 
+  pthread_mutex_destroy(&this->mixer.mutex);
   /*
    * Destroy the mixer thread and cleanup the mixer, so that
    * any child processes (such as xscreensaver) cannot inherit
@@ -525,6 +529,9 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
   case AO_PROP_MIXER_VOL:
   case AO_PROP_PCM_VOL:
     if(this->mixer.elem) {
+
+      pthread_mutex_lock(&this->mixer.mutex);
+
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    &this->mixer.left_vol)) < 0) {
 	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
@@ -538,6 +545,8 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
       }
       
     __done:
+      pthread_mutex_unlock(&this->mixer.mutex);
+
       return (((ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
 						this->mixer.min, this->mixer.max)) +
 	       (ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
@@ -565,20 +574,24 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
   case AO_PROP_PCM_VOL:
     if(this->mixer.elem) {
 
+      pthread_mutex_lock(&this->mixer.mutex);
+
       this->mixer.left_vol = this->mixer.right_vol = ao_alsa_get_volume_from_percent(value, this->mixer.min, this->mixer.max);
       
       if((err = snd_mixer_selem_set_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    this->mixer.left_vol)) < 0) {
 	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	pthread_mutex_unlock(&this->mixer.mutex);
 	return ~value;
       }
-
+      
       if((err = snd_mixer_selem_set_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    this->mixer.right_vol)) < 0) {
 	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	pthread_mutex_unlock(&this->mixer.mutex);
 	return ~value;
       }
-
+      pthread_mutex_unlock(&this->mixer.mutex);
       return value;
     }
     break;
@@ -588,6 +601,8 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
       int sw;
       int old_mute = this->mixer.mute;
       
+      pthread_mutex_lock(&this->mixer.mutex);
+
       this->mixer.mute = (value) ? MIXER_MASK_STEREO : 0;
       
       if ((this->mixer.mute != old_mute) 
@@ -607,10 +622,10 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
 	  }
 	}
       }
-
-    return value;
+      
+      pthread_mutex_unlock(&this->mixer.mutex);
+      return value;
     }
-
     return ~value;
     break;
   }
@@ -975,6 +990,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                              NULL,
                                              NULL,
                                              NULL);
+
+  pthread_mutex_init(&this->mixer.mutex, NULL);
   ao_alsa_mixer_init(&this->ao_driver);
    
   this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
