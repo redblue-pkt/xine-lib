@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-24 21:51+0200\n"
+"POT-Creation-Date: 2002-07-10 07:56+0200\n"
 "PO-Revision-Date: 2002-07-08 17:41+0200\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -13,38 +13,38 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/audio_out/audio_alsa_out.c:189 src/audio_out/audio_alsa_out.c:721
-#: src/audio_out/audio_alsa_out.c:903 src/audio_out/audio_alsa_out.c:947
+#: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:728
+#: src/audio_out/audio_alsa_out.c:913 src/audio_out/audio_alsa_out.c:957
 msgid "device used for mono output"
 msgstr "zaøízení pou¾ité pro mono výstup"
 
-#: src/audio_out/audio_alsa_out.c:199 src/audio_out/audio_alsa_out.c:910
+#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:920
 msgid "device used for stereo output"
 msgstr "zaøízení pou¾ité pro stereo výstup"
 
-#: src/audio_out/audio_alsa_out.c:209 src/audio_out/audio_alsa_out.c:917
+#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:927
 msgid "device used for 4-channel output"
 msgstr "zaøízení pou¾ité pro ètyøkanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:219 src/audio_out/audio_alsa_out.c:924
+#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:934
 msgid "device used for 5-channel output"
 msgstr "zaøízení pou¾ité pro pìtikanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:229 src/audio_out/audio_alsa_out.c:240
-#: src/audio_out/audio_alsa_out.c:931 src/audio_out/audio_alsa_out.c:938
+#: src/audio_out/audio_alsa_out.c:221 src/audio_out/audio_alsa_out.c:232
+#: src/audio_out/audio_alsa_out.c:941 src/audio_out/audio_alsa_out.c:948
 msgid "device used for 5.1-channel output"
 msgstr "zaøízení pou¾ité pro 5.1-kanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:855 src/audio_out/audio_alsa_out.c:1057
+#: src/audio_out/audio_alsa_out.c:862 src/audio_out/audio_alsa_out.c:1072
 msgid "alsa mixer device"
 msgstr "mixovací zaøízení alsa"
 
-#: src/audio_out/audio_alsa_out.c:994 src/audio_out/audio_alsa_out.c:1007
-#: src/audio_out/audio_alsa_out.c:1020 src/audio_out/audio_alsa_out.c:1038
+#: src/audio_out/audio_alsa_out.c:1009 src/audio_out/audio_alsa_out.c:1022
+#: src/audio_out/audio_alsa_out.c:1035 src/audio_out/audio_alsa_out.c:1053
 msgid "used to inform xine about what the sound card can do"
 msgstr "pou¾ito k informování xine o tom, co umí zvuková karta"
 
-#: src/audio_out/audio_alsa_out.c:1090
+#: src/audio_out/audio_alsa_out.c:1105
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr "výstupní zvukový modul xine pou¾ije zvuková zaøízení/ovladaèe alsa"
 
@@ -56,46 +56,46 @@ msgstr "zpo¾dìní zvukového výstupu esd (upraví synchronizaci zvuku/videa)"
 msgid "xine audio output plugin using esd"
 msgstr "modul zvukového výstupu xine pou¾ije esd"
 
-#: src/audio_out/audio_oss_out.c:638
+#: src/audio_out/audio_oss_out.c:640
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
 msgstr "zaøízení /dev/dsp# pou¾ité pro výstup oss, -1 => autodetekce"
 
-#: src/audio_out/audio_oss_out.c:706
+#: src/audio_out/audio_oss_out.c:708
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr ""
 "Metoda synchronizace zvuku/videa pou¾itá OSS, závisí na ovladaèi/hardwaru"
 
-#: src/audio_out/audio_oss_out.c:773
+#: src/audio_out/audio_oss_out.c:775
 msgid "Adjust a/v sync for OSS softsync"
 msgstr "Úprava synchronizace zvuku a videa pro softsync OSS"
 
-#: src/audio_out/audio_oss_out.c:774
+#: src/audio_out/audio_oss_out.c:776
 msgid "Use this to manually adjust a/v sync if you're using softsync"
 msgstr ""
 "Toto pou¾ijte k ruèní úpravì synchronizace zvuku a videa, jestli¾e pou¾íváte "
 "softwarovou synchronizaci"
 
-#: src/audio_out/audio_oss_out.c:796
+#: src/audio_out/audio_oss_out.c:802
 msgid "Enable 4.0 channel analog surround output"
 msgstr "Povolit 4.0 kanálový analogový surround výstup"
 
-#: src/audio_out/audio_oss_out.c:807
+#: src/audio_out/audio_oss_out.c:813
 msgid "Enable 5.0 channel analog surround output"
 msgstr "Povolit 5.0 kanálový analogový surround výstup "
 
-#: src/audio_out/audio_oss_out.c:818
+#: src/audio_out/audio_oss_out.c:824
 msgid "Enable 5.1 channel analog surround output"
 msgstr "Povolit 5.1 kanálový analogový surround výstup "
 
-#: src/audio_out/audio_oss_out.c:829
+#: src/audio_out/audio_oss_out.c:835
 msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr "Povolit A52 / AC5 digitální zvukový výstup pøes spdif"
 
-#: src/audio_out/audio_oss_out.c:845
+#: src/audio_out/audio_oss_out.c:851
 msgid "oss mixer device"
 msgstr "mixovací zaøízení OSS"
 
-#: src/audio_out/audio_oss_out.c:917
+#: src/audio_out/audio_oss_out.c:923
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "výstupní zvukový modul xine pou¾ije zvuková zaøízení/ovladaèe OSS"
 
@@ -222,50 +222,50 @@ msgstr ""
 "          demultiplexním modulem.\n"
 "          Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
-#: src/demuxers/demux_avi.c:656
+#: src/demuxers/demux_avi.c:659
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index avi je poru¹en\n"
 
-#: src/demuxers/demux_avi.c:1228
+#: src/demuxers/demux_avi.c:1244
 #, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_avi: video formát = %s\n"
 
-#: src/demuxers/demux_avi.c:1230
+#: src/demuxers/demux_avi.c:1246
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: velikost rámce videa %ld x %ld\n"
 
-#: src/demuxers/demux_avi.c:1233
+#: src/demuxers/demux_avi.c:1249
 #, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: zvukový formát[%d] = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1241
+#: src/demuxers/demux_avi.c:1257
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: neznámý typ zvuku 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1248
+#: src/demuxers/demux_avi.c:1264
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: typ zvuku: %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1365
+#: src/demuxers/demux_avi.c:1384
 #, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_avi: neznámý kodek videa: '%.4s'\n"
 
-#: src/demuxers/demux_avi.c:1374
+#: src/demuxers/demux_avi.c:1393
 #, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: kodek videa je '%s'\n"
 
-#: src/demuxers/demux_avi.c:1503 src/demuxers/demux_avi.c:1580
+#: src/demuxers/demux_avi.c:1535 src/demuxers/demux_avi.c:1612
 msgid "valid mrls ending for avi demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor AVI"
 
-#: src/demuxers/demux_avi.c:1567
+#: src/demuxers/demux_avi.c:1599
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -354,26 +354,36 @@ msgstr ""
 "           demultiplexním modulem.\n"
 "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
-#: src/demuxers/demux_qt.c:1256 src/demuxers/demux_qt.c:1501
+#: src/demuxers/demux_qt.c:1270 src/demuxers/demux_qt.c:1561
 msgid "valid mrls ending for qt demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor QT"
 
-#: src/demuxers/demux_qt.c:1323
+#: src/demuxers/demux_qt.c:1344
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
 msgstr "demux_qt: Soubor Apple Quicktime, %sèas: %d min, %d s\n"
 
-#: src/demuxers/demux_qt.c:1329
+#: src/demuxers/demux_qt.c:1350
 #, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 
-#: src/demuxers/demux_qt.c:1338
+#: src/demuxers/demux_qt.c:1359
 #, fuzzy, c-format
-msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"
-msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d kanálù\n"
+msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
+msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
 
-#: src/demuxers/demux_qt.c:1488
+#: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
+#: src/demuxers/demux_wav.c:322
+msgid "channel"
+msgstr "kanálù"
+
+#: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
+#: src/demuxers/demux_wav.c:322
+msgid "channels"
+msgstr ""
+
+#: src/demuxers/demux_qt.c:1548
 #, c-format
 msgid ""
 "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -427,31 +437,31 @@ msgstr "demux_asf: formát videa: %s\n"
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr "demux_asf: délka videa je %d s, rychlost dat je %d bytù/s\n"
 
-#: src/demuxers/demux_asf.c:1247
+#: src/demuxers/demux_asf.c:1254
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: název         : %s\n"
 
-#: src/demuxers/demux_asf.c:1249
+#: src/demuxers/demux_asf.c:1256
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: autor         : %s\n"
 
-#: src/demuxers/demux_asf.c:1251
+#: src/demuxers/demux_asf.c:1258
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: autorská práva: %s\n"
 
-#: src/demuxers/demux_asf.c:1253
+#: src/demuxers/demux_asf.c:1260
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: komentáø      : %s\n"
 
-#: src/demuxers/demux_asf.c:1363 src/demuxers/demux_asf.c:1415
+#: src/demuxers/demux_asf.c:1370 src/demuxers/demux_asf.c:1422
 msgid "valid mrls ending for asf demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor ASF"
 
-#: src/demuxers/demux_asf.c:1402
+#: src/demuxers/demux_asf.c:1409
 #, c-format
 msgid ""
 "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -477,45 +487,46 @@ msgstr ""
 "           demultiplexním modulem.\n"
 "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
-#: src/demuxers/demux_film.c:138
+#: src/demuxers/demux_film.c:147
 msgid "demux_film: This is not a FILM file (why was it sent to this demuxer?\n"
 msgstr ""
 "demux_file: Toto není soubor FILM (proè byl poslán do tohoto "
 "demultiplexoru?)\n"
 
-#: src/demuxers/demux_film.c:164
+#: src/demuxers/demux_film.c:176
 msgid "invalid FILM chunk size\n"
 msgstr "neplatná velikost datového bloku FILM\n"
 
-#: src/demuxers/demux_film.c:242
+#: src/demuxers/demux_film.c:254
 msgid "unrecognized FILM chunk\n"
 msgstr "nerozpoznaný datový blok FILM\n"
 
-#: src/demuxers/demux_film.c:509 src/demuxers/demux_film.c:754
+#: src/demuxers/demux_film.c:538 src/demuxers/demux_film.c:815
+#: src/demuxers/demux_smjpeg.c:544
 msgid "valid mrls ending for film demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor FILM"
 
-#: src/demuxers/demux_film.c:558
+#: src/demuxers/demux_film.c:587
 #, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
 msgstr "demux_film: FILM verze %c%c%c%c, èas: %d min, %d s\n"
 
-#: src/demuxers/demux_film.c:567
+#: src/demuxers/demux_film.c:596
 #, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
 msgstr "demux_film: %c%c%c%c video @ %dx%d, hodiny pro pøehrávání %d Hz\n"
 
-#: src/demuxers/demux_film.c:577
+#: src/demuxers/demux_film.c:606
 #, c-format
 msgid "demux_film: unknown video codec %c%c%c%c\n"
 msgstr "demux_film: neznámý video kodek %c%c%c%c\n"
 
-#: src/demuxers/demux_film.c:587
+#: src/demuxers/demux_film.c:616
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
 msgstr "demux_film: %d Hz, %d-bitový %s%s PCM zvuk\n"
 
-#: src/demuxers/demux_film.c:741
+#: src/demuxers/demux_film.c:802
 #, c-format
 msgid ""
 "demux_film: plugin doesn't support plugin API version %d.\n"
@@ -528,7 +539,7 @@ msgstr ""
 "            demultiplexním modulem.\n"
 "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
-#: src/demuxers/demux_mpeg_block.c:335
+#: src/demuxers/demux_mpeg_block.c:345
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -536,7 +547,7 @@ msgstr ""
 "demux_mpeg_block: pøíli¹ mnoho chyb, zastavuje se pøehrávání. Mo¾ná je tento "
 "tok dat poru¹en.\n"
 
-#: src/demuxers/demux_mpeg_block.c:443
+#: src/demuxers/demux_mpeg_block.c:456
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -545,19 +556,19 @@ msgstr ""
 "demux_mpeg_block: varování: hlavièka PES indikuje, ¾e tyto data mohou být "
 "za¹ifrována (¹ifrovací mód: %d)\n"
 
-#: src/demuxers/demux_mpeg_block.c:998
+#: src/demuxers/demux_mpeg_block.c:1012
 msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
 msgstr "demux_mpeg_block: Neznámá velikost bloku. Zkuste pou¾ít demux_mpeg.\n"
 
-#: src/demuxers/demux_mpeg_block.c:1086 src/demuxers/demux_mpeg_block.c:1190
+#: src/demuxers/demux_mpeg_block.c:1100 src/demuxers/demux_mpeg_block.c:1204
 msgid "valid mrls for mpeg block demuxer"
 msgstr "platná mrl pro blokový demultiplexor MPEG"
 
-#: src/demuxers/demux_mpeg_block.c:1127 src/demuxers/demux_mpeg_block.c:1194
+#: src/demuxers/demux_mpeg_block.c:1141 src/demuxers/demux_mpeg_block.c:1208
 msgid "valid mrls ending for mpeg block demuxer"
 msgstr "platná zakonèení MRL pro blokový demultiplexor MPEG"
 
-#: src/demuxers/demux_mpeg_block.c:1177
+#: src/demuxers/demux_mpeg_block.c:1191
 #, c-format
 msgid ""
 "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
@@ -570,21 +581,21 @@ msgstr ""
 "                  demultiplexním modulem.\n"
 "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
-#: src/demuxers/demux_roq.c:298 src/demuxers/demux_roq.c:549
+#: src/demuxers/demux_roq.c:297 src/demuxers/demux_roq.c:550
 msgid "valid mrls ending for roq demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor ROQ"
 
-#: src/demuxers/demux_roq.c:419
+#: src/demuxers/demux_roq.c:420
 #, c-format
 msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
 msgstr "demux_roq: Soubor RoQ, obraz je %dx%d, %d snímkù/s\n"
 
-#: src/demuxers/demux_roq.c:423
+#: src/demuxers/demux_roq.c:424
 #, c-format
 msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
 msgstr "demux_roq: 16 bitù, 22050 Hz %s RoQ DPCM zvuk\n"
 
-#: src/demuxers/demux_roq.c:536
+#: src/demuxers/demux_roq.c:537
 #, c-format
 msgid ""
 "demux_roq: plugin doesn't support plugin API version %d.\n"
@@ -593,6 +604,110 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 "demux_roq: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
+"           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
+"           demultiplexním modulem.\n"
+"Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+
+#: src/demuxers/demux_fli.c:311
+#, c-format
+msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
+msgstr ""
+
+#: src/demuxers/demux_fli.c:315
+#, fuzzy, c-format
+msgid "demux_fli: %d frames, %dx%d\n"
+msgstr "demux_fli: %d velikost rámce videa %d x %d\n"
+
+#: src/demuxers/demux_idcin.c:206 src/demuxers/demux_idcin.c:420
+#, fuzzy
+msgid "valid mrls ending for idcin demuxer"
+msgstr "platná zakonèení MRL pro demultiplexor IdCIN"
+
+#: src/demuxers/demux_idcin.c:269
+#, fuzzy, c-format
+msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
+msgstr "demux_idcin: Soubor Id CIN, obraz je %dx%d, 14 snímkù/s\n"
+
+#: src/demuxers/demux_idcin.c:274
+#, fuzzy, c-format
+msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
+msgstr "demux_idcin: %d-bitový, %d Hz, %s PCM zvuk\n"
+
+#: src/demuxers/demux_idcin.c:407
+#, fuzzy, c-format
+msgid ""
+"demux_idcin: plugin doesn't support plugin API version %d.\n"
+"             this means there's a version mismatch between xine and "
+"this              demuxer plugin.\n"
+"Installing current demux plugins should help.\n"
+msgstr ""
+"demux_idcin: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
+"             Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
+"             demultiplexním modulem.\n"
+"Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+
+#: src/demuxers/demux_smjpeg.c:276
+#, fuzzy
+msgid "valid mrls ending for smjpeg demuxer"
+msgstr "platná zakonèení MRL pro demultiplexor SMJPEG"
+
+#: src/demuxers/demux_smjpeg.c:398
+#, fuzzy, c-format
+msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
+msgstr "demux_smjpeg: Soubor SMJPEG, èas: %d min, %d s\n"
+
+#: src/demuxers/demux_smjpeg.c:403
+#, fuzzy, c-format
+msgid "demux_smjpeg: %c%c%c%c video @ %dx%d\n"
+msgstr "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
+
+#: src/demuxers/demux_smjpeg.c:412
+#, fuzzy, c-format
+msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
+msgstr "demux_smjpeg: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
+
+#: src/demuxers/demux_smjpeg.c:531
+#, fuzzy, c-format
+msgid ""
+"demux_smjpeg: plugin doesn't support plugin API version %d.\n"
+"              this means there's a version mismatch between xine and "
+"this               demuxer plugin. Installing current demux plugins should "
+"help.\n"
+msgstr ""
+"demux_smjpeg: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
+"              Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
+"              demultiplexním modulem.\n"
+"Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+
+#: src/demuxers/demux_wav.c:227 src/demuxers/demux_wav.c:482
+#, fuzzy
+msgid "valid mrls ending for wav demuxer"
+msgstr "platná zakonèení MRL pro demultiplexor WAV"
+
+#: src/demuxers/demux_wav.c:317
+#, fuzzy, c-format
+msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
+msgstr "demux_wav: 0x%X zvuk @ %d Hz, %d bitù, %d %s\n"
+
+#: src/demuxers/demux_wav.c:324
+#, fuzzy, c-format
+msgid "demux_wav: running time = %d min, %d sec\n"
+msgstr "demux_wav: èas: %d min, %d s\n"
+
+#: src/demuxers/demux_wav.c:328
+#, c-format
+msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
+msgstr ""
+
+#: src/demuxers/demux_wav.c:469
+#, fuzzy, c-format
+msgid ""
+"demux_wav: plugin doesn't support plugin API version %d.\n"
+"           this means there's a version mismatch between xine and "
+"this            demuxer plugin.\n"
+"Installing current demux plugins should help.\n"
+msgstr ""
+"demux_wav: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
 "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
 "           demultiplexním modulem.\n"
 "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
@@ -1229,6 +1344,10 @@ msgstr "port cddbp serveru"
 msgid "cddbp cache directory"
 msgstr "adresáø se záznamy cddbp"
 
+#: src/input/net_buf_ctrl.c:67
+msgid "buffering..."
+msgstr ""
+
 #: src/libmpeg2/xine_decoder.c:156
 #, c-format
 msgid ""
@@ -1255,7 +1374,7 @@ msgstr ""
 "           dekódovacím modulem\n"
 "Nainstalování aktuálních modulù by mìlo pomoci.\n"
 
-#: src/libspudec/xine_decoder.c:305
+#: src/libspudec/xine_decoder.c:306
 #, c-format
 msgid ""
 "libspudec: Doesn't support plugin API version %d.\n"
@@ -1266,17 +1385,17 @@ msgstr ""
 "           Toto znamená nesluèitelnost verzí mezi XINE a\n"
 "           tímto modulem.\n"
 
-#: src/libw32dll/w32codec.c:1379 src/libw32dll/w32codec.c:1428
+#: src/libw32dll/w32codec.c:1404 src/libw32dll/w32codec.c:1453
 msgid "path to win32 codec dlls"
 msgstr "cesta ke kodekùm win32"
 
-#: src/libw32dll/w32codec.c:1418
+#: src/libw32dll/w32codec.c:1443
 #, fuzzy, c-format
 msgid ""
 "w32codec: plugin doesn't support plugin API version %d.\n"
 "w32codec: this means there's a version mismatch between xine and this "
 "w32codec: decoder plugin.\n"
-"Installing current input plugins should help.\n"
+"Installing current decoder plugins should help.\n"
 msgstr ""
 "w32codec: modul nepodporuje programové rozhraní ve verzi %d.\n"
 "          Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
@@ -1357,6 +1476,10 @@ msgstr "výstupní modul videa xine pou¾ije knihovnu DirectFB"
 msgid "xine video output plugin using libvidix"
 msgstr "výstupní modul videa xine pou¾ije libvidix"
 
+#: src/xine-engine/tvmode.c:270
+msgid "Show status on play, pause, ff, ..."
+msgstr ""
+
 #: src/xine-engine/video_out.c:308
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
@@ -1419,35 +1542,35 @@ msgstr "xine_play: selhalo spu¹tìní demultiplexoru\n"
 msgid "logo mrl, displayed in video output window"
 msgstr "MRL loga zobrazovaného ve výstupním oknì videa"
 
-#: src/xine-engine/xine.c:1022
+#: src/xine-engine/xine.c:1024
 msgid "stream format"
 msgstr "formát dat"
 
-#: src/xine-engine/xine.c:1023
+#: src/xine-engine/xine.c:1025
 msgid "messages"
 msgstr "zprávy"
 
-#: src/xine-engine/xine.c:1024
+#: src/xine-engine/xine.c:1026
 msgid "plugin"
 msgstr "modul"
 
-#: src/xine-engine/audio_out.c:729
+#: src/xine-engine/audio_out.c:825
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:732
+#: src/xine-engine/audio_out.c:828
 msgid "if !=0 always resample to given rate"
 msgstr "pøi !=0 v¾dy pøevzorkovat na danou frekvenci"
 
-#: src/xine-engine/audio_out.c:760
+#: src/xine-engine/audio_out.c:868
 msgid "Audio volume"
 msgstr "Hlasitost zvuku"
 
-#: src/xine-engine/audio_out.c:764
+#: src/xine-engine/audio_out.c:872
 msgid "restore volume level at startup"
 msgstr "obnovit úroveò hlasitosti pøi startu"
 
-#: src/xine-engine/audio_out.c:765
+#: src/xine-engine/audio_out.c:873
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 "jestli¾e toto není nastaveno, xine nebude pøi spu¹tìní mìnit ¾ádná nastavení "
@@ -1555,7 +1678,7 @@ msgstr ""
 "         dekódovacím modulem.\n"
 "Nainstalování aktuálních modulù by mìlo pomoci.\n"
 
-#: src/libffmpeg/xine_decoder.c:379
+#: src/libffmpeg/xine_decoder.c:413
 #, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1568,100 +1691,9 @@ msgstr ""
 "        dekódovacím modulem.\n"
 "Nainstalování aktuálních modulù by mìlo pomoci.\n"
 
-#. data for the device name config entry
-#: src/dxr3/dxr3.h:33
-msgid "Dxr3: Device Name"
-msgstr "Dxr3: Jméno zaøízení"
-
-#: src/dxr3/dxr3.h:34
-msgid "The device file of the dxr3 mpeg decoder card control device."
-msgstr "Soubor øídícího zaøízení dxr3 karty na dekódování mpegù."
-
-#: src/dxr3/dxr3_decode_spu.c:106
-#, c-format
-msgid ""
-"dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
-"dxr3_decode_spu: this means there's a version mismatch between xine and this "
-"dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"
-msgstr ""
-"dx3_decode_spu: modul nepodporuje programové rozhraní ve verzi %d.\n"
-"                Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-"                dekódovacím modulem.\n"
-"Nainstalování aktuálních modulù by mìlo pomoci.\n"
-
-#: src/dxr3/dxr3_decode_video.c:127
-#, c-format
-msgid ""
-"dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
-"dxr3_decode_video: this means there's a version mismatch between xine and "
-"this\n"
-"dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
-msgstr ""
-"dx3_decode_video: modul nepodporuje programové rozhraní ve verzi %d.\n"
-"                  Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-"                  dekódovacím modulem.\n"
-"Nainstalování aktuálních modulù by mìlo pomoci.\n"
-
-#: src/dxr3/dxr3_decode_video.c:164
-msgid "Dxr3: video decoder priority"
-msgstr "Dxr3: priorita dekodéru videa"
-
-#: src/dxr3/dxr3_decode_video.c:165
-msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
-msgstr ""
-"Priority dekodéru vìt¹í ne¾ 5 povolí hardwarové dekódování, 0 ho zaká¾e."
-
-#: src/dxr3/dxr3_decode_video.c:175
-msgid "Try to sync video every frame"
-msgstr "Zkusit synchronizovat video ka¾dý snímek"
-
-#: src/dxr3/dxr3_decode_video.c:176
-msgid "This is relevant for progressive video only (most PAL films)."
-msgstr "Toto má význam jen pro postupné video (nejvíce filmù PAL)"
-
-#: src/dxr3/dxr3_decode_video.c:180
-msgid "Use alternate Play mode"
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
-msgid "Enabling this option will utilise a smoother play mode."
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:184
-msgid "Correct frame durations in broken streams"
-msgstr "Správná délka snímku v poru¹ených sekvencích"
-
-#: src/dxr3/dxr3_decode_video.c:185
-msgid "Enable this for streams with wrong frame durations."
-msgstr "Povolte toto pro sekvence se ¹patnou délkou snímkù."
-
-#: src/dxr3/dxr3_mpeg_encoders.c:174
-msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
-msgstr "Dxr3enc: výstupní rychlost rte mpeg (kbit/s)"
-
-#: src/dxr3/dxr3_mpeg_encoders.c:175
-msgid ""
-"The bitrate the mpeg encoder library librte should use for dxr3's encoding "
-"mode"
-msgstr ""
-"Bitová rychlost knihovny librte generující mpeg, jaká by se mìla pou¾ívat v "
-"re¾imu kódování dxr3"
-
-#: src/dxr3/dxr3_mpeg_encoders.c:375
-msgid "Dxr3enc: fame mpeg encoding quality"
-msgstr "Dxr3enc: kvalita mpeg kódování knihovny fame"
-
-#: src/dxr3/dxr3_mpeg_encoders.c:376
-msgid "The encoding quality of the libfame mpeg encoder library."
-msgstr "Kvalita kódování knihovny libfame generující mpeg."
-
-#: src/dxr3/dxr3_scr.c:81
-msgid "Dxr3: SCR plugin priority"
-msgstr "Dxr3: priorita modulu SCR"
-
-#: src/dxr3/dxr3_scr.c:82
-msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
-msgstr "Priority SCR vìt¹í ne¾ 5 ~vytvoøí z~ dxr3 hlavní hodiny xine."
+#: src/libffmpeg/xine_decoder.c:436
+msgid "allow illegal vlc codes in mpeg4 streams"
+msgstr "dovolit nepovolené kodeky vlc v sekvencích mpeg4"
 
 #: src/dxr3/video_out_dxr3.c:119
 msgid "xine video output plugin for dxr3 cards"
@@ -1681,6 +1713,10 @@ msgstr "Jestli¾e je zakázáno, bude se pøedpokládat video s pomìrem stran 4:3."
 
 #: src/dxr3/video_out_dxr3.c:160
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
+msgid "Enabling this option will utilise a smoother play mode."
 msgstr ""
 
 #: src/dxr3/video_out_dxr3.c:221
@@ -1711,21 +1747,112 @@ msgstr "Dxr3: ovládání jasu"
 msgid "Dxr3: videoout mode (tv or overlay)"
 msgstr "Dxr3: videovýstupní re¾im (tv nebo overlay)"
 
-#: src/dxr3/video_out_dxr3.c:278
+#: src/dxr3/video_out_dxr3.c:287
 msgid "Dxr3: overlay colorkey value"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:281
+#: src/dxr3/video_out_dxr3.c:290
 msgid "Dxr3: overlay colorkey range"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:282
+#: src/dxr3/video_out_dxr3.c:291
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:293
+#: src/dxr3/video_out_dxr3.c:303
 msgid "dxr3 preferred tv mode"
 msgstr "dxr3 dal pøednost re¾imu tv"
+
+#. data for the device name config entry
+#: src/dxr3/dxr3.h:33
+msgid "Dxr3: Device Name"
+msgstr "Dxr3: Jméno zaøízení"
+
+#: src/dxr3/dxr3.h:34
+msgid "The device file of the dxr3 mpeg decoder card control device."
+msgstr "Soubor øídícího zaøízení dxr3 karty na dekódování mpegù."
+
+#: src/dxr3/dxr3_decode_spu.c:110
+#, c-format
+msgid ""
+"dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
+"dxr3_decode_spu: this means there's a version mismatch between xine and this "
+"dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"
+msgstr ""
+"dx3_decode_spu: modul nepodporuje programové rozhraní ve verzi %d.\n"
+"                Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
+"                dekódovacím modulem.\n"
+"Nainstalování aktuálních modulù by mìlo pomoci.\n"
+
+#: src/dxr3/dxr3_decode_video.c:131
+#, c-format
+msgid ""
+"dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
+"dxr3_decode_video: this means there's a version mismatch between xine and "
+"this\n"
+"dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
+msgstr ""
+"dx3_decode_video: modul nepodporuje programové rozhraní ve verzi %d.\n"
+"                  Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
+"                  dekódovacím modulem.\n"
+"Nainstalování aktuálních modulù by mìlo pomoci.\n"
+
+#: src/dxr3/dxr3_decode_video.c:168
+msgid "Dxr3: video decoder priority"
+msgstr "Dxr3: priorita dekodéru videa"
+
+#: src/dxr3/dxr3_decode_video.c:169
+msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
+msgstr ""
+"Priority dekodéru vìt¹í ne¾ 5 povolí hardwarové dekódování, 0 ho zaká¾e."
+
+#: src/dxr3/dxr3_decode_video.c:176
+msgid "Try to sync video every frame"
+msgstr "Zkusit synchronizovat video ka¾dý snímek"
+
+#: src/dxr3/dxr3_decode_video.c:177
+msgid "This is relevant for progressive video only (most PAL films)."
+msgstr "Toto má význam jen pro postupné video (nejvíce filmù PAL)"
+
+#: src/dxr3/dxr3_decode_video.c:180
+msgid "Use alternate Play mode"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:184
+msgid "Correct frame durations in broken streams"
+msgstr "Správná délka snímku v poru¹ených sekvencích"
+
+#: src/dxr3/dxr3_decode_video.c:185
+msgid "Enable this for streams with wrong frame durations."
+msgstr "Povolte toto pro sekvence se ¹patnou délkou snímkù."
+
+#: src/dxr3/dxr3_scr.c:81
+msgid "Dxr3: SCR plugin priority"
+msgstr "Dxr3: priorita modulu SCR"
+
+#: src/dxr3/dxr3_scr.c:82
+msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
+msgstr "Priority SCR vìt¹í ne¾ 5 ~vytvoøí z~ dxr3 hlavní hodiny xine."
+
+#: src/dxr3/dxr3_mpeg_encoders.c:182
+msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
+msgstr "Dxr3enc: výstupní rychlost rte mpeg (kbit/s)"
+
+#: src/dxr3/dxr3_mpeg_encoders.c:183
+msgid ""
+"The bitrate the mpeg encoder library librte should use for dxr3's encoding "
+"mode"
+msgstr ""
+"Bitová rychlost knihovny librte generující mpeg, jaká by se mìla pou¾ívat v "
+"re¾imu kódování dxr3"
+
+#: src/dxr3/dxr3_mpeg_encoders.c:389
+msgid "Dxr3enc: fame mpeg encoding quality"
+msgstr "Dxr3enc: kvalita mpeg kódování knihovny fame"
+
+#: src/dxr3/dxr3_mpeg_encoders.c:390
+msgid "The encoding quality of the libfame mpeg encoder library."
+msgstr "Kvalita kódování knihovny libfame generující mpeg."
 
 #: src/libmad/xine_decoder.c:283
 #, c-format
@@ -1778,7 +1905,7 @@ msgstr ""
 "        dekódovacím modulem.\n"
 "Nainstalování aktuálních modulù by mìlo pomoci.\n"
 
-#: src/libdivx4/xine_decoder.c:555
+#: src/libdivx4/xine_decoder.c:556
 #, c-format
 msgid ""
 "divx4: plugin doesn't support plugin API version %d.\n"
@@ -1791,24 +1918,24 @@ msgstr ""
 "       dekódovacím modulem.\n"
 "Nainstalování aktuálních modulù by mìlo pomoci.\n"
 
-#: src/libdivx4/xine_decoder.c:568
+#: src/libdivx4/xine_decoder.c:569
 msgid "Relative path to libdivxdecore.so to open"
 msgstr "relativní cesta k libdivxdecore.so"
 
-#: src/libdivx4/xine_decoder.c:593
+#: src/libdivx4/xine_decoder.c:594
 msgid "priority of the divx4 plugin (>5 => enable)"
 msgstr "priorita modulu divx4 (>5 => povolit)"
 
-#: src/libdivx4/xine_decoder.c:598
+#: src/libdivx4/xine_decoder.c:599
 msgid "the postprocessing level, 0 = none and fast, 6 = all and slow"
 msgstr ""
 "úroveò dodateèného zpracování, 0 = ¾ádné a rychle, 6 = v¹echno a pomalu"
 
-#: src/libdivx4/xine_decoder.c:601
+#: src/libdivx4/xine_decoder.c:602
 msgid "use divx4 plugin for msmpeg4v3 streams"
 msgstr "pou¾ít modul divx4 pro sekvence msmpeg4v3"
 
-#: src/libdivx4/xine_decoder.c:606
+#: src/libdivx4/xine_decoder.c:607
 msgid "Divx version to check for (set to 0 (default) if unsure)"
 msgstr ""
 
@@ -1829,7 +1956,7 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 
-#: src/libsputext/xine_decoder.c:1041
+#: src/libsputext/xine_decoder.c:1056
 #, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1840,21 +1967,25 @@ msgstr ""
 "            Toto znamená nesluèitelnost verzí mezi xine a \n"
 "            tímto modulem.\n"
 
-#: src/libsputext/xine_decoder.c:1063
+#: src/libsputext/xine_decoder.c:1078
 msgid "font for avi subtitles"
 msgstr "font titulkù pro AVI"
 
-#: src/libsputext/xine_decoder.c:1069
+#: src/libsputext/xine_decoder.c:1084
 msgid "subtitle size (relative window size)"
 msgstr "velikost titulkù (relativnì k velikosti okna)"
 
-#: src/libsputext/xine_decoder.c:1074
+#: src/libsputext/xine_decoder.c:1089
 msgid "source encoding of subtitles"
 msgstr "zdrojové kódování titulkù"
 
-#: src/libsputext/xine_decoder.c:1079
+#: src/libsputext/xine_decoder.c:1094
 msgid "target encoding for subtitles (have to match font encoding)"
 msgstr "cílové kódování titulkù (musí souhlasit s kódováním fontu)"
+
+#: src/libsputext/xine_decoder.c:1099
+msgid "subtitle time offset in 1/100 sec"
+msgstr "èasový posun titulkù v 1/100 s"
 
 #: src/libspucc/xine_decoder.c:220
 msgid "Enable closed captions in MPEG-2 streams"
@@ -1916,6 +2047,10 @@ msgstr ""
 "      Pøekompilování tohoto modulu se souèasnou knihovnou XviD by mìla "
 "pomoci.\n"
 
+#: src/libxvid/xine_decoder.c:255
+msgid "priority of the xvid plugin (>5 => enable)"
+msgstr "priorita modulu xvid (>5 => povolit)"
+
 #: src/libxinevdec/cinepak.c:432
 #, c-format
 msgid ""
@@ -1954,15 +2089,6 @@ msgstr ""
 "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
 "           dekódovacím modulem.\n"
 "Nainstalování aktuálních modulù by mìlo pomoci.\n"
-
-#~ msgid "allow illegal vlc codes in mpeg4 streams"
-#~ msgstr "dovolit nepovolené kodeky vlc v sekvencích mpeg4"
-
-#~ msgid "subtitle time offset in 1/100 sec"
-#~ msgstr "èasový posun titulkù v 1/100 s"
-
-#~ msgid "priority of the xvid plugin (>5 => enable)"
-#~ msgstr "priorita modulu xvid (>5 => povolit)"
 
 #~ msgid "unable to open %s: %s."
 #~ msgstr "nelze otevøít %s: %s."

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-24 21:51+0200\n"
+"POT-Creation-Date: 2002-07-10 07:56+0200\n"
 "PO-Revision-Date: 2002-06-07 11:25+0200\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polski <pl@li.org>\n"
@@ -14,38 +14,38 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.6\n"
 
-#: src/audio_out/audio_alsa_out.c:189 src/audio_out/audio_alsa_out.c:721
-#: src/audio_out/audio_alsa_out.c:903 src/audio_out/audio_alsa_out.c:947
+#: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:728
+#: src/audio_out/audio_alsa_out.c:913 src/audio_out/audio_alsa_out.c:957
 msgid "device used for mono output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:199 src/audio_out/audio_alsa_out.c:910
+#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:920
 msgid "device used for stereo output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:209 src/audio_out/audio_alsa_out.c:917
+#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:927
 msgid "device used for 4-channel output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:219 src/audio_out/audio_alsa_out.c:924
+#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:934
 msgid "device used for 5-channel output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:229 src/audio_out/audio_alsa_out.c:240
-#: src/audio_out/audio_alsa_out.c:931 src/audio_out/audio_alsa_out.c:938
+#: src/audio_out/audio_alsa_out.c:221 src/audio_out/audio_alsa_out.c:232
+#: src/audio_out/audio_alsa_out.c:941 src/audio_out/audio_alsa_out.c:948
 msgid "device used for 5.1-channel output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:855 src/audio_out/audio_alsa_out.c:1057
+#: src/audio_out/audio_alsa_out.c:862 src/audio_out/audio_alsa_out.c:1072
 msgid "alsa mixer device"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:994 src/audio_out/audio_alsa_out.c:1007
-#: src/audio_out/audio_alsa_out.c:1020 src/audio_out/audio_alsa_out.c:1038
+#: src/audio_out/audio_alsa_out.c:1009 src/audio_out/audio_alsa_out.c:1022
+#: src/audio_out/audio_alsa_out.c:1035 src/audio_out/audio_alsa_out.c:1053
 msgid "used to inform xine about what the sound card can do"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1090
+#: src/audio_out/audio_alsa_out.c:1105
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr ""
 
@@ -57,43 +57,43 @@ msgstr ""
 msgid "xine audio output plugin using esd"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:638
+#: src/audio_out/audio_oss_out.c:640
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:706
+#: src/audio_out/audio_oss_out.c:708
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:773
+#: src/audio_out/audio_oss_out.c:775
 msgid "Adjust a/v sync for OSS softsync"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:774
+#: src/audio_out/audio_oss_out.c:776
 msgid "Use this to manually adjust a/v sync if you're using softsync"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:796
+#: src/audio_out/audio_oss_out.c:802
 msgid "Enable 4.0 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:807
+#: src/audio_out/audio_oss_out.c:813
 msgid "Enable 5.0 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:818
+#: src/audio_out/audio_oss_out.c:824
 msgid "Enable 5.1 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:829
+#: src/audio_out/audio_oss_out.c:835
 msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:845
+#: src/audio_out/audio_oss_out.c:851
 msgid "oss mixer device"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:917
+#: src/audio_out/audio_oss_out.c:923
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr ""
 
@@ -221,50 +221,50 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja aktualnej wtyczki wej¶cia powinna pomóc.\n"
 
-#: src/demuxers/demux_avi.c:656
+#: src/demuxers/demux_avi.c:659
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index pliku avi uszkodzony\n"
 
-#: src/demuxers/demux_avi.c:1228
+#: src/demuxers/demux_avi.c:1244
 #, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_avi: format obrazu = %s\n"
 
-#: src/demuxers/demux_avi.c:1230
+#: src/demuxers/demux_avi.c:1246
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: rozmiar ramki wideo %ld x %ld\n"
 
-#: src/demuxers/demux_avi.c:1233
+#: src/demuxers/demux_avi.c:1249
 #, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: format d¼wiêku [%d] = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1241
+#: src/demuxers/demux_avi.c:1257
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: nieznany typ d¼wiêku 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1248
+#: src/demuxers/demux_avi.c:1264
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: typ dzwiêku %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1365
+#: src/demuxers/demux_avi.c:1384
 #, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_avi: nieznany kodek wideo '%.4s'\n"
 
-#: src/demuxers/demux_avi.c:1374
+#: src/demuxers/demux_avi.c:1393
 #, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: kodek wideo to '%s'\n"
 
-#: src/demuxers/demux_avi.c:1503 src/demuxers/demux_avi.c:1580
+#: src/demuxers/demux_avi.c:1535 src/demuxers/demux_avi.c:1612
 msgid "valid mrls ending for avi demuxer"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1567
+#: src/demuxers/demux_avi.c:1599
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -353,26 +353,36 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/demuxers/demux_qt.c:1256 src/demuxers/demux_qt.c:1501
+#: src/demuxers/demux_qt.c:1270 src/demuxers/demux_qt.c:1561
 msgid "valid mrls ending for qt demuxer"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1323
+#: src/demuxers/demux_qt.c:1344
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1329
+#: src/demuxers/demux_qt.c:1350
 #, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1338
-#, c-format
-msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"
+#: src/demuxers/demux_qt.c:1359
+#, fuzzy, c-format
+msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
+msgstr "demux_qt: kodek audio %c%c%c%c, (%d Hz, %d bits, %d %s)\n"
+
+#: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
+#: src/demuxers/demux_wav.c:322
+msgid "channel"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1488
+#: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
+#: src/demuxers/demux_wav.c:322
+msgid "channels"
+msgstr ""
+
+#: src/demuxers/demux_qt.c:1548
 #, fuzzy, c-format
 msgid ""
 "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -426,31 +436,31 @@ msgstr "demux_asf: format obrazu : %s\n"
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr "demux_asf: d³ugo¶æ strumienia jest %d sec, rate jest %d bajtow/sek\n"
 
-#: src/demuxers/demux_asf.c:1247
+#: src/demuxers/demux_asf.c:1254
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: tytul        : %s\n"
 
-#: src/demuxers/demux_asf.c:1249
+#: src/demuxers/demux_asf.c:1256
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: autor       : %s\n"
 
-#: src/demuxers/demux_asf.c:1251
+#: src/demuxers/demux_asf.c:1258
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: copyright    : %s\n"
 
-#: src/demuxers/demux_asf.c:1253
+#: src/demuxers/demux_asf.c:1260
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: komentarz      : %s\n"
 
-#: src/demuxers/demux_asf.c:1363 src/demuxers/demux_asf.c:1415
+#: src/demuxers/demux_asf.c:1370 src/demuxers/demux_asf.c:1422
 msgid "valid mrls ending for asf demuxer"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1402
+#: src/demuxers/demux_asf.c:1409
 #, fuzzy, c-format
 msgid ""
 "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -476,43 +486,44 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/demuxers/demux_film.c:138
+#: src/demuxers/demux_film.c:147
 msgid "demux_film: This is not a FILM file (why was it sent to this demuxer?\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:164
+#: src/demuxers/demux_film.c:176
 msgid "invalid FILM chunk size\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:242
+#: src/demuxers/demux_film.c:254
 msgid "unrecognized FILM chunk\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:509 src/demuxers/demux_film.c:754
+#: src/demuxers/demux_film.c:538 src/demuxers/demux_film.c:815
+#: src/demuxers/demux_smjpeg.c:544
 msgid "valid mrls ending for film demuxer"
 msgstr ""
 
-#: src/demuxers/demux_film.c:558
+#: src/demuxers/demux_film.c:587
 #, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:567
+#: src/demuxers/demux_film.c:596
 #, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:577
+#: src/demuxers/demux_film.c:606
 #, fuzzy, c-format
 msgid "demux_film: unknown video codec %c%c%c%c\n"
-msgstr "demux_qt: nieznany kodek wideo '%s'\n"
+msgstr "demux_film: nieznany kodek wideo '%c%c%c%c'\n"
 
-#: src/demuxers/demux_film.c:587
+#: src/demuxers/demux_film.c:616
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:741
+#: src/demuxers/demux_film.c:802
 #, fuzzy, c-format
 msgid ""
 "demux_film: plugin doesn't support plugin API version %d.\n"
@@ -520,12 +531,12 @@ msgid ""
 "this             demuxer plugin. Installing current demux plugins should "
 "help.\n"
 msgstr ""
-"demux_ogg: ta wtyczka nie wspiera API w wersji %d.\n"
-"demux_ogg: oznacza to niezgodno¶æ miêdzy xine demux_ogg: a t± wtyczk± "
+"demux_film: ta wtyczka nie wspiera API w wersji %d.\n"
+"            oznacza to niezgodno¶æ miêdzy xine demux_ogg: a t± wtyczk± "
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/demuxers/demux_mpeg_block.c:335
+#: src/demuxers/demux_mpeg_block.c:345
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -533,7 +544,7 @@ msgstr ""
 "demux_mpeg_block: zbyt wiele b³êdów, zatrzymanie odtwarzania Mo¿e strumieñ "
 "jest zaszyfrowany?\n"
 
-#: src/demuxers/demux_mpeg_block.c:443
+#: src/demuxers/demux_mpeg_block.c:456
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -542,19 +553,19 @@ msgstr ""
 "demux_mpeg_block: uwaga: nag³ówek pes wskazuje na to ze strumieñ mo¿e byæ "
 "zaszyfrowany (tryb szyfrowania %d)\n"
 
-#: src/demuxers/demux_mpeg_block.c:998
+#: src/demuxers/demux_mpeg_block.c:1012
 msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
 msgstr "demux_mpeg_block: nieznany rozmiar bloku, spróbuj u¿yæ demux_mpeg.\n"
 
-#: src/demuxers/demux_mpeg_block.c:1086 src/demuxers/demux_mpeg_block.c:1190
+#: src/demuxers/demux_mpeg_block.c:1100 src/demuxers/demux_mpeg_block.c:1204
 msgid "valid mrls for mpeg block demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1127 src/demuxers/demux_mpeg_block.c:1194
+#: src/demuxers/demux_mpeg_block.c:1141 src/demuxers/demux_mpeg_block.c:1208
 msgid "valid mrls ending for mpeg block demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1177
+#: src/demuxers/demux_mpeg_block.c:1191
 #, fuzzy, c-format
 msgid ""
 "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
@@ -567,21 +578,21 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/demuxers/demux_roq.c:298 src/demuxers/demux_roq.c:549
+#: src/demuxers/demux_roq.c:297 src/demuxers/demux_roq.c:550
 msgid "valid mrls ending for roq demuxer"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:419
+#: src/demuxers/demux_roq.c:420
 #, c-format
 msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:423
+#: src/demuxers/demux_roq.c:424
 #, c-format
 msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:536
+#: src/demuxers/demux_roq.c:537
 #, fuzzy, c-format
 msgid ""
 "demux_roq: plugin doesn't support plugin API version %d.\n"
@@ -591,6 +602,109 @@ msgid ""
 msgstr ""
 "demux_ogg: ta wtyczka nie wspiera API w wersji %d.\n"
 "demux_ogg: oznacza to niezgodno¶æ miêdzy xine demux_ogg: a t± wtyczk± "
+"demultiplexera.\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
+
+#: src/demuxers/demux_fli.c:311
+#, c-format
+msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
+msgstr ""
+
+#: src/demuxers/demux_fli.c:315
+#, fuzzy, c-format
+msgid "demux_fli: %d frames, %dx%d\n"
+msgstr "demux_fli: %d rozmiar ramki wideo %d x %d\n"
+
+#: src/demuxers/demux_idcin.c:206 src/demuxers/demux_idcin.c:420
+msgid "valid mrls ending for idcin demuxer"
+msgstr ""
+
+#: src/demuxers/demux_idcin.c:269
+#, c-format
+msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
+msgstr ""
+
+#: src/demuxers/demux_idcin.c:274
+#, c-format
+msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
+msgstr ""
+
+#: src/demuxers/demux_idcin.c:407
+#, fuzzy, c-format
+msgid ""
+"demux_idcin: plugin doesn't support plugin API version %d.\n"
+"             this means there's a version mismatch between xine and "
+"this              demuxer plugin.\n"
+"Installing current demux plugins should help.\n"
+msgstr ""
+"demux_idcin: ta wtyczka nie wspiera API w wersji %d.\n"
+"             oznacza to niezgodno¶æ miêdzy xine demux_ogg: a t± wtyczk± "
+"demultiplexera.\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
+
+#: src/demuxers/demux_smjpeg.c:276
+msgid "valid mrls ending for smjpeg demuxer"
+msgstr ""
+
+#: src/demuxers/demux_smjpeg.c:398
+#, c-format
+msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
+msgstr ""
+
+#: src/demuxers/demux_smjpeg.c:403
+#, c-format
+msgid "demux_smjpeg: %c%c%c%c video @ %dx%d\n"
+msgstr ""
+
+#: src/demuxers/demux_smjpeg.c:412
+#, fuzzy, c-format
+msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
+msgstr ""
+"demux_smjpeg: kodek audio %c%c%c%c (%d Hz, %d bits, %d %s)\n"
+
+#: src/demuxers/demux_smjpeg.c:531
+#, fuzzy, c-format
+msgid ""
+"demux_smjpeg: plugin doesn't support plugin API version %d.\n"
+"              this means there's a version mismatch between xine and "
+"this               demuxer plugin. Installing current demux plugins should "
+"help.\n"
+msgstr ""
+"demux_smjpeg: ta wtyczka nie wspiera API w wersji %d.\n"
+"              oznacza to niezgodno¶æ miêdzy xine demux_ogg: a t± wtyczk± "
+"demultiplexera.\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
+
+#: src/demuxers/demux_wav.c:227 src/demuxers/demux_wav.c:482
+msgid "valid mrls ending for wav demuxer"
+msgstr ""
+
+#: src/demuxers/demux_wav.c:317
+#, fuzzy, c-format
+msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
+msgstr ""
+"demux_wav: kodek audio 0x%X (%ld Hz, %d bits, %d %s)\n"
+
+#: src/demuxers/demux_wav.c:324
+#, c-format
+msgid "demux_wav: running time = %d min, %d sec\n"
+msgstr ""
+
+#: src/demuxers/demux_wav.c:328
+#, c-format
+msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
+msgstr ""
+
+#: src/demuxers/demux_wav.c:469
+#, fuzzy, c-format
+msgid ""
+"demux_wav: plugin doesn't support plugin API version %d.\n"
+"           this means there's a version mismatch between xine and "
+"this            demuxer plugin.\n"
+"Installing current demux plugins should help.\n"
+msgstr ""
+"demux_wav: ta wtyczka nie wspiera API w wersji %d.\n"
+"           oznacza to niezgodno¶æ miêdzy xine demux_ogg: a t± wtyczk± "
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
@@ -1227,6 +1341,10 @@ msgstr ""
 msgid "cddbp cache directory"
 msgstr ""
 
+#: src/input/net_buf_ctrl.c:67
+msgid "buffering..."
+msgstr ""
+
 #: src/libmpeg2/xine_decoder.c:156
 #, fuzzy, c-format
 msgid ""
@@ -1253,7 +1371,7 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/libspudec/xine_decoder.c:305
+#: src/libspudec/xine_decoder.c:306
 #, fuzzy, c-format
 msgid ""
 "libspudec: Doesn't support plugin API version %d.\n"
@@ -1265,17 +1383,17 @@ msgstr ""
 "oznacza to niezgodno¶æ miêdzy xine a t± wtyczka wej¶cia\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/libw32dll/w32codec.c:1379 src/libw32dll/w32codec.c:1428
+#: src/libw32dll/w32codec.c:1404 src/libw32dll/w32codec.c:1453
 msgid "path to win32 codec dlls"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1418
+#: src/libw32dll/w32codec.c:1443
 #, fuzzy, c-format
 msgid ""
 "w32codec: plugin doesn't support plugin API version %d.\n"
 "w32codec: this means there's a version mismatch between xine and this "
 "w32codec: decoder plugin.\n"
-"Installing current input plugins should help.\n"
+"Installing current decoder plugins should help.\n"
 msgstr ""
 "demux_avi: ta wtyczka nie wspiera API w wersji %d.\n"
 "demux_avi: oznacza to niezgodno¶æ miêdzy xine demux_avi: a t± wtyczka "
@@ -1355,6 +1473,10 @@ msgstr ""
 msgid "xine video output plugin using libvidix"
 msgstr ""
 
+#: src/xine-engine/tvmode.c:270
+msgid "Show status on play, pause, ff, ..."
+msgstr ""
+
 #: src/xine-engine/video_out.c:308
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
@@ -1416,35 +1538,35 @@ msgstr "xine_play: zawiód³ start demultiplexera\n"
 msgid "logo mrl, displayed in video output window"
 msgstr ""
 
-#: src/xine-engine/xine.c:1022
+#: src/xine-engine/xine.c:1024
 msgid "stream format"
 msgstr "format strumienia"
 
-#: src/xine-engine/xine.c:1023
+#: src/xine-engine/xine.c:1025
 msgid "messages"
 msgstr "wiadomo¶ci"
 
-#: src/xine-engine/xine.c:1024
+#: src/xine-engine/xine.c:1026
 msgid "plugin"
 msgstr "wtyczka"
 
-#: src/xine-engine/audio_out.c:729
+#: src/xine-engine/audio_out.c:825
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:732
+#: src/xine-engine/audio_out.c:828
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:760
+#: src/xine-engine/audio_out.c:868
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:764
+#: src/xine-engine/audio_out.c:872
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:765
+#: src/xine-engine/audio_out.c:873
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
@@ -1551,7 +1673,7 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/libffmpeg/xine_decoder.c:379
+#: src/libffmpeg/xine_decoder.c:413
 #, fuzzy, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1564,96 +1686,8 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#. data for the device name config entry
-#: src/dxr3/dxr3.h:33
-msgid "Dxr3: Device Name"
-msgstr ""
-
-#: src/dxr3/dxr3.h:34
-msgid "The device file of the dxr3 mpeg decoder card control device."
-msgstr ""
-
-#: src/dxr3/dxr3_decode_spu.c:106
-#, fuzzy, c-format
-msgid ""
-"dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
-"dxr3_decode_spu: this means there's a version mismatch between xine and this "
-"dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"
-msgstr ""
-"demux_avi: ta wtyczka nie wspiera API w wersji %d.\n"
-"demux_avi: oznacza to niezgodno¶æ miêdzy xine demux_avi: a t± wtyczka "
-"demultiplexera.\n"
-"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
-
-#: src/dxr3/dxr3_decode_video.c:127
-#, fuzzy, c-format
-msgid ""
-"dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
-"dxr3_decode_video: this means there's a version mismatch between xine and "
-"this\n"
-"dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
-msgstr ""
-"demux_avi: ta wtyczka nie wspiera API w wersji %d.\n"
-"demux_avi: oznacza to niezgodno¶æ miêdzy xine demux_avi: a t± wtyczka "
-"demultiplexera.\n"
-"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
-
-#: src/dxr3/dxr3_decode_video.c:164
-msgid "Dxr3: video decoder priority"
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:165
-msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:175
-msgid "Try to sync video every frame"
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:176
-msgid "This is relevant for progressive video only (most PAL films)."
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:180
-msgid "Use alternate Play mode"
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
-msgid "Enabling this option will utilise a smoother play mode."
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:184
-msgid "Correct frame durations in broken streams"
-msgstr ""
-
-#: src/dxr3/dxr3_decode_video.c:185
-msgid "Enable this for streams with wrong frame durations."
-msgstr ""
-
-#: src/dxr3/dxr3_mpeg_encoders.c:174
-msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
-msgstr ""
-
-#: src/dxr3/dxr3_mpeg_encoders.c:175
-msgid ""
-"The bitrate the mpeg encoder library librte should use for dxr3's encoding "
-"mode"
-msgstr ""
-
-#: src/dxr3/dxr3_mpeg_encoders.c:375
-msgid "Dxr3enc: fame mpeg encoding quality"
-msgstr ""
-
-#: src/dxr3/dxr3_mpeg_encoders.c:376
-msgid "The encoding quality of the libfame mpeg encoder library."
-msgstr ""
-
-#: src/dxr3/dxr3_scr.c:81
-msgid "Dxr3: SCR plugin priority"
-msgstr ""
-
-#: src/dxr3/dxr3_scr.c:82
-msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
+#: src/libffmpeg/xine_decoder.c:436
+msgid "allow illegal vlc codes in mpeg4 streams"
 msgstr ""
 
 #: src/dxr3/video_out_dxr3.c:119
@@ -1674,6 +1708,10 @@ msgstr ""
 
 #: src/dxr3/video_out_dxr3.c:160
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
+msgid "Enabling this option will utilise a smoother play mode."
 msgstr ""
 
 #: src/dxr3/video_out_dxr3.c:221
@@ -1702,20 +1740,108 @@ msgstr ""
 msgid "Dxr3: videoout mode (tv or overlay)"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:278
+#: src/dxr3/video_out_dxr3.c:287
 msgid "Dxr3: overlay colorkey value"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:281
+#: src/dxr3/video_out_dxr3.c:290
 msgid "Dxr3: overlay colorkey range"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:282
+#: src/dxr3/video_out_dxr3.c:291
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:293
+#: src/dxr3/video_out_dxr3.c:303
 msgid "dxr3 preferred tv mode"
+msgstr ""
+
+#. data for the device name config entry
+#: src/dxr3/dxr3.h:33
+msgid "Dxr3: Device Name"
+msgstr ""
+
+#: src/dxr3/dxr3.h:34
+msgid "The device file of the dxr3 mpeg decoder card control device."
+msgstr ""
+
+#: src/dxr3/dxr3_decode_spu.c:110
+#, fuzzy, c-format
+msgid ""
+"dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
+"dxr3_decode_spu: this means there's a version mismatch between xine and this "
+"dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"
+msgstr ""
+"demux_avi: ta wtyczka nie wspiera API w wersji %d.\n"
+"demux_avi: oznacza to niezgodno¶æ miêdzy xine demux_avi: a t± wtyczka "
+"demultiplexera.\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
+
+#: src/dxr3/dxr3_decode_video.c:131
+#, fuzzy, c-format
+msgid ""
+"dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
+"dxr3_decode_video: this means there's a version mismatch between xine and "
+"this\n"
+"dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
+msgstr ""
+"demux_avi: ta wtyczka nie wspiera API w wersji %d.\n"
+"demux_avi: oznacza to niezgodno¶æ miêdzy xine demux_avi: a t± wtyczka "
+"demultiplexera.\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
+
+#: src/dxr3/dxr3_decode_video.c:168
+msgid "Dxr3: video decoder priority"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:169
+msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:176
+msgid "Try to sync video every frame"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:177
+msgid "This is relevant for progressive video only (most PAL films)."
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:180
+msgid "Use alternate Play mode"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:184
+msgid "Correct frame durations in broken streams"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:185
+msgid "Enable this for streams with wrong frame durations."
+msgstr ""
+
+#: src/dxr3/dxr3_scr.c:81
+msgid "Dxr3: SCR plugin priority"
+msgstr ""
+
+#: src/dxr3/dxr3_scr.c:82
+msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:182
+msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:183
+msgid ""
+"The bitrate the mpeg encoder library librte should use for dxr3's encoding "
+"mode"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:389
+msgid "Dxr3enc: fame mpeg encoding quality"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:390
+msgid "The encoding quality of the libfame mpeg encoder library."
 msgstr ""
 
 #: src/libmad/xine_decoder.c:283
@@ -1769,7 +1895,7 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/libdivx4/xine_decoder.c:555
+#: src/libdivx4/xine_decoder.c:556
 #, fuzzy, c-format
 msgid ""
 "divx4: plugin doesn't support plugin API version %d.\n"
@@ -1782,23 +1908,23 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/libdivx4/xine_decoder.c:568
+#: src/libdivx4/xine_decoder.c:569
 msgid "Relative path to libdivxdecore.so to open"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:593
+#: src/libdivx4/xine_decoder.c:594
 msgid "priority of the divx4 plugin (>5 => enable)"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:598
+#: src/libdivx4/xine_decoder.c:599
 msgid "the postprocessing level, 0 = none and fast, 6 = all and slow"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:601
+#: src/libdivx4/xine_decoder.c:602
 msgid "use divx4 plugin for msmpeg4v3 streams"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:606
+#: src/libdivx4/xine_decoder.c:607
 msgid "Divx version to check for (set to 0 (default) if unsure)"
 msgstr ""
 
@@ -1819,7 +1945,7 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1041
+#: src/libsputext/xine_decoder.c:1056
 #, fuzzy, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1831,20 +1957,24 @@ msgstr ""
 "oznacza to niezgodno¶æ miêdzy xine a t± wtyczka wej¶cia\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/libsputext/xine_decoder.c:1063
+#: src/libsputext/xine_decoder.c:1078
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1069
+#: src/libsputext/xine_decoder.c:1084
 msgid "subtitle size (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1074
+#: src/libsputext/xine_decoder.c:1089
 msgid "source encoding of subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1079
+#: src/libsputext/xine_decoder.c:1094
 msgid "target encoding for subtitles (have to match font encoding)"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1099
+msgid "subtitle time offset in 1/100 sec"
 msgstr ""
 
 #: src/libspucc/xine_decoder.c:220
@@ -1903,6 +2033,10 @@ msgid ""
 "xvid: Compiling this plugin against current XviD library should help.\n"
 msgstr ""
 
+#: src/libxvid/xine_decoder.c:255
+msgid "priority of the xvid plugin (>5 => enable)"
+msgstr ""
+
 #: src/libxinevdec/cinepak.c:432
 #, fuzzy, c-format
 msgid ""
@@ -1944,11 +2078,6 @@ msgstr ""
 
 #~ msgid "unable to open %s: %s."
 #~ msgstr "nie mogê otworzyæ %s: %s."
-
-#~ msgid ""
-#~ "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
-#~ msgstr ""
-#~ "demux_qt: kodek wideo  %s (%f fps), kodek audio  %s (%ld Hz, %d bits)\n"
 
 #~ msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
 #~ msgstr ""
