@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.89 2003/05/01 21:25:14 hadess Exp $
+ * $Id: demux_ogg.c,v 1.90 2003/05/03 21:53:21 hadess Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -932,6 +932,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->preview_buffers[stream_num]=1;
 	    this->buf_types[stream_num] = BUF_VIDEO_THEORA;
 
+	    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+              = strdup ("theora");
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
 	      = this->t_info.width;
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
@@ -947,6 +949,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  }
 #else
 	  this->buf_types[stream_num] = BUF_VIDEO_THEORA;
+	  this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+              = strdup ("theora");
 #endif
 
 	} else {
