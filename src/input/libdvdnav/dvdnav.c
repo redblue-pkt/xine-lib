@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.23 2003/04/06 13:09:38 mroi Exp $
+ * $Id: dvdnav.c,v 1.24 2003/04/07 18:10:47 mroi Exp $
  *
  */
 
@@ -471,6 +471,9 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
       }
     }
     this->position_current.hop_channel = this->position_next.hop_channel;
+    /* update VOBU info */
+    this->vobu.vobu_start  = this->position_next.cell_start + this->position_next.block;
+    this->vobu.vobu_next   = 0;
     /* Make blockN == vobu_length to do expected_nav */
     this->vobu.vobu_length = 0;
     this->vobu.blockN      = 0;
@@ -590,7 +593,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     cell_event->pgN   = state->pgN;
     cell_event->cell_length =
       dvdnav_convert_time(&state->pgc->cell_playback[state->cellN-1].playback_time);
-    
+
     cell_event->pg_length = 0;
     /* Find start cell of program. */
     first_cell_nr = state->pgc->program_map[state->pgN-1];
@@ -613,7 +616,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     for (i = 1; i < state->pgc->program_map[state->pgN-1]; i++)
       cell_event->pg_start +=
         dvdnav_convert_time(&state->pgc->cell_playback[i - 1].playback_time);
-    
+
     this->position_current.cell         = this->position_next.cell;
     this->position_current.cell_restart = this->position_next.cell_restart;
     this->position_current.cell_start   = this->position_next.cell_start;
@@ -821,9 +824,15 @@ dvdnav_status_t dvdnav_get_title_string(dvdnav_t *this, const char **title_str) 
 uint8_t dvdnav_get_video_aspect(dvdnav_t *this) {
   uint8_t         retval;
   
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
-  
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
+
   pthread_mutex_lock(&this->vm_lock);
   retval = (uint8_t)vm_get_video_aspect(this->vm);
   pthread_mutex_unlock(&this->vm_lock);
@@ -834,8 +843,14 @@ uint8_t dvdnav_get_video_aspect(dvdnav_t *this) {
 uint8_t dvdnav_get_video_scale_permission(dvdnav_t *this) {
   uint8_t         retval;
   
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
   
   pthread_mutex_lock(&this->vm_lock);
   retval = (uint8_t)vm_get_video_scale_permission(this->vm);
@@ -847,8 +862,14 @@ uint8_t dvdnav_get_video_scale_permission(dvdnav_t *this) {
 uint16_t dvdnav_audio_stream_to_lang(dvdnav_t *this, uint8_t stream) {
   audio_attr_t  attr;
   
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
   
   pthread_mutex_lock(&this->vm_lock); 
   attr = vm_get_audio_attr(this->vm, stream);
@@ -863,8 +884,14 @@ uint16_t dvdnav_audio_stream_to_lang(dvdnav_t *this, uint8_t stream) {
 uint16_t dvdnav_spu_stream_to_lang(dvdnav_t *this, uint8_t stream) {
   subp_attr_t  attr;
   
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
   
   pthread_mutex_lock(&this->vm_lock); 
   attr = vm_get_subp_attr(this->vm, stream);
@@ -879,11 +906,18 @@ uint16_t dvdnav_spu_stream_to_lang(dvdnav_t *this, uint8_t stream) {
 int8_t dvdnav_get_audio_logical_stream(dvdnav_t *this, uint8_t audio_num) {
   int8_t       retval;
   
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
   
   pthread_mutex_lock(&this->vm_lock);
   if (!this->vm->state.pgc) {
+    printerr("No current PGC.");
     pthread_mutex_unlock(&this->vm_lock); 
     return -1;
   }
@@ -896,11 +930,18 @@ int8_t dvdnav_get_audio_logical_stream(dvdnav_t *this, uint8_t audio_num) {
 int8_t dvdnav_get_spu_logical_stream(dvdnav_t *this, uint8_t subp_num) {
   int8_t       retval;
 
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
 
   pthread_mutex_lock(&this->vm_lock);
   if (!this->vm->state.pgc) {
+    printerr("No current PGC.");
     pthread_mutex_unlock(&this->vm_lock); 
     return -1;
   }
@@ -913,11 +954,18 @@ int8_t dvdnav_get_spu_logical_stream(dvdnav_t *this, uint8_t subp_num) {
 int8_t dvdnav_get_active_audio_stream(dvdnav_t *this) {
   int8_t        retval;
 
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
   
   pthread_mutex_lock(&this->vm_lock); 
   if (!this->vm->state.pgc) {
+    printerr("No current PGC.");
     pthread_mutex_unlock(&this->vm_lock); 
     return -1;
   }
@@ -930,11 +978,18 @@ int8_t dvdnav_get_active_audio_stream(dvdnav_t *this) {
 int8_t dvdnav_get_active_spu_stream(dvdnav_t *this) {
   int8_t        retval;
 
-  if(!this)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
   
   pthread_mutex_lock(&this->vm_lock); 
   if (!this->vm->state.pgc) {
+    printerr("No current PGC.");
     pthread_mutex_unlock(&this->vm_lock); 
     return -1;
   }
@@ -947,8 +1002,14 @@ int8_t dvdnav_get_active_spu_stream(dvdnav_t *this) {
 static int8_t dvdnav_is_domain(dvdnav_t *this, domain_t domain) {
   int8_t        retval;
   
-  if (!this || !this->started)
+  if(!this) {
+    printerr("Passed a NULL pointer.");
     return -1;
+  }
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return -1;
+  }
   
   pthread_mutex_lock(&this->vm_lock);
   retval = (this->vm->state.domain == domain);
@@ -1029,6 +1090,9 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.24  2003/04/07 18:10:47  mroi
+ * merging libdvdnav, since some nice fixes took place
+ *
  * Revision 1.23  2003/04/06 13:09:38  mroi
  * report start of PG as well
  *

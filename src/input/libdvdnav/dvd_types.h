@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvd_types.h,v 1.2 2002/09/20 12:53:53 mroi Exp $
+ * $Id: dvd_types.h,v 1.3 2003/04/07 18:10:47 mroi Exp $
  *
  */
 
@@ -48,6 +48,7 @@ typedef enum {
  * DVD Menu
  */
 typedef enum {
+  DVD_MENU_Escape     = 0, /**< TBD */
   DVD_MENU_Title      = 2, /**< TBD */
   DVD_MENU_Root       = 3, /**< TBD */
   DVD_MENU_Subpicture = 4, /**< TBD */

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.7 2003/03/29 13:19:09 mroi Exp $
+ * $Id: vm.h,v 1.8 2003/04/07 18:10:52 mroi Exp $
  *
  */
 
@@ -47,6 +47,7 @@ typedef struct {
   domain_t  domain;
   int       vtsN;         /* 0 is vmgm? */
   pgc_t    *pgc;          /* either this or 'int pgcN' is enough? */
+  int       pgcN;         /* but provide pgcN for quick lookup */
   int       pgN;          /* is this needed? can allways fid pgN from cellN? */
   int       cellN;
   int32_t   cell_restart; /* get cell to restart */
@@ -148,9 +149,11 @@ int vm_jump_next_pg(vm_t *vm);
 int vm_jump_prev_pg(vm_t *vm);
 int vm_jump_up(vm_t *vm);
 int vm_jump_menu(vm_t *vm, DVDMenuID_t menuid);
+int vm_jump_resume(vm_t *vm);
 int vm_exec_cmd(vm_t *vm, vm_cmd_t *cmd);
 
 /* getting information */
+int vm_get_current_menu(vm_t *vm, int *menuid);
 int vm_get_current_title_part(vm_t *vm, int *title_result, int *part_result);
 int vm_get_audio_stream(vm_t *vm, int audioN);
 int vm_get_subp_stream(vm_t *vm, int subpN, int mode);

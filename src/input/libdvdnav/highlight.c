@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: highlight.c,v 1.11 2003/03/29 13:19:09 mroi Exp $
+ * $Id: highlight.c,v 1.12 2003/04/07 18:10:49 mroi Exp $
  *
  */
 
@@ -175,7 +175,7 @@ static void nav_print_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns) {
           fprintf(MSG_OUT, "libdvdnav: %02x ", btni->cmd.bytes[k]);
         }
         fprintf(MSG_OUT, "| ");
-        vmPrint_mnemonic(&btni->cmd);
+        vm_print_mnemonic(&btni->cmd);
         fprintf(MSG_OUT, "\n");
       }
     }

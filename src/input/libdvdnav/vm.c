@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.18 2003/04/01 19:42:41 jcdutton Exp $
+ * $Id: vm.c,v 1.19 2003/04/07 18:10:50 mroi Exp $
  *
  */
 
@@ -479,13 +479,20 @@ int vm_jump_cell_block(vm_t *vm, int cell, int block) {
 }
 
 int vm_jump_title_part(vm_t *vm, int title, int part) {
+  link_t link;
+  
   if(!set_PTT(vm, title, part))
     return 0;
   /* Some DVDs do not want us to jump directly into a title and have
    * PGC pre commands taking us back to some menu. Since we do not like that,
-   * we do not execute PGC pre commands but directly play the PG. */
+   * we do not execute PGC pre commands that would do a jump. */
   /* process_command(vm, play_PGC_PG(vm, (vm->state).pgN)); */
-  process_command(vm, play_PG(vm));
+  link = play_PGC_PG(vm, (vm->state).pgN);
+  if (link.command != PlayThis)
+    /* jump occured -> ignore it and play the PG anyway */
+    process_command(vm, play_PG(vm));
+  else
+    process_command(vm, link);
   return 1;
 }
 
@@ -539,6 +546,7 @@ int vm_jump_menu(vm_t *vm, DVDMenuID_t menuid) {
   case VMGM_DOMAIN:
     switch(menuid) {
     case DVD_MENU_Title:
+    case DVD_MENU_Escape:
       (vm->state).domain = VMGM_DOMAIN;
       break;
     case DVD_MENU_Root:
@@ -563,6 +571,16 @@ int vm_jump_menu(vm_t *vm, DVDMenuID_t menuid) {
   return 0;
 }
 
+int vm_jump_resume(vm_t *vm) {
+  link_t link_values = { LinkRSM, 0, 0, 0 };
+
+  if (!(vm->state).rsm_vtsN) /* Do we have resume info? */
+    return 0;
+  if (!process_command(vm, link_values))
+    return 0;
+  return 1;
+}
+
 int vm_exec_cmd(vm_t *vm, vm_cmd_t *cmd) {
   link_t link_values;
   
@@ -574,6 +592,15 @@ int vm_exec_cmd(vm_t *vm, vm_cmd_t *cmd) {
 
 
 /* getting information */
+
+int vm_get_current_menu(vm_t *vm, int *menuid) {
+  pgcit_t* pgcit;
+  int pgcn;
+  pgcn = (vm->state).pgcN;
+  pgcit = get_PGCIT(vm);
+  *menuid = pgcit->pgci_srp[pgcn - 1].entry_id & 0xf ;
+  return 1;
+}
 
 int vm_get_current_title_part(vm_t *vm, int *title_result, int *part_result) {
   vts_ptt_srpt_t *vts_ptt_srpt;
@@ -915,7 +942,7 @@ static link_t play_PGC_PG(vm_t *vm, int pgN) {
   link_t link_values;
   
 #ifdef TRACE
-  fprintf(MSG_OUT, "libdvdnav: play_PGC:");
+  fprintf(MSG_OUT, "libdvdnav: play_PGC_PG:");
   if((vm->state).domain != FP_DOMAIN) {
     fprintf(MSG_OUT, " (vm->state).pgcN (%i)\n", get_PGCN(vm));
   } else {
@@ -1172,7 +1199,7 @@ static int process_command(vm_t *vm, link_t link_values) {
     
 #ifdef TRACE
     fprintf(MSG_OUT, "libdvdnav: Before printout starts:\n");
-    vmPrint_LINK(link_values);
+    vm_print_link(link_values);
     fprintf(MSG_OUT, "libdvdnav: Link values %i %i %i %i\n", link_values.command, 
 	    link_values.data1, link_values.data2, link_values.data3);
     vm_print_current_domain_state(vm);
@@ -1570,6 +1597,7 @@ static int set_VTS_PTT(vm_t *vm, int vtsN, int vts_ttn, int part) {
 static int set_FP_PGC(vm_t *vm) {  
   (vm->state).domain = FP_DOMAIN;
   (vm->state).pgc = vm->vmgi->first_play_pgc;
+  (vm->state).pgcN = vm->vmgi->vmgi_mat->first_play_pgc;
   return 1;
 }
 
@@ -1593,6 +1621,7 @@ static int set_PGCN(vm_t *vm, int pgcN) {
   }
   
   (vm->state).pgc = pgcit->pgci_srp[pgcN - 1].pgc;
+  (vm->state).pgcN = pgcN;
   (vm->state).pgN = 1;
  
   if((vm->state).domain == VTS_DOMAIN)
@@ -1720,6 +1749,7 @@ static int get_ID(vm_t *vm, int id) {
   return 0; /*  error */
 }
 
+/* FIXME: we have a pgcN member in the vm's state now, so this should be obsolete */
 static int get_PGCN(vm_t *vm) {
   pgcit_t *pgcit;
   int pgcN = 1;
@@ -1818,6 +1848,9 @@ void vm_position_print(vm_t *vm, vm_position_t *position) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.19  2003/04/07 18:10:50  mroi
+ * merging libdvdnav, since some nice fixes took place
+ *
  * Revision 1.18  2003/04/01 19:42:41  jcdutton
  * Add some comments.
  * Remove a FIXME comment.

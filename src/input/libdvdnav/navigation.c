@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: navigation.c,v 1.7 2003/03/29 13:19:09 mroi Exp $
+ * $Id: navigation.c,v 1.8 2003/04/07 18:10:50 mroi Exp $
  *
  */
 
@@ -110,15 +110,24 @@ dvdnav_status_t dvdnav_current_title_info(dvdnav_t *this, int *title, int *part)
     pthread_mutex_unlock(&this->vm_lock);
     return S_ERR;
   }
-  if (this->vm->state.domain != VTS_DOMAIN) {
-    printerr("Not in VTS domain.");
-    pthread_mutex_unlock(&this->vm_lock);
-    return S_ERR;
+  if ( (this->vm->state.domain == VTSM_DOMAIN)
+      || (this->vm->state.domain == VMGM_DOMAIN) ) {
+    /* Get current Menu ID: into *part. */
+    vm_get_current_menu(this->vm, part);
+    if (*part > -1) {
+      *title = 0;
+      pthread_mutex_unlock(&this->vm_lock);
+      return S_OK;
+    }
   }
-  retval = vm_get_current_title_part(this->vm, title, part);
+  if (this->vm->state.domain == VTS_DOMAIN) {
+    retval = vm_get_current_title_part(this->vm, title, part);
+    pthread_mutex_unlock(&this->vm_lock);
+    return retval ? S_OK : S_ERR;
+  }
+  printerr("Not in a title or menu.");
   pthread_mutex_unlock(&this->vm_lock);
-  
-  return retval ? S_OK : S_ERR;
+  return S_ERR;
 }
 
 dvdnav_status_t dvdnav_title_play(dvdnav_t *this, int title) {
@@ -153,6 +162,12 @@ dvdnav_status_t dvdnav_part_play(dvdnav_t *this, int title, int part) {
     pthread_mutex_unlock(&this->vm_lock);
     return S_ERR;
   }
+  if((part < 1) || (part > this->vm->vmgi->tt_srpt->title[title-1].nr_of_ptts)) {
+    printerr("Part out of range.");
+    pthread_mutex_unlock(&this->vm_lock);
+    return S_ERR;
+  }
+
   retval = vm_jump_title_part(this->vm, title, part);
   if (retval)
     this->vm->hop_channel++;
@@ -188,7 +203,7 @@ dvdnav_status_t dvdnav_stop(dvdnav_t *this) {
   }
   
   pthread_mutex_lock(&this->vm_lock);
-  vm_stop(this->vm);
+  this->vm->stopped = 1;
   pthread_mutex_unlock(&this->vm_lock);
   return S_OK;
 }

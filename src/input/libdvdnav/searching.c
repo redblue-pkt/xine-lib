@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.13 2003/03/29 13:19:09 mroi Exp $
+ * $Id: searching.c,v 1.14 2003/04/07 18:10:50 mroi Exp $
  *
  */
 
@@ -357,6 +357,20 @@ dvdnav_status_t dvdnav_menu_call(dvdnav_t *this, DVDMenuID_t menu) {
   
   /* make a copy of current VM and try to navigate the copy to the menu */
   try_vm = vm_new_copy(this->vm);
+  if ( (menu == DVD_MENU_Escape) && (this->vm->state.domain != VTS_DOMAIN)) {
+    /* Try resume */
+    if (vm_jump_resume(try_vm) && !try_vm->stopped) {
+        /* merge changes on success */
+        vm_merge(this->vm, try_vm);
+        vm_free_copy(try_vm);
+        this->position_current.still = 0;
+        this->vm->hop_channel++;
+        pthread_mutex_unlock(&this->vm_lock); 
+        return S_OK;
+    }
+  }
+  if (menu == DVD_MENU_Escape) menu = DVD_MENU_Title;
+ 
   if (vm_jump_menu(try_vm, menu) && !try_vm->stopped) {
     /* merge changes on success */
     vm_merge(this->vm, try_vm);

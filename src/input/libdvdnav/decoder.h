@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.h,v 1.6 2003/03/29 13:19:08 mroi Exp $
+ * $Id: decoder.h,v 1.7 2003/04/07 18:10:46 mroi Exp $
  *
  */
 
@@ -109,10 +109,10 @@ uint32_t vm_getbits(command_t* command, int start, int count);
 
 #ifdef TRACE
 /* for debugging: prints a link in readable form */
-void vmPrint_LINK(link_t value);
+void vm_print_link(link_t value);
 
 /* for debugging: dumps VM registers */
-void vmPrint_registers( registers_t *registers );
+void vm_print_registers( registers_t *registers );
 #endif
 
 #endif /* DECODER_H_INCLUDED */
