@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.15 2003/02/13 14:32:18 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.16 2003/05/25 18:36:51 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,14 +37,14 @@
 #define CLOSED_FOR_ENCODER -2
 
 /* the number of supported encoders */
-#define SUPPORTED_ENCODER_COUNT 2
+#define SUPPORTED_ENCODER_COUNT 3
 
 
 /* plugin structures */
 typedef struct encoder_data_s encoder_data_t;
 typedef struct spu_encoder_s spu_encoder_t;
 
-typedef enum { ENC_FAME, ENC_RTE } encoder_type;
+typedef enum { ENC_FAME, ENC_RTE, ENC_LAVC } encoder_type;
 
 
 struct coeff {
@@ -142,6 +142,9 @@ struct encoder_data_s {
   int            (*on_display_frame)(dxr3_driver_t *, dxr3_frame_t *);
   int            (*on_unneeded)(dxr3_driver_t *);
   int            (*on_close)(dxr3_driver_t *);
+  
+  /* this is only used by the libavcodec encoder */
+  void            *handle;
 }; 
 
 struct spu_encoder_s {
@@ -165,6 +168,7 @@ int dxr3_rte_init(dxr3_driver_t *);
 #ifdef HAVE_LIBFAME
 int dxr3_fame_init(dxr3_driver_t *);
 #endif
+int dxr3_lavc_init(dxr3_driver_t *, plugin_node_t *);
 
 /* spu encoder functions */
 spu_encoder_t *dxr3_spu_encoder_init(void);

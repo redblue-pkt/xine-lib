@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.10 2002/10/26 14:35:04 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.11 2003/05/25 18:36:51 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
@@ -105,6 +106,12 @@ typedef struct {
 static int fame_prepare_frame(fame_data_t *this, dxr3_driver_t *drv, 
                               dxr3_frame_t *frame);
 #endif
+
+/* initialization function */
+int        dxr3_lavc_init(dxr3_driver_t *drv, plugin_node_t *node);
+
+/* close function from encoder api */
+static int lavc_on_close(dxr3_driver_t *drv);
 
 
 #ifdef HAVE_LIBRTE
@@ -572,3 +579,33 @@ static int fame_prepare_frame(fame_data_t *this, dxr3_driver_t *drv, dxr3_frame_
   return 1;
 }
 #endif
+
+
+int dxr3_lavc_init(dxr3_driver_t *drv, plugin_node_t *node)
+{
+  void *ffmpeg;
+  int (*init)(dxr3_driver_t *);
+  int result;
+  
+  ffmpeg = dlopen(node->filename, RTLD_LAZY);
+  if (!ffmpeg) return 0;
+  
+  init = dlsym(ffmpeg, "dxr3_encoder_init");
+  if (!init) return 0;
+  
+  result = init(drv);
+  /* the close function is implemented here, because it will call dlclose()
+   * and that should not be done be the library we are closing... */
+  drv->enc->on_close = lavc_on_close;
+  drv->enc->handle   = ffmpeg;
+  return result;
+}
+
+static int lavc_on_close(dxr3_driver_t *drv)
+{
+  drv->enc->on_unneeded(drv);
+  dlclose(drv->enc->handle);
+  free(drv->enc);
+  drv->enc = NULL;
+  return 1;
+}

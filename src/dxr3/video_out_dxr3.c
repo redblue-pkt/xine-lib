@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.77 2003/05/06 21:07:38 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.78 2003/05/25 18:36:51 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -221,6 +221,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   const char *confstr;
   int encoder, confnum;
   static char *available_encoders[SUPPORTED_ENCODER_COUNT + 2];
+  plugin_node_t *node;
 #ifdef HAVE_X11
   static char *videoout_modes[] = { "letterboxed tv",      "widescreen tv",
 				    "letterboxed overlay", "widescreen overlay", NULL };
@@ -294,6 +295,17 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 #if LOG_VID
   printf("video_out_dxr3: Supported mpeg encoders: ");
 #endif
+  /* check, if ffmpeg plugin is available by looking through plugin
+   * catalog; catalog mutex is already locked here, since this is open_plugin() */
+  for (node = xine_list_first_content(class->xine->plugin_catalog->video); node;
+       node = xine_list_next_content(class->xine->plugin_catalog->video))
+    if (strcasecmp(node->info->id, "ffmpegvideo") == 0) {
+      available_encoders[encoder++] = "libavcodec";
+#if LOG_VID
+      printf("libavcodec, ");
+#endif
+      break;
+    }
 #ifdef HAVE_LIBFAME
   available_encoders[encoder++] = "fame";
 #if LOG_VID
@@ -316,6 +328,10 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
       available_encoders, _("the encoder for non mpeg content"),
       _("Content other than mpeg has to pass an additional reencoding stage, "
       "because the dxr3 handles mpeg only."), 10, NULL, NULL);
+    if ((strcmp(available_encoders[encoder], "libavcodec") == 0) && !dxr3_lavc_init(this, node)) {
+      printf("video_out_dxr3: Mpeg encoder libavcodec failed to init.\n");
+      return 0;
+    }
 #ifdef HAVE_LIBRTE
     if ((strcmp(available_encoders[encoder], "rte") == 0) && !dxr3_rte_init(this)) {
       printf("video_out_dxr3: Mpeg encoder rte failed to init.\n");
@@ -652,7 +668,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       
       /* planar format, only base[0] */
       /* add one extra line for field swap stuff */
-      frame->real_base[0] = xine_xmalloc_aligned(16, image_size + frame->vo_frame.pitches[0],
+      frame->real_base[0] = xine_xmalloc_aligned(16, (image_size + frame->vo_frame.pitches[0]) * 4,
         (void**)&frame->mem);
 
       /* don't use first line */
@@ -680,8 +696,8 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       image_size_v = frame->vo_frame.pitches[2] * ((oheight + 1) / 2);
 
       /* add one extra line for field swap stuff */
-      frame->real_base[0] = xine_xmalloc_aligned(16, image_size_y + frame->vo_frame.pitches[0] +
-        image_size_u + image_size_v, (void**)&frame->mem);
+      frame->real_base[0] = xine_xmalloc_aligned(16, (image_size_y + frame->vo_frame.pitches[0] +
+        image_size_u + image_size_v) * 4, (void**)&frame->mem);
 
       /* don't use first line */
       frame->real_base[0] += frame->vo_frame.pitches[0];
