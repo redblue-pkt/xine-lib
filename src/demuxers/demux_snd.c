@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.12 2002/10/12 17:11:59 jkeil Exp $
+ * $Id: demux_snd.c,v 1.13 2002/10/26 22:03:58 tmmm Exp $
  *
  */
 
@@ -46,13 +46,12 @@
 #define PCM_BLOCK_ALIGN 1024
 /* this is the big-endian hex value '.snd' */
 #define snd_TAG 0x2E736E64
-#define VALID_ENDS "snd,au"
 
 typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t        *stream;
 
   config_values_t     *config;
 
@@ -81,7 +80,94 @@ typedef struct {
   off_t                data_size;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
+
+  char                 last_mrl[1024];
 } demux_snd_t;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_snd_class_t;
+
+/* returns 1 if the SND file was opened successfully, 0 otherwise */
+static int open_snd_file(demux_snd_t *this) {
+
+  unsigned char header[SND_HEADER_SIZE];
+  unsigned int encoding;
+
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, header, SND_HEADER_SIZE) != 
+    SND_HEADER_SIZE)
+    return 0;
+
+  /* check the signature */
+  if (BE_32(&header[0]) != snd_TAG)
+    return 0;
+
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, header, SND_HEADER_SIZE) !=
+    SND_HEADER_SIZE)
+    return 0;
+
+  this->data_start = BE_32(&header[0x04]);
+  this->data_size = BE_32(&header[0x08]);
+  encoding = BE_32(&header[0x0C]);
+  this->audio_sample_rate = BE_32(&header[0x10]);
+  this->audio_channels = BE_32(&header[0x14]);
+
+  /* basic sanity checks on the loaded audio parameters */
+  if ((!this->audio_sample_rate) ||
+      (!this->audio_channels)) {
+    xine_log(this->stream->xine, XINE_LOG_MSG,
+      _("demux_snd: bad header parameters\n"));
+    return 0;
+  }
+
+  switch (encoding) {
+    case 1:
+      this->audio_type = BUF_AUDIO_MULAW;
+      this->audio_bits = 16;
+      this->audio_frames = this->data_size / this->audio_channels;
+      this->audio_block_align = PCM_BLOCK_ALIGN;
+      this->audio_bytes_per_second = this->audio_channels *
+        this->audio_sample_rate;
+      break;
+
+    case 3:
+      this->audio_type = BUF_AUDIO_LPCM_BE;
+      this->audio_bits = 16;
+      this->audio_frames = this->data_size / 
+        (this->audio_channels * this->audio_bits / 8);
+      this->audio_block_align = PCM_BLOCK_ALIGN;
+      this->audio_bytes_per_second = this->audio_channels *
+        (this->audio_bits / 8) * this->audio_sample_rate;
+      break;
+
+    case 27:
+      this->audio_type = BUF_AUDIO_ALAW;
+      this->audio_bits = 16;
+      this->audio_frames = this->data_size / this->audio_channels;
+      this->audio_block_align = PCM_BLOCK_ALIGN;
+      this->audio_bytes_per_second = this->audio_channels *
+        this->audio_sample_rate;
+      break;
+
+    default:
+      xine_log(this->stream->xine, XINE_LOG_MSG,
+        _("demux_snd: unsupported audio type: %d\n"), encoding);
+      return 0;
+      break;
+  }
+
+  this->running_time = this->audio_frames / this->audio_sample_rate;
+
+  return 1;
+}
 
 static void *demux_snd_loop (void *this_gen) {
 
@@ -116,7 +202,7 @@ static void *demux_snd_loop (void *this_gen) {
       current_pts /= this->audio_bytes_per_second;
 
       if (this->seek_flag) {
-        xine_demux_control_newpts(this->xine, current_pts, 0);
+        xine_demux_control_newpts(this->stream, current_pts, 0);
         this->seek_flag = 0;
       }
 
@@ -168,7 +254,7 @@ static void *demux_snd_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -176,155 +262,45 @@ static void *demux_snd_loop (void *this_gen) {
   return NULL;
 }
 
-static int load_snd_and_send_headers(demux_snd_t *this) {
+static void demux_snd_send_headers(demux_plugin_t *this_gen) {
 
-  unsigned char header[SND_HEADER_SIZE];
-  unsigned int encoding;
+  demux_snd_t *this = (demux_snd_t *) this_gen;
+  buf_element_t *buf;
 
   pthread_mutex_lock(&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, SND_HEADER_SIZE) !=
-    SND_HEADER_SIZE) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  this->data_start = BE_32(&header[0x04]);
-  this->data_size = BE_32(&header[0x08]);
-  encoding = BE_32(&header[0x0C]);
-  this->audio_sample_rate = BE_32(&header[0x10]);
-  this->audio_channels = BE_32(&header[0x14]);
-
-  /* basic sanity checks on the loaded audio parameters */
-  if ((!this->audio_sample_rate) ||
-      (!this->audio_channels)) {
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("demux_snd: bad header parameters\n"));
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  switch (encoding) {
-    case 1:
-      this->audio_type = BUF_AUDIO_MULAW;
-      this->audio_bits = 16;
-      this->audio_frames = this->data_size / this->audio_channels;
-      this->audio_block_align = PCM_BLOCK_ALIGN;
-      this->audio_bytes_per_second = this->audio_channels *
-        this->audio_sample_rate;
-      break;
-
-    case 3:
-      this->audio_type = BUF_AUDIO_LPCM_BE;
-      this->audio_bits = 16;
-      this->audio_frames = this->data_size / 
-        (this->audio_channels * this->audio_bits / 8);
-      this->audio_block_align = PCM_BLOCK_ALIGN;
-      this->audio_bytes_per_second = this->audio_channels *
-        (this->audio_bits / 8) * this->audio_sample_rate;
-      break;
-
-    case 27:
-      this->audio_type = BUF_AUDIO_ALAW;
-      this->audio_bits = 16;
-      this->audio_frames = this->data_size / this->audio_channels;
-      this->audio_block_align = PCM_BLOCK_ALIGN;
-      this->audio_bytes_per_second = this->audio_channels *
-        this->audio_sample_rate;
-      break;
-
-    default:
-      xine_log(this->xine, XINE_LOG_MSG,
-        _("demux_snd: unsupported audio type: %d\n"), encoding);
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_CANNOT_HANDLE;
-      break;
-  }
-
-  this->running_time = this->audio_frames / this->audio_sample_rate;
-
   /* load stream information */
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
     this->audio_sample_rate;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
     this->audio_bits;
 
-  xine_demux_control_headers_done (this->xine);
+  /* send start buffers */
+  xine_demux_control_start(this->stream);
+
+  /* send init info to decoders */
+  if (this->audio_fifo && this->audio_type) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = this->audio_type;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->audio_sample_rate;
+    buf->decoder_info[2] = this->audio_bits;
+    buf->decoder_info[3] = this->audio_channels;
+    buf->size = 0;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
-}
-
-static int demux_snd_open(demux_plugin_t *this_gen,
-                          input_plugin_t *input, int stage) {
-
-  demux_snd_t *this = (demux_snd_t *) this_gen;
-  unsigned char header[SND_HEADER_SIZE];
-
-  this->input = input;
-
-  switch(stage) {
-  case STAGE_BY_CONTENT: {
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
-      return DEMUX_CANNOT_HANDLE;
-
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, header, SND_HEADER_SIZE) != SND_HEADER_SIZE)
-      return DEMUX_CANNOT_HANDLE;
-
-    /* check the signature */
-    if (BE_32(&header[0]) == snd_TAG)
-      return load_snd_and_send_headers(this);
-
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
-
-    MRL = input->get_mrl (input);
-
-    suffix = strrchr(MRL, '.');
-
-    if(!suffix)
-      return DEMUX_CANNOT_HANDLE;
-
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                                                            "mrl.ends_snd", VALID_ENDS,
-                                                            _("valid mrls ending for snd demuxer"),
-                                                            NULL, 10, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
-
-      while(*m == ' ' || *m == '\t') m++;
-
-      if(!strcasecmp((suffix + 1), m))
-        return load_snd_and_send_headers(this);
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-  }
-
-  return DEMUX_CANNOT_HANDLE;
 }
 
 static int demux_snd_seek (demux_plugin_t *this_gen,
@@ -334,7 +310,6 @@ static int demux_snd_start (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
   demux_snd_t *this = (demux_snd_t *) this_gen;
-  buf_element_t *buf;
   int err;
 
   demux_snd_seek(this_gen, start_pos, start_time);
@@ -343,33 +318,6 @@ static int demux_snd_start (demux_plugin_t *this_gen,
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    /* print vital stats */
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("demux_snd: %d Hz, %d channels, %d bits, %d frames\n"),
-      this->audio_sample_rate,
-      this->audio_channels,
-      this->audio_bits,
-      this->audio_frames);
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("demux_snd: running time: %d min, %d sec\n"),
-      this->running_time / 60,
-      this->running_time % 60);
-
-    /* send start buffers */
-    xine_demux_control_start(this->xine);
-
-    /* send init info to decoders */
-    if (this->audio_fifo && this->audio_type) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = this->audio_type;
-      buf->decoder_flags = BUF_FLAG_HEADER;
-      buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = this->audio_sample_rate;
-      buf->decoder_info[2] = this->audio_bits;
-      buf->decoder_info[3] = this->audio_channels;
-      buf->size = 0;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
 
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
@@ -417,7 +365,7 @@ static int demux_snd_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   status = this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->xine);
+  xine_demux_flush_engine (this->stream);
   pthread_mutex_unlock(&this->mutex);
 
   return status;
@@ -445,13 +393,15 @@ static void demux_snd_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_snd_dispose (demux_plugin_t *this_gen) {
   demux_snd_t *this = (demux_snd_t *) this_gen;
+
+  demux_snd_stop(this_gen);
 
   pthread_mutex_destroy (&this->mutex);
   free(this);
@@ -463,14 +413,6 @@ static int demux_snd_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static char *demux_snd_get_id(void) {
-  return "SND/AU";
-}
-
-static char *demux_snd_get_mimetypes(void) {
-  return NULL;
-}
-
 /* return the approximate length in seconds */
 static int demux_snd_get_stream_length (demux_plugin_t *this_gen) {
 
@@ -479,33 +421,132 @@ static int demux_snd_get_stream_length (demux_plugin_t *this_gen) {
   return this->running_time;
 }
 
-static void *init_demuxer_plugin(xine_t *xine, void *data) {
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
 
-  demux_snd_t *this;
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_snd_t    *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_snd.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
 
   this         = xine_xmalloc (sizeof (demux_snd_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this->stream = stream;
+  this->input  = input;
 
-  (void*) this->config->register_string(this->config,
-                                        "mrl.ends_snd", VALID_ENDS,
-                                        _("valid mrls ending for snd demuxer"),
-                                        NULL, 10, NULL, NULL);
-  
-  this->demux_plugin.open              = demux_snd_open;
+  this->demux_plugin.send_headers      = demux_snd_send_headers;
   this->demux_plugin.start             = demux_snd_start;
   this->demux_plugin.seek              = demux_snd_seek;
   this->demux_plugin.stop              = demux_snd_stop;
   this->demux_plugin.dispose           = demux_snd_dispose;
   this->demux_plugin.get_status        = demux_snd_get_status;
-  this->demux_plugin.get_identifier    = demux_snd_get_id;
   this->demux_plugin.get_stream_length = demux_snd_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_snd_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
+  pthread_mutex_init (&this->mutex, NULL);
 
-  return (demux_plugin_t *) this;
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    if (!open_snd_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".snd", 4) ||
+        strncasecmp (ending, ".au", 3)) {
+      free (this);
+      return NULL;
+    }
+
+    if (!open_snd_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  }
+
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  /* print vital stats */
+  xine_log(this->stream->xine, XINE_LOG_MSG,
+    _("demux_snd: %d Hz, %d channels, %d bits, %d frames\n"),
+    this->audio_sample_rate,
+    this->audio_channels,
+    this->audio_bits,
+    this->audio_frames);
+  xine_log(this->stream->xine, XINE_LOG_MSG,
+    _("demux_snd: running time: %d min, %d sec\n"),
+    this->running_time / 60,
+    this->running_time % 60);
+
+  return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "SND/AU file demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "SND/AU";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "snd au";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_snd_class_t *this = (demux_snd_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_snd_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_snd_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
+  return this;
 }
 
 /*
@@ -514,6 +555,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "snd", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "snd", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
