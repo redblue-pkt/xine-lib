@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.189 2003/12/30 02:14:07 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.190 2004/02/28 15:09:01 tmattern Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -565,10 +565,19 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
 }
 
 static void xv_clean_output_area (xv_driver_t *this) {
+  int i;
+
   XLockDisplay (this->display);
+
   XSetForeground (this->display, this->gc, this->black.pixel);
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 this->sc.gui_x, this->sc.gui_y, this->sc.gui_width, this->sc.gui_height);
+
+  for( i = 0; i < 4; i++ ) {
+    if( this->sc.border[i].w && this->sc.border[i].h ) {
+      XFillRectangle(this->display, this->drawable, this->gc,
+		     this->sc.border[i].x, this->sc.border[i].y,
+		     this->sc.border[i].w, this->sc.border[i].h);
+    }
+  }
 
   if (this->use_colorkey) {
     XSetForeground (this->display, this->gc, this->colorkey);
@@ -914,7 +923,8 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     /* XExposeEvent * xev = (XExposeEvent *) data; */
 
     if (this->cur_frame) {
-      int i;
+
+      xv_redraw_needed (this_gen);
 
       XLockDisplay (this->display);
 
@@ -934,18 +944,9 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 		   this->sc.output_width, this->sc.output_height);
       }
 
-      XSetForeground (this->display, this->gc, this->black.pixel);
-
-      for( i = 0; i < 4; i++ ) {
-        if( this->sc.border[i].w && this->sc.border[i].h )
-          XFillRectangle(this->display, this->drawable, this->gc,
-                         this->sc.border[i].x, this->sc.border[i].y,
-                         this->sc.border[i].w, this->sc.border[i].h);
-      }
-
       if(this->xoverlay)
-        x11osd_expose(this->xoverlay);
-
+	x11osd_expose(this->xoverlay);
+      
       XSync(this->display, False);
       XUnlockDisplay (this->display);
     }
