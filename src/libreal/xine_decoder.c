@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.27 2003/01/08 01:02:30 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.28 2003/02/14 22:28:46 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -327,7 +327,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	transform_in[0] = this->chunk_buffer_size; /* length of the packet (sub-packets appended) */
 	transform_in[1] = 0; /* unknown, seems to be unused  */
 	transform_in[2] = this->num_chunks-1; /* number of sub-packets - 1 */
-	transform_in[3] = this->chunk_tab; /* table of sub-packet offsets */
+	transform_in[3] = (unsigned long) this->chunk_tab; /* table of sub-packet offsets */
 	transform_in[4] = 0; /* unknown, seems to be unused  */
 	transform_in[5] = this->pts/90; /* timestamp (the integer value from the stream) */
 
