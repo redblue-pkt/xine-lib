@@ -1639,9 +1639,6 @@ case "$host_or_hostalias" in
 esac
 
 
-CFLAGS="$CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
-DEBUG_CFLAGS="$DEBUG_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
-
 AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
 if test x"$enable_w32dll" = "xyes"; then
    W32DLL_DEP=""
