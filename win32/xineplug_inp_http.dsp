@@ -95,6 +95,10 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=..\src\input\http_helper.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\input\input_http.c
 # End Source File
 # Begin Source File

@@ -20,7 +20,7 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.6 2003/12/05 15:54:56 f1rmb Exp $
+ * $Id: audio_directx_out.c,v 1.7 2003/12/13 11:35:07 valtri Exp $
  */
 
 typedef unsigned char boolean;
@@ -782,7 +782,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   lprintf("open_plugin(%08x, %08x) Enter\n", (unsigned long)class_gen, (unsigned long)data);
   lprintf("open_plugin: ao_directx=%08x\n", (unsigned long)ao_directx);
 
-  ao_driverx->xine                              = class->xine;
+  ao_directx->xine                              = class->xine;
 
   ao_directx->ao_driver.get_capabilities        = ao_directx_get_capabilities;
   ao_directx->ao_driver.get_property	        = ao_directx_get_property;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.126 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: buffer.h,v 1.127 2003/12/13 11:35:07 valtri Exp $
  *
  *
  * contents:
@@ -463,7 +463,7 @@ struct fifo_buffer_s
    * buffer allocation functions
    */
 
-  buf_element_t *(*buffer_pool_alloc) (fifo_buffer_t *this);
+  buf_element_t *(*buffer_pool_alloc) (fifo_buffer_t *self);
 
 
   /*
@@ -471,7 +471,7 @@ struct fifo_buffer_s
    */
 
   /* the same as buffer_pool_alloc but may fail if none is available */
-  buf_element_t *(*buffer_pool_try_alloc) (fifo_buffer_t *this);
+  buf_element_t *(*buffer_pool_try_alloc) (fifo_buffer_t *self);
 
   /* the same as put but insert at the head of the fifo */
   void (*insert) (fifo_buffer_t *fifo, buf_element_t *buf);

@@ -17,9 +17,8 @@ Steps for building Xine using MSVC:
 
 - Build the following projects in this order:
   libxinesuppt
-  libxineutils
-  libdvdnav
   libxine
+  libdvdnav
 
 - Next build any desired plugins (decoders/demuxers ...). The ao_out_directx and vo_out_directx are required for Win32. There is an option to use the vo_out_sdl but a sdl.dll must be present for that to take place. There have also been some issues observed with the directX video driver on some machines.
 NOTE: Project xineplug_dmx_asf currently does not build correctly.

@@ -26,9 +26,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxinesuppt
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -41,9 +38,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxinesuppt
     End Project Dependency
@@ -63,21 +57,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libxineutils"=".\libxineutils.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "xineplug_ao_out_directx"=".\xineplug_ao_out_directx.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -86,6 +65,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -99,10 +81,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -117,10 +96,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -135,10 +111,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -153,10 +126,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -171,13 +141,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -193,12 +157,6 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -218,9 +176,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -234,13 +189,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxinesuppt
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -257,12 +209,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -275,12 +221,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
@@ -299,12 +239,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -317,12 +251,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
@@ -338,6 +266,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -351,13 +282,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -372,13 +297,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -395,12 +314,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -414,13 +327,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -437,12 +344,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -457,12 +358,6 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -479,12 +374,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -499,12 +388,6 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -521,12 +404,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -541,12 +418,6 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -563,12 +434,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -582,13 +447,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxinesuppt
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -604,12 +466,6 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libdvdnav
@@ -632,9 +488,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -648,13 +501,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxinesuppt
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -669,13 +519,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxinesuppt
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -690,7 +537,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxineutils
+    Project_Dep_Name libxine
     End Project Dependency
 }}}
 
@@ -704,9 +551,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
@@ -730,9 +574,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 

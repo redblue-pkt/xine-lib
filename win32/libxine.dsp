@@ -76,7 +76,7 @@ PostBuild_Cmds=scripts\move_xine_fonts.bat Release
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINE_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "include" /I "contrib/pthreads" /I "contrib/zlib" /I "contrib/dirent" /I "contrib/timer" /I "../include" /I ".." /I "../intl" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINE_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /D "__WINE_WINDEF_H" /D "__WINE_WINGDI_H" /D "__WINE_VFW_H" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "include" /I "contrib/pthreads" /I "contrib/zlib" /I "contrib/dirent" /I "contrib/timer" /I "../include" /I ".." /I "../intl" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINE_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /D "__WINE_WINDEF_H" /D "__WINE_WINGDI_H" /D "__WINE_VFW_H" /D "HAVE_NANOSLEEP" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -86,7 +86,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libdvdnav.lib wsock32.lib /nologo /dll /debug /machine:I386 /out:"Debug/bin/libxine.dll" /pdbtype:sept /libpath:"Debug\libdvdnav" /libpath:"lib"
+# ADD LINK32 wsock32.lib /nologo /dll /debug /machine:I386 /out:"Debug/bin/libxine.dll" /pdbtype:sept /libpath:"lib"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
@@ -100,9 +100,17 @@ PostBuild_Cmds=scripts\move_xine_fonts.bat Debug
 
 # Name "libxine - Win32 Release"
 # Name "libxine - Win32 Debug"
-# Begin Group "Source Files"
+# Begin Group "DLL Defs"
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\libxine.def
+# End Source File
+# End Group
+# Begin Group "xine-engine"
+
+# PROP Default_Filter ""
 # Begin Source File
 
 SOURCE="..\src\xine-engine\audio_decoder.c"
@@ -141,11 +149,11 @@ SOURCE="..\src\xine-engine\info_helper.c"
 # End Source File
 # Begin Source File
 
-SOURCE="..\src\xine-engine\io_helper.c"
+SOURCE="..\src\xine-engine\input_rip.c"
 # End Source File
 # Begin Source File
 
-SOURCE="..\src\xine-engine\input_rip.c"
+SOURCE="..\src\xine-engine\io_helper.c"
 # End Source File
 # Begin Source File
 
@@ -204,12 +212,52 @@ SOURCE="..\src\xine-engine\xine.c"
 SOURCE="..\src\xine-engine\xine_interface.c"
 # End Source File
 # End Group
-# Begin Group "DLL Defs"
+# Begin Group "xine-utils"
 
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\libxine.def
+SOURCE="..\src\xine-utils\color.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\cpu_accel.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\list.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\memcpy.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\monitor.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\utils.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\xine_buffer.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\xine_check.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\xine_mutex.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\xmllexer.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-utils\xmlparser.c"
 # End Source File
 # End Group
 # End Target

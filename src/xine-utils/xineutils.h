@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.74 2003/12/13 01:47:35 f1rmb Exp $
+ * $Id: xineutils.h,v 1.75 2003/12/13 11:35:08 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -903,7 +903,7 @@ void xine_hexdump (const char *buf, int length);
     #define lprintf(fmt, args...)     do {} while(0)
   #else
   #ifdef _MSC_VER
-    #define lprintf                   do {} while(0)
+    #define lprintf
   #else
     #define lprintf(...)              do {} while(0)
   #endif /* _MSC_VER */

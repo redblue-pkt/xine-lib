@@ -13,7 +13,7 @@ xine-lib (1-rc3)
   * realaudio demuxer improvements including support for 14.4 codec and reading
     meta info
   * post plugin for ffmpeg libpostprocess (pp)
-  * updated win32 port
+  * updated win32 MSVC port
   * default to menu button 1, if an invalid button is set
     (fixes main menu of "Alice in Wonderland" RC2)
   * fix yuy2 output on mga_vid vidix driver

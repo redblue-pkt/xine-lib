@@ -140,6 +140,10 @@ SOURCE=..\src\demuxers\demux_wav.c
 
 SOURCE=..\src\demuxers\group_audio.c
 # End Source File
+# Begin Source File
+
+SOURCE=..\src\demuxers\id3.c
+# End Source File
 # End Group
 # Begin Group "Dll Defs"
 

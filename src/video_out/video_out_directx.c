@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.12 2003/12/05 15:55:03 f1rmb Exp $
+ * $Id: video_out_directx.c,v 1.13 2003/12/13 11:35:07 valtri Exp $
  */
 
 typedef unsigned char boolean;
@@ -839,7 +839,7 @@ static vo_frame_t * win32_alloc_frame( vo_driver_t * vo_driver )
   win32_driver_t *win32_driver = (win32_driver_t *)vo_driver;
   win32_frame_t  *win32_frame;
 
-  win32_frame = ( win32_frame_t * ) xine_malloc( sizeof( win32_frame_t ) );
+  win32_frame = ( win32_frame_t * ) xine_xmalloc( sizeof( win32_frame_t ) );
   if (!win32_frame)
     return NULL;
 
