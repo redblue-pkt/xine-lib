@@ -184,8 +184,8 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
   if( osd->x2 >= osd->x1 ) {
  
     this->event.object.handle = osd->handle;
-    /* not really needed this, but good pratice to clean it up */
-    memset( this->event.object.overlay, 0, sizeof(this->event.object.overlay) );
+
+    memset( this->event.object.overlay, 0, sizeof(*this->event.object.overlay) );
     this->event.object.overlay->x = osd->display_x + osd->x1;
     this->event.object.overlay->y = osd->display_y + osd->y1;
     this->event.object.overlay->width = osd->x2 - osd->x1 + 1;
@@ -199,18 +199,18 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
                                               osd->display_y;
    
     spare = osd->y2 - osd->y1;
-    
+    this->event.object.overlay->num_rle = 0;
     this->event.object.overlay->data_size = 1024;
     rle_p = this->event.object.overlay->rle = 
        malloc(this->event.object.overlay->data_size * sizeof(rle_elem_t) );
     
     for( y = osd->y1; y <= osd->y2; y++ ) {
       rle.len = 0;
-      c = osd->area + y * osd->width + osd->x1;
+      c = osd->area + y * osd->width + osd->x1;                                       
       for( x = osd->x1; x <= osd->x2; x++, c++ ) {
         if( rle.color != *c ) {
           if( rle.len ) {
-            if( (this->event.object.overlay->num_rle + spare) * sizeof(rle_elem_t) > 
+            if( (this->event.object.overlay->num_rle + spare) > 
                 this->event.object.overlay->data_size ) {
                 this->event.object.overlay->data_size += 1024;
                 rle_p = this->event.object.overlay->rle = 
