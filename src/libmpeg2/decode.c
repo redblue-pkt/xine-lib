@@ -152,29 +152,49 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
   /*printf("mpeg2dec: rff=%u\n",frame->repeat_first_field);*/
 } 
 
+static double get_aspect_ratio(mpeg2dec_t *mpeg2dec)
+{
+  double ratio;
+  picture_t * picture = mpeg2dec->picture;
+  double mpeg1_pel_ratio[16] = {1.0 /* forbidden */,
+    1.0, 0.6735, 0.7031, 0.7615, 0.8055, 0.8437, 0.8935, 0.9157,
+    0.9815, 1.0255, 1.0695, 1.0950, 1.1575, 1.2015, 1.0 /*reserved*/ };
+
+  if( !picture->mpeg1 ) {
+    /* these hardcoded values are defined on mpeg2 standard for
+     * aspect ratio. other values are reserved or forbidden.  */
+    switch(picture->aspect_ratio_information) {
+    case 2:
+      ratio = 4.0/3.0;
+      break;
+    case 3:
+      ratio = 16.0/9.0;
+      break;
+    case 4:
+      ratio = 2.11/1.0;
+      break;
+    case 1:
+    default:
+      ratio = (double)picture->coded_picture_width/(double)picture->coded_picture_height;
+      break;
+    }
+  } else {
+    /* mpeg1 constants refer to pixel aspect ratio */
+    ratio = (double)picture->coded_picture_width/(double)picture->coded_picture_height;
+    ratio /= mpeg1_pel_ratio[picture->aspect_ratio_information];
+  }
+
+  return ratio;
+}
+
 static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
 
   picture_t * picture = mpeg2dec->picture;
 
   mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = picture->frame_width;
   mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = picture->frame_height;
-
-  switch (picture->aspect_ratio_information) {
-  case 2:
-    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
-    break;
-  case 3:
-    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 /9.0;
-    break;
-  case 4:         /* 2.11:1 */
-    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11/1.0;
-    break;
-  case 1:      /* square pels */
-  default:
-    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 
-      picture->frame_width/picture->frame_height;
-    break;
-  }
+  mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 
+    ((double)10000 * get_aspect_ratio(mpeg2dec));
 
   switch (mpeg2dec->picture->frame_rate_code) {
   case 1: /* 23.976 fps */
@@ -216,7 +236,6 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 {
     picture_t * picture;
     int is_frame_done;
-    double ratio;
     
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed) {
@@ -462,29 +481,12 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		     picture->current_frame != picture->forward_reference_frame ) {
 			picture->current_frame->free (picture->current_frame);
 		}
-		/* these hardcoded values are defined on mpeg2 standard for
-                 * aspect ratio. other values are reserved or forbidden.  */
-		switch(picture->aspect_ratio_information) {
-		case 2:
-		  ratio = 4.0/3.0;
-		  break;
-		case 3:
-		  ratio = 16.0/9.0;
-		  break;
-		case 4:
-		  ratio = 2.11/1.0;
-		  break;
-		case 1:
-		default:
-		  ratio = (double)picture->coded_picture_width/(double)picture->coded_picture_height;
-		  break;
-		}
 		if (picture->picture_coding_type == B_TYPE)
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
-						     ratio,
+						     get_aspect_ratio(mpeg2dec),
 						     XINE_IMGFMT_YV12,
 						     flags);
 		else {
@@ -492,7 +494,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
-						     ratio,
+						     get_aspect_ratio(mpeg2dec),
 						     XINE_IMGFMT_YV12,
 						     flags);
 		    if (picture->forward_reference_frame &&
