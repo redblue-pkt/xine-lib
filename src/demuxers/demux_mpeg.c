@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.68 2002/07/20 08:04:55 tmattern Exp $
+ * $Id: demux_mpeg.c,v 1.69 2002/08/04 21:45:10 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -83,6 +83,80 @@ typedef struct demux_mpeg_s {
   int                  buf_flag_seek;
 
 } demux_mpeg_t;
+
+/*
+ * borrow a little knowledge from the Quicktime demuxer
+ */
+#include "bswap.h"
+
+#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
+#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
+#define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
+        ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
+        ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
+
+#define MDAT_ATOM QT_ATOM('m', 'd', 'a', 't')
+#define ATOM_PREAMBLE_SIZE 8
+
+/*
+ * This function traverses a file and looks for a mdat atom. Upon exit:
+ * *mdat_offset contains the file offset of the beginning of the mdat
+ *  atom (that means the offset  * of the 4-byte length preceding the
+ *  characters 'mdat')
+ * *mdat_size contains the 4-byte size preceding the mdat characters in
+ *  the atom. Note that this will be 1 in the case of a 64-bit atom.
+ * Both mdat_offset and mdat_size are set to -1 if not mdat atom was
+ * found.
+ *
+ * Note: Do not count on the input stream being positioned anywhere in
+ * particular when this function is finished.
+ */
+static void find_mdat_atom(input_plugin_t *input, off_t *mdat_offset,
+  int64_t *mdat_size) {
+
+  off_t atom_size;
+  unsigned int atom;
+  unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
+
+  /* init the passed variables */
+  *mdat_offset = *mdat_size = -1;
+
+  /* take it from the top */
+  if (input->seek(input, 0, SEEK_SET) != 0)
+    return;
+
+  /* traverse through the input */
+  while (*mdat_offset == -1) {
+    if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
+      ATOM_PREAMBLE_SIZE)
+      break;
+
+    atom_size = BE_32(&atom_preamble[0]);
+    atom = BE_32(&atom_preamble[4]);
+
+    if (atom == MDAT_ATOM) {
+      *mdat_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
+      *mdat_size = atom_size;
+      break;
+    }
+
+    /* 64-bit length special case */
+    if (atom_size == 1) {
+      if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
+        ATOM_PREAMBLE_SIZE)
+        break;
+
+      atom_size = BE_32(&atom_preamble[0]);
+      atom_size <<= 32;
+      atom_size |= BE_32(&atom_preamble[4]);
+      atom_size -= ATOM_PREAMBLE_SIZE * 2;
+    } else
+      atom_size -= ATOM_PREAMBLE_SIZE;
+
+    
+    input->seek(input, atom_size, SEEK_CUR);
+  }
+}
 
 static uint32_t read_bytes (demux_mpeg_t *this, int n) {
 
@@ -831,6 +905,8 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
                            input_plugin_t *input, int stage) {
 
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
+  off_t mdat_atom_offset = -1;
+  int64_t mdat_atom_size = -1;
 
   this->input = input;
 
@@ -847,22 +923,20 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
 
       if(input->read(input, buf, 6)) {
 
-        if(buf[0] || buf[1] || (buf[2] != 0x01))
-          return DEMUX_CANNOT_HANDLE;
+        if(!buf[0] && !buf[1] && (buf[2] == 0x01))
+          switch(buf[3]) {
 
-        switch(buf[3]) {
+          case 0xba:
+            if((buf[4] & 0xf0) == 0x20) {
+              uint32_t pckbuf ;
 
-        case 0xba:
-          if((buf[4] & 0xf0) == 0x20) {
-            uint32_t pckbuf ;
-
-            pckbuf = read_bytes (this, 1);
-            if ((pckbuf>>4) != 4) {
-              this->input = input;
-              return DEMUX_CAN_HANDLE;
+              pckbuf = read_bytes (this, 1);
+              if ((pckbuf>>4) != 4) {
+                this->input = input;
+                return DEMUX_CAN_HANDLE;
+              }
             }
-          }
-          break;
+            break;
 #if 0
         case 0xe0:
           if((buf[6] & 0xc0) != 0x80) {
@@ -876,6 +950,40 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
           }
           break;
 #endif
+        }
+
+        /* special case for MPEG streams hidden inside QT files; check
+         * is there is an mdat atom  */
+        find_mdat_atom(input, &mdat_atom_offset, &mdat_atom_size);
+        if (mdat_atom_offset == -1)
+          return DEMUX_CANNOT_HANDLE;
+
+        /* seek to the start of the mdat data, which might be in different
+         * depending on the size type of the atom */
+        if (mdat_atom_size == 1)
+          input->seek(input, mdat_atom_offset + 16, SEEK_SET);
+        else
+          input->seek(input, mdat_atom_offset + 8, SEEK_SET);
+
+        /* go through the same MPEG detection song and dance */
+        if(input->read(input, buf, 6)) {
+          if(buf[0] || buf[1] || (buf[2] != 0x01))
+            return DEMUX_CANNOT_HANDLE;
+
+          switch(buf[3]) {
+
+          case 0xba:
+            if((buf[4] & 0xf0) == 0x20) {
+              uint32_t pckbuf ;
+
+              pckbuf = read_bytes (this, 1);
+              if ((pckbuf>>4) != 4) {
+                this->input = input;
+                return DEMUX_CAN_HANDLE;
+              }
+            }
+            break;
+          }
         }
       }
     }
