@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.3 2002/06/08 19:29:28 tmmm Exp $
+ * $Id: adpcm.c,v 1.4 2002/06/08 19:45:19 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -773,7 +773,7 @@ static int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
   return ( buf_type == BUF_AUDIO_MSADPCM ||
-           buf_type == BUF_AUDIO_IMAADPCM ||
+           buf_type == BUF_AUDIO_MSIMAADPCM ||
            buf_type == BUF_AUDIO_QTIMAADPCM ||
            buf_type == BUF_AUDIO_DK3ADPCM ||
            buf_type == BUF_AUDIO_DK4ADPCM );
@@ -841,7 +841,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             (this->in_block_size - DK3_ADPCM_PREAMBLE_SIZE) * 8 / 3;
           break;
 
-        case BUF_AUDIO_IMAADPCM:
+        case BUF_AUDIO_MSIMAADPCM:
           /* a block of IMA ADPCM stored in an MS-type file has 4
            * preamble bytes per channel. */
           this->out_block_size =
@@ -889,7 +889,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         ms_adpcm_decode_block(this, buf);
         break;
 
-      case BUF_AUDIO_IMAADPCM:
+      case BUF_AUDIO_MSIMAADPCM:
         ms_ima_adpcm_decode_block(this, buf);
         break;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.24 2002/06/07 04:15:46 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.25 2002/06/08 19:45:19 tmmm Exp $
  *
  *
  * contents:
@@ -454,7 +454,7 @@ static audio_db_t audio_db[] = {
   {
     0x11, 0
   },
-  BUF_AUDIO_IMAADPCM,
+  BUF_AUDIO_MSIMAADPCM,
   "MS IMA ADPCM"
 },
 {

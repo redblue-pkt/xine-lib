@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.78 2002/05/25 19:19:19 siggi Exp $
+ * $Id: w32codec.c,v 1.79 2002/06/08 19:45:19 tmmm Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -907,7 +907,7 @@ static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
 
   return ( (codec == BUF_AUDIO_DIVXA) ||
 	   (codec == BUF_AUDIO_MSADPCM) ||
-	   (codec == BUF_AUDIO_IMAADPCM) ||
+	   (codec == BUF_AUDIO_MSIMAADPCM) ||
 	   (codec == BUF_AUDIO_MSGSM) ||
 	   (codec == BUF_AUDIO_IMC) ||
 	   (codec == BUF_AUDIO_LH) || 
@@ -926,7 +926,7 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     return "divxa32.acm";
   case BUF_AUDIO_MSADPCM:
     return "msadp32.acm";
-  case BUF_AUDIO_IMAADPCM:
+  case BUF_AUDIO_MSIMAADPCM:
     return "imaadp32.acm";
   case BUF_AUDIO_MSGSM:
     return "msgsm32.acm";

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.48 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.49 2002/06/08 19:45:19 tmmm Exp $
  *
  *
  * contents:
@@ -123,7 +123,7 @@ extern "C" {
 #define BUF_AUDIO_DIVXA		0x03040000
 #define BUF_AUDIO_DTS		0x03050000
 #define BUF_AUDIO_MSADPCM	0x03060000
-#define BUF_AUDIO_IMAADPCM	0x03070000
+#define BUF_AUDIO_MSIMAADPCM	0x03070000
 #define BUF_AUDIO_MSGSM		0x03080000 
 #define BUF_AUDIO_VORBIS        0x03090000
 #define BUF_AUDIO_IMC           0x030a0000
