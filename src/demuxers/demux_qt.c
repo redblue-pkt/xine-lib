@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.75 2002/08/01 03:56:31 tmmm Exp $
+ * $Id: demux_qt.c,v 1.76 2002/08/01 04:23:20 miguelfreitas Exp $
  *
  */
 
@@ -1280,8 +1280,6 @@ static void *demux_qt_loop (void *this_gen) {
       /* if there is an incongruency between last and current sample, it
        * must be time to send a new pts */
       if (this->last_frame + 1 != this->current_frame) {
-        xine_demux_flush_engine(this->xine);
-
         /* send new pts */
         xine_demux_control_newpts(this->xine, this->qt->frames[i].pts, BUF_FLAG_SEEK);
 
@@ -1560,6 +1558,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
       
     /* send header info to decoder. some mpeg4 streams need this */
     if( this->qt->video_decoder_config ) {
+printf("demux_qt: sending %d bytes of decoder_config\n",this->qt->video_decoder_config_len); 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = this->qt->video_type;
       buf->size = this->qt->video_decoder_config_len;
@@ -1686,6 +1685,9 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 
   this->current_frame = best_index;
   this->status = DEMUX_OK;
+  
+  xine_demux_flush_engine(this->xine);
+
   pthread_mutex_unlock( &this->mutex );
 
   return this->status;
