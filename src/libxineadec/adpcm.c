@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.5 2002/06/10 06:27:40 tmmm Exp $
+ * $Id: adpcm.c,v 1.6 2002/06/12 04:00:28 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -179,8 +179,8 @@ static void decode_ima_nibbles(unsigned short *output,
     } \
     else \
     { \
-      last_byte = this->buf[i + j]; \
-      j++; \
+      last_byte = this->buf[i + j++]; \
+      if (j > this->in_block_size) break; \
       nibble = last_byte & 0x0F; \
       decode_top_nibble_next = 1; \
     }
@@ -202,7 +202,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   unsigned char nibble;
   int decode_top_nibble_next = 0;
 
-  // ADPCM work variables
+  /* ADPCM work variables */
   int sign;
   int delta;
   int step;
@@ -232,7 +232,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     decode_top_nibble_next = 0;
     while (j < this->in_block_size) {
 
-      // process the first predictor of the sum channel
+      /* process the first predictor of the sum channel */
       DK3_GET_NEXT_NIBBLE();
 
       step = ima_adpcm_step[sum_index];
@@ -255,7 +255,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
       sum_index += ima_adpcm_index[nibble];
       CLAMP_0_TO_88(sum_index);
 
-      // process the diff channel predictor
+      /* process the diff channel predictor */
       DK3_GET_NEXT_NIBBLE();
 
       step = ima_adpcm_step[diff_index];
@@ -278,12 +278,12 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
       diff_index += ima_adpcm_index[nibble];
       CLAMP_0_TO_88(diff_index);
 
-      // output the first pair of stereo PCM samples
+      /* output the first pair of stereo PCM samples */
       diff_channel = (diff_channel + diff_pred) / 2;
       this->decode_buffer[out_ptr++] = sum_pred + diff_channel;
       this->decode_buffer[out_ptr++] = sum_pred - diff_channel;
 
-      // process the second predictor of the sum channel
+      /* process the second predictor of the sum channel */
       DK3_GET_NEXT_NIBBLE();
 
       step = ima_adpcm_step[sum_index];
@@ -306,7 +306,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
       sum_index += ima_adpcm_index[nibble];
       CLAMP_0_TO_88(sum_index);
 
-      // output the second pair of stereo PCM samples
+      /* output the second pair of stereo PCM samples */
       this->decode_buffer[out_ptr++] = sum_pred + diff_channel;
       this->decode_buffer[out_ptr++] = sum_pred - diff_channel;
     }
@@ -463,7 +463,7 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
       index_r = this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE + 2];
     }
 
-    // break apart all of the nibbles in the block
+    /* break apart all of the nibbles in the block */
     if (this->channels == 1) {
       for (j = 0;
         j < (this->in_block_size - MS_IMA_ADPCM_PREAMBLE_SIZE) / 2; j++) {
@@ -473,8 +473,8 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
           this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE + j] >> 4;
       }
     } else {
-      // encoded as 8 nibbles (4 bytes) per channel; switch channel every
-      // 4th byte
+      /* encoded as 8 nibbles (4 bytes) per channel; switch channel every
+       * 4th byte */
       channel_counter = 0;
       channel_index_l = 0;
       channel_index_r = 1;
@@ -657,7 +657,7 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   int coeff2[2];
   int upper_nibble = 1;
   int nibble;
-  int snibble;  // signed nibble
+  int snibble;  /* signed nibble */
   int predictor;
 
   /* make sure the input size checks out */
@@ -670,7 +670,7 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   /* iterate through each block in the in buffer */
   for (i = 0; i < this->size; i += this->in_block_size) {
 
-    // fetch the header information, in stereo if both channels are present
+    /* fetch the header information, in stereo if both channels are present */
     j = i;
     upper_nibble = 1;
     current_channel = 0;
@@ -721,7 +721,7 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
     j = MS_ADPCM_PREAMBLE_SIZE * this->channels;
     while (j < this->in_block_size) {
-      // get the next nibble
+      /* get the next nibble */
       if (upper_nibble)
         nibble = snibble = this->buf[i + j] >> 4;
       else
@@ -738,12 +738,12 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
       sample1[current_channel] = predictor;
       this->decode_buffer[out_ptr++] = predictor;
 
-      // compute the next adaptive scale factor (a.k.a. the variable idelta)
+      /* compute the next adaptive scale factor (a.k.a. the variable idelta) */
       idelta[current_channel] =
         (ms_adapt_table[nibble] * idelta[current_channel]) / 256;
       CLAMP_ABOVE_16(idelta[current_channel]);
 
-      // toggle the channel
+      /* toggle the channel */
       current_channel ^= this->channels - 1;
     }
 
