@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.40 2002/11/20 11:57:43 mroi Exp $
+ * $Id: xine_decoder.c,v 1.41 2002/12/14 20:01:53 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -41,6 +41,10 @@
 #include "a52_internal.h"
 #include "buffer.h"
 #include "xineutils.h"
+
+/*
+#define LOG
+*/
 
 #undef DEBUG_A52
 #ifdef DEBUG_A52
@@ -283,6 +287,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 	printf ("liba52: help - unsupported mode %08x\n", output_mode);
       }
     }
+#ifdef LOG
+    printf ("liba52: %d frames output\n", buf->num_frames);
+#endif
 
     /*  output decoded samples */
 
@@ -349,8 +356,21 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t          *end = buf->content + buf->size;
   uint8_t           byte;
 
+#ifdef LOG
+  printf ("liba52: decode data %d bytes of type %08x, pts=%lld\n",
+	  buf->size, buf->type, buf->pts);
+#endif
+
+  if (buf->decoder_flags & BUF_FLAG_HEADER)
+    return;
+
   /* swap byte pairs if this is RealAudio DNET data */
   if (buf->type == BUF_AUDIO_DNET) {
+
+#ifdef LOG
+    printf ("liba52: byte-swapping dnet\n");
+#endif
+
     while (current != end) {
       byte = *current++;
       *(current - 1) = *current;
@@ -367,9 +387,19 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   while (current != end) {
 
+#ifdef LOG
+    printf ("liba52: processing...\n");
+#endif
+
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
-      if ((buf->decoder_flags & BUF_FLAG_PREVIEW)==0)
+      if ((buf->decoder_flags & BUF_FLAG_PREVIEW)==0) {
 	a52dec_decode_frame (this, this->pts);
+
+#ifdef LOG
+	printf ("liba52: decode frame\n");
+#endif
+      }
+
 #ifdef DEBUG_A52
       write (a52file, this->frame_buffer, this->frame_length);
 #endif
@@ -382,6 +412,11 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       byte = *current++;
 
       if (this->sync_todo>0) {
+
+#ifdef LOG
+	printf ("liba52: looking for syncword %04x\n", this->syncword);
+#endif
+
 
 	/* search and collect syncinfo */
 
@@ -406,6 +441,10 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 					       &this->a52_flags,
 					       &this->a52_sample_rate,
 					       &this->a52_bit_rate);
+#ifdef LOG
+	    printf ("liba52: syncinfo frame_length=%d\n", this->frame_length);
+#endif
+
 	    if (this->frame_length) {
 	      this->frame_todo = this->frame_length - 7;
 
