@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.119 2003/04/15 17:52:36 guenter Exp $
+ * $Id: audio_out.c,v 1.120 2003/04/18 03:00:33 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -43,6 +43,15 @@
  *                                 ALSA: Standard stereo out
  * No testing has been done of ALSA SPDIF AC3 or any 4,5,5.1 channel output.
  * Currently, I don't think resampling functions, as I cannot test it.
+ *
+ * equalizer based on
+ *
+ *   PCM time-domain equalizer
+ *
+ *   Copyright (C) 2002  Felipe Rivera <liebremx at users sourceforge net>
+ *
+ * heavily modified by guenter bartsch 2003 for use in libxine
+ *
  */
 
 #ifndef	__sun
@@ -64,6 +73,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <math.h>
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
@@ -134,6 +144,52 @@ typedef struct {
   int      valid;
 } resample_sync_t;
 
+/*
+ * equalizer stuff
+ */
+
+#define EQ_BANDS    10
+#define EQ_CHANNELS  8
+
+#define FP_FRBITS 28	
+
+#define EQ_REAL(x) ((int)((x) * (1 << FP_FRBITS)))
+
+typedef struct  {
+  int beta;
+  int alpha; 
+  int gamma;
+} sIIRCoefficients;
+
+/* Coefficient history for the IIR filter */
+typedef struct {
+  int x[3]; /* x[n], x[n-1], x[n-2] */
+  int y[3]; /* y[n], y[n-1], y[n-2] */
+}sXYData;
+
+
+static sIIRCoefficients iir_cf[] = {
+  /* 31 Hz*/
+  { EQ_REAL(9.9691562441e-01), EQ_REAL(1.5421877947e-03), EQ_REAL(1.9968961468e+00) },
+  /* 62 Hz*/
+  { EQ_REAL(9.9384077546e-01), EQ_REAL(3.0796122698e-03), EQ_REAL(1.9937629855e+00) },
+  /* 125 Hz*/
+  { EQ_REAL(9.8774277725e-01), EQ_REAL(6.1286113769e-03), EQ_REAL(1.9874275518e+00) },
+  /* 250 Hz*/
+  { EQ_REAL(9.7522112569e-01), EQ_REAL(1.2389437156e-02), EQ_REAL(1.9739682661e+00) },
+  /* 500 Hz*/
+  { EQ_REAL(9.5105628526e-01), EQ_REAL(2.4471857368e-02), EQ_REAL(1.9461077269e+00) },
+  /* 1k Hz*/
+  { EQ_REAL(9.0450844499e-01), EQ_REAL(4.7745777504e-02), EQ_REAL(1.8852109613e+00) },
+  /* 2k Hz*/
+  { EQ_REAL(8.1778971701e-01), EQ_REAL(9.1105141497e-02), EQ_REAL(1.7444877599e+00) },
+  /* 4k Hz*/
+  { EQ_REAL(6.6857185264e-01), EQ_REAL(1.6571407368e-01), EQ_REAL(1.4048592171e+00) },
+  /* 8k Hz*/
+  { EQ_REAL(4.4861333678e-01), EQ_REAL(2.7569333161e-01), EQ_REAL(6.0518718075e-01) },
+  /* 16k Hz*/
+  { EQ_REAL(2.4201241845e-01), EQ_REAL(3.7899379077e-01), EQ_REAL(-8.0847117831e-01) },
+};
                                    
 typedef struct {
  
@@ -180,12 +236,25 @@ typedef struct {
   int             flush_audio_driver;
   int             discard_buffers;
 
+  /* some built-in audio filters */
+
   int             do_compress;
   double          compression_factor;   /* current compression */
   double          compression_factor_max; /* user limit on compression */
   int             do_amp;
   double          amp_factor;
 
+  /* 10-band equalizer */
+
+  int             do_equ;
+  float           eq_gain[EQ_BANDS];
+  float           eq_preamp;
+  int             eq_i;
+  int             eq_j;
+  int             eq_k;
+
+  sXYData         eq_data_history[EQ_BANDS][EQ_CHANNELS];
+  
 } aos_t;
 
 struct audio_fifo_s {
@@ -466,18 +535,83 @@ static void audio_filter_amp (aos_t *this, int16_t *mem, int num_frames) {
   }
 }
 
+static void audio_filter_equalize (aos_t *this, 
+				   int16_t *data, int num_frames) {
+  int       index, band, channel;
+  int       halflength, length;
+  int       out[EQ_CHANNELS], scaledpcm[EQ_CHANNELS];
+  long long l;
+  int       num_channels;
+
+  num_channels = mode_channels (this->input.mode);
+  if (!num_channels)
+    return;
+
+  halflength = num_frames * 2;
+  length = num_frames * 4;
+
+  for (index = 0; index < halflength; index+=2) {
+
+    for (channel = 0; channel < num_channels; channel++) {
+      
+      /* Convert the PCM sample to a fixed fraction */
+      scaledpcm[channel] = ((int)data[index+channel]) << (FP_FRBITS-16-1);
+      
+      out[channel] = 0;
+      /*  For each band */
+      for (band = 0; band < EQ_BANDS; band++) {
+
+	this->eq_data_history[band][channel].x[this->eq_i] = scaledpcm[channel];
+	l = (long long)iir_cf[band].alpha * (long long)(this->eq_data_history[band][channel].x[this->eq_i] - this->eq_data_history[band][channel].x[this->eq_k])
+	  + (long long)iir_cf[band].gamma * (long long)this->eq_data_history[band][channel].y[this->eq_j]
+	  - (long long)iir_cf[band].beta * (long long)this->eq_data_history[band][channel].y[this->eq_k]; 
+	this->eq_data_history[band][channel].y[this->eq_i] = (int)(l >> FP_FRBITS);
+	l = (long long)this->eq_data_history[band][channel].y[this->eq_i] * (long long)EQ_REAL(this->eq_gain[band]);
+	out[channel] +=	(int)(l >> FP_FRBITS);
+      } 
+
+      /*  Volume scaling adjustment by 2^-2 */
+      out[channel] += (scaledpcm[channel] >> 2);
+      
+      /* Adjust the fixed point fraction value to a PCM sample */
+      /* Scale back to a 16bit signed int */
+      out[channel] >>= (FP_FRBITS-16);
+
+      /* Limit the output */
+      if (out[channel] < -32768)
+	data[index+channel] = -32768;
+      else if (out[channel] > 32767)
+	data[index+channel] = 32767;
+      else
+	data[index+channel] = out[channel];
+    } 
+		
+    this->eq_i++; this->eq_j++; this->eq_k++;
+    if (this->eq_i == 3) this->eq_i = 0;
+    else if (this->eq_j == 3) this->eq_j = 0;
+    else this->eq_k = 0;
+  }
+
+}
+
 static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   double          acc_output_frames;
   int             num_output_frames ;
 
   /*
-   * volume / compressor filter
+   * volume / compressor / equalizer filter
    */
 
-  if ( this->do_compress && (this->input.bits == 16))
-    audio_filter_compress (this, buf->mem, buf->num_frames);
-  if ( this->do_amp && (this->input.bits == 16))
-    audio_filter_amp (this, buf->mem, buf->num_frames);
+  if (this->input.bits == 16) {
+
+    if (this->do_equ) 
+      audio_filter_equalize (this, buf->mem, buf->num_frames);
+    if (this->do_compress)
+      audio_filter_compress (this, buf->mem, buf->num_frames);
+    if (this->do_amp) 
+      audio_filter_amp (this, buf->mem, buf->num_frames);
+  }
+
 
   /*
    * resample and output audio data
@@ -1623,6 +1757,26 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->do_compress            = 0;
   this->amp_factor             = 1.0;
   this->do_amp                 = 0;
+
+  this->do_equ                 = 0;
+
+  this->eq_gain[0] = 1.0;
+  this->eq_gain[1] = 0.9;
+  this->eq_gain[2] = 0.6;
+  this->eq_gain[3] = 0.5;
+  this->eq_gain[4] = 0.4;
+  this->eq_gain[5] = 0.0;
+  this->eq_gain[6] = 0.0;
+  this->eq_gain[7] = 0.0;
+  this->eq_gain[8] = 0.0;
+  this->eq_gain[9] = 0.0;
+
+  this->eq_preamp  = 1.0;
+  this->eq_i       = 0;
+  this->eq_j       = 2;
+  this->eq_k       = 1;
+
+  bzero (this->eq_data_history, sizeof(sXYData) * EQ_BANDS * EQ_CHANNELS);
 
   /*
    * pre-allocate memory for samples
