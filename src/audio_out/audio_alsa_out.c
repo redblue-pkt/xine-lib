@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.20 2001/08/25 23:55:50 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.21 2001/08/26 13:10:07 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -124,6 +124,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
   err = snd_output_stdio_attach(&jcd_out, stderr, 0);
+
   switch (mode) {
   case AO_CAP_MODE_MONO:
     this->num_channels = 1;
@@ -135,10 +136,14 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     this->num_channels = 2;
     break;
   case AO_CAP_MODE_4CHANNEL:
+    this->num_channels = 4;
+    break;
   case AO_CAP_MODE_5CHANNEL:
+    this->num_channels = 5;
+    break;
   case AO_CAP_MODE_5_1CHANNEL:
-    error ("ALSA Driver only supports AC3/stereo/mono output modes at the moment. Requested mode=%d",mode);
-    return 0;
+    this->num_channels = 6;
+    break;
   default:
     error ("ALSA Driver only supports AC3/stereo/mono output modes at the moment. Requested mode=%d",mode);
     return 0;
@@ -237,6 +242,7 @@ if (this->audio_fd != NULL) {
                 goto __close;
         }
         err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
+        printf("audio_alsa_out: Number to channels=%d\n",this->num_channels);
         if (err < 0) {
                 error("Channels count non available");
                 goto __close;
@@ -449,8 +455,10 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   int              err;
   char             *pcm_device;
   char             *ac3_device;
+  snd_pcm_hw_params_t *params;
 
   this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
+  snd_pcm_hw_params_alloca(&params);
  
   pcm_device = config->lookup_str(config,"alsa_pcm_device", "hw:0,0");
   ac3_device = config->lookup_str(config,"alsa_ac3_device", "hw:0,2");
@@ -471,16 +479,43 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     error(">>> Check if another program don't already use PCM <<<");                 
     return NULL;                                                                      
   }
+
+  /*
+   * configure audio device
+   */
+  err = snd_pcm_hw_params_any(this->audio_fd, params);
+  if (err < 0) {
+    error("Broken configuration for this PCM: no configurations available");
+    return NULL;
+  }
+  err = snd_pcm_hw_params_set_access(this->audio_fd, params,
+                                       SND_PCM_ACCESS_RW_INTERLEAVED);
+  if (err < 0) {
+    error("Access type not available");
+    return NULL;
+  }
+  this->capabilities = 0;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) 
+    this->capabilities |= AO_CAP_MODE_MONO;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 2))) 
+    this->capabilities |= AO_CAP_MODE_STEREO;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4))) 
+    this->capabilities |= AO_CAP_MODE_4CHANNEL;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 5))) 
+    this->capabilities |= AO_CAP_MODE_5CHANNEL;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6))) 
+    this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+ 
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
   this->output_sample_rate = 0;
-  this->capabilities       = AO_CAP_MODE_STEREO | AO_CAP_MODE_MONO;
   if (config->lookup_int (config, "ac3_pass_through", 0)) {
     this->capabilities |= AO_CAP_MODE_AC3;
     strcpy(this->audio_dev,ac3_device);
     printf("AC3 pass through activated\n");
   }
-   
+  printf("Audio_alsa_out: Capabilities 0x%X\n",this->capabilities);
+ 
   this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
   this->ao_driver.get_property        = ao_alsa_get_property;
   this->ao_driver.set_property        = ao_alsa_set_property;
