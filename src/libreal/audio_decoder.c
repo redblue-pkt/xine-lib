@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.22 2003/04/04 19:20:50 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.23 2003/04/09 12:29:13 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -741,6 +741,9 @@ static void *init_class (xine_t *xine, void *data) {
     if (!stat ("/usr/lib/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
       config->update_string (config, "codec.real_codecs_path", 
 			     "/usr/lib/RealPlayer9/users/Real/Codecs");
+    if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/usr/lib/win32");
   }
 
 #ifdef LOG
