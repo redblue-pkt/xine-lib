@@ -2,9 +2,6 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @CFLAGS@
-ASFLAGS =
-
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libgsm610.la
