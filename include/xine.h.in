@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.36 2002/11/11 21:07:54 f1rmb Exp $
+ * $Id: xine.h.in,v 1.37 2002/11/17 12:14:14 siggi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -421,6 +421,7 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 #define XINE_VISUAL_TYPE_FB                3
 #define XINE_VISUAL_TYPE_GTK               4
 #define XINE_VISUAL_TYPE_DFB               5
+#define XINE_VISUAL_TYPE_PM                6 /* used by the OS/2 port */
 
 /* video parameters */
 #define XINE_PARAM_VO_DEINTERLACE          0x01000000 /* bool               */
