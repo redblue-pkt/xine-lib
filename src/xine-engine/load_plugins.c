@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.91 2002/09/11 17:41:08 guenter Exp $
+ * $Id: load_plugins.c,v 1.92 2002/09/15 12:28:16 jcdutton Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -920,14 +920,29 @@ spu_decoder_t   *get_spu_decoder   (xine_t *this, uint8_t stream_type) {
 void dispose_plugins (xine_t *this) {
 
   /* FIXME: adapt old code */
-  
+  plugin_node_t *node;
+
+  node = xine_list_first_content (this->plugin_catalog->demux);
+  while (node) {
+    demux_plugin_t *dp = node->plugin;
+
+    if (dp)
+      dp->close (dp);
+
+    node = xine_list_next_content (this->plugin_catalog->demux);
+  }
+
+  node = xine_list_first_content (this->plugin_catalog->input);
+  while (node) {
+    input_plugin_t *ip = node->plugin;
+
+    if (ip)
+      ip->dispose (ip);
+
+    node = xine_list_next_content (this->plugin_catalog->input);
+  }
+
 #if 0
-  for (i = 0; i < this->num_demuxer_plugins; i++)
-    this->demuxer_plugins[i]->close (this->demuxer_plugins[i]);
-
-  for (i = 0; i < this->num_input_plugins; i++)
-    this->input_plugins[i]->dispose (this->input_plugins[i]);
-
   for (i = 0; i < this->num_audio_decoders_loaded; i++) 
     this->audio_decoders_loaded[i]->dispose (this->audio_decoders_loaded[i]);
 
