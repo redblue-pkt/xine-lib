@@ -1,3 +1,5 @@
+CFLAGS = @CFLAGS@ -DOPT_SPEED
+
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
@@ -5,14 +7,15 @@ libdir = $(XINE_PLUGINDIR)
 lib_LTLIBRARIES = xineplug_decode_mad.la
 
 xineplug_decode_mad_la_SOURCES = bit.c frame.c layer3.c timer.c \
-	huffman.c stream.c fixed.c layer12.c synth.c xine_decoder.c
+	huffman.c stream.c fixed.c layer12.c synth.c version.c \
+	xine_decoder.c
 
 
 xineplug_decode_mad_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = D.dat huffman.h mad.h stream.h fixed.h \
+noinst_HEADERS = D.dat huffman.h stream.h fixed.h \
 	imdct_s.dat qc_table.dat synth.h bit.h frame.h layer12.h \
-	rq_table.dat timer.h global.h layer3.h sf_table.dat 
+	rq_table.dat timer.h global.h layer3.h sf_table.dat version.h
 
 
 ##

@@ -16,16 +16,32 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: layer12.h,v 1.2 2002/04/30 18:46:58 miguelfreitas Exp $
+ * $Id: version.h,v 1.1 2002/04/30 18:46:58 miguelfreitas Exp $
  */
 
-# ifndef LIBMAD_LAYER12_H
-# define LIBMAD_LAYER12_H
+# ifndef LIBMAD_VERSION_H
+# define LIBMAD_VERSION_H
 
-# include "stream.h"
-# include "frame.h"
+# define MAD_VERSION_MAJOR	0
+# define MAD_VERSION_MINOR	14
+# define MAD_VERSION_PATCH	2
+# define MAD_VERSION_EXTRA	" (beta)"
 
-int mad_layer_I(struct mad_stream *, struct mad_frame *);
-int mad_layer_II(struct mad_stream *, struct mad_frame *);
+# define MAD_VERSION_STRINGIZE(str)	#str
+# define MAD_VERSION_STRING(num)	MAD_VERSION_STRINGIZE(num)
+
+# define MAD_VERSION		MAD_VERSION_STRING(MAD_VERSION_MAJOR) "."  \
+				MAD_VERSION_STRING(MAD_VERSION_MINOR) "."  \
+				MAD_VERSION_STRING(MAD_VERSION_PATCH)  \
+				MAD_VERSION_EXTRA
+
+# define MAD_PUBLISHYEAR	"2000-2001"
+# define MAD_AUTHOR		"Robert Leslie"
+# define MAD_EMAIL		"rob@mars.org"
+
+extern char const mad_version[];
+extern char const mad_copyright[];
+extern char const mad_author[];
+extern char const mad_build[];
 
 # endif

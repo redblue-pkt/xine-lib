@@ -1,5 +1,5 @@
 /*
- * mad - MPEG audio decoder
+ * libmad - MPEG audio decoder library
  * Copyright (C) 2000-2001 Robert Leslie
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: huffman.c,v 1.2 2001/10/03 15:12:09 jkeil Exp $
+ * $Id: huffman.c,v 1.3 2002/04/30 18:46:58 miguelfreitas Exp $
  */
 
 # ifdef HAVE_CONFIG_H
@@ -28,42 +28,20 @@
 # include "huffman.h"
 
 /*
- * Allocation order of bitfield structure members
- */
-#if WORDS_BIGENDIAN
-#define	BIT_FIELDS_HTOL	1	/* high bits allocated first */
-#else
-#define	BIT_FIELDS_HTOL	0	/* low bits allocated first */
-#endif
-#define BIT_FIELDS_LTOH	(!BIT_FIELDS_HTOL)
-
-
-/*
  * These are the Huffman code words for Layer III.
  * The data for these tables are derived from Table B.7 of ISO/IEC 11172-3.
  *
  * These tables support decoding up to 4 Huffman code bits at a time.
  */
 
-#if	ISO_C99		/* initialize union variants ... with ISO C99 */
-# define V(v, w, x, y, hlen)	{ .value = { 1, hlen, v, w, x, y } }
-# define PTR(offs, bits)	{   .ptr = { 0, bits, offs       } }
-#elif	__GNUC__	/* ... using a GNU C compiler extension */
-# define V(v, w, x, y, hlen)	{ value: { 1, hlen, v, w, x, y } }
-# define PTR(offs, bits)	{   ptr: { 0, bits, offs       } }
-#else			/* ... hack for non-iso-c99/non-gnu compilers */
-# if BIT_FIELDS_LTOH
-#  define V(v, w, x, y, hlen)	{ 1 | ((hlen)&7) << 1 | \
-				  ((v)&1) << 4 | ((w)&1) << 5 | \
-				  ((x)&1) << 6 | ((y)&1) << 7 }
-#  define PTR(offs, bits)	{ 0 | ((bits)&7) << 1 | ((offs)&0xfff) << 4 }
+# if defined(__GNUC__)
+#  define PTR(offs, bits)	{ ptr:   { 0, bits, offs       } }
+#  define V(v, w, x, y, hlen)	{ value: { 1, hlen, v, w, x, y } }
 # else
-#  define V(v, w, x, y, hlen)	{ 0x8000 | ((hlen)&7) << 12 | \
-				  ((v)&1) << 11 | ((w)&1) << 10 | \
-				  ((x)&1) <<  9 | ((y)&1) <<  8 }
-#  define PTR(offs, bits)	{ 0x0000 | ((bits)&7) << 12 | ((offs)&0xfff) }
+#  define PTR(offs, bits)	{ { 0, bits, offs } }
+#  define V(v, w, x, y, hlen)	{ { 1, hlen, (v << 0) | (w << 1) |  \
+                                             (x << 2) | (y << 3) } }
 # endif
-#endif
 
 static
 union huffquad const hufftabA[] = {
@@ -128,23 +106,13 @@ union huffquad const hufftabB[] = {
 # undef V
 # undef PTR
 
-#if	ISO_C99		/* initialize union variants ... with ISO C99 */
-# define V(x, y, hlen)		{ .value = { 1, hlen, x, y } }
-# define PTR(offs, bits)	{   .ptr = { 0, bits, offs } }
-#elif	__GNUC__	/* ... using a GNU C compiler extension */
-# define V(x, y, hlen)		{ value: { 1, hlen, x, y } }
-# define PTR(offs, bits)	{   ptr: { 0, bits, offs } }
-#else			/* ... hack for non-iso-c99/non-gnu compilers */
-# if BIT_FIELDS_LTOH
-# define V(x, y, hlen)		{ 1 | ((hlen)&7) << 1 | \
- 				  ((x)&15) << 4 | ((y)&15) << 8 }
-# define PTR(offs, bits)	{ 0 | ((bits)&7) << 1 | ((offs)&0xfff) << 4 }
+# if defined(__GNUC__)
+#  define PTR(offs, bits)	{ ptr:   { 0, bits, offs } }
+#  define V(x, y, hlen)		{ value: { 1, hlen, x, y } }
 # else
-# define V(x, y, hlen)		{ 0x8000 | ((hlen)&7) << 12 | \
-				  ((x)&15) << 8 | ((y)&15) << 4 }
-# define PTR(offs, bits)	{ 0x0000 | ((bits)&7) << 12 | ((offs)&0xfff) }
+#  define PTR(offs, bits)	{ { 0, bits, offs } }
+#  define V(x, y, hlen)		{ { 1, hlen, (x << 0) | (y << 4) } }
 # endif
-#endif
 
 static
 union huffpair const hufftab0[] = {
