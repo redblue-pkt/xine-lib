@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.28 2001/08/14 01:38:17 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.29 2001/08/18 23:28:26 guenter Exp $
  */
 
 /* required for swab() */
@@ -357,45 +357,45 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   if ( this->audio_has_realtime || !this->audio_started ) {
 
-  /*
-   * where, in the timeline is the "end" of the audio buffer at the moment?
-   */
-
-  buffer_vpts = this->metronom->get_current_time (this->metronom);
-
-  if (this->audio_started) {
-    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
-    pos = info.bytes;
-  } else
-    pos = 0;
-
-  if (pos>this->bytes_in_buffer) /* buffer ran dry */ 
-    this->bytes_in_buffer = pos;
-
-  buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
-
-  /*
-   * calculate gap:
-   */
-
-  gap = vpts - buffer_vpts;
-  xprintf (VERBOSE|AUDIO, "audio_oss_out: buff=%d pos=%d buf_vpts=%d gap=%d\n",
-	   this->bytes_in_buffer, pos,buffer_vpts,gap);
-
-  if (gap>GAP_TOLERANCE) {
-    ao_fill_gap (this, gap);
-
-    /* keep xine responsive */
-
-    if (gap>MAX_GAP)
-      return 0;
-
-  } else if (gap<-GAP_TOLERANCE) {
-    bDropPackage = 1;
-    xprintf (VERBOSE|AUDIO, "audio_oss_out: audio package (vpts = %d %d)"
-	     "dropped\n", vpts, gap);
-  }
-
+    /*
+     * where, in the timeline is the "end" of the audio buffer at the moment?
+     */
+    
+    buffer_vpts = this->metronom->get_current_time (this->metronom);
+    
+    if (this->audio_started) {
+      ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+      pos = info.bytes;
+    } else
+      pos = 0;
+    
+    if (pos>this->bytes_in_buffer) /* buffer ran dry */ 
+      this->bytes_in_buffer = pos;
+    
+    buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
+    
+    /*
+     * calculate gap:
+     */
+    
+    gap = vpts - buffer_vpts;
+    xprintf (VERBOSE|AUDIO, "audio_oss_out: buff=%d pos=%d buf_vpts=%d gap=%d\n",
+	     this->bytes_in_buffer, pos,buffer_vpts,gap);
+    
+    if (gap>GAP_TOLERANCE) {
+      ao_fill_gap (this, gap);
+      
+      /* keep xine responsive */
+      
+      if (gap>MAX_GAP)
+	return 0;
+      
+    } else if (gap<-GAP_TOLERANCE) {
+      bDropPackage = 1;
+      xprintf (VERBOSE|AUDIO, "audio_oss_out: audio package (vpts = %d %d)"
+	       "dropped\n", vpts, gap);
+    }
+    
   } /* has realtime */
 
   /*
