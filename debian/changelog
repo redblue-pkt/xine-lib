@@ -1,3 +1,21 @@
+xine-lib (1-beta4-3) unstable; urgency=low
+
+  * added version on FLAC dependancy (closes: #181399)
+  * fixed Replaces: xine-dvdnav, so apt should do the transition smoothly
+    (closes: #175790)
+  * downgraded GNOME recommendation to suggestion (closes: #179523)
+  
+ -- Siggi Langauf <siggi@debian.org>  Wed, 19 Feb 2003 04:29:21 +0100
+
+xine-lib (1-beta4-2) unstable; urgency=low
+
+  * updated dependancies (closes: #179251):
+    - added gnome-vfs input and FLAC support
+    - made those dependancies "suggests:"
+    - made sdl optional as well
+
+ -- Siggi Langauf <siggi@debian.org>  Sun,  2 Feb 2003 22:09:02 +0100
+
 xine-lib (1-beta4-1) unstable; urgency=low
 
   * new upstream release (fixes compilation on mmx capable ix86 machines)

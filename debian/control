@@ -2,7 +2,8 @@ Source: xine-lib
 Section: libs
 Priority: optional
 Maintainer: Siggi Langauf <siggi@debian.org>
-Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), xlibs-dev (>> 4.1), libesd0-dev, libz-dev, libarts-dev (>=4:2.2.0-final-3), liblircclient-dev, libogg-dev, libvorbis-dev, libasound2-dev
+Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), xlibs-dev (>> 4.1), libesd0-dev, libz-dev, libarts-dev (>=4:2.2.0-final-3), liblircclient-dev, libogg-dev, libvorbis-dev, libasound2-dev, libflac-dev (>>1.1.0), libgnomevfs2-dev
+Bild-Conflicts: libdvdnav-dev
 Standards-Version: 3.2.1
 
 Package: libxine-dev
@@ -28,9 +29,9 @@ Package: libxine1
 Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ${shlibs:Recommends}
-Suggests: ${shlibs:Suggests}, xine-dvdnav
+Suggests: ${shlibs:Suggests}
 Conflicts: sinek(<<0.7), xine-ui (<< 0.9.10)
-Replaces: xine-dvd
+Replaces: xine-dvdnav
 Description: the xine video/media player library, binary files
  This is the xine media player library (libxine). 
  Libxine provides the complete infrastructure for a video/media player.
