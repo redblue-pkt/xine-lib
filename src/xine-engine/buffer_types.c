@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.20 2002/06/03 16:20:36 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.21 2002/06/04 01:36:32 tmmm Exp $
  *
  *
  * contents:
@@ -398,7 +398,8 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    0x50, 0x55, 0
+    0x50, 0x55,
+    mmioFOURCC('.','m','p','3'), 0
   },
   BUF_AUDIO_MPEG,
   "MPEG layer 2/3"
@@ -458,7 +459,9 @@ static audio_db_t audio_db[] = {
   {                                  
     /* these formattags are used by Vorbis ACM encoder and
        supported by NanDub, a variant of VirtualDub. */
-    0x674f, 0x676f, 0x6750, 0x6770, 0x6751, 0x6771, 0
+    0x674f, 0x676f, 0x6750, 0x6770, 0x6751, 0x6771,
+    mmioFOURCC('O','g','g','S'),
+    0
   },
   BUF_AUDIO_VORBIS,
   "OggVorbis Audio"
