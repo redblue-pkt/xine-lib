@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.65 2003/02/01 18:57:33 guenter Exp $
+ * $Id: demux_ogg.c,v 1.66 2003/02/02 17:36:06 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -757,7 +757,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
     /* now we've got at least one new page */
     
     cur_serno = ogg_page_serialno (&this->og);
-    
+
     for (i = 0; i<this->num_streams; i++) {
       if (this->oss[i].serialno == cur_serno) {
 	stream_num = i;
@@ -767,7 +767,18 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 
     if (stream_num < 0) {
       printf ("demux_ogg: error: unknown stream, serialnumber %d\n", cur_serno);
-      return;
+
+      if (!ogg_page_bos(&this->og)) {
+	  printf ("demux_ogg: help, stream with no beginning!\n");
+      }
+
+      printf ("demux_ogg: adding late stream with serial number %d (all content will be discarded)\n",
+	      cur_serno);
+
+      ogg_stream_init(&this->oss[this->num_streams], cur_serno);
+      stream_num = this->num_streams;
+      this->buf_types[stream_num] = 0;      
+      this->num_streams++;
     }
     
     ogg_stream_pagein(&this->oss[stream_num], &this->og);

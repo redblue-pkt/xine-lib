@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.78 2003/01/31 14:06:10 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.79 2003/02/02 17:36:06 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *

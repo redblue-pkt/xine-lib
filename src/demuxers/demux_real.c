@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.40 2003/01/31 14:06:10 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.41 2003/02/02 17:36:06 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
