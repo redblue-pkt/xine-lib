@@ -655,7 +655,7 @@ static int osd_renderer_load_font(osd_renderer_t *this, char *filename) {
  */
 static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
 
-  osd_font_t *font, *last;
+  osd_font_t *font, *first, *last;
   osd_object_t *osd;
   int i, ret = 0;
   
@@ -671,7 +671,7 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
   }
 
   last = NULL;
-  font = this->fonts;
+  font = first = this->fonts;
   while( font ) {
     if ( !strcasecmp(font->name,fontname) ) {
 
@@ -695,6 +695,9 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
     last = font;
     font = font->next;
   }
+
+  if(first)
+    free(first);
 
   pthread_mutex_unlock (&this->osd_mutex);
   return ret;
