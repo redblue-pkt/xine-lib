@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.8 2003/01/23 22:58:09 siggi Exp $
+ * $Id: input_cdda.c,v 1.9 2003/01/30 23:28:11 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -342,6 +342,8 @@ typedef struct {
   xine_t              *xine;
   config_values_t     *config;
 
+  char                *cdda_device;
+  
   cdda_input_plugin_t *ip;
 
   int                  show_hidden_files;
@@ -361,6 +363,11 @@ typedef struct {
 /*
  * Config callbacks
  */
+static void cdda_device_cb(void *data, xine_cfg_entry_t *cfg) {
+  cdda_input_class_t *class = (cdda_input_class_t *) data;
+  
+  class->cdda_device = cfg->str_value;
+}
 static void enable_cddb_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   cdda_input_class_t *class = (cdda_input_class_t *) data;
   
@@ -1159,7 +1166,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   /* get the CD TOC */
   init_cdrom_toc(&toc);
-  fd = open (DEFAULT_CDDA_DEVICE, O_RDONLY);
+  fd = open (class->cdda_device, O_RDONLY);
   if (fd == -1)
     return NULL;
   read_cdrom_toc(fd, &toc);
@@ -1300,7 +1307,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   
   /* get the CD TOC */
   init_cdrom_toc(&toc);
-  fd = open (DEFAULT_CDDA_DEVICE, O_RDONLY);
+  fd = open (this->cdda_device, O_RDONLY);
   if (fd == -1)
     return NULL;
   read_cdrom_toc(fd, &toc);
@@ -1361,6 +1368,11 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;
+  
+  this->cdda_device = config->register_string(config, "input.cdda_device", 
+					      DEFAULT_CDDA_DEVICE,
+					      _("device used for cdda drive"), NULL, 20, 
+					      cdda_device_cb, (void *) this);
   
   config->register_bool(config, "input.cdda_use_cddb", 1,
 			_("use cddb feature"), NULL, 10,
