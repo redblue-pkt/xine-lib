@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.91 2002/09/30 05:16:45 jcdutton Exp $
+ * $Id: video_out_xshm.c,v 1.92 2002/10/04 13:36:56 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -304,6 +304,18 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   /*xshm_driver_t *this = (xshm_driver_t *) vo_img->driver; */
 
+  if (frame->rgb_dst + frame->stripe_inc > frame->image->bytes_per_line
+        * frame->image->height + frame->image->data) {
+    /* frame->rgb_dst can walk off the end of the frame's image data when
+     * xshm_frame_field, which resets it, is not called properly. This can
+     * happen with corrupt MPEG streams
+     * FIXME: Is there a way to ensure frame->rgb_dst validity?
+     */
+#ifdef LOG
+    printf("video_out_xshm: corrupt value of frame->rgb_dst -- skipping\n");
+#endif
+    return;
+  }
 #ifdef LOG
   printf ("video_out_xshm: copy... (format %d)\n", frame->format);
 #endif
