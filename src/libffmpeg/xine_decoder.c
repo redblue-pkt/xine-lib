@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.151 2004/01/16 16:03:54 andruil Exp $
+ * $Id: xine_decoder.c,v 1.152 2004/01/29 21:32:54 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -153,6 +153,11 @@ typedef struct ff_audio_decoder_s {
 
 } ff_audio_decoder_t;
 
+typedef struct ff_codec_s {
+  uint32_t          type;
+  enum CodecID      id;
+  const char       *name;
+} ff_codec_t;
 
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
@@ -749,9 +754,43 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
   }
 }
 
+
+static const ff_codec_t ff_video_lookup[] = {
+  {BUF_VIDEO_MSMPEG4_V1,  CODEC_ID_MSMPEG4V1, "Microsoft MPEG-4 v1 (ffmpeg)"},
+  {BUF_VIDEO_MSMPEG4_V2,  CODEC_ID_MSMPEG4V2, "Microsoft MPEG-4 v2 (ffmpeg)"},
+  {BUF_VIDEO_MSMPEG4_V3,  CODEC_ID_MSMPEG4V3, "Microsoft MPEG-4 v3 (ffmpeg)"},
+  {BUF_VIDEO_WMV7,        CODEC_ID_WMV1,      "MS Windows Media Video 7 (ffmpeg)"},
+  {BUF_VIDEO_WMV8,        CODEC_ID_WMV2,      "MS Windows Media Video 8 (ffmpeg)"},
+  {BUF_VIDEO_MPEG4,       CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
+  {BUF_VIDEO_XVID,        CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
+  {BUF_VIDEO_DIVX5,       CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
+  {BUF_VIDEO_JPEG,        CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
+  {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
+  {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
+  {BUF_VIDEO_H263,        CODEC_ID_H263,      "H.263 (ffmpeg)"},
+  {BUF_VIDEO_RV10,        CODEC_ID_RV10,      "Real Video 1.0 (ffmpeg)"},
+  {BUF_VIDEO_IV31,        CODEC_ID_INDEO3,    "Indeo Video 3.1 (ffmpeg)"},
+  {BUF_VIDEO_IV32,        CODEC_ID_INDEO3,    "Indeo Video 3.2 (ffmpeg)"},
+  {BUF_VIDEO_SORENSON_V1, CODEC_ID_SVQ1,      "Sorenson Video 1 (ffmpeg)"},
+  {BUF_VIDEO_SORENSON_V3, CODEC_ID_SVQ3,      "Sorenson Video 3 (ffmpeg)"},
+  {BUF_VIDEO_DV,          CODEC_ID_DVVIDEO,   "DV (ffmpeg)"},
+  {BUF_VIDEO_HUFFYUV,     CODEC_ID_HUFFYUV,   "HuffYUV (ffmpeg)"},
+  {BUF_VIDEO_VP31,        CODEC_ID_VP3,       "On2 VP3.1 (ffmpeg)"},
+  {BUF_VIDEO_4XM,         CODEC_ID_4XM,       "4X Video (ffmpeg)"},
+  {BUF_VIDEO_CINEPAK,     CODEC_ID_CINEPAK,   "Cinepak (ffmpeg)"},
+  {BUF_VIDEO_MSVC,        CODEC_ID_MSVIDEO1,  "Microsoft Video 1 (ffmpeg)"},
+  {BUF_VIDEO_MSRLE,       CODEC_ID_MSRLE,     "Microsoft RLE (ffmpeg)"},
+  {BUF_VIDEO_RPZA,        CODEC_ID_RPZA,      "Apple Quicktime Video/RPZA (ffmpeg)"},
+  {BUF_VIDEO_CYUV,        CODEC_ID_CYUV,      "Creative YUV (ffmpeg)"},
+  {BUF_VIDEO_ROQ,         CODEC_ID_ROQ,       "Id Software RoQ (ffmpeg)"},
+  {BUF_VIDEO_IDCIN,       CODEC_ID_IDCIN,     "Id Software CIN (ffmpeg)"},
+  {BUF_VIDEO_WC3,         CODEC_ID_XAN_WC3,   "Xan (ffmpeg)"},
+  {BUF_VIDEO_VQA,         CODEC_ID_WS_VQA,    "Westwood Studios VQA (ffmpeg)"},
+  {BUF_VIDEO_INTERPLAY,   CODEC_ID_INTERPLAY_VIDEO, "Interplay MVE (ffmpeg)"} };
+
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
-  int codec_type;
+  int i, codec_type;
 
   lprintf ("processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
 	   buf->type, buf, buf->decoder_flags);
@@ -781,159 +820,18 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     this->codec = NULL;
 
-    switch (codec_type) {
-    case BUF_VIDEO_MSMPEG4_V1:
-      this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V1);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"Microsoft MPEG-4 v1 (ffmpeg)");
-      break;
-    case BUF_VIDEO_MSMPEG4_V2:
-      this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V2);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"Microsoft MPEG-4 v2 (ffmpeg)");
-      break;
-    case BUF_VIDEO_MSMPEG4_V3:
-      this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V3);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,   
-	"Microsoft MPEG-4 v3 (ffmpeg)");
-      break;
-    case BUF_VIDEO_WMV7:
-      this->codec = avcodec_find_decoder (CODEC_ID_WMV1);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"MS Windows Media Video 7 (ffmpeg)");
-      break;
-    case BUF_VIDEO_WMV8:
-      this->codec = avcodec_find_decoder (CODEC_ID_WMV2);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"MS Windows Media Video 8 (ffmpeg)");
-      break;
-    case BUF_VIDEO_MPEG4 :
-    case BUF_VIDEO_XVID :
-    case BUF_VIDEO_DIVX5 :
-      this->codec = avcodec_find_decoder (CODEC_ID_MPEG4);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"ISO MPEG-4 (ffmpeg)");
-      break;
-    case BUF_VIDEO_JPEG:
-    case BUF_VIDEO_MJPEG:
-      this->codec = avcodec_find_decoder (CODEC_ID_MJPEG);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"Motion JPEG (ffmpeg)");
-      break;
-    case BUF_VIDEO_I263:
-      this->codec = avcodec_find_decoder (CODEC_ID_H263I);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"ITU H.263 (ffmpeg)");
-      break;
-    case BUF_VIDEO_H263:
-      this->codec = avcodec_find_decoder (CODEC_ID_H263);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"H.263 (ffmpeg)");
-      break;
-    case BUF_VIDEO_RV10:
-      this->codec = avcodec_find_decoder (CODEC_ID_RV10);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"Real Video 1.0 (ffmpeg)");
-      break;
-    case BUF_VIDEO_IV31:
-      this->codec = avcodec_find_decoder (CODEC_ID_INDEO3);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Indeo Video 3.1 (ffmpeg)");
-      break;
-    case BUF_VIDEO_IV32:
-      this->codec = avcodec_find_decoder (CODEC_ID_INDEO3);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Indeo Video 3.2 (ffmpeg)");
-      break;
-    case BUF_VIDEO_SORENSON_V1:
-      this->codec = avcodec_find_decoder (CODEC_ID_SVQ1);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"Sorenson Video 1 (ffmpeg)");
-      break;
-    case BUF_VIDEO_SORENSON_V3:
-      this->codec = avcodec_find_decoder (CODEC_ID_SVQ3);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Sorenson Video 3 (ffmpeg)");
-      break;
-    case BUF_VIDEO_DV:
-      this->codec = avcodec_find_decoder (CODEC_ID_DVVIDEO);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"DV (ffmpeg)");
-      break;
-    case BUF_VIDEO_HUFFYUV:
-      this->codec = avcodec_find_decoder (CODEC_ID_HUFFYUV);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"HuffYUV (ffmpeg)");
-      break;
-    case BUF_VIDEO_VP31:
-      this->codec = avcodec_find_decoder (CODEC_ID_VP3);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"On2 VP3.1 (ffmpeg)");
-      break;
-    case BUF_VIDEO_4XM:
-      this->codec = avcodec_find_decoder (CODEC_ID_4XM);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"4X Video (ffmpeg)");
-      break;
-    case BUF_VIDEO_CINEPAK:
-      this->codec = avcodec_find_decoder (CODEC_ID_CINEPAK);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Cinepak (ffmpeg)");
-      break;
-    case BUF_VIDEO_MSVC:
-      this->codec = avcodec_find_decoder (CODEC_ID_MSVIDEO1);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Microsoft Video 1 (ffmpeg)");
-      break;
-    case BUF_VIDEO_MSRLE:
-      this->codec = avcodec_find_decoder (CODEC_ID_MSRLE);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Microsoft RLE (ffmpeg)");
-      break;
-    case BUF_VIDEO_RPZA:
-      this->codec = avcodec_find_decoder (CODEC_ID_RPZA);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Apple Quicktime Video/RPZA (ffmpeg)");
-      break;
-    case BUF_VIDEO_CYUV:
-      this->codec = avcodec_find_decoder (CODEC_ID_CYUV);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Creative YUV (ffmpeg)");
-      break;
-    case BUF_VIDEO_ROQ:
-      this->codec = avcodec_find_decoder (CODEC_ID_ROQ);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Id Software RoQ (ffmpeg)");
-      break;
-    case BUF_VIDEO_IDCIN:
-      this->codec = avcodec_find_decoder (CODEC_ID_IDCIN);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Id Software CIN (ffmpeg)");
-      break;
-    case BUF_VIDEO_WC3:
-      this->codec = avcodec_find_decoder (CODEC_ID_XAN_WC3);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Xan (ffmpeg)");
-      break;
-    case BUF_VIDEO_VQA:
-      this->codec = avcodec_find_decoder (CODEC_ID_WS_VQA);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Westwood Studios VQA (ffmpeg)");
-      break;
-    case BUF_VIDEO_INTERPLAY:
-      this->codec = avcodec_find_decoder (CODEC_ID_INTERPLAY_VIDEO);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"Interplay MVE (ffmpeg)");
-      break;
-    default:
-      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: unknown video format (buftype: 0x%08X)\n"),
-	       buf->type & 0xFFFF0000);
-      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-		       "unknown (ffmpeg)");
-    }
+    for(i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++)
+      if(ff_video_lookup[i].type == codec_type) {
+        this->codec = avcodec_find_decoder(ff_video_lookup[i].id);
+        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
+                         ff_video_lookup[i].name);
+        break;
+      }
 
     if (!this->codec) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: couldn't find decoder\n"));
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+               _("couldn't find/open ffmpeg decoder for buf type 0x%X\n"),
+               codec_type);
       return;
     }
 
@@ -1343,6 +1241,28 @@ static void *init_video_plugin (xine_t *xine, void *data) {
   return this;
 }
 
+
+static const ff_codec_t ff_audio_lookup[] = {
+  {BUF_AUDIO_WMAV1,      CODEC_ID_WMAV1,          "MS Windows Media Audio 1 (ffmpeg)"},
+  {BUF_AUDIO_WMAV2,      CODEC_ID_WMAV2,          "MS Windows Media Audio 2 (ffmpeg)"},
+  /* FIXME DV Audio has disappeared from libffmpeg  
+  {BUD_AUDIO_DV,         CODEC_ID_DVAUDIO,        "DV Audio (ffmpeg)"}, */
+  {BUF_AUDIO_14_4,       CODEC_ID_RA_144,         "Real 14.4 (ffmpeg)"},
+  {BUF_AUDIO_28_8,       CODEC_ID_RA_288,         "Real 28.8 (ffmpeg)"},
+  {BUF_AUDIO_MPEG,       CODEC_ID_MP3LAME,        "MP3 (ffmpeg)"},
+  {BUF_AUDIO_MSADPCM,    CODEC_ID_ADPCM_MS,       "MS ADPCM (ffmpeg)"},
+  {BUF_AUDIO_QTIMAADPCM, CODEC_ID_ADPCM_IMA_QT,   "QT IMA ADPCM (ffmpeg)"},
+  {BUF_AUDIO_MSIMAADPCM, CODEC_ID_ADPCM_IMA_WAV,  "MS IMA ADPCM (ffmpeg)"},
+  {BUF_AUDIO_DK3ADPCM,   CODEC_ID_ADPCM_IMA_DK3,  "Duck DK3 ADPCM (ffmpeg)"},
+  {BUF_AUDIO_DK4ADPCM,   CODEC_ID_ADPCM_IMA_DK4,  "Duck DK4 ADPCM (ffmpeg)"},
+  {BUF_AUDIO_VQA_IMA,    CODEC_ID_ADPCM_IMA_WS,   "Westwood Studios IMA (ffmpeg)"},
+  {BUF_AUDIO_XA_ADPCM,   CODEC_ID_ADPCM_XA,       "CD-ROM/XA ADPCM (ffmpeg)"},
+  {BUF_AUDIO_4X_ADPCM,   CODEC_ID_ADPCM_4XM,      "4X ADPCM (ffmpeg)"},
+  {BUF_AUDIO_MULAW,      CODEC_ID_PCM_MULAW,      "mu-law logarithmic PCM (ffmpeg)"},
+  {BUF_AUDIO_ALAW,       CODEC_ID_PCM_ALAW,       "A-law logarithmic PCM (ffmpeg)"},
+  {BUF_AUDIO_ROQ,        CODEC_ID_ROQ_DPCM,       "RoQ DPCM (ffmpeg)"},
+  {BUF_AUDIO_INTERPLAY,  CODEC_ID_INTERPLAY_DPCM, "Interplay DPCM (ffmpeg)"} };
+
 static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
@@ -1355,110 +1275,24 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
-    int codec_type;
+    int i, codec_type;
     xine_waveformatex *audio_header = (xine_waveformatex *)buf->content;
 
     codec_type = buf->type & 0xFFFF0000;
     this->codec = NULL;
 
-    switch (codec_type) {
-    case BUF_AUDIO_WMAV1:
-      this->codec = avcodec_find_decoder (CODEC_ID_WMAV1);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,
-	"MS Windows Media Audio 1 (ffmpeg)");
-      break;
-    case BUF_AUDIO_WMAV2:
-      this->codec = avcodec_find_decoder (CODEC_ID_WMAV2);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"MS Windows Media Audio 2 (ffmpeg)");
-      break;
-    /* FIXME DV Audio has disappeared from libffmpeg
-    case BUF_AUDIO_DV:
-      this->codec = avcodec_find_decoder (CODEC_ID_DVAUDIO);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"DV Audio (ffmpeg)");
-      break;
-    */
-    case BUF_AUDIO_14_4:
-      this->codec = avcodec_find_decoder (CODEC_ID_RA_144);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"Real 14.4 (ffmpeg)");
-      break;
-    case BUF_AUDIO_28_8:
-      this->codec = avcodec_find_decoder (CODEC_ID_RA_288);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"Real 28.8 (ffmpeg)");
-      break;
-    case BUF_AUDIO_MPEG:
-      this->codec = avcodec_find_decoder (CODEC_ID_MP3LAME);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"MP3 (ffmpeg)");
-      break;
-    case BUF_AUDIO_MSADPCM:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_MS);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"MS ADPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_QTIMAADPCM:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_QT);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"QT IMA ADPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_MSIMAADPCM:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_WAV);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"MS IMA ADPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_DK3ADPCM:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_DK3);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"Duck DK3 ADPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_DK4ADPCM:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_DK4);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"Duck DK4 ADPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_VQA_IMA:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_WS);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"Westwood Studios IMA (ffmpeg)");
-      break;
-    case BUF_AUDIO_XA_ADPCM:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_XA);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"CD-ROM/XA ADPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_4X_ADPCM:
-      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_4XM);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"4X ADPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_MULAW:
-      this->codec = avcodec_find_decoder (CODEC_ID_PCM_MULAW);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"mu-law logarithmic PCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_ALAW:
-      this->codec = avcodec_find_decoder (CODEC_ID_PCM_ALAW);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"A-law logarithmic PCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_ROQ:
-      this->codec = avcodec_find_decoder (CODEC_ID_ROQ_DPCM);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"RoQ DPCM (ffmpeg)");
-      break;
-    case BUF_AUDIO_INTERPLAY:
-      this->codec = avcodec_find_decoder (CODEC_ID_INTERPLAY_DPCM);
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
-	"Interplay DPCM (ffmpeg)");
-      break;
-    }
+    for(i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_codec_t); i++)
+      if(ff_audio_lookup[i].type == codec_type) {
+        this->codec = avcodec_find_decoder(ff_audio_lookup[i].id);
+        _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,
+                         ff_audio_lookup[i].name);
+        break;
+      }
 
     if (!this->codec) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "could not open ffmpeg decoder for buf type 0x%X\n",
-        codec_type);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+               _("couldn't find/open ffmpeg decoder for buf type 0x%X\n"),
+               codec_type);
       return;
     }
 
