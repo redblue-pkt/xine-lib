@@ -363,7 +363,19 @@ COMMON_CFLAGS="$wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 enable_w32dll="no"
 enable_ffmmx="no"
 
-case "$host" in
+
+host_or_hostalias="$host"
+if test "$host_or_hostalias" = ""; then
+    dnl user has called ./configure with a host parameter unknown to
+    dnl config.sub; the canonical "$host" is empty
+    dnl
+    dnl Try the following switch with user's original host_alias 
+    dnl input instead.
+    dnl
+    host_or_hostalias="$host_alias"
+fi
+
+case "$host_or_hostalias" in
 i386-*-freebsd*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS"
@@ -376,7 +388,8 @@ i386-*-freebsd*)
     enable_ffmmx="yes"
     ;;
 
-i?86*-*-linux* | i386-*-solaris*)
+
+i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-*)
 
     if test "$GCC" = yes; then
 	dnl Check for gcc cpu optimization support
@@ -521,7 +534,7 @@ m68k-*)
     ;;
 
 *)
-    echo "$host is not currently supported by xine"
+    echo "Host type '$host' ($host_alias) is currently not supported by xine"
     exit 1
     ;;
 esac
