@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.54 2004/05/05 09:16:59 hadess Exp $
+ * $Id: input_cdda.c,v 1.55 2004/05/11 21:21:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1413,6 +1413,8 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
 	return 1;
       }
     }
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+      "input_cdda: cached entry for disc ID %08lx not found.\n", this->cddb.disc_id);
     closedir(dir);
   }
   
@@ -1499,7 +1501,7 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     this->cddb.have_cddb_info = 1;
     return 1;
   }
-  if(this_class->cddb_error) {
+  if(!this->cddb.enabled || this_class->cddb_error) {
     this->cddb.have_cddb_info = 0;
     return 0;
   }
@@ -2216,7 +2218,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 			    toc->leadout_track.first_frame_second);
   this->cddb.disc_id     = _cdda_get_cddb_id(this);
 
-  if(this->cddb.enabled && ((this->cddb.have_cddb_info == 0) || (_cdda_is_cd_changed(this) == 1)))
+  if((this->cddb.have_cddb_info == 0) || (_cdda_is_cd_changed(this) == 1))
     _cdda_cddb_retrieve(this);
   
   if(this->cddb.disc_title) {
