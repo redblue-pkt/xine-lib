@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.14 2001/05/03 23:26:42 f1rmb Exp $
+ * $Id: xine.c,v 1.15 2001/05/07 01:31:44 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -437,9 +437,14 @@ xine_t *xine_init (vo_driver_t *vo,
   this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
 
-  this->audio_out = ao;
-  this->audio_out->connect (this->audio_out, this->metronom);
-  audio_decoder_init (this);
+  if(ao) {
+    this->audio_out = ao;
+    this->audio_out->connect (this->audio_out, this->metronom);
+    audio_decoder_init (this);
+  }
+  else
+    this->audio_out = NULL; /* Disabling audio output */
+
 
   /*
    * init SPU decoder

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.4 2001/05/06 02:37:59 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.5 2001/05/07 01:31:44 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,8 +72,11 @@ typedef struct {
    */
 #define MAX_DIR_ENTRIES 250
   
-  char              *filelist[MAX_DIR_ENTRIES];
-  char              *filelist2[MAX_DIR_ENTRIES];
+  char             *filelist[MAX_DIR_ENTRIES];
+  char             *filelist2[MAX_DIR_ENTRIES];
+
+  mrl_t            *mrls[MAX_DIR_ENTRIES];
+  int               mrls_allocated_entries;
 
 } dvd_input_plugin_t;
 
@@ -152,7 +155,7 @@ static int openDVDFile (dvd_input_plugin_t *this,
  *
  */
 static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this) {
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
 }
 
 /*
@@ -397,8 +400,8 @@ static char *dvd_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  *
  */
-static char **dvd_plugin_get_dir (input_plugin_t *this_gen, 
-				  char *filename, int *nEntries) {
+static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen, 
+				   char *filename, int *nEntries) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int i, fd;
 
@@ -424,7 +427,9 @@ static char **dvd_plugin_get_dir (input_plugin_t *this_gen,
       
       if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
 
-	sprintf (this->filelist2[nFiles2], "dvd://%s", this->filelist[i]); 
+	sprintf (this->mrls[nFiles2]->filename,
+		 "dvd://%s", this->filelist[i]); 
+	this->mrls[nFiles2]->type = mrl_dvd;
 
 	nFiles2++;
       }
@@ -440,7 +445,7 @@ static char **dvd_plugin_get_dir (input_plugin_t *this_gen,
     return NULL;
   }
 
-  return this->filelist2;
+  return this->mrls;
 }
 
 /*
@@ -495,6 +500,27 @@ static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
   return this->mrl;
 }
 
+
+static int dvd_plugin_get_optional_data (input_plugin_t *this_gen, 
+					 void *data, int data_type) {
+  /*
+  switch(data_type) {
+
+  case INPUT_OPTIONAL_DATA_CLUT:
+    ...
+    return INPUT_OPTIONAL_SUCCESS;
+    break;
+    
+  case INPUT_OPTIONAL_DATA_AUDIOLANG:
+    ...
+    return INPUT_OPTIONAL_SUCCESS;
+    break;
+
+  }
+  */
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
 /*
  *
  */
@@ -510,10 +536,14 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this = (dvd_input_plugin_t *) malloc (sizeof (dvd_input_plugin_t));
 
     for (i = 0; i < MAX_DIR_ENTRIES; i++) {
-      this->filelist[i] = (char *) malloc (256);
-      this->filelist2[i] = (char *) malloc (256);
+      this->filelist[i]       = (char *) malloc (256);
+      this->filelist2[i]      = (char *) malloc (256);
+      this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
+      this->mrls[i]->filename = (char *) malloc (256);
     }
-    
+
+    this->mrls_allocated_entries = MAX_DIR_ENTRIES;
+
     this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
     this->input_plugin.get_capabilities  = dvd_plugin_get_capabilities;
     this->input_plugin.open              = dvd_plugin_open;
@@ -530,7 +560,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->input_plugin.get_dir           = dvd_plugin_get_dir;
     this->input_plugin.get_mrl           = dvd_plugin_get_mrl;
     this->input_plugin.get_autoplay_list = dvd_plugin_get_autoplay_list;
-    this->input_plugin.get_clut          = NULL;
+    this->input_plugin.get_optional_data = dvd_plugin_get_optional_data;
 
     //    this->fh      = -1;
     this->mrl     = NULL;

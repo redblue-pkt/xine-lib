@@ -427,6 +427,15 @@ static char* rtp_plugin_get_mrl (input_plugin_t *this_gen) {
 /*
  *
  */
+static int rtp_plugin_get_optional_data (input_plugin_t *this_gen, 
+					 void *data, int data_type) {
+
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
+/*
+ *
+ */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   rtp_input_plugin_t *this;
 
@@ -469,7 +478,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->input_plugin.get_dir           = NULL;
     this->input_plugin.get_mrl           = rtp_plugin_get_mrl;
     this->input_plugin.get_autoplay_list = NULL;
-    this->input_plugin.get_clut          = NULL;
+    this->input_plugin.get_optional_data = rtp_plugin_get_optional_data;
 
     this->fh      = -1;
     this->mrl     = NULL;

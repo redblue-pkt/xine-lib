@@ -26,6 +26,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -272,6 +273,15 @@ static char* net_plugin_get_mrl (input_plugin_t *this_gen) {
 /*
  *
  */
+static int net_plugin_get_optional_data (input_plugin_t *this_gen, 
+					 void *data, int data_type) {
+
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
+/*
+ *
+ */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   net_input_plugin_t *this;
@@ -298,7 +308,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->input_plugin.get_description   = net_plugin_get_description;
     this->input_plugin.get_identifier    = net_plugin_get_identifier;
     this->input_plugin.get_autoplay_list = NULL;
-    this->input_plugin.get_clut          = NULL;
+    this->input_plugin.get_optional_data = net_plugin_get_optional_data;
 
     this->fh      = -1;
     this->mrl     = NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.3 2001/05/06 14:25:42 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.4 2001/05/07 01:31:44 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -192,6 +193,15 @@ static char *stdin_plugin_get_identifier(input_plugin_t *this_gen) {
 /*
  *
  */
+static int stdin_plugin_get_optional_data (input_plugin_t *this_gen, 
+					   void *data, int data_type) {
+
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
+/*
+ *
+ */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   stdin_input_plugin_t *this;
@@ -218,7 +228,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->input_plugin.get_description   = stdin_plugin_get_description;
     this->input_plugin.get_identifier    = stdin_plugin_get_identifier;
     this->input_plugin.get_autoplay_list = NULL;
-    this->input_plugin.get_clut          = NULL;
+    this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
 
     this->fh      = -1;
     this->mrl     = NULL;

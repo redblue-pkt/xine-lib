@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.3 2001/05/06 02:37:59 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.4 2001/05/07 01:31:44 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -84,6 +84,9 @@ typedef struct {
 #endif
 
   char                  *filelist[100];
+
+  mrl_t                 *mrls[100];
+  int                    mrls_allocated_entries;
 
 } vcd_input_plugin_t;
 
@@ -427,7 +430,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
     dist %= 75;
     this->cur_frame = dist + start_msf->frame;
 
-    xprintf (VERBOSE|INPUT, "%d => %02d:%02d:%02d\n", offset,
+    xprintf (VERBOSE|INPUT, "%Ld => %02d:%02d:%02d\n", offset,
 	     this->cur_min, this->cur_sec, this->cur_frame);
 
     break;
@@ -562,7 +565,7 @@ static off_t vcd_plugin_get_current_pos (input_plugin_t *this_gen){
  */
 static uint32_t vcd_plugin_get_capabilities (input_plugin_t *this_gen) {
 
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
 }
 
 /*
@@ -656,8 +659,8 @@ static char *vcd_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  *
  */
-static char **vcd_plugin_get_dir (input_plugin_t *this_gen, 
-					char *filename, int *nEntries) {
+static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen, 
+				   char *filename, int *nEntries) {
 
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int i;
@@ -691,11 +694,12 @@ static char **vcd_plugin_get_dir (input_plugin_t *this_gen,
   /* printf ("%d tracks\n", this->total_tracks); */
 
   for (i=1; i<this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
-    sprintf (this->filelist[i-1], "vcd://%d",i);
-    /* printf ("list[%d] : %d %s\n", i, this->filelist[i-1], this->filelist[i-1]);   */
+    sprintf (this->mrls[i-1]->filename, "vcd://%d",i);
+    this->mrls[i-1]->type = mrl_vcd;
+    /* printf ("list[%d] : %d %s\n", i, this->mrls[i-1]->filename);   */
   }
 
-  return this->filelist;
+  return this->mrls;
 }
 
 /*
@@ -750,6 +754,15 @@ static char* vcd_plugin_get_mrl (input_plugin_t *this_gen) {
 /*
  *
  */
+static int vcd_plugin_get_optional_data (input_plugin_t *this_gen, 
+					 void *data, int data_type) {
+
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
+/*
+ *
+ */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   vcd_input_plugin_t *this;
 
@@ -761,9 +774,14 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     
     this = (vcd_input_plugin_t *) malloc (sizeof (vcd_input_plugin_t));
 
-    for (i=0; i<100; i++)
-      this->filelist[i] = (char *) malloc (256);
-  
+    for (i = 0; i < 100; i++) {
+      this->filelist[i]       = (char *) malloc (256);
+      this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
+      this->mrls[i]->filename = (char *) malloc (256);
+    }
+
+    this->mrls_allocated_entries = 100;
+
     this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
     this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
     this->input_plugin.open              = vcd_plugin_open;
@@ -780,7 +798,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->input_plugin.get_dir           = vcd_plugin_get_dir;
     this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
     this->input_plugin.get_autoplay_list = vcd_plugin_get_autoplay_list;
-    this->input_plugin.get_clut          = NULL;
+    this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
 
     this->fd      = -1;
     this->mrl     = NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.5 2001/05/06 02:37:59 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.6 2001/05/07 01:31:44 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -39,6 +39,30 @@ typedef struct {         /* CLUT == Color LookUp Table */
 	uint8_t cb		: 8;
 } __attribute__ ((packed)) clut_t;
 #endif
+
+#define MAX_MRL_ENTRIES 255
+
+/* Types of mrls returned by get_dir() */
+#define mrl_unknown       0x0
+#define mrl_dvd           0x1
+#define mrl_vcd           0x3
+#define mrl_net           0x4
+#define mrl_rtp           0x5
+#define mrl_stdin         0x6
+#define mrl_fifo          0x7
+#define mrl_chardev       0x8
+#define mrl_directory     0x9
+#define mrl_blockdev      0xA
+#define mrl_normal        0xB
+#define mrl_symbolic_link 0xC
+#define mrl_sock          0xD
+/* bit for exec file, should be combinated with mrl_normal type*/
+#define mrl_type_exec          0xFFFF8000 
+
+typedef struct {
+  char *filename; /* filename without pathname */
+  int type;       /* match to mrl_type enum    */
+} mrl_t;
 
 typedef struct input_plugin_s input_plugin_t;
 
@@ -108,7 +132,7 @@ struct input_plugin_s
    * ls function
    * return value: NULL => filename is a file, **char=> filename is a dir
    */
-  char** (*get_dir) (input_plugin_t *this, char *filename, int *nFiles);
+  mrl_t** (*get_dir) (input_plugin_t *this, char *filename, int *nFiles);
 
 
   /*
@@ -153,20 +177,29 @@ struct input_plugin_s
 
 
   /*
-   * gets the subtitle/menu palette
+   * Request optional datas from input plugin.
    */
-  clut_t* (*get_clut) (input_plugin_t *this);
+  int (*get_optional_data) (input_plugin_t *this, void *data, int data_type);
+
 };
 
 /*
  * possible capabilites an input plugin can have:
  */
-
 #define INPUT_CAP_NOCAP       0x00000000
 #define INPUT_CAP_SEEKABLE    0x00000001
 #define INPUT_CAP_BLOCK       0x00000002
 #define INPUT_CAP_AUTOPLAY    0x00000004
-#define INPUT_CAP_BROWSABLE   0x00000008
-#define INPUT_CAP_CLUT        0x00000010
+#define INPUT_CAP_GET_DIR     0x00000008
+#define INPUT_CAP_BROWSABLE   0x00000010
+#define INPUT_CAP_CLUT        0x00000020
+#define INPUT_CAP_AUDIOLANG   0x00000040
+
+
+#define INPUT_OPTIONAL_UNSUPPORTED    0
+#define INPUT_OPTIONAL_SUCCESS        1
+
+#define INPUT_OPTIONAL_DATA_CLUT      1
+#define INPUT_OPTIONAL_DATA_AUDIOLANG 2
 
 #endif

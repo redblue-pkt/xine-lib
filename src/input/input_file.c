@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.8 2001/05/05 23:44:33 f1rmb Exp $
+ * $Id: input_file.c,v 1.9 2001/05/07 01:31:44 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,30 +26,66 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <errno.h>
 
 #include "xine_internal.h"
 #include "monitor.h"
 #include "input_plugin.h"
 
+extern int errno;
+
 static uint32_t xine_debug;
 
-typedef struct file_input_plugin_s {
-  input_plugin_t   input_plugin;
+#ifndef S_ISLNK
+#define S_ISLNK(mode)  0
+#endif
+#ifndef S_ISFIFO
+#define S_ISFIFO(mode) 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(mode) 0
+#endif
+#ifndef S_ISCHR
+#define S_ISCHR(mode)  0
+#endif
+#ifndef S_ISBLK
+#define S_ISBLK(mode)  0
+#endif
+#ifndef S_ISREG
+#define S_ISREG(mode)  0
+#endif
+#if !S_IXUGO
+#define S_IXUGO        (S_IXUSR | S_IXGRP | S_IXOTH)
+#endif
+
+typedef struct {
+  input_plugin_t    input_plugin;
   
-  int              fh;
-  char            *mrl;
-  config_values_t *config;
+  int               fh;
+  char             *mrl;
+  config_values_t  *config;
+
+  mrl_t           **mrls;
+  int               mrls_allocated_entries;
+
 } file_input_plugin_t;
 
+/*
+ *
+ */
 static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
-#warning "remove AUTOPLAY capability."
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_AUTOPLAY;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_GET_DIR;
 }
 
+/*
+ *
+ */
 static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   char                *filename;
@@ -73,12 +109,17 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
   return 1;
 }
 
-
+/*
+ *
+ */
 static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
   return read (this->fh, buf, len);
 }
 
+/*
+ *
+ */
 static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
 
   off_t                 num_bytes, total_bytes;
@@ -102,21 +143,27 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   return buf;
 }
 
-
+/*
+ *
+ */
 static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
   return lseek (this->fh, offset, origin);
 }
 
-
+/*
+ *
+ */
 static off_t file_plugin_get_current_pos (input_plugin_t *this_gen){
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
   return lseek (this->fh, 0, SEEK_CUR);
 }
 
-
+/*
+ *
+ */
 static off_t file_plugin_get_length (input_plugin_t *this_gen) {
 
   struct stat          buf ;
@@ -129,28 +176,173 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
   return 0;
 }
 
+/*
+ *
+ */
 static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
   return 0;
 }
 
-static char **file_plugin_get_dir (input_plugin_t *this_gen, char *filename, int *nFiles) {
-  /* not yet implemented */
+/*
+ *
+ */
+static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen, 
+				    char *filename, int *nFiles) {
+  file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
+  char                  current_dir[PATH_MAX + 1];
+  char                 *fullpathname   = NULL;
+  struct dirent        *pdirent;
+  DIR                  *pdir;
+  mode_t                mode;
+  struct stat           stat;
+  int                   num_files      = 0;
 
-  printf ("input_file : get_dir () not implemented yet!\n");
+  *nFiles = 0;
+  memset(&current_dir, 0, strlen(current_dir));
 
-  return NULL;
+  /* 
+   * No origin location, so got the content of the current directory
+   */
+  if(!filename) {
+    char *pwd;
+    
+    if((pwd = getenv("PWD")) == NULL)
+      snprintf(current_dir, 1, "%s", ".");
+    else
+      snprintf(current_dir, PATH_MAX, "%s", pwd);
+  }
+  else
+    snprintf(current_dir, PATH_MAX, "%s", filename);
+    
+  /*
+   * Ooch!
+   */
+  if((pdir = opendir(current_dir)) == NULL) {
+    return NULL; 
+  }
+
+
+  while((pdirent = readdir(pdir)) != NULL) {
+    /* 
+     * full pathname creation 
+     */
+    if(!fullpathname) {
+      fullpathname = (char *) 
+	malloc((strlen(current_dir) + strlen(pdirent->d_name) + 2));
+    }
+    else {
+      fullpathname = (char *) 
+	realloc(fullpathname, 
+		(strlen(current_dir) + strlen(pdirent->d_name) + 2));
+    }
+
+    sprintf(fullpathname, "%s/%s", current_dir, pdirent->d_name); 
+
+    /* 
+     * stat the file 
+     */
+    if(lstat(fullpathname, &stat) < 0) {
+      fprintf(stderr, "lstat() failed: %s\n", strerror(errno));
+      free(fullpathname);
+      return NULL;
+    }
+    
+    /* 
+     * alloc enought memory in private plugin structure to
+     * store found mrls.
+     */
+    if(num_files > this->mrls_allocated_entries
+       || this->mrls_allocated_entries == 0) {
+      this->mrls[num_files] = (mrl_t *) malloc(sizeof(mrl_t));
+      
+      this->mrls[num_files]->filename = (char *) 
+	malloc(strlen(pdirent->d_name + 1));
+    }
+    else
+      this->mrls[num_files]->filename = (char *) 
+	realloc(this->mrls[num_files]->filename, strlen(pdirent->d_name + 1));
+    
+    strcpy(this->mrls[num_files]->filename, pdirent->d_name);
+    
+    /* 
+     * Ok, now check file type 
+     */
+    mode = stat.st_mode;
+    
+    if(S_ISLNK(mode)) {
+      this->mrls[num_files]->type = mrl_symbolic_link;
+      /*
+       * So follow the link
+       */
+      {
+	char *linkbuf;
+	int linksize;
+	
+	linkbuf = (char *) alloca(PATH_MAX + 2);
+	memset(linkbuf, 0, sizeof(linkbuf));
+	linksize = readlink(fullpathname, linkbuf, PATH_MAX + 1);
+	
+	if(linksize < 0) {
+	  fprintf(stderr, "readlink() failed: %s\n", strerror(errno));
+	}
+	else {
+	  this->mrls[num_files]->filename = (char *) 
+	    realloc(this->mrls[num_files]->filename, (linksize + 1));
+	  memset(this->mrls[num_files]->filename, 0, linksize + 1);
+	  strncpy(this->mrls[num_files]->filename, linkbuf, linksize);
+	}
+      }
+    }
+    else if(S_ISDIR(mode))
+      this->mrls[num_files]->type = mrl_directory;
+    else if(S_ISCHR(mode))
+      this->mrls[num_files]->type = mrl_chardev;
+    else if(S_ISBLK(mode))
+      this->mrls[num_files]->type = mrl_blockdev;
+    else if(S_ISFIFO(mode))
+      this->mrls[num_files]->type = mrl_fifo;
+    else if(S_ISSOCK(mode))
+      this->mrls[num_files]->type = mrl_sock;
+    else {
+      this->mrls[num_files]->type = mrl_normal;
+      if(mode & S_IXUGO)
+	this->mrls[num_files]->type |= mrl_type_exec;
+      }
+
+    num_files++;
+  }
+
+  closedir(pdir);
+
+  *nFiles = num_files;
+  
+  if(num_files > this->mrls_allocated_entries)
+    this->mrls_allocated_entries = num_files;
+
+  free(fullpathname);
+  
+  return this->mrls;
 }
 
+/*
+ *
+ */
 static int file_plugin_eject_media (input_plugin_t *this_gen) {
   return 1; /* doesn't make sense */
 }
 
+/*
+ *
+ */
 static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
   return this->mrl;
 }
 
+/*
+ *
+ */
 static void file_plugin_close (input_plugin_t *this_gen) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
@@ -160,16 +352,32 @@ static void file_plugin_close (input_plugin_t *this_gen) {
   this->fh = -1;
 }
 
-
+/*
+ *
+ */
 static char *file_plugin_get_description (input_plugin_t *this_gen) {
   return "plain file input plugin as shipped with xine";
 }
 
-
+/*
+ *
+ */
 static char *file_plugin_get_identifier (input_plugin_t *this_gen) {
   return "file";
 }
 
+/*
+ *
+ */
+static int file_plugin_get_optional_data (input_plugin_t *this_gen, 
+					  void *data, int data_type) {
+  
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
+/*
+ *
+ */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   file_input_plugin_t *this;
@@ -180,27 +388,28 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   case 1:
     this = (file_input_plugin_t *) malloc (sizeof (file_input_plugin_t));
 
-    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
-    this->input_plugin.get_capabilities  = file_plugin_get_capabilities;
-    this->input_plugin.open              = file_plugin_open;
-    this->input_plugin.read              = file_plugin_read;
-    this->input_plugin.read_block        = file_plugin_read_block;
-    this->input_plugin.seek              = file_plugin_seek;
-    this->input_plugin.get_current_pos   = file_plugin_get_current_pos;
-    this->input_plugin.get_length        = file_plugin_get_length;
-    this->input_plugin.get_blocksize     = file_plugin_get_blocksize;
-    this->input_plugin.get_dir           = file_plugin_get_dir;
-    this->input_plugin.eject_media       = file_plugin_eject_media;
-    this->input_plugin.get_mrl           = file_plugin_get_mrl;
-    this->input_plugin.close             = file_plugin_close;
-    this->input_plugin.get_description   = file_plugin_get_description;
-    this->input_plugin.get_identifier    = file_plugin_get_identifier;
-    this->input_plugin.get_autoplay_list = NULL;
-    this->input_plugin.get_clut          = NULL;
+    this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
+    this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
+    this->input_plugin.open               = file_plugin_open;
+    this->input_plugin.read               = file_plugin_read;
+    this->input_plugin.read_block         = file_plugin_read_block;
+    this->input_plugin.seek               = file_plugin_seek;
+    this->input_plugin.get_current_pos    = file_plugin_get_current_pos;
+    this->input_plugin.get_length         = file_plugin_get_length;
+    this->input_plugin.get_blocksize      = file_plugin_get_blocksize;
+    this->input_plugin.get_dir            = file_plugin_get_dir;
+    this->input_plugin.eject_media        = file_plugin_eject_media;
+    this->input_plugin.get_mrl            = file_plugin_get_mrl;
+    this->input_plugin.close              = file_plugin_close;
+    this->input_plugin.get_description    = file_plugin_get_description;
+    this->input_plugin.get_identifier     = file_plugin_get_identifier;
+    this->input_plugin.get_autoplay_list  = NULL;
+    this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
 
-    this->fh      = -1;
-    this->mrl     = NULL;
-    this->config  = config;
+    this->fh                     = -1;
+    this->mrl                    = NULL;
+    this->config                 = config;
+    this->mrls_allocated_entries = 0;
 
     return (input_plugin_t *) this;
     break;
@@ -214,4 +423,3 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     return NULL;
   }
 }
-
