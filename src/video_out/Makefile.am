@@ -10,7 +10,7 @@ VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 AM_CFLAGS = $(X_CFLAGS) \
 	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
 	$(AALIB_CFLAGS) $(MLIB_CFLAGS) $(LIBSTK_CFLAGS) \
-	$(DIRECTFB_CFLAGS) $(DIRECTX_CFLAGS)
+	$(DIRECTFB_CFLAGS) $(DIRECTX_CFLAGS) $(CACA_CFLAGS)
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -42,6 +42,10 @@ endif
 
 if HAVE_AA
 aa_module = xineplug_vo_out_aa.la
+endif
+
+if HAVE_CACA
+caca_module = xineplug_vo_out_caca.la
 endif
 
 if HAVE_FB
@@ -79,6 +83,7 @@ lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
 	          $(sdl_module) \
                   $(stk_module) \
                   $(directx_module) \
+                  $(caca_module) \
                   xineplug_vo_out_none.la
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
@@ -121,6 +126,11 @@ xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
 xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS)
 xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_vo_out_caca_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
+	video_out_caca.c
+xineplug_vo_out_caca_la_LIBADD = $(CACA_LIBS)
+xineplug_vo_out_caca_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_fb.c

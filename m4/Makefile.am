@@ -13,6 +13,7 @@ EXTRA_DIST = \
 	alsa.m4 \
 	arts.m4 \
 	as.m4 \
+	caca.m4 \
 	codeset.m4 \
 	dvdnav.m4 \
 	esd.m4 \

@@ -604,6 +604,14 @@ AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 
 dnl ---------------------------------------------
+dnl Checks for Color AsCii Art library
+dnl ---------------------------------------------
+
+AM_PATH_CACA(0.3,, AC_MSG_RESULT([*** All CACA-dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_CACA, test x$no_caca != "xyes")
+
+
+dnl ---------------------------------------------
 dnl Check solaris framebuffer device support
 dnl ---------------------------------------------
 
@@ -2200,6 +2208,9 @@ if test x"$no_x" != "xyes"; then
 fi
 if test x$no_aalib != "xyes"; then
   echo "   - aa (Ascii ART)"
+fi
+if test x$no_caca != "xyes"; then
+  echo "   - caca (Color AsCii Art)"
 fi
 if test x$have_fb = "xyes"; then
   echo "   - fb (Linux framebuffer device)"
