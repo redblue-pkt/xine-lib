@@ -367,4 +367,7 @@ Dilb (?)
 Dan Dennedy <dan@dennedy.org>
   rawdv demuxer fixes, dvaudio patch, stdin input fixes
 
+Andreas Heinchen <andreas.heinchen@gmx.de>
+  xvid/divx/mpeg4 testing, patches and bugfixes
+
 (let us know if we've forgotten anyone)
