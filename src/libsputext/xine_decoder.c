@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2002/05/25 19:19:19 siggi Exp $
+ * $Id: xine_decoder.c,v 1.25 2002/05/28 11:06:37 heikos Exp $
  *
  * code based on mplayer module:
  *
@@ -37,7 +37,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #ifdef __FreeBSD__
-# include <sys/iconv.h>
+# include </usr/local/include/iconv.h>
 #else
 # include <iconv.h>
 #endif
