@@ -14,6 +14,7 @@
   * fix seeking with the qt dll decoder
   * support AAC audio in AVI
   * slow down CD drive during CD audio playback to reduce noise
+  * fix some crashes disposing win32 codecs
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
