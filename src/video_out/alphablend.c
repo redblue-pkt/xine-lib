@@ -139,6 +139,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
   rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x, y, x1_scaled, x2_scaled;
   int dy, dy_step, x_scale;	/* scaled 2**SCALE_SHIFT */
+  int clip_right;
   uint16_t *img_pix;
 
   dy_step = INT_TO_SCALED(dst_height) / img_height;
@@ -149,6 +150,16 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       + (img_overl->x * img_width / dst_width);
 
   trans = img_overl->clip_trans;
+
+  /* avoid wraping overlay if drawing to small image */
+  if( (img_overl->x + img_overl->clip_right) < dst_width )
+    clip_right = img_overl->clip_right;
+  else
+    clip_right = dst_width - 1 - img_overl->x;
+
+  /* avoid buffer overflow */
+  if( (src_height + img_overl->y) >= dst_height )
+    src_height = dst_height - 1 - img_overl->y;
 
   for (y = dy = 0; y < src_height && rle < rle_limit;) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -173,9 +184,9 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
           } else {
             o = 0;
           }
-        } else if( img_overl->clip_right < x + rlelen ) {
-          if( img_overl->clip_right > x ) {
-            x2_scaled = SCALED_TO_INT( img_overl->clip_right * x_scale);
+        } else if( clip_right < x + rlelen ) {
+          if( clip_right > x ) {
+            x2_scaled = SCALED_TO_INT( clip_right * x_scale);
             mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o,
                         x2_scaled-x1_scaled);
             o = 0;            
@@ -224,6 +235,7 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
   rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x, y, x1_scaled, x2_scaled;
   int dy, dy_step, x_scale;	/* scaled 2**SCALE_SHIFT */
+  int clip_right;
   uint8_t *img_pix;
 
   dy_step = INT_TO_SCALED(dst_height) / img_height;
@@ -233,6 +245,16 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 		       + (img_overl->x * img_width  / dst_width));
 
   trans = img_overl->clip_trans;
+
+  /* avoid wraping overlay if drawing to small image */
+  if( (img_overl->x + img_overl->clip_right) < dst_width )
+    clip_right = img_overl->clip_right;
+  else
+    clip_right = dst_width - 1 - img_overl->x;
+
+  /* avoid buffer overflow */
+  if( (src_height + img_overl->y) >= dst_height )
+    src_height = dst_height - 1 - img_overl->y;
 
   for (dy = y = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -257,9 +279,9 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
           } else {
             o = 0;
           }
-        } else if( img_overl->clip_right < x + rlelen ) {
-          if( img_overl->clip_right > x ) {
-            x2_scaled = SCALED_TO_INT( img_overl->clip_right * x_scale);
+        } else if( clip_right < x + rlelen ) {
+          if( clip_right > x ) {
+            x2_scaled = SCALED_TO_INT( clip_right * x_scale);
             mem_blend24(img_pix + x1_scaled*3, clut[clr].cb,
                     clut[clr].cr, clut[clr].y,
                     o, x2_scaled-x1_scaled);
@@ -311,6 +333,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
   rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x, y, x1_scaled, x2_scaled;
   int dy, dy_step, x_scale;	/* scaled 2**SCALE_SHIFT */
+  int clip_right;
   uint8_t *img_pix;
 
   dy_step = INT_TO_SCALED(dst_height) / img_height;
@@ -320,6 +343,16 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 		       + (img_overl->x * img_width / dst_width));
 
   trans = img_overl->clip_trans;
+
+  /* avoid wraping overlay if drawing to small image */
+  if( (img_overl->x + img_overl->clip_right) < dst_width )
+    clip_right = img_overl->clip_right;
+  else
+    clip_right = dst_width - 1 - img_overl->x;
+
+  /* avoid buffer overflow */
+  if( (src_height + img_overl->y) >= dst_height )
+    src_height = dst_height - 1 - img_overl->y;
 
   for (y = dy = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -344,9 +377,9 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
           } else {
             o = 0;
           }
-        } else if( img_overl->clip_right < x + rlelen ) {
-          if( img_overl->clip_right > x ) {
-            x2_scaled = SCALED_TO_INT( img_overl->clip_right * x_scale);
+        } else if( clip_right < x + rlelen ) {
+          if( clip_right > x ) {
+            x2_scaled = SCALED_TO_INT( clip_right * x_scale);
             mem_blend24_32(img_pix + x1_scaled*4, clut[clr].cb,
                     clut[clr].cr, clut[clr].y,
                     o, x2_scaled-x1_scaled);
@@ -412,8 +445,9 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
   int rle_remainder;
   int rlelen;
   int x, y;
+  int clip_right;
   uint8_t clr=0;
-  
+
   uint8_t *dst_y = dst_base[0] + dst_width * y_off + x_off;
   uint8_t *dst_cr = dst_base[2] +
     (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
@@ -424,6 +458,16 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
 #endif
   my_clut = (clut_t*) img_overl->clip_color;
   my_trans = img_overl->clip_trans;
+
+  /* avoid wraping overlay if drawing to small image */
+  if( (x_off + img_overl->clip_right) < dst_width )
+    clip_right = img_overl->clip_right;
+  else
+    clip_right = dst_width - 1 - x_off;
+
+  /* avoid buffer overflow */
+  if( (src_height + y_off) >= dst_height )
+    src_height = dst_height - 1 - y_off;
 
   rlelen=rle_remainder=0;
   for (y = 0; y < src_height; y++) {
@@ -485,14 +529,14 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
             my_trans = img_overl->trans;
             xmask = 0;
           }
-        } else if (x < img_overl->clip_right) {
+        } else if (x < clip_right) {
           /* Starts inside clip area */
-          if ((x + rle_remainder) > img_overl->clip_right ) { 
+          if ((x + rle_remainder) > clip_right ) {
 #ifdef LOG_BLEND_YUV
-            printf("Inside clip right %d, ending outside\n", img_overl->clip_right); 
+            printf("Inside clip right %d, ending outside\n", clip_right);
 #endif
             /* Cutting needed, starts inside, ends outside */
-            rle_this_bite = (img_overl->clip_right - x);
+            rle_this_bite = (clip_right - x);
             rle_remainder -= rle_this_bite;
             rlelen -= rle_this_bite;
             my_clut = (clut_t*) img_overl->clip_color;
@@ -500,7 +544,7 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
             xmask++;
           } else {
 #ifdef LOG_BLEND_YUV
-            printf("Inside clip right %d, ending inside\n", img_overl->clip_right); 
+            printf("Inside clip right %d, ending inside\n", clip_right);
 #endif
           /* no cutting needed, starts inside, ends inside */
             rle_this_bite = rle_remainder;
@@ -510,11 +554,11 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
             my_trans = img_overl->clip_trans;
             xmask++;
           }
-        } else if (x >= img_overl->clip_right) {
+        } else if (x >= clip_right) {
           /* Starts outside clip area, ends outsite clip area */
           if ((x + rle_remainder ) > src_width ) { 
 #ifdef LOG_BLEND_YUV
-            printf("Outside clip right %d, ending eol\n", img_overl->clip_right); 
+            printf("Outside clip right %d, ending eol\n", clip_right);
 #endif
             /* Cutting needed, starts outside, ends at right edge */
             /* It should never reach here due to the earlier test of src_width */
@@ -527,7 +571,7 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
           } else {
           /* no cutting needed, starts outside, ends outside */
 #ifdef LOG_BLEND_YUV
-            printf("Outside clip right %d, ending outside\n", img_overl->clip_right); 
+            printf("Outside clip right %d, ending outside\n", clip_right);
 #endif
             rle_this_bite = rle_remainder;
             rle_remainder = 0;
@@ -613,6 +657,7 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
   int mask;
   int x, y;
   int l;
+  int clip_right;
   uint32_t yuy2;
   
   uint8_t *dst_y = dst_img + 2 * (dst_width * y_off + x_off);
@@ -620,6 +665,16 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 
   my_clut = (clut_t*) img_overl->clip_color;
   my_trans = img_overl->clip_trans;
+
+  /* avoid wraping overlay if drawing to small image */
+  if( (x_off + img_overl->clip_right) < dst_width )
+    clip_right = img_overl->clip_right;
+  else
+    clip_right = dst_width - 1 - x_off;
+
+  /* avoid buffer overflow */
+  if( (src_height + y_off) >= dst_height )
+    src_height = dst_height - 1 - y_off;
 
   for (y = 0; y < src_height; y++) {
     mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -643,8 +698,8 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
           } else {
             o = 0;
           }
-        } else if( img_overl->clip_right < x + rlelen ) {
-          if( img_overl->clip_right > x ) {
+        } else if( clip_right < x + rlelen ) {
+          if( clip_right > x ) {
             /* fixme: case not implemented */
             o = 0;            
           } else {
