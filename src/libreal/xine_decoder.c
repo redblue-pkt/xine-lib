@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2003/03/05 22:12:40 esnel Exp $
+ * $Id: xine_decoder.c,v 1.31 2003/03/28 17:01:47 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -107,25 +107,29 @@ static void hexdump (char *buf, int length) {
 
   int i;
 
-  printf ("libreal: ascii contents>");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
+  printf ("hex 0x0000:  ");
 
-    if ((c >= 32) && (c <= 128))
-      printf ("%c", c);
-    else
-      printf (".");
-  }
-  printf ("\n");
-
-  printf ("libreal: complete hexdump of package follows:\nlibreal 0x0000:  ");
   for (i = 0; i < length; i++) {
     unsigned char c = buf[i];
 
     printf ("%02x", c);
 
-    if ((i % 16) == 15)
-      printf ("\nlibreal 0x%04x: ", i+1);
+    if ((i % 16) == 15) {
+      int j;
+
+      printf ("  ");
+
+      for (j=0; j<16; j++) {
+	unsigned char c = buf[i-16+j];
+
+	if ((c >= 32) && (c <= 126))
+	  printf ("%c", c);
+	else
+	  printf (".");
+      }
+
+      printf ("\nhex 0x%04x: ", i+1);
+    }
 
     if ((i % 2) == 1)
       printf (" ");
@@ -188,7 +192,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
       = strdup ("RV 20");
     break;
   case BUF_VIDEO_RV30:
-    if (!load_syms_linux (this, "drv3.so.6.0"))
+    if (!load_syms_linux (this, "drv31.so.6.0"))
       return 0;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
       = strdup ("RV 30");
@@ -210,6 +214,14 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   this->width  = (init_data.w + 1) & (~1);
   this->height = (init_data.h + 1) & (~1);
+
+#ifdef LOG
+  printf ("libreal: init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
+	  "this->width=%d(0x%x), this->height=%d(0x%x)\n",
+	  init_data.w, init_data.w,
+	  init_data.h, init_data.h,
+	  this->width, this->width, this->height, this->height);
+#endif
   
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->height;
@@ -222,9 +234,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   hexdump (&init_data, sizeof (init_data));
   
   printf ("libreal: buf->content\n");
-  hexdump (buf->content, 32);
-  printf ("libreal: extrahdr\n");
-  hexdump (extrahdr, 10);
+  hexdump (buf->content, buf->size);
 
   printf ("libreal: init codec %dx%d... %x %x\n", 
 	  init_data.w, init_data.h,
@@ -235,25 +245,35 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   result = this->rvyuv_init (&init_data, &this->context); 
   
+#ifdef LOG
+  printf ("libreal: init result: %d\n", result);
+#endif
+
   /* setup rv30 codec (codec sub-type and image dimensions): */
   if (init_data.format>=0x20200002){
-    unsigned long cmsg24[4];
-    unsigned long cmsg_data[3];
+    unsigned long cmsg24[8];
+    unsigned long cmsg_data[9];
+    int result;
 
     cmsg24[0]=this->width;
     cmsg24[1]=this->height;
     cmsg24[2]=this->width;
     cmsg24[3]=this->height;
+    cmsg24[4]=0x00b0; /* FIXME: what does this value mean? */
+    cmsg24[5]=0x0090; /* FIXME: what does this value mean? */
+    cmsg24[6]=this->width;
+    cmsg24[7]=this->height;
+
 
     cmsg_data[0]=0x24;
     cmsg_data[1]=1+((init_data.subformat>>16)&7);
     cmsg_data[2]=(unsigned long)&cmsg24;
 
 #ifdef LOG
+    printf ("libreal: CustomMessage cmsg_data:\n");
+    hexdump (cmsg_data, sizeof (cmsg_data));
     printf ("libreal: cmsg24:\n");
     hexdump (cmsg24, sizeof (cmsg24));
-    printf ("libreal: cmsg_data:\n");
-    hexdump (cmsg_data, sizeof (cmsg_data));
 #endif
     
     this->rvyuv_custom_message (cmsg_data, this->context);
@@ -281,7 +301,7 @@ static void realdec_copy_frame (realdec_decoder_t *this, uint8_t *base[3], int p
   }
 
   for (i=1; i < 3; i++) {
-    src = this->frame_buffer + this->frame_size;
+    src = this->frame_buffer + this->frame_size; 
     dst = base[i];
 
     if (i == 2) {
@@ -290,7 +310,7 @@ static void realdec_copy_frame (realdec_decoder_t *this, uint8_t *base[3], int p
 
     for (j=0; j < (this->height / 2); ++j) {
       memcpy (dst, src, (this->width / 2));
-      src += (this->width / 2);
+      src += this->width / 2;
       dst += pitches[i];
     }
   }
@@ -388,7 +408,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 					this->context);
 
 #ifdef LOG
-	printf ("libreal: transform result: %d\n", result);
+	printf ("libreal: transform result: %08x\n", result);
 #endif
 
 	realdec_copy_frame (this, img->base, img->pitches);
