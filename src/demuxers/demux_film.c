@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.14 2002/07/05 03:58:55 tmmm Exp $
+ * $Id: demux_film.c,v 1.15 2002/07/05 04:17:57 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -85,7 +85,7 @@ typedef struct {
   off_t                data_end;
   int                  status;
 
-  /* when this flag is set, demuxer only dispatches audio samples until if
+  /* when this flag is set, demuxer only dispatches audio samples until it
    * encounters a video keyframe, then it starts sending every frame again */
   int                  waiting_for_keyframe;
 
@@ -314,8 +314,6 @@ static void *demux_film_loop (void *this_gen) {
           this->waiting_for_keyframe = 0;
         } else {
           /* move on to the next sample */
-          this->last_sample = this->current_sample;
-          this->current_sample++;
           continue;
         }
       }
@@ -690,7 +688,7 @@ static int demux_film_seek (demux_plugin_t *this_gen,
     return this->status;
   } else {
     left = 0;
-    right = this->sample_count;
+    right = this->sample_count - 1;
     found = 0;
 
     while (!found) {
