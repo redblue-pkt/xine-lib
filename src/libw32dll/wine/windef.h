@@ -105,7 +105,7 @@ extern "C" {
 
 /* Calling conventions definitions */
 
-#ifdef __i386__
+#if defined(__i386__) && !defined(WINE_TYPEDEFS_ONLY)
 # if defined(__GNUC__) && ((__GNUC__ > 2) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)))
 #  ifndef _EGCS_ 
 #define __stdcall __attribute__((__stdcall__))
