@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.111 2004/10/29 23:11:38 miguelfreitas Exp $
+ * $Id: audio_oss_out.c,v 1.112 2004/11/23 14:40:23 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -480,8 +480,6 @@ static void ao_oss_close(ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
-  close(this->mixer.fd);
-  this->mixer.fd = -1;
   close(this->audio_fd);
   this->audio_fd = -1;
 }
