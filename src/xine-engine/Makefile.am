@@ -26,7 +26,7 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c \
 	video_overlay.c osd.c scratch.c demux.c vo_scale.c \
 	xine_interface.c post.c tvmode.c broadcaster.c io_helper.c \
-	input_rip.c info_helper.c ../xine-utils/xmlparser.c
+	input_rip.c info_helper.c $(top_srcdir)/src/xine-utils/xmlparser.c
 
 # FIXME: these are currently unused:
 EXTRA_DIST = lrb.c lrb.h
