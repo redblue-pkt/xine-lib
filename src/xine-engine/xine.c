@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.293 2004/05/23 18:47:02 tmattern Exp $
+ * $Id: xine.c,v 1.294 2004/06/02 19:46:10 tmattern Exp $
  */
 
 /*
@@ -1070,7 +1070,7 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
 static void __wait_first_frame (xine_stream_t *stream) {
   if (stream->video_decoder_plugin) {
     pthread_mutex_lock (&stream->first_frame_lock);
-    while (stream->first_frame_flag > 0) {
+    if (stream->first_frame_flag > 0) {
       struct timeval  tv;
       struct timespec ts;
       gettimeofday(&tv, NULL);

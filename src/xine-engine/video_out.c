@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.196 2004/05/30 21:33:39 mroi Exp $
+ * $Id: video_out.c,v 1.197 2004/06/02 19:46:11 tmattern Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -618,6 +618,7 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->proc_called = 0;
 
   dupl->duration  = img->duration;
+  dupl->is_first  = img->is_first;
 
   dupl->stream    = img->stream;
   memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
@@ -681,7 +682,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
     diff = cur_vpts - pts;
       
     if (diff > duration || this->discard_frames) {
-  
+     
       if( !this->discard_frames ) {
         xine_log(this->xine, XINE_LOG_MSG,
 	         _("video_out: throwing away image with pts %" PRId64 " because it's too old (diff : %" PRId64 ").\n"), pts, diff);
