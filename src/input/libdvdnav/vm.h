@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.10 2003/07/19 13:04:03 mroi Exp $
+ * $Id: vm.h,v 1.11 2004/10/05 19:07:10 hadess Exp $
  *
  */
 
@@ -127,7 +127,7 @@ ifo_handle_t *vm_get_vtsi(vm_t *vm);
 dvd_reader_t *vm_get_dvd_reader(vm_t *vm);
 
 /* Basic Handling */
-void vm_start(vm_t *vm);
+int  vm_start(vm_t *vm);
 void vm_stop(vm_t *vm);
 int  vm_reset(vm_t *vm, const char *dvdroot);
 

@@ -16,6 +16,7 @@
     The wrapper library libXvMCW is present in Xorg CVS or downloadable 
     standalone from http://sourceforge.net/projects/unichrome. 
     It will dlopen a hardware-specific XvMC library at runtime. 
+  * Some fixes for crashes when trying to play encrypted DVDs without libdvdcss
     
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.

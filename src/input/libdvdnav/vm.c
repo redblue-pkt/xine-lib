@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.29 2004/06/13 13:29:57 mroi Exp $
+ * $Id: vm.c,v 1.30 2004/10/05 19:07:09 hadess Exp $
  *
  */
 
@@ -184,9 +184,9 @@ static void dvd_read_name(char *name, const char *device) {
   }
 }
 
-static void ifoOpenNewVTSI(vm_t *vm, dvd_reader_t *dvd, int vtsN) {
+static int ifoOpenNewVTSI(vm_t *vm, dvd_reader_t *dvd, int vtsN) {
   if((vm->state).vtsN == vtsN) {
-    return; /*  We alread have it */
+    return 0; /*  We alread have it */
   }
   
   if(vm->vtsi != NULL)
@@ -194,8 +194,8 @@ static void ifoOpenNewVTSI(vm_t *vm, dvd_reader_t *dvd, int vtsN) {
   
   vm->vtsi = ifoOpenVTSI(dvd, vtsN);
   if(vm->vtsi == NULL) {
-    fprintf(MSG_OUT, "libdvdnav: ifoOpenVTSI failed - CRASHING!!!\n");
-    assert(0);
+    fprintf(MSG_OUT, "libdvdnav: ifoOpenVTSI failed\n");
+    return -1;
   }
   if(!ifoRead_VTS_PTT_SRPT(vm->vtsi)) {
     fprintf(MSG_OUT, "libdvdnav: ifoRead_VTS_PTT_SRPT failed - CRASHING!!!\n");
@@ -218,6 +218,8 @@ static void ifoOpenNewVTSI(vm_t *vm, dvd_reader_t *dvd, int vtsN) {
     assert(0);
   }
   (vm->state).vtsN = vtsN;
+
+  return 0;
 }
 
 
@@ -253,10 +255,10 @@ dvd_reader_t *vm_get_dvd_reader(vm_t *vm) {
 
 /* Basic Handling */
 
-void vm_start(vm_t *vm) {
+int vm_start(vm_t *vm) {
   /* Set pgc to FP (First Play) pgc */
   set_FP_PGC(vm);
-  process_command(vm, play_PGC(vm));
+  return process_command(vm, play_PGC(vm));
 }
 
 void vm_stop(vm_t *vm) {
@@ -1404,7 +1406,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VMGM_DOMAIN || (vm->state).domain == FP_DOMAIN); /* ?? */
       if(!set_TT(vm, link_values.data1))
-	assert(0);
+	return 0;
       link_values = play_PGC(vm);
       break;
     case JumpVTS_TT:
@@ -1576,7 +1578,13 @@ static int set_VTS_PTT(vm_t *vm, int vtsN, int vts_ttn, int part) {
   (vm->state).domain = VTS_DOMAIN;
 
   if(vtsN != (vm->state).vtsN)
-    ifoOpenNewVTSI(vm, vm->dvd, vtsN);  /* Also sets (vm->state).vtsN */
+    res = ifoOpenNewVTSI(vm, vm->dvd, vtsN);  /* Also sets (vm->state).vtsN */
+  else
+    res = 0;
+
+  if (res < 0) {
+    return 0;
+  }
   
   if ((vts_ttn < 1) || (vts_ttn > vm->vtsi->vts_ptt_srpt->nr_of_srpts) ||
       (part < 1) || (part > vm->vtsi->vts_ptt_srpt->title[vts_ttn - 1].nr_of_ptts) ) {

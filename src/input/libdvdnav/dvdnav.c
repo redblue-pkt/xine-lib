@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.30 2004/03/16 11:43:38 mroi Exp $
+ * $Id: dvdnav.c,v 1.31 2004/10/05 19:07:09 hadess Exp $
  *
  */
 
@@ -403,7 +403,10 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, uint8_t **buf,
   
   if(!this->started) {
     /* Start the VM */
-    vm_start(this->vm);
+    if (!vm_start(this->vm)) {
+      printerr ("Encrypted DVD");
+      return DVDNAV_STATUS_ERR;
+    }
     this->started = 1;
   }
 
