@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.65 2003/05/28 13:11:53 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.66 2003/05/31 02:18:01 tmmm Exp $
  *
  *
  * contents:
@@ -570,7 +570,22 @@ static video_db_t video_db[] = {
   BUF_VIDEO_THEORA,
   "OggTheora Video"
 },
-
+{
+  {
+    meFOURCC('V','P','5','0'),
+    0
+  },
+  BUF_VIDEO_VP5,
+  "On2 VP5 Codec"
+},
+{
+  {
+    meFOURCC('V','P','6','1'),
+    0
+  },
+  BUF_VIDEO_VP6,
+  "On2 VP6 Codec"
+},
 { { 0 }, 0, "last entry" }
 };
 
