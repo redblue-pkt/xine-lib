@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: upmix.c,v 1.7 2004/05/17 15:10:20 jcdutton Exp $
+ * $Id: upmix.c,v 1.8 2004/05/17 16:12:48 jcdutton Exp $
  *
  */
 
@@ -50,20 +50,20 @@ struct post_class_upmix_s {
 
   xine_t             *xine;
 };
-                                                                                                                           
+
 /* Q value for low-pass filter */
 #define Q 1.0
-                                                                                                                           
+
 /* Analog domain biquad section */
 typedef struct{
   float a[3];           /* Numerator coefficients */
   float b[3];           /* Denominator coefficients */
 } biquad_t;
-                                                                                                                           
+
 /* S-parameters for designing 4th order Butterworth filter */
 static biquad_t s_param[2] = {{{1.0,0.0,0.0},{1.0,0.765367,1.0}},
                          {{1.0,0.0,0.0},{1.0,1.847759,1.0}}};
-                                                                                                                           
+
 /* Data for specific instances of this filter */
 typedef struct af_sub_s
 {
@@ -84,27 +84,83 @@ typedef struct af_sub_s
 }
 #endif
 
+typedef struct upmix_parameters_s {
+  int cut_off_freq;
+} upmix_parameters_t;
+
+/*
+ * description of params struct
+ */
+START_PARAM_DESCR( upmix_parameters_t )
+PARAM_ITEM( POST_PARAM_TYPE_INT, cut_off_freq, NULL, 0, 500, 0,
+            "cut_off_freq" )
+END_PARAM_DESCR( param_descr )
+
 struct post_plugin_upmix_s {
-  post_plugin_t post;
+  post_plugin_t  post;
 
   /* private data */
-
-  double ratio;
-  int data_idx;
-  short data [2][NUMSAMPLES];
+  pthread_mutex_t    lock;
+  xine_post_in_t params_input;
+  upmix_parameters_t params;
+  double         ratio;
+  int            data_idx;
+  short          data [2][NUMSAMPLES];
   audio_buffer_t *buf;   /* dummy buffer just to hold a copy of audio data */
-  af_sub_t *sub;
-
-  int channels;
-  int channels_out;
-  int sample_counter;
-  int samples_per_frame;
+  af_sub_t       *sub;
+  int            channels;
+  int            channels_out;
+  int            sample_counter;
+  int            samples_per_frame;
 
 };
 
 /**************************************************************************
- * upmix specific decode functions
+ * upmix parameters functions
  *************************************************************************/
+static int set_parameters (xine_post_t *this_gen, void *param_gen) {
+  post_plugin_upmix_t *this = (post_plugin_upmix_t *)this_gen;
+  upmix_parameters_t *param = (upmix_parameters_t *)param_gen;
+
+  pthread_mutex_lock (&this->lock);
+  memcpy( &this->params, param, sizeof(upmix_parameters_t) );
+  pthread_mutex_unlock (&this->lock);
+
+  return 1;
+}
+static int get_parameters (xine_post_t *this_gen, void *param_gen) {
+  post_plugin_upmix_t *this = (post_plugin_upmix_t *)this_gen;
+  upmix_parameters_t *param = (upmix_parameters_t *)param_gen;
+
+  pthread_mutex_lock (&this->lock);
+  memcpy( param, &this->params, sizeof(upmix_parameters_t) );
+  pthread_mutex_unlock (&this->lock);
+
+  return 1;
+}
+
+static xine_post_api_descr_t * get_param_descr (void) {
+  return &param_descr;
+}
+
+static char * get_help (void) {
+  return _("Upmix functions. e.g. Take stereo input and produce Surround 5.1 output."
+           "\n"
+           "Parameters\n"
+           "  cut_off_freq\n"
+           "\n"
+           "Note: It is possible to use frontend's control window to set "
+           "these parameters.\n"
+           "\n"
+           );
+}
+
+static xine_post_api_t post_api = {
+  set_parameters,
+  get_parameters,
+  get_param_descr,
+  get_help,
+};
 
 
 /**************************************************************************
@@ -141,11 +197,13 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
     this->channels_out=2;
   }
 
+  pthread_mutex_lock (&this->lock);
   this->sub = xine_xmalloc(sizeof(af_sub_t));
   if (!this->sub) {
+    pthread_mutex_unlock (&this->lock);
     return 0;
   }
-  this->sub->fc = 60;    /* LFE Cutoff frequency 60Hz */
+  this->sub->fc = this->params.cut_off_freq;    /* LFE Cutoff frequency 100Hz */
   this->sub->k = 1.0;
     if((-1 == szxform(s_param[0].a, s_param[0].b, Q, this->sub->fc,
        (float)rate, &this->sub->k, this->sub->w[0])) ||
@@ -153,11 +211,13 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
        (float)rate, &this->sub->k, this->sub->w[1]))) {
     free(this->sub);
     this->sub=NULL;
+    pthread_mutex_unlock (&this->lock);
     return 0;
   }
 
   this->samples_per_frame = rate / FPS;
   this->data_idx = 0;
+  pthread_mutex_unlock (&this->lock);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
@@ -171,7 +231,7 @@ static void upmix_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream 
   _x_post_dec_usage(port);
 }
 
-static int upmix_frames_2to51_any_to_float(uint8_t *dst8, uint8_t *src8, int num_frames, int step_channel_in, af_sub_t *sub) {
+static int upmix_frames_2to51_any_to_float( uint8_t *dst8, uint8_t *src8, int num_frames, int step_channel_in, af_sub_t *sub) {
   float *dst=(float *)dst8;
   int16_t *src16=(int16_t *)src8;
   float *src_float=(float *)src8;
@@ -187,7 +247,7 @@ static int upmix_frames_2to51_any_to_float(uint8_t *dst8, uint8_t *src8, int num
   int frame;
   int src_units_per_sample=1; 
   if (step_channel_in == 3) src_units_per_sample=step_channel_in; /* Special handling for 24 bit 3byte input */
-  
+
   for (frame=0;frame < num_frames; frame++) {
     dst_frame=frame*dst_num_channels;
     src_frame=frame*src_num_channels*src_units_per_sample;
@@ -293,6 +353,20 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
       data8src=(int8_t*)buf->mem;
       data8src+=num_frames_processed*src_step_frame;
       data8dst=(int8_t*)this->buf->mem;
+      pthread_mutex_lock (&this->lock);
+      if ((this->sub) && (this->sub->fc != this->params.cut_off_freq)) {
+        this->sub->fc = this->params.cut_off_freq;    /* LFE Cutoff frequency 100Hz */
+        this->sub->k = 1.0;
+        if((-1 == szxform(s_param[0].a, s_param[0].b, Q, this->sub->fc,
+            (float)port->rate, &this->sub->k, this->sub->w[0])) ||
+            (-1 == szxform(s_param[1].a, s_param[1].b, Q, this->sub->fc,
+            (float)port->rate, &this->sub->k, this->sub->w[1]))) {
+          /* Complain fairly loudly! */
+          printf("Low pass filter init failed!\n");
+        }
+      }
+      pthread_mutex_unlock (&this->lock);
+  
       num_frames_done = upmix_frames_2to51_any_to_float(data8dst, data8src, num_frames, step_channel_in, this->sub);
       this->buf->num_frames = num_frames_done;
       num_frames_processed+= num_frames_done;
@@ -325,6 +399,7 @@ static post_plugin_t *upmix_open_plugin(post_class_t *class_gen, int inputs,
   post_plugin_upmix_t *this  = (post_plugin_upmix_t *)xine_xmalloc(sizeof(post_plugin_upmix_t));
   post_in_t            *input;
   post_out_t           *output;
+  xine_post_in_t    *input_api;
   post_audio_port_t    *port;
   
   if (!this || !audio_target || !audio_target[0] ) {
@@ -333,14 +408,22 @@ static post_plugin_t *upmix_open_plugin(post_class_t *class_gen, int inputs,
   }
   
   _x_post_init(&this->post, 1, 0);
+
+  this->params.cut_off_freq = 100;
   
   port = _x_post_intercept_audio_port(&this->post, audio_target[0], &input, &output);
   port->new_port.open       = upmix_port_open;
   port->new_port.close      = upmix_port_close;
   port->new_port.put_buffer = upmix_port_put_buffer;
-  
+
+  input_api       = &this->params_input;
+  input_api->name = "parameters";
+  input_api->type = XINE_POST_DATA_PARAMETERS;
+  input_api->data = &post_api;
+  xine_list_append_content(this->post.input, input_api);
+
   this->post.xine_post.audio_input[0] = &port->new_port;
-  
+
   this->post.dispose = upmix_dispose;
 
   return &this->post;
