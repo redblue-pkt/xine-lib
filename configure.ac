@@ -257,7 +257,6 @@ dnl WIN32 platform
 AC_SUBST(WIN32_CPPFLAGS)
 AM_CONDITIONAL(WIN32, test x$SYS = "xmingw32")
 
-
 dnl ---------------------------------------------
 dnl dynamic linker
 dnl ---------------------------------------------
@@ -443,6 +442,16 @@ AC_SUBST(ZLIB_INCLUDES)
 AC_SUBST(ZLIB_LIBS)
 AC_SUBST(ZLIB_LIBS_CONFIG)
 
+dnl ---------------------------------------------
+dnl check posix timers
+dnl ---------------------------------------------
+
+AC_CHECK_LIB(rt, clock_getres,
+             [RT_LIBS="-lrt"
+              AC_DEFINE(HAVE_POSIX_TIMERS,1,
+                        [Define this if you have POSIX timers.])], 
+             AC_MSG_RESULT([*** no POSIX timers available.]))
+AC_SUBST(RT_LIBS)
 
 dnl ---------------------------------------------
 dnl Check for OpenGL & [GLut | GLU]

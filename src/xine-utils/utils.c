@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.36 2004/10/29 23:11:38 miguelfreitas Exp $
+ * $Id: utils.c,v 1.37 2004/10/30 15:04:47 miguelfreitas Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -584,7 +584,7 @@ void xine_xprintf(xine_t *xine, int verbose, const char *fmt, ...) {
 
 int xine_monotonic_clock(struct timeval *tv, struct timezone *tz)
 {
-#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK)
+#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK) && defined(HAVE_POSIX_TIMERS)
   static int initialized = 0;
   static int use_clock_monotonic = 0;
      

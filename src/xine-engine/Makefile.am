@@ -35,7 +35,7 @@ libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(zlib_dep) \
                           $(dirent_lib) $(pthread_dep) $(LIBXINEPOSIX)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) \
-                    $(dirent_lib) $(LIBXINEPOSIX)
+                    $(dirent_lib) $(LIBXINEPOSIX) $(RT_LIBS)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) $(def_ldflags)
