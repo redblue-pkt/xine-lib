@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.64 2002/10/20 16:18:06 guenter Exp $
+ * $Id: demux_asf.c,v 1.65 2002/10/20 23:54:20 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1170,13 +1170,6 @@ static void *demux_asf_loop (void *this_gen) {
   return NULL;
 }
 
-static void demux_asf_dispose (demux_plugin_t *this_gen) {
-
-  demux_asf_t *this = (demux_asf_t *) this_gen;
-  free (this);
-
-}
-
 static void demux_asf_stop (demux_plugin_t *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
@@ -1207,6 +1200,16 @@ static void demux_asf_stop (demux_plugin_t *this_gen) {
       this->streams[i].buffer = NULL;
     }
   }
+}
+
+static void demux_asf_dispose (demux_plugin_t *this_gen) {
+
+  demux_asf_t *this = (demux_asf_t *) this_gen;
+
+  demux_asf_stop (this_gen);
+
+  free (this);
+
 }
 
 static int demux_asf_get_status (demux_plugin_t *this_gen) {

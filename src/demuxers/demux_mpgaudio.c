@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.68 2002/10/20 21:15:07 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.69 2002/10/20 23:54:20 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -333,7 +333,7 @@ static void *demux_mpgaudio_loop (void *this_gen) {
 
     /* main demuxer loop */
     while(this->status == DEMUX_OK) {
-
+ 
       if (!demux_mpgaudio_next (this, 0))
         this->status = DEMUX_FINISHED;
 
@@ -546,6 +546,9 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
 }
 
 static void demux_mpgaudio_dispose (demux_plugin_t *this) {
+
+  demux_mpgaudio_stop (this);
+
   free (this);
 }
 
