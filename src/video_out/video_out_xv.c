@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.25 2001/05/28 12:54:41 guenter Exp $
+ * $Id: video_out_xv.c,v 1.26 2001/05/28 13:42:02 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -463,8 +463,9 @@ static void xv_get_property_min_max (vo_driver_t *this_gen,
 
 static int xv_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *data) {
 
-  xv_driver_t *this = (xv_driver_t *) this_gen;
+  xv_driver_t     *this = (xv_driver_t *) this_gen;
   x11_rectangle_t *area;
+  xv_frame_t      *frame;
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
@@ -478,6 +479,18 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *dat
     
     /* FIXME : implement */
 
+    break;
+
+  case GUI_DATA_EX_EXPOSE_EVENT:
+    
+    /* FIXME : take care of completion events */
+
+    frame = this->cur_frame;
+
+    XvShmPutImage(this->display, this->xv_port, this->drawable, this->gc, frame->image,
+		  0, 0,  frame->width, frame->height-5,
+		  this->output_xoffset, this->output_yoffset,
+		  this->output_width, this->output_height, False);
     break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
