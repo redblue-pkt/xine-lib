@@ -16,7 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * CIN File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the Id CIN file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
@@ -63,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.39 2003/04/26 20:16:08 guenter Exp $
+ * $Id: demux_idcin.c,v 1.40 2003/07/03 15:45:49 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -75,6 +77,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_idcin"
+/* #define LOG_VERBOSE */
+
+/* define LOG to output information about the A/V chunks that the
+ * demuxer is dispatching to the engine */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -88,21 +98,15 @@
 #define PALETTE_SIZE 256
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  off_t                start;
-  off_t                filesize;
   int                  status;
+
+  off_t                filesize; /* never set !!! */
 
   unsigned int         video_width;
   unsigned int         video_height;
@@ -116,29 +120,11 @@ typedef struct {
 
   unsigned char        huffman_table[HUFFMAN_TABLE_SIZE];
   uint64_t             pts_counter;
-
-  char                 last_mrl[1024];
 } demux_idcin_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_idcin_class_t;
-
-/* set DEBUG_IDCIN to output information about the A/V chunks that the
- * demuxer is dispatching to the engine */
-#define DEBUG_IDCIN 0
-
-#if DEBUG_IDCIN
-#define debug_idcin printf
-#else
-static inline void debug_idcin(const char *format, ...) { }
-#endif
 
 static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
 
@@ -159,14 +145,14 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   }
 
   command = le2me_32(command);
-  debug_idcin("  demux_idcin: command %d: ", command);
+  lprintf("command %d: ", command);
   if (command == 2) {
-    debug_idcin("demux finished\n");
+    lprintf("demux finished\n");
     this->status = DEMUX_FINISHED;
     return this->status;
   } else {
     if (command == 1) {
-      debug_idcin("load palette\n");
+      lprintf("load palette\n");
 
       /* load a 768-byte palette and pass it to the demuxer */
       if (this->input->read(this->input, disk_palette, PALETTE_SIZE * 3) !=
@@ -202,7 +188,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       buf->type = BUF_VIDEO_IDCIN;
       this->video_fifo->put (this->video_fifo, buf);
     } else
-      debug_idcin("load video and audio\n");
+      lprintf("load video and audio\n");
   }
 
   /* load the video frame */
@@ -212,8 +198,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   }
   remaining_sample_bytes = LE_32(&preamble[0]) - 4;
 
-  debug_idcin("  demux_idcin: dispatching %d video bytes\n",
-    remaining_sample_bytes);
+  lprintf("dispatching %d video bytes\n", remaining_sample_bytes);
   while (remaining_sample_bytes) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_IDCIN;
@@ -240,8 +225,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
     if (!remaining_sample_bytes)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-    debug_idcin("    sending video buf with %d bytes, %lld pts\n",
-        buf->size, buf->pts);
+    lprintf("sending video buf with %d bytes, %lld pts\n", buf->size, buf->pts);
     this->video_fifo->put(this->video_fifo, buf);
   }
 
@@ -256,8 +240,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       this->current_audio_chunk = 1;
     }
 
-    debug_idcin("  demux_idcin: dispatching %d audio bytes\n",
-      remaining_sample_bytes);
+    lprintf("dispatching %d audio bytes\n", remaining_sample_bytes);
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_LPCM_LE;
@@ -282,14 +265,10 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      debug_idcin("    sending audio buf with %d bytes, %lld pts\n",
-          buf->size, buf->pts);
+      lprintf("sending audio buf with %d bytes, %lld pts\n", buf->size, buf->pts);
       this->audio_fifo->put(this->audio_fifo, buf);
     }
   }
-
-  debug_idcin("\n");
-
   this->pts_counter += IDCIN_FRAME_PTS_INC;
 
   return this->status;
@@ -299,20 +278,9 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
 static int open_idcin_file(demux_idcin_t *this) {
 
   unsigned char header[IDCIN_HEADER_SIZE];
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) != 
-      IDCIN_HEADER_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview, 
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(header, preview, IDCIN_HEADER_SIZE);
-  }
+  if (xine_demux_read_header(this->input, header, IDCIN_HEADER_SIZE) != IDCIN_HEADER_SIZE)
+    return 0;
 
   /*
    * This is what you could call a "probabilistic" file check: Id CIN
@@ -353,19 +321,14 @@ static int open_idcin_file(demux_idcin_t *this) {
 
   /* if execution got this far, qualify it as a valid Id CIN file 
    * and continue loading */
-  debug_idcin("  demux_idcin: %dx%d video, %d Hz, %d channels, %d bits PCM audio\n",
+  lprintf("%dx%d video, %d Hz, %d channels, %d bits PCM audio\n",
     this->video_width, this->video_height,
     this->audio_sample_rate, 
     this->audio_channels,
     this->audio_bytes_per_sample * 8);
 
-  /* file is qualified; if the input was not seekable, read the header
-   * bytes out of the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) != 
-      IDCIN_HEADER_SIZE)
-      return 0;
-  }
+  /* file is qualified; skip over the signature bytes in the stream */
+  this->input->seek(this->input, IDCIN_HEADER_SIZE, SEEK_SET);
 
   /* read the Huffman table */
   if (this->input->read(this->input, this->huffman_table,
@@ -441,8 +404,8 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
         (this->audio_sample_rate / 14) * this->audio_bytes_per_sample *
         this->audio_channels;
     }
-    debug_idcin("  demux_idcin: audio_chunk_size[1,2] = %d, %d\n",
-      this->audio_chunk_size1, this->audio_chunk_size2);
+    lprintf("audio_chunk_size[1,2] = %d, %d\n",
+            this->audio_chunk_size1, this->audio_chunk_size2);
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_LPCM_LE;
@@ -504,9 +467,8 @@ static int demux_idcin_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_idcin_t  *this;
 
   this         = xine_xmalloc (sizeof (demux_idcin_t));
@@ -529,6 +491,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -539,38 +514,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".cin", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_idcin_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -604,8 +551,6 @@ void *demux_idcin_init_plugin (xine_t *xine, void *data) {
   demux_idcin_class_t     *this;
 
   this         = xine_xmalloc (sizeof (demux_idcin_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

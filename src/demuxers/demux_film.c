@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.61 2003/07/03 12:35:18 andruil Exp $
+ * $Id: demux_film.c,v 1.62 2003/07/03 15:45:49 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -919,7 +919,7 @@ void *demux_film_init_plugin (xine_t *xine, void *data) {
 
   demux_film_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_film_class_t));
+  this = xine_xmalloc (sizeof (demux_film_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

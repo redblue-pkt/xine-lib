@@ -16,12 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * Interplay MVE File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.9 2003/04/26 20:16:09 guenter Exp $
+ * $Id: demux_ipmovie.c,v 1.10 2003/07/03 15:45:49 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,19 +36,16 @@
 #include <string.h>
 #include <stdlib.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_ipmovie"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
-
-/* debugging support */
-#define DEBUG_IPMOVIE 0
-#if DEBUG_IPMOVIE
-#define debug_ipmovie printf
-#else
-static inline void debug_ipmovie(const char *format, ...) { }
-#endif
 
 #define IPMOVIE_SIGNATURE "Interplay MVE File\x1A\0"
 #define IPMOVIE_SIGNATURE_SIZE 20
@@ -88,23 +87,15 @@ static inline void debug_ipmovie(const char *format, ...) { }
 #define PALETTE_COUNT 256
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  int                  thread_running;
-
-  off_t                data_start;
-  off_t                data_size;
   int                  status;
+
+  off_t                data_size;
 
   unsigned int         fps;
   unsigned int         frame_pts_inc;
@@ -119,19 +110,10 @@ typedef struct {
   unsigned int         audio_frame_count;
 
   palette_entry_t      palette[PALETTE_COUNT];
-
-  char                 last_mrl[1024];
-
 } demux_ipmovie_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_ipmovie_class_t;
 
 /* This function loads and processes a single chunk in an IP movie file.
@@ -160,37 +142,36 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
   chunk_size = LE_16(&chunk_preamble[0]);
   chunk_type = LE_16(&chunk_preamble[2]);
 
-  debug_ipmovie ("ipmovie: chunk type 0x%04X, 0x%04X bytes: ", 
-    chunk_type, chunk_size);
+  lprintf("chunk type 0x%04X, 0x%04X bytes:\n", chunk_type, chunk_size);
 
   switch (chunk_type) {
 
     case CHUNK_INIT_AUDIO:
-      debug_ipmovie ("initialize audio\n");
+      lprintf("initialize audio\n");
       break;
 
     case CHUNK_AUDIO_ONLY:
-      debug_ipmovie ("audio only\n");
+      lprintf("audio only\n");
       break;
 
     case CHUNK_INIT_VIDEO:
-      debug_ipmovie ("initialize video\n");
+      lprintf("initialize video\n");
       break;
 
     case CHUNK_VIDEO:
-      debug_ipmovie ("video (and audio)\n");
+      lprintf("video (and audio)\n");
       break;
 
     case CHUNK_SHUTDOWN:
-      debug_ipmovie ("shutdown\n");
+      lprintf("shutdown\n");
       break;
 
     case CHUNK_END:
-      debug_ipmovie ("end\n");
+      lprintf("end\n");
       break;
 
     default:
-      debug_ipmovie ("invalid chunk\n");
+      lprintf("invalid chunk\n");
       chunk_type = CHUNK_BAD;
       break;
 
@@ -212,28 +193,28 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
     chunk_size -= OPCODE_PREAMBLE_SIZE;
     chunk_size -= opcode_size;
     if (chunk_size < 0) {
-      printf ("demux_ipmovie: chunk_size countdown just went negative\n");
+      lprintf("chunk_size countdown just went negative\n");
       chunk_type = CHUNK_BAD;
       break;
     }
-    debug_ipmovie ("  opcode type %02X, version %d, 0x%04X bytes: ",
+    lprintf("opcode type %02X, version %d, 0x%04X bytes:\n",
       opcode_type, opcode_version, opcode_size);
     switch (opcode_type) {
 
       case OPCODE_END_OF_STREAM:
-        debug_ipmovie ("end of stream\n");
+        lprintf("end of stream\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_END_OF_CHUNK:
-        debug_ipmovie ("end of chunk\n");
+        lprintf("end of chunk\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_CREATE_TIMER:
-        debug_ipmovie ("create timer\n");
+        lprintf("create timer\n");
         if ((opcode_version > 0) || (opcode_size > 6)) {
-          printf ("demux_ipmovie: bad create_timer opcode\n");
+          lprintf("bad create_timer opcode\n");
           chunk_type = CHUNK_BAD;
           break;
         }
@@ -243,16 +224,16 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           break;
         }
         this->fps = 1000000 / (LE_32(&scratch[0]) * LE_16(&scratch[4]));
-this->fps++;  /* above calculation usually yields 14.9; we need 15 */
+        this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         this->frame_pts_inc = 90000 / this->fps;
-        debug_ipmovie ("    %d frames/second (timer div = %d, subdiv = %d)\n",
+        lprintf("%d frames/second (timer div = %d, subdiv = %d)\n",
           this->fps, LE_32(&scratch[0]), LE_16(&scratch[4]));
         break;
 
       case OPCODE_INIT_AUDIO_BUFFERS:
-        debug_ipmovie ("initialize audio buffers\n");
+        lprintf("initialize audio buffers\n");
         if ((opcode_version > 1) || (opcode_size > 10)) {
-          printf ("demux_ipmovie: bad init_audio_buffers opcode\n");
+          lprintf("bad init_audio_buffers opcode\n");
           chunk_type = CHUNK_BAD;
           break;
         }
@@ -272,7 +253,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
           this->audio_type = BUF_AUDIO_INTERPLAY;
         else
           this->audio_type = BUF_AUDIO_LPCM_LE;
-        debug_ipmovie ("    audio: %d bits, %d Hz, %s, %s format\n",
+        lprintf("audio: %d bits, %d Hz, %s, %s format\n",
           this->audio_bits,
           this->audio_sample_rate,
           (this->audio_channels == 2) ? "stereo" : "mono",
@@ -280,14 +261,14 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         break;
 
       case OPCODE_START_STOP_AUDIO:
-        debug_ipmovie ("start/stop audio\n");
+        lprintf("start/stop audio\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_INIT_VIDEO_BUFFERS:
-        debug_ipmovie ("initialize video buffers\n");
+        lprintf("initialize video buffers\n");
         if ((opcode_version > 2) || (opcode_size > 8)) {
-          printf ("demux_ipmovie: bad init_video_buffers opcode\n");
+          lprintf("bad init_video_buffers opcode\n");
           chunk_type = CHUNK_BAD;
           break;
         }
@@ -298,7 +279,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         }
         this->video_width = LE_16(&scratch[0]) * 8;
         this->video_height = LE_16(&scratch[2]) * 8;
-        debug_ipmovie ("    video resolution: %d x %d\n",
+        lprintf("video resolution: %d x %d\n",
           this->video_width, this->video_height);
         break;
 
@@ -309,17 +290,17 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
       case OPCODE_UNKNOWN_13:
       case OPCODE_UNKNOWN_14:
       case OPCODE_UNKNOWN_15:
-        debug_ipmovie ("unknown (but documented) opcode %02X\n", opcode_type);
+        lprintf("unknown (but documented) opcode %02X\n", opcode_type);
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_SEND_BUFFER:
-        debug_ipmovie ("send buffer\n");
+        lprintf("send buffer\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_AUDIO_FRAME:
-        debug_ipmovie ("audio frame\n");
+        lprintf("audio frame\n");
 
         current_file_pos = this->input->get_current_pos(this->input);
 
@@ -334,7 +315,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         audio_pts *= this->audio_frame_count;
         audio_pts /= this->audio_sample_rate;
 
-        debug_ipmovie ("    sending audio frame with pts %lld (%d audio frames)\n",
+        lprintf("sending audio frame with pts %lld (%d audio frames)\n",
           audio_pts, this->audio_frame_count);
 
         if(this->audio_fifo) {
@@ -370,26 +351,26 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         break;
 
       case OPCODE_SILENCE_FRAME:
-        debug_ipmovie ("silence frame\n");
+        lprintf("silence frame\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_INIT_VIDEO_MODE:
-        debug_ipmovie ("initialize video mode\n");
+        lprintf("initialize video mode\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_CREATE_GRADIENT:
-        debug_ipmovie ("create gradient\n");
+        lprintf("create gradient\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_SET_PALETTE:
-        debug_ipmovie ("set palette\n");
+        lprintf("set palette\n");
         /* check for the logical maximum palette size 
          * (3 * 256 + 4 bytes) */
         if (opcode_size > 0x304) {
-          printf ("demux_ipmovie: set_palette opcode too large\n");
+          lprintf("demux_ipmovie: set_palette opcode too large\n");
           chunk_type = CHUNK_BAD;
           break;
         }
@@ -404,7 +385,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         last_color = LE_16(&scratch[2]);
         /* sanity check (since they are 16 bit values) */
         if ((first_color > 0xFF) || (last_color > 0xFF)) {
-          printf ("demux_ipmovie: set_palette indices out of range (%d -> %d)\n",
+          lprintf("demux_ipmovie: set_palette indices out of range (%d -> %d)\n",
             first_color, last_color);
           chunk_type = CHUNK_BAD;
           break;
@@ -418,15 +399,15 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         break;
 
       case OPCODE_SET_PALETTE_COMPRESSED:
-        debug_ipmovie ("set palette compressed\n");
+        lprintf("set palette compressed\n");
         this->input->seek(this->input, opcode_size, SEEK_CUR);
         break;
 
       case OPCODE_SET_DECODING_MAP:
-        debug_ipmovie ("set decoding map\n");
+        lprintf("set decoding map\n");
 
         current_file_pos = this->input->get_current_pos(this->input);
-        debug_ipmovie ("    sending decoding map along with duration %d\n",
+        lprintf("sending decoding map along with duration %d\n",
           this->frame_pts_inc);
 
         while (opcode_size) {
@@ -463,10 +444,10 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         break;
 
       case OPCODE_VIDEO_DATA:
-        debug_ipmovie ("set video data\n");
+        lprintf("set video data\n");
 
         current_file_pos = this->input->get_current_pos(this->input);
-        debug_ipmovie ("    sending video data with pts %lld\n",
+        lprintf("sending video data with pts %lld\n",
           this->video_pts);
 
         while (opcode_size) {
@@ -507,7 +488,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         break;
 
       default:
-        debug_ipmovie (" *** unknown opcode type\n");
+        lprintf("*** unknown opcode type\n");
         chunk_type = CHUNK_BAD;
         break;
 
@@ -522,34 +503,18 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
 static int open_ipmovie_file(demux_ipmovie_t *this) {
 
   unsigned char signature[IPMOVIE_SIGNATURE_SIZE];
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
   this->audio_type = 0;
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, signature, IPMOVIE_SIGNATURE_SIZE) !=
+  if (xine_demux_read_header(this->input, signature, IPMOVIE_SIGNATURE_SIZE) !=
       IPMOVIE_SIGNATURE_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(signature, preview, IPMOVIE_SIGNATURE_SIZE);
-  }
+    return 0;
 
   if (strncmp(signature, IPMOVIE_SIGNATURE, IPMOVIE_SIGNATURE_SIZE) != 0)
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the
-   * signature bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, IPMOVIE_SIGNATURE_SIZE, SEEK_SET);
-  }
-
-  /* skip the 6 unknown bytes */
-  this->input->seek(this->input, 6, SEEK_CUR);
+  /* file is qualified; skip over the signature bytes (+ 6 unknown) in the stream */
+  this->input->seek(this->input, IPMOVIE_SIGNATURE_SIZE+6, SEEK_SET);
 
   /* process the first chunk which should be CHUNK_INIT_VIDEO */
   if (process_ipmovie_chunk(this) != CHUNK_INIT_VIDEO)
@@ -559,7 +524,7 @@ static int open_ipmovie_file(demux_ipmovie_t *this) {
   if (process_ipmovie_chunk(this) != CHUNK_INIT_AUDIO)
     return 0;
 
-  debug_ipmovie ("detected Interplay MVE file\n");
+  lprintf("detected Interplay MVE file\n");
   this->data_size = this->input->get_length(this->input);
   this->audio_frame_count = 0;
   this->video_pts = 0;
@@ -680,9 +645,8 @@ static int demux_ipmovie_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_ipmovie_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_ipmovie_t));
@@ -705,6 +669,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -715,39 +692,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if ((strncasecmp (ending, ".mve", 4)) &&
-        (strncasecmp (ending, ".mv8", 4))) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_ipmovie_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -780,8 +728,6 @@ void *demux_ipmovie_init_plugin (xine_t *xine, void *data) {
   demux_ipmovie_class_t     *this;
 
   this         = xine_xmalloc (sizeof (demux_ipmovie_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

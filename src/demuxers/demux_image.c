@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2003 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -16,11 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
- * $Id: demux_image.c,v 1.3 2003/04/26 20:16:08 guenter Exp $
+ */
+
+/*
+ * $Id: demux_image.c,v 1.4 2003/07/03 15:45:49 andruil Exp $
  *
  * image dummy demultiplexer
- *
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,37 +34,26 @@
 #include <string.h>
 #include <stdlib.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_image"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
-
-
-/*
-#define LOG
-*/
 
 typedef struct demux_image_s {
   demux_plugin_t        demux_plugin;
 
   xine_stream_t        *stream;
-  
   fifo_buffer_t        *video_fifo;
-
   input_plugin_t       *input;
-
   int                   status;
-  
 } demux_image_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
-
 } demux_image_class_t;
 
 
@@ -86,10 +76,7 @@ static int demux_image_send_chunk (demux_plugin_t *this_gen) {
     buf->free_buffer(buf);
     this->status = DEMUX_FINISHED;
   } else {
-
-#ifdef LOG
-  printf("demux_image: got %i bytes\n", buf->size);
-#endif
+    lprintf("got %i bytes\n", buf->size);
 
     this->video_fifo->put (this->video_fifo, buf);
     this->status = DEMUX_OK;
@@ -139,32 +126,28 @@ static void demux_image_dispose (demux_plugin_t *this_gen) {
 
   demux_image_t *this = (demux_image_t *) this_gen;  
 
-#ifdef LOG
-  printf("demux_image: closed\n");
-#endif
-
+  lprintf("closed\n");
   free (this);
 }
 
-static demux_plugin_t *open_plugin (demux_class_t *class_gen, 
-				    xine_stream_t *stream, 
+static demux_plugin_t *open_plugin (demux_class_t *class_gen,
+				    xine_stream_t *stream,
 				    input_plugin_t *input) {
-  
+
   demux_image_t *this;
 
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
     return NULL;
-    break;
+  break;
 
   case METHOD_BY_EXTENSION: {
-
     char *extensions, *mrl;
 
     mrl = input->get_mrl (input);
-
     extensions = class_gen->get_extensions (class_gen);
+
     if (!xine_demux_check_extension (mrl, extensions)) {
       return NULL;
     }
@@ -177,9 +160,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   default:
     return NULL;
   }
-#ifdef LOG
-  printf ("demux_image: input accepted.\n");
-#endif
+
+  lprintf ("input accepted.\n");
   /*
    * if we reach this point, the input has been accepted.
    */
@@ -202,10 +184,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   
   this->status = DEMUX_FINISHED;
 
-#ifdef LOG
-  printf("demux_image: opened\n");
-#endif
-  
+  lprintf("opened\n");
   return &this->demux_plugin;
 }
 
@@ -233,10 +212,7 @@ static void class_dispose (demux_class_t *this_gen) {
 
   demux_image_class_t *this = (demux_image_class_t *) this_gen;
 
-#ifdef LOG
-  printf("demux_image: class closed\n");
-#endif
-  
+  lprintf("class closed\n");
   free (this);
 }
 
@@ -244,9 +220,7 @@ static void *init_class (xine_t *xine, void *data) {
   
   demux_image_class_t     *this;
   
-  this         = xine_xmalloc (sizeof (demux_image_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this  = xine_xmalloc (sizeof (demux_image_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
@@ -255,10 +229,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->demux_class.get_extensions  = get_extensions;
   this->demux_class.dispose         = class_dispose;
 
-#ifdef LOG
-  printf("demux_image: class opened\n");
-#endif
-
+  lprintf("class opened\n");
   return this;
 }
 
