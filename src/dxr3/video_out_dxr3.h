@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.17 2003/08/04 03:47:09 miguelfreitas Exp $
+ * $Id: video_out_dxr3.h,v 1.18 2003/08/05 15:07:42 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -107,9 +107,9 @@ typedef struct dxr3_driver_s {
   spu_encoder_t       *spu_enc;             /* spu encoder */
   int                  need_update;         /* the mpeg encoder needs to be updated */
   
-  int                  video_iheight;       /* input height (before adding black bars) */
-  int                  video_oheight;       /* output height (after adding black bars) */
-  int                  video_width;
+  uint32_t             video_iheight;       /* input height (before adding black bars) */
+  uint32_t             video_oheight;       /* output height (after adding black bars) */
+  uint32_t             video_width;
   double               video_ratio;
   int                  top_bar;             /* the height of the upper black bar */
   
@@ -128,7 +128,7 @@ typedef struct dxr3_driver_s {
 
 typedef struct dxr3_frame_s {
   vo_frame_t       vo_frame;
-  int              oheight;
+  uint32_t         oheight;
   int              aspect, pan_scan;
   uint8_t         *mem;           /* allocated for YV12 or YUY2 buffers */
   uint8_t         *real_base[3];  /* yuv/yuy2 buffers in mem aligned on 16 */

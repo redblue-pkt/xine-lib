@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.83 2003/08/04 03:47:09 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.84 2003/08/05 15:07:42 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -88,9 +88,9 @@ static vo_info_t   vo_info_dxr3_aa = {
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 15, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
+  { PLUGIN_VIDEO_OUT, 16, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
 #endif
-  { PLUGIN_VIDEO_OUT, 15, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
+  { PLUGIN_VIDEO_OUT, 16, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -356,7 +356,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
            "video_out_dxr3: driver. See the README.dxr3 for details on configuring an encoder.\n");
   
   /* init aspect */
-  dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
+  this->aspect = dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
   
   /* init brightness/contrast/saturation */
   dxr3_set_property(&this->vo_driver, VO_PROP_BRIGHTNESS, 500);
@@ -540,7 +540,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen; 
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen; 
-  int oheight;
+  uint32_t oheight;
 
   if (format == XINE_IMGFMT_DXR3) { /* talking to dxr3 decoder */
     /* a bit of a hack. we must release the em8300_mv fd for
@@ -563,7 +563,11 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     frame->vo_frame.height  = height;
     frame->vo_frame.ratio   = ratio;
     frame->oheight          = height;
-    frame->aspect           = 0;
+    if (ratio < 1.5)
+      frame->aspect         = XINE_VO_ASPECT_4_3;
+    else
+      frame->aspect         = XINE_VO_ASPECT_ANAMORPHIC;
+    frame->pan_scan         = flags & VO_PAN_SCAN_FLAG;
     
     if (frame->mem) {
       free(frame->mem);
@@ -577,6 +581,14 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
 
   /* the following is for the mpeg encoding part only */
   
+  if (!this->add_bars)
+    /* don't add black bars; assume source is in 4:3 */
+    ratio = 4.0/3.0;
+  
+  if (ratio <= 0.0)
+    /* correct some crazy aspects */
+    ratio = (double)width / (double)height;
+  
   frame->vo_frame.ratio = ratio;
   frame->pan_scan       = 0;
   frame->aspect         = this->aspect;
@@ -587,21 +599,16 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     this->scale.force_redraw = 1;
   }
 
-  if (this->add_bars == 0) {
-    /* don't add black bars; assume source is in 4:3 */
-    ratio = 4.0/3.0;
-  }
-
   if ((this->video_width != width) || (this->video_iheight != height) ||
-      (this->video_ratio != ratio)) {
-    
+      (fabs(this->video_ratio - ratio) > 0.01)) {
+
     /* try anamorphic */
     frame->aspect = XINE_VO_ASPECT_ANAMORPHIC;
-    oheight = height * (ratio / (16.0 / 9.0));
+    oheight = (double)height * (ratio / (16.0 / 9.0)) + .5;
     if (oheight < height) {
       /* frame too high, try 4:3 */
       frame->aspect = XINE_VO_ASPECT_4_3;
-      oheight = height * (ratio / (4.0 / 3.0));
+      oheight = (double)height * (ratio / (4.0 / 3.0)) + .5;
     }
     if (oheight < height) {
       /* still too high, use full height */
@@ -831,22 +838,18 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
 
-  /* use correct aspect and pan&scan setting */
-  if (!frame->aspect) {
-    /* aspect not determined yet, set it now */
-    frame->aspect = this->aspect;
-    frame->pan_scan = 0;
-
-    if (frame->vo_frame.ratio < 1.4)
-      frame->aspect = XINE_VO_ASPECT_4_3;
-    else
-      frame->aspect = XINE_VO_ASPECT_ANAMORPHIC;
+  if ((this->widescreen_enabled ? XINE_VO_ASPECT_4_3 : frame->aspect) != this->aspect)
+    this->aspect = dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO,
+      (this->widescreen_enabled ? XINE_VO_ASPECT_4_3 : frame->aspect));
+  if (frame->pan_scan && !this->pan_scan) {
+    dxr3_set_property(this_gen, VO_PROP_ZOOM_X, 1);
+    this->pan_scan = 1;
+  }
+  if (!frame->pan_scan && this->pan_scan) {
+    this->pan_scan = 0;
+    dxr3_set_property(this_gen, VO_PROP_ZOOM_X, -1);
   }
 
-  if ((this->widescreen_enabled ? XINE_VO_ASPECT_4_3 : frame->aspect) != this->aspect)
-    dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO,
-      (this->widescreen_enabled ? XINE_VO_ASPECT_4_3 : frame->aspect));
-  
 #ifdef HAVE_X11
   if (this->overlay_enabled) {
     if (this->scale.force_redraw                         ||
@@ -954,13 +957,8 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     bcs_changed = 1;
     break;
   case VO_PROP_ASPECT_RATIO:
-    /* xitk-ui increments the value, so we make
+    /* xine-ui increments the value, so we make
      * just a two value "loop" */
-    /*
-    if (value != ASPECT_FULL && value != ASPECT_AUTO)
-      value = ASPECT_ANAMORPHIC;
-    */
-    this->aspect = value;
     if (this->pan_scan) break;
     if (this->widescreen_enabled) {
       /* FIXME: We should send an anamorphic hint to widescreen tvs, so they
@@ -968,16 +966,22 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
       break;
     }
     
-    if (value == XINE_VO_ASPECT_ANAMORPHIC) {
-#if LOG_VID
-      printf("video_out_dxr3: setting aspect ratio to anamorphic\n");
-#endif
-      val = EM8300_ASPECTRATIO_16_9;
-    } else {
+    switch(value) {
+    case XINE_VO_ASPECT_SQUARE:
+    case XINE_VO_ASPECT_4_3:
 #if LOG_VID
       printf("video_out_dxr3: setting aspect ratio to full\n");
 #endif
       val = EM8300_ASPECTRATIO_4_3;
+      value = XINE_VO_ASPECT_4_3;
+      break;
+    case XINE_VO_ASPECT_ANAMORPHIC:
+    case XINE_VO_ASPECT_DVB:
+#if LOG_VID
+      printf("video_out_dxr3: setting aspect ratio to anamorphic\n");
+#endif
+      val = EM8300_ASPECTRATIO_16_9;
+      value = XINE_VO_ASPECT_ANAMORPHIC;
     }
 
     if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
@@ -1063,7 +1067,7 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
     this->win = (Drawable)data;
     XFreeGC(this->display, this->gc);
     this->gc = XCreateGC(this->display, this->win, 0, NULL);
-    dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
+    this->aspect = dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
     break;
   case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
     {
@@ -1096,7 +1100,7 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
         this->scale.force_redraw = 1;
       }
       ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SETMODE, &val);
-      dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
+      this->aspect = dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
     }
     break;
   default:

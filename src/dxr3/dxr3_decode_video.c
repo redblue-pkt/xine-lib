@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.37 2003/08/04 03:47:09 miguelfreitas Exp $
+ * $Id: dxr3_decode_video.c,v 1.38 2003/08/05 15:07:42 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -72,7 +72,7 @@ static decoder_info_t dxr3_video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -116,17 +116,18 @@ typedef struct dxr3_decoder_s {
   int                    width;
   int                    height;
   double                 ratio;
-  int                    aspect;
+  int                    aspect_code;
   int                    frame_rate_code;
   int                    repeat_first_field;   /* mpeg stream header data */
   
-  int                    force_aspect;         /* when input plugin has better info, we are forced
-                                                * to use a certain aspect */
+  int                    force_aspect;         /* when input plugin has better info, we are forced */
+  int                    force_pan_scan;       /* to use a certain aspect or to do pan&scan */
+  
   int                    last_width;
   int                    last_height;
-  int                    last_aspect;          /* used to detect changes for event sending */
+  int                    last_aspect_code;     /* used to detect changes for event sending */
   
-  int                    dts_offset[3];
+  unsigned int           dts_offset[3];
   int                    sync_every_frame;
   int                    sync_retry;
   int                    enhanced_mode;
@@ -233,10 +234,11 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->repeat_first_field    = 0;
   
   this->force_aspect          = 0;
+  this->force_pan_scan        = 0;
   
   this->last_width            = 0;
   this->last_height           = 0;
-  this->last_aspect           = 0;
+  this->last_aspect_code      = 0;
   
   this->dts_offset[0]         = 21600;
   this->dts_offset[1]         = 21600;
@@ -303,24 +305,44 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   /* handle aspect hints from xine-dvdnav */
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
-      this->aspect = this->force_aspect = buf->decoder_info[2];
-      if (buf->decoder_info[3] == 0x1 && this->force_aspect == XINE_VO_ASPECT_ANAMORPHIC)
-        /* letterboxing is denied, we have to do pan&scan */
-        this->aspect = this->force_aspect = XINE_VO_ASPECT_PAN_SCAN;
-      /* when aspect changed, we have to send an event for dxr3 spu decoder */
-      if (!this->last_aspect || this->last_aspect != this->aspect) {
-        xine_event_t event;
-	xine_format_change_data_t data;
-        event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
-	event.stream      = this->stream;
-	event.data        = &data;
-	event.data_length = sizeof(data);
-        data.width        = this->last_width;
-        data.height       = this->last_height;
-        data.aspect       = this->aspect;
-        xine_event_send(this->stream, &event);
-        this->last_aspect = this->aspect;
+      xine_event_t event;
+      xine_format_change_data_t data;
+      
+      this->aspect_code = this->force_aspect = buf->decoder_info[2];
+      if (buf->decoder_info[3] == 0x1 && this->force_aspect == 3)
+	/* letterboxing is denied, we have to do pan&scan */
+	this->force_pan_scan = 1;
+      else
+	this->force_pan_scan = 0;
+
+      /* send an event for dxr3 spu decoder */
+      event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
+      event.stream      = this->stream;
+      event.data        = &data;
+      event.data_length = sizeof(data);
+      data.width        = this->last_width;
+      data.height       = this->last_height;
+      data.aspect       = this->force_aspect;
+      data.pan_scan     = this->force_pan_scan;
+      xine_event_send(this->stream, &event);
+      
+      /* update ratio */
+      switch (this->aspect_code) {
+      case 2:
+	this->ratio = 4.0 / 3.0;
+	break;
+      case 3:
+	this->ratio = 16.0 / 9.0;
+	break;
+      case 4:
+	this->ratio = 2.11;
+	break;
+      default:
+	if (this->have_header_info)
+	  this->ratio = this->last_width / this->last_height;
       }
+      
+      this->last_aspect_code = this->aspect_code;
     }
     return;
   }
@@ -381,7 +403,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     /* pretend like we have decoded a frame */
     img = this->stream->video_out->get_frame(this->stream->video_out,
       this->width, this->height, this->ratio,
-      XINE_IMGFMT_DXR3, VO_BOTH_FIELDS);
+      XINE_IMGFMT_DXR3, VO_BOTH_FIELDS | (this->force_pan_scan ? VO_PAN_SCAN_FLAG : 0));
     img->pts       = buf->pts;
     img->bad_frame = 0;
     img->duration  = get_duration(this);
@@ -660,19 +682,18 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
                           buffer[HEADER_OFFSET+2];
   this->width           = ((this->height >> 12) + 15) & ~15;
   this->height          = ((this->height & 0xfff) + 15) & ~15;
-  this->ratio           = (double)this->width/(double)this->height;
-  this->aspect          = buffer[HEADER_OFFSET+3] >> 4;
+  this->aspect_code     = buffer[HEADER_OFFSET+3] >> 4;
   
   this->have_header_info = 1;
   
-  if (this->force_aspect) this->aspect = this->force_aspect;
+  if (this->force_aspect) this->aspect_code = this->force_aspect;
   
   /* when width, height or aspect changes,
    * we have to send an event for dxr3 spu decoder */
-  if (!this->last_width || !this->last_height || !this->last_aspect ||
+  if (!this->last_width || !this->last_height || !this->last_aspect_code ||
       (this->last_width != this->width) ||
       (this->last_height != this->height) ||
-      (this->last_aspect != this->aspect)) {
+      (this->last_aspect_code != this->aspect_code)) {
     xine_event_t event;
     xine_format_change_data_t data;
     event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
@@ -681,30 +702,33 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
     event.data_length = sizeof(data);
     data.width        = this->width;
     data.height       = this->height;
-    data.aspect       = this->aspect;
+    data.aspect       = this->aspect_code;
+    data.pan_scan     = this->force_pan_scan;
     xine_event_send(this->stream, &event);
-    this->last_width = this->width;
-    this->last_height = this->height;
-    this->last_aspect = this->aspect;
+    
+    /* update ratio */
+    switch (this->aspect_code) {
+    case 2:
+      this->ratio = 4.0 / 3.0;
+      break;
+    case 3:
+      this->ratio = 16.0 / 9.0;
+      break;
+    case 4:
+      this->ratio = 2.11;
+      break;
+    default:
+      this->ratio = this->width / this->height;
+    }
     
     /* update stream metadata */
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
-    switch (this->aspect) {
-    case XINE_VO_ASPECT_SQUARE:
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
-      break;
-    case XINE_VO_ASPECT_4_3:
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
-      break;
-    case XINE_VO_ASPECT_PAN_SCAN:
-    case XINE_VO_ASPECT_ANAMORPHIC:
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 / 9.0;
-      break;
-    case XINE_VO_ASPECT_DVB:
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11;
-      break;
-    }
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO]  = 10000 * this->ratio;
+    
+    this->last_width = this->width;
+    this->last_height = this->height;
+    this->last_aspect_code = this->aspect_code;
   }
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.35 2003/05/03 14:24:07 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.36 2003/08/05 15:07:42 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -126,8 +126,7 @@ typedef struct dxr3_spudec_s {
   pthread_mutex_t          pci_lock;
   uint32_t                 buttonN;      /* currently highlighted button */
   
-  int                      aspect;       /* this is needed for correct highlight placement */
-  int                      height;       /* in anamorphic menus */
+  int                      anamorphic;   /* this is needed to detect anamorphic menus */
 } dxr3_spudec_t;
 
 /* helper functions */
@@ -230,7 +229,7 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   this->pci.hli.hl_gi.hli_ss          = 0;
   this->buttonN                       = 1;
   
-  this->aspect                        = XINE_VO_ASPECT_4_3;
+  this->anamorphic                    = 0;
   
   pthread_mutex_init(&this->pci_lock, NULL);
   
@@ -335,7 +334,8 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
             printf("dxr3_decode_spu: failed to set spu button (%s)\n",
               strerror(errno));
 	  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
-	}
+	} else
+	  XINE_ASSERT(0, "Requested button not available.");
       }
       
       if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
@@ -413,7 +413,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 #endif
     return;
   }
-  if (this->aspect == XINE_VO_ASPECT_ANAMORPHIC && !this->dxr3_vo->widescreen_enabled &&
+  if (this->anamorphic && !this->dxr3_vo->widescreen_enabled &&
       this->stream->spu_channel_user == -1 && this->stream->spu_channel_letterbox >= 0) {
     /* Use the letterbox version of the subpicture for letterboxed display. */
     spu_channel = this->stream->spu_channel_letterbox;
@@ -575,56 +575,81 @@ static void dxr3_spudec_handle_event(dxr3_spudec_t *this)
   
   while ((event = xine_event_get(this->event_queue))) {
 #if LOG_SPU
-  printf("dxr3_decode_spu: event caught: SPU_FD = %i\n",this->fd_spu);
+    printf("dxr3_decode_spu: event caught: SPU_FD = %i\n",this->fd_spu);
 #endif
   
     switch (event->type) {
     case XINE_EVENT_FRAME_FORMAT_CHANGE:
-      this->height = ((xine_format_change_data_t *)event->data)->height;
-      this->aspect = ((xine_format_change_data_t *)event->data)->aspect;
+      /* we are in anamorphic mode, if the frame is 16:9, but not pan&scan'ed */
+      this->anamorphic =
+	(((xine_format_change_data_t *)event->data)->aspect == 3) &&
+	(((xine_format_change_data_t *)event->data)->pan_scan == 0);
 #if LOG_BTN
-      printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
+      printf("dxr3_decode_spu: anamorphic mode %s\n", this->anamorphic ? "on" : "off");
 #endif
       break;
     }
   
-  xine_event_free(event);
+    xine_event_free(event);
   }
 }
 
 static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn)
 {
-  btni_t *button_ptr;
+  btni_t *button_ptr = NULL;
   
-  if ((this->buttonN <= 0) || (this->buttonN > this->pci.hli.hl_gi.btn_ns)) {
-    int buttonN;
-    xine_event_t event;
+  if ((this->buttonN <= 0) || (this->buttonN > this->pci.hli.hl_gi.btn_ns))
+    return -1;
+  
+  /* choosing a button from a matching button group */
+  if (this->anamorphic &&
+      !this->dxr3_vo->widescreen_enabled &&
+      this->stream->spu_channel_user == -1 &&
+      this->stream->spu_channel_letterbox != this->stream->spu_channel &&
+      this->stream->spu_channel_letterbox >= 0) {
+    unsigned int btns_per_group = 36 / this->pci.hli.hl_gi.btngr_ns;
     
-    printf("dxr3_decode_spu: Unable to select button number %i as it doesn't exist. Forcing button 1\n",
-      this->buttonN);
-    this->buttonN      = 1;
-    /* inform nav plugin that we have chosen another button */
-    event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
-    event.stream       = this->stream;
-    event.data         = &buttonN;
-    event.data_length  = sizeof(buttonN);
-    buttonN            = this->buttonN;
-    xine_event_send(this->stream, &event);
+    /* use a letterbox button group for letterboxed anamorphic menus on tv out */
+    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 1 && (this->pci.hli.hl_gi.btngr1_dsp_ty & 2))
+      button_ptr = &this->pci.hli.btnit[0 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 2 && (this->pci.hli.hl_gi.btngr2_dsp_ty & 2))
+      button_ptr = &this->pci.hli.btnit[1 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 3 && (this->pci.hli.hl_gi.btngr3_dsp_ty & 2))
+      button_ptr = &this->pci.hli.btnit[2 * btns_per_group + this->buttonN - 1];
+    
+    XINE_ASSERT(button_ptr, "No suitable letterbox button group found.");
+    
+  } else {
+    unsigned int btns_per_group = 36 / this->pci.hli.hl_gi.btngr_ns;
+    
+    /* otherwise use a normal 4:3 or widescreen button group */
+    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 1 && !(this->pci.hli.hl_gi.btngr1_dsp_ty & 6))
+      button_ptr = &this->pci.hli.btnit[0 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 2 && !(this->pci.hli.hl_gi.btngr2_dsp_ty & 6))
+      button_ptr = &this->pci.hli.btnit[1 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 3 && !(this->pci.hli.hl_gi.btngr3_dsp_ty & 6))
+      button_ptr = &this->pci.hli.btnit[2 * btns_per_group + this->buttonN - 1];
+    
+  }
+  if (!button_ptr) {
+    printf("dxr3_decode_spu: No suitable menu button group found, using group 1.\n");
+    button_ptr = &this->pci.hli.btnit[this->buttonN - 1];
   }
   
-  button_ptr = &this->pci.hli.btnit[this->buttonN - 1];
   if(button_ptr->btn_coln != 0) {
 #if LOG_BTN
     fprintf(stderr, "dxr3_decode_spu: normal button clut, mode %d\n", mode);
 #endif
     btn->color = (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> 16);
     btn->contrast = (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode]);
-    /* FIXME: Only the first grouping of buttons are used at the moment */
     btn->left = button_ptr->x_start;
     btn->top  = button_ptr->y_start;
     btn->right = button_ptr->x_end;
     btn->bottom = button_ptr->y_end;
-    if (this->aspect == XINE_VO_ASPECT_ANAMORPHIC &&
+#if 0
+    /* FIXME: we properly use button groups now, so this hack is obsolete.
+     * Remove it, after sufficient testing (see above XINE_ASSERT()). */
+    if (this->anamorphic &&
         !this->dxr3_vo->widescreen_enabled &&
 	this->stream->spu_channel_user == -1 &&
 	this->stream->spu_channel_letterbox != this->stream->spu_channel &&
@@ -634,6 +659,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
       btn->top = btn->top * 3 / 4 + top_black_bar;
       btn->bottom = btn->bottom * 3 / 4 + top_black_bar;
     }
+#endif
     return 1;
   } 
   return -1;
