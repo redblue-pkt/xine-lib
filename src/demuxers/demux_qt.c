@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2002 the xine project
+ * Copyright (C) 2001-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.148 2003/02/19 03:07:55 tmmm Exp $
+ * $Id: demux_qt.c,v 1.149 2003/02/20 05:34:52 tmmm Exp $
  *
  */
 
@@ -509,6 +509,9 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
 
     input->seek(input, atom_size, SEEK_CUR);
   }
+
+  /* reset to the start of the stream on the way out */
+  input->seek(input, 0, SEEK_SET);
 }
 
 /* create a qt_info structure or return NULL if no memory */
@@ -564,6 +567,18 @@ static int is_qt_file(input_plugin_t *qt_file) {
   int64_t moov_atom_size = -1;
   int i;
   unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
+  unsigned char preview[MAX_PREVIEW_SIZE];
+  int len;
+
+  /* if the input is non-seekable, be much more stringent about qualifying
+   * a QT file: In this case, the moov must be the first atom in the file */
+  if ((qt_file->get_capabilities(qt_file) & INPUT_CAP_SEEKABLE) == 0) {
+    len = qt_file->get_optional_data(qt_file, preview, INPUT_OPTIONAL_DATA_PREVIEW);
+    if (BE_32(&preview[4]) == MOOV_ATOM)
+      return 1;
+    else
+      return 0;
+  }
 
   find_moov_atom(qt_file, &moov_atom_offset, &moov_atom_size);
   if (moov_atom_offset == -1) {
@@ -650,9 +665,14 @@ static qt_error parse_trak_atom (qt_trak *trak,
   trak->time_to_sample_count = 0;
   trak->time_to_sample_table = NULL;
   trak->frames = NULL;
+  trak->frame_count = 0;
+  trak->current_frame = 0;
+  trak->timescale = 0;
+  trak->flags = 0;
   trak->decoder_config = NULL;
   trak->decoder_config_len = 0;
   trak->stsd = NULL;
+  trak->stsd_size = 0;
   memset(&trak->properties, 0, sizeof(trak->properties));
 
   /* default type */
@@ -1315,6 +1335,7 @@ static qt_error build_frame_table(qt_trak *trak,
       trak->frame_count * sizeof(qt_frame));
     if (!trak->frames)
       return QT_NO_MEMORY;
+    trak->current_frame = 0;
 
     /* initialize more accounting variables */
     frame_counter = 0;
@@ -1596,13 +1617,25 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   unsigned char *moov_atom = NULL;
   off_t moov_atom_offset = -1;
   int64_t moov_atom_size = -1;
+  unsigned char preview[MAX_PREVIEW_SIZE];
 
   /* zlib stuff */
   z_stream z_state;
   int z_ret_code;
   unsigned char *unzip_buffer;
 
-  find_moov_atom(input, &moov_atom_offset, &moov_atom_size);
+  if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE))
+    find_moov_atom(input, &moov_atom_offset, &moov_atom_size);
+  else {
+    input->get_optional_data(input, preview, INPUT_OPTIONAL_DATA_PREVIEW);
+    if (BE_32(&preview[4]) != MOOV_ATOM) {
+      info->last_error = QT_NO_MOOV_ATOM;
+      return info->last_error;
+    }
+    moov_atom_offset = 0;
+    moov_atom_size = BE_32(&preview[0]);
+  }
+
   if (moov_atom_offset == -1) {
     info->last_error = QT_NO_MOOV_ATOM;
     return info->last_error;
@@ -1614,6 +1647,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
     info->last_error = QT_NO_MEMORY;
     return info->last_error;
   }
+
   /* seek to the start of moov atom */
   if (input->seek(input, info->moov_first_offset, SEEK_SET) !=
     info->moov_first_offset) {
@@ -1621,7 +1655,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
     info->last_error = QT_FILE_READ_ERROR;
     return info->last_error;
   }
-  if (input->read(input, moov_atom, moov_atom_size) !=
+  if (input->read(input, moov_atom, moov_atom_size) != 
     moov_atom_size) {
     free(moov_atom);
     info->last_error = QT_FILE_READ_ERROR;
@@ -1688,6 +1722,8 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
   /* take apart the moov atom */
   parse_moov_atom(info, moov_atom);
+  if (info->last_error != QT_OK)
+    return info->last_error;
 
   free(moov_atom);
 
@@ -1964,8 +2000,8 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   int64_t first_audio_offset = -1;
   int64_t  last_audio_offset = -1;
 
-  this->video_fifo  = this->stream->video_fifo;
-  this->audio_fifo  = this->stream->audio_fifo;
+  this->video_fifo = this->stream->video_fifo;
+  this->audio_fifo = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
@@ -2232,6 +2268,14 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 
   int64_t keyframe_pts;
 
+  /* short-circuit any attempts to seek in a non-seekable stream, including
+   * seeking in the forward direction; this may change later */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->qt->seek_flag = 1;
+    this->status = DEMUX_OK;
+    return this->status;
+  }
+
   /* if there is a video trak, position it as close as possible to the
    * requested position */
   if (this->qt->video_trak != -1) {
@@ -2319,13 +2363,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_qt_t     *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_qt.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
-
   if ((input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
-    printf(_("demux_qt.c: input is block organized, can not handle!\n"));
     return NULL;
   }
 
