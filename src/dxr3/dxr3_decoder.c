@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.25 2001/10/28 14:44:11 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.26 2001/10/29 09:57:41 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -280,32 +280,45 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 		this->aspect = buffer[HEADER_OFFSET+3] >> 4;
 
 		switch (framecode){
-		case 2:
-			this->duration=90000/24;
+		case 1: /* 23.976 */
+			this->duration=3913;
 			break;
-		case 3:
-			this->duration=90000/25;
+		case 2: /* 24.000 */
+			this->duration=3750;
 			break;
-		case 5:
-			this->duration=90000/30;
+		case 3: /* 25.000 */
+			this->duration=3600;
 			break;
-		case 6:
-			this->duration=90000/50;
+		case 4: /* 29.970 */
+			this->duration=3003;
 			break;
-		case 8: 
-			this->duration=90000/60;
+		case 5: /* 30.000 */
+			this->duration=3000;
+			break;
+		case 6: /* 50.000 */
+			this->duration=1800;
+			break;
+		case 7: /* 59.940 */
+			this->duration=1525;
+			break;
+		case 8: /* 60.000 */
+			this->duration=1509;
 			break;
 		default:
-			this->duration=90000/25;  /* PAL 25fps */
+			this->duration=3600;  /* PAL 25fps */
 			break;
 		}
 				
 		/* and ship the data if different ... appeasing any other vo plugins
 		that are active ... */
 		if (old_h!=this->height || old_w!=this->width || old_a!=this->aspect)
-			this->video_out->get_frame(this->video_out,
-			 this->width,this->height,this->aspect,
-			 IMGFMT_YV12, this->duration, 6667);  /* dxr3_decoder = 6667 */
+		{
+			vo_frame_t *img;
+			img = this->video_out->get_frame(this->video_out,
+				 this->width,this->height,this->aspect,
+				 IMGFMT_YV12, this->duration, 6667);  /* dxr3_decoder = 6667 */
+			img->free(img);				 
+		}
 	}
 }
 
@@ -313,7 +326,6 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
-
 
 	/* The dxr3 does not need the preview-data */
 	if (buf->decoder_info[0] == 0) return;
@@ -328,7 +340,6 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              IMGFMT_YV12,
                              this->duration,
                              VO_BOTH_FIELDS);
-
 	        img->draw(img);
 	 	img->free(img);
 		return;
