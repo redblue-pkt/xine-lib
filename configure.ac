@@ -703,9 +703,16 @@ dnl ---------------------------------------------
 dnl Checks for Ascii-Art library
 dnl ---------------------------------------------
 
-AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
+AC_ARG_ENABLE(aalib,
+	AC_HELP_STRING([--disable-aalib], [do not build aalib]),
+		disable_aalib=yes,
+		disable_aalib=no)
 
+if test x$disable_aalib = "xno"; then
+AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
+fi
+
+AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 dnl ---------------------------------------------
 dnl Checks for Color AsCii Art library
