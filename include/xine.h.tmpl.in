@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.56 2001/11/20 17:22:13 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.57 2001/11/25 21:47:19 f1rmb Exp $
  *
  */
 
@@ -545,7 +545,7 @@ struct config_values_s {
    * from the config file otherwise
    */
 
-  char* (*register_string) (config_values_t *this,
+  char* (*register_string) (config_values_t *self,
 			    char *key, 
 			    char *def_value,
 			    char *description, 
@@ -553,7 +553,7 @@ struct config_values_s {
 			    config_cb_t changed_cb,
 			    void *cb_data);
 
-  int (*register_range) (config_values_t *this,
+  int (*register_range) (config_values_t *self,
 			 char *key,
 			 int def_value,
 			 int min, int max,
@@ -562,7 +562,7 @@ struct config_values_s {
 			 config_cb_t changed_cb,
 			 void *cb_data);
 
-  int (*register_enum) (config_values_t *this,
+  int (*register_enum) (config_values_t *self,
 			char *key,
 			int def_value,
 			char **values,
@@ -571,7 +571,7 @@ struct config_values_s {
 			config_cb_t changed_cb,
 			void *cb_data);
 
-  int (*register_num) (config_values_t *this,
+  int (*register_num) (config_values_t *self,
 		       char *key, 
 		       int def_value,
 		       char *description, 
@@ -579,7 +579,7 @@ struct config_values_s {
 		       config_cb_t changed_cb,
 		       void *cb_data);
 
-  int (*register_bool) (config_values_t *this,
+  int (*register_bool) (config_values_t *self,
 			char *key, 
 			int def_value,
 			char *description, 
@@ -588,11 +588,11 @@ struct config_values_s {
 			void *cb_data);
 
   /* convenience function to update range, enum, num and bool values */
-  void (*update_num) (config_values_t *this,
+  void (*update_num) (config_values_t *self,
 		      char *key, int value);
 
   /* convenience function to update string values */
-  void (*update_string) (config_values_t *this,
+  void (*update_string) (config_values_t *self,
 			 char *key, char *value);
 
   /* small utility function for enum handling */
@@ -605,18 +605,18 @@ struct config_values_s {
    * and you changed the value of this item
    */
 
-  cfg_entry_t* (*lookup_entry) (config_values_t *this,
+  cfg_entry_t* (*lookup_entry) (config_values_t *self,
 				char *key);
 
   /*
    * write config file to disk
    */
-  void (*save) (config_values_t *this);
+  void (*save) (config_values_t *self);
 
   /*
    * read config file from disk, overriding values in memory
    */
-  void (*read) (config_values_t *this, char *filename);
+  void (*read) (config_values_t *self, char *filename);
 
   /* 
    * config values are stored here:
