@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.64 2002/07/01 11:38:59 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.65 2002/07/01 11:41:20 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -293,10 +293,9 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
 	    this->input_sample_rate, this->output_sample_rate);
   }
-  /* ERROR: Set buffer size [samples] */
-  buffer_size = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params,
-                                                       500000);
-  if (buffer_size < 0) {
+  /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
+  err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, 500000, &dir);
+  if (err < 0) {
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
