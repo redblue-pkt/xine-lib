@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.61 2003/02/20 18:09:09 siggi Exp $
+ * $Id: xine.h.in,v 1.62 2003/02/28 12:16:01 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -584,6 +584,7 @@ void xine_post_dispose(xine_t *xine, xine_post_t *self);
 /* post plugin types */
 #define XINE_POST_TYPE_VIDEO_FILTER		0x010000
 #define XINE_POST_TYPE_VIDEO_VISUALIZATION	0x010001
+#define XINE_POST_TYPE_VIDEO_COMPOSE		0x010002
 #define XINE_POST_TYPE_AUDIO_FILTER		0x020000
 #define XINE_POST_TYPE_AUDIO_VISUALIZATION	0x020001
 
