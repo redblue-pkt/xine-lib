@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2003-01-13 13:19+0100\n"
-"PO-Revision-Date: 2002-11-24 20:40+0100\n"
+"PO-Revision-Date: 2003-01-25 11:05+0100\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -71,9 +71,8 @@ msgstr "opó¼nienie wyj¶cia d¼wieku esd (regulacja synchronizacji a/v)"
 
 # src/audio_out/audio_esd_out.c:441
 #: src/audio_out/audio_esd_out.c:560
-#, fuzzy
 msgid "xine audio output plugin using esound"
-msgstr "wtyczka wyj¶cia d¼wiêku u¿ywaj±ca esd"
+msgstr "wtyczka wyj¶cia d¼wiêku u¿ywaj±ca esound"
 
 # src/audio_out/audio_oss_out.c:640
 #: src/audio_out/audio_oss_out.c:673
@@ -83,8 +82,7 @@ msgstr "/dev/dsp# urz±dzenie u¿ywane dla wyj¶cia oss, - 1 => auto_detect"
 # src/audio_out/audio_oss_out.c:708
 #: src/audio_out/audio_oss_out.c:741
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
-msgstr ""
-"metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
+msgstr "metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
 
 # src/audio_out/audio_oss_out.c:775
 #: src/audio_out/audio_oss_out.c:808
@@ -136,14 +134,12 @@ msgstr "urz±dzenie u¿ywane do wyj¶cia d¼wiêku z wtyczk± d¼wiêku 'Sun'"
 # src/audio_out/audio_sun_out.c:748
 #: src/audio_out/audio_sun_out.c:966
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
-msgstr ""
-"wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
+msgstr "wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
 
 # src/audio_out/audio_esd_out.c:441
 #: src/audio_out/audio_arts_out.c:360
-#, fuzzy
 msgid "xine audio output plugin using kde artsd"
-msgstr "wtyczka wyj¶cia d¼wiêku u¿ywaj±ca esd"
+msgstr "wtyczka wyj¶cia d¼wiêku u¿ywaj±ca kde artsd"
 
 # src/audio_out/audio_irixal_out.c:382
 #: src/audio_out/audio_irixal_out.c:385
@@ -425,8 +421,7 @@ msgstr ""
 
 #: src/demuxers/demux_voc.c:142
 #, c-format
-msgid ""
-"unknown VOC compression type (0x%02X); please report to xine developers\n"
+msgid "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
 "nieznany typ kompresji VOC (0x%02X); proszê skontaktowaæ siê z programistami "
 "xine\n"
@@ -439,14 +434,12 @@ msgstr "demux_voc.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
 #: src/demuxers/demux_voc.c:384
 #, c-format
 msgid "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
-msgstr ""
-"demux_voc: format VOC 0x%X d¼wiêk, %d Hz, czas odtwarzania %d min, %d sec\n"
+msgstr "demux_voc: format VOC 0x%X d¼wiêk, %d Hz, czas odtwarzania %d min, %d sec\n"
 
 #: src/demuxers/demux_wc3movie.c:210
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
-msgstr ""
-"demux_wc3movie: fragment zrzutu odnosi siê do b³êdnej palety (%d >= %d)\n"
+msgstr "demux_wc3movie: fragment zrzutu odnosi siê do b³êdnej palety (%d >= %d)\n"
 
 # src/demuxers/demux_film.c:606
 #. report an unknown chunk and skip it
@@ -852,10 +845,8 @@ msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca biblioteki ascii-art"
 
 # src/video_out/video_out_syncfb.c:1170
 #: src/video_out/video_out_syncfb.c:1005
-msgid ""
-"xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
+msgid "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
 
 # src/video_out/video_out_syncfb.c:995
 #: src/video_out/video_out_syncfb.c:1023
@@ -875,8 +866,7 @@ msgstr "korekta gamma dla sterownika XShm"
 # src/video_out/video_out_xshm.c:1445
 #: src/video_out/video_out_xshm.c:1237
 msgid "xine video output plugin using the MIT X shared memory extension"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
 
 #: src/video_out/video_out_xv.c:1212
 msgid "Colorkey used for Xv video overlay"
@@ -914,14 +904,12 @@ msgstr "urz±dzenie buforu ramki"
 # src/video_out/video_out_fb.c:885
 #: src/video_out/video_out_fb.c:766
 msgid "xine video output plugin using linux framebuffer device"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
 
 # src/video_out/video_out_sdl.c:696
 #: src/video_out/video_out_sdl.c:547
-#, fuzzy
 msgid "xine video output plugin using the Simple Direct Media Layer"
-msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca warstwy Simple DirectMedia"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca Simple Direct Media Layer"
 
 # src/video_out/video_out_opengl.c:1106
 #: src/video_out/video_out_opengl.c:946
@@ -1226,8 +1214,7 @@ msgstr "dxr3enc: czêstotliwo¶æ wyj¶æia rte mpeg (kbit/s)"
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
-msgstr ""
-"czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
+msgstr "czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
 
 # src/dxr3/dxr3_mpeg_encoders.c:389
 #: src/dxr3/dxr3_mpeg_encoders.c:389
@@ -1386,19 +1373,4 @@ msgstr "MS RLE: ramka ptr w³a¶nie wykroczy³a poza granice (2)\n"
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: zakoñczono dekodowanie ramki z pozosta³ymi bajtami (%d < %d)\n"
 
-# src/libsputext/xine_decoder.c:1089
-#~ msgid "source encoding of subtitles"
-#~ msgstr "kodowanie napisów (¼ród³o)"
 
-# src/libsputext/xine_decoder.c:1094
-#~ msgid "target encoding for subtitles (have to match font encoding)"
-#~ msgstr "docelowe kodowanie napisów (musi siê pokrywaæ z kodowaniem fontów)"
-
-# src/audio_out/audio_arts_out.c:359
-#~ msgid "xine audio output plugin using arts-compliant audio devices/drivers"
-#~ msgstr ""
-#~ "wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami arts"
-
-# src/libffmpeg/xine_decoder.c:436
-#~ msgid "allow illegal vlc codes in mpeg4 streams"
-#~ msgstr "dopuszczenie b³êdnych kodów vlc w strumieniach mpeg4"
