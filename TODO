@@ -17,7 +17,6 @@ optional
 
 - fix streaming of small files (e.g. http) 
 - implement timeout in input_http, implement it correctly using select()
-- audio CD input plugin (a cdparanoia based one would be goom compatible ;-)
 - input_rtp
 - rtsp support
 - mmsh support

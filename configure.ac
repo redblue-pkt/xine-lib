@@ -1268,7 +1268,7 @@ echo "   - pnm           - rtsp"
 echo "   - dvb"
 if test x"$have_cdrom_ioctls" = "xyes"; then
   echo "   - dvd           - vcd"
-  echo "   - cda"
+  echo "   - cdda"
 fi
 echo ""
 
@@ -1283,7 +1283,7 @@ echo "   - fli           - smjpeg"
 echo "   - idcin         - wav"
 echo "   - wc3 mve       - voc"
 echo "   - vqa           - aiff"
-echo "   - cda           - snd/au"
+echo "   - cdda          - snd/au"
 echo "   - yuv4mpeg2     - real/realaudio"
 echo "   - ea wve        - raw dv"
 echo "   - interplay mve - psx str"

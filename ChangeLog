@@ -2,6 +2,7 @@
   * Westwood Studios AUD demuxer
   * PVA file demuxer
   * basic oscilloscope post plugin
+  * CD digital audio input source and stream demuxer
 
 xine-lib (1-beta2)
   * what a GOOM! post plugin
