@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.4 2001/06/10 01:26:46 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.5 2001/06/10 01:47:29 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -631,7 +631,6 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
   xshm_driver_t     *this = (xshm_driver_t *) this_gen;
   /* x11_rectangle_t *area; */
-  xshm_frame_t      *frame;
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
@@ -660,18 +659,18 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
     
   /* FIXME : take care of completion events */
 
-  if ((frame = this->cur_frame) != NULL) {
+  if (this->cur_frame) {
 
     if (this->use_shm) {
-    
+
       XShmPutImage(this->display, 
 		   this->drawable, this->gc, this->cur_frame->image,
 		   0, 0,  this->cur_frame->width, this->cur_frame->height,
-		   this->cur_frame->width, this->cur_frame->height, True);
+		   this->cur_frame->width, this->cur_frame->height, False);
     
     } else {
       XPutImage(this->display, 
-		this->drawable, this->gc, frame->image,
+		this->drawable, this->gc, this->cur_frame->image,
 		0, 0,  this->cur_frame->width, this->cur_frame->height,
 		this->cur_frame->width, this->cur_frame->height);
     }
