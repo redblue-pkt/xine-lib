@@ -3,6 +3,10 @@
 
 #include <sys/types.h>
 
+#if defined(__sun)
+typedef uint32_t u_int32_t;
+#endif
+
 typedef struct {
   u_int32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
 } reg386_t;
