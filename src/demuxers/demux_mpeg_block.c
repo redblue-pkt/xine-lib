@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.191 2003/06/07 14:01:38 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.192 2003/06/18 13:03:45 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -85,6 +85,7 @@ typedef struct demux_mpeg_block_s {
   int64_t               scr;
   uint32_t              packet_len;
   int64_t               pts;
+  int64_t               dts;
   uint32_t              stream_id;
   int32_t               mpeg1;
 
@@ -604,6 +605,8 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
     }
 
     this->pts = 0; 
+    this->dts = 0;
+    
     if ((p[0] & 0xf0) == 0x20) {
       this->pts  = (p[ 0] & 0x0E) << 29 ;
       this->pts |=  p[ 1]         << 22 ;
@@ -620,13 +623,13 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
       this->pts |= (p[ 2] & 0xFE) << 14 ;
       this->pts |=  p[ 3]         <<  7 ;
       this->pts |= (p[ 4] & 0xFE) >>  1 ;
-      /* DTS decoding code is working, but not used in xine
-	 DTS  = (p[ 5] & 0x0E) << 29 ;
-	 DTS |=  p[ 6]         << 22 ;
-	 DTS |= (p[ 7] & 0xFE) << 14 ;
-	 DTS |=  p[ 8]         <<  7 ;
-	 DTS |= (p[ 9] & 0xFE) >>  1 ;
-      */
+      
+      this->dts  = (p[ 5] & 0x0E) << 29 ;
+      this->dts |=  p[ 6]         << 22 ;
+      this->dts |= (p[ 7] & 0xFE) << 14 ;
+      this->dts |=  p[ 8]         <<  7 ;
+      this->dts |= (p[ 9] & 0xFE) >>  1 ;
+      
       p   += 10;
       header_len += 10;
       this->packet_len -= 10;
@@ -679,18 +682,16 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
     } else
       this->pts = 0;
 
-    /* code is working but not used in xine
-       if (p[7] & 0x40) {  
+    if (p[7] & 0x40) { /* dts avail */
       
-       DTS  = (p[14] & 0x0E) << 29 ;
-       DTS |=  p[15]         << 22 ;
-       DTS |= (p[16] & 0xFE) << 14 ;
-       DTS |=  p[17]         <<  7 ;
-       DTS |= (p[18] & 0xFE) >>  1 ;
+      this->dts  = (p[14] & 0x0E) << 29 ;
+      this->dts |=  p[15]         << 22 ;
+      this->dts |= (p[16] & 0xFE) << 14 ;
+      this->dts |=  p[17]         <<  7 ;
+      this->dts |= (p[18] & 0xFE) >>  1 ;
       
-       } else
-       DTS = 0;
-    */
+    } else
+      this->dts = 0;
 
 
     header_len = p[8];
@@ -888,6 +889,7 @@ static int32_t parse_video_stream(demux_mpeg_block_t *this, uint8_t *p, buf_elem
   buf->size      = this->packet_len;
   buf->type      = BUF_VIDEO_MPEG;
   buf->pts       = this->pts;
+  buf->decoder_info[0] = this->pts - this->dts;
   if( !this->preview_mode )
     check_newpts( this, this->pts, PTS_VIDEO );
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.35 2003/05/28 01:52:19 komadori Exp $
+ * $Id: dxr3_decode_video.c,v 1.36 2003/06/18 13:03:45 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -125,6 +125,7 @@ typedef struct dxr3_decoder_s {
   int                    last_height;
   int                    last_aspect;          /* used to detect changes for event sending */
   
+  int                    dts_offset[3];
   int                    sync_every_frame;
   int                    sync_retry;
   int                    enhanced_mode;
@@ -236,6 +237,9 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->last_height           = 0;
   this->last_aspect           = 0;
   
+  this->dts_offset[0]         = 21600;
+  this->dts_offset[1]         = 21600;
+  this->dts_offset[2]         = 21600;
   this->sync_retry            = 0;
   this->resync_window         = 0;
   this->skip_count            = 0;
@@ -256,10 +260,6 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
     "dxr3.correct_durations", 0, _("Correct frame durations in broken streams"),
     _("Enable this for streams with wrong frame durations."), 10,
     dxr3_update_correct_durations, this);
-  
-  if (!this->dxr3_vo->overlay_enabled)
-    /* set a/v offset to compensate dxr3 internal delay */
-    this->stream->metronom->set_option(this->stream->metronom, METRONOM_AV_OFFSET, -21600);
   
   /* the dxr3 needs a longer prebuffering to have time for its internal decoding */
   this->stream->metronom_prebuffer = 90000;
@@ -347,6 +347,12 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       /* extension data */
       if ((buffer[0] & 0xf0) == 0x80)
         this->repeat_first_field = (buffer[3] >> 1) & 1;
+#if 0
+      /* this disables frame jitter in progressive content, but
+       * unfortunately it makes the card drop one field on stills */
+      if ((buffer[0] & 0xf0) == 0x80)
+        buffer[4] &= ~(1 << 7);
+#endif
       /* check if we can keep syncing */
       if (this->repeat_first_field && this->sync_retry)  /* reset counter */
         this->sync_retry = 500;
@@ -497,6 +503,24 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   /* update the pts timestamp in the card, which tags the data we write to it */
   if (vpts) {
     int64_t delay;
+    
+    /* The PTS values written to the DXR3 must be modified based on the difference
+     * between stream's PTS and DTS (decoder timestamp). We receive this
+     * difference via decoder_info */
+    buf->decoder_info[0] <<= 1;
+    if (buf->pts) {
+      if ((this->dts_offset[0] == buf->decoder_info[0]) &&
+	  (this->dts_offset[1] == buf->decoder_info[0]))
+	this->dts_offset[2] = buf->decoder_info[0];
+      else {
+	this->dts_offset[1] = this->dts_offset[0];
+	this->dts_offset[0] = buf->decoder_info[0];
+      }
+#if LOG_PTS
+      printf("dxr3_decode_video: PTS to DTS correction: %d\n", this->dts_offset[1]);
+#endif
+    }
+    vpts -= this->dts_offset[2];
     
     delay = vpts - this->class->clock->get_current_time(
       this->class->clock);

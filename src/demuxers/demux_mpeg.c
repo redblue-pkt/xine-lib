@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.119 2003/05/20 19:21:23 jcdutton Exp $
+ * $Id: demux_mpeg.c,v 1.120 2003/06/18 13:03:44 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -184,7 +184,7 @@ static void find_mdat_atom(input_plugin_t *input, off_t *mdat_offset,
   }
 }
 
-static uint32_t read_bytes (demux_mpeg_t *this, int n) {
+static uint32_t read_bytes (demux_mpeg_t *this, uint32_t n) {
 
   uint32_t res;
   uint32_t i;
@@ -251,7 +251,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
   int            len, i;
   uint32_t       w, flags, header_len;
-  int64_t        pts;
+  int64_t        pts, dts;
   buf_element_t *buf = NULL;
 
   len = read_bytes(this, 2);
@@ -434,6 +434,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     len -= header_len + 3;
 
     pts = 0;
+    dts = 0;
 
     if ((flags & 0x80) == 0x80) {
 
@@ -446,6 +447,18 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
       header_len -= 5 ;
     }
+    
+    if ((flags & 0x40) == 0x40) {
+    
+      w = read_bytes(this, 1);
+      dts = (w & 0x0e) << 29 ;
+      w = read_bytes(this, 2);
+      dts |= (w & 0xFFFE) << 14;
+      w = read_bytes(this, 2);
+      dts |= (w & 0xFFFE) >> 1;
+      
+      header_len -= 5 ;
+    } 
 
     /* read rest of header */
     i = this->input->read (this->input, this->dummy_space, header_len);
@@ -463,6 +476,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
       buf->type = BUF_VIDEO_MPEG;
       buf->pts  = pts;
+      buf->decoder_info[0] = pts - dts;
       check_newpts( this, pts, PTS_VIDEO );
       pts = 0;
 
@@ -490,12 +504,13 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
   int             len;
   uint32_t        w;
   int             i;
-  int64_t         pts;
+  int64_t         pts, dts;
   buf_element_t  *buf = NULL;
 
   len = read_bytes(this, 2);
 
   pts=0;
+  dts=0;
 
   if (stream_id != 0xbf) {
 
@@ -546,14 +561,16 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       pts |= (w & 0xFFFE) << 14;
 
       w = read_bytes(this, 2); len -= 2;
-
+      
       pts |= (w & 0xFFFE) >> 1;
 
-/*       printf ("pts2=%lld\n",pts); */
-
-      /* Decoding Time Stamp */
-      w = read_bytes(this, 3); len -= 3;
+      w = read_bytes(this, 1); len -= 1;
+      dts = (w & 0x0e) << 29 ;
       w = read_bytes(this, 2); len -= 2;
+      dts |= (w & 0xFFFE) << 14;
+      w = read_bytes(this, 2); len -= 2;
+      dts |= (w & 0xFFFE) >> 1;
+
     } else {
 
       /*
@@ -623,6 +640,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
       buf->type = BUF_VIDEO_MPEG;
       buf->pts  = pts;
+      buf->decoder_info[0] = pts - dts;
       check_newpts( this, pts, PTS_VIDEO );
       pts = 0;
 

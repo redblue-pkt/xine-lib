@@ -25,6 +25,7 @@ xine-lib (1-beta13)
     works with all video drivers. warning: cpu intensive :)
   * big improvement of v4l input and associated demuxer. Including 
     sound capture using alsa and a/v sync. Now radio is supported as well.
+  * dxr3: using decoder timestamps will hopefully fix some last sync problems
 	
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
