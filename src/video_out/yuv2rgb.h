@@ -14,15 +14,18 @@ typedef void (*scale_line_func_t) (uint8_t *source, uint8_t *dest,
  * modes supported - feel free to implement yours
  */
 
-#define MODE_15_RGB 1
-#define MODE_15_BGR 2
-#define MODE_16_RGB 3
-#define MODE_16_BGR 4
-#define MODE_24_RGB 5
-#define MODE_24_BGR 6
-#define MODE_32_RGB 7
-#define MODE_32_BGR 8
-#define MODE_PALETTE 9
+#define MODE_8_RGB  1
+#define MODE_8_BGR  2
+#define MODE_15_RGB 3
+#define MODE_15_BGR 4
+#define MODE_16_RGB 5
+#define MODE_16_BGR 6
+#define MODE_24_RGB 7
+#define MODE_24_BGR 8
+#define MODE_32_RGB 9
+#define MODE_32_BGR 10
+#define	MODE_8_GRAY 11
+#define MODE_PALETTE 12
 
 typedef struct yuv2rgb_s yuv2rgb_t;
 
@@ -60,12 +63,13 @@ struct yuv2rgb_s {
   int           table_gV[256];
   void         *table_bU[256];
 
+  uint8_t      *fast_rgb;
   scale_line_func_t scale_line;
 } ;
 
 
 /* call once on startup */
-yuv2rgb_t *yuv2rgb_init (int mode, int swapped);
+yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap);
 
 /*
  * set up yuv2rgb function, determine scaling parameters if necessary

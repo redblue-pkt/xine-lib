@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.17 2001/09/21 14:34:58 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.18 2001/09/23 15:14:01 jkeil Exp $
  */
 
 #include "config.h"
@@ -254,14 +254,19 @@ static void scale_line_5_7 (uint8_t *source, uint8_t *dest,
     p1 = p2;
   }
 
-  switch (width + 7) {
-  case 6: *dest++ = source[0];
-  case 5: *dest++ = (1*source[0] + 3*source[1]) >> 2;
-  case 4: *dest++ = (5*source[1] + 3*source[2]) >> 3;
-  case 3: *dest++ = (7*source[2] + 1*source[3]) >> 3;
-  case 2: *dest++ = (1*source[2] + 7*source[3]) >> 3;
-  case 1: *dest++ = (3*source[3] + 5*source[4]) >> 3;
-  }
+  if ((width += 7) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 3*source[1]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[1] + 3*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[2] + 1*source[3]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 7*source[3]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[3] + 5*source[4]) >> 3;
+done:
 
   profiler_stop_count(prof_scale_line);
 }
@@ -315,33 +320,383 @@ static void scale_line_15_16 (uint8_t *source, uint8_t *dest,
     dest += 16;
   }
 
-  switch (width + 16) {
-  case 15: *dest++ = source[0];
-  case 14: *dest++ = (1*source[0] + 7*source[1]) >> 3;
-  case 13: *dest++ = (1*source[1] + 7*source[2]) >> 3;
-  case 12: *dest++ = (1*source[2] + 3*source[3]) >> 2;
-  case 11: *dest++ = (1*source[3] + 3*source[4]) >> 2;
-  case 10: *dest++ = (3*source[4] + 5*source[5]) >> 3;
-  case  9: *dest++ = (3*source[5] + 5*source[6]) >> 3;
-  case  8: *dest++ = (1*source[6] + 1*source[7]) >> 1;
-  case  7: *dest++ = (1*source[7] + 1*source[8]) >> 1;
-  case  6: *dest++ = (5*source[8] + 3*source[9]) >> 3;
-  case  5: *dest++ = (5*source[9] + 3*source[10]) >> 3;
-  case  4: *dest++ = (3*source[10] + 1*source[11]) >> 2;
-  case  3: *dest++ = (3*source[11] + 1*source[12]) >> 2;
-  case  2: *dest++ = (7*source[12] + 1*source[13]) >> 3;
-  case  1: *dest++ = (7*source[13] + 1*source[14]) >> 3;
+  if ((width += 16) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 7*source[1]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[1] + 7*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 3*source[3]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[3] + 3*source[4]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[4] + 5*source[5]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[5] + 5*source[6]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[6] + 1*source[7]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[7] + 1*source[8]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[8] + 3*source[9]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[9] + 3*source[10]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[10] + 1*source[11]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[11] + 1*source[12]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[12] + 1*source[13]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[13] + 1*source[14]) >> 3;
+ done:
+  profiler_stop_count(prof_scale_line);
+}
+
+
+/*
+ * Interpolates 64 output pixels from 45 source pixels using shifts.
+ * Useful for scaling an mpeg2 dvd input source to 1024x768 fullscreen
+ * (720 x 576 ==> 1024 x XXX)
+ */
+static void scale_line_45_64 (uint8_t *source, uint8_t *dest,
+			     int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 64) >= 0) {
+    p1 = source[0];
+    p2 = source[1];
+    dest[0] = p1;
+    dest[1] = (1*p1 + 3*p2) >> 2;
+    p1 = source[2];
+    dest[2] = (5*p2 + 3*p1) >> 3;
+    p2 = source[3];
+    dest[3] = (7*p1 + 1*p2) >> 3;
+    dest[4] = (1*p1 + 3*p2) >> 2;
+    p1 = source[4];
+    dest[5] = (1*p2 + 1*p1) >> 1;
+    p2 = source[5];
+    dest[6] = (3*p1 + 1*p2) >> 2;
+    dest[7] = (1*p1 + 7*p2) >> 3;
+    p1 = source[6];
+    dest[8] = (3*p2 + 5*p1) >> 3;
+    p2 = source[7];
+    dest[9] = (5*p1 + 3*p2) >> 3;
+    p1 = source[8];
+    dest[10] = p2;
+    dest[11] = (1*p2 + 3*p1) >> 2;
+    p2 = source[9];
+    dest[12] = (5*p1 + 3*p2) >> 3;
+    p1 = source[10];
+    dest[13] = (7*p2 + 1*p1) >> 3;
+    dest[14] = (1*p2 + 7*p1) >> 3;
+    p2 = source[11];
+    dest[15] = (1*p1 + 1*p2) >> 1;
+    p1 = source[12];
+    dest[16] = (3*p2 + 1*p1) >> 2;
+    dest[17] = p1;
+    p2 = source[13];
+    dest[18] = (3*p1 + 5*p2) >> 3;
+    p1 = source[14];
+    dest[19] = (5*p2 + 3*p1) >> 3;
+    p2 = source[15];
+    dest[20] = p1;
+    dest[21] = (1*p1 + 3*p2) >> 2;
+    p1 = source[16];
+    dest[22] = (1*p2 + 1*p1) >> 1;
+    p2 = source[17];
+    dest[23] = (7*p1 + 1*p2) >> 3;
+    dest[24] = (1*p1 + 7*p2) >> 3;
+    p1 = source[18];
+    dest[25] = (3*p2 + 5*p1) >> 3;
+    p2 = source[19];
+    dest[26] = (3*p1 + 1*p2) >> 2;
+    dest[27] = p2;
+    p1 = source[20];
+    dest[28] = (3*p2 + 5*p1) >> 3;
+    p2 = source[21];
+    dest[29] = (5*p1 + 3*p2) >> 3;
+    p1 = source[22];
+    dest[30] = (7*p2 + 1*p1) >> 3;
+    dest[31] = (1*p2 + 3*p1) >> 2;
+    p2 = source[23];
+    dest[32] = (1*p1 + 1*p2) >> 1;
+    p1 = source[24];
+    dest[33] = (3*p2 + 1*p1) >> 2;
+    dest[34] = (1*p2 + 7*p1) >> 3;
+    p2 = source[25];
+    dest[35] = (3*p1 + 5*p2) >> 3;
+    p1 = source[26];
+    dest[36] = (3*p2 + 1*p1) >> 2;
+    p2 = source[27];
+    dest[37] = p1;
+    dest[38] = (1*p1 + 3*p2) >> 2;
+    p1 = source[28];
+    dest[39] = (5*p2 + 3*p1) >> 3;
+    p2 = source[29];
+    dest[40] = (7*p1 + 1*p2) >> 3;
+    dest[41] = (1*p1 + 7*p2) >> 3;
+    p1 = source[30];
+    dest[42] = (1*p2 + 1*p1) >> 1;
+    p2 = source[31];
+    dest[43] = (3*p1 + 1*p2) >> 2;
+    dest[44] = (1*p1 + 7*p2) >> 3;
+    p1 = source[32];
+    dest[45] = (3*p2 + 5*p1) >> 3;
+    p2 = source[33];
+    dest[46] = (5*p1 + 3*p2) >> 3;
+    p1 = source[34];
+    dest[47] = p2;
+    dest[48] = (1*p2 + 3*p1) >> 2;
+    p2 = source[35];
+    dest[49] = (1*p1 + 1*p2) >> 1;
+    p1 = source[36];
+    dest[50] = (7*p2 + 1*p1) >> 3;
+    dest[51] = (1*p2 + 7*p1) >> 3;
+    p2 = source[37];
+    dest[52] = (1*p1 + 1*p2) >> 1;
+    p1 = source[38];
+    dest[53] = (3*p2 + 1*p1) >> 2;
+    dest[54] = p1;
+    p2 = source[39];
+    dest[55] = (3*p1 + 5*p2) >> 3;
+    p1 = source[40];
+    dest[56] = (5*p2 + 3*p1) >> 3;
+    p2 = source[41];
+    dest[57] = (7*p1 + 1*p2) >> 3;
+    dest[58] = (1*p1 + 3*p2) >> 2;
+    p1 = source[42];
+    dest[59] = (1*p2 + 1*p1) >> 1;
+    p2 = source[43];
+    dest[60] = (7*p1 + 1*p2) >> 3;
+    dest[61] = (1*p1 + 7*p2) >> 3;
+    p1 = source[44];
+    dest[62] = (3*p2 + 5*p1) >> 3;
+    p2 = source[45];
+    dest[63] = (3*p1 + 1*p2) >> 2;
+    source += 45;
+    dest += 64;
   }
+
+  if ((width += 64) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 3*source[1]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[1] + 3*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[2] + 1*source[3]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 3*source[3]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[3] + 1*source[4]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[4] + 1*source[5]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[4] + 7*source[5]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[5] + 5*source[6]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[6] + 3*source[7]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[7];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[7] + 3*source[8]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[8] + 3*source[9]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[9] + 1*source[10]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[9] + 7*source[10]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[10] + 1*source[11]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[11] + 1*source[12]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = source[12];
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[12] + 5*source[13]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[13] + 3*source[14]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[14];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[14] + 3*source[15]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[15] + 1*source[16]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[16] + 1*source[17]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[16] + 7*source[17]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[17] + 5*source[18]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[18] + 1*source[19]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = source[19];
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[19] + 5*source[20]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[20] + 3*source[21]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[21] + 1*source[22]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[21] + 3*source[22]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[22] + 1*source[23]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[23] + 1*source[24]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[23] + 7*source[24]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[24] + 5*source[25]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[25] + 1*source[26]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = source[26];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[26] + 3*source[27]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[27] + 3*source[28]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[28] + 1*source[29]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[28] + 7*source[29]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[29] + 1*source[30]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[30] + 1*source[31]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[30] + 7*source[31]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[31] + 5*source[32]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[32] + 3*source[33]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[33];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[33] + 3*source[34]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[34] + 1*source[35]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[35] + 1*source[36]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[35] + 7*source[36]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[36] + 1*source[37]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[37] + 1*source[38]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = source[38];
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[38] + 5*source[39]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[39] + 3*source[40]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[40] + 1*source[41]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[40] + 3*source[41]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[41] + 1*source[42]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[42] + 1*source[43]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[42] + 7*source[43]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[43] + 5*source[44]) >> 3;
+ done:
 
   profiler_stop_count(prof_scale_line);
 }
 
-			
+
+/*
+ * Interpolates 16 output pixels from 9 source pixels using shifts.
+ * Useful for scaling an mpeg2 dvd input source to 1280x1024 fullscreen
+ * (720 x 576 ==> 1280 x XXX)
+ */
+static void scale_line_9_16 (uint8_t *source, uint8_t *dest,
+			     int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 16) >= 0) {
+    p1 = source[0];
+    p2 = source[1];
+    dest[0] = p1;
+    dest[1] = (1*p1 + 1*p2) >> 1;
+    p1 = source[2];
+    dest[2] = (7*p2 + 1*p1) >> 3;
+    dest[3] = (3*p2 + 5*p1) >> 3;
+    p2 = source[3];
+    dest[4] = (3*p1 + 1*p2) >> 2;
+    dest[5] = (1*p1 + 3*p2) >> 2;
+    p1 = source[4];
+    dest[6] = (5*p2 + 3*p1) >> 3;
+    dest[7] = (1*p2 + 7*p1) >> 3;
+    p2 = source[5];
+    dest[8] = (1*p1 + 1*p2) >> 1;
+    p1 = source[6];
+    dest[9] = p2;
+    dest[10] = (3*p2 + 5*p1) >> 3;
+    p2 = source[7];
+    dest[11] = (7*p1 + 1*p2) >> 3;
+    dest[12] = (1*p1 + 3*p2) >> 2;
+    p1 = source[8];
+    dest[13] = (3*p2 + 1*p1) >> 2;
+    dest[14] = (1*p2 + 7*p1) >> 3;
+    p2 = source[9];
+    dest[15] = (5*p1 + 3*p2) >> 3;
+    source += 9;
+    dest += 16;
+  }
+
+  if ((width += 16) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 1*source[1]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[1] + 1*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[1] + 5*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[2] + 1*source[3]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 3*source[3]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[3] + 3*source[4]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[3] + 7*source[4]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[4] + 1*source[5]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = source[5];
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[5] + 5*source[6]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[6] + 1*source[7]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[6] + 3*source[7]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[7] + 1*source[8]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[7] + 7*source[8]) >> 3;
+done:
+  profiler_stop_count(prof_scale_line);
+}
+
+
+/* Interpolate 2 output pixels from one source pixel. */
+
 static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
 			    int width, int step) {
   int p1, p2;
-
-  /* Interpolates 2 output pixels from one source pixels. */
 
   profiler_start_count(prof_scale_line);
 
@@ -355,11 +710,13 @@ static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
     *dest++ = (p2 + p1) >> 1;
   }
 
-  switch (width + 4) {
-  case 3: *dest++ = source[0];
-  case 2: *dest++ = (source[0] + source[1]) >> 1;
-  case 1: *dest++ = source[1];
-  }
+  if ((width += 4) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (source[0] + source[1]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = source[1];
+ done:
 
   profiler_stop_count(prof_scale_line);
 }
@@ -374,6 +731,14 @@ static scale_line_func_t find_scale_line_func(int step) {
   if (abs(step - 15*32768/16) < 10) {
     printf("yuv2rgb: using dvd 4:3 optimized scale_line\n");
     return scale_line_15_16;
+  }
+  if (abs(step - 45*32768/64) < 10) {
+    printf("yuv2rgb: using dvd fullscreen(1024x768) optimized scale_line\n");
+    return scale_line_45_64;
+  }
+  if (abs(step - 9*32768/16) < 10) {
+    printf("yuv2rgb: using dvd fullscreen(1280x1024) optimized scale_line\n");
+    return scale_line_9_16;
   }
   if (abs(step - 1*32768/2) < 10) {
     printf("yuv2rgb: using optimized 2*zoom scale_line\n");
@@ -485,6 +850,18 @@ static void scale_line_4 (uint8_t *source, uint8_t *dest,
 	dst_2[6*i] = b[Y]; dst_2[6*i+1] = g[Y]; dst_2[6*i+2] = r[Y];	\
 	Y = py_2[2*i+1];						\
 	dst_2[6*i+3] = b[Y]; dst_2[6*i+4] = g[Y]; dst_2[6*i+5] = r[Y];
+
+#define DST1CMAP(i)							\
+	Y = py_1[2*i];                          			\
+	dst_1[2*i] = this->fast_rgb[r[Y] + g[Y] + b[Y]];		\
+	Y = py_1[2*i+1];						\
+	dst_1[2*i+1] = this->fast_rgb[r[Y] + g[Y] + b[Y]];
+
+#define DST2CMAP(i)							\
+	Y = py_2[2*i];							\
+	dst_2[2*i] = this->fast_rgb[r[Y] + g[Y] + b[Y]];		\
+	Y = py_2[2*i+1];						\
+	dst_2[2*i+1] = this->fast_rgb[r[Y] + g[Y] + b[Y]];
 
 static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
 			  uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
@@ -995,11 +1372,183 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
   }
 }
 
+/* This is exactly the same code as yuv2rgb_c_32 except for the types of */
+/* r, g, b, dst_1, dst_2 */
+static void yuv2rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst,
+			  uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
+{
+  int U, V, Y;
+  uint8_t  * py_1, * py_2, * pu, * pv;
+  uint8_t * r, * g, * b;
+  uint8_t * dst_1, * dst_2;
+  int width, height, dst_height;
+  int dy;
+
+  if (this->do_scale) {
+    scale_line_func_t scale_line = this->scale_line;
+
+    scale_line (_pu, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_pv, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_py, this->y_buffer, 
+		this->dest_width, this->step_dx);
+
+    dy = 0;
+    dst_height = this->dest_height;
+
+    for (height = 0;; height++) {
+      dst_1 = (uint8_t*)_dst;
+      py_1  = this->y_buffer;
+      pu    = this->u_buffer;
+      pv    = this->v_buffer;
+
+      width = this->dest_width >> 3;
+
+      do {
+	  RGB(0);
+	  DST1(0);
+
+	  RGB(1);
+	  DST1(1);
+      
+	  RGB(2);
+	  DST1(2);
+
+	  RGB(3);
+	  DST1(3);
+
+	  pu += 4;
+	  pv += 4;
+	  py_1 += 8;
+	  dst_1 += 8;
+      } while (--width);
+
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+
+      while (--dst_height > 0 && dy < 32768) {
+
+	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+
+      if (dst_height <= 0)
+	break;
+
+      dy -= 32768;
+      _py += this->y_stride;
+
+      scale_line (_py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      if (height & 1) {
+	_pu += this->uv_stride;
+	_pv += this->uv_stride;
+	  
+	scale_line (_pu, this->u_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	scale_line (_pv, this->v_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	  
+      }
+    }
+  } else {
+    height = this->source_height >> 1;
+    do {
+      dst_1 = (uint8_t*)_dst;
+      dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
+      py_1 = _py;
+      py_2 = _py + this->y_stride;
+      pu   = _pu;
+      pv   = _pv;
+
+      width = this->source_width >> 3;
+      do {
+	RGB(0);
+	DST1(0);
+	DST2(0);
+
+	RGB(1);
+	DST2(1);
+	DST1(1);
+
+	RGB(2);
+	DST1(2);
+	DST2(2);
+
+	RGB(3);
+	DST2(3);
+	DST1(3);
+      
+	pu += 4;
+	pv += 4;
+	py_1 += 8;
+	py_2 += 8;
+	dst_1 += 8;
+	dst_2 += 8;
+      } while (--width);
+
+      _dst += 2 * this->rgb_stride; 
+      _py += 2 * this->y_stride;
+      _pu += this->uv_stride;
+      _pv += this->uv_stride;
+
+    } while (--height);
+  }
+}
+
+/* now for something different: 256 grayscale mode */
+static void yuv2rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst,
+			    uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
+{
+  int height, dst_height;
+  int dy;
+
+  if (this->do_scale) {
+    scale_line_func_t scale_line = this->scale_line;
+
+    dy = 0;
+    dst_height = this->dest_height;
+
+    for (;;) {
+      scale_line (_py, _dst, this->dest_width, this->step_dx);
+
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+
+      while (--dst_height > 0 && dy < 32768) {
+
+	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+
+      if (dst_height <= 0)
+	break;
+
+      dy -= 32768;
+      _py += this->y_stride;
+    }
+  } else {
+    for (height = this->source_height; --height >= 0; ) {
+      memcpy(_dst, _py, this->dest_width);
+      _dst += this->rgb_stride;
+      _py += this->y_stride;
+    }
+  }
+}
+
 /* now for something different: 256 color mode */
 static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 			       uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
 {
+  int U, V, Y;
   uint8_t * py_1, * py_2, * pu, * pv;
+  uint16_t * r, * g, * b;
   uint8_t * dst_1, * dst_2;
   int width, height, dst_height;
   int dy;
@@ -1026,19 +1575,17 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       width = this->dest_width >> 3;
 
       do {
-	/* FIXME
 	  RGB(0);
-	  DST1(0);
+	  DST1CMAP(0);
 
 	  RGB(1);
-	  DST1(1);
+	  DST1CMAP(1);
       
 	  RGB(2);
-	  DST1(2);
+	  DST1CMAP(2);
 
 	  RGB(3);
-	  DST1(3);
-	  */
+	  DST1CMAP(3);
 
 	  pu += 4;
 	  pv += 4;
@@ -1051,7 +1598,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
+	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -1088,23 +1635,21 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       pv   = _pv;
       width = this->source_width >> 3;
       do {
-	/*
 	RGB(0);
-	DST1(0);
-	DST2(0);
+	DST1CMAP(0);
+	DST2CMAP(0);
 
 	RGB(1);
-	DST2(1);
-	DST1(1);
+	DST2CMAP(1);
+	DST1CMAP(1);
 
 	RGB(2);
-	DST1(2);
-	DST2(2);
+	DST1CMAP(2);
+	DST2CMAP(2);
 
 	RGB(3);
-	DST2(3);
-	DST1(3);
-	*/
+	DST2CMAP(3);
+	DST1CMAP(3);
 
 	pu += 4;
 	pv += 4;
@@ -1238,11 +1783,54 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode, int swapped)
 
     break;
 
-  case MODE_PALETTE:
+  case MODE_8_RGB:
+  case MODE_8_BGR:
+    table_8 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint8_t));
 
-    /* FIXME: set up 256 color table */
+    entry_size = sizeof (uint8_t);
+    table_r = table_8 + 197;
+    table_b = table_8 + 197 + 685;
+    table_g = table_8 + 197 + 2*682;
+
+    switch (mode) {
+    case MODE_8_RGB: shift_r =  5; shift_g =  2; shift_b =  0; break;
+    case MODE_8_BGR: shift_r =  0; shift_g =  3; shift_b =  6; break;
+    }
+
+    for (i = -197; i < 256+197; i++)
+      ((uint8_t *) table_r)[i] = (table_Y[i+384] >> 5) << shift_r;
+    for (i = -132; i < 256+132; i++)
+      ((uint8_t *) table_g)[i] = (table_Y[i+384] >> 5) << shift_g;
+    for (i = -232; i < 256+232; i++)
+      ((uint8_t *) table_b)[i] = (table_Y[i+384] >> 6) << shift_b;
+    break;
+
+  case MODE_8_GRAY:
+    return;
+
+  case MODE_PALETTE:
+    table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
+
+    entry_size = sizeof (uint16_t);
+    table_r = table_16 + 197;
+    table_b = table_16 + 197 + 685;
+    table_g = table_16 + 197 + 2*682;
+
+    shift_r = 10;
+    shift_g = 5;
+    shift_b = 0;
+
+    for (i = -197; i < 256+197; i++)
+      ((uint16_t *)table_r)[i] = (table_Y[i+384] >> 3) << 10;
+
+    for (i = -132; i < 256+132; i++) 
+      ((uint16_t *)table_g)[i] = (table_Y[i+384] >> 3) << 5;
+
+    for (i = -232; i < 256+232; i++)
+      ((uint16_t *)table_b)[i] = (table_Y[i+384] >> 3) << 0;
 
     break;
+
 
   default:
     fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
@@ -1281,6 +1869,15 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
   case MODE_15_RGB:
   case MODE_16_RGB:
     this->yuv2rgb_fun = yuv2rgb_c_16;
+    break;
+
+  case MODE_8_RGB:
+  case MODE_8_BGR:
+    this->yuv2rgb_fun = yuv2rgb_c_8;
+    break;
+
+  case MODE_8_GRAY:
+    this->yuv2rgb_fun = yuv2rgb_c_gray;
     break;
 
   case MODE_PALETTE:
@@ -1596,6 +2193,197 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
   }
 }
 
+static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
+{
+  int U, V, Y;
+  uint8_t * py_1, * pu, * pv;
+  uint8_t * r, * g, * b;
+  uint8_t * dst_1;
+  int width, height;
+  int dy;
+
+  /* FIXME: implement unscaled version */
+
+  scale_line_4 (_p+1, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_4 (_p+3, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_2 (_p, this->y_buffer, 
+		this->dest_width, this->step_dx);
+  
+  dy = 0;
+  height = this->dest_height;
+  
+  for (;;) {
+    dst_1 = _dst;
+    py_1  = this->y_buffer;
+    pu    = this->u_buffer;
+    pv    = this->v_buffer;
+    
+    width = this->dest_width >> 3;
+    
+    do {
+      RGB(0);
+      DST1(0);
+      
+      RGB(1);
+      DST1(1);
+      
+      RGB(2);
+      DST1(2);
+      
+      RGB(3);
+      DST1(3);
+      
+      pu += 4;
+      pv += 4;
+      py_1 += 8;
+      dst_1 += 8;
+    } while (--width);
+    
+    dy += this->step_dy;
+    _dst += this->rgb_stride;
+    
+    while (--height > 0 && dy < 32768) {
+      
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+      
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+    }
+    
+    if (height <= 0)
+      break;
+
+    dy -= 32768;
+    _p += this->y_stride*2;
+    
+    scale_line_4 (_p+1, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_4 (_p+3, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_2 (_p, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+  }
+}
+
+static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
+{
+  int width, height;
+  int dy;
+  uint8_t * dst;
+  uint8_t * y;
+  
+  if (this->do_scale) {
+    dy = 0;
+    height = this->dest_height;
+  
+    for (;;) {
+      scale_line_2 (_p, _dst, this->dest_width, this->step_dx);
+    
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+    
+      while (--height > 0 && dy < 32768) {
+      
+	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+      
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+    
+      if (height <= 0)
+	break;
+
+      dy -= 32768;
+      _p += this->y_stride*2;
+    }
+  } else {
+    for (height = this->source_height; --height >= 0; ) { 
+      dst = _dst;
+      y = _p;
+      for (width = this->source_width; --width >= 0; ) {
+	*dst++ = *y;
+	y += 2;
+      }
+      _dst += this->rgb_stride;
+      _p += this->y_stride*2;
+    }
+  }
+}
+
+static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
+{
+  int U, V, Y;
+  uint8_t * py_1, * pu, * pv;
+  uint16_t * r, * g, * b;
+  uint8_t * dst_1;
+  int width, height;
+  int dy;
+  
+  scale_line_4 (_p+1, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_4 (_p+3, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_2 (_p, this->y_buffer,
+		this->dest_width, this->step_dx);
+    
+  dy = 0;
+  height = this->dest_height;
+  
+  for (;;) {
+    dst_1 = _dst;
+    py_1  = this->y_buffer;
+    pu    = this->u_buffer;
+    pv    = this->v_buffer;
+    
+    width = this->dest_width >> 3;
+    
+    do {
+      RGB(0);
+      DST1CMAP(0);
+      
+      RGB(1);
+      DST1CMAP(1);
+      
+      RGB(2);
+      DST1CMAP(2);
+      
+      RGB(3);
+      DST1CMAP(3);
+
+      pu += 4;
+      pv += 4;
+      py_1 += 8;
+      dst_1 += 8;
+    } while (--width);
+    
+    dy += this->step_dy;
+    _dst += this->rgb_stride;
+    
+    while (--height > 0 && dy < 32768) {
+      
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+      
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+    }
+    
+    if (height <= 0)
+      break;
+
+    dy -= 32768;
+    _p += this->y_stride*2;
+    
+    scale_line_4 (_p+1, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_4 (_p+3, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_2 (_p, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+  }
+}
+
 static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
 {  
   switch (mode) {
@@ -1618,12 +2406,25 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
     this->yuy22rgb_fun = yuy22rgb_c_16;
     break;
 
+  case MODE_8_RGB:
+  case MODE_8_BGR:
+    this->yuy22rgb_fun = yuy22rgb_c_8;
+    break;
+
+  case MODE_8_GRAY:
+    this->yuy22rgb_fun = yuy22rgb_c_gray;
+    break;
+
+  case MODE_PALETTE:
+    this->yuy22rgb_fun = yuy22rgb_c_palette;
+    break;
+
   default:
     printf ("yuv2rgb: mode %d not supported for yuy2\n", mode);
   }
 }
 
-yuv2rgb_t *yuv2rgb_init (int mode, int swapped) {
+yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap) {
 
 #ifdef ARCH_X86
   uint32_t mm = mm_accel();
@@ -1632,6 +2433,7 @@ yuv2rgb_t *yuv2rgb_init (int mode, int swapped) {
 
 
   this->matrix_coefficients = 6;
+  this->fast_rgb = colormap;
 
   this->y_chunk = this->y_buffer = NULL;
   this->u_chunk = this->u_buffer = NULL;

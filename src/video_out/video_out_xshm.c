@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.36 2001/09/21 14:34:58 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.37 2001/09/23 15:14:01 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -41,6 +41,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 #include <X11/cursorfont.h>
 #include <errno.h>
 
@@ -95,8 +96,9 @@ typedef struct xshm_driver_s {
   int              use_shm;
   int              zoom_mpeg1;
   int		   scaling_disabled;
-  int              depth, bpp, bytes_per_pixel, byte_order;
+  int              depth, bpp, bytes_per_pixel, image_byte_order;
   int              expecting_event;
+  uint8_t	  *fast_rgb;
 
   yuv2rgb_t       *yuv2rgb;
 
@@ -232,7 +234,7 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
   
     this->bpp = myimage->bits_per_pixel;
     this->bytes_per_pixel = this->bpp / 8;
-    this->byte_order = myimage->byte_order;
+    this->image_byte_order = myimage->byte_order;
     
     shminfo->shmid=shmget(IPC_PRIVATE,
 			  myimage->bytes_per_line * myimage->height, 
@@ -304,7 +306,7 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
 
     this->bpp = myimage->bits_per_pixel;
     this->bytes_per_pixel = this->bpp / 8;
-    this->byte_order = myimage->byte_order;
+    this->image_byte_order = myimage->byte_order;
 
     myimage->data = xmalloc (width * this->bytes_per_pixel * height);
   }
@@ -992,6 +994,61 @@ static void xshm_exit (vo_driver_t *this_gen) {
 }
 
 
+static int
+ImlibPaletteLUTGet(xshm_driver_t *this)
+{
+  unsigned char      *retval;
+  Atom                type_ret;
+  unsigned long       bytes_after, num_ret;
+  int                 format_ret;
+  long                length;
+  Atom                to_get;
+  
+  retval = NULL;
+  length = 0x7fffffff;
+  to_get = XInternAtom(this->display, "_IMLIB_COLORMAP", False);
+  XGetWindowProperty(this->display, RootWindow(this->display, this->screen),
+		     to_get, 0, length, False, 
+		     XA_CARDINAL, &type_ret, &format_ret, &num_ret,
+		     &bytes_after, &retval);
+  if (retval != 0 && num_ret > 0 && format_ret > 0) {
+    if (format_ret == 8) {
+      int j, i, num_colors;
+	  
+      num_colors = retval[0];
+      j = 1 + num_colors*4;
+      this->fast_rgb = malloc(sizeof(uint8_t) * 32 * 32 * 32);	  
+      for (i = 0; i < 32 * 32 * 32 && j < num_ret; i++)
+	this->fast_rgb[i] = retval[j++];
+      XFree(retval);
+      return 1;
+    } else
+      XFree(retval);
+  }
+  return 0;
+}
+
+
+static char *visual_class_name(Visual *visual)
+{
+  switch (visual->class) {
+  case StaticGray:
+    return "StaticGray";
+  case GrayScale:
+    return "GrayScale";
+  case StaticColor:
+    return "StaticColor";
+  case PseudoColor:
+    return "PseudoColor";
+  case TrueColor:
+    return "TrueColor";
+  case DirectColor:
+    return "DirectColor";
+  default:
+    return "unknown visual class";
+  }
+}
+
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xshm_driver_t        *this;
@@ -1104,46 +1161,67 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   myimage = create_ximage (this, &myshminfo, 100, 100);
   dispose_ximage (this, &myshminfo, myimage);
 
-  mode = 0;
 
+  /*
+   * Is the same byte order in use on the X11 client and server?
+   */
   cpu_byte_order = htonl(1) == 1 ? MSBFirst : LSBFirst;
-  swapped = cpu_byte_order != this->byte_order;
+  swapped = cpu_byte_order != this->image_byte_order;
 
-  printf ("video_out_xshm: video mode depth is %d (%d bpp), %sswapped,\n"
+  printf ("video_out_xshm: video mode depth is %d (%d bpp), %s, %sswapped,\n"
 	  "\tred: %08lx, green: %08lx, blue: %08lx\n",
 	  this->depth, this->bpp,
+	  visual_class_name(this->visual),
 	  swapped ? "" : "not ",
 	  this->visual->red_mask, this->visual->green_mask, this->visual->blue_mask);
 
-  switch (this->depth) {
-  case 24:
-    if (this->bpp == 32) {
-      if (this->visual->red_mask == 0x00ff0000)
-	mode = MODE_32_RGB;
-      else
-	mode = MODE_32_BGR;
+  mode = 0;
+
+  switch (this->visual->class) {
+  case TrueColor:
+    switch (this->depth) {
+    case 24:
+      if (this->bpp == 32) {
+	if (this->visual->red_mask == 0x00ff0000)
+	  mode = MODE_32_RGB;
+	else
+	  mode = MODE_32_BGR;
+      } else {
+	if (this->visual->red_mask == 0x00ff0000)
+	  mode = MODE_24_RGB;
+	else
+	  mode = MODE_24_BGR;
+      }
       break;
-    } else {
-      if (this->visual->red_mask == 0x00ff0000)
-	mode = MODE_24_RGB;
+    case 16:
+      if (this->visual->red_mask == 0xf800)
+	mode = MODE_16_RGB;
       else
-	mode = MODE_24_BGR;
+	mode = MODE_16_BGR;
+      break;
+    case 15:
+      if (this->visual->red_mask == 0x7C00)
+	mode = MODE_15_RGB;
+      else
+	mode = MODE_15_BGR;
+      break;
+    case 8:
+      if (this->visual->red_mask == 0xE0)
+	mode = MODE_8_RGB; /* Solaris x86: RGB332 */
+      else
+	mode = MODE_8_BGR; /* XFree86: BGR233 */
+      break;
     }
     break;
-  case 16:
-    if (this->visual->red_mask == 0xf800)
-      mode = MODE_16_RGB;
-    else
-      mode = MODE_16_BGR;
+
+  case StaticGray:
+    if (this->depth == 8)
+      mode = MODE_8_GRAY;
     break;
-  case 15:
-    if (this->visual->red_mask == 0x7C00)
-      mode = MODE_15_RGB;
-    else
-      mode = MODE_15_BGR;
-    break;
-  case 8:
-    mode = MODE_PALETTE;
+
+  case PseudoColor:
+    if (this->depth <= 8 && ImlibPaletteLUTGet(this))
+      mode = MODE_PALETTE;
     break;
   }
 
@@ -1152,7 +1230,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     return NULL;
   }
 
-  this->yuv2rgb = yuv2rgb_init (mode, swapped); 
+  this->yuv2rgb = yuv2rgb_init (mode, swapped, this->fast_rgb);
 
   return &this->vo_driver;
 }
