@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.4 2003/02/27 18:56:44 esnel Exp $
+ * $Id: mosaico.c,v 1.5 2003/02/28 11:54:25 skaboy Exp $
  */
  
 /*
@@ -207,7 +207,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   this->input = xine_list_new();
   this->output = xine_list_new();
 
-/*  //background*/
+/*  background*/
   port = post_intercept_video_port(this, video_target[0]);
   port->port.open      = mosaico_open;
   port->port.get_frame = mosaico_get_frame;
@@ -223,7 +223,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   output->pip = inputs-1;
   xine_list_append_content(this->output, output);
  
-/*  //init mutex*/
+/*  init mutex*/
   pthread_mutex_init(&output->mut1, NULL);
   pthread_mutex_init(&output->mut2, NULL);
   output->saved_frame = NULL;
@@ -340,7 +340,7 @@ static void mosaico_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 
   while(in != NULL) {
   pt = in->data;
-  if(pt == port_gen) break;//printf("trovato %d\n", i);
+  if(pt == port_gen) break; printf("trovato %d\n", i);
   
   in = xine_list_next_content(port->post->input);
   i++;
@@ -525,8 +525,8 @@ static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int co
 	  des1 = (i+ j*wid);
 	  des2 = ((i*zx)>>scalex)+(((j*zy)>>scaley) * (wid2>>scalex));
 /*
-	  //if(!j) printf("%d %d\n", (i*zx)/scalex, wid2/scalex);
-	  //if(!i) printf("%d %d\n", ((j*zy)>>scaley), (hei>>scaley));
+	  if(!j) printf("%d %d\n", (i*zx)/scalex, wid2/scalex);
+	  if(!i) printf("%d %d\n", ((j*zy)>>scaley), (hei>>scaley));
 */
 	  output->saved_frame->base[0][pos_in + des1] = output->saved_frame_2[ciclo-1]->base[0][des2];
 	}
@@ -569,7 +569,7 @@ static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int co
 
 static int mosaico_draw(vo_frame_t *frame, xine_stream_t *stream)
 {
-/*  //vo_frame_t *new_frame;*/
+/*  vo_frame_t *new_frame;*/
   int skip;
   post_video_port_t *port = (post_video_port_t *)frame->port;
   post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);
@@ -579,7 +579,7 @@ static int mosaico_draw(vo_frame_t *frame, xine_stream_t *stream)
   pthread_mutex_lock(&output->mut1);
   if(output->saved_frame != NULL) {
     skip = output->saved_frame->draw(output->saved_frame, stream);
-/*    //new_frame->free(new_frame);*/
+/*    new_frame->free(new_frame);*/
     frame->vpts = output->saved_frame->vpts;
     pthread_mutex_unlock(&output->mut1);
     post_restore_video_frame(frame, port);
@@ -594,7 +594,7 @@ static int mosaico_draw(vo_frame_t *frame, xine_stream_t *stream)
 
 static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
 {
-/*  //vo_frame_t *new_frame;*/
+/*  vo_frame_t *new_frame;*/
   post_video_port_t *port = (post_video_port_t *)frame->port;
   post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);  
   xine_video_port_t *pt;
