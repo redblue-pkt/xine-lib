@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.61 2002/02/18 17:30:38 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.62 2002/02/24 00:43:03 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -143,7 +143,6 @@ typedef struct xshm_driver_s {
   int                expecting_event; /* completion event */
 
   xshm_frame_t      *cur_frame; /* for completion event handling */
-  xshm_frame_t      *exposed_frame;
   vo_overlay_t      *overlay;
 
   /* video pos/size in gui window */
@@ -844,7 +843,6 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if( this->cur_frame )
       this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
     this->cur_frame = frame;
-    this->exposed_frame = frame;
 
     xoffset  = (this->gui_width - frame->output_width) / 2   + this->gui_x;
     yoffset  = (this->gui_height - frame->output_height) / 2 + this->gui_y;
@@ -875,10 +873,6 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 		frame->output_width, frame->output_height);
 
       XFlush(this->display);
-
-      frame->vo_frame.displayed (&frame->vo_frame);
-      this->cur_frame = NULL;
-      this->exposed_frame = frame;
     }
 
     XUnlockDisplay (this->display);
@@ -898,7 +892,7 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
   case VO_PROP_ASPECT_RATIO:
     return this->user_ratio ;
   case VO_PROP_MAX_NUM_FRAMES:
-    return 20;
+    return 15;
   case VO_PROP_BRIGHTNESS:
     return this->yuv2rgb_gamma;
   default:
@@ -1009,10 +1003,12 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
     if (cev->drawable == this->drawable) {
       this->expecting_event = 0;
 
+      /*
       if (this->cur_frame) {
 	this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
 	this->cur_frame = NULL; 
       }
+      */
     }
 
   }
@@ -1024,7 +1020,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
     printf ("video_out_xshm: expose event\n");
 
-    if (this->exposed_frame) {
+    if (this->cur_frame) {
       
       XExposeEvent * xev = (XExposeEvent *) data;
       int		   xoffset;
@@ -1034,23 +1030,23 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 	
 	XLockDisplay (this->display);
 	
-	xoffset  = (this->exposed_frame->gui_width  - this->exposed_frame->output_width) / 2;
-	yoffset  = (this->exposed_frame->gui_height - this->exposed_frame->output_height) / 2;
+	xoffset  = (this->cur_frame->gui_width  - this->cur_frame->output_width) / 2;
+	yoffset  = (this->cur_frame->gui_height - this->cur_frame->output_height) / 2;
 
 	  if (this->use_shm) {
 	    
 	    XShmPutImage(this->display,
-			 this->drawable, this->gc, this->exposed_frame->image,
+			 this->drawable, this->gc, this->cur_frame->image,
 			 0, 0, xoffset, yoffset,
-			 this->exposed_frame->output_width, this->exposed_frame->output_height,
+			 this->cur_frame->output_width, this->cur_frame->output_height,
 			 False);
 	    
 	  } else {
 	    
 	    XPutImage(this->display, 
-		      this->drawable, this->gc, this->exposed_frame->image,
+		      this->drawable, this->gc, this->cur_frame->image,
 		      0, 0, xoffset, yoffset,
-		      this->exposed_frame->output_width, this->exposed_frame->output_height);
+		      this->cur_frame->output_width, this->cur_frame->output_height);
 	  }
 	XFlush (this->display);
 	
@@ -1071,15 +1067,15 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
   case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
 
-    if (this->exposed_frame) {
+    if (this->cur_frame) {
       
       x11_rectangle_t *rect = data;
       int x1, y1, x2, y2;
       
-      xshm_translate_gui2video(this, this->exposed_frame,
+      xshm_translate_gui2video(this, this->cur_frame,
 			       rect->x, rect->y,
 			       &x1, &y1);
-      xshm_translate_gui2video(this, this->exposed_frame,
+      xshm_translate_gui2video(this, this->cur_frame,
 			       rect->x + rect->w, rect->y + rect->h,
 			       &x2, &y2);
       rect->x = x1;
@@ -1215,7 +1211,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 						     NULL, NULL, NULL);
   this->drawable	    = visual->d;
   this->expecting_event	    = 0;
-  this->exposed_frame       = NULL;
+  this->cur_frame           = NULL;
   this->gc		    = XCreateGC (this->display, this->drawable,
 					 0, NULL);
 

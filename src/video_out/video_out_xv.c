@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.93 2002/02/18 02:05:06 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.94 2002/02/24 00:43:03 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -59,7 +59,7 @@
 #include "xineutils.h"
 
 /*
-#define XV_LOG
+#define LOG
 */
 
 typedef struct xv_driver_s xv_driver_t;
@@ -701,7 +701,7 @@ static void xv_calc_format (xv_driver_t *this,
   image_ratio =
     (double) this->delivered_width / (double) this->delivered_height;
 
-#ifdef XV_LOG
+#ifdef LOG
   printf ("video_out_xv: display_ratio : %f\n", this->display_ratio);
   printf ("video_out_xv: stream aspect ratio : %f , code : %d\n",
 	  image_ratio, ratio_code);
@@ -1058,7 +1058,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     }
 
   }
-    break;
+  break;
 
   case GUI_DATA_EX_EXPOSE_EVENT: {
 
@@ -1461,7 +1461,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->xv_format_yuy2 = 0;
   
   for(i = 0; i < formats; i++) {
-#ifdef XV_LOG
+#ifdef LOG
     printf ("video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
 	    fo[i].id, (char*)&fo[i].id,
 	    (fo[i].format == XvPacked) ? "packed" : "planar");
@@ -1495,7 +1495,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_xv = {
-  3,
+  4,
   "Xv",
   "xine video output plugin using the MIT X video extension",
   VISUAL_TYPE_X11,
