@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.109 2004/10/25 22:42:59 mlampard Exp $
+ * $Id: demux_ts.c,v 1.110 2004/12/01 07:59:53 mlampard Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,9 @@
  *
  * Date        Author
  * ----        ------
+ *
+ * 28-Nov-2004 Mike Lampard <mlampard>
+ *                  - Added support for PMT sections larger than 1 ts packet 
  *
  * 28-Aug-2004 James Courtier-Dutton <jcdutton>
  *                  - Improve PAT and PMT handling. Added some FIXME comments.
@@ -154,6 +157,7 @@
   #define TS_LOG
   #define TS_PMT_LOG
   #define TS_PAT_LOG
+
   #define TS_READ_STATS // activates read statistics generation
   #define TS_HEADER_LOG // prints out the Transport packet header.
 */
@@ -165,7 +169,7 @@
 #define PKT_SIZE 188
 #define BODY_SIZE (188 - 4)
 /* more PIDS are needed due "auto-detection". 40 spare media entries  */
-#define MAX_PIDS ((BODY_SIZE - 1 - 13) / 4) + 40
+#define MAX_PIDS ((BODY_SIZE - 1 - 13) / 4) + 40 
 #define MAX_PMTS ((BODY_SIZE - 1 - 13) / 4)
 #define SYNC_BYTE   0x47
 
@@ -230,6 +234,7 @@ typedef struct {
 
 /* DVBSUB */
 #define MAX_NO_SPU_LANGS 16
+
 typedef struct {
   spu_dvb_descriptor_t desc;
   int pid;
@@ -381,7 +386,6 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
   this->current_spu_channel = this->stream->spu_channel;
 
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-
   buf->type = BUF_SPU_DVB;
   buf->content = buf->mem;
   buf->decoder_flags = BUF_FLAG_SPECIAL;
@@ -858,6 +862,7 @@ static void demux_ts_pes_new(demux_ts_t*this,
   /* new PID seen - initialise stuff */
   m->pid = pid;
   m->fifo = fifo;
+
   if (m->buf != NULL) m->buf->free_buffer(m->buf);
   m->buf = NULL;
   m->counter = INVALID_CC;
@@ -918,6 +923,19 @@ static void demux_ts_get_reg_desc(demux_ts_t *this, uint32_t *dest,
   *dest = 0;
 }
 
+static inline int ts_payloadsize(unsigned char * tsp)
+{
+  if (!(tsp[3] & 0x10))
+     return 0;
+  if (tsp[3] & 0x20) {
+     if (tsp[4] > 183)
+       return 0;
+     else
+       return 183 - tsp[4];
+  }
+  return 184;
+}
+                                                                                                                          
 
 /*
  * NAME demux_ts_parse_pmt
@@ -950,6 +968,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       ISO_13818_TYPE_D = 12, /* c */
       ISO_13818_TYPE_E = 13, /* d */
       ISO_13818_AUX = 14,
+
     } streamType;
 
   uint32_t       table_id;
@@ -964,25 +983,25 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   uint32_t       crc32;
   uint32_t       calc_crc32;
   uint32_t       coded_length;
-  unsigned int pid;
+  unsigned int 	 pid;
   unsigned char *stream;
-  unsigned int i;
-
-  /* sections start with a pointer. Skip it! */
-  pkt += pkt[4];
-  if (pkt - originalPkt > PKT_SIZE) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux error! PMT with invalid pointer\n");
-    return;
-  }
-
+  unsigned int 	 i;
+  int 		 count;
+  char 		*ptr = NULL;
+  unsigned char  len;
+  unsigned int   offset=0;  
+  
   /*
    * A new section should start with the payload unit start
    * indicator set. We allocate some mem (max. allowed for a PM section)
    * to copy the complete section into one chunk.
    */
   if (pusi) {
+    pkt+=pkt[4]; /* pointer to start of section */
+    offset=1;
+    
     if (this->pmt[program_count] != NULL) free(this->pmt[program_count]);
-    this->pmt[program_count] = (uint8_t *) calloc(1024, sizeof(unsigned char));
+    this->pmt[program_count] = (uint8_t *) calloc(4096, sizeof(unsigned char));
     this->pmt_write_ptr[program_count] = this->pmt[program_count];
 
     table_id                  =  pkt[5] ;
@@ -1017,6 +1036,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     if (program_number != this->program_number[program_count]) {
       /* several programs can share the same PMT pid */
 #ifdef TS_PMT_LOG
+printf("Program Number is %i, looking for %i\n",program_number,this->program_number[program_count]);
       printf ("ts_demux: waiting for next PMT on this PID...\n");
 #endif
       return;
@@ -1027,6 +1047,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 	       "demux_ts: FIXME (unsupported) PMT consists of multiple (%d) sections\n", last_section_number);
       return;
     }
+
   }
 
   if (!this->pmt[program_count]) {
@@ -1037,16 +1058,18 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     return;
   }
 
-  if (!pusi)
+  if (!pusi){
     section_length = (this->pmt[program_count][1] << 8
 		      | this->pmt[program_count][2]) & 0x03ff;
+  }
 
-  coded_length = MIN (BODY_SIZE - (pkt - originalPkt) - 1,
-                     (section_length+3) - (this->pmt_write_ptr[program_count]
-                                           - this->pmt[program_count]));
-  memcpy (this->pmt_write_ptr[program_count], &pkt[5], coded_length);
-  this->pmt_write_ptr[program_count] += coded_length;
+  count=ts_payloadsize(pkt);
 
+  ptr = pkt+offset+(PKT_SIZE-count);
+  len = count-offset;
+  memcpy (this->pmt_write_ptr[program_count], ptr, len);
+  this->pmt_write_ptr[program_count] +=len;
+                                                                                        
 #ifdef TS_PMT_LOG
   printf ("ts_demux: wr_ptr: %p, will be %p when finished\n",
 	  this->pmt_write_ptr[program_count],
@@ -1163,6 +1186,11 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       printf ("\n");
 #endif
       break;
+    case  ISO_13818_TYPE_C: /* data carousel */
+#ifdef TS_PMT_LOG
+      printf ("demux_ts: PMT streamtype 13818_TYPE_C, pid: 0x%.4x\n", pid);
+#endif
+      break;
     case ISO_13818_PES_PRIVATE:
       for (i = 5; i < coded_length; i += stream[i+1] + 2) {
         if ((stream[i] == 0x6a) && (this->audioPid == INVALID_PID)) {
@@ -1189,12 +1217,24 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
           break;
         }
 
+        /* Teletext */
+        else if (stream[i] == 0x56)
+          {
+#ifdef TS_PMT_LOG
+            printf ("demux_ts: PMT Teletext, pid: 0x%.4x\n", pid);
+
+            for (i = 5; i < coded_length; i++)
+              printf ("%.2x ", stream[i]);
+            printf ("\n");
+#endif
+          break;
+          }
+
 	/* DVBSUB */
 	else if (stream[i] == 0x59)
 	  {
 	    int pos;
-
-	    for (pos = i + 2;
+            for (pos = i + 2;
 		 pos + 8 <= i + 2 + stream[i + 1]
 		   && this->no_spu_langs < MAX_NO_SPU_LANGS;
 		 pos += 8)
@@ -1203,7 +1243,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 		demux_ts_spu_lang *lang = &this->spu_langs[no];
 		
 		this->no_spu_langs++;
-		
+	
 		memcpy(lang->desc.lang, &stream[pos], 3);
 		lang->desc.lang[3] = 0;
 		lang->desc.comp_page_id =
@@ -1212,11 +1252,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 		  (stream[pos + 6] << 8) | stream[pos + 7];
 		lang->pid = pid;
 		lang->media_index = this->media_num;
-		
 		demux_ts_pes_new(this, this->media_num,
 				 pid, this->video_fifo,
 				 stream[0]);
-
 #ifdef TS_LOG
 		printf("demux_ts: DVBSUB: pid 0x%.4x: %s  page %ld %ld\n",
 		       pid, lang->desc.lang,
@@ -1595,6 +1633,23 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
   /*
    * audio/video pid auto-detection, if necessary
    */
+   program_count=0;
+   if(this->media_num<MAX_PMTS)
+      while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
+        if (pid == this->pmt_pid[program_count]) {
+    
+#ifdef TS_LOG
+          printf ("demux_ts: PMT prog: 0x%.4x pid: 0x%.4x\n",
+            this->program_number[program_count],
+            this->pmt_pid[program_count]);
+#endif
+	demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4,
+	  payload_unit_start_indicator,
+	  program_count);
+	  return;
+      }
+      program_count++;
+    }
     
   if (payload_unit_start_indicator && this->media_num < MAX_PIDS){
     int pes_stream_id;
@@ -1604,20 +1659,6 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
       return;
     }
     program_count = 0;
-    while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
-      if (pid == this->pmt_pid[program_count]) {
-#ifdef TS_LOG
-        printf ("demux_ts: PMT prog: 0x%.4x pid: 0x%.4x\n",
-          this->program_number[program_count],
-	  this->pmt_pid[program_count]);
-#endif
-	demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4,
-	  payload_unit_start_indicator,
-	  program_count);
-	  return;
-      }
-      program_count++;
-    }
     pes_stream_id = originalPkt[data_offset+3];
 
 #ifdef TS_HEADER_LOG
