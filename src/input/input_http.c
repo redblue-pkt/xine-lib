@@ -342,6 +342,55 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
   return num_bytes;
 }
 
+static int read_shoutcast_header(http_input_plugin_t *this) {
+  int done, len, linenum;
+
+  done = 0; len = 0; linenum = 0;
+  while (!done) {
+
+    /*
+    printf ("input_http: read...\n");
+    */
+
+    if (http_plugin_read ((input_plugin_t*)this, &this->buf[len], 1) == 0) {
+      return 1;
+    }
+
+    if (this->buf[len] == '\012') {
+
+      this->buf[len] = '\0';
+      len--;
+  
+      if (len >= 0 && this->buf[len] == '\015') {
+        this->buf[len] = '\0';
+        len--;
+      }
+
+      linenum++;
+      
+#ifdef LOG
+      printf ("input_http: shoutcast answer: >%s<\n", this->buf);
+#endif
+
+      if (!strncasecmp(this->buf, "icy-name:", 9)) {
+        this->stream->meta_info [XINE_META_INFO_TITLE]
+          = strdup (this->buf + 9 + (*(this->buf + 9) == ' '));
+      }
+
+      if (len == -1)
+        done = 1;
+      else
+        len = 0;
+    } else
+      len ++;
+  }
+#ifdef LOG
+  printf ("input_http: end of the shoutcast header\n");
+#endif
+
+  return 0;
+}
+
 /*
  * helper function to release buffer
  * in case demux thread is cancelled
@@ -464,7 +513,8 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   http_input_plugin_t *this;
   char                *proxy;
   int                  done,len,linenum;
-
+  int                  shoutcast = 0;
+  
   this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
 
   strncpy (this->mrlbuf, mrl, BUFSIZE);
@@ -642,10 +692,8 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 	    free (this);
 	    return NULL;
 	  } else {
-	    this->mrlbuf2[0] = 'i';
-	    this->mrlbuf2[1] = 'c';
-	    this->mrlbuf2[2] = 'e';
-	    this->mrlbuf2[3] = ' ';
+	    shoutcast = 1;
+	    done = 1;
 	  }
 	}
 	
@@ -701,8 +749,23 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   this->preview_size = http_plugin_read (&this->input_plugin, this->preview,
 					 PREVIEW_SIZE);
+  
   this->preview_pos  = 0;
   this->curpos  = 0;
+  
+  /* Trivial shoutcast detection */
+  if (shoutcast ||
+      !strncasecmp(this->preview, "ICY", 3)) {
+    this->mrlbuf2[0] = 'i';
+    this->mrlbuf2[1] = 'c';
+    this->mrlbuf2[2] = 'e';
+    this->mrlbuf2[3] = ' ';
+    if (read_shoutcast_header(this)) {
+      /* problem when reading shoutcast header */
+      free (this);
+      return NULL;
+    }
+  }
 
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;
   this->input_plugin.read              = http_plugin_read;
