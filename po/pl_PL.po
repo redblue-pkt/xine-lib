@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-05-02 16:47+0200\n"
+"POT-Creation-Date: 2002-06-01 01:07+0200\n"
 "PO-Revision-Date: 2002-05-31 20:46+0200\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polski <pl@li.org>\n"
@@ -14,16 +14,17 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 0.9.6\n"
 
-#: src/demuxers/demux_ts.c:316
+#: src/demuxers/demux_ts.c:346
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT zrzuca wiele pakietów TS\n"
 
-#: src/demuxers/demux_ts.c:322
+#: src/demuxers/demux_ts.c:352
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
-msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
+msgstr ""
+"demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
 
-#: src/demuxers/demux_ts.c:332
+#: src/demuxers/demux_ts.c:362
 #, c-format
 msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
@@ -32,131 +33,124 @@ msgstr ""
 "demux_ts: b³±d demultiplexera! PAT z b³êdnym CRC32: crc32 pakietu: %.8x "
 "wyliczone crc32: %.8x\n"
 
-#: src/demuxers/demux_ts.c:396
+#: src/demuxers/demux_ts.c:437
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr "demux_ts: b³±d %02x %02x %02x (powinno byæ 0x000001)\n"
 
-#: src/demuxers/demux_ts.c:533
+#: src/demuxers/demux_ts.c:566
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr "nie dostêpne fifo (%d)\n"
 
-#: src/demuxers/demux_ts.c:545
-#, c-format
-msgid "demux_ts: dropped input packet cc: %d expected: %d\n"
+#: src/demuxers/demux_ts.c:575
+#, fuzzy, c-format
+msgid "demux_ts: unexpected cc %d (expected %d)\n"
 msgstr "demux_ts: opuszczony pakiet wej¶cia cc: %d oczekiwany %d\n"
 
-#: src/demuxers/demux_ts.c:559
-msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
-msgstr "demux_ts: PUSI ustawione ale brak nag³ówka PES (uszkodzony strumieñ?)\n"
-
-#: src/demuxers/demux_ts.c:567
-msgid "demux_ts: broken pes encountered\n"
+#: src/demuxers/demux_ts.c:598
+#, fuzzy
+msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts: napotkano uszkodzony PES\n"
 
-#: src/demuxers/demux_ts.c:670
+#: src/demuxers/demux_ts.c:700
 msgid "demux error! PMT with invalid pointer\n"
 msgstr "b³±d demultiplexera! PMT z b³êdnym kursorem\n"
 
-#: src/demuxers/demux_ts.c:775
-#, c-format
+#: src/demuxers/demux_ts.c:804
+#, fuzzy, c-format
 msgid ""
-"demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#8x "
+"demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 msgstr ""
 "demux_ts: b³±d demultipleksera! PMT z b³êdnym CRC32: crc32 pakietu %#.8x "
 "wyliczone crc32: %#.8x\n"
 
-#: src/demuxers/demux_ts.c:790
+#: src/demuxers/demux_ts.c:819
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr "b³±d demultiplexera! PMT z niespójn± d³ugo¶ci± progInfo\n"
 
-#: src/demuxers/demux_ts.c:807
+#: src/demuxers/demux_ts.c:836
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr "b³±d demultiplexera! PMT z niespójn± d³ugo¶ci± streamInfo\n"
 
-#: src/demuxers/demux_ts.c:926
-msgid "RE-Sync failed\n"
-msgstr "resynchronizacja zawiod³a\n"
-
-#: src/demuxers/demux_ts.c:1074
+#: src/demuxers/demux_ts.c:1195
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr "b³±d demultiplexera! b³êdny bajt synchronizacji ts %.2x\n"
 
-#: src/demuxers/demux_ts.c:1079
+#: src/demuxers/demux_ts.c:1200
 msgid "demux error! transport error\n"
 msgstr "b³±d demultiplexera! b³±d transportu\n"
 
-#: src/demuxers/demux_ts.c:1127
+#: src/demuxers/demux_ts.c:1263
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr "demux_ts: b³±d demultiplexera! B³êdny rozmiar payload %d\n"
 
-#: src/demuxers/demux_ts.c:1300
+#: src/demuxers/demux_ts.c:1476
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr "demux %u ts_open!\n"
 
-#: src/demuxers/demux_ts.c:1402
+#: src/demuxers/demux_ts.c:1587
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: nie moge utworzyæ nowego w±tku (%s)\n"
 
-#: src/demuxers/demux_ts.c:1470
-#, c-format
+#: src/demuxers/demux_ts.c:1687
+#, fuzzy, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
-"          this means there's a version mismatch between xine and "
-"this           demuxer plugin.\n"
-"Installing current demux plugins should help.\n"
+"          This means there's a version mismatch between xine and this "
+"demuxer plugin.\n"
+"          Installing current demux plugins should help.\n"
 msgstr ""
 "demux_ts: wtyczka nie wspiera API w wersji %d.\n"
 "\t   to oznacza ¿e jest niezgodno¶æ wersji miêdzy xine i           wtyczk± "
 "demultiplexera.\n"
 "Instalacja aktualnej wtyczki wej¶cia powinna pomóc.\n"
 
-#: src/demuxers/demux_avi.c:369
+#: src/demuxers/demux_avi.c:659
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index pliku avi uszkodzony\n"
 
-#: src/demuxers/demux_avi.c:1011
+#: src/demuxers/demux_avi.c:1256
 #, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_avi: format obrazu = %s\n"
 
-#: src/demuxers/demux_avi.c:1013
+#: src/demuxers/demux_avi.c:1258
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: rozmiar ramki wideo %ld x %ld\n"
 
-#: src/demuxers/demux_avi.c:1016
+#: src/demuxers/demux_avi.c:1261
 #, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: format d¼wiêku [%d] = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1024
+#: src/demuxers/demux_avi.c:1269
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: nieznany typ d¼wiêku 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1030
+#: src/demuxers/demux_avi.c:1275
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: typ dzwiêku %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1142
+#: src/demuxers/demux_avi.c:1412
 #, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_avi: nieznany kodek wideo '%.4s'\n"
 
-#: src/demuxers/demux_avi.c:1150
+#: src/demuxers/demux_avi.c:1419
 #, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: kodek wideo to '%s'\n"
 
-#: src/demuxers/demux_avi.c:1336
+#: src/demuxers/demux_avi.c:1606
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -169,11 +163,11 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/demuxers/demux_mpeg.c:937
+#: src/demuxers/demux_mpeg.c:956
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr "demux_mpeg: proszê podaæ typ strumienia mpeg(mpeg1/mpeg2)\n"
 
-#: src/demuxers/demux_mpeg_block.c:287
+#: src/demuxers/demux_mpeg_block.c:347
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -181,7 +175,7 @@ msgstr ""
 "demux_mpeg_block: zbyt wiele b³êdów, zatrzymanie odtwarzania Mo¿e strumieñ "
 "jest zaszyfrowany?\n"
 
-#: src/demuxers/demux_mpeg_block.c:446
+#: src/demuxers/demux_mpeg_block.c:466
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -190,31 +184,41 @@ msgstr ""
 "demux_mpeg_block: uwaga: nag³ówek pes wskazuje na to ze strumieñ mo¿e byæ "
 "zaszyfrowany (tryb szyfrowania %d)\n"
 
-#: src/demuxers/demux_mpgaudio.c:158
-#, c-format
-msgid "mpgaudio: bitrate = %.2fkbps\n"
-msgstr "mpgaudio: bitrate = %.2fkbps\n"
+#: src/demuxers/demux_mpeg_block.c:1053
+msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
+msgstr ""
 
-#: src/demuxers/demux_qt.c:3976
+#: src/demuxers/demux_mpgaudio.c:184
+#, c-format
+msgid "demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"
+msgstr ""
+
+#: src/demuxers/demux_mpgaudio.c:406
+#, fuzzy
+msgid "demux_mpgaudio: no audio driver!\n"
+msgstr "demux_avi: nieznany typ d¼wiêku 0x%lx\n"
+
+#: src/demuxers/demux_qt.c:3993
 #, c-format
 msgid "demux_qt: unknown video codec '%s'\n"
 msgstr "demux_qt: nieznany kodek wideo '%s'\n"
 
-#: src/demuxers/demux_qt.c:4221
+#: src/demuxers/demux_qt.c:4247
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
-msgstr "demux_qt: kodek wideo  %s (%f fps), kodek audio  %s (%ld Hz, %d bits)\n"
+msgstr ""
+"demux_qt: kodek wideo  %s (%f fps), kodek audio  %s (%ld Hz, %d bits)\n"
 
-#: src/demuxers/demux_ogg.c:223
+#: src/demuxers/demux_ogg.c:225
 msgid "ogg: vorbis audio stream detected\n"
 msgstr "ogg: znaleziono strumieñ d¼wiêku typu vorbis\n"
 
-#: src/demuxers/demux_ogg.c:279
+#: src/demuxers/demux_ogg.c:281
 #, c-format
 msgid "ogg: unknown stream type (signature >%.8s<)\n"
 msgstr "ogg: nieznany typ strumienia (sygnatura >%.8s<)\n"
 
-#: src/demuxers/demux_ogg.c:665
+#: src/demuxers/demux_ogg.c:697
 #, c-format
 msgid ""
 "demux_ogg: plugin doesn't support plugin API version %d.\n"
@@ -227,37 +231,37 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/demuxers/demux_asf.c:339
+#: src/demuxers/demux_asf.c:340
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 msgstr "demux_asf: format d¼wiêku : %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_asf.c:402
+#: src/demuxers/demux_asf.c:403
 #, c-format
 msgid "demux_asf: video format : %s\n"
 msgstr "demux_asf: format obrazu : %s\n"
 
-#: src/demuxers/demux_asf.c:460
+#: src/demuxers/demux_asf.c:461
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr "demux_asf: d³ugo¶æ strumienia jest %d sec, rate jest %d bajtow/sek\n"
 
-#: src/demuxers/demux_asf.c:1283
+#: src/demuxers/demux_asf.c:1294
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: tytul        : %s\n"
 
-#: src/demuxers/demux_asf.c:1285
+#: src/demuxers/demux_asf.c:1296
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: autor       : %s\n"
 
-#: src/demuxers/demux_asf.c:1287
+#: src/demuxers/demux_asf.c:1298
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: copyright    : %s\n"
 
-#: src/demuxers/demux_asf.c:1289
+#: src/demuxers/demux_asf.c:1300
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: komentarz      : %s\n"
@@ -282,11 +286,11 @@ msgstr "input_net: nie mogê znale¼æ IP dla '%s'.\n"
 msgid "input_net: unable to connect to '%s'.\n"
 msgstr "input_net: nie mogê pod³±czyæ siê do '%s'.\n"
 
-#: src/input/input_net.c:300
+#: src/input/input_net.c:302
 msgid "net input plugin as shipped with xine"
 msgstr "wtyczka wej¶cia net dostarczana z xine"
 
-#: src/input/input_net.c:342
+#: src/input/input_net.c:344
 #, c-format
 msgid ""
 "net input plugin doesn't support plugin API version %d.\n"
@@ -310,8 +314,8 @@ msgid "bind(): %s.\n"
 msgstr "bind(): %s.\n"
 
 #: src/input/input_rtp.c:185
-#, c-format
-msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s\n"
+#, fuzzy, c-format
+msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
 msgstr "setsockopt(IP_ADD_MEMBERSHIP) zawiod³o (multicast kernel?): %s.\n"
 
 #: src/input/input_rtp.c:205
@@ -364,11 +368,11 @@ msgstr ""
 msgid "unable to allocate input buffer.\n"
 msgstr "nie moge umiejscowic bufora wejscia.\n"
 
-#: src/input/input_stdin_fifo.c:321
+#: src/input/input_stdin_fifo.c:322
 msgid "stdin/fifo input plugin as shipped with xine"
 msgstr "Wtyczka wej¶cia stdin/fifo dostarczana z xine"
 
-#: src/input/input_stdin_fifo.c:356
+#: src/input/input_stdin_fifo.c:357
 #, c-format
 msgid ""
 "stdin/fifo input plugin doesn't support plugin API version %d.\n"
@@ -381,8 +385,8 @@ msgstr ""
 "oznacza to niezgodno¶æ miêdzy xine a t± wtyczk± wej¶cia\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/input/input_dvd.c:145 src/input/input_dvd.c:692
-#: src/input/input_dvd.c:752
+#: src/input/input_dvd.c:145 src/input/input_dvd.c:693
+#: src/input/input_dvd.c:753
 #, c-format
 msgid "input_dvd: unable to open dvd drive (%s): %s\n"
 msgstr "input_dvd: nie mogê otworzyæ napêdu dvd (%s): %s\n"
@@ -414,11 +418,12 @@ msgstr ""
 "           Przyjmujê ¿e dysk nie jest zaszyfrowany.\n"
 
 #: src/input/input_dvd.c:346
+#, fuzzy
 msgid ""
 "\n"
-"input_dvd: Sorry, xine doesn't play encrypted DVDs. The legal status of CSS\n"
-"           decryption is unclear and we will not provide such code.\n"
-"\n"
+"input_dvd: Sorry, this plugin doesn't play encrypted DVDs. The legal status\n"
+"           of CSS decryption is unclear and we can't provide such code.\n"
+"           Please check http://dvd.sf.net for more information.\n"
 msgstr ""
 "\n"
 "input_dvd: Przykro mi, xine nie odtwarza zaszyfrowanych DVD. Status prawny "
@@ -426,75 +431,76 @@ msgstr ""
 "           jest niejasny wiêc nie dostarczamy takiego kodu.\n"
 "\n"
 
-#: src/input/input_dvd.c:354
+#: src/input/input_dvd.c:355
 #, c-format
 msgid "input_dvd: cannot open file >%s<\n"
 msgstr "input_dvd: nie mogê otworzyæ pliku >%s<\n"
 
-#: src/input/input_dvd.c:399
+#: src/input/input_dvd.c:400
 #, c-format
 msgid "input_dvd: Unable to find >%s< on dvd.\n"
 msgstr "input_dvd: Nie mogê znale¼æ >%s< na dvd.\n"
 
-#: src/input/input_dvd.c:434
+#: src/input/input_dvd.c:435
 #, c-format
 msgid "input_dvd: error read: %Ld bytes is not a sector!\n"
 msgstr "input_dvd: error read: %Ld bajtow to nie sektor!\n"
 
-#: src/input/input_dvd.c:451
+#: src/input/input_dvd.c:452
 #, c-format
 msgid "input_dvd: read error in input_dvd plugin (%s)\n"
 msgstr "input_dvd: b³±d odczytu we wtyczce input_dvd (%s)\n"
 
-#: src/input/input_dvd.c:455
+#: src/input/input_dvd.c:456
 #, c-format
 msgid "input_dvd: short read in input_dvd (%d != %d)\n"
 msgstr "input_dvd: krótki odczyt we wtyczce input_dvd (%d != %d)\n"
 
-#: src/input/input_dvd.c:474
+#: src/input/input_dvd.c:475
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-msgstr "input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
+msgstr ""
+"input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
 
-#: src/input/input_dvd.c:486
+#: src/input/input_dvd.c:487
 msgid "input_dvd: read error in input_dvd plugin\n"
 msgstr "input_dvd: b³±d odczytu we wtyczce input_dvd\n"
 
-#: src/input/input_dvd.c:519
+#: src/input/input_dvd.c:520
 #, c-format
 msgid "input_dvd: seek: %d is an unknown origin\n"
 msgstr "input_dvd: seek: %d jest nieznanego pochodzenia\n"
 
-#: src/input/input_dvd.c:560
+#: src/input/input_dvd.c:561
 #, c-format
 msgid "input_dvd: CDROMCLOSETRAY failed: %s\n"
 msgstr "input_dvd: CDROMCLOSETRAY zawiod³o: %s\n"
 
-#: src/input/input_dvd.c:566 src/input/input_dvd.c:583
+#: src/input/input_dvd.c:567 src/input/input_dvd.c:584
 #, c-format
 msgid "input_dvd: CDROMEJECT failed: %s\n"
 msgstr "input_dvd: CDROMEJECT zawiod³o: %s\n"
 
-#: src/input/input_dvd.c:572
+#: src/input/input_dvd.c:573
 #, c-format
 msgid "input_dvd: CDROM_DRIVE_STATUS failed: %s\n"
 msgstr "input_dvd: CDROM_DRIVE_STATUS zawiod³o: %s\n"
 
-#: src/input/input_dvd.c:588
+#: src/input/input_dvd.c:589
 #, c-format
 msgid "ioctl(cdromallow): %s"
 msgstr "ioctl(cdromallow): %s"
 
-#: src/input/input_dvd.c:591
+#: src/input/input_dvd.c:592
 #, c-format
 msgid "ioctl(cdromeject): %s"
 msgstr "ioctl(cdromeject): %s"
 
-#: src/input/input_dvd.c:618
+#: src/input/input_dvd.c:619
 msgid "dvd device input plugin as shipped with xine"
 msgstr "wtyczka wej¶cia DVD dostarczana z xine"
 
-#: src/input/input_dvd.c:813
+#: src/input/input_dvd.c:814
 #, c-format
 msgid ""
 "dvd input plugin doesn't support plugin API version %d.\n"
@@ -557,7 +563,8 @@ msgstr "input_vcd : b³±d w ioctl CDROMREADTOCHDR\n"
 #: src/input/input_vcd.c:167
 #, c-format
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-msgstr "input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
+msgstr ""
+"input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
 
 #: src/input/input_vcd.c:178
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
@@ -862,72 +869,72 @@ msgstr ""
 "oznacza to niezgodno¶æ miêdzy xine a t± wtyczk± wej¶cia\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
-#: src/xine-engine/video_out.c:310
+#: src/xine-engine/video_out.c:308
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d ramek dostarczonych, %d ramek pominiêtych, %d ramek porzuconych\n"
 
-#: src/xine-engine/video_out.c:348
+#: src/xine-engine/video_out.c:351
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr "video_out: odrzucam obraz o pts %lld bo jest za stary (diff : %lld).\n"
 
-#: src/xine-engine/video_out.c:880
+#: src/xine-engine/video_out.c:890
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: nie mogê utworzyæ w±tku (%s)\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:883
+#: src/xine-engine/video_out.c:893
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out: przykro mi, to nie powinno sie zdarzyæ.\n"
 "Proszê ponownie uruchomiæ xine.\n"
 
-#: src/xine-engine/xine.c:122
+#: src/xine-engine/xine.c:134
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr "xine_notify_stream_finished: nie mogê utworzyæ nowego w±tku (%s)\n"
 
-#: src/xine-engine/xine.c:287
+#: src/xine-engine/xine.c:295
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr "%s(%d) b³êdny pierwszy etap = %d !!\n"
 
-#: src/xine-engine/xine.c:396
+#: src/xine-engine/xine.c:403
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nie mogê znale¼æ wtyczki wej¶cia dla tego MRL\n"
 
-#: src/xine-engine/xine.c:408
+#: src/xine-engine/xine.c:414
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr "u¿ywam wtyczki wej¶cia '%s' dla MRL '%s'\n"
 
-#: src/xine-engine/xine.c:418
+#: src/xine-engine/xine.c:424
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr "xine: nie mogê znale¼æ demultiplexera dla >%s<\n"
 
-#: src/xine-engine/xine.c:426
+#: src/xine-engine/xine.c:431
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr "format warstwy systemowej '%s' wykryty.\n"
 
-#: src/xine-engine/xine.c:454
+#: src/xine-engine/xine.c:459
 msgid "xine_play: demuxer failed to start\n"
 msgstr "xine_play: zawiód³ start demultiplexera\n"
 
-#: src/xine-engine/xine.c:984
+#: src/xine-engine/xine.c:1007
 msgid "stream format"
 msgstr "format strumienia"
 
-#: src/xine-engine/xine.c:985
+#: src/xine-engine/xine.c:1008
 msgid "messages"
 msgstr "wiadomo¶ci"
 
-#: src/xine-engine/xine.c:986
+#: src/xine-engine/xine.c:1009
 msgid "plugin"
 msgstr "wtyczka"
 
@@ -952,7 +959,9 @@ msgstr "load_plugins: wtyczka demultipleksera znaleziona : %s\n"
 
 #: src/xine-engine/load_plugins.c:161
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
-msgstr "load_plugins: zbyt wiele wtyczek demultipleksera zainstalowanych, zakañczanie.\n"
+msgstr ""
+"load_plugins: zbyt wiele wtyczek demultipleksera zainstalowanych, "
+"zakañczanie.\n"
 
 #: src/xine-engine/load_plugins.c:300
 #, c-format
@@ -1015,4 +1024,12 @@ msgstr "znaleziono wtyczkê dekodera obrazu : %s\n"
 msgid "audio decoder plugin found : %s\n"
 msgstr "znaleziono wtyczkê dekodera d¼wiêku : %s\n"
 
+#~ msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
+#~ msgstr ""
+#~ "demux_ts: PUSI ustawione ale brak nag³ówka PES (uszkodzony strumieñ?)\n"
 
+#~ msgid "RE-Sync failed\n"
+#~ msgstr "resynchronizacja zawiod³a\n"
+
+#~ msgid "mpgaudio: bitrate = %.2fkbps\n"
+#~ msgstr "mpgaudio: bitrate = %.2fkbps\n"
