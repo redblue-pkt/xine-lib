@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.83 2004/02/15 20:31:23 mroi Exp $
+ * $Id: input_http.c,v 1.84 2004/03/31 07:42:50 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,7 +35,6 @@
 #include <netinet/in.h>
 
 #ifndef WIN32
-#include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
 #endif /* WIN32 */
@@ -106,29 +105,18 @@ typedef struct {
   xine_t           *xine;
   config_values_t  *config;
 
-  char             *proxyuser;
-  char             *proxypassword;
   char             *proxyhost;
   int               proxyport;
+  char             *proxyuser;
+  char             *proxypassword;
+  char             *noproxylist;
 
   char             *proxyhost_env;
   int               proxyport_env;
 } http_input_class_t;
 
-static void proxy_user_change_cb(void *data, xine_cfg_entry_t *cfg) {
-  http_input_class_t *this = (http_input_class_t *) data;
-
-  this->proxyuser = cfg->str_value;
-}
-
-static void proxy_password_change_cb(void *data, xine_cfg_entry_t *cfg) {
-  http_input_class_t *this = (http_input_class_t *) data;
-
-  this->proxypassword = cfg->str_value;
-}
-
-static void proxy_host_change_cb(void *data, xine_cfg_entry_t *cfg) {
-  http_input_class_t *this = (http_input_class_t *) data;
+static void proxy_host_change_cb (void *this_gen, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *)this_gen;
 
   this->proxyhost = cfg->str_value;
 
@@ -138,10 +126,69 @@ static void proxy_host_change_cb(void *data, xine_cfg_entry_t *cfg) {
   }
 }
 
-static void proxy_port_change_cb(void *data, xine_cfg_entry_t *cfg) {
-  http_input_class_t *this = (http_input_class_t *) data;
+static void proxy_port_change_cb(void *this_gen, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *)this_gen;
   
   this->proxyport = cfg->num_value;
+}
+
+static void proxy_user_change_cb(void *this_gen, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *)this_gen;
+
+  this->proxyuser = cfg->str_value;
+}
+
+static void proxy_password_change_cb(void *this_gen, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *)this_gen;
+
+  this->proxypassword = cfg->str_value;
+}
+
+static void no_proxy_list_change_cb(void *this_gen, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *)this_gen;
+
+  this->noproxylist = cfg->str_value;
+}
+
+/*
+ * handle no proxy list config option and returns, if use the proxy or not
+ * if error occured, is expected using the proxy
+ */
+static int _x_use_proxy(http_input_class_t *this, const char *host) {
+  const char *target;
+  char *no_proxy, *domain, *ptr;
+  struct hostent *info;
+  size_t i = 0, host_len, noprox_len;
+
+  /* 
+   * get full host name 
+   */
+  if ((info = gethostbyname(host)) == NULL) {
+    xine_log(this->xine, XINE_LOG_MSG, 
+        _("input_http: gethostbyname(%s) failed: %s\n"), host,
+        strerror(errno));
+    return 1;
+  }
+  if (!info->h_name) return 1;
+  target = info->h_name;
+
+  host_len = strlen(target);
+  no_proxy = strdup(this->noproxylist);
+  domain = strtok_r(no_proxy, ", ", &ptr);
+  while (domain) {
+    noprox_len = strlen(domain);
+    if (host_len >= noprox_len && strcmp(target + host_len - noprox_len, domain) == 0) {
+      lprintf("host '%s' is in no-proxy domain '%s'\n", target, domain);
+      return 1;
+    }
+    lprintf("host '%s' isn't in no-proxy domain '%s'\n", target, domain);
+    
+    domain = strtok_r(NULL, ", ", &ptr);
+    i++;
+  }
+  free(no_proxy);
+
+  return 0;
 }
 
 static int http_plugin_basicauth (const char *user, const char *password, char* dest, int len) {
@@ -571,13 +618,13 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   int                  shoutcast = 0, httpcode;
   int                  res, progress;
   int                  buflen;
+  int                  use_proxy;
+  int                  proxyport;
   
   this->shoutcast_pos = 0;
+  use_proxy = this_class->proxyhost && strlen(this_class->proxyhost);
   
-  if (this_class->proxyhost && strlen(this_class->proxyhost)) {
-    if (this_class->proxyport == 0)
-      this_class->proxyport = DEFAULT_HTTP_PORT;
-    
+  if (use_proxy) {
     if (this_class->proxyuser && strlen(this_class->proxyuser)) {
       if (http_plugin_basicauth (this_class->proxyuser,
 			         this_class->proxypassword,
@@ -594,29 +641,37 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     _x_message(this->stream, XINE_MSG_GENERAL_WARNING, "malformed url", NULL);
     return 0;
   }
+  if (use_proxy && _x_use_proxy(this_class, this->host)) {
+    use_proxy = 0;
+  }
   if (this->port == 0)
     this->port = DEFAULT_HTTP_PORT;
   
-  if ((this->user && strlen(this->user)) && (this_class->proxyhost && strlen(this_class->proxyhost))) {
+  if ((this->user && strlen(this->user)) && use_proxy) {
     if (http_plugin_basicauth (this->user, this->password, this->auth, BUFSIZE)) {
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "basic auth error", NULL);
       return 0;
     }
   }
   
+  if (this_class->proxyport == 0)
+    proxyport = DEFAULT_HTTP_PORT;
+  else
+    proxyport = this_class->proxyport;
+
 #ifdef LOG
   {
-    printf ("input_http: opening >/%s< on host >%s<", this->filename, this->host);
+    printf ("input_http: opening >%s< (on host >%s<)", this->mrl, this->host);
     
-    if (this_class->proxyhost && strlen(this_class->proxyhost))
-      printf (" via proxy >%s:%d<", this_class->proxyhost, this_class->proxyport);
+    if (use_proxy)
+      printf (" via proxy >%s:%d<", this_class->proxyhost, proxyport);
     
     printf ("\n");
   }
-#endif
-  
-  if (this_class->proxyhost && strlen(this_class->proxyhost))
-    this->fh = _x_io_tcp_connect (this->stream, this_class->proxyhost, this_class->proxyport);
+
+#endif  
+  if (use_proxy)
+    this->fh = _x_io_tcp_connect (this->stream, this_class->proxyhost, proxyport);
   else
     this->fh = _x_io_tcp_connect (this->stream, this->host, this->port);
   
@@ -635,7 +690,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   if (res != XIO_READY)
     return 0;
   
-  if (this_class->proxyhost && strlen(this_class->proxyhost)) {
+  if (use_proxy) {
     if (this->port != DEFAULT_HTTP_PORT) {
       snprintf (this->buf, BUFSIZE, "GET http://%s:%d%s HTTP/1.0\015\012",
 	       this->host, this->port, this->uri);
@@ -855,7 +910,7 @@ static void http_class_dispose (input_class_t *this_gen) {
   
   if(this->proxyhost_env)
     free(this->proxyhost_env);
-  
+
   free (this);
 }
 
@@ -877,22 +932,34 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.dispose            = http_class_dispose;
   this->input_class.eject_media        = NULL;
 
+  /*
+   * proxy settings
+   */
   this->proxyhost_env = NULL;
-  this->proxyuser     = config->register_string(config, "input.http_proxy_user",
-						"", _("http proxy username"),
-						NULL, 0, proxy_user_change_cb, (void *) this);
+  this->proxyhost = config->register_string(config, 
+      "input.http_proxy_host", "", _("HTTP proxy host"),
+      _("HTTP proxy server used for http streaming"), 0,
+      proxy_host_change_cb, (void *) this);
+  this->proxyport = config->register_num(config,
+      "input.http_proxy_port", DEFAULT_HTTP_PORT, _("HTTP proxy port"),
+      _("HTTP proxy port used for http streaming"), 0,
+      proxy_port_change_cb, (void *) this);
+  this->proxyuser = config->register_string(config,
+      "input.http_proxy_user", "", _("HTTP proxy username"),
+      _("HTTP proxy user used for http streaming"), 0,
+      proxy_user_change_cb, (void *) this);
   this->proxypassword = config->register_string(config,
-						"input.http_proxy_password", "", _("http proxy password"),
-						NULL, 0, proxy_password_change_cb, (void *) this);
-  this->proxyhost     = config->register_string(config,
-						"input.http_proxy_host", "", _("http proxy host"),
-						NULL, 0, proxy_host_change_cb, (void *) this);
-  this->proxyport     = config->register_num(config,
-					     "input.http_proxy_port", DEFAULT_HTTP_PORT,
-					     _("http proxy port"),
-					     NULL, 0, proxy_port_change_cb, (void *) this);
+      "input.http_proxy_password", "", _("HTTP proxy password"),
+      _("HTTP proxy password used for http streaming"), 0, 
+      proxy_password_change_cb, (void *) this);
+  this->noproxylist = config->register_string(config,
+      "input.http_no_proxy", "", _("Sites, where don't use HTTP proxy"),
+      _("Comma separated domains, where xine shouldn't use proxy"), 0,
+      no_proxy_list_change_cb, (void *) this);
 
-  /* Honour http_proxy envvar */
+  /* 
+   * honour http_proxy envvar 
+   */
   if((!this->proxyhost) || (!strlen(this->proxyhost))) {
     char *proxy_env;
 

@@ -1,5 +1,6 @@
   * fix the deadlock with non-seekable input plugins
   * guess codeset for OSD if nl_langinfo(CODESET) is missing or not working
+  * new option - list of domains, where don't use proxy
 
 xine-lib (1-rc3b)
   * fix SDL plugin that was broken in rc3

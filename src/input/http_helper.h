@@ -19,8 +19,11 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.h,v 1.1 2003/11/26 08:09:58 tmattern Exp $ 
+ * $Id: http_helper.h,v 1.2 2004/03/31 07:42:50 valtri Exp $ 
  */
+
+#ifndef HTTP_HELPER_H
+#define HTTP_HELPER_H
 
 /*
  * url parser
@@ -31,8 +34,7 @@
  *   0  invalid url
  *   1  valid url
  */
-#ifndef HTTP_HELPER_H
-#define HTTP_HELPER_H
 int _x_parse_url (char *url, char **proto, char** host, int *port,
                   char **user, char **password, char **uri);
+
 #endif /* HTTP_HELPER_H */
