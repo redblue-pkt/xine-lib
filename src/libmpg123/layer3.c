@@ -1205,23 +1205,7 @@ static void dct36(real *inbuf,real *o1,real *o2,real *wintab,real *tsbuf)
       tmp2a = in[2*0+0] + in[2*2+0] * c[2] + in[2*4+0] * c[4] + ta66 + in[2*8+0] * c[8];
       tmp2b = in[2*0+1] + in[2*2+1] * c[2] + in[2*4+1] * c[4] + tb66 + in[2*8+1] * c[8];
 
-      { 
-	real sum0,sum1; 
-	sum0 = tmp1a + tmp2a; 
-	sum1 = (tmp1b + tmp2b) * tfcos36[(0)]; 
-	{ 
-	  real tmp; 
-	  out2[9+(0)] = (tmp = sum0 + sum1) * w[27+(0)]; 
-	  out2[8-(0)] = tmp * w[26-(0)];  
-	} 
-	sum0 -= sum1; 
-	ts[SBLIMIT*(8-(0))] = 0;
-	ts[SBLIMIT*(9+(0))] = 0;
-	ts[SBLIMIT*(8-(0))] = out1[8-(0)] + sum0 * w[8-(0)]; 
-	ts[SBLIMIT*(9+(0))] = out1[9+(0)] + sum0 * w[9+(0)]; 
-      }
-
-      //MACRO1(0);
+      MACRO1(0);
       MACRO2(8);
     }
 
