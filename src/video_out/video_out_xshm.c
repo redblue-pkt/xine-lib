@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.68 2002/03/21 16:21:01 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.69 2002/03/21 18:29:51 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -151,7 +151,9 @@ typedef struct xshm_driver_s {
   int                gui_y;
   int                gui_width;  
   int                gui_height;
-
+  int                gui_win_x;
+  int                gui_win_y;
+  
   /* aspect ratio of pixels on screen */
   double             display_ratio;
 
@@ -162,7 +164,8 @@ typedef struct xshm_driver_s {
   void (*frame_output_cb) (void *user_data,
 			   int video_width, int video_height,
 			   int *dest_x, int *dest_y, 
-			   int *dest_height, int *dest_width);
+			   int *dest_height, int *dest_width,
+			   int *win_x, int *win_y);
 
   void (*dest_size_cb) (void *user_data,
 			int video_width, int video_height, 
@@ -787,7 +790,7 @@ static void clean_output_area (xshm_driver_t *this) {
   XSetForeground (this->display, this->gc, this->black.pixel);
 
   XFillRectangle(this->display, this->drawable, this->gc,
-		 0, 0, 
+		 this->gui_x, this->gui_y, 
 		 this->gui_width, this->gui_height);
 
 #if 0
@@ -823,23 +826,28 @@ static void clean_output_area (xshm_driver_t *this) {
 
 static int xshm_redraw_needed (vo_driver_t *this_gen) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
-  int gui_x, gui_y, gui_width, gui_height;
+  int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   int ret = 0;
 
   if( this->cur_frame )
   {
     this->frame_output_cb (this->user_data,
 			   this->cur_frame->output_width, this->cur_frame->output_height, 
-			   &gui_x, &gui_y, &gui_width, &gui_height);
+			   &gui_x, &gui_y, &gui_width, &gui_height,
+			   &gui_win_x, &gui_win_y );
 
     if ( (this->gui_x != gui_x) || (this->gui_y != gui_y)
 	  || (this->gui_width != gui_width) 
-	  || (this->gui_height != gui_height) ) {
+	  || (this->gui_height != gui_height)
+	  || (this->gui_win_x != gui_win_x)
+	  || (this->gui_win_y != gui_win_y) ) {
 
       this->gui_x      = gui_x;
       this->gui_y      = gui_y;
       this->gui_width  = gui_width;
       this->gui_height = gui_height;
+      this->gui_win_x  = gui_win_x;
+      this->gui_win_y  = gui_win_y;
 
       clean_output_area (this);
       ret = 1;
@@ -873,7 +881,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     frame->vo_frame.displayed (&frame->vo_frame);
   } else {
 
-    int gui_x, gui_y, gui_width, gui_height;
+    int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
 
 #ifdef LOG
     printf ("video_out_xshm: about to draw frame %d x %d...\n",
@@ -887,16 +895,21 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     this->frame_output_cb (this->user_data,
 			   frame->output_width, frame->output_height, 
-			   &gui_x, &gui_y, &gui_width, &gui_height);
+			   &gui_x, &gui_y, &gui_width, &gui_height,
+			   &gui_win_x, &gui_win_y);
 
     if ( (this->gui_x != gui_x) || (this->gui_y != gui_y)
 	 || (this->gui_width != gui_width) 
-	 || (this->gui_height != gui_height) ) {
+	 || (this->gui_height != gui_height) 
+	 || (this->gui_win_x != gui_win_x)
+	 || (this->gui_win_y != gui_win_y) ) {
 
       this->gui_x      = gui_x;
       this->gui_y      = gui_y;
       this->gui_width  = gui_width;
       this->gui_height = gui_height;
+      this->gui_win_x  = gui_win_x;
+      this->gui_win_y  = gui_win_y;
 
       clean_output_area (this);
     }
@@ -912,8 +925,8 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     this->cur_frame = frame;
 
-    xoffset  = (this->gui_width - frame->output_width) / 2;
-    yoffset  = (this->gui_height - frame->output_height) / 2;
+    xoffset  = (this->gui_width - frame->output_width) / 2 + this->gui_x;
+    yoffset  = (this->gui_height - frame->output_height) / 2 + this->gui_y;
 
     XLockDisplay (this->display);
 #ifdef LOG
@@ -1046,8 +1059,8 @@ static void xshm_translate_gui2video (xshm_driver_t *this,
      * gui area.  This is the case in fullscreen mode, where we often
      * have black borders on the top/bottom/left/right side.
      */
-    x -= ((this->gui_width  - frame->output_width)  >> 1);
-    y -= ((this->gui_height - frame->output_height) >> 1);
+    x -= ((this->gui_width  - frame->output_width)  >> 1) + this->gui_x;
+    y -= ((this->gui_height - frame->output_height) >> 1) + this->gui_y;
 
     /*
      * 2.

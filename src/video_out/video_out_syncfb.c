@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.57 2002/03/21 16:21:01 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.58 2002/03/21 18:29:51 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -174,6 +174,7 @@ struct syncfb_driver_s {
   
   int                gui_x, gui_y;
   int                gui_width, gui_height;
+  int                gui_win_x, gui_win_y;
 
   /*
    * "output" size:
@@ -200,7 +201,8 @@ struct syncfb_driver_s {
   void (*frame_output_cb) (void *user_data,
 			   int video_width, int video_height,
 			   int *dest_x, int *dest_y, 
-			   int *dest_height, int *dest_width);
+			   int *dest_height, int *dest_width,
+			   int *win_x, int *win_y);
 
   char               scratch[256];
 
@@ -681,8 +683,8 @@ static void syncfb_compute_output_size (syncfb_driver_t *this) {
        	this->syncfb_config.image_width    = this->output_width;
 	this->syncfb_config.image_height   = (this->deinterlace_enabled) ? (this->output_height-2) : this->output_height;
 	
-       	this->syncfb_config.image_xorg     = this->output_xoffset;
-	this->syncfb_config.image_yorg     = this->output_yoffset;
+       	this->syncfb_config.image_xorg     = this->output_xoffset + this->gui_win_x;
+	this->syncfb_config.image_yorg     = this->output_yoffset + this->gui_win_y;
 	
        	this->syncfb_config.src_crop_top   = this->displayed_yoffset;
 	this->syncfb_config.src_crop_bot   = (this->deinterlace_enabled && this->displayed_yoffset == 0) ? 1 : this->displayed_yoffset;
@@ -748,20 +750,24 @@ static void syncfb_flush_recent_frames (syncfb_driver_t *this) {
 
 static int syncfb_redraw_needed (vo_driver_t *this_gen) {
   syncfb_driver_t  *this = (syncfb_driver_t *) this_gen;
-  int gui_x, gui_y, gui_width, gui_height;
+  int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   int ret = 0;
   
   this->frame_output_cb (this->user_data,
 			 this->ideal_width, this->ideal_height, 
-			 &gui_x, &gui_y, &gui_width, &gui_height);
+			 &gui_x, &gui_y, &gui_width, &gui_height,
+			 &gui_win_x, &gui_win_y );
 
   if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
-      || (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
+      || (gui_width != this->gui_width) || (gui_height != this->gui_height)
+      || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y) ) {
 
     this->gui_x      = gui_x;
     this->gui_y      = gui_y;
     this->gui_width  = gui_width;
     this->gui_height = gui_height;
+    this->gui_win_x  = gui_win_x;
+    this->gui_win_y  = gui_win_y;
       
     syncfb_compute_output_size (this);
 

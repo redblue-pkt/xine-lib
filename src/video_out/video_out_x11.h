@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.14 2002/02/16 22:43:24 guenter Exp $
+ * $Id: video_out_x11.h,v 1.15 2002/03/21 18:29:51 miguelfreitas Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -81,12 +81,16 @@ typedef struct {
    * area and the video output driver will do it's best
    * to adjust the video frames to that size (while
    * preserving aspect ration and stuff). 
+   *    dest_x, dest_y: offset inside window
+   *    dest_width, dest_height: available drawing space
+   *    win_x, win_y: window absolute screen position
    */
 
   void (*frame_output_cb) (void *user_data,
 			   int video_width, int video_height,
 			   int *dest_x, int *dest_y, 
-			   int *dest_width, int *dest_height);
+			   int *dest_width, int *dest_height,
+			   int *win_x, int *win_y);
 
 } x11_visual_t;
 

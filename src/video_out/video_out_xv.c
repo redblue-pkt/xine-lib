@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.106 2002/03/21 16:21:02 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.107 2002/03/21 18:29:51 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -161,6 +161,7 @@ struct xv_driver_s {
   
   int                gui_x, gui_y;
   int                gui_width, gui_height;
+  int                gui_win_x, gui_win_y;
   
   /*
    * "output" size:
@@ -187,7 +188,8 @@ struct xv_driver_s {
   void (*frame_output_cb) (void *user_data,
 			   int video_width, int video_height,
 			   int *dest_x, int *dest_y, 
-			   int *dest_height, int *dest_width);
+			   int *dest_height, int *dest_width,
+			   int *win_x, int *win_y);
 
   char               scratch[256];
 
@@ -575,7 +577,7 @@ static void xv_clean_output_area (xv_driver_t *this) {
   XSetForeground (this->display, this->gc, this->black.pixel);
 
   XFillRectangle(this->display, this->drawable, this->gc,
-		 0, 0, this->gui_width, this->gui_height);
+		 this->gui_x, this->gui_y, this->gui_width, this->gui_height);
 
   if (this->use_colorkey) {
     XSetForeground (this->display, this->gc, this->colorkey);
@@ -700,8 +702,8 @@ static void xv_compute_output_size (xv_driver_t *this) {
     this->output_height  = (double) this->ideal_height * y_factor ;
   }
 
-  this->output_xoffset = (this->gui_width - this->output_width) / 2;
-  this->output_yoffset = (this->gui_height - this->output_height) / 2;
+  this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
+  this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
 
 #ifdef LOG
   printf ("video_out_xv: frame source %d x %d => screen output %d x %d\n",
@@ -759,20 +761,24 @@ static void xv_flush_recent_frames (xv_driver_t *this) {
 
 static int xv_redraw_needed (vo_driver_t *this_gen) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
-  int gui_x, gui_y, gui_width, gui_height;
+  int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   int ret = 0;
   
   this->frame_output_cb (this->user_data,
 			 this->ideal_width, this->ideal_height, 
-			 &gui_x, &gui_y, &gui_width, &gui_height);
+			 &gui_x, &gui_y, &gui_width, &gui_height,
+			 &gui_win_x, &gui_win_y );
 
   if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
-      || (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
+      || (gui_width != this->gui_width) || (gui_height != this->gui_height)
+      || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y) ) {
 
     this->gui_x      = gui_x;
     this->gui_y      = gui_y;
     this->gui_width  = gui_width;
     this->gui_height = gui_height;
+    this->gui_win_x  = gui_win_x;
+    this->gui_win_y  = gui_win_y;
 
     xv_compute_output_size (this);
 
