@@ -142,6 +142,17 @@
 +#define memcpy(a,b,c) xine_fast_memcpy(a,b,c)
 +
 +#endif
+--- libavcodec/h263.c	2003-11-16 16:02:21.000000000 +0100
++++ libavcodec/h263.c	2003-12-06 16:53:35.000000000 +0100
+@@ -5097,7 +5097,7 @@
+      /* detect buggy encoders which dont set the low_delay flag (divx4/xvid/opendivx)*/
+      // note we cannot detect divx5 without b-frames easyly (allthough its buggy too)
+      if(s->vo_type==0 && s->vol_control_parameters==0 && s->divx_version==0 && s->picture_number==0){
+-         printf("looks like this file was encoded with (divx4/(old)xvid/opendivx) -> forcing low_delay flag\n");
++         //printf("looks like this file was encoded with (divx4/(old)xvid/opendivx) -> forcing low_delay flag\n");
+          s->low_delay=1;
+      }
+ 
 --- libavcodec/i386/cputest.c	2003-11-01 18:43:19.000000000 +0100
 +++ libavcodec/i386/cputest.c	2003-07-02 16:36:41.000000000 +0200
 @@ -1,122 +1,13 @@

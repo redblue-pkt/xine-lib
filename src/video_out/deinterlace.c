@@ -811,7 +811,7 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
         xine_fast_memcpy(pdst,psrc[0],width*height);
       break;
     case DEINTERLACE_ONEFIELDXV:
-      lprintf("deinterlace: ONEFIELDXV must be handled by the video driver.\n");
+      lprintf("ONEFIELDXV must be handled by the video driver.\n");
       break;
     case DEINTERLACE_LINEARBLEND:
       if( check_for_mmx() )
@@ -820,7 +820,7 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
         deinterlace_linearblend_yuv(pdst,psrc,width,height);
       break;
     default:
-      lprintf("deinterlace: unknow method %d.\n",method);
+      lprintf("unknow method %d.\n",method);
       break;
   }
 }
@@ -836,7 +836,7 @@ int deinterlace_yuv_supported ( int method )
     case DEINTERLACE_ONEFIELD:
       return check_for_mmx();
     case DEINTERLACE_ONEFIELDXV:
-      lprintf ("deinterlace: ONEFIELDXV must be handled by the video driver.\n");
+      lprintf ("ONEFIELDXV must be handled by the video driver.\n");
       return 0;
     case DEINTERLACE_LINEARBLEND:
       return 1;

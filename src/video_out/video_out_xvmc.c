@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.10 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: video_out_xvmc.c,v 1.11 2003/12/06 18:11:56 mroi Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -694,7 +694,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
     result =XvMCCreateMacroBlocks(this->display, &this->context, slices,
 				  macroblocks->macro_blocks);
     if(result != Success) {
-      printf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: ERROR XvMCCreateMacroBlocks failed\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: ERROR XvMCCreateMacroBlocks failed\n");
       macroblocks->xine_mc.xvmc_accel = 0;
       abort();
     }

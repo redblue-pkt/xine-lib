@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.12 2003/12/05 15:55:05 f1rmb Exp $
+ *  $Id: xmlparser.c,v 1.13 2003/12/06 18:11:53 mroi Exp $
  *
  */
 
@@ -209,7 +209,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  lprintf("info: node data : %s\n", current_node->data);
 	  break;
 	default:
-	  lprintf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
 	  return -1;
 	  break;
 	}
@@ -230,7 +230,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  lprintf("info: current node name \"%s\"\n", node_name);
 	  break;
 	default:
-	  lprintf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
 	  return -1;
 	  break;
 	}
@@ -296,7 +296,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  lprintf("info: current property name \"%s\"\n", property_name);
 	  break;
 	default:
-	  lprintf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
 	  return -1;
 	  break;
 	}
@@ -312,12 +312,12 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  if (strcmp(tok, root_name) == 0) {
 	    state = 4;
 	  } else {
-	    lprintf("xmlparser: error: xml struct, tok=%s, waited_tok=%s\n", tok, root_name);
+	    lprintf("error: xml struct, tok=%s, waited_tok=%s\n", tok, root_name);
 	    return -1;
 	  }
 	  break;
 	default:
-	  lprintf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
 	  return -1;
 	  break;
 	}
@@ -330,7 +330,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  return 0;
 	  break;
 	default:
-	  lprintf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
 	  return -1;
 	  break;
 	}
@@ -365,7 +365,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  state = 2;
 	  break;
 	default:
-	  lprintf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
 	  return -1;
 	  break;
 	}
@@ -394,7 +394,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  state = 2;
 	  break;
 	default:
-	  lprintf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
 	  return -1;
 	  break;
 	}
@@ -438,16 +438,16 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 
 
       default:
-	lprintf("xmlparser: error: unknown parser state, state=%d\n", state);
+	lprintf("error: unknown parser state, state=%d\n", state);
 	return -1;
       }
     }
     /* lex error */
-    lprintf("xmlparser: error: lexer error\n");
+    lprintf("error: lexer error\n");
     return -1;
   } else {
     /* max recursion */
-    lprintf("xmlparser: error: max recursion\n");
+    lprintf("error: max recursion\n");
     return -1;
   }
 }
@@ -463,7 +463,7 @@ int xml_parser_build_tree(xml_node_t **root_node) {
     free_xml_node(tmp_node);
     res = 0;
   } else {
-    lprintf("xmlparser: error: xml struct\n");
+    lprintf("error: xml struct\n");
     xml_parser_free_tree(tmp_node);
     res = -1;
   }

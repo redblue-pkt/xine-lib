@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.68 2003/12/05 15:55:05 f1rmb Exp $
+ * $Id: xineutils.h,v 1.69 2003/12/06 18:11:55 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -585,7 +585,7 @@ typedef	union {
    TODO : fix dll linkage problem for xine_fast_memcpy on win32
 
    xine_fast_memcpy dll linkage is screwy here.
-   declairing as dllinport seems to fix the problem
+   declairing as dllimport seems to fix the problem
    but causes compiler warning with libxineutils
 */
 #ifdef _MSC_VER
@@ -833,6 +833,17 @@ void xine_hexdump (const char *buf, int length);
 /* backtrace printout funtion for use in XINE_ASSERT() macro */
 void xine_print_trace(void);
 
+/*
+ * Optimization macros for conditions
+ * Taken from the FIASCO L4 microkernel sources
+ */
+#if !defined(__GNUC__) || __GNUC__ < 3
+#  define EXPECT_TRUE(x)  (x)
+#  define EXPECT_FALSE(x) (x)
+#else
+#  define EXPECT_TRUE(x)  __builtin_expect((x),1)
+#  define EXPECT_FALSE(x) __builtin_expect((x),0)
+#endif
 
 #ifdef DEBUG
 # define XINE_ABORT()                            \
@@ -973,8 +984,7 @@ void xine_print_trace(void);
 #ifdef  __GNUC__
   #define xprintf(xine, verbose, fmt, args...)                              \
     do {                                                                    \
-      if((xine)->verbosity >= verbose){                                     \
-        LOG_MODULE_STRING                                                   \
+      if((xine) && (xine)->verbosity >= verbose){                           \
         xine_log(xine, XINE_LOG_TRACE, fmt, ##args);                        \
       }                                                                     \
     } while(0)
@@ -982,16 +992,14 @@ void xine_print_trace(void);
 #ifdef _MSC_VER
   #define xprintf(xine, verbose, fmtargs)                                   \
     do {                                                                    \
-      if((xine)->verbosity >= verbose){                                     \
-        LOG_MODULE_STRING                                                   \
+      if((xine) && (xine)->verbosity >= verbose){                           \
         xine_log(xine, XINE_LOG_TRACE, fmtargs);                            \
       }                                                                     \
     } while(0)
 #else 
   #define xprintf(xine, verbose, ...)                                       \
     do {                                                                    \
-      if((xine)->verbosity >= verbose){                                     \
-        LOG_MODULE_STRING                                                   \
+      if((xine) && (xine)->verbosity >= verbose){                           \
         xine_log(xine, XINE_LOG_TRACE, __VA_ARGS__);                        \
       }                                                                     \
     } while(0)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.6 2003/12/05 15:55:05 f1rmb Exp $
+ * $Id: xine_buffer.c,v 1.7 2003/12/06 18:11:55 mroi Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -138,7 +138,7 @@ void *_xine_buffer_free(void *buf) {
 
 #ifdef CHECKS
   if (!buf) {
-    lprintf("xine_buffer_free: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return NULL;
   }
   CHECK_MAGIC(buf);
@@ -158,7 +158,7 @@ void *xine_buffer_dup(void *buf) {
   
 #ifdef CHECKS
   if (!buf) {
-    lprintf("xine_buffer_dup: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return NULL;
   }
   CHECK_MAGIC(buf);
@@ -181,7 +181,7 @@ void *_xine_buffer_copyin(void *buf, int index, const void *data, int len) {
   
 #ifdef CHECKS
   if (!buf || !data) {
-    lprintf("xine_buffer_copyin: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return NULL;
   }
   CHECK_MAGIC(buf);
@@ -203,7 +203,7 @@ void xine_buffer_copyout(void *buf, int index, void *data, int len) {
 
 #ifdef CHECKS
   if (!buf || !data) {
-    lprintf("xine_buffer_copyout: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return;
   }
   CHECK_MAGIC(buf);
@@ -211,7 +211,7 @@ void xine_buffer_copyout(void *buf, int index, void *data, int len) {
 
   if (GET_HEADER(buf)->size < index+len)
   {
-    lprintf("xine_buffer_copyout: warning: attempt to read over boundary!\n");
+    lprintf("warning: attempt to read over boundary!\n");
     if (GET_HEADER(buf)->size < index)
       return;
     len = GET_HEADER(buf)->size - index;
@@ -228,7 +228,7 @@ void *_xine_buffer_set(void *buf, int index, uint8_t b, int len) {
 
 #ifdef CHECKS
   if (!buf) {
-    lprintf("xine_buffer_set: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return NULL;
   }
   CHECK_MAGIC(buf);
@@ -251,7 +251,7 @@ void *_xine_buffer_strcat(void *buf, char *data) {
 
 #ifdef CHECKS
   if (!buf || !data) {
-    lprintf("xine_buffer_strcat: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return NULL;
   }
   CHECK_MAGIC(buf);
@@ -273,7 +273,7 @@ void *_xine_buffer_strcpy(void *buf, int index, char *data) {
 
 #ifdef CHECKS
   if (!buf || !data) {
-    lprintf("xine_buffer_strcpy: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return NULL;
   }
   CHECK_MAGIC(buf);
@@ -294,7 +294,7 @@ void *_xine_buffer_strcpy(void *buf, int index, char *data) {
 char *xine_buffer_strchr(void *buf, int ch) {
 #ifdef CHECKS
   if (!buf) {
-    lprintf("xine_buffer_get_size: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return 0;
   }
   CHECK_MAGIC(buf);
@@ -310,7 +310,7 @@ int xine_buffer_get_size(void *buf) {
 
 #ifdef CHECKS
   if (!buf) {
-    lprintf("xine_buffer_get_size: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return 0;
   }
   CHECK_MAGIC(buf);
@@ -330,7 +330,7 @@ void *_xine_buffer_ensure_size(void *buf, int size) {
 
 #ifdef CHECKS
   if (!buf) {
-    lprintf("xine_buffer_ensure_size: warning: got NULL pointer\n");
+    lprintf("warning: got NULL pointer\n");
     return 0;
   }
   CHECK_MAGIC(buf);
