@@ -36,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.78 2004/07/19 17:12:48 mroi Exp $
+ * $Id: spu.c,v 1.79 2004/08/19 10:34:00 mroi Exp $
  *
  */
 
@@ -396,6 +396,7 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
   
   do {
     if (!(cur_seq->finished) ) {
+      pci_node_t *node;
       
       /* spu_channel is now set based on whether we are in the menu or not. */
       /* Bit 7 is set if only forced display SPUs should be shown */
@@ -429,7 +430,11 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       printf ("spu: forced display:%s\n", this->state.forced_display ? "Yes" : "No" ); 
 #endif
       pthread_mutex_lock(&this->nav_pci_lock);
-      if (this->pci_cur.pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts) {
+      /* search for a PCI that matches this SPU's PTS */
+      for (node = &this->pci_cur; node; node = node->next)
+	if (node->pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts)
+	  break;
+      if (node) {
         if (this->state.visible == OVERLAY_EVENT_HIDE) {
           /* menus are hidden via nav packet decoding, not here */
 	  /* FIXME: James is not sure about this solution and may want to look this over.
@@ -438,10 +443,10 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
           pthread_mutex_unlock(&this->nav_pci_lock);
           continue;
         }
-        if ( this->pci_cur.pci.hli.hl_gi.fosl_btnn > 0) {
+        if (node->pci.hli.hl_gi.fosl_btnn > 0) {
 	  xine_event_t event;
 	  
-          this->buttonN     = this->pci_cur.pci.hli.hl_gi.fosl_btnn ;
+          this->buttonN     = node->pci.hli.hl_gi.fosl_btnn;
           event.type        = XINE_EVENT_INPUT_BUTTON_FORCE;
 	  event.stream      = this->stream;
 	  event.data        = &this->buttonN;
@@ -452,13 +457,13 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
         fprintf(stderr, "libspudec:Full Overlay\n");
 #endif
         if (!spudec_copy_nav_to_overlay(this->stream->xine, 
-					&this->pci_cur.pci, this->state.clut, 
+					&node->pci, this->state.clut, 
 					this->buttonN, 0, &this->overlay, &this->overlay)) {
           /* current button does not exist -> use another one */
 	  xine_event_t event;
 	  
-	  if (this->buttonN > this->pci_cur.pci.hli.hl_gi.btn_ns)
-	    this->buttonN = this->pci_cur.pci.hli.hl_gi.btn_ns;
+	  if (this->buttonN > node->pci.hli.hl_gi.btn_ns)
+	    this->buttonN = node->pci.hli.hl_gi.btn_ns;
 	  else
 	    this->buttonN = 1;
           event.type        = XINE_EVENT_INPUT_BUTTON_FORCE;
@@ -467,7 +472,7 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
 	  event.data_length = sizeof(this->buttonN);
           xine_event_send(this->stream, &event);
 	  spudec_copy_nav_to_overlay(this->stream->xine, 
-				     &this->pci_cur.pci, this->state.clut, 
+				     &node->pci, this->state.clut, 
 				     this->buttonN, 0, &this->overlay, &this->overlay);
         }
       } else {
