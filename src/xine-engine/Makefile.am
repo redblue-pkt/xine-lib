@@ -16,10 +16,10 @@ libxine_la_SOURCES = $(nvtv) xine.c metronom.c configfile.c buffer.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c \
 	video_overlay.c osd.c scratch.c locale.c demux.c vo_scale.c xine_interface.c
 libxine_la_DEPENDENCIES = @INTLLIBS@
-libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) -lm -lxineutils
+libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS)\
+	             -lm $(top_builddir)/src/xine-utils/libxineutils.la 
 
 libxine_la_LDFLAGS =  \
-	-L$(top_builddir)/src/xine-utils \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 include_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \
