@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.14 2003/12/09 00:02:36 f1rmb Exp $
+ * $Id: plugin_catalog.h,v 1.15 2004/06/19 19:48:42 mroi Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -70,6 +70,11 @@ struct plugin_catalog_s {
   plugin_node_t   *spu_decoder_map[DECODER_MAX][PLUGINS_PER_TYPE];
   
   const char      *ids[PLUGIN_MAX];
+  
+  /* memory block for the decoder priority config entry descriptions */
+  char            *prio_desc_mem;
+  int              prio_desc_next;
+  int              prio_desc_size;
 
   pthread_mutex_t  lock;
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.181 2004/06/16 15:41:37 valtri Exp $
+ * $Id: load_plugins.c,v 1.182 2004/06/19 19:48:42 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -295,6 +295,7 @@ static void _insert_plugin (xine_t *this,
 			    plugin_info_t *info,
 			    int api_version){
 
+  plugin_catalog_t  *catalog = this->plugin_catalog;
   plugin_node_t     *entry;
   vo_info_t         *vo_new, *vo_old;
   ao_info_t         *ao_new, *ao_old;
@@ -305,6 +306,7 @@ static void _insert_plugin (xine_t *this,
   uint32_t          *types;
   int                priority = 0;
   char               key[80];
+  char               desc[100];
   int                i;
 
   if (info->API != api_version) {
@@ -361,14 +363,25 @@ static void _insert_plugin (xine_t *this,
     priority = decoder_new->priority = decoder_old->priority;
     
     sprintf(key, "decoder.%s_priority", info->id);
+    sprintf(desc, _("priority for %s decoder"), info->id);
+    /* write the description on the heap because the config system
+     * does not strdup() it, so we have to provide a different pointer
+     * for each decoder */
+    if (catalog->prio_desc_size - catalog->prio_desc_next < strlen(desc) + 1) {
+      catalog->prio_desc_size += 1024;
+      catalog->prio_desc_mem = (char *)realloc(catalog->prio_desc_mem,
+	catalog->prio_desc_size * sizeof(char));
+    }
+    strcpy(catalog->prio_desc_mem + catalog->prio_desc_next, desc);
     this->config->register_num (this->config,
 				key,
 				0,
-				_("priority for decoder"),
+				catalog->prio_desc_mem + catalog->prio_desc_next,
 				_("The priority provides a ranking in case some media "
 				  "can be handled by more than one decoder.\n"
 				  "A priority of 0 enables the decoder's default priority."), 20,
 				_decoder_priority_cb, (void *)this);
+    catalog->prio_desc_next += strlen(desc) + 1;
 
     /* reset priority on old config files */
     if (this->config->current_version < 1)
@@ -2266,6 +2279,8 @@ void _x_dispose_plugins (xine_t *this) {
     dispose_plugin_list (this->plugin_catalog->post);
     
     dispose_plugin_list (this->plugin_catalog->cache);
+    
+    free (this->plugin_catalog->prio_desc_mem);
     free (this->plugin_catalog);
   }
 }
