@@ -59,6 +59,7 @@ A - diseqc number
 B - Frequency
 
 C - LNB voltage (H/V polarisation switch)
+    (4: horizontal, 2: vertical polarisation)
 
 D - Symbol Rate
 

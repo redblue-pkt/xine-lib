@@ -44,7 +44,6 @@
 
 #include "xine_internal.h"
 #include "xineutils.h"
-#include "events.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
 

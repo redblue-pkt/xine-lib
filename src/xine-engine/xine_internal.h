@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.118 2002/12/27 03:40:08 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.119 2002/12/27 13:44:59 guenter Exp $
  *
  */
 
@@ -327,6 +327,21 @@ void xine_select_spu_channel (xine_stream_t *stream, int channel) ;
 int xine_get_audio_channel (xine_stream_t *stream) ;
 
 int xine_get_spu_channel (xine_stream_t *stream) ;
+
+/*
+ * internal events
+ */
+
+/* sent by dvb frontend to inform ts demuxer of new pids */
+#define XINE_EVENT_PIDS_CHANGE	          0x80000000
+
+/*
+ * pids change event - inform ts demuxer of new pids
+ */
+typedef struct {
+  int                 vpid; /* video program id */
+  int                 apid; /* audio program id */
+} xine_pids_data_t;
 
 #ifdef __cplusplus
 }

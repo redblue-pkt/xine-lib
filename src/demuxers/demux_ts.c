@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.72 2002/12/27 00:53:49 guenter Exp $
+ * $Id: demux_ts.c,v 1.73 2002/12/27 13:44:58 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -139,7 +139,6 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
-#include "events.h"
 
 /*
 #define TS_LOG
