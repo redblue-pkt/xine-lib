@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.56 2003/03/26 11:06:56 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.57 2003/03/31 16:12:55 mroi Exp $
  *
  */
 
@@ -196,6 +196,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   extra_info_t extra_info;
   int status;
   
+  /* filter unwanted streams */
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
+  if ((this->stream->spu_channel & 0x1f) != (buf->type & 0x1f))
+    return;
+
   val = (uint32_t * )buf->content;
   this->lines = *val++;
   uses_time = *val++;
