@@ -164,11 +164,16 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
     printf ("input_http: read...\n");
     */
 
-    switch (read (this->fh, &this->buf[len], 1)) {
-    case -1:
-      return 0;
-    case 0:
-      continue;
+    if (read (this->fh, &this->buf[len], 1) <=0) {
+      
+      switch (errno) {
+      case EAGAIN:
+	printf ("input_http: EAGAIN\n");
+	continue;
+      default:
+	printf ("input_http: read error\n");
+	return 0;
+      }
     }
 
     if (this->buf[len] == '\n') {
@@ -197,15 +202,21 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 
   while (num_bytes < nlen) {
 
-    n = read (this->fh, buf, nlen);
-    
-    if (n<0) {
-      printf ("input_http: read error (%s)\n", strerror (errno));
-      return num_bytes;
-    } else if (n > 0) {
-      num_bytes += n;
-      this->curpos += n;
+    n = read (this->fh, &buf[num_bytes], nlen - num_bytes);
+
+    if (n <= 0) {
+      
+      switch (errno) {
+      case EAGAIN:
+	printf ("input_http: EAGAIN\n");
+	continue;
+      default:
+	printf ("input_http: read error\n");
+	return 0;
+      }
     }
+    
+    num_bytes += n;
   }
   return num_bytes;
 }
