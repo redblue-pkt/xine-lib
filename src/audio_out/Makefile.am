@@ -17,9 +17,9 @@ endif
 # on the alsa project side
 #
 if HAVE_ALSA
-#if HAVE_ALSA05
-#alsa05_module = xineplug_ao_out_alsa05.la
-#endif
+if HAVE_ALSA05
+alsa05_module = xineplug_ao_out_alsa05.la
+endif
 if HAVE_ALSA09
 alsa_module = xineplug_ao_out_alsa.la
 endif
@@ -50,16 +50,17 @@ endif
 #lib_LTLIBRARIES = $(oss_module) $(alsa05_module) $(alsa_module) $(sun_module) \
 #		  $(arts_module) $(esd_module)
 
-lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(esd_module) $(sun_module) $(arts_module)
+lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(esd_module) $(sun_module) $(arts_module) \
+		  $(alsa05_module) 
 
 ## $(irixal_module) 
 
 xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module
 
-#xineplug_ao_out_alsa05_la_SOURCES = audio_alsa05_out.c resample.c
-#xineplug_ao_out_alsa05_la_LIBADD = $(ALSA_LIBS)	
-#xineplug_ao_out_alsa05_la_LDFLAGS = -avoid-version -module
+xineplug_ao_out_alsa05_la_SOURCES = audio_alsa05_out.c resample.c
+xineplug_ao_out_alsa05_la_LIBADD = $(ALSA_LIBS)	
+xineplug_ao_out_alsa05_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c
 xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
