@@ -2,6 +2,8 @@ xine-lib (1-rc3)
   * fix dvd menu blending when using tvtime plugin (yuy2 blend)
   * fix problems with some more elaborate post plugin setups
   * discontinuity problems in audio only streams fixed
+  * fix a bug in the id3v2.2 parsing code
+  * fix best streams choice in mmsh
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
@@ -648,7 +650,7 @@ xine (0.5.0) unstable; urgency=low
   * artsd support
   * dxr3/h+ support now finally in the official tree
   * 4/5/5.1 audio channel output (OSS/ ALSA?)
-  * a new default skin by Jérôme Villette
+  * a new default skin by JÃ©rÃ´me Villette
 
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun,  22 Jul 2001 13:10:52 +0200
 
@@ -824,5 +826,3 @@ xine (0.3.0+older) unstable; urgency=low
 	- minor Makefile fixes for FreeBSD ports 
   
  -- Siggi Langauf <siggi@users.sourceforge.net>  Sun,  7 Jan 2001 23:59:12 +0100
-
-
