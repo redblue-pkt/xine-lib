@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.69 2003/10/12 18:51:59 mroi Exp $
+ * $Id: spu.c,v 1.70 2003/11/09 21:49:36 mroi Exp $
  *
  */
 
@@ -70,11 +70,6 @@
 #define LOG_NAV 1
 */
 
-void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
-void spudec_process( spudec_decoder_t *this, int stream_id);
-void spudec_decode_nav( spudec_decoder_t *this, buf_element_t *buf);
-void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
-                                vo_overlay_t * overlay, vo_overlay_t * base );
 static void spudec_do_commands (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
 static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
 static void spudec_discover_clut (spudec_state_t *state, vo_overlay_t *ovl);
@@ -370,22 +365,32 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
           continue;
         }
         if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
-          int buttonN;
 	  xine_event_t event;
 	  
-          this->buttonN = this->pci.hli.hl_gi.fosl_btnn ;
-          event.type = XINE_EVENT_INPUT_BUTTON_FORCE;
-	  event.stream = this->stream;
-	  event.data = &buttonN;
-	  event.data_length = sizeof(buttonN);
-          buttonN  = this->buttonN;
+          this->buttonN     = this->pci.hli.hl_gi.fosl_btnn ;
+          event.type        = XINE_EVENT_INPUT_BUTTON_FORCE;
+	  event.stream      = this->stream;
+	  event.data        = &this->buttonN;
+	  event.data_length = sizeof(this->buttonN);
           xine_event_send(this->stream, &event);
         }
 #ifdef LOG_BUTTON
         fprintf(stderr, "libspudec:Full Overlay\n");
 #endif
-        spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0, &this->overlay,
-                                   &this->overlay);
+        if (!spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0,
+					&this->overlay, &this->overlay)) {
+          /* current button does not exist -> use another one */
+	  xine_event_t event;
+	  
+          this->buttonN     = 1;
+          event.type        = XINE_EVENT_INPUT_BUTTON_FORCE;
+	  event.stream      = this->stream;
+	  event.data        = &this->buttonN;
+	  event.data_length = sizeof(this->buttonN);
+          xine_event_send(this->stream, &event);
+	  spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0,
+				     &this->overlay, &this->overlay);
+        }
       } else {
       /* Subtitle and not a menu button */
         int i;
@@ -858,22 +863,14 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
 }
 #endif
 
-void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
-                                vo_overlay_t * overlay, vo_overlay_t * base ) {
+int spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
+                               vo_overlay_t * overlay, vo_overlay_t * base ) {
   btni_t *button_ptr = NULL;
   unsigned int btns_per_group;
   int i;
 
-  /* FIXME: Need to communicate with dvdnav vm to get/set 
-    "self->vm->state.HL_BTNN_REG" info. 
-    now done via button events from dvdnav.
-   *
-   * if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
-   *   button = this->pci.hli.hl_gi.fosl_btnn ;
-   * }
-   */
   if((button <= 0) || (button > nav_pci->hli.hl_gi.btn_ns))
-    return;
+    return 0;
   
   btns_per_group = 36 / nav_pci->hli.hl_gi.btngr_ns;
   
@@ -923,5 +920,5 @@ void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, 
   printf("libspudec:xine_decoder.c:NAV to SPU pts match!\n");
 #endif
   
+  return 1;
 }
-

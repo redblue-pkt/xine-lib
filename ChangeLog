@@ -14,6 +14,8 @@ xine-lib (1-rc3)
     meta info
   * post plugin for ffmpeg libpostprocess (pp)
   * updated win32 port
+  * default to menu button 1, if an invalid button is set
+    (fixes main menu of "Alice in Wonderland" RC2)
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)

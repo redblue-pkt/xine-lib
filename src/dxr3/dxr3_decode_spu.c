@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.37 2003/10/23 20:12:33 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.38 2003/11/09 21:49:36 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -36,6 +36,11 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#define LOG_MODULE "dxr3_decode_spu"
+#define LOG_PTS 0
+#define LOG_SPU 0
+#define LOG_BTN 0
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "buffer.h"
@@ -49,10 +54,6 @@
 #endif
 #include "video_out_dxr3.h"
 #include "dxr3.h"
-
-#define LOG_PTS 0
-#define LOG_SPU 0
-#define LOG_BTN 0
 
 #define MAX_SPU_STREAMS 32
 
@@ -210,9 +211,7 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
       free(this);
       return NULL;
     }
-#if LOG_SPU
-    printf ("dxr3_decode_spu: init: SPU_FD = %i\n",this->fd_spu);
-#endif
+    llprintf(LOG_SPU, "init: SPU_FD = %i\n",this->fd_spu);
     /* We are talking directly to the dxr3 video out to allow concurrent
      * access to the same spu device */
     this->dxr3_vo->fd_spu = this->fd_spu;
@@ -270,9 +269,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     return;
 
   if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_CLUT ) {
-#if LOG_SPU
-    printf("dxr3_decode_spu: BUF_SPU_CLUT\n");
-#endif
+    llprintf(LOG_SPU, "BUF_SPU_CLUT\n");
     if (buf->content[0] == 0)  /* cheap endianess detection */
       dxr3_swab_clut((int *)buf->content);
     pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
@@ -296,9 +293,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   if( buf->decoder_info[2] == SPU_DVD_SUBTYPE_NAV ) {
     uint8_t *p = buf->content;
     
-#if LOG_BTN
-    printf("dxr3_decode_spu: got NAV packet\n");
-#endif
+    llprintf(LOG_BTN, "got NAV packet\n");
     pthread_mutex_lock(&this->pci_lock);
     
     /* just watch out for menus */
@@ -306,9 +301,8 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
       pci_t pci;
       
       navRead_PCI(&pci, p + 7);
-#if LOG_BTN
-      printf("dxr3_decode_spu: PCI packet hli_ss is %d\n", pci.hli.hl_gi.hli_ss);
-#endif
+      llprintf(LOG_BTN, "PCI packet hli_ss is %d\n", pci.hli.hl_gi.hli_ss);
+      
       if (pci.hli.hl_gi.hli_ss == 1) {
         em8300_button_t btn;
         
@@ -316,16 +310,14 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
         xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
         this->menu = 1;
 	this->button_filter = 0;
-        if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
+        if (this->pci.hli.hl_gi.fosl_btnn > 0) {
           /* a button is forced here, inform nav plugin */
-          int buttonN;
           xine_event_t event;
           this->buttonN      = this->pci.hli.hl_gi.fosl_btnn;
           event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
 	  event.stream       = this->stream;
-	  event.data         = &buttonN;
-	  event.data_length  = sizeof(buttonN);
-          buttonN            = this->buttonN;
+	  event.data         = &this->buttonN;
+	  event.data_length  = sizeof(this->buttonN);
           xine_event_send(this->stream, &event);
         }
 	if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
@@ -334,8 +326,28 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
             printf("dxr3_decode_spu: failed to set spu button (%s)\n",
               strerror(errno));
 	  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
-	} else
-	  XINE_ASSERT(0, "Requested button not available.");
+	} else {
+          /* current button does not exist -> use another one */
+	  xine_event_t event;
+	  
+	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "requested button not available\n");
+	  
+	  this->buttonN      = 1;
+          event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
+	  event.stream       = this->stream;
+	  event.data         = &this->buttonN;
+	  event.data_length  = sizeof(this->buttonN);
+          xine_event_send(this->stream, &event);
+	  
+	  if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
+	    pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
+	    if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
+	      printf("dxr3_decode_spu: failed to set spu button (%s)\n",
+		strerror(errno));
+	    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
+	  } else
+	    XINE_ASSERT(0, "no working menu button found");
+	}
       }
       
       if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
@@ -402,15 +414,11 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   
   /* filter unwanted streams */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
-#if LOG_SPU
-    printf("dxr3_decode_spu: Dropping SPU channel %d. Preview data\n", stream_id);
-#endif
+    llprintf(LOG_SPU, "Dropping SPU channel %d. Preview data\n", stream_id);
     return;
   }
   if (state->stream_filter == 0) {
-#if LOG_SPU
-    printf("dxr3_decode_spu: Dropping SPU channel %d. Stream filtered\n", stream_id);
-#endif
+    llprintf(LOG_SPU, "Dropping SPU channel %d. Stream filtered\n", stream_id);
     return;
   }
   if (this->anamorphic && !this->dxr3_vo->widescreen_enabled &&
@@ -419,15 +427,11 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     spu_channel = this->stream->spu_channel_letterbox;
   }
   if ((spu_channel & 0x1f) != stream_id) {
-#if LOG_SPU
-    printf("dxr3_decode_spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
-#endif
+    llprintf(LOG_SPU, "Dropping SPU channel %d. Not selected stream_id\n", stream_id);
     return;
   }
   if ((this->menu == 0) && (spu_channel & 0x80)) {
-#if LOG_SPU
-    printf("dxr3_decode_spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
-#endif
+    llprintf(LOG_SPU, "Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
     return;
   }
   
@@ -439,9 +443,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     uint32_t vpts32;
     
     vpts = this->stream->metronom->got_spu_packet(this->stream->metronom, buf->pts);
-#if LOG_PTS
-    printf("dxr3_decode_spu: pts = %lld vpts = %lld\n", buf->pts, vpts);
-#endif
+    llprintf(LOG_PTS, "pts = %lld vpts = %lld\n", buf->pts, vpts);
     vpts32 = vpts;
     if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts32))
       printf("dxr3_decode_spu: spu setpts failed (%s)\n", strerror(errno));
@@ -455,9 +457,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   }
   
   /* write spu data to the card */
-#if LOG_SPU
-  printf ("dxr3_decode_spu: write: SPU_FD = %i\n",this->fd_spu);
-#endif
+  llprintf(LOG_SPU, "write: SPU_FD = %i\n",this->fd_spu);
   written = write(this->fd_spu, buf->content, buf->size);
   if (written < 0) {
     printf("dxr3_decode_spu: spu device write failed (%s)\n",
@@ -495,9 +495,7 @@ static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
     0x00, 0x01, 0x00, 0x20, 0x02, 0xFF };
   dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
   
-#if LOG_SPU
-  printf("dxr3_decode_spu: close: SPU_FD = %i\n",this->fd_spu);
-#endif
+  llprintf(LOG_SPU, "close: SPU_FD = %i\n",this->fd_spu);
   pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
   /* clear any remaining spu */
   ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
@@ -528,9 +526,7 @@ static void dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int3
   dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
   em8300_button_t btn;
   
-#if LOG_BTN
-  printf("dxr3_decode_spu: setting button\n");
-#endif
+  llprintf(LOG_BTN, "setting button\n");
   this->buttonN = button;
   pthread_mutex_lock(&this->pci_lock);
   if (mode > 0 && !this->button_filter &&
@@ -543,9 +539,7 @@ static void dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int3
   }
   pthread_mutex_unlock(&this->pci_lock);
   if (mode == 2) this->button_filter = 1;
-#if LOG_BTN
-  printf("dxr3_decode_spu: buttonN = %u\n", this->buttonN);
-#endif
+  llprintf(LOG_BTN, "buttonN = %u\n", this->buttonN);
 }
 
 
@@ -563,9 +557,7 @@ static int dxr3_present(xine_stream_t *stream)
         present = (strcmp(vo_class->get_identifier(vo_class), DXR3_VO_ID) == 0);
     }
   }
-#if LOG_SPU
-  printf("dxr3_decode_spu: dxr3 %s\n", present ? "present" : "not present");
-#endif
+  llprintf(LOG_SPU, "dxr3 %s\n", present ? "present" : "not present");
   return present;
 }
 
@@ -574,9 +566,7 @@ static void dxr3_spudec_handle_event(dxr3_spudec_t *this)
   xine_event_t *event;
   
   while ((event = xine_event_get(this->event_queue))) {
-#if LOG_SPU
-    printf("dxr3_decode_spu: event caught: SPU_FD = %i\n",this->fd_spu);
-#endif
+    llprintf(LOG_SPU, "event caught: SPU_FD = %i\n",this->fd_spu);
   
     switch (event->type) {
     case XINE_EVENT_FRAME_FORMAT_CHANGE:
@@ -584,9 +574,7 @@ static void dxr3_spudec_handle_event(dxr3_spudec_t *this)
       this->anamorphic =
 	(((xine_format_change_data_t *)event->data)->aspect == 3) &&
 	(((xine_format_change_data_t *)event->data)->pan_scan == 0);
-#if LOG_BTN
-      printf("dxr3_decode_spu: anamorphic mode %s\n", this->anamorphic ? "on" : "off");
-#endif
+      llprintf(LOG_BTN, "anamorphic mode %s\n", this->anamorphic ? "on" : "off");
       break;
     }
   
@@ -637,29 +625,13 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
   }
   
   if(button_ptr->btn_coln != 0) {
-#if LOG_BTN
-    fprintf(stderr, "dxr3_decode_spu: normal button clut, mode %d\n", mode);
-#endif
+    llprintf(LOG_BTN, "normal button clut, mode %d\n", mode);
     btn->color = (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> 16);
     btn->contrast = (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode]);
     btn->left = button_ptr->x_start;
     btn->top  = button_ptr->y_start;
     btn->right = button_ptr->x_end;
     btn->bottom = button_ptr->y_end;
-#if 0
-    /* FIXME: we properly use button groups now, so this hack is obsolete.
-     * Remove it, after sufficient testing (see above XINE_ASSERT()). */
-    if (this->anamorphic &&
-        !this->dxr3_vo->widescreen_enabled &&
-	this->stream->spu_channel_user == -1 &&
-	this->stream->spu_channel_letterbox != this->stream->spu_channel &&
-	this->stream->spu_channel_letterbox >= 0) {
-      /* modify button areas for letterboxed anamorphic menus on tv out */
-      int top_black_bar = this->height / 8;
-      btn->top = btn->top * 3 / 4 + top_black_bar;
-      btn->bottom = btn->bottom * 3 / 4 + top_black_bar;
-    }
-#endif
     return 1;
   } 
   return -1;
