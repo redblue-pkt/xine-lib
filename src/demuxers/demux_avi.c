@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.196 2004/03/16 23:12:32 tmattern Exp $
+ * $Id: demux_avi.c,v 1.197 2004/04/09 01:56:11 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1053,6 +1053,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
 	               "demux_avi: there should not be an index there, lasttag = %d\n", lasttag);
       }
+      i += 8;
     } else if(strncasecmp(hdrl_data + i, "JUNK", 4) == 0) {
       i += 8;
       /* do not reset lasttag */
