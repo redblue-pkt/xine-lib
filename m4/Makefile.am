@@ -4,7 +4,7 @@
 m4datadir = @ACLOCAL_DIR@
 m4data_DATA = xine.m4
 
-EXTRA_DIST = _xine.m4 $(m4data_DATA)
+EXTRA_DIST = _xine.m4 alsa.m4 esd.m4 $(m4data_DATA)
 
 debug:
 

@@ -4,8 +4,8 @@
 
 EXTRA_DIST = xine.h.tmpl.in
 
-include_HEADERS  = audio_out.h video_out.h xine.h
-
+includedir = $(prefix)/include
+include_HEADERS  = xine.h
 
 xine.h: xine.h.tmpl
 	@echo "creating xine.h"; \
@@ -16,35 +16,6 @@ xine.h: xine.h.tmpl
 
 
 debug:
-
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  if test "$$p" != "xine.h"; then \
-	    echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
-	    $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
-	  else \
-	    echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/$$p"; \
-	    $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/$$p; \
-	  fi; \
-	done
-
-
-##
-## Remove them
-##
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	list='$(include_HEADERS)'; for p in $$list; do \
-	  if test "$$p" != "xine.h"; then \
-	    rm -f $(DESTDIR)$(includedir)/xine/$$p; \
-	  else \
-	    rm -f $(DESTDIR)$(includedir)/$$p; \
-	fi; \
-	done
-
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* 

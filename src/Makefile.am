@@ -1,5 +1,5 @@
 
-SUBDIRS = input libmpeg2 libspudec demuxers \
+SUBDIRS = audio_out video_out input libmpeg2 libspudec demuxers \
 	libac3 libmpg123 libw32dll xine-engine
 
 debug:

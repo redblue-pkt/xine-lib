@@ -27,3 +27,18 @@
 
 /* Define this to skins directory location */
 #undef XINE_SKINDIR
+
+/* Define this if you have X11R6 installed */
+#undef HAVE_X11
+
+/* Define this if you have libXv installed */
+#undef HAVE_XV
+
+/* Define this if you have libXinerama installed */
+#undef HAVE_XINERAMA
+
+/* Define this if you have Alsa (libasound) installed */
+#undef HAVE_ALSA
+
+/* Define this if you have ESD (libesd) installed */
+#undef HAVE_ESD

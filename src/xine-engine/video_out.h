@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.6 2001/04/23 22:43:59 f1rmb Exp $
+ * $Id: video_out.h,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
  *
  *
  * xine version of video_out.h 
