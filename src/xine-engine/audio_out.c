@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.188 2004/12/12 22:01:30 mroi Exp $
+ * $Id: audio_out.c,v 1.189 2004/12/19 20:24:30 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1047,10 +1047,10 @@ static void *ao_loop (void *this_gen) {
 	pthread_mutex_lock(&this->streams_lock);
 	for (stream = xine_list_first_content(this->streams);
 	     stream; stream = xine_list_next_content(this->streams)) {
-	  _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
-	  /* This is necessary for the message to get to the front-end at some
-	   * point before another message is sent */
-	  sched_yield();
+          if( !stream->emergency_brake ) {
+            stream->emergency_brake = 1;
+            _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+          }
 	}
 	pthread_mutex_unlock(&this->streams_lock);
       }
@@ -1399,8 +1399,14 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
     pthread_mutex_lock( &this->driver_lock );
     ret = ao_change_settings(this, bits, rate, mode);
     pthread_mutex_unlock( &this->driver_lock );
-    if( !ret )
+
+    if( !ret ) {
+      if( !stream->emergency_brake ) {
+        stream->emergency_brake = 1;
+        _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+      }
       return 0;
+    }
   }
 
   /* 

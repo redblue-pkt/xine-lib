@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.85 2004/12/19 10:50:18 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.86 2004/12/19 20:24:31 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -884,7 +884,9 @@ int _x_message(xine_stream_t *stream, int type, ...) {
     "Read error from:",
     "Error loading library:",
     "Encrypted media stream detected",
-    "Security message:"
+    "Security message:",
+    "Audio device unavailable",
+    "Permission error",
   };
 
   if (!stream) return 0;

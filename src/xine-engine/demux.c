@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.53 2004/10/30 12:45:27 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.54 2004/12/19 20:24:31 miguelfreitas Exp $ 
  */
 
 
@@ -243,13 +243,15 @@ static void *demux_loop (void *stream_gen) {
   lprintf ("loop starting...\n");
 
   pthread_mutex_lock( &stream->demux_lock );
-
+  stream->emergency_brake = 0;
+  
   /* do-while needed to seek after demux finished */
   do {
 
     /* main demuxer loop */
     status = stream->demux_plugin->get_status(stream->demux_plugin);
-    while(status == DEMUX_OK && stream->demux_thread_running) {
+    while(status == DEMUX_OK && stream->demux_thread_running &&
+          !stream->emergency_brake) {
 
       status = stream->demux_plugin->send_chunk(stream->demux_plugin);
 
@@ -275,14 +277,15 @@ static void *demux_loop (void *stream_gen) {
     while(stream->demux_thread_running &&
           ((stream->video_fifo->size(stream->video_fifo)) ||
            (stream->audio_fifo->size(stream->audio_fifo))) &&
-          status == DEMUX_FINISHED ){
+          status == DEMUX_FINISHED && !stream->emergency_brake){
       pthread_mutex_unlock( &stream->demux_lock );
       xine_usec_sleep(100000);
       pthread_mutex_lock( &stream->demux_lock );
       status = stream->demux_plugin->get_status(stream->demux_plugin);
     }
 
-  } while( status == DEMUX_OK && stream->demux_thread_running );
+  } while( status == DEMUX_OK && stream->demux_thread_running &&
+           !stream->emergency_brake);
 
   lprintf ("loop finished (status: %d)\n", status);
 

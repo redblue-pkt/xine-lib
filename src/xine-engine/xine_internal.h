@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.162 2004/10/29 13:11:47 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.163 2004/12/19 20:24:31 miguelfreitas Exp $
  *
  */
 
@@ -326,6 +326,10 @@ struct xine_stream_s {
   broadcaster_t             *broadcaster;
   
   refcounter_t              *refcounter;
+
+  int                        emergency_brake; /* something went really wrong and this stream must be
+                                               * stopped. usually due some fatal error on output
+                                               * layers as they cannot call xine_stop. */
 #endif
 };
 
