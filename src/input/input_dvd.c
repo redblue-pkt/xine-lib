@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.66 2002/08/30 11:14:44 mroi Exp $
+ * $Id: input_dvd.c,v 1.67 2002/08/31 02:48:13 jcdutton Exp $
  *
  */
 
@@ -287,7 +287,7 @@ static void dvdnav_plugin_close (input_plugin_t *this_gen) {
   
   trace_print("Called\n");
   
-  if(this->opened) 
+  if(this->opened || this->dvdnav) 
     dvdnav_close(this->dvdnav);
   this->dvdnav = NULL;
   this->opened = 0;
@@ -307,8 +307,9 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
   }
 
   if (dvdnav_open(&(this->dvdnav), 
-		  this->current_dvd_device) == DVDNAV_STATUS_ERR) 
-   return; 
+		  this->current_dvd_device) == DVDNAV_STATUS_ERR) {
+    return;
+  } 
 
   dvdnav_get_number_of_titles(this->dvdnav, &num_titles);
   if ((num_parts = (int *) calloc(num_titles, sizeof(int)))) {
@@ -361,6 +362,7 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
   /* dvdnav_reset(this->dvdnav); */
 
   dvdnav_close(this->dvdnav);
+  this->dvdnav = NULL;
 }
 
 /*
@@ -425,8 +427,8 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, char *mrl) {
     } else {
       /* Changing DVD device */
       dvdnav_close(this->dvdnav);
-      this->dvdnav=NULL;
-      this->opened=0; 
+      this->dvdnav = NULL;
+      this->opened = 0; 
       ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
       if(ret == DVDNAV_STATUS_ERR) {
         printf("input_dvd: Error opening DVD device\n");
@@ -533,6 +535,7 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, char *mrl) {
       /* Empty specifier */
       printf("input_dvd: Incorrect MRL format.\n");
       dvdnav_close(this->dvdnav);
+      this->dvdnav = NULL;
       return 0;
     }
 
@@ -551,6 +554,7 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, char *mrl) {
       printf("input_dvd: Title %i is out of range (1 to %i).\n", tt,
 	      titles);
       dvdnav_close(this->dvdnav);
+      this->dvdnav = NULL;
       return 0;
     }
 
@@ -1266,6 +1270,7 @@ static char **dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen,
   /* Close the plugin is opened */
   if(this->opened) {
     dvdnav_close(this->dvdnav);
+    this->dvdnav = NULL;
     this->opened = 0;
   }
 
@@ -1458,6 +1463,11 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.67  2002/08/31 02:48:13  jcdutton
+ * Add a printf so we can tell if a user is using xine's libdvdnav or the one from
+ * dvd.sf.net.
+ * Add some "this->dvdnav = NULL;" after dvdnav_close()
+ *
  * Revision 1.66  2002/08/30 11:14:44  mroi
  * make menu key output conform xine guidelines, improve compatibility with
  * older xine-ui versions by handling XINE_EVENT_INPUT_MENU1

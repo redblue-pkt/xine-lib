@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.5 2002/08/27 19:24:33 mroi Exp $
+ * $Id: dvdnav.c,v 1.6 2002/08/31 02:48:13 jcdutton Exp $
  *
  */
 
@@ -177,7 +177,11 @@ dvdnav_status_t dvdnav_open(dvdnav_t** dest, char *path) {
   dvdnav_t *this;
   
   /* Create a new structure */
-  (*dest) = NULL;
+  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version from http://xine.sf.net\n");
+
+  /* FIXME: We malloc() here, but if an error occurs inside dvdnav_open(),
+   * we return but never free() it.
+   */
   this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
   if(!this)
    return S_ERR;
@@ -999,6 +1003,11 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.6  2002/08/31 02:48:13  jcdutton
+ * Add a printf so we can tell if a user is using xine's libdvdnav or the one from
+ * dvd.sf.net.
+ * Add some "this->dvdnav = NULL;" after dvdnav_close()
+ *
  * Revision 1.5  2002/08/27 19:24:33  mroi
  * sync to libdvdnav cvs, this should now conform to the way xine outputs
  * its console messages (write to stdout, "libdvdnav: " in front each line)
