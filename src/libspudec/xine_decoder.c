@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2001/10/21 15:04:13 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.21 2001/10/22 14:56:29 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -706,10 +706,10 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
         overlay->clip_bottom = but->bottom;
         overlay->clip_left = but->left;
         overlay->clip_right = but->right;
-        overlay->color[0] = but->color[0];
-        overlay->color[1] = but->color[1];
-        overlay->color[2] = but->color[2];
-        overlay->color[3] = but->color[3];
+        overlay->color[0] = this->state.clut[but->color[0]];
+        overlay->color[1] = this->state.clut[but->color[1]];
+        overlay->color[2] = this->state.clut[but->color[2]];
+        overlay->color[3] = this->state.clut[but->color[3]];
         overlay->trans[0] = but->trans[0];
         overlay->trans[1] = but->trans[1];
         overlay->trans[2] = but->trans[2];
