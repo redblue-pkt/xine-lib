@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.2 2003/05/28 13:53:03 mroi Exp $
+ * $Id: xine_encoder.c,v 1.3 2003/05/30 14:10:49 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -307,6 +307,7 @@ static int lavc_on_unneeded(dxr3_driver_t *drv)
   }
   return 1;
 }
+
 static int lavc_prepare_frame(lavc_data_t *this, dxr3_driver_t *drv, dxr3_frame_t *frame)
 {
   int i, j, w2;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.79 2003/05/25 19:00:37 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.80 2003/05/30 14:10:50 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -548,10 +548,9 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     if (this->fd_video >= 0) {
       close(this->fd_video);
       this->fd_video = CLOSED_FOR_DECODER;
+      /* inform the encoder on next frame's arrival */
+      this->need_update = 1;
     }
-    
-    /* we do not need the mpeg encoders any more */
-    if (this->enc) this->enc->on_unneeded(this);
     
     /* for mpeg source, we don't have to do much. */
     this->video_width   = width;
@@ -911,6 +910,12 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
      * frame_gen->displayed(frame_gen) ! */
     this->enc->on_display_frame(this, frame);
   } else {
+    if (this->need_update) {
+      /* we do not need the mpeg encoders any more */
+      if (this->enc && this->enc->on_unneeded)
+        this->enc->on_unneeded(this);
+      this->need_update = 0;
+    }
     frame_gen->displayed(frame_gen);
   }
 }
