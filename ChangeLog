@@ -3,7 +3,8 @@ xine-lib (1-beta10)
   * capability of on-the-fly stream rewiring
   * libdvdnav: PGC based positioning:
     seeking on DVDs now spans the entire feature
-
+  * font encoding cleanup (xinefonts use unicode now) 
+    
 xine-lib (1-beta9)
   * implement XINE_PARAM_AUDIO_AMP_LEVEL so xine's volume can be
     set independantly from other applications
