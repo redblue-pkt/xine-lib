@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.6 2003/02/28 12:16:00 mroi Exp $
+ * $Id: mosaico.c,v 1.7 2003/02/28 14:31:27 skaboy Exp $
  */
  
 /*
@@ -401,15 +401,16 @@ static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
 #endif
     return;
   }
-  /* it works only for XINE_IMGFMT_YV12*/
+
+  if(to->format != from->format) {
+    printf("frame_copy_content : buffers have different format\n");
+    return;
+  }
+
   switch (from->format) {
   case XINE_IMGFMT_YUY2:
-#ifdef LOG
-    printf("not supported\n");
-#endif
-    /*size = new_frame->pitches[0] * new_frame->height;   
-    for (i = 0; i < size; i++)
-    new_frame->base[0][i] = frame->base[0][i];*/
+    size = to->pitches[0] * to->height;   
+    xine_fast_memcpy(to->base[0], from->base[0], size);
     break;     
   
   case XINE_IMGFMT_YV12:
