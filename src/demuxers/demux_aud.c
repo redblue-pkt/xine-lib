@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.16 2004/01/09 01:26:32 miguelfreitas Exp $
+ * $Id: demux_aud.c,v 1.17 2004/02/02 00:33:18 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -101,9 +101,15 @@ static int open_aud_file(demux_aud_t *this) {
   if ((this->audio_samplerate < 8000) || (this->audio_samplerate > 48000))
     return 0;
 
+#if 0
+note: This loose content detection strategy is causing a few false positives;
+remove this case for the time being since this audio type is not supported
+anyway.
   if (header[11] == 1)
     this->audio_type = BUF_AUDIO_WESTWOOD;
-  else if (header[11] == 99)
+  else 
+#endif
+  if (header[11] == 99)
     this->audio_type = BUF_AUDIO_VQA_IMA;
   else
     return 0;
