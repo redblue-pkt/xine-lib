@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2002/12/21 16:35:46 esnel Exp $
+ * $Id: xine_decoder.c,v 1.38 2003/01/03 01:14:25 tmattern Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -201,6 +201,8 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
 	      = strdup ("MPEG audio");
 	  }
+	  
+          this->xstream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
 	  if (this->output_open) {
 	    this->xstream->audio_out->close (this->xstream->audio_out, this->xstream);
