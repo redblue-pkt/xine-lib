@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.52 2003/06/03 03:33:16 miguelfreitas Exp $
+ * $Id: xineutils.h,v 1.53 2003/06/13 23:05:35 komadori Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -54,10 +54,6 @@ extern "C" {
   
 #include <stdio.h>
 #include <string.h>
-
-#if defined(__SUNPRO_C) || !defined(XINE_COMPILE)
-#define inline
-#endif
 
   /*
    * debugable mutexes

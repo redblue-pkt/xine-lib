@@ -20,7 +20,11 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>
+#if defined (__SVR4) && defined (__sun)
+# include <sys/int_types.h>
+#else
+# include <stdint.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"

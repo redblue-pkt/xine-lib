@@ -32,9 +32,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include <stdint.h>
-#include <unistd.h>
 #include <ctype.h>
+#include <unistd.h>
+#if defined (__SVR4) && defined (__sun)
+# include <sys/int_types.h>
+#else
+# include <stdint.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"

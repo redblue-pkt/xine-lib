@@ -21,8 +21,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <math.h>
+#if defined (__SVR4) && defined (__sun)
+# include <sys/int_types.h>
+#else
+# include <stdint.h>
+#endif
 #include "speedy.h"
 #include "deinterlace.h"
 
