@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.71 2002/10/26 22:00:49 guenter Exp $
+ * $Id: demux_asf.c,v 1.72 2002/10/27 23:01:40 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1426,9 +1426,17 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
      * try to get a preview of the data
      */
     len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
-    if (len == INPUT_OPTIONAL_UNSUPPORTED)
-      return NULL;
-      
+    if (len == INPUT_OPTIONAL_UNSUPPORTED) {
+
+      if (input->get_capabilities (input) & INPUT_CAP_SEEKABLE) {
+
+	input->seek (input, 0, SEEK_SET);
+	if (input->read (input, buf, 8192) != 8192)
+	  return NULL;
+
+      } else
+	return NULL;
+    }      
     if (memcmp(buf, &asf_header, sizeof(GUID)))
       return NULL;
       

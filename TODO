@@ -6,7 +6,6 @@ required for 1.0pre
 
 - input_vcd
 - input_stdin, input_net (guenter)
-- demux_asf: content detection for files (guenter)
 
 
 required for 1.0
