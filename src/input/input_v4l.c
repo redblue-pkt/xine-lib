@@ -540,7 +540,6 @@ static int set_frequency(v4l_input_plugin_t *this, unsigned long frequency)
       this->calc_frequency = (frequency * 16) / 1000;
     }
     
-    
     ret = ioctl(fd, VIDIOCSFREQ, &this->calc_frequency);
 
     lprintf("IOCTL set frequency (%ld) returned: %d\n", frequency, ret);
@@ -706,30 +705,61 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
   return 1;   
 }
 
+static void allocate_audio_frames(v4l_input_plugin_t *this)
+{
+  int i;
+  
+  for (i = 0; i < NUM_FRAMES; i++) {
+    buf_element_t *frame;
+    
+    /* Audio frame */
+    frame = xine_xmalloc(sizeof(buf_element_t));
+    
+    frame->decoder_info[1] = this->periodsize;
+    frame->content         = xine_xmalloc(this->periodsize);
+    frame->type	           = BUF_AUDIO_RAWPCM;
+    frame->source          = this;
+    frame->free_buffer     = store_aud_frame;
+    frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
+    
+    store_aud_frame(frame);
+  }
+}
+
+static void unmute_audio(v4l_input_plugin_t *this, int fd)
+{
+  lprintf("unmute_audio\n");
+  
+  ioctl(this->video_fd, VIDIOCGAUDIO, &this->audio);
+  memcpy(&this->audio_saved, &this->audio, sizeof(this->audio));
+
+  this->audio.flags  &= ~VIDEO_AUDIO_MUTE;
+  this->audio.volume = 0xD000;
+
+  ioctl(this->video_fd, VIDIOCSAUDIO, &this->audio);
+}
+  
 static int open_radio_capture_device(v4l_input_plugin_t *this)
 {
   int          tuner_found = 0;
-  int          i           = 0;
   cfg_entry_t *entry;
   
-  /*
-   * pre-alloc a bunch of frames
-   */
+  lprintf("open_radio_capture_device\n");
   
   pthread_mutex_init (&this->vid_frames_lock, NULL);
   pthread_cond_init  (&this->vid_frame_freed, NULL);
   pthread_mutex_init (&this->aud_frames_lock, NULL);
   pthread_cond_init  (&this->aud_frame_freed, NULL); 
   
-  lprintf("Opening radio device\n");
-  
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config,
                                                    "input.v4l_radio_device_path");
   
-  this->radio_fd = open(entry->str_value, O_RDWR);
-  
-  if (this->radio_fd < 0)
-    return 0; 
+  if((this->radio_fd = open(entry->str_value, O_RDWR)) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: error opening v4l device (%s): %s\n", 
+            entry->str_value, strerror(errno));
+    return 0;
+  }
   
   lprintf("Device opened, radio %d\n", this->radio_fd);
   
@@ -742,35 +772,14 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
   
-  /* 
-   * Pre allocate some frames for audio and video. This way this hasn't to be
-   * done during capture.
-   */
-  for (i = 0; i < NUM_FRAMES; i++) {
-    buf_element_t *frame;
-    
-    /* Audio frame */
-    frame = xine_xmalloc (sizeof (buf_element_t));
-    
-    frame->decoder_info[1] = this->periodsize;
-    frame->content         = xine_xmalloc(this->periodsize);
-    frame->type	           = BUF_AUDIO_RAWPCM;
-    frame->source          = this;
-    frame->free_buffer     = store_aud_frame;
-    frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
-    
-    store_aud_frame(frame);
-  }
+  /* Pre-allocate some frames for audio so it doesn't have to be done during
+   * capture */
+  allocate_audio_frames(this);
   
   this->audio_only = 1;
   
   /* Unmute audio off video capture device */
-  ioctl(this->radio_fd, VIDIOCGAUDIO, &this->audio);
-  memcpy(&this->audio_saved, &this->audio, sizeof(this->audio));
-  this->audio.flags &= ~VIDEO_AUDIO_MUTE;
-  this->audio.volume=0x8000;
-  lprintf("Setting audio volume\n");
-  ioctl(this->radio_fd, VIDIOCSAUDIO, &this->audio);
+  unmute_audio(this, this->radio_fd);
   
   set_frequency(this, this->frequency); 
   
@@ -794,11 +803,7 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   int          i, j, ret;
   cfg_entry_t *entry;
   
-  lprintf("Trying to open '%s'\n", this->mrl);
-  
-  /*
-   * pre-alloc a bunch of frames
-   */
+  lprintf("open_video_capture_device\n");
   
   pthread_mutex_init (&this->vid_frames_lock, NULL);
   pthread_cond_init  (&this->vid_frame_freed, NULL);
@@ -809,13 +814,13 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
                                                    "input.v4l_video_device_path");
   
   /* Try to open the video device */
-  this->video_fd = open(entry->str_value, O_RDWR);
-  
-  if (this->video_fd < 0) {
-    lprintf("(%d) Cannot open v4l device (%s): %s\n", this->video_fd,
-	     entry->str_value, strerror(errno));
+  if((this->video_fd = open(entry->str_value, O_RDWR)) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: error opening v4l device (%s): %s\n", 
+            entry->str_value, strerror(errno));
     return 0;
   }
+  
   lprintf("Device opened, tv %d\n", this->video_fd);
   
   /* Get capabilities */
@@ -858,14 +863,13 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   
-  /* 
-   * Pre allocate some frames for audio and video. This way this hasn't to be
-   * done during capture.
-   */
+  /* Pre-allocate some frames for audio and video so it doesn't have to be 
+   * done during capture */
+  allocate_audio_frames(this);
+  
   for (i = 0; i < NUM_FRAMES; i++) {
     buf_element_t *frame;
       
-    /* Video frame */   
     frame = xine_xmalloc (sizeof (buf_element_t));
     
     frame->decoder_info[0] = resolutions[j].width;
@@ -877,29 +881,10 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
     frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
     
     store_vid_frame(frame);
-    
-    /* Audio frame */
-    frame = xine_xmalloc (sizeof (buf_element_t));
-    
-    frame->decoder_info[1] = this->periodsize;
-    frame->content         = xine_xmalloc(this->periodsize);
-    frame->type	           = BUF_AUDIO_RAWPCM;
-    frame->source          = this;
-    frame->free_buffer     = store_aud_frame;
-    frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
-    
-    store_aud_frame(frame);
   }
   
   /* Unmute audio off video capture device */
-  ioctl(this->video_fd, VIDIOCGAUDIO, &this->audio);
-  memcpy(&this->audio_saved, &this->audio, sizeof(this->audio));
-
-  this->audio.flags  &= ~VIDEO_AUDIO_MUTE;
-  this->audio.volume = 0xD000;
-  
-  lprintf("Setting audio volume\n");
-  ioctl(this->video_fd, VIDIOCSAUDIO, &this->audio);
+  unmute_audio(this, this->video_fd);
   
   if (strlen(this->tuner_name) > 0) {
     /* Tune into source and given frequency */
