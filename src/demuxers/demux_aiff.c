@@ -21,7 +21,7 @@
 /*
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.39 2004/06/13 21:28:52 miguelfreitas Exp $
+ * $Id: demux_aiff.c,v 1.40 2004/12/15 21:03:02 mroi Exp $
  *
  */
 
@@ -120,6 +120,12 @@ static int open_aiff_file(demux_aiff_t *this) {
     }
     chunk_type = BE_32(&preamble[0]);
     chunk_size = BE_32(&preamble[4]);
+    
+    if (chunk_size > sizeof(buffer) / sizeof(buffer[0])) {
+      /* the chunk is too large to fit in the buffer -> this cannot be an aiff chunk */
+      this->status = DEMUX_FINISHED;
+      return 0;
+    }
 
     if (chunk_type == COMM_TAG) {
       if (this->input->read(this->input, buffer, chunk_size) !=
