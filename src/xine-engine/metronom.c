@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.26 2001/09/12 22:18:47 guenter Exp $
+ * $Id: metronom.c,v 1.27 2001/09/22 13:28:41 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,7 @@
 #include <math.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "monitor.h"
 #include "xine_internal.h"
@@ -47,6 +48,7 @@
 #define MAX_NUM_WRAP_DIFF  100
 #define MAX_SCR_PROVIDERS  10
 #define REALTIME_PTS       90000.0
+#define PREBUFFER_PTS_OFFSET 30000
 
 /*
  * ****************************************
@@ -238,7 +240,7 @@ static void metronom_video_stream_start (metronom_t *this) {
 
   this->pts_per_frame             = 3000;
 
-  this->video_vpts                = 0;
+  this->video_vpts                = PREBUFFER_PTS_OFFSET;
 
   this->video_pts_delta           = 0;
 
@@ -307,7 +309,7 @@ static void metronom_audio_stream_start (metronom_t *this) {
     return;
   }
 
-  this->audio_vpts                = 0;
+  this->audio_vpts                = PREBUFFER_PTS_OFFSET;
 
   this->audio_pts_delta           = 0;
 
@@ -426,7 +428,8 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
     if (this->video_stream_starting) {
       this->video_stream_starting = 0;
       
-      this->video_wrap_offset = -1 * pts;
+      this->video_wrap_offset = this->video_vpts + this->pts_per_frame - pts;
+      assert (this->video_pts_delta == 0);
   
       if (this->audio_wrap_offset) {
 	if (this->audio_wrap_offset>this->video_wrap_offset) 
@@ -547,7 +550,8 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
     if (this->audio_stream_starting) {
       this->audio_stream_starting = 0;
       
-      this->audio_wrap_offset = -1 * pts;
+      this->audio_wrap_offset = this->audio_vpts + (nsamples * this->pts_per_smpls) / AUDIO_SAMPLE_NUM - pts;
+      assert (this->audio_pts_delta == 0);
 
       if (this->video_wrap_offset) {
 	if (this->audio_wrap_offset>this->video_wrap_offset) 

@@ -104,6 +104,12 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 	    picture->current_frame->bFrameBad |= mpeg2dec->drop_frame;
 
+#if 0
+fprintf (stderr, "type %s: %s\n",
+    picture->picture_coding_type == I_TYPE ? "I" :
+    picture->picture_coding_type == P_TYPE ? "P" : "B",
+    picture->current_frame->bFrameBad ? "BAD" : "good");
+#endif
 	    if (picture->picture_coding_type == B_TYPE) {
 	      if (picture->mpeg1)
 		picture->current_frame->PTS = 0;
@@ -459,6 +465,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				       VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
 	picture->backward_reference_frame->PTS = 0;
 	picture->backward_reference_frame->bFrameBad = 1;
+	picture->frame_width  = picture->coded_picture_width;
+	picture->frame_height = picture->coded_picture_height;
 	    
       }
     } else if (code == 0xb5) {	/* extension_start_code */
