@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.10 2003/02/17 00:02:52 tmattern Exp $
+ * $Id: fftscope.c,v 1.11 2003/02/22 14:21:37 mroi Exp $
  *
  */
 
@@ -593,6 +593,7 @@ static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
       frame = this->vo_port->get_frame (this->vo_port, FFT_WIDTH, FFT_HEIGHT,
                                         XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
                                         VO_BOTH_FIELDS);
+      frame->extra_info->invalid = 1;
       frame->pts = vpts;
       vpts = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;

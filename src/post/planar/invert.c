@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.7 2002/12/30 14:26:51 mroi Exp $
+ * $Id: invert.c,v 1.8 2003/02/22 14:21:37 mroi Exp $
  */
  
 /*
@@ -238,7 +238,8 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
   inverted_frame->pts = frame->pts;
   inverted_frame->duration = frame->duration;
   inverted_frame->bad_frame = frame->bad_frame;
-  
+  extra_info_merge(inverted_frame->extra_info, frame->extra_info);
+    
   switch (inverted_frame->format) {
   case XINE_IMGFMT_YUY2:
     size = inverted_frame->pitches[0] * inverted_frame->height;

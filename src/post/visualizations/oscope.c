@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.4 2003/02/14 04:17:23 tmmm Exp $
+ * $Id: oscope.c,v 1.5 2003/02/22 14:21:37 mroi Exp $
  *
  */
 
@@ -292,6 +292,7 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
       frame = this->vo_port->get_frame (this->vo_port, OSCOPE_WIDTH, OSCOPE_HEIGHT,
                                         XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
                                         VO_BOTH_FIELDS);
+      frame->extra_info->invalid = 1;
       frame->pts = vpts;
       vpts = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
