@@ -10,6 +10,7 @@ xine-lib
   * updated included libdvdnav: more graceful handling of some error conditions;
     fixed playback of some strangely authored DVDs
   * fixed problem with first subtitle not showing when using separate subtitle files
+  * fixed crash related to relative HTTP redirect URLs (implemented canonicalisation)
 
 xine-lib (1-rc8)
   * Multiple security vulnerabilities fixed on PNM and Real RTSP clients

@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.h,v 1.2 2004/03/31 07:42:50 valtri Exp $ 
+ * $Id: http_helper.h,v 1.3 2004/12/24 01:59:12 dsalt Exp $ 
  */
 
 #ifndef HTTP_HELPER_H
@@ -36,5 +36,15 @@
  */
 int _x_parse_url (char *url, char **proto, char** host, int *port,
                   char **user, char **password, char **uri);
+
+/*
+ * canonicalise url, given base
+ * base must be valid according to _x_parse_url
+ * url may only contain "://" if it's absolute
+ *
+ * return:
+ *   the canonicalised URL (caller must free() it)
+ */
+char *_x_canonicalise_url (const char *base, const char *url);
 
 #endif /* HTTP_HELPER_H */

@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.101 2004/12/12 22:01:06 mroi Exp $
+ * $Id: input_http.c,v 1.102 2004/12/24 01:59:12 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -892,8 +892,9 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	  
 	  lprintf ("trying to open target of redirection: >%s<\n", href);
 
+          href = _x_canonicalise_url (this->mrl, href);
           free(this->mrl);
-          this->mrl = strdup(href);
+          this->mrl = href;
           return http_plugin_open(this_gen);
         }
       }

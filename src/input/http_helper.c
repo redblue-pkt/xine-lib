@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.4 2004/12/01 22:55:31 tmattern Exp $ 
+ * $Id: http_helper.c,v 1.5 2004/12/24 01:59:11 dsalt Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -194,6 +194,30 @@ error:
   return 0;  
 }
 
+char *_x_canonicalise_url (const char *base, const char *url) {
+
+  int base_length;
+  char *cut, *ret;
+
+  if ((cut = strstr (url, "://")))
+    return strdup (url);
+
+  cut = strstr (base, "://");
+  if (url[0] == '/') {
+    /* absolute - base up to first '/' after "://", then url */
+    cut = strchr (cut + 3, '/');
+  }
+  else {
+    /* relative - base up to & inc. last '/', then url */
+    cut = strrchr (cut, '/');
+    if (cut)
+      ++cut;
+  }
+  base_length = cut ? cut - base : strlen (base);
+  ret = malloc (base_length + strlen (url) + 1);
+  sprintf (ret, "%.*s%s", base_length, base, url);
+  return ret;
+}
 
 #ifdef TEST_URL
 /*
@@ -229,6 +253,21 @@ static int check_url(char *url, int ok) {
   }
 }
 
+static int check_paste(const char *base, const char *url, const char *ok) {
+  char *res;
+  int ret;
+
+  printf("--------------------------------\n");
+  printf("base url=%s\n", base);
+  printf(" new url=%s\n", url);
+  res = _x_canonicalise_url (base, url);
+  printf("  result=%s\n", res);
+  ret = !strcmp (res, ok);
+  free (res);
+  puts (ret ? "test OK" : "test KO");
+  return ret;
+}
+
 int main(int argc, char** argv) {
   char *proto, host, port, user, password, uri;
   int res = 0;
@@ -261,8 +300,11 @@ int main(int argc, char** argv) {
   res += check_url("http://[www.toto.com]:80/", 1);
   res += check_url("http://[12:12]:80/", 1);
   res += check_url("http://user:pass@[12:12]:80/", 1);
+  res += check_paste("http://www.toto.com/foo/test.asx", "http://www2.toto.com/www/foo/test1.asx", "http://www2.toto.com/www/foo/test1.asx");
+  res += check_paste("http://www.toto.com/foo/test.asx", "/bar/test2.asx", "http://www.toto.com/bar/test2.asx");
+  res += check_paste("http://www.toto.com/foo/test.asx", "test3.asx", "http://www.toto.com/foo/test3.asx");
   printf("================================\n");
-  if (res != 28) {
+  if (res != 31) {
     printf("result: KO\n");
   } else {
     printf("result: OK\n");
