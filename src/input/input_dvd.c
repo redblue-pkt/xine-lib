@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.154 2003/04/23 15:51:02 mroi Exp $
+ * $Id: input_dvd.c,v 1.155 2003/04/26 00:19:21 hadess Exp $
  *
  */
 
@@ -241,7 +241,6 @@ static void device_change_cb(void *data, xine_cfg_entry_t *cfg) {
   dvd_input_class_t *class = (dvd_input_class_t *) data;
   
   class->dvd_device = cfg->str_value;
-  printf("input_dvd.c:device_change_cb:dvd_device=%s\n",class->dvd_device); 
 }
 
 static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
@@ -1617,6 +1616,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.155  2003/04/26 00:19:21  hadess
+ * - shush
+ *
  * Revision 1.154  2003/04/23 15:51:02  mroi
  * silence, please
  *
