@@ -1,6 +1,10 @@
+
+xine-lib (1-beta2)
   * what a GOOM! post plugin
   * Digital TV (DVB) input plugin (experimental)
   * Interplay MVE playback system (file demuxer, video decoder, audio decoder)
+  * support for real video 4.0 (through external real binary plugins)
+  * quicktime binary-only codec support bugfixes
 	
 xine-lib (1-beta1)
   * updated libfaad

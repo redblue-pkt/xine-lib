@@ -19,6 +19,7 @@ required for 1.0
 optional
 --------
 
+- audio CD input plugin (a cdparanoia based one would be goom compatible ;-)
 - input_rtp
 - rtsp support
 - mmsh support

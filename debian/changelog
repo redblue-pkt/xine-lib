@@ -1,3 +1,11 @@
+xine-lib (1-beta2-1) unstable; urgency=low
+
+  * new upstream release
+  * on HPPA: working around a compiler bug by explicit build-depend on
+    gcc-3.2 (closes: #174813)
+  
+ -- Siggi Langauf <siggi@debian.org>  Thu,  2 Jan 2003 00:43:42 +0100
+
 xine-lib (1-beta1-1) unstable; urgency=low
 
   * new upstream release.

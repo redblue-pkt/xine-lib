@@ -84,10 +84,14 @@ xine is using
     Written by Jutta Degener and Carsten Bormann
     http://kbs.cs.tu-berlin.de/~jutta/toast.html
 
-  w32codec support is based on work from:
+  win32 codec support (windows media / quicktime / real codecs) is based on work from:
     avifile http://avifile.sf.net
     MPlayer http://www.mplayerhq.hu/
     wine    http://www.winehq.com
+
+  some demuxers and decoders (especially the real demuxer) are partially
+  based on work from
+    MPlayer http://www.mplayerhq.hu/
 
 
 Contributions
@@ -157,7 +161,7 @@ Harm van der Heijden <hrm@users.sourceforge.net>
   libdivx4 plugin, dxr3 support and encoding
 
 Chris Rankin <rankinc@pacbell.net>
-  configurable VCD device patch
+  configurable VCD device patch, rv40 support
 
 Andrew Meredith <andrew@anvil.org>
   Snapshot feature

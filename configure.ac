@@ -34,16 +34,16 @@ dnl       AGE = 0;
 dnl }
 
 LT_CURRENT=1
-LT_REVISION=0
+LT_REVISION=1
 LT_AGE=0
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
   XINE_PRE="cvs"
 else
-  XINE_PRE="beta1"
+  XINE_PRE="beta2"
 fi
-
+8
 AC_SUBST(XINE_MAJOR)
 AC_SUBST(XINE_MINOR)
 AC_SUBST(XINE_SUB)
