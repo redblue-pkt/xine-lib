@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/10/27 04:30:39 hrm Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/11/03 22:28:05 hrm Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -32,6 +32,12 @@
  * This is My First Plugin (tm). Read the source comments for hairy details.
  *
  */
+
+/* 1: catch segmentation fault signal when checking version of libdivxdecore
+ * 0: don't try to catch 
+ * set to 0 if the signal stuff gives problems. tested in x86 linux w/ glibc2.
+ */
+#define CATCH_SIGSEGV 1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -51,6 +57,21 @@
 #include "memcpy.h"
 
 #include "decore-if.h"
+
+#if CATCH_SIGSEGV
+#include <signal.h>
+
+void catch_sigsegv(int sig)
+{
+  printf("divx4: caught SIGSEGV, caused by libdivxdecore.\n"
+         "divx4: please uninstall this library or disable the libdivxdecore\n"
+         "divx4: version check by setting the following line in HOME/.xinerc:\n"
+         "divx4: divx4_forceversion:1\n"
+         "divx4: see xine-ui/doc/README.divx4 for details.\n"
+         "divx4: fatal error; exiting.\n");
+  exit(1);
+}
+#endif
 
 /* now this is ripped of wine's vfw.h */
 typedef struct {
@@ -380,12 +401,25 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
     printf("divx4: assuming libdivxdecore version is %d\n", version);
   }
   else {
-    /* default behaviour: ask decore, fake handle 123 */
+#if CATCH_SIGSEGV
+    /* try to catch possible segmentation fault triggered by version check.
+     * old versions of OpenDivx are known to do this. 
+     * we have to exit(1) in case it happens, but at least the user'll know
+     * what happened */
+    if (signal(SIGSEGV, catch_sigsegv) == SIG_ERR)
+      printf("divx4: failed to set SIGSEGV handler for libdivxdecore version check. Danger!\n");
+    /* ask decore for version, using arbitrary handle 123 */
     version = libdecore_func(123, DEC_OPT_VERSION, 0, 0);
+    /* reset signal handler */
+    signal(SIGSEGV, SIG_DFL);
+#else
+    /* no SIGSEGV catching, let's hope survive this... */
+    version = libdecore_func(123, DEC_OPT_VERSION, 0, 0);
+#endif
     if (version < 100) { /* must be an error code */
-      printf("divx4: libdivxdecore failed to return version number (returns %s)\n)",
+      printf("divx4: libdivxdecore failed to return version number (returns %s)\n",
 	     decore_retval(version));
-      version = -1;
+      version = 0;
     }
   }
 
