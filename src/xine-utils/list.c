@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.2 2002/09/04 23:31:13 guenter Exp $
+ * $Id: list.c,v 1.3 2002/09/16 21:49:35 miguelfreitas Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -138,6 +138,53 @@ void *xine_list_prev_content (xine_list_t *l) {
     return NULL;
   }    
 }
+
+void xine_list_append_priority_content (xine_list_t *l, void *content, int priority) {
+  xine_node_t *node;
+
+  node = (xine_node_t *) xine_xmalloc(sizeof(xine_node_t));
+  node->content = content;
+  node->priority = priority;
+
+  if (l->first) {
+    xine_node_t *cur;
+
+    cur = l->first;
+
+    while(1) {
+      if( priority >= cur->priority ) {
+        node->next = cur;
+        node->prev = cur->prev;
+
+        if( node->prev )
+          node->prev->next = node;
+        else
+          l->first = node;
+        cur->prev = node;
+
+        l->cur = node;
+        break;
+      }
+
+      if( !cur->next ) {
+        node->next = NULL;
+        node->prev = cur;
+        cur->next = node;
+
+        l->cur = node;
+        l->last = node;
+        break;
+      }
+     
+      cur = cur->next;
+    }
+  } 
+  else {
+    l->first = l->last = l->cur = node;
+    node->prev = node->next = NULL;
+  }
+}
+
 
 void xine_list_append_content (xine_list_t *l, void *content) {
   xine_node_t *node;

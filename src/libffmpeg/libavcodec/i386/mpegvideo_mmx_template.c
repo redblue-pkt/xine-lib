@@ -40,7 +40,8 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
     const UINT16 *qmat, *bias;
     static __align8 INT16 temp_block[64];
 
-    av_fdct (block);
+    //s->fdct (block);
+    fdct_mmx (block); //cant be anything else ...
 
     if (s->mb_intra) {
         int dummy;
@@ -55,7 +56,7 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
         	"xorl %%edx, %%edx	\n\t"
         	"mul %%ecx		\n\t"
         	: "=d" (level), "=a"(dummy)
-        	: "a" (block[0] + (q >> 1)), "c" (inverse[q])
+        	: "a" ((block[0]>>2) + q), "c" (inverse[q<<1])
         );
 #else
         asm volatile (
@@ -63,13 +64,13 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
         	"divw %%cx		\n\t"
         	"movzwl %%ax, %%eax	\n\t"
         	: "=a" (level)
-        	: "a" (block[0] + (q >> 1)), "c" (q)
+        	: "a" ((block[0]>>2) + q), "c" (q<<1)
         	: "%edx"
         );
 #endif
         } else
             /* For AIC we skip quant/dequant of INTRADC */
-            level = block[0];
+            level = (block[0] + 4)>>3;
             
         block[0]=0; //avoid fake overflow
 //        temp_block[0] = (block[0] + (q >> 1)) / q;
@@ -83,7 +84,11 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
     }
 
     if(s->out_format == FMT_H263 && s->mpeg_quant==0){
-    
+
+        /* the following code is patched using avifile's modifications
+           to enable -fpic compilation. this patch has not been accepted on
+           main ffmpeg cvs. */
+
         asm volatile(
             "movd %%eax, %%mm3			\n\t" // last_non_zero_p1
             SPREADW(%%mm3)
@@ -112,7 +117,7 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
             "psubw %%mm1, %%mm0			\n\t" // out=((ABS(block[i])*qmat[0] - bias[0]*qmat[0])>>16)*sign(block[i])
             "movq %%mm0, (%3, %%eax)		\n\t"
             "pcmpeqw %%mm7, %%mm0		\n\t" // out==0 ? 0xFF : 0x00
-            "movq (%2, %%eax), %%mm1		\n\t" 
+            "movq (%4, %%eax), %%mm1		\n\t" 
             "movq %%mm7, (%1, %%eax)		\n\t" // 0
             "pandn %%mm1, %%mm0			\n\t"
 	    PMAXW(%%mm0, %%mm3)
@@ -201,10 +206,12 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
     }
 
     if(s->mb_intra) temp_block[0]= level; //FIXME move afer permute
+        
 // last_non_zero_p1=64;       
     /* permute for IDCT */
     asm volatile(
-    "pushl %%ebp			\n\t"
+        "movl %0, %%eax			\n\t"
+	"pushl %%ebp			\n\t"
 	"movl %%esp, " MANGLE(esp_temp) "\n\t"
 	"1:				\n\t"
 	"movzbl (%1, %%eax), %%ebx	\n\t"
@@ -219,10 +226,10 @@ static int RENAME(dct_quantize)(MpegEncContext *s,
 	" js 1b				\n\t"
 	"movl " MANGLE(esp_temp) ", %%esp\n\t"
 	"popl %%ebp			\n\t"
-	:
-	: "a" (-last_non_zero_p1), "d" (zigzag_direct_noperm+last_non_zero_p1), "S" (temp_block), "D" (block)
-	: "%ebx", "%ecx"
-    );
+	: 
+	: "g" (-last_non_zero_p1), "d" (zigzag_direct_noperm+last_non_zero_p1), "S" (temp_block), "D" (block)
+	: "%eax", "%ebx", "%ecx"
+	);
 /*
     for(i=0; i<last_non_zero_p1; i++)
     {

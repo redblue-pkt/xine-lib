@@ -343,7 +343,7 @@ static void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
     } while (--i);
 }
 
-static void put_pixels_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int h)
+static void put_pixels8_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
     __asm __volatile(
 	 "lea (%3, %3), %%eax		\n\t"
@@ -359,6 +359,40 @@ static void put_pixels_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int
 	 "movq (%1, %3), %%mm1		\n\t"
 	 "movq %%mm0, (%2)		\n\t"
 	 "movq %%mm1, (%2, %3)		\n\t"
+	 "addl %%eax, %1		\n\t"
+	 "addl %%eax, %2       		\n\t"
+	 "subl $4, %0			\n\t"
+	 "jnz 1b			\n\t"
+	 : "+g"(h), "+r" (pixels),  "+r" (block)
+	 : "r"(line_size)
+	 : "%eax", "memory"
+	);
+}
+
+static void put_pixels16_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int h)
+{
+    __asm __volatile(
+	 "lea (%3, %3), %%eax		\n\t"
+	 ".balign 8			\n\t"
+	 "1:				\n\t"
+	 "movq (%1), %%mm0		\n\t"
+	 "movq 8(%1), %%mm4		\n\t"
+	 "movq (%1, %3), %%mm1		\n\t"
+	 "movq 8(%1, %3), %%mm5		\n\t"
+     	 "movq %%mm0, (%2)		\n\t"
+     	 "movq %%mm4, 8(%2)		\n\t"
+	 "movq %%mm1, (%2, %3)		\n\t"
+	 "movq %%mm5, 8(%2, %3)		\n\t"
+	 "addl %%eax, %1		\n\t"
+         "addl %%eax, %2       		\n\t"
+	 "movq (%1), %%mm0		\n\t"
+	 "movq 8(%1), %%mm4		\n\t"
+	 "movq (%1, %3), %%mm1		\n\t"
+	 "movq 8(%1, %3), %%mm5		\n\t"
+	 "movq %%mm0, (%2)		\n\t"
+	 "movq %%mm4, 8(%2)		\n\t"
+	 "movq %%mm1, (%2, %3)		\n\t"
+	 "movq %%mm5, 8(%2, %3)		\n\t"
 	 "addl %%eax, %1		\n\t"
 	 "addl %%eax, %2       		\n\t"
 	 "subl $4, %0			\n\t"
@@ -393,19 +427,19 @@ static void just_return() { return; }
 void dsputil_init_mmx(void)
 {
     mm_flags = mm_support();
-#if 1
-    printf("libavcodec: CPU flags:");
+#if 0
+    fprintf(stderr, "libavcodec: CPU flags:");
     if (mm_flags & MM_MMX)
-        printf(" mmx");
+        fprintf(stderr, " mmx");
     if (mm_flags & MM_MMXEXT)
-        printf(" mmxext");
+        fprintf(stderr, " mmxext");
     if (mm_flags & MM_3DNOW)
-        printf(" 3dnow");
+        fprintf(stderr, " 3dnow");
     if (mm_flags & MM_SSE)
-        printf(" sse");
+        fprintf(stderr, " sse");
     if (mm_flags & MM_SSE2)
-        printf(" sse2");
-    printf("\n");
+        fprintf(stderr, " sse2");
+    fprintf(stderr, "\n");
 #endif
 
     if (mm_flags & MM_MMX) {
@@ -424,27 +458,45 @@ void dsputil_init_mmx(void)
         pix_abs8x8_y2 = pix_abs8x8_y2_mmx;
         pix_abs8x8_xy2= pix_abs8x8_xy2_mmx;
 
-        av_fdct = fdct_mmx;
+        put_pixels_tab[0][0] = put_pixels16_mmx;
+        put_pixels_tab[0][1] = put_pixels16_x2_mmx;
+        put_pixels_tab[0][2] = put_pixels16_y2_mmx;
+        put_pixels_tab[0][3] = put_pixels16_xy2_mmx;
 
-        put_pixels_tab[0] = put_pixels_mmx;
-        put_pixels_tab[1] = put_pixels_x2_mmx;
-        put_pixels_tab[2] = put_pixels_y2_mmx;
-        put_pixels_tab[3] = put_pixels_xy2_mmx;
+        put_no_rnd_pixels_tab[0][0] = put_pixels16_mmx;
+        put_no_rnd_pixels_tab[0][1] = put_no_rnd_pixels16_x2_mmx;
+        put_no_rnd_pixels_tab[0][2] = put_no_rnd_pixels16_y2_mmx;
+        put_no_rnd_pixels_tab[0][3] = put_no_rnd_pixels16_xy2_mmx;
 
-        put_no_rnd_pixels_tab[0] = put_pixels_mmx;
-        put_no_rnd_pixels_tab[1] = put_no_rnd_pixels_x2_mmx;
-        put_no_rnd_pixels_tab[2] = put_no_rnd_pixels_y2_mmx;
-        put_no_rnd_pixels_tab[3] = put_no_rnd_pixels_xy2_mmx;
+        avg_pixels_tab[0][0] = avg_pixels16_mmx;
+        avg_pixels_tab[0][1] = avg_pixels16_x2_mmx;
+        avg_pixels_tab[0][2] = avg_pixels16_y2_mmx;
+        avg_pixels_tab[0][3] = avg_pixels16_xy2_mmx;
 
-        avg_pixels_tab[0] = avg_pixels_mmx;
-        avg_pixels_tab[1] = avg_pixels_x2_mmx;
-        avg_pixels_tab[2] = avg_pixels_y2_mmx;
-        avg_pixels_tab[3] = avg_pixels_xy2_mmx;
+        avg_no_rnd_pixels_tab[0][0] = avg_no_rnd_pixels16_mmx;
+        avg_no_rnd_pixels_tab[0][1] = avg_no_rnd_pixels16_x2_mmx;
+        avg_no_rnd_pixels_tab[0][2] = avg_no_rnd_pixels16_y2_mmx;
+        avg_no_rnd_pixels_tab[0][3] = avg_no_rnd_pixels16_xy2_mmx;
+        
+        put_pixels_tab[1][0] = put_pixels8_mmx;
+        put_pixels_tab[1][1] = put_pixels8_x2_mmx;
+        put_pixels_tab[1][2] = put_pixels8_y2_mmx;
+        put_pixels_tab[1][3] = put_pixels8_xy2_mmx;
 
-        avg_no_rnd_pixels_tab[0] = avg_no_rnd_pixels_mmx;
-        avg_no_rnd_pixels_tab[1] = avg_no_rnd_pixels_x2_mmx;
-        avg_no_rnd_pixels_tab[2] = avg_no_rnd_pixels_y2_mmx;
-        avg_no_rnd_pixels_tab[3] = avg_no_rnd_pixels_xy2_mmx;
+        put_no_rnd_pixels_tab[1][0] = put_pixels8_mmx;
+        put_no_rnd_pixels_tab[1][1] = put_no_rnd_pixels8_x2_mmx;
+        put_no_rnd_pixels_tab[1][2] = put_no_rnd_pixels8_y2_mmx;
+        put_no_rnd_pixels_tab[1][3] = put_no_rnd_pixels8_xy2_mmx;
+
+        avg_pixels_tab[1][0] = avg_pixels8_mmx;
+        avg_pixels_tab[1][1] = avg_pixels8_x2_mmx;
+        avg_pixels_tab[1][2] = avg_pixels8_y2_mmx;
+        avg_pixels_tab[1][3] = avg_pixels8_xy2_mmx;
+
+        avg_no_rnd_pixels_tab[1][0] = avg_no_rnd_pixels8_mmx;
+        avg_no_rnd_pixels_tab[1][1] = avg_no_rnd_pixels8_x2_mmx;
+        avg_no_rnd_pixels_tab[1][2] = avg_no_rnd_pixels8_y2_mmx;
+        avg_no_rnd_pixels_tab[1][3] = avg_no_rnd_pixels8_xy2_mmx;
 
         if (mm_flags & MM_MMXEXT) {
             pix_abs16x16    = pix_abs16x16_mmx2;
@@ -457,25 +509,45 @@ void dsputil_init_mmx(void)
             pix_abs8x8_y2 = pix_abs8x8_y2_mmx2;
             pix_abs8x8_xy2= pix_abs8x8_xy2_mmx2;
 
-            put_pixels_tab[1] = put_pixels_x2_mmx2;
-            put_pixels_tab[2] = put_pixels_y2_mmx2;
-            put_no_rnd_pixels_tab[1] = put_no_rnd_pixels_x2_mmx2;
-            put_no_rnd_pixels_tab[2] = put_no_rnd_pixels_y2_mmx2;
+            put_pixels_tab[0][1] = put_pixels16_x2_mmx2;
+            put_pixels_tab[0][2] = put_pixels16_y2_mmx2;
+            put_no_rnd_pixels_tab[0][1] = put_no_rnd_pixels16_x2_mmx2;
+            put_no_rnd_pixels_tab[0][2] = put_no_rnd_pixels16_y2_mmx2;
 
-            avg_pixels_tab[0] = avg_pixels_mmx2;
-            avg_pixels_tab[1] = avg_pixels_x2_mmx2;
-            avg_pixels_tab[2] = avg_pixels_y2_mmx2;
-            avg_pixels_tab[3] = avg_pixels_xy2_mmx2;
+            avg_pixels_tab[0][0] = avg_pixels16_mmx2;
+            avg_pixels_tab[0][1] = avg_pixels16_x2_mmx2;
+            avg_pixels_tab[0][2] = avg_pixels16_y2_mmx2;
+            avg_pixels_tab[0][3] = avg_pixels16_xy2_mmx2;
+
+            put_pixels_tab[1][1] = put_pixels8_x2_mmx2;
+            put_pixels_tab[1][2] = put_pixels8_y2_mmx2;
+            put_no_rnd_pixels_tab[1][1] = put_no_rnd_pixels8_x2_mmx2;
+            put_no_rnd_pixels_tab[1][2] = put_no_rnd_pixels8_y2_mmx2;
+
+            avg_pixels_tab[1][0] = avg_pixels8_mmx2;
+            avg_pixels_tab[1][1] = avg_pixels8_x2_mmx2;
+            avg_pixels_tab[1][2] = avg_pixels8_y2_mmx2;
+            avg_pixels_tab[1][3] = avg_pixels8_xy2_mmx2;
         } else if (mm_flags & MM_3DNOW) {
-            put_pixels_tab[1] = put_pixels_x2_3dnow;
-            put_pixels_tab[2] = put_pixels_y2_3dnow;
-            put_no_rnd_pixels_tab[1] = put_no_rnd_pixels_x2_3dnow;
-            put_no_rnd_pixels_tab[2] = put_no_rnd_pixels_y2_3dnow;
+            put_pixels_tab[0][1] = put_pixels16_x2_3dnow;
+            put_pixels_tab[0][2] = put_pixels16_y2_3dnow;
+            put_no_rnd_pixels_tab[0][1] = put_no_rnd_pixels16_x2_3dnow;
+            put_no_rnd_pixels_tab[0][2] = put_no_rnd_pixels16_y2_3dnow;
 
-            avg_pixels_tab[0] = avg_pixels_3dnow;
-            avg_pixels_tab[1] = avg_pixels_x2_3dnow;
-            avg_pixels_tab[2] = avg_pixels_y2_3dnow;
-            avg_pixels_tab[3] = avg_pixels_xy2_3dnow;
+            avg_pixels_tab[0][0] = avg_pixels16_3dnow;
+            avg_pixels_tab[0][1] = avg_pixels16_x2_3dnow;
+            avg_pixels_tab[0][2] = avg_pixels16_y2_3dnow;
+            avg_pixels_tab[0][3] = avg_pixels16_xy2_3dnow;
+            
+            put_pixels_tab[1][1] = put_pixels8_x2_3dnow;
+            put_pixels_tab[1][2] = put_pixels8_y2_3dnow;
+            put_no_rnd_pixels_tab[1][1] = put_no_rnd_pixels8_x2_3dnow;
+            put_no_rnd_pixels_tab[1][2] = put_no_rnd_pixels8_y2_3dnow;
+
+            avg_pixels_tab[1][0] = avg_pixels8_3dnow;
+            avg_pixels_tab[1][1] = avg_pixels8_x2_3dnow;
+            avg_pixels_tab[1][2] = avg_pixels8_y2_3dnow;
+            avg_pixels_tab[1][3] = avg_pixels8_xy2_3dnow;
         }
 
         /* idct */
@@ -526,27 +598,54 @@ void dsputil_init_mmx(void)
 #endif
 }
 
+void gen_idct_put(UINT8 *dest, int line_size, DCTELEM *block);
+
+/**
+ * this will send coeff matrixes which would have different results for the 16383 type MMX vs C IDCTs to the C IDCT
+ */ 
+void bit_exact_idct_put(UINT8 *dest, int line_size, INT16 *block){
+    if(   block[0]>1022 && block[1]==0 && block[4 ]==0 && block[5 ]==0
+       && block[8]==0   && block[9]==0 && block[12]==0 && block[13]==0){
+        int16_t tmp[64];
+        int i;
+
+        for(i=0; i<64; i++)
+            tmp[i]= block[i];
+        for(i=0; i<64; i++)
+            block[i]= tmp[block_permute_op(i)];
+        
+        simple_idct_put(dest, line_size, block);
+    }
+    else
+        gen_idct_put(dest, line_size, block);
+}
+
 /* remove any non bit exact operation (testing purpose). NOTE that
    this function should be kept as small as possible because it is
    always difficult to test automatically non bit exact cases. */
 void dsputil_set_bit_exact_mmx(void)
 {
     if (mm_flags & MM_MMX) {
-        if (mm_flags & MM_MMXEXT) {
-            put_no_rnd_pixels_tab[1] = put_no_rnd_pixels_x2_mmx;
-            put_no_rnd_pixels_tab[2] = put_no_rnd_pixels_y2_mmx;
-            avg_pixels_tab[3] = avg_pixels_xy2_mmx;
+    
+        /* MMX2 & 3DNOW */
+        put_no_rnd_pixels_tab[0][1] = put_no_rnd_pixels16_x2_mmx;
+        put_no_rnd_pixels_tab[0][2] = put_no_rnd_pixels16_y2_mmx;
+        avg_pixels_tab[0][3] = avg_pixels16_xy2_mmx;
+        put_no_rnd_pixels_tab[1][1] = put_no_rnd_pixels8_x2_mmx;
+        put_no_rnd_pixels_tab[1][2] = put_no_rnd_pixels8_y2_mmx;
+        avg_pixels_tab[1][3] = avg_pixels8_xy2_mmx;
 
+        if (mm_flags & MM_MMXEXT) {
             pix_abs16x16_x2  = pix_abs16x16_x2_mmx;
             pix_abs16x16_y2  = pix_abs16x16_y2_mmx;
             pix_abs16x16_xy2 = pix_abs16x16_xy2_mmx;
             pix_abs8x8_x2 = pix_abs8x8_x2_mmx;
             pix_abs8x8_y2 = pix_abs8x8_y2_mmx;
             pix_abs8x8_xy2= pix_abs8x8_xy2_mmx;
-        } else if (mm_flags & MM_3DNOW) {
-            put_no_rnd_pixels_tab[1] = put_no_rnd_pixels_x2_mmx;
-            put_no_rnd_pixels_tab[2] = put_no_rnd_pixels_y2_mmx;
-            avg_pixels_tab[3] = avg_pixels_xy2_mmx;
         }
+#ifdef SIMPLE_IDCT
+        if(ff_idct_put==gen_idct_put && ff_idct == simple_idct_mmx)
+            ff_idct_put= bit_exact_idct_put;
+#endif
     }
 }

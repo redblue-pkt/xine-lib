@@ -41,28 +41,6 @@
 #define P_MV1 P[9]
 
 
-static int pix_sum(UINT8 * pix, int line_size)
-{
-    int s, i, j;
-
-    s = 0;
-    for (i = 0; i < 16; i++) {
-	for (j = 0; j < 16; j += 8) {
-	    s += pix[0];
-	    s += pix[1];
-	    s += pix[2];
-	    s += pix[3];
-	    s += pix[4];
-	    s += pix[5];
-	    s += pix[6];
-	    s += pix[7];
-	    pix += 8;
-	}
-	pix += line_size - 16;
-    }
-    return s;
-}
-
 static int pix_dev(UINT8 * pix, int line_size, int mean)
 {
     int s, i, j;
@@ -78,29 +56,6 @@ static int pix_dev(UINT8 * pix, int line_size, int mean)
 	    s += ABS(pix[5]-mean);
 	    s += ABS(pix[6]-mean);
 	    s += ABS(pix[7]-mean);
-	    pix += 8;
-	}
-	pix += line_size - 16;
-    }
-    return s;
-}
-
-static int pix_norm1(UINT8 * pix, int line_size)
-{
-    int s, i, j;
-    UINT32 *sq = squareTbl + 256;
-
-    s = 0;
-    for (i = 0; i < 16; i++) {
-	for (j = 0; j < 16; j += 8) {
-	    s += sq[pix[0]];
-	    s += sq[pix[1]];
-	    s += sq[pix[2]];
-	    s += sq[pix[3]];
-	    s += sq[pix[4]];
-	    s += sq[pix[5]];
-	    s += sq[pix[6]];
-	    s += sq[pix[7]];
 	    pix += 8;
 	}
 	pix += line_size - 16;
@@ -1183,6 +1138,7 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
     sum= (sum+8)>>4;
     varc = (pix_norm1(pix, s->linesize) - sum*sum + 500 + 128)>>8;
     vard = (pix_norm(pix, ppix, s->linesize)+128)>>8;
+
 //printf("%d %d %d %X %X %X\n", s->mb_width, mb_x, mb_y,(int)s, (int)s->mb_var, (int)s->mc_mb_var); fflush(stdout);
     s->mb_var   [s->mb_width * mb_y + mb_x] = varc;
     s->mc_mb_var[s->mb_width * mb_y + mb_x] = vard;
@@ -1195,6 +1151,11 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
 	   varc, s->avg_mb_var, sum, vard, mx - xx, my - yy);
 #endif
     if(s->flags&CODEC_FLAG_HQ){
+        if (vard <= 64 || vard < varc)
+            s->scene_change_score+= ff_sqrt(vard) - ff_sqrt(varc);
+        else
+            s->scene_change_score+= 20;
+
         if (vard*2 + 200 > varc)
             mb_type|= MB_TYPE_INTRA;
         if (varc*2 + 200 > vard){
@@ -1221,6 +1182,7 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
             set_p_mv_tables(s, mx, my, 1);
     }else{
         if (vard <= 64 || vard < varc) {
+            s->scene_change_score+= ff_sqrt(vard) - ff_sqrt(varc);
             mb_type|= MB_TYPE_INTER;
             if (s->me_method != ME_ZERO) {
                 if(s->me_method >= ME_EPZS)
@@ -1251,6 +1213,7 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
             }
 #endif
         }else{
+            s->scene_change_score+= 20;
             mb_type|= MB_TYPE_INTRA;
             mx = 0;
             my = 0;
@@ -1374,8 +1337,7 @@ static inline int check_bidir_mv(MpegEncContext * s,
     src_y = mb_y * 16 + (motion_fy >> 1);
             
     ptr = s->last_picture[0] + (src_y * s->linesize) + src_x;
-    put_pixels_tab[dxy](dest_y    , ptr    , s->linesize, 16);
-    put_pixels_tab[dxy](dest_y + 8, ptr + 8, s->linesize, 16);
+    put_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
     
     fbmin += (mv_penalty[motion_bx-pred_bx] + mv_penalty[motion_by-pred_by])*s->qscale;
 
@@ -1384,8 +1346,7 @@ static inline int check_bidir_mv(MpegEncContext * s,
     src_y = mb_y * 16 + (motion_by >> 1);
             
     ptr = s->next_picture[0] + (src_y * s->linesize) + src_x;
-    avg_pixels_tab[dxy](dest_y    , ptr    , s->linesize, 16);
-    avg_pixels_tab[dxy](dest_y + 8, ptr + 8, s->linesize, 16);
+    avg_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
     
     fbmin += pix_abs16x16(s->new_picture[0] + mb_x*16 + mb_y*16*s->linesize, dest_y, s->linesize);
     return fbmin;
@@ -1430,13 +1391,13 @@ static inline int direct_search(MpegEncContext * s,
     const int motion_px= s->p_mv_table[mot_xy][0];
     const int motion_py= s->p_mv_table[mot_xy][1];
     const int time_pp= s->pp_time;
-    const int time_bp= s->bp_time;
-    const int time_pb= time_pp - time_bp;
+    const int time_pb= s->pb_time;
+    const int time_bp= time_pp - time_pb;
     int bx, by;
     int mx, my, mx2, my2;
     uint8_t *ref_picture= s->me_scratchpad - (mb_x - 1 + (mb_y - 1)*s->linesize)*16;
     int16_t (*mv_table)[2]= s->b_direct_mv_table;
-    uint16_t *mv_penalty= s->mv_penalty[s->f_code] + MAX_MV; // f_code of the prev frame
+/*    uint16_t *mv_penalty= s->mv_penalty[s->f_code] + MAX_MV; */ // f_code of the prev frame
 
     /* thanks to iso-mpeg the rounding is different for the zero vector, so we need to handle that ... */
     motion_fx= (motion_px*time_pb)/time_pp;
@@ -1470,8 +1431,7 @@ static inline int direct_search(MpegEncContext * s,
             if (src_y == height) dxy &= ~2;
 
             ptr = s->last_picture[0] + (src_y * s->linesize) + src_x;
-            put_pixels_tab[dxy](dest_y    , ptr    , s->linesize, 16);
-            put_pixels_tab[dxy](dest_y + 8, ptr + 8, s->linesize, 16);
+            put_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
 
             dxy = ((motion_by & 1) << 1) | (motion_bx & 1);
             src_x = (mb_x + bx) * 16 + (motion_bx >> 1);
@@ -1481,8 +1441,7 @@ static inline int direct_search(MpegEncContext * s,
             src_y = clip(src_y, -16, height);
             if (src_y == height) dxy &= ~2;
 
-            avg_pixels_tab[dxy](dest_y    , ptr    , s->linesize, 16);
-            avg_pixels_tab[dxy](dest_y + 8, ptr + 8, s->linesize, 16);
+            avg_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
         }
     }
 
@@ -1570,9 +1529,7 @@ void ff_estimate_b_frame_motion(MpegEncContext * s,
 
     fbmin= bidir_refine(s, mb_x, mb_y);
 
-    if(s->flags&CODEC_FLAG_HQ){
-        type= MB_TYPE_FORWARD | MB_TYPE_BACKWARD | MB_TYPE_BIDIR | MB_TYPE_DIRECT;
-    }else{
+    {
         int score= dmin;
         type=MB_TYPE_DIRECT;
         
@@ -1588,9 +1545,15 @@ void ff_estimate_b_frame_motion(MpegEncContext * s,
             score=fbmin;
             type= MB_TYPE_BIDIR;
         }
+        score= (score*score)>>8;
         s->mc_mb_var_sum += score;
-        s->mc_mb_var[mb_y*s->mb_width + mb_x] = score;
+        s->mc_mb_var[mb_y*s->mb_width + mb_x] = score; //FIXME use SSD
     }
+
+    if(s->flags&CODEC_FLAG_HQ){
+        type= MB_TYPE_FORWARD | MB_TYPE_BACKWARD | MB_TYPE_BIDIR | MB_TYPE_DIRECT; //FIXME something smarter
+    }
+
 /*
 {
 static int count=0;

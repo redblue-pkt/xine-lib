@@ -62,7 +62,7 @@ static UINT8 fcode_tab[MAX_MV*2+1];
 
 static void init_2d_vlc_rl(RLTable *rl)
 {
-    int i, q;
+    int i;
     
     init_vlc(&rl->vlc, TEX_VLC_BITS, rl->n + 2, 
              &rl->table_vlc[0][1], 4, 2,
@@ -142,9 +142,12 @@ static void mpeg1_encode_sequence_header(MpegEncContext *s)
                 v = 0x3ffff;
             put_bits(&s->pb, 18, v);
             put_bits(&s->pb, 1, 1); /* marker */
-            /* vbv buffer size: slightly greater than an I frame. We add
-               some margin just in case */
-            vbv_buffer_size = (3 * s->I_frame_bits) / (2 * 8);
+
+            if(s->avctx->rc_buffer_size)
+                vbv_buffer_size = s->avctx->rc_buffer_size;
+            else
+                /* VBV calculation: Scaled so that a VCD has the proper VBV size of 40 kilobytes */
+                vbv_buffer_size = (( 20 * s->bit_rate) / (1151929 / 2)) * 8 * 1024;	 
             put_bits(&s->pb, 10, (vbv_buffer_size + 16383) / 16384); 
             put_bits(&s->pb, 1, 1); /* constrained parameter flag */
             put_bits(&s->pb, 1, 0); /* no custom intra matrix */
@@ -581,7 +584,7 @@ static VLC mb_ptype_vlc;
 static VLC mb_btype_vlc;
 static VLC mb_pat_vlc;
 
-void mpeg1_init_vlc(MpegEncContext *s)
+static void init_vlcs(MpegEncContext *s)
 {
     static int done = 0;
 
@@ -1049,7 +1052,7 @@ static int mpeg1_decode_block(MpegEncContext *s,
             /* escape */
             run = get_bits(&s->gb, 6);
             level = get_bits(&s->gb, 8);
-            level = (level << 24) >> 24;
+            level= (level + ((-1)<<7)) ^ ((-1)<<7); //sign extension
             if (level == -128) {
                 level = get_bits(&s->gb, 8) - 256;
             } else if (level == 0) {
@@ -1128,7 +1131,7 @@ static int mpeg2_decode_block_non_intra(MpegEncContext *s,
             /* escape */
             run = get_bits(&s->gb, 6);
             level = get_bits(&s->gb, 12);
-            level = (level << 20) >> 20;
+            level= (level + ((-1)<<11)) ^ ((-1)<<11); //sign extension
         } else {
             run = rl->table_run[code];
             level = rl->table_level[code];
@@ -1211,7 +1214,7 @@ static int mpeg2_decode_block_intra(MpegEncContext *s,
             /* escape */
             run = get_bits(&s->gb, 6);
             level = get_bits(&s->gb, 12);
-            level = (level << 20) >> 20;
+            level= (level + ((-1)<<11)) ^ ((-1)<<11); //sign extension
         } else {
             run = rl->table_run[code];
             level = rl->table_level[code];
@@ -1257,6 +1260,7 @@ static int mpeg_decode_init(AVCodecContext *avctx)
     
     s->mpeg_enc_ctx.flags= avctx->flags;
     common_init(&s->mpeg_enc_ctx);
+    init_vlcs(&s->mpeg_enc_ctx);
 
     s->header_state = 0xff;
     s->mpeg_enc_ctx_allocated = 0;
@@ -1465,7 +1469,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
 
     start_code = (start_code - 1) & 0xff;
     if (start_code >= s->mb_height){
-        fprintf(stderr, "slice below image\n");
+        fprintf(stderr, "slice below image (%d >= %d)\n", start_code, s->mb_height);
         return -1;
     }
     s->last_dc[0] = 1 << (7 + s->intra_dc_precision);
@@ -1587,7 +1591,6 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         
         if (MPV_common_init(s) < 0)
             return -1;
-        mpeg1_init_vlc(s);
         s1->mpeg_enc_ctx_allocated = 1;
     }
 
@@ -1708,7 +1711,17 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
         } else {
             memcpy(s->buf_ptr, buf_start, len);
             s->buf_ptr += len;
-            
+            if(   (s2->flags&CODEC_FLAG_NOT_TRUNCATED) && (!start_code_found) 
+               && s->buf_ptr+4<s->buffer+s->buffer_size){
+                start_code_found= 1;
+                code= 0x1FF;
+                s->header_state=0xFF;
+                s->buf_ptr[0]=0;
+                s->buf_ptr[1]=0;
+                s->buf_ptr[2]=1;
+                s->buf_ptr[3]=0xFF;
+                s->buf_ptr+=4;
+            }
             if (start_code_found) {
                 /* prepare data for next start code */
                 input_size = s->buf_ptr - s->buffer;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.134 2002/09/15 20:56:24 guenter Exp $
+ * $Id: video_out_xv.c,v 1.135 2002/09/16 21:49:35 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1311,7 +1311,7 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
 }
 
 static vo_info_t vo_info_xv = {
-  5,                    /* priority    */
+  9,                    /* priority    */
   "xine video output plugin using the MIT X video extension", /* description */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };

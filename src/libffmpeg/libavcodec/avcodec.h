@@ -5,8 +5,8 @@
 
 #define LIBAVCODEC_VERSION_INT 0x000406
 #define LIBAVCODEC_VERSION     "0.4.6"
-#define LIBAVCODEC_BUILD       4619
-#define LIBAVCODEC_BUILD_STR   "4619"
+#define LIBAVCODEC_BUILD       4623
+#define LIBAVCODEC_BUILD_STR   "4623"
 
 enum CodecID {
     CODEC_ID_NONE, 
@@ -15,6 +15,7 @@ enum CodecID {
     CODEC_ID_RV10,
     CODEC_ID_MP2,
     CODEC_ID_MP3LAME,
+    CODEC_ID_VORBIS,
     CODEC_ID_AC3,
     CODEC_ID_MJPEG,
     CODEC_ID_MPEG4,
@@ -82,12 +83,20 @@ enum Motion_Est_ID {
     ME_X1
 };
 
+typedef struct RcOverride{
+    int start_frame;
+    int end_frame;
+    int qscale; // if this is 0 then quality_factor will be used instead
+    float quality_factor;
+} RcOverride;
+
 /* only for ME compatiblity with old apps */
 extern int motion_estimation_method;
 
 /* ME algos sorted by quality */
 static const int Motion_Est_QTab[] = { ME_ZERO, ME_PHODS, ME_LOG, 
                                        ME_X1, ME_EPZS, ME_FULL };
+
 
 #define FF_MAX_B_FRAMES 4
 
@@ -110,6 +119,7 @@ static const int Motion_Est_QTab[] = { ME_ZERO, ME_PHODS, ME_LOG,
 #define CODEC_FLAG_GRAY  0x2000  /* only decode/encode grayscale */
 #define CODEC_FLAG_EMU_EDGE 0x4000/* dont draw edges */
 #define CODEC_FLAG_DR1    0x8000 /* dr1 */
+#define CODEC_FLAG_NOT_TRUNCATED  0x00010000 /* input bitstream is not truncated, except before a startcode */
 /* codec capabilities */
 
 /* decoder can use draw_horiz_band callback */
@@ -145,6 +155,7 @@ typedef struct AVCodecContext {
 #define FF_ASPECT_4_3_525 3
 #define FF_ASPECT_16_9_625 4
 #define FF_ASPECT_16_9_525 5
+#define FF_ASPECT_EXTENDED 15
     int gop_size; /* 0 = intra only */
     enum PixelFormat pix_fmt;  /* pixel format, see PIX_FMT_xxx */
     int repeat_pict; /* when decoding, this signal how much the picture */
@@ -171,7 +182,7 @@ typedef struct AVCodecContext {
     int key_frame;      /* true if the previous compressed frame was 
                            a key frame (intra, or seekable) */
     int pict_type;      /* picture type of the previous 
-                           encoded frame */
+                           en/decoded frame */
 /* FIXME: these should have FF_ */
 #define I_TYPE 1 // Intra
 #define P_TYPE 2 // Predicted
@@ -194,8 +205,8 @@ typedef struct AVCodecContext {
     int qmax;         /* max qscale */
     int max_qdiff;    /* max qscale difference between frames */
     int max_b_frames; /* maximum b frames, the output will be delayed by max_b_frames+1 relative to the input */
-    float b_quant_factor;/* qscale factor between ips and b frames */
-    int rc_strategy;
+    float b_quant_factor;/* qscale factor between ps and b frames */
+    int rc_strategy;  /* obsolete FIXME remove */
     int b_frame_strategy;
 
     int hurry_up;     /* when set to 1 during decoding, b frames will be skiped
@@ -274,13 +285,46 @@ typedef struct AVCodecContext {
     int dr_uvstride;
     int dr_ip_buffer_count;
     int block_align; /* currently only for adpcm codec in wav/avi */
-
+    
     int parse_only; /* decoding only: if true, only parsing is done
                        (function avcodec_parse_frame()). The frame
                        data is returned. Only MPEG codecs support this now. */
+    
     int mpeg_quant; /* 0-> h263 quant 1-> mpeg quant */
+    
+    char *stats_out; /* encoding statistics output buffer */
+    char *stats_in;  /* encoding statistics input buffer (concatenated stuff from stats_out of pass1 should be placed here)*/
+    float rc_qsquish;
+    float rc_qmod_amp;
+    int rc_qmod_freq;
+    RcOverride *rc_override;
+    int rc_override_count;
+    char *rc_eq;
+    int rc_max_rate;
+    int rc_min_rate;
+    int rc_buffer_size;
+    float rc_buffer_aggressivity;
+    float i_quant_factor;/* qscale factor between i and p frames */
+    float i_quant_offset;/* qscale offset between i and p frames */
+    float rc_initial_cplx;
+
+    int aspected_width;
+    int aspected_height;
+
+    int dct_algo;
+#define FF_DCT_AUTO    0
+#define FF_DCT_FASTINT 1
+#define FF_DCT_INT     2
+#define FF_DCT_MMX     3
+#define FF_DCT_MLIB    4
+
+    long long int pts; /* timestamp in micro seconds
+                          for decoding: the timestamp from the stream or 0
+                          for encoding: the timestamp which will be stored in the stream
+                                        if 0 then the frame_rate will be used */   
 
     //FIXME this should be reordered after kabis API is finished ...
+    //TODO kill kabi
     /*
 	Note: Below are located reserved fields for further usage
 	It requires for ABI !!!
@@ -291,13 +335,13 @@ typedef struct AVCodecContext {
     */
     unsigned long long int
 	    ull_res0,ull_res1,ull_res2,ull_res3,ull_res4,ull_res5,
-	    ull_res6,ull_res7,ull_res8,ull_res9,ull_res10,ull_res11,ull_res12;
+	    ull_res6,ull_res7,ull_res8,ull_res9,ull_res10,ull_res11;
     float
 	    flt_res0,flt_res1,flt_res2,flt_res3,flt_res4,flt_res5,
-	    flt_res6,flt_res7,flt_res8,flt_res9,flt_res10,flt_res11;
+	    flt_res6,flt_res7,flt_res8,flt_res9,flt_res10,flt_res11,flt_res12;
     void
 	    *ptr_res0,*ptr_res1,*ptr_res2,*ptr_res3,*ptr_res4,*ptr_res5,
-	    *ptr_res6;
+            *ptr_res6,*ptr_res7,*ptr_res8,*ptr_res9,*ptr_res10,*ptr_res11,*ptr_res12;
     unsigned long int
 	    ul_res0,ul_res1,ul_res2,ul_res3,ul_res4,ul_res5,
 	    ul_res6,ul_res7,ul_res8,ul_res9,ul_res10,ul_res11,ul_res12;
@@ -307,6 +351,9 @@ typedef struct AVCodecContext {
     unsigned char
 	    uc_res0,uc_res1,uc_res2,uc_res3,uc_res4,uc_res5,
 	    uc_res6,uc_res7,uc_res8,uc_res9,uc_res10,uc_res11,uc_res12;
+    unsigned int
+	    ui_res0,ui_res1,ui_res2,ui_res3,ui_res4,ui_res5,ui_res6,ui_res7,ui_res8,ui_res9,
+	    ui_res10,ui_res11,ui_res12,ui_res13,ui_res14,ui_res15,ui_res16;
 } AVCodecContext;
 
 typedef struct AVCodec {
@@ -349,6 +396,7 @@ typedef struct AVPicture {
 extern AVCodec ac3_encoder;
 extern AVCodec mp2_encoder;
 extern AVCodec mp3lame_encoder;
+extern AVCodec oggvorbis_encoder;
 extern AVCodec mpeg1video_encoder;
 extern AVCodec h263_encoder;
 extern AVCodec h263p_encoder;
@@ -423,6 +471,12 @@ typedef struct ImgReSampleContext ImgReSampleContext;
 
 ImgReSampleContext *img_resample_init(int output_width, int output_height,
                                       int input_width, int input_height);
+
+ImgReSampleContext *img_resample_full_init(int owidth, int oheight,
+                                      int iwidth, int iheight,
+                                      int topBand, int bottomBand,
+                                      int leftBand, int rightBand);
+
 void img_resample(ImgReSampleContext *s, 
                   AVPicture *output, AVPicture *input);
 

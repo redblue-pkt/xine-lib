@@ -30,8 +30,8 @@ enum OutputFormat {
 
 #define MPEG_BUF_SIZE (16 * 1024)
 
-#define QMAT_SHIFT_MMX 19
-#define QMAT_SHIFT 25
+#define QMAT_SHIFT_MMX 16
+#define QMAT_SHIFT 22
 
 #define MAX_FCODE 7
 #define MAX_MV 2048
@@ -61,12 +61,34 @@ typedef struct RateControlEntry{
     UINT64 expected_bits;
     int new_pict_type;
     float new_qscale;
+    int mc_mb_var_sum;
+    int mb_var_sum;
+    int i_count;
+    int f_code;
+    int b_code;
 }RateControlEntry;
 
 typedef struct RateControlContext{
     FILE *stats_file;
-    int num_entries;
+    int num_entries;          /* number of RateControlEntries */
     RateControlEntry *entry;
+    int buffer_index;         /* amount of bits in the video/audio buffer */
+    Predictor pred[5];
+    double short_term_qsum;   /* sum of recent qscales */
+    double short_term_qcount; /* count of recent qscales */
+    double pass1_bits;        /* bits outputted by the pass1 code (including complexity init) */
+    double pass1_wanted_bits; /* bits which should have been outputed by the pass1 code (including complexity init) */
+    double last_qscale;
+    double last_qscale_for[5]; /* last qscale for a specific pict type */
+    double next_non_b_qscale;
+    double next_p_qscale;
+    int last_mc_mb_var_sum;
+    int last_mb_var_sum;
+    UINT64 i_cplx_sum[5];
+    UINT64 p_cplx_sum[5];
+    UINT64 mv_bits_sum[5];
+    UINT64 qscale_sum[5];
+    int frame_count[5];
 }RateControlContext;
 
 typedef struct ReorderBuffer{
@@ -107,9 +129,6 @@ typedef struct MpegEncContext {
     int flags;        /* AVCodecContext.flags (HQ, MV4, ...) */
     int force_input_type;/* 0= no force, otherwise I_TYPE, P_TYPE, ... */
     int max_b_frames; /* max number of b-frames for encoding */
-    float b_quant_factor;/* qscale factor between ips and b frames */
-    float b_quant_offset;/* qscale offset between ips and b frames */
-    int rc_strategy;
     int b_frame_strategy;
     int luma_elim_threshold;
     int chroma_elim_threshold;
@@ -170,8 +189,8 @@ typedef struct MpegEncContext {
     int input_pict_type;        /* pict_type prior to reordering of frames */
     int force_type;             /* 0= no force, otherwise I_TYPE, P_TYPE, ... */
     int qscale;                 /* QP */
-    int last_non_b_qscale;	/* QP of last non b frame used for b frame qscale*/
     int pict_type;              /* I_TYPE, P_TYPE, B_TYPE, ... */
+    int last_pict_type;
     int last_non_b_pict_type;   /* used for mpeg4 gmc b-frames & ratecontrol */
     int frame_rate_index;
     /* motion compensation */
@@ -195,6 +214,7 @@ typedef struct MpegEncContext {
     uint16_t *me_score_map;            /* map to store the SADs */
     int me_map_generation;
     int skip_me;                       /* set if ME is skiped for the current MB */
+    int scene_change_score;
     int mv_dir;
 #define MV_DIR_BACKWARD  1
 #define MV_DIR_FORWARD   2
@@ -270,18 +290,10 @@ typedef struct MpegEncContext {
     int I_frame_bits; //FIXME used in mpeg12 ...
     int mb_var_sum;          /* sum of MB variance for current frame */
     int mc_mb_var_sum;       /* motion compensated MB variance for current frame */
-    int last_non_b_mc_mb_var;/* motion compensated MB variance for last non b frame */
     INT64 wanted_bits;
     INT64 total_bits;
     int frame_bits;        /* bits used for the current frame */
-    int pb_frame_bits;     /* bits of the last b...bp group */
-    Predictor i_pred;
-    Predictor p_pred;
-    double qsum;         /* sum of qscales */
-    double qcount;       /* count of qscales */
-    double short_term_qsum;   /* sum of recent qscales */
-    double short_term_qcount; /* count of recent qscales */
-    RateControlContext rc_context;
+    RateControlContext rc_context; // contains stuff only accessed in ratecontrol.c
 
     /* statistics, used for 2-pass encoding */
     int mv_bits;
@@ -289,7 +301,8 @@ typedef struct MpegEncContext {
     int i_tex_bits;
     int p_tex_bits;
     int i_count;
-    int p_count;
+    int f_count;
+    int b_count;
     int skip_count;
     int misc_bits; // cbp, mb_type
     int last_bits; //temp var used for calculating the above vars
@@ -326,7 +339,9 @@ typedef struct MpegEncContext {
     INT64 time;                   /* time of current frame */ 
     INT64 last_non_b_time;
     UINT16 pp_time;               /* time distance between the last 2 p,s,i frames */
-    UINT16 bp_time;               /* time distance between the last b and p,s,i frame */
+    UINT16 pb_time;               /* time distance between the last b and p,s,i frame */
+    UINT16 pp_field_time;
+    UINT16 pb_field_time;         /* like above, just for interlaced */
     int shape;
     int vol_sprite_usage;
     int sprite_width;
@@ -348,6 +363,8 @@ typedef struct MpegEncContext {
     int new_pred;
     int reduced_res_vop;
     int aspect_ratio_info;
+    int aspected_width;
+    int aspected_height;
     int sprite_warping_accuracy;
     int low_latency_sprite;
     int data_partitioning;
@@ -362,7 +379,12 @@ typedef struct MpegEncContext {
     uint8_t *tex_pb_buffer;          
     uint8_t *pb2_buffer;
     int mpeg_quant;
-    INT8 *non_b_mv4_table;
+#define CO_LOCATED_TYPE_4MV     1
+#define CO_LOCATED_TYPE_FIELDMV 2
+    INT8 *co_located_type_table;     /* 4mv & field_mv info for next b frame */
+    INT16 (*field_mv_table)[2][2];   /* used for interlaced b frame decoding */
+    INT8 (*field_select_table)[2];   /* wtf, no really another table for interlaced b frames */
+    int t_frame;                     /* time distance of first I -> B, used for interlaced b frames */
 
     /* divx specific, used to workaround (many) bugs in divx5 */
     int divx_version;
@@ -401,9 +423,8 @@ typedef struct MpegEncContext {
     UINT8 *intra_v_scantable;
     UINT8 *intra_h_scantable;
     /* [mb_intra][isChroma][level][run][last] */
-    int ac_stats[2][2][MAX_LEVEL+1][MAX_RUN+1][2];
+    int (*ac_stats)[2][MAX_LEVEL+1][MAX_RUN+1][2];
     int inter_intra_pred;
-    
 
     /* decompression specific */
     GetBitContext gb;
@@ -452,6 +473,8 @@ typedef struct MpegEncContext {
                            DCTELEM *block, int n, int qscale);
     void (*dct_unquantize)(struct MpegEncContext *s, // unquantizer to use (mpeg4 can use both)
                            DCTELEM *block, int n, int qscale);
+    int (*dct_quantize)(struct MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
+    void (*fdct)(DCTELEM *block);
 } MpegEncContext;
 
 int MPV_common_init(MpegEncContext *s);
@@ -465,11 +488,15 @@ void MPV_common_init_mmx(MpegEncContext *s);
 #ifdef ARCH_ALPHA
 void MPV_common_init_axp(MpegEncContext *s);
 #endif
-extern int (*dct_quantize)(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
+#ifdef HAVE_MLIB
+void MPV_common_init_mlib(MpegEncContext *s);
+#endif
 extern void (*draw_edges)(UINT8 *buf, int wrap, int width, int height, int w);
 void ff_conceal_past_errors(MpegEncContext *s, int conceal_all);
 void ff_copy_bits(PutBitContext *pb, UINT8 *src, int length);
 void ff_clean_intra_table_entries(MpegEncContext *s);
+
+extern int ff_bit_exact;
 
 /* motion_est.c */
 void ff_estimate_p_frame_motion(MpegEncContext * s,
@@ -589,5 +616,10 @@ int ff_rate_estimate_qscale(MpegEncContext *s);
 int ff_rate_estimate_qscale_pass2(MpegEncContext *s);
 void ff_write_pass1_stats(MpegEncContext *s);
 void ff_rate_control_uninit(MpegEncContext *s);
+double ff_eval(char *s, double *const_value, char **const_name,
+               double (**func1)(void *, double), char **func1_name, 
+               double (**func2)(void *, double, double), char **func2_name,
+               void *opaque);
+
 
 #endif /* AVCODEC_MPEGVIDEO_H */

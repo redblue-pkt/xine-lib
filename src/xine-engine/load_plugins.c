@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.92 2002/09/15 12:28:16 jcdutton Exp $
+ * $Id: load_plugins.c,v 1.93 2002/09/16 21:49:35 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -108,6 +108,7 @@ static void _insert_plugin (xine_list_t *list,
   ao_info_t         *ao_new, *ao_old;
   decoder_info_t    *decoder_new, *decoder_old;
   uint32_t          *types;
+  int                priority = 0;
   int                i;
 
   entry = xine_xmalloc(sizeof(plugin_node_t));
@@ -122,7 +123,7 @@ static void _insert_plugin (xine_list_t *list,
   case PLUGIN_VIDEO_OUT:
     vo_old = info->special_info;
     vo_new = xine_xmalloc(sizeof(vo_info_t));
-    vo_new->priority = vo_old->priority;
+    priority = vo_new->priority = vo_old->priority;
     vo_new->description = _strclone(vo_old->description);
     vo_new->visual_type = vo_old->visual_type;
     entry->info->special_info = vo_new;
@@ -131,7 +132,7 @@ static void _insert_plugin (xine_list_t *list,
   case PLUGIN_AUDIO_OUT:
     ao_old = info->special_info;
     ao_new = xine_xmalloc(sizeof(ao_info_t));
-    ao_new->priority = ao_old->priority;
+    priority = ao_new->priority = ao_old->priority;
     ao_new->description = _strclone(ao_old->description);
     entry->info->special_info = ao_new;
     break;
@@ -152,12 +153,12 @@ static void _insert_plugin (xine_list_t *list,
       types[i] = decoder_old->supported_types[i];
     }
     decoder_new->supported_types = types;
-    decoder_new->priority = decoder_old->priority;
+    priority = decoder_new->priority = decoder_old->priority;
     entry->info->special_info = decoder_new;
     break;
   }
 
-  xine_list_append_content (list, entry);
+  xine_list_append_priority_content (list, entry, priority);
 }
 
 
@@ -206,7 +207,7 @@ static void collect_plugins(xine_t *this, char *path){
 	xine_log (this, XINE_LOG_PLUGIN,
 		  _("load_plugins: unable to stat %s\n"), str); 
       }
-      else {
+      else if( strstr(str, ".so") ) {
 		
 	switch (statbuffer.st_mode & S_IFMT){
 		  
@@ -217,14 +218,14 @@ static void collect_plugins(xine_t *this, char *path){
 		  
 	  if(!(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 			
-#ifdef LOG
+/*#ifdef LOG*/
 	    {
 	      char *dl_error_msg = dlerror();
-	      /* too noisy */
+	      /* too noisy -- but good to catch unresolved references */
 	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
 		      str, dl_error_msg); 
 	    }
-#endif
+/*#endif*/
 	  }
 	  else {
 			
@@ -320,6 +321,7 @@ static void *_load_plugin(xine_t *this,
 	  
 	  return info->init(this, data);
 	}
+	info++;
       }
 
     } else {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.22 2002/09/04 23:31:14 guenter Exp $
+ * $Id: xineutils.h,v 1.23 2002/09/16 21:49:35 miguelfreitas Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -786,13 +786,15 @@ extern int v_g_table[256];
 extern int v_b_table[256];
 
 
-/******** double cained lists with builtin iterator *******/
+/******** double chained lists with builtin iterator *******/
 
 typedef struct xine_node_s {
 
   struct xine_node_s    *next, *prev;
   
   void                  *content;
+
+  int                    priority;
   
 } xine_node_t;
 
@@ -839,6 +841,11 @@ void *xine_list_last_content (xine_list_t *l);
  * Return previous content of list.
  */
 void *xine_list_prev_content (xine_list_t *l);
+
+/**
+ * Append content to list, sorted by decreasing priority.
+ */
+void xine_list_append_priority_content (xine_list_t *l, void *content, int priority);
 
 /**
  * Append content to list.

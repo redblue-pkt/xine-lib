@@ -1,19 +1,31 @@
-diff -ur ./common.c ../../xine-lib/src/libffmpeg/libavcodec/common.c
---- ./common.c	Sun Jun  2 09:13:09 2002
-+++ ../../xine-lib/src/libffmpeg/libavcodec/common.c	Sun Jun  9 20:23:23 2002
-@@ -166,7 +166,7 @@
-         buf_ptr += 4;
-         /* handle common case: we can read everything */
-         if (buf_ptr <= s->buf_end) {
--#if ARCH_X86
-+#ifdef ARCH_X86
- 	    bit_buf = bswap_32(*((unsigned long*)(&buf_ptr[-4])));
+Index: libavcodec/common.h
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/common.h,v
+retrieving revision 1.56
+diff -u -r1.56 common.h
+--- libavcodec/common.h	22 Aug 2002 19:41:39 -0000	1.56
++++ libavcodec/common.h	16 Sep 2002 17:55:53 -0000
+@@ -147,11 +147,19 @@
+ 
  #else
- 	    bit_buf = (buf_ptr[-4] << 24) |
-diff -ur ./common.h ../../xine-lib/src/libffmpeg/libavcodec/common.h
---- ./common.h	Sun Jun  2 09:11:44 2002
-+++ ../../xine-lib/src/libffmpeg/libavcodec/common.h	Sun Jun  9 20:28:19 2002
-@@ -913,6 +913,8 @@
+ 
++#if __GNUC__
+ #ifdef DEBUG
+ #define dprintf(fmt,args...) printf(fmt, ## args)
+ #else
+ #define dprintf(fmt,args...)
+ #endif
++#else
++#ifdef DEBUG
++#define dprintf(...) printf(__VA_ARGS__)
++#else
++#define dprintf(...)
++#endif
++#endif
+ 
+ #endif /* !CONFIG_WIN32 */
+ 
+@@ -922,6 +930,8 @@
      }
      return ret;
  }
@@ -22,30 +34,13 @@ diff -ur ./common.h ../../xine-lib/src/libffmpeg/libavcodec/common.h
  #if __CPU__ >= 686 && !defined(RUNTIME_CPUDETECT)
  #define COPY3_IF_LT(x,y,a,b,c,d)\
  asm volatile (\
-diff -ur ./dsputil.c ../../xine-lib/src/libffmpeg/libavcodec/dsputil.c
---- ./dsputil.c	Wed Jun  5 15:48:07 2002
-+++ ../../xine-lib/src/libffmpeg/libavcodec/dsputil.c	Mon Jun 10 11:19:40 2002
-@@ -1314,7 +1314,7 @@
-     use_permuted_idct = 0;
- #endif
- 
--#ifdef SIMPLE_IDCT
-+//#ifdef SIMPLE_IDCT
-     if (ff_idct == NULL) {
-         ff_idct_put = simple_idct_put;
-         ff_idct_add = simple_idct_add;
-@@ -1323,7 +1323,7 @@
-         ff_idct_put = gen_idct_put;
-         ff_idct_add = gen_idct_add;
-     }
--#endif
-+//#endif
- 
-     if(use_permuted_idct)
- #ifdef SIMPLE_IDCT
-diff -ur ./dsputil.h ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h
---- ./dsputil.h	Wed Jun  5 15:48:07 2002
-+++ ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h	Mon Jun 10 10:56:24 2002
+Index: libavcodec/dsputil.h
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/dsputil.h,v
+retrieving revision 1.28
+diff -u -r1.28 dsputil.h
+--- libavcodec/dsputil.h	14 Sep 2002 19:00:09 -0000	1.28
++++ libavcodec/dsputil.h	16 Sep 2002 17:55:53 -0000
 @@ -21,8 +21,9 @@
  
  #include "common.h"
@@ -57,7 +52,7 @@ diff -ur ./dsputil.h ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h
  /* dct code */
  typedef short DCTELEM;
  
-@@ -105,23 +106,32 @@
+@@ -125,23 +126,32 @@
  }
  
  void block_permute(INT16 *block);
@@ -91,9 +86,13 @@ diff -ur ./dsputil.h ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h
  
  #define emms_c() \
  {\
-diff -ur ./i386/fdct_mmx.c ../../xine-lib/src/libffmpeg/libavcodec/i386/fdct_mmx.c
---- ./i386/fdct_mmx.c	Sat May 25 19:45:33 2002
-+++ ../../xine-lib/src/libffmpeg/libavcodec/i386/fdct_mmx.c	Sun Jun  9 20:32:35 2002
+Index: libavcodec/i386/fdct_mmx.c
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/fdct_mmx.c,v
+retrieving revision 1.3
+diff -u -r1.3 fdct_mmx.c
+--- libavcodec/i386/fdct_mmx.c	1 Sep 2002 16:52:33 -0000	1.3
++++ libavcodec/i386/fdct_mmx.c	16 Sep 2002 17:55:53 -0000
 @@ -45,8 +45,8 @@
      23170, 23170, 23170, 23170,	//cos * (2<<15) + 0.5
  };
@@ -128,9 +127,13 @@ diff -ur ./i386/fdct_mmx.c ../../xine-lib/src/libffmpeg/libavcodec/i386/fdct_mmx
      psrad_i2r(SHIFT_FRW_ROW, mm1);
      paddd_r2r(mm6, mm5);
      psrad_i2r(SHIFT_FRW_ROW, mm0);
-diff -ur ./i386/mmx.h ../../xine-lib/src/libffmpeg/libavcodec/i386/mmx.h
---- ./i386/mmx.h	Mon May 27 05:31:54 2002
-+++ ../../xine-lib/src/libffmpeg/libavcodec/i386/mmx.h	Thu Dec 27 18:02:23 2001
+Index: libavcodec/i386/mmx.h
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mmx.h,v
+retrieving revision 1.3
+diff -u -r1.3 mmx.h
+--- libavcodec/i386/mmx.h	27 May 2002 08:31:54 -0000	1.3
++++ libavcodec/i386/mmx.h	16 Sep 2002 17:55:53 -0000
 @@ -1,243 +1 @@
 -/*
 - * mmx.h
@@ -376,36 +379,157 @@ diff -ur ./i386/mmx.h ../../xine-lib/src/libffmpeg/libavcodec/i386/mmx.h
 -
 -#endif /* AVCODEC_I386MMX_H */
 +#include "xineutils.h"
-diff -ur ./utils.c ../../xine-lib/src/libffmpeg/libavcodec/utils.c
---- ./utils.c	Mon May 27 13:42:14 2002
-+++ ../../xine-lib/src/libffmpeg/libavcodec/utils.c	Sun Jun  9 20:36:59 2002
-@@ -485,29 +485,11 @@
-     register_avcodec(&h263i_decoder);
-     register_avcodec(&rv10_decoder);
-     register_avcodec(&mjpeg_decoder);
--    register_avcodec(&mp2_decoder);
--    register_avcodec(&mp3_decoder);
- #ifdef CONFIG_AC3
-     register_avcodec(&ac3_decoder);
- #endif
- #endif /* CONFIG_DECODERS */
+Index: libavcodec/i386/mpegvideo_mmx_template.c
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mpegvideo_mmx_template.c,v
+retrieving revision 1.10
+diff -u -r1.10 mpegvideo_mmx_template.c
+--- libavcodec/i386/mpegvideo_mmx_template.c	2 Sep 2002 16:56:29 -0000	1.10
++++ libavcodec/i386/mpegvideo_mmx_template.c	16 Sep 2002 17:55:53 -0000
+@@ -84,16 +84,25 @@
+     }
  
--    /* pcm codecs */
--
--#define PCM_CODEC(id, name) \
--    register_avcodec(& name ## _encoder); \
--    register_avcodec(& name ## _decoder); \
--
--PCM_CODEC(CODEC_ID_PCM_S16LE, pcm_s16le);
--PCM_CODEC(CODEC_ID_PCM_S16BE, pcm_s16be);
--PCM_CODEC(CODEC_ID_PCM_U16LE, pcm_u16le);
--PCM_CODEC(CODEC_ID_PCM_U16BE, pcm_u16be);
--PCM_CODEC(CODEC_ID_PCM_S8, pcm_s8);
--PCM_CODEC(CODEC_ID_PCM_U8, pcm_u8);
--PCM_CODEC(CODEC_ID_PCM_ALAW, pcm_alaw);
--PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
--
--#undef PCM_CODEC
- }
+     if(s->out_format == FMT_H263 && s->mpeg_quant==0){
+-    
++
++        /* the following code is patched using avifile's modifications
++           to enable -fpic compilation. this patch has not been accepted on
++           main ffmpeg cvs. */
++
+         asm volatile(
+             "movd %%eax, %%mm3			\n\t" // last_non_zero_p1
+             SPREADW(%%mm3)
+             "pxor %%mm7, %%mm7			\n\t" // 0
+             "pxor %%mm4, %%mm4			\n\t" // 0
+-            "movq (%2), %%mm5			\n\t" // qmat[0]
++            "movq (%1), %%mm5			\n\t" // qmat[0]
+             "pxor %%mm6, %%mm6			\n\t"
+-            "psubw (%3), %%mm6			\n\t" // -bias[0]
++            "psubw (%2), %%mm6			\n\t" // -bias[0]
+             "movl $-128, %%eax			\n\t"
++            : "+a" (last_non_zero_p1)
++            : "r" (qmat), "r" (bias)
++            );
++	  /* CORE */
++	  asm volatile(
+             ".balign 16				\n\t"
+             "1:					\n\t"
+             "pxor %%mm1, %%mm1			\n\t" // 0
+@@ -106,7 +115,7 @@
+             "por %%mm0, %%mm4			\n\t" 
+             "pxor %%mm1, %%mm0			\n\t" 
+             "psubw %%mm1, %%mm0			\n\t" // out=((ABS(block[i])*qmat[0] - bias[0]*qmat[0])>>16)*sign(block[i])
+-            "movq %%mm0, (%5, %%eax)		\n\t"
++            "movq %%mm0, (%3, %%eax)		\n\t"
+             "pcmpeqw %%mm7, %%mm0		\n\t" // out==0 ? 0xFF : 0x00
+             "movq (%4, %%eax), %%mm1		\n\t" 
+             "movq %%mm7, (%1, %%eax)		\n\t" // 0
+@@ -114,6 +123,11 @@
+ 	    PMAXW(%%mm0, %%mm3)
+             "addl $8, %%eax			\n\t"
+             " js 1b				\n\t"
++            : "+a" (last_non_zero_p1)
++            : "r" (block+64), "r" (inv_zigzag_direct16+64), "r" (temp_block+64)
++            );
++	  /* EPILOGUE */
++	  asm volatile(
+             "movq %%mm3, %%mm0			\n\t"
+             "psrlq $32, %%mm3			\n\t"
+ 	    PMAXW(%%mm0, %%mm3)
+@@ -122,48 +136,46 @@
+ 	    PMAXW(%%mm0, %%mm3)
+             "movd %%mm3, %%eax			\n\t"
+             "movzbl %%al, %%eax			\n\t" // last_non_zero_p1
+-	    : "+a" (last_non_zero_p1)
+-            : "r" (block+64), "r" (qmat), "r" (bias),
+-              "r" (inv_zigzag_direct16+64), "r" (temp_block+64)
+-        );
+-        // note the asm is split cuz gcc doesnt like that many operands ...
+-        asm volatile(
+-            "movd %1, %%mm1			\n\t" // max_qcoeff
++            "movd %2, %%mm1			\n\t" // max_qcoeff
+ 	    SPREADW(%%mm1)
+             "psubusw %%mm1, %%mm4		\n\t" 
+             "packuswb %%mm4, %%mm4		\n\t"
+-            "movd %%mm4, %0			\n\t" // *overflow
+-        : "=g" (*overflow)
+-        : "g" (s->max_qcoeff)
+-        );
++            "movd %%mm4, %1			\n\t" // *overflow
++            : "+a" (last_non_zero_p1), "=r" (*overflow)
++            : "r" (s->max_qcoeff)
++            );
+     }else{ // FMT_H263
+         asm volatile(
+-            "movd %%eax, %%mm3			\n\t" // last_non_zero_p1
++            "pushl %%ebp				\n\t"
++            "pushl %%ebx				\n\t"
++            "movl %0, %%ebp				\n\t"
++            "movl (%%ebp), %%ebx		\n\t"
++            "movd %%ebx, %%mm3			\n\t" // last_non_zero_p1
+             SPREADW(%%mm3)
+             "pxor %%mm7, %%mm7			\n\t" // 0
+             "pxor %%mm4, %%mm4			\n\t" // 0
+-            "movl $-128, %%eax			\n\t"
++            "movl $-128, %%ebx			\n\t"
+             ".balign 16				\n\t"
+             "1:					\n\t"
+             "pxor %%mm1, %%mm1			\n\t" // 0
+-            "movq (%1, %%eax), %%mm0		\n\t" // block[i]
++            "movq (%1, %%ebx), %%mm0		\n\t" // block[i]
+             "pcmpgtw %%mm0, %%mm1		\n\t" // block[i] <= 0 ? 0xFF : 0x00
+             "pxor %%mm1, %%mm0			\n\t" 
+             "psubw %%mm1, %%mm0			\n\t" // ABS(block[i])
+-            "movq (%3, %%eax), %%mm6		\n\t" // bias[0]
++            "movq (%3, %%ebx), %%mm6		\n\t" // bias[0]
+             "paddusw %%mm6, %%mm0		\n\t" // ABS(block[i]) + bias[0]
+-            "movq (%2, %%eax), %%mm5		\n\t" // qmat[i]
++            "movq (%2, %%ebx), %%mm5		\n\t" // qmat[i]
+             "pmulhw %%mm5, %%mm0		\n\t" // (ABS(block[i])*qmat[0] + bias[0]*qmat[0])>>16
+             "por %%mm0, %%mm4			\n\t" 
+             "pxor %%mm1, %%mm0			\n\t" 
+             "psubw %%mm1, %%mm0			\n\t" // out=((ABS(block[i])*qmat[0] - bias[0]*qmat[0])>>16)*sign(block[i])
+-            "movq %%mm0, (%5, %%eax)		\n\t"
++            "movq %%mm0, (%5, %%ebx)		\n\t"
+             "pcmpeqw %%mm7, %%mm0		\n\t" // out==0 ? 0xFF : 0x00
+-            "movq (%4, %%eax), %%mm1		\n\t" 
+-            "movq %%mm7, (%1, %%eax)		\n\t" // 0
++            "movq (%4, %%ebx), %%mm1		\n\t" 
++            "movq %%mm7, (%1, %%ebx)		\n\t" // 0
+             "pandn %%mm1, %%mm0			\n\t"
+ 	    PMAXW(%%mm0, %%mm3)
+-            "addl $8, %%eax			\n\t"
++            "addl $8, %%ebx			\n\t"
+             " js 1b				\n\t"
+             "movq %%mm3, %%mm0			\n\t"
+             "psrlq $32, %%mm3			\n\t"
+@@ -171,10 +183,14 @@
+             "movq %%mm3, %%mm0			\n\t"
+             "psrlq $16, %%mm3			\n\t"
+ 	    PMAXW(%%mm0, %%mm3)
+-            "movd %%mm3, %%eax			\n\t"
+-            "movzbl %%al, %%eax			\n\t" // last_non_zero_p1
+-	    : "+a" (last_non_zero_p1)
+-            : "r" (block+64), "r" (qmat+64), "r" (bias+64),
++            "movd %%mm3, %%ebx			\n\t"
++            "movzbl %%bl, %%ebx			\n\t" // last_non_zero_p1
++            "movl %%ebx, (%%ebp)		\n\t"
++            "popl %%ebx					\n\t"
++            "popl %%ebp					\n\t"
++            :
++			: "m" (last_non_zero_p1),
++              "r" (block+64), "r" (qmat+64), "r" (bias+64),
+               "r" (inv_zigzag_direct16+64), "r" (temp_block+64)
+         );
+         // note the asm is split cuz gcc doesnt like that many operands ...
+@@ -184,8 +200,8 @@
+             "psubusw %%mm1, %%mm4		\n\t" 
+             "packuswb %%mm4, %%mm4		\n\t"
+             "movd %%mm4, %0			\n\t" // *overflow
+-        : "=g" (*overflow)
+-        : "g" (s->max_qcoeff)
++        : "=r" (*overflow)
++        : "r" (s->max_qcoeff)
+         );
+     }
  
- /* this should be called after seeking and before trying to decode the next frame */
