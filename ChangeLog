@@ -1,8 +1,12 @@
+xine-lib (1-beta13)
   * xine broadcaster (send stream to multiple xine clients simultaneously)
     start master with 'xine --broadcast-port xxxx'
     start slaves with 'xine slave://master_address:xxxx'
   * nvtv updates and fixes
   * Nullsoft Video (.nsv) file demuxer
+  * libdvdnav: fix some situations where an unlucky user could trigger assertions
+  * decoder priority handling: configuring a priority of 0 means "use default"
+    users are advised to set all decoder priorities to 0 in their config files
   
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
