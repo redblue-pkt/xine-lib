@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.1 2002/08/14 02:46:22 tmmm Exp $
+ * $Id: demux_snd.c,v 1.2 2002/09/01 04:30:04 tmmm Exp $
  *
  */
 
@@ -260,7 +260,7 @@ static int demux_snd_start (demux_plugin_t *this_gen,
     if (this->input->read(this->input, header, SND_HEADER_SIZE) !=
       SND_HEADER_SIZE) {
       this->status = DEMUX_FINISHED;
-      pthread_mutex_lock(&this->mutex);
+      pthread_mutex_unlock(&this->mutex);
       return DEMUX_FINISHED;
     }
 
@@ -277,31 +277,49 @@ static int demux_snd_start (demux_plugin_t *this_gen,
       xine_log(this->xine, XINE_LOG_FORMAT,
         _("demux_snd: bad header parameters\n"));
       this->status = DEMUX_FINISHED;
-      pthread_mutex_lock(&this->mutex);
+      pthread_mutex_unlock(&this->mutex);
       return DEMUX_FINISHED;
     }
 
     switch (encoding) {
+      case 1:
+        this->audio_type = BUF_AUDIO_MULAW;
+        this->audio_bits = 16;
+        this->audio_frames = this->data_size / this->audio_channels;
+        this->audio_block_align = PCM_BLOCK_ALIGN;
+        this->audio_bytes_per_second = this->audio_channels *
+          this->audio_sample_rate;
+        break;
+
       case 3:
         this->audio_type = BUF_AUDIO_LPCM_BE;
         this->audio_bits = 16;
         this->audio_frames = this->data_size / 
           (this->audio_channels * this->audio_bits / 8);
         this->audio_block_align = PCM_BLOCK_ALIGN;
+        this->audio_bytes_per_second = this->audio_channels *
+          (this->audio_bits / 8) * this->audio_sample_rate;
+        break;
+
+      case 27:
+        this->audio_type = BUF_AUDIO_ALAW;
+        this->audio_bits = 16;
+        this->audio_frames = this->data_size / this->audio_channels;
+        this->audio_block_align = PCM_BLOCK_ALIGN;
+        this->audio_bytes_per_second = this->audio_channels *
+          this->audio_sample_rate;
         break;
 
       default:
         xine_log(this->xine, XINE_LOG_FORMAT,
           _("demux_snd: unsupported audio type: %d\n"), encoding);
         this->status = DEMUX_FINISHED;
-        pthread_mutex_lock(&this->mutex);
+        pthread_mutex_unlock(&this->mutex);
         return DEMUX_FINISHED;
         break;
     }
 
     this->running_time = this->audio_frames / this->audio_sample_rate;
-    this->audio_bytes_per_second = this->audio_channels *
-      (this->audio_bits / 8) * this->audio_sample_rate;
 
     /* print vital stats */
     xine_log(this->xine, XINE_LOG_FORMAT,
