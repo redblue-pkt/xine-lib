@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.133 2003/04/02 12:28:09 hadess Exp $
+ * $Id: video_decoder.c,v 1.134 2003/04/27 15:56:45 heinchen Exp $
  *
  */
 
@@ -360,7 +360,7 @@ void *video_decoder_loop (void *stream_gen) {
         }
 
         if (stream->spu_channel_user >= 0) {
-          if (stream->spu_channel_user <= stream->spu_track_map_entries)
+          if (stream->spu_channel_user < stream->spu_track_map_entries)
             stream->spu_channel = (stream->spu_track_map[stream->spu_channel_user] & 0xFF);
           else
             stream->spu_channel = stream->spu_channel_auto;

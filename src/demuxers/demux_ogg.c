@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2000-2003 the xine project
  * 
@@ -17,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.83 2003/04/26 20:16:18 guenter Exp $
+ * $Id: demux_ogg.c,v 1.84 2003/04/27 15:56:45 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -328,10 +329,10 @@ static void send_ogg_buf (demux_ogg_t *this,
   } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_SPU_BASE) {
 
     buf_element_t *buf;
-    int i,ignore;
+    int i;
     char *subtitle,*str;
     int lenbytes;
-    int lines,start,end;
+    int start,end;
     uint32_t *val;
 
     for (i = 0, lenbytes = 0; i < hdrlen; i++) {
@@ -381,9 +382,6 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
   int        stream_num = -1;
   int        cur_serno;
   
-  char      *buffer;
-  long       bytes;
-
   int        done = 0;
 
   int        filelength,position;
@@ -765,12 +763,26 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  }
 	} else if (!strncmp (&op.packet[1], "text", 4)) {
 	  int channel=0;
+	  uint32_t *val;
+	  buf_element_t *buf;
+
 #ifdef LOG
 	  printf ("demux_ogg: textstream detected.\n");
 #endif
 	  this->preview_buffers[stream_num] = 2;
 	  channel= this->num_spu_streams++;
 	  this->buf_types[stream_num] = BUF_SPU_OGM | channel;
+
+	  /*send an empty spu to inform the video_decoder, that there is a stream*/
+	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+	  buf->type = this->buf_types[stream_num];
+	  buf->pts = 0;
+	  val = (uint32_t * )buf->content;
+	  *val++=0;
+	  *val++=0;
+	  *val++=0;
+	  this->video_fifo->put (this->video_fifo, buf);
+
 	} else {
 	  printf ("demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
 		  op.packet);
