@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.117 2003/05/01 02:01:58 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.118 2003/05/09 23:54:05 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -722,6 +722,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("Sorenson Video 1 (ffmpeg)");
       break;
+    case BUF_VIDEO_SORENSON_V3:
+      this->codec = avcodec_find_decoder (CODEC_ID_SVQ3);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Sorenson Video 3 (ffmpeg)");
+      break;
     case BUF_VIDEO_DV:
       this->codec = avcodec_find_decoder (CODEC_ID_DVVIDEO);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
@@ -983,6 +988,7 @@ void avcodec_register_all(void)
     register_avcodec(&h263i_decoder);
     register_avcodec(&rv10_decoder);
     register_avcodec(&svq1_decoder);
+    register_avcodec(&svq3_decoder);
     register_avcodec(&wmav1_decoder);
     register_avcodec(&wmav2_decoder);
     register_avcodec(&indeo3_decoder);
@@ -1410,6 +1416,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_IV31,
   BUF_VIDEO_IV32,
   BUF_VIDEO_SORENSON_V1,
+  BUF_VIDEO_SORENSON_V3,
   BUF_VIDEO_JPEG, 
   BUF_VIDEO_MPEG, 
   BUF_VIDEO_DV,

@@ -5,7 +5,7 @@
 SUBDIRS = armv4l i386 mlib alpha libpostproc
 
 ## we include ppc/* files since auto* doesn't dive into.
-EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c wmv2.c \
+EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c svq3.c wmv2.c \
 	ppc/dsputil_ppc.c   ppc/libavcodec_ppc_dummy.c  ppc/mpegvideo_altivec.c \
 	ppc/dsputil_altivec.c  ppc/fft_altivec.c   ppc/Makefile.am ppc/mpegvideo_ppc.c \
 	ppc/dsputil_altivec.h  ppc/idct_altivec.c
