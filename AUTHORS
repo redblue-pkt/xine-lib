@@ -249,12 +249,10 @@ Contributions
     patch to improve quality of linearblend filter
 
   Dennis Bjorklund <db@zigo.dhs.org>
-    configurable size of avi subtitles
+    configurable size of avi subtitles,
+    patch to fix flashing subtitles in libsputext
       
   Claire Griffin <claire@comedia.com>
     demux_ts fixes for ATSC streams
 
-  Dennis Bjorklund <db@zigo.dhs.org>
-    patch to fix flashing subtitles in libsputext
-    
     (let us know if we've forgotten anyone)
