@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.35 2001/11/07 19:41:26 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.36 2001/11/07 21:35:01 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  *
@@ -237,6 +237,8 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     
   case BUF_VIDEO_I263:
     /* Video in I263 format */
+    this->flipped=1;
+    this->yuv_supported=1;
     return "i263_32.drv";
 
   case BUF_VIDEO_MSVC:
@@ -568,7 +570,7 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
   case BUF_AUDIO_MSGSM:
     return "msgsm32.acm";
   case BUF_AUDIO_IMC:
-    return "icm32.acm";
+    return "imc32.acm";
   case BUF_AUDIO_LH:
     return "lhacm.acm";
   }
@@ -641,7 +643,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
   acmStreamSize(this->srcstream, in_size, &srcsize, ACM_STREAMSIZEF_SOURCE);
   printf("w32codec: Audio buffer min. size: %d\n",(int)srcsize);
   srcsize*=2;
-  if(!srcsize) 
+  if(srcsize<16384) 
     srcsize=16384;
     
   acmStreamSize(this->srcstream, srcsize, (LPDWORD) &this->rec_audio_src_size, 
@@ -652,7 +654,12 @@ static int w32a_init_audio (w32a_decoder_t *this,
     free(this->buf);
   if( this->sample_buf )
     free(this->sample_buf);
-
+  
+  if( this->rec_audio_src_size < 2 * in_fmt->nBlockAlign ) {
+    this->rec_audio_src_size = 2 * in_fmt->nBlockAlign;
+    srcsize *= 2;
+    printf("w32codec: adjusting source buffer size to %d\n", this->rec_audio_src_size); 
+  }
   this->buf = malloc( 2 * this->rec_audio_src_size );
   this->sample_buf = malloc( srcsize );
   this->sample_buf_size = srcsize;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2001/10/21 00:18:22 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.17 2001/11/07 21:35:01 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -103,11 +103,12 @@ static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
   /* ffmpeg currently does not support MSMPEG4 v1/v2 */
+  /* there's some problem with I263 too */
   return ( buf_type == BUF_VIDEO_MSMPEG4_V3 ||
            /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
            buf_type == BUF_VIDEO_MPEG4 ||
            buf_type == BUF_VIDEO_MJPEG ||
-	   buf_type == BUF_VIDEO_I263 ||
+	   /* buf_type == BUF_VIDEO_I263 || */
 	   buf_type == BUF_VIDEO_RV10 ||
 	   buf_type == BUF_VIDEO_JPEG);
 }
