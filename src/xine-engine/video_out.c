@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.110 2002/11/03 13:47:00 tmattern Exp $
+ * $Id: video_out.c,v 1.111 2002/11/10 13:18:01 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -443,6 +443,8 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
   int64_t       diff;
   vo_frame_t   *img;
 
+  pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+  
   img = this->display_img_buf_queue->first;
 
   /*
@@ -467,7 +469,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 
       this->num_frames_discarded++;
 
-      img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+      img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
 
       /*
        * last frame? back it up for 
@@ -497,12 +499,15 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
     }
   }
 
+  pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 }
 
 static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
   
   vo_frame_t   *img;
 
+  pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+  
   img = this->display_img_buf_queue->first;
 
   /* 
@@ -513,6 +518,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 
   if (!img) {
 
+    pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 #ifdef LOG
     printf ("video_out: no frame\n");
 #endif
@@ -558,6 +564,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 #endif
 
     if (diff < 0) {
+      pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
       return NULL;
     }
 
@@ -586,7 +593,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      * remove frame from display queue and show it
      */
     
-    img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
+    pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 
     return img;
   }
@@ -794,14 +802,16 @@ static void *video_out_loop (void *this_gen) {
    * throw away undisplayed frames
    */
   
+  pthread_mutex_lock(&this->display_img_buf_queue->mutex);
   img = this->display_img_buf_queue->first;
   while (img) {
 
-    img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
     vo_frame_dec_lock( img );
 
     img = this->display_img_buf_queue->first;
   }
+  pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 
   if (this->img_backup) {
     vo_frame_dec_lock( this->img_backup );
