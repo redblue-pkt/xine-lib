@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.4 2001/08/22 10:51:05 jcdutton Exp $
+ * $Id: audio_out.c,v 1.5 2001/08/22 11:03:52 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -223,10 +223,8 @@ static void ao_fill_gap (ao_instance_t *self, uint32_t pts_len) {
  * So it has moved to here.
  */
 
-void write_pause_burst(alsa_instance_t *this,int error)
+void write_pause_burst(ao_instance_t *self, int error)
 {
-#define BURST_SIZE 6144
-
         unsigned char buf[8192];
         unsigned short *sbuf = (unsigned short *)&buf[0];
 
@@ -244,8 +242,8 @@ void write_pause_burst(alsa_instance_t *this,int error)
         sbuf[4] = 0x0000;
         sbuf[5] = 0x0000;
 
-        memset(&sbuf[6], 0, BURST_SIZE - 96);
-	self->driver->write(self->driver, u_char * sbuf, BURST_SIZE / 4);
+        memset(&sbuf[6], 0, 6144 - 96);
+	self->driver->write(self->driver, sbuf, 6144 / 4);
 }
 
 static int ao_write(ao_instance_t *self,
@@ -256,7 +254,11 @@ static int ao_write(ao_instance_t *self,
   int32_t          gap;
   int              bDropPackage;
   int              pos;
-
+  int      frame_size;
+  int      fscod;
+  int      frmsizecod;
+  uint8_t  *data;
+  
   if (self->driver<0)
     return 1;
 
@@ -363,11 +365,11 @@ static int ao_write(ao_instance_t *self,
       self->frame_buffer[1] = 0x4e1f;  // .............
       self->frame_buffer[2] = 0x0001;  // AC3 data
 
-           data = (uint8_t *)&output_samples[1]; // skip AC3 sync
+           data = (uint8_t *)&output_frames[1]; // skip AC3 sync
            fscod = (data[2] >> 6) & 0x3;
            frmsizecod = data[2] & 0x3f;
            frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] << 4;
-           sample_buffer[3] = frame_size;
+           self->frame_buffer[3] = frame_size;
 
     // ac3 seems to be swabbed data
       swab(output_frames,self->frame_buffer+4,  num_frames  );
