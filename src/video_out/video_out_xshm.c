@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.117 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_xshm.c,v 1.118 2003/10/24 22:34:50 f1rmb Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -134,15 +134,11 @@ static int gX11Fail;
 static int HandleXError (Display *display, XErrorEvent *xevent) {
   char str [1024];
 
-  XLockDisplay(display);
   XGetErrorText (display, xevent->error_code, str, 1024);
-  XUnlockDisplay(display);
-
   printf ("video_out_xshm: received X error event: %s\n", str);
-
   gX11Fail = 1;
-  return 0;
 
+  return 0;
 }
 
 /* called xlocked */
