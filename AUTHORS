@@ -338,6 +338,7 @@ Chris Purnell <cjp@lost.org.uk>
 
 James Stembridge <jstembridge@gmx.net>
   several VIDIX driver updates and improvements
+  support for HuffYUV decoder
 
 Mattias Eriksson <snaggen@acc.umu.se>
   ported nvtv/tvmode code
