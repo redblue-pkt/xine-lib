@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.7 2002/05/14 03:02:45 miguelfreitas Exp $
+ * $Id: utils.c,v 1.8 2002/06/23 09:12:45 esnel Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -45,13 +45,11 @@ void *xine_xmalloc(size_t size) {
   if( !size )
     size++;
     
-  if((ptr = malloc(size)) == NULL) {
+  if((ptr = calloc(1, size)) == NULL) {
     fprintf(stderr, "%s: malloc() failed: %s.\n",
 	    __XINE_FUNCTION__, strerror(errno));
     return NULL;
   }
-
-  memset(ptr, 0, size);
 
   return ptr;
 }
