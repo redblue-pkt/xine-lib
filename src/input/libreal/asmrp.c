@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.c,v 1.7 2004/03/03 20:09:13 mroi Exp $
+ * $Id: asmrp.c,v 1.8 2004/08/27 18:34:16 miguelfreitas Exp $
  *
  * a parser for real's asm rules
  *
@@ -534,6 +534,11 @@ static void asmrp_assignment (asmrp_t *p) {
 
   lprintf ("assignment\n");
 
+  if (p->sym == ASMRP_SYM_COMMA || p->sym == ASMRP_SYM_SEMICOLON) {
+    lprintf ("empty assignment\n");
+    return;
+  }
+  
   if (p->sym != ASMRP_SYM_ID) {
     printf ("error: identifier expected\n");
     _x_abort ();
