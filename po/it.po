@@ -1,22 +1,23 @@
+# translation of xine-lib.po to Italian
 # translation of it.po to Italiano
 # translation of xine-lib.po to Italiano
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
 # Giovanni Venturi <jumpyj@libero.it>, 2003.
-# Giovanni Venturi <jumpyj@tiscali.it>, 2003.
+# Giovanni Venturi <jumpyj@tiscali.it>, 2003, 2004.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-03-17 08:34+0100\n"
-"PO-Revision-Date: 2003-11-09 22:39+0100\n"
+"PO-Revision-Date: 2004-07-11 19:54+0200\n"
 "Last-Translator: Giovanni Venturi <jumpyj@tiscali.it>\n"
-"Language-Team: Italiano <kde-i18n-it@mail.kde.org>\n"
+"Language-Team: Italian <kde-i18n-it@kde.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.2\n"
+"X-Generator: KBabel 1.3.1\n"
 
 #: src/audio_out/audio_alsa_out.c:353 src/audio_out/audio_alsa_out.c:1117
 #: src/audio_out/audio_alsa_out.c:1347 src/audio_out/audio_alsa_out.c:1384
@@ -43,17 +44,17 @@ msgstr "dispositivo usato per output a canale 5.1"
 
 #: src/audio_out/audio_alsa_out.c:413
 msgid "audio_alsa_out:Already open...WHY!"
-msgstr ""
+msgstr "audio_alsa_out: già aperto...PERCHÈ!"
 
 #: src/audio_out/audio_alsa_out.c:428
 #, c-format
 msgid "audio_alsa_out: snd_pcm_open() of %s failed: %s\n"
-msgstr ""
+msgstr "audio_alsa_out: snd_pcm_open() di %s non riuscito: %s\n"
 
 #: src/audio_out/audio_alsa_out.c:430
-msgid ""
-"audio_alsa_out: >>> check if another program already uses PCM <<<\n"
+msgid "audio_alsa_out: >>> check if another program already uses PCM <<<\n"
 msgstr ""
+"audio_alsa_out: >>> controlla se un altro programma sta già usando PCM <<<\n"
 
 #: src/audio_out/audio_alsa_out.c:443
 #, c-format
@@ -61,6 +62,8 @@ msgid ""
 "audio_alsa_out: broken configuration for this PCM: no configurations "
 "available: %s\n"
 msgstr ""
+"audio_alsa_out: configurazione errata per questo PCM: nessuna configurazione "
+"disponibile: %s\n"
 
 #: src/audio_out/audio_alsa_out.c:1261 src/audio_out/audio_alsa_out.c:1535
 msgid "alsa mixer device"
@@ -69,7 +72,7 @@ msgstr "dispositivo mixer di alsa"
 #: src/audio_out/audio_alsa_out.c:1333
 #, c-format
 msgid "snd_lib_error_set_handler() failed: %d"
-msgstr ""
+msgstr "snd_lib_error_set_handler() non riuscita: %d"
 
 #: src/audio_out/audio_alsa_out.c:1340 src/audio_out/audio_alsa_out.c:1440
 #: src/audio_out/audio_alsa_out.c:1454 src/audio_out/audio_alsa_out.c:1468
@@ -79,61 +82,61 @@ msgid "used to inform xine about what the sound card can do"
 msgstr "utilizzato per informare xine delle funzinalità della scheda sonora"
 
 #: src/audio_out/audio_alsa_out.c:1398
-#, fuzzy, c-format
+#, c-format
 msgid "snd_pcm_open() failed:%d:%s\n"
-msgstr "osd: iconv_open() fallito\n"
+msgstr "snd_pcm_open() non riuscito:%d:%s\n"
 
 #: src/audio_out/audio_alsa_out.c:1400
 msgid ">>> Check if another program already uses PCM <<<\n"
-msgstr ""
+msgstr ">>>Controlla se un altro programma sta già usando PCM <<<\n"
 
 #: src/audio_out/audio_alsa_out.c:1423
 msgid "audio_alsa_out : supported modes are "
-msgstr ""
+msgstr "audio_alsa_out : i modi supportati sono "
 
 #: src/audio_out/audio_alsa_out.c:1426
 msgid "8bit "
-msgstr ""
+msgstr "8bit "
 
 #: src/audio_out/audio_alsa_out.c:1430
 msgid "mono "
-msgstr ""
+msgstr "mono "
 
 #: src/audio_out/audio_alsa_out.c:1434
 msgid "stereo "
-msgstr ""
+msgstr "stereo "
 
 #: src/audio_out/audio_alsa_out.c:1445
 msgid "4-channel "
-msgstr ""
+msgstr "4-canali "
 
 #: src/audio_out/audio_alsa_out.c:1448
 msgid "(4-channel not enabled in xine config) "
-msgstr ""
+msgstr "(4-canali non abilitato nella configurazione di xine) "
 
 #: src/audio_out/audio_alsa_out.c:1459
 msgid "4.1-channel "
-msgstr ""
+msgstr "4.1-canali "
 
 #: src/audio_out/audio_alsa_out.c:1462
 msgid "(4.1-channel not enabled in xine config) "
-msgstr ""
+msgstr "(4.1-canali non abilitati nella configurazione di xine) "
 
 #: src/audio_out/audio_alsa_out.c:1473
 msgid "5-channel "
-msgstr ""
+msgstr "5-canali "
 
 #: src/audio_out/audio_alsa_out.c:1476
 msgid "(5-channel not enabled in xine config) "
-msgstr ""
+msgstr "(5-canali non abilitati nella configurazione di xine) "
 
 #: src/audio_out/audio_alsa_out.c:1487
 msgid "5.1-channel "
-msgstr ""
+msgstr "5.1-canali "
 
 #: src/audio_out/audio_alsa_out.c:1490
 msgid "(5.1-channel not enabled in xine config) "
-msgstr ""
+msgstr "(5.1-canali non abilitati nella configurazione di xine) "
 
 #: src/audio_out/audio_alsa_out.c:1525
 msgid "a/52 and DTS pass-through\n"
@@ -156,16 +159,16 @@ msgstr "plugin output audio di xine che usa artsd di KDE"
 #: src/audio_out/audio_esd_out.c:167
 #, c-format
 msgid "audio_esd_out: connecting to ESD server %s: %s\n"
-msgstr ""
+msgstr "audio_esd_out: si sta connettendo al server ESD %s: %s\n"
 
 #: src/audio_out/audio_esd_out.c:499
 msgid "audio_esd_out: connecting to esd server...\n"
-msgstr ""
+msgstr "audio_esd_out: si sta connettendo al server ESD...\n"
 
 #: src/audio_out/audio_esd_out.c:511
 #, c-format
 msgid "audio_esd_out: can't connect to %s ESD server: %s\n"
-msgstr ""
+msgstr "audio_esd_out: impossibile connettersi al %s server ESD: %s\n"
 
 #: src/audio_out/audio_esd_out.c:536
 msgid "esd audio output latency (adjust a/v sync)"
@@ -186,38 +189,45 @@ msgstr "plugin output audio di xine che usa libaudio di IRIX"
 #: src/audio_out/audio_oss_out.c:193
 #, c-format
 msgid "audio_oss_out: Opening audio device %s: %s\n"
-msgstr ""
+msgstr "audio_oss_out: si sta aprendo il dispositivo audio %s: %s\n"
 
 #: src/audio_out/audio_oss_out.c:215
 #, c-format
 msgid ""
 "audio_oss_out: warning: sampling rate %d Hz not supported, trying 44100 Hz\n"
 msgstr ""
+"audio_oss_out: attenzione: tasso di campionamento %d Hz non supportato, si "
+"prova a 44100 Hz\n"
 
 #: src/audio_out/audio_oss_out.c:227
 #, c-format
 msgid "audio_oss_out: audio rate : %d requested, %d provided by device\n"
-msgstr ""
+msgstr "audio_oss_out: tasso audio: %d richiesto, %d fornito dal dispositivo\n"
 
 #: src/audio_out/audio_oss_out.c:536 src/audio_out/audio_oss_out.c:587
 #: src/audio_out/audio_oss_out.c:623
 #, c-format
 msgid "audio_oss_out: open() %s failed: %s\n"
-msgstr ""
+msgstr "audio_oss_out: open() %s non riuscito: %s\n"
 
 #: src/audio_out/audio_oss_out.c:739
 msgid "OSS audio device name"
-msgstr ""
+msgstr "nome dispositivo audio OSS"
 
 #: src/audio_out/audio_oss_out.c:740
 msgid ""
 "Specify base part of the audio device name then use oss_device_number to set "
 "the device number. Select auto if you want to probe for the device."
 msgstr ""
+"Specifica la parte base del nome del dispositivo audio quindi usa "
+"oss_device_number per impostare il numero del dispositivo. Seleziona l'audio "
+"se vuoi provare il dispositivo."
 
 #: src/audio_out/audio_oss_out.c:746
 msgid "OSS number N to append to audio device name /dev/dsp[N], -1 for none"
 msgstr ""
+"OSS numero N da aggiungere in fondo al nome del dispositivo audio /dev/dsp"
+"[N], -1 per nessuno"
 
 #: src/audio_out/audio_oss_out.c:747
 msgid ""
@@ -225,19 +235,24 @@ msgid ""
 "the audio device number (eg /dev/sound/dsp2). If you do not need a number, "
 "set to -1 (eg /dev/sound/dsp). The range of this variable is -1 or 0-15."
 msgstr ""
+"Il nome del dispositivo audio è creato concatenando oss_device_name e il "
+"numero del dispositivo audio (per esempio /dev/sound/dsp2). Se non hai "
+"bisogno di un numero impostalo a -1 (per esempio /dev/sound/dsp). "
+"L'intervallo di questa variabile è -1 o 0-15."
 
 #: src/audio_out/audio_oss_out.c:755
 msgid "audio_oss_out: audio.oss_device_name = auto, probing devs\n"
-msgstr ""
+msgstr "audio_oss_out: audio.oss_device_name = auto, si provano i dev\n"
 
 #: src/audio_out/audio_oss_out.c:758
 msgid "audio_oss_out: Auto probe for audio device failed\n"
 msgstr ""
+"audio_oss_out: controllo automatico per il dispositivo audio non riuscito\n"
 
 #: src/audio_out/audio_oss_out.c:774
 #, c-format
 msgid "audio_oss_out: using device >%s<\n"
-msgstr ""
+msgstr "audio_oss_out: si sta utilizzando il dispositivo >%s<\n"
 
 #: src/audio_out/audio_oss_out.c:780 src/audio_out/audio_oss_out.c:860
 #, c-format
@@ -245,6 +260,8 @@ msgid ""
 "audio_oss_out: opening audio device %s failed:\n"
 "%s\n"
 msgstr ""
+"audio_oss_out: apertura dispositivo audio %s non riuscito:\n"
+"%s\n"
 
 #: src/audio_out/audio_oss_out.c:801
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
@@ -256,12 +273,18 @@ msgid ""
 "audio_oss_out: ...will use system real-time clock for soft-sync instead\n"
 "audio_oss_out: ...there may be audio/video synchronization issues\n"
 msgstr ""
+"audio_oss_out: driver audio con sincronizzazione real time disabilitata...\n"
+"audio_oss_out: ... invece userà un sistema real-time con orologio per "
+"sincronizzazione soft\n"
+"audio_oss_out: ... potrebbe essereci sincronizzazione audio/video\n"
 
 #: src/audio_out/audio_oss_out.c:836
 msgid ""
 "audio_oss_out: Audio driver realtime sync disabled...\n"
 "audio_oss_out: ...probing output buffer size: "
 msgstr ""
+"audio_oss_out: driver audio real time con sincronizzazione disabilitato...\n"
+"audio_oss_out: ...si sta provando la dimensione del buffer di output: "
 
 #: src/audio_out/audio_oss_out.c:853
 #, c-format
@@ -269,6 +292,8 @@ msgid ""
 "%d bytes\n"
 "audio_oss_out: ...there may be audio/video synchronization issues\n"
 msgstr ""
+"%d byte\n"
+"audio_oss_out: ... potrebbe essereci sincronizzazione audio/video\n"
 
 #: src/audio_out/audio_oss_out.c:869
 msgid "Adjust a/v sync for OSS softsync"
@@ -291,14 +316,13 @@ msgid "Enable 5.1 channel analog surround output"
 msgstr "Abilita l'output surround analogico a canale 5.1"
 
 #: src/audio_out/audio_oss_out.c:959
-#, fuzzy
 msgid "OSS mixer device"
-msgstr "dispositivo mixer di oss"
+msgstr "dispositivo mixer OSS"
 
 #: src/audio_out/audio_oss_out.c:995
 #, c-format
 msgid "audio_oss_out: open() mixer %s failed: %s\n"
-msgstr ""
+msgstr "audio_oss_out: open() del mixer %s non riuscita: %s\n"
 
 #: src/audio_out/audio_oss_out.c:1034
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
@@ -313,7 +337,7 @@ msgstr "dispositivo usato per l'output audio con il plugin audio 'Sun'"
 #: src/audio_out/audio_sun_out.c:441 src/audio_out/audio_sun_out.c:909
 #, c-format
 msgid "audio_sun_out: opening audio device %s failed: %s\n"
-msgstr ""
+msgstr "audio_sun_out: apertura dispositivo audio %s non riuscita: %s\n"
 
 #: src/audio_out/audio_sun_out.c:965
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
@@ -326,29 +350,26 @@ msgid "xine dummy audio output plugin"
 msgstr "pluging output audio dummy di xine"
 
 #: src/audio_out/audio_file_out.c:318
-#, fuzzy
 msgid "xine file audio output plugin"
-msgstr "pluging output audio dummy di xine"
+msgstr "pluging output audio di xine"
 
 #: src/audio_out/audio_directx_out.c:832 src/audio_out/audio_directx_out.c:849
 msgid "xine audio output plugin for win32 using directx"
 msgstr "plugin output audio di xine che usa directx per win32"
 
 #: src/demuxers/demux_asf.c:446
-#, fuzzy, c-format
+#, c-format
 msgid "demux_asf: warning: The stream id=%d is encrypted.\n"
-msgstr ""
-"demux_mpeg_pes: attenzione: lo stream PACK con id=0x%x non è riuscito nella "
-"decodifica.\n"
+msgstr "demux_asf: attenzione: L'id dello stream =%d è cifrato.\n"
 
 #: src/demuxers/demux_asf.c:448
 msgid "Media stream scrambled/encrypted"
-msgstr ""
+msgstr "Stream multimediale confuso/cifrato"
 
 #: src/demuxers/demux_asf.c:1699
 #, c-format
 msgid "demux_asf: Wrong ASX version: %s\n"
-msgstr ""
+msgstr "demux_asf: versione ASX errata: %s\n"
 
 #: src/demuxers/demux_avi.c:542 src/demuxers/demux_avi.c:658
 msgid "Restoring index..."
@@ -357,7 +378,7 @@ msgstr "Ripristino indice..."
 #: src/demuxers/demux_avi.c:643 src/demuxers/demux_avi.c:1666
 #, c-format
 msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %lld\n"
-msgstr ""
+msgstr "demux_avi: pezzo di avi non valido \"%c%c%c%c\" alla posizione %lld\n"
 
 #: src/demuxers/demux_avi.c:841
 msgid "demux_avi: avi index is broken\n"
@@ -366,7 +387,7 @@ msgstr "demux_avi: l'indice avi è interrotto\n"
 #: src/demuxers/demux_avi.c:850
 #, c-format
 msgid "demux_avi: failed to seek to the next chunk (pos %lld)\n"
-msgstr ""
+msgstr "demux_avi: non si è riuscito a passare al prossimo pezzo (pos %lld)\n"
 
 #: src/demuxers/demux_film.c:188
 msgid "invalid FILM chunk size\n"
@@ -379,17 +400,17 @@ msgstr "parte di FILM non roconosciuta\n"
 #: src/demuxers/demux_iff.c:235
 #, c-format
 msgid "iff-8svx/16sv: unknown compression: %d\n"
-msgstr ""
+msgstr "iff-8svx/16sv: compressione sconosciuta: %d\n"
 
 #: src/demuxers/demux_iff.c:369
 #, c-format
 msgid "iff-ilbm: unknown compression: %d\n"
-msgstr ""
+msgstr "iff-ilbm: compressione sconosciuta: %d\n"
 
 #: src/demuxers/demux_iff.c:570
 #, c-format
 msgid "iff: unknown Chunk: %s\n"
-msgstr ""
+msgstr "iff: pezzo sconosciuto: %s\n"
 
 #: src/demuxers/demux_mpeg_block.c:297
 #, c-format
@@ -397,14 +418,15 @@ msgid ""
 "xine-lib:demux_mpeg_block: Unrecognised stream_id 0x%02x. Please report this "
 "to xine developers.\n"
 msgstr ""
+"xine-lib:demux_mpeg_block: stream_id 0x%02x sconosciuto. Segnala la cosa "
+"agli sviluppatori di xine.\n"
 
 #: src/demuxers/demux_mpeg_block.c:308
-#, fuzzy
 msgid ""
 "demux_mpeg_block: error! freeing. Please report this to xine developers.\n"
 msgstr ""
-"tipo di blocco VOC sconosciuto (0x%02X); per favore riporta l'errore ai "
-"sviluppatori di xine\n"
+"demux_mpeg_block: errore di deallocazione. Segnala la cosa agli sviluppatori "
+"di xine.\n"
 
 #: src/demuxers/demux_mpeg_block.c:640
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
@@ -427,6 +449,8 @@ msgid ""
 "xine-lib:demux_mpeg_pes: Unrecognised stream_id 0x%02x. Please report this "
 "to xine developers.\n"
 msgstr ""
+"xine-lib:demux_mpeg_pes: stream_id 0x%02x sconosciuto. Segnala la cosa agli "
+"sviluppatori di.\n"
 
 #: src/demuxers/demux_mpeg_pes.c:315
 #, c-format
@@ -451,13 +475,13 @@ msgstr ""
 "può essere cifrato (modalità di cifratura %d)\n"
 
 #: src/demuxers/demux_mpeg_pes.c:919
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_mpeg_pes:Unrecognised private stream 1 0x%02x. Please report this to "
 "xine developers.\n"
 msgstr ""
-"tipo di compressione VOC sconosciuta (0x%02X); per favore riporta l'errore "
-"ai sviluppatori di xine\n"
+"demux_mpeg_pes: stream 1 0x%02x privato sconosciuto. Segnala la cosa agli "
+"sviluppatori di xine.\n"
 
 #: src/demuxers/demux_ogg.c:736
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
@@ -516,16 +540,17 @@ msgstr ""
 #: src/dxr3/dxr3_decode_spu.c:214
 #, c-format
 msgid "dxr3_decode_spu: Failed to open spu device %s (%s)\n"
-msgstr ""
+msgstr "dxr3_decode_spu: apertura dispositivo SPU %s non riuscita (%s)\n"
 
 #: src/dxr3/dxr3_decode_spu.c:339
 msgid "requested button not available\n"
-msgstr ""
+msgstr "pulsante richiesto non disponibile\n"
 
 #: src/dxr3/dxr3_decode_video.c:221
 #, c-format
 msgid "dxr3_decode_video: Failed to open control device %s (%s)\n"
 msgstr ""
+"dxr3_decode_video: apertura dispositivo di controllo %s non riuscita (%s)\n"
 
 #: src/dxr3/dxr3_decode_video.c:249
 msgid "Try to sync video every frame"
@@ -556,44 +581,50 @@ msgstr "Abilita questa opzione per stream con durata dei frame errata."
 #: src/dxr3/dxr3_decode_video.c:505
 #, c-format
 msgid "dxr3_decode_video: Failed to open video device %s (%s)\n"
-msgstr ""
+msgstr "dxr3_decode_video: apertura dispositivo video %s non riuscita (%s)\n"
 
 #: src/dxr3/dxr3_decode_video.c:580
 msgid "dxr3_decode_video: write to device would block. flushing\n"
 msgstr ""
+"dxr3_decode_video: scrittura al dispositivo potrebbe bloccherebbe "
+"svuotamento\n"
 
 #: src/dxr3/dxr3_decode_video.c:584
 #, c-format
 msgid "dxr3_decode_video: video device write failed (%s)\n"
-msgstr ""
+msgstr "dxr3_decode_video: scrittura sul dispositivo video non riuscita (%s)\n"
 
 #: src/dxr3/dxr3_decode_video.c:761
 #, c-format
 msgid "dxr3_decode_video: WARNING: unknown frame rate code %d\n"
-msgstr ""
+msgstr "dxr3_decode_video: ATTENZIONE: codice tasso frame sconosciuto %d\n"
 
 #: src/dxr3/dxr3_decode_video.c:789
 msgid ""
 "dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n"
 msgstr ""
+"dxr3_decode_video: ATTENZIONE: si sta correggendo il codice tasso frame da "
+"PAL a NTSC\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:123
 msgid "dxr3_mpeg_encoder: failed to init librte\n"
-msgstr ""
+msgstr "dxr3_mpeg_encoder: inizializzazione librte non riuscita\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:160
 msgid ""
 "dxr3_mpeg_encoder: rte only handles video dimensions which are multiples of "
 "16\n"
 msgstr ""
+"dxr3_mpeg_encoder: rte gestisce solo le dimensioni video che sono multiple "
+"di 16\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:170
 msgid "dxr3_mpeg_encoder: failed to get rte context.\n"
-msgstr ""
+msgstr "dxr3_mpeg_encoder: rilevazione contesto rte non riuscito.\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:181
 msgid "dxr3_mpeg_encoder: could not create codec.\n"
-msgstr ""
+msgstr "dxr3_mpeg_encoder: impossibile creare codec.\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:189
 msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
@@ -610,16 +641,16 @@ msgstr ""
 #: src/dxr3/dxr3_mpeg_encoders.c:234
 #, c-format
 msgid "dxr3_mpeg_encoder: cannot init the context: %s\n"
-msgstr ""
+msgstr "dxr3_mpeg_encoder: impossibile inizializzare contesto: %s\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:242
 #, c-format
 msgid "dxr3_mpeg_encoder: cannot start encoding: %s\n"
-msgstr ""
+msgstr "dxr3_mpeg_encoder: impossibile avviare codifica: %s\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:376
 msgid "dxr3_mpeg_encoder: Couldn't start the FAME library\n"
-msgstr ""
+msgstr "dxr3_mpeg_encoder: impossibile avviare la libreria FAME\n"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:391
 msgid "Dxr3enc: fame mpeg encoding quality"
@@ -658,11 +689,12 @@ msgstr "dxr3:usa modo di riproduzione alternativo per codifica mpeg"
 #, c-format
 msgid "video_out_dxr3: Failed to open control device %s (%s)\n"
 msgstr ""
+"video_out_dxr3: apertura dispositivo di controllo %s non riuscita (%s)\n"
 
 #: src/dxr3/video_out_dxr3.c:296
 #, c-format
 msgid "video_out_dxr3: Failed to open video device %s (%s)\n"
-msgstr ""
+msgstr "video_out_dxr3: apertura dispositivo video %s non riuscita (%s)\n"
 
 #: src/dxr3/video_out_dxr3.c:338
 msgid "the encoder for non mpeg content"
@@ -679,14 +711,15 @@ msgstr ""
 #: src/dxr3/video_out_dxr3.c:343
 msgid "video_out_dxr3: Mpeg encoder libavcodec failed to init.\n"
 msgstr ""
+"video_out_dxr3: inizializzazione encoder MPEG libavcodec non riuscita.\n"
 
 #: src/dxr3/video_out_dxr3.c:349
 msgid "video_out_dxr3: Mpeg encoder rte failed to init.\n"
-msgstr ""
+msgstr "video_out_dxr3: inizializzazione encoder MPEG rte non riuscita.\n"
 
 #: src/dxr3/video_out_dxr3.c:356
 msgid "video_out_dxr3: Mpeg encoder fame failed to init.\n"
-msgstr ""
+msgstr "video_out_dxr3: inizializzazione encoder MPEG fame non riuscita.\n"
 
 #: src/dxr3/video_out_dxr3.c:362
 msgid ""
@@ -755,19 +788,18 @@ msgid "video_out_dxr3: ERROR Reading overlay init file. Run autocal!\n"
 msgstr ""
 
 #: src/input/input_cdda.c:865
-#, fuzzy
 msgid "input_cdda: cannot connect to host.\n"
-msgstr "input_http: non posso connettermi all'host\n"
+msgstr "input_cdda: impossibile connettersi all'host\n"
 
 #: src/input/input_cdda.c:881
-#, fuzzy, c-format
+#, c-format
 msgid "input_cdda: unable to resolve '%s'.\n"
-msgstr "input_net: impossibile risolvere '%s'.\n"
+msgstr "input_cdda: impossibile risolvere '%s'.\n"
 
 #: src/input/input_cdda.c:895
-#, fuzzy, c-format
+#, c-format
 msgid "input_cdda: unable to connect to '%s'.\n"
-msgstr "input_net: impossibile connettesi a '%s'.\n"
+msgstr "input_cdda: impossibile connettesi a '%s'.\n"
 
 #: src/input/input_cdda.c:1725
 #, c-format
@@ -775,9 +807,9 @@ msgid "input_cdda: successfuly connected to cddb server '%s:%d'.\n"
 msgstr ""
 
 #: src/input/input_cdda.c:1730
-#, fuzzy, c-format
+#, c-format
 msgid "input_cdda: failed to connect to cddb server '%s:%d' (%s).\n"
-msgstr "input_net: impossibile connettesi a '%s'.\n"
+msgstr "input_cdda: connessione al server CDDB '%s:%d' non riuscita (%s).\n"
 
 #: src/input/input_cdda.c:2608
 msgid "CD Digital Audio (aka. CDDA)"
@@ -804,23 +836,22 @@ msgid "cddbp cache directory"
 msgstr "derectory per cache CDDBP"
 
 #: src/input/input_dvb.c:410 src/input/input_dvb.c:903
-#, fuzzy
 msgid "input_dvb: tuner_set_channel failed\n"
-msgstr "input_rip: spostamento non riuscito\n"
+msgstr "input_dvb: tuner_set_channel non riuscito\n"
 
 #: src/input/input_dvb.c:693
-#, fuzzy, c-format
+#, c-format
 msgid "input_dvb: failed to open dvb channel file '%s'\n"
-msgstr "input_http: fallita apertura del socket\n"
+msgstr "input_dvb: apertura file di canale DVB non riuscita '%s'\n"
 
 #: src/input/input_dvb.c:885
 msgid "input_dvb: cannot open dvb device\n"
-msgstr ""
+msgstr "input_dvb: impossibile aprire dispositivo DVB\n"
 
 #: src/input/input_dvb.c:910
 #, c-format
 msgid "input_dvb: cannot open dvr device '%s'\n"
-msgstr ""
+msgstr "input_dvb: impossibile aprire dispositivo DVR '%s'\n"
 
 #: src/input/input_dvb.c:1005
 msgid "DVB (Digital TV) input plugin"
@@ -836,9 +867,8 @@ msgid "input_dvd: Error getting next block from DVD (%s)\n"
 msgstr ""
 
 #: src/input/input_dvd.c:1383 src/input/input_dvd.c:1394
-#, fuzzy
 msgid "input_dvd: Error opening DVD device\n"
-msgstr "input_rip: errore aprendo il file %s: %s\n"
+msgstr "input_dvd: Errore di apertura del dispositivo DVD\n"
 
 #: src/input/input_file.c:127
 #, c-format
@@ -1118,9 +1148,9 @@ msgid "setsockopt(SO_RCVBUF): %s.\n"
 msgstr "setsockopt(SO_RCVBUF): %s.\n"
 
 #: src/input/input_rtp.c:209
-#, fuzzy, c-format
+#, c-format
 msgid "setsockopt(SO_REUSEADDR): %s.\n"
-msgstr "setsockopt(SO_RCVBUF): %s.\n"
+msgstr "setsockopt(SO_REUSEADDR): %s.\n"
 
 #: src/input/input_rtp.c:216
 #, c-format
@@ -1135,7 +1165,8 @@ msgstr ""
 #: src/input/input_rtp.c:254
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
-msgstr "setsockopt(IP_ADD_MEMBERSHIP) fallito (multicast del kernel?): %s.\n"
+msgstr ""
+"setsockopt(IP_ADD_MEMBERSHIP) non riuscito (multicast del kernel?): %s.\n"
 
 #: src/input/input_rtp.c:276
 #, c-format
@@ -1184,9 +1215,9 @@ msgid "stdin: cannot seek back! (%lld > %lld)\n"
 msgstr ""
 
 #: src/input/input_stdin_fifo.c:248
-#, fuzzy, c-format
+#, c-format
 msgid "stdin: failed to open '%s'\n"
-msgstr "input_http: fallita apertura del socket\n"
+msgstr "stdin: apertura non riuscita '%s'\n"
 
 #: src/input/input_stdin_fifo.c:340
 msgid "stdin streaming input plugin"
@@ -1206,9 +1237,9 @@ msgid "Video CD input plugin"
 msgstr "plugin di input per Video CD"
 
 #: src/input/input_vcd.c:964
-#, fuzzy, c-format
+#, c-format
 msgid "unable to open %s: %s.\n"
-msgstr "impossibile risolvere '%s'.\n"
+msgstr "impossibile aprire %s: %s.\n"
 
 #: src/input/input_vcd.c:1040
 #, fuzzy, c-format
@@ -2604,7 +2635,7 @@ msgstr "xine: non si trova il plugin di input per MRL [%s]\n"
 #: src/xine-engine/xine.c:697
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
-msgstr "xine: demuxer specificato %s fallito all'avvio\n"
+msgstr "xine: demuxer specificato %s non riuscito all'avvio\n"
 
 #: src/xine-engine/xine.c:733
 msgid "xine: join rip input plugin\n"
@@ -2618,7 +2649,7 @@ msgstr "xine: condividi il plugin di input d'estrazione\n"
 #: src/xine-engine/xine.c:769
 #, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
-msgstr "xine: demuxer last_probed %s fallito all'avvio\n"
+msgstr "xine: demuxer last_probed %s non riuscito all'avvio\n"
 
 #: src/xine-engine/xine.c:798
 msgid "ignoring video\n"
@@ -2665,7 +2696,7 @@ msgstr "xine: non trovo il demux per >%s<\n"
 
 #: src/xine-engine/xine.c:990
 msgid "xine: demuxer failed to start\n"
-msgstr "xine: demuxer fallito all'avvio\n"
+msgstr "xine: demuxer non riuscito all'avvio\n"
 
 #: src/xine-engine/xine.c:1039
 msgid "xine_play: no demux available\n"
@@ -2673,7 +2704,7 @@ msgstr "xine_play: nessun demux disponibile\n"
 
 #: src/xine-engine/xine.c:1113
 msgid "xine_play: demux failed to start\n"
-msgstr "xine_play: demux fallito all'avvio\n"
+msgstr "xine_play: demux non riuscito all'avvio\n"
 
 #: src/xine-engine/xine.c:1380
 #, c-format
@@ -2810,199 +2841,3 @@ msgstr "Metodo memcopy per far usare a xine grossi pezzi di molti dati."
 #: src/xine-utils/memcpy.c:504
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr ""
-
-#~ msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
-#~ msgstr ""
-#~ "/dev/dsp# dispositivo da usare per l'output di oss, -1 => auto_rilevamento"
-
-#~ msgid ""
-#~ "demux_mpeg_block: too many errors, stopping playback. Maybe this stream "
-#~ "is scrambled?\n"
-#~ msgstr ""
-#~ "demux_mpeg_block: troppi errori, interruzione riproduzione. È possibile "
-#~ "che questo stream sia disturbato?\n"
-
-#~ msgid "input not seekable, can not handle!\n"
-#~ msgstr "non ci si può spostare nell'input, non è gestibile!\n"
-
-#~ msgid "valid mrls for pes demuxer"
-#~ msgstr "MRL validi per demuxer pes"
-
-#~ msgid "valid mrls ending for pes demuxer"
-#~ msgstr "MRL finali validi per demuxer pes"
-
-#~ msgid "RTP: waiting for preview data\n"
-#~ msgstr "RTP: in attesa di dati di anteprima\n"
-
-#~ msgid "RTP: waiting for preview data: timeout\n"
-#~ msgstr "RTP: in attesa di dati di anteprima: timeout\n"
-
-#~ msgid "Opening >%s<\n"
-#~ msgstr "Sto aprendo >%s<\n"
-
-#~ msgid "Connecting MMS server..."
-#~ msgstr "Connessione in corso al server MMS..."
-
-#~ msgid "font for external subtitles"
-#~ msgstr "fonte per sottotitoli esterni"
-
-#~ msgid "subtitle size (relative window size)"
-#~ msgstr "dimensione sottotitoli (dimensione finestra relativa)"
-
-#~ msgid "subtitle vertical offset (relative window size)"
-#~ msgstr "spostamento verticale sottotitolo (dimensione finestra relativa)"
-
-#~ msgid "encoding of subtitles"
-#~ msgstr "codifica dei sottotitoli"
-
-#~ msgid ""
-#~ "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, "
-#~ "skipping chunk\n"
-#~ msgstr ""
-#~ "FLI: in parte di FLI_COPY : sorgente dati (%d byte) più grande "
-#~ "dell'immagine, sto saltando la parte\n"
-
-#~ msgid "FLI: Unrecognized chunk type: %d\n"
-#~ msgstr "FLI: parte di tipo non riconosciuto: %d\n"
-
-#~ msgid ""
-#~ "  warning: processed FLI chunk where chunk size = %d\n"
-#~ "  and final chunk ptr = %d\n"
-#~ msgstr ""
-#~ "  attenzione: sono stati elaborate parti di FLI dove la dimensione del "
-#~ "pezzo = %d\n"
-#~ "  e il ptr della parte finale = %d\n"
-
-#~ msgid "MS RLE: stream ptr just went out of bounds (1)\n"
-#~ msgstr "MS RLE: stream ptr appena andato fuori dei limiti (1)\n"
-
-#~ msgid "MS RLE: frame ptr just went out of bounds (1)\n"
-#~ msgstr "MS RLE: frame ptr appena andato fuori dei limiti (1)\n"
-
-#~ msgid "MS RLE: stream ptr just went out of bounds (2)\n"
-#~ msgstr "MS RLE: stream ptr appena andato fuori dei limiti (2)\n"
-
-#~ msgid "MS RLE: frame ptr just went out of bounds (2)\n"
-#~ msgstr "MS RLE: frame ptr appena andato fuori dei limiti (2)\n"
-
-#~ msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
-#~ msgstr ""
-#~ "MS RLE: il frame di fine si decodifica con i byte lasciati sopra (%d < %"
-#~ "d)\n"
-
-#~ msgid "warning: block counter just went negative (this should not happen)\n"
-#~ msgstr ""
-#~ "attenzione: il contatore dei blocchi è appena diventato negativo (ciò non "
-#~ "dovrebbe succedere)\n"
-
-#~ msgid "First chunk byte is 0x%02x instead of 0x1e\n"
-#~ msgstr "Il primo pezzo di byte è 0x%02x invece di 0x1e\n"
-
-#~ msgid "MOV chunk size != encoded chunk size; using MOV chunk size\n"
-#~ msgstr ""
-#~ "dimensione della parte MOV diversa dalla dimensione del pezzo codificato; "
-#~ "si usa la dimensione della parte MOV\n"
-
-#~ msgid ""
-#~ "Unknown opcode %d in rpza chunk. Skip remaining %d bytes of chunk data.\n"
-#~ msgstr ""
-#~ "Codice operativo %d sconosciuto nella parte rpza. Si saltano i restanti %"
-#~ "d byte della parte di dati.\n"
-
-#~ msgid ""
-#~ "warning: MOV chunk size != encoded chunk size (%d != %d); using MOV chunk "
-#~ "size\n"
-#~ msgstr ""
-#~ "attenzione: la dimensione della parte MOV è diversa dalla dimensione "
-#~ "della parte codificata (%d != %d); si usa la dimensione della parte MOV\n"
-
-#~ msgid ""
-#~ "SMC decoder just went out of bounds (stream ptr = %d, chunk size = %d)\n"
-#~ msgstr ""
-#~ "Il decodificatore SMC ha appena superato i limiti (puntatore stream = %d, "
-#~ "dimensione pezzo = %d)\n"
-
-#~ msgid "SMC decoder just went out of bounds (row ptr = %d, height = %d)\n"
-#~ msgstr ""
-#~ "Il decodificatore SMC ha appena superato i limiti (puntatore di riga = %"
-#~ "d, altezza = %d)\n"
-
-#~ msgid "encountered repeat block opcode (%02X) but no blocks rendered yet\n"
-#~ msgstr ""
-#~ "Si sono incontrati ripetutamente blocchi di codice operativo (%02X) ma "
-#~ "non si ne è ancora tradotto nessun\n"
-
-#~ msgid ""
-#~ "encountered repeat block opcode (%02X) but not enough blocks rendered "
-#~ "yet\n"
-#~ msgstr ""
-#~ "Si sono incontrati ripetutamente blocchi di codice operativo (%02X) ma "
-#~ "non sono ancora sufficienti per essere tradotti\n"
-
-#~ msgid "0xF0 opcode seen in SMC chunk (xine developers would like to know)\n"
-#~ msgstr ""
-#~ "Codice operativo 0xF0 visto in pezzi di SMC (agli sviluppatori di xine "
-#~ "piacerebbe saperlo)\n"
-
-#~ msgid "Default x position"
-#~ msgstr "Posizione predefinita x"
-
-#~ msgid "Default y position"
-#~ msgstr "Posizione predefinita y"
-
-#~ msgid "Default width"
-#~ msgstr "Larghezza predefinita"
-
-#~ msgid "Default height"
-#~ msgstr "Altezza predefinita"
-
-#~ msgid "Default active stream"
-#~ msgstr "Stream attivo predefinito"
-
-#~ msgid "input_rip: stat on the file %s failed: %s\n"
-#~ msgstr "input_rip: stat sul file %s non riuscito: %s\n"
-
-#~ msgid "video_out: can't create thread (%s)\n"
-#~ msgstr "video_out: non posso creare thread (%s)\n"
-
-#~ msgid "Enable A52 / AC5 digital audio output via spdif"
-#~ msgstr "Abilita l'output audio digitale A52 / AC5 via spdif"
-
-#~ msgid "demux_roq.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_roq.c: input non ricercabile, non è trattabile!\n"
-
-#~ msgid "demux_fli.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_fli.c: input non ricercabile, non è trattabile!\n"
-
-#~ msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_smjpeg.c: input non ricercabile, non è trattabile!\n"
-
-#~ msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
-#~ msgstr "demux_wc3movie: incontrata parte sconosciuta: %c%c%c%c\n"
-
-#~ msgid "input_http: unable to resolve >%s<\n"
-#~ msgstr "input_http: impossibile risolvere >%s<\n"
-
-#~ msgid "input_http: timeout\n"
-#~ msgstr "input_http: timeout\n"
-
-#~ msgid "input_http: opening >/%s< on host >%s<"
-#~ msgstr "input_http: sto aprendo >/%s< sull'host >%s<"
-
-#~ msgid "%s via proxy >%s<"
-#~ msgstr "%s via proxy >%s<"
-
-#~ msgid "input_http: EAGAIN\n"
-#~ msgstr "input_http: EAGAIN\n"
-
-#~ msgid "NVidia TV-Out support."
-#~ msgstr "Supporto TV-Out di NVidia."
-
-#~ msgid "demux_wav.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_wav.c: input non ricercabile, non è trattabile!\n"
-
-#~ msgid "demux_aiff.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_aiff.c: input non ricercabile, non è trattabile!\n"
-
-#~ msgid "demux_snd.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_snd.c: input non ricercabile, non è trattabile!\n"
