@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.14 2001/11/18 03:53:23 guenter Exp $
+ * $Id: demux_asf.c,v 1.15 2001/11/26 13:29:54 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -628,6 +628,7 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 			     int frag_len, int payload_size) {
 
   buf_element_t *buf;
+  int bufsize;
 
   if (stream->frag_offset == 0) {
     /* new packet */
@@ -650,18 +651,16 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     }
   }
   
-  buf = stream->fifo->buffer_pool_alloc (stream->fifo);
-  buf->content = buf->mem;
-  this->input->read (this->input, buf->content, frag_len);
-
-  /*
-  printf ("demux_asf: read %d bytes :", frag_len);
-  hexdump (buf->content, frag_len);
-  */
-  if( frag_len > stream->fifo->buffer_pool_buf_size )
-    printf("demux_asf: fragment larger than fifo buffer (frag_len=%d)\n", frag_len );
-  else {
-    stream->frag_offset += frag_len;
+  
+  while( frag_len ) {
+    if ( frag_len < stream->fifo->buffer_pool_buf_size )
+      bufsize = frag_len;
+    else
+      bufsize = stream->fifo->buffer_pool_buf_size;
+  
+    buf = stream->fifo->buffer_pool_alloc (stream->fifo);
+    buf->content = buf->mem;
+    this->input->read (this->input, buf->content, bufsize);
 
     if (stream->fifo == this->video_fifo) {
       buf->input_pos  = this->input->get_current_pos (this->input);
@@ -673,10 +672,13 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     buf->PTS        = timestamp * 90;
     buf->SCR        = timestamp * 90;
     buf->type       = stream->buf_type;
-    buf->size       = frag_len;
+    buf->size       = bufsize;
+    timestamp       = 0;
   
-  /* test if whole packet read */
-  
+    stream->frag_offset += bufsize;
+    frag_len -= bufsize;
+
+    /* test if whole packet read */
     if (stream->frag_offset == payload_size) {
       buf->decoder_info[0] = 2;
       stream->frag_offset = 0;
