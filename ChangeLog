@@ -23,6 +23,7 @@ xine-lib (1-beta3)
   * experimental v4l input plugin (analogue tv)
   * FLAC support (demuxer/decoder)
   * fixed yuy2 overlays on big-endian systems
+  * experimental tvout support using nvtvd (configure --enable-nvtv)
 	
 xine-lib (1-beta2)
   * what a GOOM! post plugin
