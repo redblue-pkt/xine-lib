@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.131 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.132 2004/01/09 03:06:51 andruil Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -92,6 +92,17 @@ typedef struct chapter_info_s {
   chapter_entry_t   *entries;
 } chapter_info_t;
 
+typedef struct stream_info_s {
+  ogg_stream_state      oss;
+  uint32_t              buf_types;
+  int                   headers;
+  int64_t               header_granulepos;
+  int64_t               factor;
+  int64_t               quotient;
+  int                   resync;
+  char                  *language;
+} stream_info_t;
+
 typedef struct demux_ogg_s {
   demux_plugin_t        demux_plugin;
 
@@ -111,18 +122,10 @@ typedef struct demux_ogg_s {
   ogg_sync_state        oy;
   ogg_page              og;
 
-  ogg_stream_state      oss[MAX_STREAMS];
-  uint32_t              buf_types[MAX_STREAMS];
-  int                   headers[MAX_STREAMS];
-  int64_t               header_granulepos[MAX_STREAMS];
-  int64_t               factor[MAX_STREAMS];
-  int64_t               quotient[MAX_STREAMS];
-  int                   resync[MAX_STREAMS];
-  char                  *language[MAX_STREAMS];
-
   int64_t               start_pts;
 
   int                   num_streams;
+  stream_info_t        *si[MAX_STREAMS];   /* stream info */
 
   int                   num_audio_streams;
   int                   num_video_streams;
@@ -163,7 +166,7 @@ static int get_stream (demux_ogg_t *this, int serno) {
   int i;
 
   for (i = 0; i<this->num_streams; i++) {
-    if (this->oss[i].serialno == serno) {
+    if (this->si[i]->oss.serialno == serno) {
       return i;
     }
   }
@@ -173,14 +176,14 @@ static int get_stream (demux_ogg_t *this, int serno) {
 static int64_t get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos ) {
   /*calculates an pts from an granulepos*/
   if (granulepos<0) {
-    if ( this->header_granulepos[stream_num]>=0 ) {
+    if ( this->si[stream_num]->header_granulepos>=0 ) {
       /*return the smallest valid pts*/
       return 1;
     } else
       return 0;
 
 #ifdef HAVE_THEORA
-  } else  if (this->buf_types[stream_num]==BUF_VIDEO_THEORA) {
+  } else  if (this->si[stream_num]->buf_types == BUF_VIDEO_THEORA) {
     int64_t iframe,pframe;
     int keyframe_granule_shift;
     keyframe_granule_shift=intlog(this->t_info.keyframe_frequency_force-1);
@@ -189,8 +192,8 @@ static int64_t get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos )
     return 1+((iframe + pframe)*this->frame_duration);
 #endif
 
-  } else if (this->quotient[stream_num])
-    return 1+(granulepos*this->factor[stream_num]/this->quotient[stream_num]);
+  } else if (this->si[stream_num]->quotient)
+    return 1+(granulepos * this->si[stream_num]->factor / this->si[stream_num]->quotient);
   else
     return 0;
 }
@@ -290,7 +293,7 @@ static void send_ogg_packet (demux_ogg_t *this,
   buf->pts  = pts;
   buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
   buf->extra_info->input_time = buf->pts / 90 ;
-  buf->type       = this->buf_types[stream_num] ;
+  buf->type       = this->si[stream_num]->buf_types;
 
   this->video_fifo->put (this->video_fifo, buf);
 
@@ -311,7 +314,7 @@ static void send_ogg_packet (demux_ogg_t *this,
     buf->pts = pts;
     buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
     buf->extra_info->input_time = buf->pts / 90 ;
-    buf->type       = this->buf_types[stream_num] ;
+    buf->type       = this->si[stream_num]->buf_types;
 
     fifo->put (fifo, buf);
   }
@@ -381,7 +384,7 @@ static void read_language_comment (demux_ogg_t * this, ogg_packet *op, int strea
     while(*ptr) {
       comment=*ptr;
       if ( !strncasecmp ("LANGUAGE=", comment, 9) ) {
-        this->language[stream_num]=strdup (comment + strlen ("LANGUAGE=") );
+        this->si[stream_num]->language = strdup (comment + strlen ("LANGUAGE=") );
       }
       ++ptr;
     }
@@ -407,7 +410,7 @@ static void send_ogg_buf (demux_ogg_t *this,
   hdrlen |= (*op->packet & PACKET_LEN_BITS2) << 1;
 
   if ( this->audio_fifo
-       && (this->buf_types[stream_num] & 0xFF000000) == BUF_AUDIO_BASE) {
+       && (this->si[stream_num]->buf_types & 0xFF000000) == BUF_AUDIO_BASE) {
     uint8_t *data;
     int size;
     int64_t pts;
@@ -416,8 +419,8 @@ static void send_ogg_buf (demux_ogg_t *this,
       read_language_comment(this, op, stream_num);
     }
 
-    if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_SPEEX || 
-        (this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
+    if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_SPEEX || 
+        (this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
       data = op->packet;
       size = op->bytes;      
     } else {
@@ -426,7 +429,7 @@ static void send_ogg_buf (demux_ogg_t *this,
     }
     lprintf ("audio data size %d\n", size);
 
-    if ((op->granulepos!=-1) || (this->header_granulepos[stream_num]!=-1)) {
+    if ((op->granulepos != -1) || (this->si[stream_num]->header_granulepos != -1)) {
       pts = get_pts(this, stream_num, op->granulepos );
       check_newpts( this, pts, PTS_AUDIO, decoder_flags );
     } else
@@ -435,18 +438,18 @@ static void send_ogg_buf (demux_ogg_t *this,
     lprintf ("audiostream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
              stream_num,
              op->granulepos,
-             this->header_granulepos[stream_num],
+             this->si[stream_num]->header_granulepos,
              pts);
 
     _x_demux_send_data(this->audio_fifo, data, size,
-                       pts, this->buf_types[stream_num], decoder_flags,
+                       pts, this->si[stream_num]->buf_types, decoder_flags,
                        this->input->get_current_pos(this->input),
                        this->input->get_length(this->input),
                        pts / 90, this->time_length, 0);
 
 
 #ifdef HAVE_THEORA
-  } else if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_VIDEO_THEORA) {
+  } else if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_VIDEO_THEORA) {
 
     int64_t pts;
     theora_info t_info;
@@ -461,7 +464,7 @@ static void send_ogg_buf (demux_ogg_t *this,
       lprintf ("found an header\n");
     }
 
-    if ((op->granulepos!=-1) || (this->header_granulepos[stream_num]!=-1)) {
+    if ((op->granulepos != -1) || (this->si[stream_num]->header_granulepos != -1)) {
       pts = get_pts(this, stream_num, op->granulepos );
       check_newpts( this, pts, PTS_VIDEO, decoder_flags );
     } else
@@ -470,7 +473,7 @@ static void send_ogg_buf (demux_ogg_t *this,
     lprintf ("theorastream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
              stream_num,
              op->granulepos,
-             this->header_granulepos[stream_num],
+             this->si[stream_num]->header_granulepos,
              pts);
 
     send_ogg_packet (this, this->video_fifo, op, pts, decoder_flags, stream_num);
@@ -479,13 +482,13 @@ static void send_ogg_buf (demux_ogg_t *this,
     theora_info_clear (&t_info);
 #endif
 
-  } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) {
+  } else if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_VIDEO_BASE) {
 
     uint8_t *data;
     int size;
     int64_t pts;
 
-    lprintf ("video buffer, type=%08x\n", this->buf_types[stream_num]);
+    lprintf ("video buffer, type=%08x\n", this->si[stream_num]->buf_types);
 
     if (op->packet[0] == PACKET_TYPE_COMMENT ) {
       char           **ptr;
@@ -559,7 +562,7 @@ static void send_ogg_buf (demux_ogg_t *this,
     data = op->packet+1+hdrlen;
     size = op->bytes-1-hdrlen;
 
-    if ((op->granulepos!=-1) || (this->header_granulepos[stream_num]!=-1)) {
+    if ((op->granulepos != -1) || (this->si[stream_num]->header_granulepos != -1)) {
       pts = get_pts(this, stream_num, op->granulepos );
       check_newpts( this, pts, PTS_VIDEO, decoder_flags );
     } else
@@ -568,11 +571,11 @@ static void send_ogg_buf (demux_ogg_t *this,
     lprintf ("videostream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
              stream_num,
              op->granulepos,
-             this->header_granulepos[stream_num],
+             this->si[stream_num]->header_granulepos,
              pts);
 
     _x_demux_send_data(this->video_fifo, data, size,
-                       pts, this->buf_types[stream_num], decoder_flags,
+                       pts, this->si[stream_num]->buf_types, decoder_flags,
                        this->input->get_current_pos(this->input),
                        this->input->get_length(this->input),
                        pts / 90, this->time_length, 0);
@@ -618,7 +621,7 @@ static void send_ogg_buf (demux_ogg_t *this,
         xine_event_send(this->stream, &uevent);
       }
     }
-  } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_SPU_BASE) {
+  } else if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_SPU_BASE) {
 
     buf_element_t *buf;
     int i;
@@ -647,7 +650,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 	lprintf ("subtitlestream %d: %d -> %d :%s\n",stream_num,start,end,subtitle);
 	buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
-	buf->type = this->buf_types[stream_num];
+	buf->type = this->si[stream_num]->buf_types;
 	buf->pts = 0;
 
 	val = (uint32_t * )buf->content;
@@ -698,10 +701,11 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
         return;
       }
       
-      ogg_stream_init(&this->oss[this->num_streams], cur_serno);
+      this->si[this->num_streams] = (stream_info_t *)xine_xmalloc(sizeof(stream_info_t));
+      ogg_stream_init(&this->si[this->num_streams]->oss, cur_serno);
       stream_num = this->num_streams;
-      this->buf_types[stream_num] = 0;
-      this->header_granulepos[stream_num] = -1;
+      this->si[stream_num]->buf_types = 0;
+      this->si[stream_num]->header_granulepos = -1;
       this->num_streams++;
 
     } else {
@@ -713,21 +717,21 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
       }
     }
 
-    ogg_stream_pagein(&this->oss[stream_num], &this->og);
+    ogg_stream_pagein(&this->si[stream_num]->oss, &this->og);
 
-    while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) {
+    while (ogg_stream_packetout(&this->si[stream_num]->oss, &op) == 1) {
 
-      if (!this->buf_types[stream_num]) {
+      if (!this->si[stream_num]->buf_types) {
 	/* detect buftype */
 	if (!strncmp (&op.packet[1], "vorbis", 6)) {
 
 	  vorbis_info       vi;
 	  vorbis_comment    vc;
 
-	  this->buf_types[stream_num] = BUF_AUDIO_VORBIS
+	  this->si[stream_num]->buf_types = BUF_AUDIO_VORBIS
 	    +this->num_audio_streams++;
 
-	  this->headers[stream_num] = 3;
+	  this->si[stream_num]->headers = 3;
 
 	  vorbis_info_init(&vi);
 	  vorbis_comment_init(&vc);
@@ -738,8 +742,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
 	                         vi.rate);
 
-	    this->factor[stream_num] = 90000;
-	    this->quotient[stream_num] = vi.rate;
+	    this->si[stream_num]->factor = 90000;
+	    this->si[stream_num]->quotient = vi.rate;
 
 	    if (vi.bitrate_nominal<1)
 	      this->avg_bitrate += 100000; /* assume 100 kbit */
@@ -747,10 +751,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      this->avg_bitrate += vi.bitrate_nominal;
 
 	  } else {
-	    this->factor[stream_num] = 900;
-	    this->quotient[stream_num] = 441;
+	    this->si[stream_num]->factor = 900;
+	    this->si[stream_num]->quotient = 441;
 
-	    this->headers[stream_num] = 0;
+	    this->si[stream_num]->headers = 0;
 	    xine_log (this->stream->xine, XINE_LOG_MSG,
 		      _("ogg: vorbis audio track indicated but no vorbis stream header found.\n"));
 	  }
@@ -763,10 +767,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  SpeexMode * mode;
 	  SpeexHeader * header;
 
-	  this->buf_types[stream_num] = BUF_AUDIO_SPEEX
+	  this->si[stream_num]->buf_types = BUF_AUDIO_SPEEX
 	    +this->num_audio_streams++;
 
-	  this->headers[stream_num] = 1;
+	  this->si[stream_num]->headers = 1;
 
 	  header = speex_packet_to_header (op.packet, op.bytes);
 
@@ -784,8 +788,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
 	                         bitrate);
 
-	    this->factor[stream_num] = 90000;
-	    this->quotient[stream_num] = header->rate;
+	    this->si[stream_num]->factor = 90000;
+	    this->si[stream_num]->quotient = header->rate;
 
 	    this->avg_bitrate += bitrate;
 
@@ -795,12 +799,12 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
 	                         header->rate);
 
-	    this->headers[stream_num] += header->extra_headers;
+	    this->si[stream_num]->headers += header->extra_headers;
 	  }
 #else
 	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Speex stream detected, unable to play\n");
 
-	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
+	  this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 #endif
 	} else if (!strncmp (&op.packet[1], "video", 5)) {
 
@@ -833,11 +837,11 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	  channel = this->num_video_streams++;
 
-	  this->buf_types[stream_num] = _x_fourcc_to_buf_video (locsubtype);
-	  if( !this->buf_types[stream_num] )
-	    this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
-	  this->buf_types[stream_num] |= channel;
-	  this->headers[stream_num] = 0; /* header is sent below */
+	  this->si[stream_num]->buf_types = _x_fourcc_to_buf_video (locsubtype);
+	  if( !this->si[stream_num]->buf_types )
+	    this->si[stream_num]->buf_types = BUF_VIDEO_UNKNOWN;
+	  this->si[stream_num]->buf_types |= channel;
+	  this->si[stream_num]->headers = 0; /* header is sent below */
 
 	  lprintf ("subtype          %.4s\n", (char*)&locsubtype);
 	  lprintf ("time_unit        %lld\n", loctime_unit);
@@ -847,7 +851,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  lprintf ("bits_per_sample  %d\n", locbits_per_sample);
 	  lprintf ("width            %d\n", locwidth);
 	  lprintf ("height           %d\n", locheight);
-	  lprintf ("buf_type         %08x\n",this->buf_types[stream_num]);
+	  lprintf ("buf_type         %08x\n",this->si[stream_num]->buf_types);
 
 	  bih.biSize=sizeof(xine_bmiheader);
 	  bih.biWidth = locwidth;
@@ -864,12 +868,12 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 	  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
 	  this->frame_duration = loctime_unit * 9 / 1000;
-	  this->factor[stream_num] = loctime_unit * 9;
-	  this->quotient[stream_num] = 1000;
+	  this->si[stream_num]->factor = loctime_unit * 9;
+	  this->si[stream_num]->quotient = 1000;
 	  buf->decoder_info[1] = this->frame_duration;
 	  memcpy (buf->content, &bih, sizeof (xine_bmiheader));
 	  buf->size = sizeof (xine_bmiheader);
-	  buf->type = this->buf_types[stream_num];
+	  buf->type = this->si[stream_num]->buf_types;
 
 	  /*
 	   * video metadata
@@ -921,13 +925,13 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      
 	    channel= this->num_audio_streams++;
 	      
-	    this->buf_types[stream_num] = _x_formattag_to_buf_audio(codec);
-	    if( this->buf_types[stream_num] ) {
-	      this->buf_types[stream_num] |= channel;
+	    this->si[stream_num]->buf_types = _x_formattag_to_buf_audio(codec);
+	    if( this->si[stream_num]->buf_types ) {
+	      this->si[stream_num]->buf_types |= channel;
 	    } else {
               xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		       "demux_ogg: unknown audio codec type 0x%x\n", codec);
-	      this->buf_types[stream_num] = BUF_AUDIO_UNKNOWN;
+	      this->si[stream_num]->buf_types = BUF_AUDIO_UNKNOWN;
 	      break;
 	    }
 	      
@@ -940,10 +944,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    lprintf ("channels         %d\n", locchannels);
 	    lprintf ("blockalign       %d\n", locblockalign);
 	    lprintf ("avgbytespersec   %d\n", locavgbytespersec);
-	    lprintf ("buf_type         %08x\n",this->buf_types[stream_num]);
+	    lprintf ("buf_type         %08x\n",this->si[stream_num]->buf_types);
 
 	    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-	    buf->type = this->buf_types[stream_num];
+	    buf->type = this->si[stream_num]->buf_types;
 	    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
 	    buf->decoder_info[0] = 0;
 	    buf->decoder_info[1] = locsamples_per_unit;
@@ -951,9 +955,9 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    buf->decoder_info[3] = locchannels;
 	    this->audio_fifo->put (this->audio_fifo, buf);
 
-	    this->headers[stream_num] = 0; /* header already sent */
-	    this->factor[stream_num] = 90000;
-	    this->quotient[stream_num] = locsamples_per_unit;
+	    this->si[stream_num]->headers = 0; /* header already sent */
+	    this->si[stream_num]->factor = 90000;
+	    this->si[stream_num]->quotient = locsamples_per_unit;
 
 
 
@@ -975,7 +979,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	                         locavgbytespersec * 8);
 
 	  } else /* no audio_fifo there */
-	    this->buf_types[stream_num] = BUF_CONTROL_NOP;
+	    this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 
 	} else if (op.bytes >= 142
 		   && !strncmp (&op.packet[1], "Direct Show Samples embedded in Ogg", 35) ) {
@@ -984,7 +988,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 #ifdef LOG
 	  xine_hexdump (op.packet, op.bytes);
 #endif
-	  this->headers[stream_num] = 0; /* header is sent below */
+	  this->si[stream_num]->headers = 0; /* header is sent below */
 
 	  if ( (LE_32(&op.packet[96])==0x05589f80) && (op.bytes>=184)) {
 
@@ -999,10 +1003,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    fcc = *(uint32_t*)(op.packet+68);
 	    lprintf ("fourcc %08x\n", fcc);
 
-	    this->buf_types[stream_num] = _x_fourcc_to_buf_video (fcc);
-	    if( !this->buf_types[stream_num] )
-	      this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
-	    this->buf_types[stream_num] |= channel;
+	    this->si[stream_num]->buf_types = _x_fourcc_to_buf_video (fcc);
+	    if( !this->si[stream_num]->buf_types )
+	      this->si[stream_num]->buf_types = BUF_VIDEO_UNKNOWN;
+	    this->si[stream_num]->buf_types |= channel;
 
 	    bih.biSize          = sizeof(xine_bmiheader);
 	    bih.biWidth         = LE_32(&op.packet[176]);
@@ -1021,17 +1025,17 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 	    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
 	    this->frame_duration = (*(int64_t*)(op.packet+164)) * 9 / 1000;
-	    this->factor[stream_num] = (*(int64_t*)(op.packet+164)) * 9;
-	    this->quotient[stream_num] = 1000;
+	    this->si[stream_num]->factor = (*(int64_t*)(op.packet+164)) * 9;
+	    this->si[stream_num]->quotient = 1000;
 
 	    buf->decoder_info[1] = this->frame_duration;
 	    memcpy (buf->content, &bih, sizeof (xine_bmiheader));
 	    buf->size = sizeof (xine_bmiheader);
-	    buf->type = this->buf_types[stream_num];
+	    buf->type = this->si[stream_num]->buf_types;
 	    this->video_fifo->put (this->video_fifo, buf);
 
 	    lprintf ("subtype          %.4s\n", (char*)&fcc);
-	    lprintf ("buf_type         %08x\n", this->buf_types[stream_num]);
+	    lprintf ("buf_type         %08x\n", this->si[stream_num]->buf_types);
 	    lprintf ("video size       %d x %d\n", bih.biWidth, bih.biHeight);
 	    lprintf ("frame duration   %d\n", this->frame_duration);
 
@@ -1077,12 +1081,12 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "FIXME, old audio format not handled\n");
 	    
-	    this->buf_types[stream_num] = BUF_CONTROL_NOP;
+	    this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 
 	  } else {
 	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
                      "old header detected but stream type is unknown\n");
-	    this->buf_types[stream_num] = BUF_CONTROL_NOP;
+	    this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 	  }
 	} else if (!strncmp (&op.packet[1], "text", 4)) {
 	  int channel=0;
@@ -1090,13 +1094,13 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  buf_element_t *buf;
 
 	  lprintf ("textstream detected.\n");
-	  this->headers[stream_num] = 0;
+	  this->si[stream_num]->headers = 0;
 	  channel= this->num_spu_streams++;
-	  this->buf_types[stream_num] = BUF_SPU_OGM | channel;
+	  this->si[stream_num]->buf_types = BUF_SPU_OGM | channel;
 
 	  /*send an empty spu to inform the video_decoder, that there is a stream*/
 	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-	  buf->type = this->buf_types[stream_num];
+	  buf->type = this->si[stream_num]->buf_types;
 	  buf->pts = 0;
 	  val = (uint32_t * )buf->content;
 	  *val++=0;
@@ -1114,13 +1118,13 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	    this->num_video_streams++;
 
-	    this->factor[stream_num] = (int64_t) 90000 * (int64_t) this->t_info.fps_denominator;
-	    this->quotient[stream_num] = this->t_info.fps_numerator;
+	    this->si[stream_num]->factor = (int64_t) 90000 * (int64_t) this->t_info.fps_denominator;
+	    this->si[stream_num]->quotient = this->t_info.fps_numerator;
 
 	    this->frame_duration = ((int64_t) 90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 
-	    this->headers[stream_num]=3;
-	    this->buf_types[stream_num] = BUF_VIDEO_THEORA;
+	    this->si[stream_num]->headers=3;
+	    this->si[stream_num]->buf_types = BUF_VIDEO_THEORA;
 
 	    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
 	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
@@ -1145,11 +1149,11 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    /*Rejected stream*/
 	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
                      "A theora header was rejected by libtheora\n");
-	    this->buf_types[stream_num] = BUF_CONTROL_NOP;
-	    this->headers[stream_num] = 0; /* FIXME: don't know */
+	    this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
+	    this->si[stream_num]->headers = 0; /* FIXME: don't know */
 	  }
 #else
-	  this->buf_types[stream_num] = BUF_VIDEO_THEORA;
+	  this->si[stream_num]->buf_types = BUF_VIDEO_THEORA;
 	  _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
 #endif
 
@@ -1160,7 +1164,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
             xine_hexdump (op.packet, op.bytes);
 
-	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
+	  this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 	}
       }
 
@@ -1169,7 +1173,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
        */
 
       lprintf ("sending preview buffer of stream type %08x\n",
-               this->buf_types[stream_num]);
+               this->si[stream_num]->buf_types);
 
       send_ogg_buf (this, &op, stream_num, BUF_FLAG_HEADER);
 
@@ -1178,16 +1182,16 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	int i;
 
 	/* are we finished ? */
-	this->headers[stream_num] --;
+	this->si[stream_num]->headers --;
 	  
 	done = 1;
 
 	for (i=0; i<this->num_streams; i++) {
-	  if (this->headers[i]>0)
+	  if (this->si[i]->headers > 0)
 	    done = 0;
 
           lprintf ("%d preview buffers left to send from stream %d\n",
-                   this->headers[i], i);
+                   this->si[i]->headers, i);
 	}
       }
     }
@@ -1236,35 +1240,36 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
       return;
     }
     
-    ogg_stream_init(&this->oss[this->num_streams], cur_serno);
+    this->si[this->num_streams] = (stream_info_t *)xine_xmalloc(sizeof(stream_info_t));
+    ogg_stream_init(&this->si[this->num_streams]->oss, cur_serno);
     stream_num = this->num_streams;
-    this->buf_types[stream_num] = 0;
-    this->header_granulepos[stream_num]=-1;
+    this->si[stream_num]->buf_types = 0;
+    this->si[stream_num]->header_granulepos = -1;
     this->num_streams++;
   
   }
 
-  ogg_stream_pagein(&this->oss[stream_num], &this->og);
+  ogg_stream_pagein(&this->si[stream_num]->oss, &this->og);
 
   if (ogg_page_bos(&this->og)) {
     lprintf ("beginning of stream\ndemux_ogg: serial number %d - discard\n",
 	    ogg_page_serialno (&this->og));
-    while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) ;
+    while (ogg_stream_packetout(&this->si[stream_num]->oss, &op) == 1) ;
     return;
   }
 
   /*while keyframeseeking only process videostream*/
     if (!this->ignore_keyframes && this->keyframe_needed
-      && ((this->buf_types[stream_num] & 0xFF000000) != BUF_VIDEO_BASE))
+      && ((this->si[stream_num]->buf_types & 0xFF000000) != BUF_VIDEO_BASE))
     return;
 
-  while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) {
+  while (ogg_stream_packetout(&this->si[stream_num]->oss, &op) == 1) {
     /* printf("demux_ogg: packet: %.8s\n", op.packet); */
     /* printf("demux_ogg:   got a packet\n"); */
 
-    if ((*op.packet & PACKET_TYPE_HEADER) && (this->buf_types[stream_num]!=BUF_VIDEO_THEORA) && (this->buf_types[stream_num]!=BUF_AUDIO_SPEEX)) {
-      if (op.granulepos!=-1) {
-	this->header_granulepos[stream_num]=op.granulepos;
+    if ((*op.packet & PACKET_TYPE_HEADER) && (this->si[stream_num]->buf_types!=BUF_VIDEO_THEORA) && (this->si[stream_num]->buf_types!=BUF_AUDIO_SPEEX)) {
+      if (op.granulepos != -1) {
+	this->si[stream_num]->header_granulepos = op.granulepos;
 	lprintf ("header with granulepos, remembering granulepos\n");
       } else {
 	lprintf ("header => discard\n");
@@ -1273,25 +1278,25 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
     }
 
     /*discard granulepos-less packets and to early audiopackets*/
-    if (this->resync[stream_num]) {
-      if ((this->buf_types[stream_num] & 0xFF000000) == BUF_SPU_BASE) {
+    if (this->si[stream_num]->resync) {
+      if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_SPU_BASE) {
 	/*never drop subtitles*/
-	this->resync[stream_num]=0;
-      } else if ((op.granulepos==-1) && (this->header_granulepos[stream_num]==-1)) {
+	this->si[stream_num]->resync=0;
+      } else if ((op.granulepos == -1) && (this->si[stream_num]->header_granulepos == -1)) {
 	continue;
       } else {
 
 	/*dump too early packets*/
 	if ((get_pts(this,stream_num,op.granulepos)-this->start_pts) > -90000)
-	  this->resync[stream_num]=0;
+	  this->si[stream_num]->resync=0;
 	else
 	  continue;
       }
     }
 
     if (!this->ignore_keyframes && this->keyframe_needed) {
-      lprintf ("keyframe needed... buf_type=%08x\n", this->buf_types[stream_num]);
-      if (this->buf_types[stream_num] == BUF_VIDEO_THEORA) {
+      lprintf ("keyframe needed... buf_type=%08x\n", this->si[stream_num]->buf_types);
+      if (this->si[stream_num]->buf_types == BUF_VIDEO_THEORA) {
 #ifdef HAVE_THEORA
 
 	int keyframe_granule_shift;
@@ -1311,7 +1316,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	this->keyframe_needed = 0;
 	this->start_pts=get_pts(this,stream_num,op.granulepos);
 #endif
-      } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) {
+      } else if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_VIDEO_BASE) {
 
 	/*calculate the current pts*/
 	if (op.granulepos!=-1) {
@@ -1325,13 +1330,13 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	else
 	  continue;
 
-      } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) continue;
+      } else if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_VIDEO_BASE) continue;
     }
     send_ogg_buf (this, &op, stream_num, 0);
 
     /*delete used header_granulepos*/
-    if (op.granulepos==-1)
-      this->header_granulepos[stream_num]=-1;
+    if (op.granulepos == -1)
+      this->si[stream_num]->header_granulepos = -1;
 
   }
 }
@@ -1347,14 +1352,14 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
 static void demux_ogg_dispose (demux_plugin_t *this_gen) {
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   int i;
-
+  printf("Displose num_streams:%d\n", this->num_streams);
   for (i=0; i<this->num_streams; i++) {
-    ogg_stream_clear(&this->oss[i]);
+    ogg_stream_clear(&this->si[i]->oss);
 
-    if (this->language[i]) {
-      free (this->language[i]);
-      this->language[i]=0;
+    if (this->si[i]->language) {
+      free (this->si[i]->language);
     }
+    free(this->si[i]);
   }
 
   ogg_sync_clear(&this->oy);
@@ -1440,7 +1445,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     this->keyframe_needed = (this->num_video_streams>0);
 
     if ( (!start_pos) && (start_time)) {
-      if (this->time_length!=-1) {
+      if (this->time_length != -1) {
 	/*do the seek via time*/
 	int current_time=-1;
 	off_t current_pos;
@@ -1493,7 +1498,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     ogg_sync_reset(&this->oy);
 
     for (i=0; i<this->num_streams; i++) {
-      this->header_granulepos[i]=-1;
+      this->si[i]->header_granulepos = -1;
     }
 
     /*some strange streams have no syncpoint flag set at the beginning*/	 
@@ -1531,7 +1536,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
       /*each stream has to continue with a packet that has an
        granulepos*/
       for (i=0; i<this->num_streams; i++) {
-	this->resync[i]=1;
+	this->si[i]->resync = 1;
       }
 
       this->start_pts=-1;
@@ -1580,11 +1585,11 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
       return DEMUX_OPTIONAL_SUCCESS;
     } else if ((channel>=0) && (channel<this->num_streams)) {
        for (stream_num=0; stream_num<this->num_streams; stream_num++) {
-	if (this->buf_types[stream_num]==BUF_SPU_OGM+channel) {
-	  if (this->language[stream_num]) {
-            strncpy (str, this->language[stream_num], XINE_LANG_MAX);
+	if (this->si[stream_num]->buf_types==BUF_SPU_OGM+channel) {
+	  if (this->si[stream_num]->language) {
+            strncpy (str, this->si[stream_num]->language, XINE_LANG_MAX);
 	    str[XINE_LANG_MAX - 1] = '\0';
-	    if (strlen(this->language[stream_num]) >= XINE_LANG_MAX)
+	    if (strlen(this->si[stream_num]->language) >= XINE_LANG_MAX)
 	      /* the string got truncated */
 	      str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
 	    /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
@@ -1605,11 +1610,11 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
       return DEMUX_OPTIONAL_SUCCESS;
     } else if ((channel>=0) && (channel<this->num_streams)) {
       for (stream_num=0; stream_num<this->num_streams; stream_num++) {
-	if ((this->buf_types[stream_num]&0xFF00001F)==BUF_AUDIO_BASE+channel) {
-	  if (this->language[stream_num]) {
-            strncpy (str, this->language[stream_num], XINE_LANG_MAX);
+	if ((this->si[stream_num]->buf_types & 0xFF00001F) == BUF_AUDIO_BASE+channel) {
+	  if (this->si[stream_num]->language) {
+            strncpy (str, this->si[stream_num]->language, XINE_LANG_MAX);
 	    str[XINE_LANG_MAX - 1] = '\0';
-	    if (strlen(this->language[stream_num]) >= XINE_LANG_MAX)
+	    if (strlen(this->si[stream_num]->language) >= XINE_LANG_MAX)
 	      /* the string got truncated */
 	      str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
 	    /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
