@@ -3,7 +3,7 @@ include $(top_srcdir)/misc/Makefile.common
 EXTRA_DIST = zoom_filter_mmx.c zoom_filter_xmmx.c ppc_zoom_ultimate.s
 
 ## -fomit-frame-pointer segfaults here
-CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g'`
+CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g;s/-Os//g'`
 
 libdir = $(XINE_PLUGINDIR)/post
 
