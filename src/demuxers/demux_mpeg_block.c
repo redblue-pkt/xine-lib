@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.147 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.148 2002/12/15 01:05:36 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -640,35 +640,55 @@ static int demux_mpeg_block_send_chunk (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-/* estimate bitrate */
+/*! 
+   Estimate bitrate by looking inside the MPEG file for presentation 
+   time stamps (PTS) and computing how far apart these are 
+   in bytes and in time. 
+
+   On failure return 0.
+*/
+
+/* How many *sucessful* PTS samples do we take? */
+#define MAX_SAMPLES 5
+
+/* How many times we read blocks before giving up. */
+#define MAX_READS 30
+
+/* TRUNCATE x to the nearest multiple of y. */
+#define TRUNC(x,y) (((x) / (y)) * (y))
 
 static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 
   buf_element_t *buf = NULL;
   unsigned char *p;
   int            is_mpeg1=0;
-  off_t          pos, last_pos;
-  off_t          step;
-  int64_t        pts, last_pts;
-  int            rate;
-  int            count;
+  off_t          pos, last_pos=0;
+  off_t          step, mpeg_length;
+  off_t          blocksize = this->blocksize;
+  int64_t        pts, last_pts=0;
+  int            reads=0    /* Number of blocks read so far */;
+  int            count=0;   /* Number of sucessful PTS found so far */
+  int            rate=0;    /* The return rate value */
   int            stream_id;
 
+  /* We can't estimate by sampling if we don't thave the ability to 
+     randomly access the and more importantly reset after accessessing.  */
   if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE))
     return 0;
 
-  last_pos = 0;
-  last_pts = 0;
-  rate     = 0;
-  step     = this->input->get_length (this->input) / 10;
-  step     = (step / this->blocksize) * this->blocksize;
-  if (step <= 0) step = this->blocksize; /* avoid endless loop for tiny files */
-  pos      = step;
-  count    = 0;
+  mpeg_length= this->input->get_length (this->input);
+  step = TRUNC((mpeg_length/MAX_SAMPLES), blocksize); 
+  if (step <= 0) step = blocksize; /* avoid endless loop for tiny files */
+  pos = step;
+
+  /* At this point "pos", and "step" are a multiple of blocksize and
+     they should continue to be so throughout.
+   */
   
   this->input->seek (this->input, pos, SEEK_SET);
 
-  while ((buf = this->input->read_block (this->input, this->video_fifo, this->blocksize)) ) {
+  while ( (buf = this->input->read_block (this->input, this->video_fifo, blocksize)) 
+	  && count < MAX_SAMPLES && reads++ < MAX_READS ) {
 
     p = buf->content; /* len = this->mnBlocksize; */
 
@@ -698,7 +718,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     pts = 0; 
 
     if ((stream_id < 0xbc) || ((stream_id & 0xf0) != 0xe0)) {
-      pos += (off_t) this->blocksize;
+      pos += (off_t) blocksize;
       buf->free_buffer (buf);
       continue; /* only use video packets */
     }
@@ -762,11 +782,11 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
       last_pts = pts;
       pos += step;
     } else
-      pos += (off_t) this->blocksize;
+      pos += blocksize;
 
     buf->free_buffer (buf);
 
-    if (this->input->seek (this->input, pos, SEEK_SET) == (off_t)-1)
+    if (pos > mpeg_length || this->input->seek (this->input, pos, SEEK_SET) == (off_t)-1)
       break;
 
   }
