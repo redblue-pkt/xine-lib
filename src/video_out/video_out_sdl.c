@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -17,8 +17,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.15 2002/11/20 11:57:48 mroi Exp $
- * 
+ * $Id: video_out_sdl.c,v 1.16 2002/11/24 02:50:48 storri Exp $
+ *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
  * based on mpeg2dec code from
@@ -29,7 +29,7 @@
  *   Missing features:
  *    - mouse position translation
  *    - fullscreen
- *    - stability, testing, etc?? ;) 
+ *    - stability, testing, etc?? ;)
  *   Known bugs:
  *    - without X11, a resize is need to show image (?)
  *
@@ -62,7 +62,7 @@
 
 /*
 #define SDL_LOG
-*/           
+*/
 
 typedef struct sdl_driver_s sdl_driver_t;
 
@@ -82,7 +82,7 @@ struct sdl_driver_s {
   SDL_Surface       *surface;
   uint32_t           sdlflags;
   uint8_t            bpp;
-  
+
   pthread_mutex_t    mutex;
 
   uint32_t           capabilities;
@@ -97,6 +97,11 @@ struct sdl_driver_s {
   vo_scale_t         sc;
 
 };
+
+typedef struct {
+  video_driver_class_t driver_class;
+  config_values_t     *config;
+} sdl_class_t;
 
 static uint32_t sdl_get_capabilities (vo_driver_t *this_gen) {
 
@@ -115,7 +120,7 @@ static void sdl_frame_dispose (vo_frame_t *vo_img) {
 
   if( frame->overlay )
     SDL_FreeYUVOverlay (frame->overlay);
-  
+
   free (frame);
 }
 
@@ -149,7 +154,7 @@ static void sdl_compute_ideal_size (sdl_driver_t *this) {
 }
 
 static void sdl_compute_output_size (sdl_driver_t *this) {
-  
+
   vo_scale_compute_output_size( &this->sc );
 
 #ifdef LOG
@@ -167,7 +172,7 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
 
   sdl_driver_t  *this = (sdl_driver_t *) this_gen;
   sdl_frame_t   *frame = (sdl_frame_t *) frame_gen;
-  
+
   if ((frame->width != width)
       || (frame->height != height)
       || (frame->format != format)) {
@@ -175,19 +180,19 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     /*
      * (re-) allocate image
      */
-    
+
     if( frame->overlay ) {
       SDL_FreeYUVOverlay (frame->overlay);
-      frame->overlay = NULL; 
+      frame->overlay = NULL;
     }
-      
+
     if( format == XINE_IMGFMT_YV12 ) {
 #ifdef SDL_LOG
       printf ("video_out_sdl: format YV12 ");
 #endif
       frame->overlay = SDL_CreateYUVOverlay (width, height, SDL_YV12_OVERLAY,
 					     this->surface);
-      
+
     } else if( format == XINE_IMGFMT_YUY2 ) {
 #ifdef SDL_LOG
       printf ("video_out_sdl: format YUY2 ");
@@ -195,17 +200,17 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
       frame->overlay = SDL_CreateYUVOverlay (width, height, SDL_YUY2_OVERLAY,
 					     this->surface);
     }
-    
+
     if (frame->overlay == NULL)
       return;
- 
+
     frame->vo_frame.pitches[0] = frame->overlay->pitches[0];
     frame->vo_frame.pitches[1] = frame->overlay->pitches[2];
     frame->vo_frame.pitches[2] = frame->overlay->pitches[1];
     frame->vo_frame.base[0] = frame->overlay->pixels[0];
     frame->vo_frame.base[1] = frame->overlay->pixels[2];
     frame->vo_frame.base[2] = frame->overlay->pixels[1];
-    
+
     frame->width  = width;
     frame->height = height;
     frame->format = format;
@@ -222,14 +227,14 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
 static void sdl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
   sdl_frame_t   *frame = (sdl_frame_t *) frame_gen;
-  
+
   if (overlay->rle) {
     if( frame->format == XINE_IMGFMT_YV12 )
-      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
+      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
     else
-      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
+      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
   }
-  
+
 }
 
 static void sdl_check_events (sdl_driver_t * this)
@@ -241,10 +246,10 @@ static void sdl_check_events (sdl_driver_t * this)
       if( event.resize.w != this->sc.gui_width || event.resize.h != this->sc.gui_height ) {
         this->sc.gui_width = event.resize.w;
         this->sc.gui_height = event.resize.h;
-        
+
         sdl_compute_output_size(this);
-        
-        this->surface = SDL_SetVideoMode (this->sc.gui_width, this->sc.gui_height, 
+
+        this->surface = SDL_SetVideoMode (this->sc.gui_width, this->sc.gui_height,
                                       this->bpp, this->sdlflags);
       }
     }
@@ -269,21 +274,21 @@ static int sdl_redraw_needed (vo_driver_t *this_gen) {
 #else
 
   static int last_gui_width, last_gui_height;
-  
+
   if( last_gui_width != this->sc.gui_width ||
       last_gui_height != this->sc.gui_height ||
       this->sc.force_redraw ) {
-    
+
     last_gui_width = this->sc.gui_width;
     last_gui_height = this->sc.gui_height;
-  
+
     sdl_compute_output_size (this);
 
     ret = 1;
   }
 
   this->sc.force_redraw = 0;
-  
+
   return ret;
 
 #endif
@@ -302,7 +307,7 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	 || (frame->height != this->sc.delivered_height)
 	 || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
 	 printf("video_out_sdl: change frame format\n");
-      
+
       this->sc.delivered_width      = frame->width;
       this->sc.delivered_height     = frame->height;
       this->sc.delivered_ratio_code = frame->ratio_code;
@@ -311,33 +316,33 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
       this->sc.force_redraw = 1;
   }
-    
-  /* 
+
+  /*
    * tell gui that we are about to display a frame,
    * ask for offset and output size
    */
   sdl_check_events (this);
   sdl_redraw_needed (this_gen);
-    
+
   SDL_UnlockYUVOverlay (frame->overlay);
-  clip_rect.x = this->sc.output_xoffset;  
-  clip_rect.y = this->sc.output_yoffset;  
-  clip_rect.w = this->sc.output_width;  
-  clip_rect.h = this->sc.output_height;  
+  clip_rect.x = this->sc.output_xoffset;
+  clip_rect.y = this->sc.output_yoffset;
+  clip_rect.w = this->sc.output_width;
+  clip_rect.h = this->sc.output_height;
   SDL_DisplayYUVOverlay (frame->overlay, &clip_rect);
-  
+
   frame->vo_frame.displayed (&frame->vo_frame);
-  
+
   pthread_mutex_unlock(&this->mutex);
 }
 
 static int sdl_get_property (vo_driver_t *this_gen, int property) {
 
   sdl_driver_t *this = (sdl_driver_t *) this_gen;
-  
+
   if ( property == VO_PROP_ASPECT_RATIO)
     return this->sc.user_ratio ;
-  
+
   return 0;
 }
 
@@ -345,17 +350,17 @@ static int sdl_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
 
   sdl_driver_t *this = (sdl_driver_t *) this_gen;
-  
+
   if ( property == VO_PROP_ASPECT_RATIO) {
     if (value>=NUM_ASPECT_RATIOS)
       value = ASPECT_AUTO;
     this->sc.user_ratio = value;
     printf("video_out_sdl: aspect ratio changed to %s\n",
 	   vo_scale_aspect_ratio_name(value));
-    
+
     sdl_compute_ideal_size (this);
     this->sc.force_redraw = 1;
-  } 
+  }
 
   return value;
 }
@@ -374,26 +379,26 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
   sdl_driver_t     *this = (sdl_driver_t *) this_gen;
 
   pthread_mutex_lock(&this->mutex);
-    
+
   switch (data_type) {
 
   case XINE_GUI_SEND_DRAWABLE_CHANGED:
 #ifdef SDL_LOG
       printf ("video_out_sdl: XINE_GUI_SEND_DRAWABLE_CHANGED\n");
 #endif
-    
+
     this->drawable = (Drawable) data;
     /* OOPS! Is it possible to change SDL window id? */
     /* probably we need to close and reinitialize SDL */
     break;
-  
+
   case XINE_GUI_SEND_EXPOSE_EVENT:
 #ifdef SDL_LOG
       printf ("video_out_sdl: XINE_GUI_SEND_EXPOSE_EVENT\n");
 #endif
     break;
-      
-  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+
+  case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
     {
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
@@ -420,82 +425,98 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
 
   return ret;
 }
-                            
-static void sdl_exit (vo_driver_t *this_gen) {
 
-  sdl_driver_t *this = (sdl_driver_t *) this_gen;
+static void sdl_dispose (vo_driver_t * this_gen) {
+
+  sdl_driver_t      *this = (sdl_driver_t*) this_gen;
 
   SDL_FreeSurface (this->surface);
   SDL_QuitSubSystem (SDL_INIT_VIDEO);
+
+  free(this);
 }
 
-static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
 
-  sdl_driver_t          *this;
-  const SDL_VideoInfo * vidInfo;
+  sdl_class_t          *class = (sdl_class_t*) class_gen;
+  config_values_t      *config = class->config;
+  sdl_driver_t         *this;
+
+  const SDL_VideoInfo  *vidInfo;
 #ifdef HAVE_X11
-  static char SDL_windowhack[32];
+  static char           SDL_windowhack[32];
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
-  XWindowAttributes window_attributes;
+  XWindowAttributes     window_attributes;
 #endif
-    
+
+  printf ("video_out_sdl: open_plugin\n");
+
   this = malloc (sizeof (sdl_driver_t));
 
   if (!this) {
-    printf ("video_out_sdl: malloc failed\n");
+    printf ("video_out_sdl: open_plugin - malloc failed\n");
     return NULL;
   }
+
   memset (this, 0, sizeof(sdl_driver_t));
 
   this->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
 
   xine_setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
   xine_setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
-  
+
 #ifdef HAVE_X11
   this->display           = visual->display;
   this->screen            = visual->screen;
   this->drawable          = visual->d;
 
-  vo_scale_init( &this->sc, visual->display_ratio, 0, 0 );
+  printf("video_out_sdl: open_plugin - vo_scale_init\n");
+  vo_scale_init( &this->sc, 0, 0, config);
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 
-  
+
   /* set SDL to use our existing X11 window */
   sprintf(SDL_windowhack,"SDL_WINDOWID=0x%x", (uint32_t) this->drawable );
   putenv(SDL_windowhack);
+  printf("video_out_sdl: open_plugin - set SDL to use our existing X11 window\n");
 #else
-  vo_scale_init( &this->sc, 1.0, 0, 0 );
+  vo_scale_init( &this->sc, 0, 0, config );
 #endif
-  
-  if (SDL_Init (SDL_INIT_VIDEO)) {
-    fprintf (stderr, "sdl video initialization failed.\n");
+
+
+  if ((SDL_Init (SDL_INIT_VIDEO)) < 0) {
+    printf ("video_out_sdl: open_plugin - sdl video initialization failed.\n");
     return NULL;
   }
+  printf("video_out_sdl: open_plugin - sdl video initialization success\n");
 
   vidInfo = SDL_GetVideoInfo ();
   if (!SDL_ListModes (vidInfo->vfmt, SDL_HWSURFACE | SDL_RESIZABLE)) {
     this->sdlflags = SDL_RESIZABLE;
     if (!SDL_ListModes (vidInfo->vfmt, SDL_RESIZABLE)) {
-      fprintf (stderr, "sdl couldn't get any acceptable video mode\n");
+      fprintf (stderr, "video_out_sdl: open_plugin - sdl couldn't get any acceptable video mode\n");
       return NULL;
     }
   }
-  
+  printf("video_out_sdl: open_plugin - sdl found acceptable video mode\n");
+  this->surface = SDL_SetVideoMode (this->sc.gui_width, this->sc.gui_height,
+                                     this->bpp, this->sdlflags);
+  printf("video_out_sdl: open_plugin - sdl set video mode\n");
+
   this->bpp = vidInfo->vfmt->BitsPerPixel;
   if (this->bpp < 16) {
     fprintf(stderr, "sdl has to emulate a 16 bit surfaces, "
                     "that will slow things down.\n");
     this->bpp = 16;
   }
-      
-  this->config            = config;
+
+  this->config            = class->config;
   pthread_mutex_init (&this->mutex, NULL);
-  
+
   this->capabilities      = VO_CAP_YUY2 | VO_CAP_YV12;
 
-#ifdef HAVE_X11  
+#ifdef HAVE_X11
   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
   this->sc.gui_width         = window_attributes.width;
   this->sc.gui_height        = window_attributes.height;
@@ -506,7 +527,7 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->surface = SDL_SetVideoMode (this->sc.gui_width, this->sc.gui_height,
                                     this->bpp, this->sdlflags);
-  
+
   this->vo_driver.get_capabilities     = sdl_get_capabilities;
   this->vo_driver.alloc_frame          = sdl_alloc_frame;
   this->vo_driver.update_frame_format  = sdl_update_frame_format;
@@ -518,23 +539,51 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.set_property         = sdl_set_property;
   this->vo_driver.get_property_min_max = sdl_get_property_min_max;
   this->vo_driver.gui_data_exchange    = sdl_gui_data_exchange;
-  this->vo_driver.exit                 = sdl_exit;
+  this->vo_driver.dispose              = sdl_dispose;
   this->vo_driver.redraw_needed        = sdl_redraw_needed;
 
   printf ("video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
   printf ("video_out_sdl: fullscreen mode is NOT supported\n");
   return &this->vo_driver;
 }
+/**
+ * Class Functions
+ */
+static char* get_identifier (video_driver_class_t *this_gen) {
+  return "SDL";
+}
+
+static char* get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using the Simple Direct Media Layer");
+}
+
+static void dispose_class (video_driver_class_t *this_gen) {
+  free(this_gen);
+}
+
+
+static void *init_class (xine_t *xine, void *visual_gen) {
+  /* x11_visual_t     *visual = (x11_visual_t *) visual_gen; */
+  sdl_class_t      *this = (sdl_class_t*) malloc (sizeof (sdl_class_t));
+
+  this->driver_class.open_plugin      = open_plugin;
+  this->driver_class.get_identifier   = get_identifier;
+  this->driver_class.get_description  = get_description;
+  this->driver_class.dispose          = dispose_class;
+
+  this->config        = xine->config;
+
+  return this;
+}
 
 static vo_info_t vo_info_sdl = {
-  6,
-  "sdl",
-  NULL,
-  XINE_VISUAL_TYPE_X11,
-  4  
+  6,                    /* priority */
+  XINE_VISUAL_TYPE_X11, /* visual type supported by this plugin */
 };
 
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_sdl.description = _("xine video output plugin using Simple DirectMedia Layer");
-  return &vo_info_sdl;
-}
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_VIDEO_OUT, 12, "sdl", XINE_VERSION_CODE, &vo_info_sdl, init_class },
+  { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
+};
+
