@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.114 2004/12/18 19:56:57 mlampard Exp $
+ * $Id: demux_ts.c,v 1.115 2004/12/20 20:00:27 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -325,6 +325,14 @@ typedef struct {
 
   /* dvb */
   xine_event_queue_t *event_queue;
+  /* For syncronisation */
+  int32_t packet_number;
+  /* NEW: var to keep track of number of last read packets */
+  int32_t npkt_read;
+  int32_t read_zero;
+
+  uint8_t buf[BUF_SIZE]; /* == PKT_SIZE * NPKT_PER_READ */
+
 } demux_ts_t;
 
 typedef struct {
@@ -1428,19 +1436,13 @@ static int sync_detect(demux_ts_t*this, uint8_t *buf, int32_t npkt_read) {
  */
 static unsigned char * demux_synchronise(demux_ts_t* this) {
 
-  static int32_t packet_number = 0;
-  /* NEW: var to keep track of number of last read packets */
-  static int32_t npkt_read = 0;
-  static int32_t read_zero = 0;
-
-  static uint8_t buf[BUF_SIZE]; /* This should change to a malloc. */
   uint8_t *return_pointer = NULL;
   int32_t read_length;
-  if (packet_number >= npkt_read) {
+  if ( (this->packet_number) >= this->npkt_read) {
 
     /* NEW: handle read returning less packets than NPKT_PER_READ... */
     do {
-      read_length = this->input->read(this->input, buf,
+      read_length = this->input->read(this->input, this->buf,
 				      PKT_SIZE * NPKT_PER_READ);
       if (read_length % PKT_SIZE) {
 	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -1449,23 +1451,23 @@ static unsigned char * demux_synchronise(demux_ts_t* this) {
 	this->status = DEMUX_FINISHED;
 	return NULL;
       }
-      npkt_read = read_length / PKT_SIZE;
+      this->npkt_read = read_length / PKT_SIZE;
 
 #ifdef TS_READ_STATS
-      this->rstat[npkt_read]++;
+      this->rstat[this->npkt_read]++;
 #endif
       /*
-       * what if npkt_read < 5 ? --> ok in sync_detect
+       * what if this->npkt_read < 5 ? --> ok in sync_detect
        *
        * NEW: stop demuxing if read returns 0 a few times... (200)
        */
 
-      if (npkt_read == 0) {
-	/* printf ("demux_ts: read 0 packets! (%d)\n", read_zero); */
-	read_zero++;
-      } else read_zero = 0;
+      if (this->npkt_read == 0) {
+	/* printf ("demux_ts: read 0 packets! (%d)\n", this->read_zero); */
+	this->read_zero++;
+      } else this->read_zero = 0;
 
-      if (read_zero > 200) {
+      if (this->read_zero > 200) {
 	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: read 0 packets too many times!\n");
 	this->status = DEMUX_FINISHED;
 	return NULL;
@@ -1473,16 +1475,16 @@ static unsigned char * demux_synchronise(demux_ts_t* this) {
 
     } while (! read_length);
 
-    packet_number = 0;
+    this->packet_number = 0;
 
-    if (!sync_detect(this, &buf[0], npkt_read)) {
+    if (!sync_detect(this, &(this->buf)[0], this->npkt_read)) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: sync error.\n");
       this->status = DEMUX_FINISHED;
       return NULL;
     }
   }
-  return_pointer = &buf[PKT_SIZE * packet_number];
-  packet_number++;
+  return_pointer = &(this->buf)[PKT_SIZE * this->packet_number];
+  this->packet_number++;
   return return_pointer;
 }
 
