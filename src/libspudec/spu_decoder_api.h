@@ -75,6 +75,8 @@ struct spu_decoder_s {
 
   int (*get_nav_pci) (spu_decoder_t *this, pci_t *nav_pci);
 
+  void (*set_button) (spu_decoder_t *this_gen, int32_t button, int32_t mode);
+
   void *node; /* used by plugin loader */
 };
 

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.99 2002/10/23 20:26:34 guenter Exp $
+ * $Id: input_dvd.c,v 1.100 2002/10/24 11:30:38 jcdutton Exp $
  *
  */
 
@@ -763,10 +763,12 @@ static void flush_buffers(dvd_input_plugin_t *this) {
 }
 
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
-  int button;
-  spu_button_t spu_button;
-  /* FIXME: get events working */
-  /*xine_spu_event_t spu_event;*/
+  int32_t button;
+  int32_t show;
+
+  if (!this || !(this->stream) || !(this->stream->spu_decoder_plugin) ) {
+    return;
+  }
   dvdnav_get_current_highlight(this->dvdnav, &button);
   if (button == this->buttonN && (mode ==0) ) return;
   this->buttonN = button; /* Avoid duplicate sending of button info */
@@ -775,13 +777,8 @@ static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
 #endif
   /* Do we want to show or hide the button? */
   /* libspudec will control hiding */
-/* FIXME: get events working
-  spu_event.event.type = XINE_EVENT_SPU_BUTTON;
-  spu_event.data = &spu_button;
-*/
-  spu_button.show = mode + 1; /* mode=0 select, 1 activate. */
-  spu_button.buttonN  = button;
-  /*xine_send_event(this->stream, &spu_event.event);*/
+  show = mode + 1; /* mode=0 select, 1 activate. */
+  this->stream->spu_decoder_plugin->set_button (this->stream->spu_decoder_plugin, button, mode + 1);
 }
 
 static void dvd_event_listener(void *this_gen, const xine_event_t *event) {
@@ -790,12 +787,11 @@ static void dvd_event_listener(void *this_gen, const xine_event_t *event) {
   dvd_input_class_t  *class = (dvd_input_class_t*)this->input_plugin.input_class;
   config_values_t  *config = class->config;       /* Pointer to XineRC config file   */  
   printf("input_dvd:dvd_event_listener: EVENT=%d\n", event->type);
-  /*  dvd_input_class_t     *class = (dvd_input_class_t*)class_gen; */
+
   if(!this->dvdnav) {
     return;
   }
 
-/* FIXME */
   switch(event->type) {
     case XINE_EVENT_INPUT_MENU2:
       printf("input_dvd: MENU2 key hit.\n");
@@ -1658,6 +1654,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.100  2002/10/24 11:30:38  jcdutton
+ * Further changes to DVD code.
+ *
  * Revision 1.99  2002/10/23 20:26:34  guenter
  * final c++ -> c coding style fixes, libxine compiles now
  *
