@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.23 2004/04/10 09:45:44 valtri Exp $
+ * $Id: demux_ipmovie.c,v 1.24 2004/05/29 20:20:55 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -314,10 +314,12 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         current_file_pos = this->input->get_current_pos(this->input);
 
         /* figure out the number of audio frames */
-        if (this->audio_type == BUF_AUDIO_LPCM_LE)
+        if (this->audio_type == BUF_AUDIO_LPCM_LE) {
+          opcode_size -= 6;
           this->audio_frame_count +=
             (opcode_size / this->wave.nChannels / (this->wave.wBitsPerSample / 8));
-        else
+          this->input->seek(this->input, 6, SEEK_CUR);
+        } else
           this->audio_frame_count +=
             (opcode_size - 6) / this->wave.nChannels;
         audio_pts = 90000;
@@ -477,6 +479,8 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           buf->extra_info->input_length = this->data_size;
           buf->extra_info->input_time = this->video_pts / 90;
           buf->pts = this->video_pts;
+          buf->decoder_flags = BUF_FLAG_FRAMERATE;
+          buf->decoder_info[0] = this->frame_pts_inc;
 
           if (opcode_size > buf->max_size)
             buf->size = buf->max_size;
