@@ -1,23 +1,23 @@
-/* 
+/*
  * Copyright (C) 2001-2002 the xine project
- * 
+ *
  * This file is part of xine, a free video player.
- * 
+ *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decore-if.h,v 1.3 2002/04/06 21:08:29 guenter Exp $ 
+ * $Id: decore-if.h,v 1.4 2002/10/22 04:44:44 storri Exp $
  *
  * This file documents the interface for the decore() function
  * in libdivxdecore. In case of problems, it is recommended you compare
@@ -35,14 +35,14 @@
  *
  * THIS FILE AND THE XINE DECORE PLUGIN ARE INTENDED FOR THE BINARY DIVX4LINUX
  * PACKAGE. OPENDIVX DECORE LIBRARIES ARE CURRENTLY NOT SUPPORTED AND MAY OR
- * MAY NOT WORK. 
- * 
+ * MAY NOT WORK.
+ *
  * Harm van der Heijden <hrm@users.sourceforge.net>
  */
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #ifndef _DECORE_IF_H_
 #define _DECORE_IF_H_
@@ -51,8 +51,8 @@ extern "C" {
 #define DEC_OPT_MEMORY_REQS	0
 #define DEC_OPT_INIT		1
 #define DEC_OPT_RELEASE		2
-#define DEC_OPT_SETPP		3 
-#define DEC_OPT_SETOUT		4 
+#define DEC_OPT_SETPP		3
+#define DEC_OPT_SETOUT		4
 #define DEC_OPT_FRAME		5
 #define DEC_OPT_FRAME_311	6
 #define DEC_OPT_SETPP2		7
@@ -78,13 +78,13 @@ extern "C" {
 #define DEC_YV12		13 /* looks like an afterthought, eh? */
 #define DEC_ARGB                14
 
-/* colour formats -- rgb 
+/* colour formats -- rgb
    not yet used by xine, but perhaps in the future.
    (decore yuv->rgb conversion may be better than libsdl/Xshm) */
-#define DEC_RGB32		4 
-#define DEC_RGB24		5 
-#define DEC_RGB555		6 
-#define DEC_RGB565		7	
+#define DEC_RGB32		4
+#define DEC_RGB24		5
+#define DEC_RGB555		6
+#define DEC_RGB565		7
 
 #define DEC_RGB32_INV		8
 #define DEC_RGB24_INV		9
@@ -92,7 +92,7 @@ extern "C" {
 #define DEC_RGB565_INV 		11
 
 /* pseudo colour format; makes decore() return pointers to internal
-   yuv buffers for manual conversion, see DEC_PICTURE */  
+   yuv buffers for manual conversion, see DEC_PICTURE */
 #define DEC_USER		12
 
 /* memory requirement structure; the officical codec spec calls for
@@ -111,10 +111,10 @@ typedef struct
 } DEC_MEM_REQS;
 
 /* included in DEC_PARAM for init, not really used otherwise. */
-typedef struct 
+typedef struct
 {
-	void * mp4_edged_ref_buffers;  
-	void * mp4_edged_for_buffers; 
+	void * mp4_edged_ref_buffers;
+	void * mp4_edged_for_buffers;
 	void * mp4_edged_back_buffers;
 	void * mp4_display_buffers;
 	void * mp4_state;
@@ -124,11 +124,11 @@ typedef struct
 } DEC_BUFFERS;
 
 /* struct for DEC_OPT_INIT */
-typedef struct 
+typedef struct
 {
 	int x_dim; /* frame width */
 	int y_dim; /* frame height */
-	int output_format; /* refers to colour formats defined above */	
+	int output_format; /* refers to colour formats defined above */
 	int time_incr; /* mystery parameter, use 15 */
         int codec_version;
         int build_number;
@@ -156,7 +156,7 @@ typedef struct
 /* structure for DEC_OPT_SETPP, for setting the postprocessing level */
 typedef struct
 {
-	int postproc_level; /* between 0-100, actually used 0-60 */ 
+	int postproc_level; /* between 0-100, actually used 0-60 */
 
         int deblock_hor_luma;
         int deblock_ver_luma;
@@ -182,16 +182,16 @@ typedef struct
 /* Finally, decore() itself. Refer to the official codec interface text for
    a complete description. */
 int decore( unsigned long handle, unsigned long dec_opt, void* param1, void* param2);
-/* handle: unique caller handle. xine uses the video_decoder_t ptr. 
+/* handle: unique caller handle. xine uses the video_decoder_t ptr.
    dec_opt: decore command id
    param1: depends on command. Usually ptr to struct with input values.
    param2: depends on command. Usually ptr to struct with output values. */
 
 /* typedef for pointer to decore function */
-typedef int (*decoreFunc)(unsigned long, unsigned long, void*, void*); 
+typedef int (*decoreFunc)(unsigned long, unsigned long, void*, void*);
 
-#endif // _DECORE_IF_H_
+#endif /* _DECORE_IF_H_ */
 #ifdef __cplusplus
 }
 #endif
- 
+

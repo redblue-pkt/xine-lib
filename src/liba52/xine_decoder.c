@@ -1,23 +1,23 @@
-/* 
+/*
  * Copyright (C) 2000-2002 the xine project
- * 
+ *
  * This file is part of xine, a free video player.
- * 
+ *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.35 2002/10/18 15:29:19 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.36 2002/10/22 04:42:45 storri Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -44,7 +44,7 @@
 
 #undef DEBUG_A52
 #ifdef DEBUG_A52
-int a52file; 
+int a52file;
 #endif
 
 typedef struct {
@@ -56,7 +56,7 @@ typedef struct a52dec_decoder_s {
   audio_decoder_t  audio_decoder;
 
   a52dec_class_t  *class;
-  xine_stream_t   *stream; 
+  xine_stream_t   *stream;
   int64_t          pts;
 
   uint8_t          frame_buffer[3840];
@@ -166,34 +166,34 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 
   int output_mode = AO_CAP_MODE_STEREO;
 
-  /* 
+  /*
    * do we want to decode this frame in software?
    */
-  
+
   if (!this->bypass_mode) {
-    
+
     int              a52_output_flags, i;
     sample_t         level = this->a52_level;
     audio_buffer_t  *buf;
     int16_t         *int_samples;
     sample_t        *samples = a52_samples(this->a52_state);
-    
-    /* 
+
+    /*
      * oki, decode this frame in software
      */
-    
+
     /* determine output mode */
-    
+
     a52_output_flags = this->a52_flags_map[this->a52_flags & A52_CHANNEL_MASK];
-    
-    if (a52_frame (this->a52_state, 
-		   this->frame_buffer, 
+
+    if (a52_frame (this->a52_state,
+		   this->frame_buffer,
 		   &a52_output_flags,
 		   &level, 384)) {
       printf ("liba52: a52_frame error\n");
       return;
     }
-    
+
     if (this->disable_dynrng)
       a52_dynrng (this->a52_state, NULL, NULL);
 
@@ -202,31 +202,31 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       output_mode = AO_CAP_MODE_5_1CHANNEL;
     else
       output_mode = this->ao_flags_map[a52_output_flags];
-    
+
     /*
      * (re-)open output device
      */
-    
-    if (!this->output_open 
-	|| (this->a52_sample_rate != this->output_sampling_rate) 
+
+    if (!this->output_open
+	|| (this->a52_sample_rate != this->output_sampling_rate)
 	|| (output_mode != this->output_mode)) {
-      
+
       if (this->output_open)
 	this->audio_out->close (this->audio_out);
-      
-      
-      this->output_open = this->audio_out->open (this->audio_out, 16, 
+
+
+      this->output_open = this->audio_out->open (this->audio_out, 16,
 						 this->a52_sample_rate,
 						 output_mode) ;
       this->output_sampling_rate = this->a52_sample_rate;
       this->output_mode = output_mode;
     }
-    
-    
-    if (!this->output_open) 
+
+
+    if (!this->output_open)
       return;
-    
-    
+
+
     /*
      * decode a52 and convert/interleave samples
      */
@@ -239,9 +239,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       if (a52_block (this->a52_state)) {
 	printf ("liba52: a52_block error\n");
 	buf->num_frames = 0;
-	break; 
+	break;
       }
-      
+
       switch (output_mode) {
       case AO_CAP_MODE_MONO:
 	float_to_int (&samples[0], int_samples+(i*256), 1);
@@ -275,9 +275,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 	printf ("liba52: help - unsupported mode %08x\n", output_mode);
       }
     }
-      
+
     /*  output decoded samples */
-      
+
     buf->vpts       = pts;
     this->audio_out->put_buffer (this->audio_out, buf);
 
@@ -286,21 +286,21 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
     /*
      * loop through a52 data
      */
-    
+
     if (!this->output_open) {
-      
+
       int sample_rate, bit_rate, flags;
-      
+
       a52_syncinfo (this->frame_buffer, &flags, &sample_rate, &bit_rate);
-      
-      this->output_open = this->audio_out->open (this->audio_out, 16, 
+
+      this->output_open = this->audio_out->open (this->audio_out, 16,
 						 sample_rate,
 						 AO_CAP_MODE_A52) ;
       this->output_mode = AO_CAP_MODE_A52;
     }
-    
+
     if (this->output_open) {
-      /* SPDIF Passthrough 
+      /* SPDIF Passthrough
        * Build SPDIF Header and encaps the A52 audio data in it.
        */
       uint32_t syncword, crc1, fscod,frmsizecod,bsid,bsmod,frame_size;
@@ -313,7 +313,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       fscod = (data_in[4] >> 6) & 0x3;
       frmsizecod = data_in[4] & 0x3f;
       bsid = (data_in[5] >> 3) & 0x1f;
-      bsmod = data_in[5] & 0x7;		// bsmod, stream = 0
+      bsmod = data_in[5] & 0x7;		/* bsmod, stream = 0 */
       frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] ;
 
       data_out[0] = 0x72; data_out[1] = 0xf8;	/* spdif syncword    */
@@ -326,9 +326,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 
       buf->num_frames = 1536;
       buf->vpts       = pts;
-       
+
       this->audio_out->put_buffer (this->audio_out, buf);
-      
+
     }
   }
 }
@@ -339,11 +339,11 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t          *current = buf->content;
   uint8_t          *end = buf->content + buf->size;
   uint8_t           byte;
-  
+
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
-  
-  if (buf->pts) 
+
+  if (buf->pts)
     this->pts = buf->pts;
 
   while (current != end) {
@@ -357,7 +357,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->sync_todo = 7;
       this->syncword  = 0;
     }
-    
+
     while (1) {
       byte = *current++;
 
@@ -372,7 +372,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	    this->frame_buffer[0] = 0x0b;
 	    this->frame_buffer[1] = 0x77;
-	  
+
 	    this->sync_todo = 5;
 	    this->frame_ptr = this->frame_buffer+2;
 	  }
@@ -401,15 +401,15 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	*this->frame_ptr++ = byte;
 	this->frame_todo--;
-	
+
 	if (this->frame_todo == 0) {
-	  if (current == end) 
+	  if (current == end)
 	    return ;
 	  break;
 	}
       }
 
-      if (current == end) 
+      if (current == end)
 	return ;
     }
   }
@@ -417,18 +417,18 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 static void a52dec_dispose (audio_decoder_t *this_gen) {
 
-  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen; 
+  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
-  if (this->output_open) 
+  if (this->output_open)
     this->audio_out->close (this->audio_out);
 
   this->output_open = 0;
-  
+
   a52_free(this->a52_state);
   this->a52_state = NULL;
 
 #ifdef DEBUG_A52
-  close (a52file); 
+  close (a52file);
 #endif
   free (this_gen);
 }
@@ -447,7 +447,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.dispose             = a52dec_dispose;
   this->stream                            = stream;
   this->class                             = (a52dec_class_t *) class_gen;
-  cfg = this->class->config;  
+  cfg = this->class->config;
 
   this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
 						 0, 200,
@@ -481,16 +481,16 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
     this->bypass_mode = 1;
   else {
     this->bypass_mode = 0;
-     
+
     this->a52_flags_map[A52_MONO]   = A52_MONO;
     this->a52_flags_map[A52_STEREO] = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
     this->a52_flags_map[A52_3F]     = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_2F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
-    this->a52_flags_map[A52_3F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
+    this->a52_flags_map[A52_2F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
     this->a52_flags_map[A52_2F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
     this->a52_flags_map[A52_3F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
     this->a52_flags_map[A52_DOLBY]  = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    
+
     this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
     this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_STEREO;
     this->ao_flags_map[A52_3F]      = AO_CAP_MODE_STEREO;
@@ -530,13 +530,13 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
       this->a52_flags_map[A52_MONO]   = A52_MONO;
       this->a52_flags_map[A52_STEREO] = A52_MONO;
-      this->a52_flags_map[A52_3F]     = A52_MONO; 
-      this->a52_flags_map[A52_2F1R]   = A52_MONO; 
-      this->a52_flags_map[A52_3F1R]   = A52_MONO; 
+      this->a52_flags_map[A52_3F]     = A52_MONO;
+      this->a52_flags_map[A52_2F1R]   = A52_MONO;
+      this->a52_flags_map[A52_3F1R]   = A52_MONO;
       this->a52_flags_map[A52_2F2R]   = A52_MONO;
       this->a52_flags_map[A52_3F2R]   = A52_MONO;
       this->a52_flags_map[A52_DOLBY]  = A52_MONO;
-      
+
       this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
       this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_MONO;
       this->ao_flags_map[A52_3F]      = AO_CAP_MODE_MONO;
@@ -553,7 +553,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
     this->a52_flags_map[i] |= A52_ADJUST_LEVEL;
   */
 #ifdef DEBUG_A52
-  a52file = open ("test.a52", O_CREAT | O_WRONLY | O_TRUNC, 0644); 
+  a52file = open ("test.a52", O_CREAT | O_WRONLY | O_TRUNC, 0644);
 #endif
   return &this->audio_decoder;
 }
@@ -576,7 +576,7 @@ static void dispose_class (audio_decoder_class_t *this) {
 static void *init_plugin (xine_t *xine, void *data) {
 
   a52dec_class_t *this;
-  
+
   this = (a52dec_class_t *) malloc (sizeof (a52dec_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
@@ -591,7 +591,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 }
 
 
-static uint32_t audio_types[] = { 
+static uint32_t audio_types[] = {
   BUF_AUDIO_A52, 0
  };
 
@@ -601,7 +601,7 @@ static decoder_info_t dec_info_audio = {
 };
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_AUDIO_DECODER, 10, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
