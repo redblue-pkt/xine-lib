@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2002 the xine project
+ * Copyright (C) 2001-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.97 2003/02/23 01:22:56 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.98 2003/02/23 22:03:16 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -504,8 +504,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  float diff;
    
 	  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
+
 	  diff = abs_float( this->context->aspect_ratio - 
 			    (float)this->bih.biWidth/(float)this->bih.biHeight);
+	  /* according to miguel some decoders set aspect_ratio=0,
+	   * stick to XINE_VO_ASPECT_DONT_TOUCH in that case 
+	   */
+	  if ( abs_float (this->context->aspect_ratio) < 0.1 )
+	    diff = 0.0;
 
 	  if( diff > abs_float( this->context->aspect_ratio - 1.0 ) ) {
 	    this->xine_aspect_ratio = XINE_VO_ASPECT_SQUARE;
