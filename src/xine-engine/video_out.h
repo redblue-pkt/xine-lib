@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.94 2003/08/05 15:03:14 mroi Exp $
+ * $Id: video_out.h,v 1.95 2003/08/12 13:53:30 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -133,6 +133,7 @@ struct vo_frame_s {
   int                        format;        /* IMGFMT_YV12 or IMGFMT_YUY2                     */
 
   int                        drawn;         /* used by decoder, frame has already been drawn */
+  int                        flags;         /* remember the frame flags */
   int                        copy_called;   /* track use of copy() method */
   
   /* "backward" references to where this frame originates from */

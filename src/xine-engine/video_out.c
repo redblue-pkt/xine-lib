@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.167 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.168 2003/08/12 13:53:30 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -282,19 +282,24 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   printf ("video_out: got a frame -> pthread_mutex_lock (&img->mutex)\n");
 #endif
 
+  /* some decoders report strange ratios */
+  if (ratio <= 0.0)
+    ratio = (double)width / (double)height;
+  
   pthread_mutex_lock (&img->mutex);
   img->lock_counter   = 1;
   img->width          = width;
   img->height         = height;
   img->ratio          = ratio;
   img->format         = format;
+  img->flags          = flags;
   img->copy_called    = 0;
   img->bad_frame      = 0;
   img->progressive_frame  = 0;
   img->repeat_first_field = 0;
   img->top_field_first    = 1;
   extra_info_reset ( img->extra_info );
-  
+
   /* let driver ensure this image has the right format */
 
   this->driver->update_frame_format (this->driver, img, width, height, 
@@ -541,9 +546,10 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->height         = img->height;
   dupl->ratio          = img->ratio;
   dupl->format         = img->format;
+  dupl->flags          = img->flags | VO_BOTH_FIELDS;
   
   this->driver->update_frame_format (this->driver, dupl, dupl->width, dupl->height, 
-				     dupl->ratio, dupl->format, VO_BOTH_FIELDS);
+				     dupl->ratio, dupl->format, dupl->flags);
 
   pthread_mutex_unlock (&dupl->mutex);
   
