@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.129 2003/03/08 14:11:52 mroi Exp $
+ * $Id: xine_internal.h,v 1.130 2003/03/25 12:52:41 mroi Exp $
  *
  */
 
@@ -249,6 +249,14 @@ struct xine_stream_s {
   int                        slave_affection;   /* what operations need to be propagated down to the slave? */
   
   int                        err;
+  
+  /* on-the-fly port rewiring */
+  xine_video_port_t         *next_video_port;
+  xine_audio_port_t         *next_audio_port;
+  pthread_mutex_t            next_video_port_lock;
+  pthread_mutex_t            next_audio_port_lock;
+  pthread_cond_t             next_video_port_wired;
+  pthread_cond_t             next_audio_port_wired;
 };
 
 

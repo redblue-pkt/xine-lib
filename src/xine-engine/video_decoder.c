@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.131 2003/03/07 15:29:32 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.132 2003/03/25 12:52:35 mroi Exp $
  *
  */
 
@@ -82,6 +82,24 @@ void *video_decoder_loop (void *stream_gen) {
 #ifdef LOG
     printf ("video_decoder: got buffer 0x%08x\n", buf->type);      
 #endif
+    
+    /* check for a new port to use */
+    if (stream->next_video_port) {
+      int64_t img_duration;
+      int width, height;
+      
+      /* noone is allowed to modify the next port from now on */
+      pthread_mutex_lock(&stream->next_video_port_lock);
+      if (stream->video_out->status(stream->video_out, stream, &width, &height, &img_duration)) {
+        /* register our stream at the new output port */
+        stream->next_video_port->open(stream->next_video_port, stream);
+        stream->video_out->close(stream->video_out, stream);
+      }
+      stream->video_out = stream->next_video_port;
+      stream->next_video_port = NULL;
+      pthread_mutex_unlock(&stream->next_video_port_lock);
+      pthread_cond_broadcast(&stream->next_video_port_wired);
+    }
 
     switch (buf->type & 0xffff0000) {
     case BUF_CONTROL_HEADERS_DONE:
@@ -436,5 +454,8 @@ void video_decoder_shutdown (xine_stream_t *stream) {
 #ifdef LOG
   printf ("video_decoder: shutdown...4\n");
 #endif
+
+  /* wakeup any rewire operations */
+  pthread_cond_broadcast(&stream->next_video_port_wired);
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.237 2003/03/16 21:40:27 f1rmb Exp $
+ * $Id: xine.c,v 1.238 2003/03/25 12:52:37 mroi Exp $
  *
  * top-level xine functions
  *
@@ -301,20 +301,23 @@ static int xine_stream_rewire_audio(xine_post_out_t *output, void *data)
 {
   xine_stream_t *stream = (xine_stream_t *)output->data;
   xine_audio_port_t *new_port = (xine_audio_port_t *)data;
-  uint32_t bits, rate;
-  int mode;
+  buf_element_t *buf;
   
   if (!data)
     return 0;
-    
-  if (stream->audio_out && 
-      stream->audio_out->status(stream->audio_out, stream, &bits, &rate, &mode)) {
-    /* register our stream at the new output port */
-    stream->audio_out->close(stream->audio_out, stream);
-    new_port->open(new_port, stream, bits, rate, mode);
+  
+  pthread_mutex_lock(&stream->next_audio_port_lock);
+  stream->next_audio_port = new_port;
+  if (stream->audio_fifo &&
+      (buf = stream->audio_fifo->buffer_pool_try_alloc(stream->audio_fifo))) {
+    /* wake up audio decoder thread */
+    buf->type = BUF_CONTROL_NOP;
+    stream->audio_fifo->insert(stream->audio_fifo, buf);
   }
-  /* reconnect ourselves */
-  stream->audio_out = new_port;
+  /* wait till rewiring is finished */
+  pthread_cond_wait(&stream->next_audio_port_wired, &stream->next_audio_port_lock);
+  pthread_mutex_unlock(&stream->next_audio_port_lock);
+    
   return 1;
 }
 
@@ -322,21 +325,23 @@ static int xine_stream_rewire_video(xine_post_out_t *output, void *data)
 {
   xine_stream_t *stream = (xine_stream_t *)output->data;
   xine_video_port_t *new_port = (xine_video_port_t *)data;
-  int width, height;
-  int64_t img_duration;
-
+  buf_element_t *buf;
+  
   if (!data)
     return 0;
-    
-  if (stream->video_out && 
-      stream->video_out->status(stream->video_out, stream, 
-                                &width, &height, &img_duration)) {
-    /* register our stream at the new output port */
-    stream->video_out->close(stream->video_out, stream);
-    new_port->open(new_port, stream);
+  
+  pthread_mutex_lock(&stream->next_video_port_lock);
+  stream->next_video_port = new_port;
+  if (stream->video_fifo &&
+      (buf = stream->video_fifo->buffer_pool_try_alloc(stream->video_fifo))) {
+    /* wake up video decoder thread */
+    buf->type = BUF_CONTROL_NOP;
+    stream->video_fifo->insert(stream->video_fifo, buf);
   }
-  /* reconnect ourselves */
-  stream->video_out = new_port;
+  /* wait till rewiring is finished */
+  pthread_cond_wait(&stream->next_video_port_wired, &stream->next_video_port_lock);
+  pthread_mutex_unlock(&stream->next_video_port_lock);
+    
   return 1;
 }
 
@@ -393,6 +398,8 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->finished_count_audio   = 0; 
   stream->finished_count_video   = 0; 
   stream->err                    = 0;
+  stream->next_audio_port        = NULL;
+  stream->next_video_port        = NULL;
   
   /*
    * initial master/slave
@@ -414,6 +421,10 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->first_frame_lock, NULL);
   pthread_cond_init  (&stream->first_frame_reached, NULL);
   pthread_mutex_init (&stream->current_extra_info_lock, NULL);
+  pthread_mutex_init (&stream->next_video_port_lock, NULL);
+  pthread_mutex_init (&stream->next_audio_port_lock, NULL);
+  pthread_cond_init  (&stream->next_video_port_wired, NULL);
+  pthread_cond_init  (&stream->next_audio_port_wired, NULL);
 
   /*
    * event queues
@@ -1024,7 +1035,14 @@ void xine_dispose (xine_stream_t *stream) {
   pthread_mutex_destroy (&stream->osd_lock);
   pthread_mutex_destroy (&stream->event_queues_lock);
   pthread_mutex_destroy (&stream->current_extra_info_lock);
-  pthread_cond_destroy (&stream->counter_changed);
+  pthread_cond_destroy  (&stream->counter_changed);
+  pthread_mutex_destroy (&stream->demux_lock);
+  pthread_mutex_destroy (&stream->first_frame_lock);
+  pthread_cond_destroy  (&stream->first_frame_reached);
+  pthread_mutex_destroy (&stream->next_video_port_lock);
+  pthread_mutex_destroy (&stream->next_audio_port_lock);
+  pthread_cond_destroy  (&stream->next_video_port_wired);
+  pthread_cond_destroy  (&stream->next_audio_port_wired);
 
   stream->metronom->exit (stream->metronom);
 
@@ -1051,6 +1069,8 @@ void xine_exit (xine_t *this) {
   
   if(this->config)
     this->config->dispose(this->config);
+  
+  pthread_mutex_destroy(&this->streams_lock);
 
   free (this);
 }
@@ -1162,7 +1182,6 @@ void xine_init (xine_t *this) {
    */
 
   this->streams = xine_list_new();
-  pthread_mutex_init (&this->streams_lock, NULL);
   
   /*
    * start metronom clock
