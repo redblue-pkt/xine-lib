@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.14 2003/08/10 16:03:21 miguelfreitas Exp $
+ * $Id: input_gnome_vfs.c,v 1.15 2003/10/07 19:57:48 hadess Exp $
  */
 
 
@@ -265,6 +265,7 @@ gnomevfs_klass_dispose (input_class_t *this_gen)
 	g_free (this);
 }
 
+static char * ignore_scheme[] = { "cdda", "http", "file" };
 
 static input_plugin_t *
 gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
@@ -272,25 +273,23 @@ gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
 {
 	gnomevfs_input_t *this;
 	GnomeVFSURI *uri;
+	int i;
+
+	if (mrl == NULL)
+		return NULL;
+	else if (strstr (mrl, "://") == NULL)
+		return NULL;
 
 	D("gnomevfs_klass_get_instance: %s", mrl);
+
+	for (i = 0; i < G_N_ELEMENTS (ignore_scheme); i++) {
+		if (strncmp (ignore_scheme[i], mrl, strlen (ignore_scheme[i])) == 0)
+				return NULL;
+	}
 
 	uri = gnome_vfs_uri_new (mrl);
 	if (uri == NULL)
 		return NULL;
-
-	/* local files should be handled by the file input */
-	if (strncmp (mrl, "file:/", strlen ("file:/")) == 0
-			|| strstr (mrl, "://") == NULL)
-	{
-		D("gnomevfs_klass_open: '%s' is a file:///", mrl);
-		gnome_vfs_uri_unref (uri);
-		return NULL;
-	} else if (strncmp (gnome_vfs_uri_get_scheme (uri), "http", 4) == 0) {
-		D("gnomevfs_klass_open: '%s' is http://", mrl);
-		gnome_vfs_uri_unref (uri);
-		return NULL;
-	}
 
 	D("Creating the structure for stream '%s'", mrl);
 	this = g_new0 (gnomevfs_input_t, 1);
