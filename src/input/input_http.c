@@ -304,10 +304,10 @@ static int http_plugin_basicauth (const char *user, const char *password,
 static void http_plugin_read_metainf (input_plugin_t *this_gen) {
  
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
-  char metadata_buf[4096];
-  char len = 0;
+  char metadata_buf[255 * 16];
+  unsigned char len = 0;
   char *title_end;
-  char *songtitle, *title;
+  char *songtitle, *radio;
   xine_event_t uevent;
   xine_ui_data_t data;
     
@@ -317,6 +317,10 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
   /* get the length of the metadata */
   this_gen->read(this_gen, &len, 1);
 
+#ifdef LOG
+  printf ("input_http: http_plugin_read_metainf: len=%d\n", len);
+#endif
+  
   if (len > 0) {
     this_gen->read(this_gen, metadata_buf, len * 16);
   
@@ -330,22 +334,33 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
       if ((title_end = strchr(songtitle, '\''))) {
         *title_end = '\0';
         
-        if (!this->shoutcast_songtitle ||
-           (strcmp(songtitle, this->shoutcast_songtitle))) {
+        if ((!this->shoutcast_songtitle ||
+             (strcmp(songtitle, this->shoutcast_songtitle))) &&
+            (strlen(songtitle) > 0)) {
 #ifdef LOG
           printf ("input_http: http_plugin_read_metainf: songtitle: %s\n", songtitle);
 #endif
-          title = this->stream->meta_info [XINE_META_INFO_TITLE];
           
           if (this->shoutcast_songtitle)
             free(this->shoutcast_songtitle);
           this->shoutcast_songtitle = strdup(songtitle);
 
+          if (this->stream->meta_info [XINE_META_INFO_TITLE])
+            free(this->stream->meta_info [XINE_META_INFO_TITLE]);
+          this->stream->meta_info [XINE_META_INFO_TITLE] = strdup (songtitle);
+  
           /* prepares the event */
-          strcpy(data.str, title); /* WARNING: the data.str is char[256] */
-          strcat(data.str, " - ");
+          radio = this->stream->meta_info [XINE_META_INFO_ALBUM];
+          
+          if (radio) {
+            strcpy(data.str, radio); /* WARNING: the data.str is char[256] */
+            strcat(data.str, " - ");
+            data.str_len = strlen(radio) + 3 + strlen(songtitle) + 1;
+          } else {
+            data.str[0] = 0;
+            data.str_len = strlen(songtitle) + 1;
+          }  
           strcat(data.str, songtitle);
-          data.str_len = strlen(title) + 3 + strlen(songtitle) + 1;
           
           /* sends the event */
           uevent.type = XINE_EVENT_UI_SET_TITLE;
@@ -467,10 +482,24 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 #endif
 
       if (!strncasecmp(this->buf, "icy-name:", 9)) {
+        this->stream->meta_info [XINE_META_INFO_ALBUM]
+          = strdup (this->buf + 9 + (*(this->buf + 9) == ' '));
         this->stream->meta_info [XINE_META_INFO_TITLE]
           = strdup (this->buf + 9 + (*(this->buf + 9) == ' '));
       }
 
+      if (!strncasecmp(this->buf, "icy-genre:", 10)) {
+        this->stream->meta_info [XINE_META_INFO_GENRE]
+          = strdup (this->buf + 10 + (*(this->buf + 10) == ' '));
+      }
+
+      /* icy-notice1 is always the same */
+      if (!strncasecmp(this->buf, "icy-notice2:", 12)) {
+        this->stream->meta_info [XINE_META_INFO_COMMENT]
+          = strdup (this->buf + 12 + (*(this->buf + 12) == ' '));
+      }
+
+      /* metadata interval (in byte) */
       if (sscanf(this->buf, "icy-metaint:%d", &this->shoutcast_metaint) == 1) {
 #ifdef LOG
         printf("input_http: shoutcast_metaint: %d\n", this->shoutcast_metaint);
