@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.14 2002/12/22 23:15:17 tmmm Exp $
+ * $Id: fli.c,v 1.15 2002/12/23 15:36:37 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -146,15 +146,20 @@ void decode_fli_frame(fli_decoder_t *this) {
       for (i = 0; i < color_packets; i++) {
         /* first byte is how many colors to skip */
         palette_ptr1 += (this->buf[stream_ptr++] * 4);
-        /* wrap around, for good measure */
-        if (palette_ptr1 >= PALETTE_SIZE)
-          palette_ptr1 = 0;
+
         /* next byte indicates how many entries to change */
         color_changes = this->buf[stream_ptr++];
+
         /* if there are 0 color changes, there are actually 256 */
         if (color_changes == 0)
           color_changes = 256;
+
         for (j = 0; j < color_changes; j++) {
+
+          /* wrap around, for good measure */
+          if (palette_ptr1 >= PALETTE_SIZE)
+            palette_ptr1 = 0;
+
           r = this->buf[stream_ptr + 0] << color_shift;
           g = this->buf[stream_ptr + 1] << color_shift;
           b = this->buf[stream_ptr + 2] << color_shift;
