@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.118 2002/12/06 21:37:18 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.119 2002/12/08 20:53:02 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -58,6 +58,9 @@
 extern int errno;
 
 static char *plugin_name;
+
+/* new code, comment this in case of trouble */
+#define USE_CACHED_CATALOG
 
 #if DONT_CATCH_SIGSEGV
 
@@ -116,9 +119,37 @@ static int _get_decoder_priority (xine_t *this, int default_priority,
 				     NULL, NULL /* FIXME: implement callback */);
 }
 
+#ifdef USE_CACHED_CATALOG  
+static plugin_info_t *_get_cached_plugin ( xine_list_t *list,
+			    char *filename, struct stat *statbuffer, 
+			    plugin_info_t *previous_info){
+
+  plugin_node_t *node;
+
+  node = xine_list_first_content (list);
+  while (node) {
+    if( !strcmp( node->filename, filename ) &&
+         node->filesize == statbuffer->st_size &&
+         node->filemtime == statbuffer->st_mtime &&
+         !previous_info ) {
+      
+      return node->info;
+    }
+    
+    /* skip previously returned items */
+    if( node->info == previous_info )
+      previous_info = NULL;
+    
+    node = xine_list_next_content (list);
+  }
+  return NULL;
+}
+#endif
+
 static void _insert_plugin (xine_t *this,
 			    xine_list_t *list,
-			    char *filename, plugin_info_t *info,
+			    char *filename, struct stat *statbuffer,
+			    plugin_info_t *info,
 			    int api_version){
 
   plugin_node_t     *entry;
@@ -138,6 +169,8 @@ static void _insert_plugin (xine_t *this,
 
   entry = xine_xmalloc(sizeof(plugin_node_t));
   entry->filename     = _strclone(filename);
+  entry->filesize     = statbuffer->st_size;
+  entry->filemtime    = statbuffer->st_mtime;
   entry->info         = xine_xmalloc(sizeof(plugin_info_t));
   *(entry->info)      = *info;
   entry->info->id     = _strclone(info->id);
@@ -204,6 +237,7 @@ static plugin_catalog_t *_new_catalog(void){
   catalog->vout  = xine_list_new();
   catalog->post  = xine_list_new();
 
+  catalog->cache = xine_list_new();
   pthread_mutex_init (&catalog->lock, NULL);
 
   return catalog;
@@ -229,6 +263,8 @@ static void collect_plugins(xine_t *this, char *path){
     while ((pEntry = readdir (dir)) != NULL) {
       char *str;
       void *lib;
+      plugin_info_t *info;
+      
       struct stat statbuffer;
 
       str = xine_xmalloc(strlen(path) + strlen(pEntry->d_name) + 2);
@@ -248,9 +284,18 @@ static void collect_plugins(xine_t *this, char *path){
 	    break;
 	  
 	  plugin_name = str;
+	  lib = NULL;
+	  info = NULL;
+#ifdef USE_CACHED_CATALOG  
+	  info = _get_cached_plugin ( this->plugin_catalog->cache,
+			              str, &statbuffer, NULL);
+	  if( info )
+	    printf("load_plugins: using cached %s\n", str);
+	  else
+	    printf("load_plugins: %s not cached\n", str);
+#endif
 
-	  if(!(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
-
+	  if(!info && !(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 
 	    if (this->verbosity) {
 	      char *dl_error_msg = dlerror();
@@ -261,46 +306,52 @@ static void collect_plugins(xine_t *this, char *path){
 	  }
 	  else {
 
-	    plugin_info_t *info;
-
-	    if ((info = dlsym(lib, "xine_plugin_info"))) {
-
-	      for (; info->type != PLUGIN_NONE; ++info){
+	    if (info || (info = dlsym(lib, "xine_plugin_info"))) {
+       
+	      while ( info && info->type != PLUGIN_NONE ){
 
 		xine_log (this, XINE_LOG_PLUGIN,
 			  _("load_plugins: plugin %s found\n"), str);
 
 		switch (info->type){
 		case PLUGIN_INPUT:
-		  _insert_plugin (this, this->plugin_catalog->input, str, info,
+		  _insert_plugin (this, this->plugin_catalog->input, str,
+				  &statbuffer, info,
 				  INPUT_PLUGIN_IFACE_VERSION);
 		  break;
 		case PLUGIN_DEMUX:
-		  _insert_plugin (this, this->plugin_catalog->demux, str, info,
+		  _insert_plugin (this, this->plugin_catalog->demux, str,
+				  &statbuffer, info,
 				  DEMUXER_PLUGIN_IFACE_VERSION);
 		  break;
 		case PLUGIN_AUDIO_DECODER:
-		  _insert_plugin (this, this->plugin_catalog->audio, str, info,
+		  _insert_plugin (this, this->plugin_catalog->audio, str,
+				  &statbuffer, info,
 				  AUDIO_DECODER_IFACE_VERSION);
 		  break;
 		case PLUGIN_VIDEO_DECODER:
-		  _insert_plugin (this, this->plugin_catalog->video, str, info,
+		  _insert_plugin (this, this->plugin_catalog->video, str,
+				  &statbuffer, info,
 				  VIDEO_DECODER_IFACE_VERSION);
 		  break;
 		case PLUGIN_SPU_DECODER:
-		  _insert_plugin (this, this->plugin_catalog->spu, str, info,
+		  _insert_plugin (this, this->plugin_catalog->spu, str,
+				  &statbuffer, info,
 				  SPU_DECODER_IFACE_VERSION);
 		  break;
 		case PLUGIN_AUDIO_OUT:
-		  _insert_plugin (this, this->plugin_catalog->aout, str, info,
+		  _insert_plugin (this, this->plugin_catalog->aout, str,
+				  &statbuffer, info,
 				  AUDIO_OUT_IFACE_VERSION);
 		  break;
 		case PLUGIN_VIDEO_OUT:
-		  _insert_plugin (this, this->plugin_catalog->vout, str, info,
+		  _insert_plugin (this, this->plugin_catalog->vout, str,
+				  &statbuffer, info,
 				  VIDEO_OUT_DRIVER_IFACE_VERSION);
 		  break;
 		case PLUGIN_POST:
-		  _insert_plugin (this, this->plugin_catalog->post, str, info,
+		  _insert_plugin (this, this->plugin_catalog->post, str,
+    				  &statbuffer, info,
 				  POST_PLUGIN_IFACE_VERSION);
 		  break;
 		default:
@@ -308,6 +359,16 @@ static void collect_plugins(xine_t *this, char *path){
 			    _("load_plugins: unknown plugin type %d in %s\n"),
 			    info->type, str);
 		}
+
+		/* get next info either from lib or cache */
+		if( lib )
+		  info++;
+#ifdef USE_CACHED_CATALOG  
+		else
+		  info = _get_cached_plugin ( this->plugin_catalog->cache,
+			                      str, &statbuffer, info);
+#endif
+
 	      }
 
 	    }
@@ -318,7 +379,8 @@ static void collect_plugins(xine_t *this, char *path){
 			_("load_plugins: can't get plugin info from %s:\n%s\n"),
 			str, dl_error_msg);
 	    }
-	    dlclose(lib);
+	    if( lib )
+	      dlclose(lib);
 	  }
 	  break;
 	case S_IFDIR:
@@ -333,7 +395,6 @@ static void collect_plugins(xine_t *this, char *path){
     closedir (dir);
   } /* if (dir) */
 } /* collect_plugins */
-
 
 /*
  * generic 2nd stage plugin loader
@@ -374,6 +435,7 @@ static void *_load_plugin_class(xine_t *this,
 		filename);
     }
   }
+
   return NULL; /* something failed if we came here... */
 }
 
@@ -418,6 +480,238 @@ static void load_plugins(xine_t *this) {
     node = xine_list_next_content (this->plugin_catalog->demux);
   }
 }
+
+#ifdef USE_CACHED_CATALOG  
+/*
+ *  save plugin list information to file (cached catalog)
+ */
+static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
+
+  plugin_node_t *node;
+  decoder_info_t *decoder_info;
+  vo_info_t *vo_info;
+  ao_info_t *ao_info;
+  
+  int i;
+
+  node = xine_list_first_content (plugins);
+  while (node) {
+
+    fprintf(fp, "[%s]\n", node->filename );
+    fprintf(fp, "size=%llu\n", (unsigned long long) node->filesize );
+    fprintf(fp, "mtime=%llu\n", (unsigned long long) node->filemtime );
+    
+    fprintf(fp, "type=%d\n", node->info->type );
+    fprintf(fp, "api=%d\n", node->info->API );
+    fprintf(fp, "id=%s\n", node->info->id );
+    fprintf(fp, "version=%lu\n", (unsigned long) node->info->version );
+  
+    switch (node->info->type){
+    
+      case PLUGIN_VIDEO_OUT:
+        vo_info = node->info->special_info;
+        fprintf(fp, "visual_type=%d\n", vo_info->visual_type );
+        fprintf(fp, "vo_priority=%d\n", vo_info->priority );
+        break;
+    
+      case PLUGIN_AUDIO_OUT:
+        ao_info = node->info->special_info;
+        fprintf(fp, "ao_priority=%d\n", ao_info->priority );
+        break;
+    
+      case PLUGIN_AUDIO_DECODER:
+      case PLUGIN_VIDEO_DECODER:
+      case PLUGIN_SPU_DECODER:
+        decoder_info = node->info->special_info;
+        fprintf(fp, "supported_types=");
+        for (i=0; decoder_info->supported_types[i] != 0; ++i){
+          fprintf(fp, "%lu ", (unsigned long) decoder_info->supported_types[i]);
+        }
+        fprintf(fp, "\n");
+        fprintf(fp, "decoder_priority=%d\n", decoder_info->priority );
+        break;
+    }        
+    
+    fprintf(fp, "\n");
+    node = xine_list_next_content (plugins);
+  }
+}
+
+/*
+ *  save plugin list information to file (cached catalog)
+ */
+static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
+
+  plugin_node_t *node;
+  decoder_info_t *decoder_info = NULL;
+  vo_info_t *vo_info = NULL;
+  ao_info_t *ao_info = NULL;
+  int i;
+  unsigned long long llu;
+  unsigned long lu;
+  char line[1024];
+  char *value;
+  int version_ok = 0;
+  
+  node = NULL;
+  while (fgets (line, 1023, fp)) {
+    line[strlen(line)-1]= (char) 0; /* eliminate lf */
+
+    if (line[0] == '#')
+      continue;
+      
+    if (line[0] == '[' && version_ok) {
+      if((value = strchr (line, ']')))
+        *value = (char) 0;
+      
+      if( node ) {
+        xine_list_append_content (plugins, node);
+      }
+      node                = xine_xmalloc(sizeof(plugin_node_t));
+      node->filename      = _strclone(line+1);
+      node->info          = xine_xmalloc(2*sizeof(plugin_info_t));
+      node->info[1].type  = PLUGIN_NONE;
+      decoder_info        = NULL;
+      vo_info             = NULL;
+      ao_info             = NULL;
+    }
+
+    if ((value = strchr (line, '='))) {
+
+      *value = (char) 0;
+      value++;
+
+      if( !version_ok ) {
+        if( !strcmp("cache_catalog_version",line) ) {
+          sscanf(value," %d",&i);
+          if( i == CACHE_CATALOG_VERSION )
+            version_ok = 1;
+          else
+            return;  
+        }
+      } else if (node) {
+        if( !strcmp("size",line) ) {
+          sscanf(value," %llu",&llu);
+          node->filesize = (off_t) llu;
+        } else if( !strcmp("mtime",line) ) {
+          sscanf(value," %llu",&llu);
+          node->filemtime = (time_t) llu;
+        } else if( !strcmp("type",line) ) {
+          sscanf(value," %d",&i);
+          node->info->type = i;
+          
+          switch (node->info->type){
+          
+            case PLUGIN_VIDEO_OUT:
+              vo_info = node->info->special_info =
+                        xine_xmalloc(sizeof(vo_info_t));
+              break;
+          
+            case PLUGIN_AUDIO_OUT:
+              ao_info = node->info->special_info = 
+                        xine_xmalloc(sizeof(ao_info_t));
+              break;
+          
+            case PLUGIN_AUDIO_DECODER:
+            case PLUGIN_VIDEO_DECODER:
+            case PLUGIN_SPU_DECODER:
+              decoder_info = node->info->special_info =
+                             xine_xmalloc(sizeof(decoder_info_t));
+              break;
+          }        
+          
+        } else if( !strcmp("api",line) ) {
+          sscanf(value," %d",&i);
+          node->info->API = i;
+        } else if( !strcmp("id",line) ) {
+          node->info->id = _strclone(value);
+        } else if( !strcmp("version",line) ) {
+          sscanf(value," %lu",&lu);
+          node->info->version = lu;
+        } else if( !strcmp("visual_type",line) && vo_info ) {
+          sscanf(value," %d",&i);
+          vo_info->visual_type = i;
+        } else if( !strcmp("supported_types",line) && decoder_info ) {
+          char *s;
+          
+          for( s = value, i = 0; s && sscanf(s," %lu",&lu) > 0; i++ ) {
+            s = strchr(s+1, ' ');
+          }
+          decoder_info->supported_types = xine_xmalloc((i+1)*sizeof(uint32_t));
+          for( s = value, i = 0; s && sscanf(s," %lu",&lu) > 0; i++ ) {
+            decoder_info->supported_types[i] = lu;
+            s = strchr(s+1, ' ');
+          }
+        } else if( !strcmp("vo_priority",line) && vo_info ) {
+          sscanf(value," %d",&i);
+          vo_info->priority = i;
+        } else if( !strcmp("ao_priority",line) && ao_info ) {
+          sscanf(value," %d",&i);
+          ao_info->priority = i;
+        } else if( !strcmp("decoder_priority",line) && decoder_info ) {
+          sscanf(value," %d",&i);
+          decoder_info->priority = i;
+        }
+      }
+    }
+  }
+      
+  if( node ) {
+    xine_list_append_content (plugins, node);
+  }
+}
+
+
+/*
+ * save catalog to cache file
+ */
+static void save_catalog (xine_t *this) {
+
+  FILE *fp;
+  char *cachefile;                                               
+  const char *relname = CACHE_CATALOG_FILE;
+    
+  cachefile = (char *) xine_xmalloc(strlen(xine_get_homedir()) + 
+                                    strlen(relname) + 3);
+  sprintf(cachefile, "%s/%s", xine_get_homedir(), relname);
+  
+  if( (fp = fopen(cachefile,"w")) != NULL ) {
+  
+    fprintf(fp, "# this file is automatically created by xine, do not edit.\n\n");
+    fprintf(fp, "cache_catalog_version=%d\n\n", CACHE_CATALOG_VERSION);
+    
+    save_plugin_list (fp, this->plugin_catalog->input);
+    save_plugin_list (fp, this->plugin_catalog->demux);
+    save_plugin_list (fp, this->plugin_catalog->spu);
+    save_plugin_list (fp, this->plugin_catalog->audio);
+    save_plugin_list (fp, this->plugin_catalog->video);
+    save_plugin_list (fp, this->plugin_catalog->aout);
+    save_plugin_list (fp, this->plugin_catalog->vout);
+    fclose(fp);
+  }
+  free(cachefile);
+}
+
+/*
+ * load cached catalog from file
+ */
+static void load_cached_catalog (xine_t *this) {
+
+  FILE *fp;
+  char *cachefile;                                               
+  const char *relname = CACHE_CATALOG_FILE;
+    
+  cachefile = (char *) xine_xmalloc(strlen(xine_get_homedir()) + 
+                                    strlen(relname) + 3);
+  sprintf(cachefile, "%s/%s", xine_get_homedir(), relname);
+  
+  if( (fp = fopen(cachefile,"r")) != NULL ) {
+    load_plugin_list (fp, this->plugin_catalog->cache);
+    fclose(fp);
+  }
+  free(cachefile);
+}
+#endif
 
 static void map_decoders (xine_t *this) {
 
@@ -597,9 +891,18 @@ void scan_plugins (xine_t *this) {
   }
 
   this->plugin_catalog = _new_catalog();
+
+#ifdef USE_CACHED_CATALOG  
+  load_cached_catalog (this);
+#endif
+    
   /* TODO: add more plugin dir(s), maybe ~/.xine/plugins or /usr/local/... */
   collect_plugins(this, XINE_PLUGINDIR);
 
+#ifdef USE_CACHED_CATALOG  
+  save_catalog (this);
+#endif
+    
   load_plugins (this);
 
   map_decoders (this);
@@ -1665,5 +1968,6 @@ void dispose_plugins (xine_t *this) {
   dispose_plugin_list (this->plugin_catalog->vout);
   dispose_plugin_list (this->plugin_catalog->post);
 
+  dispose_plugin_list (this->plugin_catalog->cache);
   free (this->plugin_catalog);
 }
