@@ -41,7 +41,7 @@ xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
 xineplug_vo_out_aa_la_LIBADD = -laa
 xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = yuv2rgb.h video_out_syncfb.h
+noinst_HEADERS = yuv2rgb.h video_out_syncfb.h alphablend.h
 
 include_HEADERS = video_out_x11.h
 
