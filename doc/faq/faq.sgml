@@ -1904,27 +1904,27 @@
    </sect2>
 
    <sect2 id="subencoding">
-     <title>Encoding of external subtitles is bad. What is wrong?</title>
-     <para>
-     Default expected encoding of the external subtitles is iso-8859-1. You
-     need set appropriate encoding in the config option
-     <parameter>misc.spu_src_encoding</parameter>. Note you need also the font
-     which contains all characters from given encoding.
-     </para>
-     <para>
-     Default font <filename>sans</filename> and fonts
-     <filename>serif</filename> and <filename>mono</filename> cover
+    <title>Encoding of external subtitles is bad. What is wrong?</title>
+    <para>
+     The encoding of the external subtitles is expected to be iso-8859-1 by 
+     default. You need to set an appropriate encoding in the config option
+     <parameter>misc.spu_src_encoding</parameter>. Note that you also need
+     a font which contains all characters from the given encoding.
+    </para>
+    <para>
+     The default font <filename>sans</filename> and fonts
+     <filename>serif</filename> and <filename>mono</filename> cover these
      encodings:
      <itemizedlist>
-       <listitem><para>iso-8859-1</para></listitem>
-       <listitem><para>iso-8859-2</para></listitem>
-       <listitem><para>iso-8859-5</para></listitem>
-       <listitem><para>iso-8859-9</para></listitem>
-       <listitem><para>iso-8859-15</para></listitem>
-       <listitem><para>windows-1250</para></listitem>
-       <listitem><para>windows-1251</para></listitem>
+      <listitem><para>iso-8859-1</para></listitem>
+      <listitem><para>iso-8859-2</para></listitem>
+      <listitem><para>iso-8859-5</para></listitem>
+      <listitem><para>iso-8859-9</para></listitem>
+      <listitem><para>iso-8859-15</para></listitem>
+      <listitem><para>windows-1250</para></listitem>
+      <listitem><para>windows-1251</para></listitem>
      </itemizedlist>
-     </para>
+    </para>
    </sect2>
 
   </sect1>
