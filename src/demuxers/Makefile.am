@@ -32,7 +32,7 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(qt_modules) xineplug_dmx_avi.la\
 	xineplug_dmx_idcin.la xineplug_dmx_wc3movie.la \
 	xineplug_dmx_vqa.la xineplug_dmx_voc.la \
 	xineplug_dmx_aiff.la xineplug_dmx_snd.la \
-	xineplug_dmx_yuv4mpeg2.la
+	xineplug_dmx_yuv4mpeg2.la xineplug_dmx_real.la
 #	xineplug_dmx_mpeg_pes.la xineplug_dmx_mpeg_ts.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
@@ -127,6 +127,10 @@ xineplug_dmx_snd_la_LDFLAGS = -avoid-version -module
 xineplug_dmx_yuv4mpeg2_la_SOURCES = demux_yuv4mpeg2.c
 xineplug_dmx_yuv4mpeg2_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_yuv4mpeg2_la_LDFLAGS = -avoid-version -module
+
+xineplug_dmx_real_la_SOURCES = demux_real.c
+xineplug_dmx_real_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_real_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = demux.h qtpalette.h
 
