@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.81 2002/05/02 12:31:03 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.82 2002/05/12 22:37:25 miguelfreitas Exp $
  *
  */
 
@@ -275,6 +275,7 @@ xine_t *xine_init (vo_driver_t *vo,
  * returns 1 on succ, 0 on failure
  */
 int xine_play (xine_t *this, char *MRL, int start_pos, int start_time);
+int xine_play_internal (xine_t *this, char *MRL, int start_pos, int start_time);
 
 
 /*
