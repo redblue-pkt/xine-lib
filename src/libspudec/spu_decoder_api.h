@@ -57,21 +57,6 @@ struct spu_decoder_s {
 };
 
 
-
-typedef struct spudec_s spudec_t;
-
-struct spudec_s {
-
-  /*
-   * reset spudec for a new stream
-   *
-   * clut     : pointer to array of 16 cluts for palette info 
-   */
-
-  void (*spudec_start) (spudec_t *this,	clut_t *clut);
-
-};
-
 #define SPU_EVENT_BUTTON 0x100
 typedef struct spu_button_s spu_button_t;
 struct spu_button_s {
