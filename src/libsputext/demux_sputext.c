@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.15 2003/04/06 11:55:47 mroi Exp $
+ * $Id: demux_sputext.c,v 1.16 2003/04/09 13:31:31 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -885,7 +885,7 @@ static int demux_sputext_get_optional_data(demux_plugin_t *this_gen,
   case DEMUX_OPTIONAL_DATA_SPULANG:
     if (channel == -1 || channel == 0) {
       sprintf(data, "%s", "sub");
-      return INPUT_OPTIONAL_SUCCESS;
+      return DEMUX_OPTIONAL_SUCCESS;
     }
   default:
     return DEMUX_OPTIONAL_UNSUPPORTED;
