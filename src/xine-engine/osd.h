@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.14 2003/03/26 11:06:58 miguelfreitas Exp $
+ * $Id: osd.h,v 1.15 2003/04/06 15:50:57 holstsn Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -32,6 +32,7 @@
 typedef struct osd_object_s osd_object_t;
 typedef struct osd_renderer_s osd_renderer_t;
 typedef struct osd_font_s osd_font_t;
+typedef struct osd_ft2context_s osd_ft2context_t;
 
 struct osd_object_s {
   osd_object_t *next;
@@ -51,6 +52,7 @@ struct osd_object_s {
   int32_t handle;
   
   osd_font_t *font;
+  osd_ft2context_t *ft2;
 };
 
 /* this one is public */

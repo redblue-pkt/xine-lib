@@ -4,7 +4,7 @@
 
 SUBDIRS = nvtv
 
-AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) @ANSI_FLAGS@
+AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS) @ANSI_FLAGS@
 
 lib_LTLIBRARIES = libxine.la
 
@@ -20,11 +20,11 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 if HAVE_NVTV
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
-		-lm $(XINEUTILS_LIB) $(NVTVCLIENT_LIB) $(GICONV_BSD_LIBS)
+		-lm $(XINEUTILS_LIB) $(NVTVCLIENT_LIB) $(GICONV_BSD_LIBS) $(FT2_LIBS)
 else
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
-		-lm $(XINEUTILS_LIB) $(GICONV_BSD_LIBS)
+		-lm $(XINEUTILS_LIB) $(GICONV_BSD_LIBS) $(FT2_LIBS)
 endif
 
 libxine_la_LDFLAGS =  \
@@ -42,7 +42,7 @@ noinst_HEADERS = bswap.h
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

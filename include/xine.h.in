@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.71 2003/04/04 19:20:46 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.72 2003/04/06 15:50:57 holstsn Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1492,13 +1492,19 @@ void        xine_osd_draw_line     (xine_osd_t *self, int x1, int y1,
 void        xine_osd_draw_rect     (xine_osd_t *self, int x1, int y1,
 				    int x2, int y2,
 				    int color, int filled );
+/* for freetype2 fonts x1 and y1 specifies the beginning of the baseline,
+   for xine fonts x1 and y1 specifies the upper left corner of the text
+   to be rendered */
 void        xine_osd_draw_text     (xine_osd_t *self, int x1, int y1,
 				    const char *text, int color_base);
 void        xine_osd_draw_bitmap   (xine_osd_t *self, uint8_t *bitmap,
 				    int x1, int y1, int width, int height,
 				    uint8_t *palette_map);
+/* for freetype2 fonts the height is taken from _baseline_ to top */
 void        xine_osd_get_text_size (xine_osd_t *self, const char *text,
 				    int *width, int *height);
+/* with freetype2 support compiled in, you can also specify a font file
+   as 'fontname' here */
 void        xine_osd_set_font      (xine_osd_t *self, const char *fontname,
 				    int size);
 /* set position were overlay will be blended */

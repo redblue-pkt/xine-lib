@@ -628,14 +628,45 @@ AC_SUBST(MNG_LIBS)
 dnl ---------------------------------------------
 dnl PNG lib.
 dnl ---------------------------------------------
-AC_CHECK_LIB(png, png_create_read_struct,
-	[ AC_CHECK_HEADER(png.h,
-		[ have_libpng=yes
-		  PNG_LIBS="-lpng" ], 
-		AC_MSG_RESULT([*** image decoder will be disabled ***]))],
-	AC_MSG_RESULT([*** image decoder will be disabled ***]))
-AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes")
+dnl AC_CHECK_LIB(png, png_create_read_struct,
+dnl	[ AC_CHECK_HEADER(png.h,
+dnl		[ have_libpng=yes
+dnl		  PNG_LIBS="-lpng" ], 
+dnl		AC_MSG_RESULT([*** image decoder will be disabled ***]))],
+dnl	AC_MSG_RESULT([*** image decoder will be disabled ***]))
+dnl AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes")
+dnl AC_SUBST(PNG_LIBS)
+  
+AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
+if test "$LIBPNG_CONFIG" = "no" ; then
+  AC_MSG_RESULT([*** libpng-config not found, png support disabled ***])
+else
+  PNG_CFLAGS=`$LIBPNG_CONFIG --cflags`
+  PNG_LIBS=`$LIBPNG_CONFIG --libs`
+  have_libpng="yes"
+  AC_DEFINE(HAVE_LIBPNG,1,[Define this if you have png library])
+fi
+
+AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes" )
+AC_SUBST(PNG_CFLAGS)
 AC_SUBST(PNG_LIBS)
+
+dnl ---------------------------------------------
+dnl freetype2 lib.
+dnl ---------------------------------------------
+AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
+if test "$FREETYPE_CONFIG" = "no" ; then
+  AC_MSG_RESULT([*** freetype-config not found, freetype2 support disabled ***])
+else
+  FT2_CFLAGS=`$FREETYPE_CONFIG --cflags`
+  FT2_LIBS=`$FREETYPE_CONFIG --libs`
+  have_ft2="yes"
+  AC_DEFINE(HAVE_FT2,1,[Define this if you have freetype2 library])
+fi
+
+AM_CONDITIONAL(HAVE_FT2, test x"$have_ft2" = "xyes" )
+AC_SUBST(FT2_CFLAGS)
+AC_SUBST(FT2_LIBS)
 
 dnl ---------------------------------------------
 dnl OSS style audio interface

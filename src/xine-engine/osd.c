@@ -46,6 +46,11 @@
 #include "video_out.h"
 #include "osd.h"
 
+#ifdef HAVE_FT2
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+
 /*
 #define LOG_DEBUG 1
 */
@@ -80,6 +85,15 @@ struct osd_font_s {
   osd_fontchar_t  *fontchar;
   osd_font_t      *next;
 }; 
+
+struct osd_ft2context_s {
+#ifdef HAVE_FT2
+  int        useme;
+  FT_Library library;
+  FT_Face    face;
+  int        size;
+#endif
+};
 
 /*
  * open a new osd object. this will allocated an empty (all zero) drawing
@@ -641,6 +655,38 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
     }
     font = font->next;
   }
+  
+#ifdef HAVE_FT2
+
+  if (osd->ft2) {
+    osd->ft2->useme = 0;
+  }
+
+  if (!ret) { /* trying to load a font file with ft2 */
+    if (!osd->ft2) {
+      osd->ft2 = xine_xmalloc(sizeof(osd_ft2context_t));
+      if(FT_Init_FreeType( &osd->ft2->library )) {
+        printf("osd: cannot initialize ft2 library\n");
+	free(osd->ft2);
+	osd->ft2 = NULL;
+      }
+    }
+    if (osd->ft2) {
+      if (FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face)) {
+	printf("osd: error loading font with ft2\n");
+      } else {
+	if (FT_Set_Pixel_Sizes(osd->ft2->face, 0, size)) {
+	  printf("osd: error setting font size (no scalable font?)");
+	} else {
+	  ret = 1;
+	  osd->ft2->useme = 1;
+	  osd->ft2->size = size;
+	}
+      }
+    }	
+  }
+
+#endif
 
   pthread_mutex_unlock (&this->osd_mutex);
   return ret;
@@ -699,11 +745,20 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     color_base = OVL_PALETTE_SIZE - TEXT_PALETTE_SIZE;
 
   pthread_mutex_lock (&this->osd_mutex);
-  
-  if ((font = osd->font) == NULL) {
-    printf(_("osd: font isn't defined\n"));
-    pthread_mutex_unlock(&this->osd_mutex);
-    return 0;
+
+  {
+    int proceed = 0;
+
+    if ((font = osd->font)) proceed = 1;
+#ifdef HAVE_FT2
+    if (osd->ft2 && osd->ft2->useme) proceed = 1;
+#endif
+    
+    if (proceed == 0) {
+      printf(_("osd: font isn't defined\n"));
+      pthread_mutex_unlock(&this->osd_mutex);
+      return 0;
+    }
   }
 
   if( x1 < osd->x1 ) osd->x1 = x1;
@@ -754,7 +809,13 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       inbuf++;
       unicode = ALIAS_CHARACTER;
     }
-  
+
+#ifdef HAVE_FT2
+    if (osd->ft2 && osd->ft2->useme) {
+      i = FT_Get_Char_Index( osd->ft2->face, unicode );
+    } else {
+#endif
+    
 #ifdef BINARY_SEARCH
     i = binsearch(font->fontchar, font->num_fontchars, unicode);
 #else
@@ -764,10 +825,56 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     }
 #endif
 
+#ifdef HAVE_FT2
+    } /* !(osd->ft2 && osd->ft2->useme) */
+#endif
+
+    
 #ifdef LOG_DEBUG  
     printf("font %s [%d, U+%04X] %dx%d -> %d,%d\n", font->name, i, 
            unicode, font->fontchar[i].code, font->fontchar[i].width, 
            font->fontchar[i].height, x1, y1);
+#endif
+
+#ifdef HAVE_FT2
+    if (osd->ft2 && osd->ft2->useme) {
+      int gheight, gwidth;
+      FT_GlyphSlot  slot = osd->ft2->face->glyph;
+      
+      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
+        printf("osd: error loading glyph\n");
+	continue;
+      }
+
+      if (slot->format != ft_glyph_format_bitmap) {
+	if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
+	  printf("osd: error in rendering glyph\n");
+      }
+
+      dst = osd->area + y1 * osd->width + x1;
+      src = (uint8_t*) slot->bitmap.buffer;
+      gheight = slot->bitmap.rows;
+      gwidth  = slot->bitmap.width;
+
+      for( y = 0; y < gheight; y++ ) {
+        uint8_t *s = src;
+	uint8_t *d = dst 
+	  - slot->bitmap_top * osd->width
+	  + slot->bitmap_left;
+
+	while (s < src + gwidth) {
+	  if(d <= (osd->area + (osd->width * osd->height)))
+	    *d = (uint8_t)(*s/26+1) + (uint8_t) color_base;
+	  
+	  d++;
+	  s++;
+	}
+        src += slot->bitmap.pitch;
+        dst += osd->width;
+      }
+      x1 += slot->advance.x >> 6;
+
+    } else {
 #endif
 
     if ( i != font->num_fontchars ) {
@@ -794,6 +901,11 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       if( y1 + font->fontchar[i].height > osd->y2 ) 
         osd->y2 = y1 + font->fontchar[i].height;
     }
+    
+#ifdef HAVE_FT2
+    } /* !(osd->ft2 && osd->ft2->useme) */
+#endif
+
   }
   iconv_close(cd);
   
@@ -820,8 +932,37 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   font = osd->font;
   
   *width = 0;
-  *height = 0;  
-  
+  *height = 0;
+
+#ifdef HAVE_FT2
+  if (osd->ft2 && osd->ft2->useme) {
+    int first = 1, bottom = 0, top = 0;
+    FT_GlyphSlot  slot = osd->ft2->face->glyph;
+    
+    while (*text) {
+      
+      i = FT_Get_Char_Index( osd->ft2->face, *text);
+      
+      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
+	printf("osd: error loading glyph %i\n", i);
+	text++;
+	continue;
+      }
+
+      if (slot->format != ft_glyph_format_bitmap) {
+	if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
+	  printf("osd: error in rendering\n");
+      }
+      if (first) *width += slot->bitmap_left;
+      first = 0;
+      *width += slot->advance.x >> 6;
+      /* font height from baseline to top */
+      *height = MAX(*height, slot->bitmap_top);
+      text++;
+    }
+  } else {
+#endif
+ 
   while( font && *text ) {
     c = *text & 0xff;
   
@@ -837,6 +978,10 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
     }
     text++;
   }
+
+#ifdef HAVE_FT2
+  } /* !(osd->ft2 && osd->ft2->useme) */
+#endif
 
   pthread_mutex_unlock (&this->osd_mutex);
 
@@ -920,6 +1065,8 @@ static void osd_free_object (osd_object_t *osd_to_close) {
         last->next = osd->next;
       else
         this->osds = osd->next;
+
+      if( osd->ft2 ) free( osd->ft2 );
       free( osd );
       break;
     }
