@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.2 2001/11/07 12:48:58 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.3 2001/11/08 08:49:26 mlampard Exp $
  *
  */
 
@@ -60,7 +60,7 @@ struct coeff {
 
 typedef struct {
 	int 	fd_control;
-	int 	overlay_enabled;
+
 	int 	xoffset;
 	int 	yoffset;
 	int 	xcorr;
@@ -101,9 +101,10 @@ typedef struct dxr3_driver_s {
 	int 		xpos, ypos;
 	int 		width, height; 
 	int 		overlay_enabled;
+	int		tv_switchable;	/* can switch from overlay<->tvout */
 	float 		desired_ratio;
 
-	int 		zoom_enabled;
+	int 		zoom_enabled;   /* zoomed 16:9 mode */
 
 	int 		video_width;
 	int 		video_aspect;

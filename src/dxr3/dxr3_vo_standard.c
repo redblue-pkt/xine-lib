@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_standard.c,v 1.2 2001/11/07 12:48:58 mlampard Exp $
+ * $Id: dxr3_vo_standard.c,v 1.3 2001/11/08 08:49:26 mlampard Exp $
  *
  *******************************************************************
  * Dummy video out plugin for the dxr3. Is responsible for setting *
@@ -167,7 +167,7 @@ void dxr3_exit (vo_driver_t *this_gen)
 	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
 
 
-	if(this->overlay_enabled)
+	if(this->overlay_enabled!=-1)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
 	close(this->fd_control);
 }

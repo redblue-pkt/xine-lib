@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.3 2001/11/07 13:03:21 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.4 2001/11/08 08:49:26 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -110,22 +110,16 @@ void dxr3_read_config(dxr3_driver_t *this)
 	this->vo_driver.set_property(&this->vo_driver,
 	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
 
-	str = config->lookup_str(config, "dxr3_tvmode", "default");
-	if (!strcmp(str, "ntsc")) {
-		this->tv_mode = EM8300_VIDEOMODE_NTSC;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to NTSC\n");
-	} else if (!strcmp(str, "pal")) {
-		this->tv_mode = EM8300_VIDEOMODE_PAL;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 50Hz\n");
-	} else if (!strcmp(str, "pal60")) {
-		this->tv_mode = EM8300_VIDEOMODE_PAL60;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 60Hz\n");
-	} else if (!strcmp(str, "overlay")) {
+	str = config->lookup_str(config, "dxr3_vomode", "tv");
+	if (!strcasecmp(str, "tv")) {
+		this->overlay_enabled=0;
+		this->tv_switchable=0;  /* don't allow on-the-fly switching */		
+	} else if (!strcasecmp(str, "overlay")) {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
 		fprintf(stderr, "dxr3_vo: setting up overlay mode\n");
 		if (dxr3_overlay_read_state(&this->overlay) == 0) {
 			this->overlay_enabled = 1;
-			
+			this->tv_switchable=1;	
 			str = config->lookup_str(config, "dxr3_keycolor", "0x80a040");
 			sscanf(str, "%x", &this->overlay.colorkey);
 
@@ -133,11 +127,26 @@ void dxr3_read_config(dxr3_driver_t *this)
 			sscanf(str, "%f", &this->overlay.color_interval);
 		} else {
 			fprintf(stderr, "dxr3_vo: please run autocal, overlay disabled\n");
+			this->overlay_enabled=0;
+			this->tv_switchable=0;
 		}
+	}	
+	str = config->lookup_str(config, "dxr3_preferred_tvmode", "default");
+
+	if (!strcasecmp(str, "ntsc")) {
+		this->tv_mode = EM8300_VIDEOMODE_NTSC;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to NTSC\n");
+	} else if (!strcasecmp(str, "pal")) {
+		this->tv_mode = EM8300_VIDEOMODE_PAL;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 50Hz\n");
+	} else if (!strcasecmp(str, "pal60")) {
+		this->tv_mode = EM8300_VIDEOMODE_PAL60;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 60Hz\n");
 	} else {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
 	}
-		
+
+	
 	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
 			fprintf(stderr, "dxr3_vo: setting video mode failed.");
@@ -360,8 +369,8 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 	dxr3_driver_t *this = (dxr3_driver_t*) this_gen;
 	x11_rectangle_t *area;
 	XWindowAttributes a;
-
-	if (!this->overlay_enabled) return 0;
+	
+	if (!this->overlay_enabled && !this->tv_switchable) return 0;
 
 	switch (data_type) {
 	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
@@ -396,6 +405,25 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 			rect->h = y2-y1;
 		}
 		break;
+	case GUI_DATA_EX_VIDEOWIN_VISIBLE:
+		{ 
+			int window_showing;
+			(int *)window_showing = (int *)data;
+			if(!window_showing){
+				fprintf(stderr, "dxr3_vo: Hiding VO window and diverting video to TV\n");
+				dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
+				this->overlay_enabled=0;
+			}else{
+				fprintf(stderr, "dxr3_vo: Using VO window for overlaying video\n");
+				dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OVERLAY );			
+				this->overlay_enabled=1;
+			}
+		dxr3_set_property((vo_driver_t*) this,
+		 VO_PROP_ASPECT_RATIO, this->aspectratio);
+		dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
+		break;
+		}
+
 	default:
 		return -1;
 	}
@@ -646,6 +674,7 @@ int dxr3_overlay_set_signalmode(dxr3_overlay_t *this,int mode)
 void dxr3_overlay_buggy_preinit(dxr3_overlay_t *this, int fd)
 {
 	/* TODO: catch errors */
+
 	this->fd_control = fd;
 	dxr3_overlay_set_screen(this);
 	dxr3_overlay_set_window(this, 1,1, 2,2);
