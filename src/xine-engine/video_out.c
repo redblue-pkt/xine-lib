@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.121 2002/12/21 19:20:09 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.122 2002/12/21 19:23:01 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -613,9 +613,9 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       if (img->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
           img->stream->video_fifo->size(img->stream->video_fifo) < 10) {
 
-/*#ifdef LOG*/
+#ifdef LOG
         printf ("video_out: possible still frame\n");
-/*#endif*/
+#endif
         this->img_backup = duplicate_frame (this, img);
       }
     }
