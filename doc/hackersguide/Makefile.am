@@ -8,9 +8,10 @@ hackersguide_sgml = hackersguide.sgml \
 		    stream.sgml \
 		    output.sgml
 
-docs_DATA = hackersguide.html architecture.png library.png overlays.png
+docs_DATA = hackersguide.html architecture.png library.png overlays.png post_frame.png
 
-EXTRA_DIST = README $(hackersguide_sgml) architecture.fig library.fig overlays.fig 
+EXTRA_DIST = README $(hackersguide_sgml) \
+	architecture.fig library.fig overlays.fig post_frame.fig
 
 docsdir = $(prefix)/share/doc/xine/hackersguide
 
