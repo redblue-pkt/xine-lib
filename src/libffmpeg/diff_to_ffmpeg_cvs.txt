@@ -706,3 +706,19 @@ diff -u -r1.83 postprocess.c
  }
  #endif
  
+Index: libavcodec/mjpeg.c
+===================================================================
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mjpeg.c,v
+retrieving revision 1.61
+diff -u -r1.61 mjpeg.c
+--- libavcodec/mjpeg.c	23 May 2003 16:04:24 -0000	1.61
++++ libavcodec/mjpeg.c	23 May 2003 18:18:53 -0000
+@@ -1135,7 +1160,7 @@
+ 	    4bytes	field_size
+ 	    4bytes	field_size_less_padding
+ 	*/
+-    	s->buggy_avid = 1;
++//    	s->buggy_avid = 1;
+ //	if (s->first_picture)
+ //	    printf("mjpeg: workarounding buggy AVID\n");
+ 	s->interlace_polarity = get_bits(&s->gb, 8);
