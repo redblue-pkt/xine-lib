@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.70 2003/04/10 18:39:55 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.71 2003/04/12 04:30:45 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -99,7 +99,7 @@ typedef struct demux_ogg_s {
   int                   buf_flag_seek;
   int                   keyframe_needed;
   int                   ignore_keyframes;
-
+  int                   time_length;
 } demux_ogg_t ;
 
 
@@ -813,6 +813,52 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
       }
     }
   }
+
+  int filelength,position,i;
+  this->time_length=-1;
+
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    position=this->input->get_current_pos(this->input);
+    filelength=this->input->get_length(this->input);
+    
+    if (filelength!=-1) {
+      if (filelength>70000)
+	this->demux_plugin.seek((demux_plugin_t *)this, (off_t) filelength-65536 ,0);
+      done=0;
+      while (!done) {
+	if (ogg_sync_pageout(&this->oy, &this->og) != 1) {
+	  buffer = ogg_sync_buffer(&this->oy, CHUNKSIZE);
+	  bytes = this->input->read(this->input, buffer, CHUNKSIZE);
+	  if (bytes < CHUNKSIZE) {
+	    done=1;
+	    return;
+	  }
+	  ogg_sync_wrote(&this->oy, bytes);
+	}
+	cur_serno = ogg_page_serialno (&this->og);
+	stream_num=-1;
+	for (i = 0; i<this->num_streams; i++) {
+	  if (this->oss[i].serialno == cur_serno) {
+	    stream_num=i;
+	    break;
+	  }
+	}
+	if (stream_num!=-1) {
+	  if ((this->buf_types[stream_num] & 0xFF000000) == BUF_AUDIO_BASE) {
+	    if (this->time_length < ogg_page_granulepos(&this->og) * 1000 / this->samplerate[stream_num] )
+	      this->time_length = ogg_page_granulepos(&this->og) * 1000 / this->samplerate[stream_num] ;
+	  } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) {
+	    if (this->time_length < (ogg_page_granulepos(&this->og) * this->frame_duration) / 90 )
+	      this->time_length = (ogg_page_granulepos(&this->og) * this->frame_duration) / 90;
+	  }else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_SPU_BASE) {
+	    if (this->time_length < ogg_page_granulepos(&this->og) )
+	      this->time_length = ogg_page_granulepos(&this->og) ;
+	  }
+	}
+      }
+      this->demux_plugin.seek((demux_plugin_t *)this, position,0);
+    }  
+  }
 }
 
 static void demux_ogg_send_content (demux_ogg_t *this) {
@@ -1025,11 +1071,15 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen; 
 
-  if (this->avg_bitrate)
-    return (int)((int64_t)1000 * this->input->get_length (this->input) * 8 /
-           this->avg_bitrate);
+  if (this->time_length==-1){
+    if (this->avg_bitrate)
+      return (int)((int64_t)1000 * this->input->get_length (this->input) * 8 /
+		   this->avg_bitrate);
+    else
+      return 0;
+  }
   else
-    return 0;
+    return this->time_length;
 }
 
 static uint32_t demux_ogg_get_capabilities(demux_plugin_t *this_gen) {
