@@ -26,6 +26,7 @@
 #include <inttypes.h>
 
 #include "../include/mpeg2.h"
+#include "../include/attributes.h"
 #include "mpeg2_internal.h"
 
 mpeg2_mc_t mpeg2_mc;
@@ -51,9 +52,9 @@ void mpeg2_mc_init (uint32_t accel)
 	mpeg2_mc = mpeg2_mc_alpha;
     else
 #endif
-#ifdef LIBMPEG2_MLIB
-    if (accel & MPEG2_ACCEL_MLIB)
-	mpeg2_mc = mpeg2_mc_mlib;
+#ifdef ARCH_SPARC
+    if (accel & MPEG2_ACCEL_SPARC_VIS)
+	mpeg2_mc = mpeg2_mc_vis;
     else
 #endif
 	mpeg2_mc = mpeg2_mc_c;

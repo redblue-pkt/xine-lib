@@ -1,5 +1,5 @@
 /*
- * alloc.c
+ * convert_internal.h
  * Copyright (C) 2000-2003 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
@@ -21,50 +21,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdlib.h>
-#include <inttypes.h>
+typedef struct {
+    uint8_t * rgb_ptr;
+    int width;
+    int field;
+    int y_stride, rgb_stride, y_increm, uv_increm, rgb_increm, rgb_slice;
+    int chroma420, convert420;
+    int dither_offset, dither_stride;
+    int y_stride_frame, uv_stride_frame, rgb_stride_frame, rgb_stride_min;
+} convert_rgb_t;
 
-#include "../include/mpeg2.h"
+typedef void mpeg2convert_copy_t (void * id, uint8_t * const * src,
+				  unsigned int v_offset);
 
-static void * (* malloc_hook) (unsigned size, mpeg2_alloc_t reason) = NULL;
-static int (* free_hook) (void * buf) = NULL;
-
-void * mpeg2_malloc (unsigned size, mpeg2_alloc_t reason)
-{
-    char * buf;
-
-    if (malloc_hook) {
-	buf = (char *) malloc_hook (size, reason);
-	if (buf)
-	    return buf;
-    }
-
-    if (size) {
-	buf = (char *) malloc (size + 63 + sizeof (void **));
-	if (buf) {
-	    char * align_buf;
-
-	    align_buf = buf + 63 + sizeof (void **);
-	    align_buf -= (long)align_buf & 63;
-	    *(((void **)align_buf) - 1) = buf;
-	    return align_buf;
-	}
-    }
-    return NULL;
-}
-
-void mpeg2_free (void * buf)
-{
-    if (free_hook && free_hook (buf))
-	return;
-
-    if (buf)
-	free (*(((void **)buf) - 1));
-}
-
-void mpeg2_malloc_hooks (void * malloc (unsigned, mpeg2_alloc_t),
-			 int free (void *))
-{
-    malloc_hook = malloc;
-    free_hook = free;
-}
+mpeg2convert_copy_t * mpeg2convert_rgb_mmxext (int bpp, int mode,
+					       const mpeg2_sequence_t * seq);
+mpeg2convert_copy_t * mpeg2convert_rgb_mmx (int bpp, int mode,
+					    const mpeg2_sequence_t * seq);
+mpeg2convert_copy_t * mpeg2convert_rgb_vis (int bpp, int mode,
+					    const mpeg2_sequence_t * seq);

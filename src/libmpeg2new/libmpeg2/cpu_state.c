@@ -27,8 +27,8 @@
 #include <inttypes.h>
 
 #include "../include/mpeg2.h"
-#include "mpeg2_internal.h"
 #include "../include/attributes.h"
+#include "mpeg2_internal.h"
 #ifdef ARCH_X86
 #include "../include/mmx.h"
 #endif
