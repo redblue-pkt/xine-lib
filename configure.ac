@@ -434,7 +434,7 @@ dnl
 dnl xine_check use Xv functions API.
 dnl
 if test x$ac_have_xv = "xyes"; then
-  EXTRA_X_LIBS="-L$xv_path $XV_LIBS -lXext"
+  EXTRA_X_LIBS="-L$xv_path $XV_LIB -lXext"
   EXTRA_X_CFLAGS=""
 fi
 AC_SUBST(XV_LIB)
