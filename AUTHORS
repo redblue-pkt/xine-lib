@@ -267,7 +267,8 @@ Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
   demux_ts fixes and improvements
 
 Carsten Weinhold <cw.news@gmx.net>
-  patch to improve quality of linearblend filter
+  patch to improve quality of linearblend filter, new AV sync
+  method by resampling audio.
 
 Claire Griffin <claire@comedia.com>
   demux_ts fixes for ATSC streams

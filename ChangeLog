@@ -1,3 +1,6 @@
+xine-lib (1-beta5)
+  * new AV sync strategy (audio resample) for DXR3 users
+
 xine-lib (1-beta4)
   * http input fixes
   * rtsp input fixes (remove long wait on end of stream)
