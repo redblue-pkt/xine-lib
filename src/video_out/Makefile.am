@@ -23,14 +23,13 @@ endif
 #if HAVE_OPENGL
 #opengl_module = xineplug_vo_out_opengl.la
 #endif
+if HAVE_SUNFB
+pgx64_module = xineplug_vo_out_pgx64.la
+endif
 endif
 
 if HAVE_VIDIX
 vidix_module = xineplug_vo_out_vidix.la
-endif
-
-if HAVE_SUNFB
-pgx64_module = xineplug_vo_out_pgx64.la
 endif
 
 if HAVE_AA
