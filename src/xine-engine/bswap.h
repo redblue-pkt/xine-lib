@@ -55,12 +55,12 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 
 #define bswap_16(x) (((x) & 0x00ff) << 8 | ((x) & 0xff00) >> 8)
 
-
-/* code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc. */
 #define bswap_32(x) \
      ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
       (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
 
+#ifdef __GNUC__
+/* code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc. */
 #define bswap_64(x) \
      (__extension__						\
       ({ union { __extension__ unsigned long long int __ll;	\
@@ -69,6 +69,18 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
          __r.__l[0] = bswap_32 (__w.__l[1]);			\
          __r.__l[1] = bswap_32 (__w.__l[0]);			\
          __r.__ll; }))
+#else
+#define bswap_64(x) \
+     ((((x) & 0xff00000000000000LL) >> 56) | \
+      (((x) & 0x00ff000000000000LL) >> 40) | \
+      (((x) & 0x0000ff0000000000LL) >> 24) | \
+      (((x) & 0x000000ff00000000LL) >>  8) | \
+      (((x) & 0x00000000ff000000LL) <<  8) | \
+      (((x) & 0x0000000000ff0000LL) << 24) | \
+      (((x) & 0x000000000000ff00LL) << 40) | \
+      (((x) & 0x00000000000000ffLL) << 56)) 
+#endif  /* !__GNUC__ */
+
 #endif	/* !ARCH_X86 */
 
 #endif	/* !HAVE_BYTESWAP_H */
@@ -155,7 +167,6 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 #define AME_64(x) ALE_64(x)
 #endif
 
-
 #define BE_FOURCC( ch0, ch1, ch2, ch3 )             \
         ( (uint32_t)(unsigned char)(ch3) |          \
         ( (uint32_t)(unsigned char)(ch2) << 8 ) |   \
@@ -167,6 +178,5 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
         ( (uint32_t)(unsigned char)(ch1) << 8 ) |   \
         ( (uint32_t)(unsigned char)(ch2) << 16 ) |  \
         ( (uint32_t)(unsigned char)(ch3) << 24 ) )
-
 
 #endif
