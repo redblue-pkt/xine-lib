@@ -497,6 +497,21 @@ aaxine foo.mpg
 to use aalib video output.
 
 
+problem with loading alsa 09 libraries
+--------------------------------------
+
+Joel Atyas <smilin@seedling.com> wrote:
+
+i had a similar problem which turned out to be caused by a feature in
+.xinerc which is still undocumented.  so this proposed solution is bound
+to be a wild guess:  put the lines
+
+alsa_pcm_device:plughw:0,0
+alsa_ac3_device:plughw:0,2
+
+somewhere into your ~/.xinerc and try again.
+
+
 i think I found a bug!
 ----------------------
 
