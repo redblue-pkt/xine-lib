@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.12 2002/09/14 19:04:08 guenter Exp $
+ * $Id: xine_interface.c,v 1.13 2002/09/16 15:09:36 jcdutton Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -170,14 +170,34 @@ static int xine_config_get_current_entry (xine_p this,
 
   if (!config->cur)
     return 0;
-
+/* Don't do strdup on const key, help, description */
   entry->key            = config->cur->key;
   entry->type           = config->cur->type;
+  if(entry->unknown_value) {
+    free(entry->unknown_value);
+    entry->unknown_value=NULL;
+  }
+  if(config->cur->unknown_value)
+    entry->unknown_value            = strdup(config->cur->unknown_value);
 
-  entry->unknown_value  = config->cur->unknown_value;
-  entry->str_value      = config->cur->str_value;
-  entry->str_default    = config->cur->str_default;
-  entry->str_sticky     = config->cur->str_sticky;
+  if(entry->str_value) {
+    free(entry->str_value);
+    entry->str_value=NULL;
+  }
+  if(config->cur->str_value)
+    entry->str_value            = strdup(config->cur->str_value);
+  if(entry->str_default) {
+    free(entry->str_default);
+    entry->str_default=NULL;
+  }
+  if(config->cur->str_default)
+    entry->str_default            = strdup(config->cur->str_default);
+  if(entry->str_sticky) {
+    free(entry->str_sticky);
+    entry->str_sticky=NULL;
+  }
+  if(config->cur->str_sticky)
+    entry->str_sticky            = strdup(config->cur->str_sticky);
   entry->num_value      = config->cur->num_value;
   entry->num_default    = config->cur->num_default;
   entry->range_min      = config->cur->range_min;

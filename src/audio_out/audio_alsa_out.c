@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.78 2002/09/16 12:27:08 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.79 2002/09/16 15:09:36 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -326,11 +326,11 @@ static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate
     goto __close;
   }
   period_size = snd_pcm_hw_params_get_period_size(params, NULL);
-
   if (2*period_size > buffer_size) {
     printf ("audio_alsa_out: buffer to small, could not use\n");
     goto __close;
   }
+  
   /* Check for pause/resume support */
   this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
 			    && snd_pcm_hw_params_can_resume (params) );
