@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.299 2004/10/14 23:44:09 tmattern Exp $
+ * $Id: xine.c,v 1.300 2004/10/27 13:09:07 miguelfreitas Exp $
  */
 
 /*
@@ -627,7 +627,8 @@ void _x_flush_events_queues (xine_stream_t *stream) {
 static int __open_internal (xine_stream_t *stream, const char *mrl) {
 
   const char *stream_setup;
-
+  int no_cache = 0;
+  
   if (!mrl) {
     xprintf (stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
     stream->err = XINE_ERROR_MALFORMED_MRL;
@@ -844,6 +845,19 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	xprintf (stream->xine, XINE_VERBOSITY_LOG, _("ignoring subpicture\n"));
 	continue;
       }
+      if (strncasecmp(stream_setup, "nocache", 7) == 0) {
+        stream_setup += 7;
+        if (*stream_setup == ';' || *stream_setup == '\0') {
+	  no_cache = 1;
+	} else {
+	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	xprintf (stream->xine, XINE_VERBOSITY_LOG, _("input cache plugin disabled\n"));
+	continue;
+      }
       if (strncasecmp(stream_setup, "volume", 6) == 0) {
         if (*(stream_setup += 6) == ':') {
 	  const char *tmp = ++stream_setup;
@@ -964,6 +978,10 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
     }
 
   }
+
+  if( !no_cache )
+    /* enable buffered input plugin (request optimizer) */
+    stream->input_plugin = _x_cache_plugin_get_instance(stream, 0);
 
   if (!stream->demux_plugin) {
 

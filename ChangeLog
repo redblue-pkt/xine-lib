@@ -34,7 +34,10 @@
   * Simple libsmbclient (samba) input plugin
   * improved DVB plugin with support for A52, subtitles, teletext and
     EIT (electronic program guide).
-    
+  * new request optimizer (cache) layer for input plugins to avoid the
+    overhead of expensive system calls for reading just a couple of
+    bytes. may be disabled with MRL parameter "#nocache".
+        
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
   * Fixed Xv initialization to enable multiple instances of the Xv plugin
