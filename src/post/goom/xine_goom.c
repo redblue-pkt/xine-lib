@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.42 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: xine_goom.c,v 1.43 2003/11/26 19:30:14 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -259,7 +259,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->class = class;
   class->ip   = this;
   
-  this->metronom = _x_metronom_init(0, 1, class->xine);
+  this->metronom = _x_metronom_init(1, 0, class->xine);
 
   lprintf("goom: goom_open_plugin\n");
 

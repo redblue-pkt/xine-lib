@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.20 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: fftscope.c,v 1.21 2003/11/26 19:30:17 mroi Exp $
  *
  */
 
@@ -506,7 +506,7 @@ static post_plugin_t *fftscope_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
 
-  this->metronom = _x_metronom_init(0, 1, class->xine);
+  this->metronom = _x_metronom_init(1, 0, class->xine);
 
   this->sample_counter = 0;
   this->stream  = NULL;

@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.15 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: fooviz.c,v 1.16 2003/11/26 19:30:17 mroi Exp $
  *
  */
 
@@ -303,7 +303,7 @@ static post_plugin_t *fooviz_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
   
-  this->metronom = _x_metronom_init(0, 1, class->xine);
+  this->metronom = _x_metronom_init(1, 0, class->xine);
 
   this->sample_counter = 0;
   this->stream  = NULL;
