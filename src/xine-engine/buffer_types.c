@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.43 2002/10/12 19:18:48 tmmm Exp $
+ * $Id: buffer_types.c,v 1.44 2002/10/27 18:02:52 tmmm Exp $
  *
  *
  * contents:
@@ -653,6 +653,14 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_AAC,
   "Advanced Audio Coding (MPEG-4 AAC)"
+},
+{
+  {
+    meFOURCC('d', 'n', 'e', 't'),
+    0
+  },
+  BUF_AUDIO_DNET,
+  "RealAudio DNET"
 },
 {
   {

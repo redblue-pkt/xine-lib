@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2002/10/26 02:35:13 guenter Exp $
+ * $Id: xine_decoder.c,v 1.38 2002/10/27 18:02:52 tmmm Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -340,6 +340,19 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t          *end = buf->content + buf->size;
   uint8_t           byte;
 
+  /* swap byte pairs if this is RealAudio DNET data */
+  if (buf->type == BUF_AUDIO_DNET) {
+    while (current != end) {
+      byte = *current++;
+      *(current - 1) = *current;
+      *current++ = byte;
+    }
+
+    /* reset */
+    current = buf->content;
+    end = buf->content + buf->size;
+  }
+
   if (buf->pts)
     this->pts = buf->pts;
 
@@ -609,7 +622,9 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 
 static uint32_t audio_types[] = {
-  BUF_AUDIO_A52, 0
+  BUF_AUDIO_A52,
+  BUF_AUDIO_DNET,
+  0
  };
 
 static decoder_info_t dec_info_audio = {

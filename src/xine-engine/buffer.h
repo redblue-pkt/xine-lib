@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.72 2002/10/24 16:02:44 jkeil Exp $
+ * $Id: buffer.h,v 1.73 2002/10/27 18:02:52 tmmm Exp $
  *
  *
  * contents:
@@ -149,7 +149,7 @@ extern "C" {
 #define BUF_AUDIO_VOXWARE       0x030c0000
 #define BUF_AUDIO_ACELPNET      0x030d0000
 #define BUF_AUDIO_AAC           0x030e0000
-#define BUF_AUDIO_REAL    	0x030f0000
+#define BUF_AUDIO_DNET    	0x030f0000
 #define BUF_AUDIO_VIVOG723      0x03100000
 #define BUF_AUDIO_DK3ADPCM	0x03110000
 #define BUF_AUDIO_DK4ADPCM	0x03120000
