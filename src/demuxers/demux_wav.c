@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.16 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_wav.c,v 1.17 2002/10/06 03:48:13 komadori Exp $
  *
  */
 
@@ -41,9 +41,6 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
-
-#define LE_16(x) (le2me_16(*(uint16_t *)(x)))
-#define LE_32(x) (le2me_32(*(uint32_t *)(x)))
 
 #define VALID_ENDS "wav"
 #define WAV_SIGNATURE_SIZE 16

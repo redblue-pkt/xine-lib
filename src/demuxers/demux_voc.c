@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.10 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_voc.c,v 1.11 2002/10/06 03:48:13 komadori Exp $
  *
  */
 
@@ -44,9 +44,6 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
-
-#define LE_16(x) (le2me_16(*(uint16_t *)(x)))
-#define LE_32(x) (le2me_32(*(uint32_t *)(x)))
 
 #define VALID_ENDS "voc"
 #define PCM_BLOCK_ALIGN 1024

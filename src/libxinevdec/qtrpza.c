@@ -21,7 +21,7 @@
  * For more information about the RPZA format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: qtrpza.c,v 1.4 2002/09/05 22:19:03 mroi Exp $
+ * $Id: qtrpza.c,v 1.5 2002/10/06 03:48:13 komadori Exp $
  */
 
 #include <stdio.h>
@@ -37,9 +37,6 @@
 #include "bswap.h"
 
 #define VIDEOBUFSIZE 128*1024
-
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 typedef struct qtrpza_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */

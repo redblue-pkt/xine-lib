@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.9 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_aiff.c,v 1.10 2002/10/06 03:48:13 komadori Exp $
  *
  */
 
@@ -40,9 +40,6 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
-
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \

@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.2 2002/10/04 01:16:04 tmmm Exp $
+ * $Id: qtrle.c,v 1.3 2002/10/06 03:48:13 komadori Exp $
  */
 
 #include <stdio.h>
@@ -37,9 +37,6 @@
 #include "bswap.h"
 
 #define VIDEOBUFSIZE 128*1024
-
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 typedef struct qtrle_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */

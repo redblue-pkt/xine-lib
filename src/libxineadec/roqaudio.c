@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.7 2002/09/05 22:19:01 mroi Exp $
+ * $Id: roqaudio.c,v 1.8 2002/10/06 03:48:13 komadori Exp $
  *
  */
 
@@ -42,9 +42,6 @@
 #define RoQ_AUDIO_BITS_PER_SAMPLE 16
 
 #define AUDIOBUFSIZE 128*1024
-
-#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
-#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 #define CLAMP_S16(x)  if (x < -32768) x = -32768; \
   else if (x > 32767) x = 32767;

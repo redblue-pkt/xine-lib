@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.17 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_smjpeg.c,v 1.18 2002/10/06 03:48:13 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,9 +40,6 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
-
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \

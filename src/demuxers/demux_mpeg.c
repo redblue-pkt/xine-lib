@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.79 2002/10/06 01:37:27 tmmm Exp $
+ * $Id: demux_mpeg.c,v 1.80 2002/10/06 03:48:13 komadori Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -89,8 +89,6 @@ typedef struct demux_mpeg_s {
  */
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
-#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
 #define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
         ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )

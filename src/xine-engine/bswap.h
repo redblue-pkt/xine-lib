@@ -90,4 +90,38 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 #define le2me_64(x) (x)
 #endif
 
+#ifdef FPM_SPARC
+
+/*
+ * Workaround for code generation bug in gcc on SPARC
+ */
+
+#define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
+#define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
+                   (((uint8_t*)(x))[1] << 16) | \
+                   (((uint8_t*)(x))[2] << 8) | \
+                    ((uint8_t*)(x))[3])
+#define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
+#define LE_32(x)  ((((uint8_t*)(x))[3] << 24) | \
+                   (((uint8_t*)(x))[2] << 16) | \
+                   (((uint8_t*)(x))[1] << 8) | \
+                    ((uint8_t*)(x))[0])
+
+#else
+
+#define BE_16(x) (be2me_16(*(uint16_t*)(x)))
+#define BE_32(x) (be2me_32(*(uint32_t*)(x)))
+#define LE_16(x) (le2me_16(*(uint16_t*)(x)))
+#define LE_32(x) (le2me_32(*(uint32_t*)(x)))
+
+#endif /* !FPM_SPARC */
+
+#ifdef WORDS_BIGENDIAN
+#define ME_16(x) BE_16(x)
+#define ME_32(x) BE_32(x)
+#else
+#define ME_16(x) LE_16(x)
+#define ME_32(x) LE_32(x)
+#endif
+
 #endif

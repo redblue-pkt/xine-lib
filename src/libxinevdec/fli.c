@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.6 2002/09/05 22:19:02 mroi Exp $
+ * $Id: fli.c,v 1.7 2002/10/06 03:48:13 komadori Exp $
  */
 
 #include <stdio.h>
@@ -41,9 +41,6 @@
 #define VIDEOBUFSIZE 128*1024
 
 #define PALETTE_SIZE (256 * 4)
-
-#define LE_16(x) (le2me_16(*(uint16_t *)(x)))
-#define LE_32(x) (le2me_32(*(uint32_t *)(x)))
 
 #define FLI_256_COLOR 4
 #define FLI_DELTA     7

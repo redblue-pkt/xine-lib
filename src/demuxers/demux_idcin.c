@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.14 2002/10/06 02:35:08 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.15 2002/10/06 03:48:13 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -82,9 +82,6 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
-
-#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
-#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 #define VALID_ENDS   "cin"
 #define IDCIN_HEADER_SIZE 20

@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.10 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_snd.c,v 1.11 2002/10/06 03:48:13 komadori Exp $
  *
  */
 
@@ -40,9 +40,6 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
-
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 #define SND_HEADER_SIZE 24
 #define PCM_BLOCK_ALIGN 1024

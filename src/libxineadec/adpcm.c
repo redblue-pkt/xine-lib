@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.16 2002/09/13 03:03:42 tmmm Exp $
+ * $Id: adpcm.c,v 1.17 2002/10/06 03:48:13 komadori Exp $
  */
 
 #include <stdio.h>
@@ -39,11 +39,6 @@
 #include "buffer.h"
 #include "xineutils.h"
 #include "bswap.h"
-
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
-#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
-#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 /* pertinent tables */
 static int ima_adpcm_step[89] = {

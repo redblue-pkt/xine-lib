@@ -21,7 +21,7 @@
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
  * 
- * $Id: rgb.c,v 1.7 2002/09/05 22:19:03 mroi Exp $
+ * $Id: rgb.c,v 1.8 2002/10/06 03:48:13 komadori Exp $
  */
 
 #include <stdio.h>
@@ -37,9 +37,6 @@
 #include "bswap.h"
 
 #define VIDEOBUFSIZE 128*1024
-
-#define LE_16(x) (le2me_16(*(uint16_t *)(x)))
-#define LE_32(x) (le2me_32(*(uint32_t *)(x)))
 
 typedef struct rgb_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */

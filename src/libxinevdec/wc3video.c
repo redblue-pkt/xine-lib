@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.5 2002/09/13 03:02:18 tmmm Exp $
+ * $Id: wc3video.c,v 1.6 2002/10/06 03:48:13 komadori Exp $
  */
 
 #include <stdio.h>
@@ -41,11 +41,6 @@
 
 #define WC3_WIDTH   320
 #define WC3_HEIGHT  165
-
-#define LE_16(x) (le2me_16(*(uint16_t *)(x)))
-#define LE_32(x) (le2me_32(*(uint32_t *)(x)))
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 typedef struct wc3video_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */

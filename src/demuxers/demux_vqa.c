@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.11 2002/10/06 02:35:08 tmmm Exp $
+ * $Id: demux_vqa.c,v 1.12 2002/10/06 03:48:13 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,11 +46,6 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
-
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
-#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
-#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \

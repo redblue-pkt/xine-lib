@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.18 2002/10/06 02:35:08 tmmm Exp $
+ * $Id: demux_roq.c,v 1.19 2002/10/06 03:48:13 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,9 +40,6 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
-
-#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
-#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 #define RoQ_MAGIC_NUMBER 0x1084
 #define RoQ_CHUNK_PREAMBLE_SIZE 8

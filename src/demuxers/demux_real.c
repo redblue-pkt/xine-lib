@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.2 2002/10/06 02:35:08 tmmm Exp $
+ * $Id: demux_real.c,v 1.3 2002/10/06 03:48:13 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,9 +40,6 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
-
-#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
-#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.93 2002/10/06 02:27:53 tmmm Exp $
+ * $Id: demux_qt.c,v 1.94 2002/10/06 03:48:13 komadori Exp $
  *
  */
 
@@ -56,9 +56,6 @@
 #include "qtpalette.h"
 
 typedef unsigned int qt_atom;
-
-#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
-#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
 
 #define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
@@ -572,7 +569,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
             BE_16(&trak_atom[i + 0x2E]);
         }
         sample_table->media_description.video.codec_format =
-          *(uint32_t *)&trak_atom[i + 0x10];
+          ME_32(&trak_atom[i + 0x10]);
 
         /* figure out the palette situation */
         color_depth = trak_atom[i + 0x5F];
