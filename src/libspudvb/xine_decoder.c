@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2004/12/04 17:47:43 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.8 2004/12/06 06:15:46 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -85,11 +85,12 @@ typedef struct dvb_spu_decoder_s {
   spu_dvb_descriptor_t *spu_descriptor;
 
   osd_object_t 	       *osd;
-
+  char		       *bitmap;
+  
   char 		       *pes_pkt;
   char                 *pes_pkt_wrptr;
   unsigned int  	pes_pkt_size;
-
+  
   uint64_t 		pts;
   uint64_t 		vpts;
 
@@ -97,6 +98,7 @@ typedef struct dvb_spu_decoder_s {
   int 			timeout;
   int 			show;
 } dvb_spu_decoder_t;
+
 
 void create_region (dvb_spu_decoder_t * this, int region_id, int region_width, int region_height, int region_depth);
 void do_plot (dvb_spu_decoder_t * this, int r, int x, int y, unsigned char pixel);
@@ -457,10 +459,8 @@ void draw_subtitles (dvb_spu_decoder_t * this)
 {
   int r;
   int x, y, out_y;
-  char bitmap[720*576];
-
   /* clear it */
-  memset (bitmap, 0, 720 * 576);
+  memset (this->bitmap, 0, 720 * 576);
 
   /* render all regions onto the page */
   /* FIXME: we ought to have an osd per region, to allow for multiple CLUTs */
@@ -472,7 +472,7 @@ void draw_subtitles (dvb_spu_decoder_t * this)
 	out_y = this->dvbsub->page.regions[r].y * 720;
 	for (y = 0; y < this->dvbsub->regions[r].height; y++) {
 	  for (x = 0; x < this->dvbsub->regions[r].width; x++) {
-	    bitmap[out_y + x + this->dvbsub->page.regions[r].x] = this->dvbsub->regions[r].img[(y * this->dvbsub->regions[r].width) + x];
+	    this->bitmap[out_y + x + this->dvbsub->page.regions[r].x] = this->dvbsub->regions[r].img[(y * this->dvbsub->regions[r].width) + x];
 	  }
 	  out_y += 720;
 	}
@@ -481,7 +481,8 @@ void draw_subtitles (dvb_spu_decoder_t * this)
   }
   /* display immediately */
   /* FIXME: we should use the page timeout */
-  this->stream->osd_renderer->draw_bitmap(this->osd,bitmap, 1,1,720,576,NULL);
+  this->stream->osd_renderer->hide (this->osd,0);
+  this->stream->osd_renderer->draw_bitmap (this->osd,this->bitmap, 1,1,720,576,NULL);
   this->stream->osd_renderer->show (this->osd, 0);
 }
 
@@ -489,32 +490,39 @@ void draw_subtitles (dvb_spu_decoder_t * this)
 static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 {
   dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
+  xine_event_t *event;
+
+  if((buf->type & 0xffff0000)!=BUF_SPU_DVB)
+    return;  
+  
+  /* handle queued events && do nothing about them */
+  while ((event = xine_event_get(this->event_queue))) {
+    switch (event->type) {
+    case XINE_EVENT_FRAME_FORMAT_CHANGE:
+      break;
+    }
+    xine_event_free(event);
+  }
 
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR) {
       if (buf->decoder_info[2] == 0) {
 	this->stream->osd_renderer->hide (this->osd, 0);
-	this->show = 0;
       }
       else {
 	if (this->spu_descriptor)
 	  free (this->spu_descriptor);
-	this->show = 1;
 	this->spu_descriptor = malloc (buf->decoder_info[2]);
 	xine_fast_memcpy (this->spu_descriptor, buf->decoder_info_ptr[2], buf->decoder_info[2]);
       }
     }
-
+    return;
   }
   else {
-    if (buf->type & 0xffff) {
-      if (this->pes_pkt)
-	free (this->pes_pkt);
-      this->pes_pkt = malloc (buf->type & 0xffff);
-      memset (this->pes_pkt, 0xff, buf->type & 0xffff);
-
+    if (buf->type & 0x0000ffff) {
+      memset (this->pes_pkt, 0xff, 1024*64);
       this->pes_pkt_wrptr = this->pes_pkt;
-      this->pes_pkt_size = (buf->type & 0xffff);
+      this->pes_pkt_size = (buf->type & 0x0000ffff);
       this->pts = buf->pts;
 
       xine_fast_memcpy (this->pes_pkt, buf->content, buf->size);
@@ -534,7 +542,6 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
   }
 
   /* process the pes section */
-  if (this->show)
     if (((this->pes_pkt_wrptr - this->pes_pkt) == this->pes_pkt_size)) {
       int new_i;
       int data_identifier, subtitle_stream_id;
@@ -553,7 +560,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       data_identifier = this->dvbsub->buf[this->dvbsub->i++];
       subtitle_stream_id = this->dvbsub->buf[this->dvbsub->i++];
 
-      while (this->dvbsub->i <= (PES_packet_length)) {
+      while (this->dvbsub->i < (PES_packet_length)) {
 	/* SUBTITLING SEGMENT */
 	this->dvbsub->i++;
 	segment_type = this->dvbsub->buf[this->dvbsub->i++];
@@ -578,13 +585,13 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 	case 0x80:		/* we have enough data to decode */
 	  break;
 	default:
-	  return;
+	  break;
 	}
-
 	this->dvbsub->i = new_i;
       }
 
     }
+      
   return;
 }
 
@@ -614,6 +621,9 @@ static void spudec_dispose (spu_decoder_t * this_gen)
   if (this->pes_pkt)
     free (this->pes_pkt);
 
+  if (this->bitmap)
+    free (this->bitmap);
+
   if (this->dvbsub)
     free (this->dvbsub);
 
@@ -639,8 +649,10 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   this->class = class;
   this->stream = stream;
 
-  this->event_queue = NULL;
-
+  this->event_queue = xine_event_new_queue(stream);
+  this->pes_pkt = malloc (1024*65);
+  this->bitmap = malloc (720*576);
+  
   this->dvbsub = malloc (sizeof (dvbsub_func_t));
 
   for (i = 0; i < MAX_REGIONS; i++) {
