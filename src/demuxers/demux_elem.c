@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.37 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.38 2002/04/11 22:27:11 jcdutton Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -220,7 +220,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
-    if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+    if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
       int num_buffers = NUM_PREVIEW_BUFFERS;
     
       this->input->seek (this->input, 0, SEEK_SET);

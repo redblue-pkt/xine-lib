@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.37 2002/02/17 17:32:50 guenter Exp $
+ * $Id: input_vcd.c,v 1.38 2002/04/11 22:27:12 jcdutton Exp $
  *
  */
 
@@ -859,7 +859,7 @@ static off_t vcd_plugin_get_current_pos (input_plugin_t *this_gen){
  */
 static uint32_t vcd_plugin_get_capabilities (input_plugin_t *this_gen) {
   
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
 }
 
 /*

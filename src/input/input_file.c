@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.41 2002/03/25 22:55:42 f1rmb Exp $
+ * $Id: input_file.c,v 1.42 2002/04/11 22:27:11 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -266,7 +266,7 @@ static off_t get_file_size(char *filepathname, char *origin) {
  */
 static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
 
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_GET_DIR | INPUT_CAP_SPULANG;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_GET_DIR | INPUT_CAP_SPULANG;
 }
 
 /*

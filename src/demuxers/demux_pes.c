@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.23 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: demux_pes.c,v 1.24 2002/04/11 22:27:11 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -442,7 +442,7 @@ static void demux_pes_start (demux_plugin_t *this_gen,
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
-    if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
+    if ((this->input->get_capabilities (this->input) & INPUT_CAP_PREVIEW) != 0 ) {
 
       uint32_t w;
       int num_buffers = NUM_PREVIEW_BUFFERS;

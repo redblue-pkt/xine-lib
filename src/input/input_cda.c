@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.18 2002/03/24 01:37:41 f1rmb Exp $
+ * $Id: input_cda.c,v 1.19 2002/04/11 22:27:11 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1546,7 +1546,7 @@ static uint32_t cda_plugin_get_capabilities (input_plugin_t *this_gen) {
   _ENTER_FUNC();
   _LEAVE_FUNC();
   
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
 }
 
 /*

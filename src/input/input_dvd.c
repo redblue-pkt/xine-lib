@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.43 2002/02/17 17:32:50 guenter Exp $
+ * $Id: input_dvd.c,v 1.44 2002/04/11 22:27:11 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -370,7 +370,7 @@ static int openDVDFile (dvd_input_plugin_t *this,
  *
  */
 static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this) {
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
 }
 
 /*
