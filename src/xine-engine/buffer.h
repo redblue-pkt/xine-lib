@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.101 2003/02/19 21:37:16 jstembridge Exp $
+ * $Id: buffer.h,v 1.102 2003/02/23 19:27:57 tmattern Exp $
  *
  *
  * contents:
@@ -228,7 +228,7 @@ struct buf_element_s {
   int64_t               disc_off;  /* discontinuity offset                                  */
 
   extra_info_t         *extra_info; /* extra info will be passed to frames */
-  
+
   uint32_t              decoder_flags; /* stuff like keyframe, is_header ... see below      */
 
   uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */
@@ -253,7 +253,7 @@ struct buf_element_s {
 #define BUF_FLAG_SPECIAL     0x0200
 #define BUF_FLAG_NO_VIDEO    0x0400
 /* do not decode the buffer contents, detect framing only */
-#define BUF_FLAG_FRAMING     0x0800 
+#define BUF_FLAG_FRAMING     0x0800
 
 /* Special buffer types:
  * Sometimes there is a need to relay special information from a demuxer
@@ -322,7 +322,7 @@ struct buf_element_s {
  * decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG
  * decoder_info[2] = data size
  * decoder_info_ptr[2] = pointer to data
- * This buffer is used to pass config information from  .mp4 files 
+ * This buffer is used to pass config information from  .mp4 files
  * (atom esds) to decoders. both mpeg4 and aac streams use that.
  */
 #define BUF_SPECIAL_DECODER_CONFIG  4
@@ -412,6 +412,8 @@ struct fifo_buffer_s
   void (*clear) (fifo_buffer_t *fifo) ;
 
   int (*size) (fifo_buffer_t *fifo);
+
+  int (*num_free) (fifo_buffer_t *fifo);
 
   uint32_t (*data_size) (fifo_buffer_t *fifo);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.24 2003/02/22 14:12:45 mroi Exp $
+ * $Id: buffer.c,v 1.25 2003/02/23 19:27:57 tmattern Exp $
  *
  *
  * contents:
@@ -132,7 +132,7 @@ static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
     buf = this->buffer_pool_top;
     this->buffer_pool_top = this->buffer_pool_top->next;
     this->buffer_pool_num_free--;
-  
+
   } else {
     
     buf = NULL;
@@ -291,6 +291,19 @@ static uint32_t fifo_buffer_data_size (fifo_buffer_t *this) {
 }
 
 /*
+ * Return the number of free elements in the pool
+ */
+static int fifo_buffer_num_free (fifo_buffer_t *this) {
+  int buffer_pool_num_free;
+
+  pthread_mutex_lock(&this->mutex);
+  buffer_pool_num_free = this->buffer_pool_num_free;
+  pthread_mutex_unlock(&this->mutex);
+
+  return buffer_pool_num_free;
+}
+
+/*
  * Destroy the buffer
  */
 static void fifo_buffer_dispose (fifo_buffer_t *this) {
@@ -349,6 +362,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->get             = fifo_buffer_get;
   this->clear           = fifo_buffer_clear;
   this->size		= fifo_buffer_size;
+  this->num_free        = fifo_buffer_num_free;
   this->data_size	= fifo_buffer_data_size;
   this->dispose		= fifo_buffer_dispose;
 
