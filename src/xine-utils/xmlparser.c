@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.6 2003/09/11 23:05:39 tmattern Exp $
+ *  $Id: xmlparser.c,v 1.7 2003/09/13 00:05:38 tmattern Exp $
  *
  */
 
@@ -71,6 +71,10 @@ static xml_node_t * new_xml_node() {
 }
 
 static void free_xml_node(xml_node_t * node) {
+  if (node->name)
+    free (node->name);
+  if (node->data)
+    free (node->data);
   free(node);
 }
 
@@ -85,6 +89,10 @@ static xml_property_t * new_xml_property() {
 }
 
 static void free_xml_property(xml_property_t * property) {
+  if (property->name)
+    free (property->name);
+  if (property->value)
+    free (property->value);
   free(property);
 }
 
@@ -106,13 +114,11 @@ static void xml_parser_free_props(xml_property_t *current_property) {
 }
 
 static void xml_parser_free_tree_rec(xml_node_t *current_node, int free_next) {
-
 #ifdef LOG
   printf("xml_parser: xml_parser_free_tree_rec: %s\n", current_node->name);
 #endif
-
   if (current_node) {
-    /* propertys */
+    /* properties */
     if (current_node->props) {
       xml_parser_free_props(current_node->props);
     }
@@ -166,7 +172,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
   xml_node_t *subtree = NULL;
   xml_node_t *current_subtree = NULL;
   xml_property_t *current_property = NULL;
-  xml_property_t *propertys = NULL;
+  xml_property_t *properties = NULL;
 
   if (rec < MAX_RECURSION) {
 
@@ -202,6 +208,10 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  break;
 	case (T_DATA):
 	  /* current data */
+	  if (current_node->data) {
+	    /* avoid a memory leak */
+	    free(current_node->data);
+	  }
 	  current_node->data = strdup(tok);
 #ifdef LOG
 	  printf("xmlparser: info: node data : %s\n", current_node->data);
@@ -217,7 +227,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
       case STATE_NODE:
 	switch (res) {
 	case (T_IDENT):
-	  propertys = NULL;
+	  properties = NULL;
 	  current_property = NULL;
 
 	  /* save node name */
@@ -250,7 +260,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  subtree->name = strdup(node_name);
 
 	  /* set node propertys */
-	  subtree->props = propertys;
+	  subtree->props = properties;
 #ifdef LOG
 	  printf("xmlparser: info: rec %d new subtree %s\n", rec, node_name);
 #endif
@@ -276,7 +286,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  subtree->name = strdup (node_name);
 
 	  /* set node propertys */
-	  subtree->props = propertys;
+	  subtree->props = properties;
 
 #ifdef LOG
 	  printf("xmlparser: info: rec %d new subtree %s\n", rec, node_name);
@@ -359,8 +369,8 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	case (T_M_STOP_1):
 	  /* add a new property without value */
 	  if (current_property == NULL) {
-	    propertys = new_xml_property();
-	    current_property = propertys;
+	    properties = new_xml_property();
+	    current_property = properties;
 	  } else {
 	    current_property->next = new_xml_property();
 	    current_property = current_property->next;
@@ -390,8 +400,8 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	case (T_IDENT):
 	  /* add a new property */
 	  if (current_property == NULL) {
-	    propertys = new_xml_property();
-	    current_property = propertys;
+	    properties = new_xml_property();
+	    current_property = properties;
 	  } else {
 	    current_property->next = new_xml_property();
 	    current_property = current_property->next;
@@ -466,20 +476,16 @@ int xml_parser_build_tree(xml_node_t **root_node) {
   xml_node_t *tmp_node;
   int res;
 
-  *root_node = new_xml_node();
   tmp_node = new_xml_node();
+  *root_node = tmp_node;
   res = xml_parser_get_node(tmp_node, "", 0);
   if ((tmp_node->child) && (!tmp_node->child->next)) {
-    (*root_node)->name  = tmp_node->child->name;
-    (*root_node)->data  = tmp_node->child->data;
-    (*root_node)->props = tmp_node->child->props;
-    (*root_node)->child = tmp_node->child->child;
-    (*root_node)->next  = tmp_node->child->next;
+    res = 0;
   } else {
     printf("xmlparser: error: xml struct\n");
+    xml_parser_free_tree(tmp_node);
     res = -1;
   }
-  free(tmp_node);
   return res;
 }
 
