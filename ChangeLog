@@ -11,7 +11,11 @@ xine-lib (1-xxx)
   * fixed plugin catalog cache (faster xine startup)
   * updated internal goom to 2k4-dev21; randomized and improved look of 
     initial effect (hopefully no more white screens any more)
-        
+  * DVB: Fixed pat parsing with fullfeatured cards.
+  * DVB: Now uses auto-inversion if the frontend supports it - should solve many tuning
+    problems for people with sat cards.  
+  * DVB: Will now verify that channels.conf file is in correct (?zap) format.
+ 
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
   * Set the codec name for Real Media even if we can't play the files
