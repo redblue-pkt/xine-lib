@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.17 2003/06/03 03:33:16 miguelfreitas Exp $
+ * $Id: color.c,v 1.18 2003/06/22 15:03:43 miguelfreitas Exp $
  */
 
 #include "xine_internal.h"
@@ -654,16 +654,16 @@ void yuv411_to_yv12_c
 
 }
 
-#define C_YUV420_YUYV( )                                                    \
-    *(p_line1)++ = *(p_y1)++; *(p_line2)++ = *(p_y2)++;                     \
-    *(p_line1)++ =            *(p_line2)++ = *(p_u)++;                      \
-    *(p_line1)++ = *(p_y1)++; *(p_line2)++ = *(p_y2)++;                     \
-    *(p_line1)++ =            *(p_line2)++ = *(p_v)++;                      \
+#define C_YUV420_YUYV( )                                          \
+    *p_line1++ = *p_y1++; *p_line2++ = *p_y2++;                   \
+    *p_line1++ = *p_u;    *p_line2++ = (*p_u++ + *p_u2++)>>1;     \
+    *p_line1++ = *p_y1++; *p_line2++ = *p_y2++;                   \
+    *p_line1++ = *p_v;    *p_line2++ = (*p_v++ + *p_v2++)>>1;
 
 /*****************************************************************************
  * I420_YUY2: planar YUV 4:2:0 to packed YUYV 4:2:2
  * original conversion routine from Videolan project
- * changed to support interlaced frames. no filter/interpolation yet.
+ * changed to support interlaced frames and use simple mean interpolation [MF]
  *****************************************************************************/
 void yv12_to_yuy2_c
   (unsigned char *y_src, int y_src_pitch, 
@@ -676,6 +676,8 @@ void yv12_to_yuy2_c
     uint8_t *p_y1, *p_y2 = y_src;
     uint8_t *p_u = u_src;
     uint8_t *p_v = v_src;
+    uint8_t *p_u2 = u_src + u_src_pitch;
+    uint8_t *p_v2 = v_src + v_src_pitch;
 
     int i_x, i_y;
 
@@ -706,11 +708,20 @@ void yv12_to_yuy2_c
           p_y2 += i_source_margin;
           p_u += i_source_u_margin;
           p_v += i_source_v_margin;
+          if( i_y > 1 ) {
+            p_u2 += i_source_u_margin;
+            p_v2 += i_source_v_margin;
+          } else {
+            p_u2 = p_u;
+            p_v2 = p_v;
+          }
           p_line2 += i_dest_margin;
       }
 
     } else {
 
+      p_u2 = u_src + 2*u_src_pitch;
+      p_v2 = v_src + 2*v_src_pitch;
       for( i_y = height / 4 ; i_y-- ; )
       {
           p_line1 = p_line2;
@@ -730,6 +741,13 @@ void yv12_to_yuy2_c
           p_y2 += i_source_margin + y_src_pitch;
           p_u += i_source_u_margin + u_src_pitch;
           p_v += i_source_v_margin + v_src_pitch;
+          if( i_y > 1 ) {
+            p_u2 += i_source_u_margin + u_src_pitch;
+            p_v2 += i_source_v_margin + v_src_pitch;
+          } else {
+            p_u2 = p_u;
+            p_v2 = p_v;
+          }
           p_line2 += i_dest_margin + yuy2_pitch;
       }
   
@@ -737,6 +755,8 @@ void yv12_to_yuy2_c
       p_y2 = y_src + y_src_pitch;
       p_u = u_src + u_src_pitch;
       p_v = v_src + v_src_pitch;
+      p_u2 = u_src + 3*u_src_pitch;
+      p_v2 = v_src + 3*v_src_pitch;
   
       for( i_y = height / 4 ; i_y-- ; )
       {
@@ -757,6 +777,13 @@ void yv12_to_yuy2_c
           p_y2 += i_source_margin + y_src_pitch;
           p_u += i_source_u_margin + u_src_pitch;
           p_v += i_source_v_margin + v_src_pitch;
+          if( i_y > 1 ) {
+            p_u2 += i_source_u_margin + u_src_pitch;
+            p_v2 += i_source_v_margin + v_src_pitch;
+          } else {
+            p_u2 = p_u;
+            p_v2 = p_v;
+          }
           p_line2 += i_dest_margin + yuy2_pitch;
       }
 
@@ -766,7 +793,7 @@ void yv12_to_yuy2_c
 
 #ifdef ARCH_X86
 
-#define MMX_YUV420_YUYV( )                                                         \
+#define MMXEXT_YUV420_YUYV( )                                                      \
 do {                                                                               \
    __asm__ __volatile__(".align 8 \n\t"                                            \
     "movq       (%0), %%mm0 \n\t"  /* Load 8 Y          y7 y6 y5 y4 y3 y2 y1 y0 */ \
@@ -777,24 +804,32 @@ do {                                                                            
     "punpcklbw %%mm1, %%mm2 \n\t"  /*                   v1 y3 u1 y2 v0 y1 u0 y0 */ \
     :                                                                              \
     : "r" (p_y1), "r" (p_u), "r" (p_v) );                                          \
-   __asm__ __volatile__(".align 8 \n\t"                                            \
-    "movq      %%mm2, (%0)  \n\t"  /* Store low YUYV                            */ \
+   __asm__ __volatile__(                                                           \
+    "movd       (%0), %%mm3 \n\t"  /* Load 4 Cb         00 00 00 00 u3 u2 u1 u0 */ \
+    "movd       (%1), %%mm4 \n\t"  /* Load 4 Cr         00 00 00 00 v3 v2 v1 v0 */ \
+    "punpcklbw %%mm4, %%mm3 \n\t"  /*                   v3 u3 v2 u2 v1 u1 v0 u0 */ \
+    "pavgb     %%mm1, %%mm3 \n\t"  /* (mean)            v3 u3 v2 u2 v1 u1 v0 u0 */ \
+    :                                                                              \
+    : "r" (p_u2), "r" (p_v2) );                                                    \
+   __asm__ __volatile__(                                                           \
+    "movntq    %%mm2, (%0)  \n\t"  /* Store low YUYV                            */ \
     "punpckhbw %%mm1, %%mm0 \n\t"  /*                   v3 y7 u3 y6 v2 y5 u2 y4 */ \
-    "movq      %%mm0, 8(%0) \n\t"  /* Store high YUYV                           */ \
+    "movntq    %%mm0, 8(%0) \n\t"  /* Store high YUYV                           */ \
     "movq       (%2), %%mm0 \n\t"  /* Load 8 Y          Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0 */ \
     "movq      %%mm0, %%mm2 \n\t"  /*                   Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0 */ \
-    "punpcklbw %%mm1, %%mm2 \n\t"  /*                   v1 Y3 u1 Y2 v0 Y1 u0 Y0 */ \
-    "movq      %%mm2, (%1)  \n\t"  /* Store low YUYV                            */ \
-    "punpckhbw %%mm1, %%mm0 \n\t"  /*                   v3 Y7 u3 Y6 v2 Y5 u2 Y4 */ \
-    "movq      %%mm0, 8(%1) \n\t"  /* Store high YUYV                           */ \
+    "punpcklbw %%mm3, %%mm2 \n\t"  /*                   v1 Y3 u1 Y2 v0 Y1 u0 Y0 */ \
+    "movntq    %%mm2, (%1)  \n\t"  /* Store low YUYV                            */ \
+    "punpckhbw %%mm3, %%mm0 \n\t"  /*                   v3 Y7 u3 Y6 v2 Y5 u2 Y4 */ \
+    "movntq    %%mm0, 8(%1) \n\t"  /* Store high YUYV                           */ \
     :                                                                              \
     : "r" (p_line1),  "r" (p_line2),  "r" (p_y2) );                                \
   p_line1 += 16; p_line2 += 16; p_y1 += 8; p_y2 += 8; p_u += 4; p_v += 4;          \
+  p_u2 += 4; p_v2 += 4;                                                            \
 } while(0)
 
 #endif
 
-void yv12_to_yuy2_mmx
+void yv12_to_yuy2_mmxext
   (unsigned char *y_src, int y_src_pitch, 
    unsigned char *u_src, int u_src_pitch, 
    unsigned char *v_src, int v_src_pitch, 
@@ -805,6 +840,8 @@ void yv12_to_yuy2_mmx
     uint8_t *p_y1, *p_y2 = y_src;
     uint8_t *p_u = u_src;
     uint8_t *p_v = v_src;
+    uint8_t *p_u2 = u_src + u_src_pitch;
+    uint8_t *p_v2 = v_src + v_src_pitch;
 
     int i_x, i_y;
 
@@ -825,17 +862,26 @@ void yv12_to_yuy2_mmx
   
           for( i_x = width / 8 ; i_x-- ; )
           {
-              MMX_YUV420_YUYV( );
+              MMXEXT_YUV420_YUYV( );
           }
   
           p_y2 += i_source_margin;
           p_u += i_source_u_margin;
           p_v += i_source_v_margin;
+          if( i_y > 1 ) {
+            p_u2 += i_source_u_margin;
+            p_v2 += i_source_v_margin;
+          } else {
+            p_u2 = p_u;
+            p_v2 = p_v;
+          }
           p_line2 += i_dest_margin;
       }
 
     } else {
 
+      p_u2 = u_src + 2*u_src_pitch;
+      p_v2 = v_src + 2*v_src_pitch;
       for( i_y = height / 4 ; i_y-- ; )
       {
           p_line1 = p_line2;
@@ -846,12 +892,19 @@ void yv12_to_yuy2_mmx
   
           for( i_x = width / 8 ; i_x-- ; )
           {
-              MMX_YUV420_YUYV( );
+              MMXEXT_YUV420_YUYV( );
           }
   
           p_y2 += i_source_margin + y_src_pitch;
           p_u += i_source_u_margin + u_src_pitch;
           p_v += i_source_v_margin + v_src_pitch;
+          if( i_y > 1 ) {
+            p_u2 += i_source_u_margin + u_src_pitch;
+            p_v2 += i_source_v_margin + v_src_pitch;
+          } else {
+            p_u2 = p_u;
+            p_v2 = p_v;
+          }
           p_line2 += i_dest_margin + yuy2_pitch;
       }
   
@@ -859,6 +912,8 @@ void yv12_to_yuy2_mmx
       p_y2 = y_src + y_src_pitch;
       p_u = u_src + u_src_pitch;
       p_v = v_src + v_src_pitch;
+      p_u2 = u_src + 3*u_src_pitch;
+      p_v2 = v_src + 3*v_src_pitch;
   
       for( i_y = height / 4 ; i_y-- ; )
       {
@@ -870,17 +925,25 @@ void yv12_to_yuy2_mmx
   
           for( i_x = width / 8 ; i_x-- ; )
           {
-              MMX_YUV420_YUYV( );
+              MMXEXT_YUV420_YUYV( );
           }
   
           p_y2 += i_source_margin + y_src_pitch;
           p_u += i_source_u_margin + u_src_pitch;
           p_v += i_source_v_margin + v_src_pitch;
+          if( i_y > 1 ) {
+            p_u2 += i_source_u_margin + u_src_pitch;
+            p_v2 += i_source_v_margin + v_src_pitch;
+          } else {
+            p_u2 = p_u;
+            p_v2 = p_v;
+          }
           p_line2 += i_dest_margin + yuy2_pitch;
       }
 
     }
 
+    sfence();
     emms();
 
 #endif
@@ -920,8 +983,8 @@ void init_yuv_conversion(void) {
     yuv444_to_yuy2 = yuv444_to_yuy2_c;
 
   /* determine best YV12 -> YUY2 converter to use */
-  if (xine_mm_accel() & MM_ACCEL_X86_MMX)
-    yv12_to_yuy2 = yv12_to_yuy2_mmx;
+  if (xine_mm_accel() & MM_ACCEL_X86_MMXEXT)
+    yv12_to_yuy2 = yv12_to_yuy2_mmxext;
   else
     yv12_to_yuy2 = yv12_to_yuy2_c;
 
