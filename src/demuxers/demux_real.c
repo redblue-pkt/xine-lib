@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.16 2002/11/25 02:32:48 guenter Exp $
+ * $Id: demux_real.c,v 1.17 2002/11/26 00:37:28 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,7 +40,9 @@
 #include "demux.h"
 #include "bswap.h"
 
+/*
 #define LOG
+*/
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \
@@ -136,6 +138,7 @@ typedef struct {
 
 } pnm_mdpr_t;
 
+#ifdef LOG
 static void hexdump (char *buf, int length) {
 
   int i;
@@ -166,6 +169,7 @@ static void hexdump (char *buf, int length) {
   }
   printf ("\n");
 }
+#endif
 
 static pnm_mdpr_t *pnm_parse_mdpr(const char *data) {
 
@@ -202,6 +206,7 @@ static pnm_mdpr_t *pnm_parse_mdpr(const char *data) {
   memcpy(mdpr->type_specific_data, 
       &data[38+mdpr->stream_name_size+mdpr->mime_type_size], mdpr->type_specific_len);
   
+#ifdef LOG
   printf("demux_real: MDPR: stream number: %i\n", mdpr->stream_number);
   printf("demux_real: MDPR: maximal bit rate: %i\n", mdpr->max_bit_rate);
   printf("demux_real: MDPR: average bit rate: %i\n", mdpr->avg_bit_rate);
@@ -215,6 +220,7 @@ static pnm_mdpr_t *pnm_parse_mdpr(const char *data) {
   printf("demux_real: MDPR: type specific data:\n");
   hexdump(mdpr->type_specific_data, mdpr->type_specific_len);
   printf("\n");
+#endif
 
   return mdpr;
 }
@@ -226,42 +232,6 @@ typedef struct dp_hdr_s {
   uint32_t chunktab;	/* offset to chunk offset array */
 } dp_hdr_t;
 
-#if 0
-static void send_real_buf (demux_real_t *this, uint32_t timestamp, int len, 
-			   fifo_buffer_t *fifo,
-			   uint32_t buf_type, uint32_t decoder_flags) {
-
-  dp_hdr_t      *hdr;
-  buf_element_t *buf;
-
-  if (!fifo) {
-    this->input->seek (this->input, len, SEEK_CUR);
-    return;
-  }
-  
-  buf = fifo->buffer_pool_alloc (fifo);
-
-  buf->content = buf->mem;
-
-  hdr = (dp_hdr_t *) buf->content;
-  hdr->chunks    = 1;
-  hdr->timestamp = timestamp;
-  hdr->len       = len;
-  hdr->chunktab  = 0;
-
-  this->input->read (this->input, buf->content+16, len);
-
-  buf->size = len+16;
-
-  buf->input_pos     = 0 ; /* FIXME */
-  buf->input_time    = 0 ; /* FIXME */
-  buf->type          = buf_type;
-  buf->decoder_flags = decoder_flags;
-    
-  fifo->put (fifo, buf);  
-
-}
-#endif
 
 static void real_parse_headers (demux_real_t *this) {
 
@@ -339,7 +309,9 @@ static void real_parse_headers (demux_real_t *this) {
 	this->bitrate = mdpr->avg_bit_rate;
 	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = mdpr->avg_bit_rate;
 
+#ifdef LOG
 	printf ("demux_real: parsing type specific data...\n");
+#endif
 	
 	/* skip unknown stuff - FIXME: find a better/cleaner way */
 	{ 
@@ -349,7 +321,9 @@ static void real_parse_headers (demux_real_t *this) {
 
 	  while (off<=(mdpr->type_specific_len-8)) {
 
+#ifdef LOG
 	    printf ("demux_real: got %.4s\n", mdpr->type_specific_data+off);
+#endif
 
 	    if (!strncmp (mdpr->type_specific_data+off, ".ra", 3)) {
 	      int version;
@@ -357,12 +331,16 @@ static void real_parse_headers (demux_real_t *this) {
 
 	      off += 4;
 
+#ifdef LOG
 	      printf ("demux_real: audio detected %.3s\n", 
 		      mdpr->type_specific_data+off+4);
+#endif
 
 	      version = BE_16 (mdpr->type_specific_data+off);
 
+#ifdef LOG
 	      printf ("demux_real: audio version %d\n", version);
+#endif
 
 	      if (version==4) {
 		int str_len;
@@ -370,23 +348,31 @@ static void real_parse_headers (demux_real_t *this) {
 
 		sample_rate = BE_16(mdpr->type_specific_data+off+44);
 
+#ifdef LOG
 		printf ("demux_real: sample_rate %d\n", sample_rate);
+#endif
 
 		str_len = *(mdpr->type_specific_data+off+50);
 
+#ifdef LOG
 		printf ("demux_real: str_len = %d\n", str_len);
+#endif
 
 		memcpy (fourcc, mdpr->type_specific_data+off+53+str_len, 4);
 		fourcc[4]=0;
 
+#ifdef LOG
 		printf ("demux_real: fourcc == %s\n", fourcc);
+#endif
 
 	      } else if (version == 5) {
 
 		memcpy (fourcc, mdpr->type_specific_data+off+62, 4);
 		fourcc[4]=0;
 
+#ifdef LOG
 		printf ("demux_real: fourcc == %s\n", fourcc);
+#endif
 
 	      } else {
 		printf ("demux_real: error, unknown audio data header version %d\n",
@@ -405,8 +391,10 @@ static void real_parse_headers (demux_real_t *this) {
 	      else 
 		this->audio_buf_type = 0;
 
+#ifdef LOG
 	      printf ("demux_real: audio codec, buf type %08x\n",
 		      this->audio_buf_type);
+#endif
 
 	      this->audio_stream_num = mdpr->stream_number;
 
@@ -438,7 +426,11 @@ static void real_parse_headers (demux_real_t *this) {
 	      break;  /* audio */
 	    } 
 	    if (!strncmp (mdpr->type_specific_data+off, "VIDO", 4)) {
+#ifdef LOG
 	      printf ("demux_real: video detected\n");
+#endif
+	      /* FIXME: insert video codec detection code here */
+
 	      break;  /* video */
 	    }
 	    off++;
@@ -456,7 +448,9 @@ static void real_parse_headers (demux_real_t *this) {
 	  this->video_stream_num = mdpr->stream_number;
 	  this->video_buf_type   = BUF_VIDEO_RV20;
 
+#ifdef LOG
 	  printf ("demux_real: RV20 video detected\n");
+#endif
 
 	  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
 
@@ -483,7 +477,9 @@ static void real_parse_headers (demux_real_t *this) {
 	  this->video_stream_num = mdpr->stream_number;
 	  this->video_buf_type   = BUF_VIDEO_RV30;
 
+#ifdef LOG
 	  printf ("demux_real: RV30 video detected\n");
+#endif
 
 	  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
 
@@ -505,7 +501,9 @@ static void real_parse_headers (demux_real_t *this) {
 	
 	}  else {
 
+#ifdef LOG
 	  printf ("demux_real: codec not recognized as video\n");
+#endif
 
 	}
 
@@ -634,7 +632,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     buf_element_t *buf;
     int            n;
 
+#ifdef LOG
     printf ("demux_real: video chunk detected.\n");
+#endif
 
     /* sub-demuxer */
 
@@ -647,7 +647,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
        */
 
       vpkg_header = stream_read_char (this); size--;
+#ifdef LOG
       printf ("demux_real: hdr: %02x (size=%d)\n", vpkg_header, size);
+#endif
 
       if (0x40==(vpkg_header&0xc0)) {
 	/*
@@ -657,7 +659,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 	 int bummer;
 
 	 bummer = stream_read_char (this); size--;
+#ifdef LOG
 	 printf ("demux_real: bummer == %02X\n",bummer);
+#endif
 
 	 vpkg_offset = 0;
 	 vpkg_length = size;
@@ -668,7 +672,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 	  /* sub-seqnum (bits 0-6: number of fragment. bit 7: ???) */
 	  vpkg_subseq = stream_read_char (this); size--;
 
+#ifdef LOG
 	  printf ("demux_real: subseq: %02X ", vpkg_subseq);
+#endif
 	  vpkg_subseq &= 0x7f;
 	}
 
@@ -677,12 +683,16 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 	 * bit 14 is always one (same applies to the offset)
 	 */
 	vpkg_length = stream_read_word (this); size -= 2;
+#ifdef LOG
 	printf ("demux_real: l: %02X %02X ", vpkg_length>>8, vpkg_length&0xff);
+#endif
 	if (!(vpkg_length&0xC000)) {
 	  vpkg_length <<= 16;
 	  vpkg_length |=  stream_read_word (this);
+#ifdef LOG
 	  printf ("demux_real: l+: %02X %02X ",
 		  (vpkg_length>>8)&0xff,vpkg_length&0xff);
+#endif
 	  size-=2;
 	} else
 	  vpkg_length &= 0x3fff;
@@ -694,24 +704,32 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 	 */
 
 	vpkg_offset = stream_read_word (this); size -= 2;
+#ifdef LOG
 	printf ("demux_real: o: %02X %02X ",
 		vpkg_offset>>8,vpkg_offset&0xff);
+#endif
 
 	if (!(vpkg_offset&0xC000)) {
 	  vpkg_offset <<= 16;
 	  vpkg_offset |=  stream_read_word (this);
+#ifdef LOG
 	  printf ("demux_real: o+: %02X %02X ",
 		  (vpkg_offset>>8)&0xff,vpkg_offset&0xff);
+#endif
 	  size -= 2;
 	} else
 	  vpkg_offset &= 0x3fff;
 
 	vpkg_seqnum = stream_read_char (this); size--;
+#ifdef LOG
 	printf ("demux_real: seq: %02X ", vpkg_seqnum);
+#endif
       }
 
+#ifdef LOG
       printf ("demux_real: vpkg seqnum=%d, offset=%d, length=%d\n",
 	      vpkg_seqnum, vpkg_offset, vpkg_length);
+#endif
 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
@@ -726,14 +744,18 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       if (this->old_seqnum>=0) {
 	
       
+#ifdef LOG
 	printf ("demux_real: we have an incomplete packet (oldseq=%d new=%d)\n",
 		this->old_seqnum, vpkg_seqnum);
+#endif
 	/*  we have an incomplete packet: */
 	if (this->old_seqnum != vpkg_seqnum) {
 
 	  /* this fragment is for new packet, close the old one */
 
+#ifdef LOG
 	  printf ("demux_real: closing probably incomplete packet\n");
+#endif
 
 	  /* ds_add_packet(ds,dp); */
 	  this->old_seqnum = -1;
@@ -793,7 +815,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       
       if (0x00 == (vpkg_header&0xc0)) {
 
+#ifdef LOG
 	printf ("demux_real: first fragment, %d bytes\n", size);
+#endif
 
 	/* first fragment: */
 	/* this->input->seek (this->input, size, SEEK_CUR); */
@@ -820,7 +844,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 	break;
       }
 
+#ifdef LOG
       printf ("demux_real: whole packet, %d bytes\n", vpkg_length);
+#endif
 
       /* whole packet (not fragmented): */
       size -= vpkg_length;
@@ -868,7 +894,6 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     n = this->input->read (this->input, buf->content, size);
 
     if (n<size) {
-
       printf ("demux_real: read error\n");
 
       buf->free_buffer(buf);
@@ -1016,8 +1041,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
 	if (input->read(input, buf, 4)) {
 
+#ifdef LOG
 	  printf ("demux_real: input seekable, read 4 bytes: %02x %02x %02x %02x\n",
 		  buf[0], buf[1], buf[2], buf[3]);
+#endif
 
 	  if ((buf[0] != 0x2e)
 	      || (buf[1] != 'R')
@@ -1029,8 +1056,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       } else if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
 	
+#ifdef LOG
 	printf ("demux_real: input provides preview, read 4 bytes: %02x %02x %02x %02x\n",
 		buf[0], buf[1], buf[2], buf[3]);
+#endif
 
 	if ((buf[0] != 0x2e)
 	    || (buf[1] != 'R')
@@ -1051,11 +1080,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     mrl = input->get_mrl (input);
 
+#ifdef LOG
     printf ("demux_real: by extension '%s'\n", mrl); 
+#endif
 
     ending = strrchr(mrl, '.');
 
+#ifdef LOG
     printf ("demux_real: ending %s\n", ending);
+#endif
 
     if (!ending) 
       return NULL;
@@ -1065,7 +1098,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 	&& strncasecmp (ending, ".ram", 4)) 
       return NULL;
 
+#ifdef LOG
     printf ("demux_real: by extension accepted.\n");
+#endif
 
   }
 
