@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2001/12/11 15:30:05 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.21 2001/12/27 20:07:25 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -71,13 +71,15 @@ typedef struct ff_decoder_s {
   BITMAPINFOHEADER  bih;
   long		    biWidth;
   long		    biHeight;
-  unsigned char     buf[128*1024];
+  unsigned char     *buf;
+  int               bufsize;
   int               size;
 
   AVPicture         av_picture;
   AVCodecContext    context;
 } ff_decoder_t;
 
+#define VIDEOBUFSIZE 128*1024
 
 /*
 #define IMGFMT_YUY2  mmioFOURCC('Y','U','Y','2')
@@ -118,6 +120,7 @@ static void ff_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   this->video_out  = video_out;
   this->decoder_ok = 0;
+  this->buf = NULL;
 }
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -194,9 +197,23 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     this->decoder_ok = 1;
     this->video_out->open (this->video_out);
+
+    
+    if( this->buf )
+      free( this->buf );
+    
+    this->buf = malloc( VIDEOBUFSIZE );
+    this->bufsize = VIDEOBUFSIZE;
     
   } else if (this->decoder_ok) {
 
+    if( this->size + buf->size > this->bufsize ) {
+      this->bufsize = this->size + 2 * buf->size;
+      printf("ffmpeg: increasing source buffer to %d to avoid overflow.\n", 
+        this->bufsize);
+      this->buf = realloc( this->buf, this->bufsize );
+    }
+    
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
@@ -331,6 +348,10 @@ static void ff_close (video_decoder_t *this_gen) {
     this->video_out->close(this->video_out);
     this->decoder_ok = 0;
   }
+  
+  if (this->buf)
+    free(this->buf);
+  this->buf = NULL;
 }
 
 static char *ff_get_id(void) {
