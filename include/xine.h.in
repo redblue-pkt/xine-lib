@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.89 2003/06/18 12:59:39 mroi Exp $
+ * $Id: xine.h.in,v 1.90 2003/07/12 20:31:49 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -813,6 +813,8 @@ const char *xine_get_meta_info   (xine_stream_t *stream, int info);
 #define XINE_STREAM_INFO_MAX_AUDIO_CHANNEL 24
 #define XINE_STREAM_INFO_MAX_SPU_CHANNEL   25
 #define XINE_STREAM_INFO_AUDIO_MODE        26
+#define XINE_STREAM_INFO_SKIPPED_FRAMES    27 /* for 1000 frames delivered */
+#define XINE_STREAM_INFO_DISCARDED_FRAMES  28 /* for 1000 frames delivered */
 
 /* xine_get_meta_info */
 #define XINE_META_INFO_TITLE               0
@@ -1256,6 +1258,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_MRL_REFERENCE          9 /* demuxer->frontend: MRL reference(s) for the real stream */
 #define XINE_EVENT_UI_NUM_BUTTONS        10 /* number of buttons for interactive menus */
 #define XINE_EVENT_SPU_BUTTON            11 /* the mouse pointer enter/leave a button */
+#define XINE_EVENT_DROPPED_FRAMES        12 /* number of dropped frames is too high */
 
 /* input events coming from frontend */
 #define XINE_EVENT_INPUT_MOUSE_BUTTON   101
@@ -1500,6 +1503,20 @@ typedef struct {
 } xine_pvr_pause_t;
 
 #endif
+
+/* event XINE_EVENT_DROPPED_FRAMES is generated if libxine detects a
+ * high number of dropped frames (above configured thresholds). it can
+ * be used by the front end to warn about performance problems.
+ */
+typedef struct {
+  /* these values are given for 1000 frames delivered */
+  /* (that is, divide by 10 to get percentages) */
+  int skipped_frames;
+  int skipped_threshold;
+  int discarded_frames;
+  int discarded_threshold;
+} xine_dropped_frames_t;
+
 
 /*
  * Defined message types for XINE_EVENT_UI_MESSAGE

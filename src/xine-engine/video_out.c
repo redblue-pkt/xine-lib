@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.164 2003/06/22 17:10:41 mroi Exp $
+ * $Id: video_out.c,v 1.165 2003/07/12 20:31:49 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -75,6 +75,12 @@ typedef struct {
   int                       num_frames_delivered;
   int                       num_frames_skipped;
   int                       num_frames_discarded;
+
+  /* threshold for sending XINE_EVENT_DROPPED_FRAMES */
+  int                       warn_skipped_threshold;
+  int                       warn_discarded_threshold;
+  int                       warn_threshold_exceeded;
+  int                       warn_threshold_event_sent;
 
   /* pts value when decoder delivered last video frame */
   int64_t                   last_delivery_pts; 
@@ -432,12 +438,59 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
    * performance measurement
    */
 
-  if ((this->num_frames_delivered % 200) == 0
-  	&& (this->num_frames_skipped || this->num_frames_discarded)) {
-    xine_log(this->xine, XINE_LOG_MSG,
-	     _("%d frames delivered, %d frames skipped, %d frames discarded\n"), 
-	     this->num_frames_delivered, 
-	     this->num_frames_skipped, this->num_frames_discarded);
+  if ((this->num_frames_delivered % 200) == 0) {
+    int send_event;
+
+    if( (100 * this->num_frames_skipped / this->num_frames_delivered) >
+         this->warn_skipped_threshold ||
+        (100 * this->num_frames_discarded / this->num_frames_delivered) >
+         this->warn_discarded_threshold )
+      this->warn_threshold_exceeded++;
+    else
+      this->warn_threshold_exceeded = 0;
+
+    /* make sure threshold has being consistently exceeded - 5 times in a row
+     * (that is, this is not just a small burst of dropped frames).
+     */
+    send_event = (this->warn_threshold_exceeded == 5 && 
+                  !this->warn_threshold_event_sent);
+    this->warn_threshold_event_sent += send_event;
+
+    pthread_mutex_lock(&this->streams_lock);
+    for (stream = xine_list_first_content(this->streams); stream;
+         stream = xine_list_next_content(this->streams)) {
+      stream->stream_info[XINE_STREAM_INFO_SKIPPED_FRAMES] =
+        1000 * this->num_frames_skipped / this->num_frames_delivered;
+      stream->stream_info[XINE_STREAM_INFO_DISCARDED_FRAMES] =
+        1000 * this->num_frames_discarded / this->num_frames_delivered;
+
+      /* we send XINE_EVENT_DROPPED_FRAMES to frontend to warn that
+       * number of skipped or discarded frames is too high.
+       */
+      if( send_event ) {
+         xine_event_t          event;
+         xine_dropped_frames_t data;
+
+         event.type        = XINE_EVENT_DROPPED_FRAMES;
+         event.stream      = stream;
+         event.data        = &data;
+         event.data_length = sizeof(data);
+         data.skipped_frames = stream->stream_info[XINE_STREAM_INFO_SKIPPED_FRAMES];
+         data.skipped_threshold = this->warn_skipped_threshold * 10;
+         data.discarded_frames = stream->stream_info[XINE_STREAM_INFO_DISCARDED_FRAMES];
+         data.discarded_threshold = this->warn_discarded_threshold * 10;
+         xine_event_send(stream, &event);
+      }
+    }
+    pthread_mutex_unlock(&this->streams_lock);
+
+
+    if( this->num_frames_skipped || this->num_frames_discarded ) {
+      xine_log(this->xine, XINE_LOG_MSG,
+	       _("%d frames delivered, %d frames skipped, %d frames discarded\n"), 
+	       this->num_frames_delivered, 
+	       this->num_frames_skipped, this->num_frames_discarded);
+    }
 
     this->num_frames_delivered = 0;
     this->num_frames_discarded = 0;
@@ -1117,6 +1170,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
   this->video_opened = 1;
   this->discard_frames = 0;
   this->last_delivery_pts = 0;
+  this->warn_threshold_event_sent = this->warn_threshold_exceeded = 0;
   if (!this->overlay_enabled && stream->spu_channel_user > -2)
     /* enable overlays if our new stream might want to show some */
     this->overlay_enabled = 1;
@@ -1488,6 +1542,16 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
     vo_append_to_img_buf_queue (this->free_img_buf_queue,
 				img);
   }
+
+  this->warn_skipped_threshold = 
+    xine->config->register_num (xine->config, "video.warn_skipped_threshold", 10,
+    "send event to front end if percentage of skipped frames exceed this value",
+    NULL, 20, NULL, NULL);
+  this->warn_discarded_threshold = 
+    xine->config->register_num (xine->config, "video.warn_discarded_threshold", 10,
+    "send event to front end if percentage of discarded frames exceed this value",
+    NULL, 20, NULL, NULL);
+
 
   if (grabonly) {
 
