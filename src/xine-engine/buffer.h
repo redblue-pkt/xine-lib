@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.82 2002/12/01 17:04:30 tmmm Exp $
+ * $Id: buffer.h,v 1.83 2002/12/04 04:11:01 tmmm Exp $
  *
  *
  * contents:
@@ -281,17 +281,9 @@ struct buf_element_s {
  */
 #define BUF_SPECIAL_DECODER_CONFIG  4
 
-/*
- * In a BUF_SPECIAL_SAMPLE_SIZE_TABLE buffer:
- * decoder_info[1] = BUF_SPECIAL_SAMPLE_SIZE_TABLE
- * decoder_info[2] = 
- * decoder_info[3] = pointer to table with sample sizes 
- *                   (within current frame)
- * libfaad needs to decode data on sample-sized chunks. 
- * unfortunately original sample sizes are not know at decoder stage. 
- * this buffer is used to pass such information.
- */
-#define BUF_SPECIAL_SAMPLE_SIZE_TABLE 5
+
+/* special buffer type 5 used to be defined but is now available for use */
+
 
 /*
  * In a BUF_SPECIAL_LPCM_CONFIG buffer:
@@ -303,15 +295,9 @@ struct buf_element_s {
  */
 #define BUF_SPECIAL_LPCM_CONFIG 6
 
-/*
- * In a BUF_SPECIAL_VQA_VECTOR_SIZE:
- * decoder_info[1] = BUF_SPECIAL_VQA_VECTOR_SIZE
- * decoder_info[2] = vector width
- * decoder_info[3] = vector height
- * This buffer is used to transport the vector width and height dimensions
- * from the VQA demuxer to the VQA video decoder.
- */
-#define BUF_SPECIAL_VQA_VECTOR_SIZE 7
+
+/* special buffer type 7 used to be defined but is now available for use */
+
 
 /*
  * In a BUF_SPECIAL_SPU_DVD_SUBTYPE:
