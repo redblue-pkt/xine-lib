@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.13 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_ipmovie.c,v 1.14 2003/10/24 04:44:43 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -98,19 +98,20 @@ typedef struct {
 
   off_t                data_size;
 
-  unsigned int         fps;
+  float                fps;
   unsigned int         frame_pts_inc;
 
-  unsigned int         video_width;
-  unsigned int         video_height;
+  xine_bmiheader       bih;
+  xine_waveformatex    wave;
+
   int64_t              video_pts;
-  unsigned int         audio_bits;
-  unsigned int         audio_channels;
-  unsigned int         audio_sample_rate;
   unsigned int         audio_type;
   unsigned int         audio_frame_count;
 
   palette_entry_t      palette[PALETTE_COUNT];
+  unsigned char       *decode_map;
+  int                  decode_map_size;
+  int                  new_palette;
 } demux_ipmovie_t;
 
 typedef struct {
@@ -130,11 +131,13 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
   int opcode_size;
   unsigned char scratch[1024];
   int i, j;
-  int first_color, last_color;
+  int first_color, color_count;
   int audio_flags;
   buf_element_t *buf = NULL;
   off_t current_file_pos;
   int64_t audio_pts = 0;
+  int decode_map_index;
+  int decode_map_size_countdown;
 
   /* read the next chunk, wherever the file happens to be pointing */
   if (this->input->read(this->input, chunk_preamble, CHUNK_PREAMBLE_SIZE) !=
@@ -225,9 +228,8 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           break;
         }
         this->fps = 1000000 / (LE_32(&scratch[0]) * LE_16(&scratch[4]));
-        this->fps++;  /* above calculation usually yields 14.9; we need 15 */
-        this->frame_pts_inc = 90000 / this->fps;
-        lprintf("%d frames/second (timer div = %d, subdiv = %d)\n",
+        this->frame_pts_inc = (int)(90000.0 / this->fps);
+        lprintf("%.1f frames/second (timer div = %d, subdiv = %d)\n",
           this->fps, LE_32(&scratch[0]), LE_16(&scratch[4]));
         break;
 
@@ -243,21 +245,21 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           chunk_type = CHUNK_BAD;
           break;
         }
-        this->audio_sample_rate = LE_16(&scratch[4]);
+        this->wave.nSamplesPerSec = LE_16(&scratch[4]);
         audio_flags = LE_16(&scratch[2]);
         /* bit 0 of the flags: 0 = mono, 1 = stereo */
-        this->audio_channels = (audio_flags & 1) + 1;
+        this->wave.nChannels = (audio_flags & 1) + 1;
         /* bit 1 of the flags: 0 = 8 bit, 1 = 16 bit */
-        this->audio_bits = (((audio_flags >> 1) & 1) + 1) * 8;
+        this->wave.wBitsPerSample = (((audio_flags >> 1) & 1) + 1) * 8;
         /* bit 2 indicates compressed audio in version 1 opcode */
         if ((opcode_version == 1) && (audio_flags & 0x4))
           this->audio_type = BUF_AUDIO_INTERPLAY;
         else
           this->audio_type = BUF_AUDIO_LPCM_LE;
         lprintf("audio: %d bits, %d Hz, %s, %s format\n",
-          this->audio_bits,
-          this->audio_sample_rate,
-          (this->audio_channels == 2) ? "stereo" : "mono",
+          this->wave.wBitsPerSample,
+          this->wave.nSamplesPerSec,
+          (this->wave.nChannels == 2) ? "stereo" : "mono",
           (this->audio_type == BUF_AUDIO_LPCM_LE) ? "PCM" : "Interplay audio");
         break;
 
@@ -278,10 +280,14 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           chunk_type = CHUNK_BAD;
           break;
         }
-        this->video_width = LE_16(&scratch[0]) * 8;
-        this->video_height = LE_16(&scratch[2]) * 8;
+        this->bih.biWidth = LE_16(&scratch[0]) * 8;
+        this->bih.biHeight = LE_16(&scratch[2]) * 8;
+        /* set up staging area for decode map */
+        this->decode_map_size = (this->bih.biWidth * this->bih.biHeight) /
+          (8 * 8) / 2;
+        this->decode_map = xine_xmalloc(this->decode_map_size);
         lprintf("video resolution: %d x %d\n",
-          this->video_width, this->video_height);
+          this->bih.biWidth, this->bih.biHeight);
         break;
 
       case OPCODE_UNKNOWN_06:
@@ -308,13 +314,13 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         /* figure out the number of audio frames */
         if (this->audio_type == BUF_AUDIO_LPCM_LE)
           this->audio_frame_count +=
-            (opcode_size / this->audio_channels / (this->audio_bits / 8));
+            (opcode_size / this->wave.nChannels / (this->wave.wBitsPerSample / 8));
         else
           this->audio_frame_count +=
-            (opcode_size - 6) / this->audio_channels;
+            (opcode_size - 6) / this->wave.nChannels;
         audio_pts = 90000;
         audio_pts *= this->audio_frame_count;
-        audio_pts /= this->audio_sample_rate;
+        audio_pts /= this->wave.nSamplesPerSec;
 
         lprintf("sending audio frame with pts %lld (%d audio frames)\n",
           audio_pts, this->audio_frame_count);
@@ -383,20 +389,21 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
 
         /* load the palette into internal data structure */
         first_color = LE_16(&scratch[0]);
-        last_color = LE_16(&scratch[2]);
+        color_count = LE_16(&scratch[2]);
         /* sanity check (since they are 16 bit values) */
-        if ((first_color > 0xFF) || (last_color > 0xFF)) {
+        if ((first_color > 0xFF) || (first_color + color_count > 0x100)) {
           lprintf("demux_ipmovie: set_palette indices out of range (%d -> %d)\n",
-            first_color, last_color);
+            first_color, first_color + color_count);
           chunk_type = CHUNK_BAD;
           break;
         }
         j = 4;  /* offset of first palette data */
-        for (i = first_color; i <= last_color; i++) {
+        for (i = first_color; i < first_color + color_count; i++) {
           this->palette[i].r = scratch[j++] * 4;
           this->palette[i].g = scratch[j++] * 4;
           this->palette[i].b = scratch[j++] * 4;
         }
+        this->new_palette = 1;
         break;
 
       case OPCODE_SET_PALETTE_COMPRESSED:
@@ -411,37 +418,10 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         lprintf("sending decoding map along with duration %d\n",
           this->frame_pts_inc);
 
-        while (opcode_size) {
-          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->type = BUF_VIDEO_INTERPLAY;
-          buf->extra_info->input_pos = current_file_pos;
-          buf->extra_info->input_length = this->data_size;
-          buf->extra_info->input_time = this->video_pts / 90;
-          buf->pts = this->video_pts;
-
-          if (opcode_size > buf->max_size)
-            buf->size = buf->max_size;
-          else
-            buf->size = opcode_size;
-          opcode_size -= buf->size;
-
-          if (this->input->read(this->input, buf->content, buf->size) !=
-            buf->size) {
-            buf->free_buffer(buf);
-            this->status = DEMUX_FINISHED;
-            break;
-          }
-
-          if (!opcode_size)
-            buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-          /* send the duration since it was not known when headers were sent */
-          buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-          buf->decoder_info[0] = this->frame_pts_inc;
-
-          this->video_fifo->put (this->video_fifo, buf);
-        }
-
+        /* load the decode map into the staging area */
+        if (this->input->read(this->input, this->decode_map,
+          this->decode_map_size) != this->decode_map_size)
+          this->status = DEMUX_FINISHED;
         break;
 
       case OPCODE_VIDEO_DATA:
@@ -451,6 +431,43 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         lprintf("sending video data with pts %lld\n",
           this->video_pts);
 
+        /* send off any new palette data */
+        if (this->new_palette) {
+          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+          buf->decoder_flags = BUF_FLAG_SPECIAL;
+          buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+          buf->decoder_info[2] = 256;
+          buf->decoder_info_ptr[2] = &this->palette;
+          buf->size = 0;
+          buf->type = BUF_VIDEO_INTERPLAY;
+          this->video_fifo->put (this->video_fifo, buf);
+          this->new_palette = 0;
+        }
+
+        /* send the decode map first */
+        decode_map_index = 0;
+        decode_map_size_countdown = this->decode_map_size;
+        while (decode_map_size_countdown) {
+          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+          buf->type = BUF_VIDEO_INTERPLAY;
+          buf->extra_info->input_pos = current_file_pos;
+          buf->extra_info->input_length = this->data_size;
+          buf->extra_info->input_time = this->video_pts / 90;
+          buf->pts = this->video_pts;
+
+          if (decode_map_size_countdown > buf->max_size)
+            buf->size = buf->max_size;
+          else
+            buf->size = decode_map_size_countdown;
+          decode_map_size_countdown -= buf->size;
+
+          memcpy(buf->content, &this->decode_map[decode_map_index], buf->size);
+          decode_map_index += buf->size;
+
+          this->video_fifo->put (this->video_fifo, buf);
+        }
+
+        /* then send the video data */
         while (opcode_size) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = BUF_VIDEO_INTERPLAY;
@@ -553,26 +570,22 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->bih.biWidth;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
 
   /* send init info to video decoder */
+  this->bih.biSize = sizeof(xine_bmiheader);
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0;
   /* bogus initial video_step, but we won't know for sure until we see
    * the first video frame; however, fps for these files is usually 15 */
   buf->decoder_info[1] = 6000;
-  /* really be a rebel: No structure at all, just put the video width
-   * and height straight into the buffer, BE_16 format */
-  buf->content[0] = (this->video_width >> 8) & 0xFF;
-  buf->content[1] = (this->video_width >> 0) & 0xFF;
-  buf->content[2] = (this->video_height >> 8) & 0xFF;
-  buf->content[3] = (this->video_height >> 0) & 0xFF;
-  buf->size = 4;
+  buf->size = sizeof(xine_bmiheader);
+  memcpy(buf->content, &this->bih, buf->size);
   buf->type = BUF_VIDEO_INTERPLAY;
   this->video_fifo->put (this->video_fifo, buf);
 
@@ -588,14 +601,20 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to the audio decoder */
   if ((this->audio_fifo) && (this->audio_type)) {
+    this->wave.nSamplesPerSec = this->wave.nSamplesPerSec;
+    this->wave.wBitsPerSample = this->wave.wBitsPerSample;
+    this->wave.nBlockAlign = (this->wave.wBitsPerSample / 8) * this->wave.nChannels;
+    this->wave.nAvgBytesPerSec = this->wave.nBlockAlign * this->wave.nSamplesPerSec;
+
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = this->audio_sample_rate;
-    buf->decoder_info[2] = this->audio_bits;
-    buf->decoder_info[3] = this->audio_channels;
-    buf->size = 0;
+    buf->decoder_info[1] = this->wave.nSamplesPerSec;
+    buf->decoder_info[2] = this->wave.wBitsPerSample;
+    buf->decoder_info[3] = this->wave.nChannels;
+    buf->size = sizeof(this->wave);
+    memcpy(buf->content, &this->wave, buf->size);
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 }
@@ -617,8 +636,10 @@ static int demux_ipmovie_seek (demux_plugin_t *this_gen,
   return this->status;
 }
 
-static void demux_ipmovie_dispose (demux_plugin_t *this) {
+static void demux_ipmovie_dispose (demux_plugin_t *this_gen) {
+  demux_ipmovie_t *this = (demux_ipmovie_t *) this_gen;
 
+  free(this->decode_map);
   free(this);
 }
 
