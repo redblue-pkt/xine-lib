@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.13 2002/04/14 00:24:45 guenter Exp $
+ * $Id: buffer_types.c,v 1.14 2002/04/19 02:19:11 miguelfreitas Exp $
  *
  *
  * contents:
@@ -379,8 +379,10 @@ static audio_db_t audio_db[] = {
   "MS GSM"
 },
 {
-  {
-    0
+  {                                  
+    /* these formattags are used by Vorbis ACM encoder and
+       supported by NanDub, a variant of VirtualDub. */
+    0x674f, 0x676f, 0x6750, 0x6770, 0x6751, 0x6771, 0
   },
   BUF_AUDIO_VORBIS,
   "OggVorbis Audio"
