@@ -10,8 +10,10 @@ if PPC_ARCH
 pppc_files = ppcasm_string.S 
 endif
 
-libxineutils_la_SOURCES = $(pppc_files) utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c
+CFLAGS = @CFLAGS@ $(THREAD_CFLAGS)
 
+libxineutils_la_SOURCES = $(pppc_files) utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c
+libxineutils_la_LIBADD = $(THREAD_LIBS)
 libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
@@ -19,7 +21,7 @@ libxineutils_la_LDFLAGS =  \
 include_HEADERS = xineutils.h attributes.h compat.h xmllexer.h xmlparser.h ppcasm_string.h
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

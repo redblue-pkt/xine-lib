@@ -31,7 +31,7 @@ noinst_HEADERS = bswap.h nvtvd.h
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\\\"file://@XINE_SKINPATH@/xine_logo.mpv\\\""
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\\\"file://@XINE_SKINPATH@/xine_logo.mpv\\\""
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
