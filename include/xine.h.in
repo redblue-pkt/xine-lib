@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.53 2003/01/13 13:49:39 mroi Exp $
+ * $Id: xine.h.in,v 1.54 2003/01/13 14:03:13 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -172,10 +172,22 @@ xine_stream_t *xine_stream_new (xine_t *self,
  * Make one stream the slave of another.
  * This establishes a binary master slave relation on streams, where
  * certain operations (specified by parameter "affection") on the master
- * stream are also applied to the slave stream
+ * stream are also applied to the slave stream.
+ * If you want more than one stream to react to one master, you have to
+ * apply the calls in a top down way:
+ *  xine_stream_master_slave(stream1, stream2, 3);
+ *  xine_stream_master_slave(stream2, stream3, 3);
+ * This will make stream1 affect stream2 and stream2 affect stream3, so
+ * effectively, operations on stream1 propagate to stream2 and 3.
+ *
+ * Please note that subsequent master_slave calls on the same streams
+ * will overwrite their previous master/slave setting.
+ * Be sure to not mess around.
+ *
+ * returns 1 on success, 0 on failure
  */
-xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
-                         int affection);
+int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
+                             int affection);
 
 /* affection is some of the following ORed together: */
 /* playing the master plays the slave */
