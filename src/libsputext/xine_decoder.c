@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.54 2003/02/14 00:13:00 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.55 2003/03/20 20:44:18 f1rmb Exp $
  *
  */
 
@@ -59,7 +59,6 @@ typedef struct sputext_class_s {
 
   xine_t            *xine;
 
-
 } sputext_class_t;
 
 
@@ -82,6 +81,8 @@ typedef struct sputext_decoder_s {
 
   char              *font;
   subtitle_size      subtitle_size;
+  int                vertical_offset;
+
 
   osd_renderer_t    *renderer;
   osd_object_t      *osd;
@@ -99,7 +100,7 @@ static void update_font_size (sputext_decoder_t *this) {
   };
 
   int *vec = sizes[this->subtitle_size];
-  int y;
+  int  y;
 
   if( this->width >= 512 )
     this->font_size = vec[3];
@@ -113,6 +114,9 @@ static void update_font_size (sputext_decoder_t *this) {
   this->line_height = this->font_size + 10;
 
   y = this->height - (SUB_MAX_TEXT * this->line_height) - 5;
+  
+  if(((y - this->vertical_offset) >= 0) && ((y - this->vertical_offset) <= this->height))
+    y -= this->vertical_offset;
   
   if( this->osd )
     this->renderer->free_object (this->osd);
@@ -354,6 +358,14 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
   free(this);
 }
 
+static void update_vertical_offset(void *this_gen, xine_cfg_entry_t *entry)
+{
+  sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
+
+  this->vertical_offset = entry->num_value;
+  update_font_size(this);
+}
+
 static void update_osd_font(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
@@ -405,6 +417,12 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
 			       subtitle_size_strings,
 			       _("subtitle size (relative window size)"), 
 			       NULL, 0, update_subtitle_size, this);
+
+  this->vertical_offset  = class->xine->config->register_num(class->xine->config,
+			      "codec.spu_vertical_offset", 
+			      0,
+			      _("subtitle vertical offset (relative window size)"), 
+			      NULL, 0, update_vertical_offset, this);
 
   return (spu_decoder_t *) this;
 }
