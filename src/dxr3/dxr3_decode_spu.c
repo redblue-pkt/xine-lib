@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.44 2003/12/14 22:13:22 siggi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.45 2004/03/31 16:18:16 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -107,6 +107,13 @@ typedef struct dxr3_spu_stream_state_s {
   int                      bytes_passed; /* used to parse the spu */
 } dxr3_spu_stream_state_t;
 
+typedef struct pci_node_s pci_node_t;
+struct pci_node_s {
+  pci_t                    pci;
+  uint64_t                 vpts;
+  pci_node_t              *next;
+};
+
 typedef struct dxr3_spudec_class_s {
   spu_decoder_class_t      spu_decoder_class;
   
@@ -128,7 +135,7 @@ typedef struct dxr3_spudec_s {
   uint32_t                 clut[16];     /* the current color lookup table */
   int                      menu;         /* are we in a menu? */
   int                      button_filter;
-  pci_t                    pci;
+  pci_node_t               pci_cur;      /* a list of PCI packs, with the list head being current */
   pthread_mutex_t          pci_lock;
   uint32_t                 buttonN;      /* currently highlighted button */
   
@@ -136,10 +143,14 @@ typedef struct dxr3_spudec_s {
 } dxr3_spudec_t;
 
 /* helper functions */
-static int     dxr3_present(xine_stream_t *stream);
-static void    dxr3_spudec_handle_event(dxr3_spudec_t *this);
-static int     dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn);
-static void    dxr3_swab_clut(int* clut);
+static inline int  dxr3_present(xine_stream_t *stream);
+static inline void dxr3_spudec_handle_event(dxr3_spudec_t *this);
+/* the NAV functions must be called with the pci_lock held */
+static inline void dxr3_spudec_clear_nav_list(dxr3_spudec_t *this);
+static inline void dxr3_spudec_update_nav(dxr3_spudec_t *this);
+static void        dxr3_spudec_process_nav(dxr3_spudec_t *this);
+static int         dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn);
+static inline void dxr3_swab_clut(int* clut);
 
 
 static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
@@ -230,7 +241,8 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   
   this->menu                          = 0;
   this->button_filter                 = 1;
-  this->pci.hli.hl_gi.hli_ss          = 0;
+  this->pci_cur.pci.hli.hl_gi.hli_ss  = 0;
+  this->pci_cur.next                  = NULL;
   this->buttonN                       = 1;
   
   this->anamorphic                    = 0;
@@ -310,57 +322,38 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
       llprintf(LOG_BTN, "PCI packet hli_ss is %d\n", pci.hli.hl_gi.hli_ss);
       
       if (pci.hli.hl_gi.hli_ss == 1) {
-        em8300_button_t btn;
-        
-        /* menu ahead, remember pci for later evaluation */
-        xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
-        this->menu = 1;
-	this->button_filter = 0;
-        if (this->pci.hli.hl_gi.fosl_btnn > 0) {
-          /* a button is forced here, inform nav plugin */
-          xine_event_t event;
-          this->buttonN      = this->pci.hli.hl_gi.fosl_btnn;
-          event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
-	  event.stream       = this->stream;
-	  event.data         = &this->buttonN;
-	  event.data_length  = sizeof(this->buttonN);
-          xine_event_send(this->stream, &event);
-        }
-	if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
-	  pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
-          if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		    "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
-	  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
-	} else {
-          /* current button does not exist -> use another one */
-	  xine_event_t event;
-	  
-	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("requested button not available\n"));
-	  
-	  if (this->buttonN > this->pci.hli.hl_gi.btn_ns)
-	    this->buttonN = this->pci.hli.hl_gi.btn_ns;
-	  else
-	    this->buttonN = 1;
-          event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
-	  event.stream       = this->stream;
-	  event.data         = &this->buttonN;
-	  event.data_length  = sizeof(this->buttonN);
-          xine_event_send(this->stream, &event);
-	  
-	  if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
-	    pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
-	    if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-	      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		      "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
-	    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
-	  } else {
-	    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "no working menu button found\n");
-	  }
+	/* menu ahead */
+	
+	/* NAV packets contain start and end presentation timestamps, which tell the
+	 * application, when the highlight information in the NAV is supposed to be valid.
+	 * We handle these timestamps only in a very stripped-down way: We keep a list
+	 * of NAV packets (or better: the PCI part of them), tagged with a VPTS timestamp
+	 * telling, when the NAV should be processed. However, we only enqueue a new node
+	 * into this list, when we receive new highlight information during an already
+	 * showing menu. This happens very rarerly on common DVDs, so it is of low impact.
+	 * And we only check for processing of queued entries at some prominent
+	 * locations in this SPU decoder. Since presentation timestamps rarely solve a real
+	 * purpose on most DVDs, this is ok compared to the full-blown solution, which would
+	 * require a separate thread managing the queue all the time. */
+	if (this->pci_cur.pci.hli.hl_gi.hli_ss != 0 &&
+	    pci.hli.hl_gi.hli_s_ptm > this->pci_cur.pci.hli.hl_gi.hli_s_ptm) {
+	  pci_node_t *node = &this->pci_cur;
+	  printf("dxr3_decode_spu: DEBUG: allocating new PCI node for hli_s_ptm %d\n", pci.hli.hl_gi.hli_s_ptm);
+	  /* append PCI at the end of the list */
+	  while (node->next) node = node->next;
+	  node->next = (pci_node_t *)xine_xmalloc(sizeof(pci_node_t));
+	  node->next->vpts = this->stream->metronom->got_spu_packet(this->stream->metronom, pci.hli.hl_gi.hli_s_ptm);
+	  node->next->next = NULL;
+	  xine_fast_memcpy(&node->next->pci, &pci, sizeof(pci_t));
+        } else {
+	  dxr3_spudec_clear_nav_list(this);
+	  /* menu ahead, remember PCI for later use */
+	  xine_fast_memcpy(&this->pci_cur.pci, &pci, sizeof(pci_t));
+	  dxr3_spudec_process_nav(this);
 	}
       }
       
-      if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
+      if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci_cur.pci.hli.hl_gi.hli_ss == 1)) {
         /* this is (or: should be, I hope I got this right) a
            subpicture plane, that hides all menu buttons */
         uint8_t empty_spu[] = {
@@ -370,7 +363,8 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
           0x00, 0x01, 0x06, 0x00, 0x04, 0x00, 0x07, 0xFF,
           0x00, 0x01, 0x00, 0x20, 0x02, 0xFF };
         /* leaving menu */
-        this->pci.hli.hl_gi.hli_ss = 0;
+	dxr3_spudec_clear_nav_list(this);
+	this->pci_cur.pci.hli.hl_gi.hli_ss = 0;
 	this->menu = 0;
 	this->button_filter = 1;
 	pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
@@ -382,6 +376,11 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     pthread_mutex_unlock(&this->pci_lock);
     return;
   }
+  
+  /* check, if we need to process the next PCI from the list */
+  pthread_mutex_lock(&this->pci_lock);
+  dxr3_spudec_update_nav(this);
+  pthread_mutex_unlock(&this->pci_lock);
   
   /* Look for the display duration entry in the spu packets.
    * If the spu is a menu button highlight pane, this entry must not exist,
@@ -491,10 +490,18 @@ static void dxr3_spudec_reset(spu_decoder_t *this_gen)
  
   for (i = 0; i < MAX_SPU_STREAMS; i++)
     this->spu_stream_state[i].spu_length = 0;
+  pthread_mutex_lock(&this->pci_lock);
+  dxr3_spudec_clear_nav_list(this);
+  pthread_mutex_unlock(&this->pci_lock);
 }
 
 static void dxr3_spudec_discontinuity(spu_decoder_t *this_gen)
 {
+  dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
+  
+  pthread_mutex_lock(&this->pci_lock);
+  dxr3_spudec_clear_nav_list(this);
+  pthread_mutex_unlock(&this->pci_lock);
 }
 
 static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
@@ -517,6 +524,7 @@ static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
   this->dxr3_vo->fd_spu = 0;
   pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
   
+  dxr3_spudec_clear_nav_list(this);
   xine_event_dispose_queue(this->event_queue);
   pthread_mutex_destroy(&this->pci_lock);
   this->class->instance = 0;
@@ -528,7 +536,8 @@ static int dxr3_spudec_interact_info(spu_decoder_t *this_gen, void *data)
   dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
   
   pthread_mutex_lock(&this->pci_lock);
-  memcpy(data, &this->pci, sizeof(pci_t) );
+  dxr3_spudec_update_nav(this);
+  memcpy(data, &this->pci_cur.pci, sizeof(pci_t));
   pthread_mutex_unlock(&this->pci_lock);
   return 1;
 }
@@ -541,6 +550,7 @@ static void dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int3
   llprintf(LOG_BTN, "setting button\n");
   this->buttonN = button;
   pthread_mutex_lock(&this->pci_lock);
+  dxr3_spudec_update_nav(this);
   if (mode > 0 && !this->button_filter &&
       (dxr3_spudec_copy_nav_to_btn(this, mode - 1, &btn ) > 0)) {
     pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
@@ -555,7 +565,7 @@ static void dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int3
 }
 
 
-static int dxr3_present(xine_stream_t *stream)
+static inline int dxr3_present(xine_stream_t *stream)
 {
   plugin_node_t *node;
   video_driver_class_t *vo_class;
@@ -573,7 +583,7 @@ static int dxr3_present(xine_stream_t *stream)
   return present;
 }
 
-static void dxr3_spudec_handle_event(dxr3_spudec_t *this)
+static inline void dxr3_spudec_handle_event(dxr3_spudec_t *this)
 {
   xine_event_t *event;
   
@@ -594,11 +604,84 @@ static void dxr3_spudec_handle_event(dxr3_spudec_t *this)
   }
 }
 
+static inline void dxr3_spudec_clear_nav_list(dxr3_spudec_t *this)
+{
+  while (this->pci_cur.next) {
+    pci_node_t *node = this->pci_cur.next->next;
+    free(this->pci_cur.next);
+    this->pci_cur.next = node;
+  }
+  /* invalidate current timestamp */
+  this->pci_cur.pci.hli.hl_gi.hli_s_ptm = (uint32_t)-1;
+}
+
+static inline void dxr3_spudec_update_nav(dxr3_spudec_t *this)
+{
+  metronom_clock_t *clock = this->stream->xine->clock;
+  
+  if (this->pci_cur.next && this->pci_cur.next->vpts <= clock->get_current_time(clock)) {
+    pci_node_t *node = this->pci_cur.next;
+    xine_fast_memcpy(&this->pci_cur, this->pci_cur.next, sizeof(pci_node_t));
+    dxr3_spudec_process_nav(this);
+    free(node);
+  }
+}
+
+static void dxr3_spudec_process_nav(dxr3_spudec_t *this)
+{
+  em8300_button_t btn;
+  
+  this->menu = 1;
+  this->button_filter = 0;
+  if (this->pci_cur.pci.hli.hl_gi.fosl_btnn > 0) {
+    /* a button is forced here, inform nav plugin */
+    xine_event_t event;
+    this->buttonN      = this->pci_cur.pci.hli.hl_gi.fosl_btnn;
+    event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
+    event.stream       = this->stream;
+    event.data         = &this->buttonN;
+    event.data_length  = sizeof(this->buttonN);
+    xine_event_send(this->stream, &event);
+  }
+  if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
+    pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
+    if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+        "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
+    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
+  } else {
+    /* current button does not exist -> use another one */
+    xine_event_t event;
+    
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("requested button not available\n"));
+    
+    if (this->buttonN > this->pci_cur.pci.hli.hl_gi.btn_ns)
+      this->buttonN = this->pci_cur.pci.hli.hl_gi.btn_ns;
+    else
+      this->buttonN = 1;
+    event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
+    event.stream       = this->stream;
+    event.data         = &this->buttonN;
+    event.data_length  = sizeof(this->buttonN);
+    xine_event_send(this->stream, &event);
+    
+    if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
+      pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
+      if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
+	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	 "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
+      pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
+    } else {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "no working menu button found\n");
+    }
+  }
+}
+
 static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn)
 {
   btni_t *button_ptr = NULL;
   
-  if ((this->buttonN <= 0) || (this->buttonN > this->pci.hli.hl_gi.btn_ns))
+  if ((this->buttonN <= 0) || (this->buttonN > this->pci_cur.pci.hli.hl_gi.btn_ns))
     return -1;
   
   /* choosing a button from a matching button group */
@@ -607,41 +690,41 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
       this->stream->spu_channel_user == -1 &&
       this->stream->spu_channel_letterbox != this->stream->spu_channel &&
       this->stream->spu_channel_letterbox >= 0) {
-    unsigned int btns_per_group = 36 / this->pci.hli.hl_gi.btngr_ns;
+    unsigned int btns_per_group = 36 / this->pci_cur.pci.hli.hl_gi.btngr_ns;
     
     /* use a letterbox button group for letterboxed anamorphic menus on tv out */
-    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 1 && (this->pci.hli.hl_gi.btngr1_dsp_ty & 2))
-      button_ptr = &this->pci.hli.btnit[0 * btns_per_group + this->buttonN - 1];
-    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 2 && (this->pci.hli.hl_gi.btngr2_dsp_ty & 2))
-      button_ptr = &this->pci.hli.btnit[1 * btns_per_group + this->buttonN - 1];
-    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 3 && (this->pci.hli.hl_gi.btngr3_dsp_ty & 2))
-      button_ptr = &this->pci.hli.btnit[2 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci_cur.pci.hli.hl_gi.btngr_ns >= 1 && (this->pci_cur.pci.hli.hl_gi.btngr1_dsp_ty & 2))
+      button_ptr = &this->pci_cur.pci.hli.btnit[0 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci_cur.pci.hli.hl_gi.btngr_ns >= 2 && (this->pci_cur.pci.hli.hl_gi.btngr2_dsp_ty & 2))
+      button_ptr = &this->pci_cur.pci.hli.btnit[1 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci_cur.pci.hli.hl_gi.btngr_ns >= 3 && (this->pci_cur.pci.hli.hl_gi.btngr3_dsp_ty & 2))
+      button_ptr = &this->pci_cur.pci.hli.btnit[2 * btns_per_group + this->buttonN - 1];
     
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "No suitable letterbox button group found.\n");
     _x_assert(button_ptr);
     
   } else {
-    unsigned int btns_per_group = 36 / this->pci.hli.hl_gi.btngr_ns;
+    unsigned int btns_per_group = 36 / this->pci_cur.pci.hli.hl_gi.btngr_ns;
     
     /* otherwise use a normal 4:3 or widescreen button group */
-    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 1 && !(this->pci.hli.hl_gi.btngr1_dsp_ty & 6))
-      button_ptr = &this->pci.hli.btnit[0 * btns_per_group + this->buttonN - 1];
-    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 2 && !(this->pci.hli.hl_gi.btngr2_dsp_ty & 6))
-      button_ptr = &this->pci.hli.btnit[1 * btns_per_group + this->buttonN - 1];
-    if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 3 && !(this->pci.hli.hl_gi.btngr3_dsp_ty & 6))
-      button_ptr = &this->pci.hli.btnit[2 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci_cur.pci.hli.hl_gi.btngr_ns >= 1 && !(this->pci_cur.pci.hli.hl_gi.btngr1_dsp_ty & 6))
+      button_ptr = &this->pci_cur.pci.hli.btnit[0 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci_cur.pci.hli.hl_gi.btngr_ns >= 2 && !(this->pci_cur.pci.hli.hl_gi.btngr2_dsp_ty & 6))
+      button_ptr = &this->pci_cur.pci.hli.btnit[1 * btns_per_group + this->buttonN - 1];
+    if (!button_ptr && this->pci_cur.pci.hli.hl_gi.btngr_ns >= 3 && !(this->pci_cur.pci.hli.hl_gi.btngr3_dsp_ty & 6))
+      button_ptr = &this->pci_cur.pci.hli.btnit[2 * btns_per_group + this->buttonN - 1];
     
   }
   if (!button_ptr) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_decode_spu: No suitable menu button group found, using group 1.\n");
-    button_ptr = &this->pci.hli.btnit[this->buttonN - 1];
+    button_ptr = &this->pci_cur.pci.hli.btnit[this->buttonN - 1];
   }
   
   if(button_ptr->btn_coln != 0) {
     llprintf(LOG_BTN, "normal button clut, mode %d\n", mode);
-    btn->color = (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> 16);
-    btn->contrast = (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode]);
+    btn->color = (this->pci_cur.pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> 16);
+    btn->contrast = (this->pci_cur.pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode]);
     btn->left = button_ptr->x_start;
     btn->top  = button_ptr->y_start;
     btn->right = button_ptr->x_end;
@@ -651,7 +734,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
   return -1;
 }
 
-static void dxr3_swab_clut(int *clut)
+static inline void dxr3_swab_clut(int *clut)
 {
   int i;
   for (i=0; i<16; i++)
