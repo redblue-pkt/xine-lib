@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.9 2003/12/09 00:02:34 f1rmb Exp $
+ * $Id: ldt_keeper.c,v 1.10 2004/04/22 20:28:05 miguelfreitas Exp $
  *
  *
  * contents:
@@ -138,7 +138,7 @@ struct modify_ldt_ldt_s {
 #define       TEB_SEL_IDX     1024
 #endif
 
-#define       TEB_SEL LDT_SEL(TEB_SEL_IDX)
+static unsigned int teb_sel = LDT_SEL(TEB_SEL_IDX);
 
 #ifdef __cplusplus
 extern "C"
@@ -146,7 +146,7 @@ extern "C"
 void Setup_FS_Segment(void)
 {
     __asm__ __volatile__(
-	"movl %0,%%eax; movw %%ax, %%fs" : : "i" (TEB_SEL) : "%eax"
+	"movl %0,%%eax; movw %%ax, %%fs" : : "r" (teb_sel) : "%eax"
     );
 }
 
@@ -158,7 +158,7 @@ void Check_FS_Segment(void)
     );
     fs = fs & 0xffff;
     
-    if( fs != TEB_SEL ) {
+    if( fs != teb_sel ) {
       printf("ldt_keeper: FS segment is not set or has being lost!\n");
       printf("            Please report this error to xine-devel@sourceforge.net\n");
       printf("            Aborting....\n");
@@ -230,7 +230,13 @@ ldt_fs_t* Setup_LDT_Keeper(void)
         unsigned long d[2];
 
         LDT_EntryToBytes( d, &array );
+#if defined(__FreeBSD__) && defined(LDT_AUTO_ALLOC)
+        ret = i386_set_ldt(LDT_AUTO_ALLOC, (union descriptor *)d, 1);
+        array.entry_number = ret;
+        teb_sel = LDT_SEL(ret);
+#else
         ret = i386_set_ldt(array.entry_number, (union descriptor *)d, 1);
+#endif
         if (ret < 0)
         {
             perror("install_fs");
@@ -244,7 +250,7 @@ ldt_fs_t* Setup_LDT_Keeper(void)
 #if defined(__svr4__)
     {
 	struct ssd ssd;
-	ssd.sel = TEB_SEL;
+	ssd.sel = teb_sel;
 	ssd.bo = array.base_addr;
 	ssd.ls = array.limit - array.base_addr;
 	ssd.acc1 = ((array.read_exec_only == 0) << 1) |
