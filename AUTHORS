@@ -442,6 +442,9 @@ Giovanni Venturi <gventuri73@tiscali.it>
 Drew 'dantealiegri' Ogle <dantealiegri@umbc.edu>
   xitk fixes, xitk Xft support.
 
+Graham Brooks <gbrooks@imsmail.org>
+  RTP/UDP plugin fixes
+
 Tilmann Bitterberg <transcode@tibit.org>
   OpenDML (AVI2.0) support
 
