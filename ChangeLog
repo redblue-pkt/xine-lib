@@ -11,6 +11,13 @@ xine-lib (1-beta5)
   * CD-ROM/XA ADPCM decoder
   * QT demuxer fixes to select among multiple A/V traks and support 
     non- and poorly-interleaved files 
+  * support for the css title key cache in the latest versions of a well
+    known css decryption library
+  * allow to crop the dxr3 overlay area to help users who see green lines
+    at the top or bottom of the dxr3 overlay image
+  * fixed discontinuity detection bug in MPEG block demuxer
+    (this might fix occasional - or, in case of "Dances with Wolves" RC2,
+    enduring - audio stutters in DVD playback)
 
 xine-lib (1-beta4)
   * http input fixes
