@@ -335,5 +335,8 @@ Chris Purnell <cjp@lost.org.uk>
 
 James Stembridge <jstembridge@gmx.net>
   several VIDIX driver updates and improvements
-  
+
+Mattias Eriksson <snaggen@acc.umu.se>
+  ported nvtv/tvmode code
+    
 (let us know if we've forgotten anyone)
