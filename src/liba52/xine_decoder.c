@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/10/19 23:04:35 matt2000 Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/10/22 00:40:36 matt2000 Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -161,6 +161,7 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
       this->a52_flags_map[A52_3F1R]   = A52_MONO; 
       this->a52_flags_map[A52_2F2R]   = A52_MONO;
       this->a52_flags_map[A52_3F2R]   = A52_MONO;
+      this->a52_flags_map[A52_DOLBY]  = A52_MONO;
       
       this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
       this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_MONO;
@@ -169,6 +170,7 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
       this->ao_flags_map[A52_3F1R]    = AO_CAP_MODE_MONO;
       this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_MONO;
       this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_DOLBY]   = AO_CAP_MODE_MONO;
     }
   }
 
