@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.9 2002/12/10 19:47:02 guenter Exp $
+ * $Id: audio_decoder.c,v 1.10 2002/12/14 20:01:18 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -557,7 +557,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	  printf ("libareal: raDecode result %d, len=%d\n", result, len);
 #endif
 
-	  audio_buffer->vpts       = this->pts*90; /* FIXME */
+	  audio_buffer->vpts       = this->pts; 
 
 	  this->pts = 0;
 

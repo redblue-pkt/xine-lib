@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.14 2002/12/10 19:47:02 guenter Exp $
+ * $Id: xine_decoder.c,v 1.15 2002/12/14 20:01:18 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -283,7 +283,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	  this->num_chunks-1,	  /* number of sub-packets - 1    */
 	  this->chunk_tab,        /* table of sub-packet offsets  */
 	  0,	   	          /* unknown, seems to be unused  */
-	  this->pts               /* timestamp (the integer value from the stream) */
+	  this->pts/90            /* timestamp (the integer value from the stream) */
 	};
 
 #ifdef LOG
@@ -302,8 +302,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	if ( this->last_pts && (this->pts != this->last_pts)) {
 	  int64_t new_duration;
 
-	  img->pts         = this->pts * 90;
-	  new_duration     = (this->pts - this->last_pts) * 90 / (this->num_frames+1);
+	  img->pts         = this->pts;
+	  new_duration     = (this->pts - this->last_pts) / (this->num_frames+1);
 	  this->duration   = (this->duration * 9 + new_duration)/10;
 	  this->num_frames = 0;
 	} else {
@@ -320,9 +320,9 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	
 #ifdef LOG
 	printf ("libreal: pts %lld %lld diff %lld # %d est. duration %lld\n", 
-		this->pts*90, 
-		buf->pts*90,
-		(buf->pts - this->pts) * 90,
+		this->pts, 
+		buf->pts,
+		buf->pts - this->pts,
 		this->num_frames,
 		this->duration);
 
