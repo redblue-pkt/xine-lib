@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.7 2001/08/02 18:13:19 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.8 2001/08/14 19:43:43 ehasenle Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -46,7 +46,9 @@
 #endif
 #include "../video_out/video_out_x11.h"
 
-char devname[]="/dev/em8300";
+#define LOOKUP_DEV "dxr3_devname"
+#define DEFAULT_DEV "/dev/em8300"
+static char *devname;
 
 typedef struct dxr3_driver_s {
 	vo_driver_t      vo_driver;
@@ -436,6 +438,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->vo_driver.exit                 = dxr3_exit;
 
 	/* open control device */
+	devname = config->lookup_str (config, LOOKUP_DEV, DEFAULT_DEV);
 	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
 		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
 		 devname, strerror(errno));

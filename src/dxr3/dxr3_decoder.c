@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.10 2001/08/14 10:17:58 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.11 2001/08/14 19:43:43 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -43,7 +43,9 @@
 #include "xine_internal.h"
 #include "buffer.h"
 
-char devname[]="/dev/em8300";
+#define LOOKUP_DEV "dxr3_devname"
+#define DEFAULT_DEV "/dev/em8300"
+static char *devname;
 
 typedef struct dxr3_decoder_s {
 	video_decoder_t video_decoder;
@@ -61,6 +63,10 @@ static int dxr3_ok;
 static void dxr3_presence_test()
 {
 	int fd, val;
+
+	if (dxr3_tested)
+		return;
+
 	dxr3_tested = 1;
 	dxr3_ok = 0;
 	
@@ -153,9 +159,7 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 
 static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 {
-	if (!dxr3_tested)
-		dxr3_presence_test();
-	return (dxr3_ok && (buf_type & 0xFFFF0000) == BUF_VIDEO_MPEG) ;
+	return (buf_type & 0xFFFF0000) == BUF_VIDEO_MPEG ;
 }
 
 static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
@@ -251,6 +255,10 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 		return NULL;
 	}
 
+	devname = cfg->lookup_str (cfg, LOOKUP_DEV, DEFAULT_DEV);
+	dxr3_presence_test ();
+	if (!dxr3_ok) return NULL;
+
 	this = (dxr3_decoder_t *) malloc (sizeof (dxr3_decoder_t));
 
 	this->video_decoder.interface_version   = 2;
@@ -280,10 +288,7 @@ typedef struct spudec_decoder_s {
 static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type)
 {
 	int type = buf_type & 0xFFFF0000;
-	if (!dxr3_tested)
-		dxr3_presence_test();
-	return (dxr3_ok && 
-		(type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT));
+	return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT);
 }
 
 static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
@@ -412,6 +417,10 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version,
 	    iface_version);
     return NULL;
   }
+
+  devname = cfg->lookup_str (cfg, LOOKUP_DEV, DEFAULT_DEV);
+  dxr3_presence_test ();
+  if (!dxr3_ok) return NULL;
 
   this = (spudec_decoder_t *) malloc (sizeof (spudec_decoder_t));
 
