@@ -349,7 +349,7 @@ _ACEOF
           AC_MSG_RESULT(yes)
         else
 	  dnl typical problem: dlopen'ed module not self contained, because
-	  dnl is wasn't linked with -lgcc
+	  dnl it wasn't linked with -lgcc
 	  AC_MSG_RESULT(no)
 	  if grep '^archive_cmds=.*$LD -G' libtool >/dev/null; then
             AC_MSG_CHECKING([if libtool can be fixed])
