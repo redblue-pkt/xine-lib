@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.38 2005/03/31 22:46:15 hadess Exp $
+ * $Id: utils.c,v 1.39 2005/04/01 23:15:38 fsck-p Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -404,11 +404,11 @@ char *xine_chomp(char *str) {
   while(*pbuf != '\0') pbuf++;
 
   while(pbuf > str) {
-    if(*pbuf == '\r' || *pbuf == '\n' || *pbuf == '"') pbuf = '\0';
+    if(*pbuf == '\r' || *pbuf == '\n' || *pbuf == '"') *pbuf = '\0';
     pbuf--;
   }
 
-  while(*pbuf == '=' || *pbuf == '"') pbuf++;
+  while(*pbuf == '=') pbuf++;
 
   return pbuf;
 }
