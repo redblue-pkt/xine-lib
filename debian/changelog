@@ -1,3 +1,12 @@
+xine-lib (1-rc3c-1) unstable; urgency=low
+
+  * new upstream version
+    - includes workaround for XV_HUE bug on NVidia cards (closes: #238433)
+  * build-depends on libpng-dev for PNG support (closes: #240524)
+  * build-depends on libfreetype6-dev for TTF support (closes: #242031)
+  
+ -- Siggi Langauf <siggi@debian.org>  Wed,  7 Apr 2004 23:58:08 +0200
+
 xine-lib (1-rc3b-1) unstable; urgency=low
 
   * new upstream release
