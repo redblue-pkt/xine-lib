@@ -834,9 +834,9 @@
      for any media file, not only AVI. In order to use it you can pass a
      special MRL construction like:
      <screen>&nbsp;&nbsp;&nbsp;<command>xine test.mpg#subtitle:file.sub</command></screen>
-     The external subtitles support can also be used by any xine
-     frontend. Currently, just xine-ui implements this feature with a
-     subtitle selection dialog.
+     The external subtitles support can also be used by any xine frontend.
+     Currently xine-ui and kaffeine implement this feature with a subtitle
+     selection dialog.
     </para>
    </sect2>
 
