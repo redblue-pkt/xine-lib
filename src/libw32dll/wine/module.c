@@ -939,7 +939,7 @@ FARPROC MODULE_GetProcAddress(
 #ifdef DEBUG_QTX_API
 #define DECL_COMPONENT(sname,name,type) \
     if(!strcmp(function,name)){ \
-	fprintf(stderr,name "dispatcher catched -> %p\n",retproc); \
+	fprintf(stderr,name "dispatcher caught -> %p\n",retproc); \
 	real_ ## sname = retproc; retproc = fake_ ## sname; \
     }
 #include "qt_comp.h"
@@ -950,7 +950,7 @@ FARPROC MODULE_GetProcAddress(
 //      || !strcmp(function,"_CallComponentFunctionWithStorage")
 //      || !strcmp(function,"_CallComponent")
       ){
-	fprintf(stderr,"theQuickTimeDispatcher catched -> %p\n",retproc);
+	fprintf(stderr,"theQuickTimeDispatcher caught -> %p\n",retproc);
       report_entry = report_func;
       report_ret   = report_func_ret;
       wrapper_target=retproc;
