@@ -40,7 +40,7 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 
-#define NUM_FRAMES  10
+#define NUM_FRAMES  40
 
 #define NUM_RESOLUTIONS 5
 static struct {
