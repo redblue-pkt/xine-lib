@@ -691,7 +691,7 @@ zoomFilterFastRGB (Uint * pix1,
 		zoom_filter_mmx (prevX, prevY, expix1, expix2, brutS, brutD, buffratio, precalCoef);
 	}
 	else {
-		c_zoom (prevX, prevY);
+		c_zoom ();
 	}
 #endif
 
@@ -700,11 +700,11 @@ zoomFilterFastRGB (Uint * pix1,
 		ppc_zoom (expix1, expix2, prevX, prevY, brutS, brutD, buffratio);
 	}
 	else {
-		c_zoom (prevX, prevY);
+		c_zoom ();
 	}
 #endif
 #else
-	c_zoom (prevX, prevY);
+	c_zoom ();
 #endif
 }
 
