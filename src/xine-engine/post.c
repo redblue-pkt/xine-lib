@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.18 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: post.c,v 1.19 2003/12/07 15:09:51 miguelfreitas Exp $
  */
  
 /*
@@ -154,8 +154,9 @@ static int post_frame_draw(vo_frame_t *vo_img, xine_stream_t *stream) {
 
 static void post_frame_lock(vo_frame_t *vo_img) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
-  _x_post_restore_video_frame(vo_img, port);
-  vo_img->lock(vo_img);
+  vo_img->port = port->original_port;
+  port->original_frame.lock(vo_img);
+  vo_img->port = &port->port;
 }
 
 static void post_frame_dispose(vo_frame_t *vo_img) {
