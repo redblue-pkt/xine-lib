@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.51 2004/05/19 18:00:47 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.52 2004/05/19 19:41:28 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -329,27 +329,27 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           break;
         case AO_CAP_MODE_STEREO:
           /* Tested, working. */
-          float_to_int (&samples[0*256], int_samples+(i*256*2), 2);
-          float_to_int (&samples[1*256], int_samples+(i*256*2)+1, 2);
+          float_to_int (&samples[0*256], int_samples+(i*256*2), 2);   /*  L */
+          float_to_int (&samples[1*256], int_samples+(i*256*2)+1, 2); /*  R */
           break;
         case AO_CAP_MODE_4CHANNEL:
-          /* Tested, Only Rear channel output */
-          printf("4 channel samples start %d\n", i);
-          float_to_int (&samples[0*256], int_samples+(i*256*4),   4); /*  L? */
-          float_to_int (&samples[1*256], int_samples+(i*256*4)+1, 4); /*  R? */
-          float_to_int (&samples[2*256], int_samples+(i*256*4)+2, 4); /* RL? */
-          float_to_int (&samples[3*256], int_samples+(i*256*4)+3, 4); /* RR? */
+          /* Tested, working */
+          float_to_int (&samples[0*256], int_samples+(i*256*4),   4); /*  L */
+          float_to_int (&samples[1*256], int_samples+(i*256*4)+1, 4); /*  R */
+          float_to_int (&samples[2*256], int_samples+(i*256*4)+2, 4); /* RL */
+          float_to_int (&samples[3*256], int_samples+(i*256*4)+3, 4); /* RR */
           break;
         case AO_CAP_MODE_4_1CHANNEL:
-          /* Tested, not working */
-          float_to_int (&samples[0*256], int_samples+(i*256*6)+4, 6); /* LFE? */
-          float_to_int (&samples[1*256], int_samples+(i*256*6)+0, 6); /*   L? */
-          float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /*   R? */
-          float_to_int (&samples[3*256], int_samples+(i*256*6)+2, 6); /*  RL? */
-          float_to_int (&samples[4*256], int_samples+(i*256*6)+3, 6); /*  RR? */
+          /* Tested, working */
+          float_to_int (&samples[0*256], int_samples+(i*256*6)+0, 6); /*   L */
+          float_to_int (&samples[1*256], int_samples+(i*256*6)+1, 6); /*   R */
+          float_to_int (&samples[2*256], int_samples+(i*256*6)+2, 6); /*  RL */
+          float_to_int (&samples[3*256], int_samples+(i*256*6)+3, 6); /*  RR */
+          float_to_int (&samples[4*256], int_samples+(i*256*6)+5, 6); /* LFE */
           mute_channel ( int_samples+(i*256*6)+4, 6); /* C */
           break;
         case AO_CAP_MODE_5CHANNEL:
+          /* Tested, working */
           float_to_int (&samples[0*256], int_samples+(i*256*6)+4, 6); /*   C */
           float_to_int (&samples[1*256], int_samples+(i*256*6)+0, 6); /*   L */
           float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /*   R */
