@@ -3,6 +3,9 @@ xine-lib (1-beta9)
     set independantly from other applications
   * mpeg-4 postprocessing support added to ffmpeg video decoder
   * support HTTP redirections
+  * fix mpgaudio demuxer to not try to falsely handle AVI files
+  * fix mpeg demuxer to work with chunks bigger than xine's buffers
+  * fix libmpeg2 to not wait endlessly for I/P frames, fix MPEG artifacts on seek
 
 xine-lib (1-beta8)
   * fix DVD highlight problems
