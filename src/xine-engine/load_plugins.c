@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.110 2002/11/02 00:36:03 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.111 2002/11/03 20:44:37 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -655,6 +655,10 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
 
     while (node) {
       demux_plugin_t *plugin;
+
+#ifdef LOG
+      printf ("load_plugins: probing demux '%s'\n", node->info->id);
+#endif
 
       if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
 	pthread_mutex_unlock (&catalog->lock);
