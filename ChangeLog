@@ -10,6 +10,8 @@ xine-lib (1-rc4)
   * fix channel swapping in wave demuxer (lpcm)
   * colorkey support for drawing OSD (XVideo only - fix some flickering)
   * avoid possible segfaults in cdda
+  * libvcd updated to 0.7.20
+  * libcdio updated to 0.68
   * build improvements - different source and build directory, translations
 
 xine-lib (1-rc3c)
