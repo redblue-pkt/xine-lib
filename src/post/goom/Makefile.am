@@ -22,15 +22,19 @@ xineplug_post_goom_la_SOURCES = xine_goom.c \
 			        goom_core.c \
 			        filters.c \
 			        lines.c \
-			        ifs_display.c ifs.c \
+			        ifs_display.c \
+				ifs.c \
 			        graphic.c \
 			        gfontlib.c \
 				gfontrle.c \
-				surf3d.c surface.c \
+				surf3d.c \
+				surface.c \
 				tentacle3d.c \
 				$(extra_files)
 
 xineplug_post_goom_la_LIBADD = $(XINE_LIB)
 xineplug_post_goom_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-noinst_HEADERS = zoom_filter_mmx.h
+noinst_HEADERS = drawmethods.h goom_config.h graphic.h mathtools.h surface.h xmmx.h \
+	filters.h goom_core.h ifs.h mmx.h tentacle3d.h zoom_filter_mmx.h gfontlib.h \
+	goom_tools.h lines.h surf3d.h v3d.h
