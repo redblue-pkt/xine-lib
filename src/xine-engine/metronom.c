@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.37 2001/11/18 03:53:25 guenter Exp $
+ * $Id: metronom.c,v 1.38 2001/11/27 00:00:35 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -617,6 +617,8 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
   uint32_t vpts;
 
 #ifdef METRONOM_LOG  
+  printf ("metronom: DTS pts is %u, last_pts is %u, diff = %d\n",
+	      pts, this->last_audio_pts, pts - this->last_audio_pts);
   printf ("metronom: got %d audio samples (pts=%d)\n",
 	  nsamples,pts);
 #endif

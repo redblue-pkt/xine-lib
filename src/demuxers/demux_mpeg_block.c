@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.62 2001/11/18 03:53:23 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.63 2001/11/27 00:00:34 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -385,13 +385,16 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if ((p[0]&0xF0) == 0x80) {
 
       /*  printf ( "ac3 PES packet, track %02x\n",track);  */
+      buf->decoder_info[1] = p[1]; /* Number of frame headers */
+      buf->decoder_info[2] = p[2] << 8 | p[3]; /* First access unit pointer */
 
       buf->content   = p+4;
       buf->size      = packet_len-4;
-      if (track & 0x8)
+      if (track & 0x8) {
         buf->type      = BUF_AUDIO_DTS + (track & 0x07); /* DVDs only have 8 tracks */
-      else
+      } else {
         buf->type      = BUF_AUDIO_A52 + track;
+      }
       buf->PTS       = PTS;
 
       buf->input_pos = this->input->get_current_pos(this->input);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/11/16 21:06:21 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/11/27 00:00:35 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  *
@@ -108,7 +108,9 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   
   audio_buffer = this->audio_out->get_buffer (this->audio_out);
   memcpy (audio_buffer->mem, data, ac5_length);
-
+  
+  audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
+  audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
   audio_buffer->vpts       = buf->PTS;
   audio_buffer->scr        = buf->SCR;
   audio_buffer->num_frames = ac5_length / 2;

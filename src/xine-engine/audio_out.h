@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.21 2001/11/20 12:41:58 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.22 2001/11/27 00:00:35 jcdutton Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -135,6 +135,8 @@ struct audio_buffer_s {
 
   uint32_t           vpts;
   uint32_t           scr;
+  uint32_t           frame_header_count;
+  uint32_t           first_access_unit;
 };
 
 typedef struct ao_instance_s ao_instance_t;

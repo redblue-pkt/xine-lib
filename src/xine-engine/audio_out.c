@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.35 2001/11/20 12:41:57 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.36 2001/11/27 00:00:35 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -469,6 +469,8 @@ static void *ao_loop (void *this_gen) {
                    ((data[6] & 0xff) << 4)  |
                    ((data[7] & 0xf0) >> 4);
         ac5_length++;
+        ac5_length=ac5_length * buf->frame_header_count ;
+
         if (ac5_length > 4088) {
           /* Biggest PCM length from AC5 is 4096 */
           break;
@@ -491,29 +493,14 @@ static void *ao_loop (void *this_gen) {
         } else {
           printf("BAD AC5 length\n");
           break; 
-        } 
+        }
+        if (ac5_pcm_length < (512 * buf->frame_header_count)) {
+          ac5_pcm_length = 512 * buf->frame_header_count ;
+        }
+        /* printf("DTS length=%d\n",ac5_pcm_length); */
         this->driver->write(this->driver, this->frame_buffer, ac5_pcm_length);
 	
 	break;
-	
-
-
-
-
-	memset(this->frame_buffer,0xff,6144);
-	this->frame_buffer[0] = 0xf872;  /* spdif syncword */
-	this->frame_buffer[1] = 0x4e1f;  /* .............  */
-	this->frame_buffer[2] = 0x0001;  /*                */
-	
-	this->frame_buffer[3] = 0x3ee0;
-	
-	/* ac3 seems to be swabbed data */
-	swab(buf->mem,this->frame_buffer+4,  2014  );
-	
-	this->driver->write(this->driver, this->frame_buffer, 1024);
-	
-	break;
-	
       }
       
     }
