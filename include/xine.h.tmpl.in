@@ -17,31 +17,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.tmpl.in,v 1.1 2001/04/18 22:36:42 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.2 2001/04/18 23:48:29 guenter Exp $
  *
  */
 
 #ifndef HAVE_XINE_H
 #define HAVE_XINE_H
 
-#if !defined(XINE_COMPILE)
-
-#include <inttypes.h>
-#include "input_plugin.h"
-#include "audio_out.h"
-#include "video_out.h"
-#include "configfile.h"
-#include "demux.h"
-
 #define XINE_MAJOR_VERSION @XINE_MAJOR@
 #define XINE_MINOR_VERSION @XINE_MINOR@
 #define XINE_SUB_VERSION   @XINE_SUB@
 
-
+typedef void vo_instance_t;
+typedef void ao_functions_t;
+typedef void config_values_t;
 typedef void xine_t;
-
-#endif
-
 
 /* nStatus : current xine status */
 typedef void (*gui_status_callback_func_t)(int nStatus);
@@ -55,7 +45,12 @@ typedef void (*gui_status_callback_func_t)(int nStatus);
 #define XINE_PAUSE     2 
 #define XINE_QUIT      3
 
-#if !defined(XINE_COMPILE)
+/*
+ * read config file and init a config object
+ * (if it exists)
+ */
+config_values_t *config_file_init (char *filename);
+
 /*
  * init xine - call once at startup
  *
@@ -165,7 +160,5 @@ char **xine_get_autoplay_input_plugin_ids (xine_t *this) ;
  * get autoplay MRL list for input plugin named <plugin_id>
  */
 char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
-
-#endif
 
 #endif

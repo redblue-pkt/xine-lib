@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.1 2001/04/18 22:36:44 f1rmb Exp $
+ * $Id: video_out.h,v 1.2 2001/04/18 23:48:29 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -322,6 +322,3 @@ static inline void vo_draw (vo_frame_t * frame)
 #endif
 #warning "FIXME"
 #endif
-
-
-
