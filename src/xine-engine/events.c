@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.14 2002/10/26 16:15:24 mroi Exp $
+ * $Id: events.c,v 1.15 2002/10/26 21:48:49 mroi Exp $
  *
  * Event handling functions
  *
@@ -62,7 +62,7 @@ xine_event_t *xine_event_wait (xine_event_queue_t *queue) {
 }
 
 void xine_event_free (xine_event_t *event) {
-  if (event->data) free (event->data);
+  if (event->data && event->data_length > 0) free (event->data);
   free (event);
 }
 
@@ -124,7 +124,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
 
   xine_stream_t      *stream = queue->stream;
   xine_event_t       *event;
-  xine_event_t        qevent;
+  xine_event_t       *qevent;
   xine_event_queue_t *q;
     
   pthread_mutex_lock (&stream->event_queues_lock);
@@ -147,12 +147,15 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   /* 
    * send quit event 
    */
+  qevent = (xine_event_t *)malloc(sizeof(xine_event_t));
   
-  qevent.type        = XINE_EVENT_QUIT;
-  qevent.data_length = 0;
+  qevent->type        = XINE_EVENT_QUIT;
+  qevent->stream      = stream;
+  qevent->data        = NULL;
+  qevent->data_length = 0;
   
   pthread_mutex_lock (&queue->lock);
-  xine_list_append_content (queue->events, &event);
+  xine_list_append_content (queue->events, qevent);
   pthread_cond_signal (&queue->new_event);
   pthread_mutex_unlock (&queue->lock);
 
