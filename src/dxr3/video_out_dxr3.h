@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.2 2002/06/10 15:02:48 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.3 2002/06/30 10:47:06 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -80,6 +80,7 @@ typedef struct dxr3_driver_s {
   
   int              aspect;
   int              tv_mode;
+  int              pan_scan;
   int              overlay_enabled;
   int              tv_switchable; /* can switch from overlay<->tvout */
   em8300_bcs_t     bcs;

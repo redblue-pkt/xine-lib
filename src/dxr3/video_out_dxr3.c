@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.33 2002/06/28 16:55:37 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.34 2002/06/30 10:47:06 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -682,6 +682,7 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
      * just a two value "loop" */
     if (value > ASPECT_FULL) value = ASPECT_ANAMORPHIC;
     this->aspect = value;
+    if (this->pan_scan) break;
     fullscreen = this->overlay_enabled ? is_fullscreen(this) : 0;
     
     if (value == ASPECT_ANAMORPHIC) {
@@ -719,12 +720,13 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
         if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
           printf("video_out_dxr3: failed to set aspect ratio (%s)\n", strerror(errno));
         dxr3_zoomTV(this);
+        this->pan_scan = 1;
       } else if (value == -1) {
 #if LOG_VID
         printf("video_out_dxr3: disabling 16:9 zoom\n");
 #endif
-        if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &this->aspect))
-          printf("video_out_dxr3: failed to set aspect ratio (%s)\n", strerror(errno));
+        this->pan_scan = 0;
+        dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
       }
     }
     break;
