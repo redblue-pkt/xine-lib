@@ -86,10 +86,11 @@ rm -rf $RPM_BUILD_ROOT
 # plugins
 %{prefix}/lib/xine/plugins/xineplug_*.la
 %{prefix}/lib/xine/plugins/xineplug_*.so
-# doc, lib, skins
+# doc, lib, skins, fonts
 %{prefix}/share/doc/xine/xine-lib-API/*
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/*
+%{prefix}/share/xine/fonts/*
 
 %changelog
