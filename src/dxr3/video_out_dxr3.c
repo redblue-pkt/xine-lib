@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.10 2001/10/14 14:49:54 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.11 2001/10/23 12:08:39 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -71,8 +71,8 @@ typedef struct dxr3_driver_s {
 	int video_width;
 	int video_height;
 	int video_aspect;
-	void (*request_dest_size) (int video_width, int video_height, int *dest_x,
-	 int *dest_y, int *dest_height, int *dest_width);
+	void (*request_dest_size) (char *user_data, int video_width, int video_height,
+	 	int *dest_x, int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;
 
 static int dxr3_set_property (vo_driver_t *this_gen, int property, int value);
@@ -316,7 +316,7 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 			 strerror(errno));
 		if (this->overlay_enabled && !fullscreen){
 			int foo;
-			this->request_dest_size(this->width,
+			this->request_dest_size((char *)this, this->width,
 			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
 		}
 		break;

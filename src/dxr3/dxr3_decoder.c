@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.17 2001/10/20 12:08:31 guenter Exp $
+ * $Id: dxr3_decoder.c,v 1.18 2001/10/23 12:08:39 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -336,25 +336,35 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 /*
  * Second part of the dxr3 plugin: subpicture decoder
  */
+#define MAX_SPU_STREAMS 32
 
+typedef struct spudec_stream_state_s {
+  	uint32_t         stream_filter;
+} spudec_stream_state_t;
+  
 typedef struct spudec_decoder_s {
-	spu_decoder_t    spu_decoder;
+	spu_decoder_t    	spu_decoder;
+ 	spudec_stream_state_t   spu_stream_state[MAX_SPU_STREAMS];
 
-	vo_instance_t   *vo_out;
-	int fd_spu;
+	vo_instance_t   	*vo_out;
+	int 			fd_spu;
+	int			streams; /* number of streams available */
+	xine_t			*xine;
 } spudec_decoder_t;
 
 static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type)
 {
 	int type = buf_type & 0xFFFF0000;
-	return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT);
+	return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT ||
+		type == BUF_SPU_SUBP_CONTROL);
 }
 
 static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
 {
 	spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 	char tmpstr[100];
-
+	int i;
+	
 	this->vo_out = vo_out;
 
 	/* open spu device */
@@ -365,6 +375,8 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
 		return;
 	}
 
+        for (i=0; i < MAX_SPU_STREAMS; i++) /* reset the spu filter for non-dvdnav */
+                 this->spu_stream_state[i].stream_filter = 1;
 }
 
 static void swab_clut(int* clut)
@@ -378,7 +390,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 {
 	spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 	ssize_t written;
-
+	uint32_t stream_id = buf->type & 0x1f ;
+	
 	if (buf->type == BUF_SPU_CLUT) {
 		if (buf->content[0] == 0)  /* cheap endianess detection */
 			swab_clut((int*)buf->content);
@@ -387,8 +400,23 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		return;
 	}
 
+        if(buf->type == BUF_SPU_SUBP_CONTROL){
+		int i;
+                uint32_t *subp_control = (uint32_t*) buf->content;
+                this->streams=0;
+                for (i = 0; i < 32; i++) {
+	        	this->spu_stream_state[i].stream_filter = subp_control[i];
+	                          /* Temporary hack to find out if we _may_ be in a menu */
+                                  /* menu's only have one stream, so do some dvd's :(   */
+                        this->streams+=subp_control[i];
+                 }
+     		return;
+	}
+
 	/* Is this also needed for subpicture? */
 	if (buf->decoder_info[0] == 0) return;
+
+	if ( this->spu_stream_state[stream_id].stream_filter == 0) return;
 
 	if (buf->PTS) {
 		int vpts;
@@ -398,6 +426,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
 			fprintf(stderr, "dxr3: spu setpts failed (%s)\n", strerror(errno));
 	}
+
+        if (this->xine->spu_channel != stream_id && this->streams!=1 ) return; 
 
 	written = write(this->fd_spu, buf->content, buf->size);
 	if (written < 0) {
@@ -499,7 +529,8 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 10;
-
+  this->xine				= xine;
+  
   xine_register_event_listener(xine, spudec_event_listener, this);
   
   return (spu_decoder_t *) this;
