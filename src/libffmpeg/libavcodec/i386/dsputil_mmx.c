@@ -19,6 +19,7 @@
  * MMX optimization by Nick Kurshev <nickols_k@mail.ru>
  */
 
+#include "xine-utils/xineutils.h"
 #include "../dsputil.h"
 #include "../simple_idct.h"
 
@@ -962,7 +963,7 @@ static void   sub_pixels_xy2_mmx( DCTELEM  *block, const UINT8 *pixels, int line
 
 void dsputil_init_mmx(void)
 {
-    mm_flags = mm_support();
+    mm_flags = xine_mm_accel();
 #if 0
     printf("CPU flags:");
     if (mm_flags & MM_MMX)

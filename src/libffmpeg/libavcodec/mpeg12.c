@@ -33,6 +33,8 @@
 #define EXT_START_CODE		0x000001b5
 #define USER_START_CODE		0x000001b2
 
+#define ABS(a) ((a)<0 ? -(a) : (a))
+
 static void mpeg1_encode_block(MpegEncContext *s, 
                          DCTELEM *block, 
                          int component);
@@ -52,7 +54,8 @@ static int mpeg_decode_motion(MpegEncContext *s, int fcode, int pred);
 static void put_header(MpegEncContext *s, int header)
 {
     align_put_bits(&s->pb);
-    put_bits(&s->pb, 32, header);
+    put_bits(&s->pb, 16, header>>16);
+    put_bits(&s->pb, 16, header&0xFFFF);
 }
 
 /* put sequence header if needed */
@@ -103,7 +106,7 @@ static void mpeg1_encode_sequence_header(MpegEncContext *s)
             /* time code : we must convert from the real frame rate to a
                fake mpeg frame rate in case of low frame rate */
             fps = frame_rate_tab[s->frame_rate_index];
-            time_code = s->fake_picture_number * FRAME_RATE_BASE;
+            time_code = (INT64)s->fake_picture_number * FRAME_RATE_BASE;
             s->gop_picture_number = s->fake_picture_number;
             put_bits(&s->pb, 5, (UINT32)((time_code / (fps * 3600)) % 24));
             put_bits(&s->pb, 6, (UINT32)((time_code / (fps * 60)) % 60));
@@ -118,7 +121,7 @@ static void mpeg1_encode_sequence_header(MpegEncContext *s)
             /* insert empty P pictures to slow down to the desired
                frame rate. Each fake pictures takes about 20 bytes */
             fps = frame_rate_tab[s->frame_rate_index];
-            n = ((s->picture_number * fps) / s->frame_rate) - 1;
+            n = (((INT64)s->picture_number * fps) / s->frame_rate) - 1;
             while (s->fake_picture_number < n) {
                 mpeg1_skip_picture(s, s->fake_picture_number - 
                                    s->gop_picture_number); 
@@ -183,11 +186,38 @@ static void mpeg1_skip_picture(MpegEncContext *s, int pict_num)
 
 void mpeg1_encode_picture_header(MpegEncContext *s, int picture_number)
 {
-    static int done;
+    static int done=0;
 
     if (!done) {
+	int i;
         done = 1;
         init_rl(&rl_mpeg1);
+	
+	for(i=0; i<64; i++)
+	{
+		mpeg1_max_level[0][i]= rl_mpeg1.max_level[0][i];
+		mpeg1_index_run[0][i]= rl_mpeg1.index_run[0][i];
+	}
+
+	/* build unified dc encoding tables */
+	for(i=-255; i<256; i++)
+	{
+		int adiff, index;
+		int bits, code;
+		int diff=i;
+
+		adiff = ABS(diff);
+		if(diff<0) diff--;
+		index = vlc_dc_table[adiff];
+
+		bits= vlc_dc_lum_bits[index] + index;
+		code= (vlc_dc_lum_code[index]<<index) + (diff & ((1 << index) - 1));
+		mpeg1_lum_dc_uni[i+255]= bits + (code<<8);
+		
+		bits= vlc_dc_chroma_bits[index] + index;
+		code= (vlc_dc_chroma_code[index]<<index) + (diff & ((1 << index) - 1));
+		mpeg1_chr_dc_uni[i+255]= bits + (code<<8);
+	}
     }
     mpeg1_encode_sequence_header(s);
 
@@ -325,19 +355,16 @@ static void mpeg1_encode_motion(MpegEncContext *s, int val)
 
 static inline void encode_dc(MpegEncContext *s, int diff, int component)
 {
-    int adiff, index;
-
-    adiff = abs(diff);
-    index = vlc_dc_table[adiff];
     if (component == 0) {
-        put_bits(&s->pb, vlc_dc_lum_bits[index], vlc_dc_lum_code[index]);
+        put_bits(
+	    &s->pb, 
+	    mpeg1_lum_dc_uni[diff+255]&0xFF,
+	    mpeg1_lum_dc_uni[diff+255]>>8);
     } else {
-        put_bits(&s->pb, vlc_dc_chroma_bits[index], vlc_dc_chroma_code[index]);
-    }
-    if (diff > 0) {
-        put_bits(&s->pb, index, (diff & ((1 << index) - 1)));
-    } else if (diff < 0) {
-        put_bits(&s->pb, index, ((diff - 1) & ((1 << index) - 1)));
+        put_bits(
+            &s->pb, 
+	    mpeg1_chr_dc_uni[diff+255]&0xFF,
+	    mpeg1_chr_dc_uni[diff+255]>>8);
     }
 }
 
@@ -347,7 +374,7 @@ static void mpeg1_encode_block(MpegEncContext *s,
 {
     int alevel, level, last_non_zero, dc, diff, i, j, run, last_index, sign;
     int code, component;
-    RLTable *rl = &rl_mpeg1;
+//    RLTable *rl = &rl_mpeg1;
 
     last_index = s->block_last_index[n];
 
@@ -376,6 +403,7 @@ static void mpeg1_encode_block(MpegEncContext *s,
 
     /* now quantify & encode AC coefs */
     last_non_zero = i - 1;
+
     for(;i<=last_index;i++) {
         j = zigzag_direct[i];
         level = block[j];
@@ -387,17 +415,38 @@ static void mpeg1_encode_block(MpegEncContext *s,
         /* encode using VLC */
         if (level != 0) {
             run = i - last_non_zero - 1;
+#ifdef ARCH_X86
+            asm volatile(
+		"movl %2, %1		\n\t"
+		"movl %1, %0		\n\t"
+		"addl %1, %1		\n\t"
+		"sbbl %1, %1		\n\t"
+		"xorl %1, %0		\n\t"
+		"subl %1, %0		\n\t"
+		"andl $1, %1		\n\t"
+		: "=&r" (alevel), "=&r" (sign)
+		: "g" (level)
+	    );
+#else
             sign = 0;
             alevel = level;
             if (alevel < 0) {
 		sign = 1;
                 alevel = -alevel;
 	    }
-            code = get_rl_index(rl, 0, run, alevel);
-            put_bits(&s->pb, rl->table_vlc[code][1], rl->table_vlc[code][0]);
-            if (code != rl->n) {
-                put_bits(&s->pb, 1, sign);
+#endif
+//            code = get_rl_index(rl, 0, run, alevel);
+            if (alevel > mpeg1_max_level[0][run])
+                code= 111; /*rl->n*/
+            else
+                code= mpeg1_index_run[0][run] + alevel - 1;
+
+            if (code < 111 /* rl->n */) {
+	    	/* store the vlc & sign at once */
+                put_bits(&s->pb, mpeg1_vlc[code][1]+1, (mpeg1_vlc[code][0]<<1) + sign);
             } else {
+		/* escape seems to be pretty rare <5% so i dont optimize it */
+                put_bits(&s->pb, mpeg1_vlc[111/*rl->n*/][1], mpeg1_vlc[111/*rl->n*/][0]);
                 /* escape: only clip in this case */
                 put_bits(&s->pb, 6, run);
                 if (alevel < 128) {
@@ -899,7 +948,7 @@ static int mpeg1_decode_block(MpegEncContext *s,
         block[j] = level;
         i++;
     }
-    s->block_last_index[n] = i;
+    s->block_last_index[n] = i-1;
     return 0;
 }
 

@@ -17,9 +17,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 //#define DEBUG
+#include "config.h"
+
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
+#include "xine-utils/xineutils.h"
 
 typedef struct MJpegContext {
     UINT8 huff_size_dc_luminance[12];
@@ -243,7 +246,7 @@ static void jpeg_table_header(MpegEncContext *s)
     /* huffman table */
     put_marker(p, DHT);
     flush_put_bits(p);
-    ptr = p->buf_ptr;
+    ptr = pbBufPtr(p);
     put_bits(p, 16, 0); /* patched later */
     size = 2;
     size += put_huffman_table(s, 0, 0, bits_dc_luminance, val_dc_luminance);
@@ -259,7 +262,7 @@ void mjpeg_picture_header(MpegEncContext *s)
 {
     put_marker(&s->pb, SOI);
 
-    jpeg_table_header(s);
+    if (s->mjpeg_write_tables) jpeg_table_header(s);
 
     put_marker(&s->pb, SOF0);
 
@@ -271,20 +274,20 @@ void mjpeg_picture_header(MpegEncContext *s)
     
     /* Y component */
     put_bits(&s->pb, 8, 1); /* component number */
-    put_bits(&s->pb, 4, 2); /* H factor */
-    put_bits(&s->pb, 4, 2); /* V factor */
+    put_bits(&s->pb, 4, s->mjpeg_hsample[0]); /* H factor */
+    put_bits(&s->pb, 4, s->mjpeg_vsample[0]); /* V factor */
     put_bits(&s->pb, 8, 0); /* select matrix */
     
     /* Cb component */
     put_bits(&s->pb, 8, 2); /* component number */
-    put_bits(&s->pb, 4, 1); /* H factor */
-    put_bits(&s->pb, 4, 1); /* V factor */
+    put_bits(&s->pb, 4, s->mjpeg_hsample[1]); /* H factor */
+    put_bits(&s->pb, 4, s->mjpeg_vsample[1]); /* V factor */
     put_bits(&s->pb, 8, 0); /* select matrix */
 
     /* Cr component */
     put_bits(&s->pb, 8, 3); /* component number */
-    put_bits(&s->pb, 4, 1); /* H factor */
-    put_bits(&s->pb, 4, 1); /* V factor */
+    put_bits(&s->pb, 4, s->mjpeg_hsample[2]); /* H factor */
+    put_bits(&s->pb, 4, s->mjpeg_vsample[2]); /* V factor */
     put_bits(&s->pb, 8, 0); /* select matrix */
 
     /* scan header */
@@ -620,13 +623,11 @@ static int mjpeg_decode_sof0(MJpegDecodeContext *s,
         }
 
         for(i=0;i<nb_components;i++) {
-            int w, h, hh, vv;
-            hh = s->h_max / s->h_count[i];
-            vv = s->v_max / s->v_count[i];
-            w = (s->width + 8 * hh - 1) / (8 * hh);
-            h = (s->height + 8 * vv - 1) / (8 * vv);
-            w = w * 8;
-            h = h * 8;
+            int w, h;
+            w = (s->width  + 8 * s->h_max - 1) / (8 * s->h_max);
+            h = (s->height + 8 * s->v_max - 1) / (8 * s->v_max);
+            w = w * 8 * s->h_count[i];
+            h = h * 8 * s->v_count[i];
             if (s->interlaced)
                 w *= 2;
             s->linesize[i] = w;

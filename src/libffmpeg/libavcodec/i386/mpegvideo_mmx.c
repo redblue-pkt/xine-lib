@@ -17,10 +17,22 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Optimized for ia32 cpus by Nick Kurshev <nickols_k@mail.ru>
+ * h263 dequantizer by Michael Niedermayer <michaelni@gmx.at>
  */
 
+#include "xine-utils/xineutils.h"
 #include "../dsputil.h"
 #include "../mpegvideo.h"
+#include "../avcodec.h"
+#include "../mangle.h"
+
+extern UINT8 zigzag_end[64];
+extern void (*draw_edges)(UINT8 *buf, int wrap, int width, int height, int w);
+extern int (*dct_quantize)(MpegEncContext *s, DCTELEM *block, int n, int qscale);
+
+extern UINT8 zigzag_direct_noperm[64];
+extern UINT16 inv_zigzag_direct16[64];
+extern UINT32 inverse[256];
 
 #if 0
 
@@ -69,32 +81,38 @@ static const unsigned long long int mm_wone __attribute__ ((aligned(8))) = 0x000
 static void dct_unquantize_h263_mmx(MpegEncContext *s,
                                   DCTELEM *block, int n, int qscale)
 {
-    int i, level, qmul, qadd;
-
+    int i, level, qmul, qadd, nCoeffs;
+    
     qmul = s->qscale << 1;
-    qadd = (s->qscale - 1) | 1;
+    if (s->h263_aic && s->mb_intra)
+        qadd = 0;
+    else
+        qadd = (s->qscale - 1) | 1;
 
     if (s->mb_intra) {
-        if (n < 4)
-            block[0] = block[0] * s->y_dc_scale;
-        else
-            block[0] = block[0] * s->c_dc_scale;
-
-	for(i=1; i<8; i++) {
-		level = block[i];
-		if (level) {
-			if (level < 0) {
-				level = level * qmul - qadd;
-			} else {
-				level = level * qmul + qadd;
-			}
-			block[i] = level;
-		}
-	}
+        if (!s->h263_aic) {
+            if (n < 4)
+                block[0] = block[0] * s->y_dc_scale;
+            else
+                block[0] = block[0] * s->c_dc_scale;
+        }
+        for(i=1; i<8; i++) {
+            level = block[i];
+            if (level) {
+    	        if (level < 0) {
+                    level = level * qmul - qadd;
+                } else {
+                    level = level * qmul + qadd;
+                }
+                block[i] = level;
+            }
+        }
+        nCoeffs=64;
     } else {
         i = 0;
+        nCoeffs= zigzag_end[ s->block_last_index[n] ];
     }
-
+//printf("%d %d  ", qmul, qadd);
 asm volatile(
 		"movd %1, %%mm6			\n\t" //qmul
 		"packssdw %%mm6, %%mm6		\n\t"
@@ -138,9 +156,8 @@ asm volatile(
 		"movq %%mm1, 8(%0, %3)		\n\t"
 
 		"addl $16, %3			\n\t"
-		"cmpl $128, %3			\n\t"
-		"jb 1b				\n\t"
-		::"r" (block), "g"(qmul), "g" (qadd), "r" (2*i)
+		"js 1b				\n\t"
+		::"r" (block+nCoeffs), "g"(qmul), "g" (qadd), "r" (2*(i-nCoeffs))
 		: "memory"
 	);
 }
@@ -178,17 +195,22 @@ asm volatile(
 static void dct_unquantize_mpeg1_mmx(MpegEncContext *s,
                                      DCTELEM *block, int n, int qscale)
 {
-    int i, level;
+    int i, level, nCoeffs;
     const UINT16 *quant_matrix;
+    
+    if(s->alternate_scan) nCoeffs= 64;
+    else nCoeffs= nCoeffs= zigzag_end[ s->block_last_index[n] ];
+
     if (s->mb_intra) {
         if (n < 4) 
             block[0] = block[0] * s->y_dc_scale;
         else
             block[0] = block[0] * s->c_dc_scale;
-        if (s->out_format == FMT_H263) {
+        /* isnt used anymore (we have a h263 unquantizer since some time)
+	if (s->out_format == FMT_H263) {
             i = 1;
             goto unquant_even;
-        }
+        }*/
         /* XXX: only mpeg1 */
         quant_matrix = s->intra_matrix;
 	i=1;
@@ -214,7 +236,7 @@ static void dct_unquantize_mpeg1_mmx(MpegEncContext *s,
 	"packssdw %%mm6, %%mm7\n\t" /* mm7 = qscale | qscale | qscale | qscale */
 	"pxor	%%mm6, %%mm6\n\t"
 	::"g"(qscale),"m"(mm_wone),"m"(mm_wabs):"memory");
-        for(;i<64;i+=4) {
+        for(;i<nCoeffs;i+=4) {
 		__asm __volatile(
 			"movq	%1, %%mm0\n\t"
 			"movq	%%mm7, %%mm1\n\t"
@@ -242,7 +264,7 @@ static void dct_unquantize_mpeg1_mmx(MpegEncContext *s,
         }
     } else {
         i = 0;
-    unquant_even:
+//    unquant_even:
         quant_matrix = s->non_intra_matrix;
 	/* Align on 4 elements boundary */
 	while(i&7)
@@ -258,7 +280,6 @@ static void dct_unquantize_mpeg1_mmx(MpegEncContext *s,
 	    }
 	    i++;
 	}
-
 asm volatile(
 		"pcmpeqw %%mm7, %%mm7		\n\t"
 		"psrlw $15, %%mm7		\n\t"
@@ -307,13 +328,115 @@ asm volatile(
 		"movq %%mm5, 8(%0, %3)		\n\t"
 
 		"addl $16, %3			\n\t"
-		"cmpl $128, %3			\n\t"
-		"jb 1b				\n\t"
-		::"r" (block), "r"(quant_matrix), "g" (qscale), "r" (2*i)
+		"js 1b				\n\t"
+		::"r" (block+nCoeffs), "r"(quant_matrix+nCoeffs), "g" (qscale), "r" (2*(i-nCoeffs))
 		: "memory"
 	);
     }
 }
+
+/* draw the edges of width 'w' of an image of size width, height 
+   this mmx version can only handle w==8 || w==16 */
+static void draw_edges_mmx(UINT8 *buf, int wrap, int width, int height, int w)
+{
+    UINT8 *ptr, *last_line;
+    int i;
+
+    last_line = buf + (height - 1) * wrap;
+    /* left and right */
+    ptr = buf;
+    if(w==8)
+    {
+	asm volatile(
+		"1:				\n\t"
+		"movd (%0), %%mm0		\n\t"
+		"punpcklbw %%mm0, %%mm0		\n\t" 
+		"punpcklwd %%mm0, %%mm0		\n\t"
+		"punpckldq %%mm0, %%mm0		\n\t"
+		"movq %%mm0, -8(%0)		\n\t"
+		"movq -8(%0, %2), %%mm1		\n\t"
+		"punpckhbw %%mm1, %%mm1		\n\t"
+		"punpckhwd %%mm1, %%mm1		\n\t"
+		"punpckhdq %%mm1, %%mm1		\n\t"
+		"movq %%mm1, (%0, %2)		\n\t"
+		"addl %1, %0			\n\t"
+		"cmpl %3, %0			\n\t"
+		" jb 1b				\n\t"
+		: "+r" (ptr)
+		: "r" (wrap), "r" (width), "r" (ptr + wrap*height)
+	);
+    }
+    else
+    {
+	asm volatile(
+		"1:				\n\t"
+		"movd (%0), %%mm0		\n\t"
+		"punpcklbw %%mm0, %%mm0		\n\t" 
+		"punpcklwd %%mm0, %%mm0		\n\t"
+		"punpckldq %%mm0, %%mm0		\n\t"
+		"movq %%mm0, -8(%0)		\n\t"
+		"movq %%mm0, -16(%0)		\n\t"
+		"movq -8(%0, %2), %%mm1		\n\t"
+		"punpckhbw %%mm1, %%mm1		\n\t"
+		"punpckhwd %%mm1, %%mm1		\n\t"
+		"punpckhdq %%mm1, %%mm1		\n\t"
+		"movq %%mm1, (%0, %2)		\n\t"
+		"movq %%mm1, 8(%0, %2)		\n\t"
+		"addl %1, %0			\n\t"
+		"cmpl %3, %0			\n\t"
+		" jb 1b				\n\t"		
+		: "+r" (ptr)
+		: "r" (wrap), "r" (width), "r" (ptr + wrap*height)
+	);
+    }
+    
+    for(i=0;i<w;i+=4) {
+        /* top and bottom (and hopefully also the corners) */
+	ptr= buf - (i + 1) * wrap - w;
+	asm volatile(
+		"1:				\n\t"
+		"movq (%1, %0), %%mm0		\n\t"
+		"movq %%mm0, (%0)		\n\t"
+		"movq %%mm0, (%0, %2)		\n\t"
+		"movq %%mm0, (%0, %2, 2)	\n\t"
+		"movq %%mm0, (%0, %3)		\n\t"
+		"addl $8, %0			\n\t"
+		"cmpl %4, %0			\n\t"
+		" jb 1b				\n\t"
+		: "+r" (ptr)
+		: "r" ((int)buf - (int)ptr - w), "r" (-wrap), "r" (-wrap*3), "r" (ptr+width+2*w)
+	);
+	ptr= last_line + (i + 1) * wrap - w;
+	asm volatile(
+		"1:				\n\t"
+		"movq (%1, %0), %%mm0		\n\t"
+		"movq %%mm0, (%0)		\n\t"
+		"movq %%mm0, (%0, %2)		\n\t"
+		"movq %%mm0, (%0, %2, 2)	\n\t"
+		"movq %%mm0, (%0, %3)		\n\t"
+		"addl $8, %0			\n\t"
+		"cmpl %4, %0			\n\t"
+		" jb 1b				\n\t"
+		: "+r" (ptr)
+		: "r" ((int)last_line - (int)ptr - w), "r" (wrap), "r" (wrap*3), "r" (ptr+width+2*w)
+	);
+    }
+}
+
+static volatile int esp_temp;
+
+void unused_var_warning_killer(){
+	esp_temp++;
+}
+
+#undef HAVE_MMX2
+#define RENAME(a) a ## _MMX
+#include "mpegvideo_mmx_template.c"
+
+#define HAVE_MMX2
+#undef RENAME
+#define RENAME(a) a ## _MMX2
+#include "mpegvideo_mmx_template.c"
 
 void MPV_common_init_mmx(MpegEncContext *s)
 {
@@ -322,5 +445,14 @@ void MPV_common_init_mmx(MpegEncContext *s)
         	s->dct_unquantize = dct_unquantize_h263_mmx;
 	else
         	s->dct_unquantize = dct_unquantize_mpeg1_mmx;
+	
+	draw_edges = draw_edges_mmx;
+
+	if(mm_flags & MM_MMXEXT){
+	        dct_quantize= dct_quantize_MMX2;
+	}else{
+		dct_quantize= dct_quantize_MMX;
+	}
     }
 }
+

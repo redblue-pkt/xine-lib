@@ -16,12 +16,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "dsputil.h"
 #include "avcodec.h"
 #include "mpegvideo.h"
+#include "xine-utils/xineutils.h"
 
 //#define DEBUG
 
@@ -162,12 +164,34 @@ static int h263_decode_frame(AVCodecContext *avctx,
                 s->c_dc_scale = 8;
             }
 
+#ifdef HAVE_MMX
+            if (mm_flags & MM_MMX) {
+                asm volatile(
+			"pxor %%mm7, %%mm7		\n\t"
+			"movl $-128*6, %%eax		\n\t"
+			"1:				\n\t"
+			"movq %%mm7, (%0, %%eax)	\n\t"
+			"movq %%mm7, 8(%0, %%eax)	\n\t"
+			"movq %%mm7, 16(%0, %%eax)	\n\t"
+			"movq %%mm7, 24(%0, %%eax)	\n\t"
+			"addl $32, %%eax		\n\t"
+			" js 1b				\n\t"
+			: : "r" (((int)s->block)+128*6)
+			: "%eax"
+                );
+            }else{
+                memset(s->block, 0, sizeof(s->block));
+            }
+#else
             memset(s->block, 0, sizeof(s->block));
+#endif
             s->mv_dir = MV_DIR_FORWARD;
             s->mv_type = MV_TYPE_16X16; 
             if (s->h263_msmpeg4) {
-                if (msmpeg4_decode_mb(s, s->block) < 0)
+		if (msmpeg4_decode_mb(s, s->block) < 0) {
+		    fprintf(stderr,"\nError at MB: %d\n", (s->mb_y * s->mb_width) + s->mb_x);
                     return -1;
+		}
             } else {
                 if (h263_decode_mb(s, s->block) < 0) {
                     fprintf(stderr,"\nError at MB: %d\n", (s->mb_y * s->mb_width) + s->mb_x);
@@ -191,6 +215,9 @@ static int h263_decode_frame(AVCodecContext *avctx,
                                    y, s->width, h);
         }
     }
+    
+    if (s->h263_msmpeg4 && s->pict_type==I_TYPE)
+        if(msmpeg4_decode_ext_header(s, buf_size) < 0) return -1;
 
     MPV_frame_end(s);
     
@@ -202,6 +229,11 @@ static int h263_decode_frame(AVCodecContext *avctx,
     pict->linesize[2] = s->linesize / 2;
 
     avctx->quality = s->qscale;
+
+    /* Return the Picture timestamp as the frame number */
+    /* we substract 1 because it is added on utils.c    */
+    avctx->frame_number = s->picture_number - 1;
+
     *data_size = sizeof(AVPicture);
     return buf_size;
 }

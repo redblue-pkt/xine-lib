@@ -9,6 +9,7 @@ enum CodecID {
     CODEC_ID_H263,
     CODEC_ID_RV10,
     CODEC_ID_MP2,
+    CODEC_ID_MP3LAME,
     CODEC_ID_AC3,
     CODEC_ID_MJPEG,
     CODEC_ID_MPEG4,
@@ -17,15 +18,6 @@ enum CodecID {
     CODEC_ID_H263P,
     CODEC_ID_H263I,
 
-    /* various pcm "codecs" */
-    CODEC_ID_PCM_S16LE,
-    CODEC_ID_PCM_S16BE,
-    CODEC_ID_PCM_U16LE,
-    CODEC_ID_PCM_U16BE,
-    CODEC_ID_PCM_S8,
-    CODEC_ID_PCM_U8,
-    CODEC_ID_PCM_MULAW,
-    CODEC_ID_PCM_ALAW,
 };
 
 enum CodecType {
@@ -115,6 +107,20 @@ typedef struct AVCodecContext {
                             /* with a start code on some codecs like H.263  */
                             /* This doesn't take account of any particular  */
                             /* headers inside the transmited RTP payload    */
+
+    
+    /* The RTP callcack: This function is called  */
+    /* every time the encoder as a packet to send */
+    /* Depends on the encoder if the data starts  */
+    /* with a Start Code (it should) H.263 does   */
+    void (*rtp_callback)(void *data, int size, int packet_number); 
+
+    /* These are for PSNR calculation, if you set get_psnr to 1 */
+    /* after encoding you will have the PSNR on psnr_y/cb/cr    */
+    int get_psnr;
+    float psnr_y;
+    float psnr_cb;
+    float psnr_cr;
                  
     /* the following fields are ignored */
     void *opaque;   /* can be used to carry app specific stuff */
@@ -144,16 +150,6 @@ typedef struct AVPicture {
     int linesize[3];
 } AVPicture;
 
-extern AVCodec ac3_encoder;
-extern AVCodec mp2_encoder;
-extern AVCodec mpeg1video_encoder;
-extern AVCodec h263_encoder;
-extern AVCodec h263p_encoder;
-extern AVCodec rv10_encoder;
-extern AVCodec mjpeg_encoder;
-extern AVCodec mpeg4_encoder;
-extern AVCodec msmpeg4_encoder;
-
 extern AVCodec h263_decoder;
 extern AVCodec mpeg4_decoder;
 extern AVCodec msmpeg4_decoder;
@@ -161,25 +157,6 @@ extern AVCodec mpeg_decoder;
 extern AVCodec h263i_decoder;
 extern AVCodec rv10_decoder;
 extern AVCodec mjpeg_decoder;
-#ifdef FF_AUDIO_CODECS
-extern AVCodec mp3_decoder;
-
-/* pcm codecs */
-#define PCM_CODEC(id, name) \
-extern AVCodec name ## _decoder; \
-extern AVCodec name ## _encoder;
-
-PCM_CODEC(CODEC_ID_PCM_S16LE, pcm_s16le);
-PCM_CODEC(CODEC_ID_PCM_S16BE, pcm_s16be);
-PCM_CODEC(CODEC_ID_PCM_U16LE, pcm_u16le);
-PCM_CODEC(CODEC_ID_PCM_U16BE, pcm_u16be);
-PCM_CODEC(CODEC_ID_PCM_S8, pcm_s8);
-PCM_CODEC(CODEC_ID_PCM_U8, pcm_u8);
-PCM_CODEC(CODEC_ID_PCM_ALAW, pcm_alaw);
-PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
-
-#undef PCM_CODEC
-#endif
 
 /* dummy raw video codec */
 extern AVCodec rawvideo_codec;

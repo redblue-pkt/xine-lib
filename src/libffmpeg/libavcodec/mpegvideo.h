@@ -21,6 +21,7 @@
 #define I_TYPE 1
 #define P_TYPE 2
 #define B_TYPE 3
+#define S_TYPE 4 //S(GMC)-VOP MPEG4
 
 enum OutputFormat {
     FMT_MPEG1,
@@ -29,6 +30,9 @@ enum OutputFormat {
 };
 
 #define MPEG_BUF_SIZE (16 * 1024)
+
+#define QMAT_SHIFT_MMX 19
+#define QMAT_SHIFT 25
 
 typedef struct MpegEncContext {
     struct AVCodecContext *avctx;
@@ -55,8 +59,9 @@ typedef struct MpegEncContext {
     int context_initialized;
     int picture_number;
     int fake_picture_number; /* picture number at the bitstream frame rate */
-    int gop_picture_number; /* index of the first picture of a GOP */
+    int gop_picture_number;  /* index of the first picture of a GOP */
     int mb_width, mb_height;
+    int mb_num;                /* number of MBs of a picture */
     int linesize;              /* line size, in bytes, may be different from width */
     UINT8 *new_picture[3];     /* picture to be compressed */
     UINT8 *last_picture[3];    /* previous picture */
@@ -75,6 +80,7 @@ typedef struct MpegEncContext {
     int mb_skiped;              /* MUST BE SET only during DECODING */
     UINT8 *mbskip_table;        /* used to avoid copy if macroblock
                                    skipped (for black regions for example) */
+    UINT8 *mbintra_table;            /* used to kill a few memsets */
 
     int qscale;
     int pict_type;
@@ -84,6 +90,8 @@ typedef struct MpegEncContext {
     int h263_long_vectors; /* use horrible h263v1 long vector mode */
 
     int f_code; /* resolution */
+    int b_code; /* resolution for B Frames*/
+    INT16 *mv_table[2];    /* MV table */
     INT16 (*motion_val)[2]; /* used for MV prediction */
     int full_search;
     int mv_dir;
@@ -111,6 +119,9 @@ typedef struct MpegEncContext {
     int mb_x, mb_y;
     int mb_incr;
     int mb_intra;
+    INT16 *mb_var;      /* Table for MB variances */
+    char *mb_type;    /* Table for MB type */
+    
     /* matrix transmitted in the bitstream */
     UINT16 intra_matrix[64];
     UINT16 chroma_intra_matrix[64];
@@ -119,6 +130,9 @@ typedef struct MpegEncContext {
     /* precomputed matrix (combine qscale and DCT renorm) */
     int q_intra_matrix[64];
     int q_non_intra_matrix[64];
+    /* identical to the above but for MMX & these are not permutated */
+    UINT16 __align8 q_intra_matrix16[64] ;
+    UINT16 __align8 q_non_intra_matrix16[64];
     int block_last_index[6];  /* last non zero coefficient in block */
 
     void *opaque; /* private data for the user */
@@ -126,6 +140,7 @@ typedef struct MpegEncContext {
     /* bit rate control */
     int I_frame_bits;    /* wanted number of bits per I frame */
     int P_frame_bits;    /* same for P frame */
+    int avg_mb_var;        /* average MB variance for current frame */
     INT64 wanted_bits;
     INT64 total_bits;
     
@@ -133,16 +148,41 @@ typedef struct MpegEncContext {
     int gob_number;
     int gob_index;
     int first_gob_line;
-    
+        
     /* H.263+ specific */
     int umvplus;
     int umvplus_dec;
+    int h263_aic; /* Advanded INTRA Coding (AIC) */
+    int h263_aic_dir; /* AIC direction: 0 = left, 1 = top */
     
     /* mpeg4 specific */
     int time_increment_bits;
     int shape;
     int vol_sprite_usage;
+    int sprite_width;
+    int sprite_height;
+    int sprite_left;
+    int sprite_top;
+    int sprite_brightness_change;
+    int num_sprite_warping_points;
+    int real_sprite_warping_points;
+    int sprite_offset[2][2];
+    int sprite_delta[2][2][2];
+    int sprite_shift[2][2];
+    int mcsel;
     int quant_precision;
+    int quarter_sample;
+    int scalability;
+    int new_pred;
+    int reduced_res_vop;
+    int aspect_ratio_info;
+    int sprite_warping_accuracy;
+    int low_latency_sprite;
+    int data_partioning;
+
+    /* divx specific, used to workaround (many) bugs in divx5 */
+    int divx_version;
+    int divx_build;
 
     /* RV10 specific */
     int rv10_version; /* RV10 version: 0 or 3 */
@@ -150,6 +190,10 @@ typedef struct MpegEncContext {
     
     /* MJPEG specific */
     struct MJpegContext *mjpeg_ctx;
+    int mjpeg_vsample[3]; /* vertical sampling factors, default = {2, 1, 1} */
+    int mjpeg_hsample[3]; /* horizontal sampling factors, default = {2, 1, 1} */
+    int mjpeg_write_tables; /* do we want to have quantisation- and
+			       huffmantables in the jpeg file ? */
 
     /* MSMPEG4 specific */
     int mv_table_index;
@@ -159,6 +203,8 @@ typedef struct MpegEncContext {
     int use_skip_mb_code;
     int slice_height;      /* in macroblocks */
     int first_slice_line;  
+    int flipflop_rounding;
+    int bitrate;
     /* decompression specific */
     GetBitContext gb;
 
@@ -188,8 +234,10 @@ typedef struct MpegEncContext {
     int first_slice;
     
     /* RTP specific */
+    /* These are explained on avcodec.h */
     int rtp_mode;
     int rtp_payload_size;
+    void (*rtp_callback)(void *data, int size, int packet_number);
     UINT8 *ptr_lastgob;
     UINT8 *ptr_last_mb_line;
     UINT32 mb_line_avgsize;
@@ -283,11 +331,13 @@ int rv_decode_dc(MpegEncContext *s, int n);
 
 /* msmpeg4.c */
 void msmpeg4_encode_picture_header(MpegEncContext * s, int picture_number);
+void msmpeg4_encode_ext_header(MpegEncContext * s);
 void msmpeg4_encode_mb(MpegEncContext * s, 
                        DCTELEM block[6][64],
                        int motion_x, int motion_y);
 void msmpeg4_dc_scale(MpegEncContext * s);
 int msmpeg4_decode_picture_header(MpegEncContext * s);
+int msmpeg4_decode_ext_header(MpegEncContext * s, int buf_size);
 int msmpeg4_decode_mb(MpegEncContext *s, 
                       DCTELEM block[6][64]);
 int msmpeg4_decode_init_vlc(MpegEncContext *s);
