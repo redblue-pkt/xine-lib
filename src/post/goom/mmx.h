@@ -292,7 +292,7 @@ void zoom_filter_xmmx (int prevX, int prevY, Pixel *expix1, Pixel *expix2,
 			mmx_trace.d[1], mmx_trace.d[0]); \
 		__asm__ __volatile__ (#op " %0, %%" #reg \
 				      : /* nothing */ \
-				      : "X" (mem)); \
+				      : "m" (mem)); \
 		__asm__ __volatile__ ("movq %%" #reg ", %0" \
 				      : "=X" (mmx_trace) \
 				      : /* nothing */ ); \
@@ -312,7 +312,7 @@ void zoom_filter_xmmx (int prevX, int prevY, Pixel *expix1, Pixel *expix2,
 		printf(#mem "=0x%08x%08x) => ", \
 			mmx_trace.d[1], mmx_trace.d[0]); \
 		__asm__ __volatile__ (#op " %%" #reg ", %0" \
-				      : "=X" (mem) \
+				      : "=m" (mem) \
 				      : /* nothing */ ); \
 		mmx_trace = (mem); \
 		printf(#mem "=0x%08x%08x\n", \
@@ -352,8 +352,8 @@ void zoom_filter_xmmx (int prevX, int prevY, Pixel *expix1, Pixel *expix2,
 		__asm__ __volatile__ ("movq %0, %%mm0\n\t" \
 				      #op " %1, %%mm0\n\t" \
 				      "movq %%mm0, %0" \
-				      : "=X" (memd) \
-				      : "X" (mems)); \
+				      : "=m" (memd) \
+				      : "m" (mems)); \
 		mmx_trace = (memd); \
 		printf(#memd "=0x%08x%08x\n", \
 			mmx_trace.d[1], mmx_trace.d[0]); \
@@ -372,11 +372,11 @@ void zoom_filter_xmmx (int prevX, int prevY, Pixel *expix1, Pixel *expix2,
 #define	mmx_m2r(op, mem, reg) \
 	__asm__ __volatile__ (#op " %0, %%" #reg \
 			      : /* nothing */ \
-			      : "X" (mem))
+			      : "m" (mem))
 
 #define	mmx_r2m(op, reg, mem) \
 	__asm__ __volatile__ (#op " %%" #reg ", %0" \
-			      : "=X" (mem) \
+			      : "=m" (mem) \
 			      : /* nothing */ )
 
 #define	mmx_r2r(op, regs, regd) \
@@ -386,8 +386,8 @@ void zoom_filter_xmmx (int prevX, int prevY, Pixel *expix1, Pixel *expix2,
 	__asm__ __volatile__ ("movq %0, %%mm0\n\t" \
 			      #op " %1, %%mm0\n\t" \
 			      "movq %%mm0, %0" \
-			      : "=X" (memd) \
-			      : "X" (mems))
+			      : "=m" (memd) \
+			      : "m" (mems))
 
 #endif
 
