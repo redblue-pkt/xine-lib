@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.60 2002/07/01 13:51:27 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.61 2002/07/02 00:11:56 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -589,9 +589,10 @@ static int ao_open(ao_instance_t *this,
     printf("audio_out: will resample audio from %d to %d\n",
 	   this->input.rate, this->output.rate);
 
-  this->frame_rate_factor = (double) this->output.rate / (double) this->input.rate; 
-  this->audio_step        = (uint32_t) 90000 * (uint32_t) 32768 / this->input.rate;
+  this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
+  /* FIXME: If this->frames_per_kpts line goes after this->audio_step line, xine crashes with FPE, when compiled with gcc 3.0.1!!! Why? */ 
   this->frames_per_kpts   = this->output.rate * 1024 / 90000;
+  this->audio_step        = ( (uint32_t)(90000) * (uint32_t)(32768) )/ this->input.rate;
 #ifdef LOG
   printf ("audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
 #endif

@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.67 2002/07/01 13:51:26 miguelfreitas Exp $
+ * $Id: audio_alsa_out.c,v 1.68 2002/07/02 00:11:56 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -283,17 +283,19 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   /* set the stream rate [Hz] */
+  dir=0;
   err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, rate, &dir);
-    if (err < 0) {
-      printf ("audio_alsa_out: rate not available\n");
-      goto __close;
-    }
+  if (err < 0) {
+    printf ("audio_alsa_out: rate not available\n");
+    goto __close;
+  }
   this->output_sample_rate = (uint32_t)err;
   if (this->input_sample_rate != this->output_sample_rate) {
     printf ("audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
 	    this->input_sample_rate, this->output_sample_rate);
   }
   /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
+  dir=0;
   err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, 500000, &dir);
   if (err < 0) {
     printf ("audio_alsa_out: buffer time not available\n");
@@ -303,6 +305,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   /* set the period time [us] (interrupt very x us|y samples ...) */
 #warning "FIXME: 256 samples div 48kHz are less than 5ms. When ALSA resamples->BOOM"
   for (period_size = 256; period_size < buffer_size; period_size *= 2) {
+    dir=0;
     err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params,
                                                  period_size, &dir);
     if (err < 0) {
