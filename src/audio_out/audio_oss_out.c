@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.96 2003/12/07 00:25:52 hadess Exp $
+ * $Id: audio_oss_out.c,v 1.97 2003/12/13 19:22:33 hadess Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -849,7 +849,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   this->capabilities = 0;
   
   bits = 8;
-  if( ioctl(audio_fd, SNDCTL_DSP_SAMPLESIZE,&bits) != -1 )
+  if( ioctl(audio_fd, SNDCTL_DSP_SAMPLESIZE,&bits) != -1  && bits == 8)
     this->capabilities |= AO_CAP_8BITS;
   
   /* switch back to 16bits, because some soundcards otherwise do not report all their capabilities */

@@ -37,6 +37,7 @@ xine-lib (1-rc3)
   * lots of internal cleanup
   * fix crash when using the save plugin with mmst
   * id3v2.3 parser
+  * fix playback of 8 bit sound when the soundcard doesn't support them
 
  
 xine-lib (1-rc2)
