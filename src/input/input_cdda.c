@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.29 2003/06/09 01:54:11 tchamp Exp $
+ * $Id: input_cdda.c,v 1.30 2003/06/09 09:55:20 tchamp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1949,6 +1949,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
     this_gen->fd = fd;
 
   *fdd = fd;
+  return 0;
 
 #else /* WIN32 */
 
