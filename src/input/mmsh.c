@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.1 2003/01/13 01:11:57 tmattern Exp $
+ * $Id: mmsh.c,v 1.2 2003/01/13 01:23:13 f1rmb Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -86,7 +86,7 @@ static const char* mmsh_SeekableRequest =
     CLIENTGUID
     "Pragma: xPlayStrm=1\r\n"
     "Pragma: stream-switch-count=%d\r\n"
-    "Pragma: stream-switch-entry=%s\r\n" // ffff:1:0 ffff:2:0
+    "Pragma: stream-switch-entry=%s\r\n" /*  ffff:1:0 ffff:2:0 */
     "Connection: Close\r\n\r\n";
 
 static const char* mmsh_LiveRequest =
