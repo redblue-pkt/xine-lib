@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.23 2002/09/11 18:19:53 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.24 2002/10/07 14:14:30 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <sys/audioio.h>
+#if	HAVE_SYS_MIXER_H
+#include <sys/mixer.h>
+#endif
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <inttypes.h>
@@ -234,6 +237,149 @@ error:
 }
 
 
+/* 
+ * match the requested sample rate |sample_rate| against the
+ * sample rates supported by the audio device |dev|.  Return
+ * a supported sample rate,  it that sample rate is close to
+ * (< 1% difference) the requested rate; return 0 otherwise.
+ */
+static int
+find_close_samplerate_match(int dev, int sample_rate)
+{
+#if	HAVE_SYS_MIXER_H
+    am_sample_rates_t *sr;
+    int i, num, err, best_err, best_rate;
+
+    for (num = 16; num < 1024; num *= 2) {
+	sr = malloc(AUDIO_MIXER_SAMP_RATES_STRUCT_SIZE(num));
+	if (!sr)
+	    return 0;
+	sr->type = AUDIO_PLAY;
+	sr->flags = 0;
+	sr->num_samp_rates = num;
+	if (ioctl(dev, AUDIO_MIXER_GET_SAMPLE_RATES, sr)) {
+	    free(sr);
+	    return 0;
+	}
+	if (sr->num_samp_rates <= num)
+	    break;
+	free(sr);
+    }
+
+    if (sr->flags & MIXER_SR_LIMITS) {
+	/*
+	 * HW can playback any rate between 
+	 * sr->samp_rates[0] .. sr->samp_rates[1]
+	 */
+	free(sr);
+	return 0;
+    } else {
+	/* HW supports fixed sample rates only */
+
+	best_err = 65535;
+	best_rate = 0;
+
+	for (i = 0; i < sr->num_samp_rates; i++) {
+	    err = abs(sr->samp_rates[i] - sample_rate);
+	    if (err == 0) {
+		/*
+		 * exact supported sample rate match, no need to
+		 * retry something else
+		 */
+		best_rate = 0;
+		break;
+	    }
+	    if (err < best_err) {
+		best_err = err;
+		best_rate = sr->samp_rates[i];
+	    }
+	}
+
+	free(sr);
+
+	if (best_rate > 0 && 100*best_err < sample_rate) {
+	    /* found a supported sample rate with <1% error? */
+	    return best_rate;
+	}
+	return 0;
+    }
+
+#else
+    int i, err;
+    int audiocs_rates[] = {
+	5510, 6620, 8000, 9600, 11025, 16000, 18900, 22050,
+	27420, 32000, 33075, 37800, 44100, 48000, 0
+    };
+
+    for (i = 0; audiocs_rates[i]; i++) {
+	err = abs(audiocs_rates[i] - sample_rate);
+	if (err == 0) {
+	    /* 
+	     * exact supported sample rate match, no need to
+	     * retry something elise
+	     */
+	    return 0;
+	}
+	if (100*err < audiocs_rates[i]) {
+	    /* <1% error? */
+	    return audiocs_rates[i];
+	}
+    }
+
+    return 0;
+#endif
+}
+
+
+/*
+ * return the highest sample rate supported by audio device |dev|.
+ */
+static int
+find_highest_samplerate(int dev)
+{
+#if	HAVE_SYS_MIXER_H
+    am_sample_rates_t *sr;
+    int i, num, max_rate;
+
+    for (num = 16; num < 1024; num *= 2) {
+	sr = malloc(AUDIO_MIXER_SAMP_RATES_STRUCT_SIZE(num));
+	if (!sr)
+	    return 0;
+	sr->type = AUDIO_PLAY;
+	sr->flags = 0;
+	sr->num_samp_rates = num;
+	if (ioctl(dev, AUDIO_MIXER_GET_SAMPLE_RATES, sr)) {
+	    free(sr);
+	    return 0;
+	}
+	if (sr->num_samp_rates <= num)
+	    break;
+	free(sr);
+    }
+
+    if (sr->flags & MIXER_SR_LIMITS) {
+	/*
+	 * HW can playback any rate between 
+	 * sr->samp_rates[0] .. sr->samp_rates[1]
+	 */
+	max_rate = sr->samp_rates[1];
+    } else {
+	/* HW supports fixed sample rates only */
+	max_rate = 0;
+	for (i = 0; i < sr->num_samp_rates; i++) {
+	    if (sr->samp_rates[i] > max_rate)
+		max_rate = sr->samp_rates[i];
+	}
+    }
+    free(sr);
+    return max_rate;
+
+#else
+    return 44100;	/* should be supported even on old ISA SB cards */
+#endif
+}
+
+
 /*
  * open the audio device for writing to
  *
@@ -251,6 +397,7 @@ static int ao_sun_open(xine_ao_driver_t *this_gen,
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   audio_info_t info;
+  int pass;
   int ok;
 
   printf ("audio_sun_out: ao_sun_open rate=%d, mode=%d\n", rate, mode);
@@ -278,7 +425,7 @@ static int ao_sun_open(xine_ao_driver_t *this_gen,
 
   this->audio_fd=open(this->audio_dev,O_WRONLY|O_NONBLOCK);
   if(this->audio_fd < 0) {
-    printf("audio_sun_out: Opening audio device %s: %s\n",
+    printf("audio_sun_out: Opening audio device %s failed: %s\n",
 	   this->audio_dev, strerror(errno));
     return 0;
   }
@@ -289,36 +436,75 @@ static int ao_sun_open(xine_ao_driver_t *this_gen,
   /*
    * configure audio device
    */
+  for (ok = pass = 0; pass <= 5; pass++) {
 
-  AUDIO_INITINFO(&info);
-  info.play.channels = (mode & AO_CAP_MODE_STEREO)
-      ? AUDIO_CHANNELS_STEREO
-      : AUDIO_CHANNELS_MONO;
-  info.play.precision = bits;
-  info.play.encoding = bits == 8
-      ? AUDIO_ENCODING_LINEAR8
-      : AUDIO_ENCODING_LINEAR;
-  info.play.sample_rate = this->input_sample_rate;
-  info.play.eof = 0;
-  info.play.samples = 0;
+      AUDIO_INITINFO(&info);
+      info.play.channels = (mode & AO_CAP_MODE_STEREO)
+	  ? AUDIO_CHANNELS_STEREO
+	  : AUDIO_CHANNELS_MONO;
+      info.play.precision = bits;
+      info.play.encoding = bits == 8
+	  ? AUDIO_ENCODING_LINEAR8
+	  : AUDIO_ENCODING_LINEAR;
+      info.play.sample_rate = this->input_sample_rate;
+      info.play.eof = 0;
+      info.play.samples = 0;
 
-  this->convert_u8_s8 = 0;
-  ok = ioctl(this->audio_fd, AUDIO_SETINFO, &info) >= 0;
-  if (!ok && info.play.encoding == AUDIO_ENCODING_LINEAR8) {
+      this->convert_u8_s8 = 0;
+
+      if (pass & 1) {
+	  /*
+	   * on some sun audio drivers, 8-bit unsigned LINEAR8 encoding is 
+	   * not supported, but 8-bit signed encoding is.
+	   *
+	   * Try S8, and if it works, use our own U8->S8 conversion before
+	   * sending the samples to the sound driver.
+	   */
+	  if (info.play.encoding != AUDIO_ENCODING_LINEAR8)
+	      continue;
+	  info.play.encoding = AUDIO_ENCODING_LINEAR;
+	  this->convert_u8_s8 = 1;
+      }
+
+      if (pass & 2) {
+	  /*
+	   * on some sun audio drivers, only certain fixed sample rates are
+	   * supported.
+	   *
+	   * In case the requested sample rate is very close to one of the
+	   * supported rates,  use the fixed supported rate instead.
+	   *
+	   * XXX: assuming the fixed supported rate works, should we
+	   * lie with our return value and report the requested input
+	   * sample rate, to avoid the software resample code?
+	   */
+	  if (!(info.play.sample_rate =
+		find_close_samplerate_match(this->audio_fd,
+					    this->input_sample_rate))) 
+	      continue;
+      }
+
+      if (pass & 4) {
+	  /* like "pass & 2", but use the highest supported sample rate */
+	  if (!(info.play.sample_rate = find_highest_samplerate(this->audio_fd)))
+	      continue;
+      }
+
+      if ((ok = ioctl(this->audio_fd, AUDIO_SETINFO, &info) >= 0)) {
+	  /* audio format accepted by audio driver */
+	  break;
+      }
+
       /*
-       * Unsigned AUDIO_ENCODING_LINEAR8 not supported.
-       * Maybe signed AUDIO_ENCODING_LINEAR works?
+       * format not supported?
+       * retry with different encoding and/or sample rate
        */
-      info.play.encoding = AUDIO_ENCODING_LINEAR;
-      ok = ioctl(this->audio_fd, AUDIO_SETINFO, &info) >= 0;
-      if (ok) this->convert_u8_s8 = 1;
   }
 
   if (!ok) {
       printf("audio_sun_out: Cannot configure audio device for "
-	     "%dhz, %d channel, %d bits\n",
-	     info.play.sample_rate, info.play.channels,
-	     info.play.precision);
+	     "%dhz, %d channel, %d bits: %s\n",
+	     rate, info.play.channels, bits, strerror(errno));
       close(this->audio_fd);
       this->audio_fd = -1;
       return 0;
@@ -714,6 +900,9 @@ static void *init_audio_out_plugin (xine_t *xine, void *data) {
 
   this->capabilities |= AO_CAP_MODE_STEREO;
   printf ("stereo ");
+
+  this->capabilities |= AO_CAP_8BITS;
+  printf ("8bit ");
 
   this->capabilities |= AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
   printf ("\n");
