@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.137 2003/10/28 00:10:18 tmattern Exp $
+ * $Id: demux_asf.c,v 1.138 2003/11/09 01:40:37 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -393,6 +393,7 @@ static int asf_read_header (demux_asf_t *this) {
         {
           int           type;
           uint32_t      total_size, stream_data_size;
+          uint16_t      flags;
           uint16_t      stream_id;
           uint64_t      pos1, pos2;
           xine_bmiheader   *bih     = (xine_bmiheader *) this->bih;
@@ -422,7 +423,16 @@ static int asf_read_header (demux_asf_t *this) {
           get_le64(this);
           total_size = get_le32(this);
           stream_data_size = get_le32(this);
-          stream_id = get_le16(this); /* stream id */
+          flags = get_le16(this);
+          stream_id = flags & 0x7F; /* stream id */
+          if (flags & 0x8000) {
+            xine_log(this->stream->xine, XINE_LOG_MSG,
+                         _("demux_asf: warning: The stream id=%d is encrypted\n."),
+                         stream_id);
+            xine_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE,
+                         _("Media stream scrambled/encrypted"), NULL);
+          }
+
           get_le32(this);
 
           if (type == CODEC_TYPE_AUDIO) {
