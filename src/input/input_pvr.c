@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.25 2003/06/25 00:28:41 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.26 2003/06/29 21:56:17 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -658,7 +658,7 @@ static int pvr_rec_file(pvr_input_plugin_t *this) {
   }
   if( this->rec_fd != -1 ) {
     if( write(this->rec_fd, this->data, PVR_BLOCK_SIZE) < PVR_BLOCK_SIZE ) {
-      printf("input_pvr: short write to pvr file\n");
+      printf("input_pvr: short write to pvr file (out of disk space?)\n");
       return 0;
     }
     this->rec_blk++;
@@ -995,14 +995,15 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         this->session = v4l2_data->session_id;
         this->new_session = 1;
         this->pvr_play_paused = 0;
+        pvr_break_rec_page(this);
         pthread_mutex_unlock(&this->lock);
         xine_demux_flush_engine (this->stream);
       } else {
         /* no session change, break the page and store a new show_time */
-        pthread_mutex_lock(&this->dev_lock);
+        pthread_mutex_lock(&this->lock);
         pvr_break_rec_page(this);
         this->show_page = this->rec_page;
-        pthread_mutex_unlock(&this->dev_lock);
+        pthread_mutex_unlock(&this->lock);
         time(&this->show_time);
       }
       
@@ -1057,27 +1058,27 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
 #ifdef LOG
             printf("input_pvr: saving from this point\n");
 #endif
-            pthread_mutex_lock(&this->dev_lock);
+            pthread_mutex_lock(&this->lock);
             pvr_break_rec_page(this);
             this->save_page = this->rec_page;
             time(&this->start_time);
-            pthread_mutex_unlock(&this->dev_lock);
+            pthread_mutex_unlock(&this->lock);
             break;
           case 1:
 #ifdef LOG
             printf("input_pvr: saving from show start\n");
 #endif
-            pthread_mutex_lock(&this->dev_lock);
+            pthread_mutex_lock(&this->lock);
             this->save_page = this->show_page;
-            pthread_mutex_unlock(&this->dev_lock);
+            pthread_mutex_unlock(&this->lock);
             break;
           case 2:
 #ifdef LOG
             printf("input_pvr: saving everything so far\n");
 #endif
-            pthread_mutex_lock(&this->dev_lock);
+            pthread_mutex_lock(&this->lock);
             this->save_page = this->first_page;
-            pthread_mutex_unlock(&this->dev_lock);
+            pthread_mutex_unlock(&this->lock);
             break;
         }
       }
