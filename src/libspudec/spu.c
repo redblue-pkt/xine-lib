@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.50 2002/10/26 20:52:42 mroi Exp $
+ * $Id: spu.c,v 1.51 2002/11/01 11:02:52 jcdutton Exp $
  *
  */
 
@@ -60,10 +60,11 @@
 #include "nav_read.h"
 #include "nav_print.h"
 
+
 /*
 #define LOG_DEBUG 1
-#define LOG_NAV 1
 #define LOG_BUTTON 1
+#define LOG_NAV 1
 */
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
@@ -231,10 +232,21 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
 {
+#ifdef LOG_DEBUG
+  printf ("libspudec: seq->complete = %d\n", seq->complete);
+  printf("libspudec:1: seq->ra_offs = %d, seq->seq_len = %d, seq->buf_len = %d, seq->buf=%p\n",
+             seq->ra_offs,
+             seq->seq_len,
+             seq->buf_len,
+             seq->buf);
+#endif
   if (seq->complete) {
     seq->seq_len = (((uint32_t)pkt_data[0])<<8) | pkt_data[1];
     seq->cmd_offs = (((uint32_t)pkt_data[2])<<8) | pkt_data[3];
-
+    if (seq->cmd_offs >= seq->seq_len) { 
+      printf("libspudec:faulty stream\n");
+      abort();
+    }
     if (seq->buf_len < seq->seq_len) {
       seq->buf_len = seq->seq_len;
 #ifdef LOG_DEBUG
@@ -258,13 +270,22 @@ void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
 #endif
   }
 
-  if (seq->ra_offs < seq->buf_len) {
+#ifdef LOG_DEBUG
+  printf("libspudec:2: seq->ra_offs = %d, seq->seq_len = %d, seq->buf_len = %d, seq->buf=%p\n",
+             seq->ra_offs,
+             seq->seq_len,
+             seq->buf_len,
+             seq->buf);
+#endif
+  if (seq->ra_offs < seq->seq_len) {
     if (seq->ra_offs + pkt_len > seq->seq_len)
       pkt_len = seq->seq_len - seq->ra_offs;
-      
     memcpy (seq->buf + seq->ra_offs, pkt_data, pkt_len);
     seq->ra_offs += pkt_len;
-  }
+  } else {
+    printf("libspudec:faulty stream\n");
+    abort();
+  } 
 
   if (seq->ra_offs == seq->seq_len) {
     seq->finished = 0;
@@ -444,6 +465,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
 {
   uint8_t *buf = state->cmd_ptr;
   uint8_t *next_seq;
+  int32_t param_length;
 
 #ifdef LOG_DEBUG
   printf ("spu: SPU DO COMMANDS\n");
@@ -568,10 +590,17 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
     case CMD_SPU_SET_PXD_OFFSET:	/* image top[0] field / image bottom[1] field*/
       state->field_offs[0] = (((u_int)buf[1]) << 8) | buf[2];
       state->field_offs[1] = (((u_int)buf[3]) << 8) | buf[4];
+
 #ifdef LOG_DEBUG
       printf ("spu: \toffset[0] = %d offset[1] = %d\n",
 	       state->field_offs[0], state->field_offs[1]);
 #endif
+
+      if ((state->field_offs[0] >= seq->seq_len) ||
+          (state->field_offs[1] >= seq->seq_len)) {
+        printf("libspudec:faulty stream\n");
+        abort();
+      }
       state->modified = 1;
       buf += 5;
       break;
@@ -580,6 +609,8 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
 #ifdef LOG_DEBUG
       printf ("spu: \tSPU_WIPE not implemented yet\n");
 #endif
+      param_length = (buf[1] << 8) | (buf[2]);
+      buf += 1 + param_length; 
       break;
 
     case CMD_SPU_FORCE_DISPLAY:
