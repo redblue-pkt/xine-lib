@@ -356,16 +356,18 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
+	    xine_event_t event;
+	    xine_format_change_data_t data;
+	    
 	    remember_metainfo (mpeg2dec);
-#if 0
-            xine_frame_change_event_t notify_event;
-
-	    notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
-	    notify_event.width = picture->coded_picture_width;
-	    notify_event.height = picture->coded_picture_height;
-	    notify_event.aspect = picture->aspect_ratio_information;
-	    xine_send_event(mpeg2dec->xine, &notify_event.event);
-#endif
+	    event.type = XINE_EVENT_FRAME_FORMAT_CHANGE;
+	    event.stream = mpeg2dec->stream;
+	    event.data = &data;
+	    event.data_length = sizeof(data);
+	    data.width = picture->coded_picture_width;
+	    data.height = picture->coded_picture_height;
+	    data.aspect = picture->aspect_ratio_information;
+	    xine_event_send(mpeg2dec->stream, &event);
 
 	    if (picture->forward_reference_frame) 
 	      picture->forward_reference_frame->free (picture->forward_reference_frame);
@@ -688,7 +690,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       if (mpeg2dec->force_aspect) picture->aspect_ratio_information = mpeg2dec->force_aspect;
 	  
       if (mpeg2dec->is_sequence_needed) {
-        //xine_frame_change_event_t notify_event;
+        xine_event_t event;
+        xine_format_change_data_t data;
 	
 	mpeg2dec->is_sequence_needed = 0;
 	picture->frame_width  = picture->coded_picture_width;
@@ -696,11 +699,14 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
 	remember_metainfo (mpeg2dec);
 
-	//notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
-	//notify_event.width = picture->coded_picture_width;
-	//notify_event.height = picture->coded_picture_height;
-	//notify_event.aspect = picture->aspect_ratio_information;
-	//xine_send_event(mpeg2dec->xine, &notify_event.event);
+	event.type = XINE_EVENT_FRAME_FORMAT_CHANGE;
+	event.stream = mpeg2dec->stream;
+	event.data = &data;
+	event.data_length = sizeof(data);
+	data.width = picture->coded_picture_width;
+	data.height = picture->coded_picture_height;
+	data.aspect = picture->aspect_ratio_information;
+	xine_event_send(mpeg2dec->stream, &event);
       }
     } else if (code == 0xb5) {	/* extension_start_code */
       if (mpeg2_header_extension (picture, mpeg2dec->chunk_buffer)) {
@@ -728,6 +734,7 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
   /* check if user data denotes closed captions */
   if (buffer[0] == 'C' && buffer[1] == 'C') {
 #if 0
+    /* FIXME: find an event-less solution */
     xine_closed_caption_event_t event;
     uint8_t *end = find_end(buffer);
 
