@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.7 2003/01/20 01:57:21 f1rmb Exp $
+ * $Id: input_cdda.c,v 1.8 2003/01/23 22:58:09 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1321,7 +1321,7 @@ static char *cdda_class_get_identifier (input_class_t *this_gen) {
 }
 
 static char *cdda_class_get_description (input_class_t *this_gen) {
-  return _("cdda input plugin");
+  return _("CD Digital Audio (aka. CDDA)");
 }
 
 static xine_mrl_t **cdda_class_get_dir (input_class_t *this_gen,
@@ -1384,7 +1384,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_INPUT, 11, "CDDA", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_INPUT, 11, "CD", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
