@@ -65,6 +65,11 @@ if test x"$enable_alsa" != "xno"; then
   fi
   ALSA_CFLAGS="$ALSA_CFLAGS"
 
+  AC_CHECK_HEADERS(alsa/asoundlib.h,
+		   asoundlib_h="alsa/asoundlib.h",
+		   AC_CHECK_HEADERS(sys/asoundlib.h,
+				    asoundlib_h="sys/asoundlib.h"))
+
   min_alsa_version=ifelse([$1], ,0.1.1,$1)
   AC_MSG_CHECKING([for ALSA version >= $min_alsa_version])
   if test "x$enable_alsatest" = "xyes" ; then
@@ -76,6 +81,7 @@ if test x"$enable_alsa" != "xno"; then
 dnl
 dnl Now check if the installed ALSA is sufficiently new.
 dnl
+
     AC_LANG_SAVE()
     AC_LANG_C()
     rm -f conf.alsatest
@@ -84,7 +90,7 @@ dnl
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/asoundlib.h>
+#include <$asoundlib_h>
 
 int main() {
   int major, minor, micro;
@@ -146,7 +152,7 @@ dnl
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/asoundlib.h>
+#include <$asoundlib_h>
 
 int main() {
 

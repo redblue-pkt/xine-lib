@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.50 2002/04/15 00:50:44 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.51 2002/04/27 14:04:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,7 +41,13 @@
 #include <fcntl.h>
 #include <math.h>
 #include <alloca.h>
+
+#ifdef HAVE_ALSA_ASOUNDLIB_H
+#include <alsa/asoundlib.h>
+#elif HAVE_SYS_ASOUNDLIB_H
 #include <sys/asoundlib.h>
+#endif
+
 #include <sys/ioctl.h>
 #include <inttypes.h>
 #include <pthread.h>
