@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.100 2002/10/23 20:26:33 guenter Exp $
+ * $Id: demux_qt.c,v 1.101 2002/10/24 22:48:25 guenter Exp $
  *
  */
 
@@ -2028,7 +2028,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "mov,qt,mp4";
+  return "mov qt mp4";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {

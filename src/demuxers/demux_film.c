@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.36 2002/10/23 10:46:37 jkeil Exp $
+ * $Id: demux_film.c,v 1.37 2002/10/24 22:48:25 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -844,7 +844,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "cpk,cak,film";
+  return "cpk cak film";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {

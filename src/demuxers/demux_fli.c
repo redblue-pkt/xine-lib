@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.18 2002/10/23 04:58:15 tmmm Exp $
+ * $Id: demux_fli.c,v 1.19 2002/10/24 22:48:25 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -456,7 +456,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "fli,flc";
+  return "fli flc";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
