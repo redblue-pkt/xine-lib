@@ -27,6 +27,8 @@
 #ifndef _SYS_INTTYPES_H_
 #define _SYS_INTTYPES_H_
 
+#include <stdint.h>
+
 #define int8_t			signed char
 #define int16_t			signed short
 #define int32_t			signed long
