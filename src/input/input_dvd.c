@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.53 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: input_dvd.c,v 1.54 2002/08/09 07:34:47 richwareham Exp $
  *
  */
 
@@ -77,7 +77,7 @@
 #include <dvdnav.h>
  
 /* libdvdread includes */
-#include <dvdread/nav_read.h>
+#include <nav_read.h>
 
 /* Print debug messages? */
 /* #define INPUT_DEBUG 1 */
@@ -1398,6 +1398,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.54  2002/08/09 07:34:47  richwareham
+ * More include fixes
+ *
  * Revision 1.53  2002/08/08 17:49:21  richwareham
  * First stage of DVD plugin -> dvdnav conversion
  *
