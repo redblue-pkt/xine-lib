@@ -639,12 +639,7 @@ doc/xine-lib-API/html/Makefile
 misc/xine-lib.spec
 misc/SlackBuild
 misc/build_rpms.sh],
-[rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
-
-dnl
-dnl Change attribute.
-dnl
-chmod +x ./misc/SlackBuild ./misc/build_rpms.sh
+[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
 
 dnl
 dnl Hack the libtool script.
