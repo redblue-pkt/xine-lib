@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.14 2004/12/18 17:04:31 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.15 2004/12/18 19:47:02 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -25,8 +25,8 @@
  *
  * TODO:
  * - Implement support for teletext based subtitles
- * - Use transmitted CLUT rather than default
  */
+
 #include "pthread.h"
 #include "xine_internal.h"
 #include "osd.h"
@@ -575,6 +575,7 @@ static void* dvbsub_timer_func(void *this_gen) {
     dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
 
     while (!this->dvbsub_timer_stop) {
+printf("Foo Nasty Thread here...\n");
 	pthread_mutex_lock(&this->dvbsub_timer_mutex);      
 	if(this->dvbsub_timer_tcount++ > SUB_TIMEOUT)
           this->stream->osd_renderer->hide (this->osd, 0);
@@ -614,6 +615,15 @@ void draw_subtitles (dvb_spu_decoder_t * this)
   }
 
   if(display){
+    
+    /* start timer thread if stopped */
+    if(this->dvbsub_timer_stop){
+      this->dvbsub_timer_stop=0;
+      if (pthread_create(&this->dvbsub_timer_thread, NULL, dvbsub_timer_func, this) != 0) {
+        xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, _("dvbsub: cannot create timer thread\n"));
+      }
+    }
+
     /* display immediately at requested PTS*/
     this->stream->osd_renderer->set_palette(this->osd,(uint32_t *)this->dvbsub->colours,this->dvbsub->trans);
     this->stream->osd_renderer->draw_bitmap (this->osd,this->bitmap, 1,1,720,576,NULL);
@@ -643,6 +653,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR) {
       if (buf->decoder_info[2] == 0) {
+        this->dvbsub_timer_stop=1;
 	this->stream->osd_renderer->hide (this->osd, 0);
       }
       else {
@@ -814,14 +825,8 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   this->stream->osd_renderer->set_text_palette (this->osd, TEXTPALETTE_YELLOW_BLACK_TRANSPARENT, OSD_TEXT1);
 
 
-  /* Start the subtitle timer thread. */
-  this->dvbsub_timer_stop = 0;
-  if (pthread_create(&this->dvbsub_timer_thread, NULL,
-    dvbsub_timer_func, this) != 0) {
-               xprintf(this->class->xine, XINE_VERBOSITY_LOG,
-                _("dvbsub: cannot create timer thread\n"));
-     return 0;
-  }
+  /* subtitle timer thread. */
+  this->dvbsub_timer_stop = 1;
 
   return (spu_decoder_t *) this;
 }
