@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.2 2002/11/23 00:00:55 guenter Exp $
+ * $Id: audio_decoder.c,v 1.3 2002/11/25 00:14:39 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -45,18 +45,8 @@
 
 typedef struct {
   video_decoder_class_t   decoder_class;
-  void                   *ra_handle;
 
-  unsigned long (*raCloseCodec)(void*);
-  unsigned long (*raDecode)(void*, char*,unsigned long,char*,unsigned int*,long);
-  unsigned long (*raFlush)(unsigned long,unsigned long,unsigned long);
-  unsigned long (*raFreeDecoder)(void*);
-  void*         (*raGetFlavorProperty)(void*,unsigned long,unsigned long,int*);
-  unsigned long (*raInitDecoder)(void*, void*);
-  unsigned long (*raOpenCodec2)(void*);
-  unsigned long (*raSetFlavor)(void*,unsigned long);
-  void          (*raSetDLLAccessPath)(char*);
-  void          (*raSetPwd)(char*,char*);
+  char                   *real_codec_path;
 
 } real_class_t;
 
@@ -67,6 +57,31 @@ typedef struct realdec_decoder_s {
 
   xine_stream_t   *stream;
 
+  void            *ra_handle;
+
+  unsigned long  (*raCloseCodec)(void*);
+  unsigned long  (*raDecode)(void*, char*,unsigned long,char*,unsigned int*,long);
+  unsigned long  (*raFlush)(unsigned long,unsigned long,unsigned long);
+  unsigned long  (*raFreeDecoder)(void*);
+  void*          (*raGetFlavorProperty)(void*,unsigned long,unsigned long,int*);
+  unsigned long  (*raInitDecoder)(void*, void*);
+  unsigned long  (*raOpenCodec2)(void*);
+  unsigned long  (*raSetFlavor)(void*,unsigned long);
+  void           (*raSetDLLAccessPath)(char*);
+  void           (*raSetPwd)(char*,char*);
+
+  void            *context;
+
+  int              sps, w, h;
+  int              block_align;
+
+  uint8_t         *frame_buffer;
+  uint8_t         *frame_reordered;
+  int              frame_size;
+  int              frame_num_bytes;
+
+  int              sample_size;
+
 } realdec_decoder_t;
 
 typedef struct {
@@ -74,10 +89,10 @@ typedef struct {
     short  bits;
     short  channels;
     int    unk1;
-    int    unk2;
-    int    packetsize;
-    int    unk3;
-    void  *unk4;
+    int    subpacket_size;
+    int    coded_frame_size;
+    int    codec_data_length;
+    void  *extras;
 } ra_init_t;
 
 static void hexdump (char *buf, int length) {
@@ -95,14 +110,14 @@ static void hexdump (char *buf, int length) {
   }
   printf ("\n");
 
-  printf ("libareal: complete hexdump of package follows:\nlibareal:  ");
+  printf ("libareal: complete hexdump of package follows:\nlibareal 0x0000:  ");
   for (i = 0; i < length; i++) {
     unsigned char c = buf[i];
 
     printf ("%02x", c);
 
     if ((i % 16) == 15)
-      printf ("\nlibareal: ");
+      printf ("\nlibareal 0x%04x: ", i+1);
 
     if ((i % 2) == 1)
       printf (" ");
@@ -111,78 +126,219 @@ static void hexdump (char *buf, int length) {
   printf ("\n");
 }
 
-static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
-  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
-  real_class_t      *cls  = this->cls;
+void *__builtin_new(unsigned long size) {
+  return malloc(size);
+}
 
-#ifdef LOG
-  printf ("libareal: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
-#endif
+static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+  char path[1024];
 
-    /* real_find_sequence_header (&this->real, buf->content, buf->content + buf->size);*/
+  sprintf (path, "%s/%s", this->cls->real_codec_path, codec_name);
 
-  } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  printf ("libareal: (audio) opening shared obj '%s'\n", path);
+  this->ra_handle = dlopen (path, RTLD_LAZY);
 
-    int version ;
-    int samples_per_sec, bits_per_sample, num_channels;
-    int subpacket_size, coded_frame_size, codec_data_length, extras;
-
-    version = BE_16 (buf->content);
-
-    printf ("libareal: header buffer detected, header version %d\n", version);
-
-#if 0
-    subpacket_size   = BE_16 (buf->content+40);
-    coded_frame_size = BE_32 (buf->content+20);
-    codec_data_length= 
-
-    if (version == 4) {
-      samples_per_sec = BE_16 (buf->content+44);
-      bits_per_sample = BE_16 (buf->content+48);
-      num_channels    = BE_16 (buf->content+50);
-    } else {
-      samples_per_sec = BE_16 (buf->content+50);
-      bits_per_sample = BE_16 (buf->content+54);
-      num_channels    = BE_16 (buf->content+56);
-    }
-
-    printf ("libareal: %d samples/sec, %d bits/sample, %d channels\n",
-	    samples_per_sec, bits_per_sample, num_channels);
-
-    sh->samplerate = sh->wf->nSamplesPerSec;
-    sh->samplesize = sh->wf->wBitsPerSample/8;
-    sh->channels   = sh->wf->nChannels;
-
-    { 
-      ra_init_t init_data={
-	samples_per_sec,
-	bits_per_sample,
-	num_channels,
-	100, /* ??? */
-	((short*)(sh->wf+1))[0],  /* subpacket size    */
-	((short*)(sh->wf+1))[3],  /* coded frame size  */
-	((short*)(sh->wf+1))[4],  /* codec data length */
-	((char*)(sh->wf+1))+10    /* extras            */
-      };
-      result=raInitDecoder(sh->context,&init_data);
-      if(result){
-	mp_msg(MSGT_DECAUDIO,MSGL_WARN,"Decoder init failed, error code: 0x%X\n",result);
-	return 0;
-      }
-    }
-    
-    if (cls->raSetPwd) {
-      /* used by 'SIPR' */
-      cls->raSetPwd (this->context, "Ardubancel Quazanga"); /* set password... lol. */
-    }
+  if (!this->ra_handle) {
+    printf ("libareal: error: %s\n", dlerror());
+    return 0;
+  }
   
-    result=raSetFlavor(sh->context,((short*)(sh->wf+1))[2]);
+  this->raCloseCodec        = dlsym (this->ra_handle, "RACloseCodec");
+  this->raDecode            = dlsym (this->ra_handle, "RADecode");
+  this->raFlush             = dlsym (this->ra_handle, "RAFlush");
+  this->raFreeDecoder       = dlsym (this->ra_handle, "RAFreeDecoder");
+  this->raGetFlavorProperty = dlsym (this->ra_handle, "RAGetFlavorProperty");
+  this->raOpenCodec2        = dlsym (this->ra_handle, "RAOpenCodec2");
+  this->raInitDecoder       = dlsym (this->ra_handle, "RAInitDecoder");
+  this->raSetFlavor         = dlsym (this->ra_handle, "RASetFlavor");
+  this->raSetDLLAccessPath  = dlsym (this->ra_handle, "SetDLLAccessPath");
+  this->raSetPwd            = dlsym (this->ra_handle, "RASetPwd"); /* optional, used by SIPR */
+
+  printf ("libareal: codec loaded, symbols resolved\n");
+    
+  if (!this->raCloseCodec || !this->raDecode || !this->raFlush || !this->raFreeDecoder ||
+      !this->raGetFlavorProperty || !this->raOpenCodec2 || !this->raSetFlavor ||
+      /*!raSetDLLAccessPath ||*/ !this->raInitDecoder){
+    printf ("libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n", 
+	    path);
+    return 0;
+  }
+
+  printf ("libareal: raSetDLLAccessPath\n");
+
+  if (this->raSetDLLAccessPath){
+
+    char path[1024];
+
+    sprintf(path, "DT_Codecs=%s", this->cls->real_codec_path);
+    if (path[strlen(path)-1]!='/'){
+      path[strlen(path)+1]=0;
+      path[strlen(path)]='/';
+    }
+    path[strlen(path)+1]=0;
+
+    printf ("libareal: path=%s\n", path);
+
+    this->raSetDLLAccessPath(path);
+  }
+
+  printf ("libareal: audio decoder loaded successfully\n");
+
+  return 1;
+}
+
+static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
+
+  int   version, result ;
+  int   samples_per_sec, bits_per_sample, num_channels;
+  int   subpacket_size, coded_frame_size, codec_data_length;
+  int   coded_frame_size2, data_len, flavor;
+  int   mode;
+  void *extras;
+  
+  /*
+   * extract header data
+   */
+
+  version = BE_16 (buf->content);
+
+  printf ("libareal: header buffer detected, header version %d\n", version);
+
+  hexdump (buf->content, buf->size);
+    
+  flavor           = BE_16 (buf->content+18);
+  coded_frame_size = BE_32 (buf->content+20);
+  codec_data_length= BE_16 (buf->content+36);
+  coded_frame_size2= BE_16 (buf->content+38);
+  subpacket_size   = BE_16 (buf->content+40);
+    
+  this->sps        = subpacket_size;
+  this->w          = coded_frame_size2;
+  this->h          = codec_data_length;
+
+  if (version == 4) {
+    samples_per_sec = BE_16 (buf->content+44);
+    bits_per_sample = BE_16 (buf->content+48);
+    num_channels    = BE_16 (buf->content+50);
+    /* FIXME: */
+    data_len        = BE_32 (buf->content+0x39);
+    extras          = buf->content+0x44;
+  } else {
+    samples_per_sec = BE_16 (buf->content+50);
+    bits_per_sample = BE_16 (buf->content+54);
+    num_channels    = BE_16 (buf->content+56);
+    data_len        = BE_32 (buf->content+0x46);
+    extras          = buf->content+0x4a;
+  }
+
+  this->block_align= coded_frame_size2;
+
+  printf ("libareal: 0x%04x 0x%04x 0x%04x 0x%04x data_len 0x%04x\n",
+	  subpacket_size, coded_frame_size, codec_data_length, 
+	  coded_frame_size2, data_len);
+
+
+  printf ("libareal: %d samples/sec, %d bits/sample, %d channels\n",
+	  samples_per_sec, bits_per_sample, num_channels);
+
+  /* load codec, resolv symbols */
+
+  printf ("libareal: loading codec...\n");
+
+  switch (buf->type) {
+  case BUF_AUDIO_COOK:
+    if (!load_syms_linux (this, "cook.so.6.0"))
+      return 0;
+
+    break;
+    
+  case BUF_AUDIO_ATRK:
+    if (!load_syms_linux (this, "atrc.so.6.0"))
+      return 0;
+    this->block_align = 384;
+    break;
+
+  case BUF_AUDIO_14_4:
+    if (!load_syms_linux (this, "14_4.so.6.0"))
+      return 0;
+    break;
+
+  case BUF_AUDIO_28_8:
+    if (!load_syms_linux (this, "28_8.so.6.0"))
+      return 0;
+    break;
+
+  case BUF_AUDIO_SIPRO:
+    if (!load_syms_linux (this, "sipr.so.6.0"))
+      return 0;
+    this->block_align = 19;
+    break;
+
+  default:
+    printf ("libareal: error, i don't handle buf type 0x%08x\n",
+	    buf->type);
+    abort();
+  }
+
+  /*
+   * init codec
+   */
+
+  result = this->raOpenCodec2 (&this->context);
+  if (result) {
+    printf ("libareal: error in raOpenCodec2: %d\n", result);
+    return 0;
+  }
+
+  { 
+    ra_init_t init_data={
+      samples_per_sec,
+      bits_per_sample,
+      num_channels,
+      100, /* ??? */
+      subpacket_size,    /* subpacket size    */
+      coded_frame_size,  /* coded frame size  */
+      data_len,          /* codec data length */
+      extras             /* extras            */
+    };
+
+
+    printf ("libareal: init_data:\n");
+    hexdump (&init_data, sizeof (ra_init_t));
+    printf ("libareal: extras :\n");
+    hexdump (init_data.extras, data_len);
+
+     
+    result = this->raInitDecoder (this->context, &init_data);
     if(result){
-      mp_msg(MSGT_DECAUDIO,MSGL_WARN,"Decoder flavor setup failed, error code: 0x%X\n",result);
+      printf ("libareal: decoder init failed, error code: 0x%x\n",
+	      result);
       return 0;
     }
+  }
+
+  printf ("libareal: raInitDecoder done.\n");
+
+  if (this->raSetPwd){
+    /* used by 'SIPR' */
+    this->raSetPwd (this->context, "Ardubancel Quazanga"); /* set password... lol. */
+    printf ("libareal: password set\n");
+  }
+
+  printf ("libareal: set flavor %d\n", flavor);
+
+  result = this->raSetFlavor (this->context, flavor);
+  if (result){
+    printf ("libareal: decoder flavor setup failed, error code: 0x%x\n",
+	    result);
+    return 0;
+  }
+
+  printf ("libareal: set flavor %d done\n", flavor);
+
+
+#if 0    
 
     prop=raGetFlavorProperty(sh->context,((short*)(sh->wf+1))[2],0,&len);
     mp_msg(MSGT_DECAUDIO,MSGL_INFO,"Audio codec: [%d] %s\n",((short*)(sh->wf+1))[2],prop);
@@ -199,11 +355,195 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
   
 #endif
 
+  /*
+   * alloc buffers for data reordering
+   */
+
+  if (this->sps) {
+
+    this->frame_size      = this->w/this->sps*this->h*this->sps;
+    this->frame_buffer    = xine_xmalloc (this->frame_size);
+    this->frame_reordered = xine_xmalloc (this->frame_size);
+    this->frame_num_bytes = 0;
+
   } else {
 
-    printf ("libareal: content buffer detected\n");
+    printf ("libareal: data reordering for sps==0 not implemented\n");
+    abort();
 
   }
+
+  /*
+   * open audio output
+   */
+
+  switch (num_channels) {
+  case 1:
+    mode = AO_CAP_MODE_MONO;
+    break;
+  case 2:
+    mode = AO_CAP_MODE_STEREO;
+    break;
+  default:
+    printf ("libareal: oups, real can do more than 2 channels ?\n");
+    abort();
+  }
+
+  this->stream->audio_out->open(this->stream->audio_out, 
+				this->stream,
+				bits_per_sample,
+				samples_per_sec,
+				mode) ;
+
+  this->sample_size = num_channels * (bits_per_sample>>3);
+  printf ("libareal: 1 sample is %d bytes\n", this->sample_size);
+
+  return 1;
+}
+
+static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
+  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+
+#ifdef LOG
+  printf ("libareal: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
+#endif
+
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+
+    /* real_find_sequence_header (&this->real, buf->content, buf->content + buf->size);*/
+
+  } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
+
+    init_codec (this, buf) ;
+
+  } else {
+
+    int size;
+
+    printf ("libareal: content buffer detected, %d bytes\n", buf->size);
+
+    size = buf->size;
+
+    while (size) {
+
+      int needed;
+
+      needed = this->frame_size - this->frame_num_bytes;
+
+      if (needed>size) {
+	
+	memcpy (this->frame_buffer+this->frame_num_bytes, buf->content, size);
+	this->frame_num_bytes += size;
+
+	printf ("libareal: buffering %d/%d bytes\n", this->frame_num_bytes, this->frame_size);
+
+	size = 0;
+
+      } else {
+
+	int result;
+	int len     =-1;
+	int n;
+	int sps     = this->sps;
+	int w       = this->w;
+	int h       = this->h;
+	audio_buffer_t *audio_buffer;
+
+	printf ("libareal: buffering %d bytes\n", needed);
+
+	memcpy (this->frame_buffer+this->frame_num_bytes, buf->content, needed);
+
+	size -= needed;
+	this->frame_num_bytes = 0;
+
+	printf ("libareal: frame completed. reordering...\n");
+
+	printf ("libareal: bs=%d  sps=%d  w=%d h=%d \n",/*sh->wf->nBlockAlign*/-1,sps,w,h);
+
+	if (!sps) {
+
+	  printf ("libareal: sipr reordering not implemented yet\n");
+	  abort();
+	  
+#if 0
+	  int j,n;
+	  int bs=h*w*2/96; // nibbles per subpacket
+	  unsigned char *p=sh->a_in_buffer;
+	  
+	  /* 'sipr' way */
+	  demux_read_data(sh->ds, p, h*w);
+	  for(n=0;n<38;n++){
+	    int i=bs*sipr_swaps[n][0];
+	    int o=bs*sipr_swaps[n][1];
+	    // swap nibbles of block 'i' with 'o'      TODO: optimize
+	    for(j=0;j<bs;j++){
+	      int x=(i&1) ? (p[(i>>1)]>>4) : (p[(i>>1)]&15);
+	      int y=(o&1) ? (p[(o>>1)]>>4) : (p[(o>>1)]&15);
+	      if(o&1) p[(o>>1)]=(p[(o>>1)]&0x0F)|(x<<4);
+	      else  p[(o>>1)]=(p[(o>>1)]&0xF0)|x;
+	      if(i&1) p[(i>>1)]=(p[(i>>1)]&0x0F)|(y<<4);
+	      else  p[(i>>1)]=(p[(i>>1)]&0xF0)|y;
+	      ++i;++o;
+	    }
+	  }
+	  sh->a_in_buffer_size=
+	    sh->a_in_buffer_len=w*h;
+#endif 
+
+	} else {
+	  int      x, y;
+	  uint8_t *s;
+	  
+	  /*  'cook' way */
+	  
+	  w /= sps; s = this->frame_buffer;
+	  
+	  for (y=0; y<h; y++)
+	    
+	    for (x=0; x<w; x++) {
+	      
+	      printf ("libareal: x=%d, y=%d, off %d\n",
+		      x, y, sps*(h*x+((h+1)/2)*(y&1)+(y>>1)));
+	      
+	      memcpy (this->frame_reordered+sps*(h*x+((h+1)/2)*(y&1)+(y>>1)),
+		      s, sps);
+	      s+=sps;
+	      
+	      /* demux_read_data(sh->ds, sh->a_in_buffer+sps*(h*x+((h+1)/2)*(y&1)+(y>>1)), 
+		 sps); */
+	      
+	    }
+	  /*
+	    sh->a_in_buffer_size=
+	    sh->a_in_buffer_len=w*h*sps;
+	  */
+	}
+
+	hexdump (this->frame_reordered, buf->size);
+  
+	n = 0;
+	while (n<this->frame_size) {
+
+	  audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
+
+	  result = this->raDecode (this->context, 
+				   this->frame_reordered+n,
+				   this->block_align,
+				   audio_buffer->mem, &len, -1);
+
+	  printf ("libareal: raDecode result %d, len=%d\n", result, len);
+
+	  audio_buffer->vpts       = 0; /* FIXME */
+	  audio_buffer->num_frames = len/this->sample_size;;
+	  
+	  this->stream->audio_out->put_buffer (this->stream->audio_out, 
+					       audio_buffer, this->stream);
+	  n+=this->block_align;
+	}
+      }
+    }
+  }
+
 
 #ifdef LOG
   printf ("libareal: decode_data...done\n");
@@ -211,7 +551,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 }
 
 static void realdec_flush (video_decoder_t *this_gen) {
-  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 #ifdef LOG
   printf ("libareal: flush\n");
@@ -220,12 +560,12 @@ static void realdec_flush (video_decoder_t *this_gen) {
 }
 
 static void realdec_reset (video_decoder_t *this_gen) {
-  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 }
 
 static void realdec_discontinuity (video_decoder_t *this_gen) {
-  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 }
 
@@ -236,6 +576,9 @@ static void realdec_dispose (video_decoder_t *this_gen) {
 #ifdef LOG
   printf ("libareal: close\n");
 #endif
+
+  if (this->ra_handle)
+    dlclose (this->ra_handle);
 
   free (this);
 }
@@ -294,79 +637,47 @@ void __pure_virtual(void) {
  * real audio codec loader
  */
 
-#define REALCODEC_PATH "/opt/RealPlayer8/Codecs"
-
-static int load_syms_linux (real_class_t *cls, char *path) {
-
-  printf ("libareal: (audio) opening shared obj '%s'\n", path);
-  cls->ra_handle = dlopen (path, RTLD_LAZY);
-
-  if (!cls->ra_handle) {
-    printf ("libareal: error: %s\n", dlerror());
-    return 0;
-  }
+static void codec_path_cb (void *data, xine_cfg_entry_t *cfg) {
+  real_class_t *this = (real_class_t *) data;
   
-  cls->raCloseCodec        = dlsym (cls->ra_handle, "RACloseCodec");
-  cls->raDecode            = dlsym (cls->ra_handle, "RADecode");
-  cls->raFlush             = dlsym (cls->ra_handle, "RAFlush");
-  cls->raFreeDecoder       = dlsym (cls->ra_handle, "RAFreeDecoder");
-  cls->raGetFlavorProperty = dlsym (cls->ra_handle, "RAGetFlavorProperty");
-  cls->raOpenCodec2        = dlsym (cls->ra_handle, "RAOpenCodec2");
-  cls->raInitDecoder       = dlsym (cls->ra_handle, "RAInitDecoder");
-  cls->raSetFlavor         = dlsym (cls->ra_handle, "RASetFlavor");
-  cls->raSetDLLAccessPath  = dlsym (cls->ra_handle, "SetDLLAccessPath");
-  cls->raSetPwd            = dlsym (cls->ra_handle, "RASetPwd"); /* optional, used by SIPR */
-
-  printf ("libareal: codec loaded, symbols resolved\n");
-    
-  if (!cls->raCloseCodec || !cls->raDecode || !cls->raFlush || !cls->raFreeDecoder ||
-      !cls->raGetFlavorProperty || !cls->raOpenCodec2 || !cls->raSetFlavor ||
-      /*!raSetDLLAccessPath ||*/ !cls->raInitDecoder){
-    printf ("libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n", 
-	    path);
-    return 0;
-  }
-
-  printf ("libareal: raSetDLLAccessPath\n");
-
-  if (cls->raSetDLLAccessPath){
-
-    char path[1024];
-
-    sprintf(path, "DT_Codecs=" REALCODEC_PATH);
-    if(path[strlen(path)-1]!='/'){
-      path[strlen(path)+1]=0;
-      path[strlen(path)]='/';
-    }
-    path[strlen(path)+1]=0;
-
-    printf ("libareal: path=%s\n", path);
-
-    cls->raSetDLLAccessPath(path);
-  }
-
-  printf ("libareal: audio decoder loaded successfully\n");
-
-  return 1;
+  this->real_codec_path = cfg->str_value;
 }
 
 static void *init_class (xine_t *xine, void *data) {
 
-  real_class_t *this;
+  real_class_t       *this;
+  config_values_t    *config = xine->config;
 
   this = (real_class_t *) xine_xmalloc (sizeof (real_class_t));
-
-  if (!load_syms_linux (this, "/usr/local/RealPlayer8/Codecs/sipr.so.6.0")) {
-    if (!load_syms_linux (this, "/opt/RealPlayer8/Codecs/sipr.so.6.0")) {
-      free (this);
-      return NULL;
-    }
-  }
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
+
+  this->real_codec_path = config->register_string (config, "codec.real_codecs_path", 
+						   "unknown",
+						   _("path to real player codecs, if installed"),
+						   NULL, 10, codec_path_cb, (void *)this);
+  
+  if (!strcmp (this->real_codec_path, "unknown")) {
+
+    struct stat s;
+
+    /* try some auto-detection */
+
+    if (!stat ("/usr/local/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/usr/local/RealPlayer8/Codecs");
+    if (!stat ("/usr/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/usr/RealPlayer8/Codecs");
+    if (!stat ("/opt/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/opt/RealPlayer8/Codecs");
+  }
+
+  printf ("libareal: real codec path : %s\n",  this->real_codec_path);
 
   return this;
 }
