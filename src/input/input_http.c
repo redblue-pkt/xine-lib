@@ -758,16 +758,9 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   if (this->user != NULL)
     sprintf (this->buf + strlen(this->buf), "Authorization: Basic %s\015\012",
 	     this->auth);
-  
-  if (!strncmp(this->filename + strlen(this->filename) - 4, ".nsv", 4)) {
-#ifdef LOG
-    printf("input_http: using winamp http user-agent\n");
-#endif
-    strcat (this->buf, "User-Agent: Nullsoft Winamp3 version 3.0d build 488\015\012");
-  } else {
-    sprintf (this->buf + strlen(this->buf), "User-Agent: xine/%s\015\012",
-             VERSION);
-  }
+ 
+  sprintf (this->buf + strlen(this->buf), "User-Agent: xine/%s\015\012",
+           VERSION);
   strcat (this->buf, "Accept: */*\015\012");
   strcat (this->buf, "Icy-MetaData: 1\015\012");
   
