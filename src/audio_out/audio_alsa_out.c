@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.33 2001/11/13 14:37:48 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.34 2001/11/13 17:59:51 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,7 +41,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <alloca.h>
-#include <sys/asoundlib.h>
+#include <alsa/asoundlib.h>
 #include <sys/ioctl.h>
 #include <inttypes.h>
 
@@ -88,12 +88,6 @@ typedef struct alsa_driver_s {
 
   config_values_t *config;
 
-  char          audio_default_device[20];
-  char          audio_front_device[20];
-  char          audio_surround40_device[20];
-  char          audio_surround50_device[20];
-  char          audio_surround51_device[20];
-  char          audio_a52_device[128];
   snd_pcm_t    *audio_fd;
   int           capabilities;
   int           open_mode;
@@ -151,6 +145,7 @@ static long ao_alsa_get_volume_from_percent(int val, long min, long max)
 static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
 {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
+  config_values_t *config = this->config;
   char                 *pcm_device;
   snd_pcm_stream_t      direction = SND_PCM_STREAM_PLAYBACK; 
   snd_pcm_hw_params_t  *params;
@@ -174,28 +169,28 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   switch (mode) {
   case AO_CAP_MODE_MONO:
     this->num_channels = 1;
-    pcm_device = this->audio_default_device;
+    pcm_device = config->lookup_str(config,"alsa_default_device", "default");
     break;
   case AO_CAP_MODE_STEREO:
     this->num_channels = 2;
-    pcm_device = this->audio_front_device;
+    pcm_device = config->lookup_str(config,"alsa_front_device", "default");
     break;
   case AO_CAP_MODE_4CHANNEL:
     this->num_channels = 4;
-    pcm_device = this->audio_surround40_device;
+    pcm_device = config->lookup_str(config,"alsa_surround40_device", "surround40");
     break;
   case AO_CAP_MODE_5CHANNEL:
     this->num_channels = 5;
-    pcm_device = this->audio_surround50_device;
+    pcm_device = config->lookup_str(config,"alsa_surround50_device", "surround51");
     break;
   case AO_CAP_MODE_5_1CHANNEL:
     this->num_channels = 6;
-    pcm_device = this->audio_surround51_device;
+    pcm_device = config->lookup_str(config,"alsa_surround51_device", "surround51");
     break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
     this->num_channels = 2;
-    pcm_device = this->audio_a52_device;
+    pcm_device = config->lookup_str(config,"alsa_a52_device", "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2");
     break;
   default:
     printf ("audio_alsa_out: ALSA Driver does not support the requested mode: 0x%X\n",mode);
@@ -572,6 +567,7 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
 static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t      *config = this->config;
+  char                 *pcm_device;
   snd_ctl_card_info_t  *hw_info;
   snd_ctl_t            *ctl_handle;
   int                   err;
@@ -584,8 +580,9 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   int                   sw;
 
   snd_ctl_card_info_alloca(&hw_info);
+  pcm_device = config->lookup_str(config,"alsa_default_device", "default");
   
-  if ((err = snd_ctl_open (&ctl_handle, this->audio_default_device, 0)) < 0) {
+  if ((err = snd_ctl_open (&ctl_handle, pcm_device, 0)) < 0) {
     printf ("audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
     return;
   }
@@ -606,7 +603,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     return;
   }
   
-  if ((err = snd_mixer_attach (this->mixer.handle, this->audio_default_device)) < 0) {
+  if ((err = snd_mixer_attach (this->mixer.handle, pcm_device)) < 0) {
     printf ("audio_alsa_out: snd_mixer_attach(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
     return;
@@ -740,19 +737,15 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
   snd_pcm_hw_params_alloca(&params);
- 
+  /* Fill the .xinerc file with options */ 
   pcm_device = config->lookup_str(config,"alsa_default_device", "default");
-  strcpy(this->audio_default_device,pcm_device);
   pcm_device = config->lookup_str(config,"alsa_front_device", "default");
-  strcpy(this->audio_front_device,pcm_device);
   pcm_device = config->lookup_str(config,"alsa_surround40_device", "surround40");
-  strcpy(this->audio_surround40_device,pcm_device);
   pcm_device = config->lookup_str(config,"alsa_surround50_device", "surround51");
-  strcpy(this->audio_surround50_device,pcm_device);
   pcm_device = config->lookup_str(config,"alsa_surround51_device", "surround51");
-  strcpy(this->audio_surround51_device,pcm_device);
   pcm_device = config->lookup_str(config,"alsa_a52_device", "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2");
-  strcpy(this->audio_a52_device,pcm_device);
+  /* Use the default device to open first */
+  pcm_device = config->lookup_str(config,"alsa_default_device", "default");
  
   /*
    * find best device driver/channel
@@ -761,7 +754,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    * open that device
    */
   
-  err=snd_pcm_open(&this->audio_fd, this->audio_default_device, SND_PCM_STREAM_PLAYBACK, 0);
+  err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 0);
   if(err <0 ) {
     error("snd_pcm_open() failed: %d", err); 
     error(">>> Check if another program don't already use PCM <<<"); 
