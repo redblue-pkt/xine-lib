@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.11 2002/12/04 05:33:40 tmmm Exp $
+ * $Id: color.c,v 1.12 2002/12/22 23:20:21 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -321,8 +321,12 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
 
   residual_filter_loops = (yuv_planes->row_width % 6) / 2;
   shifter[0] = residual_filter_loops * 8;
-  if (!residual_filter_loops)
+  /* if the width is divisible by 6, apply 3 residual filters and perform
+   * one less primary loop */
+  if (!residual_filter_loops) {
     residual_filter_loops = 3;
+    block_loops--;
+  }
 
   /* set up some MMX registers: 
    * mm0 = 0, mm7 = color filter */
