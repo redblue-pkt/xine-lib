@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-01 16:23+0200\n"
+"POT-Creation-Date: 2002-06-07 15:08+0200\n"
 "PO-Revision-Date: 2002-05-13 09:34+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -13,18 +13,18 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/demuxers/demux_ts.c:346
+#: src/demuxers/demux_ts.c:334
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr "demux_ts: FIXME: (nicht unterstützt) PAT umfasst mehrere TS Packete\n"
 
-#: src/demuxers/demux_ts.c:352
+#: src/demuxers/demux_ts.c:340
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
 "demux_ts: FIXME: (nicht unterstützt) PAT besteht aus mehreren (%d) "
 "Sektionen\n"
 
-#: src/demuxers/demux_ts.c:362
+#: src/demuxers/demux_ts.c:350
 #, c-format
 msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
@@ -33,31 +33,31 @@ msgstr ""
 "demux_ts: demux Fehler! PAT mit fehlerhaftem CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 
-#: src/demuxers/demux_ts.c:437
+#: src/demuxers/demux_ts.c:425
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr "demux_ts: Fehler %02x %02x %02x (sollte 0x000001 sein)\n"
 
-#: src/demuxers/demux_ts.c:566
+#: src/demuxers/demux_ts.c:554
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr "fifo nicht verfügbar (%d)\n"
 
-#: src/demuxers/demux_ts.c:575
+#: src/demuxers/demux_ts.c:563
 #, fuzzy, c-format
 msgid "demux_ts: unexpected cc %d (expected %d)\n"
 msgstr "demux_ts: Datenpacket verworfen; ist: %d erwartet: %d\n"
 
-#: src/demuxers/demux_ts.c:598
+#: src/demuxers/demux_ts.c:586
 #, fuzzy
 msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts: Fehlerhaften PES entdeckt\n"
 
-#: src/demuxers/demux_ts.c:700
+#: src/demuxers/demux_ts.c:688
 msgid "demux error! PMT with invalid pointer\n"
 msgstr "demux Fehler! PMT mit fehlerhaftem Zeiger\n"
 
-#: src/demuxers/demux_ts.c:804
+#: src/demuxers/demux_ts.c:792
 #, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
@@ -66,39 +66,39 @@ msgstr ""
 "demux_ts: demux Fehler! PMT mit fehlerhaftem CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 
-#: src/demuxers/demux_ts.c:819
+#: src/demuxers/demux_ts.c:807
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr "demux Fehler! PMT mit inkosistenter progInfo-Länge\n"
 
-#: src/demuxers/demux_ts.c:836
+#: src/demuxers/demux_ts.c:824
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr "demux Fehler! PMT mit inkosistenter streamInfo-Länge\n"
 
-#: src/demuxers/demux_ts.c:1195
+#: src/demuxers/demux_ts.c:1183
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr "demux Fehler! Fehlerhaftes TS-Sync-Byte %.2x\n"
 
-#: src/demuxers/demux_ts.c:1200
+#: src/demuxers/demux_ts.c:1188
 msgid "demux error! transport error\n"
 msgstr "demux Fehler! Transportfehler\n"
 
-#: src/demuxers/demux_ts.c:1263
+#: src/demuxers/demux_ts.c:1251
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr "demux_ts: demux Fehler! Fehlerhafte Nutzdaten Größe %d\n"
 
-#: src/demuxers/demux_ts.c:1476
+#: src/demuxers/demux_ts.c:1453
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr "demux %u ts_open!\n"
 
-#: src/demuxers/demux_ts.c:1587
+#: src/demuxers/demux_ts.c:1555
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: Kann neuen Thread (%s) nicht erzeugen\n"
 
-#: src/demuxers/demux_ts.c:1687
+#: src/demuxers/demux_ts.c:1644
 #, fuzzy, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -111,46 +111,46 @@ msgstr ""
 "          diesem demuxer Plugin.\n"
 "Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
-#: src/demuxers/demux_avi.c:659
+#: src/demuxers/demux_avi.c:656
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: AVI-Index ist fehlerhaft\n"
 
-#: src/demuxers/demux_avi.c:1256
+#: src/demuxers/demux_avi.c:1228
 #, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_avi: Videoformat = %s\n"
 
-#: src/demuxers/demux_avi.c:1258
+#: src/demuxers/demux_avi.c:1230
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: Video-Bildgröße %ld x %ld\n"
 
-#: src/demuxers/demux_avi.c:1261
+#: src/demuxers/demux_avi.c:1233
 #, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: Audioformat[%d] = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1269
+#: src/demuxers/demux_avi.c:1241
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: Unbekannter Audiotyp 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1275
+#: src/demuxers/demux_avi.c:1248
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: Audiotyp %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1412
+#: src/demuxers/demux_avi.c:1365
 #, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_avi: Unbekannter Video-Codec '%.4s'\n"
 
-#: src/demuxers/demux_avi.c:1419
+#: src/demuxers/demux_avi.c:1374
 #, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: Video Codec ist '%s'\n"
 
-#: src/demuxers/demux_avi.c:1606
+#: src/demuxers/demux_avi.c:1561
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -163,11 +163,11 @@ msgstr ""
 "           diesem Demuxer Plugin existiert.\n"
 "Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
-#: src/demuxers/demux_mpeg.c:956
+#: src/demuxers/demux_mpeg.c:912
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr "demug_mpeg: Bitte mpeg(mpeg1/mpeg2) Datenstromtyp angeben.\n"
 
-#: src/demuxers/demux_mpeg_block.c:347
+#: src/demuxers/demux_mpeg_block.c:335
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -175,7 +175,7 @@ msgstr ""
 "demux_mpeg_block: Zu viele Fehler, breche den Abspielvorgang ab. Ist dieser "
 "Datenstrom möglicherweise fehlerhaft ?\n"
 
-#: src/demuxers/demux_mpeg_block.c:466
+#: src/demuxers/demux_mpeg_block.c:443
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -184,7 +184,7 @@ msgstr ""
 "demux_mpeg_block: Warnung: PES-Header deutet an, das dieser Datenstrom "
 "verschlüsselt sein könnte (Verschlüsselungsmodus %d)\n"
 
-#: src/demuxers/demux_mpeg_block.c:1053
+#: src/demuxers/demux_mpeg_block.c:998
 msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
 msgstr "demux_mpeg_block: Unbekannte Blockgröße. Versuche demux_mpeg.\n"
 
@@ -193,30 +193,35 @@ msgstr "demux_mpeg_block: Unbekannte Blockgröße. Versuche demux_mpeg.\n"
 msgid "demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"
 msgstr "demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"
 
-#: src/demuxers/demux_mpgaudio.c:406
+#: src/demuxers/demux_mpgaudio.c:371
 msgid "demux_mpgaudio: no audio driver!\n"
 msgstr "demux_mpgaudio: Kein Audio-Treiber!\n"
 
-#: src/demuxers/demux_qt.c:3993
+#: src/demuxers/demux_qt.c:1267
 #, c-format
-msgid "demux_qt: unknown video codec '%s'\n"
-msgstr "demux_qt: Unbekannter Video-Codec '%s'\n"
+msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
+msgstr ""
 
-#: src/demuxers/demux_qt.c:4247
+#: src/demuxers/demux_qt.c:1273
+#, fuzzy, c-format
+msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
+msgstr "demux_qt: Video-Codec >%s<\n"
+
+#: src/demuxers/demux_qt.c:1282
 #, c-format
-msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
-msgstr "demux_qt: Video-Codec %s (%f fps), Audio-Codec %s (%ld Hz, %d bits)\n"
+msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"
+msgstr ""
 
-#: src/demuxers/demux_ogg.c:225
+#: src/demuxers/demux_ogg.c:220
 msgid "ogg: vorbis audio stream detected\n"
 msgstr "ogg: Ende des Vorbis-Audiodatenstroms\n"
 
-#: src/demuxers/demux_ogg.c:281
+#: src/demuxers/demux_ogg.c:276
 #, c-format
 msgid "ogg: unknown stream type (signature >%.8s<)\n"
 msgstr "ogg: Unbekannter Datenstromtyp (Signatur >%.8s<)\n"
 
-#: src/demuxers/demux_ogg.c:697
+#: src/demuxers/demux_ogg.c:649
 #, c-format
 msgid ""
 "demux_ogg: plugin doesn't support plugin API version %d.\n"
@@ -229,37 +234,37 @@ msgstr ""
 "           diesem Demuxer-Plugin existiert.\n"
 "Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
-#: src/demuxers/demux_asf.c:340
+#: src/demuxers/demux_asf.c:341
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 msgstr "demux_asf: Audioformat: %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_asf.c:403
+#: src/demuxers/demux_asf.c:406
 #, c-format
 msgid "demux_asf: video format : %s\n"
 msgstr "demux_asf: Videoformat: %s\n"
 
-#: src/demuxers/demux_asf.c:461
+#: src/demuxers/demux_asf.c:464
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr "demux_asf: Datenstrom länge ist %d sek., Rate ist %d bytes/sek.\n"
 
-#: src/demuxers/demux_asf.c:1294
+#: src/demuxers/demux_asf.c:1253
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: Titel        : %s\n"
 
-#: src/demuxers/demux_asf.c:1296
+#: src/demuxers/demux_asf.c:1255
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: Autor        : %s\n"
 
-#: src/demuxers/demux_asf.c:1298
+#: src/demuxers/demux_asf.c:1257
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: Copyright    : %s\n"
 
-#: src/demuxers/demux_asf.c:1300
+#: src/demuxers/demux_asf.c:1259
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: Kommentar    : %s\n"
@@ -891,48 +896,48 @@ msgstr ""
 "video_out : Ups, das sollte eigentlich nicht passieren, bitte xine "
 "neustarten.\n"
 
-#: src/xine-engine/xine.c:134
+#: src/xine-engine/xine.c:136
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr "xine_notify_stream_finished: Kann neuen Thread (%s) nicht anlegen\n"
 
-#: src/xine-engine/xine.c:295
+#: src/xine-engine/xine.c:296
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr "%s(%d) Fehlerhafte 1. Stufe = %d !!\n"
 
-#: src/xine-engine/xine.c:403
+#: src/xine-engine/xine.c:404
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: Kann kein Plugin für diese MRL finden\n"
 
-#: src/xine-engine/xine.c:414
+#: src/xine-engine/xine.c:415
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr "Benutze Plugin '%s' für MRL '%s'\n"
 
-#: src/xine-engine/xine.c:424
+#: src/xine-engine/xine.c:425
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr "xine: Kann keinen Demuxer für >%s< finden\n"
 
-#: src/xine-engine/xine.c:431
+#: src/xine-engine/xine.c:432
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr "System-layer Format '%s' erkannt.\n"
 
-#: src/xine-engine/xine.c:459
+#: src/xine-engine/xine.c:460
 msgid "xine_play: demuxer failed to start\n"
 msgstr "xine_play: Der Start des Demuxer-Plugins schlug fehl\n"
 
-#: src/xine-engine/xine.c:1007
+#: src/xine-engine/xine.c:1009
 msgid "stream format"
 msgstr "Datenstrom Format"
 
-#: src/xine-engine/xine.c:1008
+#: src/xine-engine/xine.c:1010
 msgid "messages"
 msgstr "Nachrichten"
 
-#: src/xine-engine/xine.c:1009
+#: src/xine-engine/xine.c:1011
 msgid "plugin"
 msgstr "Plugin"
 
@@ -1019,6 +1024,14 @@ msgstr "Video-Dekodierungs-Plugin gefunden : %s\n"
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr "Audio-Dekodierungs-Plugin gefunden : %s\n"
+
+#~ msgid "demux_qt: unknown video codec '%s'\n"
+#~ msgstr "demux_qt: Unbekannter Video-Codec '%s'\n"
+
+#~ msgid ""
+#~ "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
+#~ msgstr ""
+#~ "demux_qt: Video-Codec %s (%f fps), Audio-Codec %s (%ld Hz, %d bits)\n"
 
 #~ msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
 #~ msgstr ""
@@ -1236,9 +1249,6 @@ msgstr "Audio-Dekodierungs-Plugin gefunden : %s\n"
 
 #~ msgid "demux_qt: stop...ignored\n"
 #~ msgstr "demux_qt: Stopp...ignoriert\n"
-
-#~ msgid "demux_qt: video codec >%s<\n"
-#~ msgstr "demux_qt: Video-Codec >%s<\n"
 
 #~ msgid "demux_qt: unknown audio codec >%s<\n"
 #~ msgstr "demux_qt: Unbekannter Audio-Codec >%s<\n"
