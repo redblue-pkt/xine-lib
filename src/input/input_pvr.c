@@ -30,7 +30,7 @@
  *
  * requires:
  *   - audio.av_sync_method=resample
- *   - ivtv driver (09 May 2003 cvs is known to work)
+ *   - ivtv driver (01 Jul 2003 cvs is known to work)
  *
  * MRL: 
  *   pvr:/<prefix_to_tmp_files>!<prefix_to_saved_files>!<max_page_age>
@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.27 2003/07/02 18:20:55 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.28 2003/07/04 04:09:23 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -150,8 +150,9 @@
 /* For use with IVTV_IOC_G_CODEC and IVTV_IOC_S_CODEC */
 struct ivtv_ioctl_codec {
 	uint32_t aspect;
-	uint32_t audio;
+	uint32_t audio_bitmask;
 	uint32_t bframes;
+	uint32_t bitrate_mode;
 	uint32_t bitrate;
 	uint32_t bitrate_peak;
 	uint32_t dnr_mode;
@@ -1396,6 +1397,7 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
   if (ioctl(dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
     printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
   } else {
+    codec.bitrate_mode  = 0;
     codec.bitrate	= 6000000;
     codec.bitrate_peak	= 9000000;
     codec.stream_type	= IVTV_STREAM_DVD;
