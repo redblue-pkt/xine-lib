@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.143 2003/04/06 00:51:29 hadess Exp $
+ * $Id: input_dvd.c,v 1.144 2003/04/06 12:11:10 mroi Exp $
  *
  */
 
@@ -1265,6 +1265,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   if(this->opened) {
     if ( intended_dvd_device==this->current_dvd_device ) {
       /* Already open, so skip opening */
+      dvdnav_reset(this->dvdnav);
     } else {
       /* Changing DVD device */
       dvdnav_close(this->dvdnav);
@@ -1552,6 +1553,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.144  2003/04/06 12:11:10  mroi
+ * reset the VM when it is already open
+ *
  * Revision 1.143  2003/04/06 00:51:29  hadess
  * - shared eject implementation taken from the DVD input, eject doesn't work if the CD/DVD isn't mounted, which definitely breaks the CDDA plugin... better than nothing
  *
