@@ -1,5 +1,6 @@
   * add support for ejecting removable media on Solaris
   * fix stuttering playback of some realmedia streams
+  * fix end of stream handling in the http plugin
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;

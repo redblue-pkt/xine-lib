@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.88 2004/05/09 17:42:23 valtri Exp $
+ * $Id: input_http.c,v 1.89 2004/05/16 14:04:13 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -331,6 +331,7 @@ static off_t http_plugin_read_int (http_input_plugin_t *this,
   int read_bytes = 0;
   int nlen;
   
+  lprintf("total=%lld\n", total);
   while (total) {
     nlen = total;
     if (this->shoutcast_mode &&
@@ -352,8 +353,10 @@ static off_t http_plugin_read_int (http_input_plugin_t *this,
 
       this->shoutcast_pos += nlen;
     }
+    
+    /* end of file */
     if (nlen == 0)
-      return 0;
+      return read_bytes;
     read_bytes          += nlen;
     total               -= nlen;
   }
@@ -407,7 +410,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
   while (!done) {
 
     if (_x_io_tcp_read (this->stream, this->fh, &this->buf[len], 1) != 1) {
-      return 1;
+      return 0;
     }
 
     if (this->buf[len] == '\012') {
@@ -479,7 +482,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
     int read_bytes = 0;
   
     lprintf("resyncing NSV stream\n");
-    while ((pos < 3) && (read_bytes < 500000)) {
+    while ((pos < 3) && (read_bytes < (1024*1024))) {
     
       if (http_plugin_read_int(this, &c, 1) != 1)
         return 1;
@@ -514,11 +517,12 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
     } else {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
         "http: cannot resync NSV stream!\n");
+      return 0;
     }
   }
   lprintf ("end of the shoutcast header\n");
 
-  return 0;
+  return 1;
 }
 
 static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
@@ -905,7 +909,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   this->shoutcast_songtitle = NULL;
   if (shoutcast) {
     this->shoutcast_mode = 1;
-    if (read_shoutcast_header(this)) {
+    if (!read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "can't read shoutcast header\n");
@@ -921,18 +925,16 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   this->preview_size = MAX_PREVIEW_SIZE;
   if (this->shoutcast_mode == 2) {
     /* the first 3 chars are "NSV" */
-    if (http_plugin_read_int (this, this->preview + 3, MAX_PREVIEW_SIZE - 3) !=
-        (MAX_PREVIEW_SIZE - 3)) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "read error\n");
-      return 0;
-    }
+    this->preview_size = http_plugin_read_int (this, this->preview + 3, MAX_PREVIEW_SIZE - 3);
   } else {
-    if (http_plugin_read_int (this, this->preview, MAX_PREVIEW_SIZE) !=
-        MAX_PREVIEW_SIZE) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "read error\n");
-      return 0;
-    }
+    this->preview_size = http_plugin_read_int (this, this->preview, MAX_PREVIEW_SIZE);
   }
+  if (this->preview_size < 0) {
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
+    return 0;
+  }
+  
+  lprintf("preview_size=%lld\n", this->preview_size);
   this->curpos = 0;
   
   return 1;
