@@ -13,6 +13,7 @@ xine-lib (1-rc4)
   * libvcd updated to 0.7.20
   * libcdio updated to 0.68
   * build improvements - different source and build directory, translations
+  * avoid deadlock with raw AC3 streams and visualization
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins

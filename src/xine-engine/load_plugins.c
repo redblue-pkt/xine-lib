@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.173 2004/03/03 20:09:17 mroi Exp $
+ * $Id: load_plugins.c,v 1.174 2004/04/11 14:51:20 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1637,13 +1637,11 @@ void _x_free_video_decoder (xine_stream_t *stream, video_decoder_t *vd) {
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
   plugin_node_t    *node = vd->node;
 
-  pthread_mutex_lock (&catalog->lock);
-
-  
   vd->dispose (vd);
+
+  pthread_mutex_lock (&catalog->lock);
   node->ref--;
   /* FIXME: unload plugin if no-longer used */
-
   pthread_mutex_unlock (&catalog->lock);
 }
 
@@ -1712,13 +1710,11 @@ void _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *ad) {
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
   plugin_node_t    *node = ad->node;
 
-  pthread_mutex_lock (&catalog->lock);
-
   ad->dispose (ad);
 
+  pthread_mutex_lock (&catalog->lock);
   node->ref--;
   /* FIXME: unload plugin if no-longer used */
-
   pthread_mutex_unlock (&catalog->lock);
 }
 
@@ -1786,13 +1782,11 @@ void _x_free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
   plugin_node_t    *node = sd->node;
 
-  pthread_mutex_lock (&catalog->lock);
-
   sd->dispose (sd);
 
+  pthread_mutex_lock (&catalog->lock);
   node->ref--;
   /* FIXME: unload plugin if no-longer used */
-
   pthread_mutex_unlock (&catalog->lock);
 }
 
