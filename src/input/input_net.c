@@ -178,10 +178,10 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
   char *pptr;
   int port = 7658;
 
-  this->mrl = mrl;
+  this->mrl = strdup(mrl); /* FIXME: small memory leak */
 
   if (!strncasecmp (mrl, "tcp:",4))
-    filename = (char *) &mrl[4];
+    filename = (char *) &this->mrl[4];
   else
     return 0;
     
@@ -201,6 +201,8 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
 
+  this->mrl = strdup(mrl); /* FIXME: small memory leak */
+
   return 1;
 }
 
@@ -208,7 +210,7 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
  *
  */
 static off_t net_plugin_read (input_plugin_t *this_gen, 
-				      char *buf, off_t nlen) {
+			      char *buf, off_t nlen) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n;
 
@@ -218,6 +220,27 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
     this->curpos += n;
 
   return n;
+}
+
+static buf_element_t *net_plugin_read_block (input_plugin_t *this_gen, 
+					     fifo_buffer_t *fifo, off_t todo) {
+  /*net_input_plugin_t   *this = (net_input_plugin_t *) this_gen; */
+  buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
+  int total_bytes;
+
+  buf->content = buf->mem;
+  buf->type = BUF_DEMUX_BLOCK;
+  
+  total_bytes = net_plugin_read (this_gen, buf->content, todo);
+
+  if (total_bytes != todo) {
+    buf->free_buffer (buf);
+    return NULL;
+  }
+
+  buf->size = total_bytes;
+
+  return buf;
 }
 
 /*
@@ -337,7 +360,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_capabilities  = net_plugin_get_capabilities;
   this->input_plugin.open              = net_plugin_open;
   this->input_plugin.read              = net_plugin_read;
-  this->input_plugin.read_block        = NULL;
+  this->input_plugin.read_block        = net_plugin_read_block;
   this->input_plugin.seek              = NULL;
   this->input_plugin.get_current_pos   = net_plugin_get_current_pos;
   this->input_plugin.get_length        = net_plugin_get_length;
