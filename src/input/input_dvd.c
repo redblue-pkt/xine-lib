@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.82 2002/09/16 16:55:35 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.83 2002/09/17 07:53:59 jcdutton Exp $
  *
  */
 
@@ -124,7 +124,7 @@
 extern int errno;
 
 /* Array to hold MRLs returned by get_autoplay_list */
-#define MAX_DIR_ENTRIES 250
+#define MAX_DIR_ENTRIES 1250
 #define MAX_STR_LEN     255  
 char    filelist[MAX_DIR_ENTRIES][MAX_STR_LEN];
 char   *filelist2[MAX_DIR_ENTRIES];
@@ -318,12 +318,11 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
   dvdnav_get_number_of_titles(this->dvdnav, &num_titles);
   if ((num_parts = (int *) calloc(num_titles, sizeof(int)))) {
     int num_mrls = 1, i;
-    /* for each title, count the number of programs */
+    /* for each title, count the number of parts */
     for (i = 1; i <= num_titles; i++) {
       num_parts[i-1] = 0;
       /* dvdnav_title_play(this->dvdnav, i); */
       dvdnav_get_number_of_parts(this->dvdnav, i, &num_parts[i-1]);
-      num_parts[i-1] = 0;
       num_mrls += num_parts[i-1]; /* num_mrls = total number of programs */
     }
 
@@ -1315,7 +1314,15 @@ static const char *const *dvdnav_plugin_get_autoplay_list (input_plugin_t *this_
 
   /* rebuild thie MRL browser list */
   dvdnav_build_mrl_list(this);
+  *nFiles = this->num_mrls;
 
+  i = 0;
+  for(i=0;(i<this->num_mrls) && (i<MAX_DIR_ENTRIES);i++) {
+    snprintf (&(filelist[i][0]), MAX_STR_LEN, this->mrls[i]->mrl);
+    filelist2[i] = &(filelist[i][0]);
+  }
+  filelist2[*nFiles] = NULL;
+  return (const char *const *)filelist2;
   /* Return a list of all titles */
   snprintf (&(filelist[0][0]), MAX_STR_LEN, "dvd://");
   filelist2[0] = &(filelist[0][0]);
@@ -1486,6 +1493,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.83  2002/09/17 07:53:59  jcdutton
+ * Make input_dvd.c mrl playlist work again.
+ *
  * Revision 1.82  2002/09/16 16:55:35  jcdutton
  * Start to get mrl working for DVD button.
  *
