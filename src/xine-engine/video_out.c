@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.165 2003/07/12 20:31:49 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.166 2003/07/13 15:27:34 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1120,6 +1120,8 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
   frame->duration   = img->duration;
   frame->width      = img->width;
   frame->height     = img->height;
+  frame->pos_stream = img->extra_info->input_pos;
+  frame->pos_time   = img->extra_info->input_time;
 
   switch (img->ratio) {
   case XINE_VO_ASPECT_ANAMORPHIC:  /* anamorphic     */
