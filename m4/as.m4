@@ -3,15 +3,15 @@ dnl Daniel Caujolle-Bert <segfault@club-internet.fr>
 
 # Figure out how to run the assembler.
 
-# AM_PROG_AS
-AC_DEFUN([AM_PROG_AS],
+# AM_PROG_AS_MOD
+AC_DEFUN([AM_PROG_AS_MOD],
 [# By default we simply use the C compiler to build assembly code.
 AC_REQUIRE([AC_PROG_CC])
-: ${AS='$(CC)'}
+: ${AS='$CC'}
 # Set ASFLAGS if not already set.
 : ${ASFLAGS='$(CFLAGS)'}
 # Set ASCOMPILE if not already set.
-if test $AS = '$''('CC')'; then
+if test $AS = '$'CC; then
 : ${ASCOMPILE='$(AS) $(AM_ASFLAGS) $(ASFLAGS) -c'}
 else
 : ${ASCOMPILE='$(AS) $(AM_ASFLAGS) $(ASFLAGS)'}
