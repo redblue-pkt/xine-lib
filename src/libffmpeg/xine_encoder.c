@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.4 2003/05/31 18:33:29 miguelfreitas Exp $
+ * $Id: xine_encoder.c,v 1.5 2003/07/09 18:25:45 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -158,8 +158,8 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     NULL, NULL);
     this->context->bit_rate *= 1000; /* config in kbit/s, libavcodec wants bit/s */
     
-  use_quantizer = drv->class->xine->config->register_range(drv->class->xine->config,
-    "dxr3.lavc_quantizer", 1, 0, 1,
+  use_quantizer = drv->class->xine->config->register_bool(drv->class->xine->config,
+    "dxr3.lavc_quantizer", 1,
     _("Dxr3enc: Use quantizer instead of bitrate"),NULL, 0, NULL, NULL);
 
   if (use_quantizer) {        
