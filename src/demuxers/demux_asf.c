@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.60 2002/10/12 15:52:29 tmmm Exp $
+ * $Id: demux_asf.c,v 1.61 2002/10/12 17:11:58 jkeil Exp $
  *
  * demultiplexer for asf streams
  *
@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -1127,6 +1128,8 @@ static void *demux_asf_loop (void *this_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
     }
 

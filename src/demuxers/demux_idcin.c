@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.15 2002/10/06 03:48:13 komadori Exp $
+ * $Id: demux_idcin.c,v 1.16 2002/10/12 17:11:58 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -151,6 +151,8 @@ static void *demux_idcin_loop (void *this_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
 
       current_file_pos = this->input->get_current_pos(this->input);

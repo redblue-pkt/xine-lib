@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.11 2002/10/06 03:48:13 komadori Exp $
+ * $Id: demux_voc.c,v 1.12 2002/10/12 17:11:59 jkeil Exp $
  *
  */
 
@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -101,6 +102,8 @@ static void *demux_voc_loop (void *this_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
 
       /* just load data chunks from wherever the stream happens to be

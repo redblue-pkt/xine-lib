@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.38 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_pes.c,v 1.39 2002/10/12 17:11:58 jkeil Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -327,6 +328,8 @@ static void *demux_pes_loop (void *this_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
     }
 

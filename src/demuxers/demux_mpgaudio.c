@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.66 2002/10/06 03:48:13 komadori Exp $
+ * $Id: demux_mpgaudio.c,v 1.67 2002/10/12 17:11:58 jkeil Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -334,6 +335,8 @@ static void *demux_mpgaudio_loop (void *this_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
     }
 

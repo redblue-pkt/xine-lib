@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.95 2002/10/08 12:45:58 jkeil Exp $
+ * $Id: demux_qt.c,v 1.96 2002/10/12 17:11:58 jkeil Exp $
  *
  */
 
@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -661,7 +662,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
         /* fetch audio parameters */
         sample_table->media_description.audio.codec_format =
-          ME_32(&trak_atom[i + 0x10]);
+	  ME_32(&trak_atom[i + 0x10]);
         sample_table->media_description.audio.sample_rate =
           BE_16(&trak_atom[i + 0x2C]);
         sample_table->media_description.audio.channels = trak_atom[i + 0x25];
@@ -1437,6 +1438,8 @@ static void *demux_qt_loop (void *this_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
 
       i = this->current_frame;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.111 2002/09/18 22:12:16 guenter Exp $
+ * $Id: demux_avi.c,v 1.112 2002/10/12 17:11:58 jkeil Exp $
  *
  * demultiplexer for avi streams
  *
@@ -56,6 +56,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -1044,6 +1045,7 @@ static int demux_avi_next (demux_avi_t *this) {
     audio_pts =
       get_audio_pts (this, i, audio->audio_posc, aie->tot, audio->audio_posb);
     if (!this->no_audio && (audio_pts < video_pts)) {
+
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
       /* read audio */
@@ -1136,6 +1138,8 @@ static void *demux_avi_loop (void *this_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
     }
 

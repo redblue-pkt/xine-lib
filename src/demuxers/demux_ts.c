@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.56 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_ts.c,v 1.57 2002/10/12 17:11:59 jkeil Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -81,6 +81,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 
 #include "xine_internal.h"
@@ -1343,6 +1344,8 @@ static void *demux_ts_loop(void *gen_this) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
       pthread_mutex_lock( &this->mutex );
     }
 
