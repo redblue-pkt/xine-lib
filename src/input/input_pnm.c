@@ -152,7 +152,7 @@ static off_t pnm_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t pnm_plugin_get_capabilities (input_plugin_t *this_gen) {
-  return INPUT_CAP_PREVIEW;
+  return INPUT_CAP_PREVIEW | INPUT_CAP_RIP_FORBIDDEN;
 }
 
 static uint32_t pnm_plugin_get_blocksize (input_plugin_t *this_gen) {
