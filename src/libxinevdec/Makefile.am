@@ -24,8 +24,7 @@ lib_LTLIBRARIES = $(image_module) \
 	xineplug_decode_qtrpza.la \
 	xineplug_decode_wc3video.la \
 	xineplug_decode_qtrle.la \
-	xineplug_decode_interplayvideo.la \
-	xineplug_decode_yuv_frames.la
+	xineplug_decode_interplayvideo.la
 
 xineplug_decode_bitplane_la_SOURCES = bitplane.c
 xineplug_decode_bitplane_la_LIBADD = $(XINE_LIB)
@@ -90,10 +89,6 @@ xineplug_decode_qtrle_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_interplayvideo_la_SOURCES = interplayvideo.c
 xineplug_decode_interplayvideo_la_LIBADD = $(XINE_LIB)
 xineplug_decode_interplayvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_decode_yuv_frames_la_SOURCES = yuv_frames.c
-xineplug_decode_yuv_frames_la_LIBADD = $(XINE_LIB)
-xineplug_decode_yuv_frames_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_image_la_SOURCES = image.c
 xineplug_decode_image_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(PNG_LIBS)
