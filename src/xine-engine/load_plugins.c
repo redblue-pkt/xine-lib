@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.95 2002/09/18 22:12:17 guenter Exp $
+ * $Id: load_plugins.c,v 1.96 2002/09/19 00:40:02 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -665,9 +665,19 @@ xine_vo_driver_p xine_open_video_driver (xine_p this_ro,
 
 	driver = (xine_vo_driver_t*)_load_plugin (this, node->filename, 
 						  node->info, visual);
-	if (driver)
+	if (driver) {
+
+	  xine_cfg_entry_t entry;
+
+	  /* remember plugin id */
+	  
+	  if (xine_config_lookup_entry (this_ro, "video.driver", &entry)) {
+	    entry.str_value = node->info->id;
+	    xine_config_update_entry (this_ro, &entry);
+	  }
+
 	  break;
-	
+	}
       }
     }
     
@@ -754,8 +764,19 @@ xine_ao_driver_p xine_open_audio_driver (xine_p this_ro, const char *id,
       }
     } else {
       driver = (xine_ao_driver_t*)_load_plugin (this, node->filename, node->info, data);
-      if (driver)
-	  break;
+      if (driver) {
+
+	xine_cfg_entry_t entry;
+
+	/* remember plugin id */
+
+	if (xine_config_lookup_entry (this_ro, "audio.driver", &entry)) {
+	  entry.str_value = node->info->id;
+	  xine_config_update_entry (this_ro, &entry);
+	}
+
+	break;
+      }
     }
 
     node = xine_list_next_content (this->plugin_catalog->aout);
