@@ -205,4 +205,8 @@ main ()
   AC_SUBST(XINE_ACFLAGS)
   AC_LANG_RESTORE()
   rm -f conf.xinetest
+
+dnl Make sure HAVE_STRSEP, HAVE_SETENV and HAVE_STRPBRK are defined as
+dnl necessary.
+  AC_CHECK_FUNCS([strsep strpbrk setenv])
 ])
