@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.116 2002/11/19 02:22:52 tmmm Exp $
+ * $Id: demux_qt.c,v 1.117 2002/11/20 01:46:08 miguelfreitas Exp $
  *
  */
 
@@ -2079,12 +2079,12 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   this->current_frame = best_index;
   this->status = DEMUX_OK;
 
-  xine_demux_flush_engine(this->stream);
-  
   if( !this->stream->demux_thread_running ) {
     this->last_frame = 0;
+  } else {
+    xine_demux_flush_engine(this->stream);
   }
-
+  
   return this->status;
 }
 
