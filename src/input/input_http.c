@@ -471,7 +471,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
           = strdup (this->buf + 9 + (*(this->buf + 9) == ' '));
       }
 
-      if (sscanf(this->buf, "icy-metaint: %d", &this->shoutcast_metaint) == 1) {
+      if (sscanf(this->buf, "icy-metaint:%d", &this->shoutcast_metaint) == 1) {
 #ifdef LOG
         printf("input_http: shoutcast_metaint: %d\n", this->shoutcast_metaint);
 #endif
