@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.9 2003/09/10 00:01:59 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.10 2003/09/13 00:49:07 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -886,8 +886,34 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 	buf->free_buffer(buf);
       }
       return this->packet_len + result;
-      
+
+    } else if((p[0]==0x0b) && (p[1]==0x77)) {
+
+      /* A52/AC3 streams in some DVB broadcasts. */      
+
+      buf->decoder_info[1] = 0; /* Number of frame headers */
+      buf->decoder_info[2] = 0; /* First access unit pointer */
+
+      buf->content   = p;
+      buf->size      = this->packet_len;
+      buf->type      = BUF_AUDIO_A52;
+      buf->pts       = this->pts;
+      if( !this->preview_mode )
+        check_newpts( this, this->pts, PTS_AUDIO );
+
+      if(this->audio_fifo) {
+	this->audio_fifo->put (this->audio_fifo, buf);
+#ifdef LOG
+        printf ("demux_mpeg_pes: A52 PACK put on fifo\n");
+#endif
+      } else {
+	buf->free_buffer(buf);
+      }
+      return this->packet_len + result;
     }
+      
+
+
     /* Some new streams have been encountered.
        1) DVD+RW disc recorded with a Philips DVD recorder: -  new unknown sub-stream id of 0xff
      */
