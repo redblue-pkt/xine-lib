@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.111 2003/05/10 04:26:18 tmmm Exp $
+ * $Id: buffer.h,v 1.112 2003/05/13 16:38:06 miguelfreitas Exp $
  *
  *
  * contents:
@@ -47,6 +47,8 @@ extern "C" {
 #include <inttypes.h>
 #include <sys/types.h>
 #include "attributes.h"
+
+#define BUF_MAX_CALLBACKS 5
 
 /*
  * buffer types
@@ -451,6 +453,8 @@ struct fifo_buffer_s
 
   void (*register_put_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *), void *cb_data);
   void (*register_get_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *), void *cb_data);
+  void (*unregister_put_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *));
+  void (*unregister_get_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *));
 
   /*
    * private variables for buffer pool management
@@ -462,10 +466,10 @@ struct fifo_buffer_s
   int		   buffer_pool_capacity;
   int		   buffer_pool_buf_size;
   void            *buffer_pool_base; /*used to free mem chunk */
-  void           (*put_cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
-  void           (*get_cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
-  void            *put_cb_data;
-  void            *get_cb_data;
+  void           (*put_cb[BUF_MAX_CALLBACKS])(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
+  void           (*get_cb[BUF_MAX_CALLBACKS])(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
+  void            *put_cb_data[BUF_MAX_CALLBACKS];
+  void            *get_cb_data[BUF_MAX_CALLBACKS];
 } ;
 
 /*

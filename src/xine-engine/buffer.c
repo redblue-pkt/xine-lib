@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.28 2003/05/12 11:51:18 jcdutton Exp $
+ * $Id: buffer.c,v 1.29 2003/05/13 16:38:05 miguelfreitas Exp $
  *
  *
  * contents:
@@ -137,11 +137,12 @@ static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
  * append buffer element to fifo buffer
  */
 static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
-
+  int i;
+  
   pthread_mutex_lock (&fifo->mutex);
 
-  if (fifo->put_cb)
-    fifo->put_cb(fifo, element, fifo->put_cb_data);
+  for(i = 0; fifo->put_cb[i]; i++)
+    fifo->put_cb[i](fifo, element, fifo->put_cb_data[i]);
 
   if (fifo->last)
     fifo->last->next = element;
@@ -184,6 +185,7 @@ static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
  * get element from fifo buffer
  */
 static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
+  int i;
 
   buf_element_t *buf;
 
@@ -202,8 +204,8 @@ static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
   fifo->fifo_size--;
   fifo->fifo_data_size -= buf->size;
 
-  if (fifo->get_cb)
-    fifo->get_cb(fifo, buf, fifo->get_cb_data);
+  for(i = 0; fifo->get_cb[i]; i++)
+    fifo->get_cb[i](fifo, buf, fifo->get_cb_data[i]);
 
   pthread_mutex_unlock (&fifo->mutex);
 
@@ -337,9 +339,15 @@ static void fifo_register_put_cb (fifo_buffer_t *this,
                                              buf_element_t *buf,
                                              void *data_cb),
                                   void *data_cb) {
+  int i;
   pthread_mutex_lock(&this->mutex);
-  this->put_cb = cb;
-  this->put_cb_data = data_cb;
+  for(i = 0; this->put_cb[i]; i++)
+    ;
+  if( i != BUF_MAX_CALLBACKS-1 ) {
+    this->put_cb[i] = cb;
+    this->put_cb_data[i] = data_cb;
+    this->put_cb[i+1] = NULL;
+  }
   pthread_mutex_unlock(&this->mutex);
 }
 
@@ -351,9 +359,55 @@ static void fifo_register_get_cb (fifo_buffer_t *this,
                                              buf_element_t *buf,
                                              void *data_cb),
                                   void *data_cb) {
+  int i;
   pthread_mutex_lock(&this->mutex);
-  this->get_cb = cb;
-  this->get_cb_data = data_cb;
+  for(i = 0; this->get_cb[i]; i++)
+    ;
+  if( i != BUF_MAX_CALLBACKS-1 ) {
+    this->get_cb[i] = cb;
+    this->get_cb_data[i] = data_cb;
+    this->get_cb[i+1] = NULL;
+  }
+  pthread_mutex_unlock(&this->mutex);
+}
+
+/*
+ * Unregister a "put" callback
+ */
+static void fifo_unregister_put_cb (fifo_buffer_t *this,
+                                  void (*cb)(fifo_buffer_t *this,
+                                             buf_element_t *buf,
+                                             void *data_cb) ) {
+  int i,j;
+  pthread_mutex_lock(&this->mutex);
+  for(i = 0; this->put_cb[i]; i++) {
+    if( this->put_cb[i] == cb ) {
+      for(j = i; this->put_cb[j]; j++) {
+        this->put_cb[j] = this->put_cb[j+1];
+        this->put_cb_data[j] = this->put_cb_data[j+1];
+      }
+    }
+  }  
+  pthread_mutex_unlock(&this->mutex);
+}
+
+/*
+ * Unregister a "get" callback
+ */
+static void fifo_unregister_get_cb (fifo_buffer_t *this,
+                                  void (*cb)(fifo_buffer_t *this,
+                                             buf_element_t *buf,
+                                             void *data_cb) ) {
+  int i,j;
+  pthread_mutex_lock(&this->mutex);
+  for(i = 0; this->get_cb[i]; i++) {
+    if( this->get_cb[i] == cb ) {
+      for(j = i; this->get_cb[j]; j++) {
+        this->get_cb[j] = this->get_cb[j+1];
+        this->get_cb_data[j] = this->get_cb_data[j+1];
+      }
+    }
+  }  
   pthread_mutex_unlock(&this->mutex);
 }
 
@@ -369,19 +423,21 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
   this = xine_xmalloc (sizeof (fifo_buffer_t));
 
-  this->first           = NULL;
-  this->last            = NULL;
-  this->fifo_size       = 0;
-  this->put             = fifo_buffer_put;
-  this->insert          = fifo_buffer_insert;
-  this->get             = fifo_buffer_get;
-  this->clear           = fifo_buffer_clear;
-  this->size		= fifo_buffer_size;
-  this->num_free        = fifo_buffer_num_free;
-  this->data_size	= fifo_buffer_data_size;
-  this->dispose		= fifo_buffer_dispose;
-  this->register_get_cb = fifo_register_get_cb;
-  this->register_put_cb = fifo_register_put_cb;
+  this->first             = NULL;
+  this->last              = NULL;
+  this->fifo_size         = 0;
+  this->put               = fifo_buffer_put;
+  this->insert            = fifo_buffer_insert;
+  this->get               = fifo_buffer_get;
+  this->clear             = fifo_buffer_clear;
+  this->size		  = fifo_buffer_size;
+  this->num_free          = fifo_buffer_num_free;
+  this->data_size	  = fifo_buffer_data_size;
+  this->dispose		  = fifo_buffer_dispose;
+  this->register_get_cb   = fifo_register_get_cb;
+  this->register_put_cb   = fifo_register_put_cb;
+  this->unregister_get_cb = fifo_unregister_get_cb;
+  this->unregister_put_cb = fifo_unregister_put_cb;
   pthread_mutex_init (&this->mutex, NULL);
   pthread_cond_init (&this->not_empty, NULL);
 
@@ -426,10 +482,10 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
     buffer_pool_free (buf);
   }
-  this->get_cb                = NULL;
-  this->put_cb                = NULL;
-  this->get_cb_data           = NULL;
-  this->put_cb_data           = NULL;
+  this->get_cb[0]                = NULL;
+  this->put_cb[0]                = NULL;
+  this->get_cb_data[0]           = NULL;
+  this->put_cb_data[0]           = NULL;
   return this;
 }
 

@@ -126,38 +126,6 @@ static void display_stats (nbc_t *this) {
   }
 }
 
-void nbc_close (nbc_t *this) {
-  fifo_buffer_t *video_fifo = this->stream->video_fifo;
-  fifo_buffer_t *audio_fifo = this->stream->audio_fifo;
-
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_close\n");
-#endif
-
-  video_fifo->register_put_cb(video_fifo, NULL, NULL);
-  video_fifo->register_get_cb(video_fifo, NULL, NULL);
-
-  if (audio_fifo) {
-    audio_fifo->register_put_cb(audio_fifo, NULL, NULL);
-    audio_fifo->register_get_cb(audio_fifo, NULL, NULL);
-  }
-
-  pthread_mutex_lock(&this->mutex);
-  this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
-
-  if (this->buffering) {
-    this->buffering = 0;
-    nbc_set_speed_normal(this->stream);
-  }
-
-  pthread_mutex_unlock(&this->mutex);
-
-  free (this);
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_close: done\n");
-#endif
-}
-
 /*  Try to compute the length of the fifo in 1/1000 s
  *  2 methods :
  *    if the bitrate is known
@@ -452,6 +420,38 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   }
 
   return this;
+}
+
+void nbc_close (nbc_t *this) {
+  fifo_buffer_t *video_fifo = this->stream->video_fifo;
+  fifo_buffer_t *audio_fifo = this->stream->audio_fifo;
+
+#ifdef LOG
+  printf("\nnet_buf_ctrl: nbc_close\n");
+#endif
+
+  video_fifo->unregister_put_cb(video_fifo, nbc_put_cb);
+  video_fifo->unregister_get_cb(video_fifo, nbc_get_cb);
+
+  if (audio_fifo) {
+    audio_fifo->unregister_put_cb(audio_fifo, nbc_put_cb);
+    audio_fifo->unregister_get_cb(audio_fifo, nbc_get_cb);
+  }
+
+  pthread_mutex_lock(&this->mutex);
+  this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+
+  if (this->buffering) {
+    this->buffering = 0;
+    nbc_set_speed_normal(this->stream);
+  }
+
+  pthread_mutex_unlock(&this->mutex);
+
+  free (this);
+#ifdef LOG
+  printf("\nnet_buf_ctrl: nbc_close: done\n");
+#endif
 }
 
 
