@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.65 2002/03/11 12:31:24 guenter Exp $
+ * $Id: demux_avi.c,v 1.66 2002/03/11 23:43:58 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1032,11 +1032,11 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   this->avi->video_type = fourcc_to_buf_video((void*)&this->avi->bih.biCompression);
   
   if ( !this->avi->video_type ) {
-      LOG_MSG(this->xine, _("demux_avi: unknown avi format %.4s\n"),
-	      (char*)&this->avi->bih.biCompression);
+    LOG_MSG(this->xine, _("demux_avi: unknown video codec '%.4s'\n"),
+	    (char*)&this->avi->bih.biCompression);
 
-      this->status = DEMUX_FINISHED;
-      return;
+    this->status = DEMUX_FINISHED;
+    return;
   }
   buf->type = this->avi->video_type;
   LOG_MSG(this->xine, _("demux_avi: video codec >%s<\n"), buf_video_name(buf->type));

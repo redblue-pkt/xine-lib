@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2001 the xine project
+ * Copyright (C) 2001-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2002/03/11 12:31:25 guenter Exp $
+ * $Id: xine_decoder.c,v 1.20 2002/03/11 23:43:58 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -237,12 +237,12 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
   case BUF_VIDEO_MSMPEG4_V3:
     this->use_311_compat = 1;
     break;
-  case BUF_VIDEO_MPEG4 :
+  case BUF_VIDEO_MPEG4:
     this->use_311_compat = 0;
     break;
   default:
     printf ("divx4: unknown video format (buftype: 0x%08X)\n",
-      buf->type & 0xFFFF0000);
+	    buf->type & 0xFFFF0000);
   }
 
   /* setup decoder; inspired by avifile's plugin */
@@ -335,7 +335,7 @@ static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {
   /* divx4 currently does not support MSMPEG4 v1/v2 */
   return ( (buf_type == BUF_VIDEO_MSMPEG4_V3 && this->can_handle_311) ||
            /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
-           buf_type == BUF_VIDEO_MPEG4 || buf_type == BUF_VIDEO_3IVX);
+           buf_type == BUF_VIDEO_MPEG4);
 }
 
 /* copied verbatim from ffmpeg plugin */
