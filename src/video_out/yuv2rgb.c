@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.35 2003/01/24 17:04:39 esnel Exp $
+ * $Id: yuv2rgb.c,v 1.36 2003/01/25 12:46:10 esnel Exp $
  */
 
 #include "config.h"
@@ -2566,7 +2566,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->next_slice (this, &_dst) >> 1;
+  height = this->next_slice (this, &_dst);
   
   for (;;) {
     dst_1 = (uint32_t*)_dst;
@@ -2645,7 +2645,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
 
   dy = 0;
-  height = this->next_slice (this, &_dst) >> 1;
+  height = this->next_slice (this, &_dst);
   
   for (;;) {
     dst_1 = _dst;
@@ -2723,7 +2723,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
 
   dy = 0;
-  height = this->next_slice (this, &_dst) >> 1;
+  height = this->next_slice (this, &_dst);
   
   for (;;) {
     dst_1 = _dst;
@@ -2797,7 +2797,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->next_slice (this, &_dst) >> 1;
+  height = this->next_slice (this, &_dst);
 
   for (;;) {
     dst_1 = (uint16_t*)_dst;
@@ -2871,7 +2871,7 @@ static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->next_slice (this, &_dst) >> 1;
+  height = this->next_slice (this, &_dst);
   
   for (;;) {
     dst_1 = _dst;
@@ -2935,7 +2935,7 @@ static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 
   if (this->do_scale) {
     dy = 0;
-    height = this->next_slice (this, &_dst) >> 1;
+    height = this->next_slice (this, &_dst);
   
     for (;;) {
       scale_line_2 (_p, _dst, this->dest_width, this->step_dx);
@@ -2988,7 +2988,7 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
     
   dy = 0;
-  height = this->next_slice (this, &_dst) >> 1;
+  height = this->next_slice (this, &_dst);
   
   for (;;) {
     dst_1 = _dst;
