@@ -193,7 +193,8 @@ typedef signed int int32_t;
 typedef signed long long int64_t;
 #endif
 #endif
-#if (!defined _LINUX_TYPES_H)
+#if (!defined __uint8_t_defined) && (!defined _LINUX_TYPES_H)
+#define __uint8_t_defined
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
