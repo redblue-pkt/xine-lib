@@ -56,8 +56,6 @@ required for 1.0
 - update xine hacker's guide (article on post plugins still missing)
 - xine bug tracking system?
 - fix stream end detection for real streams
-- fix mpeg elementary stream playback (especially logo streams
-  with only one frame)
 - add help strings for all post plugins
 - add help strings for all config options
 - review code for stack overflows
