@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.99 2002/02/27 08:54:14 guenter Exp $
+ * $Id: video_out_xv.c,v 1.100 2002/02/27 11:42:39 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -42,6 +42,8 @@
 #include <string.h>
 #include <math.h>
 
+#include <machine/param.h>
+#include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/time.h>
