@@ -52,7 +52,7 @@ extern UINT8 cropTbl[256 + 2 * MAX_NEG_CROP];
 void dsputil_init(void);
 
 /* minimum alignment rules ;)
-if u notice errors in the align stuff, need more alignment for some asm code for some cpu 
+if u notice errors in the align stuff, need more alignment for some asm code for some cpu
 or need to use a function with less aligned data then send a mail to the ffmpeg-dev list, ...
 
 !warning these alignments might not match reallity, (missing attribute((align)) stuff somewhere possible)
@@ -83,7 +83,7 @@ void add_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size);
 void clear_blocks_c(DCTELEM *blocks);
 
 /* add and put pixel (decoding) */
-// blocksizes for op_pixels_func are 8x4,8x8 16x8 16x16
+/* blocksizes for op_pixels_func are 8x4,8x8 16x8 16x16 */
 typedef void (*op_pixels_func)(UINT8 *block/*align width (8 or 16)*/, const UINT8 *pixels/*align 1*/, int line_size, int h);
 typedef void (*qpel_mc_func)(UINT8 *dst/*align width (8 or 16)*/, UINT8 *src/*align 1*/, int stride);
 
@@ -126,9 +126,9 @@ static inline int block_permute_op(int j)
 }
 
 void block_permute(INT16 *block);
-          
+
 #if defined(ARCH_X86)
-#define HAVE_MMX 1 
+#define HAVE_MMX 1
 #endif
 
 #if defined(HAVE_MMX)
@@ -146,7 +146,7 @@ extern int mm_flags;
 /*int mm_support(void);*/
 #define mm_support() xine_mm_accel()
 
-#if 0 
+#if 0
 static inline void emms(void)
 {
     __asm __volatile ("emms;":::"memory");
@@ -172,16 +172,16 @@ void dsputil_set_bit_exact_mmx(void);
    line ptimizations */
 #define __align8 __attribute__ ((aligned (4)))
 
-void dsputil_init_armv4l(void);   
+void dsputil_init_armv4l(void);
 
 #elif defined(HAVE_MLIB)
- 
+
 #define emms_c()
 
 /* SPARC/VIS IDCT needs 8-byte aligned DCT blocks */
 #define __align8 __attribute__ ((aligned (8)))
 
-void dsputil_init_mlib(void);   
+void dsputil_init_mlib(void);
 
 #elif defined(ARCH_ALPHA)
 
@@ -228,5 +228,5 @@ struct unaligned_32 { uint32_t l; } __attribute__((packed));
 void get_psnr(UINT8 *orig_image[3], UINT8 *coded_image[3],
               int orig_linesize[3], int coded_linesize,
               AVCodecContext *avctx);
-              
+
 #endif
