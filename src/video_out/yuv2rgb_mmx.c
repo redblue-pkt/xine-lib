@@ -776,48 +776,56 @@ static void mmxext_rgb15 (yuv2rgb_t *this, uint8_t * image,
 			  uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_rgb15 (this, image, py, pu, pv, CPU_MMXEXT);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 static void mmxext_rgb16 (yuv2rgb_t *this, uint8_t * image,
 			  uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_rgb16 (this, image, py, pu, pv, CPU_MMXEXT);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 static void mmxext_rgb24 (yuv2rgb_t *this, uint8_t * image,
 			   uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_rgb24 (this, image, py, pu, pv, CPU_MMXEXT);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 static void mmxext_argb32 (yuv2rgb_t *this, uint8_t * image,
 			   uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_argb32 (this, image, py, pu, pv, CPU_MMXEXT);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 static void mmx_rgb15 (yuv2rgb_t *this, uint8_t * image,
 		       uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_rgb15 (this, image, py, pu, pv, CPU_MMX);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 static void mmx_rgb16 (yuv2rgb_t *this, uint8_t * image,
 		       uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_rgb16 (this, image, py, pu, pv, CPU_MMX);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 static void mmx_rgb24 (yuv2rgb_t *this, uint8_t * image,
 		       uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_rgb24 (this, image, py, pu, pv, CPU_MMX);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 static void mmx_argb32 (yuv2rgb_t *this, uint8_t * image,
 			uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_argb32 (this, image, py, pu, pv, CPU_MMX);
+    emms();	/* re-initialize x86 FPU after MMX use */
 }
 
 void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode)
