@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.6 2001/08/13 23:10:31 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.7 2001/08/20 22:56:36 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -320,6 +320,12 @@ static void demux_ts_pat_parse(
 
 /*
  * Manage a buffer for a PES stream.
+ * Input is 188 bytes of Transport stream
+ * Build a PES packet. PES packets can get as big as 65536
+ * If PES packet length was empty(zero) work it out based on seeing the next PUS.
+ * Once we have a complete PES packet, give PES packet a valid length field.
+ * then queue it. The queuing routine might have to cut it up to make bits < 4096. FIXME: implement cut up.
+ * Currently if PES packets are >4096, corruption occurs.
  */
 static void demux_ts_pes_buffer(
     demux_ts *this,
@@ -352,8 +358,6 @@ static void demux_ts_pes_buffer(
             return;
         }
         if (m->buf) {
-            fprintf(stderr, "PUS set but last PES not complete (corrupt stream?) %d %d %d\n",
-                    m->pes_buf_next, m->pes_len, m->pes_len_zero);
             if(m->pes_len_zero) {
 /*
 	            fprintf(stderr,"Queuing ZERO PES %02X %02X %02X %02X %02X\n",  m->buf->mem[3], m->buf->mem[4], m->buf->mem[5], 
@@ -366,10 +370,10 @@ static void demux_ts_pes_buffer(
           	    m->buf = 0;
 		    m->pes_len_zero=0;
 	    } else {
-/*
-            fprintf(stderr, "PUS2 set but last PES not complete (corrupt stream?) %d %d %d\n",
+
+            fprintf(stderr, "PUS set but last PES not complete (corrupt stream?) %d %d %d\n",
                     m->pes_buf_next, m->pes_len, m->pes_len_zero);
- */
+ 
             m->buf->free_buffer(m->buf);
             m->buf = 0;
             /* return; */
@@ -409,14 +413,17 @@ static void demux_ts_pes_buffer(
                 }
 	    } 
         } else {
-                fprintf(stderr, "Buffer overflow on data read for PES (corrupt stream?)\n");
+		fprintf(stderr, "Buffer overflow on data read for PES (discontinuity ?)\n");
+		/* FIXME: Implement discontinuity sensing */
                 m->buf->free_buffer(m->buf);
                 m->buf = 0;
 		m->pes_len_zero=0;
             }
         
     } else {
-        fprintf(stderr, "nowhere to buffer input (corrupt stream?)\n");
+	/*
+         fprintf(stderr, "nowhere to buffer input. Waiting for PUS. \n");
+	 */
     }
 }
 
@@ -626,6 +633,7 @@ static void demux_ts_parse_ts(
 
     /*
      * Discard packets that are obviously bad.
+     * FIXME: maybe search for 0x47 is the first 188 bytes[packet size] of stream.
      */
     if (sync_byte != 0x47) {
         fprintf (stderr, "demux error! invalid ts sync byte %02x\n",originalPkt[0]);
@@ -676,7 +684,9 @@ static void demux_ts_parse_ts(
             } else if (pid == 0) {
                 demux_ts_pat_parse(this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
             } else if (pid == 0x1fff) {
-		fprintf(stderr,"Null Packet\n");
+		/* 
+		 fprintf(stderr,"Null Packet\n");
+		 */
 	    }
         }
     }
