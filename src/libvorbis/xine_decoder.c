@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.31 2003/11/26 19:43:36 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.32 2003/11/29 14:28:02 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -58,10 +58,10 @@ typedef struct vorbis_decoder_s {
   int               output_mode;
 
   /* vorbis stuff */
-  vorbis_info       vi; 
+  vorbis_info       vi; /* stores static vorbis bitstream settings */
   vorbis_comment    vc;
-  vorbis_dsp_state  vd;
-  vorbis_block      vb;
+  vorbis_dsp_state  vd; /* central working state for packet->PCM decoder */
+  vorbis_block      vb; /* local working state for packet->PCM decoder */
 
   int16_t           convbuffer[MAX_NUM_SAMPLES];
   int               convsize;
@@ -77,7 +77,8 @@ static void vorbis_reset (audio_decoder_t *this_gen) {
 
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
 
-  vorbis_block_init(&this->vd,&this->vb);     
+  if( !this->header_count )
+    vorbis_block_init(&this->vd,&this->vb);     
 }
 
 static void vorbis_discontinuity (audio_decoder_t *this_gen) {
@@ -135,7 +136,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
   ogg_packet *op = (ogg_packet *) buf->content;
 
-  lprintf ("decode buf=%08x content=%08x op=%08x packet=%08x flags=%08x\n",
+  lprintf ("decode buf=%p content=%p op=%p packet=%p flags=%08x\n",
 	   buf, buf->content, op, op->packet, buf->decoder_flags);
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
@@ -193,9 +194,16 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    this->vi.bitrate_nominal);
 
 	}
-	
+
+	/* OK, got and parsed all three headers. Initialize the Vorbis
+	 * packet->PCM decoder. */
+	lprintf("all three headers parsed. initializing decoder.\n");
+	/* initialize central decode state */ 
 	vorbis_synthesis_init(&this->vd,&this->vi); 
-	vorbis_block_init(&this->vd,&this->vb);     
+	/* initialize local state for most of the decode so multiple
+	 * block decodes can proceed in parallel. We could init 
+	 * multiple vorbis_block structures for vd here */
+	vorbis_block_init(&this->vd,&this->vb);      
       }
     }
  
@@ -211,6 +219,13 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->pts=buf->pts;
 
     while ((samples=vorbis_synthesis_pcmout(&this->vd,&pcm))>0){
+
+      /* **pcm is a multichannel float vector. In stereo, for
+       * example, pcm[0][...] is left, and pcm[1][...] is right.
+       * samples is the size of each channel. Convert the float
+       * values (-1.<=range<=1.) to whatever PCM format and write
+       * it out
+       */
 
       int i,j;
       int clipflag=0;
@@ -247,27 +262,40 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       buf->pts=0;
+
+      /* tell libvorbis how many samples we actually consumed */
       vorbis_synthesis_read(&this->vd,bout);
     }
   } 
-#ifdef LOG
-  else
-    printf ("libvorbis: output not open\n");
-
-#endif
+  lprintf("output not open\n");
 }
 
 static void vorbis_dispose (audio_decoder_t *this_gen) {
 
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen; 
 
-  vorbis_block_clear(&this->vb);
-  vorbis_dsp_clear(&this->vd);
+  if( !this->header_count ) {
+    lprintf("deinitializing decoder\n");
+
+    vorbis_block_clear(&this->vb);
+    /* I couldn't find documentation on how vorbis_dsp_state
+     * should be cleared (synthesis mode).
+     *
+     * vorbis_dsp_clear() seems to segfault sometimes and other
+     * projects are not using it in their decoders.
+     * vorbis_synthesis_clear() does not exist anymore.
+     */
+    /* vorbis_dsp_clear(&this->vd); */
+  }
+
   vorbis_comment_clear(&this->vc);
+
   vorbis_info_clear(&this->vi);  /* must be called last */
 
   if (this->output_open) 
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
+
+  lprintf("libvorbis instance destroyed\n");
 
   free (this_gen);
 }
@@ -291,6 +319,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen,
 
   vorbis_info_init(&this->vi);
   vorbis_comment_init(&this->vc);
+
+  lprintf("libvorbis decoder instance created\n");
 
   return (audio_decoder_t *) this;
 }
