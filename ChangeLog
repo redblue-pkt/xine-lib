@@ -13,6 +13,8 @@ xine-lib (1-rc6)
   * Add support for 44100Hz DTS in .wav files.
   * restore initial xv port attributes on exit [bugs #965572, #957599]
   * fix brightness drift problem [bug #947520]
+  * fix rare heap overflow with some DVD subpictures [bug #923843]
+  * fix stack overflows in the VCD plugin
         
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
