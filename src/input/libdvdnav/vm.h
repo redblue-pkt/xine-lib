@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.9 2003/04/29 21:55:54 jcdutton Exp $
+ * $Id: vm.h,v 1.10 2003/07/19 13:04:03 mroi Exp $
  *
  */
 
@@ -116,7 +116,7 @@ typedef struct {
 #define PTL_REG      registers.SPRM[13]
 
 /* Initialisation & destruction */
-vm_t *vm_new_vm();
+vm_t *vm_new_vm(void);
 void  vm_free_vm(vm_t *vm);
 
 /* IFO access */

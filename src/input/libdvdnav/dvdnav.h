@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.h,v 1.13 2003/05/11 13:44:05 jcdutton Exp $
+ * $Id: dvdnav.h,v 1.14 2003/07/19 13:04:03 mroi Exp $
  *
  */
 
@@ -491,19 +491,19 @@ dvdnav_status_t dvdnav_mouse_activate(dvdnav_t *self, pci_t *pci, int32_t x, int
  */
 
 /*
- * Set which menu language we should use.
+ * Set which menu language we should use per default.
  */
 dvdnav_status_t dvdnav_menu_language_select(dvdnav_t *self,
 					   char *code);
 
 /*
- * Set which audio language we should use.
+ * Set which audio language we should use per default.
  */
 dvdnav_status_t dvdnav_audio_language_select(dvdnav_t *self,
 					    char *code);
 
 /*
- * Set which spu language we should use.
+ * Set which spu language we should use per default.
  */
 dvdnav_status_t dvdnav_spu_language_select(dvdnav_t *self,
 					  char *code);

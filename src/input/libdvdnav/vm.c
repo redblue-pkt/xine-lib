@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.22 2003/05/26 23:11:44 miguelfreitas Exp $
+ * $Id: vm.c,v 1.23 2003/07/19 13:04:03 mroi Exp $
  *
  */
 
@@ -1228,7 +1228,6 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* BUTTON number:data1 */
       if(link_values.data1 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
-      assert((vm->state).cellN > 1);
       (vm->state).cellN += 1;
       link_values = play_Cell(vm);
       break;
@@ -1237,6 +1236,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* BUTTON number:data1 */
       if(link_values.data1 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
+      assert((vm->state).cellN > 1);
       (vm->state).cellN -= 1;
       link_values = play_Cell(vm);
       break;
