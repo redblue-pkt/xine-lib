@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.9 2003/11/15 14:00:37 miguelfreitas Exp $
+ * $Id: demux_4xm.c,v 1.10 2003/11/16 14:34:09 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -57,6 +57,7 @@
 #define  MOVI_TAG FOURCC_TAG('M', 'O', 'V', 'I')
 #define  VTRK_TAG FOURCC_TAG('V', 'T', 'R', 'K')
 #define  STRK_TAG FOURCC_TAG('S', 'T', 'R', 'K')
+#define  std__TAG FOURCC_TAG('s', 't', 'd', '_')
 #define  name_TAG FOURCC_TAG('n', 'a', 'm', 'e')
 #define  vtrk_TAG FOURCC_TAG('v', 't', 'r', 'k')
 #define  strk_TAG FOURCC_TAG('s', 't', 'r', 'k')
@@ -91,14 +92,35 @@ typedef struct {
   unsigned int         track_count;
   audio_track_t       *tracks;
 
-  int64_t              pts;
-  int                  last_chunk_was_audio;
-  int                  last_audio_frame_count;
+  int64_t              video_pts;
+  int64_t              video_pts_inc;
+  int64_t              duration_in_ms;
+
 } demux_fourxm_t;
 
 typedef struct {
   demux_class_t     demux_class;
 } demux_fourxm_class_t;
+
+static float get_le_float(unsigned char *buffer)
+{
+  float f;
+  unsigned char *float_buffer = (unsigned char *)&f;
+
+#ifdef WORDS_BIGENDIAN
+  float_buffer[0] = buffer[3];
+  float_buffer[1] = buffer[2];
+  float_buffer[2] = buffer[1];
+  float_buffer[3] = buffer[0];
+#else
+  float_buffer[0] = buffer[0];
+  float_buffer[1] = buffer[1];
+  float_buffer[2] = buffer[2];
+  float_buffer[3] = buffer[3];
+#endif
+
+  return f;
+}
 
 /* Open a 4xm file
  * This function is called from the _open() function of this demuxer.
@@ -112,6 +134,9 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
   unsigned int fourcc_tag;
   unsigned int size;
   unsigned int current_track;
+  unsigned int audio_type;
+  unsigned int total_frames;
+  float fps;
 
   /* the file signature will be in the first 12 bytes */
   if (_x_demux_read_header(fourxm->input, preview, 12) != 12)
@@ -124,12 +149,6 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
 
   /* file is qualified; skip over the header bytes in the stream */
   fourxm->input->seek(fourxm->input, 12, SEEK_SET);
-
-  /* seems to be unnecessary (see end of function)
-  fourxm->filesize = LE_32(&preview[8]);
-  if (fourxm->filesize == 0)
-    fourxm->filesize = 0xFFFFFFFF;
-  */
 
   /* fetch the LIST-HEAD header */
   if (fourxm->input->read(fourxm->input, preview, 12) != 12)
@@ -150,21 +169,27 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
   fourxm->bih.biHeight = 0;
   fourxm->track_count = 0;
   fourxm->tracks = NULL;
-  fourxm->pts = 0;
-  fourxm->last_chunk_was_audio = 0;
-  fourxm->last_audio_frame_count = 0;
+  fourxm->video_pts_inc = 0;
 
   /* take the lazy approach and search for any and all vtrk and strk chunks */
   for (i = 0; i < header_size - 8; i++) {
     fourcc_tag = LE_32(&header[i]);
     size = LE_32(&header[i + 4]);
 
-    if (fourcc_tag == vtrk_TAG) {
+    if (fourcc_tag == std__TAG) {
+      fps = get_le_float(&header[i + 12]);
+      fourxm->video_pts_inc = (int64_t)(90000.0 / fps);
+    } else if (fourcc_tag == vtrk_TAG) {
       /* check that there is enough data */
       if (size != vtrk_SIZE) {
         free(header);
         return 0;
       }
+      total_frames = LE_32(&header[i + 24]);
+      fourxm->duration_in_ms = total_frames;
+      fourxm->duration_in_ms *= fourxm->video_pts_inc;
+      fourxm->duration_in_ms /= 90000;
+      fourxm->duration_in_ms *= 1000;
       fourxm->bih.biWidth = LE_32(&header[i + 36]);
       fourxm->bih.biHeight = LE_32(&header[i + 40]);
       i += 8 + size;
@@ -188,13 +213,23 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
       fourxm->tracks[current_track].channels = LE_32(&header[i + 36]);
       fourxm->tracks[current_track].sample_rate = LE_32(&header[i + 40]);
       fourxm->tracks[current_track].bits = LE_32(&header[i + 44]);
-      fourxm->tracks[current_track].audio_type =
-        BUF_AUDIO_LPCM_LE + (current_track & 0x0000FFFF);
+      audio_type = LE_32(&header[i + 12]);
+      if (audio_type == 0)
+          fourxm->tracks[current_track].audio_type = BUF_AUDIO_LPCM_LE;
+      else if (audio_type == 1)
+          fourxm->tracks[current_track].audio_type = BUF_AUDIO_4X_ADPCM;
+      fourxm->tracks[current_track].audio_type += (current_track & 0x0000FFFF);
       i += 8 + size;
     }
   }
 
   fourxm->filesize = fourxm->input->get_length(fourxm->input);
+
+  /* this will get bumped to 0 on the first iteration */
+  fourxm->video_pts = -fourxm->video_pts_inc;
+
+  /* skip the data body LIST header */
+  fourxm->input->seek(fourxm->input, 12, SEEK_CUR);
 
   free(header);
 
@@ -208,7 +243,6 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
   unsigned int fourcc_tag;
   unsigned int size;
   unsigned char header[8];
-  int64_t pts_inc;
   unsigned int remaining_bytes;
   unsigned int current_track;
 
@@ -217,6 +251,7 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
     this->status = DEMUX_FINISHED;
     return this->status;
   }
+
   fourcc_tag = LE_32(&header[0]);
   size = LE_32(&header[4]);
 
@@ -225,22 +260,13 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
   case ifrm_TAG:
   case pfrm_TAG:
   case cfrm_TAG:
-    /* bump the pts if this last data sent out was audio */
-    if (this->last_chunk_was_audio) {
-      this->last_chunk_was_audio = 0;
-      pts_inc = this->last_audio_frame_count;
-      pts_inc *= 90000;
-      pts_inc /= this->tracks[0].sample_rate;
-      this->pts += pts_inc;
-    }
-
     /* send the 8-byte chunk header first */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_4XM;
     buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     buf->extra_info->input_length = this->filesize;
-    buf->extra_info->input_time = this->pts / 90;
-    buf->pts = this->pts;
+    buf->extra_info->input_time = this->video_pts / 90;
+    buf->pts = this->video_pts;
     buf->size = 8;
     memcpy(buf->content, header, 8);
     if (fourcc_tag == ifrm_TAG)
@@ -253,8 +279,8 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
       buf->type = BUF_VIDEO_4XM;
       buf->extra_info->input_pos = this->input->get_current_pos(this->input);
       buf->extra_info->input_length = this->filesize;
-      buf->extra_info->input_time = this->pts / 90;
-      buf->pts = this->pts;
+      buf->extra_info->input_time = this->video_pts / 90;
+      buf->pts = this->video_pts;
 
       if (remaining_bytes > buf->max_size)
         buf->size = buf->max_size;
@@ -286,7 +312,7 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
       return this->status;
     }
     current_track = LE_32(&header[0]);
-    size = LE_32(&header[4]);
+//    size = LE_32(&header[4]);
 
     if (current_track >= this->track_count) {
       lprintf ("bad audio track number (%d >= %d)\n",
@@ -295,19 +321,15 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
       return this->status;
     }
 
-    this->last_chunk_was_audio = 1;
-    this->last_audio_frame_count = size / 
-      ((this->tracks[current_track].bits / 8) * 
-        this->tracks[current_track].channels);
-
-    remaining_bytes = size;
+    remaining_bytes = size - 8;
     while (remaining_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->tracks[current_track].audio_type;
       buf->extra_info->input_pos = this->input->get_current_pos(this->input);
       buf->extra_info->input_length = this->filesize;
-      buf->extra_info->input_time = this->pts / 90;
-      buf->pts = this->pts;
+      /* let the engine sort it out */
+      buf->extra_info->input_time = 0;
+      buf->pts = 0;
 
       if (remaining_bytes > buf->max_size)
         buf->size = buf->max_size;
@@ -331,6 +353,16 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
   case LIST_TAG:
     /* skip LIST header */
     this->input->seek(this->input, 4, SEEK_CUR);
+
+    /* take this opportunity to bump the video pts */
+    this->video_pts += this->video_pts_inc;
+    break;
+
+  default:
+    lprintf("bad chunk: %c%c%c%c (%02X%02X%02X%02X)\n", 
+      header[0], header[1], header[2], header[3],
+      header[0], header[1], header[2], header[3]);
+    this->status = DEMUX_FINISHED;
     break;
 
   }
@@ -371,7 +403,7 @@ static void demux_fourxm_send_headers(demux_plugin_t *this_gen) {
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0;
-  buf->decoder_info[1] = 6000;  /* initial video_step */
+  buf->decoder_info[1] = this->video_pts_inc;  /* initial video_step */
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
   buf->type = BUF_VIDEO_4XM;
@@ -418,9 +450,10 @@ static int demux_fourxm_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_fourxm_get_stream_length (demux_plugin_t *this_gen) {
-/*  demux_fourxm_t *this = (demux_fourxm_t *) this_gen;*/
 
-  return 0;
+  demux_fourxm_t *this = (demux_fourxm_t *) this_gen;
+
+  return this->duration_in_ms;
 }
 
 static uint32_t demux_fourxm_get_capabilities(demux_plugin_t *this_gen) {
