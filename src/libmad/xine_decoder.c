@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.50 2004/01/12 17:35:16 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.51 2004/03/14 20:40:39 tmmm Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -203,19 +203,19 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             switch (this->frame.header.layer) {
             case MAD_LAYER_I:
               _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-                "MPEG audio layer 1");
+                "MPEG audio layer 1 (lib: MAD)");
               break;
             case MAD_LAYER_II:
               _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-                "MPEG audio layer 2");
+                "MPEG audio layer 2 (lib: MAD)");
               break;
             case MAD_LAYER_III:
               _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-                "MPEG audio layer 3");
+                "MPEG audio layer 3 (lib: MAD)");
               break;
             default:
               _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-                "MPEG audio");
+                "MPEG audio (lib: MAD)");
             }
           }
 	  

@@ -239,7 +239,7 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
     _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3000);
   }
 
-  _x_meta_info_set(mpeg2dec->stream, XINE_META_INFO_VIDEOCODEC, "MPEG");
+  _x_meta_info_set(mpeg2dec->stream, XINE_META_INFO_VIDEOCODEC, "MPEG (libmpeg2)");
 }
 
 
