@@ -1,4 +1,4 @@
-AM_CFLAGS = $(X_CFLAGS) $(LIBFAME_CFLAGS) -I../input/libdvdread
+AM_CFLAGS = $(X_CFLAGS) $(LIBFAME_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
@@ -26,8 +26,14 @@ xineplug_decode_dxr3_video_la_SOURCES = dxr3_decode_video.c dxr3_scr.c
 xineplug_decode_dxr3_video_la_LIBADD = $(XINE_LIB)
 xineplug_decode_dxr3_video_la_LDFLAGS = -avoid-version -module
 
+if HAVE_DVDNAV
+xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c
+xineplug_decode_dxr3_spu_la_LIBADD = $(XINE_LIB) $(DVDNAV_LIBS)
+else
+AM_CPPFLAGS = -I$(top_srcdir)/src/input/libdvdnav
 xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c nav_read.c
 xineplug_decode_dxr3_spu_la_LIBADD = $(XINE_LIB)
+endif
 xineplug_decode_dxr3_spu_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = \

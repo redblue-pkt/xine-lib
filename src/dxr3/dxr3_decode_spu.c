@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.33 2003/03/08 14:11:52 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.34 2003/04/30 16:51:57 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -40,8 +40,13 @@
 #include "xineutils.h"
 #include "buffer.h"
 #include "xine-engine/bswap.h"
-#include "nav_types.h"
-#include "nav_read.h"
+#ifdef HAVE_DVDNAV
+#  include <dvdnav/nav_types.h>
+#  include <dvdnav/nav_read.h>
+#else
+#  include "nav_types.h"
+#  include "nav_read.h"
+#endif
 #include "video_out_dxr3.h"
 #include "dxr3.h"
 
