@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.24 2003/12/09 00:02:38 f1rmb Exp $
+ * $Id: color.c,v 1.25 2005/01/23 23:01:13 jstembridge Exp $
  */
 
 #include "xine_internal.h"
@@ -701,11 +701,8 @@ static void yv12_to_yuy2_c
           p_y1 = p_y2;
           p_y2 += y_src_pitch;
   
-          for( i_x = width / 8 ; i_x-- ; )
+          for( i_x = width / 2 ; i_x-- ; )
           {
-              C_YUV420_YUYV( );
-              C_YUV420_YUYV( );
-              C_YUV420_YUYV( );
               C_YUV420_YUYV( );
           }
   
@@ -734,11 +731,8 @@ static void yv12_to_yuy2_c
           p_y1 = p_y2;
           p_y2 += 2 * y_src_pitch;
   
-          for( i_x = width / 8 ; i_x-- ; )
+          for( i_x = width / 2 ; i_x-- ; )
           {
-              C_YUV420_YUYV( );
-              C_YUV420_YUYV( );
-              C_YUV420_YUYV( );
               C_YUV420_YUYV( );
           }
   
@@ -770,11 +764,8 @@ static void yv12_to_yuy2_c
           p_y1 = p_y2;
           p_y2 += 2 * y_src_pitch;
   
-          for( i_x = width / 8 ; i_x-- ; )
+          for( i_x = width / 2 ; i_x-- ; )
           {
-              C_YUV420_YUYV( );
-              C_YUV420_YUYV( );
-              C_YUV420_YUYV( );
               C_YUV420_YUYV( );
           }
   
@@ -868,6 +859,10 @@ static void yv12_to_yuy2_mmxext
           {
               MMXEXT_YUV420_YUYV( );
           }
+          for( i_x = (width % 8) / 2 ; i_x-- ; )
+          {
+              C_YUV420_YUYV( );
+          }
   
           p_y2 += i_source_margin;
           p_u += i_source_u_margin;
@@ -897,6 +892,10 @@ static void yv12_to_yuy2_mmxext
           for( i_x = width / 8 ; i_x-- ; )
           {
               MMXEXT_YUV420_YUYV( );
+          }
+          for( i_x = (width % 8) / 2 ; i_x-- ; )
+          {
+              C_YUV420_YUYV( );
           }
   
           p_y2 += i_source_margin + y_src_pitch;
@@ -930,6 +929,10 @@ static void yv12_to_yuy2_mmxext
           for( i_x = width / 8 ; i_x-- ; )
           {
               MMXEXT_YUV420_YUYV( );
+          }
+          for( i_x = (width % 8) / 2 ; i_x-- ; )
+          {
+              C_YUV420_YUYV( );
           }
   
           p_y2 += i_source_margin + y_src_pitch;

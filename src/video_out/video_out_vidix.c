@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.67 2004/12/12 22:01:29 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.68 2005/01/23 23:01:12 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -180,16 +180,19 @@ static void free_framedata(vidix_frame_t* frame)
 
 static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
 {   
-   uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
-   uint8_t* cb   = (uint8_t *)frame->vo_frame.base[1];
-   uint8_t* cr   = (uint8_t *)frame->vo_frame.base[2];
+   uint8_t* y    = frame->vo_frame.base[0] + this->sc.displayed_xoffset +
+                     this->sc.displayed_yoffset*frame->vo_frame.pitches[0];
+   uint8_t* cb   = frame->vo_frame.base[1] + this->sc.displayed_xoffset/2 +
+                     this->sc.displayed_yoffset*frame->vo_frame.pitches[1]/2;
+   uint8_t* cr   = frame->vo_frame.base[2]+this->sc.displayed_xoffset/2 +
+                     this->sc.displayed_yoffset*frame->vo_frame.pitches[2]/2;
    uint8_t* dst8 = (this->vidix_mem +
                     this->vidix_play.offsets[this->next_frame] + 
                     this->vidix_play.offset.y);
    int h, w; 
    
-   for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, y, frame->width);
+   for(h = 0; h < this->sc.displayed_height; h++) {
+      xine_fast_memcpy(dst8, y, this->sc.displayed_width);
       y    += frame->vo_frame.pitches[0];
       dst8 += this->dstrides.y;
    }
@@ -197,8 +200,8 @@ static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
    dst8 = (this->vidix_mem + this->vidix_play.offsets[this->next_frame] +
            this->vidix_play.offset.v);
 
-   for(h = 0; h < (frame->height / 2); h++) {
-     for(w = 0; w < (frame->width / 2); w++) {
+   for(h = 0; h < (this->sc.displayed_height / 2); h++) {
+     for(w = 0; w < (this->sc.displayed_height / 2); w++) {
        dst8[2*w+0] = cb[w];
        dst8[2*w+1] = cr[w];
      }
@@ -216,43 +219,53 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
     case XINE_IMGFMT_YUY2:
       yuy2_to_yuy2(
        /* src */
-        frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+        frame->vo_frame.base[0]+this->sc.displayed_xoffset*2+
+          this->sc.displayed_yoffset*frame->vo_frame.pitches[0],
+        frame->vo_frame.pitches[0],
        /* dst */
         base+this->vidix_play.offset.y, this->dstrides.y,
        /* width x height */
-        frame->width, frame->height);
+        this->sc.displayed_width, this->sc.displayed_height);
       break;
       
-    case XINE_IMGFMT_YV12:
+    case XINE_IMGFMT_YV12: {
+      uint8_t* y  = frame->vo_frame.base[0] + this->sc.displayed_xoffset +
+                      this->sc.displayed_yoffset*frame->vo_frame.pitches[0];
+      uint8_t* cb = frame->vo_frame.base[1] + this->sc.displayed_xoffset/2 +
+                      this->sc.displayed_yoffset*frame->vo_frame.pitches[1]/2;
+      uint8_t* cr = frame->vo_frame.base[2] + this->sc.displayed_xoffset/2 +
+                      this->sc.displayed_yoffset*frame->vo_frame.pitches[2]/2;
+      
       if(this->supports_yv12) {
         if(this->vidix_play.flags & VID_PLAY_INTERLEAVED_UV)
           write_frame_YUV420P2(this, frame);
         else
           yv12_to_yv12(
            /* Y */
-            frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+            y, frame->vo_frame.pitches[0],
             base+this->vidix_play.offset.y, this->dstrides.y,
            /* U */
-            frame->vo_frame.base[2], frame->vo_frame.pitches[2],
+            cr, frame->vo_frame.pitches[2],
             base+this->vidix_play.offset.u, this->dstrides.u/2,
            /* V */
-            frame->vo_frame.base[1], frame->vo_frame.pitches[1],
+            cb, frame->vo_frame.pitches[1],
             base+this->vidix_play.offset.v, this->dstrides.v/2,
            /* width x height */
-            frame->width, frame->height);
+            this->sc.displayed_width, this->sc.displayed_height);
       } else
           yv12_to_yuy2(
            /* src */
-            frame->vo_frame.base[0], frame->vo_frame.pitches[0],
-            frame->vo_frame.base[1], frame->vo_frame.pitches[1],
-            frame->vo_frame.base[2], frame->vo_frame.pitches[2],
+            y,  frame->vo_frame.pitches[0],
+            cb, frame->vo_frame.pitches[1],
+            cr, frame->vo_frame.pitches[2],
            /* dst */
             base+this->vidix_play.offset.y, this->dstrides.y,
            /* width x height */
-            frame->width, frame->height,
+            this->sc.displayed_width, this->sc.displayed_height,
            /* progressive */
             frame->vo_frame.progressive_frame);
       break;
+    }
       
     default:
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
@@ -399,6 +412,18 @@ static void vidix_config_playback (vidix_driver_t *this) {
   
   _x_vo_scale_compute_output_size( &this->sc );
   
+  /* We require that the displayed xoffset and width are even.
+   * To prevent displaying more than we're supposed to we round the
+   * xoffset up and the width down */
+  this->sc.displayed_xoffset = (this->sc.displayed_xoffset+1) & ~1;
+  this->sc.displayed_width = this->sc.displayed_width & ~1;
+  
+  /* For yv12 source displayed yoffset and height need to be even too */
+  if(this->delivered_format == XINE_IMGFMT_YV12) {
+    this->sc.displayed_yoffset = (this->sc.displayed_yoffset+1) & ~1;
+    this->sc.displayed_height = this->sc.displayed_height & ~1;
+  }
+  
   if( this->vidix_started > 0 ) {
     lprintf("video_out_vidix: overlay off\n");
     vdlPlaybackOff(this->vidix_handler);
@@ -413,8 +438,8 @@ static void vidix_config_playback (vidix_driver_t *this) {
   
   this->vidix_play.capability = this->vidix_cap.flags; /* every ;) */
   this->vidix_play.blend_factor = 0; /* for now */
-  this->vidix_play.src.x = this->sc.displayed_xoffset;
-  this->vidix_play.src.y = this->sc.displayed_yoffset;
+  this->vidix_play.src.x = 0;
+  this->vidix_play.src.y = 0;
   this->vidix_play.src.w = this->sc.displayed_width;
   this->vidix_play.src.h = this->sc.displayed_height;
   this->vidix_play.dest.x = this->sc.gui_win_x+this->sc.output_xoffset;
@@ -432,27 +457,27 @@ static void vidix_config_playback (vidix_driver_t *this) {
      return;
   }
 
-  lprintf("video_out_vidix: dga_addr = %p frame_size = %d frames = %d\n",
+  lprintf("video_out_vidix: dga_addr = %p frame_size = %u frames = %u\n",
 	  this->vidix_play.dga_addr, this->vidix_play.frame_size,
 	  this->vidix_play.num_frames );
   
-  lprintf("video_out_vidix: offsets[0..2] = %d %d %d\n",
+  lprintf("video_out_vidix: offsets[0..2] = %u %u %u\n",
 	  this->vidix_play.offsets[0], this->vidix_play.offsets[1],
 	  this->vidix_play.offsets[2] );
   
-  lprintf("video_out_vidix: offset.y/u/v = %d/%d/%d\n",
+  lprintf("video_out_vidix: offset.y/u/v = %u/%u/%u\n",
 	  this->vidix_play.offset.y, this->vidix_play.offset.u,
 	  this->vidix_play.offset.v );
   
-  lprintf("video_out_vidix: src.x/y/w/h = %d/%d/%d/%d\n",
+  lprintf("video_out_vidix: src.x/y/w/h = %u/%u/%u/%u\n",
 	  this->vidix_play.src.x, this->vidix_play.src.y,
 	  this->vidix_play.src.w, this->vidix_play.src.h );
   
-  lprintf("video_out_vidix: dest.x/y/w/h = %d/%d/%d/%d\n",
+  lprintf("video_out_vidix: dest.x/y/w/h = %u/%u/%u/%u\n",
 	  this->vidix_play.dest.x, this->vidix_play.dest.y,
 	  this->vidix_play.dest.w, this->vidix_play.dest.h );
   
-  lprintf("video_out_vidix: dest.pitch.y/u/v = %d/%d/%d\n",
+  lprintf("video_out_vidix: dest.pitch.y/u/v = %u/%u/%u\n",
 	  this->vidix_play.dest.pitch.y, this->vidix_play.dest.pitch.u,
 	  this->vidix_play.dest.pitch.v );
          
@@ -468,15 +493,15 @@ static void vidix_config_playback (vidix_driver_t *this) {
   switch(this->vidix_play.fourcc) {
     case IMGFMT_YV12:
       apitch = this->vidix_play.dest.pitch.y-1;
-      this->dstrides.y = (this->sc.delivered_width + apitch) & ~apitch;
+      this->dstrides.y = (this->sc.displayed_width + apitch) & ~apitch;
       apitch = this->vidix_play.dest.pitch.v-1;
-      this->dstrides.v = (this->sc.delivered_width + apitch) & ~apitch;
+      this->dstrides.v = (this->sc.displayed_width + apitch) & ~apitch;
       apitch = this->vidix_play.dest.pitch.u-1;
-      this->dstrides.u = (this->sc.delivered_width + apitch) & ~apitch;
+      this->dstrides.u = (this->sc.displayed_width + apitch) & ~apitch;
       break;
     case IMGFMT_YUY2:
       apitch = this->vidix_play.dest.pitch.y-1;
-      this->dstrides.y = (this->sc.delivered_width*2 + apitch) & ~apitch;
+      this->dstrides.y = (this->sc.displayed_width*2 + apitch) & ~apitch;
       break;
     default:
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
