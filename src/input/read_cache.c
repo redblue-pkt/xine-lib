@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.2 2001/09/11 09:58:15 jkeil Exp $
+ * $Id: read_cache.c,v 1.3 2001/09/11 11:30:56 miguelfreitas Exp $
  */
 
 #include <sys/types.h>
@@ -202,9 +202,9 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
       while (this->mbuf_pool_top==NULL) {
 	pthread_cond_wait (&this->mbuf_pool_not_empty, &this->lock);
       }
-    
+
       mbuf = this->mbuf_pool_top;
-    
+
       this->mbuf_pool_top = this->mbuf_pool_top->next;
     }
 
@@ -213,6 +213,7 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
 
     /* FIXME: error checking */
     lseek (this->fd, madr, SEEK_SET) ;
+    pthread_testcancel();
     read ( this->fd, mbuf->data, 2048*16);
 
     this->cur_mbuf = mbuf;
@@ -227,9 +228,9 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
   while (this->buf_pool_top==NULL) {
     pthread_cond_wait (&this->buf_pool_not_empty, &this->lock);
   }
-    
+
   buf = this->buf_pool_top;
-    
+
   this->buf_pool_top = this->buf_pool_top->next;
 
   buf->mem     = mbuf->data + badr;
@@ -238,7 +239,7 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
 
   mbuf->ref++;
 
-  pthread_cleanup_pop (0); 
+  pthread_cleanup_pop (0);
   pthread_mutex_unlock (&this->lock);
   pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
 

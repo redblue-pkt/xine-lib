@@ -12,12 +12,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.23 2001/09/11 00:57:11 guenter Exp $
+ * $Id: input_dvd.c,v 1.24 2001/09/11 11:30:56 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -240,16 +240,6 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
   return 0;
 }
 
-/*
- * helper function to release buffer
- * in case demux thread is cancelled
- */
-static void pool_release_buffer (void *arg) {
-  buf_element_t *buf = (buf_element_t *) arg;
-  if( buf != NULL )
-    buf->free_buffer(buf);
-}
-
 
 static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t nlen) {
@@ -268,19 +258,11 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
   }
 
   if ((buf = read_cache_read_block (this->read_cache, this->file_lbcur*DVD_VIDEO_LB_LEN))) {
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
-    pthread_cleanup_push( pool_release_buffer, buf );
-    
-    pthread_testcancel();
 
-    buf->type = BUF_DEMUX_BLOCK;
-  
     this->file_lbcur++;
     this->file_size_left -= DVD_VIDEO_LB_LEN;
     buf->type = BUF_DEMUX_BLOCK;
 
-    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
-    pthread_cleanup_pop(0);
   } else {
     printf ("input_dvd: read error in input_dvd plugin\n");
   }
