@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.7 2001/08/24 01:05:30 guenter Exp $
+ * $Id: audio_sun_out.c,v 1.8 2001/09/01 17:54:52 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,6 +78,8 @@ typedef struct sun_driver_s {
       RTSC_ENABLED,
       RTSC_DISABLED
   }		 use_rtsc;
+
+  int            static_delay;         /* estimated delay for non-realtime drivers   */
 } sun_driver_t;
 
 
@@ -140,6 +142,7 @@ static int realtime_samplecounter_available(char *dev)
     delay.tv_sec = 0;
     delay.tv_nsec = 10000000;
     nanosleep(&delay, NULL);
+ 
     gettimeofday(&end, NULL);
     usec_delay = (end.tv_sec - start.tv_sec) * 1000000
 	+ end.tv_usec - start.tv_usec;
@@ -158,7 +161,7 @@ static int realtime_samplecounter_available(char *dev)
     }
 
     if ((increment = info.play.samples - last_samplecnt) > 0) {
-	xprintf(VERBOSE|AUDIO, "ao_sun: sample counter increment: %d\n", increment);
+	xprintf(VERBOSE|AUDIO, "audio_sun_out: sample counter increment: %d\n", increment);
 	if (increment < min_increment) {
 	  min_increment = increment;
 	  if (min_increment < 2000)
@@ -181,7 +184,7 @@ static int realtime_samplecounter_available(char *dev)
     rtsc_ok = RTSC_ENABLED;
 
   xprintf(VERBOSE|AUDIO,
-	  "ao_sun: minimum sample counter increment per 10msec interval: %d\n"
+	  "audio_sun_out: minimum sample counter increment per 10msec interval: %d\n"
 	  "\t%susing sample counter based timing code\n",
 	  min_increment, rtsc_ok == RTSC_ENABLED ? "" : "not ");
     
@@ -273,7 +276,7 @@ static int ao_sun_open(ao_driver_t *this_gen,
   xprintf (VERBOSE|AUDIO, "audio_sun_out: audio rate : %d requested, %d provided by device/sec\n",
 	   this->input_sample_rate, this->output_sample_rate);
 
-  printf ("audio_sun_out : %d channels output\n",this->num_channels);
+  printf ("audio_sun_out: %d channels output\n",this->num_channels);
 
   return this->output_sample_rate;
 }
@@ -300,7 +303,7 @@ static int ao_sun_delay(ao_driver_t *this_gen)
       && this->use_rtsc == RTSC_ENABLED) {
     return this->frames_in_buffer - info.play.samples;
   }
-  return 0;
+  return this->static_delay / this->bytes_per_frame;
 }
 
 static int ao_sun_get_gap_tolerance (ao_driver_t *this_gen)
@@ -328,6 +331,10 @@ static int ao_sun_write(ao_driver_t *this_gen,
 static void ao_sun_close(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
+#ifdef	__svr4__
+  /* remove buffered data from audio driver's STREAMS queue */
+  ioctl(this->audio_fd, I_FLUSH, FLUSHW);
+#endif
   close(this->audio_fd);
   this->audio_fd = -1;
 }
@@ -453,7 +460,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this->capabilities = 0;
 
-  printf ("audio_sun_out : supported modes are ");
+  printf ("audio_sun_out: supported modes are ");
 
   this->capabilities |= AO_CAP_MODE_MONO;
   printf ("mono ");
@@ -468,6 +475,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this->use_rtsc = realtime_samplecounter_available(this->audio_dev);
   this->output_sample_rate = 0;
+
+  this->static_delay = config->lookup_int (config, "sun_static_delay", 1000);
 
   this->ao_driver.get_capabilities	= ao_sun_get_capabilities;
   this->ao_driver.get_property		= ao_sun_get_property;
