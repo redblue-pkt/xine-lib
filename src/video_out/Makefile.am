@@ -1,6 +1,10 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIRS = libdha vidix macosx
+if HAVE_MACOSX_VIDEO
+macosx_subdirs = macosx
+endif
+
+SUBDIRS = libdha vidix $(macosx_subdirs)
 
 EXTRA_DIST = video_out_directfb.c video_out_opengl.c video_out_directx.c video_out_macosx.c
 
@@ -165,11 +169,13 @@ xineplug_vo_out_none_la_SOURCES =  video_out_none.c
 xineplug_vo_out_none_la_LIBADD = $(XINE_LIB)
 xineplug_vo_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
+if HAVE_MACOSX_VIDEO
 xineplug_vo_out_macosx_la_SOURCES =  alphablend.c video_out_macosx.m
 xineplug_vo_out_macosx_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
         $(GLU_LIBS) $(X_LIBS) $(XINE_LIB) macosx/libxine_macosx_video.la
 xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ -framework Cocoa -framework OpenGL -lobjc -umbrella AppKit
 xineplug_vo_out_macosx_la_OBJCFLAGS = $(OBJCFLAGS) $(AM_CFLAGS)
+endif
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h \
 	yuv2rgb.h x11osd.h
