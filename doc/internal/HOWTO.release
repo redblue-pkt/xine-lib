@@ -42,7 +42,7 @@ Currently, best practice to get a release out looks like this:
    - you might want to run "make release-check", it will tell you about files
      from CVS missing in the release; be sure to check these
 
-       OR
+       AND
 
      you might want to run "make distcheck", this will test the
      packaging, building, and testing of all xine-lib. This will
