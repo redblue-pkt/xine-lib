@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.16 2001/07/10 21:07:55 f1rmb Exp $
+ * $Id: input_file.c,v 1.17 2001/07/11 10:15:27 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,6 +44,13 @@ extern int errno;
 static uint32_t xine_debug;
 
 #define MAXFILES      65535
+
+#ifndef NAME_MAX
+#define NAME_MAX 256
+#endif
+#ifndef PATH_MAX
+#define PATH_MAX 768
+#endif
 
 #ifndef S_ISLNK
 #define S_ISLNK(mode)  0
