@@ -235,4 +235,10 @@ Contributions
   Tim Ferguson <timf@mail.csse.monash.edu.au>
     CYUV and RoQ video decoders
 
+  Andrew Patrikalakis <anrp@irulethe.net>
+    powerpc assembly memcpy() implementaions (after lots of discussion with
+			Rogério Brito <rbrito@iname.com>,
+			Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+			Michel Dänzer <daenzer@debian.org> and others)
+
     (let us know if we've forgotten anyone)
