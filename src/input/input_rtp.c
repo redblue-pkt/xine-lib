@@ -165,7 +165,7 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   /* datagram socket */
   if (bind(s, (struct sockaddr *)&sin, sizeof(sin))) {
     LOG_MSG_STDERR(xine, _("bind(): %s.\n"), strerror(errno));
-    exit(1);
+    abort();
   }
   /* multicast ? */
   if ((ntohl(sin.sin_addr.s_addr) >> 28) == 0xe) {
@@ -184,7 +184,7 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
     if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,&mreqn,sizeof(mreqn))) {
       LOG_MSG_STDERR(xine, _("setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"),
 		     strerror(errno));
-      exit(1);
+      abort();
     }
   }
   
@@ -338,7 +338,7 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
 		            input_plugin_read_loop, (void *)&this)) != 0) {
     LOG_MSG_STDERR(this->xine, _("input_rtp: can't create new thread (%s)\n"),
 		   strerror(err));
-    exit (1);
+    abort();
   }
   pthread_attr_destroy(&thread_attrs);
 
@@ -528,12 +528,12 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     input_buffer_t *buf = xine_xmalloc(sizeof(input_buffer_t));
     if (!buf) {
       LOG_MSG_STDERR(xine, _("unable to allocate input buffer.\n"));
-      exit(1);
+      abort();
     }
     buf->buf = xine_xmalloc(IBUFFER_SIZE);
     if (!buf->buf) {
       LOG_MSG_STDERR(xine, _("unable to allocate input buffer.\n"));
-      exit(1);
+      abort();
     }
     buf->next = this->free_buffers;
     this->free_buffers = buf;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.93 2002/04/09 03:38:01 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.94 2002/04/29 23:32:00 jcdutton Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1003,7 +1003,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
 	    strerror(err));
     /* FIXME: how does this happen ? */
     printf (_("video_out: sorry, this should not happen. please restart xine.\n"));
-    exit(1);
+    abort();
   } else
     printf ("video_out: thread created\n");
 

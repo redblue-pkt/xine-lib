@@ -349,7 +349,7 @@ static int build_table(VLC *vlc, int table_nb_bits,
 #endif
                     if (table_bits[j] != 0) {
                         fprintf(stderr, "incorrect codes\n");
-                        exit(1);
+                        abort();
                     }
                     table_bits[j] = n;
                     table_codes[j] = i;

@@ -609,7 +609,7 @@ int main(int argc, char **argv)
                        img, XSIZE, XSIZE, YSIZE);
     if (memcmp(img1, img2, xsize * ysize) != 0) {
         fprintf(stderr, "mmx error\n");
-        exit(1);
+        abort();
     }
     printf("MMX OK\n");
 #endif

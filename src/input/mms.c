@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.5 2002/04/28 15:33:06 guenter Exp $
+ * $Id: mms.c,v 1.6 2002/04/29 23:31:59 jcdutton Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -777,7 +777,7 @@ static int get_media_packet (mms_t *this) {
 	 || (pre_header[5] != 0xfa) || (pre_header[4] != 0xce) ) {
 
       printf ("missing signature\n");
-      exit (1);
+      abort();
 
     }
 
@@ -796,7 +796,7 @@ static int get_media_packet (mms_t *this) {
       return 0;
     } else if (command != 0x05) {
       printf ("unknown command %02x\n", command);
-      exit (1);
+      abort();
     }
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.75 2002/04/23 15:45:26 esnel Exp $
+ * $Id: load_plugins.c,v 1.76 2002/04/29 23:32:00 jcdutton Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -77,7 +77,7 @@ static void segv_handler (int hubba) {
   printf ("\nload_plugins: Initialization of plugin '%s' failed (segmentation fault).\n",plugin_name);
   printf ("load_plugins: You probably need to remove the offending file.\n");
   printf ("load_plugins: (This error is usually due an incorrect plugin version)\n"); 
-  exit(1);
+  abort();
 }
 
 static void install_segv_handler(void){
@@ -100,7 +100,7 @@ void load_demux_plugins (xine_t *this,
   if (this == NULL || config == NULL) {
     printf (_("%s(%s@%d): parameter should be non null, exiting\n"),
 	    __FILE__, __XINE_FUNCTION__, __LINE__);
-    exit(1);
+    abort();
   }
 
   this->num_demuxer_plugins = 0;
@@ -160,7 +160,7 @@ void load_demux_plugins (xine_t *this,
 	  
 	  if(this->num_demuxer_plugins > DEMUXER_PLUGIN_MAX) {
 	    printf ( _("load_plugins: too many demux plugins installed, exiting.\n"));
-	    exit(1);
+	    abort();
 	  }
 	}
       }
@@ -325,7 +325,7 @@ void load_input_plugins (xine_t *this,
 	  if(this->num_input_plugins > INPUT_PLUGIN_MAX) {
 	    printf (_("%s(%d): too many input plugins installed, "
 		      "exiting.\n"), __FILE__, __LINE__);
-	    exit(1);
+	    abort();
 	  }
 	}
       }
@@ -338,7 +338,7 @@ void load_input_plugins (xine_t *this,
   if (this->num_input_plugins == 0) {
     printf (_("load_plugins: no input plugins found in %s! - "
 	      "Did you install xine correctly??\n"), XINE_PLUGINDIR);
-    exit (1);
+    abort();
   }
   
 }
@@ -459,7 +459,7 @@ void load_decoder_plugins (xine_t *this,
   if(this == NULL || config == NULL) {
     printf ( _("%s(%s@%d): parameter should be non null, exiting\n"),
 	     __FILE__, __XINE_FUNCTION__, __LINE__);
-    exit(1);
+    abort();
   }
 
   /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.35 2002/04/19 22:57:07 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.36 2002/04/29 23:31:59 jcdutton Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1321,7 +1321,7 @@ static void demux_asf_start (demux_plugin_t *this_gen,
 			       NULL, demux_asf_loop, this)) != 0) {
         printf ("demux_asf: can't create new thread (%s)\n",
 	      strerror(err));
-        exit (1);
+        abort();
       }
     }
   }

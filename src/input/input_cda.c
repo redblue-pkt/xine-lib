@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.22 2002/04/24 08:12:13 f1rmb Exp $
+ * $Id: input_cda.c,v 1.23 2002/04/29 23:31:59 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -289,7 +289,8 @@ static char *_cda_cddb_get_default_location(void) {
  * Small sighandler ;-)
  */
 static void die(int signal) {
-  exit(signal);
+  printf("Signal %d\n",signal);
+  abort();
 }
 
 /*

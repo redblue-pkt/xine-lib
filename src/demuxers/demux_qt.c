@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.27 2002/04/23 13:17:35 esnel Exp $
+ * $Id: demux_qt.c,v 1.28 2002/04/29 23:31:59 jcdutton Exp $
  *
  * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
@@ -3206,7 +3206,7 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	cmov_buf = (unsigned char *)malloc( cmov_sz );
 	if (cmov_buf == 0) {
 	  printf ("demux_qt: QT cmov: malloc err 0");
-	  exit(1);
+	  abort();
 	}
 	/* Read in  compressed header */
 	
@@ -3223,7 +3223,7 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	moov_buf = (unsigned char *)malloc( moov_sz );
 	if (moov_buf == 0) {
 	  printf ("demux_qt: QT cmov: malloc err moov_sz %u\n", moov_sz);
-	  exit(1);
+	  abort();
 	}
 	
 	zstrm.zalloc          = (alloc_func)0;
@@ -4310,7 +4310,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
     if ((err = pthread_create (&this->thread, NULL, demux_qt_loop, this)) != 0) {
       printf ("demux_qt: can't create new thread (%s)\n", strerror(err));
-      exit (1);
+      abort();
     }
   }
   else {

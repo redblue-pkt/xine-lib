@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.71 2002/04/14 00:24:45 guenter Exp $
+ * $Id: audio_decoder.c,v 1.72 2002/04/29 23:32:00 jcdutton Exp $
  *
  *
  * functions that implement audio decoding
@@ -285,7 +285,7 @@ void audio_decoder_init (xine_t *this) {
 			     &pth_attrs, audio_decoder_loop, this)) != 0) {
     fprintf (stderr, "audio_decoder: can't create new thread (%s)\n",
 	     strerror(err));
-    exit (1);
+    abort();
   }
 }
 

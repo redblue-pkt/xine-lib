@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.95 2002/04/27 16:33:24 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.96 2002/04/29 23:31:59 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -969,7 +969,7 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 			     NULL, demux_mpeg_block_loop, this)) != 0) {
       printf ("demux_mpeg_block: can't create new thread (%s)\n",
 	      strerror(err));
-      exit (1);
+      abort();
     }
   }
   else {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.12 2002/04/23 13:30:42 esnel Exp $
+ * $Id: demux_cda.c,v 1.13 2002/04/29 23:31:59 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -222,7 +222,7 @@ static void demux_cda_start (demux_plugin_t *this_gen,
     if ((err = pthread_create (&this->thread,
 			       NULL, demux_cda_loop, this)) != 0) {
       printf ("demux_cda: can't create new thread (%s)\n", strerror(err));
-      exit(1);
+      abort();
     }      
   }
   pthread_mutex_unlock( &this->mutex );

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.9 2002/04/26 17:19:04 jkeil Exp $
+ * $Id: video_out_opengl.c,v 1.10 2002/04/29 23:32:00 jcdutton Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -686,7 +686,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	 */
 	if (! glXMakeCurrent (this->display, this->drawable, ctx)) {
 	    fprintf (stderr, "video_out_opengl: no OpenGL support available (glXMakeCurrent)\n    The drawable does not seem to be updated correctly.\n");
-	    exit (1);
+	    abort();
 	}
 	DEBUGF ((stderr, "set context done\n"));
 	if (ctx == this->context)

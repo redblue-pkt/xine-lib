@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.113 2002/04/19 22:58:46 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.114 2002/04/29 23:32:00 jcdutton Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -294,7 +294,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     break;
   default:
     fprintf (stderr, "create_ximage: unknown format %08x\n",format);
-    exit (1);
+    abort();
   }
 
   if (this->use_shm) {
@@ -397,7 +397,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
       break;
     default:
       fprintf (stderr, "create_ximage: unknown format %08x\n",format);
-      exit (1);
+      abort();
     }
 
     image = XvCreateImage (this->display, this->xv_port,

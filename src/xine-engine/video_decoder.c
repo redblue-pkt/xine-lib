@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.83 2002/04/16 12:27:20 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.84 2002/04/29 23:32:00 jcdutton Exp $
  *
  */
 
@@ -294,7 +294,7 @@ void video_decoder_init (xine_t *this) {
 			     &pth_attrs, video_decoder_loop, this)) != 0) {
     fprintf (stderr, "video_decoder: can't create new thread (%s)\n",
 	     strerror(err));
-    exit (1);
+    abort();
   }
 
   this->video_in_discontinuity = 0;

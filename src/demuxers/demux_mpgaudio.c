@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.39 2002/04/23 13:30:42 esnel Exp $
+ * $Id: demux_mpgaudio.c,v 1.40 2002/04/29 23:31:59 jcdutton Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -366,7 +366,7 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
 			     NULL, demux_mpgaudio_loop, this)) != 0) {
       printf ("demux_mpgaudio: can't create new thread (%s)\n",
 	      strerror(err));
-      exit (1);
+      abort();
     }
   }
   else {

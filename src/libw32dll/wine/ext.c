@@ -251,7 +251,7 @@ LPVOID FILE_dommap( int unix_handle, LPVOID start,
             if ((fdzero = open( "/dev/zero", O_RDONLY )) == -1)
             {
     		perror( "Cannot open /dev/zero for READ. Check permissions! error: " );
-                exit(1);
+                abort();
             }
         }
         fd = fdzero;

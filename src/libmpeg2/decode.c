@@ -207,7 +207,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     case 0x00:	/* picture_start_code */
 	if (mpeg2_header_picture (picture, buffer)) {
 	    fprintf (stderr, "bad picture header\n");
-	    exit (1);
+	    abort();
 	}
 
 	mpeg2dec->is_frame_needed=0;
@@ -287,7 +287,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     case 0xb3:	/* sequence_header_code */
 	if (mpeg2_header_sequence (picture, buffer)) {
 	    fprintf (stderr, "bad sequence header\n");
-	    /* exit (1); */
+	    /* abort(); */
 	} else if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
@@ -327,7 +327,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     case 0xb5:	/* extension_start_code */
 	if (mpeg2_header_extension (picture, buffer)) {
 	    fprintf (stderr, "bad extension\n");
-	    exit (1);
+	    abort();
 	}
 	break;
 
@@ -338,7 +338,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     case 0xb8:	/* group of pictures start code */
 	if (mpeg2_header_group_of_pictures (picture, buffer)) {
 	  printf ("libmpeg2: bad group of pictures\n");
-	  exit (1);
+	  abort();
 	}
     default:
 	if (code >= 0xb9)

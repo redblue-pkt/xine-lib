@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.29 2002/02/26 22:53:58 guenter Exp $
+ * $Id: yuv2rgb.c,v 1.30 2002/04/29 23:32:00 jcdutton Exp $
  */
 
 #include "config.h"
@@ -2321,7 +2321,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
 
   default:
     fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
-    exit (1);
+    abort();
   }
   
   for (i = 0; i < 256; i++) {
@@ -2451,7 +2451,7 @@ static void yuv2rgb_c_init (yuv2rgb_factory_t *this)
 
   default:
     printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
-    exit (1);
+    abort();
   }
 
 }
@@ -2494,7 +2494,7 @@ static void yuv2rgb_single_pixel_init (yuv2rgb_factory_t *this) {
 
   default:
     printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
-    exit (1);
+    abort();
   }
 }
 

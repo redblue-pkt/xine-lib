@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.21 2002/04/27 23:00:40 cvogler Exp $
+ * $Id: configfile.c,v 1.22 2002/04/29 23:32:00 jcdutton Exp $
  *
  * config file management - implementation
  *
@@ -644,7 +644,7 @@ config_values_t *xine_config_file_init (char *filename) {
    
   } else {
     printf ("configfile: could not allocate config object\n");
-    exit (1);
+    abort();
   }
 
   this->register_string = config_file_register_string;
@@ -667,6 +667,10 @@ config_values_t *xine_config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.22  2002/04/29 23:32:00  jcdutton
+ * Replace all exit(1) with abort().
+ * xine-lib should really never do an exit or abort, but instead pass back nice error values to the calling application, but until that happens, use abort() as that is tracable with gdb, whereas exit(1) is not backtraceable.
+ *
  * Revision 1.21  2002/04/27 23:00:40  cvogler
  * Add function to unregister configfile callback.
  *

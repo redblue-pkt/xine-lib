@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.52 2002/04/14 00:24:45 guenter Exp $
+ * $Id: audio_out.c,v 1.53 2002/04/29 23:32:00 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -490,7 +490,7 @@ static int ao_open(ao_instance_t *this,
 
     printf ("audio_out: can't create thread (%s)\n", strerror(err));
     printf ("audio_out: sorry, this should not happen. please restart xine.\n");
-    exit(1);
+    abort();
 
   } else
     printf ("audio_out: thread created\n");

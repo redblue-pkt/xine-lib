@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.25 2002/04/23 13:30:42 esnel Exp $
+ * $Id: demux_pes.c,v 1.26 2002/04/29 23:31:59 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -105,7 +105,7 @@ static uint32_t read_bytes (demux_pes_t *this, int n) {
     break;
   default:
     printf ("demux_pes: how how - something wrong in wonderland demux:read_bytes (%d)\n", n);
-    exit (1);
+    abort();
   }
 
   return res;
@@ -488,7 +488,7 @@ static void demux_pes_start (demux_plugin_t *this_gen,
 			     NULL, demux_pes_loop, this)) != 0) {
       printf ("demux_pes: can't create new thread (%s)\n",
 	      strerror(err));
-      exit (1);
+      abort();
     }
   }
   else {

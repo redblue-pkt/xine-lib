@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.39 2002/04/23 13:30:42 esnel Exp $
+ * $Id: demux_elem.c,v 1.40 2002/04/29 23:31:59 jcdutton Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -253,7 +253,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
 			     NULL, demux_mpeg_elem_loop, this)) != 0) {
       printf ("demux_elem: can't create new thread (%s)\n",
 	      strerror(err));
-      exit (1);
+      abort();
     }
   }
   pthread_mutex_unlock( &this->mutex );

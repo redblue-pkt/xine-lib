@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.31 2002/04/28 10:12:49 esnel Exp $
+ * $Id: xine_decoder.c,v 1.32 2002/04/29 23:31:59 jcdutton Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -73,7 +73,7 @@ void catch_sigsegv(int sig)
          "divx4: divx4_forceversion:1\n"
          "divx4: see xine-ui/doc/README.divx4 for details.\n"
          "divx4: fatal error; exiting.\n");
-  exit(1);
+  abort();
 }
 #endif
 

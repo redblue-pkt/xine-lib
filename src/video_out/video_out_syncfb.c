@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.64 2002/04/28 18:55:13 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.65 2002/04/29 23:32:00 jcdutton Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -437,19 +437,19 @@ static void syncfb_update_frame_format (vo_driver_t *this_gen,
       
       if(frame->id < 0 ) {
 	 printf("video_out_syncfb: aborted. (shared memory error in shmget)\n");
-	 exit(1);
+	 abort();
       }
       
       frame->vo_frame.base[0] = shmat(frame->id, 0, 0);   
       
       if(frame->vo_frame.base[0] == NULL) {
 	 printf("video_out_syncfb: failed. (shared memory error => address error)\n");
-	 exit(1);
+	 abort();
       }
   
       if(frame->vo_frame.base[0] == (void *) -1) {
 	 printf("video_out_syncfb: failed. (shared memory error => address error)\n");
-	 exit(1);
+	 abort();
       }
       
       shmctl(frame->id, IPC_RMID, 0);

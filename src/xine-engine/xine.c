@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.121 2002/04/28 17:39:36 guenter Exp $
+ * $Id: xine.c,v 1.122 2002/04/29 23:32:00 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -88,7 +88,7 @@ void xine_notify_stream_finished (xine_t *this) {
 			     NULL, xine_notify_stream_finished_thread, this)) != 0) {
     printf (_("xine_notify_stream_finished: can't create new thread (%s)\n"),
 	    strerror(err));
-    exit (1);
+    abort();
   }
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.18 2002/03/26 00:38:56 f1rmb Exp $
+ * $Id: video_out_aa.c,v 1.19 2002/04/29 23:32:00 jcdutton Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -168,7 +168,7 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
       frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
     } else {
       printf ("alert! unsupported image format %04x\n", format);
-      exit (1);
+      abort();
     }
 
     frame->ratio_code = ratio_code;

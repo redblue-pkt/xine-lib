@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.58 2002/04/28 01:50:54 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.59 2002/04/29 23:31:59 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -112,7 +112,7 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
     break;
   default:
     printf ("demux_mpeg: how how - something wrong in wonderland demux:read_bytes (%d)\n", n);
-    exit (1);
+    abort();
   }
 
   return res;
@@ -833,7 +833,7 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 			     NULL, demux_mpeg_loop, this)) != 0) {
       printf ("demux_mpeg: can't create new thread (%s)\n",
 	      strerror(err));
-      exit (1);
+      abort();
     }
   }
   else {
