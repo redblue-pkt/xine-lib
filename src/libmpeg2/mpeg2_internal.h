@@ -194,9 +194,13 @@ typedef struct cpu_state_s {
 } cpu_state_t;
 
 /* cpu_state.c */
+extern void (* mpeg2_cpu_state_save) (cpu_state_t * state);
+extern void (* mpeg2_cpu_state_restore) (cpu_state_t * state);
 void mpeg2_cpu_state_init (uint32_t mm_accel);
 
 /* header.c */
+extern uint8_t mpeg2_scan_norm[64];
+extern uint8_t mpeg2_scan_alt[64];
 void mpeg2_header_state_init (picture_t * picture);
 int mpeg2_header_picture (picture_t * picture, uint8_t * buffer);
 int mpeg2_header_sequence (picture_t * picture, uint8_t * buffer);
@@ -204,6 +208,10 @@ int mpeg2_header_extension (picture_t * picture, uint8_t * buffer);
 int mpeg2_header_group_of_pictures (picture_t * picture, uint8_t * buffer);
 
 /* idct.c */
+extern void (* mpeg2_idct_copy) (int16_t * block, uint8_t * dest, int stride);
+extern void (* mpeg2_idct_add) (int16_t * block, uint8_t * dest, int stride);
+extern void (* mpeg2_idct) (int16_t * block);
+extern void (* mpeg2_zero_block) (int16_t * block);
 void mpeg2_idct_init (uint32_t mm_accel);
 
 /* idct_mlib.c */
@@ -244,6 +252,7 @@ typedef struct mpeg2_mc_s {
      MC_avg_o_8_##x,  MC_avg_x_8_##x,  MC_avg_y_8_##x,  MC_avg_xy_8_##x}  \
 };
 
+extern mpeg2_mc_t mpeg2_mc;
 extern mpeg2_mc_t mpeg2_mc_c;
 extern mpeg2_mc_t mpeg2_mc_mmx;
 extern mpeg2_mc_t mpeg2_mc_mmxext;

@@ -41,19 +41,7 @@
 #define SIGNED_INTRA   XINE_VO_SIGNED_INTRA
 #define ACCEL          (MOTION_ACCEL | IDCT_ACCEL)
 
-
-extern mpeg2_mc_t mpeg2_mc;
-extern void (* mpeg2_idct_copy) (int16_t * block, uint8_t * dest, int stride);
-extern void (* mpeg2_idct_add) (int16_t * block, uint8_t * dest, int stride);
-extern void (* mpeg2_idct) (int16_t * block);
-extern void (* mpeg2_cpu_state_save) (cpu_state_t * state);
-extern void (* mpeg2_cpu_state_restore) (cpu_state_t * state);
-extern void (* mpeg2_zero_block) (int16_t * block);
-
 #include "vlc.h"
-
-extern uint8_t mpeg2_scan_norm[64];
-extern uint8_t mpeg2_scan_alt[64];
 
 /* original (non-patched) scan tables */
 static uint8_t mpeg2_scan_norm_orig[64] ATTR_ALIGN(16) =
@@ -1319,27 +1307,6 @@ static void motion_reuse (picture_t * picture, motion_t * motion,
     motion_y = motion->pmv[0][1];
 
     MOTION (table, motion->ref[0], motion_x, motion_y, 16, 0);
-}
-
-// TODO don't need this routine
-static void motion_zero (picture_t * picture, motion_t * motion,
-			 void (** table) (uint8_t *, uint8_t *, int, int))
-{
-  if(picture->mc->xvmc_accel==0) {
-    table[0] (picture->dest[0] + picture->offset,
-	      (motion->ref[0][0] + picture->offset +
-	       picture->v_offset * picture->pitches[0]),
-	      picture->pitches[0], 16);
-
-    table[4] (picture->dest[1] + (picture->offset >> 1),
-	      motion->ref[0][1] + (picture->offset >> 1) +
-	      (picture->v_offset >> 1) * picture->pitches[1],
-	      picture->pitches[1], 8);
-    table[4] (picture->dest[2] + (picture->offset >> 1),
-	      motion->ref[0][2] + (picture->offset >> 1) +
-	      (picture->v_offset >> 1) * picture->pitches[2],
-	      picture->pitches[2], 8);
-  }
 }
 
 /* like motion_frame, but parsing without actual motion compensation */

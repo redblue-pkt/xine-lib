@@ -499,8 +499,6 @@ void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride)
 
 void mpeg2_idct_altivec_init (void)
 {
-    extern uint8_t mpeg2_scan_norm[64];
-    extern uint8_t mpeg2_scan_alt[64];
     int i, j;
 
     i = constants[0][0];	/* just pretending - keeps gcc happy */

@@ -30,12 +30,6 @@
 #include "mpeg2_internal.h"
 #include "attributes.h"
 
-extern mpeg2_mc_t mpeg2_mc;
-extern void (* mpeg2_idct_copy) (int16_t * block, uint8_t * dest, int stride);
-extern void (* mpeg2_idct_add) (int16_t * block, uint8_t * dest, int stride);
-extern void (* mpeg2_cpu_state_save) (cpu_state_t * state);
-extern void (* mpeg2_cpu_state_restore) (cpu_state_t * state);
-
 #include "vlc.h"
 
 static int non_linear_quantizer_scale [] = {
