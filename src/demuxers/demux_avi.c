@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.49 2001/11/07 18:26:36 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.50 2001/11/07 19:06:15 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -879,37 +879,18 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   printf ("demux_avi: video format = %s, audio format = 0x%lx\n",
 	  this->avi->compressor, this->avi->a_fmt);
   this->no_audio = 0;
-  switch (this->avi->a_fmt) {
-  case 0x01:
-    this->avi->audio_type     = BUF_AUDIO_LPCM_LE;
-    break;
-  case 0x2000:
-    this->avi->audio_type     = BUF_AUDIO_A52;
-    break;
-  case 0x50:
-  case 0x55:
-    this->avi->audio_type     = BUF_AUDIO_MPEG;
-    break;
-  case 0x160:
-  case 0x161:
-    this->avi->audio_type     = BUF_AUDIO_DIVXA;
-    break;
-  case 0x02:
-    this->avi->audio_type     = BUF_AUDIO_MSADPCM;
-    break;
-  case 0x11:
-    this->avi->audio_type     = BUF_AUDIO_IMAADPCM;
-    break;
-  case 0x31:
-  case 0x32:
-    this->avi->audio_type     = BUF_AUDIO_MSGSM;
-    break;
-  default:
+  
+  this->avi->audio_type = formattag_to_buf_audio (this->avi->a_fmt);
+   
+  if( !this->avi->audio_type ) {
     printf ("demux_avi: unknown audio type 0x%lx\n", this->avi->a_fmt);
     this->no_audio  = 1;
-    this->avi->audio_type     = BUF_AUDIO_MPEG;
-    break;
+    this->avi->audio_type     = BUF_CONTROL_NOP;
   }
+  else
+    printf ("demux_avi: audio type %s (wFormatTag 0x%x)\n",
+            buf_audio_name(this->avi->audio_type),
+            (int)this->avi->a_fmt);
 
   AVI_seek_start (this->avi);
 

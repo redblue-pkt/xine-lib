@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.21 2001/11/07 18:26:36 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.22 2001/11/07 19:06:15 miguelfreitas Exp $
  *
  *
  * contents:
@@ -70,7 +70,7 @@ extern "C" {
 #define BUF_CONTROL_AUDIO_CHANNEL 0x01050000
 #define BUF_CONTROL_SPU_CHANNEL   0x01060000
 
-/* video buffer types:  */
+/* video buffer types:  (please keep in sync with buffer_types.c) */
 
 #define BUF_VIDEO_BASE		0x02000000
 #define BUF_VIDEO_MPEG		0x02000000
@@ -95,7 +95,7 @@ extern "C" {
 #define BUF_VIDEO_WMV7		0x02130000
 #define BUF_VIDEO_WMV8		0x02140000
 
-/* audio buffer types:  */
+/* audio buffer types:  (please keep in sync with buffer_types.c) */
 
 #define BUF_AUDIO_BASE		0x03000000
 #define BUF_AUDIO_A52		0x03000000
@@ -193,9 +193,17 @@ struct fifo_buffer_s
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size);
 
 
-/* provide BUF_VIDEO_xxx given the fourcc */
+/* return BUF_VIDEO_xxx given the fourcc */
 uint32_t fourcc_to_buf_video( void * fourcc );
+
+/* return codec name given BUF_VIDEO_xxx */
 char * buf_video_name( uint32_t buf_type );
+
+/* return BUF_VIDEO_xxx given the formattag */
+uint32_t formattag_to_buf_audio( uint16_t formattag );
+
+/* return codec name given BUF_VIDEO_xxx */
+char * buf_audio_name( uint32_t buf_type );
 
 #ifdef __cplusplus
 }

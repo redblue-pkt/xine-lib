@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.1 2001/11/07 18:27:45 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.2 2001/11/07 19:06:15 miguelfreitas Exp $
  *
  *
  * contents:
@@ -49,6 +49,13 @@ typedef struct video_db_s {
    uint32_t buf_type;
    char *name;
 } video_db_t;
+
+typedef struct audio_db_s {
+   uint16_t formattag[10];
+   uint32_t buf_type;
+   char *name;
+} audio_db_t;
+
 
 static video_db_t video_db[] = {
 {
@@ -253,6 +260,82 @@ static video_db_t video_db[] = {
 { { 0 }, 0, "last entry" }
 };
 
+
+static audio_db_t audio_db[] = {
+{
+  {
+    0x2000, 0
+  },
+  BUF_AUDIO_A52,
+  "AC3"
+},
+{
+  {
+    0x50, 0x55, 0
+  },
+  BUF_AUDIO_MPEG,
+  "MPEG layer 2/3"
+},
+{
+  {
+    0
+  },
+  BUF_AUDIO_LPCM_BE,
+  "Uncompressed PCM big endian"
+},
+{
+  {
+    0x01, 0
+  },
+  BUF_AUDIO_LPCM_LE,
+  "Uncompressed PCM little endian"
+},
+{
+  {
+    0x160, 0x161, 0
+  },
+  BUF_AUDIO_DIVXA,
+  "DivX audio (WMA)"
+},
+{
+  {
+    0
+  },
+  BUF_AUDIO_DTS,
+  "DTS"
+},
+{
+  {
+    0x02, 0
+  },
+  BUF_AUDIO_MSADPCM,
+  "MS ADPCM"
+},
+{
+  {
+    0x11, 0
+  },
+  BUF_AUDIO_IMAADPCM,
+  "IMA ADPCM"
+},
+{
+  {
+    0x31, 0x32, 0
+  },
+  BUF_AUDIO_MSGSM,
+  "MS GSM"
+},
+{
+  {
+    0
+  },
+  BUF_AUDIO_VORBIS,
+  "OggVorbis Audio"
+},
+{ { 0 }, 0, "last entry" }
+};
+
+
 static unsigned long str2ulong(unsigned char *str)
 {
   return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
@@ -295,3 +378,36 @@ int i;
   return "unknow";
 }
 
+uint32_t formattag_to_buf_audio( uint16_t formattag ) {
+int i, j;
+static uint16_t cached_formattag=0;
+static uint32_t cached_buf_type=0;
+
+  if( formattag == cached_formattag )
+    return cached_buf_type;
+    
+  for( i = 0; audio_db[i].buf_type; i++ ) {
+    for( j = 0; audio_db[i].formattag[j]; j++ ) {
+      if( formattag == audio_db[i].formattag[j] ) {
+        cached_formattag = formattag;
+        cached_buf_type = audio_db[i].buf_type;
+        return audio_db[i].buf_type;
+      }
+    }
+  }
+  return 0;
+}
+
+char * buf_audio_name( uint32_t buf_type ) {
+int i;
+  
+  buf_type &= 0xffff0000;
+  
+  for( i = 0; audio_db[i].buf_type; i++ ) {
+    if( buf_type == audio_db[i].buf_type ) {
+        return audio_db[i].name;
+    }
+  }
+
+  return "unknow";
+}

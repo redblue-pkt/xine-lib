@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.7 2001/11/07 18:26:36 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.8 2001/11/07 19:06:15 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -295,40 +295,17 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
   if (!this->audio_fifo)
     return;
 
-  switch (wavex->wFormatTag) {
-  case 0x01:
-    this->streams[this->num_streams].buf_type     = BUF_AUDIO_LPCM_LE;
-    break;
-  case 0x2000:
-    this->streams[this->num_streams].buf_type     = BUF_AUDIO_A52;
-    break;
-  case 0x50:
-  case 0x55:
-    this->streams[this->num_streams].buf_type     = BUF_AUDIO_MPEG;
-    break;
-  case 0x160:
-  case 0x161:
-    this->streams[this->num_streams].buf_type     = BUF_AUDIO_DIVXA;
-    break;
-  case 0x02:
-    this->streams[this->num_streams].buf_type     = BUF_AUDIO_MSADPCM;
-    break;
-  case 0x11:
-    this->streams[this->num_streams].buf_type     = BUF_AUDIO_IMAADPCM;
-    break;
-  case 0x31:
-  case 0x32:
-    this->streams[this->num_streams].buf_type     = BUF_AUDIO_MSGSM;
-    break;
-  default:
+  this->streams[this->num_streams].buf_type = 
+    formattag_to_buf_audio ( wavex->wFormatTag );
+    
+  if ( !this->streams[this->num_streams].buf_type ) {
     printf ("demux_asf: unknown audio type 0x%x\n", wavex->wFormatTag);
     this->streams[this->num_streams].buf_type     = BUF_CONTROL_NOP;
-    break;
   }
-
-  printf ("demux_asf: audio format :0x%02x (buf_type %08x)\n", 
-	  wavex->wFormatTag, this->streams[this->num_streams].buf_type );
-
+  else
+    printf ("demux_asf: audio format : %s (wFormatTag 0x%x)\n", 
+	    buf_audio_name(this->streams[this->num_streams].buf_type),
+	    wavex->wFormatTag);
 
   this->streams[this->num_streams].buf_type   |= this->num_audio_streams;
   this->streams[this->num_streams].fifo        = this->audio_fifo;
