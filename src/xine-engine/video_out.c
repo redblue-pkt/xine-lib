@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.149 2003/03/24 18:30:12 holstsn Exp $
+ * $Id: video_out.c,v 1.150 2003/03/26 01:25:16 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -125,7 +125,7 @@ static void vo_append_to_img_buf_queue_int (img_buf_fifo_t *queue,
 					vo_frame_t *img) {
 
   /* img already enqueue? (serious leak) */
-  XINE_ASSERT (img->next==NULL, "Image is already enqueue. Next image is not NULL");
+  assert (img->next==NULL);
 
   img->next = NULL;
 
