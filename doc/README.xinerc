@@ -22,24 +22,21 @@ dvd_device              path to your local dvd device file
 dvd_raw_device          path to a raw device set up for dvd access
 			(option, e.g. /dev/rdvd)
 
+dxr3_XXX		see README.dxr3
+
+esd_latency             latency between time of audio sample
+			output to esd and actual playback 
+			in audio samples (default 30000)
+
+esd_gap_tolerance       maximum resulting gap between audio packets
+			allowed when using esd, given in pts  
+			(default 15000)
+
 five_lfe_channel        1/0 : enable 5.1-channel playback
 
 five_channel            1/0 : enable 5-channel playback
 
 four_channel            1/0 : enable 4-channel playback
-
-skin                    skin to use, see <prefix>/share/xine/skins
-                        for installed skins (e.g. metal, lcd, pitt)
-
-video_driver_name       video driver to use, same as command line 
-                        option -V (e.g. Xv, XShm)
-
-win32_path              path to where you have installed win32
-                        codec dlls for avi playback, e.g. 
-                        /usr/lib/win32
-
-zoom_mpeg1              1/0 : enable automatic zoom of small
-                        (e.g. mpeg1) videos to double size
 
 oss_resample            XINE can play different sample rates than your
 			soundcard supports.
@@ -55,5 +52,18 @@ oss_device_num		-1, 0-16: Forces the OSS plugin to use the specified
 			the best capabilities will be used.
 			Note: /dev/dsp is usually a symlink to /dev/dsp0
 
-dxr3_XXX		see README.dxr3
+skin                    skin to use, see <prefix>/share/xine/skins
+                        for installed skins (e.g. metal, lcd, pitt)
+
+video_driver_name       video driver to use, same as command line 
+                        option -V (e.g. Xv, XShm)
+
+win32_path              path to where you have installed win32
+                        codec dlls for avi playback, e.g. 
+                        /usr/lib/win32
+
+zoom_mpeg1              1/0 : enable automatic zoom of small
+                        (e.g. mpeg1) videos to double size
+
+
 
