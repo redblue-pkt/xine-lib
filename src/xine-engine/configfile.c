@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.13 2001/12/01 22:38:32 guenter Exp $
+ * $Id: configfile.c,v 1.14 2002/01/09 15:16:37 mshopf Exp $
  *
  * config file management - implementation
  *
@@ -559,6 +559,7 @@ static void config_file_read (config_values_t *this, char *filename){
 
 config_values_t *config_file_init (char *filename) {
 
+  volatile /* is this a (old, 2.91.66) irix gcc bug?!? */
   config_values_t *this;
 
   if ( (this = xine_xmalloc(sizeof(config_values_t))) ) {
@@ -567,7 +568,7 @@ config_values_t *config_file_init (char *filename) {
     this->last  = NULL;
 
     config_file_read (this, filename);
-    
+   
   } else {
     printf ("configfile: could not allocate config object\n");
     exit (1);
@@ -591,6 +592,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.14  2002/01/09 15:16:37  mshopf
+ * IRIX port finally compiles (and actually works) again.
+ *
  * Revision 1.13  2001/12/01 22:38:32  guenter
  * add avi subtitle decoder (based on mplayer code), minor cleanups, removed register_empty function from configfile (undocumented and doesn't make sense)
  *

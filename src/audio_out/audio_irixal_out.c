@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.4 2001/11/30 00:53:50 f1rmb Exp $
+ * $Id: audio_irixal_out.c,v 1.5 2002/01/09 15:16:37 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,7 +50,7 @@
 //# endif
 //#endif
 
-#define AO_IRIXAL_IFACE_VERSION 2
+#define AO_IRIXAL_IFACE_VERSION 3
 
 #define DEFAULT_GAP_TOLERANCE         5000
 
@@ -207,7 +207,7 @@ static int ao_irixal_bytes_per_frame(ao_driver_t *this_gen)
 static int ao_irixal_get_gap_tolerance (ao_driver_t *this_gen)
 {
   irixal_driver_t *this = (irixal_driver_t *) this_gen;
-  return this->gap_tolerance; /* ??? */
+  return this->gap_tolerance;
 }
 
 static int ao_irixal_delay (ao_driver_t *this_gen) 
@@ -355,7 +355,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config)
   
   printf ("  capabilities 0x%X\n",this->capabilities);
  
-  this->gap_tolerance = config->lookup_int (config, "irixal_gap_tolerance", DEFAULT_GAP_TOLERANCE);
+  /* TODO: anything can change during runtime... move check to the right location */
+  this->gap_tolerance = config->register_range (config, "audio.irixal_gap_tolerance",
+					        DEFAULT_GAP_TOLERANCE, 0, 90000,
+						"irixal audio output maximum gap length in 1/90000s",
+						NULL, NULL, NULL);
 
   this->ao_driver.get_capabilities    = ao_irixal_get_capabilities;
   this->ao_driver.get_property        = ao_irixal_get_property;
