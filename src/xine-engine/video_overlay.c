@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.19 2002/04/09 13:20:43 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.20 2002/04/23 13:14:34 esnel Exp $
  *
  */
 
@@ -597,7 +597,20 @@ static void video_overlay_dispose(video_overlay_instance_t *this_gen) {
 
   for (i=0; i < MAX_EVENTS; i++) {
     if (this->video_overlay_events[i].event != NULL) {
+      if (this->video_overlay_events[i].event->object.overlay != NULL) {
+        if (this->video_overlay_events[i].event->object.overlay->rle)
+	  free (this->video_overlay_events[i].event->object.overlay->rle);
+        free (this->video_overlay_events[i].event->object.overlay);
+      }
       free (this->video_overlay_events[i].event);
+    }
+  }
+
+  for (i=0; i < MAX_OBJECTS; i++) {
+    if (this->video_overlay_objects[i].overlay != NULL) {
+      if (this->video_overlay_objects[i].overlay->rle)
+	free (this->video_overlay_objects[i].overlay->rle);
+      free (this->video_overlay_objects[i].overlay);
     }
   }
 
