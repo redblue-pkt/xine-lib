@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.97 2003/10/06 21:52:42 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.98 2003/10/12 19:15:41 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1677,22 +1677,13 @@ void        xine_osd_set_font      (xine_osd_t *self, const char *fontname,
  *   ""   ... means current locale encoding (default)
  *   NULL ... means latin1
  */
-void xine_osd_set_encoding(xine_osd_t *self, const char *encoding);
+void        xine_osd_set_encoding(xine_osd_t *self, const char *encoding);
 /* set position were overlay will be blended */
 void        xine_osd_set_position  (xine_osd_t *self, int x, int y);
 void        xine_osd_show          (xine_osd_t *self, int64_t vpts);
 void        xine_osd_hide          (xine_osd_t *self, int64_t vpts);
 /* empty drawing area */
 void        xine_osd_clear         (xine_osd_t *self);
-/*
- * close osd rendering engine
- * loaded fonts are unloaded
- * osd objects are closed
- */
-void        xine_osd_free          (xine_osd_t *self);
-void        xine_osd_set_palette   (xine_osd_t *self,
-				    const uint32_t *const color,
-				    const uint8_t *const trans );
 /*
  * set on existing text palette
  * (-1 to set used specified palette)
@@ -1709,6 +1700,15 @@ void        xine_osd_set_text_palette (xine_osd_t *self,
 /* get palette (color and transparency) */
 void        xine_osd_get_palette   (xine_osd_t *self, uint32_t *color,
 				    uint8_t *trans);
+void        xine_osd_set_palette   (xine_osd_t *self,
+				    const uint32_t *const color,
+				    const uint8_t *const trans );
+/*
+ * close osd rendering engine
+ * loaded fonts are unloaded
+ * osd objects are closed
+ */
+void        xine_osd_free          (xine_osd_t *self);
 
 
 #ifndef XINE_DISABLE_DEPRECATED_FEATURES
