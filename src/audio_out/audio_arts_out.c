@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.2 2001/07/30 10:15:17 guenter Exp $
+ * $Id: audio_arts_out.c,v 1.3 2001/08/23 19:36:41 jcdutton Exp $
  */
 
 /* required for swab() */
@@ -40,11 +40,9 @@
 #include "xine_internal.h"
 #include "monitor.h"
 #include "audio_out.h"
-#include "resample.h"
-#include "metronom.h"
 #include "utils.h"
 
-#define AO_OUT_ARTS_IFACE_VERSION 1
+#define AO_OUT_ARTS_IFACE_VERSION 2
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
@@ -53,41 +51,31 @@
 #define GAP_TOLERANCE        15000
 #define MAX_GAP              90000
 
-typedef struct arts_functions_s {
+typedef struct arts_driver_s {
 
-  ao_functions_t ao_functions;
-
-  metronom_t    *metronom;
+  ao_driver_t    ao_driver;
 
   arts_stream_t  audio_stream;
   int            capabilities;
   int            mode;
 
-  int32_t        output_sample_rate, input_sample_rate;
-  double         sample_rate_factor;
+  int32_t        sample_rate;
   uint32_t       num_channels;
-
-  uint32_t       bytes_in_buffer;      /* number of bytes writen to audio hardware   */
-
-  int            audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
-  int32_t        bytes_per_kpts;       /* bytes per 1024/90000 sec                   */
-
-  int16_t       *zero_space;
-  
-  int            audio_started;
-  uint32_t       last_audio_vpts;
+  uint32_t       bits_per_sample;
+  uint32_t       bytes_per_frame;
 
   uint32_t       latency;
 
-} arts_functions_t;
+} arts_driver_t;
 
 /*
  * open the audio device for writing to
  */
-static int ao_open(ao_functions_t *this_gen,
+static int ao_arts_open(ao_driver_t *this_gen,
 		   uint32_t bits, uint32_t rate, int mode)
 {
-  arts_functions_t *this = (arts_functions_t *) this_gen;
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+  int rc;
 
   printf ("audio_arts_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
 
@@ -98,19 +86,15 @@ static int ao_open(ao_functions_t *this_gen,
 
   if (this->audio_stream) {
 
-    if ( (mode == this->mode) && (rate == this->input_sample_rate) )
+    if ( (mode == this->mode) && (rate == this->sample_rate) )
       return 1;
 
     arts_close_stream(this->audio_stream);
   }
   
   this->mode                   = mode;
-  this->input_sample_rate      = rate;
-  this->bytes_in_buffer        = 0;
-  this->audio_started          = 0;
-  this->last_audio_vpts        = 0;
-  
-  this->output_sample_rate = rate;
+  this->sample_rate            = rate;
+  this->bits_per_sample        = bits;
 
   switch (mode) {
   case AO_CAP_MODE_MONO:
@@ -120,204 +104,92 @@ static int ao_open(ao_functions_t *this_gen,
     this->num_channels = 2;
     break;
   }
+
+  this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
+
   printf ("audio_arts_out: %d channels output\n",this->num_channels);
 
-  /* XXX: Handle errors */
-  arts_init();
+  if( (rc=arts_init()) != 0 )
+  {
+    printf("arts_init error: %s\n",arts_error_text(rc));
+    return 0;
+  }
 
-  this->audio_stream=arts_play_stream(this->output_sample_rate, bits, this->num_channels, "xine");
-
-  this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
-  this->audio_step         = (uint32_t) 90000 * (uint32_t) 32768 
-                                 / this->input_sample_rate;
-  this->bytes_per_kpts     = this->output_sample_rate * this->num_channels * 2 * 1024 / 90000;
-
-  printf ("audio_out : audio_step %d pts per 32768 samples\n", this->audio_step);
+  this->audio_stream=arts_play_stream(this->sample_rate, bits, this->num_channels, "xine");
 
   this->latency = arts_stream_get (this->audio_stream, ARTS_P_TOTAL_LATENCY);
 
-  printf ("audio_out : latency %d ms\n", this->latency);
-
-  this->metronom->set_audio_rate(this->metronom, this->audio_step);
-
-  return 1;
-}
-
-static void ao_fill_gap (arts_functions_t *this, uint32_t pts_len) {
-
-  int num_bytes;
-
-  if (pts_len > MAX_GAP)
-    pts_len = MAX_GAP;
-
-  num_bytes= pts_len * this->bytes_per_kpts / 1024;
-  num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
-  if(this->mode == AO_CAP_MODE_AC3) return;
-  printf ("audio_arts_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
-  
-  this->bytes_in_buffer += num_bytes;
-  
-  while (num_bytes>0) {
-    if (num_bytes>8192) {
-      arts_write(this->audio_stream, this->zero_space, 8192);
-      num_bytes -= 8192;
-    } else {
-      arts_write(this->audio_stream, this->zero_space, num_bytes);
-      num_bytes = 0;
-    }
-  }
-}
-
-static int ao_write_audio_data(ao_functions_t *this_gen,
-			       int16_t* output_samples, uint32_t num_samples, 
-			       uint32_t pts_)
-{
-
-  arts_functions_t *this = (arts_functions_t *) this_gen;
-  uint32_t         vpts, buffer_vpts;
-  int32_t          gap;
-  int              bDropPackage;
-  uint16_t         sample_buffer[10000];
-  
-  if (this->audio_stream<0)
-    return 1;
-
-  xprintf (VERBOSE|AUDIO, "audio_arts_out: got %d samples, vpts=%d\n pts=%d\n",
-	   num_samples, vpts, pts_);
-
-  vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
-
-  if (vpts<this->last_audio_vpts) {
-    /* reject this */
-    xprintf (VERBOSE|AUDIO, "audio_arts_out: rejected sample vpts=%d, last_audio_vpts=%d\n", vpts, this->last_audio_vpts);
-
-    return 1;
-  }
-
-  this->last_audio_vpts = vpts;
-
-  /*
-   * where, in the timeline is the "end" of the audio buffer at the moment?
-   */
-
-  buffer_vpts = this->metronom->get_current_time (this->metronom);
-  buffer_vpts += this->latency * 90;
-
-  /*
-   * calculate gap:
-   */
-
-  gap = vpts - buffer_vpts;
-  xprintf (VERBOSE|AUDIO, "audio_arts_out: buff=%d buf_vpts=%d gap=%d\n",
-           this->bytes_in_buffer, buffer_vpts, gap);
-  
-  bDropPackage = 0;
-
-  if (gap>GAP_TOLERANCE) {
-    ao_fill_gap (this, gap);
-
-    /* keep xine responsive */
-
-    if (gap>MAX_GAP)
-      return 0;
-
-  } else if (gap<-GAP_TOLERANCE) {
-    bDropPackage = 1;
-    xprintf (VERBOSE|AUDIO, "audio_arts_out: audio package (vpts = %d)"
-		    "dropped\n", vpts);
-  }
-
-
-  /* resample and output samples */
-  if(this->mode == AO_CAP_MODE_AC3) bDropPackage=0;
-
-  if (!bDropPackage) {
-    int num_output_samples = num_samples * (this->output_sample_rate) / this->input_sample_rate;
-
-    switch (this->mode) {
-    case AO_CAP_MODE_MONO:
-      audio_out_resample_mono (output_samples, num_samples,
-			       sample_buffer, num_output_samples);
-      arts_write(this->audio_stream, sample_buffer, num_output_samples * 2);
-      break;
-    case AO_CAP_MODE_STEREO:
-      audio_out_resample_stereo (output_samples, num_samples,
-    				 sample_buffer, num_output_samples);
-      arts_write(this->audio_stream, sample_buffer, num_output_samples * 4);
-      break;
-    case AO_CAP_MODE_4CHANNEL:
-      audio_out_resample_4channel (output_samples, num_samples,
-				   sample_buffer, num_output_samples);
-      arts_write(this->audio_stream, sample_buffer, num_output_samples * 8);
-      break;
-    case AO_CAP_MODE_5CHANNEL:
-      audio_out_resample_5channel (output_samples, num_samples,
-				   sample_buffer, num_output_samples);
-      arts_write(this->audio_stream, sample_buffer, num_output_samples * 10);
-      break;
-    case AO_CAP_MODE_AC3:
-      num_output_samples = num_samples+8;
-      sample_buffer[0] = 0xf872;  //spdif syncword
-      sample_buffer[1] = 0x4e1f;  // .............
-      sample_buffer[2] = 0x0001;  // AC3 data
-      sample_buffer[3] = num_samples * 8;
-//      sample_buffer[4] = 0x0b77;  // AC3 syncwork already in output_samples
-
-      // ac3 seems to be swabbed data
-      swab(output_samples,sample_buffer+4,  num_samples  );
-      arts_write(this->audio_stream, sample_buffer, num_output_samples);
-      arts_write(this->audio_stream, this->zero_space, 6144-num_output_samples);
-      num_output_samples=num_output_samples/4;
-      break;
-    }
-
-    xprintf (AUDIO|VERBOSE, "audio_arts_out: audio package written\n");
-    
-    /* step values */
-    this->bytes_in_buffer += num_output_samples * 2 * this->num_channels;
-    this->audio_started    = 1;
-  }
+  printf ("audio_arts_out : latency %d ms\n", this->latency);
 
   return 1;
 }
 
 
-static void ao_close(ao_functions_t *this_gen)
+static int ao_arts_num_channels(ao_driver_t *this_gen)
 {
-  arts_functions_t *this = (arts_functions_t *) this_gen;
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+    return this->num_channels;
+}
+
+static int ao_arts_bytes_per_frame(ao_driver_t *this_gen)
+{
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+    return this->bytes_per_frame;
+}
+
+static int ao_arts_write(ao_driver_t *this_gen, int16_t *data,
+                         uint32_t num_frames)
+{
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+
+  arts_write(this->audio_stream, data, num_frames * this->bytes_per_frame );
+
+  return 1;
+}
+
+
+static int ao_arts_delay (ao_driver_t *this_gen)
+{
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+
+  /* Just convert latency (ms) to frame units.
+     please note that there is no function in aRts C API to
+     get the current buffer utilization. This is, at best,
+     a very roughly aproximation.
+  */
+  return this->latency * this->sample_rate / 1000;
+//  return 0;
+}
+
+static void ao_arts_close(ao_driver_t *this_gen)
+{
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+
+  if (this->audio_stream) {
   arts_close_stream(this->audio_stream);
   arts_free();
   this->audio_stream = NULL;
+  }
 }
 
-static uint32_t ao_get_capabilities (ao_functions_t *this_gen) {
-  arts_functions_t *this = (arts_functions_t *) this_gen;
+static uint32_t ao_arts_get_capabilities (ao_driver_t *this_gen) {
+  arts_driver_t *this = (arts_driver_t *) this_gen;
   return this->capabilities;
 }
 
-static void ao_connect (ao_functions_t *this_gen, metronom_t *metronom) {
-  arts_functions_t *this = (arts_functions_t *) this_gen;
-  
-  this->metronom = metronom;
-}
-
-static void ao_exit(ao_functions_t *this_gen)
+static void ao_arts_exit(ao_driver_t *this_gen)
 {
-  arts_functions_t *this = (arts_functions_t *) this_gen;
+  arts_driver_t *this = (arts_driver_t *) this_gen;
   
-  if (this->audio_stream) {
-    arts_close_stream(this->audio_stream);
-    arts_free();
-  }
+  ao_arts_close(this_gen);
 
-  free (this->zero_space);
   free (this);
 }
 
 /*
  *
  */
-static int ao_get_property (ao_functions_t *this, int property) {
+static int ao_arts_get_property (ao_driver_t *this, int property) {
 
   /* FIXME: implement some properties
   switch(property) {
@@ -335,7 +207,7 @@ static int ao_get_property (ao_functions_t *this, int property) {
 /*
  *
  */
-static int ao_set_property (ao_functions_t *this, int property, int value) {
+static int ao_arts_set_property (ao_driver_t *this, int property, int value) {
 
   /* FIXME: Implement property support.
   switch(property) {
@@ -351,12 +223,12 @@ static int ao_set_property (ao_functions_t *this, int property, int value) {
   return ~value;
 }
 
-ao_functions_t *init_audio_out_plugin (config_values_t *config) {
+ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
-  arts_functions_t *this;
+  arts_driver_t *this;
   int		   rc;
 
-  this = (arts_functions_t *) malloc (sizeof (arts_functions_t));
+  this = (arts_driver_t *) malloc (sizeof (arts_driver_t));
 
   rc = arts_init();
   if(rc < 0) {
@@ -376,21 +248,21 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   printf ("stereo ");
   printf ("\n");
 
-  this->output_sample_rate = 0;
+  this->sample_rate = 0;
+  this->audio_stream = NULL;
 
-  this->zero_space = malloc (8192);
-  memset (this->zero_space, 0, 8192);
+  this->ao_driver.get_capabilities    = ao_arts_get_capabilities;
+  this->ao_driver.get_property        = ao_arts_get_property;
+  this->ao_driver.set_property        = ao_arts_set_property;
+  this->ao_driver.open                = ao_arts_open;
+  this->ao_driver.num_channels        = ao_arts_num_channels;
+  this->ao_driver.bytes_per_frame     = ao_arts_bytes_per_frame;
+  this->ao_driver.delay               = ao_arts_delay;
+  this->ao_driver.write               = ao_arts_write;
+  this->ao_driver.close               = ao_arts_close;
+  this->ao_driver.exit                = ao_arts_exit;
 
-  this->ao_functions.get_capabilities    = ao_get_capabilities;
-  this->ao_functions.get_property        = ao_get_property;
-  this->ao_functions.set_property        = ao_set_property;
-  this->ao_functions.connect             = ao_connect;
-  this->ao_functions.open                = ao_open;
-  this->ao_functions.write_audio_data    = ao_write_audio_data;
-  this->ao_functions.close               = ao_close;
-  this->ao_functions.exit                = ao_exit;
-
-  return &this->ao_functions;
+  return &this->ao_driver;
 }
 
 static ao_info_t ao_info_arts = {
