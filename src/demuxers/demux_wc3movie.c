@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.10 2002/09/28 22:47:01 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.11 2002/09/28 23:00:22 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -719,6 +719,7 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
    * shot */
   if (new_shot == -1)
     new_shot = this->number_of_shots - 1;
+  this->current_shot = new_shot;
 
   /* reposition the stream and signal the demux loop to reset pts */
   this->input->seek(this->input, this->shot_offsets[new_shot], SEEK_SET);
