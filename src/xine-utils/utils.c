@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.28 2004/07/14 18:51:29 valtri Exp $
+ * $Id: utils.c,v 1.29 2004/07/25 17:47:01 mroi Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -280,14 +280,16 @@ char *exec_path_append_subdir(char *string) {
   /* check for " at beginning of string */
   if( *cmdline == '\"' ) {
     /* copy command line, skip first quote */
-    strcpy(tmp_win32_path, cmdline + 1);
+    strncpy(tmp_win32_path, cmdline + 1, sizeof(tmp_win32_path));
+    tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
 
     /* terminate at second set of quotes */
     tmpchar = strchr(tmp_win32_path, '\"');
     if (tmpchar) *tmpchar = 0;
   } else {
     /* copy command line */
-    strcpy(tmp_win32_path, cmdline);
+    strncpy(tmp_win32_path, cmdline, sizeof(tmp_win32_path));
+    tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
 
     /* terminate at first space */
     tmpchar = strchr(tmp_win32_path, ' ');
@@ -324,11 +326,12 @@ char *exec_path_append_subdir(char *string) {
 
     /* if had a string to append to the path */
     if(string)
-    strcat(tmp_win32_path, string);
+      strncat(tmp_win32_path, string, sizeof(tmp_win32_path) - strlen(tmp_win32_path) - 1);
   } else {
     if(string) {
     /* if had a string to append to the path */
-      strcpy(tmp_win32_path, string);
+      strncpy(tmp_win32_path, string, sizeof(tmp_win32_path));
+      tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
     } else {
     /* no slash, assume local directory */
       strcpy(tmp_win32_path, ".");
