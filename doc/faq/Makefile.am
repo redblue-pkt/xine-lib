@@ -20,40 +20,44 @@ clean-docs:
 	test "x$(srcdir)" = x. || rm -f faq.sgml
 
 dist-hook:
-	@make fail_if_missing=yes docs
+ifndef distcheck_lax
+	@$(MAKE) fail_if_missing=yes docs
+else
+	@$(MAKE) docs
+endif
 
 if HAVE_SGMLTOOLS
 faq.html: faq.sgml
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	$(SGMLTOOLS) -b onehtml faq.sgml;
 else
 faq.html: faq.sgml
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install sgmltools-lite."; \
 	  exit 1; \
 	fi
-	-if test x"$(fail_if_missing)" != x"yes"; then \
+	if test x"$(fail_if_missing)" != x"yes"; then \
 	  touch $@; \
 	  sleep 1; \
-	  touch $^; \
+	  touch $(notdir $^); \
 	fi
 endif
 
 if HAVE_SGMLTOOLS
 faq.txt: faq.sgml
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	$(SGMLTOOLS) -b txt faq.sgml;
 else
 faq.txt: faq.sgml
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install sgmltools-lite."; \
 	  exit 1; \
 	fi
-	-if test x"$(fail_if_missing)" != x"yes"; then \
+	if test x"$(fail_if_missing)" != x"yes"; then \
 	  touch $@; \
 	  sleep 1; \
-	  touch $^; \
+	  touch $(notdir $^); \
 	fi
 endif

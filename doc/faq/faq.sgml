@@ -1444,7 +1444,21 @@
     </para>
     <para>
      Another possibility is that you using a buggy Xv driver, see the next
-     question.
+     questions.
+    </para>
+   </sect2>
+   
+   <sect2 id="bluescreen">
+    <title>I only see a blue (or green or black) video image most of the time.</title>
+    <para>
+     You are either watching a very boring video (just kidding) or you are
+     suffering from a bug in the Xorg 6.7 implementation of X11.
+    </para>
+    <para>
+     The workaround is to add the line
+     <programlisting>&nbsp;&nbsp;&nbsp;Option "XaaNoOffscreenPixmaps"</programlisting>
+     in the <varname>Device</varname> section of your X server configuration (usually
+     <filename>/etc/X11/xorg.conf</filename> or <filename>/etc/X11/XF86Config</filename>).
     </para>
    </sect2>
    
