@@ -19,6 +19,14 @@
  
  typedef struct complex_s {
      sample_t real;
+@@ -425,7 +425,6 @@
+     } else
+ #endif
+     {
+-	fprintf (stderr, "liba52:No accelerated IMDCT transform found\n");
+ 	ifft128 = ifft128_c;
+ 	ifft64 = ifft64_c;
+     }
 --- src/liba52/parse.c	Sun Jul 28 03:52:07 2002
 +++ src/liba52/parse.c	Wed Aug 28 19:02:21 2002
 @@ -31,14 +31,7 @@
