@@ -1520,41 +1520,43 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
     offset = (code - 1) * stride * 4;
     picture->v_offset = (code - 1) * 16;
 
-    forward_ref[0] = picture->forward_reference_frame->base;
-    if (picture->picture_structure != FRAME_PICTURE) {
+    if (picture->forward_reference_frame) {
+      forward_ref[0] = picture->forward_reference_frame->base;
+      if (picture->picture_structure != FRAME_PICTURE) {
 	forward_ref[1] = picture->forward_reference_frame->base;
 	offset <<= 1;
 	picture->current_field = (picture->picture_structure == BOTTOM_FIELD);
 	if ((picture->second_field) &&
 	    (picture->picture_coding_type != B_TYPE))
-	    forward_ref[picture->picture_structure == TOP_FIELD] =
-		picture->current_frame->base;
-
+	  forward_ref[picture->picture_structure == TOP_FIELD] =
+	    picture->current_frame->base;
+	
 	picture->f_motion.ref[1][0] = forward_ref[1][0] + stride;
 	picture->f_motion.ref[1][1] = forward_ref[1][1] + (stride >> 1);
 	picture->f_motion.ref[1][2] = forward_ref[1][2] + (stride >> 1);
-
+	
 	picture->b_motion.ref[1][0] =
-	    picture->backward_reference_frame->base[0] + stride;
+	  picture->backward_reference_frame->base[0] + stride;
 	picture->b_motion.ref[1][1] =
-	    picture->backward_reference_frame->base[1] + (stride >> 1);
+	  picture->backward_reference_frame->base[1] + (stride >> 1);
 	picture->b_motion.ref[1][2] =
-	    picture->backward_reference_frame->base[2] + (stride >> 1);
+	  picture->backward_reference_frame->base[2] + (stride >> 1);
+      }
+      
+      picture->f_motion.ref[0][0] = forward_ref[0][0];
+      picture->f_motion.ref[0][1] = forward_ref[0][1];
+      picture->f_motion.ref[0][2] = forward_ref[0][2];
+      
+      picture->f_motion.pmv[0][0] = picture->f_motion.pmv[0][1] = 0;
+      picture->f_motion.pmv[1][0] = picture->f_motion.pmv[1][1] = 0;
+      
+      picture->b_motion.ref[0][0] = picture->backward_reference_frame->base[0];
+      picture->b_motion.ref[0][1] = picture->backward_reference_frame->base[1];
+      picture->b_motion.ref[0][2] = picture->backward_reference_frame->base[2];
+      
+      picture->b_motion.pmv[0][0] = picture->b_motion.pmv[0][1] = 0;
+      picture->b_motion.pmv[1][0] = picture->b_motion.pmv[1][1] = 0;
     }
-
-    picture->f_motion.ref[0][0] = forward_ref[0][0];
-    picture->f_motion.ref[0][1] = forward_ref[0][1];
-    picture->f_motion.ref[0][2] = forward_ref[0][2];
-
-    picture->f_motion.pmv[0][0] = picture->f_motion.pmv[0][1] = 0;
-    picture->f_motion.pmv[1][0] = picture->f_motion.pmv[1][1] = 0;
-
-    picture->b_motion.ref[0][0] = picture->backward_reference_frame->base[0];
-    picture->b_motion.ref[0][1] = picture->backward_reference_frame->base[1];
-    picture->b_motion.ref[0][2] = picture->backward_reference_frame->base[2];
-
-    picture->b_motion.pmv[0][0] = picture->b_motion.pmv[0][1] = 0;
-    picture->b_motion.pmv[1][0] = picture->b_motion.pmv[1][1] = 0;
 
     if ((picture->current_frame->copy) &&
 	(picture->picture_coding_type == B_TYPE))

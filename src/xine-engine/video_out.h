@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.20 2001/09/19 02:40:58 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.21 2001/09/26 01:18:19 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -60,18 +60,16 @@ struct vo_frame_s {
   struct vo_frame_s         *next;
 
   uint32_t                   PTS;
-  int                        bFrameBad; /* e.g. frame skipped or based on skipped frame */
+  int                        bad_frame; /* e.g. frame skipped or based on skipped frame */
   uint8_t                   *base[3];
-  int                        nType;     /* I, B or P frame */
+
 
   /* additional information to be able to duplicate frames: */
   int                        width, height;
   int                        ratio, format, duration;
 
-  int                        bDisplayLock, bDecoderLock, bDriverLock;
+  int                        display_locked, decoder_locked, driver_locked;
   pthread_mutex_t            mutex; /* so the various locks will be serialized */
-
-  int                        nID; /* debugging purposes only */
 
   vo_instance_t             *instance;
 

@@ -76,17 +76,19 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     picture_t * picture;
     int is_frame_done;
 
-    /* printf ("libmpeg2: parse_chunk 0x%02x\n", code);   */
+    /*
+    printf ("libmpeg2: parse_chunk 0x%02x\n", code);   
+    */
 
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed) {
       if (code != 0xb3) {
-        /* printf ("libmpeg2: waiting for sequence header\n"); */
+        /* printf ("libmpeg2: waiting for sequence header\n");  */
 	mpeg2dec->pts = 0;
 	return 0;
       }
     } else if (mpeg2dec->is_frame_needed && (code != 0x00)) {
-      /* printf ("libmpeg2: waiting for frame start\n"); */
+      /* printf ("libmpeg2: waiting for frame start\n");  */
       mpeg2dec->pts = 0;
       return 0;
     }
@@ -102,14 +104,14 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if ( picture->current_frame && ((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
 
-	    picture->current_frame->bFrameBad |= mpeg2dec->drop_frame;
+	    picture->current_frame->bad_frame |= mpeg2dec->drop_frame;
 
-#if 0
-fprintf (stderr, "type %s: %s\n",
-    picture->picture_coding_type == I_TYPE ? "I" :
-    picture->picture_coding_type == P_TYPE ? "P" : "B",
-    picture->current_frame->bFrameBad ? "BAD" : "good");
-#endif
+#if 0 
+	    printf ("type %s: %s\n",
+		    picture->picture_coding_type == I_TYPE ? "I" :
+		    picture->picture_coding_type == P_TYPE ? "P" : "B",
+		    picture->current_frame->bad_frame ? "BAD" : "good");
+#endif 
 	    if (picture->picture_coding_type == B_TYPE) {
 	      if (picture->mpeg1)
 		picture->current_frame->PTS = 0;
@@ -117,7 +119,7 @@ fprintf (stderr, "type %s: %s\n",
 	      picture->current_frame->free (picture->current_frame);
 	      picture->current_frame = NULL;
 	      picture->throwaway_frame = NULL;
-	    } else {
+	    } else if (picture->forward_reference_frame) {
 	      mpeg2dec->frames_to_drop = picture->forward_reference_frame->draw (picture->forward_reference_frame);
 	    }
 
@@ -148,8 +150,8 @@ fprintf (stderr, "type %s: %s\n",
 	    
 	    if (mpeg2dec->frames_to_drop>1) {
 	      mpeg2dec->drop_frame = 1;
-	    } else if (picture->forward_reference_frame->bFrameBad 
-		       || picture->backward_reference_frame->bFrameBad) {
+	    } else if (!picture->forward_reference_frame || picture->forward_reference_frame->bad_frame 
+		       || !picture->backward_reference_frame || picture->backward_reference_frame->bad_frame) {
 	      mpeg2dec->drop_frame = 1;
 	    }
 	    break;
@@ -158,16 +160,17 @@ fprintf (stderr, "type %s: %s\n",
 	    
 	    if (mpeg2dec->frames_to_drop>2) {
 	      mpeg2dec->drop_frame = 1;
-	    } else if (picture->backward_reference_frame->bFrameBad) {
+	    } else if (!picture->backward_reference_frame || picture->backward_reference_frame->bad_frame) {
 	      mpeg2dec->drop_frame = 1;
 	    }
 	    break;
 	    
 	  case I_TYPE:
-	    
+	    /*
 	    if (mpeg2dec->frames_to_drop>4) {
 	      mpeg2dec->drop_frame = 1;
 	    }
+	    */
 	    break;
 	  }
 	}
@@ -176,7 +179,7 @@ fprintf (stderr, "type %s: %s\n",
 
     case 0xb3:	/* sequence_header_code */
 	if (header_process_sequence_header (picture, buffer)) {
-	    fprintf (stderr, "bad sequence header\n");
+  	    printf ("libmpeg2: bad sequence header\n");
 	    /* exit (1); */
 	} else if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
@@ -185,7 +188,6 @@ fprintf (stderr, "type %s: %s\n",
 	    printf ("mpeg2dec: frame size has changed to from %d x %d to %d x %d\n",
 		    picture->frame_width, picture->frame_height,
 		    picture->coded_picture_width, picture->coded_picture_height);
-	    fflush(stdout);
 
 	    if (picture->forward_reference_frame) 
 	      picture->forward_reference_frame->free (picture->forward_reference_frame);
@@ -193,29 +195,11 @@ fprintf (stderr, "type %s: %s\n",
 	    if (picture->backward_reference_frame) 
 	      picture->backward_reference_frame->free (picture->backward_reference_frame);
 
-	    printf ("mpeg2dec: old frames freed.\n"); fflush (stdout);
+	    printf ("mpeg2dec: old frames freed.\n"); 
 
 	    mpeg2dec->is_sequence_needed = 0;
-	    picture->forward_reference_frame =
-	        mpeg2dec->output->get_frame (mpeg2dec->output,
-					     picture->coded_picture_width,
-					     picture->coded_picture_height,
-					     picture->aspect_ratio_information,
-					     IMGFMT_YV12,
-					     picture->frame_duration,
-					     VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
-	    picture->forward_reference_frame->PTS = 0;
-	    picture->forward_reference_frame->bFrameBad = 1;
-	    picture->backward_reference_frame =
-  	        mpeg2dec->output->get_frame (mpeg2dec->output,
-					     picture->coded_picture_width,
-					     picture->coded_picture_height,
-					     picture->aspect_ratio_information,
-					     IMGFMT_YV12,
-					     picture->frame_duration,
-					     VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
-	    picture->backward_reference_frame->PTS = 0;
-	    picture->backward_reference_frame->bFrameBad = 1;
+	    picture->forward_reference_frame = NULL;
+	    picture->backward_reference_frame = NULL;
 
 	    picture->frame_width = picture->coded_picture_width;
 	    picture->frame_height = picture->coded_picture_height;
@@ -264,13 +248,14 @@ fprintf (stderr, "type %s: %s\n",
 						     IMGFMT_YV12,
 						     picture->frame_duration,
 						     (VO_PREDICTION_FLAG | picture->picture_structure));
-		    picture->forward_reference_frame->free (picture->forward_reference_frame);
+		    if (picture->forward_reference_frame)
+		      picture->forward_reference_frame->free (picture->forward_reference_frame);
 
 		    picture->forward_reference_frame =
 			picture->backward_reference_frame;
 		    picture->backward_reference_frame = picture->current_frame;
 		}
-		picture->current_frame->bFrameBad = 0;
+		picture->current_frame->bad_frame = 0;
 		picture->current_frame->PTS = mpeg2dec->pts;
 		mpeg2dec->pts = 0;
 	    }
@@ -377,37 +362,27 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     }
     */
 
-    /* Ensure that the last decoded frame is drawn */
-    if(!picture->current_frame)
-      return;
-    picture->current_frame->bFrameBad |= mpeg2dec->drop_frame;
-
-    if (picture->picture_coding_type == B_TYPE) {
-      if (picture->mpeg1)
-	picture->current_frame->PTS = 0;
-      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
-      picture->current_frame->free (picture->current_frame);
-      picture->current_frame = NULL;
-      picture->throwaway_frame = NULL;
-    } else {
-      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
-    }
-
-    if (picture->throwaway_frame) 
-    {
-      picture->throwaway_frame->displayed (picture->throwaway_frame);
-      picture->throwaway_frame->free (picture->throwaway_frame);
-    }
-
-    if (picture->forward_reference_frame) 
-    {
-      picture->forward_reference_frame->displayed (picture->forward_reference_frame);
+    if (picture->forward_reference_frame) {
+      printf ("libmpeg2: blasting out forward reference frame on close\n");
+      picture->forward_reference_frame->PTS = 0;
+      picture->forward_reference_frame->bad_frame = 0;
+      picture->forward_reference_frame->draw (picture->forward_reference_frame); 
       picture->forward_reference_frame->free (picture->forward_reference_frame);
     }
 
-    if (picture->backward_reference_frame) 
-    {
-      picture->backward_reference_frame->displayed (picture->backward_reference_frame);
+    if (picture->throwaway_frame) {
+      printf ("libmpeg2: blasting out throwaway frame on close\n");
+      picture->throwaway_frame->PTS = 0;
+      picture->throwaway_frame->bad_frame = 0;
+      picture->throwaway_frame->draw (picture->throwaway_frame);
+      picture->throwaway_frame->free (picture->throwaway_frame);
+    }
+
+    if (picture->backward_reference_frame) {
+      printf ("libmpeg2: blasting out backward reference frame on close\n");
+      picture->backward_reference_frame->PTS = 0;
+      picture->backward_reference_frame->bad_frame = 0;
+      picture->backward_reference_frame->draw (picture->backward_reference_frame);
       picture->backward_reference_frame->free (picture->backward_reference_frame);
     }
 
@@ -445,26 +420,6 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       if (mpeg2dec->is_sequence_needed) {
 
 	mpeg2dec->is_sequence_needed = 0;
-	picture->forward_reference_frame =
-	  mpeg2dec->output->get_frame (mpeg2dec->output,
-				       picture->coded_picture_width,
-				       picture->coded_picture_height,
-				       picture->aspect_ratio_information,
-				       IMGFMT_YV12,
-				       picture->frame_duration,
-				       VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
-	picture->forward_reference_frame->PTS = 0;
-	picture->forward_reference_frame->bFrameBad = 1;
-	picture->backward_reference_frame =
-	  mpeg2dec->output->get_frame (mpeg2dec->output,
-				       picture->coded_picture_width,
-				       picture->coded_picture_height,
-				       picture->aspect_ratio_information,
-				       IMGFMT_YV12,
-				       picture->frame_duration,
-				       VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
-	picture->backward_reference_frame->PTS = 0;
-	picture->backward_reference_frame->bFrameBad = 1;
 	picture->frame_width  = picture->coded_picture_width;
 	picture->frame_height = picture->coded_picture_height;
 	    

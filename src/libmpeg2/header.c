@@ -179,6 +179,11 @@ static int header_process_sequence_extension (picture_t * picture,
 	picture->coded_picture_height =
 	    (picture->coded_picture_height + 31) & ~31;
 
+    /*
+    printf ("libmpeg2: sequence extension+5 : %08x (%d)\n",
+	    buffer[5], buffer[5] % 0x80);
+    */
+
     /* MPEG1 - for testing only */
     picture->mpeg1 = 0;
 

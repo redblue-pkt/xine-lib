@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.51 2001/09/14 21:25:55 richwareham Exp $
+ * $Id: video_decoder.c,v 1.52 2001/09/26 01:18:19 guenter Exp $
  *
  */
 
@@ -51,7 +51,6 @@ void *video_decoder_loop (void *this_gen) {
   buf_element_t   *buf;
   xine_t          *this = (xine_t *) this_gen;
   int              running = 1;
-  int              i;
   int              streamtype;
   video_decoder_t *decoder;
   spu_decoder_t   *spu_decoder;
@@ -91,11 +90,6 @@ void *video_decoder_loop (void *this_gen) {
       pthread_mutex_lock (&this->xine_lock);
       this->video_finished = 0;
       this->spu_finished = 0;
-      /* FIXME: I don't think we need spu_track_map. */
-      for (i=0 ; i<50; i++)
-        this->spu_track_map[0] = 0;
-
-      this->spu_track_map_entries = 0;
 
       pthread_mutex_unlock (&this->xine_lock);
 
@@ -112,6 +106,10 @@ void *video_decoder_loop (void *this_gen) {
         spu_decoder->decode_data (spu_decoder, buf);
 
       profiler_stop_count (prof_spu_decode);
+      break;
+
+    case BUF_CONTROL_SPU_CHANNEL:
+      this->spu_channel = buf->decoder_info[0];
       break;
 
     case BUF_SPU_PACKAGE:

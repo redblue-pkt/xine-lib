@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.44 2001/09/14 21:25:55 richwareham Exp $
+ * $Id: xine_internal.h,v 1.45 2001/09/26 01:18:19 guenter Exp $
  *
  */
 
@@ -162,8 +162,6 @@ struct xine_s {
   spu_decoder_t             *spu_decoder_plugins[DECODER_PLUGIN_MAX];
   int                        num_spu_decoder_plugins;
   spu_decoder_t             *cur_spu_decoder_plugin;
-  uint32_t                   spu_track_map[50];
-  int                        spu_track_map_entries;
   int                        spu_finished;
 
   int                        audio_channel;

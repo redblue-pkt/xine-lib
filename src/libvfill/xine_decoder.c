@@ -83,7 +83,7 @@ static void videofill_decode_data (video_decoder_t *this_gen, buf_element_t *buf
     memcpy(img->base[2], last_img->base[2], image_size >> 2);
 
     img->PTS = 0;
-    img->bFrameBad = 0;
+    img->bad_frame = 0;
 
     img->draw(img);
     img->free(img);

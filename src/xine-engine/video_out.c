@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.46 2001/09/14 21:25:55 richwareham Exp $
+ * $Id: video_out.c,v 1.47 2001/09/26 01:18:19 guenter Exp $
  *
  */
 
@@ -44,7 +44,7 @@ struct img_buf_fifo_s {
   int                num_buffers;
 
   pthread_mutex_t    mutex;
-  pthread_cond_t     bNotEmpty;
+  pthread_cond_t     not_empty;
 } ;
 
 
@@ -58,7 +58,7 @@ static img_buf_fifo_t *vo_new_img_buf_queue () {
     queue->last        = NULL;
     queue->num_buffers = 0;
     pthread_mutex_init (&queue->mutex, NULL);
-    pthread_cond_init  (&queue->bNotEmpty, NULL);
+    pthread_cond_init  (&queue->not_empty, NULL);
   }
   return queue;
 }
@@ -82,7 +82,7 @@ static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
 
   queue->num_buffers++;
 
-  pthread_cond_signal (&queue->bNotEmpty);
+  pthread_cond_signal (&queue->not_empty);
   pthread_mutex_unlock (&queue->mutex);
 }
 
@@ -93,7 +93,7 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
 
   while (!queue->first) {
     /* printf ("video_out: queue %d empty...\n", queue); */
-    pthread_cond_wait (&queue->bNotEmpty, &queue->mutex);
+    pthread_cond_wait (&queue->not_empty, &queue->mutex);
   }
 
   img = queue->first;
@@ -104,7 +104,7 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
     if (!queue->first) {
       queue->last = NULL;
       queue->num_buffers = 0;
-      pthread_cond_init  (&queue->bNotEmpty, NULL);
+      pthread_cond_init  (&queue->not_empty, NULL);
     }
     else {
       queue->num_buffers--;
@@ -238,9 +238,9 @@ static void *video_out_loop (void *this_gen) {
 	img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
 	pthread_mutex_lock (&img->mutex);
 
-	img->bDisplayLock = 0;
+	img->display_locked = 0;
 
-	if (!img->bDecoderLock) 
+	if (!img->decoder_locked) 
 	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
 
 	pthread_mutex_unlock (&img->mutex);
@@ -281,10 +281,10 @@ static void *video_out_loop (void *this_gen) {
     }
 
     pthread_mutex_lock (&img->mutex);
-    img->bDriverLock = 1;
-    if (!img->bDisplayLock)
+    img->driver_locked = 1;
+    if (!img->display_locked)
       xprintf (VERBOSE|VIDEO, "video_out: ALERT! frame was not locked for display queue\n");
-    img->bDisplayLock = 0;
+    img->display_locked = 0;
     pthread_mutex_unlock (&img->mutex);
 
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
@@ -318,10 +318,10 @@ static void *video_out_loop (void *this_gen) {
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
     pthread_mutex_lock (&img->mutex);
 
-    if (!img->bDecoderLock) 
+    if (!img->decoder_locked) 
       vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
 
-    img->bDisplayLock = 0;
+    img->display_locked = 0;
     pthread_mutex_unlock (&img->mutex);
 
     img = this->display_img_buf_queue->first;
@@ -373,9 +373,9 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
   img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
 
   pthread_mutex_lock (&img->mutex);
-  img->bDisplayLock = 0;
-  img->bDecoderLock = 1;
-  img->bDriverLock  = 0;
+  img->display_locked = 0;
+  img->decoder_locked = 1;
+  img->driver_locked  = 0;
   img->width        = width;
   img->height       = height;
   img->ratio        = ratio;
@@ -427,9 +427,9 @@ static void vo_frame_displayed (vo_frame_t *img) {
 
   pthread_mutex_lock (&img->mutex);
 
-  img->bDriverLock = 0;
+  img->driver_locked = 0;
 
-  if (!img->bDecoderLock) {    
+  if (!img->decoder_locked) {    
     vo_append_to_img_buf_queue (img->instance->free_img_buf_queue, img);
   }
 
@@ -439,9 +439,9 @@ static void vo_frame_displayed (vo_frame_t *img) {
 static void vo_frame_free (vo_frame_t *img) {
 
   pthread_mutex_lock (&img->mutex);
-  img->bDecoderLock = 0; 
+  img->decoder_locked = 0; 
 
-  if (!img->bDisplayLock && !img->bDriverLock ) {
+  if (!img->display_locked && !img->driver_locked ) {
     vo_append_to_img_buf_queue (img->instance->free_img_buf_queue, img);
   }
 
@@ -466,6 +466,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   printf ("video_out: got image %d. vpts for picture is %d (pts was %d)\n", 
 	  img, pic_vpts, img->PTS);
   */
+
   img->PTS = pic_vpts;
   this->num_frames_delivered++;
 
@@ -485,18 +486,22 @@ static int vo_frame_draw (vo_frame_t *img) {
       this->num_frames_discarded++;
       xprintf (VERBOSE|VIDEO, "vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
 
+      /* printf ("vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip); */
+
       pthread_mutex_lock (&img->mutex);
-      img->bDisplayLock = 0;
+      img->display_locked = 0;
       pthread_mutex_unlock (&img->mutex);
 
       vo_frame_displayed (img);
+
+      this->last_frame = img;
 
       return frames_to_skip;
 
     } 
   } /* else: we are probably in precaching mode */
 
-  if (!img->bFrameBad) {
+  if (!img->bad_frame) {
     /*
      * put frame into FIFO-Buffer
      */
@@ -506,7 +511,7 @@ static int vo_frame_draw (vo_frame_t *img) {
     this->last_frame = img;
 
     pthread_mutex_lock (&img->mutex);
-    img->bDisplayLock = 1;
+    img->display_locked = 1;
     pthread_mutex_unlock (&img->mutex);
 
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
@@ -515,7 +520,7 @@ static int vo_frame_draw (vo_frame_t *img) {
     this->num_frames_skipped++;
 
     pthread_mutex_lock (&img->mutex);
-    img->bDisplayLock = 0;
+    img->display_locked = 0;
     pthread_mutex_unlock (&img->mutex);
     
     vo_frame_displayed (img);

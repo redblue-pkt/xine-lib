@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.29 2001/09/20 11:02:45 jkeil Exp $
+ * $Id: w32codec.c,v 1.30 2001/09/26 01:18:19 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -480,9 +480,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       img->PTS = buf->PTS;
       if(ret) {
 	printf("Error decompressing frame, err=%ld\n", (long)ret); 
-	img->bFrameBad = 1;
+	img->bad_frame = 1;
       } else
-	img->bFrameBad = 0;
+	img->bad_frame = 0;
       
       if (img->copy) {
 	int height = abs(this->o_bih.biHeight);
