@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.13 2001/10/06 13:49:49 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.14 2001/11/17 14:26:37 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,10 +39,8 @@
 #endif
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "audio_out.h"
-#include "utils.h"
-
 
 #ifndef	AUDIO_CHANNELS_MONO
 #define	AUDIO_CHANNELS_MONO	1

@@ -38,7 +38,7 @@
 #include <sys/time.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "input_plugin.h"
 
 #if !defined(NDELAY) && defined(O_NDELAY)
@@ -310,7 +310,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     return NULL;
   }
 
-  this       = (net_input_plugin_t *) xmalloc(sizeof(net_input_plugin_t));
+  this       = (net_input_plugin_t *) xine_xmalloc(sizeof(net_input_plugin_t));
   config     = xine->config;
   xine_debug = config->lookup_int (config, "xine_debug", 0);
 

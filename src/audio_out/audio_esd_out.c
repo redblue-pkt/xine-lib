@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.12 2001/10/14 17:16:11 guenter Exp $
+ * $Id: audio_esd_out.c,v 1.13 2001/11/17 14:26:37 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,10 +35,9 @@
 #include <inttypes.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "audio_out.h"
 #include "metronom.h"
-#include "utils.h"
 
 #define AO_OUT_ESD_IFACE_VERSION 2
 

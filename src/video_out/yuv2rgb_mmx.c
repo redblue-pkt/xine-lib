@@ -31,10 +31,8 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "attributes.h"
-#include "cpu_accel.h"
 #include "yuv2rgb.h"
-#include "memcpy.h"
+#include "xineutils.h"
 
 #define CPU_MMXEXT 0
 #define CPU_MMX 1
@@ -453,7 +451,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 
 	while (--dst_height > 0 && dy < 32768) {
 
-	  fast_memcpy (image, image-rgb_stride, this->dest_width*2); 
+	  xine_fast_memcpy (image, image-rgb_stride, this->dest_width*2); 
 
 	  dy += this->step_dy;
 	  image += rgb_stride;
@@ -561,7 +559,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 
 	while (--dst_height > 0 && dy < 32768) {
 
-	  fast_memcpy (image, image-rgb_stride, this->dest_width*2); 
+	  xine_fast_memcpy (image, image-rgb_stride, this->dest_width*2); 
 
 	  dy += this->step_dy;
 	  image += rgb_stride;
@@ -668,7 +666,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 
 	while (--dst_height > 0 && dy < 32768) {
 
-	  fast_memcpy (image, image-rgb_stride, this->dest_width*3);
+	  xine_fast_memcpy (image, image-rgb_stride, this->dest_width*3);
 
 	  dy += this->step_dy;
 	  image += rgb_stride;
@@ -776,7 +774,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 
 	while (--dst_height > 0 && dy < 32768) {
 
-	  fast_memcpy (image, image-rgb_stride, this->dest_width*4); 
+	  xine_fast_memcpy (image, image-rgb_stride, this->dest_width*4); 
 
 	  dy += this->step_dy;
 	  image += rgb_stride;
@@ -884,7 +882,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 
 	while (--dst_height > 0 && dy < 32768) {
 
-	  fast_memcpy (image, image-rgb_stride, this->dest_width*4); 
+	  xine_fast_memcpy (image, image-rgb_stride, this->dest_width*4); 
 
 	  dy += this->step_dy;
 	  image += rgb_stride;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2001/11/13 21:47:58 heikos Exp $
+ * $Id: xine_decoder.c,v 1.10 2001/11/17 14:26:38 f1rmb Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -50,11 +50,10 @@
 #include <dlfcn.h>
 
 #include "xine_internal.h"
-#include "cpu_accel.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
-#include "memcpy.h"
+#include "xineutils.h"
 
 #include "decore-if.h"
 
@@ -209,12 +208,12 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
   src_offset = 0;
   dst_offset = 0;
   if (pict.stride_y == img->width) {
-    fast_memcpy(img->base[0]+dst_offset, pict.y, this->biWidth*this->biHeight);
+    xine_fast_memcpy(img->base[0]+dst_offset, pict.y, this->biWidth*this->biHeight);
     dst_offset += this->biWidth * this->biHeight;
   }
   else { /* copy line by line */
     for (i=0; i<this->biHeight; i++) {
-      fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, this->biWidth);
+      xine_fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, this->biWidth);
       src_offset += pict.stride_y;
       dst_offset += this->biWidth;
     }
@@ -228,14 +227,14 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
   src_offset = 0;
   dst_offset = 0;
   if (pict.stride_uv == img->width>>1) {
-    fast_memcpy(img->base[1]+dst_offset, pict.u, (this->biWidth*this->biHeight)/4);
-    fast_memcpy(img->base[2]+dst_offset, pict.v, (this->biWidth*this->biHeight)/4);
+    xine_fast_memcpy(img->base[1]+dst_offset, pict.u, (this->biWidth*this->biHeight)/4);
+    xine_fast_memcpy(img->base[2]+dst_offset, pict.v, (this->biWidth*this->biHeight)/4);
     dst_offset += (this->biWidth*this->biHeight)/4;
   }
   else {
     for (i=0; i<this->biHeight>>1; i++) {
-      fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, this->biWidth/2);
-      fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, this->biWidth/2);
+      xine_fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, this->biWidth/2);
+      xine_fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, this->biWidth/2);
       src_offset += pict.stride_uv;
       dst_offset += this->biWidth/2;
     }
@@ -300,7 +299,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (! this->decoder_ok) /* don't try to do anything */
     return;
 
-  fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+  xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
   this->size += buf->size;
 
   if (buf->decoder_info[0] == 2)  { /* need to decode a frame */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.3 2001/11/08 08:49:26 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.4 2001/11/17 14:26:38 f1rmb Exp $
  *
  */
 
@@ -41,7 +41,7 @@
 #include "xine_internal.h"
 
 /* for fast_memcpy: */
-#include "memcpy.h"
+#include "xineutils.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.28 2001/11/16 21:06:22 jcdutton Exp $
+ * $Id: audio_out.c,v 1.29 2001/11/17 14:26:39 f1rmb Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -60,11 +60,11 @@
 #include <inttypes.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "audio_out.h"
 #include "resample.h"
 #include "metronom.h"
-#include "utils.h"
+
 
 /*
 #define AUDIO_OUT_LOG
@@ -138,7 +138,7 @@ static audio_fifo_t *fifo_new () {
 
   audio_fifo_t *fifo;
 
-  fifo = (audio_fifo_t *) xmalloc (sizeof (audio_fifo_t));
+  fifo = (audio_fifo_t *) xine_xmalloc (sizeof (audio_fifo_t));
 
   if (!fifo) {
     printf ("audio_out: out of memory!\n");
@@ -650,7 +650,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   ao_instance_t *this;
   int            i;
 
-  this = xmalloc (sizeof (ao_instance_t)) ;
+  this = xine_xmalloc (sizeof (ao_instance_t)) ;
 
   this->driver                = driver;
   this->metronom              = metronom;
@@ -665,8 +665,8 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   this->set_property          = ao_set_property;
   this->audio_loop_running    = 0;
   /* FIXME: is 4* good enough for all resample cases?? */
-  this->frame_buffer          = xmalloc (4 * AUDIO_BUF_SIZE);
-  this->zero_space            = xmalloc (ZERO_BUF_SIZE * 2 * 6);
+  this->frame_buffer          = xine_xmalloc (4 * AUDIO_BUF_SIZE);
+  this->zero_space            = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
   this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 
   this->resample_conf = config->lookup_int (config, "audio_resample_mode", 0);

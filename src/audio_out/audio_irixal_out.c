@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.2 2001/09/14 20:44:01 jcdutton Exp $
+ * $Id: audio_irixal_out.c,v 1.3 2001/11/17 14:26:37 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,9 +52,8 @@
 
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "audio_out.h"
-#include "utils.h"
 
 //#ifndef AFMT_S16_NE
 //# if defined(sparc) || defined(__sparc__) || defined(PPC)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.11 2001/11/16 17:53:10 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.12 2001/11/17 14:26:37 f1rmb Exp $
  *
  * demultiplexer for asf streams
  *
@@ -38,10 +38,8 @@
 #include <stdlib.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
 #include "demux.h"
-#include "utils.h"
-#include "memcpy.h"
+#include "xineutils.h"
 
 #define	WINE_TYPEDEFS_ONLY
 #include "libw32dll/wine/avifmt.h"
@@ -565,7 +563,7 @@ static void asf_reorder(demux_asf_t *this, uint8_t *src, int len){
 	s2+=this->reorder_h*this->reorder_w*this->reorder_b;
   }
 
-  fast_memcpy(src,dst,i);
+  xine_fast_memcpy(src,dst,i);
   free(dst);
 }
 
@@ -731,7 +729,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 
           buf = stream->fifo->buffer_pool_alloc (stream->fifo);
           buf->content = buf->mem;
-          fast_memcpy (buf->content, p, bufsize);
+          xine_fast_memcpy (buf->content, p, bufsize);
 
           if (stream->fifo == this->video_fifo) {
             buf->input_pos  = this->input->get_current_pos (this->input);
@@ -1213,7 +1211,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = xmalloc (sizeof (demux_asf_t));
+  this        = xine_xmalloc (sizeof (demux_asf_t));
   config      = xine->config;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 

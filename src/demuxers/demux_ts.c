@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.27 2001/11/12 13:58:51 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.28 2001/11/17 14:26:37 f1rmb Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -65,7 +65,7 @@
 #include <string.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "demux.h"
 
 /*
@@ -1174,7 +1174,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   /*
    * Initialise the generic plugin.
    */
-  this = xmalloc(sizeof(*this));
+  this = xine_xmalloc(sizeof(*this));
   config = xine->config;
   xine_debug = config->lookup_int(config, "xine_debug", 0);
   this->plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;

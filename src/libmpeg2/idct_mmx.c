@@ -26,8 +26,7 @@
 #include <inttypes.h>
 
 #include "mpeg2_internal.h"
-#include "attributes.h"
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 #define ROW_SHIFT 11
 #define COL_SHIFT 6

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.73 2001/11/15 23:18:04 guenter Exp $
+ * $Id: xine.c,v 1.74 2001/11/17 14:26:39 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -50,9 +50,8 @@
 #include "input/input_plugin.h"
 #include "metronom.h"
 #include "configfile.h"
-#include "monitor.h"
-#include "utils.h"
-#include "memcpy.h"
+
+#include "xineutils.h"
 
 #ifndef	__GNUC__
 #define	__FUNCTION__	__func__
@@ -378,7 +377,7 @@ void xine_exit (xine_t *this) {
 
   printf ("xine_exit: bye!\n");
 
-  profiler_print_results ();
+  xine_profiler_print_results ();
 
 }
 
@@ -386,14 +385,14 @@ xine_t *xine_init (vo_driver_t *vo,
 		   ao_driver_t *ao,
 		   config_values_t *config) {
 
-  xine_t *this = xmalloc (sizeof (xine_t));
+  xine_t *this = xine_xmalloc (sizeof (xine_t));
   printf("xine_init entered\n");
 
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
   /* probe for optimized memcpy or config setting */
-  probe_fast_memcpy(config);
+  xine_probe_fast_memcpy(config);
   
   /*
    * init locks

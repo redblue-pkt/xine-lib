@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: lrb.c,v 1.1 2001/10/18 18:50:53 guenter Exp $
+ * $Id: lrb.c,v 1.2 2001/11/17 14:26:39 f1rmb Exp $
  *
  */
 
@@ -27,14 +27,14 @@
 
 #include <assert.h>
 #include "lrb.h"
-#include "utils.h"
+#include "xineutils.h"
 
 lrb_t *lrb_new (int max_num_entries,
 		fifo_buffer_t *fifo) {
 
   lrb_t *this;
   
-  this = xmalloc (sizeof (lrb_t));
+  this = xine_xmalloc (sizeof (lrb_t));
 
   this->max_num_entries = max_num_entries;
   this->cur_num_entries = 0;

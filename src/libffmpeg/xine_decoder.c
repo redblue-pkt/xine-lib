@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2001/11/13 21:47:58 heikos Exp $
+ * $Id: xine_decoder.c,v 1.19 2001/11/17 14:26:38 f1rmb Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -33,11 +33,10 @@
 #include <string.h>
 
 #include "xine_internal.h"
-#include "cpu_accel.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
-#include "memcpy.h"
+#include "xineutils.h"
 
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
@@ -198,7 +197,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     
   } else if (this->decoder_ok) {
 
-    fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
 
@@ -244,7 +243,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	for (y=0; y<this->biHeight; y++) {
 	  
-	  fast_memcpy (dy, sy, this->biWidth);
+	  xine_fast_memcpy (dy, sy, this->biWidth);
 	  
 	  dy += this->biWidth;
 	  
@@ -255,8 +254,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	  if (this->context.pix_fmt != PIX_FMT_YUV444P) {
 	  
-	    fast_memcpy (du, su, this->biWidth/2);
-	    fast_memcpy (dv, sv, this->biWidth/2);
+	    xine_fast_memcpy (du, su, this->biWidth/2);
+	    xine_fast_memcpy (dv, sv, this->biWidth/2);
 
 	  } else {
 

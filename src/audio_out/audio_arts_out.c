@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.6 2001/10/12 19:25:11 miguelfreitas Exp $
+ * $Id: audio_arts_out.c,v 1.7 2001/11/17 14:26:37 f1rmb Exp $
  */
 
 /* required for swab() */
@@ -38,9 +38,8 @@
 #include <artsc.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "audio_out.h"
-#include "utils.h"
 
 #define AO_OUT_ARTS_IFACE_VERSION 2
 

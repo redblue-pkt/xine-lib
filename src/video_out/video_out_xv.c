@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.74 2001/11/09 14:06:48 matt2000 Exp $
+ * $Id: video_out_xv.c,v 1.75 2001/11/17 14:26:39 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -50,14 +50,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "monitor.h"
 #include "video_out.h"
 #include "video_out_x11.h"
 #include "xine_internal.h"
 /* #include "overlay.h" */
 #include "alphablend.h"
 #include "deinterlace.h"
-#include "memcpy.h"
+#include "xineutils.h"
 
 uint32_t xine_debug;
 
@@ -473,7 +472,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
 #else
 
     /* know bug: we are not deinterlacing Cb and Cr */
-    fast_memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
+    xine_fast_memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
            frame->image->data + frame->width*frame->height,
            frame->width*frame->height*1/2);
 
@@ -498,7 +497,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     dst = this->deinterlace_frame.image->data;
     src = this->recent_frames[0]->image->data;
     for( i = 0; i < frame->height; i+=2 ) {
-      fast_memcpy(dst,src,frame->width);
+      xine_fast_memcpy(dst,src,frame->width);
       dst+=frame->width;
       src+=2*frame->width;
     }
@@ -506,7 +505,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     dst = this->deinterlace_frame.image->data + frame->width*frame->height/2;
     src = this->recent_frames[0]->image->data + frame->width*frame->height;
     for( i = 0; i < frame->height; i+=4 ) {
-      fast_memcpy(dst,src,frame->width/2);
+      xine_fast_memcpy(dst,src,frame->width/2);
       dst+=frame->width/2;
       src+=frame->width;
     }
@@ -514,7 +513,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     dst = this->deinterlace_frame.image->data + frame->width*frame->height*5/8;
     src = this->recent_frames[0]->image->data + frame->width*frame->height*5/4;
     for( i = 0; i < frame->height; i+=4 ) {
-      fast_memcpy(dst,src,frame->width/2);
+      xine_fast_memcpy(dst,src,frame->width/2);
       dst+=frame->width/2;
       src+=frame->width;
     }

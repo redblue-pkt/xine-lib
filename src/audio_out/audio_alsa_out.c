@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.35 2001/11/14 22:04:38 siggi Exp $
+ * $Id: audio_alsa_out.c,v 1.36 2001/11/17 14:26:37 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -61,9 +61,8 @@
 
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "audio_out.h"
-#include "utils.h"
 
 #ifndef AFMT_S16_NE
 # if defined(sparc) || defined(__sparc__) || defined(PPC)

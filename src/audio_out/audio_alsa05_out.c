@@ -24,7 +24,7 @@
  * for the SPDIF A52 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
  *
- * $Id: audio_alsa05_out.c,v 1.10 2001/09/06 15:40:47 joachim_koenig Exp $
+ * $Id: audio_alsa05_out.c,v 1.11 2001/11/17 14:26:37 f1rmb Exp $
  */
 
 /* required for swab() */
@@ -44,11 +44,10 @@
 #include <sys/asoundlib.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
 #include "audio_out.h"
 #include "metronom.h"
 #include "resample.h"
-#include "utils.h"
+#include "xineutils.h"
 
 #define AO_ALSA_IFACE_VERSION   2
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.1 2001/10/22 00:52:10 guenter Exp $
+ * $Id: monitor.c,v 1.2 2001/11/17 14:26:39 f1rmb Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -29,8 +29,7 @@
 
 #include <stdio.h>
 #include <sys/time.h>
-#include "utils.h"
-#include "monitor.h"
+#include "xineutils.h"
 
 #define MAX_ID 10
 
@@ -41,7 +40,7 @@ long long int profiler_start[MAX_ID] ;
 long profiler_calls[MAX_ID] ;
 char * profiler_label[MAX_ID] ;
 
-void profiler_init () {
+void xine_profiler_init () {
   int i;
   for (i=0; i<MAX_ID; i++) {
     profiler_times[i] = 0;
@@ -51,7 +50,7 @@ void profiler_init () {
   }
 }
 
-int profiler_allocate_slot (char *label) {
+int xine_profiler_allocate_slot (char *label) {
   int id;
 
   for (id = 0; id < MAX_ID && profiler_label[id] != NULL; id++)
@@ -74,7 +73,7 @@ __inline__ unsigned long long int rdtsc()
 }
 #endif
 
-void profiler_start_count (int id) {
+void xine_profiler_start_count (int id) {
 
   if ((unsigned)id >= MAX_ID) return;
 
@@ -83,7 +82,7 @@ void profiler_start_count (int id) {
 #endif
 }
 
-void profiler_stop_count (int id) {
+void xine_profiler_stop_count (int id) {
 
   if ((unsigned)id >= MAX_ID) return;
 
@@ -93,7 +92,7 @@ void profiler_stop_count (int id) {
   profiler_calls[id]++;
 }
 
-void profiler_print_results () {
+void xine_profiler_print_results () {
   int i;
 
 #ifdef ARCH_X86

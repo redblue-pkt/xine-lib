@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.27 2001/11/10 13:48:02 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.28 2001/11/17 14:26:37 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -35,7 +35,7 @@
 #include <stdlib.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "demux.h"
 
 #ifndef	__GNUC__

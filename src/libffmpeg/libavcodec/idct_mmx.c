@@ -26,7 +26,7 @@
 
 #include "../config.h"
 
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 #ifdef ATTR_ALIGN
 #undef ATTR_ALIGN

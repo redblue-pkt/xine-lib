@@ -20,7 +20,7 @@
  */
 
 #include "dsputil.h"
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 int mm_flags; /* multimedia extension flags */
 
@@ -967,7 +967,7 @@ static void   sub_pixels_xy2_mmx( DCTELEM  *block, const UINT8 *pixels, int line
 
 void dsputil_init_mmx(void)
 {
-    mm_flags = mm_accel();
+    mm_flags = xine_mm_accel();
 #if 0
     printf("CPU flags:");
     if (mm_flags & MM_MMX)

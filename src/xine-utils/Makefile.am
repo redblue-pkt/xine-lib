@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @GLOBAL_CFLAGS@ @THREAD_CFLAGS@
+CFLAGS = @GLOBAL_CFLAGS@ @THREAD_CFLAGS@ -DXINEUTILS_COMPILE
 
 
 EXTRA_DIST = cpu_accel.c
@@ -19,7 +19,8 @@ libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 	-release $(LT_RELEASE)
 
-include_HEADERS  = attributes.h  cpu_accel.h  memcpy.h  utils.h monitor.h
+noinst_HEADERS  = attributes.h
+include_HEADERS = xineutils.h
 
 ###
 # Hardcoded rule: 

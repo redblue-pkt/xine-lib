@@ -32,8 +32,7 @@
 #include "video_out.h"
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
-#include "cpu_accel.h"
-#include "utils.h"
+#include "xineutils.h"
 
 #define BUFFER_SIZE (224 * 1024)
 
@@ -46,13 +45,13 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 
     if (do_init) {
 	do_init = 0;
-	config.flags = mm_accel();
+	config.flags = xine_mm_accel();
 	idct_init ();
 	motion_comp_init ();
     }
 
-    mpeg2dec->chunk_buffer = xmalloc_aligned (16, BUFFER_SIZE + 4);
-    mpeg2dec->picture = xmalloc_aligned (16, sizeof (picture_t));
+    mpeg2dec->chunk_buffer = xine_xmalloc_aligned (16, BUFFER_SIZE + 4);
+    mpeg2dec->picture = xine_xmalloc_aligned (16, sizeof (picture_t));
 
     mpeg2dec->shift = 0xffffff00;
     mpeg2dec->is_sequence_needed = 1;

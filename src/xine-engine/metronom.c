@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.35 2001/11/13 21:47:59 heikos Exp $
+ * $Id: metronom.c,v 1.36 2001/11/17 14:26:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,10 +34,9 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "monitor.h"
 #include "xine_internal.h"
 #include "metronom.h"
-#include "utils.h"
+#include "xineutils.h"
 
 #define MAX_PTS_TOLERANCE      5000
 #define MAX_VIDEO_DELTA        1600
@@ -781,7 +780,7 @@ static int metronom_sync_loop (metronom_t *this) {
 
 metronom_t * metronom_init (int have_audio) {
 
-  metronom_t *this = xmalloc (sizeof (metronom_t));
+  metronom_t *this = xine_xmalloc (sizeof (metronom_t));
   int         err;
 
   this->audio_stream_start   = metronom_audio_stream_start;

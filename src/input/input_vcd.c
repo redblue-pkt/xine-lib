@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.29 2001/10/20 02:01:51 guenter Exp $
+ * $Id: input_vcd.c,v 1.30 2001/11/17 14:26:38 f1rmb Exp $
  *
  */
 
@@ -48,7 +48,7 @@
 #endif
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "input_plugin.h"
 
 static uint32_t xine_debug;
@@ -166,7 +166,7 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   ntracks = this->tochdr.ending_track 
     - this->tochdr.starting_track + 2;
   this->tocent = (struct cd_toc_entry *)
-    xmalloc(sizeof(*this->tocent) * ntracks);
+    xine_xmalloc(sizeof(*this->tocent) * ntracks);
   
   te.address_format = CD_LBA_FORMAT;
   te.starting_track = 0;
@@ -991,7 +991,7 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
       ++this->mrls_allocated_entries;
       /* note: 1 extra pointer for terminating NULL */
       this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(mrl_t*));
-      this->mrls[(i-1)] = (mrl_t *) xmalloc(sizeof(mrl_t));
+      this->mrls[(i-1)] = (mrl_t *) xine_xmalloc(sizeof(mrl_t));
     }
     else {
       memset(this->mrls[(i-1)], 0, sizeof(mrl_t));
@@ -1002,7 +1002,7 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
 	realloc(this->mrls[(i-1)]->mrl, strlen(mrl) + 1);
     }
     else {
-      this->mrls[(i-1)]->mrl = (char *) xmalloc(strlen(mrl) + 1);
+      this->mrls[(i-1)]->mrl = (char *) xine_xmalloc(strlen(mrl) + 1);
     }
     
     this->mrls[i-1]->origin = NULL;
@@ -1108,12 +1108,12 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     return NULL;
   }
     
-  this       = (vcd_input_plugin_t *) xmalloc(sizeof(vcd_input_plugin_t));
+  this       = (vcd_input_plugin_t *) xine_xmalloc(sizeof(vcd_input_plugin_t));
   config     = xine->config;
   xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (i = 0; i < 100; i++) {
-    this->filelist[i]       = (char *) xmalloc (256);
+    this->filelist[i]       = (char *) xine_xmalloc (256);
   }
   
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
@@ -1138,7 +1138,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   this->device = config->lookup_str(config, "vcd_device", CDROM);
 
-  this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t*));
+  this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
 
   this->fd      = -1;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.2 2001/11/12 23:56:31 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.3 2001/11/17 14:26:38 f1rmb Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -445,7 +445,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
     }
 # if USE_MPEG_BUFFER
     /* copy mpeg data to frame */
-    fast_memcpy(frame->mpeg, buffer, size);
+    xine_fast_memcpy(frame->mpeg, buffer, size);
     frame->mpeg_size = size;
 # endif
 #endif

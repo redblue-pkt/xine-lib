@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.6 2001/10/05 18:45:07 jkeil Exp $
+ * $Id: read_cache.c,v 1.7 2001/11/17 14:26:38 f1rmb Exp $
  */
 
 #include <sys/types.h>
@@ -26,7 +26,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "utils.h"
+#include "xineutils.h"
 
 #include "read_cache.h"
 
@@ -121,7 +121,7 @@ read_cache_t *read_cache_new () {
   char         *multi_buffer = NULL;
   int           buf_size;
 
-  this = (read_cache_t *) xmalloc (sizeof (read_cache_t));
+  this = (read_cache_t *) xine_xmalloc (sizeof (read_cache_t));
 
   pthread_mutex_init (&this->lock, NULL);
   pthread_cond_init (&this->buf_pool_not_empty, NULL);
@@ -133,7 +133,7 @@ read_cache_t *read_cache_new () {
   for (i = 0; i<NUM_BUFFERS; i++) {
     buf_element_t *buf;
     
-    buf = xmalloc (sizeof (buf_element_t));
+    buf = xine_xmalloc (sizeof (buf_element_t));
 
     buf->max_size    = 2048;
     buf->free_buffer = buf_free;
@@ -146,7 +146,7 @@ read_cache_t *read_cache_new () {
 
   buf_size = NUM_MACRO_BUFFERS * 2048 * 16;
   buf_size += 2048; /* alignment space */
-  this->multi_base = xmalloc (buf_size);
+  this->multi_base = xine_xmalloc (buf_size);
   multi_buffer = this->multi_base;
   while ((int) multi_buffer % 2048)
     multi_buffer++;
@@ -155,7 +155,7 @@ read_cache_t *read_cache_new () {
   for (i = 0; i<NUM_MACRO_BUFFERS; i++) {
     macro_buf_t *mbuf;
     
-    mbuf = xmalloc (sizeof (macro_buf_t));
+    mbuf = xine_xmalloc (sizeof (macro_buf_t));
 
     mbuf->data   = (uint8_t *)multi_buffer;
     multi_buffer += 2048*16;

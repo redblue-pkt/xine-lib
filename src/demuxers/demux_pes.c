@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.12 2001/11/10 13:48:02 guenter Exp $
+ * $Id: demux_pes.c,v 1.13 2001/11/17 14:26:37 f1rmb Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -37,10 +37,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "monitor.h"
 #include "xine_internal.h"
 #include "demux.h"
-#include "utils.h"
+#include "xineutils.h"
 
 #define NUM_PREVIEW_BUFFERS 400
 
@@ -577,7 +576,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = xmalloc (sizeof (demux_pes_t));
+  this        = xine_xmalloc (sizeof (demux_pes_t));
   config      = xine->config;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 

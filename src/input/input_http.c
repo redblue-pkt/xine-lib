@@ -37,7 +37,7 @@
 #include <sys/time.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "input_plugin.h"
 
 #define BUFSIZE 1024
@@ -433,8 +433,8 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 	if (this->contentlength == 0) {
 	  off_t contentlength;
 	  
-	  if (sscanf(this->buf, "Content-Length: %ld", &contentlength) == 1) {
-      	    printf ("input_http: content length = %ld bytes\n", contentlength);
+	  if (sscanf(this->buf, "Content-Length: %Ld", &contentlength) == 1) {
+      	    printf ("input_http: content length = %Ld bytes\n", contentlength);
 	    this->contentlength = contentlength;
 	  }
         }
@@ -605,7 +605,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     return NULL;
   }
 
-  this       = (http_input_plugin_t *) xmalloc(sizeof(http_input_plugin_t));
+  this       = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
   config     = xine->config;
   xine_debug = config->lookup_int (config, "xine_debug", 0);
 

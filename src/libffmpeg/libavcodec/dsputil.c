@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include "avcodec.h"
 #include "dsputil.h"
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 void (*ff_idct)(DCTELEM *block);
 void (*get_pixels)(DCTELEM *block, const UINT8 *pixels, int line_size);
@@ -415,7 +415,7 @@ void dsputil_init(void)
 {
     int i, j;
 #ifdef ARCH_X86
-    uint32_t mm = mm_accel();
+    uint32_t mm = xine_mm_accel();
 #endif
     int use_permuted_mmx_idct;
     int accel_dsputil;

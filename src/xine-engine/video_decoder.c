@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.64 2001/11/15 23:18:04 guenter Exp $
+ * $Id: video_decoder.c,v 1.65 2001/11/17 14:26:39 f1rmb Exp $
  *
  */
 
@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include <sched.h>
 
 /*
@@ -66,9 +66,9 @@ void *video_decoder_loop (void *this_gen) {
   static int	   prof_spu_decode = -1;
 
   if (prof_video_decode == -1)
-    prof_video_decode = profiler_allocate_slot ("video decoder");
+    prof_video_decode = xine_profiler_allocate_slot ("video decoder");
   if (prof_spu_decode == -1)
-    prof_spu_decode = profiler_allocate_slot ("spu decoder");
+    prof_spu_decode = xine_profiler_allocate_slot ("spu decoder");
 
   while (running) {
 
@@ -134,14 +134,14 @@ void *video_decoder_loop (void *this_gen) {
     case BUF_SPU_SUBP_CONTROL:
     case BUF_SPU_CLUT:
     case BUF_SPU_PACKAGE:
-      profiler_start_count (prof_spu_decode);
+      xine_profiler_start_count (prof_spu_decode);
 
       spu_decoder = update_spu_decoder(this, buf->type);
 
       if (spu_decoder)
         spu_decoder->decode_data (spu_decoder, buf);
 
-      profiler_stop_count (prof_spu_decode);
+      xine_profiler_stop_count (prof_spu_decode);
       break;
 
     case BUF_CONTROL_SPU_CHANNEL:
@@ -209,7 +209,7 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     default:
-      profiler_start_count (prof_video_decode);
+      xine_profiler_start_count (prof_video_decode);
 
       if ( (buf->type & 0xFF000000) == BUF_VIDEO_BASE ) {
 
@@ -244,7 +244,7 @@ void *video_decoder_loop (void *this_gen) {
       } else
 	printf ("video_decoder: unknown buffer type: %08x\n", buf->type);
 
-      profiler_stop_count (prof_video_decode);
+      xine_profiler_stop_count (prof_video_decode);
 
       break;
 

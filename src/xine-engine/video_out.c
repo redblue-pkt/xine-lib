@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.54 2001/11/15 23:18:04 guenter Exp $
+ * $Id: video_out.c,v 1.55 2001/11/17 14:26:39 f1rmb Exp $
  *
  */
 
@@ -33,8 +33,7 @@
 #include <string.h>
 
 #include "video_out.h"
-#include "utils.h"
-#include "monitor.h"
+#include "xineutils.h"
 
 /*
 #define VIDEO_OUT_LOG
@@ -56,7 +55,7 @@ static img_buf_fifo_t *vo_new_img_buf_queue () {
 
   img_buf_fifo_t *queue;
 
-  queue = (img_buf_fifo_t *) xmalloc (sizeof (img_buf_fifo_t));
+  queue = (img_buf_fifo_t *) xine_xmalloc (sizeof (img_buf_fifo_t));
   if( queue ) {
     queue->first       = NULL;
     queue->last        = NULL;
@@ -156,9 +155,9 @@ static void *video_out_loop (void *this_gen) {
   /* printf ("%d video_out start\n", getpid());  */
 
   if (prof_video_out == -1)
-    prof_video_out = profiler_allocate_slot ("video output");
+    prof_video_out = xine_profiler_allocate_slot ("video output");
   if (prof_spu_blend == -1)
-    prof_spu_blend = profiler_allocate_slot ("spu blend");
+    prof_spu_blend = xine_profiler_allocate_slot ("spu blend");
 
   /*
   sigemptyset(&vo_mask);
@@ -193,7 +192,7 @@ static void *video_out_loop (void *this_gen) {
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
     pause (); 
 
-    profiler_start_count (prof_video_out);
+    xine_profiler_start_count (prof_video_out);
 
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
@@ -213,7 +212,7 @@ static void *video_out_loop (void *this_gen) {
     img = this->display_img_buf_queue->first;
     
     if (!img) {
-      profiler_stop_count (prof_video_out);
+      xine_profiler_stop_count (prof_video_out);
       continue;
     }
 
@@ -264,7 +263,7 @@ static void *video_out_loop (void *this_gen) {
 #endif
 
     if (diff<0) {
-      profiler_stop_count (prof_video_out);
+      xine_profiler_stop_count (prof_video_out);
       continue;
     }
 
@@ -281,7 +280,7 @@ static void *video_out_loop (void *this_gen) {
 
 
     if (!img) {
-      profiler_stop_count (prof_video_out);
+      xine_profiler_stop_count (prof_video_out);
       continue;
     }
 
@@ -301,18 +300,18 @@ static void *video_out_loop (void *this_gen) {
        * for flushing it's buffers. So don't remove it! */
       vo_overlay_t *ovl;
 
-      profiler_start_count (prof_spu_blend);
+      xine_profiler_start_count (prof_spu_blend);
 
       ovl = this->overlay_source->get_overlay (this->overlay_source, img->PTS);
       if (this->video_loop_running && ovl && this->driver->overlay_blend && this->overlay_enabled)
 	this->driver->overlay_blend (this->driver, img, ovl); 
 
-      profiler_stop_count (prof_spu_blend);
+      xine_profiler_stop_count (prof_spu_blend);
     }
     
     this->driver->display_frame (this->driver, img); 
 
-    profiler_stop_count (prof_video_out);
+    xine_profiler_stop_count (prof_video_out);
   }
 
   /*
@@ -587,7 +586,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   vo_instance_t *this;
   int            i;
 
-  this = xmalloc (sizeof (vo_instance_t)) ;
+  this = xine_xmalloc (sizeof (vo_instance_t)) ;
   this->driver                = driver;
   this->metronom              = metronom;
 

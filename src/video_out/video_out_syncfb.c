@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.45 2001/11/09 19:53:57 joachim_koenig Exp $
+ * $Id: video_out_syncfb.c,v 1.46 2001/11/17 14:26:39 f1rmb Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -54,12 +54,11 @@
 
 #include "video_out_syncfb.h"
 
-#include "monitor.h"
 #include "video_out.h"
 #include "video_out_x11.h"
 #include "xine_internal.h"
 #include "alphablend.h"
-#include "memcpy.h"
+#include "xineutils.h"
 
 uint32_t xine_debug;
 
@@ -258,7 +257,7 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame)
 
    dst8 = this->video_mem + this->bufinfo.offset;
    for(h = 0; h < frame->height; h++) {
-      fast_memcpy(dst8, y, frame->width);
+      xine_fast_memcpy(dst8, y, frame->width);
       y    += frame->width;
       dst8 += bespitch;
    }
@@ -274,21 +273,21 @@ static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame)
    int bespitch = (frame->width + 31) & ~31; 
 
    for(h = 0; h < frame->height; h++) {
-      fast_memcpy(dst8, y, frame->width);
+      xine_fast_memcpy(dst8, y, frame->width);
       y    += frame->width;
       dst8 += bespitch;
    }
 
    dst8 = this->video_mem + this->bufinfo.offset_p2;
    for(h = 0; h < (frame->height / 2); h++) {
-      fast_memcpy(dst8, cb, (frame->width / 2));
+      xine_fast_memcpy(dst8, cb, (frame->width / 2));
       cb   += (frame->width / 2);
       dst8 += (bespitch / 2);
    }
 
    dst8 = this->video_mem + this->bufinfo.offset_p3;
    for(h=0; h < (frame->height / 2); h++) {
-      fast_memcpy(dst8, cr, (frame->width / 2));
+      xine_fast_memcpy(dst8, cr, (frame->width / 2));
       cr   += (frame->width / 2);
       dst8 += (bespitch / 2);
    }
@@ -302,7 +301,7 @@ static void write_frame_YUY2(syncfb_driver_t* this, syncfb_frame_t* frame)
    int bespitch = (frame->width + 31) & ~31; 
 
    for(h = 0; h < frame->height; h++) {
-      fast_memcpy(dst8, src8, (frame->width * 2));
+      xine_fast_memcpy(dst8, src8, (frame->width * 2));
 
       dst8 += (bespitch * 2);
       src8 += (frame->width * 2);

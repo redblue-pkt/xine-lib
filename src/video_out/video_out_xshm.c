@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.49 2001/10/29 02:15:22 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.50 2001/11/17 14:26:39 f1rmb Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -54,11 +54,10 @@
 #include <netinet/in.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
-#include "utils.h"
 #include "video_out_x11.h"
 #include "alphablend.h"
 #include "yuv2rgb.h"
+#include "xineutils.h"
 
 uint32_t xine_debug;
 
@@ -192,7 +191,7 @@ static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) 
 
   uint8_t *pMem;
 
-  pMem = xmalloc (size+alignment);
+  pMem = xine_xmalloc (size+alignment);
 
   *chunk = pMem;
 
@@ -312,7 +311,7 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
     this->bytes_per_pixel = this->bpp / 8;
     this->image_byte_order = myimage->byte_order;
 
-    myimage->data = xmalloc (width * this->bytes_per_pixel * height);
+    myimage->data = xine_xmalloc (width * this->bytes_per_pixel * height);
   }
 
   return myimage;
@@ -353,7 +352,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
-  profiler_start_count (this->prof_yuv2rgb);
+  xine_profiler_start_count (this->prof_yuv2rgb);
 
   if (frame->format == IMGFMT_YV12) {
     this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
@@ -365,7 +364,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 				 
   }
   
-  profiler_stop_count (this->prof_yuv2rgb);
+  xine_profiler_stop_count (this->prof_yuv2rgb);
 
   frame->rgb_dst += frame->stripe_inc; 
 }
@@ -1212,7 +1211,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->gc		    = XCreateGC (this->display, this->drawable,
 					 0, NULL);
 
-  this->prof_yuv2rgb	    = profiler_allocate_slot ("xshm yuv2rgb convert");
+  this->prof_yuv2rgb	    = xine_profiler_allocate_slot ("xshm yuv2rgb convert");
 
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;

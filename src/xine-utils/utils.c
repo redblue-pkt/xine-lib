@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.1 2001/10/22 00:52:10 guenter Exp $
+ * $Id: utils.c,v 1.2 2001/11/17 14:26:39 f1rmb Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -43,7 +43,7 @@
 /*
  *
  */
-void *xmalloc(size_t size) {
+void *xine_xmalloc(size_t size) {
   void *ptr;
 
   if((ptr = malloc(size)) == NULL) {
@@ -60,10 +60,10 @@ void *xmalloc(size_t size) {
 /*
  *
  */
-void *xmalloc_aligned (size_t alignment, size_t size) {
+void *xine_xmalloc_aligned (size_t alignment, size_t size) {
   char *pMem;
 
-  pMem = xmalloc (size+alignment);
+  pMem = xine_xmalloc (size+alignment);
 
   while ((int) pMem % alignment)
     pMem++;
@@ -74,7 +74,7 @@ void *xmalloc_aligned (size_t alignment, size_t size) {
 /*
  *
  */
-const char *get_homedir(void) {
+const char *xine_get_homedir(void) {
   struct passwd *pw = NULL;
   char *homedir = NULL;
 #ifdef HAVE_GETPWUID_R
@@ -83,7 +83,7 @@ const char *get_homedir(void) {
   char *buffer = NULL;
   int bufsize = 128;
 
-  buffer = (char *) xmalloc(bufsize);
+  buffer = (char *) xine_xmalloc(bufsize);
   
   if((ret = getpwuid_r(getuid(), &pwd, buffer, bufsize, &pw)) < 0) {
 #else
@@ -111,7 +111,7 @@ const char *get_homedir(void) {
 /*
  *
  */
-char *chomp(char *str) {
+char *xine_chomp(char *str) {
   char *pbuf;
 
   pbuf = str;

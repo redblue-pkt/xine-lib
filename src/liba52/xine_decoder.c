@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2001/11/13 21:47:58 heikos Exp $
+ * $Id: xine_decoder.c,v 1.9 2001/11/17 14:26:38 f1rmb Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -35,7 +35,7 @@
 #include "a52_internal.h"
 #include "buffer.h"
 #include "xine_internal.h"
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 #undef DEBUG_A52
 #ifdef DEBUG_A52
@@ -95,7 +95,7 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->pts           = 0;
   this->last_pts      = 0;
 
-  this->samples = a52_init (mm_accel());
+  this->samples = a52_init (xine_mm_accel());
 
   /*
    * find out if this driver supports a52 output

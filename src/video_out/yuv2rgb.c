@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.26 2001/10/29 02:15:22 miguelfreitas Exp $
+ * $Id: yuv2rgb.c,v 1.27 2001/11/17 14:26:39 f1rmb Exp $
  */
 
 #include "config.h"
@@ -33,11 +33,8 @@
 #include <inttypes.h>
 
 #include "yuv2rgb.h"
-#include "attributes.h"
-#include "cpu_accel.h"
-#include "monitor.h"
-#include "utils.h"
-#include "memcpy.h"
+#include "xineutils.h"
+
 
 static int prof_scale_line = -1;
 
@@ -60,7 +57,7 @@ static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
 
   char *pMem;
 
-  pMem = xmalloc (size+alignment);
+  pMem = xine_xmalloc (size+alignment);
 
   *chunk = pMem;
 
@@ -81,7 +78,7 @@ int yuv2rgb_setup (yuv2rgb_t *this,
 	  dest_width, dest_height);
 	  */
   if (prof_scale_line == -1)
-    prof_scale_line = profiler_allocate_slot("xshm scale line");
+    prof_scale_line = xine_profiler_allocate_slot("xshm scale line");
 
   this->source_width  = source_width;
   this->source_height = source_height;
@@ -158,7 +155,7 @@ static void scale_line_gen (uint8_t *source, uint8_t *dest,
   int p2;
   int dx;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   p1 = *source++;
   p2 = *source++;
@@ -179,7 +176,7 @@ static void scale_line_gen (uint8_t *source, uint8_t *dest,
     width --;
   }
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 /*
@@ -193,7 +190,7 @@ static void scale_line_15_16 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 16) >= 0) {
     p1 = source[0];
@@ -262,7 +259,7 @@ static void scale_line_15_16 (uint8_t *source, uint8_t *dest,
   if (--width <= 0) goto done;
   *dest++ = (7*source[13] + 1*source[14]) >> 3;
  done:
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -279,7 +276,7 @@ static void scale_line_45_53 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 53) >= 0) {
     p1 = source[0];
@@ -491,7 +488,7 @@ static void scale_line_45_53 (uint8_t *source, uint8_t *dest,
   *dest++ = (3*source[43] + 1*source[44]) >> 2;
  done:
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -507,7 +504,7 @@ static void scale_line_45_64 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 64) >= 0) {
     p1 = source[0];
@@ -752,7 +749,7 @@ static void scale_line_45_64 (uint8_t *source, uint8_t *dest,
   *dest++ = (3*source[43] + 5*source[44]) >> 3;
  done:
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -766,7 +763,7 @@ static void scale_line_9_16 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 16) >= 0) {
     p1 = source[0];
@@ -830,7 +827,7 @@ static void scale_line_9_16 (uint8_t *source, uint8_t *dest,
   if (--width <= 0) goto done;
   *dest++ = (1*source[7] + 7*source[8]) >> 3;
 done:
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -843,7 +840,7 @@ static void scale_line_11_12 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 12) >= 0) {
     p1 = source[0];
@@ -898,7 +895,7 @@ static void scale_line_11_12 (uint8_t *source, uint8_t *dest,
   *dest++ = (7*source[9] + 1*source[10]) >> 3;
 done:
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -912,7 +909,7 @@ static void scale_line_11_24 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 24) >= 0) {
     p1 = source[0];
@@ -1003,7 +1000,7 @@ static void scale_line_11_24 (uint8_t *source, uint8_t *dest,
   *dest++ = (7*source[10] + 1*source[11]) >> 3;
 done:
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -1016,7 +1013,7 @@ static void scale_line_5_8 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 8) >= 0) {
     p1 = source[0];
@@ -1053,7 +1050,7 @@ static void scale_line_5_8 (uint8_t *source, uint8_t *dest,
   *dest++ = (1*source[3] + 3*source[4]) >> 2;
 done:
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -1066,7 +1063,7 @@ static void scale_line_3_4 (uint8_t *source, uint8_t *dest,
 
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   while ((width -= 4) >= 0) {
     p1 = source[0];
@@ -1089,7 +1086,7 @@ static void scale_line_3_4 (uint8_t *source, uint8_t *dest,
   *dest++ = (1*source[1] + 1*source[2]) >> 1;
 done:
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 
@@ -1099,7 +1096,7 @@ static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
 			    int width, int step) {
   int p1, p2;
 
-  profiler_start_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
 
   p1 = *source;
   while ((width -= 4) >= 0) {
@@ -1119,7 +1116,7 @@ static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
   *dest++ = source[1];
  done:
 
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 			
@@ -1130,9 +1127,9 @@ static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
 static void scale_line_1_1 (uint8_t *source, uint8_t *dest,
 			    int width, int step) {
 
-  profiler_start_count(prof_scale_line);
-  fast_memcpy(dest, source, width);
-  profiler_stop_count(prof_scale_line);
+  xine_profiler_start_count(prof_scale_line);
+  xine_fast_memcpy(dest, source, width);
+  xine_profiler_stop_count(prof_scale_line);
 }
 
 			
@@ -2962,9 +2959,9 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
 yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap) {
 
 #ifdef ARCH_X86
-  uint32_t mm = mm_accel();
+  uint32_t mm = xine_mm_accel();
 #endif
-  yuv2rgb_t *this = xmalloc (sizeof (yuv2rgb_t));
+  yuv2rgb_t *this = xine_xmalloc (sizeof (yuv2rgb_t));
 
 
   this->matrix_coefficients = 6;

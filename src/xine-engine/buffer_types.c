@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.4 2001/11/15 00:30:33 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.5 2001/11/17 14:26:39 f1rmb Exp $
  *
  *
  * contents:
@@ -36,7 +36,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "buffer.h"
-#include "utils.h"
 
 #define	WINE_TYPEDEFS_ONLY
 #include "libw32dll/wine/avifmt.h"

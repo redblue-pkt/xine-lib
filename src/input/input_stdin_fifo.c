@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.15 2001/10/20 02:01:51 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.16 2001/11/17 14:26:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,7 +37,7 @@
 #endif
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "input_plugin.h"
 
 static uint32_t xine_debug;
@@ -265,7 +265,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     return NULL;
   }
 
-  this       = (stdin_input_plugin_t *) xmalloc(sizeof(stdin_input_plugin_t));
+  this       = (stdin_input_plugin_t *) xine_xmalloc(sizeof(stdin_input_plugin_t));
   config     = xine->config;
   xine_debug = config->lookup_int (config, "xine_debug", 0);
 

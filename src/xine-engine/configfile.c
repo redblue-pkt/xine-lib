@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.4 2001/07/26 11:12:26 f1rmb Exp $
+ * $Id: configfile.c,v 1.5 2001/11/17 14:26:39 f1rmb Exp $
  *
  * config file management - implementation
  *
@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "configfile.h"
-#include "utils.h"
+#include "xineutils.h"
 
 /*
  * internal utility functions
@@ -42,14 +42,14 @@ void config_file_add (config_values_t *this, char *key, char *value) {
   cfg_entry_t *entry;
   int          len;
 
-  entry = (cfg_entry_t *) xmalloc (sizeof (cfg_entry_t));
+  entry = (cfg_entry_t *) xine_xmalloc (sizeof (cfg_entry_t));
 
   len = strlen (key);
-  entry->key = (char *) xmalloc (len+2);
+  entry->key = (char *) xine_xmalloc (len+2);
   strncpy (entry->key, key, len+1);
 
   len = strlen (value);
-  entry->value = (char *) xmalloc (len+21);
+  entry->value = (char *) xine_xmalloc (len+21);
   strncpy (entry->value, value, len+1);
 
   entry->next = NULL;
@@ -172,7 +172,7 @@ static void config_file_set_str (config_values_t *this,
     free (entry->value);
 
     len = strlen (value);
-    entry->value = (char *) xmalloc (len+20);
+    entry->value = (char *) xine_xmalloc (len+20);
     strncpy (entry->value, value, len);
 
   }
@@ -188,7 +188,7 @@ static void config_file_save (config_values_t *this) {
   FILE *f_config;
   char filename[1024];
 
-  sprintf (filename, "%s/.xinerc", get_homedir());
+  sprintf (filename, "%s/.xinerc", xine_get_homedir());
 
   f_config = fopen (filename, "w");
 
@@ -250,8 +250,8 @@ config_values_t *config_file_init (char *filename) {
   config_values_t *this;
   cfg_data_t *data;
 
-  if ( (this = xmalloc(sizeof(config_values_t))) ) {
-    if ( (data = xmalloc(sizeof(cfg_data_t))) ) {
+  if ( (this = xine_xmalloc(sizeof(config_values_t))) ) {
+    if ( (data = xine_xmalloc(sizeof(cfg_data_t))) ) {
       data->gConfig = NULL;
       data->gConfigLast = NULL;
       this->data = data;
@@ -279,6 +279,12 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.5  2001/11/17 14:26:39  f1rmb
+ * Add 'xine_' prefix to all of xine-utils functions (what about cpu
+ * acceleration?). Merge xine-utils header files to a new one "xineutils.h".
+ * Update xine-lib C/headers to reflect those changes.
+ * dxr3 headers are no more installed ine $includdir, but $includdir/xine.
+ *
  * Revision 1.4  2001/07/26 11:12:26  f1rmb
  * Updated doxy sections in xine.h.tmpl.in. Added man3. Removed french man page. Added API doc in html. Add new rpm package (doc). Fixes some little bugs in
  * proto decl, etc...

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.45 2001/11/16 20:21:09 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.46 2001/11/17 14:26:39 f1rmb Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -44,9 +44,8 @@
 #include "video_out.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "xine_internal.h"
-#include "memcpy.h"
  
 static GUID CLSID_Voxware =
 {
@@ -574,7 +573,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       this->buf = realloc( this->buf, this->bufsize );
     }
     
-    fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
 
@@ -613,7 +612,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
                          
       if (this->outfmt==IMGFMT_YUY2) {
 	/* already decoded into YUY2 format by DLL */
-	fast_memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
+	xine_fast_memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
       } else {
 	/* now, convert rgb to yuv */
 	int row, col;
@@ -621,7 +620,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	int32_t *ctab = rgb_ycc_tab;
 #endif
 
-	profiler_start_count (this->prof_rgb2yuv);
+	xine_profiler_start_count (this->prof_rgb2yuv);
 
 	for (row=0; row<this->bih.biHeight; row++) {
 
@@ -666,7 +665,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  }
 	}
 
-	profiler_stop_count (this->prof_rgb2yuv);
+	xine_profiler_stop_count (this->prof_rgb2yuv);
       }
 
       img->PTS = buf->PTS;
@@ -961,7 +960,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     this->buf = realloc( this->buf, this->max_audio_src_size );
   }
   
-  fast_memcpy (&this->buf[this->size], data, size);
+  xine_fast_memcpy (&this->buf[this->size], data, size);
        
   this->size += size;
 
@@ -1022,7 +1021,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 	else
 	  bufsize = audio_buffer->mem_size;
       
-        fast_memcpy( audio_buffer->mem, p, bufsize );
+        xine_fast_memcpy( audio_buffer->mem, p, bufsize );
 	/*
         printf("  outputing %d bytes, pts = %d\n", bufsize, pts );
         */
@@ -1041,7 +1040,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
       this->size=0;
     } else {
       this->size-=ash.cbSrcLengthUsed;
-      fast_memcpy( this->buf, &this->buf [ash.cbSrcLengthUsed], this->size);
+      xine_fast_memcpy( this->buf, &this->buf [ash.cbSrcLengthUsed], this->size);
     }
 
     if( !this->ds_driver ) {
@@ -1115,7 +1114,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
 
-  this = (w32v_decoder_t *) xmalloc (sizeof (w32v_decoder_t));
+  this = (w32v_decoder_t *) xine_xmalloc (sizeof (w32v_decoder_t));
 
   this->video_decoder.interface_version   = 3;
   this->video_decoder.can_handle          = w32v_can_handle;
@@ -1126,7 +1125,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this->video_decoder.get_identifier      = w32v_get_id;
   this->video_decoder.priority            = 1;
 
-  this->prof_rgb2yuv = profiler_allocate_slot ("w32codec rgb2yuv convert");
+  this->prof_rgb2yuv = xine_profiler_allocate_slot ("w32codec rgb2yuv convert");
 
 
   return (video_decoder_t *) this;
@@ -1148,7 +1147,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
 
-  this = (w32a_decoder_t *) xmalloc (sizeof (w32a_decoder_t));
+  this = (w32a_decoder_t *) xine_xmalloc (sizeof (w32a_decoder_t));
   
   this->audio_decoder.interface_version   = 3;
   this->audio_decoder.can_handle          = w32a_can_handle;

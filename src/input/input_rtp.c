@@ -81,7 +81,7 @@
 #include <stdlib.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "input_plugin.h"
 
 #define RTP_BLOCKSIZE 2048
@@ -471,17 +471,17 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   }
 
     
-  this       = (rtp_input_plugin_t *) xmalloc(sizeof(rtp_input_plugin_t));
+  this       = (rtp_input_plugin_t *) xine_xmalloc(sizeof(rtp_input_plugin_t));
   config     = xine->config;
   xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (bufn = 0; bufn < N_BUFFERS; bufn++) {
-    input_buffer_t *buf = xmalloc(sizeof(input_buffer_t));
+    input_buffer_t *buf = xine_xmalloc(sizeof(input_buffer_t));
     if (!buf) {
       fprintf(stderr, "unable to allocate input buffer.\n");
       exit(1);
     }
-    buf->buf = xmalloc(IBUFFER_SIZE);
+    buf->buf = xine_xmalloc(IBUFFER_SIZE);
     if (!buf->buf) {
       fprintf(stderr, "unable to allocate input buffer.\n");
       exit(1);

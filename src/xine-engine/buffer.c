@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.11 2001/11/06 21:46:05 miguelfreitas Exp $
+ * $Id: buffer.c,v 1.12 2001/11/17 14:26:39 f1rmb Exp $
  *
  *
  * contents:
@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "buffer.h"
-#include "utils.h"
+#include "xineutils.h"
 
 /*
  * put a previously allocated buffer element back into the buffer pool
@@ -229,7 +229,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   int            alignment = 2048;
   char          *multi_buffer = NULL;
 
-  this = xmalloc (sizeof (fifo_buffer_t));
+  this = xine_xmalloc (sizeof (fifo_buffer_t));
 
   this->first           = NULL;
   this->last            = NULL;
@@ -254,7 +254,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n", 
 	  num_buffers, (long int) buf_size, alignment);
 	  */
-  multi_buffer = xmalloc_aligned (alignment, num_buffers * buf_size);
+  multi_buffer = xine_xmalloc_aligned (alignment, num_buffers * buf_size);
 
   this->buffer_pool_top = NULL;
 
@@ -264,7 +264,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   for (i = 0; i<num_buffers; i++) {
     buf_element_t *buf;
 
-    buf = xmalloc (sizeof (buf_element_t));
+    buf = xine_xmalloc (sizeof (buf_element_t));
 
     buf->mem = multi_buffer;
     multi_buffer += buf_size;

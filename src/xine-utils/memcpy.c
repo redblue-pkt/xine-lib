@@ -38,9 +38,9 @@
 #include <signal.h>
 #include <setjmp.h>
 #include "xine_internal.h"
-#include "cpu_accel.h"
+#include "xineutils.h"
  
-void *(* fast_memcpy)(void *to, const void *from, size_t len);
+void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
  
 /* Original comments from mplayer (file: aclib.c)
  This part of code was taken by me from Linux-2.4.3 and slightly modified
@@ -401,7 +401,7 @@ static void sigill_handler (int n) {
 
 
 #define BUFSIZE 1024*1024
-void probe_fast_memcpy(config_values_t *config)
+void xine_probe_fast_memcpy(config_values_t *config)
 {
   unsigned long long t;
   char *buf1, *buf2;
@@ -409,7 +409,7 @@ void probe_fast_memcpy(config_values_t *config)
   static int config_flags = -1;
   
 #ifdef ARCH_X86
-  config_flags = mm_accel();
+  config_flags = xine_mm_accel();
 #else
   config_flags = 0;
 #endif
@@ -420,13 +420,13 @@ void probe_fast_memcpy(config_values_t *config)
      (config_flags & memcpy_method[best].cpu_require) == 
       memcpy_method[best].cpu_require ) {
     printf("xine: using %s\n", memcpy_method[best].name );
-    fast_memcpy = memcpy_method[best].function;
+    xine_fast_memcpy = memcpy_method[best].function;
     return;
   }
 
   best = -1;
   
-  fast_memcpy = memcpy;
+  xine_fast_memcpy = memcpy;
   
   if( (buf1 = malloc(BUFSIZE)) == NULL )
     return;
@@ -468,7 +468,7 @@ void probe_fast_memcpy(config_values_t *config)
       best = i;
   }
   printf("xine: using %s\n", memcpy_method[best].name );
-  fast_memcpy = memcpy_method[best].function;
+  xine_fast_memcpy = memcpy_method[best].function;
   config->set_int (config, "fast_memcpy", best );
   
   free(buf1);

@@ -1,42 +1,44 @@
-/*
- * cpu_accel.h - based on mmx.h, sse.h
- * Copyright (C) 1997-1999 H. Dietz and R. Fisher
- *
- * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
- *
- * mpeg2dec is free software; you can redistribute it and/or modify
+/* 
+ * Copyright (C) 2000-2001 the xine project
+ * 
+ * This file is part of xine, a unix video player.
+ * 
+ * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- *
- * mpeg2dec is distributed in the hope that it will be useful,
+ * 
+ * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * xine specific modifications 2001 by G. Bartsch
+ * $Id: xineutils.h,v 1.1 2001/11/17 14:26:39 f1rmb Exp $
  *
  */
+#ifndef XINEUTILS_H
+#define XINEUTILS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <unistd.h>
+#include <inttypes.h>
+#include "attributes.h"
+
+			/* CPU Acceleration */
 
 /*
  * The type of an value that fits in an MMX register (note that long
  * long constant values MUST be suffixed by LL and unsigned long long
  * values by ULL, lest they be truncated by the compiler)
  */
-
-#ifndef _CPU_ACCEL_H
-#define _CPU_ACCEL_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "attributes.h"
-
+  
 /* generic accelerations */
 #define MM_ACCEL_MLIB           0x00000001
 
@@ -53,8 +55,8 @@ extern "C" {
 #define MM_SSE                  MM_ACCEL_X86_SSE
 #define MM_SSE2                 MM_ACCEL_X86_SSE2
 
-uint32_t mm_accel (void) ;
-/* uint32_t mm_support (void) ; */
+uint32_t xine_mm_accel (void);
+/* uint32_t xine_mm_support (void) ; */
 
 #ifdef ARCH_X86
 
@@ -523,9 +525,116 @@ typedef	union {
 			      : "X" (mem))
 #endif /*ARCH_X86 */
 
+
+
+		     /* Optimized/fast memcpy */
+
+extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
+
+#ifdef HAVE_XINE_INTERNAL_H
+/* Benchmark available memcpy methods */
+void xine_probe_fast_memcpy(config_values_t *config);
+#endif
+
+
+
+		      /* Debugging/Monitoring */
+
+extern uint32_t xine_debug;
+
+#define VERBOSE        (xine_debug & 0x8000>>1)   // 16384
+#define METRONOM       (xine_debug & 0x8000>>2)   //  8192
+#define AUDIO          (xine_debug & 0x8000>>3)   //  4096
+#define DEMUX          (xine_debug & 0x8000>>4)   //  2048
+#define INPUT          (xine_debug & 0x8000>>5)   //  1024
+#define VIDEO          (xine_debug & 0x8000>>6)   //   512
+#define VPTS           (xine_debug & 0x8000>>7)   //   256
+#define MPEG           (xine_debug & 0x8000>>8)   //   128
+#define VAVI           (xine_debug & 0x8000>>9)   //    64
+#define AC3            (xine_debug & 0x8000>>10)  //    32
+#define LOOP           (xine_debug & 0x8000>>11)  //    16
+#define GUI            (xine_debug & 0x8000>>12)  //     8
+#define SPU            (xine_debug & 0x8000>>13)  //     4
+
+#ifdef	__GNUC__
+#define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
+#else	/* C99 version: */
+#define perr(...)	  {fprintf(stderr, __VA_ARGS__);fflush(stderr);}
+#endif
+
+#ifdef DEBUG
+/*
+ * Debug stuff
+ */
+#ifdef	__GNUC__
+#define xprintf(LVL, FMT, ARGS...) {                                          \
+                                     if(LVL) {                                \
+                                       printf(FMT, ##ARGS);          	      \
+                                     }                                        \
+                                   }
+#else	/* C99 version: */
+#define xprintf(LVL, ...) {						      \
+                                     if(LVL) {                                \
+                                       printf(__VA_ARGS__);       	      \
+                                     }                                        \
+                                   }
+#endif /* __GNUC__ */
+
+/*
+ * profiling
+ */
+void xine_profiler_init (void);
+int xine_profiler_allocate_slot (char *label);
+void xine_profiler_start_count (int id);
+void xine_profiler_stop_count (int id);
+void xine_profiler_print_results (void);
+
+#else /* no DEBUG, release version */
+
+#ifdef	__GNUC__
+#define xprintf(LVL, FMT, ARGS...) 
+#else	/* C99 version: */
+#define xprintf(LVL, ...) 
+#endif
+
+#define xine_profiler_init()
+#define xine_profiler_allocate_slot(label)	(-1)
+#define xine_profiler_start_count(id)
+#define xine_profiler_stop_count(id)
+#define xine_profiler_print_results()
+
+#endif /* DEBUG*/
+
+/*
+ * Allocate and clean memory size_t 'size', then return the pointer
+ * to the allocated memory.
+ */
+void *xine_xmalloc(size_t size);
+
+/*
+ * Same as above, but memory is aligned to 'alignement'.
+ */
+void *xine_xmalloc_aligned(size_t alignment, size_t size);
+
+/* 
+ * Get user home directory.
+ */
+const char *xine_get_homedir(void);
+
+/*
+ * Clean a string (remove spaces and '=' at the begin,
+ * and '\n', '\r' and spaces at the end.
+ */
+char *xine_chomp (char *str);
+
+/*
+ * A thread-safe usecond sleep
+ */
+void xine_usec_sleep(unsigned usec);
+
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif 
-
+#endif

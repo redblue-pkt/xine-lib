@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.51 2001/11/10 13:48:02 guenter Exp $
+ * $Id: demux_avi.c,v 1.52 2001/11/17 14:26:37 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -38,9 +38,8 @@
 #include <stdlib.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "demux.h"
-#include "utils.h"
 
 #define	WINE_TYPEDEFS_ONLY
 #include "libw32dll/wine/avifmt.h"
@@ -262,7 +261,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
   /* Create avi_t structure */
 
-  AVI = (avi_t *) xmalloc(sizeof(avi_t));
+  AVI = (avi_t *) xine_xmalloc(sizeof(avi_t));
   if(AVI==NULL) {
     this->AVI_errno = AVI_ERR_NO_MEM;
     return 0;
@@ -298,7 +297,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       if(strncasecmp(data,"hdrl",4) == 0) {
 
 	hdrl_len = n;
-	hdrl_data = (unsigned char *) xmalloc(n);
+	hdrl_data = (unsigned char *) xine_xmalloc(n);
 	if(hdrl_data==0) 
 	  ERR_EXIT(AVI_ERR_NO_MEM);
 	if (this->input->read(this->input, hdrl_data,n) != n ) 
@@ -317,7 +316,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 	 break if this is not the case */
       
       AVI->n_idx = AVI->max_idx = n/16;
-      AVI->idx = (unsigned  char((*)[16]) ) xmalloc(n);
+      AVI->idx = (unsigned  char((*)[16]) ) xine_xmalloc(n);
       if (AVI->idx==0) 
 	ERR_EXIT(AVI_ERR_NO_MEM);
 
@@ -535,11 +534,11 @@ static avi_t *AVI_init(demux_avi_t *this)  {
   }
     
 
-  AVI->video_index = (video_index_entry_t *) xmalloc(nvi*sizeof(video_index_entry_t));
+  AVI->video_index = (video_index_entry_t *) xine_xmalloc(nvi*sizeof(video_index_entry_t));
   if(AVI->video_index==0) ERR_EXIT(AVI_ERR_NO_MEM) ;
 
   if(AVI->audio_chunks) {
-    AVI->audio_index = (audio_index_entry_t *) xmalloc(nai*sizeof(audio_index_entry_t));
+    AVI->audio_index = (audio_index_entry_t *) xine_xmalloc(nai*sizeof(audio_index_entry_t));
     if(AVI->audio_index==0) ERR_EXIT(AVI_ERR_NO_MEM) ;
   }
   
@@ -1114,7 +1113,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = xmalloc (sizeof (demux_avi_t));
+  this        = xine_xmalloc (sizeof (demux_avi_t));
   config      = xine->config;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 

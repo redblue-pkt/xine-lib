@@ -76,7 +76,7 @@ void block_permute(INT16 *block);
 
 #if defined(ARCH_X86)
 
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 extern int mm_flags;
 

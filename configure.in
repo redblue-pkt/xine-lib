@@ -884,7 +884,6 @@ echo "   - file          - net"
 echo "   - stdin         - rtp"
 echo "   - http"
 if test x"$have_cdrom_ioctls" = "xyes"; then
-  echo "   - dvd"
-  echo "   - vcd"
+  echo "   - dvd           - vcd"
 fi
 echo "---"

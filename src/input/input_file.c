@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.27 2001/10/20 02:01:51 guenter Exp $
+ * $Id: input_file.c,v 1.28 2001/11/17 14:26:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,7 +36,7 @@
 #include <limits.h>	/*PATH_MAX*/
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "input_plugin.h"
 
 extern int errno;
@@ -429,9 +429,9 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   if((pdir = opendir(current_dir)) == NULL)
     return NULL;
   
-  dir_files  = (mrl_t *) xmalloc(sizeof(mrl_t) * MAXFILES);
-  hide_files = (mrl_t *) xmalloc(sizeof(mrl_t) * MAXFILES);
-  norm_files = (mrl_t *) xmalloc(sizeof(mrl_t) * MAXFILES);
+  dir_files  = (mrl_t *) xine_xmalloc(sizeof(mrl_t) * MAXFILES);
+  hide_files = (mrl_t *) xine_xmalloc(sizeof(mrl_t) * MAXFILES);
+  norm_files = (mrl_t *) xine_xmalloc(sizeof(mrl_t) * MAXFILES);
   
   while((pdirent = readdir(pdir)) != NULL) {
     
@@ -441,7 +441,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     if(is_a_dir(fullfilename)) {
 
       dir_files[num_dir_files].mrl    = (char *) 
-	xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
+	xine_xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
 
       dir_files[num_dir_files].origin = strdup(current_dir);
       sprintf(dir_files[num_dir_files].mrl, "%s%s", 
@@ -463,7 +463,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 		  __FUNCTION__, __LINE__, strerror(errno));
 	}
 	else {
-	  dir_files[num_dir_files].link = (char *) xmalloc(linksize + 1);
+	  dir_files[num_dir_files].link = (char *) xine_xmalloc(linksize + 1);
 	  strncpy(dir_files[num_dir_files].link, linkbuf, linksize);
 	  dir_files[num_dir_files].type |= get_file_type(dir_files[num_dir_files].link, current_dir);
 	}
@@ -475,7 +475,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	    && (pdirent->d_name[0] == '.' &&  pdirent->d_name[1] != '.')) {
 
       hide_files[num_hide_files].mrl    = (char *) 
-	xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
+	xine_xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
 
       hide_files[num_hide_files].origin = strdup(current_dir);
       sprintf(hide_files[num_hide_files].mrl, "%s%s", 
@@ -498,7 +498,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	}
 	else {
 	  hide_files[num_hide_files].link = (char *) 
-	    xmalloc(linksize + 1);
+	    xine_xmalloc(linksize + 1);
 	  strncpy(hide_files[num_hide_files].link, linkbuf, linksize);
 	  hide_files[num_hide_files].type |= get_file_type(hide_files[num_hide_files].link, current_dir);
 	}
@@ -509,7 +509,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     else {
 
       norm_files[num_norm_files].mrl    = (char *) 
-	xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
+	xine_xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
 
       norm_files[num_norm_files].origin = strdup(current_dir);
       sprintf(norm_files[num_norm_files].mrl, "%s%s", 
@@ -532,7 +532,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	}
 	else {
 	  norm_files[num_norm_files].link = (char *) 
-	    xmalloc(linksize + 1);
+	    xine_xmalloc(linksize + 1);
 	  strncpy(norm_files[num_norm_files].link, linkbuf, linksize);
 	  norm_files[num_norm_files].type |= get_file_type(norm_files[num_norm_files].link, current_dir);
 	}
@@ -575,7 +575,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
       if(num_files >= this->mrls_allocated_entries) {
 	++this->mrls_allocated_entries;
 	this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(mrl_t*));
-	this->mrls[num_files] = (mrl_t *) xmalloc(sizeof(mrl_t));
+	this->mrls[num_files] = (mrl_t *) xine_xmalloc(sizeof(mrl_t));
       }
       else
 	memset(this->mrls[num_files], 0, sizeof(mrl_t));
@@ -593,7 +593,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
       if(num_files >= this->mrls_allocated_entries) {
 	++this->mrls_allocated_entries;
 	this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(mrl_t*));
-	this->mrls[num_files] = (mrl_t *) xmalloc(sizeof(mrl_t));
+	this->mrls[num_files] = (mrl_t *) xine_xmalloc(sizeof(mrl_t));
       }
       else
 	memset(this->mrls[num_files], 0, sizeof(mrl_t));
@@ -611,7 +611,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
       if(num_files >= this->mrls_allocated_entries) {
 	++this->mrls_allocated_entries;
 	this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(mrl_t*));
-	this->mrls[num_files] = (mrl_t *) xmalloc(sizeof(mrl_t));
+	this->mrls[num_files] = (mrl_t *) xine_xmalloc(sizeof(mrl_t));
       }
       else
 	memset(this->mrls[num_files], 0, sizeof(mrl_t));
@@ -749,7 +749,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     return NULL;
   }
 
-  this       = (file_input_plugin_t *) xmalloc (sizeof (file_input_plugin_t));
+  this       = (file_input_plugin_t *) xine_xmalloc (sizeof (file_input_plugin_t));
   config     = xine->config;
   xine_debug = config->lookup_int (config, "xine_debug", 0);
 
@@ -777,7 +777,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrl                    = NULL;
   this->config                 = config;
   
-  this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t*));
+  this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
   
   return (input_plugin_t *) this;

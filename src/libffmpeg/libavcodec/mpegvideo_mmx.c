@@ -21,7 +21,7 @@
 
 #include "dsputil.h"
 #include "mpegvideo.h"
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 #if 0
 
@@ -222,7 +222,7 @@ void MPV_common_init_mmx(MpegEncContext *s)
 {
     int mm_flags;
 
-    mm_flags = mm_accel();
+    mm_flags = xine_mm_accel();
 
     if (mm_flags & MM_ACCEL_X86_MMX) {
         /* XXX: should include h263 optimization too. It would go even

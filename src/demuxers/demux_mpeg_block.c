@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.60 2001/11/10 13:48:02 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.61 2001/11/17 14:26:37 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -35,9 +35,8 @@
 #include <stdlib.h>
 
 #include "xine_internal.h"
-#include "monitor.h"
+#include "xineutils.h"
 #include "demux.h"
-#include "utils.h"
 
 #define NUM_PREVIEW_BUFFERS 250
 
@@ -1003,7 +1002,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = xmalloc (sizeof (demux_mpeg_block_t));
+  this        = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->xine  = xine;
   config      = xine->config;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
@@ -1018,7 +1017,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
   this->demux_plugin.get_mimetypes     = demux_mpeg_block_get_mimetypes;
   
-  this->scratch = xmalloc_aligned (512, 4096);
+  this->scratch = xine_xmalloc_aligned (512, 4096);
     
   return (demux_plugin_t *) this;
 }

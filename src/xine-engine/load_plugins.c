@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.53 2001/11/06 00:23:14 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.54 2001/11/17 14:26:39 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -44,8 +44,7 @@
 #include "video_out.h"
 #include "metronom.h"
 #include "configfile.h"
-#include "utils.h"
-#include "monitor.h"
+#include "xineutils.h"
 
 #ifndef	__GNUC__
 #define	__FUNCTION__	__func__
@@ -187,11 +186,11 @@ void xine_list_demux_plugins (config_values_t *config,
   int incsize;
   char *s;
    
-  this = xmalloc (sizeof (xine_t));
+  this = xine_xmalloc (sizeof (xine_t));
   
   sizeid = sizemime = incsize = 4096;
-  *identifiers = xmalloc (sizeid);
-  *mimetypes = xmalloc (sizemime);
+  *identifiers = xine_xmalloc (sizeid);
+  *mimetypes = xine_xmalloc (sizemime);
     
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
@@ -358,7 +357,7 @@ static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
   if(!this->num_input_plugins)
     return NULL;
 
-  plugin_ids = (char **) xmalloc (this->num_input_plugins * sizeof (char *));
+  plugin_ids = (char **) xine_xmalloc (this->num_input_plugins * sizeof (char *));
 
   for(i = 0; i < this->num_input_plugins; i++) {
 
@@ -608,7 +607,7 @@ char **xine_list_video_output_plugins (int visual_type) {
   int    i,j;
   int    plugin_prios[50];
 
-  plugin_ids = (char **) xmalloc (50 * sizeof (char *));
+  plugin_ids = (char **) xine_xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
 
   install_segv_handler();
@@ -788,7 +787,7 @@ char **xine_list_audio_output_plugins(void) {
   int    i,j;
   int    plugin_prios[50];
 
-  plugin_ids = (char **) xmalloc (50 * sizeof (char *));
+  plugin_ids = (char **) xine_xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
 
   install_segv_handler();

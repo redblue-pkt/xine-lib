@@ -18,13 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+#define XINEUTILS_COMPILE
 
 #include "config.h"
 
 #include <inttypes.h>
 
 #include "attributes.h"
-#include "cpu_accel.h"
+#include "xineutils.h"
 
 #ifdef ARCH_X86
 static uint32_t x86_accel (void)
@@ -97,7 +98,7 @@ static uint32_t x86_accel (void)
 }
 #endif
 
-uint32_t mm_accel (void)
+uint32_t xine_mm_accel (void)
 {
 #ifdef ARCH_X86
     static int got_accel = 0;
@@ -118,7 +119,9 @@ uint32_t mm_accel (void)
 #endif
 }
 
-uint32_t mm_support (void)
+/*
+uint32_t xine_mm_support (void)
 {
-  return mm_accel();
+  return xine_mm_accel();
 }
+*/
