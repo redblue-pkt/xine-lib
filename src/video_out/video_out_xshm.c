@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.80 2002/07/16 19:33:37 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.81 2002/07/20 21:46:05 esnel Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1115,6 +1115,26 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 		      0, 0, xoffset, yoffset,
 		      this->cur_frame->output_width, this->cur_frame->output_height);
 	  }
+
+	XSetForeground (this->display, this->gc, this->black.pixel);
+
+	if (this->cur_frame->output_height != this->cur_frame->gui_height) {
+	  int y = yoffset + this->cur_frame->output_height;
+
+	  XFillRectangle(this->display, this->drawable, this->gc, 0, 0,
+			 this->cur_frame->gui_width, yoffset);
+	  XFillRectangle(this->display, this->drawable, this->gc, 0, y,
+			 this->cur_frame->gui_width, (this->cur_frame->gui_height - y));
+	}
+	if (this->cur_frame->output_width != this->cur_frame->gui_width) {
+	  int x = xoffset + this->cur_frame->output_width;
+
+	  XFillRectangle(this->display, this->drawable, this->gc, 0, yoffset,
+			 xoffset, this->cur_frame->output_height);
+	  XFillRectangle(this->display, this->drawable, this->gc, x, yoffset,
+			 (this->cur_frame->gui_width - x), this->cur_frame->output_height);
+	}
+
 	XFlush (this->display);
 	
 	XUnlockDisplay (this->display);

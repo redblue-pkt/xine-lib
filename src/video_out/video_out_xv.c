@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.123 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out_xv.c,v 1.124 2002/07/20 21:46:06 esnel Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1051,6 +1051,28 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 		   this->output_xoffset, this->output_yoffset,
 		   this->output_width, this->output_height);
       }
+
+      XSetForeground (this->display, this->gc, this->black.pixel);
+
+      if (this->output_height != this->gui_height) {
+	int y = this->output_yoffset + this->output_height;
+
+	XFillRectangle(this->display, this->drawable, this->gc, 0, 0,
+		       this->gui_width, this->output_yoffset);
+	XFillRectangle(this->display, this->drawable, this->gc, 0, y,
+		       this->gui_width, (this->gui_height - y));
+      }
+      if (this->output_width != this->gui_width) {
+	int x = this->output_xoffset + this->output_width;
+
+	XFillRectangle(this->display, this->drawable, this->gc,
+		       0, this->output_yoffset,
+		       this->output_xoffset, this->output_height);
+	XFillRectangle(this->display, this->drawable, this->gc,
+		       x, this->output_yoffset,
+		       this->gui_width - x, this->output_height);
+      }
+
       XFlush(this->display);
       
       XUnlockDisplay (this->display);
