@@ -53,7 +53,6 @@ optional
 - Support DVD "Trick" modes. Super Fast forward/reverse (jcdutton)
 - Add user selectable option for resampling audio out instead of current "gap feedback" method. (jcdutton)
 - xvid decoder plugin 
-- faad decoder plugin
 - quicktime binary codec support (port from mplayer) (stephen)
 
 Assigned tasks
