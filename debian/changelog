@@ -1,3 +1,10 @@
+xine-lib (1-alpha2-0) experimental; urgency=low
+
+  * yet another upstream alpha. This one is becoming usable, but has some
+    packaging issues which prevent a parallel installation of libxine0.
+
+ -- Siggi Langauf <siggi@flake.langauf.de>  Tue, 26 Nov 2002 00:34:35 +0100
+
 xine-lib (1-alpha1-0) experimental; urgency=low
 
   * another upstream alpha. This is still not ready for prime time, but it will
