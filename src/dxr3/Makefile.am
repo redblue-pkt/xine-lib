@@ -36,8 +36,7 @@ xineplug_vo_out_dxr3_la_SOURCES = \
 	dxr3_spu_encoder.c \
 	video_out_dxr3.c 
 
-xineplug_vo_out_dxr3_la_LIBADD = $(link_fame) $(link_rte) $(link_x_libs) \
-	$(top_builddir)/src/xine-utils/libxineutils.la
+xineplug_vo_out_dxr3_la_LIBADD = $(link_fame) $(link_rte) $(link_x_libs) $(XINE_LIB)
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module
 
 $(XINE_LIB):
