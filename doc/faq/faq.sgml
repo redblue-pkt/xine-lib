@@ -564,6 +564,158 @@
      <command>gxine vcd:/</command> or <command>xine vcd:/</command>
      from the command line.
     </para>
+    <sect3 id="vcdtroubleshooting">
+     <title>VideoCD troubleshooting guide</title>
+     <para>
+      This gives higher-level troubleshooting. More lower-level information is
+      given in <link linkend="vcddebug">the next section</link>.
+     </para>
+     <itemizedlist>
+      <listitem>
+       <para>
+        When you open the configuration dialog of your frontend, you should
+        see a <parameter>vcd</parameter> config section. An important setting is
+        <parameter>default_device</parameter>. If this is set to the empty string,
+        the VCD plugin will try to scan your drives for a suitable device if the
+        driver has the capability to scan for drives. However you can set
+        the device to something of your choosing. On GNU/Linux, this may be
+        <filename>/dev/cdrom</filename> and on Solaris it may be
+        <filename>/vol/dev/aliases/cdrom0</filename>.
+       </para>
+       <para>
+        If you set this field, make sure these are correct for your
+        particular setup. For example, I generally play out of the DVD
+        device and this is called <filename>/dev/dvd</filename> rather than <filename>/dev/cdrom</filename>.
+       </para>
+       <para></para>
+      </listitem>
+      <listitem>
+       <para>
+        Your frontend should offer a VCD autoscan button or menu item.
+        If you select this, you should see your CD disk light go on if you have one.
+        And the CD should be read. You should get a playlist of what's on the VideoCD.
+       </para>
+       <para>
+        If not something's wrong, possibly you configured the wrong drive.
+        You might try to read a disk image of a VideoCD and thus elimate any problems
+        with hardware. You can get a test VideoCD disk image to test here:
+        <ulink url="http://www.vcdimager.org/pub/vcdimager/examples/test_svcd/test_svcd_pal.zip">
+         http://www.vcdimager.org/pub/vcdimager/examples/test_svcd/test_svcd_pal.zip
+        </ulink>.
+        After unzipping this there should be files <filename>test_svcd_pal.cue</filename> and
+        <filename>test_svcd_pal.bin</filename>. Run xine with the MRL
+<!-- FIXME: This MRL needs to be changed -->
+        <filename>vcd:/test_svcd_pal.cue:E0</filename>.
+        If you see something playing then this is a hardware problem. 
+        You might also want to try starting playback-control with
+<!-- FIXME: This MRL needs to be changed -->
+        <filename>vcd:/test_svcd_pal.cue:P1</filename>.
+       </para>
+       <para></para>
+      </listitem>
+      <listitem>
+       <para>
+        There should be at least one "track", and one "entry" listed for
+        the VideoCD and the names of these in the MRL list will end with
+        "T1" and "E0" respectively. Often there are other playlist items,
+        and if you have menus or still frames there will be
+        "segments" as well. The simplest things to check are probably
+        "entries" and "tracks". If there are no entries listed or none of
+        the tracks or entries play, then there may be a problem with
+        that particular medium. So as in the step above, you can try a known good
+        sample and perhaps burn a CD from that. More likely if you get this
+        far, some of the items listed work and some do not. There are a
+        number of debugging switches that you can dynamically turn on and
+        off that may be able to help in isolating more specific problems.
+        See the <link linkend="vcddebug">section below</link>.
+       </para>
+       <para></para>
+      </listitem>
+      <listitem>
+       <para>
+        Something plays now, but you do not get any menus? Well, first is there
+        supposed to be a menu? In the last step you should have seen what is on
+        the VideoCD. Still frames are always "segments" so see if you can find one in the MRL
+        list and select that.
+       </para>
+       <para>
+        If there are no segments listed, there aren't any still-frame
+        menus. It's also possible to have menus in looping MPEG's. Use the
+        <command>vcddump</command> tool to find loops. <command>vcddump</command> is
+        also part of VCDImager. Another program that can help you examine the contents
+        of a VideoCD is <command>vcdxrip</command>.
+       </para>
+       <para>
+        To troubleshoot, start out with the known SVCD example that has a
+        still-frame menu at the beginning:
+        <ulink url="http://www.vcdimager.org/pub/vcdimager/examples/test_svcd/test_svcd_pal.zip">
+         http://www.vcdimager.org/pub/vcdimager/examples/test_svcd/test_svcd_pal.zip
+        </ulink>
+        Inside this is a largish file called <filename>test_svcd_pal.bin</filename> and another
+        short text file called <filename>test_svcd_ntsc.cue</filename>. These are CD disk
+        images; that is, something that could be burned to a CD drive such
+        as with <command>cdrdao</command>. However you don't have to create a CD to view these
+        with the xine VCD plugin. You should be able to play the VideoCD by running the MRL
+<!-- FIXME: This MRL needs to be changed -->
+        <filename>vcd:/test_svcd_pal.cue</filename>.
+        If you see a still frame on startup. Great! If instead you see what
+        looks like the beginning of a movie (Blue Streak with Martin Lawrence)
+        then go to the next step.
+       </para>
+       <para></para>
+      </listitem>
+      <listitem>
+       <para>
+        You have a VideoCD with menu and can see it, but there is no menu on startup?
+        If you have the VideoCD from the last step, then run the MRL
+<!-- FIXME: This MRL needs to be changed -->
+        <filename>vcd:/test_svcd_pal.cue:P1</filename>
+        If this shows a still frame, but it just does not show when you 
+        hit either the "VCD" autoscan button or give a MRL without the P1 at
+        the end then go to the next step.
+       </para>
+       <para>
+        If you have another VideoCD, from the MRL list, you should also see "playlist"
+        entries. Try selecting the one that ends "P1". If you don't see an entry with P1,
+        then your VideoCD does not have playback control (PBC) and although there may
+        be a still frame on the VideoCD it may have been authored so it is not easily
+        accessed. Again <command>vcddump</command> or <command>vcdxrip</command> can help here.
+       </para>
+       <para></para>
+      </listitem>
+      <listitem>
+       <para>
+        You have a VideoCD with menu at beginning and can see it using an MRL 
+        with P1 at the end, but you want to see it by hitting the "VCD" autoscan button
+        as well? Check to see that you have the configuration entry
+        <parameter>vcd.autoplay</parameter> set to <parameter>playlist</parameter>.
+       </para>
+      </listitem>
+     </itemizedlist>
+    </sect3>
+    <sect3 id="vcddebug">
+     <title>VideoCD debugging</title>
+     <para>
+      To facilitate tracking down problems we let you see what's going on dynamically.
+      Various debugging settings will cause output to appear on xine's plugin log
+      and/or on standard error output. See the config entry <parameter>vcd.debug</parameter>
+      for details.
+     </para>
+     <para>
+      The tool <command>vcd-info</command> from the cdio branch of vcdimager can be used to
+      show the entire contents of a VideoCD or selected portions of that. Until the cdio
+      branch of vcdimager is completely merged with vcdimager, the cd-info branch version
+      has a few more features. (However consult vcdimager for complete version of the program.)
+     </para>
+     <para>
+      <command>vcdxrip</command> can be used to extract portions of a VideoCD and or create an
+      XML description file of the VideoCD. This XML file and the extracted
+      files can be used by <command>vcdxbuild</command> to recreate another VideoCD.
+     </para>
+     <para>
+      And finally see also tools <command>cd-info</command> and <command>cd-read</command> from libcdio.
+     </para>
+    </sect3>
    </sect2>
 
    <sect2 id="quicktime">
