@@ -691,6 +691,10 @@ void mpeg2_idct_add_mmxext (int16_t * block, uint8_t * dest, int stride)
     block_zero (block);
 }
 
+void mpeg2_idct_mmxext (int16_t * block)
+{
+    mmxext_idct (block);
+}
 
 declare_idct (mmx_idct, mmx_table,
 	      mmx_row_head, mmx_row, mmx_row_tail, mmx_row_mid)
@@ -706,6 +710,16 @@ void mpeg2_idct_add_mmx (int16_t * block, uint8_t * dest, int stride)
 {
     mmx_idct (block);
     block_add (block, dest, stride);
+    block_zero (block);
+}
+
+void mpeg2_idct_mmx (int16_t * block)
+{
+    mmx_idct (block);
+}
+
+void mpeg2_zero_block_mmx (int16_t * block)
+{
     block_zero (block);
 }
 

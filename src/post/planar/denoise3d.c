@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: denoise3d.c,v 1.6 2003/08/15 14:43:30 mroi Exp $
+ * $Id: denoise3d.c,v 1.7 2003/10/06 21:52:43 miguelfreitas Exp $
  *
  * mplayer's denoise3d
  * Copyright (C) 2003 Daniel Moreno <comac@comac.darktech.org>
@@ -37,18 +37,6 @@
 
 /* plugin class initialization function */
 void *denoise3d_init_plugin(xine_t *xine, void *);
-
-
-#if 0 /* moved to planar.c */
-/* plugin catalog information */
-post_info_t denoise3d_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 4, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif
 
 typedef struct post_plugin_denoise3d_s post_plugin_denoise3d_t;
 

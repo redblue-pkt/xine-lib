@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.3 2003/09/13 17:20:50 miguelfreitas Exp $
+ * $Id: video_out_stk.c,v 1.4 2003/10/06 21:52:44 miguelfreitas Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -461,7 +461,7 @@ static vo_info_t vo_info_stk = {
 
 plugin_info_t xine_plugin_info[] = {
     /* type, API, "name", version, special_info, init_function */
-    { PLUGIN_VIDEO_OUT, 16, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
+    { PLUGIN_VIDEO_OUT, 17, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
     { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
 };
 

@@ -20,6 +20,9 @@ syncfb_module = xineplug_vo_out_syncfb.la
 if HAVE_XV
 xv_module = xineplug_vo_out_xv.la
 endif
+if HAVE_XVMC
+xvmc_module = xineplug_vo_out_xvmc.la
+endif
 #if HAVE_OPENGL
 #opengl_module = xineplug_vo_out_opengl.la
 #endif
@@ -59,7 +62,7 @@ endif
 
 #lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module)  \
 #                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module) $(vidix_module)
-lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module) $(pgx64_module) \
+lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) $(aa_module) $(pgx64_module) \
 	$(vidix_module) $(fb_module) $(sdl_module) $(syncfb_module) \
 	$(stk_module) $(directfb_module) xineplug_vo_out_none.la
 
@@ -70,7 +73,17 @@ xineplug_vo_out_xv_la_LIBADD = \
 	-lXext \
 	$(XINE_LIB)
 
+xineplug_vo_out_xvmc_la_SOURCES = deinterlace.c alphablend.c video_out_xvmc.c
+xineplug_vo_out_xvmc_la_LIBADD = \
+	$(XV_LIB) \
+	$(XVMC_LIB) \
+	$(X_LIBS) \
+	-lXext \
+	$(XINE_LIB)
+
 xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_vo_out_xvmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_xshm.c

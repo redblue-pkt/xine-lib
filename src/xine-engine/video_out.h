@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.96 2003/08/15 14:35:09 mroi Exp $
+ * $Id: video_out.h,v 1.97 2003/10/06 21:52:45 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -70,6 +70,13 @@ typedef struct extra_info_s extra_info_t;
  * adaption of the post plugin decoration layer. Be sure to look into
  * src/xine-engine/post.[ch].
  */
+
+typedef struct xine_macroblock_s {
+  short  *blockptr;          // pointer to current dct block
+  short  *blockbaseptr;      // pointer to base of dct block array in blocks
+  short  xvmc_accel;         // type of acceleration supported
+} xine_macroblocks_t;
+
 struct vo_frame_s {
   /*
    * member functions
@@ -97,6 +104,23 @@ struct vo_frame_s {
 
   /* free memory/resources for this frame */
   void (*dispose) (vo_frame_t *vo_img);
+
+  /* XvMC routine for rendering  macroblocks */
+  void (*proc_macro_block)(int x,
+			   int y,
+			   int mb_type,
+			   int motion_type,
+			   int (*mv_field_sel)[2],
+			   int *dmvector,
+			   int cbp,
+			   int dct_type,
+			   vo_frame_t *current_frame,
+			   vo_frame_t *forward_ref_frame,
+			   vo_frame_t *backward_ref_frame,
+			   int picture_structure,
+			   int second_field,
+			   int (*f_mot_pmv)[2],
+			   int (*b_mot_pmv)[2]);
   
   /*
    * public variables to decoders and vo drivers
@@ -119,6 +143,7 @@ struct vo_frame_s {
    * that reason, this flag should be interpreted as a "hint".
    */
   int                        progressive_frame;
+  int                        picture_coding_type;
 
   /* pan/scan offset */
   int                        pan_scan_x;
@@ -136,6 +161,9 @@ struct vo_frame_s {
   int                        flags;         /* remember the frame flags */
   int                        copy_called;   /* track use of copy() method */
   
+  /* used to carry macroblocks information for XvMC acceleration */
+  xine_macroblocks_t        *macroblocks;
+
   /* "backward" references to where this frame originates from */
   xine_video_port_t         *port;
   vo_driver_t               *driver;
@@ -151,7 +179,6 @@ struct vo_frame_s {
   
   int                        id; /* debugging - track this frame */
   int                        is_first;
-
 };
 
 /*
@@ -248,11 +275,12 @@ struct xine_video_port_s {
 
 /* get_frame flags */
 
-#define VO_TOP_FIELD       1
-#define VO_BOTTOM_FIELD    2
-#define VO_BOTH_FIELDS     (VO_TOP_FIELD | VO_BOTTOM_FIELD)
-#define VO_PAN_SCAN_FLAG   4
-#define VO_INTERLACED_FLAG 8
+#define VO_TOP_FIELD         1
+#define VO_BOTTOM_FIELD      2
+#define VO_BOTH_FIELDS       (VO_TOP_FIELD | VO_BOTTOM_FIELD)
+#define VO_PAN_SCAN_FLAG     4
+#define VO_INTERLACED_FLAG   8
+#define VO_NEW_SEQUENCE_FLAG 16 /* set after MPEG2 Sequence Header Code (used by XvMC) */
 
 /* video driver capabilities */
 
@@ -269,6 +297,34 @@ struct xine_video_port_s {
 #define VO_CAP_CONTRAST               0x00000080 /* driver can set CONTRAST value           */
 #define VO_CAP_COLORKEY               0x00000100 /* driver can set COLORKEY value           */
 #define VO_CAP_AUTOPAINT_COLORKEY     0x00000200 /* driver can set AUTOPAINT_COLORKEY value */
+#define VO_CAP_XVMC_MOCOMP            0x00000400 /* driver can set XvMC motion compensation */
+#define VO_CAP_XVMC_IDCT              0x00000800 /* driver can use XvMC idct acceleration   */
+
+/* macroblock modes */
+#define XINE_MACROBLOCK_INTRA 1
+#define XINE_MACROBLOCK_PATTERN 2
+#define XINE_MACROBLOCK_MOTION_BACKWARD 4
+#define XINE_MACROBLOCK_MOTION_FORWARD 8
+#define XINE_MACROBLOCK_QUANT 16
+#define XINE_MACROBLOCK_DCT_TYPE_INTERLACED 32
+
+/* motion types */
+#define XINE_MC_FIELD 1
+#define XINE_MC_FRAME 2
+#define XINE_MC_16X8  2
+#define XINE_MC_DMV   3
+
+/* picture coding type */
+#define XINE_PICT_I_TYPE 1
+#define XINE_PICT_P_TYPE 2
+#define XINE_PICT_B_TYPE 3
+#define XINE_PICT_D_TYPE 4
+
+/* xvmc acceleration types */
+#define XINE_VO_MOTION_ACCEL   1
+#define XINE_VO_IDCT_ACCEL     2
+#define XINE_VO_SIGNED_INTRA   4
+
 
 /*
  * vo_driver_s contains the functions every display driver
@@ -279,7 +335,7 @@ struct xine_video_port_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  16
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  17
 
 struct vo_driver_s {
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.87 2003/09/13 15:29:33 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.88 2003/10/06 21:52:43 miguelfreitas Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -91,9 +91,9 @@ static vo_info_t   vo_info_dxr3_aa = {
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 16, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
+  { PLUGIN_VIDEO_OUT, 17, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
 #endif
-  { PLUGIN_VIDEO_OUT, 16, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
+  { PLUGIN_VIDEO_OUT, 17, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

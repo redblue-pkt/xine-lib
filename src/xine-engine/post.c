@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.14 2003/08/15 14:38:04 mroi Exp $
+ * $Id: post.c,v 1.15 2003/10/06 21:52:44 miguelfreitas Exp $
  */
  
 /*
@@ -91,7 +91,6 @@ static int post_video_set_property(xine_video_port_t *port_gen, int property, in
   return port->original_port->set_property(port->original_port, property, value);
 }
 
-
 post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *original) {
   post_video_port_t *post_port = (post_video_port_t *)malloc(sizeof(post_video_port_t));
   
@@ -158,6 +157,33 @@ static void post_frame_dispose(vo_frame_t *vo_img) {
   vo_img->dispose(vo_img);
 }
 
+static void post_frame_proc_macro_block(int x,
+			   int y,
+			   int mb_type,
+			   int motion_type,
+			   int (*mv_field_sel)[2],
+			   int *dmvector,
+			   int cbp,
+			   int dct_type,
+			   vo_frame_t *current_frame,
+			   vo_frame_t *forward_ref_frame,
+			   vo_frame_t *backward_ref_frame,
+			   int picture_structure,
+			   int second_field,
+			   int (*f_mot_pmv)[2],
+			   int (*b_mot_pmv)[2]) {
+  post_video_port_t *port = (post_video_port_t *)current_frame->port;
+  post_restore_video_frame(current_frame, port);
+  post_restore_video_frame(forward_ref_frame, port);
+  post_restore_video_frame(backward_ref_frame, port);
+  current_frame->proc_macro_block(x, y, mb_type, motion_type, mv_field_sel,
+                                  dmvector, cbp, dct_type, current_frame,
+                                  forward_ref_frame, backward_ref_frame,
+                                  picture_structure, second_field, 
+                                  f_mot_pmv, b_mot_pmv);
+}
+
+
 
 void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   port->original_frame.port       = frame->port;
@@ -167,6 +193,7 @@ void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   port->original_frame.draw       = frame->draw;
   port->original_frame.lock       = frame->lock;
   port->original_frame.dispose    = frame->dispose;
+  port->original_frame.proc_macro_block = frame->proc_macro_block;
   
   frame->port                     = &port->port;
   frame->free                     = post_frame_free;
@@ -175,6 +202,7 @@ void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->draw                     = post_frame_draw;
   frame->lock                     = post_frame_lock;
   frame->dispose                  = post_frame_dispose;
+  frame->proc_macro_block         = post_frame_proc_macro_block;
 }
 
 void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
@@ -185,6 +213,7 @@ void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->draw                     = port->original_frame.draw;
   frame->lock                     = port->original_frame.lock;
   frame->dispose                  = port->original_frame.dispose;
+  frame->proc_macro_block         = port->original_frame.proc_macro_block;
 }
 
 

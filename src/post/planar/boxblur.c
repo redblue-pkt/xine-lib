@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: boxblur.c,v 1.6 2003/08/15 14:43:29 mroi Exp $
+ * $Id: boxblur.c,v 1.7 2003/10/06 21:52:43 miguelfreitas Exp $
  *
  * mplayer's boxblur
  * Copyright (C) 2002 Michael Niedermayer <michaelni@gmx.at>
@@ -30,17 +30,6 @@
 
 /* plugin class initialization function */
 void *boxblur_init_plugin(xine_t *xine, void *);
-
-#if 0 /* moved to planar.c */
-/* plugin catalog information */
-post_info_t boxblur_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 4, "boxblur", XINE_VERSION_CODE, &boxblur_special_info, &boxblur_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif
 
 typedef struct post_plugin_boxblur_s post_plugin_boxblur_t;
 

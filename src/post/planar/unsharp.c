@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.6 2003/08/15 14:43:30 mroi Exp $
+ * $Id: unsharp.c,v 1.7 2003/10/06 21:52:44 miguelfreitas Exp $
  *
  * mplayer's unsharp
  * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
@@ -129,17 +129,6 @@ static void unsharp( uint8_t *dst, uint8_t *src, int dstStride, int srcStride, i
 
 /* plugin class initialization function */
 void *unsharp_init_plugin(xine_t *xine, void *);
-
-#if 0 /* moved to planar.c */
-/* plugin catalog information */
-post_info_t unsharp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 4, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif
 
 typedef struct post_plugin_unsharp_s post_plugin_unsharp_t;
 

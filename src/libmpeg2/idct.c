@@ -55,9 +55,11 @@
 #define W6 1108 /* 2048*sqrt (2)*cos (6*pi/16) */
 #define W7 565  /* 2048*sqrt (2)*cos (7*pi/16) */
 
-/* idct main entry point  */
+/* idct main entry points  */
 void (* mpeg2_idct_copy) (int16_t * block, uint8_t * dest, int stride);
 void (* mpeg2_idct_add) (int16_t * block, uint8_t * dest, int stride);
+void (* mpeg2_idct) (int16_t * block);
+void (*	mpeg2_zero_block) (int16_t * block);
 
 static uint8_t clip_lut[1024];
 #define CLIP(i) ((clip_lut+384)[ (i)])
@@ -260,8 +262,26 @@ static void mpeg2_idct_add_c (int16_t * block, uint8_t * dest, int stride)
     } while (--i);
 }
 
+static void mpeg2_idct_c (int16_t * block)
+{
+    int i;
+
+    for (i = 0; i < 8; i++)
+	idct_row (block + 8 * i);
+
+    for (i = 0; i < 8; i++)
+	idct_col (block + i);
+}
+
+static void mpeg2_zero_block_c (int16_t * wblock)
+{
+  memset( wblock, 0, sizeof(int16_t) * 64 );
+}
+
 void mpeg2_idct_init (uint32_t mm_accel)
 {
+    mpeg2_zero_block = mpeg2_zero_block_c;
+
 #ifdef ARCH_X86
     if (mm_accel & MM_ACCEL_X86_MMXEXT) {
 #ifdef LOG
@@ -269,13 +289,17 @@ void mpeg2_idct_init (uint32_t mm_accel)
 #endif
 	mpeg2_idct_copy = mpeg2_idct_copy_mmxext;
 	mpeg2_idct_add = mpeg2_idct_add_mmxext;
+	mpeg2_idct     = mpeg2_idct_mmxext;
+	mpeg2_zero_block = mpeg2_zero_block_mmx;
 	mpeg2_idct_mmx_init ();
     } else if (mm_accel & MM_ACCEL_X86_MMX) {
 #ifdef LOG
 	fprintf (stderr, "Using MMX for IDCT transform\n");
 #endif
 	mpeg2_idct_copy = mpeg2_idct_copy_mmx;
-	mpeg2_idct_add = mpeg2_idct_add_mmx;
+	mpeg2_idct_add  = mpeg2_idct_add_mmx;
+	mpeg2_idct      = mpeg2_idct_mmx;
+	mpeg2_zero_block = mpeg2_zero_block_mmx;
 	mpeg2_idct_mmx_init ();
     } else
 #endif
@@ -287,6 +311,7 @@ void mpeg2_idct_init (uint32_t mm_accel)
 	mpeg2_idct_copy = mpeg2_idct_copy_altivec;
 	mpeg2_idct_add = mpeg2_idct_add_altivec;
 	mpeg2_idct_altivec_init ();
+	mpeg2_idct       = mpeg2_idct_c;
     } else
 #endif
 #ifdef LIBMPEG2_MLIB
@@ -295,6 +320,7 @@ void mpeg2_idct_init (uint32_t mm_accel)
 
 	env_var = getenv ("MLIB_NON_IEEE");
 
+	mpeg2_idct = mpeg2_idct_mlib;
 	if (env_var == NULL) {
 #ifdef LOG
 	    fprintf (stderr, "Using mlib for IDCT transform\n");
@@ -314,7 +340,8 @@ void mpeg2_idct_init (uint32_t mm_accel)
 	fprintf (stderr, "No accelerated IDCT transform found\n");
 #endif
 	mpeg2_idct_copy = mpeg2_idct_copy_c;
-	mpeg2_idct_add = mpeg2_idct_add_c;
+	mpeg2_idct_add  = mpeg2_idct_add_c;
+	mpeg2_idct      = mpeg2_idct_c;
 	for (i = -384; i < 640; i++)
 	    clip_lut[i+384] = (i < 0) ? 0 : ((i > 255) ? 255 : i);
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.49 2003/08/05 15:09:23 mroi Exp $
+ * $Id: xine_decoder.c,v 1.50 2003/10/06 21:52:43 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -137,7 +137,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->class                             = (mpeg2_class_t *) class_gen;
   this->mpeg2.stream = stream;
 
-  mpeg2_init (&this->mpeg2);
+  mpeg2_init (&this->mpeg2, stream->video_out);
   stream->video_out->open(stream->video_out, stream);
   this->mpeg2.force_aspect = this->mpeg2.force_pan_scan = 0;
 

@@ -21,13 +21,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "video_out.h"
+
 /* macroblock modes */
-#define MACROBLOCK_INTRA 1
-#define MACROBLOCK_PATTERN 2
-#define MACROBLOCK_MOTION_BACKWARD 4
-#define MACROBLOCK_MOTION_FORWARD 8
-#define MACROBLOCK_QUANT 16
-#define DCT_TYPE_INTERLACED 32
+#define MACROBLOCK_INTRA            XINE_MACROBLOCK_INTRA
+#define MACROBLOCK_PATTERN          XINE_MACROBLOCK_PATTERN
+#define MACROBLOCK_MOTION_BACKWARD  XINE_MACROBLOCK_MOTION_BACKWARD
+#define MACROBLOCK_MOTION_FORWARD   XINE_MACROBLOCK_MOTION_FORWARD
+#define MACROBLOCK_QUANT            XINE_MACROBLOCK_QUANT
+#define DCT_TYPE_INTERLACED         XINE_MACROBLOCK_DCT_TYPE_INTERLACED
+
 /* motion_type */
 #define MOTION_TYPE_MASK (3*64)
 #define MOTION_TYPE_BASE 64
@@ -37,16 +40,16 @@
 #define MC_DMV (3*64)
 
 /* picture structure */
-#define TOP_FIELD 1
-#define BOTTOM_FIELD 2
-#define FRAME_PICTURE 3
+#define TOP_FIELD     VO_TOP_FIELD
+#define BOTTOM_FIELD  VO_BOTTOM_FIELD
+#define FRAME_PICTURE VO_BOTH_FIELDS
 
-/* picture coding type */
+/* picture coding type (mpeg2 header) */
 #define I_TYPE 1
 #define P_TYPE 2
 #define B_TYPE 3
 #define D_TYPE 4
-
+               
 typedef struct motion_s {
     uint8_t * ref[2][3];
     uint8_t ** ref2[2];
@@ -60,6 +63,17 @@ typedef struct picture_s {
 
     /* DCT coefficients - should be kept aligned ! */
     int16_t DCTblock[64];
+
+    /* XvMC DCT block and macroblock data for XvMC acceleration */
+    xine_macroblocks_t *mc;
+    int XvMC_mb_type;
+    int XvMC_mv_field_sel[2][2];
+    int XvMC_x;
+    int XvMC_y;
+    int XvMC_motion_type;
+    int XvMC_dmvector[2];
+    int XvMC_cbp;
+    int XvMC_dct_type;
 
     /* bit parsing stuff */
     uint32_t bitstream_buf;	/* current 32 bit working set of buffer */
@@ -198,12 +212,16 @@ void mpeg2_idct_copy_mlib_non_ieee (int16_t * block, uint8_t * dest,
 				    int stride);
 void mpeg2_idct_add_mlib_non_ieee (int16_t * block, uint8_t * dest,
 				   int stride);
+void mpeg2_idct_mlib (int16_t * block);
 
 /* idct_mmx.c */
 void mpeg2_idct_copy_mmxext (int16_t * block, uint8_t * dest, int stride);
 void mpeg2_idct_add_mmxext (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_mmxext (int16_t * block);
 void mpeg2_idct_copy_mmx (int16_t * block, uint8_t * dest, int stride);
 void mpeg2_idct_add_mmx (int16_t * block, uint8_t * dest, int stride);
+void mpeg2_idct_mmx (int16_t * block);
+void mpeg2_zero_block_mmx (int16_t * block);
 void mpeg2_idct_mmx_init (void);
 
 /* idct_altivec.c */
@@ -235,6 +253,9 @@ extern mpeg2_mc_t mpeg2_mc_mlib;
 
 /* slice.c */
 void mpeg2_slice (picture_t * picture, int code, uint8_t * buffer);
+
+/* slice_xvmc.c */
+void mpeg2_xvmc_slice (picture_t * picture, int code, uint8_t * buffer);
 
 /* stats.c */
 void mpeg2_stats (int code, uint8_t * buffer);

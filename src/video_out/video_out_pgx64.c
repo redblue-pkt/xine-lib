@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.38 2003/10/05 16:22:19 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.39 2003/10/06 21:52:44 miguelfreitas Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -1006,6 +1006,6 @@ static pgx64_driver_class_t* pgx64_init_class(xine_t *xine, void *visual_gen)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  {PLUGIN_VIDEO_OUT, 16, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
+  {PLUGIN_VIDEO_OUT, 17, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };

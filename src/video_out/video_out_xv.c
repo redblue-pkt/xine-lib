@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.173 2003/08/29 23:10:13 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.174 2003/10/06 21:52:44 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1474,7 +1474,7 @@ static vo_info_t vo_info_xv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 16, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
+  { PLUGIN_VIDEO_OUT, 17, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

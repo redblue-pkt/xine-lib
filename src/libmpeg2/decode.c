@@ -50,7 +50,8 @@
 
 static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer);
 
-void mpeg2_init (mpeg2dec_t * mpeg2dec)
+void mpeg2_init (mpeg2dec_t * mpeg2dec, 
+		 xine_video_port_t * output)
 {
   static int do_init = 1;
   uint32_t mm_accel;
@@ -71,11 +72,13 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec)
 						(void**)&mpeg2dec->picture_base);
 
     mpeg2dec->shift = 0xffffff00;
+    mpeg2dec->new_sequence = 0;
     mpeg2dec->is_sequence_needed = 1;
     mpeg2dec->is_wait_for_ip_frames = 2;
     mpeg2dec->frames_to_drop = 0;
     mpeg2dec->drop_frame = 0;
     mpeg2dec->in_slice = 0;
+    mpeg2dec->output = output;
     mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
     mpeg2dec->code = 0xb4;
     mpeg2dec->seek_mode = 0;
@@ -84,6 +87,13 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec)
 
     /* initialize substructures */
     mpeg2_header_state_init (mpeg2dec->picture);
+
+    if( output->get_capabilities(output) & VO_CAP_XVMC_MOCOMP ) {
+      printf("libmpeg2: output port has XvMC capability\n");
+      mpeg2dec->frame_format = XINE_IMGFMT_XVMC;
+    } else {
+      mpeg2dec->frame_format = XINE_IMGFMT_YV12;
+    }
 }
 
 static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
@@ -400,6 +410,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    break;
 	}
 	if (mpeg2dec->force_aspect) picture->aspect_ratio_information = mpeg2dec->force_aspect;
+
+	if (mpeg2dec->is_sequence_needed ) {
+	    mpeg2dec->new_sequence = 1;
+	}
+
 	if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
@@ -465,7 +480,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 	if (!(mpeg2dec->in_slice)) {
 	    mpeg2dec->in_slice = 1;
-     
+
 	    if (picture->second_field) {
 	      if (picture->current_frame)
 		picture->current_frame->field(picture->current_frame, 
@@ -475,6 +490,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    } else {
 		int flags = VO_INTERLACED_FLAG | picture->picture_structure;
 		if (mpeg2dec->force_pan_scan) flags |= VO_PAN_SCAN_FLAG;
+		if (mpeg2dec->new_sequence) flags |= VO_NEW_SEQUENCE_FLAG;
 		
 		if ( picture->current_frame && 
 		     picture->current_frame != picture->backward_reference_frame &&
@@ -487,7 +503,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
 						     get_aspect_ratio(mpeg2dec),
-						     XINE_IMGFMT_YV12,
+						     mpeg2dec->frame_format,
 						     flags);
 		else {
 		    picture->current_frame =
@@ -495,7 +511,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
 						     get_aspect_ratio(mpeg2dec),
-						     XINE_IMGFMT_YV12,
+						     mpeg2dec->frame_format,
 						     flags);
 		    if (picture->forward_reference_frame &&
 		        picture->forward_reference_frame != picture->backward_reference_frame)
@@ -505,12 +521,32 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 			picture->backward_reference_frame;
 		    picture->backward_reference_frame = picture->current_frame;
 		}
+		if(mpeg2dec->new_sequence)
+		{
+		    picture->mc = picture->current_frame->macroblocks;
+		    mpeg2dec->new_sequence = 0;
+		}
 		picture->current_frame->bad_frame          = 1;
 		picture->current_frame->drawn              = 0;
 		picture->current_frame->pts                = mpeg2dec->pts;
                 picture->current_frame->top_field_first    = picture->top_field_first;
                 picture->current_frame->repeat_first_field = picture->repeat_first_field;
                 picture->current_frame->progressive_frame  = picture->progressive_frame;
+
+                switch( picture->picture_coding_type ) {
+                  case I_TYPE:
+                    picture->current_frame->picture_coding_type = XINE_PICT_I_TYPE;
+                    break;
+                  case P_TYPE:
+                    picture->current_frame->picture_coding_type = XINE_PICT_P_TYPE;
+                    break;
+                  case B_TYPE:
+                    picture->current_frame->picture_coding_type = XINE_PICT_B_TYPE;
+                    break;
+                  case D_TYPE:
+                    picture->current_frame->picture_coding_type = XINE_PICT_D_TYPE;
+                    break;
+                }
 
 #ifdef LOG
 		printf ("libmpeg2: decoding frame %d, type %s\n",
@@ -522,7 +558,17 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
 
 	if (!mpeg2dec->drop_frame && picture->current_frame != NULL) {
-	  mpeg2_slice (picture, code, buffer);
+#ifdef DEBUG_LOG
+	  printf("slice target %08x past %08x future %08x\n",picture->current_frame,picture->forward_reference_frame,picture->backward_reference_frame);
+	  fflush(stdout);
+#endif
+
+	  if(picture->mc && picture->mc->xvmc_accel) {
+	    mpeg2_xvmc_slice (picture, code, buffer);
+	    
+	  } else {
+	    mpeg2_slice (picture, code, buffer);
+	  }
 
 	  if( picture->v_offset > picture->limit_y ) { 
 	    picture->current_frame->bad_frame = 0;
@@ -796,6 +842,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       if (mpeg2dec->is_sequence_needed) {
         xine_event_t event;
         xine_format_change_data_t data;
+
+	mpeg2dec->new_sequence = 1;
 	
 	mpeg2dec->is_sequence_needed = 0;
 	picture->frame_width  = picture->coded_picture_width;

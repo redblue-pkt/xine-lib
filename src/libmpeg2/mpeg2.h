@@ -22,10 +22,14 @@
 /* Structure for the mpeg2dec decoder */
 
 typedef struct mpeg2dec_s {
+    xine_video_port_t * output;
+    uint32_t frame_format;
+
     /* this is where we keep the state of the decoder */
     struct picture_s * picture, *picture_base;
     
     uint32_t shift;
+    int new_sequence;
     int is_sequence_needed;
     int is_wait_for_ip_frames;
     int frames_to_drop, drop_frame;
@@ -56,7 +60,8 @@ typedef struct mpeg2dec_s {
 
 
 /* initialize mpegdec with a opaque user pointer */
-void mpeg2_init (mpeg2dec_t * mpeg2dec);
+void mpeg2_init (mpeg2dec_t * mpeg2dec, 
+		 xine_video_port_t * output);
 
 /* destroy everything which was allocated, shutdown the output */
 void mpeg2_close (mpeg2dec_t * mpeg2dec);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.7 2003/08/19 18:33:43 mroi Exp $
+ * $Id: eq2.c,v 1.8 2003/10/06 21:52:43 miguelfreitas Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -263,17 +263,6 @@ void set_saturation (vf_eq2_t *eq2, double s)
 
 /* plugin class initialization function */
 void *eq2_init_plugin(xine_t *xine, void *);
-
-#if 0 /* moved to planar.c */
-/* plugin catalog information */
-post_info_t eq2_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 4, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif
 
 typedef struct post_plugin_eq2_s post_plugin_eq2_t;
 

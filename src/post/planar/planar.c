@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: planar.c,v 1.2 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: planar.c,v 1.3 2003/10/06 21:52:44 miguelfreitas Exp $
  *
  * catalog for planar post plugins
  */
@@ -49,13 +49,13 @@ post_info_t unsharp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 4, "expand", XINE_VERSION_CODE+1, &expand_special_info, &expand_init_plugin },
-  { PLUGIN_POST, 4, "invert", XINE_VERSION_CODE+1, &invert_special_info, &invert_init_plugin },
-  { PLUGIN_POST, 4, "eq", XINE_VERSION_CODE, &eq_special_info, &eq_init_plugin },
-  { PLUGIN_POST, 4, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
-  { PLUGIN_POST, 4, "boxblur", XINE_VERSION_CODE, &boxblur_special_info, &boxblur_init_plugin },
-  { PLUGIN_POST, 4, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
-  { PLUGIN_POST, 4, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
+  { PLUGIN_POST, 5, "expand", XINE_VERSION_CODE+1, &expand_special_info, &expand_init_plugin },
+  { PLUGIN_POST, 5, "invert", XINE_VERSION_CODE+1, &invert_special_info, &invert_init_plugin },
+  { PLUGIN_POST, 5, "eq", XINE_VERSION_CODE, &eq_special_info, &eq_init_plugin },
+  { PLUGIN_POST, 5, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
+  { PLUGIN_POST, 5, "boxblur", XINE_VERSION_CODE, &boxblur_special_info, &boxblur_init_plugin },
+  { PLUGIN_POST, 5, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
+  { PLUGIN_POST, 5, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
