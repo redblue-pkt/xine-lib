@@ -8,6 +8,7 @@ xine-lib (1-rc4)
   * correct field order when deinterlacing bottom-field-first streams
   * fix network cdda playback
   * fix channel swapping in wave demuxer (lpcm)
+  * avoid possible segfaults in cdda
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
