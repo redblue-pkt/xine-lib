@@ -111,8 +111,8 @@ DS_VideoDecoder * DS_VideoDecoder_Create(CodecInfo * info,  BITMAPINFOHEADER * f
         this->m_sOurType.pbFormat = (char*)this->m_sVhdr;
 
 	this->m_sVhdr2 = (VIDEOINFOHEADER*)(malloc(sizeof(VIDEOINFOHEADER)+12));
-	memcpy(this->m_sVhdr2, this->m_sVhdr, sizeof(VIDEOINFOHEADER)+12);
-        //memset((char*)this->m_sVhdr2 + sizeof(VIDEOINFOHEADER), 0, 12);
+	memcpy(this->m_sVhdr2, this->m_sVhdr, sizeof(VIDEOINFOHEADER));
+        memset((char*)this->m_sVhdr2 + sizeof(VIDEOINFOHEADER), 0, 12);
 	this->m_sVhdr2->bmiHeader.biCompression = 0;
 	this->m_sVhdr2->bmiHeader.biBitCount = 24;
 

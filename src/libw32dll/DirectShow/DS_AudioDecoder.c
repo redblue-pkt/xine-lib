@@ -63,6 +63,7 @@ DS_AudioDecoder * DS_AudioDecoder_Create(const CodecInfo * info, const WAVEFORMA
     memset(&this->m_sDestType, 0, sizeof(this->m_sDestType));
     this->m_sDestType.majortype=MEDIATYPE_Audio;
     this->m_sDestType.subtype=MEDIASUBTYPE_PCM;
+    this->m_sDestType.subtype.f1=pWF->wFormatTag;
     this->m_sDestType.formattype=FORMAT_WaveFormatEx;
     this->m_sDestType.bFixedSizeSamples=1;
     this->m_sDestType.bTemporalCompression=0;

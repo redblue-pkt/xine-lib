@@ -190,11 +190,9 @@ DS_Filter * DS_Filter_Create(const char* dllname, const GUID* id,
 						     this->m_pDestType);
 	if (result)
 	{
-	    //printf("Tracking ACELP %d  0%x\n", result);
-	    printf("Error connecting to output pin\n");
+	    printf("Error connecting to output pin (result = %x)\n",(int)result);
             return NULL;
 	}
-
 	printf("Using DirectShow codec: %s\n", dllname);
 	this->m_iState = 1;
     }

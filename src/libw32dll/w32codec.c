@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.48 2001/11/18 03:53:24 guenter Exp $
+ * $Id: w32codec.c,v 1.49 2001/11/18 13:44:53 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -565,7 +565,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   } else if (this->decoder_ok) {
 
     /* printf ("w32codec: processing packet ...\n"); */
-
+    if( (int) buf->size <= 0 )
+        return;
+       
     if( this->size + buf->size > this->bufsize ) {
       this->bufsize = this->size + buf->size;
       printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
@@ -708,7 +710,8 @@ static void w32v_close (video_decoder_t *this_gen) {
 
   if ( !this->ds_driver ) {
   } else {
-    DS_VideoDecoder_Destroy(this->ds_dec);
+    if( this->ds_dec )
+      DS_VideoDecoder_Destroy(this->ds_dec);
   }
   
   if ( this->img_buffer ) {
@@ -1061,6 +1064,8 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content, buf->type);
   } else if (this->decoder_ok) {
+    if( (int)buf->size <= 0 )
+      return;
 
     w32a_decode_audio (this, buf->content, buf->size,
 		       buf->decoder_info[0]==2, 
