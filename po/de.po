@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-06-07 15:08+0200\n"
-"PO-Revision-Date: 2002-05-13 09:34+0200\n"
+"PO-Revision-Date: 2002-06-10 07:50+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -44,12 +44,11 @@ msgid "fifo unavailable (%d)\n"
 msgstr "fifo nicht verfügbar (%d)\n"
 
 #: src/demuxers/demux_ts.c:563
-#, fuzzy, c-format
+#, c-format
 msgid "demux_ts: unexpected cc %d (expected %d)\n"
-msgstr "demux_ts: Datenpacket verworfen; ist: %d erwartet: %d\n"
+msgstr "demux_ts: Unerwarteter Untertitel %d (%d erwartet)\n"
 
 #: src/demuxers/demux_ts.c:586
-#, fuzzy
 msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts: Fehlerhaften PES entdeckt\n"
 
@@ -99,7 +98,7 @@ msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_ts.c:1644
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
 "          This means there's a version mismatch between xine and this "
@@ -108,7 +107,7 @@ msgid ""
 msgstr ""
 "demux_ts: Das Plugin unterstützt die Plugin-API-Version %d nicht.\n"
 "          Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"          diesem demuxer Plugin.\n"
+"          diesem demuxer Plugin besteht.\n"
 "Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_avi.c:656
@@ -200,17 +199,17 @@ msgstr "demux_mpgaudio: Kein Audio-Treiber!\n"
 #: src/demuxers/demux_qt.c:1267
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
-msgstr ""
+msgstr "demux_qt: Apple Quicktime Datei, %sLaufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_qt.c:1273
-#, fuzzy, c-format
+#, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
-msgstr "demux_qt: Video-Codec >%s<\n"
+msgstr "demux_qt: '%c%c%c%c' Video @ %dx%d\n"
 
 #: src/demuxers/demux_qt.c:1282
 #, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"
-msgstr ""
+msgstr "demux_qt: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d Kanal\n"
 
 #: src/demuxers/demux_ogg.c:220
 msgid "ogg: vorbis audio stream detected\n"
