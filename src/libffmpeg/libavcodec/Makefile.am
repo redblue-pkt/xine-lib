@@ -19,6 +19,9 @@ if HAVE_MLIB
 mlib_modules = dsputil_mlib.c idct_mlib.c
 endif
 
+EXTRA_DIST = mpegvideo_mmx.c sad_mmx.s dsputil_mmx.c idct_mmx.c \
+	dsputil_mlib.c idct_mlib.c
+
 libavcodec_la_SOURCES = dsputil.c   fdctref.c   jfdctfst.c  mpeg12.c   \
 		        utils.c     rv10.c      h263.c      jrevdct.c  \
 		        common.c    h263dec.c   msmpeg4.c   \
