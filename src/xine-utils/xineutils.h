@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.75 2003/12/13 11:35:08 valtri Exp $
+ * $Id: xineutils.h,v 1.76 2003/12/21 14:14:39 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -616,7 +616,11 @@ void xine_profiler_print_results (void);
  * Allocate and clean memory size_t 'size', then return the pointer
  * to the allocated memory.
  */
+#if !defined(__GNUC__) || __GNUC__ < 3
 void *xine_xmalloc(size_t size);
+#else
+void *xine_xmalloc(size_t size) __attribute__ ((__malloc__));
+#endif
 
 /*
  * Same as above, but memory is aligned to 'alignement'.
