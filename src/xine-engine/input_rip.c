@@ -24,12 +24,12 @@
  * Usage:
  *
  * - activation:
- *     xine stream_mrl#rip:file.raw
+ *     xine stream_mrl#save:file.raw
  * 
  * - it's possible speeder saving streams in the xine without playing:
- *     xine stream_mrl#rip:file.raw;noaudio;novideo
+ *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.5 2003/09/17 17:15:50 valtri Exp $
+ * $Id: input_rip.c,v 1.6 2003/10/05 10:39:25 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
