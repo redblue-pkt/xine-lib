@@ -393,4 +393,8 @@ Conrad Parker <conrad@metadecks.org>
 Marcel Janssen <korgull@home.nl>
   libavcodec MPEG encoder for DXR3
 
+Dirk Meyer <dmeyer@tzi.de
+  stdctl patches for xine-ui and fbxine.
+  audio viz post support for fbxine.
+
 (let us know if we've forgotten anyone)
