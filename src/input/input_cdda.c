@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.11 2003/03/29 09:37:24 heikos Exp $
+ * $Id: input_cdda.c,v 1.12 2003/04/06 00:51:29 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,6 +44,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
+#include "media_helper.h"
 
 #if defined(__sun)
 #define	DEFAULT_CDDA_DEVICE	"/vol/dev/aliases/cdrom0"
@@ -1436,6 +1437,13 @@ static void cdda_class_dispose (input_class_t *this_gen) {
   free (this);
 }
 
+static int cdda_class_eject_media (input_class_t *this_gen) {
+  cdda_input_class_t  *this = (cdda_input_class_t *) this_gen;
+
+  return media_eject_media (this->cdda_device);
+}
+
+
 static void *init_plugin (xine_t *xine, void *data) {
 
   cdda_input_class_t  *this;
@@ -1454,7 +1462,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->input_class.get_dir            = NULL;
   this->input_class.get_autoplay_list  = cdda_class_get_autoplay_list;
   this->input_class.dispose            = cdda_class_dispose;
-  this->input_class.eject_media        = NULL;
+  this->input_class.eject_media        = cdda_class_eject_media;
 
   this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;

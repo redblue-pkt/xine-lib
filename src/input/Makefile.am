@@ -86,7 +86,7 @@ xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LIBADD = $(XINE_LIB)
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_dvd_la_SOURCES = input_dvd.c 
+xineplug_inp_dvd_la_SOURCES = input_dvd.c media_helper.c
 xineplug_inp_dvd_la_LIBADD = $(XINE_LIB) $(link_dvdnav)
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
@@ -98,7 +98,7 @@ xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c mmsh.c
 xineplug_inp_mms_la_LIBADD = $(XINE_LIB)
 xineplug_inp_mms_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_vcd_la_SOURCES = input_vcd.c
+xineplug_inp_vcd_la_SOURCES = input_vcd.c media_helper.c
 xineplug_inp_vcd_la_LIBADD = $(XINE_LIB)
 xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
@@ -126,7 +126,7 @@ xineplug_inp_rtsp_la_SOURCES = input_rtsp.c net_buf_ctrl.c
 xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) libreal/libreal.la librtsp/librtsp.la
 xineplug_inp_rtsp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_cdda_la_SOURCES = input_cdda.c
+xineplug_inp_cdda_la_SOURCES = input_cdda.c media_helper.c
 xineplug_inp_cdda_la_LIBADD = $(XINE_LIB)
 xineplug_inp_cdda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
@@ -143,7 +143,7 @@ xineplug_inp_pvr_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pvr_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h
+noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h media_helper.h
 
 $(XINE_LIB):
 	@cd $(top_builddir)/src/xine-engine && $(MAKE)

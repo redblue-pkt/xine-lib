@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.142 2003/04/05 12:28:16 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.143 2003/04/06 00:51:29 hadess Exp $
  *
  */
 
@@ -82,6 +82,7 @@
 #include "xineutils.h"
 #include "buffer.h"
 #include "xine_internal.h"
+#include "media_helper.h"
 
 /* Print debug messages? */
 /* #define INPUT_DEBUG */
@@ -780,34 +781,6 @@ static uint32_t dvd_plugin_get_blocksize (input_plugin_t *this_gen) {
   return DVD_BLOCK_SIZE;
 }
 
-static int dvd_umount_media(char *device)
-{
-  char *argv[10];
-  int i;
-  pid_t pid;
-  int status;
-  argv[0]="umount";
-  argv[1]=device;
-  argv[2]=0;
-  pid=fork();
-  if (pid == 0) {
-    i= execv("/bin/umount", argv);
-    exit(127);
-  }
-  do {
-    if(waitpid(pid, &status, 0) == -1) {
-      if (errno != EINTR)
-	return -1;
-    } 
-    else {
-      return WEXITSTATUS(status);
-    }
-  } while(1);
-  
-  return -1;
-} 
-
-
 static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
   
@@ -1455,63 +1428,9 @@ void dvd_class_dispose(input_class_t *this_gen) {
 }
 
 static int dvd_class_eject_media (input_class_t *this_gen) {
-  dvd_input_class_t *this = (dvd_input_class_t *) this_gen;
-  int   ret, status;
-  int   fd;
+  dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
 
-  /* printf("input_dvd: Eject Device %s current device %s opened=%d handle=%p trying...\n",this->dvd_device, this->current_dvd_device, this->opened, this->dvdnav); */
-  ret=dvd_umount_media(this->dvd_device);
-  /**********
-        printf("ipnut_dvd: umount result: %s\n", 
-                  strerror(errno));  
-   ***********/
-  if ((fd = open (this->dvd_device, O_RDONLY|O_NONBLOCK)) > -1) {
-
-#if defined (__linux__)
-    if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
-      switch(status) {
-      case CDS_TRAY_OPEN:
-        if((ret = ioctl(fd, CDROMCLOSETRAY)) != 0) {
-#ifdef LOG_DVD_EJECT
-          printf("input_dvd: CDROMCLOSETRAY failed: %s\n", 
-                  strerror(errno));  
-#endif
-        }
-        break;
-      case CDS_DISC_OK:
-        if((ret = ioctl(fd, CDROMEJECT)) != 0) {
-#ifdef LOG_DVD_EJECT
-          printf("input_dvd: CDROMEJECT failed: %s\n", strerror(errno));  
-#endif
-        }
-        break;
-      }
-    }
-    else {
-#ifdef LOG_DVD_EJECT
-      printf("input_dvd: CDROM_DRIVE_STATUS failed: %s\n", 
-              strerror(errno));
-#endif
-      close(fd);
-      return 0;
-    }
-#elif defined (__NetBSD__) || defined (__OpenBSD__) || defined (__FreeBSD__)
-
-    if (ioctl(fd, CDIOCALLOW) == -1) {
-      perror("ioctl(cdromallow)");
-    } else {
-      if (ioctl(fd, CDIOCEJECT) == -1) {
-        perror("ioctl(cdromeject)");
-      }
-    }
-
-#endif
-
-    close(fd);
-  } else {
-    printf("input_dvd: Device %s failed to open during eject calls\n",this->dvd_device);
-  }
-  return 1;
+  return media_eject_media (this->dvd_device);
 }
 
 static void *init_class (xine_t *xine, void *data) {
@@ -1633,6 +1552,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.143  2003/04/06 00:51:29  hadess
+ * - shared eject implementation taken from the DVD input, eject doesn't work if the CD/DVD isn't mounted, which definitely breaks the CDDA plugin... better than nothing
+ *
  * Revision 1.142  2003/04/05 12:28:16  miguelfreitas
  * "perfect" time display for dvds
  * (see thread on xine-devel for details)

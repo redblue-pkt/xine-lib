@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.64 2003/02/14 18:11:47 heikos Exp $
+ * $Id: input_vcd.c,v 1.65 2003/04/06 00:51:29 hadess Exp $
  *
  */
 
@@ -50,6 +50,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
+#include "media_helper.h"
 
 #if defined(__sun)
 #define	CDROM	       "/vol/dev/aliases/cdrom0"
@@ -928,71 +929,12 @@ static void vcd_class_dispose (input_class_t *this_gen) {
   free (this);
 }
 
-#if defined (__linux__)
 static int vcd_class_eject_media (input_class_t *this_gen) {
-  vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
-  int ret, status, fd;
 
-  if ((fd = open (this->device, O_RDONLY|O_NONBLOCK)) > -1) {
-    if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
-      switch(status) {
-      case CDS_TRAY_OPEN:
-	if((ret = ioctl(fd, CDROMCLOSETRAY)) != 0) {
-	  printf ("input_vcd: CDROMCLOSETRAY failed: %s\n", strerror(errno));  
-	}
-	break;
-      case CDS_DISC_OK:
-	if((ret = ioctl(fd, CDROMEJECT)) != 0) {
-	  printf ("input_vcd: CDROMEJECT failed: %s\n", strerror(errno));  
-	}
-	break;
-      }
-    }
-    else {
-      printf ("input_vcd: CDROM_DRIVE_STATUS failed: %s\n", 
-	      strerror(errno));
-      close(fd);
-      return 0;
-    }
-  }
+  vcd_input_class_t  *this = (vcd_input_class_t *) this_gen;
 
-  close(fd);
-  
-  return 1;
+  return media_eject_media (this->device);
 }
-#elif defined (__FreeBSD__)
-static int vcd_class_eject_media (input_class_t *this_gen) {
-  vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
-  int          fd;
-
-  if ((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
-    if (ioctl(fd, CDIOCALLOW) == -1) {
-      perror("ioctl(cdromallow)");
-    } else {
-      if (ioctl(fd, CDIOCEJECT) == -1) {
-	perror("ioctl(cdromeject)");
-      }
-    }
-    close(fd);
-  }
-  
-  return 1;
-}
-#elif defined (__sun)
-static int vcd_class_eject_media (input_class_t *this_gen) {
-  vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
-  int          fd, ret;
-
-  if ((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
-    if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
-      printf ("input_vcd: CDROMEJECT failed: %s\n", strerror(errno));  
-    }
-    close(fd);
-  }
-
-  return 1;
-}
-#endif
 
 static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *filename, 
 				       int *num_files) {
