@@ -17,13 +17,7 @@ libdir = $(XINE_PLUGINDIR)
 #
 
 if HAVE_CDROM_IOCTLS
-in_dvd = xineplug_inp_dvd.la
-## build both vcd for now
-##if ENABLE_VCD
-##else
 in_vcd = xineplug_inp_vcdo.la
-##endif
-#in_cda = xineplug_inp_cda.la
 endif
 
 if HAVE_V4L
@@ -40,6 +34,7 @@ in_smb = xineplug_inp_smb.la
 endif
 
 # For DVD
+in_dvd = xineplug_inp_dvd.la
 if HAVE_DVDNAV
 DVD_CFLAGS = $(DVDNAV_CFLAGS)
 link_dvdnav = $(DVDNAV_LIBS)

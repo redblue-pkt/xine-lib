@@ -1183,7 +1183,7 @@ dnl ---------------------------------------------
 AC_CHECK_HEADERS(sys/cdio.h linux/cdrom.h)
 AM_CHECK_CDROM_IOCTLS(
 	[AC_DEFINE(HAVE_CDROM_IOCTLS,1,[Define this if you have CDROM ioctls])],
-	[AC_MSG_RESULT([*** DVD and (S)VCD support will be disabled ***])])
+	[AC_MSG_RESULT([*** (S)VCD support will be disabled ***])])
 AM_CONDITIONAL(HAVE_CDROM_IOCTLS, [test x"$have_cdrom_ioctls" = "xyes"])
 
 
@@ -1340,7 +1340,7 @@ main() {
     LIBVCDINFO_LIBS='$(top_builddir)/src/input/vcd/libvcd/libvcdinfo.la'
 
     case $host_os in
-         darwin6*)
+         darwin*)
            AC_CHECK_HEADERS(IOKit/IOKitLib.h CoreFoundation/CFBase.h, 
                             [have_iokit_h="yes"])
            if test "x$have_iokit_h" = "xyes" ; then 
@@ -2271,12 +2271,12 @@ echo "   - stdin_fifo    - rtp"
 echo "   - http          - mms"
 echo "   - pnm           - rtsp"
 echo "   - dvb"
+if test x"$external_dvdnav" = "xyes"; then
+  echo "   - dvd (external libs)"
+else
+  echo "   - dvd (internal libs)"
+fi
 if test x"$have_cdrom_ioctls" = "xyes"; then
-  if test x"$external_dvdnav" = "xyes"; then
-    echo "   - dvd (external libs)"
-  else
-    echo "   - dvd (internal libs)"
-  fi
   if test x"$enable_vcd" = "xyes"; then
     if test x"$internal_vcdnav" = "xno"; then
       echo "   - vcd (external libs)"
