@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2002/03/11 12:31:26 guenter Exp $
+ * $Id: xine_decoder.c,v 1.25 2002/03/21 02:02:30 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -100,7 +100,9 @@ static void mpeg2dec_flush (video_decoder_t *this_gen) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
   pthread_mutex_lock (&this->lock);
+#ifdef LOG
   printf ("libmpeg2: flush\n");
+#endif
 
   mpeg2_flush (&this->mpeg2);
 

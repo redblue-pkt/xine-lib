@@ -510,10 +510,14 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
     img->draw(img);
     img->free(img);
 
+#ifdef LOG
   } else {
     printf ("libmpeg2: flush called, but I have no frame to flush\n");
 
   }
+#else
+  }
+#endif
 
 }
 
