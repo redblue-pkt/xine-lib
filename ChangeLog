@@ -5,6 +5,7 @@
     automatic software cropping is provided for drivers not supporting it.
   * Fixed displaying of mpeg2 files where width/height is not a multiple of 16
     (these files required cropping after decoding)
+  * Fix crashes with some input plugins when no audio output was available
   
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
