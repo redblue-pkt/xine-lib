@@ -19,5 +19,5 @@
  *
  */
 
-int media_eject_media (char *device);
+int media_eject_media (const char *device);
 

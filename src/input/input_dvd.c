@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.168 2003/08/25 21:51:39 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.169 2003/10/26 10:48:24 mroi Exp $
  *
  */
 
@@ -266,7 +266,7 @@ static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
     INPUT_CAP_AUDIOLANG | INPUT_CAP_SPULANG | INPUT_CAP_CHAPTERS; 
 }
 
-void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
+static void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
 
   if(!class)
@@ -281,7 +281,7 @@ void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
   }
 }
  
-void seek_mode_cb(void *this_gen, xine_cfg_entry_t *entry) {
+static void seek_mode_cb(void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
 
   if(!class)
@@ -296,7 +296,7 @@ void seek_mode_cb(void *this_gen, xine_cfg_entry_t *entry) {
   }
 }
  
-void region_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
+static void region_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
 
   if(!class)
@@ -311,7 +311,7 @@ void region_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   }
 }
 
-void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
+static void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
 
   if(!class)
@@ -406,13 +406,6 @@ static void update_title_display(dvd_input_plugin_t *this) {
   xine_event_send(this->stream, &uevent);
 }
 
-static void dvd_plugin_stop (input_plugin_t *this_gen) {
-  dvd_input_plugin_t *this = (dvd_input_plugin_t*) this_gen;
-  if (this->dvdnav) {
-    dvdnav_still_skip(this->dvdnav);
-  }
-}
-
 static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
   
@@ -437,9 +430,9 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
 #define	PTR_ALIGN(p, align)	((void*) (((long)(p) + (align) - 1) & ~((align)-1)) )
 
 
-static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
 /* FIXME */
 #if 0
+static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
   int num_titles, *num_parts;
 
   /* skip DVD if already open */
@@ -512,10 +505,8 @@ static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
     }
     free(num_parts);
   }
-#else
-  return;
-#endif
 }
+#endif
 
 static void dvd_plugin_free_buffer(buf_element_t *buf) {
   dvd_input_plugin_t *this = buf->source;
@@ -1736,6 +1727,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.169  2003/10/26 10:48:24  mroi
+ * fix some prominent compiler warnings
+ *
  * Revision 1.168  2003/08/25 21:51:39  f1rmb
  * Reduce GCC verbosity (various prototype declaration fixes). ffmpeg, wine and fft*post are untouched (fft: for now).
  *

@@ -51,20 +51,16 @@
 
 #define LOG_MEDIA_EJECT
 
-static int media_umount_media(char *device)
+static int media_umount_media(const char *device)
 {
 #ifndef WIN32
-  char *argv[10];
   int i;
   pid_t pid;
   int status;
 
-  argv[0]="umount";
-  argv[1]=device;
-  argv[2]=0;
   pid=fork();
   if (pid == 0) {
-    i= execv("/bin/umount", argv);
+    i= execl("/bin/umount", "umount", device, NULL);
     exit(127);
   }
   do {
@@ -83,7 +79,7 @@ static int media_umount_media(char *device)
 #endif /* WIN32 */
 } 
 
-int media_eject_media (char *device) {
+int media_eject_media (const char *device) {
 
 #ifndef WIN32
   int   ret, status;

@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.52 2003/09/25 13:47:17 f1rmb Exp $
+ * $Id: input_net.c,v 1.53 2003/10/26 10:48:24 mroi Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -109,6 +109,7 @@ typedef struct {
 /*                       Private functions                          */
 /* **************************************************************** */
 
+#ifndef ENABLE_IPV6
 static int host_connect_attempt_ipv4(struct in_addr ia, int port, xine_t *xine) {
 
   int                s;
@@ -139,7 +140,7 @@ static int host_connect_attempt_ipv4(struct in_addr ia, int port, xine_t *xine) 
 
   return s;
 }
-
+#else
 static int host_connect_attempt(int family, struct sockaddr* sin, int addrlen, xine_t *xine) {
 
   int                s;
@@ -165,7 +166,9 @@ static int host_connect_attempt(int family, struct sockaddr* sin, int addrlen, x
 
   return s;
 }
+#endif
 
+#ifndef ENABLE_IPV6
 static int host_connect_ipv4(const char *host, int port, xine_t *xine) {
   struct hostent *h;
   int             i;
@@ -190,11 +193,12 @@ static int host_connect_ipv4(const char *host, int port, xine_t *xine) {
 	    _("input_net: unable to connect to '%s'.\n"), host);
   return -1;
 }
+#endif
 
 static int host_connect(const char *host, int port, xine_t *xine) {
 
 #ifndef ENABLE_IPV6
-    return host_connect_ipv4(host, port, xine);
+  return host_connect_ipv4(host, port, xine);
 #else
 
   struct addrinfo hints, *res, *tmpaddr;

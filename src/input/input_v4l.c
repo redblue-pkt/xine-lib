@@ -776,19 +776,6 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
       return 2;
 }
 
-static int close_radio_capture_device(v4l_input_plugin_t *this)
-{
-   if (this->radio_fd > 0)
-      close(this->radio_fd);
-   else
-      /* Radio device probably never opened. So nothing left to cleanup. */
-      return 0;
-   
-   this->radio_fd = 0;
-
-   return 1;
-}
-
 /**
  * Open the video capture device.
  *

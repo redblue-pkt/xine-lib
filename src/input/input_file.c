@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.84 2003/10/15 13:51:21 valtri Exp $
+ * $Id: input_file.c,v 1.85 2003/10/26 10:48:24 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -351,7 +351,7 @@ static void origin_change_cb(void *data, xine_cfg_entry_t *cfg) {
 #define CMP          2
 #define LEN          3
 #define ISDIGIT(c)   ((unsigned) (c) - '0' <= 9)
-static int strverscmp(const char *s1, const char *s2) {
+static int _strverscmp(const char *s1, const char *s2) {
   const unsigned char *p1 = (const unsigned char *) s1;
   const unsigned char *p2 = (const unsigned char *) s2;
   unsigned char c1, c2;
@@ -408,10 +408,10 @@ static int strverscmp(const char *s1, const char *s2) {
 }
 
 /*
- * Wrapper to strverscmp() for qsort() calls, which sort mrl_t type array.
+ * Wrapper to _strverscmp() for qsort() calls, which sort mrl_t type array.
  */
 static int _sortfiles_default(const xine_mrl_t *s1, const xine_mrl_t *s2) {
-  return(strverscmp(s1->mrl, s2->mrl));
+  return(_strverscmp(s1->mrl, s2->mrl));
 }
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.17 2003/05/26 17:00:14 tchamp Exp $
+ * $Id: mmsh.c,v 1.18 2003/10/26 10:48:25 mroi Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -972,22 +972,17 @@ static int get_media_packet (mmsh_t *this) {
         return 0;
     }
 
-    if (this->chunk_length > CHUNK_SIZE) {
-      printf("libmmsh: invalid chunk length\n");
-      return 0;
+    len = xine_read_abort (this->stream, this->s, this->buf, this->chunk_length);
+      
+    if (len == this->chunk_length) {
+      /* explicit padding with 0 */
+      memset(this->buf + this->chunk_length, 0,
+             this->packet_length - this->chunk_length);
+      this->buf_size = this->packet_length;
+      return 1;
     } else {
-      len = xine_read_abort (this->stream, this->s, this->buf, this->chunk_length);
-
-      if (len == this->chunk_length) {
-        /* explicit padding with 0 */
-        memset(this->buf + this->chunk_length, 0,
-               this->packet_length - this->chunk_length);
-        this->buf_size = this->packet_length;
-        return 1;
-      } else {
-        printf("libmmsh: read error, %d != %d\n", len, this->chunk_length);
-        return 0;
-      }
+      printf("libmmsh: read error, %d != %d\n", len, this->chunk_length);
+      return 0;
     }
   } else {
     return 0;
