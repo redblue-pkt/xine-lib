@@ -21,7 +21,7 @@
 %define BUILD_FLAC      0
 %define BUILD_GNOME_VFS 0
 %define BUILD_OGG       0
-#%define BUILD_OPENGL    0
+%define BUILD_OPENGL    0
 %define BUILD_SDL       0
 %define BUILD_DIRECTFB  0
 %define BUILD_SYNCFB    0
@@ -41,8 +41,17 @@ Group:          Development/Libraries
 URL:            http://xinehq.de
 Source:         http://xinehq.de/files/@PACKAGE@-@VERSION@.tar.gz
 Packager:       Manfred Tremmel <Manfred.Tremmel@iiv.de>
-Obsoletes:      xine, xine-lib, xine-lib-oss, xine-lib-xv, libxine0, %{shortname}, xine-vcdx
-Provides:       xine, xine-lib, %{shortname} = %{version}-%{release}, xine-vcdx
+Obsoletes:      xine
+Obsoletes:      xine-lib
+Obsoletes:      xine-lib-oss
+Obsoletes:      xine-lib-xv
+Obsoletes:      libxine0
+Obsoletes:      %{shortname}
+Obsoletes:      xine-vcdx
+Provides:       xine
+Provides:       xine-lib
+Provides:       %{shortname} = %{version}-%{release}
+Provides:       xine-vcdx
 BuildRoot:      %{_tmppath}/%{name}-buildroot
 
 %description
@@ -103,8 +112,11 @@ Summary(cs):    Hlavièkové soubory a dokumentace pro vývoj programù pou¾ívajícíc
 Summary(de):    Headerdateien und Dokumentationen, um Programme mit libxine entwickeln zu können.
 Summary(fi):    Header-tiedostot ja dokumentaatio, joita tarvitset kehittäessäsi ohjelmia libxine:n kanssa.
 Group:	       Development/Libraries
-Obsoletes:      xine-lib-devel libxine0-devel
+Obsoletes:      xine-lib-devel
+Obsoletes:      xine-devel
+Obsoletes:      libxine0-devel
 Provides:       %{shortname}-devel = %{version}-%{release}
+Provides:       xine-devel
 
 %description devel
 This package contains header files and documentation required to develope
@@ -173,7 +185,8 @@ Summary:        libxine sound output plugin for alsa >= 0.9
 Summary(de):    libxine Soundausgabeplguin für Alsa >= 0.9
 Summary(fi):    libxine-Ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >= 0.9)
 Group:          Development/Libraries
-Obsoletes:      xine-lib-alsa09, libxine0-alsa09
+Obsoletes:      xine-lib-alsa09
+Obsoletes:      libxine0-alsa09
 
 %description alsa09
 libxine sound output plugin for alsa >= 0.9
@@ -191,7 +204,8 @@ Summary:        libxine sound output plugin for arts (KDE-soundserver)
 Summary(de):    libxine Soundausgabeplugin für arts (KDE-Soundserver)
 Summary(fi):    libxine-Ddnilisdke Arts ddnipalvelimelle (KDE:n ddnipalvelin)
 Group:          Development/Libraries
-Obsoletes:      xine-lib-arts, libxine0-arts
+Obsoletes:      xine-lib-arts
+Obsoletes:      libxine0-arts
 
 %description arts
 libxine sound output plugin for arts (KDE-soundserver)
@@ -209,7 +223,8 @@ Summary:        libxine sound output plugin for enlightmend sound daemon
 Summary(de):    libxine Soundausgabeplugin für den Enlightmend Sound Daemon
 Summary(fi):    libxine-ddnilisdke Enlightmend ddnipalvelimelle
 Group:          Development/Libraries
-Obsoletes:      xine-lib-esd, libxine0-esd
+Obsoletes:      xine-lib-esd
+Obsoletes:      libxine0-esd
 
 %description esd
 libxine sound output plugin for enlightmend sound daemon (Gnome and Enlightment)
@@ -227,7 +242,8 @@ Summary:        libxine video output plugin for SDL-library (Simple DirectMedia 
 Summary(de):    libxine Videoausgabeplguin für SDL-Bibliothek (Simple DirectMedia Layer)
 Summary(fi):    libxine-Videolisdke SDL grafiikkakirjastolle (Simple DirectMedia Layer)
 Group:          Development/Libraries
-Obsoletes:      xine-lib-sdl, libxine0-sdl
+Obsoletes:      xine-lib-sdl
+Obsoletes:      libxine0-sdl
 
 %description sdl
 libxine video output plugin for SDL-library (Simple DirectMedia Layer)
@@ -245,7 +261,10 @@ Summary:        libxine video output plugin for aa-library (ASCII Art)
 Summary(de):    libxine Videoausgabeplugin für aa-Bibliothek (ASCII Art)
 Summary(fi):    libxine-Videolisdke aa-grafiikkakirjastolle (ASCII Art)
 Group:          Development/Libraries
-Obsoletes:      xine-lib-aa, libxine0-aa
+Obsoletes:      xine-lib-aa
+Obsoletes:      libxine0-aa
+Obsoletes:      xine-extra
+Provides:       xine-extra
 
 %description aa
 libxine video output plugin for aa-library (ASCII Art)
@@ -257,19 +276,20 @@ libxine Videoausgabeplugin für aa-Bibliothek (ASCII Art)
 libxine-Videolisdke aa-grafiikkakirjastolle (ASCII Art)
 %endif
 
-#%if %BUILD_OPENGL
-#%package opengl
-#Summary:        libxine video output plugin using OpenGL (3D graphic cards)
-#Summary(de):    libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
-#Group:          Development/Libraries
-#Obsoletes:      xine-lib-opengl, libxine0-opengl
-#
-#%description opengl
-#libxine video output plugin using OpenGL (3D graphic cards)
-#
-#%description opengl -l de
-#libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
-#%endif
+%if %BUILD_OPENGL
+%package opengl
+Summary:        libxine video output plugin using OpenGL (3D graphic cards)
+Summary(de):    libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
+Group:          Development/Libraries
+Obsoletes:      xine-lib-opengl
+Obsoletes:      libxine0-opengl
+
+%description opengl
+libxine video output plugin using OpenGL (3D graphic cards)
+
+%description opengl -l de
+libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
+%endif
 
 %if %BUILD_SYNCFB
 %package syncfb
@@ -367,8 +387,12 @@ Summary:        libxine sound/video input plugin for ogg/ogm-files
 Summary(de):    libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
 Summary(fi):    libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 Group:          Development/Libraries
-Obsoletes:      xine-lib-oggvorbis, %{libname}-oggvorbis, %{libname}-oggtheora
-Provides:       xine-lib-oggvorbis, %{libname}-oggvorbis, %{libname}-oggtheora
+Obsoletes:      xine-lib-oggvorbis
+Obsoletes:      %{libname}-oggvorbis
+Obsoletes:      %{libname}-oggtheora
+Provides:       xine-lib-oggvorbis
+Provides:       %{libname}-oggvorbis
+Provides:       %{libname}-oggtheora
 
 %description ogg
 libxine sound/video input plugin for ogg/ogm-files
@@ -409,11 +433,12 @@ libxine Videoausgabeplugin per libstk (Set-top Toolkit)
 %if %BUILD_DXR3
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 %package dxr3
-Summary:     libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
-Summary(de): libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
-Summary(fi): libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
-Group:       Development/Libraries
-Obsoletes:   xine-lib-dxr3, libxine0-dxr3
+Summary:        libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
+Summary(de):    libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
+Summary(fi):    libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
+Group:          Development/Libraries
+Obsoletes:      xine-lib-dxr3
+Obsoletes:      libxine0-dxr3
 
 %description dxr3
 libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
@@ -450,7 +475,8 @@ Summary:        libxine decoding plugin using win32 dlls for native not supporte
 Summary(de):    libxine Dekodierplugin, nutzt Win32 dlls für natvie nicht unterstützte Formate
 Summary(fi):    libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 Group:          Development/Libraries
-Obsoletes:      xine-lib-w32dll, libxine0-w32dll
+Obsoletes:      xine-lib-w32dll
+Obsoletes:      libxine0-w32dll
 
 %description w32dll
 libxine decoding plugin using win32 dlls for native not supported formats
@@ -569,13 +595,13 @@ grep -v "xineplug_vo_out_aa\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > 
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
-#%if %BUILD_OPENGL
-#echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_opengl
-#mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
-#grep -E "xineplug_vo_out_opengl\.|README.opengl" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_opengl
-#grep -v -E "xineplug_vo_out_opengl\.|README.opengl" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
-#rm ${RPM_BUILD_DIR}/filelist_libxine1_old
-#%endif
+%if %BUILD_OPENGL
+echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_opengl
+mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
+grep -E "xineplug_vo_out_opengl\.|README.opengl" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_opengl
+grep -v -E "xineplug_vo_out_opengl\.|README.opengl" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
+rm ${RPM_BUILD_DIR}/filelist_libxine1_old
+%endif
 
 %if %BUILD_SYNCFB
 echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_syncfb
@@ -695,9 +721,9 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %files aa -f ../filelist_libxine1_aa
 %endif
 
-#%if %BUILD_OPENGL
-#%files opengl -f ../filelist_libxine1_opengl
-#%endif
+%if %BUILD_OPENGL
+%files opengl -f ../filelist_libxine1_opengl
+%endif
 
 %if %BUILD_SYNCFB
 %files syncfb -f ../filelist_libxine1_syncfb
@@ -744,6 +770,8 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Sat May 01 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- activated opengl plugin
 * Tue Apr 06 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - removed xvid modules from -devel package and put it back
   to main package.
