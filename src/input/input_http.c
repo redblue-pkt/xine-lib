@@ -653,7 +653,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   http_input_plugin_t *this;
   char                *proxy;
   int                  done,len,linenum;
-  int                  shoutcast = 0;
+  int                  shoutcast = 0, httpcode;
   
   this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
   this->shoutcast_pos = 0;
@@ -821,7 +821,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 #endif
 
       if (linenum == 1) {
-        int httpver, httpsub, httpcode;
+        int httpver, httpsub;
 	char httpstatus[BUFSIZE];
 
 	if (sscanf(this->buf, "HTTP/%d.%d %d %[^\015\012]", &httpver, &httpsub,
@@ -838,15 +838,12 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 	    done = 1;
 	  }
 	}
-	
+
 	if (httpcode >= 300 && httpcode < 400) {
       	  xine_log (this->stream->xine, XINE_LOG_MSG, 
-		    _("input_http: 3xx redirection not implemented: >%d %s<\n"),
+		    _("input_http: 3xx redirection: >%d %s<\n"),
 		    httpcode, httpstatus);
-	  free (this);
-	  return NULL;
-	}
-	if (httpcode < 200 || httpcode >= 300) {
+	} else if (httpcode < 200 || httpcode >= 300) {
       	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
 		    httpcode, httpstatus);
@@ -865,12 +862,17 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
         }
 	
 	if (!strncasecmp(this->buf, "Location: ", 10)) {
-      	  xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: Location redirection not implemented\n"));
+	  char *href = strdup (this->buf + 10);
+
+#ifdef LOG
+	  printf ("input_http: trying to open target of redirection: >%s<\n",
+            href);
+#endif
 	  free (this);
-	  return NULL;
+	  return open_plugin (cls_gen, stream, href);
 	}
       }
-      
+ 
       if (len == -1)
 	done = 1;
       else
@@ -908,6 +910,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     this->mrlbuf2[3] = ' ';
     if (read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
+	    printf ("troubles with shoutcast header\n");
       free (this);
       return NULL;
     }
