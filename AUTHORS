@@ -233,12 +233,12 @@ Contributions
     C version for linear blend deinterlacer
 
   Mike Melanson <melanson@pcisys.net>
-    QT, FILM, RoQ, WAV, FLI, SMJPEG, and Id CIN file demuxers, RoQ audio
-    decoder, various ADPCM audio decoders, raw RGB & YUV support, FLI &
-    MS RLE video decoders
+    QT, FILM, RoQ, WAV, FLI, SMJPEG, Id CIN, WC3 movie, VOC, and VQA file
+    demuxers, RoQ audio decoder, various ADPCM audio decoders, raw RGB &
+    YUV support, FLI & MS RLE video decoders
 
   Tim Ferguson <timf@mail.csse.monash.edu.au>
-    CYUV and RoQ video decoders
+    CYUV, RoQ, and Id CIN video decoders
 
   Andrew Patrikalakis <anrp@irulethe.net>
     powerpc assembly memcpy() implementaions (after lots of discussion with

@@ -1,3 +1,10 @@
+xine-lib (next version) [someone fill in stability and urgency]
+
+  * Wing Commander III MVE movie file demuxer
+  * Creative Voice (VOC) file demuxer
+  * Westwood Studios VQA file demuxer
+  * Id CIN video decoder
+
 xine-lib (0.9.13) unstable; urgency=low
 
   * improved audio resampling for cards limited to 16 bits, stereo or mono
