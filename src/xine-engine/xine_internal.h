@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.90 2002/07/05 17:32:05 mroi Exp $
+ * $Id: xine_internal.h,v 1.91 2002/07/10 14:02:41 mroi Exp $
  *
  */
 
@@ -630,6 +630,7 @@ int xine_get_current_frame (xine_t *this, int *width, int *height,
 #define XINE_ASPECT_RATIO_4_3         2
 #define XINE_ASPECT_RATIO_ANAMORPHIC  3
 #define XINE_ASPECT_RATIO_211_1       4
+#define XINE_ASPECT_RATIO_PAN_SCAN   41
 #define XINE_ASPECT_RATIO_DONT_TOUCH 42
 
 osd_renderer_t *xine_get_osd_renderer (xine_t *this);
