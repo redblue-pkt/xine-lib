@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.39 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: input_net.c,v 1.40 2002/12/21 13:45:57 esnel Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -328,12 +328,17 @@ static input_plugin_t *net_plugin_open (input_class_t *cls_gen, xine_stream_t *s
   if (!strncasecmp (mrl, "tcp://", 6)) {
     filename = (char *) &this->mrl[6];
     
-    if((!filename) || (strlen(filename) == 0))
+    if((!filename) || (strlen(filename) == 0)) {
+      free (this->mrl);
+      free (this);
       return NULL;
+    }
     
-  }
-  else
+  } else {
+    free (this->mrl);
+    free (this);
     return NULL;
+  }
     
   pptr=strrchr(filename, ':');
   if(pptr) {
@@ -345,6 +350,8 @@ static input_plugin_t *net_plugin_open (input_class_t *cls_gen, xine_stream_t *s
   this->curpos = 0;
 
   if (this->fh == -1) {
+    free (this->mrl);
+    free (this);
     return NULL;
   }
 

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.132 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.133 2002/12/21 13:45:56 esnel Exp $
  *
  */
 
@@ -537,6 +537,7 @@ qt_info *create_qt_info(void) {
   info->audio_vbr = 0;
   info->audio_decoder_config = NULL;
   info->audio_decoder_config_len = 0;
+  info->audio_stsd = NULL;
 
   info->video_codec = 0;
   info->video_type = 0;
@@ -545,6 +546,7 @@ qt_info *create_qt_info(void) {
   info->video_depth = 0;
   info->video_decoder_config = NULL;
   info->video_decoder_config_len = 0;
+  info->video_stsd = NULL;
 
   info->frames = NULL;
   info->frame_count = 0;
@@ -570,6 +572,8 @@ void free_qt_info(qt_info *info) {
       free(info->audio_decoder_config);
     if(info->video_decoder_config)
       free(info->video_decoder_config);
+    free(info->audio_stsd);
+    free(info->video_stsd);
     free(info->copyright);
     free(info->description);
     free(info->comment);
@@ -673,6 +677,7 @@ static qt_error parse_trak_atom (qt_sample_table *sample_table,
   sample_table->frames = NULL;
   sample_table->decoder_config = NULL;
   sample_table->decoder_config_len = 0;
+  sample_table->stsd = NULL;
 
   /* special audio parameters */
   sample_table->samples_per_packet = 0;
@@ -1224,6 +1229,7 @@ free_sample_table:
   free(sample_table->sample_to_chunk_table);
   free(sample_table->time_to_sample_table);
   free(sample_table->decoder_config);
+  free(sample_table->stsd);
 
   return last_error;
 }
