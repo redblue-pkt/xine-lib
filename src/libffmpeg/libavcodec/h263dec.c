@@ -89,7 +89,7 @@ static int h263_decode_init(AVCodecContext *avctx)
     }
     s->codec_id= avctx->codec->id;
     avctx->mbskip_table= s->mbskip_table;
-    
+
     /* for h263, we allocate the images after having read the header */
     if (avctx->codec->id != CODEC_ID_H263 && avctx->codec->id != CODEC_ID_MPEG4)
         if (MPV_common_init(s) < 0)
@@ -154,43 +154,45 @@ uint64_t time= rdtsc();
     } else {
         ret = h263_decode_picture_header(s);
     }
+    avctx->has_b_frames= s->has_b_frames;
 
+       
         /* After H263 & mpeg4 header decode we have the height, width,*/
         /* and other parameters. So then we could init the picture   */
         /* FIXME: By the way H263 decoder is evolving it should have */
         /* an H263EncContext                                         */
+    if (s->width != avctx->width || s->height != avctx->height) {
+        /* H.263 could change picture size any time */
+        MPV_common_end(s);
+        s->context_initialized=0;
+    }
     if (!s->context_initialized) {
         avctx->width = s->width;
         avctx->height = s->height;
         avctx->aspect_ratio_info= s->aspect_ratio_info;
         if (MPV_common_init(s) < 0)
             return -1;
-    } else if (s->width != avctx->width || s->height != avctx->height) {
-        /* H.263 could change picture size any time */
-        MPV_common_end(s);
-        if (MPV_common_init(s) < 0)
-            return -1;
     }
 
-    if(ret==FRAME_SKIPED) return 0;
+    if(ret==FRAME_SKIPED) return buf_size;
     /* skip if the header was thrashed */
     if (ret < 0){
         fprintf(stderr, "header damaged\n");
         return -1;
     }
     /* skip b frames if we dont have reference frames */
-    if(s->num_available_buffers<2 && s->pict_type==B_TYPE) return 0;
+    if(s->num_available_buffers<2 && s->pict_type==B_TYPE) return buf_size;
     /* skip b frames if we are in a hurry */
-    if(s->hurry_up && s->pict_type==B_TYPE) return 0;
+    if(s->hurry_up && s->pict_type==B_TYPE) return buf_size;
     
     if(s->next_p_frame_damaged){
         if(s->pict_type==B_TYPE)
-            return 0;
+            return buf_size;
         else
             s->next_p_frame_damaged=0;
     }
 
-    MPV_frame_start(s);
+    MPV_frame_start(s, avctx);
 
 #ifdef DEBUG
     printf("qscale=%d\n", s->qscale);
@@ -431,8 +433,8 @@ uint64_t time= rdtsc();
         pict->data[2] = s->last_picture[2];
     }
     pict->linesize[0] = s->linesize;
-    pict->linesize[1] = s->linesize / 2;
-    pict->linesize[2] = s->linesize / 2;
+    pict->linesize[1] = s->uvlinesize;
+    pict->linesize[2] = s->uvlinesize;
 
     avctx->quality = s->qscale;
 
@@ -459,7 +461,7 @@ AVCodec mpeg4_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 
 AVCodec h263_decoder = {
@@ -471,7 +473,7 @@ AVCodec h263_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 
 AVCodec msmpeg4v1_decoder = {
@@ -483,7 +485,7 @@ AVCodec msmpeg4v1_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 
 AVCodec msmpeg4v2_decoder = {
@@ -495,7 +497,7 @@ AVCodec msmpeg4v2_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 
 AVCodec msmpeg4v3_decoder = {
@@ -507,7 +509,7 @@ AVCodec msmpeg4v3_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 
 AVCodec wmv1_decoder = {
@@ -519,7 +521,7 @@ AVCodec wmv1_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 
 AVCodec wmv2_decoder = {
@@ -531,7 +533,7 @@ AVCodec wmv2_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 
 AVCodec h263i_decoder = {
@@ -543,6 +545,6 @@ AVCodec h263i_decoder = {
     NULL,
     h263_decode_end,
     h263_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
 };
 

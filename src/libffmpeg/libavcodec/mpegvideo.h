@@ -132,6 +132,7 @@ typedef struct MpegEncContext {
     int mb_width, mb_height;   /* number of MBs horizontally & vertically */
     int mb_num;                /* number of MBs of a picture */
     int linesize;              /* line size, in bytes, may be different from width */
+    int uvlinesize;            /* line size, for chroma in bytes, may be different from width */
     UINT8 *new_picture[3];     /* picture to be compressed */
     UINT8 *picture_buffer[REORDER_BUFFER_SIZE][3]; /* internal buffers used for reordering of input pictures */
     int picture_buffer_index;
@@ -143,6 +144,9 @@ typedef struct MpegEncContext {
     UINT8 *aux_picture[3];       /* aux picture (for B frames only) */
     UINT8 *aux_picture_base[3];  /* real start of the picture */
     UINT8 *current_picture[3];   /* buffer to store the decompressed current picture */
+    void *last_dr_opaque;
+    void *next_dr_opaque;
+    int ip_buffer_count;         /* number of buffers, currently only >2 if dr1 is used */
     int num_available_buffers;   /* is 0 at the start & after seeking, after the first I frame its 1 after next I/P 2 */
     int last_dc[3];              /* last DC values for MPEG1 */
     INT16 *dc_val[3];            /* used for mpeg4 DC prediction, all 3 arrays must be continuous */
@@ -159,6 +163,7 @@ typedef struct MpegEncContext {
     UINT8 *cbp_table;           /* used to store cbp, ac_pred for partitioned decoding */
     UINT8 *pred_dir_table;      /* used to store pred_dir for partitioned decoding */
     INT8 *qscale_table;         /* used to store qscale for partitioned decoding (& postprocessing FIXME export) */
+    UINT8 *edge_emu_buffer;
 
     int input_qscale;           /* qscale prior to reordering of frames */
     int input_pict_type;        /* pict_type prior to reordering of frames */
@@ -337,6 +342,8 @@ typedef struct MpegEncContext {
     int quant_precision;
     int quarter_sample;              /* 1->qpel, 0->half pel ME/MC */ 
     int scalability;
+    int hierachy_type;
+    int enhancement_type;
     int new_pred;
     int reduced_res_vop;
     int aspect_ratio_info;
@@ -392,6 +399,7 @@ typedef struct MpegEncContext {
     UINT8 *intra_h_scantable;
     /* [mb_intra][isChroma][level][run][last] */
     int ac_stats[2][2][MAX_LEVEL+1][MAX_RUN+1][2];
+    int inter_intra_pred;
     
 
     /* decompression specific */
@@ -446,10 +454,13 @@ typedef struct MpegEncContext {
 int MPV_common_init(MpegEncContext *s);
 void MPV_common_end(MpegEncContext *s);
 void MPV_decode_mb(MpegEncContext *s, DCTELEM block[6][64]);
-void MPV_frame_start(MpegEncContext *s);
+void MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx);
 void MPV_frame_end(MpegEncContext *s);
 #ifdef HAVE_MMX
 void MPV_common_init_mmx(MpegEncContext *s);
+#endif
+#ifdef ARCH_ALPHA
+void MPV_common_init_axp(MpegEncContext *s);
 #endif
 extern int (*dct_quantize)(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
 extern void (*draw_edges)(UINT8 *buf, int wrap, int width, int height, int w);
@@ -467,8 +478,8 @@ void ff_fix_long_p_mvs(MpegEncContext * s);
 void ff_fix_long_b_mvs(MpegEncContext * s, int16_t (*mv_table)[2], int f_code, int type);
 
 /* mpeg12.c */
-extern INT16 default_intra_matrix[64];
-extern INT16 default_non_intra_matrix[64];
+extern INT16 ff_mpeg1_default_intra_matrix[64];
+extern INT16 ff_mpeg1_default_non_intra_matrix[64];
 extern UINT8 ff_mpeg1_dc_scale_table[128];
 
 void mpeg1_encode_picture_header(MpegEncContext *s, int picture_number);
@@ -478,7 +489,6 @@ void mpeg1_encode_mb(MpegEncContext *s,
 void ff_mpeg1_encode_init(MpegEncContext *s);
 
 /* h263enc.c */
-
 typedef struct RLTable {
     int n; /* number of entries of table_vlc minus 1 */
     int last; /* number of values for last = 0 */
@@ -488,7 +498,8 @@ typedef struct RLTable {
     UINT8 *index_run[2]; /* encoding only */
     INT8 *max_level[2]; /* encoding & decoding */
     INT8 *max_run[2];   /* encoding & decoding */
-    VLC vlc;            /* decoding only */
+    VLC vlc;            /* decoding only deprected FIXME remove*/
+    RL_VLC_ELEM *rl_vlc[32]; /* decoding only */
 } RLTable;
 
 void init_rl(RLTable *rl);

@@ -372,10 +372,10 @@ static void jpeg_put_comments(MpegEncContext *s)
     flush_put_bits(p);
     ptr = pbBufPtr(p);
     put_bits(p, 16, 0); /* patched later */
-#define VERSION "FFmpeg" LIBAVCODEC_VERSION "b" LIBAVCODEC_BUILD_STR
-    put_string(p, VERSION);
-    size = strlen(VERSION)+3;
-#undef VERSION
+#define MJPEG_VERSION "FFmpeg" LIBAVCODEC_VERSION "b" LIBAVCODEC_BUILD_STR
+    put_string(p, MJPEG_VERSION);
+    size = strlen(MJPEG_VERSION)+3;
+#undef MJPEG_VERSION
     ptr[0] = size >> 8;
     ptr[1] = size;
 }
@@ -1247,7 +1247,7 @@ static int mjpeg_decode_frame(AVCodecContext *avctx,
                             s->bottom_field ^= 1;
                             /* if not bottom field, do not output image yet */
                             if (s->bottom_field)
-                                goto the_end;
+                                goto not_the_end;
                         }
                         for(i=0;i<3;i++) {
                             picture->data[i] = s->current_picture[i];
@@ -1313,6 +1313,8 @@ static int mjpeg_decode_frame(AVCodecContext *avctx,
 #endif
             }
         }
+ not_the_end:
+	;
     }
  the_end:
     return buf_ptr - buf;

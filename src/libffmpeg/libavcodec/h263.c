@@ -32,8 +32,17 @@
 //rounded divison & shift
 #define RSHIFT(a,b) ((a) > 0 ? ((a) + (1<<((b)-1)))>>(b) : ((a) + (1<<((b)-1))-1)>>(b))
 
-#define PRINT_MB_TYPE(a) ;
-//#define PRINT_MB_TYPE(a) printf(a);
+#define PRINT_MB_TYPE(a) {}
+//#define PRINT_MB_TYPE(a) printf(a)
+
+#define INTRA_MCBPC_VLC_BITS 6
+#define INTER_MCBPC_VLC_BITS 6
+#define CBPY_VLC_BITS 6
+#define MV_VLC_BITS 9
+#define DC_VLC_BITS 9
+#define SPRITE_TRAJ_VLC_BITS 6
+#define MB_TYPE_B_VLC_BITS 4
+#define TEX_VLC_BITS 9
 
 static void h263_encode_block(MpegEncContext * s, DCTELEM * block,
 			      int n);
@@ -1622,9 +1631,49 @@ void init_rl(RLTable *rl)
 
 void init_vlc_rl(RLTable *rl)
 {
+    int i, q;
+    
     init_vlc(&rl->vlc, 9, rl->n + 1, 
              &rl->table_vlc[0][1], 4, 2,
              &rl->table_vlc[0][0], 4, 2);
+
+    
+    for(q=0; q<32; q++){
+        int qmul= q*2;
+        int qadd= (q-1)|1;
+        
+        if(q==0){
+            qmul=1;
+            qadd=0;
+        }
+        
+        rl->rl_vlc[q]= av_malloc(rl->vlc.table_size*sizeof(RL_VLC_ELEM));
+        for(i=0; i<rl->vlc.table_size; i++){
+            int code= rl->vlc.table[i][0];
+            int len = rl->vlc.table[i][1];
+            int level, run;
+        
+            if(len==0){ // illegal code
+                run= 65;
+                level= MAX_LEVEL;
+            }else if(len<0){ //more bits needed
+                run= 0;
+                level= code;
+            }else{
+                if(code==rl->n){ //esc
+                    run= 65;
+                    level= 0;
+                }else{
+                    run=   rl->table_run  [code] + 1;
+                    level= rl->table_level[code] * qmul + qadd;
+                    if(code >= rl->last) run+=192;
+                }
+            }
+            rl->rl_vlc[q][i].len= len;
+            rl->rl_vlc[q][i].level= level;
+            rl->rl_vlc[q][i].run= run;
+        }
+    }
 }
 
 /* init vlcs */
@@ -1637,16 +1686,16 @@ void h263_decode_init_vlc(MpegEncContext *s)
     if (!done) {
         done = 1;
 
-        init_vlc(&intra_MCBPC_vlc, 6, 8, 
+        init_vlc(&intra_MCBPC_vlc, INTRA_MCBPC_VLC_BITS, 8, 
                  intra_MCBPC_bits, 1, 1,
                  intra_MCBPC_code, 1, 1);
-        init_vlc(&inter_MCBPC_vlc, 9, 25, 
+        init_vlc(&inter_MCBPC_vlc, INTER_MCBPC_VLC_BITS, 25, 
                  inter_MCBPC_bits, 1, 1,
                  inter_MCBPC_code, 1, 1);
-        init_vlc(&cbpy_vlc, 6, 16,
+        init_vlc(&cbpy_vlc, CBPY_VLC_BITS, 16,
                  &cbpy_tab[0][1], 2, 1,
                  &cbpy_tab[0][0], 2, 1);
-        init_vlc(&mv_vlc, 9, 33,
+        init_vlc(&mv_vlc, MV_VLC_BITS, 33,
                  &mvtab[0][1], 2, 1,
                  &mvtab[0][0], 2, 1);
         init_rl(&rl_inter);
@@ -1655,16 +1704,16 @@ void h263_decode_init_vlc(MpegEncContext *s)
         init_vlc_rl(&rl_inter);
         init_vlc_rl(&rl_intra);
         init_vlc_rl(&rl_intra_aic);
-        init_vlc(&dc_lum, 9, 13,
+        init_vlc(&dc_lum, DC_VLC_BITS, 10 /* 13 */,
                  &DCtab_lum[0][1], 2, 1,
                  &DCtab_lum[0][0], 2, 1);
-        init_vlc(&dc_chrom, 9, 13,
+        init_vlc(&dc_chrom, DC_VLC_BITS, 10 /* 13 */,
                  &DCtab_chrom[0][1], 2, 1,
                  &DCtab_chrom[0][0], 2, 1);
-        init_vlc(&sprite_trajectory, 9, 15,
+        init_vlc(&sprite_trajectory, SPRITE_TRAJ_VLC_BITS, 15,
                  &sprite_trajectory_tab[0][1], 4, 2,
                  &sprite_trajectory_tab[0][0], 4, 2);
-        init_vlc(&mb_type_b_vlc, 4, 4,
+        init_vlc(&mb_type_b_vlc, MB_TYPE_B_VLC_BITS, 4,
                  &mb_type_b_tab[0][1], 2, 1,
                  &mb_type_b_tab[0][0], 2, 1);
     }
@@ -1984,7 +2033,7 @@ int ff_mpeg4_decode_partitions(MpegEncContext *s)
                 int i;
 
                 PRINT_MB_TYPE("I");
-                cbpc = get_vlc(&s->gb, &intra_MCBPC_vlc);
+                cbpc = get_vlc2(&s->gb, intra_MCBPC_vlc.table, INTRA_MCBPC_VLC_BITS, 1);
                 if (cbpc < 0){
                     fprintf(stderr, "cbpc corrupted at %d %d\n", s->mb_x, s->mb_y);
                     return DECODING_DESYNC;
@@ -2049,7 +2098,7 @@ int ff_mpeg4_decode_partitions(MpegEncContext *s)
 
                     continue;
                 }
-                cbpc = get_vlc(&s->gb, &inter_MCBPC_vlc);
+                cbpc = get_vlc2(&s->gb, inter_MCBPC_vlc.table, INTER_MCBPC_VLC_BITS, 2);
                 if (cbpc < 0){
                     fprintf(stderr, "cbpc corrupted at %d %d\n", s->mb_x, s->mb_y);
                     return DECODING_DESYNC;
@@ -2156,7 +2205,7 @@ int ff_mpeg4_decode_partitions(MpegEncContext *s)
             
             if(s->pict_type==I_TYPE){
                 int ac_pred= get_bits1(&s->gb);
-                int cbpy = get_vlc(&s->gb, &cbpy_vlc);
+                int cbpy = get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1);
                 if(cbpy<0){
                     fprintf(stderr, "cbpy corrupted at %d %d\n", s->mb_x, s->mb_y);
                     return DECODING_AC_LOST;
@@ -2168,7 +2217,7 @@ int ff_mpeg4_decode_partitions(MpegEncContext *s)
                 if(s->mb_type[xy]&MB_TYPE_INTRA){          
                     int dir=0,i;
                     int ac_pred = get_bits1(&s->gb);
-                    int cbpy = get_vlc(&s->gb, &cbpy_vlc);
+                    int cbpy = get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1);
 
                     if(cbpy<0){
                         fprintf(stderr, "I cbpy corrupted at %d %d\n", s->mb_x, s->mb_y);
@@ -2202,7 +2251,7 @@ int ff_mpeg4_decode_partitions(MpegEncContext *s)
                     s->qscale_table[xy]= s->qscale;
                     s->cbp_table[xy]= 0;
                 }else{
-                    int cbpy = get_vlc(&s->gb, &cbpy_vlc);
+                    int cbpy = get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1);
 
                     if(cbpy<0){
                         fprintf(stderr, "P cbpy corrupted at %d %d\n", s->mb_x, s->mb_y);
@@ -2357,7 +2406,7 @@ int h263_decode_mb(MpegEncContext *s,
     INT16 *mot_val;
     static INT8 quant_tab[4] = { -1, -2, 1, 2 };
 
-    if(s->mb_x==0) PRINT_MB_TYPE("\n")
+    if(s->mb_x==0) PRINT_MB_TYPE("\n");
 
     if(s->resync_marker){
         if(s->resync_mb_x == s->mb_x && s->resync_mb_y+1 == s->mb_y){
@@ -2403,7 +2452,7 @@ int h263_decode_mb(MpegEncContext *s,
             }
             return 0;
         }
-        cbpc = get_vlc(&s->gb, &inter_MCBPC_vlc);
+        cbpc = get_vlc2(&s->gb, inter_MCBPC_vlc.table, INTER_MCBPC_VLC_BITS, 2);
         //fprintf(stderr, "\tCBPC: %d", cbpc);
         if (cbpc < 0)
             return -1;
@@ -2419,7 +2468,7 @@ int h263_decode_mb(MpegEncContext *s,
         if(s->pict_type==S_TYPE && s->vol_sprite_usage==GMC_SPRITE && (cbpc & 16) == 0)
             s->mcsel= get_bits1(&s->gb);
         else s->mcsel= 0;
-        cbpy = get_vlc(&s->gb, &cbpy_vlc);
+        cbpy = get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1);
         cbp = (cbpc & 3) | ((cbpy ^ 0xf) << 2);
         if (dquant) {
             s->qscale += quant_tab[get_bits(&s->gb, 2)];
@@ -2539,14 +2588,14 @@ int h263_decode_mb(MpegEncContext *s,
 //FIXME is this correct?
 /*            s->last_mv[0][0][0]=
             s->last_mv[0][0][1]=0;*/
-            PRINT_MB_TYPE("s")
+            PRINT_MB_TYPE("s");
             return 0;
         }
 
         modb1= get_bits1(&s->gb);
         if(modb1==0){
             modb2= get_bits1(&s->gb);
-            mb_type= get_vlc(&s->gb, &mb_type_b_vlc);
+            mb_type= get_vlc2(&s->gb, mb_type_b_vlc.table, MB_TYPE_B_VLC_BITS, 1);
             if(modb2==0) cbp= get_bits(&s->gb, 6);
             else cbp=0;
             if (mb_type && cbp) {
@@ -2624,7 +2673,7 @@ int h263_decode_mb(MpegEncContext *s,
             return -1;
         }
     } else { /* I-Frame */
-        cbpc = get_vlc(&s->gb, &intra_MCBPC_vlc);
+        cbpc = get_vlc2(&s->gb, intra_MCBPC_vlc.table, INTRA_MCBPC_VLC_BITS, 1);
         if (cbpc < 0)
             return -1;
         dquant = cbpc & 4;
@@ -2637,7 +2686,7 @@ intra:
             if (s->ac_pred && s->h263_aic)
                 s->h263_aic_dir = get_bits1(&s->gb);
         }
-        cbpy = get_vlc(&s->gb, &cbpy_vlc);
+        cbpy = get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1);
         if(cbpy<0) return -1;
         cbp = (cbpc & 3) | (cbpy << 2);
         if (dquant) {
@@ -2669,7 +2718,7 @@ static int h263_decode_motion(MpegEncContext * s, int pred, int f_code)
 {
     int code, val, sign, shift, l, m;
 
-    code = get_vlc(&s->gb, &mv_vlc);
+    code = get_vlc2(&s->gb, mv_vlc.table, MV_VLC_BITS, 2);
     if (code < 0)
         return 0xffff;
 
@@ -2782,7 +2831,7 @@ static int h263_decode_block(MpegEncContext * s, DCTELEM * block,
     }
 
     for(;;) {
-        code = get_vlc(&s->gb, &rl->vlc);
+        code = get_vlc2(&s->gb, rl->vlc.table, TEX_VLC_BITS, 2);
         if (code < 0)
             return -1;
         if (code == rl->n) {
@@ -2826,9 +2875,9 @@ static inline int mpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr)
     UINT16 *dc_val;
 
     if (n < 4) 
-        code = get_vlc(&s->gb, &dc_lum);
+        code = get_vlc2(&s->gb, dc_lum.table, DC_VLC_BITS, 1);
     else 
-        code = get_vlc(&s->gb, &dc_chrom);
+        code = get_vlc2(&s->gb, dc_chrom.table, DC_VLC_BITS, 1);
     if (code < 0 || code > 9 /* && s->nbit<9 */){
         fprintf(stderr, "illegal dc vlc\n");
         return -1;
@@ -2868,10 +2917,12 @@ static inline int mpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr)
 static inline int mpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
                               int n, int coded)
 {
-    int code, level, i, j, last, run;
+    int level, i, last, run;
     int dc_pred_dir;
     RLTable *rl;
+    RL_VLC_ELEM *rl_vlc;
     const UINT8 *scan_table;
+    int qmul, qadd;
 
     if (s->mb_intra) {
 	/* DC coef */
@@ -2886,10 +2937,11 @@ static inline int mpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
                 return DECODING_ACDC_LOST;
         }
         block[0] = level;
-        i = 1;
+        i = 0;
         if (!coded) 
             goto not_coded;
         rl = &rl_intra;
+        rl_vlc = rl_intra.rl_vlc[0];
         if (s->ac_pred) {
             if (dc_pred_dir == 0) 
                 scan_table = ff_alternate_vertical_scan; /* left */
@@ -2898,37 +2950,52 @@ static inline int mpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
         } else {
             scan_table = zigzag_direct;
         }
+        qmul=1;
+        qadd=0;
     } else {
-	i = 0;
+        i = -1;
         if (!coded) {
-            s->block_last_index[n] = i - 1;
+            s->block_last_index[n] = i;
             return 0;
         }
         rl = &rl_inter;
+        rl_vlc = rl_inter.rl_vlc[s->qscale];
         scan_table = zigzag_direct;
+        qmul = s->qscale << 1;
+        qadd = (s->qscale - 1) | 1;
     }
-
+  {
+    OPEN_READER(re, &s->gb);
     for(;;) {
-        code = get_vlc(&s->gb, &rl->vlc);
-        if (code < 0)
-            return DECODING_AC_LOST;
-        if (code == rl->n) {
+        UPDATE_CACHE(re, &s->gb);
+        GET_RL_VLC(level, run, re, &s->gb, rl_vlc, TEX_VLC_BITS, 2);
+        if (level==0) {
+            int cache;
+            cache= GET_CACHE(re, &s->gb);
             /* escape */
-            if (get_bits1(&s->gb) != 0) {
-                if (get_bits1(&s->gb) != 0) {
+            if (cache&0x80000000) {
+                if (cache&0x40000000) {
                     /* third escape */
-                    last = get_bits1(&s->gb);
-                    run = get_bits(&s->gb, 6);
-                    if(get_bits1(&s->gb)==0){
+                    SKIP_CACHE(re, &s->gb, 2);
+                    last=  SHOW_UBITS(re, &s->gb, 1); SKIP_CACHE(re, &s->gb, 1);
+                    run=   SHOW_UBITS(re, &s->gb, 6); LAST_SKIP_CACHE(re, &s->gb, 6);
+                    SKIP_COUNTER(re, &s->gb, 2+1+6);
+                    UPDATE_CACHE(re, &s->gb);
+
+                    if(SHOW_UBITS(re, &s->gb, 1)==0){
                         fprintf(stderr, "1. marker bit missing in 3. esc\n");
                         return DECODING_AC_LOST;
-                    }
-                    level = get_bits(&s->gb, 12);
-                    level = (level << 20) >> 20; /* sign extend */
-                    if(get_bits1(&s->gb)==0){
+                    }; SKIP_CACHE(re, &s->gb, 1);
+                    
+                    level= SHOW_SBITS(re, &s->gb, 12); SKIP_CACHE(re, &s->gb, 12);
+ 
+                    if(SHOW_UBITS(re, &s->gb, 1)==0){
                         fprintf(stderr, "2. marker bit missing in 3. esc\n");
                         return DECODING_AC_LOST;
-                    }
+                    }; LAST_SKIP_CACHE(re, &s->gb, 1);
+                    
+                    SKIP_COUNTER(re, &s->gb, 1+12+1);
+                    
                     if(level>512 || level<-512){ //FIXME check that QP=1 is ok with this too
                         fprintf(stderr, "|level| overflow in 3. esc\n");
                         return DECODING_AC_LOST;
@@ -2953,54 +3020,66 @@ static inline int mpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
                         }
                     }
 #endif
+		    if (level>0) level= level * qmul + qadd;
+                    else         level= level * qmul - qadd;
+
+                    i+= run + 1;
+                    if(last) i+=192;
                 } else {
                     /* second escape */
-                    code = get_vlc(&s->gb, &rl->vlc);
-                    if (code < 0 || code >= rl->n)
-                        return DECODING_AC_LOST;
-                    run = rl->table_run[code];
-                    level = rl->table_level[code];
-                    last = code >= rl->last;
-                    run += rl->max_run[last][level] + 1;
-                    if (get_bits1(&s->gb))
-                        level = -level;
+#if MIN_CACHE_BITS < 20
+                    LAST_SKIP_BITS(re, &s->gb, 2);
+                    UPDATE_CACHE(re, &s->gb);
+#else
+                    SKIP_BITS(re, &s->gb, 2);
+#endif
+                    GET_RL_VLC(level, run, re, &s->gb, rl_vlc, TEX_VLC_BITS, 2);
+                    i+= run + rl->max_run[run>>7][level/qmul] +1; //FIXME opt indexing
+                    level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
+                    LAST_SKIP_BITS(re, &s->gb, 1);
                 }
             } else {
                 /* first escape */
-                code = get_vlc(&s->gb, &rl->vlc);
-                if (code < 0 || code >= rl->n)
-                    return DECODING_AC_LOST;
-                run = rl->table_run[code];
-                level = rl->table_level[code];
-                last = code >= rl->last;
-                level += rl->max_level[last][run];
-                if (get_bits1(&s->gb))
-                    level = -level;
+#if MIN_CACHE_BITS < 19
+                LAST_SKIP_BITS(re, &s->gb, 1);
+                UPDATE_CACHE(re, &s->gb);
+#else
+                SKIP_BITS(re, &s->gb, 1);
+#endif
+                GET_RL_VLC(level, run, re, &s->gb, rl_vlc, TEX_VLC_BITS, 2);
+                i+= run;
+                level = level + rl->max_level[run>>7][(run-1)&63] * qmul;//FIXME opt indexing
+                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
+                LAST_SKIP_BITS(re, &s->gb, 1);
             }
         } else {
-            run = rl->table_run[code];
-            level = rl->table_level[code];
-            last = code >= rl->last;
-            if (get_bits1(&s->gb))
-                level = -level;
+            i+= run;
+            level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
+            LAST_SKIP_BITS(re, &s->gb, 1);
         }
-        i += run;
-        if (i >= 64)
-            return DECODING_AC_LOST;
-	j = scan_table[i];
-        block[j] = level;
-        i++;
-        if (last)
+        if (i > 62){
+            i-= 192;
+            if(i&(~63)){
+                fprintf(stderr, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
+                return DECODING_AC_LOST;
+            }
+
+            block[scan_table[i]] = level;
             break;
+        }
+
+        block[scan_table[i]] = level;
     }
+    CLOSE_READER(re, &s->gb);
+  }
  not_coded:
     if (s->mb_intra) {
         mpeg4_pred_ac(s, block, n, dc_pred_dir);
         if (s->ac_pred) {
-            i = 64; /* XXX: not optimal */
+            i = 63; /* XXX: not optimal */
         }
     }
-    s->block_last_index[n] = i - 1;
+    s->block_last_index[n] = i;
     return 0;
 }
 
