@@ -4,7 +4,7 @@
 
 lib_LTLIBRARIES = libxineutils.la
 
-libxineutils_la_SOURCES = utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c
+libxineutils_la_SOURCES = utils.c ppcasm_string.S memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c
 
 libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)

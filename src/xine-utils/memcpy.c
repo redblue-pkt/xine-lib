@@ -33,6 +33,11 @@
 #include "config.h"
 #endif
 
+#ifdef ARCH_PPC
+#include "ppcasm_string.h"
+#endif
+#include <sys/times.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include "xine_internal.h"
@@ -368,6 +373,10 @@ static struct {
   { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT },
   { "SSE optimized memcpy()", sse_memcpy, 0, MM_MMXEXT|MM_SSE },
 #endif /* ARCH_X86 */
+#ifdef ARCH_PPC
+  { "ppcasm_memcpy()", ppcasm_memcpy, 0, 0 },
+  { "ppcasm_cacheable_memcpy()", ppcasm_cacheable_memcpy, 0, 0 },
+#endif /* ARCH_PPC */
   { NULL, NULL, 0, 0 }
 };
 
@@ -383,7 +392,8 @@ static unsigned long long int rdtsc()
 {
   /* FIXME: implement an equivalent for using optimized memcpy on other
             architectures */
-  return 0;
+#warning "Using rdtsc() hack (via times(NULL))"
+  return times(NULL);
 }
 #endif
 
@@ -414,6 +424,9 @@ void xine_probe_fast_memcpy(config_values_t *config)
   static char *memcpy_methods[] = {"probe", "glibc",
 #ifdef ARCH_X86
      "kernel", "mmx", "mmxext", "sse", 
+#endif
+#ifdef ARCH_PPC
+	"ppcasm_memcpy", "ppcasm_cacheable_memcpy",
 #endif
      NULL};
   

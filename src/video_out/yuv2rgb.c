@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.30 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: yuv2rgb.c,v 1.31 2002/05/28 12:44:02 siggi Exp $
  */
 
 #include "config.h"
@@ -1384,7 +1384,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
+	xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -1515,7 +1515,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
+	xine_fast_memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -1646,7 +1646,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3);
+	xine_fast_memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3);
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -1777,7 +1777,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
+	xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -1907,7 +1907,7 @@ static void yuv2rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+	xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -2002,7 +2002,7 @@ static void yuv2rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+	xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -2019,7 +2019,7 @@ static void yuv2rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst,
     }
   } else {
     for (height = this->source_height; --height >= 0; ) {
-      memcpy(_dst, _py, this->dest_width);
+      xine_fast_memcpy(_dst, _py, this->dest_width);
       _dst += this->rgb_stride;
       _py += this->y_stride;
     }
@@ -2082,7 +2082,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+	xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -2557,7 +2557,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     
     while (--height > 0 && dy < 32768) {
       
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4);
+      xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4);
       
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2635,7 +2635,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     
     while (--height > 0 && dy < 32768) {
 
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3);
+      xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3);
       
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2713,7 +2713,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     
     while (--height > 0 && dy < 32768) {
 
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3);
+      xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3);
       
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2787,7 +2787,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 
     while (--height > 0 && dy < 32768) {
       
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
+      xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
 
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2861,7 +2861,7 @@ static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     
     while (--height > 0 && dy < 32768) {
       
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+      xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
       
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2901,7 +2901,7 @@ static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     
       while (--height > 0 && dy < 32768) {
       
-	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
+	xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
       
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -2978,7 +2978,7 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 
     while (--height > 0 && dy < 32768) {
 
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width);
+      xine_fast_memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width);
 
       dy += this->step_dy;
       _dst += this->rgb_stride;
