@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.40 2001/11/25 21:13:15 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.41 2001/11/26 01:12:00 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -443,6 +443,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		this->last_scr = buf->SCR; 
 	}
 
+
 	/* Now try to make metronom happy by calling get_frame,draw,free.
 	   There are two conditions when we need to do this:
 	   (1) Normal mpeg decoding; we want to make the calls for each
@@ -463,8 +464,8 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	   old frame at the correct frame rate.  
 	*/
 	vpts = 0;
-	if ( buf->SCR >= this->last_scr + this->duration || /* time to draw */
-	     buf->type==BUF_VIDEO_FILL) /* static picture; always draw */
+	if ( buf->SCR >= this->last_scr + this->duration
+		|| buf->type == BUF_VIDEO_FILL ) /* time to draw */
 	{ 
     		img = this->video_out->get_frame (this->video_out,
                              this->width,
@@ -473,9 +474,16 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              IMGFMT_YV12,
                              this->duration,
                              VO_BOTH_FIELDS);
-		/* copy PTS and SCR from buffer to img, img->draw uses them */
-		img->PTS=buf->PTS;
-		img->SCR=buf->SCR;
+		/* copy PTS from buffer to img, img->draw uses it. 
+		   leaving img->SCR alone seems to work best */
+		if (buf->type != BUF_VIDEO_FILL) {
+			img->PTS=buf->PTS;
+		}
+		else {
+			/* force zero, value in buf may be undefined */
+			img->PTS = 0;
+		}
+		img->bad_frame = 0;
 		/* draw calls metronom->got_video_frame with img pts and scr
 		   and stores the return value back in img->PTS
 		   Calling draw with buf->PTS==0 is okay; metronome will
@@ -483,13 +491,8 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	        img->draw(img);
 		vpts = img->PTS; /* copy so we can free img */
 		/* store at what time we called draw last */
-		this->last_scr = img->SCR;
+		this->last_scr = buf->SCR;
 		img->free(img);
-	}
-
-	/* for stills we're done now */
-	if(buf->type == BUF_VIDEO_FILL) {
-		return;
 	}
 
 	/* Every once in a while a buffer has a PTS value associated with it.  
@@ -514,6 +517,12 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 				 strerror(errno));
 		}
 	}
+
+	/* for stills we're done now */
+	if(buf->type == BUF_VIDEO_FILL) {
+		return;
+	}
+
 
 	/* if the dxr3_alt_play option is used, change the dxr3 playmode */
 	if(this->enhanced_mode && !scanning_mode)
