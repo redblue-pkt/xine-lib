@@ -3,13 +3,14 @@ EXTRA_DIST = README dhahelper.c
 
 CFLAGS = -O2 -Wall -D__KERNEL__ -DMODULE
 
-## CLEAN ME
 KVERSION = $(shell $(SHELL) -c 'uname -r')
 moddir = /lib/modules/$(KVERSION)/misc
 
 KCOMPILE = $(CC) $(CFLAGS) $(INCLUDES) $(LINUX_INCLUDE)
 
-@HAVE_LINUX_TRUE@KERNEL_MODULE = dhahelper.o
+if HAVE_LINUX
+KERNEL_MODULE = dhahelper.o
+endif
 
 noinst_HEADERS = dhahelper.h
 
