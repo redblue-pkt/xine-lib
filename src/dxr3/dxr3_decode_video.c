@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.4 2002/05/25 19:19:17 siggi Exp $
+ * $Id: dxr3_decode_video.c,v 1.5 2002/06/01 16:34:47 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -313,11 +313,13 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 #endif
       vpts = 0;
       
-      this->skip_count += skip;
+      if (this->scr && !this->scr->scanning) this->skip_count += skip;
       if (this->skip_count > SKIP_TOLERANCE) {
         /* we have had enough skipping messages now, let's react */
+        int64_t vpts_adjust = skip * (int64_t)img->duration / 2;
+        if (vpts_adjust > 90000) vpts_adjust = 90000;
         this->xine->metronom->set_option(this->xine->metronom,
-          METRONOM_ADJ_VPTS_OFFSET, skip * (int64_t)img->duration / 2);
+          METRONOM_ADJ_VPTS_OFFSET, vpts_adjust);
         this->skip_count = 0;
         this->resync_window = 0;
       }
