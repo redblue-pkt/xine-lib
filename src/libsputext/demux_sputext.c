@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.21 2003/08/04 03:16:48 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.22 2003/08/24 10:17:43 f1rmb Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -641,6 +641,7 @@ static int sub_autodetect (demux_sputext_t *this) {
       printf ("demux_sputext: subviewer subtitle format detected\n");
       return FORMAT_SUBVIEWER;
     }
+
     if (strstr (line, "<SAMI>")) {
       this->uses_time=1; 
       printf ("demux_sputext: sami subtitle format detected\n");
@@ -932,7 +933,8 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
 	  (strncasecmp(ending, ".asc", 4) != 0) &&
 	  (strncasecmp(ending, ".txt", 4) != 0) &&
 	  (strncasecmp(ending, ".sub", 4) != 0) &&
-	  (strncasecmp(ending, ".srt", 4) != 0))) {
+	  (strncasecmp(ending, ".srt", 4) != 0) &&
+	  (strncasecmp(ending, ".smi", 4) != 0))) {
         free (this);
         return NULL;
       }
