@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.155 2003/04/30 20:19:20 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.156 2003/05/05 22:29:31 tmattern Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -314,7 +314,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   stream->metronom->got_video_frame (stream->metronom, img);
   this->current_duration = img->duration;
 
-  if (!this->grab_only) {
+  if (!this->grab_only && !img->bad_frame) {
 
     pic_vpts = img->vpts;
     img->extra_info->vpts = img->vpts;
