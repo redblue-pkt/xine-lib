@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.138 2004/04/22 23:19:03 tmattern Exp $
+ * $Id: metronom.c,v 1.139 2004/06/19 19:51:25 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -784,6 +784,8 @@ static void metronom_set_master(metronom_t *this, metronom_t *master) {
    * so we need his lock too */
   if (old_master) pthread_mutex_lock(&old_master->lock);
   this->master = master;
+  /* new master -> we have to reinit */
+  this->discontinuity_handled_count = 0;
   if (old_master) pthread_mutex_unlock(&old_master->lock);
   pthread_mutex_unlock(&this->lock);
 }
