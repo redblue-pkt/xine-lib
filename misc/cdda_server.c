@@ -1,11 +1,12 @@
-/* cdda_server.c
+/* CDDA / DVD server
  *
  * This is a TCP server that can be used with xine's cdda input plugin to
- * play audio cds over the network.
+ * play audio CDs over the network. It also supports playing DVDs with a
+ * patched version of libdvdcss.
  *
  * quick howto:
  * - compile it:
- *   gcc -o cdda_server cdda_server.c
+ *   gcc -o cdda_server cdda_server.c -ldl
  *
  * - start the server:
  *   ./cdda_server /dev/cdrom 3000
@@ -18,6 +19,8 @@
  *
  * 6 May 2003 - Miguel Freitas
  * This feature was sponsored by 1Control
+ *
+ * note: see also libdvdcss-1.2.6-network.patch
  */
 
 #include <stdio.h>
@@ -37,19 +40,32 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <dlfcn.h>
 
 #define QLEN 5    /* maximum connection queue length */
 #define _BUFSIZ 300
-
-static int            msock;
-static int            cdda_fd;
-static char          *cdrom_device;
 
 /* CD-relevant defines and data structures */
 #define CD_SECONDS_PER_MINUTE   60
 #define CD_FRAMES_PER_SECOND    75
 #define CD_RAW_FRAME_SIZE       2352
 #define CD_LEADOUT_TRACK        0xAA
+#define DVD_BLOCK_SIZE          2048
+
+/* functions from external DVD lib */
+typedef struct dvd_s *dvd_handle;
+static dvd_handle    (*dvd_open)  (const char *);
+static int           (*dvd_close) (dvd_handle);
+static int           (*dvd_seek)  (dvd_handle, int, int);
+static int           (*dvd_title) (dvd_handle, int);
+static int           (*dvd_read)  (dvd_handle, void *, int, int);
+static char *        (*dvd_error) (dvd_handle);
+
+static int            dvd_support;
+static int            msock;
+static int            cdda_fd;
+static dvd_handle     dvd;
+static char          *cdrom_device;
 
 
 #if defined (__linux__)
@@ -307,15 +323,87 @@ int sock_string_write(int socket, char *msg, ...) {
 }
 
 
+/**
+ * Setup dvd read functions
+ */
+int dvdinput_setup(void)
+{
+  void *dvdcss_library = NULL;
+  char **dvdcss_version = NULL;
+
+  /* dlopening libdvdcss */
+
+#ifndef _MSC_VER
+  dvdcss_library = dlopen("libdvdcss.so.2", RTLD_LAZY);
+#else
+  dvdcss_library = dlopen("libdvdcss.dll", RTLD_LAZY);
+#endif
+
+  if(dvdcss_library != NULL) {
+#if defined(__OpenBSD__) && !defined(__ELF__)
+#define U_S "_"
+#else
+#define U_S
+#endif
+    dvd_open = (dvd_handle (*)(const char*))
+      dlsym(dvdcss_library, U_S "dvdcss_open");
+    dvd_close = (int (*)(dvd_handle))
+      dlsym(dvdcss_library, U_S "dvdcss_close");
+    dvd_title = (int (*)(dvd_handle, int))
+      dlsym(dvdcss_library, U_S "dvdcss_title");
+    dvd_seek = (int (*)(dvd_handle, int, int))
+      dlsym(dvdcss_library, U_S "dvdcss_seek");
+    dvd_read = (int (*)(dvd_handle, void*, int, int))
+      dlsym(dvdcss_library, U_S "dvdcss_read");
+    dvd_error = (char* (*)(dvd_handle))
+      dlsym(dvdcss_library, U_S "dvdcss_error");
+
+    dvdcss_version = (char **)dlsym(dvdcss_library, U_S "dvdcss_interface_2");
+
+    if(dlsym(dvdcss_library, U_S "dvdcss_crack")) {
+      fprintf(stderr,
+	      "libdvdread: Old (pre-0.0.2) version of libdvdcss found.\n"
+	      "libdvdread: You should get the latest version from "
+	      "http://www.videolan.org/\n" );
+      dlclose(dvdcss_library);
+      dvdcss_library = NULL;
+    } else if(!dvd_open  || !dvd_close || !dvd_title || !dvd_seek
+	      || !dvd_read || !dvd_error || !dvdcss_version) {
+      fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss.so.2, "
+	      "this shouldn't happen !\n");
+      dlclose(dvdcss_library);
+    }
+  }
+
+  if(dvdcss_library != NULL) {
+    printf("Using libdvdcss version %s for DVD access\n",
+            *dvdcss_version);
+
+    return 1;
+
+  } else {
+    printf("No libdvdcss: DVD support unavailable.\n");
+
+    return 0;
+  }
+}
+
+
+#define CMD_CDDA_OPEN       "cdda_open"
 #define CMD_CDDA_READ       "cdda_read"
 #define CMD_CDDA_TOCHDR     "cdda_tochdr"
 #define CMD_CDDA_TOCENTRY   "cdda_tocentry"
-#define CMD_CDDA_OPEN       "cdda_open"
+#define CMD_DVD_OPEN        "dvd_open"
+#define CMD_DVD_ERROR       "dvd_error"
+#define CMD_DVD_SEEK        "dvd_seek"
+#define CMD_DVD_READ        "dvd_read"
+#define CMD_DVD_TITLE       "dvd_title"
 
 static int process_commands( int socket )
 {
   char     cmd[_BUFSIZ];
   int      start_frame, num_frames, i;
+  int      blocks, flags;
   int      ret, n;
 
   while( sock_has_data(socket) )
@@ -332,6 +420,25 @@ static int process_commands( int socket )
       if( cdda_fd == -1 )
       {
         printf( "argh ! couldn't open CD (%s)\n", cdrom_device );
+        if( sock_string_write(socket,"-1 0") < 0 )
+          return -1;
+      }
+      else {
+        if( sock_string_write(socket,"0 0") < 0 )
+          return -1;
+      }
+      continue;
+    }
+
+    if( dvd_support && !strncmp(cmd, CMD_DVD_OPEN, strlen(CMD_DVD_OPEN)) ) {
+
+      if( dvd != NULL )
+        dvd_close(dvd);
+
+      dvd = dvd_open ( cdrom_device );
+      if( !dvd )
+      {
+        printf( "argh ! couldn't open DVD (%s)\n", cdrom_device );
         if( sock_string_write(socket,"-1 0") < 0 )
           return -1;
       }
@@ -395,14 +502,72 @@ static int process_commands( int socket )
         continue;
       }
 
-    } else {
+    } else if ( dvd != NULL ) {
 
-      /* no device open. return error */
-      if( sock_string_write(socket,"-1 0") < 0 )
-        return -1;
+      if( !strncmp(cmd, CMD_DVD_ERROR, strlen(CMD_DVD_ERROR)) ) {
+        char *errmsg = dvd_error( dvd );
+
+        n = strlen(errmsg)+1;
+        if( sock_string_write(socket,"0 %d", n) < 0 )
+          return -1;
+
+        if( sock_data_write(socket,errmsg,n) < 0 )
+          return -1;
+
+        continue;
+      }
+
+      if( !strncmp(cmd, CMD_DVD_SEEK, strlen(CMD_DVD_SEEK)) ) {
+
+        sscanf(cmd,"%*s %d %d", &blocks, &flags);
+        ret = dvd_seek(dvd, blocks, flags);
+
+        if( sock_string_write(socket,"%d 0", ret) < 0 )
+          return -1;
+
+        continue;
+      }
+
+      if( !strncmp(cmd, CMD_DVD_READ, strlen(CMD_DVD_READ)) ) {
+        char *buf;
+
+        sscanf(cmd,"%*s %d %d", &blocks, &flags);
+
+        n = blocks * DVD_BLOCK_SIZE;
+        buf = malloc( n );
+        if( !buf )
+        {
+          printf("fatal error: could not allocate memory\n");
+          exit(1);
+        }
+        ret = dvd_read(dvd, buf, blocks, flags);
+        if( sock_string_write(socket,"%d %d", ret, n) < 0 )
+          return -1;
+
+        if( sock_data_write(socket,buf,n) < 0 )
+          return -1;
+
+        free(buf);
+        continue;
+      }
+
+      if( !strncmp(cmd, CMD_DVD_TITLE, strlen(CMD_DVD_TITLE)) ) {
+
+        sscanf(cmd,"%*s %d", &blocks);
+
+        ret = dvd_title(dvd, blocks);
+
+        if( sock_string_write(socket,"%d 0", ret) < 0 )
+          return -1;
+
+        continue;
+      }
 
     }
 
+    /* no device open, or unknown command. return error */
+    if( sock_string_write(socket,"-1 0") < 0 )
+      return -1;
   }
   return 0;
 }
@@ -457,6 +622,11 @@ static void server_loop()
             close(cdda_fd);
             cdda_fd = -1;
           }
+
+          if( dvd != NULL ) {
+            dvd_close(dvd);
+            dvd = NULL;
+          }
         }
     }
   }
@@ -466,11 +636,11 @@ static void server_loop()
 int main( int argc, char *argv[] )
 {
   unsigned int   port;
-  int            ret;
   struct sockaddr_in servAddr;
 
   /* Print version number */
-  printf( "CDDA TCP Server\n" );
+  printf( "CDDA / DVD tcp server v0.1\n" );
+  dvd_support = dvdinput_setup();
 
   /* Check for 2 arguments */
   if( argc != 3 )
@@ -482,6 +652,7 @@ int main( int argc, char *argv[] )
   port = atoi( argv[2] );
 
   cdda_fd = -1;
+  dvd = NULL;
   cdrom_device = argv[1];
 
   msock = socket(PF_INET, SOCK_STREAM, 0);
@@ -508,6 +679,6 @@ int main( int argc, char *argv[] )
 
   close(msock);
 
-  return ret;
+  return 0;
 }
 
