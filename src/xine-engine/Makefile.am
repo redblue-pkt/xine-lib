@@ -6,11 +6,9 @@ CFLAGS = @GLOBAL_CFLAGS@
 
 lib_LTLIBRARIES = libxine.la
 
-##libxine_la_SOURCES = xine.c buffer.c metronom.c configfile.c \
-##	monitor.c utils.c audio_decoder.c video_decoder.c load_plugins.c
-libxine_la_SOURCES = metronom.c configfile.c buffer.c monitor.c utils.c \
-	cpu_accel.c load_plugins.c video_decoder.c audio_decoder.c \
-	video_out.c
+libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
+	utils.c cpu_accel.c load_plugins.c video_decoder.c \
+	audio_decoder.c video_out.c
 libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
 ##	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \

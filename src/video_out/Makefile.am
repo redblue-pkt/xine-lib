@@ -1,5 +1,9 @@
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ -DXINE_COMPILE
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+
+libdir = $(XINE_PLUGINDIR)
+
 if HAVE_X11
 ## xshm and syncfb should be fixed first ;-)
 ## xshm_module = xineplug_vo_out_xshm.la

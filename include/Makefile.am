@@ -4,7 +4,6 @@
 
 EXTRA_DIST = xine.h.tmpl.in
 
-includedir = $(prefix)/include
 include_HEADERS  = xine.h
 
 xine.h: xine.h.tmpl

@@ -2,6 +2,10 @@ CFLAGS = @GLOBAL_CFLAGS@ -DXINE_COMPILE
 
 EXTRA_DIST = audio_alsa_out.c audio_esd_out.c
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+
+libdir = $(XINE_PLUGINDIR)
+
 if HAVE_ALSA
 alsa_module = xineplug_ao_out_alsa.la
 endif
