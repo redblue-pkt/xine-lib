@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.199 2004/06/19 20:07:15 mroi Exp $
+ * $Id: video_out.c,v 1.200 2004/06/25 16:09:31 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -926,7 +926,7 @@ static void paused_loop( vos_t *this, int64_t vpts )
   /* prevent decoder thread from allocating new frames */
   this->free_img_buf_queue->locked_for_read = 1;
   
-  while (this->clock->speed == XINE_SPEED_PAUSE) {
+  while (this->clock->speed == XINE_SPEED_PAUSE && this->video_loop_running) {
   
     /* we need at least one free frame to keep going */
     if( this->display_img_buf_queue->first &&
@@ -961,7 +961,7 @@ static void paused_loop( vos_t *this, int64_t vpts )
     pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
     xine_usec_sleep (20000);
     pthread_mutex_lock( &this->free_img_buf_queue->mutex );
-  } 
+  }
   
   this->free_img_buf_queue->locked_for_read = 0;
    
