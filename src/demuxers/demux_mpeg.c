@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.38 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.39 2001/10/22 23:24:34 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -785,9 +785,10 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
     char *MRL = input->get_mrl(input);
     
     media = strstr(MRL, "://");
-    if(media) {
-      if((!(strncasecmp(MRL, "stdin", 5))) 
+    if (media) {
+      if ((!(strncasecmp(MRL, "stdin", 5))) 
 	 || (!(strncasecmp(MRL, "fifo", 4)))) {
+
 	if(!(strncasecmp(media+3, "mpeg1", 5))) {
 	  this->input = input;
 	  return DEMUX_CAN_HANDLE;
@@ -796,9 +797,6 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
 	  return DEMUX_CANNOT_HANDLE;
 	}
 	fprintf(stderr, "You should specify mpeg(mpeg1/mpeg2) stream type.\n");
-	return DEMUX_CANNOT_HANDLE;
-      }
-      else if(strncasecmp(MRL, "file", 4)) {
 	return DEMUX_CANNOT_HANDLE;
       }
     }
@@ -811,7 +809,8 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
       return DEMUX_CANNOT_HANDLE;
     
     if(!strcasecmp(ending, ".mpg") 
-       || (!strcasecmp(ending, ".mpeg"))) {
+       || (!strcasecmp(ending, ".mpeg"))
+       || (!strcasecmp(ending, ".mpe"))) {
       this->input = input;
       return DEMUX_CAN_HANDLE;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.24 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.25 2001/10/22 23:24:34 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -384,7 +384,9 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
       return DEMUX_CANNOT_HANDLE;
     
     if(!strcasecmp(suffix, ".mp3") 
-       || (!strcasecmp(suffix, ".mp2"))) {
+       || (!strcasecmp(suffix, ".mp2"))
+       || (!strcasecmp(suffix, ".mpa"))
+       || (!strcasecmp(suffix, ".mpega"))) {
       this->input = input;
       return DEMUX_CAN_HANDLE;
     }
