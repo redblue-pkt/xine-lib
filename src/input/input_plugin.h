@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.15 2001/10/20 02:01:51 guenter Exp $
+ * $Id: input_plugin.h,v 1.16 2001/10/22 22:50:01 richwareham Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -291,6 +291,7 @@ struct input_plugin_s
 #define INPUT_CAP_CLUT        0x00000020
 #define INPUT_CAP_AUDIOLANG   0x00000040
 #define INPUT_CAP_SPULANG     0x00000080
+#define INPUT_CAP_VARIABLE_BITRATE     0x00000100
 
 
 #define INPUT_OPTIONAL_UNSUPPORTED    0

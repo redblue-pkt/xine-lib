@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.57 2001/10/21 15:04:13 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.58 2001/10/22 22:50:01 richwareham Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -362,7 +362,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->content   = p+4;
       buf->size      = packet_len-4;
       if (track & 0x8)
-        buf->type      = BUF_AUDIO_DTS + track & 0x07; /* DVDs only have 8 tracks */
+        buf->type      = BUF_AUDIO_DTS + (track & 0x07); /* DVDs only have 8 tracks */
       else
         buf->type      = BUF_AUDIO_A52 + track;
       buf->PTS       = PTS;
@@ -545,7 +545,8 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   int            count;
   int            stream_id;
 
-  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) 
+  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) ||
+      (this->input->get_capabilities(this->input) & INPUT_CAP_VARIABLE_BITRATE)) 
     return 0;
 
   last_pos = 0;
@@ -829,7 +830,8 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 
   case STAGE_BY_CONTENT: {
 
-    if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+    if(((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) &&
+       ((input->get_capabilities(input) & INPUT_CAP_VARIABLE_BITRATE) == 0) ) {
 
       this->blocksize = input->get_blocksize(input);
 
