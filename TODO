@@ -5,23 +5,75 @@ The road to xine-lib 1.0
 this only relates to the xine engine (xine-lib), not xine
 frontends
 
+1-rc1   First "release candidate". xine's architecture is stable, ie. it
+        must not be changed before 1.0. Features that do not appear in
+        this roadmap must not be added. Focus is on bugfixes.
+
+1-rc2   Documentation is brought up to date.
+
+1-rc3   The release mechanism is well-defined and documented, along with a
+        set of test procedures. Some (most?) of the tests are automated.
+        Now is the time of "soft" feature freeze: Generally, new features
+        must not be added. However, low-impact stuff, such as new
+        demuxer, decoder or input plugins are okay.
+
+1-rc4   All user-visible strings should be enclosed in _() for translation.
+        The majority of config entries should have a proper help string.
+        Decision should be made, what messages to report on console and
+        what to put in the log. The config option naming is cleaned up.
+
+1-rc5   There is a well-defined bug handling mechanism, even if it is a
+        paper based checklist on someones desk. 1.0-critical bugs are
+        sorted out.
+        This is the time of "hard" feature freeze: Only bug fixes are
+        permitted.
+        (xine-ui should stabilize here, as well, maybe an 0.99.x or
+         1-alpha/beta/rc series to demonstarte this to end users)
+
+1-rc6   Most compile warnings are fixed. Hopefully the translators have
+        finished their job as well.
+
+1-rc7   All known bugs should be fixed now. There is a big call for
+        testers. If they don't find any new bugs for at least a week,
+        we're there, and 1.0 will only differ in version number and a bit
+        of documentation. If they do find more bugs, we keep on fixing
+        them and making weekly rc releases until we get stable...
+        (xine-ui may have an 1.0 release any time after this point;
+         before, together with, or after xine-lib 1.0, depending on it's
+         own 1.0 release goals)
+
+1.0     Due to historical reasons, the day 1.0 is released will be
+        given the name "christmas".
+
 
 required for 1.0
 ----------------
 
-- update xine hacker's guide
-- update / rewrite xine HOWTO (stefan, guenter)
+- update xine hacker's guide (article on post plugins still missing)
 - xine bug tracking system?
 - fix stream end detection for real streams
 - fix mpeg elementary stream playback (especially logo streams
   with only one frame)
-- clean up config options
+- add help strings for all post plugins
+- add help strings for all config options
+- review code for stack overflows
+  (no big review, just grep for the most common mistakes like
+  sprintf, sscanf)
 
 optional
 --------
 
+- merge the vcdx plugin instead of current vcd plugin
+- small refactoring of post plugin common code while killing the
+  "early dispose" bug Thibaut found
+- properly localize all user-visible strings
+- rename config entries to a more consistent scheme
+  (providing automatic config file conversion, of course)
+- sort out which messages should go to console and which to xine_log
+- id3v2.3,v2.4 support
+- "metainfo change" event
+- new demuxers/decoders (eg. matroska)
 - double-check rate estimation in demux_mgeg/mpeg_block
-- log/verbose output macros
 - fix cook audio streaming
 - better dvd error messages
 - fix streaming of small files (e.g. http) 
@@ -37,17 +89,13 @@ optional
   - helix streaming server support
 
 - detect broken savage drivers in health check, disable Xv in that case
-- id3v2 (guenter)
 - directfb video output plugin
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
-- bring dxr3 video out to work with aaxine (michael)
 - Multiple DVD Subtitles displayed at the same time (jcdutton)
 - Move read cache code from libdvdnav into input_dvd.c (jcdutton)
 - Support DVD "Trick" modes. Super Fast forward/reverse (jcdutton)
-- xvid decoder plugin 
 - opengl video output plugin (matthias, sopra at stuttgart university)
 - irix audio output plugin (matthias)
-- support changing channel for V4L (event already defined in xine.h)
 
 Open Tasks
 ==========
