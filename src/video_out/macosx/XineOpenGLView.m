@@ -31,7 +31,12 @@
 
 #import "XineOpenGLView.h"
 
-#include <xine/xineutils.h>
+#ifdef XINE_COMPILE
+#  include "xineutils.h"
+#else
+#  include <xine/xineutils.h>
+#endif
+
 
 NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
