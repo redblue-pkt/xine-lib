@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "goom_core.h"
@@ -7,10 +8,6 @@
 #include "ifs.h"
 
 /*#define VERBOSE */
-
-#ifdef VERBOSE
-#include <stdio.h>
-#endif
 
 #define STOP_SPEED 128
 
@@ -158,8 +155,6 @@ goom_update (gint16 data[2][512],
 #define SWITCHINCR 0xff
 	static float switchMult = 1.0f;
 	static int switchIncr = SWITCHINCR;
-
-	static int lastgoom = 0;
 
 	static char goomlimit = 2;		/* sensibilité du goom */
 	static ZoomFilterData zfd = {
@@ -831,7 +826,7 @@ goom_draw_text (guint32 * buf,
 		return ;
 
 	if (center) {
-		unsigned char   *tmp = str;
+		unsigned const char   *tmp = str;
 		float   lg = -charspace;
 
 		while (*tmp != '\0')

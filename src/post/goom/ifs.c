@@ -467,10 +467,10 @@ draw_ifs ( /* ModeInfo * mi */ int *nbpt)
 	FRACTAL *F;
 
 	if (Root == NULL)
-		return;
+		return NULL;
 	F = Root;											/* [ */ /*MI_SCREEN(mi)*/ /* 0]; */
 	if (F->Buffer1 == NULL)
-		return;
+		return NULL;
 
 	u = (DBL) (F->Count) * (DBL) (F->Speed) / 1000.0;
 	uu = u * u;

@@ -22,7 +22,7 @@ static void
 draw_line (int *data, int x1, int y1, int x2, int y2, int col, int screenx,
 					 int screeny)
 {
-	int     x, y, dx, dy, yy, xx, am, tmp;
+	int     x, y, dx, dy, yy, xx;
 	int    *p;
 
 /*   DATA32 *p; */
@@ -260,8 +260,6 @@ void
 goom_lines_set_res (GMLine * gml, int rx, int ry)
 {
 	if (gml != NULL) {
-		int     i;
-
 		gml->screenX = rx;
 		gml->screenY = ry;
 
@@ -355,10 +353,6 @@ goom_lines_init (int rx, int ry,
 								 int IDsrc, float paramS, int coulS,
 								 int IDdest, float paramD, int coulD)
 {
-	int     i;
-	unsigned char *color;
-	unsigned char power = 4;
-
 	GMLine *l = (GMLine *) malloc (sizeof (GMLine));
 
 	l->points = (GMUnitPointer *) malloc (512 * sizeof (GMUnitPointer));

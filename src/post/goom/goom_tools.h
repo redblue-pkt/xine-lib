@@ -16,7 +16,7 @@ extern unsigned short rand_pos;
 		rand_tab [rand_pos++] = rand () ;
 
 #define RAND()\
-	(rand_tab[rand_pos = rand_pos + 1])
+	(rand_tab[rand_pos = (rand_pos + 1) % NB_RAND])
 
 #define RAND_CLOSE()\
 	free (rand_tab);\

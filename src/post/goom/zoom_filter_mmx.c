@@ -26,7 +26,6 @@ void zoom_filter_mmx (int prevX, int prevY,
   
   for (loop=0; loop<bufsize; loop++)
 	{
-	  int couleur;
 	  int px,py;
 	  int pos;
 	  int coeffs;

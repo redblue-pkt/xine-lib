@@ -395,7 +395,6 @@ c_zoom ()
 {
 	int     myPos, myPos2;
 	Color   couleur;
-	unsigned int coefv, coefh;
 
 	unsigned int ax = (prevX - 1) << PERTEDEC, ay = (prevY - 1) << PERTEDEC;
 
@@ -466,7 +465,6 @@ zoomFilterFastRGB (Uint * pix1,
 									 Uint resx, Uint resy, int switchIncr, float switchMult)
 {
 	register Uint x, y;
-	unsigned int *temp = brutD;
 
 	static char reverse = 0;			/* vitesse inversé..(zoom out) */
 	static unsigned char pertedec = 8;
@@ -617,9 +615,6 @@ zoomFilterFastRGB (Uint * pix1,
 
 		/* generation du buffer de trans */
 		{
-			int     yprevx = 0;
-			unsigned int ax = (prevX - 1) << PERTEDEC, ay = (prevY - 1) << PERTEDEC;
-
 			/* sauvegarde de l'etat actuel dans la nouvelle source */
 			y = prevX * prevY * 2;
 			for (x = 0; x < y; x += 2) {
