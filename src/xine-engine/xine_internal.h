@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.7 2001/04/23 00:34:59 guenter Exp $
+ * $Id: xine_internal.h,v 1.8 2001/04/23 22:43:59 f1rmb Exp $
  *
  */
 
@@ -38,8 +38,9 @@
 #define CODEC_PLUGIN_MAX       50
 #define AUDIO_OUT_PLUGIN_IFACE_VERSION  1
 #define AUDIO_OUT_PLUGIN_MAX   50
-#define VIDEO_OUT_PLUGIN_IFACE_VERSION 1
 #define VIDEO_OUT_PLUGIN_MAX   50
+#define VIDEO_DECODER_PLUGIN_MAX 50
+#define AUDIO_DECODER_PLUGIN_MAX 50
 
 
 /*
@@ -66,6 +67,8 @@ struct video_decoder_s {
 
   void (*close) (video_decoder_t *this);
 
+  char* (*get_identifier) (void);
+
 };
 
 /*
@@ -85,6 +88,8 @@ struct audio_decoder_s {
   void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
 
   void (*close) (audio_decoder_t *this);
+
+  char* (*get_identifier) (void);
 
 };
 
@@ -112,11 +117,11 @@ typedef struct xine_s {
   
   config_values_t           *config;
 
-  input_plugin_t             input_plugins[INPUT_PLUGIN_MAX];
+  input_plugin_t            *input_plugins[INPUT_PLUGIN_MAX];
   int                        num_input_plugins;
   input_plugin_t            *cur_input_plugin;
 
-  demux_plugin_t             demuxer_plugins[DEMUXER_PLUGIN_MAX];
+  demux_plugin_t            *demuxer_plugins[DEMUXER_PLUGIN_MAX];
   int                        num_demuxer_plugins;
   demux_plugin_t            *cur_demuxer_plugin;
   int                        demux_stragegy;
@@ -133,15 +138,17 @@ typedef struct xine_s {
   vo_instance_t             *video_out;
   fifo_buffer_t             *video_fifo;
   pthread_t                  video_thread;
-  video_decoder_t           *video_decoders[DECODER_PLUGIN_MAX];
-  video_decoder_t           *video_cur_decoder;
+  video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
+  int                        num_video_decoder_plugins;
+  video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
 
   ao_functions_t            *audio_out;
   fifo_buffer_t             *audio_fifo;
   pthread_t                  audio_thread;
-  audio_decoder_t           *audio_decoders[DECODER_PLUGIN_MAX];
-  audio_decoder_t           *audio_cur_decoder;
+  audio_decoder_t           *audio_decoder_plugins[DECODER_PLUGIN_MAX];
+  int                        num_audio_decoder_plugins;
+  audio_decoder_t           *cur_audio_decoder_plugin;
   int                        audio_finished;
 
   gui_status_callback_func_t gui_status_callback;

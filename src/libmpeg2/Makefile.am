@@ -6,20 +6,19 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_mpeg2.la
+lib_LTLIBRARIES = xineplug_vo_dec_mpeg2.la
 
 #libmpeg2_la_SOURCES = slice.c header.c stats.c idct.c motion_comp.c\
 #	decode.c  idct_mmx.c motion_comp_mmx.c
 
-xineplug_decode_mpeg2_la_SOURCES = slice.c header.c stats.c idct.c motion_comp.c\
-	decode.c idct_mmx.c motion_comp_mmx.c xine_decoder.c
-xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module
-
+xineplug_vo_dec_mpeg2_la_SOURCES = slice.c header.c stats.c idct.c \
+	motion_comp.c decode.c idct_mmx.c motion_comp_mmx.c xine_decoder.c
+xineplug_vo_dec_mpeg2_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h 
 
 debug:
-	$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @BUILD_LIB_STATIC@"
+	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.5 2001/04/23 00:34:59 guenter Exp $
+ * $Id: video_out.h,v 1.6 2001/04/23 22:43:59 f1rmb Exp $
  *
  *
  * xine version of video_out.h 
@@ -42,6 +42,8 @@
 #include "xine/configfile.h"
 #include "xine/metronom.h"
 #endif
+
+#define VIDEO_OUT_PLUGIN_IFACE_VERSION 1
 
 typedef struct vo_frame_s vo_frame_t; 
 typedef struct vo_driver_s vo_driver_t ;

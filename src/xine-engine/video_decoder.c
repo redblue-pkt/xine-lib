@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.5 2001/04/23 00:34:59 guenter Exp $
+ * $Id: video_decoder.c,v 1.6 2001/04/23 22:43:59 f1rmb Exp $
  *
  */
 
@@ -42,9 +42,9 @@ void *video_decoder_loop (void *this_gen) {
 
     switch (buf->type) {
     case BUF_CONTROL_START:
-      if (this->video_cur_decoder) {
-	this->video_cur_decoder->close (this->video_cur_decoder);
-	this->video_cur_decoder = NULL;
+      if (this->cur_video_decoder_plugin) {
+	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
+	this->cur_video_decoder_plugin = NULL;
       }
 
       pthread_mutex_lock (&this->xine_lock);
@@ -56,28 +56,28 @@ void *video_decoder_loop (void *this_gen) {
     case BUF_VIDEO_MPEG:
     case BUF_VIDEO_AVI:
       
-      decoder = this->video_decoders [(buf->type>>16) & 0xFF];
+      decoder = this->video_decoder_plugins [(buf->type>>16) & 0xFF];
 
       if (decoder) {
-	if (this->video_cur_decoder != decoder) {
+	if (this->cur_video_decoder_plugin != decoder) {
 
-	  if (this->video_cur_decoder) 
-	    this->video_cur_decoder->close (this->video_cur_decoder);
+	  if (this->cur_video_decoder_plugin) 
+	    this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
 
-	  this->video_cur_decoder = decoder;
-	  this->video_cur_decoder->init (this->video_cur_decoder, this->video_out);
+	  this->cur_video_decoder_plugin = decoder;
+	  this->cur_video_decoder_plugin->init (this->cur_video_decoder_plugin, this->video_out);
 
 	}
 	
-	decoder->decode_data (this->video_cur_decoder, buf);
+	decoder->decode_data (this->cur_video_decoder_plugin, buf);
       }
 
       break;
 
     case BUF_CONTROL_END:
-      if (this->video_cur_decoder) {
-	this->video_cur_decoder->close (this->video_cur_decoder);
-	this->video_cur_decoder = NULL;
+      if (this->cur_video_decoder_plugin) {
+	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
+	this->cur_video_decoder_plugin = NULL;
       }
 
       pthread_mutex_lock (&this->xine_lock);
@@ -93,9 +93,9 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_QUIT:
-      if (this->video_cur_decoder) {
-	this->video_cur_decoder->close (this->video_cur_decoder);
-	this->video_cur_decoder = NULL;
+      if (this->cur_video_decoder_plugin) {
+	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
+	this->cur_video_decoder_plugin = NULL;
       }
       running = 0;
       break;
@@ -112,9 +112,9 @@ void video_decoder_init (xine_t *this) {
 
   int i;
   
-  this->video_cur_decoder = NULL;
+  this->cur_video_decoder_plugin = NULL;
   for (i=0; i<DECODER_PLUGIN_MAX; i++)
-    this->video_decoders[i] = NULL;
+    this->video_decoder_plugins[i] = NULL;
 
   /* FIXME: load video decoder plugins
   this->video_decoders[0x00] = init_video_decoder_mpeg2dec ();

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.2 2001/04/22 02:42:49 guenter Exp $
+ * $Id: audio_decoder.c,v 1.3 2001/04/23 22:43:59 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -47,9 +47,9 @@ void *audio_decoder_loop (void *this_gen) {
       switch (buf->type) {
 
       case BUF_CONTROL_START:
-	if (this->audio_cur_decoder) {
-	  this->audio_cur_decoder->close (this->audio_cur_decoder);
-	  this->audio_cur_decoder = NULL;
+	if (this->cur_audio_decoder_plugin) {
+	  this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+	  this->cur_audio_decoder_plugin = NULL;
 	}
 
 	pthread_mutex_lock (&this->xine_lock);
@@ -63,16 +63,16 @@ void *audio_decoder_loop (void *this_gen) {
       case BUF_AUDIO_LPCM:
       case BUF_AUDIO_AVI:
       
-	decoder = this->audio_decoders [(buf->type>>16) & 0xFF];
+	decoder = this->audio_decoder_plugins [(buf->type>>16) & 0xFF];
 
 	if (decoder) {
-	  if (this->audio_cur_decoder != decoder) {
+	  if (this->cur_audio_decoder_plugin != decoder) {
 
-	    if (this->audio_cur_decoder) 
-	      this->audio_cur_decoder->close (this->audio_cur_decoder);
+	    if (this->cur_audio_decoder_plugin) 
+	      this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 
-	    this->audio_cur_decoder = decoder;
-	    this->audio_cur_decoder->init (this->audio_cur_decoder, this->audio_out);
+	    this->cur_audio_decoder_plugin = decoder;
+	    this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
 
 	  }
 	
@@ -82,9 +82,9 @@ void *audio_decoder_loop (void *this_gen) {
 	break;
 
       case BUF_CONTROL_END:
-	if (this->audio_cur_decoder) {
-	  this->audio_cur_decoder->close (this->audio_cur_decoder);
-	  this->audio_cur_decoder = NULL;
+	if (this->cur_audio_decoder_plugin) {
+	  this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+	  this->cur_audio_decoder_plugin = NULL;
 	}
 
 	pthread_mutex_lock (&this->xine_lock);
@@ -100,9 +100,9 @@ void *audio_decoder_loop (void *this_gen) {
 	break;
 
       case BUF_CONTROL_QUIT:
-	if (this->audio_cur_decoder) {
-	  this->audio_cur_decoder->close (this->audio_cur_decoder);
-	  this->audio_cur_decoder = NULL;
+	if (this->cur_audio_decoder_plugin) {
+	  this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+	  this->cur_audio_decoder_plugin = NULL;
 	}
 	running = 0;
 	break;
@@ -119,9 +119,9 @@ void audio_decoder_init (xine_t *this) {
 
   int i;
 
-  this->audio_cur_decoder = NULL;
+  this->cur_audio_decoder_plugin = NULL;
   for (i=0; i<AUDIO_OUT_PLUGIN_MAX; i++)
-    this->audio_decoders[i] = NULL;
+    this->audio_decoder_plugins[i] = NULL;
 
   /* FIXME: dynamically load these
   this->audio_decoders[BUF_AC3AUDIO]  = init_audio_decoder_ac3dec ();

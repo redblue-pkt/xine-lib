@@ -12,7 +12,7 @@ libxine_la_SOURCES = metronom.c configfile.c monitor.c utils.c cpu_accel.c \
 	load_plugins.c video_decoder.c audio_decoder.c
 libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
-#	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \
+##	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \
 	$(top_srcdir)/src/libac3/libac3.la       \
 	$(top_srcdir)/src/libmpg123/libmpg123.la \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
@@ -23,11 +23,10 @@ libxine_la_LDFLAGS =  -version-info 5:0:5
 
 #include_HEADERS  = buffer.h metronom.h configfile.h \
 #	monitor.h cpu_accel.h attributes.h utils.h audio_decoder.h 
-
 noinst_HEADERS = xine_internal.h buffer.h metronom.h configfile.h \
 	monitor.h cpu_accel.h attributes.h utils.h
 
-##
+###
 # Hardcoded rule: 
 #  gcc failed to compile this with -fPIC flag
 #  hackish: [X] yes   [ ] no
@@ -50,15 +49,15 @@ debug:
 
 
 libsdeps:
-	@cd $(top_builddir)/src/libmpeg2  &&  $(MAKE) libmpeg2.la
+##	@cd $(top_builddir)/src/libmpeg2  &&  $(MAKE) libmpeg2.la
 	@cd $(top_builddir)/src/libac3    && $(MAKE) libac3.la
 	@cd $(top_builddir)/src/libmpg123 && $(MAKE) libmpg123.la
 ##	@cd $(top_builddir)/src/libspudec && $(MAKE) libspudec.la
 
 
-##
-## Install header files (default=$includedir/xine)
-##
+###
+# Install header files (default=$includedir/xine)
+#
 install-includeHEADERS: $(include_HEADERS)
 	@$(NORMAL_INSTALL)
 	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
@@ -69,9 +68,9 @@ install-includeHEADERS: $(include_HEADERS)
 	done
 
 
-##
-## Remove them
-##
+###
+# Remove them
+#
 uninstall-includeHEADERS:
 	@$(NORMAL_UNINSTALL)
 	list='$(include_HEADERS)'; for p in $$list; do \
