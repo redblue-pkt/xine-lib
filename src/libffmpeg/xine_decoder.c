@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2002/04/23 15:45:23 esnel Exp $
+ * $Id: xine_decoder.c,v 1.35 2002/04/27 17:03:30 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -134,7 +134,8 @@ static void ff_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_decoder_t *this = (ff_decoder_t *) this_gen;
-
+  int ratio;
+  
 #ifdef LOG
   printf ("ffmpeg: processing packet type = %08x, buf : %d, buf->decoder_flags=%08x\n", 
 	  buf->type, buf, buf->decoder_flags);
@@ -257,11 +258,27 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       emms_c ();
 #endif
 
+      switch(this->context.aspect_ratio_info) {
+      case FF_ASPECT_SQUARE:
+        ratio = XINE_ASPECT_RATIO_SQUARE;
+        break;
+      case FF_ASPECT_4_3_625:
+      case FF_ASPECT_4_3_525:
+        ratio = XINE_ASPECT_RATIO_4_3;
+        break;
+      case FF_ASPECT_16_9_625:
+      case FF_ASPECT_16_9_525:
+        ratio = XINE_ASPECT_RATIO_ANAMORPHIC;
+        break;
+      default:
+        ratio = XINE_ASPECT_RATIO_DONT_TOUCH;
+      }
+
       img = this->video_out->get_frame (this->video_out,
 					/* this->av_picture.linesize[0],  */
 					this->biWidth,
 					this->biHeight,
-					42, 
+					ratio, 
 					IMGFMT_YV12,
 					VO_BOTH_FIELDS);
 
