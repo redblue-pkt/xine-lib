@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvaudio_decoder.c,v 1.1 2004/03/16 23:31:30 jstembridge Exp $
+ * $Id: dvaudio_decoder.c,v 1.2 2004/03/17 17:03:26 storri Exp $
  *
  * dv audio decoder based on patch by Dan Dennedy <dan@dennedy.org>
  *
@@ -202,8 +202,13 @@ static int dv_extract_audio(uint8_t* frame, uint8_t* pcm, uint8_t* pcm2)
                  if (of*2 >= size)
 		     continue;
 
-		 pcm[of*2] = frame[d+1]; // FIXME: may be we have to admit
-		 pcm[of*2+1] = frame[d]; //        that DV is a big endian PCM
+#ifdef WORDS_BIGENDIAN
+		 pcm[of*2] = frame[d];
+		 pcm[of*2+1] = frame[d+1];
+#else
+		 pcm[of*2] = frame[d+1];
+		 pcm[of*2+1] = frame[d];
+#endif
 		 if (pcm[of*2+1] == 0x80 && pcm[of*2] == 0x00)
 		     pcm[of*2+1] = 0;
 	      } else {           /* 12bit quantization */
@@ -218,12 +223,22 @@ static int dv_extract_audio(uint8_t* frame, uint8_t* pcm, uint8_t* pcm2)
                  if (of*2 >= size)
 		     continue;
 
-		 pcm[of*2] = lc & 0xff; // FIXME: may be we have to admit
-		 pcm[of*2+1] = lc >> 8; //        that DV is a big endian PCM
+#ifdef WORDS_BIGENDIAN
+		 pcm[of*2] = lc >> 8;
+		 pcm[of*2+1] = lc & 0xff;
+#else
+		 pcm[of*2] = lc & 0xff;
+		 pcm[of*2+1] = lc >> 8;
+#endif
 		 of = sys->audio_shuffle[i%half_ch+half_ch][j] +
 		      (d - 8)/3 * sys->audio_stride;
-		 pcm[of*2] = rc & 0xff; // FIXME: may be we have to admit
-		 pcm[of*2+1] = rc >> 8; //        that DV is a big endian PCM
+#ifdef WORDS_BIGENDIAN
+		 pcm[of*2] = rc >> 8;
+		 pcm[of*2+1] = rc & 0xff;
+#else
+		 pcm[of*2] = rc & 0xff;
+		 pcm[of*2+1] = rc >> 8;
+#endif
 		 ++d;
 	      }
 	  }
