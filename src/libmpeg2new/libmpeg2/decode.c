@@ -161,20 +161,6 @@ mpeg2_state_t mpeg2_parse (mpeg2dec_t * mpeg2dec)
 {
     int size_buffer, size_chunk, copied;
 
-    printf("mpeg2dec-lib:decode.c:CODE=%x\n",mpeg2dec->code);
-    printf("mpeg2_parse:mpeg2dec->fbuf[0]=%p",mpeg2dec->fbuf[0]);
-    if (mpeg2dec->fbuf[0]) printf(", img=%p\n", mpeg2dec->fbuf[0]->id);
-    else printf("\n");
-    printf("mpeg2_parse:mpeg2dec->fbuf[1]=%p",mpeg2dec->fbuf[1]);
-    if (mpeg2dec->fbuf[1]) printf(", img=%p\n", mpeg2dec->fbuf[1]->id);
-    else printf("\n");
-    printf("mpeg2_parse:mpeg2dec->fbuf[2]=%p",mpeg2dec->fbuf[2]);
-    if (mpeg2dec->fbuf[2]) printf(", img=%p\n", mpeg2dec->fbuf[2]->id);
-    else printf("\n");
-    printf("mpeg2_parse:mpeg2dec->decoder->pictures[0]=%p\n",&mpeg2dec->pictures[0]);
-    printf("mpeg2_parse:mpeg2dec->decoder->pictures[1]=%p\n",&mpeg2dec->pictures[1]);
-    printf("mpeg2_parse:mpeg2dec->decoder->pictures[2]=%p\n",&mpeg2dec->pictures[2]);
-    printf("mpeg2_parse:mpeg2dec->decoder->pictures[3]=%p\n",&mpeg2dec->pictures[3]);
     if (mpeg2dec->action) {
 	mpeg2_state_t state;
 
@@ -202,7 +188,6 @@ mpeg2_state_t mpeg2_parse (mpeg2dec_t * mpeg2dec)
 		    /* filled the chunk buffer without finding a start code */
 		    mpeg2dec->bytes_since_pts += size_chunk;
 		    mpeg2dec->action = seek_chunk;
-                    printf("mpeg2dec:action = mpeg2_seek_chunk\n");
 		    return STATE_INVALID;
 		}
 	    }
@@ -218,21 +203,13 @@ mpeg2_state_t mpeg2_parse (mpeg2dec_t * mpeg2dec)
 	if (seek_chunk (mpeg2dec) == STATE_BUFFER)
 	    return STATE_BUFFER;
     }
-    printf("mpeg2dec-lib:decode.c:CODE2=%x\n",mpeg2dec->code);
-    printf("mpeg2_parse:mpeg2dec->fbuf[0]=%p\n",mpeg2dec->fbuf[0]);
-    printf("mpeg2_parse:mpeg2dec->fbuf[1]=%p\n",mpeg2dec->fbuf[1]);
-    printf("mpeg2_parse:mpeg2dec->fbuf[2]=%p\n",mpeg2dec->fbuf[2]);
     switch (mpeg2dec->code) {
     case 0x00:
 	mpeg2dec->action = mpeg2_header_picture_start;
-        printf("mpeg2dec:action = mpeg2_header_picture_start\n");
-        printf("mpeg2dec:returning state = %d\n", mpeg2dec->state);
     if (mpeg2dec->state == STATE_SLICE) {
-      printf("mpeg2dec:slicing info0\n");
       mpeg2dec->info.current_picture = mpeg2dec->info.current_picture_2nd = NULL;
       mpeg2dec->info.display_picture = mpeg2dec->info.display_picture_2nd = NULL;
       mpeg2dec->info.current_fbuf = mpeg2dec->info.display_fbuf = mpeg2dec->info.discard_fbuf = NULL;
-      printf("mpeg2dec:reset_info in CODE\n");
       mpeg2dec->info.user_data = NULL;
       mpeg2dec->info.user_data_len = 0;
 
@@ -241,37 +218,29 @@ mpeg2_state_t mpeg2_parse (mpeg2dec_t * mpeg2dec)
         mpeg2dec->info.display_fbuf = mpeg2dec->fbuf[0];
         mpeg2dec->info.discard_fbuf = mpeg2dec->fbuf[0];
         mpeg2dec->fbuf[0]=0;
-        printf("mpeg2dec:mpeg_parse:discard_fbuf=fbuf[0]\n");
       } else {
         mpeg2dec->info.display_fbuf = mpeg2dec->fbuf[1];
         mpeg2dec->info.discard_fbuf = mpeg2dec->fbuf[2];
         mpeg2dec->fbuf[2]=0;
-        printf("mpeg2dec:mpeg_parse:discard_fbuf=fbuf[2]\n");
       }
     }
 
 	return mpeg2dec->state;
     case 0xb7:
 	mpeg2dec->action = mpeg2_header_end;
-        printf("mpeg2dec:action = mpeg2_header_end\n");
 	break;
     case 0xb3:
     case 0xb8:
 	mpeg2dec->action = mpeg2_parse_header;
-        printf("mpeg2dec:action = mpeg2_parse_header\n");
 	break;
     default:
 	mpeg2dec->action = seek_chunk;
-        printf("mpeg2dec:action = seek_chunk\n");
-        printf("mpeg2dec:returning state = %d\n", mpeg2dec->state);
 	return STATE_INVALID;
     }
     if (mpeg2dec->state == STATE_SLICE) {
-      printf("mpeg2dec:slicing info\n");
       mpeg2dec->info.current_picture = mpeg2dec->info.current_picture_2nd = NULL;
       mpeg2dec->info.display_picture = mpeg2dec->info.display_picture_2nd = NULL;
       mpeg2dec->info.current_fbuf = mpeg2dec->info.display_fbuf = mpeg2dec->info.discard_fbuf = NULL;
-      printf("mpeg2dec:reset_info in CODE\n");
       mpeg2dec->info.user_data = NULL;
       mpeg2dec->info.user_data_len = 0;
 
@@ -280,18 +249,15 @@ mpeg2_state_t mpeg2_parse (mpeg2dec_t * mpeg2dec)
         mpeg2dec->info.display_fbuf = mpeg2dec->fbuf[0];
         mpeg2dec->info.discard_fbuf = mpeg2dec->fbuf[0];
         mpeg2dec->fbuf[0]=0;
-        printf("mpeg2dec:mpeg_parse:discard_fbuf=fbuf[0]\n");
       } else {
         mpeg2dec->info.display_fbuf = mpeg2dec->fbuf[1];
         mpeg2dec->info.discard_fbuf = mpeg2dec->fbuf[2];
         mpeg2dec->fbuf[2]=0;
-        printf("mpeg2dec:mpeg_parse:discard_fbuf=fbuf[2]\n");
       }
     }
 
 
 
-    printf("mpeg2dec:returning state = %d\n", mpeg2dec->state);
     return (mpeg2dec->state == STATE_SLICE) ? STATE_SLICE : STATE_INVALID;
 }
 
@@ -304,7 +270,6 @@ mpeg2_state_t mpeg2_parse_header (mpeg2dec_t * mpeg2dec)
     int size_buffer, size_chunk, copied;
 
     mpeg2dec->action = mpeg2_parse_header;
-    printf("mpeg2dec:action = mpeg2_parse_header\n");
     while (1) {
 	size_buffer = mpeg2dec->buf_end - mpeg2dec->buf_start;
 	size_chunk = (mpeg2dec->chunk_buffer + BUFFER_SIZE -
@@ -323,7 +288,6 @@ mpeg2_state_t mpeg2_parse_header (mpeg2dec_t * mpeg2dec)
 		mpeg2dec->bytes_since_pts += size_chunk;
 		mpeg2dec->code = 0xb4;
 		mpeg2dec->action = seek_header;
-                printf("mpeg2dec:action = seek_header\n");
 		return STATE_INVALID;
 	    }
 	}
@@ -332,18 +296,15 @@ mpeg2_state_t mpeg2_parse_header (mpeg2dec_t * mpeg2dec)
 	if (process_header[mpeg2dec->code & 0x0b] (mpeg2dec)) {
 	    mpeg2dec->code = mpeg2dec->buf_start[-1];
 	    mpeg2dec->action = seek_header;
-            printf("mpeg2dec:action = seek_header\n");
 	    return STATE_INVALID;
 	}
 
 	mpeg2dec->code = mpeg2dec->buf_start[-1];
-        printf("mpeg2dec:CODE3=%x, state=%x\n",mpeg2dec->code, mpeg2dec->state);
 	switch (RECEIVED (mpeg2dec->code, mpeg2dec->state)) {
 
 	/* state transition after a sequence header */
 	case RECEIVED (0x00, STATE_SEQUENCE):
 	    mpeg2dec->action = mpeg2_header_picture_start;
-            printf("mpeg2dec:action = mpeg2_header_picture_start\n");
 	case RECEIVED (0xb8, STATE_SEQUENCE):
 	    mpeg2_header_sequence_finalize (mpeg2dec);
 	    break;
@@ -351,13 +312,11 @@ mpeg2_state_t mpeg2_parse_header (mpeg2dec_t * mpeg2dec)
 	/* other legal state transitions */
 	case RECEIVED (0x00, STATE_GOP):
 	    mpeg2dec->action = mpeg2_header_picture_start;
-            printf("mpeg2dec:action = mpeg2_header_picture_start\n");
 	    break;
 	case RECEIVED (0x01, STATE_PICTURE):
 	case RECEIVED (0x01, STATE_PICTURE_2ND):
 	    mpeg2_header_matrix_finalize (mpeg2dec);
 	    mpeg2dec->action = mpeg2_header_slice_start;
-            printf("mpeg2dec:action = mpeg2_header_slice_start\n");
 	    break;
 
 	/* legal headers within a given state */
@@ -373,7 +332,6 @@ mpeg2_state_t mpeg2_parse_header (mpeg2dec_t * mpeg2dec)
 
 	default:
 	    mpeg2dec->action = seek_header;
-            printf("mpeg2dec:action = seek_header\n");
 	    return STATE_INVALID;
 	}
 
@@ -500,20 +458,13 @@ mpeg2dec_t * mpeg2_init (void)
 
     mpeg2dec->shift = 0xffffff00;
     mpeg2dec->action = mpeg2_seek_sequence;
-    printf("mpeg2dec:action = mpeg2_seek_sequence\n");
     mpeg2dec->code = 0xb4;
     mpeg2dec->first_decode_slice = 1;
     mpeg2dec->nb_decode_slices = 0xb0 - 1;
     mpeg2dec->convert_id = NULL;
 
     /* initialize substructures */
-    printf("mpeg2_init:mpeg2dec->fbuf[0]=%p\n",mpeg2dec->fbuf[0]);
-    printf("mpeg2_init:mpeg2dec->fbuf[1]=%p\n",mpeg2dec->fbuf[1]);
-    printf("mpeg2_init:mpeg2dec->fbuf[2]=%p\n",mpeg2dec->fbuf[2]);
     mpeg2_header_state_init (mpeg2dec);
-    printf("mpeg2_init:mpeg2dec->fbuf[0]=%p\n",mpeg2dec->fbuf[0]);
-    printf("mpeg2_init:mpeg2dec->fbuf[1]=%p\n",mpeg2dec->fbuf[1]);
-    printf("mpeg2_init:mpeg2dec->fbuf[2]=%p\n",mpeg2dec->fbuf[2]);
     return mpeg2dec;
 }
 

@@ -27,6 +27,8 @@
 
 #include "../include/mpeg2.h"
 
+#define ACCEL_DETECT  /* Force accel on */
+
 #ifdef ACCEL_DETECT
 #ifdef ARCH_X86
 static inline uint32_t arch_accel (void)

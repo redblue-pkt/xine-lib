@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2003/06/13 00:52:47 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.6 2003/06/14 01:14:05 jcdutton Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -99,6 +99,8 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
   uint32_t pts;
   mpeg2_state_t state;
   vo_frame_t * img;
+  uint32_t picture_structure;
+
   /* handle aspect hints from xine-dvdnav */
   if (buf_element->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf_element->decoder_info[1] == BUF_SPECIAL_ASPECT) {
@@ -107,27 +109,26 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         /* letterboxing is denied, we have to do pan&scan */
         this->force_aspect = XINE_VO_ASPECT_PAN_SCAN;
     }
-    printf("libmpeg2:decode_data: forced aspect to=%d\n", this->force_aspect);
     
     return;
   }
 
   if (buf_element->decoder_flags != 0) return;
 
-  printf ("libmpeg2:decode_data:buffer\n");
   pts=buf_element->pts;
 
   mpeg2_buffer (this->mpeg2dec, current, end);
 
   info = mpeg2_info (this->mpeg2dec);
   while ((state = mpeg2_parse (this->mpeg2dec)) != STATE_BUFFER) {
+#if 0
     printf("libmpeg2:decode_data:current_fbuf=");
     mpeg2_video_print_fbuf(info->current_fbuf);
     printf("libmpeg2:decode_data:display_fbuf=");
     mpeg2_video_print_fbuf(info->display_fbuf);
     printf("libmpeg2:decode_data:discard_fbuf=");
     mpeg2_video_print_fbuf(info->discard_fbuf);
- 
+#endif 
     switch (state) {
       case STATE_SEQUENCE:
         /* might set nb fbuf, convert format, stride */
@@ -203,16 +204,24 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
                  info->display_picture_2nd->nb_fields,
                  info->display_picture_2nd->flags);
         }
+        if (info->current_picture->nb_fields == 1) {
+          picture_structure = info->current_picture->flags & PIC_FLAG_TOP_FIELD_FIRST ? VO_TOP_FIELD : VO_BOTTOM_FIELD;
+        } else {
+          picture_structure = VO_BOTH_FIELDS;
+        }
+          
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                               info->sequence->picture_width,
                                               info->sequence->picture_height,
                                               this->aspect_ratio,  /* Aspect ratio */
                                               XINE_IMGFMT_YV12,
-                                              //picture->picture_structure);
-                                              0);
+                                              picture_structure);
         this->frame_number++;
         printf("libmpeg2:frame_number=%u\n",this->frame_number); 
         //img->pts=buf_element->pts;
+        img->top_field_first = info->current_picture->flags & PIC_FLAG_TOP_FIELD_FIRST ? 1 : 0;
+        img->repeat_first_field = (info->current_picture->nb_fields > 2) ? 1 : 0;
+        img->duration=info->sequence->frame_period / 300;
 #ifdef LOG_FRAME_ALLOC_FREE
         printf ("libmpeg2:decode_data:get_frame %p (id=%d)\n", img,img->id);
 #endif
@@ -252,7 +261,8 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         }
         if (info->display_fbuf && info->display_fbuf->id) {
           img = (vo_frame_t *) info->display_fbuf->id;
-          img->duration=info->sequence->frame_period / 300;
+          /* FIXME: Do rff pattern analysis here */
+          printf ("libmpeg2:decode_data:rff = %d, duration = %d\n", img->repeat_first_field, img->duration);
 #ifdef LOG_FRAME_ALLOC_FREE
           printf ("libmpeg2:decode_data:draw_frame %p, id=%d \n", info->display_fbuf, img->id);
 #endif
