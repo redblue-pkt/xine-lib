@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.53 2005/01/12 00:05:37 tmattern Exp $
+ * $Id: mms.c,v 1.54 2005/01/13 20:59:05 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -270,22 +270,25 @@ static int send_command (mms_t *this, int command,
   mms_buffer_init(&command_buffer, this->scmd);
   mms_buffer_put_32 (&command_buffer, 0x00000001);   /* start sequence */
   mms_buffer_put_32 (&command_buffer, 0xB00BFACE);   /* #-)) */
-  mms_buffer_put_32 (&command_buffer, length + 32);
+  mms_buffer_put_32 (&command_buffer, len8 * 8 + 32);
   mms_buffer_put_32 (&command_buffer, 0x20534d4d);   /* protocol type "MMS " */
   mms_buffer_put_32 (&command_buffer, len8 + 4);
   mms_buffer_put_32 (&command_buffer, this->seq_num);
   this->seq_num++;
   mms_buffer_put_32 (&command_buffer, 0x0);          /* timestamp */
   mms_buffer_put_32 (&command_buffer, 0x0);
-  mms_buffer_put_32 (&command_buffer, len8+2);
+  mms_buffer_put_32 (&command_buffer, len8 + 2);
   mms_buffer_put_32 (&command_buffer, 0x00030000 | command); /* dir | command */
   /* end of the 40 byte command header */
   
   mms_buffer_put_32 (&command_buffer, prefix1);
   mms_buffer_put_32 (&command_buffer, prefix2);
 
-  n = _x_io_tcp_write (this->stream, this->s, this->scmd, length + CMD_HEADER_LEN + CMD_PREFIX_LEN);
-  if (n != (length + CMD_HEADER_LEN + CMD_PREFIX_LEN)) {
+  if (length & 7)
+    memset(this->scmd + length + CMD_HEADER_LEN + CMD_PREFIX_LEN, 0, 8 - (length & 7));
+
+  n = _x_io_tcp_write (this->stream, this->s, this->scmd, len8 * 8 + CMD_HEADER_LEN + CMD_PREFIX_LEN);
+  if (n != (len8 * 8 + CMD_HEADER_LEN + CMD_PREFIX_LEN)) {
     return 0;
   }
 
