@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2003/01/11 11:34:15 mroi Exp $
+ * $Id: xine_decoder.c,v 1.45 2003/01/11 12:25:10 miguelfreitas Exp $
  *
  */
 
@@ -237,7 +237,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       }
     }
     
-    if( this->osd && this->last_subtitle_end < extra_info.vpts ) {
+    if( this->osd ) {
       
       /* try to use frame number mode */
       if( !uses_time && extra_info.frame_number ) {
