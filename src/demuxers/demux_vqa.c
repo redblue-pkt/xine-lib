@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.20 2002/11/20 11:57:41 mroi Exp $
+ * $Id: demux_vqa.c,v 1.21 2002/11/22 20:13:14 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -372,6 +372,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
+
+    if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) {
+      free (this);
+      return NULL;
+    }
 
     if (!open_vqa_file(this)) {
       free (this);
