@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.24 2002/12/13 21:13:19 guenter Exp $
+ * $Id: demux_real.c,v 1.25 2002/12/14 20:00:38 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -374,13 +374,13 @@ static void real_parse_headers (demux_real_t *this) {
 		  printf ("demux_real: sample_rate %d\n", sample_rate);
 #endif
 		  
-		  str_len = *(mdpr->type_specific_data+off+50);
+		  str_len = *(mdpr->type_specific_data+off+52);
 		  
 #ifdef LOG
 		  printf ("demux_real: str_len = %d\n", str_len);
 #endif
 		  
-		  memcpy (fourcc, mdpr->type_specific_data+off+53+str_len, 4);
+		  memcpy (fourcc, mdpr->type_specific_data+off+54+str_len, 4);
 		  fourcc[4]=0;
 		  
 #ifdef LOG
@@ -802,7 +802,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
       buf->content       = buf->mem;
-      buf->pts           = timestamp;
+      buf->pts           = timestamp*90;
       buf->input_pos     = this->input->get_current_pos (this->input);
 
       buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
@@ -883,7 +883,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
     buf->content       = buf->mem;
-    buf->pts           = timestamp;
+    buf->pts           = timestamp*90;
     buf->input_pos     = this->input->get_current_pos (this->input);
     buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
     buf->type          = this->audio_buf_type;
