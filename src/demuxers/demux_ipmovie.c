@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.6 2003/01/26 15:56:21 tmmm Exp $
+ * $Id: demux_ipmovie.c,v 1.7 2003/02/22 06:48:55 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -525,16 +525,31 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
 static int open_ipmovie_file(demux_ipmovie_t *this) {
 
   unsigned char signature[IPMOVIE_SIGNATURE_SIZE];
+  unsigned char preview[MAX_PREVIEW_SIZE];
 
   this->audio_type = 0;
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, signature, IPMOVIE_SIGNATURE_SIZE) !=
-    IPMOVIE_SIGNATURE_SIZE)
-    return 0;
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if (this->input->read(this->input, signature, IPMOVIE_SIGNATURE_SIZE) !=
+      IPMOVIE_SIGNATURE_SIZE)
+      return 0;
+  } else {
+    this->input->get_optional_data(this->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(signature, preview, IPMOVIE_SIGNATURE_SIZE);
+  }
 
   if (strncmp(signature, IPMOVIE_SIGNATURE, IPMOVIE_SIGNATURE_SIZE) != 0)
     return 0;
+
+  /* file is qualified; if the input was not seekable, skip over the
+   * signature bytes in the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->input->seek(this->input, IPMOVIE_SIGNATURE_SIZE, SEEK_SET);
+  }
 
   /* skip the 6 unknown bytes */
   this->input->seek(this->input, 6, SEEK_CUR);
@@ -637,9 +652,6 @@ static int demux_ipmovie_seek (demux_plugin_t *this_gen,
     xine_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
-
-    /* make sure to start just after the header and 6 unknown bytes */
-    this->input->seek(this->input, IPMOVIE_SIGNATURE_SIZE + 6, SEEK_SET);
   }
 
   return this->status;
@@ -675,11 +687,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_ipmovie_t    *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_ipmovie.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_ipmovie_t));
   this->stream = stream;
