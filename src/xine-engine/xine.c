@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.169 2002/10/18 04:04:10 miguelfreitas Exp $
+ * $Id: xine.c,v 1.170 2002/10/19 21:23:52 guenter Exp $
  *
  * top-level xine functions
  *
@@ -453,7 +453,7 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
-  ret = xine_play_internal (stream, start_pos, start_time);
+  ret = xine_play_internal (stream, start_pos, start_time/1000);
 
   pthread_mutex_unlock (&stream->frontend_lock);
   

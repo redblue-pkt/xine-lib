@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.10 2002/10/14 15:47:33 guenter Exp $
+ * $Id: events.c,v 1.11 2002/10/19 21:23:52 guenter Exp $
  *
  * Event handling functions
  *
@@ -69,6 +69,8 @@ void xine_event_free (xine_event_t *event) {
 void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
 
   xine_event_queue_t *queue;
+
+  gettimeofday (&event->tv, NULL);
 
   pthread_mutex_lock (&stream->event_queues_lock);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.20 2002/10/14 15:46:48 guenter Exp $
+ * $Id: xine.h.in,v 1.21 2002/10/19 21:23:52 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -48,6 +48,8 @@ extern "C" {
 #include <sys/types.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <sys/time.h>
+#include <time.h>
 
 /*
  * xine opaque data types
@@ -116,7 +118,7 @@ void xine_close_video_driver (xine_t *self, xine_vo_driver_t  *driver);
  *         NULL on error (use xine_get_error for details)
  *
  * the only proper way to free the stream pointer returned by this
- * function is to call xine_close() on it. do not try to access any
+ * function is to call xine_dispose() on it. do not try to access any
  * fields in xine_stream_t, they're all private and subject to change
  * without further notice.
  */
@@ -137,6 +139,9 @@ int xine_open (xine_stream_t *stream, const char *mrl);
 
 /*
  * play a stream from a given position 
+ *
+ * start_pos:  0..65535
+ * start_time: milliseconds
  * if both start position parameters are != 0 start_pos will be used
  * for non-seekable streams both values will be ignored
  *
@@ -817,6 +822,8 @@ typedef struct {
 
   void                            *data;   /* contents depending on type */
   int                              data_length;          
+
+  struct timeval                   tv;     /* timestamp of event creation */
 } xine_event_t;
 
 /*
