@@ -1232,6 +1232,31 @@ case "$host_or_hostalias" in
     ;;
 esac
 
+if test "$GCC" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        CFLAGS="\
+	-Wall \
+	-Wchar-subscripts -Wmissing-declarations -Wmissing-prototypes \
+	-Wnested-externs -Wpointer-arith \
+	-Wcast-align \
+	$CFLAGS"
+
+	for option in -Wno-strict-aliasing -Wno-sign-compare; do
+		SAVE_CFLAGS="$CFLAGS"
+		CFLAGS="$CFLAGS $option"
+		AC_TRY_COMPILE([], [],
+			has_option=yes,
+			has_option=no,)
+		if test $has_option = no; then
+			CFLAGS="$SAVE_CFLAGS"
+		fi
+		unset has_option
+		unset SAVE_CFLAGS
+	done
+	unset option
+fi
+
+
 
 CFLAGS="$CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
 DEBUG_CFLAGS="$DEBUG_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
