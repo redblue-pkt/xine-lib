@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2004/06/06 16:41:27 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.54 2004/06/07 08:48:33 heikos Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -163,7 +163,7 @@ static void dts_decode_frame (dts_decoder_t *this, int64_t pts, int preview_mode
         return;
       
       data_out=(uint8_t *) audio_buffer->mem;
-      printf("ac5_pcm_length=%d, ac5_length=%d\n",this->ac5_pcm_length, this->ac5_length);
+      //printf("ac5_pcm_length=%d, ac5_length=%d\n",this->ac5_pcm_length, this->ac5_length);
       if (this->ac5_length > 8191) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: ac5_length too long\n");
         this->ac5_pcm_length = 0;
