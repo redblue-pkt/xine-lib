@@ -65,10 +65,8 @@ if test x"$enable_alsa" != "xno"; then
   fi
   ALSA_CFLAGS="$ALSA_CFLAGS"
 
-  AC_CHECK_HEADERS(alsa/asoundlib.h,
-		   asoundlib_h="alsa/asoundlib.h",
-		   AC_CHECK_HEADERS(sys/asoundlib.h,
-				    asoundlib_h="sys/asoundlib.h"))
+  AC_CHECK_HEADER(alsa/asoundlib.h, [asoundlib_h="alsa/asoundlib.h"], \
+	 [AC_CHECK_HEADER(sys/asoundlib.h, asoundlib_h="sys/asoundlib.h")])
 
   min_alsa_version=ifelse([$1], ,0.1.1,$1)
   AC_MSG_CHECKING([for ALSA version >= $min_alsa_version])
@@ -181,7 +179,7 @@ dnl
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/asoundlib.h>
+#include <$asoundlib_h>
 
 int main() {
 
@@ -213,7 +211,7 @@ dnl
       CFLAGS="$CFLAGS $ALSA_CFLAGS"
       LIBS="$LIBS $ALSA_LIBS"
       AC_TRY_LINK([
-#include <sys/asoundlib.h>
+#include <$asoundlib_h>
 #include <stdio.h>
 ], 
       [return ((SND_LIB_MAJOR) || (SND_LIB_MINOR) || (SND_LIB_SUBMINOR));],
