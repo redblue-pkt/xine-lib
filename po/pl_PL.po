@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-01 16:23+0200\n"
-"PO-Revision-Date: 2002-05-31 20:46+0200\n"
+"POT-Creation-Date: 2002-06-01 04:19+0200\n"
+"PO-Revision-Date: 2002-06-07 11:25+0200\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polski <pl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -21,8 +21,7 @@ msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT zrzuca wiele pakietów TS\n"
 #: src/demuxers/demux_ts.c:352
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
-msgstr ""
-"demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
+msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
 
 #: src/demuxers/demux_ts.c:362
 #, c-format
@@ -44,12 +43,11 @@ msgid "fifo unavailable (%d)\n"
 msgstr "nie dostêpne fifo (%d)\n"
 
 #: src/demuxers/demux_ts.c:575
-#, fuzzy, c-format
+#, c-format
 msgid "demux_ts: unexpected cc %d (expected %d)\n"
-msgstr "demux_ts: opuszczony pakiet wej¶cia cc: %d oczekiwany %d\n"
+msgstr "demux_ts: nieoczekiwany cc: %d (oczekiwany %d)\n"
 
 #: src/demuxers/demux_ts.c:598
-#, fuzzy
 msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts: napotkano uszkodzony PES\n"
 
@@ -58,7 +56,7 @@ msgid "demux error! PMT with invalid pointer\n"
 msgstr "b³±d demultiplexera! PMT z b³êdnym kursorem\n"
 
 #: src/demuxers/demux_ts.c:804
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
@@ -99,7 +97,7 @@ msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: nie moge utworzyæ nowego w±tku (%s)\n"
 
 #: src/demuxers/demux_ts.c:1687
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
 "          This means there's a version mismatch between xine and this "
@@ -186,17 +184,16 @@ msgstr ""
 
 #: src/demuxers/demux_mpeg_block.c:1053
 msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
-msgstr ""
+msgstr "demux_mpeg_block: nieznany rozmiar bloku, spróbuj u¿yæ demux_mpeg.\n"
 
 #: src/demuxers/demux_mpgaudio.c:184
 #, c-format
 msgid "demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"
-msgstr ""
+msgstr "demux_mpgaudio: MPEG %s Warstwa %d  %ldkbps\n"
 
 #: src/demuxers/demux_mpgaudio.c:406
-#, fuzzy
 msgid "demux_mpgaudio: no audio driver!\n"
-msgstr "demux_avi: nieznany typ d¼wiêku 0x%lx\n"
+msgstr "demux_mpegaudio: brak sterownika d¼wiêku!\n"
 
 #: src/demuxers/demux_qt.c:3993
 #, c-format
@@ -206,8 +203,7 @@ msgstr "demux_qt: nieznany kodek wideo '%s'\n"
 #: src/demuxers/demux_qt.c:4247
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
-msgstr ""
-"demux_qt: kodek wideo  %s (%f fps), kodek audio  %s (%ld Hz, %d bits)\n"
+msgstr "demux_qt: kodek wideo  %s (%f fps), kodek audio  %s (%ld Hz, %d bits)\n"
 
 #: src/demuxers/demux_ogg.c:225
 msgid "ogg: vorbis audio stream detected\n"
@@ -314,7 +310,7 @@ msgid "bind(): %s.\n"
 msgstr "bind(): %s.\n"
 
 #: src/input/input_rtp.c:185
-#, fuzzy, c-format
+#, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
 msgstr "setsockopt(IP_ADD_MEMBERSHIP) zawiod³o (multicast kernel?): %s.\n"
 
@@ -418,7 +414,6 @@ msgstr ""
 "           Przyjmujê ¿e dysk nie jest zaszyfrowany.\n"
 
 #: src/input/input_dvd.c:346
-#, fuzzy
 msgid ""
 "\n"
 "input_dvd: Sorry, this plugin doesn't play encrypted DVDs. The legal status\n"
@@ -426,10 +421,10 @@ msgid ""
 "           Please check http://dvd.sf.net for more information.\n"
 msgstr ""
 "\n"
-"input_dvd: Przykro mi, xine nie odtwarza zaszyfrowanych DVD. Status prawny "
+"input_dvd: Przykro mi, ta wtyczka nie odtwarza zaszyfrowanych DVD. Status prawny "
 "szyfrowania CSS\n"
-"           jest niejasny wiêc nie dostarczamy takiego kodu.\n"
-"\n"
+"           jest niejasny wiêc nie mo¿emy dostarczaæ takiego kodu.\n"
+"           Proszê sprawdziæ http://dvd.sf.net aby dowiedzieæ siê wiêcej.\n"
 
 #: src/input/input_dvd.c:355
 #, c-format
@@ -459,8 +454,7 @@ msgstr "input_dvd: krótki odczyt we wtyczce input_dvd (%d != %d)\n"
 #: src/input/input_dvd.c:475
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-msgstr ""
-"input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
+msgstr "input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
 
 #: src/input/input_dvd.c:487
 msgid "input_dvd: read error in input_dvd plugin\n"
@@ -563,8 +557,7 @@ msgstr "input_vcd : b³±d w ioctl CDROMREADTOCHDR\n"
 #: src/input/input_vcd.c:167
 #, c-format
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-msgstr ""
-"input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
+msgstr "input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
 
 #: src/input/input_vcd.c:178
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
@@ -1033,3 +1026,4 @@ msgstr "znaleziono wtyczkê dekodera d¼wiêku : %s\n"
 
 #~ msgid "mpgaudio: bitrate = %.2fkbps\n"
 #~ msgstr "mpgaudio: bitrate = %.2fkbps\n"
+
