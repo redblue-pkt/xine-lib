@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.19 2003/07/12 03:10:15 miguelfreitas Exp $
+ * $Id: color.c,v 1.20 2003/07/12 04:34:39 miguelfreitas Exp $
  */
 
 #include "xine_internal.h"
@@ -971,8 +971,6 @@ void yuy2_to_yv12_c
     uint8_t *p_y1, *p_y2 = y_dst;
     uint8_t *p_u = u_dst;
     uint8_t *p_v = v_dst;
-    uint8_t *p_u2 = u_dst + u_dst_pitch;
-    uint8_t *p_v2 = v_dst + v_dst_pitch;
 
     int i_x, i_y;
 
@@ -1005,6 +1003,103 @@ void yuy2_to_yv12_c
     }
 }
 
+
+#ifdef ARCH_X86
+
+/* yuy2->yv12 with subsampling (some ideas from mplayer's yuy2toyv12) */
+#define MMXEXT_YUYV_YUV420( )                                                      \
+do {                                                                               \
+   __asm__ __volatile__(".align 8 \n\t"                                            \
+    "movq       (%0), %%mm0 \n\t"  /* Load              v1 y3 u1 y2 v0 y1 u0 y0 */ \
+    "movq      8(%0), %%mm1 \n\t"  /* Load              v3 y7 u3 y6 v2 y5 u2 y4 */ \
+    "movq      %%mm0, %%mm2 \n\t"  /*                   v1 y3 u1 y2 v0 y1 u0 y0 */ \
+    "movq      %%mm1, %%mm3 \n\t"  /*                   v3 y7 u3 y6 v2 y5 u2 y4 */ \
+    "psrlw     $8, %%mm0    \n\t"  /*                   00 v1 00 u1 00 v0 00 u0 */ \
+    "psrlw     $8, %%mm1    \n\t"  /*                   00 v3 00 u3 00 v2 00 u2 */ \
+    "pand      %%mm7, %%mm2 \n\t"  /*                   00 y3 00 y2 00 y1 00 y0 */ \
+    "pand      %%mm7, %%mm3 \n\t"  /*                   00 y7 00 y6 00 y5 00 y4 */ \
+    "packuswb  %%mm1, %%mm0 \n\t"  /*                   v3 u3 v2 u2 v1 u1 v0 u0 */ \
+    "packuswb  %%mm3, %%mm2 \n\t"  /*                   y7 y6 y5 y4 y3 y2 y1 y0 */ \
+    "movntq    %%mm2, (%1)  \n\t"  /* Store YYYYYYYY line1                      */ \
+    :                                                                              \
+    : "r" (p_line1), "r" (p_y1) );                                                 \
+   __asm__ __volatile__(".align 8 \n\t"                                            \
+    "movq       (%0), %%mm1 \n\t"  /* Load              v1 y3 u1 y2 v0 y1 u0 y0 */ \
+    "movq      8(%0), %%mm2 \n\t"  /* Load              v3 y7 u3 y6 v2 y5 u2 y4 */ \
+    "movq      %%mm1, %%mm3 \n\t"  /*                   v1 y3 u1 y2 v0 y1 u0 y0 */ \
+    "movq      %%mm2, %%mm4 \n\t"  /*                   v3 y7 u3 y6 v2 y5 u2 y4 */ \
+    "psrlw     $8, %%mm1    \n\t"  /*                   00 v1 00 u1 00 v0 00 u0 */ \
+    "psrlw     $8, %%mm2    \n\t"  /*                   00 v3 00 u3 00 v2 00 u2 */ \
+    "pand      %%mm7, %%mm3 \n\t"  /*                   00 y3 00 y2 00 y1 00 y0 */ \
+    "pand      %%mm7, %%mm4 \n\t"  /*                   00 y7 00 y6 00 y5 00 y4 */ \
+    "packuswb  %%mm2, %%mm1 \n\t"  /*                   v3 u3 v2 u2 v1 u1 v0 u0 */ \
+    "packuswb  %%mm4, %%mm3 \n\t"  /*                   y7 y6 y5 y4 y3 y2 y1 y0 */ \
+    "movntq    %%mm3, (%1)  \n\t"  /* Store YYYYYYYY line2                      */ \
+    :                                                                              \
+    : "r" (p_line2), "r" (p_y2) );                                                 \
+   __asm__ __volatile__(                                                           \
+    "pavgb     %%mm1, %%mm0 \n\t"  /* (mean)            v3 u3 v2 u2 v1 u1 v0 u0 */ \
+    "movq      %%mm0, %%mm1 \n\t"  /*                   v3 u3 v2 u2 v1 u1 v0 u0 */ \
+    "psrlw     $8, %%mm0    \n\t"  /*                   00 v3 00 v2 00 v1 00 v0 */ \
+    "packuswb  %%mm0, %%mm0 \n\t"  /*                               v3 v2 v1 v0 */ \
+    "movd      %%mm0, (%0)  \n\t"  /* Store VVVV                                */ \
+    "pand      %%mm7, %%mm1 \n\t"  /*                   00 u3 00 u2 00 u1 00 u0 */ \
+    "packuswb  %%mm1, %%mm1 \n\t"  /*                               u3 u2 u1 u0 */ \
+    "movd      %%mm1, (%1)  \n\t"  /* Store UUUU                                */ \
+    :                                                                              \
+    : "r" (p_v), "r" (p_u) );                                                      \
+  p_line1 += 16; p_line2 += 16; p_y1 += 8; p_y2 += 8; p_u += 4; p_v += 4;          \
+} while(0)
+
+#endif
+
+void yuy2_to_yv12_mmxext
+  (unsigned char *yuy2_map, int yuy2_pitch,
+   unsigned char *y_dst, int y_dst_pitch, 
+   unsigned char *u_dst, int u_dst_pitch, 
+   unsigned char *v_dst, int v_dst_pitch, 
+   int width, int height) {
+#ifdef ARCH_X86
+    uint8_t *p_line1, *p_line2 = yuy2_map;
+    uint8_t *p_y1, *p_y2 = y_dst;
+    uint8_t *p_u = u_dst;
+    uint8_t *p_v = v_dst;
+
+    int i_x, i_y;
+
+    const int i_dest_margin = y_dst_pitch - width;
+    const int i_dest_u_margin = u_dst_pitch - width/2;
+    const int i_dest_v_margin = v_dst_pitch - width/2;
+    const int i_source_margin = yuy2_pitch - width*2;
+
+    __asm__ __volatile__(
+     "pcmpeqw %mm7, %mm7           \n\t"
+     "psrlw $8, %mm7               \n\t" /* 00 ff 00 ff 00 ff 00 ff */
+    );
+
+    for( i_y = height / 2 ; i_y-- ; )
+    {
+        p_line1 = p_line2;
+        p_line2 += yuy2_pitch;
+  
+        p_y1 = p_y2;
+        p_y2 += y_dst_pitch;
+  
+        for( i_x = width / 8 ; i_x-- ; )
+        {
+            MMXEXT_YUYV_YUV420( );
+        }
+  
+        p_y2 += i_dest_margin;
+        p_u += i_dest_u_margin;
+        p_v += i_dest_v_margin;
+        p_line2 += i_source_margin;
+    }
+
+    sfence();
+    emms();
+#endif
+}
 
 
 /*
@@ -1046,7 +1141,11 @@ void init_yuv_conversion(void) {
   else
     yv12_to_yuy2 = yv12_to_yuy2_c;
 
-  yuy2_to_yv12 = yuy2_to_yv12_c;
+  /* determine best YV12 -> YUY2 converter to use */
+  if (xine_mm_accel() & MM_ACCEL_X86_MMXEXT)
+    yuy2_to_yv12 = yuy2_to_yv12_mmxext;
+  else
+    yuy2_to_yv12 = yuy2_to_yv12_c;
 
 
   /* determine best YUV9 -> YV12 converter to use (only the portable C
