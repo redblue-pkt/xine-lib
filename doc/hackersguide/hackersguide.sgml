@@ -199,7 +199,7 @@
     is object oriented anyway.
     </para>
     <para>
-    classes are structs containing (ideally only) object pointers in xine.
+    classes are structs containing (ideally only) function pointers in xine.
     Example:
     <programlisting>
     typedef struct my_stack_s my_class_t;
