@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2002/07/10 14:07:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.37 2002/08/19 17:43:45 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -30,11 +30,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "buffer.h"
-#include "xine_internal.h"
 
 /*
 #define LOG
@@ -86,7 +86,8 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
       this->mpeg2.force_aspect = buf->decoder_info[2];
-      if (buf->decoder_info[3] == 0x1 && buf->decoder_info[2] == XINE_ASPECT_RATIO_ANAMORPHIC)
+      if (buf->decoder_info[3] == 0x1 
+	  && buf->decoder_info[2] == XINE_ASPECT_RATIO_ANAMORPHIC)
         /* letterboxing is denied, we have to do pan&scan */
         this->mpeg2.force_aspect = XINE_ASPECT_RATIO_PAN_SCAN;
     }
@@ -185,7 +186,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.close               = mpeg2dec_close;
   this->video_decoder.get_identifier      = mpeg2dec_get_id;
   this->video_decoder.dispose             = mpeg2dec_dispose;
-  this->video_decoder.priority            = 5;
+  this->video_decoder.priority            = 6; /* higher than ffmpeg */
 
   this->mpeg2.xine = xine;
   pthread_mutex_init (&this->lock, NULL);
