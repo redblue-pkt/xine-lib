@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.61 2003/11/15 13:01:11 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.62 2003/11/16 12:12:09 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -147,10 +147,10 @@ static void a52dec_reset (audio_decoder_t *this_gen) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
-  this->syncword      = 0;
-  this->sync_state    = 0;
-  this->pts           = 0;
-  this->pts_list[0] = this->pts_list[1] = this->pts_list[2] = 0;
+  this->syncword          = 0;
+  this->sync_state        = 0;
+  this->pts               = 0;
+  this->pts_list[0]       = 0;
   this->pts_list_position = 0;
 }
 
@@ -158,8 +158,8 @@ static void a52dec_discontinuity (audio_decoder_t *this_gen) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
-  this->pts           = 0;
-  this->pts_list[0] = this->pts_list[1] = this->pts_list[2] = 0;
+  this->pts               = 0;
+  this->pts_list[0]       = 0;
   this->pts_list_position = 0;
 }
 
@@ -202,7 +202,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 #endif 
   if (!this->bypass_mode) {
 
-    int              a52_output_flags, i,n;
+    int              a52_output_flags, i;
     sample_t         level = this->class->a52_level;
     audio_buffer_t  *buf;
     int16_t         *int_samples;
@@ -456,6 +456,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
    */
 
 
+  /* FIXME: the code here does not match the explanation above */
   if (buf->pts) {
     int32_t info;
     info = buf->decoder_info[1];
@@ -571,7 +572,11 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    this->sync_state = 0;
 	    break;
 	  }
+#if 0
           a52dec_decode_frame (this, this->pts_list[0], buf->decoder_flags & BUF_FLAG_PREVIEW);
+#else
+          a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
+#endif
           for(n=0;n<4;n++) {
             this->pts_list[n] = this->pts_list[n+1];
           }
@@ -636,12 +641,12 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   /* int i; */
 
-  this->audio_caps    = stream->audio_out->get_capabilities(stream->audio_out);
-  this->syncword      = 0;
-  this->sync_state    = 0;
-  this->output_open   = 0;
-  this->pts           = 0;
-  this->pts_list[0] = this->pts_list[1] = this->pts_list[2] = 0;
+  this->audio_caps        = stream->audio_out->get_capabilities(stream->audio_out);
+  this->syncword          = 0;
+  this->sync_state        = 0;
+  this->output_open       = 0;
+  this->pts               = 0;
+  this->pts_list[0]       = 0;
   this->pts_list_position = 0;
 
   if( !this->a52_state )
