@@ -12,7 +12,7 @@
 
   </authorgroup>
   <copyright>
-    <year>2001</year>
+    <year>2001-2002</year>
     <holder>the xine project team</holder>
   </copyright>
   <abstract>
@@ -33,16 +33,158 @@
 
 <chapter id="overview"><title>Overview</title>
   <sect1>
-    <title>Modules</title>
-    <para></para>
+    <title>Source modules</title>
+    <para>The source directory in xine-lib contains several
+    modules, this should give you a quick overview on where
+    to find what sources: 
+    </para>
+    <sect2>
+    <title>xine-engine</title>
+    <para>The heart of xine - it's engine. Contains code to
+    load and handle all the plugins, as well as the generic decoding
+    and synchroniation/output code.
+    </para>
+    </sect2>
+    <sect2>
+    <title>audio_out</title>
+    <para>
+    Audio output plugins, these provide a thin abstraction layer
+    over different types of audio output architectures/platforms.
+    Basically an audio output plugin provides functions to query/setup
+    the audio hardware and output audio data (e.g. PCM samples).
+    </para>
+    </sect2>
+    <sect2>
+    <title>demuxers</title>
+    <para>
+    Demuxer plugins that handle various system layer file formats
+    like avi, asf or mpeg.
+    </para>
+    </sect2>
+    <sect2>
+    <title>dxr3</title>
+    <para>
+    Code specific to the dxr3 / hollywood+ hardware mpeg decoder.
+    </para>
+    </sect2>
+    <sect2>
+    <title>liba52</title>
+    <para>
+    Dolby digital audio decoder plugin.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libdivx4</title>
+    <para>
+    Video decoder plugin using libdivx4linux if it is installed.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libdts</title>
+    <para>
+    Audio decoder plugin that does nothing but passing through
+    DTS (AC5) data to the audio output plugin. This is only usefull
+    when using an external hardware DTS decoder.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libffmpeg</title>
+    <para>
+    Various Audio/Video decoder plugins based on ffmpeg; most
+    importantly this contains a free mpeg-4 video decoder.
+    </para>
+    </sect2>
+    <sect2>
+    <title>liblpcm</title>
+    <para>
+    Audio decoder plugin that "decodes" raw PCM data; most notably
+    endianess-conversions are done here.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libmad</title>
+    <para>
+    Mpeg audio decoder plugin (i.e. mp3 decoding). Quite slow and
+    due to be replaced by ffmpeg's mp3 decoder.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libmpeg2</title>
+    <para>
+    Most important mpeg video decoder plugin, provides fast and
+    high-precision mpeg-1/2 video decoding.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libspucc, libspudec, libsputext</title>
+    <para>
+    Various subtitle (spu: subpicture, dvd slang) decoder plugins.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libvorbis</title>
+    <para>
+    Vorbis audio decoder plugin.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libw32dll</title>
+    <para>
+    Video/Audio decoder plugins that exploit some wine code
+    to use win32 (media player) codecs in xine. Works on x86 platforms
+    only.
+    </para>
+    </sect2>
+    <sect2>
+    <title>video_out</title>
+    <para>
+    Contains various video output driver plugins. Video output drivers
+    are thin abstraction layers over various video output platforms
+    (e.g. X11, directfb, directX,...). Video output driver plugins
+    provide functions like frame allocation and drawing and handle
+    stuff like hardware acceleration, scaling and colorspace conversion
+    if necessary. They do not handle a/v sync since this is done
+    in the xine-engine already.
+    </para>
+    </sect2>
+    <sect2>
+    <title>xine-utils</title>
+    <para>
+    collection of utility functions and platform abstractions.
+    </para>
+    </sect2>
+    <sect2>
+    <title>libac3, libmpg123, libvfill</title>
+    <para>
+    deprecated.
+    </para>
+    </sect2>
   </sect1>
   <sect1>
-    <title>Which module does what</title>
-    <para></para>
-  </sect1>
-  <sect1>
-    <title>Information flow</title>
-    <para></para>
+    <title>Architecture and data flow</title>
+    <mediaobject>
+    <imageobject>
+      <imagedata fileref="architecture.eps" format="EPS">
+    </imageobject>
+    <caption>
+    <para> xine architecture </para>
+    </caption>
+    </mediaobject>
+    <para>
+    Media streams usually consist of audio- and video-packages multiplexed 
+    into one bitstream in the so-called system-layer (e.g. AVI, Quicktime or Mpeg). 
+    A demuxer plugin is used to parse the system layer and extract audio- and video-
+    packages. The demuxer uses an input-plugin to read the data and stores it
+    in pre-allocated buffers from the global buffer pool. 
+    The buffers are then added to the audio- or video- fifo.
+    </para>
+    <para>
+    From the other end of these fifos audio-/video-decoder threads 
+    remove the buffers and hand them over to the current audio- or video-
+    decoder plugin for decompression. These plugins then send the decoded
+    data to the audio-/video- output layers. The buffer holding the encoded
+    data is no longer needed and thus released to the global buffer pool.
+    </para>
   </sect1>
   <sect1>
     <title>Library interfaces</title>
@@ -53,7 +195,34 @@
 <chapter id="internals"><title>xine internals</title>
   <sect1>
     <title>What is this metronom thingy ?</title>
-    <para></para>
+    <para>
+    Metronom serves two purposes:
+    <itemizedlist>
+    <listitem> 
+      <para>
+        generate vpts (virtual presentation time stamps) from pts (presentation time stamps)
+	for a/v output and synchronization
+      </para>
+    </listitem>
+    <listitem> 
+      <para>
+         provide a master clock (system clock reference, scr), possibly provided
+         by external scr plugins (this can be used if some hardware decoder or network
+         server dictates the time)
+      </para>
+    </listitem>
+    </itemizedlist>
+    </para>
+    <para>
+    pts/vpts values are given in 1/90000 sec units. pts values in mpeg streams
+    may wrap, can be missing on some frames or (for broken streams) may "dance" around
+    the correct values. Metronom therefore has some heuristics built-in to generate
+    clean vpts values which can then be used in the output layers to schedule audio/video
+    output.
+    </para>
+    <para>
+    The heuristics used in metronom have always been a field of research.
+    </para>
   </sect1>
   <sect1>
     <title>xine engine from inside</title>
@@ -61,14 +230,141 @@
   </sect1>
   <sect1>
     <title>Plugin architecture</title>
-    <para></para>
+    <para>
+    xine plugins are basically shared libraries that export one
+    public function init_*_plugin (exact function name depends on plugin type).
+    This function returns a pointer to freshly malloced
+    struct containing mainly
+    function pointers, the "methods" of the plugin. 
+    If you think this is pretty much an object-oriented aproach, you're right.
+    </para>
+    <para>
+    You'll find exact definitions of public functions and plugin structs
+    in the appropriate header files (e.g. demux/demux.h, input/input_plugin.h,
+    xine-engine/video_out.h,...).
+    </para>
+    <para>
+    The public
+    </para>
+    <para>
+    Most plugins will need some additional "private" data fields.
+    These should be simply added at the end of the plugin struct,
+    e.g. a demuxer plugin called "foo" with two private 
+    fields "xine" and "count"
+    would have a plugin struct like
+    <programlisting>
+    typedef struct {
+       /* public fields "inherited" from demux.h */
+
+       demux_plugin_t    demux_plugin;
+
+       xine_t           *xine;
+
+       int               count;
+    } demux_foo_t;
+    </programlisting>
+    </para>
   </sect1>
 </chapter>
 
 <chapter id="input"><title>Extending xine's input</title>
   <sect1>
     <title>Adding support for a new file format (writing a demuxer)</title>
-    <para></para>
+    <para>
+    Use an existing demuxer plugin, e.g. demux_mpeg_block
+    as an example.
+    </para>
+    <para>
+    Demuxers need to start/stop their own thread for performance reasons
+    (input plugins may block and if the demuxer runs in a seperate
+    thread other xine modules can work during blocking time).
+    </para>
+    <para>
+    You need to implement all the functions given in demux.h:
+    <programlisting>
+struct demux_plugin_s
+{
+  /*
+   * plugin interface version, lower versions _may_ be supported
+   */
+  int interface_version;
+
+  /*
+   * ask demuxer to open the given stream (input-plugin) 
+   * using the content-detection method specified in "stage"
+   *
+   * return values: 
+   *    DEMUX_CAN_HANDLE    on success
+   *    DEMUX_CANNOT_HANDLE on failure
+   */
+
+  int (*open) (demux_plugin_t *this, input_plugin_t *ip, 
+               int stage);
+
+  /*
+   * start demux thread
+   *
+   * for seekable streams, a start position can be specified
+   *
+   * start_pos  : position in input source
+   * start_time : position measured in seconds from stream start
+   *
+   * if both parameters are !=0 start_pos will be used
+   * for non-seekable streams both values will be ignored
+   */
+
+  void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
+                 fifo_buffer_t *audio_fifo, 
+                 off_t start_pos, int start_time);
+  
+  /*
+   * stop & kill demux thread, free resources associated with current
+   * input stream
+   */
+
+  void (*stop) (demux_plugin_t *this) ;
+
+  /*
+   * close demuxer, free all resources
+   */
+
+  void (*close) (demux_plugin_t *this) ;
+
+  /*
+   * returns DEMUX_OK or  DEMUX_FINISHED 
+   */
+
+  int (*get_status) (demux_plugin_t *this) ;
+
+  /*
+   * return human readable identifier for this plugin
+   */
+
+  char* (*get_identifier) (void);
+  
+ /*
+   * return MIME types supported for this plugin
+   */
+
+  char* (*get_mimetypes) (void);
+  /*
+   * estimate stream length in seconds
+   * may return 0 for non-seekable streams
+   */
+
+  int (*get_stream_length) (demux_plugin_t *this);
+} ;
+    </programlisting>
+    </para>
+    <para>
+    Demuxer plugins export only one function:
+    <programlisting>
+    demux_plugin_t *init_demux_plugin (int iface_version, xine_t *xine);
+    </programlisting>
+    this is called on startup when the demuxer plugin is loaded.
+    The funtion should malloc() a demux_plugin_t* pointer,
+    fill in the function pointers and return the demux_plugin_t * pointer.
+    </para>
   </sect1>
   <sect1>
     <title>Adding support for a new audio/video format
@@ -104,10 +400,75 @@
 
 <chapter id="misc"><title>misc</title>
   <sect1>
-    <title>Coding style</title>
-    <para></para>
+    <title>Coding style and guidelines</title>
+    <para>
+    This section contains some guidelines for writing xine-code.
+    These are really just guidelines, no strict rules.
+    Contributions will not be rejected if they do not meet these
+    rules but they will be appreciated if they do.
+    <itemizedlist>
+    <listitem> 
+      <para>
+      when in doubt, use lower case. BTW: This thing is called xine, never Xine.
+      </para>
+    </listitem>
+    <listitem> 
+      <para>
+      comment your interfaces in the header files.
+      </para>
+    </listitem>
+    <listitem> 
+      <para>
+      use expressive variable and function names on all public interfaces.
+      </para>
+    </listitem>
+    <listitem> 
+      <para>
+      avoid macros if possible. avoid gotos.
+      </para>
+    </listitem>
+    <listitem> 
+      <para>
+      use 
+      <programlisting>
+      #ifdef LOG 
+      printf ("module: ..."[,...]);
+      #endif 
+      </programlisting>
+      for debug output. All debug output must be prefixed by the module
+      name which generates the output (see example above).
+      </para>
+    </listitem>
+    <listitem> 
+      <para>
+      refer to emac's c-mode for all questions of proper indentiation.
+      </para>
+    </listitem>
+    <listitem> 
+      <para>
+      use c-style comments (/* */), not c++-style (//)
+      </para>
+    </listitem>
+    </itemizedlist>
+    </para>
+  </sect1>
+  <sect1>
+    <title>How to contribute</title>
+    <para>
+    Make sure you send your patches in unified diff format to
+    the xine-devel mailing list (you'll have to subscribe first,
+    otherwise you're not allowed to post). Please do not send
+    patches to individual developers unless otherwise instructed
+    because your patch is more likely to get lost in an overfull
+    INBOX in that case. Please be patient, it may take 1-2 weeks
+    before you hear any comments on your work (developers may be
+    working on other parts of the code or are simply busy at
+    the moment).
+    </para>
   </sect1>
 </chapter>
 
 
 </book>
+
+
