@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2001/11/03 22:28:05 hrm Exp $
+ * $Id: xine_decoder.c,v 1.8 2001/11/03 23:02:43 hrm Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -60,6 +60,9 @@
 
 #if CATCH_SIGSEGV
 #include <signal.h>
+
+/* to be able to restore the old handler */
+void (*old_handler)(int);
 
 void catch_sigsegv(int sig)
 {
@@ -406,12 +409,14 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
      * old versions of OpenDivx are known to do this. 
      * we have to exit(1) in case it happens, but at least the user'll know
      * what happened */
-    if (signal(SIGSEGV, catch_sigsegv) == SIG_ERR)
+    old_handler = signal(SIGSEGV, catch_sigsegv); 
+    if (old_handler == SIG_ERR)
       printf("divx4: failed to set SIGSEGV handler for libdivxdecore version check. Danger!\n");
     /* ask decore for version, using arbitrary handle 123 */
     version = libdecore_func(123, DEC_OPT_VERSION, 0, 0);
-    /* reset signal handler */
-    signal(SIGSEGV, SIG_DFL);
+    /* restore old signal handler */
+    if (old_handler != SIG_ERR)
+      signal(SIGSEGV, old_handler);
 #else
     /* no SIGSEGV catching, let's hope survive this... */
     version = libdecore_func(123, DEC_OPT_VERSION, 0, 0);
