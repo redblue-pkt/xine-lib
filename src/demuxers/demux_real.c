@@ -20,6 +20,7 @@
 
 /*
  * Real Media File Demuxer by Mike Melanson (melanson@pcisys.net)
+ *   improved by James Stembridge (jstembridge@users.sourceforge.net)
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
@@ -30,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.73 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_real.c,v 1.74 2003/12/12 22:29:20 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -183,11 +184,13 @@ static void real_parse_index(demux_real_t *this) {
 
     /* Check chunk is actually an index chunk */
     if(BE_32(&index_chunk_header[0]) == INDX_TAG) {
+      unsigned short version;
 
       /* Check version */
-      if(BE_16(&index_chunk_header[8]) != 0) {
-        lprintf("unknown index chunk version %d\n",
-                BE_16(&index_chunk_header[8]));
+      version = BE_16(&index_chunk_header[8]);
+      if(version != 0) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                "unknown object version in INDX: 0x%04x\n", version);
         break;
       }
 
@@ -253,13 +256,6 @@ static void real_parse_index(demux_real_t *this) {
 static mdpr_t *real_parse_mdpr(const char *data) {
   mdpr_t *mdpr=malloc(sizeof(mdpr_t));
 
-  mdpr->object_version=BE_16(&data[0]);
-
-  if (mdpr->object_version != 0) {
-    lprintf("warning: unknown object version in MDPR: 0x%04x\n",
-            mdpr->object_version);
-  }
-
   mdpr->stream_number=BE_16(&data[2]);
   mdpr->max_bit_rate=BE_32(&data[4]);
   mdpr->avg_bit_rate=BE_32(&data[8]);
@@ -315,6 +311,7 @@ static void real_parse_headers (demux_real_t *this) {
   char           preamble[PREAMBLE_SIZE];
   unsigned int   chunk_type = 0;
   unsigned int   chunk_size;
+  unsigned short version;
   unsigned char *chunk_buffer;
   int            field_size;
   int            stream_ptr;
@@ -374,8 +371,18 @@ static void real_parse_headers (demux_real_t *this) {
 	this->status = DEMUX_FINISHED;
 	return;
       }
+      
+      version = BE_16(&chunk_buffer[0]);
 
       if (chunk_type == PROP_TAG) {
+      
+        if(version != 0) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                  "unknown object version in PROP: 0x%04x\n", version);
+          free(chunk_buffer);
+          this->status = DEMUX_FINISHED;
+          return;
+        }
 
         this->duration      = BE_32(&chunk_buffer[22]);
         this->index_start   = BE_32(&chunk_buffer[30]);
@@ -398,6 +405,13 @@ static void real_parse_headers (demux_real_t *this) {
         mdpr_t   *mdpr;
         uint32_t  fourcc;
 
+        if (version != 0) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                  "unknown object version in MDPR: 0x%04x\n", version);
+          free(chunk_buffer);
+          continue;
+        }
+                
         mdpr = real_parse_mdpr (chunk_buffer);
 
         lprintf ("parsing type specific data...\n");
@@ -446,7 +460,7 @@ static void real_parse_headers (demux_real_t *this) {
           }
           
           lprintf ("video detected\n");
-          fourcc = *(uint32_t *) (mdpr->type_specific_data + 8);
+          fourcc = ME_32(mdpr->type_specific_data + 8);
           lprintf("fourcc = %.4s\n", (char *) &fourcc);
 
           this->video_streams[this->num_video_streams].fourcc = fourcc;
@@ -464,6 +478,13 @@ unknown:
         }
 
       } else if (chunk_type == CONT_TAG) {
+
+        if(version != 0) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                  "unknown object version in CONT: 0x%04x\n", version);
+          free(chunk_buffer);
+          continue;
+        }
 
         stream_ptr = 2;
 
@@ -504,6 +525,15 @@ unknown:
                             DATA_CHUNK_HEADER_SIZE) != DATA_CHUNK_HEADER_SIZE) {
         this->status = DEMUX_FINISHED;
         return ;
+      }
+      
+      /* check version */
+      version = BE_16(&data_chunk_header[0]);
+      if(version != 0) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                  "unknown object version in DATA: 0x%04x\n", version);
+          this->status = DEMUX_FINISHED;
+          return;
       }
 
       this->current_data_chunk_packet_count = BE_32(&data_chunk_header[2]);
@@ -578,14 +608,14 @@ unknown:
       int      i, stream;
       
       /* Check for end of the data chunk */
-      if(((id = BE_32(&search_buffer[0])) == DATA_TAG) ||
+      if(((id = BE_32(&search_buffer[offset])) == DATA_TAG) ||
          (id == INDX_TAG))
         break;
       
       /* Check that this is a "keyframe" data chunk - in some files
        * there are multiple streams but only one set of keyframe data - 
        * trying to play one without makes horrible noises */
-      if(search_buffer[11] & PN_KEYFRAME_FLAG) {
+      if(search_buffer[offset + 11] & PN_KEYFRAME_FLAG) {
         stream = BE_16(&search_buffer[offset + 4]);
 
         for(i = 0; !this->video_stream && (i < this->num_video_streams); i++) {
@@ -820,6 +850,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   demux_real_t   *this = (demux_real_t *) this_gen;
   char            header[DATA_PACKET_HEADER_SIZE];
   int             stream, size, keyframe;
+  unsigned short  version;
   uint32_t        id, timestamp;
   int64_t         pts;
   off_t           offset;
@@ -846,6 +877,15 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     return this->status;
   }
 
+  /* check version */
+  version = BE_16(&header[0]);
+  if(version != 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "unknown object version in data packet: 0x%04x\n", version);
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
+  
   /* read the packet information */
   stream   = BE_16(&header[4]);
   offset   = this->input->get_current_pos(this->input);
