@@ -1,8 +1,8 @@
 xine (0.9.5) unstable; urgency=low
 
-  * some new win32 codecs supported
-  * libwin32dll bugfixes (no directshow yet)
-  * demux_asf bugfixes
+  * new win32 codecs supported (including Windows Media Video 7/8)
+  * libwin32dll bugfixes and DirectShow support
+  * demux_asf reworked to handle asf oddities
   * input_http bugfixes, proxy, auth and proxy-auth support
   * snapshots of YUY2 images should work now
   * SyncFB video out plugin: bug fixes, YUY2 support and several enhancements
