@@ -76,14 +76,20 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     picture_t * picture;
     int is_frame_done;
 
-    /* printf ("parse_chunk %d\n", code); */
+    /* printf ("libmpeg2: parse_chunk 0x%02x\n", code);  */
 
     /* wait for sequence_header_code */
-    if (mpeg2dec->is_sequence_needed && (code != 0xb3))
+    if (mpeg2dec->is_sequence_needed) {
+      if (code != 0xb3) {
+        /* printf ("libmpeg2: waiting for sequence header\n"); */
+	mpeg2dec->pts = 0;
 	return 0;
-
-    if (mpeg2dec->is_frame_needed && (code != 0x00))
-	return 0;
+      }
+    } else if (mpeg2dec->is_frame_needed && (code != 0x00)) {
+      /* printf ("libmpeg2: waiting for frame start\n"); */
+      mpeg2dec->pts = 0;
+      return 0;
+    }
 
     stats_header (code, buffer);
 
@@ -319,9 +325,6 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     uint8_t code;
 
     ret = 0;
-    if (pts)
-      mpeg2dec->pts = pts;
-
     if (mpeg2dec->seek_mode) {
       mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
       mpeg2dec->code = 0xb4;
@@ -329,6 +332,9 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
       mpeg2dec->shift = 0xffffff00;
       mpeg2dec->is_frame_needed = 1;
     }
+
+    if (pts)
+      mpeg2dec->pts = pts;
 
     while (current != end) {
 	code = mpeg2dec->code;
@@ -381,7 +387,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
     if (current == NULL)
       return ;
 
-    /* printf ("looking for sequence header... %02x\n", code); */
+    /* printf ("looking for sequence header... %02x\n", code);  */
 
     stats_header (code, mpeg2dec->chunk_buffer);
 
@@ -417,7 +423,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       }
     } else if (code == 0xb5) {	/* extension_start_code */
       if (header_process_extension (picture, mpeg2dec->chunk_buffer)) {
-	printf ("mpeg2dec: bad extension\n");
+	printf ("libmpeg2: bad extension\n");
 	continue ;
       }
     }
