@@ -96,7 +96,7 @@
       In the future you will likely see more and different types of apllications
       being developed which will use the xine engine for video processing
       and other multimedia purposes.
-    <para>
+    </para>
 
     <para>
       If you simply want a media/dvd player, you'll need to install xine-lib
@@ -721,6 +721,8 @@
       </para>
 
     </sect2>
+  
+  </sect1>
 
   <sect1>
 
@@ -797,12 +799,13 @@
     
     <para>
       Your hardware might be too slow for xine. Make sure you turn on all
-      speed optimizing options. A few things you should check:
+      speed optimizing options. A few things you should check (in order of
+      importance):
 
       <itemizedlist>
         <listitem>
 	  <para>
-            first of all, run the <command>xine-check</command> script included in xine-lib
+            First of all, run the <command>xine-check</command> script included in xine-lib
             package (probably already installed in your system).
 	    <command>xine-check</command> will report several of the most common problems
             listed here. Sample output from xine-check:
@@ -838,29 +841,20 @@
   	</listitem>
 	<listitem>
 	  <para>
-  	    use a recent kernel which is optimized for your hardware
+            Try to use the Xv driver, it greatly improves performance and quality
+            because hardware does image scaling and color conversion. The 
+            <link linkend="video">video section</link> contains important information
+            about several Xv drivers. 
 	  </para>
-  	</listitem>
-	<listitem>
 	  <para>
-  	    use the latest gas/gcc
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    close other applications (use a tool like "top" to find out
-            what applications are using up CPU power)
+	    If Xv cannot be used for some reason, make sure your display is set up
+            to 16bpp, not 24 or higher (reduces memory bandwith). Some Xv drivers
+            may also have better performance with 16bpp.
 	  </para>
 	</listitem>
 	<listitem>
 	  <para>
-	    if you are not using Xv, make sure your display is set up
-            to 16bpp, not 24 or higher (reduces memory bandwith)
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    make sure the hard drive (or cdrom/dvd drive) which supplies the
+	    Make sure the hard drive (or cdrom/dvd drive) which supplies the
             video data is in DMA mode (if supported) 
 	  </para>
 	  <para>
@@ -885,6 +879,67 @@
             <ulink url="http://oreilly.linux.com/pub/a/linux/2000/06/29/hdparm.html">
 	    http://oreilly.linux.com/pub/a/linux/2000/06/29/hdparm.html
 	    </ulink>
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+            Use a recent kernel which is optimized for your hardware. Old kernels
+            may lack support for accelerated instructions like SSE, for example.
+	  </para>
+  	</listitem>
+	<listitem>
+	  <para>
+	    Close other applications (use a tool like "top" to find out
+            what applications are using up CPU power). Programs that update the
+            system clock like ntp should also be disabled.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Enable MTRR support in your kernel. If you are still using XFree 3.x,
+            you'll have to tell the kernel yourself where the graphics memory is.
+            You'll find details about that in the linux dvd howto.
+	  </para>
+	  <para>
+            If you're using XFree 4.x, enabling MTRR support in your kernel should
+            be enough (use a recent kernel!).
+	  </para>
+	  <para>
+	    Try a <command> cat /proc/mtrr </command> - if the file exists and you find an entry
+            corresponding to the amount of graphics memory you have, everything
+            should be fine.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+            Have your X-server (usually XFree86) running with higher priority.
+            Most recent linux distributions (like RedHat 8.0 or Mandrake 9.0) should
+            do that for you, improving not only xine but desktop responsiveness
+            in general. 
+	  </para>
+	  <para>
+            Use the "top" utility and verify under the "NI" column if
+            the X process has a negative value, this indicates a higher priority.
+            See "The X Window User HOWTO - Performance considerations" for 
+            further instructions 
+            <ulink url="http://www.tldp.org/HOWTO/XWindow-User-HOWTO/performance.html">
+            http://www.tldp.org/HOWTO/XWindow-User-HOWTO/performance.html</ulink>
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+            Use the latest or a known-good gcc version.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+            Besides boosting X-server priority, sometimes it's possible to avoid
+            discarding frames by making xine itself higher priority. This is not
+            a recommended  pratice since it will require to run xine as root,
+            but you may give it a try if you want:
+              <programlisting>
+                nice --5 xine
+              </programlisting>    
 	  </para>
 	</listitem>
 	<listitem>
@@ -915,22 +970,6 @@
 	</listitem>
 	<listitem>
 	  <para>
-	    enable MTRR support in your kernel. If you are still using XFree 3.x,
-            you'll have to tell the kernel yourself where the graphics memory is.
-            You'll find details about that in the linux dvd howto.	
-	  </para>
-	  <para>
-            If you're using XFree 4.x, enabling MTRR support in your kernel should
-            be enough.
-	  </para>
-	  <para>
-	    Try a <command> cat /proc/mtrr </command> - if the file exists and you find an entry
-            corresponding to the amount of graphics memory you have, everything
-            should be fine.
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
 	    Set up and use raw devices for dvd access. Please note that
 	    this is usually not worth the effort as the performance gain
 	    from it is very small if any.
@@ -955,7 +994,9 @@
   	      raw /dev/raw1 /dev/hdc
 	    </programlisting>
 	  </para>
+	</listitem>
       </itemizedlist>
+    </para>
 
   </sect1>
 
@@ -1061,7 +1102,7 @@
     
     <para>
       Well, first try a different audio driver (<command> gxine -A oss </command>,
-      <command> gxine -A arts </command> ...). 
+      <command> gxine -A arts </command>, <command> xine -A alsa </command> ...). 
     </para>
     <para>
       If this problem only occurs with one specific stream, maybe switching to
@@ -1133,9 +1174,15 @@
     
     <para>
       Some xine drivers do not support volume changing although the GUI
-      will show the volume bar. Usually this is not xines fault: aRts C
+      will show the volume bar. Usually this is not xine's fault: aRts C
       API, for example, doesn't offer any volume property to applications.
       Similarly, with ac3 pass through it is not possible to set the volume.
+    </para>
+    <para>
+      Note that recently we added support to "simulate" volume in aRts by
+      changing sample values on-the-fly before delivering them to the driver.
+      Not as good as having access to sound card's mixer but at least users 
+      will not complain about lacking of volume bar anymore! :)
     </para>
   </sect1>
 
@@ -1155,6 +1202,11 @@
       process running which is messing with the clock (like some ntp client -
       chronny, ntpd, ...).
     </para>
+    <para>
+      Occasional messages of "fixing sound card drift" may happen on start and
+      when playing a long stream (like a movie). This is normal behaviour, 
+      nothing to worry about.
+    </para>
   </sect1>
 </chapter>
 
@@ -1168,6 +1220,10 @@
     <para>
       Probably your hardware is simply too slow - see above for some
       hints on how to speed things up.
+    </para>
+    <para>
+      Another possibility is that you using a buggy Xv driver, see the next
+      question.
     </para>
   </sect1>
 
@@ -1268,6 +1324,7 @@
 	  </para>
 	</listitem>
       </itemizedlist>
+    </para>
   </sect1>
   <sect1>
 
@@ -1288,7 +1345,7 @@
     <title>The aspect ratio of the video is wrong!</title>
     
     <para>
-    Try pressing "a" to change the aspect ratio
+    Try pressing "a" to change the aspect ratio.
     </para>
   </sect1>
   <sect1>
@@ -1320,7 +1377,7 @@
       output thread doesn't get scheduled in time by the operating system
       to complete the operation, the frame is discarded. One cause might
       be the disk access operation, which may halt the system for a few
-      miliseconds without DMA. See section above.
+      miliseconds without DMA. See performance section tips above.
     </para>
     <para>
       Note that if a decoder can't skip frames for some reason, you would
@@ -1344,6 +1401,41 @@
       Please note that some frontends save these settings in their config file
       so when you have found a working combination, make sure you exit 
       xine cleanly so the values are saved.
+    </para>
+  </sect1>
+  
+  <sect1>
+
+    <title>Which is the best video driver to use?</title>
+    
+    <para>
+      xine support several video drivers for outputing the image. These will
+      differ on how the frames are copied to the video card memory, whether
+      colorspace conversion and scaling is done in software or hardware, among
+      other things. They may also differ on ease of use and stability.
+    </para>
+    <para>
+      Most of the time, Xv should give the users a good trade-off between
+      quality, compatibility and ease of use. This is why xine tries to use
+      Xv by default.
+    </para>
+    <para>
+      However some users may want to explore better the available hardware 
+      capabilities (eg. syncing frame drawing with monitor refresh).
+      Also some Xv drivers contain slow copies and accessing the video card
+      directly may yield performance gains.
+    </para>
+    <para>
+      Drivers that access hardware directly includes VIDIX (warning: requires 
+      root priviledges) and SyncFB (requires kernel helper - Matrox only).
+      User may try one of those, but should be warned that with root access
+      they can cause the system to crash hard. The support is also limited to
+      a couple of graphics cards only.
+    </para>
+    <para>
+      Graphic workstations like SGI have usually a good support for OpenGL.
+      In that case, using OpenGL may be a better choice than XShm. However for
+      most desktop systems the performance of OpenGL will be quite bad.
     </para>
   </sect1>
 </chapter>
@@ -1531,13 +1623,19 @@
       </listitem>
       <listitem>
         <para>
+          is that a specific media file or format which crashes xine? (have you
+          tried other files types?)
+	</para>
+      </listitem>
+      <listitem>
+        <para>
 	  check the console output (and include it in a bug report), maybe earlier
 	  there is some output that points to the problem.
 	</para>
       </listitem>
       <listitem>
         <para>
-	  Your X server just froze on you? unfortunately that's a know problem
+	  Your X server just froze on you? unfortunately that's a known problem
 	  with some chipsets and drivers (most commonly Savage chipsets) when
 	  using Xv. You might want to try running <command> gxine -V XShm </command>
 	  to see if the problem is related to the Xv driver.  This will unfortunately 
