@@ -1,3 +1,9 @@
+xine-lib (0.9.5-1) unstable; urgency=high
+
+  * new upstream release
+
+ -- Siggi Langauf <siggi@debian.org>  Sun, 11 Nov 2001 12:01:00 +0100
+
 xine-lib (0.9.4-1) unstable; urgency=medium
 
   * new upstream release, fixes libtool, so this actually compiles
