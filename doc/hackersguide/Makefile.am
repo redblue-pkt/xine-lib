@@ -32,40 +32,44 @@ clean-docs:
 	test "x$(srcdir)" = x. || rm -f $(hackersguide_sgml)
 
 dist-hook:
-	@make fail_if_missing=yes docs
+ifndef distcheck_lax
+	@$(MAKE) fail_if_missing=yes docs
+else
+	@$(MAKE) docs
+endif
 
 if HAVE_SGMLTOOLS
 hackersguide.html: $(hackersguide_sgml)
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	$(SGMLTOOLS) -b onehtml hackersguide.sgml;
 else
 hackersguide.html: $(hackersguide_sgml)
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install sgmltools-lite."; \
 	  exit 1; \
 	fi
-	-if test x"$(fail_if_missing)" != x"yes"; then \
+	if test x"$(fail_if_missing)" != x"yes"; then \
 	  touch $@; \
 	  sleep 1; \
-	  touch $^; \
+	  touch $(notdir $^); \
 	fi
 endif
 
 if HAVE_FIG2DEV
 %.png: %.fig
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	$(FIG2DEV) -L png -S 4 $< $@;
 else
 %.png: %.fig
-	$(MAKE) docs-prepare
+	@$(MAKE) docs-prepare
 	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install fig2dev."; \
 	  exit 1; \
 	fi
-	-if test x"$(fail_if_missing)" != x"yes"; then \
+	if test x"$(fail_if_missing)" != x"yes"; then \
 	  touch $@; \
 	  sleep 1; \
-	  touch $^; \
+	  touch $(notdir $^); \
 	fi
 endif
