@@ -1883,19 +1883,11 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     char str[256];
     char *ptr;
     int x;
+    char dummy;
     xine_cfg_entry_t zoomdvb;
     config_values_t *config = this->stream->xine->config;
     xine_cfg_entry_t lastchannel;
     xine_cfg_entry_t adapter;
-
-    config->register_num(config, "input.dvb_adapternum",
-				 0,
-				 _("Number of dvb card to use."),
-				 _("Leave this at zero unless you "
-				   "really have more than 1 card "
-				   "in your system."),
-				 0, NULL, (void *) this);
-    
     xine_config_lookup_entry(this->stream->xine, "input.dvb_adapternum", &adapter);
 
     if (!(tuner = tuner_init(this->class->xine,adapter.num_value))) {
@@ -1918,7 +1910,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
 	 return 0;
       }
 
-      if (sscanf(this->mrl, "dvb://%d", &this->channel) == 1) 
+      if ((sscanf(this->mrl, "dvb://%d%1c", &this->channel, &dummy) >0 ) && ((isalpha(dummy)==0) && (isspace(dummy)==0)))
       {
         /* dvb://<number> format: load channels from ~/.xine/channels.conf */
 	if (this->channel >= num_channels) {
@@ -2380,6 +2372,14 @@ static void *init_class (xine_t *xine, void *data) {
 				   "switch to this channel. "),
 				 11, NULL, NULL);
 
+    config->register_num(config, "input.dvb_adapternum",
+				 0,
+				 _("Number of dvb card to use."),
+				 _("Leave this at zero unless you "
+				   "really have more than 1 card "
+				   "in your system."),
+				 0, NULL, (void *) this);
+    
 
   return this;
 }
