@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.19 2003/10/29 23:36:18 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.20 2003/11/01 13:20:01 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -54,7 +54,7 @@ typedef struct post_plugin_deinterlace_s post_plugin_deinterlace_t;
 #define MAX_NUM_METHODS 30
 static char *enum_methods[MAX_NUM_METHODS];
 static char *enum_pulldown[] = { "none", "vektor", NULL };
-static char *enum_framerate[] = { "full", "half (top)", "half (bottom)", NULL };
+static char *enum_framerate[] = { "full", "half_top", "half_bottom", NULL };
 
 /*
  * this is the struct used by "parameters api" 
@@ -276,7 +276,7 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
       return NULL;
   }
 
-  enum_methods[0] = "by driver";
+  enum_methods[0] = "use_vo_driver";
   for(i = 0; i < get_num_deinterlace_methods(); i++ ) {
     enum_methods[i+1] = (char *)get_deinterlace_method(i)->short_name;
   }
