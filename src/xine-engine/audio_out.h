@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.73 2004/09/26 22:54:52 valtri Exp $
+ * $Id: audio_out.h,v 1.74 2004/09/28 01:46:39 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -87,8 +87,7 @@ struct ao_driver_s {
   int (*get_gap_tolerance) (ao_driver_t *self_gen);
 
   /*
-   * write audio data to output buffer 
-   * audio driver must sync sample playback with metronom
+   * write audio data to audio output device
    * return value: 
    *  >0 => audio samples were processed ok
    *   0 => audio samples were not yet processed, 
