@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.29 2001/11/05 10:50:19 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.30 2001/11/05 15:57:14 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -553,7 +553,8 @@ static void x11_DeInstallXErrorHandler(syncfb_driver_t* this)
 static uint32_t syncfb_get_capabilities(vo_driver_t* this_gen) {
   // FIXME: VO_CAP_CONTRAST and VO_CAP_BRIGHTNESS unsupported at the moment,
   //        because they seem to be disabled in the syncfb module anyway. :(
-  return VO_CAP_YV12 | VO_CAP_YUY2;
+  // FIXME: currently we only support YV12
+  return VO_CAP_YV12; // | VO_CAP_YUY2;
 }
 
 static void syncfb_frame_field (vo_frame_t *vo_img, int which_field) {
