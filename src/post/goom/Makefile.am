@@ -33,3 +33,6 @@ noinst_HEADERS = cpu_info.h default_scripts.h drawmethods.h gfontlib.h gfontrle.
 	goom_plugin_info.h goom_script.h goom_script_scanner.h goom_script_scanner.tab.h \
 	goom_tools.h goom_typedefs.h goom_visual_fx.h ifs.h lines.h mathtools.h mmx.h \
 	ppc_drawings.h ppc_zoom_ultimate.h sound_tester.h surf3d.h tentacle3d.h v3d.h
+
+# automake will delete goom_script_scanner.tab.c without the line below
+distclean-compile:
