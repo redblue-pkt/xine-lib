@@ -666,6 +666,14 @@ AC_ARG_ENABLE(macosx_video, AC_HELP_STRING([--enable-macosx-video], [enable supp
 AM_CONDITIONAL(HAVE_MACOSX_VIDEO, [test x"$have_macosx_video" = "xyes"])
 
 dnl ---------------------------------------------
+dnl Check whether to build MacOSX audio output driver
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE(coreaudio, AC_HELP_STRING([--enable-coreaudio], [enable support for MacOSX Coreaudio output]),
+              have_coreaudio=$enableval)
+AM_CONDITIONAL(HAVE_COREAUDIO, [test x"$have_coreaudio" = "xyes"])
+
+dnl ---------------------------------------------
 dnl Find pkg-config
 dnl ---------------------------------------------
 
@@ -2378,6 +2386,9 @@ fi
 if test x"$have_directx" = "xyes"; then
   echo "   - directx (DirectX audio driver)"
 fi
+if test x"$have_coreaudio" = "xyes"; then
+  echo "   - CoreAudio (MacOSX audio driver)"
+fi  
 echo "---"
 
 

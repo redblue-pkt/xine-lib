@@ -36,6 +36,10 @@ if HAVE_DIRECTX
 directx_module = xineplug_ao_out_directx.la
 endif
 
+if HAVE_COREAUDIO
+coreaudio_module = xineplug_ao_out_coreaudio.la
+endif
+
 ##
 # IMPORTANT:
 # ---------
@@ -48,7 +52,8 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la xineplug_ao_out_file.la \
 	$(sun_module) \
 	$(arts_module) \
 	$(esd_module) \
-	$(directx_module)
+	$(directx_module) \
+	$(coreaudio_module)
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -92,3 +97,8 @@ xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_ao_out_directx_la_SOURCES = audio_directx_out.c
 xineplug_ao_out_directx_la_LIBADD = $(DIRECTX_AUDIO_LIBS) $(XINE_LIB)
 xineplug_ao_out_directx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_ao_out_coreaudio_la_SOURCES = audio_coreaudio_out.c
+xineplug_ao_out_coreaudio_la_LIBADD = $(XINE_LIB)
+xineplug_ao_out_coreaudio_la_LDFLAGS = -framework CoreAudio -framework AudioUnit -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_ao_out_coreaudio_la_CFLAGS = -framework CoreAudio -framework AudioUnit
