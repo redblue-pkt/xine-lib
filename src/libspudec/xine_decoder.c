@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2002/01/04 23:20:30 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.49 2002/01/05 10:31:31 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -38,6 +38,8 @@
 #include "xine-engine/bswap.h"
 #include "xineutils.h"
 #include "spu.h"
+#include "nav_types.h"
+#include "nav_read.h"
 
 /*
 #define LOG_DEBUG 1
@@ -250,6 +252,74 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 
 }
 
+static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
+  uint8_t *p = buf->content;
+  uint32_t packet_len;
+  uint32_t stream_id;
+  uint32_t header_len;
+  pci_t *pci;
+  dsi_t *dsi;
+  if (p[0] || p[1] || (p[2] != 1)) {
+    printf("demux error! %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
+    return;
+  }
+  pci=xine_xmalloc(sizeof(pci_t));
+  dsi=xine_xmalloc(sizeof(dsi_t));
+
+  packet_len = p[4] << 8 | p[5];
+  stream_id  = p[3];
+
+  header_len = 6;
+  p += header_len;
+
+  if (stream_id == 0xbf) { /* Private stream 2 */
+    int i;
+/*     for(i=0;i<80;i++) {
+ *     printf("%02x ",p[i]);
+ *   }
+ *   printf("\n p[0]=0x%02x\n",p[0]);
+ */
+    if(p[0] == 0x00) {
+#ifdef LOG_DEBUG
+      printf("libspudec:nav_PCI\n");
+#endif
+      nav_read_pci(pci, p+1);
+#ifdef LOG_DEBUG
+      printf("libspudec:nav:hli_ss=%u, hli_s_ptm=%u, hli_e_ptm=%u, btn_sl_e_ptm=%u pts=%u\n",
+       pci->hli.hl_gi.hli_ss,
+       pci->hli.hl_gi.hli_s_ptm,
+       pci->hli.hl_gi.hli_e_ptm,
+       pci->hli.hl_gi.btn_se_e_ptm,
+       buf->PTS);
+      printf("libspudec:nav:btn_sn=%u, btn_ns=%u, fosl_btnn=%u, foac_btnn=%u\n",
+       pci->hli.hl_gi.btn_ofn, pci->hli.hl_gi.btn_ns,
+       pci->hli.hl_gi.fosl_btnn, pci->hli.hl_gi.foac_btnn);
+#endif
+    }
+
+    p += packet_len;
+
+    /* We should now have a DSI packet. */
+    /* We don't need anything from the DSI packet here. */
+    if(p[6] == 0x01) {
+      packet_len = p[4] << 8 | p[5];
+      p += 6;
+#ifdef LOG_DEBUG
+      printf("NAV DSI packet\n");  
+#endif
+      nav_read_dsi(dsi, p+1);
+
+//      self->vobu_start = self->dsi.dsi_gi.nv_pck_lbn;
+//      self->vobu_length = self->dsi.dsi_gi.vobu_ea;
+    }
+  }
+  free(pci);
+  free(dsi);
+  return;
+}
+
+
+
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t stream_id;
   spu_seq_t       *cur_seq;
@@ -280,8 +350,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
   if (buf->type == BUF_SPU_NAV) {
-    /* printf("libspudec:got nav packet 1\n"); */
-    /* spudec_decode_nav(this,buf); */
+#ifdef LOG_DEBUG
+    printf("libspudec:got nav packet 1\n");
+#endif
+    spudec_decode_nav(this,buf);
     return;
   }
 
@@ -424,6 +496,8 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 	   but->trans[0], but->trans[1], but->trans[2], but->trans[3]);
       printf ("\tleft = %u right = %u top = %u bottom = %u\n",
 	   but->left, but->right, but->top, but->bottom );
+      printf ("\tpts = %u\n",
+	   but->pts );
 #endif
       if (!this->state.menu) return;
 
