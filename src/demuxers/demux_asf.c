@@ -17,13 +17,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.83 2002/11/28 10:21:05 petli Exp $
+ * $Id: demux_asf.c,v 1.84 2002/12/01 17:07:17 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
  * based on ffmpeg's
  * ASF compatible encoder and decoder.
  * Copyright (c) 2000, 2001 Gerard Lantau.
+ *
+ * GUID list from avifile
+ * some other ideas from MPlayer
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,16 +46,70 @@
 /*
 #define LOG
 */
-
-#define PACKET_SIZE        3200
-#define PACKET_HEADER_SIZE   12
-#define FRAME_HEADER_SIZE    17
-#define CODEC_TYPE_AUDIO      0
-#define CODEC_TYPE_VIDEO      1
-#define CODEC_TYPE_CONTROL    2
-#define MAX_NUM_STREAMS      23
+#define CODEC_TYPE_AUDIO       0
+#define CODEC_TYPE_VIDEO       1
+#define CODEC_TYPE_CONTROL     2
+#define MAX_NUM_STREAMS       23
 
 #define DEFRAG_BUFSIZE    65536
+
+/*
+ * define asf GUIDs (list from avifile)
+ */
+#define GUID_ERROR                              0
+
+    /* base ASF objects */
+#define GUID_ASF_HEADER                         1
+#define GUID_ASF_DATA                           2
+#define GUID_ASF_SIMPLE_INDEX                   3
+
+    /* header ASF objects */
+#define GUID_ASF_FILE_PROPERTIES                4
+#define GUID_ASF_STREAM_PROPERTIES              5
+#define GUID_ASF_STREAM_BITRATE_PROPERTIES      6
+#define GUID_ASF_CONTENT_DESCRIPTION            7
+#define GUID_ASF_EXTENDED_CONTENT_ENCRYPTION    8
+#define GUID_ASF_SCRIPT_COMMAND                 9
+#define GUID_ASF_MARKER                        10
+#define GUID_ASF_HEADER_EXTENSION              11
+#define GUID_ASF_BITRATE_MUTUAL_EXCLUSION      12
+#define GUID_ASF_CODEC_LIST                    13
+#define GUID_ASF_EXTENDED_CONTENT_DESCRIPTION  14
+#define GUID_ASF_ERROR_CORRECTION              15
+#define GUID_ASF_PADDING                       16
+    
+    /* stream properties object stream type */
+#define GUID_ASF_AUDIO_MEDIA                   17
+#define GUID_ASF_VIDEO_MEDIA                   18
+#define GUID_ASF_COMMAND_MEDIA                 19
+
+    /* stream properties object error correction type */
+#define GUID_ASF_NO_ERROR_CORRECTION           20
+#define GUID_ASF_AUDIO_SPREAD                  21
+
+    /* mutual exclusion object exlusion type */
+#define GUID_ASF_MUTEX_BITRATE                 22
+#define GUID_ASF_MUTEX_UKNOWN                  23
+
+    /* header extension */
+#define GUID_ASF_RESERVED_1                    24
+    
+    /* script command */
+#define GUID_ASF_RESERVED_SCRIPT_COMMNAND      25
+
+    /* marker object */
+#define GUID_ASF_RESERVED_MARKER               26
+
+    /* various */
+/*
+#define GUID_ASF_HEAD2                         27
+*/
+#define GUID_ASF_AUDIO_CONCEAL_NONE            27
+#define GUID_ASF_CODEC_COMMENT1_HEADER         28
+#define GUID_ASF_2_0_HEADER                    29
+
+#define GUID_END                               30
+
 
 typedef struct {
   int               num;
@@ -134,6 +191,10 @@ typedef struct demux_asf_s {
 
   off_t             header_size;
   int               buf_flag_seek;
+  
+  /* first packet position */
+  int64_t           first_packet_pos;
+
 } demux_asf_t ;
 
 typedef struct {
@@ -146,6 +207,7 @@ typedef struct {
   config_values_t  *config;
 } demux_asf_class_t;
 
+
 typedef struct {
   uint32_t v1;
   uint16_t v2;
@@ -153,83 +215,124 @@ typedef struct {
   uint8_t  v4[8];
 } GUID;
 
-static const GUID asf_header = {
-  0x75B22630, 0x668E, 0x11CF, { 0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C },
+static const struct
+{
+    const char* name;
+    const GUID  guid;
+} guids[] =
+{
+    { "error",
+    { 0x0,} },
+
+
+    /* base ASF objects */
+    { "header",
+    { 0x75b22630, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
+
+    { "data",
+    { 0x75b22636, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
+
+    { "simple index",
+    { 0x33000890, 0xe5b1, 0x11cf, { 0x89, 0xf4, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xcb }} },
+
+
+    /* header ASF objects */
+    { "file properties",
+    { 0x8cabdca1, 0xa947, 0x11cf, { 0x8e, 0xe4, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
+
+    { "stream header",
+    { 0xb7dc0791, 0xa9b7, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
+
+    { "stream bitrate properties", /* (http://get.to/sdp) */
+    { 0x7bf875ce, 0x468d, 0x11d1, { 0x8d, 0x82, 0x00, 0x60, 0x97, 0xc9, 0xa2, 0xb2 }} },
+
+    { "content description",
+    { 0x75b22633, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
+
+    { "extended content encryption",
+    { 0x298ae614, 0x2622, 0x4c17, { 0xb9, 0x35, 0xda, 0xe0, 0x7e, 0xe9, 0x28, 0x9c }} },
+
+    { "script command",
+    { 0x1efb1a30, 0x0b62, 0x11d0, { 0xa3, 0x9b, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
+
+    { "marker",
+    { 0xf487cd01, 0xa951, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
+
+    { "header extension",
+    { 0x5fbf03b5, 0xa92e, 0x11cf, { 0x8e, 0xe3, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
+
+    { "bitrate mutual exclusion",
+    { 0xd6e229dc, 0x35da, 0x11d1, { 0x90, 0x34, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xbe }} },
+
+    { "codec list",
+    { 0x86d15240, 0x311d, 0x11d0, { 0xa3, 0xa4, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
+
+    { "extended content description",
+    { 0xd2d0a440, 0xe307, 0x11d2, { 0x97, 0xf0, 0x00, 0xa0, 0xc9, 0x5e, 0xa8, 0x50 }} },
+
+    { "error correction",
+    { 0x75b22635, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
+
+    { "padding",
+    { 0x1806d474, 0xcadf, 0x4509, { 0xa4, 0xba, 0x9a, 0xab, 0xcb, 0x96, 0xaa, 0xe8 }} },
+
+
+    /* stream properties object stream type */
+    { "audio media",
+    { 0xf8699e40, 0x5b4d, 0x11cf, { 0xa8, 0xfd, 0x00, 0x80, 0x5f, 0x5c, 0x44, 0x2b }} },
+
+    { "video media",
+    { 0xbc19efc0, 0x5b4d, 0x11cf, { 0xa8, 0xfd, 0x00, 0x80, 0x5f, 0x5c, 0x44, 0x2b }} },
+
+    { "command media",
+    { 0x59dacfc0, 0x59e6, 0x11d0, { 0xa3, 0xac, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
+
+
+    /* stream properties object error correction */
+    { "no error correction",
+    { 0x20fb5700, 0x5b55, 0x11cf, { 0xa8, 0xfd, 0x00, 0x80, 0x5f, 0x5c, 0x44, 0x2b }} },
+
+    { "audio spread",
+    { 0xbfc3cd50, 0x618f, 0x11cf, { 0x8b, 0xb2, 0x00, 0xaa, 0x00, 0xb4, 0xe2, 0x20 }} },
+
+
+    /* mutual exclusion object exlusion type */
+    { "mutex bitrate",
+    { 0xd6e22a01, 0x35da, 0x11d1, { 0x90, 0x34, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xbe }} },
+
+    { "mutex unknown", 
+    { 0xd6e22a02, 0x35da, 0x11d1, { 0x90, 0x34, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xbe }} },
+
+
+    /* header extension */
+    { "reserved_1",
+    { 0xabd3d211, 0xa9ba, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
+
+
+    /* script command */
+    { "reserved script command",
+    { 0x4B1ACBE3, 0x100B, 0x11D0, { 0xA3, 0x9B, 0x00, 0xA0, 0xC9, 0x03, 0x48, 0xF6 }} },
+
+    /* marker object */
+    { "reserved marker",
+    { 0x4CFEDB20, 0x75F6, 0x11CF, { 0x9C, 0x0F, 0x00, 0xA0, 0xC9, 0x03, 0x49, 0xCB }} },
+
+    /* various */
+    /* Already defined (reserved_1)
+    { "head2",
+    { 0xabd3d211, 0xa9ba, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
+    */
+    { "audio conceal none",
+    { 0x49f1a440, 0x4ece, 0x11d0, { 0xa3, 0xac, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
+
+    { "codec comment1 header",
+    { 0x86d15241, 0x311d, 0x11d0, { 0xa3, 0xa4, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
+
+    { "asf 2.0 header",
+    { 0xd6e229d1, 0x35da, 0x11d1, { 0x90, 0x34, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xbe }} },
+
 };
 
-static const GUID file_header = {
-  0x8CABDCA1, 0xA947, 0x11CF, { 0x8E, 0xE4, 0x00, 0xC0, 0x0C, 0x20, 0x53, 0x65 },
-};
-
-static const GUID stream_header = {
-  0xB7DC0791, 0xA9B7, 0x11CF, { 0x8E, 0xE6, 0x00, 0xC0, 0x0C, 0x20, 0x53, 0x65 },
-};
-
-
-static const GUID audio_stream = {
-  0xF8699E40, 0x5B4D, 0x11CF, { 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B },
-};
-
-static const GUID audio_conceal_none = {
-  0x49f1a440, 0x4ece, 0x11d0, { 0xa3, 0xac, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 },
-};
-
-static const GUID audio_conceal_interleave = {
-  0xbfc3cd50, 0x618f, 0x11cf, {0x8b, 0xb2, 0x00, 0xaa, 0x00, 0xb4, 0xe2, 0x20} };
-
-
-static const GUID video_stream = {
-  0xBC19EFC0, 0x5B4D, 0x11CF, { 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B },
-};
-
-static const GUID video_conceal_none = {
-  0x20FB5700, 0x5B55, 0x11CF, { 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B },
-};
-
-
-static const GUID control_stream = {
-  0x59dacfc0, 0x59e6, 0x11d0, { 0xa3, 0xac, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 },
-};
-
-
-static const GUID comment_header = {
-  0x75b22633, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c },
-};
-
-static const GUID codec_comment_header = {
-  0x86D15240, 0x311D, 0x11D0, { 0xA3, 0xA4, 0x00, 0xA0, 0xC9, 0x03, 0x48, 0xF6 },
-};
-static const GUID codec_comment1_header = {
-  0x86d15241, 0x311d, 0x11d0, { 0xa3, 0xa4, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 },
-};
-
-
-static const GUID data_header = {
-  0x75b22636, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c },
-};
-
-static const GUID index_guid = {
-  0x33000890, 0xe5b1, 0x11cf, { 0x89, 0xf4, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xcb },
-};
-
-static const GUID head1_guid = {
-  0x5fbf03b5, 0xa92e, 0x11cf, { 0x8e, 0xe3, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 },
-};
-
-static const GUID head2_guid = {
-  0xabd3d211, 0xa9ba, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 },
-};
-
-static const GUID stream_group_guid = {
-  0x7bf875ce, 0x468d, 0x11d1, { 0x8d, 0x82, 0x00, 0x60, 0x97, 0xc9, 0xa2, 0xb2 },
-};
-
-
-/* I am not a number !!! This GUID is the one found on the PC used to
-   generate the stream */
-static const GUID my_guid = {
-  0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 },
-};
 
 static uint8_t get_byte (demux_asf_t *this) {
 
@@ -304,21 +407,31 @@ static uint64_t get_le64 (demux_asf_t *this) {
     | ((uint64_t) buf[7] << 54) ;
 }
 
-static void get_guid (demux_asf_t *this, GUID *g) {
+static int get_guid (demux_asf_t *this) {
   int i;
-
-  g->v1 = get_le32(this);
-  g->v2 = get_le16(this);
-  g->v3 = get_le16(this);
-  for(i=0;i<8;i++) {
-    g->v4[i] = get_byte(this);
+  GUID g;
+  
+  g.v1 = get_le32(this);
+  g.v2 = get_le16(this);
+  g.v3 = get_le16(this);
+  for(i = 0; i < 8; i++) {
+    g.v4[i] = get_byte(this);
   }
+  
+  for (i = 1; i < GUID_END; i++) {
+    if (!memcmp(&g, &guids[i].guid, sizeof(GUID))) {
 #ifdef LOG
-  printf ("demux_asf: GUID: 0x%x, 0x%x, 0x%x, "
-          "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
-          g->v1, g->v2, g->v3,
-          g->v4[0], g->v4[1], g->v4[2], g->v4[3], g->v4[4], g->v4[5], g->v4[6], g->v4[7]);
+      printf ("demux_asf: GUID: %s\n", guids[i].name);
 #endif
+      return i;
+    }
+  }
+  
+  printf ("demux_asf: unknown GUID: 0x%x, 0x%x, 0x%x, "
+          "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
+          g.v1, g.v2, g.v3,
+          g.v4[0], g.v4[1], g.v4[2], g.v4[3], g.v4[4], g.v4[5], g.v4[6], g.v4[7]);
+  return GUID_ERROR;
 }
 
 static void get_str16_nolen(demux_asf_t *this, int len, 
@@ -400,18 +513,12 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
 
 static int asf_read_header (demux_asf_t *this) {
 
-  GUID           g;
+  int            guid;
   uint64_t       gsize;
 
-  get_guid(this, &g);
-  if (memcmp(&g, &asf_header, sizeof(GUID))) {
+  guid = get_guid(this);
+  if (guid != GUID_ASF_HEADER) {
     printf ("demux_asf: file doesn't start with an asf header\n");
-#ifdef LOG
-    printf ("demux_asf: GUID: 0x%x, 0x%x, 0x%x, "
-	    "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
-	    g.v1, g.v2, g.v3,
-	    g.v4[0], g.v4[1], g.v4[2], g.v4[3], g.v4[4], g.v4[5], g.v4[6], g.v4[7]);
-#endif
     return 0;
   }
   get_le64(this);
@@ -419,198 +526,223 @@ static int asf_read_header (demux_asf_t *this) {
   get_byte(this);
   get_byte(this);
 
-  for(;;) {
-    get_guid(this, &g);
-
+  while (this->status != DEMUX_FINISHED) {
+    guid  = get_guid(this);
     gsize = get_le64(this);
 
     if (gsize < 24)
       goto fail;
 
-    if (!memcmp(&g, &file_header, sizeof(GUID))) {
+    switch (guid) {
+      case GUID_ASF_FILE_PROPERTIES:
+        {
+          uint64_t start_time, end_time;
 
-      uint64_t start_time, end_time;
+          guid = get_guid(this);
+          get_le64(this); /* file size */
+          get_le64(this); /* file time */
+          get_le64(this); /* nb_packets */
 
-      get_guid(this, &g);
-      get_le64(this); /* file size */
-      get_le64(this); /* file time */
-      get_le64(this); /* nb_packets */
-
-      end_time =  get_le64 (this); 
+          end_time =  get_le64 (this); 
       
-      this->length = get_le64(this) / 10000000; 
-      if (this->length)
-        this->rate = this->input->get_length (this->input) / this->length;
-      else
-        this->rate = 0;
+          this->length = get_le64(this) / 10000000; 
+          if (this->length)
+            this->rate = this->input->get_length (this->input) / this->length;
+          else
+            this->rate = 0;
 
-      this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate*8;
+          this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate*8;
 
-      start_time = get_le32(this); /* start timestamp in 1/1000 s*/
+          start_time = get_le32(this); /* start timestamp in 1/1000 s*/
 
-      get_le32(this);
-      get_le32(this);
-      this->packet_size = get_le32(this);
-      get_le32(this);
-      get_le32(this);
-
-    } else if (!memcmp(&g, &stream_header, sizeof(GUID))) {
-
-      int           type, total_size, stream_data_size, stream_id;
-      uint64_t      pos1, pos2;
-      xine_bmiheader   *bih     = (xine_bmiheader *) this->bih;
-      xine_waveformatex  *wavex = (xine_waveformatex *) this->wavex ;
-            
-      pos1 = this->input->get_current_pos (this->input);
-
-      get_guid(this, &g);
-      if (!memcmp(&g, &audio_stream, sizeof(GUID))) {
-        type = CODEC_TYPE_AUDIO;
-      } else if (!memcmp(&g, &video_stream, sizeof(GUID))) {
-        type = CODEC_TYPE_VIDEO;
-      } else if (!memcmp(&g, &control_stream, sizeof(GUID))) {
-        type = CODEC_TYPE_CONTROL;
-      } else {
-        goto fail;
-      }
-      get_guid(this, &g);
-      get_le64(this);
-      total_size = get_le32(this);
-      stream_data_size = get_le32(this); 
-      stream_id = get_le16(this); /* stream id */
-      get_le32(this);
-
-      if (type == CODEC_TYPE_AUDIO) {
-        uint8_t buffer[6];
-
-        this->input->read (this->input, (uint8_t *) this->wavex, total_size);
-        xine_waveformatex_le2me( (xine_waveformatex *) this->wavex );
-
-        /*
-        printf ("total size: %d bytes\n", total_size);
-        */
-        
-        /*
-        this->input->read (this->input, (uint8_t *) &this->wavex[9], this->wavex[8]);
-        */
-        if (!memcmp(&g, &audio_conceal_interleave, sizeof(GUID))) {
-          this->input->read (this->input, buffer, 6);
-          this->reorder_h = buffer[0];
-          this->reorder_w = (buffer[2]<<8)|buffer[1];
-          this->reorder_b = (buffer[4]<<8)|buffer[3];
-          this->reorder_w /= this->reorder_b;
-          printf ("demux_asf: audio conceal interleave detected (%d x %d x %d)\n",
-                  this->reorder_w, this->reorder_h, this->reorder_b );
-        } else {
-          this->reorder_b=this->reorder_h=this->reorder_w=1;        
+          get_le32(this); /* unknown */
+          get_le32(this); /* min size */
+          this->packet_size = get_le32(this); /* max size */
+          get_le32(this); /* max bitrate */
+          get_le32(this);
         }
+        break;
 
-        this->wavex_size = total_size; /* 18 + this->wavex[8]; */
+      case (GUID_ASF_STREAM_PROPERTIES):
+        {
+          int           type;
+          uint32_t      total_size, stream_data_size;
+	  uint16_t      stream_id;
+          uint64_t      pos1, pos2;
+          xine_bmiheader   *bih     = (xine_bmiheader *) this->bih;
+          xine_waveformatex  *wavex = (xine_waveformatex *) this->wavex ;
+            
+          pos1 = this->input->get_current_pos (this->input);
 
-        this->streams[this->num_streams].buf_type = 
-          formattag_to_buf_audio ( wavex->wFormatTag );
+          guid = get_guid(this);
+          switch (guid) {
+            case GUID_ASF_AUDIO_MEDIA:
+              type = CODEC_TYPE_AUDIO;
+              break;
+    
+            case GUID_ASF_VIDEO_MEDIA:
+              type = CODEC_TYPE_VIDEO;
+              break;
+          
+            case GUID_ASF_COMMAND_MEDIA:
+              type = CODEC_TYPE_CONTROL;
+              break;
+        
+            default:
+              goto fail;
+          }
+        
+          guid = get_guid(this);
+          get_le64(this);
+          total_size = get_le32(this);
+          stream_data_size = get_le32(this); 
+          stream_id = get_le16(this); /* stream id */
+          get_le32(this);
 
-        this->streams[this->num_streams].fifo        = this->audio_fifo;
-        this->streams[this->num_streams].stream_id   = stream_id;
-        this->streams[this->num_streams].frag_offset = 0;
-        this->streams[this->num_streams].seq         = 0;
-        if (this->reorder_h > 1 && this->reorder_w > 1 ) {
-          if( !this->streams[this->num_streams].buffer )
-            this->streams[this->num_streams].buffer = malloc( DEFRAG_BUFSIZE );
-          this->streams[this->num_streams].defrag = 1;
-        } else
-          this->streams[this->num_streams].defrag = 0;
+          if (type == CODEC_TYPE_AUDIO) {
+            uint8_t buffer[6];
+
+            this->input->read (this->input, (uint8_t *) this->wavex, total_size);
+            xine_waveformatex_le2me( (xine_waveformatex *) this->wavex );
+
+            /*
+            printf ("total size: %d bytes\n", total_size);
+            */
+        
+            /*
+            this->input->read (this->input, (uint8_t *) &this->wavex[9], this->wavex[8]);
+            */
+            if (guid == GUID_ASF_AUDIO_SPREAD) {
+              this->input->read (this->input, buffer, 6);
+              this->reorder_h = buffer[0];
+              this->reorder_w = (buffer[2]<<8)|buffer[1];
+              this->reorder_b = (buffer[4]<<8)|buffer[3];
+              this->reorder_w /= this->reorder_b;
+              printf ("demux_asf: audio conceal interleave detected (%d x %d x %d)\n",
+                      this->reorder_w, this->reorder_h, this->reorder_b );
+            } else {
+              this->reorder_b=this->reorder_h=this->reorder_w=1;        
+            }
+
+            this->wavex_size = total_size; /* 18 + this->wavex[8]; */
+
+            this->streams[this->num_streams].buf_type = 
+              formattag_to_buf_audio ( wavex->wFormatTag );
+
+            this->streams[this->num_streams].fifo        = this->audio_fifo;
+            this->streams[this->num_streams].stream_id   = stream_id;
+            this->streams[this->num_streams].frag_offset = 0;
+            this->streams[this->num_streams].seq         = 0;
+            if (this->reorder_h > 1 && this->reorder_w > 1 ) {
+              if( !this->streams[this->num_streams].buffer )
+                this->streams[this->num_streams].buffer = malloc( DEFRAG_BUFSIZE );
+              this->streams[this->num_streams].defrag = 1;
+            } else
+              this->streams[this->num_streams].defrag = 0;
         
 #ifdef LOG
-        printf ("demux_asf: found a_stream id=%d \n", stream_id);
+            printf ("demux_asf: found a_stream id=%d \n", stream_id);
 #endif
-        this->num_audio_streams++;
-      }
-      else if (type == CODEC_TYPE_VIDEO) {
+            this->num_audio_streams++;
+          }
+          else if (type == CODEC_TYPE_VIDEO) {
 
-        int i;
+            uint16_t i;
 
-        get_le32(this); /* width */
-        get_le32(this); /* height */
-        get_byte(this);
+            get_le32(this); /* width */
+            get_le32(this); /* height */
+            get_byte(this);
 
-        i = get_le16(this); /* size */
-        if( i > 0 && i < sizeof(this->bih) ) {
-          this->bih_size = i;
-          this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
-          xine_bmiheader_le2me( (xine_bmiheader *) this->bih );
+            i = get_le16(this); /* size */
+            if( i > 0 && i < sizeof(this->bih) ) {
+              this->bih_size = i;
+              this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
+              xine_bmiheader_le2me( (xine_bmiheader *) this->bih );
 
-          this->streams[this->num_streams].buf_type = 
-            fourcc_to_buf_video(bih->biCompression);
+              this->streams[this->num_streams].buf_type = 
+                fourcc_to_buf_video(bih->biCompression);
 
-          this->streams[this->num_streams].fifo         = this->video_fifo;
-          this->streams[this->num_streams].stream_id    = stream_id;
-          this->streams[this->num_streams].frag_offset  = 0;
-          this->streams[this->num_streams].defrag       = 0;
+              this->streams[this->num_streams].fifo         = this->video_fifo;
+              this->streams[this->num_streams].stream_id    = stream_id;
+              this->streams[this->num_streams].frag_offset  = 0;
+              this->streams[this->num_streams].defrag       = 0;
 
-        } else
-          printf ("demux_asf: invalid bih_size received (%d), v_stream ignored.\n", i );
+            } else
+              printf ("demux_asf: invalid bih_size received (%d), v_stream ignored.\n", i );
 
 #ifdef LOG
-        printf ("demux_asf: found v_stream id=%d \n", stream_id);
+            printf ("demux_asf: found v_stream id=%d \n", stream_id);
 #endif
-        this->num_video_streams++;
-      }
-      else if (type == CODEC_TYPE_CONTROL) {
-        while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
-        while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
-      }
+            this->num_video_streams++;
+          }
+          else if (type == CODEC_TYPE_CONTROL) {
+            printf ("demux_asf: CODEC_TYPE_CONTROL\n");
 
-      this->num_streams++;
-      pos2 = this->input->get_current_pos (this->input);
-      this->input->seek (this->input, gsize - (pos2 - pos1 + 24), SEEK_CUR);
+            /* This code does'nt work
+            while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
+            while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
+            */  
+          }
 
-    } else if (!memcmp(&g, &data_header, sizeof(GUID))) {
-      break;
+          this->num_streams++;
+          pos2 = this->input->get_current_pos (this->input);
+          this->input->seek (this->input, gsize - (pos2 - pos1 + 24), SEEK_CUR);
+        }
+        break;
 
-    } else if (!memcmp(&g, &comment_header, sizeof(GUID))) {
-      int len1, len2, len3, len4, len5;
+      case GUID_ASF_DATA:
+#ifdef LOG
+          printf ("demux_asf: found data\n");
+#endif
+        goto headers_ok;
+        break;
+      case GUID_ASF_CONTENT_DESCRIPTION:
+        {
+          uint16_t len1, len2, len3, len4, len5;
 
-      len1 = get_le16(this);
-      len2 = get_le16(this);
-      len3 = get_le16(this);
-      len4 = get_le16(this);
-      len5 = get_le16(this);
-      get_str16_nolen(this, len1, this->title, sizeof(this->title));
-      get_str16_nolen(this, len2, this->author, sizeof(this->author));
-      get_str16_nolen(this, len3, this->copyright, sizeof(this->copyright));
-      get_str16_nolen(this, len4, this->comment, sizeof(this->comment));
-      this->input->seek (this->input, len5, SEEK_CUR);
-      /*
-        } else if (url_feof(this)) {
-	goto fail;
-      */
-    } else if (!memcmp(&g, &stream_group_guid, sizeof(GUID))) {
-      int streams;
-      int stream_id;
-      int i;
+          len1 = get_le16(this);
+          len2 = get_le16(this);
+          len3 = get_le16(this);
+          len4 = get_le16(this);
+          len5 = get_le16(this);
+          get_str16_nolen(this, len1, this->title, sizeof(this->title));
+          get_str16_nolen(this, len2, this->author, sizeof(this->author));
+          get_str16_nolen(this, len3, this->copyright, sizeof(this->copyright));
+          get_str16_nolen(this, len4, this->comment, sizeof(this->comment));
+          this->input->seek (this->input, len5, SEEK_CUR);
+          /*
+            } else if (url_feof(this)) {
+              goto fail;
+          */
+        }
+        break;
+
+      case GUID_ASF_STREAM_BITRATE_PROPERTIES:
+        {
+          uint16_t streams, stream_id;
+          uint16_t i;
   
 #ifdef LOG
-      printf("demux_asf: GUID stream group\n");
+          printf("demux_asf: GUID stream group\n");
 #endif
 
-      streams = get_le16(this);
-      for(i = 0; i < streams; i++) {
-        stream_id = get_le16(this);
-        this->bitrates[stream_id] = get_le32(this);
-      }
+          streams = get_le16(this);
+          for(i = 0; i < streams; i++) {
+            stream_id = get_le16(this);
+            this->bitrates[stream_id] = get_le32(this);
+          }
+        }
+        break;
 
-    } else {
-      this->input->seek (this->input, gsize - 24, SEEK_CUR);
+      default:
+        this->input->seek (this->input, gsize - 24, SEEK_CUR);
     }
   }
-  get_guid(this, &g);
-  get_le64(this);
-  get_byte(this);
-  get_byte(this);
-
+ 
+ headers_ok:  
+  this->input->seek (this->input, sizeof(GUID) + 10, SEEK_CUR);
   this->packet_size_left = 0;
-
+  this->first_packet_pos = this->input->get_current_pos (this->input);
   return 1;
 
  fail:
@@ -618,89 +750,123 @@ static int asf_read_header (demux_asf_t *this) {
 }
 
 static void asf_reorder(demux_asf_t *this, uint8_t *src, int len){
-  uint8_t *dst=malloc(len);
-  uint8_t *s2=src;
-  int i=0,x,y;
+  uint8_t *dst = malloc(len);
+  uint8_t *s2 = src;
+  int i = 0, x, y;
   
-  while(len-i >= this->reorder_h*this->reorder_w*this->reorder_b){
-	for(x=0;x<this->reorder_w;x++)
-	  for(y=0;y<this->reorder_h;y++){
-	    memcpy(dst+i,s2+(y*this->reorder_w+x)*this->reorder_b,this->reorder_b);
-		i+=this->reorder_b;
-	  }
-	s2+=this->reorder_h*this->reorder_w*this->reorder_b;
+  while(len-i >= this->reorder_h * this->reorder_w*this->reorder_b){
+        for(x = 0; x < this->reorder_w; x++)
+          for(y = 0; y < this->reorder_h; y++){
+            memcpy(dst + i, s2 + (y * this->reorder_w+x) * this->reorder_b,
+                   this->reorder_b);
+            i += this->reorder_b;
+          }
+        s2 += this->reorder_h * this->reorder_w * this->reorder_b;
   }
 
   xine_fast_memcpy(src,dst,i);
   free(dst);
 }
 
-static int asf_get_packet(demux_asf_t *this) {
+static uint32_t asf_get_packet(demux_asf_t *this) {
 
-  int64_t  timestamp;
-  int      hdr_size;
-  uint32_t sig = 0;
-  int      duration;
-  int      packet_size;
+  int64_t   timestamp;
+  int       duration;
+  uint32_t  data_size;
+  uint8_t   ecc_flags = 0;
+  uint8_t   buf[16];
+  uint32_t  p_hdr_size = 0;
+#ifdef LOG
+  int       i;
+#endif
+  
+  ecc_flags = get_byte(this); p_hdr_size += 1;
+  p_hdr_size += this->input->read (this->input, buf, ecc_flags & 15);
+#ifdef LOG
+  printf("ecc_flags: %d ", ecc_flags);
+  for (i = 0; i < (ecc_flags & 15); i++) 
+    printf(", %d", buf[i]);
+  printf("\n");
+#endif
 
-  hdr_size = 11;
-
-  while ( (this->status == DEMUX_OK) && (sig != 0x820000) ) {
-    sig = ((sig << 8) | get_byte(this)) & 0xFFFFFF;
-  }       
   if( this->status != DEMUX_OK )
     return 0;
   
-  this->packet_flags = get_byte(this);
-  this->segtype = get_byte(this);
-  this->packet_padsize = 0;
+  this->packet_flags = get_byte(this);  p_hdr_size += 1;
+  this->segtype = get_byte(this);  p_hdr_size += 1;
 
-  if (this->packet_flags & 0x40) { 
-
-    /* packet size given */
-
-    packet_size = get_le16(this);
-#ifdef LOG
-    printf ("demux_asf: absolute packet size is %d\n", packet_size);
-#endif
-    hdr_size += 2;
-
-    if (this->packet_flags & 0x10) {
-      /* FIXME: ignore ? this->packet_padsize =*/ get_le16(this);
-      hdr_size += 2;
-    } else if (this->packet_flags & 0x08) {
-      /* FIXME: ignore ? this->packet_padsize =*/ get_byte(this);
-      hdr_size++;
-    }
-  } else {
-    packet_size = this->packet_size;
-      
-    if (this->packet_flags & 0x10) {
-      this->packet_padsize = get_le16(this);
-      hdr_size += 2;
-    } else if (this->packet_flags & 0x08) {
-      this->packet_padsize = get_byte(this);
-      hdr_size++;
-    }
+  /* Read packet size (plen): */
+  switch((this->packet_flags >> 5) & 3) {
+    case 1:
+      data_size = get_byte(this); p_hdr_size += 1;
+      break;
+    case 2:
+      data_size = get_le16(this); p_hdr_size += 2;
+      break;
+    case 3:
+      data_size = get_le32(this); p_hdr_size += 4;
+      break;
+    default:
+      data_size = 0;
   }
 
-  timestamp = get_le32(this);
-  duration  = get_le16(this) ; /* duration */
+  /* Read sequence: */
+  switch ((this->packet_flags >> 1) & 3) {
+    case 1:
+      get_byte(this); p_hdr_size += 1;
+      break;
+    case 2:
+      get_le16(this); p_hdr_size += 2;
+      break;
+    case 3:
+      get_le32(this); p_hdr_size += 4;
+      break;
+  }
+
+  /* Read padding size */
+  switch ((this->packet_flags >> 3) & 3){
+    case 1:
+      this->packet_padsize = get_byte(this); p_hdr_size += 1;
+      break;
+    case 2:
+      this->packet_padsize = get_le16(this); p_hdr_size += 2;
+      break;
+    case 3:
+      this->packet_padsize = get_le32(this); p_hdr_size += 4;
+      break;
+    default:
+      this->packet_padsize = 0;
+  }
+    
+  timestamp = get_le32(this); p_hdr_size += 4;
+  duration  = get_le16(this); p_hdr_size += 2;
+  
   if (this->packet_flags & 0x01) {
-    this->nb_frames = get_byte(this); /* nb_frames */
-    hdr_size++;
-  }
-  else
+    this->nb_frames = get_byte(this) & 0x3F; p_hdr_size += 1;
+  } else {
     this->nb_frames = 1;
-
+  }
+    
   this->frame = 0;
     
-  this->packet_size_left = packet_size - hdr_size;
-
-  /*
-    printf ("demux_asf: new packet, size = %d, flags = 0x%02x, padsize = %d\n",
-    this->packet_size_left, this->packet_flags, this->packet_padsize);
-  */
+  if ((this->packet_flags >> 5) & 3) {
+    /* absolute packet size */
+#ifdef LOG
+    printf ("demux_asf: absolute packet size\n");
+#endif
+    this->packet_padsize = this->packet_size - data_size;
+  } else {
+    /* relative packet size */
+#ifdef LOG
+    printf ("demux_asf: relative packet size\n");
+#endif
+  }
+  this->packet_size_left = this->packet_size - p_hdr_size;
+  
+#ifdef LOG
+  printf ("demux_asf: new packet, size = %d, size_left = %d, flags = 0x%02x, padsize = %d, this->packet_size = %d\n",
+    data_size, this->packet_size_left, this->packet_flags, this->packet_padsize, this->packet_size);
+#endif
 
   return 1;
 }
@@ -708,9 +874,9 @@ static int asf_get_packet(demux_asf_t *this) {
 static void hexdump (unsigned char *data, int len, xine_t *xine) {
   int i;
 
-  for (i=0; i<len; i++)
-    printf ( "%02x ", data[i]);
-  printf ("\n");
+  for (i = 0; i < len; i++)
+    printf("%02x ", data[i]);
+  printf("\n");
 
 }
 
@@ -722,7 +888,6 @@ static void asf_send_discontinuity (demux_asf_t *this, int64_t pts) {
 
   if (this->buf_flag_seek) {
     xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
-    xine_demux_flush_engine(this->stream);
     this->buf_flag_seek = 0;
   } else {
     xine_demux_control_newpts(this->stream, pts, 0);
@@ -788,9 +953,13 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
     buf->pts        = timestamp * 90;
 
-    if (buf->pts && this->send_discontinuity && this->keyframe_found) {
-      this->send_discontinuity=0;
-      asf_send_discontinuity (this, buf->pts);
+    if (buf->pts && this->send_discontinuity) {
+      if (this->keyframe_found) {
+        this->send_discontinuity = 0;
+        asf_send_discontinuity (this, buf->pts);
+      } else {
+        buf->pts = 0;
+      }
     }
 
     buf->type       = stream->buf_type;
@@ -804,13 +973,12 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     if (stream->frag_offset == payload_size) {
 
       if ( (buf->type & BUF_MAJOR_MASK) == BUF_VIDEO_BASE) {
-	if (buf->pts && this->last_video_pts) 
+	if (buf->pts && this->last_video_pts) {
 	  this->frame_duration = (3*this->frame_duration + (buf->pts - this->last_video_pts)) / 4;
-
-	/*
+        }
+#ifdef LOG
 	printf ("demux_asf: frame_duration is %d\n", this->frame_duration);
-	*/
-
+#endif
 	this->last_video_pts = buf->pts;
 
 	buf->decoder_flags   = BUF_FLAG_FRAME_END | BUF_FLAG_FRAMERATE;
@@ -881,13 +1049,13 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 	      buf->input_time = 0 ;
 	    }
           
-	    buf->pts        = stream->timestamp * 90 + stream->ts_per_kbyte * 
+	    buf->pts = stream->timestamp * 90 + stream->ts_per_kbyte * 
 	      (p-stream->buffer) / 1024; 
 
 	    if (buf->pts && this->send_discontinuity) {
 	      buf->pts = 0;
 	    }
-
+	    
 	    buf->type       = stream->buf_type;
 	    buf->size       = bufsize;
 
@@ -935,21 +1103,28 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
   }
 }
 
-
 static void asf_read_packet(demux_asf_t *this) {
 
-  int            raw_id, stream_id, seq, frag_offset, payload_size, frag_len;
-  int            flags, i;
+  uint8_t        raw_id,  stream_id;
+  uint32_t       seq, frag_offset, payload_size, frag_len, rlen;
+  int            i;
   int64_t        timestamp;
   asf_stream_t  *stream;
-
-  if ((this->packet_size_left < FRAME_HEADER_SIZE) ||
-      (this->packet_size_left <= this->packet_padsize) ||
-      (++this->frame == (this->nb_frames & 0x3f)) ) {
-    /* fail safe */
-
+  
+  uint32_t       s_hdr_size = 0;
+  
+  uint64_t       current_pos;
+  uint32_t       mod;
+  uint32_t       psl;
+     
+  if ((++this->frame == (this->nb_frames & 0x3f)) ) {
+    psl = this->packet_size_left;
+    current_pos = this->input->get_current_pos (this->input);
+    mod = (current_pos - this->first_packet_pos) % this->packet_size;
+    this->packet_size_left = mod ? this->packet_size - mod : 0;
+        
 #ifdef LOG
-    printf ("demux_asf: reading new packet, packet size left %d\n", this->packet_size_left);
+    printf ("demux_asf: reading new packet, packet size left %d, %d\n", psl, this->packet_size_left);
 #endif
 
     if (this->packet_size_left)
@@ -960,17 +1135,25 @@ static void asf_read_packet(demux_asf_t *this) {
       this->status = DEMUX_FINISHED;
       return ;
     }
+    
+    if ((this->packet_padsize < 0) || (this->packet_padsize > this->packet_size)) {
+      /* skip packet */
+      printf ("demux_asf: invalid padsize\n");
+      this->frame = this->nb_frames - 1;
+      return;
+    }
   }
-  
+
   /* read segment header, find stream */
 
-  raw_id     = get_byte(this);
+  raw_id     = get_byte(this); s_hdr_size += 1;
   stream_id  = raw_id & 0x7f;
 
   stream    = NULL;
 #ifdef LOG
-  printf ("asf_demuxer: got raw_id =%d keyframe_found=%d\n", raw_id, this->keyframe_found);
+  printf ("demux_asf: got raw_id =%d keyframe_found=%d\n", raw_id, this->keyframe_found);
 #endif
+  
   if ( (raw_id & 0x80) || this->keyframe_found || (this->num_video_streams==0)) {
     for (i = 0; i < this->num_streams; i++){
       if (this->streams[i].stream_id == stream_id &&
@@ -979,134 +1162,191 @@ static void asf_read_packet(demux_asf_t *this) {
       }
     }
   }
-
-  seq           = get_byte(this);
-  switch (this->segtype){
-  case 0x55:
-    frag_offset = get_byte(this);
-    this->packet_size_left -= 1;
+  
+  switch ((this->segtype >> 4) & 3){
+  case 1:
+    seq = get_byte(this); s_hdr_size += 1;
     break;
-  case 0x59:
-    frag_offset = get_le16(this);
-    this->packet_size_left -= 2;
+  case 2:
+    seq = get_le16(this); s_hdr_size += 2;
     break;
-  case 0x5D:
-    frag_offset = get_le32(this);
-    this->packet_size_left -= 4;
+  case 3:
+    seq = get_le32(this); s_hdr_size += 4;
     break;
   default:
-    printf ("demux_asf: unknown segtype %x\n", this->segtype);
-    frag_offset = 0;
+    seq = 0;
     break;
   }
   
+  switch ((this->segtype >> 2) & 3) {
+    case 1:
+      frag_offset = get_byte(this); s_hdr_size += 1;
+      break;
+    case 2:
+      frag_offset = get_le16(this); s_hdr_size += 2;
+      break;
+    case 3:
+      frag_offset = get_le32(this); s_hdr_size += 4;
+      break;
+    default:
+      printf ("demux_asf: unknown segtype %x\n", this->segtype);
+      /* skip packet */
+      this->frame = this->nb_frames - 1;
+      return;
+      break;
+  }
+
   /* only set keyframe_found if we have it's beginning */
   if( (raw_id & 0x80) && stream && !frag_offset )
     this->keyframe_found = 1;
-       
-  flags         = get_byte(this); 
+
+  switch (this->segtype & 3) {
+    case 1:
+      rlen = get_byte(this); s_hdr_size += 1;
+      break;
+    case 2:
+      rlen = get_le16(this); s_hdr_size += 2;
+      break;
+    case 3:
+      rlen = get_le32(this); s_hdr_size += 4;
+      break;
+    default:
+      rlen = 0;
+      break;
+  }
+
+  if (rlen > this->packet_size_left) {
+    /* skip packet */
+    printf ("demux_asf: invalid rlen %d\n", rlen); 
+    this->frame = this->nb_frames - 1;
+    return;
+  }
 
 #ifdef LOG
     printf ("demux_asf: segment header, stream id %02x, frag_offset %d, flags : %02x\n", 
-	    stream_id, frag_offset, flags);
+            stream_id, frag_offset, rlen);
 #endif
 
-  if (flags == 1) {
+  if (rlen == 1) {
     int data_length, data_sent=0;
 
     timestamp = frag_offset;
-    get_byte (this);
-
+    get_byte (this); s_hdr_size += 1;
 
     if (this->packet_flags & 0x01) {
-      if( (this->nb_frames & 0xc0) == 0x40 ) {
-        data_length = get_byte (this);
-	this->packet_size_left --;
-      } else {
-        data_length = get_le16 (this);
-	this->packet_size_left -= 2;
+      switch ((this->nb_frames >> 6) & 3) {
+        case 1:
+          data_length = get_byte(this); s_hdr_size += 1;
+          break;
+        case 2:
+          data_length = get_le16(this); s_hdr_size += 2;
+          break;
+        case 3:
+          data_length = get_le32(this); s_hdr_size += 4;
+          break;
+        default:
+#ifdef LOG
+          printf ("demux_asf: this->nb_frames is null\n"); 
+#endif
+          data_length = get_le16(this); s_hdr_size += 2;
       }
-      this->packet_size_left -= data_length + 4;
       
-      /*
-	printf ("demux_asf: reading grouping part segment, size = %d\n",
-	data_length);
-      */
+#ifdef LOG
+        printf ("demux_asf: reading grouping part segment, size = %d\n", data_length);
+#endif
 
     } else {
 
-      data_length = this->packet_size_left - 4 - this->packet_padsize; 
-      this->packet_size_left = this->packet_padsize;
-
-      /*
-	printf ("demux_asf: reading grouping single segment, size = %d\n", data_length); 
-      */
+      data_length = this->packet_size_left - s_hdr_size - this->packet_padsize; 
+#ifdef LOG
+        printf ("demux_asf: reading grouping single segment, size = %d\n", data_length); 
+#endif
     }
 
+    if (data_length > this->packet_size_left) {
+      /* skip packet */
+      printf ("demux_asf: invalid data_length\n");
+      this->frame = this->nb_frames - 1;
+      return;
+    }
+    
+    this->packet_size_left -= s_hdr_size;
+    
     while (data_sent < data_length) {
       int object_length = get_byte(this);
-
-      /*
-	printf ("demux_asf: sending grouped object, len = %d\n", object_length);
-      */
+      
+#ifdef LOG
+      printf ("demux_asf: sending grouped object, len = %d\n", object_length);
+#endif
+      
 
       if (stream) {
 #ifdef LOG
-      printf ("demux_asf: sending buffer of type %08x\n", stream->buf_type);
+        printf ("demux_asf: sending buffer of type %08x\n", stream->buf_type);
 #endif
 
-	if (stream->defrag)
+        if (stream->defrag)
           asf_send_buffer_defrag (this, stream, 0, seq, timestamp, 
-				  object_length, object_length);
+                                  object_length, object_length);
         else
           asf_send_buffer_nodefrag (this, stream, 0, seq, timestamp,
-				    object_length, object_length);
+                                    object_length, object_length);
+      } else {
+        printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
+        this->input->seek (this->input, object_length, SEEK_CUR);
       }
-      else {
-#ifdef LOG
-	printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
-#endif
-	this->input->seek (this->input, object_length, SEEK_CUR);
-      }
-
       seq++;
-      data_sent += object_length+1;
+      data_sent += object_length + 1;
+      this->packet_size_left -= object_length + 1;
       timestamp = 0;
-
     }
 
   } else {
 
-    payload_size  = get_le32(this);
-    timestamp     = get_le32(this);
+    if (rlen >= 8) {
+      payload_size  = get_le32(this); s_hdr_size += 4;
+      timestamp     = get_le32(this); s_hdr_size += 4;
+      this->input->seek (this->input, rlen - 8, SEEK_CUR);
+      s_hdr_size += rlen - 8;
+    } else {
+      printf ("demux_asf: strange rlen %d\n", rlen);
+      timestamp    = 0;
+      payload_size = 0; 
+      this->input->seek (this->input, rlen, SEEK_CUR);
+      s_hdr_size += rlen;
+    }
+    
     if (this->packet_flags & 0x01) {
       if( (this->nb_frames & 0xc0) == 0x40 ) {
-        frag_len    = get_byte(this);
-        this->packet_size_left--;
+        frag_len    = get_byte(this); s_hdr_size += 1;
       } else {
-        frag_len      = get_le16(this);
-        this->packet_size_left -= 2;
+        frag_len      = get_le16(this); s_hdr_size += 2;
       }        
-      this->packet_size_left -= FRAME_HEADER_SIZE + frag_len - 6;
-      
-      /*
-	printf ("demux_asf: reading part segment, size = %d\n",
-	frag_len);
-      */
-
+#ifdef LOG
+      printf ("demux_asf: reading part segment, size = %d\n", frag_len);
+#endif
     } else {
-      frag_len = this->packet_size_left - 11 - this->packet_padsize; 
-      this->packet_size_left = this->packet_padsize;
-      
-      /*
-	printf ("demux_asf: reading single segment, size = %d\n", frag_len); 
-      */
-
+      frag_len = this->packet_size_left - s_hdr_size - this->packet_padsize; 
+#ifdef LOG
+      printf ("demux_asf: reading single segment, size = %d\n", frag_len); 
+#endif
     }
 
+    if (frag_len > this->packet_size_left) {
+      /* skip packet */
+      printf ("demux_asf: invalid rlen %d\n", rlen);
+      this->frame = this->nb_frames - 1;
+      return;
+    }
     
-    if (stream) {
+    if (!payload_size) {
+      payload_size = frag_len; 
+    }
+    
+    this->packet_size_left -= s_hdr_size;
 
+    if (stream) {
+    
 #ifdef LOG
       printf ("demux_asf: sending buffer of type %08x\n", stream->buf_type);
 #endif
@@ -1118,12 +1358,10 @@ static void asf_read_packet(demux_asf_t *this) {
         asf_send_buffer_nodefrag (this, stream, frag_offset, seq, timestamp,
                                   frag_len, payload_size);
     } else {
-
-#ifdef LOG
       printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
-#endif
       this->input->seek (this->input, frag_len, SEEK_CUR);
-    }  
+    }
+    this->packet_size_left -= frag_len;
   }
 }
   
@@ -1264,6 +1502,8 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
     asf_send_video_header(this, this->video_stream);
   }
 
+  this->frame = 0;
+  this->nb_frames = 1;
   xine_demux_control_headers_done (this->stream);
 }
 
@@ -1272,6 +1512,9 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
 
+  printf("demux_asf: demux_asf_seek begin\n");
+  
+  
   this->status = DEMUX_OK;
 
   xine_demux_flush_engine(this->stream);
@@ -1282,6 +1525,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   this->send_discontinuity       = 1;
   this->last_video_pts           = 0;
   this->frame                    = 0;
+  this->nb_frames                = 1;
   this->packet_size_left         = 0;
   this->keyframe_found           = (this->num_video_streams==0);
 
@@ -1294,6 +1538,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
       start_pos = this->header_size;
 
     this->input->seek (this->input, start_pos, SEEK_SET);
+  
   }
 
   /*
@@ -1306,6 +1551,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     this->buf_flag_seek = 1;
   }
 
+  printf("demux_asf: demux_asf_seek end\n");
   return this->status;
 }
 
@@ -1355,7 +1601,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       } else
 	return NULL;
     }      
-    if (memcmp(buf, &asf_header, sizeof(GUID)))
+    if (memcmp(buf, &guids[GUID_ASF_HEADER].guid, sizeof(GUID)))
       return NULL;
       
 #ifdef LOG
