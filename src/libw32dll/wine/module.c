@@ -209,7 +209,7 @@ WINE_MODREF *MODULE_FindModule(LPCSTR m)
     return list->wm;
 }    
 
-void MODULE_RemoveFromList(WINE_MODREF *mod)
+static void MODULE_RemoveFromList(WINE_MODREF *mod)
 {
     modref_list* list=local_wm;
     if(list==0)

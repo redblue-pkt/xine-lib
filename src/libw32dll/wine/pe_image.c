@@ -34,10 +34,10 @@
  *   to 4096 byte boundaries on disk.
  */
 #include "config.h"
-#include "config.h"
 
 #include <errno.h>
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -54,7 +54,7 @@
 #include "pe_image.h"
 #include "module.h"
 #include "debugtools.h"
-
+#include "ext.h"
 #include "win32.h"
 
 #define RVA(x) ((void *)((char *)load_addr+(unsigned int)(x)))
@@ -64,7 +64,7 @@
 extern void* LookupExternal(const char* library, int ordinal);
 extern void* LookupExternalByName(const char* library, const char* name);
 
-void dump_exports( HMODULE hModule )
+static void dump_exports( HMODULE hModule )
 { 
   char		*Module;
   int		i, j;
@@ -236,7 +236,7 @@ FARPROC PE_FindExportedFunction(
 	}
 }
 
-DWORD fixup_imports( WINE_MODREF *wm )
+static DWORD fixup_imports( WINE_MODREF *wm )
 {
     IMAGE_IMPORT_DESCRIPTOR	*pe_imp;
     PE_MODREF			*pem;

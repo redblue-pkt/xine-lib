@@ -21,6 +21,7 @@
 #include "module.h"
 #include "debugtools.h"
 #include "winerror.h"
+#include "resource.h"
 #define CP_ACP					0
 
 WORD WINE_LanguageId=0x409;//english

@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "winbase.h"
@@ -38,9 +39,7 @@
 
 #pragma pack(1)
 #define OpenDriverA DrvOpen
-extern HDRVR VFWAPI DrvOpen(long);
 #define CloseDriver DrvClose
-extern HDRVR VFWAPI DrvClose(long);
 
 static PWINE_ACMSTREAM	ACM_GetStream(HACMSTREAM has)
 {
@@ -274,7 +273,7 @@ PWINE_ACMDRIVERID MSACM_RegisterDriver(LPSTR pszDriverAlias, LPSTR pszFileName,
 { 
     PWINE_ACMDRIVERID padid;
 
-    TRACE("('%s', '%x', 0x%08x)\n", pszDriverAlias, pszFileName, hinstModule);
+    TRACE("('%s', '%s', 0x%08x)\n", pszDriverAlias, pszFileName, hinstModule);
 
     padid = (PWINE_ACMDRIVERID) HeapAlloc(MSACM_hHeap, 0, sizeof(WINE_ACMDRIVERID));
     padid->pszDriverAlias = (char*)malloc(strlen(pszDriverAlias)+1);

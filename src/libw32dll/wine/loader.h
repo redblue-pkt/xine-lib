@@ -49,7 +49,7 @@ LRESULT VFWAPI ICClose(HIC hic);
 LRESULT	VFWAPI ICSendMessage(HIC hic, unsigned int msg, long dw1, long dw2);
 HIC	VFWAPI ICLocate(long fccType, long fccHandler, LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut, short wFlags);
 
-int VFWAPI ICDoSomething();
+int VFWAPI ICDoSomething(void);
 
 #define ICCompressGetFormat(hic, lpbiInput, lpbiOutput) 		\
 	ICSendMessage(							\

@@ -109,4 +109,7 @@ DWORD WINAPI GetDriverFlags( HDRVR hDriver );
 #define WINE_GDF_16BIT	0x10000000
 #endif
 
+extern HDRVR DrvOpen(LPARAM lParam2);
+extern void DrvClose(HDRVR hdrvr);
+
 #endif  /* __WINE_DRIVER_H */

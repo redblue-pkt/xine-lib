@@ -3,7 +3,9 @@
  *        we need all these tests and checks in our
  *        configure.in
  */
-
+#if 1
+#include "../../config.h"
+#else
 
 /* include/config.h.  Generated automatically by configure.  */
 /* include/config.h.in.  Generated automatically from configure.in by autoheader.  */
@@ -447,3 +449,4 @@
 
 /* Define if you have the xpg4 library (-lxpg4).  */
 /* #undef HAVE_LIBXPG4 */
+#endif

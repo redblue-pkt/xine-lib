@@ -31,7 +31,7 @@
 #include "winerror.h"
 #include "debugtools.h"
 #include "module.h"
-
+#include "resource.h"
 #include "registry.h"
 #include "loader.h"
 
@@ -98,7 +98,7 @@ static void longcount(long long* z)
 }
 #endif
 
-void dbgprintf(char* fmt, ...)
+static void dbgprintf(char* fmt, ...)
 {
 #ifdef DETAILED_OUT
 #if 1
@@ -127,7 +127,7 @@ char export_names[500][30]={
 
 static unsigned char* heap=NULL; 
 static int heap_counter=0;
-void test_heap()
+static void test_heap()
 {
     int offset=0;	
     if(heap==0)
@@ -211,7 +211,7 @@ void* my_mreq(int size, int to_zero)
     *(int*)answer=size;
     return (int*)answer+1;
 }	
-int my_release(char* memory)
+int my_release(void* memory)
 {
     if(memory==0)return 0;
     free(memory-4);
@@ -301,17 +301,15 @@ int CDECL exp_initterm(int v1, int v2)
     return 0;
 }    
 
-typedef struct {
-    unsigned int     	uDriverSignature;
-    void*        	hDriverModule;
-    void*    		DriverProc;
-    unsigned int        dwDriverID;
-} DRVR;
-
 void* WINAPI expGetDriverModuleHandle(DRVR* pdrv)
 {
+    void *result;
+    if (pdrv == NULL)
+	result = NULL;
+    else
+	result = (void*)pdrv->hDriverModule;
     dbgprintf("GetDriverModuleHandle(%x)\n", pdrv);
-    return pdrv->hDriverModule;
+    return result;
 }
 
 void* WINAPI expGetModuleHandleA(const char* name)
@@ -728,14 +726,14 @@ int WINAPI expGetCurrentThreadId()
     dbgprintf("GetCurrentThreadId() \n");
     return getpid();
 }                  
-struct tls_s;
-typedef struct tls_s
+
+struct tls_s
 {
     void* value;
     int used;
     struct tls_s* prev;
     struct tls_s* next;
-}tls_t;
+};
 
 tls_t* g_tls=NULL;    
     
@@ -826,14 +824,14 @@ int WINAPI expLoadStringA(long instance, long  id, void* buf, long size)
     return LoadStringA(instance, id, buf, size);
 }    	    	
 
-long WINAPI expMultiByteToWideChar(long v1, long v2, char* s1, long siz1, char* s2, int siz2)
+long WINAPI expMultiByteToWideChar(long v1, long v2, char* s1, long siz1, short* s2, int siz2)
 {
 #warning FIXME
     dbgprintf("MB2WCh\n");
     dbgprintf("WARNING: Unsupported call: MBToWCh %s\n", s1);       
     if(s2==0)
 	return 1;
-    s2[0]=s2[1]=0;
+    s2[0]=0;
     return 1;
 }
 long WINAPI expWideCharToMultiByte(long v1, long v2, short* s1, long siz1, char* s2, int siz2, char* c3, int* siz3)

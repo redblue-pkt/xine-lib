@@ -40,14 +40,14 @@ static reg_handle_t* head=0;
 
 #define DIR -25
 
-static void create_registry();
-static void open_registry();
-static void save_registry();
+static void create_registry(void);
+static void open_registry(void);
+static void save_registry(void);
 
 
 
 
-static void create_registry(){
+static void create_registry(void){
     if(regs)
     {
 	printf("Logic error: create_registry() called with existing registry\n");
@@ -65,7 +65,7 @@ static void create_registry(){
     reg_size=2;
     save_registry();
 }
-static void open_registry()
+static void open_registry(void)
 {
 	int fd;
 	int i;
@@ -119,7 +119,7 @@ error:
 	return;
 }
 
-static void save_registry()
+static void save_registry(void)
 {
 	int fd, i, len;
          struct passwd* pwent;
@@ -225,7 +225,7 @@ static char* build_keyname(long key, const char* subkey)
 	strcat(full_name, subkey);
 	return full_name;
 }
-struct reg_value* insert_reg_value(int handle, const char* name, int type, const void* value, int len)
+static struct reg_value* insert_reg_value(int handle, const char* name, int type, const void* value, int len)
 {
   /* reg_handle_t* t; */
 	struct reg_value* v;

@@ -11,14 +11,17 @@
 #include "pe_image.h"
 #include "winreg.h"
 #include "vfw.h"
+#include "win32.h"
 #include "registry.h"
 
 #ifdef __FreeBSD__
 #include <sys/time.h>
 #endif
 
-//#define WIN32_PATH "/usr/lib/win32"
-
+#if 1
+#define STORE_ALL /**/
+#define REST_ALL  /**/
+#else
 #define STORE_ALL \
     __asm__ ( \
     "push %%ebx\n\t" \
@@ -34,20 +37,10 @@
     "pop %%edx\n\t" \
     "pop %%ecx\n\t" \
     "pop %%ebx\n\t"::)
+#endif
 
 
 
-typedef struct {
-    UINT             uDriverSignature;
-    HINSTANCE        hDriverModule;
-    DRIVERPROC       DriverProc;
-    DWORD            dwDriverID;
-} DRVR;
-
-typedef DRVR  *PDRVR;
-typedef DRVR  *NPDRVR;
-typedef DRVR  *LPDRVR;
-    
 static DWORD dwDrvID = 0;
 
 
@@ -115,8 +108,8 @@ void DrvClose(HDRVR hdrvr)
 }
 
 
-#ifndef STATIC_WIN32_PATH
-char* def_path=WIN32_PATH;    // path to codecs
+#ifdef WIN32_PATH
+char* def_path=WIN32_PATH;	    // path to codecs
 #else
 char* def_path="/usr/lib/win32";    // path to codecs
 #endif
@@ -125,7 +118,7 @@ char* win32_codec_name=NULL;  // must be set before calling DrvOpen() !!!
 HDRVR
 DrvOpen(LPARAM lParam2)
 {
-    ICOPEN *icopen=lParam2;
+    ICOPEN *icopen=(ICOPEN*)lParam2;
     UINT uDrvResult;
     HDRVR hDriver;
     NPDRVR npDriver;

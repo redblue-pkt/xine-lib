@@ -12,6 +12,8 @@
 #include "vfw.h"
 #include "winestring.h"
 #include "driver.h"
+#include "win32.h"
+#include "loader.h"
 #include "avifmt.h"
 
 #define FIXME_(X) printf
@@ -19,23 +21,12 @@
 
 long VFWAPI VideoForWindowsVersion(void);
 
-extern void* my_mreq(int size, int to_zero);
-extern      void DrvClose(HDRVR hdrvr);
-extern int my_release(char* memory);
-
-long VFWAPIV ICDecompress(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER lpbi,void* lpBits);
-
-WIN_BOOL VFWAPI	ICInfo(long fccType, long fccHandler, ICINFO * lpicinfo);
-LRESULT	VFWAPI	ICGetInfo(HIC hic,ICINFO *picinfo, long cb);
-HIC	VFWAPI	ICOpen(long fccType, long fccHandler, UINT wMode);
-HIC	VFWAPI	ICOpenFunction(long fccType, long fccHandler, unsigned int wMode, void* lpfnHandler);
-
-LRESULT VFWAPI ICClose(HIC hic);
-LRESULT	VFWAPI ICSendMessage(HIC hic, unsigned int msg, long dw1, long dw2);
-HIC	VFWAPI ICLocate(long fccType, long fccHandler, LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut, short wFlags);
-
 #define OpenDriverA DrvOpen
-extern HDRVR VFWAPI DrvOpen(long);
+
+#if 1
+#define STORE_ALL	/**/
+#define REST_ALL	/**/
+#else
 #define STORE_ALL \
     __asm__ ( \
     "push %%ebx\n\t" \
@@ -51,14 +42,9 @@ extern HDRVR VFWAPI DrvOpen(long);
     "pop %%edx\n\t" \
     "pop %%ecx\n\t" \
     "pop %%ebx\n\t"::)
+#endif
 
 
-typedef struct {
-    unsigned int               uDriverSignature;
-    void*        hDriverModule;
-    DRIVERPROC        DriverProc;
-    long                dwDriverID;
-} DRVR;
 
 /***********************************************************************
  *		VideoForWindowsVersion		[MSVFW.2][MSVIDEO.2]
@@ -289,9 +275,11 @@ LRESULT VFWAPI
 ICSendMessage(HIC hic,unsigned int msg,long lParam1,long lParam2) {
 	LRESULT		ret;
 	WINE_HIC	*whic = (WINE_HIC*)hic;
-	char qw[200];
 
+#if 0
+	char qw[200];
     __asm__ __volatile__ ("fsave (%0)\n\t": :"r"(&qw));    
+#endif
     STORE_ALL;	
         /*__asm__
 	(
@@ -302,7 +290,9 @@ ICSendMessage(HIC hic,unsigned int msg,long lParam1,long lParam2) {
         );*/
     	ret = whic->driverproc(whic->private,1,msg,lParam1,lParam2);
     REST_ALL;	
+#if 0
     __asm__ __volatile__ ("frstor (%0)\n\t": :"r"(&qw));    
+#endif
 //	} else
 
 //		ret = SendDriverMessage(whic->hdrv,msg,lParam1,lParam2);
@@ -323,7 +313,7 @@ LRESULT VFWAPI ICClose(HIC hic) {
 	my_release(whic);
 	return 0;
 }
-int VFWAPI ICDoSomething()
+int VFWAPI ICDoSomething(void)
 {
   return 0;
 }

@@ -3,14 +3,14 @@ EXTRA_DIST = stubs.s
 noinst_LTLIBRARIES = $(wine_lib)
 
 ##
-## this wine lib seems to be very sensitive with cflags, so we override
-## all of them.
 ##
-CFLAGS = @BUILD_LIB_STATIC@ -fno-omit-frame-pointer @X_CFLAGS@ \
-	-DWIN32_PATH=\"@w32_path@\" -D_REENTRANT -pipe
+CFLAGS = @GLOBAL_CFLAGS@@BUILD_LIB_STATIC@ @X_CFLAGS@ -fno-omit-frame-pointer \
+	-Wmissing-prototypes -Wimplicit-function-declaration \
+	-DWIN32_PATH=\"@w32_path@\"
 
-DEBUG_CFLAGS = @BUILD_LIB_STATIC@ -fno-omit-frame-pointer @X_CFLAGS@ \
-	-DWIN32_PATH=\\\"@w32_path@\\\" -D_REENTRANT -pipe -g
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ @BUILD_LIB_STATIC@ @X_CFLAGS@ -fno-omit-frame-pointer \
+	-Wmissing-prototypes -Wimplicit-function-declaration \
+	-DWIN32_PATH=\\\"@w32_path@\\\"
 
 
 if HAVE_W32DLL
