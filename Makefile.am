@@ -10,7 +10,7 @@ EXTRA_DIST = cvscompile.sh automake.diff \
              debian/README.Debian debian/changelog debian/control \
              debian/copyright debian/dirs debian/docs debian/libxine0.postinst \
              debian/postrm debian/preinst debian/prerm debian/rules \
-             debian/overrides.libxine debian/shlipdeps.sh
+             debian/overrides.libxine debian/shlibdeps.sh
 
 noinst_HEADERS = config.h
 
