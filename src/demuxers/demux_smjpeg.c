@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.7 2002/08/05 00:18:47 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.8 2002/08/09 00:27:35 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -114,6 +114,7 @@ static void *demux_smjpeg_loop (void *this_gen) {
   unsigned int remaining_sample_bytes;
   unsigned char preamble[SMJPEG_CHUNK_PREAMBLE_SIZE];
   off_t current_file_pos;
+  int64_t last_frame_pts = 0;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -149,9 +150,6 @@ static void *demux_smjpeg_loop (void *this_gen) {
       pts = BE_32(&preamble[4]);
       pts *= 90;
 
-//printf ("sending %d-byte %s frame with pts %lld (timestamp = %d ms)\n", 
-//  remaining_sample_bytes,
-//  (chunk_tag == sndD_TAG) ? "audio" : "video", pts, BE_32(&preamble[4]));
       /* break up the data into packets and dispatch them */
       if (((chunk_tag == sndD_TAG) && this->audio_fifo && this->audio_type) ||
         (chunk_tag == vidD_TAG)) {
@@ -170,6 +168,11 @@ static void *demux_smjpeg_loop (void *this_gen) {
           buf->input_time = pts / 90000;
           buf->pts = pts;
 
+          if (last_frame_pts) {
+            buf->decoder_flags |= BUF_FLAG_FRAMERATE;
+            buf->decoder_info[0] = buf->pts - last_frame_pts;
+          }
+
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
           else
@@ -182,6 +185,8 @@ static void *demux_smjpeg_loop (void *this_gen) {
             break;
           }
 
+          /* every frame is a keyframe */
+          buf->decoder_flags |= BUF_FLAG_KEYFRAME;
           if (!remaining_sample_bytes)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
@@ -198,6 +203,8 @@ static void *demux_smjpeg_loop (void *this_gen) {
 
       }
 
+      if (chunk_tag == vidD_TAG)
+        last_frame_pts = buf->pts;
     }
 
     /* wait before sending end buffers: user might want to do a new seek */
@@ -368,8 +375,16 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
         this->audio_sample_rate = BE_16(&header_chunk[4]);
         this->audio_bits = header_chunk[6];
         this->audio_channels = header_chunk[7];
-        this->audio_codec = *(uint32_t *)&header_chunk[8];
-        this->audio_type = formattag_to_buf_audio(this->audio_codec);
+        /* ADPCM in these files is ID'd by 'APCM' which is used in other
+         * files to denote a slightly different format; thus, use the
+         * following special case */
+        if (BE_32(&header_chunk[8]) == APCM_TAG) {
+          this->audio_codec = be2me_32(APCM_TAG);
+          this->audio_type = BUF_AUDIO_SMJPEG_IMA;
+        } else {
+          this->audio_codec = *(uint32_t *)&header_chunk[8]&header_chunk[8];
+          this->audio_type = formattag_to_buf_audio(this->audio_codec);
+        }
         break;
 
       default:
@@ -383,18 +398,14 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
         this->input->seek(this->input, BE_32(&header_chunk[0]), SEEK_CUR);
         break;
       }
-      
     }
-
-this->video_type = BUF_VIDEO_JPEG;
-this->audio_type = BUF_AUDIO_SMJPEG_IMA;
 
     if(!this->video_type)
       xine_report_codec(this->xine, XINE_CODEC_VIDEO,
         this->bih.biCompression, 0, 0);
 
     if(!this->audio_type && this->audio_codec)
-      xine_report_codec( this->xine, XINE_CODEC_AUDIO, 
+      xine_report_codec(this->xine, XINE_CODEC_AUDIO, 
       this->audio_codec, 0, 0);
 
     /* print vital stats */
