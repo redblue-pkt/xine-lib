@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.130 2004/03/18 07:26:24 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.131 2004/03/19 13:17:47 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -118,6 +118,7 @@ typedef struct alsa_driver_s {
     long               left_vol;
     long               right_vol;
     int                mute;
+    int                running;
   } mixer;
 } alsa_driver_t;
 
@@ -171,6 +172,7 @@ static int __snd_mixer_wait(snd_mixer_t *mixer, int timeout) {
 static void *ao_alsa_handle_event_thread(void *data) {
   alsa_driver_t  *this = (alsa_driver_t *) data;
 
+  this->mixer.running = 1;
   do {
 
     if(__snd_mixer_wait(this->mixer.handle, 333) > 0) {
@@ -255,7 +257,7 @@ static void *ao_alsa_handle_event_thread(void *data) {
       pthread_mutex_unlock(&this->mixer.mutex);
     }
 
-  } while(1);
+  } while(this->mixer.running);
   
   pthread_exit(NULL);
 }
@@ -863,7 +865,6 @@ static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
 static void ao_alsa_exit(ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
 
-  pthread_mutex_destroy(&this->mixer.mutex);
   /*
    * Destroy the mixer thread and cleanup the mixer, so that
    * any child processes (such as xscreensaver) cannot inherit
@@ -874,12 +875,13 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
    */
 
   if(this->mixer.handle) {
-    pthread_cancel(this->mixer.thread);
+    this->mixer.running = 0;
     pthread_join(this->mixer.thread, NULL);
     snd_mixer_close(this->mixer.handle);
     this->mixer.handle=0;
   }
-
+  pthread_mutex_destroy(&this->mixer.mutex);
+  
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
   this->audio_fd=NULL;
   free (this);
