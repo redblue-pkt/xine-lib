@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.53 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: audio_out.c,v 1.54 2002/05/21 20:39:03 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -255,6 +255,14 @@ static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
   }
 }
 
+static void ensure_buffer_size (ao_instance_t *this, int size)
+{
+  if (this->frame_buffer_size < size) {
+    free (this->frame_buffer);
+    this->frame_buffer = xine_xmalloc (size);
+    this->frame_buffer_size = size;
+  }
+}
 
 static void *ao_loop (void *this_gen) {
 
@@ -268,6 +276,7 @@ static void *ao_loop (void *this_gen) {
   int             paused_wait;
   int64_t         last_sync_time;
   int             bufs_since_sync;
+  double          acc_output_frames, output_frame_excess = 0;
 
   last_sync_time = bufs_since_sync = 0;
   
@@ -363,13 +372,22 @@ static void *ao_loop (void *this_gen) {
        * resample and output audio data
        */
 
-      num_output_frames = (double) buf->num_frames * this->frame_rate_factor;
+      /* calculate number of output frames (after resampling) */
+      acc_output_frames = (double) buf->num_frames * this->frame_rate_factor
+        + output_frame_excess;
+
+      /* Truncate to an integer */
+      num_output_frames = acc_output_frames;
+
+      /* Keep track of the amount truncated */
+      output_frame_excess = acc_output_frames - (double) num_output_frames;
       
 #ifdef LOG
       printf ("audio_out: outputting %d frames\n", num_output_frames);
 #endif
       
-      if ((!this->do_resample) 
+      /* check if resample is needed */
+      if (((!this->do_resample) || (buf->num_frames == num_output_frames))
 	  && (this->mode != AO_CAP_MODE_A52) 
 	  && (this->mode != AO_CAP_MODE_AC5)) {
 
@@ -377,26 +395,31 @@ static void *ao_loop (void *this_gen) {
 			     buf->num_frames );
       } else switch (this->mode) {
       case AO_CAP_MODE_MONO:
+	ensure_buffer_size(this, 2*num_output_frames);
 	audio_out_resample_mono (buf->mem, buf->num_frames,
 				 this->frame_buffer, num_output_frames);
 	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
 	break;
       case AO_CAP_MODE_STEREO:
+	ensure_buffer_size(this, 4*num_output_frames);
 	audio_out_resample_stereo (buf->mem, buf->num_frames,
 				   this->frame_buffer, num_output_frames);
 	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
 	break;
       case AO_CAP_MODE_4CHANNEL:
+	ensure_buffer_size(this, 8*num_output_frames);
 	audio_out_resample_4channel (buf->mem, buf->num_frames,
 				     this->frame_buffer, num_output_frames);
 	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
 	break;
       case AO_CAP_MODE_5CHANNEL:
+	ensure_buffer_size(this, 10*num_output_frames);
 	audio_out_resample_5channel (buf->mem, buf->num_frames,
 				     this->frame_buffer, num_output_frames);
 	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
 	break;
       case AO_CAP_MODE_5_1CHANNEL:
+	ensure_buffer_size(this, 12*num_output_frames);
 	audio_out_resample_6channel (buf->mem, buf->num_frames,
 				     this->frame_buffer, num_output_frames);
 	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
@@ -654,8 +677,8 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->control		      = ao_control;
   this->audio_loop_running    = 0;
   this->audio_paused          = 0;
-  /* FIXME: is 4* good enough for all resample cases?? */
   this->frame_buffer          = xine_xmalloc (4 * AUDIO_BUF_SIZE);
+  this->frame_buffer_size     = 4 * AUDIO_BUF_SIZE;
   this->zero_space            = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
   this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 

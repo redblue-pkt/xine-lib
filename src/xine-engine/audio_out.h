@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.28 2002/03/26 01:47:17 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.29 2002/05/21 20:39:03 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -219,6 +219,7 @@ struct ao_instance_s {
   audio_fifo_t   *free_fifo;
   audio_fifo_t   *out_fifo;
   uint16_t       *frame_buffer;
+  uint32_t        frame_buffer_size;
   int16_t        *zero_space;
 };
 
