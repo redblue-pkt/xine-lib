@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.24 2002/10/23 20:26:35 guenter Exp $
+ * $Id: xineutils.h,v 1.25 2002/10/24 15:49:56 jkeil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -623,7 +623,7 @@ void xine_strdupa(char *dest, char *src);
 #ifdef HAVE_STRPBRK
 #define xine_strpbrk strpbrk
 #else
-static __inline__ char *_x_strpbrk(const char *s, const char *accept) {
+static inline char *_x_strpbrk(const char *s, const char *accept) {
 
   while(*s != '\0') {
     const char *a = accept;
@@ -641,7 +641,7 @@ static __inline__ char *_x_strpbrk(const char *s, const char *accept) {
 #ifdef HAVE_STRSEP
 #define xine_strsep strsep
 #else
-static __inline__ char *_x_strsep(char **stringp, const char *delim) {
+static inline char *_x_strsep(char **stringp, const char *delim) {
   char *begin, *end;
   
   begin = *stringp;
@@ -681,7 +681,7 @@ static __inline__ char *_x_strsep(char **stringp, const char *delim) {
 #ifdef	HAVE_SETENV
 #define	xine_setenv	setenv
 #else
-static __inline__ void _x_setenv(const char *name, const char *val, int _xx)
+static inline void _x_setenv(const char *name, const char *val, int _xx)
 {
   int len  = strlen(name) + strlen(val) + 2;
   char *env;
