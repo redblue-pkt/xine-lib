@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.26 2003/03/06 00:51:39 hadess Exp $
+ * $Id: xine_goom.c,v 1.27 2003/03/06 22:59:35 hadess Exp $
  *
  * GOOM post plugin.
  *
@@ -151,8 +151,6 @@ static void width_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   if(class->ip) {
     post_plugin_goom_t *this = class->ip;
     this->width = cfg->num_value;
-    if (this->stream)
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
   }
 }
 
@@ -162,8 +160,6 @@ static void height_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   if(class->ip) {
     post_plugin_goom_t *this = class->ip;
     this->height = cfg->num_value;
-    if (this->stream)
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
   }
 }
 
@@ -444,9 +440,6 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->stream = stream;
   this->data_idx = 0;
   init_yuv_planes(&this->yuv, this->width, this->height);
-
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
