@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.24 2004/01/07 19:52:42 mroi Exp $
+ * $Id: fftscope.c,v 1.25 2004/02/12 18:25:08 mroi Exp $
  *
  */
 
@@ -274,7 +274,7 @@ static int fftscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   post_plugin_fftscope_t *this = (post_plugin_fftscope_t *)port->post;
   int c, i;
 
-  _x_post_rewire_audio(port);
+  _x_post_rewire(&this->post);
   _x_post_inc_usage(port);
   
   if (stream)

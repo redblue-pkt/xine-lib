@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.48 2004/01/07 19:52:42 mroi Exp $
+ * $Id: xine_goom.c,v 1.49 2004/02/12 18:25:07 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -348,7 +348,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_goom_t *this = (post_plugin_goom_t *)port->post;
 
-  _x_post_rewire_audio(port);
+  _x_post_rewire(&this->post);
   _x_post_inc_usage(port);
   
   if (stream)

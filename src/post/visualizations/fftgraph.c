@@ -20,7 +20,7 @@
  * FftGraph Visualization Post Plugin For xine
  *   by Thibaut Mattern (tmattern@noos.fr)
  *
- * $Id: fftgraph.c,v 1.9 2004/01/07 19:52:42 mroi Exp $
+ * $Id: fftgraph.c,v 1.10 2004/02/12 18:25:08 mroi Exp $
  *
  */
 
@@ -214,7 +214,7 @@ static int fftgraph_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   
   /* printf("fftgraph_port_open, port_gen=%p, stream=%p, this=%p\n", port_gen, stream, this); */
 
-  _x_post_rewire_audio(port);
+  _x_post_rewire(&this->post);
   _x_post_inc_usage(port);
   
   if (stream)

@@ -243,7 +243,7 @@ static vo_frame_t *expand_get_frame(xine_video_port_t *port_gen, uint32_t width,
   uint32_t           new_height, top_bar_height;
   int                i, end;
   
-  _x_post_rewire_video(port);
+  _x_post_rewire(&this->post);
   
   if (ratio <= 0.0) ratio = (double)width / (double)height;
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.28 2004/01/07 19:52:42 mroi Exp $
+ * $Id: xine_plugin.c,v 1.29 2004/02/12 18:25:07 mroi Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -466,7 +466,7 @@ static void deinterlace_open(xine_video_port_t *port_gen, xine_stream_t *stream)
   post_video_port_t *port = (post_video_port_t *)port_gen;
   post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)port->post;
   
-  _x_post_rewire_video(port);
+  _x_post_rewire(&this->post);
   _x_post_inc_usage(port);
   if (stream)
     port->stream = stream;
