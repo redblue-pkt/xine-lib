@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.4 2002/11/03 21:03:09 komadori Exp $
+ * $Id: demux_eawve.c,v 1.5 2002/11/03 21:08:42 guenter Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -399,6 +399,7 @@ static demux_plugin_t* open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
     if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+      free (this);
       return NULL;
     }
 
