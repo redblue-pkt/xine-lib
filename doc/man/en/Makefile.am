@@ -1,14 +1,9 @@
-SUBDIRS = man3
+#SUBDIRS = man3
 
-man_MANS = xine-lib.3 xine-config.1
+#man_MANS = xine-lib.3 xine-config.1
+man_MANS = xine-config.1
 
-EXTRA_DIST = $(man_MANS) xine-lib.3.in
-
-##xine-lib-man:
-##	cat xine-lib.3.in > xine-lib.3 && \
-##	(for f in `ls man3/*.3`; do \
-##	  (echo -e ".B $$f\n" | sed -e 's/man3\///g' -e 's/\.3//g'); \
-##	done) >> xine-lib.3
+EXTRA_DIST = $(man_MANS)
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*

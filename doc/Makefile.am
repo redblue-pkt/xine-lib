@@ -3,7 +3,7 @@ SUBDIRS = man hackersguide faq
 
 EXTRA_DIST = $(docs_DOCS) 
 docdir = $(prefix)/share/doc/xine
-docs_DOCS = README README.plugins dataflow.dia README.dvb dvb_channels\
+docs_DOCS = README README.plugins dataflow.dia README.dvb \
 	    README.config_en README.dxr3 README.dxr3_pl README.freebsd \
 	    README.irix README.mrl README.opengl README.solaris README.syncfb \
 	    README.tvmode 

@@ -8,7 +8,7 @@ required for 1.0
 - fix rate estimation in demux_mpeg/demux_mpeg_block 
 - sputext decoder plugin (zoltan & michael & miguel)
 - input_dvd: detect errors, display useful error messages
-- fix/update documentation
+- update xine hacker's guide
 - mute xine's console output unless verbose is set
 - fix tvout support (nvtv)
 

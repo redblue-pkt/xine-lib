@@ -50,9 +50,9 @@ AC_SUBST(XINE_SUB)
 AC_SUBST(XINE_IFACE_AGE)
 AC_SUBST(XINE_BIN_AGE)
 
-AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR,[Xine major version number])
-AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR,[Xine minor version number])
-AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB, [Xine sub version number])
+AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR,[xine major version number])
+AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR,[xine minor version number])
+AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB, [xine sub version number])
 
 AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
@@ -1165,7 +1165,6 @@ Makefile
 doc/Makefile
 doc/man/Makefile
 doc/man/en/Makefile
-doc/man/en/man3/Makefile
 doc/hackersguide/Makefile
 doc/faq/Makefile
 include/Makefile
