@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.10 2003/06/08 21:58:09 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.11 2003/06/24 21:38:31 hadess Exp $
  */
 
 
@@ -282,7 +282,8 @@ gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
 		return NULL;
 
 	/* local files should be handled by the file input */
-	if (strncmp (mrl, "file:/", strlen ("file:/")) == 0)
+	if (strncmp (mrl, "file:/", strlen ("file:/")) == 0
+			|| strstr (mrl, "://") == NULL)
 	{
 		D("gnomevfs_klass_open: '%s' is a file:///", mrl);
 		gnome_vfs_uri_unref (uri);
