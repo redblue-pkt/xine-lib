@@ -44,6 +44,7 @@ typedef enum {
     NSLock                        *mutex;
     BOOL                           keepsVideoAspectRatio;
     BOOL                           resizeViewOnVideoSizeChange;
+    NSCursor                      *currentCursor;
 }
 
 - (void) displayTexture;
@@ -67,6 +68,9 @@ typedef enum {
 - (BOOL) keepsVideoAspectRatio;
 - (void) setResizeViewOnVideoSizeChange:(BOOL)flag;
 - (BOOL) resizeViewOnVideoSizeChange;
+- (void) setCurrentCursor:(NSCursor *)cursor;
+- (NSCursor *) currentCursor;
+- (void) resetCursorRectsInMainThread;
 
 /* Delegate methods */
 - (id) delegate;

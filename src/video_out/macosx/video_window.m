@@ -289,6 +289,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     video_height   = frame.size.height;
     texture_buffer = nil;
     mutex          = [[NSLock alloc] init];
+    currentCursor  = [NSCursor arrowCursor];
 
     [self initTextures];
 
@@ -765,6 +766,31 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 - (BOOL)acceptsFirstResponder {
     return YES;
+}
+
+- (void) setCurrentCursor:(NSCursor *)cursor
+{
+    currentCursor = cursor;
+    [self resetCursorRectsInMainThread];
+}
+
+- (NSCursor *) currentCursor
+{
+    return currentCursor;
+}
+
+- (void) resetCursorRectsInMainThread
+{
+    [self discardCursorRects];
+    [self performSelectorOnMainThread:@selector(resetCursorRects)
+                           withObject:nil
+                        waitUntilDone:NO];
+}
+
+- (void) resetCursorRects
+{
+    [self addCursorRect:[self visibleRect] cursor:currentCursor];
+    [currentCursor set];
 }
 
 @end /* XineOpenGLView */
