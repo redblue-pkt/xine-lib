@@ -65,18 +65,6 @@ static void mpeg1_encode_block(MpegEncContext *s,
                          int component);
 static void mpeg1_encode_motion(MpegEncContext *s, int val, int f_or_b_code);    // RAL: f_code parameter added
 #endif //CONFIG_ENCODERS
-static inline int mpeg1_decode_block_inter(MpegEncContext *s, 
-                              DCTELEM *block, 
-                              int n);
-static inline int mpeg1_decode_block_intra(MpegEncContext *s, 
-                              DCTELEM *block, 
-                              int n);
-static inline int mpeg2_decode_block_non_intra(MpegEncContext *s, 
-                                        DCTELEM *block, 
-                                        int n);
-static inline int mpeg2_decode_block_intra(MpegEncContext *s, 
-                                    DCTELEM *block, 
-                                    int n);
 static int mpeg_decode_motion(MpegEncContext *s, int fcode, int pred);
 static void exchange_uv(MpegEncContext *s);
 
@@ -1035,6 +1023,337 @@ static inline int get_qscale(MpegEncContext *s)
     }
 }
 
+static inline int decode_dc(GetBitContext *gb, int component)
+{
+    int code, diff;
+
+    if (component == 0) {
+        code = get_vlc2(gb, dc_lum_vlc.table, DC_VLC_BITS, 2);
+    } else {
+        code = get_vlc2(gb, dc_chroma_vlc.table, DC_VLC_BITS, 2);
+    }
+    if (code < 0){
+        av_log(NULL, AV_LOG_ERROR, "invalid dc code at\n");
+        return 0xffff;
+    }
+    if (code == 0) {
+        diff = 0;
+    } else {
+        diff = get_xbits(gb, code);
+    }
+    return diff;
+}
+
+static inline int mpeg1_decode_block_intra(MpegEncContext *s, 
+                               DCTELEM *block, 
+                               int n)
+{
+    int level, dc, diff, i, j, run;
+    int component;
+    RLTable *rl = &rl_mpeg1;
+    uint8_t * const scantable= s->intra_scantable.permutated;
+    const uint16_t *quant_matrix= s->intra_matrix;
+    const int qscale= s->qscale;
+
+    /* DC coef */
+    component = (n <= 3 ? 0 : n - 4 + 1);
+    diff = decode_dc(&s->gb, component);
+    if (diff >= 0xffff)
+        return -1;
+    dc = s->last_dc[component];
+    dc += diff;
+    s->last_dc[component] = dc;
+    block[0] = dc<<3;
+    dprintf("dc=%d diff=%d\n", dc, diff);
+    i = 0;
+    {
+        OPEN_READER(re, &s->gb);    
+        /* now quantify & encode AC coefs */
+        for(;;) {
+            UPDATE_CACHE(re, &s->gb);
+            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
+            
+            if(level == 127){
+                break;
+            } else if(level != 0) {
+                i += run;
+                j = scantable[i];
+                level= (level*qscale*quant_matrix[j])>>4;
+                level= (level-1)|1;
+                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
+                LAST_SKIP_BITS(re, &s->gb, 1);
+            } else {
+                /* escape */
+                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
+                UPDATE_CACHE(re, &s->gb);
+                level = SHOW_SBITS(re, &s->gb, 8); SKIP_BITS(re, &s->gb, 8);
+                if (level == -128) {
+                    level = SHOW_UBITS(re, &s->gb, 8) - 256; LAST_SKIP_BITS(re, &s->gb, 8);
+                } else if (level == 0) {
+                    level = SHOW_UBITS(re, &s->gb, 8)      ; LAST_SKIP_BITS(re, &s->gb, 8);
+                }
+                i += run;
+                j = scantable[i];
+                if(level<0){
+                    level= -level;
+                    level= (level*qscale*quant_matrix[j])>>4;
+                    level= (level-1)|1;
+                    level= -level;
+                }else{
+                    level= (level*qscale*quant_matrix[j])>>4;
+                    level= (level-1)|1;
+                }
+            }
+            if (i > 63){
+                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
+                return -1;
+            }
+
+            block[j] = level;
+        }
+        CLOSE_READER(re, &s->gb);
+    }
+    s->block_last_index[n] = i;
+   return 0;
+}
+
+static inline int mpeg1_decode_block_inter(MpegEncContext *s, 
+                               DCTELEM *block, 
+                               int n)
+{
+    int level, i, j, run;
+    RLTable *rl = &rl_mpeg1;
+    uint8_t * const scantable= s->intra_scantable.permutated;
+    const uint16_t *quant_matrix= s->inter_matrix;
+    const int qscale= s->qscale;
+
+    {
+        int v;
+        OPEN_READER(re, &s->gb);
+        i = -1;
+        /* special case for the first coef. no need to add a second vlc table */
+        UPDATE_CACHE(re, &s->gb);
+        v= SHOW_UBITS(re, &s->gb, 2);
+        if (v & 2) {
+            LAST_SKIP_BITS(re, &s->gb, 2);
+            level= (3*qscale*quant_matrix[0])>>5;
+            level= (level-1)|1;
+            if(v&1)
+                level= -level;
+            block[0] = level;
+            i++;
+        }
+
+        /* now quantify & encode AC coefs */
+        for(;;) {
+            UPDATE_CACHE(re, &s->gb);
+            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
+            
+            if(level == 127){
+                break;
+            } else if(level != 0) {
+                i += run;
+                j = scantable[i];
+                level= ((level*2+1)*qscale*quant_matrix[j])>>5;
+                level= (level-1)|1;
+                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
+                LAST_SKIP_BITS(re, &s->gb, 1);
+            } else {
+                /* escape */
+                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
+                UPDATE_CACHE(re, &s->gb);
+                level = SHOW_SBITS(re, &s->gb, 8); SKIP_BITS(re, &s->gb, 8);
+                if (level == -128) {
+                    level = SHOW_UBITS(re, &s->gb, 8) - 256; LAST_SKIP_BITS(re, &s->gb, 8);
+                } else if (level == 0) {
+                    level = SHOW_UBITS(re, &s->gb, 8)      ; LAST_SKIP_BITS(re, &s->gb, 8);
+                }
+                i += run;
+                j = scantable[i];
+                if(level<0){
+                    level= -level;
+                    level= ((level*2+1)*qscale*quant_matrix[j])>>5;
+                    level= (level-1)|1;
+                    level= -level;
+                }else{
+                    level= ((level*2+1)*qscale*quant_matrix[j])>>5;
+                    level= (level-1)|1;
+                }
+            }
+            if (i > 63){
+                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
+                return -1;
+            }
+
+            block[j] = level;
+        }
+        CLOSE_READER(re, &s->gb);
+    }
+    s->block_last_index[n] = i;
+    return 0;
+}
+
+/* Also does unquantization here, since I will never support mpeg2
+   encoding */
+static inline int mpeg2_decode_block_non_intra(MpegEncContext *s, 
+                               DCTELEM *block, 
+                               int n)
+{
+    int level, i, j, run;
+    RLTable *rl = &rl_mpeg1;
+    uint8_t * const scantable= s->intra_scantable.permutated;
+    const uint16_t *quant_matrix;
+    const int qscale= s->qscale;
+    int mismatch;
+
+    mismatch = 1;
+
+    {
+        int v;
+        OPEN_READER(re, &s->gb);
+        i = -1;
+        if (n < 4)
+            quant_matrix = s->inter_matrix;
+        else
+            quant_matrix = s->chroma_inter_matrix;
+
+        /* special case for the first coef. no need to add a second vlc table */
+        UPDATE_CACHE(re, &s->gb);
+        v= SHOW_UBITS(re, &s->gb, 2);
+        if (v & 2) {
+            LAST_SKIP_BITS(re, &s->gb, 2);
+            level= (3*qscale*quant_matrix[0])>>5;
+            if(v&1)
+                level= -level;
+            block[0] = level;
+            mismatch ^= level;
+            i++;
+        }
+
+        /* now quantify & encode AC coefs */
+        for(;;) {
+            UPDATE_CACHE(re, &s->gb);
+            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
+            
+            if(level == 127){
+                break;
+            } else if(level != 0) {
+                i += run;
+                j = scantable[i];
+                level= ((level*2+1)*qscale*quant_matrix[j])>>5;
+                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
+                LAST_SKIP_BITS(re, &s->gb, 1);
+            } else {
+                /* escape */
+                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
+                UPDATE_CACHE(re, &s->gb);
+                level = SHOW_SBITS(re, &s->gb, 12); SKIP_BITS(re, &s->gb, 12);
+
+                i += run;
+                j = scantable[i];
+                if(level<0){
+                    level= ((-level*2+1)*qscale*quant_matrix[j])>>5;
+                    level= -level;
+                }else{
+                    level= ((level*2+1)*qscale*quant_matrix[j])>>5;
+                }
+            }
+            if (i > 63){
+                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
+                return -1;
+            }
+            
+            mismatch ^= level;
+            block[j] = level;
+        }
+        CLOSE_READER(re, &s->gb);
+    }
+    block[63] ^= (mismatch & 1);
+    
+    s->block_last_index[n] = i;
+    return 0;
+}
+
+static inline int mpeg2_decode_block_intra(MpegEncContext *s, 
+                               DCTELEM *block, 
+                               int n)
+{
+    int level, dc, diff, i, j, run;
+    int component;
+    RLTable *rl;
+    uint8_t * const scantable= s->intra_scantable.permutated;
+    const uint16_t *quant_matrix;
+    const int qscale= s->qscale;
+    int mismatch;
+
+    /* DC coef */
+    if (n < 4){
+        quant_matrix = s->intra_matrix;
+        component = 0; 
+    }else{
+        quant_matrix = s->chroma_intra_matrix;
+        component = (n&1) + 1;
+    }
+    diff = decode_dc(&s->gb, component);
+    if (diff >= 0xffff)
+        return -1;
+    dc = s->last_dc[component];
+    dc += diff;
+    s->last_dc[component] = dc;
+    block[0] = dc << (3 - s->intra_dc_precision);
+    dprintf("dc=%d\n", block[0]);
+    mismatch = block[0] ^ 1;
+    i = 0;
+    if (s->intra_vlc_format)
+        rl = &rl_mpeg2;
+    else
+        rl = &rl_mpeg1;
+
+    {
+        OPEN_READER(re, &s->gb);    
+        /* now quantify & encode AC coefs */
+        for(;;) {
+            UPDATE_CACHE(re, &s->gb);
+            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
+            
+            if(level == 127){
+                break;
+            } else if(level != 0) {
+                i += run;
+                j = scantable[i];
+                level= (level*qscale*quant_matrix[j])>>4;
+                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
+                LAST_SKIP_BITS(re, &s->gb, 1);
+            } else {
+                /* escape */
+                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
+                UPDATE_CACHE(re, &s->gb);
+                level = SHOW_SBITS(re, &s->gb, 12); SKIP_BITS(re, &s->gb, 12);
+                i += run;
+                j = scantable[i];
+                if(level<0){
+                    level= (-level*qscale*quant_matrix[j])>>4;
+                    level= -level;
+                }else{
+                    level= (level*qscale*quant_matrix[j])>>4;
+                }
+            }
+            if (i > 63){
+                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
+                return -1;
+            }
+            
+            mismatch^= level;
+            block[j] = level;
+        }
+        CLOSE_READER(re, &s->gb);
+    }
+    block[63]^= mismatch&1;
+    
+    s->block_last_index[n] = i;
+    return 0;
+}
+
 /* motion type (for mpeg2) */
 #define MT_FIELD 1
 #define MT_FRAME 2
@@ -1440,337 +1759,6 @@ static int mpeg_decode_motion(MpegEncContext *s, int fcode, int pred)
     l = 1 << (shift+4);
     val = ((val + l)&(l*2-1)) - l;
     return val;
-}
-
-static inline int decode_dc(GetBitContext *gb, int component)
-{
-    int code, diff;
-
-    if (component == 0) {
-        code = get_vlc2(gb, dc_lum_vlc.table, DC_VLC_BITS, 2);
-    } else {
-        code = get_vlc2(gb, dc_chroma_vlc.table, DC_VLC_BITS, 2);
-    }
-    if (code < 0){
-        av_log(NULL, AV_LOG_ERROR, "invalid dc code at\n");
-        return 0xffff;
-    }
-    if (code == 0) {
-        diff = 0;
-    } else {
-        diff = get_xbits(gb, code);
-    }
-    return diff;
-}
-
-static inline int mpeg1_decode_block_intra(MpegEncContext *s, 
-                               DCTELEM *block, 
-                               int n)
-{
-    int level, dc, diff, i, j, run;
-    int component;
-    RLTable *rl = &rl_mpeg1;
-    uint8_t * const scantable= s->intra_scantable.permutated;
-    const uint16_t *quant_matrix= s->intra_matrix;
-    const int qscale= s->qscale;
-
-    /* DC coef */
-    component = (n <= 3 ? 0 : n - 4 + 1);
-    diff = decode_dc(&s->gb, component);
-    if (diff >= 0xffff)
-        return -1;
-    dc = s->last_dc[component];
-    dc += diff;
-    s->last_dc[component] = dc;
-    block[0] = dc<<3;
-    dprintf("dc=%d diff=%d\n", dc, diff);
-    i = 0;
-    {
-        OPEN_READER(re, &s->gb);    
-        /* now quantify & encode AC coefs */
-        for(;;) {
-            UPDATE_CACHE(re, &s->gb);
-            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
-            
-            if(level == 127){
-                break;
-            } else if(level != 0) {
-                i += run;
-                j = scantable[i];
-                level= (level*qscale*quant_matrix[j])>>4;
-                level= (level-1)|1;
-                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
-                LAST_SKIP_BITS(re, &s->gb, 1);
-            } else {
-                /* escape */
-                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
-                UPDATE_CACHE(re, &s->gb);
-                level = SHOW_SBITS(re, &s->gb, 8); SKIP_BITS(re, &s->gb, 8);
-                if (level == -128) {
-                    level = SHOW_UBITS(re, &s->gb, 8) - 256; LAST_SKIP_BITS(re, &s->gb, 8);
-                } else if (level == 0) {
-                    level = SHOW_UBITS(re, &s->gb, 8)      ; LAST_SKIP_BITS(re, &s->gb, 8);
-                }
-                i += run;
-                j = scantable[i];
-                if(level<0){
-                    level= -level;
-                    level= (level*qscale*quant_matrix[j])>>4;
-                    level= (level-1)|1;
-                    level= -level;
-                }else{
-                    level= (level*qscale*quant_matrix[j])>>4;
-                    level= (level-1)|1;
-                }
-            }
-            if (i > 63){
-                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
-                return -1;
-            }
-
-            block[j] = level;
-        }
-        CLOSE_READER(re, &s->gb);
-    }
-    s->block_last_index[n] = i;
-   return 0;
-}
-
-static inline int mpeg1_decode_block_inter(MpegEncContext *s, 
-                               DCTELEM *block, 
-                               int n)
-{
-    int level, i, j, run;
-    RLTable *rl = &rl_mpeg1;
-    uint8_t * const scantable= s->intra_scantable.permutated;
-    const uint16_t *quant_matrix= s->inter_matrix;
-    const int qscale= s->qscale;
-
-    {
-        int v;
-        OPEN_READER(re, &s->gb);
-        i = -1;
-        /* special case for the first coef. no need to add a second vlc table */
-        UPDATE_CACHE(re, &s->gb);
-        v= SHOW_UBITS(re, &s->gb, 2);
-        if (v & 2) {
-            LAST_SKIP_BITS(re, &s->gb, 2);
-            level= (3*qscale*quant_matrix[0])>>5;
-            level= (level-1)|1;
-            if(v&1)
-                level= -level;
-            block[0] = level;
-            i++;
-        }
-
-        /* now quantify & encode AC coefs */
-        for(;;) {
-            UPDATE_CACHE(re, &s->gb);
-            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
-            
-            if(level == 127){
-                break;
-            } else if(level != 0) {
-                i += run;
-                j = scantable[i];
-                level= ((level*2+1)*qscale*quant_matrix[j])>>5;
-                level= (level-1)|1;
-                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
-                LAST_SKIP_BITS(re, &s->gb, 1);
-            } else {
-                /* escape */
-                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
-                UPDATE_CACHE(re, &s->gb);
-                level = SHOW_SBITS(re, &s->gb, 8); SKIP_BITS(re, &s->gb, 8);
-                if (level == -128) {
-                    level = SHOW_UBITS(re, &s->gb, 8) - 256; LAST_SKIP_BITS(re, &s->gb, 8);
-                } else if (level == 0) {
-                    level = SHOW_UBITS(re, &s->gb, 8)      ; LAST_SKIP_BITS(re, &s->gb, 8);
-                }
-                i += run;
-                j = scantable[i];
-                if(level<0){
-                    level= -level;
-                    level= ((level*2+1)*qscale*quant_matrix[j])>>5;
-                    level= (level-1)|1;
-                    level= -level;
-                }else{
-                    level= ((level*2+1)*qscale*quant_matrix[j])>>5;
-                    level= (level-1)|1;
-                }
-            }
-            if (i > 63){
-                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
-                return -1;
-            }
-
-            block[j] = level;
-        }
-        CLOSE_READER(re, &s->gb);
-    }
-    s->block_last_index[n] = i;
-    return 0;
-}
-
-/* Also does unquantization here, since I will never support mpeg2
-   encoding */
-static inline int mpeg2_decode_block_non_intra(MpegEncContext *s, 
-                               DCTELEM *block, 
-                               int n)
-{
-    int level, i, j, run;
-    RLTable *rl = &rl_mpeg1;
-    uint8_t * const scantable= s->intra_scantable.permutated;
-    const uint16_t *quant_matrix;
-    const int qscale= s->qscale;
-    int mismatch;
-
-    mismatch = 1;
-
-    {
-        int v;
-        OPEN_READER(re, &s->gb);
-        i = -1;
-        if (n < 4)
-            quant_matrix = s->inter_matrix;
-        else
-            quant_matrix = s->chroma_inter_matrix;
-
-        /* special case for the first coef. no need to add a second vlc table */
-        UPDATE_CACHE(re, &s->gb);
-        v= SHOW_UBITS(re, &s->gb, 2);
-        if (v & 2) {
-            LAST_SKIP_BITS(re, &s->gb, 2);
-            level= (3*qscale*quant_matrix[0])>>5;
-            if(v&1)
-                level= -level;
-            block[0] = level;
-            mismatch ^= level;
-            i++;
-        }
-
-        /* now quantify & encode AC coefs */
-        for(;;) {
-            UPDATE_CACHE(re, &s->gb);
-            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
-            
-            if(level == 127){
-                break;
-            } else if(level != 0) {
-                i += run;
-                j = scantable[i];
-                level= ((level*2+1)*qscale*quant_matrix[j])>>5;
-                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
-                LAST_SKIP_BITS(re, &s->gb, 1);
-            } else {
-                /* escape */
-                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
-                UPDATE_CACHE(re, &s->gb);
-                level = SHOW_SBITS(re, &s->gb, 12); SKIP_BITS(re, &s->gb, 12);
-
-                i += run;
-                j = scantable[i];
-                if(level<0){
-                    level= ((-level*2+1)*qscale*quant_matrix[j])>>5;
-                    level= -level;
-                }else{
-                    level= ((level*2+1)*qscale*quant_matrix[j])>>5;
-                }
-            }
-            if (i > 63){
-                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
-                return -1;
-            }
-            
-            mismatch ^= level;
-            block[j] = level;
-        }
-        CLOSE_READER(re, &s->gb);
-    }
-    block[63] ^= (mismatch & 1);
-    
-    s->block_last_index[n] = i;
-    return 0;
-}
-
-static inline int mpeg2_decode_block_intra(MpegEncContext *s, 
-                               DCTELEM *block, 
-                               int n)
-{
-    int level, dc, diff, i, j, run;
-    int component;
-    RLTable *rl;
-    uint8_t * const scantable= s->intra_scantable.permutated;
-    const uint16_t *quant_matrix;
-    const int qscale= s->qscale;
-    int mismatch;
-
-    /* DC coef */
-    if (n < 4){
-        quant_matrix = s->intra_matrix;
-        component = 0; 
-    }else{
-        quant_matrix = s->chroma_intra_matrix;
-        component = (n&1) + 1;
-    }
-    diff = decode_dc(&s->gb, component);
-    if (diff >= 0xffff)
-        return -1;
-    dc = s->last_dc[component];
-    dc += diff;
-    s->last_dc[component] = dc;
-    block[0] = dc << (3 - s->intra_dc_precision);
-    dprintf("dc=%d\n", block[0]);
-    mismatch = block[0] ^ 1;
-    i = 0;
-    if (s->intra_vlc_format)
-        rl = &rl_mpeg2;
-    else
-        rl = &rl_mpeg1;
-
-    {
-        OPEN_READER(re, &s->gb);    
-        /* now quantify & encode AC coefs */
-        for(;;) {
-            UPDATE_CACHE(re, &s->gb);
-            GET_RL_VLC(level, run, re, &s->gb, rl->rl_vlc[0], TEX_VLC_BITS, 2);
-            
-            if(level == 127){
-                break;
-            } else if(level != 0) {
-                i += run;
-                j = scantable[i];
-                level= (level*qscale*quant_matrix[j])>>4;
-                level = (level ^ SHOW_SBITS(re, &s->gb, 1)) - SHOW_SBITS(re, &s->gb, 1);
-                LAST_SKIP_BITS(re, &s->gb, 1);
-            } else {
-                /* escape */
-                run = SHOW_UBITS(re, &s->gb, 6)+1; LAST_SKIP_BITS(re, &s->gb, 6);
-                UPDATE_CACHE(re, &s->gb);
-                level = SHOW_SBITS(re, &s->gb, 12); SKIP_BITS(re, &s->gb, 12);
-                i += run;
-                j = scantable[i];
-                if(level<0){
-                    level= (-level*qscale*quant_matrix[j])>>4;
-                    level= -level;
-                }else{
-                    level= (level*qscale*quant_matrix[j])>>4;
-                }
-            }
-            if (i > 63){
-                av_log(s->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n", s->mb_x, s->mb_y);
-                return -1;
-            }
-            
-            mismatch^= level;
-            block[j] = level;
-        }
-        CLOSE_READER(re, &s->gb);
-    }
-    block[63]^= mismatch&1;
-    
-    s->block_last_index[n] = i;
-    return 0;
 }
 
 typedef struct Mpeg1Context {
