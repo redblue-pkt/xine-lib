@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.7 2002/09/12 01:25:28 tmmm Exp $
+ * $Id: color.c,v 1.8 2002/09/13 03:05:19 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -308,12 +308,14 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
     0x03, 0x00,
     0x01, 0x00
   };
+  unsigned char shifter[] = {0, 0, 0, 0, 0, 0, 0, 0};
   int block_loops = yuv_planes->row_width / 6;
   int filter_loops;
   int residual_filter_loops;
   int row_inc = (pitch - 2 * yuv_planes->row_width);
 
   residual_filter_loops = (yuv_planes->row_width % 6) / 2;
+  shifter[0] = residual_filter_loops * 8;
   if (!residual_filter_loops)
     residual_filter_loops = 3;
 
@@ -380,10 +382,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
           source_plane -= (8 - residual_filter_loops * 2);
           movq_m2r(*source_plane, mm1); /* load 8 C samples */
           source_plane += 8;
-          if (residual_filter_loops == 1)
-            psrlq_i2r(32, mm1);  /* toss out 4 samples before starting */
-          else if (residual_filter_loops == 2)
-            psrlq_i2r(16, mm1);  /* toss out 2 samples before starting */
+          psrlq_m2r(*shifter, mm1);  /* toss out samples before starting */
 
         } else {
           /* normal case */
