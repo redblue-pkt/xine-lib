@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.39 2003/08/05 15:30:04 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.40 2003/08/12 13:57:18 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -53,9 +53,6 @@
 
 /* the number of frames to pass before we stop duration correction */
 #define FORCE_DURATION_WINDOW_SIZE 100
-
-/* offset for mpeg header parsing */
-#define HEADER_OFFSET 0
 
 
 /* plugin class initialization function */
@@ -362,19 +359,22 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     shift = 0xffffff00;
     if (byte == 0xb3) {
       /* sequence data */
-      parse_mpeg_header(this, buffer);
+      if (buffer + 3 < buf->content + buf->size)
+        parse_mpeg_header(this, buffer);
       this->sequence_open = 1;
       continue;
     }
     if (byte == 0xb5) {
       /* extension data */
-      if ((buffer[0] & 0xf0) == 0x80)
-        this->repeat_first_field = (buffer[3] >> 1) & 1;
+      if (buffer + 3 < buf->content + buf->size)
+	if ((buffer[0] & 0xf0) == 0x80)
+	  this->repeat_first_field = (buffer[3] >> 1) & 1;
 #if 0
       /* this disables frame jitter in progressive content, but
        * unfortunately it makes the card drop one field on stills */
-      if ((buffer[0] & 0xf0) == 0x80)
-        buffer[4] &= ~(1 << 7);
+      if (buffer + 4 < buf->content + buf->size)
+	if ((buffer[0] & 0xf0) == 0x80)
+	  buffer[4] &= ~(1 << 7);
 #endif
       /* check if we can keep syncing */
       if (this->repeat_first_field && this->sync_retry)  /* reset counter */
@@ -676,13 +676,13 @@ static int dxr3_mvcommand(int fd_control, int command)
 
 static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
 {
-  this->frame_rate_code = buffer[HEADER_OFFSET+3] & 15;
-  this->height          = (buffer[HEADER_OFFSET+0] << 16) |
-                          (buffer[HEADER_OFFSET+1] <<  8) |
-                          buffer[HEADER_OFFSET+2];
+  this->frame_rate_code = buffer[3] & 15;
+  this->height          = (buffer[0] << 16) |
+                          (buffer[1] <<  8) |
+                          (buffer[2] <<  0);
   this->width           = ((this->height >> 12) + 15) & ~15;
   this->height          = ((this->height & 0xfff) + 15) & ~15;
-  this->aspect_code     = buffer[HEADER_OFFSET+3] >> 4;
+  this->aspect_code     = buffer[3] >> 4;
   
   this->have_header_info = 1;
   
