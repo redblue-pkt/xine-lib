@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.62 2002/07/09 20:39:26 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.63 2002/07/10 05:38:18 pmhahn Exp $
  *
  */
 
@@ -1356,7 +1356,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
         this->bih.biHeight);
     if (this->qt->audio_codec)
       xine_log (this->xine, XINE_LOG_FORMAT,
-        _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"),
+        _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
         *((char *)&this->qt->audio_codec + 0),
         *((char *)&this->qt->audio_codec + 1),
         *((char *)&this->qt->audio_codec + 2),
@@ -1364,7 +1364,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
         this->qt->audio_sample_rate,
         this->qt->audio_bits,
         this->qt->audio_channels,
-        (this->qt->audio_channels == 1) ? 0 : 's');
+        (this->qt->audio_channels == 1) ? _("channel") : _("channels"));
 
     /* send start buffers */
     xine_demux_control_start(this->xine);
