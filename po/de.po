@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-02-21 01:28+0100\n"
-"PO-Revision-Date: 2002-01-29 21:55+0100\n"
-"Last-Translator: Philipp Hahn <pmhahn@pmhahn@users.sf.net>\n"
+"PO-Revision-Date: 2002-02-21 11:38+0100\n"
+"Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-1\n"
@@ -140,9 +140,9 @@ msgid "demux_avi: video format = %s, audio format = 0x%lx\n"
 msgstr "demux_avi: Videoformat = %s, Audioformat = 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:926
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
-msgstr "demux_avi: Video-Bildgröße %d x %d\n"
+msgstr "demux_avi: Video-Bildgröße %ld x %ld\n"
 
 #: src/demuxers/demux_avi.c:933
 #, c-format
@@ -195,9 +195,8 @@ msgstr ""
 "Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_mpeg.c:852
-#, fuzzy
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
-msgstr "Sie sollten den mpeg(mpeg1/mpeg2) Datenstromtyp angeben.\n"
+msgstr "demug_mpeg: Bitte mpeg(mpeg1/mpeg2) Datenstromtyp angeben.\n"
 
 #: src/demuxers/demux_mpeg_block.c:253
 msgid ""
@@ -222,9 +221,9 @@ msgid "mpgaudio: bitrate = %.2fkbps\n"
 msgstr "mpgaudio: Bit-Rate = %.2fkbps\n"
 
 #: src/demuxers/demux_qt.c:4177
-#, fuzzy, c-format
+#, c-format
 msgid "demux_qt: unknown video codec '%s'\n"
-msgstr "demux_qt: Unbekannter Video-Codec >%s<\n"
+msgstr "demux_qt: Unbekannter Video-Codec '%s'\n"
 
 #: src/demuxers/demux_qt.c:4237
 #, c-format
@@ -232,14 +231,13 @@ msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
 msgstr "demux_qt: Video-Codec %s (%f fps), Audio-Codec %s (%ld Hz, %d bits)\n"
 
 #: src/demuxers/demux_ogg.c:140
-#, fuzzy
 msgid "ogg: vorbis audio stream detected\n"
-msgstr "metronom: Ende des Audio-Datenstroms\n"
+msgstr "ogg: Ende des Vorbis-Audiodatenstroms\n"
 
 #: src/demuxers/demux_ogg.c:147
-#, fuzzy, c-format
+#, c-format
 msgid "ogg: unknown stream type (signature >%.8s<)\n"
-msgstr "demux_ogg: Unbekannter Datenstromtyp, Signatur: >%.8s<\n"
+msgstr "ogg: Unbekannter Datenstromtyp (Signatur >%.8s<)\n"
 
 #: src/demuxers/demux_ogg.c:422
 #, c-format
@@ -910,13 +908,13 @@ msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %f Bilder verworfen\n"
 
 #: src/xine-engine/video_out.c:377
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr ""
-"video_out : Verwerfe Bild mit pts %d, weil es zu alt ist (Unterschied : %d > "
-"%d).\n"
+"video_out : Verwerfe Bild mit pts %lld, weil es zu alt ist (Unterschied: %"
+"lld).\n"
 
 #: src/xine-engine/video_out.c:996
 #, c-format
@@ -931,9 +929,8 @@ msgstr ""
 "neustarten.\n"
 
 #: src/xine-engine/video_out.c:1002
-#, fuzzy
 msgid "video_out: thread created\n"
-msgstr "video_out : Thread erzeugt\n"
+msgstr "video_out: Thread erzeugt\n"
 
 #: src/xine-engine/xine.c:107
 #, c-format
@@ -966,9 +963,9 @@ msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: Kann kein Plugin für diese MRL finden\n"
 
 #: src/xine-engine/xine.c:330
-#, fuzzy, c-format
+#, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
-msgstr "xine: Benutze Plugin >%s< für diese MRL (%s).\n"
+msgstr "Benutze Plugin '%s' für MRL '%s'\n"
 
 #: src/xine-engine/xine.c:339
 #, c-format
@@ -978,7 +975,7 @@ msgstr "xine: Kann keinen Demuxer für >%s< finden\n"
 #: src/xine-engine/xine.c:349
 #, c-format
 msgid "system layer format '%s' detected.\n"
-msgstr ""
+msgstr "System-layer Format '%s' erkannt.\n"
 
 #: src/xine-engine/xine.c:369
 msgid "xine_play: demuxer failed to start\n"
@@ -1011,7 +1008,7 @@ msgstr "Nachrichten"
 
 #: src/xine-engine/xine.c:867
 msgid "stream format"
-msgstr ""
+msgstr "Datenstrom Format"
 
 #: src/xine-engine/xine.c:868
 msgid "plugin"
