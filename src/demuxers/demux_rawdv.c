@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_rawdv.c,v 1.7 2003/04/26 20:16:23 guenter Exp $
+ * $Id: demux_rawdv.c,v 1.8 2003/06/16 12:22:06 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  * 
@@ -362,6 +362,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_capabilities  = demux_raw_dv_get_capabilities;
   this->demux_plugin.get_optional_data = demux_raw_dv_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
+
+  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) {
+    /* "live" DV streams require more prebuffering */
+    this->stream->metronom_prebuffer = 90000;
+  }
 
   this->status = DEMUX_FINISHED;
 
