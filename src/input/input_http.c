@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.72 2003/11/15 15:04:36 miguelfreitas Exp $
+ * $Id: input_http.c,v 1.73 2003/11/16 15:32:10 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -322,7 +322,8 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
   char metadata_buf[255 * 16];
   unsigned char len = 0;
   char *title_end;
-  char *songtitle, *radio;
+  char *songtitle;
+  const char *radio;
   xine_event_t uevent;
   xine_ui_data_t data;
     
