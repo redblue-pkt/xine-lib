@@ -1,4 +1,5 @@
 CFLAGS = @LIBMPEG2_CFLAGS@ @GLOBAL_CFLAGS@
+DEBUG_CFLAGS = @LIBMPEG2_CFLAGS@ @DEBUG_CFLAGS@
 
 EXTRA_DIST = idct_mlib.c idct_mlib.h motion_comp_mlib.c
 
@@ -12,7 +13,8 @@ lib_LTLIBRARIES = xineplug_decode_mpeg2.la
 #	decode.c  idct_mmx.c motion_comp_mmx.c
 
 xineplug_decode_mpeg2_la_SOURCES = slice.c header.c stats.c idct.c \
-	motion_comp.c decode.c idct_mmx.c motion_comp_mmx.c xine_decoder.c
+	motion_comp.c decode.c idct_mmx.c motion_comp_mmx.c \
+	idct_mlib.c motion_comp_mlib.c xine_decoder.c
 xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h 

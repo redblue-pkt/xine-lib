@@ -7,6 +7,13 @@ DIE=0
 
 PROG=xine-lib
 
+# Check how echo works in this /bin/sh
+case `echo -n` in
+-n)     _echo_n=   _echo_c='\c';;
+*)      _echo_n=-n _echo_c=;;
+esac
+
+
 (autoconf --version) < /dev/null > /dev/null 2>&1 || {
         echo
         echo "You must have autoconf installed to compile $PROG."
@@ -18,7 +25,7 @@ PROG=xine-lib
 (libtool --version) < /dev/null > /dev/null 2>&1 || {
         echo
         echo "You must have libtool installed to compile $PROG."
-        echo "Get ftp://ftp.gnu.org/pub/gnu/libtool-1.2.tar.gz"
+        echo "Get ftp://ftp.gnu.org/pub/gnu/libtool-1.4.tar.gz"
         echo "(or a newer version if it is available)"
         DIE=1
 }
@@ -45,19 +52,19 @@ if [ "$DIE" -eq 1 ]; then
 fi
 
 aclocalinclude="$ACLOCAL_FLAGS"; \
-(echo -n " + Running aclocal: "; \
+(echo $_echo_n " + Running aclocal: $_echo_c"; \
     aclocal $aclocalinclude; \
  echo "done.") && \
-(echo -n " + Running libtoolize: "; \
+(echo $_echo_n " + Running libtoolize: $_echo_c"; \
     libtoolize --force >/dev/null 2>&1; \
  echo "done.") && \
-(echo -n " + Running autoheader: "; \
+(echo $_echo_n " + Running autoheader: $_echo_c"; \
     autoheader; \
  echo "done.") && \
-(echo -n " + Running automake: "; \
+(echo $_echo_n " + Running automake: $_echo_c"; \
     automake --gnu --add-missing; \
  echo "done.") && \
-(echo -n " + Running autoconf: "; \
+(echo $_echo_n " + Running autoconf: $_echo_c"; \
     autoconf; \
  echo "done.")
 

@@ -41,6 +41,11 @@
 #include "monitor.h"
 #include "input_plugin.h"
 
+#if !defined(NDELAY) && defined(O_NDELAY)
+#define	FNDELAY	O_NDELAY
+#endif
+
+
 static uint32_t xine_debug;
 
 #define NET_BS_LEN 2324

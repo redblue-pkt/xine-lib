@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.12 2001/06/17 23:17:40 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.13 2001/06/21 17:34:23 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -28,6 +28,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.7 2001/06/18 12:56:28 guenter Exp $
+ * $Id: w32codec.c,v 1.8 2001/06/21 17:34:23 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -239,8 +239,9 @@ static void w32v_init_codec (w32v_decoder_t *this) {
   this->size = 0;
 
   if (!( (this->video_out->get_capabilities (this->video_out)) & VO_CAP_YUY2)) {
-    printf ("video output driver doesn't support YUY2 !!");
+    printf ("video output driver doesn't support YUY2 !!\n");
     this->decoder_ok = 0;
+    return;
   }
 
   this->our_out_buffer = malloc (this->o_bih.biSizeImage);

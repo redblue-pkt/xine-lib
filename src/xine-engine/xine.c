@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.28 2001/06/18 15:43:01 richwareham Exp $
+ * $Id: xine.c,v 1.29 2001/06/21 17:34:24 guenter Exp $
  *
  * top-level xine functions
  *
@@ -351,7 +351,7 @@ void xine_pause (xine_t *this) {
 
     pthread_mutex_unlock (&this->xine_lock);
 
-    printf ("pausing at %d\n", this->cur_input_pos);
+    printf ("pausing at %Ld\n", this->cur_input_pos);
 
     xine_stop (this);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.11 2001/06/02 21:44:01 guenter Exp $
+ * $Id: input_file.c,v 1.12 2001/06/21 17:34:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>	/*PATH_MAX*/
 
 #include "xine_internal.h"
 #include "monitor.h"

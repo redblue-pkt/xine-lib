@@ -12,16 +12,18 @@
 
 #include "win32.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
-#else
-#include <stdlib.h>
 #endif
 #include <time.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/timeb.h>
+#if	HAVE_KSTAT
+#include <kstat.h>
+#endif
 
 #include "winbase.h"
 #include "winreg.h"
@@ -32,6 +34,23 @@
 
 #include "registry.h"
 #include "loader.h"
+
+static void
+do_cpuid(unsigned int ax, unsigned int *regs)
+{
+    __asm__ __volatile__ (
+    "pushl %%ebx; pushl %%ecx; pushl %%edx;"
+    ".byte  0x0f, 0xa2;"
+    "movl   %%eax, (%2);"
+    "movl   %%ebx, 4(%2);"
+    "movl   %%ecx, 8(%2);"
+    "movl   %%edx, 12(%2);"
+    "popl %%edx; popl %%ecx; popl %%ebx;"
+    : "=a" (ax)
+    :  "0" (ax), "S" (regs)
+    );
+}
+
 #ifdef USE_TSC
 static unsigned int localcount()
 {
@@ -446,14 +465,34 @@ void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
 	cachedsi.wProcessorLevel		= 3; /* pentium */
 	cachedsi.wProcessorRevision		= 0;
 	
-#ifdef __FreeBSD__
-        cachedsi.dwProcessorType = PROCESSOR_INTEL_PENTIUM;
-        cachedsi.wProcessorLevel= 5;
-	PF[PF_COMPARE_EXCHANGE_DOUBLE] = TRUE;
-#ifdef MMX
-        PF[PF_MMX_INSTRUCTIONS_AVAILABLE] = TRUE;
-#endif
-        cachedsi.dwNumberOfProcessors=1;
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__svr4__)
+	{
+	    	unsigned int regs[4];
+		do_cpuid(1, regs);
+		switch ((regs[0] >> 8) & 0xf) {			// cpu family
+		case 3: cachedsi.dwProcessorType = PROCESSOR_INTEL_386;
+		    	cachedsi.wProcessorLevel= 3;
+			break;
+		case 4: cachedsi.dwProcessorType = PROCESSOR_INTEL_486;
+		    	cachedsi.wProcessorLevel= 4;
+			break;
+		case 5: cachedsi.dwProcessorType = PROCESSOR_INTEL_PENTIUM;
+		    	cachedsi.wProcessorLevel= 5;
+			break;
+		case 6: cachedsi.dwProcessorType = PROCESSOR_INTEL_PENTIUM;
+		    	cachedsi.wProcessorLevel= 5;
+			break;
+		default:cachedsi.dwProcessorType = PROCESSOR_INTEL_PENTIUM;
+		    	cachedsi.wProcessorLevel= 5;
+			break;
+		}
+		cachedsi.wProcessorRevision = regs[0] & 0xf;	// stepping
+		if (regs[3] & (1 <<  8))
+		    	PF[PF_COMPARE_EXCHANGE_DOUBLE] = TRUE;
+		if (regs[3] & (1 << 23))
+			PF[PF_MMX_INSTRUCTIONS_AVAILABLE] = TRUE;
+		cachedsi.dwNumberOfProcessors=1;
+	}
 #else
 	{
 	char buf[20];
@@ -570,7 +609,7 @@ void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
 	}
 	fclose (f);
 	}
-#endif /* __FreeBSD__ */
+#endif /* __FreeBSD__ __NetBSD__ __svr4__*/
 	memcpy(si,&cachedsi,sizeof(*si));
 }
 
@@ -911,10 +950,83 @@ long WINAPI expQueryPerformanceCounter(long long* z)
     return 1; 
 }
 
-static double old_freq()
+static double
+linux_cpuinfo_freq()
+{
+    double freq=-1;
+    FILE *f;
+    char line[200];
+    char *s,*value;
+    
+    f = fopen ("/proc/cpuinfo", "r");
+    if (f != NULL) {
+	while (fgets(line,200,f) != NULL) {
+	    /* NOTE: the ':' is the only character we can rely on */
+	    if (!(value = strchr(line,':')))
+		continue;
+	    /* terminate the valuename */
+	    *value++ = '\0';
+	    /* skip any leading spaces */
+	    while (*value==' ') value++;
+	    if ((s=strchr(value,'\n')))
+		*s='\0';
+
+	    if (!strncasecmp(line, "cpu MHz",strlen("cpu MHz"))
+		&& sscanf(value, "%lf", &freq) == 1) {
+		freq*=1000;
+		break;
+	    }
+	}
+	fclose(f);
+    }
+    return freq;
+}
+
+static double
+solaris_kstat_freq()
+{
+#if	HAVE_KSTAT
+    /*
+     * try to extact the CPU speed from the solaris kernel's kstat data
+     */
+    kstat_ctl_t   *kc;
+    kstat_t       *ksp;
+    kstat_named_t *kdata;
+    int            mhz = 0;
+
+    kc = kstat_open();
+    if (kc != NULL)
+    {
+	ksp = kstat_lookup(kc, "cpu_info", 0, "cpu_info0");
+
+	/* kstat found and name/value pairs? */
+	if (ksp != NULL && ksp->ks_type == KSTAT_TYPE_NAMED)
+	{
+	    /* read the kstat data from the kernel */
+	    if (kstat_read(kc, ksp, NULL) != -1)
+	    {
+		/*
+		 * lookup desired "clock_MHz" entry, check the expected
+		 * data type
+		 */
+		kdata = (kstat_named_t *)kstat_data_lookup(ksp, "clock_MHz");
+		if (kdata != NULL && kdata->data_type == KSTAT_DATA_INT32)
+		    mhz = kdata->value.i32;
+	    }
+	}
+	kstat_close(kc);
+    }
+
+    if (mhz > 0)
+	return mhz * 1000.;
+#endif	/* HAVE_KSTAT */
+    return -1;
+}
+
+static double tsc_freq()
 {
     int i=time(NULL);
-    int x,y;
+    unsigned int x,y;
     while(i==time(NULL));
     x=localcount();
     i++;
@@ -922,48 +1034,18 @@ static double old_freq()
     y=localcount();
     return (double)(y-x)/1000.;
 }
+
 static double CPU_Freq()
 {
-#ifdef USE_TSC
-	FILE *f = fopen ("/proc/cpuinfo", "r");
-	char line[200];
-	char model[200]="unknown";
-	char flags[500]="";
-	char	*s,*value;
-	double freq=-1;
+    double freq;
 	
-	if (!f)
-	{
-	    printf("Can't open /proc/cpuinfo for reading\n");
-	    return old_freq();
-	}    
-	while (fgets(line,200,f)!=NULL) 
-	{
-		/* NOTE: the ':' is the only character we can rely on */
-		if (!(value = strchr(line,':')))
-			continue;
-		/* terminate the valuename */
-		*value++ = '\0';
-		/* skip any leading spaces */
-		while (*value==' ') value++;
-		if ((s=strchr(value,'\n')))
-			*s='\0';
-
-		if (!strncasecmp(line, "cpu MHz",strlen("cpu MHz"))) 
-		{
-		    sscanf(value, "%lf", &freq);
-		    freq*=1000;
-		    break;
-		}
-		continue;
-		
-	}
-	fclose(f);
-	if(freq<0)return old_freq();
+    if ((freq = linux_cpuinfo_freq()) > 0)
 	return freq;
-#else
-	return old_freq();
-#endif    	
+
+    if ((freq = solaris_kstat_freq()) > 0)
+	return freq;
+
+    return tsc_freq();
 }
 
 long WINAPI expQueryPerformanceFrequency(long long* z)

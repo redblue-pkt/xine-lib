@@ -153,7 +153,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
     mreqn.imr_multiaddr.s_addr = sin.sin_addr.s_addr;
     mreqn.imr_address.s_addr = INADDR_ANY;
     mreqn.imr_ifindex = 0;
-#elif defined (__FreeBSD__)
+#elif defined (__FreeBSD__) || defined(__sun)
     struct ip_mreq mreqn;
     
     mreqn.imr_multiaddr.s_addr = sin.sin_addr.s_addr;

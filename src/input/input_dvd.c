@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.9 2001/06/02 21:44:01 guenter Exp $
+ * $Id: input_dvd.c,v 1.10 2001/06/21 17:34:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,7 +27,8 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <fcntl.h>
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) \
+	|| defined(__sun)
 # include <sys/cdio.h>
 #elif defined(__linux__)
 #include <linux/config.h> /* Check for DEVFS */
@@ -49,12 +50,17 @@
 
 static uint32_t xine_debug;
 
+#if defined(__sun)
+#define RDVD    "/vol/dev/aliases/cdrom0"
+#define DVD     RDVD
+#else
 #ifdef CONFIG_DEVFS_FS
 #define DVD     "/dev/cdroms/dvd"
 #define RDVD    "/dev/cdroms/rdvd"
 #else
 #define DVD     "/dev/dvd"
 #define RDVD    "/dev/rdvd"
+#endif
 #endif
 
 typedef struct {
@@ -373,6 +379,13 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
       if (ioctl(fd, CDIOCEJECT) == -1) {
         perror("ioctl(cdromeject)");
       }
+    }
+
+#elif defined(__sun)
+
+    status = 0;
+    if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
+      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
     }
 
 #endif

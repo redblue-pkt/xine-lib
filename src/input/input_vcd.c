@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.9 2001/06/09 11:39:20 heikos Exp $
+ * $Id: input_vcd.c,v 1.10 2001/06/21 17:34:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +38,8 @@
 #elif defined (__FreeBSD__)
 #include <sys/cdio.h>
 #include <sys/cdrio.h>
+#elif defined (__sun)
+#include <sys/cdio.h>
 #else
 #error "you need to add cdrom / VCD support for your platform to input_vcd"
 #endif
@@ -48,13 +50,25 @@
 
 static uint32_t xine_debug;
 
+#if defined(__sun)
+#define	CDROM	       "/vol/dev/aliases/cdrom0"
+#else
 /* for FreeBSD make a link to the right devnode, like /dev/acd0c */
 #ifdef CONFIG_DEVFS_FS
 #define CDROM          "/dev/cdroms/cdrom"
 #else
 #define CDROM          "/dev/cdrom"
 #endif
+#endif
 #define VCDSECTORSIZE  2324
+
+#if defined (__sun)
+struct cdrom_msf0 {
+	unsigned char   minute;
+	unsigned char   second;
+	unsigned char   frame;
+};
+#endif
 
 typedef struct {
 	uint8_t sync		[12];
@@ -73,7 +87,7 @@ typedef struct {
 
   int                    fd;
 
-#if defined (__linux__)
+#if defined (__linux__) || defined(__sun)
   struct cdrom_tochdr    tochdr;
   struct cdrom_tocentry  tocent[100];
 #elif defined (__FreeBSD__)
@@ -84,7 +98,7 @@ typedef struct {
   int                    total_tracks;
   int                    cur_track;
 
-#if defined (__linux__)
+#if defined (__linux__) || defined(__sun)
   uint8_t                cur_min, cur_sec, cur_frame;
 #endif
 
@@ -93,13 +107,16 @@ typedef struct {
   mrl_t                 *mrls[100];
   int                    mrls_allocated_entries;
 
+#if defined(__sun)
+  int			 controller_type;
+#endif
 } vcd_input_plugin_t;
 
 
 /* ***************************************************************** */
 /*                        Private functions                          */
 /* ***************************************************************** */
-#if defined (__linux__)
+#if defined (__linux__) || defined(__sun)
 static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   int i;
 
@@ -114,7 +131,7 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
     this->tocent[i-1].cdte_track = i;
     this->tocent[i-1].cdte_format = CDROM_MSF;
     if ( ioctl(this->fd, CDROMREADTOCENTRY, &this->tocent[i-1]) == -1 ) {
-      fprintf (stderr, "input_vcd: error in ioctl CDROMREADTOCENTRY\n");
+      fprintf (stderr, "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n", i);
       return -1;
     }
   }
@@ -125,7 +142,7 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
 
   if (ioctl(this->fd, CDROMREADTOCENTRY, 
 	    &this->tocent[this->tochdr.cdth_trk1]) == -1 ) {
-    fprintf (stderr, "input_vcd: error in ioctl CDROMREADTOCENTRY\n");
+    fprintf (stderr, "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n");
     return -1;
   }
 
@@ -166,6 +183,123 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   return 0;
 }
 #endif
+
+#if defined(__sun)
+#include <sys/dkio.h>
+#include <sys/scsi/generic/commands.h>
+#include <sys/scsi/impl/uscsi.h>
+
+#define	SUN_CTRL_SCSI	1
+#define	SUN_CTRL_ATAPI	2
+
+static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
+{
+  struct dk_cinfo cinfo;
+
+  /*
+   * CDROMCDXA/CDROMREADMODE2 are broken on IDE/ATAPI devices.
+   * Try to send MMC3 SCSI commands via the uscsi interface on
+   * ATAPI devices.
+   */
+  if (this->controller_type == 0) {
+    if (ioctl(this->fd, DKIOCINFO, &cinfo) == 0
+	&& strcmp(cinfo.dki_cname, "ide") == 0)
+      this->controller_type = SUN_CTRL_ATAPI;
+    else
+      this->controller_type = SUN_CTRL_SCSI;    
+  }
+  switch (this->controller_type) {
+  case SUN_CTRL_SCSI:
+#if 0
+    {
+      struct cdrom_cdxa cdxa;
+      cdxa.cdxa_addr = lba;
+      cdxa.cdxa_length = 1;
+      cdxa.cdxa_data = data->subheader;
+      cdxa.cdxa_format = CDROM_XA_SECTOR_DATA;
+  
+      if(ioctl(this->fd,CDROMCDXA,&cdxa)==-1) {
+	  perror("CDROMCDXA");
+	  return -1;
+      }
+    }
+#else
+    {
+      struct cdrom_read cdread;
+      cdread.cdread_lba = 4*lba;
+      cdread.cdread_bufaddr = data->subheader;
+      cdread.cdread_buflen = 2336;
+
+      if(ioctl(this->fd,CDROMREADMODE2,&cdread)==-1) {
+	  perror("CDROMREADMODE2");
+	  return -1;
+      }
+    }
+#endif
+    break;
+
+  case SUN_CTRL_ATAPI:
+    {
+      struct uscsi_cmd sc;
+      union scsi_cdb cdb;
+      int blocks = 1;
+      int sector_type;
+      int sync, header_code, user_data, edc_ecc, error_field;
+      int sub_channel;
+
+      sector_type = 0;		/* all types */
+      /*sector_type = 1;*/	/* CD-DA */
+      /*sector_type = 2;*/	/* mode1 */
+      /*sector_type = 3;*/	/* mode2 */
+      /*sector_type = 4;*/	/* mode2/form1 */
+      /*sector_type = 5;*/	/* mode2/form2 */
+      sync = 0;
+      header_code = 2;
+      user_data = 1;
+      edc_ecc = 0;
+      error_field = 0;
+      sub_channel = 0;
+
+      memset(data, 0xaa, sizeof(cdsector_t));
+
+      memset(&cdb, 0, sizeof(cdb));
+      memset(&sc, 0, sizeof(sc));
+      cdb.scc_cmd = 0xBE;
+      cdb.cdb_opaque[1] = (sector_type) << 2;
+      cdb.cdb_opaque[2] = (lba >> 24) & 0xff;
+      cdb.cdb_opaque[3] = (lba >> 16) & 0xff;
+      cdb.cdb_opaque[4] = (lba >>  8) & 0xff;
+      cdb.cdb_opaque[5] =  lba & 0xff;
+      cdb.cdb_opaque[6] = (blocks >> 16) & 0xff;
+      cdb.cdb_opaque[7] = (blocks >>  8) & 0xff;
+      cdb.cdb_opaque[8] =  blocks & 0xff;
+      cdb.cdb_opaque[9] = (sync << 7) |
+	  		  (header_code << 5) |
+	  		  (user_data << 4) |
+	  		  (edc_ecc << 3) |
+	  		  (error_field << 1);
+      cdb.cdb_opaque[10] = sub_channel;
+      
+      sc.uscsi_cdb = (caddr_t)&cdb;
+      sc.uscsi_cdblen = 12;
+      sc.uscsi_bufaddr = data->subheader;
+      sc.uscsi_buflen = 2340;
+      sc.uscsi_flags = USCSI_ISOLATE | USCSI_READ;
+      sc.uscsi_timeout = 20;
+      if (ioctl(this->fd, USCSICMD, &sc)) {
+	perror("USCSICMD: READ CD");
+	return -1;
+      }
+      if (sc.uscsi_status) {
+	fprintf(stderr, "scsi command failed with status %d\n", sc.uscsi_status);
+	return -1;
+      }
+    }
+    break;
+  }
+  return 1;
+}
+#endif /*__sun*/
 /* ***************************************************************** */
 /*                         END OF PRIVATES                           */
 /* ***************************************************************** */
@@ -214,7 +348,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
 
-#if defined (__linux__)
+#if defined (__linux__) || defined(__sun)
   this->cur_min   = this->tocent[this->cur_track].cdte_addr.msf.minute;
   this->cur_sec   = this->tocent[this->cur_track].cdte_addr.msf.second;
   this->cur_frame = this->tocent[this->cur_track].cdte_addr.msf.frame;
@@ -319,6 +453,57 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
   memcpy (buf, data.data, VCDSECTORSIZE);
   return VCDSECTORSIZE;
 }
+#elif defined (__sun)
+static off_t vcd_plugin_read (input_plugin_t *this_gen, 
+				char *buf, off_t nlen) {
+  
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
+  static cdsector_t        data;
+  struct cdrom_msf0       *end_msf;
+  long			   lba;
+
+  if (nlen != VCDSECTORSIZE)
+    return 0;
+
+  do
+  {  
+    end_msf = &this->tocent[this->cur_track+1].cdte_addr.msf;
+
+    /*
+    printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
+  	  this->cur_min, this->cur_sec, this->cur_frame,
+  	  end_msf->minute, end_msf->second, end_msf->frame);
+    */
+
+    if ( (this->cur_min>=end_msf->minute) && (this->cur_sec>=end_msf->second)
+         && (this->cur_frame>=end_msf->frame))
+      return 0;
+
+    lba = (this->cur_min * 60 + this->cur_sec) * 75L + this->cur_frame;
+
+    if (sun_vcd_read(this, lba, &data) < 0) {
+      fprintf(stderr, "input_vcd: read data failed\n");
+      return 0;
+    }
+
+    this->cur_frame++;
+    if (this->cur_frame>=75) {
+      this->cur_frame = 0;
+      this->cur_sec++;
+      if (this->cur_sec>=60) {
+        this->cur_sec = 0;
+        this->cur_min++;
+      }
+    }
+    
+    /* Header ID check for padding sector. VCD uses this to keep constant
+       bitrate so the CD doesn't stop/start */
+  }
+  while((data.subheader[2]&~0x01)==0x60);
+  
+  memcpy (buf, data.data, VCDSECTORSIZE); /* FIXME */
+  return VCDSECTORSIZE;
+}
 #endif
 
 /*
@@ -410,6 +595,60 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
   memcpy (buf->mem, data.data, VCDSECTORSIZE);
   return buf;
 }
+#elif defined(__sun)
+static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen, 
+					     fifo_buffer_t *fifo, off_t nlen) {
+  
+  vcd_input_plugin_t      *this = (vcd_input_plugin_t *) this_gen;
+  buf_element_t           *buf = fifo->buffer_pool_alloc (fifo);
+  static cdsector_t        data;
+  struct cdrom_msf0       *end_msf;
+  long			   lba;
+
+  if (nlen != VCDSECTORSIZE)
+    return NULL;
+
+  do
+  {  
+    end_msf = &this->tocent[this->cur_track+1].cdte_addr.msf;
+
+    /*
+    printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
+  	  this->cur_min, this->cur_sec, this->cur_frame,
+  	  end_msf->minute, end_msf->second, end_msf->frame);
+    */
+
+    if ( (this->cur_min>=end_msf->minute) && (this->cur_sec>=end_msf->second)
+         && (this->cur_frame>=end_msf->frame))
+      return NULL;
+
+    lba = (this->cur_min * 60 + this->cur_sec) * 75L + this->cur_frame;
+
+    if (sun_vcd_read (this, lba, &data) < 0) {
+      fprintf (stderr, "input_vcd: read data failed\n");
+      return NULL;
+    }
+
+
+    this->cur_frame++;
+    if (this->cur_frame>=75) {
+      this->cur_frame = 0;
+      this->cur_sec++;
+      if (this->cur_sec>=60) {
+        this->cur_sec = 0;
+        this->cur_min++;
+      }
+    }
+    
+    /* Header ID check for padding sector. VCD uses this to keep constant
+       bitrate so the CD doesn't stop/start */
+  }
+  while((data.subheader[2]&~0x01)==0x60);
+  
+  buf->content = buf->mem;
+  memcpy (buf->mem, data.data, VCDSECTORSIZE); /* FIXME */
+  return buf;
+}
 #endif
 
 //
@@ -417,7 +656,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 /*
  *
  */
-#if defined (__linux__)
+#if defined (__linux__) || defined(__sun)
 static off_t vcd_plugin_seek (input_plugin_t *this_gen, 
 			      off_t offset, int origin) {
 
@@ -516,7 +755,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 /*
  *
  */
-#if defined (__linux__)
+#if defined (__linux__) || defined(__sun)
 static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   struct cdrom_msf0       *end_msf, *start_msf;
@@ -636,6 +875,19 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
   
   return 1;
 }
+#elif defined (__sun)
+static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
+  int fd, ret;
+
+  if ((fd = open(CDROM, O_RDONLY|O_NONBLOCK)) > -1) {
+    if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
+      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
+    }
+    close(fd);
+  }
+
+  return 1;
+}
 #endif
 
 /*
@@ -681,11 +933,7 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   this->fd = open (CDROM, O_RDONLY);
 
   if (this->fd == -1) {
-#ifdef CONFIG_DEVFS_FS
-    perror ("unable to open /dev/cdroms/cdrom");
-#else
-    perror ("unable to open /dev/cdrom");
-#endif
+    perror ("unable to open " CDROM);
     return NULL;
   }
 
@@ -729,11 +977,7 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   this->fd = open (CDROM, O_RDONLY);
 
   if (this->fd == -1) {
-#ifdef CONFIG_DEVFS_FS
-    perror ("unable to open /dev/cdroms/cdrom");
-#else
-    perror ("unable to open /dev/cdrom");
-#endif
+    perror ("unable to open " CDROM);
     return NULL;
   }
 
@@ -793,7 +1037,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   case 1: {
     int i;
     
-    this = (vcd_input_plugin_t *) malloc (sizeof (vcd_input_plugin_t));
+    this = (vcd_input_plugin_t *) calloc (1, sizeof (vcd_input_plugin_t));
 
     for (i = 0; i < 100; i++) {
       this->filelist[i]       = (char *) malloc (256);

@@ -10,7 +10,7 @@ dnl
 AC_PREREQ(2.13)
 
 dnl
-dnl Require libtool minimum version 1.3.5
+dnl Require libtool minimum version 1.4.0
 dnl
 AC_PREREQ_LIBTOOL(1.4.0,,AC_MSG_ERROR(*** You should have libtool >= 1.4 installed ***))
 
@@ -142,7 +142,7 @@ AC_ARG_ENABLE(mlib,
   enable_mlib=no, enable_mlib=yes)
 fi
 if test x$enable_mlib = xyes; then
-  AC_CHECK_LIB(mlib, main, 
+  AC_CHECK_LIB(mlib, mlib_VideoAddBlock_U8_S16,
                [ LIBS="$LIBS -L/opt/SUNWmlib/lib -lmlib" 
                  LIBMPEG2_CONFIG_OBJS="$LIBMPEG2_CONFIG_OBJS idct_mlib.lo motion_comp_mlib.lo" 
                  LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I/opt/SUNWmlib/include" 
@@ -200,6 +200,27 @@ dnl
 AM_PATH_AALIB(1.2,,)
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
+
+dnl
+dnl OSS style audio interface
+dnl
+AC_MSG_CHECKING(for OSS audio support)
+have_ossaudio=no
+AC_TRY_COMPILE([
+	    #ifdef __NetBSD__
+	    #include <soundcard.h>
+	    #else
+	    #include <sys/soundcard.h>
+	    #endif
+	],[
+	    int arg = SNDCTL_DSP_SETFRAGMENT;
+	],[
+	    have_ossaudio=yes
+	])
+AC_MSG_RESULT($have_ossaudio)
+AM_CONDITIONAL(HAVE_OSS, test x"$have_ossaudio" = "xyes")
+
+
 dnl
 dnl Alsa support
 dnl
@@ -219,10 +240,35 @@ AM_CONDITIONAL(HAVE_ESD, test x"$no_esd" != "xyes")
 
 
 dnl
+dnl SUN style audio interface
+dnl
+AC_MSG_CHECKING(for Sun audio support)
+have_sunaudio=no
+AC_TRY_COMPILE([
+	    #include <sys/types.h>
+	    #include <sys/audioio.h>
+	],[
+	    audio_info_t audio_info;
+	    AUDIO_INITINFO(&audio_info);
+	],[
+	    have_sunaudio=yes
+	])
+AC_MSG_RESULT($have_sunaudio)
+AM_CONDITIONAL(HAVE_SUNAUDIO, test x"$have_sunaudio" = "xyes")
+
+dnl
+dnl Solaris kstat kernel statistics
+dnl
+AC_CHECK_LIB(kstat, kstat_open,
+	KSTAT_LIBS=-lkstat
+	AC_DEFINE(HAVE_KSTAT))
+AC_SUBST(KSTAT_LIBS)
+
+dnl
 dnl Some extra checks.
 dnl
-AC_CHECK_FUNC(getpwuid_r,AC_DEFINE(HAVE_GETPWUID_R))
-AC_CHECK_HEADERS(byteswap.h)
+AC_HAVE_FUNCS(sigaction sigset getpwuid_r)
+AC_CHECK_HEADERS(byteswap.h malloc.h sys/mman.h)
 
 dnl
 dnl check cflags not supported by all gcc versions
@@ -270,18 +316,19 @@ case $host in
 
 	dnl add x86 specific CFLAGS
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
-	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+	dnl DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
 	
         dnl enable x86 specific parts of the code
         enable_w32dll="yes"
 
 	if test x"$sarchopt" != "xno"; then
 	    [case "$host_alias" in
-		    i386-*) dnl *BSD return this even on a P III #-))
+		    i386-*) # *BSD return this even on a P III #-))
                       GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i386"
                       DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i386"
                       ;;
-		    i486-*) dnl oh dear!
+		    i486-*) # oh dear!
                       GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i486"
                       DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i486"
                       ;;
@@ -334,7 +381,7 @@ case $host in
         ;;
     sparc-*)
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
-        DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+        DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
         ;;
     *) echo "$host is not currently supported by xine"; exit 1;;
     esac
@@ -412,7 +459,8 @@ AC_SUBST(INCLUDES)
 dnl
 dnl Get where .m4 should be installed.
 dnl
-if test "`id -u`" = "0"; then
+case "`id`" in
+uid=0\(* )
   AC_MSG_CHECKING(for aclocal directory)
   if(aclocal --version) < /dev/null > /dev/null 2>&1; then
     ACLOCAL_DIR=`$ACLOCAL --print-ac-dir`
@@ -422,7 +470,8 @@ if test "`id -u`" = "0"; then
     AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
   fi
   AC_SUBST(ACLOCAL_DIR)
-fi
+  ;;
+esac
 AM_CONDITIONAL(INSTALL_M4, test x"$ACLOCAL_DIR" != "x")
 
 AC_CHECK_PROG(DOXYGEN, doxygen, doxygen, no)

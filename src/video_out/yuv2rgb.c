@@ -42,23 +42,6 @@ const int32_t Inverse_Table_6_9[8][4] = {
   {117579, 136230, 16907, 35559}  /* SMPTE 240M (1987) */
 };
 
-static void yuv2rgb_c (yuv2rgb_t *this, uint8_t *image, 
-		       uint8_t *py, uint8_t *pu, uint8_t *pv) {
-
-  /* int dy = this->step_dy; */
-  int height = this->source_height >>= 1;
-
-  do {
-    this->yuv2rgb_c_internal (this, py, py + this->y_stride, pu, pv,
-			      image, ((uint8_t *)image) + this->rgb_stride, 
-			      this->source_width);
-    
-    py += 2 * this->y_stride;
-    pu += this->uv_stride;
-    pv += this->uv_stride;
-    image = ((uint8_t *) image) + 2 * this->rgb_stride;
-  } while (--height);
-}
 
 static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
 
@@ -91,6 +74,19 @@ int yuv2rgb_setup (yuv2rgb_t *this,
   this->dest_height   = dest_height;
   this->rgb_stride    = rgb_stride;
   
+  if (this->y_chunk) {
+    free (this->y_chunk);
+    this->y_buffer = this->y_chunk = NULL;
+  }
+  if (this->u_chunk) {
+    free (this->u_chunk);
+    this->u_buffer = this->u_chunk = NULL;
+  }
+  if (this->v_chunk) {
+    free (this->v_chunk);
+    this->v_buffer = this->v_chunk = NULL;
+  }
+
   if ((source_width == dest_width) && (source_height == dest_height)) 
     this->do_scale = 0;
   else {
@@ -98,10 +94,6 @@ int yuv2rgb_setup (yuv2rgb_t *this,
     
     this->step_dx = source_width  * 32768 / dest_width;
     this->step_dy = source_height * 32768 / dest_height;
-    
-    if (this->y_chunk) free (this->y_chunk);
-    if (this->u_chunk) free (this->u_chunk);
-    if (this->v_chunk) free (this->v_chunk);
     
     this->y_buffer = my_malloc_aligned (16, dest_width, &this->y_chunk);
     if (!this->y_buffer)
@@ -116,6 +108,34 @@ int yuv2rgb_setup (yuv2rgb_t *this,
   return 1;
 }
 
+
+static void scale_line (uint8_t *source, uint8_t *dest,
+			int width, int step) {
+  int p1;
+  int p2;
+  int dx;
+
+  p1 = *source++;
+  p2 = *source++;
+  dx = 0;
+
+  while (width) {
+
+    *dest = (p1 * (32768 - dx) + p2 * dx)  / 32768;
+
+    dx += step;
+    while (dx > 32768) {
+      dx -= 32768;
+      p1 = p2;
+      p2 = *source++;
+    }
+
+    dest ++;
+    width --;
+  }
+
+}
+			
 
 #define RGB(i)							\
 	U = pu[i];						\
@@ -160,164 +180,505 @@ int yuv2rgb_setup (yuv2rgb_t *this,
 	Y = py_2[2*i+1];						\
 	dst_2[6*i+3] = b[Y]; dst_2[6*i+4] = g[Y]; dst_2[6*i+5] = r[Y];
 
-static void yuv2rgb_c_32 (yuv2rgb_t *this,
-			  uint8_t * py_1, uint8_t * py_2,
-			  uint8_t * pu, uint8_t * pv,
-			  void * _dst_1, void * _dst_2, int width)
+static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
+			  uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
 {
   int U, V, Y;
+  uint8_t  * py_1, * py_2, * pu, * pv;
   uint32_t * r, * g, * b;
   uint32_t * dst_1, * dst_2;
+  int width, height;
+  int dy;
 
-  width >>= 3;
-  dst_1 = _dst_1;
-  dst_2 = _dst_2;
+  if (this->do_scale) {
+    scale_line (_pu, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_pv, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_py, this->y_buffer, 
+		this->dest_width, this->step_dx);
 
-  do {
-    RGB(0);
-    DST1(0);
-    DST2(0);
+    dy = 0;
+    height = this->source_height;
 
-    RGB(1);
-    DST2(1);
-    DST1(1);
+    for (;;) {
+      dst_1 = (uint32_t*)_dst;
+      py_1  = this->y_buffer;
+      pu    = this->u_buffer;
+      pv    = this->v_buffer;
 
-    RGB(2);
-    DST1(2);
-    DST2(2);
+      width = this->dest_width >> 3;
 
-    RGB(3);
-    DST2(3);
-    DST1(3);
+      do {
+	  RGB(0);
+	  DST1(0);
 
-    pu += 4;
-    pv += 4;
-    py_1 += 8;
-    py_2 += 8;
-    dst_1 += 8;
-    dst_2 += 8;
-  } while (--width);
+	  RGB(1);
+	  DST1(1);
+      
+	  RGB(2);
+	  DST1(2);
+
+	  RGB(3);
+	  DST1(3);
+
+	  pu += 4;
+	  pv += 4;
+	  py_1 += 8;
+	  dst_1 += 8;
+      } while (--width);
+
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+
+      while (dy <= 32768) {
+
+	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
+
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+
+      if (--height <= 0)
+	break;
+
+      dy -= 32768;
+      _py += this->y_stride;
+
+      scale_line (_py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      if (!(height & 1)) {
+	_pu += this->uv_stride;
+	_pv += this->uv_stride;
+	  
+	scale_line (_pu, this->u_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	scale_line (_pv, this->v_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	  
+      }
+    }
+  } else {
+    height = this->source_height >> 1;
+    do {
+      dst_1 = (uint32_t*)_dst;
+      dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
+      py_1 = _py;
+      py_2 = _py + this->y_stride;
+      pu   = _pu;
+      pv   = _pv;
+
+      width = this->source_width >> 3;
+      do {
+	RGB(0);
+	DST1(0);
+	DST2(0);
+
+	RGB(1);
+	DST2(1);
+	DST1(1);
+
+	RGB(2);
+	DST1(2);
+	DST2(2);
+
+	RGB(3);
+	DST2(3);
+	DST1(3);
+      
+	pu += 4;
+	pv += 4;
+	py_1 += 8;
+	py_2 += 8;
+	dst_1 += 8;
+	dst_2 += 8;
+      } while (--width);
+
+      _dst += 2 * this->rgb_stride; 
+      _py += 2 * this->y_stride;
+      _pu += this->uv_stride;
+      _pv += this->uv_stride;
+
+    } while (--height);
+  }
 }
 
 /* This is very near from the yuv2rgb_c_32 code */
-static void yuv2rgb_c_24_rgb (yuv2rgb_t *this,
-			      uint8_t * py_1, uint8_t * py_2,
-			      uint8_t * pu, uint8_t * pv,
-			      void * _dst_1, void * _dst_2, int width)
+static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
+			      uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
 {
   int U, V, Y;
+  uint8_t * py_1, * py_2, * pu, * pv;
   uint8_t * r, * g, * b;
   uint8_t * dst_1, * dst_2;
+  int width, height;
+  int dy;
 
-  width >>= 3;
-  dst_1 = _dst_1;
-  dst_2 = _dst_2;
+  if (this->do_scale) {
 
-  do {
-    RGB(0);
-    DST1RGB(0);
-    DST2RGB(0);
+    scale_line (_pu, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_pv, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_py, this->y_buffer, 
+		this->dest_width, this->step_dx);
 
-    RGB(1);
-    DST2RGB(1);
-    DST1RGB(1);
+    dy = 0;
+    height = this->source_height;
 
-    RGB(2);
-    DST1RGB(2);
-    DST2RGB(2);
+    for (;;) {
+      dst_1 = _dst;
+      py_1  = this->y_buffer;
+      pu    = this->u_buffer;
+      pv    = this->v_buffer;
 
-    RGB(3);
-    DST2RGB(3);
-    DST1RGB(3);
+      width = this->dest_width >> 3;
 
-    pu += 4;
-    pv += 4;
-    py_1 += 8;
-    py_2 += 8;
-    dst_1 += 24;
-    dst_2 += 24;
-  } while (--width);
+      do {
+	  RGB(0);
+	  DST1RGB(0);
+
+	  RGB(1);
+	  DST1RGB(1);
+      
+	  RGB(2);
+	  DST1RGB(2);
+
+	  RGB(3);
+	  DST1RGB(3);
+
+	  pu += 4;
+	  pv += 4;
+	  py_1 += 8;
+	  dst_1 += 24;
+      } while (--width);
+
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+
+      while (dy <= 32768) {
+
+	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
+
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+
+      if (--height <= 0)
+	break;
+
+      dy -= 32768;
+      _py += this->y_stride;
+
+      scale_line (_py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      if (!(height & 1)) {
+	_pu += this->uv_stride;
+	_pv += this->uv_stride;
+	  
+	scale_line (_pu, this->u_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	scale_line (_pv, this->v_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	  
+      }
+    }
+  } else {
+    height = this->source_height >> 1;
+    do {
+      dst_1 = _dst;
+      dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
+      py_1  = _py;
+      py_2  = _py + this->y_stride;
+      pu    = _pu;
+      pv    = _pv;
+
+      width = this->source_width >> 3;
+      do {
+	RGB(0);
+	DST1RGB(0);
+	DST2RGB(0);
+
+	RGB(1);
+	DST2RGB(1);
+	DST1RGB(1);
+
+	RGB(2);
+	DST1RGB(2);
+	DST2RGB(2);
+
+	RGB(3);
+	DST2RGB(3);
+	DST1RGB(3);
+
+	pu += 4;
+	pv += 4;
+	py_1 += 8;
+	py_2 += 8;
+	dst_1 += 24;
+	dst_2 += 24;
+      } while (--width);
+
+      _dst += 2 * this->rgb_stride; 
+      _py += 2 * this->y_stride;
+      _pu += this->uv_stride;
+      _pv += this->uv_stride;
+      
+    } while (--height);
+  }
 }
 
 /* only trivial mods from yuv2rgb_c_24_rgb */
-static void yuv2rgb_c_24_bgr (yuv2rgb_t *this,
-			      uint8_t * py_1, uint8_t * py_2,
-			      uint8_t * pu, uint8_t * pv,
-			      void * _dst_1, void * _dst_2, int width)
+static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
+			      uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
 {
   int U, V, Y;
+  uint8_t * py_1, * py_2, * pu, * pv;
   uint8_t * r, * g, * b;
   uint8_t * dst_1, * dst_2;
+  int width, height;
+  int dy;
 
-  width >>= 3;
-  dst_1 = _dst_1;
-  dst_2 = _dst_2;
+  if (this->do_scale) {
 
-  do {
-    RGB(0);
-    DST1BGR(0);
-    DST2BGR(0);
+    scale_line (_pu, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_pv, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_py, this->y_buffer, 
+		this->dest_width, this->step_dx);
 
-    RGB(1);
-    DST2BGR(1);
-    DST1BGR(1);
+    dy = 0;
+    height = this->source_height;
 
-    RGB(2);
-    DST1BGR(2);
-    DST2BGR(2);
+    for (;;) {
+      dst_1 = _dst;
+      py_1  = this->y_buffer;
+      pu    = this->u_buffer;
+      pv    = this->v_buffer;
 
-    RGB(3);
-    DST2BGR(3);
-    DST1BGR(3);
+      width = this->dest_width >> 3;
 
-    pu += 4;
-    pv += 4;
-    py_1 += 8;
-    py_2 += 8;
-    dst_1 += 24;
-    dst_2 += 24;
-  } while (--width);
+      do {
+	  RGB(0);
+	  DST1BGR(0);
+
+	  RGB(1);
+	  DST1BGR(1);
+      
+	  RGB(2);
+	  DST1BGR(2);
+
+	  RGB(3);
+	  DST1BGR(3);
+
+	  pu += 4;
+	  pv += 4;
+	  py_1 += 8;
+	  dst_1 += 24;
+      } while (--width);
+
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+
+      while (dy <= 32768) {
+
+	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
+
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+
+      if (--height <= 0)
+	break;
+
+      dy -= 32768;
+      _py += this->y_stride;
+
+      scale_line (_py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      if (!(height & 1)) {
+	_pu += this->uv_stride;
+	_pv += this->uv_stride;
+	  
+	scale_line (_pu, this->u_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	scale_line (_pv, this->v_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	  
+      }
+    }
+
+  } else {
+    height = this->source_height >> 1;
+    do {
+      dst_1 = _dst;
+      dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
+      py_1 = _py;
+      py_2 = _py + this->y_stride;
+      pu   = _pu;
+      pv   = _pv;
+      width = this->source_width >> 3;
+      do {
+	RGB(0);
+	DST1BGR(0);
+	DST2BGR(0);
+
+	RGB(1);
+	DST2BGR(1);
+	DST1BGR(1);
+
+	RGB(2);
+	DST1BGR(2);
+	DST2BGR(2);
+
+	RGB(3);
+	DST2BGR(3);
+	DST1BGR(3);
+
+	pu += 4;
+	pv += 4;
+	py_1 += 8;
+	py_2 += 8;
+	dst_1 += 24;
+	dst_2 += 24;
+      } while (--width);
+
+      _dst += 2 * this->rgb_stride; 
+      _py += 2 * this->y_stride;
+      _pu += this->uv_stride;
+      _pv += this->uv_stride;
+
+    } while (--height);
+  }
 }
 
 /* This is exactly the same code as yuv2rgb_c_32 except for the types of */
 /* r, g, b, dst_1, dst_2 */
-static void yuv2rgb_c_16 (yuv2rgb_t *this,
-			  uint8_t * py_1, uint8_t * py_2,
-			  uint8_t * pu, uint8_t * pv,
-			  void * _dst_1, void * _dst_2, int width)
+static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
+			  uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
 {
   int U, V, Y;
+  uint8_t * py_1, * py_2, * pu, * pv;
   uint16_t * r, * g, * b;
   uint16_t * dst_1, * dst_2;
+  int width, height;
+  int dy;
 
-  width >>= 3;
-  dst_1 = _dst_1;
-  dst_2 = _dst_2;
+  if (this->do_scale) {
+    scale_line (_pu, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_pv, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_py, this->y_buffer, 
+		this->dest_width, this->step_dx);
 
-  do {
-    RGB(0);
-    DST1(0);
-    DST2(0);
+    dy = 0;
+    height = this->source_height;
 
-    RGB(1);
-    DST2(1);
-    DST1(1);
+    for (;;) {
+      dst_1 = (uint16_t*)_dst;
+      py_1  = this->y_buffer;
+      pu    = this->u_buffer;
+      pv    = this->v_buffer;
 
-    RGB(2);
-    DST1(2);
-    DST2(2);
+      width = this->dest_width >> 3;
 
-    RGB(3);
-    DST2(3);
-    DST1(3);
+      do {
+	  RGB(0);
+	  DST1(0);
 
-    pu += 4;
-    pv += 4;
-    py_1 += 8;
-    py_2 += 8;
-    dst_1 += 8;
-    dst_2 += 8;
-  } while (--width);
+	  RGB(1);
+	  DST1(1);
+      
+	  RGB(2);
+	  DST1(2);
+
+	  RGB(3);
+	  DST1(3);
+
+	  pu += 4;
+	  pv += 4;
+	  py_1 += 8;
+	  dst_1 += 8;
+      } while (--width);
+
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+
+      while (dy <= 32768) {
+
+	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
+
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+
+      if (--height <= 0)
+	break;
+
+      dy -= 32768;
+      _py += this->y_stride;
+
+      scale_line (_py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      if (!(height & 1)) {
+	_pu += this->uv_stride;
+	_pv += this->uv_stride;
+	  
+	scale_line (_pu, this->u_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	scale_line (_pv, this->v_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	  
+      }
+    }
+  } else {
+    height = this->source_height >> 1;
+    do {
+      dst_1 = (uint16_t*)_dst;
+      dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
+      py_1 = _py;
+      py_2 = _py + this->y_stride;
+      pu   = _pu;
+      pv   = _pv;
+      width = this->source_width >> 3;
+      do {
+	RGB(0);
+	DST1(0);
+	DST2(0);
+
+	RGB(1);
+	DST2(1);
+	DST1(1);
+
+	RGB(2);
+	DST1(2);
+	DST2(2);
+
+	RGB(3);
+	DST2(3);
+	DST1(3);
+
+	pu += 4;
+	pv += 4;
+	py_1 += 8;
+	py_2 += 8;
+	dst_1 += 8;
+	dst_2 += 8;
+      } while (--width);
+
+      _dst += 2 * this->rgb_stride; 
+      _py += 2 * this->y_stride;
+      _pu += this->uv_stride;
+      _pv += this->uv_stride;
+
+    } while (--height);
+  }
 }
 
 static int div_round (int dividend, int divisor)
@@ -343,8 +704,6 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
   int cgu = -Inverse_Table_6_9[this->matrix_coefficients][2];
   int cgv = -Inverse_Table_6_9[this->matrix_coefficients][3];
 
-  this->yuv2rgb_fun = yuv2rgb_c;
-
   for (i = 0; i < 1024; i++) {
     int j;
 
@@ -356,7 +715,7 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
   switch (mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
-    this->yuv2rgb_c_internal = yuv2rgb_c_32;
+    this->yuv2rgb_fun = yuv2rgb_c_32;
 
     table_32 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint32_t));
 
@@ -377,7 +736,7 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
 
   case MODE_24_RGB:
   case MODE_24_BGR:
-    this->yuv2rgb_c_internal = (mode==MODE_24_RGB) ? yuv2rgb_c_24_rgb : yuv2rgb_c_24_bgr;
+    this->yuv2rgb_fun = (mode==MODE_24_RGB) ? yuv2rgb_c_24_rgb : yuv2rgb_c_24_bgr;
 
     table_8 = malloc ((256 + 2*232) * sizeof (uint8_t));
 
@@ -392,7 +751,7 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
   case MODE_16_BGR:
   case MODE_15_RGB:
   case MODE_16_RGB:
-    this->yuv2rgb_c_internal = yuv2rgb_c_16;
+    this->yuv2rgb_fun = yuv2rgb_c_16;
 
     table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
 
@@ -452,9 +811,9 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
 
   this->matrix_coefficients = 6;
 
-  this->y_buffer = NULL;
-  this->u_buffer = NULL;
-  this->v_buffer = NULL;
+  this->y_chunk = this->y_buffer = NULL;
+  this->y_chunk = this->u_buffer = NULL;
+  this->y_chunk = this->v_buffer = NULL;
 
   /*
    * auto-probe for the best yuv2rgb function

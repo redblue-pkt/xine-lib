@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.24 2001/06/18 15:43:01 richwareham Exp $
+ * $Id: video_out.c,v 1.25 2001/06/21 17:34:24 guenter Exp $
  *
  */
 
@@ -130,9 +130,9 @@ static void vo_set_timer (uint32_t video_step) {
 }
 
 void video_timer_handler (int hubba) {
-
+#if	!HAVE_SIGACTION
   signal (SIGALRM, video_timer_handler);
-
+#endif
 }
 
 static void *video_out_loop (void *this_gen) {
@@ -152,7 +152,7 @@ static void *video_out_loop (void *this_gen) {
   /*
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);
-  pthread_sigmask(SIG_BLOCK, &vo_mask, NULL);
+  pthread_sigmask(SIG_UNBLOCK, &vo_mask, NULL);
   */
 
   
@@ -161,9 +161,17 @@ static void *video_out_loop (void *this_gen) {
   if (sigprocmask (SIG_UNBLOCK,  &vo_mask, NULL)) {
     printf ("video_out: sigprocmask failed.\n");
   }
+#if	HAVE_SIGACTION
+  {
+    struct sigaction   sig_act;
+    memset (&sig_act, 0, sizeof(sig_act));
+    sig_act.sa_handler = video_timer_handler;
+    sigaction (SIGALRM, &sig_act, NULL);
+  }
+#else
   signal (SIGALRM, video_timer_handler);
-  
-  
+#endif
+
   video_step = this->metronom->get_video_rate (this->metronom);
 
   /*

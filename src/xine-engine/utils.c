@@ -17,9 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.1 2001/04/18 22:36:04 f1rmb Exp $
+ * $Id: utils.c,v 1.2 2001/06/21 17:34:24 guenter Exp $
  *
  */
+#define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

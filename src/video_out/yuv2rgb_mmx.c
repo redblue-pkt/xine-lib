@@ -403,7 +403,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
-      do {
+      for (;;) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -432,6 +432,9 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
+	if (--height <= 0)
+	  break;
+
 	dy -= 32768;
 
 	py += y_stride;
@@ -439,7 +442,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (height & 1) {
+	if (!(height & 1)) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -449,8 +452,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 		      this->dest_width >> 1, this->step_dx);
 	  
 	}
-	height--;
-      } while (height>0);
+      }
     } 
 }
 
@@ -507,7 +509,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
-      do {
+      for (;;) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -536,14 +538,16 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
-	dy -= 32768;
+	if (--height <= 0)
+	  break;
 
+	dy -= 32768;
 	py += y_stride;
 
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (height & 1) {
+	if (!(height & 1)) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -553,8 +557,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 		      this->dest_width >> 1, this->step_dx);
 	  
 	}
-	height--;
-      } while (height>0);
+      }
     } 
 }
 
@@ -609,7 +612,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      do {
+      for (;;) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -633,21 +636,22 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 
 	while (dy <= 32768) {
 
-	  memcpy (image, image-rgb_stride, this->dest_width*4); 
+	  memcpy (image, image-rgb_stride, this->dest_width*3);
 
 	  dy += this->step_dy;
 	  image += rgb_stride;
 	}
 
+	if (--height <= 0)
+	  break;
 
 	dy -= 32768;
-
 	py += y_stride;
 	
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (height & 1) {
+	if (!(height & 1)) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -656,9 +660,8 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	  scale_line (pv, this->v_buffer,
 		      this->dest_width >> 1, this->step_dx);
 	}
-	height--;
 
-      } while (height>0);
+      }
       
     }
 }
@@ -714,7 +717,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      do {
+      for (;;) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -744,15 +747,16 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
+	if (--height <= 0)
+	  break;
 
 	dy -= 32768;
-
 	py += y_stride;
 	
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (height & 1) {
+	if (!(height & 1)) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -761,9 +765,8 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	  scale_line (pv, this->v_buffer,
 		      this->dest_width >> 1, this->step_dx);
 	}
-	height--;
 
-      } while (height>0);
+      }
       
     }
 }

@@ -44,8 +44,17 @@
 /* Define this if you have libaa installed */
 #undef HAVE_AA
 
+/* Define this if you have a usable OSS soundinterface available */
+#undef HAVE_OSS
+
 /* Define this if you have Alsa (libasound) installed */
 #undef HAVE_ALSA
 
 /* Define this if you have ESD (libesd) installed */
 #undef HAVE_ESD
+
+/* Define this if you have a usable Sun sound interface available */
+#undef HAVE_SUNAUDIO
+
+/* Define this if you have kernel statistics available via kstat interface */
+#undef HAVE_KSTAT

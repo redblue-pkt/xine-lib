@@ -8,7 +8,7 @@ AC_DEFUN([AC_PREREQ_LIBTOOL],
     AC_MSG_CHECKING(for libtool >= $lt_min_full)
     lpwd="`pwd`"
     lt_pathname="`echo $lpwd/ltmain.sh | sed -e 's/\=build\///g'`"
-    lt_version="`grep ^VERSION $lt_pathname | sed -e 's/\.//g;s/VERSION\=//g;s/[a-zA-Z]//g;s/-//g'`"
+    lt_version="`grep '^VERSION' $lt_pathname | sed -e 's/\.//g;s/VERSION\=//g;s/[a-zA-Z]//g;s/-//g'`"
 
     if test $lt_version -lt 100; then
       lt_version=`expr $lt_version \* 10`

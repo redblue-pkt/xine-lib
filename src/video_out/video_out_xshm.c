@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.9 2001/06/14 20:17:06 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.10 2001/06/21 17:34:24 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -69,6 +69,7 @@ typedef struct xshm_frame_s {
 
   XImage            *image;
   uint8_t           *rgb_dst;
+  int		     rgb_row;
   int                stripe_inc;
   XShmSegmentInfo    shminfo;
 
@@ -211,6 +212,8 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
     if (shminfo->shmaddr == ((char *) -1)) {
       printf ("video_out_xshm: shared memory error (address error) when allocating image \n");
       printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      shmctl (shminfo->shmid, IPC_RMID, 0);
+      shminfo->shmid = -1;
       this->use_shm = 0;
       goto finishShmTesting;
     }
@@ -225,8 +228,22 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
     if (gX11Fail) {
       printf ("video_out_xshm: x11 error during shared memory XImage creation\n");
       printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      shmdt (shminfo->shmaddr);
+      shmctl (shminfo->shmid, IPC_RMID, 0);
+      shminfo->shmid = -1;
       this->use_shm = 0;
+      goto finishShmTesting;
     }
+
+    /* 
+     * Now that the Xserver has learned about and attached to the
+     * shared memory segment,  delete it.  It's actually deleted by
+     * the kernel when all users of that segment have detached from 
+     * it.  Gives an automatic shared memory cleanup in case we crash.
+     */
+    shmctl (shminfo->shmid, IPC_RMID, 0);
+    shminfo->shmid = -1;
+
   finishShmTesting:
     x11_DeInstallXErrorHandler(this);
 
@@ -283,7 +300,10 @@ static void dispose_ximage (xshm_driver_t *this,
     XShmDetach (this->display, shminfo);
     XDestroyImage (myimage);
     shmdt (shminfo->shmaddr);
-    shmctl (shminfo->shmid, IPC_RMID, 0);
+    if (shminfo->shmid >= 0) {
+      shmctl (shminfo->shmid, IPC_RMID, 0);
+      shminfo->shmid = -1;
+    }
 
   } else {
 
@@ -304,10 +324,25 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
+#if 0
+#warning FIXME
+  /*
+   * A complete stripe may not fit into the destination rgb image.
+   * Ignore the stripe for now, instead of crashing inside yuv2rgb_fun().
+   */
+  if (frame->rgb_row + this->stripe_height > frame->rgb_height) {
+    printf("xshm_frame_copy: stripe %d..%d out of rgb image bounds %d\n",
+	   frame->rgb_row, frame->rgb_row+this->stripe_height-1,
+	   frame->rgb_height);
+    return;
+  }
+#endif
+
   this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
 			      src[0], src[1], src[2]);
 
   frame->rgb_dst += frame->stripe_inc; 
+  frame->rgb_row += this->stripe_height;
 }
 
 static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -363,6 +398,9 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
   /*
    * aspect ratio calculation
    */
+
+  if (this->delivered_width == 0 && this->delivered_height == 0)
+    return; /* ConfigureNotify/VisibilityNotify, no decoder output size known */
 
   image_ratio = 
     (double) this->delivered_width / (double) this->delivered_height;
@@ -525,6 +563,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
   if (frame->image) {
     frame->rgb_dst    = frame->image->data;
+    frame->rgb_row    = 0;
     frame->stripe_inc = this->stripe_height * frame->image->bytes_per_line;
   }
 }
@@ -806,7 +845,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   mode = 0;
 
-  printf ("video_out_xshm: video mode is %d depth (%d bpp), red: %08x, green: %08x, blue: %08x\n",
+  printf ("video_out_xshm: video mode is %d depth (%d bpp), red: %08lx, green: %08lx, blue: %08lx\n",
 	  this->depth, this->bpp, this->vinfo.red_mask, this->vinfo.green_mask,
 	  this->vinfo.blue_mask);
 

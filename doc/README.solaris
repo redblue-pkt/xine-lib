@@ -1,0 +1,8 @@
+building xine on solaris
+------------------------
+
+Compile xine with GNU make (gmake, /opt/sfw/bin/gmake)
+
+If you get a "fatal: relocation error" ... "symbol __divdi3:
+referenced symbol not found" error when running xine, re-configure
+xine-lib with gcc as the linker command (env LD=gcc configure ...)

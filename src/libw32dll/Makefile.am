@@ -19,7 +19,7 @@ lib_LTLIBRARIES = $(w32dll_codec)
 
 xineplug_decode_w32dll_la_SOURCES = w32codec.c
 xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module
-xineplug_decode_w32dll_la_LIBADD = $(top_builddir)/src/libw32dll/wine/libwine.la
+xineplug_decode_w32dll_la_LIBADD = $(top_builddir)/src/libw32dll/wine/libwine.la @KSTAT_LIBS@
 
 noinst_HEADERS = w32codec.h
 
