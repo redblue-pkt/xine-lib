@@ -1627,9 +1627,12 @@ case "$host_or_hostalias" in
 
     OBJC=${CC:-gcc}
     AC_SUBST(OBJC)
-    OBJCFLAGS="-no-cpp-precomp -D_INTL_REDIRECT_MACROS -fconstant-string-class=NSConstantString $OBJCFLAGS"
+    OBJCFLAGS="-D_INTL_REDIRECT_MACROS $OBJCFLAGS"
     AC_SUBST(OBJCFLAGS)
     OBJCDEPMODE="depmode=gcc3"
+    dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
+    dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
+    dnl from automake 1.6.
     ;;
 
   ppc-*-linux* | powerpc-*) 
