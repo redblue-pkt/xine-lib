@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.93 2003/02/27 23:34:24 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.94 2003/03/09 11:49:01 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -350,7 +350,7 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
       bs = input->get_blocksize(input);
 
     if(!bs)
-      bs = 4;
+      bs = MAX_PREVIEW_SIZE;
 
     if(input->read(input, buf, bs))
       head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
@@ -514,12 +514,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       /* disqualify the file if it is, in fact, an AVI file or has a CDXA
        * marker */
+      printf("demux_mpgaudio: AVI_TAG: 0x%08x, riff_check: 0x%08x\n", AVI_TAG, BE_32(riff_check));
       if ((BE_32(riff_check) == AVI_TAG) ||
-          (BE_32(riff_check) == CDXA_TAG))
+          (BE_32(riff_check) == CDXA_TAG)) {
 #ifdef LOG
-      printf ("demux_mpgaudio: **** found AVI or CDXA tag\n");
+        printf ("demux_mpgaudio: **** found AVI or CDXA tag\n");
 #endif
         return NULL;
+      }
 
       /* skip 4 more bytes */
       ptr += 4;
