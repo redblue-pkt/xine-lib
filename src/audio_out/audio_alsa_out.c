@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.69 2002/07/02 05:44:02 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.70 2002/07/03 07:38:20 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,6 +59,7 @@
 #include "compat.h"
 #include "audio_out.h"
 
+#define ALSA_LOG
 #define AO_OUT_ALSA_IFACE_VERSION 4
 
 #define GAP_TOLERANCE             5000
@@ -230,8 +231,10 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     return 0;
   } 
 
+#ifdef ALSA_LOG
   printf("audio_alsa_out: Audio Device name = %s\n",pcm_device);
   printf("audio_alsa_out: Number of channels = %d\n",this->num_channels);
+#endif
 
   if (this->audio_fd != NULL) {
     xlerror ("Already open...WHY!");
@@ -364,8 +367,10 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: Unable to set swparams: %s\n", snd_strerror(err));
     goto __close;
   }
+#ifdef ALSA_LOG
   snd_pcm_dump_setup(this->audio_fd, jcd_out); 
   snd_pcm_sw_params_dump(swparams, jcd_out);
+#endif
   return this->output_sample_rate;
 __close:
   snd_pcm_close (this->audio_fd);
