@@ -1532,7 +1532,6 @@ static void ff_libmpeg2mmx2_idct_add(uint8_t *dest, int line_size, DCTELEM *bloc
 void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
 {
     mm_flags = mm_support();
-printf (" hey! mmflags = %X\n", mm_flags);
 
     if (avctx->dsp_mask) {
 	if (avctx->dsp_mask & FF_MM_FORCE)
