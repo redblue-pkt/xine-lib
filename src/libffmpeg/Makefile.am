@@ -31,6 +31,7 @@ xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c \
 # symbols and cannot use @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module
 else
+AM_CPPFLAGS = $(FF_CFLAGS)
 xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 endif
