@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.59 2003/04/27 15:10:57 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.60 2003/05/01 21:25:15 hadess Exp $
  *
  *
  * contents:
@@ -543,6 +543,13 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_IMAGE,
   "Image"
+},
+{
+  {
+    0,
+  },
+  BUF_VIDEO_THEORA,
+  "OggTheora Video"
 },
 
 { { 0 }, 0, "last entry" }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.88 2003/05/01 19:04:32 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.89 2003/05/01 21:25:14 hadess Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -915,9 +915,9 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  *val++=0;
 	  this->video_fifo->put (this->video_fifo, buf);
 
-#ifdef HAVE_THEORA
 	} else if (!strncmp (&op.packet[1], "theora", 4)) {
 
+#ifdef HAVE_THEORA
 	  printf ("demux_ogg: Theorastreamsupport is highly alpha at the moment\n");
 
 	  if (theora_decode_header(&this->t_info, &op)>=0) {
@@ -939,13 +939,14 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]
 	      = ((int64_t) 90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 
-
 	  } else {
 	    /*Rejected stream*/
 	    printf ("demux_ogg: A theora header was rejected by libtheora\n");
 	    this->buf_types[stream_num] = BUF_CONTROL_NOP;	  
 	    this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 	  }
+#else
+	  this->buf_types[stream_num] = BUF_VIDEO_THEORA;
 #endif
 
 	} else {
