@@ -34,7 +34,7 @@ ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
  $(warning trying to disable machine-specific optimizations)
  $(warning add 'optimize' to DEB_BUILD_OPTIONS to enable them)
  DEB_HOST_GNU_TYPE := \
-  $(sehll echo $(DEB_HOST_GNU_TYPE)|sed -e 's/^alphaev56/alpha/')
+  $(shell echo $(DEB_HOST_GNU_TYPE)|sed -e 's/^alphaev56/alpha/')
  DEB_BUILD_GNU_TYPE := \
   $(shell echo $(DEB_BUILD_GNU_TYPE)|sed -e 's/^alphaev56/alpha/')
  #on intel architectures, xine probes CPU specific optimizations on runtime
@@ -100,7 +100,7 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine1 (>= 1-beta10)'
+	dh_makeshlibs -V 'libxine1 (>= 1-beta11)'
 	dh_installdeb
 #	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh

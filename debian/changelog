@@ -1,3 +1,9 @@
+xine-lib (1-beta11-0) unstable; urgency=low
+
+  * New Upstream release
+
+ -- Siggi Langauf <siggi@debian.org>  Sun, 27 Apr 2003 14:08:30 +0200
+
 xine-lib (1-beta10-2) unstable; urgency=low
 
   * backported xine-lib configure check from upstream CVS
