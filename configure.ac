@@ -1622,7 +1622,7 @@ case "$host_or_hostalias" in
     ;;
 
   ppc-*-linux* | powerpc-*) 
-    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions $CFLAGS"
+    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions $CFLAGS"
     DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
     dnl avoid ppc compilation crash
     AS="$CC"
@@ -1647,8 +1647,8 @@ case "$host_or_hostalias" in
     ;;
     esac
 
-    CFLAGS="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions $CFLAGS"
-    DEBUG_CFLAGS="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions $DEBUG_CFLAGS"
+    CFLAGS="-O3 $cpu_cflags -funroll-loops -finline-functions $CFLAGS"
+    DEBUG_CFLAGS="-O $cpu_cflags -funroll-loops -finline-functions $DEBUG_CFLAGS"
 
     AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])
     AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
@@ -1680,19 +1680,19 @@ case "$host_or_hostalias" in
 	*)     cpu_cflags= ;;
 	esac
 
-	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
-	cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -finline-functions"
+	cc_debug_cflags="-O $cpu_cflags -funroll-loops -finline-functions"
 
         AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])		dnl uses gnu c asm extensions
         AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
     else
 	case `uname -m` in
-	sun4c) cpu_cflags="-xarch=v7 -xchip=ultra2" ;;
-	sun4m) cpu_cflags="-xarch=v8 -xchip=ultra2" ;;
-	sun4u) cpu_cflags="-xarch=v8plusa -xchip=ultra2" ;;
+	sun4c) cpu_cflags="-xarch=v7" ;;
+	sun4m) cpu_cflags="-xarch=v8" ;;
+	sun4u) cpu_cflags="-xarch=v8plusa" ;;
 	esac
 
-	cc_optimize_cflags="-xO5 $cpu_cflags -xCC"
+	cc_optimize_cflags="-fast $cpu_cflags -xCC"
 	cc_debug_cflags="-O"
     	AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])		dnl use portable version with non-gcc
     fi

@@ -7,6 +7,8 @@
   * fixed compilation of libmad on AMD64
   * fixed double-free in the yuv decoder (fixes crashes when switching
     away from v4l:/ MRLs)
+  * removed -funroll-all-loops from SPARC and PPC targets as it negatively
+    affected performance
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
