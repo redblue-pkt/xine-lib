@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.157 2003/04/29 15:58:28 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.158 2003/04/30 16:41:15 mroi Exp $
  *
  */
 
@@ -1538,22 +1538,15 @@ static void *init_class (xine_t *xine, void *data) {
   
   if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
     /* we have found libdvdcss, enable the specific config options */
-#ifndef HAVE_DVDNAV
     char *raw_device;
-#endif
     static char *decrypt_modes[] = { "key", "disc", "title", NULL };
     char *css_cache_default, *css_cache;
     int mode;
     
-#ifndef HAVE_DVDNAV
-    /* only our local copy of libdvdread supports raw device reads,
-     * so we don't provide this option, when we are using a shared version
-     * of libdvdnav/libdvdread */
     raw_device = config->register_string(config, "input.dvd_raw_device",
 					 RDVD_PATH, "raw device set up for dvd access",
 					 NULL, 10, NULL, NULL);
     if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
-#endif
     
     mode = config->register_enum(config, "input.css_decryption_method", 0,
 				 decrypt_modes, "the css decryption method libdvdcss should use",
@@ -1615,6 +1608,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.158  2003/04/30 16:41:15  mroi
+ * the standalone libdvdnav can do raw device reads now, so this limitation
+ * here is no longer necessary
+ *
  * Revision 1.157  2003/04/29 15:58:28  jcdutton
  * Update from the libdvdnav project.
  *
