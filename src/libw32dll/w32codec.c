@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.116 2003/01/16 22:29:55 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.117 2003/02/17 03:19:58 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -765,6 +765,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       vo_frame_t *img;
       uint8_t    *img_buffer = this->img_buffer;
 
+      Check_FS_Segment();
+
       /* decoder video frame */
 
       this->bih->biSizeImage = this->size;
@@ -1384,6 +1386,8 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if( (int)buf->size <= 0 )
       return;
 
+    Check_FS_Segment();
+    
     w32a_decode_audio (this, buf->content, buf->size,
 		       buf->decoder_flags & BUF_FLAG_FRAME_END, 
 		       buf->pts);

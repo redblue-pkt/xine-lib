@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.14 2003/01/30 14:56:45 f1rmb Exp $
+ * $Id: qt_decoder.c,v 1.15 2003/02/17 03:19:58 miguelfreitas Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -178,7 +178,8 @@ typedef struct qta_decoder_s {
   uint8_t             data[BUFSIZE];
   int                 data_len;
   int                 num_frames;
-
+  
+  ldt_fs_t *ldt_fs;
 } qta_decoder_t;
 
 #ifdef LOG
@@ -234,7 +235,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
   printf ("qt_audio: init_driver... (mutex locked)\n");
 #endif
 
-  Setup_LDT_Keeper();
+  this->ldt_fs = Setup_LDT_Keeper();
   
   this->qtml_dll = LoadLibraryA("qtmlClient.dll");
   
@@ -488,6 +489,8 @@ static void qta_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       int num_frames = this->data_len / this->InFrameSize;
       long out_frames, out_bytes;
       int error, frames_left, bytes_sent;
+    
+      Check_FS_Segment();
 
       pthread_mutex_lock(&win32_codec_mutex);
       error = this->SoundConverterConvertBuffer (this->myConverter,
@@ -569,6 +572,8 @@ static void qta_dispose (audio_decoder_t *this_gen) {
 #ifdef LOG
     printf ("qt_audio: SoundConverterClose:%i\n",error);
 #endif
+    Restore_LDT_Keeper(this->ldt_fs);
+    this->ldt_fs = NULL;
   }
 
   if (this->output_open)
@@ -731,6 +736,7 @@ typedef struct qtv_decoder_s {
 					  long rowBytes); 
   OSErr             (*NewHandleClear)(Size byteCount);
 
+  ldt_fs_t *ldt_fs;
 } qtv_decoder_t;
 
 #ifdef LOG
@@ -790,7 +796,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
   printf ("qt_video: mutex locked\n");
 #endif
 
-  Setup_LDT_Keeper();
+  this->ldt_fs = Setup_LDT_Keeper();
   
   this->qtml_dll = LoadLibraryA("qtmlClient.dll");
   
@@ -1037,6 +1043,8 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       ComponentResult  cres;
       vo_frame_t      *img;
+    
+      Check_FS_Segment();
 
       pthread_mutex_lock(&win32_codec_mutex);
 
@@ -1107,6 +1115,8 @@ static void qtv_dispose (video_decoder_t *this_gen) {
   if (this->codec_initialized) {
     this->stream->video_out->close(this->stream->video_out, this->stream);
     this->codec_initialized = 0;
+    Restore_LDT_Keeper(this->ldt_fs);
+    this->ldt_fs = NULL;
   }
 
 #ifdef LOG
