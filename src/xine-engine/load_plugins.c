@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.157 2003/07/31 11:59:10 mroi Exp $
+ * $Id: load_plugins.c,v 1.158 2003/10/23 17:57:04 hadess Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1372,7 +1372,7 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
   pthread_mutex_unlock (&catalog->lock);
 
   if (!driver) {
-    printf ("load_plugins: failed to load video output plugin <%s>\n", id);
+    lprintf ("load_plugins: failed to load video output plugin <%s>\n", id);
     return NULL;
   }
 
@@ -1409,7 +1409,7 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
   pthread_mutex_unlock (&catalog->lock);
 
   if (!driver) {
-    printf ("load_plugins: failed to load video output plugin <%s>\n", id);
+    lprintf ("load_plugins: failed to load video output plugin <%s>\n", id);
     return NULL;
   }
 
@@ -1487,7 +1487,7 @@ static ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
     node->plugin_class = _load_plugin_class (this, node->filename, node->info, data);
 
   if (!node->plugin_class) {
-    printf ("load_plugins: failed to load plugin class %s\n", node->info->id);
+    lprintf ("load_plugins: failed to load plugin class %s\n", node->info->id);
     return NULL;
   }
 
