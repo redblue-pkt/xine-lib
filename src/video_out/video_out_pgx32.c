@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.9 2004/05/25 23:24:04 komadori Exp $
+ * $Id: video_out_pgx32.c,v 1.10 2004/07/24 17:26:02 komadori Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -168,6 +168,7 @@ typedef struct {
 
   int devfd, fb_width, fb_height, fb_depth;
   uint8_t *vbase;
+  volatile uint64_t *vregs;
 
   pgx32_frame_t *current;
 
@@ -470,7 +471,6 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   pgx32_driver_t *this = (pgx32_driver_t *)(void *)this_gen;
   pgx32_frame_t *frame = (pgx32_frame_t *)frame_gen;
-  volatile uint64_t *vregs = (void *)(this->vbase+GFXP_REGSBASE);
 
   short int *cliprects, wx0, wy0, wx1, wy1, cx0, cy0, cx1, cy1;
 
@@ -505,39 +505,39 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   XLockDisplay(this->display);
   DGA_DRAW_LOCK(this->dgadraw, -1);
 
-  while(le2me_64(vregs[FIFO_SPACE]) < 24) {}
+  while(le2me_64(this->vregs[FIFO_SPACE]) < 24) {}
 
-  vregs[RASTERISER_MODE] = 0;
-  vregs[SCISSOR_MODE] = 0;
-  vregs[AREA_STIPPLE_MODE] = 0;
-  vregs[WINDOW_ORIGIN] = 0;
+  this->vregs[RASTERISER_MODE] = 0;
+  this->vregs[SCISSOR_MODE] = 0;
+  this->vregs[AREA_STIPPLE_MODE] = 0;
+  this->vregs[WINDOW_ORIGIN] = 0;
 
-  vregs[DY] = le2me_64(1 << 16);
+  this->vregs[DY] = le2me_64(1 << 16);
 
-  vregs[TEXTURE_ADDR_MODE] = le2me_64(1);
-  vregs[SSTART] = 0;
-  vregs[DSDX] = le2me_64((frame->width << 20) / this->vo_scale.output_width);
-  vregs[DSDY_DOM] = 0;
-  vregs[TSTART] = 0;
-  vregs[DTDX] = 0;
-  vregs[DTDY_DOM] = le2me_64((frame->height << 20) / this->vo_scale.output_height);
+  this->vregs[TEXTURE_ADDR_MODE] = le2me_64(1);
+  this->vregs[SSTART] = 0;
+  this->vregs[DSDX] = le2me_64((frame->width << 20) / this->vo_scale.output_width);
+  this->vregs[DSDY_DOM] = 0;
+  this->vregs[TSTART] = 0;
+  this->vregs[DTDX] = 0;
+  this->vregs[DTDY_DOM] = le2me_64((frame->height << 20) / this->vo_scale.output_height);
 
-  vregs[TEXTURE_MAP_FORMAT] = le2me_64((1 << 19) | frame->pitch_code);
+  this->vregs[TEXTURE_MAP_FORMAT] = le2me_64((1 << 19) | frame->pitch_code);
 
-  vregs[TEXTURE_DATA_FORMAT] = le2me_64(0x63);
-  vregs[TEXTURE_READ_MODE] = le2me_64((1 << 17) | (11 << 13) | (11 << 9) | 1);
-  vregs[TEXTURE_COLOUR_MODE] = le2me_64((0 << 4) | (3 << 1) | 1);
+  this->vregs[TEXTURE_DATA_FORMAT] = le2me_64(0x63);
+  this->vregs[TEXTURE_READ_MODE] = le2me_64((1 << 17) | (11 << 13) | (11 << 9) | 1);
+  this->vregs[TEXTURE_COLOUR_MODE] = le2me_64((0 << 4) | (3 << 1) | 1);
 
-  vregs[SHADING_MODE] = 0;
-  vregs[ALPHA_BLENDING_MODE] = 0;
-  vregs[DITHERING_MODE] = le2me_64((1 << 10) | 1);
-  vregs[LOGICAL_OP_MODE] = 0;
-  vregs[STENCIL_MODE] = 0;
+  this->vregs[SHADING_MODE] = 0;
+  this->vregs[ALPHA_BLENDING_MODE] = 0;
+  this->vregs[DITHERING_MODE] = le2me_64((1 << 10) | 1);
+  this->vregs[LOGICAL_OP_MODE] = 0;
+  this->vregs[STENCIL_MODE] = 0;
 
-  vregs[WRITE_MODE] = le2me_64(1);
-  vregs[WRITE_MASK] = le2me_64(0x00ffffff);
+  this->vregs[WRITE_MODE] = le2me_64(1);
+  this->vregs[WRITE_MASK] = le2me_64(0x00ffffff);
 
-  vregs[YUV_MODE] = le2me_64(1);
+  this->vregs[YUV_MODE] = le2me_64(1);
 
   wx0 = this->vo_scale.gui_win_x + this->vo_scale.output_xoffset;
   wy0 = this->vo_scale.gui_win_y + this->vo_scale.output_yoffset;
@@ -561,20 +561,20 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       cx1 = (cx1 > wx1) ? wx1 : cx1;
       cy1 = (cy1 > wy1) ? wy1 : cy1;
 
-      while(le2me_64(vregs[FIFO_SPACE]) < 4) {}
-      vregs[RECT_ORIGIN] = le2me_64(cx0 | (cy0 << 16));
-      vregs[RECT_SIZE] = le2me_64((cx1-cx0) | ((cy1-cy0) << 16));
-      vregs[TEXTURE_BASE_ADDR] = le2me_64(((GFXP_VRAM_MMAPLEN-frame->packedlen) >> 1) + (((cx0-wx0)*frame->width)/this->vo_scale.output_width) + (((cy0-wy0)*frame->height)/this->vo_scale.output_height) * frame->pitch);
-      vregs[RENDER] = le2me_64(RENDER_BEGIN);
+      while(le2me_64(this->vregs[FIFO_SPACE]) < 4) {}
+      this->vregs[RECT_ORIGIN] = le2me_64(cx0 | (cy0 << 16));
+      this->vregs[RECT_SIZE] = le2me_64((cx1-cx0) | ((cy1-cy0) << 16));
+      this->vregs[TEXTURE_BASE_ADDR] = le2me_64(((GFXP_VRAM_MMAPLEN-frame->packedlen) >> 1) + (((cx0-wx0)*frame->width)/this->vo_scale.output_width) + (((cy0-wy0)*frame->height)/this->vo_scale.output_height) * frame->pitch);
+      this->vregs[RENDER] = le2me_64(RENDER_BEGIN);
     }
   }
 
-  while(le2me_64(vregs[FIFO_SPACE]) < 5) {}
-  vregs[TEXTURE_ADDR_MODE] = 0;
-  vregs[TEXTURE_READ_MODE] = 0;
-  vregs[TEXTURE_COLOUR_MODE] = 0;
-  vregs[DITHERING_MODE] = 0;
-  vregs[YUV_MODE] = 0;
+  while(le2me_64(this->vregs[FIFO_SPACE]) < 5) {}
+  this->vregs[TEXTURE_ADDR_MODE] = 0;
+  this->vregs[TEXTURE_READ_MODE] = 0;
+  this->vregs[TEXTURE_COLOUR_MODE] = 0;
+  this->vregs[DITHERING_MODE] = 0;
+  this->vregs[YUV_MODE] = 0;
 
   DGA_DRAW_UNLOCK(this->dgadraw);
   XUnlockDisplay(this->display);
@@ -774,7 +774,7 @@ static void pgx32_dispose(vo_driver_t *this_gen)
   cleanup_dga(this);
 
   munmap(this->vbase, GFXP_VRAM_MMAPLEN);
-  munmap(this->vbase+GFXP_REGSBASE, GFXP_REGS_MMAPLEN);
+  munmap((void *)this->vregs, GFXP_REGS_MMAPLEN);
   free(this);
 }
 
@@ -841,7 +841,7 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
     free(this);
     return NULL;
   }
-  if (mmap(this->vbase+GFXP_REGSBASE, GFXP_REGS_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, this->devfd, 0x02000000) == MAP_FAILED) {
+  if ((this->vregs = (uint64_t *)(void *)mmap(0, GFXP_REGS_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0x02000000)) == MAP_FAILED) {
     xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: unable to memory map framebuffer\n");
     munmap(this->vbase, GFXP_VRAM_MMAPLEN);
     cleanup_dga(this);
