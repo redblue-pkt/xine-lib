@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.198 2004/05/06 03:09:32 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.199 2004/05/09 21:05:34 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -587,8 +587,10 @@ static void xv_clean_output_area (xv_driver_t *this) {
 		    this->sc.output_width, this->sc.output_height);
   }
   
-  if (this->xoverlay)
+  if (this->xoverlay) {
     x11osd_resize (this->xoverlay, this->sc.gui_width, this->sc.gui_height);
+    this->ovl_changed = 1;
+  }
   
   XUnlockDisplay (this->display);
 }

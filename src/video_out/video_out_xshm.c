@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.131 2004/05/06 03:09:32 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.132 2004/05/09 21:05:34 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -683,8 +683,10 @@ static void clean_output_area (xshm_driver_t *this, xshm_frame_t *frame) {
                      this->sc.border[i].x, this->sc.border[i].y,
                      this->sc.border[i].w, this->sc.border[i].h);
   }
-  if (this->xoverlay)
+  if (this->xoverlay) {
     x11osd_resize (this->xoverlay, this->sc.gui_width, this->sc.gui_height);
+    this->ovl_changed = 1;
+  }
   
   XUnlockDisplay (this->display);
 }

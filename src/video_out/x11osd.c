@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.9 2004/05/06 03:09:32 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.10 2004/05/09 21:05:35 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -121,7 +121,6 @@ void
 x11osd_resize (x11osd * osd, int width, int height)
 {
   assert (osd);
-  osd->clean=UNDEFINED;
   if(osd->width==width && osd->height==height)
     return;
   osd->width = width;
@@ -145,6 +144,8 @@ x11osd_resize (x11osd * osd, int width, int height)
 		       osd->width, osd->height, osd->depth);
       break;
   }
+  
+  osd->clean = UNDEFINED;
   x11osd_clear(osd);
 }
 
@@ -321,9 +322,7 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x
   }
 
   osd->clean = UNDEFINED;
-  if(mode==X11OSD_SHAPED) {
-    x11osd_expose(osd);
-  }
+  x11osd_expose(osd);
 
   XSetErrorHandler(old_handler);
 
@@ -360,6 +359,7 @@ void x11osd_colorkey(x11osd * osd, uint32_t colorkey, vo_scale_t *sc)
 
   osd->u.colorkey.colorkey=colorkey;
   osd->u.colorkey.sc=sc;
+  osd->clean = UNDEFINED;
   x11osd_clear(osd);
   x11osd_expose(osd);
 }
@@ -387,7 +387,7 @@ void x11osd_clear(x11osd *osd)
 {
   int i;
   
-  if( osd->clean!=WIPED )
+  if( osd->clean != WIPED )
     switch (osd->mode) {
       case X11OSD_SHAPED:
 	XFillRectangle (osd->display, osd->u.shaped.mask_bitmap, osd->u.shaped.mask_gc_back,
@@ -424,6 +424,7 @@ void x11osd_blend(x11osd *osd, vo_overlay_t *overlay)
 {
   if (osd->clean==UNDEFINED)
     x11osd_clear(osd);	/* Workaround. Colorkey mode needs sc data before the clear. */
+  
   if (overlay->rle) {
     int i, x, y, len, width;
     int use_clip_palette, max_palette_colour[2];

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.62 2004/05/06 03:09:32 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.63 2004/05/09 21:05:34 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -280,8 +280,10 @@ static void vidix_clean_output_area(vidix_driver_t *this) {
     XSetForeground(this->display, this->gc, this->colourkey);
     XFillRectangle(this->display, this->drawable, this->gc, this->sc.output_xoffset, this->sc.output_yoffset, this->sc.output_width, this->sc.output_height);
   
-    if (this->xoverlay)
+    if (this->xoverlay) {
       x11osd_resize (this->xoverlay, this->sc.gui_width, this->sc.gui_height);
+      this->ovl_changed = 1;
+    }
     
     XFlush(this->display);
 
