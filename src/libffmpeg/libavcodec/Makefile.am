@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-SUBDIRS = armv4l i386 mlib alpha
+SUBDIRS = armv4l i386 mlib alpha libpostproc
 
 ## we include ppc/* files since auto* doesn't dive into.
 EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c wmv2.c \
@@ -77,6 +77,9 @@ noinst_HEADERS = \
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
 
 debug:
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) || exit;\
+	done;
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS)"
 
 install-debug: debug

@@ -1284,6 +1284,7 @@ src/libffmpeg/libavcodec/armv4l/Makefile
 src/libffmpeg/libavcodec/i386/Makefile
 src/libffmpeg/libavcodec/mlib/Makefile
 src/libffmpeg/libavcodec/alpha/Makefile
+src/libffmpeg/libavcodec/libpostproc/Makefile
 src/libflac/Makefile
 src/liblpcm/Makefile
 src/libmad/Makefile
