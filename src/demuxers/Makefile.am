@@ -35,7 +35,6 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) \
 	xineplug_dmx_mpeg_elem.la \
 	xineplug_dmx_qt.la \
 	xineplug_dmx_fli.la \
-	xineplug_dmx_smjpeg.la \
 	xineplug_dmx_yuv4mpeg2.la \
 	xineplug_dmx_real.la \
 	xineplug_dmx_rawdv.la \
@@ -81,10 +80,6 @@ xineplug_dmx_fli_la_SOURCES = demux_fli.c
 xineplug_dmx_fli_la_LIBADD = $(XINELIB)
 xineplug_dmx_fli_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_smjpeg_la_SOURCES = demux_smjpeg.c
-xineplug_dmx_smjpeg_la_LIBADD = $(XINELIB)
-xineplug_dmx_smjpeg_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
 xineplug_dmx_yuv4mpeg2_la_SOURCES = demux_yuv4mpeg2.c
 xineplug_dmx_yuv4mpeg2_la_LIBADD = $(XINELIB)
 xineplug_dmx_yuv4mpeg2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
@@ -107,7 +102,8 @@ xineplug_dmx_pva_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_games_la_SOURCES = group_games.c demux_eawve.c \
 				demux_idcin.c demux_ipmovie.c demux_roq.c \
-				demux_vqa.c demux_wc3movie.c demux_str.c
+				demux_vqa.c demux_wc3movie.c demux_str.c \
+				demux_film.c demux_smjpeg.c
 xineplug_dmx_games_la_LIBADD = $(XINELIB)
 xineplug_dmx_games_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

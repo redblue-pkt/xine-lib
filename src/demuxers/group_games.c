@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_games.c,v 1.1 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: group_games.c,v 1.2 2003/01/04 16:40:49 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,6 +37,8 @@ void *demux_vqa_init_plugin (xine_t *xine, void *data);
 void *demux_wc3movie_init_plugin (xine_t *xine, void *data);
 void *demux_roq_init_plugin (xine_t *xine, void *data);
 void *demux_str_init_plugin (xine_t *xine, void *data);
+void *demux_film_init_plugin (xine_t *xine, void *data);
+void *demux_smjpeg_init_plugin (xine_t *xine, void *data);
 
 /*
  * exported plugin catalog entries
@@ -51,5 +53,7 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 20, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
   { PLUGIN_DEMUX, 20, "roq", XINE_VERSION_CODE, NULL, demux_roq_init_plugin },
   { PLUGIN_DEMUX, 20, "str", XINE_VERSION_CODE, NULL, demux_str_init_plugin },
+  { PLUGIN_DEMUX, 20, "film", XINE_VERSION_CODE, NULL, demux_film_init_plugin },
+  { PLUGIN_DEMUX, 20, "smjpeg", XINE_VERSION_CODE, NULL, demux_smjpeg_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

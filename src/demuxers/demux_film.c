@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.49 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.50 2003/01/04 16:40:49 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -182,7 +182,7 @@ static int open_film_file(demux_film_t *film) {
       /* always fetch the video information */
       film->bih.biWidth = BE_32(&film_header[i + 16]);
       film->bih.biHeight = BE_32(&film_header[i + 12]);
-      film->video_codec = BE_32(&film_header[i + 8]);
+      film->video_codec = *(uint32_t *)&film_header[i + 8];
       film->video_type = fourcc_to_buf_video(*(uint32_t *)&film_header[i + 8]);
 
       /* fetch the audio information if the chunk size checks out */
@@ -515,6 +515,7 @@ static void demux_film_send_headers(demux_plugin_t *this_gen) {
     (this->audio_type) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = this->video_codec;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
@@ -780,7 +781,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_film_init_plugin (xine_t *xine, void *data) {
 
   demux_film_class_t     *this;
 
@@ -797,13 +798,3 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "film", XINE_VERSION_CODE, NULL, init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};

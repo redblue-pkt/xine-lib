@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.31 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.32 2003/01/04 16:40:48 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -535,7 +535,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *demux_smjpeg_init_plugin (xine_t *xine, void *data) {
 
   demux_smjpeg_class_t     *this;
 
@@ -552,13 +552,3 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "smjpeg", XINE_VERSION_CODE, NULL, init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
