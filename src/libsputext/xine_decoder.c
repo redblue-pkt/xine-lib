@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2001/12/17 00:19:21 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.10 2001/12/17 00:55:25 miguelfreitas Exp $
  *
  * code based on mplayer module:
  *
@@ -860,22 +860,35 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     if (subtitle) {
       int line, y;
+      int font_size;
 
       this->renderer->filled_rect (this->osd, 0, 0, this->width-1, this->line_height * SUB_MAX_TEXT - 1, 0);
 
       y = (SUB_MAX_TEXT - subtitle->lines) * this->line_height;
-
-      for (line=0; line<subtitle->lines; line++) {
-	int w,h,x;
-
-	this->renderer->get_text_size( this->osd, subtitle->text[line], 
-				       &w, &h);
-	
-	x = (this->width - w) / 2;
-
-	this->renderer->render_text (this->osd, x, y + line*this->line_height, subtitle->text[line]);
-      }
+      font_size = this->font_size;
       
+      for (line=0; line<subtitle->lines; line++) {
+        int w,h,x;
+        
+        while(1) {
+          this->renderer->get_text_size( this->osd, subtitle->text[line], 
+                                         &w, &h);
+          x = (this->width - w) / 2;
+          
+          if( w > this->width && font_size > 16 ) {
+            font_size -= 4;
+            this->renderer->set_font (this->osd, this->font, font_size);
+          } else {
+            break;
+          }
+        }
+        
+        this->renderer->render_text (this->osd, x, y + line*this->line_height, subtitle->text[line]);
+      }
+       
+      if( font_size != this->font_size )
+        this->renderer->set_font (this->osd, this->font, this->font_size);
+        
       this->renderer->set_text_palette (this->osd, -1);
       this->renderer->show (this->osd, pts );
       this->renderer->hide (this->osd, pts_end);
