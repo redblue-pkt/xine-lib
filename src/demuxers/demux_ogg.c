@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.155 2004/09/09 06:29:20 athp Exp $
+ * $Id: demux_ogg.c,v 1.156 2004/12/03 04:11:42 conrad Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -699,14 +699,8 @@ static void send_ogg_buf (demux_ogg_t *this,
   } else if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_SPU_CMML) {
 
     buf_element_t *buf;
-    int i, lenbytes;
     uint32_t *val;
     char *str;
-
-    for (i = 0, lenbytes = 0; i < hdrlen; i++) {
-      lenbytes = lenbytes << 8;
-      lenbytes += *((unsigned char *) op->packet + hdrlen - i);
-    }
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
