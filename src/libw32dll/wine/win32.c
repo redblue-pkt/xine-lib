@@ -3761,7 +3761,8 @@ struct libs libraries[]={
     LL(msdmo)
 };
 
-/* static char* called_unk = "Called unk_%s\n"; -- unused */
+char* win32_called_unk = "Called unk_%s\n";
+
 static void ext_stubs(void)
 {
     // expects:
@@ -3775,7 +3776,7 @@ static void ext_stubs(void)
 	 "shl $5,%eax		\n\t"			// ax * 32
 	 "addl $export_names,%eax \n\t"
 	 "pushl %eax		\n\t"
-	 "pushl called_unk	\n\t"
+	 "pushl win32_called_unk \n\t"
 	 "call *%edx		\n\t"                   // printf (via dx)
 	 "addl $8,%esp		\n\t"
 	 "xorl %eax,%eax	\n\t"
