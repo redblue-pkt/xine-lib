@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.17 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_nsv.c,v 1.18 2004/11/19 00:30:17 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -74,6 +74,8 @@ typedef struct {
   int64_t              video_pts;
   unsigned int         audio_type;
 
+  int                  keyframe_found;
+
   xine_bmiheader       bih;
 } demux_nsv_t;
 
@@ -98,7 +100,7 @@ static int open_nsv_file(demux_nsv_t *this) {
       (preview[2] != 'V'))
   {
     if ((preview[0] != 'Z') ||
-        (preview[1] != 0) ||
+        (preview[1] != 0)   ||
 	(preview[2] != '9') ||
 	(preview[3] != 1))
           return 0;
@@ -294,6 +296,8 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
     video_size, audio_size);
 
   while (video_size) {
+    int buf_num = 0;
+
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
     if (video_size > buf->max_size)
@@ -308,17 +312,45 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
       return this->status;
     }
 
-    buf->type = this->video_type;
-    if( this->data_size )
-      buf->extra_info->input_normpos = (int)((double)current_file_pos * 65535 / this->data_size);
-    buf->extra_info->input_time = this->video_pts / 90;
-    buf->pts = this->video_pts;
-    buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-    buf->decoder_info[0] = this->frame_pts_inc;
+    /* HACK: parse decoder data to detect a keyframe */
+    if ((buf_num == 0) && (!this->keyframe_found)) {
+      switch (this->video_type) {
+      case BUF_VIDEO_VP31:
+	if ((buf->content[1] == 0x00) && (buf->content[2] == 0x08)) {
+	  lprintf("keyframe detected !\n");
+	  this->keyframe_found = 1;
+	}
+	break;
 
-    if (!video_size)
-      buf->decoder_flags |= BUF_FLAG_FRAME_END;
-    this->video_fifo->put(this->video_fifo, buf);
+      case BUF_VIDEO_VP6:
+	if ((buf->content[1] & 0x0e) == 0x06) {
+	  lprintf("keyframe detected !\n");
+	  this->keyframe_found = 1;
+	}
+	break;
+
+      default:
+	/* don't know how to detect keyframe */
+	this->keyframe_found = 1;
+      }
+      buf_num++;
+    }
+
+    if (this->keyframe_found) {
+      buf->type = this->video_type;
+      if( this->data_size )
+	buf->extra_info->input_normpos = (int)((double)current_file_pos * 65535 / this->data_size);
+      buf->extra_info->input_time = this->video_pts / 90;
+      buf->pts = this->video_pts;
+      buf->decoder_flags |= BUF_FLAG_FRAMERATE;
+      buf->decoder_info[0] = this->frame_pts_inc;
+
+      if (!video_size)
+	buf->decoder_flags |= BUF_FLAG_FRAME_END;
+      this->video_fifo->put(this->video_fifo, buf);
+    } else {
+      buf->free_buffer(buf);
+    }
   }
 
   while (audio_size) {
