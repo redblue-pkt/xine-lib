@@ -46,7 +46,7 @@ read_impl(void *data, void *ptr, mpc_int32_t size)
     return fread(ptr, 1, size, d->file);
 }
 
-static BOOL
+static mpc_bool_t
 seek_impl(void *data, int offset)
 {
     mpc_reader *d = (mpc_reader *) data;
@@ -70,7 +70,7 @@ get_size_impl(void *data)
     return d->file_size;
 }
 
-static BOOL
+static mpc_bool_t
 canseek_impl(void *data)
 {
     mpc_reader *d = (mpc_reader *) data;

@@ -61,7 +61,7 @@ void mpc_decoder_init_huffman_sv7(mpc_decoder *d);
 void mpc_decoder_read_bitstream_sv6(mpc_decoder *d);
 void mpc_decoder_read_bitstream_sv7(mpc_decoder *d);
 void mpc_decoder_update_buffer(mpc_decoder *d, mpc_uint32_t RING);
-BOOL mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample);
+mpc_bool_t mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample);
 void mpc_decoder_requantisierung(mpc_decoder *d, const mpc_int32_t Last_Band);
 
 //------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ static mpc_int32_t f_read(mpc_decoder *d, void *ptr, size_t size)
     return d->r->read(d->r->data, ptr, size); 
 };
 
-static BOOL f_seek(mpc_decoder *d, mpc_int32_t offset) 
+static mpc_bool_t f_seek(mpc_decoder *d, mpc_int32_t offset) 
 { 
     return d->r->seek(d->r->data, offset); 
 };
@@ -1191,7 +1191,7 @@ static void mpc_decoder_set_streaminfo(mpc_decoder *d, mpc_streaminfo *si)
     d->samples_to_skip = MPC_DECODER_SYNTH_DELAY;
 }
 
-BOOL mpc_decoder_initialize(mpc_decoder *d, mpc_streaminfo *si) 
+mpc_bool_t mpc_decoder_initialize(mpc_decoder *d, mpc_streaminfo *si) 
 {
     mpc_decoder_set_streaminfo(d, si);
 
@@ -1264,12 +1264,12 @@ static mpc_uint32_t get_initial_fpos(mpc_decoder *d, mpc_uint32_t StreamVersion)
     return fpos;
 }
 
-BOOL mpc_decoder_seek_seconds(mpc_decoder *d, double seconds) 
+mpc_bool_t mpc_decoder_seek_seconds(mpc_decoder *d, double seconds) 
 {
     return mpc_decoder_seek_sample(d, (mpc_int64_t)(seconds * (double)d->SampleRate + 0.5));
 }
 
-BOOL mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample) 
+mpc_bool_t mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample) 
 {
     mpc_uint32_t fpos;
     mpc_uint32_t fwd;

@@ -60,7 +60,7 @@ void mpc_decoder_setup(mpc_decoder *d, mpc_reader *r);
 /// Call this next after calling mpc_decoder_setup.
 /// \param si streaminfo structure indicating format of source stream
 /// \return TRUE if decoder was initalized successfully, FALSE otherwise    
-BOOL mpc_decoder_initialize(mpc_decoder *d, mpc_streaminfo *si);
+mpc_bool_t mpc_decoder_initialize(mpc_decoder *d, mpc_streaminfo *si);
 
 /// Sets decoder sample scaling factor.  All decoded samples will be multiplied
 /// by this factor.
@@ -82,10 +82,10 @@ mpc_uint32_t mpc_decoder_decode(
     mpc_uint32_t *vbr_update_bits);
 
 /// Seeks to the specified sample in the source stream.
-BOOL mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample);
+mpc_bool_t mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample);
 
 /// Seeks to specified position in seconds in the source stream.
-BOOL mpc_decoder_seek_seconds(mpc_decoder *d, double seconds);
+mpc_bool_t mpc_decoder_seek_seconds(mpc_decoder *d, double seconds);
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@ typedef struct mpc_reader_t {
 	mpc_int32_t (*read)(void *t, void *ptr, mpc_int32_t size);
 
     /// Seeks to byte position offset.
-	BOOL (*seek)(void *t, mpc_int32_t offset);
+	mpc_bool_t (*seek)(void *t, mpc_int32_t offset);
 
     /// Returns the current byte offset in the stream.
 	mpc_int32_t (*tell)(void *t);
@@ -22,7 +22,7 @@ typedef struct mpc_reader_t {
 	mpc_int32_t (*get_size)(void *t);
 
     /// True if the stream is a seekable stream.
-	BOOL (*canseek)(void *t);
+	mpc_bool_t (*canseek)(void *t);
 
     /// Optional field that can be used to identify a particular instance of
     /// reader or carry along data associated with that reader.
@@ -33,7 +33,7 @@ typedef struct mpc_reader_t {
     // malloc/free.
     FILE *file;
     long file_size;
-    BOOL is_seekable;
+    mpc_bool_t is_seekable;
 } mpc_reader;
 
 /// Initializes reader with default stdio file reader implementation.  Use

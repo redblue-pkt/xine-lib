@@ -9,7 +9,7 @@
   #define MPC_LITTLE_ENDIAN
 #endif
 
-typedef unsigned char BOOL;
+typedef unsigned char mpc_bool_t;
 #define TRUE  1
 #define FALSE 0
 

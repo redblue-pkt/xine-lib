@@ -23,7 +23,7 @@
  *   32bit float output
  *   Seeking??
  *
- * $Id: xine_decoder.c,v 1.3 2005/01/29 18:33:53 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.4 2005/01/30 14:41:34 valtri Exp $
  */
 
 #include <stdio.h>
@@ -106,7 +106,7 @@ static int32_t mpc_reader_read(void *data, void *ptr, int32_t size) {
 }
  
 /* Seeks to byte position offset. */
-static BOOL mpc_reader_seek(void *data, int32_t offset) {
+static mpc_bool_t mpc_reader_seek(void *data, int32_t offset) {
   mpc_decoder_t *this = (mpc_decoder_t *) data;
   
   lprintf("mpc_reader_seek: offset=%d\n", offset);
@@ -136,7 +136,7 @@ static int32_t mpc_reader_get_size(void *data) {
 }
 
 /* True if the stream is a seekable stream. */
-static BOOL mpc_reader_canseek(void *data) {
+static mpc_bool_t mpc_reader_canseek(void *data) {
   lprintf("mpc_reader_canseek\n");
   
   return TRUE;
