@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.75 2002/04/09 04:29:05 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.76 2002/04/13 11:59:58 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -758,22 +758,23 @@ static int64_t get_video_pts (demux_avi_t *this, long pos) {
 
 
 static int demux_avi_next (demux_avi_t *this) {
-  int i;
+
+  int            i;
   buf_element_t *buf = NULL;
-  int64_t       audio_pts, video_pts;
-  int do_read_video = 0;
+  int64_t        audio_pts, video_pts;
+  int            do_read_video = (this->avi->n_audio == 0);
 
   if (this->avi->video_frames <= this->avi->video_posf)
     return 0;
 
-  for(i=0; i < this->avi->n_audio; i++)
+  for (i=0; i < this->avi->n_audio; i++)
     if (!this->no_audio && (this->avi->audio[i]->audio_chunks <= this->avi->audio[i]->audio_posc))
       return 0;
 
 
   video_pts = get_video_pts (this, this->avi->video_posf);
 
-  for(i=0; i < this->avi->n_audio; i++) {
+  for (i=0; i < this->avi->n_audio; i++) {
     avi_audio_t *audio = this->avi->audio[i];
 
     audio_pts = get_audio_pts (this, i, audio->audio_posc, audio->audio_posb);
@@ -808,7 +809,7 @@ static int demux_avi_next (demux_avi_t *this) {
       do_read_video = 1;
   }
 
-  if(do_read_video) {
+  if (do_read_video) {
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->content = buf->mem;
