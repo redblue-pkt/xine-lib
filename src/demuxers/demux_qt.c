@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.1 2001/09/10 03:04:48 guenter Exp $
+ * $Id: demux_qt.c,v 1.2 2001/09/11 14:11:56 guenter Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -29,7 +29,7 @@
  *
  */
 
- 
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

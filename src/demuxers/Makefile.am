@@ -38,6 +38,7 @@ xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_qt_la_SOURCES = demux_qt.c
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_qt_la_LIBADD = -lz
 
 include_HEADERS = demux.h
 
