@@ -459,7 +459,7 @@ static void  rivatv_enable_PMEDIA (struct rivatv_info *info){
 }
 
 /* Stop overlay video. */
-void rivatv_overlay_stop (struct rivatv_info *info) {
+static void rivatv_overlay_stop (struct rivatv_info *info) {
 	switch (info->chip.arch ) {
 	case NV_ARCH_10:
 	case NV_ARCH_20:
@@ -579,7 +579,7 @@ static void nv_getscreenproperties(struct rivatv_info *info){
 
 
 /* Start overlay video. */
-void rivatv_overlay_start (struct rivatv_info *info,int bufno){
+static void rivatv_overlay_start (struct rivatv_info *info,int bufno){
     uint32_t base, size, offset, xscale, yscale, pan;
     uint32_t value;
 	int x=info->wx?info->wx:8, y=info->wy?info->wy:8;

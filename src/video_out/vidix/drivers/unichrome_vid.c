@@ -132,7 +132,7 @@ static int find_chip(unsigned chip_id)
  *       See ddover.c, DDOVER_HQVCalcZoomHeight()
  */
 
-int uc_ovl_map_vzoom(int sh, int dh, uint32_t* zoom, uint32_t* mini)
+static int uc_ovl_map_vzoom(int sh, int dh, uint32_t* zoom, uint32_t* mini)
 {
 	uint32_t sh1, tmp, d;
 	int zoom_ok = 1;
@@ -194,7 +194,7 @@ int uc_ovl_map_vzoom(int sh, int dh, uint32_t* zoom, uint32_t* mini)
  * @note Derived from VIA's V4L driver.
  *       See ddover.c, DDOVER_HQVCalcZoomWidth() and DDOver_GetDisplayCount()
  */
-int uc_ovl_map_hzoom(int sw, int dw,  uint32_t* zoom, uint32_t* mini,
+static int uc_ovl_map_hzoom(int sw, int dw,  uint32_t* zoom, uint32_t* mini,
 	int* falign, int* dcount)
 {
 	uint32_t tmp, sw1, d;
@@ -259,7 +259,7 @@ int uc_ovl_map_hzoom(int sw, int dw,  uint32_t* zoom, uint32_t* mini,
  * @note Derived from VIA's V4L driver. See ddover.c, DDOver_GetFetch()
  * @note Only call after uc_ovl_map_hzoom()
  */
-uint32_t uc_ovl_map_qwfetch(uint32_t format, int sw)
+static uint32_t uc_ovl_map_qwfetch(uint32_t format, int sw)
 {
 	uint32_t fetch = 0;
 
@@ -297,7 +297,7 @@ uint32_t uc_ovl_map_qwfetch(uint32_t format, int sw)
  *
  * @note Derived from VIA's V4L driver. See ddover.c, DDOver_GetV1Format()
  */
-uint32_t uc_ovl_map_format(uint32_t format)
+static uint32_t uc_ovl_map_format(uint32_t format)
 {
 	switch (format) {
 	case IMGFMT_UYVY:
@@ -331,7 +331,7 @@ uint32_t uc_ovl_map_format(uint32_t format)
  * @param control       will hold value for V1_CONTROL
  * @param fifo          will hold value for V1_FIFO_CONTROL
  */
-void uc_ovl_map_v1_control(uint32_t format, int sw,
+static void uc_ovl_map_v1_control(uint32_t format, int sw,
 	int hwrev, int extfifo_on,
 	uint32_t* control, uint32_t* fifo)
 {
@@ -375,7 +375,7 @@ void uc_ovl_map_v1_control(uint32_t format, int sw,
 }
 
 
-void uc_ovl_setup_fifo(int *extfifo_on, int dst_w)
+static void uc_ovl_setup_fifo(int *extfifo_on, int dst_w)
 {
 	if (dst_w <= 1024)
 	{
@@ -396,7 +396,7 @@ void uc_ovl_setup_fifo(int *extfifo_on, int dst_w)
 }
 
 
-void uc_ovl_vcmd_wait(volatile uint8_t* vio)
+static void uc_ovl_vcmd_wait(volatile uint8_t* vio)
 {
 	while ((VIDEO_IN(vio, V_COMPOSE_MODE)
 		& (V1_COMMAND_FIRE | V3_COMMAND_FIRE)));
@@ -596,7 +596,6 @@ int vixConfigPlayback(vidix_playback_t *info)
 	uint32_t win_start, win_end;
 	uint32_t zoom, mini;
 	uint32_t dcount, falign, qwfetch;
-	uint32_t y_start, u_start, v_start;
 	uint32_t v_ctrl, fifo_ctrl;
 
 	if(!is_supported_fourcc(info->fourcc))
@@ -631,6 +630,7 @@ int vixConfigPlayback(vidix_playback_t *info)
 	swap_uv = 0;
 	switch(info->fourcc)
 	{
+		default:
 		case IMGFMT_YV12:
 			swap_uv = 1;
 		case IMGFMT_I420:
