@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.33 2004/06/01 21:37:16 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.34 2004/06/01 21:48:37 jstembridge Exp $
  *
  */
 
@@ -28,7 +28,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define LOG_MODULE "faad_decoder"
+#define LOG_MODULE "libfaad"
 #define LOG_VERBOSE
 
 /*
@@ -87,8 +87,8 @@ static int faad_open_dec( faad_decoder_t *this ) {
 
   this->faac_dec = faacDecOpen();
   if( !this->faac_dec ) {
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-              _("libfaad: libfaad faacDecOpen() failed.\n"));
+    xprintf( this->stream->xine, XINE_VERBOSITY_LOG,
+             _("libfaad: libfaad faacDecOpen() failed.\n"));
     this->faac_failed++;
   } else {
     if( this->dec_config ) {
