@@ -28,7 +28,7 @@ frontends
         This is the time of "hard" feature freeze: Only bug fixes are
         permitted.
         (xine-ui should stabilize here, as well, maybe an 0.99.x or
-         1-alpha/beta/rc series to demonstarte this to end users)
+         1-alpha/beta/rc series to demonstrate this to end users)
 
 1-rc6   Most compile warnings are fixed. Hopefully the translators have
         finished their job as well. xine engine structures have been
@@ -60,6 +60,9 @@ required for 1.0
 - review code for stack overflows
   (no big review, just grep for the most common mistakes like
   sprintf, sscanf)
+- review code for malloc()s that don't check their return type
+  (replace with xine_xmalloc() and make it abort() on failure,
+  if graceful failure handling is not possible)
 
 optional
 --------
