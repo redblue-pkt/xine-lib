@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.80 2003/05/30 14:10:50 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.81 2003/05/30 14:29:02 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -900,16 +900,24 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 #endif
   
   if (frame_gen->format != XINE_IMGFMT_DXR3 && this->enc && this->enc->on_display_frame) {
-    if (this->need_update) {
-      /* we cannot do this earlier, because vo_frame.duration is only valid here */
-      if (this->enc && this->enc->on_update_format)
-        this->enc->on_update_format(this, frame);
-      this->need_update = 0;
+    
+    if (this->fd_video == CLOSED_FOR_DECODER) {
+      /* no need to encode, when the device is already reserved for the decoder */
+      frame_gen->displayed(frame_gen);
+    } else {
+      if (this->need_update) {
+	/* we cannot do this earlier, because vo_frame.duration is only valid here */
+	if (this->enc && this->enc->on_update_format)
+	  this->enc->on_update_format(this, frame);
+	this->need_update = 0;
+      }
+      /* for non-mpeg, the encoder plugin is responsible for calling 
+       * frame_gen->displayed(frame_gen) ! */
+      this->enc->on_display_frame(this, frame);
     }
-    /* for non-mpeg, the encoder plugin is responsible for calling 
-     * frame_gen->displayed(frame_gen) ! */
-    this->enc->on_display_frame(this, frame);
+  
   } else {
+    
     if (this->need_update) {
       /* we do not need the mpeg encoders any more */
       if (this->enc && this->enc->on_unneeded)
@@ -917,6 +925,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       this->need_update = 0;
     }
     frame_gen->displayed(frame_gen);
+  
   }
 }
 
