@@ -12,25 +12,25 @@ required for 1.0
   implement test frontend that uses these functions
 - use report_codec function again so uis can display error messages if
   codecs are missing
-- fix rate estimation in demux_mpeg/demux_mpeg_block
-- fix streaming if small files (e.g. http)
+- fix rate estimation in demux_mpeg/demux_mpeg_block (guenter)
+- fix streaming if small files (e.g. http) (guenter)
 - implement timeout in input_http, implement it correctly using select()
   (guenter)
 - fix potential overflow in compressor audio filter (guenter)
 - xine health check (stephen)
 - sputext decoder plugin
 - spucc decoder plugin
-- xvid decoder plugin
+- xvid decoder plugin (guenter)
 - faad decoder plugin
 - opengl video output plugin
-- esd audio output plugin
+- esd audio output plugin (guenter)
 - arts audio output plugin
 - irix audio output plugin (matthias)
 - null audio plugin (or fix null video out)
-- input_dvd: detect errors, display useful error messages
+- input_dvd: detect errors, display useful error messages (guenter)
 - prepare architecture for post effect plugins (michael)
-- input_vcd
-- input_stdin, input_net (guenter)
+- input_net (guenter)
+- fix documentation
 
 opional
 -------
@@ -53,6 +53,7 @@ opional
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
 - bring dxr3 video out to work with aaxine (michael)
 - streaming of avi files (e.g. via http)
+- ms audio decoder from ffmpeg
 
 
 Assigned tasks

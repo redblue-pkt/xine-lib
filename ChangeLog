@@ -1,4 +1,9 @@
-xine-lib (next version) [someone fill in stability and urgency]
+xine-lib (1.0.0-alpha1) 
+  * transport stream demuxer fixes
+  * stdin_fifo input plugin
+  * vcd input plugin  
+
+xine-lib (1.0.0-alpha0) 
 
   * dvd plugin replaced by dvdnav with full menu support
   * fix segfault on exit for w32codecs
