@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.52 2004/05/19 19:41:28 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.53 2004/06/06 16:41:27 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -61,10 +61,17 @@ typedef struct {
   audio_decoder_class_t *class;
 
   dts_state_t     *dts_state;
+  int64_t          pts;
+
   int              audio_caps;  
   uint32_t         rate;
   uint32_t         bits_per_sample;
   uint32_t         number_of_channels;
+  int              sync_state;
+  int              ac5_length, ac5_pcm_length, frame_todo;
+  uint32_t         syncdword;
+  uint8_t          frame_buffer[3840];
+  uint8_t         *frame_ptr;
 
   int              output_open;
   
@@ -123,7 +130,6 @@ static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
   }
 }
 
-
 static inline void mute_channel (int16_t * s16, int num_channels) {
   int i;
                                                                                                                            
@@ -132,70 +138,18 @@ static inline void mute_channel (int16_t * s16, int num_channels) {
   }
 }
 
-static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+static void dts_decode_frame (dts_decoder_t *this, int64_t pts, int preview_mode) {
 
-  dts_decoder_t  *this = (dts_decoder_t *) this_gen;
-  uint8_t        *data_in = (uint8_t *)buf->content;
-  uint8_t        *data_out;
   audio_buffer_t *audio_buffer;
   uint32_t  ac5_spdif_type=0;
-  uint32_t  ac5_length=0;
-  uint32_t  ac5_pcm_length;
-  uint32_t  number_of_frames;
-  uint32_t  first_access_unit;
-  int       old_dts_flags;
-  int       old_dts_sample_rate;
-  int       old_dts_bit_rate;
   int output_mode = AO_CAP_MODE_STEREO;
-  int n;
+  uint8_t        *data_out;
+  uint8_t        *data_in = this->frame_buffer;
   
-  lprintf("decode_data\n");
+  lprintf("decode_frame\n");
+  audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
+  audio_buffer->vpts       = 0;
 
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
-    return;
-
-  number_of_frames = buf->decoder_info[1];  /* Number of frames  */
-  first_access_unit = buf->decoder_info[2]; /* First access unit */
-
-  if (number_of_frames > 2) {
-    return;
-  }
-  for(n=1;n<=number_of_frames;n++) {
-    data_in += ac5_length;
-    if(data_in >= (buf->content+buf->size)) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS length error\n");
-      return;
-    }
-    old_dts_flags = this->dts_flags;
-    old_dts_sample_rate = this->dts_sample_rate;
-    old_dts_bit_rate = this->dts_bit_rate;
-
-    ac5_length = dts_syncinfo(this->dts_state, data_in, &this->dts_flags, &this->dts_sample_rate, 
-                              &this->dts_bit_rate, &ac5_pcm_length);
-
-    if(!ac5_length) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS Sync bad\n");
-      return;
-    }
-
-    if (!_x_meta_info_get(this->stream, XINE_META_INFO_AUDIOCODEC) ||
-          old_dts_flags       != this->dts_flags ||
-          old_dts_sample_rate != this->dts_sample_rate ||
-          old_dts_bit_rate    != this->dts_bit_rate) {
-      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->dts_bit_rate);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->dts_sample_rate);
-    }
-
-
-    audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
-    
-    if (n == first_access_unit) {
-      audio_buffer->vpts       = buf->pts;
-    } else {
-      audio_buffer->vpts       = 0;
-    }
-     
     if(this->bypass_mode) {
       /* SPDIF digital output */
       if (!this->output_open) {
@@ -208,20 +162,14 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       if (!this->output_open) 
         return;
       
-      audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
-      audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
-
-      lprintf("frame_header_count = %u\n",audio_buffer->frame_header_count);
-      lprintf("first access unit = %u\n",audio_buffer->first_access_unit);
-
       data_out=(uint8_t *) audio_buffer->mem;
-
-      if (ac5_length > 8191) {
+      printf("ac5_pcm_length=%d, ac5_length=%d\n",this->ac5_pcm_length, this->ac5_length);
+      if (this->ac5_length > 8191) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: ac5_length too long\n");
-        ac5_pcm_length = 0;
+        this->ac5_pcm_length = 0;
       }
 
-      switch (ac5_pcm_length) {
+      switch (this->ac5_pcm_length) {
       case 512:
         ac5_spdif_type = 0x0b; /* DTS-1 (512-sample bursts) */
         break;
@@ -233,7 +181,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         break;
       default:
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		"libdts: DTS %i-sample bursts not supported\n", ac5_pcm_length);
+		"libdts: DTS %i-sample bursts not supported\n", this->ac5_pcm_length);
         return;
       }
 
@@ -243,7 +191,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         printf("libdts: DTS frame type=%d\n",data_in[4] >> 7);
         printf("libdts: DTS deficit frame count=%d\n",(data_in[4] & 0x7f) >> 2);
         printf("libdts: DTS AC5 PCM samples=%d\n",ac5_pcm_samples);
-        printf("libdts: DTS AC5 length=%d\n",ac5_length);
+        printf("libdts: DTS AC5 length=%d\n",this->ac5_length);
         printf("libdts: DTS AC5 bitrate=%d\n",((data_in[8] & 0x03) << 4) | (data_in[8] >> 4));
         printf("libdts: DTS AC5 spdif type=%d\n", ac5_spdif_type);
 
@@ -255,23 +203,22 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       }
 #endif
 
+      lprintf("length=%d loop=%d pts=%lld\n",this->ac5_pcm_length,n,audio_buffer->vpts);
 
-      lprintf("length=%d loop=%d pts=%lld\n",ac5_pcm_length,n,audio_buffer->vpts);
-
-      audio_buffer->num_frames = ac5_pcm_length;
+      audio_buffer->num_frames = this->ac5_pcm_length;
 
       data_out[0] = 0x72; data_out[1] = 0xf8;	/* spdif syncword    */
       data_out[2] = 0x1f; data_out[3] = 0x4e;	/* ..............    */
       data_out[4] = ac5_spdif_type;		/* DTS data          */
       data_out[5] = 0;		                /* Unknown */
-      data_out[6] = (ac5_length << 3) & 0xff;   /* ac5_length * 8   */
-      data_out[7] = ((ac5_length ) >> 5) & 0xff;
+      data_out[6] = (this->ac5_length << 3) & 0xff;   /* ac5_length * 8   */
+      data_out[7] = ((this->ac5_length ) >> 5) & 0xff;
 
-      if( ac5_pcm_length ) {
-        if( ac5_pcm_length % 2) {
-          swab(data_in, &data_out[8], ac5_length );
+      if( this->ac5_pcm_length ) {
+        if( this->ac5_pcm_length % 2) {
+          swab(data_in, &data_out[8], this->ac5_length );
         } else {
-          swab(data_in, &data_out[8], ac5_length + 1);
+          swab(data_in, &data_out[8], this->ac5_length + 1);
         }
       }
     } else {
@@ -293,7 +240,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           output_mode = AO_CAP_MODE_4_1CHANNEL;
           dts_flags |= DTS_LFE;
         } else {
-          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: WHAT DO I DO!!!\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: WHAT DO I DO!!!\n");
           output_mode = this->ao_flags_map[dts_flags & DTS_CHANNEL_MASK];
         }
       else
@@ -366,13 +313,132 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           float_to_int (&samples[5*256], int_samples+(i*256*6)+5, 6); /* LFE */ /* Not working yet */
           break;
         default:
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: help - unsupported mode %08x\n", output_mode);
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: help - unsupported mode %08x\n", output_mode);
         }
       }
     }
     
     this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
    
+  
+}
+
+static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+
+  dts_decoder_t  *this = (dts_decoder_t *) this_gen;
+  uint8_t        *current = (uint8_t *)buf->content;
+  uint8_t        *sync_start=current + 1;
+  uint8_t        *end = buf->content + buf->size;
+  
+  lprintf("decode_data\n");
+
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER)
+    return;
+
+  lprintf ("processing...state %d\n", this->sync_state);
+
+  while (current < end) {
+    switch (this->sync_state) {
+    case 0:  /* Looking for sync header */
+	  this->syncdword = (this->syncdword << 8) | *current++;
+/*
+          if ((this->syncdword == 0xff1f00e8) ||
+              (this->syncdword == 0x1fffe800) ||
+              (this->syncdword == 0xfe7f0180) ||
+              (this->syncdword == 0x7ffe8001) ) {
+*/
+          if ((this->syncdword == 0x7ffe8001)) {
+
+            lprintf ("sync found: syncdword=0x%x\n", this->syncdword);
+	    this->frame_buffer[0] = 0x7f;
+	    this->frame_buffer[1] = 0xfe;
+	    this->frame_buffer[2] = 0x80;
+	    this->frame_buffer[3] = 0x01;
+
+	    this->sync_state = 1;
+	    this->frame_ptr = this->frame_buffer+4;
+            this->pts = buf->pts;
+	  }
+          break;
+
+    case 1:  /* Looking for enough bytes for sync_info. */
+          sync_start = current - 1;
+	  *this->frame_ptr++ = *current++;
+          if ((this->frame_ptr - this->frame_buffer) > 16) {
+	    int old_dts_flags       = this->dts_flags;
+	    int old_dts_sample_rate = this->dts_sample_rate;
+	    int old_dts_bit_rate    = this->dts_bit_rate;
+
+	    this->ac5_length = dts_syncinfo (this->dts_state, this->frame_buffer,
+					       &this->dts_flags,
+					       &this->dts_sample_rate,
+					       &this->dts_bit_rate, &(this->ac5_pcm_length));
+
+            if (this->ac5_length < 80) { /* Invalid dts ac5_pcm_length */
+	      this->syncdword = 0;
+	      current = sync_start;
+	      this->sync_state = 0;
+	      break;
+	    }
+
+            lprintf("Frame length = %d\n",this->ac5_pcm_length);
+
+	    this->frame_todo = this->ac5_length - 17;
+	    this->sync_state = 2;
+	    if (!_x_meta_info_get(this->stream, XINE_META_INFO_AUDIOCODEC) ||
+	        old_dts_flags       != this->dts_flags ||
+                old_dts_sample_rate != this->dts_sample_rate ||
+		old_dts_bit_rate    != this->dts_bit_rate) {
+
+              if (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F2R) && (this->dts_flags & DTS_LFE))
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 5.1");
+              else if ((((this->dts_flags & DTS_CHANNEL_MASK) == DTS_2F2R) && (this->dts_flags & DTS_LFE)) ||
+                       (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F1R) && (this->dts_flags & DTS_LFE)))
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 4.1");
+              else if ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F2R) 
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 5.0");
+              else if (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_2F2R) ||
+                       ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F1R))
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 4.0");
+              else if (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_2F1R) ||
+                       ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F))
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 3.0");
+              else if ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_STEREO)
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 2.0 (stereo)");
+              else if ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_MONO)
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 1.0");
+              else
+                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
+
+              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->dts_bit_rate);
+              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->dts_sample_rate);
+            }
+          }
+          break;
+            
+    case 2:  /* Filling frame_buffer with sync_info bytes */
+	  *this->frame_ptr++ = *current++;
+	  this->frame_todo--;
+	  if (this->frame_todo < 1) {
+	    this->sync_state = 3;
+          } else break;
+      
+    case 3:  /* Ready for decode */
+#if 0
+          dtsdec_decode_frame (this, this->pts_list[0], buf->decoder_flags & BUF_FLAG_PREVIEW);
+#else
+          dts_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
+#endif
+    case 4:  /* Clear up ready for next frame */
+          this->pts = 0;
+	  this->syncdword = 0;
+	  this->sync_state = 0;
+          break;
+    default: /* No come here */ 
+          break;
+    }
   }
 }
 
@@ -474,7 +540,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
       this->ao_flags_map[DTS_3F2R]    = AO_CAP_MODE_MONO;
     }
   }
-
   this->stream        = stream;
   this->class         = class_gen;
   this->output_open   = 0;
