@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.26 2003/12/14 22:13:25 siggi Exp $
+ * $Id: xine_plugin.c,v 1.27 2003/12/24 13:36:13 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -749,7 +749,21 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
       }
 
       if( framerate_mode == FRAMERATE_FULL ) {
-        if ( frame->top_field_first ) {
+        int top_field_first = frame->top_field_first;
+
+        /* if i understood mpeg2 specs correctly, top_field_first
+         * shall be zero for field pictures and the output order
+         * is the same that the fields are decoded.
+         * frame->flags allow us to find the first decoded field.
+         *
+         * note: frame->field() is called later to switch decoded
+         *       field but frame->flags do not change.
+         */
+        if ( (frame->flags & VO_BOTH_FIELDS) != VO_BOTH_FIELDS ) {
+          top_field_first = (frame->flags & VO_TOP_FIELD) ? 1 : 0;
+        }
+
+        if ( top_field_first ) {
           fields[0] = 0;
           fields[1] = 1;
         } else {
