@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.45 2003/03/14 23:52:07 miguelfreitas Exp $
+ * $Id: input_stdin_fifo.c,v 1.46 2003/03/20 23:26:11 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,9 +40,6 @@
 /*
 #define LOG
 */
-
-#define DEFAULT_LOW_WATER_MARK     1
-#define DEFAULT_HIGH_WATER_MARK    5
 
 typedef struct {
   input_plugin_t   input_plugin;
