@@ -202,6 +202,7 @@ xine_health_check_t* _x_health_check_mtrr (xine_health_check_t* hc) {
 
 xine_health_check_t* _x_health_check_cdrom (xine_health_check_t* hc) {
   struct stat cdrom_st;
+  int fd;
 
   hc->title       = "Check for CDROM drive";
   hc->explanation = "Either create a symbolic link /dev/cdrom pointing to"
@@ -211,29 +212,25 @@ xine_health_check_t* _x_health_check_cdrom (xine_health_check_t* hc) {
   if (stat (hc->cdrom_dev,&cdrom_st) < 0) {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not access cdrom: %s\n", hc->cdrom_dev);
     return hc;
+  
+  if ((cdrom_st.st_mode & S_IFMT) != S_IFBLK) {
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s is not a block device.\n", hc->cdrom_dev);
+    return hc;
   }
-  else {
-    if ((cdrom_st.st_mode & S_IFMT) != S_IFBLK) {
-      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s is not a block device.\n", hc->cdrom_dev);
-      return hc;
-    }
-
-    if ( (access (hc->cdrom_dev, R_OK & W_OK & X_OK)) < 0) {
-/*
-    if ((cdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) !=
-        (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH)) {
-*/
-      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not 'rwxrwxrx'\n.", hc->cdrom_dev);
-      return hc;
-    }
-    hc->status = XINE_HEALTH_CHECK_OK;
+  
+  if ( (fd = open(hc->cdrom_dev, O_RDWR)) < 0) {
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not sufficient\n.", hc->cdrom_dev);
+    return hc;
   }
+  close(fd);
+    
+  hc->status = XINE_HEALTH_CHECK_OK;
   return hc;
 }
 
 xine_health_check_t* _x_health_check_dvdrom(xine_health_check_t* hc) {
-
   struct stat dvdrom_st;
+  int fd;
 
   hc->title       = "Check for DVD drive";
   hc->explanation = "Either create a symbolic link /dev/dvd pointing to"
@@ -250,14 +247,11 @@ xine_health_check_t* _x_health_check_dvdrom(xine_health_check_t* hc) {
     return hc;
   }
 
-  if ( (access (hc->dvd_dev, R_OK & W_OK & X_OK)) < 0) {
-/*
-  if ((dvdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) !=
-      (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH)) {
-*/
-    set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not 'rwxrwxrx'.\n", hc->dvd_dev);
+  if ( (fd = open(hc->dvd_dev, O_RDWR)) < 0) {
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not sufficient\n.", hc->cdrom_dev);
     return hc;
   }
+  close(fd);
 
   hc->status = XINE_HEALTH_CHECK_OK;
   return hc;
