@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.17 2001/10/28 14:44:11 mlampard Exp $
+ * $Id: video_out_dxr3.c,v 1.18 2001/11/01 12:38:08 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -73,6 +73,7 @@ typedef struct dxr3_driver_s {
 	int video_width;
 	int video_height;
 	int video_aspect;
+	int zoom_enabled;
 	void (*request_dest_size) (char *user_data, int video_width, int video_height,
 	 	int *dest_x, int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;
@@ -173,6 +174,9 @@ void dxr3_read_config(dxr3_driver_t *this)
 	} else {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
 	}
+	if(!this->overlay_enabled)
+		this->zoom_enabled=config->lookup_int(config, "dxr3_zoom16_9", 0);
+		
 	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
 			fprintf(stderr, "dxr3_vo: setting video mode failed.");
@@ -230,7 +234,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 {
 	dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
 	dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
-	int image_size;
+	int image_size = -1;
 	
   if ((frame->width != width) || (frame->height != height)
         || (frame->format != format)) {
@@ -345,6 +349,43 @@ static int is_fullscreen(dxr3_driver_t *this)
 	 a.height == this->overlay.screen_yres;
 }
 
+static void dxr3_zoomTV(dxr3_driver_t *this)
+{
+       	em8300_register_t frame, visible, update;
+       	frame.microcode_register=1; 	/* Yes, this is a MC Reg */
+       	visible.microcode_register=1; 	/* Yes, this is a MC Reg */       	
+       	update.microcode_register=1;
+
+	/* change left <- */       	
+	       	frame.microcode_register=1; 	/* Yes, this is a MC Reg */
+	       	visible.microcode_register=1; 	/* Yes, this is a MC Reg */       	
+	       	frame.reg = 93; // dicom frame left
+	       	visible.reg = 97; //dicom visible left
+	       	update.reg = 65; //dicom_update
+		update.val=1;
+		frame.val=0x10;
+		visible.val=0x10;
+			
+		ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &frame);
+		ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &visible);
+		ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &update);
+
+	/* change right -> */       	
+	       	frame.microcode_register=1; 	/* Yes, this is a MC Reg */
+	       	visible.microcode_register=1; 	/* Yes, this is a MC Reg */       	
+	       	update.reg = 94; // dicom frame right
+	       	visible.reg = 98; //dicom visible right
+	       	update.reg = 65; //dicom_update
+		update.val=1;
+		frame.val=0x10; 
+		visible.val= 968;
+			
+		ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &frame);
+		ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &visible);
+		ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &update);
+
+}
+
 static int dxr3_set_property (vo_driver_t *this_gen, 
 			      int property, int value)
 {
@@ -387,9 +428,18 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 			this->desired_ratio = 4.0/3.0;
 		}
 
+		if(val==EM8300_ASPECTRATIO_16_9 && this->zoom_enabled && !this->overlay_enabled){
+			fprintf(stderr, "dxr3_vo: enabling 16:9 zoom\n");
+			val=EM8300_ASPECTRATIO_4_3;
+			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
+				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
+				 strerror(errno));
+			dxr3_zoomTV(this);		
+		}else
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
 			fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
 			 strerror(errno));
+		
 		if (this->overlay_enabled && !fullscreen){
 			int foo;
 			this->request_dest_size(this->user_data, this->width,
