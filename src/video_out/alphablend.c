@@ -30,8 +30,8 @@
 
 /*
 #define LOG_BLEND_YUV
-*/
 #define LOG_BLEND_RGB16
+*/
 
 #include <string.h>
 #include <stdlib.h>

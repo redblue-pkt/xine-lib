@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.95 2002/11/20 11:57:49 mroi Exp $
+ * $Id: video_out_xshm.c,v 1.96 2002/11/22 18:06:22 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1054,7 +1054,7 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   this->display		    = visual->display;
   this->screen		    = visual->screen;
 
-  vo_scale_init( &this->sc, 0, 0 );
+  vo_scale_init( &this->sc, 0, 0, config );
   this->sc.frame_output_cb  = visual->frame_output_cb;
   this->sc.dest_size_cb     = visual->dest_size_cb;
   this->sc.user_data        = visual->user_data;
@@ -1265,6 +1265,6 @@ static vo_info_t vo_info_xshm = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 11, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
+  { PLUGIN_VIDEO_OUT, 12, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

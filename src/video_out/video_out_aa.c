@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.30 2002/11/20 11:57:48 mroi Exp $
+ * $Id: video_out_aa.c,v 1.31 2002/11/22 18:06:17 mroi Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -328,6 +328,6 @@ static vo_info_t vo_info_aa = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 11, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
+  { PLUGIN_VIDEO_OUT, 12, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.4 2002/09/08 16:52:57 mroi Exp $
+ * $Id: vo_scale.h,v 1.5 2002/11/22 18:06:14 mroi Exp $
  * 
  * vo_scale.h
  *
@@ -104,6 +104,7 @@ struct vo_scale_s {
   int                output_height;
   int                output_xoffset;
   int                output_yoffset;
+  
 
   /* */
   int                force_redraw;
@@ -128,6 +129,14 @@ struct vo_scale_s {
 
   /* borders */
   vo_scale_rect_t     border[4];
+
+  /*
+   * border ratios to determine image position in the
+   * viewport; these are set by user config
+   */
+  double             output_horizontal_position;
+  double             output_vertical_position;
+  
 };
 
 typedef struct vo_scale_s vo_scale_t; 
@@ -172,7 +181,7 @@ char *vo_scale_aspect_ratio_name(int a);
  * initialize rescaling struct
  */
  
-void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled );
+void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled, config_values_t *config );
 
 #ifdef __cplusplus
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.14 2002/11/20 11:57:48 mroi Exp $
+ * $Id: video_out_pgx64.c,v 1.15 2002/11/22 18:06:20 mroi Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -689,7 +689,7 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   this->fb_width = attr.fbtype.fb_width;
   this->fb_height = attr.fbtype.fb_height;
 
-  vo_scale_init(&this->vo_scale, 0, 0);
+  vo_scale_init(&this->vo_scale, 0, 0, this->class->config);
   this->vo_scale.user_ratio = ASPECT_AUTO;
 
   set_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
@@ -833,8 +833,8 @@ static pgx64_driver_class_t* pgx64fb_init_class(xine_t *xine, void *visual_gen)
 
 plugin_info_t xine_plugin_info[] = {
 #ifdef HAVE_X11
-  {PLUGIN_VIDEO_OUT, 11, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
+  {PLUGIN_VIDEO_OUT, 12, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
 #endif
-  {PLUGIN_VIDEO_OUT, 11, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
+  {PLUGIN_VIDEO_OUT, 12, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.79 2002/11/20 11:57:48 mroi Exp $
+ * $Id: video_out_syncfb.c,v 1.80 2002/11/22 18:06:20 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -949,7 +949,7 @@ static void *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->drawable             = visual->d;
   this->gc                   = XCreateGC (this->display, this->drawable, 0, NULL);
 
-  vo_scale_init( &this->sc, visual->display_ratio, 1, 0 );
+  vo_scale_init( &this->sc, visual->display_ratio, 1, 0, config );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 

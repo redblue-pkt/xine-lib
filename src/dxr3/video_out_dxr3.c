@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.62 2002/11/22 16:20:33 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.63 2002/11/22 18:06:09 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -75,7 +75,7 @@ static vo_info_t   vo_info_dxr3 = {
 
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 11, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
+  { PLUGIN_VIDEO_OUT, 12, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -216,7 +216,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   
   pthread_mutex_init(&this->spu_device_lock, NULL);
   
-  vo_scale_init(&this->scale, 0, 0);
+  vo_scale_init(&this->scale, 0, 0, config);
   
   this->class                          = class;
   this->swap_fields                    = config->register_bool(config,

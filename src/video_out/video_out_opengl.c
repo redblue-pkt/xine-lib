@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.19 2002/11/21 23:24:50 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.20 2002/11/22 18:06:19 mroi Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -913,7 +913,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
     this->display		    = visual->display;
     this->screen		    = visual->screen;
 
-    vo_scale_init (&this->sc, 0, 0);
+    vo_scale_init (&this->sc, 0, 0, class->config);
 
     this->sc.frame_output_cb        = visual->frame_output_cb;
     this->sc.dest_size_cb           = visual->dest_size_cb;
@@ -993,7 +993,7 @@ static vo_info_t vo_info_opengl = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 11, "opengl", XINE_VERSION_CODE,
+  { PLUGIN_VIDEO_OUT, 12, "opengl", XINE_VERSION_CODE,
     &vo_info_opengl, opengl_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

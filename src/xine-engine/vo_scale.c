@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.15 2002/10/24 16:43:07 mroi Exp $
+ * $Id: vo_scale.c,v 1.16 2002/11/22 18:06:13 mroi Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -190,8 +190,10 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
       this->displayed_height = this->delivered_height;
     }
   }  
-  this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
-  this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
+  this->output_xoffset =
+    (this->gui_width - this->output_width) * this->output_horizontal_position + this->gui_x;
+  this->output_yoffset =
+    (this->gui_height - this->output_height) * this->output_vertical_position + this->gui_y;
   
   this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
   this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
@@ -338,11 +340,30 @@ char *vo_scale_aspect_ratio_name(int a) {
 }
 
 
+/*
+ * config callbacks
+ */
+static void vo_scale_horizontal_pos_changed(void *data, xine_cfg_entry_t *entry) {
+  vo_scale_t *this = (vo_scale_t *)data;
+  
+  this->output_horizontal_position = entry->num_value / 100.0;
+  this->force_redraw = 1;
+}
+
+static void vo_scale_vertical_pos_changed(void *data, xine_cfg_entry_t *entry) {
+  vo_scale_t *this = (vo_scale_t *)data;
+  
+  this->output_vertical_position = entry->num_value / 100.0;
+  this->force_redraw = 1;
+}
+
+
 /* 
  * initialize rescaling struct
  */
  
-void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled ) {
+void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
+                   config_values_t *config ) {
   
   memset( this, 0, sizeof(vo_scale_t) );
   this->support_zoom = support_zoom;
@@ -352,5 +373,13 @@ void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled ) {
   this->zoom_factor_y = 1.0;
   this->gui_pixel_aspect = 1.0;
   this->user_ratio = ASPECT_AUTO;
+  
+  this->output_horizontal_position = 
+    config->register_range(config, "video.horizontal_position", 50, 0, 100,
+      _("horizontal image position in the output window"), NULL, 0,
+      vo_scale_horizontal_pos_changed, this) / 100.0;
+  this->output_vertical_position =
+    config->register_range(config, "video.vertical_position", 33, 0, 100,
+      _("vertical image position in the output window"), NULL, 0,
+      vo_scale_vertical_pos_changed, this) / 100.0;
 }                  
-
