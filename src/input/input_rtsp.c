@@ -205,7 +205,7 @@ static int rtsp_plugin_get_optional_data (input_plugin_t *this_gen,
   switch (data_type) {
   case INPUT_OPTIONAL_DATA_PREVIEW:
 
-    return rtsp_session_peek_header(this->rtsp, data);
+    return rtsp_session_peek_header(this->rtsp, data, MAX_PREVIEW_SIZE);
 
     break;
   }

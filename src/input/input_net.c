@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.41 2002/12/27 16:47:11 miguelfreitas Exp $
+ * $Id: input_net.c,v 1.42 2003/01/31 14:06:13 miguelfreitas Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -75,7 +75,6 @@
 */
 
 #define NET_BS_LEN 2324
-#define PREVIEW_SIZE            2200
 #define BUFSIZE                 1024
 
 typedef struct {
@@ -86,7 +85,7 @@ typedef struct {
   int              fh;
   char            *mrl;
 
-  char             preview[PREVIEW_SIZE];
+  char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
   off_t            preview_pos;
 
@@ -361,7 +360,7 @@ static input_plugin_t *net_plugin_open (input_class_t *cls_gen, xine_stream_t *s
   this->preview_pos  = 0;
   this->preview_size  = 0;
 
-  this->preview_size = read (this->fh, this->preview, PREVIEW_SIZE);
+  this->preview_size = read (this->fh, this->preview, MAX_PREVIEW_SIZE);
   
   this->preview_pos  = 0;
   this->curpos  = 0;

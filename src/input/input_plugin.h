@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.43 2002/12/29 16:48:35 mroi Exp $
+ * $Id: input_plugin.h,v 1.44 2003/01/31 14:06:15 miguelfreitas Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -232,6 +232,8 @@ struct input_plugin_s {
  *   they can handle the stream or not. the preview data must 
  *   be buffered and delivered again through subsequent 
  *   read() calls.
+ *   caller must provide a buffer allocated with at least 
+ *   MAX_PREVIEW_SIZE bytes.
  */
 
 #define INPUT_CAP_PREVIEW              0x00000040  
@@ -256,6 +258,7 @@ struct input_plugin_s {
 #define INPUT_OPTIONAL_DATA_PREVIEW   7
 
 #define MAX_MRL_ENTRIES 255
+#define MAX_PREVIEW_SIZE 4096
 
 /* Types of mrls returned by get_dir() */
 #define mrl_unknown        (0 << 0)

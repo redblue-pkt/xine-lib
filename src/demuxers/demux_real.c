@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.39 2003/01/29 18:53:56 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.40 2003/01/31 14:06:10 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -645,8 +645,7 @@ static int demux_real_parse_references( demux_real_t *this) {
         ;
       j--;
       buf[j]='\0';
-      printf("demux_real: ref=%s\n", &buf[i]);
-      
+
       uevent.type = XINE_EVENT_MRL_REFERENCE;
       uevent.stream = this->stream;
       uevent.data_length = strlen(&buf[i])+sizeof(xine_mrl_reference_data_t);
@@ -1128,13 +1127,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_real_t   *this;
+  uint8_t buf[MAX_PREVIEW_SIZE+1];
+  int len;
 
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
     {
-      uint8_t buf[4096], len;
-
       if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
 
 	input->seek(input, 0, SEEK_SET);
@@ -1214,28 +1213,24 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   
   /* discover stream type */
-  {
-    uint8_t buf[4096], len;
-    
-    this->reference_mode = 0;
-    if ((len = input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+  this->reference_mode = 0;
+  if ((len = input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
 
-      input->seek(input, 0, SEEK_SET);
+    input->seek(input, 0, SEEK_SET);
 
-      if ( (len = input->read(input, buf, 1024)) > 0) {
-        if (real_check_stream_type(buf,len) == 2)
-          this->reference_mode = 1;
-      }
-
-    } else if ((len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW))) {
-   
+    if ( (len = input->read(input, buf, 1024)) > 0) {
       if (real_check_stream_type(buf,len) == 2)
         this->reference_mode = 1;
     }
-    
-    if(this->reference_mode)
-      printf("demux_real: reference stream detected\n");
+
+  } else if ((len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW))) {
+   
+    if (real_check_stream_type(buf,len) == 2)
+      this->reference_mode = 1;
   }
+    
+  if(this->reference_mode)
+    printf("demux_real: reference stream detected\n");
   
   
   this->demux_plugin.send_headers      = demux_real_send_headers;

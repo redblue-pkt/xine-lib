@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.2 2003/01/13 20:10:23 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.3 2003/01/31 14:06:12 miguelfreitas Exp $
  */
 
 
@@ -37,8 +37,6 @@
 #define D(x...) g_message (x)
 #define LOG
 
-#define PREVIEW_SIZE 16384
-
 typedef struct {
 	input_class_t input_class;
 	xine_t *xine;
@@ -56,7 +54,7 @@ typedef struct {
 	GnomeVFSHandle *sub;
 
 	/* Preview */
-	char preview[PREVIEW_SIZE];
+	char preview[MAX_PREVIEW_SIZE];
 	off_t preview_size;
 	off_t preview_pos;
 } gnomevfs_input_t;

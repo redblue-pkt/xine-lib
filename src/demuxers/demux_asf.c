@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.104 2003/01/30 22:31:21 f1rmb Exp $
+ * $Id: demux_asf.c,v 1.105 2003/01/31 14:06:03 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1590,7 +1590,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 				    input_plugin_t *input) {
   
   demux_asf_t *this;
-  uint8_t      buf[DEFRAG_BUFSIZE];
+  uint8_t      buf[MAX_PREVIEW_SIZE+1];
   int          len;
 
   switch (stream->content_detection_method) {

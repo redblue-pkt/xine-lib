@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.h,v 1.8 2002/12/13 08:56:53 f1rmb Exp $
+ * $Id: mms.h,v 1.9 2003/01/31 14:06:17 miguelfreitas Exp $
  *
  * libmms public header
  */
@@ -37,7 +37,7 @@ int      mms_read (mms_t *this, char *data, int len);
 uint32_t mms_get_length (mms_t *this);
 void     mms_close (mms_t *this);
 
-int      mms_peek_header (mms_t *this, char *data);
+int      mms_peek_header (mms_t *this, char *data, int maxsize);
 
 #endif
 

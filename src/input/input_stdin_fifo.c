@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.41 2003/01/17 17:50:20 mroi Exp $
+ * $Id: input_stdin_fifo.c,v 1.42 2003/01/31 14:06:16 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,8 +41,6 @@
 #define LOG
 */
 
-#define PREVIEW_SIZE            2200
-
 #define DEFAULT_LOW_WATER_MARK     1
 #define DEFAULT_HIGH_WATER_MARK    5
 
@@ -55,7 +53,7 @@ typedef struct {
   char            *mrl;
   off_t            curpos;
 
-  char             preview[PREVIEW_SIZE];
+  char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
   off_t            preview_pos;
 
@@ -337,7 +335,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
    */
 
   this->preview_size = stdin_plugin_read (&this->input_plugin, this->preview,
-					  PREVIEW_SIZE);
+					  MAX_PREVIEW_SIZE);
   this->preview_pos  = 0;
 
   return &this->input_plugin;

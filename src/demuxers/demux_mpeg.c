@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.105 2003/01/16 22:25:53 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.106 2003/01/31 14:06:08 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -891,7 +891,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    uint8_t buf[4096];
+    uint8_t buf[MAX_PREVIEW_SIZE];
     off_t mdat_atom_offset = -1;
     int64_t mdat_atom_size = -1;
     unsigned int fourcc_tag;

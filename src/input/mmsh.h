@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.h,v 1.1 2003/01/13 01:11:57 tmattern Exp $
+ * $Id: mmsh.h,v 1.2 2003/01/31 14:06:17 miguelfreitas Exp $
  *
  * libmmsh public header
  */
@@ -37,6 +37,6 @@ int      mmsh_read (mmsh_t *this, char *data, int len);
 uint32_t mmsh_get_length (mmsh_t *this);
 void     mmsh_close (mmsh_t *this);
 
-int      mmsh_peek_header (mmsh_t *this, char *data);
+int      mmsh_peek_header (mmsh_t *this, char *data, int maxsize);
 
 #endif

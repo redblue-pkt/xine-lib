@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.67 2003/01/04 14:48:11 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.68 2003/01/31 14:06:06 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -43,6 +43,7 @@
 */
 
 #define NUM_PREVIEW_BUFFERS 50
+#define SCRATCH_SIZE ((MAX_PREVIEW_SIZE>4096)?MAX_PREVIEW_SIZE:4096)
 
 typedef struct {  
 
@@ -60,7 +61,7 @@ typedef struct {
   int                  blocksize;
   int                  status;
   
-  uint8_t              scratch[4096];
+  uint8_t              scratch[SCRATCH_SIZE];
 
   char                 last_mrl[1024];
 } demux_mpeg_elem_t ;

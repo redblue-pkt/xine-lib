@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.10 2003/01/22 16:33:24 holstsn Exp $
+ * $Id: pnm.c,v 1.11 2003/01/31 14:06:17 miguelfreitas Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -930,10 +930,14 @@ int pnm_read (pnm_t *this, char *data, int len) {
   return len;
 }
 
-int pnm_peek_header (pnm_t *this, char *data) {
+int pnm_peek_header (pnm_t *this, char *data, int maxsize) {
 
-  memcpy (data, this->header, this->header_len);
-  return this->header_len;
+  int len;
+
+  len = (this->header_len < maxsize) ? this->header_len : maxsize;
+
+  memcpy(data, this->header, len);
+  return len;
 }
 
 void pnm_close(pnm_t *p) {

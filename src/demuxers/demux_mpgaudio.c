@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.90 2003/01/26 15:58:36 tmmm Exp $
+ * $Id: demux_mpgaudio.c,v 1.91 2003/01/31 14:06:09 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -337,7 +337,7 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
 
 static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
 
-  uint8_t buf[4096];
+  uint8_t buf[MAX_PREVIEW_SIZE];
   uint32_t head=0;
   int bs = 0;
 

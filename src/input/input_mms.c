@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.34 2003/01/18 17:19:45 tmattern Exp $
+ * $Id: input_mms.c,v 1.35 2003/01/31 14:06:13 miguelfreitas Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -290,10 +290,10 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
   case INPUT_OPTIONAL_DATA_PREVIEW:
     switch (this->protocol) {
       case PROTOCOL_MMST:
-        return mms_peek_header (this->mms, data);
+        return mms_peek_header (this->mms, data, MAX_PREVIEW_SIZE);
         break;
       case PROTOCOL_MMSH:
-        return mmsh_peek_header (this->mmsh, data);
+        return mmsh_peek_header (this->mmsh, data, MAX_PREVIEW_SIZE);
         break;
     }
     break;

@@ -45,7 +45,6 @@
 #define LOG
 */
 
-#define PREVIEW_SIZE            2200
 #define BUFSIZE                 1024
 
 #define DEFAULT_HTTP_PORT         80
@@ -82,7 +81,7 @@ typedef struct {
   char            *proxyhost;
   int              proxyport;
 
-  char             preview[PREVIEW_SIZE];
+  char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
   off_t            preview_pos;
   
@@ -888,7 +887,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
    */
 
   this->preview_size = http_plugin_read (&this->input_plugin, this->preview,
-					 PREVIEW_SIZE);
+					 MAX_PREVIEW_SIZE);
 
   this->preview_pos  = 0;
   this->curpos  = 0;

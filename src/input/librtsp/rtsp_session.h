@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.h,v 1.3 2002/12/24 01:10:53 holstsn Exp $
+ * $Id: rtsp_session.h,v 1.4 2003/01/31 14:06:18 miguelfreitas Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -31,7 +31,7 @@ rtsp_session_t *rtsp_session_start(char *mrl);
 
 int rtsp_session_read(rtsp_session_t *session, char *data, int len);
 
-int rtsp_session_peek_header(rtsp_session_t *this, char *buf);
+int rtsp_session_peek_header(rtsp_session_t *this, char *buf, int maxsize);
 
 void rtsp_session_end(rtsp_session_t *session);
 

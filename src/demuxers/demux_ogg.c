@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.63 2003/01/26 23:48:47 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.64 2003/01/31 14:06:09 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -945,7 +945,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   case METHOD_BY_CONTENT:
     {
-      uint8_t buf[4096];
+      uint8_t buf[MAX_PREVIEW_SIZE];
 
       if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
 

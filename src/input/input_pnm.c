@@ -200,7 +200,7 @@ static int pnm_plugin_get_optional_data (input_plugin_t *this_gen,
   switch (data_type) {
   case INPUT_OPTIONAL_DATA_PREVIEW:
 
-    return pnm_peek_header(this->pnm, data);
+    return pnm_peek_header(this->pnm, data, MAX_PREVIEW_SIZE);
 
     break;
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.77 2003/01/26 15:56:21 tmmm Exp $
+ * $Id: demux_ts.c,v 1.78 2003/01/31 14:06:10 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1826,7 +1826,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    uint8_t buf[4096];
+    uint8_t buf[MAX_PREVIEW_SIZE];
     int     got_sample;
     int     i, j;
     int     try_again, ts_detected;

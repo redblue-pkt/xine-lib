@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.19 2003/01/25 15:00:07 tmattern Exp $
+ * $Id: mms.c,v 1.20 2003/01/31 14:06:17 miguelfreitas Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -1133,10 +1133,14 @@ static int get_media_packet (mms_t *this) {
   return 1;
 }
 
-int mms_peek_header (mms_t *this, char *data) {
+int mms_peek_header (mms_t *this, char *data, int maxsize) {
 
-  memcpy (data, this->asf_header, this->asf_header_len);
-  return this->asf_header_len;
+  int len;
+
+  len = (this->asf_header_len < maxsize) ? this->asf_header_len : maxsize;
+
+  memcpy(data, this->asf_header, len);
+  return len;
 }
 
 int mms_read (mms_t *this, char *data, int len) {
