@@ -7,7 +7,7 @@
 dnl AM_PATH_ESD([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for ESD, and define ESD_CFLAGS and ESD_LIBS
 dnl
-AC_DEFUN(AM_PATH_ESD,
+AC_DEFUN([AM_PATH_ESD],
 [dnl 
 dnl Get the cflags and libraries from the esd-config script
 dnl
@@ -33,7 +33,7 @@ AC_ARG_ENABLE(esdtest, [  --disable-esdtest       Do not try to compile and run 
 
   AC_PATH_PROG(ESD_CONFIG, esd-config, no)
   min_esd_version=ifelse([$1], ,0.2.7,$1)
-  AC_MSG_CHECKING(for ESD - version >= $min_esd_version)
+  AC_MSG_CHECKING([for ESD - version >= $min_esd_version])
   no_esd=""
   if test "$ESD_CONFIG" = "no" ; then
     no_esd=yes

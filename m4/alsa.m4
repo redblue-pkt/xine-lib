@@ -31,7 +31,7 @@ dnl  $no_alsa is set to "yes" if alsa isn't found.
 dnl  $have_alsa05 is set to "yes" if installed alsa version is <= 0.5
 dnl  $have_alsa09 is set to "yes" if installed alsa version is >= 0.9
 dnl
-AC_DEFUN(AM_PATH_ALSA,
+AC_DEFUN([AM_PATH_ALSA],
  [  
   AC_ARG_ENABLE(alsa, [  --disable-alsa          Do not build ALSA support],,)
   AC_ARG_WITH(alsa-prefix,[  --with-alsa-prefix=pfx  Prefix where alsa is installed (optional)],
@@ -66,7 +66,7 @@ if test x"$enable_alsa" != "xno"; then
   ALSA_CFLAGS="$ALSA_CFLAGS"
 
   min_alsa_version=ifelse([$1], ,0.1.1,$1)
-  AC_MSG_CHECKING(for ALSA version >= $min_alsa_version)
+  AC_MSG_CHECKING([for ALSA version >= $min_alsa_version])
   if test "x$enable_alsatest" = "xyes" ; then
     no_alsa=""
     ac_save_CFLAGS="$CFLAGS"
@@ -140,7 +140,7 @@ dnl
 dnl
 dnl Check for alsa 0.5.x series
 dnl
-    AC_MSG_CHECKING(for ALSA <= 0.5 series)
+    AC_MSG_CHECKING([for ALSA <= 0.5 series])
     AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
@@ -169,7 +169,7 @@ int main() {
 dnl
 dnl Check for alsa >= 0.9.x
 dnl
-    AC_MSG_CHECKING(for ALSA >= 0.9 series)
+    AC_MSG_CHECKING([for ALSA >= 0.9 series])
     AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>

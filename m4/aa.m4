@@ -35,7 +35,7 @@ dnl   * use aalib-config instead of aainfo now.
 dnl 17/06/2001 
 dnl   * First shot
 dnl
-AC_DEFUN(AM_PATH_AALIB,
+AC_DEFUN([AM_PATH_AALIB],
 [dnl 
 dnl
 AC_ARG_WITH(aalib-prefix,
@@ -63,7 +63,7 @@ AC_ARG_ENABLE(aalibtest,
   min_aalib_version=ifelse([$1], ,1.2,$1)
 
   if test x"$enable_aalibtest" != "xyes"; then
-    AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
+    AC_MSG_CHECKING([for AALIB version >= $min_aalib_version])
   else
     if test ! -x "$AALIB_CONFIG"; then
       AALIB_CONFIG=""
@@ -103,7 +103,7 @@ dnl aalib-config is missing, check for old aainfo
         fi
       fi
 
-      AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
+      AC_MSG_CHECKING([for AALIB version >= $min_aalib_version])
       no_aalib=""
 
       if test x"$AAINFO" = "xno"; then
@@ -182,7 +182,7 @@ int main () {
       fi
 
     else
-      AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
+      AC_MSG_CHECKING([for AALIB version >= $min_aalib_version])
       no_aalib=""
       AALIB_CFLAGS=`$AALIB_CONFIG $aalib_config_args --cflags`
       AALIB_LIBS=`$AALIB_CONFIG $aalib_config_args --libs`

@@ -62,7 +62,7 @@ dnl
 dnl Made possible to build for another arch.
 dnl
 if test x$XINE_BUILD != "x"; then
-  AC_MSG_RESULT(*** build forced to $XINE_BUILD ***)
+  AC_MSG_RESULT([*** build forced to $XINE_BUILD ***])
   build=$XINE_BUILD
   host=$XINE_BUILD
 else
@@ -197,7 +197,7 @@ AC_PATH_XTRA
 if test x"$no_x" != "xyes"; then
     AC_DEFINE(HAVE_X11)
 fi
-AM_CONDITIONAL(HAVE_X11, test x"$no_x" != "xyes")
+AM_CONDITIONAL([HAVE_X11], [test x"$no_x" != "xyes"])
 
 
 dnl
@@ -229,7 +229,7 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
                  echo "* location of libXv.so                                         *"
                  echo "****************************************************************"
 	         echo
-               fi ],, $X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS)
+               fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
 AC_SUBST(XV_LIB)
 
@@ -238,17 +238,17 @@ dnl Checks for Xinerama extension
 dnl
 
 AC_CHECK_LIB(Xinerama, XineramaQueryExtension, 
-             X_LIBS="$X_LIBS -lXinerama"
-             AC_DEFINE(HAVE_XINERAMA)
-             ac_have_xinerama="yes",,
-             $X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS)
+             [X_LIBS="$X_LIBS -lXinerama"
+              AC_DEFINE(HAVE_XINERAMA)
+              ac_have_xinerama="yes"],,
+             [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 
  
 dnl
 dnl Checks for Ascii-Art library
 dnl
-AM_PATH_AALIB(1.2,, AC_MSG_RESULT(*** All of AALIB dependent parts will be disabled ***))
+AM_PATH_AALIB(1.2,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 
@@ -267,7 +267,7 @@ AM_PATH_OGG([no_oggvorbis=no
             AM_PATH_VORBIS(no_oggvorbis=no, 
                            AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))],
             AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_VORBIS, test x"$no_oggvorbis" = "xno")
+AM_CONDITIONAL([HAVE_VORBIS], [test x"$no_oggvorbis" = "xno"])
 
 
 dnl
@@ -344,31 +344,31 @@ AM_CONDITIONAL(HAVE_SUNAUDIO, test x"$have_sunaudio" = "xyes")
 dnl
 dnl IRIX style audio interface
 dnl
-AM_CHECK_IRIXAL(AC_DEFINE(HAVE_IRIXAL),
-	AC_MSG_RESULT(*** All of IRIX AL dependent parts will be disabled ***))
-AM_CONDITIONAL(HAVE_IRIXAL, test "x$am_cv_have_irixal" = xyes)
+AM_CHECK_IRIXAL([AC_DEFINE(HAVE_IRIXAL)],
+	[AC_MSG_RESULT([*** All of IRIX AL dependent parts will be disabled ***])])
+AM_CONDITIONAL([HAVE_IRIXAL], [test "x$am_cv_have_irixal" = xyes])
 
 dnl
 dnl Solaris kstat kernel statistics
 dnl
 AC_CHECK_LIB(kstat, kstat_open,
-	KSTAT_LIBS=-lkstat
-	AC_DEFINE(HAVE_KSTAT))
+	[KSTAT_LIBS=-lkstat
+	 AC_DEFINE([HAVE_KSTAT])])
 AC_SUBST(KSTAT_LIBS)
 
 dnl
 dnl cdrom ioctls
 dnl
 AC_CHECK_HEADERS(sys/cdio.h linux/cdrom.h)
-AM_CHECK_CDROM_IOCTLS(AC_DEFINE(HAVE_CDROM_IOCTLS),
-	AC_MSG_RESULT(*** DVD and (S)VCD support will be disabled ***))
-AM_CONDITIONAL(HAVE_CDROM_IOCTLS, test x"$have_cdrom_ioctls" = "xyes")
+AM_CHECK_CDROM_IOCTLS([AC_DEFINE([HAVE_CDROM_IOCTLS])],
+	[AC_MSG_RESULT([*** DVD and (S)VCD support will be disabled ***])])
+AM_CONDITIONAL([HAVE_CDROM_IOCTLS], [test x"$have_cdrom_ioctls" = "xyes"])
 
 dnl
 dnl dxr3 / hollywood plus card
 dnl
 AC_LINUX_PATH(/usr/src/linux)
-AC_SUBST(LINUX_INCLUDE)
+AC_SUBST([LINUX_INCLUDE])
 
 AC_CHECK_DXR3()
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
@@ -379,8 +379,8 @@ dnl
 dnl zlib
 dnl
 dnl Test for libz
-AC_CHECK_LIB(z, gzsetparams, AC_CHECK_HEADER(zlib.h,have_zlib=yes,),)
-AM_CONDITIONAL(HAVE_ZLIB, test x"$have_zlib" = "xyes")
+AC_CHECK_LIB(z, gzsetparams, [AC_CHECK_HEADER(zlib.h,have_zlib=yes,)])
+AM_CONDITIONAL([HAVE_ZLIB], [test x"$have_zlib" = "xyes"])
 
 
 dnl

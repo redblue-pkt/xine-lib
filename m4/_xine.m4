@@ -76,7 +76,7 @@ AC_DEFUN([AC_CHECK_LIRC],
 
 
 dnl AC_LINUX_PATH(DEFAULT PATH)
-AC_DEFUN(AC_LINUX_PATH,
+AC_DEFUN([AC_LINUX_PATH],
   [AC_ARG_WITH(linux-path,
     [  --with-linux-path=PATH  Where the linux sources are located],
             linux_path="$withval", linux_path="$1")
@@ -84,7 +84,7 @@ AC_DEFUN(AC_LINUX_PATH,
 ])
 
 dnl AC_CHECK_DXR3()
-AC_DEFUN(AC_CHECK_DXR3,
+AC_DEFUN([AC_CHECK_DXR3],
 [
   AC_ARG_ENABLE(dxr3,
     [  --disable-dxr3          Do not build the DXR3/HW+ plugins],,
@@ -92,12 +92,12 @@ AC_DEFUN(AC_CHECK_DXR3,
   if test x"$enable_dxr3" = xyes; then
     AC_CHECK_HEADER($linux_path/include/linux/em8300.h, 
          have_dxr3=yes,
-         have_dxr3=no
-         AC_MSG_RESULT(*** DXR3 support disabled due to missing em8300.h ***))
+         [have_dxr3=no
+         AC_MSG_RESULT([*** DXR3 support disabled due to missing em8300.h ***])])
     if test "$have_dxr3" = "yes"; then
       have_fame=yes
       AC_CHECK_LIB(fame, fame_open, 
-        AC_CHECK_HEADER(fame.h, true, have_fame=no), have_fame=no)
+        [AC_CHECK_HEADER(fame.h, true, have_fame=no)], have_fame=no)
       if test "$have_fame" = "yes"; then
         AC_MSG_RESULT([found libfame, will compile dxr3enc video out driver]);
       else
@@ -105,7 +105,7 @@ AC_DEFUN(AC_CHECK_DXR3,
       fi
     fi
   else
-    AC_MSG_RESULT(DXR3 plugins will not be built.)
+    AC_MSG_RESULT([DXR3 plugins will not be built.])
     have_dxr3=no
   fi
 ])
