@@ -1212,6 +1212,7 @@ src/libw32dll/qtx/qtxsdk/Makefile
 src/libxinevdec/Makefile
 src/libxineadec/Makefile
 src/libxineadec/gsm610/Makefile
+src/libxineadec/nosefart/Makefile
 src/libreal/Makefile
 src/post/Makefile
 src/post/planar/Makefile
@@ -1289,7 +1290,7 @@ echo "   - yuv4mpeg2     - real/realaudio"
 echo "   - ea wve        - raw dv"
 echo "   - interplay mve - psx str"
 echo "   - ws aud        - pva"
-echo "   - vox"
+echo "   - vox           - nsf"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
@@ -1330,6 +1331,7 @@ echo "   - mad             - adpcm"
 echo "   - linear pcm      - roqaudio"
 echo "   - log pcm         - gsm610"
 echo "   - ffmpeg          - interplayaudio"
+echo "   - nosefart"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi

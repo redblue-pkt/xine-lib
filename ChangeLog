@@ -2,6 +2,7 @@
   * Westwood Studios AUD demuxer
   * PVA file demuxer
   * VOX file demuxer
+  * NSF file demuxer
   * Goom plugin updated and acceleration added (mmx/ppc)
   * live rawdv playback (from device)
   * plugin loader improvements
@@ -9,7 +10,8 @@
   * CD digital audio input source and stream demuxer
   * Dialogic ADPCM audio decoder
   * reporting of unhandled codecs
-  
+  * NSF audio decoding via Nosefart
+
 xine-lib (1-beta2)
   * what a GOOM! post plugin
   * Digital TV (DVB) input plugin (experimental)
