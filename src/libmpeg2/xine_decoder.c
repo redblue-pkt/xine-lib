@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.35 2002/07/05 17:32:03 mroi Exp $
+ * $Id: xine_decoder.c,v 1.36 2002/07/10 14:07:33 mroi Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -64,6 +64,7 @@ static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) 
   mpeg2_init (&this->mpeg2, video_out);
   video_out->open(video_out);
   this->video_out = video_out;
+  this->mpeg2.force_aspect = 0;
 
   pthread_mutex_unlock (&this->lock);
 
@@ -80,7 +81,19 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 #endif
 
   pthread_mutex_lock (&this->lock);
-
+  
+  /* handle aspect hints from xine-dvdnav */
+  if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
+    if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
+      this->mpeg2.force_aspect = buf->decoder_info[2];
+      if (buf->decoder_info[3] == 0x1 && buf->decoder_info[2] == XINE_ASPECT_RATIO_ANAMORPHIC)
+        /* letterboxing is denied, we have to do pan&scan */
+        this->mpeg2.force_aspect = XINE_ASPECT_RATIO_PAN_SCAN;
+    }
+    pthread_mutex_unlock (&this->lock);
+    return;
+  }
+  
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     mpeg2_find_sequence_header (&this->mpeg2, buf->content, buf->content + buf->size);
   } else {
