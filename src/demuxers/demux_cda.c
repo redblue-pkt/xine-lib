@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.15 2002/05/15 22:50:59 tmattern Exp $
+ * $Id: demux_cda.c,v 1.16 2002/05/21 00:17:54 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -192,13 +192,14 @@ static int demux_cda_get_status (demux_plugin_t *this_gen) {
 /*
  *
  */
-static void demux_cda_start (demux_plugin_t *this_gen,
+static int demux_cda_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo, 
 			     fifo_buffer_t *audio_fifo,
 			     off_t start_pos, int start_time) {
   demux_cda_t    *this = (demux_cda_t *) this_gen;
   buf_element_t  *buf;
   int             err;
+  int status;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -237,15 +238,21 @@ static void demux_cda_start (demux_plugin_t *this_gen,
       abort();
     }      
   }
+
+  /* this->status is saved because we can be interrupted between
+   * pthread_mutex_unlock and return
+   */
+  status = this->status;
   pthread_mutex_unlock( &this->mutex );
+  return status;
 }
 
 
-static void demux_cda_seek (demux_plugin_t *this_gen,
+static int demux_cda_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
   demux_cda_t *this = (demux_cda_t *) this_gen;
 
-	demux_cda_start (this_gen, this->video_fifo, this->audio_fifo,
+	return demux_cda_start (this_gen, this->video_fifo, this->audio_fifo,
 			 start_pos, start_time);
 }
 

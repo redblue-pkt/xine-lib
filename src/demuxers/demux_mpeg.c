@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.61 2002/05/12 12:06:29 tmattern Exp $
+ * $Id: demux_mpeg.c,v 1.62 2002/05/21 00:17:55 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -764,7 +764,7 @@ static int demux_mpeg_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static void demux_mpeg_start (demux_plugin_t *this_gen,
+static int demux_mpeg_start (demux_plugin_t *this_gen,
                               fifo_buffer_t *video_fifo,
                               fifo_buffer_t *audio_fifo,
                               off_t start_pos, int start_time) {
@@ -772,6 +772,7 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
   demux_mpeg_t   *this = (demux_mpeg_t *) this_gen;
   buf_element_t  *buf;
   int             err;
+  int             status;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -851,15 +852,20 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
   else {
     xine_flush_engine(this->xine);
   }
-  pthread_mutex_unlock( &this->mutex );
 
+  /* this->status is saved because we can be interrupted between
+   * pthread_mutex_unlock and return
+   */
+  status = this->status;
+  pthread_mutex_unlock( &this->mutex );
+  return status;
 }
 
-static void demux_mpeg_seek (demux_plugin_t *this_gen,
+static int demux_mpeg_seek (demux_plugin_t *this_gen,
                              off_t start_pos, int start_time) {
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
 
-  demux_mpeg_start (this_gen, this->video_fifo, this->audio_fifo,
+  return demux_mpeg_start (this_gen, this->video_fifo, this->audio_fifo,
                     start_pos, start_time);
 }
 

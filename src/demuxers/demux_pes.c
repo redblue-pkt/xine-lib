@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.27 2002/05/17 22:05:49 miguelfreitas Exp $
+ * $Id: demux_pes.c,v 1.28 2002/05/21 00:17:56 tmattern Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -425,7 +425,7 @@ static int demux_pes_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static void demux_pes_start (demux_plugin_t *this_gen,
+static int demux_pes_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo,
 			     fifo_buffer_t *audio_fifo,
 			     off_t start_pos, int start_time) {
@@ -433,6 +433,7 @@ static void demux_pes_start (demux_plugin_t *this_gen,
   demux_pes_t *this = (demux_pes_t *) this_gen;
   buf_element_t *buf;
   int err;
+  int status;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -507,15 +508,20 @@ static void demux_pes_start (demux_plugin_t *this_gen,
   else {
     xine_flush_engine(this->xine);
   }
-  pthread_mutex_unlock( &this->mutex );
 
+  /* this->status is saved because we can be interrupted between
+   * pthread_mutex_unlock and return
+   */
+  status = this->status;
+  pthread_mutex_unlock( &this->mutex );
+  return status;
 }
 
-static void demux_pes_seek (demux_plugin_t *this_gen,
+static int demux_pes_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
   demux_pes_t *this = (demux_pes_t *) this_gen;
 
-	demux_pes_start (this_gen, this->video_fifo, this->audio_fifo,
+	return demux_pes_start (this_gen, this->video_fifo, this->audio_fifo,
 			 start_pos, start_time);
 }
 
