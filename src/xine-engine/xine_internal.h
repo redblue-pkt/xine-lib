@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.49 2001/10/14 23:19:59 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.50 2001/10/18 18:50:53 guenter Exp $
  *
  */
 
@@ -42,6 +42,7 @@ extern "C" {
 #include "metronom.h"
 #include "spu_decoder.h"
 #include "events.h"
+#include "lrb.h"
 #ifdef XINE_COMPILE
 #include "libspudec/spu_decoder_api.h"
 #else
@@ -176,6 +177,7 @@ struct xine_s {
 
   ao_instance_t             *audio_out;
   fifo_buffer_t             *audio_fifo;
+  lrb_t                     *audio_temp;
   pthread_t                  audio_thread;
   audio_decoder_t           *audio_decoder_plugins[DECODER_PLUGIN_MAX];
   int                        num_audio_decoder_plugins;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.29 2001/10/03 17:15:44 jkeil Exp $
+ * $Id: metronom.c,v 1.30 2001/10/18 18:50:53 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -263,8 +263,6 @@ static void metronom_video_stream_start (metronom_t *this) {
   pthread_cond_signal (&this->video_started);
 
   pthread_mutex_unlock (&this->lock);
-
-  printf ("metronom: video stream start...done\n");
 
   metronom_start_clock (this, 0);
 }
@@ -529,13 +527,31 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
   this->video_vpts += this->pts_per_frame + this->video_pts_delta;
   this->num_video_vpts_guessed++ ;
 
-  xprintf (METRONOM | VERBOSE, "metronom: video vpts for %10d : %10d\n", pts, vpts);
+#ifdef METRONOM_LOG
+  printf ("metronom: video vpts for %10d : %10d\n", pts, vpts);
+#endif
 
   pthread_mutex_unlock (&this->lock);
 
   return vpts + this->av_offset;
 }
 
+static void metronom_got_audio_still (metronom_t *this) {
+
+  pthread_mutex_lock (&this->lock);
+
+  this->audio_vpts            += this->pts_per_frame + this->video_pts_delta;
+  this->audio_wrap_offset      = this->video_wrap_offset;
+  this->last_audio_pts         = this->audio_vpts - this->audio_wrap_offset;
+  this->audio_stream_starting  = 0;
+
+#ifdef METRONOM_LOG
+  printf ("metronom: got audio still, vpts = %d, wrap = %d\n", 
+	  this->audio_vpts, this->audio_wrap_offset);
+#endif
+
+  pthread_mutex_unlock (&this->lock);
+}
 
 static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint32_t nsamples) {
 
@@ -653,7 +669,9 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
   this->audio_vpts += nsamples * (this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM;
   this->num_audio_samples_guessed += nsamples;
 
-  xprintf (METRONOM | VERBOSE, "metronom: audio vpts for %10d : %10d\n", pts, vpts);
+#ifdef METRONOM_LOG
+  printf ("metronom: audio vpts for %10d : %10d\n", pts, vpts);
+#endif
 
   pthread_mutex_unlock (&this->lock);
 
@@ -766,6 +784,7 @@ metronom_t * metronom_init (int have_audio) {
   this->register_scr         = metronom_register_scr;
   this->unregister_scr       = metronom_unregister_scr;
   this->set_speed            = metronom_set_speed;
+  this->got_audio_still      = metronom_got_audio_still;
 
   this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
   this->register_scr(this, unixscr_init());

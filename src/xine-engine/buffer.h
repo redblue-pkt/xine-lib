@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.16 2001/10/10 10:54:48 jkeil Exp $
+ * $Id: buffer.h,v 1.17 2001/10/18 18:50:53 guenter Exp $
  *
  *
  * contents:
@@ -41,6 +41,7 @@ extern "C" {
 #include <stdio.h>
 #include <pthread.h>
 #include <inttypes.h>
+#include <sys/types.h>
 
 /*
  * buffer types

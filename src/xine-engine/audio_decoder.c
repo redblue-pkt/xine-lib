@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.46 2001/10/07 03:53:11 heikos Exp $
+ * $Id: audio_decoder.c,v 1.47 2001/10/18 18:50:53 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -37,6 +37,8 @@
 #include "utils.h"
 #include "monitor.h"
 
+
+
 void *audio_decoder_loop (void *this_gen) {
 
   buf_element_t   *buf;
@@ -53,26 +55,17 @@ void *audio_decoder_loop (void *this_gen) {
     /* printf ("audio_loop: waiting for package...\n");  */
 
     buf = this->audio_fifo->get (this->audio_fifo);
-    
-    /* printf ("audio_loop: got package pts = %d\n", buf->PTS);  */
+
+    /*
+    printf ("audio_loop: got package pts = %d, type = %08x\n", 
+	    buf->PTS, buf->type); 
+    */
 
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
     
     if (buf->input_time)
       this->cur_input_time = buf->input_time;
-    
-    /* 
-     * Call update status callback function if
-     * there is no video decoder initialized, like
-     *  in .mp3 playback.
-     */
-    /*
-    if(this->cur_video_decoder_plugin == NULL) {
-      if(this->status == XINE_PLAY)
-	this->status_callback (this->status);
-    }
-    */
     
     switch (buf->type) {
       
@@ -111,6 +104,10 @@ void *audio_decoder_loop (void *this_gen) {
 
       pthread_mutex_unlock (&this->finished_lock);
 
+      /* future magic - coming soon
+      lrb_flush (this->audio_temp);
+      */
+
       break;
       
     case BUF_CONTROL_QUIT:
@@ -122,6 +119,7 @@ void *audio_decoder_loop (void *this_gen) {
       break;
 
     case BUF_VIDEO_FILL:
+      this->metronom->got_audio_still (this->metronom);
       break;
 
     case BUF_CONTROL_NOP:
@@ -144,6 +142,10 @@ void *audio_decoder_loop (void *this_gen) {
 	}
       this->audio_channel = buf->decoder_info[0] & 0xff;
 
+      /* future magic - coming soon
+      lrb_feedback (this->audio_temp, this->audio_fifo);
+      */
+
       break;
 
     default:
@@ -159,8 +161,6 @@ void *audio_decoder_loop (void *this_gen) {
 
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
-	/* printf ("audio_loop: got an audio buffer, type %08x set %08X\n", buf->type, this->audio_channel); */
-	
 	/* now, decode this buffer if it's the right track */
 	  
 	if (this->audio_channel == (buf->type & 0xFF) ) {
@@ -169,22 +169,26 @@ void *audio_decoder_loop (void *this_gen) {
 	  decoder = this->audio_decoder_plugins [streamtype];
 	  if (decoder) {
 	    if (this->cur_audio_decoder_plugin != decoder) {
-	      if (this->cur_audio_decoder_plugin) {
+	      if (this->cur_audio_decoder_plugin) 
 		this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
-		/* Since we are changing decoders, warn metronom of a possible
-		 * PTS discontinuity */
-		this->metronom->expect_audio_discontinuity (this->metronom);
-		this->metronom->expect_video_discontinuity (this->metronom);
-	      }
+
 	      this->cur_audio_decoder_plugin = decoder;
 	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
+
 	      printf ("audio_loop: using decoder >%s< \n",
 		      decoder->get_identifier());
+
 	    }
 	    /* printf ("audio_loop: sending data to decoder\n");  */
 	    decoder->decode_data (decoder, buf);
 	    /* printf ("audio_loop: decoding is done\n");  */
 	  }
+	} else {
+	  /*
+	  printf ("audio_decoder: wrong channel\n");
+	  lrb_add (this->audio_temp, buf);
+	  continue;
+	  */
 	}
       } else
 	printf ("audio_loop: unknown buffer type: %08x\n", buf->type);
@@ -211,6 +215,10 @@ void audio_decoder_init (xine_t *this) {
   }
   
   this->audio_fifo = fifo_buffer_new (1500, 8192);
+
+  /* future magic - coming soon
+  this->audio_temp = lrb_new (100, this->audio_fifo);
+  */
 
   pthread_attr_init(&pth_attrs);
   pthread_attr_getschedparam(&pth_attrs, &pth_params);

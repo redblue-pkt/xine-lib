@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.11 2001/09/12 22:18:47 guenter Exp $
+ * $Id: metronom.h,v 1.12 2001/10/18 18:50:53 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -101,6 +101,12 @@ struct metronom_s {
    */
 
   uint32_t (*got_audio_samples) (metronom_t *this, uint32_t pts, uint32_t nsamples); 
+
+  /* 
+   * inform metronom that there was a still image with no audio 
+   */
+
+  void (*got_audio_still) (metronom_t *this);
 
   /*
    * called by SPU decoder whenever a packet is delivered to it
