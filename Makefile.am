@@ -40,6 +40,9 @@ CONFIG_CLEAN_FILES = libtool-nofpic
 docs:
 	@cd doc && $(MAKE) $@
 
+distcheck-lax:
+	@$(MAKE) docs
+	@$(MAKE) distcheck SGMLTOOLS=: FIG2DEV=:
 
 pass1:
 	@$(MAKE) MULTIPASS_CFLAGS='$(PASS1_CFLAGS)'
