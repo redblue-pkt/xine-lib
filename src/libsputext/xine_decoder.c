@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.68 2003/12/04 02:23:49 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.69 2003/12/04 03:23:28 miguelfreitas Exp $
  *
  */
 
@@ -79,6 +79,7 @@ typedef struct sputext_decoder_s {
   sputext_class_t   *class;
   xine_stream_t     *stream;
 
+  int                ogm;
   int                lines;
   char               text[SUB_MAX_TEXT][SUB_BUFSIZE];
 
@@ -185,6 +186,95 @@ static void update_output_size (sputext_decoder_t *this) {
   }
 }
 
+static int ogm_get_width(sputext_decoder_t *this, char* text) {
+  int i=0,width=0,w,dummy;
+  char letter[2]={0, 0};
+
+  while (i<=strlen(text)) {
+    switch (text[i]) {
+    case '<':
+      if (!strncmp("<b>", text+i, 3)) {
+	/*Do somethink to enable BOLD typeface*/
+	i=i+3;
+	break;
+      } else if (!strncmp("</b>", text+i, 3)) {
+	/*Do somethink to disable BOLD typeface*/
+	i=i+4;
+	break;
+      } else if (!strncmp("<i>", text+i, 3)) {	
+	/*Do somethink to enable italics typeface*/
+	i=i+3;
+	break;
+      } else if (!strncmp("</i>", text+i, 3)) {
+	/*Do somethink to disable italics typeface*/
+	i=i+4;
+	break;
+      } else if (!strncmp("<font>", text+i, 3)) {	
+	/*Do somethink to disable typing
+	  fixme - no teststreams*/
+	i=i+6;
+	break;
+      } else if (!strncmp("</font>", text+i, 3)) {
+	/*Do somethink to enable typing
+	  fixme - no teststreams*/
+	i=i+7;
+	break;
+      } 
+default:
+      letter[0]=text[i];
+      this->renderer->get_text_size(this->osd, letter, &w, &dummy);
+      width=width+w;
+      i++;
+    }
+  }
+
+  return width;
+}
+
+static void ogm_render_line(sputext_decoder_t *this, int x, int y, char* text) {
+  int i=0,w,dummy;
+  char letter[2]={0,0};
+
+  while (i<=strlen(text)) {
+    switch (text[i]) {
+    case '<':
+      if (!strncmp("<b>", text+i, 3)) {
+	/*Do somethink to enable BOLD typeface*/
+	i=i+3;
+	break;
+      } else if (!strncmp("</b>", text+i, 3)) {
+	/*Do somethink to disable BOLD typeface*/
+	i=i+4;
+	break;
+      } else if (!strncmp("<i>", text+i, 3)) {	
+	/*Do somethink to enable italics typeface*/
+	i=i+3;
+	break;
+      } else if (!strncmp("</i>", text+i, 3)) {
+	/*Do somethink to disable italics typeface*/
+	i=i+4;
+	break;
+      } else if (!strncmp("<font>", text+i, 3)) {	
+	/*Do somethink to disable typing
+	  fixme - no teststreams*/
+	i=i+6;
+	break;
+      } else if (!strncmp("</font>", text+i, 3)) {
+	/*Do somethink to enable typing
+	  fixme - no teststreams*/
+	i=i+7;
+	break;
+      } 
+    default:
+      letter[0]=text[i];
+      this->renderer->render_text(this->osd, x, y, letter, OSD_TEXT1);
+      this->renderer->get_text_size(this->osd, letter, &w, &dummy);
+      x=x+w;
+      i++;
+    }
+  }
+}
+
 static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t sub_end ) {
   
   int line, y;
@@ -214,8 +304,11 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
     int w,h,x;
           
     while(1) {
-      this->renderer->get_text_size( this->osd, this->text[line], 
-                                     &w, &h);
+      if( this->ogm )
+        w = ogm_get_width( this, this->text[line]);
+      else
+        this->renderer->get_text_size( this->osd, this->text[line], 
+                                       &w, &h);
       x = (this->width - w) / 2;
             
       if( w > this->width && font_size > 16 ) {
@@ -225,9 +318,12 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
         break;
       }
     }
-          
-    this->renderer->render_text (this->osd, x, y + line*this->line_height,
-                                 this->text[line], OSD_TEXT1);
+    
+    if( this->ogm )
+      ogm_render_line(this, x, y + line*this->line_height, this->text[line]);
+    else  
+      this->renderer->render_text (this->osd, x, y + line*this->line_height,
+                                   this->text[line], OSD_TEXT1);
   }
          
   if( font_size != this->font_size )
@@ -271,14 +367,50 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   if ((this->stream->spu_channel & 0x1f) != (buf->type & 0x1f))
     return;
 
-  val = (uint32_t * )buf->content;
-  this->lines = *val++;
-  uses_time = *val++;
-  start = *val++;
-  end = *val++;
-  str = (char *)val;
-  for (i = 0; i < this->lines; i++, str+=strlen(str)+1) {
-    strcpy( this->text[i], str );
+  if( (buf->type & 0xFFFF0000) == BUF_SPU_OGM ) {
+
+    this->ogm = 1;
+    uses_time = 1;
+    val = (uint32_t * )buf->content;
+    start = *val++;
+    end = *val++;
+    str = (char *)val;
+  
+    this->lines=0;
+  
+    i=0;
+    while (*str) {
+      if (*str == '\r' || *str == '\n') {
+        if (i) {
+          this->text[ this->lines ][i] = 0;
+          this->lines++;
+          i = 0;
+        }
+      } else {
+        this->text[ this->lines ][i] = *str;
+        if (i<SUB_BUFSIZE-1)
+          i++;
+      }
+      str++;
+    }
+    if (i) {
+      this->text[ this->lines ][i] = 0;
+      this->lines++;
+    }
+
+  } else {
+
+    this->ogm = 0;
+    val = (uint32_t * )buf->content;
+    this->lines = *val++;
+    uses_time = *val++;
+    start = *val++;
+    end = *val++;
+    str = (char *)val;
+    for (i = 0; i < this->lines; i++, str+=strlen(str)+1) {
+      strcpy( this->text[i], str );
+    }
+
   }
   
   lprintf("decoder data [%s]\n", this->text[0]);
@@ -379,7 +511,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           diff = start - extra_info.input_time;
           
           /* draw it if less than 1/2 second left */
-          if( diff < 500 ) {
+          if( diff < 500 || this->ogm ) {
             start_vpts = extra_info.vpts + diff * 90;
             end_vpts = start_vpts + (end-start) * 90;
             
@@ -539,7 +671,7 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
 
 /* plugin catalog information */
-static uint32_t supported_types[] = { BUF_SPU_TEXT, 0 };
+static uint32_t supported_types[] = { BUF_SPU_TEXT, BUF_SPU_OGM, 0 };
 
 static decoder_info_t spudec_info = {
   supported_types,     /* supported types */
