@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.46 2004/04/06 06:45:47 tmattern Exp $
+ * $Id: mms.c,v 1.47 2004/04/14 01:42:55 miguelfreitas Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -1175,12 +1175,12 @@ int mms_read (mms_t *this, char *data, int len) {
 
       bytes_left = this->buf_size - this->buf_read;
       if (bytes_left == 0) {
+        this->buf_size = this->buf_read = 0;
         if (!get_media_packet (this)) {
           xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                    "libmms: get_media_packet failed\n");
           return total;
         }
-        this->buf_read = 0;
         bytes_left = this->buf_size;
       }
 
