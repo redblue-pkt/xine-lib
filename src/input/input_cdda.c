@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.36 2003/10/31 17:28:05 mroi Exp $
+ * $Id: input_cdda.c,v 1.37 2003/11/15 13:01:04 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2406,9 +2406,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Title: %s\n", this->cddb.disc_title);
 #endif
 
-    if(this->stream->meta_info[XINE_META_INFO_ALBUM])
-      free(this->stream->meta_info[XINE_META_INFO_ALBUM]);
-    this->stream->meta_info[XINE_META_INFO_ALBUM] = strdup(this->cddb.disc_title);
+    xine_set_meta_info(this->stream, XINE_META_INFO_ALBUM, this->cddb.disc_title);
   }
 
   if(this->cddb.track[this->track].title) {
@@ -2416,9 +2414,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Track %d Title: %s\n", this->track+1, this->cddb.track[this->track].title);
 #endif
 
-    if(this->stream->meta_info[XINE_META_INFO_TITLE])
-      free(this->stream->meta_info[XINE_META_INFO_TITLE]);
-    this->stream->meta_info[XINE_META_INFO_TITLE] = strdup(this->cddb.track[this->track].title);
+    xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->cddb.track[this->track].title);
   }
   
   if(this->cddb.disc_artist) {
@@ -2426,9 +2422,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Artist: %s\n", this->cddb.disc_artist);
 #endif
 
-    if(this->stream->meta_info[XINE_META_INFO_ARTIST])
-      free(this->stream->meta_info[XINE_META_INFO_ARTIST]);
-    this->stream->meta_info[XINE_META_INFO_ARTIST] = strdup(this->cddb.disc_artist);
+    xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, this->cddb.disc_artist);
   }
   
   if(this->cddb.disc_category) {
@@ -2436,9 +2430,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Category: %s\n", this->cddb.disc_category);
 #endif
 
-    if(this->stream->meta_info[XINE_META_INFO_GENRE])
-      free(this->stream->meta_info[XINE_META_INFO_GENRE]);
-    this->stream->meta_info[XINE_META_INFO_GENRE] = strdup(this->cddb.disc_category);
+    xine_set_meta_info(this->stream, XINE_META_INFO_GENRE, this->cddb.disc_category);
   }
 
   if(this->cddb.disc_year) {
@@ -2446,9 +2438,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Year: %s\n", this->cddb.disc_year);
 #endif
 
-    if(this->stream->meta_info[XINE_META_INFO_YEAR])
-      free(this->stream->meta_info[XINE_META_INFO_YEAR]);
-    this->stream->meta_info[XINE_META_INFO_YEAR] = strdup(this->cddb.disc_year);
+    xine_set_meta_info(this->stream, XINE_META_INFO_YEAR, this->cddb.disc_year);
   }
 
   free_cdrom_toc(toc);

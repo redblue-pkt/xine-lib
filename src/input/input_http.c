@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.70 2003/11/14 23:00:41 f1rmb Exp $
+ * $Id: input_http.c,v 1.71 2003/11/15 13:01:08 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -360,7 +360,7 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
           xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, songtitle);
 
           /* prepares the event */
-          radio = this->stream->meta_info [XINE_META_INFO_ALBUM];
+          radio = xine_get_meta_info(this->stream, XINE_META_INFO_ALBUM);
           
           if (radio) {
             strcpy(data.str, radio); /* WARNING: the data.str is char[256] */

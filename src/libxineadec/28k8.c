@@ -22,7 +22,7 @@
  * Based on public domain source code from:
  *   http://www.honeypot.net/audio/
  *
- * $Id: 28k8.c,v 1.2 2003/05/08 19:45:08 esnel Exp $
+ * $Id: 28k8.c,v 1.3 2003/11/15 13:01:19 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -410,10 +410,10 @@ static void ra28k8_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("Real 28.8");
+    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 28.8");
     this->decoder_ok = 1;
     if (!this->decoder_ok)
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 0;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
 
   } else if (this->decoder_ok ) {
     audio_buffer_t *audio_buffer;

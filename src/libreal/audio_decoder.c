@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.28 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.29 2003/11/15 13:01:14 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -247,38 +247,33 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     if (!load_syms_linux (this, "cook.so.6.0"))
       return 0;
 
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-      = strdup ("Cook");
+    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Cook");
     break;
     
   case BUF_AUDIO_ATRK:
     if (!load_syms_linux (this, "atrc.so.6.0"))
       return 0;
     this->block_align = 384;
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-      = strdup ("Atrac");
+    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Atrac");
     break;
 
   case BUF_AUDIO_14_4:
     if (!load_syms_linux (this, "14_4.so.6.0"))
       return 0;
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-      = strdup ("Real 14.4");
+    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 14.4");
     break;
 
   case BUF_AUDIO_28_8:
     if (!load_syms_linux (this, "28_8.so.6.0"))
       return 0;
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-      = strdup ("Real 28.8");
+    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 28.8");
     break;
 
   case BUF_AUDIO_SIPRO:
     if (!load_syms_linux (this, "sipr.so.6.0"))
       return 0;
     /* this->block_align = 19; */
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-      = strdup ("Sipro");
+    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Sipro");
     break;
 
   default:

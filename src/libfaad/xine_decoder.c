@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2003/01/08 01:02:29 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.17 2003/11/15 13:01:11 miguelfreitas Exp $
  *
  */
 
@@ -82,7 +82,7 @@ static int faad_open_dec( faad_decoder_t *this ) {
     xine_log (this->stream->xine, XINE_LOG_MSG,
               "libfaad: libfaad faacDecOpen() failed.\n" );
     this->faac_failed++;
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 0;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
     return 1;
   }
   
@@ -196,7 +196,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
               "libfaad: libfaad faacDecInit2() failed.\n" );
       this->faac_failed++;
       this->faac_dec = NULL;
-      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 0;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
       return;
     }
 #ifdef LOG
@@ -224,8 +224,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->faac_failed = 0;
                                                
     /* stream/meta info */
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = 
-      strdup("AAC (libfaad)");
+    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+      "AAC (libfaad)");
 
   } else {
 
@@ -263,7 +263,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         this->faac_failed++;
         faacDecClose(this->faac_dec);
         this->faac_dec = NULL;
-        this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 0;
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
         return;
       }
 #ifdef LOG

@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.16 2003/10/24 02:57:58 tmmm Exp $
+ * $Id: idcinvideo.c,v 1.17 2003/11/15 13:01:23 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -267,7 +267,7 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
     this->decoder_ok = 1;
 
     /* load the stream/meta info */
-    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Id CIN Video");
+    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Id CIN Video");
 
     return;
   } else if (this->decoder_ok) {

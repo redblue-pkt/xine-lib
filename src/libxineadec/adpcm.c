@@ -31,7 +31,7 @@
  *   this is also useful for extracting streams from Playstation discs
  *
  *
- * $Id: adpcm.c,v 1.31 2003/06/06 14:29:41 mroi Exp $
+ * $Id: adpcm.c,v 1.32 2003/11/15 13:01:19 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1409,53 +1409,53 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     switch (buf->type & 0xFFFF0000) {
 
       case BUF_AUDIO_MSADPCM:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("Microsoft ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "Microsoft ADPCM");
         break;
 
       case BUF_AUDIO_MSIMAADPCM:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("Microsoft IMA ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "Microsoft IMA ADPCM");
         break;
 
       case BUF_AUDIO_QTIMAADPCM:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("QT IMA ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "QT IMA ADPCM");
         break;
 
       case BUF_AUDIO_DK3ADPCM:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("Duck DK3 ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "Duck DK3 ADPCM");
         break;
 
       case BUF_AUDIO_DK4ADPCM:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("Duck DK4 ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "Duck DK4 ADPCM");
         break;
 
       case BUF_AUDIO_SMJPEG_IMA:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("SMJPEG IMA ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "SMJPEG IMA ADPCM");
         break;
 
       case BUF_AUDIO_VQA_IMA:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("VQA IMA ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "VQA IMA ADPCM");
         break;
 
       case BUF_AUDIO_EA_ADPCM:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("EA ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "EA ADPCM");
         break;
 
       case BUF_AUDIO_DIALOGIC_IMA:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("Dialogic IMA ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "Dialogic IMA ADPCM");
         break;
 
       case BUF_AUDIO_XA_ADPCM:
-        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
-          strdup("CD-ROM/XA ADPCM");
+        xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+          "CD-ROM/XA ADPCM");
         break;
 
     }

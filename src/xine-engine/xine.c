@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.262 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: xine.c,v 1.263 2003/11/15 13:01:01 miguelfreitas Exp $
  */
 
 /*
@@ -273,9 +273,7 @@ static void xine_close_internal (xine_stream_t *stream) {
 
   for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
     stream->stream_info[i]       = 0;
-    if (stream->meta_info[i])
-      free (stream->meta_info[i]);
-    stream->meta_info[i]         = NULL;
+    xine_clear_meta_info(stream, i);
   }
 }
 
@@ -406,7 +404,6 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->demux_lock, NULL);
   pthread_mutex_init (&stream->frontend_lock, NULL);
   pthread_mutex_init (&stream->event_queues_lock, NULL);
-  pthread_mutex_init (&stream->osd_lock, NULL);
   pthread_mutex_init (&stream->counter_lock, NULL);
   pthread_cond_init  (&stream->counter_changed, NULL);
   pthread_mutex_init (&stream->first_frame_lock, NULL);
@@ -1089,7 +1086,6 @@ void xine_dispose (xine_stream_t *stream) {
 
   pthread_mutex_destroy (&stream->frontend_lock);
   pthread_mutex_destroy (&stream->counter_lock);
-  pthread_mutex_destroy (&stream->osd_lock);
   pthread_mutex_destroy (&stream->event_queues_lock);
   pthread_mutex_destroy (&stream->current_extra_info_lock);
   pthread_cond_destroy  (&stream->counter_changed);

@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.7 2003/11/11 18:44:54 f1rmb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.8 2003/11/15 13:01:10 miguelfreitas Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -180,15 +180,13 @@ static void
 meta_info_assign(int field, xine_stream_t *stream, const char * info) 
 {
   if (NULL != info) {
-    if (stream->meta_info[field])
-      free(stream->meta_info[field]);
     dbg_print(INPUT_DBG_META, "meta[%d]: %s\n", field, info);
-    stream->meta_info[field] = strdup(info);
+    xine_set_meta_info(stream, field, info);
   }
 }
 
 #define stream_info_assign(field, stream, info) \
-  stream->stream_info[field] = info;
+  xine_set_stream_info(stream, field, info);
 
 /* Set stream information. */
 static void
@@ -1241,14 +1239,6 @@ vcd_plugin_dispose(input_plugin_t *this_gen)
   */
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
 
-#if 0
-  /*FIXME - this causes termination to in waits and adds sleeps. Why? */
-  free(my_vcd.stream->meta_info[XINE_META_INFO_ALBUM]);
-  free(my_vcd.stream->meta_info[XINE_META_INFO_ARTIST]);
-  free(my_vcd.stream->meta_info[XINE_META_INFO_COMMENT]);
-  free(my_vcd.stream->meta_info[XINE_META_INFO_GENRE]);
-  free(my_vcd.stream->meta_info[XINE_META_INFO_TITLE]);
-#endif
   my_vcd.stream = NULL;
 
 #if 0

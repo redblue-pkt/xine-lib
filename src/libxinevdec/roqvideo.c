@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.21 2003/10/24 02:57:58 tmmm Exp $
+ * $Id: roqvideo.c,v 1.22 2003/11/15 13:01:26 miguelfreitas Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -427,7 +427,7 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
     memset(this->v[1], 0x80, this->c_size);
 
     /* load the stream/meta info */
-    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("RoQ VQ Video");
+    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "RoQ VQ Video");
 
     return;
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.26 2003/10/23 20:12:34 mroi Exp $
+ * $Id: svq1.c,v 1.27 2003/11/15 13:01:26 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1340,7 +1340,7 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     this->decoder_ok = 1;
 
     /* load the stream/meta info */
-    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Sorenson Video 1");
+    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Sorenson Video 1");
 
   } else if (this->decoder_ok) {
     

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.171 2003/11/11 18:44:53 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.172 2003/11/15 13:01:07 miguelfreitas Exp $
  *
  */
 
@@ -861,7 +861,7 @@ static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
   int32_t button;
   int32_t show;
 
-  if (!this || !this->stream || this->stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
+  if (!this || !this->stream || xine_get_stream_info(this->stream,XINE_STREAM_INFO_IGNORE_SPU))
     return;
   
   if (!this->stream->spu_decoder_plugin ||
@@ -1727,6 +1727,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.172  2003/11/15 13:01:07  miguelfreitas
+ * more helper functions cleanup (stream info, meta info)
+ *
  * Revision 1.171  2003/11/11 18:44:53  f1rmb
  * rename internal API function (_x_<function>).
  *

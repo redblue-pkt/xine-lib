@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2003/01/31 18:29:47 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.42 2003/11/15 13:01:13 miguelfreitas Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -194,23 +194,23 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 		  mode);
 #endif
 
-	  this->xstream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->frame.header.bitrate;
+	  xine_set_stream_info(this->xstream, XINE_STREAM_INFO_AUDIO_BITRATE, this->frame.header.bitrate);
 	  switch (this->frame.header.layer) {
 	  case MAD_LAYER_I:
-	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-	      = strdup ("MPEG audio layer 1");
+	    xine_set_meta_info(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+	      "MPEG audio layer 1");
 	    break;
 	  case MAD_LAYER_II:
-	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-	      = strdup ("MPEG audio layer 2");
+	    xine_set_meta_info(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+	      "MPEG audio layer 2");
 	    break;
 	  case MAD_LAYER_III:
-	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-	      = strdup ("MPEG audio layer 3");
+	    xine_set_meta_info(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+	      "MPEG audio layer 3");
 	    break;
 	  default:
-	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-	      = strdup ("MPEG audio");
+	    xine_set_meta_info(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+	      "MPEG audio");
 	  }
 	  
 	  if (this->output_open) {

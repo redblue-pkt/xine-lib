@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.34 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: input_pvr.c,v 1.35 2003/11/15 13:01:09 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -1235,14 +1235,14 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   if( this->pvr_play_paused )
     speed = XINE_SPEED_PAUSE;
       
-  if( this->pvr_playing && this->stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] ) {
+  if( this->pvr_playing && xine_get_stream_info(this->stream, XINE_STREAM_INFO_IGNORE_VIDEO) ) {
     /* video decoding has being disabled. avoid tweaking the clock */
     this->pvr_playing = 0;
     this->scr_tunning = 0;
     pvrscr_speed_tunning(this->scr, 1.0 );
     this->want_data = 0;
     pthread_cond_signal (&this->wake_pvr);
-  } else if ( !this->pvr_playing && !this->stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] ) {
+  } else if ( !this->pvr_playing && !xine_get_stream_info(this->stream,XINE_STREAM_INFO_IGNORE_VIDEO) ) {
     this->pvr_playing = 1;
     this->play_blk = this->rec_blk;
   }

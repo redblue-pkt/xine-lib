@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2003/10/23 20:12:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.13 2003/11/15 13:01:14 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -156,9 +156,9 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = (int)(10000*this->ratio);
 
         if (info->sequence->flags & SEQ_FLAG_MPEG2) {
-          this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]  = strdup ("MPEG 2 (libmpeg2new)");
+          xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "MPEG 2 (libmpeg2new)");
         } else {
-          this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]  = strdup ("MPEG 1 (libmpeg2new)");
+          xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "MPEG 1 (libmpeg2new)");
         }
 
         break;

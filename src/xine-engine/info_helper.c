@@ -70,10 +70,16 @@ void xine_set_stream_info(xine_stream_t *stream, int info, int value) {
     stream->stream_info [info] = value;
 }
 
+void xine_clear_meta_info(xine_stream_t *stream, int info) {
+  if(meta_valid(info) && stream->meta_info [info]) {
+    free(stream->meta_info [info]);
+    stream->meta_info [info] = NULL;
+  }
+}
+
 void xine_set_meta_info(xine_stream_t *stream, int info, const char *str) {
   if(str && meta_valid(info)) {
-    if (stream->meta_info [info])
-      free(stream->meta_info [info]);
+    xine_clear_meta_info(stream, info);
     stream->meta_info [info] = strdup(str);
     chomp(stream->meta_info [info]);
   }
@@ -84,8 +90,7 @@ void xine_set_metan_info(xine_stream_t *stream, int info, const char *buf,
   if(meta_valid(info)) {
     char *tmp;
     
-    if (stream->meta_info [info])
-      free(stream->meta_info [info]);
+    xine_clear_meta_info(stream, info);
     
     if(len) {
       tmp = malloc(len + 1);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.42 2003/10/23 20:12:34 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.43 2003/11/15 13:01:02 miguelfreitas Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -605,7 +605,7 @@ static void dxr3_flush(video_decoder_t *this_gen)
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
   
   if (this->sequence_open && ++this->sequence_open > 5 &&
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL]) {
+      xine_get_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HAS_STILL)) {
     /* The dxr3 needs a sequence end code for still menus to work correctly
      * (the highlights won't move without), but some dvds have stills
      * with no sequence end code. Since it is very likely that flush() is called
@@ -716,9 +716,9 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
     }
     
     /* update stream metadata */
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO]  = 10000 * this->ratio;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  10000 * this->ratio);
     
     this->last_width = this->width;
     this->last_height = this->height;
@@ -763,7 +763,7 @@ static int get_duration(dxr3_decoder_t *this)
   }
   
   /* update stream metadata */
-  this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = duration;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION, duration);
   
   if (this->correct_durations && duration) {
     /* we set an initial average frame duration here */
