@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.221 2003/01/14 00:10:31 miguelfreitas Exp $
+ * $Id: xine.c,v 1.222 2003/01/18 20:35:28 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -952,8 +952,12 @@ void xine_exit (xine_t *this) {
     this->log_buffers[i]->dispose (this->log_buffers[i]);
 
   dispose_plugins (this);
-  this->clock->exit (this->clock);
-  this->config->dispose(this->config);
+
+  if(this->clock)
+    this->clock->exit (this->clock);
+  
+  if(this->config)
+    this->config->dispose(this->config);
 
   free (this);
 }
