@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.148 2003/04/07 16:51:29 mroi Exp $
+ * $Id: input_dvd.c,v 1.149 2003/04/07 18:13:19 mroi Exp $
  *
  */
 
@@ -839,11 +839,14 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
     }
 
     switch(event->type) {
+    case XINE_EVENT_INPUT_MENU1:
+      printf("input_dvd: MENU1 key hit.\n");
+      dvdnav_menu_call(this->dvdnav, DVD_MENU_Escape);
+      break;
     case XINE_EVENT_INPUT_MENU2:
       printf("input_dvd: MENU2 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Title);
       break;
-    case XINE_EVENT_INPUT_MENU1:
     case XINE_EVENT_INPUT_MENU3:
       printf("input_dvd: MENU3 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Root);
@@ -1576,6 +1579,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.149  2003/04/07 18:13:19  mroi
+ * support the new menu resume feature
+ *
  * Revision 1.148  2003/04/07 16:51:29  mroi
  * output beautification
  *
