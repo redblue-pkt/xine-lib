@@ -35,6 +35,11 @@ to generate pdf
 
 $ sgmltools -b pdf hackersguide.sgml
 
+building the hackersguide.html
+------------------------------
+
+The easy way to build everything is to issue a "make docs" here.
+
 --- 
 version of this file:
- $Id: README,v 1.2 2002/02/07 22:47:22 guenter Exp $
+ $Id: README,v 1.3 2003/10/12 19:06:43 mroi Exp $
