@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2001/09/27 02:11:16 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.14 2001/10/05 11:10:00 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -238,7 +238,7 @@ static void spudec_event(spu_decoder_t *this_gen, spu_event_t *event) {
 	  this->ovl.color[i] = this->state.clut[but->color[i]];
 	  this->ovl.trans[i] = but->trans[i];
 	}
-	
+
 	this->state.b_left   = but->left;
 	this->state.b_right  = but->right;
 	this->state.b_top    = but->top;
@@ -254,6 +254,11 @@ static void spudec_event(spu_decoder_t *this_gen, spu_event_t *event) {
       spu_cltbl_t *clut = event->data;
       memcpy(this->state.clut, clut->clut, sizeof(int32_t)*16);
       this->state.need_clut = 0;
+    }
+    break;
+  case XINE_UI_GET_SPU_LANG:
+    {
+      this->state.need_clut = 1;
     }
     break;
   }
