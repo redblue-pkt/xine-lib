@@ -72,17 +72,18 @@ int xine_health_check()
 
 int xine_health_check_os(void)
 {
-	fprintf(stdout, "xine health_check (OS): ");
 	int retval = 0;
+	fprintf(stdout, "xine health_check (OS): ");
 
 	return retval;
 }
 
 int xine_health_check_kernel(void)
 {
+	struct utsname kernel;
+
 	fprintf(stdout, "xine health_check (Kernel):\n");
 
-	struct utsname kernel;
 	if (uname(&kernel) == 0)
 	{
 		fprintf(stdout,"  sysname: %s\n", kernel.sysname);
@@ -99,10 +100,11 @@ int xine_health_check_kernel(void)
 
 int xine_health_check_mtrr(void)
 {
-	fprintf(stdout, "xine health_check (MTRR):\n");
-
 	char *file = "/proc/mtrr";
 	FILE *fd;
+
+	fprintf(stdout, "xine health_check (MTRR):\n");
+
 	fd = fopen(file, "r");
 	if (fd < 0)
 	{
@@ -118,9 +120,10 @@ int xine_health_check_mtrr(void)
 
 int xine_health_check_cdrom(void)
 {
-	fprintf(stdout, "xine health_check (CDROM):\n");
 	char* cdrom_name = "/dev/cdrom";
 	struct stat cdrom_st;
+
+	fprintf(stdout, "xine health_check (CDROM):\n");
 
 	if (stat(cdrom_name,&cdrom_st) < 0)
 	{
@@ -155,9 +158,10 @@ int xine_health_check_cdrom(void)
 
 int xine_health_check_dvdrom(void)
 {
-	fprintf(stdout, "xine health_check (DVDROM):\n");
 	char* dvdrom_name = "/dev/dvd";
 	struct stat dvdrom_st;
+
+	fprintf(stdout, "xine health_check (DVDROM):\n");
 
 	if (stat(dvdrom_name,&dvdrom_st) < 0)
 	{
@@ -192,16 +196,17 @@ int xine_health_check_dvdrom(void)
 
 int xine_health_check_dma(void)
 {
-	fprintf(stdout, "xine health_check (DMA):\n");
 	int retval = 0;
 	int is_scsi_dev = 0;
 	int fd = 0;
 	static long param = 0;
+	char* name = "/dev/hdc";
+	struct stat st;
+
+	fprintf(stdout, "xine health_check (DMA):\n");
 
 	/* If /dev/dvd points to /dev/scd0 but the drive is IDE (e.g. /dev/hdc) and not scsi 
 	 * how do we detect the correct one */	
-	char* name = "/dev/hdc";
-	struct stat st;
 	if (stat(name, &st)){
 		perror(name);
 		exit(errno);
@@ -241,8 +246,9 @@ int xine_health_check_dma(void)
 
 int xine_health_check_x(void)
 {
-	fprintf(stdout, "xine health_check (X):\n");
 	char* env_display = getenv("DISPLAY");
+
+	fprintf(stdout, "xine health_check (X):\n");
 	if (strlen(env_display) == 0)
 	{
 		fprintf(stdout, "  FAILED - DISPLAY environment variable not set.\n");
@@ -257,8 +263,9 @@ int xine_health_check_x(void)
 
 int xine_health_check_xv(void)
 {
-	fprintf(stdout, "xine health_check (XV):\n");
 	int retval = 0;
+
+	fprintf(stdout, "xine health_check (XV):\n");
 
 	return retval;
 }
