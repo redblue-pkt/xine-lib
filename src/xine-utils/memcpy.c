@@ -35,8 +35,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
-#include <setjmp.h>
 #include "xine_internal.h"
 #include "xineutils.h"
  
@@ -368,9 +366,7 @@ static struct {
   { "linux kernel memcpy()", linux_kernel_memcpy, 0, 0 },
   { "MMX optimized memcpy()", mmx_memcpy, 0, MM_MMX },
   { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT },
-# ifndef __FreeBSD__
   { "SSE optimized memcpy()", sse_memcpy, 0, MM_MMXEXT|MM_SSE },
-# endif
 #endif /* ARCH_X86 */
   { NULL, NULL, 0, 0 }
 };
@@ -391,15 +387,6 @@ static unsigned long long int rdtsc()
 }
 #endif
 
-static jmp_buf sigill_return;
-
-static void sigill_handler (int n) {
-
-  printf ("memcpy: SIGILL catched\n");
-
-  longjmp(sigill_return, 1);
-}
-
 
 #define BUFSIZE 1024*1024
 void xine_probe_fast_memcpy(config_values_t *config)
@@ -408,8 +395,11 @@ void xine_probe_fast_memcpy(config_values_t *config)
   char *buf1, *buf2;
   int i, j, best;
   static int config_flags = -1;
-  static char *memcpy_methods[] = {"probe", "glibc", "kernel",
-				   "mmx", "mmxext", "sse", NULL};
+  static char *memcpy_methods[] = {"probe", "glibc",
+#ifdef ARCH_X86
+     "kernel", "mmx", "mmxext", "sse", 
+#endif
+     NULL};
   
 #ifdef ARCH_X86
   config_flags = xine_mm_accel();
@@ -453,19 +443,12 @@ void xine_probe_fast_memcpy(config_values_t *config)
          memcpy_method[i].cpu_require )
       continue;
 
-    if (setjmp(sigill_return))
-      continue;
-
-    signal (SIGILL, sigill_handler); 
-
     t = rdtsc();
     for(j=0;j<50;j++) {	  
       memcpy_method[i].function(buf2,buf1,BUFSIZE);
       memcpy_method[i].function(buf1,buf2,BUFSIZE);
     }     
 
-    signal (SIGILL, SIG_DFL);
-    
     t = rdtsc() - t;
     memcpy_method[i].time = t;
     

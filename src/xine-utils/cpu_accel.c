@@ -21,7 +21,10 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <inttypes.h>
+#include <signal.h>
+#include <setjmp.h>
 
 #include "attributes.h"
 #include "xineutils.h"
@@ -86,8 +89,11 @@ static uint32_t x86_accel (void)
 
   caps = MM_ACCEL_X86_MMX;
   if (edx & 0x02000000)       /* SSE - identical to AMD MMX extensions */
-    caps = MM_ACCEL_X86_MMX | MM_ACCEL_X86_MMXEXT;
+    caps = MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT;
 
+  if (edx & 0x04000000)       /* SSE2 */
+    caps |= MM_ACCEL_X86_SSE2;  
+    
   cpuid (0x80000000, eax, ebx, ecx, edx);
   if (eax < 0x80000001)       /* no extended capabilities */
     return caps;
@@ -105,6 +111,13 @@ static uint32_t x86_accel (void)
 #endif
 
 
+static jmp_buf sigill_return;
+
+static void sigill_handler (int n) {
+  printf ("cpu_accel: OS doesn't support SSE instructions.\n");
+  longjmp(sigill_return, 1);
+}
+
 uint32_t xine_mm_accel (void)
 {
 #ifdef ARCH_X86
@@ -113,7 +126,19 @@ uint32_t xine_mm_accel (void)
 
   if (!got_accel) {
     got_accel = 1;
+    
     accel = x86_accel ();
+    
+    /* test OS support for SSE */
+    if( accel & MM_ACCEL_X86_SSE ) {
+      if (setjmp(sigill_return)) {
+        accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
+      } else {
+        signal (SIGILL, sigill_handler); 
+        __asm __volatile ("xorps %xmm0, %xmm0");
+        signal (SIGILL, SIG_DFL);
+      }
+    }
   }
 
   return accel;
