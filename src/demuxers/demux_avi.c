@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.7 2001/04/29 23:22:32 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.8 2001/05/02 12:25:42 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -67,6 +67,8 @@ typedef struct
   long   width;             /* Width  of a video frame */
   long   height;            /* Height of a video frame */
   long   dwScale, dwRate;
+  long   dwScale_audio, dwRate_audio;
+  long   dwSampleSize;
   double fps;               /* Frames per second */
   
   char   compressor[8];     /* Type of compressor, 4 bytes + padding for 0 byte */
@@ -115,7 +117,6 @@ typedef struct demux_avi_s {
   int                  status;
 
   uint32_t             video_step;
-  uint32_t             avg_bytes_per_sec;
 } demux_avi_t ;
 
 #define AVI_ERR_SIZELIM      1     /* The write of the data would exceed
@@ -337,6 +338,7 @@ static avi_t *AVI_init(demux_avi_t *this)
 
 	      if(AVI->dwScale!=0)
 		AVI->fps = (double)AVI->dwRate/(double)AVI->dwScale;
+
 	      this->video_step = (long) (90000.0 / AVI->fps);
 	      
 	      AVI->video_frames    = str2ulong(hdrl_data+i+32);
@@ -346,8 +348,11 @@ static avi_t *AVI_init(demux_avi_t *this)
 	    }
 	  else if (strncasecmp (hdrl_data+i,"auds",4) ==0 && ! auds_strh_seen)
 	    {
-	      AVI->audio_bytes = str2ulong(hdrl_data+i+32)*avi_sampsize(AVI);
-	      AVI->audio_strn = num_stream;
+	      AVI->audio_bytes   = str2ulong(hdrl_data+i+32)*avi_sampsize(AVI);
+	      AVI->audio_strn    = num_stream;
+	      AVI->dwScale_audio = str2ulong(hdrl_data+i+20);
+	      AVI->dwRate_audio  = str2ulong(hdrl_data+i+24);
+	      AVI->dwSampleSize  = str2ulong(hdrl_data+i+44);
 	      auds_strh_seen = 1;
 	      lasttag = 2; /* auds */
 	    }
@@ -380,7 +385,7 @@ static avi_t *AVI_init(demux_avi_t *this)
 	      AVI->a_chans = str2ushort(hdrl_data+i+2);
 	      AVI->a_rate  = str2ulong (hdrl_data+i+4);
 	      AVI->a_bits  = str2ushort(hdrl_data+i+14);
-	      this->avg_bytes_per_sec = str2ulong (hdrl_data+i+8);
+
 	      auds_strf_seen = 1;
 	    }
 	  lasttag = 0;
@@ -700,6 +705,9 @@ static int demux_avi_next (demux_avi_t *this) {
   if (this->avi->video_frames <= this->avi->video_posf)
     return 0;
 
+  if (this->avi->audio_chunks <= this->avi->audio_posc)
+    return 0;
+
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
   buf->content = buf->mem;
@@ -710,10 +718,19 @@ static int demux_avi_next (demux_avi_t *this) {
 
     /* read audio */
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: audio \n");
-    /*    pBuf->nPTS  = (uint32_t) (90000.0 * (this->avi->audio_index[this->avi->audio_posc].tot + this->avi->audio_posb) / this->nAvgBytesPerSec)  ;  */
+
+    if (this->avi->dwSampleSize==0)
+      buf->PTS = this->avi->audio_posc * (double) this->avi->dwScale_audio / this->avi->dwRate_audio * 90000.0;
+    else 
+      buf->PTS = (this->avi->audio_index[this->avi->audio_posc].tot+this->avi->audio_posb)/this->avi->dwSampleSize * (double) this->avi->dwScale_audio / this->avi->dwRate_audio * 90000.0;
 
     buf->size      = AVI_read_audio (this, this->avi, buf->mem, 2048, &buf->frame_end);
-    buf->PTS       = 0;
+
+    if (buf->size<0) {
+      buf->free_buffer (buf);
+      return 0;
+    }
+
     buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
 
     switch (this->avi->a_fmt) {
@@ -743,10 +760,14 @@ static int demux_avi_next (demux_avi_t *this) {
     /* read video */
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: video \n");
 
-    buf->PTS = 0;
-    /* buf->nPTS  = this->avi->video_posf * this->video_step ;   */
-    buf->size = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->frame_end);
-    buf->type = BUF_VIDEO_AVI ; 
+    buf->PTS   = this->avi->video_posf * (double) this->avi->dwScale / this->avi->dwRate * 90000.0;
+    buf->size  = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->frame_end);
+    buf->type  = BUF_VIDEO_AVI ; 
+
+    if (buf->size<0) {
+      buf->free_buffer (buf);
+      return 0;
+    }
 
     this->video_fifo->put (this->video_fifo, buf);
   }
@@ -843,20 +864,15 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
   /* seek video */
 
-  /*
+  
   while (this->avi->video_index[this->avi->video_posf].pos < pos) {
     this->avi->video_posf++;
     if (this->avi->video_posf>this->avi->video_frames) {
-      this->mnStatus = DEMUX_FINISHED;
+      this->status = DEMUX_FINISHED;
       return;
     }
   }
-  */
   
-  
-  this->avi->video_posf = (long) (((double) this->avi->audio_index[this->avi->audio_posc].tot / (double) this->avi->audio_bytes) * (double) this->avi->video_frames);
-
-
   /* 
    * send start buffers
    */
