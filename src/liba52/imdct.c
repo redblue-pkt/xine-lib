@@ -24,6 +24,8 @@
 #include <inttypes.h>
 #include <math.h>
 
+#include <cpu_accel.h>
+
 #include "a52.h"
 #include "a52_internal.h"
 

@@ -26,6 +26,9 @@
 /* Define this if you have mlib installed */
 #undef LIBMPEG2_MLIB
 
+/* Define this if you have mlib installed */
+#undef LIBA52_MLIB
+
 /* Define this if you have getpwuid_r() function */
 #undef HAVE_GETPWUID_R
 

@@ -128,8 +128,10 @@ dnl mpeg2lib stuff
 dnl
 AC_SUBST(LIBMPEG2_CFLAGS)
 AC_SUBST(LIBMPEG2_CONFIG_OBJS)
+AC_SUBST(LIBA52_CFLAGS)
 
 LIBMPEG2_CFLAGS="" dnl default include path removed, no more needed.
+LIBA52_CFLAGS=""
 
 if test x$enable_mlib = x; then
 AC_ARG_ENABLE(mlib,
@@ -141,8 +143,10 @@ if test x$enable_mlib = xyes; then
                [ LIBS="$LIBS -L/opt/SUNWmlib/lib -lmlib" 
                  LIBMPEG2_CONFIG_OBJS="$LIBMPEG2_CONFIG_OBJS idct_mlib.lo motion_comp_mlib.lo" 
                  LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I/opt/SUNWmlib/include" 
+                 LIBA52_CFLAGS="$LIBA52_CFLAGS -I/opt/SUNWmlib/include" 
 		 AC_DEFINE(HAVE_MLIB)
-                 AC_DEFINE(LIBMPEG2_MLIB)],
+                 AC_DEFINE(LIBMPEG2_MLIB)
+		 AC_DEFINE(LIBA52_MLIB)],
                , -L/opt/SUNWmlib/lib)
 fi
 
@@ -457,8 +461,7 @@ case $host in
             cpu_cflags="-mcpu=supersparc -mtune=supersparc"
             ;;
         sparc64-*)
-	    #cpu_cflags="-mcpu=v9 -mtune=ultrasparc"
-	    cpu_cflags="-mcpu=v8 -mtune=ultrasparc"
+	    cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
             ;;
 	esac
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
@@ -476,8 +479,7 @@ case $host in
             cpu_cflags="-mcpu=v8 -mtune=supersparc"
             ;;
         sun4u)  
-            #cpu_cflags="-mcpu=v9 -mtune=ultrasparc"
-            cpu_cflags="-mcpu=v8 -mtune=ultrasparc"
+            cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
 	    ;;
 	esac
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
