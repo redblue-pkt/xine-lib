@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.81 2004/01/12 17:35:14 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.82 2004/05/10 11:24:28 hadess Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -46,6 +46,7 @@
 #include "demux.h"
 
 #define NUM_PREVIEW_BUFFERS 50
+#define SCRATCH_SIZE 256
 
 typedef struct {  
   demux_plugin_t      demux_plugin;
@@ -192,14 +193,25 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    uint8_t scratch[4];
+    uint8_t scratch[SCRATCH_SIZE];
+    int i, read, found;
 
-    if (_x_demux_read_header(input, scratch, 4) != 4)
+    read = _x_demux_read_header(input, scratch, SCRATCH_SIZE);
+    if (!read)
       return NULL;
 
-    lprintf ("%02x %02x %02x %02x\n", scratch[0], scratch[1], scratch[2], scratch[3]);
+    found = 0;
+    for (i = 0; i < read - 4; i++) {
+      lprintf ("%02x %02x %02x %02x\n", scratch[i], scratch[i+1], scratch[i+2], scratch[i+3]);
 
-    if (scratch[0] || scratch[1] || (scratch[2] != 0x01) || (scratch[3] != 0xb3))
+      if (!scratch[i] && !scratch[i+1] && (scratch[i+2] == 0x01) && (scratch[i+3] == 0xb3)) {
+         found = 1;
+	 lprintf ("found header at offset 0x%x\n", i);
+	 break;
+      }
+    }
+
+    if (found == 0)
       return NULL;
     lprintf ("input accepted.\n");
   }
