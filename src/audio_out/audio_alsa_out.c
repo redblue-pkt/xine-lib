@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * Credits go 
- * - for the SPDIF AC3 sync part
+ * - for the SPDIF A/52 sync part
  * - frame size calculation added (16-08-2001)
  * (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
  * for initial ALSA 0.9.x support.
@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.24 2001/08/29 10:31:39 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.25 2001/09/01 18:00:16 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -85,7 +85,7 @@ typedef struct alsa_driver_s {
   char          audio_surround40_device[20];
   char          audio_surround50_device[20];
   char          audio_surround51_device[20];
-  char          audio_ac3_device[128];
+  char          audio_a52_device[128];
   snd_pcm_t    *audio_fd;
   int           capabilities;
   int           open_mode;
@@ -149,7 +149,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     break;
   case AO_CAP_MODE_A52:
     this->num_channels = 2;
-    pcm_device = this->audio_ac3_device;
+    pcm_device = this->audio_a52_device;
     break;
   default:
     error ("ALSA Driver does not support the requested mode: 0x%X",mode);
@@ -459,8 +459,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   strcpy(this->audio_surround50_device,pcm_device);
   pcm_device = config->lookup_str(config,"alsa_surround51_device", "surround51");
   strcpy(this->audio_surround51_device,pcm_device);
-  pcm_device = config->lookup_str(config,"alsa_ac3_device", "hw:0,2");
-  strcpy(this->audio_ac3_device,pcm_device);
+  pcm_device = config->lookup_str(config,"alsa_a52_device", "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2");
+  strcpy(this->audio_a52_device,pcm_device);
  
   /*
    * find best device driver/channel
@@ -508,7 +508,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
   this->output_sample_rate = 0;
-  if (config->lookup_int (config, "ac3_pass_through", 0)) {
+  if (config->lookup_int (config, "a52_pass_through", 0)) {
     this->capabilities |= AO_CAP_MODE_A52;
   }
   printf("audio_alsa_out: Capabilities 0x%X\n",this->capabilities);
