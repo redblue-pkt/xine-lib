@@ -1,5 +1,5 @@
 /*
-    $Id: cd_types.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: cd_types.c,v 1.3 2004/07/22 14:15:19 mroi Exp $
 
     Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
 
@@ -240,7 +240,7 @@ cdio_guess_cd_type(const CdIo *cdio, int start_session, track_t track_num,
       else
 	ret = CDIO_FS_ISO_9660;
       iso_analysis->isofs_size = _cdio_get_iso9660_fs_sec_count();
-      sprintf(iso_analysis->iso_label, buffer[0]+40);
+      snprintf(iso_analysis->iso_label, 33, "%s", buffer[0]+40);
       
 #if 0
       if (_cdio_is_rockridge())
