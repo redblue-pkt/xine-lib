@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.52 2001/11/30 00:53:50 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.53 2001/12/01 13:10:53 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -640,7 +640,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
       if (ioctl(audio_fd, SNDCTL_DSP_GETODELAY, &info) != -1) {
 	printf("audio_oss_out: using SNDCTL_DSP_GETODELAY\n");
 	this->sync_method = OSS_SYNC_GETODELAY;
-      } else if (ioctl(this->audio_fd, SNDCTL_DSP_GETOPTR, &info) != -1) {
+      } else if (ioctl(audio_fd, SNDCTL_DSP_GETOPTR, &info) != -1) {
 	printf("audio_oss_out: using SNDCTL_DSP_GETOPTR\n");
 	this->sync_method = OSS_SYNC_GETOPTR;
       } else 
