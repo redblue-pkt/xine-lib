@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.10 2002/10/04 03:10:43 tmmm Exp $
+ * $Id: roqvideo.c,v 1.11 2002/10/05 22:16:08 tmmm Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -303,6 +303,7 @@ static void roq_decode_frame(roq_decoder_t *ri) {
 
         switch(vqid) {
         case RoQ_ID_MOT: 
+          apply_motion_8x8(ri, xp, yp, 0, 8, 8);
           break;
         case RoQ_ID_FCC:
           apply_motion_8x8(ri, xp, yp, buf[bpos++], chunk_arg >> 8, 
@@ -331,6 +332,7 @@ static void roq_decode_frame(roq_decoder_t *ri) {
             vqflg_pos--;
             switch(vqid) {
             case RoQ_ID_MOT: 
+              apply_motion_4x4(ri, x, y, 0, 8, 8);
               break;
             case RoQ_ID_FCC:
               apply_motion_4x4(ri, x, y, buf[bpos++], chunk_arg >> 8,
