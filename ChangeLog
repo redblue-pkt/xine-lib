@@ -33,9 +33,12 @@ xine-lib (next version) [someone fill in stability and urgency]
   * much improved plugin loader, makes it possible to have several
     versions of libxine installed in parallel
   * file:// mrl use an uri-like syntax now, %xx-encoded chars are handled,
-    '#' is used to separate subtitle files
+    '?' is used to separate subtitle files
   * incorporated pgx64[fb] plugin
   * improved support for invalid mpeg streams
+  * some metronom changes hopefully improving some last glitches in dvd playback
+  * URI conforming MRL syntax, new delimiter # for various stream parameters
+  * variuos fixes for dxr3 overlay mode
 	
 xine-lib (0.9.13) unstable; urgency=low
 
