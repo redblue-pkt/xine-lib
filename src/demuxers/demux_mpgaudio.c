@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.106 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.107 2003/08/31 16:37:32 jcdutton Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -57,6 +57,7 @@
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
 #define CDXA_TAG FOURCC_TAG('C', 'D', 'X', 'A')
+#define ID3_TAG FOURCC_TAG('I', 'D', '3', 3)
 
 typedef struct {
 
@@ -107,6 +108,8 @@ static int frequencies[2][3] = {
 
 
 static int mpg123_head_check(unsigned long head) {
+  if (head == ID3_TAG) 
+    return 1;
   if ((head & 0xffe00000) != 0xffe00000)
     return 0;
   if (!((head >> 17) & 3))
