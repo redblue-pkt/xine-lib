@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.184 2002/10/29 21:31:02 guenter Exp $
+ * $Id: xine.c,v 1.185 2002/10/30 17:51:13 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -534,8 +534,12 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     return 0;
   }    
   
+  stream->demux_action_pending = 1;
+  pthread_mutex_lock( &stream->demux_lock );
   demux_status = stream->demux_plugin->seek (stream->demux_plugin,
 						   pos, start_time);
+  stream->demux_action_pending = 0;
+  pthread_mutex_unlock( &stream->demux_lock );
 
   if (demux_status != DEMUX_OK) {
     xine_log (stream->xine, XINE_LOG_MSG, 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.109 2002/10/29 16:02:54 mroi Exp $
+ * $Id: xine_internal.h,v 1.110 2002/10/30 17:51:13 miguelfreitas Exp $
  *
  */
 
@@ -211,6 +211,7 @@ struct xine_stream_s {
   pthread_t                  demux_thread;
   int                        demux_thread_running;
   pthread_mutex_t            demux_lock;
+  int                        demux_action_pending;
 
   int                        err;
 };
