@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.46 2002/06/21 01:37:21 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.47 2002/07/02 21:32:04 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1263,7 +1263,7 @@ static int demux_asf_start (demux_plugin_t *this_gen,
      */
     this->send_discontinuity       = 2;
     this->last_video_pts           = 0;
-    this->keyframe_found           = 0;
+    this->keyframe_found           = (this->num_video_streams==0);
 
     if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
