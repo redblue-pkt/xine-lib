@@ -1,127 +1,77 @@
---- src/input/libdvdread/ifo_print.h	Sun Apr  7 19:52:01 2002
-+++ src/input/libdvdread/ifo_print.h	Sat Aug 10 15:47:34 2002
-@@ -20,8 +20,8 @@
-  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  */
- 
--#include <dvdread/ifo_types.h>
--#include <dvdread/dvd_reader.h>
-+#include "ifo_types.h"
-+#include "dvd_reader.h"
- 
- #ifdef __cplusplus
- extern "C" {
---- src/input/libdvdread/ifo_read.h	Sun Apr  7 19:52:01 2002
-+++ src/input/libdvdread/ifo_read.h	Sat Aug 10 15:47:59 2002
-@@ -20,8 +20,8 @@
-  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  */
- 
--#include <dvdread/ifo_types.h>
--#include <dvdread/dvd_reader.h>
-+#include "ifo_types.h"
-+#include "dvd_reader.h"
- 
- #ifdef __cplusplus
- extern "C" {
---- src/input/libdvdread/ifo_types.h	Sun Apr  7 19:52:01 2002
-+++ src/input/libdvdread/ifo_types.h	Sat Aug 10 15:48:25 2002
-@@ -21,7 +21,7 @@
-  */
- 
- #include <inttypes.h>
--#include <dvdread/dvd_reader.h>
-+#include "dvd_reader.h"
- 
- 
- #undef ATTRIBUTE_PACKED
---- src/input/libdvdread/nav_print.h	Sun Apr  7 20:17:19 2002
-+++ src/input/libdvdread/nav_print.h	Sat Aug 10 15:48:53 2002
-@@ -20,7 +20,7 @@
-  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  */
- 
--#include <dvdread/nav_types.h>
-+#include "nav_types.h"
- 
- #ifdef __cplusplus
- extern "C" {
---- src/input/libdvdread/nav_read.c	Sun Apr  7 19:52:01 2002
-+++ src/input/libdvdread/nav_read.c	Fri Aug  9 17:06:58 2002
-@@ -26,8 +26,12 @@
- #include "nav_types.h"
- #include "nav_read.h"
- 
-+/*
-+#define STRICT
-+*/
-+
- void navRead_PCI(pci_t *pci, unsigned char *buffer) {
--  int i, j, k;
-+  int i, j;
- 
-   assert(sizeof(pci_t) == PCI_BYTES - 1); // -1 for substream id
+--- src/input/libdvdread/dvd_input.c	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/dvd_input.c	2002-09-05 12:41:52.000000000 +0200
+@@ -55,7 +55,7 @@
+   dvd_input_t dev;
    
-@@ -71,6 +75,7 @@
+   /* Allocate the handle structure */
+-  dev = (dvd_input_t) malloc(sizeof(dvd_input_t));
++  dev = (dvd_input_t) malloc(sizeof(*dev));
+   if(dev == NULL) {
+     fprintf(stderr, "libdvdread: Could not allocate memory.\n");
+     return NULL;
+@@ -134,7 +134,7 @@
+   dvd_input_t dev;
+   
+   /* Allocate the library structure */
+-  dev = (dvd_input_t) malloc(sizeof(dvd_input_t));
++  dev = (dvd_input_t) malloc(sizeof(*dev));
+   if(dev == NULL) {
+     fprintf(stderr, "libdvdread: Could not allocate memory.\n");
+     return NULL;
+--- src/input/libdvdread/dvd_reader.c	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/dvd_reader.c	2002-10-23 13:30:07.000000000 +0200
+@@ -28,7 +28,6 @@
+ #include <unistd.h>
+ #include <limits.h>
+ #include <dirent.h>
+- 
+ #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__bsdi__)|| defined(__DARWIN__)
+ #define SYS_BSD 1
+ #endif
+@@ -41,6 +40,7 @@
+ #include <mntent.h>
  #endif
  
++#include "compat.h"
+ #include "dvd_udf.h"
+ #include "dvd_input.h"
+ #include "dvd_reader.h"
+@@ -288,7 +288,7 @@
+ 	    
+ 	    if( cdir >= 0 ) {
+ 		chdir( path_copy );
+-		new_path = getcwd( NULL, PATH_MAX );
++		new_path = getcwd( NULL, XINE_PATH_MAX );
+ 		fchdir( cdir );
+ 		close( cdir );
+ 		if( new_path ) {
+@@ -452,7 +452,7 @@
  
-+#ifdef STRICT
-   /* Asserts */
+ static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
+ {
+-    char video_path[ PATH_MAX + 1 ];
++    char video_path[ XINE_PATH_MAX + 1 ];
+     const char *nodirfile;
+     int ret;
  
-   /* pci pci gi */ 
-@@ -95,6 +100,7 @@
-   /* pci hli btnit */
-   for(i = 0; i < pci->hli.hl_gi.btngr_ns; i++) {
-     for(j = 0; j < (36 / pci->hli.hl_gi.btngr_ns); j++) {
-+      int k;
-       int n = (36 / pci->hli.hl_gi.btngr_ns) * i + j;
-       assert(pci->hli.btnit[n].zero1 == 0);
-       assert(pci->hli.btnit[n].zero2 == 0);
-@@ -127,6 +133,7 @@
-       }
-     }
-   }
-+#endif
- }
- 
- void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
-@@ -178,9 +185,11 @@
-     B2N_32(dsi->synci.sp_synca[i]);
- 
-   
-+#ifdef STRICT
-   /* Asserts */
- 
-   /* dsi dsi gi */
-   assert(dsi->dsi_gi.zero1 == 0);
-+#endif
- }
- 
---- src/input/libdvdread/nav_read.h	Sun Apr  7 20:17:19 2002
-+++ src/input/libdvdread/nav_read.h	Sat Aug 10 15:49:26 2002
-@@ -19,7 +19,7 @@
-  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+@@ -486,7 +486,7 @@
   */
- 
--#include <dvdread/nav_types.h>
-+#include "nav_types.h"
- 
- #ifdef __cplusplus
- extern "C" {
---- src/input/libdvdread/nav_types.h	Sun Apr  7 20:41:59 2002
-+++ src/input/libdvdread/nav_types.h	Sat Aug 10 15:49:47 2002
-@@ -30,7 +30,7 @@
-  */
- 
- #include <inttypes.h>
--#include <dvdread/ifo_types.h> // only dvd_time_t, vm_cmd_t and user_ops_t
-+#include "ifo_types.h" // only dvd_time_t, vm_cmd_t and user_ops_t
- 
- 
- #undef ATTRIBUTE_PACKED
---- src/input/libdvdread/dvd_reader.c	Sun May 19 17:48:41 2002
-+++ src/input/libdvdread/dvd_reader.c	Mon Aug 19 18:09:46 2002
+ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *dvd, char *filename )
+ {
+-    char full_path[ PATH_MAX + 1 ];
++    char full_path[ XINE_PATH_MAX + 1 ];
+     dvd_file_t *dvd_file;
+     struct stat fileinfo;
+     dvd_input_t dev;
+@@ -571,7 +571,7 @@
+ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *dvd, int title, int menu )
+ {
+     char filename[ MAX_UDF_FILE_NAME_LEN ];
+-    char full_path[ PATH_MAX + 1 ];
++    char full_path[ XINE_PATH_MAX + 1 ];
+     struct stat fileinfo;
+     dvd_file_t *dvd_file;
+     int i;
 @@ -857,7 +857,7 @@
  
  ssize_t DVDReadBytes( dvd_file_t *dvd_file, void *data, size_t byte_size )
@@ -156,8 +106,71 @@
  
      dvd_file->seek_pos += byte_size;
      return byte_size;
---- src/input/libdvdread/dvd_udf.c	Mon May  6 22:16:31 2002
-+++ src/input/libdvdread/dvd_udf.c	Mon Aug 19 18:11:32 2002
+--- src/input/libdvdread/dvd_udf.c	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/dvd_udf.c	2002-10-23 13:30:07.000000000 +0200
+@@ -123,7 +123,7 @@
+ static int UDFDescriptor( uint8_t *data, uint16_t *TagID ) 
+ {
+     *TagID = GETN2(0);
+-    // TODO: check CRC 'n stuff
++    /* TODO: check CRC 'n stuff */
+     return 0;
+ }
+ 
+@@ -141,7 +141,7 @@
+     ad->Flags = ad->Length >> 30;
+     ad->Length &= 0x3FFFFFFF;
+     ad->Location = GETN4(4);
+-    ad->Partition = partition->Number; // use number of current partition
++    ad->Partition = partition->Number; /* use number of current partition */
+     return 0;
+ }
+ 
+@@ -152,7 +152,7 @@
+     ad->Length &= 0x3FFFFFFF;
+     ad->Location = GETN4(4);
+     ad->Partition = GETN2(8);
+-    //GETN(10, 6, Use);
++    /* GETN(10, 6, Use); */
+     return 0;
+ }
+ 
+@@ -163,7 +163,7 @@
+     ad->Length &= 0x3FFFFFFF;
+     ad->Location = GETN4(12);
+     ad->Partition = GETN2(16);
+-    //GETN(10, 6, Use);
++    /* GETN(10, 6, Use); */
+     return 0;
+ }
+ 
+@@ -194,9 +194,9 @@
+ {
+     uint32_t lbsize, MT_L, N_PM;
+     Unicodedecode(&data[84], 128, VolumeDescriptor);
+-    lbsize = GETN4(212);  // should be 2048
+-    MT_L = GETN4(264);    // should be 6
+-    N_PM = GETN4(268);    // should be 1
++    lbsize = GETN4(212);  /* should be 2048 */
++    MT_L = GETN4(264);    /* should be 6 */
++    N_PM = GETN4(268);    /* should be 1 */
+     if (lbsize != DVD_VIDEO_LB_LEN) return 1;
+     return 0;
+ }
+@@ -211,10 +211,10 @@
+     UDFICB( &data[ 16 ], FileType, &flags );
+    
+     /* Init ad for an empty file (i.e. there isn't a AD, L_AD == 0 ) */
+-    ad->Length = GETN4( 60 ); // Really 8 bytes a 56
++    ad->Length = GETN4( 60 ); /* Really 8 bytes a 56 */
+     ad->Flags = 0;
+-    ad->Location = 0; // what should we put here? 
+-    ad->Partition = partition->Number; // use number of current partition
++    ad->Location = 0; /* what should we put here?  */
++    ad->Partition = partition->Number; /* use number of current partition */
+ 
+     L_EA = GETN4( 168 );
+     L_AD = GETN4( 172 );
 @@ -264,7 +264,8 @@
  static int UDFMapICB( dvd_reader_t *device, struct AD ICB, uint8_t *FileType,
  		      struct Partition *partition, struct AD *File ) 
@@ -200,23 +213,816 @@
      uint32_t lbnum;
      uint16_t TagID;
      struct Partition partition;
---- src/input/libdvdread/dvd_input.c	8 Aug 2002 17:49:21 -0000	1.1
-+++ src/input/libdvdread/dvd_input.c	4 Sep 2002 16:06:18 -0000	1.2
-@@ -55,7 +55,7 @@
-   dvd_input_t dev;
+@@ -460,7 +466,7 @@
+         }
+ 
+         /* File Set Descriptor */
+-        if( TagID == 256 ) {  // File Set Descriptor
++        if( TagID == 256 ) {  /* File Set Descriptor */
+             UDFLongAD( &LogBlock[ 400 ], &RootICB );
+         }
+     } while( ( lbnum < partition.Start + partition.Length )
+--- src/input/libdvdread/ifo_print.c	2002-08-19 18:18:03.000000000 +0200
++++ src/input/libdvdread/ifo_print.c	2002-10-23 13:30:07.000000000 +0200
+@@ -25,7 +25,7 @@
+ #include <ctype.h>
+ #include <assert.h>
+ 
+-#include "config.h" // Needed for WORDS_BIGENDIAN
++#include "config.h" /* Needed for WORDS_BIGENDIAN */
+ #include "ifo_types.h"
+ #include "ifo_read.h"
+ #include "ifo_print.h"
+@@ -71,7 +71,7 @@
+     printf("%02x ", command->bytes[i]);
+   printf("| ");
+ 
+-  //vmcmd(command);
++  /* )vmcmd(command); */
+   printf("\n");
+ }
+ 
+@@ -126,19 +126,19 @@
+     printf("(please send a bug report) ");
+   }
    
-   /* Allocate the handle structure */
--  dev = (dvd_input_t) malloc(sizeof(dvd_input_t));
-+  dev = (dvd_input_t) malloc(sizeof(*dev));
-   if(dev == NULL) {
-     fprintf(stderr, "libdvdread: Could not allocate memory.\n");
-     return NULL;
-@@ -134,7 +134,7 @@
-   dvd_input_t dev;
+-  // Wide is allways allowed..!!!
++  /*  Wide is allways allowed..!!! */
+   switch(attr->permitted_df) {
+   case 0:
+     printf("pan&scan+letterboxed ");
+     break;
+   case 1:
+-    printf("only pan&scan "); //??
++    printf("only pan&scan "); /* ?? */
+     break;
+   case 2:
+     printf("only letterboxed ");
+     break;
+   case 3:
+-    // not specified
++    /* not specified */
+     break;
+   default:
+     printf("(please send a bug report)");
+@@ -184,7 +184,7 @@
+   if(attr->film_mode) {
+     printf("film");
+   } else {
+-    printf("video"); //camera
++    printf("video"); /* camera */
+   }
+ }
+ 
+@@ -235,7 +235,7 @@
    
-   /* Allocate the library structure */
--  dev = (dvd_input_t) malloc(sizeof(dvd_input_t));
-+  dev = (dvd_input_t) malloc(sizeof(*dev));
-   if(dev == NULL) {
-     fprintf(stderr, "libdvdread: Could not allocate memory.\n");
-     return NULL;
+   switch(attr->lang_type) {
+   case 0:
+-    // not specified
++    /* not specified */
+     assert(attr->lang_code == 0 || attr->lang_code == 0xffff);
+     break;
+   case 1:
+@@ -247,7 +247,7 @@
+ 
+   switch(attr->application_mode) {
+   case 0:
+-    // not specified
++    /* not specified */
+     break;
+   case 1:
+     printf("karaoke mode ");
+@@ -294,19 +294,19 @@
+   case 0:
+     printf("Not specified ");
+     break;
+-  case 1: // Normal audio
++  case 1: /* Normal audio */
+     printf("Normal Caption ");
+     break;
+-  case 2: // visually imparied
++  case 2: /* visually imparied */
+     printf("Audio for visually impaired ");
+     break;
+-  case 3: // Directors 1
++  case 3: /* Directors 1 */
+     printf("Director's comments 1 ");
+     break;
+-  case 4: // Directors 2
++  case 4: /* Directors 2 */
+     printf("Director's comments 2 ");
+     break;
+-    //case 4: // Music score ?    
++    /* case 4: Music score ? */
+   default:
+     printf("(please send a bug report) ");
+   }
+@@ -796,7 +796,7 @@
+   
+   printf("Number of Countries: %i\n", ptl_mait->nr_of_countries);
+   printf("Number of VTSs: %i\n", ptl_mait->nr_of_vtss);
+-  //printf("Last byte: %i\n", ptl_mait->last_byte);
++  /* printf("Last byte: %i\n", ptl_mait->last_byte); */
+   
+   for(i = 0; i < ptl_mait->nr_of_countries; i++) {
+     printf("Country code: %c%c\n", 
+@@ -825,7 +825,7 @@
+   int i, entries;
+   
+   printf("Number of VOBs in this VOBS: %i\n", c_adt->nr_of_vobs);
+-  //entries = c_adt->nr_of_vobs;
++  /* entries = c_adt->nr_of_vobs; */
+   entries = (c_adt->last_byte + 1 - C_ADT_SIZE)/sizeof(c_adt_t);
+   
+   for(i = 0; i < entries; i++) {
+@@ -975,7 +975,7 @@
+     printf("\nText Data Manager Information\n");
+     printf(  "-----------------------------\n");
+     if(ifohandle->txtdt_mgi) {
+-      //ifoPrint_TXTDT_MGI(&(vmgi->txtdt_mgi));
++      /* ifoPrint_TXTDT_MGI(&(vmgi->txtdt_mgi)); */
+     } else {
+       printf("No Text Data Manager Information present\n");
+     }
+--- src/input/libdvdread/ifo_print.h	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/ifo_print.h	2002-08-19 18:18:09.000000000 +0200
+@@ -20,8 +20,8 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/ifo_types.h>
+-#include <dvdread/dvd_reader.h>
++#include "ifo_types.h"
++#include "dvd_reader.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/ifo_read.c	2002-08-19 18:18:03.000000000 +0200
++++ src/input/libdvdread/ifo_read.c	2002-10-23 13:30:07.000000000 +0200
+@@ -26,7 +26,7 @@
+ 
+ #include "dvd_reader.h"
+ 
+-#include "config.h" // Needed for WORDS_BIGENDIAN
++#include "config.h" /* Needed for WORDS_BIGENDIAN */
+ #include "bswap.h"
+ #include "ifo_types.h"
+ #include "ifo_read.h"
+@@ -636,7 +636,7 @@
+   /* Check that time is 0:0:0:0 also if nr_of_programs == 0 */
+   if(pgc->nr_of_programs == 0) {
+     CHECK_ZERO(pgc->still_time);
+-    CHECK_ZERO(pgc->pg_playback_mode); // ??
++    CHECK_ZERO(pgc->pg_playback_mode); /* ?? */
+     assert(pgc->program_map_offset == 0);
+     assert(pgc->cell_playback_offset == 0);
+     assert(pgc->cell_position_offset == 0);
+@@ -822,24 +822,24 @@
+ 
+   CHECK_ZERO(tt_srpt->zero_1);
+   assert(tt_srpt->nr_of_srpts != 0);
+-  assert(tt_srpt->nr_of_srpts < 100); // ??
++  assert(tt_srpt->nr_of_srpts < 100); /* ?? */
+   assert((int)tt_srpt->nr_of_srpts * sizeof(title_info_t) <= info_length);
+   
+   for(i = 0; i < tt_srpt->nr_of_srpts; i++) {
+     assert(tt_srpt->title[i].pb_ty.zero_1 == 0);
+     assert(tt_srpt->title[i].nr_of_angles != 0);
+     assert(tt_srpt->title[i].nr_of_angles < 10);
+-    //assert(tt_srpt->title[i].nr_of_ptts != 0);
+-    // XXX: this assertion breaks Ghostbusters:
+-    assert(tt_srpt->title[i].nr_of_ptts < 1000); // ??
++    /* assert(tt_srpt->title[i].nr_of_ptts != 0); */
++    /* XXX: this assertion breaks Ghostbusters: */
++    assert(tt_srpt->title[i].nr_of_ptts < 1000); /* ?? */
+     assert(tt_srpt->title[i].title_set_nr != 0);
+-    assert(tt_srpt->title[i].title_set_nr < 100); // ??
++    assert(tt_srpt->title[i].title_set_nr < 100); /* ?? */
+     assert(tt_srpt->title[i].vts_ttn != 0);
+-    assert(tt_srpt->title[i].vts_ttn < 100); // ??
+-    //assert(tt_srpt->title[i].title_set_sector != 0);
++    assert(tt_srpt->title[i].vts_ttn < 100); /* ?? */
++    /* assert(tt_srpt->title[i].title_set_sector != 0); */
+   }
+   
+-  // Make this a function
++  /* Make this a function */
+ #if 0
+   if(memcmp((uint8_t *)tt_srpt->title + 
+             tt_srpt->nr_of_srpts * sizeof(title_info_t), 
+@@ -903,7 +903,7 @@
+ 
+   CHECK_ZERO(vts_ptt_srpt->zero_1);
+   assert(vts_ptt_srpt->nr_of_srpts != 0);
+-  assert(vts_ptt_srpt->nr_of_srpts < 100); // ??
++  assert(vts_ptt_srpt->nr_of_srpts < 100); /* ?? */
+   
+   info_length = vts_ptt_srpt->last_byte + 1 - VTS_PTT_SRPT_SIZE;
+   
+@@ -978,12 +978,12 @@
+   }
+   
+   for(i = 0; i < vts_ptt_srpt->nr_of_srpts; i++) {
+-    assert(vts_ptt_srpt->title[i].nr_of_ptts < 1000); // ??
++    assert(vts_ptt_srpt->title[i].nr_of_ptts < 1000); /* ?? */
+     for(j = 0; j < vts_ptt_srpt->title[i].nr_of_ptts; j++) {
+       assert(vts_ptt_srpt->title[i].ptt[j].pgcn != 0 );
+-      assert(vts_ptt_srpt->title[i].ptt[j].pgcn < 1000); // ??
++      assert(vts_ptt_srpt->title[i].ptt[j].pgcn < 1000); /* ?? */
+       assert(vts_ptt_srpt->title[i].ptt[j].pgn != 0);
+-      assert(vts_ptt_srpt->title[i].ptt[j].pgn < 100); // ??
++      assert(vts_ptt_srpt->title[i].ptt[j].pgn < 100); /* ?? */
+     }
+   }
+ 
+@@ -1043,9 +1043,9 @@
+   info_length = ptl_mait->last_byte + 1 - PTL_MAIT_SIZE;
+   
+   assert(ptl_mait->nr_of_countries != 0);
+-  assert(ptl_mait->nr_of_countries < 100); // ??
++  assert(ptl_mait->nr_of_countries < 100); /* ?? */
+   assert(ptl_mait->nr_of_vtss != 0);
+-  assert(ptl_mait->nr_of_vtss < 100); // ??  
++  assert(ptl_mait->nr_of_vtss < 100); /* ?? */
+   assert(ptl_mait->nr_of_countries * PTL_MAIT_COUNTRY_SIZE <= info_length);
+   
+   /* Change this to read and 'translate' the tables too. 
+@@ -1383,7 +1383,7 @@
+   /* assert(pgcit->nr_of_pgci_srp != 0);
+      Magic Knight Rayearth Daybreak is mastered very strange and has 
+      Titles with 0 PTTs. */
+-  assert(pgcit->nr_of_pgci_srp < 10000); // ?? seen max of 1338
++  assert(pgcit->nr_of_pgci_srp < 10000); /* ?? seen max of 1338 */
+   
+   info_length = pgcit->nr_of_pgci_srp * PGCI_SRP_SIZE;
+   data = malloc(info_length);
+@@ -1504,7 +1504,7 @@
+   
+   CHECK_ZERO(pgci_ut->zero_1);
+   assert(pgci_ut->nr_of_lus != 0);
+-  assert(pgci_ut->nr_of_lus < 100); // ?? 3-4 ?
++  assert(pgci_ut->nr_of_lus < 100); /* ?? 3-4 ? */
+   assert((uint32_t)pgci_ut->nr_of_lus * PGCI_LU_SIZE < pgci_ut->last_byte);
+ 
+   info_length = pgci_ut->nr_of_lus * PGCI_LU_SIZE;
+@@ -1539,8 +1539,9 @@
+   
+   for(i = 0; i < pgci_ut->nr_of_lus; i++) {
+     CHECK_ZERO(pgci_ut->lu[i].zero_1);
+-    // Maybe this is only defined for v1.1 and later titles?
+-    /* If the bits in 'lu[i].exists' are enumerated abcd efgh then:
++    /*
++		   Maybe this is only defined for v1.1 and later titles? 
++       If the bits in 'lu[i].exists' are enumerated abcd efgh then:
+             VTS_x_yy.IFO        VIDEO_TS.IFO
+        a == 0x83 "Root"         0x82 "Title"
+        b == 0x84 "Subpicture"
+@@ -1578,8 +1579,10 @@
+       ifofile->pgci_ut = 0;
+       return 0;
+     }
+-    // FIXME: Iterate and verify that all menus that should exists accordingly
+-    //        to pgci_ut->lu[i].exists really do?
++    /*
++		 * FIXME: Iterate and verify that all menus that should exists accordingly
++		 * to pgci_ut->lu[i].exists really do?
++		 */
+   }
+ 
+   return 1;
+@@ -1640,8 +1643,8 @@
+     unsigned int nr_coded;
+     assert(vts_attributes->last_byte + 1 >= VTS_ATTRIBUTES_MIN_SIZE);  
+     nr_coded = (vts_attributes->last_byte + 1 - VTS_ATTRIBUTES_MIN_SIZE)/6;
+-    // This is often nr_coded = 70, how do you know how many there really are?
+-    if(nr_coded > 32) { // We haven't read more from disk/file anyway
++    /* This is often nr_coded = 70, how do you know how many there really are? */
++    if(nr_coded > 32) { /* We haven't read more from disk/file anyway */
+       nr_coded = 32;
+     }
+     assert(vts_attributes->nr_of_vtstt_subp_streams <= nr_coded);
+@@ -1689,7 +1692,7 @@
+ 
+   CHECK_ZERO(vts_atrt->zero_1);
+   assert(vts_atrt->nr_of_vtss != 0);
+-  assert(vts_atrt->nr_of_vtss < 100); //??
++  assert(vts_atrt->nr_of_vtss < 100); /* ?? */
+   assert((uint32_t)vts_atrt->nr_of_vtss * (4 + VTS_ATTRIBUTES_MIN_SIZE) + 
+          VTS_ATRT_SIZE < vts_atrt->last_byte + 1);
+ 
+@@ -1730,9 +1733,9 @@
+       return 0;
+     }
+ 
+-    // This assert cant be in ifoRead_VTS_ATTRIBUTES
++    /* This assert cant be in ifoRead_VTS_ATTRIBUTES */
+     assert(offset + vts_atrt->vts[i].last_byte <= vts_atrt->last_byte + 1);
+-    // Is this check correct?
++    /* Is this check correct? */
+   }
+   free(data);
+ 
+@@ -1782,7 +1785,7 @@
+     return 0;
+   }
+ 
+-  // fprintf(stderr, "-- Not done yet --\n");
++  /* fprintf(stderr, "-- Not done yet --\n"); */
+   return 1;
+ }
+ 
+--- src/input/libdvdread/ifo_read.h	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/ifo_read.h	2002-08-19 18:18:09.000000000 +0200
+@@ -20,8 +20,8 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/ifo_types.h>
+-#include <dvdread/dvd_reader.h>
++#include "ifo_types.h"
++#include "dvd_reader.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/ifo_types.h	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/ifo_types.h	2002-10-23 13:30:07.000000000 +0200
+@@ -21,7 +21,7 @@
+  */
+ 
+ #include <inttypes.h>
+-#include <dvdread/dvd_reader.h>
++#include "dvd_reader.h"
+ 
+ 
+ #undef ATTRIBUTE_PACKED
+@@ -59,7 +59,7 @@
+   uint8_t hour;
+   uint8_t minute;
+   uint8_t second;
+-  uint8_t frame_u; // The two high bits are the frame rate.
++  uint8_t frame_u; /* The two high bits are the frame rate. */
+ } ATTRIBUTE_PACKED dvd_time_t;
+ 
+ /**
+@@ -130,7 +130,7 @@
+   unsigned int quantization           : 2;
+ #endif
+   uint16_t lang_code;
+-  uint8_t  lang_code2; // ??
++  uint8_t  lang_code2; /* ?? */
+   uint8_t  lang_extension;
+   uint16_t unknown2;
+ } ATTRIBUTE_PACKED audio_attr_t;
+@@ -235,65 +235,65 @@
+  */
+ typedef struct {
+ #ifdef WORDS_BIGENDIAN
+-  unsigned int zero                           : 7; // 25-31
+-  unsigned int video_pres_mode_change         : 1; // 24
+-  
+-  unsigned int karaoke_audio_pres_mode_change : 1; // 23
+-  unsigned int angle_change                   : 1; // 22
+-  unsigned int subpic_stream_change           : 1; // 21
+-  unsigned int audio_stream_change            : 1; // 20
+-  unsigned int pause_on                       : 1; // 19
+-  unsigned int still_off                      : 1; // 18
+-  unsigned int button_select_or_activate      : 1; // 17
+-  unsigned int resume                         : 1; // 16
+-  
+-  unsigned int chapter_menu_call              : 1; // 15
+-  unsigned int angle_menu_call                : 1; // 14
+-  unsigned int audio_menu_call                : 1; // 13
+-  unsigned int subpic_menu_call               : 1; // 12
+-  unsigned int root_menu_call                 : 1; // 11
+-  unsigned int title_menu_call                : 1; // 10
+-  unsigned int backward_scan                  : 1; // 9
+-  unsigned int forward_scan                   : 1; // 8
+-  
+-  unsigned int next_pg_search                 : 1; // 7
+-  unsigned int prev_or_top_pg_search          : 1; // 6
+-  unsigned int time_or_chapter_search         : 1; // 5
+-  unsigned int go_up                          : 1; // 4
+-  unsigned int stop                           : 1; // 3
+-  unsigned int title_play                     : 1; // 2
+-  unsigned int chapter_search_or_play         : 1; // 1
+-  unsigned int title_or_time_play             : 1; // 0
++  unsigned int zero                           : 7; /* 25-31 */
++  unsigned int video_pres_mode_change         : 1; /* 24 */
++
++  unsigned int karaoke_audio_pres_mode_change : 1; /* 23 */
++  unsigned int angle_change                   : 1; /* 22 */
++  unsigned int subpic_stream_change           : 1; /* 21 */
++  unsigned int audio_stream_change            : 1; /* 20 */
++  unsigned int pause_on                       : 1; /* 19 */
++  unsigned int still_off                      : 1; /* 18 */
++  unsigned int button_select_or_activate      : 1; /* 17 */
++  unsigned int resume                         : 1; /* 16 */
++
++  unsigned int chapter_menu_call              : 1; /* 15 */
++  unsigned int angle_menu_call                : 1; /* 14 */
++  unsigned int audio_menu_call                : 1; /* 13 */
++  unsigned int subpic_menu_call               : 1; /* 12 */
++  unsigned int root_menu_call                 : 1; /* 11 */
++  unsigned int title_menu_call                : 1; /* 10 */
++  unsigned int backward_scan                  : 1; /* 9 */
++  unsigned int forward_scan                   : 1; /* 8 */
++
++  unsigned int next_pg_search                 : 1; /* 7 */
++  unsigned int prev_or_top_pg_search          : 1; /* 6 */
++  unsigned int time_or_chapter_search         : 1; /* 5 */
++  unsigned int go_up                          : 1; /* 4 */
++  unsigned int stop                           : 1; /* 3 */
++  unsigned int title_play                     : 1; /* 2 */
++  unsigned int chapter_search_or_play         : 1; /* 1 */
++  unsigned int title_or_time_play             : 1; /* 0 */
+ #else
+-  unsigned int video_pres_mode_change         : 1; // 24
+-  unsigned int zero                           : 7; // 25-31
+-  
+-  unsigned int resume                         : 1; // 16
+-  unsigned int button_select_or_activate      : 1; // 17
+-  unsigned int still_off                      : 1; // 18
+-  unsigned int pause_on                       : 1; // 19
+-  unsigned int audio_stream_change            : 1; // 20
+-  unsigned int subpic_stream_change           : 1; // 21
+-  unsigned int angle_change                   : 1; // 22
+-  unsigned int karaoke_audio_pres_mode_change : 1; // 23
+-  
+-  unsigned int forward_scan                   : 1; // 8
+-  unsigned int backward_scan                  : 1; // 9
+-  unsigned int title_menu_call                : 1; // 10
+-  unsigned int root_menu_call                 : 1; // 11
+-  unsigned int subpic_menu_call               : 1; // 12
+-  unsigned int audio_menu_call                : 1; // 13
+-  unsigned int angle_menu_call                : 1; // 14
+-  unsigned int chapter_menu_call              : 1; // 15
+-  
+-  unsigned int title_or_time_play             : 1; // 0
+-  unsigned int chapter_search_or_play         : 1; // 1
+-  unsigned int title_play                     : 1; // 2
+-  unsigned int stop                           : 1; // 3
+-  unsigned int go_up                          : 1; // 4
+-  unsigned int time_or_chapter_search         : 1; // 5
+-  unsigned int prev_or_top_pg_search          : 1; // 6
+-  unsigned int next_pg_search                 : 1; // 7
++  unsigned int video_pres_mode_change         : 1; /* 24 */
++  unsigned int zero                           : 7; /* 25-31 */
++
++  unsigned int resume                         : 1; /* 16 */
++  unsigned int button_select_or_activate      : 1; /* 17 */
++  unsigned int still_off                      : 1; /* 18 */
++  unsigned int pause_on                       : 1; /* 19 */
++  unsigned int audio_stream_change            : 1; /* 20 */
++  unsigned int subpic_stream_change           : 1; /* 21 */
++  unsigned int angle_change                   : 1; /* 22 */
++  unsigned int karaoke_audio_pres_mode_change : 1; /* 23 */
++
++  unsigned int forward_scan                   : 1; /* 8 */
++  unsigned int backward_scan                  : 1; /* 9 */
++  unsigned int title_menu_call                : 1; /* 10 */
++  unsigned int root_menu_call                 : 1; /* 11 */
++  unsigned int subpic_menu_call               : 1; /* 12 */
++  unsigned int audio_menu_call                : 1; /* 13 */
++  unsigned int angle_menu_call                : 1; /* 14 */
++  unsigned int chapter_menu_call              : 1; /* 15 */
++
++  unsigned int title_or_time_play             : 1; /* 0 */
++  unsigned int chapter_search_or_play         : 1; /* 1 */
++  unsigned int title_play                     : 1; /* 2 */
++  unsigned int stop                           : 1; /* 3 */
++  unsigned int go_up                          : 1; /* 4 */
++  unsigned int time_or_chapter_search         : 1; /* 5 */
++  unsigned int prev_or_top_pg_search          : 1; /* 6 */
++  unsigned int next_pg_search                 : 1; /* 7 */
+ #endif
+ } ATTRIBUTE_PACKED user_ops_t;
+ 
+@@ -453,11 +453,11 @@
+   
+   video_attr_t vmgm_video_attr;
+   uint8_t  zero_7;
+-  uint8_t  nr_of_vmgm_audio_streams; // should be 0 or 1
++  uint8_t  nr_of_vmgm_audio_streams; /* should be 0 or 1 */
+   audio_attr_t vmgm_audio_attr;
+   audio_attr_t zero_8[7];
+   uint8_t  zero_9[17];
+-  uint8_t  nr_of_vmgm_subp_streams; // should be 0 or 1
++  uint8_t  nr_of_vmgm_subp_streams; /* should be 0 or 1 */
+   subp_attr_t  vmgm_subp_attr;
+   subp_attr_t  zero_10[27];  /* XXX: how much 'padding' here? */
+ } ATTRIBUTE_PACKED vmgi_mat_t;
+@@ -465,21 +465,21 @@
+ typedef struct {
+ #ifdef WORDS_BIGENDIAN
+   unsigned int zero_1                    : 1;
+-  unsigned int multi_or_random_pgc_title : 1; // 0 == one sequential pgc title
++  unsigned int multi_or_random_pgc_title : 1; /* 0 == one sequential pgc title */
+   unsigned int jlc_exists_in_cell_cmd    : 1;
+   unsigned int jlc_exists_in_prepost_cmd : 1;
+   unsigned int jlc_exists_in_button_cmd  : 1;
+   unsigned int jlc_exists_in_tt_dom      : 1;
+-  unsigned int chapter_search_or_play    : 1; // UOP 1
+-  unsigned int title_or_time_play        : 1; // UOP 0
++  unsigned int chapter_search_or_play    : 1; /* UOP 1 */
++  unsigned int title_or_time_play        : 1; /* UOP 0 */
+ #else
+-  unsigned int title_or_time_play        : 1; // UOP 0
+-  unsigned int chapter_search_or_play    : 1; // UOP 1
++  unsigned int title_or_time_play        : 1; /* UOP 0 */
++  unsigned int chapter_search_or_play    : 1; /* UOP 1 */
+   unsigned int jlc_exists_in_tt_dom      : 1;
+   unsigned int jlc_exists_in_button_cmd  : 1;
+   unsigned int jlc_exists_in_prepost_cmd : 1;
+   unsigned int jlc_exists_in_cell_cmd    : 1;
+-  unsigned int multi_or_random_pgc_title : 1; // 0 == one sequential pgc title
++  unsigned int multi_or_random_pgc_title : 1; /* 0 == one sequential pgc title */
+   unsigned int zero_1                    : 1;
+ #endif
+ } ATTRIBUTE_PACKED playback_type_t;
+@@ -540,12 +540,12 @@
+   
+   video_attr_t vtsm_vobs_attr;
+   uint8_t  zero_1;
+-  uint8_t  nr_of_vtsm_audio_streams; // should be 0 or 1
++  uint8_t  nr_of_vtsm_audio_streams; /* should be 0 or 1 */
+   audio_attr_t vtsm_audio_attr;
+   audio_attr_t zero_2[7];  
+   uint8_t  zero_3[16];
+   uint8_t  zero_4;
+-  uint8_t  nr_of_vtsm_subp_streams; // should be 0 or 1
++  uint8_t  nr_of_vtsm_subp_streams; /* should be 0 or 1 */
+   subp_attr_t vtsm_subp_attr;
+   subp_attr_t zero_5[27];
+   
+@@ -581,18 +581,18 @@
+   uint32_t last_byte;    /* offsets are relative here */
+   uint16_t offsets[100]; /* == nr_of_srpts + 1 (first is disc title) */
+ #if 0  
+-  uint16_t unknown; // 0x48 ?? 0x48 words (16bit) info following
++  uint16_t unknown; /* 0x48 ?? 0x48 words (16bit) info following */
+   uint16_t zero_1;
+   
+-  uint8_t type_of_info;//?? 01 == disc, 02 == Title, 04 == Title part 
++  uint8_t type_of_info; /* ?? 01 == disc, 02 == Title, 04 == Title part */
+   uint8_t unknown1;
+   uint8_t unknown2;
+   uint8_t unknown3;
+-  uint8_t unknown4;//?? allways 0x30 language?, text format?
++  uint8_t unknown4;  /*?? allways 0x30 language?, text format? */
+   uint8_t unknown5;
+-  uint16_t offset; // from first 
++  uint16_t offset; /* from first */
+   
+-  char text[12]; // ended by 0x09
++  char text[12]; /* ended by 0x09 */
+ #endif
+ } ATTRIBUTE_PACKED txtdt_t;
+ 
+@@ -652,7 +652,7 @@
+   uint32_t vts_ptt_srpt;    /* sector */
+   uint32_t vts_pgcit;       /* sector */
+   uint32_t vtsm_pgci_ut;    /* sector */
+-  uint32_t vts_tmapt;       /* sector */  // XXX: FIXME TODO Implement
++  uint32_t vts_tmapt;       /* sector */  /* XXX: FIXME TODO Implement */
+   uint32_t vtsm_c_adt;      /* sector */
+   uint32_t vtsm_vobu_admap; /* sector */
+   uint32_t vts_c_adt;       /* sector */
+@@ -661,11 +661,11 @@
+   
+   video_attr_t vtsm_video_attr;
+   uint8_t  zero_14;
+-  uint8_t  nr_of_vtsm_audio_streams; // should be 0 or 1
++  uint8_t  nr_of_vtsm_audio_streams; /* should be 0 or 1 */
+   audio_attr_t vtsm_audio_attr;
+   audio_attr_t zero_15[7];
+   uint8_t  zero_16[17];
+-  uint8_t  nr_of_vtsm_subp_streams; // should be 0 or 1
++  uint8_t  nr_of_vtsm_subp_streams; /* should be 0 or 1 */
+   subp_attr_t vtsm_subp_attr;
+   subp_attr_t zero_17[27];
+   uint8_t  zero_18[2];
+@@ -739,7 +739,7 @@
+   vtsi_mat_t     *vtsi_mat;
+   vts_ptt_srpt_t *vts_ptt_srpt;
+   pgcit_t        *vts_pgcit;
+-  int            *vts_tmapt; // FIXME add/correct the type
++  int            *vts_tmapt; /* FIXME add/correct the type */
+   c_adt_t        *vts_c_adt;
+   vobu_admap_t   *vts_vobu_admap;
+ } ifo_handle_t;
+--- src/input/libdvdread/nav_print.c	2002-08-19 18:18:03.000000000 +0200
++++ src/input/libdvdread/nav_print.c	2002-10-23 13:30:07.000000000 +0200
+@@ -27,7 +27,7 @@
+ #include <inttypes.h>
+ #include <assert.h>
+ 
+-#include "config.h" // Needed for WORDS_BIGENDIAN
++#include "config.h" /* Needed for WORDS_BIGENDIAN */
+ #include "nav_types.h"
+ #include "nav_print.h"
+ 
+@@ -167,7 +167,7 @@
+ 	printf("left %d, ", btni->left);
+ 	printf("right %d\n", btni->right);
+ 	
+-	// ifoPrint_COMMAND(&btni->cmd);
++	/* ifoPrint_COMMAND(&btni->cmd); */
+ 	printf("\n");
+       }
+     }
+--- src/input/libdvdread/nav_print.h	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/nav_print.h	2002-08-19 18:18:09.000000000 +0200
+@@ -20,7 +20,7 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/nav_types.h>
++#include "nav_types.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/nav_read.c	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/nav_read.c	2002-10-23 13:30:08.000000000 +0200
+@@ -21,15 +21,19 @@
+ #include <inttypes.h>
+ #include <assert.h>
+ 
+-#include "config.h" // Needed for WORDS_BIGENDIAN
++#include "config.h" /* Needed for WORDS_BIGENDIAN */
+ #include "bswap.h"
+ #include "nav_types.h"
+ #include "nav_read.h"
+ 
++/*
++#define STRICT
++*/
++
+ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
+-  int i, j, k;
++  int i, j;
+ 
+-  assert(sizeof(pci_t) == PCI_BYTES - 1); // -1 for substream id
++  assert(sizeof(pci_t) == PCI_BYTES - 1); /* -1 for substream id */
+   
+   memcpy(pci, buffer, sizeof(pci_t));
+ 
+@@ -71,6 +75,7 @@
+ #endif
+ 
+ 
++#ifdef STRICT
+   /* Asserts */
+ 
+   /* pci pci gi */ 
+@@ -95,6 +100,7 @@
+   /* pci hli btnit */
+   for(i = 0; i < pci->hli.hl_gi.btngr_ns; i++) {
+     for(j = 0; j < (36 / pci->hli.hl_gi.btngr_ns); j++) {
++      int k;
+       int n = (36 / pci->hli.hl_gi.btngr_ns) * i + j;
+       assert(pci->hli.btnit[n].zero1 == 0);
+       assert(pci->hli.btnit[n].zero2 == 0);
+@@ -110,7 +116,7 @@
+ 	assert(pci->hli.btnit[n].down <= pci->hli.hl_gi.btn_ns);
+ 	assert(pci->hli.btnit[n].left <= pci->hli.hl_gi.btn_ns);
+ 	assert(pci->hli.btnit[n].right <= pci->hli.hl_gi.btn_ns);
+-	//vmcmd_verify(pci->hli.btnit[n].cmd);
++	/* vmcmd_verify(pci->hli.btnit[n].cmd); */
+       } else {
+ 	assert(pci->hli.btnit[n].btn_coln == 0);
+ 	assert(pci->hli.btnit[n].auto_action_mode == 0);
+@@ -123,16 +129,17 @@
+ 	assert(pci->hli.btnit[n].left == 0);
+ 	assert(pci->hli.btnit[n].right == 0);
+ 	for (k = 0; k < 8; k++)
+-	  assert(pci->hli.btnit[n].cmd.bytes[k] == 0); //CHECK_ZERO?
++	  assert(pci->hli.btnit[n].cmd.bytes[k] == 0); /* CHECK_ZERO? */
+       }
+     }
+   }
++#endif
+ }
+ 
+ void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
+   int i;
+ 
+-  assert(sizeof(dsi_t) == DSI_BYTES - 1); // -1 for substream id
++  assert(sizeof(dsi_t) == DSI_BYTES - 1); /* -1 for substream id */
+   
+   memcpy(dsi, buffer, sizeof(dsi_t));
+ 
+@@ -178,9 +185,11 @@
+     B2N_32(dsi->synci.sp_synca[i]);
+ 
+   
++#ifdef STRICT
+   /* Asserts */
+ 
+   /* dsi dsi gi */
+   assert(dsi->dsi_gi.zero1 == 0);
++#endif
+ }
+ 
+--- src/input/libdvdread/nav_read.h	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/nav_read.h	2002-08-19 18:18:09.000000000 +0200
+@@ -19,7 +19,7 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/nav_types.h>
++#include "nav_types.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/nav_types.h	2002-10-23 13:39:33.000000000 +0200
++++ src/input/libdvdread/nav_types.h	2002-10-23 13:30:08.000000000 +0200
+@@ -30,7 +30,7 @@
+  */
+ 
+ #include <inttypes.h>
+-#include <dvdread/ifo_types.h> // only dvd_time_t, vm_cmd_t and user_ops_t
++#include "ifo_types.h" /* only dvd_time_t, vm_cmd_t and user_ops_t */
+ 
+ 
+ #undef ATTRIBUTE_PACKED
+@@ -92,7 +92,7 @@
+  * Highlight General Information 
+  */
+ typedef struct {
+-  uint16_t hli_ss; ///< only low 2 bits
++  uint16_t hli_ss; /* < only low 2 bits */
+   uint32_t hli_s_ptm;
+   uint32_t hli_e_ptm;
+   uint32_t btn_se_e_ptm;
+@@ -116,11 +116,11 @@
+   unsigned int zero3 : 1;
+ #endif
+   uint8_t btn_ofn;
+-  uint8_t btn_ns;     ///< only low 6 bits
+-  uint8_t nsl_btn_ns; ///< only low 6 bits
++  uint8_t btn_ns;     /* < only low 6 bits */
++  uint8_t nsl_btn_ns; /* < only low 6 bits */
+   uint8_t zero5;
+-  uint8_t fosl_btnn;  ///< only low 6 bits
+-  uint8_t foac_btnn;  ///< only low 6 bits
++  uint8_t fosl_btnn;  /* < only low 6 bits */
++  uint8_t foac_btnn;  /* < only low 6 bits */
+ } ATTRIBUTE_PACKED hl_gi_t;
+ 
+ 
+@@ -217,12 +217,12 @@
+  * Seamless Playback Information
+  */
+ typedef struct {
+-  uint16_t category; ///< category of seamless VOBU
+-  uint32_t ilvu_ea;  ///< end address of interleaved Unit (sectors)
+-  uint32_t ilvu_sa;  ///< start address of next interleaved unit (sectors)
+-  uint16_t size;     ///< size of next interleaved unit (sectors)
+-  uint32_t vob_v_s_s_ptm; ///< video start ptm in vob
+-  uint32_t vob_v_e_e_ptm; ///< video end ptm in vob
++  uint16_t category; /* category of seamless VOBU */
++  uint32_t ilvu_ea;  /* end address of interleaved Unit (sectors) */
++  uint32_t ilvu_sa;  /* start address of next interleaved unit (sectors) */
++  uint16_t size;     /* size of next interleaved unit (sectors) */
++  uint32_t vob_v_s_s_ptm; /* video start ptm in vob */
++  uint32_t vob_v_e_e_ptm; /* video end ptm in vob */
+   struct {
+     uint32_t stp_ptm1;
+     uint32_t stp_ptm2;
+@@ -235,8 +235,8 @@
+  * Seamless Angle Infromation for one angle
+  */
+ typedef struct {
+-    uint32_t address; ///< Sector offset to next ILVU, high bit is before/after
+-    uint16_t size;    ///< Byte size of the ILVU poited to by address.
++    uint32_t address; /* Sector offset to next ILVU, high bit is before/after */
++    uint16_t size;    /* Byte size of the ILVU poited to by address. */
+ } ATTRIBUTE_PACKED sml_agl_data_t;
+ 
+ /**
+@@ -250,11 +250,11 @@
+  * VOBU Search Information 
+  */
+ typedef struct {
+-  uint32_t next_video; ///< Next vobu that contains video
+-  uint32_t fwda[19];   ///< Forwards, time
++  uint32_t next_video; /* Next vobu that contains video */
++  uint32_t fwda[19];   /* Forwards, time */
+   uint32_t next_vobu;
+   uint32_t prev_vobu;
+-  uint32_t bwda[19];   ///< Backwards, time
++  uint32_t bwda[19];   /* Backwards, time */
+   uint32_t prev_video;
+ } ATTRIBUTE_PACKED vobu_sri_t;
+ 
+@@ -264,8 +264,8 @@
+  * Synchronous Information
+  */ 
+ typedef struct {
+-  uint16_t a_synca[8];   ///< Sector offset to first audio packet for this VOBU
+-  uint32_t sp_synca[32]; ///< Sector offset to first subpicture packet
++  uint16_t a_synca[8];   /* Sector offset to first audio packet for this VOBU */
++  uint32_t sp_synca[32]; /* Sector offset to first subpicture packet */
+ } ATTRIBUTE_PACKED synci_t;
+ 
+ /**
