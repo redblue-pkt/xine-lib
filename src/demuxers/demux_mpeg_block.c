@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.142 2002/11/17 17:32:11 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.143 2002/11/18 11:44:55 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -654,8 +654,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   int            count;
   int            stream_id;
 
-  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) ||
-      (this->input->get_capabilities(this->input) & INPUT_CAP_VARIABLE_BITRATE)) 
+  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE))
     return 0;
 
   last_pos = 0;
@@ -978,10 +977,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   printf ("demux_mpeg_block:open_plugin:input ID=%s count = %d\n",
 	  input->input_class->get_identifier(input->input_class), count );
   /*  if (count > 1) assert (0); */
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf("demux_mpeg_block.c: not seekable, can't handle!\n");
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->stream = stream;
@@ -1082,6 +1077,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       demux_mpeg_block_accept_input(this, input);
     } else if(!strncmp(mrl, "vcd", 3)) {
       this->blocksize = 2324;
+      demux_mpeg_block_accept_input (this, input);
+    } else if(!strncmp(mrl, "dvd", 3)) {
+      this->blocksize = 2048;
       demux_mpeg_block_accept_input (this, input);
     } else {
       free (this->scratch_base);
