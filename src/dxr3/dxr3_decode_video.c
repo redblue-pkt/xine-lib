@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.30 2003/02/18 13:15:46 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.31 2003/02/23 14:15:58 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -559,7 +559,7 @@ static void dxr3_flush(video_decoder_t *this_gen)
 {
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
   
-  if (this->sequence_open &&
+  if (this->sequence_open && ++this->sequence_open > 5 &&
       this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL]) {
     /* The dxr3 needs a sequence end code for still menus to work correctly
      * (the highlights won't move without), but some dvds have stills
