@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.80 2002/03/20 23:12:58 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.81 2002/03/21 21:48:49 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -90,11 +90,11 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   uint32_t       stream_id;
   int64_t        scr = this->last_scr;
 
-  buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
-
 #ifdef LOG
   printf ("demux_mpeg_block: read_block\n");
 #endif
+
+  buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
   if (buf==NULL) {
     xine_next_mrl_event_t event;
