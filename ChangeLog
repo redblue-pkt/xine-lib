@@ -1,3 +1,4 @@
+xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
   * guess codeset for OSD if nl_langinfo(CODESET) is missing or not working
   * new option - list of domains, where don't use proxy
@@ -7,6 +8,8 @@
     DVDs
   * use xine network functions in CDDB lookups, fix connection timeout
   * preparing for future MinGW port
+  * improved network buffer management policy.
+  * asf/mmst/mmsh proper support for "media changing" command.
 
 xine-lib (1-rc3b)
   * fix SDL plugin that was broken in rc3
