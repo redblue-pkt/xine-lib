@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.126 2004/03/14 23:07:25 valtri Exp $
+ * $Id: audio_decoder.c,v 1.127 2004/03/28 19:51:56 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -60,25 +60,17 @@ static void *audio_decoder_loop (void *stream_gen) {
   if (prof_audio_decode == -1)
     prof_audio_decode = xine_profiler_allocate_slot ("audio decoder/output");
 
-  running_ticket->acquire(running_ticket, 0);
-  
   while (running) {
 
     lprintf ("audio_loop: waiting for package...\n");  
 
-    if( !replaying_headers ) {
-      running_ticket->release(running_ticket, 0);
+    if( !replaying_headers )
       buf = stream->audio_fifo->get (stream->audio_fifo);
-      running_ticket->acquire(running_ticket, 0);
-    }
 
     lprintf ("audio_loop: got package pts = %lld, type = %08x\n", buf->pts, buf->type); 
 
     _x_extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
     stream->audio_decoder_extra_info->seek_count = stream->video_seek_count;
-    
-    if (running_ticket->ticket_revoked)
-      running_ticket->renew(running_ticket, 0);
     
     switch (buf->type) {
       
@@ -93,6 +85,9 @@ static void *audio_decoder_loop (void *stream_gen) {
 
       lprintf ("start\n");
 
+      /* decoder dispose might call port functions */
+      running_ticket->acquire(running_ticket, 0);
+      
       if (stream->audio_decoder_plugin) {
 
 	lprintf ("close old decoder\n");
@@ -104,8 +99,8 @@ static void *audio_decoder_loop (void *stream_gen) {
       }
       
       running_ticket->release(running_ticket, 0);
+      
       stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSTART, 0);
-      running_ticket->acquire(running_ticket, 0);
       
       buftype_unknown = 0;
       break;
@@ -156,12 +151,17 @@ static void *audio_decoder_loop (void *stream_gen) {
       break;
       
     case BUF_CONTROL_QUIT:
+      /* decoder dispose might call port functions */
+      running_ticket->acquire(running_ticket, 0);
+      
       if (stream->audio_decoder_plugin) {
 	_x_free_audio_decoder (stream, stream->audio_decoder_plugin);
 	stream->audio_decoder_plugin = NULL;
 	stream->audio_track_map_entries = 0;
 	stream->audio_type = 0;
       }
+      
+      running_ticket->release(running_ticket, 0);
       running = 0;
       break;
 
@@ -172,30 +172,35 @@ static void *audio_decoder_loop (void *stream_gen) {
       lprintf ("reset\n");
 
       _x_extra_info_reset( stream->audio_decoder_extra_info );
-      if (stream->audio_decoder_plugin)
-        stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
+      if (stream->audio_decoder_plugin) {
+	running_ticket->acquire(running_ticket, 0);
+	stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
+	running_ticket->release(running_ticket, 0);
+      }
       break;
           
     case BUF_CONTROL_DISCONTINUITY:
-      if (stream->audio_decoder_plugin)
-        stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
+      if (stream->audio_decoder_plugin) {
+	running_ticket->acquire(running_ticket, 0);
+	stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
+	running_ticket->release(running_ticket, 0);
+      }
       
-      running_ticket->release(running_ticket, 0);
       stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_RELATIVE, buf->disc_off);
-      running_ticket->acquire(running_ticket, 0);
       break;
 
     case BUF_CONTROL_NEWPTS:
-      if (stream->audio_decoder_plugin)
-        stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
+      if (stream->audio_decoder_plugin) {
+	running_ticket->acquire(running_ticket, 0);
+	stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
+	running_ticket->release(running_ticket, 0);
+      }
       
-      running_ticket->release(running_ticket, 0);
       if (buf->decoder_flags & BUF_FLAG_SEEK) {
         stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSEEK, buf->disc_off);
       } else {
         stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_ABSOLUTE, buf->disc_off);
       }
-      running_ticket->acquire(running_ticket, 0);
       break;
 
     case BUF_CONTROL_AUDIO_CHANNEL:
@@ -214,6 +219,8 @@ static void *audio_decoder_loop (void *stream_gen) {
 
       xine_profiler_start_count (prof_audio_decode);
 
+      running_ticket->acquire(running_ticket, 0);
+	  
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
 	uint32_t audio_type = 0;
@@ -337,13 +344,17 @@ static void *audio_decoder_loop (void *stream_gen) {
 	      }
 	    }
 	  }
-	} 
+	}
       } else if( buf->type != buftype_unknown ) {
 	  xine_log (stream->xine, XINE_LOG_MSG, 
 		    _("audio_decoder: error, unknown buffer type: %08x\n"), buf->type );
 	  buftype_unknown = buf->type;
       }
 
+      if (running_ticket->ticket_revoked)
+        running_ticket->renew(running_ticket, 0);
+      running_ticket->release(running_ticket, 0);
+      
       xine_profiler_stop_count (prof_audio_decode);
     }
 
@@ -359,7 +370,11 @@ static void *audio_decoder_loop (void *stream_gen) {
       audio_channel_user = stream->audio_channel_user;
 
       if (stream->audio_decoder_plugin) {
-        _x_free_audio_decoder (stream, stream->audio_decoder_plugin);
+	/* decoder dispose might call port functions */
+	running_ticket->acquire(running_ticket, 0);
+	_x_free_audio_decoder (stream, stream->audio_decoder_plugin);
+	running_ticket->release(running_ticket, 0);
+        
         stream->audio_decoder_plugin = NULL;
         stream->audio_track_map_entries = 0;
         stream->audio_type = 0;
@@ -407,8 +422,6 @@ static void *audio_decoder_loop (void *stream_gen) {
     }
     first_header = last_header = NULL;
   }
-  
-  running_ticket->release(running_ticket, 0);
   
   return NULL;
 }
