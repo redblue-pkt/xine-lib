@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.22 2003/09/18 18:14:50 valtri Exp $
+ * $Id: cc_decoder.c,v 1.23 2003/12/03 01:22:05 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -376,7 +376,7 @@ static void get_font_metrics(osd_renderer_t *renderer,
   *maxh = 0;
 
   renderer->set_font(testc, (char *) fontname, font_size);
-  renderer->set_encoding(testc, NULL);
+  renderer->set_encoding(testc, "iso-8859-1");
   for (c = 32; c < 256; c++) {
     int tw, th;
     char buf[2]; 
@@ -920,7 +920,7 @@ static void cc_renderer_adjust_osd_object(cc_renderer_t *this)
 						     this->height);
   this->osd_renderer->set_palette(this->cap_display, this->cc_palette,
 				  this->cc_trans);
-  this->osd_renderer->set_encoding(this->cap_display, NULL);
+  this->osd_renderer->set_encoding(this->cap_display, "iso-8859-1");
 }
 
 
