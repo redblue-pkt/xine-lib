@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.5 2004/03/31 10:13:00 rockyb Exp $
+  $Id: vcdplayer.c,v 1.6 2004/07/25 17:42:22 mroi Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -108,7 +108,7 @@ _vcdplayer_get_item_size(vcdplayer_input_t *this, vcdinfo_itemid_t itemid)
   {							\
     char num_str[10];					\
     unsigned int len;                                   \
-    sprintf(num_str, fmt, val);				\
+    snprintf(num_str, sizeof(num_str), fmt, val);	\
     len=strlen(num_str);                                \
     if (len != 0) {					\
       strncat(tp, num_str, TEMP_STR_LEN-(tp-temp_str));	\
@@ -217,8 +217,8 @@ vcdplayer_format_str(vcdplayer_input_t *this, const char format_str[])
 
     case 'L':
       if (vcdplayer_pbc_is_on(this)) {
-        char num_str[10];
-        sprintf(num_str, " List ID %d", this->cur_lid);
+        char num_str[20];
+        snprintf(num_str, sizeof(num_str), " List ID %d", this->cur_lid);
         strncat(tp, num_str, TEMP_STR_LEN-(tp-temp_str));
         tp += strlen(num_str);
       }
@@ -241,7 +241,7 @@ vcdplayer_format_str(vcdplayer_input_t *this, const char format_str[])
       if ( VCDINFO_ITEM_TYPE_SEGMENT==this->play_item.type ) {
         char seg_type_str[10];
 
-        sprintf(seg_type_str, " %s", 
+        snprintf(seg_type_str, sizeof(seg_type_str), " %s", 
                 vcdinfo_video_type2str(obj, this->play_item.num));
         strncat(tp, seg_type_str, TEMP_STR_LEN-(tp-temp_str));
         tp += strlen(seg_type_str);
