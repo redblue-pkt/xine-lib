@@ -20,7 +20,7 @@
  * FftGraph Visualization Post Plugin For xine
  *   by Thibaut Mattern (tmattern@noos.fr)
  *
- * $Id: fftgraph.c,v 1.12 2004/05/29 14:45:26 mroi Exp $
+ * $Id: fftgraph.c,v 1.13 2004/12/13 19:05:01 miguelfreitas Exp $
  *
  */
 
@@ -327,7 +327,7 @@ static void fftgraph_port_put_buffer (xine_audio_port_t *port_gen,
 
   /* pass data to original port */
   port->original_port->put_buffer(port->original_port, buf, stream );
-
+                        
   /* we must not use original data anymore, it should have already being moved
    * to the fifo of free audio buffers. just use our private copy instead.
    */
@@ -379,7 +379,10 @@ static void fftgraph_port_put_buffer (xine_audio_port_t *port_gen,
       
       this->sample_counter -= this->samples_per_frame;
 
-      draw_fftgraph(this, frame);
+      if( this->fft )                                       
+        draw_fftgraph(this, frame);
+      else
+        frame->bad_frame = 1;
 
       frame->draw(frame, XINE_ANON_STREAM);
       frame->free(frame);

@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.27 2004/05/29 14:45:26 mroi Exp $
+ * $Id: fftscope.c,v 1.28 2004/12/13 19:05:13 miguelfreitas Exp $
  *
  */
 
@@ -400,7 +400,10 @@ static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
       
       this->sample_counter -= this->samples_per_frame;
 
-      draw_fftscope(this, frame);
+      if( this->fft )                                       
+        draw_fftscope(this, frame);
+      else
+        frame->bad_frame = 1;
 
       frame->draw(frame, XINE_ANON_STREAM);
       frame->free(frame);
