@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.101 2002/10/18 04:04:10 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.102 2002/10/19 18:51:22 guenter Exp $
  *
  */
 
@@ -34,7 +34,7 @@
 #include <sched.h>
 
 /*
-#define VIDEO_DECODER_LOG
+#define LOG
 */
 
 static spu_decoder_t* update_spu_decoder (xine_stream_t *this, int type) {
@@ -77,7 +77,7 @@ void *video_decoder_loop (void *stream_gen) {
 
   while (running) {
 
-#ifdef VIDEO_DECODER_LOG
+#ifdef LOG
     printf ("video_decoder: getting buffer...\n");  
 #endif
 
@@ -91,7 +91,7 @@ void *video_decoder_loop (void *stream_gen) {
       stream->input_time = buf->input_time;
     }
     
-#ifdef VIDEO_DECODER_LOG
+#ifdef LOG
     printf ("video_decoder: got buffer 0x%08x\n", buf->type);      
 #endif
 
