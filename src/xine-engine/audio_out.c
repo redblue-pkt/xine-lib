@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.73 2002/10/20 15:56:27 guenter Exp $
+ * $Id: audio_out.c,v 1.74 2002/10/24 17:51:30 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -26,14 +26,18 @@
  * 
  * General Programming Guidelines: -
  * New concept of an "audio_frame".
- * An audio_frame consists of all the samples required to fill every audio channel to a full amount of bits.
- * So, it does not mater how many bits per sample, or how many audio channels are being used, the number of audio_frames is the same.
+ * An audio_frame consists of all the samples required to fill every 
+ * audio channel to a full amount of bits.
+ * So, it does not mater how many bits per sample, or how many audio channels 
+ * are being used, the number of audio_frames is the same.
  * E.g.  16 bit stereo is 4 bytes, but one frame.
  *       16 bit 5.1 surround is 12 bytes, but one frame.
- * The purpose of this is to make the audio_sync code a lot more readable, rather than having to multiply by the amount of channels all the time
+ * The purpose of this is to make the audio_sync code a lot more readable, 
+ * rather than having to multiply by the amount of channels all the time
  * when dealing with audio_bytes instead of audio_frames.
  *
- * The number of samples passed to/from the audio driver is also sent in units of audio_frames.
+ * The number of samples passed to/from the audio driver is also sent 
+ * in units of audio_frames.
  * 
  * Currently, James has tested with OSS: Standard stereo out, SPDIF PCM, SPDIF AC3
  *                                 ALSA: Standard stereo out
@@ -270,135 +274,185 @@ static audio_buffer_t * swap_frame_buffers ( ao_instance_t *this ) {
 
 static int mode_channels( int mode ) {
   switch( mode ) {
-      case AO_CAP_MODE_MONO:
-        return 1;
-      case AO_CAP_MODE_STEREO:
-        return 2;
-      case AO_CAP_MODE_4CHANNEL:
-        return 4;
-      case AO_CAP_MODE_5CHANNEL:
-        return 5;
-      case AO_CAP_MODE_5_1CHANNEL:
-        return 6;
+  case AO_CAP_MODE_MONO:
+    return 1;
+  case AO_CAP_MODE_STEREO:
+    return 2;
+  case AO_CAP_MODE_4CHANNEL:
+    return 4;
+  case AO_CAP_MODE_5CHANNEL:
+    return 5;
+  case AO_CAP_MODE_5_1CHANNEL:
+    return 6;
   }
   return 0;
 } 
+
+static void audio_filter_compress (ao_instance_t *this, int16_t *mem, int num_frames) {
+
+  int    i, maxs;
+  double f_max;
+  int    num_channels;
+
+  num_channels = mode_channels (this->input.mode);
+  if (!num_channels)
+    return;
+
+  maxs = 0;
+    
+  /* measure */
+
+  for (i=0; i<num_frames*num_channels; i++) {
+    int16_t sample = abs(mem[i]);
+    if (sample>maxs)
+      maxs = sample;
+  }
+
+  /* calc maximum possible & allowed factor */
+
+  if (maxs>0) {
+    f_max = 32767.0 / maxs;
+    this->compression_factor = this->compression_factor * 0.999 + f_max * 0.001;
+    if (this->compression_factor > f_max)
+      this->compression_factor = f_max;
+    
+    if (this->compression_factor > this->compression_factor_max)
+      this->compression_factor = this->compression_factor_max;
+  }
+  
+#if LOG
+  printf ("audio_out: max=%d f_max=%f compression_factor=%f\n", 
+	  maxs, f_max, this->compression_factor);
+#endif
+    
+  /* apply it */
+
+  for (i=0; i<num_frames*num_channels; i++) 
+    mem [i] = mem[i] * this->compression_factor;
+}
 
 static audio_buffer_t* prepare_samples( ao_instance_t  *this, audio_buffer_t *buf) {
   double          acc_output_frames, output_frame_excess = 0;
   int             num_output_frames ;
 
-      /*
-       * resample and output audio data
-       */
+  /*
+   * volume / compressor filter
+   */
 
-      /* calculate number of output frames (after resampling) */
-      acc_output_frames = (double) buf->num_frames * this->frame_rate_factor
-        + output_frame_excess;
+  if ( this->do_compress && (this->input.bits == 16))
+    audio_filter_compress (this, buf->mem, buf->num_frames);
 
-      /* Truncate to an integer */
-      num_output_frames = acc_output_frames;
+  /*
+   * resample and output audio data
+   */
 
-      /* Keep track of the amount truncated */
-      output_frame_excess = acc_output_frames - (double) num_output_frames;
+  /* calculate number of output frames (after resampling) */
+  acc_output_frames = (double) buf->num_frames * this->frame_rate_factor
+    + output_frame_excess;
+
+  /* Truncate to an integer */
+  num_output_frames = acc_output_frames;
+
+  /* Keep track of the amount truncated */
+  output_frame_excess = acc_output_frames - (double) num_output_frames;
       
 #ifdef LOG
-      printf ("audio_out: outputting %d frames\n", num_output_frames);
+  printf ("audio_out: outputting %d frames\n", num_output_frames);
 #endif
       
-      /* convert 8 bit samples as needed */
-      if( this->input.bits == 8 &&
-          (this->do_resample || this->output.bits != 8 ||
-           this->input.mode != this->output.mode ) ) {
-        ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
-                           buf->num_frames );
-        audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
-                                   mode_channels(this->input.mode) * buf->num_frames );
-        buf = swap_frame_buffers(this);
-      }
+  /* convert 8 bit samples as needed */
+  if( this->input.bits == 8 &&
+      (this->do_resample || this->output.bits != 8 ||
+       this->input.mode != this->output.mode ) ) {
+    ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
+		       buf->num_frames );
+    audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
+			     mode_channels(this->input.mode) * buf->num_frames );
+    buf = swap_frame_buffers(this);
+  }
 
-      /* check if resampling may be skipped */
-      if ( this->do_resample &&  
-           buf->num_frames != num_output_frames ) {
-        switch (this->input.mode) {
-          case AO_CAP_MODE_MONO:
-            ensure_buffer_size(this->frame_buf[1], 2, num_output_frames);
-            audio_out_resample_mono (buf->mem, buf->num_frames,
-                                     this->frame_buf[1]->mem, num_output_frames);
-            buf = swap_frame_buffers(this);
-            break;
-          case AO_CAP_MODE_STEREO:
-            ensure_buffer_size(this->frame_buf[1], 4, num_output_frames);
-            audio_out_resample_stereo (buf->mem, buf->num_frames,
-                                       this->frame_buf[1]->mem, num_output_frames);
-            buf = swap_frame_buffers(this);
-            break;
-          case AO_CAP_MODE_4CHANNEL:
-            ensure_buffer_size(this->frame_buf[1], 8, num_output_frames);
-            audio_out_resample_4channel (buf->mem, buf->num_frames,
-                                         this->frame_buf[1]->mem, num_output_frames);
-            buf = swap_frame_buffers(this);
-            break;
-          case AO_CAP_MODE_5CHANNEL:
-            ensure_buffer_size(this->frame_buf[1], 10, num_output_frames);
-            audio_out_resample_5channel (buf->mem, buf->num_frames,
-                                         this->frame_buf[1]->mem, num_output_frames);
-            buf = swap_frame_buffers(this);
-            break;
-          case AO_CAP_MODE_5_1CHANNEL:
-            ensure_buffer_size(this->frame_buf[1], 12, num_output_frames);
-            audio_out_resample_6channel (buf->mem, buf->num_frames,
-                                         this->frame_buf[1]->mem, num_output_frames);
-            buf = swap_frame_buffers(this);
-            break;
-          case AO_CAP_MODE_A52:
-          case AO_CAP_MODE_AC5:
-            /* pass-through modes: no resampling */
-            break;
-        }
-      }
+  /* check if resampling may be skipped */
+  if ( this->do_resample &&  
+       buf->num_frames != num_output_frames ) {
+    switch (this->input.mode) {
+    case AO_CAP_MODE_MONO:
+      ensure_buffer_size(this->frame_buf[1], 2, num_output_frames);
+      audio_out_resample_mono (buf->mem, buf->num_frames,
+			       this->frame_buf[1]->mem, num_output_frames);
+      buf = swap_frame_buffers(this);
+      break;
+    case AO_CAP_MODE_STEREO:
+      ensure_buffer_size(this->frame_buf[1], 4, num_output_frames);
+      audio_out_resample_stereo (buf->mem, buf->num_frames,
+				 this->frame_buf[1]->mem, num_output_frames);
+      buf = swap_frame_buffers(this);
+      break;
+    case AO_CAP_MODE_4CHANNEL:
+      ensure_buffer_size(this->frame_buf[1], 8, num_output_frames);
+      audio_out_resample_4channel (buf->mem, buf->num_frames,
+				   this->frame_buf[1]->mem, num_output_frames);
+      buf = swap_frame_buffers(this);
+      break;
+    case AO_CAP_MODE_5CHANNEL:
+      ensure_buffer_size(this->frame_buf[1], 10, num_output_frames);
+      audio_out_resample_5channel (buf->mem, buf->num_frames,
+				   this->frame_buf[1]->mem, num_output_frames);
+      buf = swap_frame_buffers(this);
+      break;
+    case AO_CAP_MODE_5_1CHANNEL:
+      ensure_buffer_size(this->frame_buf[1], 12, num_output_frames);
+      audio_out_resample_6channel (buf->mem, buf->num_frames,
+				   this->frame_buf[1]->mem, num_output_frames);
+      buf = swap_frame_buffers(this);
+      break;
+    case AO_CAP_MODE_A52:
+    case AO_CAP_MODE_AC5:
+      /* pass-through modes: no resampling */
+      break;
+    }
+  }
     
-      /* mode conversion */
-      if ( this->input.mode != this->output.mode ) {
-        switch (this->input.mode) {
-          case AO_CAP_MODE_MONO:
-            if( this->output.mode == AO_CAP_MODE_STEREO ) {
-              ensure_buffer_size(this->frame_buf[1], 4, buf->num_frames );
-              audio_out_resample_monotostereo(buf->mem, this->frame_buf[1]->mem,
-                                              buf->num_frames );
-              buf = swap_frame_buffers(this);
-            }
-            break;
-          case AO_CAP_MODE_STEREO:
-            if( this->output.mode == AO_CAP_MODE_MONO ) {
-              ensure_buffer_size(this->frame_buf[1], 2, buf->num_frames );
-              audio_out_resample_stereotomono(buf->mem, this->frame_buf[1]->mem,
-                                              buf->num_frames );
-              buf = swap_frame_buffers(this);
-            }
-            break;
-          case AO_CAP_MODE_4CHANNEL:
-            break;
-          case AO_CAP_MODE_5CHANNEL:
-            break;
-          case AO_CAP_MODE_5_1CHANNEL:
-            break;
-          case AO_CAP_MODE_A52:
-          case AO_CAP_MODE_AC5:
-            break;
-        }
+  /* mode conversion */
+  if ( this->input.mode != this->output.mode ) {
+    switch (this->input.mode) {
+    case AO_CAP_MODE_MONO:
+      if( this->output.mode == AO_CAP_MODE_STEREO ) {
+	ensure_buffer_size(this->frame_buf[1], 4, buf->num_frames );
+	audio_out_resample_monotostereo(buf->mem, this->frame_buf[1]->mem,
+					buf->num_frames );
+	buf = swap_frame_buffers(this);
       }
+      break;
+    case AO_CAP_MODE_STEREO:
+      if( this->output.mode == AO_CAP_MODE_MONO ) {
+	ensure_buffer_size(this->frame_buf[1], 2, buf->num_frames );
+	audio_out_resample_stereotomono(buf->mem, this->frame_buf[1]->mem,
+					buf->num_frames );
+	buf = swap_frame_buffers(this);
+      }
+      break;
+    case AO_CAP_MODE_4CHANNEL:
+      break;
+    case AO_CAP_MODE_5CHANNEL:
+      break;
+    case AO_CAP_MODE_5_1CHANNEL:
+      break;
+    case AO_CAP_MODE_A52:
+    case AO_CAP_MODE_AC5:
+      break;
+    }
+  }
 
-      /* convert back to 8 bits after resampling */
-      if( this->output.bits == 8 && (this->do_resample || 
-          this->input.mode != this->output.mode) ) {
-        ensure_buffer_size(this->frame_buf[1], 1*mode_channels(this->output.mode),
-                           buf->num_frames );
-        audio_out_resample_16to8(buf->mem, (int8_t *)this->frame_buf[1]->mem,
-                                 mode_channels(this->output.mode) * buf->num_frames );
-        buf = swap_frame_buffers(this);
-      }
-return buf;
+  /* convert back to 8 bits after resampling */
+  if( this->output.bits == 8 && (this->do_resample || 
+				 this->input.mode != this->output.mode) ) {
+    ensure_buffer_size(this->frame_buf[1], 1*mode_channels(this->output.mode),
+		       buf->num_frames );
+    audio_out_resample_16to8(buf->mem, (int8_t *)this->frame_buf[1]->mem,
+			     mode_channels(this->output.mode) * buf->num_frames );
+    buf = swap_frame_buffers(this);
+  }
+  return buf;
 }
 
 
@@ -417,11 +471,11 @@ static void *ao_loop (void *this_gen) {
   int64_t         gap;
   int64_t         delay;
   int64_t         cur_time;
-  int             num_output_frames ;
-  int             paused_wait;
+  /*  int             num_output_frames ;*/
+  /*   int             paused_wait; */
   int64_t         last_sync_time;
   int             bufs_since_sync;
-  double          acc_output_frames, output_frame_excess = 0;
+  /*  double          acc_output_frames, output_frame_excess = 0; */
 
   last_sync_time = bufs_since_sync = 0;
 #ifdef LOG
@@ -851,20 +905,37 @@ static uint32_t ao_get_capabilities (ao_instance_t *this) {
 static int ao_get_property (ao_instance_t *this, int property) {
   int ret;
 
-  pthread_mutex_lock( &this->driver_lock );
-  ret = this->driver->get_property(this->driver, property);
-  pthread_mutex_unlock( &this->driver_lock );
-  
+  switch (property) {
+  case AO_PROP_COMPRESSOR:
+    ret = this->compression_factor_max*100;
+    break;
+
+  default:
+    pthread_mutex_lock( &this->driver_lock );
+    ret = this->driver->get_property(this->driver, property);
+    pthread_mutex_unlock( &this->driver_lock );
+  }
   return ret;
 }
 
 static int ao_set_property (ao_instance_t *this, int property, int value) {
   int ret;
 
-  pthread_mutex_lock( &this->driver_lock );
-  ret =  this->driver->set_property(this->driver, property, value);
-  pthread_mutex_unlock( &this->driver_lock );
-  
+  switch (property) {
+  case AO_PROP_COMPRESSOR:
+
+    this->compression_factor_max = (double) value / 100.0;
+    this->do_compress =  (this->compression_factor_max >1.0);
+
+    ret = this->compression_factor_max*100;
+    break;
+
+  default:
+    pthread_mutex_lock( &this->driver_lock );
+    ret =  this->driver->set_property(this->driver, property, value);
+    pthread_mutex_unlock( &this->driver_lock );
+  }
+
   return ret;
 }
 
@@ -927,6 +998,10 @@ ao_instance_t *ao_new_instance (xine_ao_driver_t *driver,
 						   10000,
 						   _("adjust if audio is offsync"),
 						   NULL, 10, NULL, NULL);
+
+  this->compression_factor     = 1.0;
+  this->compression_factor_max = 4.0;
+  this->do_compress            = 0;
 
   /*
    * pre-allocate memory for samples

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.38 2002/10/17 17:43:44 mroi Exp $
+ * $Id: audio_out.h,v 1.39 2002/10/24 17:51:30 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -232,6 +232,10 @@ struct ao_instance_s {
   int16_t        *zero_space;
 
   int64_t         passthrough_offset;
+
+  int             do_compress;
+  double          compression_factor;   /* current compression */
+  double          compression_factor_max; /* user limit on compression */
 };
 
 typedef struct audio_driver_class_s audio_driver_class_t;
@@ -294,6 +298,7 @@ ao_instance_t *ao_new_instance (xine_ao_driver_t *driver,
 #define AO_PROP_MIXER_VOL       0
 #define AO_PROP_PCM_VOL         1
 #define AO_PROP_MUTE_VOL        2
+#define AO_PROP_COMPRESSOR      3
 
 
 /* audio device control ops */
