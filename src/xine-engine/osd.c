@@ -996,6 +996,8 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
 #ifdef HAVE_FT2
   FT_UInt previous = 0;
+  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
+  int first = 1;
 #endif
 
   lprintf("osd=%p (%d,%d) \"%s\"\n", osd, x1, y1, text);
@@ -1022,11 +1024,6 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       return 0;
     }
   }
-
-#ifdef HAVE_FT2
-  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
-  int first = 1;
-#endif
 
   if( x1 < osd->x1 ) osd->x1 = x1;
   if( y1 < osd->y1 ) osd->y1 = y1;
@@ -1170,6 +1167,13 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   uint16_t unicode;
   size_t inbytesleft;
 
+#ifdef HAVE_FT2
+  /* not all free type fonts provide kerning */
+  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
+  FT_UInt previous = 0;
+  int first_glyph = 1;
+#endif
+
   lprintf("osd=%p \"%s\"\n", osd, text);
   
   pthread_mutex_lock (&this->osd_mutex);
@@ -1188,13 +1192,6 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
       return 0;
     }
   }
-
-#ifdef HAVE_FT2
-  /* not all free type fonts provide kerning */
-  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
-  FT_UInt previous = 0;
-  int first_glyph = 1;
-#endif
 
   *width = 0;
   *height = 0;
