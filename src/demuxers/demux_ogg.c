@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.2 2001/10/07 22:56:39 guenter Exp $
+ * $Id: demux_ogg.c,v 1.3 2001/10/15 00:49:09 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -70,119 +70,125 @@ typedef struct demux_ogg_s {
   int                   num_streams;
 } demux_ogg_t ;
 
+static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
 
-static void *demux_ogg_loop (void *this_gen) {
-  buf_element_t *buf;
-
-  demux_ogg_t *this = (demux_ogg_t *) this_gen;
-
+  int i;
+  int stream_num = -1;
+  int cur_serno;
+  
   char *buffer;
   long bytes;
 
-  /* printf ("demux_ogg: demux loop starting...\n"); */
+  ogg_packet op;
+  
+  int ret = ogg_sync_pageout(&this->oy,&this->og);
+  
+  /* printf("demux_ogg: pageout: %d\n", ret); */
+  
+  if (ret == 0) {
+    buffer = ogg_sync_buffer(&this->oy, CHUNKSIZE);
+    bytes  = this->input->read(this->input, buffer, CHUNKSIZE);
+    
+    if (bytes < CHUNKSIZE) {
+      this->status = DEMUX_FINISHED;
+      return;
+    }
+    
+    ogg_sync_wrote(&this->oy, bytes);
+  } else if (ret > 0) {
+    /* now we've got at least one new page */
+    
+    cur_serno = ogg_page_serialno (&this->og);
+    
+    if (ogg_page_bos(&this->og)) {
+      printf("demux_ogg: beginning of stream\n");
+      printf("demux_ogg: serial number %d\n",
+	     ogg_page_serialno (&this->og));
+    }
+    
+    for (i = 0; i<this->num_streams; i++) {
+      if (this->oss[i].serialno == cur_serno) {
+	stream_num = i;
+	break;
+      }
+    }
+    
+    if (stream_num < 0) {
+      ogg_stream_init(&this->oss[this->num_streams], cur_serno);
+      stream_num = this->num_streams;
+      this->buf_types[stream_num] = 0;
+      
+      printf("demux_ogg: found a new stream, serialnumber %d\n", cur_serno);
+      
+      this->num_streams++;
+    }
+    
+    ogg_stream_pagein(&this->oss[stream_num], &this->og);
+    
+    while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) {
+      /* printf("demux_ogg: packet: %.8s\n", op.packet); */
+      /* printf("demux_ogg:   got a packet\n"); */
+      
+      if (!this->buf_types[stream_num]) {
+	/* detect buftype */
+	if (!strncmp (&op.packet[1], "vorbis", 6)) {
+	  this->buf_types[stream_num] = BUF_AUDIO_VORBIS;
+	} else {
+	  printf ("demux_ogg: unknown streamtype, signature: >%.8s<\n",
+		  op.packet);
+	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
+	}
+      }
+      
+      if ( this->audio_fifo 
+	   && (this->buf_types[stream_num] & 0xFF000000) == BUF_AUDIO_BASE) {
+	buf_element_t *buf;
+	
+	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+	
+	buf->content = buf->mem;
+	
+	{
+	  int op_size = sizeof(op);
+	  ogg_packet *og_ghost;
+	  op_size += (4 - (op_size % 4));
+	  
+	  /* nasty hack to pack op as well as (vorbis) content
+	     in one xine buffer */
+	  memcpy (buf->content + op_size, op.packet, op.bytes);
+	  memcpy (buf->content, &op, sizeof(op));
+	  og_ghost = (ogg_packet *) buf->content;
+	  og_ghost->packet = buf->content + op_size;
+	  
+	}
+	
+	buf->PTS    = 0; /* FIXME */
+	buf->size   = op.bytes;
+	
+	buf->decoder_info[0] = is_content;
 
-  this->input->seek (this->input, 0, SEEK_SET);
+	buf->input_pos  = this->input->get_current_pos (this->input);
+	buf->input_time = 0;
+	
+	buf->type = this->buf_types[stream_num];
+	
+	this->audio_fifo->put (this->audio_fifo, buf);
+      }
+    }
+  }
+}
+
+static void *demux_ogg_loop (void *this_gen) {
+  
+  demux_ogg_t *this = (demux_ogg_t *) this_gen;
+  buf_element_t *buf;
+
+  /* printf ("demux_ogg: demux loop starting...\n"); */
 
   this->send_end_buffers = 1;
 
-  while (1) {
-    int i;
-    int stream_num = -1;
-    int cur_serno;
-    
-    ogg_packet op;
-
-    int ret = ogg_sync_pageout(&this->oy,&this->og);
-
-    /* printf("demux_ogg: pageout: %d\n", ret); */
-
-    if (ret == 0) {
-      buffer = ogg_sync_buffer(&this->oy, CHUNKSIZE);
-      bytes  = this->input->read(this->input, buffer, CHUNKSIZE);
-
-      if (bytes < CHUNKSIZE)
-	break;
-
-      ogg_sync_wrote(&this->oy, bytes);
-    } else if (ret > 0) {
-      /* now we've got at least one new page */
-
-      cur_serno = ogg_page_serialno (&this->og);
-      
-      if (ogg_page_bos(&this->og)) {
-	printf("demux_ogg: beginning of stream\n");
-	printf("demux_ogg: serial number %d\n",
-	       ogg_page_serialno (&this->og));
-      }
-
-      for (i = 0; i<this->num_streams; i++) {
-	if (this->oss[i].serialno == cur_serno) {
-	  stream_num = i;
-	  break;
-	}
-      }
-
-      if (stream_num < 0) {
-	ogg_stream_init(&this->oss[this->num_streams], cur_serno);
-	stream_num = this->num_streams;
-	this->buf_types[stream_num] = 0;
-
-	printf("demux_ogg: found a new stream, serialnumber %d\n", cur_serno);
-	
-	this->num_streams++;
-      }
-
-      ogg_stream_pagein(&this->oss[stream_num], &this->og);
-      
-      while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) {
-	/* printf("demux_ogg: packet: %.8s\n", op.packet); */
-	/* printf("demux_ogg:   got a packet\n"); */
-
-	if (!this->buf_types[stream_num]) {
-	  /* detect buftype */
-	  if (!strncmp (&op.packet[1], "vorbis", 6)) {
-	    this->buf_types[stream_num] = BUF_AUDIO_VORBIS;
-	  } else {
-	    printf ("demux_ogg: unknown streamtype, signature: >%.8s<\n",
-		    op.packet);
-	    this->buf_types[stream_num] = BUF_CONTROL_NOP;
-	  }
-	}
-
-	if ( this->audio_fifo 
-	     && (this->buf_types[stream_num] & 0xFF000000) == BUF_AUDIO_BASE) {
-	  buf_element_t *buf;
-
-	  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-
-	  buf->content = buf->mem;
-
-	  {
-	    int op_size = sizeof(op);
-	    ogg_packet *og_ghost;
-	    op_size += (4 - (op_size % 4));
-
-	    /* nasty hack to pack op as well as (vorbis) content
-	       in one xine buffer */
-	    memcpy (buf->content + op_size, op.packet, op.bytes);
-	    memcpy (buf->content, &op, sizeof(op));
-	    og_ghost = (ogg_packet *) buf->content;
-	    og_ghost->packet = buf->content + op_size;
-	    
-	  }
-	  
-	  buf->PTS    = 0; /* FIXME */
-	  buf->size   = op.bytes;
-
-	  buf->input_pos  = 0;
-	  buf->input_time = 0;
-	
-	  buf->type = this->buf_types[stream_num];
-
-	  this->audio_fifo->put (this->audio_fifo, buf);
-	}
-      }
-    }
+  while (this->status == DEMUX_OK) {
+    demux_ogg_send_package (this, 0);
   }
 
   /*
@@ -270,7 +276,7 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   buf_element_t *buf;
-  int err;
+  int err, i;
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
@@ -296,6 +302,32 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
   ogg_sync_init(&this->oy);
 
   this->num_streams = 0;
+
+  this->input->seek (this->input, 0, SEEK_SET);
+
+  /* send header */
+  for (i=0; i<5; i++) 
+    demux_ogg_send_package (this, 0);
+
+
+  /*
+   * seek to start position
+   */
+
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+
+    off_t cur_pos = this->input->get_current_pos (this->input);
+
+    /*
+    if ( (!start_pos) && (start_time))
+      start_pos = start_time * this->rate;
+    */
+
+    if (start_pos<cur_pos)
+      start_pos = cur_pos;
+
+    this->input->seek (this->input, start_pos, SEEK_SET);
+  }
 
   /*
    * now start demuxing
