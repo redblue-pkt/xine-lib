@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.66 2002/05/02 00:07:46 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.67 2002/05/02 17:51:47 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -215,7 +215,6 @@ static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame)
    uint8_t*  cbp;
    uint32_t* dst32 = (uint32_t *)(this->video_mem + this->bufinfo.offset);
    int h,w;
-   int bespitch = (frame->width + 31) & ~31; 
 
    for(h = 0; h < (frame->height / 2); h++) {
       cbp = cb;
@@ -226,14 +225,14 @@ static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame)
 	 y++; y++; cb++; cr++;
       }
 
-      dst32 += (bespitch - frame->width) / 2;
+      dst32 += (this->syncfb_config.src_pitch - frame->width) / 2;
 
       for(w=0; w < (frame->width / 2); w++) {
 	 *dst32++ = (*y) + ((*cbp)<<8) + ((*(y+1))<<16) + ((*crp)<<24);
 	 y++; y++; cbp++; crp++;
       }
       
-      dst32 += (bespitch - frame->width) / 2;
+      dst32 += (this->syncfb_config.src_pitch - frame->width) / 2;
    }
 }
 
@@ -243,8 +242,7 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame)
    uint8_t* cb   = (uint8_t *)frame->vo_frame.base[1];
    uint8_t* cr   = (uint8_t *)frame->vo_frame.base[2];
    uint8_t* dst8 = this->video_mem + this->bufinfo.offset_p2;
-   int h, w;
-   int bespitch = (frame->width + 31) & ~31; 
+   int h, w; 
    
    register uint32_t* tmp32;
    register uint8_t*  rcr;
@@ -270,14 +268,14 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame)
 	 tmp32++;
       }
       
-      dst8 += bespitch;
+      dst8 += this->syncfb_config.src_pitch;
    }
 
    dst8 = this->video_mem + this->bufinfo.offset;
    for(h = 0; h < frame->height; h++) {
       xine_fast_memcpy(dst8, y, frame->width);
       y    += frame->width;
-      dst8 += bespitch;
+      dst8 += this->syncfb_config.src_pitch;
    }
 }
 
@@ -287,39 +285,37 @@ static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame)
    uint8_t* cb   = (uint8_t *)frame->vo_frame.base[1];
    uint8_t* cr   = (uint8_t *)frame->vo_frame.base[2];
    uint8_t* dst8 = this->video_mem + this->bufinfo.offset;
-   int h;
-   int bespitch = (frame->width + 31) & ~31; 
-
+   int h, half_width = (frame->width/2);
+   
    for(h = 0; h < frame->height; h++) {
       xine_fast_memcpy(dst8, y, frame->width);
       y    += frame->width;
-      dst8 += bespitch;
+      dst8 += this->syncfb_config.src_pitch;
    }
 
    dst8 = this->video_mem;
    for(h = 0; h < (frame->height / 2); h++) {
-      xine_fast_memcpy((dst8 + this->bufinfo.offset_p2), cb, (frame->width / 2));
-      xine_fast_memcpy((dst8 + this->bufinfo.offset_p3), cr, (frame->width / 2));
+      xine_fast_memcpy((dst8 + this->bufinfo.offset_p2), cb, half_width);
+      xine_fast_memcpy((dst8 + this->bufinfo.offset_p3), cr, half_width);
       
-      cb   += (frame->width / 2);
-      cr   += (frame->width / 2);
+      cb   += half_width;
+      cr   += half_width;
       
-      dst8 += (bespitch / 2);
-   }   
+      dst8 += (this->syncfb_config.src_pitch / 2);
+   }
 }
 
 static void write_frame_YUY2(syncfb_driver_t* this, syncfb_frame_t* frame)
 {   
    uint8_t* src8 = (uint8_t *)frame->vo_frame.base[0];
    uint8_t* dst8 = (uint8_t *)(this->video_mem + this->bufinfo.offset);
-   int h;
-   int bespitch = (frame->width + 31) & ~31; 
+   int h, double_width = (frame->width * 2);
 
    for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, src8, (frame->width * 2));
+      xine_fast_memcpy(dst8, src8, double_width);
 
-      dst8 += (bespitch * 2);
-      src8 += (frame->width * 2);
+      dst8 += (this->syncfb_config.src_pitch * 2);
+      src8 += double_width;
    }
 }
 
@@ -353,6 +349,8 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
       printf("video_out_syncfb: error. (unknown frame format)\n");
       break;
    }
+   
+   frame->vo_frame.displayed(&frame->vo_frame);
 }
 
 void free_framedata(syncfb_frame_t* frame)
@@ -546,7 +544,7 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
       this->syncfb_config.src_height     = this->cur_frame->height;
 	
       this->syncfb_config.image_width    = this->output_width;
-      this->syncfb_config.image_height   = (this->props[VO_PROP_INTERLACED].value) ? (this->output_height-2) : this->output_height;
+      this->syncfb_config.image_height   = this->output_height;
 	
       this->syncfb_config.image_xorg     = this->output_xoffset + this->gui_win_x;
       this->syncfb_config.image_yorg     = this->output_yoffset + this->gui_win_y;
@@ -556,7 +554,7 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
       this->syncfb_config.src_crop_left  = this->displayed_xoffset;
       this->syncfb_config.src_crop_right = this->displayed_xoffset;
 	
-      this->syncfb_config.default_repeat   = (this->props[VO_PROP_INTERLACED].value) ? 1 : this->default_repeat;
+      this->syncfb_config.default_repeat  = (this->props[VO_PROP_INTERLACED].value) ? 1 : this->default_repeat;
 	
       if(this->capabilities.palettes & (1<<this->syncfb_config.src_palette)) {
 	 if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
@@ -593,7 +591,7 @@ static int syncfb_redraw_needed(vo_driver_t* this_gen)
     this->gui_height = gui_height;
     this->gui_win_x  = gui_win_x;
     this->gui_win_y  = gui_win_y;
-      
+   
     syncfb_compute_output_size (this);
 
     syncfb_clean_output_area (this);
@@ -636,6 +634,10 @@ static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
     printf("video_out_syncfb: error. (frame allocation failed: out of memory)\n");
   else {
     pthread_mutex_init(&frame->vo_frame.mutex, NULL);
+     
+    frame->vo_frame.base[0] = NULL;
+    frame->vo_frame.base[1] = NULL;
+    frame->vo_frame.base[2] = NULL;
 
     /*
      * supply required functions
@@ -773,8 +775,9 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
       if(ioctl(this->fd, SYNCFB_COMMIT_BUFFER, &this->bufinfo))
 	printf("video_out_syncfb: error. (commit ioctl failed)\n");
    }
-    
-   frame->vo_frame.displayed(&frame->vo_frame);
+   else
+     frame->vo_frame.displayed(&frame->vo_frame);
+   
    this->bufinfo.id = -1;   
 }
 
@@ -1096,11 +1099,11 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->cur_frame            = NULL;
    
   /* FIXME: setting the default_repeat to anything higher than 1 will result
-            in a distorted video, so for now, set this manually to 1 until
+            in a distorted video, so for now, set this manually to 0 until
             the kernel driver is fixed... */
   this->default_repeat       = config->register_range(config, "video.syncfb_default_repeat", 3, 1, 4, "default frame repeat for SyncFB", NULL, NULL, NULL);
   this->default_repeat       = 0;
-   
+ 
   this->display              = visual->display;
   this->display_ratio        = visual->display_ratio;
   this->displayed_height     = 0;
