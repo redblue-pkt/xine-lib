@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.29 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.30 2004/03/14 21:37:52 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -54,20 +54,18 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
-  xine_waveformatex    wave;
+  unsigned int         fourcc;
   unsigned int         audio_type;
 
   off_t                data_start;
   off_t                data_size;
-
-#if 0
-  /* Needed by ffmpeg 28.8 decoder */
-  unsigned short       sub_packet_size;
-  unsigned short       sub_packet_height;
-  unsigned short       sub_packet_flavour;
-  unsigned int         coded_frame_size;
-#endif
   
+  unsigned short       block_align;
+  unsigned int         bytes_per_sec;
+  
+  unsigned char       *header;
+  unsigned int         header_size;
+
   int                  seek_flag;  /* this is set when a seek just occurred */
 } demux_ra_t;
 
@@ -78,8 +76,6 @@ typedef struct {
 /* returns 1 if the RealAudio file was opened successfully, 0 otherwise */
 static int open_ra_file(demux_ra_t *this) {
   unsigned char   file_header[RA_FILE_HEADER_PREV_SIZE], len;
-  unsigned char  *audio_header;
-  unsigned int    audio_fourcc = 0, hdr_size;
   unsigned short  version;
   off_t           offset;
   
@@ -99,108 +95,95 @@ static int open_ra_file(demux_ra_t *this) {
   
   /* read header size according to version */
   if (version == 3)
-    hdr_size = BE_16(&file_header[0x06]) + 8;
+    this->header_size = BE_16(&file_header[0x06]) + 8;
   else if (version == 4)
-    hdr_size = BE_32(&file_header[0x12]) + 16;
+    this->header_size = BE_32(&file_header[0x12]) + 16;
   else {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: unknown version number %d\n", version);
     return 0;
   }
     
   /* allocate for and read header data */
-  audio_header = xine_xmalloc(hdr_size);
+  this->header = xine_xmalloc(this->header_size);
   
-  if (_x_demux_read_header(this->input, audio_header, hdr_size) != hdr_size) {
+  if (_x_demux_read_header(this->input, this->header, this->header_size) != this->header_size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: unable to read header\n");
-    free(audio_header);
+    free(this->header);
     return 0;
   }
     
   /* read header data according to version */
-  if((version == 3) && (hdr_size >= 32)) {
-    this->data_size = BE_32(&audio_header[0x12]);
+  if((version == 3) && (this->header_size >= 32)) {
+    this->data_size = BE_32(&this->header[0x12]);
     
-    this->wave.nChannels = 1;
-    this->wave.nSamplesPerSec = 8000;
-    this->wave.nBlockAlign = 240;
-    this->wave.wBitsPerSample = 16;
-
+    this->block_align = 240;
+    
     offset = 0x16;
-  } else if(hdr_size >= 72) {
-    this->data_size = BE_32(&audio_header[0x1C]);    
+  } else if(this->header_size >= 72) {
+    this->data_size = BE_32(&this->header[0x1C]);    
     
-    this->wave.nBlockAlign = BE_16(&audio_header[0x2A]);
-    this->wave.nSamplesPerSec = BE_16(&audio_header[0x30]);
-    this->wave.wBitsPerSample = audio_header[0x35];
-    this->wave.nChannels = audio_header[0x37];
-
-#if 0
-    this->sub_packet_size = BE_16(&audio_header[0x2C]);
-    this->sub_packet_height = BE_16(&audio_header[0x28]);    
-    this->sub_packet_flavour = BE_16(&audio_header[0x16]);
-    this->coded_frame_size = BE_32(&audio_header[0x18]); 
-#endif
-
-    if(audio_header[0x3D] == 4)
-      audio_fourcc = ME_32(&audio_header[0x3E]);
+    this->block_align = BE_16(&this->header[0x2A]);
+    
+    if(this->header[0x3D] == 4)
+      this->fourcc = ME_32(&this->header[0x3E]);
     else {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	      "demux_realaudio: invalid fourcc size %d\n", audio_header[0x3D]);
-      free(audio_header);
+	      "demux_realaudio: invalid fourcc size %d\n", this->header[0x3D]);
+      free(this->header);
       return 0;
     }
     
     offset = 0x45;
   } else {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: header too small\n");
-    free(audio_header);
+    free(this->header);
     return 0;
   }
   
   /* Read title */
-  len = audio_header[offset];
-  if(len && ((offset+len+2) < hdr_size)) {
+  len = this->header[offset];
+  if(len && ((offset+len+2) < this->header_size)) {
     _x_meta_info_n_set(this->stream, XINE_META_INFO_TITLE,
-                        &audio_header[offset+1], len);
+                        &this->header[offset+1], len);
     offset += len+1;
   } else
     offset++;
   
   /* Author */
-  len = audio_header[offset];
-  if(len && ((offset+len+1) < hdr_size)) {
+  len = this->header[offset];
+  if(len && ((offset+len+1) < this->header_size)) {
     _x_meta_info_n_set(this->stream, XINE_META_INFO_ARTIST,
-                        &audio_header[offset+1], len);
+                        &this->header[offset+1], len);
     offset += len+1;
   } else
     offset++;
   
   /* Copyright/Date */
-  len = audio_header[offset];
-  if(len && ((offset+len) <= hdr_size)) {
+  len = this->header[offset];
+  if(len && ((offset+len) <= this->header_size)) {
     _x_meta_info_n_set(this->stream, XINE_META_INFO_YEAR,
-                        &audio_header[offset+1], len);
+                        &this->header[offset+1], len);
     offset += len+1;
   } else
     offset++;
   
   /* Fourcc for version 3 comes after meta info */
-  if((version == 3) && ((offset+7) <= hdr_size)) {
-    if(audio_header[offset+2] == 4)
-      audio_fourcc = ME_32(&audio_header[offset+3]);
+  if((version == 3) && ((offset+7) <= this->header_size)) {
+    if(this->header[offset+2] == 4)
+      this->fourcc = ME_32(&this->header[offset+3]);
     else {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	      "demux_realaudio: invalid fourcc size %d\n", audio_header[offset+2]);
-      free(audio_header);
+	      "demux_realaudio: invalid fourcc size %d\n", this->header[offset+2]);
+      free(this->header);
       return 0;
     }
   }
   
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, audio_fourcc);
-  this->audio_type = _x_formattag_to_buf_audio(audio_fourcc);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, this->fourcc);
+  this->audio_type = _x_formattag_to_buf_audio(this->fourcc);
 
   /* seek to start of data */
-  this->data_start = hdr_size;
+  this->data_start = this->header_size;
   if (this->input->seek(this->input, this->data_start, SEEK_SET) !=
       this->data_start) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: unable to seek to data start\n");
@@ -223,7 +206,7 @@ static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
 
   /* just load data chunks from wherever the stream happens to be
    * pointing; issue a DEMUX_FINISHED status if EOF is reached */
-  remaining_sample_bytes = this->wave.nBlockAlign;
+  remaining_sample_bytes = this->block_align;
   current_file_pos =
     this->input->get_current_pos(this->input) - this->data_start;
 
@@ -279,12 +262,7 @@ static void demux_ra_send_headers(demux_plugin_t *this_gen) {
   /* load stream information */
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
-                       this->wave.nChannels);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
-                       this->wave.nSamplesPerSec);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
-                       this->wave.wBitsPerSample);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, this->fourcc);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);
@@ -293,13 +271,15 @@ static void demux_ra_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo && this->audio_type) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
-    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-    buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = this->wave.nSamplesPerSec;
-    buf->decoder_info[2] = this->wave.wBitsPerSample;
-    buf->decoder_info[3] = this->wave.nChannels;
-    memcpy(buf->content, &this->wave, sizeof(this->wave));
-    buf->size = sizeof(this->wave);
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
+    
+    if(this->header_size > buf->max_size)
+      buf->size = buf->max_size;
+    else
+      buf->size = this->header_size;
+    
+    memcpy(buf->content, this->header, buf->size);
+
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 }
@@ -330,8 +310,8 @@ static int demux_ra_seek (demux_plugin_t *this_gen,
      * the block alignment integer-wise, and multiply the quotient by the
      * block alignment to get the new aligned offset. Add the data start
      * offset and seek to the new position. */
-    start_pos /= this->wave.nBlockAlign;
-    start_pos *= this->wave.nBlockAlign;
+    start_pos /= this->block_align;
+    start_pos *= this->block_align;
     start_pos += this->data_start;
 
     this->input->seek(this->input, start_pos, SEEK_SET);
@@ -343,6 +323,9 @@ static int demux_ra_seek (demux_plugin_t *this_gen,
 
 static void demux_ra_dispose (demux_plugin_t *this_gen) {
   demux_ra_t *this = (demux_ra_t *) this_gen;
+  
+  if(this->header)
+    free(this->header);
 
   free(this);
 }
@@ -357,8 +340,8 @@ static int demux_ra_get_status (demux_plugin_t *this_gen) {
 static int demux_ra_get_stream_length (demux_plugin_t *this_gen) {
   demux_ra_t *this = (demux_ra_t *) this_gen;
 
-  if(this->wave.nAvgBytesPerSec)
-    return (int)((int64_t) this->data_size * 1000 / this->wave.nAvgBytesPerSec);
+  if(this->bytes_per_sec)
+    return (int)((int64_t) this->data_size * 1000 / this->bytes_per_sec);
   else
     return 0;
 }

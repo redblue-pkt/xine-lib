@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.94 2004/03/01 22:33:52 jstembridge Exp $
+ * $Id: demux_real.c,v 1.95 2004/03/14 21:37:52 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -741,19 +741,6 @@ unknown:
         memcpy(buf->content, mdpr->type_specific_data + 79,
                buf->decoder_info[2]);
 
-      } else if(buf->type == BUF_AUDIO_14_4) {
-        xine_waveformatex wave;
-        
-        wave.nSamplesPerSec = buf->decoder_info[1] = 8000;
-        wave.wBitsPerSample = buf->decoder_info[2] = 16;
-        wave.nChannels      = buf->decoder_info[3] = 1;
-        wave.nBlockAlign    = 240;
- 
-        buf->decoder_flags |= BUF_FLAG_STDHEADER;
-        buf->size           = sizeof(xine_waveformatex);
-        
-        memcpy(buf->content, &wave, sizeof(xine_waveformatex));
-      
       } else {
         memcpy(buf->content, mdpr->type_specific_data,
                mdpr->type_specific_len);
