@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.32 2004/05/29 14:45:25 mroi Exp $
+ * $Id: xine_plugin.c,v 1.33 2004/07/08 02:13:01 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -512,12 +512,134 @@ static void apply_chroma_filter( uint8_t *data, int stride, int width, int heigh
   }
 }
 
+/* Build the output frame from the specified field. */
+static int deinterlace_build_output_field(
+             post_plugin_deinterlace_t *this, post_video_port_t *port, 
+             xine_stream_t *stream,
+             vo_frame_t *frame, vo_frame_t *yuy2_frame,
+             int bottom_field, int second_field,
+             int64_t pts, int64_t duration, int skip)
+{
+  vo_frame_t *deinterlaced_frame;
+  int scaler = 1;
+  int force24fps;
+            
+  force24fps = this->judder_correction && !this->cheap_mode &&
+               ( (this->pulldown == PULLDOWN_DALIAS) ||
+                 (this->pulldown == PULLDOWN_VEKTOR && this->tvtime->filmmode) );
+  
+  if( this->tvtime->curmethod->doscalerbob ) {
+    scaler = 2;
+  }
+    
+  pthread_mutex_unlock (&this->lock);
+  deinterlaced_frame = port->original_port->get_frame(port->original_port,
+    frame->width, frame->height / scaler, frame->ratio, yuy2_frame->format,
+    frame->flags | VO_BOTH_FIELDS);
+  pthread_mutex_lock (&this->lock);
+    
+  _x_extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
+    
+  if( skip > 0 && !this->pulldown ) {
+    deinterlaced_frame->bad_frame = 1;
+  } else {
+    if( this->tvtime->curmethod->doscalerbob ) {
+      if( yuy2_frame->format == XINE_IMGFMT_YUY2 ) {
+        deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
+                           deinterlaced_frame->base[0],
+                           yuy2_frame->base[0], bottom_field,
+                           frame->width, frame->height, 
+                           yuy2_frame->pitches[0], deinterlaced_frame->pitches[0] );
+      } else {
+        deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
+                           deinterlaced_frame->base[0],
+                           yuy2_frame->base[0], bottom_field,
+                           frame->width/2, frame->height, 
+                           yuy2_frame->pitches[0], deinterlaced_frame->pitches[0] );
+        deinterlaced_frame->bad_frame += !tvtime_build_copied_field(this->tvtime,
+                           deinterlaced_frame->base[1],
+                           yuy2_frame->base[1], bottom_field,
+                           frame->width/4, frame->height/2, 
+                           yuy2_frame->pitches[1], deinterlaced_frame->pitches[1] );
+        deinterlaced_frame->bad_frame += !tvtime_build_copied_field(this->tvtime,
+                           deinterlaced_frame->base[2],
+                           yuy2_frame->base[2], bottom_field,
+                           frame->width/4, frame->height/2, 
+                           yuy2_frame->pitches[2], deinterlaced_frame->pitches[2] );
+      }
+    } else {
+      if( yuy2_frame->format == XINE_IMGFMT_YUY2 ) {
+        deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
+                           deinterlaced_frame->base[0],
+                           yuy2_frame->base[0], 
+                           (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
+                           (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
+                           bottom_field, second_field, frame->width, frame->height, 
+                           yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
+      } else {
+        deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
+                           deinterlaced_frame->base[0],
+                           yuy2_frame->base[0], 
+                           (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
+                           (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
+                           bottom_field, second_field, frame->width/2, frame->height, 
+                           yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
+        deinterlaced_frame->bad_frame += !tvtime_build_deinterlaced_frame(this->tvtime,
+                           deinterlaced_frame->base[1],
+                           yuy2_frame->base[1], 
+                           (this->recent_frame[0])?this->recent_frame[0]->base[1]:yuy2_frame->base[1], 
+                           (this->recent_frame[1])?this->recent_frame[1]->base[1]:yuy2_frame->base[1],
+                           bottom_field, second_field, frame->width/4, frame->height/2,
+                           yuy2_frame->pitches[1], deinterlaced_frame->pitches[1]);
+        deinterlaced_frame->bad_frame += !tvtime_build_deinterlaced_frame(this->tvtime,
+                           deinterlaced_frame->base[2],
+                           yuy2_frame->base[2], 
+                           (this->recent_frame[0])?this->recent_frame[0]->base[2]:yuy2_frame->base[2], 
+                           (this->recent_frame[1])?this->recent_frame[1]->base[2]:yuy2_frame->base[2],
+                           bottom_field, second_field, frame->width/4, frame->height/2, 
+                           yuy2_frame->pitches[2], deinterlaced_frame->pitches[2]);
+      }
+    }
+  }
+      
+  pthread_mutex_unlock (&this->lock);
+  if( force24fps ) {
+    if( !deinterlaced_frame->bad_frame ) {
+      this->framecounter++;
+      if( pts && this->framecounter > FRAMES_TO_SYNC ) {
+        deinterlaced_frame->pts = pts;
+        this->framecounter = 0;
+      } else
+        deinterlaced_frame->pts = 0;
+      deinterlaced_frame->duration = FPS_24_DURATION;
+      if( this->chroma_filter && !this->cheap_mode )
+        apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
+                             frame->width, frame->height / scaler );
+      skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
+    } else {
+      skip = 0;
+    }
+  } else {
+    deinterlaced_frame->pts = pts;
+    deinterlaced_frame->duration = duration;
+    if( this->chroma_filter && !this->cheap_mode && !deinterlaced_frame->bad_frame )
+      apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
+                           frame->width, frame->height / scaler );
+    skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
+  }
+    
+  _x_post_frame_copy_up(frame, deinterlaced_frame);
+  deinterlaced_frame->free(deinterlaced_frame);
+  pthread_mutex_lock (&this->lock);
+  
+  return skip;
+}
+
 static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
 {
   post_video_port_t *port = (post_video_port_t *)frame->port;
   post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)port->post;
   vo_frame_t *orig_frame;
-  vo_frame_t *deinterlaced_frame;
   vo_frame_t *yuy2_frame;
   int i, skip, progressive = 0;
 
@@ -610,9 +732,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
       _x_post_frame_copy_up(frame, yuy2_frame);
 
     } else {
-      int force24fps;
       int fields[2];
-      int scaler = 1;
       int framerate_mode;
 
       if( !this->cheap_mode ) {
@@ -651,220 +771,26 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
         fields[0] = 1;
       }
 
-      force24fps = this->judder_correction && !this->cheap_mode &&
-                   ( (this->pulldown == PULLDOWN_DALIAS) ||
-                     (this->pulldown == PULLDOWN_VEKTOR && this->tvtime->filmmode) );
-  
-      skip = 0;
-  
-      if( this->tvtime->curmethod->doscalerbob ) {
-        scaler = 2;
-      }
-
       /* Build the output from the first field. */
-      pthread_mutex_unlock (&this->lock);
-      deinterlaced_frame = port->original_port->get_frame(port->original_port,
-        frame->width, frame->height / scaler, frame->ratio, yuy2_frame->format,
-        frame->flags | VO_BOTH_FIELDS);
-      pthread_mutex_lock (&this->lock);
-  
-      _x_extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
-  
-      if( this->tvtime->curmethod->doscalerbob ) {
-        if( yuy2_frame->format == XINE_IMGFMT_YUY2 ) {
-          deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                             deinterlaced_frame->base[0],
-                             yuy2_frame->base[0], fields[0],
-                             frame->width, frame->height, 
-                             yuy2_frame->pitches[0], deinterlaced_frame->pitches[0] );
-        } else {
-          deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                             deinterlaced_frame->base[0],
-                             yuy2_frame->base[0], fields[0],
-                             frame->width/2, frame->height, 
-                             yuy2_frame->pitches[0], deinterlaced_frame->pitches[0] );
-          deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                             deinterlaced_frame->base[1],
-                             yuy2_frame->base[1], fields[0],
-                             frame->width/4, frame->height/2, 
-                             yuy2_frame->pitches[1], deinterlaced_frame->pitches[1] );
-          deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                             deinterlaced_frame->base[2],
-                             yuy2_frame->base[2], fields[0],
-                             frame->width/4, frame->height/2, 
-                             yuy2_frame->pitches[2], deinterlaced_frame->pitches[2] );
-        }
-      } else {
-        if( yuy2_frame->format == XINE_IMGFMT_YUY2 ) {
-          deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                             deinterlaced_frame->base[0],
-                             yuy2_frame->base[0], 
-                             (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
-                             (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                             fields[0], 0, frame->width, frame->height, 
-                             yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
-        } else {
-          deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                             deinterlaced_frame->base[0],
-                             yuy2_frame->base[0], 
-                             (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
-                             (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                             fields[0], 0, frame->width/2, frame->height, 
-                             yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
-          deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                             deinterlaced_frame->base[1],
-                             yuy2_frame->base[1], 
-                             (this->recent_frame[0])?this->recent_frame[0]->base[1]:yuy2_frame->base[1], 
-                             (this->recent_frame[1])?this->recent_frame[1]->base[1]:yuy2_frame->base[1],
-                             fields[0], 0, frame->width/4, frame->height/2,
-                             yuy2_frame->pitches[1], deinterlaced_frame->pitches[1]);
-          deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                             deinterlaced_frame->base[2],
-                             yuy2_frame->base[2], 
-                             (this->recent_frame[0])?this->recent_frame[0]->base[2]:yuy2_frame->base[2], 
-                             (this->recent_frame[1])?this->recent_frame[1]->base[2]:yuy2_frame->base[2],
-                             fields[0], 0, frame->width/4, frame->height/2, 
-                             yuy2_frame->pitches[2], deinterlaced_frame->pitches[2]);
-        }
-      }
-    
-      pthread_mutex_unlock (&this->lock);
-      if( force24fps ) {
-        if( !deinterlaced_frame->bad_frame ) {
-          this->framecounter++;
-          if( frame->pts && this->framecounter > FRAMES_TO_SYNC ) {
-            deinterlaced_frame->pts = frame->pts;
-            this->framecounter = 0;
-          } else
-            deinterlaced_frame->pts = 0;
-          deinterlaced_frame->duration = FPS_24_DURATION;
-          if( this->chroma_filter && !this->cheap_mode )
-            apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
-                                 frame->width, frame->height / scaler );
-          skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
-        } else {
-          skip = 0;
-        }
-      } else {
-        deinterlaced_frame->pts = frame->pts;
-        deinterlaced_frame->duration = (framerate_mode == FRAMERATE_FULL)?
-                                       frame->duration/2:frame->duration;
-        if( this->chroma_filter && !this->cheap_mode && !deinterlaced_frame->bad_frame )
-          apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
-                               frame->width, frame->height / scaler );
-        skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
-      }
-  
-      _x_post_frame_copy_up(frame, deinterlaced_frame);
-      deinterlaced_frame->free(deinterlaced_frame);
-      pthread_mutex_lock (&this->lock);
+      skip = deinterlace_build_output_field( 
+        this, port, stream,
+        frame, yuy2_frame,
+        fields[0], 0,
+        frame->pts,
+        (framerate_mode == FRAMERATE_FULL) ? frame->duration/2 : frame->duration,
+        0);
+      
 
-      force24fps = this->judder_correction && !this->cheap_mode &&
-                   ( (this->pulldown == PULLDOWN_DALIAS) ||
-                     (this->pulldown == PULLDOWN_VEKTOR && this->tvtime->filmmode) );
-  
       if( framerate_mode == FRAMERATE_FULL ) {
   
-         /* Build the output from the second field. */
-        pthread_mutex_unlock (&this->lock);
-        deinterlaced_frame = port->original_port->get_frame(port->original_port,
-          frame->width, frame->height / scaler, frame->ratio, yuy2_frame->format,
-          frame->flags | VO_BOTH_FIELDS);
-        pthread_mutex_lock (&this->lock);
-  
-        _x_extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
-  
-        if( skip > 0 && !this->pulldown ) {
-          deinterlaced_frame->bad_frame = 1;
-        } else {
-          if( this->tvtime->curmethod->doscalerbob ) {
-            if( yuy2_frame->format == XINE_IMGFMT_YUY2 ) {
-              deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                                 deinterlaced_frame->base[0],
-                                 yuy2_frame->base[0], fields[1],
-                                 frame->width, frame->height, 
-                                 yuy2_frame->pitches[0], deinterlaced_frame->pitches[0] );
-            } else {
-              deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                                 deinterlaced_frame->base[0],
-                                 yuy2_frame->base[0], fields[1],
-                                 frame->width/2, frame->height, 
-                                 yuy2_frame->pitches[0], deinterlaced_frame->pitches[0] );
-              deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                                 deinterlaced_frame->base[1],
-                                 yuy2_frame->base[1], fields[1],
-                                 frame->width/4, frame->height/2, 
-                                 yuy2_frame->pitches[1], deinterlaced_frame->pitches[1] );
-              deinterlaced_frame->bad_frame = !tvtime_build_copied_field(this->tvtime,
-                                 deinterlaced_frame->base[2],
-                                 yuy2_frame->base[2], fields[1],
-                                 frame->width/4, frame->height/2, 
-                                 yuy2_frame->pitches[2], deinterlaced_frame->pitches[2] );
-            }
-          } else {
-            if( yuy2_frame->format == XINE_IMGFMT_YUY2 ) {
-              deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                                 deinterlaced_frame->base[0],
-                                 yuy2_frame->base[0], 
-                                 (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
-                                 (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                                 fields[1], 1, frame->width, frame->height, 
-                                 yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
-            } else {
-              deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                                 deinterlaced_frame->base[0],
-                                 yuy2_frame->base[0], 
-                                 (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
-                                 (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                                 fields[1], 1, frame->width/2, frame->height,
-                                 yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
-              deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                                 deinterlaced_frame->base[1],
-                                 yuy2_frame->base[1], 
-                                 (this->recent_frame[0])?this->recent_frame[0]->base[1]:yuy2_frame->base[1], 
-                                 (this->recent_frame[1])?this->recent_frame[1]->base[1]:yuy2_frame->base[1],
-                                 fields[1], 1, frame->width/4, frame->height/2,
-                                 yuy2_frame->pitches[1], deinterlaced_frame->pitches[1]);
-              deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
-                                 deinterlaced_frame->base[0],
-                                 yuy2_frame->base[0], 
-                                 (this->recent_frame[0])?this->recent_frame[0]->base[2]:yuy2_frame->base[2], 
-                                 (this->recent_frame[1])?this->recent_frame[1]->base[2]:yuy2_frame->base[2],
-                                 fields[1], 1, frame->width/4, frame->height/2,
-                                 yuy2_frame->pitches[2], deinterlaced_frame->pitches[2]);
-            }
-          }
-        }
-  
-        pthread_mutex_unlock (&this->lock);
-        if( force24fps ) {
-          if( !deinterlaced_frame->bad_frame ) {
-            this->framecounter++;
-            if( frame->pts && this->framecounter > FRAMES_TO_SYNC ) {
-              deinterlaced_frame->pts = frame->pts;
-              this->framecounter = 0;
-            } else
-              deinterlaced_frame->pts = 0;
-            deinterlaced_frame->duration = FPS_24_DURATION;
-            if( this->chroma_filter && !this->cheap_mode )
-              apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
-                                   frame->width, frame->height / scaler );
-            skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
-          } else {
-            skip = 0;
-          }
-        } else {
-          deinterlaced_frame->pts = 0;
-          deinterlaced_frame->duration = frame->duration/2;
-          if( this->chroma_filter && !this->cheap_mode && !deinterlaced_frame->bad_frame )
-            apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
-                                 frame->width, frame->height / scaler );
-          skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
-        }
-  
-        _x_post_frame_copy_up(frame, deinterlaced_frame);
-        deinterlaced_frame->free(deinterlaced_frame);
-        pthread_mutex_lock (&this->lock);
+        /* Build the output from the second field. */
+        skip = deinterlace_build_output_field( 
+          this, port, stream,
+          frame, yuy2_frame,
+          fields[1], 1,
+          0,
+          frame->duration/2,
+          skip);
       }
     }
 
@@ -882,10 +808,12 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
       this->recent_frame[i] = this->recent_frame[i-1];
     if (port->stream)
       this->recent_frame[0] = yuy2_frame;
-    else
+    else {
       /* do not keep this frame when no stream is connected to us,
        * otherwise, this frame might never get freed */
       yuy2_frame->free(yuy2_frame);
+      this->recent_frame[0] = NULL;
+    }
 
     pthread_mutex_unlock (&this->lock);
 
