@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.13 2001/10/24 09:28:26 mlampard Exp $
+ * $Id: video_out_dxr3.c,v 1.14 2001/10/24 13:42:58 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -203,18 +203,26 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 				      int ratio_code, int format, int flags)
 {
 	dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
+	if(flags == 6667){  		/* dxr3 flag anyone? :) */
+		int aspect;
+		this->video_width  = width;
+		this->video_height = height;
+		this->video_aspect = ratio_code;
 
-	int aspect;
-	this->video_width  = width;
-	this->video_height = height;
-	this->video_aspect = ratio_code;
-
-	if (ratio_code < 3 || ratio_code>4)
-	  aspect = ASPECT_FULL;
-	else
-	  aspect = ASPECT_ANAMORPHIC;
-	if(this->aspectratio!=aspect)
-	  dxr3_set_property (this_gen, VO_PROP_ASPECT_RATIO, aspect);
+		if (ratio_code < 3 || ratio_code>4)
+		  aspect = ASPECT_FULL;
+		else
+		  aspect = ASPECT_ANAMORPHIC;
+		if(this->aspectratio!=aspect)
+		  dxr3_set_property (this_gen, VO_PROP_ASPECT_RATIO, aspect);
+	}
+	else{
+	  /* inform the user that we don't do non-mpeg streams and exit nicely */
+	  fprintf(stderr,"\nDxr3 videoout plugin doesn't currently play non-mpeg streams\n");
+	  fprintf(stderr,"Please try xine with -VXv or -VShm for this stream.  Exiting...\n");
+	  exit(1);
+	}
+			  
 }
 
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame)

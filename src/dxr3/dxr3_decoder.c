@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.19 2001/10/23 15:20:35 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.20 2001/10/24 13:42:58 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -240,7 +240,7 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 		if (old_h!=this->height || old_w!=this->width || old_a!=this->aspect)
 			this->video_out->get_frame(this->video_out,
 			 this->width,this->height,this->aspect,
-			 IMGFMT_YV12, 1, VO_BOTH_FIELDS);
+			 IMGFMT_YV12, 1, 6667);
 	}
 }
 
