@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.72 2003/12/30 02:16:43 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.73 2004/01/02 19:03:46 miguelfreitas Exp $
  *
  */
 
@@ -526,6 +526,15 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         }
       }
     }
+
+    /* we may never block on ogm mode because we are on the same thread
+     * as the video decoder. therefore nothing will possibly happen
+     * (like frames being displayed) if we hang here doing nothing. 
+     * it is possible, but unlikely, that the very first ogm subtitle
+     * gets dropped because of the following return.
+     */
+    if( this->ogm )
+      return;
     
     xine_usec_sleep (50000);
 
