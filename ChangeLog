@@ -1,5 +1,8 @@
 xine-lib
   * unbreak DXR3 plugin
+  * fix crash in the AIFF demuxer on oversized chunks
+  * fix crash in the sputext decoder when subtitles have too many lines
+    [bug #1086775]
 
 xine-lib (1-rc8)
   * Multiple security vulnerabilities fixed on PNM and Real RTSP clients

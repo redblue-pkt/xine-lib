@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.42 2004/12/12 22:01:10 mroi Exp $
+ * $Id: demux_sputext.c,v 1.43 2004/12/17 13:38:24 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -333,7 +333,7 @@ static subtitle_t *sub_read_line_subviewer(demux_sputext_t *this, subtitle_t *cu
       return NULL;
     
     p=q=line;
-    for (current->lines=1; current->lines < SUB_MAX_TEXT; current->lines++) {
+    for (current->lines=1; current->lines <= SUB_MAX_TEXT; current->lines++) {
       for (q=p,len=0; *p && *p!='\r' && *p!='\n' && *p!='|' && strncasecmp(p,"[br]",4); p++,len++);
       current->text[current->lines-1]=(char *)xine_xmalloc (len+1);
       if (!current->text[current->lines-1]) return ERR;
@@ -343,6 +343,7 @@ static subtitle_t *sub_read_line_subviewer(demux_sputext_t *this, subtitle_t *cu
       if (*p=='[') while (*p++!=']');
       if (*p=='|') p++;
     }
+    if (current->lines > SUB_MAX_TEXT) current->lines = SUB_MAX_TEXT;
     break;
   }
   return current;
