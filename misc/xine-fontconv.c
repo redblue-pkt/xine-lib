@@ -47,6 +47,8 @@
 #include <freetype/ftglyph.h>
 #endif
 
+#define MAX(a, b) ((a) > (b)? (a) : (b))
+
 #define f266ToInt(x)            (((x)+32)>>6)   /* round fractional fixed point */
                                                 /* coordinates are in 26.6 pixels (i.e. 1/64th of pixels)*/
 #define f266CeilToInt(x)        (((x)+63)>>6)   /* ceiling */
@@ -292,7 +294,7 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
           error = FT_Get_Glyph( face->glyph, &glyph );
     
           if( i == 0 ) {
-            out_bitmap = create_bitmap( f266CeilToInt(face->glyph->metrics.horiAdvance),
+            out_bitmap = create_bitmap( f266CeilToInt(MAX(face->glyph->metrics.horiAdvance, face->glyph->metrics.width + face->glyph->metrics.horiBearingX)),
                                         f266CeilToInt((max_bearing_y<<6) - face->glyph->metrics.horiBearingY + 
                                         face->glyph->metrics.height + thickness) );
           }
