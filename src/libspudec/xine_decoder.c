@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.82 2002/10/26 16:13:16 mroi Exp $
+ * $Id: xine_decoder.c,v 1.83 2002/10/27 20:08:41 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -276,11 +276,11 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
 /* returns a bool for error/success.*/
 static int spudec_get_nav_pci (spu_decoder_t *this_gen, pci_t *pci) {
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
-  printf("get_nav_pci() called\n");
+  /*printf("get_nav_pci() called\n");*/
   if (!this || !pci) 
     return 0;
  
-  printf("get_nav_pci() coping nav_pci\n");
+  /*printf("get_nav_pci() coping nav_pci\n");*/
   pthread_mutex_lock(&this->nav_pci_lock);
   memcpy(pci, &this->pci, sizeof(pci_t) );
   pthread_mutex_unlock(&this->nav_pci_lock);
