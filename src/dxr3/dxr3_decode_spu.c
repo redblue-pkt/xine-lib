@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.6 2002/06/24 15:49:32 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.7 2002/06/28 16:59:01 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -87,6 +87,9 @@ typedef struct dxr3_spudec_s {
   int                      menu;         /* are we in a menu? */
   pci_t                    pci;
   uint32_t                 buttonN;      /* currently highlighted button */
+  
+  int                      aspect;       /* this is needed for correct highlight placement */
+  int                      height;       /* in anamorphic menus */
 } dxr3_spudec_t;
 
 /* helper functions */
@@ -146,6 +149,8 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   this->pci.hli.hl_gi.hli_ss          = 0;
   this->buttonN                       = 1;
   
+  this->aspect                        = XINE_ASPECT_RATIO_4_3;
+  
   xine_register_event_listener(xine, dxr3_spudec_event_listener, this);
     
   return &this->spu_decoder;
@@ -193,6 +198,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   ssize_t written;
   uint32_t stream_id = buf->type & 0x1f;
   dxr3_spu_stream_state_t *state = &this->spu_stream_state[stream_id];
+  uint32_t spu_channel = this->xine->spu_channel;
   
   if (buf->type == BUF_SPU_CLUT) {
 #if LOG_SPU
@@ -310,13 +316,20 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 #endif
     return;
   }
-  if ((this->xine->spu_channel & 0x1f) != stream_id) {
+  if (this->menu && this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC &&
+      this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
+      VO_TYPE_DXR3_TVOUT) {
+    /* use the anamorphic version of the subpicture inside a menu for tv out;
+     * this ensures correct button highlight positions */
+    spu_channel |= 0x01;
+  }
+  if ((spu_channel & 0x1f) != stream_id) {
 #if LOG_SPU
     printf("dxr3_decode_spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
 #endif
     return;
   }
-  if ((this->menu == 0) && (this->xine->spu_channel & 0x80)) {
+  if ((this->menu == 0) && (spu_channel & 0x80)) {
 #if LOG_SPU
     printf("dxr3_decode_spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
 #endif
@@ -392,7 +405,7 @@ static int dxr3_present(xine_t *xine)
 #ifdef LOG_SPU
     printf("dxr3_decode_spu: dxr3 presence test: info = %d\n", info);
 #endif
-    if (info != VO_TYPE_DXR3)
+    if ((info != VO_TYPE_DXR3_TVOUT) && (info != VO_TYPE_DXR3_OVERLAY))
       return 0;
   }
   return 1;
@@ -441,6 +454,29 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
           strerror(errno));
     }
     break;
+  case XINE_EVENT_FRAME_CHANGE:
+    this->height = ((xine_frame_change_event_t *)event)->height;
+    this->aspect = ((xine_frame_change_event_t *)event)->aspect;
+#if LOG_BTN
+    printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
+#endif
+    break;
+  case XINE_EVENT_ASPECT_CHANGE:
+    switch (((xine_aspect_ratio_event_t *)event)->ratio_code) {
+    case ASPECT_FULL:
+      this->aspect = XINE_ASPECT_RATIO_4_3;
+#if LOG_BTN
+      printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
+#endif
+      break;
+    case ASPECT_ANAMORPHIC:
+      this->aspect = XINE_ASPECT_RATIO_ANAMORPHIC;
+#if LOG_BTN
+      printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
+#endif
+      break;
+    }
+    break;
 #if 0
   /* FIXME: I think this event is not necessary any more
    * We know from nav packet decoding, if we are in a menu. */
@@ -462,11 +498,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
   int32_t button = this->buttonN;
   btni_t *button_ptr;
   
-  /* FIXME: Need to communicate with dvdnav vm to get/set
-   * "self->vm->state.HL_BTNN_REG" info.
-   * now done via button events from dvdnav.
-   *
-   * if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
+  /* if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
    *   button = this->pci.hli.hl_gi.fosl_btnn ;
    * }
    */
@@ -489,6 +521,14 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     btn->top  = button_ptr->y_start;
     btn->right = button_ptr->x_end;
     btn->bottom = button_ptr->y_end;
+    if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC &&
+        this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
+        VO_TYPE_DXR3_TVOUT) {
+      /* modify button areas for anamorphic menus on tv out */
+      int top_black_bar = this->height / 8;
+      btn->top = btn->top * 3 / 4 + top_black_bar;
+      btn->bottom = btn->bottom * 3 / 4 + top_black_bar;
+    }
     return 1;
   } 
   return -1;
