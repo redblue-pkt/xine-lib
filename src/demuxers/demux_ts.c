@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.105 2004/08/28 17:54:05 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.106 2004/09/02 14:27:56 hadess Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1585,6 +1585,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
    */
     
   if (payload_unit_start_indicator && this->media_num < MAX_PIDS){
+    int pes_stream_id;
     if (pid == 0) {
       demux_ts_parse_pat (this, originalPkt, originalPkt+data_offset-4,
 			  payload_unit_start_indicator);
@@ -1605,7 +1606,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
       }
       program_count++;
     }
-    int pes_stream_id = originalPkt[data_offset+3];
+    pes_stream_id = originalPkt[data_offset+3];
 
 #ifdef TS_HEADER_LOG
     printf("demux_ts:ts_pes_header:stream_id=0x%.2x\n",pes_stream_id);
