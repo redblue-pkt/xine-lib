@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.190 2003/05/26 13:57:51 tchamp Exp $
+ * $Id: demux_mpeg_block.c,v 1.191 2003/06/07 14:01:38 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -246,8 +246,12 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if (p[0] || p[1] || (p[2] != 1)) {
       printf ("demux_mpeg_block: error! %02x %02x %02x (should be 0x000001)\n",
 	      p[0], p[1], p[2]);
-      printf ("demux_mpeg_block: error! freeing\n");
-      assert(0);
+      printf ("demux_mpeg_block: bad block. skipping.\n");
+      /* FIXME: We should find some way for the input plugin to inform us of: -
+       * 1) Normal sector read.
+       * 2) Sector error read due to bad crc etc.
+       * Because we would like to handle these two cases differently.
+       */
       buf->free_buffer (buf);
 #if 0
       this->warned++;
