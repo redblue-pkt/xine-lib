@@ -28,7 +28,7 @@
 #endif
 
 #include <string.h>
-#include "meta_helper.h"
+#include "info_helper.h"
 
 /* Remove trailing separator chars (\n,\r,\t, space,...)
  * at the end of the string
@@ -45,6 +45,9 @@ static void chomp (char *str) {
   }
 }
 
+void xine_set_stream_info(xine_stream_t *stream, int info, int value) {
+  stream->stream_info [info] = value;
+}
 
 void xine_set_meta_info(xine_stream_t *stream, int info, char *str) {
   if (stream->meta_info [info])

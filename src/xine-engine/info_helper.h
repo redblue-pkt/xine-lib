@@ -23,17 +23,28 @@
  * $id$ 
  */
 
-#ifndef META_HELPER_H
-#define META_HELPER_H
+#ifndef INFO_HELPER_H
+#define INFO_HELPER_H
 
 #include "xine_internal.h"
+
+/*
+ * set a stream info
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          stream info id (see xine.h, XINE_STREAM_INFO_*)
+ *   value         the value to assign
+ *
+ */
+void xine_set_stream_info(xine_stream_t *stream, int info, int value);
 
 /*
  * set a stream meta info
  *
  * params :
  *  *stream        the xine stream
- *   info          meta info id (see xine.h)
+ *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *  *str           null-terminated string
  *
  */
@@ -44,11 +55,11 @@ void xine_set_meta_info(xine_stream_t *stream, int info, char *str);
  *
  * params :
  *  *stream        the xine stream
- *   info          meta info id (see xine.h)
+ *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *  *buf           char buffer (not a null-terminated string)
  *   len           length of the metainfo
  *
  */
 void xine_set_meta_info2(xine_stream_t *stream, int info, char *buf, int len);
 
-#endif /* META_HELPER_H */
+#endif /* INFO_HELPER_H */

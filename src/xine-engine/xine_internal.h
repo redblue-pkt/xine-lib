@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.141 2003/10/18 19:19:52 tmattern Exp $
+ * $Id: xine_internal.h,v 1.142 2003/10/19 19:45:03 tmattern Exp $
  *
  */
 
@@ -55,7 +55,7 @@ typedef struct extra_info_s extra_info_t;
 #  include "scratch.h"
 #  include "broadcaster.h"
 #  include "io_helper.h"
-#  include "meta_helper.h"
+#  include "info_helper.h"
 #else
 #  include <xine.h>
 #  include <xine/input_plugin.h>
@@ -72,7 +72,7 @@ typedef struct extra_info_s extra_info_t;
 #  include <xine/scratch.h>
 #  include <xine/broadcaster.h>
 #  include <xine/io_helper.h>
-#  include <xine/meta_helper.h>
+#  include <xine/info_helper.h>
 #endif
 
 

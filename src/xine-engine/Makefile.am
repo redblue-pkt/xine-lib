@@ -12,7 +12,7 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c \
 	video_overlay.c osd.c scratch.c demux.c vo_scale.c \
 	xine_interface.c post.c tvmode.c broadcaster.c io_helper.c \
-	input_rip.c meta_helper.c
+	input_rip.c info_helper.c
 
 # FIXME: these are currently unused:
 EXTRA_DIST = lrb.c lrb.h
@@ -29,7 +29,7 @@ include_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \
         audio_out.h resample.h video_out.h xine_internal.h spu_decoder.h \
 	video_overlay.h osd.h scratch.h xine_plugin.h xineintl.h  \
 	plugin_catalog.h audio_decoder.h video_decoder.h post.h \
-	io_helper.h broadcaster.h meta_helper.h
+	io_helper.h broadcaster.h info_helper.h
 
 noinst_HEADERS = bswap.h
 
