@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.102 2003/02/23 19:27:57 tmattern Exp $
+ * $Id: buffer.h,v 1.103 2003/03/07 22:19:21 rockyb Exp $
  *
  *
  * contents:
@@ -203,6 +203,8 @@ extern "C" {
 #define BUF_SPU_TEXT            0x04010000
 #define BUF_SPU_CC              0x04020000
 #define BUF_SPU_DVB             0x04030000
+#define BUF_SPU_SVCD            0x04040000
+#define BUF_SPU_CVD             0x04050000
 
 /* demuxer block types: */
 
@@ -436,7 +438,7 @@ struct fifo_buffer_s
   /* the same as buffer_pool_alloc but may fail if none is available */
   buf_element_t *(*buffer_pool_try_alloc) (fifo_buffer_t *this);
 
-  /* the samme as put but insert at the head of the fifo */
+  /* the same as put but insert at the head of the fifo */
   void (*insert) (fifo_buffer_t *fifo, buf_element_t *buf);
 
   /*

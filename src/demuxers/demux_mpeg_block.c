@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.160 2003/02/15 18:27:29 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.161 2003/03/07 22:19:20 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -474,6 +474,50 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       this->video_fifo->put (this->video_fifo, buf);    
 #ifdef LOG
       printf ("demux_mpeg_block: SPU PACK put on fifo\n");
+#endif
+      
+      return;
+    }
+
+    /* SVCD OGT subtitles in stream 0x70 */
+    if(p[0] == 0x70 && (p[1] & 0xFC) == 0x00) {
+      spu_id = p[1];
+
+      buf->content   = p+1;
+      buf->size      = packet_len-1;
+      buf->type      = BUF_SPU_SVCD + spu_id;
+      buf->pts       = pts;
+      if( !preview_mode )
+        check_newpts( this, pts, PTS_VIDEO );
+      
+      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      buf->extra_info->input_length = this->input->get_length (this->input);
+      
+      this->video_fifo->put (this->video_fifo, buf);    
+#ifdef LOG
+      printf ("demux_mpeg_block: SPU SVCD PACK (%lld, %d) put on fifo\n", pts, spu_id);
+#endif
+      
+      return;
+    }
+
+    /* SVCD CVD subtitles in streams 0x00-0x03 */
+    if((p[0] & 0xFC) == 0x00) {
+      spu_id = (p[0] & 0x03);
+
+      buf->content   = p+1;
+      buf->size      = packet_len-1;
+      buf->type      = BUF_SPU_CVD + spu_id;
+      buf->pts       = pts;
+      if( !preview_mode )
+        check_newpts( this, pts, PTS_VIDEO );
+      
+      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      buf->extra_info->input_length = this->input->get_length (this->input);
+      
+      this->video_fifo->put (this->video_fifo, buf);    
+#ifdef LOG
+      printf ("demux_mpeg_block: SPU CVD PACK (%lld, %d) put on fifo\n", pts, spu_id);
 #endif
       
       return;
