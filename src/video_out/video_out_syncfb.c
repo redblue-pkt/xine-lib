@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.11 2001/07/24 16:52:01 joachim_koenig Exp $
+ * $Id: video_out_syncfb.c,v 1.12 2001/08/20 11:16:40 joachim_koenig Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -317,7 +317,8 @@ printf("setup_window_mga: unscaled size should be %d x %d \n",_mga_priv.orig_wid
    }
    _mga_priv.mga_vid_config.image_width = _mga_priv.dest_width;
    _mga_priv.mga_vid_config.image_height= _mga_priv.dest_height;
-   _mga_priv.mga_vid_config.syncfb_mode = SYNCFB_FEATURE_BLOCK_REQUEST | SYNCFB_FEATURE_SCALE_H | SYNCFB_FEATURE_SCALE_V | SYNCFB_FEATURE_CROP ; /*   | SYNCFB_FEATURE_DEINTERLACE; */
+//   _mga_priv.mga_vid_config.syncfb_mode = SYNCFB_FEATURE_BLOCK_REQUEST | SYNCFB_FEATURE_SCALE_H | SYNCFB_FEATURE_SCALE_V | SYNCFB_FEATURE_CROP ; /*   | SYNCFB_FEATURE_DEINTERLACE; */
+   _mga_priv.mga_vid_config.syncfb_mode = SYNCFB_FEATURE_SCALE_H | SYNCFB_FEATURE_SCALE_V | SYNCFB_FEATURE_CROP ; /*   | SYNCFB_FEATURE_DEINTERLACE; */
    if (_mga_priv.interlaced)
      _mga_priv.mga_vid_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE;
    _mga_priv.mga_vid_config.image_xorg= _mga_priv.image_xoff;
@@ -586,6 +587,7 @@ static void mga_display_frame(vo_driver_t *this, vo_frame_t *frame_gen) {
     //printf("get buffer %d\n",_mga_priv.bufinfo.id);
     if ( _mga_priv.bufinfo.id == -1 ) {
       printf( "Got buffer #%d\n", _mga_priv.bufinfo.id );
+      frame->vo_frame.displayed (&frame->vo_frame);
       return;
     }
 
@@ -869,7 +871,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   _mga_priv.vid_data = (char*)mmap(0,_mga_priv.caps.memory_size,PROT_WRITE,MAP_SHARED,_mga_priv.fd,0);
 
   //clear the buffer
-//  memset(_mga_priv.vid_data,0,1024*768*2);
+  // memset(_mga_priv.vid_data,0,1024*768*2);
 
 
   _mga_priv.frame0   = _mga_priv.vid_data;
