@@ -640,7 +640,7 @@ AC_CHECK_LIB(dga, XDgaGrabDrawable, [
 		ac_have_sundga=yes
 	], )
 ], , "-L/usr/openwin/lib")
-CPPFLAGS="$saved_CFLAGS"
+CPPFLAGS="$saved_CPPFLAGS"
 AM_CONDITIONAL(HAVE_SUNDGA, [test x"$ac_have_sundga" = "xyes"])
 AC_SUBST(SUNDGA_CFLAGS)
 AC_SUBST(SUNDGA_LIBS)
