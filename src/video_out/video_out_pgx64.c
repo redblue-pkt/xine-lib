@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.68 2004/06/19 14:51:31 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.69 2004/06/24 13:06:57 komadori Exp $
  *
  * video_out_pgx64.c, Sun XVR100/PGX64/PGX24 output plugin for xine
  *
@@ -212,7 +212,7 @@ typedef struct {
   vo_frame_t vo_frame;
 
   int lengths[3], stripe_lengths[3], stripe_offsets[3], buffers[3];
-  int width, height, format, pitch, native_format, planes;
+  int width, height, format, pitch, native_format, planes, procs_en;
   double ratio;
   uint8_t *buffer_ptrs[3];
 } pgx64_frame_t;
@@ -233,9 +233,9 @@ typedef struct {
 
   fb_type_t fb_type;
   int devfd, fb_width, fb_depth, free_top, free_bottom, free_mark;
+  int buffers[2][3];
   uint32_t yuv12_native_format, yuv12_align;
   uint32_t vyuy422_native_format, vyuy422_align;
-  uint32_t buffers[2][3];
   uint8_t *vbase, *buffer_ptrs[2][3];
   volatile uint32_t *vregs;
 
@@ -471,8 +471,7 @@ static void vram_reset(pgx64_driver_t *this)
   this->free_mark = this->free_top;
 
   for (i=0; i<this->multibuf_frames; i++) {
-    this->multibuf[i]->vo_frame.proc_frame = NULL;
-    this->multibuf[i]->vo_frame.proc_slice = NULL;
+    this->multibuf[i]->procs_en = 0;
   }
   this->multibuf_frames = 0;
 
@@ -492,8 +491,7 @@ static int vram_alloc(pgx64_driver_t *this, int size)
     return -1;
   }
   else {
-    this->free_mark -= size;
-    return this->free_mark;
+    return this->free_mark -= size;
   }
 }
 
@@ -508,8 +506,14 @@ static void pgx64_frame_proc_frame(vo_frame_t *frame_gen)
 
   frame->vo_frame.proc_called = 1;
 
-  for (i=0; i<frame->planes; i++) {
-    memcpy(frame->buffer_ptrs[i], frame->vo_frame.base[i], frame->lengths[i]);
+  if (frame->procs_en) {
+    for (i=0; i<frame->planes; i++) {
+      memcpy(frame->buffer_ptrs[i], frame->vo_frame.base[i], frame->lengths[i]);
+    }
+  }
+  else {
+    frame->vo_frame.proc_frame = NULL;
+    frame->vo_frame.proc_slice = NULL;
   }
 }
 
@@ -520,10 +524,16 @@ static void pgx64_frame_proc_slice(vo_frame_t *frame_gen, uint8_t **src)
 
   frame->vo_frame.proc_called = 1;
 
-  for (i=0; i<frame->planes; i++) {
-    len = (frame->lengths[i] - frame->stripe_offsets[i] < frame->stripe_lengths[i]) ? frame->lengths[i] - frame->stripe_offsets[i] : frame->stripe_lengths[i];
-    memcpy(frame->buffer_ptrs[i]+frame->stripe_offsets[i], src[i], len);
-    frame->stripe_offsets[i] += len;
+  if (frame->procs_en) {
+    for (i=0; i<frame->planes; i++) {
+      len = (frame->lengths[i] - frame->stripe_offsets[i] < frame->stripe_lengths[i]) ? frame->lengths[i] - frame->stripe_offsets[i] : frame->stripe_lengths[i];
+      memcpy(frame->buffer_ptrs[i]+frame->stripe_offsets[i], src[i], len);
+      frame->stripe_offsets[i] += len;
+    }
+  }
+  else {
+    frame->vo_frame.proc_frame = NULL;
+    frame->vo_frame.proc_slice = NULL;
   }
 }
 
@@ -579,15 +589,14 @@ static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
       (format != frame->format)) {
     int i;
 
+    frame->procs_en = 0;
+
     dispose_frame_internals(frame);
 
     frame->width = width;
     frame->height = height;
     frame->ratio = ratio;
     frame->format = format;
-
-    frame->vo_frame.proc_frame = NULL;
-    frame->vo_frame.proc_slice = NULL;
 
     switch (format) {
       case XINE_IMGFMT_YUY2:
@@ -790,7 +799,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   if (this->buf_mode == BUF_MODE_MULTI) {
     int i;
 
-    if (frame->vo_frame.proc_frame != pgx64_frame_proc_frame) {
+    if (!frame->procs_en) {
       for (i=0; i<frame->planes; i++) {
         if ((frame->buffers[i] = vram_alloc(this, frame->lengths[i])) < 0) {
           if (this->detained_frames < MAX_DETAINED_FRAMES) {
@@ -811,6 +820,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
 
       if (this->buf_mode == BUF_MODE_MULTI) {
+        frame->procs_en = 1;
         frame->vo_frame.proc_frame = pgx64_frame_proc_frame;
         frame->vo_frame.proc_slice = pgx64_frame_proc_slice;
         _x_assert(this->multibuf_frames < MAX_MULTIBUF_FRAMES);
@@ -830,6 +840,11 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       for (i=0; i<frame->planes; i++) {
         if ((this->buffers[0][i] = vram_alloc(this, frame->lengths[i])) < 0) {
           xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: insuffucient video memory\n"));
+          if (this->current != NULL) {
+            this->current->vo_frame.free(&this->current->vo_frame);
+            this->current = NULL;
+          }
+          frame->vo_frame.free(&frame->vo_frame);
           return;
         }
         else {
