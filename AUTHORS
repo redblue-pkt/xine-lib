@@ -301,8 +301,11 @@ Dennis Bjorklund <db@zigo.dhs.org>
   configurable size of avi subtitles, patch to fix flashing subtitles in
 libsputext
 
-Xavier ?? <xizard@enib.fr>
+Xavier Izard <xizard@enib.fr>
   Xinerama fullscreen bugfix.
+
+Anders D. Wiehe <anders@wiehe.org>
+  OSD stream informations patch.
 
 
 (let us know if we've forgotten anyone)
