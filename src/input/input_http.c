@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.60 2003/05/25 22:20:26 guenter Exp $
+ * $Id: input_http.c,v 1.61 2003/06/05 19:16:28 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,6 +46,7 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
+#include "io_helper.h"
 
 /*
 #define LOG
@@ -134,63 +135,6 @@ static void proxy_port_change_cb(void *data, xine_cfg_entry_t *cfg) {
   http_input_class_t *this = (http_input_class_t *) data;
 
   this->proxyport = cfg->num_value;
-}
-
-static int http_plugin_host_connect_attempt (struct in_addr ia, int port, 
-					     http_input_plugin_t *this) {
-
-  int                s;
-  struct sockaddr_in sin;
-
-  s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  if (s==-1) {
-    xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: failed to open socket\n"));
-    return -1;
-  }
-
-  sin.sin_family = AF_INET;	
-  sin.sin_addr   = ia;
-  sin.sin_port   = htons(port);
-
-#ifndef WIN32  
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) 
-#else
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
-#endif /* WIN32 */
-  {
-    xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "cannot connect to host", NULL);
-    xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: cannot connect to host\n"));
-    close(s);
-    return -1;
-  }	
-	
-  return s;
-}
-
-static int http_plugin_host_connect (const char *host, int port, http_input_plugin_t *this) {
-  struct hostent *h;
-  int i;
-  int s;
-	
-  h=gethostbyname(host);
-  if (h==NULL) {
-    xine_message(this->stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve ", host, NULL);
-    xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: unable to resolve >%s<\n"), host);
-    return -1;
-  }
-	
-  for(i=0; h->h_addr_list[i]; i++) {
-    struct in_addr ia;
-    memcpy(&ia, h->h_addr_list[i], 4);
-    s=http_plugin_host_connect_attempt(ia, port, this);
-    if(s != -1)
-      return s;
-  }
-
-  xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "cannot connect to ", host, NULL);
-  xine_log (this->stream->xine, XINE_LOG_MSG, _("http: unable to connect to >%s<\n"), host);
-  return -1;
 }
 
 static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
@@ -464,7 +408,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
   if( n && this->shoutcast_mode) {
     if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
       int i = this->shoutcast_metaint - this->shoutcast_pos;
-      i = xine_read_abort (this->stream, this->fh, &buf[num_bytes], i);
+      i = xio_tcp_read (this->stream, this->fh, &buf[num_bytes], i);
       if (i < 0) {
         xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
         xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
@@ -482,7 +426,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
   }
 
   if( n ) {
-    n = xine_read_abort (this->stream, this->fh, &buf[num_bytes], n);
+    n = xio_tcp_read (this->stream, this->fh, &buf[num_bytes], n);
 
     /* read errors */
     if (n < 0) {
@@ -686,14 +630,29 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   free (this);
 }
 
+static void report_progress (xine_stream_t *stream, int p) {
+
+  xine_event_t             event;
+  xine_progress_data_t     prg;
   
+  prg.description = _("Connecting HTTP server...");
+  prg.percent = p;
+
+  event.type = XINE_EVENT_PROGRESS;
+  event.data = &prg;
+  event.data_length = sizeof (xine_progress_data_t);
+
+  xine_event_send (stream, &event);
+}
+
 static int http_plugin_open (input_plugin_t *this_gen ) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   http_input_class_t  *this_klass = (http_input_class_t *) this->input_plugin.input_class;
   int                  done,len,linenum;
   int                  shoutcast = 0, httpcode;
   int                  length;
-
+  int                  res, progress;
+  
   this->shoutcast_pos = 0;
   
   if (this_klass->proxyhost != NULL && strcmp (this_klass->proxyhost, "")) {
@@ -736,9 +695,9 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 #endif
   
   if ( (this_klass->proxyhost != NULL) && strcmp (this_klass->proxyhost, "") )
-    this->fh = http_plugin_host_connect (this_klass->proxyhost, this_klass->proxyport, this);
+    this->fh = xio_tcp_connect (this->stream, this_klass->proxyhost, this_klass->proxyport);
   else
-    this->fh = http_plugin_host_connect (this->host, this->port, this);
+    this->fh = xio_tcp_connect (this->stream, this->host, this->port);
 
   this->curpos = 0;
 
@@ -746,6 +705,16 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     return 0;
   }
 
+  /* connection timeout 20s */
+  progress = 0;
+  do {
+    report_progress(this->stream, progress);
+    res = xio_select (this->stream, this->fh, XIO_WRITE_READY, 500);
+    progress += 2;
+  } while ((res == XIO_TIMEOUT) && (progress < 100));
+  if (res != XIO_READY)
+    return 0;
+  
   if ( (this_klass->proxyhost != NULL) && strcmp (this_klass->proxyhost, "") ) {
     if (this->port != DEFAULT_HTTP_PORT) {
       sprintf (this->buf, "GET http://%s:%d/%s HTTP/1.0\015\012",
@@ -781,20 +750,14 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   strcat (this->buf, "\015\012");
 
   length = strlen(this->buf);
-#ifndef WIN32
-  if (write (this->fh, this->buf, length) != length) {
-#else
-  if (send(this->fh, this->buf, length, 0) != length) {
-    printf("input_http: WSAGetLastError() = %d\n", WSAGetLastError());
-#endif
+  if (xio_tcp_write (this->stream, this->fh, this->buf, length) != length) {
     xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
     printf ("input_http: couldn't send request\n");
     return 0;
   }
 
 #ifdef LOG
-  printf ("input_http: request sent: >%s<\n",
-	  this->buf);
+  printf ("input_http: request sent: >%s<\n", this->buf);
 #endif
 
   /* read and parse reply */
@@ -807,28 +770,9 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
        printf ("input_http: read...\n");
     */
 
-#ifndef WIN32
-    if (read (this->fh, &this->buf[len], 1) <=0) {
-
-      perror ("http read error");
-
-      switch (errno) {
-      case EAGAIN:
-	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
-	continue;
-      default:
-	xine_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
-	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
-	return 0;
-      }
+    if (xio_tcp_read (this->stream, this->fh, &this->buf[len], 1) <= 0) {
+      return 0;
     }
-#else
-    if ((length=recv (this->fh, &this->buf[len], 1, 0)) <= 0) {
-	  xine_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
-	  xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
-	  return 0;
-	}
-#endif
 
     if (this->buf[len] == '\012') {
 
