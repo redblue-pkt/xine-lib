@@ -25,14 +25,14 @@ endif
 # scheme "xineplug_ao_out_"
 #
 #lib_LTLIBRARIES = xineplug_ao_out_oss.la $(alsa_module) $(esd_module)
-lib_LTLIBRARIES = xineplug_ao_out_oss.la 
+lib_LTLIBRARIES = xineplug_ao_out_oss.la $(alsa_module)
 
 xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c resample.c
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module
 
-#xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c resample.c
-#xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
-#xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module
+xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c resample.c
+xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
+xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module
 
 #xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c resample.c
 #xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
