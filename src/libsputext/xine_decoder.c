@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.52 2003/01/17 20:53:46 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.53 2003/01/29 17:21:13 miguelfreitas Exp $
  *
  */
 
@@ -425,7 +425,9 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
   sputext_class_t *this ;
 
+#ifdef LOG
   printf("libsputext: init class\n");
+#endif
   
   this = (sputext_class_t *) xine_xmalloc (sizeof (sputext_class_t));
 

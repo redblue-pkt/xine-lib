@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.23 2003/01/28 21:57:41 tmattern Exp $
+ * $Id: xine_goom.c,v 1.24 2003/01/29 17:21:14 miguelfreitas Exp $
  *
  * GOOM post plugin.
  *
@@ -260,7 +260,9 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
    * Lookup config entries.
    */
   class->ip = this;
+#ifdef LOG
   printf("goom: goom_open_plugin\n");
+#endif
 
   if(xine_config_lookup_entry(class->xine, "post.goom_fps",
                               &fps_entry)) 
