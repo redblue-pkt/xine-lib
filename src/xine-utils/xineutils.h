@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.14 2002/05/01 19:41:55 guenter Exp $
+ * $Id: xineutils.h,v 1.15 2002/06/07 22:15:47 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -580,29 +580,17 @@ void xine_probe_fast_memcpy(config_values_t *config);
 #endif
 
 
-#ifdef DEBUG
 /*
  * Debug stuff
  */
-
 /*
- * profiling
+ * profiling (unworkable in non DEBUG isn't defined)
  */
 void xine_profiler_init (void);
 int xine_profiler_allocate_slot (char *label);
 void xine_profiler_start_count (int id);
 void xine_profiler_stop_count (int id);
 void xine_profiler_print_results (void);
-
-#else /* no DEBUG, release version */
-
-#define xine_profiler_init()
-#define xine_profiler_allocate_slot(label)	(-1)
-#define xine_profiler_start_count(id)
-#define xine_profiler_stop_count(id)
-#define xine_profiler_print_results()
-
-#endif /* DEBUG*/
 
 /*
  * Allocate and clean memory size_t 'size', then return the pointer
