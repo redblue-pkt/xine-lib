@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.13 2002/03/01 09:29:50 guenter Exp $
+ * $Id: buffer.c,v 1.14 2002/03/11 00:00:08 f1rmb Exp $
  *
  *
  * contents:
@@ -225,7 +225,7 @@ static int fifo_buffer_size (fifo_buffer_t *this) {
 static void fifo_buffer_dispose (fifo_buffer_t *this) {
 
   buf_element_t *buf, *next;
-  char          *mem = NULL;
+  unsigned char *mem = NULL;
 
   this->clear( this );
   buf = this->buffer_pool_top;
