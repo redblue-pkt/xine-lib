@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.16 2002/03/11 12:31:24 guenter Exp $
+ * $Id: demux_ogg.c,v 1.17 2002/03/23 22:39:11 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -359,6 +359,35 @@ static int demux_ogg_open(demux_plugin_t *this_gen,
   switch(stage) {
 
   case STAGE_BY_CONTENT:
+    {
+      uint8_t buf[4096];
+
+      if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+
+	input->seek(input, 0, SEEK_SET);
+
+	if (input->read(input, buf, 4)) {
+
+	  if ((buf[0] == 'O')
+	      && (buf[1] == 'g')
+	      && (buf[2] == 'g')
+	      && (buf[3] == 'S')) {
+	    this->input = input;
+	    return DEMUX_CAN_HANDLE;
+	  }
+	}
+      }
+
+      if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
+	if ((buf[0] == 'O')
+	    && (buf[1] == 'g')
+	    && (buf[2] == 'g')
+	    && (buf[3] == 'S')) {
+	  this->input = input;
+	  return DEMUX_CAN_HANDLE;
+	}
+      }
+    }
     return DEMUX_CANNOT_HANDLE;
     break;
 
