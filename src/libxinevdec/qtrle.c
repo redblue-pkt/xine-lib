@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.10 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: qtrle.c,v 1.11 2002/12/28 23:20:41 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -78,6 +78,20 @@ typedef struct qtrle_decoder_s {
 #define U_WHITE COMPUTE_U(0xFF, 0xFF, 0xFF)
 #define V_WHITE COMPUTE_V(0xFF, 0xFF, 0xFF)
 
+#define CHECK_STREAM_PTR(n) \
+  if ((stream_ptr + n) > this->size) { \
+    printf ("QT RLE problem: stream_ptr out of bounds (%d >= %d)\n", \
+      stream_ptr + n, this->size); \
+    return; \
+  }
+
+#define CHECK_PIXEL_PTR(n) \
+  if (pixel_ptr + n > pixel_limit) { \
+    printf ("QT RLE problem: pixel_ptr >= pixel_limit (%d >= %d)\n", \
+      pixel_ptr + n, pixel_limit); \
+    return; \
+  } \
+
 static void decode_qtrle_1(qtrle_decoder_t *this) {
 
   int stream_ptr;
@@ -85,11 +99,13 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
   int start_line;
   int lines_to_change;
   signed char rle_code;
+  unsigned char skip_code;
   int row_ptr, pixel_ptr;
   int row_inc = this->width;
   unsigned char y[16], u[16], v[16];
   yuv_planes_t *yuv = &this->yuv_planes;
-  int i, shift, index, indices;
+  int i, flags, flag_mask;
+  int pixel_limit = this->width * this->height;
 
   /* check if this frame is even supposed to change */
   if (this->size < 8)
@@ -99,11 +115,13 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
   stream_ptr = 4;
 
   /* fetch the header */
+  CHECK_STREAM_PTR(2);
   header = BE_16(&this->buf[stream_ptr]);
   stream_ptr += 2;
 
   /* if a header is present, fetch additional decoding parameters */
   if (header & 0x0008) {
+    CHECK_STREAM_PTR(8);
     start_line = BE_16(&this->buf[stream_ptr]);
     stream_ptr += 4;
     lines_to_change = BE_16(&this->buf[stream_ptr]);
@@ -114,25 +132,46 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
   }
 
   row_ptr = row_inc * start_line;
-  while (lines_to_change--) {
-//printf ("%d lines left, skip %d bytes...\n", lines_to_change, this->buf[stream_ptr]);
-    pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
+  pixel_ptr = row_ptr;
+  while (lines_to_change) {
 
-    while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
-      if (rle_code == 0)
-        /* there's another skip code in the stream */
-        pixel_ptr += (this->buf[stream_ptr++] - 1);
-      else if (rle_code < 0) {
+    CHECK_STREAM_PTR(2);
+    skip_code = this->buf[stream_ptr++];
+    rle_code = this->buf[stream_ptr++];
+
+    /* check if decode is finished */
+    if (rle_code == 0)
+      return;
+    if ((skip_code == 0x80) && (rle_code == 0x00))
+      return;
+
+    /* check if it is time to move to the next line */
+    if ((skip_code == 0x80) && (rle_code == -1)) {
+      row_ptr += row_inc;
+      pixel_ptr = row_ptr;
+      lines_to_change--;
+    } else {
+
+      if (skip_code >= 0x80) {
+        /* skip to the next line and then skip more pixels */
+        row_ptr += row_inc;
+        pixel_ptr = row_ptr + ((skip_code & 0x7F) * 16);
+        lines_to_change--;
+      } else
+        /* skip pixels on the current line */
+        pixel_ptr += (skip_code * 16);
+
+      if (rle_code < 0) {
         /* decode the run length code */
         rle_code = -rle_code;
 
         /* get the next 16 bits from the stream and treat them as 16
          * monochrome pixels */
-        indices = BE_16(&this->buf[stream_ptr]);
+        CHECK_STREAM_PTR(2);
+        flags = BE_16(&this->buf[stream_ptr]);
         stream_ptr += 2;
-        for (i = 0, shift = 15; i < 16; i++, shift--) {
-          index = (indices >> shift) & 0x01;
-          if (index) {
+        for (i = 0, flag_mask = 0x8000; i < 16; i++, flag_mask >>= 1) {
+          if (flags & flag_mask) {
             y[i] = Y_WHITE;
             u[i] = U_WHITE;
             v[i] = V_WHITE;
@@ -142,6 +181,7 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
             v[i] = V_BLACK;
           }
         }
+        CHECK_PIXEL_PTR(rle_code * 16);
         while (rle_code--) {
           for (i = 0; i < 16; i++) {
             yuv->y[pixel_ptr] = y[i];
@@ -152,12 +192,13 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
         }
       } else {
         /* copy pixels directly to output */
+        CHECK_STREAM_PTR(rle_code * 2);
+        CHECK_PIXEL_PTR(rle_code * 16);
         while (rle_code--) {
-          indices = BE_16(&this->buf[stream_ptr]);
+          flags = BE_16(&this->buf[stream_ptr]);
           stream_ptr += 2;
-          for (i = 0, shift = 15; i < 16; i++, shift--) {
-            index = (indices >> shift) & 0x01;
-            if (index) {
+          for (i = 0, flag_mask = 0x8000; i < 16; i++, flag_mask >>= 1) {
+            if (flags & flag_mask) {
               yuv->y[pixel_ptr] = Y_WHITE;
               yuv->u[pixel_ptr] = U_WHITE;
               yuv->v[pixel_ptr] = V_WHITE;
@@ -171,8 +212,6 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
         }
       }
     }
-
-    row_ptr += row_inc;
   }
 }
 
@@ -183,11 +222,14 @@ static void decode_qtrle_2(qtrle_decoder_t *this) {
   int start_line;
   int lines_to_change;
   signed char rle_code;
+  unsigned char skip_code;
   int row_ptr, pixel_ptr;
   int row_inc = this->width;
   unsigned char y[16], u[16], v[16];
   yuv_planes_t *yuv = &this->yuv_planes;
   int i, shift, index, indices;
+  int start_of_line = 1;
+  int pixel_limit = this->width * this->height;
 
   /* check if this frame is even supposed to change */
   if (this->size < 8)
@@ -197,11 +239,13 @@ static void decode_qtrle_2(qtrle_decoder_t *this) {
   stream_ptr = 4;
 
   /* fetch the header */
+  CHECK_STREAM_PTR(2);
   header = BE_16(&this->buf[stream_ptr]);
   stream_ptr += 2;
 
   /* if a header is present, fetch additional decoding parameters */
   if (header & 0x0008) {
+    CHECK_STREAM_PTR(8);
     start_line = BE_16(&this->buf[stream_ptr]);
     stream_ptr += 4;
     lines_to_change = BE_16(&this->buf[stream_ptr]);
@@ -212,19 +256,47 @@ static void decode_qtrle_2(qtrle_decoder_t *this) {
   }
 
   row_ptr = row_inc * start_line;
-  while (lines_to_change--) {
-    pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
+  pixel_ptr = row_ptr;
+  while (lines_to_change) {
+    if (start_of_line) {
+      CHECK_STREAM_PTR(stream_ptr);
+      skip_code = this->buf[stream_ptr++];
+      if (skip_code == 0)
+        return;
+      skip_code--;
+      start_of_line = 0;
+    } else
+      skip_code = 0;
 
-    while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
-      if (rle_code == 0)
-        /* there's another skip code in the stream */
-        pixel_ptr += (this->buf[stream_ptr++] - 1);
-      else if (rle_code < 0) {
+    CHECK_STREAM_PTR(skip_code);
+    rle_code = this->buf[stream_ptr++];
+
+    if (rle_code == 0)
+      return;
+    else if (rle_code == -1) {
+      /* reset to the start of next line */
+      row_ptr += row_inc;
+      pixel_ptr = row_ptr;
+      start_of_line = 1;
+      lines_to_change--;
+    } else {
+      if (skip_code & 0x80) {
+        /* reset to the start of the next line and skip pixels */
+        row_ptr += row_inc;
+        pixel_ptr = row_ptr + (skip_code & 0x7F);
+        lines_to_change--;
+      } else {
+        /* skip pixels on current line */
+        pixel_ptr += skip_code;
+      }
+
+      if (rle_code < 0) {
         /* decode the run length code */
         rle_code = -rle_code;
 
         /* get the next 32 bits from the stream and treat them as 16
          * 2-bit indices into the palette */
+        CHECK_STREAM_PTR(4);
         indices = BE_32(&this->buf[stream_ptr]);
         stream_ptr += 4;
         for (i = 0, shift = 30; i < 16; i++, shift -= 2) {
@@ -233,6 +305,7 @@ static void decode_qtrle_2(qtrle_decoder_t *this) {
           u[i] = this->yuv_palette[index * 4 + 1];
           v[i] = this->yuv_palette[index * 4 + 2];
         }
+        CHECK_PIXEL_PTR(rle_code * 16);
         while (rle_code--) {
           for (i = 0; i < 16; i++) {
             yuv->y[pixel_ptr] = y[i];
@@ -243,6 +316,8 @@ static void decode_qtrle_2(qtrle_decoder_t *this) {
         }
       } else {
         /* copy pixels directly to output */
+        CHECK_STREAM_PTR(rle_code * 4);
+        CHECK_PIXEL_PTR(rle_code * 16);
         while (rle_code--) {
           indices = BE_32(&this->buf[stream_ptr]);
           stream_ptr += 4;
@@ -273,6 +348,7 @@ static void decode_qtrle_4(qtrle_decoder_t *this) {
   unsigned char y[8], u[8], v[8];
   yuv_planes_t *yuv = &this->yuv_planes;
   int i, shift, index, indices;
+  int pixel_limit = this->width * this->height;
 
   /* check if this frame is even supposed to change */
   if (this->size < 8)
@@ -282,11 +358,13 @@ static void decode_qtrle_4(qtrle_decoder_t *this) {
   stream_ptr = 4;
 
   /* fetch the header */
+  CHECK_STREAM_PTR(2);
   header = BE_16(&this->buf[stream_ptr]);
   stream_ptr += 2;
 
   /* if a header is present, fetch additional decoding parameters */
   if (header & 0x0008) {
+    CHECK_STREAM_PTR(8);
     start_line = BE_16(&this->buf[stream_ptr]);
     stream_ptr += 4;
     lines_to_change = BE_16(&this->buf[stream_ptr]);
@@ -298,18 +376,21 @@ static void decode_qtrle_4(qtrle_decoder_t *this) {
 
   row_ptr = row_inc * start_line;
   while (lines_to_change--) {
+    CHECK_STREAM_PTR(2);
     pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
 
     while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
-      if (rle_code == 0)
+      if (rle_code == 0) {
         /* there's another skip code in the stream */
+        CHECK_STREAM_PTR(1);
         pixel_ptr += (this->buf[stream_ptr++] - 1);
-      else if (rle_code < 0) {
+      } else if (rle_code < 0) {
         /* decode the run length code */
         rle_code = -rle_code;
 
         /* get the next 32 bits from the stream and treat them as 8
          * 4-bit indices into the palette */
+        CHECK_STREAM_PTR(4);
         indices = BE_32(&this->buf[stream_ptr]);
         stream_ptr += 4;
         for (i = 0, shift = 28; i < 8; i++, shift -= 4) {
@@ -318,6 +399,7 @@ static void decode_qtrle_4(qtrle_decoder_t *this) {
           u[i] = this->yuv_palette[index * 4 + 1];
           v[i] = this->yuv_palette[index * 4 + 2];
         }
+        CHECK_PIXEL_PTR(rle_code * 8);
         while (rle_code--) {
           for (i = 0; i < 8; i++) {
             yuv->y[pixel_ptr] = y[i];
@@ -328,6 +410,8 @@ static void decode_qtrle_4(qtrle_decoder_t *this) {
         }
       } else {
         /* copy pixels directly to output */
+        CHECK_STREAM_PTR(rle_code * 4);
+        CHECK_PIXEL_PTR(rle_code * 8);
         while (rle_code--) {
           indices = BE_32(&this->buf[stream_ptr]);
           stream_ptr += 4;
@@ -358,6 +442,7 @@ static void decode_qtrle_8(qtrle_decoder_t *this) {
   unsigned char y[4], u[4], v[4];
   yuv_planes_t *yuv = &this->yuv_planes;
   int i;
+  int pixel_limit = this->width * this->height;
 
   /* check if this frame is even supposed to change */
   if (this->size < 8)
@@ -367,11 +452,13 @@ static void decode_qtrle_8(qtrle_decoder_t *this) {
   stream_ptr = 4;
 
   /* fetch the header */
+  CHECK_STREAM_PTR(2);
   header = BE_16(&this->buf[stream_ptr]);
   stream_ptr += 2;
 
   /* if a header is present, fetch additional decoding parameters */
   if (header & 0x0008) {
+    CHECK_STREAM_PTR(8);
     start_line = BE_16(&this->buf[stream_ptr]);
     stream_ptr += 4;
     lines_to_change = BE_16(&this->buf[stream_ptr]);
@@ -383,23 +470,27 @@ static void decode_qtrle_8(qtrle_decoder_t *this) {
 
   row_ptr = row_inc * start_line;
   while (lines_to_change--) {
-    pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
+    CHECK_STREAM_PTR(2);
+    pixel_ptr = row_ptr + (4 * (this->buf[stream_ptr++] - 1));
 
     while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
-      if (rle_code == 0)
+      if (rle_code == 0) {
         /* there's another skip code in the stream */
-        pixel_ptr += (this->buf[stream_ptr++] - 1);
-      else if (rle_code < 0) {
+        pixel_ptr += (4 * (this->buf[stream_ptr++] - 1));
+        CHECK_STREAM_PTR(1);
+      } else if (rle_code < 0) {
         /* decode the run length code */
         rle_code = -rle_code;
         /* get the next 4 bytes from the stream, treat them as palette
          * indices, and output them to the rle_code times */
+        CHECK_STREAM_PTR(4);
         for (i = 0; i < 4; i++) {
           y[i] = this->yuv_palette[this->buf[stream_ptr] * 4 + 0];
           u[i] = this->yuv_palette[this->buf[stream_ptr] * 4 + 1];
           v[i] = this->yuv_palette[this->buf[stream_ptr] * 4 + 2];
           stream_ptr++;
         }
+        CHECK_PIXEL_PTR(rle_code * 4);
         while (rle_code--) {
           for (i = 0; i < 4; i++) {
             yuv->y[pixel_ptr] = y[i];
@@ -409,6 +500,9 @@ static void decode_qtrle_8(qtrle_decoder_t *this) {
           }
         }
       } else {
+        CHECK_STREAM_PTR(rle_code);
+        CHECK_PIXEL_PTR(rle_code);
+
         /* copy pixels directly to output */
         while (rle_code--) {
           for (i = 0; i < 4; i++) {
@@ -442,6 +536,7 @@ static void decode_qtrle_16(qtrle_decoder_t *this) {
   unsigned char y, u, v;
   unsigned short packed_pixel;
   yuv_planes_t *yuv = &this->yuv_planes;
+  int pixel_limit = this->width * this->height;
 
   /* check if this frame is even supposed to change */
   if (this->size < 8)
@@ -451,11 +546,13 @@ static void decode_qtrle_16(qtrle_decoder_t *this) {
   stream_ptr = 4;
 
   /* fetch the header */
+  CHECK_STREAM_PTR(2);
   header = BE_16(&this->buf[stream_ptr]);
   stream_ptr += 2;
 
   /* if a header is present, fetch additional decoding parameters */
   if (header & 0x0008) {
+    CHECK_STREAM_PTR(8);
     start_line = BE_16(&this->buf[stream_ptr]);
     stream_ptr += 4;
     lines_to_change = BE_16(&this->buf[stream_ptr]);
@@ -467,21 +564,28 @@ static void decode_qtrle_16(qtrle_decoder_t *this) {
 
   row_ptr = row_inc * start_line;
   while (lines_to_change--) {
+    CHECK_STREAM_PTR(2);
     pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
 
     while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
-      if (rle_code == 0)
+      if (rle_code == 0) {
         /* there's another skip code in the stream */
+        CHECK_STREAM_PTR(1);
         pixel_ptr += (this->buf[stream_ptr++] - 1);
+      }
       else if (rle_code < 0) {
         /* decode the run length code */
         rle_code = -rle_code;
+        CHECK_STREAM_PTR(2);
         packed_pixel = BE_16(&this->buf[stream_ptr]);
         stream_ptr += 2;
         UNPACK_RGB15(packed_pixel, r, g, b);
         y = COMPUTE_Y(r, g, b);
         u = COMPUTE_U(r, g, b);
         v = COMPUTE_V(r, g, b);
+
+        CHECK_PIXEL_PTR(rle_code);
+
         while (rle_code--) {
           yuv->y[pixel_ptr] = y;
           yuv->u[pixel_ptr] = u;
@@ -489,6 +593,9 @@ static void decode_qtrle_16(qtrle_decoder_t *this) {
           pixel_ptr++;
         }
       } else {
+        CHECK_PIXEL_PTR(rle_code);
+        CHECK_STREAM_PTR(rle_code * 2);
+
         /* copy pixels directly to output */
         while (rle_code--) {
           packed_pixel = BE_16(&this->buf[stream_ptr]);
@@ -521,6 +628,7 @@ static void decode_qtrle_24(qtrle_decoder_t *this) {
   unsigned char r, g, b;
   unsigned char y, u, v;
   yuv_planes_t *yuv = &this->yuv_planes;
+  int pixel_limit = this->width * this->height;
 
   /* check if this frame is even supposed to change */
   if (this->size < 8)
@@ -530,11 +638,13 @@ static void decode_qtrle_24(qtrle_decoder_t *this) {
   stream_ptr = 4;
 
   /* fetch the header */
+  CHECK_STREAM_PTR(2);
   header = BE_16(&this->buf[stream_ptr]);
   stream_ptr += 2;
 
   /* if a header is present, fetch additional decoding parameters */
   if (header & 0x0008) {
+    CHECK_STREAM_PTR(8);
     start_line = BE_16(&this->buf[stream_ptr]);
     stream_ptr += 4;
     lines_to_change = BE_16(&this->buf[stream_ptr]);
@@ -546,21 +656,27 @@ static void decode_qtrle_24(qtrle_decoder_t *this) {
 
   row_ptr = row_inc * start_line;
   while (lines_to_change--) {
+    CHECK_STREAM_PTR(2);
     pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
 
     while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
-      if (rle_code == 0)
+      if (rle_code == 0) {
         /* there's another skip code in the stream */
+        CHECK_STREAM_PTR(1);
         pixel_ptr += (this->buf[stream_ptr++] - 1);
-      else if (rle_code < 0) {
+      } else if (rle_code < 0) {
         /* decode the run length code */
         rle_code = -rle_code;
+        CHECK_STREAM_PTR(3);
         r = this->buf[stream_ptr++];
         g = this->buf[stream_ptr++];
         b = this->buf[stream_ptr++];
         y = COMPUTE_Y(r, g, b);
         u = COMPUTE_U(r, g, b);
         v = COMPUTE_V(r, g, b);
+
+        CHECK_PIXEL_PTR(rle_code);
+
         while (rle_code--) {
           yuv->y[pixel_ptr] = y;
           yuv->u[pixel_ptr] = u;
@@ -568,6 +684,9 @@ static void decode_qtrle_24(qtrle_decoder_t *this) {
           pixel_ptr++;
         }
       } else {
+        CHECK_PIXEL_PTR(rle_code);
+        CHECK_STREAM_PTR(rle_code * 3);
+
         /* copy pixels directly to output */
         while (rle_code--) {
           r = this->buf[stream_ptr++];
@@ -600,6 +719,7 @@ static void decode_qtrle_32(qtrle_decoder_t *this) {
   unsigned char r, g, b;
   unsigned char y, u, v;
   yuv_planes_t *yuv = &this->yuv_planes;
+  int pixel_limit = this->width * this->height;
 
   /* check if this frame is even supposed to change */
   if (this->size < 8)
@@ -609,11 +729,13 @@ static void decode_qtrle_32(qtrle_decoder_t *this) {
   stream_ptr = 4;
 
   /* fetch the header */
+  CHECK_STREAM_PTR(2);
   header = BE_16(&this->buf[stream_ptr]);
   stream_ptr += 2;
 
   /* if a header is present, fetch additional decoding parameters */
   if (header & 0x0008) {
+    CHECK_STREAM_PTR(8);
     start_line = BE_16(&this->buf[stream_ptr]);
     stream_ptr += 4;
     lines_to_change = BE_16(&this->buf[stream_ptr]);
@@ -625,15 +747,18 @@ static void decode_qtrle_32(qtrle_decoder_t *this) {
 
   row_ptr = row_inc * start_line;
   while (lines_to_change--) {
+    CHECK_STREAM_PTR(2);
     pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
 
     while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
-      if (rle_code == 0)
+      if (rle_code == 0) {
         /* there's another skip code in the stream */
+        CHECK_STREAM_PTR(1);
         pixel_ptr += (this->buf[stream_ptr++] - 1);
-      else if (rle_code < 0) {
+      } else if (rle_code < 0) {
         /* decode the run length code */
         rle_code = -rle_code;
+        CHECK_STREAM_PTR(4);
         stream_ptr++;  /* skip alpha transparency (?) byte */
         r = this->buf[stream_ptr++];
         g = this->buf[stream_ptr++];
@@ -641,6 +766,9 @@ static void decode_qtrle_32(qtrle_decoder_t *this) {
         y = COMPUTE_Y(r, g, b);
         u = COMPUTE_U(r, g, b);
         v = COMPUTE_V(r, g, b);
+
+        CHECK_PIXEL_PTR(rle_code);
+
         while (rle_code--) {
           yuv->y[pixel_ptr] = y;
           yuv->u[pixel_ptr] = u;
@@ -648,6 +776,9 @@ static void decode_qtrle_32(qtrle_decoder_t *this) {
           pixel_ptr++;
         }
       } else {
+        CHECK_PIXEL_PTR(rle_code);
+        CHECK_STREAM_PTR(rle_code * 4);
+
         /* copy pixels directly to output */
         while (rle_code--) {
           stream_ptr++;  /* skip alpha transparency (?) byte */
@@ -684,6 +815,7 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
   xine_bmiheader *bih;
   palette_entry_t *palette;
   int i;
+  char codec_name[100];
 
   vo_frame_t *img; /* video out frame */
 
@@ -711,8 +843,8 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
       free(this->buf);
 
     bih = (xine_bmiheader *) buf->content;
-    this->width = (bih->biWidth + 3) & ~0x03;
-    this->height = (bih->biHeight + 3) & ~0x03;
+    this->width = bih->biWidth;
+    this->height = bih->biHeight;
     this->depth = bih->biBitCount;
     this->video_step = buf->decoder_info[1];
 
@@ -727,11 +859,12 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
     this->decoder_ok = 1;
 
     /* load the stream/meta info */
-    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Quicktime Animation (RLE)");
+    sprintf(codec_name, "%d bpp Quicktime Animation (RLE)", this->depth & 0x1F);
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup(codec_name);
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
-  } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
+  } else if (this->decoder_ok) {
 
     if (this->size + buf->size > this->bufsize) {
       this->bufsize = this->size + 2 * buf->size;
