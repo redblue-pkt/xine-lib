@@ -95,6 +95,7 @@ CFLAGS="$saved_CFLAGS"
 AC_PROG_CC
 AC_HEADER_STDC
 AC_PROG_MAKE_SET
+AC_PROG_EGREP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_AWK
@@ -109,8 +110,9 @@ dnl ---------------------------------------------
 dnl Libtool
 dnl ---------------------------------------------
 AC_LIBTOOL_DLOPEN
-dnl AM_DISABLE_STATIC
-AM_PROG_LIBTOOL
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+AC_PROG_LIBTOOL_SANITYCHECK
 AC_SUBST(LIBTOOL_DEPS)
 if ${CONFIG_SHELL} ./libtool --features | grep "enable static" >/dev/null; then
   STATIC="-static"
@@ -126,13 +128,14 @@ dnl ---------------------------------------------
 
 dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
 ALL_LINGUAS="fr pt_BR de sk es pl_PL cs"
-AM_GNU_GETTEXT(use-libtool)
+AM_GNU_GETTEXT(use-libtool, need-ngettext)
+AC_PROG_GMSGFMT_PLURAL
 AC_CONFIG_LINKS($nls_cv_header_libgt, $nls_cv_header_intl)
 AM_CONDITIONAL(INCLUDED_INTL, test x$USE_INCLUDED_LIBINTL = "xyes")
 if test x"$USE_INCLUDED_LIBINTL" = x"yes"; then
    INTLDIR="-I\$(top_builddir)/intl -I\$(top_srcdir)/intl"
-		fi
-AC_SUBST(INTLDIR)
+fi
+dnl AC_SUBST(INTLDIR)
 
 
 
@@ -200,7 +203,7 @@ LIBMPEG2_CFLAGS="" dnl default include path removed, no more needed.
 LIBA52_CFLAGS=""
 LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H"
 
-AC_ARG_ENABLE(altivec, i
+AC_ARG_ENABLE(altivec,
 	[  --disable-altivec       use assembly codes for Motorola 74xx CPUs],
 		enable_altivec=no, 
 		enable_altivec=yes)
@@ -352,7 +355,7 @@ AM_CONDITIONAL(HAVE_GICONV, test x$no_BSDiconv != "xyes")
 AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
 
 
-AC_ARG_WITH(xv-path,[  --with-xv-path=path    Where $xv_lib is installed],
+AC_ARG_WITH(xv-path,[  --with-xv-path=path     Where $xv_lib is installed],
             xv_path="$withval", xv_path="/usr/X11R6/lib")
 
 AC_CHECK_LIB(Xv, XvShmCreateImage, 
@@ -667,6 +670,18 @@ AC_ARG_ENABLE(fpic,
 
 
 dnl ---------------------------------------------
+dnl Build xine plugins with only the "xine_plugin_info" symbol exported
+dnl (let the user disable this feature, in case libtool does not offer it
+dnl feature on the target platform)
+dnl ---------------------------------------------
+AC_ARG_ENABLE(min-symtab,
+   [  --disable-min-symtab    Export all global symbols from xine plugins ],
+   XINE_PLUGIN_MIN_SYMS="",
+   XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info")
+
+AC_SUBST(XINE_PLUGIN_MIN_SYMS)
+
+dnl ---------------------------------------------
 dnl Some extra checks.
 dnl ---------------------------------------------
 AC_CHECK_LIB(posix4, sched_get_priority_min)
@@ -952,6 +967,7 @@ dnl ---------------------------------------------
 dnl gcc __attribute__ ((aligned ()))
 dnl ---------------------------------------------
 AC_C_ATTRIBUTE_ALIGNED
+
 
 
 dnl ---------------------------------------------
@@ -1317,7 +1333,7 @@ final_bindir="`eval eval eval eval echo $bindir`"
 
 if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/null ; then
   if test "$final_libdir" != "/lib" -a "$final_libdir" != "/usr/lib" ; then
-    if ! echo $LD_LIBRARY_PATH | egrep "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
+    if ! echo $LD_LIBRARY_PATH | $EGREP "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
       echo
       echo "****************************************************************"
       echo "xine-lib will be installed to $final_libdir"
@@ -1338,7 +1354,7 @@ if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/nu
   fi
 fi
 
-if ! echo $PATH | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
+if ! echo $PATH | $EGREP "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
   echo
   echo "****************************************************************"
   echo "xine-config will be installed to $final_bindir"
