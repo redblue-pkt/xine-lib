@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.86 2003/09/11 10:01:03 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.87 2003/09/13 15:29:33 miguelfreitas Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -215,7 +215,8 @@ static void dxr3_vo_class_dispose(video_driver_class_t *class_gen)
 {
   dxr3_driver_class_t *class = (dxr3_driver_class_t *)class_gen;
   
-  class->scr->scr_plugin.exit(&class->scr->scr_plugin);
+  if(class->scr)
+    class->scr->scr_plugin.exit(&class->scr->scr_plugin);
   free(class_gen);
 }
 
