@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.65 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.66 2003/01/02 12:00:53 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -1078,7 +1078,20 @@ static void dxr3_dispose(vo_driver_t *this_gen)
   if(this->overlay_enabled)
     ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SETMODE, &val);
   close(this->fd_control);
-  if (this->fd_spu) close(this->fd_spu);
+  pthread_mutex_lock(&this->spu_device_lock);
+  if (this->fd_spu) {
+    uint8_t empty_spu[] = {
+      0x00, 0x26, 0x00, 0x08, 0x80, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x20, 0x01, 0x03, 0x00, 0x00,
+      0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x01, 0x00,
+      0x00, 0x01, 0x06, 0x00, 0x04, 0x00, 0x07, 0xFF,
+      0x00, 0x01, 0x00, 0x20, 0x02, 0xFF };
+    /* clear any remaining spu */
+    ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+    write(this->fd_spu, empty_spu, sizeof(empty_spu));
+    close(this->fd_spu);
+  }
+  pthread_mutex_unlock(&this->spu_device_lock);
   pthread_mutex_destroy(&this->spu_device_lock);
   free(this);
 }

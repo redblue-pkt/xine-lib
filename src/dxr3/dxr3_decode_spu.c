@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.28 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: dxr3_decode_spu.c,v 1.29 2003/01/02 12:00:52 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -486,12 +486,21 @@ static void dxr3_spudec_discontinuity(spu_decoder_t *this_gen)
 
 static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
 {
+  uint8_t empty_spu[] = {
+    0x00, 0x26, 0x00, 0x08, 0x80, 0x00, 0x00, 0x80,
+    0x00, 0x00, 0x00, 0x20, 0x01, 0x03, 0x00, 0x00,
+    0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x01, 0x00,
+    0x00, 0x01, 0x06, 0x00, 0x04, 0x00, 0x07, 0xFF,
+    0x00, 0x01, 0x00, 0x20, 0x02, 0xFF };
   dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
   
 #if LOG_SPU
   printf("dxr3_decode_spu: close: SPU_FD = %i\n",this->fd_spu);
 #endif
   pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
+  /* clear any remaining spu */
+  ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+  write(this->fd_spu, empty_spu, sizeof(empty_spu));
   close(this->fd_spu);
   this->fd_spu = 0;
   this->dxr3_vo->fd_spu = 0;
