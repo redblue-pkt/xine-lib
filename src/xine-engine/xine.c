@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.291 2004/04/26 17:50:13 mroi Exp $
+ * $Id: xine.c,v 1.292 2004/05/23 18:41:57 tmattern Exp $
  */
 
 /*
@@ -288,6 +288,7 @@ static void __stop_internal (xine_stream_t *stream) {
   }
 
   /* make sure we're not in "paused" state */
+  stream->ignore_speed_change = 1;
   __set_speed_internal (stream, XINE_SPEED_NORMAL);
 
   /* Don't change status if we're quitting */
@@ -335,6 +336,7 @@ static void __stop_internal (xine_stream_t *stream) {
     pthread_mutex_unlock (&stream->counter_lock);
 #endif
   }
+  stream->ignore_speed_change = 0;
   lprintf ("demux stopped\n");
   lprintf ("done\n");
 }
@@ -1067,6 +1069,20 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
   return ret;
 }
 
+static void __wait_first_frame (xine_stream_t *stream) {
+  if (stream->video_decoder_plugin) {
+    pthread_mutex_lock (&stream->first_frame_lock);
+    while (stream->first_frame_flag > 0) {
+      struct timeval  tv;
+      struct timespec ts;
+      gettimeofday(&tv, NULL);
+      ts.tv_sec  = tv.tv_sec + 10;
+      ts.tv_nsec = tv.tv_usec * 1000;
+      pthread_cond_timedwait(&stream->first_frame_reached, &stream->first_frame_lock, &ts);
+    }
+    pthread_mutex_unlock (&stream->first_frame_lock);
+  }
+}
 
 static int __play_internal (xine_stream_t *stream, int start_pos, int start_time) {
 
@@ -1169,18 +1185,8 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
   /* Wait until the first frame produced is displayed
    * see video_out.c
    */
-  pthread_mutex_lock (&stream->first_frame_lock);
-  /* FIXME: howto detect if video frames will be produced */
-  if (stream->first_frame_flag && stream->video_decoder_plugin) {
-    struct timeval  tv;
-    struct timespec ts;
-    gettimeofday(&tv, NULL);
-    ts.tv_sec  = tv.tv_sec + 2;
-    ts.tv_nsec = tv.tv_usec * 1000;
-    pthread_cond_timedwait(&stream->first_frame_reached, &stream->first_frame_lock, &ts);
-  }
-  pthread_mutex_unlock (&stream->first_frame_lock);
-
+  __wait_first_frame (stream);
+  
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "__play_internal ...done\n");
 
   return 1;
