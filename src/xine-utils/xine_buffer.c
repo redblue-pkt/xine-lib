@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.2 2002/12/22 00:35:05 komadori Exp $
+ * $Id: xine_buffer.c,v 1.3 2002/12/24 00:59:36 holstsn Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -59,9 +59,6 @@
 #define LOG
 
 #define CHECKS
-
-/* FIXME */
-#define xine_xmalloc(x) calloc(1,x)
 
 /*
  * private data structs
@@ -180,7 +177,7 @@ new=xine_xmalloc(GET_HEADER(buf)->size+XINE_BUFFER_HEADER_SIZE);
  */
 #define xine_buffer_copyin(buf,i,data,len) \
   buf=_xine_buffer_copyin(buf,i,data,len)
-void *_xine_buffer_copyin(void *buf, int index, void *data, int len) {
+void *_xine_buffer_copyin(void *buf, int index, const void *data, int len) {
   
 #ifdef CHECKS
   if (!buf || !data) {
