@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.22 2001/09/10 00:47:37 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.23 2001/09/11 00:57:11 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,7 @@
 #include "monitor.h"
 #include "input_plugin.h"
 #include "dvd_udf.h"
+#include "read_cache.h"
 
 static uint32_t xine_debug;
 
@@ -68,6 +69,7 @@ typedef struct {
 
   int               dvd_fd;
   int               raw_fd;
+  read_cache_t     *read_cache;
   off_t             file_size;
   off_t             file_size_left;
   int               file_lbstart;
@@ -110,6 +112,9 @@ static int openDrive (dvd_input_plugin_t *this) {
   if (this->raw_fd < 0) {
     this->raw_fd = this->dvd_fd;
   }
+
+  read_cache_set_fd (this->read_cache, this->raw_fd);
+
   return this->raw_fd;
 }
 
@@ -123,6 +128,7 @@ static void closeDrive (dvd_input_plugin_t *this) {
     close (this->raw_fd);
 
   this->dvd_fd = -1;
+
 }
 
 /*
@@ -206,20 +212,16 @@ static int dvd_plugin_open (input_plugin_t *this_gen, char *mrl) {
   return 1 ;
 }
 
-/*
- *
- */
 static off_t dvd_plugin_read (input_plugin_t *this_gen, 
 			      char *buf, off_t nlen) {
+
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
   if (nlen != DVD_VIDEO_LB_LEN) {
-    /*
-     * Hide the error reporting now, demuxer try to read 6 bytes
-     * at STAGE_BY_CONTENT probe stage
-     */
-    fprintf (stderr, "ERROR in input_dvd plugin read: %Ld bytes "
-             "is not a sector!\n", nlen);
+
+    printf ("input_dvd: error read: %Ld bytes is not a sector!\n", 
+	    nlen);
+
     return 0;
   }
 
@@ -249,9 +251,6 @@ static void pool_release_buffer (void *arg) {
 }
 
 
-/*
- *
- */
 static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t nlen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
@@ -263,38 +262,34 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
      * at STAGE_BY_CONTENT probe stage
      */
     if(nlen != DVD_VIDEO_LB_LEN)
-      fprintf (stderr, "ERROR in input_dvd plugin read: %Ld bytes "
+      printf ("input_dvd: error in input_dvd plugin read: %Ld bytes "
       	     "is not a sector!\n", nlen);
     return NULL;
   }
 
-  buf = fifo->buffer_pool_alloc (fifo);
+  if ((buf = read_cache_read_block (this->read_cache, this->file_lbcur*DVD_VIDEO_LB_LEN))) {
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
+    pthread_cleanup_push( pool_release_buffer, buf );
+    
+    pthread_testcancel();
 
-  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
-  pthread_cleanup_push( pool_release_buffer, buf );
-
-  buf->content = buf->mem;
-
-  pthread_testcancel();
-  if ((buf->size = dvd_plugin_read (this_gen, buf->mem, DVD_VIDEO_LB_LEN)) > 0) {
+    buf->type = BUF_DEMUX_BLOCK;
+  
     this->file_lbcur++;
     this->file_size_left -= DVD_VIDEO_LB_LEN;
     buf->type = BUF_DEMUX_BLOCK;
+
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
+    pthread_cleanup_pop(0);
   } else {
-    buf->free_buffer (buf);
-    buf = NULL;
-    fprintf (stderr, "read error in input_dvd plugin\n");
+    printf ("input_dvd: read error in input_dvd plugin\n");
   }
 
-  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
-  pthread_cleanup_pop(0);
 
   return buf;
 }
 
-/*
- *
- */
+
 static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
@@ -320,8 +315,7 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 
     break;
   default:
-    fprintf (stderr, "error in input dvd plugin seek: %d is an unknown "
-	     "origin\n", origin);
+    printf ("input_dvd: seek: %d is an unknown origin\n", origin); 
   }
   
   return lseek (this->raw_fd, 
@@ -329,35 +323,27 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
     - this->file_lbstart * (off_t) DVD_VIDEO_LB_LEN;
 }
 
-/*
- *
- */
+
 static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
   return ((this->file_lbcur - this->file_lbstart) * DVD_VIDEO_LB_LEN);
 }
 
-/*
- *
- */
+
 static off_t dvd_plugin_get_length (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
   return this->file_size;
 }
 
-/*
- *
- */
+
 static uint32_t dvd_plugin_get_blocksize (input_plugin_t *this_gen) {
 
   return DVD_VIDEO_LB_LEN;
 }
 
-/*
- *
- */
+
 static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int   ret, status;
@@ -413,41 +399,31 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
   return 1;
 }
 
-/*
- *
- */
+
 static void dvd_plugin_close (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
   closeDrive (this);
 }
 
-/*
- *
- */
+
 static void dvd_plugin_stop (input_plugin_t *this_gen) {
   dvd_plugin_close(this_gen);
 }
 
-/*
- *
- */
+
 static char *dvd_plugin_get_description (input_plugin_t *this_gen) {
 
   return "dvd device input plugin as shipped with xine";
 }
 
-/*
- *
- */
+
 static char *dvd_plugin_get_identifier (input_plugin_t *this_gen) {
 
   return "DVD";
 }
 
-/*
- *
- */
+
 static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen, 
 				   char *filename, int *nEntries) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
@@ -537,9 +513,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
   return this->mrls;
 }
 
-/*
- *
- */
+
 static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen, 
 					    int *nFiles) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
@@ -583,9 +557,7 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   return this->filelist2;
 }
 
-/*
- *
- */
+
 static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
@@ -613,9 +585,7 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-/*
- *
- */
+
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   dvd_input_plugin_t *this;
@@ -671,6 +641,8 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->config  = config;
   this->dvd_fd  = -1;
   this->raw_fd  = -1;
+
+  this->read_cache = read_cache_new ();
   
   return (input_plugin_t *) this;
 }

@@ -549,8 +549,6 @@ off_t UDFFindFile (int fd, char *filename, off_t *size)
 
   lb_number = partition.Start+File.Location ;
 
-  printf ("lb_number : %Ld\n", lb_number);
-
   retval = lb_number;
 
 bail:

@@ -17,26 +17,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvd_udf.h,v 1.3 2001/09/11 00:57:11 guenter Exp $
+ * $Id: read_cache.h,v 1.1 2001/09/11 00:57:11 guenter Exp $
  */
 
-#ifndef DVD_UDF_H
-#define DVD_UDF_H
+#ifndef HAVE_READ_CACHE_H
+#define HAVE_READ_CACHE_H
 
 #include <inttypes.h>
+#include <sys/types.h>
+#include <xine/buffer.h>
 
-#define DVD_UDF_VERSION 19991115
+typedef struct read_cache_s read_cache_t;
 
-/*
- * The length of one Logical Block of a DVD Video                             
- */
+read_cache_t *read_cache_new ();
 
-#define DVD_VIDEO_LB_LEN 2048
+void read_cache_set_fd (read_cache_t *this, int fd);
 
-int UDFReadLB (int fd, off_t lb_number, size_t block_count, uint8_t *data);
+buf_element_t *read_cache_read_block (read_cache_t *this,
+				      off_t pos);
 
-off_t UDFFindFile(int fd, char *filename, off_t *size);
+void read_cache_free (read_cache_t *this);
 
-void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFiles) ;
-
-#endif /* DVD_UDF_H */
+#endif
