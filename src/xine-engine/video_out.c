@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.128 2003/01/05 13:11:55 guenter Exp $
+ * $Id: video_out.c,v 1.129 2003/01/08 14:21:27 esnel Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -79,6 +79,8 @@ typedef struct {
 
   video_overlay_instance_t *overlay_source;
   int                       overlay_enabled;
+
+  extra_info_t             *extra_info_base; /* used to free mem chunk */
 } vos_t;
 
 /*
@@ -964,15 +966,15 @@ static void vo_free_img_buffers (xine_video_port_t *this_gen) {
 
   while (this->free_img_buf_queue->first) {
     img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
-    free(img->extra_info);
     img->dispose (img);
   }
 
   while (this->display_img_buf_queue->first) {
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue) ;
-    free(img->extra_info);
     img->dispose (img);
   }
+
+  free (this->extra_info_base);
 }
 
 static void vo_exit (xine_video_port_t *this_gen) {
@@ -1117,6 +1119,9 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) {
   else if (num_frame_buffers<5) 
     num_frame_buffers = 5;
 
+  this->extra_info_base = calloc (num_frame_buffers,
+					  sizeof(extra_info_t));
+
   for (i=0; i<num_frame_buffers; i++) {
     vo_frame_t *img;
 
@@ -1129,8 +1134,8 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) {
     img->displayed = vo_frame_dec_lock;
     img->draw      = vo_frame_draw;
 
-    img->extra_info = malloc(sizeof(extra_info_t));
-    
+    img->extra_info = &this->extra_info_base[i];
+
     vo_append_to_img_buf_queue (this->free_img_buf_queue,
 				img);
   }
