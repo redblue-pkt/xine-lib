@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.13 2003/04/30 06:58:51 tmattern Exp $
+ * $Id: fftscope.c,v 1.14 2003/07/26 17:44:30 tmattern Exp $
  *
  */
 
@@ -538,7 +538,14 @@ static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
   uint64_t vpts = buf->vpts;
   int i, c;
 
-
+  /* HACK: compute a pts using metronom internals */
+  if (!vpts) {
+    metronom_t *metronom = this->stream->metronom;
+    pthread_mutex_lock(&metronom->lock);
+    vpts = metronom->audio_vpts - metronom->vpts_offset;
+    pthread_mutex_unlock(&metronom->lock);
+  }
+  
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
     this->buf.mem = realloc(this->buf.mem, buf->mem_size);

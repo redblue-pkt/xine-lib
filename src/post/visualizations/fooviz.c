@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.7 2003/05/31 18:33:30 miguelfreitas Exp $
+ * $Id: fooviz.c,v 1.8 2003/07/26 17:44:30 tmattern Exp $
  *
  */
 
@@ -172,6 +172,14 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
   uint64_t vpts = buf->vpts;
   int i, j;
   
+  /* HACK: compute a pts using metronom internals */
+  if (!vpts) {
+    metronom_t *metronom = this->stream->metronom;
+    pthread_mutex_lock(&metronom->lock);
+    vpts = metronom->audio_vpts - metronom->vpts_offset;
+    pthread_mutex_unlock(&metronom->lock);
+  }
+
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
     this->buf.mem = realloc(this->buf.mem, buf->mem_size);
