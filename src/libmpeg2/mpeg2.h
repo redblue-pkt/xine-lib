@@ -27,6 +27,7 @@ typedef struct mpeg2dec_s {
     
     uint32_t shift;
     int is_sequence_needed;
+    int is_wait_for_ip_frames;
     int frames_to_drop, drop_frame;
     int in_slice;
     int seek_mode, is_frame_needed;

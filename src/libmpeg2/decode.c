@@ -72,6 +72,7 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec)
 
     mpeg2dec->shift = 0xffffff00;
     mpeg2dec->is_sequence_needed = 1;
+    mpeg2dec->is_wait_for_ip_frames = 2;
     mpeg2dec->frames_to_drop = 0;
     mpeg2dec->drop_frame = 0;
     mpeg2dec->in_slice = 0;
@@ -248,8 +249,13 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
 	  
-	  if (mpeg2dec->drop_frame)
+	  if (mpeg2dec->drop_frame ||
+	      (picture->picture_coding_type == B_TYPE && mpeg2dec->is_wait_for_ip_frames > 0) ||
+	      (picture->picture_coding_type == P_TYPE && mpeg2dec->is_wait_for_ip_frames > 1)) {
 	    picture->current_frame->bad_frame = 1;
+	  } else if (picture->picture_coding_type != D_TYPE && mpeg2dec->is_wait_for_ip_frames > 0) {
+	    mpeg2dec->is_wait_for_ip_frames--;
+	  }
    
 	  if (picture->picture_coding_type == B_TYPE) {
 	    if( picture->current_frame && !picture->current_frame->drawn ) {
@@ -589,7 +595,7 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
   mpeg2_discontinuity(mpeg2dec);
   
   if( !picture->mpeg1 ) 
-    mpeg2dec->is_sequence_needed = 1;
+    mpeg2dec->is_wait_for_ip_frames = 2;
   else {
     /* to free reference frames one also needs to fix slice.c to 
      * abort when they are NULL. unfortunately it seems to break
