@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.39 2001/08/16 19:58:37 ehasenle Exp $
+ * $Id: video_decoder.c,v 1.40 2001/08/18 23:30:51 guenter Exp $
  *
  */
 
@@ -217,7 +217,7 @@ void video_decoder_init (xine_t *this) {
   pthread_attr_t       pth_attrs;
   struct sched_param   pth_params;
 
-  this->video_fifo = fifo_buffer_new (500, 65536);
+  this->video_fifo = fifo_buffer_new (500, 4096);
 
   if((xine_register_event_listener(this, spu_event_handler)) < 1) {
     fprintf(stderr, "xine_register_event_listener() failed.\n");

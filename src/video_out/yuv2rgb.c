@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.11 2001/08/07 23:59:50 guenter Exp $
+ * $Id: yuv2rgb.c,v 1.12 2001/08/18 23:30:51 guenter Exp $
  */
 
 #include "config.h"
@@ -762,6 +762,134 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
   }
 }
 
+/* now for something different: 256 color mode */
+static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
+			       uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
+{
+  int U, V, Y;
+  uint8_t * py_1, * py_2, * pu, * pv;
+  uint8_t * r, * g, * b;
+  uint8_t * dst_1, * dst_2;
+  int width, height;
+  int dy;
+
+  if (this->do_scale) {
+    scale_line (_pu, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_pv, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+    scale_line (_py, this->y_buffer, 
+		this->dest_width, this->step_dx);
+
+    dy = 0;
+    height = this->source_height;
+
+    for (;;) {
+      dst_1 = _dst;
+      py_1  = this->y_buffer;
+      pu    = this->u_buffer;
+      pv    = this->v_buffer;
+
+      width = this->dest_width >> 3;
+
+      do {
+	/* FIXME
+	  RGB(0);
+	  DST1(0);
+
+	  RGB(1);
+	  DST1(1);
+      
+	  RGB(2);
+	  DST1(2);
+
+	  RGB(3);
+	  DST1(3);
+	  */
+
+	  pu += 4;
+	  pv += 4;
+	  py_1 += 8;
+	  dst_1 += 8;
+      } while (--width);
+
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+
+      while (dy < 32768) {
+
+	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
+
+	dy += this->step_dy;
+	_dst += this->rgb_stride;
+      }
+
+      if (--height <= 0)
+	break;
+
+      dy -= 32768;
+      _py += this->y_stride;
+
+      scale_line (_py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      if (!(height & 1)) {
+	_pu += this->uv_stride;
+	_pv += this->uv_stride;
+	  
+	scale_line (_pu, this->u_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	scale_line (_pv, this->v_buffer,
+		    this->dest_width >> 1, this->step_dx);
+	  
+      }
+    }
+  } else {
+    height = this->source_height >> 1;
+    do {
+      dst_1 = _dst;
+      dst_2 = _dst + this->rgb_stride;
+      py_1 = _py;
+      py_2 = _py + this->y_stride;
+      pu   = _pu;
+      pv   = _pv;
+      width = this->source_width >> 3;
+      do {
+	/*
+	RGB(0);
+	DST1(0);
+	DST2(0);
+
+	RGB(1);
+	DST2(1);
+	DST1(1);
+
+	RGB(2);
+	DST1(2);
+	DST2(2);
+
+	RGB(3);
+	DST2(3);
+	DST1(3);
+	*/
+
+	pu += 4;
+	pv += 4;
+	py_1 += 8;
+	py_2 += 8;
+	dst_1 += 8;
+	dst_2 += 8;
+      } while (--width);
+
+      _dst += 2 * this->rgb_stride; 
+      _py += 2 * this->y_stride;
+      _pu += this->uv_stride;
+      _pv += this->uv_stride;
+
+    } while (--height);
+  }
+}
+
 static int div_round (int dividend, int divisor)
 {
   if (dividend > 0)
@@ -862,6 +990,12 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode)
     }
     break;
 
+  case MODE_PALETTE:
+
+    /* FIXME: set up 256 color table */
+
+    break;
+
   default:
     fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
     exit (1);
@@ -896,6 +1030,10 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
   case MODE_15_RGB:
   case MODE_16_RGB:
     this->yuv2rgb_fun = yuv2rgb_c_16;
+    break;
+
+  case MODE_PALETTE:
+    this->yuv2rgb_fun = yuv2rgb_c_palette;
     break;
 
   default:

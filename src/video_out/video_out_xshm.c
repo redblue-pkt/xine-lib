@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.25 2001/08/17 16:00:02 ehasenle Exp $
+ * $Id: video_out_xshm.c,v 1.26 2001/08/18 23:30:51 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -987,11 +987,25 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     this->depth = 24;
   }
 
+  XMatchVisualInfo(display, this->screen, this->depth, TrueColor, &this->vinfo);
+
+  if (!XMatchVisualInfo(display, this->screen, this->depth, TrueColor, 
+			&this->vinfo)) {
+
+    printf ("video_out_xshm: couldn't find true color visual\n");
+
+    this->depth = 8;
+    if (!XMatchVisualInfo(display, this->screen, this->depth, StaticColor, 
+			  &this->vinfo)) {
+      printf ("video_out_xshm: couldn't find static color visual\n");
+      return NULL;
+    }
+  }
+
   if (this->depth>16) 
     printf ("\n\nWARNING: current display depth is %d. For better performance\na depth of 16 bpp is recommended!\n\n",
 	    this->depth);
 
-  XMatchVisualInfo(display, this->screen, this->depth, TrueColor, &this->vinfo);
 
   /*
    * check for X shared memory support
@@ -1045,6 +1059,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
       mode = MODE_15_RGB;
     else
       mode = MODE_15_BGR;
+    break;
+  case 8:
+    mode = MODE_PALETTE;
     break;
   }
 

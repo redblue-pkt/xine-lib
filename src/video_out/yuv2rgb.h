@@ -16,6 +16,7 @@
 #define MODE_24_BGR 6
 #define MODE_32_RGB 7
 #define MODE_32_BGR 8
+#define MODE_PALETTE 9
 
 typedef struct yuv2rgb_s yuv2rgb_t;
 
