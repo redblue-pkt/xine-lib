@@ -29,7 +29,8 @@ xine-lib (1-rc8)
   * fixed mmst and mmsh issues with the cache plugin
   * fixed mmsh "RESET" chunk handling
   * implemented winamp.com "streaming" protocol
-  * metainfo (title, artist, etc) returned by the xine-lib is now UTF8
+  * meta info (title, artist, etc) returned by the xine-lib is now UTF8
+  * new XINE_META_INFO_TRACK_NUMBER meta info
   
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
