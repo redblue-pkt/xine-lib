@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.20 2002/08/01 03:56:31 tmmm Exp $
+ * $Id: demux_film.c,v 1.21 2002/08/02 13:00:13 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -663,12 +663,14 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   int left, middle, right;
   int found;
   int64_t keyframe_pts;
+  int status;
 
   pthread_mutex_lock( &this->mutex );
 
   if (!this->thread_running) {
+    status = this->status;
     pthread_mutex_unlock( &this->mutex );
-    return this->status;
+    return status;
   }
 
   /* perform a binary search on the sample table, testing the offset 
@@ -676,9 +678,9 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   if (start_pos <= this->data_start)
     best_index = 0;
   else if (start_pos >= this->data_end) {
-    this->status = DEMUX_FINISHED;
+    status = this->status = DEMUX_FINISHED;
     pthread_mutex_unlock( &this->mutex );
-    return this->status;
+    return status;
   } else {
     left = 0;
     right = this->sample_count - 1;
@@ -720,10 +722,10 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   }
 
   this->current_sample = best_index;
-  this->status = DEMUX_OK;
+  status = this->status = DEMUX_OK;
   pthread_mutex_unlock( &this->mutex );
 
-  return this->status;
+  return status;
 }
 
 static void demux_film_stop (demux_plugin_t *this_gen) {

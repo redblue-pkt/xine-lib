@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.79 2002/08/02 12:31:28 mroi Exp $
+ * $Id: demux_qt.c,v 1.80 2002/08/02 13:00:12 tmmm Exp $
  *
  */
 
@@ -1626,12 +1626,14 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   int left, middle, right;
   int found;
   int64_t keyframe_pts;
+  int status;
 
   pthread_mutex_lock(&this->mutex);
 
   if (!this->thread_running) {
+    status = this->status;
     pthread_mutex_unlock( &this->mutex );
-    return this->status;
+    return status;
   }
 
   /* perform a binary search on the sample table, testing the offset
@@ -1639,9 +1641,9 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   if (start_pos <= this->qt->frames[0].offset)
     best_index = 0;
   else if (start_pos >= this->qt->frames[this->qt->frame_count - 1].offset) {
-    this->status = DEMUX_FINISHED;
+    status = this->status = DEMUX_FINISHED;
     pthread_mutex_unlock( &this->mutex );
-    return this->status;
+    return status;
   } else {
     left = 0;
     right = this->qt->frame_count - 1;
