@@ -375,7 +375,7 @@ case $host in
     enable_w32dll="yes"
     enable_ffmmx="yes"
     ;;
-  *)
+  i?86*-*-linux* | i386-*-solaris*)
     dnl Set the appropriate architecture define
     case "$host_alias" in
     i?86-* | k?-* | athlon-*) dnl catch i386,i486,i586,i686,k6,k7
@@ -450,12 +450,12 @@ case $host in
 	    DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
 	fi
 
-        dnl enable x86 specific parts of the code
-        enable_w32dll="yes"
-        enable_ffmmx="yes"
+	dnl enable x86 specific parts of the code
+	enable_w32dll="yes"
+	enable_ffmmx="yes"
 
-        AC_DEFINE(__i386__)
 	AC_DEFINE([ARCH_X86],,[x86 architecture])
+	AC_DEFINE(__i386__)
 	AC_DEFINE(FPM_INTEL)
         ;;
 
@@ -469,14 +469,14 @@ case $host in
         DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
 	AC_DEFINE(FPM_64BIT)
         ;;
-    ppc-*-linux-* | powerpc-*) 
+    ppc-*-linux* | powerpc-*) 
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
        	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
 	FORCE_44K_MAX=yes
 	AC_DEFINE(FPM_PPC)
         ;;
 
-    sparc*-*-linux-*)
+    sparc*-*-linux*)
         case $host_alias in
         sparc-*)    cpu_cflags="-mcpu=supersparc -mtune=supersparc" ;;
         sparc64-*)  cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
