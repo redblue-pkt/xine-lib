@@ -195,17 +195,17 @@ typedef struct {
   xine_event_queue_t      *event_queue;
 
   pvrscr_t                *scr;
-  int	                   scr_tunning;
+  int	                   scr_tuning;
 
 } v4l_input_plugin_t;
 
 /*
  * ***************************************************
- * unix System Clock Reference + fine tunning
+ * unix System Clock Reference + fine tuning
  *
  * This code is copied and paste from the input_pvr.c
  *
- * the fine tunning option is used to change play
+ * the fine tuning option is used to change play
  * speed in order to regulate fifo usage, that is,
  * trying to match the rate of generated data.
  *
@@ -224,7 +224,7 @@ struct pvrscr_s {
   int64_t          cur_pts;
   int              xine_speed;
   double           speed_factor;
-  double           speed_tunning;
+  double           speed_tuning;
   
   pthread_mutex_t  lock;
 };
@@ -256,7 +256,7 @@ static void pvrscr_set_pivot(pvrscr_t *this)
   return;
 }
 
-static int pvrscr_set_speed (scr_plugin_t *scr, int speed)
+static int pvrscr_set_fine_speed (scr_plugin_t *scr, int speed)
 {
   pvrscr_t *this = (pvrscr_t*) scr;
   
@@ -265,21 +265,21 @@ static int pvrscr_set_speed (scr_plugin_t *scr, int speed)
   pvrscr_set_pivot( this );
   this->xine_speed   = speed;
   this->speed_factor = (double) speed * 90000.0 / XINE_FINE_SPEED_NORMAL *
-    this->speed_tunning;
+    this->speed_tuning;
   
   pthread_mutex_unlock (&this->lock);
   
   return speed;
 }
 
-static void pvrscr_speed_tunning (pvrscr_t *this, double factor)
+static void pvrscr_speed_tuning (pvrscr_t *this, double factor)
 {
   pthread_mutex_lock (&this->lock);
   
   pvrscr_set_pivot( this );
-  this->speed_tunning = factor;
-  this->speed_factor  = (double) this->xine_speed * 90000.0 / 4.0 *
-    this->speed_tunning;
+  this->speed_tuning = factor;
+  this->speed_factor  = (double) this->xine_speed * 90000.0 / XINE_FINE_SPEED_NORMAL *
+    this->speed_tuning;
   
   pthread_mutex_unlock (&this->lock);
 }
@@ -307,10 +307,10 @@ static void pvrscr_start (scr_plugin_t *scr, int64_t start_vpts)
   
   xine_monotonic_clock(&this->cur_time, NULL);
   this->cur_pts = start_vpts;
-  
+
   pthread_mutex_unlock (&this->lock);
   
-  pvrscr_set_speed (&this->scr, XINE_FINE_SPEED_NORMAL);
+  pvrscr_set_fine_speed (&this->scr, XINE_FINE_SPEED_NORMAL);
 }
 
 static int64_t pvrscr_get_current (scr_plugin_t *scr)
@@ -330,6 +330,7 @@ static int64_t pvrscr_get_current (scr_plugin_t *scr)
   
   pthread_mutex_unlock (&this->lock);
   
+/*printf("returning pts %lld\n", pts);*/
   return pts;
 }
 
@@ -349,7 +350,7 @@ static pvrscr_t* pvrscr_init (void)
    
    this->scr.interface_version = 3;
    this->scr.get_priority      = pvrscr_get_priority;
-   this->scr.set_fine_speed    = pvrscr_set_speed;
+   this->scr.set_fine_speed    = pvrscr_set_fine_speed;
    this->scr.adjust            = pvrscr_adjust;
    this->scr.start             = pvrscr_start;
    this->scr.get_current       = pvrscr_get_current;
@@ -357,8 +358,8 @@ static pvrscr_t* pvrscr_init (void)
    
    pthread_mutex_init (&this->lock, NULL);
 
-   pvrscr_speed_tunning(this, 1.0 );
-   pvrscr_set_speed (&this->scr, XINE_SPEED_PAUSE);
+   pvrscr_speed_tuning(this, 1.0 );
+   pvrscr_set_fine_speed (&this->scr, XINE_SPEED_PAUSE);
 #ifdef SCRLOG
    printf("input_v4l: scr init complete\n");
 #endif
@@ -1102,7 +1103,7 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
 static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fifo, int speed)
 {
   int  num_used, num_free;
-  int  scr_tunning = this->scr_tunning;
+  int  scr_tuning = this->scr_tuning;
   
   if (fifo == NULL)
     return 0;
@@ -1110,7 +1111,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
   num_used = fifo->size(fifo);
   num_free = NUM_FRAMES - num_used;
   
-  if (!this->audio_only && num_used == 0 && scr_tunning != SCR_PAUSED) {
+  if (!this->audio_only && num_used == 0 && scr_tuning != SCR_PAUSED) {
     /* Buffer is empty, and we did not pause playback */
     report_progress(this->stream, SCR_PAUSED);
     
@@ -1121,32 +1122,32 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     _x_set_speed(this->stream, XINE_SPEED_PAUSE);
     this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
     
-    this->scr_tunning = SCR_PAUSED;
-    /*      pvrscr_speed_tunning(this->scr, 0.0); */
+    this->scr_tuning = SCR_PAUSED;
+    /*      pvrscr_speed_tuning(this->scr, 0.0); */
     
-  } else if (num_free <= 1 && scr_tunning != SCR_SKIP) {
-    this->scr_tunning = SCR_SKIP;
+  } else if (num_free <= 1 && scr_tuning != SCR_SKIP) {
+    this->scr_tuning = SCR_SKIP;
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
             "input_v4l: Buffer full, skipping (used: %d, free: %d)\n", num_used, num_free);
     return 0;
-  } else if (scr_tunning == SCR_PAUSED) {
+  } else if (scr_tuning == SCR_PAUSED) {
     if (2 * num_used > num_free) {
       /* Playback was paused, but we have normal buffer usage again */
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_v4l: Resuming from paused (used: %d, free: %d)\n", num_used, num_free);
       
-      this->scr_tunning = 0;
+      this->scr_tuning = 0;
       
-      pvrscr_speed_tunning(this->scr, 1.0);
+      pvrscr_speed_tuning(this->scr, 1.0);
       
       _x_set_speed(this->stream, XINE_SPEED_NORMAL);
       this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
     }
-  } else if (scr_tunning == SCR_SKIP) {
+  } else if (scr_tuning == SCR_SKIP) {
     if (num_used < 2 * num_free) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
               "input_v4l: Resuming from skipping (used: %d, free %d)\n", num_used, num_free);
-      this->scr_tunning = 0;
+      this->scr_tuning = 0;
     } else {
       return 0;
     }
@@ -1154,35 +1155,35 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     if (num_used > 2 * num_free)
       /* buffer used > 2/3. Increase playback speed to avoid buffer
        * overrun */
-      scr_tunning = +1;
+      scr_tuning = +1;
     else if (num_free > 2 * num_used)
       /* Buffer used < 1/3. Decrease playback speed to avoid buffer
        * underrun */
-      scr_tunning = -1;
-    else if ((scr_tunning > 0 && num_free > num_used) ||
-	     (scr_tunning < 0 && num_used > num_free))
+      scr_tuning = -1;
+    else if ((scr_tuning > 0 && num_free > num_used) ||
+	     (scr_tuning < 0 && num_used > num_free))
       /* Buffer usage is ok again. Set playback speed to normal */
-      scr_tunning = 0;
+      scr_tuning = 0;
     
     /* Check if speed adjustment should be changed */ 
-    if (scr_tunning != this->scr_tunning) {
-      this->scr_tunning = scr_tunning;
+    if (scr_tuning != this->scr_tuning) {
+      this->scr_tuning = scr_tuning;
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-              "input_v4l: scr tunning = %d (used: %d, free: %d)\n", 
-              scr_tunning, num_used, num_free);
-      pvrscr_speed_tunning(this->scr, 1.0 + (0.01 * scr_tunning));
+              "input_v4l: scr tuning = %d (used: %d, free: %d)\n", 
+              scr_tuning, num_used, num_free);
+      pvrscr_speed_tuning(this->scr, 1.0 + (0.01 * scr_tuning));
     }
-  } else if (this->scr_tunning) {
+  } else if (this->scr_tuning) {
     /* Currently speed adjustment is on. But xine is not playing at normal
      * speed, so there is no reason why we should try to adjust our playback
      * speed
      */
-    this->scr_tunning = 0;
+    this->scr_tuning = 0;
     
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "input_v4l: scr tunning resetting (used: %d, free: %d\n", num_used, num_free);
+            "input_v4l: scr tuning resetting (used: %d, free: %d\n", num_used, num_free);
     
-    pvrscr_speed_tunning(this->scr, 1.0);
+    pvrscr_speed_tuning(this->scr, 1.0);
   }
   
   return 1;
@@ -1680,7 +1681,7 @@ static int v4l_plugin_video_open (input_plugin_t *this_gen)
   this->scr           = pvrscr_init();
   this->scr->scr.start(&this->scr->scr, time);
   this->stream->xine->clock->register_scr(this->stream->xine->clock, &this->scr->scr);
-  this->scr_tunning   = 0;
+  this->scr_tuning    = 0;
   
   /* enable resample method */
   this->stream->xine->config->update_num(this->stream->xine->config, "audio.synchronization.av_sync_method", 1);
