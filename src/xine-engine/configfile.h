@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.2 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: configfile.h,v 1.3 2001/07/26 11:12:26 f1rmb Exp $
  *
  * config file management
  *
@@ -32,9 +32,18 @@ extern "C" {
 
 #include <inttypes.h>
 
-typedef struct config_values_s config_values_t;
-typedef struct cfg_data_s cfg_data_t;
+typedef struct cfg_entry_s {
+  struct cfg_entry_s  *next;
+  char                *key;
+  char                *value;
+} cfg_entry_t;
 
+typedef struct {
+  cfg_entry_t         *gConfig;
+  cfg_entry_t         *gConfigLast;
+} cfg_data_t;
+
+typedef struct config_values_s config_values_t;
 struct config_values_s {
   /*
    * lookup config values
@@ -87,6 +96,10 @@ config_values_t *config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.3  2001/07/26 11:12:26  f1rmb
+ * Updated doxy sections in xine.h.tmpl.in. Added man3. Removed french man page. Added API doc in html. Add new rpm package (doc). Fixes some little bugs in
+ * proto decl, etc...
+ *
  * Revision 1.2  2001/07/18 21:38:17  f1rmb
  * Split alsa drivers, more checks about versions. Made xine lib c++ compliant.
  *
@@ -104,7 +117,3 @@ config_values_t *config_file_init (char *filename);
  * started touching demuxers
  *
  */
-
-
-
-

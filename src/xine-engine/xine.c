@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.36 2001/07/25 23:26:14 richwareham Exp $
+ * $Id: xine.c,v 1.37 2001/07/26 11:12:26 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -357,12 +357,12 @@ void xine_pause (xine_t *this) {
   pthread_mutex_unlock (&this->xine_lock);
 }
 
-void event_handler(xine_t *xine, event_t *event, void *data) {
+static void event_handler(xine_t *xine, event_t *event, void *data) {
   /* Check Xine handle/current input plugin is not NULL */
   if((xine == NULL) || (xine->cur_input_plugin == NULL)) {
     return;
   }
-
+  
   switch(event->type) {
   case XINE_MOUSE_EVENT: 
     {
@@ -372,7 +372,7 @@ void event_handler(xine_t *xine, event_t *event, void *data) {
       if(xine->cur_input_plugin->handle_input_event != NULL) {
 	if(mevent->button != 0) {
 	  /* Click event. */
-	  xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
+  	  xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
 						     INPUT_EVENT_MOUSEBUTTON,
 						     0, mevent->x, mevent->y);
 	} else {
@@ -474,7 +474,9 @@ xine_t *xine_init (vo_driver_t *vo,
    */
   this->num_event_listeners = 0; /* Initially there are none */
 
-  xine_register_event_listener(this, event_handler);
+  if((xine_register_event_listener(this, event_handler)) < 1) {
+    fprintf(stderr, "xine_register_event_listener() failed.\n");
+  }
 
   return this;
 }

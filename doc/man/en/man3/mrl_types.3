@@ -1,0 +1,188 @@
+.TH "Types of available mrls" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Types of available mrls \- 
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBmrl_unknown\fP   (0 << 0)"
+.br
+.ti -1c
+.RI "#define \fBmrl_dvd\fP   (1 << 0)"
+.br
+.ti -1c
+.RI "#define \fBmrl_vcd\fP   (1 << 1)"
+.br
+.ti -1c
+.RI "#define \fBmrl_net\fP   (1 << 2)"
+.br
+.ti -1c
+.RI "#define \fBmrl_rtp\fP   (1 << 3)"
+.br
+.ti -1c
+.RI "#define \fBmrl_stdin\fP   (1 << 4)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file\fP   (1 << 5)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_fifo\fP   (1 << 6)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_chardev\fP   (1 << 7)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_directory\fP   (1 << 8)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_blockdev\fP   (1 << 9)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_normal\fP   (1 << 10)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_symlink\fP   (1 << 11)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_sock\fP   (1 << 12)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_exec\fP   (1 << 13)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_backup\fP   (1 << 14)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_hidden\fP   (1 << 15)"
+.br
+.in -1c
+.SH "DETAILED DESCRIPTION"
+.PP 
+These types are bit field, can be used ORed/ANDed. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define mrl_dvd   (1 << 0)"
+.PP
+DVD mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file   (1 << 5)"
+.PP
+File mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_backup   (1 << 14)"
+.PP
+Backup file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_blockdev   (1 << 9)"
+.PP
+Block device file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_chardev   (1 << 7)"
+.PP
+Char device file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_directory   (1 << 8)"
+.PP
+Directory file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_exec   (1 << 13)"
+.PP
+Executable file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_fifo   (1 << 6)"
+.PP
+Fifo file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_hidden   (1 << 15)"
+.PP
+Hidden file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_normal   (1 << 10)"
+.PP
+Normal file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_sock   (1 << 12)"
+.PP
+Socket file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_file_symlink   (1 << 11)"
+.PP
+Soft link file mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_net   (1 << 2)"
+.PP
+Network mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_rtp   (1 << 3)"
+.PP
+Multicast mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_stdin   (1 << 4)"
+.PP
+Standart input mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_unknown   (0 << 0)"
+.PP
+Unknow mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 
+.SS "#define mrl_vcd   (1 << 1)"
+.PP
+VCD mrl type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP 

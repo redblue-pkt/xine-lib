@@ -3,33 +3,32 @@
  * \author Guenter Bartsch <guenter@users.sourceforge.net>
  * \author Siegfried Langauf <siggi@users.sourceforge.net>
  * \author Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
- * \date 2000-2001
+ * \date 25/07/2001
  *
  * API of XINE library.
- *
- * \verbatim
+ \verbatim
    Copyright (C) 2000-2001 the xine project
-  
+ 
    This file is part of xine, a unix video player.
-  
+ 
    xine is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
    (at your option) any later version.
-  
+ 
    xine is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-  
+ 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
-
-   \endverbatim
+ 
+ \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.32 2001/07/24 21:42:05 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.33 2001/07/26 11:12:26 f1rmb Exp $
  *
  */
 
@@ -44,195 +43,104 @@ extern "C" {
 #include <unistd.h>
 #include <sys/types.h>
 
-#include <xine/events.h>
-
-
-/** 
- * \defgroup versgroup Version constants 
- * @{
- */
-/** \brief Major version constant */
-#define XINE_MAJOR_VERSION @XINE_MAJOR@
-/** \brief Minor version constant */
-#define XINE_MINOR_VERSION @XINE_MINOR@
-/** \brief Sub version constant */
-#define XINE_SUB_VERSION   @XINE_SUB@
-/** @} end of versgroup */
-
-#define XINE_BUILD_CC "@XINE_BUILD_CC@"
-#define XINE_BUILD_OS "@XINE_BUILD_OS@"
-#define XINE_BUILD_DATE "@XINE_BUILD_DATE@"
-
 #ifndef DOC_HIDDEN
-typedef void ao_functions_t;
-typedef void xine_t;
+#include <xine/events.h>
 #endif
 
-typedef struct config_values_s config_values_t;
-
-struct config_values_s {
-  /*
-   * lookup config values
-   */
-  char* (*lookup_str) (config_values_t *self,
-		       char *key, char *str_default);
-  
-  int (*lookup_int) (config_values_t *self,
-		     char *key, int n_default);
-  
-  /*
-   * set config values
-   */
-  
-  void (*set_str) (config_values_t *self,
-		   char *key, char *value) ;
-  
-  void (*set_int) (config_values_t *self,
-		   char *key, int value) ;
-  
-  /*
-   * write config file to disk
-   */
-  void (*save) (config_values_t *self);
-
-  /*
-   * read config file from disk, ovverriding values in memory
-   * if you also want to clear values that are not in the file,
-   * use _init instead!
-   */
-  void (*read) (config_values_t *self, char *filename);
-};
-
-/*
- * video driver capabilities
+/**
+ * \def XINE_SKINDIR
+ * Skin file location
  */
-/* driver can set HUE value */
-#define VO_CAP_HUE          0x00000010 /* driver can set HUE value */
-#define VO_CAP_SATURATION   0x00000020 /* driver can set SATURATION value */
-#define VO_CAP_BRIGHTNESS   0x00000040 /* driver can set BRIGHTNESS value */
-#define VO_CAP_CONTRAST     0x00000080 /* driver can set CONTRAST value */
-#define VO_CAP_COLORKEY     0x00000100 /* driver can set COLORKEY value */
+#define XINE_SKINDIR    "@XINE_SKINPATH@"
 
-/*
- * constants for the get/set property functions
+     /**
+      * \defgroup build_info Build informations
+      * @{
+      */
+
+/**
+ * \def XINE_BUILD_CC
+ * Compiler used to build xine-lib
  */
-#define VO_PROP_INTERLACED      0
-#define VO_PROP_ASPECT_RATIO    1
-#define VO_PROP_HUE             2
-#define VO_PROP_SATURATION      3
-#define VO_PROP_CONTRAST        4
-#define VO_PROP_BRIGHTNESS      5 
-#define VO_PROP_COLORKEY        6 
-#define VO_NUM_PROPERTIES       7
+#define XINE_BUILD_CC      "@XINE_BUILD_CC@"
+/** \def XINE_BUILD_OS
+ * OS used to build xine-lib
+ */
+#define XINE_BUILD_OS      "@XINE_BUILD_OS@"
+/** \def XINE_BUILD_DATE
+ * Build time
+ */
+#define XINE_BUILD_DATE    "@XINE_BUILD_DATE@"
 
-/* possible ratios for the VO_PROP_ASPECT_RATIO call */
+     /** @} end of build_info */
 
-#define ASPECT_AUTO        0
-#define ASPECT_ANAMORPHIC  1 /* 16:9 */
-#define ASPECT_FULL        2 /* 4:3  */
-#define ASPECT_DVB         3 /* 1:2  */
+     /**
+      * \defgroup xine_api API functions
+      * @{
+      */
 
-typedef struct vo_driver_s vo_driver_t;
-typedef void vo_frame_t;
-typedef void vo_overlay_t;
-
-struct vo_driver_s {
-
-  uint32_t (*get_capabilities) (vo_driver_t *self); /* for constants see above */
-
-  /* 
-   * allocate an vo_frame_t struct,
-   * the driver must supply the copy, field and dispose functions
-   */
-  vo_frame_t* (*alloc_frame) (vo_driver_t *self);
-
-
-  /* 
-   * check if the given image fullfills the format specified
-   * (re-)allocate memory if necessary
-   */
-  void (*update_frame_format) (vo_driver_t *self, vo_frame_t *img,
-			       uint32_t width, uint32_t height, 
-			       int ratio_code, int format);
-
-  /* display a given frame */
-  void (*display_frame) (vo_driver_t *self, vo_frame_t *vo_img);
-
-  /* overlay functions */
-  void (*overlay_blend) (vo_driver_t *self, vo_frame_t *vo_img, vo_overlay_t *overlay);
-
-  /*
-   * these can be used by the gui directly:
-   */
-  
-  int (*get_property) (vo_driver_t *self, int property);
-  int (*set_property) (vo_driver_t *self, 
-		       int property, int value);
-  void (*get_property_min_max) (vo_driver_t *self,
-				int property, int *min, int *max);
-
-  /*
-   * general purpose communication channel between gui and driver
-   *
-   * this should be used to propagate events, display data, window sizes
-   * etc. to the driver
-   */
-
-  int (*gui_data_exchange) (vo_driver_t *self, int data_type,
-			    void *data);
-
-  void (*exit) (vo_driver_t *self);
-
-};
+          /**
+	   * \defgroup status_group Player status constants
+	   * @{
+	   */
 
 /** 
- * \brief xine ui callback function pointer types
- * @see xine_init()
- *
- */
-typedef void (*gui_stream_end_cb_t)(int nStatus);
-typedef char* (*gui_get_next_mrl_cb_t) (void);
-typedef void (*gui_branched_cb_t) (void);
-
-/**
- * \defgroup statgroup Player status constants
- * @{
- */
-/** \brief Stop status 
- * @see xine_get_status()
+ * \def XINE_STOP
+ * Stop status.
+ * \sa xine_get_status()
  */
 #define XINE_STOP      0
-/** \brief Play status
- * @see xine_get_status()
+/**
+ * \def XINE_PLAY
+ * Play status.
+ * \sa xine_get_status()
  */
 #define XINE_PLAY      1
-/** \brief Pause status
- * @see xine_get_status()
+/**
+ * \def XINE_PAUSE
+ * Pause status.
+ * \sa xine_get_status()
  */
 #define XINE_PAUSE     2
-/** \brief Quit status
- * @see xine_get_status()
+/** 
+ * \def XINE_QUIT
+ * Quit status.
+ * \sa xine_get_status()
  */
 #define XINE_QUIT      3
-/** @} end of statgroup */
 
-#define DEMUX_DEFAULT_STRATEGY    0
-#define DEMUX_REVERT_STRATEGY     1
-#define DEMUX_CONTENT_STRATEGY    2
-#define DEMUX_EXTENSION_STRATEGY  3
+          /** @} end of status_group */
+
+          /** 
+	   * \defgroup version_group Version constants 
+	   * @{
+	   */
 
 /**
- * @defgroup xine_api API functions
- * @{
+ * \def XINE_MAJOR_VERSION
+ * Major version constant.
  */
+#define XINE_MAJOR_VERSION @XINE_MAJOR@
+/**
+ * \def XINE_MINOR_VERSION
+ * Minor version constant.
+ */
+#define XINE_MINOR_VERSION @XINE_MINOR@
+/**
+ * \def XINE_SUB_VERSION
+ * Sub version constant.
+ */
+#define XINE_SUB_VERSION   @XINE_SUB@
+
+          /** @} end of version_group */
+
+          /**
+	   * \defgroup xine_version Version functions
+	   * @{
+	   */
 
 /**
- * @defgroup xine_version API functions
- * @ingroup xine_api
- * @{
- */
-/**
- * \fn *xine_get_str_version(void);
+ * \fn char *xine_get_str_version(void);
  * \brief return string version, like "0.5.0"
  * \param None.
  * \return string version
@@ -279,33 +187,380 @@ int xine_get_sub_version(void);
  */
 int xine_check_version(int major, int minor, int sub);
 
-/** @} end of xine_version */
+          /** @} end of xine_version */
 
+          /** 
+	   * \defgroup video_group Video.
+	   * @{
+	   */
 
-/** @defgroup xine_init_api Init functions
- * @ingroup xine_api
- * @{
+                /**
+		 * 
+		 * \defgroup video_cap video driver capabilities
+		 * @{
+		 */
+/** 
+ * \def VO_CAP_HUE
+ * Driver can set HUE value.
  */
+#define VO_CAP_HUE          0x00000010
+/** 
+ * \def VO_CAP_SATURATION
+ * Driver can set SATURATION value.
+ */
+#define VO_CAP_SATURATION   0x00000020
+/**
+ * \def VO_CAP_BRIGHTNESS
+ * Driver can set BRIGHTNESS value.
+ */
+#define VO_CAP_BRIGHTNESS   0x00000040
+/**
+ * \def VO_CAP_CONTRAST
+ * Driver can set CONTRAST value.
+ */
+#define VO_CAP_CONTRAST     0x00000080
+/**
+ * \def VO_CAP_COLORKEY
+ * Driver can set COLORKEY value.
+ */
+#define VO_CAP_COLORKEY     0x00000100
+
+               /** @} end of video_cap */
+
+               /**
+		* 
+		* \defgroup video_prop Constants for the get/set properties functions.
+		* @{
+		*/
+/**
+ * \def VO_PROP_INTERLACED
+ * Interleave property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_INTERLACED      0
+/**
+ * \def VO_PROP_ASPECT_RATIO
+ * Aspect ratio property.
+ * \sa vo_driver_t, video_ratio
+ */
+#define VO_PROP_ASPECT_RATIO    1
+/**
+ * \def VO_PROP_HUE
+ * Hue property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_HUE             2
+/**
+ * \def VO_PROP_SATURATION
+ * Saturation property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_SATURATION      3
+/**
+ * \def VO_PROP_CONTRAST
+ * Contrast property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_CONTRAST        4
+/**
+ * \def VO_PROP_BRIGHTNESS
+ * Brightness property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_BRIGHTNESS      5
+/**
+ * \def VO_PROP_COLORKEY
+ * Colorkey property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_COLORKEY        6
+/**
+ * \def VO_NUM_PROPERTIES
+ * Number of available properties property.
+ * \sa vo_driver_t
+ */
+#define VO_NUM_PROPERTIES       7
+
+               /** @} end of video_prop */
+
+               /**
+		* \defgroup video_ratio Possible ratios for the VO_PROP_ASPECT_RATIO call
+		* \sa VO_PROP_ASPECT_RATIO, vo_driver_t
+		* @{
+		*/
+
+/**
+ * \def ASPECT_AUTO
+ * Let video driver guessing aspect ratio.
+ * \sa VO_PROP_ASPECT_RATIO
+ */
+#define ASPECT_AUTO        0
+/**
+ * \def ASPECT_ANAMORPHIC
+ * Set aspect ration to 16:9.
+ * \sa VO_PROP_ASPECT_RATIO
+ */
+#define ASPECT_ANAMORPHIC  1
+/**
+ * \def ASPECT_FULL
+ * Set aspect ration to 4:3.
+ * \sa VO_PROP_ASPECT_RATIO
+ */
+#define ASPECT_FULL        2
+/**
+ * \def ASPECT_DVB
+ * Set aspect ration to 1:2.
+ * \sa VO_PROP_ASPECT_RATIO
+ */
+#define ASPECT_DVB         3
+
+               /** @} end of video_ratio */
+
+/**
+ * \struct vo_frame_t
+ * Opaque data type.
+ * \sa vo_driver_t
+ */
+typedef void vo_frame_t;
+/**
+ * \struct vo_overlay_t
+ * Opaque data type.
+ * \sa vo_driver_t
+ */
+typedef void vo_overlay_t;
+
+/**
+ * \struct vo_driver_t
+ * \brief Data type of structure vo_driver_s.
+ * \sa structure vo_driver_s.
+ */
+typedef struct vo_driver_s vo_driver_t;
+
+/**
+ * \struct vo_driver_s
+ * Video driver fonctions.
+ */
+struct vo_driver_s {
+  /**
+   * Get capabilities of video driver.
+   * \sa video_cap
+   */
+  uint32_t (*get_capabilities) (vo_driver_t *self);
+  /**
+   * Allocate an vo_frame_t struct,
+   * the driver must supply the copy, field and dispose functions
+   */
+  vo_frame_t* (*alloc_frame) (vo_driver_t *self);
+  /**
+   * Check if the given image fullfills the format specified
+   * (re-)allocate memory if necessary
+   */
+  void (*update_frame_format) (vo_driver_t *self, vo_frame_t *img,
+			       uint32_t width, uint32_t height, 
+			       int ratio_code, int format);
+  /**
+   * Display a given frame
+   */
+  void (*display_frame) (vo_driver_t *self, vo_frame_t *vo_img);
+  /**
+   * Overlay functions
+   */
+  void (*overlay_blend) (vo_driver_t *self, vo_frame_t *vo_img, vo_overlay_t *overlay);
+  /**
+   * These can be used by the gui directly:
+   */
+  /**
+   * Get value if property.
+   * \sa video_prop
+   */
+  int (*get_property) (vo_driver_t *self, int property);
+  /**
+   * Set value of property.
+   * \sa video_prop
+   */
+  int (*set_property) (vo_driver_t *self, 
+		       int property, int value);
+  /**
+   * Get min/max values of property.
+   * \sa video_prop
+   */
+  void (*get_property_min_max) (vo_driver_t *self,
+				int property, int *min, int *max);
+  /** 
+   * General purpose communication channel between gui and driver
+   *
+   * this should be used to propagate events, display data, window sizes
+   * etc. to the driver
+   */
+  int (*gui_data_exchange) (vo_driver_t *self, int data_type,
+			    void *data);
+  /**
+   * Leaving video driver.
+   */
+  void (*exit) (vo_driver_t *self);
+
+};
+
+          /** @} end of video_group */
+
+          /** 
+	   * \defgroup xine_init Init functions
+	   * @{
+	   */
+
+               /** 
+		* \defgroup config_group Configuration structure type.
+		* @{
+		*/
+
+/**
+ * \struct xine_t
+ * Opaque data type.
+ * \sa xine_load_audio_output_plugin
+ */
+typedef void xine_t;
+/**
+ * \struct ao_functions_t 
+ * Opaque data type.
+ */
+typedef void ao_functions_t;
+/**
+ * \struct cfg_data_t
+ * Opaque data type.
+ */
+typedef void cfg_data_t;
+/**
+ * \struct config_values_t
+ * \brief Data type of structure config_values_s.
+ * \sa config_values_s.
+ */
+typedef struct config_values_s config_values_t;
+/**
+ * \struct config_values_s
+ * Configuration file manipulation.
+ * \sa config_file_init()
+ */
+struct config_values_s {
+  /**
+   * Lookup string values in configuration file.
+   */
+  char* (*lookup_str) (config_values_t *self,
+		       char *key, char *str_default);
+  /**
+   * Lookup integer values in configuration file.
+   */
+  int (*lookup_int) (config_values_t *self,
+		     char *key, int n_default);
+  /**
+   * Set string values in configuration file.
+   */
+  void (*set_str) (config_values_t *self,
+		   char *key, char *value) ;
+  /**
+   * Set integer values in configuration file.
+   */
+  void (*set_int) (config_values_t *self,
+		   char *key, int value) ;
+  /**
+   * Write configuration file to disk.
+   */
+  void (*save) (config_values_t *self);
+  /**
+   * Read configuration file from disk, overriding values in memory.
+   * If you also want to clear values that are not in the file,
+   * use config_file_init() instead!
+   */
+  void (*read) (config_values_t *self, char *filename);
+  /** 
+   * Contains private data of this configuration file.
+   */
+  cfg_data_t *data;
+};
+
+               /** @} end of config_group */
+  
+
 /**
  * \fn config_values_t *config_file_init (char *filename)
  * \brief Configuration file initialisation.
  * \param filename Pathname of configuration file.
  * \return Current config
+ * \sa config_values_t
+ * \warning This function should be called at least one time before xine_init() call.
  *
- * Read config file and init a config object * (if it exists)
+ * Read config file and init a config object of config_values_t type (if it exists)
  */
 config_values_t *config_file_init (char *filename);
 
+               /** 
+		* \defgroup ui_callbacks UI communication callbacks.
+		* @{
+		*
+		*/
+
 /**
- * \fn xine_t *xine_init (vo_driver_t *vo, ao_functions_t *ao, gui_status_callback_func_t gui_status_callback, config_values_t *config)
+ * Notify UI when the stream is finished.
+ * \sa xine_init()
+ */
+typedef void (*gui_stream_end_cb_t) (int nStatus);
+/**
+ * Called when xine tries to branch seamlessly to the next mrl.
+ * \sa xine_init()
+ */
+typedef char* (*gui_get_next_mrl_cb_t) (void);
+/**
+ * Called when xine branched successfully to the next mrl.
+ * \sa xine_init()
+ */
+typedef void (*gui_branched_cb_t) (void);
+
+               /** @} end of ui_callbacks */
+
+               /**
+		* \defgroup demux_strategy Possible demuxer guessing strategy.
+		* "demux_strategy" should be set to one of these value in configuration file ( #see @ref config_group) before xine_init() call.
+		* \sa config_values_t
+		* @{
+		*/
+
+/**
+ * \def DEMUX_DEFAULT_STRATEGY
+ * Recognize by content then by extension.
+ * \sa config_values_t
+ */
+#define DEMUX_DEFAULT_STRATEGY    0
+/**
+ * \def DEMUX_REVERT_STRATEGY
+ * Recognize by extension then by content.
+ * \sa config_values_t
+ */
+#define DEMUX_REVERT_STRATEGY     1
+/**
+ * \def DEMUX_CONTENT_STRATEGY
+ * Recognize by content only.
+ * \sa config_values_t
+ */
+#define DEMUX_CONTENT_STRATEGY    2
+/**
+ * \def DEMUX_EXTENSION_STRATEGY
+ * Recognize by extension only.
+ * \sa config_values_t
+ */
+#define DEMUX_EXTENSION_STRATEGY  3
+
+               /** @} end of demux_strategy */
+
+/**
+ * \fn xine_t *xine_init (vo_driver_t *vo, ao_functions_t *ao, config_values_t *config, gui_stream_end_cb_t stream_end_cb, gui_get_next_mrl_cb_t get_next_mrl_cb, gui_branched_cb_t branched_cb);
  * \brief Initialisation of xine.
- * \param vo video driver ( should be previously initialized by vo_init() )
- * \param ao audio driver ( should be previously initializef by ao_init() )
+ * \param vo video driver ( #see @ref xine_load_video_output_plugin() )
+ * \param ao audio driver ( #see @ref xine_load_audio_output_plugin() )
  * \param config current configuration ( #see config_file_init() )
  * \param stream_end cb called on stream end 
  * \param get_next_mrl_cb called to find out next mrl for seamless branching
  * \param branched_cb called if seamless branch was taken
  * \return Current xine engine configuration
+ * \sa vo_driver_t, ao_functions_t, config_values_t, gui_stream_end_cb_t, gui_get_next_mrl_cb_t, gui_branched_cb_t
  * \warning This function should be called before any other xine_*() function.
  *
  * Init of xine. It should called once at startup.
@@ -323,20 +578,20 @@ xine_t *xine_init (vo_driver_t *vo,
 /**
  * \fn void xine_exit (xine_t *self)
  * \brief De-initialisation of xine
- * \param self Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration.
  * \return Nothing
+ * \sa xine_init()
  *
- * De init xine engine.
+ * De-init xine engine.
  */
 void xine_exit (xine_t *self);
 
-/** @} end of xine_init_api */
+          /** @} end of xine_init */
 
-/**
- * @defgroup xine_management_api Engine management
- * @ingroup xine_api
- * @{
- */
+          /**
+	   * \defgroup xine_management Engine management
+	   * @{
+	   */
 /**
  * \fn void xine_play (xine_t *self, char *MRL, int pos)
  * \brief Start to play a stream
@@ -350,7 +605,6 @@ void xine_exit (xine_t *self);
  */
 void xine_play (xine_t *self, char *MRL, int pos);
 
-
 /**
  * \fn void xine_pause (xine_t *self)
  * \brief Pause toggle
@@ -360,7 +614,6 @@ void xine_play (xine_t *self, char *MRL, int pos);
  * Toggle pause mode.
  */
 void xine_pause (xine_t *self);
-
 
 /**
  * \fn void xine_stop (xine_t *self)
@@ -386,7 +639,7 @@ int xine_eject(xine_t *self);
  * \fn int xine_get_status (xine_t *self)
  * \brief Get current xine status
  * \param self Current xine engine configuration ( #see xine_init() )
- * \return Current status ( #see @ref statgroup )
+ * \return Current status ( #see @ref status_group )
  *
  * Return the current state of xine engine.
  */
@@ -442,12 +695,13 @@ int xine_get_spu_channel (xine_t *self);
  */
 void xine_select_spu_channel (xine_t *self, int channel);
 
+         /** @} end of xine_management */
 
-/**
- * @defgroup browsegroup Browsing support
- * @ingroup xine_api
- * @{
- */
+         /**
+	  * \defgroup browse_group Browsing support
+	  * @{
+	  */
+
 /**
  * \fn char **xine_get_browsable_input_plugin_ids (xine_t *self)
  * \brief Request list of browsable featured plugins
@@ -459,27 +713,122 @@ void xine_select_spu_channel (xine_t *self, int channel);
  */
 char **xine_get_browsable_input_plugin_ids (xine_t *self) ;
 
-/* Types of mrls returned by get_dir() */
+               /**
+		* \defgroup mrl_types Types of available mrls
+		* These types are bit field, can be used ORed/ANDed.
+		* \sa mrl_t
+		* @{
+		*/
+
+/**
+ * \def mrl_unknown
+ * Unknow mrl type.
+ * \sa mrl_t
+ */
 #define mrl_unknown        (0 << 0)
+/**
+ * \def mrl_dvd
+ * DVD mrl type.
+ * \sa mrl_t
+ */
 #define mrl_dvd            (1 << 0)
+/**
+ * \def mrl_vcd
+ * VCD mrl type.
+ * \sa mrl_t
+ */
 #define mrl_vcd            (1 << 1)
+/**
+ * \def mrl_net
+ * Network mrl type.
+ * \sa mrl_t
+ */
 #define mrl_net            (1 << 2)
+/**
+ * \def mrl_rtp
+ * Multicast mrl type.
+ * \sa mrl_t
+ */
 #define mrl_rtp            (1 << 3)
+/**
+ * \def mrl_stdin
+ * Standart input mrl type.
+ * \sa mrl_t
+ */
 #define mrl_stdin          (1 << 4)
+/**
+ * \def mrl_file
+ * File mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file           (1 << 5)
+/**
+ * \def mrl_file_fifo
+ * Fifo file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_fifo      (1 << 6)
+/**
+ * \def mrl_file_chardev
+ * Char device file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_chardev   (1 << 7)
+/**
+ * \def mrl_file_directory
+ * Directory file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_directory (1 << 8)
+/**
+ * \def mrl_file_blockdev
+ * Block device file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_blockdev  (1 << 9)
+/**
+ * \def mrl_file_normal
+ * Normal file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_normal    (1 << 10)
+/**
+ * \def mrl_file_symlink
+ * Soft link file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_symlink   (1 << 11)
+/**
+ * \def mrl_file_sock
+ * Socket file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_sock      (1 << 12)
+/**
+ * \def mrl_file_exec
+ * Executable file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_exec      (1 << 13)
+/**
+ * \def mrl_file_backup
+ * Backup file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_backup    (1 << 14)
+/**
+ * \def mrl_file_hidden
+ * Hidden file mrl type.
+ * \sa mrl_t
+ */
 #define mrl_file_hidden    (1 << 15)
 
-/*
+               /** @} end of mrl_types */
+
+/**
+ * \def MRL_ZERO(m)
  * Freeing/zeroing all of entries of given mrl.
+ * \sa mrl_t, xine_get_browse_mrls()
  */
 #define MRL_ZERO(m) {                                                         \
   if((m)) {                                                                   \
@@ -497,8 +846,10 @@ char **xine_get_browsable_input_plugin_ids (xine_t *self) ;
   }                                                                           \
 }
 
-/*
+/**
+ * \def MRL_DUPLICATE(s, d)
  * Duplicate two mrls entries (s = source, d = destination).
+ * \sa mrl_t, xine_get_browse_mrls()
  */
 #define MRL_DUPLICATE(s, d) {                                                 \
   assert((s) != NULL);                                                        \
@@ -541,8 +892,10 @@ char **xine_get_browsable_input_plugin_ids (xine_t *self) ;
   (d)->size = (s)->size;                                                      \
 }
 
-/*
+/**
+ * \def MRLS_DUPLICATE(s, d)
  * Duplicate two arrays of mrls (s = source, d = destination).
+ * \sa mrl_t, xine_get_browse_mrls()
  */
 #define MRLS_DUPLICATE(s, d) {                                                \
   int i = 0;                                                                  \
@@ -557,20 +910,31 @@ char **xine_get_browsable_input_plugin_ids (xine_t *self) ;
   }                                                                           \
 }
 
+/**
+ * \struct mrl_t
+ * mrl type.
+ * \sa xine_get_browse_mrls(), MRL_ZERO, MRL_DUPLICATE, MRLS_DUPLICATE, mrl_types
+ */
 typedef struct {
-  char         *origin;  /* Origin of grabbed mrls (eg: path for file plugin */
-  char         *mrl;     /* <type>://<location>                              */
-  char         *link;    /* name of link, if exist, otherwise NULL           */
-  uint32_t      type;    /* match to mrl_type enum                           */
-  off_t         size;    /* size of this source, may be 0                    */
+  /** Origin of grabbed mrls (eg: path for file plugin */
+  char         *origin;
+  /** <type>://<location> */
+  char         *mrl;
+  /** name of link, if exist, otherwise NULL */
+  char         *link;
+  /** match to mrl_type enum */
+  uint32_t      type;
+  /** size of this source, may be 0 */
+  off_t         size;
 } mrl_t;
 
 /**
- * \fn mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl)
+ * \fn mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl, int *num_mrls)
  *  \brief Request available MRLs from plugins
  * \param self Current xine engine configuration ( #see xine_init() )
  * \param plugin_id Plugin name ( #see xine_get_browsable_input_plugin_ids() )
  * \param start_mrl MRL
+ * \param num_mrl how many mrls was found
  * \return start_mrl on success, NULL on failure.
  *
  * Asks input plugin named <plugin_id> to return
@@ -583,12 +947,12 @@ typedef struct {
 
 mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl, int *num_mrls);
 
-/** @} end of browsegroup*/
+          /** @} end of browse_group */
 
-/**
- * @defgroup autoplaygroup Autoplay support
- * @{
- */
+          /**
+	   * \defgroup autoplay_group Autoplay support
+	   * @{
+	   */
 /**
  * \fn char **xine_get_autoplay_input_plugin_ids (xine_t *self)
  * \brief Request playlist from plugin
@@ -601,100 +965,157 @@ mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl, in
 char **xine_get_autoplay_input_plugin_ids (xine_t *self) ;
 
 /**
- * \fn char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id)
+ * \fn char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls)
  * \brief Request MRL list from plugin
  * \param self Current xine engine configuration ( #see xine_init() )
  * \param plugin_id Plugin name ( #see xine_get_autoplay_input_plugin_ids() )
+ * \param num_mrls Entries in return array.
  * \return MRL list.
  *
  * Get autoplay MRL list for input plugin named <plugin_id>.
- */
+   */
 char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls);
 
-/** @} end of autoplaygroup */
+          /** @} end of autoplay_group */
+
+          /**
+	   * \defgroup loadplugins_group Loading plugins
+	   * output plugin load support functions
+	   * @{
+	   */
 
 /**
- * @defgroup loadpluginsgroup Loading plugins
- * output plugin load support functions
- * @{
+ * \def XINE_PLUGINDIR
+ * Plugin files location.
+ * \ingroup loadplugins_group
  */
+#define XINE_PLUGINDIR  "@XINE_PLUGINPATH@"
 
+                /**
+		 * \defgroup visual_types Valid visual types
+		 * @{
+		 */
+
+/**
+ * \def VISUAL_TYPE_X11
+ * X11 visual type.
+ * \sa xine_list_video_output_plugins, xine_load_video_output_plugin
+*/
 #define VISUAL_TYPE_X11   1
+/**
+ * \def VISUAL_TYPE_AA
+ * Asci Art visual type.
+ * \sa xine_list_video_output_plugins, xine_load_video_output_plugin
+ */
 #define VISUAL_TYPE_AA    2
+/**
+ * \def VISUAL_TYPE_FB
+ * Framebuffer visual type
+ * \sa xine_list_video_output_plugins, xine_load_video_output_plugin
+ */
 #define VISUAL_TYPE_FB    3
+/**
+ * \def VISUAL_TYPE_GTK
+ * GTK visual type
+ * \sa xine_list_video_output_plugins, xine_load_video_output_plugin
+ */
 #define VISUAL_TYPE_GTK   4
 
+               /** @} end of visual_types */
+
 /**
- * \fn char **list_video_output_plugins (int visual_type)
+ * \fn char **xine_list_video_output_plugins (int visual_type)
  * \brief list available video output plugins
+ * \param visual_type #see @ref visual_types
  * \return a list of available video output plugins for the specified visual type - the list is sorted by plugin priority
+ * \sa visual_types
  */
 char **xine_list_video_output_plugins (int visual_type);
 
 /**
- * \fn vo_driver_t *load_video_output_plugin(config_values_t *config, char *id, int visual_type, void *visual)
+ * \fn vo_driver_t *xine_load_video_output_plugin(config_values_t *config, char *id, int visual_type, void *visual)
+ * \param config current configuration ( #see config_file_init() )
+ * \param id driver name.
+ * \param visual_type #see @ref visual_types
+ * \param visual visual type dependant data pointer.
  * \brief load a specific video output plugin
+ * \sa vo_driver_t, visual_types
  */
 vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
-					      char *id, int visual_type, void *visual);
+					   char *id, int visual_type, void *visual);
 
 /**
- * \fn char **list_audio_output_plugins (void)
+ * \fn char **xine_list_audio_output_plugins (void)
  * \brief generate a list of all available audio output plugins
  * \return a list of available audio output plugins  the list returned is sorted by plugin priority
  */
-
 char **xine_list_audio_output_plugins (void);
 
 /**
- * \fn ao_functions_t *load_audio_output_plugin(config_values_t *config, char *id)
- * \brief load a specific audio output plugin
+ * \fn ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id)
+ * \param config current configuration ( #see config_file_init() )
+ * \param id driver name.
+ * \brief load a specific audio output plugin.
+ * \sa ao_functions_t
  */
-
 ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
 
-/** @} end of loadpluginsgroup */
+          /** @} end of loadplugins_group */
 
-#define XINE_PLUGINDIR  "@XINE_PLUGINPATH@"
-#define XINE_SKINDIR    "@XINE_SKINPATH@"
+          /**
+	   * \defgroup event_group Sending events
+	   * Event dispatcher mechanism
+	   * @{
+	   */
 
-/** @} end of xine_api */
 
+#ifdef DOC_HIDDEN
 /**
- * @defgroup eventgroup Sending events
- * Event dispatcher mechanism
- * @{
+ * Opaque data type.
+ * \sa event_listener_t, xine_send_event
  */
+typedef void event_t;
+#endif
 
 /**
  * Event listener callback.
+ * \sa xine_register_event_listener, xine_remove_event_listener
  */
 typedef void (*event_listener_t) (xine_t *xine, event_t *event, void *data);
 
 /**
- * \fn xine_register_event_listener(event_listener_t *listener)
+ * \fn int xine_register_event_listener(xine_t *self, event_listener_t listener)
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param listener callback function.
  * \brief registers an event listener callback.
  * \return 0 if the listener was registerd, non-zero if it could not.
+ * \sa event_listener_t
  */
-
-int xine_register_event_listener(xine_t *self, event_listener_t *listener);
+int xine_register_event_listener(xine_t *self, event_listener_t listener);
 
 /**
- * \fn xine_remove_event_listener(event_listener_t *listener)
+ * \fn int xine_remove_event_listener(xine_t *self, event_listener_t listener)
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param listener callback function.
  * \brief Attempts to remove a registered event listener.
  * \return 0 if the listener was removes, non-zero if it wasn't (e.g. not found).
+ * \sa event_listener_t
  */
-
-int xine_remove_event_listener(xine_t *self, event_listener_t *listener);
+int xine_remove_event_listener(xine_t *self, event_listener_t listener);
 
 /**
- * \fn xine_send_event(event_t *event)
+ * \fn void xine_send_event(xine_t *self, event_t *event, void *data)
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param event FILLME
+ * \param data FILLME.
  * \brief sends an event to all listeners.
+ * \sa event_t
  */
-
 void xine_send_event(xine_t *self, event_t *event, void *data);
 
-/** @} end of eventgroup */
+          /** @} end of event_group */
+
+     /** @} end of xine_api */
 
 #ifdef __cplusplus
 }

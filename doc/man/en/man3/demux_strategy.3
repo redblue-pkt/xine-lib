@@ -1,0 +1,58 @@
+.TH "Possible demuxer guessing strategy." 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Possible demuxer guessing strategy. \- 
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBDEMUX_DEFAULT_STRATEGY\fP   0"
+.br
+.ti -1c
+.RI "#define \fBDEMUX_REVERT_STRATEGY\fP   1"
+.br
+.ti -1c
+.RI "#define \fBDEMUX_CONTENT_STRATEGY\fP   2"
+.br
+.ti -1c
+.RI "#define \fBDEMUX_EXTENSION_STRATEGY\fP   3"
+.br
+.in -1c
+.SH "DETAILED DESCRIPTION"
+.PP 
+'demux_strategy' should be set to one of these value in configuration file ( see Configuration structure type.) before \fBxine_init\fP() call. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBconfig_values_t\fP 
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define DEMUX_CONTENT_STRATEGY   2"
+.PP
+Recognize by content only. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBconfig_values_t\fP 
+.SS "#define DEMUX_DEFAULT_STRATEGY   0"
+.PP
+Recognize by content then by extension. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBconfig_values_t\fP 
+.SS "#define DEMUX_EXTENSION_STRATEGY   3"
+.PP
+Recognize by extension only. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBconfig_values_t\fP 
+.SS "#define DEMUX_REVERT_STRATEGY   1"
+.PP
+Recognize by extension then by content. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBconfig_values_t\fP 

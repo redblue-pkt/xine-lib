@@ -37,7 +37,7 @@ extern "C" {
 /**
  * Generic Event type.
  */
-typedef struct event_s {
+typedef struct {
   uint32_t type;  /* The event type (determines remainder of struct) */
 
   /* Event dependent data goes after this. */
@@ -47,7 +47,7 @@ typedef struct event_s {
  * Mouse event.
  */
 #define XINE_MOUSE_EVENT 0x0001
-typedef struct mouse_event_s {
+typedef struct {
   event_t event;
   uint8_t button; /* Generally 1 = left, 2 = mid, 3 = right */
   uint16_t x,y;   /* In Image space */

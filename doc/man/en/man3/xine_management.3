@@ -1,0 +1,279 @@
+.TH "Engine management" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Engine management \- 
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBxine_play\fP (\fBxine_t\fP *self, char *MRL, int pos)"
+.br
+.RI "\fIStart to play a stream.\fP"
+.ti -1c
+.RI "void \fBxine_pause\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIPause toggle.\fP"
+.ti -1c
+.RI "void \fBxine_stop\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIStop playing.\fP"
+.ti -1c
+.RI "int \fBxine_eject\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIEject media.\fP"
+.ti -1c
+.RI "int \fBxine_get_status\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current xine status.\fP"
+.ti -1c
+.RI "int \fBxine_get_current_position\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current position.\fP"
+.ti -1c
+.RI "int \fBxine_get_audio_channel\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current audio channel.\fP"
+.ti -1c
+.RI "void \fBxine_select_audio_channel\fP (\fBxine_t\fP *self, int channel)"
+.br
+.RI "\fISet audio channel.\fP"
+.ti -1c
+.RI "int \fBxine_get_spu_channel\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current sub-title channel.\fP"
+.ti -1c
+.RI "void \fBxine_select_spu_channel\fP (\fBxine_t\fP *self, int channel)"
+.br
+.RI "\fISet sub-title channel.\fP"
+.in -1c
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "int xine_eject (\fBxine_t\fP * self)"
+.PP
+Eject media.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+1 on success, 0 on failure.
+.PP
+Tell current input plugin to eject media. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "int xine_get_audio_channel (\fBxine_t\fP * self)"
+.PP
+Get current audio channel.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Current audio chennel
+.PP
+Get current audio channel. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "int xine_get_current_position (\fBxine_t\fP * self)"
+.PP
+Get current position.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Current position ( 0..65535 )
+.PP
+Get current position in stream. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "int xine_get_spu_channel (\fBxine_t\fP * self)"
+.PP
+Get current sub-title channel.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Current sub-title channel
+.PP
+Get current sub-title channel. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "int xine_get_status (\fBxine_t\fP * self)"
+.PP
+Get current xine status.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Current status ( see Player status constants )
+.PP
+Return the current state of xine engine. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "void xine_pause (\fBxine_t\fP * self)"
+.PP
+Pause toggle.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Nothing
+.PP
+Toggle pause mode. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "void xine_play (\fBxine_t\fP * self, char * MRL, int pos)"
+.PP
+Start to play a stream.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIMRL\fP\fP
+Media Resource Location to open 
+.TP
+\fB\fIpos\fP\fP
+Start from position (0..65535) 
+.PP
+\fBReturns: \fP
+.in +1c
+Nothing
+.PP
+Open a stream and play it 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIMRL\fP\fP
+ 
+.TP
+\fB\fIpos\fP\fP
+ 
+.SS "void xine_select_audio_channel (\fBxine_t\fP * self, int channel)"
+.PP
+Set audio channel.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Nothing
+.PP
+Set desired audio channel. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIchannel\fP\fP
+ 
+.SS "void xine_select_spu_channel (\fBxine_t\fP * self, int channel)"
+.PP
+Set sub-title channel.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Nothing
+.PP
+Set desired sub-title channel. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIchannel\fP\fP
+ 
+.SS "void xine_stop (\fBxine_t\fP * self)"
+.PP
+Stop playing.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Nothing
+.PP
+Stop the playback. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 

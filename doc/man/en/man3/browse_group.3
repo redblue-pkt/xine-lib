@@ -1,0 +1,169 @@
+.TH "Browsing support" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Browsing support \- 
+.SS "Modules"
+
+.in +1c
+.ti -1c
+.RI "\fBTypes of available mrls\fP"
+.br
+.in -1c
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fBmrl_t\fP"
+.br
+.ti -1c
+.RI "struct \fBmrl_t\fP"
+.br
+.in -1c
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBMRL_ZERO\fP(m)"
+.br
+.ti -1c
+.RI "#define \fBMRL_DUPLICATE\fP(s, d)"
+.br
+.ti -1c
+.RI "#define \fBMRLS_DUPLICATE\fP(s, d)"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "char** \fBxine_get_browsable_input_plugin_ids\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIRequest list of browsable featured plugins.\fP"
+.ti -1c
+.RI "\fBmrl_t\fP** \fBxine_get_browse_mrls\fP (\fBxine_t\fP *self, char *plugin_id, char *start_mrl, int *num_mrls)"
+.br
+.RI "\fIRequest available MRLs from plugins.\fP"
+.in -1c
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define MRLS_DUPLICATE(s, d)"
+.PP
+\fBValue:\fP
+.PP
+.nf
+  {                                                \
+  int i = 0;                                                                  \
+                                                                              \
+  assert((s) != NULL);                                                        \
+  assert((d) != NULL);                                                        \
+                                                                              \
+  while((s) != NULL) {                                                        \
+    d[i] = (mrl_t *) malloc(sizeof(mrl_t));                                   \
+    MRL_DUPLICATE(s[i], d[i]);                                                \
+    i++;                                                                      \
+  }                                                                           \
+}
+.fi
+Duplicate two arrays of mrls (s = source, d = destination). 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP, \fBxine_get_browse_mrls\fP() 
+.SS "#define MRL_DUPLICATE(s, d)"
+.PP
+Duplicate two mrls entries (s = source, d = destination). 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP, \fBxine_get_browse_mrls\fP() 
+.SS "#define MRL_ZERO(m)"
+.PP
+\fBValue:\fP
+.PP
+.nf
+  {                                                         \
+  if((m)) {                                                                   \
+    if((m)->origin)                                                           \
+      free((m)->origin);                                                      \
+    if((m)->mrl)                                                              \
+      free((m)->mrl);                                                         \
+    if((m)->link)                                                             \
+      free((m)->link);                                                        \
+    (m)->origin = NULL;                                                       \
+    (m)->mrl    = NULL;                                                       \
+    (m)->link   = NULL;                                                       \
+    (m)->type   = 0;                                                          \
+    (m)->size   = (off_t) 0;                                                  \
+  }                                                                           \
+}
+.fi
+Freeing/zeroing all of entries of given mrl. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBmrl_t\fP, \fBxine_get_browse_mrls\fP() 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "char ** xine_get_browsable_input_plugin_ids (\fBxine_t\fP * self)"
+.PP
+Request list of browsable featured plugins.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+List of plugins
+.PP
+Some input plugins are browseable,  get the list of ids of these plugins. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "\fBmrl_t\fP ** xine_get_browse_mrls (\fBxine_t\fP * self, char * plugin_id, char * start_mrl, int * num_mrls)"
+.PP
+Request available MRLs from plugins.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIplugin_id\fP\fP
+Plugin name ( see \fBxine_get_browsable_input_plugin_ids\fP() ) 
+.TP
+\fB\fIstart_mrl\fP\fP
+MRL 
+.TP
+\fB\fInum_mrl\fP\fP
+how many mrls was found 
+.PP
+\fBReturns: \fP
+.in +1c
+start_mrl on success, NULL on failure.
+.PP
+Asks input plugin named <plugin_id> to return a list of available MRLs in domain/directory <start_mrl>.
+.PP
+<start_mrl> may be NULL indicating the toplevel domain/dir returns <start_mrl> if <start_mrl> is a valid MRL, not a directory returns NULL if <start_mrl> is an invalid MRL, not even a directory. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIplugin_id\fP\fP
+ 
+.TP
+\fB\fIstart_mrl\fP\fP
+ 
+.TP
+\fB\fInum_mrls\fP\fP
+ 

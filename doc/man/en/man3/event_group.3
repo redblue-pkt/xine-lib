@@ -1,0 +1,141 @@
+.TH "Sending events" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Sending events \- 
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef void \fBevent_t\fP"
+.br
+.ti -1c
+.RI "typedef void (* \fBevent_listener_t\fP )(\fBxine_t\fP *xine, \fBevent_t\fP *event, void *data)"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "int \fBxine_register_event_listener\fP (\fBxine_t\fP *self, \fBevent_listener_t\fP listener)"
+.br
+.RI "\fIregisters an event listener callback.\fP"
+.ti -1c
+.RI "int \fBxine_remove_event_listener\fP (\fBxine_t\fP *self, \fBevent_listener_t\fP listener)"
+.br
+.RI "\fIAttempts to remove a registered event listener.\fP"
+.ti -1c
+.RI "void \fBxine_send_event\fP (\fBxine_t\fP *self, \fBevent_t\fP *event, void *data)"
+.br
+.RI "\fIsends an event to all listeners.\fP"
+.in -1c
+.SH "DETAILED DESCRIPTION"
+.PP 
+Event dispatcher mechanism 
+.SH "TYPEDEF DOCUMENTATION"
+.PP 
+.SS "typedef void(* event_listener_t)(\fBxine_t\fP *xine, \fBevent_t\fP *event, void *data)"
+.PP
+Event listener callback. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_register_event_listener\fP, \fBxine_remove_event_listener\fP 
+.SS "typedef void event_t"
+.PP
+Opaque data type. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBevent_listener_t\fP, \fBxine_send_event\fP 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "int xine_register_event_listener (\fBxine_t\fP * self, \fBevent_listener_t\fP listener)"
+.PP
+registers an event listener callback.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIlistener\fP\fP
+callback function. 
+.PP
+\fBReturns: \fP
+.in +1c
+0 if the listener was registerd, non-zero if it could not. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBevent_listener_t\fP 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIlistener\fP\fP
+ 
+.SS "int xine_remove_event_listener (\fBxine_t\fP * self, \fBevent_listener_t\fP listener)"
+.PP
+Attempts to remove a registered event listener.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIlistener\fP\fP
+callback function. 
+.PP
+\fBReturns: \fP
+.in +1c
+0 if the listener was removes, non-zero if it wasn't (e.g. not found). 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBevent_listener_t\fP 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIlistener\fP\fP
+ 
+.SS "void xine_send_event (\fBxine_t\fP * self, \fBevent_t\fP * event, void * data)"
+.PP
+sends an event to all listeners.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIevent\fP\fP
+FILLME 
+.TP
+\fB\fIdata\fP\fP
+FILLME. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBevent_t\fP 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIevent\fP\fP
+ 
+.TP
+\fB\fIdata\fP\fP
+ 

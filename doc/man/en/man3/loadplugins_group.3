@@ -1,0 +1,141 @@
+.TH "Loading plugins" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Loading plugins \- 
+.SS "Modules"
+
+.in +1c
+.ti -1c
+.RI "\fBValid visual types\fP"
+.br
+.in -1c
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBXINE_PLUGINDIR\fP   '/usr/local/lib/xine/plugins'"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "char** \fBxine_list_video_output_plugins\fP (int visual_type)"
+.br
+.RI "\fIlist available video output plugins.\fP"
+.ti -1c
+.RI "\fBvo_driver_t\fP* \fBxine_load_video_output_plugin\fP (\fBconfig_values_t\fP *config, char *id, int visual_type, void *visual)"
+.br
+.RI "\fIload a specific video output plugin.\fP"
+.ti -1c
+.RI "char** \fBxine_list_audio_output_plugins\fP (void)"
+.br
+.RI "\fIgenerate a list of all available audio output plugins.\fP"
+.ti -1c
+.RI "\fBao_functions_t\fP* \fBxine_load_audio_output_plugin\fP (\fBconfig_values_t\fP *config, char *id)"
+.br
+.RI "\fIload a specific audio output plugin.\fP"
+.in -1c
+.SH "DETAILED DESCRIPTION"
+.PP 
+output plugin load support functions 
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define XINE_PLUGINDIR   '/usr/local/lib/xine/plugins'"
+.PP
+Plugin files location. 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "char ** xine_list_audio_output_plugins (void)"
+.PP
+generate a list of all available audio output plugins.
+.PP
+\fBReturns: \fP
+.in +1c
+a list of available audio output plugins the list returned is sorted by plugin priority 
+.SS "char ** xine_list_video_output_plugins (int visual_type)"
+.PP
+list available video output plugins.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIvisual_type\fP\fP
+see Valid visual types 
+.PP
+\fBReturns: \fP
+.in +1c
+a list of available video output plugins for the specified visual type - the list is sorted by plugin priority 
+.PP
+\fBSee also: \fP
+.in +1c
+Valid visual types 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIvisual_type\fP\fP
+ 
+.SS "\fBao_functions_t\fP * xine_load_audio_output_plugin (\fBconfig_values_t\fP * config, char * id)"
+.PP
+load a specific audio output plugin.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIconfig\fP\fP
+current configuration ( see \fBconfig_file_init\fP() ) 
+.TP
+\fB\fIid\fP\fP
+driver name. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBao_functions_t\fP 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIconfig\fP\fP
+ 
+.TP
+\fB\fIid\fP\fP
+ 
+.SS "\fBvo_driver_t\fP * xine_load_video_output_plugin (\fBconfig_values_t\fP * config, char * id, int visual_type, void * visual)"
+.PP
+load a specific video output plugin.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIconfig\fP\fP
+current configuration ( see \fBconfig_file_init\fP() ) 
+.TP
+\fB\fIid\fP\fP
+driver name. 
+.TP
+\fB\fIvisual_type\fP\fP
+see Valid visual types 
+.TP
+\fB\fIvisual\fP\fP
+visual type dependant data pointer. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBvo_driver_t\fP, Valid visual types 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIconfig\fP\fP
+ 
+.TP
+\fB\fIid\fP\fP
+ 
+.TP
+\fB\fIvisual_type\fP\fP
+ 
+.TP
+\fB\fIvisual\fP\fP
+ 

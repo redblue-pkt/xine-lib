@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.3 2001/06/15 11:08:13 f1rmb Exp $
+ * $Id: configfile.c,v 1.4 2001/07/26 11:12:26 f1rmb Exp $
  *
  * config file management - implementation
  *
@@ -32,17 +32,6 @@
 #include <string.h>
 #include "configfile.h"
 #include "utils.h"
-
-typedef struct cfg_entry_s {
-  struct cfg_entry_s *next;
-  char               *key, *value;
-} cfg_entry_t;
-
-struct cfg_data_s {
-  cfg_entry_t *gConfig, *gConfigLast;
-};
-
-
 
 /*
  * internal utility functions
@@ -290,6 +279,10 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.4  2001/07/26 11:12:26  f1rmb
+ * Updated doxy sections in xine.h.tmpl.in. Added man3. Removed french man page. Added API doc in html. Add new rpm package (doc). Fixes some little bugs in
+ * proto decl, etc...
+ *
  * Revision 1.3  2001/06/15 11:08:13  f1rmb
  * Check arguments in public functions.
  *

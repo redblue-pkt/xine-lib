@@ -10,7 +10,7 @@ Summary(ko): 공개 동영상 플레이어
 Version:     %{ver}
 Release:     %{rel}
 Copyright:   GPL
-Group:       Applications/X11
+Group:       Development/Libraries
 Source:      http://xine.sourceforge.net/files/@PACKAGE@-@VERSION@.tar.gz
 URL:         http://xine.sourceforge.net
 Packager:    Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
@@ -18,18 +18,22 @@ BuildRoot:   /tmp/%{name}-root
 
 @HAVE_ALSA05_TRUE@%package alsa05
 @HAVE_ALSA05_TRUE@Summary:     XINE - alsa 0.5.x support.
-@HAVE_ALSA05_TRUE@Group:       Applications/X11
+@HAVE_ALSA05_TRUE@Group:       Development/Libraries
 @HAVE_ALSA05_TRUE@Requires:    xine-lib >= 0.5.0
 
 @HAVE_ALSA09_TRUE@%package alsa09
 @HAVE_ALSA09_TRUE@Summary:     XINE - alsa >= 0.9.x support.
-@HAVE_ALSA09_TRUE@Group:       Applications/X11
+@HAVE_ALSA09_TRUE@Group:       Development/Libraries
 @HAVE_ALSA09_TRUE@Requires:    xine-lib >= 0.5.0
 
 @HAVE_DXR3_TRUE@%package dxr3
 @HAVE_DXR3_TRUE@Summary:     XINE - DXR3 support.
-@HAVE_DXR3_TRUE@Group:       Applications/X11
+@HAVE_DXR3_TRUE@Group:       Development/Libraries
 @HAVE_DXR3_TRUE@Requires:    xine-lib >= 0.5.0
+
+%package docs
+Summary:     XINE - html API documentation.
+Group:       Documentation
 
 %description
 xine is a free gpl-licensed video player for unix-like systems.
@@ -66,6 +70,9 @@ xine 는 GPL라이선스를 따르는 UNIX용 공개 동영상 플레이어입니다. 이
 @HAVE_DXR3_TRUE@%description dxr3
 @HAVE_DXR3_TRUE@video/decoder plugins for DXR3 card support.
 
+%description docs
+HTML documentation of XINE API.
+
 %prep
 %setup -n @TAR_NAME@
 
@@ -79,17 +86,44 @@ if [ -d $RPM_BUILD_ROOT ]; then rm -rf $RPM_BUILD_ROOT; fi
 make install-strip prefix=$RPM_BUILD_ROOT%{prefix}
 #cp doc/*.xpm $RPM_BUILD_ROOT/usr/include/X11/pixmaps
 
-%post
-/sbin/ldconfig
-
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
 %{prefix}/bin/xine-config
-%{prefix}/man/man3/xine-lib.*
-%{prefix}/man/fr/man3/xine-lib.*
+%{prefix}/man/man3/xine-lib.3
+%{prefix}/man/man3/ao_functions_t.3
+%{prefix}/man/man3/demux_strategy.3
+%{prefix}/man/man3/video_cap.3
+%{prefix}/man/man3/vo_overlay_t.3
+%{prefix}/man/man3/autoplay_group.3
+%{prefix}/man/man3/event_group.3
+%{prefix}/man/man3/video_group.3
+%{prefix}/man/man3/xine.h.3
+%{prefix}/man/man3/browse_group.3
+%{prefix}/man/man3/loadplugins_group.3
+%{prefix}/man/man3/video_prop.3
+%{prefix}/man/man3/xine_api.3
+%{prefix}/man/man3/build_info.3
+%{prefix}/man/man3/mrl_t.3
+%{prefix}/man/man3/video_ratio.3
+%{prefix}/man/man3/xine_init.3
+%{prefix}/man/man3/cfg_data_t.3
+%{prefix}/man/man3/mrl_types.3
+%{prefix}/man/man3/visual_types.3
+%{prefix}/man/man3/xine_management.3
+%{prefix}/man/man3/config_group.3
+%{prefix}/man/man3/status_group.3
+%{prefix}/man/man3/vo_driver_s.3
+%{prefix}/man/man3/xine_t.3
+%{prefix}/man/man3/config_values_s.3
+%{prefix}/man/man3/ui_callbacks.3
+%{prefix}/man/man3/vo_driver_t.3
+%{prefix}/man/man3/xine_version.3
+%{prefix}/man/man3/config_values_t.3
+%{prefix}/man/man3/version_group.3
+%{prefix}/man/man3/vo_frame_t.3
 %{prefix}/include/xine/*.h
 %{prefix}/include/xine.h
 # input plugins
@@ -154,13 +188,14 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
 @HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
 
-
 @HAVE_DXR3_TRUE@%files dxr3
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
 
+%files docs
+%{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
 * Wed Jul 18 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>

@@ -1,0 +1,149 @@
+.TH "Init functions" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Init functions \- 
+.SS "Modules"
+
+.in +1c
+.ti -1c
+.RI "\fBPossible demuxer guessing strategy.\fP"
+.br
+.ti -1c
+.RI "\fBUI communication callbacks.\fP"
+.br
+.ti -1c
+.RI "\fBConfiguration structure type.\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBconfig_values_t\fP* \fBconfig_file_init\fP (char *filename)"
+.br
+.RI "\fIConfiguration file initialisation.\fP"
+.ti -1c
+.RI "\fBxine_t\fP* \fBxine_init\fP (\fBvo_driver_t\fP *vo, \fBao_functions_t\fP *ao, \fBconfig_values_t\fP *config, \fBgui_stream_end_cb_t\fP stream_end_cb, \fBgui_get_next_mrl_cb_t\fP get_next_mrl_cb, \fBgui_branched_cb_t\fP branched_cb)"
+.br
+.RI "\fIInitialisation of xine.\fP"
+.ti -1c
+.RI "void \fBxine_exit\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIDe-initialisation of xine.\fP"
+.in -1c
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "\fBconfig_values_t\fP * config_file_init (char * filename)"
+.PP
+Configuration file initialisation.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIfilename\fP\fP
+Pathname of configuration file. 
+.PP
+\fBReturns: \fP
+.in +1c
+Current config 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBconfig_values_t\fP 
+.PP
+\fBWarning: \fP
+.in +1c
+This function should be called at least one time before \fBxine_init\fP() call.
+.PP
+Read config file and init a config object of \fBconfig_values_t\fP type (if it exists) 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIfilename\fP\fP
+ 
+.SS "void xine_exit (\fBxine_t\fP * self)"
+.PP
+De-initialisation of xine.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration. 
+.PP
+\fBReturns: \fP
+.in +1c
+Nothing 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_init\fP()
+.PP
+De-init xine engine. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.SS "\fBxine_t\fP * xine_init (\fBvo_driver_t\fP * vo, \fBao_functions_t\fP * ao, \fBconfig_values_t\fP * config, \fBgui_stream_end_cb_t\fP stream_end_cb, \fBgui_get_next_mrl_cb_t\fP get_next_mrl_cb, \fBgui_branched_cb_t\fP branched_cb)"
+.PP
+Initialisation of xine.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIvo\fP\fP
+video driver ( see \fBxine_load_video_output_plugin\fP() ) 
+.TP
+\fB\fIao\fP\fP
+audio driver ( see \fBxine_load_audio_output_plugin\fP() ) 
+.TP
+\fB\fIconfig\fP\fP
+current configuration ( see \fBconfig_file_init\fP() ) 
+.TP
+\fB\fIstream_end\fP\fP
+cb called on stream end  
+.TP
+\fB\fIget_next_mrl_cb\fP\fP
+called to find out next mrl for seamless branching 
+.TP
+\fB\fIbranched_cb\fP\fP
+called if seamless branch was taken 
+.PP
+\fBReturns: \fP
+.in +1c
+Current xine engine configuration 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBvo_driver_t\fP, \fBao_functions_t\fP, \fBconfig_values_t\fP, \fBgui_stream_end_cb_t\fP, \fBgui_get_next_mrl_cb_t\fP, \fBgui_branched_cb_t\fP 
+.PP
+\fBWarning: \fP
+.in +1c
+This function should be called before any other xine_*() function.
+.PP
+Init of xine. It should called once at startup. all callbacks may be NULL if ui is not interested in them for whatever reason ao may be NULL for no audio playback 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIvo\fP\fP
+ 
+.TP
+\fB\fIao\fP\fP
+ 
+.TP
+\fB\fIconfig\fP\fP
+ 
+.TP
+\fB\fIstream_end_cb\fP\fP
+ 
+.TP
+\fB\fIget_next_mrl_cb\fP\fP
+ 
+.TP
+\fB\fIbranched_cb\fP\fP
+ 

@@ -1,0 +1,400 @@
+.TH "xine.h" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+xine.h \- 
+.SH SYNOPSIS
+.br
+.PP
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fBconfig_values_s\fP"
+.br
+.ti -1c
+.RI "struct \fBmrl_t\fP"
+.br
+.ti -1c
+.RI "struct \fBvo_driver_s\fP"
+.br
+.in -1c
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBXINE_SKINDIR\fP   '/usr/local/share/xine/skins'"
+.br
+.ti -1c
+.RI "#define \fBXINE_BUILD_CC\fP   'gcc version 2.95.3 20010315 (release)'"
+.br
+.ti -1c
+.RI "#define \fBXINE_BUILD_OS\fP   'Linux 2.4.5 i686'"
+.br
+.ti -1c
+.RI "#define \fBXINE_BUILD_DATE\fP   'Thu 26 Jul 2001 09:17:10'"
+.br
+.ti -1c
+.RI "#define \fBXINE_STOP\fP   0"
+.br
+.ti -1c
+.RI "#define \fBXINE_PLAY\fP   1"
+.br
+.ti -1c
+.RI "#define \fBXINE_PAUSE\fP   2"
+.br
+.ti -1c
+.RI "#define \fBXINE_QUIT\fP   3"
+.br
+.ti -1c
+.RI "#define \fBXINE_MAJOR_VERSION\fP   0"
+.br
+.ti -1c
+.RI "#define \fBXINE_MINOR_VERSION\fP   5"
+.br
+.ti -1c
+.RI "#define \fBXINE_SUB_VERSION\fP   0"
+.br
+.ti -1c
+.RI "#define \fBVO_CAP_HUE\fP   0x00000010"
+.br
+.ti -1c
+.RI "#define \fBVO_CAP_SATURATION\fP   0x00000020"
+.br
+.ti -1c
+.RI "#define \fBVO_CAP_BRIGHTNESS\fP   0x00000040"
+.br
+.ti -1c
+.RI "#define \fBVO_CAP_CONTRAST\fP   0x00000080"
+.br
+.ti -1c
+.RI "#define \fBVO_CAP_COLORKEY\fP   0x00000100"
+.br
+.ti -1c
+.RI "#define \fBVO_PROP_INTERLACED\fP   0"
+.br
+.ti -1c
+.RI "#define \fBVO_PROP_ASPECT_RATIO\fP   1"
+.br
+.ti -1c
+.RI "#define \fBVO_PROP_HUE\fP   2"
+.br
+.ti -1c
+.RI "#define \fBVO_PROP_SATURATION\fP   3"
+.br
+.ti -1c
+.RI "#define \fBVO_PROP_CONTRAST\fP   4"
+.br
+.ti -1c
+.RI "#define \fBVO_PROP_BRIGHTNESS\fP   5"
+.br
+.ti -1c
+.RI "#define \fBVO_PROP_COLORKEY\fP   6"
+.br
+.ti -1c
+.RI "#define \fBVO_NUM_PROPERTIES\fP   7"
+.br
+.ti -1c
+.RI "#define \fBASPECT_AUTO\fP   0"
+.br
+.ti -1c
+.RI "#define \fBASPECT_ANAMORPHIC\fP   1"
+.br
+.ti -1c
+.RI "#define \fBASPECT_FULL\fP   2"
+.br
+.ti -1c
+.RI "#define \fBASPECT_DVB\fP   3"
+.br
+.ti -1c
+.RI "#define \fBDEMUX_DEFAULT_STRATEGY\fP   0"
+.br
+.ti -1c
+.RI "#define \fBDEMUX_REVERT_STRATEGY\fP   1"
+.br
+.ti -1c
+.RI "#define \fBDEMUX_CONTENT_STRATEGY\fP   2"
+.br
+.ti -1c
+.RI "#define \fBDEMUX_EXTENSION_STRATEGY\fP   3"
+.br
+.ti -1c
+.RI "#define \fBmrl_unknown\fP   (0 << 0)"
+.br
+.ti -1c
+.RI "#define \fBmrl_dvd\fP   (1 << 0)"
+.br
+.ti -1c
+.RI "#define \fBmrl_vcd\fP   (1 << 1)"
+.br
+.ti -1c
+.RI "#define \fBmrl_net\fP   (1 << 2)"
+.br
+.ti -1c
+.RI "#define \fBmrl_rtp\fP   (1 << 3)"
+.br
+.ti -1c
+.RI "#define \fBmrl_stdin\fP   (1 << 4)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file\fP   (1 << 5)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_fifo\fP   (1 << 6)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_chardev\fP   (1 << 7)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_directory\fP   (1 << 8)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_blockdev\fP   (1 << 9)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_normal\fP   (1 << 10)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_symlink\fP   (1 << 11)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_sock\fP   (1 << 12)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_exec\fP   (1 << 13)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_backup\fP   (1 << 14)"
+.br
+.ti -1c
+.RI "#define \fBmrl_file_hidden\fP   (1 << 15)"
+.br
+.ti -1c
+.RI "#define \fBMRL_ZERO\fP(m)"
+.br
+.ti -1c
+.RI "#define \fBMRL_DUPLICATE\fP(s, d)"
+.br
+.ti -1c
+.RI "#define \fBMRLS_DUPLICATE\fP(s, d)"
+.br
+.ti -1c
+.RI "#define \fBXINE_PLUGINDIR\fP   '/usr/local/lib/xine/plugins'"
+.br
+.ti -1c
+.RI "#define \fBVISUAL_TYPE_X11\fP   1"
+.br
+.ti -1c
+.RI "#define \fBVISUAL_TYPE_AA\fP   2"
+.br
+.ti -1c
+.RI "#define \fBVISUAL_TYPE_FB\fP   3"
+.br
+.ti -1c
+.RI "#define \fBVISUAL_TYPE_GTK\fP   4"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef void \fBvo_frame_t\fP"
+.br
+.ti -1c
+.RI "typedef void \fBvo_overlay_t\fP"
+.br
+.ti -1c
+.RI "typedef struct \fBvo_driver_s\fP \fBvo_driver_t\fP"
+.br
+.ti -1c
+.RI "typedef void \fBxine_t\fP"
+.br
+.ti -1c
+.RI "typedef void \fBao_functions_t\fP"
+.br
+.ti -1c
+.RI "typedef void \fBcfg_data_t\fP"
+.br
+.ti -1c
+.RI "typedef struct \fBconfig_values_s\fP \fBconfig_values_t\fP"
+.br
+.ti -1c
+.RI "typedef void (* \fBgui_stream_end_cb_t\fP )(int nStatus)"
+.br
+.ti -1c
+.RI "typedef char* (* \fBgui_get_next_mrl_cb_t\fP )(void)"
+.br
+.ti -1c
+.RI "typedef void (* \fBgui_branched_cb_t\fP )(void)"
+.br
+.ti -1c
+.RI "typedef void \fBevent_t\fP"
+.br
+.ti -1c
+.RI "typedef void (* \fBevent_listener_t\fP )(\fBxine_t\fP *xine, \fBevent_t\fP *event, void *data)"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "char* \fBxine_get_str_version\fP (void)"
+.br
+.RI "\fIreturn string version, like '0.5.0'.\fP"
+.ti -1c
+.RI "int \fBxine_get_major_version\fP (void)"
+.br
+.RI "\fIreturn version information.\fP"
+.ti -1c
+.RI "int \fBxine_get_minor_version\fP (void)"
+.br
+.RI "\fIreturn version information.\fP"
+.ti -1c
+.RI "int \fBxine_get_sub_version\fP (void)"
+.br
+.RI "\fIreturn version information.\fP"
+.ti -1c
+.RI "int \fBxine_check_version\fP (int major, int minor, int sub)"
+.br
+.RI "\fIcheck minimal version.\fP"
+.ti -1c
+.RI "\fBconfig_values_t\fP* \fBconfig_file_init\fP (char *filename)"
+.br
+.RI "\fIConfiguration file initialisation.\fP"
+.ti -1c
+.RI "\fBxine_t\fP* \fBxine_init\fP (\fBvo_driver_t\fP *vo, \fBao_functions_t\fP *ao, \fBconfig_values_t\fP *config, \fBgui_stream_end_cb_t\fP stream_end_cb, \fBgui_get_next_mrl_cb_t\fP get_next_mrl_cb, \fBgui_branched_cb_t\fP branched_cb)"
+.br
+.RI "\fIInitialisation of xine.\fP"
+.ti -1c
+.RI "void \fBxine_exit\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIDe-initialisation of xine.\fP"
+.ti -1c
+.RI "void \fBxine_play\fP (\fBxine_t\fP *self, char *MRL, int pos)"
+.br
+.RI "\fIStart to play a stream.\fP"
+.ti -1c
+.RI "void \fBxine_pause\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIPause toggle.\fP"
+.ti -1c
+.RI "void \fBxine_stop\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIStop playing.\fP"
+.ti -1c
+.RI "int \fBxine_eject\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIEject media.\fP"
+.ti -1c
+.RI "int \fBxine_get_status\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current xine status.\fP"
+.ti -1c
+.RI "int \fBxine_get_current_position\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current position.\fP"
+.ti -1c
+.RI "int \fBxine_get_audio_channel\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current audio channel.\fP"
+.ti -1c
+.RI "void \fBxine_select_audio_channel\fP (\fBxine_t\fP *self, int channel)"
+.br
+.RI "\fISet audio channel.\fP"
+.ti -1c
+.RI "int \fBxine_get_spu_channel\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet current sub-title channel.\fP"
+.ti -1c
+.RI "void \fBxine_select_spu_channel\fP (\fBxine_t\fP *self, int channel)"
+.br
+.RI "\fISet sub-title channel.\fP"
+.ti -1c
+.RI "char** \fBxine_get_browsable_input_plugin_ids\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIRequest list of browsable featured plugins.\fP"
+.ti -1c
+.RI "\fBmrl_t\fP** \fBxine_get_browse_mrls\fP (\fBxine_t\fP *self, char *plugin_id, char *start_mrl, int *num_mrls)"
+.br
+.RI "\fIRequest available MRLs from plugins.\fP"
+.ti -1c
+.RI "char** \fBxine_get_autoplay_input_plugin_ids\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIRequest playlist from plugin.\fP"
+.ti -1c
+.RI "char** \fBxine_get_autoplay_mrls\fP (\fBxine_t\fP *self, char *plugin_id, int *num_mrls)"
+.br
+.RI "\fIRequest MRL list from plugin.\fP"
+.ti -1c
+.RI "char** \fBxine_list_video_output_plugins\fP (int visual_type)"
+.br
+.RI "\fIlist available video output plugins.\fP"
+.ti -1c
+.RI "\fBvo_driver_t\fP* \fBxine_load_video_output_plugin\fP (\fBconfig_values_t\fP *config, char *id, int visual_type, void *visual)"
+.br
+.RI "\fIload a specific video output plugin.\fP"
+.ti -1c
+.RI "char** \fBxine_list_audio_output_plugins\fP (void)"
+.br
+.RI "\fIgenerate a list of all available audio output plugins.\fP"
+.ti -1c
+.RI "\fBao_functions_t\fP* \fBxine_load_audio_output_plugin\fP (\fBconfig_values_t\fP *config, char *id)"
+.br
+.RI "\fIload a specific audio output plugin.\fP"
+.ti -1c
+.RI "int \fBxine_register_event_listener\fP (\fBxine_t\fP *self, \fBevent_listener_t\fP listener)"
+.br
+.RI "\fIregisters an event listener callback.\fP"
+.ti -1c
+.RI "int \fBxine_remove_event_listener\fP (\fBxine_t\fP *self, \fBevent_listener_t\fP listener)"
+.br
+.RI "\fIAttempts to remove a registered event listener.\fP"
+.ti -1c
+.RI "void \fBxine_send_event\fP (\fBxine_t\fP *self, \fBevent_t\fP *event, void *data)"
+.br
+.RI "\fIsends an event to all listeners.\fP"
+.in -1c
+.SH "DETAILED DESCRIPTION"
+.PP 
+.PP
+\fBAuthor: \fP
+.in +1c
+Guenter Bartsch <guenter@users.sourceforge.net> , Siegfried Langauf <siggi@users.sourceforge.net> , Daniel Caujolle-Bert <f1rmb@users.sourceforge.net> 
+.PP
+\fBDate: \fP
+.in +1c
+25/07/2001
+.PP
+API of XINE library. 
+.PP
+.nf
+
+   Copyright (C) 2000-2001 the xine project
+ 
+   This file is part of xine, a unix video player.
+ 
+   xine is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+ 
+   xine is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+ 
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ 
+ 
+.fi
+.PP
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define XINE_SKINDIR   '/usr/local/share/xine/skins'"
+.PP
+Skin file location 
+.SH "AUTHOR"
+.PP 
+Generated automatically by Doxygen for XINE, A Free Video Player Project - API reference from the source code.

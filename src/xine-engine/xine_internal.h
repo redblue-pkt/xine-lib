@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.34 2001/07/24 18:04:22 guenter Exp $
+ * $Id: xine_internal.h,v 1.35 2001/07/26 11:12:26 f1rmb Exp $
  *
  */
 
@@ -123,7 +123,8 @@ typedef void (*gui_stream_end_cb_t)(int nStatus);
 #define XINE_QUIT      3
 
 typedef struct xine_s xine_t;
-typedef void (*event_listener_t) (xine_t *xine, event_t *event, void *data);
+
+typedef void (*event_listener_t) (xine_t *, event_t *, void *);
 
 struct xine_s {
   
@@ -444,20 +445,20 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id)
  */
 
 /**
- * \fn xine_register_event_listener(event_listener_t *listener)
+ * \fn xine_register_event_listener(xine_t *this, event_listener_t listener)
  * \brief registers an event listener callback.
  * \return 0 if the listener was registerd, non-zero if it could not.
  */
 
-int xine_register_event_listener(xine_t *this, event_listener_t *listener);
+int xine_register_event_listener(xine_t *this, event_listener_t listener);
 
 /**
- * \fn xine_remove_event_listener(event_listener_t *listener)
+ * \fn xine_remove_event_listener(event_listener_t listener)
  * \brief Attempts to remove a registered event listener.
  * \return 0 if the listener was removes, non-zero if it wasn't (e.g. not found).
  */
 
-int xine_remove_event_listener(xine_t *this, event_listener_t *listener);
+int xine_remove_event_listener(xine_t *this, event_listener_t listener);
 
 /**
  * \fn xine_send_event(event_t *event)

@@ -1,0 +1,41 @@
+.TH "UI communication callbacks." 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+UI communication callbacks. \- 
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef void (* \fBgui_stream_end_cb_t\fP )(int nStatus)"
+.br
+.ti -1c
+.RI "typedef char* (* \fBgui_get_next_mrl_cb_t\fP )(void)"
+.br
+.ti -1c
+.RI "typedef void (* \fBgui_branched_cb_t\fP )(void)"
+.br
+.in -1c
+.SH "TYPEDEF DOCUMENTATION"
+.PP 
+.SS "typedef void(* gui_branched_cb_t)(void)"
+.PP
+Called when xine branched successfully to the next mrl. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_init\fP() 
+.SS "typedef char *(* gui_get_next_mrl_cb_t)(void)"
+.PP
+Called when xine tries to branch seamlessly to the next mrl. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_init\fP() 
+.SS "typedef void(* gui_stream_end_cb_t)(int nStatus)"
+.PP
+Notify UI when the stream is finished. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_init\fP() 
