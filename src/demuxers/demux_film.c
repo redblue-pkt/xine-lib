@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.1 2002/05/27 07:32:36 tmmm Exp $
+ * $Id: demux_film.c,v 1.2 2002/05/27 11:01:04 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
