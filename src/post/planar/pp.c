@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pp.c,v 1.7 2005/01/10 18:03:41 dsalt Exp $
+ * $Id: pp.c,v 1.8 2005/01/15 17:04:48 mroi Exp $
  *
  * plugin for ffmpeg libpostprocess
  */
@@ -117,8 +117,6 @@ static char * get_help (void) {
   static char *help = NULL;
 
   if( !help ) {
-    char *s;
-    
     help = malloc( strlen(help1) + strlen(help2) + strlen(pp_help) + 1);
     strcpy(help, help1);
     strcat(help, pp_help);
