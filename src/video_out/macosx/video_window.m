@@ -318,10 +318,10 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     if (texture_buffer)
         texture_buffer = realloc (texture_buffer, sizeof (char) *
-                                  video_width * video_height * 2);
+                                  video_width * video_height * 3);
     else
         texture_buffer = malloc (sizeof (char) *
-                                 video_width * video_height * 2);
+                                 video_width * video_height * 3);
 
     /* Create textures */
     glGenTextures (1, &i_texture);
@@ -329,7 +329,11 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     glEnable (GL_TEXTURE_RECTANGLE_EXT);
     glEnable (GL_UNPACK_CLIENT_STORAGE_APPLE);
 
+    glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei (GL_UNPACK_ROW_LENGTH, video_width);
+
     glBindTexture (GL_TEXTURE_RECTANGLE_EXT, i_texture);
+    glTexEnvi (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
     /* Use VRAM texturing */
     glTexParameteri (GL_TEXTURE_RECTANGLE_EXT,
@@ -351,8 +355,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
             GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri (GL_TEXTURE_RECTANGLE_EXT,
             GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glPixelStorei (GL_UNPACK_ROW_LENGTH, 0);
-
+			
     glTexImage2D (GL_TEXTURE_RECTANGLE_EXT, 0, GL_RGBA,
             video_width, video_height, 0,
             GL_YCBCR_422_APPLE, GL_UNSIGNED_SHORT_8_8_APPLE,
@@ -368,6 +371,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [currentContext makeCurrentContext];
 
     glBindTexture (GL_TEXTURE_RECTANGLE_EXT, i_texture);
+    glPixelStorei (GL_UNPACK_ROW_LENGTH, video_width);
 
     /* glTexSubImage2D is faster than glTexImage2D
      *  http://developer.apple.com/samplecode/Sample_Code/Graphics_3D/TextureRange/MainOpenGLView.m.htm
