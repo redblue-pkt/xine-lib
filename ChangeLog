@@ -18,6 +18,7 @@ xine-lib (1-beta5)
   * fixed discontinuity detection bug in MPEG block demuxer
     (this might fix occasional - or, in case of "Dances with Wolves" RC2,
     enduring - audio stutters in DVD playback)
+  * win32 loader bugfixes (most notably indeo, quicktime and wmv9)
 
 xine-lib (1-beta4)
   * http input fixes
