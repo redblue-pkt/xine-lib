@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.6 2001/08/14 17:13:33 ehasenle Exp $
+* $Id: spu.c,v 1.7 2001/08/14 20:35:15 richwareham Exp $
 *
 *****/
 
@@ -324,6 +324,9 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 	vlc = (vlc << 4) | get_bits (4);
 	if (vlc < 0x0040) {
 	  vlc = (vlc << 4) | get_bits (4);
+	  if(vlc < 0x0100) {
+	    vlc = 0;
+	  }
 	}
       }
     }
@@ -332,14 +335,14 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     len   = vlc >> 2;
     
     /* if len == 0 -> end sequence - fill to end of line */
-    if (!len)
+    if(len != 0) {
+      spu_put_pixel (ovl, len, color);
+    } else {
       len = ovl->width - put_x;
-    
-    spu_put_pixel (ovl, len, color);
-    
-    if (put_x >= ovl->width)
+      spu_put_pixel (ovl, len, color);
       if (spu_next_line (ovl) < 0)
         return;
+    }
   }
   
   /* Like the eof-line escape, fill the rest of the sp. with background */
