@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.125 2002/10/20 21:15:07 guenter Exp $
+ * $Id: demux_avi.c,v 1.126 2002/10/22 17:14:47 jkeil Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1067,7 +1067,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
       } else {
 	  /*
 	   * no audio:
-	   * borrow a buffer from video fifo, it get immediately freed below
+	   * borrow a buffer from video fifo, it immediately gets freed below
 	   */
 	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       }
