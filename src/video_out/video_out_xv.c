@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.5 2001/04/27 23:51:52 guenter Exp $
+ * $Id: video_out_xv.c,v 1.6 2001/04/28 19:47:42 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -468,8 +468,10 @@ static void xv_setup_window (xv_driver_t *this) {
     XFree(wm_hint);
   }
 
+  /* FIXME
   wm_delete_window = XInternAtom(this->display, "WM_DELETE_WINDOW", False);
   XSetWMProtocols(this->display, this->window, &wm_delete_window, 1);
+  */
 
   /* Map window. */
   

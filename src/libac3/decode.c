@@ -76,7 +76,7 @@ static int16_t s16_samples[2 * 6 * 256] __attribute__ ((aligned(16)));
 /* output buffer for spdiv output */
 static int16_t s16_samples_out[4 * 6 * 256] __attribute__ ((aligned(16)));
 
-static ao_functions_t ac3_output;
+static ao_functions_t *ac3_output;
 
 // downmix stuff
 static float cmixlev_lut[4] = { 0.707, 0.595, 0.500, 0.707 };
@@ -168,7 +168,7 @@ void inline decode_mute (void)
 void ac3_init(ac3_config_t *config ,ao_functions_t *foo)
 {
   memcpy(&ac3_config,config,sizeof(ac3_config_t));
-  ac3_output = *foo;
+  ac3_output = foo;
   
   imdct_init ();
   /* downmix_init (); */
@@ -286,18 +286,18 @@ size_t ac3_decode_data (metronom_t *metronom,
 		}
 
 		if (!is_output_initialized) {
-			ac3_output.open (metronom, 16, syncinfo.sampling_rate, 
-					 (ac3_config.flags & AO_MODE_AC3) ? AO_MODE_AC3 : AO_MODE_STEREO);
+			ac3_output->open (ac3_output, 16, syncinfo.sampling_rate, 
+					  (ac3_config.flags & AO_MODE_AC3) ? AO_MODE_AC3 : AO_MODE_STEREO);
 			is_output_initialized = 1;
 		}
 
 		if ((ac3_config.flags & AO_MODE_AC3) == 0) {
-			ac3_output.write_audio_data(metronom,
-						    s16_samples, 256*6, pts_);
+			ac3_output->write_audio_data(ac3_output,
+						     s16_samples, 256*6, pts_);
 		}
 		else {
-			ac3_output.write_audio_data(metronom, 
-						    s16_samples_out, 6 * 256, pts_);
+			ac3_output->write_audio_data(ac3_output, 
+						     s16_samples_out, 6 * 256, pts_);
 		}
 
 		pts_ = 0;

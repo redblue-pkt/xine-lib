@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.3 2001/04/27 23:51:52 guenter Exp $
+ * $Id: video_out.h,v 1.4 2001/04/28 19:47:42 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -205,7 +205,7 @@ struct vo_instance_s {
 #define VO_CAP_COLORKEY     0x00000100 /* driver can set COLORKEY value        */
 
 /*
- * vo_driver_s contains the function every display driver
+ * vo_driver_s contains the functions every display driver
  * has to implement. The vo_new_instance function (see below)
  * should then be used to construct a vo_instance using this
  * driver. Some of the function pointers will be copied
@@ -266,25 +266,26 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) ;
  * you have to implement these functions:
  *
  *
- * init_video_out_plugin init and set up driver so it is fully operational
+ * vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual);
+ *
+ * init and set up driver so it is fully operational
  * 
  * parameters: config      - config object pointer
  *             visual      - driver specific info (e.g. Display*)
  *
  * return value: video_driver_t* in case of success,
- *               NULL            on failure (e.g. wrong interface version, wrong visual type...)
+ *               NULL            on failure (e.g. wrong interface version, 
+ *                               wrong visual type...)
  *
- * vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual);
  *
  *
- * get_video_out_plugin_info
+ * vo_info_t *get_video_out_plugin_info ();
  *
  * peek at some (static) information about the plugin without initializing it
  *
  * parameters: none
  *
  * return value: vo_info_t* : some information about the plugin
- * vo_info_t *get_video_out_plugin_info ();
  */
 
 typedef struct vo_info_s {

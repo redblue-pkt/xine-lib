@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.7 2001/04/24 21:10:42 guenter Exp $
+ * $Id: xine.c,v 1.8 2001/04/28 19:47:42 guenter Exp $
  *
  * top-level xine functions
  *
@@ -96,7 +96,7 @@ void xine_stop (xine_t *this) {
   this->spu_fifo->clear(this->spu_fifo);
 
   if (this->audio_out)
-    this->audio_out->close ();
+    this->audio_out->close (this->audio_out);
 
   this->metronom->reset(this->metronom);
   this->metronom->stop_clock (this->metronom);
@@ -438,6 +438,7 @@ xine_t *xine_init (vo_driver_t *vo,
   video_decoder_init (this);
 
   this->audio_out = ao;
+  this->audio_out->connect (this->audio_out, this->metronom);
   audio_decoder_init (this);
 
   /*
