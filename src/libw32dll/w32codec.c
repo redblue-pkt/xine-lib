@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.14 2001/07/30 19:21:29 guenter Exp $
+ * $Id: w32codec.c,v 1.15 2001/08/06 13:21:26 ehasenle Exp $
  *
  * routines for using w32 codecs
  *
@@ -605,7 +605,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this->video_decoder.decode_data         = w32v_decode_data;
   this->video_decoder.close               = w32v_close;
   this->video_decoder.get_identifier      = w32v_get_id;
-  this->video_decoder.priority            = 0;
+  this->video_decoder.priority            = 1;
 
   return (video_decoder_t *) this;
 }
