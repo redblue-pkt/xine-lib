@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.10 2001/06/21 17:34:23 guenter Exp $
+ * $Id: input_vcd.c,v 1.11 2001/06/23 14:05:47 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -925,11 +925,11 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int i;
 
-  if (filename) {
-    *nEntries = 0;
-    return NULL;
-  }
+  *nEntries = 0;
 
+  if (filename)
+    return NULL;
+  
   this->fd = open (CDROM, O_RDONLY);
 
   if (this->fd == -1) {
@@ -949,7 +949,7 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   close (this->fd);
   this->fd = -1;
 
-  *nEntries = this->total_tracks;
+  *nEntries = this->total_tracks - 1;
   
   /* printf ("%d tracks\n", this->total_tracks); */
 
@@ -961,6 +961,8 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
     this->cur_track = i;
     this->mrls[i-1]->size = vcd_plugin_get_length ((input_plugin_t *) this);
   }
+
+  this->mrls[*nEntries] = NULL;
 
   return this->mrls;
 }

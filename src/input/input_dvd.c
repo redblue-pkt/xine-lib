@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.10 2001/06/21 17:34:23 guenter Exp $
+ * $Id: input_dvd.c,v 1.11 2001/06/23 14:05:47 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -428,14 +428,13 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int i, fd;
 
-  if (filename) {
-    *nEntries = 0;
+  *nEntries = 0;
+  
+  if (filename)
     return NULL;
-  }
-
+  
   if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
-
-    int    nFiles, nFiles2;
+    int nFiles, nFiles2;
 
     UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles);
 
@@ -468,10 +467,11 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
 
     close (fd);
 
-  } else {
-    *nEntries = 0;
-    return NULL;
   }
+  else
+    return NULL;
+
+  this->mrls[*nEntries] = NULL;
 
   return this->mrls;
 }

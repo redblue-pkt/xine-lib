@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.25 2001/06/18 15:43:01 richwareham Exp $
+ * $Id: xine_internal.h,v 1.26 2001/06/23 14:05:47 f1rmb Exp $
  *
  */
 
@@ -261,8 +261,8 @@ char **xine_get_browsable_input_plugin_ids (xine_t *this) ;
  * returns NULL if start_mrl is an invalid MRL, not even a directory
  */
 
-char **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
-			     char *start_mrl);
+mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
+			      char *start_mrl);
 
 /*
  * autoplay support

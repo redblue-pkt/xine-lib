@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.21 2001/06/16 18:03:21 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.22 2001/06/23 14:05:46 f1rmb Exp $
  *
  */
 
@@ -446,9 +446,32 @@ void xine_select_spu_channel (xine_t *this, int channel);
  */
 char **xine_get_browsable_input_plugin_ids (xine_t *this) ;
 
+/* Types of mrls returned by get_dir() */
+#define mrl_unknown       0x0
+#define mrl_dvd           0x1
+#define mrl_vcd           0x3
+#define mrl_net           0x4
+#define mrl_rtp           0x5
+#define mrl_stdin         0x6
+#define mrl_fifo          0x7
+#define mrl_chardev       0x8
+#define mrl_directory     0x9
+#define mrl_blockdev      0xA
+#define mrl_normal        0xB
+#define mrl_symbolic_link 0xC
+#define mrl_sock          0xD
+/* bit for exec file, should be combinated with mrl_normal type*/
+#define mrl_type_exec          0xFFFF8000 
+
+typedef struct {
+  char *mrl;        /* <type>://<location              */
+  int   type;       /* match to mrl_type enum          */
+  off_t size;       /* size of this source, may be 0   */
+} mrl_t;
+
 /**
- * \fn char **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl)
- * \brief Request available MRLs from plugins
+ * \fn mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl)
+ *  \brief Request available MRLs from plugins
  * \param this Current xine engine configuration ( #see xine_init() )
  * \param plugin_id Plugin name ( #see xine_get_browsable_input_plugin_ids() )
  * \param start_mrl MRL
@@ -462,8 +485,7 @@ char **xine_get_browsable_input_plugin_ids (xine_t *this) ;
  * returns NULL if <start_mrl> is an invalid MRL, not even a directory.
  */
 
-char **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
-			     char *start_mrl);
+mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl);
 
 /** @} end of browsegroup*/
 

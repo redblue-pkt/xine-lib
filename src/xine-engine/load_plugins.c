@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.25 2001/06/15 23:59:18 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.26 2001/06/23 14:05:47 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -702,9 +702,32 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id) {
 /** ***************************************************************
  *  Browse featured plugins section
  */
-char **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
-			     char *start_mrl) {
+mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl) {
+  input_plugin_t  *ip;
+  mrl_t **browse_mrls = NULL;
+  int              i, n;
+  
+  if(!this || !plugin_id)
+    return NULL;
+  
+  if(!this->num_input_plugins)
+    return NULL;
 
-  printf("%s not implemented yet\n", __FUNCTION__);
-  return NULL;
+  for(i = 0; i < this->num_input_plugins; i++) {
+
+    ip = this->input_plugins[i];
+
+    if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
+      if(((ip->get_capabilities(ip)) & INPUT_CAP_GET_DIR)) {
+
+	if(ip->get_dir)
+	  browse_mrls = ip->get_dir(ip, start_mrl, &n);
+
+      }
+      goto browse_mrls_done;
+    }
+  }
+
+ browse_mrls_done:
+  return browse_mrls;
 }

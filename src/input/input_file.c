@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.12 2001/06/21 17:34:23 guenter Exp $
+ * $Id: input_file.c,v 1.13 2001/06/23 14:05:47 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,9 +72,9 @@ typedef struct {
   char             *mrl;
   config_values_t  *config;
 
-  mrl_t           **mrls;
   int               mrls_allocated_entries;
-
+  mrl_t            *mrls[1];
+  
 } file_input_plugin_t;
 
 /*
@@ -196,7 +196,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   struct dirent        *pdirent;
   DIR                  *pdir;
   mode_t                mode;
-  struct stat           stat;
+  struct stat           pstat;
   int                   num_files      = 0;
 
   *nFiles = 0;
@@ -223,7 +223,6 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     return NULL; 
   }
 
-
   while((pdirent = readdir(pdir)) != NULL) {
     /* 
      * full pathname creation 
@@ -239,11 +238,11 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     }
 
     sprintf(fullpathname, "%s/%s", current_dir, pdirent->d_name); 
-
+    
     /* 
      * stat the file 
      */
-    if(lstat(fullpathname, &stat) < 0) {
+    if(lstat(fullpathname, &pstat) < 0) {
       fprintf(stderr, "lstat() failed: %s\n", strerror(errno));
       free(fullpathname);
       return NULL;
@@ -253,26 +252,30 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
      * alloc enought memory in private plugin structure to
      * store found mrls.
      */
-    if(num_files > this->mrls_allocated_entries
+    if(num_files >= this->mrls_allocated_entries
        || this->mrls_allocated_entries == 0) {
-      this->mrls[num_files] = (mrl_t *) malloc(sizeof(mrl_t));
-      
-      this->mrls[num_files]->mrl = (char *) 
-	malloc(strlen(pdirent->d_name + 1));
+
+      if((this->mrls[num_files] = (mrl_t *) malloc(sizeof(mrl_t))) == NULL) {
+	fprintf(stderr, "malloc() failed: %s\n", strerror(errno));
+	return NULL;
+      }
+
+      this->mrls[num_files]->mrl = (char *) malloc(strlen(fullpathname) + 1);
+
     }
-    else
+    else {
       this->mrls[num_files]->mrl = (char *) 
-	realloc(this->mrls[num_files]->mrl, strlen(pdirent->d_name + 1));
+	realloc(this->mrls[num_files]->mrl, strlen(fullpathname) + 1);
+    }
     
-    /* FIXME: store valid MRLs with valid path name */
-    strcpy(this->mrls[num_files]->mrl, pdirent->d_name);
+    sprintf(this->mrls[num_files]->mrl, "%s", fullpathname);
     
-    this->mrls[num_files]->size = stat.st_size;
+    this->mrls[num_files]->size = pstat.st_size;
 
     /* 
      * Ok, now check file type 
      */
-    mode = stat.st_mode;
+    mode = pstat.st_mode;
     
     if(S_ISLNK(mode)) {
       this->mrls[num_files]->type = mrl_symbolic_link;
@@ -320,11 +323,14 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   closedir(pdir);
 
   *nFiles = num_files;
-  
+
   if(num_files > this->mrls_allocated_entries)
     this->mrls_allocated_entries = num_files;
 
-  free(fullpathname);
+  if(fullpathname)
+    free(fullpathname);
+  
+  this->mrls[num_files] = NULL;
   
   return this->mrls;
 }
@@ -384,7 +390,6 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
  *
  */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
-
   file_input_plugin_t *this;
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
@@ -414,7 +419,10 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->fh                     = -1;
     this->mrl                    = NULL;
     this->config                 = config;
-    this->mrls_allocated_entries = 0;
+
+    this->mrls[0] = (mrl_t *) malloc(sizeof(mrl_t));
+    this->mrls[0]->mrl = (char *) malloc(sizeof(char *));
+    this->mrls_allocated_entries = 1;
 
     return (input_plugin_t *) this;
     break;
@@ -428,3 +436,5 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     return NULL;
   }
 }
+
+
