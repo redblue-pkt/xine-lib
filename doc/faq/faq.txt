@@ -83,6 +83,7 @@ Table of Contents
     Some parts of my X Desktop get transparent when xine plays the video!
     The aspect ratio of the video is wrong!
     What is the difference between discarded and skipped frames?
+    My xine is runing in black and white! / I only get a gray video output!
    
 7. Error Messages: What they mean and what you can do
    
@@ -692,7 +693,8 @@ optimizing options. A few things you should check:
     corresponding to the amount of graphics memory you have, everything should
     be fine.
    
-  * set up and use raw devices for dvd access.
+  * Set up and use raw devices for dvd access. Please note that this is usually
+    not worth the effort as the performance gain from it is very small if any.
    
     Raw devices should be available in linux kernel 2.4.x and there are patches
     for older kernels available from: ftp://ftp.kernel.org/pub/linux/kernel/
@@ -868,7 +870,7 @@ are some hints for individual gfx chips:
    
   * Trident card: If you see vertical bands jumbled, upgrade to the latest
     xfree/experimental trident drivers (for the CyberBlade XP a driver exists
-    here: http://www.xfree86.org/~alanh/
+    here: http://www.xfree86.org/~alanh/ )
    
   * nvidia: With newer GeForce cards, Xv should work with XFree 4.2.0 or newer,
     for older RivaTNT cards use the binary drivers from nvidia (of course the
@@ -938,6 +940,21 @@ section above.
 
 Note that if a decoder can't skip frames for some reason, you would never see
 frames skipped (they would be all discarded).
+
+-------------------------------------------------------------------------------
+
+My xine is runing in black and white! / I only get a gray video output!
+
+This frequently happens with new Xv drivers or when switching to a different
+video card. Background is that different Xv drivers often use different ranges
+for the contrast/brightness/saturation settings.
+
+To fix this, try opening the xine settings window and try adjusting the sliders
+for contrast, brightness and saturation.
+
+Please note that some frontends save these settings in their config file so
+when you have found a working combination, make sure you exit xine cleanly so
+the values are saved.
 
 -------------------------------------------------------------------------------
 

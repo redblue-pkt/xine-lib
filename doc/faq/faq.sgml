@@ -931,7 +931,9 @@
 	</listitem>
 	<listitem>
 	  <para>
-	    set up and use raw devices for dvd access.
+	    Set up and use raw devices for dvd access. Please note that
+	    this is usually not worth the effort as the performance gain
+	    from it is very small if any.
 	  </para>
 	  <para>
             Raw devices should be available in linux kernel 2.4.x and there are
@@ -1308,7 +1310,25 @@
       never see frames skipped (they would be all discarded).
     </para>
   </sect1>
+  <sect1>
 
+    <title>My xine is runing in black and white! / I only get a gray video output!</title>
+    
+    <para>
+      This frequently happens with new Xv drivers or when switching to a
+      different video card. Background is that different Xv drivers often
+      use different ranges for the contrast/brightness/saturation settings.
+    </para>
+    <para>
+      To fix this, try opening the xine settings window and try adjusting
+      the sliders for contrast, brightness and saturation.
+    </para>
+    <para>
+      Please note that some frontends save these settings in their config file
+      so when you have found a working combination, make sure you exit 
+      xine cleanly so the values are saved.
+    </para>
+  </sect1>
 </chapter>
 
 <chapter id="errors">

@@ -349,6 +349,11 @@ HREF="#AEN388"
 HREF="#AEN391"
 >What is the difference between discarded and skipped frames?</A
 ></DT
+><DT
+><A
+HREF="#AEN399"
+>My xine is runing in black and white! / I only get a gray video output!</A
+></DT
 ></DL
 ></DD
 ><DT
@@ -360,47 +365,47 @@ HREF="#ERRORS"
 ><DL
 ><DT
 ><A
-HREF="#AEN401"
+HREF="#AEN406"
 >Starting xine fails with complains about audio drivers/devices!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN408"
+HREF="#AEN413"
 >"no video port found"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN413"
+HREF="#AEN418"
 >"Unable to open dvd drive (/dev/dvd)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN417"
+HREF="#AEN422"
 >"demux error! 00 00 00 (should be 0x000001)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN422"
+HREF="#AEN427"
 >"audio driver 'oss' failed, using null driver instead"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN433"
+HREF="#AEN438"
 >"video_out: throwing away image with pts xxx because it's too old"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN436"
+HREF="#AEN441"
 >"No video plugin available to decode 'xxxxxx'."</A
 ></DT
 ><DT
 ><A
-HREF="#AEN440"
+HREF="#AEN445"
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN443"
+HREF="#AEN448"
 >xine just crashed on me - i didn't get any error message</A
 ></DT
 ></DL
@@ -1791,7 +1796,9 @@ CLASS="COMMAND"
 ></LI
 ><LI
 ><P
->	    set up and use raw devices for dvd access.
+>	    Set up and use raw devices for dvd access. Please note that
+	    this is usually not worth the effort as the performance gain
+	    from it is very small if any.
 	  </P
 ><P
 >            Raw devices should be available in linux kernel 2.4.x and there are
@@ -2238,7 +2245,7 @@ HREF="http://www.xfree86.org/~alanh/"
 TARGET="_top"
 > 
 	    http://www.xfree86.org/~alanh/ </A
->
+>)
 	  </P
 ></LI
 ><LI
@@ -2410,6 +2417,29 @@ CLASS="PROGRAMLISTING"
       never see frames skipped (they would be all discarded).
     </P
 ></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="AEN399"
+></A
+>My xine is runing in black and white! / I only get a gray video output!</H2
+><P
+>      This frequently happens with new Xv drivers or when switching to a
+      different video card. Background is that different Xv drivers often
+      use different ranges for the contrast/brightness/saturation settings.
+    </P
+><P
+>      To fix this, try opening the xine settings window and try adjusting
+      the sliders for contrast, brightness and saturation.
+    </P
+><P
+>      Please note that some frontends save these settings in their config file
+      so when you have found a working combination, make sure you exit 
+      xine cleanly so the values are saved.
+    </P
+></DIV
 ></DIV
 ><DIV
 CLASS="CHAPTER"
@@ -2423,7 +2453,7 @@ CLASS="SECT1"
 ><H2
 CLASS="SECT1"
 ><A
-NAME="AEN401"
+NAME="AEN406"
 ></A
 >Starting xine fails with complains about audio drivers/devices!</H2
 ><P
@@ -2494,7 +2524,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN408"
+NAME="AEN413"
 ></A
 >"no video port found"</H2
 ><P
@@ -2527,7 +2557,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN413"
+NAME="AEN418"
 ></A
 >"Unable to open dvd drive (/dev/dvd)"</H2
 ><P
@@ -2557,7 +2587,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN417"
+NAME="AEN422"
 ></A
 >"demux error! 00 00 00 (should be 0x000001)"</H2
 ><P
@@ -2580,7 +2610,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN422"
+NAME="AEN427"
 ></A
 >"audio driver 'oss' failed, using null driver instead"</H2
 ><P
@@ -2657,7 +2687,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN433"
+NAME="AEN438"
 ></A
 >"video_out: throwing away image with pts xxx because it's too old"</H2
 ><P
@@ -2673,7 +2703,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN436"
+NAME="AEN441"
 ></A
 >"No video plugin available to decode 'xxxxxx'."</H2
 ><P
@@ -2692,7 +2722,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN440"
+NAME="AEN445"
 ></A
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</H2
 ><P
@@ -2704,7 +2734,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN443"
+NAME="AEN448"
 ></A
 >xine just crashed on me - i didn't get any error message</H2
 ><P
