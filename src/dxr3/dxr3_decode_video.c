@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.31 2003/02/23 14:15:58 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.32 2003/03/07 17:07:14 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -608,7 +608,7 @@ static int dxr3_present(xine_stream_t *stream)
         present = (strcmp(vo_class->get_identifier(vo_class), DXR3_VO_ID) == 0);
     }
   }
-#ifdef LOG_VID
+#if LOG_VID
   printf("dxr3_decode_video: dxr3 %s\n", present ? "present" : "not present");
 #endif
   return present;
