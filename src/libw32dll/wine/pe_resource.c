@@ -13,15 +13,15 @@
 
 #include <stdlib.h>
 #include <sys/types.h>
-#include "wine/winestring.h"
-#include "wine/windef.h"
-#include "wine/pe_image.h"
-#include "wine/module.h"
-#include "wine/heap.h"
+#include "winestring.h"
+#include "windef.h"
+#include "pe_image.h"
+#include "module.h"
+#include "heap.h"
 //#include "task.h"
 //#include "process.h"
 //#include "stackframe.h"
-#include "wine/debugtools.h"
+#include "debugtools.h"
 
 /**********************************************************************
  *  HMODULE32toPE_MODREF 

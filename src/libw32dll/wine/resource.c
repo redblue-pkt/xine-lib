@@ -14,13 +14,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "wine/winbase.h"
-#include "wine/windef.h"
-#include "wine/winuser.h"
-#include "wine/heap.h"
-#include "wine/module.h"
-#include "wine/debugtools.h"
-#include "wine/winerror.h"
+#include "winbase.h"
+#include "windef.h"
+#include "winuser.h"
+#include "heap.h"
+#include "module.h"
+#include "debugtools.h"
+#include "winerror.h"
 #define CP_ACP					0
 
 WORD WINE_LanguageId=0x409;//english

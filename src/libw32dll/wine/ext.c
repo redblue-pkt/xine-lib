@@ -18,8 +18,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdarg.h>
-#include "wine/windef.h"
-//#include "wine/winbase.h"
+#include "windef.h"
+//#include "winbase.h"
 int dbg_header_err( const char *dbg_channel, const char *func )
 {
     return 0; 

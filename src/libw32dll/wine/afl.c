@@ -24,16 +24,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "wine/winbase.h"
-#include "wine/windef.h"
-#include "wine/winuser.h"
-#include "wine/vfw.h"
-#include "wine/winestring.h"
-#include "wine/driver.h"
-#include "wine/winerror.h"
-#include "wine/msacm.h"
-#include "wine/msacmdrv.h"
-#include "wine/debugtools.h"
+#include "winbase.h"
+#include "windef.h"
+#include "winuser.h"
+#include "vfw.h"
+#include "winestring.h"
+#include "driver.h"
+#include "winerror.h"
+#include "msacm.h"
+#include "msacmdrv.h"
+#include "debugtools.h"
 #include "wineacm.h"
 
 #pragma pack(1)

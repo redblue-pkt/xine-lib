@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.13 2001/06/03 19:41:05 guenter Exp $
+ * $Id: video_out.c,v 1.14 2001/06/09 18:40:41 guenter Exp $
  *
  */
 
@@ -262,6 +262,9 @@ static void *video_out_loop (void *this_gen) {
   pthread_exit(NULL);
 }
 
+static uint32_t vo_get_capabilities (vo_instance_t *this) {
+  return this->driver->get_capabilities (this->driver);
+}
 
 static void vo_open (vo_instance_t *this) {
 
@@ -442,6 +445,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->get_frame             = vo_get_frame;
   this->close                 = vo_close;
   this->exit                  = vo_exit;
+  this->get_capabilities      = vo_get_capabilities;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;

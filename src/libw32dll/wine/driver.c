@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #endif
 
-#include "wine/driver.h"
-#include "wine/pe_image.h"
-#include "wine/winreg.h"
-#include "wine/vfw.h"
+#include "driver.h"
+#include "pe_image.h"
+#include "winreg.h"
+#include "vfw.h"
 #include "registry.h"
 
 #ifdef __FreeBSD__

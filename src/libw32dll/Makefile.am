@@ -1,14 +1,4 @@
-
-EXTRA_DIST = stubs.s
-
-#CFLAGS = -DXINE_COMPILE -I wine -fno-omit-frame-pointer \
-#	-DWIN32_PATH=\"@w32_path@\" -pipe
-
-#CFLAGS = @GLOBAL_CFLAGS@ -DWIN32_PATH=\"@w32_path@\" -I wine -fno-omit-frame-pointer\
-#	 -fno-inline -D__WINE__ -Ddbg_printf=__vprintf -DTRACE=__vprintf
-
-CFLAGS = -DWIN32_PATH=\"@w32_path@\" -I wine -fno-omit-frame-pointer\
-	 -DXINE_COMPILE -D__WINE__ -pipe
+CFLAGS = @GLOBAL_CFLAGS@ 
 
 SUBDIRS = wine
 
@@ -16,7 +6,7 @@ if HAVE_W32DLL
 w32dll_codec = xineplug_decode_w32dll.la
 endif
 
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+# LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -27,18 +17,11 @@ libdir = $(XINE_PLUGINDIR)
 #
 lib_LTLIBRARIES = $(w32dll_codec)
 
-xineplug_decode_w32dll_la_SOURCES = afl.c elfdll.c module.c \
-	pe_resource.c resource.c win32.c driver.c ext.c \
-	pe_image.c registry.c vfl.c w32codec.c
+xineplug_decode_w32dll_la_SOURCES = w32codec.c
 xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module
-xineplug_decode_w32dll_la_LIBADD = stubs.lo
+xineplug_decode_w32dll_la_LIBADD = wine/libwine.la
 
-noinst_HEADERS = loader.h registry.h win32.h wineacm.h w32codec.h
-
-
-stubs.lo: stubs.s
-	$(CC) -c $(top_srcdir)/src/libw32dll/stubs.s -o stubs.lo
-
+noinst_HEADERS = w32codec.h
 
 debug:
 	$(MAKE) CFLAGS="$(CFLAGS) -g -DSTATIC_WIN32_PATH"
