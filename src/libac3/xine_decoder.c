@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/05/28 22:00:46 guenter Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/05/30 18:33:01 joachim_koenig Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -42,6 +42,7 @@ typedef struct ac3dec_decoder_s {
   uint32_t         pts;
 
   uint8_t          frame_buffer[FRAME_SIZE];
+  uint16_t         ac3_buffer[4 * 6 * 256];
   uint8_t         *frame_ptr;
   int              sync_todo;
   int              frame_length, frame_todo;
@@ -220,11 +221,21 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	this->output_mode = AO_CAP_MODE_AC3;
       }
 
+      this->ac3_buffer[0] = 0xf872;  //spdif syncword
+      this->ac3_buffer[1] = 0x4e1f;  // .............
+      this->ac3_buffer[2] = 0x0001;  // AC3 data
+      this->ac3_buffer[3] = this->frame_length * 16;
+      this->ac3_buffer[4] = 0x0b77;  // AC3 syncwork
+
+      // ac3 seems to be swabbed data
+      swab(this->frame_buffer,&this->ac3_buffer[5],  this->frame_length * 2 );
+
+
 
       if (this->output_open) {
 	this->audio_out->write_audio_data (this->audio_out,
-					   (int16_t*)this->frame_buffer,
-					   this->frame_length,
+					   (int16_t*)this->ac3_buffer,
+					   6 * 256,
 					   this->pts);
 	this->pts = 0;
       }
