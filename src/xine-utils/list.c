@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.5 2003/09/16 02:03:16 storri Exp $
+ * $Id: list.c,v 1.6 2003/12/08 11:49:16 mroi Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -71,7 +71,7 @@ void xine_list_free(xine_list_t *l) {
     free(n);
   }
   
-  l->first = l->cur = l->last = NULL; /* FIXME: free(l) instead */
+  free(l);
 }
 
 void *xine_list_first_content (xine_list_t *l) {
