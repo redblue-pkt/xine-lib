@@ -17,7 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_alsa_out.c,v 1.6 2001/06/01 07:25:26 f1rmb Exp $
+ * for the SPDIF AC3 sync part
+ * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
+ * 
+ * $Id: audio_alsa_out.c,v 1.7 2001/06/05 16:58:47 joachim_koenig Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -481,10 +484,16 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   int              card;
   int              dev;
   int              err;
+  char             *pcm_device;
+  char             *ac3_device;
 
   this = (alsa_functions_t *) malloc (sizeof (alsa_functions_t));
-  
-  strcpy(this->audio_dev,"plug:0,0");
+ 
+  pcm_device = config->lookup_str(config,"alsa_pcm_device", "plug:0,0");
+  ac3_device = config->lookup_str(config,"alsa_ac3_device", "plug:0,2");
+
+ 
+  strcpy(this->audio_dev,pcm_device);
 
   /*
    * find best device driver/channel
@@ -511,7 +520,7 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   this->capabilities       = AO_CAP_MODE_STEREO;
   if (config->lookup_int (config, "ac3_pass_through", 0)) {
     this->capabilities |= AO_CAP_MODE_AC3;
-    strcpy(this->audio_dev,"plug:0,2");
+    strcpy(this->audio_dev,ac3_device);
     printf("AC3 pass through activated\n");
   }
    
