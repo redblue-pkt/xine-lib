@@ -1,5 +1,28 @@
 #ifndef XINE_CHECK_H
 #define XINE_CHECK_H
+#include <stdio.h>
+
+
+#define XINE_HEALTH_CHECK_OK            0
+#define XINE_HEALTH_CHECK_FAIL          1
+#define XINE_HEALTH_CHECK_UNSUPPORTED   2
+
+struct xine_health_check_s {
+  int status;
+  const char* cdrom_dev;
+  const char* dvd_dev;
+  char* msg;
+};
+
+typedef struct xine_health_check_s xine_health_check_t;
+
+typedef struct {
+  FILE    *fd;
+  char    *filename;
+  char    *ln;
+  char     buf[256];
+} file_info_t;
+
 
 /*
  * Start checking xine setup here
@@ -7,33 +30,35 @@
  * cdrom_dev = Name of the device link for the cdrom drive (e.g. /dev/cdrom)
  * dvd_dev = Name of the device link for the dvd drive (e.g. /dev/dvd)
  */
-int xine_health_check(char* cdrom_dev, char* dvd_dev);
+xine_health_check_t* xine_health_check(xine_health_check_t*);
 
+#if 0
 /* Get OS information */
-int xine_health_check_os(void);
+xine_health_check_t* xine_health_check_os(void);
+#endif
 
 /* Get Kernel information */
-int xine_health_check_kernel(void);
+xine_health_check_t* xine_health_check_kernel(xine_health_check_t*);
 
 #if ARCH_X86
 /* health_check MTRR */
-int xine_health_check_mtrr(void);
+xine_health_check_t* xine_health_check_mtrr(xine_health_check_t*);
 #endif /* ARCH_X86 */
 
 /* health_check CDROM */
-int xine_health_check_cdrom(char* cdrom_dev);
+xine_health_check_t* xine_health_check_cdrom(xine_health_check_t*);
 
 /* health_check DVDROM */
-int xine_health_check_dvdrom(char* dvd_dev);
+xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t*);
 
 /* health_check DMA settings of DVD drive*/
-int xine_health_check_dma(char* dvd_dev);
+xine_health_check_t* xine_health_check_dma(xine_health_check_t*);
 
 /* health_check X */
-int xine_health_check_x(void);
+xine_health_check_t* xine_health_check_x(xine_health_check_t*);
 
 /* health_check Xv extension */
-int xine_health_check_xv(void);
+xine_health_check_t* xine_health_check_xv(xine_health_check_t*);
 
 #endif
 
