@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.57 2004/05/31 14:42:20 hadess Exp $
+ * $Id: demux_wav.c,v 1.58 2004/05/31 14:44:16 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -134,9 +134,7 @@ static int open_wav_file(demux_wav_t *this) {
       this->data_start = this->input->get_current_pos(this->input);
       /* Get the data length from the file itself, instead of the data
        * TAG, for broken files */
-      this->input->seek(this->input, 0, SEEK_END);
-      this->data_size = this->input->get_current_pos(this->input);
-      this->input->seek(this->input, this->data_start, SEEK_SET);
+      this->data_size = this->input->get_length(this->input);
     } else {
       this->input->seek(this->input, chunk_size, SEEK_CUR);
     }
