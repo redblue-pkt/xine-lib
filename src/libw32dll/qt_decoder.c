@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.13 2003/01/29 17:51:05 miguelfreitas Exp $
+ * $Id: qt_decoder.c,v 1.14 2003/01/30 14:56:45 f1rmb Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -322,7 +322,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
 
   switch (buf->type) {
   case BUF_AUDIO_QDESIGN1:
-    this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','1');
+    this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','C');
     break;
   case BUF_AUDIO_QDESIGN2:
     this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','2');
