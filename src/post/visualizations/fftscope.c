@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.4 2003/01/18 15:28:08 tmmm Exp $
+ * $Id: fftscope.c,v 1.5 2003/01/31 02:29:59 tmmm Exp $
  *
  */
 
@@ -40,6 +40,7 @@
 #define FFT_HEIGHT 256
 
 #define NUMSAMPLES 512
+#define MAXCHANNELS  6
 
 typedef struct post_plugin_fftscope_s post_plugin_fftscope_t;
 
@@ -58,7 +59,7 @@ struct post_plugin_fftscope_s {
   xine_stream_t     *stream;
 
   int data_idx;
-  complex wave[2][NUMSAMPLES];
+  complex wave[MAXCHANNELS][NUMSAMPLES];
   audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
   
   int bits;
@@ -242,7 +243,7 @@ static void scale (complex wave[], int bits)
 
 static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
 
-  int i, j;
+  int i, j, c;
   int map_ptr;
   int amp_int;
   float amp_float;
@@ -293,85 +294,41 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
     (0xFF << 8) |
     this->v_current);
 
-  /* perform FFT for left channel data */
-  window(this->wave[0], LOG_BITS);
-  scale(this->wave[0], LOG_BITS);
-  fft(this->wave[0], LOG_BITS);
 
-  if (this->channels == 1) {
+  for (c = 0; c < this->channels; c++){
+    /* perform FFT for channel data */
+    window(this->wave[c], LOG_BITS);
+    scale(this->wave[c], LOG_BITS);
+    fft(this->wave[c], LOG_BITS);
 
-    /* plot the FFT points for the left channel */
+    /* plot the FFT points for the channel */
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
-      map_ptr = ((FFT_HEIGHT - 1) * FFT_WIDTH + i * 2) / 2;
-      amp_float = amp(i, this->wave[0], LOG_BITS);
+      map_ptr = ((FFT_HEIGHT * (c+1) / this->channels -1 ) * FFT_WIDTH + i * 2) / 2;
+      amp_float = amp(i, this->wave[c], LOG_BITS);
       if (amp_float == 0)
         amp_int = 0;
       else
-        amp_int = (int)(60 * log10(amp_float));
-      if (amp_int > 255)
-        amp_int = 255;
+        amp_int = (int)((60/this->channels) * log10(amp_float));
+      if (amp_int > 255/this->channels)
+        amp_int = 255/this->channels;
 
       for (j = 0; j < amp_int; j++, map_ptr -= FFT_WIDTH / 2)
         ((unsigned int *)frame->base[0])[map_ptr] = yuy2_pair;
     }
-
-  } else {
-
-    /* perform FFT for right channel data as well */
-    window(this->wave[1], LOG_BITS);
-    scale(this->wave[1], LOG_BITS);
-    fft(this->wave[1], LOG_BITS);
-
-    /* plot the FFT points for the left channel */
-    for (i = 0; i < NUMSAMPLES / 2; i++) {
-
-      map_ptr = ((FFT_HEIGHT / 2) * FFT_WIDTH + i * 2) / 2;
-      amp_float = amp(i, this->wave[0], LOG_BITS);
-      if (amp_float == 0)
-        amp_int = 0;
-      else
-        amp_int = (int)(25 * log10(amp_float));
-      if (amp_int > 127)
-        amp_int = 127;
-
-      for (j = 0; j < amp_int; j++, map_ptr -= FFT_WIDTH / 2)
-        ((unsigned int *)frame->base[0])[map_ptr] = yuy2_pair;
-    }
-
-    /* plot the FFT points for the right channel */
-    for (i = 0; i < NUMSAMPLES / 2; i++) {
-
-      map_ptr = ((FFT_HEIGHT - 1) * FFT_WIDTH + i * 2) / 2;
-      amp_float = amp(i, this->wave[0], LOG_BITS);
-      if (amp_float == 0)
-        amp_int = 0;
-      else
-        amp_int = (int)(25 * log10(amp_float));
-      if (amp_int > 127)
-        amp_int = 127;
-
-      for (j = 0; j < amp_int; j++, map_ptr -= FFT_WIDTH / 2)
-        ((unsigned int *)frame->base[0])[map_ptr] = yuy2_pair;
-    }
-
   }
 
   /* top line */
   for (map_ptr = 0; map_ptr < FFT_WIDTH / 2; map_ptr++)
     ((unsigned int *)frame->base[0])[map_ptr] = be2me_32(0xFF80FF80);
 
-  /* middle line, only on stereo data */
-  if (this->channels == 2) {
-  for (i = 0, map_ptr = ((FFT_HEIGHT / 2) * FFT_WIDTH) / 2;
+  /* lines under each channel */
+  for (c = 0; c < this->channels; c++){
+    for (i = 0, map_ptr = ((FFT_HEIGHT * (c+1) / this->channels -1 ) * FFT_WIDTH) / 2;
        i < FFT_WIDTH / 2; i++, map_ptr++)
     ((unsigned int *)frame->base[0])[map_ptr] = be2me_32(0xFF80FF80);
   }
 
-  /* bottom line */
-  for (i = 0, map_ptr = ((FFT_HEIGHT - 1) * FFT_WIDTH) / 2;
-       i < FFT_WIDTH / 2; i++, map_ptr++)
-    ((unsigned int *)frame->base[0])[map_ptr] = be2me_32(0xFF80FF80);
 }
 
 /**************************************************************************
@@ -447,6 +404,8 @@ static int fftscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   this->bits = bits;
   this->mode = mode;
   this->channels = mode_channels(mode);
+  if( this->channels > MAXCHANNELS )
+    this->channels = MAXCHANNELS;
   this->samples_per_frame = rate / FPS;
   this->sample_rate = rate; 
   this->stream = stream;
@@ -476,7 +435,7 @@ static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
   int8_t *data8;
   int samples_used = 0;
   uint64_t vpts = buf->vpts;
-  int i, j;
+  int i, c;
   
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
@@ -497,8 +456,6 @@ static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
 
   this->sample_counter += buf->num_frames;
   
-  j = (this->channels >= 2) ? 1 : 0;
-
   do {
     
     if( this->bits == 8 ) {
@@ -508,10 +465,10 @@ static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
       /* scale 8 bit data to 16 bits and convert to signed as well */
       for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
            i++, this->data_idx++, data8 += this->channels ) {
-        this->wave[0][this->data_idx].re = (double)(data8[0] << 8) - 0x8000;
-        this->wave[0][this->data_idx].im = 0;
-        this->wave[1][this->data_idx].re = (double)(data8[j] << 8) - 0x8000;
-        this->wave[1][this->data_idx].im = 0;
+        for( c = 0; c < this->channels; c++){
+          this->wave[c][this->data_idx].re = (double)(data8[c] << 8) - 0x8000;
+          this->wave[c][this->data_idx].im = 0;
+        }
       }
     } else {
       data = buf->mem;
@@ -519,10 +476,10 @@ static void fftscope_port_put_buffer (xine_audio_port_t *port_gen,
   
       for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
            i++, this->data_idx++, data += this->channels ) {
-        this->wave[0][this->data_idx].re = (double)data[0];
-        this->wave[0][this->data_idx].im = 0;
-        this->wave[1][this->data_idx].re = (double)data[j];
-        this->wave[1][this->data_idx].im = 0;
+        for( c = 0; c < this->channels; c++){
+          this->wave[c][this->data_idx].re = (double)data[c];
+          this->wave[c][this->data_idx].im = 0;
+        }
       }
     }
   
