@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-12 10:59+0200\n"
+"POT-Creation-Date: 2002-06-12 15:57+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -1582,72 +1582,6 @@ msgstr ""
 "           plugin de demultiplexage ne correspondent pas.\n"
 "Installer la version courante des plugins de demultiplexage peux aider.\n"
 
-#: src/dxr3/video_out_dxr3.c:153
-msgid "swap odd and even lines"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:157
-msgid "Add black bars to correct aspect ratio"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:158
-msgid "If disabled, will assume source has 4:3 aspect ratio."
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:161
-msgid "dxr3: use alternate play mode for mpeg encoder playback"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:162
-msgid "Enabling this option will utilise a smoother play mode"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:215 src/dxr3/video_out_dxr3.c:236
-msgid "none"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:222
-msgid "the encoder for non mpeg content"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:223
-msgid ""
-"Content other than mpeg has to pass an additional reencoding stage, because "
-"the dxr3 handles mpeg only."
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:253
-msgid "Dxr3: contrast control"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:256
-msgid "Dxr3: saturation control"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:259
-msgid "Dxr3: brightness control"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:263
-msgid "Dxr3: videoout mode (tv or overlay)"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:281
-msgid "Dxr3: overlay colorkey value"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:284
-msgid "Dxr3: overlay colorkey range"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:285
-msgid "A greater value widens the tolerance for the overlay keycolor"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:296
-msgid "dxr3 preferred tv mode"
-msgstr ""
-
 #. data for the device name config entry
 #: src/dxr3/dxr3.h:33
 msgid "Dxr3: Device Name"
@@ -1657,35 +1591,60 @@ msgstr ""
 msgid "The device file of the dxr3 mpeg decoder card control device."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:165
+#: src/dxr3/dxr3_decode_spu.c:100
+#, fuzzy, c-format
+msgid ""
+"dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
+"dxr3_decode_spu: this means there's a version mismatch between xine and this "
+"dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"
+msgstr ""
+"demux_avi: le plugin ne support par la version de l'API %d.\n"
+"           ceci veux dire que les version entre xine et le\n"
+"           plugin de demultiplexage ne correspondent pas.\n"
+"Installer la version courante des plugins de demultiplexage peux aider.\n"
+
+#: src/dxr3/dxr3_decode_video.c:127
+#, fuzzy, c-format
+msgid ""
+"dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
+"dxr3_decode_video: this means there's a version mismatch between xine and "
+"this\n"
+"dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
+msgstr ""
+"demux_avi: le plugin ne support par la version de l'API %d.\n"
+"           ceci veux dire que les version entre xine et le\n"
+"           plugin de demultiplexage ne correspondent pas.\n"
+"Installer la version courante des plugins de demultiplexage peux aider.\n"
+
+#: src/dxr3/dxr3_decode_video.c:164
 msgid "Dxr3: video decoder priority"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:166
+#: src/dxr3/dxr3_decode_video.c:165
 msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:177
+#: src/dxr3/dxr3_decode_video.c:175
 msgid "Try to sync video every frame"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:178
+#: src/dxr3/dxr3_decode_video.c:176
 msgid "This is relevant for progressive video only (most PAL films)."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:183
+#: src/dxr3/dxr3_decode_video.c:180
 msgid "Use alternate Play mode"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:184
+#: src/dxr3/dxr3_decode_video.c:181
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:188
+#: src/dxr3/dxr3_decode_video.c:184
 msgid "Correct frame durations in broken streams"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:189
+#: src/dxr3/dxr3_decode_video.c:185
 msgid "Enable this for streams with wrong frame durations."
 msgstr ""
 
@@ -1705,6 +1664,85 @@ msgstr ""
 
 #: src/dxr3/dxr3_mpeg_encoders.c:376
 msgid "The encoding quality of the libfame mpeg encoder library."
+msgstr ""
+
+#: src/dxr3/dxr3_scr.c:81
+msgid "Dxr3: SCR plugin priority"
+msgstr ""
+
+#: src/dxr3/dxr3_scr.c:82
+msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:119
+#, fuzzy
+msgid "xine video output plugin for dxr3 cards"
+msgstr "plugin de sortie audio de xine utilisant les pilotes/périphérique alsa"
+
+#: src/dxr3/video_out_dxr3.c:153
+msgid "swap odd and even lines"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:156
+msgid "Add black bars to correct aspect ratio"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:157
+msgid "If disabled, will assume source has 4:3 aspect ratio."
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:160
+msgid "dxr3: use alternate play mode for mpeg encoder playback"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:161
+msgid "Enabling this option will utilise a smoother play mode"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:214 src/dxr3/video_out_dxr3.c:236
+msgid "none"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:221
+msgid "the encoder for non mpeg content"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:222
+msgid ""
+"Content other than mpeg has to pass an additional reencoding stage, because "
+"the dxr3 handles mpeg only."
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:252
+msgid "Dxr3: contrast control"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:254
+msgid "Dxr3: saturation control"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:256
+msgid "Dxr3: brightness control"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:260
+msgid "Dxr3: videoout mode (tv or overlay)"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:278
+msgid "Dxr3: overlay colorkey value"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:281
+msgid "Dxr3: overlay colorkey range"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:282
+msgid "A greater value widens the tolerance for the overlay keycolor"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:293
+msgid "dxr3 preferred tv mode"
 msgstr ""
 
 #: src/libmad/xine_decoder.c:283

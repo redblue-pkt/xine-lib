@@ -48,10 +48,12 @@ src/xine-engine/osd.c
 src/xine-engine/load_plugins.c
 src/liblpcm/xine_decoder.c
 src/libffmpeg/xine_decoder.c
-src/dxr3/video_out_dxr3.c
 src/dxr3/dxr3.h
+src/dxr3/dxr3_decode_spu.c
 src/dxr3/dxr3_decode_video.c
 src/dxr3/dxr3_mpeg_encoders.c
+src/dxr3/dxr3_scr.c
+src/dxr3/video_out_dxr3.c
 src/libmad/xine_decoder.c
 src/liba52/xine_decoder.c
 src/libdts/xine_decoder.c

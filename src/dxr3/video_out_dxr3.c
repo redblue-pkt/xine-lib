@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.24 2002/06/12 12:22:34 f1rmb Exp $
+ * $Id: video_out_dxr3.c,v 1.25 2002/06/12 15:09:08 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -111,11 +111,12 @@ vo_info_t *get_video_out_plugin_info()
   static vo_info_t vo_info_dxr3 = {
     5, /* api version */
     "dxr3",
-    "xine video output plugin for dxr3 cards",
+    NULL,
     VISUAL_TYPE_X11,
     10  /* priority */
   };
 
+  vo_info_dxr3.description = _("xine video output plugin for dxr3 cards");
   return &vo_info_dxr3;
 }
 
@@ -149,17 +150,15 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->aspect                         = ASPECT_FULL;
   this->overlay_enabled                = 0;
   this->swap_fields                    = config->register_bool(config,
-							       "dxr3.enc_swap_fields", 0, 
-							       _("swap odd and even lines"), 
-							       NULL, dxr3_update_swap_fields, this);
+    "dxr3.enc_swap_fields", 0, _("swap odd and even lines"), 
+    NULL, dxr3_update_swap_fields, this);
   this->add_bars                       = config->register_bool(config,
-							       "dxr3.enc_add_bars", 1, 
-							       _("Add black bars to correct aspect ratio"),
-							       _("If disabled, will assume source has 4:3 aspect ratio."), dxr3_update_add_bars, this);
+    "dxr3.enc_add_bars", 1, _("Add black bars to correct aspect ratio"),
+    _("If disabled, will assume source has 4:3 aspect ratio."), dxr3_update_add_bars, this);
   this->enhanced_mode                  = config->register_bool(config,
-							       "dxr3.enc_alt_play_mode", 1,
-							       _("dxr3: use alternate play mode for mpeg encoder playback"),
-							       _("Enabling this option will utilise a smoother play mode"), dxr3_update_enhanced_mode, this);
+    "dxr3.enc_alt_play_mode", 1,
+    _("dxr3: use alternate play mode for mpeg encoder playback"),
+    _("Enabling this option will utilise a smoother play mode"), dxr3_update_enhanced_mode, this);
   
   confstr = config->register_string(config, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
   strncpy(this->devname, confstr, 128);
@@ -219,8 +218,9 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 #endif
   if (encoder) {
     encoder = config->register_enum(config, "dxr3.encoder", 
-				    0, available_encoders, _("the encoder for non mpeg content"),
-				    _("Content other than mpeg has to pass an additional reencoding stage, because the dxr3 handles mpeg only."), NULL, NULL);
+      0, available_encoders, _("the encoder for non mpeg content"),
+      _("Content other than mpeg has to pass an additional reencoding stage, "
+      "because the dxr3 handles mpeg only."), NULL, NULL);
 #ifdef HAVE_LIBRTE
     if ((strcmp(available_encoders[encoder], "rte") == 0) && !dxr3_rte_init(this)) {
       printf("video_out_dxr3: Mpeg encoder rte failed to init.\n");
@@ -249,18 +249,15 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
     printf("video_out_dxr3: cannot read bcs values (%s)\n",
       strerror(errno));
   this->bcs.contrast   = config->register_range(config, "dxr3.contrast",
-						this->bcs.contrast, 100, 900,
-						_("Dxr3: contrast control"), NULL, NULL, NULL);
+    this->bcs.contrast, 100, 900, _("Dxr3: contrast control"), NULL, NULL, NULL);
   this->bcs.saturation = config->register_range(config, "dxr3.saturation",
-						this->bcs.saturation, 100, 900, 
-						_("Dxr3: saturation control"), NULL, NULL, NULL);
+    this->bcs.saturation, 100, 900, _("Dxr3: saturation control"), NULL, NULL, NULL);
   this->bcs.brightness = config->register_range(config, "dxr3.brightness",
-						this->bcs.brightness, 100, 900,
-						_("Dxr3: brightness control"), NULL, NULL, NULL);
+    this->bcs.brightness, 100, 900, _("Dxr3: brightness control"), NULL, NULL, NULL);
   
   /* overlay or tvout? */
   confnum = config->register_enum(config, "dxr3.videoout_mode", 0, videoout_modes,
-				  _("Dxr3: videoout mode (tv or overlay)"), NULL, NULL, NULL);
+    _("Dxr3: videoout mode (tv or overlay)"), NULL, NULL, NULL);
 #if LOG_VID
   printf("video_out_dxr3: overlaymode = %s\n", videoout_modes[confnum]);
 #endif
@@ -278,11 +275,11 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       this->overlay_enabled = 1;
       this->tv_switchable = 1;
       confstr = config->register_string(config, "dxr3.keycolor", "0x80a040",
-					_("Dxr3: overlay colorkey value"), NULL, NULL, NULL);
+        _("Dxr3: overlay colorkey value"), NULL, NULL, NULL);
       sscanf(confstr, "%x", &this->overlay.colorkey);
       confstr = config->register_string(config, "dxr3.color_interval", "50.0",
-					_("Dxr3: overlay colorkey range"),
-					_("A greater value widens the tolerance for the overlay keycolor"), NULL, NULL);
+        _("Dxr3: overlay colorkey range"),
+        _("A greater value widens the tolerance for the overlay keycolor"), NULL, NULL);
       sscanf(confstr, "%f", &this->overlay.color_interval);
     } else {
       printf("video_out_dxr3: please run autocal, overlay disabled\n");
@@ -293,7 +290,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   
   /* init tvmode */
   confnum = config->register_enum(config, "dxr3.preferred_tvmode", 3, tv_modes,
-				  _("dxr3 preferred tv mode"), NULL, NULL, NULL);
+    _("dxr3 preferred tv mode"), NULL, NULL, NULL);
   switch (confnum) {
   case 0: /* ntsc */
     this->tv_mode = EM8300_VIDEOMODE_NTSC;

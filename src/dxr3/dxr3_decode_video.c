@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.7 2002/06/12 12:22:34 f1rmb Exp $
+ * $Id: dxr3_decode_video.c,v 1.8 2002/06/12 15:09:07 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -124,9 +124,9 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   int64_t cur_offset;
   
   if (iface_version != 9) {
-    printf( "dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
+    printf(_("dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
       "dxr3_decode_video: this means there's a version mismatch between xine and this\n"
-      "dxr3_decode_video: decoder plugin. Installing current plugins should help.\n",
+      "dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"),
       iface_version);
     return NULL;
   }
@@ -161,11 +161,10 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   this->video_decoder.close             = dxr3_close;
   this->video_decoder.dispose           = dxr3_dispose;
   this->video_decoder.priority          = cfg->register_num(cfg,
-							    "dxr3.decoder_priority", 10, 
-							    _("Dxr3: video decoder priority"),
-							    _("Decoder priorities greater 5 enable hardware decoding, 0 disables it."),
-							    dxr3_update_priority, this);
-  
+    "dxr3.decoder_priority", 10, _("Dxr3: video decoder priority"),
+    _("Decoder priorities greater 5 enable hardware decoding, 0 disables it."),
+    dxr3_update_priority, this);
+
   this->scr                             = NULL;
   this->xine                            = xine;
   
@@ -173,21 +172,18 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   this->repeat_first_field              = 0;
   
   this->sync_every_frame                = cfg->register_bool(cfg,
-							     "dxr3.sync_every_frame", 0,
-							     _("Try to sync video every frame"),
-							     _("This is relevant for progressive video only (most PAL films)."),
-							     dxr3_update_sync_mode, this);
+    "dxr3.sync_every_frame", 0, _("Try to sync video every frame"),
+    _("This is relevant for progressive video only (most PAL films)."),
+    dxr3_update_sync_mode, this);
   this->sync_retry                      = 0;
   this->enhanced_mode                   = cfg->register_bool(cfg,
-							     "dxr3.alt_play_mode", 1, 
-							     _("Use alternate Play mode"),
-							     _("Enabling this option will utilise a smoother play mode."),
-							     dxr3_update_enhanced_mode, this);
+    "dxr3.alt_play_mode", 1, _("Use alternate Play mode"),
+    _("Enabling this option will utilise a smoother play mode."),
+    dxr3_update_enhanced_mode, this);
   this->correct_durations               = cfg->register_bool(cfg,
-							     "dxr3.correct_durations", 0, 
-							     _("Correct frame durations in broken streams"),
-							     _("Enable this for streams with wrong frame durations."),
-							     dxr3_update_correct_durations, this);
+    "dxr3.correct_durations", 0, _("Correct frame durations in broken streams"),
+    _("Enable this for streams with wrong frame durations."),
+    dxr3_update_correct_durations, this);
   
   /* set a/v offset to compensate dxr3 internal delay */
   cur_offset = this->xine->metronom->get_option(this->xine->metronom, METRONOM_AV_OFFSET);
