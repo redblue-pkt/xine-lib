@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.35 2004/01/12 17:35:17 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.36 2004/02/03 21:20:04 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -188,27 +188,27 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
    * extract header data
    */
 
-  version = BE_16 (buf->content);
+  version = BE_16 (buf->content+4);
 
   lprintf ("header buffer detected, header version %d\n", version);
 #ifdef LOG
   xine_hexdump (buf->content, buf->size);
 #endif
     
-  flavor           = BE_16 (buf->content+18);
-  coded_frame_size = BE_32 (buf->content+20);
-  codec_data_length= BE_16 (buf->content+36);
-  coded_frame_size2= BE_16 (buf->content+38);
-  subpacket_size   = BE_16 (buf->content+40);
+  flavor           = BE_16 (buf->content+22);
+  coded_frame_size = BE_32 (buf->content+24);
+  codec_data_length= BE_16 (buf->content+40);
+  coded_frame_size2= BE_16 (buf->content+42);
+  subpacket_size   = BE_16 (buf->content+44);
     
   this->sps        = subpacket_size;
   this->w          = coded_frame_size2;
   this->h          = codec_data_length;
 
   if (version == 4) {
-    samples_per_sec = BE_16 (buf->content+44);
-    bits_per_sample = BE_16 (buf->content+48);
-    num_channels    = BE_16 (buf->content+50);
+    samples_per_sec = BE_16 (buf->content+48);
+    bits_per_sample = BE_16 (buf->content+52);
+    num_channels    = BE_16 (buf->content+54);
 
     /* FIXME: */
     if (buf->type==BUF_AUDIO_COOK) {
@@ -218,14 +218,14 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
       abort();
     }
     data_len        = 0; /* FIXME: COOK audio needs this */
-    extras          = buf->content+0x43;
+    extras          = buf->content+71;
 
   } else {
-    samples_per_sec = BE_16 (buf->content+50);
-    bits_per_sample = BE_16 (buf->content+54);
-    num_channels    = BE_16 (buf->content+56);
-    data_len        = BE_32 (buf->content+0x46);
-    extras          = buf->content+0x4a;
+    samples_per_sec = BE_16 (buf->content+54);
+    bits_per_sample = BE_16 (buf->content+58);
+    num_channels    = BE_16 (buf->content+60);
+    data_len        = BE_32 (buf->content+74);
+    extras          = buf->content+78;
   }
 
   this->block_align= coded_frame_size2;

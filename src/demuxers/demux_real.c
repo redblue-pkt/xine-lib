@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.90 2004/01/30 17:17:03 jstembridge Exp $
+ * $Id: demux_real.c,v 1.91 2004/02/03 21:20:04 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -737,11 +737,11 @@ unknown:
                buf->decoder_info[2]);
 
       } else {
-        memcpy(buf->content, mdpr->type_specific_data + 4,
-               mdpr->type_specific_len - 4);
+        memcpy(buf->content, mdpr->type_specific_data,
+               mdpr->type_specific_len);
 
         buf->decoder_flags |= BUF_FLAG_HEADER;
-        buf->size           = mdpr->type_specific_len - 4;
+        buf->size           = mdpr->type_specific_len;
       }
 
       this->audio_fifo->put (this->audio_fifo, buf);
