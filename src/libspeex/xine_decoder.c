@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2004/08/30 12:33:08 conrad Exp $
+ * $Id: xine_decoder.c,v 1.13 2004/11/12 06:32:54 athp Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -34,6 +34,7 @@
 /*
 #define LOG
 */
+#define LOG_BUFFERS 0
 
 #include "xine_internal.h"
 #include "audio_out.h"
@@ -202,8 +203,8 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   speex_decoder_t *this = (speex_decoder_t *) this_gen;
 
-  lprintf ("decode buf=%8p content=%8p flags=%08x\n",
-	   buf, buf->content, buf->decoder_flags);
+  llprintf (LOG_BUFFERS, "decode buf=%8p content=%8p flags=%08x\n",
+	    buf, buf->content, buf->decoder_flags);
 
   if ( (buf->decoder_flags & BUF_FLAG_HEADER) &&
        !(buf->decoder_flags & BUF_FLAG_STDHEADER) ) {
@@ -227,7 +228,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	}
 
 	modeID = spx_header->mode;
-	spx_mode = speex_mode_list[modeID];
+	spx_mode = (SpeexMode *) speex_mode_list[modeID];
 
 	if (spx_mode->bitstream_version != spx_header->mode_bitstream_version) {
 	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: incompatible Speex mode bitstream version\n");
@@ -306,6 +307,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 					  16,
 					  this->rate,
 					  mode);
+            lprintf ("this->output_open after attempt is %d\n", this->output_open);
 	}
       }
     }
@@ -371,7 +373,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
   }
   else {
-    lprintf ("output not open\n");
+    llprintf (LOG_BUFFERS, "output not open\n");
   }
 }
 
@@ -405,7 +407,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen,
   this->stream                            = stream;
 
   this->output_open     = 0;
-  this->header_count    = 2;
+  this->header_count    = 1;
   this->expect_metadata = 0;
 
   this->st = NULL;
