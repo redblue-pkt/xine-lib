@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.48 2004/04/07 18:10:20 valtri Exp $ 
+ * $Id: demux.c,v 1.49 2004/05/16 21:45:24 jcdutton Exp $ 
  */
 
 
@@ -431,7 +431,7 @@ off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
          * cannot be stopped when no more data is available.
          */
         if( stream->demux_action_pending )
-          return 0;
+          return total;
       } else {
         break;
       }
