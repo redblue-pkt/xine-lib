@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.19 2003/01/15 23:37:21 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.20 2003/01/16 01:45:28 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -663,6 +663,10 @@ static int vidix_set_property (vo_driver_t *this_gen,
     printf("video_out_vidix: aspect ratio changed to %s\n",
 	   vo_scale_aspect_ratio_name(value));
     
+    if(value == NUM_ASPECT_RATIOS)
+      value = this->props[property].value = ASPECT_AUTO;
+
+    this->sc.user_ratio = value;    
     vidix_compute_ideal_size (this);
     this->sc.force_redraw = 1;
   } 
