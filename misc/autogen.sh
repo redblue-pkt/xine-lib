@@ -56,13 +56,13 @@ aclocalinclude="$ACLOCAL_FLAGS"; \
     aclocal $aclocalinclude; \
  echo "done.") && \
 (echo $_echo_n " + Running libtoolize: $_echo_c"; \
-    libtoolize --force >/dev/null 2>&1; \
+    libtoolize --force --copy >/dev/null 2>&1; \
  echo "done.") && \
 (echo $_echo_n " + Running autoheader: $_echo_c"; \
     autoheader; \
  echo "done.") && \
 (echo $_echo_n " + Running automake: $_echo_c"; \
-    automake --gnu --add-missing; \
+    automake --gnu --add-missing --copy; \
  echo "done.") && \
 (echo $_echo_n " + Running autoconf: $_echo_c"; \
     autoconf; \

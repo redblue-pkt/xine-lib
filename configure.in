@@ -298,10 +298,9 @@ AM_CONDITIONAL(HAVE_SUNAUDIO, test x"$have_sunaudio" = "xyes")
 dnl
 dnl IRIX style audio interface
 dnl
-AM_PATH_IRIXAL(0,
-	AC_DEFINE(HAVE_IRIXAL),
+AM_CHECK_IRIXAL(AC_DEFINE(HAVE_IRIXAL),
 	AC_MSG_RESULT(*** All of IRIX AL dependent parts will be disabled ***))
-AM_CONDITIONAL(HAVE_IRIXAL, test "x$have_irixal" = xyes)
+AM_CONDITIONAL(HAVE_IRIXAL, test "x$am_cv_have_irixal" = xyes)
 
 dnl
 dnl Solaris kstat kernel statistics

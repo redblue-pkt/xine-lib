@@ -10,11 +10,11 @@ AC_DEFUN([AC_PREREQ_LIBTOOL],
     lt_pathname="`echo $lpwd/ltmain.sh | sed -e 's/\=build\///g'`"
     lt_version="`grep '^VERSION' $lt_pathname | sed -e 's/\.//g;s/VERSION\=//g;s/[a-zA-Z]//g;s/-//g'`"
 
-    if test $lt_version -lt 100; then
+    if test $lt_version -lt 100 ; then
       lt_version=`expr $lt_version \* 10`
     fi
 
-    if test $lt_version -lt $lt_min; then
+    if test $lt_version -lt $lt_min ; then
       AC_MSG_RESULT(no)
       ifelse([$3], , :, [$3])
     fi
