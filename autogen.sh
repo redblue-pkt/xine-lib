@@ -70,10 +70,18 @@ run_libtoolize() {
 # AUTOMAKE
 #--------------------
 detect_automake() {
-  if [ `which automake-1.6` -a -f `which automake-1.6` ]; then
+  #
+  # expected output from 'type' is
+  #   automake is /usr/local/bin/automake
+  #
+  set -- `type automake-1.6 2>/dev/null`
+  if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
     automake_1_6x=yes
+    automake=automake-1.6
   else
-    if [ `which automake` -a -f `which automake` ]; then
+    set -- `type automake 2>/dev/null`
+    if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
+      automake=automake
       AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
       if test $AM -lt 100 ; then
         AM=`expr $AM \* 10`
@@ -99,11 +107,7 @@ run_automake () {
 
   echo $_echo_n " + Running automake: $_echo_c";
 
-  if test x"$automake_1_6x" = x"yes"; then
-    automake-1.6 --gnu --add-missing --copy;
-  else
-    automake --gnu --add-missing --copy;
-  fi
+  $automake --gnu --add-missing --copy;
   echo "done."
 }
 
@@ -113,10 +117,14 @@ run_automake () {
 detect_aclocal() {
 
   # if no automake, don't bother testing for aclocal
-  if [ `which aclocal-1.6` -a -f `which aclocal-1.6` ]; then
+  set -- `type aclocal-1.6 2>/dev/null`
+  if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
     aclocal_1_6x=yes
+    aclocal=aclocal-1.6
   else
-    if [ `which aclocal` -a -f `which aclocal` ]; then
+    set -- `type aclocal 2>/dev/null`
+    if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
+      aclocal=aclocal
       AC="`aclocal --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
       if test $AC -lt 100 ; then
         AC=`expr $AC \* 10`
@@ -138,11 +146,7 @@ detect_aclocal() {
 run_aclocal () {
   echo $_echo_n " + Running aclocal: $_echo_c"
 
-  if test x"$aclocal_1_6x" = x"yes"; then
-    aclocal-1.6 -I m4
-  else
-    aclocal -I m4
-  fi
+  $aclocal -I m4
   echo "done." 
 }
 
