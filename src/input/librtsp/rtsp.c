@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.17 2004/05/27 00:24:52 miguelfreitas Exp $
+ * $Id: rtsp.c,v 1.18 2004/07/25 17:13:54 mroi Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -195,7 +195,7 @@ static void rtsp_send_request(rtsp_t *s, const char *type, const char *what) {
 
 static void rtsp_schedule_standard(rtsp_t *s) {
 
-  char tmp[16];
+  char tmp[17];
   
   sprintf(tmp, "Cseq: %u", s->cseq);
   rtsp_schedule_field(s, tmp);
@@ -413,7 +413,7 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
       }
       /* lets make the server happy */
       rtsp_put(s, "RTSP/1.0 451 Parameter Not Understood");
-      rest = malloc(sizeof(char)*16);
+      rest = malloc(sizeof(char)*17);
       sprintf(rest,"CSeq: %u", seq);
       rtsp_put(s, rest);
       rtsp_put(s, "");
@@ -496,6 +496,7 @@ rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_ag
     strncpy(buffer,mrl_ptr+hostend+1, pathbegin-hostend-1);
     buffer[pathbegin-hostend-1]=0;
     s->port=atoi(buffer);
+    if (s->port < 0 || s->port > 65535) s->port = 554; /* rtsp standard port */
   }
 
   lprintf("got mrl: %s %i %s\n",s->host,s->port,s->path);
