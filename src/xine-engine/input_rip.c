@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.21 2003/12/25 21:57:28 valtri Exp $
+ * $Id: input_rip.c,v 1.22 2004/05/09 17:42:23 valtri Exp $
  */
 
 /* TODO:
@@ -570,7 +570,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   this->savepos = 0;
 
   fnc = strdup(filename);
-  target_basename = basename(fnc);
+  target_basename = xine_basename(fnc);
   dir_file_concat(target, MAX_TARGET_LEN, stream->xine->save_path, 
                   target_basename);
   strcpy(target_no, target);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.86 2004/04/28 00:38:09 komadori Exp $
+ * $Id: xineutils.h,v 1.87 2004/05/09 17:42:24 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -33,9 +33,6 @@ extern "C" {
 #include <stdarg.h>
 #include <inttypes.h>
 #include <pthread.h>
-#if HAVE_LIBGEN_H
-#  include <libgen.h>
-#endif
 
 #ifdef XINE_COMPILE
 #  include "attributes.h"
@@ -1097,12 +1094,15 @@ void xine_list_delete_current (xine_list_t *l);
  */
 char *xine_get_system_encoding(void);
 
-#ifndef HAVE_BASENAME
 /**
  * get base name
  */
-char *basename (char const *name);
-#endif
+char *xine_basename (char *name);
+
+/**
+ * get error descriptions in DNS lookups
+ */
+const char *xine_hstrerror(int err);
 
 #ifdef WIN32
 char *exec_path_append_subdir(char * string);

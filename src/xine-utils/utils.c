@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.26 2004/04/06 19:20:16 valtri Exp $
+ * $Id: utils.c,v 1.27 2004/05/09 17:42:24 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -27,17 +27,26 @@
 #endif
 
 #include "xineutils.h"
+#include "xineintl.h"
 
 #include <errno.h>
 #include <pwd.h>
+#include <netdb.h>
+
 #if HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
+
 #if HAVE_UCONTEXT_H
 #include <ucontext.h>
 #endif
+
 #ifdef HAVE_LANGINFO_CODESET
 #include <langinfo.h>
+#endif
+
+#if HAVE_LIBGEN_H
+#include <libgen.h>
 #endif
 
 
@@ -508,16 +517,17 @@ char *xine_get_system_encoding(void) {
 
 
 #ifndef HAVE_BASENAME
-
 #define FILESYSTEM_PREFIX_LEN(filename) 0
 #define ISSLASH(C) ((C) == '/')
+#endif
 
 /*
  * get base name
  *
  * (adopted from sh-utils)
  */
-char *basename (char const *name) {
+char *xine_basename (char *name) {
+#ifndef HAVE_BASENAME
   char const *base = name + FILESYSTEM_PREFIX_LEN (name);
   char const *p;
 
@@ -544,5 +554,25 @@ char *basename (char const *name) {
     }
 
   return (char *) base;
-}
+#else
+  return basename(name);
 #endif
+}
+
+/**
+ * get error descriptions in DNS lookups
+ */
+const char *xine_hstrerror(int err) {
+#ifndef HAVE_HSTRERROR
+  switch (err) {
+    case 0: return _("No error");
+    case HOST_NOT_FOUND: return _("Unknown host");
+    case NO_DATA: return _("No address associated with name");
+    case NO_RECOVERY: return _("Unknown server error");
+    case TRY_AGAIN: return _("Host name lookup failure");
+    default: return _("Unknown error");
+  }
+#else
+  return hstrerror(err);
+#endif
+}

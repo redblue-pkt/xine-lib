@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.87 2004/05/04 22:26:13 tmattern Exp $
+ * $Id: input_http.c,v 1.88 2004/05/09 17:42:23 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -173,7 +173,7 @@ static int _x_use_proxy(http_input_class_t *this, const char *host) {
   if ((info = gethostbyname(host)) == NULL) {
     xine_log(this->xine, XINE_LOG_MSG, 
         _("input_http: gethostbyname(%s) failed: %s\n"), host,
-        strerror(errno));
+        xine_hstrerror(h_errno));
     return 1;
   }
   if (!info->h_name) return 1;

@@ -1400,7 +1400,7 @@ dnl Some extra checks.
 dnl ---------------------------------------------
 
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv basename])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv basename hstrerror])
 AC_FUNC_FSEEKO
 AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h)
 
