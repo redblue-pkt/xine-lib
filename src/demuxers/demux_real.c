@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.62 2003/07/19 16:11:39 jstembridge Exp $
+ * $Id: demux_real.c,v 1.63 2003/07/22 20:14:09 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -142,6 +142,7 @@ typedef struct {
 
   unsigned int         current_data_chunk_packet_count;
   unsigned int         next_data_chunk_offset;
+  unsigned int         data_chunk_size;
 
   int                  old_seqnum;
   int                  packet_size_cur;
@@ -526,6 +527,7 @@ unknown:
 
       this->current_data_chunk_packet_count = BE_32(&data_chunk_header[2]);
       this->next_data_chunk_offset = BE_32(&data_chunk_header[6]);
+      this->data_chunk_size = chunk_size;
       break;
 
     default:
@@ -943,10 +945,23 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       buf->pts           = pts;
       buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
 
-      buf->extra_info->input_time    = (int)((int64_t)buf->extra_info->input_pos
+      /* if we have a seekable stream then use the timestamp for the data
+       * packet for more accurate seeking - if not then estimate time using
+       * average bitrate */
+      if(this->video_stream->index)
+        buf->extra_info->input_time = timestamp;
+      else
+        buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
                                              * 8 * 1000 / this->avg_bitrate);
-      buf->type          = this->video_stream->buf_type;
 
+      buf->type          = this->video_stream->buf_type;
+      
+      if(this->data_start && this->data_chunk_size)
+        buf->extra_info->input_length = this->data_start + 18 + this->data_chunk_size;
+        
+      if(this->duration)
+        buf->extra_info->total_time = this->duration;
+      
       check_newpts (this, pts, PTS_VIDEO, 0);
 
       if (this->fragment_size == 0) {
@@ -1018,12 +1033,26 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     buf->content       = buf->mem;
     buf->pts           = pts;
     buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
-    buf->extra_info->input_time    = (int)((int64_t)buf->extra_info->input_pos 
+    
+    /* if we have a seekable stream then use the timestamp for the data
+     * packet for more accurate seeking - if not then estimate time using
+     * average bitrate */
+    if(this->audio_stream->index)
+      buf->extra_info->input_time = timestamp;
+    else
+      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
                                            * 8 * 1000 / this->avg_bitrate); 
+
     buf->type          = this->audio_stream->buf_type;
     buf->decoder_flags = 0;
     buf->size          = size;
 
+    if(this->data_start && this->data_chunk_size)
+      buf->extra_info->input_length = this->data_start + 18 + this->data_chunk_size;
+        
+    if(this->duration)
+      buf->extra_info->total_time = this->duration;
+    
     check_newpts (this, pts, PTS_AUDIO, 0);
 
     n = this->input->read (this->input, buf->content, size);
