@@ -507,5 +507,8 @@ Casper Boemann <cbr@boemann.dk>
 Thomas Hellström <unichrome@shipmail.org>
   XxMC driver with reworked XvMC support, including VIA CLE266 vld
   extensions.
+
+Frank van Viegen <frank@vanviegen.net>
+  libsmbclient input plugin
       
 (let us know if we've forgotten anyone)

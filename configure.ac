@@ -1124,6 +1124,20 @@ AM_CONDITIONAL(HAVE_GNOME_VFS, test x"$no_gnome_vfs" != "xyes")
 
 
 dnl ---------------------------------------------
+dnl libsmbclient support
+dnl ---------------------------------------------
+
+AC_CHECK_LIB(smbclient, smbc_init,
+	[ AC_CHECK_HEADER(libsmbclient.h,
+		[ have_libsmbclient=yes
+		  LIBSMBCLIENT_LIBS="-lsmbclient" ], 
+		AC_MSG_RESULT([*** All libsmbclient dependent parts will be disabled ***]))],
+	AC_MSG_RESULT([*** All libsmbclient dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_LIBSMBCLIENT, test x"$have_libsmbclient" = "xyes")
+AC_SUBST(LIBSMBCLIENT_LIBS)
+
+
+dnl ---------------------------------------------
 dnl SUN style audio interface
 dnl ---------------------------------------------
 
@@ -2278,6 +2292,9 @@ if test x"$no_gnome_vfs" = "xno"; then
 fi
 if test x"$have_v4l" = "xyes"; then
   echo "   - v4l"
+fi
+if test x"$have_libsmbclient" = "xyes"; then
+  echo "   - smbclient"
 fi
 echo ""
 

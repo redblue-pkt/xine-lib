@@ -35,6 +35,10 @@ if HAVE_GNOME_VFS
 in_gnome_vfs = xineplug_inp_gnome_vfs.la
 endif
 
+if HAVE_LIBSMBCLIENT
+in_smb = xineplug_inp_smb.la
+endif
+
 # For DVD
 if HAVE_DVDNAV
 DVD_CFLAGS = $(DVDNAV_CFLAGS)
@@ -59,6 +63,7 @@ lib_LTLIBRARIES = \
 	$(in_vcd) \
 	$(in_v4l) \
 	$(in_gnome_vfs) \
+	$(in_smb) \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
 	xineplug_inp_pnm.la \
@@ -126,9 +131,14 @@ xineplug_inp_gnome_vfs_la_SOURCES = input_gnome_vfs.c
 xineplug_inp_gnome_vfs_la_LIBADD = $(GNOME_VFS_LIBS) $(XINE_LIB)
 xineplug_inp_gnome_vfs_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
+xineplug_inp_smb_la_SOURCES = input_smb.c
+xineplug_inp_smb_la_LIBADD = $(LIBSMBCLIENT_LIBS) $(XINE_LIB)
+xineplug_inp_smb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
 xineplug_inp_pvr_la_SOURCES = input_pvr.c
 xineplug_inp_pvr_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pvr_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h media_helper.h videodev2.h http_helper.h
+
