@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.11 2004/12/12 00:39:14 miguelfreitas Exp $ 
+ * $Id: info_helper.c,v 1.12 2004/12/12 00:47:15 miguelfreitas Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -280,7 +280,7 @@ void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) {
 /*
  * Set private meta info value using specified encoding.
  */
-void _x_meta_info_set_encoding(xine_stream_t *stream, int info, const char *str, const char *enc) {
+void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, const char *enc) {
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
     __meta_info_set_unlocked_encoding(stream, info, str, enc);

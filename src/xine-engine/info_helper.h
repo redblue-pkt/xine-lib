@@ -112,7 +112,7 @@ void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str);
  *  *enc           charset encoding of the string
  *
  */
-void _x_meta_info_set_encoding(xine_stream_t *stream, int info, const char *str, const char *enc);
+void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, const char *enc);
 
 /*
  * set a stream meta multiple info
