@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3enc.c,v 1.4 2001/10/28 20:44:48 hrm Exp $
+ * $Id: video_out_dxr3enc.c,v 1.5 2001/10/29 19:16:26 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -26,9 +26,9 @@
  * this first standalone version by 
  * Harm van der Heijden <hrm at users.sourceforge.net>
  *
- * Changes are mostly in dxr3_update_frame_format() (init stuff) and
- * dxr3_frame_copy() (encoding). The driver and frame structs are
- * changed too.
+ * Changes are mostly in dxr3_update_frame_format() (init stuff),
+ * dxr3_frame_copy() (encoding), and dxr3_display_frame() (send stream
+ * to device). The driver and frame structs are changed too.
  *
  * What it does
  * - automatically insert black borders to correct a.r. to 16:9 of 4:3
@@ -43,12 +43,17 @@
  *
  * TODO:
  * - try ffmpeg encoder instead of libfame
- * - jerkiness issues with mpeg1 output
- * - sync issues
+ * - jerkiness issues with mpeg1 output (possibly fixed, see below)
+ * - sync issues (possibly fixed, see below)
  * - split off code that is shared with original dxr3 decoder, for
  *   maintainability of the whole thing.
+ * - init; sometimes (usually first time after boot) there's no output
+ *   to tv. The second attempt usually works.
+ * - test with overlay (haven't figured out yet how to get it working
+ *   on my system, not even with standard dxr3 driver -- harm)
  *
- * Update 28/10/2001 by Harm
+ ***** Update 28/10/2001 by Harm
+ *
  * I've implemented a method for buffering the mpeg data
  * (basically copying it to the frame) for display (read: write to mpeg
  * device) when xine requests it via dxr3_frame_display. It helps sync,
@@ -60,6 +65,36 @@
  * very weird: to be able to use it in frame_display, I must reopen it 
  * there! Is that a thread thing or something? Normally you'd open it in
  * the driver's init function. 
+ *
+ ***** Update 29/10/2001 by Harm
+ *
+ * Mike Lampard figured out a solution to the jerky playback problem that
+ * seems to work well; write the value 6 to the MV_COMMAND register!
+ * I'm guessing this puts the dxr3 playback in some sort of scan mode
+ * where it plays frames as soon as it can. This combines well with our
+ * method because we deliver them when they need displaying.
+ * 
+ * This fix is turned on/off by setting USE_MAGIC_REGISTER to 1/0. 
+ *
+ * Note, we write to the register at every frame; possibly overkill, but
+ * there seems to be no noticeable overhead and better safe than sorry...
+ *
+ * If you still get occasional jerky playback, try lowering the 
+ * mpeg1 encoding qualtiy (.xinerc var dxr3enc_quality) first. On my
+ * system, there are occasional scenes with high entropy that libfame
+ * can't encode at hi quality and 25 fps. Remember, the time it takes
+ * to encode a frame is not fixed but depends on the complexity!
+ *
+ * You wanna hear a funny thing? With the register fix in place, it no
+ * longer seems to matter whether USE_MPEG_BUFFER is on or off; in both
+ * cases A/V sync seems fine! Weird... I'm leaving it on for the moment,
+ * to be safe. It should give the encoder the option to spend more than
+ * 1/fps on occasional frames.
+ *
+ * Other changes:
+ * - .xinerc: renamed dxr3_enc_quality to dxr3enc_quality
+ * - .xinerc: added dxr3_file for output of mpeg stream to file, for 
+ * debugging. set to <none> or delete the entry to send stream to dxr3.
  */
  
 #include <sys/types.h>
@@ -76,6 +111,8 @@
 #include "video_out.h"
 #include "xine_internal.h"
 #include "dxr3_overlay.h"
+/* for fast_memcpy: */
+#include "memcpy.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -92,12 +129,17 @@ static char *devname;
 #include <fame.h>
 #include <math.h>
 
+/* buffer size for encoded mpeg1 stream; will hold one intra frame */
 #define DEFAULT_BUFFER_SIZE 1024*1024
 
 /* 1: enable to buffer the mpeg1 stream; 
  * 0: write to mpeg device immediately;
- * with 1 sync is better, but playback still not smooth */
+ * with 1 sync is better, but playback still not smooth (but see below) */
 #define USE_MPEG_BUFFER 1 
+
+/* 1: write 6 to MV_COMMAND register. This seems to fix playback problems!
+ * 0: don't write to register */
+#define USE_MAGIC_REGISTER 1
 
 /* some global stuff for libfame, could use some cleanup :-) */
 fame_parameters_t fp = FAME_PARAMETERS_INITIALIZER;
@@ -418,7 +460,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       puts ("Couldn't start the FAME library");
    
     buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
-    fp.quality=this->config->lookup_int(this->config,"dxr3_enc_quality",90);
+    fp.quality=this->config->lookup_int(this->config,"dxr3enc_quality",90);
     fp.width = width;
     fp.height = oheight;
     fp.profile = "mpeg1";
@@ -548,7 +590,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
       size = DEFAULT_BUFFER_SIZE;
     }
 #if USE_MPEG_BUFFER
-    memcpy(frame->mpeg, buffer, size);
+    fast_memcpy(frame->mpeg, buffer, size);
     frame->mpeg_size = size;
 #else
     if (write(this->fd_video, buffer, size) < 0)
@@ -557,12 +599,22 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
   }
 }
 
+#define MV_COMMAND 0
+
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
-#if USE_MPEG_BUFFER
   char tmpstr[256]; 
   dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
+#if USE_MAGIC_REGISTER
+  em8300_register_t regs; 
+
+  regs.microcode_register=1; 	/* Yes, this is a MC Reg */
+  regs.reg = MV_COMMAND;
+  regs.val=6; /* Mike's mystery number :-) */
+  ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &regs);
+#endif
+#if USE_MPEG_BUFFER
   if (this->fd_video < 0) {
     snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
     this->fd_video = open(tmpstr, O_WRONLY);
@@ -675,7 +727,7 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 			 strerror(errno));
 		if (this->overlay_enabled && !fullscreen){
 			int foo;
-			char *foo2;
+			char *foo2=0;
 			this->request_dest_size(foo2,this->width,
 			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
 		}
@@ -825,6 +877,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 {
 	dxr3_driver_t *this;
 	char tmpstr[100];
+	char *file_out;
 
 	/*
 	* allocate plugin struct
@@ -855,23 +908,34 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	devname = config->lookup_str (config, LOOKUP_DEV, DEFAULT_DEV);
 	printf("dxr3enc: Entering video init, devname=%s.\n",devname);
 	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
-		 devname, strerror(errno));
+		printf("dxr3enc: Failed to open control device %s (%s)\n",
+			devname, strerror(errno));
 		return 0;
 	}
-	/* open video device */
-	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
-	if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
-		fprintf(stderr, "dxr3: Failed to open video device %s (%s)\n",
-		 tmpstr, strerror(errno));
-		return 0;
+        /* output mpeg to file instead of dxr3? */
+        file_out = config->lookup_str(config, "dxr3enc_file", "<none>");
+        if (file_out && strcmp(file_out, "<none>")) {
+		this->fd_video = open(file_out, O_WRONLY | O_CREAT);
+		if (this->fd_video < 0) {
+			perror("dxr3enc: failed to open output file");
+			return 0;
+		}
 	}
+	else {        
+	 	/* open video device */
+		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
+		if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
+			printf("dxr3enc: failed to open video device %s (%s)\n",
+				tmpstr, strerror(errno));
+			return 0;
+		}
 #if USE_MPEG_BUFFER
-        /* we have to close now and open the first time we get to display_frame
-         * weird... */
-        close(this->fd_video);
-        this->fd_video = -1;
+	        /* we have to close now and open the first time we get 
+		 * to display_frame. weird... */
+	        close(this->fd_video);
+        	this->fd_video = -1;
 #endif
+	}
 	gather_screen_vars(this, visual_gen);
 	
 	/* default values */
