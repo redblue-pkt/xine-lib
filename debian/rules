@@ -31,6 +31,7 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
         BUILD_TARGET := debug
 endif
 
+DEB_HOST_GNU_OPTION := 
 # the "optimize" flag disables compatibility hacks
 ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
  $(warning trying to disable machine-specific optimizations)
@@ -50,6 +51,7 @@ ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
   $(warning          ignoring DEB_HOST_GNU_TYPE = $(DEB_HOST_GNU_TYPE))
   DEB_HOST_GNU_TYPE := $(DEB_BUILD_GNU_TYPE)
  endif
+ DEB_HOST_GNU_OPTION := --host=$(DEB_HOST_GNU_TYPE)
 endif
 
 
@@ -57,7 +59,7 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	./configure --prefix=/usr --mandir=\$${prefix}/share/man \
-                    --host=$(DEB_HOST_GNU_TYPE)
+                    $(DEB_HOST_GNU_OPTION)
 	touch configure-stamp
 
 build: configure-stamp build-stamp
@@ -114,7 +116,7 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine0 (>= 0.9.10)'
+	dh_makeshlibs -V 'libxine0 (>= 0.9.11)'
 	dh_installdeb
 #	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh
