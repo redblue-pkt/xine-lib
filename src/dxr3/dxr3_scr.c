@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.6 2002/10/26 14:35:04 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.7 2003/01/12 20:33:57 komadori Exp $
  */
 
 /* dxr3 scr plugin.
@@ -26,6 +26,7 @@
  */
 
 #include <sys/ioctl.h>
+#include <sys/ioccom.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.25 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: dxr3_decode_video.c,v 1.26 2003/01/12 20:33:57 komadori Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -28,6 +28,7 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include <sys/ioccom.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.66 2003/01/02 12:00:53 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.67 2003/01/12 20:33:57 komadori Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/ioccom.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
