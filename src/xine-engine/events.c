@@ -38,6 +38,7 @@ int xine_register_event_listener (xine_p this_ro,
     return 0;
   }
 
+  pthread_mutex_lock(&this->event_lock);
   /* Check we hava a slot free */
   if(this->num_event_listeners < XINE_MAX_EVENT_LISTENERS) {
     
@@ -46,28 +47,50 @@ int xine_register_event_listener (xine_p this_ro,
 
     this->num_event_listeners++;
 
+    pthread_mutex_unlock(&this->event_lock);
     return 1;
   } 
 
+  pthread_mutex_unlock(&this->event_lock);
   return 0;
 }
 
 void xine_send_event(xine_p this, xine_event_t *event) {
   uint16_t i;
   
-  /* Itterate through all event handlers */
+  pthread_mutex_lock(&this->event_lock);
+  while (this->event_pending[event->type])
+    /* there is already one event of that type around */
+    pthread_cond_wait(&this->event_handled, &this->event_lock);
+  this->event_pending[event->type] = 1;
+  pthread_mutex_unlock(&this->event_lock);
+  
+  /* Iterate through all event handlers */
   for(i=0; i < this->num_event_listeners; i++) {
     (this->event_listeners[i]) ((void *)this->event_listener_user_data[i], event);
   }
+  
+  this->event_pending[event->type] = 0;
+  pthread_cond_signal(&this->event_handled);
 }
 
 int xine_remove_event_listener(xine_p this_ro, 
 			       xine_event_listener_cb_t listener) {
   xine_t *this = (xine_t *)this_ro;
-  uint16_t i, found;
+  uint16_t i, found, pending;
 
-  found = 1; i = 0;
+  found = 1;
 
+  pthread_mutex_lock(&this->event_lock);
+  /* wait for any pending events */
+  do {
+    pending = 0;
+    for (i = 0; i < XINE_MAX_EVENT_TYPES; i++)
+      pending += this->event_pending[i];
+    if (pending)
+      pthread_cond_wait(&this->event_handled, &this->event_lock);
+  } while (pending);
+  
   /* Attempt to find the listener */
   while((found == 1) && (i < this->num_event_listeners)) {
     if(this->event_listeners[i] == listener) {
@@ -82,12 +105,13 @@ int xine_remove_event_listener(xine_p this_ro,
 	this->event_listener_user_data[i] = this->event_listener_user_data[this->num_event_listeners - 1];
 	this->event_listeners[this->num_event_listeners - 1] = NULL;
       }
-
+      
       this->num_event_listeners --;
     }
 
     i++;
   }
+  pthread_mutex_unlock(&this->event_lock);
 
   return found;
 }

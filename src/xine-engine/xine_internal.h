@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.101 2002/09/18 06:42:23 jcdutton Exp $
+ * $Id: xine_internal.h,v 1.102 2002/09/18 15:37:11 mroi Exp $
  *
  */
 
@@ -69,6 +69,7 @@ extern "C" {
 #define VIDEO_DECODER_IFACE_VERSION      10
 #define AUDIO_DECODER_IFACE_VERSION      9
 #define XINE_MAX_EVENT_LISTENERS         50
+#define XINE_MAX_EVENT_TYPES             100
 
 /* used by plugin loader */
 #define XINE_VERSION_CODE                XINE_MAJOR_VERSION*10000+XINE_MINOR_VERSION*100+XINE_SUB_VERSION
@@ -222,6 +223,9 @@ struct xine_s {
   xine_event_listener_cb_t   event_listeners[XINE_MAX_EVENT_LISTENERS];
   void                      *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
   uint16_t                   num_event_listeners;
+  uint8_t                    event_pending[XINE_MAX_EVENT_TYPES];
+  pthread_cond_t             event_handled;
+  pthread_mutex_t            event_lock;
 
   /* scratch string buffers */
   char                       str[1024];

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.159 2002/09/18 00:51:34 guenter Exp $
+ * $Id: xine.c,v 1.160 2002/09/18 15:37:11 mroi Exp $
  *
  * top-level xine functions
  *
@@ -649,6 +649,8 @@ void xine_exit (xine_p this_ro) {
   pthread_mutex_destroy (&this->xine_lock);
   pthread_mutex_destroy (&this->finished_lock);
   pthread_mutex_destroy (&this->osd_lock);
+  pthread_mutex_destroy (&this->event_lock);
+  pthread_cond_destroy (&this->event_handled);
 
   free (this);
 
@@ -683,7 +685,11 @@ xine_p xine_new (void) {
   pthread_mutex_init (&this->finished_lock, NULL);
   
   pthread_mutex_init (&this->osd_lock, NULL);
-
+  
+  pthread_mutex_init (&this->event_lock, NULL);
+  
+  pthread_cond_init (&this->event_handled, NULL);
+  
   this->finished_thread_running = 0;
 
   /*
