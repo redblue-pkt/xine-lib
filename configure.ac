@@ -580,7 +580,7 @@ AM_CONDITIONAL(HAVE_VIDIX, test x"$enable_vidix" = "xyes")
 AM_CONDITIONAL(HAVE_LINUX, test x"$enable_linux" = "xyes")
 AM_CONDITIONAL(BUILD_DHA_KMOD, test x"$enable_dha_kmod" = "xyes")
 AC_CHECK_PROG(MKNOD, mknod, mknod, no)
-AC_CHECK_PROG(DEPMOD, depmod, depmod, no)
+AC_CHECK_PROG(DEPMOD, depmod, depmod, no, $PATH:/sbin)
 
 dnl ---------------------------------------------
 dnl Check for divx4
