@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.1 2001/04/24 20:57:11 f1rmb Exp $
+ * $Id: video_out.c,v 1.2 2001/05/03 18:22:37 f1rmb Exp $
  *
  */
 
@@ -319,6 +319,10 @@ static void vo_exit (vo_instance_t *this) {
 
 }
 
+static void *vo_get_window(vo_instance_t *this) {
+  return this->driver->get_window (this->driver);
+}
+
 static uint32_t vo_get_capabilities (vo_instance_t *this) {
   return this->driver->get_capabilities (this->driver);
 }
@@ -447,6 +451,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->get_frame             = vo_get_frame;
   this->close                 = vo_close;
   this->exit                  = vo_exit;
+  this->get_window            = vo_get_window;
   this->get_property          = vo_get_property;
   this->set_property          = vo_set_property;
   this->get_property_min_max  = vo_get_property_min_max;

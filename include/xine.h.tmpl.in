@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.11 2001/05/03 00:02:42 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.12 2001/05/03 18:22:37 f1rmb Exp $
  *
  */
 
@@ -285,6 +285,59 @@ int xine_get_spu_channel (xine_t *this);
  * Set desired sub-title channel.
  */
 void xine_select_spu_channel (xine_t *this, int channel);
+
+/**
+ * \fn void *xine_get_output_window(xine_t *this);
+ * \brief Get the output window.
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Return output window as void pointer.
+ *
+ * Get whatever is usefull to contact the window/video output
+ * (mostly usefull for the gui if it wants to access
+ * the video output window). The calling application should
+ * cast the void pointer to desired type.
+ */
+void *xine_get_window_output(xine_t *this);
+
+/**
+ * \fn int xine_get_window_property(xine_t *this, int property);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+int xine_get_window_property(xine_t *this, int property);
+
+/**
+ * \fn int xine_set_window_property(xine_t *this, int property, int value);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+int xine_set_window_property(xine_t *this, int property, int value);
+
+/**
+ * \fn void xine_get_window_property_min_max(xine_t *this, int property, int *min, int *max);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+void xine_get_window_property_min_max(xine_t *this, int property, int *min, int *max);
+
+/**
+ * \fn void xine_window_handle_event(xine_t *this, void *event);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+void xine_window_handle_event(xine_t *this, void *event);
 
 /** @} end of xine_management_api */
 
