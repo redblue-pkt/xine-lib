@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.10 2001/04/30 23:07:00 guenter Exp $
+ * $Id: video_decoder.c,v 1.11 2001/05/01 00:55:23 guenter Exp $
  *
  */
 
@@ -62,7 +62,7 @@ void *video_decoder_loop (void *this_gen) {
 
       streamtype = (buf->type>>16) & 0xFF;
       
-      printf ("video_decoder: processing buffer %d, type= %08x (%02x), size=%d\n",buf, buf->type,streamtype, buf->size);
+      printf ("video_decoder: processing buffer type= %08x (%02x), size=%d\n", buf->type,streamtype, buf->size);
 
       decoder = this->video_decoder_plugins [streamtype];
 
