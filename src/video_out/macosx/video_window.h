@@ -72,7 +72,6 @@ typedef enum {
 
 - (void) setContentSize: (NSSize) size;
 - (XineOpenGLView *) xineView;
-- (void) fitToScreen;
 - (void) setKeepsAspectRatio: (BOOL) i;
 - (int) keepsAspectRatio;
 @end

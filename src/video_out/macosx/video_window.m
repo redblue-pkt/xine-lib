@@ -67,27 +67,35 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return xineView;
 }
 
-- (void) fitToScreen {
-    NSSize size, video_size;
-    float screen_width, screen_height;
-    
+- (NSRect)windowWillUseStandardFrame:(NSWindow *)sender
+                        defaultFrame:(NSRect)defaultFrame
+{
+    NSSize screen_size, video_size;
+    NSRect standard_frame;
+
     if ([xineView isFullScreen])
         return;
-    
-    screen_width = CGDisplayPixelsWide (kCGDirectMainDisplay);
-    screen_height = CGDisplayPixelsHigh (kCGDirectMainDisplay) - 40;
 
+    screen_size = defaultFrame.size;
     video_size = [xineView videoSize];
 
-    if ((screen_width / screen_height) > (video_size.width / video_size.height)) {
-        size.width = video_size.width * (screen_height / video_size.height);
-        size.height = screen_height;
+    if (screen_size.width / screen_size.height >
+        video_size.width / video_size.height) {
+        standard_frame.size.width  = video_size.width *
+                                     (screen_size.height / video_size.height);
+        standard_frame.size.height = screen_size.height;
     } else {
-        size.width = screen_width;
-        size.height = video_size.height * (screen_width / video_size.width);
+        standard_frame.size.width  = screen_size.width;
+        standard_frame.size.height = video_size.height *
+                                     (screen_size.width / video_size.width);
     }
 
-    [super setContentSize: size];
+    standard_frame.origin.x =
+        (screen_size.width - standard_frame.size.width) / 2;
+    standard_frame.origin.y =
+        (screen_size.height - standard_frame.size.height) / 2;
+
+    return standard_frame;
 }
 
 - (void) setKeepsAspectRatio: (BOOL) flag {
