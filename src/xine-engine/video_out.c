@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.50 2001/10/03 17:15:44 jkeil Exp $
+ * $Id: video_out.c,v 1.51 2001/10/21 13:14:08 jcdutton Exp $
  *
  */
 
@@ -297,7 +297,7 @@ static void *video_out_loop (void *this_gen) {
       profiler_start_count (prof_spu_blend);
 
       ovl = this->overlay_source->get_overlay (this->overlay_source, img->PTS);
-      if (ovl && this->driver->overlay_blend)
+      if (this->video_loop_running && ovl && this->driver->overlay_blend)
 	this->driver->overlay_blend (this->driver, img, ovl); 
 
       profiler_stop_count (prof_spu_blend);
