@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.1 2002/05/27 21:16:05 tmmm Exp $
+ * $Id: demux_roq.c,v 1.2 2002/05/28 00:09:37 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -130,7 +130,7 @@ static void *demux_roq_loop (void *this_gen) {
         audio_pts = audio_byte_count;
         audio_pts *= 90000;
         audio_pts /= (RoQ_AUDIO_SAMPLE_RATE * this->audio_channels);
-        audio_byte_count += chunk_size;
+        audio_byte_count += chunk_size - 8;  /* do not count the preamble */
 
         current_file_pos = this->input->get_current_pos(this->input);
 
