@@ -890,7 +890,7 @@ misc/build_rpms.sh
 misc/fonts/Makefile
 intl/Makefile
 po/Makefile.in],
-[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/guenter_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
+[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
 
 dnl
 dnl Hack the libtool script (if required).
