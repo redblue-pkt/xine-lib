@@ -575,7 +575,7 @@ static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t 
 				channel->front_param.frequency = (freq - 9750)*1000;
 				channel->tone = 0;
 			}
-			channel->front_param.inversion = INVERSION_OFF;
+			channel->front_param.inversion = INVERSION_AUTO;
 	  
 			/* find out the polarisation */ 
 			if(!(field = strsep(&tmp, ":")))return -1;
@@ -763,51 +763,35 @@ static int tuner_set_diseqc(tuner_t *this, channel_t *c)
  * if frontend can't lock, retire. */
 static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
 			  *front_param) {
-  int status;
+  fe_status_t status;
   fe_status_t festatus;
   struct dvb_frontend_event event;
-  struct pollfd pfd[1]; 
   unsigned int strength;
-  unsigned int lock_tries=0;
 
-  event.status=0;  
-  while(1)  {
-   if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) < 0)       /* empty the event queue */
-    break;
+   /* discard stale QPSK events */
+  while (1) {
+    if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) == -1)
+        break;
   }
 
   if (ioctl(this->fd_frontend, FE_SET_FRONTEND, front_param) <0) {
-    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "input_dvb: setfrontend error: %s\n", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "setfront front: %s\n", strerror(errno));
   }
+  
+  do {
+    if (ioctl(this->fd_frontend, FE_READ_STATUS, &status) < 0) {
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "fe get event: %s\n", strerror(errno));
+      return 0;
+    }
 
-  event.status=0;  
-  while(1)  {
-   if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) < 0)       /* empty the event queue */
-    break;
-  }
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "input_dvb: status: %x\n", status);
 
-  pfd[0].fd=this->fd_frontend;
-  pfd[0].events=POLLPRI;
-  event.status=0;
-
-  while (((event.status & FE_TIMEDOUT)==0) && ((event.status & FE_HAS_LOCK)==0)) {
-    xprintf(this->xine, XINE_VERBOSITY_LOG, "input_dvb: Trying for lock...\n");
-
-    if (poll(pfd,1,2000) > 0){
-      if (pfd[0].revents & POLLPRI){
-        if ((status = ioctl(this->fd_frontend, FE_GET_EVENT, &event)) < 0){
-	  if (errno != EOVERFLOW) {
-	    return 0;
-	  }
-        }
-      }
-    } /* read the status from the frontend... it appears that event.status isn't correct for some FE's */ 
-    ioctl(this->fd_frontend, FE_READ_STATUS, &event.status);
-    lock_tries++;
-    if(lock_tries>15) { /* try to get lock for a few seconds */
+    if (status & FE_HAS_LOCK) {
+      ioctl(this->fd_frontend, FE_READ_STATUS, &event.status);
       break;
     }
-  }
+    usleep(500000);
+  } while (!(status & FE_TIMEDOUT));
   
   /* inform the user of frontend status */ 
   festatus=0;
@@ -841,8 +825,8 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
     xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Unable to achieve lock at %.lu Hz\n",(unsigned long)front_param->frequency);
     return 0;
   }
-}
 
+}
 
 /* Parse the PMT, and add filters for all stream types associated with 
  * the 'channel'. We leave it to the demuxer to sort out which PIDs to 
@@ -947,8 +931,8 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 
   xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PAT filter\n");
 
-  /* first - the PAT */  
-  if(dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP)==0)
+  /* first - the PAT. retrieve the entire section...*/  
+  if(dvb_set_sectfilter(this, INTERNAL_FILTER, 0, DMX_PES_OTHER, 0, 0xff)==0)
   {
     xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error setting up Internal PAT filter - reverting to rc6 hehaviour\n");
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
@@ -964,17 +948,20 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
   }
-  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 4);
-  if(result!=4)
+  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 3);
+    
+  if(result!=3)
     xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: error reading PAT table - no data!\n");
-  section_len = getbits(tmpbuffer,20,12);
-  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer+4,section_len);
+
+  section_len = getbits(tmpbuffer,12,12);
+  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer+5,section_len);
+
   if(result!=section_len)
     xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: error reading in the PAT table\n");
 
   ioctl(tuner->fd_pidfilter[INTERNAL_FILTER], DMX_STOP);
 
-  bufptr+=9;
+  bufptr+=10;
   this->num_streams_in_this_ts=0;
   section_len-=5;    
 
@@ -997,6 +984,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PMT filter for pid %x\n",this->channels[this->channel].pmtpid);
 
   dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
+
   if(poll(&pfd,1,15000)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
   {
     xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error up Internal PMT filter - reverting to rc6 hehaviour\n");
@@ -1010,7 +998,6 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer+4,section_len);
 
   ioctl(tuner->fd_pidfilter[INTERNAL_FILTER], DMX_STOP);
-
 
   parse_pmt(this,tmpbuffer+9,section_len);
   
@@ -1365,6 +1352,8 @@ static int tuner_set_channel (dvb_input_plugin_t *this,
   tuner_t *tuner=this->tuner;
 
   if (tuner->feinfo.type==FE_QPSK) {
+    if(!(tuner->feinfo.caps & FE_CAN_INVERSION_AUTO))
+      c->front_param.inversion = INVERSION_OFF;
     if (!tuner_set_diseqc(tuner, c))
       return 0;
   }
