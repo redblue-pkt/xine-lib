@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.258 2003/10/13 11:13:59 mroi Exp $
+ * $Id: xine.c,v 1.259 2003/10/20 08:36:57 valtri Exp $
  */
 
 /*
@@ -782,6 +782,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
         /* when we got here, the stream setup parameter must be a config entry */
 	const char *tmp = stream_setup;
 	char *config_entry;
+	int retval;
 	if ((stream_setup = strchr(stream_setup, ';'))) {
 	  config_entry = (char *)malloc(stream_setup - tmp + 1);
 	  memcpy(config_entry, tmp, stream_setup - tmp);
@@ -792,12 +793,22 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	  config_entry[strlen(tmp)] = '\0';
 	}
 	mrl_unescape(config_entry);
-	if (!xine_config_change_opt(stream->xine->config, config_entry)) {
+	retval = xine_config_change_opt(stream->xine->config, config_entry);
+	if (retval <= 0) {
+	  if (retval == 0) {
+	    /* the option not found */
+	    xine_log(stream->xine, XINE_LOG_MSG,
+              _("xine: error while parsing MRL\n"));
+	  } else {
+            /* not permitted to change from MRL */
+            xine_log(stream->xine, XINE_LOG_MSG, 
+              _("xine: changing option '%s' from MRL isn't permitted\n"),
+	      config_entry);
+	  }
+          stream->err = XINE_ERROR_MALFORMED_MRL;
+          stream->status = XINE_STATUS_STOP;
 	  free(config_entry);
-	  printf("xine: error while parsing mrl\n");
-	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
-	  return 0;
+          return 0;
 	}
 	free(config_entry);
       }
@@ -1203,6 +1214,18 @@ int xine_engine_get_param(xine_t *this, int param) {
   return -1;
 }
 
+static void config_demux_strategy_cb (void *this_gen, xine_cfg_entry_t *entry) {
+  xine_t *this = (xine_t *)this_gen;
+
+  this->demux_strategy = entry->num_value;
+}
+
+static void config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
+  xine_t *this = (xine_t *)this_gen;
+
+  this->save_path = entry->str_value;
+}
+
 void xine_init (xine_t *this) {
   static char *demux_strategies[] = {"default", "reverse", "content",
 				     "extension", NULL};
@@ -1219,21 +1242,31 @@ void xine_init (xine_t *this) {
 
   scan_plugins(this);
 
-  /*
-   * content detection strategy
-   */
-
 #ifdef HAVE_SETLOCALE
   if (!setlocale(LC_CTYPE, ""))
     printf("xine: locale not supported by C library\n");
 #endif
 
-  this->demux_strategy  = this->config->register_enum (this->config,
-						       "misc.demux_strategy",
-						       0,
-						       demux_strategies,
-						       "media format detection strategy",
-						       NULL, 10, NULL, NULL);
+  /*
+   * content detection strategy
+   */
+  this->demux_strategy  = this->config->register_enum (
+      this->config, "misc.demux_strategy", 0,
+      demux_strategies,
+      _("Media format detection strategy"),
+      NULL, 
+      10, config_demux_strategy_cb, this);
+
+  /*
+   * save directory
+   */
+  this->save_path  = this->config->register_string (
+      this->config, 
+      "misc.save_dir", "",
+      _("Path for saving streams"),
+      _("Streams will be saved only into this directory"),
+      XINE_CONFIG_SECURITY, config_save_cb, this);
+
   /*
    * keep track of all opened streams
    */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.25 2003/07/31 12:04:55 mroi Exp $
+ * $Id: configfile.h,v 1.26 2003/10/20 08:36:57 valtri Exp $
  *
  * config file management
  *
@@ -40,6 +40,13 @@ extern "C" {
 #endif
 
 #define CONFIG_FILE_VERSION 1
+
+/*
+ * config entries above this experience 
+ * level musn't be changed from MRL
+ */
+#define XINE_CONFIG_SECURITY 50
+	
 
 typedef struct cfg_entry_s cfg_entry_t;
 typedef struct config_values_s config_values_t;

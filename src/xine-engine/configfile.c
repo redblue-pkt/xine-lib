@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.50 2003/07/31 11:59:10 mroi Exp $
+ * $Id: configfile.c,v 1.51 2003/10/20 08:36:56 valtri Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -976,6 +976,12 @@ int xine_config_change_opt(config_values_t *config, const char *opt) {
 
       entry = config->lookup_entry(config, key);
 
+      if(entry->exp_level >= XINE_CONFIG_SECURITY) {
+        printf(_("configfile: entry '%s' mustn't be modified from MRL\n"), key);
+        free(key);
+        return -1;
+      }
+      
       if(entry) {
 
 	switch(entry->type) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.142 2003/10/19 19:45:03 tmattern Exp $
+ * $Id: xine_internal.h,v 1.143 2003/10/20 08:36:57 valtri Exp $
  *
  */
 
@@ -104,6 +104,7 @@ struct xine_s {
   plugin_catalog_t          *plugin_catalog;
   
   int                        demux_strategy;
+  char                      *save_path;
 
   /* log output that may be presented to the user */
   scratch_buffer_t          *log_buffers[XINE_LOG_NUM];

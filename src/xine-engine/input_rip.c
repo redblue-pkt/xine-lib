@@ -29,7 +29,14 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.7 2003/10/13 14:52:54 valtri Exp $
+ * $Id: input_rip.c,v 1.8 2003/10/20 08:36:57 valtri Exp $
+ */
+
+/* TODO:
+ *   - resume feature (via #append)
+ *   - SEEK_SLOW replace by timeout
+ *   - gui activation (after restarting playback)
+ *   - long files support
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,15 +46,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 
 /* logging */
-/*
-#define LOG 1
-*/
+/*#define LOG 1*/
 #define LOG_MODULE "input_rip"
 #define CLR_FAIL "\e[1;31m"
 #define CLR_RST "\e[0;39m"
@@ -55,6 +61,7 @@
 #include "xine_internal.h"
 
 #define SCRATCH_SIZE 1024
+#define MAX_TARGET_LEN 256
 
 typedef struct {
   input_plugin_t    input_plugin;      /* inherited structure */
@@ -479,6 +486,36 @@ static void rip_plugin_dispose(input_plugin_t *this_gen) {
   free(this);
 }
 
+
+/*
+ * concat name of directory and name of file,
+ * returns non-zero, if there was enough space
+ */
+static int dir_file_concat(char *target, size_t maxlen, const char *dir, const char *name) {
+  size_t len_dir, len_name, pos_name = 0;
+
+  len_name = strlen(name);
+  len_dir = strlen(dir);
+
+  /* remove slashes */
+  if (dir[len_dir - 1] == '/') len_dir--;
+  if (name[0] == '/') {
+    pos_name = 1;
+    len_name--;
+  }
+
+  /* test and perform copy */
+  if (len_dir + len_name + 2 > maxlen) {
+    target[0] = '\0';
+    return 0;
+  }
+  if (len_dir) memcpy(target, dir, len_dir);
+  target[len_dir] = '/';
+  strcpy(&target[len_dir + 1], name + pos_name);
+  return 1;
+}
+
+
 /* 
  * create self instance, 
  * target file for writing stream is specified in 'data'
@@ -488,8 +525,10 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
   input_plugin_t *main_plugin = stream->input_plugin;
   struct stat pstat;
   const char *mode;
+  char target[MAX_TARGET_LEN];
+  char *fnc;
 
-  lprintf("rip_plugin_get_instance(catch file = %s)\n", filename ? filename : "(null)");
+  lprintf("rip_plugin_get_instance(catch file = %s), path = %s\n", filename ? filename : "(null)", stream->xine->save_path);
 
   /* check given input plugin */
   if (!stream->input_plugin) {
@@ -498,6 +537,12 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
     return NULL;
   }
 
+  if (!stream->xine->save_path[0]) {
+    xine_log(stream->xine, XINE_LOG_MSG,
+      _("input_rip: target directory wasn't specified, please fill out the option 'misc.save_dir'\n"));
+    return NULL;
+  }
+  
   if ( main_plugin->get_capabilities(main_plugin) & INPUT_CAP_RIP_FORBIDDEN ) {
     xine_log(stream->xine, XINE_LOG_MSG, 
       _("input_rip: ripping/caching is not permitted!\n"));
@@ -516,11 +561,19 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
   this->curpos  = 0;
   this->savepos = 0;
 
-  /* find out type of file */
-  if (stat(filename, &pstat) < 0 && errno != ENOENT) {
+  fnc = strdup(filename);
+  dir_file_concat(target, MAX_TARGET_LEN, stream->xine->save_path, 
+                  basename(fnc));
+  free(fnc);
+  lprintf("target file: %s\n", target);
+  
+  /* find out type of target */
+  if (stat(target, &pstat) < 0 && errno != ENOENT) {
     xine_log(this->stream->xine, XINE_LOG_MSG,
       _("input_rip: stat on the file %s failed: %s\n"), 
-      filename, strerror(errno));
+      target, strerror(errno));
+    free(this);
+    return NULL;
   }
   if (errno != ENOENT && S_ISFIFO(pstat.st_mode)) {
     this->regular = 0;
@@ -530,10 +583,10 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
     mode = "wb+";
   }
   
-  if ((this->file = fopen(filename, mode)) == NULL) {
+  if ((this->file = fopen(target, mode)) == NULL) {
     xine_log(this->stream->xine, XINE_LOG_MSG, 
       _("input_rip: error opening file %s: %s\n"), 
-      filename, strerror(errno));
+      target, strerror(errno));
     free(this);
     return NULL;
   }
