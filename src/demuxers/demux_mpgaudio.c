@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.40 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_mpgaudio.c,v 1.41 2002/05/15 22:52:14 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -57,6 +57,7 @@ typedef struct {
   input_plugin_t      *input;
 
   pthread_t            thread;
+  int                  thread_running;
   pthread_mutex_t      mutex;
 
   int                  status;
@@ -207,21 +208,30 @@ static void *demux_mpgaudio_loop (void *this_gen) {
   buf_element_t *buf;
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
-  this->send_end_buffers = 1;
+  pthread_mutex_lock( &this->mutex );
+  /* do-while needed to seek after demux finished */
+  do {
 
-  while(1) {
-    
-    pthread_mutex_lock( &this->mutex );
-    
-    if( this->status != DEMUX_OK)
-      break;
-    
-    if (!demux_mpgaudio_next(this))
-      this->status = DEMUX_FINISHED;
-    
-    pthread_mutex_unlock( &this->mutex );
-  
-  }
+    /* main demuxer loop */
+    while(this->status == DEMUX_OK) {
+
+      if (!demux_mpgaudio_next(this))
+        this->status = DEMUX_FINISHED;
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
+    }
+
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while( this->status == DEMUX_OK );
   
   this->status = DEMUX_FINISHED;
 
@@ -238,7 +248,9 @@ static void *demux_mpgaudio_loop (void *this_gen) {
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
+  printf ("demux_mpgaudio: demux loop finished.\n");
 
+  this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
   pthread_exit(NULL);
 
@@ -253,7 +265,7 @@ static void demux_mpgaudio_stop (demux_plugin_t *this_gen) {
 
   pthread_mutex_lock( &this->mutex );
   
-  if (this->status != DEMUX_OK) {
+  if (!this->thread_running) {
     printf ("demux_mpgaudio_block: stop...ignored\n");
     pthread_mutex_unlock( &this->mutex );
     return;
@@ -283,7 +295,7 @@ static void demux_mpgaudio_stop (demux_plugin_t *this_gen) {
 static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
-  return this->status;
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
 static uint32_t demux_mpgaudio_read_head(input_plugin_t *input)
@@ -321,7 +333,7 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
   
   pthread_mutex_lock( &this->mutex );
 
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     this->video_fifo  = video_fifo;
     this->audio_fifo  = audio_fifo;
   
@@ -331,7 +343,7 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     uint32_t head;
 
-    if( this->status != DEMUX_OK ) {
+    if( !this->thread_running ) {
       head = demux_mpgaudio_read_head(this->input);
 
       if (mpg123_head_check(head))
@@ -346,7 +358,7 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
   
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type    = BUF_CONTROL_START;
     this->video_fifo->put (this->video_fifo, buf);
@@ -362,6 +374,8 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
      */
 
     this->status = DEMUX_OK;
+    this->send_end_buffers = 1;
+    this->thread_running = 1;
     if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpgaudio_loop, this)) != 0) {
       printf ("demux_mpgaudio: can't create new thread (%s)\n",
