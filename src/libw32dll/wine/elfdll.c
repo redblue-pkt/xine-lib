@@ -7,12 +7,12 @@
 
 #ifdef HAVE_LIBDL
 
-#include <wine/windef.h>
-#include <wine/module.h>
-#include <wine/heap.h>
-#include <wine/elfdll.h>
-#include <wine/debugtools.h>
-#include <wine/winerror.h>
+#include "windef.h"
+#include "module.h"
+#include "heap.h"
+#include "elfdll.h"
+#include "debugtools.h"
+#include "winerror.h"
 
 //DEFAULT_DEBUG_CHANNEL(elfdll)
 

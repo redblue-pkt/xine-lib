@@ -7,10 +7,10 @@
 #include <pwd.h>
 #include <sys/types.h>
 
-#include <wine/winbase.h>
-#include <wine/winreg.h>
-#include <wine/winnt.h>
-#include <wine/winerror.h>
+#include "winbase.h"
+#include "winreg.h"
+#include "winnt.h"
+#include "winerror.h"
 
 #include "ext.h"
 #include "registry.h"

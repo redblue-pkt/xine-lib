@@ -18,10 +18,10 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <wine/windef.h>
-#include <wine/winbase.h>
-#include <wine/debugtools.h>
-#include <wine/heap.h>
+#include "windef.h"
+#include "winbase.h"
+#include "debugtools.h"
+#include "heap.h"
 #include "ext.h"
 
 #if 0

@@ -16,15 +16,15 @@
 #include <sys/types.h>
 
 
-#include <wine/windef.h>
-#include <wine/winerror.h>
-#include <wine/heap.h>
-#include <wine/module.h>
-#include <wine/pe_image.h>
-#include <wine/debugtools.h>
+#include "windef.h"
+#include "winerror.h"
+#include "heap.h"
+#include "module.h"
+#include "pe_image.h"
+#include "debugtools.h"
 #ifdef HAVE_LIBDL
 #include <dlfcn.h>
-#include <wine/elfdll.h>
+#include "elfdll.h"
 #endif
 #include "win32.h"
 #include "driver.h"
