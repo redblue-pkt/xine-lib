@@ -1,3 +1,15 @@
+xine (0.9.11) unstable; urgency=low
+  
+  * RoQ DPCM audio decoder
+  * some endianess and 64bit machine fixes
+  * better quality using linearblend filter
+  * new FILM (CPK) demuxer
+  * new RoQ demuxer
+  * new QuickTime demuxer
+  * DXR3 support for libfame 0.8.10 and above
+  * fixes for transport streams demuxer
+  * VIDIX video out driver (experimental)
+
 xine (0.9.10) unstable; urgency=low
 
   * fixed snapshot: capture current frame with overlays

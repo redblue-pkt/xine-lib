@@ -230,7 +230,7 @@ Contributions
     C version for linear blend deinterlacer
 
   Mike Melanson <melanson@pcisys.net>
-    FILM and RoQ file demuxers
+    QT, FILM and RoQ file demuxers, RoQ audio decoder
 
   Tim Ferguson <timf@mail.csse.monash.edu.au>
     CYUV and RoQ video decoders
@@ -244,4 +244,7 @@ Contributions
   Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
     demux_ts fixes and improvements
 
+  Carsten Weinhold <cw.news@gmx.net>
+    patch to improve quality of linearblend filter
+  
     (let us know if we've forgotten anyone)
