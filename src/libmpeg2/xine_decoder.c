@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/04/30 23:07:00 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/05/24 21:41:27 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -35,6 +35,7 @@
 typedef struct mpeg2dec_decoder_s {
   video_decoder_t  video_decoder;
   mpeg2dec_t       mpeg2;
+  vo_instance_t   *video_out;
 } mpeg2dec_decoder_t;
 
 int mpeg2dec_can_handle (video_decoder_t *this_gen, int buf_type) {
@@ -46,25 +47,16 @@ void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-  printf ("libmpeg: initializing mpeg2dec\n");
-
   mpeg2_init (&this->mpeg2, video_out);
+  video_out->open(video_out);
+  this->video_out = video_out;
 }
 
 void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-  printf ("libmpeg: decoding data (pts = %d)\n", buf->PTS);
-
   mpeg2_decode_data (&this->mpeg2, buf->content, buf->content + buf->size,
 		     buf->PTS);
-}
-
-void mpeg2dec_release_img_buffers (video_decoder_t *this_gen) {
-
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
-     
-  decode_free_image_buffers (&this->mpeg2);
 }
 
 void mpeg2dec_close (video_decoder_t *this_gen) {
@@ -72,6 +64,7 @@ void mpeg2dec_close (video_decoder_t *this_gen) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
   mpeg2_close (&this->mpeg2);
+  this->video_out->close(this->video_out);
 }
 
 static char *mpeg2dec_get_id(void) {
@@ -91,7 +84,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this->video_decoder.can_handle          = mpeg2dec_can_handle;
   this->video_decoder.init                = mpeg2dec_init;
   this->video_decoder.decode_data         = mpeg2dec_decode_data;
-  this->video_decoder.release_img_buffers = mpeg2dec_release_img_buffers;
   this->video_decoder.close               = mpeg2dec_close;
   this->video_decoder.get_identifier      = mpeg2dec_get_id;
 

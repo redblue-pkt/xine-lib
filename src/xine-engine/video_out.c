@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.6 2001/05/24 15:31:31 guenter Exp $
+ * $Id: video_out.c,v 1.7 2001/05/24 21:41:28 guenter Exp $
  *
  */
 
@@ -129,8 +129,8 @@ static void vo_set_timer (uint32_t video_step) {
   tval.it_value.tv_sec     = 0;
   tval.it_value.tv_usec    = video_step*100000/90000;
 
-  /* printf ("video_out: tval.it_interval.tv_usec = %d\n", tval.it_interval.tv_usec); */
-  
+  /* printf ("video_out: tval.it_interval.tv_usec = %d\n", tval.it_interval.tv_usec);  */
+
   if (setitimer(ITIMER_REAL, &tval, NULL)) {
     printf ("vo_set_timer: setitimer failed :");
   }
@@ -144,7 +144,7 @@ static void *video_out_loop (void *this_gen) {
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
   
-  /* printf ("%d video_out start\n", getpid()); */
+  /* printf ("%d video_out start\n", getpid());  */
 
   signal (SIGALRM, video_timer_handler);
 
@@ -262,7 +262,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   vo_frame_t *img;
 
-  /* printf ("video_out: vo_get_frame\n"); */
+  /* printf ("video_out: vo_get_frame\n");  */
 
   if (this->pts_per_frame != duration) {
     this->pts_per_frame = duration;
@@ -283,7 +283,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   pthread_mutex_unlock (&img->mutex);
   
-  /* printf ("video_out: vo_get_frame done\n"); */
+  /* printf ("video_out: vo_get_frame done\n");  */
 
   return img;
 }
@@ -339,11 +339,11 @@ static void vo_frame_free (vo_frame_t *img) {
   pthread_mutex_lock (&img->mutex);
   img->bDecoderLock = 0; 
 
-  if (!img->bDisplayLock && !img->bDriverLock ) 
+  if (!img->bDisplayLock && !img->bDriverLock ) {
     vo_append_to_img_buf_queue (img->instance->free_img_buf_queue, img);
+  }
 
   pthread_mutex_unlock (&img->mutex);
-
 }
 
 static int vo_frame_draw (vo_frame_t *img) {

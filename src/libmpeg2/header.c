@@ -22,7 +22,6 @@
 #include "config.h"
 
 #include <inttypes.h>
-#include <stdio.h>
 
 #include "mpeg2_internal.h"
 #include "attributes.h"
@@ -122,11 +121,10 @@ int header_process_sequence_header (picture_t * picture, uint8_t * buffer)
       picture->frame_duration = 1509;
       break;
     default:
-      printf ("invalid/unknown frame rate code : %d \n",
-	      picture->frame_rate_code);
+      /* printf ("invalid/unknown frame rate code : %d \n",
+              picture->frame_rate_code); */
       picture->frame_duration = 3000;
     }
-    
 
     picture->bitrate = (buffer[4]<<10)|(buffer[5]<<2)|(buffer[6]>>6);
 

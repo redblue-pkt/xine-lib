@@ -31,7 +31,6 @@ typedef struct mpeg2dec_s {
     int is_display_initialized;
     int is_sequence_needed;
     int frames_to_drop, drop_frame;
-    int skip_slices;
     int in_slice;
 
     /* the maximum chunk size is determined by vbv_buffer_size */

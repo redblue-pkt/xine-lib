@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.18 2001/05/03 00:02:42 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.19 2001/05/24 21:41:28 guenter Exp $
  *
  */
 
@@ -57,8 +57,6 @@ struct video_decoder_s {
   void (*init) (video_decoder_t *this, vo_instance_t *video_out);
 
   void (*decode_data) (video_decoder_t *this, buf_element_t *buf);
-
-  void (*release_img_buffers) (video_decoder_t *this);
 
   void (*close) (video_decoder_t *this);
 

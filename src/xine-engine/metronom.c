@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.4 2001/05/06 15:44:25 guenter Exp $
+ * $Id: metronom.c,v 1.5 2001/05/24 21:41:28 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 
@@ -43,6 +44,8 @@
 static void metronom_reset (metronom_t *this) {
 
   pthread_mutex_lock (&this->lock);
+
+  this->pts_per_frame             = 3000;
 
   this->video_vpts                = 0;
   this->audio_vpts                = 0;

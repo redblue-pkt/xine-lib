@@ -43,8 +43,6 @@
 #include <inttypes.h>
 
 #include "mpeg2_internal.h"
-#include "xine_internal.h"
-#include "xine_internal.h"
 #include "cpu_accel.h"
 
 #define W1 2841 /* 2048*sqrt (2)*cos (1*pi/16) */

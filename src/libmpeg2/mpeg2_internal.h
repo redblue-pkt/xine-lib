@@ -190,7 +190,7 @@ extern mc_functions_t mc_functions_3dnow;
 extern mc_functions_t mc_functions_mlib;
 
 /* slice.c */
-int slice_process (picture_t *picture, uint8_t code, uint8_t * buffer);
+void slice_process (picture_t *picture, uint8_t code, uint8_t * buffer);
 
 /* stats.c */
 void stats_header (uint8_t code, uint8_t * buffer);
