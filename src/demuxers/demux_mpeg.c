@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.136 2004/04/09 16:07:10 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.137 2004/04/22 21:30:10 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -733,8 +733,8 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
       this->rate = (buf << 14);
       buf  = read_bytes (this, 1);
       this->rate |= (buf << 6);
+      buf  = read_bytes (this, 1);
       this->rate |= (buf >> 2);
-      read_bytes (this, 1);
     } else {
       read_bytes(this,3);
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.205 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.206 2004/04/22 21:30:10 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -465,7 +465,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_block_t *this, uint8_
     if (!this->rate) {
       this->rate = (p[0xA] << 14);
       this->rate |= (p[0xB] << 6);
-      this->rate |= (p[0xB] >> 2);
+      this->rate |= (p[0xC] >> 2);
     }
 
     num_stuffing_bytes = p[0xD] & 0x07;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.20 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_mpeg_pes.c,v 1.21 2004/04/22 21:30:10 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -482,7 +482,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
     if (!this->rate) {
       this->rate = (p[0xA] << 14);
       this->rate |= (p[0xB] << 6);
-      this->rate |= (p[0xB] >> 2);
+      this->rate |= (p[0xC] >> 2);
     }
     i = this->input->read (this->input, buf->mem+12, (off_t) 2);
     if (i != 2) {
