@@ -98,6 +98,7 @@ noinst_HEADERS = \
 	ra288.h \
 	rational.h \
 	simple_idct.h \
+	sp5x.h \
 	svq1_cb.h \
 	svq1_vlc.h \
 	vp3data.h \
