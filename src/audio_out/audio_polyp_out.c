@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_polyp_out.c,v 1.3 2004/11/19 21:52:33 miguelfreitas Exp $
+ * $Id: audio_polyp_out.c,v 1.4 2004/11/22 20:26:42 miguelfreitas Exp $
  *
  * ao plugin for polypaudio:
  * http://0pointer.de/lennart/projects/polypaudio/
@@ -424,9 +424,15 @@ static int ao_polyp_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 
   case AO_CTRL_PLAY_RESUME:
     assert(this->stream && this->context);
-    if(pa_stream_get_state(this->stream) == PA_STREAM_READY)
-      wait_for_operation(this,pa_stream_cork(this->stream, 0, NULL, NULL));
-    wait_for_completion(this);
+    if(pa_stream_get_state(this->stream) == PA_STREAM_READY) {
+        struct pa_operation *o2, *o1;
+        o1 = pa_stream_prebuf(this->stream, NULL, NULL);
+        o2 = pa_stream_cork(this->stream, 0, NULL, NULL);
+        assert(o1 && o2);
+        wait_for_operation(this,o1);
+        wait_for_operation(this,o2);
+        wait_for_completion(this);
+    }
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
