@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.41 2003/02/02 17:36:06 guenter Exp $
+ * $Id: demux_real.c,v 1.42 2003/02/14 19:45:58 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1187,7 +1187,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
 
     if (strncasecmp (ending, ".rm", 3)
-	&& strncasecmp (ending, ".ra", 3) 
 	&& strncasecmp (ending, ".ram", 4)) 
       return NULL;
 
@@ -1259,7 +1258,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "rm ra ram";
+  return "rm ram";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
