@@ -17,10 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.17 2004/07/31 18:57:45 valtri Exp $
+ * $Id: xine_encoder.c,v 1.18 2004/08/16 15:31:23 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +38,12 @@
 /* #define LOG */
 
 #include "video_out_dxr3.h"
-#include <avcodec.h>
+
+#ifdef HAVE_FFMPEG
+#  include <avcodec.h>
+#else
+#  include "libavcodec/avcodec.h"
+#endif
 
 /* buffer size for encoded mpeg1 stream; will hold one intra frame 
  * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */

@@ -17,12 +17,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.h,v 1.2 2004/07/31 18:57:45 valtri Exp $
+ * $Id: xine_decoder.h,v 1.3 2004/08/16 15:31:23 mroi Exp $
  *
  */
  
 #ifndef HAVE_XINE_DECODER_H
 #define HAVE_XINE_DECODER_H
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #ifdef _MSC_VER
 /* ffmpeg has own definitions of those types */
@@ -36,7 +40,11 @@
 #  undef uint64_t
 #endif
 
-#include <avcodec.h>
+#ifdef HAVE_FFMPEG
+#  include <avcodec.h>
+#else
+#  include "libavcodec/avcodec.h"
+#endif
 
 #ifdef _MSC_VER
 #  undef malloc
