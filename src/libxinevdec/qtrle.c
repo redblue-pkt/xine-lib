@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.1 2002/09/22 04:27:00 tmmm Exp $
+ * $Id: qtrle.c,v 1.2 2002/10/04 01:16:04 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -84,7 +84,7 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
   signed char rle_code;
   int row_ptr, pixel_ptr;
   int row_inc = this->width;
-  unsigned char y[32], u[32], v[32];
+  unsigned char y[16], u[16], v[16];
   yuv_planes_t *yuv = &this->yuv_planes;
   int i, shift, index, indices;
 
@@ -112,6 +112,7 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
 
   row_ptr = row_inc * start_line;
   while (lines_to_change--) {
+//printf ("%d lines left, skip %d bytes...\n", lines_to_change, this->buf[stream_ptr]);
     pixel_ptr = row_ptr + (this->buf[stream_ptr++] - 1);
 
     while ((rle_code = (signed char)this->buf[stream_ptr++]) != -1) {
@@ -122,11 +123,11 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
         /* decode the run length code */
         rle_code = -rle_code;
 
-        /* get the next 32 bits from the stream and treat them as 32
-         * 1-bit indices into the palette */
-        indices = BE_32(&this->buf[stream_ptr]);
-        stream_ptr += 4;
-        for (i = 0, shift = 31; i < 32; i++, shift--) {
+        /* get the next 16 bits from the stream and treat them as 16
+         * monochrome pixels */
+        indices = BE_16(&this->buf[stream_ptr]);
+        stream_ptr += 2;
+        for (i = 0, shift = 15; i < 16; i++, shift--) {
           index = (indices >> shift) & 0x01;
           if (index) {
             y[i] = Y_WHITE;
@@ -139,7 +140,7 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
           }
         }
         while (rle_code--) {
-          for (i = 0; i < 32; i++) {
+          for (i = 0; i < 16; i++) {
             yuv->y[pixel_ptr] = y[i];
             yuv->u[pixel_ptr] = u[i];
             yuv->v[pixel_ptr] = v[i];
@@ -149,9 +150,9 @@ static void decode_qtrle_1(qtrle_decoder_t *this) {
       } else {
         /* copy pixels directly to output */
         while (rle_code--) {
-          indices = BE_32(&this->buf[stream_ptr]);
-          stream_ptr += 4;
-          for (i = 0, shift = 31; i < 32; i++, shift--) {
+          indices = BE_16(&this->buf[stream_ptr]);
+          stream_ptr += 2;
+          for (i = 0, shift = 15; i < 16; i++, shift--) {
             index = (indices >> shift) & 0x01;
             if (index) {
               yuv->y[pixel_ptr] = Y_WHITE;
@@ -225,9 +226,9 @@ static void decode_qtrle_2(qtrle_decoder_t *this) {
         stream_ptr += 4;
         for (i = 0, shift = 30; i < 16; i++, shift -= 2) {
           index = (indices >> shift) & 0x03;
-          y[i] = this->yuv_palette[this->buf[index] * 4 + 0];
-          u[i] = this->yuv_palette[this->buf[index] * 4 + 1];
-          v[i] = this->yuv_palette[this->buf[index] * 4 + 2];
+          y[i] = this->yuv_palette[index * 4 + 0];
+          u[i] = this->yuv_palette[index * 4 + 1];
+          v[i] = this->yuv_palette[index * 4 + 2];
         }
         while (rle_code--) {
           for (i = 0; i < 16; i++) {
@@ -244,9 +245,9 @@ static void decode_qtrle_2(qtrle_decoder_t *this) {
           stream_ptr += 4;
           for (i = 0, shift = 30; i < 16; i++, shift -= 2) {
             index = (indices >> shift) & 0x03;
-            yuv->y[pixel_ptr] = this->yuv_palette[this->buf[index] * 4 + 0];
-            yuv->u[pixel_ptr] = this->yuv_palette[this->buf[index] * 4 + 1];
-            yuv->v[pixel_ptr] = this->yuv_palette[this->buf[index] * 4 + 2];
+            yuv->y[pixel_ptr] = this->yuv_palette[index * 4 + 0];
+            yuv->u[pixel_ptr] = this->yuv_palette[index * 4 + 1];
+            yuv->v[pixel_ptr] = this->yuv_palette[index * 4 + 2];
             pixel_ptr++;
           }
         }
@@ -310,9 +311,9 @@ static void decode_qtrle_4(qtrle_decoder_t *this) {
         stream_ptr += 4;
         for (i = 0, shift = 28; i < 8; i++, shift -= 4) {
           index = (indices >> shift) & 0x0F;
-          y[i] = this->yuv_palette[this->buf[index] * 4 + 0];
-          u[i] = this->yuv_palette[this->buf[index] * 4 + 1];
-          v[i] = this->yuv_palette[this->buf[index] * 4 + 2];
+          y[i] = this->yuv_palette[index * 4 + 0];
+          u[i] = this->yuv_palette[index * 4 + 1];
+          v[i] = this->yuv_palette[index * 4 + 2];
         }
         while (rle_code--) {
           for (i = 0; i < 8; i++) {
@@ -329,9 +330,9 @@ static void decode_qtrle_4(qtrle_decoder_t *this) {
           stream_ptr += 4;
           for (i = 0, shift = 28; i < 8; i++, shift -= 4) {
             index = (indices >> shift) & 0x0F;
-            yuv->y[pixel_ptr] = this->yuv_palette[this->buf[index] * 4 + 0];
-            yuv->u[pixel_ptr] = this->yuv_palette[this->buf[index] * 4 + 1];
-            yuv->v[pixel_ptr] = this->yuv_palette[this->buf[index] * 4 + 2];
+            yuv->y[pixel_ptr] = this->yuv_palette[index * 4 + 0];
+            yuv->u[pixel_ptr] = this->yuv_palette[index * 4 + 1];
+            yuv->v[pixel_ptr] = this->yuv_palette[index * 4 + 2];
             pixel_ptr++;
           }
         }
