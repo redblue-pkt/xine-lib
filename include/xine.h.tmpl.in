@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.15 2001/05/16 15:32:03 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.16 2001/05/17 21:52:10 guenter Exp $
  *
  */
 
@@ -51,7 +51,6 @@
 /** @} end of versgroup */
 
 #ifndef DOC_HIDDEN
-typedef void vo_driver_t;
 typedef void ao_functions_t;
 typedef void xine_t;
 #endif
@@ -89,6 +88,73 @@ struct config_values_s {
    * use _init instead!
    */
   void (*read) (config_values_t *this, char *filename);
+};
+
+/* constants for the get/set property functions */
+
+#define VO_PROP_INTERLACED      0
+#define VO_PROP_ASPECT_RATIO    1
+#define VO_PROP_HUE             2
+#define VO_PROP_SATURATION      3
+#define VO_PROP_CONTRAST        4
+#define VO_PROP_BRIGHTNESS      5 
+#define VO_PROP_COLORKEY        6 
+#define VO_NUM_PROPERTIES       7
+
+/* possible ratios for the VO_PROP_ASPECT_RATIO call */
+
+#define ASPECT_AUTO        0
+#define ASPECT_ANAMORPHIC  1 /* 16:9 */
+#define ASPECT_FULL        2 /* 4:3  */
+#define ASPECT_DVB         3 /* 1:2  */
+
+typedef struct vo_driver_s vo_driver_t;
+typedef void vo_frame_t;
+
+struct vo_driver_s {
+
+  uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see above */
+
+  /* 
+   * allocate an vo_frame_t struct,
+   * the driver must supply the copy, field and dispose functions
+   */
+  vo_frame_t* (*alloc_frame) (vo_driver_t *this);
+
+
+  /* 
+   * check if the given image fullfills the format specified
+   * (re-)allocate memory if necessary
+   */
+  void (*update_frame_format) (vo_driver_t *this, vo_frame_t *img,
+			       uint32_t width, uint32_t height, 
+			       int ratio_code, int format);
+
+  /* display a given frame */
+  void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
+
+  /*
+   * these can be used by the gui directly:
+   */
+  
+  int (*get_property) (vo_driver_t *this, int property);
+  int (*set_property) (vo_driver_t *this, 
+		       int property, int value);
+  void (*get_property_min_max) (vo_driver_t *this,
+				int property, int *min, int *max);
+
+  /*
+   * general purpose communication channel between gui and driver
+   *
+   * this should be used to propagate events, display data, window sizes
+   * etc. to the driver
+   */
+
+  int (*gui_data_exchange) (vo_driver_t *this, int data_type,
+			    void *data);
+
+  void (*exit) (vo_driver_t *this);
+
 };
 
 /** 
