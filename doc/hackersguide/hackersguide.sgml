@@ -164,6 +164,9 @@
     <title>Architecture and data flow</title>
     <mediaobject>
     <imageobject>
+      <imagedata fileref="architecture.png" format="PNG">
+    </imageobject>
+    <imageobject>
       <imagedata fileref="architecture.eps" format="EPS">
     </imageobject>
     <caption>
