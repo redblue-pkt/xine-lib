@@ -58,7 +58,7 @@ lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(esd_module) $(sun_module) $(art
 xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module
 
-xineplug_ao_out_alsa05_la_SOURCES = audio_alsa05_out.c resample.c
+xineplug_ao_out_alsa05_la_SOURCES = audio_alsa05_out.c 
 xineplug_ao_out_alsa05_la_LIBADD = $(ALSA_LIBS)	
 xineplug_ao_out_alsa05_la_LDFLAGS = -avoid-version -module
 
@@ -66,14 +66,14 @@ xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c
 xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
 xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module
 
-xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c resample.c
+xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c 
 xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
 xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c
 xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
 
-## xineplug_ao_out_irixal_la_SOURCES = audio_irixal_out.c resample.c
+## xineplug_ao_out_irixal_la_SOURCES = audio_irixal_out.c 
 ## xineplug_ao_out_irixal_la_LIBADD = $(IRIXAL_LIBS)
 ## xineplug_ao_out_irixal_la_LDFLAGS = -avoid-version -module
 
