@@ -40,7 +40,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.5 2003/03/07 01:20:22 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.6 2003/03/07 16:23:02 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -138,7 +138,8 @@ typedef struct {
   pthread_cond_t      wake_pvr;
   pthread_t           pvr_thread;
   int                 pvr_running;
-
+  int                 pvr_playing;
+  
   /* device properties */
   int                 input;
   int                 channel;
@@ -661,7 +662,7 @@ static void *pvr_loop (void *this_gen) {
     pthread_cond_signal (&this->has_valid_data);
 
     while(this->valid_data && this->play_fd == -1 && 
-          this->want_data) {
+          this->want_data && this->pvr_playing) {
       pthread_cond_wait (&this->wake_pvr, &this->lock);
     }
         
@@ -856,25 +857,39 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   pvr_input_plugin_t   *this = (pvr_input_plugin_t *) this_gen;
   buf_element_t        *buf;
   int                   speed = this->stream->xine->clock->speed;
-  
-  pvr_adjust_realtime_speed(this, fifo, speed);
 
-  pvr_event_handler(this);
-  
   if( !this->pvr_running ) {
     printf("input_pvr: thread died, aborting\n");
     return NULL;  
   }
+  
+  if( this->pvr_playing && this->stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] ) {
+    /* video decoding has being disabled. avoid tweaking the clock */
+    this->pvr_playing = 0;
+    this->scr_tunning = 0;
+    pvrscr_speed_tunning(this->scr, 1.0 );
+    this->want_data = 0;
+    pthread_cond_signal (&this->wake_pvr);
+  } else if ( !this->pvr_playing && !this->stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] ) {
+    this->pvr_playing = 1;    
+  }
+      
+  if( this->pvr_playing )
+    pvr_adjust_realtime_speed(this, fifo, speed);
+
+  pvr_event_handler(this);
   
   buf = fifo->buffer_pool_alloc (fifo);
   buf->content = buf->mem;
     
   pthread_mutex_lock(&this->lock);
   
-  if( !pvr_play_file(this, fifo, buf->content, speed) )
-    return NULL;
+  if( this->pvr_playing )
+    if( !pvr_play_file(this, fifo, buf->content, speed) )
+      return NULL;
   
-  if( todo == PVR_BLOCK_SIZE && speed != XINE_SPEED_PAUSE ) {
+  if( todo == PVR_BLOCK_SIZE && speed != XINE_SPEED_PAUSE &&
+      this->pvr_playing ) {
     buf->type = BUF_DEMUX_BLOCK;
     buf->size = PVR_BLOCK_SIZE;
     
@@ -1085,7 +1100,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->save_name = strdup("");
   this->input = -1;
   this->channel = -1;
-  
+  this->pvr_playing = 1;
   
   this->pvr_running = 1;
   pthread_mutex_init (&this->lock, NULL);
