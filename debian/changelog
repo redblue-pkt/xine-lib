@@ -1,3 +1,10 @@
+xine-lib (1-beta9-1) unstable; urgency=low
+
+  * New upstream release
+  * correct demuxer should be used since 1-beta8 (closes: #180011)
+  
+ -- Siggi Langauf <siggi@debian.org>  Sun, 23 Mar 2003 21:15:42 +0100
+
 xine-lib (1-beta8-1) unstable; urgency=low
 
   * Add pmhahn as Uploaders.
