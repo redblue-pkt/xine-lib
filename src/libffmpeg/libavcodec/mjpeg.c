@@ -1160,7 +1160,7 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
 	    4bytes	field_size
 	    4bytes	field_size_less_padding
 	*/
-    	s->buggy_avid = 1;
+//    	s->buggy_avid = 1;
 //	if (s->first_picture)
 //	    printf("mjpeg: workarounding buggy AVID\n");
 	s->interlace_polarity = get_bits(&s->gb, 8);

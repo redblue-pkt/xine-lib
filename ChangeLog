@@ -14,6 +14,7 @@ xine-lib (1-beta11)
   * mms protocols (mmst + mmsh ) bugfixes
   * new input plugin api
   * Quicktime fixes (now all Matrix: Reloaded teasers and trailers play)
+  * fix playback of video files created by Canon digital cameras
 
 xine-lib (1-beta10)
   * loading and displaying png images (e.g. for logos)
