@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.30 2002/12/27 16:47:10 miguelfreitas Exp $
+ * $Id: input_mms.c,v 1.31 2003/01/13 01:11:57 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -43,11 +43,16 @@
 #include "input_plugin.h"
 
 #include "mms.h"
+#include "mmsh.h"
 #include "net_buf_ctrl.h"
 
 /*
 #define LOG
 */
+
+#define PROTOCOL_UNDEFINED 0
+#define PROTOCOL_MMST      1
+#define PROTOCOL_MMSH      2
 
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define FNDELAY O_NDELAY
@@ -57,14 +62,18 @@
 const uint32_t mms_bandwidths[]={14400,19200,28800,33600,34430,57600,
                                   115200,262200,393216,524300,1544000,10485800};
 
-const char * mms_bandwidth_strs[]={"14.4 Kbps", "19.2 Kbps", "28.8 Kbps", "33.6 Kbps",
-                           "34.4 Kbps", "57.6 Kbps", "115.2 Kbps","262.2 Kbps",
-                           "393.2 Kbps","524.3 Kbps", "1.5 Mbps", "10.5 Mbps", NULL};
+const char * mms_bandwidth_strs[]={"14.4 Kbps (Modem)", "19.2 Kbps (Modem)",
+                                   "28.8 Kbps (Modem)", "33.6 Kbps (Modem)",
+                                   "34.4 Kbps (Modem)", "57.6 Kbps (Modem)",
+                                   "115.2 Kbps (ISDN)", "262.2 Kbps (Cable/DSL)",
+                                   "393.2 Kbps (Cable/DSL)","524.3 Kbps (Cable/DSL)",
+                                   "1.5 Mbps (T1)", "10.5 Mbps (LAN)", NULL};
 
 typedef struct {
   input_plugin_t   input_plugin;
 
   mms_t           *mms;
+  mmsh_t          *mmsh;
 
   char            *mrl;
 
@@ -75,7 +84,8 @@ typedef struct {
   char             scratch[1025];
 
   int              bandwidth;
-
+  int              protocol;       /* mmst or mmsh */
+  
 } mms_input_plugin_t;
 
 typedef struct {
@@ -99,7 +109,15 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
 
   nbc_check_buffers (this->nbc);
 
-  n = mms_read (this->mms, buf, len);
+  switch (this->protocol) {
+    case PROTOCOL_MMST:
+      n = mms_read (this->mms, buf, len);
+      break;
+    case PROTOCOL_MMSH:
+      n = mmsh_read (this->mmsh, buf, len);
+      break;
+  }
+              
   this->curpos += n;
 
   return n;
@@ -168,7 +186,15 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
     if (diff>1024)
       diff = 1024;
 
-    n = mms_read (this->mms, this->scratch, diff);
+    switch (this->protocol) {
+      case PROTOCOL_MMST:
+        n = mms_read (this->mms, this->scratch, diff);
+        break;
+      case PROTOCOL_MMSH:
+        n = mmsh_read (this->mmsh, this->scratch, diff);
+        break;
+    }
+    
     this->curpos += n;
 
     if (n < diff)
@@ -186,7 +212,14 @@ static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
   if (!this->mms)
     return 0;
 
-  length = mms_get_length (this->mms);
+  switch (this->protocol) {
+    case PROTOCOL_MMST:
+      length = mms_get_length (this->mms);
+      break;
+    case PROTOCOL_MMSH:
+      length = mmsh_get_length (this->mmsh);
+      break;
+  }
 
 #ifdef LOG
   printf ("input_mms: length is %lld\n", length);
@@ -218,8 +251,16 @@ static void mms_plugin_dispose (input_plugin_t *this_gen) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
   if (this->mms) {
-    mms_close (this->mms);
-    this->mms = NULL;
+    switch (this->protocol) {
+      case PROTOCOL_MMST:
+        mms_close (this->mms);
+        break;
+      case PROTOCOL_MMSH:
+        mmsh_close (this->mmsh);
+        break;
+    }
+    this->mms  = NULL;
+    this->mmsh = NULL;
   }
 
   if (this->nbc) {
@@ -246,7 +287,14 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
   switch (data_type) {
 
   case INPUT_OPTIONAL_DATA_PREVIEW:
-    return mms_peek_header (this->mms, data);
+    switch (this->protocol) {
+      case PROTOCOL_MMST:
+        return mms_peek_header (this->mms, data);
+        break;
+      case PROTOCOL_MMSH:
+        return mmsh_peek_header (this->mmsh, data);
+        break;
+    }
     break;
     
   default:
@@ -280,39 +328,60 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   mms_input_class_t  *cls = (mms_input_class_t *) cls_gen;
   mms_input_plugin_t *this;
   mms_t              *mms;
+  mmsh_t             *mmsh;
   char               *mrl = strdup(data);
   xine_cfg_entry_t    bandwidth_entry;
+  int                 protocol;
   
 #ifdef LOG
   printf ("input_mms: trying to open '%s'\n", mrl);
 #endif
 
-  if (strncasecmp (mrl, "mms://", 6)) {
+  if (!strncasecmp (mrl, "mms://", 6)) {
+    protocol = PROTOCOL_UNDEFINED;
+  } else if (!strncasecmp (mrl, "mmst://", 7)) {
+    protocol =   PROTOCOL_MMST;
+  } else if (!strncasecmp (mrl, "mmsh://", 7)) {
+    protocol =   PROTOCOL_MMSH;
+  } else {
     free (mrl);
     return NULL;
   }
 
   this = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
   cls->ip = this;
-
+  
   if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth", 
                                 &bandwidth_entry)) {
     bandwidth_changed_cb(cls, &bandwidth_entry);
   }
-  mms = mms_connect (stream, mrl, this->bandwidth);
-
-  if (!mms) {
+    
+  switch (this->protocol) {
+    case PROTOCOL_UNDEFINED:
+      mms = mms_connect (stream, mrl, this->bandwidth);
+      if (!mms) {
+        mmsh = mmsh_connect (stream, mrl, this->bandwidth);
+      }
+      break;
+    case PROTOCOL_MMST:
+      mms = mms_connect (stream, mrl, this->bandwidth);
+      break;
+    case PROTOCOL_MMSH:
+      mmsh = mmsh_connect (stream, mrl, this->bandwidth);
+      break;
+  }
+  
+  if (!mms && !mmsh) {
     free (mrl);
     return NULL;
   }
-
- 
   
-  
-  this->mms    = mms;
-  this->mrl    = mrl; 
-  this->curpos = 0;
-  this->nbc    = nbc_init (stream);
+  this->mms      = mms;
+  this->mmsh     = mmsh;
+  this->protocol = protocol;
+  this->mrl      = mrl; 
+  this->curpos   = 0;
+  this->nbc      = nbc_init (stream);
 
   this->input_plugin.get_capabilities  = mms_plugin_get_capabilities;
   this->input_plugin.read              = mms_plugin_read;
