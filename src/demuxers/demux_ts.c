@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.90 2003/10/06 15:46:20 mroi Exp $
+ * $Id: demux_ts.c,v 1.91 2003/10/20 06:19:02 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -771,6 +771,9 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
       m->buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+           if (this->rate)
+  	           m->buf->extra_info->input_time = (int)((int64_t)m->buf->extra_info->input_pos
+                   				    * 1000 / (this->rate * 50));
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = NULL; /* forget about buf -- not our responsibility anymore */
@@ -800,6 +803,9 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
       m->buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      if (this->rate)
+  	           m->buf->extra_info->input_time = (int)((int64_t)m->buf->extra_info->input_pos
+                   				    * 1000 / (this->rate * 50));
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = m->fifo->buffer_pool_alloc(m->fifo);
@@ -1781,9 +1787,11 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
-    if ((!start_pos) && (start_time))
-      start_pos = start_time * this->rate * 50;
-
+    if ((!start_pos) && (start_time)) {
+      start_pos = start_time;
+      start_pos *= this->rate;
+      start_pos *= 50;
+    }
     this->input->seek (this->input, start_pos, SEEK_SET);
 
   }
