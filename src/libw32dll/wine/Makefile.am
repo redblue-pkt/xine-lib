@@ -75,8 +75,8 @@ noinst_HEADERS = \
 	wrapper.h
 
 %.lo: %.s
-	$(CCASCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
+	$(CC) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
 
 %.lo: %.S
-	$(CCASCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
+	$(CC) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
 
