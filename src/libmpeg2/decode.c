@@ -130,7 +130,8 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
       !mpeg2dec->picture->progressive_sequence &&
        mpeg2dec->picture->progressive_frame ) {
     /* special case for ntsc 3:2 pulldown */
-    frame->duration += frame->duration/4;     
+    frame->duration = 3750; /* Make it 24 fps */    
+    /* frame->duration += frame->duration/4; */ /* This made is 3753 */    
   }
   else
   {  
@@ -148,6 +149,7 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
     }
   }
   
+  /* printf("libmpeg2:duration:%d, %0x\n",frame->duration, mpeg2dec->rff_pattern); */
   /*printf("mpeg2dec: rff=%u\n",frame->repeat_first_field);*/
 } 
 
