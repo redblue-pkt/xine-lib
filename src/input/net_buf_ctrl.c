@@ -445,15 +445,20 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
         int has_audio = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
         if (((this->video_fifo_length == 0) && has_video) ||
             ((this->audio_fifo_length == 0) && has_audio)) {
+          int other_fifo_free;
 
-          this->buffering = 1;
-          this->progress  = 0;
-          report_progress (this->stream, 0);
+          /* do not pause if a fifo is full to avoid yoyo (play-pause-play-pause) */
+          if ((this->video_fifo_free > FULL_FIFO_MARK) &&
+              (this->audio_fifo_free > FULL_FIFO_MARK)) {
+            this->buffering = 1;
+            this->progress  = 0;
+            report_progress (this->stream, 0);
 
-          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-                  "\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
-                  this->video_fifo_fill, this->audio_fifo_fill);
-          nbc_set_speed_pause(this);
+            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                    "\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
+                    this->video_fifo_fill, this->audio_fifo_fill);
+            nbc_set_speed_pause(this);
+          }
         }
       } else {
         nbc_set_speed_pause(this);
