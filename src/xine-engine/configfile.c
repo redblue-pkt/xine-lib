@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.60 2003/12/09 00:02:36 f1rmb Exp $
+ * $Id: configfile.c,v 1.61 2004/01/16 23:03:38 f1rmb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -722,43 +722,51 @@ void xine_config_load (xine_t *xine, const char *filename) {
 void xine_config_save (xine_t *xine, const char *filename) {
 
   config_values_t *this = xine->config;
-  char temp[XINE_PATH_MAX];
-  int backup = 0;
-  struct stat backup_stat, config_stat;
-  FILE *f_config, *f_backup;
+  char             temp[XINE_PATH_MAX];
+  int              backup = 0;
+  struct stat      backup_stat, config_stat;
+  FILE            *f_config, *f_backup;
 
   sprintf(temp, "%s~", filename);
   unlink (temp);
 
   if (stat(temp, &backup_stat) != 0) {
-    char line[1024];
     
     lprintf("backing up configfile to %s\n", temp);
 
     f_backup = fopen(temp, "w");
     f_config = fopen(filename, "r");
     
-    if (f_config && f_backup) {
-      while (fgets(line, 1023, f_config))
-        if (fputs(line, f_backup) == EOF)
-          break;
-
+    if (f_config && f_backup && (stat(filename, &config_stat) == 0) && (config_stat.st_size > 0)) {
+      char    *buf = NULL;
+      size_t   rlen;
+      
+      buf = (char *) xine_xmalloc(config_stat.st_size + 1);
+      if((rlen = fread(buf, 1, config_stat.st_size, f_config)) && (rlen == config_stat.st_size)) {
+	(void) fwrite(buf, 1, rlen, f_backup);
+      }
+      free(buf);
+      
       fclose(f_config);
       fclose(f_backup);
-      stat(filename, &config_stat);
       stat(temp, &backup_stat);
-    
+      
       if (config_stat.st_size == backup_stat.st_size)
-        backup = 1;
+	backup = 1;
       else
-        unlink(temp);
-    } else {
+	unlink(temp);
+      
+    } 
+    else {
+
       if (f_config)
         fclose(f_config);
       else
 	backup = 1;
+
       if (f_backup)
         fclose(f_backup);
+
     }
   }
   
