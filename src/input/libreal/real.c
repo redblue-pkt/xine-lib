@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.12 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: real.c,v 1.13 2004/01/03 17:19:39 jstembridge Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -559,14 +559,14 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer) {
   }
   size=(header[1]<<12)+(header[2]<<8)+(header[3]);
   flags1=header[4];
-  if ((flags1==0x86)||(flags1==0x82))
-  {
-    lprintf("got end of stream packet: 0x%02x\n",flags1);
-    return 0;
-  }
   if ((flags1!=0x40)&&(flags1!=0x42))
   {
     lprintf("got flags1: 0x%02x\n",flags1);
+    if (header[6]==0x06)
+    {
+    lprintf("got end of stream packet\n");
+    return 0;
+    }
     header[0]=header[5];
     header[1]=header[6];
     header[2]=header[7];
