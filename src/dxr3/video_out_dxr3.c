@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.75 2003/03/31 14:31:58 heikos Exp $
+ * $Id: video_out_dxr3.c,v 1.76 2003/04/09 22:21:29 guenter Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -272,8 +272,10 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   printf("video_out_dxr3: Entering video init, devname = %s.\n", tmpstr);
 #endif
   if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
-    printf("video_out_dxr3: Failed to open control device %s (%s)\n",
-      tmpstr, strerror(errno));
+
+      if (class->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	printf("video_out_dxr3: Failed to open control device %s (%s)\n",
+	       tmpstr, strerror(errno));
     return 0;
   }
   
