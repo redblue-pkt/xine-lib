@@ -12,7 +12,6 @@ lib_LTLIBRARIES = $(vidix_drivers)
 
 radeon_vid_la_SOURCES = radeon_vid.c
 radeon_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la -lm
-radeon_vid_la_DEPENDENCIES = $(top_builddir)/src/video_out/libdha/libdha.la
 radeon_vid_la_LDFLAGS = -avoid-version -module
 
 rage128_vid.c:
