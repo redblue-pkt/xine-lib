@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.12 2002/10/12 17:11:59 jkeil Exp $
+ * $Id: demux_voc.c,v 1.13 2002/10/26 21:49:58 tmmm Exp $
  *
  */
 
@@ -46,7 +46,6 @@
 #include "buffer.h"
 #include "bswap.h"
 
-#define VALID_ENDS "voc"
 #define PCM_BLOCK_ALIGN 1024
 #define VOC_HEADER_SIZE 0x1A
 #define VOC_SIGNATURE "Creative Voice File\x1A"
@@ -56,7 +55,7 @@ typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t       *stream;
 
   config_values_t     *config;
 
@@ -82,7 +81,85 @@ typedef struct {
   unsigned int         running_time;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
+
+  char                 last_mrl[1024];
 } demux_voc_t;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_voc_class_t;
+
+/* returns 1 if the VOC file was opened successfully, 0 otherwise */
+static int open_voc_file(demux_voc_t *this) {
+
+  unsigned char header[VOC_HEADER_SIZE];
+  unsigned char preamble[BLOCK_PREAMBLE_SIZE];
+  off_t first_block_offset;
+  signed char sample_rate_divisor;
+
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
+    VOC_HEADER_SIZE)
+    return 0;
+
+  /* check the signature */
+  if (strncmp(header, VOC_SIGNATURE, strlen(VOC_SIGNATURE)) != 0)
+    return 0;
+
+  /* load the header */
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
+    VOC_HEADER_SIZE)
+    return 0;
+
+  first_block_offset = LE_16(&header[0x14]);
+  this->input->seek(this->input, first_block_offset, SEEK_SET);
+
+  /* load the block preamble */
+  if (this->input->read(this->input, preamble, BLOCK_PREAMBLE_SIZE) != 
+    BLOCK_PREAMBLE_SIZE)
+    return 0;
+
+  /* so far, this demuxer only cares about type 1 blocks */
+  if (preamble[0] != 1) {
+    xine_log(this->stream->xine, XINE_LOG_MSG,
+      _("unknown VOC block type (0x%02X); please report to xine developers\n"),
+      preamble[0]);
+    return 0;
+  }
+
+  /* assemble 24-bit, little endian length */
+  this->data_size = preamble[1] | (preamble[2] << 8) | (preamble[3] << 16);
+
+  /* get the next 2 bytes (re-use preamble bytes) */
+  if (this->input->read(this->input, preamble, 2) != 2)
+    return 0;
+
+  /* this app only knows how to deal with format 0 data (raw PCM) */
+  this->voc_audio_type = preamble[1];
+  if (preamble[1] != 0) {
+    xine_log(this->stream->xine, XINE_LOG_MSG,
+      _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
+      preamble[1]);
+    return 0;
+  }
+
+  this->audio_type = BUF_AUDIO_LPCM_BE;
+  sample_rate_divisor = preamble[0];
+  this->audio_sample_rate = 256 - (1000000 / sample_rate_divisor);
+  this->data_start = this->input->get_current_pos(this->input);
+  this->audio_bits = 8;
+  this->audio_channels = 1;
+  this->running_time = this->data_size / this->audio_sample_rate;
+
+  return 1;
+}
 
 static void *demux_voc_loop (void *this_gen) {
 
@@ -117,7 +194,7 @@ static void *demux_voc_loop (void *this_gen) {
       current_pts /= this->audio_sample_rate;
 
       if (this->seek_flag) {
-        xine_demux_control_newpts(this->xine, current_pts, 0);
+        xine_demux_control_newpts(this->stream, current_pts, 0);
         this->seek_flag = 0;
       }
 
@@ -159,7 +236,7 @@ static void *demux_voc_loop (void *this_gen) {
 
   } while (this->status == DEMUX_OK);
 
-  printf ("demux_wav: demux loop finished (status: %d)\n",
+  printf ("demux_voc: demux loop finished (status: %d)\n",
           this->status);
 
   /* seek back to the beginning of the data in preparation for another
@@ -169,7 +246,7 @@ static void *demux_voc_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -178,152 +255,45 @@ static void *demux_voc_loop (void *this_gen) {
   return NULL;
 }
 
-static int load_voc_and_send_headers(demux_voc_t *this) {
+static void demux_voc_send_headers(demux_plugin_t *this_gen) {
 
-  unsigned char header[VOC_HEADER_SIZE];
-  unsigned char preamble[BLOCK_PREAMBLE_SIZE];
-  off_t first_block_offset;
-  signed char sample_rate_divisor;
+  demux_voc_t *this = (demux_voc_t *) this_gen;
+  buf_element_t *buf;
 
   pthread_mutex_lock(&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
-  /* load the header */
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
-    VOC_HEADER_SIZE) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  first_block_offset = LE_16(&header[0x14]);
-  this->input->seek(this->input, first_block_offset, SEEK_SET);
-
-  /* load the block preamble */
-  if (this->input->read(this->input, preamble, BLOCK_PREAMBLE_SIZE) != 
-    BLOCK_PREAMBLE_SIZE) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  /* so far, this demuxer only cares about type 1 blocks */
-  if (preamble[0] != 1) {
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("unknown VOC block type (0x%02X); please report to xine developers\n"),
-      preamble[0]);
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  /* assemble 24-bit, little endian length */
-  this->data_size = preamble[1] | (preamble[2] << 8) | (preamble[3] << 16);
-
-  /* get the next 2 bytes (re-use preamble bytes) */
-  if (this->input->read(this->input, preamble, 2) != 2) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  /* this app only knows how to deal with format 0 data (raw PCM) */
-  this->voc_audio_type = preamble[1];
-  if (preamble[1] != 0) {
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
-      preamble[1]);
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  this->audio_type = BUF_AUDIO_LPCM_BE;
-  sample_rate_divisor = preamble[0];
-  this->audio_sample_rate = 256 - (1000000 / sample_rate_divisor);
-  this->data_start = this->input->get_current_pos(this->input);
-  this->audio_bits = 8;
-  this->audio_channels = 1;
-  this->running_time = this->data_size / this->audio_sample_rate;
-
   /* load stream information */
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
     this->audio_sample_rate;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
     this->audio_bits;
 
-  xine_demux_control_headers_done (this->xine);
+  /* send start buffers */
+  xine_demux_control_start(this->stream);
+
+  /* send init info to decoders */
+  if (this->audio_fifo && this->audio_type) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = this->audio_type;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->audio_sample_rate;
+    buf->decoder_info[2] = this->audio_bits;
+    buf->decoder_info[3] = this->audio_channels;
+    buf->size = 0;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
-}
-
-static int demux_voc_open(demux_plugin_t *this_gen,
-                          input_plugin_t *input, int stage) {
-
-  demux_voc_t *this = (demux_voc_t *) this_gen;
-  unsigned char header[VOC_HEADER_SIZE];
-
-  this->input = input;
-
-  switch(stage) {
-  case STAGE_BY_CONTENT: {
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
-      return DEMUX_CANNOT_HANDLE;
-
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, header, VOC_HEADER_SIZE) != VOC_HEADER_SIZE)
-      return DEMUX_CANNOT_HANDLE;
-
-    /* check the signature */
-    if (strncmp(header, VOC_SIGNATURE, strlen(VOC_SIGNATURE)) == 0)
-      return load_voc_and_send_headers(this);
-
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
-
-    MRL = input->get_mrl (input);
-
-    suffix = strrchr(MRL, '.');
-
-    if(!suffix)
-      return DEMUX_CANNOT_HANDLE;
-
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                                                            "mrl.ends_voc", VALID_ENDS,
-                                                            _("valid mrls ending for voc demuxer"),
-                                                            NULL, 10, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
-
-      while(*m == ' ' || *m == '\t') m++;
-
-      if(!strcasecmp((suffix + 1), m))
-        return load_voc_and_send_headers(this);
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-  }
-
-  return DEMUX_CANNOT_HANDLE;
 }
 
 static int demux_voc_seek (demux_plugin_t *this_gen,
@@ -333,7 +303,6 @@ static int demux_voc_start (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
   demux_voc_t *this = (demux_voc_t *) this_gen;
-  buf_element_t *buf;
   int err;
 
   demux_voc_seek(this_gen, start_pos, start_time);
@@ -342,30 +311,6 @@ static int demux_voc_start (demux_plugin_t *this_gen,
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-
-    /* print vital stats */
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"),
-      this->voc_audio_type, 
-      this->audio_sample_rate,
-      this->running_time / 60,
-      this->running_time % 60);
-
-    /* send start buffers */
-    xine_demux_control_start(this->xine);
-
-    /* send init info to decoders */
-    if (this->audio_fifo && this->audio_type) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = this->audio_type;
-      buf->decoder_flags = BUF_FLAG_HEADER;
-      buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = this->audio_sample_rate;
-      buf->decoder_info[2] = this->audio_bits;
-      buf->decoder_info[3] = this->audio_channels;
-      buf->size = 0;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
 
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
@@ -412,7 +357,7 @@ static int demux_voc_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   status = this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->xine);
+  xine_demux_flush_engine (this->stream);
   pthread_mutex_unlock(&this->mutex);
 
   return status;
@@ -440,13 +385,15 @@ static void demux_voc_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_voc_dispose (demux_plugin_t *this_gen) {
   demux_voc_t *this = (demux_voc_t *) this_gen;
+
+  demux_voc_stop(this_gen);
 
   pthread_mutex_destroy (&this->mutex);
   free(this);
@@ -458,14 +405,6 @@ static int demux_voc_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static char *demux_voc_get_id(void) {
-  return "VOC";
-}
-
-static char *demux_voc_get_mimetypes(void) {
-  return NULL;
-}
-
 /* return the approximate length in seconds */
 static int demux_voc_get_stream_length (demux_plugin_t *this_gen) {
 
@@ -474,33 +413,130 @@ static int demux_voc_get_stream_length (demux_plugin_t *this_gen) {
   return this->running_time;
 }
 
-static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
-  demux_voc_t *this;
+
+
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
+
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_voc_t    *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_voc.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
 
   this         = xine_xmalloc (sizeof (demux_voc_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this->stream = stream;
+  this->input  = input;
 
-  (void*) this->config->register_string(this->config,
-                                        "mrl.ends_voc", VALID_ENDS,
-                                        _("valid mrls ending for voc demuxer"),
-                                        NULL, 10, NULL, NULL);
-
-  this->demux_plugin.open              = demux_voc_open;
+  this->demux_plugin.send_headers      = demux_voc_send_headers;
   this->demux_plugin.start             = demux_voc_start;
   this->demux_plugin.seek              = demux_voc_seek;
   this->demux_plugin.stop              = demux_voc_stop;
   this->demux_plugin.dispose           = demux_voc_dispose;
   this->demux_plugin.get_status        = demux_voc_get_status;
-  this->demux_plugin.get_identifier    = demux_voc_get_id;
   this->demux_plugin.get_stream_length = demux_voc_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_voc_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
+  pthread_mutex_init (&this->mutex, NULL);
 
-  return (demux_plugin_t *) this;
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    if (!open_voc_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".voc", 4)) {
+      free (this);
+      return NULL;
+    }
+
+    if (!open_voc_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  }
+
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  /* print vital stats */
+  xine_log(this->stream->xine, XINE_LOG_MSG,
+    _("demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"),
+    this->voc_audio_type, 
+    this->audio_sample_rate,
+    this->running_time / 60,
+    this->running_time % 60);
+
+  return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "VOC file demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "VOC";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "voc";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_voc_class_t *this = (demux_voc_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_voc_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_voc_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
+  return this;
 }
 
 /*
@@ -509,6 +545,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "voc", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "voc", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
