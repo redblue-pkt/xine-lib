@@ -2099,14 +2099,13 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
 						  int *num_files)
 {
     dvb_input_class_t *class = (dvb_input_class_t *) this_gen;
-    channel_t *channels;
+    channel_t *channels=NULL;
     FILE *f;
     char *tmpbuffer=malloc(BUFSIZE);
     char *foobuffer=malloc(BUFSIZE);
     char *str=tmpbuffer;
     int num_channels;
     int nlines=0;
-    int x=0;
     int default_channel;    
     xine_cfg_entry_t lastchannel_enable;
     xine_cfg_entry_t lastchannel;
@@ -2130,14 +2129,6 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
     }
     fclose (f);
    
-    for(x=0;x<nlines;x++){
-      if(class->autoplaylist[x])
-        free(class->autoplaylist[x]);
-      class->autoplaylist[x]=malloc(128);
-    }
-    snprintf(tmpbuffer, BUFSIZE, "%s/.xine/channels.conf",
-		   xine_get_homedir());
-    
     if (xine_config_lookup_entry(class->xine, "input.dvb_last_channel_enable", &lastchannel_enable))
       if (lastchannel_enable.num_value){
         num_channels++;
@@ -2145,17 +2136,25 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
             default_channel = lastchannel.num_value;
       }
 
+    if (nlines+lastchannel_enable.num_value >= MAX_AUTOCHANNELS)
+        nlines = MAX_AUTOCHANNELS-lastchannel_enable.num_value;
+
+    snprintf(tmpbuffer, BUFSIZE, "%s/.xine/channels.conf", xine_get_homedir());
+
+
     f=fopen (tmpbuffer,"rb");
     channels=malloc(sizeof(channel_t)*(nlines+lastchannel_enable.num_value));
     
 
-    if(f>0)
-      while(num_channels < nlines+lastchannel_enable.num_value){
-        fgets(str,BUFSIZE,f);
+    while (fgets(str,BUFSIZE,f) && num_channels < nlines+lastchannel_enable.num_value) {
         if (extract_channel_from_string (&(channels[num_channels]), str,  0) < 0)
           continue;
           
         sprintf(foobuffer,"dvb://%s",channels[num_channels].name);
+        if(class->autoplaylist[num_channels])
+           free(class->autoplaylist[num_channels]);
+         class->autoplaylist[num_channels]=malloc(128);
+        
         class->autoplaylist[num_channels]=strdup(foobuffer);
 	  num_channels++;
       }
@@ -2165,7 +2164,10 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
        sprintf(foobuffer,"dvb://%s",channels[lastchannel.num_value].name);
       else 			    /* set a reasonable default - the first channel */
        sprintf(foobuffer,"dvb://%s",channels[lastchannel_enable.num_value].name);
-      class->autoplaylist[0]=strdup(foobuffer);
+       if(class->autoplaylist[0])
+         free(class->autoplaylist[0]);
+       class->autoplaylist[0]=malloc(128);
+       class->autoplaylist[0]=strdup(foobuffer);
     }
 
     free(tmpbuffer);
