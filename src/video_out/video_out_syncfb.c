@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.3 2001/05/28 19:00:12 joachim_koenig Exp $
+ * $Id: video_out_syncfb.c,v 1.4 2001/05/30 18:32:15 joachim_koenig Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -55,6 +55,7 @@
 #endif
 
 #include "video_out.h"
+#include "video_out_x11.h"
 #include "video_out_syncfb.h"
 #include "xine_internal.h"
 
@@ -79,10 +80,8 @@ uint32_t xine_debug;
 
 typedef struct mga_frame_s {
   vo_frame_t         vo_frame;
-
   int                width, height, ratio_code, format;
-
-//  XShmSegmentInfo    shminfo;
+  int  	             id;
 
 } mga_frame_t;
 
@@ -125,21 +124,25 @@ typedef struct _mga_globals {
   int             dest_width;
   int             dest_height;
   int             fourcc_format;
+  int             interlaced;
 
   uint32_t        ratio;
   int             user_ratio, user_ratio_changed;
 
 //  XvImage        *cur_image;
 
-  /*
-   * misc (read: fun ;))
-   */
   int             bLogoMode;
 
   int             bright_min, bright_current, bright_max;
   int             cont_min, cont_current, cont_max;
 
   int             overlay_state;
+
+  /* gui callback */
+  void (*request_dest_size) (int video_width, int video_height,
+                             int *dest_x, int *dest_y,
+                             int *dest_height, int *dest_width);
+
 
 } mga_globals;
 
@@ -313,6 +316,8 @@ printf("setup_window_mga: unscaled size should be %d x %d \n",_mga_priv.orig_wid
    _mga_priv.mga_vid_config.image_width = _mga_priv.dest_width;
    _mga_priv.mga_vid_config.image_height= _mga_priv.dest_height;
    _mga_priv.mga_vid_config.syncfb_mode = SYNCFB_FEATURE_BLOCK_REQUEST | SYNCFB_FEATURE_SCALE_H | SYNCFB_FEATURE_SCALE_V | SYNCFB_FEATURE_CROP ; /*   | SYNCFB_FEATURE_DEINTERLACE; */
+   if (_mga_priv.interlaced)
+     _mga_priv.mga_vid_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE;
    _mga_priv.mga_vid_config.image_xorg= _mga_priv.image_xoff;
    _mga_priv.mga_vid_config.image_yorg= _mga_priv.image_yoff;
 
@@ -367,7 +372,7 @@ printf("setup_window_mga: unscaled size should be %d x %d \n",_mga_priv.orig_wid
 
 
 /* setup internal variables and (re-)init window if necessary */
-static void mga_set_image_format (vo_driver_t *this, vo_frame_t *frame, uint32_t width, uint32_t height, int ratio, int format) {
+static void mga_set_image_format (uint32_t width, uint32_t height, int ratio, int format) {
 
 
   double res_h, res_v, display_ratio, aspect_ratio;
@@ -376,8 +381,6 @@ static void mga_set_image_format (vo_driver_t *this, vo_frame_t *frame, uint32_t
        && (_mga_priv.ratio == ratio) 
        && (_mga_priv.fourcc_format == format)
        && !_mga_priv.user_ratio_changed ) {
-
-
     return ;
   }
 
@@ -445,63 +448,84 @@ printf("behind setup window mga\n");
   return ;
 }
 
+static void mga_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen,
+                                    uint32_t width, uint32_t height, int ratio_code,
+                                    int format) {
 
-static vo_frame_t *mga_alloc_frame (vo_driver_t *this) {
+  mga_frame_t   *frame = (mga_frame_t *) frame_gen;
+  
+  frame->ratio_code = ratio_code;
+  if (frame->width == width && frame->height == height && frame->format == format)
+    return;
 
-  vo_frame_t *image;
-  int id;
 
-  if (!(image = malloc (sizeof (vo_frame_t))))
-       return NULL;
+  if (frame->vo_frame.base[0]) {
+    shmdt(frame->vo_frame.base[0]);
+    shmctl(frame->id,IPC_RMID,NULL);
+    frame->vo_frame.base[0] = NULL;
+  }
+
+  frame->width = width;
+  frame->height = height;
+  frame->format = format;
 
  // we only know how to do 4:2:0 planar yuv right now.
  // we prepare for YUY2 sizes
-  id = shmget(IPC_PRIVATE,
-               _mga_priv.image_width * _mga_priv.image_height * 2,
+  frame->id = shmget(IPC_PRIVATE,
+               frame->width * frame->height * 2,
                IPC_CREAT | 0777);
 
-  if (id < 0 ) {
+  if (frame->id < 0 ) {
       perror("syncfb: shared memory error in shmget: ");
       exit (1);
   }
 
-  image->base[0] = (char *) shmat(id, 0, 0);
+  frame->vo_frame.base[0] = (char *) shmat(frame->id, 0, 0);
 
-  if (image->base[0] == NULL) {
+  if (frame->vo_frame.base[0] == NULL) {
       fprintf(stderr, "syncfb: shared memory error (address error NULL)\n");
       exit (1);
   }
 
-  if (image->base[0] == ((char *) -1)) {
+  if (frame->vo_frame.base[0] == ((char *) -1)) {
       fprintf(stderr, "syncfb: shared memory error (address error)\n");
       exit (1);
   }
-  shmctl(id, IPC_RMID, 0);
+  shmctl(frame->id, IPC_RMID, 0);
 
-#if 0
-  if (!(image->base[0] = malloc (_mga_priv.image_width * _mga_priv.image_height * 2))) {
-         free(image);
-         return NULL;
-  }
-#endif
+  frame->vo_frame.base[1] = frame->vo_frame.base[0] + width * height * 5 / 4;
+  frame->vo_frame.base[2] = frame->vo_frame.base[0] + width * height;
 
-  image->base[2] = image->base[0] + _mga_priv.image_width * _mga_priv.image_height;
-  image->base[1] = image->base[0] + _mga_priv.image_width * _mga_priv.image_height * 5 / 4;
-
-  pthread_mutex_init (&image->mutex, NULL);
-
-  return image;
+  return;
 }
 
+static vo_frame_t *mga_alloc_frame (vo_driver_t *this_gen) {
 
-static void mga_display_frame(vo_driver_t *this, vo_frame_t *frame) {
-#if 0   
+  mga_frame_t     *frame ;
+
+  frame = (mga_frame_t *) malloc (sizeof (mga_frame_t));
+  memset (frame, 0, sizeof(mga_frame_t));
+
+  if (frame==NULL) {
+    printf ("mga_alloc_frame: out of memory\n");
+  }
+
+  pthread_mutex_init (&frame->vo_frame.mutex, NULL);
+
+  return (vo_frame_t *) frame;
+}
+
+static void mga_display_frame(vo_driver_t *this, vo_frame_t *frame_gen) {
+
+  mga_frame_t *frame = (mga_frame_t *) frame_gen;
+   
   if (frame->width != _mga_priv.image_width ||
       frame->height != _mga_priv.image_height ||
+      frame->format != _mga_priv.fourcc_format ||
       frame->ratio_code != _mga_priv.ratio) {
-      mga_set_image_format(this,frame,frame->width,frame->height,frame->ratio_code,_mga_priv.fourcc_format);
+      mga_set_image_format(frame->width,frame->height,frame->ratio_code,frame->format);
   }
-#endif
+
 
   // only write frame if overlay is active (otherwise syncfb hangs)
   if (_mga_priv.overlay_state == 1) {
@@ -514,12 +538,12 @@ static void mga_display_frame(vo_driver_t *this, vo_frame_t *frame) {
 
     _mga_priv.vid_data = (uint_8 *)(_mga_priv.frame0 + _mga_priv.bufinfo.offset);
 
-    _mga_write_frame_g400(frame->base);
+    _mga_write_frame_g400(&frame->vo_frame.base[0]);
 
     ioctl(_mga_priv.fd,SYNCFB_COMMIT_BUFFER,&_mga_priv.bufinfo);
   }
   /* Image is copied so release buffer */
-  frame->displayed (frame);
+  frame->vo_frame.displayed (frame);
 }
 
 #if 0
@@ -652,6 +676,22 @@ printf("set property %d value %d\n",property,value);
   case VO_PROP_BRIGHTNESS:
         _mga_priv.bright_current=value;
 	break;
+  case VO_PROP_INTERLACED:
+        if (value != _mga_priv.interlaced) {
+          _mga_priv.interlaced = value;
+          _mga_priv.user_ratio_changed = 1;
+          mga_set_image_format (_mga_priv.image_width, _mga_priv.image_height, _mga_priv.ratio, _mga_priv.fourcc_format);
+        }
+        return value;
+  case VO_PROP_ASPECT_RATIO:
+	if (value > ASPECT_DVB)
+	  value = ASPECT_AUTO;
+        if (value != _mga_priv.user_ratio) {
+          _mga_priv.user_ratio         = value;
+          _mga_priv.user_ratio_changed = 1;
+          mga_set_image_format (_mga_priv.image_width, _mga_priv.image_height, _mga_priv.ratio, _mga_priv.fourcc_format);
+        }
+        return value;
   default:
         return value;
   }
@@ -697,17 +737,17 @@ static int mga_get_property (vo_driver_t *this, int property) {
 
 
 static int mga_gui_data_exchange (vo_driver_t *this, int data_type, void *data) {
-printf("gui_data \n");
-#if 0
-  xv_driver_t *this = (xv_driver_t *) this_gen;
+
+//  xv_driver_t *this = (xv_driver_t *) this_gen;
   x11_rectangle_t *area;
+printf("gui_data \n");
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
 
     area = (x11_rectangle_t *) data;
-
-    xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
+printf("move to %d %d with %d %d\n",area->x,area->y,area->w,area->h);
+//    xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
 
     break;
   case GUI_DATA_EX_COMPLETION_EVENT:
@@ -716,7 +756,7 @@ printf("gui_data \n");
 
     break;
   }
-#endif
+
   return 0;
 }
 
@@ -724,7 +764,7 @@ printf("gui_data \n");
 static vo_driver_t vo_mga = {
   mga_get_capabilities,
   mga_alloc_frame,
-  mga_set_image_format,
+  mga_update_frame_format,
   mga_display_frame,
   mga_get_property,
   mga_set_property,
@@ -784,14 +824,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   _mga_priv.gDisplay              = (Display *) visual;
   _mga_priv.bFullscreen           = 0;
   _mga_priv.bIsFullscreen         = 0;
-  _mga_priv.image_width           = 720;
-  _mga_priv.image_height          = 576;
+  _mga_priv.image_width           = 0;
+  _mga_priv.image_height          = 0;
   _mga_priv.ratio                 = 0;
   _mga_priv.bLogoMode             = 0;
 //  _mga_priv.cur_image             = NULL;
   _mga_priv.user_ratio            = ASPECT_AUTO;
   _mga_priv.user_ratio_changed    = 0 ;
   _mga_priv.fourcc_format         = 0;
+  _mga_priv.request_dest_size     = ((x11_visual_t*) visual)->request_dest_size;
 
   _window.clasped_window          = 0;
   _display.default_screen         = DefaultScreen(_mga_priv.lDisplay);
