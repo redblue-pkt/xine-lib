@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2003/05/26 22:44:44 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.37 2003/05/26 23:52:35 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -72,8 +72,9 @@ typedef struct realdec_decoder_s {
 
   int              width, height;
 
-  uint8_t          chunk_buffer[BUF_SIZE];
+  uint8_t         *chunk_buffer;
   int              chunk_buffer_size;
+  int              chunk_buffer_max;
 
   int              num_chunks;
   uint32_t         chunk_tab[CHUNK_TAB_SIZE];
@@ -285,6 +286,9 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     
   this->frame_size   = this->width*this->height;
   this->frame_buffer = xine_xmalloc (this->width*this->height*3/2);
+  
+  this->chunk_buffer = xine_xmalloc (BUF_SIZE);
+  this->chunk_buffer_max = BUF_SIZE;
 
   return 1;
 }
@@ -336,6 +340,11 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
   } else if (this->decoder_ok && this->context) {
 
+    if (this->chunk_buffer_size + buf->size > this->chunk_buffer_max) {
+      this->chunk_buffer_max = this->chunk_buffer_size + 2 * buf->size;
+      this->chunk_buffer = realloc (this->chunk_buffer, this->chunk_buffer_max);
+    }
+    
     if (buf->decoder_flags & BUF_FLAG_FRAME_START) {
 
       if (this->num_chunks>0) {
@@ -509,6 +518,9 @@ static void realdec_dispose (video_decoder_t *this_gen) {
 
   if (this->frame_buffer)
     free (this->frame_buffer);
+    
+  if (this->chunk_buffer)
+    free (this->chunk_buffer);
 
   free (this);
 
