@@ -9,7 +9,8 @@ xine-lib (1.0.0-beta0)
   * asf demuxer fixes
   * fb video output plugin ported to new architecture
   * MPEG-4 file (*.mp4) support
-
+  * closed caption support ported to new architecture
+  
 xine-lib (1.0.0-alpha2)
   * configurable image position
   * DVD menu button highlight position fixes
