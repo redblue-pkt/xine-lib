@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.5 2003/10/27 16:31:35 miguelfreitas Exp $
+ * $Id: video_out_xvmc.c,v 1.6 2003/10/31 17:25:21 mroi Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -569,12 +569,12 @@ static vo_frame_t *xvmc_alloc_frame (vo_driver_t *this_gen) {
   lprintf ("video_out_xvmc: xvmc_alloc_frame\n");
 
   frame = (xvmc_frame_t *) malloc (sizeof (xvmc_frame_t));
-  memset (frame, 0, sizeof(xvmc_frame_t));
 
   if (frame == NULL) {
     printf ("xvmc_alloc_frame: out of memory\n");
     return NULL;
   }
+  memset (frame, 0, sizeof(xvmc_frame_t));
 
   /* keep track of frames and how many frames alocated. */
   this->frames[this->num_frame_buffers++] = frame;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.7 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_stk.c,v 1.8 2003/10/31 17:25:20 mroi Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -129,10 +129,11 @@ static vo_frame_t *stk_alloc_frame(vo_driver_t *this_gen) {
     stk_frame_t* frame;
     //printf("video_out_stk: alloc_frame()\n");
     frame = (stk_frame_t *)malloc(sizeof(stk_frame_t));
-    memset(frame, 0, sizeof(stk_frame_t));
     if (frame == NULL) {
         printf("stk_alloc_frame: out of memory\n");
+        return NULL;
     }
+    memset(frame, 0, sizeof(stk_frame_t));
 
     /* populate the frame members*/
     pthread_mutex_init (&frame->vo_frame.mutex, NULL);

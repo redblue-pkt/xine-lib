@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.179 2003/10/24 22:34:50 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.180 2003/10/31 17:25:20 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -195,12 +195,12 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   xv_frame_t     *frame ;
 
   frame = (xv_frame_t *) malloc (sizeof (xv_frame_t));
-  memset (frame, 0, sizeof(xv_frame_t));
 
   if (frame == NULL) {
     printf ("xv_alloc_frame: out of memory\n");
     return NULL;
   }
+  memset (frame, 0, sizeof(xv_frame_t));
 
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 

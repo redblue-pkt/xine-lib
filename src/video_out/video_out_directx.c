@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.8 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_directx.c,v 1.9 2003/10/31 17:25:20 mroi Exp $
  */
 
 typedef unsigned char boolean;
@@ -853,6 +853,10 @@ static vo_frame_t * win32_alloc_frame( vo_driver_t * vo_driver )
 	win32_frame_t * win32_frame;
 
 	win32_frame = ( win32_frame_t * ) malloc( sizeof( win32_frame_t ) );
+	if (win32_frame == NULL) {
+	  printf("win32_alloc_frame: out of memory\n");
+	  return NULL;
+	}
 	memset( win32_frame, 0, sizeof( win32_frame_t ) );
 
 	win32_frame->vo_frame.proc_slice = NULL;

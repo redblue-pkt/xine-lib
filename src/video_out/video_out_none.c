@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.17 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_none.c,v 1.18 2003/10/31 17:25:20 mroi Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -88,13 +88,13 @@ static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
   none_frame_t  *frame;
   
   frame = (none_frame_t *) malloc(sizeof(none_frame_t));
-  memset(frame, 0, sizeof(none_frame_t));
   
   if(frame == NULL) {
     printf ("video_out_none: out of memory in none_alloc_frame\n");
     abort();
   }
-  
+  memset(frame, 0, sizeof(none_frame_t));
+
   frame->vo_frame.base[0] = NULL;
   frame->vo_frame.base[1] = NULL;
   frame->vo_frame.base[2] = NULL;

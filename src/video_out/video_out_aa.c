@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.39 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_aa.c,v 1.40 2003/10/31 17:25:20 mroi Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -107,6 +107,10 @@ static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
   aa_frame_t *frame;
 
   frame = (aa_frame_t *) malloc (sizeof (aa_frame_t));
+  if (frame == NULL) {
+    printf("aa_alloc_frame: out of memory\n");
+    return NULL;
+  }
   memset (frame, 0, sizeof (aa_frame_t));
 
   frame->vo_frame.proc_slice = NULL;
