@@ -22,6 +22,20 @@ probably not work (pgcc for example is known to make libmpeg break).
 You'll have to use gnu make to compile xine, on most GNU/Linux systems
 make is gnu make, on other platforms use "gmake" instead.
 
+If you want to have Xv support compiled in, make sure you have a shared 
+Xv library on your system, e.g. ls /usr/X11R6/lib/libXv* should give you
+some .so libs, like this:
+
+/usr/X11R6/lib/libXv.a  /usr/X11R6/lib/libXv.so  /usr/X11R6/lib/libXv.so.1
+
+if you only got libXv.a you can create the shared versions yourself:
+
+# ld --whole-archive -shared -o libXv.so.1 libXv.a
+# ln -s libXv.so.1 libXv.so
+# ldconfig
+
+now you should be ready to build xine on your system:
+
 xine comes in two (official) parts now, xine-lib and xine-ui.
 
 First you have to build and install xine-lib:
