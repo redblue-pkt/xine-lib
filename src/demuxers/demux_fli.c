@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.31 2002/12/22 23:19:06 tmmm Exp $
+ * $Id: demux_fli.c,v 1.32 2002/12/23 23:03:00 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -89,7 +89,7 @@ typedef struct {
   config_values_t  *config;
 } demux_fli_class_t;
 
-/* returns 1 if the CIN file was opened successfully, 0 otherwise */
+/* returns 1 if the FLI file was opened successfully, 0 otherwise */
 static int open_fli_file(demux_fli_t *this) {
 
   /* read the whole header */
@@ -139,19 +139,12 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
 
   demux_fli_t *this = (demux_fli_t *) this_gen;
   buf_element_t *buf = NULL;
-  int i = 0;
   unsigned char fli_buf[6];
   unsigned int chunk_size;
   unsigned int chunk_magic;
   int64_t pts_counter = 0;
   off_t current_file_pos;
 
-  /* check if all the frames have been sent */
-  if (i >= this->frame_count) {
-    this->status = DEMUX_FINISHED;
-    return this->status;
-  }
-  
   current_file_pos = this->input->get_current_pos(this->input);
   
   /* get the chunk size nd magic number */
@@ -196,8 +189,6 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
   } else
     this->input->seek(this->input, chunk_size, SEEK_CUR);
   
-  i++;
-  
   return this->status;
 }
 
@@ -233,7 +224,7 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
 }
 
 static int demux_fli_seek (demux_plugin_t *this_gen,
-                             off_t start_pos, int start_time) {
+                           off_t start_pos, int start_time) {
 
   demux_fli_t *this = (demux_fli_t *) this_gen;
 
