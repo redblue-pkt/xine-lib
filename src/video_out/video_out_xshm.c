@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.30 2001/09/06 18:38:12 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.31 2001/09/09 15:49:22 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "video_out.h"
 
@@ -67,6 +68,7 @@ typedef struct xshm_frame_s {
 
   int                width, height;
   int                rgb_width, rgb_height;
+  Drawable	     drawable_ref;
 
   XImage            *image;
   uint8_t           *rgb_dst;
@@ -88,11 +90,11 @@ typedef struct xshm_driver_s {
   Display         *display;
   int              screen;
   Drawable         drawable;
-  XVisualInfo      vinfo;
+  Visual	  *visual;
   GC               gc;
-  XColor           black;
   int              use_shm;
   int              zoom_mpeg1;
+  int		   scaling_disabled;
   int              depth, bpp, bytes_per_pixel, byte_order;
   int              expecting_event;
 
@@ -106,11 +108,10 @@ typedef struct xshm_driver_s {
   int              delivered_height;     /* the dimension as they come from the decoder        */
   int              delivered_ratio_code;
   int              delivered_flags;
-  double           ratio_factor; /* output frame must fullfill: height = width * ratio_factor  */
+  double           ratio_factor;	 /* output frame must fulfill: height = width * ratio_factor  */
+  double	   output_scale_factor;	 /* additional scale factor for the output frame */
   int              output_width;         /* frames will appear in this size (pixels) on screen */
   int              output_height;
-  int              output_xoffset;
-  int              output_yoffset;
   int              stripe_height;
   int              yuv_width;            /* width/height yuv2rgb is configured for */
   int              yuv_height;
@@ -118,9 +119,11 @@ typedef struct xshm_driver_s {
 
   int              user_ratio;
 
-  int              dest_width;           /* size of image gui has most recently adopted to */
-  int              dest_height;
-  int              gui_width;           /* size of gui window */
+  int		   last_frame_rgb_width; /* size of scaled rgb output img gui */
+  int		   last_frame_rgb_height; /* has most recently adopted to */
+  Drawable	   last_frame_drawable_ref;
+
+  int              gui_width;		 /* size of gui window */
   int              gui_height;
   int              gui_size_changed;
   int              dest_x;
@@ -205,8 +208,8 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
     x11_InstallXErrorHandler (this);
 
     myimage = XShmCreateImage(this->display, 
-			      this->vinfo.visual,
-			      this->vinfo.depth,
+			      this->visual,
+			      this->depth,
 			      ZPixmap, NULL,
 			      shminfo,
 			      width, 
@@ -283,8 +286,8 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
   if (!this->use_shm) {
 
     myimage = XCreateImage (this->display,
-			    this->vinfo.visual,
-			    this->vinfo.depth,
+			    this->visual,
+			    this->depth,
 			    ZPixmap, 0,
 			    NULL,
 			    width, 
@@ -412,15 +415,15 @@ static void xshm_frame_dispose (vo_frame_t *vo_img) {
 
 
 static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
-
-  xshm_frame_t     *frame ;
+  xshm_frame_t   *frame ;
 
   frame = (xshm_frame_t *) malloc (sizeof (xshm_frame_t));
-  memset (frame, 0, sizeof(xshm_frame_t));
-
   if (frame==NULL) {
     printf ("xshm_alloc_frame: out of memory\n");
+    return NULL;
   }
+
+  memset (frame, 0, sizeof(xshm_frame_t));
 
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
@@ -449,108 +452,114 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
   if (this->delivered_width == 0 && this->delivered_height == 0)
     return; /* ConfigureNotify/VisibilityNotify, no decoder output size known */
 
-  /*
-   * quick hack to allow testing of unscaled yuv2rgb conversion routines
-   */
-  if (getenv("VIDEO_OUT_NOSCALE")) {
-      this->output_width   = this->delivered_width;
-      this->output_height  = this->delivered_height;
-      this->output_xoffset = 0;
-      this->output_yoffset = 0;
-      this->ratio_factor   = 1.0;
-      return;
-  }
+  if (this->scaling_disabled) {
+    /* quick hack to allow testing of unscaled yuv2rgb conversion routines */
+    this->output_width   = this->delivered_width;
+    this->output_height  = this->delivered_height;
+    this->ratio_factor   = 1.0;
 
-  image_ratio = 
-    (double) this->delivered_width / (double) this->delivered_height;
+    this->calc_dest_size (this->output_width, this->output_height,
+			  &dest_width, &dest_height);
 
-  switch (this->user_ratio) { 
-  case ASPECT_AUTO: 
-    switch (this->delivered_ratio_code) {
-    case 3:  /* anamorphic     */
-      desired_ratio = 16.0 /9.0;
-      break;
-    case 42: /* probably non-mpeg stream => don't touch aspect ratio */
-      desired_ratio = image_ratio;
-      break;
-    case 0: /* forbidden       */
-      fprintf (stderr, "invalid ratio, using 4:3\n");
-    case 1: /* "square" => 4:3 */
-    case 2: /* 4:3             */
-    default:
-      xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n", 
-	       this->delivered_ratio_code);
-      desired_ratio = 4.0 / 3.0;
-      break;
-    }
-    break;
-  case ASPECT_ANAMORPHIC:
-    desired_ratio = 16.0 / 9.0;
-    break;
-  case ASPECT_DVB:
-    desired_ratio = 2.0 / 1.0;
-    break;
-  default:
-    desired_ratio = 4.0 / 3.0;
-  }
-
-  this->ratio_factor = this->display_ratio * desired_ratio;
-
-  /*
-   * calc ideal output frame size
-   */
-
-  corr_factor = this->ratio_factor / image_ratio ;  
-
-  if (corr_factor >= 1.0) {
-    ideal_width  = this->delivered_width * corr_factor;
-    ideal_height = this->delivered_height ;
-  }
-  else {
-    ideal_width  = this->delivered_width;
-    ideal_height = this->delivered_height / corr_factor;
-  }
-
-  /* little hack to zoom mpeg1 / other small streams  by default*/
-  if ( this->use_shm && this->zoom_mpeg1 && (ideal_width<400)) {
-    ideal_width  *=2;
-    ideal_height *=2;
-  }
-
-  /*
-   * XXX: Why is ideal_width rounded down to an exact multiple of 32?
-   *
-   * AVI DivX sometimes use a width with "width % 32 == 16", so that
-   * "ideal_width &= 0xFFFFFE0;" modifies the width and triggers the
-   * yuv2rgb do_scale code...
-   * E.g. a 720x540 video is scaled to 704x5XX
-   *
-   * Round down to a multiple of 16 for now,
-   * maybe we should delete the ideal_width &= 0xFFFFFF0; ?
-   */
-  /* ideal_width &= 0xFFFFFE0; */
-  ideal_width &= 0xFFFFFF0;
-
-  this->calc_dest_size (ideal_width, ideal_height, 
-			&dest_width, &dest_height);
-
-  /*
-   * make the frames fit into the given destination area
-   */
-
-  x_factor = (double) dest_width / (double) ideal_width;
-  y_factor = (double) dest_height / (double) ideal_height;
-  
-  if ( x_factor < y_factor ) { 
-    this->output_width   = (double) ideal_width * x_factor ;
-    this->output_height  = (double) ideal_height * x_factor ;
   } else {
-    this->output_width   = (double) ideal_width * y_factor ;
-    this->output_height  = (double) ideal_height * y_factor ;
-  } 
 
-  this->output_xoffset = (dest_width - this->output_width) / 2;
-  this->output_yoffset = (dest_height - this->output_height) / 2;
+    image_ratio = 
+	(double) this->delivered_width / (double) this->delivered_height;
+
+    switch (this->user_ratio) { 
+    case ASPECT_AUTO: 
+      switch (this->delivered_ratio_code) {
+      case 3:  /* anamorphic     */
+	desired_ratio = 16.0 /9.0;
+	break;
+      case 42: /* probably non-mpeg stream => don't touch aspect ratio */
+	desired_ratio = image_ratio;
+	break;
+      case 0: /* forbidden       */
+	fprintf (stderr, "invalid ratio, using 4:3\n");
+      case 1: /* "square" => 4:3 */
+      case 2: /* 4:3             */
+      default:
+	xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n", 
+		 this->delivered_ratio_code);
+	desired_ratio = 4.0 / 3.0;
+	break;
+      }
+      break;
+    case ASPECT_ANAMORPHIC:
+      desired_ratio = 16.0 / 9.0;
+      break;
+    case ASPECT_DVB:
+      desired_ratio = 2.0 / 1.0;
+      break;
+    default:
+      desired_ratio = 4.0 / 3.0;
+    }
+
+    this->ratio_factor = this->display_ratio * desired_ratio;
+
+    /*
+     * calc ideal output frame size
+     */
+
+    corr_factor = this->ratio_factor / image_ratio ;  
+
+    if (fabs(corr_factor - 1.0) < 0.005) {
+      ideal_width  = this->delivered_width;
+      ideal_height = this->delivered_height;
+    }
+    else if (corr_factor >= 1.0) {
+      ideal_width  = this->delivered_width * corr_factor;
+      ideal_height = this->delivered_height;
+    }
+    else {
+      ideal_width  = this->delivered_width;
+      ideal_height = this->delivered_height / corr_factor;
+    }
+
+    /* little hack to zoom mpeg1 / other small streams  by default*/
+    if ( this->use_shm && this->zoom_mpeg1 && (this->delivered_width<400)) {
+      ideal_width  *= 2;
+      ideal_height *= 2;
+    }
+
+    if (fabs(this->output_scale_factor - 1.0) > 0.005) {
+      ideal_width  *= this->output_scale_factor;
+      ideal_height *= this->output_scale_factor;
+    }
+
+    /* yuv2rgb_mmx prefers "width%8 == 0" */
+    ideal_width &= ~7;
+
+    this->calc_dest_size (ideal_width, ideal_height, 
+			  &dest_width, &dest_height);
+
+    /*
+     * make the frames fit into the given destination area
+     */
+
+    x_factor = (double) dest_width  / (double) ideal_width;
+    y_factor = (double) dest_height / (double) ideal_height;
+  
+    if ( x_factor < y_factor ) { 
+      this->output_width   = (double) ideal_width  * x_factor ;
+      this->output_height  = (double) ideal_height * x_factor ;
+    } else {
+      this->output_width   = (double) ideal_width  * y_factor ;
+      this->output_height  = (double) ideal_height * y_factor ;
+    } 
+
+  }
+
+  printf("video_out_xshm: "
+	 "frame source %d x %d => screen output %d x %d%s\n",
+	 this->delivered_width, this->delivered_height,
+	 this->output_width,    this->output_height,
+	 ( this->delivered_width != this->output_width
+	   || this->delivered_height != this->output_height
+	   ? ", software scaling"
+	   : "" )
+	 );
 }
 
 static void xshm_update_frame_format (vo_driver_t *this_gen,
@@ -563,6 +572,8 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   int setup_yuv = 0;
 
   flags &= VO_BOTH_FIELDS;
+
+  frame->drawable_ref = this->drawable;
 
   if ((width != this->delivered_width)
       || (height != this->delivered_height)
@@ -599,7 +610,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     XLockDisplay (this->display); 
 
     /*
-     * (re-) allocate xvimage
+     * (re-) allocate XImage
      */
 
     if (frame->image) {
@@ -730,7 +741,9 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
-  
+  int		  xoffset;
+  int		  yoffset;
+
   if (this->expecting_event) {
 
     this->expecting_event--;
@@ -738,28 +751,26 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
   } else {
 
-    if ( (frame->width != this->dest_width)
-	 || (frame->height != this->dest_height) ) {
+    if ( (frame->rgb_width != this->last_frame_rgb_width)
+	 || (frame->rgb_height != this->last_frame_rgb_height)
+	 || (frame->drawable_ref != this->last_frame_drawable_ref) ) {
 
-      printf ("requesting dest size of %d x %d \n",
-	      frame->rgb_width, frame->rgb_height);
-
+      xprintf (VIDEO, "video_out_xshm: requesting dest size of %d x %d \n",
+	       frame->rgb_width, frame->rgb_height);
       
       this->request_dest_size (frame->rgb_width, frame->rgb_height, 
 			       &this->dest_x, &this->dest_y, 
 			       &this->gui_width, &this->gui_height);
-      
-      this->dest_width = frame->width;
-      this->dest_height = frame->height;
+      /* for fullscreen modes, clear unused areas of old video area */
+      XClearWindow(this->display, this->drawable);
 
-      this->output_xoffset  = (this->gui_width - frame->rgb_width) / 2;
-      this->output_yoffset  = (this->gui_height - frame->rgb_height) / 2;
+      this->last_frame_rgb_width    = frame->rgb_width;
+      this->last_frame_rgb_height   = frame->rgb_height;
+      this->last_frame_drawable_ref = frame->drawable_ref;
 
-      printf ("gui size : %d x %d, frame size : %d x %d => offset %d, %d\n",
+      printf ("video_out_xshm: gui size %d x %d, frame size %d x %d\n",
 	      this->gui_width, this->gui_height,
-	      frame->rgb_width, frame->rgb_height,
-	      this->output_xoffset,
-	      this->output_yoffset);
+	      frame->rgb_width, frame->rgb_height);
 
     }
     
@@ -767,11 +778,14 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     this->cur_frame = frame;
 
+    xoffset  = (this->gui_width - frame->rgb_width) / 2;
+    yoffset  = (this->gui_height - frame->rgb_height) / 2;
+
     if (this->use_shm) {
     
       XShmPutImage(this->display, 
 		   this->drawable, this->gc, frame->image,
-		   0, 0,  this->output_xoffset, this->output_yoffset,
+		   0, 0, xoffset, yoffset,
 		   frame->rgb_width, frame->rgb_height, True);
 
       this->expecting_event = 10;
@@ -782,7 +796,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
       XPutImage(this->display, 
 		this->drawable, this->gc, frame->image,
-		0, 0,  this->output_xoffset, this->output_yoffset,
+		0, 0, xoffset, yoffset,
 		frame->rgb_width, frame->rgb_height);
       
       XFlush(this->display); 
@@ -818,7 +832,11 @@ static int xshm_set_property (vo_driver_t *this_gen,
       value = ASPECT_AUTO;
     this->user_ratio = value;
 
+#if 0
     xshm_calc_output_size (this);
+#else
+    this->gui_size_changed = 1;
+#endif
 
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
@@ -836,15 +854,76 @@ static void xshm_get_property_min_max (vo_driver_t *this_gen,
   *max = 0;
 }
 
+
+static int is_fullscreen_size (xshm_driver_t *this, int w, int h)
+{
+    return w == DisplayWidth(this->display, this->screen)
+	&& h == DisplayHeight(this->display, this->screen);
+}
+
 static int xshm_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data) {
 
   xshm_driver_t   *this = (xshm_driver_t *) this_gen;
+  x11_rectangle_t *area;
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
 
-    this->gui_size_changed = 1;
+    area = (x11_rectangle_t *) data;
+
+    XLockDisplay (this->display);
+
+    if (this->gui_width != area->w || this->gui_height != area->h) {
+
+      printf("video_out_xshm: video window size changed from %d x %d to %d x %d\n",
+	     this->gui_width, this->gui_height,
+	     area->w, area->h);
+
+      /*
+       * if the old or new video window size size is not for the
+       * fullscreen frame, update our output_scale_factor.  We
+       * preserve the non-fullscreen output_scale_factor to be able to
+       * restore the old window size when going back from fullscreen
+       * to windowing mode.
+       */
+      if (this->gui_width > 0 && this->gui_height > 0
+	  && !is_fullscreen_size(this, this->gui_width,  this->gui_height)
+	  && !is_fullscreen_size(this, area->w, area->h)) {
+	double log_scale;
+	double int_scale;
+
+	this->output_scale_factor *=
+	    sqrt( (double) (area->w * area->h)
+		  / (double) (this->gui_width * this->gui_height) );
+	
+	/*
+	 * if were near an exact power of 1.2, round the output_scale_factor
+	 * to the exact value, to increase the chance that we can avoid
+	 * the software image scaler.
+	 */
+	log_scale = log(this->output_scale_factor) / log(1.2);
+	int_scale = rint(log_scale);
+	if (fabs(log_scale - int_scale) < 0.02)
+	  this->output_scale_factor = pow(1.2, int_scale);
+      }
+      printf("video_out_xshm: output_scale %f\n", this->output_scale_factor);
+
+      /*
+       * The GUI_DATA_EX_DEST_POS_SIZE_CHANGED notification might be
+       * slow, and we may already have painted frames at the wrong
+       * position on the resized window.  Just clear the window.
+       */
+      XClearWindow(this->display, this->drawable);
+
+      this->gui_width  = area->w;
+      this->gui_height = area->h;
+
+      this->gui_size_changed = 1;
+    }
+
+    XUnlockDisplay (this->display);
+
 
     break;
   case GUI_DATA_EX_COMPLETION_EVENT: {
@@ -870,16 +949,21 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   if (this->cur_frame) {
 
     XExposeEvent * xev = (XExposeEvent *) data;
+    int		   xoffset;
+    int		   yoffset;
 
     if (xev->count == 0) {
 
       XLockDisplay (this->display);
       
+      xoffset  = (this->gui_width  - this->cur_frame->rgb_width) / 2;
+      yoffset  = (this->gui_height - this->cur_frame->rgb_height) / 2;
+
       if (this->use_shm) {
 	
 	XShmPutImage(this->display, 
 		     this->drawable, this->gc, this->cur_frame->image,
-		     0, 0,  this->output_xoffset, this->output_yoffset,
+		     0, 0, xoffset, yoffset,
 		     this->cur_frame->rgb_width, this->cur_frame->rgb_height, 
 		     False);
     
@@ -887,7 +971,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 	
 	XPutImage(this->display, 
 		  this->drawable, this->gc, this->cur_frame->image,
-		  0, 0,  this->output_xoffset, this->output_yoffset,
+		  0, 0, xoffset, yoffset,
 		  this->cur_frame->rgb_width, this->cur_frame->rgb_height);
       }
       XFlush (this->display);
@@ -900,7 +984,10 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
     this->drawable = (Drawable) data;
+
+    XFreeGC(this->display, this->gc);
     this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
+
     break;
   }
 
@@ -919,7 +1006,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   xshm_driver_t        *this;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   Display              *display = NULL;
-  XColor                dummy;
   XWindowAttributes     attribs;
   XImage               *myimage;
   XShmSegmentInfo       myshminfo;
@@ -938,32 +1024,37 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this = malloc (sizeof (xshm_driver_t));
 
   if (!this) {
-    printf ("video_out_xv: malloc failed\n");
+    printf ("video_out_xshm: malloc failed\n");
     return NULL;
   }
 
   memset (this, 0, sizeof(xshm_driver_t));
 
-  this->config            = config;
-  this->display           = visual->display;
-  this->screen            = visual->screen;
-  this->display_ratio     = visual->display_ratio;
-  this->request_dest_size = visual->request_dest_size;
-  this->calc_dest_size    = visual->calc_dest_size;
-  this->output_xoffset    = 0;
-  this->output_yoffset    = 0;
-  this->output_width      = 0;
-  this->output_height     = 0;
-  this->gui_width         = 0;
-  this->gui_height        = 0;
-  this->zoom_mpeg1        = config->lookup_int (config, "zoom_mpeg1", 1);
-  this->drawable          = visual->d;
-  this->expecting_event   = 0;
-  this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
-
-  XAllocNamedColor(this->display, 
-		   DefaultColormap(this->display, this->screen), 
-		   "black", &this->black, &dummy);
+  this->config		    = config;
+  this->display		    = visual->display;
+  this->screen		    = visual->screen;
+  this->display_ratio	    = visual->display_ratio;
+  this->request_dest_size   = visual->request_dest_size;
+  this->calc_dest_size	    = visual->calc_dest_size;
+  this->output_width	    = 0;
+  this->output_height	    = 0;
+  this->output_scale_factor = 1.0;
+  this->gui_width	    = 0;
+  this->gui_height	    = 0;
+  this->zoom_mpeg1	    = config->lookup_int (config, "zoom_mpeg1", 1);
+  /*
+   * FIXME: replace getenv() with config->lookup_int, merge with zoom_mpeg1?
+   * 
+   * this->video_scale = config->lookup_int (config, "video_scale", 2);
+   *  0: disable all scaling (including aspect ratio switching, ...)
+   *  1: enable aspect ratio switch
+   *  2: like 1, double the size for small videos
+   */
+  this->scaling_disabled    = getenv("VIDEO_OUT_NOSCALE") != NULL;
+  this->drawable	    = visual->d;
+  this->expecting_event	    = 0;
+  this->gc		    = XCreateGC (this->display, this->drawable,
+					 0, NULL);
 
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;
@@ -988,35 +1079,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
    * ex. 15 bit color is 15 bit depth and 16 bpp. Also 24 bit
    *     color is 24 bit depth, but can be 24 bpp or 32 bpp.
    */
+
+  XGetWindowAttributes(display, this->drawable, &attribs);
+  this->visual = attribs.visual;
+  this->depth  = attribs.depth;
   
-  XGetWindowAttributes(display, DefaultRootWindow(display), &attribs);
-  this->depth = attribs.depth;
-  
-  if (this->depth != 15 && this->depth != 16 && this->depth != 24 && this->depth != 32)  {
-    /* The root window may be 8bit but there might still be
-     * visuals with other bit depths. For example this is the 
-     * case on Sun/Solaris machines.
-     */
-    this->depth = 24;
-  }
-
-  XMatchVisualInfo(display, this->screen, this->depth, TrueColor, &this->vinfo);
-
-  if (!XMatchVisualInfo(display, this->screen, this->depth, TrueColor, 
-			&this->vinfo)) {
-
-    printf ("video_out_xshm: couldn't find true color visual\n");
-
-    this->depth = 8;
-    if (!XMatchVisualInfo(display, this->screen, this->depth, StaticColor, 
-			  &this->vinfo)) {
-      printf ("video_out_xshm: couldn't find static color visual\n");
-      return NULL;
-    }
-  }
-
   if (this->depth>16) 
-    printf ("\n\nWARNING: current display depth is %d. For better performance\na depth of 16 bpp is recommended!\n\n",
+    printf ("\n\n"
+	    "WARNING: current display depth is %d. For better performance\n"
+	    "a depth of 16 bpp is recommended!\n\n",
 	    this->depth);
 
 
@@ -1045,34 +1116,35 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   cpu_byte_order = htonl(1) == 1 ? MSBFirst : LSBFirst;
   swapped = cpu_byte_order != this->byte_order;
 
-  printf ("video_out_xshm: video mode is %d depth (%d bpp), %sswapped, red: %08lx, green: %08lx, blue: %08lx\n",
+  printf ("video_out_xshm: video mode depth is %d (%d bpp), %sswapped,\n"
+	  "\tred: %08lx, green: %08lx, blue: %08lx\n",
 	  this->depth, this->bpp,
 	  swapped ? "" : "not ",
-	  this->vinfo.red_mask, this->vinfo.green_mask, this->vinfo.blue_mask);
+	  this->visual->red_mask, this->visual->green_mask, this->visual->blue_mask);
 
   switch (this->depth) {
   case 24:
     if (this->bpp == 32) {
-      if (this->vinfo.red_mask == 0x00ff0000)
+      if (this->visual->red_mask == 0x00ff0000)
 	mode = MODE_32_RGB;
       else
 	mode = MODE_32_BGR;
       break;
     } else {
-      if (this->vinfo.red_mask == 0x00ff0000)
+      if (this->visual->red_mask == 0x00ff0000)
 	mode = MODE_24_RGB;
       else
 	mode = MODE_24_BGR;
     }
     break;
   case 16:
-    if (this->vinfo.red_mask == 0xf800)
+    if (this->visual->red_mask == 0xf800)
       mode = MODE_16_RGB;
     else
       mode = MODE_16_BGR;
     break;
   case 15:
-    if (this->vinfo.red_mask == 0x7C00)
+    if (this->visual->red_mask == 0x7C00)
       mode = MODE_15_RGB;
     else
       mode = MODE_15_BGR;
