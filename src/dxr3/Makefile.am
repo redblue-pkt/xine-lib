@@ -1,4 +1,4 @@
-AM_CFLAGS = $(X_CFLAGS)
+AM_CFLAGS = $(X_CFLAGS) $(LIBFAME_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la

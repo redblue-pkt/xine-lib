@@ -170,8 +170,6 @@ main ()
           LIBS="$ac_save_LIBS"
        fi
      fi
-     LIBFAME_CFLAGS=""
-     LIBFAME_LIBS=""
      ifelse([$3], , :, [$3])
   fi
 
