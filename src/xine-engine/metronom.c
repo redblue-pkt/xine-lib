@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.85 2002/06/19 23:41:16 tmattern Exp $
+ * $Id: metronom.c,v 1.86 2002/06/20 14:49:53 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -548,9 +548,9 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
     this->vpts_offset += value;
-
+#ifdef LOG
     printf ("metronom: adjusting vpts_offset by %lld\n", value );
-
+#endif
     break;
   default:
     printf ("metronom: unknown option in set_option: %d\n",
