@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.19 2002/10/12 17:11:59 jkeil Exp $
+ * $Id: demux_smjpeg.c,v 1.20 2002/10/26 23:23:15 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,7 +67,7 @@ typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t       *stream;
 
   config_values_t     *config;
 
@@ -101,7 +101,119 @@ typedef struct {
 
   /* playback information */
   unsigned int         duration;  /* duration in milliseconds */
+
+  char                 last_mrl[1024];
 } demux_smjpeg_t;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_smjpeg_class_t;
+
+/* returns 1 if the SMJPEG file was opened successfully, 0 otherwise */
+static int open_smjpeg_file(demux_smjpeg_t *this) {
+
+  unsigned int chunk_tag;
+  unsigned char signature[8];
+  unsigned char header_chunk[SMJPEG_HEADER_CHUNK_MAX_SIZE];
+
+  /* initial state: no video and no audio (until headers found) */
+  this->video_type = this->audio_type = 0;
+  this->input_length = this->input->get_length (this->input);
+
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, signature, SMJPEG_SIGNATURE_SIZE) !=
+    SMJPEG_SIGNATURE_SIZE)
+    return 0;
+
+  /* check for the SMJPEG signature */
+  if ((signature[0] != 0x00) ||
+      (signature[1] != 0x0A) ||
+      (signature[2] != 'S') ||
+      (signature[3] != 'M') ||
+      (signature[4] != 'J') ||
+      (signature[5] != 'P') ||
+      (signature[6] != 'E') ||
+      (signature[7] != 'G'))
+    return 0;
+
+  /* jump over the version to the duration */
+  this->input->seek(this->input, 4, SEEK_CUR);
+  if (this->input->read(this->input, header_chunk, 4) != 4)
+    return 0;
+  this->duration = BE_32(&header_chunk[0]);
+
+  /* traverse the header chunks until the HEND tag is found */
+  chunk_tag = 0;
+  while (chunk_tag != HEND_TAG) {
+
+    if (this->input->read(this->input, header_chunk, 4) != 4)
+      return 0;
+    chunk_tag = BE_32(&header_chunk[0]);
+
+    switch(chunk_tag) {
+
+    case HEND_TAG:
+      /* this indicates the end of the header; do nothing and fall
+       * out of the loop on the next iteration */
+      break;
+
+    case _VID_TAG:
+      if (this->input->read(this->input, header_chunk, 
+        SMJPEG_VIDEO_HEADER_SIZE) != SMJPEG_VIDEO_HEADER_SIZE)
+        return 0;
+
+      this->bih.biWidth = BE_16(&header_chunk[8]);
+      this->bih.biHeight = BE_16(&header_chunk[10]);
+      this->bih.biCompression = *(uint32_t *)&header_chunk[12];
+      this->video_type = fourcc_to_buf_video(this->bih.biCompression);
+      break;
+
+    case _SND_TAG:
+      if (this->input->read(this->input, header_chunk, 
+        SMJPEG_AUDIO_HEADER_SIZE) != SMJPEG_AUDIO_HEADER_SIZE)
+        return 0;
+
+      this->audio_sample_rate = BE_16(&header_chunk[4]);
+      this->audio_bits = header_chunk[6];
+      this->audio_channels = header_chunk[7];
+      /* ADPCM in these files is ID'd by 'APCM' which is used in other
+       * files to denote a slightly different format; thus, use the
+       * following special case */
+      if (BE_32(&header_chunk[8]) == APCM_TAG) {
+        this->audio_codec = be2me_32(APCM_TAG);
+        this->audio_type = BUF_AUDIO_SMJPEG_IMA;
+      } else {
+        this->audio_codec = *(uint32_t *)&header_chunk[8];
+        this->audio_type = formattag_to_buf_audio(this->audio_codec);
+      }
+      break;
+
+    default:
+      /* for all other chunk types, read the length and skip the rest
+       * of the chunk */
+      if (this->input->read(this->input, header_chunk, 4) != 4)
+        return 0;
+      this->input->seek(this->input, BE_32(&header_chunk[0]), SEEK_CUR);
+      break;
+    }
+  }
+
+  if(!this->video_type)
+    xine_report_codec(this->stream, XINE_CODEC_VIDEO,
+      this->bih.biCompression, 0, 0);
+
+  if(!this->audio_type && this->audio_codec)
+    xine_report_codec(this->stream, XINE_CODEC_AUDIO, 
+    this->audio_codec, 0, 0);
+
+  return 1;
+}
 
 static void *demux_smjpeg_loop (void *this_gen) {
 
@@ -241,7 +353,7 @@ static void *demux_smjpeg_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -249,197 +361,61 @@ static void *demux_smjpeg_loop (void *this_gen) {
   return NULL;
 }
 
-static int load_smjpeg_and_send_headers(demux_smjpeg_t *this) {
+static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
 
-  unsigned int chunk_tag;
-  unsigned char header_chunk[SMJPEG_HEADER_CHUNK_MAX_SIZE];
+  demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
+  buf_element_t *buf;
 
   pthread_mutex_lock(&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
-  /* initial state: no video and no audio (until headers found) */
-  this->video_type = this->audio_type = 0;
-  this->input_length = this->input->get_length (this->input);
-
-  /* jump over the signature and version to the duration */
-  this->input->seek(this->input, 12, SEEK_SET);
-  if (this->input->read(this->input, header_chunk, 4) != 4) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-  this->duration = BE_32(&header_chunk[0]);
-
-  /* traverse the header chunks until the HEND tag is found */
-  chunk_tag = 0;
-  while (chunk_tag != HEND_TAG) {
-
-    if (this->input->read(this->input, header_chunk, 4) != 4) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-    chunk_tag = BE_32(&header_chunk[0]);
-
-    switch(chunk_tag) {
-
-    case HEND_TAG:
-      /* this indicates the end of the header; do nothing and fall
-       * out of the loop on the next iteration */
-      break;
-
-    case _VID_TAG:
-      if (this->input->read(this->input, header_chunk, 
-        SMJPEG_VIDEO_HEADER_SIZE) != SMJPEG_VIDEO_HEADER_SIZE) {
-        this->status = DEMUX_FINISHED;
-        pthread_mutex_unlock(&this->mutex);
-        return DEMUX_CANNOT_HANDLE;
-      }
-
-      this->bih.biWidth = BE_16(&header_chunk[8]);
-      this->bih.biHeight = BE_16(&header_chunk[10]);
-      this->bih.biCompression = *(uint32_t *)&header_chunk[12];
-      this->video_type = fourcc_to_buf_video(this->bih.biCompression);
-      break;
-
-    case _SND_TAG:
-      if (this->input->read(this->input, header_chunk, 
-        SMJPEG_AUDIO_HEADER_SIZE) != SMJPEG_AUDIO_HEADER_SIZE) {
-        this->status = DEMUX_FINISHED;
-        pthread_mutex_unlock(&this->mutex);
-        return DEMUX_CANNOT_HANDLE;
-      }
-
-      this->audio_sample_rate = BE_16(&header_chunk[4]);
-      this->audio_bits = header_chunk[6];
-      this->audio_channels = header_chunk[7];
-      /* ADPCM in these files is ID'd by 'APCM' which is used in other
-       * files to denote a slightly different format; thus, use the
-       * following special case */
-      if (BE_32(&header_chunk[8]) == APCM_TAG) {
-        this->audio_codec = be2me_32(APCM_TAG);
-        this->audio_type = BUF_AUDIO_SMJPEG_IMA;
-      } else {
-        this->audio_codec = *(uint32_t *)&header_chunk[8]&header_chunk[8];
-        this->audio_type = formattag_to_buf_audio(this->audio_codec);
-      }
-      break;
-
-    default:
-      /* for all other chunk types, read the length and skip the rest
-       * of the chunk */
-      if (this->input->read(this->input, header_chunk, 4) != 4) {
-        this->status = DEMUX_FINISHED;
-        pthread_mutex_unlock(&this->mutex);
-        return DEMUX_CANNOT_HANDLE;
-      }
-      this->input->seek(this->input, BE_32(&header_chunk[0]), SEEK_CUR);
-      break;
-    }
-  }
-
-  if(!this->video_type)
-    xine_report_codec(this->xine, XINE_CODEC_VIDEO,
-      this->bih.biCompression, 0, 0);
-
-  if(!this->audio_type && this->audio_codec)
-    xine_report_codec(this->xine, XINE_CODEC_AUDIO, 
-    this->audio_codec, 0, 0);
-
   /* load stream information */
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
     this->audio_sample_rate;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
     this->audio_bits;
 
-  xine_demux_control_headers_done (this->xine);
+  /* send start buffers */
+  xine_demux_control_start(this->stream);
+
+  /* send init info to decoders */
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_info[0] = 0;
+  buf->decoder_info[1] = 3000;  /* initial video_step */
+  memcpy(buf->content, &this->bih, sizeof(this->bih));
+  buf->size = sizeof(this->bih);
+  buf->type = this->video_type;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if (this->audio_fifo && this->audio_type) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = this->audio_type;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->audio_sample_rate;
+    buf->decoder_info[2] = this->audio_bits;
+    buf->decoder_info[3] = this->audio_channels;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
-}
-
-static int demux_smjpeg_open(demux_plugin_t *this_gen, input_plugin_t *input,
-                             int stage) {
-  demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
-  char signature[8];
-
-  this->input = input;
-
-  switch(stage) {
-  case STAGE_BY_CONTENT: {
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
-      return DEMUX_CANNOT_HANDLE;
-
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, signature, SMJPEG_SIGNATURE_SIZE) !=
-      SMJPEG_SIGNATURE_SIZE)
-      return DEMUX_CANNOT_HANDLE;
-
-    /* check for the SMJPEG signature */
-    if ((signature[0] == 0x00) &&
-        (signature[1] == 0x0A) &&
-        (signature[2] == 'S') &&
-        (signature[3] == 'M') &&
-        (signature[4] == 'J') &&
-        (signature[5] == 'P') &&
-        (signature[6] == 'E') &&
-        (signature[7] == 'G'))
-      return load_smjpeg_and_send_headers(this);
-
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
-
-    MRL = input->get_mrl (input);
-
-    suffix = strrchr(MRL, '.');
-
-    if(!suffix)
-      return DEMUX_CANNOT_HANDLE;
-
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                                                            "mrl.ends_smjpeg", VALID_ENDS,
-                                                            _("valid mrls ending for smjpeg demuxer"),
-                                                            NULL, 2, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
-
-      while(*m == ' ' || *m == '\t') m++;
-
-      if(!strcasecmp((suffix + 1), m))
-        return load_smjpeg_and_send_headers(this);
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-
-  }
-
-  return DEMUX_CANNOT_HANDLE;
 }
 
 static int demux_smjpeg_start (demux_plugin_t *this_gen,
                                off_t start_pos, int start_time) {
 
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
-  buf_element_t *buf;
   int err;
 
   pthread_mutex_lock(&this->mutex);
@@ -447,62 +423,12 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
 
-    /* print vital stats */
-    xine_log (this->xine, XINE_LOG_MSG,
-      _("demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"),
-      this->duration / 1000 / 60,
-      this->duration / 1000 % 60);
-    if (this->video_type)
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"),
-        *((char *)&this->bih.biCompression + 0),
-        *((char *)&this->bih.biCompression + 1),
-        *((char *)&this->bih.biCompression + 2),
-        *((char *)&this->bih.biCompression + 3),
-        this->bih.biWidth,
-        this->bih.biHeight);
-    if (this->audio_type)
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
-        *((char *)&this->audio_codec + 0),
-        *((char *)&this->audio_codec + 1),
-        *((char *)&this->audio_codec + 2),
-        *((char *)&this->audio_codec + 3),
-        this->audio_sample_rate,
-        this->audio_bits,
-        this->audio_channels,
-        ngettext("channel", "channels", this->audio_channels));
-
-    /* send start buffers */
-    xine_demux_control_start(this->xine);
-
-    /* send init info to decoders */
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER;
-    buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = 3000;  /* initial video_step */
-    memcpy(buf->content, &this->bih, sizeof(this->bih));
-    buf->size = sizeof(this->bih);
-    buf->type = this->video_type;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if (this->audio_fifo && this->audio_type) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = this->audio_type;
-      buf->decoder_flags = BUF_FLAG_HEADER;
-      buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = this->audio_sample_rate;
-      buf->decoder_info[2] = this->audio_bits;
-      buf->decoder_info[3] = this->audio_channels;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
-
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
     this->thread_running = 1;
 
     if ((err = pthread_create (&this->thread, NULL, demux_smjpeg_loop, this)) != 0) {
-      printf ("demux_qt: can't create new thread (%s)\n", strerror(err));
+      printf ("demux_smjpeg: can't create new thread (%s)\n", strerror(err));
       abort();
     }
   }
@@ -541,13 +467,15 @@ static void demux_smjpeg_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_smjpeg_dispose (demux_plugin_t *this_gen) {
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
+
+  demux_smjpeg_stop(this_gen);
 
   pthread_mutex_destroy (&this->mutex);
   free(this);
@@ -559,10 +487,6 @@ static int demux_smjpeg_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static char *demux_smjpeg_get_id(void) {
-  return "SMJPEG";
-}
-
 static int demux_smjpeg_get_stream_length (demux_plugin_t *this_gen) {
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
 
@@ -570,36 +494,145 @@ static int demux_smjpeg_get_stream_length (demux_plugin_t *this_gen) {
   return this->duration / 1000;
 }
 
-static char *demux_smjpeg_get_mimetypes(void) {
-  return NULL;
-}
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
 
-static void *init_demuxer_plugin(xine_t *xine, void *data) {
+  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_smjpeg_t *this;
 
-  this         = (demux_smjpeg_t *) xine_xmalloc(sizeof(demux_smjpeg_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_smjpeg.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
 
-  (void *) this->config->register_string(this->config,
-                                         "mrl.ends_smjpeg", VALID_ENDS,
-                                         _("valid mrls ending for smjpeg demuxer"),
-                                         NULL, 20, NULL, NULL);
+  this         = xine_xmalloc (sizeof (demux_smjpeg_t));
+  this->stream = stream;
+  this->input  = input;
 
-  this->demux_plugin.open              = demux_smjpeg_open;
+  this->demux_plugin.send_headers      = demux_smjpeg_send_headers;
   this->demux_plugin.start             = demux_smjpeg_start;
   this->demux_plugin.seek              = demux_smjpeg_seek;
   this->demux_plugin.stop              = demux_smjpeg_stop;
   this->demux_plugin.dispose           = demux_smjpeg_dispose;
   this->demux_plugin.get_status        = demux_smjpeg_get_status;
-  this->demux_plugin.get_identifier    = demux_smjpeg_get_id;
   this->demux_plugin.get_stream_length = demux_smjpeg_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_smjpeg_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init(&this->mutex, NULL);
+  pthread_mutex_init (&this->mutex, NULL);
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    if (!open_smjpeg_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".mjpg", 5)) {
+      free (this);
+      return NULL;
+    }
+
+    if (!open_smjpeg_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  }
+
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  /* print vital stats */
+  xine_log (this->stream->xine, XINE_LOG_MSG,
+    _("demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"),
+    this->duration / 1000 / 60,
+    this->duration / 1000 % 60);
+  if (this->video_type)
+    xine_log (this->stream->xine, XINE_LOG_MSG,
+      _("demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"),
+      *((char *)&this->bih.biCompression + 0),
+      *((char *)&this->bih.biCompression + 1),
+      *((char *)&this->bih.biCompression + 2),
+      *((char *)&this->bih.biCompression + 3),
+      this->bih.biWidth,
+      this->bih.biHeight);
+  if (this->audio_type)
+    xine_log (this->stream->xine, XINE_LOG_MSG,
+      _("demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
+      *((char *)&this->audio_codec + 0),
+      *((char *)&this->audio_codec + 1),
+      *((char *)&this->audio_codec + 2),
+      *((char *)&this->audio_codec + 3),
+      this->audio_sample_rate,
+      this->audio_bits,
+      this->audio_channels,
+      ngettext("channel", "channels", this->audio_channels));
 
   return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "SMJPEG file demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "SMJPEG";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "mjpg";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_smjpeg_class_t *this = (demux_smjpeg_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_smjpeg_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_smjpeg_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
+  return this;
 }
 
 /*
@@ -608,6 +641,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "smjpeg", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "smjpeg", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
