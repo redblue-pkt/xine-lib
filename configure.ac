@@ -524,9 +524,9 @@ fi
 
 case "$host_or_hostalias" in
   hppa*)
-	if test "$xv_lib" = "libXv.a"; then
+	if test "$XV_LIB" = "libXv.a"; then
 	  echo "warning: hppa linker - disabling static libXv"
-	  xv_lib="libXv.so"
+	  XV_LIB="libXv.so"
 	fi
 	;;
 
@@ -2453,7 +2453,7 @@ if test x"$no_x" != "xyes"; then
   fi
   dnl Xv
   if test x$ac_have_xv = "xyes"; then
-    if test x$xv_lib="xlibXv.a"; then
+    if test x$XV_LIB="xlibXv.a"; then
       echo "   - Xv (XVideo *static*)"
     else
       echo "   - Xv (XVideo *shared*)"

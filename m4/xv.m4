@@ -6,7 +6,7 @@ AC_DEFUN([AC_PATH_LIBXV_IMPL],
   AC_MSG_CHECKING([for $1])
   if test -f "$xv_path/$1"; then
     AC_MSG_RESULT([found $1 in $xv_path])
-    xv_lib="$1"
+    XV_LIB="$1"
   else
     AC_MSG_RESULT([$1 not found in $xv_path])
   fi
@@ -24,7 +24,7 @@ AC_DEFUN([AC_TEST_LIBXV],
         [Define this if you have libXv installed])
 
      ac_have_xv="yes"
-     if test x$xv_lib = "xlibXv.a" ; then
+     if test x$XV_LIB = "xlibXv.a" ; then
 
         AC_DEFINE(HAVE_XV_STATIC,
                 1,
@@ -51,7 +51,7 @@ AC_DEFUN([AC_TEST_LIBXV],
 # AC_PATH_LIBXV
 # -------------------------
 #
-AC_DEFUN([AC_PATH_LIBXV],
+AC_DEFUN([AC_FIND_LIBXV],
 [
   # Ensure that AC_PATH_XTRA is executed before this
   AC_REQUIRE([AC_PATH_XTRA])
@@ -67,7 +67,7 @@ AC_DEFUN([AC_PATH_LIBXV],
     AC_PATH_LIBXV_IMPL([libXv.a])
   fi
 
-  if ! test -z $xv_lib; then
+  if ! test -z $XV_LIB; then
     AC_TEST_LIBXV
   fi
 ])
