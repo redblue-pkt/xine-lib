@@ -21,7 +21,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.7 2003/03/07 12:51:48 guenter Exp $
+ * $Id: demux_pva.c,v 1.8 2003/04/02 03:20:42 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -60,10 +60,7 @@ typedef struct {
 
   input_plugin_t      *input;
 
-  pthread_t            thread;
   int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
   
   int                  send_newpts;
   int                  buf_flag_seek;

@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.11 2003/03/07 12:51:47 guenter Exp $
+ * $Id: demux_nsf.c,v 1.12 2003/04/02 03:20:41 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,10 +67,7 @@ typedef struct {
 
   input_plugin_t      *input;
 
-  pthread_t            thread;
   int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   int                  status;
 

@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.7 2003/02/22 06:48:55 tmmm Exp $
+ * $Id: demux_ipmovie.c,v 1.8 2003/04/02 03:20:41 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -100,10 +100,7 @@ typedef struct {
 
   input_plugin_t      *input;
 
-  pthread_t            thread;
   int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   off_t                data_start;
   off_t                data_size;

@@ -32,7 +32,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.6 2003/03/31 19:31:54 tmmm Exp $
+ * $Id: demux_aud.c,v 1.7 2003/04/02 03:20:40 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,10 +67,7 @@ typedef struct {
 
   input_plugin_t      *input;
 
-  pthread_t            thread;
   int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   off_t                data_start;
   off_t                data_size;

@@ -22,7 +22,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.7 2003/03/07 12:51:48 guenter Exp $
+ * $Id: demux_str.c,v 1.8 2003/04/02 03:20:42 tmmm Exp $
  */
 
 /* CD-XA format:
@@ -165,11 +165,6 @@ typedef struct {
   fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
-
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   off_t                data_start;
   off_t                data_size;

@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.19 2003/02/22 01:23:07 tmmm Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.20 2003/04/02 03:20:43 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -61,10 +61,7 @@ typedef struct {
 
   input_plugin_t      *input;
 
-  pthread_t            thread;
   int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   off_t                data_start;
   off_t                data_size;
