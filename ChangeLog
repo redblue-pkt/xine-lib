@@ -23,6 +23,8 @@ xine-lib (1-beta13)
   * new deinterlacer (tvtime) plugin with more algorithms, full framerate output, 
     2-3 pulldown detection, judder correction, chroma upsampling error free,
     works with all video drivers. warning: cpu intensive :)
+  * big improvement of v4l input and associated demuxer. Including 
+    sound capture using alsa and a/v sync. Now radio is supported as well.
 	
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
