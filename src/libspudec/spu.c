@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.47 2002/09/18 15:42:56 mroi Exp $
+ * $Id: spu.c,v 1.48 2002/09/30 05:16:45 jcdutton Exp $
  *
  */
 
@@ -519,14 +519,16 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
-/**************************88
+/* FIXME: Force invisible SPUs to be visible. */
+/*
       if ( (trans->entry0 | trans->entry1 | trans->entry2 | trans->entry3) == 0) {
         ovl->trans[3] = 15;
         ovl->trans[2] = 15;
         ovl->trans[1] = 15;
-        ovl->trans[0] = 0;
+        ovl->trans[0] = 8;
       }
-*************************/
+*/
+
 #ifdef LOG_DEBUG
       printf ("spu: \ttrans [%d %d %d %d]\n",
 	       ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
@@ -547,7 +549,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       ovl->y      = (buf[4]  << 4) | (buf[5] >> 4);
       ovl->width  = (((buf[2] & 0x0f) << 8) | buf[3]) - ovl->x + 1; 
       ovl->height = (((buf[5] & 0x0f) << 8) | buf[6]) - ovl->y + 1;
-      ovl->clip_top    = 0;
+      ovl->clip_top    = -1;
       ovl->clip_bottom = ovl->height - 1;
       ovl->clip_left   = 0;
       ovl->clip_right  = ovl->width - 1;
@@ -859,7 +861,7 @@ void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, 
    * overlay clipping areas are in overlay coordinates;
    * therefore we must subtract the display coordinates of the underlying overlay */
   overlay->clip_left   = (button_ptr->x_start > base->x) ? (button_ptr->x_start - base->x) : 0;
-  overlay->clip_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : 0;
+  overlay->clip_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : -1;
   overlay->clip_right  = (button_ptr->x_end   > base->x) ? (button_ptr->x_end   - base->x) : 0;
   overlay->clip_bottom = (button_ptr->y_end   > base->y) ? (button_ptr->y_end   - base->y) : 0;
   if(button_ptr->btn_coln != 0) {

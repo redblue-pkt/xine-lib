@@ -30,6 +30,7 @@
 
 /*
 #define LOG_BLEND_YUV
+#define LOG_BLEND_RGB16
 */
 
 #include <string.h>
@@ -126,31 +127,70 @@ rle_img_advance_line(rle_elem_t *rle, rle_elem_t *rle_limit, int w)
   return rle;
 }
 
-
 void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
-		  int img_width, int img_height,
-		  int dst_width, int dst_height)
+                  int img_width, int img_height,
+                  int dst_width, int dst_height)
 {
   uint8_t *trans;
-  clut_t* clut = (clut_t*) img_overl->clip_color;
+  clut_t *clut;
 
   int src_width = img_overl->width;
   int src_height = img_overl->height;
   rle_elem_t *rle = img_overl->rle;
+  rle_elem_t *rle_start = img_overl->rle;
   rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x, y, x1_scaled, x2_scaled;
-  int dy, dy_step, x_scale;	/* scaled 2**SCALE_SHIFT */
+  int dy, dy_step, x_scale;     /* scaled 2**SCALE_SHIFT */
+  int dst_y;
   int clip_right;
   uint16_t *img_pix;
+  int rlelen;
+  int rle_this_bite;
+  int rle_remainder;
+  int zone_state=0;
+  uint8_t clr_next,clr;
+  uint16_t o;
+  double img_offset;
+  int stripe_height;
+/*
+ * Let zone_state keep state.
+ * 0 = Starting.
+ * 1 = Above button.
+ * 2 = Left of button.
+ * 3 = Inside of button.
+ * 4 = Right of button.
+ * 5 = Below button.
+ * 6 = Finished.
+ *
+ * Each time round the loop, update the state.
+ * We can do this easily and cheaply(fewer IF statements per cycle) as we are testing rle end position anyway.
+ * Possible optimization is to ensure that rle never overlaps from outside to inside a button.
+ * Possible optimization is to pre-scale the RLE overlay, so that no scaling is needed here.
+ */
 
-  dy_step = INT_TO_SCALED(dst_height) / img_height;
+#ifdef LOG_BLEND_RGB16
+  printf("blend_rgb16: img_height=%i, dst_height=%i\n", img_height, dst_height);
+  printf("blend_rgb16: img_width=%i, dst_width=%i\n", img_width, dst_width);
+#endif
+/* stripe_height is used in yuv2rgb scaling, so use the same scale factor here for overlays. */
+  stripe_height = 16 * img_height / dst_height;
+/*  dy_step = INT_TO_SCALED(dst_height) / img_height; */
+  dy_step = INT_TO_SCALED(16) / stripe_height;
   x_scale = INT_TO_SCALED(img_width)  / dst_width;
+#ifdef LOG_BLEND_RGB16
+  printf("blend_rgb16: dy_step=%i, x_scale=%i\n", dy_step, x_scale);
+#endif
 
-  img_pix = (uint16_t *) img
+  img_offset = ( ( (img_overl->y * img_height) / dst_height) * img_width) 
+             + ( (img_overl->x * img_width) / dst_width);
+#ifdef LOG_BLEND_RGB16
+  printf("blend_rgb16: x=%i, y=%i, img_offset=%lf\n", img_overl->x, img_overl->y, img_offset);
+#endif
+  img_pix = (uint16_t *) img + (int)img_offset;
+/* 
       + (img_overl->y * img_height / dst_height) * img_width
       + (img_overl->x * img_width / dst_width);
-
-  trans = img_overl->clip_trans;
+*/
 
   /* avoid wraping overlay if drawing to small image */
   if( (img_overl->x + img_overl->clip_right) < dst_width )
@@ -162,66 +202,320 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
   if( (src_height + img_overl->y) >= dst_height )
     src_height = dst_height - 1 - img_overl->y;
 
-  for (y = dy = 0; y < src_height && rle < rle_limit;) {
-    int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
-    rle_elem_t *rle_start = rle;
+  rlelen = rle_remainder = rle_this_bite = 0;
+  rle_remainder = rlelen = rle->len;
+  clr_next = rle->color;
+  rle++;
+  y = dy = 0;
+  dst_y = 0;
+  x = x1_scaled = x2_scaled = 0;
 
-    for (x = x1_scaled = 0; x < src_width;) {
-      uint8_t clr;
-      uint16_t o;
-      int rlelen;
+#ifdef LOG_BLEND_RGB16
+  printf("blend_rgb16 started\n"); 
+#endif
 
-      clr = rle->color;
+  while (zone_state != 6) {
+    clr = clr_next;
+    switch (zone_state) {
+    case 0:  /* Starting */
+      /* FIXME: Get libspudec to set clip_top to -1 if no button */
+      if (img_overl->clip_top < 0) {
+#ifdef LOG_BLEND_RGB16
+        printf("blend_rgb16: No button clip area\n");
+#endif
+
+        zone_state = 7;
+        break;
+      }
+#ifdef LOG_BLEND_RGB16
+      printf("blend_rgb16: Button clip area found\n");
+#endif
+      if (y < img_overl->clip_top) {
+        zone_state = 1;
+        break;
+      } else if (y > img_overl->clip_bottom) {
+        zone_state = 5;
+        break;
+      } else if (x < img_overl->clip_left) {
+        zone_state = 2;
+        break;
+      } else if (x > img_overl->clip_right) {
+        zone_state = 4;
+        break;
+      } else {
+        zone_state = 3;
+        break;
+      }
+      break;
+    case 1:  /* Above clip area */
+      clut = (clut_t*) img_overl->color;
+      trans = img_overl->trans;
       o   = trans[clr];
-      rlelen = rle->len;
-
-      if (o && mask) {
-        /* threat cases where clipping border is inside rle->len pixels */
-        if ( img_overl->clip_left > x ) {
-          if( img_overl->clip_left < x + rlelen ) {
-            x1_scaled = SCALED_TO_INT( img_overl->clip_left * x_scale );
-            rlelen -= img_overl->clip_left - x;
-            x += img_overl->clip_left - x;
-          } else {
-            o = 0;
-          }
-        } else if( clip_right < x + rlelen ) {
-          if( clip_right > x ) {
-            x2_scaled = SCALED_TO_INT( clip_right * x_scale);
-            mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o,
-                        x2_scaled-x1_scaled);
-            o = 0;            
-          } else {
-            o = 0;
-          }
-        } 
+      rle_this_bite = rle_remainder;
+      rle_remainder = 0;
+      rlelen -= rle_this_bite;
+      /*printf("(x,y) = (%03i,%03i), clr=%03x, len=%03i, zone=%i\n", x, y, clr, rle_this_bite, zone_state); */
+      if (o) {
+        x1_scaled = SCALED_TO_INT( x * x_scale );
+        x2_scaled = SCALED_TO_INT( (x + rle_this_bite) * x_scale);
+        mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
       }
-      
-      x2_scaled = SCALED_TO_INT((x + rlelen) * x_scale);
-      if (o && mask) {
-	mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
-      }
-
-      x1_scaled = x2_scaled;
-      x += rlelen;
+      x += rle_this_bite;
+      if (x >= src_width ) { 
+        x -= src_width;
+        img_pix += img_width;
+ 
+        dy += dy_step;
+        if (dy >= INT_TO_SCALED(1)) {
+          dy -= INT_TO_SCALED(1);
+          ++y;
+          while (dy >= INT_TO_SCALED(1)) {
+            rle = rle_img_advance_line(rle, rle_limit, src_width);
+            dy -= INT_TO_SCALED(1);
+            ++y;
+          }
+          rle_start = rle;
+        } else {
+          rle = rle_start;          /* y-scaling, reuse the last rle encoded line */
+        }
+      } 
+      rle_remainder = rlelen = rle->len;
+      clr_next = rle->color;
       rle++;
-      if (rle >= rle_limit) break;
-    }
-
-    img_pix += img_width;
-    dy += dy_step;
-    if (dy >= INT_TO_SCALED(1)) {
-      dy -= INT_TO_SCALED(1);
-      ++y;
-      while (dy >= INT_TO_SCALED(1)) {
-	rle = rle_img_advance_line(rle, rle_limit, src_width);
-	dy -= INT_TO_SCALED(1);
-	++y;
+      if (rle >= rle_limit) {
+        zone_state = 6;
       }
-    } else {
-      rle = rle_start;		/* y-scaling, reuse the last rle encoded line */
+      if (y >= img_overl->clip_top) {
+        zone_state = 2;
+        if (x >= img_overl->clip_left) {
+          zone_state = 3;
+          if (x >= img_overl->clip_right) {
+            zone_state = 4;
+          }
+        }
+      }
+      break;
+    case 2:  /* Left of button */
+      clut = (clut_t*) img_overl->color;
+      trans = img_overl->trans;
+      o   = trans[clr];
+      if (x + rle_remainder < img_overl->clip_left) {
+        rle_this_bite = rle_remainder;
+        rle_remainder = rlelen = rle->len;
+        clr_next = rle->color;
+        rle++;
+      } else {
+        rle_this_bite = img_overl->clip_left - x;
+        rle_remainder -= rle_this_bite;
+        zone_state = 3;
+      }
+      if (o) {
+        x1_scaled = SCALED_TO_INT( x * x_scale );
+        x2_scaled = SCALED_TO_INT( (x + rle_this_bite) * x_scale);
+        mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
+      }
+      x += rle_this_bite;
+      if (x >= src_width ) { 
+        x -= src_width;
+        img_pix += img_width;
+        dy += dy_step;
+        if (dy >= INT_TO_SCALED(1)) {
+          dy -= INT_TO_SCALED(1);
+          ++y;
+          while (dy >= INT_TO_SCALED(1)) {
+            rle = rle_img_advance_line(rle, rle_limit, src_width);
+            dy -= INT_TO_SCALED(1);
+            ++y;
+          }
+          rle_start = rle;
+        } else {
+          rle = rle_start;          /* y-scaling, reuse the last rle encoded line */
+        }
+        if (y > img_overl->clip_bottom) {
+          zone_state = 5;
+          break;
+        }
+      }
+      if (rle >= rle_limit) {
+        zone_state = 6;
+      }
+      break;
+    case 3:  /* In button */
+      clut = (clut_t*) img_overl->clip_color;
+      trans = img_overl->clip_trans;
+      o   = trans[clr];
+      if (x + rle_remainder < img_overl->clip_right) {
+        rle_this_bite = rle_remainder;
+        rle_remainder = rlelen = rle->len;
+        clr_next = rle->color;
+        rle++;
+      } else {
+        rle_this_bite = img_overl->clip_right - x;
+        rle_remainder -= rle_this_bite;
+        zone_state = 4;
+      }
+      if (o) {
+        x1_scaled = SCALED_TO_INT( x * x_scale );
+        x2_scaled = SCALED_TO_INT( (x + rle_this_bite) * x_scale);
+        mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
+      }
+      x += rle_this_bite;
+      if (x >= src_width ) { 
+        x -= src_width;
+        img_pix += img_width;
+        dy += dy_step;
+        if (dy >= INT_TO_SCALED(1)) {
+          dy -= INT_TO_SCALED(1);
+          ++y;
+          while (dy >= INT_TO_SCALED(1)) {
+            rle = rle_img_advance_line(rle, rle_limit, src_width);
+            dy -= INT_TO_SCALED(1);
+            ++y;
+          }
+          rle_start = rle;
+        } else {
+          rle = rle_start;          /* y-scaling, reuse the last rle encoded line */
+        }
+        if (y > img_overl->clip_bottom) {
+          zone_state = 5;
+          break;
+        }
+      } 
+      if (rle >= rle_limit) {
+        zone_state = 6;
+      }
+      break;
+    case 4:  /* Right of button */
+      clut = (clut_t*) img_overl->color;
+      trans = img_overl->trans;
+      o   = trans[clr];
+      if (x + rle_remainder < src_width) {
+        rle_this_bite = rle_remainder;
+        rle_remainder = rlelen = rle->len;
+        clr_next = rle->color;
+        rle++;
+      } else {
+        rle_this_bite = src_width - x;
+        rle_remainder -= rle_this_bite;
+        zone_state = 2;
+      }
+      if (o) {
+        x1_scaled = SCALED_TO_INT( x * x_scale );
+        x2_scaled = SCALED_TO_INT( (x + rle_this_bite) * x_scale);
+        mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
+      }
+      x += rle_this_bite;
+      if (x >= src_width ) { 
+        x -= src_width;
+        img_pix += img_width;
+        dy += dy_step;
+        if (dy >= INT_TO_SCALED(1)) {
+          dy -= INT_TO_SCALED(1);
+          ++y;
+          while (dy >= INT_TO_SCALED(1)) {
+            rle = rle_img_advance_line(rle, rle_limit, src_width);
+            dy -= INT_TO_SCALED(1);
+            ++y;
+          }
+          rle_start = rle;
+        } else {
+          rle = rle_start;          /* y-scaling, reuse the last rle encoded line */
+        }
+        if (y > img_overl->clip_bottom) {
+          zone_state = 5;
+          break;
+        }
+      } 
+      if (rle >= rle_limit) {
+        zone_state = 6;
+      }
+      break;
+    case 5:  /* Below button */
+      clut = (clut_t*) img_overl->color;
+      trans = img_overl->trans;
+      o   = trans[clr];
+      rle_this_bite = rle_remainder;
+      rle_remainder = 0;
+      rlelen -= rle_this_bite;
+      if (o) {
+        x1_scaled = SCALED_TO_INT( x * x_scale );
+        x2_scaled = SCALED_TO_INT( (x + rle_this_bite) * x_scale);
+        mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
+      }
+      x += rle_this_bite;
+      if (x >= src_width ) { 
+        x -= src_width;
+        img_pix += img_width;
+        dy += dy_step;
+        if (dy >= INT_TO_SCALED(1)) {
+          dy -= INT_TO_SCALED(1);
+          ++y;
+          while (dy >= INT_TO_SCALED(1)) {
+            rle = rle_img_advance_line(rle, rle_limit, src_width);
+            dy -= INT_TO_SCALED(1);
+            ++y;
+          }
+          rle_start = rle;
+        } else {
+          rle = rle_start;          /* y-scaling, reuse the last rle encoded line */
+        }
+      } 
+      rle_remainder = rlelen = rle->len;
+      clr_next = rle->color;
+      rle++;
+      if (rle >= rle_limit) {
+        zone_state = 6;
+      }
+      break;
+    case 6:  /* Finished */
+      printf("Don't ever get here\n");
+      assert(0);
+    case 7:  /* No button */
+      clut = (clut_t*) img_overl->color;
+      trans = img_overl->trans;
+      o   = trans[clr];
+      rle_this_bite = rle_remainder;
+      rle_remainder = 0;
+      rlelen -= rle_this_bite;
+      if (o) {
+        x1_scaled = SCALED_TO_INT( x * x_scale );
+        x2_scaled = SCALED_TO_INT( (x + rle_this_bite) * x_scale);
+        mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
+      }
+      x += rle_this_bite;
+      if (x >= src_width ) { 
+        x -= src_width;
+        img_pix += img_width;
+        dst_y++;
+        dy += dy_step;
+        if (dy >= INT_TO_SCALED(1)) {
+          dy -= INT_TO_SCALED(1);
+          ++y;
+          while (dy >= INT_TO_SCALED(1)) {
+            rle = rle_img_advance_line(rle, rle_limit, src_width);
+            dy -= INT_TO_SCALED(1);
+            ++y;
+          }
+          rle_start = rle;
+        } else {
+          rle = rle_start;          /* y-scaling, reuse the last rle encoded line */
+        }
+      } 
+      rle_remainder = rlelen = rle->len;
+      clr_next = rle->color;
+      rle++;
+      if (rle >= rle_limit) {
+        zone_state = 6;
+      }
+      break;
+    default:
+      ;
     }
   }
+#ifdef LOG_BLEND_RGB16
+  printf("blend_rgb16 ended\n");
+#endif
+ 
 }
 
 void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,

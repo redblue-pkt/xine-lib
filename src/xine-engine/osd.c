@@ -169,7 +169,7 @@ static int osd_show (osd_object_t *osd, int64_t vpts ) {
     this->event.object.overlay->width = osd->x2 - osd->x1 + 1;
     this->event.object.overlay->height = osd->y2 - osd->y1 + 1;
  
-    this->event.object.overlay->clip_top    = 0;
+    this->event.object.overlay->clip_top    = -1;
     this->event.object.overlay->clip_bottom = this->event.object.overlay->height +
                                               osd->display_x;
     this->event.object.overlay->clip_left   = 0;

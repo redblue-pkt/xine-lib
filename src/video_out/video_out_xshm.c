@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.90 2002/09/16 11:35:25 jcdutton Exp $
+ * $Id: video_out_xshm.c,v 1.91 2002/09/30 05:16:45 jcdutton Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -540,7 +540,11 @@ static void xshm_update_frame_format (xine_vo_driver_t *this_gen,
 
     frame->stripe_height = 16 * frame->sc.output_height / frame->sc.delivered_height;
 
-    /* printf ("video_out_xshm: stripe height is %d\n", frame->stripe_height); */
+#ifdef LOG
+    printf ("video_out_xshm: stripe out_ht=%i, deliv_ht=%i\n",
+	    frame->sc.output_height, frame->sc.delivered_height);
+    printf ("video_out_xshm: stripe height is %d\n", frame->stripe_height); 
+#endif
 
     /* 
      * set up colorspace converter

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.32 2002/08/14 12:23:33 esnel Exp $
+ * $Id: yuv2rgb.c,v 1.33 2002/09/30 05:16:45 jcdutton Exp $
  */
 
 #include "config.h"
@@ -73,10 +73,10 @@ static int yuv2rgb_configure (yuv2rgb_t *this,
 			      int y_stride, int uv_stride,
 			      int dest_width, int dest_height,
 			      int rgb_stride) {
-  /*
+/*  
   printf ("yuv2rgb setup (%d x %d => %d x %d)\n", source_width, source_height,
 	  dest_width, dest_height);
-	  */
+*/	  
   if (prof_scale_line == -1)
     prof_scale_line = xine_profiler_allocate_slot("xshm scale line");
 
@@ -104,7 +104,10 @@ static int yuv2rgb_configure (yuv2rgb_t *this,
   
   this->step_dx = source_width  * 32768 / dest_width;
   this->step_dy = source_height * 32768 / dest_height;
-    
+/*
+  printf("yuv2rgb config: src_ht=%i, dst_ht=%i\n",source_height, dest_height);
+  printf("yuv2rgb config: step_dy=%i %f\n",this->step_dy, (float)this->step_dy / 32768.0);
+*/    
   this->scale_line = find_scale_line_func(this->step_dx);
 
   if ((source_width == dest_width) && (source_height == dest_height)) {
