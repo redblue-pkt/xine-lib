@@ -3,6 +3,9 @@
 
 rm -f config.cache
 
+srcdir=`dirname $0`
+test -z "$srcdir" && srcdir=.
+
 #m4_files="_xine.m4 alsa.m4 arts.m4 esd.m4 aa.m4 irixal.m4"
 if test -d $srcdir/m4; then
     rm -f acinclude.m4
@@ -13,9 +16,6 @@ else
     echo "Directory 'm4' is missing."
     exit 1
 fi
-
-srcdir=`dirname $0`
-test -z "$srcdir" && srcdir=.
 
 (test -f $srcdir/configure.in) || {
     echo -n "*** Error ***: Directory "\`$srcdir\'" does not look like the"
