@@ -31,6 +31,7 @@
 #include <stdint.h>
 #endif
 
+#include "plugins.h"
 #include "speedy.h"
 #include "deinterlace.h"
 
