@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.131 2003/10/08 22:53:17 tmattern Exp $
+ * $Id: demux_asf.c,v 1.132 2003/10/11 21:25:04 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -42,6 +42,7 @@
 #include "xine_internal.h"
 #include "demux.h"
 #include "xineutils.h"
+#include "bswap.h"
 #include "asfheader.h"
 #include "xmlparser.h"
 
@@ -198,7 +199,7 @@ static uint16_t get_le16 (demux_asf_t *this) {
     this->status = DEMUX_FINISHED;
   }
 
-  return buf[0] | (buf[1] << 8);
+  return LE_16(buf);
 }
 
 static uint32_t get_le32 (demux_asf_t *this) {
@@ -216,7 +217,7 @@ static uint32_t get_le32 (demux_asf_t *this) {
     this->status = DEMUX_FINISHED;
   }
 
-  return buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
+  return LE_32(buf);
 }
 
 static uint64_t get_le64 (demux_asf_t *this) {
@@ -232,14 +233,7 @@ static uint64_t get_le64 (demux_asf_t *this) {
     this->status = DEMUX_FINISHED;
   }
 
-  return (uint64_t) buf[0] 
-    | ((uint64_t) buf[1] << 8)
-    | ((uint64_t) buf[2] << 16)
-    | ((uint64_t) buf[3] << 24)
-    | ((uint64_t) buf[4] << 32)
-    | ((uint64_t) buf[5] << 40)
-    | ((uint64_t) buf[6] << 48)
-    | ((uint64_t) buf[7] << 56) ;
+  return LE_64(buf);
 }
 
 static int get_guid (demux_asf_t *this) {
