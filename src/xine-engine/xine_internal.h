@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.59 2001/12/08 00:45:27 guenter Exp $
+ * $Id: xine_internal.h,v 1.60 2001/12/08 13:37:58 guenter Exp $
  *
  */
 
@@ -184,6 +184,7 @@ struct xine_s {
   int                        video_finished;
   
   osd_renderer_t            *osd_renderer;
+  osd_object_t              *osd;
 
   ao_instance_t             *audio_out;
   fifo_buffer_t             *audio_fifo;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.85 2001/12/08 00:45:27 guenter Exp $
+ * $Id: xine.c,v 1.86 2001/12/08 13:37:58 guenter Exp $
  *
  * top-level xine functions
  *
@@ -89,11 +89,35 @@ void xine_notify_stream_finished (xine_t *this) {
   }
 }
 
+static void xine_internal_osd (xine_t *this, char *str, 
+			       uint32_t start_time, uint32_t duration) {
+
+  uint32_t seconds;
+  char tstr[256];
+
+  this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
+  this->osd_renderer->render_text (this->osd, 0, 5, str);
+
+  seconds = this->cur_input_time;
+
+  sprintf (tstr, "%02d:%02d:%02d", 
+	   seconds / (60 * 60),
+	   (seconds % (60*60)) / 60,
+	   seconds % 60);
+  
+  this->osd_renderer->render_text (this->osd, 70, 5, tstr);
+
+  this->osd_renderer->show (this->osd, start_time);
+  this->osd_renderer->hide (this->osd, start_time+duration);
+}
+
 void xine_stop_internal (xine_t *this) {
 
   pthread_mutex_lock (&this->xine_lock);
 
   printf ("xine_stop\n");
+
+  xine_internal_osd (this, "}", this->metronom->get_current_time (this->metronom), 30000);
 
   if (this->status == XINE_STOP) {
     printf ("xine_stop ignored\n");
@@ -274,17 +298,11 @@ void xine_play (xine_t *this, char *mrl,
   printf ("xine: using input plugin >%s< for this MRL.\n", 
 	  this->cur_input_plugin->get_identifier(this->cur_input_plugin));
 
-  /* FIXME: This is almost certainly the WRONG way to do this but it is
-   * only temporary until a better way if found for plugins to send events.
-   */
-  this->cur_input_plugin->get_optional_data(this->cur_input_plugin,
-					    (void*)this, 0x1010);
-
   /*
    * find demuxer plugin
    */
 
-  if(!find_demuxer(this, mrl)) {
+  if (!find_demuxer(this, mrl)) {
     printf ("xine: couldn't find demuxer for >%s<\n", mrl);
     pthread_mutex_unlock (&this->xine_lock);
     return;
@@ -325,6 +343,10 @@ void xine_play (xine_t *this, char *mrl,
     if( this->audio_out )
       this->audio_out->audio_paused = 0;
     this->speed = SPEED_NORMAL;
+
+    /* osd */
+    xine_internal_osd (this, ">", 0, 300000);
+
   }
 
   pthread_mutex_unlock (&this->xine_lock);
@@ -435,6 +457,10 @@ xine_t *xine_init (vo_driver_t *vo,
 
   this->osd_renderer = osd_renderer_init( this->video_out->overlay_source );
   
+  this->osd = this->osd_renderer->new_object (this->osd_renderer, 300, 100);
+  this->osd_renderer->set_font (this->osd, "cetus", 24);
+  this->osd_renderer->set_position (this->osd, 10,10);
+
   if(ao) 
     this->audio_out = ao_new_instance (ao, this->metronom, config);
 
@@ -562,15 +588,46 @@ int xine_get_av_offset (xine_t *this) {
  */
 
 void xine_set_speed (xine_t *this, int speed) {
-  
+
+  struct timespec tenth_sec;
+
   pthread_mutex_lock (&this->xine_lock);
 
-  if (speed < SPEED_PAUSE)
+  if (speed <= SPEED_PAUSE) 
     speed = SPEED_PAUSE;
-  if (speed > SPEED_FAST_4)
+  else if (speed > SPEED_FAST_4) 
     speed = SPEED_FAST_4;
 
-  printf ("xine_set_speed %d\n", speed);
+  /* osd */
+
+  switch (speed) {
+  case SPEED_PAUSE:
+    xine_internal_osd (this, "<", this->metronom->get_current_time (this->metronom), 10000);
+    break;
+  case SPEED_SLOW_4:
+    xine_internal_osd (this, "<>", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    break;
+  case SPEED_SLOW_2:
+    xine_internal_osd (this, "@>", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    break;
+  case SPEED_NORMAL:
+    xine_internal_osd (this, ">", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    break;
+  case SPEED_FAST_2:
+    xine_internal_osd (this, "$$", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    break;
+  case SPEED_FAST_4:
+    xine_internal_osd (this, "$$$", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    break;
+  } 
+
+  /* make sure osd can be displayed */
+  tenth_sec.tv_sec = 0;
+  tenth_sec.tv_nsec = 100000000;
+
+  nanosleep (&tenth_sec, NULL);
+
+  printf ("xine: set_speed %d\n", speed);
 
   this->metronom->set_speed (this->metronom, speed);
 
