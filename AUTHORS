@@ -268,4 +268,7 @@ Contributions
   Andres Salomon <dilinger@voxel.net>
     memory leakage fixes
 
+  Pierre Lombard <p-l-42@wanadoo.fr>
+    patch to avoid loss of first line in linearblend deinterlacer
+
     (let us know if we've forgotten anyone)
