@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.66 2002/01/07 11:33:16 jkeil Exp $
+ * $Id: load_plugins.c,v 1.67 2002/01/08 16:41:39 cvogler Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -570,7 +570,7 @@ void load_decoder_plugins (xine_t *this,
 	   */
 
 	  {
-	    void *(*initplug) (int, config_values_t *);
+	    void *(*initplug) (int, xine_t *);
 	    if((initplug = dlsym(plugin, "init_video_decoder_plugin")) != NULL) {
 	      
 	      video_decoder_t *vdp;
