@@ -239,8 +239,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     picture = mpeg2dec->picture;
     is_frame_done = mpeg2dec->in_slice && ((!code) || (code >= 0xb0));
 
-    if (is_frame_done && picture->current_frame != NULL) {
+    if (is_frame_done)
 	mpeg2dec->in_slice = 0;
+    
+    if (is_frame_done && picture->current_frame != NULL) {
 
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
@@ -330,10 +332,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    } else if (!picture->backward_reference_frame || picture->backward_reference_frame->bad_frame) {
 	      mpeg2dec->drop_frame = 1;
 #ifdef LOG
-	      if (picture->backward_reference_frame->bad_frame)
-		printf ("libmpeg2: dropping p-frame because ref %d is bad\n", picture->backward_reference_frame->id);
-	      else
+	      if (!picture->backward_reference_frame)
 		printf ("libmpeg2: dropping p-frame because no ref frame\n");
+	      else
+		printf ("libmpeg2: dropping p-frame because ref %d is bad\n", picture->backward_reference_frame->id);
 #endif
 	    }
 	    break;
@@ -423,7 +425,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 	if (!(mpeg2dec->in_slice)) {
 	    mpeg2dec->in_slice = 1;
-
+     
 	    if (picture->second_field) {
 	      if (picture->current_frame)
 		picture->current_frame->field(picture->current_frame, 
@@ -478,8 +480,13 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 	if (!mpeg2dec->drop_frame && picture->current_frame != NULL) {
 	  mpeg2_slice (picture, code, buffer);
-	  if( picture->v_offset > picture->limit_y ) 
+
+	  if( picture->v_offset > picture->limit_y ) { 
 	    picture->current_frame->bad_frame = 0;
+#ifdef LOG
+	    printf("libmpeg2: frame %d successfuly decoded\n",picture->current_frame->id); 
+#endif
+	  }
 	}
     }
 
