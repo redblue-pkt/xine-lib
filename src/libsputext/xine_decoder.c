@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.13 2002/02/26 23:17:01 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -36,6 +36,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <iconv.h>
 
 #include "buffer.h"
 #include "events.h"
@@ -91,6 +92,8 @@ typedef struct sputext_decoder_s {
   osd_renderer_t    *renderer;
   osd_object_t      *osd;
   char              *font;
+  char              *src_encoding;
+  char              *dst_encoding;
 
 } sputext_decoder_t;
 
@@ -223,9 +226,12 @@ static subtitle_t *sub_read_line_microdvd(sputext_decoder_t *this, subtitle_t *c
   
   bzero (current, sizeof(subtitle_t));
   
+  current->end=-1;
   do {
     if (!fgets (line, 1000, this->fd)) return NULL;
-  } while (sscanf (line, "{%ld}{%ld}%[^\r\n]", &(current->start), &(current->end),line2) <3);
+  } while ((sscanf (line, "{%ld}{}%[^\r\n]", &(current->start), line2) !=2) &&
+           (sscanf (line, "{%ld}{%ld}%[^\r\n]", &(current->start), &(current->end),line2) !=3)
+	  );
   
   p=line2;
   
@@ -567,7 +573,8 @@ static int sub_autodetect (sputext_decoder_t *this) {
     if (!fgets (line, 1000, this->fd))
       return -1;
     
-    if (sscanf (line, "{%d}{%d}", &i, &i)==2) {
+    if ((sscanf (line, "{%d}{}", &i)==1) ||
+        (sscanf (line, "{%d}{%d}", &i, &i)==2)) {
       this->uses_time=0;
       printf ("sputext: microdvd subtitle format detected\n");
       return FORMAT_MICRODVD;
@@ -653,6 +660,7 @@ static subtitle_t *sub_read_file (sputext_decoder_t *this) {
     sub_read_line_aqt
     
   };
+  iconv_t iconv_descr;
 
   this->format=sub_autodetect (this);
   if (this->format==-1) {
@@ -668,6 +676,7 @@ static subtitle_t *sub_read_file (sputext_decoder_t *this) {
   first = (subtitle_t *) xine_xmalloc(n_max*sizeof(subtitle_t));
   if(!first) return NULL;
     
+  iconv_descr=iconv_open(this->dst_encoding,this->src_encoding);
   while(1){
     subtitle_t *sub;
     if(this->num>=n_max){
@@ -681,10 +690,29 @@ static subtitle_t *sub_read_file (sputext_decoder_t *this) {
     if (sub==ERR) 
       ++this->errs; 
     else {
-      ++this->num; /* Error vs. Valid */
+      int i;
 
+      for(i=0; i<first[this->num].lines; i++)
+      { char *tmp;
+	char *in_buff, *out_buff;
+	int   in_len, out_len;
+
+	in_len=strlen(first[this->num].text[i])+1;
+	tmp=malloc(in_len);
+	in_buff=first[this->num].text[i];
+	out_buff=tmp;
+	out_len=in_len;
+	if ((size_t)(-1)!=iconv(iconv_descr,&in_buff,&in_len,&out_buff,&out_len))
+	{ free(first[this->num].text[i]);
+	  first[this->num].text[i]=tmp;
+	}
+	else
+        { printf("sputext: Can't convert subtitle text\n"); }
+      }
+      ++this->num; /* Error vs. Valid */
     }
   }
+  iconv_close(iconv_descr);
 
   printf ("sputext: Read %i subtitles", this->num);
   if (this->errs) 
@@ -935,6 +963,24 @@ static void update_osd_font(void *this_gen, cfg_entry_t *entry)
   printf("libsputext: spu_font = %s\n", this->font );
 }
 
+static void update_osd_src_encoding(void *this_gen, cfg_entry_t *entry)
+{
+  sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
+
+  this->src_encoding = entry->str_value;
+  
+  printf("libsputext: spu_src_encoding = %s\n", this->src_encoding );
+}
+
+static void update_osd_dst_encoding(void *this_gen, cfg_entry_t *entry)
+{
+  sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
+
+  this->dst_encoding = entry->str_value;
+  
+  printf("libsputext: spu_dst_encoding = %s\n", this->dst_encoding );
+}
+
 spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
@@ -962,6 +1008,16 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 									"sans", 
 									"font for avi subtitles", 
 									NULL, update_osd_font, this);
+  this->src_encoding                    = xine->config->register_string(xine->config, 
+									"codec.spu_src_encoding", 
+									"windows-1250", 
+									"source encoging of subtitles", 
+									NULL, update_osd_dst_encoding, this);
+  this->dst_encoding                    = xine->config->register_string(xine->config, 
+									"codec.spu_dst_encoding", 
+									"iso-8859-2", 
+									"target encoging for subtitles (have to match font encoding)", 
+									NULL, update_osd_dst_encoding, this);
 
   return (spu_decoder_t *) this;
 }

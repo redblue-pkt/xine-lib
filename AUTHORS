@@ -204,5 +204,8 @@ Contributions
 
   Scott Smith <ssmith@akamai.com>
     yuv2rgb optimizations and downscaling support
+
+  Jirka Novak <j.novak@netsystem.cz>
+    font encoding support for avi subtitles
 	
     (let us know if we've forgotten anyone)
