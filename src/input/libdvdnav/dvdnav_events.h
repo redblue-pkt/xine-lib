@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_events.h,v 1.9 2003/04/05 12:28:16 miguelfreitas Exp $
+ * $Id: dvdnav_events.h,v 1.10 2003/04/06 13:09:38 mroi Exp $
  *
  */
 
@@ -99,7 +99,8 @@ typedef struct {
   int64_t cell_length; /*!< The length of the current cell in PTS ticks */
   int64_t pg_length;   /*!< The length of the current program in PTS ticks */
   int64_t pgc_length;  /*!< The length of the current program chain in PTS ticks */
-  int64_t cell_start;  /*!< The start of the current cell in PTS ticks */
+  int64_t cell_start;  /*!< The start time of the current cell relatively to the PGC in PTS ticks */
+  int64_t pg_start;    /*!< The start time of the current PG relatively to the PGC in PTS ticks */
 } dvdnav_cell_change_event_t;
 
 /* FIXME: These are unused. */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.22 2003/04/05 12:28:16 miguelfreitas Exp $
+ * $Id: dvdnav.c,v 1.23 2003/04/06 13:09:38 mroi Exp $
  *
  */
 
@@ -590,6 +590,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     cell_event->pgN   = state->pgN;
     cell_event->cell_length =
       dvdnav_convert_time(&state->pgc->cell_playback[state->cellN-1].playback_time);
+    
     cell_event->pg_length = 0;
     /* Find start cell of program. */
     first_cell_nr = state->pgc->program_map[state->pgN-1];
@@ -606,6 +607,11 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     cell_event->cell_start = 0;
     for (i = 1; i < state->cellN; i++)
       cell_event->cell_start +=
+        dvdnav_convert_time(&state->pgc->cell_playback[i - 1].playback_time);
+
+    cell_event->pg_start = 0;
+    for (i = 1; i < state->pgc->program_map[state->pgN-1]; i++)
+      cell_event->pg_start +=
         dvdnav_convert_time(&state->pgc->cell_playback[i - 1].playback_time);
     
     this->position_current.cell         = this->position_next.cell;
@@ -1023,6 +1029,9 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.23  2003/04/06 13:09:38  mroi
+ * report start of PG as well
+ *
  * Revision 1.22  2003/04/05 12:28:16  miguelfreitas
  * "perfect" time display for dvds
  * (see thread on xine-devel for details)
