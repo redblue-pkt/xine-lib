@@ -17,9 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.1 2002/11/02 23:45:48 tmmm Exp $
+ * $Id: demux_eawve.c,v 1.2 2002/11/03 01:11:14 komadori Exp $
  *
- * demux_wve.c, Demuxer plugin for Electronic Arts' WVE file format
+ * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
  * written and currently maintained by Robin Kay <komadori@myrealbox.com>
  */
@@ -63,7 +63,7 @@ typedef struct {
 
   int sample_counter;
   char last_mrl[1024];
-} demux_wve_t;
+} demux_eawve_t;
 
 typedef struct {
 
@@ -73,7 +73,7 @@ typedef struct {
 
   xine_t           *xine;
   config_values_t  *config;
-} demux_wve_class_t;
+} demux_eawve_class_t;
 
 typedef struct {
   uint32_t id;
@@ -132,7 +132,7 @@ static int skip_bytes(input_plugin_t *input, int bytes)
  * Returns 1 if the WVE file is valid and successfully opened, 0 otherwise
  */
 
-static int process_header(demux_wve_t *this)
+static int process_header(demux_eawve_t *this)
 {
   int inHeader;
   uint32_t blockid, size;
@@ -155,13 +155,12 @@ static int process_header(demux_wve_t *this)
     return 0;
   }
   size = le2me_32(size);
-  printf("demux_wve: header block is %d bytes long\n", size);
 
   if (this->input->read(this->input, (void*)&blockid, 4) != 4) {
     return 0;
   }
   if (be2me_32(blockid) != FOURCC_TAG('P', 'T', '\0', '\0')) {
-    printf("demux_wve: PT header missing\n");
+    printf("demux_eawve: PT header missing\n");
     return 0;
   }
 
@@ -175,7 +174,7 @@ static int process_header(demux_wve_t *this)
 
     switch (byte) {
       case 0xFD:
-        printf("demux_wve: entered audio subheader\n");
+        printf("demux_eawve: entered audio subheader\n");
         inSubheader = 1;
         while (inSubheader) {
           uint8_t subbyte;
@@ -186,35 +185,40 @@ static int process_header(demux_wve_t *this)
           switch (subbyte) {
             case 0x82:
               this->num_channels = read_arbitary(this->input);
-              printf("demux_wve: num_channels (element 0x82) set to 0x%08x\n", this->num_channels);
+              printf("demux_eawve: num_channels (element 0x82) set to 0x%08x\n", this->num_channels);
             break;
             case 0x83:
               this->compression_type = read_arbitary(this->input);
-              printf("demux_wve: compression_type (element 0x83) set to 0x%08x\n", this->compression_type);
+              printf("demux_eawve: compression_type (element 0x83) set to 0x%08x\n", this->compression_type);
             break;
             case 0x85:
               this->num_samples = read_arbitary(this->input);
-              printf("demux_wve: num_samples (element 0x85) set to 0x%08x\n", this->num_samples);
+              printf("demux_eawve: num_samples (element 0x85) set to 0x%08x\n", this->num_samples);
             break;
             default:
-              printf("demux_wve: element 0x%02x set to 0x%08x\n", subbyte, read_arbitary(this->input));
+              printf("demux_eawve: element 0x%02x set to 0x%08x\n", subbyte, read_arbitary(this->input));
             break;
             case 0x8A:
-              printf("demux_wve: element 0x%02x set to 0x%08x\n", subbyte, read_arbitary(this->input));
-              printf("demux_wve: exited audio subheader\n");
+              printf("demux_eawve: element 0x%02x set to 0x%08x\n", subbyte, read_arbitary(this->input));
+              printf("demux_eawve: exited audio subheader\n");
               inSubheader = 0;
             break;
           }
         }
       break;
       default:
-        printf("demux_wve: header element 0x%02x set to 0x%08x\n", byte, read_arbitary(this->input));
+        printf("demux_eawve: header element 0x%02x set to 0x%08x\n", byte, read_arbitary(this->input));
       break;
       case 0xFF:
-        printf("demux_wve: end of header block reached\n");
+        printf("demux_eawve: end of header block reached\n");
         inHeader = 0;
       break;
     }
+  }
+
+  if ((this->num_channels != 2) || (this->compression_type != 7)) {
+    printf("demux_eawve: unsupported stream type\n");
+    return 0;
   }
 
   if (skip_bytes(this->input, size - this->input->get_current_pos(this->input)) < 0) {
@@ -230,12 +234,12 @@ static int process_header(demux_wve_t *this)
  * !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT!
  */
 
-static int demux_wve_send_chunk(demux_wve_t *this)
+static int demux_eawve_send_chunk(demux_eawve_t *this)
 {
   chunk_header_t header;
 
   if (this->input->read(this->input, (void*)&header, sizeof(chunk_header_t)) != sizeof(chunk_header_t)) {
-    printf("demux_wve: read error\n");
+    printf("demux_eawve: read error\n");
     this->status = DEMUX_FINISHED;
     return this->status;
   }
@@ -266,7 +270,7 @@ static int demux_wve_send_chunk(demux_wve_t *this)
         header.size -= buf->size;
 
         if (this->input->read(this->input, buf->content, buf->size) != buf->size) {
-          printf("demux_wve: read error\n");
+          printf("demux_eawve: read error\n");
           this->status = DEMUX_FINISHED;
           buf->free_buffer(buf);
           break;
@@ -288,14 +292,13 @@ static int demux_wve_send_chunk(demux_wve_t *this)
     break;
 
     case FOURCC_TAG('S', 'C', 'E', 'l'): {
-      printf("SCEl reached\n");
       this->status = DEMUX_FINISHED;
     }
     break;
 
     default: {
       if (skip_bytes(this->input, header.size) < 0) {
-        printf("demux_wve: read error\n");
+        printf("demux_eawve: read error\n");
         this->status = DEMUX_FINISHED;
       }
     }
@@ -305,9 +308,9 @@ static int demux_wve_send_chunk(demux_wve_t *this)
   return this->status;
 }
 
-static void demux_wve_send_headers(demux_plugin_t *this_gen) {
+static void demux_eawve_send_headers(demux_plugin_t *this_gen) {
 
-  demux_wve_t *this = (demux_wve_t *) this_gen;
+  demux_eawve_t *this = (demux_eawve_t *) this_gen;
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -341,7 +344,7 @@ static void demux_wve_send_headers(demux_plugin_t *this_gen) {
   xine_demux_control_headers_done (this->stream);
 }
 
-static int demux_wve_seek(demux_wve_t *this, off_t start_pos, int start_time)
+static int demux_eawve_seek(demux_eawve_t *this, off_t start_pos, int start_time)
 {
 
   if (!this->thread_running) {
@@ -356,17 +359,17 @@ static int demux_wve_seek(demux_wve_t *this, off_t start_pos, int start_time)
   return this->status;
 }
 
-static void demux_wve_dispose(demux_wve_t *this)
+static void demux_eawve_dispose(demux_eawve_t *this)
 {
   free(this);
 }
 
-static int demux_wve_get_status(demux_wve_t *this)
+static int demux_eawve_get_status(demux_eawve_t *this)
 {
   return this->status;
 }
 
-static int demux_wve_get_stream_length(demux_wve_t *this)
+static int demux_eawve_get_stream_length(demux_eawve_t *this)
 {
   return this->num_samples / 22050;
 }
@@ -375,23 +378,18 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
                                     input_plugin_t *input_gen) {
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
-  demux_wve_t    *this;
+  demux_eawve_t    *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_wve.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
-
-  this         = xine_xmalloc (sizeof (demux_wve_t));
+  this         = xine_xmalloc (sizeof (demux_eawve_t));
   this->stream = stream;
   this->input  = input;
 
-  this->demux_plugin.send_headers      = (void*)demux_wve_send_headers;
-  this->demux_plugin.send_chunk        = (void*)demux_wve_send_chunk;
-  this->demux_plugin.seek              = (void*)demux_wve_seek;
-  this->demux_plugin.dispose           = (void*)demux_wve_dispose;
-  this->demux_plugin.get_status        = (void*)demux_wve_get_status;
-  this->demux_plugin.get_stream_length = (void*)demux_wve_get_stream_length;
+  this->demux_plugin.send_headers      = (void*)demux_eawve_send_headers;
+  this->demux_plugin.send_chunk        = (void*)demux_eawve_send_chunk;
+  this->demux_plugin.seek              = (void*)demux_eawve_seek;
+  this->demux_plugin.dispose           = (void*)demux_eawve_dispose;
+  this->demux_plugin.get_status        = (void*)demux_eawve_get_status;
+  this->demux_plugin.get_stream_length = (void*)demux_eawve_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
@@ -465,9 +463,9 @@ static void class_dispose (demux_class_t *this) {
 
 static void *init_plugin (xine_t *xine, void *data) {
 
-  demux_wve_class_t     *this;
+  demux_eawve_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_wve_class_t));
+  this         = xine_xmalloc (sizeof (demux_eawve_class_t));
   this->config = xine->config;
   this->xine   = xine;
 
