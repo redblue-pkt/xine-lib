@@ -731,13 +731,13 @@
     </para>
     <para>
      Possibly the most convenient way to get the Quicktime DLLs is to download
-     them from the mplayer website 
-     <ulink url="http://www1.mplayerhq.hu/MPlayer/releases/codecs/">
-      http://www1.mplayerhq.hu/MPlayer/releases/codecs/
+     them from the MPlayer website
+     <ulink url="http://www.mplayerhq.hu/homepage/dload.html">
+      http://www.mplayerhq.hu/homepage/dload.html
      </ulink>.
-     The package is called "QuickTime6 DLLs". Unpack it and move everything you find
+     The package is called "essential". Unpack it and move everything you find
      inside to <filename>/usr/lib/win32</filename> (actually you can place them
-     anywhere you want, e.g. someplace in your homedirectory, but then you'll
+     anywhere you want, e.g. someplace in your home directory, but then you'll
      have to set <parameter>codec.win32_path</parameter> in your
      xine config file accordingly). Restart xine then and you should be
      able to watch Quicktime trailers.
@@ -751,21 +751,23 @@
      <para>
       The situation with real files and streams is pretty similar to the situation
       with Quicktime Streams (see above). The newer real audio and video formats
-      are only supported by using binary-only codecs which are available from
-      real networks but are not included in xine.
+      are only supported by using binary-only codecs which are not included in
+      xine.
      </para>
-     <para>
-      One way to get these codecs is to download and install RealPlayer from
-      RealNetworks, for example in <filename>/usr/local/RealPlayer8</filename> or
-      <filename>/opt/RealPlayer8</filename>. If you installed it in one of these
-      places, xine should automatically find and use the real binary codecs.
-      If it doesn't work, try to find out the exact path to where the real codecs
-      are installed on your system (look for a file named <filename>rv30.so.6.0</filename>
-      which should reside in a directory called <filename>Codecs</filename> in the
-      directory where you have installed RealPlayer in) and set
-      <parameter>codec.real_codecs_path</parameter> in your xine config file
-      accordingly.
-     </para>
+    <para>
+     Possibly the most convenient way to get the Real codecs is to download
+     them from the MPlayer website
+     <ulink url="http://www.mplayerhq.hu/homepage/dload.html">
+      http://www.mplayerhq.hu/homepage/dload.html
+     </ulink>.
+     The package is called "essential". Unpack it and move everything you
+     find inside to <filename>/usr/lib/win32</filename> and set the
+     <parameter>codec.real_codecs_path</parameter> in your xine config file
+     to <filename>/usr/lib/win32</filename> (actually you can place them
+     anywhere you want, e.g. someplace in your home directory, but then you'll
+     have to set <parameter>codec.real_codecs_path</parameter> accordingly).
+     Restart xine then and you should be able to watch Real files/streams.
+    </para>
     </sect3>
     <sect3 id="realnetworkstreams">
      <title>What about (live) network streams (pnm://, rtsp:// style urls)?</title>
@@ -792,14 +794,14 @@
      you'll need to install windows binary codecs (.DLLs).
     </para>
     <para>
-     Possibly the most convenient way to get the windows DLLs is to download
-     them from the mplayer website 
-     <ulink url="http://www1.mplayerhq.hu/MPlayer/releases/codecs/">
-      http://www1.mplayerhq.hu/MPlayer/releases/codecs/
+     Possibly the most convenient way to get the Windows DLLs is to download
+     them from the MPlayer website
+     <ulink url="http://www.mplayerhq.hu/homepage/dload.html">
+      http://www.mplayerhq.hu/homepage/dload.html
      </ulink>.
-     The package is called "Win32 Codecpack". Unpack it and move everything you find
+     The package is called "essential". Unpack it and move everything you find
      inside to <filename>/usr/lib/win32</filename> (actually you can place them
-     anywhere you want, e.g. someplace in your homedirectory, but then you'll
+     anywhere you want, e.g. someplace in your home directory, but then you'll
      have to set <parameter>codec.win32_path</parameter> in your
      xine config file accordingly). Restart xine then and you should be
      able to watch windows media streams.
