@@ -13,7 +13,8 @@ lib_LTLIBRARIES = xineplug_decode_ff.la xineplug_decode_dvaudio.la
 
 if HAVE_DXR3
 AM_CPPFLAGS = -I$(top_srcdir)/src/dxr3 $(X_CFLAGS)
-xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c xine_encoder.c
+xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c \
+                                xine_encoder.c mpeg_parser.c
 # The dxr3 uses ffmpegs MPEG encoder by dlopen()ing the ffmpeg plugin and
 # dlsym()ing the necessary function. Therefore we must allow more exported
 # symbols and cannot use @XINE_PLUGIN_MIN_SYMS@
