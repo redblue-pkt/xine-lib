@@ -1,7 +1,7 @@
 
 SUBDIRS = man
 
-EXTRA_DIST = $(docs_DOCS) MRL.txt dataflow.dia
+EXTRA_DIST = $(docs_DOCS) MRL.txt dataflow.dia xine-lib-API.cfg
 
 docdir = $(prefix)/share/doc/xine
 docs_DOCS = README README.syncfb README.freebsd FAQ bug_report_form
@@ -30,12 +30,27 @@ uninstall-local:
 	done
 
 
+docs:
+	@if test x"$$DOXYGEN" != "xno"; then \
+	  echo -n "  + Creating docs: "; \
+	  cp ../misc/xine_logo.png ./xine-lib-API; \
+	  echo -e "<HTML>\n<HEAD>\n<TITLE>\$$projectname</TITLE>\n<IMG SRC=\"../xine_logo.png\" alt=\"xine logo\" ALIGN=CENTER WIDTH=100% CELLPADDING=0 BORDER=0>\n</HEAD>\n<BODY BGCOLOR=#000000 TEXT=#ccccFF LINK=#a0a0FF VLINK=#40ddff ALINK=#ffffff leftmargin=\"0\" topmargin=\"0\" marginwidth=\"0\" marginheight=\"0\">\n" > ./xine-lib-API/xine_header.html; \
+	  $(DOXYGEN) xine-lib-API.cfg; \
+	  echo "done.";\
+	fi
+
+
+erase-docs:
+	@rm -rf xine-lib-API/html
+	@rm xine-lib-API/xine_header.html xine-lib-API/xine_logo.png
+
+
 debug:
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*
 
-maintainer-clean-generic:
+maintainer-clean-generic: erase-docs
 	-@echo "This command is intended for maintainers to use;"
 	-@echo "it deletes files that may require special tools to rebuild."
 	-rm -f Makefile.in

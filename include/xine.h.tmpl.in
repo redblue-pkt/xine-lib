@@ -1,23 +1,35 @@
-/* 
- * Copyright (C) 2000-2001 the xine project
- * 
- * This file is part of xine, a unix video player.
- * 
- * xine is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * xine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+/**
+ * \file xine.h
+ * \author Guenter Bartsch <guenter@users.sourceforge.net>
+ * \author Siegfried Langauf <siggi@users.sourceforge.net>
+ * \author Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+ * \date 2000-2001
  *
- * $Id: xine.h.tmpl.in,v 1.3 2001/04/19 09:46:57 f1rmb Exp $
+ * API of XINE library.
+ *
+ * \verbatim
+   Copyright (C) 2000-2001 the xine project
+  
+   This file is part of xine, a unix video player.
+  
+   xine is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+  
+   xine is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+  
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+
+   \endverbatim
+ */
+/*
+ * $Id: xine.h.tmpl.in,v 1.4 2001/04/19 23:13:09 f1rmb Exp $
  *
  */
 
@@ -26,141 +38,283 @@
 
 #include <inttypes.h>
 
+/** 
+ * \defgroup versgroup Version contants 
+ * @{
+ */
+/** \brief Major version constant */
 #define XINE_MAJOR_VERSION @XINE_MAJOR@
+/** \brief Minor version constant */
 #define XINE_MINOR_VERSION @XINE_MINOR@
+/** \brief Sub version constant */
 #define XINE_SUB_VERSION   @XINE_SUB@
+/** @} end of versgroup */
 
+#ifndef DOC_HIDDEN
 typedef void vo_instance_t;
 typedef void ao_functions_t;
 typedef void config_values_t;
 typedef void xine_t;
+#endif
 
-/* nStatus : current xine status */
+/** 
+ * \brief Current xine status function type
+ * \param nStatus Current status
+ * @see xine_init()
+ *
+ * This type define the callback function that
+ * UI should implement.
+ */
 typedef void (*gui_status_callback_func_t)(int nStatus);
 
-/*
- * player status constants:
+/**
+ * \defgroup statgroup Player status constants
+ * @{
  */
-
-#define XINE_STOP      0 
-#define XINE_PLAY      1 
-#define XINE_PAUSE     2 
+/** \brief Stop status 
+ * @see xine_get_status()
+ */
+#define XINE_STOP      0
+/** \brief Play status
+ * @see xine_get_status()
+ */
+#define XINE_PLAY      1
+/** \brief Pause status
+ * @see xine_get_status()
+ */
+#define XINE_PAUSE     2
+/** \brief Quit status
+ * @see xine_get_status()
+ */
 #define XINE_QUIT      3
+/** @} end of statgroup */
 
-/*
- * read config file and init a config object
- * (if it exists)
+/**
+ * @defgroup xine_api API functions
+ * @{
+ */
+/** @defgroup xine_init_api Init functions
+ * @ingroup xine_api
+ * @{
+ */
+/**
+ * \fn config_values_t *config_file_init (char *filename)
+ * \brief Configuration file initialisation.
+ * \param filename Pathname of configuration file.
+ * \return Current config
+ *
+ * Read config file and init a config object * (if it exists)
  */
 config_values_t *config_file_init (char *filename);
 
-/*
- * init xine - call once at startup
+/**
+ * \fn xine_t *xine_init (vo_instance_t *vo, ao_functions_t *ao, gui_status_callback_func_t gui_status_callback, config_values_t *config, int demux_strategy, uint32_t debug_lvl)
+ * \brief Initialisation of xine.
+ * \param vo Video driver ( should be previously initialized by vo_init() )
+ * \param ao Audio driver ( should be previously initializef by ao_init() )
+ * \param gui_status_callback Pointer to UI function ( #see gui_status_callback_func_t() function type )
+ * \param config Current configuration ( #see config_file_init() )
+ * \param demux_strategy ** Will be removed **
+ * \param debug_lvl ** Will be removed **
+ * \return Current xine engine configuration
+ * \warning This function should be called before any of xine_*() functions.
+ *
+ * Init of xine. It should called once at startup.
  *
  */
-
 xine_t *xine_init (vo_instance_t *vo, 
 		   ao_functions_t *ao,
 		   gui_status_callback_func_t gui_status_callback,
 		   config_values_t *config, int demux_strategy, uint32_t debug_lvl) ;
 
-/*
- * open a stream and play it
+/**
+ * \fn void xine_exit (xine_t *this)
+ * \brief De-initialisation of xine
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Nothing
  *
- * name : mrl to open
- * pos  : start position 0..65535
+ * De init xine engine.
+ */
+void xine_exit (xine_t *this);
+
+/** @} end of xine_init_api */
+
+/**
+ * @defgroup xine_management_api Engine management
+ * @ingroup xine_api
+ * @{
+ */
+/**
+ * \fn void xine_play (xine_t *this, char *MRL, int pos)
+ * \brief Start to play a stream
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \param MRL Media Resource Location to open
+ * \param pos Start from position (0..65535)
+ * \return Nothing
+ *
+ * Open a stream and play it
  *
  */
 void xine_play (xine_t *this, char *MRL, int pos);
 
 
-/*
- * toggle pause mode
+/**
+ * \fn void xine_pause (xine_t *this)
+ * \brief Pause toggle
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Nothing
+ *
+ * Toggle pause mode.
  */
 void xine_pause (xine_t *this);
 
 
-/*
- * stop playing
+/**
+ * \fn void xine_stop (xine_t *this)
+ * \brief Stop playing
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Nothing
+ *
+ * Stop the playback.
  */
 void xine_stop (xine_t *this);
 
-/*
- * tell current input plugin to eject media.
+/**
+ * \fn int xine_eject(xine_t *this)
+ * \brief Eject media
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return 1 on success, 0 on failure.
+ *
+ * Tell current input plugin to eject media.
  */
 int xine_eject(xine_t *this);
 
-/*
- * return current status (XINE_PLAY/XINE_STOP...)
+/**
+ * \fn int xine_get_status (xine_t *this)
+ * \brief Get current xine status
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Current status ( #see @ref statgroup )
+ *
+ * Return the current state of xine engine.
  */
 int xine_get_status (xine_t *this);
 
-/*
- * get current position in stream
- * returns position (range : 0 - 65535)
+/**
+ * \fn int xine_get_current_position (xine_t *this)
+ * \brief Get current position
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Current position ( 0..65535 )
+ *
+ * Get current position in stream.
  */
 int xine_get_current_position (xine_t *this);
 
-/*
- * return the current audio channel
+/**
+ * \fn int xine_get_audio_channel (xine_t *this)
+ * \brief Get current audio channel
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Current audio chennel
+ *
+ * Get current audio channel.
  */
 int xine_get_audio_channel (xine_t *this);
 
-/*
- * set desired audio channel
+/**
+ * \fn void xine_select_audio_channel (xine_t *this, int channel)
+ * \brief Set audio channel
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Nothing
+ *
+ * Set desired audio channel.
  */
 void xine_select_audio_channel (xine_t *this, int channel);
 
-/*
- * return the current SPU channel
+/**
+ * \fn int xine_get_spu_channel (xine_t *this)
+ * \brief Get current sub-title channel.
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Current sub-title channel
+ *
+ * Get current sub-title channel.
  */
 int xine_get_spu_channel (xine_t *this);
 
-/*
- * set desired SPU channel
+/**
+ * \fn void xine_select_spu_channel (xine_t *this, int channel)
+ * \brief Set sub-title channel
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Nothing
+ *
+ * Set desired sub-title channel.
  */
 void xine_select_spu_channel (xine_t *this, int channel);
 
-/*
- * exit xine
- */
-void xine_exit (xine_t *this);
+/** @} end of xine_management_api */
 
-/*
- * browsing support
+/**
+ * @defgroup browsegroup Browsing support
+ * @ingroup xine_api
+ * @{
  */
-
-/*
- * some input plugins are browseable
- * returns a list of ids of these plugins
+/**
+ * \fn char **xine_get_browsable_input_plugin_ids (xine_t *this)
+ * \brief Request list of browsable featured plugins
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return List of plugins
+ *
+ * Some input plugins are browseable, 
+ * get the list of ids of these plugins.
  */
 char **xine_get_browsable_input_plugin_ids (xine_t *this) ;
 
-/*
- * browse function
- * asks input plugin named <plugin_id> to return
- * a list of available MRLs in domain/directory <start_mrl>
+/**
+ * \fn char **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl)
+ * \brief Request available MRLs from plugins
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \param plugin_id Plugin name ( #see xine_get_browsable_input_plugin_ids() )
+ * \param start_mrl MRL
+ * \return start_mrl on success, NULL on failure.
+ *
+ * Asks input plugin named <plugin_id> to return
+ * a list of available MRLs in domain/directory <start_mrl>.
  * 
- * start_mrl may be NULL indicating the toplevel domain/dir
- * returns start_mrl if start_mrl is a valid MRL, not a directory
- * returns NULL if start_mrl is an invalid MRL, not even a directory
+ * <start_mrl> may be NULL indicating the toplevel domain/dir
+ * returns <start_mrl> if <start_mrl> is a valid MRL, not a directory
+ * returns NULL if <start_mrl> is an invalid MRL, not even a directory.
  */
 
 char **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
 			     char *start_mrl);
 
-/*
- * autoplay support
- */
+/** @} end of browsegroup*/
 
-/*
- * some input plugins can generate autoplay lists
- * returns a list of ids of these plugins
+/**
+ * @defgroup autoplaygroup Autoplay support
+ * @{
+ */
+/**
+ * \fn char **xine_get_autoplay_input_plugin_ids (xine_t *this)
+ * \brief Request playlist from plugin
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \return Playlist.
+ *
+ * Some input plugins can generate autoplay lists
+ * returns a list of ids of these plugins.
  */
 char **xine_get_autoplay_input_plugin_ids (xine_t *this) ;
 
-/*
- * get autoplay MRL list for input plugin named <plugin_id>
+/**
+ * \fn char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id)
+ * \brief Request MRL list from plugin
+ * \param this Current xine engine configuration ( #see xine_init() )
+ * \param plugin_id Plugin name ( #see xine_get_autoplay_input_plugin_ids() )
+ * \return MRL list.
+ *
+ * Get autoplay MRL list for input plugin named <plugin_id>.
  */
 char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
 
+/** @} end of autoplaygroup */
+
+/** @} end of xine_api */
 #endif

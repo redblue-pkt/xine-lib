@@ -336,6 +336,7 @@ else
 fi
 AC_SUBST(ACLOCAL_DIR)
 
+AC_CHECK_PROG(DOXYGEN, doxygen, doxygen, no)
 
 dnl
 dnl Output configuration files

@@ -11,6 +11,10 @@ EXTRA_DIST = cvscompile.sh
 noinst_HEADERS = config.h
 
 
+docs:
+	@cd doc && $(MAKE) $@
+
+
 debug:
 	list='$(SUBDIRS)'; for subdir in $$list; do \
 	  (cd $$subdir && $(MAKE) $@) \
