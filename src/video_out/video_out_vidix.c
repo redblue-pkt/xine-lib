@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.41 2003/05/02 00:54:21 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.42 2003/05/02 01:07:15 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -322,8 +322,6 @@ static void vidix_clean_output_area(vidix_driver_t *this) {
 
 
 static void vidix_update_colourkey(vidix_driver_t *this) {
-  this->vidix_grkey.ckey.op = CKEY_TRUE;
-    
   switch(this->depth) {
     case 15:
       this->colourkey = ((this->vidix_grkey.ckey.red   & 0xF8) << 7) |
@@ -1094,6 +1092,7 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   /* We'll assume all drivers support colour keying (which they do 
      at the moment) */
   this->capabilities |= VO_CAP_COLORKEY;
+  this->vidix_grkey.ckey.op = CKEY_TRUE;
   
   /* Colour key components */
   this->vidix_grkey.ckey.red = config->register_range(config,
