@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.5 2001/11/08 12:14:17 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.6 2001/11/09 07:20:44 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -305,18 +305,32 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		break;
 	case VO_PROP_ZOOM_X: 
 		if(!this->overlay_enabled){  /* TV-out only */
-		  if(value>0){
+		  if(value==1){
 			fprintf(stderr, "dxr3_vo: enabling 16:9 zoom\n");
 			val=EM8300_ASPECTRATIO_4_3;
 			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
 				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
 				 strerror(errno));
 			dxr3_zoomTV(this);
-		  }else{
+		  }else if (value==-1){
 			fprintf(stderr, "dxr3_vo: disabling 16:9 zoom\n");		
 			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &this->aspectratio))
 				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
 				 strerror(errno));
+		  }else if(value==0){	/* Use meta-z to cycle TV formats */
+		  	static int newmode;
+		  	newmode++;
+		  	if (newmode>EM8300_VIDEOMODE_LAST)
+		  		newmode=EM8300_VIDEOMODE_PAL;
+				fprintf(stderr, "dxr3_vo: Changing TVMode to ");
+				if(newmode==EM8300_VIDEOMODE_PAL)
+					fprintf(stderr, "PAL\n");
+				if(newmode==EM8300_VIDEOMODE_PAL60)
+					fprintf(stderr, "PAL60\n");
+				if(newmode==EM8300_VIDEOMODE_NTSC)
+					fprintf(stderr, "NTSC\n");
+		  	if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &newmode))
+			fprintf(stderr, "dxr3_vo: setting video mode failed.");
 		  }
 		}
 		break;
