@@ -1,6 +1,10 @@
 xine-lib (1-beta6)
   * inform the width and height for the v4l input plugin
   * ffmpeg aspect ratio detection code fixed
+  * demux_ogg arm patch by dilb
+  * memleak fixes by ewald snel
+  * plugin loader segfault fix
+  * fb configure check fixed
 	
 xine-lib (1-beta5)
   * new AV sync strategy (audio resample) for DXR3 users

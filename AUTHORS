@@ -361,4 +361,7 @@ Stuart Caie <kyzer@4u.net>
 Markus Plail <xine-user@gitteundmarkus.de>
   DTS passthrough improvements
 
+Dilb (?)
+  demux_ogg.c strongarm patch
+
 (let us know if we've forgotten anyone)
