@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.248 2003/05/20 13:50:57 mroi Exp $
+ * $Id: xine.c,v 1.249 2003/05/20 13:58:10 mroi Exp $
  *
  * top-level xine functions
  *
@@ -47,8 +47,6 @@
 #include "video_out.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
-#include "spu_decoder.h"
-/* TODO: who uses spu_decoder.h ? */
 #include "spu_decoder.h"
 #include "input/input_plugin.h"
 #include "metronom.h"
