@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.150 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.151 2003/01/03 13:21:19 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -941,11 +941,11 @@ static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
 
     strncpy (this->cur_mrl, input->get_mrl(input), 256);
 
-    printf ("demux_mpeg_block: mrl %s is new, will estimated bitrate\n",
+    printf ("demux_mpeg_block: mrl %s is new\n",
 	    this->cur_mrl);
 
   } else
-    printf ("demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n",
+    printf ("demux_mpeg_block: mrl %s is known, bitrate: %d\n",
 	    this->cur_mrl, this->rate * 50 * 8);
 }
 
