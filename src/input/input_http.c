@@ -18,6 +18,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * input plugin for http network streams
+ *
+ * $Id: input_http.c,v 1.60 2003/05/25 22:20:26 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -103,10 +105,10 @@ typedef struct {
   xine_t           *xine;
   config_values_t  *config;
 
-  char            *proxyuser;
-  char            *proxypassword;
-  char            *proxyhost;
-  int              proxyport;
+  char             *proxyuser;
+  char             *proxypassword;
+  char             *proxyhost;
+  int               proxyport;
  
 } http_input_class_t;
 
@@ -687,18 +689,18 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   
 static int http_plugin_open (input_plugin_t *this_gen ) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
-  http_input_class_t  *this_klass = (http_input_class_t *) this_gen;
+  http_input_class_t  *this_klass = (http_input_class_t *) this->input_plugin.input_class;
   int                  done,len,linenum;
   int                  shoutcast = 0, httpcode;
   int                  length;
-  
+
   this->shoutcast_pos = 0;
   
   if (this_klass->proxyhost != NULL && strcmp (this_klass->proxyhost, "")) {
     if (this_klass->proxyport == 0)
       this_klass->proxyport = DEFAULT_HTTP_PORT;
 
-    if (this_klass->proxyuser != NULL)
+    if ( (this_klass->proxyuser != NULL) && strcmp (this_klass->proxyuser, "") )
       if (http_plugin_basicauth (this_klass->proxyuser,
 			         this_klass->proxypassword,
 				 this->proxyauth, BUFSIZE)) {
@@ -712,10 +714,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     return 0;
   }
 
-  if(this->port == 0)
+  if (this->port == 0)
     this->port = DEFAULT_HTTP_PORT;
 
-  if (this->user != NULL)
+  if ( (this->user != NULL) && strcmp (this_klass->proxyhost, ""))
     if (http_plugin_basicauth (this->user, this->password, this->auth, BUFSIZE)) {
       xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "basic auth error", NULL);
       return 0;
@@ -723,21 +725,17 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
 #ifdef LOG
   {
-    char buf[256];
-
-    snprintf (buf, 255, _("input_http: opening >/%s< on host >%s<"), 
-	     this->filename, this->host);
+    printf ("input_http: opening >/%s< on host >%s<", 
+	    this->filename, this->host);
 
     if (this_klass->proxyhost != NULL)
-      snprintf(buf, 255, _("%s via proxy >%s<"), buf, this_klass->proxyhost);
+      printf (" via proxy >%s<", this_klass->proxyhost);
     
-    snprintf(buf, 255, "%s\n", buf);
-
-    printf (buf);
+    printf ("\n");
   }
 #endif
   
-  if (this_klass->proxyhost != NULL)
+  if ( (this_klass->proxyhost != NULL) && strcmp (this_klass->proxyhost, "") )
     this->fh = http_plugin_host_connect (this_klass->proxyhost, this_klass->proxyport, this);
   else
     this->fh = http_plugin_host_connect (this->host, this->port, this);
@@ -748,7 +746,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     return 0;
   }
 
-  if (this_klass->proxyhost != NULL) {
+  if ( (this_klass->proxyhost != NULL) && strcmp (this_klass->proxyhost, "") ) {
     if (this->port != DEFAULT_HTTP_PORT) {
       sprintf (this->buf, "GET http://%s:%d/%s HTTP/1.0\015\012",
 	       this->host, this->port, this->filename);
@@ -767,11 +765,11 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     sprintf (this->buf + strlen(this->buf), "Host: %s\015\012",
 	     this->host);
   
-  if (this_klass->proxyuser != NULL)
+  if ( (this_klass->proxyuser != NULL) && strcmp (this_klass->proxyuser, "") )
     sprintf (this->buf + strlen(this->buf), "Proxy-Authorization: Basic %s\015\012",
 	     this->proxyauth);
 
-  if (this->user != NULL)
+  if ( (this->user != NULL) && strcmp (this->user, "") ) 
     sprintf (this->buf + strlen(this->buf), "Authorization: Basic %s\015\012",
 	     this->auth);
  
@@ -805,25 +803,28 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
   while (!done) {
 
-    /*
-    printf ("input_http: read...\n");
+    /* 
+       printf ("input_http: read...\n");
     */
 
 #ifndef WIN32
     if (read (this->fh, &this->buf[len], 1) <=0) {
+
+      perror ("http read error");
+
       switch (errno) {
       case EAGAIN:
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
 	continue;
       default:
-	xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
+	xine_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
 	return 0;
       }
-	}
+    }
 #else
     if ((length=recv (this->fh, &this->buf[len], 1, 0)) <= 0) {
-	  xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
+	  xine_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
 	  xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
 	  return 0;
 	}
