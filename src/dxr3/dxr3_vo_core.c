@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.15 2002/02/25 23:44:05 jcdutton Exp $
+ * $Id: dxr3_vo_core.c,v 1.16 2002/03/05 20:39:05 jcdutton Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -249,6 +249,9 @@ int dxr3_get_property (vo_driver_t *this_gen, int property)
 	case VO_PROP_TVMODE:
 		break;
 
+	case VO_PROP_VO_TYPE:
+		val = VO_TYPE_DXR3;
+		break;
 	default:
 		val = 0;
 		fprintf(stderr, "dxr3_vo: property %d not implemented!\n", property);

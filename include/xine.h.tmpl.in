@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.82 2002/02/25 01:23:41 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.83 2002/03/05 20:39:05 jcdutton Exp $
  *
  */
 
@@ -316,13 +316,24 @@ int xine_check_version(int major, int minor, int sub);
  * ask video driver how many frames it can allocate
  * \sa vo_driver_t
  */
-#define VO_PROP_MAX_NUM_FRAMES       11 
+#define VO_PROP_MAX_NUM_FRAMES       11
+/**
+ * \def VO_PROP_VO_TYPE
+ * ask video driver what type it is. E.g. dxr3
+ * \sa vo_driver_t
+ */
+#define VO_PROP_VO_TYPE               12
+
+/* VO_PROP_VO_TYPES */
+#define VO_TYPE_UNKNOWN     0
+#define VO_TYPE_DXR3        1
+
 /**
  * \def VO_NUM_PROPERTIES
  * Number of available properties property.
  * \sa vo_driver_t
  */
-#define VO_NUM_PROPERTIES            12
+#define VO_NUM_PROPERTIES             13
 
                /** @} end of video_prop */
 
