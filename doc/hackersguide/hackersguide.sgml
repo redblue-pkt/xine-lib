@@ -10,6 +10,7 @@
     <author><firstname>G&uuml;nter</firstname><surname>Bartsch</surname></author>
     <author><firstname>Heiko</firstname><surname>Sch&auml;fer</surname></author>
     <author><firstname>Richard</firstname><surname>Wareham</surname></author>
+    <author><firstname>Miguel</firstname><surname>Freitas</surname></author>
 
   </authorgroup>
   <copyright>
@@ -285,28 +286,86 @@
     <listitem> 
       <para>
         generate vpts (virtual presentation time stamps) from pts (presentation time stamps)
-	for a/v output and synchronization
+        for a/v output and synchronization.
       </para>
     </listitem>
     <listitem> 
       <para>
          provide a master clock (system clock reference, scr), possibly provided
          by external scr plugins (this can be used if some hardware decoder or network
-         server dictates the time)
+         server dictates the time).
       </para>
     </listitem>
     </itemizedlist>
     </para>
     <para>
     pts/vpts values are given in 1/90000 sec units. pts values in mpeg streams
-    may wrap, can be missing on some frames or (for broken streams) may "dance" around
+    may wrap (that is, return to zero or any other value without further notice),
+    can be missing on some frames or (for broken streams) may "dance" around
     the correct values. Metronom therefore has some heuristics built-in to generate
     clean vpts values which can then be used in the output layers to schedule audio/video
     output.
     </para>
     <para>
-    The heuristics used in metronom have always been a field of research.
+    The heuristics used in metronom have always been a field of research. Current metronom's
+    implementation <emphasis>tries</emphasis> to stick to pts values as reported from demuxers,
+    that is, vpts may be obtained by a simple operation of vpts = pts + <varname>vpts_offset</varname>,
+    where <varname>vpts_offset</varname> takes into account any wraps. Whenever pts is zero, 
+    metronom will estimate vpts based on previous values. If a difference is found between the
+    estimated and calculated vpts values by above formula, it will be smoothed by using a
+    "drift correction".
     </para>
+  </sect1>
+  <sect1>
+    <title>How do xine synchronize audio and video ?</title>
+    <para>
+    Every image frame or audio buffer leaving decoder is tagged by metronom with
+    a vpts information. This will tell video_out and audio_out threads when that
+    data should be presented. Usually there isn't a significative delay associated
+    with video driver, so we expect it to get on screen at the time it's
+    delivered for drawing. Unfortunatelly the same isn't true for audio: all sound
+    cards implement some amount of buffering (or fifo), any data being send to it
+    <emphasis>now</emphasis> will only get played some time in future. audio_out thread
+    must take this into account for making perfect A-V sync by asking the sound latency 
+    to audio driver.
+    </para>
+    <para>
+    Some audio drivers can't tell the current delay introduced in playback. This is 
+    specially true for most sound servers like ESD or aRts and explain why in such
+    cases rarelly the sync is perfect.
+    </para>
+    <para>
+    Another problem xine must handle is the sound card clock drift. vpts are
+    compared to the system clock for presentation but sound card is sampling audio at 
+    it's own clocking mechanism, so a small drift may occur. As the playback goes on this
+    error will be integrated possibly resulting audio gaps or frame drops. To avoid that
+    annoying effect the small sound card errors are feedbacked to metronom. The details 
+    are given by <filename>audio_out.c</filename> comments:
+    </para>
+    <programlisting>
+/* By adding gap errors (difference between reported and expected
+ * sound card clock) into metronom's vpts_offset we can use its 
+ * smoothing algorithms to correct sound card clock drifts.
+ * obs: previously this error was added to xine scr.
+ *
+ * audio buf ---> metronom --> audio fifo --> (buf->vpts - hw_vpts)
+ *           (vpts_offset + error)                     gap
+ *                    <---------- control --------------|
+ *
+ * Unfortunately audio fifo adds a large delay to our closed loop.
+ *
+ * These are designed to avoid updating the metronom too fast.
+ * - it will only be updated 1 time per second (so it has a chance of
+ *   distributing the error for several frames).
+ * - it will only be updated 2 times for the whole audio fifo size
+ *   length (so the control will wait to see the feedback effect)
+ * - each update will be of gap/SYNC_GAP_RATE.
+ *
+ * Sound card clock correction can only provide smooth playback for
+ * errors < 1% nominal rate. For bigger errors (bad streams) audio
+ * buffers may be dropped or gaps filled with silence.
+ */
+    </programlisting>
   </sect1>
   <sect1>
     <title>The xine engine from the inside</title>
@@ -371,8 +430,16 @@
     thread other xine modules can work during blocking time).
     </para>
     <para>
-    You need to implement all the functions given in demux.h:
-    <programlisting>
+    Since xine 0.9.9 some important responsibilities were assigned to demuxers, like
+    providing precise information about pts discontinuities. Besides that it's up
+    to demuxer to tag buffer packets with the specified codec to use and provide control
+    buffers with start and stop information for the rest of the engine.
+    </para>
+    <sect2>
+      <title>Demuxer API</title>
+      <para>
+      You need to implement all the functions given in demux.h:
+      <programlisting>
 struct demux_plugin_s
 {
   /*
@@ -407,6 +474,21 @@ struct demux_plugin_s
   void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
                  fifo_buffer_t *audio_fifo, 
                  off_t start_pos, int start_time);
+  
+  /*
+   * ask running demux thread to seek 
+   *
+   * for seekable streams, a start position can be specified
+   *
+   * start_pos  : position in input source
+   * start_time : position measured in seconds from stream start
+   *
+   * if both parameters are !=0 start_pos will be used
+   * for non-seekable streams both values will be ignored
+   */
+
+  void (*seek) (demux_plugin_t *this, 
+                off_t start_pos, int start_time);
   
   /*
    * stop & kill demux thread, free resources associated with current
@@ -445,17 +527,150 @@ struct demux_plugin_s
 
   int (*get_stream_length) (demux_plugin_t *this);
 } ;
-    </programlisting>
-    </para>
-    <para>
-    Demuxer plugins export only one function:
-    <programlisting>
-    demux_plugin_t *init_demux_plugin (int iface_version, xine_t *xine);
-    </programlisting>
-    this is called on startup when the demuxer plugin is loaded.
-    The funtion should malloc() a demux_plugin_t* pointer,
-    fill in the function pointers and return the demux_plugin_t * pointer.
-    </para>
+      </programlisting>
+      </para>
+      <para>
+      Demuxer plugins export only one function:
+      <programlisting>
+      demux_plugin_t *init_demux_plugin (int iface_version, xine_t *xine);
+      </programlisting>
+      this is called on startup when the demuxer plugin is loaded.
+      The funtion should malloc() a demux_plugin_t* pointer,
+      fill in the function pointers and return the demux_plugin_t * pointer.
+      </para>
+    </sect2>
+    <sect2>
+      <title>Buffer types</title>
+      <para>
+      Demuxer must send data to decoders using two fifo of buffers <varname>fifo_video</varname>
+      and <varname>audio_fifo</varname>. Both are passed on demuxer start() method. The following
+      code fragment shows how it's done.
+      </para>
+      <programlisting>
+      buf_element_t *buf;
+
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = BUF_CONTROL_NEWPTS;
+      buf->disc_off = start_pts;
+      this->video_fifo->put (this->video_fifo, buf);
+      </programlisting>
+      <para>
+      Buffers must have set the <varname>type</varname> field as shown. Several buffer types are
+      defined in <filename>buffer.h</filename>, and most of them are information needed to
+      select a particular decoder.
+      </para>
+      <programlisting>
+/*
+ * buffer types
+ *
+ * a buffer type ID describes the contents of a buffer
+ * it consists of three fields:
+ *
+ * buf_type = 0xMMDDCCCC
+ *
+ * MM   : major buffer type (CONTROL, VIDEO, AUDIO, SPU)
+ * DD   : decoder selection (e.g. MPEG, OPENDIVX ... for VIDEO)
+ * CCCC : channel number or other subtype information for the decoder
+ */
+
+#define BUF_MAJOR_MASK       0xFF000000
+#define BUF_DECODER_MASK     0x00FF0000
+
+/* control buffer types */
+
+#define BUF_CONTROL_BASE          0x01000000
+#define BUF_CONTROL_START         0x01000000
+#define BUF_CONTROL_END           0x01010000
+#define BUF_CONTROL_QUIT          0x01020000
+#define BUF_CONTROL_DISCONTINUITY 0x01030000 /* former AVSYNC_RESET */
+#define BUF_CONTROL_NOP           0x01040000
+#define BUF_CONTROL_AUDIO_CHANNEL 0x01050000
+#define BUF_CONTROL_SPU_CHANNEL   0x01060000
+#define BUF_CONTROL_NEWPTS        0x01070000
+#define BUF_CONTROL_RESET_DECODER 0x01080000
+
+/* video buffer types:  (please keep in sync with buffer_types.c) */
+
+#define BUF_VIDEO_BASE		0x02000000
+#define BUF_VIDEO_MPEG		0x02000000
+#define BUF_VIDEO_MPEG4		0x02010000
+#define BUF_VIDEO_CINEPAK	0x02020000
+#define BUF_VIDEO_SORENSON	0x02030000
+#define BUF_VIDEO_MSMPEG4_V12	0x02040000
+#define BUF_VIDEO_MSMPEG4_V3	0x02050000
+#define BUF_VIDEO_MJPEG		0x02060000
+#define BUF_VIDEO_IV50		0x02070000
+#define BUF_VIDEO_IV41		0x02080000
+#define BUF_VIDEO_IV32		0x02090000
+#define BUF_VIDEO_IV31		0x020a0000
+#define BUF_VIDEO_ATIVCR1	0x020b0000
+#define BUF_VIDEO_ATIVCR2	0x020c0000
+#define BUF_VIDEO_I263		0x020d0000
+#define BUF_VIDEO_RV10		0x020e0000
+#define BUF_VIDEO_RGB		0x02100000
+#define BUF_VIDEO_YUY2		0x02110000
+#define BUF_VIDEO_JPEG		0x02120000
+#define BUF_VIDEO_WMV7		0x02130000
+#define BUF_VIDEO_WMV8		0x02140000
+#define BUF_VIDEO_MSVC		0x02150000
+#define BUF_VIDEO_DV		0x02160000
+#define BUF_VIDEO_REAL    	0x02170000
+#define BUF_VIDEO_VP31		0x02180000
+#define BUF_VIDEO_H263		0x02190000
+#define BUF_VIDEO_3IVX          0x021A0000
+
+/* audio buffer types:  (please keep in sync with buffer_types.c) */
+
+#define BUF_AUDIO_BASE		0x03000000
+#define BUF_AUDIO_A52		0x03000000
+#define BUF_AUDIO_MPEG		0x03010000
+#define BUF_AUDIO_LPCM_BE	0x03020000
+#define BUF_AUDIO_LPCM_LE	0x03030000
+#define BUF_AUDIO_DIVXA		0x03040000
+#define BUF_AUDIO_DTS		0x03050000
+#define BUF_AUDIO_MSADPCM	0x03060000
+#define BUF_AUDIO_IMAADPCM	0x03070000
+#define BUF_AUDIO_MSGSM		0x03080000 
+#define BUF_AUDIO_VORBIS        0x03090000
+#define BUF_AUDIO_IMC           0x030a0000
+#define BUF_AUDIO_LH            0x030b0000
+#define BUF_AUDIO_VOXWARE       0x030c0000
+#define BUF_AUDIO_ACELPNET      0x030d0000
+#define BUF_AUDIO_AAC           0x030e0000
+#define BUF_AUDIO_REAL    	0x030f0000
+#define BUF_AUDIO_VIVOG723      0x03100000
+
+
+/* spu buffer types:    */
+ 
+#define BUF_SPU_BASE		0x04000000
+#define BUF_SPU_CLUT		0x04000000
+#define BUF_SPU_PACKAGE		0x04010000
+#define BUF_SPU_SUBP_CONTROL	0x04020000
+#define BUF_SPU_NAV		0x04030000
+#define BUF_SPU_TEXT            0x04040000
+
+/* demuxer block types: */
+
+#define BUF_DEMUX_BLOCK		0x05000000
+      </programlisting>
+      <para>
+      The control buffer types are very important and must be sent by all kind of demuxers.
+      They tell decoders to start/stop their operations and inform metronom about
+      discontinuities, either relative or absolute. There is also a reset buffer
+      type that must be sent when demuxers are seeking as a "warm restart" indication to
+      the decoders.
+      </para>
+      <para>
+      To help finding out buffer types for known codecs, functions from <filename>buffer_types.c</filename>
+      may be used to convert "FOURCC" codes or audio format tags (as used in AVI files) to the xine
+      type.
+      </para>
+      <programlisting>
+      buf->type = fourcc_to_buf_video((void*)this->avi->bih.biCompression);
+      this->video_fifo->put (this->video_fifo, buf);
+      </programlisting>
+    </sect2>
   </sect1>
   <sect1>
     <title>Adding support for a new audio/video format
@@ -815,6 +1030,7 @@ struct input_plugin_s
       on-the fly
       colour-space conversion and scalaing if required (e.g. the XShm
       ouput plugin uses this mechanism).
+      </para>
     </listitem>
     </itemizedlist>
     </para>
@@ -925,9 +1141,15 @@ struct vo_driver_s {
 			    void *data);
 
   void (*exit) (vo_driver_t *this);
-  vo_info_t* (*get_info) ();
+  
+  /* check if a redraw is needed (due to resize)
+   * this is only used for still frames, normal video playback 
+   * must call that inside display_frame() function.
+   */
+  int (*redraw_needed) (vo_driver_t *this);
 
-};</programlisting>
+};
+</programlisting>
     <para>
       The <varname>get_info</varname> field is simply a pointer to the
       <function>get_video_out_plugin_info()</function> function described
@@ -938,20 +1160,23 @@ struct vo_driver_s {
       which returns a bit-wise ORed combination of the following constants
       which reflects the video output plugin's capabilities.
     </para>
-<programlisting>
-#define VO_CAP_COPIES_IMAGE 0x00000001 /* driver will copy image rather than providing */
-                                       /* a buffer for xine to write the image into    */
 
-#define VO_CAP_RGB          0x00000002 /* driver can handle 24bit rgb pictures */
-#define VO_CAP_YV12         0x00000004 /* driver can handle YUV 4:2:0 pictures */
-#define VO_CAP_YUY2         0x00000008 /* driver can handle YUY2      pictures */
+<programlisting>
+#define VO_CAP_COPIES_IMAGE 0x00000001 /* driver copies image (i.e. converts it to
+                                          rgb buffers in the private fields of 
+                                          image buffer) */
+
+#define VO_CAP_YV12         0x00000002 /* driver can handle YUV 4:2:0 pictures */
+#define VO_CAP_YUY2         0x00000004 /* driver can handle YUY2      pictures */
 
 #define VO_CAP_HUE                    0x00000010 /* driver can set HUE value                */
 #define VO_CAP_SATURATION             0x00000020 /* driver can set SATURATION value         */
 #define VO_CAP_BRIGHTNESS             0x00000040 /* driver can set BRIGHTNESS value         */
 #define VO_CAP_CONTRAST               0x00000080 /* driver can set CONTRAST value           */
 #define VO_CAP_COLORKEY               0x00000100 /* driver can set COLORKEY value           */
-#define VO_CAP_AUTOPAINT_COLORKEY     0x00000200 /* driver can set AUTOPAINT_COLORKEY value */</programlisting>
+#define VO_CAP_AUTOPAINT_COLORKEY     0x00000200 /* driver can set AUTOPAINT_COLORKEY value */
+</programlisting>
+    
     <para>
       A plugin should use the VO_CAP_COPIES_IMAGE flag if it wishes to provide a
       copy function to perform on-the-fly colour-space conversion and
@@ -974,51 +1199,57 @@ struct vo_driver_s {
       The <varname>alloc_frame</varname> field points to a function which returns
       a pointer to a <type>vo_frame_s</type> structure which is defined as:
     </para>
-    <programlisting>
-/* public part, video drivers may add private fields */
+<programlisting>
 struct vo_frame_s {
   struct vo_frame_s         *next;
 
-  uint32_t                   PTS;
-  uint32_t                   pts_corrector; /* Repeat first field tricks */
-  uint32_t                   SCR;
-  int                        bad_frame; /* e.g. frame skipped or based on skipped frame */
-  int                        drawn;
-  uint8_t                   *base[3];
+  int64_t                    pts;           /* presentation time stamp (1/90000 sec)        */
+  int64_t                    vpts;          /* virtual pts, generated by metronom           */
+  int                        bad_frame;     /* e.g. frame skipped or based on skipped frame */
+  int                        duration;      /* frame length in time, in 1/90000 sec         */
 
+  /* yv12 (planar)       base[0]: y,       base[1]: u,  base[2]: v  */
+  /* yuy2 (interleaved)  base[0]: yuyv..., base[1]: --, base[2]: -- */
+  uint8_t                   *base[3];       
 
-  /* additional information to be able to duplicate frames: */
+  /* info that can be used for interlaced output (e.g. tv-out)      */
+  int                        top_field_first;
+  int                        repeat_first_field;
+
+  /* pan/scan offset */
+  int                        pan_scan_x;
+  int                        pan_scan_y;
+
+  /* additional information to be able to duplicate frames:         */
   int                        width, height;
-  int                        ratio, format;
-  int duration;
-  int aspect_ratio;
-  int frame_rate_code;
-  int progressive_sequence;
-  int top_field_first;
-  int repeat_first_field;
-  int progressive_frame;
-  int picture_coding_type;
-  int bitrate;
+  int                        ratio;         /* aspect ratio, codes see below                 */
+  int                        format;        /* IMGFMT_YV12 or IMGFMT_YUY2                     */
 
-  int                        display_locked, decoder_locked, driver_locked;
-  pthread_mutex_t            mutex; /* so the various locks will be serialized */
+  int                        drawn;         /* used by decoder, frame has already been drawn */
 
-  vo_instance_t             *instance;
+  int                        lock_counter;
+  pthread_mutex_t            mutex; /* protect access to lock_count */
+
+  /* "backward" references to where this frame originates from */
+  vo_instance_t             *instance;  
+  vo_driver_t               *driver;
+
+  int                        id; /* debugging - track this frame */
 
   /*
    * member functions
    */
 
-  /* this frame is no longer used by decoder */
+  /* this frame is no longer used by the decoder */
   void (*free) (vo_frame_t *vo_img);
-
-  /* tell video driver to copy/convert a slice of this frame */
+  
+  /* tell video driver to copy/convert a slice of this frame, may be NULL */
   void (*copy) (vo_frame_t *vo_img, uint8_t **src);
 
   /* tell video driver that the decoder starts a new field */
   void (*field) (vo_frame_t *vo_img, int which_field);
 
-  /* append this frame to the display queue,
+  /* append this frame to the display queue, 
      returns number of frames to skip if decoder is late */
   int (*draw) (vo_frame_t *vo_img);
 
@@ -1027,7 +1258,8 @@ struct vo_frame_s {
 
   /* free memory/resources for this frame */
   void (*dispose) (vo_frame_t *vo_img);
-}</programlisting>
+};
+</programlisting>
   <para>
     Typically the video plugin will add private fields to the end of this structure
     which are used for internal purposes by the plugin.
