@@ -14,7 +14,6 @@ lib_LTLIBRARIES = $(dxr3_modules)
 
 xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c
 xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
-xineplug_decode_dxr3_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la 
 
 xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c overlay.c
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(X_LIBS)
