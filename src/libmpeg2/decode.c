@@ -359,6 +359,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
     stats_header (code, mpeg2dec->chunk_buffer);
 
     if (code == 0xb3) {	/* sequence_header_code */
+
       if (header_process_sequence_header (picture, mpeg2dec->chunk_buffer)) {
 	printf ("libmpeg2: bad sequence header\n");
 	continue;

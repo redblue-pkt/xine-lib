@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.20 2001/06/17 00:23:34 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.21 2001/06/17 20:14:50 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -609,7 +609,7 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 
     this->preview_mode = 1;
 
-    this->input->seek (this->input, 0, SEEK_SET);
+    this->input->seek (this->input, 4, SEEK_SET);
 
     this->status = DEMUX_OK ;
 
