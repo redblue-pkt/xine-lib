@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.11 2003/01/27 21:02:42 mroi Exp $
+ * $Id: dvdnav.c,v 1.12 2003/01/29 02:02:03 miguelfreitas Exp $
  *
  */
 
@@ -104,7 +104,7 @@ static int8_t NCLK_dvdnav_get_spu_logical_stream(dvdnav_t *this, uint8_t subp_nu
   state = &(this->vm->state);
   vtsi  = this->vm->vtsi;
   
-  if(subp_num >= vtsi->vtsi_mat->nr_of_vts_subp_streams)
+  if(!vtsi || subp_num >= vtsi->vtsi_mat->nr_of_vts_subp_streams)
     return -1;
   
   return vm_get_subp_stream(this->vm, subp_num, 0);
@@ -1012,6 +1012,9 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.12  2003/01/29 02:02:03  miguelfreitas
+ * avoid segfault
+ *
  * Revision 1.11  2003/01/27 21:02:42  mroi
  * temporary fix for segfaulting DVDs
  * libdvdnav cleanup needed (will start tomorrow)
