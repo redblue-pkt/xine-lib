@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.146 2004/04/07 18:10:21 valtri Exp $
+ * $Id: video_decoder.c,v 1.147 2004/04/08 11:10:10 valtri Exp $
  *
  */
 
@@ -83,8 +83,10 @@ int _x_spu_decoder_sleep(xine_stream_t *stream, int64_t next_spu_vpts)
     if (stream->xine->port_ticket->ticket_revoked)
       stream->xine->port_ticket->renew(stream->xine->port_ticket, 0);
     
+    /* never wait, if we share the thread with a video decoder */
+    thread_vacant = !stream->video_decoder_plugin;
     /* we have to return if video out calls for the decoder */
-    if (stream->video_fifo->first)
+    if (thread_vacant && stream->video_fifo->first)
       thread_vacant = (stream->video_fifo->first->type != BUF_CONTROL_FLUSH_DECODER);
     /* we have to return if the demuxer needs us to release a buffer */
     if (thread_vacant)
