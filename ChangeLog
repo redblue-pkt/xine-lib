@@ -11,6 +11,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * Id CIN video decoder
   * QT SMC video decoder
   * QT RPZA video decoder
+  * Wing Commander III video decoder
   * Logarithmic PCM (mu-law & A-law) audio decoder
   * time-based seeking in ogg-streams
   * improved support for ogg-streams containing video (so-called ogm streams)

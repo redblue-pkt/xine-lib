@@ -1168,7 +1168,7 @@ echo "   - fli             - msrle"
 echo "   - rgb             - yuv"
 echo "   - roqvideo        - svq1"
 echo "   - idcin           - smc"
-echo "   - rpza"
+echo "   - rpza            - wc3video"
 if test x"$no_xvid" = "xno"; then
   echo "   - xvid"
 fi
