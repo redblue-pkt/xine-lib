@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.130 2002/05/21 00:50:18 siggi Exp $
+ * $Id: xine.c,v 1.131 2002/05/21 14:35:52 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -499,8 +499,6 @@ int xine_eject (xine_t *this) {
   status = 0;
   if (((this->status == XINE_STOP) || (this->status == XINE_LOGO))
       && this->last_input_plugin && this->last_input_plugin->eject_media) {
-
-    pthread_mutex_unlock (&this->xine_lock);
 
     status = this->last_input_plugin->eject_media (this->last_input_plugin);
   }
