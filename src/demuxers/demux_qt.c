@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.168 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_qt.c,v 1.169 2003/11/09 04:46:30 tmmm Exp $
  *
  */
 
@@ -476,7 +476,7 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
     atom_size = BE_32(&atom_preamble[0]);
     atom = BE_32(&atom_preamble[4]);
 
-    /* Special case alert: 'free' atoms are sometimes masquerade as 'moov'
+    /* Special case alert: 'free' atoms sometimes masquerade as 'moov'
      * atoms. If this is a free atom, check for 'cmov' or 'mvhd' immediately 
      * following. QT Player can handle it, so xine should too. */
     if (atom == FREE_ATOM) {
@@ -2013,6 +2013,13 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
   xine_event_t uevent;
   xine_mrl_reference_data_t *data;
 
+  /* if this is DRM-protected content, finish playback before it even
+   * tries to start */
+  if (this->qt->last_error == QT_DRM_NOT_SUPPORTED) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
+
   /* check if it's time to send a reference up to the UI */
   if (this->qt->chosen_reference != -1) {
 
@@ -2663,6 +2670,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_qt_t     *this;
   xine_cfg_entry_t entry;
+  qt_error last_error;
 
   if ((input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
     return NULL;
@@ -2706,12 +2714,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-    if (open_qt_file(this->qt, this->input, this->bandwidth) != QT_OK) {
+    last_error = open_qt_file(this->qt, this->input, this->bandwidth);
+    if (last_error == QT_DRM_NOT_SUPPORTED) {
 
       /* special consideration for DRM-protected files */
       if (this->qt->last_error == QT_DRM_NOT_SUPPORTED)
         xine_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
           "DRM-protected Quicktime file", NULL);
+
+    } else if (last_error != QT_OK) {
 
       free_qt_info (this->qt);
       free (this);
