@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.128 2003/11/16 15:44:03 mroi Exp $
+ * $Id: metronom.c,v 1.129 2003/11/20 00:42:14 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +34,10 @@
 #include <errno.h>
 
 #define LOG_MODULE "metronom"
+/*
+#define LOG
+#define LOG_AUDIO
+*/
 
 #define METRONOM_INTERNAL
 
@@ -53,11 +57,6 @@
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
 #define abs(x) ( ((x)<0) ? -(x) : (x) )
-
-/*
-#define LOG
-#define LOG_AUDIO
-*/
 
 
 /*
@@ -298,34 +297,9 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
   return vpts;
 }
 
-static void metronom_handle_video_discontinuity (metronom_t *this, int type,
-						 int64_t disc_off) {
+static void metronom_handle_discontinuity (metronom_t *this, int type,
+                                           int64_t disc_off) {
   int64_t cur_time;
-
-  pthread_mutex_lock (&this->lock);
-  
-  if (this->master) {
-    /* slaves are currently not allowed to set discontinuities */
-    pthread_mutex_unlock(&this->lock);
-    return;
-  }
-
-  this->video_discontinuity_count++;
-  pthread_cond_signal (&this->video_discontinuity_reached);
-  
-  xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video discontinuity #%d, type is %d, disc_off is %lld\n",
-    this->video_discontinuity_count, type, disc_off);
-  
-  if (this->have_audio) {
-    while (this->audio_discontinuity_count <
-	   this->video_discontinuity_count) {
-
-      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "waiting for audio discontinuity #%d\n",
-	this->video_discontinuity_count);
-
-      pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
-    }
-  }
 
   /* video_vpts and audio_vpts adjustements */
   cur_time = this->xine->clock->get_current_time(this->xine->clock);
@@ -397,6 +371,38 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
   
   this->last_video_pts = 0;
   this->last_audio_pts = 0;
+}
+
+static void metronom_handle_video_discontinuity (metronom_t *this, int type,
+						 int64_t disc_off) {
+
+  pthread_mutex_lock (&this->lock);
+
+  if (this->master) {
+    /* slaves are currently not allowed to set discontinuities */
+    pthread_mutex_unlock(&this->lock);
+    return;
+  }
+  
+  this->video_discontinuity_count++;
+  pthread_cond_signal (&this->video_discontinuity_reached);
+  
+  xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video discontinuity #%d, type is %d, disc_off %lld\n",
+    this->video_discontinuity_count, type, disc_off);
+  
+  if (this->have_audio) {
+    while (this->audio_discontinuity_count <
+	   this->video_discontinuity_count) {
+
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "waiting for audio discontinuity #%d\n", 
+        this->video_discontinuity_count);
+
+      pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
+    }
+  }
+
+  metronom_handle_discontinuity(this, type, disc_off);
+
   this->discontinuity_handled_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
 
@@ -523,15 +529,20 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
   
   xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio discontinuity #%d, type is %d, disc_off %lld\n",
     this->audio_discontinuity_count, type, disc_off);
+
+  if (this->have_video) {
   
-  /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
-  while ( this->audio_discontinuity_count >
-	  this->discontinuity_handled_count ) {
-
-    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "waiting for in_discontinuity update #%d\n", 
-      this->audio_discontinuity_count);
-
-    pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
+    /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
+    while ( this->audio_discontinuity_count >
+            this->discontinuity_handled_count ) {
+  
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "waiting for in_discontinuity update #%d\n", 
+        this->audio_discontinuity_count);
+  
+      pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
+    }
+  } else {
+    metronom_handle_discontinuity(this, type, disc_off);
   }
 
   this->audio_samples = 0;
@@ -841,7 +852,7 @@ static void metronom_clock_exit (metronom_clock_t *this) {
 }
 
 
-metronom_t * _x_metronom_init (int have_audio, xine_t *xine) {
+metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
 
   metronom_t *this = xine_xmalloc (sizeof (metronom_t));
 
@@ -882,6 +893,7 @@ metronom_t * _x_metronom_init (int have_audio, xine_t *xine) {
   
   /* initialize audio stuff */
 
+  this->have_video                  = have_video;
   this->have_audio                  = have_audio;
   this->audio_vpts                  = this->prebuffer;
   this->audio_discontinuity_count   = 0;

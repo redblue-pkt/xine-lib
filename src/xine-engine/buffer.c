@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.32 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: buffer.c,v 1.33 2003/11/20 00:42:14 tmattern Exp $
  *
  *
  * contents:
@@ -37,10 +37,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
+
+/********** logging **********/
+#define LOG_MODULE "buffer"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "buffer.h"
 #include "xineutils.h"
 #include "xine_internal.h"
-#include <assert.h>
 
 /*
  * put a previously allocated buffer element back into the buffer pool
@@ -168,6 +176,22 @@ static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
 }
 
 /*
+ * append buffer element to fifo buffer
+ */
+static void dummy_fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
+  int i;
+  
+  pthread_mutex_lock (&fifo->mutex);
+
+  for(i = 0; fifo->put_cb[i]; i++)
+    fifo->put_cb[i](fifo, element, fifo->put_cb_data[i]);
+
+  pthread_mutex_unlock (&fifo->mutex);
+
+  element->free_buffer(element);
+}
+
+/*
  * insert buffer element to fifo buffer (demuxers MUST NOT call this one)
  */
 static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
@@ -188,13 +212,19 @@ static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
   pthread_mutex_unlock (&fifo->mutex);
 }
 
+/*
+ * insert buffer element to fifo buffer (demuxers MUST NOT call this one)
+ */
+static void dummy_fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
+
+  element->free_buffer(element);
+}
 
 /*
  * get element from fifo buffer
  */
 static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
   int i;
-
   buf_element_t *buf;
 
   pthread_mutex_lock (&fifo->mutex);
@@ -347,6 +377,7 @@ static void fifo_register_alloc_cb (fifo_buffer_t *this,
                                                void *data_cb),
                                     void *data_cb) {
   int i;
+
   pthread_mutex_lock(&this->mutex);
   for(i = 0; this->alloc_cb[i]; i++)
     ;
@@ -367,6 +398,7 @@ static void fifo_register_put_cb (fifo_buffer_t *this,
                                              void *data_cb),
                                   void *data_cb) {
   int i;
+
   pthread_mutex_lock(&this->mutex);
   for(i = 0; this->put_cb[i]; i++)
     ;
@@ -387,6 +419,7 @@ static void fifo_register_get_cb (fifo_buffer_t *this,
                                              void *data_cb),
                                   void *data_cb) {
   int i;
+
   pthread_mutex_lock(&this->mutex);
   for(i = 0; this->get_cb[i]; i++)
     ;
@@ -405,6 +438,7 @@ static void fifo_unregister_alloc_cb (fifo_buffer_t *this,
                                       void (*cb)(fifo_buffer_t *this,
                                                  void *data_cb) ) {
   int i,j;
+
   pthread_mutex_lock(&this->mutex);
   for(i = 0; this->alloc_cb[i]; i++) {
     if( this->alloc_cb[i] == cb ) {
@@ -425,6 +459,7 @@ static void fifo_unregister_put_cb (fifo_buffer_t *this,
                                              buf_element_t *buf,
                                              void *data_cb) ) {
   int i,j;
+
   pthread_mutex_lock(&this->mutex);
   for(i = 0; this->put_cb[i]; i++) {
     if( this->put_cb[i] == cb ) {
@@ -445,6 +480,7 @@ static void fifo_unregister_get_cb (fifo_buffer_t *this,
                                              buf_element_t *buf,
                                              void *data_cb) ) {
   int i,j;
+
   pthread_mutex_lock(&this->mutex);
   for(i = 0; this->get_cb[i]; i++) {
     if( this->get_cb[i] == cb ) {
@@ -539,3 +575,15 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   return this;
 }
 
+/*
+ * allocate and initialize new (empty) fifo buffer
+ */
+fifo_buffer_t *_x_dummy_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
+
+  fifo_buffer_t *this;
+
+  this = _x_fifo_buffer_new(num_buffers, buf_size);
+  this->put    = dummy_fifo_buffer_put;
+  this->insert = dummy_fifo_buffer_insert;
+  return this;
+}

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.55 2003/11/16 15:44:03 mroi Exp $
+ * $Id: metronom.h,v 1.56 2003/11/20 00:42:14 tmattern Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -204,6 +204,7 @@ struct metronom_s {
 
   pthread_mutex_t lock;
 
+  int             have_video;
   int             have_audio;
   int             video_discontinuity_count;
   int             audio_discontinuity_count;
@@ -234,7 +235,7 @@ struct metronom_s {
 #define METRONOM_VPTS_OFFSET      6
 #define METRONOM_PREBUFFER        7
 
-metronom_t *_x_metronom_init (int have_audio, xine_t *xine);
+metronom_t *_x_metronom_init (int have_video, int have_audio, xine_t *xine);
 
 struct metronom_clock_s {
 

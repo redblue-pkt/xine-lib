@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.112 2003/11/17 10:22:57 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.113 2003/11/20 00:42:14 tmattern Exp $
  *
  *
  * functions that implement audio decoding
@@ -123,32 +123,36 @@ static void *audio_decoder_loop (void *stream_gen) {
     case BUF_CONTROL_END:
 
       /* wait for video to reach this marker, if necessary */
-      
       pthread_mutex_lock (&stream->counter_lock);
 
       stream->finished_count_audio++;
-
+    
 #ifdef LOG
       printf ("audio_decoder: reached end marker # %d\n", 
-	      stream->finished_count_audio);
+        stream->finished_count_audio);
 #endif
 
       pthread_cond_broadcast (&stream->counter_changed);
 
-      while (stream->finished_count_video < stream->finished_count_audio) {
-        struct timeval tv;
-        struct timespec ts;
-        gettimeofday(&tv, NULL);
-        ts.tv_sec  = tv.tv_sec + 1;
-        ts.tv_nsec = tv.tv_usec * 1000;
-        /* use timedwait to workaround buggy pthread broadcast implementations */
-        pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+      if (stream->video_thread) {
+        while (stream->finished_count_video < stream->finished_count_audio) {
+          struct timeval tv;
+          struct timespec ts;
+          gettimeofday(&tv, NULL);
+          ts.tv_sec  = tv.tv_sec + 1;
+          ts.tv_nsec = tv.tv_usec * 1000;
+          /* use timedwait to workaround buggy pthread broadcast implementations */
+          pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+        }
       }
-          
       pthread_mutex_unlock (&stream->counter_lock);
-
       stream->audio_channel_auto = -1;
 
+      if (!stream->video_thread) {
+        /* set engine status, send frontend notification event */
+        _x_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
+      }
+      
       break;
       
     case BUF_CONTROL_QUIT:
@@ -358,41 +362,42 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
   int                  err;
 
   if (stream->audio_out == NULL) {
-    stream->audio_fifo     = NULL;
+    stream->audio_fifo = _x_dummy_fifo_buffer_new (5, 8192);
     return;
-  }
+  } else {
   
-  /* The fifo size is based on dvd playback where buffers are filled
-   * with 2k of data. With 230 buffers and a typical audio data rate
-   * of 1.8 Mbit/s (four ac3 streams), the fifo can hold about 2 seconds
-   * of audio, wich should be enough to compensate for drive delays.
-   * We provide buffers of 8k size instead of 2k for demuxers sending
-   * larger chunks.
-   */
-  stream->audio_fifo = _x_fifo_buffer_new (230, 8192);
-  stream->audio_channel_user = -1;
-  stream->audio_channel_auto = -1;
-  stream->audio_track_map_entries = 0;
-  stream->audio_type = 0;
+    /* The fifo size is based on dvd playback where buffers are filled
+     * with 2k of data. With 230 buffers and a typical audio data rate
+     * of 1.8 Mbit/s (four ac3 streams), the fifo can hold about 2 seconds
+     * of audio, wich should be enough to compensate for drive delays.
+     * We provide buffers of 8k size instead of 2k for demuxers sending
+     * larger chunks.
+     */
+    stream->audio_fifo = _x_fifo_buffer_new (230, 8192);
+    stream->audio_channel_user = -1;
+    stream->audio_channel_auto = -1;
+    stream->audio_track_map_entries = 0;
+    stream->audio_type = 0;
 
-  /* future magic - coming soon
-  stream->audio_temp = lrb_new (100, stream->audio_fifo);
-  */
+    /* future magic - coming soon
+     * stream->audio_temp = lrb_new (100, stream->audio_fifo);
+     */
 
-  pthread_attr_init(&pth_attrs);
-  pthread_attr_getschedparam(&pth_attrs, &pth_params);
-  pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
-  pthread_attr_setschedparam(&pth_attrs, &pth_params);
-  pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+    pthread_attr_init(&pth_attrs);
+    pthread_attr_getschedparam(&pth_attrs, &pth_params);
+    pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
+    pthread_attr_setschedparam(&pth_attrs, &pth_params);
+    pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
   
-  if ((err = pthread_create (&stream->audio_thread,
-			     &pth_attrs, audio_decoder_loop, stream)) != 0) {
-    fprintf (stderr, "audio_decoder: can't create new thread (%s)\n",
-	     strerror(err));
-    abort();
+    if ((err = pthread_create (&stream->audio_thread,
+                               &pth_attrs, audio_decoder_loop, stream)) != 0) {
+      fprintf (stderr, "audio_decoder: can't create new thread (%s)\n",
+               strerror(err));
+      abort();
+    }
+  
+    pthread_attr_destroy(&pth_attrs);
   }
-  
-  pthread_attr_destroy(&pth_attrs);
 }
 
 void _x_audio_decoder_shutdown (xine_stream_t *stream) {
@@ -400,7 +405,7 @@ void _x_audio_decoder_shutdown (xine_stream_t *stream) {
   buf_element_t *buf;
   void          *p;
 
-  if (stream->audio_fifo) {
+  if (stream->audio_thread) {
     /* stream->audio_fifo->clear(stream->audio_fifo); */
 
     buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
@@ -408,10 +413,10 @@ void _x_audio_decoder_shutdown (xine_stream_t *stream) {
     stream->audio_fifo->put (stream->audio_fifo, buf);
     
     pthread_join (stream->audio_thread, &p); 
-    
-    stream->audio_fifo->dispose (stream->audio_fifo);
-    stream->audio_fifo = NULL;
   }
+    
+  stream->audio_fifo->dispose (stream->audio_fifo);
+  stream->audio_fifo = NULL;
 
   /* wakeup any rewire operations */
   pthread_cond_broadcast(&stream->next_audio_port_wired);
@@ -421,4 +426,3 @@ int _x_get_audio_channel (xine_stream_t *stream) {
 
   return stream->audio_type & 0xFFFF; 
 }
-

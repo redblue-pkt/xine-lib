@@ -31,7 +31,7 @@
 /*
  * set a stream info
  *
- * params :
+ * params:
  *  *stream        the xine stream
  *   info          stream info id (see xine.h, XINE_STREAM_INFO_*)
  *   value         the value to assign
@@ -82,7 +82,7 @@ uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info);
 /*
  * set a stream meta info
  *
- * params :
+ * params:
  *  *stream        the xine stream
  *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *  *str           null-terminated string
@@ -93,7 +93,7 @@ void _x_meta_info_set(xine_stream_t *stream, int info, const char *str);
 /*
  * set a stream meta info
  *
- * params :
+ * params:
  *  *stream        the xine stream
  *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *  *buf           char buffer (not a null-terminated string)

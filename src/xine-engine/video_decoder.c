@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.139 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.140 2003/11/20 00:42:14 tmattern Exp $
  *
  */
 
@@ -166,7 +166,7 @@ static void *video_decoder_loop (void *stream_gen) {
 
       pthread_cond_broadcast (&stream->counter_changed);
 
-      if (stream->audio_fifo) {
+      if (stream->audio_thread) {
 
         while (stream->finished_count_video > stream->finished_count_audio) {
           struct timeval tv;
@@ -191,7 +191,6 @@ static void *video_decoder_loop (void *stream_gen) {
         pthread_cond_broadcast(&stream->first_frame_reached);
       }
       pthread_mutex_unlock (&stream->first_frame_lock);
-
       break;
 
     case BUF_CONTROL_QUIT:
@@ -392,43 +391,48 @@ static void *video_decoder_loop (void *stream_gen) {
 
 void _x_video_decoder_init (xine_stream_t *stream) {
   
-  pthread_attr_t       pth_attrs;
-  struct sched_param   pth_params;
-  int		       err, num_buffers;
-
-  /* The fifo size is based on dvd playback where buffers are filled
-   * with 2k of data. With 500 buffers and a typical video data rate
-   * of 8 Mbit/s, the fifo can hold about 1 second of video, wich
-   * should be enough to compensate for drive delays.
-   * We provide buffers of 8k size instead of 2k for demuxers sending
-   * larger chunks.
-   */
-
-  num_buffers = stream->xine->config->register_num (stream->xine->config,
-						    "video.num_buffers",
-						    500,
-						    "number of video buffers to allocate (higher values mean smoother playback but higher latency)",
-						    NULL, 20,
-						    NULL, NULL);
-
-
-  stream->video_fifo = _x_fifo_buffer_new (num_buffers, 8192);
-  stream->spu_track_map_entries = 0;
-
-  pthread_attr_init(&pth_attrs);
-  pthread_attr_getschedparam(&pth_attrs, &pth_params);
-  pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
-  pthread_attr_setschedparam(&pth_attrs, &pth_params);
-  pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+  if (stream->video_out == NULL) {
+    stream->video_fifo = _x_dummy_fifo_buffer_new (5, 8192);
+    stream->spu_track_map_entries = 0;
+    return;
+  } else {
+     
+    pthread_attr_t       pth_attrs;
+    struct sched_param   pth_params;
+    int		       err, num_buffers;
+    /* The fifo size is based on dvd playback where buffers are filled
+     * with 2k of data. With 500 buffers and a typical video data rate
+     * of 8 Mbit/s, the fifo can hold about 1 second of video, wich
+     * should be enough to compensate for drive delays.
+     * We provide buffers of 8k size instead of 2k for demuxers sending
+     * larger chunks.
+     */
   
-  if ((err = pthread_create (&stream->video_thread,
-			     &pth_attrs, video_decoder_loop, stream)) != 0) {
-    fprintf (stderr, "video_decoder: can't create new thread (%s)\n",
-	     strerror(err));
-    abort();
+    num_buffers = stream->xine->config->register_num (stream->xine->config,
+                                                      "video.num_buffers",
+                                                      500,
+                                                      "number of video buffers to allocate (higher values mean smoother playback but higher latency)",
+                                                      NULL, 20,
+                                                      NULL, NULL);
+  
+    stream->video_fifo = _x_fifo_buffer_new (num_buffers, 8192);
+    stream->spu_track_map_entries = 0;
+  
+    pthread_attr_init(&pth_attrs);
+    pthread_attr_getschedparam(&pth_attrs, &pth_params);
+    pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
+    pthread_attr_setschedparam(&pth_attrs, &pth_params);
+    pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+    
+    if ((err = pthread_create (&stream->video_thread,
+                               &pth_attrs, video_decoder_loop, stream)) != 0) {
+      fprintf (stderr, "video_decoder: can't create new thread (%s)\n",
+               strerror(err));
+      abort();
+    }
+    
+    pthread_attr_destroy(&pth_attrs);
   }
-  
-  pthread_attr_destroy(&pth_attrs);
 }
 
 void _x_video_decoder_shutdown (xine_stream_t *stream) {
@@ -440,24 +444,29 @@ void _x_video_decoder_shutdown (xine_stream_t *stream) {
   printf ("video_decoder: shutdown...\n");
 #endif
 
-  /* stream->video_fifo->clear(stream->video_fifo); */
+  if (stream->video_thread) {
 
-  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
+    /* stream->video_fifo->clear(stream->video_fifo); */
+
+    buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
 #ifdef LOG
-  printf ("video_decoder: shutdown...2\n");
+    printf ("video_decoder: shutdown...2\n");
 #endif
-  buf->type = BUF_CONTROL_QUIT;
-  stream->video_fifo->put (stream->video_fifo, buf);
+    buf->type = BUF_CONTROL_QUIT;
+    stream->video_fifo->put (stream->video_fifo, buf);
 #ifdef LOG
   printf ("video_decoder: shutdown...3\n");
 #endif
 
-  pthread_join (stream->video_thread, &p);
+    pthread_join (stream->video_thread, &p);
 #ifdef LOG
-  printf ("video_decoder: shutdown...4\n");
+    printf ("video_decoder: shutdown...4\n");
 #endif
+  }
+  
+  stream->video_fifo->dispose (stream->video_fifo);
+  stream->video_fifo = NULL;
 
   /* wakeup any rewire operations */
   pthread_cond_broadcast(&stream->next_video_port_wired);
 }
-

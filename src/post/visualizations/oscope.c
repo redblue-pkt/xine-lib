@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.12 2003/11/16 12:18:59 mroi Exp $
+ * $Id: oscope.c,v 1.13 2003/11/20 00:42:14 tmattern Exp $
  *
  */
 
@@ -373,7 +373,7 @@ static post_plugin_t *oscope_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
   
-  this->metronom = _x_metronom_init(0, class->xine);
+  this->metronom = _x_metronom_init(0, 1, class->xine);
 
   this->sample_counter = 0;
   this->stream  = NULL;

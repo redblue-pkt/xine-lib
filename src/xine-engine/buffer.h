@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.125 2003/11/16 14:29:29 tmmm Exp $
+ * $Id: buffer.h,v 1.126 2003/11/20 00:42:14 tmattern Exp $
  *
  *
  * contents:
@@ -509,6 +509,7 @@ struct fifo_buffer_s
  */
 
 fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size);
+fifo_buffer_t *_x_dummy_fifo_buffer_new (int num_buffers, uint32_t buf_size);
 
 
 /* return BUF_VIDEO_xxx given the fourcc

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.267 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: xine.c,v 1.268 2003/11/20 00:42:14 tmattern Exp $
  */
 
 /*
@@ -172,12 +172,16 @@ static void __stop_internal (xine_stream_t *stream) {
    */
 
   pthread_mutex_lock (&stream->counter_lock);
-  if (stream->audio_fifo)
+  if (stream->audio_thread)
     finished_count_audio = stream->finished_count_audio + 1;
   else
     finished_count_audio = 0;
 
-  finished_count_video = stream->finished_count_video + 1;
+  if (stream->video_thread)
+    finished_count_video = stream->finished_count_video + 1;
+  else
+    finished_count_video = 0;
+    
   pthread_mutex_unlock (&stream->counter_lock);
 
   lprintf ("stopping demux\n");
@@ -295,20 +299,22 @@ static int __stream_rewire_audio(xine_post_out_t *output, void *data)
   xine_stream_t *stream = (xine_stream_t *)output->data;
   xine_audio_port_t *new_port = (xine_audio_port_t *)data;
   buf_element_t *buf;
-
+  
   if (!data)
     return 0;
 
   pthread_mutex_lock(&stream->next_audio_port_lock);
   stream->next_audio_port = new_port;
-  if (stream->audio_fifo &&
-      (buf = stream->audio_fifo->buffer_pool_try_alloc(stream->audio_fifo))) {
-    /* wake up audio decoder thread */
-    buf->type = BUF_CONTROL_NOP;
-    stream->audio_fifo->insert(stream->audio_fifo, buf);
+  if (stream->audio_thread) {
+    buf = stream->audio_fifo->buffer_pool_try_alloc(stream->audio_fifo);
+    if (buf) {
+      /* wake up audio decoder thread */
+      buf->type = BUF_CONTROL_NOP;
+      stream->audio_fifo->insert(stream->audio_fifo, buf);
+    }
+    /* wait till rewiring is finished */
+    pthread_cond_wait(&stream->next_audio_port_wired, &stream->next_audio_port_lock);
   }
-  /* wait till rewiring is finished */
-  pthread_cond_wait(&stream->next_audio_port_wired, &stream->next_audio_port_lock);
   pthread_mutex_unlock(&stream->next_audio_port_lock);
 
   return 1;
@@ -325,14 +331,16 @@ static int __stream_rewire_video(xine_post_out_t *output, void *data)
 
   pthread_mutex_lock(&stream->next_video_port_lock);
   stream->next_video_port = new_port;
-  if (stream->video_fifo &&
-      (buf = stream->video_fifo->buffer_pool_try_alloc(stream->video_fifo))) {
-    /* wake up video decoder thread */
-    buf->type = BUF_CONTROL_NOP;
-    stream->video_fifo->insert(stream->video_fifo, buf);
+  if (stream->video_thread) {
+    buf = stream->video_fifo->buffer_pool_try_alloc(stream->video_fifo);
+    if (buf) {
+      /* wake up video decoder thread */
+      buf->type = BUF_CONTROL_NOP;
+      stream->video_fifo->insert(stream->video_fifo, buf);
+    }
+    /* wait till rewiring is finished */
+    pthread_cond_wait(&stream->next_video_port_wired, &stream->next_video_port_lock);
   }
-  /* wait till rewiring is finished */
-  pthread_cond_wait(&stream->next_video_port_wired, &stream->next_video_port_lock);
   pthread_mutex_unlock(&stream->next_video_port_lock);
 
   return 1;
@@ -376,8 +384,13 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->spu_channel_pan_scan   = -1;
   stream->spu_channel_user       = -1;
   stream->spu_channel            = -1;
+
   stream->video_out              = vo;
-  stream->video_driver           = vo->driver;
+  if (vo)
+    stream->video_driver           = vo->driver;
+  else
+    stream->video_driver           = NULL;
+    
   stream->video_channel          = 0;
   stream->video_decoder_plugin   = NULL;
   stream->video_decoder_streamtype = -1;
@@ -437,7 +450,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
    * create a metronom
    */
 
-  stream->metronom = _x_metronom_init ( (ao != NULL), this);
+  stream->metronom = _x_metronom_init ( (vo != NULL), (ao != NULL), this);
 
   /*
    * alloc fifos, init and start decoder threads
@@ -450,8 +463,11 @@ xine_stream_t *xine_stream_new (xine_t *this,
   /*
    * osd
    */
-
-  stream->osd_renderer = _x_osd_renderer_init (stream->video_out->get_overlay_manager (stream->video_out), stream->xine->config );
+  if (vo)
+    stream->osd_renderer = _x_osd_renderer_init (stream->video_out->get_overlay_manager (stream->video_out),
+                                                 stream->xine->config );
+  else
+    stream->osd_renderer = NULL;
   
   /*
    * register stream
@@ -927,6 +943,7 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
   double     share ;
   off_t      pos, len;
   int        demux_status;
+  int        demux_thread_running;
 
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_play\n");
 
@@ -953,6 +970,7 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
 
   pthread_mutex_lock( &stream->demux_lock );
   /* demux_lock taken. now demuxer is suspended */
+  stream->demux_action_pending = 0;
 
   /* set normal speed again (now that demuxer/input pair is suspended) 
    * some input plugin may have changed speed by itself, we must ensure
@@ -980,8 +998,6 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
 					     pos, start_time, 
 					     stream->demux_thread_running);
 
-  stream->demux_action_pending = 0;
-
   if (stream->audio_out)
     stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
   if (stream->video_out)
@@ -997,6 +1013,8 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
   _x_extra_info_reset( stream->current_extra_info );
   pthread_mutex_unlock( &stream->current_extra_info_lock );
 
+  demux_thread_running = stream->demux_thread_running;
+  
   /* now resume demuxer thread if it is running already */
   pthread_mutex_unlock( &stream->demux_lock );
 
@@ -1009,8 +1027,10 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
     return 0;
 
   } else {
-    _x_demux_start_thread( stream );
-    stream->status = XINE_STATUS_PLAY;
+    if (!demux_thread_running) {
+      _x_demux_start_thread( stream );
+      stream->status = XINE_STATUS_PLAY;
+    }
   }
 
 
@@ -1078,7 +1098,7 @@ void xine_dispose (xine_stream_t *stream) {
   stream->status = XINE_STATUS_QUIT;
 
   xine_close(stream);
-  
+
   if( stream->master != stream ) {
     stream->master->slave = NULL;  
   }
@@ -1091,12 +1111,12 @@ void xine_dispose (xine_stream_t *stream) {
   
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "shutdown audio\n");
   _x_audio_decoder_shutdown (stream);
-  
+
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "shutdown video\n");
+  if (stream->osd_renderer)
+    stream->osd_renderer->close( stream->osd_renderer );
+
   _x_video_decoder_shutdown (stream);
-  
-  stream->osd_renderer->close( stream->osd_renderer );
-  stream->video_fifo->dispose (stream->video_fifo);
 
   pthread_mutex_destroy (&stream->info_mutex);
   pthread_mutex_destroy (&stream->meta_mutex);
