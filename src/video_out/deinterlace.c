@@ -643,11 +643,14 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   
   int n;
 
-  for (Line = 0; Line < height - 2; ++Line)
+  /* Copy first line */
+  xine_fast_memcpy(pdst, psrc[0], LineLength);
+
+  for (Line = 1; Line < height - 1; ++Line)
   {
-    YVal1 = (uint64_t *)(psrc[0] + Line * LineLength);
-    YVal2 = (uint64_t *)(psrc[0] + (Line + 1) * LineLength);
-    YVal3 = (uint64_t *)(psrc[0] + (Line + 2) * LineLength);
+    YVal1 = (uint64_t *)(psrc[0] + (Line - 1) * LineLength);
+    YVal2 = (uint64_t *)(psrc[0] + (Line) * LineLength);
+    YVal3 = (uint64_t *)(psrc[0] + (Line + 1) * LineLength);
     Dest = (uint64_t *)(pdst + Line * LineLength);
 
     n = LineLength >> 3;
@@ -690,10 +693,7 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     }
   }
 
-  /* copy last 2 lines */
-  xine_fast_memcpy(pdst + Line * LineLength, 
-                   psrc[0] + Line * LineLength, LineLength);
-  Line++;
+  /* Copy last line */
   xine_fast_memcpy(pdst + Line * LineLength, 
                    psrc[0] + Line * LineLength, LineLength);
                    
@@ -711,12 +711,12 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
    screen (psrc[0]) line by line.
 
    The i-th line of the destination screen is the average of 3 lines
-   from the source screen: the i-th, (i+1)-th and (i+2)-th lines, with
-   the (i+1)-th line having weight 2 in the computation.
+   from the source screen: the (i-1)-th, i-th and (i+1)-th lines, with
+   the i-th line having weight 2 in the computation.
 
    Remarks:
    * each line on pdst doesn't depend on previous lines;
-   * due to the way the algorithm is defined, the last two lines of the
+   * due to the way the algorithm is defined, the first & last lines of the
      screen aren't deinterlaced.
    
 */
@@ -731,7 +731,11 @@ static void deinterlace_linearblend_yuv( uint8_t *pdst, uint8_t *psrc[],
   l2 = l1 + width;	/* 2nd source line = line that follows l1 */
   l3 = l2 + width;	/* 3rd source line = line that follows l2 */
 
-  for (y = 0; y < height-1; ++y) { 
+  /* Copy the first line */
+  xine_fast_memcpy(l0, l1, width);
+  l0 += width;
+
+  for (y = 1; y < height-1; ++y) { 
     /* computes avg of: l1 + 2*l2 + l3 */
 
     for (x = 0; x < width; ++x) {
@@ -743,8 +747,8 @@ static void deinterlace_linearblend_yuv( uint8_t *pdst, uint8_t *psrc[],
     l0 += width;
   }
 
-  /* copies the last two lines */
-  xine_fast_memcpy(l0, l1, 2*width);
+  /* Copy the last line */
+  xine_fast_memcpy(l0, l1, width);
 }
 
 static int check_for_mmx(void)
