@@ -18,4 +18,4 @@ libvidix_la_LIBADD = $(DYNAMIC_LD_LIBS)
 noinst_HEADERS = fourcc.h vidix.h vidixlib.h
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/video_out/vidix \
-	-I$(top_srcdir)/src/video_out/libdha
+	-I$(top_builddir)/src/video_out/libdha

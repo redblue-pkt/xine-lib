@@ -159,6 +159,7 @@ maintainer-clean: distclean
 	rm -f $(GMOFILES)
 
 # generate POTFILES.in before updating po-files
+# This isn't done for read-only source directory!
 distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
 dist distdir:
 	(cd $(top_srcdir); \
@@ -166,8 +167,9 @@ dist distdir:
 	 /tmp/POTFILES.in && \
 	 find src -name "*.[chy]" | \
 	 xargs grep -l '[^A-Za-z_]_(' | \
-	 grep -v src/xine-engine/xineintl.h >> /tmp/POTFILES.in && \
-	 cp /tmp/POTFILES.in po/)
+	 grep -v src/xine-engine/xineintl.h >> /tmp/POTFILES.in)
+	-cp /tmp/POTFILES.in $(srcdir)
+	rm -f /tmp/POTFILES.in
 	$(MAKE) update-po
 	@$(MAKE) dist2
 # This is a separate target because 'update-po' must be executed before.

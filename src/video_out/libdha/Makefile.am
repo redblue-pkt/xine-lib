@@ -11,10 +11,12 @@ dha_lib = libdha.la
 endif
 
 awk_generated = pci_dev_ids.c pci_ids.h pci_names.c pci_names.h pci_vendors.h
+CLEANFILES = $(awk_generated)
 
 noinst_LTLIBRARIES = $(dha_lib)
 
-libdha_la_SOURCES = libdha.c mtrr.c pci.c pci_names.c mmi.c ports.c irq.c cpu_flush.c
+libdha_la_SOURCES = libdha.c mtrr.c pci.c mmi.c ports.c irq.c cpu_flush.c
+nodist_libdha_la_SOURCES = pci_names.c 
 
 EXTRA_PROGRAMS = test
 

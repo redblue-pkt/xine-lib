@@ -83,4 +83,5 @@ noinst_HEADERS = mach64.h nvidia.h glint_regs.h pm3_regs.h radeon.h \
 	cyberblade_regs.h sis_defs.h sis_regs.h
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/video_out/vidix \
-	-I$(top_srcdir)/src/video_out/libdha
+	-I$(top_srcdir)/src/video_out/libdha \
+	-I$(top_builddir)/src/video_out/libdha

@@ -24,8 +24,8 @@
 #include "vidix.h"
 #include "fourcc.h"
 #include "libdha.h"
-#include "pci_ids.h"
-#include "pci_names.h"
+#include <pci_ids.h>
+#include <pci_names.h>
 #include "bswap.h"
 
 #include "mach64.h"
