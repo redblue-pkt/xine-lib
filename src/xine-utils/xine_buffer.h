@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.h,v 1.3 2003/12/09 00:02:39 f1rmb Exp $
+ * $Id: xine_buffer.h,v 1.4 2004/09/26 22:54:53 valtri Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -52,7 +52,11 @@
 #ifndef HAVE_XINE_BUFFER_H
 #define HAVE_XINE_BUFFER_H
 
-#include <inttypes.h>
+#ifdef XINE_COMPILE
+#  include <inttypes.h>
+#else
+#  include <xine/os_types.h>
+#endif
 
 /*
  * returns an initialized pointer to a buffer.

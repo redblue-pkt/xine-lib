@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.93 2004/09/20 19:30:05 valtri Exp $
+ * $Id: xineutils.h,v 1.94 2004/09/26 22:54:53 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -30,16 +30,17 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <inttypes.h>
 #include <pthread.h>
 
 #ifdef XINE_COMPILE
+#  include <inttypes.h>
 #  include "attributes.h"
 #  include "compat.h"
 #  include "xmlparser.h"
 #  include "xine_buffer.h"
 #  include "configfile.h"
 #else
+#  include <xine/os_types.h>
 #  include <xine/attributes.h>
 #  include <xine/compat.h>
 #  include <xine/xmlparser.h>
@@ -849,7 +850,7 @@ void xine_hexdump (const char *buf, int length);
     #define lprintf(fmt, args...)     do {} while(0)
   #else
   #ifdef _MSC_VER
-    #define lprintf
+void __inline lprintf(const char * fmt, ...) {};
   #else
     #define lprintf(...)              do {} while(0)
   #endif /* _MSC_VER */
@@ -893,12 +894,8 @@ void xine_hexdump (const char *buf, int length);
     } while(0)
 #else
 #ifdef _MSC_VER
-  #define xprintf(xine, verbose, fmtargs)                                   \
-    do {                                                                    \
-      if((xine) && (xine)->verbosity >= verbose){                           \
-        xine_log(xine, XINE_LOG_TRACE, fmtargs);                            \
-      }                                                                     \
-    } while(0)
+void xine_xprintf(xine_t *xine, int verbose, const char *fmt, ...);
+  #define xprintf xine_xprintf
 #else
   #define xprintf(xine, verbose, ...)                                       \
     do {                                                                    \

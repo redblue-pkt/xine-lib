@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.34 2004/05/07 14:38:14 mroi Exp $
+ * $Id: configfile.h,v 1.35 2004/09/26 22:54:52 valtri Exp $
  *
  * config file management
  *
@@ -30,7 +30,6 @@
 extern "C" {
 #endif
 
-#include <inttypes.h>
 #include <pthread.h>
 
 #ifdef XINE_COMPILE

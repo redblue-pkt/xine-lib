@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,20 +17,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.57 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_plugin.h,v 1.58 2004/09/26 22:54:52 valtri Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
 #define HAVE_INPUT_PLUGIN_H
 
-#include <inttypes.h>
 #include <sys/types.h>
 
 #ifdef XINE_COMPILE
+#  include <inttypes.h>
 #  include "xineutils.h"
 #  include "buffer.h"
 #  include "configfile.h"
 #else
+#  include <xine/os_types.h>
 #  include <xine/xineutils.h>
 #  include <xine/buffer.h>
 #  include <xine/configfile.h>

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.h,v 1.3 2004/08/16 15:31:23 mroi Exp $
+ * $Id: xine_decoder.h,v 1.4 2004/09/26 22:54:52 valtri Exp $
  *
  */
  
@@ -26,18 +26,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
-#ifdef _MSC_VER
-/* ffmpeg has own definitions of those types */
-#  undef int8_t
-#  undef uint8_t
-#  undef int16_t
-#  undef uint16_t
-#  undef int32_t
-#  undef uint32_t
-#  undef int64_t
-#  undef uint64_t
 #endif
 
 #ifdef HAVE_FFMPEG
@@ -50,6 +38,8 @@
 #  undef malloc
 #  undef free
 #  undef realloc
+#  undef printf
+#  undef fprintf
 #endif
 
 typedef struct ff_codec_s {

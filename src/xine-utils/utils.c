@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.34 2004/09/20 19:30:05 valtri Exp $
+ * $Id: utils.c,v 1.35 2004/09/26 22:54:53 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -28,6 +28,9 @@
 
 #include "xineutils.h"
 #include "xineintl.h"
+#ifdef _MSC_VER
+#include "xine_internal.h"
+#endif
 
 #include <errno.h>
 #include <pwd.h>
@@ -267,33 +270,37 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
  */
 
 char *exec_path_append_subdir(char *string) {
-  static char tmp_win32_path[1024];
-  char *tmpchar;
-  char *cmdline;
+  static char tmp_win32_path[1024] = "\0";
   char *back_slash;
   char *fore_slash;
   char *last_slash;
 
-  /* get program exec command line */
-  cmdline = GetCommandLine();
+  /* first run - fill out dll path */
+  if (!*tmp_win32_path) {
+    char *tmpchar;
+    char *cmdline;
 
-  /* check for " at beginning of string */
-  if( *cmdline == '\"' ) {
-    /* copy command line, skip first quote */
-    strncpy(tmp_win32_path, cmdline + 1, sizeof(tmp_win32_path));
-    tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
+    /* get program exec command line */
+    cmdline = GetCommandLine();
 
-    /* terminate at second set of quotes */
-    tmpchar = strchr(tmp_win32_path, '\"');
-    if (tmpchar) *tmpchar = 0;
-  } else {
-    /* copy command line */
-    strncpy(tmp_win32_path, cmdline, sizeof(tmp_win32_path));
-    tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
+    /* check for " at beginning of string */
+    if( *cmdline == '\"' ) {
+      /* copy command line, skip first quote */
+      strncpy(tmp_win32_path, cmdline + 1, sizeof(tmp_win32_path));
+      tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
 
-    /* terminate at first space */
-    tmpchar = strchr(tmp_win32_path, ' ');
-    if (tmpchar) *tmpchar = 0;
+      /* terminate at second set of quotes */
+      tmpchar = strchr(tmp_win32_path, '\"');
+      if (tmpchar) *tmpchar = 0;
+    } else {
+      /* copy command line */
+      strncpy(tmp_win32_path, cmdline, sizeof(tmp_win32_path));
+      tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
+
+      /* terminate at first space */
+      tmpchar = strchr(tmp_win32_path, ' ');
+      if (tmpchar) *tmpchar = 0;
+    }
   }
 
   /* find the last occurance of a back
@@ -554,3 +561,18 @@ const char *xine_guess_spu_encoding(void) {
 
   return "iso-8859-1";
 }
+
+
+#ifdef _MSC_VER
+void xine_xprintf(xine_t *xine, int verbose, const char *fmt, ...) {
+  char message[256];
+  va_list ap;
+
+  if (xine && xine->verbosity >= verbose) {
+    va_start(ap, fmt);
+    vsnprintf(message, sizeof(message), fmt, ap);
+    va_end(ap);
+    xine_log(xine, XINE_LOG_TRACE, "%s", message);
+  }
+}
+#endif

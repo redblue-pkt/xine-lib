@@ -306,6 +306,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "xineplug_dmx_mpeg_elem"=".\xineplug_dmx_mpeg_elem.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "xineplug_dmx_mpeg_block"=".\xineplug_dmx_mpeg_block.dsp" - Package Owner=<4>
 
 Package=<5>

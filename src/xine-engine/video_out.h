@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.109 2004/09/22 20:29:17 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.110 2004/09/26 22:54:52 valtri Exp $
  *
  *
  * xine version of video_out.h 
@@ -43,6 +43,8 @@ extern "C" {
 #include "config.h"
 #endif
 
+#include <pthread.h>
+
 #ifdef XINE_COMPILE
 #  include "xine.h"
 #  include "buffer.h"
@@ -50,9 +52,6 @@ extern "C" {
 #  include <xine.h>
 #  include <xine/buffer.h>
 #endif
-
-#include <inttypes.h>
-#include <pthread.h>
 
 
 typedef struct vo_frame_s vo_frame_t; 

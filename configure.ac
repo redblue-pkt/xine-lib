@@ -1870,13 +1870,15 @@ if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   eval XINE_FONTDIR="${bindir}/fonts"
   eval XINE_LOCALEDIR="${bindir}/locale"
   dnl directories from xine-config
-  XINE_PLUGINPATH="\`basedir \$0\`/plugins"
-  XINE_FONTPATH="\`basedir \$0\`/fonts"
-  XINE_LOCALEPATH="\`basedir \$0\`/locale"
+  XINE_PLUGINPATH="\`dirname \$0\`/plugins"
+  XINE_FONTPATH="\`dirname \$0\`/fonts"
+  XINE_LOCALEPATH="\`dirname \$0\`/locale"
   dnl runtime directories
   AC_DEFINE(XINE_PLUGINDIR,[exec_path_append_subdir("plugins")],[Define this to plugins directory location])
   AC_DEFINE(XINE_FONTDIR,[exec_path_append_subdir("fonts")],[Define this to osd fonts dir location])
   AC_DEFINE(XINE_LOCALEDIR,[exec_path_append_subdir("locale")],[Path where catalog files will be.])
+  dnl prefix in xine-config
+  XINE_CONFIG_PREFIX="\`dirname \$0\`/.."
 else
   dnl installation directories
   XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
@@ -1890,7 +1892,10 @@ else
   AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH",[Define this to plugins directory location])
   AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
   AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH",[Path where catalog files will be.])
+  dnl prefix in xine-config
+  XINE_CONFIG_PREFIX="${prefix}"
 fi
+AC_SUBST(XINE_CONFIG_PREFIX)
 AC_SUBST(XINE_PLUGINPATH)
 AC_SUBST(XINE_FONTPATH)
 AC_SUBST(XINE_LOCALEPATH)

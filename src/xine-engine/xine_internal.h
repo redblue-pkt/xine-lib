@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.159 2004/08/02 12:51:21 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.160 2004/09/26 22:54:52 valtri Exp $
  *
  */
 
@@ -27,8 +27,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <inttypes.h>
 
 /*
  * include public part of xine header

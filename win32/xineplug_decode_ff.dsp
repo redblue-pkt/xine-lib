@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src/xine-engine" /I "contrib/timer" /I "../src" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /D "SIMPLE_IDCT" /D "HAVE_AV_CONFIG_H" /D "RUNTIME_CPUDETECT" /D "USE_FASTMEMCPY" /D "CONFIG_RISKY" /D "CONFIG_DECODERS" /D "XINE_MPEG_ENCODER" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src/xine-engine" /I "../src" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /D "SIMPLE_IDCT" /D "HAVE_AV_CONFIG_H" /D "RUNTIME_CPUDETECT" /D "USE_FASTMEMCPY" /D "CONFIG_RISKY" /D "CONFIG_DECODERS" /D "XINE_MPEG_ENCODER" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -71,7 +71,7 @@ LINK32=link.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src/xine-engine" /I "contrib/timer" /I "../src" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /D "SIMPLE_IDCT" /D "HAVE_AV_CONFIG_H" /D "RUNTIME_CPUDETECT" /D "USE_FASTMEMCPY" /D "CONFIG_RISKY" /D "CONFIG_DECODERS" /D "XINE_MPEG_ENCODER" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src/xine-engine" /I "../src" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /D "SIMPLE_IDCT" /D "HAVE_AV_CONFIG_H" /D "RUNTIME_CPUDETECT" /D "USE_FASTMEMCPY" /D "CONFIG_RISKY" /D "CONFIG_DECODERS" /D "XINE_MPEG_ENCODER" /FD /GZ /c
 # SUBTRACT CPP /X /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -93,6 +93,14 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# Begin Source File
+
+SOURCE=..\src\libffmpeg\audio_decoder.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\libffmpeg\video_decoder.c
+# End Source File
 # Begin Source File
 
 SOURCE=..\src\libffmpeg\xine_decoder.c

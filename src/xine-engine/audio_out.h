@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.72 2004/07/06 22:53:23 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.73 2004/09/26 22:54:52 valtri Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -26,13 +26,13 @@
 extern "C" {
 #endif
 
-#include <inttypes.h>
-
 #if defined(XINE_COMPILE)
+#include <inttypes.h>
 #include "metronom.h"
 #include "configfile.h"
 #include "xineutils.h"
 #else
+#include <xine/os_types.h>
 #include <xine/metronom.h>
 #include <xine/configfile.h>
 #include <xine/xineutils.h>

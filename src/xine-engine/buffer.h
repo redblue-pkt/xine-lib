@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.143 2004/09/09 06:29:20 athp Exp $
+ * $Id: buffer.h,v 1.144 2004/09/26 22:54:52 valtri Exp $
  *
  *
  * contents:
@@ -44,12 +44,13 @@ extern "C" {
 
 #include <stdio.h>
 #include <pthread.h>
-#include <inttypes.h>
 #include <sys/types.h>
 
 #ifdef XINE_COMPILE
+#  include <inttypes.h>
 #  include "attributes.h"
 #else
+#  include <xine/os_types.h>
 #  include <xine/attributes.h>
 #endif
 

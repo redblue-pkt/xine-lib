@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.184 2004/09/01 18:19:50 valtri Exp $
+ * $Id: audio_out.c,v 1.185 2004/09/26 22:54:52 valtri Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -869,7 +869,12 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
 #endif
       /* we want to add factor * num_frames to each buffer */
       diff = gap_diff;
+#if _MSCVER <= 1200
+      /* ugly hack needed by old Visual C++ 6.0 */
+      duration = (int64_t)info->window_duration;
+#else
       duration = info->window_duration;
+#endif
       factor = diff / duration + info->last_factor;
 
       info->last_factor = factor;
@@ -1977,7 +1982,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->eq_j                   = 2;
   this->eq_k                   = 1;
 
-  bzero (this->eq_data_history, sizeof(sXYData) * EQ_BANDS * EQ_CHANNELS);
+  memset (this->eq_data_history, 0, sizeof(sXYData) * EQ_BANDS * EQ_CHANNELS);
 
   /*
    * pre-allocate memory for samples

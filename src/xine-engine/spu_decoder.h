@@ -24,11 +24,11 @@
 #ifndef HAVE_SPU_API_H
 #define HAVE_SPU_API_H
 
-#include <inttypes.h>
-
 #ifdef XINE_COMPILE
+#  include <inttypes.h>
 #  include "buffer.h"
 #else
+#  include <xine/os_types.h>
 #  include <xine/buffer.h>
 #endif
 

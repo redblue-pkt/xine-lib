@@ -42,8 +42,9 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release/xineplug_dmx_mpeg_elem"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_MPEG_ELEM_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_MPEG_ELEM_EXPORTS" /D "XINE_COMPILE" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_MPEG_ELEM_EXPORTS" /D "XINE_COMPILE" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -68,8 +69,9 @@ LINK32=link.exe
 # PROP Intermediate_Dir "Debug/xineplug_dmx_mpeg_elem"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_MPEG_ELEM_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_MPEG_ELEM_EXPORTS" /D "XINE_COMPILE" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_MPEG_ELEM_EXPORTS" /D "XINE_COMPILE" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -95,12 +97,12 @@ LINK32=link.exe
 SOURCE=..\src\demuxers\demux_elem.c
 # End Source File
 # End Group
-# Begin Group "Dll Defs"
+# Begin Group "DLL Defs"
 
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\xineplug_dmx.def
+SOURCE=.\xine_plugin.def
 # End Source File
 # End Group
 # End Target

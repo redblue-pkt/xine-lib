@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.h,v 1.13 2004/01/12 17:35:19 miguelfreitas Exp $
+ * $Id: video_decoder.h,v 1.14 2004/09/26 22:54:52 valtri Exp $
  *
  * xine video decoder plugin interface
  *
@@ -26,11 +26,11 @@
 #ifndef HAVE_VIDEO_DECODER_H
 #define HAVE_VIDEO_DECODER_H
 
-#include <inttypes.h>
-
 #ifdef XINE_COMPILE
+#  include <inttypes.h>
 #  include "buffer.h"
 #else
+#  include <xine/os_types.h>
 #  include <xine/buffer.h>
 #endif
 
