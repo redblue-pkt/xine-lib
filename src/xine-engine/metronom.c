@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.24 2001/09/04 16:19:27 guenter Exp $
+ * $Id: metronom.c,v 1.25 2001/09/10 21:52:59 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -107,9 +107,13 @@ static int unixscr_set_speed (scr_plugin_t *scr, int speed) {
 
 static void unixscr_adjust (scr_plugin_t *scr, uint32_t vpts) {
   unixscr_t *this = (unixscr_t*) scr;
+  struct   timeval tv;
 
   pthread_mutex_lock (&this->lock);
 
+  gettimeofday(&tv, NULL);
+  this->cur_time.tv_sec=tv.tv_sec;
+  this->cur_time.tv_usec=tv.tv_usec;
   this->cur_pts = vpts;
 
   pthread_mutex_unlock (&this->lock);

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.13 2001/09/10 03:04:48 guenter Exp $
+ * $Id: audio_out.c,v 1.14 2001/09/10 21:52:59 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -239,6 +239,7 @@ static int ao_write(ao_instance_t *this,
   int         fscod;
   int         frmsizecod;
   uint8_t    *data;
+  uint32_t    cur_time;
   
   if (this->driver<0)
     return 1;
@@ -263,7 +264,8 @@ static int ao_write(ao_instance_t *this,
    * where, in the timeline is the "end" of the audio buffer at the moment?
    */
   
-  buffer_vpts = this->metronom->get_current_time (this->metronom);
+  cur_time = this->metronom->get_current_time (this->metronom);
+  buffer_vpts = cur_time;
     
   if (this->audio_started)
     delay = this->driver->delay(this->driver);
@@ -288,7 +290,16 @@ static int ao_write(ao_instance_t *this,
   */
 
   if (gap>this->gap_tolerance) {
-    ao_fill_gap (this, gap);
+
+
+    if (gap>15000)
+      ao_fill_gap (this, gap);
+    else {
+      printf ("audio_out: adjusting master clock %d -> %d\n",
+	      cur_time, cur_time + gap);
+      this->metronom->adjust_clock (this->metronom, 
+				    cur_time + gap);
+    }
     
     /* keep xine responsive */
       
