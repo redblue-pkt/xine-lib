@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.16 2001/05/17 21:52:10 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.17 2001/05/22 13:26:06 f1rmb Exp $
  *
  */
 
@@ -90,8 +90,19 @@ struct config_values_s {
   void (*read) (config_values_t *this, char *filename);
 };
 
-/* constants for the get/set property functions */
+/*
+ * video driver capabilities
+ */
+/* driver can set HUE value */
+#define VO_CAP_HUE          0x00000010 /* driver can set HUE value */
+#define VO_CAP_SATURATION   0x00000020 /* driver can set SATURATION value */
+#define VO_CAP_BRIGHTNESS   0x00000040 /* driver can set BRIGHTNESS value */
+#define VO_CAP_CONTRAST     0x00000080 /* driver can set CONTRAST value */
+#define VO_CAP_COLORKEY     0x00000100 /* driver can set COLORKEY value */
 
+/*
+ * constants for the get/set property functions
+ */
 #define VO_PROP_INTERLACED      0
 #define VO_PROP_ASPECT_RATIO    1
 #define VO_PROP_HUE             2

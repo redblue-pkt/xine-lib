@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.16 2001/05/19 21:53:46 guenter Exp $
+ * $Id: video_out_xv.c,v 1.17 2001/05/22 13:26:06 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -381,7 +381,6 @@ static int xv_get_property (vo_driver_t *this_gen, int property) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
   return this->props[property].value;
-  
 }
 
 static int xv_set_property (vo_driver_t *this_gen, 
@@ -389,7 +388,7 @@ static int xv_set_property (vo_driver_t *this_gen,
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
-  if (this->props[property].atom) {
+  if (this->props[property].atom != None) {
     XvSetPortAttribute (this->display, this->xv_port, 
 			this->props[property].atom, value);
     XvGetPortAttribute (this->display, this->xv_port, 
@@ -420,6 +419,10 @@ static void xv_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
+
+  printf("this property(%d): min=%d, max=%d\n", property,
+	 this->props[property].min,
+	 this->props[property].max);
 
   *min = this->props[property].min;
   *max = this->props[property].max;
@@ -479,13 +482,13 @@ static void xv_check_capability (xv_driver_t *this,
 				 XvAttribute attr, int base_id, char *str_prop) {
 
   int          nDefault;
-
+  
   this->capabilities |= capability;
   this->props[property].min  = attr.min_value;
   this->props[property].max  = attr.max_value;
   this->props[property].atom = XInternAtom (this->display, str_prop, False);
   this->props[property].key  = str_prop;
-
+  
   XvGetPortAttribute (this->display, this->xv_port, this->props[property].atom, &nDefault);
 
   xv_set_property (&this->vo_driver, property, this->config->lookup_int (this->config, str_prop, nDefault) );
@@ -597,7 +600,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     this->props[i].value = 0;
     this->props[i].min   = 0;
     this->props[i].max   = 0;
-    this->props[i].atom  = 0;
+    this->props[i].atom  = None;
+    this->props[i].key   = NULL;
   }
 
   this->props[VO_PROP_INTERLACED].value     = 0;
@@ -614,21 +618,37 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     for(k = 0; k < nattr; k++) {
       
       if(attr[k].flags & XvSettable) {
-	if(!strcmp(attr[k].name, "XV_HUE")) 
-	  xv_check_capability (this, VO_CAP_HUE, VO_PROP_HUE, attr[k],
+	if(!strcmp(attr[k].name, "XV_HUE")) {
+	  xv_check_capability (this, VO_CAP_HUE, 
+			       VO_PROP_HUE, attr[k],
 			       adaptor_info[i].base_id, "XV_HUE");
-	else if(!strcmp(attr[k].name, "XV_SATURATION")) 
-	  xv_check_capability (this, VO_CAP_SATURATION, VO_PROP_SATURATION, attr[k],
+	  printf("XV_HUE ");
+	}
+	else if(!strcmp(attr[k].name, "XV_SATURATION")) {
+	  xv_check_capability (this, VO_CAP_SATURATION, 
+			       VO_PROP_SATURATION, attr[k],
 			       adaptor_info[i].base_id, "XV_SATURATION");
-	else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) 
-	  xv_check_capability (this, VO_CAP_BRIGHTNESS, VO_PROP_BRIGHTNESS, attr[k],
+	  printf("XV_SATURATION ");
+	}
+	else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
+	  xv_check_capability (this, VO_CAP_BRIGHTNESS,
+			       VO_PROP_BRIGHTNESS, attr[k],
 			       adaptor_info[i].base_id, "XV_BRIGHTNESS");
-	else if(!strcmp(attr[k].name, "XV_CONTRAST")) 
-	  xv_check_capability (this, VO_CAP_CONTRAST, VO_PROP_CONTRAST, attr[k],
+	  printf("XV_BRIGHTNESS ");
+	}
+	else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
+	  xv_check_capability (this, VO_CAP_CONTRAST, 
+			       VO_PROP_CONTRAST, attr[k],
 			       adaptor_info[i].base_id, "XV_CONTRAST");
-	else if(!strcmp(attr[k].name, "XV_COLORKEY")) 
-	  xv_check_capability (this, VO_CAP_COLORKEY, VO_PROP_COLORKEY, attr[k],
+	  printf("XV_CONTRAST ");
+	}
+	else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
+	  xv_check_capability (this, VO_CAP_COLORKEY, 
+			       VO_PROP_COLORKEY, attr[k],
 			       adaptor_info[i].base_id, "XV_COLORKEY");
+	  printf("XV_COLORKEY ");
+	}
+	printf("\n");
       }
     }
     XFree(attr);
