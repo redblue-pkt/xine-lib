@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.11 2004/05/25 16:31:50 miguelfreitas Exp $
+ * $Id: ldt_keeper.c,v 1.12 2004/06/12 23:19:56 miguelfreitas Exp $
  *
  *
  * contents:
@@ -272,10 +272,12 @@ ldt_fs_t* Setup_LDT_Keeper(void)
             if( limit == getpagesize()-1 ) {
                 ldt_already_set = 1;
             } else {
+#ifdef LOG
                 printf("ldt_keeper: LDT entry seems to be used by someone else. [%x] [%x]\n",
                        *(unsigned int *) (&ldt[TEB_SEL_IDX*8]),
                        *(unsigned int *) (&ldt[TEB_SEL_IDX*8+4]) );
-                printf("            Please report this error to xine-devel@lists.sourceforge.net\n");
+                printf("            Please report this message to xine-devel@lists.sourceforge.net\n");
+#endif        
             }
         }
         free(ldt);
