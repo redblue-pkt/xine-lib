@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.31 2002/11/20 18:41:14 mroi Exp $
+ * $Id: xine_interface.c,v 1.32 2002/12/01 15:11:02 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -45,6 +45,7 @@
 #include "audio_out.h"
 #include "video_out.h"
 #include "demuxers/demux.h"
+#include "post.h"
 
 /* 
  * version information / checking
@@ -586,4 +587,53 @@ void xine_osd_set_text_palette(xine_osd_t *this, int palette_number, int color_b
 
 void xine_osd_get_palette(xine_osd_t *this, uint32_t *color, uint8_t *trans) {
   this->osd.renderer->get_palette(&this->osd, color, trans);
+}
+
+const char *const *xine_post_list_inputs(xine_post_t *this_gen) {
+  post_plugin_t *this = (post_plugin_t *)this_gen;
+  return this->input_ids;
+}
+
+const char *const *xine_post_list_outputs(xine_post_t *this_gen) {
+  post_plugin_t *this = (post_plugin_t *)this_gen;
+  return this->output_ids;
+}
+
+const xine_post_in_t *xine_post_input(xine_post_t *this_gen, char *name) {
+  post_plugin_t  *this = (post_plugin_t *)this_gen;
+  xine_post_in_t *input;
+  
+  input = xine_list_first_content(this->input);
+  while (input) {
+    if (strcmp(input->name, name) == 0)
+      return input;
+    input = xine_list_next_content(this->input);
+  }
+  return NULL;
+}
+
+const xine_post_out_t *xine_post_output(xine_post_t *this_gen, char *name) {
+  post_plugin_t   *this = (post_plugin_t *)this_gen;
+  xine_post_out_t *output;
+  
+  output = xine_list_first_content(this->output);
+  while (output) {
+    if (strcmp(output->name, name) == 0)
+      return output;
+    output = xine_list_next_content(this->output);
+  }
+  return NULL;
+}
+
+int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target) {
+  if (source) {
+    if (target) {
+      if (source->type == target->type)
+        return source->rewire(source, target->data);
+      else
+        return 0;
+    } else
+      return source->rewire(source, NULL);
+  }
+  return 0;
 }
