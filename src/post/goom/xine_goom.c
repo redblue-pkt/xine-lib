@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.21 2003/01/14 21:00:23 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.22 2003/01/25 11:44:19 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -156,13 +156,13 @@ static void *goom_init_plugin(xine_t *xine, void *data)
                                     _("Goom image height in pixels"),
                                     NULL, 20, NULL, NULL);
   
+  this->use_asm = 0;
+
 #ifdef ARCH_X86
-  if (xine_mm_accel() & MM_ACCEL_X86_MMXEXT) {
+  if (xine_mm_accel() & MM_ACCEL_X86_MMX) {
     this->use_asm = cfg->register_bool (cfg, "post.goom_use_asm", 1,
                                         _("Use Goom asm optimizations"),
                                         NULL, 10, NULL, NULL);
-  } else {
-    this->use_asm = 0;
   }
 #endif
   
