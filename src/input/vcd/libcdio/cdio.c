@@ -1,7 +1,7 @@
 /*
-    $Id: cdio.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+    $Id: cdio.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
-    Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
 
     This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,7 @@
 #include <cdio/logging.h>
 #include "cdio_private.h"
 
-static const char _rcsid[] = "$Id: cdio.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $";
+static const char _rcsid[] = "$Id: cdio.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
 
 
 const char *track_format2str[6] = 
@@ -299,7 +299,9 @@ cdio_get_devices (driver_id_t driver_id)
   
   if (cdio == NULL) return NULL;
   if (cdio->op.get_devices) {
-    return cdio->op.get_devices ();
+    char **devices = cdio->op.get_devices ();
+    cdio_destroy(cdio);
+    return devices;
   } else {
     return NULL;
   }
@@ -318,6 +320,8 @@ cdio_get_devices (driver_id_t driver_id)
   To find a CD-drive of any type, use the mask CDIO_FS_MATCH_ALL.
   
   NULL is returned if we couldn't get a default device.
+  It is also possible to return a non NULL but after dereferencing the 
+  the value is NULL. This also means nothing was found.
 */
 char **
 cdio_get_devices_with_cap (char* search_devices[], 
@@ -332,23 +336,26 @@ cdio_get_devices_with_cap (char* search_devices[],
 
   if (capabilities == CDIO_FS_MATCH_ALL) {
     /* Duplicate drives into drives_ret. */
-    for( ; *drives != NULL; drives++ ) {
-      cdio_add_device_list(&drives_ret, *drives, &num_drives);
+    char **d = drives;
+    
+    for( ; *d != NULL; d++ ) {
+      cdio_add_device_list(&drives_ret, *d, &num_drives);
     }
   } else {
     cdio_fs_anal_t got_fs=0;
     cdio_fs_anal_t need_fs = CDIO_FSTYPE(capabilities);
     cdio_fs_anal_t need_fs_ext;
+    char **d = drives;
     need_fs_ext = capabilities & ~CDIO_FS_MASK;
       
-    for( ;  *drives != NULL; drives++ ) {
-      CdIo *cdio = cdio_open(*drives, DRIVER_UNKNOWN);
+    for( ;  *d != NULL; d++ ) {
+      CdIo *cdio = cdio_open(*d, DRIVER_UNKNOWN);
       
       if (NULL != cdio) {
         track_t first_track = cdio_get_first_track_num(cdio);
-        cdio_analysis_t cdio_analysis; 
+        cdio_iso_analysis_t cdio_iso_analysis; 
         got_fs = cdio_guess_cd_type(cdio, 0, first_track, 
-                                &cdio_analysis);
+                                &cdio_iso_analysis);
         /* Match on fs and add */
         if ( (CDIO_FS_UNKNOWN == need_fs || CDIO_FSTYPE(got_fs) == need_fs) )
           {
@@ -362,8 +369,10 @@ cdio_get_devices_with_cap (char* search_devices[],
         cdio_destroy(cdio);
       }
     }
-    cdio_add_device_list(&drives_ret, NULL, &num_drives);
   }
+  cdio_add_device_list(&drives_ret, NULL, &num_drives);
+  cdio_free_device_list(drives);
+  free(drives);
   return drives_ret;
 }
 
@@ -669,53 +678,48 @@ cdio_read_audio_sectors (const CdIo *cdio, void *buf, lsn_t lsn,
   return -1;
 }
 
+#ifndef SEEK_SET
+#define SEEK_SET 0
+#endif 
+
 /*!
    Reads a single mode1 form1 or form2  sector from cd device 
    into data starting from lsn. Returns 0 if no error. 
  */
 int
-cdio_read_mode1_sector (const CdIo *cdio, void *data, lsn_t lsn, bool is_form2)
+cdio_read_mode1_sector (const CdIo *cdio, void *data, lsn_t lsn, bool b_form2)
 {
-  uint32_t size = is_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE ;
+  uint32_t size = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE ;
   char buf[M2RAW_SECTOR_SIZE] = { 0, };
-  int ret;
   
   cdio_assert (cdio != NULL);
   cdio_assert (data != NULL);
 
-  if (cdio->op.lseek && cdio->op.read) {
+  if (cdio->op.read_mode1_sector && cdio->op.read_mode1_sector) {
+    return cdio->op.read_mode1_sector(cdio->env, data, lsn, b_form2);
+  } else if (cdio->op.lseek && cdio->op.read) {
     if (0 > cdio_lseek(cdio, CDIO_CD_FRAMESIZE*lsn, SEEK_SET))
       return -1;
     if (0 > cdio_read(cdio, buf, CDIO_CD_FRAMESIZE))
       return -1;
     memcpy (data, buf, size);
     return 0;
-  } else {
-    ret = cdio_read_mode2_sector(cdio, data, lsn, is_form2);
-    if (ret == 0) 
-      memcpy (data, buf+CDIO_CD_SUBHEADER_SIZE, size);
-  }
-  return ret;
+  } 
+
+  return 1;
 
 }
 
 int
-cdio_read_mode1_sectors (const CdIo *cdio, void *data, lsn_t lsn, 
-                         bool is_form2,  unsigned int num_sectors)
+cdio_read_mode1_sectors (const CdIo *cdio, void *buf, lsn_t lsn, 
+                         bool b_form2,  unsigned int num_sectors)
 {
-  uint32_t size = is_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE ;
-  int retval;
-  int i;
-
   cdio_assert (cdio != NULL);
+  cdio_assert (buf != NULL);
+  cdio_assert (cdio->op.read_mode1_sectors != NULL);
   
-  for (i = 0; i < num_sectors; i++) {
-    if ( (retval = cdio_read_mode1_sector (cdio, 
-                                           ((char *)data) + (size * i),
-                                           lsn + i, is_form2)) )
-      return retval;
-  }
-  return 0;
+  return cdio->op.read_mode1_sectors (cdio->env, buf, lsn, b_form2, 
+                                      num_sectors);
 }
 
 /*!
@@ -724,7 +728,7 @@ cdio_read_mode1_sectors (const CdIo *cdio, void *data, lsn_t lsn,
  */
 int
 cdio_read_mode2_sector (const CdIo *cdio, void *buf, lsn_t lsn, 
-                        bool is_form2)
+                        bool b_form2)
 {
   cdio_assert (cdio != NULL);
   cdio_assert (buf != NULL);
@@ -732,24 +736,24 @@ cdio_read_mode2_sector (const CdIo *cdio, void *buf, lsn_t lsn,
 	      || cdio->op.read_mode2_sectors != NULL);
 
   if (cdio->op.read_mode2_sector)
-    return cdio->op.read_mode2_sector (cdio->env, buf, lsn, is_form2);
+    return cdio->op.read_mode2_sector (cdio->env, buf, lsn, b_form2);
 
   /* fallback */
   if (cdio->op.read_mode2_sectors != NULL)
-    return cdio_read_mode2_sectors (cdio, buf, lsn, is_form2, 1);
+    return cdio_read_mode2_sectors (cdio, buf, lsn, b_form2, 1);
   return 1;
 }
 
 int
-cdio_read_mode2_sectors (const CdIo *cdio, void *buf, lsn_t lsn, bool mode2raw, 
-                         unsigned num_sectors)
+cdio_read_mode2_sectors (const CdIo *cdio, void *buf, lsn_t lsn, 
+                         bool b_form2, unsigned int num_sectors)
 {
   cdio_assert (cdio != NULL);
   cdio_assert (buf != NULL);
   cdio_assert (cdio->op.read_mode2_sectors != NULL);
   
   return cdio->op.read_mode2_sectors (cdio->env, buf, lsn,
-                                     mode2raw, num_sectors);
+                                      b_form2, num_sectors);
 }
 
 uint32_t
@@ -849,6 +853,7 @@ cdio_open (const char *orig_source_name, driver_id_t driver_id)
     if ((*CdIo_all_drivers[driver_id].have_driver)()) {
       CdIo *ret = (*CdIo_all_drivers[driver_id].driver_open)(source_name);
       if (ret) ret->driver_id = driver_id;
+      free(source_name);
       return ret;
     }
   }

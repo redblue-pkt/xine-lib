@@ -1,8 +1,8 @@
 /*
-    $Id: types.h,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: types.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
-    Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,11 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+
+/** \file types.h 
+ *  \brief  Common type definitions used pervasively in libcdio.
+ */
+
 
 #ifndef __CDIO_TYPES_H__
 #define __CDIO_TYPES_H__
@@ -54,10 +59,6 @@ extern "C" {
 # undef INT64_C
 #endif
 
-#if defined (MINGW32)
-  typedef int ssize_t;
-#endif
-  
   /* if it's still not defined, take a good guess... should work for
      most 32bit and 64bit archs */
   
@@ -172,14 +173,23 @@ extern "C" {
   /* our own offsetof()-like macro */
 #define __cd_offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
   
-  /* In many structures on the disk a sector address is stored as a
-     BCD-encoded mmssff in three bytes. */
+  /*!
+    \brief MSF (minute/second/frame) structure 
+
+    One CD-ROMs addressing scheme especially used in audio formats
+    (Red Book) is an address by minute, sector and frame which
+    BCD-encoded in three bytes. An alternative format is an lba_t.
+    
+    @see lba_t
+  */
   PRAGMA_BEGIN_PACKED
-  typedef struct {
+  struct msf_rec {
     uint8_t m, s, f;
-  } GNUC_PACKED msf_t;
+  } GNUC_PACKED;
   PRAGMA_END_PACKED
   
+  typedef struct msf_rec msf_t;
+
 #define msf_t_SIZEOF 3
   
   /* type used for bit-fields in structs (1 <= bits <= 8) */
@@ -194,13 +204,16 @@ extern "C" {
   typedef uint8_t bitfield_t;
 #endif
   
-  /* The type of a Logical Block Address. */
+  /*! The type of a Logical Block Address. 
+
+    @see msf_t
+  */
   typedef uint32_t lba_t;
   
-  /* The type of an Logical Sector Number. */
+  /*! The type of an Logical Sector Number. */
   typedef uint32_t lsn_t;
   
-  /* The type of an track number 0..99. */
+  /*! The type of an track number 0..99. */
   typedef uint8_t track_t;
   
   /*! 

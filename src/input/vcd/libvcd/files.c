@@ -1,5 +1,5 @@
 /*
-    $Id: files.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: files.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -39,14 +39,14 @@
 #include <libvcd/files_private.h>
 
 /* Private headers */
-#include "assert.h"
+#include "vcd_assert.h"
 #include "bytesex.h"
 #include "mpeg_stream.h"
 #include "obj.h"
 #include "pbc.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: files.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: files.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 inline static bool
 _pal_p (const struct vcd_mpeg_stream_vid_info *_info)

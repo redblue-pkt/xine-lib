@@ -1,8 +1,8 @@
 /*
-    $Id: iso9660.h,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: iso9660.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
-    Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     See also iso9660.h by Eric Youngdale (1993).
 
@@ -23,9 +23,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-/*
- * Header file iso9660.h - assorted structure definitions and typecasts.
-  specific to iso9660 filesystem.
+/*!
+ * \file iso9660.h 
+ * \brief Header for libiso9660: the ISO-9660 filesystem library.
 */
 
 
@@ -42,16 +42,19 @@
 #define MIN_TRACK_SIZE 4*75
 #define MIN_ISO_SIZE MIN_TRACK_SIZE
 
-/*
-   A ISO filename is: "abcde.eee;1" -> <filename> '.' <ext> ';' <version #>
-  
-    The maximum needed string length is:
+/*!
+   An ISO filename is: "abcde.eee;1" -> <filename> '.' <ext> ';' <version #>
+
+    For ISO-9660 Level 1, the maximum needed string length is:
+
+\verbatim  
   	 30 chars (filename + ext)
     +	  2 chars ('.' + ';')
-    +	   strlen("32767")
-    +	   null byte
+    +	  5 chars (strlen("32767"))
+    +	  1 null byte
    ================================
-    =	38 chars
+    =	 38 chars
+\endverbatim 
 */
 #define LEN_ISONAME     31
 #define MAX_ISONAME     37
@@ -61,26 +64,28 @@
 /*
  * ISO 9660 directory flags.
  */
-#define	ISO_FILE	  0	/* Not really a flag...			*/
-#define	ISO_EXISTENCE	  1	/* Do not make existence known (hidden)	*/
-#define	ISO_DIRECTORY	  2	/* This file is a directory		*/
-#define	ISO_ASSOCIATED	  4	/* This file is an assiciated file	*/
-#define	ISO_RECORD	  8	/* Record format in extended attr. != 0	*/
-#define	ISO_PROTECTION	 16	/* No read/execute perm. in ext. attr.	*/
-#define	ISO_DRESERVED1	 32	/* Reserved bit 5			*/
-#define	ISO_DRESERVED2	 64	/* Reserved bit 6			*/
-#define	ISO_MULTIEXTENT	128	/* Not final entry of a mult. ext. file	*/
+#define	ISO_FILE	  0	/**< Not really a flag...		  */
+#define	ISO_EXISTENCE	  1	/**< Do not make existence known (hidden) */
+#define	ISO_DIRECTORY	  2	/**< This file is a directory		  */
+#define	ISO_ASSOCIATED	  4	/**< This file is an associated file	  */
+#define	ISO_RECORD	  8	/**< Record format in extended attr. != 0 */
+#define	ISO_PROTECTION	 16	/**< No read/execute perm. in ext. attr.  */
+#define	ISO_DRESERVED1	 32	/**< Reserved bit 5			  */
+#define	ISO_DRESERVED2	 64	/**< Reserved bit 6			  */
+#define	ISO_MULTIEXTENT	128	/**< Not final entry of a mult. ext. file */
 
 /* Volume descriptor types */
 #define ISO_VD_PRIMARY             1
-#define ISO_VD_SUPPLEMENTARY	   2  /* Used by Joliet */
+#define ISO_VD_SUPPLEMENTARY	   2  /**< Used by Joliet */
 #define ISO_VD_END	         255
 
-#define ISO_PVD_SECTOR  16
-#define ISO_EVD_SECTOR  17
+#define ISO_PVD_SECTOR  16      /**< Sector of Primary Volume Descriptor */
+#define ISO_EVD_SECTOR  17      /**< Sector of End Volume Descriptor */
 
-#define ISO_STANDARD_ID      "CD001"
-#define ISO_BLOCKSIZE           2048
+#define ISO_STANDARD_ID      "CD001" /**< String inside track identifying an 
+                                        ISO 9660 filesystem. */
+#define ISO_BLOCKSIZE           2048 /**< Number of bytes in an ISO
+                                        9660 block */
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,64 +100,95 @@ enum strncpy_pad_check {
 
 PRAGMA_BEGIN_PACKED
 
+/*! 
+  \brief ISO-9660 shorter-format time structure.
+  
+  @see iso9660_dtime
+ */
 struct	iso9660_dtime {
   uint8_t 	dt_year;
-  uint8_t 	dt_month;  /* 1..12. Note 1 origin not 0, like a tm struct. */
+  uint8_t 	dt_month;  /**< Has value in range 1..12. Note starts
+                              at 1, not 0 like a tm struct. */
   uint8_t	dt_day;
   uint8_t	dt_hour;
   uint8_t	dt_minute;
   uint8_t	dt_second;
-  int8_t	dt_gmtoff; /* GMT values -48 .. + 52 in 15 min intervals */
+  int8_t	dt_gmtoff; /**< GMT values -48 .. + 52 in 15 minute
+                              intervals */
 } GNUC_PACKED;
 
 typedef struct iso9660_dtime  iso9660_dtime_t;
 
+/*! 
+  \brief ISO-9660 longer-format time structure.
+  
+  @see iso9660_ltime
+ */
 struct	iso9660_ltime {
-  char	 lt_year	[_delta(   1,	4)];   /* Add 1900 for Julian year */
-  char	 lt_month	[_delta(   5,	6)];   /* 1..12. Note starts at 1. */
+  char	 lt_year	[_delta(   1,	4)];   /**< Add 1900 to value
+                                                    for the Julian
+                                                    year */
+  char	 lt_month	[_delta(   5,	6)];   /**< Has value in range
+                                                  1..12. Note starts
+                                                  at 1, not 0 like a
+                                                  tm struct. */
   char	 lt_day		[_delta(   7,	8)];
   char	 lt_hour	[_delta(   9,	10)];
   char	 lt_minute	[_delta(  11,	12)];
   char	 lt_second	[_delta(  13,	14)];
-  char	 lt_hsecond	[_delta(  15,	16)];  /* 1/100's of a second */
+  char	 lt_hsecond	[_delta(  15,	16)];  /**<! The value is in
+                                                  units of 1/100's of
+                                                  a second */
   int8_t lt_gmtoff	[_delta(  17,	17)];
 } GNUC_PACKED;
 
 typedef struct iso9660_ltime  iso9660_ltime_t;
 
-/* ISO-9660 Primary Volume Descriptor.
+/*! 
+  \brief ISO-9660 Primary Volume Descriptor.
  */
 struct iso9660_pvd {
-  uint8_t          type;                      /* 711 */
+  uint8_t          type;                      /**< 711 encoded */
   char             id[5];
-  uint8_t          version;                   /* 711 */
+  uint8_t          version;                   /**< 711 encoded */
   char             unused1[1];
-  char             system_id[32];             /* achars */
-  char             volume_id[32];             /* dchars */
+  char             system_id[32];             /**< each char is an achar */
+  char             volume_id[32];             /**< each char is a dchar */
   char             unused2[8];
-  uint64_t         volume_space_size;         /* 733 */
+  uint64_t         volume_space_size;         /**< 733 encoded */
   char             escape_sequences[32];
-  uint32_t         volume_set_size;           /* 723 */
-  uint32_t         volume_sequence_number;    /* 723 */
-  uint32_t         logical_block_size;        /* 723 */
-  uint64_t         path_table_size;           /* 733 */
-  uint32_t         type_l_path_table;         /* 731 */
-  uint32_t         opt_type_l_path_table;     /* 731 */
-  uint32_t         type_m_path_table;         /* 732 */
-  uint32_t         opt_type_m_path_table;     /* 732 */
-  char             root_directory_record[34]; /* 9.1 */
-  char             volume_set_id[128];        /* dchars */
-  char             publisher_id[128];         /* achars */
-  char             preparer_id[128];          /* achars */
-  char             application_id[128];       /* achars */
-  char             copyright_file_id[37];     /* 7.5 dchars */
-  char             abstract_file_id[37];      /* 7.5 dchars */
-  char             bibliographic_file_id[37]; /* 7.5 dchars */
-  iso9660_ltime_t  creation_date;             /* 8.4.26.1 */
-  iso9660_ltime_t  modification_date;         /* 8.4.26.1 */
-  iso9660_ltime_t  expiration_date;           /* 8.4.26.1 */
-  iso9660_ltime_t  effective_date;            /* 8.4.26.1 */
-  uint8_t          file_structure_version;    /* 711 */
+  uint32_t         volume_set_size;           /**< 723 encoded */
+  uint32_t         volume_sequence_number;    /**< 723 encoded */
+  uint32_t         logical_block_size;        /**< 723 encoded */
+  uint64_t         path_table_size;           /**< 733 encoded */
+  uint32_t         type_l_path_table;         /**< 731 encoded */
+  uint32_t         opt_type_l_path_table;     /**< 731 encoded */
+  uint32_t         type_m_path_table;         /**< 732 encoded */
+  uint32_t         opt_type_m_path_table;     /**< 732 encoded */
+  char             root_directory_record[34]; /**< See section 9.1 of
+                                                 ISO 9660 spec. */
+  char             volume_set_id[128];        /**< dchars */
+  char             publisher_id[128];         /**< achars */
+  char             preparer_id[128];          /**< achars */
+  char             application_id[128];       /**< achars */
+  char             copyright_file_id[37];     /**< See section 7.5 of
+                                                 ISO 9660 spec. Each char is 
+                                                 a dchar */
+  char             abstract_file_id[37];      /**< See section 7.5 of 
+                                                 ISO 9660 spec. Each char is 
+                                                 a dchar */
+  char             bibliographic_file_id[37]; /**< See section 7.5 of 
+                                                 ISO 9660 spec. Each char is
+                                                 a dchar. */
+  iso9660_ltime_t  creation_date;             /**< See section 8.4.26.1 of
+                                                 ISO 9660 spec. */
+  iso9660_ltime_t  modification_date;         /**< See section 8.4.26.1 of 
+                                                 ISO 9660 spec. */
+  iso9660_ltime_t  expiration_date;           /**< See section 8.4.26.1 of
+                                                 ISO 9660 spec. */
+  iso9660_ltime_t  effective_date;            /**< See section 8.4.26.1 of
+                                                 ISO 9660 spec. */
+  uint8_t          file_structure_version;    /**< 711 encoded */
   char             unused4[1];
   char             application_data[512];
   char             unused5[653];
@@ -166,49 +202,110 @@ typedef struct iso9660_stat iso9660_stat_t;
 #define EMPTY_ARRAY_SIZE 0
 #endif
 
-/*
- * XXX JS: The next structure may have an odd length!
- * Some compilers (e.g. on Sun3/mc68020) padd the structures to even length.
- * For this reason, we cannot use sizeof (struct iso_path_table) or
- * sizeof (struct iso_directory_record) to compute on disk sizes.
- * Instead, we use offsetof(..., name) and add the name size.
- * See mkisofs.h
- */
 
-/* Format of an ISO-9660 directory record */
+/*! \brief Format of an ISO-9660 directory record 
+
+ This structure may have an odd length depending on how many
+ characters there are in the filename!  Some compilers (e.g. on
+ Sun3/mc68020) pad the structures to an even length.  For this reason,
+ we cannot use sizeof (struct iso_path_table) or sizeof (struct
+ iso_directory_record) to compute on disk sizes.  Instead, we use
+ offsetof(..., name) and add the name size.  See mkisofs.h of the 
+ cdrtools package.
+
+  @see iso9660_stat
+*/
 struct iso9660_dir {
-  uint8_t          length;            /* 711 */
-  uint8_t          xa_length;         /* 711 */
-  uint64_t         extent;            /* 733 */
-  uint64_t         size;              /* 733 */
-  iso9660_dtime_t  recording_time;    /* 7 by 711 */
+  uint8_t          length;            /*! 711 encoded */
+  uint8_t          xa_length;         /*! 711 encoded */
+  uint64_t         extent;            /*! 733 encoded */
+  uint64_t         size;              /*! 733 encoded */
+  iso9660_dtime_t  recording_time;    /*! 7 711-encoded units */
   uint8_t          file_flags;
-  uint8_t          file_unit_size;    /* 711 */
-  uint8_t          interleave_gap;    /* 711 */
-  uint32_t volume_sequence_number;    /* 723 */
-  uint8_t          filename_len;      /* 711 */
+  uint8_t          file_unit_size;    /*! 711 encoded */
+  uint8_t          interleave_gap;    /*! 711 encoded */
+  uint32_t volume_sequence_number;    /*! 723 encoded */
+  uint8_t          filename_len;      /*! 711 encoded */
   char             filename[EMPTY_ARRAY_SIZE];
 } GNUC_PACKED;
 
 
-/* The following structure is not part of ISO 9660. We just use it
-   for our own purposes for communicating info back that's pulled out.
-*/
-struct iso9660_stat { /* big endian!! */
-  enum { _STAT_FILE = 1, _STAT_DIR = 2 } type;
-  lsn_t        lsn;                   /* start logical sector number */
-  uint32_t     size;                  /* total size in bytes */
-  uint32_t     secsize;               /* number of sectors allocated */
-  iso9660_xa_t xa;                    /* XA attributes */
-  struct tm    tm;                    /* time on entry */
-} ;
-
 PRAGMA_END_PACKED
 
-/*====================================
-  Character file/dirname's 
-=====================================*/
+/*! \brief Unix stat-like version of iso9660_dir
 
+   The iso9660_stat structure is not part of the ISO-9660
+   specification. We use it for our to communicate information
+   in a C-library friendly way, e.g struct tm time structures and
+   a C-style filename string.
+
+   @see iso9660_dir
+*/
+struct iso9660_stat { /* big endian!! */
+  struct tm    tm;                    /**< time on entry */
+  lsn_t        lsn;                   /**< start logical sector number */
+  uint32_t     size;                  /**< total size in bytes */
+  uint32_t     secsize;               /**< number of sectors allocated */
+  iso9660_xa_t xa;                    /**< XA attributes */
+  enum { _STAT_FILE = 1, _STAT_DIR = 2 } type;
+  char         filename[EMPTY_ARRAY_SIZE]; /**< filename */
+};
+
+
+/** This is an opaque structure. */
+typedef struct _iso9660 iso9660_t; 
+
+/*!
+  Open an ISO 9660 image for reading. Maybe in the future we will have
+  flags and mode. NULL is returned on error.
+*/
+  iso9660_t *iso9660_open (const char *pathname /*flags, mode */);
+
+/*!
+  Close previously opened ISO 9660 image.
+  True is unconditionally returned. If there was an error false would
+  be returned.
+*/
+  bool iso9660_close (iso9660_t * iso);
+
+
+/*!
+  Seek to a position and then read n bytes. Size read is returned.
+*/
+  long int iso9660_iso_seek_read (iso9660_t *iso, void *ptr, lsn_t start, 
+                                  long int size);
+
+/*====================================================
+  Time conversion 
+ ====================================================*/
+/*!
+  Set time in format used in ISO 9660 directory index record
+  from a Unix time structure. */
+  void iso9660_set_dtime (const struct tm *tm, 
+                          /*out*/ iso9660_dtime_t *idr_date);
+
+
+/*!
+  Set "long" time in format used in ISO 9660 primary volume descriptor
+  from a Unix time structure. */
+  void iso9660_set_ltime (const struct tm *_tm, 
+                          /*out*/ iso9660_ltime_t *pvd_date);
+
+/*!
+  Get Unix time structure from format use in an ISO 9660 directory index 
+  record. Even though tm_wday and tm_yday fields are not explicitly in
+  idr_date, they are calculated from the other fields.
+
+  If tm is to reflect the localtime, set "use_localtime" true, otherwise
+  tm will reported in GMT.
+*/
+  void iso9660_get_dtime (const iso9660_dtime_t *idr_date, bool use_localtime,
+                          /*out*/ struct tm *tm);
+
+
+/*====================================================
+  Characters used in file and directory and manipulation
+ ====================================================*/
 /*!
    Return true if c is a DCHAR - a character that can appear in an an
    ISO-9600 level 1 directory name. These are the ASCII capital
@@ -247,31 +344,6 @@ int iso9660_name_translate(const char *old, char *new);
 char *iso9660_strncpy_pad(char dst[], const char src[], size_t len, 
                           enum strncpy_pad_check _check);
 
-/*!
-  Set time in format used in ISO 9660 directory index record
-  from a Unix time structure. */
-  void iso9660_set_dtime (const struct tm *tm, 
-                          /*out*/ iso9660_dtime_t *idr_date);
-
-
-/*!
-  Set "long" time in format used in ISO 9660 primary volume descriptor
-  from a Unix time structure. */
-  void iso9660_set_ltime (const struct tm *_tm, 
-                          /*out*/ iso9660_ltime_t *pvd_date);
-
-/*!
-  Get Unix time structure from format use in an ISO 9660 directory index 
-  record. Even though tm_wday and tm_yday fields are not explicitly in
-  idr_date, they are calculated from the other fields.
-
-  If tm is to reflect the localtime, set "use_localtime" true, otherwise
-  tm will reported in GMT.
-*/
-  void iso9660_get_dtime (const iso9660_dtime_t *idr_date, bool use_localtime,
-                          /*out*/ struct tm *tm);
-
-
 /*=====================================================================
   file/dirname's 
 ======================================================================*/
@@ -291,7 +363,7 @@ bool iso9660_dirname_valid_p (const char pathname[]);
 /*!  
   Take pathname and a version number and turn that into a ISO-9660
   pathname.  (That's just the pathname followd by ";" and the version
-  number. For example, mydir/file.ext -> mydir/file.ext;1 for version
+  number. For example, mydir/file.ext -> MYDIR/FILE.EXT;1 for version
   1. The resulting ISO-9660 pathname is returned.
 */
 char *iso9660_pathname_isofy (const char pathname[], uint16_t version);
@@ -336,45 +408,88 @@ iso9660_dir_calc_record_size (unsigned int namelen, unsigned int su_len);
 
 /*!
    Given a directory pointer, find the filesystem entry that contains
-   lsn and return information about it in stat. 
+   lsn and return information about it.
 
-   Returns true if we found an entry with the lsn and false if not.
+   Returns stat_t of entry if we found lsn, or NULL otherwise.
  */
-bool iso9660_find_fs_lsn(const CdIo *cdio, lsn_t lsn, 
-                         /*out*/ iso9660_stat_t *stat);
+iso9660_stat_t *iso9660_find_fs_lsn(const CdIo *cdio, lsn_t lsn);
+
 
 /*!
-  Get file status for pathname into stat. As with libc's stat, 0 is returned
-  if no error and -1 on error.
+   Given a directory pointer, find the filesystem entry that contains
+   lsn and return information about it.
+
+   Returns stat_t of entry if we found lsn, or NULL otherwise.
  */
-int iso9660_fs_stat (const CdIo *obj, const char pathname[], 
-                     /*out*/ iso9660_stat_t *stat, bool is_mode2);
+iso9660_stat_t *iso9660_find_ifs_lsn(const iso9660_t *iso, lsn_t lsn);
 
-void * /* list of char* -- caller must free it */
-iso9660_fs_readdir (const CdIo *obj, const char pathname[], bool mode2);
 
-uint8_t
-iso9660_get_dir_len(const iso9660_dir_t *idr);
+/*!
+  Get file status for pathname into stat. NULL is returned on error.
+ */
+iso9660_stat_t *iso9660_fs_stat (const CdIo *obj, const char pathname[], 
+                                 bool is_mode2);
+
+/*!
+  Get file status for pathname into stat. NULL is returned on error.
+  pathname version numbers in the ISO 9660
+  name are dropped, i.e. ;1 is removed and if level 1 ISO-9660 names
+  are lowercased.
+ */
+iso9660_stat_t *iso9660_fs_stat_translate (const CdIo *obj, 
+                                           const char pathname[], 
+                                           bool is_mode2);
+
+/*!
+  Get file status for pathname into stat. NULL is returned on error.
+ */
+void *iso9660_ifs_stat (iso9660_t *iso, const char pathname[]);
+
+
+/*!
+  Get file status for pathname into stat. NULL is returned on error.
+  pathname version numbers in the ISO 9660
+  name are dropped, i.e. ;1 is removed and if level 1 ISO-9660 names
+  are lowercased.
+ */
+void *iso9660_ifs_stat_translate (iso9660_t *iso, const char pathname[]);
+
+
+
+/*! 
+  Read pathname (a directory) and return a list of iso9660_stat_t
+  of the files inside that. The caller must free the returned result.
+*/
+void * iso9660_fs_readdir (const CdIo *obj, const char pathname[], bool mode2);
+
+/*! 
+  Read pathname (a directory) and return a list of iso9660_stat_t
+  of the files inside that. The caller must free the returned result.
+*/
+void * iso9660_ifs_readdir (iso9660_t *iso, const char pathname[]);
+
+uint8_t iso9660_get_dir_len(const iso9660_dir_t *idr);
 
 #if FIXME
-uint8_t
-iso9660_get_dir_size(const iso9660_dir_t *idr);
+uint8_t iso9660_get_dir_size(const iso9660_dir_t *idr);
 
-lsn_t
-iso9660_get_dir_extent(const iso9660_dir_t *idr);
+lsn_t iso9660_get_dir_extent(const iso9660_dir_t *idr);
 #endif
 
-uint8_t
-iso9660_get_pvd_type(const iso9660_pvd_t *pvd);
+/*!
+  Return the directory name stored in the iso9660_dir_t
 
-const char *
-iso9660_get_pvd_id(const iso9660_pvd_t *pvd);
+  A string is allocated: the caller must deallocate.
+*/
+char * iso9660_dir_to_name (const iso9660_dir_t *iso9660_dir);
+  
+uint8_t iso9660_get_pvd_type(const iso9660_pvd_t *pvd);
 
-int
-iso9660_get_pvd_space_size(const iso9660_pvd_t *pvd);
+const char * iso9660_get_pvd_id(const iso9660_pvd_t *pvd);
 
-int
-iso9660_get_pvd_block_size(const iso9660_pvd_t *pvd) ;
+int iso9660_get_pvd_space_size(const iso9660_pvd_t *pvd);
+
+int iso9660_get_pvd_block_size(const iso9660_pvd_t *pvd) ;
 
 /*! Return the primary volume id version number (of pvd).
     If there is an error 0 is returned. 
@@ -401,7 +516,9 @@ uint16_t
 iso9660_pathtable_m_add_entry (void *pt, const char name[], uint32_t extent,
                                uint16_t parent);
 
-/* volume descriptors */
+/*=====================================================================
+                 Volume Descriptors
+======================================================================*/
 
 void
 iso9660_set_pvd (void *pd, const char volume_id[], const char application_id[],

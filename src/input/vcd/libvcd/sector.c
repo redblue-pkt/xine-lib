@@ -1,5 +1,5 @@
 /*
-    $Id: sector.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: sector.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
               (C) 1998 Heiko Eissfeldt <heiko@colossus.escape.de>
@@ -33,12 +33,12 @@
 #include <libvcd/sector.h>
 
 /* Private includes */
-#include "assert.h"
+#include "vcd_assert.h"
 #include "bytesex.h"
 #include "salloc.h"
 #include "sector_private.h"
 
-static const char _rcsid[] = "$Id: sector.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: sector.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 static const uint8_t sync_pattern[12] = {
   0x00, 0xff, 0xff, 0xff,
@@ -70,116 +70,94 @@ build_address (void *buf, sectortype_t sectortype, uint32_t address)
   }
 }
 
+/* From cdrtools-1.11a25 */
 static uint32_t
-build_edc (const void *in, unsigned from, unsigned upto)
+build_edc(const uint8_t inout[], int from, int upto)
 {
-  const uint8_t *p = (uint8_t*)in+from;
+  const uint8_t *p = inout+from;
   uint32_t result = 0;
 
-  for (; from <= upto; from++)
+  upto -= from-1;
+  upto /= 4;
+  while (--upto >= 0) {
     result = EDC_crctable[(result ^ *p++) & 0xffL] ^ (result >> 8);
-
-  return result;
+    result = EDC_crctable[(result ^ *p++) & 0xffL] ^ (result >> 8);
+    result = EDC_crctable[(result ^ *p++) & 0xffL] ^ (result >> 8);
+    result = EDC_crctable[(result ^ *p++) & 0xffL] ^ (result >> 8);
+  }
+  return (result);
 }
 
+/* From cdrtools-1.11a40 */
 static void
-encode_L2_Q (uint8_t inout[4 + L2_RAW + 4 + 8 + L2_P + L2_Q])
+encode_L2_Q(uint8_t inout[4 + L2_RAW + 4 + 8 + L2_P + L2_Q])
 {
+  uint8_t *dps;
+  uint8_t *dp;
   uint8_t *Q;
-  int i,j;
-
+  int i, j;
+        
   Q = inout + 4 + L2_RAW + 4 + 8 + L2_P;
-  memset (Q, 0, L2_Q);
+  
+  dps = inout;
   for (j = 0; j < 26; j++) {
+    uint16_t a, b;
+
+    a = b = 0;
+    dp = dps;
     for (i = 0; i < 43; i++) {
-      uint8_t data;
-
+      
       /* LSB */
-      data = inout[(j*43*2+i*2*44) % (4 + L2_RAW + 4 + 8 + L2_P)];
-      if (data != 0) {
-        uint32_t base = rs_l12_log[data];
-
-        uint32_t sum = base + DQ[0][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-                
-        Q[0] ^= rs_l12_alog[sum];
-
-        sum = base + DQ[1][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-                
-        Q[26*2] ^= rs_l12_alog[sum];
-      }
+      a ^= L2sq[i][*dp++];
+      
       /* MSB */
-      data = inout[(j*43*2+i*2*44+1) % (4 + L2_RAW + 4 + 8 + L2_P)];
-      if (data != 0) {
-        uint32_t base = rs_l12_log[data];
-
-        uint32_t sum = base+DQ[0][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-                
-        Q[1] ^= rs_l12_alog[sum];
-
-        sum = base + DQ[1][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-                
-        Q[26*2+1] ^= rs_l12_alog[sum];
-      }
+      b ^= L2sq[i][*dp];
+      
+      dp += 2*44-1;
+      if (dp >= &inout[(4 + L2_RAW + 4 + 8 + L2_P)]) {
+        dp -= (4 + L2_RAW + 4 + 8 + L2_P);
+      } 
     }
+    Q[0]      = a >> 8;
+    Q[26*2]   = a;
+    Q[1]      = b >> 8;
+    Q[26*2+1] = b;
+    
     Q += 2;
+    dps += 2*43;
   }
 }
 
 static void
 encode_L2_P (uint8_t inout[4 + L2_RAW + 4 + 8 + L2_P])
 {
-  uint8_t *P;
-  int i,j;
-
+  uint8_t *dp;
+  unsigned char *P;
+  int i, j;
+  
   P = inout + 4 + L2_RAW + 4 + 8;
-  memset(P, 0, L2_P);
+  
   for (j = 0; j < 43; j++) {
-    for (i = 0; i < 24; i++) {
-      uint8_t data;
-
+    uint16_t a;
+    uint16_t b;
+    
+    a = b = 0;
+    dp = inout;
+    for (i = 19; i < 43; i++) {
+      
       /* LSB */
-      data = inout[i*2*43];
-      if (data != 0) {
-        uint32_t base = rs_l12_log[data];
-                
-        uint32_t sum = base + DP[0][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-
-        P[0] ^= rs_l12_alog[sum];
-
-        sum = base + DP[1][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-                
-        P[43*2] ^= rs_l12_alog[sum];
-      }
+      a ^= L2sq[i][*dp++];
+      
       /* MSB */
-      data = inout[i*2*43+1];
-      if (data != 0) {
-        uint32_t base = rs_l12_log[data];
-
-        uint32_t sum = base + DP[0][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-                
-        P[1] ^= rs_l12_alog[sum];
-
-        sum = base + DP[1][i];
-        if (sum >= ((1 << RS_L12_BITS)-1))
-          sum -= (1 << RS_L12_BITS)-1;
-                
-        P[43*2+1] ^= rs_l12_alog[sum];
-      }
+      b ^= L2sq[i][*dp];
+      
+      dp += 2*43 -1;
     }
+    P[0]      = a >> 8;
+    P[43*2]   = a;
+    P[1]      = b >> 8;
+    P[43*2+1] = b;
+    
     P += 2;
     inout += 2;
   }

@@ -1,7 +1,7 @@
 /*
-    $Id: cdio_private.h,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: cdio_private.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
-    Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -146,7 +146,7 @@ extern "C" {
       from lsn. Returns 0 if no error. 
     */
     int (*read_mode2_sector) (void *env, void *buf, lsn_t lsn, 
-			      bool mode2raw);
+			      bool mode2_form2);
     
     /*!
       Reads nblocks of mode2 sectors from cd device into data starting
@@ -154,7 +154,22 @@ extern "C" {
       Returns 0 if no error. 
     */
     int (*read_mode2_sectors) (void *env, void *buf, lsn_t lsn, 
-			       bool mode2raw, unsigned int nblocks);
+			       bool mode2_form2, unsigned int nblocks);
+    
+    /*!
+      Reads a single mode1 sector from cd device into buf starting
+      from lsn. Returns 0 if no error. 
+    */
+    int (*read_mode1_sector) (void *env, void *buf, lsn_t lsn, 
+			      bool mode1_form2);
+    
+    /*!
+      Reads nblocks of mode1 sectors from cd device into data starting
+      from lsn.
+      Returns 0 if no error. 
+    */
+    int (*read_mode1_sectors) (void *env, void *buf, lsn_t lsn, 
+			       bool mode1_form2, unsigned int nblocks);
     
     /*!
       Set the arg "key" with "value" in the source device.
@@ -275,7 +290,7 @@ extern "C" {
   /*!
     Release and free resources associated with stream or disk image.
   */
-  void cdio_generic_stream_free (void *env);
+  void cdio_generic_stdio_free (void *env);
 
   /*!  
     Return true if source_name could be a device containing a CD-ROM on

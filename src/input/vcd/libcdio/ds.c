@@ -1,5 +1,5 @@
 /*
-    $Id: ds.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: ds.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -30,7 +30,7 @@
 #include <cdio/types.h>
 #include "cdio_assert.h"
 
-static const char _rcsid[] = "$Id: ds.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: ds.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
 
 struct _CdioList
 {

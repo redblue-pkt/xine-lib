@@ -1,5 +1,5 @@
 /*
-    $Id: bitvec.h,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: bitvec.h,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -23,7 +23,7 @@
 
 #include <libvcd/types.h>
 
-#include "assert.h"
+#include "vcd_assert.h"
 
 static inline bool
 _vcd_bit_set_p (const uint32_t n, const unsigned bit)

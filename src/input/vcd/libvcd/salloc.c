@@ -1,5 +1,5 @@
 /*
-    $Id: salloc.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: salloc.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -32,11 +32,11 @@
 #include <libvcd/logging.h>
 
 /* Private headers */
-#include "assert.h"
+#include "vcd_assert.h"
 #include "salloc.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: salloc.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: salloc.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 #define VCD_SALLOC_CHUNK_SIZE 16
 

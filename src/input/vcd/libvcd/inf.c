@@ -1,5 +1,5 @@
 /*
-    $Id: inf.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: inf.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
 
@@ -60,7 +60,7 @@
 #include "info_private.h"
 #include "pbc.h"
 
-static const char _rcsid[] = "$Id: inf.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: inf.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 #define BUF_COUNT 16
 #define BUF_SIZE 80

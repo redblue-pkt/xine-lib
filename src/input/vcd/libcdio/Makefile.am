@@ -1,21 +1,25 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIRS = cdio
+SUBDIRS = cdio MSWindows image
 
 INCLUDES = $(LIBCDIO_CFLAGS)
 
 libcdio_SRCS = \
-	_cdio_bincue.c \
+	image/bincue.c \
+	image/nrg.c \
+	MSWindows/aspi32.c \
+	MSWindows/aspi32.h \
+	MSWindows/ioctl.c \
+	MSWindows/win32.c \
+	MSWindows/win32.h \
 	_cdio_bsdi.c \
 	_cdio_freebsd.c \
 	_cdio_generic.c \
 	_cdio_linux.c \
 	_cdio_osx.c \
-	_cdio_nrg.c \
 	_cdio_stdio.c \
 	_cdio_stream.c \
 	_cdio_sunos.c \
-	_cdio_win32.c \
 	cdio.c \
 	cd_types.c \
 	ds.c \

@@ -1,5 +1,5 @@
 /*
-    $Id: info.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: info.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
 
@@ -26,7 +26,7 @@
 
 /* Private headers */
 #include "info_private.h"
-#include "assert.h"
+#include "vcd_assert.h"
 #include "bytesex.h"
 #include "pbc.h"
 #include "util.h"
@@ -59,7 +59,7 @@
 #include <stddef.h>
 #include <errno.h>
 
-static const char _rcsid[] = "$Id: info.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: info.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 #define MIN_ENCODED_TRACK_NUM 100
 #define MIN_ENCODED_SEGMENT_NUM 1000
@@ -100,31 +100,76 @@ _init_segments (vcdinfo_obj_t *obj)
 {
   InfoVcd *info = vcdinfo_get_infoVcd(obj);
   segnum_t num_segments = vcdinfo_get_num_segments(obj);
+  VcdListNode *entnode;
+  VcdList *entlist;
   int i;
-  iso9660_stat_t statbuf;
+  lsn_t last_lsn=0;
   
   obj->first_segment_lsn = cdio_msf_to_lsn(&info->first_seg_addr);
-
   obj->seg_sizes         = _vcd_malloc( num_segments * sizeof(uint32_t *));
-  if (NULL == obj->seg_sizes) return;
 
+  if (NULL == obj->seg_sizes || 0 == num_segments) return;
+
+  entlist = iso9660_fs_readdir(obj->img, "SEGMENT", true);
+
+  i=0;
+  _VCD_LIST_FOREACH (entnode, entlist) {
+    iso9660_stat_t *statbuf = _vcd_list_node_data (entnode);
+
+    if (statbuf->type == _STAT_DIR) continue;
+
+    while(info->spi_contents[i].item_cont) {
+      obj->seg_sizes[i] = VCDINFO_SEGMENT_SECTOR_SIZE;
+      i++;
+    }
+    
+    /* Should have an entry in the ISO 9660 filesystem. Get and save 
+       in statbuf.secsize this size.
+    */
+    obj->seg_sizes[i] = statbuf->secsize;
+
+    if (last_lsn >= statbuf->lsn) 
+      vcd_warn ("Segments if ISO 9660 directory out of order lsn %ul >= %ul", 
+                (unsigned int) last_lsn, (unsigned int) statbuf->lsn);
+    last_lsn = statbuf->lsn;
+
+    i++;
+  }
+
+  while(i < num_segments && info->spi_contents[i].item_cont) {
+    obj->seg_sizes[i] = VCDINFO_SEGMENT_SECTOR_SIZE;
+    i++;
+  }
+
+  if (i != num_segments) 
+    vcd_warn ("Number of segments found %d is not number of segments %d", 
+              i, num_segments);
+
+  _vcd_list_free (entlist, true);
+
+  
+#if 0
   /* Figure all of the segment sector sizes */
   for (i=0; i < num_segments; i++) {
     
     obj->seg_sizes[i] = VCDINFO_SEGMENT_SECTOR_SIZE;
 
     if ( !info->spi_contents[i].item_cont ) {
-      /* Should have an entry in the ISO 9660 filesytem. Get and save 
+      /* Should have an entry in the ISO 9660 filesystem. Get and save 
          in statbuf.secsize this size.
        */
       lsn_t lsn = vcdinfo_get_seg_lsn(obj, i);
-      if (iso9660_find_fs_lsn(obj->img, lsn, &statbuf)) {
-        obj->seg_sizes[i] = statbuf.secsize;
+      iso9660_stat_t *statbuf =iso9660_find_fs_lsn(obj->img, lsn);
+      if (NULL != statbuf) {
+        obj->seg_sizes[i] = statbuf->secsize;
+        free(statbuf);
       } else {
         vcd_warn ("Trouble finding ISO 9660 size for segment %d.", i);
       }
     }
   }
+#endif
+
 }
 
 /*!
@@ -365,6 +410,68 @@ vcdinfo_get_cd_image (const vcdinfo_obj_t *vcd_obj)
 }
 
 
+/*!
+  \fn vcdinfo_selection_get_lid(const vcdinfo_obj_t *obj, lid_t lid,
+                               unsigned int selection);
+
+  \brief Get offset of a selection for a given lid. 
+
+  Return the LID offset associated with a the selection number of the
+  passed-in LID parameter. 
+
+  \return VCDINFO_INVALID_LID is returned if obj on error or obj
+  is NULL. Otherwise the LID offset is returned.
+*/
+lid_t vcdinfo_selection_get_lid(const vcdinfo_obj_t *obj, lid_t lid,
+                                      unsigned int selection) 
+{
+  unsigned int offset;
+
+  if (NULL == obj) return VCDINFO_INVALID_LID;
+
+  offset = vcdinfo_selection_get_offset(obj, lid, selection);
+  switch (offset) {
+  case VCDINFO_INVALID_OFFSET:
+  case PSD_OFS_MULTI_DEF:
+  case PSD_OFS_MULTI_DEF_NO_NUM:
+    return VCDINFO_INVALID_LID;
+  default: 
+    {
+      vcdinfo_offset_t *ofs = vcdinfo_get_offset_t(obj, offset);
+      return ofs->lid;
+    }
+  }
+}
+
+/*!
+  \fn vcdinfo_selection_get_offset(const vcdinfo_obj_t *obj, lid_t lid,
+  unsigned int selection);
+
+  \brief Get offset of a selection for a given lid. 
+
+  Return the LID offset associated with a the selection number of the
+  passed-in LID parameter. 
+
+  \return VCDINFO_INVALID_OFFSET is returned if obj on error or obj
+  is NULL. Otherwise the LID offset is returned.
+*/
+uint16_t vcdinfo_selection_get_offset(const vcdinfo_obj_t *obj, lid_t lid,
+                                      unsigned int selection) 
+{
+  unsigned int bsn;
+
+  PsdListDescriptor pxd;
+  vcdinfo_lid_get_pxd(obj, &pxd, lid);
+  bsn=vcdinf_get_bsn(pxd.psd);
+
+  if ( (selection - bsn + 1) > 0) {
+    return vcdinfo_lid_get_offset(obj, lid, selection-bsn+1);
+  } else {
+    vcd_warn( "Selection number %u too small. bsn %u", selection, bsn );
+    return VCDINFO_INVALID_OFFSET;
+  }
+}
+
 /**
  \fn vcdinfo_get_default_offset(const vcdinfo_obj_t *obj, unsinged int lid);
  \brief Get return offset for a given PLD selector descriptor. 
@@ -372,7 +479,7 @@ vcdinfo_get_cd_image (const vcdinfo_obj_t *vcd_obj)
  "return" entry or pld is NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinfo_get_default_offset(const vcdinfo_obj_t *obj, unsigned int lid)
+vcdinfo_get_default_offset(const vcdinfo_obj_t *obj, lid_t lid)
 {
   if (NULL != obj) {
     
@@ -392,6 +499,83 @@ vcdinfo_get_default_offset(const vcdinfo_obj_t *obj, unsigned int lid)
     }
   }
   return VCDINFO_INVALID_OFFSET;
+}
+
+/*!
+  \brief Get default or multi-default LID. 
+  
+  Return the LID offset associated with a the "default" entry of the
+  passed-in LID parameter. Note "default" entries are associated
+  with PSDs that are (extended) selection lists. If the "default"
+  offset is a multi-default, we use entry_num to find the proper
+  "default" LID. Otherwise this routine is exactly like
+  vcdinfo_get_default_lid with the exception of requiring an
+  additional "entry_num" parameter.
+  
+  \return VCDINFO_INVALID_LID is returned on error, or if the LID
+  is not a selection list or no "default" entry. Otherwise the LID
+  offset is returned.
+*/
+lid_t
+vcdinfo_get_multi_default_lid(const vcdinfo_obj_t *obj, lid_t lid, 
+                              unsigned int entry_num)
+{
+  unsigned int offset = vcdinfo_get_multi_default_offset(obj, lid, entry_num);
+  switch (offset) {
+  case VCDINFO_INVALID_OFFSET:
+  case PSD_OFS_MULTI_DEF:
+  case PSD_OFS_MULTI_DEF_NO_NUM:
+    return VCDINFO_INVALID_LID;
+  default: 
+    {
+      vcdinfo_offset_t *ofs = vcdinfo_get_offset_t(obj, offset);
+      return ofs->lid;
+    }
+  }
+}
+
+/*!
+  \brief Get default or multi-default LID offset. 
+  
+  Return the LID offset associated with a the "default" entry of the
+  passed-in LID parameter. Note "default" entries are associated
+  with PSDs that are (extended) selection lists. If the "default"
+  offset is a multi-default, we use entry_num to find the proper
+  "default" offset. Otherwise this routine is exactly like
+  vcdinfo_get_default_offset with the exception of requiring an
+  additional "entry_num" parameter.
+  
+  \return VCDINFO_INVALID_OFFSET is returned on error, or if the LID
+  is not a selection list or no "default" entry. Otherwise the LID
+  offset is returned.
+*/
+uint16_t
+vcdinfo_get_multi_default_offset(const vcdinfo_obj_t *obj, lid_t lid, 
+                                 unsigned int entry_num)
+{
+  uint16_t offset=vcdinfo_get_default_offset(obj, lid);
+
+  switch (offset) {
+  case PSD_OFS_MULTI_DEF:
+  case PSD_OFS_MULTI_DEF_NO_NUM: 
+    {
+      /* Have some work todo... Figure the selection number. */
+      unsigned int selection=0;
+      track_t track=vcdinfo_get_track(obj, entry_num);
+      track_t prev_track=VCDINFO_INVALID_TRACK;
+      for (selection=1;
+           track != VCDINFO_INVALID_TRACK 
+             && track != prev_track 
+             && entry_num > 0;
+           selection++) {
+        prev_track = track;
+        track=vcdinfo_get_track(obj, --entry_num);
+      }
+      return vcdinfo_selection_get_offset(obj, lid, selection);
+    }
+  default: 
+    return offset;
+  }
 }
 
 /*!
@@ -449,12 +633,15 @@ vcdinfo_get_entry_sect_count (const vcdinfo_obj_t *obj, unsigned int entry_num)
       */
       track_t track = vcdinfo_get_track(obj, entry_num);
       if (track != VCDINFO_INVALID_TRACK) {
-        iso9660_stat_t statbuf;
+        iso9660_stat_t *statbuf;
         const lsn_t lsn = vcdinfo_get_track_lsn(obj, track);
 
         /* Try to get the sector count from the ISO 9660 filesystem */
-        if (iso9660_find_fs_lsn(obj->img, lsn, &statbuf)) {
-          next_lsn = lsn + statbuf.secsize;
+        statbuf = iso9660_find_fs_lsn(obj->img, lsn);
+        
+        if (NULL != statbuf) {
+          next_lsn = lsn + statbuf->secsize;
+          free(statbuf);
         } else {
           /* Failed on ISO 9660 filesystem. Use next track or
              LEADOUT track.  */
@@ -653,7 +840,7 @@ vcdinfo_get_num_segments(const vcdinfo_obj_t *obj)
 }
 
 /*!
-  \fn vcdinfo_get_offset_from_lid(const vcdinfo_obj_t *obj, unsigned int entry_num);
+  \fn vcdinfo_get_offset_lid(const vcdinfo_obj_t *obj, unsigned int entry_num);
   \brief Get offset entry_num for a given LID. 
   \return VCDINFO_INVALID_OFFSET is returned if obj on error or obj
   is NULL. Otherwise the LID offset is returned.
@@ -1150,12 +1337,14 @@ vcdinfo_get_track_sect_count(const vcdinfo_obj_t *obj, const track_t track_num)
     return 0;
   
   {
-    iso9660_stat_t statbuf;
+    iso9660_stat_t *statbuf;
     const lsn_t lsn = vcdinfo_get_track_lsn(obj, track_num);
     
     /* Try to get the sector count from the ISO 9660 filesystem */
-    if (obj->has_xa && iso9660_find_fs_lsn(obj->img, lsn, &statbuf)) {
-      return statbuf.secsize;
+    if (obj->has_xa && (statbuf = iso9660_find_fs_lsn(obj->img, lsn))) {
+      unsigned int secsize = statbuf->secsize;
+      free(statbuf);
+      return secsize;
     } else {
       const lsn_t next_lsn=vcdinfo_get_track_lsn(obj, track_num+1);
       /* Failed on ISO 9660 filesystem. Use track information.  */
@@ -1185,7 +1374,7 @@ vcdinfo_get_track_size(const vcdinfo_obj_t *obj, track_t track_num)
     const lsn_t lsn = cdio_lba_to_lsn(vcdinfo_get_track_lba(obj, track_num));
     
     /* Try to get the sector count from the ISO 9660 filesystem */
-    if (obj->has_xa && iso9660_find_fs_lsn(obj->img, lsn, &statbuf)) {
+    if (obj->has_xa && iso9660_find_fs_lsn(obj->img, lsn)) {
       return statbuf.size;
     } 
 #if 0
@@ -1357,7 +1546,7 @@ vcdinfo_msf2lsn (uint8_t min, uint8_t sec, int8_t frame)
   lba_t lba=75*(60*min + sec) + frame;
   if (lba < CDIO_PREGAP_SECTORS) {
     vcd_error ("lba (%u) less than pregap sector (%u)", 
-               lba, CDIO_PREGAP_SECTORS);
+               (unsigned int) lba, CDIO_PREGAP_SECTORS);
     return lba;
   }
   return lba - CDIO_PREGAP_SECTORS;
@@ -1373,7 +1562,7 @@ vcdinfo_ofs2str (const vcdinfo_obj_t *obj, unsigned int offset, bool ext)
   case PSD_OFS_DISABLED:
     return "disabled";
   case PSD_OFS_MULTI_DEF:
-    return "multi_def";
+    return "multi-default";
   case PSD_OFS_MULTI_DEF_NO_NUM:
     return "multi_def_no_num";
   default: ;
@@ -1426,10 +1615,17 @@ vcdinfo_read_psd (vcdinfo_obj_t *obj)
   return true;
 }
 
-void
+/*!
+   Calls recursive routine to populate obj->offset_list or obj->offset_x_list
+   by going through LOT.
+
+   Returns false if there was some error.
+*/
+bool
 vcdinfo_visit_lot (vcdinfo_obj_t *obj, bool extended)
 {
   struct _vcdinf_pbc_ctx pbc_ctx;
+  bool ret;
 
   pbc_ctx.psd_size      = vcdinfo_get_psd_size (obj);
   pbc_ctx.psd_x_size    = obj->psd_x_size;
@@ -1443,13 +1639,14 @@ vcdinfo_visit_lot (vcdinfo_obj_t *obj, bool extended)
   pbc_ctx.lot_x         = obj->lot_x;
   pbc_ctx.extended      = extended;
 
-  vcdinf_visit_lot(&pbc_ctx);
+  ret = vcdinf_visit_lot(&pbc_ctx);
   if (NULL != obj->offset_x_list) 
     _vcd_list_free(obj->offset_x_list, true);
   obj->offset_x_list = pbc_ctx.offset_x_list;
   if (NULL != obj->offset_list) 
     _vcd_list_free(obj->offset_list, true);
   obj->offset_list   = pbc_ctx.offset_list;
+  return ret;
 }
 
 /*!
@@ -1541,8 +1738,8 @@ vcdinfo_open(vcdinfo_obj_t **obj_p, char *source_name[],
              driver_id_t source_type, const char access_mode[])
 {
   CdIo *img;
-  iso9660_stat_t statbuf;
   vcdinfo_obj_t *obj = _vcd_malloc(sizeof(vcdinfo_obj_t));
+  iso9660_stat_t *statbuf;
 
 
   /* If we don't specify a driver_id or a source_name, scan the
@@ -1571,8 +1768,10 @@ vcdinfo_open(vcdinfo_obj_t **obj_p, char *source_name[],
   if (access_mode != NULL) 
     cdio_set_arg (img, "access-mode", access_mode);
 
-  if (NULL == *source_name) 
+  if (NULL == *source_name) {
     *source_name = cdio_get_default_device(img);
+    if (NULL == *source_name) return VCDINFO_OPEN_ERROR;
+  }
     
   memset (obj, 0, sizeof (vcdinfo_obj_t));
   obj->img = img;  /* Note we do this after the above wipeout! */
@@ -1607,81 +1806,113 @@ vcdinfo_open(vcdinfo_obj_t **obj_p, char *source_name[],
   }
 
   if (obj->vcd_type == VCD_TYPE_SVCD || obj->vcd_type == VCD_TYPE_HQVCD) {
-    if (!iso9660_fs_stat (obj->img, "MPEGAV", &statbuf, true))
-      vcd_warn ("non compliant /MPEGAV folder detected!");
+    statbuf = iso9660_fs_stat (obj->img, "MPEGAV", true);
     
-    if (!iso9660_fs_stat (obj->img, "SVCD/TRACKS.SVD;1", &statbuf, true))
-      {
-        if (statbuf.size != ISO_BLOCKSIZE)
-          vcd_warn ("TRACKS.SVD filesize != %d!", ISO_BLOCKSIZE);
-        
-        obj->tracks_buf = _vcd_malloc (ISO_BLOCKSIZE);
-        
-        if (cdio_read_mode2_sector (obj->img, obj->tracks_buf, statbuf.lsn, 
-                                    false))
-          return VCDINFO_OPEN_ERROR;
-      }
+    if (NULL != statbuf) {
+      vcd_warn ("non compliant /MPEGAV folder detected!");
+      free(statbuf);
+    }
+    
+
+    statbuf = iso9660_fs_stat (obj->img, "SVCD/TRACKS.SVD;1", true);
+    if (NULL != statbuf) {
+      lsn_t lsn = statbuf->lsn;
+      if (statbuf->size != ISO_BLOCKSIZE)
+        vcd_warn ("TRACKS.SVD filesize != %d!", ISO_BLOCKSIZE);
+      
+      obj->tracks_buf = _vcd_malloc (ISO_BLOCKSIZE);
+
+      free(statbuf);
+      if (cdio_read_mode2_sector (obj->img, obj->tracks_buf, lsn, false))
+        return VCDINFO_OPEN_ERROR;
+    }
   }
       
   _init_segments (obj);
 
   switch (obj->vcd_type) {
   case VCD_TYPE_VCD2: {
-    if (!iso9660_fs_stat (img, "EXT/PSD_X.VCD;1", &statbuf, true)) {
+    /* FIXME: Can reduce CD reads by using 
+       iso9660_fs_readdir(img, "EXT", true) and then scanning for
+       the files listed below.
+    */
+    statbuf = iso9660_fs_stat (img, "EXT/PSD_X.VCD;1", true);
+    if (NULL != statbuf) {
+      lsn_t lsn        = statbuf->lsn;
+      uint32_t secsize = statbuf->secsize;
+
+      obj->psd_x       = _vcd_malloc (ISO_BLOCKSIZE * secsize);
+      obj->psd_x_size  = statbuf->size;
+      
       vcd_debug ("found /EXT/PSD_X.VCD at sector %lu", 
-                 (long unsigned int) statbuf.lsn);
-      
-      obj->psd_x = _vcd_malloc (ISO_BLOCKSIZE * statbuf.secsize);
-      obj->psd_x_size = statbuf.size;
-      
-      if (cdio_read_mode2_sectors (img, obj->psd_x, statbuf.lsn, 
-                                   false, statbuf.secsize))
+                 (long unsigned int) lsn);
+
+      free(statbuf);
+      if (cdio_read_mode2_sectors (img, obj->psd_x, lsn, false, secsize))
         return VCDINFO_OPEN_ERROR;
     }
 
-    if (!iso9660_fs_stat (img, "EXT/LOT_X.VCD;1", &statbuf, true)) {
-      vcd_debug ("found /EXT/LOT_X.VCD at sector %lu", 
-                 (unsigned long int) statbuf.lsn);
-        
-      obj->lot_x = _vcd_malloc (ISO_BLOCKSIZE * statbuf.secsize);
+    statbuf = iso9660_fs_stat (img, "EXT/LOT_X.VCD;1", true);
+    if (NULL != statbuf) {
+      lsn_t lsn        = statbuf->lsn;
+      uint32_t secsize = statbuf->secsize;
+      obj->lot_x       = _vcd_malloc (ISO_BLOCKSIZE * secsize);
       
-      if (cdio_read_mode2_sectors (img, obj->lot_x, statbuf.lsn, false, 
-                                   statbuf.secsize))
+      vcd_debug ("found /EXT/LOT_X.VCD at sector %lu", 
+                 (unsigned long int) lsn);
+        
+      if (statbuf->size != LOT_VCD_SIZE * ISO_BLOCKSIZE)
+        vcd_warn ("LOT_X.VCD size != 65535");
+
+      free(statbuf);
+      if (cdio_read_mode2_sectors (img, obj->lot_x, lsn, false, secsize))
         return VCDINFO_OPEN_ERROR;
       
-      if (statbuf.size != LOT_VCD_SIZE * ISO_BLOCKSIZE)
-        vcd_warn ("LOT_X.VCD size != 65535");
     }
     break;
   }
   case VCD_TYPE_SVCD: 
   case VCD_TYPE_HQVCD: {
-    if (!iso9660_fs_stat (img, "MPEGAV", &statbuf, true))
+    /* FIXME: Can reduce CD reads by using 
+       iso9660_fs_readdir(img, "SVCD", true) and then scanning for
+       the files listed below.
+    */
+    statbuf = iso9660_fs_stat (img, "MPEGAV", true);
+    if (NULL != statbuf) {
       vcd_warn ("non compliant /MPEGAV folder detected!");
+      free(statbuf);
+    }
     
-    if (iso9660_fs_stat (img, "SVCD/TRACKS.SVD;1", &statbuf, true))
+    statbuf = iso9660_fs_stat (img, "SVCD/TRACKS.SVD;1", true);
+    if (NULL == statbuf)
       vcd_warn ("mandatory /SVCD/TRACKS.SVD not found!");
-    else
+    else {
       vcd_debug ("found TRACKS.SVD signature at sector %lu", 
-                 (unsigned long int) statbuf.lsn);
+                 (unsigned long int) statbuf->lsn);
+      free(statbuf);
+    }
     
-    if (iso9660_fs_stat (img, "SVCD/SEARCH.DAT;1", &statbuf, true))
+    statbuf = iso9660_fs_stat (img, "SVCD/SEARCH.DAT;1", true);
+    if (NULL == statbuf)
       vcd_warn ("mandatory /SVCD/SEARCH.DAT not found!");
     else {
+      lsn_t    lsn       = statbuf->lsn;
+      uint32_t secsize   = statbuf->secsize;
+      uint32_t stat_size = statbuf->size;
       uint32_t size;
-      vcd_debug ("found SEARCH.DAT at sector %lu", 
-                 (unsigned long int) statbuf.lsn);
+
+      vcd_debug ("found SEARCH.DAT at sector %lu", (unsigned long int) lsn);
       
-      obj->search_buf = _vcd_malloc (ISO_BLOCKSIZE * statbuf.secsize);
+      obj->search_buf = _vcd_malloc (ISO_BLOCKSIZE * secsize);
       
-      if (cdio_read_mode2_sectors (img, obj->search_buf, statbuf.lsn, 
-                                   false, statbuf.secsize))
+      if (cdio_read_mode2_sectors (img, obj->search_buf, lsn, false, secsize))
         return VCDINFO_OPEN_ERROR;
       
       size = (3 * uint16_from_be (((SearchDat *)obj->search_buf)->scan_points))
         + sizeof (SearchDat);
-      
-      if (size > statbuf.size) {
+
+      free(statbuf);
+      if (size > stat_size) {
         vcd_warn ("number of scanpoints leads to bigger size than "
                   "file size of SEARCH.DAT! -- rereading");
         
@@ -1689,8 +1920,8 @@ vcdinfo_open(vcdinfo_obj_t **obj_p, char *source_name[],
         obj->search_buf = _vcd_malloc (ISO_BLOCKSIZE 
                                        * _vcd_len2blocks(size, ISO_BLOCKSIZE));
         
-        if (cdio_read_mode2_sectors (img, obj->search_buf,statbuf.lsn,
-                                     false, statbuf.secsize))
+        if (cdio_read_mode2_sectors (img, obj->search_buf, lsn, false, 
+                                     secsize))
           return VCDINFO_OPEN_ERROR;
       }
     }
@@ -1700,13 +1931,17 @@ vcdinfo_open(vcdinfo_obj_t **obj_p, char *source_name[],
     ;
   }
 
-  if (!iso9660_fs_stat (img, "EXT/SCANDATA.DAT;1", &statbuf, true)) {
-    vcd_debug ("found /EXT/SCANDATA.DAT at sector %d", statbuf.lsn);
+  statbuf = iso9660_fs_stat (img, "EXT/SCANDATA.DAT;1", true);
+  if (statbuf != NULL) {
+    lsn_t    lsn       = statbuf->lsn;
+    uint32_t secsize   = statbuf->secsize;
+
+    vcd_debug ("found /EXT/SCANDATA.DAT at sector %u", (unsigned int) lsn);
     
-    obj->scandata_buf = _vcd_malloc (ISO_BLOCKSIZE * statbuf.secsize);
-    
-    if (cdio_read_mode2_sectors (img, obj->scandata_buf, statbuf.lsn, 
-                                 false, statbuf.secsize))
+    obj->scandata_buf = _vcd_malloc (ISO_BLOCKSIZE * secsize);
+
+    free(statbuf);
+    if (cdio_read_mode2_sectors (img, obj->scandata_buf, lsn, false, secsize))
       return VCDINFO_OPEN_ERROR;
   }
 
@@ -1731,6 +1966,8 @@ vcdinfo_close(vcdinfo_obj_t *obj)
     free(obj->seg_sizes);
     free(obj->lot);
     free(obj->lot_x);
+    if (obj->psd_x) free(obj->psd_x);
+    if (obj->scandata_buf) free(obj->scandata_buf);
     free(obj->tracks_buf);
     free(obj->search_buf);
     free(obj->source_name);

@@ -1,5 +1,5 @@
 /*
-    $Id: util.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: util.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
@@ -31,7 +31,7 @@
 #include "cdio_assert.h"
 #include <cdio/util.h>
 
-static const char _rcsid[] = "$Id: util.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: util.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
 
 size_t
 _cdio_strlenv(char **str_array)

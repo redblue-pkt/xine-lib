@@ -1,5 +1,5 @@
 /*
-    $Id: bytesex_asm.h,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: bytesex_asm.h,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2001 Sven Ottemann <ac-logic@freenet.de>
                   2001 Herbert Valerio Riedel <hvr@gnu.org>

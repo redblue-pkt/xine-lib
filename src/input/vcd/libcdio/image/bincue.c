@@ -1,8 +1,8 @@
 /*
-    $Id: _cdio_bincue.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+    $Id: bincue.c,v 1.1 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
-    Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
    (*.cue).
 */
 
-static const char _rcsid[] = "$Id: _cdio_bincue.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $";
+static const char _rcsid[] = "$Id: bincue.c,v 1.1 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 #include "cdio_assert.h"
 #include "cdio_private.h"
@@ -52,10 +52,10 @@ static const char _rcsid[] = "$Id: _cdio_bincue.c,v 1.1 2003/10/13 11:47:11 f1rm
 #include <ctype.h>
 
 /* FIXME: should put in a common definition somewhere. */
-#ifdef HAVE_BZERO
-#define BZERO(ptr, size) bzero(ptr, size)
-#elif  HAVE_MEMSET
+#ifdef HAVE_MEMSET
 #define BZERO(ptr, size) memset(ptr, 0, size)
+#elif  HAVE_BZERO
+#define BZERO(ptr, size) bzero(ptr, size)
 #else 
   Error -- you need either memset or bzero
 #endif
@@ -116,7 +116,7 @@ _cdio_init (_img_private_t *_obj)
     return false;
 
   if (!(_obj->gen.data_source = cdio_stdio_new (_obj->gen.source_name))) {
-    cdio_error ("init failed");
+    cdio_warn ("init failed");
     return false;
   }
 
@@ -371,8 +371,7 @@ _cdio_image_read_cue (_img_private_t *_obj)
       }
 
     } else if (2==sscanf(p, "TRACK %d MODE1/%d", &track_num, &blocksize)) {
-      track_info_t  *this_track=&(_obj->tocent[_obj->total_tracks]);
-      this_track->blocksize      = blocksize;
+      track_info_t *this_track=&(_obj->tocent[_obj->total_tracks]);
       this_track->blocksize   = blocksize;
       switch(blocksize) {
       case 2048:
@@ -502,7 +501,8 @@ _cdio_read_audio_sectors (void *env, void *data, lsn_t lsn,
 			    CDIO_CD_FRAMESIZE_RAW - 272, nblocks);
   }
 
-  return ret;
+  /* ret is number of bytes if okay, but we need to return 0 okay. */
+  return ret == 0;
 }
 
 /*!
@@ -510,12 +510,75 @@ _cdio_read_audio_sectors (void *env, void *data, lsn_t lsn,
    from lsn. Returns 0 if no error. 
  */
 static int
-_cdio_read_mode2_sector (void *env, void *data, lsn_t lsn, 
-			 bool mode2_form2)
+_cdio_read_mode1_sector (void *env, void *data, lsn_t lsn, 
+			 bool b_form2)
 {
   _img_private_t *_obj = env;
   int ret;
   char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
+  int blocksize = _obj->sector_2336 
+    ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE_RAW;
+
+  _cdio_init (_obj);
+
+  ret = cdio_stream_seek (_obj->gen.data_source, lsn * blocksize, SEEK_SET);
+  if (ret!=0) return ret;
+
+  /* FIXME: Not completely sure the below is correct. */
+  ret = cdio_stream_read (_obj->gen.data_source,
+			  _obj->sector_2336 
+			  ? (buf + CDIO_CD_SYNC_SIZE + CDIO_CD_HEADER_SIZE) 
+			  : buf,
+			  blocksize, 1);
+  if (ret==0) return ret;
+
+  memcpy (data, buf + CDIO_CD_SYNC_SIZE + CDIO_CD_HEADER_SIZE, 
+	  b_form2 ? M2RAW_SECTOR_SIZE: CDIO_CD_FRAMESIZE);
+
+  return 0;
+}
+
+/*!
+   Reads nblocks of mode1 sectors from cd device into data starting
+   from lsn.
+   Returns 0 if no error. 
+ */
+static int
+_cdio_read_mode1_sectors (void *env, void *data, uint32_t lsn, 
+			  bool b_form2, unsigned int nblocks)
+{
+  _img_private_t *_obj = env;
+  int i;
+  int retval;
+  unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
+
+  for (i = 0; i < nblocks; i++) {
+    if ( (retval = _cdio_read_mode1_sector (_obj, 
+					    ((char *)data) + (blocksize * i),
+					    lsn + i, b_form2)) )
+      return retval;
+  }
+  return 0;
+}
+
+/*!
+   Reads a single mode1 sector from cd device into data starting
+   from lsn. Returns 0 if no error. 
+ */
+static int
+_cdio_read_mode2_sector (void *env, void *data, lsn_t lsn, 
+			 bool b_form2)
+{
+  _img_private_t *_obj = env;
+  int ret;
+  char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
+
+  /* NOTE: The logic below seems a bit wrong and convoluted
+     to me, but passes the regression tests. (Perhaps it is why we get
+     valgrind errors in vcdxrip). Leave it the way it was for now.
+     Review this sector 2336 stuff later.
+  */
+
   int blocksize = _obj->sector_2336 
     ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE_RAW;
 
@@ -531,7 +594,9 @@ _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn,
 			  blocksize, 1);
   if (ret==0) return ret;
 
-  if (mode2_form2)
+
+  /* See NOTE above. */
+  if (b_form2)
     memcpy (data, buf + CDIO_CD_SYNC_SIZE + CDIO_CD_HEADER_SIZE, 
 	    M2RAW_SECTOR_SIZE);
   else
@@ -547,40 +612,35 @@ _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn,
  */
 static int
 _cdio_read_mode2_sectors (void *env, void *data, uint32_t lsn, 
-		     bool mode2_form2, unsigned int nblocks)
+			  bool b_form2, unsigned int nblocks)
 {
   _img_private_t *_obj = env;
   int i;
   int retval;
+  unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
 
   for (i = 0; i < nblocks; i++) {
-    if (mode2_form2) {
-      if ( (retval = _cdio_read_mode2_sector (_obj, 
-					 ((char *)data) + (M2RAW_SECTOR_SIZE * i),
-					 lsn + i, true)) )
-	return retval;
-    } else {
-      char buf[M2RAW_SECTOR_SIZE] = { 0, };
-      if ( (retval = _cdio_read_mode2_sector (_obj, buf, lsn + i, true)) )
-	return retval;
-      
-      memcpy (((char *)data) + (CDIO_CD_FRAMESIZE * i), 
-	      buf + CDIO_CD_SUBHEADER_SIZE, CDIO_CD_FRAMESIZE);
-    }
+    if ( (retval = _cdio_read_mode2_sector (_obj, 
+					    ((char *)data) + (blocksize * i),
+					    lsn + i, b_form2)) )
+      return retval;
   }
   return 0;
 }
 
 #define free_if_notnull(obj) \
-  if (NULL != obj) free(obj);
+  if (NULL != obj) { free(obj); obj=NULL; };
 
 static void 
-_cdio_bincue_free (void *env) {
-  _img_private_t *_obj = env;
+_cdio_bincue_destroy (void *obj) 
+{
+  _img_private_t *env = obj;
 
-  if (NULL == _obj) return;
-  free_if_notnull(_obj->mcn);
-  cdio_generic_stream_free(_obj);
+  if (NULL == env) return;
+  free_if_notnull(env->mcn);
+  free_if_notnull(env->cue_name);
+  cdio_generic_stdio_free(env);
+  free(env);
 }
 
 /*!
@@ -589,9 +649,6 @@ _cdio_bincue_free (void *env) {
   is the only valid key.
 
   0 is returned if no error was found, and nonzero if there as an error.
-*/
-/*!
-  Set the device to use in I/O operations.
 */
 static int
 _cdio_set_arg (void *env, const char key[], const char value[])
@@ -879,44 +936,13 @@ cdio_is_binfile(const char *bin_name)
   return NULL;
 }
 
-static CdIo *
-cdio_open_common (_img_private_t **_data)
-{
-  cdio_funcs _funcs = {
-    .eject_media        = cdio_generic_bogus_eject_media,
-    .free               = _cdio_bincue_free,
-    .get_arg            = _cdio_get_arg,
-    .get_default_device = cdio_get_default_device_bincue,
-    .get_first_track_num= _cdio_get_first_track_num,
-    .get_mcn            = _cdio_get_mcn,
-    .get_num_tracks     = _cdio_get_num_tracks,
-    .get_track_format   = _cdio_get_track_format,
-    .get_track_green    = _cdio_get_track_green,
-    .get_track_lba      = _cdio_get_track_lba, 
-    .get_track_msf      = _cdio_get_track_msf,
-    .lseek              = _cdio_lseek,
-    .read               = _cdio_read,
-    .read_audio_sectors = _cdio_read_audio_sectors,
-    .read_mode2_sector  = _cdio_read_mode2_sector,
-    .read_mode2_sectors = _cdio_read_mode2_sectors,
-    .set_arg            = _cdio_set_arg,
-    .stat_size          = _cdio_stat_size
-  };
-
-  *_data                = _cdio_malloc (sizeof (_img_private_t));
-  (*_data)->gen.init    = false;
-  (*_data)->sector_2336 = false;
-  (*_data)->cue_name    = NULL;
-
-  return cdio_new (*_data, &_funcs);
-}
-
 CdIo *
 cdio_open_bincue (const char *source_name)
 {
   char *bin_name = cdio_is_cuefile(source_name);
 
   if (NULL != bin_name) {
+    free(bin_name);
     return cdio_open_cue(source_name);
   } else {
     char *cue_name = cdio_is_binfile(source_name);
@@ -933,8 +959,38 @@ cdio_open_cue (const char *cue_name)
   _img_private_t *_data;
   char *bin_name;
 
+  cdio_funcs _funcs = {
+    .eject_media        = cdio_generic_bogus_eject_media,
+    .free               = _cdio_bincue_destroy,
+    .get_arg            = _cdio_get_arg,
+    .get_default_device = cdio_get_default_device_bincue,
+    .get_first_track_num= _cdio_get_first_track_num,
+    .get_mcn            = _cdio_get_mcn,
+    .get_num_tracks     = _cdio_get_num_tracks,
+    .get_track_format   = _cdio_get_track_format,
+    .get_track_green    = _cdio_get_track_green,
+    .get_track_lba      = _cdio_get_track_lba, 
+    .get_track_msf      = _cdio_get_track_msf,
+    .lseek              = _cdio_lseek,
+    .read               = _cdio_read,
+    .read_audio_sectors = _cdio_read_audio_sectors,
+    .read_mode1_sector  = _cdio_read_mode1_sector,
+    .read_mode1_sectors = _cdio_read_mode1_sectors,
+    .read_mode2_sector  = _cdio_read_mode2_sector,
+    .read_mode2_sectors = _cdio_read_mode2_sectors,
+    .set_arg            = _cdio_set_arg,
+    .stat_size          = _cdio_stat_size
+  };
+
   if (NULL == cue_name) return NULL;
-  ret = cdio_open_common(&_data);
+
+  _data                 = _cdio_malloc (sizeof (_img_private_t));
+  (_data)->gen.init    = false;
+  (_data)->sector_2336 = false;
+  (_data)->cue_name    = NULL;
+
+  ret = cdio_new (_data, &_funcs);
+
   if (ret == NULL) return NULL;
 
   bin_name = cdio_is_cuefile(cue_name);
@@ -950,7 +1006,8 @@ cdio_open_cue (const char *cue_name)
   if (_cdio_init(_data)) {
     return ret;
   } else {
-    cdio_generic_stream_free (_data);
+    _cdio_bincue_destroy(_data);
+    free(ret);
     return NULL;
   }
 }

@@ -44,7 +44,7 @@ endif
 endif
 
 noinst_HEADERS = \
-	assert.h \
+	vcd_assert.h \
 	data_structures.h \
 	info_private.h \
 	pbc.h \

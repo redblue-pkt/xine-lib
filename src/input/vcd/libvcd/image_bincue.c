@@ -1,5 +1,5 @@
 /*
-    $Id: image_bincue.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: image_bincue.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -34,13 +34,13 @@
 #include <libvcd/logging.h>
 
 /* Private headers */
-#include "assert.h"
+#include "vcd_assert.h"
 #include "bytesex.h"
 #include "image_sink.h"
 #include "stream_stdio.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: image_bincue.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: image_bincue.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 /* reader */
 

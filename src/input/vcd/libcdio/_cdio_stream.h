@@ -1,8 +1,8 @@
 /*
-    $Id: _cdio_stream.h,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+    $Id: _cdio_stream.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
-    Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -96,14 +96,17 @@ extern "C" {
     Otherwise, -1 is returned and the global variable errno is set to indi-
     cate the error.
    */
-  long cdio_stream_seek(CdioDataSource* obj, long offset, int whence);
+  long int cdio_stream_seek(CdioDataSource* obj, long offset, int whence);
   
   /*!
     Return whatever size of stream reports, I guess unit size is bytes. 
     On error return -1;
   */
-  long cdio_stream_stat(CdioDataSource* obj);
+  long int cdio_stream_stat(CdioDataSource* obj);
   
+  /*!
+    Deallocate resources assocaited with obj. After this obj is unusable.
+  */
   void cdio_stream_destroy(CdioDataSource* obj);
   
   void cdio_stream_close(CdioDataSource* obj);

@@ -1,8 +1,8 @@
 /*
-    $Id: _cdio_generic.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+    $Id: _cdio_generic.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
-    Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 # include "config.h"
 #endif
 
-static const char _rcsid[] = "$Id: _cdio_generic.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $";
+static const char _rcsid[] = "$Id: _cdio_generic.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,7 +126,7 @@ cdio_generic_read (void *user_data, void *buf, size_t size)
   Release and free resources associated with stream or disk image.
 */
 void
-cdio_generic_stream_free (void *user_data)
+cdio_generic_stdio_free (void *user_data)
 {
   generic_img_private_t *_obj = user_data;
 
@@ -134,9 +134,7 @@ cdio_generic_stream_free (void *user_data)
   free (_obj->source_name);
 
   if (_obj->data_source)
-    cdio_stream_destroy (_obj->data_source);
-
-  free (_obj);
+    cdio_stdio_destroy (_obj->data_source);
 }
 
 
@@ -177,17 +175,31 @@ cdio_add_device_list(char **device_list[], const char *drive, int *num_drives)
 {
   if (NULL != drive) {
     unsigned int j;
+
+    /* Check if drive is already in list. */
     for (j=0; j<*num_drives; j++) {
       if (strcmp((*device_list)[j], drive) == 0) break;
     }
+
     if (j==*num_drives) {
+      /* Drive not in list. Add it. */
       (*num_drives)++;
-      *device_list = realloc(*device_list, (*num_drives) * sizeof(char *));
+      if (*device_list) {
+	*device_list = realloc(*device_list, (*num_drives) * sizeof(char *));
+      } else {
+	/* num_drives should be 0. Add assert? */
+	*device_list = malloc((*num_drives) * sizeof(char *));
+      }
+      
       (*device_list)[*num_drives-1] = strdup(drive);
     }
   } else {
     (*num_drives)++;
-    *device_list = realloc(*device_list, (*num_drives) * sizeof(char *));
+    if (*device_list) {
+      *device_list = realloc(*device_list, (*num_drives) * sizeof(char *));
+    } else {
+      *device_list = malloc((*num_drives) * sizeof(char *));
+    }
     (*device_list)[*num_drives-1] = NULL;
   }
 }

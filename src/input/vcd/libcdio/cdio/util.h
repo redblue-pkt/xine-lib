@@ -1,5 +1,5 @@
 /*
-    $Id: util.h,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: util.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -21,6 +21,12 @@
 #ifndef __CDIO_UTIL_H__
 #define __CDIO_UTIL_H__
 
+/*!
+   \file util.h 
+   \brief Miscellaneous utility functions. 
+
+   Warning: this will probably get removed/replaced by using glib.h
+*/
 #include <stdlib.h>
 
 #undef  MAX

@@ -1,7 +1,8 @@
 /*
-    $Id: logging.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: logging.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
+    Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,9 +31,11 @@
 #include <libvcd/logging.h>
 
 /* Private headers */
-#include "assert.h"
+#include "vcd_assert.h"
 
-static const char _rcsid[] = "$Id: logging.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: logging.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
+
+vcd_log_level_t vcd_loglevel_default = VCD_LOG_WARN;
 
 static void
 default_vcd_log_handler (vcd_log_level_t level, const char message[])
@@ -40,22 +43,32 @@ default_vcd_log_handler (vcd_log_level_t level, const char message[])
   switch (level)
     {
     case VCD_LOG_ERROR:
-      fprintf (stderr, "**ERROR: %s\n", message);
-      fflush (stderr);
-      exit (EXIT_FAILURE);
+      if (level >= vcd_loglevel_default) {
+        fprintf (stderr, "**ERROR: %s\n", message);
+        fflush (stderr);
+        exit (EXIT_FAILURE);
+      }
       break;
     case VCD_LOG_DEBUG:
-      fprintf (stdout, "--DEBUG: %s\n", message);
+      if (level >= vcd_loglevel_default) {
+        fprintf (stdout, "--DEBUG: %s\n", message);
+      }
       break;
     case VCD_LOG_WARN:
-      fprintf (stdout, "++ WARN: %s\n", message);
+      if (level >= vcd_loglevel_default) {
+        fprintf (stdout, "++ WARN: %s\n", message);
+      }
       break;
     case VCD_LOG_INFO:
-      fprintf (stdout, "   INFO: %s\n", message);
+      if (level >= vcd_loglevel_default) {
+        fprintf (stdout, "   INFO: %s\n", message);
+      }
       break;
     case VCD_LOG_ASSERT:
-      fprintf (stderr, "!ASSERT: %s\n", message);
-      fflush (stderr);
+      if (level >= vcd_loglevel_default) {
+        fprintf (stderr, "!ASSERT: %s\n", message);
+        fflush (stderr);
+      }
       abort ();
       break;
     default:

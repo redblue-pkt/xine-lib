@@ -1,8 +1,8 @@
 /*
-    $Id: _cdio_stdio.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+    $Id: _cdio_stdio.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
-    Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 #include "_cdio_stream.h"
 #include "_cdio_stdio.h"
 
-static const char _rcsid[] = "$Id: _cdio_stdio.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $";
+static const char _rcsid[] = "$Id: _cdio_stdio.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
 
 #define CDIO_STDIO_BUFSIZE (128*1024)
 
@@ -145,7 +145,7 @@ _stdio_stat(void *user_data)
   must use feof(3) and ferror(3) to determine which occurred.
   */
 static long
-_stdio_read(void *user_data, void *buf, long count)
+_stdio_read(void *user_data, void *buf, long int count)
 {
   _UserData *const ud = user_data;
   long read;
@@ -171,6 +171,15 @@ _stdio_read(void *user_data, void *buf, long count)
   return read;
 }
 
+/*!
+  Deallocate resources assocaited with obj. After this obj is unusable.
+*/
+void
+cdio_stdio_destroy(CdioDataSource *obj)
+{
+  cdio_stream_destroy(obj);
+}
+
 CdioDataSource*
 cdio_stdio_new(const char pathname[])
 {
@@ -181,7 +190,8 @@ cdio_stdio_new(const char pathname[])
   
   if (stat (pathname, &statbuf) == -1) 
     {
-      cdio_error ("could not stat() file `%s': %s", pathname, strerror (errno));
+      cdio_warn ("could not retrieve file info for `%s': %s", 
+                 pathname, strerror (errno));
       return NULL;
     }
 

@@ -1,5 +1,5 @@
 /*
-    $Id: image.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: image.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
                   2002 Rocky Bernstein <rocky@panix.com>
@@ -30,11 +30,11 @@
 #include <cdio/iso9660.h>
 
 /* Private headers */
-#include "assert.h"
+#include "vcd_assert.h"
 #include "image_sink.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: image.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: image.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 /*
  * VcdImageSink routines next.

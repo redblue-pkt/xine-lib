@@ -1,5 +1,5 @@
 /*
-    $Id: _cdio_stdio.h,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+    $Id: _cdio_stdio.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
@@ -25,8 +25,20 @@
 
 #include "_cdio_stream.h"
 
-CdioDataSource*
-cdio_stdio_new(const char pathname[]);
+/*!
+  Initialize a new stdio stream reading from pathname.
+  A pointer to the stream is returned or NULL if there was an error.
+
+  cdio_stream_free should be called on the returned value when you
+  don't need the stream any more. No other finalization is needed.
+ */
+CdioDataSource* cdio_stdio_new(const char pathname[]);
+
+/*!
+  Deallocate resources assocaited with obj. After this obj is unusable.
+*/
+void cdio_stdio_destroy(CdioDataSource *obj);
+
 
 #endif /* __CDIO_STREAM_STDIO_H__ */
 

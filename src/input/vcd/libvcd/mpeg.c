@@ -1,5 +1,5 @@
 /*
-  $Id: mpeg.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+  $Id: mpeg.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
   Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -31,7 +31,7 @@
 #include "mpeg.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: mpeg.c,v 1.1 2003/10/13 11:47:12 f1rmb Exp $";
+static const char _rcsid[] = "$Id: mpeg.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
 
 #define MPEG_START_CODE_PATTERN  ((uint32_t) 0x00000100)
 #define MPEG_START_CODE_MASK     ((uint32_t) 0xffffff00)
@@ -1117,7 +1117,7 @@ vcd_mpeg_parse_packet (const void *_buf, unsigned buflen, bool parse_pes,
 	  break;
 
 	default:
-	  vcd_debug ("unexpected start code 0x%8.8x", code);
+	  vcd_debug ("unexpected start code 0x%8.8x", (unsigned int) code);
 	  pos += 4;
 	  break;
 	}

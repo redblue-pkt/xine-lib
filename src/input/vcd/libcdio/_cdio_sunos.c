@@ -1,8 +1,8 @@
 /*
-    $Id: _cdio_sunos.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+    $Id: _cdio_sunos.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
-    Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 #include <glob.h>
 #endif
 
-
 #include <cdio/logging.h>
 #include <cdio/sector.h>
 #include <cdio/util.h>
@@ -42,7 +41,7 @@
 
 #ifdef HAVE_SOLARIS_CDROM
 
-static const char _rcsid[] = "$Id: _cdio_sunos.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $";
+static const char _rcsid[] = "$Id: _cdio_sunos.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,61 +97,107 @@ static bool
 _cdio_init (_img_private_t *_obj)
 {
 
-  struct dk_cinfo cinfo;
-
   if (!cdio_generic_init(_obj)) return false;
   
-  /*
-   * CDROMCDXA/CDROMREADMODE2 are broken on IDE/ATAPI devices.
-   * Try to send MMC3 SCSI commands via the uscsi interface on
-   * ATAPI devices.
-   */
-  if ( ioctl(_obj->gen.fd, DKIOCINFO, &cinfo) == 0
-       && ((strcmp(cinfo.dki_cname, "ide") == 0) 
-	   || (strncmp(cinfo.dki_cname, "pci", 3) == 0)) ) {
-      _obj->access_mode = _AM_SUN_CTRL_ATAPI;
-  } else {
-      _obj->access_mode = _AM_SUN_CTRL_SCSI;    
-  }
+  _obj->access_mode = _AM_SUN_CTRL_SCSI;    
 
   return true;
 }
 
-static int
-_cdio_mmc_read_sectors (int fd, void *buf, lsn_t lsn, int sector_type,
-			unsigned int nblocks)
-{
-  struct uscsi_cmd sc;
-  union scsi_cdb cdb;
-  int sub_channel = 0;
-  
-  memset(&cdb, 0, sizeof(cdb));
-  memset(&sc, 0, sizeof(sc));
+/*!
+   Reads audio sectors from CD device into data starting from lsn.
+   Returns 0 if no error. 
 
-  cdb.scc_cmd = CDIO_MMC_GPCMD_READ_CD;
-  CDIO_MMC_SET_READ_TYPE(cdb.cdb_opaque, sector_type);
-  CDIO_MMC_SET_READ_LBA(cdb.cdb_opaque, lsn);
-  CDIO_MMC_SET_READ_LENGTH(cdb.cdb_opaque, nblocks);
-  CDIO_MMC_SET_MAIN_CHANNEL_SELECTION_BITS(cdb.cdb_opaque, 
-					   CDIO_MMC_MCSB_ALL_HEADERS);
-  cdb.cdb_opaque[10] = sub_channel;
+   May have to check size of nblocks. There may be a limit that
+   can be read in one go, e.g. 25 blocks.
+*/
+
+static int
+_cdio_read_audio_sectors (void *env, void *data, lsn_t lsn, 
+			  unsigned int nblocks)
+{
+  char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
+  struct cdrom_msf *msf = (struct cdrom_msf *) &buf;
+  msf_t _msf;
+  struct cdrom_cdda cdda;
+
+  _img_private_t *_obj = env;
+
+  cdio_lba_to_msf (cdio_lsn_to_lba(lsn), &_msf);
+  msf->cdmsf_min0   = from_bcd8(_msf.m);
+  msf->cdmsf_sec0   = from_bcd8(_msf.s);
+  msf->cdmsf_frame0 = from_bcd8(_msf.f);
   
-  sc.uscsi_cdb = (caddr_t)&cdb;
-  sc.uscsi_cdblen = 12;
-  sc.uscsi_bufaddr = (caddr_t) buf;
-  sc.uscsi_buflen = CDIO_CD_FRAMESIZE_RAW;
-  sc.uscsi_flags = USCSI_ISOLATE | USCSI_READ;
-  sc.uscsi_timeout = 20;
-  if (ioctl(fd, USCSICMD, &sc)) {
-    perror("USCSICMD: READ CD");
-    return 1;
-  }
-  if (sc.uscsi_status) {
-    cdio_error("SCSI command failed with status %d\n", 
-	       sc.uscsi_status);
-  }
+  if (_obj->gen.ioctls_debugged == 75)
+    cdio_debug ("only displaying every 75th ioctl from now on");
   
-  return sc.uscsi_status;
+  if (_obj->gen.ioctls_debugged == 30 * 75)
+    cdio_debug ("only displaying every 30*75th ioctl from now on");
+  
+  if (_obj->gen.ioctls_debugged < 75 
+      || (_obj->gen.ioctls_debugged < (30 * 75)  
+	  && _obj->gen.ioctls_debugged % 75 == 0)
+      || _obj->gen.ioctls_debugged % (30 * 75) == 0)
+    cdio_debug ("reading %d", lsn);
+  
+  _obj->gen.ioctls_debugged++;
+  
+  cdda.cdda_addr   = lsn;
+  cdda.cdda_length = nblocks;
+  cdda.cdda_data   = (caddr_t) data;
+  if (ioctl (_obj->gen.fd, CDROMCDDA, &cdda) == -1) {
+    perror ("ioctl(..,CDROMCDDA,..)");
+	return 1;
+	/* exit (EXIT_FAILURE); */
+  }
+  memcpy (data, buf, CDIO_CD_FRAMESIZE_RAW);
+  
+  return 0;
+}
+
+/*!
+   Reads a single mode1 sector from cd device into data starting
+   from lsn. Returns 0 if no error. 
+ */
+static int
+_cdio_read_mode1_sector (void *env, void *data, lsn_t lsn, 
+			 bool b_form2)
+{
+
+  char buf[M2RAW_SECTOR_SIZE] = { 0, };
+#if FIXED
+  do something here. 
+#else
+  if (0 > cdio_generic_lseek(env, CDIO_CD_FRAMESIZE*lsn, SEEK_SET))
+    return -1;
+  if (0 > cdio_generic_read(env, buf, CDIO_CD_FRAMESIZE))
+    return -1;
+  memcpy (data, buf, b_form2 ? M2RAW_SECTOR_SIZE: CDIO_CD_FRAMESIZE);
+#endif
+  return 0;
+}
+
+/*!
+   Reads nblocks of mode2 sectors from cd device into data starting
+   from lsn.
+   Returns 0 if no error. 
+ */
+static int
+_cdio_read_mode1_sectors (void *env, void *data, lsn_t lsn, 
+			  bool b_form2, unsigned int nblocks)
+{
+  _img_private_t *_obj = env;
+  unsigned int i;
+  int retval;
+  unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
+
+  for (i = 0; i < nblocks; i++) {
+    if ( (retval = _cdio_read_mode1_sector (_obj, 
+					    ((char *)data) + (blocksize * i),
+					    lsn + i, b_form2)) )
+      return retval;
+  }
+  return 0;
 }
 
 /*!
@@ -161,11 +206,13 @@ _cdio_mmc_read_sectors (int fd, void *buf, lsn_t lsn, int sector_type,
  */
 static int
 _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn, 
-			 bool mode2_form2)
+			 bool b_form2)
 {
-  char buf[M2RAW_SECTOR_SIZE] = { 0, };
+  char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
   struct cdrom_msf *msf = (struct cdrom_msf *) &buf;
   msf_t _msf;
+  int offset = 0;
+  struct cdrom_cdxa cd_read;
 
   _img_private_t *_obj = env;
 
@@ -189,97 +236,24 @@ _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn,
   
   _obj->gen.ioctls_debugged++;
   
-  switch (_obj->access_mode)
-    {
-    case _AM_NONE:
-      cdio_error ("No way to read CD mode2.");
-      return 1;
-      break;
-      
-    case _AM_SUN_CTRL_SCSI:
-      if (ioctl (_obj->gen.fd, CDROMREADMODE2, buf) == -1) {
-	perror ("ioctl(..,CDROMREADMODE2,..)");
-	return 1;
-	/* exit (EXIT_FAILURE); */
-      }
-      break;
-      
-    case _AM_SUN_CTRL_ATAPI:
-      {
-	if (_cdio_mmc_read_sectors(_obj->gen.fd, data, lsn, 
-				   CDIO_MMC_READ_TYPE_MODE2, 1)) {
-	  return 1;
-	}
-	break;
-      }
-    }
+  /* Using CDROMXA ioctl will actually use the same uscsi command
+   * as ATAPI, except we don't need to be root
+   */      
+  offset = CDIO_CD_XA_SYNC_HEADER;
+  cd_read.cdxa_addr = lsn;
+  cd_read.cdxa_data = buf;
+  cd_read.cdxa_length = 1;
+  cd_read.cdxa_format = CDROM_XA_SECTOR_DATA;
+  if (ioctl (_obj->gen.fd, CDROMCDXA, &cd_read) == -1) {
+    perror ("ioctl(..,CDROMCDXA,..)");
+    return 1;
+    /* exit (EXIT_FAILURE); */
+  }
   
-  if (mode2_form2)
-    memcpy (data, buf, M2RAW_SECTOR_SIZE);
+  if (b_form2)
+    memcpy (data, buf + (offset-CDIO_CD_SUBHEADER_SIZE), M2RAW_SECTOR_SIZE);
   else
-    memcpy (((char *)data), buf + CDIO_CD_SUBHEADER_SIZE, CDIO_CD_FRAMESIZE);
-  
-  return 0;
-}
-
-/*!
-   Reads single audio sectors from CD device into data starting from lsn.
-   Returns 0 if no error. 
-
-   May have to check size of nblocks. There may be a limit that
-   can be read in one go, e.g. 25 blocks.
-*/
-
-static int
-_cdio_read_audio_sectors (void *env, void *data, lsn_t lsn, 
-			  unsigned int nblocks)
-{
-  _img_private_t *_obj = env;
-
-  if (_obj->gen.ioctls_debugged == 75)
-    cdio_debug ("only displaying every 75th ioctl from now on");
-  
-  if (_obj->gen.ioctls_debugged == 30 * 75)
-    cdio_debug ("only displaying every 30*75th ioctl from now on");
-  
-  if (_obj->gen.ioctls_debugged < 75 
-      || (_obj->gen.ioctls_debugged < (30 * 75)  
-	  && _obj->gen.ioctls_debugged % 75 == 0)
-      || _obj->gen.ioctls_debugged % (30 * 75) == 0)
-    cdio_debug ("reading %d", lsn);
-  
-  _obj->gen.ioctls_debugged++;
-  
-  switch (_obj->access_mode)
-    {
-    case _AM_NONE:
-      cdio_error ("No way to read CD audio");
-      return 1;
-      break;
-      
-    case _AM_SUN_CTRL_SCSI: 
-      {
-	struct cdrom_cdda cdda;
-	cdda.cdda_addr   = lsn;
-	cdda.cdda_length = nblocks;
-	cdda.cdda_data   = (caddr_t) data;
-	if (ioctl (_obj->gen.fd, CDROMCDDA, &cdda) == -1) {
-	    perror ("ioctl(..,CDROMCDDA,..)");
-	    return 1;
-	    /* exit (EXIT_FAILURE); */
-	}
-      }
-      break;
-      
-    case _AM_SUN_CTRL_ATAPI:
-      {
-	if (_cdio_mmc_read_sectors(_obj->gen.fd, data, lsn, 
-				   CDIO_MMC_READ_TYPE_CDDA, nblocks)) {
-	  return 1;
-	}
-	break;
-      }
-    }
+    memcpy (((char *)data), buf + offset, CDIO_CD_FRAMESIZE);
   
   return 0;
 }
@@ -290,30 +264,23 @@ _cdio_read_audio_sectors (void *env, void *data, lsn_t lsn,
    Returns 0 if no error. 
  */
 static int
-_cdio_read_mode2_sectors (void *env, void *data, uint32_t lsn, 
-			  bool mode2_form2, unsigned int nblocks)
+_cdio_read_mode2_sectors (void *env, void *data, lsn_t lsn, 
+			  bool b_form2, unsigned int nblocks)
 {
   _img_private_t *_obj = env;
   unsigned int i;
   int retval;
+  unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
 
   for (i = 0; i < nblocks; i++) {
-    if (mode2_form2) {
-      if ( (retval = _cdio_read_mode2_sector (_obj, 
-					  ((char *)data) + (M2RAW_SECTOR_SIZE * i),
-					  lsn + i, true)) )
-	return retval;
-    } else {
-      char buf[M2RAW_SECTOR_SIZE] = { 0, };
-      if ( (retval = _cdio_read_mode2_sector (_obj, buf, lsn + i, true)) )
-	return retval;
-      
-      memcpy (((char *)data) + (CDIO_CD_FRAMESIZE * i), 
-	      buf + CDIO_CD_SUBHEADER_SIZE, CDIO_CD_FRAMESIZE);
-    }
+    if ( (retval = _cdio_read_mode2_sector (_obj, 
+					    ((char *)data) + (blocksize * i),
+					    lsn + i, b_form2)) )
+      return retval;
   }
   return 0;
 }
+
 
 /*!
    Return the size of the CD in logical block address (LBA) units.
@@ -364,7 +331,7 @@ _cdio_set_arg (void *env, const char key[], const char value[])
   else if (!strcmp (key, "access-mode"))
     {
       if (!strcmp(value, "ATAPI"))
-	_obj->access_mode = _AM_SUN_CTRL_ATAPI;
+	_obj->access_mode = _AM_SUN_CTRL_SCSI; /* force ATAPI to be SCSI */
       else if (!strcmp(value, "SCSI"))
 	_obj->access_mode = _AM_SUN_CTRL_SCSI;
       else
@@ -686,6 +653,7 @@ cdio_open_solaris (const char *source_name)
     .get_devices        = cdio_get_devices_solaris,
     .get_default_device = cdio_get_default_device_solaris,
     .get_first_track_num= _cdio_get_first_track_num,
+    .get_mcn            = NULL,
     .get_num_tracks     = _cdio_get_num_tracks,
     .get_track_format   = _cdio_get_track_format,
     .get_track_green    = _cdio_get_track_green,
@@ -694,6 +662,8 @@ cdio_open_solaris (const char *source_name)
     .lseek              = cdio_generic_lseek,
     .read               = cdio_generic_read,
     .read_audio_sectors = _cdio_read_audio_sectors,
+    .read_mode1_sector  = _cdio_read_mode1_sector,
+    .read_mode1_sectors = _cdio_read_mode1_sectors,
     .read_mode2_sector  = _cdio_read_mode2_sector,
     .read_mode2_sectors = _cdio_read_mode2_sectors,
     .stat_size          = _cdio_stat_size,

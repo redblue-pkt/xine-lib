@@ -1,7 +1,8 @@
 /*
-    $Id: logging.h,v 1.1 2003/10/13 11:47:12 f1rmb Exp $
+    $Id: logging.h,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
+    Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,32 +28,96 @@
 extern "C" {
 #endif /* __cplusplus */
 
+/**
+ * The different log levels supported.
+ */
 typedef enum {
-  VCD_LOG_DEBUG = 1,
-  VCD_LOG_INFO,
-  VCD_LOG_WARN,
-  VCD_LOG_ERROR,
-  VCD_LOG_ASSERT
+  VCD_LOG_DEBUG = 1, /**< Debug-level messages - helps debug what's up. */
+  VCD_LOG_INFO,      /**< Informational - indicates perhaps something of 
+                           interest. */
+  VCD_LOG_WARN,      /**< Warning conditions - something that looks funny. */
+  VCD_LOG_ERROR,     /**< Error conditions - may terminate program.  */
+  VCD_LOG_ASSERT     /**< Critical conditions - may abort program. */
 } vcd_log_level_t;
 
-void
-vcd_log (vcd_log_level_t level, const char format[], ...) GNUC_PRINTF(2, 3);
-    
+/**
+ * The place to save the preference concerning how much verbosity 
+ * is desired. This is used by the internal default log handler, but
+ * it could be use by applications which provide their own log handler.
+ */
+extern vcd_log_level_t vcd_loglevel_default;
+
+/**
+ * This type defines the signature of a log handler.  For every
+ * message being logged, the handler will receive the log level and
+ * the message string.
+ *
+ * @see vcd_log_set_handler
+ * @see vcd_log_level_t
+ *
+ * @param level   The log level.
+ * @param message The log message.
+ */
 typedef void (*vcd_log_handler_t) (vcd_log_level_t level, 
                                    const char message[]);
 
+/**
+ * Set a custom log handler for libcdio.  The return value is the log
+ * handler being replaced.  If the provided parameter is NULL, then
+ * the handler will be reset to the default handler.
+ *
+ * @see vcd_log_handler_t
+ *
+ * @param new_handler The new log handler.
+ * @return The previous log handler.
+ */
 vcd_log_handler_t
 vcd_log_set_handler (vcd_log_handler_t new_handler);
 
+/**
+ * Handle an message with the given log level
+ *
+ * @see vcd_debug
+ * @see vcd_info
+ * @see vcd_warn
+ * @see vcd_error
+
+ * @param level   The log level.
+ * @param format  printf-style format string
+ * @param ...     remaining arguments needed by format string
+ */
+void
+vcd_log (vcd_log_level_t level, const char format[], ...) GNUC_PRINTF(2, 3);
+    
+/**
+ * Handle a debugging message.
+ *
+ * @see vcd_log for a more generic routine
+ */
 void
 vcd_debug (const char format[], ...) GNUC_PRINTF(1,2);
 
+/**
+ * Handle an informative message.
+ *
+ * @see vcd_log for a more generic routine
+ */
 void
 vcd_info (const char format[], ...) GNUC_PRINTF(1,2);
 
+/**
+ * Handle a warning message.
+ *
+ * @see vcd_log for a more generic routine
+ */
 void
 vcd_warn (const char format[], ...) GNUC_PRINTF(1,2);
 
+/**
+ * Handle an error message.
+ *
+ * @see vcd_log for a more generic routine.
+ */
 void
 vcd_error (const char format[], ...) GNUC_PRINTF(1,2);
 
