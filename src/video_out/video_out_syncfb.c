@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.41 2001/11/07 21:02:31 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.42 2001/11/07 23:01:03 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -91,6 +91,7 @@ typedef struct {
   int                screen_depth;
 
   int                video_win_visibility;
+  int                logo_visibility;
    
   syncfb_property_t props[VO_NUM_PROPERTIES];
 
@@ -334,20 +335,21 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
    
    int posx, posy;
    
-   static int prev_output_width   = 0;
-   static int prev_output_height  = 0;
-   static int prev_output_xoffset = 0;
-   static int prev_output_yoffset = 0;
-   static int prev_deinterlacing  = 0;
-   static int prev_posx           = 0;
-   static int prev_posy           = 0;
-   static int prev_v_w_visibility = 0;
-
+   static int prev_output_width    = 0;
+   static int prev_output_height   = 0;
+   static int prev_output_xoffset  = 0;
+   static int prev_output_yoffset  = 0;
+   static int prev_deinterlacing   = 0;
+   static int prev_posx            = 0;
+   static int prev_posy            = 0;
+   static int prev_v_w_visibility  = 0;
+   static int prev_logo_visibility = 0;
+   
    XLockDisplay(this->display);
 
    XGetWindowAttributes(this->display, this->drawable, &window_attributes);
 
-   if(!this->video_win_visibility || window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
+   if(this->logo_visibility || !this->video_win_visibility || window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
      posx = posy = -1;
    else
      XTranslateCoordinates(this->display, this->drawable, window_attributes.root, 0, 0, &posx, &posy, &temp_window);
@@ -367,23 +369,25 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
    // try to minimize our config ioctls by checking if anything really has
    // changed, otherwise leave things untouched because every config ioctl
    // also turns off and on the SyncFB module.
-   if(prev_output_width   != this->output_width        ||
-      prev_output_height  != this->output_height       ||
-      prev_output_xoffset != this->output_xoffset      ||
-      prev_output_yoffset != this->output_yoffset      ||
-      prev_deinterlacing  != this->deinterlace_enabled ||
-      prev_posx           != posx                      ||
-      prev_posy           != posy                      ||
-      prev_v_w_visibility != this->video_win_visibility) {	
+   if(prev_output_width    != this->output_width        ||
+      prev_output_height   != this->output_height       ||
+      prev_output_xoffset  != this->output_xoffset      ||
+      prev_output_yoffset  != this->output_yoffset      ||
+      prev_deinterlacing   != this->deinterlace_enabled ||
+      prev_posx            != posx                      ||
+      prev_posy            != posy                      ||
+      prev_v_w_visibility  != this->video_win_visibility ||
+      prev_logo_visibility != this->logo_visibility) {
       
-      prev_output_width   = this->output_width;
-      prev_output_height  = this->output_height;
-      prev_output_xoffset = this->output_xoffset;
-      prev_output_yoffset = this->output_yoffset;
-      prev_deinterlacing  = this->deinterlace_enabled;
-      prev_posx           = posx;
-      prev_posy           = posy;
-      prev_v_w_visibility = this->video_win_visibility;
+      prev_output_width    = this->output_width;
+      prev_output_height   = this->output_height;
+      prev_output_xoffset  = this->output_xoffset;
+      prev_output_yoffset  = this->output_yoffset;
+      prev_deinterlacing   = this->deinterlace_enabled;
+      prev_posx            = posx;
+      prev_posy            = posy;
+      prev_v_w_visibility  = this->video_win_visibility;
+      prev_logo_visibility = this->logo_visibility;
 	
       //
       // configuring SyncFB module from this point on.
@@ -709,12 +713,12 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
       frame->vo_frame.base[0] = shmat(frame->id, 0, 0);   
       
       if(frame->vo_frame.base[0] == NULL) {
-	 printf("video_out_syncfb: failed. (shared memory error => address error NULL)\n");
+	 printf("video_out_syncfb: failed. (shared memory error => address error)\n");
 	 exit(1);
       }
   
       if(frame->vo_frame.base[0] == (void *) -1) {
-	 fprintf(stderr, "syncfb: shared memory error (address error)\n");
+	 printf("video_out_syncfb: failed. (shared memory error => address error)\n");
 	 exit (1);
       }
       
@@ -866,6 +870,17 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
      syncfb_adapt_to_output_area(this, this->output_xoffset, this->output_yoffset, this->output_width, this->output_height);
   }
     break;
+
+  case GUI_DATA_EX_LOGO_VISIBILITY: {
+     this->logo_visibility = (int)(int *)data;
+
+     this->delivered_width      = 0;
+     this->delivered_height     = 0;
+     this->delivered_ratio_code = 0;
+
+     syncfb_adapt_to_output_area(this, this->output_xoffset, this->output_yoffset, this->output_width, this->output_height);
+  }
+    break;
 	  
   default:
     return -1;
@@ -978,6 +993,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
   this->frame_height          = 0;
   this->frame_width           = 0;
   this->gc                    = XCreateGC (this->display, this->drawable, 0, NULL);
+  this->logo_visibility       = 1;
   this->output_height         = 0;
   this->output_width          = 0;
   this->output_xoffset        = 0;

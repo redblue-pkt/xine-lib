@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.9 2001/11/07 16:52:14 mlampard Exp $
+ * $Id: video_out_x11.h,v 1.10 2001/11/07 23:01:03 matt2000 Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -104,6 +104,8 @@ typedef struct {
 #define GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO 4
 /* int *data */
 #define GUI_DATA_EX_VIDEOWIN_VISIBLE	   5
+/* int *data */
+#define GUI_DATA_EX_LOGO_VISIBILITY        6
 
 #ifdef __cplusplus
 }
