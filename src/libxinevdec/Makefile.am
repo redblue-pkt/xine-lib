@@ -9,6 +9,7 @@ endif
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = $(image_module) \
+	xineplug_decode_bitplane.la \
 	xineplug_decode_cinepak.la \
 	xineplug_decode_cyuv.la \
 	xineplug_decode_fli.la \
@@ -25,6 +26,10 @@ lib_LTLIBRARIES = $(image_module) \
 	xineplug_decode_qtrle.la \
 	xineplug_decode_interplayvideo.la \
 	xineplug_decode_yuv_frames.la
+
+xineplug_decode_bitplane_la_SOURCES = bitplane.c
+xineplug_decode_bitplane_la_LIBADD = $(XINE_LIB)
+xineplug_decode_bitplane_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_cinepak_la_SOURCES = cinepak.c
 xineplug_decode_cinepak_la_LIBADD = $(XINE_LIB)

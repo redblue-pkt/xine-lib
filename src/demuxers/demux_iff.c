@@ -31,8 +31,10 @@
  *   - the optional data chunks ATAK and RLSE are not supported at the moment
  *     (no examples found and description isn't as clear as it should)
  * * 16SV, the same support as 8SVX
+ * * ILBM (Bitmap Picturs)
+ *   - simple pictures work, nothing more (most work is done in bitmap-decoder)
  *
- * $Id: demux_iff.c,v 1.4 2004/01/12 17:35:14 miguelfreitas Exp $
+ * $Id: demux_iff.c,v 1.5 2004/02/02 22:22:51 manfredtremmel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -64,9 +66,12 @@
 #define IFF_BMHD_CHUNK FOURCC_CHUNK('B', 'M', 'H', 'D')
 #define IFF_BODY_CHUNK FOURCC_CHUNK('B', 'O', 'D', 'Y')
 #define IFF_CAMG_CHUNK FOURCC_CHUNK('C', 'A', 'M', 'G')
+#define IFF_CCRT_CHUNK FOURCC_CHUNK('C', 'C', 'R', 'T')
 #define IFF_CHAN_CHUNK FOURCC_CHUNK('C', 'H', 'A', 'N')
+#define IFF_CMAP_CHUNK FOURCC_CHUNK('C', 'M', 'A', 'P')
 #define IFF_COPY_CHUNK FOURCC_CHUNK('(', 'c', ')', ' ')
 #define IFF_CRNG_CHUNK FOURCC_CHUNK('C', 'R', 'N', 'G')
+#define IFF_DEST_CHUNK FOURCC_CHUNK('D', 'E', 'S', 'T')
 #define IFF_DLTA_CHUNK FOURCC_CHUNK('D', 'L', 'T', 'A')
 #define IFF_DPAN_CHUNK FOURCC_CHUNK('D', 'P', 'A', 'N')
 #define IFF_DPI_CHUNK  FOURCC_CHUNK('D', 'P', 'I', ' ')
@@ -92,22 +97,36 @@
 #define IFF_SEQN_CHUNK FOURCC_CHUNK('S', 'E', 'Q', 'N')
 #define IFF_SHDR_CHUNK FOURCC_CHUNK('S', 'H', 'D', 'R')
 #define IFF_SMUS_CHUNK FOURCC_CHUNK('S', 'M', 'U', 'S')
+#define IFF_SPRT_CHUNK FOURCC_CHUNK('S', 'P', 'R', 'T')
+#define IFF_TEXT_CHUNK FOURCC_CHUNK('T', 'E', 'X', 'T')
 #define IFF_TINY_CHUNK FOURCC_CHUNK('T', 'I', 'N', 'Y')
 #define IFF_TRAK_CHUNK FOURCC_CHUNK('T', 'R', 'A', 'K')
 #define IFF_VHDR_CHUNK FOURCC_CHUNK('V', 'H', 'D', 'R')
 
-#define MONO      0L
-#define PAN       1L
-#define RIGHT     4L
-#define LEFT      2L
-#define STEREO    6L
+#define MONO                            0L
+#define PAN                             1L
+#define LEFT                            2L
+#define RIGHT                           4L
+#define STEREO                          6L
 
-#define PREAMBLE_SIZE 8
-#define IFF_JUNK_SIZE 8
-#define IFF_SIGNATURE_SIZE 12
-#define PCM_BLOCK_ALIGN 1024
+#define SND_COMPRESSION_NONE            0
+#define SND_COMPRESSION_FIBONACCI       1
+#define SND_COMPRESSION_EXPONENTIAL     2
 
-#define max_volume 65536                        /* Unity = Fixed 1.0 = maximum volume */
+#define PIC_MASK_NONE                   0
+#define PIC_MASK_HASMASK                1
+#define PIC_MASK_HASTRANSPARENTMASK     2
+#define PIC_MASK_LASSO                  3
+
+#define PIC_COMPRESSION_NONE            0
+#define PIC_COMPRESSION_BYTERUN1        1
+
+#define PREAMBLE_SIZE                   8
+#define IFF_JUNK_SIZE                   8
+#define IFF_SIGNATURE_SIZE              12
+#define PCM_BLOCK_ALIGN                 1024
+
+#define max_volume                      65536  /* Unity = Fixed 1.0 = maximum volume */
 
 int8_t fibonacci[] = { -34, -21, -13, -8, -5, -3, -2, -1, 0, 1, 2, 3, 5, 8, 13, 21 };
 
@@ -120,12 +139,29 @@ typedef struct {
 } eg_point;
 
 typedef struct {
+  uint8_t              cmap_red;
+  uint8_t              cmap_green;
+  uint8_t              cmap_blue;
+} color_register;
+
+typedef struct {
+  int16_t              crng_pad1;               /* reserved for future use; store 0 here */
+  int16_t              crng_rate;               /* color cycling rate, 16384 = 60 steps/second */
+  int16_t              crng_active;             /* nonzero means color cycling is turned on */
+  uint8_t              crng_low;                /* lower color registers selected */
+  uint8_t              crng_high;               /* upper color registers selected */
+} color_range;
+
+typedef struct {
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
   input_plugin_t      *input;
+
+  xine_bmiheader       bih;
+
   int                  status;
 
   uint32_t             iff_type;                /* Type of iff-file, see TAGs above */
@@ -147,12 +183,56 @@ typedef struct {
   uint32_t             chan_settings;           /* Mono, Stereo, Left or Right Channel */
   uint32_t             pan_sposition;           /*  */
 
+  /* picture chunks */
+  uint16_t             bmhd_w;                  /* raster width in pixels */
+  uint16_t             bmhd_h;                  /* raster height in pixels */
+  int16_t              bmhd_x;                  /* raster width in pixels */
+  int16_t              bmhd_y;                  /* raster height in pixels */
+  uint8_t              bmhd_nplanes;            /* # source bitplanes */
+  uint8_t              bmhd_masking;            /* masking technique */
+  uint8_t              bmhd_compression;        /* compression algoithm */
+  uint8_t              bmhd_pad1;               /* UNUSED.  For consistency, put 0 here. */
+  uint16_t             bmhd_transparentColor;   /* transparent "color number" */
+  uint8_t              bmhd_xaspect;            /* aspect ratio, a rational number x/y */
+  uint8_t              bmhd_yaspect;            /* aspect ratio, a rational number x/y */
+  int16_t              bmhd_pagewidth;          /* source "page" size in pixels */
+  int16_t              bmhd_pageheight;         /* source "page" size in pixels */
+  uint8_t              dest_depth;              /* # bitplanes in the original source */
+  uint8_t              dest_pad1;               /* UNUSED; for consistency store 0 here */
+  uint16_t             dest_plane_pick;         /* how to scatter source bitplanes into destination */
+  uint16_t             dest_plane_onoff;        /* default bitplane data for planePick */
+  uint16_t             dest_plane_mask;         /* selects which bitplanes to store into */
+
+  color_register       *cmap_color_register;    /* colors of the bitmap picture */
+  uint32_t             cmap_color_register_num; /* number of the bitmap colors  */
+
+  int16_t              grab_x;                  /* coordinate x */
+  int16_t              grab_y;                  /* coordinate y */
+
+  uint16_t             sprt_sprite_precedence;  /* A SpritePrecedence is stored in a SPRT chunk. */
+
+  uint32_t             camg_view_modes;         /* A Commodore Amiga ViewPort->Modes is stored
+                                                 * in a CAMG chunk.
+                                                 * The chunk's content is declared as a LONG. */
+  color_range          crng_color_range[256];   /* color range infos for color cycling        */
+  int                  crng_color_range_used;   /* number of color range fields used          */
+  uint16_t             dpi_x;                   /* dots per inch - x direction                */
+  uint16_t             dpi_y;                   /* dots per inch - y direction                */
+
+  int16_t              ccrt_direction;          /* 0=don't cycle, 1=forward, -1=backwards */
+  uint8_t              ccrt_start;              /* range lower */
+  uint8_t              ccrt_end;                /* range upper */
+  int32_t              ccrt_seconds;            /* seconds between cycling */
+  int32_t              ccrt_microseconds;       /* msecs between cycling */
+  int16_t              ccrt_pad;                /* future exp - store 0 here */
+
   /* some common informations */
   char                 *title;                  /* Name of the stream from NAME-Tag*/
   char                 *copyright;              /* Copyright entry */
   char                 *author;                 /* author entry */
   char                 *annotations;            /* comment of the author, maybe authoring tool */
   char                 *version;                /* version information of the file */
+  char                 *text;                   /* anny other text information */
 
   /* audio information */
   unsigned int         audio_type;
@@ -171,6 +251,10 @@ typedef struct {
   uint32_t             audio_position;
   int                  audio_compression_factor;
 
+  /* picture information */
+  unsigned int         video_type;
+  int64_t              video_pts;
+  int64_t              video_pts_inc;
 
   unsigned int         running_time;
 
@@ -215,7 +299,7 @@ static void delta_decode(int8_t *dest, int8_t *source, int32_t n, int8_t *table)
 static int open_iff_file(demux_iff_t *this) {
 
   unsigned char signature[IFF_SIGNATURE_SIZE];
-  unsigned char buffer[256];
+  unsigned char buffer[512];
   unsigned int  keep_on_reading = 1;
   uint32_t      junk_size;
 
@@ -227,6 +311,7 @@ static int open_iff_file(demux_iff_t *this) {
   this->author                          = 0;
   this->annotations                     = 0;
   this->version                         = 0;
+  this->text                            = 0;
 
   this->vhdr_oneShotHiSamples           = 0;
   this->vhdr_repeatHiSamples            = 0;
@@ -255,8 +340,57 @@ static int open_iff_file(demux_iff_t *this) {
   this->audio_position                  = 0;
   this->atak_eg_point                   = 0;
   this->rlse_eg_point                   = 0;
+  this->bmhd_w                          = 0;
+  this->bmhd_h                          = 0;
+  this->bmhd_x                          = 0;
+  this->bmhd_y                          = 0;
+  this->bmhd_nplanes                    = 0;
+  this->bmhd_masking                    = 0;
+  this->bmhd_compression                = 0;
+  this->bmhd_pad1                       = 0;
+  this->bmhd_transparentColor           = 0;
+  this->bmhd_xaspect                    = 0;
+  this->bmhd_yaspect                    = 0;
+  this->bmhd_pagewidth                  = 0;
+  this->bmhd_pageheight                 = 0;
+  this->cmap_color_register             = 0;
+  this->cmap_color_register_num         = 0;
+  this->grab_x                          = 0;
+  this->grab_y                          = 0;
+  this->dest_depth                      = 0;
+  this->dest_pad1                       = 0;
+  this->dest_plane_pick                 = 0;
+  this->dest_plane_onoff                = 0;
+  this->dest_plane_mask                 = 0;
+  this->sprt_sprite_precedence          = 0;
+  this->camg_view_modes                 = 0;
+  this->crng_color_range_used           = 0;
+  this->ccrt_direction                  = 0;
+  this->ccrt_start                      = 0;
+  this->ccrt_end                        = 0;
+  this->ccrt_seconds                    = 0;
+  this->ccrt_microseconds               = 0;
+  this->ccrt_pad                        = 0;
+  this->dpi_x                           = 0;
+  this->dpi_y                           = 0;
 
   this->iff_type                        = BE_32(&signature[8]);
+
+  this->video_type                      = 0;
+  this->video_pts                       = 0;
+  this->video_pts_inc                   = 0;
+
+  this->bih.biSize                      = 0;
+  this->bih.biWidth                     = 0;
+  this->bih.biHeight                    = 0;
+  this->bih.biPlanes                    = 0;
+  this->bih.biBitCount                  = 0;
+  this->bih.biCompression               = 0;
+  this->bih.biSizeImage                 = 0;
+  this->bih.biXPelsPerMeter             = 0;
+  this->bih.biYPelsPerMeter             = 0;
+  this->bih.biClrUsed                   = 0;
+  this->bih.biClrImportant              = 0;
 
   /* check the signature */
   if (BE_32(&signature[0]) == IFF_FORM_CHUNK)
@@ -269,8 +403,9 @@ static int open_iff_file(demux_iff_t *this) {
       case IFF_16SV_CHUNK:
         this->audio_bits                = 16;
         break;
+      case IFF_ILBM_CHUNK:
+        break;
 /*      case IFF_ANIM_CHUNK:*/
-/*      case IFF_ILBM_CHUNK:*/
       default:
         return 0;
         break;
@@ -285,9 +420,20 @@ static int open_iff_file(demux_iff_t *this) {
   while ( keep_on_reading == 1 ) {
     if (this->input->read(this->input, signature, IFF_JUNK_SIZE) == IFF_JUNK_SIZE) {
       junk_size = BE_32(&signature[4]);
-      if ( junk_size < 256 ) {
-        if (this->input->read(this->input, buffer, junk_size) != junk_size)
-          return 0;
+      switch( BE_32(&signature[0]) ) {
+        case IFF_CMAP_CHUNK:
+        case IFF_BODY_CHUNK:
+          /* don't read this chunks, will be done later */
+          break;
+        default:
+          if ( junk_size < 512 ) {
+            if (this->input->read(this->input, buffer, junk_size) != junk_size)
+              return 0;
+          } else {
+            this->input->seek(this->input, junk_size, SEEK_SET);
+            buffer[0]                   = 0;
+          }
+          break;
       }
 
       switch( BE_32(&signature[0]) ) {
@@ -301,9 +447,9 @@ static int open_iff_file(demux_iff_t *this) {
           this->audio_channels          = 1;
           this->chan_settings           = MONO;
           switch( this->vhdr_sCompression ) {
-            case 0:  /* uncompressed */
-            case 1:  /* Fibonacci */
-            case 2:  /* Exponential*/
+            case SND_COMPRESSION_NONE:         /* uncompressed */
+            case SND_COMPRESSION_FIBONACCI:    /* Fibonacci */
+            case SND_COMPRESSION_EXPONENTIAL:  /* Exponential*/
               this->audio_block_align   = PCM_BLOCK_ALIGN;
               this->audio_type          = BUF_AUDIO_LPCM_BE;
               break;
@@ -319,20 +465,29 @@ static int open_iff_file(demux_iff_t *this) {
             this->vhdr_volume           = max_volume;
           break;
         case IFF_NAME_CHUNK:
-          this->title                   = strndup( (const char *)buffer, (size_t)junk_size);
+          if (this->title               == 0)
+            this->title                 = strndup( (const char *)buffer, (size_t)junk_size);
           break;
         case IFF_COPY_CHUNK:
-          this->copyright               = strndup( (const char *)buffer, (size_t)junk_size);
+          if (this->copyright           == 0)
+            this->copyright             = strndup( (const char *)buffer, (size_t)junk_size);
           break;
         case IFF_AUTH_CHUNK:
-          this->author                  = strndup( (const char *)buffer, (size_t)junk_size);
+          if (this->author              == 0)
+            this->author                = strndup( (const char *)buffer, (size_t)junk_size);
           break;
         case IFF_ANNO_CHUNK:
-          this->annotations             = strndup( (const char *)buffer, (size_t)junk_size);
+          if (this->annotations         == 0)
+            this->annotations           = strndup( (const char *)buffer, (size_t)junk_size);
           break;
         case IFF_FVER_CHUNK:
-          this->version                 = strndup( (const char *)buffer, (size_t)junk_size);
-           break;
+          if (this->version             == 0)
+            this->version               = strndup( (const char *)buffer, (size_t)junk_size);
+          break;
+        case IFF_TEXT_CHUNK:
+          if (this->text                == 0)
+            this->text                  = strndup( (const char *)buffer, (size_t)junk_size);
+          break;
         case IFF_ATAK_CHUNK:
           /* not yet implemented */
           break;
@@ -370,21 +525,128 @@ static int open_iff_file(demux_iff_t *this) {
           this->audio_volume_left       = this->vhdr_volume / (max_volume / this->pan_sposition);
           this->audio_volume_right      = this->vhdr_volume - this->audio_volume_left;
           break;
+        case IFF_BMHD_CHUNK:
+          this->bmhd_w                  = BE_16(&buffer[0]);
+          this->bmhd_h                  = BE_16(&buffer[2]);
+          this->bmhd_x                  = BE_16(&buffer[4]);
+          this->bmhd_y                  = BE_16(&buffer[6]);
+          this->bmhd_nplanes            = buffer[8];
+          this->bmhd_masking            = buffer[9];
+          this->bmhd_compression        = buffer[10];
+          this->bmhd_pad1               = buffer[11];
+          this->bmhd_transparentColor   = BE_16(&buffer[12]);
+          this->bmhd_xaspect            = buffer[14];
+          this->bmhd_yaspect            = buffer[15];
+          this->bmhd_pagewidth          = BE_16(&buffer[16]);
+          this->bmhd_pageheight         = BE_16(&buffer[18]);
+
+          if (this->bmhd_w > 0)
+            this->bih.biWidth           = this->bmhd_w;
+          else
+            this->bih.biWidth           = this->bmhd_pagewidth;
+          if (this->bmhd_h > 0)
+            this->bih.biHeight          = this->bmhd_h;
+          else
+            this->bih.biHeight          = this->bmhd_pageheight;
+          this->bih.biPlanes            = this->bmhd_nplanes;
+          this->bih.biBitCount          = this->bmhd_nplanes;
+          this->video_pts_inc           = 10000000;
+          switch( this->bmhd_compression ) {
+            case PIC_COMPRESSION_NONE:         /* uncompressed */
+              this->video_type          = BUF_VIDEO_BITPLANE;
+              break;
+            case PIC_COMPRESSION_BYTERUN1:
+              this->video_type          = BUF_VIDEO_BITPLANE_BR1;
+              break;
+            default:
+              xine_log(this->stream->xine, XINE_LOG_MSG,
+                       _("iff-ilbm: unknown compression: %d\n"),
+                       this->bmhd_compression);
+              return 0;
+              break;
+          }
+          break;
+        case IFF_CMAP_CHUNK:
+          /* every color contains red, green and blue componente using 8Bit */
+          this->cmap_color_register_num = junk_size / 3;
+          this->cmap_color_register     = (color_register *)xine_xmalloc(junk_size);
+          if (this->input->read(this->input, (char *)this->cmap_color_register, junk_size) != junk_size)
+            return 0;
+          break;
+        case IFF_GRAB_CHUNK:
+          this->grab_x                  = BE_16(&buffer[0]);
+          this->grab_y                  = BE_16(&buffer[2]);
+          break;
+        case IFF_DEST_CHUNK:
+          this->dest_depth              = buffer[0];
+          this->dest_pad1               = buffer[1];
+          this->dest_plane_pick         = BE_16(&buffer[2]);
+          this->dest_plane_onoff        = BE_16(&buffer[4]);
+          this->dest_plane_mask         = BE_16(&buffer[6]);
+          break;
+        case IFF_SPRT_CHUNK:
+          this->sprt_sprite_precedence  = BE_16(&buffer[0]);
+          break;
+        case IFF_CAMG_CHUNK:
+          this->camg_view_modes         = BE_32(&buffer[0]);
+          this->bih.biCompression       = this->camg_view_modes;
+          break;
+        case IFF_CRNG_CHUNK:
+          if (this->crng_color_range_used < 256) {
+            this->crng_color_range[this->crng_color_range_used].crng_pad1   = BE_16(&buffer[0]);
+            this->crng_color_range[this->crng_color_range_used].crng_rate   = BE_16(&buffer[2]);
+            this->crng_color_range[this->crng_color_range_used].crng_active = BE_16(&buffer[4]);
+            this->crng_color_range[this->crng_color_range_used].crng_low    = buffer[6];
+            this->crng_color_range[this->crng_color_range_used].crng_high   = buffer[7];
+            this->crng_color_range_used++;
+          }
+          break;
+        case IFF_CCRT_CHUNK:
+          this->ccrt_direction          = BE_16(&buffer[0]);
+          this->ccrt_start              = buffer[2];
+          this->ccrt_end                = buffer[3];
+          this->ccrt_seconds            = BE_32(&buffer[4]);
+          this->ccrt_microseconds       = BE_32(&buffer[8]);
+          this->ccrt_pad                = BE_16(&buffer[12]);
+          break;
+        case IFF_DPI_CHUNK:
+          this->dpi_x                   = BE_16(&buffer[0]);
+          this->dpi_y                   = BE_16(&buffer[0]);
+          break;
         case IFF_JUNK_CHUNK:
           /* JUNK contains garbage and should be ignored */
           break;
         case IFF_BODY_CHUNK:
           this->data_start              = this->input->get_current_pos(this->input);
           this->data_size               = junk_size;
-          if( this->vhdr_sCompression > 0 ) {
-            this->audio_interleave_buffer_size = this->data_size * 2;
-            this->audio_read_buffer_size       = this->data_size;
-          } else {
-            this->audio_interleave_buffer_size = this->data_size;
-            this->audio_read_buffer_size       = 0;
+          switch( this->iff_type )
+          {
+            case IFF_8SVX_CHUNK:
+            case IFF_16SV_CHUNK:
+              if( this->vhdr_sCompression > SND_COMPRESSION_NONE ) {
+                this->audio_interleave_buffer_size = this->data_size * 2;
+                this->audio_read_buffer_size       = this->data_size;
+              } else {
+                this->audio_interleave_buffer_size = this->data_size;
+                this->audio_read_buffer_size       = 0;
+              }
+              if( this->chan_settings == MONO)
+                this->audio_volume_left = this->vhdr_volume;
+              this->audio_bytes_per_second         = this->audio_channels *
+                                                     (this->audio_bits / 8) *
+                                                     this->vhdr_samplesPerSec;
+              this->running_time                   = ((this->vhdr_oneShotHiSamples +
+                                                       this->vhdr_repeatHiSamples) *
+                                                      1000 / this->vhdr_samplesPerSec) /
+                                                     this->audio_channels;
+              break;
+            case IFF_ILBM_CHUNK:
+              this->bih.biSize         = this->data_size;
+              this->bih.biSizeImage    = this->data_size;
+              break;
+            default:
+              break;
           }
-          if( this->chan_settings == MONO)
-            this->audio_volume_left     = this->vhdr_volume;
           keep_on_reading               = 0;
           break;
         default:
@@ -396,28 +658,58 @@ static int open_iff_file(demux_iff_t *this) {
       keep_on_reading                   = 0;
   }
 
-  this->audio_bytes_per_second          = this->audio_channels *
-                                          (this->audio_bits / 8) * this->vhdr_samplesPerSec;
-  this->running_time                    = ((this->vhdr_oneShotHiSamples +
-                                            this->vhdr_repeatHiSamples) *
-                                           1000 / this->vhdr_samplesPerSec) /
-                                          this->audio_channels;
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_oneShotHiSamples      %d\n",
-           this->vhdr_oneShotHiSamples);
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_repeatHiSamples       %d\n",
-           this->vhdr_repeatHiSamples);
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_samplesPerHiCycle     %d\n",
-           this->vhdr_samplesPerHiCycle);
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_samplesPerSec         %d\n",
-           this->vhdr_samplesPerSec);
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_ctOctave              %d\n",
-           this->vhdr_ctOctave);
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_sCompression          %d\n",
-           this->vhdr_sCompression);
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_volume                %d\n",
-           this->vhdr_volume);
-  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "chan_settings              %d\n",
-           this->chan_settings);
+ switch( this->iff_type )
+ {
+    case IFF_8SVX_CHUNK:
+    case IFF_16SV_CHUNK:
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_oneShotHiSamples      %d\n",
+               this->vhdr_oneShotHiSamples);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_repeatHiSamples       %d\n",
+               this->vhdr_repeatHiSamples);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_samplesPerHiCycle     %d\n",
+               this->vhdr_samplesPerHiCycle);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_samplesPerSec         %d\n",
+               this->vhdr_samplesPerSec);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_ctOctave              %d\n",
+               this->vhdr_ctOctave);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_sCompression          %d\n",
+               this->vhdr_sCompression);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "vhdr_volume                %d\n",
+               this->vhdr_volume);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "chan_settings              %d\n",
+               this->chan_settings);
+      break;
+    case IFF_ILBM_CHUNK:
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_w                     %d\n",
+               this->bmhd_w);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_h                     %d\n",
+               this->bmhd_h);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_x                     %d\n",
+               this->bmhd_x);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_y                     %d\n",
+               this->bmhd_y);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_nplanes               %d\n",
+               this->bmhd_nplanes);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_masking               %d\n",
+               this->bmhd_masking);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_compression           %d\n",
+               this->bmhd_compression);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_pad1                  %d\n",
+               this->bmhd_pad1);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_transparentColor      %d\n",
+               this->bmhd_transparentColor);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_xaspect               %d\n",
+               this->bmhd_xaspect);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_yaspect               %d\n",
+               this->bmhd_yaspect);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_pagewidth             %d\n",
+               this->bmhd_pagewidth);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "bmhd_pageheight            %d\n",
+               this->bmhd_pageheight);
+      break;
+    default:
+      break;
+  }
   if( this->title )
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "title                      %s\n",
            this->title);
@@ -433,6 +725,12 @@ static int open_iff_file(demux_iff_t *this) {
   if( this->version )
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "version                    %s\n",
            this->version);
+  if( this->text )
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "text                       %s\n",
+           this->text);
+
+/* if( this->iff_type == IFF_ILBM_CHUNK )
+   return 0;*/
 
   return 1;
 }
@@ -442,7 +740,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
   demux_iff_t *this                     = (demux_iff_t *) this_gen;
 
   buf_element_t *buf                    = NULL;
-  unsigned int remaining_sample_bytes;
+  unsigned int remaining_sample_bytes   = 0;
   off_t current_file_pos;
   int16_t *pointer16_from;
   int16_t *pointer16_to;
@@ -453,6 +751,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
   int j, k;
   int first_buf;
   int interleave_index;
+  int size;
 
   /* when audio is available and it's a stereo, left or right stream
    * at iff 8svx, the complete left stream at the beginning and the
@@ -481,7 +780,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
         }
 
         switch( this->vhdr_sCompression ) {
-          case 1:
+          case SND_COMPRESSION_FIBONACCI:
             if (this->chan_settings == STEREO) {
               delta_decode((int8_t *)(this->audio_interleave_buffer),
                            (int8_t *)(this->audio_read_buffer),
@@ -498,7 +797,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
                            fibonacci);
             this->audio_compression_factor = 2;
             break;
-          case 2:
+          case SND_COMPRESSION_EXPONENTIAL:
             if (this->chan_settings == STEREO) {
               delta_decode((int8_t *)(this->audio_interleave_buffer),
                            (int8_t *)(this->audio_read_buffer),
@@ -690,6 +989,56 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
     }
     this->status                        = DEMUX_FINISHED;
   }
+  if ( this->iff_type == IFF_ILBM_CHUNK )
+  {
+    /* send off the palette, if there is one */
+    if ( this->cmap_color_register_num > 0 ) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->decoder_flags                = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
+      buf->decoder_info[1]              = BUF_SPECIAL_PALETTE;
+      buf->decoder_info[2]              = this->cmap_color_register_num;
+      buf->decoder_info_ptr[2]          = this->cmap_color_register;
+      buf->size                         = 0;
+      buf->type                         = this->video_type;
+      this->video_fifo->put (this->video_fifo, buf);
+    }
+
+    /* And now let's start with the picture */
+    size = this->data_size;
+    while (size > 0) {
+      buf                               = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->content                      = buf->mem;
+      buf->type                         = this->video_type;
+      buf->decoder_flags                = BUF_FLAG_FRAMERATE;
+      buf->decoder_info[0] = 0;
+      buf->extra_info->input_pos        = this->input->get_current_pos(this->input);
+      buf->extra_info->input_time       = 0;
+      buf->pts                          = 0;
+
+      if (size > buf->max_size) {
+        buf->size = buf->max_size;
+      } else {
+        buf->size = size;
+      }
+      size -= buf->size;
+
+      if (this->input->read(this->input, buf->content, buf->size) != buf->size) {
+        buf->free_buffer(buf);
+        this->status = DEMUX_FINISHED;
+      }
+
+      if (size <= 0)
+      {
+        buf->decoder_flags             |= BUF_FLAG_FRAME_END;
+        buf->decoder_info[1]            = this->video_pts_inc;  /* initial video_step */
+      }
+
+
+      this->video_fifo->put(this->video_fifo, buf);
+    }
+    this->status = DEMUX_FINISHED;
+
+  }
 
   return this->status;
 }
@@ -704,28 +1053,6 @@ static void demux_iff_send_headers(demux_plugin_t *this_gen) {
 
   this->status                          = DEMUX_OK;
 
-  /* load stream information */
-  switch( this->iff_type ) {
-    case IFF_8SVX_CHUNK:
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
-                         this->audio_channels);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
-                         this->vhdr_samplesPerSec);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
-                         this->audio_bits);
-      break;
-    case IFF_ANIM_CHUNK:
-    case IFF_ILBM_CHUNK:
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
-      break;
-    default:
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
-      break;
-  }
 
   if( this->title )
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->title);
@@ -736,21 +1063,64 @@ static void demux_iff_send_headers(demux_plugin_t *this_gen) {
   if( this->annotations )
     _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, this->annotations);
 
-  /* send start buffers */
-  _x_demux_control_start(this->stream);
+  /* load stream information */
+  switch( this->iff_type ) {
+    case IFF_8SVX_CHUNK:
+    case IFF_16SV_CHUNK:
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+                         this->audio_channels);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+                         this->vhdr_samplesPerSec);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+                         this->audio_bits);
 
-  /* send init info to decoders */
-  if (this->audio_fifo && this->audio_type) {
-    buf                                 = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type                           = this->audio_type;
-    buf->decoder_flags                  = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-    buf->decoder_info[0]                = 0;
-    buf->decoder_info[1]                = this->vhdr_samplesPerSec;
-    buf->decoder_info[2]                = this->audio_bits;
-    buf->decoder_info[3]                = this->audio_channels;
-/*    buf->size                           = 0;*/
-    this->audio_fifo->put (this->audio_fifo, buf);
+      /* send start buffers */
+      _x_demux_control_start(this->stream);
+
+      /* send init info to decoders */
+      if (this->audio_fifo && this->audio_type) {
+        buf                             = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type                       = this->audio_type;
+        buf->decoder_flags              = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+        buf->decoder_info[0]            = 0;
+        buf->decoder_info[1]            = this->vhdr_samplesPerSec;
+        buf->decoder_info[2]            = this->audio_bits;
+        buf->decoder_info[3]            = this->audio_channels;
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
+      break;
+    case IFF_ILBM_CHUNK:
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->bih.biWidth);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_pts_inc);
+
+      /* send start buffers */
+      _x_demux_control_start(this->stream);
+
+      buf                               = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+      buf->type                         = this->video_type;
+      buf->size                         = sizeof(xine_bmiheader);
+      buf->decoder_flags                = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+      buf->decoder_info[0]              = 0;
+      buf->decoder_info[1]              = this->video_pts_inc;  /* initial video_step */
+      buf->decoder_info[2]              = this->bmhd_xaspect;
+      buf->decoder_info[3]              = this->bmhd_yaspect;
+      memcpy(buf->content, &this->bih, sizeof(this->bih));
+
+      this->video_fifo->put(this->video_fifo, buf);
+      break;
+    case IFF_ANIM_CHUNK:
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+      break;
+    default:
+      break;
   }
+
 }
 
 static int demux_iff_seek (demux_plugin_t *this_gen,
@@ -758,19 +1128,27 @@ static int demux_iff_seek (demux_plugin_t *this_gen,
 
   demux_iff_t *this                     = (demux_iff_t *) this_gen;
 
-  this->seek_flag                       = 1;
-  this->status                          = DEMUX_OK;
-  _x_demux_flush_engine (this->stream);
+  switch( this->iff_type ) {
+    case IFF_8SVX_CHUNK:
+    case IFF_16SV_CHUNK:
+      this->seek_flag                   = 1;
+      this->status                      = DEMUX_OK;
+      _x_demux_flush_engine (this->stream);
 
-  /* if input is non-seekable, do not proceed with the rest of this
-   * seek function */
-  if (!INPUT_IS_SEEKABLE(this->input))
-    return this->status;
+      /* if input is non-seekable, do not proceed with the rest of this
+       * seek function */
+      if (!INPUT_IS_SEEKABLE(this->input))
+        return this->status;
 
-  /* check the boundary offsets */
-  this->audio_position                  = (start_pos < 0) ? 0 :
+      /* check the boundary offsets */
+      this->audio_position              = (start_pos < 0) ? 0 :
                                           ((start_pos >= this->data_size) ?
                                            this->data_size : start_pos);
+    case IFF_ILBM_CHUNK:
+      break;
+    default:
+      break;
+  }
   return this->status;
 }
 
@@ -787,6 +1165,8 @@ static void demux_iff_dispose (demux_plugin_t *this_gen) {
     free (this->annotations);
   if( this->version )
     free (this->version);
+  if( this->text )
+    free (this->text);
 
   if( this->audio_interleave_buffer ) {
     free (this->audio_interleave_buffer);
@@ -806,6 +1186,11 @@ static void demux_iff_dispose (demux_plugin_t *this_gen) {
     this->rlse_eg_point                 = 0;
   }
   this->audio_buffer_filled             = 0;
+
+  if( this->cmap_color_register ) {
+    free( this->cmap_color_register );
+    this->cmap_color_register           = 0;
+  }
 
   free(this);
 }
@@ -895,12 +1280,16 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "iff svx";
+  return "iff svx 8svx 16sv ilbm pic";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "audio/x-8svx: 8svx: IFF-8svx Audio;"
-         "audio/8svx: 8svx: IFF-8svx Audio;";
+  return "audio/x-8svx: 8svx: IFF-8SVX Audio;"
+         "audio/8svx: 8svx: IFF-8SVX Audio;"
+         "audio/x-16sv: 16sv: IFF-16SV Audio;"
+         "audio/168sv: 16sv: IFF-16SV Audio;"
+         "image/x-ilbm: ilbm: IFF-ILBM Picture;"
+         "image/ilbm: ilbm: IFF-ILBM Picture;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
