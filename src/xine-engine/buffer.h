@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.61 2002/07/19 03:03:37 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.62 2002/08/05 00:16:28 tmmm Exp $
  *
  *
  * contents:
@@ -153,6 +153,7 @@ extern "C" {
 #define BUF_AUDIO_QDESIGN1	0x03170000
 #define BUF_AUDIO_QDESIGN2	0x03180000
 #define BUF_AUDIO_QCLP		0x03190000
+#define BUF_AUDIO_SMJPEG_IMA	0x031A0000
 
 /* spu buffer types:    */
  
