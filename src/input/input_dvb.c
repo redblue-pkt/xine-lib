@@ -111,7 +111,7 @@
 #define PMTFILTER 17
 #define MAXFILTERS 18
 
-#define MAX_AUTOCHANNELS 70
+#define MAX_AUTOCHANNELS 200
 
 #define bcdtoint(i) ((((i & 0xf0) >> 4) * 10) + (i & 0x0f))
 
@@ -208,6 +208,8 @@ typedef struct {
   /* buffer for EIT data */
   char 		     *eitbuffer;
   int 		      num_streams_in_this_ts;
+  /* number of timedout reads in plugin_read */
+  int		      read_failcount;
 } dvb_input_plugin_t;
 
 typedef struct {
@@ -355,11 +357,9 @@ struct tm * dvb_mjdtime (char *buf)
   int i;
   unsigned int year, month, day, hour, min, sec;
   unsigned long int mjd;
-  struct tm *tma = malloc(sizeof(struct tm));
+  struct tm *tma = xine_xmalloc(sizeof(struct tm));
   struct tm *dvb_time; 
   time_t t;
-  
-  memset(tma,0,sizeof(struct tm));
   
   mjd =	(unsigned int)(buf[0] & 0xff) << 8;
   mjd +=(unsigned int)(buf[1] & 0xff);
@@ -394,18 +394,18 @@ struct tm * dvb_mjdtime (char *buf)
 
 static void tuner_dispose(tuner_t * this)
 {
-
     int x;
+
     if (this->fd_frontend >= 0)
       close(this->fd_frontend);
-    
+
     /* close all pid filter filedescriptors */
     for (x = 0; x < MAXFILTERS; x++)
       if (this->fd_pidfilter[x] >= 0)
         close(this->fd_pidfilter[x]);
     
-
-    free(this);
+    if(this)
+      free(this);
 }
 
 
@@ -675,7 +675,7 @@ static channel_t *load_channels(dvb_input_plugin_t *this, int *num_ch, fe_type_t
     return NULL;
   }
 
-  channels = malloc (sizeof (channel_t) * num_channels);
+  channels = xine_xmalloc (sizeof (channel_t) * num_channels);
 
   /*
    * load channel list 
@@ -914,7 +914,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   struct pollfd pfd;
   
   tuner_t *tuner = this->tuner;
-  tmpbuffer = malloc (8192);
+  tmpbuffer = xine_xmalloc (8192);
   bufptr = tmpbuffer;
 
   pfd.fd=tuner->fd_pidfilter[INTERNAL_FILTER];
@@ -1013,8 +1013,7 @@ static void do_eit(dvb_input_plugin_t *this)
   char *buffer;
   int loops;
   int current_channel;    
-  foo=malloc(8192);
-  memset(foo,0,8192);
+  foo=xine_xmalloc(8192);
 
   fd.fd = this->tuner->fd_pidfilter[EITFILTER];
   fd.events = POLLPRI;
@@ -1190,7 +1189,7 @@ static void show_eit(dvb_input_plugin_t *this) {
   if(this->displaying==0){
     this->displaying=1;
 
-    line=malloc(512);
+    line=xine_xmalloc(512);
   
     this->stream->osd_renderer->clear(this->proginfo_osd);
     /* Channel Name */       
@@ -1414,7 +1413,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
 
   lprintf ("ui title event sent\n");
   
-  this->fd = open (DVR_DEVICE, O_RDONLY);
+  this->fd = open (DVR_DEVICE, O_RDONLY | O_NONBLOCK);
 
   pthread_mutex_unlock (&this->mutex);
   
@@ -1445,7 +1444,7 @@ static void do_record (dvb_input_plugin_t *this) {
     this->stream->osd_renderer->hide (this->paused_osd, 0);
     this->record_paused=0;
   } else {
-    t=malloc(sizeof(time_t));
+    t=xine_xmalloc(sizeof(time_t));
     time(t);
     tma=localtime(t);
     free(t);
@@ -1632,19 +1631,36 @@ static void ts_rewrite_packets (dvb_input_plugin_t *this, unsigned char * origin
 static off_t dvb_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t len) {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
-  off_t n, total;
-
+  off_t n=0, total=0;
+  struct pollfd pfd;
   dvb_event_handler (this);
 
   lprintf ("reading %lld bytes...\n", len);
 
   nbc_check_buffers (this->nbc);
 
-  pthread_mutex_lock( &this->mutex ); /* protect agains channel changes */
+  pthread_mutex_trylock( &this->mutex ); /* protect agains channel changes */
   total=0;
-  while (total<len){ 
+  pfd.fd=this->fd;
+  pfd.events = POLLPRI | POLLIN;
   
-    n = read (this->fd, &buf[total], len-total);
+  while (total<len){ 
+
+    if(poll(&pfd,1,2000)<1){
+      printf("input_dvb:  No data available.  Signal Lost??  \n");
+      _x_demux_control_end(this->stream, BUF_FLAG_END_USER); 
+      this->read_failcount++;
+      break;
+    }
+     
+    if(this->read_failcount){ /* signal/stream regained after loss - kick the net_buf_control layer. */
+      this->read_failcount=0;
+      printf("input_dvb: Data resumed...\n");
+      _x_demux_control_start(this->stream);
+    }
+
+    if(pfd.revents & POLLIN)
+      n = read (this->fd, &buf[total], len-total);
 
     lprintf ("got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
     
@@ -1652,17 +1668,20 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
       this->curpos += n;
       total += n;
     } else if (n<0 && errno!=EAGAIN) {
-      pthread_mutex_unlock( &this->mutex );
-
-    return total;
+      break;
     }
   }
+
   ts_rewrite_packets (this, buf,total);
 
   if ((this->record_fd)&&(!this->record_paused))
     write (this->record_fd, buf, total);
 
   pthread_mutex_unlock( &this->mutex );
+  /* no data for 10 seconds - tell the user a possible reason */
+  if(this->read_failcount==5){
+    _x_message(this->stream,1,"DVB Signal Lost.  Please check connections."); 
+  }
 
   return total;
 }
@@ -1735,7 +1754,7 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
     close(this->fd);
     this->fd = -1;
   }
-  
+
   if (this->nbc) {
     nbc_close (this->nbc);
     this->nbc = NULL;
@@ -1746,18 +1765,35 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
 
   if(this->mrl)
     free (this->mrl);
-  
+
   if (this->channels)
     free (this->channels);
-    
+
   if(this->eitbuffer)
     free (this->eitbuffer);
-    
+
   if (this->tuner)
     tuner_dispose (this->tuner);
-  
-      this->stream->osd_renderer->hide (this->proginfo_osd,0);
+
+  if(this->proginfo_osd)
+    this->stream->osd_renderer->hide (this->proginfo_osd,0);
+
+  if(this->background)
     this->stream->osd_renderer->hide (this->background,0);
+
+  /* free all memory associated with our OSD */
+  if(this->rec_osd)
+    this->stream->osd_renderer->free_object(this->rec_osd);
+  if(this->channel_osd)
+    this->stream->osd_renderer->free_object(this->channel_osd);
+  if(this->name_osd)
+    this->stream->osd_renderer->free_object(this->name_osd);
+  if(this->paused_osd)
+    this->stream->osd_renderer->free_object(this->paused_osd);
+  if(this->proginfo_osd)
+    this->stream->osd_renderer->free_object(this->proginfo_osd);
+  if(this->background)
+    this->stream->osd_renderer->free_object(this->background);
 
   free (this);
 }
@@ -1908,7 +1944,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
 	}
 	ptr = this->mrl;
 	ptr += 7;
-	channels = malloc(sizeof(channel_t));
+	channels = xine_xmalloc(sizeof(channel_t));
 	if (extract_channel_from_string(channels, ptr, tuner->feinfo.type) < 0) {
           free(channels);
 	  tuner_dispose(tuner);
@@ -1926,7 +1962,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
          }
 	   ptr = this->mrl;
 	   ptr += 7;
-	   channels = malloc(sizeof(channel_t));
+	   channels = xine_xmalloc(sizeof(channel_t));
 	   if (extract_channel_from_string(channels, ptr, tuner->feinfo.type) < 0) {
               free(channels);
               tuner_dispose(tuner);
@@ -1947,7 +1983,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
       }
       ptr = this->mrl;
       ptr += 7;
-      channels = malloc(sizeof(channel_t));
+      channels = xine_xmalloc(sizeof(channel_t));
       if (extract_channel_from_string(channels, ptr, tuner->feinfo.type) < 0)
       {
         free(channels);
@@ -1968,16 +2004,12 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     if (!tuner_set_channel(this, &this->channels[this->channel])) {
       xprintf(this->class->xine, XINE_VERBOSITY_LOG,
 	   _("input_dvb: tuner_set_channel failed\n"));
-      tuner_dispose(this->tuner);
-      free(this->channels);
       return 0;
     }
 
-    if ((this->fd = open(DVR_DEVICE, O_RDONLY)) < 0) {
+    if ((this->fd = open(DVR_DEVICE, O_RDONLY |O_NONBLOCK)) < 0) {
       xprintf(this->class->xine, XINE_VERBOSITY_LOG,
              _("input_dvb: cannot open dvr device '%s'\n"), DVR_DEVICE);
-      tuner_dispose(this->tuner);
-      free(this->channels);
       return 0;
     }
     if(ioctl(this->fd,DMX_SET_BUFFER_SIZE,262144)<0)
@@ -1990,7 +2022,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
 
     this->event_queue = xine_event_new_queue(this->stream);
 
-    this->eitbuffer=malloc(2048*this->num_channels);
+    this->eitbuffer=xine_xmalloc(2048*this->num_channels);
 
     /*
      * this osd is used to draw the "recording" sign
@@ -2102,7 +2134,8 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
   this->osd          = NULL;
   this->event_queue  = NULL;
   this->record_fd    = -1;
-    
+  this->read_failcount = 0;
+  
   this->input_plugin.open              = dvb_plugin_open;
   this->input_plugin.get_capabilities  = dvb_plugin_get_capabilities;
   this->input_plugin.read              = dvb_plugin_read;
@@ -2154,8 +2187,8 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
     dvb_input_class_t *class = (dvb_input_class_t *) this_gen;
     channel_t *channels=NULL;
     FILE *f;
-    char *tmpbuffer=malloc(BUFSIZE);
-    char *foobuffer=malloc(BUFSIZE);
+    char *tmpbuffer=xine_xmalloc(BUFSIZE);
+    char *foobuffer=xine_xmalloc(BUFSIZE);
     char *str=tmpbuffer;
     int num_channels;
     int nlines=0;
@@ -2196,7 +2229,7 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
 
 
     f=fopen (tmpbuffer,"rb");
-    channels=malloc(sizeof(channel_t)*(nlines+lastchannel_enable.num_value));
+    channels=xine_xmalloc(sizeof(channel_t)*(nlines+lastchannel_enable.num_value));
     
 
     while (fgets(str,BUFSIZE,f) && num_channels < nlines+lastchannel_enable.num_value) {
@@ -2206,7 +2239,7 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
         sprintf(foobuffer,"dvb://%s",channels[num_channels].name);
         if(class->autoplaylist[num_channels])
            free(class->autoplaylist[num_channels]);
-         class->autoplaylist[num_channels]=malloc(128);
+         class->autoplaylist[num_channels]=xine_xmalloc(128);
         
         class->autoplaylist[num_channels]=strdup(foobuffer);
 	  num_channels++;
@@ -2219,7 +2252,7 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
        sprintf(foobuffer,"dvb://%s",channels[lastchannel_enable.num_value].name);
        if(class->autoplaylist[0])
          free(class->autoplaylist[0]);
-       class->autoplaylist[0]=malloc(128);
+       class->autoplaylist[0]=xine_xmalloc(128);
        class->autoplaylist[0]=strdup(foobuffer);
     }
 
