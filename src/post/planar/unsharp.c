@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.3 2003/07/12 03:15:23 miguelfreitas Exp $
+ * $Id: unsharp.c,v 1.4 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * mplayer's unsharp
  * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
@@ -136,7 +136,7 @@ post_info_t unsharp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 3, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
+  { PLUGIN_POST, 4, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif
@@ -263,7 +263,7 @@ static int            unsharp_rewire(xine_post_out_t *output, void *data);
 /* replaced video_port functions */
 static void           unsharp_open(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *unsharp_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, int ratio_code, 
+				       uint32_t height, double ratio, 
 				       int format, int flags);
 static void           unsharp_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 
@@ -420,14 +420,14 @@ static void unsharp_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 }
 
 static vo_frame_t *unsharp_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, int ratio_code, 
+				    uint32_t height, double ratio, 
 				    int format, int flags)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t        *frame;
 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
 
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */

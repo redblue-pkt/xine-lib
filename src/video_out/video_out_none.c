@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.14 2003/05/31 18:33:31 miguelfreitas Exp $
+ * $Id: video_out_none.c,v 1.15 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -45,7 +45,7 @@ typedef struct {
   vo_frame_t           vo_frame;
   int                  width;
   int                  height;
-  int                  ratio_code;
+  double               ratio;
   int                  format;
 } none_frame_t;
 
@@ -109,7 +109,7 @@ static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
 
 static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_frame,
 				     uint32_t width, uint32_t height, 
-				     int ratio_code, int format, int flags) {
+				     double ratio, int format, int flags) {
   none_frame_t  *frame = (none_frame_t *)vo_frame;
 
   if((frame->width != width) || (frame->height != height) || (frame->format != format)) {
@@ -162,7 +162,7 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
     }
   }
 
-  frame->ratio_code = ratio_code;
+  frame->ratio = ratio;
 }
 
 static void none_display_frame(vo_driver_t *vo_driver, vo_frame_t *vo_frame) {
@@ -194,8 +194,8 @@ static int none_set_property(vo_driver_t *vo_driver, int property, int value) {
   switch(property) {
 
   case VO_PROP_ASPECT_RATIO:
-    if(value >= NUM_ASPECT_RATIOS)
-      value = ASPECT_AUTO;
+    if(value >= XINE_VO_ASPECT_NUM_RATIOS)
+      value = XINE_VO_ASPECT_AUTO;
 
     driver->ratio = value;
     break;
@@ -244,7 +244,7 @@ static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *
   driver = (none_driver_t *) malloc(sizeof(none_driver_t));
   
   driver->config = class->config;
-  driver->ratio  = ASPECT_AUTO;
+  driver->ratio  = XINE_VO_ASPECT_AUTO;
   
   driver->vo_driver.get_capabilities     = none_get_capabilities;
   driver->vo_driver.alloc_frame          = none_alloc_frame ;
@@ -302,6 +302,6 @@ static vo_info_t vo_info_none = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 15, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
+  { PLUGIN_VIDEO_OUT, 16, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

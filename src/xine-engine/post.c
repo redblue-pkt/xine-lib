@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.12 2003/05/31 18:33:31 miguelfreitas Exp $
+ * $Id: post.c,v 1.13 2003/08/04 03:47:11 miguelfreitas Exp $
  */
  
 /*
@@ -39,10 +39,10 @@ static void post_video_open(xine_video_port_t *port_gen, xine_stream_t *stream) 
 }
 
 static vo_frame_t *post_video_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-    uint32_t height, int ratio_code, int format, int flags) {
+    uint32_t height, double ratio, int format, int flags) {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   return port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
 }
 
 static vo_frame_t *post_video_get_last_frame(xine_video_port_t *port_gen) {

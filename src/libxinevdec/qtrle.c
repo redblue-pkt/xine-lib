@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.12 2003/01/08 01:02:31 miguelfreitas Exp $
+ * $Id: qtrle.c,v 1.13 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -59,6 +59,7 @@ typedef struct qtrle_decoder_s {
 
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
+  double            ratio;       /* the width to height ratio */
   int               depth;       /* color depth (bits/pixel) */
 
   unsigned char     yuv_palette[256 * 4];
@@ -845,6 +846,7 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
     bih = (xine_bmiheader *) buf->content;
     this->width = bih->biWidth;
     this->height = bih->biHeight;
+    this->ratio = (double)this->width/(double)this->height;
     this->depth = bih->biBitCount;
     this->video_step = buf->decoder_info[1];
 
@@ -881,7 +883,7 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
-                                        XINE_VO_ASPECT_DONT_TOUCH,
+                                        this->ratio,
                                         XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       switch (this->depth & 0x1F) {
@@ -1032,6 +1034,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.45 2003/08/04 03:47:09 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -90,6 +90,7 @@ typedef struct divx4_decoder_s {
   unsigned char     *buf;
   int               size;
   int               bufsize;
+  double            ratio;
   
   decoreFunc        decore; /* ptr to decore function in libdivxdecore */
 
@@ -254,6 +255,8 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf) {
     printf ("divx4: unknown video format (buftype: 0x%08X)\n",
 	    buf->type & 0xFFFF0000);
   }
+
+  this->ratio = (double)this->bih.biWidth/(double)this->bih.biWidth;
 
   /* setup decoder; inspired by avifile's plugin */
   param.x_dim=this->bih.biWidth;
@@ -421,7 +424,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* need to decode a frame */
     /* allocate image (taken from ffmpeg plugin) */
     img = this->video_out->get_frame (this->video_out, this->bih.biWidth,
-				      this->bih.biHeight, XINE_VO_ASPECT_DONT_TOUCH, 
+				      this->bih.biHeight, this->ratio, 
 				      XINE_IMGFMT_YV12, 
 				      VO_BOTH_FIELDS);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.35 2003/05/31 18:33:30 miguelfreitas Exp $
+ * $Id: video_out_aa.c,v 1.36 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -56,7 +56,7 @@ typedef struct aa_frame_s {
   int           width, height;
   uint8_t      *mem[3];
 
-  int           ratio_code;
+  double        ratio;
 
   int           format;
 
@@ -119,7 +119,7 @@ static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
 
 static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 				    uint32_t width, uint32_t height, 
-				    int ratio_code, int format, int flags) {
+				    double ratio, int format, int flags) {
 
   aa_frame_t *frame = (aa_frame_t *) img;
 
@@ -165,7 +165,7 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
       abort();
     }
 
-    frame->ratio_code = ratio_code;
+    frame->ratio = ratio;
 
   }
 
@@ -231,7 +231,7 @@ static int aa_get_property (vo_driver_t *this_gen, int property) {
   if ( property == VO_PROP_ASPECT_RATIO) {
     return this->user_ratio ;
   } else {
-    printf ("video_out_xshm: tried to get unsupported property %d\n", property);
+    printf ("video_out_aa: tried to get unsupported property %d\n", property);
   }
 
   return 0;
@@ -242,12 +242,12 @@ static int aa_set_property (vo_driver_t *this_gen,
   aa_driver_t *this = (aa_driver_t*) this_gen;
 
   if ( property == VO_PROP_ASPECT_RATIO) {
-    if (value>=NUM_ASPECT_RATIOS)
-      value = ASPECT_AUTO;
+    if (value>=XINE_VO_ASPECT_NUM_RATIOS)
+      value = XINE_VO_ASPECT_AUTO;
     this->user_ratio = value;
 
   } else {
-    printf ("video_out_xshm: tried to set unsupported property %d\n", property);
+    printf ("video_out_aa: tried to set unsupported property %d\n", property);
   }
 
   return value;
@@ -328,6 +328,6 @@ static vo_info_t vo_info_aa = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 15, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
+  { PLUGIN_VIDEO_OUT, 16, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

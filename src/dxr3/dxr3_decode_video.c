@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.36 2003/06/18 13:03:45 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.37 2003/08/04 03:47:09 miguelfreitas Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -115,6 +115,7 @@ typedef struct dxr3_decoder_s {
   int                    sequence_open;
   int                    width;
   int                    height;
+  double                 ratio;
   int                    aspect;
   int                    frame_rate_code;
   int                    repeat_first_field;   /* mpeg stream header data */
@@ -379,7 +380,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     
     /* pretend like we have decoded a frame */
     img = this->stream->video_out->get_frame(this->stream->video_out,
-      this->width, this->height, this->aspect,
+      this->width, this->height, this->ratio,
       XINE_IMGFMT_DXR3, VO_BOTH_FIELDS);
     img->pts       = buf->pts;
     img->bad_frame = 0;
@@ -659,6 +660,7 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
                           buffer[HEADER_OFFSET+2];
   this->width           = ((this->height >> 12) + 15) & ~15;
   this->height          = ((this->height & 0xfff) + 15) & ~15;
+  this->ratio           = (double)this->width/(double)this->height;
   this->aspect          = buffer[HEADER_OFFSET+3] >> 4;
   
   this->have_header_info = 1;

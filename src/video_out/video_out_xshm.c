@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.111 2003/05/31 18:33:31 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.112 2003/08/04 03:47:11 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -447,7 +447,7 @@ static void xshm_compute_rgb_size (xshm_driver_t *this, xshm_frame_t *frame) {
 static void xshm_update_frame_format (vo_driver_t *this_gen,
 				      vo_frame_t *frame_gen,
 				      uint32_t width, uint32_t height,
-				      int ratio_code, int format, int flags) {
+				      double ratio, int format, int flags) {
 
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
@@ -463,7 +463,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
   if ((width != frame->sc.delivered_width)
       || (height != frame->sc.delivered_height)
-      || (ratio_code != frame->sc.delivered_ratio_code)
+      || (ratio != frame->sc.delivered_ratio)
       || (flags != frame->flags)
       || (format != frame->format)
       || (this->sc.user_ratio != frame->sc.user_ratio)
@@ -475,13 +475,13 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     printf ("video_out_xshm: frame format (from decoder) has changed => adapt\n");
 #endif
 
-    frame->sc.delivered_width      = width;
-    frame->sc.delivered_height     = height;
-    frame->sc.delivered_ratio_code = ratio_code;
-    frame->flags                   = flags;
-    frame->format                  = format;
-    frame->sc.user_ratio           = this->sc.user_ratio;
-    frame->sc.gui_pixel_aspect     = this->sc.gui_pixel_aspect;
+    frame->sc.delivered_width  = width;
+    frame->sc.delivered_height = height;
+    frame->sc.delivered_ratio  = ratio;
+    frame->flags               = flags;
+    frame->format              = format;
+    frame->sc.user_ratio       = this->sc.user_ratio;
+    frame->sc.gui_pixel_aspect = this->sc.gui_pixel_aspect;
 
     xshm_compute_ideal_size (this, frame);
   }
@@ -781,7 +781,7 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
 
   switch (property) {
   case VO_PROP_ASPECT_RATIO:
-    return this->sc.user_ratio ;
+    return this->sc.user_ratio;
   case VO_PROP_MAX_NUM_FRAMES:
     return 15;
   case VO_PROP_BRIGHTNESS:
@@ -807,8 +807,8 @@ static int xshm_set_property (vo_driver_t *this_gen,
 
   if ( property == VO_PROP_ASPECT_RATIO) {
 
-    if (value>=NUM_ASPECT_RATIOS)
-      value = ASPECT_AUTO;
+    if (value>=XINE_VO_ASPECT_NUM_RATIOS)
+      value = XINE_VO_ASPECT_AUTO;
     this->sc.user_ratio = value;
     if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
       printf ("video_out_xshm: aspect ratio changed to %s\n",
@@ -1074,7 +1074,7 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   this->sc.dest_size_cb     = visual->dest_size_cb;
   this->sc.user_data        = visual->user_data;
   
-  this->sc.user_ratio       = ASPECT_AUTO;
+  this->sc.user_ratio       = XINE_VO_ASPECT_AUTO;
   
   this->sc.scaling_disabled = config->register_bool (config, "video.disable_scaling", 0,
 						     _("disable all video scaling (faster!)"),
@@ -1289,6 +1289,6 @@ static vo_info_t vo_info_xshm = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 15, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
+  { PLUGIN_VIDEO_OUT, 16, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

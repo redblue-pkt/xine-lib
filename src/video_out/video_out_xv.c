@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.170 2003/07/12 12:31:14 mroi Exp $
+ * $Id: video_out_xv.c,v 1.171 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -93,7 +93,8 @@ typedef struct {
 typedef struct {
   vo_frame_t         vo_frame;
 
-  int                width, height, ratio_code, format;
+  int                width, height, format;
+  double             ratio;
 
   XvImage           *image;
   XShmSegmentInfo    shminfo;
@@ -408,7 +409,7 @@ static void dispose_ximage (xv_driver_t *this,
 static void xv_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
-				    int ratio_code, int format, int flags) {
+				    double ratio, int format, int flags) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
@@ -456,7 +457,7 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
     XUnlockDisplay (this->display);
   }
 
-  frame->ratio_code = ratio_code;
+  frame->ratio = ratio;
 }
 
 #define DEINTERLACE_CROMA
@@ -473,7 +474,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
        || (frame->width != this->deinterlace_frame.width)
        || (frame->height != this->deinterlace_frame.height )
        || (frame->format != this->deinterlace_frame.format)
-       || (frame->ratio_code != this->deinterlace_frame.ratio_code)) {
+       || (frame->ratio != this->deinterlace_frame.ratio)) {
     XLockDisplay (this->display);
 
     if( this->deinterlace_frame.image )
@@ -486,7 +487,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     this->deinterlace_frame.width  = frame->width;
     this->deinterlace_frame.height = frame->height;
     this->deinterlace_frame.format = frame->format;
-    this->deinterlace_frame.ratio_code = frame->ratio_code;
+    this->deinterlace_frame.ratio  = frame->ratio;
 
     XUnlockDisplay (this->display);
   }
@@ -673,9 +674,9 @@ static int xv_redraw_needed (vo_driver_t *this_gen) {
 
   if( this->cur_frame ) {
 
-    this->sc.delivered_height   = this->cur_frame->height;
-    this->sc.delivered_width    = this->cur_frame->width;
-    this->sc.delivered_ratio_code = this->cur_frame->ratio_code;
+    this->sc.delivered_height = this->cur_frame->height;
+    this->sc.delivered_width  = this->cur_frame->width;
+    this->sc.delivered_ratio  = this->cur_frame->ratio;
 
     xv_compute_ideal_size(this);
 
@@ -717,7 +718,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
    */
   if ( (frame->width != this->sc.delivered_width)
        || (frame->height != this->sc.delivered_height)
-       || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
+       || (frame->ratio != this->sc.delivered_ratio) ) {
 #ifdef LOG
     printf("video_out_xv: frame format changed\n");
 #endif
@@ -832,8 +833,8 @@ static int xv_set_property (vo_driver_t *this_gen,
       break;
     case VO_PROP_ASPECT_RATIO:
 
-      if (value>=NUM_ASPECT_RATIOS)
-	value = ASPECT_AUTO;
+      if (value>=XINE_VO_ASPECT_NUM_RATIOS)
+	value = XINE_VO_ASPECT_AUTO;
 
       this->props[property].value = value;
       if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
@@ -1221,7 +1222,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   }
 
   this->props[VO_PROP_INTERLACED].value     = 0;
-  this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
+  this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = XINE_VO_ASPECT_AUTO;
   this->props[VO_PROP_ZOOM_X].value    = 100;
   this->props[VO_PROP_ZOOM_Y].value    = 100;
 
@@ -1472,7 +1473,7 @@ static vo_info_t vo_info_xv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 15, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
+  { PLUGIN_VIDEO_OUT, 16, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

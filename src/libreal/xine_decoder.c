@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.47 2003/07/19 16:40:43 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.48 2003/08/04 03:47:09 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -71,6 +71,7 @@ typedef struct realdec_decoder_s {
   void            *context;
 
   uint32_t         width, height;
+  double           ratio;
 
   uint8_t         *chunk_buffer;
   int              chunk_buffer_size;
@@ -186,6 +187,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   this->width  = (init_data.w + 1) & (~1);
   this->height = (init_data.h + 1) & (~1);
+  this->ratio  = (double)this->width/(double)this->height;
 
 #ifdef LOG
   printf ("libreal: init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
@@ -377,7 +379,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 						  /* this->av_picture.linesize[0],  */
 						  this->width,
 						  this->height,
-						  42, 
+						  this->ratio, 
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
 	
@@ -653,6 +655,6 @@ static decoder_info_t dec_info_real = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 14, "real", XINE_VERSION_CODE, &dec_info_real, init_class },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 15, "real", XINE_VERSION_CODE, &dec_info_real, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.92 2003/06/27 13:40:51 mroi Exp $
+ * $Id: video_out.h,v 1.93 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -129,7 +129,7 @@ struct vo_frame_s {
  
   /* additional information to be able to duplicate frames:         */
   int                        width, height;
-  int                        ratio;         /* aspect ratio, codes see below                 */
+  double                     ratio;         /* aspect ratio  */
   int                        format;        /* IMGFMT_YV12 or IMGFMT_YUY2                     */
 
   int                        drawn;         /* used by decoder, frame has already been drawn */
@@ -175,7 +175,7 @@ struct xine_video_port_s {
    *          flags      == field/prediction flags
    */
   vo_frame_t* (*get_frame) (xine_video_port_t *self, uint32_t width, 
-			    uint32_t height, int ratio_code, 
+			    uint32_t height, double ratio, 
 			    int format, int flags);
 
   vo_frame_t* (*get_last_frame) (xine_video_port_t *self);
@@ -245,16 +245,6 @@ struct xine_video_port_s {
 */
 #define VO_NUM_RECENT_FRAMES     2
 
-
-/* possible ratios for the VO_PROP_ASPECT_RATIO call */
-
-#define ASPECT_AUTO        0
-#define ASPECT_ANAMORPHIC  1 /* 16:9 */
-#define ASPECT_FULL        2 /* 4:3  */
-#define ASPECT_DVB         3 /* 1:2  */
-#define ASPECT_SQUARE      4 /* square pels */
-#define NUM_ASPECT_RATIOS  5
-
 /* get_frame flags */
 
 #define VO_TOP_FIELD       1
@@ -288,7 +278,7 @@ struct xine_video_port_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  15
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  16
 
 struct vo_driver_s {
 
@@ -307,7 +297,7 @@ struct vo_driver_s {
    */
   void (*update_frame_format) (vo_driver_t *self, vo_frame_t *img,
 			       uint32_t width, uint32_t height,
-			       int ratio_code, int format, int flags);
+			       double ratio, int format, int flags);
 
   /* display a given frame */
   void (*display_frame) (vo_driver_t *self, vo_frame_t *vo_img);

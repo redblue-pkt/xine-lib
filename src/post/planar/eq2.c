@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.3 2003/07/12 03:15:23 miguelfreitas Exp $
+ * $Id: eq2.c,v 1.4 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -270,7 +270,7 @@ post_info_t eq2_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 3, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
+  { PLUGIN_POST, 4, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif
@@ -399,7 +399,7 @@ static int            eq2_get_property(xine_video_port_t *port_gen, int property
 static int            eq2_set_property(xine_video_port_t *port_gen, int property, int value);
 static void           eq2_open(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *eq2_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, int ratio_code, 
+				       uint32_t height, double ratio, 
 				       int format, int flags);
 static void           eq2_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 
@@ -607,14 +607,14 @@ static void eq2_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 }
 
 static vo_frame_t *eq2_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, int ratio_code, 
+				    uint32_t height, double ratio, 
 				    int format, int flags)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t        *frame;
 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
 
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */

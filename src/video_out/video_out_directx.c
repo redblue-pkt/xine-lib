@@ -60,7 +60,7 @@ typedef struct win32_frame_s
 	int			width;
 	int			height;
 	int			size;
-	int			rcode;
+	double			ratio;
 
 }win32_frame_t;
 
@@ -863,7 +863,7 @@ static vo_frame_t * win32_alloc_frame( vo_driver_t * vo_driver )
 
 
 static void win32_update_frame_format( vo_driver_t * vo_driver, vo_frame_t * vo_frame, uint32_t width, 
-									   uint32_t height, int ratio_code, int format, int flags )
+									   uint32_t height, double ratio, int format, int flags )
 {
 	win32_driver_t * win32_driver = ( win32_driver_t * ) vo_driver;
 	win32_frame_t * win32_frame = ( win32_frame_t * ) vo_frame;
@@ -918,7 +918,7 @@ static void win32_update_frame_format( vo_driver_t * vo_driver, vo_frame_t * vo_
 		win32_frame->format	= format;
 		win32_frame->width	= width;
 		win32_frame->height	= height;
-		win32_frame->rcode	= ratio_code;
+		win32_frame->ratio	= ratio;
 	}
 }
 
@@ -941,24 +941,7 @@ static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame 
 
 	// determine desired ratio
 
-	switch( win32_frame->rcode )
-	{
-		case ASPECT_ANAMORPHIC:
-			win32_driver->ratio = 16.0 / 9.0;
-		break;
-
-		case ASPECT_DVB:
-			win32_driver->ratio = 2.0 / 1.0;
-		break;
-
-		case ASPECT_SQUARE:
-			win32_driver->ratio = win32_frame->width / win32_frame->height;
-		break;
-
-		case ASPECT_FULL:
-		default:
-			win32_driver->ratio = 4.0 / 3.0;
-	}
+	win32_driver->ratio = win32_frame->ratio;
 
 	// lock our surface to update its contents
 
@@ -1279,6 +1262,6 @@ static vo_info_t vo_info_win32 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 15, "vo_directx", XINE_VERSION_CODE, &vo_info_win32, init_class },
+  { PLUGIN_VIDEO_OUT, 16, "vo_directx", XINE_VERSION_CODE, &vo_info_win32, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.4 2003/05/11 22:00:09 holstsn Exp $
+ * $Id: image.c,v 1.5 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * a image video decoder
  */
@@ -226,7 +226,7 @@ void end_callback(png_structp png_ptr, png_infop info) {
     
   if (this->rows_valid) {
     img = this->stream->video_out->get_frame (this->stream->video_out, this->width,
-				      this->height, XINE_VO_ASPECT_DONT_TOUCH, 
+				      this->height, (double)this->width/(double)this->height, 
 				      XINE_IMGFMT_YUY2, 
 				      VO_BOTH_FIELDS);
 
@@ -439,6 +439,6 @@ static decoder_info_t dec_info_image = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "image", XINE_VERSION_CODE, &dec_info_image, init_class },
+  { PLUGIN_VIDEO_DECODER, 15, "image", XINE_VERSION_CODE, &dec_info_image, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

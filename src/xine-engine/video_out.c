@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.166 2003/07/13 15:27:34 guenter Exp $
+ * $Id: video_out.c,v 1.167 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -266,7 +266,7 @@ static void vo_frame_driver_copy(vo_frame_t *img)
 
 static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
 				 uint32_t width, uint32_t height,
-				 int ratio, int format,
+				 double ratio, int format,
 				 int flags) {
 
   vo_frame_t *img;
@@ -1116,34 +1116,16 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
   img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
   pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 
-  frame->vpts       = img->vpts;
-  frame->duration   = img->duration;
-  frame->width      = img->width;
-  frame->height     = img->height;
-  frame->pos_stream = img->extra_info->input_pos;
-  frame->pos_time   = img->extra_info->input_time;
-
-  switch (img->ratio) {
-  case XINE_VO_ASPECT_ANAMORPHIC:  /* anamorphic     */
-  case XINE_VO_ASPECT_PAN_SCAN:    /* we display pan&scan as widescreen */
-    frame->aspect_ratio = 16.0 /9.0;
-    break;
-  case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
-    frame->aspect_ratio = 2.11/1.0;
-    break;
-  case XINE_VO_ASPECT_SQUARE:      /* square pels */
-  case XINE_VO_ASPECT_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
-    frame->aspect_ratio = (double) img->width / (double) img->height;
-    break;
-  case 0:                          /* forbidden -> 4:3 */
-  default:
-  case XINE_VO_ASPECT_4_3:         /* 4:3             */
-    frame->aspect_ratio = 4.0 / 3.0;
-    break;
-  }
-  frame->colorspace = img->format;
-  frame->data       = img->base[0];
-  frame->xine_frame = img;
+  frame->vpts         = img->vpts;
+  frame->duration     = img->duration;
+  frame->width        = img->width;
+  frame->height       = img->height;
+  frame->pos_stream   = img->extra_info->input_pos;
+  frame->pos_time     = img->extra_info->input_time;
+  frame->aspect_ratio = img->ratio;
+  frame->colorspace   = img->format;
+  frame->data         = img->base[0];
+  frame->xine_frame   = img;
 
   return 1;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.20 2003/05/10 04:26:18 tmmm Exp $
+ * $Id: qt_decoder.c,v 1.21 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -688,6 +688,7 @@ typedef struct qtv_decoder_s {
   HINSTANCE        qtml_dll; 
 
   xine_bmiheader   bih;
+  double           ratio;
 
   int              codec_initialized;
 
@@ -1024,6 +1025,7 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
     memcpy (&this->bih, buf->content, sizeof (xine_bmiheader));
+    this->ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
 
     /* video decoder only handles SVQ3 at this point */
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] =
@@ -1086,7 +1088,7 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       img = this->stream->video_out->get_frame (this->stream->video_out,
 						this->bih.biWidth,
 						this->bih.biHeight,
-						42, 
+						this->ratio, 
 						XINE_IMGFMT_YUY2,
 						VO_BOTH_FIELDS);
 	
@@ -1232,7 +1234,7 @@ static decoder_info_t qtv_dec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 14, "qtv", XINE_VERSION_CODE, &qtv_dec_info, qtv_init_class },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 15, "qtv", XINE_VERSION_CODE, &qtv_dec_info, qtv_init_class },
   { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 13, "qta", XINE_VERSION_CODE, &qta_dec_info, qta_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -160,18 +160,19 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
   mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = picture->frame_height;
 
   switch (picture->aspect_ratio_information) {
-  case XINE_VO_ASPECT_PAN_SCAN:
-  case XINE_VO_ASPECT_ANAMORPHIC:
+  case 2:
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
+    break;
+  case 3:
     mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 /9.0;
     break;
-  case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
+  case 4:         /* 2.11:1 */
     mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11/1.0;
     break;
-  case XINE_VO_ASPECT_SQUARE:      /* square pels */
-    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
-    break;
+  case 1:      /* square pels */
   default:
-    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 
+      picture->frame_width/picture->frame_height;
     break;
   }
 
@@ -215,6 +216,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 {
     picture_t * picture;
     int is_frame_done;
+    double ratio;
     
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed) {
@@ -456,13 +458,29 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		     picture->current_frame != picture->forward_reference_frame ) {
 			picture->current_frame->free (picture->current_frame);
 		}
-		
+		/* these hardcoded values are defined on mpeg2 standard for
+                 * aspect ratio. other values are reserved or forbidden.  */
+		switch(picture->aspect_ratio_information) {
+		case 2:
+		  ratio = 4.0/3.0;
+		  break;
+		case 3:
+		  ratio = 16.0/9.0;
+		  break;
+		case 4:
+		  ratio = 2.11/1.0;
+		  break;
+		case 1:
+		default:
+		  ratio = (double)picture->coded_picture_width/(double)picture->coded_picture_height;
+		  break;
+		}
 		if (picture->picture_coding_type == B_TYPE)
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
-						     picture->aspect_ratio_information,
+						     ratio,
 						     XINE_IMGFMT_YV12,
 						     VO_INTERLACED_FLAG | picture->picture_structure);
 		else {
@@ -470,7 +488,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
-						     picture->aspect_ratio_information,
+						     ratio,
 						     XINE_IMGFMT_YV12,
 						     (VO_INTERLACED_FLAG | VO_PREDICTION_FLAG | picture->picture_structure));
 		    if (picture->forward_reference_frame &&

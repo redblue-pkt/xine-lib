@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.16 2003/01/08 01:02:31 miguelfreitas Exp $
+ * $Id: cyuv.c,v 1.17 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -74,6 +74,7 @@ typedef struct cyuv_decoder_s {
   int               size;
   int               width;
   int               height;
+  double            ratio;
 } cyuv_decoder_t;
 
 /* ------------------------------------------------------------------------
@@ -159,6 +160,7 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
     this->size = 0;
     this->width = *(unsigned int *)&buf->content[4];
     this->height = *(unsigned int *)&buf->content[8];
+    this->ratio = (double)this->width/(double)this->height;
     this->skipframes = 0;
     this->video_step = buf->decoder_info[1];
 
@@ -182,7 +184,7 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
     img = this->stream->video_out->get_frame (this->stream->video_out, 
-      this->width, this->height, XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
+      this->width, this->height, this->ratio, XINE_IMGFMT_YUY2,
       VO_BOTH_FIELDS);
 
     img->pts = buf->pts;
@@ -281,6 +283,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "cyuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "cyuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.17 2003/05/31 18:33:30 miguelfreitas Exp $
+ * $Id: video_out_directfb.c,v 1.18 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -71,7 +71,7 @@ typedef struct directfb_frame_s {
   vo_frame_t         vo_frame;
 
   int                width, height;
-  int                ratio_code;
+  double             ratio;
   int                format;
   int                locked;
 
@@ -98,7 +98,7 @@ typedef struct directfb_driver_s {
   /* last displayed frame */
   int              last_frame_width;     /* original size */
   int              last_frame_height;    /* original size */
-  int              last_frame_ratio_code;
+  double           last_frame_ratio;
 
   /* display anatomy */
   double           display_ratio;        /* given by visual parameter from init function */
@@ -212,7 +212,7 @@ static void directfb_adapt_to_output_area (directfb_driver_t *this,
 static void directfb_update_frame_format (vo_driver_t *this_gen,
 				      vo_frame_t *frame_gen,
 				      uint32_t width, uint32_t height,
-				      int ratio_code, int format, int flags) {
+				      double ratio, int format, int flags) {
 
   directfb_driver_t  *this = (directfb_driver_t *) this_gen;
   directfb_frame_t   *frame = (directfb_frame_t *) frame_gen;
@@ -301,7 +301,7 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
       break;
     }
 
-    frame->ratio_code = ratio_code;
+    frame->ratio = ratio;
 
     directfb_frame_field ((vo_frame_t *)frame, flags);
   }
@@ -390,9 +390,9 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
   if ( (frame->width      != this->last_frame_width)  ||
        (frame->height     != this->last_frame_height))
   {
-    this->last_frame_width      = frame->width;
-    this->last_frame_height     = frame->height;
-    this->last_frame_ratio_code = frame->ratio_code;
+    this->last_frame_width  = frame->width;
+    this->last_frame_height = frame->height;
+    this->last_frame_ratio  = frame->ratio;
 
     fprintf (stderr, "video_out_directfb: frame size %d x %d\n",
             this->frame_width, this->frame_height);
@@ -422,15 +422,15 @@ static int directfb_get_property (vo_driver_t *this_gen, int property) {
 static char *aspect_ratio_name(int a)
 {
   switch (a) {
-  case ASPECT_AUTO:
+  case XINE_VO_ASPECT_AUTO:
     return "auto";
-  case ASPECT_SQUARE:
+  case XINE_VO_ASPECT_SQUARE:
     return "square";
-  case ASPECT_FULL:
+  case XINE_VO_ASPECT_4_3:
     return "4:3";
-  case ASPECT_ANAMORPHIC:
+  case XINE_VO_ASPECT_ANAMORPHIC:
     return "16:9";
-  case ASPECT_DVB:
+  case XINE_VO_ASPECT_DVB:
     return "2:1";
   default:
     return "unknown";
@@ -443,8 +443,8 @@ static int directfb_set_property (vo_driver_t *this_gen,
   /* directfb_driver_t *this = (directfb_driver_t *) this_gen; */
 
   if ( property == VO_PROP_ASPECT_RATIO) {
-    if (value>=NUM_ASPECT_RATIOS)
-      value = ASPECT_AUTO;
+    if (value>=XINE_VO_ASPECT_NUM_RATIOS)
+      value = XINE_VO_ASPECT_AUTO;
     /* this->user_ratio = value; */
     printf("video_out_directfb: aspect ratio changed to %s\n",
 	   aspect_ratio_name(value));

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.10 2003/07/12 02:26:13 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.11 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -44,7 +44,7 @@ post_info_t deinterlace_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 3, "tvtime", XINE_VERSION_CODE, &deinterlace_special_info, &deinterlace_init_plugin },
+  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 4, "tvtime", XINE_VERSION_CODE, &deinterlace_special_info, &deinterlace_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -219,7 +219,7 @@ static int            deinterlace_set_property(xine_video_port_t *port_gen, int 
 static void           deinterlace_flush(xine_video_port_t *port_gen);
 static void           deinterlace_open(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *deinterlace_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, int ratio_code, 
+				       uint32_t height, double ratio, 
 				       int format, int flags);
 static void           deinterlace_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 
@@ -487,7 +487,7 @@ static void deinterlace_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 }
 
 static vo_frame_t *deinterlace_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, int ratio_code, 
+				    uint32_t height, double ratio, 
 				    int format, int flags)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
@@ -495,7 +495,7 @@ static vo_frame_t *deinterlace_get_frame(xine_video_port_t *port_gen, uint32_t w
   vo_frame_t        *frame;
 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
 
   pthread_mutex_lock (&this->lock);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.26 2003/05/31 18:33:30 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.27 2003/08/04 03:47:11 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -417,7 +417,7 @@ static void frame_reallocate(fb_driver_t *this, fb_frame_t *frame,
 static void fb_update_frame_format(vo_driver_t *this_gen,
 				   vo_frame_t *frame_gen,
 				   uint32_t width, uint32_t height,
-				   int ratio_code, int format, int flags)
+				   double ratio, int format, int flags)
 {
   fb_driver_t *this = (fb_driver_t *)this_gen;
   fb_frame_t *frame = (fb_frame_t *)frame_gen;
@@ -425,11 +425,11 @@ static void fb_update_frame_format(vo_driver_t *this_gen,
   flags &= VO_BOTH_FIELDS;
 
   /* Find out if we need to adapt this frame. */
-  if (width != frame->sc.delivered_width           ||
-      height != frame->sc.delivered_height         ||
-      ratio_code != frame->sc.delivered_ratio_code ||
-      flags != frame->flags                        ||
-      format != frame->format                      ||
+  if (width != frame->sc.delivered_width    ||
+      height != frame->sc.delivered_height  ||
+      ratio != frame->sc.delivered_ratio    ||
+      flags != frame->flags                 ||
+      format != frame->format               ||
       this->sc.user_ratio != frame->sc.user_ratio)
   {
 #ifdef LOG
@@ -437,12 +437,12 @@ static void fb_update_frame_format(vo_driver_t *this_gen,
 	   "has changed => adapt\n");
 #endif
 
-    frame->sc.delivered_width      = width;
-    frame->sc.delivered_height     = height;
-    frame->sc.delivered_ratio_code = ratio_code;
-    frame->flags                   = flags;
-    frame->format                  = format;
-    frame->sc.user_ratio           = this->sc.user_ratio;
+    frame->sc.delivered_width  = width;
+    frame->sc.delivered_height = height;
+    frame->sc.delivered_ratio  = ratio;
+    frame->flags               = flags;
+    frame->format              = format;
+    frame->sc.user_ratio       = this->sc.user_ratio;
 
     fb_compute_ideal_size(this, frame);
     fb_compute_rgb_size(this, frame);
@@ -636,8 +636,8 @@ static int fb_set_property(vo_driver_t *this_gen, int property, int value)
   switch(property)
   {
     case VO_PROP_ASPECT_RATIO:
-      if(value>=NUM_ASPECT_RATIOS)
-      value = ASPECT_AUTO;
+      if(value>=XINE_VO_ASPECT_NUM_RATIOS)
+      value = XINE_VO_ASPECT_AUTO;
     this->sc.user_ratio = value;
     printf("video_out_fb: aspect ratio changed to %s\n",
            vo_scale_aspect_ratio_name(value));
@@ -968,7 +968,7 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
   vo_scale_init(&this->sc, 0, 0, config);
   this->sc.gui_width  = this->fb_var.xres;
   this->sc.gui_height = this->fb_var.yres;
-  this->sc.user_ratio = ASPECT_AUTO;
+  this->sc.user_ratio = XINE_VO_ASPECT_AUTO;
 
   if (visual) {
     this->sc.frame_output_cb = visual->frame_output_cb;
@@ -1053,7 +1053,7 @@ plugin_info_t xine_plugin_info[] =
   /* type, API, "name", version, special_info, init_function */  
   {
     PLUGIN_VIDEO_OUT,
-    15,
+    16,
     "fb",
     XINE_VERSION_CODE,
     &vo_info_fb, fb_init_class

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.11 2003/05/31 18:33:29 miguelfreitas Exp $
+ * $Id: mosaico.c,v 1.12 2003/08/04 03:47:10 miguelfreitas Exp $
  */
  
 /*
@@ -47,7 +47,7 @@ post_info_t mosaico_special_info = { XINE_POST_TYPE_VIDEO_COMPOSE };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 3, "mosaico", MOVERSION, &mosaico_special_info, &mosaico_init_plugin },
+  { PLUGIN_POST, 4, "mosaico", MOVERSION, &mosaico_special_info, &mosaico_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -94,11 +94,11 @@ static int            mosaico_rewire(xine_post_out_t *output, void *data);
 /* replaced video_port functions */
 static void           mosaico_open(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *mosaico_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, int ratio_code, 
+				       uint32_t height, double ratio, 
 				       int format, int flags);
 static void           mosaico_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *mosaico_get_frame_2(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, int ratio_code, 
+				       uint32_t height, double ratio, 
 				       int format, int flags);
 
 /* replaced vo_frame functions */
@@ -344,14 +344,14 @@ static void mosaico_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 }
 
 static vo_frame_t *mosaico_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, int ratio_code, 
+				    uint32_t height, double ratio, 
 				    int format, int flags)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t        *frame;
 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = mosaico_draw;
@@ -361,14 +361,14 @@ static vo_frame_t *mosaico_get_frame(xine_video_port_t *port_gen, uint32_t width
 }
 
 static vo_frame_t *mosaico_get_frame_2(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, int ratio_code, 
+				    uint32_t height, double ratio, 
 				    int format, int flags)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t        *frame;
 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = mosaico_draw_2;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.21 2003/04/24 11:03:50 jstembridge Exp $
+ * $Id: vo_scale.c,v 1.22 2003/08/04 03:47:11 miguelfreitas Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -59,42 +59,24 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
     image_ratio = (double) this->delivered_width / (double) this->delivered_height;
     
     switch (this->user_ratio) {
-    case ASPECT_AUTO:
-      switch (this->delivered_ratio_code) {
-      case XINE_VO_ASPECT_ANAMORPHIC:  /* anamorphic     */
-      case XINE_VO_ASPECT_PAN_SCAN:    /* we display pan&scan as widescreen */
-        desired_ratio = 16.0 /9.0;
-        break;
-      case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
-        desired_ratio = 2.11/1.0;
-        break;
-      case XINE_VO_ASPECT_SQUARE:      /* square pels */
-      case XINE_VO_ASPECT_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
-        desired_ratio = image_ratio;
-        break;
-      case 0:                             /* forbidden -> 4:3 */
-        printf ("vo_scale: invalid ratio, using 4:3\n");
-      default:
-        if (!warning_issued) {
-          printf ("vo_scale: unknown aspect ratio (%d) in stream => using 4:3\n",
-    	      this->delivered_ratio_code);
-          warning_issued = 1;
-        }
-      case XINE_VO_ASPECT_4_3:         /* 4:3             */
-        desired_ratio = 4.0 / 3.0;
-        break;
+    case XINE_VO_ASPECT_AUTO:
+      if (this->delivered_ratio <= 0.0) {
+	/* no way, that's crazy */
+	desired_ratio = image_ratio;
+      } else {
+	desired_ratio = this->delivered_ratio;
       }
       break;
-    case ASPECT_ANAMORPHIC:
+    case XINE_VO_ASPECT_ANAMORPHIC:
       desired_ratio = 16.0 / 9.0;
       break;
-    case ASPECT_DVB:
+    case XINE_VO_ASPECT_DVB:
       desired_ratio = 2.0 / 1.0;
       break;
-    case ASPECT_SQUARE:
+    case XINE_VO_ASPECT_SQUARE:
       desired_ratio = image_ratio;
       break;
-    case ASPECT_FULL:
+    case XINE_VO_ASPECT_4_3:
     default:
       desired_ratio = 4.0 / 3.0;
     }
@@ -325,15 +307,15 @@ void vo_scale_translate_gui2video(vo_scale_t *this,
 char *vo_scale_aspect_ratio_name(int a) {
 
   switch (a) {
-  case ASPECT_AUTO:
+  case XINE_VO_ASPECT_AUTO:
     return "auto";
-  case ASPECT_SQUARE:
+  case XINE_VO_ASPECT_SQUARE:
     return "square";
-  case ASPECT_FULL:
+  case XINE_VO_ASPECT_4_3:
     return "4:3";
-  case ASPECT_ANAMORPHIC:
+  case XINE_VO_ASPECT_ANAMORPHIC:
     return "16:9";
-  case ASPECT_DVB:
+  case XINE_VO_ASPECT_DVB:
     return "2:1";
   default:
     return "unknown";
@@ -373,7 +355,8 @@ void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
   this->zoom_factor_x = 1.0;
   this->zoom_factor_y = 1.0;
   this->gui_pixel_aspect = 1.0;
-  this->user_ratio = ASPECT_AUTO;
+  this->user_ratio = XINE_VO_ASPECT_AUTO;
+  this->delivered_ratio = 0.0;
   
   this->output_horizontal_position = 
     config->register_range(config, "video.horizontal_position", 50, 0, 100,

@@ -23,7 +23,7 @@
  * For more information on the SMC format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtsmc.c,v 1.14 2003/01/08 01:02:31 miguelfreitas Exp $
+ * $Id: qtsmc.c,v 1.15 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -68,6 +68,7 @@ typedef struct qtsmc_decoder_s {
 
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
+  double            ratio;       /* the width to height ratio */
 
   /* SMC color tables */
   unsigned char     color_pairs[COLORS_PER_TABLE * BYTES_PER_COLOR * CPAIR];
@@ -537,6 +538,7 @@ static void qtsmc_decode_data (video_decoder_t *this_gen,
     bih = (xine_bmiheader *) buf->content;
     this->width = (bih->biWidth + 3) & ~0x03;
     this->height = (bih->biHeight + 3) & ~0x03;
+    this->ratio = (double)this->width/(double)this->height;
     this->video_step = buf->decoder_info[1];
 
     if (this->buf)
@@ -572,7 +574,8 @@ static void qtsmc_decode_data (video_decoder_t *this_gen,
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
-                                        42, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        this->ratio, XINE_IMGFMT_YUY2,
+                                        VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -686,7 +689,7 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "smc", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "smc", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

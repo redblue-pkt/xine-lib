@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.h,v 1.9 2003/05/20 13:50:57 mroi Exp $
+ * $Id: video_decoder.h,v 1.10 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * xine video decoder plugin interface
  *
@@ -34,7 +34,7 @@
 #  include <xine/buffer.h>
 #endif
 
-#define VIDEO_DECODER_IFACE_VERSION 14
+#define VIDEO_DECODER_IFACE_VERSION 15
 
 /*
  * generic xine video decoder plugin interface

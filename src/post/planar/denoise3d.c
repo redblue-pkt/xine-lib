@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: denoise3d.c,v 1.3 2003/07/12 03:15:23 miguelfreitas Exp $
+ * $Id: denoise3d.c,v 1.4 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * mplayer's denoise3d
  * Copyright (C) 2003 Daniel Moreno <comac@comac.darktech.org>
@@ -45,7 +45,7 @@ post_info_t denoise3d_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 3, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
+  { PLUGIN_POST, 4, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif
@@ -176,7 +176,7 @@ static int            denoise3d_rewire(xine_post_out_t *output, void *data);
 /* replaced video_port functions */
 static void           denoise3d_open(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *denoise3d_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, int ratio_code, 
+				       uint32_t height, double ratio, 
 				       int format, int flags);
 static void           denoise3d_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 
@@ -330,14 +330,14 @@ static void denoise3d_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 }
 
 static vo_frame_t *denoise3d_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, int ratio_code, 
+				    uint32_t height, double ratio, 
 				    int format, int flags)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t        *frame;
 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
 
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */

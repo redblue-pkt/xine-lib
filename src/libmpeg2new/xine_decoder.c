@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2003/06/19 01:58:25 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.10 2003/08/04 03:47:09 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -56,8 +56,7 @@ typedef struct mpeg2_video_decoder_s {
   mpeg2_class_t   *class;
   xine_stream_t   *stream;
   int32_t         force_aspect;
-  int32_t         aspect_ratio;
-  int32_t         aspect_ratio_float;
+  double          ratio;
   uint32_t        img_state[30];
   uint32_t	  frame_number;
   uint32_t        rff_pattern;
@@ -136,36 +135,26 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]    = info->sequence->picture_height;
         this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]  = info->sequence->frame_period / 300;
         if (this->force_aspect > 0) {
-          this->aspect_ratio = this->force_aspect;
           switch (info->sequence->pixel_width) {
-            case XINE_VO_ASPECT_PAN_SCAN:
-            case XINE_VO_ASPECT_ANAMORPHIC:
-              this->aspect_ratio_float = 10000 * 16.0 /9.0;
-              break;
-            case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
-              this->aspect_ratio_float = 10000 * 2.11/1.0;
-              break;
-            case XINE_VO_ASPECT_SQUARE:      /* square pels */
-              this->aspect_ratio_float = 10000;
-              break;
-            default:
-              this->aspect_ratio_float = 10000 * 4.0 / 3.0;
-              break;
+	  case XINE_VO_ASPECT_PAN_SCAN:
+	  case XINE_VO_ASPECT_ANAMORPHIC:
+	    this->ratio = 16.0 /9.0;
+	    break;
+	  case XINE_VO_ASPECT_DVB:
+	    this->ratio = 2.11;
+	    break;
+	  case XINE_VO_ASPECT_4_3:
+	    this->ratio = 4.0 / 3.0;
+	    break;
+	  case XINE_VO_ASPECT_SQUARE:
+	  default:
+	    this->ratio = (double)info->sequence->picture_width/(double)info->sequence->picture_height;
+	    break;
           }
         } else {
-          this->aspect_ratio_float = (10000 * info->sequence->pixel_width) / info->sequence->pixel_height;
-          if (this->aspect_ratio_float > 20000) {
-            this->aspect_ratio = XINE_VO_ASPECT_DVB;
-          } else if (this->aspect_ratio_float > 15000) {
-            this->aspect_ratio = XINE_VO_ASPECT_ANAMORPHIC;
-          } else if (this->aspect_ratio_float > 12000) {
-            this->aspect_ratio = XINE_VO_ASPECT_4_3;
-          } else {
-            this->aspect_ratio = XINE_VO_ASPECT_SQUARE;
-          }
+          this->ratio = (double)info->sequence->pixel_width/(double)info->sequence->pixel_height;
         }
-        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = this->aspect_ratio_float;
-
+        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = (int)(10000*this->ratio);
 
         if (info->sequence->flags & SEQ_FLAG_MPEG2) {
           this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]  = strdup ("MPEG 2 (libmpeg2new)");
@@ -186,7 +175,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                               info->sequence->picture_width,
                                               info->sequence->picture_height,
-                                              this->aspect_ratio,  /* Aspect ratio */
+                                              this->ratio,
                                               XINE_IMGFMT_YV12,
                                               picture_structure);
         this->frame_number++;
@@ -502,6 +491,6 @@ static decoder_info_t dec_info_mpeg2 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "mpeg2new", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "mpeg2new", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.13 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: wc3video.c,v 1.14 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -72,6 +72,8 @@ typedef struct wc3video_decoder_s {
   /* this is either 1 or 2 indicating the current_frame points to yuv_planes
    * structure 1 or 2 */
   int               current_planes;
+
+  double            ratio;
 
 } wc3video_decoder_t;
 
@@ -406,7 +408,7 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
                                         WC3_WIDTH, WC3_HEIGHT,
-                                        42, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        this->ratio, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -491,6 +493,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->decoder_ok    = 0;
   this->buf           = NULL;
 
+  this->ratio         = (double)WC3_WIDTH/(double)WC3_HEIGHT;
+
   return &this->video_decoder;
 }
 
@@ -530,6 +534,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

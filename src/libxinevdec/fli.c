@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.18 2003/02/08 15:39:07 tmmm Exp $
+ * $Id: fli.c,v 1.19 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -76,6 +76,7 @@ typedef struct fli_decoder_s {
 
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
+  double            ratio;       /* the width to height ratio */
 
   /* FLI decoding parameters */
   unsigned char     yuv_palette[PALETTE_SIZE];
@@ -436,6 +437,7 @@ static void fli_decode_data (video_decoder_t *this_gen,
     /* RGB -> YUV converter requires even width */
     this->width = (LE_16(&buf->content[8]) + 1) & ~0x1;
     this->height = LE_16(&buf->content[10]);
+    this->ratio = (double)this->width/(double)this->height;
     this->video_step = buf->decoder_info[1];
     this->magic_number = LE_16(&buf->content[4]);
 
@@ -473,7 +475,7 @@ static void fli_decode_data (video_decoder_t *this_gen,
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
-                                        XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        this->ratio, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -596,7 +598,7 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "fli", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "fli", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

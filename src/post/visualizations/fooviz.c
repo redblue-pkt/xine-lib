@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.8 2003/07/26 17:44:30 tmattern Exp $
+ * $Id: fooviz.c,v 1.9 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  */
 
@@ -49,10 +49,12 @@ struct post_plugin_fooviz_s {
   xine_video_port_t *vo_port;
   xine_stream_t     *stream;
 
+  double ratio;
+
   int data_idx;
   short data [2][NUMSAMPLES];
   audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
-  
+
   int bits;
   int mode;
   int channels;
@@ -139,6 +141,7 @@ static int fooviz_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_fooviz_t *this = (post_plugin_fooviz_t *)port->post;
 
+  this->ratio = (double)FOO_WIDTH/(double)FOO_HEIGHT;
   this->bits = bits;
   this->mode = mode;
   this->channels = mode_channels(mode);
@@ -231,7 +234,7 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
       samples_used += this->samples_per_frame;
   
       frame = this->vo_port->get_frame (this->vo_port, FOO_WIDTH, FOO_HEIGHT,
-                                        XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
+                                        this->ratio, XINE_IMGFMT_YUY2,
                                         VO_BOTH_FIELDS);
       frame->extra_info->invalid = 1;
       frame->bad_frame = 0;
@@ -370,6 +373,6 @@ post_info_t fooviz_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 3, "fooviz", XINE_VERSION_CODE, &fooviz_special_info, &fooviz_init_plugin },
+  { PLUGIN_POST, 4, "fooviz", XINE_VERSION_CODE, &fooviz_special_info, &fooviz_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -21,7 +21,7 @@
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
  * 
- * $Id: rgb.c,v 1.18 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: rgb.c,v 1.19 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -59,6 +59,7 @@ typedef struct rgb_decoder_s {
 
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
+  double            ratio;       /* the width to height ratio */
   int               bytes_per_pixel;
 
   unsigned char     yuv_palette[256 * 4];
@@ -107,6 +108,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
     bih = (xine_bmiheader *) buf->content;
     this->width = (bih->biWidth + 3) & ~0x03;
     this->height = (bih->biHeight + 3) & ~0x03;
+    this->ratio = (double)this->width/(double)this->height;
     this->video_step = buf->decoder_info[1];
     /* round this number up in case of 15 */
     this->bytes_per_pixel = (bih->biBitCount + 1) / 8;
@@ -144,7 +146,8 @@ static void rgb_decode_data (video_decoder_t *this_gen,
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
-                                        XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        this->ratio, XINE_IMGFMT_YUY2,
+                                        VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -311,6 +314,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "rgb", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "rgb", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

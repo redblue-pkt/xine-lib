@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.128 2003/06/21 22:32:08 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.129 2003/08/04 03:47:09 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -100,7 +100,6 @@ struct ff_video_decoder_s {
   int               is_continous;
 
   float             aspect_ratio;
-  int               xine_aspect_ratio;
   int               frame_flags;
   
   int               output_format;
@@ -166,7 +165,7 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   img = this->stream->video_out->get_frame (this->stream->video_out,
 					    width,
 					    height,
-					    this->xine_aspect_ratio, 
+					    (double)this->aspect_ratio, 
 					    this->output_format,
 					    VO_BOTH_FIELDS|this->frame_flags);
 
@@ -944,42 +943,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	printf ("ffmpeg: got a picture\n");
 #endif
 
-	if(this->context->aspect_ratio != this->aspect_ratio) {
-	  float diff;
-   
-	  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
-
-	  diff = abs_float( this->context->aspect_ratio - 
-			    (float)this->context->width/(float)this->context->height);
-	  if ( abs_float (this->context->aspect_ratio) < 0.1 )
-	    diff = 0.0;
-
-	  if( diff > abs_float( this->context->aspect_ratio - 1.0 ) ) {
-	    this->xine_aspect_ratio = XINE_VO_ASPECT_SQUARE;
-	    diff = abs_float( this->context->aspect_ratio - 1.0 );
-	  }
-	  
-	  if( diff > abs_float( this->context->aspect_ratio - 4.0/3.0 ) ) {
-	    this->xine_aspect_ratio = XINE_VO_ASPECT_4_3;
-	    diff = abs_float( this->context->aspect_ratio - 4.0/3.0 );
-	  }
-   
-	  if( diff > abs_float( this->context->aspect_ratio - 16.0/9.0 ) ) {
-	    this->xine_aspect_ratio = XINE_VO_ASPECT_ANAMORPHIC;
-	    diff = abs_float( this->context->aspect_ratio - 16.0/9.0 );
-	  }
-	  
-	  if( diff > abs_float( this->context->aspect_ratio - 1.0/2.0 ) ) {
-	    this->xine_aspect_ratio = XINE_VO_ASPECT_DVB;
-	    diff = abs_float( this->context->aspect_ratio - 1.0/2.0 );
-	  }
-	  
-	  this->aspect_ratio = this->context->aspect_ratio;
-	  if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-	    printf ("ffmpeg: aspect ratio code %d selected for %.2f\n",
-	            this->xine_aspect_ratio, this->aspect_ratio);
-	}
-
+	this->aspect_ratio = this->context->aspect_ratio;
 
 	if(this->av_frame->type == FF_BUFFER_TYPE_USER){
 	  img = (vo_frame_t*)this->av_frame->opaque;
@@ -988,7 +952,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  img = this->stream->video_out->get_frame (this->stream->video_out,
 						    this->context->width,
 						    this->context->height,
-						    this->xine_aspect_ratio, 
+						    (double)this->aspect_ratio, 
 						    this->output_format,
 						    VO_BOTH_FIELDS|this->frame_flags);
 	  free_img = 1;
@@ -1013,7 +977,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	      img = this->stream->video_out->get_frame (this->stream->video_out,
 						        img->width,
 						        img->height,
-						        this->xine_aspect_ratio, 
+						        (double)this->aspect_ratio, 
 						        this->output_format,
 						        VO_BOTH_FIELDS|this->frame_flags);
 	      free_img = 1;
@@ -1211,7 +1175,6 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   this->is_continous  = 0;
   this->aspect_ratio = 0;
-  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
 
   this->pp_quality  = 0;
   this->pp_context  = NULL;
@@ -1601,8 +1564,8 @@ static decoder_info_t dec_info_ffmpeg_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 14, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
-  { PLUGIN_VIDEO_DECODER, 14, "ffmpeg-wmv8", XINE_VERSION_CODE, &dec_info_ffmpeg_experimental_video, init_video_plugin },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 15, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "ffmpeg-wmv8", XINE_VERSION_CODE, &dec_info_ffmpeg_experimental_video, init_video_plugin },
   { PLUGIN_AUDIO_DECODER, 13, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

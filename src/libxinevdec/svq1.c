@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.24 2003/01/31 18:29:47 miguelfreitas Exp $
+ * $Id: svq1.c,v 1.25 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -84,6 +84,7 @@ typedef struct svq1_s {
   uint8_t	*base[3];
   int		 width;
   int		 height;
+  double	 ratio;
 } svq1_t;
 
 typedef struct {
@@ -1230,6 +1231,7 @@ static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer, int length) {
 
     svq1->width		= (svq1->frame_width + 3) & ~0x3;
     svq1->height	= (svq1->frame_height + 3) & ~0x3;
+    svq1->ratio		= (double)svq1->width/(double)svq1->height;
     svq1->luma_width	= (svq1->width + 15) & ~0xF;
     svq1->luma_height	= (svq1->height + 15) & ~0xF;
     svq1->chroma_width	= ((svq1->width / 4) + 15) & ~0xF;
@@ -1366,7 +1368,7 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	img = this->stream->video_out->get_frame (this->stream->video_out,
 						  this->svq1->width,
 						  this->svq1->height,
-						  XINE_VO_ASPECT_DONT_TOUCH,
+						  this->svq1->ratio,
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
 
@@ -1500,6 +1502,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "svq1", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "svq1", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayvideo.c,v 1.2 2003/01/08 01:02:31 miguelfreitas Exp $
+ * $Id: interplayvideo.c,v 1.3 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -67,6 +67,7 @@ typedef struct interplay_decoder_s {
 
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
+  double            ratio;       /* the width to height ratio */
 
   unsigned char     yuv_palette[256 * 4];
 
@@ -1157,6 +1158,7 @@ static void interplay_decode_data (video_decoder_t *this_gen,
 
     this->width = (buf->content[0] << 8) | buf->content[1];
     this->height = (buf->content[2] << 8) | buf->content[3];
+    this->ratio = (double)this->width/(double)this->height;
     this->video_step = buf->decoder_info[1];
 
     if (this->buf)
@@ -1206,7 +1208,7 @@ static void interplay_decode_data (video_decoder_t *this_gen,
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
-                                        XINE_VO_ASPECT_DONT_TOUCH,
+                                        this->ratio,
                                         XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
@@ -1379,6 +1381,6 @@ static decoder_info_t dec_info_video = {
  */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API, "name", version, special_info, init_function } */
-  { PLUGIN_VIDEO_DECODER, 14, "interplay", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "interplay", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

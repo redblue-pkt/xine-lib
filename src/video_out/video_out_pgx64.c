@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.30 2003/06/15 20:04:35 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.31 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -103,7 +103,8 @@ typedef struct {
 
   int lengths[3];  
   uint32_t buf_y, buf_u, buf_v;
-  int width, height, pitch, ratio_code, format;
+  int width, height, pitch, format;
+  double ratio;
 } pgx64_frame_t;
 
 typedef struct {   
@@ -254,17 +255,17 @@ static pgx64_frame_t* pgx64_alloc_frame(pgx64_driver_t *this)
   return frame;
 }
 
-static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame, uint32_t width, uint32_t height, int ratio_code, int format, int flags)
+static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame, uint32_t width, uint32_t height, double ratio, int format, int flags)
 {
   if ((width != frame->width) ||
       (height != frame->height) ||
-      (ratio_code != frame->ratio_code) ||
+      (ratio != frame->ratio) ||
       (format != frame->format)) {
     dispose_frame_internals(frame);
 
     frame->width = width;
     frame->height = height;
-    frame->ratio_code = ratio_code;
+    frame->ratio = ratio;
     frame->format = format;
     frame->pitch = ((width + 7) / 8) * 8;
 
@@ -298,12 +299,12 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 {
   if ((frame->width != this->vo_scale.delivered_width) ||
       (frame->height != this->vo_scale.delivered_height) ||
-      (frame->ratio_code != this->vo_scale.delivered_ratio_code)) {
+      (frame->ratio != this->vo_scale.delivered_ratio)) {
 
-    this->vo_scale.delivered_width      = frame->width;
-    this->vo_scale.delivered_height     = frame->height;
-    this->vo_scale.delivered_ratio_code = frame->ratio_code;
-    this->vo_scale.force_redraw         = 1;
+    this->vo_scale.delivered_width  = frame->width;
+    this->vo_scale.delivered_height = frame->height;
+    this->vo_scale.delivered_ratio  = frame->ratio;
+    this->vo_scale.force_redraw     = 1;
     vo_scale_compute_ideal_size(&this->vo_scale);
   }
 
@@ -450,8 +451,8 @@ static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
     break;
 
     case VO_PROP_ASPECT_RATIO: {
-      if (value >= NUM_ASPECT_RATIOS) {
-        value = ASPECT_AUTO;
+      if (value >= XINE_VO_ASPECT_NUM_RATIOS) {
+        value = XINE_VO_ASPECT_AUTO;
       }
       this->vo_scale.user_ratio = value;
       this->vo_scale.force_redraw = 1;
@@ -669,7 +670,7 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   this->depth_mask = 0xffffffff >> (32 - attr.fbtype.fb_depth);
 
   vo_scale_init(&this->vo_scale, 0, 0, this->class->config);
-  this->vo_scale.user_ratio = ASPECT_AUTO;
+  this->vo_scale.user_ratio = XINE_VO_ASPECT_AUTO;
 
   return this;
 }
@@ -799,8 +800,8 @@ static pgx64_driver_class_t* pgx64fb_init_class(xine_t *xine, void *visual_gen)
 
 plugin_info_t xine_plugin_info[] = {
 #ifdef HAVE_X11
-  {PLUGIN_VIDEO_OUT, 15, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
+  {PLUGIN_VIDEO_OUT, 16, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
 #endif
-  {PLUGIN_VIDEO_OUT, 15, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
+  {PLUGIN_VIDEO_OUT, 16, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };

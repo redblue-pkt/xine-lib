@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2003/07/13 18:36:34 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.13 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -63,6 +63,7 @@ typedef struct theora_decoder_s {
   char*              packet;
   int                done;
   int                width, height;
+  double             ratio;
   int                offset_x, offset_y;
   int                frame_duration;
   int                skipframes;
@@ -183,19 +184,26 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (this->hp_read==3) {
       /*headers are now decoded. initialize the decoder*/
       theora_decode_init (&this->t_state, &this->t_info);
-      this->frame_duration=((int64_t)90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 #ifdef LOG
       printf("libtheora: theora stream is Theora %dx%d %.02f fps video.\n"
 	     "           frame content is %dx%d with offset (%d,%d).\n"
-	     "           aspect ratio is %d:%d.\n",
+	     "           pixel aspect is %d:%d.\n",
 	     this->t_info.width,this->t_info.height,
 	     (double)this->t_info.fps_numerator/this->t_info.fps_denominator,
 	     this->t_info.frame_width, this->t_info.frame_height,
 	     this->t_info.offset_x, this->t_info.offset_y,
 	     this->t_info.aspect_numerator, this->t_info.aspect_denominator);
-#endif	  
+#endif
+      this->frame_duration=((int64_t)90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
       this->width=this->t_info.frame_width;
       this->height=this->t_info.frame_height;
+      if (this->t_info.aspect_numerator==0 || this->t_info.aspect_denominator==0)
+	/* 0-values are undefined, so don't do any scaling.  */
+	this->ratio=(double)this->width/(double)this->height;
+      else
+	/* Yes, this video needs to be scaled.  */
+	this->ratio=(double)(this->width*this->t_info.aspect_numerator) /
+	  (double)(this->height*this->t_info.aspect_denominator);
       this->offset_x=this->t_info.offset_x;
       this->offset_y=this->t_info.offset_y;
       this->initialized=1;
@@ -227,7 +235,7 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       /*fixme - aspectratio from theora is not considered*/
       frame = this->stream->video_out->get_frame( this->stream->video_out,
 						  this->width, this->height,
-						  XINE_VO_ASPECT_SQUARE,
+						  this->ratio,
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
       yuv2frame(&yuv, frame, this->offset_x, this->offset_y);
@@ -384,6 +392,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "theora", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "theora", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

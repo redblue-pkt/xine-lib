@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.26 2003/05/31 18:33:31 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.27 2003/08/04 03:47:11 miguelfreitas Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -116,7 +116,8 @@ typedef struct opengl_frame_s {
 
     /* frame properties as delivered by the decoder: */
     int                width,  height;
-    int                ratio_code, format, flags;
+    double             ratio;
+    int                format, flags;
 
     /* opengl only data */
     uint8_t           *rgb_dst;
@@ -151,7 +152,7 @@ typedef struct opengl_driver_s {
     /* last frame delivered from the decoder for frame change detection */
     int              last_width;
     int              last_height;
-    int              last_ratio_code;
+    double           last_ratio;
 
 #if 0
     /* ideal size */
@@ -207,7 +208,7 @@ static void opengl_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
          * happen with corrupt MPEG streams
          * FIXME: Is there a way to ensure frame->rgb_dst validity?
          */
-        DEBUGF ((stderr, "video_out_xshm: corrupt value of frame->rgb_dst -- skipping\n"));
+        DEBUGF ((stderr, "video_out_opengl: corrupt value of frame->rgb_dst -- skipping\n"));
         return;
     }
     if (frame->format == XINE_IMGFMT_YV12) {
@@ -307,7 +308,7 @@ static void opengl_compute_ideal_size (opengl_driver_t *this) {
 static void opengl_update_frame_format (vo_driver_t *this_gen,
 					vo_frame_t *frame_gen,
 					uint32_t width, uint32_t height,
-					int ratio_code, int format, int flags) {
+					double ratio, int format, int flags) {
 
     opengl_driver_t  *this = (opengl_driver_t *) this_gen;
     opengl_frame_t   *frame = (opengl_frame_t *) frame_gen;
@@ -322,8 +323,8 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 
 	int image_size = width * height;
 	
-	DEBUGF ((stderr, "video_out_opengl: updating frame to %dx%d (ratio=%d, format=%c%c%c%c)\n",
-		 width, height, ratio_code, format&0xff, (format>>8)&0xff,
+	DEBUGF ((stderr, "video_out_opengl: updating frame to %dx%d (ratio=%f, format=%c%c%c%c)\n",
+		 width, height, ratio, format&0xff, (format>>8)&0xff,
 		 (format>>16)&0xff, (format>>24)&0xff));
 
 	/* update frame allocated data */
@@ -381,7 +382,7 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 	XUnlockDisplay (this->display);
     }
 
-    frame->ratio_code = ratio_code;
+    frame->ratio = ratio;
     opengl_frame_field ((vo_frame_t *)frame, flags);
 }
 
@@ -508,13 +509,13 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
     /*
      * check for size changes
      */
-    if (frame->width      != this->last_width    ||
-	frame->height     != this->last_height   ||
-	frame->ratio_code != this->last_ratio_code) {
+    if (frame->width  != this->last_width    ||
+	frame->height != this->last_height   ||
+	frame->ratio  != this->last_ratio) {
       
-      this->last_width      = frame->width;
-      this->last_height     = frame->height;
-      this->last_ratio_code = frame->ratio_code;
+      this->last_width  = frame->width;
+      this->last_height = frame->height;
+      this->last_ratio  = frame->ratio;
       
       DEBUGF ((stderr, "video_out_opengl: display format changed\n"));
       opengl_compute_ideal_size  (this);
@@ -717,7 +718,7 @@ static void opengl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
     opengl_frame_t   *frame = (opengl_frame_t *) frame_gen;
 
     DEBUGF ((stderr, "*** display_frame ***\n"));
-    DEBUGF ((stderr, "video_out_xshm: about to draw frame %d x %d...\n", frame->width, frame->height));
+    DEBUGF ((stderr, "video_out_opengl: about to draw frame %d x %d...\n", frame->width, frame->height));
     XLockDisplay (this->display);
     opengl_render_image (this, frame, NULL);
     XUnlockDisplay (this->display);
@@ -764,8 +765,8 @@ static int opengl_set_property (vo_driver_t *this_gen,
     DEBUGF ((stderr, "*** set_property\n"));
     switch (property) {
     case VO_PROP_ASPECT_RATIO:
-	if (value >= NUM_ASPECT_RATIOS)
-	    value  = ASPECT_AUTO;
+	if (value >= XINE_VO_ASPECT_NUM_RATIOS)
+	    value  = XINE_VO_ASPECT_AUTO;
 	this->sc.user_ratio = value;
 	fprintf (stderr, "video_out_opengl: aspect ratio changed to %s\n",
 	         vo_scale_aspect_ratio_name (value));
@@ -924,7 +925,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
     this->sc.frame_output_cb        = visual->frame_output_cb;
     this->sc.dest_size_cb           = visual->dest_size_cb;
     this->sc.user_data              = visual->user_data;
-    this->sc.user_ratio             = ASPECT_AUTO;
+    this->sc.user_ratio             = XINE_VO_ASPECT_AUTO;
     this->sc.scaling_disabled       = 0;
 
     /* We will not be able to use the current drawable... */
@@ -999,7 +1000,7 @@ static vo_info_t vo_info_opengl = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 15, "opengl", XINE_VERSION_CODE,
+  { PLUGIN_VIDEO_OUT, 16, "opengl", XINE_VERSION_CODE,
     &vo_info_opengl, opengl_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

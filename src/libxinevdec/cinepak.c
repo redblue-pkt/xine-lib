@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.29 2003/01/08 01:02:31 miguelfreitas Exp $
+ * $Id: cinepak.c,v 1.30 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -79,6 +79,7 @@ typedef struct cvid_decoder_s {
 
   unsigned int	    width;
   unsigned int	    height;
+  double	    ratio;
 } cvid_decoder_t;
 
 static unsigned char     yuv_palette[256 * 4];
@@ -396,6 +397,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     this->width		= (bih->biWidth + 1) & ~0x1;
     this->height	= (bih->biHeight + 1) & ~0x1;
+    this->ratio		= (double)this->width/(double)this->height;
     this->coded_width	= (this->width + 3) & ~0x3;
     this->coded_height	= (this->height + 3) & ~0x3;
     this->luma_pitch	= this->coded_width;
@@ -444,7 +446,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
 						this->width, this->height,
-						XINE_VO_ASPECT_SQUARE,
+						this->ratio,
 						XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
@@ -558,6 +560,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

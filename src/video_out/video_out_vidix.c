@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.44 2003/05/31 18:33:31 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.45 2003/08/04 03:47:11 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -81,7 +81,8 @@ typedef struct vidix_property_s {
 
 typedef struct vidix_frame_s {
     vo_frame_t vo_frame;
-    int width, height, ratio_code, format;
+    int width, height, format;
+    double ratio;
 } vidix_frame_t;
 
 
@@ -521,7 +522,7 @@ static void vidix_config_playback (vidix_driver_t *this) {
 static void vidix_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
-				    int ratio_code, int format, int flags) {
+				    double ratio, int format, int flags) {
 
   vidix_frame_t   *frame = (vidix_frame_t *) frame_gen;
   
@@ -566,7 +567,7 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
       }
    }
 
-  frame->ratio_code = ratio_code;
+  frame->ratio = ratio;
 }
 
 
@@ -612,16 +613,16 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   if ( (frame->width != this->sc.delivered_width)
 	 || (frame->height != this->sc.delivered_height)
-	 || (frame->ratio_code != this->sc.delivered_ratio_code) 
+	 || (frame->ratio != this->sc.delivered_ratio) 
 	 || (frame->format != this->delivered_format ) ) {
 #ifdef LOG
 	 printf("video_out_vidix: change frame format\n");
 #endif
 
-      this->sc.delivered_width      = frame->width;
-      this->sc.delivered_height     = frame->height;
-      this->sc.delivered_ratio_code = frame->ratio_code;
-      this->delivered_format     = frame->format;
+      this->sc.delivered_width  = frame->width;
+      this->sc.delivered_height = frame->height;
+      this->sc.delivered_ratio  = frame->ratio;
+      this->delivered_format    = frame->format;
 
       vidix_compute_ideal_size( this );
       this->sc.force_redraw = 1;
@@ -677,8 +678,8 @@ static int vidix_set_property (vo_driver_t *this_gen,
 	   vo_scale_aspect_ratio_name(value));
 #endif
     
-    if(value == NUM_ASPECT_RATIOS)
-      value = this->props[property].value = ASPECT_AUTO;
+    if(value == XINE_VO_ASPECT_NUM_RATIOS)
+      value = this->props[property].value = XINE_VO_ASPECT_AUTO;
 
     this->sc.user_ratio = value;    
     vidix_compute_ideal_size (this);
@@ -961,9 +962,9 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
     (void*) vidix_db_callback, this);
     
   /* Set up remaining props */
-  this->props[VO_PROP_ASPECT_RATIO].value = ASPECT_AUTO;
+  this->props[VO_PROP_ASPECT_RATIO].value = XINE_VO_ASPECT_AUTO;
   this->props[VO_PROP_ASPECT_RATIO].min = 0;
-  this->props[VO_PROP_ASPECT_RATIO].max = NUM_ASPECT_RATIOS;
+  this->props[VO_PROP_ASPECT_RATIO].max = XINE_VO_ASPECT_NUM_RATIOS;
   
   this->props[VO_PROP_ZOOM_X].value = 100;
   this->props[VO_PROP_ZOOM_X].min = VO_ZOOM_MIN;
@@ -1228,10 +1229,10 @@ static vo_info_t vo_info_vidixfb = {
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 15, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
+  { PLUGIN_VIDEO_OUT, 16, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
 #endif
 #ifdef HAVE_FB
-  { PLUGIN_VIDEO_OUT, 15, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
+  { PLUGIN_VIDEO_OUT, 16, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

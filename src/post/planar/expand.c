@@ -39,7 +39,7 @@ post_info_t expand_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 3, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
+  { PLUGIN_POST, 4, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif
@@ -69,7 +69,7 @@ static int            expand_rewire(xine_post_out_t *output, void *data);
 /* replaced video_port functions */
 static void           expand_open(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *expand_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, int ratio_code, 
+				       uint32_t height, double ratio, 
 				       int format, int flags);
 static void           expand_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 
@@ -204,14 +204,14 @@ static void expand_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 }
 
 static vo_frame_t *expand_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, int ratio_code, 
+				    uint32_t height, double ratio, 
 				    int format, int flags)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t        *frame;
 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+    width, height, ratio, format, flags);
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = expand_draw;
@@ -234,33 +234,9 @@ static int expand_draw(vo_frame_t *frame, xine_stream_t *stream)
   post_video_port_t *port = (post_video_port_t *) frame->port;
   vo_frame_t *expanded_frame;
   int size, i, skip, new_height, border_height;
-  double pixel_aspect;
-  
-  /* Find pixel aspect of video frame */
-  switch(frame->ratio) {
-    case XINE_VO_ASPECT_ANAMORPHIC:  /* anamorphic     */
-    case XINE_VO_ASPECT_PAN_SCAN:    /* we display pan&scan as widescreen */
-      pixel_aspect = 16.0 /9.0;
-      break;
-    case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
-      pixel_aspect = 2.11/1.0;
-      break;
-    case XINE_VO_ASPECT_SQUARE:      /* square pels */
-    case XINE_VO_ASPECT_DONT_TOUCH:  /* don't touch aspect ratio */
-      pixel_aspect = 1.0;
-      break;
-    case 0:                          /* forbidden -> 4:3 */
-      printf("expand: invalid ratio, using 4:3\n");
-    default:
-      printf("expand: unknown aspect ratio (%d) in stream => using 4:3\n",
-             frame->ratio);
-    case XINE_VO_ASPECT_4_3:         /* 4:3 */
-      pixel_aspect = 4.0 / 3.0;
-      break;
-  }
-  
+
   /* Calculate height of expanded frame */
-  new_height = (double) frame->width * pixel_aspect * 3.0 / 4.0;
+  new_height = (double) frame->width * frame->ratio * 3.0 / 4.0;
   new_height = (new_height + 1) & ~1;
   
   if(new_height > frame->height) {

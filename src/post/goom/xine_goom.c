@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.33 2003/07/26 23:31:55 tmattern Exp $
+ * $Id: xine_goom.c,v 1.34 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * GOOM post plugin.
  *
@@ -89,6 +89,7 @@ struct post_plugin_goom_s {
   int samples_per_frame;
   int width, height;
   int width_back, height_back;
+  double ratio;
   int fps;
   int use_asm;
   int csc_method;
@@ -116,7 +117,7 @@ post_info_t goom_special_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 3, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
+  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 4, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -302,6 +303,8 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->width_back  = this->width;
   this->height_back = this->height;
   goom_init (this->width_back, this->height_back, 0);
+
+  this->ratio = (double)this->width_back/(double)this->height_back;
 
   this->sample_counter = 0;
   this->stream  = NULL;
@@ -549,7 +552,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       samples_used += this->samples_per_frame;
 
       frame = this->vo_port->get_frame (this->vo_port, this->width_back, this->height_back,
-                                        XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
+                                        this->ratio, XINE_IMGFMT_YUY2,
                                         VO_BOTH_FIELDS);
       
       frame->extra_info->invalid = 1;
@@ -649,6 +652,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
           goom_init (this->width, this->height, 0);
           this->width_back = width;
           this->height_back = height;
+	  this->ratio = (double)width/(double)height;
         }
     }
   } while( this->sample_counter >= this->samples_per_frame );

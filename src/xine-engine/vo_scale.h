@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.8 2003/05/20 13:50:57 mroi Exp $
+ * $Id: vo_scale.h,v 1.9 2003/08/04 03:47:11 miguelfreitas Exp $
  * 
  * vo_scale.h
  *
@@ -64,7 +64,7 @@ struct vo_scale_s {
    */
   int                delivered_width;   
   int                delivered_height;     
-  int                delivered_ratio_code;
+  double             delivered_ratio;
 
   /* 
    * displayed part of delivered images,

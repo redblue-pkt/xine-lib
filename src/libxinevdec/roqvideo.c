@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.18 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: roqvideo.c,v 1.19 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -100,6 +100,7 @@ typedef struct roq_decoder_s {
   int               size;
   int               width;
   int               height;
+  double            ratio;
 
   roq_cell          cells[256];
   roq_qcell         qcells[256];
@@ -401,6 +402,7 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
     this->size = 0;
     this->width = (buf->content[0] << 8) | buf->content[1];
     this->height = (buf->content[2] << 8) | buf->content[3];
+    this->ratio = (double)this->width/(double)this->height;
     this->skipframes = 0;
     this->video_step = buf->decoder_info[1];
     this->current_planes = 0;
@@ -444,7 +446,7 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
     img = this->stream->video_out->get_frame (this->stream->video_out, 
-      this->width, this->height, XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YV12,
+      this->width, this->height, this->ratio, XINE_IMGFMT_YV12,
       VO_BOTH_FIELDS);
 
     img->pts = buf->pts;
@@ -569,6 +571,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "roq", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "roq", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

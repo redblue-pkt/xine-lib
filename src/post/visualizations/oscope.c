@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.8 2003/07/26 17:44:30 tmattern Exp $
+ * $Id: oscope.c,v 1.9 2003/08/04 03:47:11 miguelfreitas Exp $
  *
  */
 
@@ -46,6 +46,8 @@ struct post_plugin_oscope_s {
   /* private data */
   xine_video_port_t *vo_port;
   xine_stream_t     *stream;
+
+  double ratio;
 
   int data_idx;
   short data [MAXCHANNELS][NUMSAMPLES];
@@ -209,6 +211,8 @@ static int oscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_oscope_t *this = (post_plugin_oscope_t *)port->post;
 
+  this->ratio = (double)OSCOPE_WIDTH/(double)OSCOPE_HEIGHT;
+
   this->bits = bits;
   this->mode = mode;
   this->channels = mode_channels(mode);
@@ -298,7 +302,7 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
       samples_used += this->samples_per_frame;
   
       frame = this->vo_port->get_frame (this->vo_port, OSCOPE_WIDTH, OSCOPE_HEIGHT,
-                                        XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
+                                        this->ratio, XINE_IMGFMT_YUY2,
                                         VO_BOTH_FIELDS);
       frame->extra_info->invalid = 1;
       frame->bad_frame = 0;

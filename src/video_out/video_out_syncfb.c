@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.86 2003/08/04 02:14:12 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.87 2003/08/04 03:47:11 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -72,7 +72,8 @@ typedef struct {
 typedef struct {
   vo_frame_t         vo_frame;
 /*  uint8_t*           data_mem[3];*/
-  int                width, height, ratio_code, format;
+  int                width, height, format;
+  double             ratio;
 } syncfb_frame_t;
 
 struct syncfb_driver_s {
@@ -498,7 +499,7 @@ static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
 static void syncfb_update_frame_format(vo_driver_t* this_gen,
 				       vo_frame_t* frame_gen,
 				       uint32_t width, uint32_t height,
-				       int ratio_code, int format, int flags)
+				       double ratio, int format, int flags)
 {
    syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
    /* uint32_t frame_size   = width*height; */
@@ -549,7 +550,7 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
       }
    }
 
-  frame->ratio_code = ratio_code;
+  frame->ratio = ratio;
 }
 
 static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
@@ -578,14 +579,14 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
     */
    if((frame->width != this->sc.delivered_width)
       || (frame->height != this->sc.delivered_height)
-      || (frame->ratio_code != this->sc.delivered_ratio_code)) {
+      || (frame->ratio != this->sc.delivered_ratio)) {
 #ifdef DEBUG_OUTPUT
       printf("video_out_syncfb: debug. (frame format changed)\n");
 #endif
 
-      this->sc.delivered_width      = frame->width;
-      this->sc.delivered_height     = frame->height;
-      this->sc.delivered_ratio_code = frame->ratio_code;
+      this->sc.delivered_width  = frame->width;
+      this->sc.delivered_height = frame->height;
+      this->sc.delivered_ratio  = frame->ratio;
 
       syncfb_compute_ideal_size(this);
       
@@ -664,8 +665,8 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       break;
      
     case VO_PROP_ASPECT_RATIO:
-      if(value >= NUM_ASPECT_RATIOS)
-	value = ASPECT_AUTO;
+      if(value >= XINE_VO_ASPECT_NUM_RATIOS)
+	value = XINE_VO_ASPECT_AUTO;
 
       this->props[property].value = value;
       this->sc.user_ratio = value;
@@ -876,7 +877,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    }
 
    this->props[VO_PROP_INTERLACED].value     = 0;
-   this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
+   this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = XINE_VO_ASPECT_AUTO;
    this->props[VO_PROP_ZOOM_X].value    = 100;
    this->props[VO_PROP_ZOOM_Y].value    = 100;
 
@@ -1056,7 +1057,7 @@ static vo_info_t vo_info_syncfb = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 15, "SyncFB", XINE_VERSION_CODE, &vo_info_syncfb, init_class },
+  { PLUGIN_VIDEO_OUT, 16, "SyncFB", XINE_VERSION_CODE, &vo_info_syncfb, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

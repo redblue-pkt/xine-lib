@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.19 2003/05/28 13:16:43 jstembridge Exp $
+ * $Id: yuv.c,v 1.20 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -59,6 +59,7 @@ typedef struct yuv_decoder_s {
 
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
+  double            ratio;       /* the width to height ratio */
 
 } yuv_decoder_t;
 
@@ -91,6 +92,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     bih = (xine_bmiheader *) buf->content;
     this->width = (bih->biWidth + 3) & ~0x03;
     this->height = (bih->biHeight + 3) & ~0x03;
+    this->ratio = (double)this->width/(double)this->height;
     this->video_step = buf->decoder_info[1];
 
     if (this->buf)
@@ -142,7 +144,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
-                                          42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
         xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
         xine_fast_memcpy(img->base[1], 
@@ -156,7 +158,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
       
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
-                                          42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
         xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
         xine_fast_memcpy(img->base[1], this->buf + this->width * this->height,
@@ -170,7 +172,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
-                                          XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
 
         yuv9_to_yv12(
@@ -198,7 +200,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
-                                          42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
         xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
         memset( img->base[1], 0x80, this->width * this->height / 4 );
@@ -209,7 +211,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
         /* just allocate something to avoid compiler warnings */
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
-                                          XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
       }
 
@@ -330,6 +332,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "yuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "yuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

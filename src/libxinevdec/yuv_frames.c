@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: yuv_frames.c,v 1.4 2003/06/11 23:08:55 miguelfreitas Exp $
+ * $Id: yuv_frames.c,v 1.5 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * dummy video decoder for uncompressed video frames as delivered by v4l
  */
@@ -61,7 +61,7 @@ static void yuv_frames_decode_data (video_decoder_t *this_gen, buf_element_t *bu
   img = this->stream->video_out->get_frame (this->stream->video_out,
 					    buf->decoder_info[0],
 					    buf->decoder_info[1],
-					    ASPECT_FULL, 
+					    (double)buf->decoder_info[0]/(double)buf->decoder_info[1], 
 					    XINE_IMGFMT_YV12,
 					    VO_BOTH_FIELDS | VO_INTERLACED_FLAG);
 
@@ -172,6 +172,6 @@ static decoder_info_t dec_info_yuv_frames = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "yuv_frames", XINE_VERSION_CODE, &dec_info_yuv_frames, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "yuv_frames", XINE_VERSION_CODE, &dec_info_yuv_frames, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

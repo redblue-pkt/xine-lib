@@ -58,6 +58,7 @@ typedef struct xvid_decoder_s {
 
     int			frame_width;
     int			frame_height;
+    double		ratio;
 
     /* frame_duration a.k.a. video_step. It is one second metronom */
     /* ticks (90,000) divided by fps (provided by demuxer from system */
@@ -94,6 +95,7 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	this->frame_duration = buf->decoder_info[1];
 	this->frame_width = bih->biWidth;
 	this->frame_height = bih->biHeight;
+	this->ratio = (double)bih->biWidth/(double)bih->biHeight;
 	
 	/* initialize decoder */
 	if (this->xvid_handle) {
@@ -147,7 +149,7 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 		
 		image = this->video_out->get_frame (this->video_out,
 						    this->frame_width, this->frame_height,
-						    XINE_VO_ASPECT_DONT_TOUCH,
+						    this->ratio,
 						    XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 		image->pts = buf->pts;
 		image->duration = this->frame_duration;

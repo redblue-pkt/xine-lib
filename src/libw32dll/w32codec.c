@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.124 2003/07/16 00:25:38 tmattern Exp $
+ * $Id: w32codec.c,v 1.125 2003/08/04 03:47:10 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -141,6 +141,7 @@ typedef struct w32v_decoder_s {
   int               decoder_ok;
 
   BITMAPINFOHEADER  *bih, o_bih; 
+  double            ratio;
   char              scratch1[16]; /* some codecs overflow o_bih */
   HIC               hic;
   int               yuv_supported ;
@@ -709,6 +710,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     memcpy ( this->bih, buf->content, buf->size );
     this->video_step = buf->decoder_info[1];
 
+    this->ratio = (double)this->bih->biWidth/(double)this->bih->biHeight;
+
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->bih->biWidth;
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->bih->biHeight;
     this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
@@ -783,7 +786,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       img = this->stream->video_out->get_frame (this->stream->video_out,
 					this->bih->biWidth, 
 					this->bih->biHeight, 
-					42, 
+					this->ratio, 
 					IMGFMT_YUY2,
 					VO_BOTH_FIELDS);
 
@@ -1621,7 +1624,7 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 14, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 15, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
   { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 13, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

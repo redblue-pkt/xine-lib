@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.14 2003/01/08 01:02:31 miguelfreitas Exp $
+ * $Id: foovideo.c,v 1.15 2003/08/04 03:47:10 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -61,6 +61,7 @@ typedef struct foovideo_decoder_s {
 
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
+  double            ratio;       /* the width to height ratio */
 
   /* these are variables exclusive to the foo video decoder */
   unsigned char     current_yuv_byte;
@@ -100,6 +101,7 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
     bih = (xine_bmiheader *) buf->content;
     this->width = bih->biWidth;
     this->height = bih->biHeight;
+    this->ratio = (double)this->width/(double)this->height;
     this->video_step = buf->decoder_info[1];
 
     if (this->buf)
@@ -135,7 +137,7 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
-                                        XINE_VO_ASPECT_DONT_TOUCH,
+                                        this->ratio,
                                         XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
@@ -295,6 +297,6 @@ static decoder_info_t dec_info_video = {
  */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API, "name", version, special_info, init_function } */
-  { PLUGIN_VIDEO_DECODER, 14, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 15, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

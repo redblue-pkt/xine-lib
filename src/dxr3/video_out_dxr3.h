@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.16 2003/05/25 18:36:51 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.17 2003/08/04 03:47:09 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -110,7 +110,7 @@ typedef struct dxr3_driver_s {
   int                  video_iheight;       /* input height (before adding black bars) */
   int                  video_oheight;       /* output height (after adding black bars) */
   int                  video_width;
-  int                  video_ratio;
+  double               video_ratio;
   int                  top_bar;             /* the height of the upper black bar */
   
   vo_scale_t           scale;
