@@ -32,7 +32,7 @@ typedef enum {
 } XineVideoWindowFullScreenMode;
 
 @interface XineOpenGLView : NSOpenGLView {
-    IBOutlet id <XineOpenGLViewDelegate>  delegate;
+    IBOutlet id <NSObject, XineOpenGLViewDelegate>  delegate;
     int                            video_width, video_height;
     char                          *texture_buffer;
     unsigned long                  i_texture;

@@ -41,8 +41,10 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 @protocol XineOpenGLViewDelegate
 
-- (void) mouseMoved:(NSEvent *)theEvent inXineView:(XineOpenGLView *)view;
-- (BOOL) respondsToSelector:(SEL)selector;
+- (void) mouseDown:(NSEvent *)theEvent inXineView:(XineOpenGLView *)theView;
+- (void) mouseMoved:(NSEvent *)theEvent inXineView:(XineOpenGLView *)theView;
+- (void) otherMouseDown:(NSEvent *)theEvent inXineView:(XineOpenGLView *)theView;
+- (void) rightMouseDown:(NSEvent *)theEvent inXineView:(XineOpenGLView *)theView;
 - (NSSize) xineViewWillResize:(NSSize)oldSize toSize:(NSSize)proposedSize;
 - (void) xineViewDidResize:(NSNotification *)note;
 
@@ -193,26 +195,50 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return YES;
 }
 
-- (void)mouseMoved:(NSEvent *)theEvent
+- (void)passEventToDelegate:(NSEvent *)theEvent withSelector:(SEL)selector
 {
     NSPoint point = [self convertPoint:[theEvent locationInWindow]
                               fromView:nil];
 
-    NSRect bounds = [self bounds];
+    if (!NSMouseInRect(point, [self bounds], [self isFlipped])) return;
 
-    if (!NSMouseInRect(point, bounds, [self isFlipped])) return;
-
-    /* flip the y axis */
-    point.y = bounds.size.height - point.y;
-#ifdef LOG_MOUSE
-    NSLog(@"XineOpenGLView: mouse at x:%f y:%f", point.x, point.y);
-#endif
-
-    if ([delegate respondsToSelector:@selector(mouseMoved:inXineView:)]) {
-        (void) [delegate mouseMoved:theEvent inXineView:self];
+    if ([delegate respondsToSelector:selector]) {
+        [delegate performSelector:selector
+                       withObject:theEvent
+                       withObject:self];
     }
+}
+
+- (void)mouseMoved:(NSEvent *)theEvent
+{
+    [self passEventToDelegate:theEvent
+                 withSelector:@selector(mouseMoved:inXineView:)];
 
     [super mouseMoved:theEvent];
+}
+
+- (void)mouseDown:(NSEvent *)theEvent
+{
+    [self passEventToDelegate:theEvent
+                 withSelector:@selector(mouseDown:inXineView:)];
+
+    [super mouseDown:theEvent];
+}
+
+- (void)rightMouseDown:(NSEvent *)theEvent
+{
+    [self passEventToDelegate:theEvent
+                 withSelector:@selector(rightMouseDown:inXineView:)];
+
+    [super rightMouseDown:theEvent];
+}
+
+- (void)otherMouseDown:(NSEvent *)theEvent
+{
+    [self passEventToDelegate:theEvent
+                 withSelector:@selector(otherMouseDown:inXineView:)];
+
+    [super otherMouseDown:theEvent];
 }
 
 - (NSSize)videoSize {
