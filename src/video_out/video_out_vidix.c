@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.45 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.46 2003/09/22 21:34:10 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -427,7 +427,7 @@ static void vidix_config_playback (vidix_driver_t *this) {
   
   vo_scale_compute_output_size( &this->sc );
   
-  if( this->vidix_started ) {
+  if( this->vidix_started > 0 ) {
 #ifdef LOG
     printf("video_out_vidix: overlay off\n");
 #endif
@@ -457,6 +457,8 @@ static void vidix_config_playback (vidix_driver_t *this) {
   if((err=vdlConfigPlayback(this->vidix_handler,&this->vidix_play))!=0)
   {
      printf("video_out_vidix: Can't configure playback: %s\n",strerror(err));
+     this->vidix_started = -1;
+     return;
   }
 
 #ifdef LOG
@@ -635,11 +637,13 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   this->got_frame_data = 1;
   vidix_redraw_needed(this_gen);
 
-  write_frame_sfb(this, frame);
+  if(this->vidix_started > 0) {
+    write_frame_sfb(this, frame);
 
-  if( this->vidix_play.num_frames > 1 ) {
-    vdlPlaybackFrameSelect(this->vidix_handler,this->next_frame);
-    this->next_frame=(this->next_frame+1)%this->vidix_play.num_frames;
+    if( this->vidix_play.num_frames > 1 ) {
+      vdlPlaybackFrameSelect(this->vidix_handler,this->next_frame);
+      this->next_frame=(this->next_frame+1)%this->vidix_play.num_frames;
+    }
   }
 
   frame->vo_frame.free(frame_gen);
@@ -861,7 +865,7 @@ static void vidix_exit (vo_driver_t *this_gen) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
 
-  if( this->vidix_started ) {
+  if( this->vidix_started > 0 ) {
     vdlPlaybackOff(this->vidix_handler);
   }
   vdlClose(this->vidix_handler);
