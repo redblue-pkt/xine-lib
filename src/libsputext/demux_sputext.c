@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.31 2003/12/17 13:41:05 valtri Exp $
+ * $Id: demux_sputext.c,v 1.32 2003/12/24 17:34:49 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -322,13 +322,14 @@ static subtitle_t *sub_read_line_subviewer(demux_sputext_t *this, subtitle_t *cu
     
     p=q=line;
     for (current->lines=1; current->lines < SUB_MAX_TEXT; current->lines++) {
-      for (q=p,len=0; *p && *p!='\r' && *p!='\n' && strncasecmp(p,"[br]",4); p++,len++);
+      for (q=p,len=0; *p && *p!='\r' && *p!='\n' && *p!='|' && strncasecmp(p,"[br]",4); p++,len++);
       current->text[current->lines-1]=(char *)xine_xmalloc (len+1);
       if (!current->text[current->lines-1]) return ERR;
       strncpy (current->text[current->lines-1], q, len);
       current->text[current->lines-1][len]='\0';
       if (!*p || *p=='\r' || *p=='\n') break;
-      while (*p++!=']');
+      if (*p=='[') while (*p++!=']');
+      if (*p=='|') p++;
     }
     break;
   }
@@ -630,7 +631,7 @@ static subtitle_t *sub_read_line_aqt (demux_sputext_t *this, subtitle_t *current
   return current;
 }
 
-subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *current) {
+static subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *current) {
     char line1[LINE_LEN], line2[LINE_LEN], directive[LINE_LEN], *p, *q;
     unsigned a1, a2, a3, a4, b1, b2, b3, b4, comment = 0;
     static unsigned jacoTimeres = 30;
@@ -828,7 +829,7 @@ subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *current) {
     return current;
 }
 
-subtitle_t *sub_read_line_subviewer2(demux_sputext_t *this, subtitle_t *current) {
+static subtitle_t *sub_read_line_subviewer2(demux_sputext_t *this, subtitle_t *current) {
     char line[LINE_LEN+1];
     int a1,a2,a3,a4;
     char *p=NULL;
