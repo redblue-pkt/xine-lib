@@ -271,4 +271,7 @@ Contributions
   Pierre Lombard <p-l-42@wanadoo.fr>
     patch to avoid loss of first line in linearblend deinterlacer
 
+  Igor Mokrushin <igor@avtomir.ru>
+    Software stereo volume control for aRts
+
     (let us know if we've forgotten anyone)
