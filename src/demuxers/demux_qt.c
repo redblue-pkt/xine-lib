@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.198 2005/02/06 15:26:18 tmattern Exp $
+ * $Id: demux_qt.c,v 1.199 2005/03/01 04:50:44 tmmm Exp $
  *
  */
 
@@ -95,6 +95,10 @@ typedef unsigned int qt_atom;
 #define AVCC_ATOM QT_ATOM('a', 'v', 'c', 'C')
 
 #define IMA4_FOURCC ME_FOURCC('i', 'm', 'a', '4')
+#define MAC3_FOURCC ME_FOURCC('M', 'A', 'C', '3')
+#define MAC6_FOURCC ME_FOURCC('M', 'A', 'C', '6')
+#define ULAW_FOURCC ME_FOURCC('u', 'l', 'a', 'w')
+#define ALAW_FOURCC ME_FOURCC('a', 'l', 'a', 'w')
 #define MP4A_FOURCC ME_FOURCC('m', 'p', '4', 'a')
 #define SAMR_FOURCC ME_FOURCC('s', 'a', 'm', 'r')
 #define ALAC_FOURCC ME_FOURCC('a', 'l', 'a', 'c')
@@ -1082,8 +1086,8 @@ static qt_error parse_trak_atom (qt_trak *trak,
           trak->stsd_atoms[k].audio.bytes_per_packet = 
             trak->stsd_atoms[k].audio.bytes_per_sample;
 
-          /* special case time: some ima4-encoded files don't have the
-           * extra header; compensate */
+          /* special case time: A lot of CBR audio codecs stored in the
+           * early days lacked the extra header; compensate */
           if (trak->stsd_atoms[k].audio.codec_fourcc == IMA4_FOURCC) {
             trak->stsd_atoms[k].audio.samples_per_packet = 64;
             trak->stsd_atoms[k].audio.bytes_per_packet = 34;
@@ -1091,6 +1095,38 @@ static qt_error parse_trak_atom (qt_trak *trak,
               trak->stsd_atoms[k].audio.channels;
             trak->stsd_atoms[k].audio.bytes_per_sample = 2;
             trak->stsd_atoms[k].audio.samples_per_frame = 64 *
+              trak->stsd_atoms[k].audio.channels;
+          } else if (trak->stsd_atoms[k].audio.codec_fourcc == MAC3_FOURCC) {
+            trak->stsd_atoms[k].audio.samples_per_packet = 3;
+            trak->stsd_atoms[k].audio.bytes_per_packet = 1;
+            trak->stsd_atoms[k].audio.bytes_per_frame = 1 *
+              trak->stsd_atoms[k].audio.channels;
+            trak->stsd_atoms[k].audio.bytes_per_sample = 1;
+            trak->stsd_atoms[k].audio.samples_per_frame = 3 *
+              trak->stsd_atoms[k].audio.channels;
+          } else if (trak->stsd_atoms[k].audio.codec_fourcc == MAC6_FOURCC) {
+            trak->stsd_atoms[k].audio.samples_per_packet = 6;
+            trak->stsd_atoms[k].audio.bytes_per_packet = 1;
+            trak->stsd_atoms[k].audio.bytes_per_frame = 1 * 
+              trak->stsd_atoms[k].audio.channels;
+            trak->stsd_atoms[k].audio.bytes_per_sample = 1;
+            trak->stsd_atoms[k].audio.samples_per_frame = 6 *
+              trak->stsd_atoms[k].audio.channels;
+          } else if (trak->stsd_atoms[k].audio.codec_fourcc == ALAW_FOURCC) {
+            trak->stsd_atoms[k].audio.samples_per_packet = 1;
+            trak->stsd_atoms[k].audio.bytes_per_packet = 1;
+            trak->stsd_atoms[k].audio.bytes_per_frame = 1 * 
+              trak->stsd_atoms[k].audio.channels;
+            trak->stsd_atoms[k].audio.bytes_per_sample = 2;
+            trak->stsd_atoms[k].audio.samples_per_frame = 2 *
+              trak->stsd_atoms[k].audio.channels;
+          } else if (trak->stsd_atoms[k].audio.codec_fourcc == ULAW_FOURCC) {
+            trak->stsd_atoms[k].audio.samples_per_packet = 1;
+            trak->stsd_atoms[k].audio.bytes_per_packet = 1;
+            trak->stsd_atoms[k].audio.bytes_per_frame = 1 * 
+              trak->stsd_atoms[k].audio.channels;
+            trak->stsd_atoms[k].audio.bytes_per_sample = 2;
+            trak->stsd_atoms[k].audio.samples_per_frame = 2 *
               trak->stsd_atoms[k].audio.channels;
           }
 
@@ -2356,12 +2392,6 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       return this->status;
 
     remaining_sample_bytes = audio_trak->frames[i].size;
-
-    /* HACK: MAC3 and MAC6 have wrong frame size */
-    if (audio_trak->properties->audio.codec_buftype == BUF_AUDIO_MAC3)
-      remaining_sample_bytes /= 3;
-    else if (audio_trak->properties->audio.codec_buftype == BUF_AUDIO_MAC6)
-      remaining_sample_bytes /= 6;
 
     this->input->seek(this->input, audio_trak->frames[i].offset,
       SEEK_SET);
