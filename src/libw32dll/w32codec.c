@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.21 2001/09/10 03:04:48 guenter Exp $
+ * $Id: w32codec.c,v 1.22 2001/09/10 15:30:19 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -54,7 +54,7 @@ typedef struct w32v_decoder_s {
   int               yuv_supported ;
   int               flipped ;
   unsigned char     buf[128*1024];
-  void             *our_out_buffer;
+  void             *img_buffer;
   int               size;
 } w32v_decoder_t;
 
@@ -222,7 +222,10 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 
   this->size = 0;
 
-  this->our_out_buffer = malloc (this->o_bih.biSizeImage);
+  if (this->flipped)
+    this->img_buffer = malloc (-this->o_bih.biSizeImage);
+  else
+    this->img_buffer = malloc (this->o_bih.biSizeImage);
 
   this->video_out->open (this->video_out);
 
@@ -271,21 +274,28 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->video_step,
 					VO_BOTH_FIELDS);
 
+      /*
       ret = ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
 			 &this->bih, this->buf,
 			 &this->o_bih, img->base[0]);
+      */
+      ret = ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
+			 &this->bih, this->buf,
+			 &this->o_bih, this->img_buffer);
+
+      /* now, convert rgb to yuv */
 
       {
-	int row;
+	int row, col;
 	for (row=0; row<this->bih.biHeight; row++) {
-	  int col;
 	  for (col=0; col<this->o_bih.biWidth; col++) {
 	    
-	    uint16_t *pixel;
+	    uint16_t *pixel, *out;
 	    uint8_t   r,g,b;
 	    uint8_t   y,u,v;
 	    
-	    pixel = img->base[0] + 2 * (row * this->o_bih.biWidth + col);
+	    pixel = this->img_buffer + 2 * (row * this->o_bih.biWidth + col);
+	    out = img->base[0] + 2 * (row * this->o_bih.biWidth + col);
 	
 	    b = (*pixel & 0x003C) << 3;
 	    g = (*pixel & 0x03E0) >> 5 << 3;
@@ -296,11 +306,11 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    if (!(col & 0x0001)) {
 	      /* even pixel, do u */
 	      u = (uint8_t) (- 0.1684 * (double) r - 0.3316 * (double) g + 0.5000 * (double) b + 128.0);
-	      *pixel = ( (uint16_t) u << 8) | (uint16_t) y;
+	      *out = ( (uint16_t) u << 8) | (uint16_t) y;
 	    } else {
 	      /* odd pixel, do v */
 	      v = (uint8_t) (0.5000 * (double) r - 0.4187 * (double) g - 0.0813 * (double) b + 128.0);
-	      *pixel = ( (uint16_t) v << 8) | (uint16_t) y;
+	      *out = ( (uint16_t) v << 8) | (uint16_t) y;
 	    }
 
 	    //printf("r %02x g %02x b %02x y %02x u %02x v %02x\n",r,g,b,y,u,v);
@@ -341,6 +351,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 static void w32v_close (video_decoder_t *this_gen) {
 
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
+
+  free (this->img_buffer);
 
   this->video_out->close(this->video_out);
 }
