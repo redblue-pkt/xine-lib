@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.199 2004/05/09 21:05:34 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.200 2004/06/26 13:52:20 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1394,8 +1394,10 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->deinterlace_method = 
     config->register_enum (config, "video.deinterlace_method", 4,
 			   deinterlace_methods,
-			   _("deinterlace method"),
-			   _("From the old days of analog television, where the even and odd numbered "
+			   _("deinterlace method (deprecated)"),
+			   _("This config setting is deprecated. You should use the new deinterlacing "
+			     "post processing settings instead.\n\n"
+			     "From the old days of analog television, where the even and odd numbered "
 			     "lines of a video frame would be displayed at different times comes the "
 			     "idea to increase motion smoothness by also recording the lines at "
 			     "different times. This is called \"interlacing\". But unfortunately, "
