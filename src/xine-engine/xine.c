@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.175 2002/10/26 03:56:32 storri Exp $
+ * $Id: xine.c,v 1.176 2002/10/26 22:08:08 guenter Exp $
  *
  * top-level xine functions
  *
@@ -396,6 +396,30 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   pthread_mutex_unlock (&stream->counter_lock);
   
   stream->demux_plugin->send_headers (stream->demux_plugin);
+
+  if (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK) {
+    xine_log (stream->xine, XINE_LOG_MSG,
+	      _("xine: demuxer failed to start\n"));
+
+    stream->demux_plugin->dispose (stream->demux_plugin);
+    stream->demux_plugin = NULL;
+
+    printf ("xine: demux disposed\n");
+
+    stream->input_plugin->dispose (stream->input_plugin);
+    stream->input_plugin = NULL;
+    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+
+    /* remove buffered samples from the sound device driver */
+    if (stream->audio_out)
+      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
+
+    stream->status = XINE_STATUS_STOP;
+
+    printf ("xine: return from xine_open_internal\n");
+
+    return 0;
+  }
 
   pthread_mutex_lock (&stream->counter_lock);
   while ((stream->header_count_audio<header_count_audio) || 
