@@ -4,18 +4,19 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
+# Sensing of OGG/VORBIS, ZLIB and ASF is broken in cvscompile.sh.
 
-#if HAVE_VORBIS
+if HAVE_VORBIS
 ogg_module = xineplug_dmx_ogg.la
-#endif
+endif
 
-#if HAVE_ZLIB
+if HAVE_ZLIB
 qt_modules = xineplug_dmx_qt.la
-#endif
+endif
 
-#if BUILD_ASF
+if BUILD_ASF
 asf_module = xineplug_dmx_asf.la 
-#endif
+endif
 
 ##
 # IMPORTANT:
