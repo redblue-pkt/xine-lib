@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.94 2002/09/19 02:14:02 guenter Exp $
+ * $Id: w32codec.c,v 1.95 2002/09/19 21:39:45 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -47,9 +47,9 @@
 #include "buffer.h"
 #include "xineutils.h"
 
-/*
+
 #define LOG
-*/
+
 
 static GUID CLSID_Voxware =
 {
@@ -820,12 +820,12 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
 	img->bad_frame = 1;
 #ifdef LOG
-	printf ("w32codec: BAD FRAME, duration is %lld\n", img->duration);
+	printf ("w32codec: BAD FRAME, duration is %d\n", img->duration);
 #endif
       } else {
 	img->bad_frame = 0;
 #ifdef LOG
-	printf ("w32codec: GOOD FRAME, duration is %lld\n\n", img->duration);
+	printf ("w32codec: GOOD FRAME, duration is %d\n\n", img->duration);
 #endif
       }
       
@@ -1270,8 +1270,12 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+#ifdef LOG
+    printf ("w32codec: preview data ignored.\n");
+#endif
     return;
+  }
   
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
 

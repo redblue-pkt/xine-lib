@@ -26,13 +26,13 @@ libwine_la_SOURCES = \
 	ext.c \
 	ldt_keeper.c \
 	module.c \
-	pe_image.c  
+	pe_image.c  \
 	pe_resource.c \
 	resource.c \
 	registry.c \
 	vfl.c \
 	win32.c 
-	
+
 libwine_la_LIBADD = stubs.lo
 
 noinst_HEADERS = \
