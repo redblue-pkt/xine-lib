@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.173 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.174 2004/01/06 05:39:07 tmmm Exp $
  *
  */
 
@@ -454,6 +454,8 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
   off_t atom_size;
   qt_atom atom;
   unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
+  int unknown_atoms = 0;
+
 
   /* init the passed variables */
   *moov_offset = *moov_size = -1;
@@ -502,7 +504,9 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
     }
 
     /* if this atom is not the moov atom, make sure that it is at least one
-     * of the other top-level QT atom */
+     * of the other top-level QT atom.
+     * However, allow a configurable amount ( currently 1 ) atom be a 
+     * non known atom, in hopes a known atom will be found */
     if ((atom != FREE_ATOM) &&
         (atom != JUNK_ATOM) &&
         (atom != MDAT_ATOM) &&
@@ -510,8 +514,12 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
         (atom != SKIP_ATOM) &&
         (atom != WIDE_ATOM) &&
         (atom != PICT_ATOM) &&
-        (atom != FTYP_ATOM))
-      break;
+        (atom != FTYP_ATOM) ) {
+      if (unknown_atoms > 1)
+        break;
+      else
+       unknown_atoms++;
+    }
 
     /* 0 special case-- just skip the atom */
     if (atom_size == 0)
