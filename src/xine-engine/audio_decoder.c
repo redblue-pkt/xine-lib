@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.101 2003/01/13 23:02:41 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.102 2003/01/14 00:10:28 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -97,8 +97,6 @@ void *audio_decoder_loop (void *stream_gen) {
       
       stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSTART, 0);
       
-      /* assume handled, we will known after trying to init decoder */
-      stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
       buftype_unknown = 0;
       break;
       

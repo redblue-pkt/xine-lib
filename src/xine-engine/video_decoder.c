@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.123 2003/01/09 02:44:39 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.124 2003/01/14 00:10:29 miguelfreitas Exp $
  *
  */
 
@@ -107,8 +107,6 @@ void *video_decoder_loop (void *stream_gen) {
       stream->metronom->handle_video_discontinuity (stream->metronom, 
 						    DISC_STREAMSTART, 0);
       
-      /* assume handled, we will known after trying to init decoder */
-      stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
       buftype_unknown = 0;
       break;
 

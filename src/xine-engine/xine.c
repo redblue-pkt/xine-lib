@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.220 2003/01/13 23:03:13 miguelfreitas Exp $
+ * $Id: xine.c,v 1.221 2003/01/14 00:10:31 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -721,6 +721,12 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   extra_info_reset( stream->video_decoder_extra_info );
   extra_info_reset( stream->audio_decoder_extra_info );
 
+  /* assume handled for now. we will only know for sure after trying
+   * to init decoders (which should happen when headers are sent)
+   */
+  stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
+  stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
+  
   /*
    * send and decode headers
    */
