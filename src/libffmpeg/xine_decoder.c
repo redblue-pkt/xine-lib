@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.58 2002/10/17 17:43:43 mroi Exp $
+ * $Id: xine_decoder.c,v 1.59 2002/10/19 19:36:54 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -265,6 +265,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+
+#ifdef LOG
+    printf ("ffmpeg: preview\n");
+#endif
+
     if ( (buf->type & 0xFFFF0000) == BUF_VIDEO_MPEG ) {
       find_sequence_header (this, buf->content, buf->content+buf->size);
     }
@@ -275,6 +280,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     AVCodec *codec = NULL;
     int codec_type;
+
+#ifdef LOG
+    printf ("ffmpeg: header\n");
+#endif
 
     /* init package containing bih */
 
@@ -564,15 +573,25 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       
       }
     }
+  } else {
+#ifdef LOG
+    printf ("ffmpeg: data but decoder not initialized (headers missing)\n");
+#endif
   }
 }
 
 static void ff_flush (video_decoder_t *this_gen) {
+#ifdef LOG
+  printf ("ffmpeg: ff_flush\n");
+#endif
 
 }
 
 static void ff_reset (video_decoder_t *this_gen) {
   /* seems to handle seeking quite nicelly without any code here */
+#ifdef LOG
+  printf ("ffmpeg: ff_reset\n");
+#endif
 }
 
 void avcodec_register_all(void)
@@ -601,6 +620,10 @@ void avcodec_register_all(void)
 static void ff_dispose (video_decoder_t *this_gen) {
   ff_decoder_t *this = (ff_decoder_t *) this_gen;
 
+#ifdef LOG
+  printf ("ffmpeg: ff_dispose\n");
+#endif
+
   if (this->decoder_ok) {
     avcodec_close (&this->context);
 
@@ -618,6 +641,10 @@ static void ff_dispose (video_decoder_t *this_gen) {
 static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   ff_decoder_t  *this ;
+
+#ifdef LOG
+  printf ("ffmpeg: open_plugin\n");
+#endif
 
   this = (ff_decoder_t *) malloc (sizeof (ff_decoder_t));
 
