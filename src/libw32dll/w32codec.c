@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.31 2001/11/07 02:15:25 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.32 2001/11/07 02:29:21 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  *
@@ -42,9 +42,6 @@
 
 extern char*   win32_codec_name; 
 extern char*   win32_def_path;
-
-#define AUDIO_BUF_SIZE 16384
-#define AUDIO_OUTBUF_SIZE 300000
 
 typedef struct w32v_decoder_s {
   video_decoder_t   video_decoder;
@@ -77,6 +74,7 @@ typedef struct w32a_decoder_s {
   unsigned char     *buf;
   int               size;   
   unsigned char     *sample_buf;
+  int               sample_buf_size;
   HACMSTREAM        srcstream;
   int               rec_audio_src_size;
   int               num_channels;
@@ -537,7 +535,6 @@ static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
   return ( (codec == BUF_AUDIO_DIVXA) ||
 	   (codec == BUF_AUDIO_MSADPCM) ||
 	   (codec == BUF_AUDIO_IMAADPCM) ||
-	   (codec == BUF_AUDIO_ACELPNET) ||
 	   (codec == BUF_AUDIO_MSGSM) );
 }
 
@@ -552,8 +549,6 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     return "msadp32.acm";
   case BUF_AUDIO_IMAADPCM:
     return "imaadp32.acm";
-  case BUF_AUDIO_ACELPNET:
-    return "acelpdec.ax";
   case BUF_AUDIO_MSGSM:
     return "msgsm32.acm";
   }
@@ -640,6 +635,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
 
   this->buf = malloc( 2 * this->rec_audio_src_size );
   this->sample_buf = malloc( srcsize );
+  this->sample_buf_size = srcsize;
     
   this->size = 0;
 
@@ -670,7 +666,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     ash.pbSrc=this->buf;
     ash.cbSrcLength=this->rec_audio_src_size;
     ash.pbDst=this->sample_buf;
-    ash.cbDstLength=AUDIO_OUTBUF_SIZE;
+    ash.cbDstLength=this->sample_buf_size;
     hr=acmStreamPrepareHeader(this->srcstream,&ash,0);
     if(hr){
       printf("w32codec: (ACM_Decoder) acmStreamPrepareHeader error %d\n",(int)hr);
