@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.5 2002/01/08 20:31:10 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.6 2002/01/08 20:38:05 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -422,8 +422,8 @@ static void build_palette(void)
   memset(cc_trans, 0, sizeof (cc_trans));
   for (i = 0; i < NUM_FG_COL; i++) {
     for (j = 0; j < TEXT_PALETTE_SIZE; j++) {
-      cc_palette[i * 11 + j + OSD_TEXT1] = *(uint32_t *) &cc_text[i][j];
-      cc_trans[i * 11 + j + OSD_TEXT1] = cc_text_trans[i][j];
+      cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] = *(uint32_t *) &cc_text[i][j];
+      cc_trans[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] = cc_text_trans[i][j];
     }
   }
 }
