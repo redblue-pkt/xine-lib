@@ -768,12 +768,23 @@
     <title> How can I watch files with external AVI subtitles?</title>
     
     <para>
-      This is not supported in current xine 1.0.x releases (but it is being
-      actively worked on, so please be patient :) ). In xine 0.9.13
-      this used to be:
+      In xine 0.9.13 this used to be:
       <programlisting>
         xine foo.avi%bar.sub
       </programlisting>    
+    </para>
+    <para>
+      Latest xine-lib modules (1-beta3 or newer) support external subtitles
+      for any media file, not only AVI. In order to use it you can pass an
+      special MRL construction like:
+
+      <programlisting>
+        xine test.mpg#subtitle:file.sub
+      </programlisting>    
+
+      The external subtitles support can also be used by any xine
+      frontend. Currently, just xine-ui implements this feature with a
+      subtitle selection dialog (press control+shift+s to see it).  
     </para>
   </sect1>
 
