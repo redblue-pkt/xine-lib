@@ -131,7 +131,7 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     DefaultPicOpaque *opaque;
     
     assert(pic->data[0]==NULL);
-    assert(pic->type==0 || pic->type==FF_TYPE_INTERNAL);
+    assert(pic->type==0 || pic->type==FF_BUFFER_TYPE_INTERNAL);
 
     if(pic->opaque){
         opaque= (DefaultPicOpaque *)pic->opaque;
