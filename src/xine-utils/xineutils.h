@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.27 2002/11/11 13:45:37 miguelfreitas Exp $
+ * $Id: xineutils.h,v 1.28 2002/12/04 05:33:40 tmmm Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -701,8 +701,9 @@ static inline void _x_setenv(const char *name, const char *val, int _xx)
 /*
  * Color Conversion Utility Functions
  * The following data structures and functions facilitate the conversion
- * of RGB images to packed YUV (YUY2) images. All of the meaty details
- * are written in color.c.
+ * of RGB images to packed YUV (YUY2) images. There are also functions to 
+ * convert from YUV9 -> YV12. All of the meaty details are written in 
+ * color.c.
  */
 
 typedef struct yuv_planes_s {
@@ -721,6 +722,11 @@ void free_yuv_planes(yuv_planes_t *yuv_planes);
 
 extern void (*yuv444_to_yuy2)
   (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
+extern void (*yuv9_to_yv12)
+  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+   int width, int height);
 
 #define SCALEFACTOR 65536
 #define CENTERSAMPLE 128

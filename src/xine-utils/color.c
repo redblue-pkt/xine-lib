@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.10 2002/12/01 07:12:41 tmmm Exp $
+ * $Id: color.c,v 1.11 2002/12/04 05:33:40 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -133,9 +133,9 @@ int v_b_table[256];
 
 void (*yuv444_to_yuy2) (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
 void (*yuv9_to_yv12)
-  (unsigned char *y_src, unsigned char *y_dest, int y_pitch,
-   unsigned char *u_src, unsigned char *u_dest, int u_pitch,
-   unsigned char *v_src, unsigned char *v_dest, int v_pitch,
+  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height);
 
 /*
@@ -499,20 +499,20 @@ static void vscale_chroma_line (unsigned char *dst, int pitch,
 }
 
 static void upsample_c_plane_c(unsigned char *src, int src_width, 
-  int src_height, unsigned char *dest, unsigned int dest_pitch) {
+  int src_height, unsigned char *dest, 
+  unsigned int src_pitch, unsigned int dest_pitch) {
 
   unsigned char *cr1;
   unsigned char *cr2;
   unsigned char *tmp;
   int y;
-  int chroma_width = (src_width + 15) & ~0xF;
 
   cr1 = &dest[dest_pitch * (src_height * 2 - 2)];
   cr2 = &dest[dest_pitch * (src_height * 2 - 3)];
 
   /* horizontally upscale first line */
   hscale_chroma_line (cr1, src, src_width);
-  src += chroma_width;
+  src += src_pitch;
 
   /* store first line */
   memcpy (dest, cr1, src_width * 2);
@@ -521,7 +521,7 @@ static void upsample_c_plane_c(unsigned char *src, int src_width,
   for (y = 0; y < (src_height - 1); y++) {
 
     hscale_chroma_line (cr2, src, src_width);
-    src += chroma_width;
+    src += src_pitch;
 
     /* interpolate and store two lines */
     vscale_chroma_line (dest, dest_pitch, cr1, cr2, src_width * 2);
@@ -534,7 +534,7 @@ static void upsample_c_plane_c(unsigned char *src, int src_width,
   }
 
   /* horizontally upscale and store last line */
-  src -= chroma_width;
+  src -= src_pitch;
   hscale_chroma_line (dest, src, src_width);
 }
 
@@ -543,9 +543,9 @@ static void upsample_c_plane_c(unsigned char *src, int src_width,
  *
  */
 void yuv9_to_yv12_c
-  (unsigned char *y_src, unsigned char *y_dest, int y_pitch,
-   unsigned char *u_src, unsigned char *u_dest, int u_pitch,
-   unsigned char *v_src, unsigned char *v_dest, int v_pitch,
+  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height) {
 
   int y;
@@ -553,15 +553,18 @@ void yuv9_to_yv12_c
   /* Y plane */
   for (y=0; y < height; y++) {
     xine_fast_memcpy (y_dest, y_src, width);
-    y_src += width;
-    y_dest += y_pitch;
+    y_src += y_src_pitch;
+    y_dest += y_dest_pitch;
   }
 
   /* U plane */
-  upsample_c_plane_c(u_src, width / 4, height / 4, u_dest, u_pitch);
+  upsample_c_plane_c(u_src, width / 4, height / 4, u_dest, 
+    u_src_pitch, u_dest_pitch);
 
   /* V plane */
-  upsample_c_plane_c(v_src, width / 4, height / 4, v_dest, v_pitch);
+  upsample_c_plane_c(v_src, width / 4, height / 4, v_dest, 
+    v_src_pitch, v_dest_pitch);
+
 }
 
 /*

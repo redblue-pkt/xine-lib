@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.13 2002/12/01 07:16:53 tmmm Exp $
+ * $Id: yuv.c,v 1.14 2002/12/04 05:33:40 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -160,17 +160,21 @@ static void yuv_decode_data (video_decoder_t *this_gen,
         yuv9_to_yv12(
          /* Y */
           this->buf, 
+          this->width,
           img->base[0], 
           img->pitches[0],
          /* U */
           this->buf + (this->width * this->height), 
+          this->width / 4,
           img->base[1],
           img->pitches[1],
          /* V */
           this->buf + (this->width * this->height) + 
             (this->width * this->height / 16),
+          this->width / 4,
           img->base[2],
           img->pitches[2],
+         /* width x height */
           this->width,
           this->height);
 
@@ -258,8 +262,6 @@ static void yuv_dispose (video_decoder_t *this_gen) {
 
   free (this_gen);
 }
-
-
 
 static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
