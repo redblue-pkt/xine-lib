@@ -47,5 +47,11 @@ oss_resample            XINE can play different sample rates than your
 			          Dont use, needs missing timer plugin!
 			2 = ON:   Always resample, mainly for debugging.
 
+oss_device_num		-1, 0-16: Forces the OSS plugin to use the specified
+			dspX device, regardless of its capabilities.
+			If -1 (default) is specified, the audio device with
+			the best capabilities will be used.
+			Note: /dev/dsp is usually a symlink to /dev/dsp0
+
 dxr3_XXX		see README.dxr3
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.24 2001/07/26 19:12:21 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.25 2001/08/05 12:19:54 ehasenle Exp $
  */
 
 /* required for swab() */
@@ -272,14 +272,16 @@ static int ao_open(ao_functions_t *this_gen,
   switch (this->resample_conf) {
   case 1: /* force off */
     this->do_resample = 0;
+    break;
   case 2: /* force on */
     this->do_resample = 1;
+    break;
   default: /* AUTO */
     this->do_resample = this->output_sample_rate != this->input_sample_rate;
-    if (this->do_resample)
-      printf("audio_oss_out: will resample audio from %d to %d\n",
-		this->input_sample_rate, this->output_sample_rate);
   }
+  if (this->do_resample)
+    printf("audio_oss_out: will resample audio from %d to %d\n",
+     this->input_sample_rate, this->output_sample_rate);
 
   return 1;
 }
@@ -542,9 +544,18 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
   printf ("audio_oss_out: Opening audio device...\n");
   xprintf (VERBOSE|AUDIO, "audio_oss_out: Opening audio device...");
-  devnum = 0;
+
   best_rate = 0;
-  sprintf (this->audio_dev, "/dev/dsp");
+  devnum = config->lookup_int (config, "oss_device_num", -1);
+
+  if (devnum >= 0) {
+    sprintf (this->audio_dev, DSP_TEMPLATE, devnum);
+    devnum = 30; /* skip while loop */
+  } else {
+    devnum = 0;
+    sprintf (this->audio_dev, "/dev/dsp");
+  }
+
   while (devnum<16) {
 
     audio_fd=open(devname,O_WRONLY|O_NDELAY);
