@@ -1,8 +1,8 @@
-/* 
+/*
  * Copyright (C) 2000, 2001 the xine project
- * 
+ *
  * This file is part of xine, a unix video player.
- * 
+ *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -12,12 +12,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.58 2001/09/10 14:18:47 guenter Exp $
+ * $Id: video_out_xv.c,v 1.59 2001/09/16 15:14:30 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -57,6 +57,7 @@
 #include "xine_internal.h"
 /* #include "overlay.h" */
 #include "alphablend.h"
+#include "deinterlace.h"
 
 uint32_t xine_debug;
 
@@ -108,27 +109,30 @@ typedef struct {
   vo_overlay_t      *overlay;
 
   /* size / aspect ratio calculations */
-  int                delivered_width;      /* everything is set up for 
+  int                delivered_width;      /* everything is set up for
 					      these frame dimensions          */
-  int                delivered_height;     /* the dimension as they come 
+  int                delivered_height;     /* the dimension as they come
 					      from the decoder                */
   int                delivered_ratio_code;
-  double             ratio_factor;         /* output frame must fullfill: 
+  double             ratio_factor;         /* output frame must fullfill:
 					      height = width * ratio_factor   */
-  int                output_width;         /* frames will appear in this 
+  int                output_width;         /* frames will appear in this
 					      size (pixels) on screen         */
   int                output_height;
   int                output_xoffset;
   int                output_yoffset;
 
+  xv_frame_t         deinterlace_frame;
+  int                deinterlace_method;
+
   /* display anatomy */
-  double             display_ratio;        /* given by visual parameter 
+  double             display_ratio;        /* given by visual parameter
 					      from init function              */
 
   /* gui callback */
 
   void             (*request_dest_size) (int video_width, int video_height,
-					 int *dest_x, int *dest_y, 
+					 int *dest_x, int *dest_y,
 					 int *dest_height, int *dest_width);
 
 } xv_driver_t;
@@ -152,10 +156,10 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
   xv_driver_t *this = (xv_driver_t *) vo_img->instance->driver;
 
   if (frame->image) {
-    XLockDisplay (this->display); 
+    XLockDisplay (this->display);
     XShmDetach (this->display, &frame->shminfo);
     XFree (frame->image);
-    XUnlockDisplay (this->display); 
+    XUnlockDisplay (this->display);
 
     shmdt (frame->shminfo.shmaddr);
     shmctl (frame->shminfo.shmid, IPC_RMID,NULL);
@@ -181,16 +185,16 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   /*
    * supply required functions
    */
-  
+
   frame->vo_frame.copy    = NULL;
-  frame->vo_frame.field   = xv_frame_field; 
+  frame->vo_frame.field   = xv_frame_field;
   frame->vo_frame.dispose = xv_frame_dispose;
-  
+
   return (vo_frame_t *) frame;
 }
 
 int HandleXError (Display *display, XErrorEvent *xevent) {
-  
+
   char str [1024];
 
   XGetErrorText (display, xevent->error_code, str, 1024);
@@ -214,7 +218,7 @@ static void x11_DeInstallXErrorHandler (xv_driver_t *this)
   XFlush (this->display);
 }
 
-static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo, 
+static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 			      int width, int height, int format) {
 
   unsigned int  xv_format;
@@ -234,58 +238,58 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     fprintf (stderr, "create_ximage: unknown format %08x\n",format);
     exit (1);
   }
-  
+
   if (this->use_shm) {
 
     /*
      * try shm
      */
-    
+
     gX11Fail = 0;
     x11_InstallXErrorHandler (this);
 
     image = XvShmCreateImage(this->display, this->xv_port, xv_format, 0,
 			     width, height, shminfo);
-  
+
     if (image == NULL )  {
       printf("video_out_xv: XvShmCreateImage failed\n");
       printf("video_out_xv: => not using MIT Shared Memory extension.\n");
       this->use_shm = 0;
       goto finishShmTesting;
     }
-    
-    shminfo->shmid=shmget(IPC_PRIVATE, 
-			 image->data_size, 
+
+    shminfo->shmid=shmget(IPC_PRIVATE,
+			 image->data_size,
 			 IPC_CREAT | 0777);
-  
-    if (image->data_size==0) {  
+
+    if (image->data_size==0) {
       printf("video_out_xv: XvShmCreateImage returned a zero size\n");
       printf("video_out_xv: => not using MIT Shared Memory extension.\n");
       this->use_shm = 0;
       goto finishShmTesting;
-    }   
-    
+    }
+
     if (shminfo->shmid < 0 ) {
-      perror("video_out_xv: shared memory error in shmget: "); 
+      perror("video_out_xv: shared memory error in shmget: ");
       printf("video_out_xv: => not using MIT Shared Memory extension.\n");
       this->use_shm = 0;
       goto finishShmTesting;
     }
-    
+
     shminfo->shmaddr  = (char *) shmat(shminfo->shmid, 0, 0);
-    
+
     if (shminfo->shmaddr == NULL) {
       printf("video_out_xv: shared memory error (address error NULL)\n");
       this->use_shm = 0;
       goto finishShmTesting;
     }
-    
+
     if (shminfo->shmaddr == ((char *) -1)) {
       printf("video_out_xv: shared memory error (address error)\n");
       this->use_shm = 0;
       goto finishShmTesting;
     }
-  
+
     shminfo->readOnly = False;
     image->data = shminfo->shmaddr;
   
@@ -293,7 +297,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
   
     XSync(this->display, False);
     shmctl(shminfo->shmid, IPC_RMID, 0);
-  
+
     if (gX11Fail) {
       printf ("video_out_xv: x11 error during shared memory XImage creation\n");
       printf ("video_out_xv: => not using MIT Shared Memory extension.\n");
@@ -304,7 +308,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
       goto finishShmTesting;
     }
 
-    /* 
+    /*
      * Now that the Xserver has learned about and attached to the
      * shared memory segment,  delete it.  It's actually deleted by
      * the kernel when all users of that segment have detached from 
@@ -330,14 +334,14 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 
     image = XvCreateImage (this->display, this->xv_port,
 			   xv_format, data, width, height);
-    
+
 
   }
   return image;
 }
 
-static void dispose_ximage (xv_driver_t *this, 
-			    XShmSegmentInfo *shminfo, 
+static void dispose_ximage (xv_driver_t *this,
+			    XShmSegmentInfo *shminfo,
 			    XvImage *myimage) {
 
   if (this->use_shm) {
@@ -365,13 +369,13 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
 
-  if ((frame->width != width) 
+  if ((frame->width != width)
       || (frame->height != height)
       || (frame->format != format)) {
 
     /* printf ("video_out_xv: updating frame to %d x %d (ratio=%d, format=%08x)\n",width,height,ratio_code,format); */
 
-    XLockDisplay (this->display); 
+    XLockDisplay (this->display);
 
     /*
      * (re-) allocate xvimage
@@ -391,15 +395,58 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
     frame->width  = width;
     frame->height = height;
     frame->format = format;
-  
-    XUnlockDisplay (this->display); 
+
+    XUnlockDisplay (this->display);
   }
 
   frame->ratio_code = ratio_code;
 }
 
-static void xv_adapt_to_output_area (xv_driver_t *this, 
-				     int dest_x, int dest_y, 
+static void xv_deinterlace_frame (vo_driver_t *this_gen,
+				    vo_frame_t *frame_gen ) {
+
+  xv_driver_t  *this = (xv_driver_t *) this_gen;
+  xv_frame_t   *frame = (xv_frame_t *) frame_gen;
+  XvImage            *imgtmp;
+
+  if ( !this->deinterlace_frame.image
+      || (frame->width != this->deinterlace_frame.width)
+      || (frame->height != this->deinterlace_frame.height)
+      || (frame->format != this->deinterlace_frame.format)) {
+    XLockDisplay (this->display);
+
+    if( this->deinterlace_frame.image )
+      dispose_ximage (this, &this->deinterlace_frame.shminfo,
+                      this->deinterlace_frame.image);
+
+    this->deinterlace_frame.image = create_ximage (this, &this->deinterlace_frame.shminfo,
+                                             frame->width,frame->height, frame->format);
+    this->deinterlace_frame.width  = frame->width;
+    this->deinterlace_frame.height = frame->height;
+    this->deinterlace_frame.format = frame->format;
+
+    XUnlockDisplay (this->display);
+  }
+
+  memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
+         frame->image->data + frame->width*frame->height,
+         frame->width*frame->height*1/2);
+
+  imgtmp = this->deinterlace_frame.image;
+  this->deinterlace_frame.image = frame->image;
+  frame->image = imgtmp;
+  frame->vo_frame.base[0] = frame->image->data;
+  frame->vo_frame.base[1] = frame->image->data + frame->width * frame->height * 5 / 4;
+  frame->vo_frame.base[2] = frame->image->data + frame->width * frame->height;
+
+
+  deinterlace_yuv( frame->image->data, this->deinterlace_frame.image->data,
+                   frame->width, frame->height, this->deinterlace_method );
+}
+
+
+static void xv_adapt_to_output_area (xv_driver_t *this,
+				     int dest_x, int dest_y,
 				     int dest_width, int dest_height) {
 
   /*
@@ -419,29 +466,29 @@ static void xv_adapt_to_output_area (xv_driver_t *this,
     this->output_height   = dest_height;
     this->output_xoffset  = dest_x + (dest_width - this->output_width) / 2;
     this->output_yoffset  = dest_y;
-  } 
+  }
 
   /*
    * clear unused output area
    */
 
-  XLockDisplay (this->display); 
+  XLockDisplay (this->display);
   XSetForeground (this->display, this->gc, this->black.pixel);
 
-  XFillRectangle(this->display, this->drawable, this->gc, 
+  XFillRectangle(this->display, this->drawable, this->gc,
 		 dest_x, dest_y, dest_width, this->output_yoffset - dest_y);
 
   XFillRectangle(this->display, this->drawable, this->gc, 
 		 dest_x, dest_y, this->output_xoffset-dest_x, dest_height);
 
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 dest_x, this->output_yoffset+this->output_height, 
-		 dest_width, 
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 dest_x, this->output_yoffset+this->output_height,
+		 dest_width,
 		 dest_height - this->output_yoffset - this->output_height);
 
   XFillRectangle(this->display, this->drawable, this->gc, 
 		 this->output_xoffset+this->output_width, dest_y, 
-		 dest_width - this->output_xoffset - this->output_width, 
+		 dest_width - this->output_xoffset - this->output_width,
 		 dest_height);
   XUnlockDisplay (this->display); 
 }
@@ -465,15 +512,15 @@ static void xv_calc_format (xv_driver_t *this,
    * aspect ratio calculation
    */
 
-  image_ratio = 
+  image_ratio =
     (double) this->delivered_width / (double) this->delivered_height;
 
   xprintf (VERBOSE | VIDEO, "display_ratio : %f\n", this->display_ratio);
-  xprintf (VERBOSE | VIDEO, "stream aspect ratio : %f , code : %d\n", 
+  xprintf (VERBOSE | VIDEO, "stream aspect ratio : %f , code : %d\n",
 	   image_ratio, ratio_code);
 
   switch (this->props[VO_PROP_ASPECT_RATIO].value) {
-  case ASPECT_AUTO: 
+  case ASPECT_AUTO:
     switch (ratio_code) {
     case 3:  /* anamorphic     */
       desired_ratio = 16.0 /9.0;
@@ -486,7 +533,7 @@ static void xv_calc_format (xv_driver_t *this,
     case 1: /* "square" => 4:3 */
     case 2: /* 4:3             */
     default:
-      xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n", 
+      xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n",
 	       ratio_code);
       desired_ratio = 4.0 / 3.0;
       break;
@@ -509,7 +556,7 @@ static void xv_calc_format (xv_driver_t *this,
    * calc ideal output frame size
    */
 
-  corr_factor = this->ratio_factor / image_ratio ;  
+  corr_factor = this->ratio_factor / image_ratio ;
 
   if (corr_factor >= 1.0) {
     ideal_width  = this->delivered_width * corr_factor;
@@ -574,9 +621,9 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
 
     if ( (frame->width != this->delivered_width)
-	 || (frame->height != this->delivered_height) 
+	 || (frame->height != this->delivered_height)
 	 || (frame->ratio_code != this->delivered_ratio_code) ) {
-      
+
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
 // Alpha Blend here
@@ -584,53 +631,56 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 //        blend_yuv( frame->image->data, this->overlay, frame->width, frame->height);
 // }
 
+    if( this->deinterlace_method )
+      xv_deinterlace_frame (this_gen, frame_gen );
+
     XLockDisplay (this->display);
-    
+
     this->cur_frame = frame;
 
     if (this->use_shm) {
-      XvShmPutImage(this->display, this->xv_port, 
+      XvShmPutImage(this->display, this->xv_port,
 		    this->drawable, this->gc, frame->image,
 		    0, 0,  frame->width, frame->height-5,
 		    this->output_xoffset, this->output_yoffset,
 		    this->output_width, this->output_height, True);
-      
+
       this->expecting_event = 10;
     } else {
-      XvPutImage(this->display, this->xv_port, 
+      XvPutImage(this->display, this->xv_port,
 		 this->drawable, this->gc, frame->image,
 		 0, 0,  frame->width, frame->height-5,
 		 this->output_xoffset, this->output_yoffset,
 		 this->output_width, this->output_height);
     }
-    
-    XFlush(this->display); 
-    
+
+    XFlush(this->display);
+
     XUnlockDisplay (this->display);
-    
+
   }
 }
 
 static int xv_get_property (vo_driver_t *this_gen, int property) {
-  
+
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
   return this->props[property].value;
 }
 
-static int xv_set_property (vo_driver_t *this_gen, 
+static int xv_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
   if (this->props[property].atom != None) {
-    XvSetPortAttribute (this->display, this->xv_port, 
+    XvSetPortAttribute (this->display, this->xv_port,
 			this->props[property].atom, value);
-    XvGetPortAttribute (this->display, this->xv_port, 
+    XvGetPortAttribute (this->display, this->xv_port,
 			this->props[property].atom,
 			&this->props[property].value);
 
-    this->config->set_int (this->config, this->props[property].key, 
+    this->config->set_int (this->config, this->props[property].key,
 			   this->props[property].value);
 
     return this->props[property].value;
@@ -638,28 +688,34 @@ static int xv_set_property (vo_driver_t *this_gen,
     switch (property) {
     case VO_PROP_INTERLACED:
       this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_INTERLACED(%d)\n", 
+      printf("video_out_xv: VO_PROP_INTERLACED(%d)\n",
 	     this->props[property].value);
       break;
     case VO_PROP_ASPECT_RATIO:
-      
+
       if (value>ASPECT_DVB)
 	value = ASPECT_AUTO;
-      
+
       this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n", 
+      printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n",
 	     this->props[property].value);
 
-      xv_calc_format (this, this->delivered_width, this->delivered_height, 
+      xv_calc_format (this, this->delivered_width, this->delivered_height,
 		      this->delivered_ratio_code) ;
+      break;
+    case VO_PROP_SOFT_DEINTERLACE:
+      this->props[property].value = value;
+      printf("video_out_xv: VO_PROP_SOFT_DEINTERLACE (%d)\n",
+	     this->props[property].value);
+      this->deinterlace_method = value;
       break;
     }
   }
-  
+
   return value;
 }
 
-static void xv_get_property_min_max (vo_driver_t *this_gen, 
+static void xv_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -705,7 +761,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 	XLockDisplay (this->display);
 
 	if (this->use_shm) {
-	  XvShmPutImage(this->display, this->xv_port, 
+	  XvShmPutImage(this->display, this->xv_port,
 			this->drawable, this->gc, this->cur_frame->image,
 			0, 0,  this->cur_frame->width, this->cur_frame->height-5,
 			this->output_xoffset, this->output_yoffset,
@@ -717,8 +773,8 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 		     this->output_xoffset, this->output_yoffset,
 		     this->output_width, this->output_height);
 	}
-	XFlush(this->display); 
-    
+	XFlush(this->display);
+
 	XUnlockDisplay (this->display);
       }
     }
@@ -737,6 +793,13 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 static void xv_exit (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
+
+  if( this->deinterlace_frame.image )
+  {
+     dispose_ximage (this, &this->deinterlace_frame.shminfo,
+                      this->deinterlace_frame.image);
+     this->deinterlace_frame.image = NULL;
+  }
 
   XLockDisplay (this->display);
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
@@ -762,10 +825,10 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
 }
 
 static void xv_check_capability (xv_driver_t *this, 
-				 uint32_t capability, 
+				 uint32_t capability,
 				 int property, XvAttribute attr, 
 				 int base_id, char *str_prop) {
-  
+
   int          nDefault;
   
   this->capabilities |= capability;
@@ -777,7 +840,7 @@ static void xv_check_capability (xv_driver_t *this,
   XvGetPortAttribute (this->display, this->xv_port,
 		      this->props[property].atom, &nDefault);
 
-  xv_set_property (&this->vo_driver, property, 
+  xv_set_property (&this->vo_driver, property,
 		   this->config->lookup_int (this->config, str_prop, nDefault));
 }
 
@@ -796,7 +859,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XColor                dummy;
   XvImage              *myimage;
   XShmSegmentInfo       myshminfo;
-  
+
   display = visual->display;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
   
@@ -813,7 +876,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
    * check adaptors, search for one that supports (at least) yuv12
    */
 
-  if (Success != XvQueryAdaptors(display,DefaultRootWindow(display), 
+  if (Success != XvQueryAdaptors(display,DefaultRootWindow(display),
 				 &adaptors,&adaptor_info))  {
     printf("video_out_xv: XvQueryAdaptors failed.\n");
     return NULL;
@@ -837,7 +900,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	}
       
     }
-    
+
     adaptor_num++;
   }
 
@@ -881,9 +944,11 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->capabilities      = 0;
   this->expecting_event   = 0;
   this->use_shm           = 1;
+  this->deinterlace_method = 0;
+  this->deinterlace_frame.image = NULL;
 
-  XAllocNamedColor(this->display, 
-		   DefaultColormap(this->display, this->screen), 
+  XAllocNamedColor(this->display,
+		   DefaultColormap(this->display, this->screen),
 		   "black", &this->black, &dummy);
 
   this->vo_driver.get_capabilities     = xv_get_capabilities;
@@ -912,7 +977,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->props[VO_PROP_INTERLACED].value     = 0;
   this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
 
-  /* 
+  /*
    * check this adaptor's capabilities 
    */
 
@@ -963,7 +1028,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   XvFreeAdaptorInfo (adaptor_info);
 
-  /* 
+  /*
    * check supported image formats 
    */
 
@@ -993,7 +1058,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   }
 
   /* 
-   * try to create a shared image 
+   * try to create a shared image
    * to find out if MIT shm really works
    */
 
