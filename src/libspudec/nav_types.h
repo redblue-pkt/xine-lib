@@ -70,7 +70,7 @@ typedef struct {
   uint8_t hour;
   uint8_t minute;
   uint8_t second;
-  uint8_t frame_u; // The two high bits are the frame rate.
+  uint8_t frame_u; /* The two high bits are the frame rate. */
 } ATTRIBUTE_PACKED dvd_time_t;
 
 /**
@@ -85,65 +85,65 @@ typedef struct {
  */
 typedef struct {
 #ifdef WORDS_BIGENDIAN
-  unsigned int zero                           : 7; // 25-31
-  unsigned int video_pres_mode_change         : 1; // 24
+  unsigned int zero                           : 7; /* 25-31 */
+  unsigned int video_pres_mode_change         : 1; /* 24 */
   
-  unsigned int karaoke_audio_pres_mode_change : 1; // 23
-  unsigned int angle_change                   : 1; // 22
-  unsigned int subpic_stream_change           : 1; // 21
-  unsigned int audio_stream_change            : 1; // 20
-  unsigned int pause_on                       : 1; // 19
-  unsigned int still_off                      : 1; // 18
-  unsigned int button_select_or_activate      : 1; // 17
-  unsigned int resume                         : 1; // 16
+  unsigned int karaoke_audio_pres_mode_change : 1; /* 23 */
+  unsigned int angle_change                   : 1; /* 22 */
+  unsigned int subpic_stream_change           : 1; /* 21 */
+  unsigned int audio_stream_change            : 1; /* 20 */
+  unsigned int pause_on                       : 1; /* 19 */
+  unsigned int still_off                      : 1; /* 18 */
+  unsigned int button_select_or_activate      : 1; /* 17 */
+  unsigned int resume                         : 1; /* 16 */
   
-  unsigned int chapter_menu_call              : 1; // 15
-  unsigned int angle_menu_call                : 1; // 14
-  unsigned int audio_menu_call                : 1; // 13
-  unsigned int subpic_menu_call               : 1; // 12
-  unsigned int root_menu_call                 : 1; // 11
-  unsigned int title_menu_call                : 1; // 10
-  unsigned int backward_scan                  : 1; // 9
-  unsigned int forward_scan                   : 1; // 8
+  unsigned int chapter_menu_call              : 1; /* 15 */
+  unsigned int angle_menu_call                : 1; /* 14 */
+  unsigned int audio_menu_call                : 1; /* 13 */
+  unsigned int subpic_menu_call               : 1; /* 12 */
+  unsigned int root_menu_call                 : 1; /* 11 */
+  unsigned int title_menu_call                : 1; /* 10 */
+  unsigned int backward_scan                  : 1; /* 9 */
+  unsigned int forward_scan                   : 1; /* 8 */
   
-  unsigned int next_pg_search                 : 1; // 7
-  unsigned int prev_or_top_pg_search          : 1; // 6
-  unsigned int time_or_chapter_search         : 1; // 5
-  unsigned int go_up                          : 1; // 4
-  unsigned int stop                           : 1; // 3
-  unsigned int title_play                     : 1; // 2
-  unsigned int chapter_search_or_play         : 1; // 1
-  unsigned int title_or_time_play             : 1; // 0
+  unsigned int next_pg_search                 : 1; /* 7 */
+  unsigned int prev_or_top_pg_search          : 1; /* 6 */
+  unsigned int time_or_chapter_search         : 1; /* 5 */
+  unsigned int go_up                          : 1; /* 4 */
+  unsigned int stop                           : 1; /* 3 */
+  unsigned int title_play                     : 1; /* 2 */
+  unsigned int chapter_search_or_play         : 1; /* 1 */
+  unsigned int title_or_time_play             : 1; /* 0 */
 #else
-  unsigned int video_pres_mode_change         : 1; // 24
-  unsigned int zero                           : 7; // 25-31
+  unsigned int video_pres_mode_change         : 1; /* 24 */
+  unsigned int zero                           : 7; /* 25-31 */
   
-  unsigned int resume                         : 1; // 16
-  unsigned int button_select_or_activate      : 1; // 17
-  unsigned int still_off                      : 1; // 18
-  unsigned int pause_on                       : 1; // 19
-  unsigned int audio_stream_change            : 1; // 20
-  unsigned int subpic_stream_change           : 1; // 21
-  unsigned int angle_change                   : 1; // 22
-  unsigned int karaoke_audio_pres_mode_change : 1; // 23
+  unsigned int resume                         : 1; /* 16 */
+  unsigned int button_select_or_activate      : 1; /* 17 */
+  unsigned int still_off                      : 1; /* 18 */
+  unsigned int pause_on                       : 1; /* 19 */
+  unsigned int audio_stream_change            : 1; /* 20 */
+  unsigned int subpic_stream_change           : 1; /* 21 */
+  unsigned int angle_change                   : 1; /* 22 */
+  unsigned int karaoke_audio_pres_mode_change : 1; /* 23 */
   
-  unsigned int forward_scan                   : 1; // 8
-  unsigned int backward_scan                  : 1; // 9
-  unsigned int title_menu_call                : 1; // 10
-  unsigned int root_menu_call                 : 1; // 11
-  unsigned int subpic_menu_call               : 1; // 12
-  unsigned int audio_menu_call                : 1; // 13
-  unsigned int angle_menu_call                : 1; // 14
-  unsigned int chapter_menu_call              : 1; // 15
+  unsigned int forward_scan                   : 1; /* 8 */
+  unsigned int backward_scan                  : 1; /* 9 */
+  unsigned int title_menu_call                : 1; /* 10 */
+  unsigned int root_menu_call                 : 1; /* 11 */
+  unsigned int subpic_menu_call               : 1; /* 12 */
+  unsigned int audio_menu_call                : 1; /* 13 */
+  unsigned int angle_menu_call                : 1; /* 14 */
+  unsigned int chapter_menu_call              : 1; /* 15 */
   
-  unsigned int title_or_time_play             : 1; // 0
-  unsigned int chapter_search_or_play         : 1; // 1
-  unsigned int title_play                     : 1; // 2
-  unsigned int stop                           : 1; // 3
-  unsigned int go_up                          : 1; // 4
-  unsigned int time_or_chapter_search         : 1; // 5
-  unsigned int prev_or_top_pg_search          : 1; // 6
-  unsigned int next_pg_search                 : 1; // 7
+  unsigned int title_or_time_play             : 1; /* 0 */
+  unsigned int chapter_search_or_play         : 1; /* 1 */
+  unsigned int title_play                     : 1; /* 2 */
+  unsigned int stop                           : 1; /* 3 */
+  unsigned int go_up                          : 1; /* 4 */
+  unsigned int time_or_chapter_search         : 1; /* 5 */
+  unsigned int prev_or_top_pg_search          : 1; /* 6 */
+  unsigned int next_pg_search                 : 1; /* 7 */
 #endif
 } ATTRIBUTE_PACKED user_ops_t;
 
@@ -175,7 +175,7 @@ typedef struct {
  * Highlight General Information 
  */
 typedef struct {
-  uint16_t hli_ss; // only low 2 bits
+  uint16_t hli_ss; /* only low 2 bits */
   uint32_t hli_s_ptm;
   uint32_t hli_e_ptm;
   uint32_t btn_se_e_ptm;
@@ -199,11 +199,11 @@ typedef struct {
   unsigned int zero3 : 1;
 #endif
   uint8_t btn_ofn;
-  uint8_t btn_ns;     // only low 6 bits
-  uint8_t nsl_btn_ns; // only low 6 bits
+  uint8_t btn_ns;     /* only low 6 bits */
+  uint8_t nsl_btn_ns; /* only low 6 bits */
   uint8_t zero5;
-  uint8_t fosl_btnn;  // only low 6 bits
-  uint8_t foac_btnn;  // only low 6 bits
+  uint8_t fosl_btnn;  /* only low 6 bits */
+  uint8_t foac_btnn;  /* only low 6 bits */
 } ATTRIBUTE_PACKED hl_gi_t;
 
 
@@ -225,15 +225,15 @@ typedef struct {
   zero2            00000000 00000000 00000000 00000000 00001100 00000000
   y_end            00000000 00000000 00000000 00000000 00000011 11111111
 
-  unsigned int btn_coln         : 2;  //  0 - m[0]>>6
-  unsigned int x_start          : 10; //  2 - m[0]<<4 | m[1]>>4
-  unsigned int zero1            : 2;  // 12 - m[1]>>2
-  unsigned int x_end            : 10; // 14 - m[1]<<8 | m[2]
-  
-  unsigned int auto_action_mode : 2;  // 24 - m[3]>>6
-  unsigned int y_start          : 10; // 26 - m[3]<<4 | m[4]>>4
-  unsigned int zero2            : 2;  // 36 - m[4]>>2
-  unsigned int y_end            : 10; // 38 - m[4]<<8 | m[5]
+  unsigned int btn_coln         : 2;    0 - m[0]>>6
+  unsigned int x_start          : 10;   2 - m[0]<<4 | m[1]>>4
+  unsigned int zero1            : 2;   12 - m[1]>>2
+  unsigned int x_end            : 10;  14 - m[1]<<8 | m[2]
+
+  unsigned int auto_action_mode : 2;   24 - m[3]>>6
+  unsigned int y_start          : 10;  26 - m[3]<<4 | m[4]>>4
+  unsigned int zero2            : 2;   36 - m[4]>>2
+  unsigned int y_end            : 10;  38 - m[4]<<8 | m[5]
  */
 
 /** 
@@ -333,10 +333,10 @@ typedef struct {
  * Seamless Playback Information
  */
 typedef struct {
-  uint16_t category; // category of seamless VOBU
-  uint32_t ilvu_ea;  // end address of interleaved Unit (sectors)
-  uint32_t ilvu_sa;  // start address of next interleaved unit (sectors)
-  uint16_t size;     // size of next interleaved unit (sectors)
+  uint16_t category; /* category of seamless VOBU */
+  uint32_t ilvu_ea;  /* end address of interleaved Unit (sectors) */
+  uint32_t ilvu_sa;  /* start address of next interleaved unit (sectors) */
+  uint16_t size;     /* size of next interleaved unit (sectors) */
   uint32_t vob_v_s_s_ptm; /* video start ptm in vob */
   uint32_t vob_v_e_e_ptm; /* video end ptm in vob */
   struct {
@@ -351,8 +351,8 @@ typedef struct {
  * Seamless Angle Infromation for one angle
  */
 typedef struct {
-    uint32_t address; // Sector offset to next ILVU, high bit is before/after
-    uint16_t size;    // Byte size of the ILVU poited to by address.
+    uint32_t address; /* Sector offset to next ILVU, high bit is before/after */
+    uint16_t size;    /* Byte size of the ILVU poited to by address. */
 } ATTRIBUTE_PACKED sml_agl_data_t;
 
 /**
@@ -366,11 +366,11 @@ typedef struct {
  * VOBU Search Information 
  */
 typedef struct {
-  uint32_t next_video; // Next vobu that contains video
-  uint32_t fwda[19];   // Forwards, time
+  uint32_t next_video; /* Next vobu that contains video */
+  uint32_t fwda[19];   /* Forwards, time */
   uint32_t next_vobu;
   uint32_t prev_vobu;
-  uint32_t bwda[19];   // Backwards, time
+  uint32_t bwda[19];   /* Backwards, time */
   uint32_t prev_video;
 } ATTRIBUTE_PACKED vobu_sri_t;
 
@@ -380,8 +380,8 @@ typedef struct {
  * Synchronous Information
  */ 
 typedef struct {
-  uint16_t a_synca[8];   // Sector offset to first audio packet for this VOBU
-  uint32_t sp_synca[32]; // Sector offset to first subpicture packet
+  uint16_t a_synca[8];   /* Sector offset to first audio packet for this VOBU */
+  uint32_t sp_synca[32]; /* Sector offset to first subpicture packet */
 } ATTRIBUTE_PACKED synci_t;
 
 /**
