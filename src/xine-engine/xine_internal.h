@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.82 2002/05/12 22:37:25 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.83 2002/05/14 14:55:47 esnel Exp $
  *
  */
 
@@ -246,6 +246,8 @@ struct xine_s {
 
   int                        err;
 
+  pthread_t                  finished_thread;
+  int                        finished_thread_running;
 };
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.127 2002/05/12 22:37:25 miguelfreitas Exp $
+ * $Id: xine.c,v 1.128 2002/05/14 14:55:47 esnel Exp $
  *
  * top-level xine functions
  *
@@ -106,14 +106,19 @@ void * xine_notify_stream_finished_thread (void * this_gen) {
   }
   pthread_mutex_unlock (&this->logo_lock);
 
-  pthread_detach( pthread_self() );
-
   return NULL;
 }
 
 void xine_notify_stream_finished (xine_t *this) {
-  pthread_t finished_thread;
   int err;
+
+  if (this->status == XINE_QUIT)
+    return;
+
+  if (this->finished_thread_running)
+    pthread_join (this->finished_thread, NULL);
+
+  this->finished_thread_running = 1;
 
   /* This thread will just execute xine_stop and (possibly) xine_play then die.
      It might look useless but i need to detach this code from the current
@@ -124,7 +129,7 @@ void xine_notify_stream_finished (xine_t *this) {
      This is not a theorical situation: i was able to trigger it with simple
      user actions (play,seek,etc). [MF]
   */
-  if ((err = pthread_create (&finished_thread,
+  if ((err = pthread_create (&this->finished_thread,
 			     NULL, xine_notify_stream_finished_thread, this)) != 0) {
     printf (_("xine_notify_stream_finished: can't create new thread (%s)\n"),
 	    strerror(err));
@@ -509,7 +514,14 @@ void xine_exit (xine_t *this) {
   this->status = XINE_QUIT;
 
   xine_stop(this);
-    
+
+  pthread_mutex_lock (&this->finished_lock);
+
+  if (this->finished_thread_running)
+    pthread_join (this->finished_thread, NULL);
+
+  pthread_mutex_unlock (&this->finished_lock);
+
   printf ("xine_exit: shutdown audio\n");
 
   audio_decoder_shutdown (this);
@@ -547,6 +559,10 @@ void xine_exit (xine_t *this) {
     this->spu_decoders_loaded[i]->dispose (this->spu_decoders_loaded[i]);
 
   xine_profiler_print_results ();
+
+  pthread_mutex_destroy (&this->logo_lock);
+  pthread_mutex_destroy (&this->xine_lock);
+  pthread_mutex_destroy (&this->finished_lock);
 
   free (this);
 
@@ -595,6 +611,8 @@ xine_t *xine_init (vo_driver_t *vo,
   pthread_mutex_init (&this->xine_lock, NULL);
 
   pthread_mutex_init (&this->finished_lock, NULL);
+
+  this->finished_thread_running = 0;
 
   /*
    * init event listeners
