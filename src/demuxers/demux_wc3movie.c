@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.1 2002/08/10 20:58:44 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.2 2002/09/01 21:16:57 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -62,6 +62,12 @@
 #define SHOT_TAG FOURCC_TAG('S', 'H', 'O', 'T')
 #define VGA_TAG  FOURCC_TAG('V', 'G', 'A', ' ')
 #define AUDI_TAG FOURCC_TAG('A', 'U', 'D', 'I')
+#define TEXT_TAG FOURCC_TAG('T', 'E', 'X', 'T')
+
+#define PALETTE_SIZE 256
+#define PALETTE_CHUNK_SIZE (PALETTE_SIZE * 3)
+#define WC3_FRAMERATE 15
+#define WC3_PTS_INC (90000 / 15)
 
 #define PREAMBLE_SIZE 8
 
@@ -85,7 +91,6 @@ typedef struct {
   pthread_mutex_t      mutex;
   int                  send_end_buffers;
 
-  off_t                start;
   int                  status;
 
   unsigned int         fps;
@@ -93,18 +98,27 @@ typedef struct {
 
   xine_waveformatex    wave;
 
+  unsigned int         number_of_palettes;
+  palette_entry_t     *palettes;
+
+  off_t                data_start;
+  off_t                data_size;
+
 } demux_mve_t;
 
 static void *demux_mve_loop (void *this_gen) {
 
   demux_mve_t *this = (demux_mve_t *) this_gen;
   buf_element_t *buf = NULL;
-  int64_t current_pts = 0;
+  int64_t audio_pts = 0;
+  int64_t video_pts = 0;
   unsigned char preamble[PREAMBLE_SIZE];
   unsigned int chunk_tag;
   unsigned int chunk_size;
   unsigned int audio_frames;
   uint64_t total_frames = 0;
+  off_t current_file_pos;
+  unsigned int palette_number;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -117,10 +131,13 @@ static void *demux_mve_loop (void *this_gen) {
       pthread_mutex_unlock( &this->mutex );
       pthread_mutex_lock( &this->mutex );
 
-      /* traverse through the chunks just past the header */
-      this->input->seek(this->input, 12, SEEK_SET);
-
+      /* traverse through the chunks */
       while (this->status == DEMUX_OK) {
+
+        /* compensate for the initial data in the file */
+        current_file_pos = this->input->get_current_pos(this->input) -
+          this->data_start;
+
         if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
           PREAMBLE_SIZE)
           this->status = DEMUX_FINISHED;
@@ -129,41 +146,54 @@ static void *demux_mve_loop (void *this_gen) {
           /* round up to the nearest even size */
           chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
 
-/*
-          printf ("  %c%c%c%c chunk containing 0x%X bytes @ %llX\n",
-            preamble[0],
-            preamble[1],
-            preamble[2],
-            preamble[3],
-            chunk_size,
-            this->input->get_current_pos(this->input) - 8);
-*/
+          if (chunk_tag == BRCH_TAG) {
 
-          /* skip it */
-          if (chunk_tag != AUDI_TAG)
-            this->input->seek(this->input, chunk_size, SEEK_CUR);
-          else {
+            /* empty chunk; do nothing */
+
+          } else if (chunk_tag == SHOT_TAG) {
+
+            /* this is the start of a new shot; send a new palette */
+            if (this->input->read(this->input, preamble, 4) != 4) {
+              this->status = DEMUX_FINISHED;
+              break;
+            }
+            palette_number = LE_32(&preamble[0]);
+
+            if (palette_number >= this->number_of_palettes) {
+              xine_log(this->xine, XINE_LOG_FORMAT,
+                _("demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"),
+                palette_number, this->number_of_palettes);
+              this->status = DEMUX_FINISHED;
+              break;
+            }
+
+            buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+            buf->decoder_flags = BUF_FLAG_SPECIAL;
+            buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+            buf->decoder_info[2] = PALETTE_SIZE;
+            buf->decoder_info[3] = 
+              (unsigned int)&this->palettes[PALETTE_SIZE * palette_number];
+            buf->size = 0;
+            buf->type = BUF_VIDEO_WC3;
+            this->video_fifo->put (this->video_fifo, buf);
+
+          } else if (chunk_tag == AUDI_TAG) {
+
             audio_frames = 
               chunk_size * 8 / this->wave.wBitsPerSample / 
               this->wave.nChannels;
             total_frames += audio_frames;
-            current_pts = total_frames;
-            current_pts *= 90000;
-            current_pts /= this->wave.nSamplesPerSec;
-/*
-printf ("  sending %d bytes, %d frames, %lld samples, pts = %lld\n",
-  chunk_size,
-  audio_frames,
-  total_frames,
-  current_pts);
-*/
+            audio_pts = total_frames;
+            audio_pts *= 90000;
+            audio_pts /= this->wave.nSamplesPerSec;
+
             while (chunk_size) {
               buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
               buf->type = BUF_AUDIO_LPCM_LE;
-//              buf->input_pos = current_file_pos;
-//              buf->input_length = this->data_end;
-              buf->input_time = current_pts / 90000;
-              buf->pts = current_pts;
+              buf->input_pos = current_file_pos;
+              buf->input_length = this->data_size;
+              buf->input_time = audio_pts / 90000;
+              buf->pts = audio_pts;
 
               if (chunk_size > buf->max_size)
                 buf->size = buf->max_size;
@@ -183,6 +213,52 @@ printf ("  sending %d bytes, %d frames, %lld samples, pts = %lld\n",
 
               this->audio_fifo->put (this->audio_fifo, buf);
             }
+
+          } else if (chunk_tag == VGA_TAG) {
+
+            while (chunk_size) {
+              buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+              buf->type = BUF_VIDEO_WC3;
+              buf->input_pos = current_file_pos;
+              buf->input_length = this->data_size;
+              buf->input_time = video_pts / 90000;
+              buf->pts = video_pts;
+
+              if (chunk_size > buf->max_size)
+                buf->size = buf->max_size;
+              else
+                buf->size = chunk_size;
+              chunk_size -= buf->size;
+
+              if (this->input->read(this->input, buf->content, buf->size) !=
+                buf->size) {
+                buf->free_buffer(buf);
+                this->status = DEMUX_FINISHED;
+                break;
+              }
+
+              if (!chunk_size)
+                buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+              this->video_fifo->put (this->video_fifo, buf);
+
+              video_pts += WC3_PTS_INC;
+            }
+
+          } else if (chunk_tag == TEXT_TAG) {
+
+            /* unhandled thus far */
+            this->input->seek(this->input, chunk_size, SEEK_CUR);
+
+          } else {
+
+            /* report an unknown chunk and skip it */
+            printf (_("demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"),
+              (chunk_tag >> 24) & 0xFF,
+              (chunk_tag >> 16) & 0xFF,
+              (chunk_tag >>  8) & 0xFF,
+              (chunk_tag >>  0) & 0xFF);
+            this->input->seek(this->input, chunk_size, SEEK_CUR);
           }
         }
       }
@@ -198,8 +274,12 @@ printf ("  sending %d bytes, %d frames, %lld samples, pts = %lld\n",
 
   } while (this->status == DEMUX_OK);
 
-  printf ("demux_wc3mve: demux loop finished (status: %d)\n",
+  printf ("demux_wc3movie: demux loop finished (status: %d)\n",
           this->status);
+
+  /* seek back to the beginning of the data in preparation for another
+   * start */
+  this->input->seek(this->input, this->data_start, SEEK_SET);
 
   this->status = DEMUX_FINISHED;
 
@@ -282,11 +362,79 @@ static int demux_mve_start (demux_plugin_t *this_gen,
   demux_mve_t *this = (demux_mve_t *) this_gen;
   buf_element_t *buf;
   int err;
+  unsigned char preamble[PREAMBLE_SIZE];
+  unsigned char disk_palette[PALETTE_CHUNK_SIZE];
+  int i, j;
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
     this->video_fifo = video_fifo;
     this->audio_fifo = audio_fifo;
+
+    /* load the number of palettes, the only interesting piece of information
+     * in the _PC_ chunk; take it for granted that it will always appear at
+     * position 0x1C */
+    this->input->seek(this->input, 0x1C, SEEK_SET);
+    if (this->input->read(this->input, preamble, 4) != 4) {
+      this->status = DEMUX_FINISHED;
+      pthread_mutex_unlock(&this->mutex);
+      return DEMUX_FINISHED;
+    }
+    this->number_of_palettes = LE_32(&preamble[0]);
+
+    /* skip the SOND chunk */
+    this->input->seek(this->input, 12, SEEK_CUR);
+
+    /* load the palette chunks */
+    this->palettes = xine_xmalloc(this->number_of_palettes * PALETTE_SIZE *
+      sizeof(palette_entry_t));
+    for (i = 0; i < this->number_of_palettes; i++) {
+      /* make sure there was a valid palette chunk preamble */
+      if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+        PREAMBLE_SIZE) {
+        this->status = DEMUX_FINISHED;
+        pthread_mutex_unlock(&this->mutex);
+        return DEMUX_FINISHED;
+      }
+
+      if ((BE_32(&preamble[0]) != PALT_TAG) || 
+          (BE_32(&preamble[4]) != PALETTE_CHUNK_SIZE)) {
+        xine_log(this->xine, XINE_LOG_FORMAT,
+          _("demux_wc3movie: There was a problem while loading palette chunks\n"));
+        this->status = DEMUX_FINISHED;
+        pthread_mutex_unlock(&this->mutex);
+        return DEMUX_FINISHED;
+      }
+
+      /* load the palette chunk */
+      if (this->input->read(this->input, disk_palette, PALETTE_CHUNK_SIZE) !=
+        PALETTE_CHUNK_SIZE) {
+        this->status = DEMUX_FINISHED;
+        pthread_mutex_unlock(&this->mutex);
+        return DEMUX_FINISHED;
+      }
+
+      /* convert and store the palette */
+      for (j = 0; j < PALETTE_SIZE; j++) {
+        this->palettes[i * 256 + j].r = disk_palette[j * 3 + 0];
+        this->palettes[i * 256 + j].g = disk_palette[j * 3 + 1];
+        this->palettes[i * 256 + j].b = disk_palette[j * 3 + 2];
+      }
+    }
+
+    /* next should be the INDX chunk; skip it */
+    if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+      PREAMBLE_SIZE) {
+      this->status = DEMUX_FINISHED;
+      pthread_mutex_unlock(&this->mutex);
+      return DEMUX_FINISHED;
+    }
+    this->input->seek(this->input, BE_32(&preamble[4]), SEEK_CUR);
+
+    /* note the data start offset right after the INDEX chunks */
+    this->data_start = this->input->get_current_pos(this->input);
+
+    this->data_size = this->input->get_length(this->input) - this->data_start;
 
     /* send start buffers */
     xine_demux_control_start(this->xine);
@@ -295,6 +443,18 @@ static int demux_mve_start (demux_plugin_t *this_gen,
     xine_demux_control_newpts(this->xine, 0, 0);
 
     /* send init info to decoders */
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = WC3_PTS_INC;  /* initial video_step */
+    /* You know what? Since WC3 movies are hardcoded to a resolution of
+     * 640x330 and the video decoder knows that, I won't even bother
+     * transmitting the video resolution. (Ordinarily, the video
+     * resolution is transmitted to the video decoder at this stage.) */
+    buf->size = 0;
+    buf->type = BUF_VIDEO_WC3;
+    this->video_fifo->put (this->video_fifo, buf);
+
     if (this->audio_fifo) {
       this->wave.wFormatTag = 1;
       this->wave.nChannels = 1;
@@ -320,7 +480,7 @@ static int demux_mve_start (demux_plugin_t *this_gen,
     this->thread_running = 1;
 
     if ((err = pthread_create (&this->thread, NULL, demux_mve_loop, this)) != 0) {
-      printf ("demux_wc3mve: can't create new thread (%s)\n", strerror(err));
+      printf ("demux_wc3movie: can't create new thread (%s)\n", strerror(err));
       abort();
     }
   }
