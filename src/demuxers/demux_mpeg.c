@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.57 2002/04/27 16:33:24 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.58 2002/04/28 01:50:54 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -49,6 +49,9 @@
 
 #define WRAP_THRESHOLD       120000 
 
+#define PTS_AUDIO 0
+#define PTS_VIDEO 1
+
 typedef struct demux_mpeg_s {
 
   demux_plugin_t       demux_plugin;
@@ -74,8 +77,7 @@ typedef struct demux_mpeg_s {
 
   int                  send_end_buffers;
 
-  int64_t              last_scr;
-  int64_t              last_pts;
+  int64_t              last_pts[2];
   int                  send_newpts;
  
 } demux_mpeg_t;
@@ -87,15 +89,13 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
   unsigned char buf[6];
 
   buf[4]=0;
-
-
+  
   i = this->input->read (this->input, buf, n);
 
   if (i != n) {
     
     this->status = DEMUX_FINISHED;
   }
-  
 
   switch (n)  {
   case 1:
@@ -122,14 +122,14 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
    i guess llabs may not be available everywhere */
 #define abs(x) ( (x<0) ? (-x) : (x) )
 
-static void check_newpts( demux_mpeg_t *this, int64_t pts )
+static void check_newpts( demux_mpeg_t *this, int64_t pts, int video )
 {
   int64_t diff;
   
-  diff = pts - this->last_pts;
+  diff = pts - this->last_pts[video];
   
   if( !this->preview_mode && pts && 
-      (this->send_newpts || (this->last_pts && abs(diff)>WRAP_THRESHOLD) ) ) {
+      (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
     
     buf_element_t *buf;
   
@@ -145,10 +145,11 @@ static void check_newpts( demux_mpeg_t *this, int64_t pts )
       this->audio_fifo->put (this->audio_fifo, buf);
     }
     this->send_newpts = 0;
+    this->last_pts[1-video] = 0;
   }
   
   if( !this->preview_mode && pts )
-    this->last_pts = pts;
+    this->last_pts[video] = pts;
 }
 
 static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) {
@@ -182,8 +183,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       pts |= (w & 0xFFFE) >> 1;
 
       header_len -= 5 ; 
-      
-      check_newpts( this, pts );
     }
 
     /* read rest of header */
@@ -204,9 +203,11 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       this->status = DEMUX_FINISHED;
       return ;
     }
+
     buf->type      = BUF_AUDIO_A52 + track;
     buf->pts       = pts;
-    /* buf->scr       = scr;*/
+    check_newpts( this, pts, PTS_AUDIO );
+    
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
@@ -238,8 +239,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       pts |= (w & 0xFFFE) >> 1;
 
       header_len -= 5 ;
-      
-      check_newpts( this, pts );
     }
 
     /* read rest of header */
@@ -256,8 +255,11 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       this->status = DEMUX_FINISHED;
       return ;
     }
+   
     buf->type      = BUF_AUDIO_MPEG + track;
     buf->pts       = pts;
+    check_newpts( this, pts, PTS_AUDIO );
+    
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
@@ -287,8 +289,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       pts |= (w & 0xFFFE) >> 1;
 
       header_len -= 5 ;
-   
-      check_newpts( this, pts );
     }
 
     /* read rest of header */
@@ -304,6 +304,8 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     }
     buf->type = BUF_VIDEO_MPEG;
     buf->pts  = pts;
+    check_newpts( this, pts, PTS_VIDEO );
+
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
@@ -398,7 +400,6 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     }
 
   }
-  check_newpts( this, pts );
 
   if ((stream_id & 0xe0) == 0xc0) {
     int track = stream_id & 0x1f;
@@ -416,6 +417,8 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     }
     buf->type      = BUF_AUDIO_MPEG + track ;
     buf->pts       = pts;
+    check_newpts( this, pts, PTS_AUDIO );
+    
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
@@ -437,6 +440,8 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     }
     buf->type = BUF_VIDEO_MPEG;
     buf->pts  = pts;
+    check_newpts( this, pts, PTS_VIDEO );
+
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
@@ -764,8 +769,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
     this->audio_fifo  = audio_fifo;
   
     this->rate          = 0; /* fixme */
-    this->last_scr      = 0;
-    this->last_pts      = 0;
+    this->last_pts[0]   = 0;
+    this->last_pts[1]   = 0;
     
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type    = BUF_CONTROL_START;
