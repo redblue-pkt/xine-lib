@@ -2,10 +2,10 @@
 SUBDIRS = man xine-lib-API
 
 EXTRA_DIST = $(docs_DOCS) FAQ FAQ_es MRL.txt README.solaris dataflow.dia\
-			  xine-lib-API.cfg README.xinerc README.dxr3
+			  xine-lib-API.cfg
 
 docdir = $(prefix)/share/doc/xine
-docs_DOCS =
+docs_DOCS = README.xinerc README.dxr3
 
 docs:
 	@if test x"$$DOXYGEN" != "xno"; then \
