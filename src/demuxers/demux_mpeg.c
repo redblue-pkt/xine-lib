@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.107 2003/03/10 14:56:58 mroi Exp $
+ * $Id: demux_mpeg.c,v 1.108 2003/03/17 22:54:44 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -288,7 +288,8 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     /* contents */
 
-    for (i = len - 4; i > 0; i -= this->audio_fifo->buffer_pool_buf_size) {
+    for (i = len - 4; i > 0; i -= (this->audio_fifo) 
+	   ? this->audio_fifo->buffer_pool_buf_size : this->video_fifo->buffer_pool_buf_size) {
       if(this->audio_fifo) {
 	buf = this->input->read_block (this->input, this->audio_fifo,
 	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
@@ -310,10 +311,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
 	this->audio_fifo->put (this->audio_fifo, buf);
 
-      } else {
-	this->input->read (this->input, this->dummy_space,
-	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
-      }
+      } else
+	this->input->read (this->input, this->dummy_space, i);
+
     }
 
   } else if ((stream_id & 0xe0) == 0xc0) {
@@ -341,7 +341,8 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     i = this->input->read (this->input, this->dummy_space, header_len);
 
-    for (i = len; i > 0; i -= this->audio_fifo->buffer_pool_buf_size) {
+    for (i = len; i > 0; i -= (this->audio_fifo) 
+	   ? this->audio_fifo->buffer_pool_buf_size : this->video_fifo->buffer_pool_buf_size) {
       if(this->audio_fifo) {
 	buf = this->input->read_block (this->input, this->audio_fifo,
 	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
@@ -363,10 +364,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
 	this->audio_fifo->put (this->audio_fifo, buf);
 
-      } else {
-	this->input->read (this->input, this->dummy_space,
-	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
-      }
+      } else
+	this->input->read (this->input, this->dummy_space, i);
+
     }
 
   } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
@@ -520,7 +520,8 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
   if ((stream_id & 0xe0) == 0xc0) {
     int track = stream_id & 0x1f;
 
-    for (i = len; i > 0; i -= this->audio_fifo->buffer_pool_buf_size) {
+    for (i = len; i > 0; i -= (this->audio_fifo) 
+	   ? this->audio_fifo->buffer_pool_buf_size : this->video_fifo->buffer_pool_buf_size) {
       if(this->audio_fifo) {
 	buf = this->input->read_block (this->input, this->audio_fifo,
 	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
@@ -545,10 +546,9 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
 	this->audio_fifo->put (this->audio_fifo, buf);
 
-      } else {
-	this->input->read (this->input, this->dummy_space,
-	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
-      }
+      } else
+	this->input->read (this->input, this->dummy_space, i);
+
     }
 
   } else if ((stream_id & 0xf0) == 0xe0) {
