@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.71 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_vcd.c,v 1.72 2004/01/07 22:21:40 hadess Exp $
  *
  */
 
@@ -830,7 +830,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen) {
   char               *filename;
   int                 fd;
 
-  fd = open (cls->device, O_RDONLY);
+  fd = open (cls->device, O_RDONLY|O_EXCL);
   if (fd == -1) {
     return 0;
   }
@@ -957,7 +957,7 @@ static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *file
     return NULL;
 
   
-  fd = open (this->device, O_RDONLY);
+  fd = open (this->device, O_RDONLY|O_EXCL);
 
   if (fd == -1) {
     xprintf (this->xine, XINE_VERBOSITY_LOG,
@@ -1033,7 +1033,7 @@ static char ** vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_fi
   int i, fd;
 
 
-  fd = open (this->device, O_RDONLY);
+  fd = open (this->device, O_RDONLY|O_EXCL);
 
   if (fd == -1) {
     xprintf (this->xine, XINE_VERBOSITY_LOG,

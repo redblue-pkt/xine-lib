@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.41 2003/12/14 22:13:22 siggi Exp $
+ * $Id: input_cdda.c,v 1.42 2004/01/07 22:21:40 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,9 +50,9 @@
 
 #define LOG_MODULE "input_cdda"
 #define LOG_VERBOSE
-/*
+
 #define LOG
-*/
+
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -1406,7 +1406,7 @@ static char *_cdda_cddb_get_default_location(void) {
  * Small sighandler ;-)
  */
 static void die(int signal) {
-  abort();
+  //abort();
 }
 
 /*
@@ -1983,7 +1983,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
   if (this_gen)
     this_gen->fd = -1;
 
-  fd = open (cdda_device, O_RDONLY);
+  fd = open (cdda_device, O_RDONLY|O_EXCL);
   if (fd == -1) {
     return -1;
   }
