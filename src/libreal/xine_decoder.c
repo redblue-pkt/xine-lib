@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2002/12/14 20:01:18 guenter Exp $
+ * $Id: xine_decoder.c,v 1.16 2002/12/16 00:57:35 tmattern Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -202,6 +202,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   init_data.h = BE_16(&buf->content[14]);
   
   this->width  = init_data.w;
+  this->width = (this->width + 7) & (~7);
   this->height = init_data.h;
   
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->width;
