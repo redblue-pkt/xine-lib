@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.13 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_cda.c,v 1.14 2002/05/15 22:02:48 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,6 +52,7 @@ typedef struct {
   input_plugin_t      *input;
 
   pthread_t            thread;
+  int                  thread_running;
   pthread_mutex_t      mutex;
   
   off_t                start;
@@ -91,24 +92,32 @@ static void *demux_cda_loop (void *this_gen) {
   demux_cda_t    *this = (demux_cda_t *) this_gen;
   buf_element_t  *buf;
 
-  this->send_end_buffers = 1;
+  pthread_mutex_lock( &this->mutex );
+  /* do-while needed to seek after demux finished */
+  do {
 
-  while(1) {
-    
-    pthread_mutex_lock( &this->mutex );
-    
-    if( this->status != DEMUX_OK)
-      break;
-    
-    xine_usec_sleep(100000);
+    /* main demuxer loop */
+    while(this->status == DEMUX_OK) {
 
-    if (!demux_cda_next(this))
-      this->status = DEMUX_FINISHED;
-    
-    pthread_mutex_unlock( &this->mutex );
-  
-  }
-  
+      xine_usec_sleep(100000);
+      if (!demux_cda_next(this))
+        this->status = DEMUX_FINISHED;
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
+    }
+
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while( this->status == DEMUX_OK );
+
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
@@ -125,6 +134,7 @@ static void *demux_cda_loop (void *this_gen) {
     }
   }
   
+  this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
 
   pthread_exit(NULL);
@@ -140,20 +150,23 @@ static void demux_cda_stop (demux_plugin_t *this_gen) {
   
   pthread_mutex_lock( &this->mutex );
   
-  if (this->status != DEMUX_OK) {
+  if (!this->thread_running) {
     printf ("demux_cda: stop...ignored\n");
     return;
   }
   
   /* Force stop */  
+    printf ("demux_cda: before input->stop\n");
   this->input->stop(this->input);
   
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
   
+    printf ("demux_cda: before pthread_join\n");
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
+    printf ("demux_cda: before flush_engine\n");
   xine_flush_engine(this->xine);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -176,7 +189,7 @@ static void demux_cda_stop (demux_plugin_t *this_gen) {
 static int demux_cda_get_status (demux_plugin_t *this_gen) {
   demux_cda_t *this = (demux_cda_t *) this_gen;
   
-  return this->status;
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
 /*
@@ -196,7 +209,7 @@ static void demux_cda_start (demux_plugin_t *this_gen,
   
   this->blocksize  = this->input->get_blocksize(this->input);
 
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     this->video_fifo = video_fifo;
     this->audio_fifo = audio_fifo;
 
@@ -216,9 +229,11 @@ static void demux_cda_start (demux_plugin_t *this_gen,
    */
   this->input->seek(this->input, this->start, SEEK_SET);
 
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     
     this->status = DEMUX_OK;
+    this->send_end_buffers = 1;
+    this->thread_running = 1;
     if ((err = pthread_create (&this->thread,
 			       NULL, demux_cda_loop, this)) != 0) {
       printf ("demux_cda: can't create new thread (%s)\n", strerror(err));
