@@ -32,4 +32,4 @@ xineplug_decode_dvaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYM
 xineplug_decode_dvaudio_la_SOURCES = dvaudio_decoder.c
 xineplug_decode_dvaudio_la_LIBADD  = $(XINE_LIB)
 
-noinst_HEADERS = xine_decoder.h
+noinst_HEADERS = xine_decoder.h mpeg_parser.h
