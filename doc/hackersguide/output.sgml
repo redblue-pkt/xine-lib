@@ -332,8 +332,9 @@
      </listitem>
      <listitem>
       <para>
-       When a frame is drawn through your plugin, it must either be drawn on the original
-       port with the correct stream as argument or U-turned.
+       When a frame is drawn by your plugin, it must either be drawn on the original
+       port with the correct stream as argument or U-turned (or passed through a
+       private metronom manually).
       </para>
      </listitem>
      <listitem>
@@ -350,14 +351,169 @@
     </itemizedlist>
    </sect3>
   </sect2>
-<!--
   <sect2>
    <title>Rewiring and the ticket system</title>
    <para>
-    TODO
+    Rewiring is the reconnection of one post plugin's outputs and another post plugin's
+    inputs. This can happen on the fly during playback, which makes this a very delicate
+    process. In one such input to output connection, only the output is active by either
+    writing data directly to the connected intput or by calling functions there. Therefore
+    we have to notify only the output, when it is rewired. This is done by calling the
+    <function>rewire()</function> member function of the corresponding
+    <type>xine_post_out_t</type> when the frontend issues a rewiring on this output.
+    This is done from the frontend thread for the rewire operation to return synchroneously.
+    But since this can happen on the fly, we have to assure that no other thread is relying
+    on the connection while we modify it. For this, threads working within post plugins
+    have to be accounted and on demand suspended in safe positions. For this, xine offers
+    a synchronization facility called "tickets".
    </para>
+   <sect3>
+    <title>Ticket system principles and operations</title>
+    <para>
+     The idea of the ticket system is based on an extended read-write lock, where there can
+     be many readers in parallel, but only one exclusive writer. A certain interface might
+     require you to have a ticket before calling its functions. The ticket system now
+     allows multiple threads to operate within the component behind the interface by
+     granting as many tickets as needed. But should an outside operation require exclusive
+     access to the component, all granted tickets can be revoked and have to be given back
+     by the threads who hold them, which suspends the threads. After the exclusive
+     operation, tickets will be reissued so all suspended threads can continue where they
+     stopped. We will now look at the ticket primitives in detail:
+    </para>
+    <variablelist>
+     <varlistentry>
+      <term><function>acquire()</function></term>
+      <listitem>
+       <para>
+        You receive a new ticket. If the ticket is currently revoked, you can be blocked
+        until it is reissued. There is one exception to this: You can acquire a revoked
+        ticket, if you revoked it atomic yourself. You can also acquire a ticket irrevocably.
+        Between acquire and release of an irrevocable ticket, it is guaranteed that
+        you will not be blocked by ticket revocation.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><function>release()</function></term>
+      <listitem>
+       <para>
+        You give a ticket back when you do not need it any longer. If the ticket is
+        currently revoked, you can be blocked until it is reissued. If you acquired the
+        ticket irrevocably, you have to release it irrevocably as well.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><function>renew()</function></term>
+      <listitem>
+       <para>
+        You must only call this function, when the ticket has been revoked, so be
+        sure to check <varname>ticket_revoked</varname> before. You give the ticket
+        back and receive a new one. In between, you can be blocked until the ticket is
+        reissued. You have to renew irrevocably, if you cannot assure that the thread holds
+        no irrevocable tickets. If you can assure this, renew revocably.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><function>revoke()</function></term>
+      <listitem>
+       <para>
+        This function can only be called by the xine engine, plugins do not have access to it.
+        It revokes all tickets and after finite time, all threads will run into a
+        <function>acquire()</function>, <function>release()</function> or <function>renew()</function>
+        and will be suspended there. Then the revocation returns and you can modify structures
+        or call functions with the knowledge that all ticket holders will remain in safe
+        positions. When you additionally need exclusive access where no other revoker
+        can interfere, you have to revoke atomic.
+       </para>
+      </listitem>
+     </varlistentry>
+     <varlistentry>
+      <term><function>issue()</function></term>
+      <listitem>
+       <para>
+        This function can only be called by the xine engine, plugins do not have access to it.
+        It ends ticket revocation and hands out new tickets to all threads that applied with a 
+        <function>acquire()</function> or <function>renew()</function>. If you revoked the
+        tickets atomic, you have to issue them atomic.
+       </para>
+      </listitem>
+     </varlistentry>
+    </variablelist>
+    <para>
+     When you use the ticket system in any way, you have to obey to the following rules:
+     <itemizedlist>
+      <listitem>
+       <para>
+        Assure to release irrevocable tickets ater a finite time.
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Assure to release or renew revocable tickets ater a finite time.
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Assure to reissue tickets you revoked atomic after a finite time.
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Pair calls properly.
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Never revoke a ticket you hold.
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Never acquire a ticket you revoked atomic before.
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Never acquire a ticket revocable more than once.
+       </para>
+      </listitem>
+     </itemizedlist>
+    </para>
+   </sect3>
+   <sect3>
+    <title>Ticket handling in decoder and post plugins</title>
+    <para>
+     The contract of the video and audio port interfaces is that you need to have
+     the port ticket, when you want to call functions of these interfaces. The decoder
+     plugins do not have to worry about this at all, since the decoder loops inside the
+     engine handle the ticketing. Post plugins get the ticket assigned by the engine,
+     but usually, a post plugin does not create a new thread, it is called by the
+     decoder thread and therefore already owns the necessary ticket. All port functions
+     are also ticket-safe as they follow all the rules given above.
+    </para>
+    <para>
+     You only have to remember that tickets need to be renewed as soon as possible,
+     when the are revoked. For this, the helper function
+     <function>_x_post_rewire()</function> should be used in prominent locations
+     where it is safe to be suspended. Candidates for such locations are at the
+     beginning of the port's <function>open()</function> and
+     <function>get_frame()</function>/<function>get_buffer()</function> functions. 
+     The default pass through implementations for intercepted ports already do this.
+    </para>
+    <para>
+     The port tickets are revoked, whenever a rewiring takes place or the engine
+     switches into pause mode. The tickets are reissued, when the rewiring is finished
+     or the engine switches from pause mode into playback. Some post plugins might
+     contain critical parts, where they must not be interrupted by a rewire or pause.
+     These sections can be enclosed in <function>_x_post_lock()</function> and
+     <function>_x_post_unlock()</function>, which will simply acquire and release an
+     irrevocable ticket for you. As long as you hold such a ticket, it is guaranteed
+     that you will never be interrupted by a pause or rewire.
+    </para>
+   </sect3>
   </sect2>
--->
  </sect1>
  
  <sect1>
