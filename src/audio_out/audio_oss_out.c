@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.77 2002/10/20 00:52:06 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.78 2002/10/20 17:56:35 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -391,7 +391,9 @@ static int ao_oss_delay(xine_ao_driver_t *this_gen) {
       bytes_left = 0;
     break;
   case OSS_SYNC_GETOPTR:
+    pthread_mutex_lock (&this->lock);
     ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+    pthread_mutex_unlock (&this->lock);
     
     bytes_left = this->bytes_in_buffer - info.bytes; /* calc delay */
       
@@ -399,7 +401,9 @@ static int ao_oss_delay(xine_ao_driver_t *this_gen) {
       bytes_left = 0;
     break;
   case OSS_SYNC_GETODELAY:
+    pthread_mutex_lock (&this->lock);
     ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left);
+    pthread_mutex_unlock (&this->lock);
     break;
   }
 
