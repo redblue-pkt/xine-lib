@@ -1,8 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-RTSP_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -I$(srcdir)/../libreal
-
-AM_CFLAGS = $(RTSP_CFLAGS) @ANSI_FLAGS@
+AM_CPPFLAGS = -D_LARGEFILE64_SOURCE -I$(srcdir)/../libreal
 
 noinst_LTLIBRARIES = librtsp.la
 

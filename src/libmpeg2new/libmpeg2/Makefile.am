@@ -1,8 +1,5 @@
 include $(top_srcdir)/misc/Makefile.common
 
-
-AM_CFLAGS = @ANSI_FLAGS@
-
 noinst_LTLIBRARIES = libmpeg2.la libmpeg2arch.la
 
 libmpeg2_la_SOURCES = alloc.c header.c decode.c slice.c motion_comp.c idct.c \

@@ -33,15 +33,14 @@ endif
 
 # For DVD
 if HAVE_DVDNAV
-DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE $(DVDNAV_CFLAGS)
+DVD_CFLAGS = $(DVDNAV_CFLAGS)
 link_dvdnav = $(DVDNAV_LIBS)
 else
-DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-  -I$(top_srcdir)/src/input/libdvdnav/
+DVD_CFLAGS = -I$(top_srcdir)/src/input/libdvdnav/
 link_dvdnav = libdvdnav/libdvdnav.la
 endif
 
-AM_CFLAGS = $(GNOME_VFS_CFLAGS) $(DVD_CFLAGS) $(ALSA_CFLAGS) @ANSI_FLAGS@
+AM_CFLAGS = -D_LARGEFILE64_SOURCE $(GNOME_VFS_CFLAGS) $(ALSA_CFLAGS) $(DVD_CFLAGS)
 
 lib_LTLIBRARIES = \
 	xineplug_inp_file.la \

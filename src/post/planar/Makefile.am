@@ -1,7 +1,5 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = @ANSI_FLAGS@
-
 libdir = $(XINE_PLUGINDIR)/post
 
 lib_LTLIBRARIES = xineplug_post_planar.la

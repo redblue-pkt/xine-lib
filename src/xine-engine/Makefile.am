@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = nvtv
 
-AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS) @ANSI_FLAGS@
+AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS)
 
 lib_LTLIBRARIES = libxine.la
 

@@ -12,7 +12,7 @@ if HAVE_XV_STATIC
 xv_libs = $(XV_LIB)
 endif
 
-AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) @ANSI_FLAGS@
+AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS)
 
 libxineutils_la_SOURCES = $(pppc_files) \
 	cpu_accel.c \

@@ -1,8 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-REAL_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -I$(srcdir)/../librtsp
-
-AM_CFLAGS = $(REAL_CFLAGS) @ANSI_FLAGS@
+AM_CPPFLAGS = -D_LARGEFILE64_SOURCE -I$(srcdir)/../librtsp
 
 noinst_LTLIBRARIES = libreal.la
 

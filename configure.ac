@@ -949,11 +949,6 @@ if test "$GCC" = yes; then
     AC_TRY_CFLAGS("-fno-rename-registers", W32_NO_OPTIMIZE="$W32_NO_OPTIMIZE -fno-rename-registers",)
     AC_SUBST(W32_NO_OPTIMIZE)
     dnl
-    dnl C standard
-    dnl
-    ANSI_FLAGS="-std=gnu89"
-    AC_SUBST(ANSI_FLAGS)
-    dnl
     dnl Multipass compilation
     dnl
     AC_TRY_CFLAGS("-fprofile-arcs", PASS1_CFLAGS="$PASS1_CFLAGS -fprofile_arcs",)
@@ -964,7 +959,15 @@ if test "$GCC" = yes; then
     dnl Warnings
     dnl
     CFLAGS="$CFLAGS -Wchar-subscripts -Wmissing-declarations -Wmissing-prototypes"
-    CFLAGS="$CFLAGS -Wnested-externs -Wpointer-arith -Wcast-align"
+    CFLAGS="$CFLAGS -Wnested-externs -Wcast-align"
+    dnl some combinations of gcc+glibc produce useless warnings on memset
+    dnl when compiling with -Wpointer-arith, so we check for this first
+    AC_MSG_CHECKING(for sane -Wpointer-arith)
+    SAVE_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS -Wpointer-arith -Werror"
+    AC_TRY_COMPILE([#include <string.h>],[int a; memset(&a, 0, sizeof(int));],
+	[AC_MSG_RESULT(yes); CFLAGS="$SAVE_CFLAGS -Wpointer-arith"],
+	[AC_MSG_RESULT(no);  CFLAGS="$SAVE_CFLAGS"]);
 fi
 
 dnl Flags not supported by all *cc* variants
@@ -1613,6 +1616,9 @@ dnl post plugins
 echo " * post effect plugins:"
 echo "  * planar video effects:"
 echo "   - invert          - expand"
+echo "   - eq              - eq2"
+echo "   - boxblur         - denoise3d"
+echo "   - unsharp         - tvtime"
 echo "  * SFX:"
 echo "   - goom            - oscope"
 echo "   - fftscope        - mosaico"
