@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.12 2002/10/26 22:50:52 guenter Exp $
+ * $Id: mms.c,v 1.13 2002/10/28 00:50:01 guenter Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -99,26 +99,30 @@ struct mms_s {
 static ssize_t read_timeout(int fd, void *buf, size_t count) {
   
   ssize_t ret, total;
-  int     timeout;
 
-  timeout = 30; total = 0;
+  total = 0;
 
   while (total < count) {
   
-    while ( ((ret=read (fd, buf+total, count-total)) < 0)
-	    && ( (errno == EINPROGRESS) || (errno == EAGAIN))
-	    && (timeout>0)) {
+    fd_set rset;
+    struct timeval timeout;
+
+    FD_ZERO (&rset);
+    FD_SET  (fd, &rset);
     
-      sleep (1);
-#ifdef LOG
-      printf ("mms: read in progress...%d, %d/%d\n", errno, total, count);
-#endif
-      timeout--;
+    timeout.tv_sec  = 30;
+    timeout.tv_usec = 0;
+    
+    if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
+      return -1;
     }
     
-    if (ret<0)
+    ret=read (fd, buf+total, count-total);
+
+    if (ret<=0) {
+      printf ("mms: read error.\n");
       return ret;
-    else
+    } else
       total += ret;
   }
 
@@ -142,7 +146,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
 
   /* put socket in non-blocking mode */
 
-  fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK);  
+  fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK);   
 
   sin.sin_family = AF_INET;	
   sin.sin_addr   = ia;
@@ -231,8 +235,8 @@ static uint32_t get_32 (unsigned char *cmd, int offset) {
   return ret;
 }
 
-static void send_command (mms_t *this, int command, uint32_t switches, 
-			  uint32_t extra, int length) {
+static int send_command (mms_t *this, int command, uint32_t switches, 
+			 uint32_t extra, int length) {
   int        len8;
 
   len8 = (length + (length % 8)) / 8;
@@ -257,6 +261,7 @@ static void send_command (mms_t *this, int command, uint32_t switches,
 
   if (send_data (this->s, this->scmd, length+48) != (length+48)) {
     printf ("libmms: send error\n");
+    return 0;
   }
 
 #ifdef LOG
@@ -301,6 +306,8 @@ static void send_command (mms_t *this, int command, uint32_t switches,
   printf ("\n");
   }
 #endif
+
+  return 1;
 }
 
 static void string_utf16(char *dest, char *src, int len) {
@@ -398,7 +405,7 @@ static int receive (int s, char *buf, size_t count) {
   return len;
 }
 
-static void get_header (mms_t *this) {
+static int get_header (mms_t *this) {
 
   unsigned char  pre_header[8];
 
@@ -408,7 +415,7 @@ static void get_header (mms_t *this) {
 
     if (!receive (this->s, pre_header, 8)) {
       printf ("libmms: pre-header read failed\n");
-      return ;
+      return 0;
     }
 
 #ifdef LOG    
@@ -433,7 +440,7 @@ static void get_header (mms_t *this) {
 
       if (!receive (this->s, &this->asf_header[this->asf_header_len], packet_len)) {
 	printf ("libmms: header data read failed\n");
-	return;
+	return 0;
       }
 
       this->asf_header_len += packet_len;
@@ -441,9 +448,11 @@ static void get_header (mms_t *this) {
       if ( (this->asf_header[this->asf_header_len - 1] == 1) 
 	   && (this->asf_header[this->asf_header_len - 2] == 1)) {
 
+#ifdef LOG
 	printf ("libmms: get header packet finished\n");
+#endif
 
-	return;
+	return 1;
 
       } 
 
@@ -453,7 +462,7 @@ static void get_header (mms_t *this) {
 
       if (!receive (this->s, (char *) &packet_len, 4)) {
 	printf ("packet_len read failed\n");
-	return;
+	return 0;
       }
       
       packet_len = get_32 ((char *)&packet_len, 0) + 4;
@@ -465,7 +474,7 @@ static void get_header (mms_t *this) {
       
       if (!receive (this->s, this->buf, packet_len)) {
 	printf ("command data read failed\n");
-	return ;
+	return 0 ;
       }
       
       command = get_32 (this->buf, 24) & 0xFFFF;
@@ -475,12 +484,17 @@ static void get_header (mms_t *this) {
 #endif
       
       if (command == 0x1b) 
-	send_command (this, 0x1b, 0, 0, 0);
+	if (!send_command (this, 0x1b, 0, 0, 0))
+	  return 0;
       
     }
 
+#ifdef LOG
     printf ("mms: get header packet succ\n");
+#endif
   }
+
+  return 1;
 }
 
 static void interp_header (mms_t *this) {
@@ -686,9 +700,9 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   char  *file    = NULL;
   char  *host    = NULL;
   int    port;
-  int    len, i, s;
+  int    i, s;
  
-  if(!url_)
+  if (!url_)
     return NULL;
 
   report_progress (stream, 0);
@@ -720,8 +734,11 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   this->buf_size        = 0;
   this->buf_read        = 0;
 
+#ifdef LOG
   printf ("libmms: url=%s\nlibmms:   host=%s\nlibmms:   "
           "path=%s\nlibmms:   file=%s\n", url, host, path, file);
+#endif
+
   /*
    * let the negotiations begin...
    */
@@ -733,17 +750,15 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
     this->guid, this->host);
   string_utf16 (this->scmd_body, this->str, strlen(this->str) + 2);
 
-  send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8);
-
+  if (!send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8))
+    goto fail;
+  
+#ifdef LOG
   printf("libmms: before read \n");
+#endif
 
-  if (!get_answer (this)) {
-    printf ("libmms: read failed: %s\n", strerror(errno));
-    close (this->s);
-    free (url);
-    free (this);
-    return NULL;
-  }
+  if (!get_answer (this)) 
+    goto fail;
 
   report_progress (stream, 20);
 
@@ -753,13 +768,8 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   memset (this->scmd_body, 0, 8);
   send_command (this, 2, 0, 0, 28 * 2 + 8);
 
-  if (!get_answer (this)) {
-    printf ("libmms: read failed: %s\n", strerror(errno));
-    close (this->s);
-    free (url);
-    free (this);
-    return NULL;
-  }
+  if (!get_answer (this)) 
+    goto fail;
 
   report_progress (stream, 30);
 
@@ -767,9 +777,11 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
 
   string_utf16 (&this->scmd_body[8], path, strlen(path));
   memset (this->scmd_body, 0, 8);
-  send_command (this, 5, 0, 0, strlen(path) * 2 + 12);
+  if (!send_command (this, 5, 0, 0, strlen(path) * 2 + 12))
+    goto fail;
 
-  get_answer (this);
+  if (!get_answer (this))
+    goto fail;
 
   report_progress (stream, 40);
 
@@ -778,13 +790,16 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   memset (this->scmd_body, 0, 40);
   this->scmd_body[32] = 2;
 
-  send_command (this, 0x15, 1, 0, 40);
+  if (!send_command (this, 0x15, 1, 0, 40))
+    goto fail;
 
-  get_answer (this);
+  if (!get_answer (this))
+    goto fail;
 
   this->num_stream_ids = 0;
 
-  get_header (this);
+  if (!get_header (this))
+    goto fail;
 
   interp_header (this);
 
@@ -801,11 +816,13 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
     this->scmd_body [ (i - 1) * 6 + 5 ] = 0x00;
   }
 
-  send_command (this, 0x33, this->num_stream_ids, 
-		0xFFFF | this->stream_ids[0] << 16, 
-		(this->num_stream_ids-1)*6+2);
+  if (!send_command (this, 0x33, this->num_stream_ids, 
+		     0xFFFF | this->stream_ids[0] << 16, 
+		     (this->num_stream_ids-1)*6+2))
+    goto fail;
 
-  get_answer (this);
+  if (!get_answer (this))
+    goto fail;
 
   report_progress (stream, 75);
 
@@ -819,9 +836,10 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
 
   this->scmd_body[20] = 0x04;
 
-  send_command (this, 0x07, 1, 
-		0xFFFF | this->stream_ids[0] << 16, 
-		24);
+  if (!send_command (this, 0x07, 1, 
+		     0xFFFF | this->stream_ids[0] << 16, 
+		     24))
+    goto fail;
 
   report_progress (stream, 100);
 
@@ -829,6 +847,14 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   printf(" mms_connect: passed\n" );
 #endif
   return this;
+
+ fail:
+
+  close (this->s);
+  free (url);
+  free (this);
+  return NULL;
+
 }
 
 
@@ -985,6 +1011,7 @@ int mms_read (mms_t *this, char *data, int len) {
   }
 
   return total;
+
 }
 
 
