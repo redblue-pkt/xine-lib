@@ -22,6 +22,7 @@
  */
 
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "ac3.h"
@@ -30,32 +31,31 @@
 
 #define BUFFER_SIZE 4096
 
-static uint8_t *buffer_start;
+struct uint32_alignment {
+    char    	a;
+    uint32_t	b;
+};
+#define	UINT32_ALIGNMENT	offsetof(struct uint32_alignment, b)
+
+
+static uint32_t *buffer_start;
 
 uint32_t bits_left;
 uint32_t current_word;
 
 void bitstream_set_ptr (uint8_t * buf)
 {
-    buffer_start = buf;
+    int align = (long)buf & (UINT32_ALIGNMENT-1);
+    buffer_start = (uint32_t *) (buf - align);
     bits_left = 0;
+    if (align > 0) bitstream_get(align * 8);
 }
 
 static inline void
 bitstream_fill_current()
 {
-#ifdef __sparc__
-#warning FIXME: cannot access unaligned pointer on sparc
-    current_word = 
-	(buffer_start[0] << 24) |
-	(buffer_start[1] << 16) |
-	(buffer_start[2] <<  8) |
-	 buffer_start[3];
-    buffer_start += 4;
-#else
-    current_word = *((uint32_t*)buffer_start)++;
+    current_word = *buffer_start++;
     current_word = swab32(current_word);
-#endif
 }
 
 //

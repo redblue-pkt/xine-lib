@@ -21,11 +21,6 @@
  *
  */
 
-#warning FIXME: need WORDS_BIGENDIAN autoconf test
-#ifdef __sparc__
-#define	WORDS_BIGENDIAN 1
-#endif
-
 //My new and improved vego-matic endian swapping routine
 //(stolen from the kernel)
 #ifdef WORDS_BIGENDIAN
