@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.14 2003/03/26 18:51:55 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.15 2003/04/06 11:55:47 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -854,6 +854,7 @@ static int demux_sputext_seek (demux_plugin_t *this_gen,
 
 static void demux_sputext_send_headers(demux_plugin_t *this_gen) {
   demux_sputext_t *this = (demux_sputext_t*)this_gen;
+  buf_element_t *buf;
   
 #ifdef LOG
   printf("demux_sputext: send_headers() called\n");
@@ -862,11 +863,33 @@ static void demux_sputext_send_headers(demux_plugin_t *this_gen) {
   xine_demux_control_start(this->stream);
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
+
+  /* enable the SPU channel */
+  buf = this->stream->video_fifo->buffer_pool_alloc(this->stream->video_fifo);
+  buf->type = BUF_CONTROL_SPU_CHANNEL;
+  buf->decoder_info[0] = buf->decoder_info[1] = buf->decoder_info[2] = 0;
+  this->stream->video_fifo->put(this->stream->video_fifo, buf);
+  
   this->status = DEMUX_OK;
 }
 
 static uint32_t demux_sputext_get_capabilities(demux_plugin_t *this_gen) {
   return DEMUX_CAP_NOCAP;
+}
+
+static int demux_sputext_get_optional_data(demux_plugin_t *this_gen,
+					   void *data, int data_type) {
+  int channel = *((int *)data);
+
+  switch (data_type) {
+  case DEMUX_OPTIONAL_DATA_SPULANG:
+    if (channel == -1 || channel == 0) {
+      sprintf(data, "%s", "sub");
+      return INPUT_OPTIONAL_SUCCESS;
+    }
+  default:
+    return DEMUX_OPTIONAL_UNSUPPORTED;
+  }
 }
 
 static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_t *stream,
@@ -892,7 +915,7 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
   this->demux_plugin.get_video_frame   = NULL;
   this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_capabilities  = demux_sputext_get_capabilities;
-  this->demux_plugin.get_optional_data = NULL;
+  this->demux_plugin.get_optional_data = demux_sputext_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
   this->buflen = 0;
