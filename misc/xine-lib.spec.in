@@ -167,11 +167,12 @@ fi
 # currently we do not use %%configure as it seems to cause trouble with
 # certain automake produced configure scripts - depending on automake version.
 #
-./configure --prefix=%{_prefix} --exec-prefix=%{_exec_prefix} \
-	    --bindir=%{_bindir} --sbindir=%{_sbindir} \
-	    --sysconfdir=%{_sysconfdir} --datadir=%{_datadir} \
-	    --includedir=%{_includedir} --libdir=%{_libdir} \
-	    --libexecdir=%{_libexecdir} --localstatedir=%{_localstatedir} \
+./configure --build=%{_target_platform} --prefix=%{_prefix} \
+	    --exec-prefix=%{_exec_prefix} --bindir=%{_bindir} \
+	    --sbindir=%{_sbindir} --sysconfdir=%{_sysconfdir} \
+	    --datadir=%{_datadir} --includedir=%{_includedir} \
+	    --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
+	    --localstatedir=%{_localstatedir} \
 	    --sharedstatedir=%{_sharedstatedir} --mandir=%{_mandir} \
 	    --infodir=%{_infodir}
 make
@@ -210,6 +211,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/*
 
 %changelog
+* Mon May 27 2002 Matthias Dahl <matthew2k@web.de>
+- added passing of build parameter to configure
 * Sun May 26 2002 Matthias Dahl <matthew2k@web.de>
 - added german translations by Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added fixes (missing -l cs) by Manfred Tremmel <Manfred.Tremmel@iiv.de>
