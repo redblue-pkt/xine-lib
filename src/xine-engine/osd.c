@@ -34,7 +34,10 @@
 #include <dirent.h>
 #include <errno.h>
 #include <iconv.h>
+
+#ifdef HAVE_LANGINFO_CODESET
 #include <langinfo.h>
+#endif
 
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
@@ -709,7 +712,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   inbytesleft = strlen(text);
 
   if (!encoding) {
-#ifdef ENABLE_NLS
+#ifdef HAVE_LANGINFO_CODESET
     if ((encoding = nl_langinfo(CODESET)) == NULL) {
       printf(_("osd: can't find out current locale character set\n"));
       encoding = "iso-8859-1";
