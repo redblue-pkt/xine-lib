@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.106 2003/01/31 14:06:08 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.107 2003/03/10 14:56:58 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -288,28 +288,33 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     /* contents */
 
-    if(this->audio_fifo)
-      buf = this->input->read_block (this->input, this->audio_fifo, len-4);
-    else {
-      this->input->read (this->input, this->dummy_space, len-4);
-      return;
+    for (i = len - 4; i > 0; i -= this->audio_fifo->buffer_pool_buf_size) {
+      if(this->audio_fifo) {
+	buf = this->input->read_block (this->input, this->audio_fifo,
+	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
+
+	if (buf == NULL) {
+	  this->status = DEMUX_FINISHED;
+	  return;
+	}
+
+	buf->type      = BUF_AUDIO_A52 + track;
+	buf->pts       = pts;
+	check_newpts( this, pts, PTS_AUDIO );
+	pts = 0;
+
+	if (this->preview_mode)
+	  buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+	buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+
+	this->audio_fifo->put (this->audio_fifo, buf);
+
+      } else {
+	this->input->read (this->input, this->dummy_space,
+	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
+      }
     }
-
-    if (buf == NULL) {
-      this->status = DEMUX_FINISHED;
-      return ;
-    }
-
-    buf->type      = BUF_AUDIO_A52 + track;
-    buf->pts       = pts;
-    check_newpts( this, pts, PTS_AUDIO );
-
-    if (this->preview_mode)
-      buf->decoder_flags = BUF_FLAG_PREVIEW;
-
-    buf->extra_info->input_pos = this->input->get_current_pos (this->input);
-
-    this->audio_fifo->put (this->audio_fifo, buf);
 
   } else if ((stream_id & 0xe0) == 0xc0) {
     int track = stream_id & 0x1f;
@@ -334,32 +339,35 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       header_len -= 5 ;
     }
 
-    /* read rest of header */
     i = this->input->read (this->input, this->dummy_space, header_len);
 
-    if(this->audio_fifo)
-      buf = this->input->read_block (this->input, this->audio_fifo, len);
-    else {
-      this->input->read (this->input, this->dummy_space, len);
-      return;
+    for (i = len; i > 0; i -= this->audio_fifo->buffer_pool_buf_size) {
+      if(this->audio_fifo) {
+	buf = this->input->read_block (this->input, this->audio_fifo,
+	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
+
+	if (buf == NULL) {
+	  this->status = DEMUX_FINISHED;
+	  return;
+	}
+
+	buf->type      = BUF_AUDIO_MPEG + track;
+	buf->pts       = pts;
+	check_newpts( this, pts, PTS_AUDIO );
+	pts = 0;
+
+	if (this->preview_mode)
+	  buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+	buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+
+	this->audio_fifo->put (this->audio_fifo, buf);
+
+      } else {
+	this->input->read (this->input, this->dummy_space,
+	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
+      }
     }
-
-    if (buf == NULL) {
-      this->status = DEMUX_FINISHED;
-      return ;
-    }
-
-    buf->type      = BUF_AUDIO_MPEG + track;
-    buf->pts       = pts;
-    check_newpts( this, pts, PTS_AUDIO );
-
-    if (this->preview_mode)
-      buf->decoder_flags = BUF_FLAG_PREVIEW;
-    
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-
-    if(this->audio_fifo)
-      this->audio_fifo->put (this->audio_fifo, buf);
 
   } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
 
@@ -388,27 +396,32 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     /* contents */
 
-    buf = this->input->read_block (this->input, this->video_fifo, len);
+    for (i = len; i > 0; i -= this->video_fifo->buffer_pool_buf_size) {
+      buf = this->input->read_block (this->input, this->video_fifo,
+	(i > this->video_fifo->buffer_pool_buf_size) ? this->video_fifo->buffer_pool_buf_size : i);
 
-    if (buf == NULL) {
-      this->status = DEMUX_FINISHED;
-      return ;
+      if (buf == NULL) {
+	this->status = DEMUX_FINISHED;
+	return;
+      }
+
+      buf->type = BUF_VIDEO_MPEG;
+      buf->pts  = pts;
+      check_newpts( this, pts, PTS_VIDEO );
+      pts = 0;
+
+      if (this->preview_mode)
+	buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+      buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+
+      this->video_fifo->put (this->video_fifo, buf);
     }
-    buf->type = BUF_VIDEO_MPEG;
-    buf->pts  = pts;
-    check_newpts( this, pts, PTS_VIDEO );
-
-    if (this->preview_mode)
-      buf->decoder_flags = BUF_FLAG_PREVIEW;
-    
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-
-    this->video_fifo->put (this->video_fifo, buf);
 
   } else {
 
-    i = this->input->read (this->input, this->dummy_space, len);
-    /* (*this->input->seek) (len,SEEK_CUR); */
+    for (i = len; i > 0; i -= 10000) 
+      this->input->read (this->input, this->dummy_space, (i > 10000) ? 10000 : i);
   }
 
 }
@@ -507,64 +520,74 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
   if ((stream_id & 0xe0) == 0xc0) {
     int track = stream_id & 0x1f;
 
-    if(this->audio_fifo) {
-      buf = this->input->read_block (this->input, this->audio_fifo, len);
-    } else {
-      this->input->read (this->input, this->dummy_space, len);
-      return;
+    for (i = len; i > 0; i -= this->audio_fifo->buffer_pool_buf_size) {
+      if(this->audio_fifo) {
+	buf = this->input->read_block (this->input, this->audio_fifo,
+	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
+
+	if (buf == NULL) {
+	  this->status = DEMUX_FINISHED;
+	  return;
+	}
+
+	buf->type      = BUF_AUDIO_MPEG + track ;
+	buf->pts       = pts;
+	check_newpts( this, pts, PTS_AUDIO );
+	pts = 0;
+
+	if (this->preview_mode)
+	  buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+	buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+	if (this->rate)
+	  buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+					* 1000 / (this->rate * 50));
+
+	this->audio_fifo->put (this->audio_fifo, buf);
+
+      } else {
+	this->input->read (this->input, this->dummy_space,
+	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
+      }
     }
-
-    if (buf == NULL) {
-      this->status = DEMUX_FINISHED;
-      return ;
-    }
-    buf->type      = BUF_AUDIO_MPEG + track ;
-    buf->pts       = pts;
-    
-    check_newpts( this, pts, PTS_AUDIO );
-
-    if (this->preview_mode)
-      buf->decoder_flags = BUF_FLAG_PREVIEW;
-    
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-    if (this->rate)
-      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
-                                          * 1000 / (this->rate * 50));
-
-    if(this->audio_fifo)
-      this->audio_fifo->put (this->audio_fifo, buf);
 
   } else if ((stream_id & 0xf0) == 0xe0) {
 
-    buf = this->input->read_block (this->input, this->video_fifo, len);
+    for (i = len; i > 0; i -= this->video_fifo->buffer_pool_buf_size) {
+      buf = this->input->read_block (this->input, this->video_fifo,
+	(i > this->video_fifo->buffer_pool_buf_size) ? this->video_fifo->buffer_pool_buf_size : i);
 
-    if (buf == NULL) {
-      this->status = DEMUX_FINISHED;
-      return ;
+      if (buf == NULL) {
+	this->status = DEMUX_FINISHED;
+	return;
+      }
+
+      buf->type = BUF_VIDEO_MPEG;
+      buf->pts  = pts;
+      check_newpts( this, pts, PTS_VIDEO );
+      pts = 0;
+
+      if (this->preview_mode)
+	buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+      buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+      if (this->rate)
+	buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+				      * 1000 / (this->rate * 50));
+
+      this->video_fifo->put (this->video_fifo, buf);
     }
-    buf->type = BUF_VIDEO_MPEG;
-    buf->pts  = pts;
-    
-    check_newpts( this, pts, PTS_VIDEO );
-
-    if (this->preview_mode)
-      buf->decoder_flags = BUF_FLAG_PREVIEW;
-    
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-    if (this->rate)
-      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
-                                          * 1000 / (this->rate * 50));
-
-    this->video_fifo->put (this->video_fifo, buf);
 
   } else if (stream_id == 0xbd) {
 
-    i = this->input->read (this->input, this->dummy_space, len);
+    for (i = len; i > 0; i -= 10000) 
+      this->input->read (this->input, this->dummy_space, (i > 10000) ? 10000 : i);
+
   } else {
 
-    this->input->read (this->input, this->dummy_space, len);
+    for (i = len; i > 0; i -= 10000) 
+      this->input->read (this->input, this->dummy_space, (i > 10000) ? 10000 : i);
   }
-
 }
 
 static uint32_t parse_pack(demux_mpeg_t *this) {
