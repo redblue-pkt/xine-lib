@@ -27,8 +27,8 @@ xine-lib (1-beta13)
   * big improvement of v4l input and associated demuxer. Including 
     sound capture using alsa and a/v sync. Now radio is supported as well.
   * dxr3: using decoder timestamps will hopefully fix some last sync problems
-  * (hopefully) fix deadlocks with win32 Quicktime DLLs
-  * fix seeking in asf and avi files
+  * (hopefully) fix crashes with win32 Quicktime DLLs
+  * improve seeking in asf and avi files
   * fix handling of exotic a/v RIFF chunks (00iv, 0031, ...) in avi files
 
 xine-lib (1-beta12)
