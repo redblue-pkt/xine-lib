@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.49 2004/08/02 12:51:09 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.50 2004/08/27 17:53:32 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -705,8 +705,13 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 
     if(speed != XINE_SPEED_PAUSE) {
       /* cannot run faster than the writing thread */
-      while( this->play_blk+1 >= this->rec_blk )
+      while( this->play_blk+1 >= this->rec_blk ) {
+        if( this->valid_data ) {
+          this->valid_data = 0;
+          pthread_cond_signal (&this->wake_pvr);
+        }
         pthread_cond_wait (&this->has_valid_data, &this->lock);
+      }
     }
 
     if( this->play_fd == -1 || 
