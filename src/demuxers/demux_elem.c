@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.18 2001/09/04 16:19:27 guenter Exp $
+ * $Id: demux_elem.c,v 1.19 2001/09/10 03:04:48 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -251,10 +251,11 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
 	bs = 4;
 
       if (input->read(input, this->scratch, bs) == bs) {
-
+	/*
 	printf ("demux_elem: %02x %02x %02x %02x (bs=%d)\n",
 		this->scratch[0], this->scratch[1], 
 		this->scratch[2], this->scratch[3], bs);
+	*/
 	
 	if (this->scratch[0] || this->scratch[1] 
 	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xb3))

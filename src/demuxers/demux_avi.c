@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.39 2001/09/09 15:56:55 jkeil Exp $
+ * $Id: demux_avi.c,v 1.40 2001/09/10 03:04:48 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1035,7 +1035,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
     case mmioFOURCC('c', 'v', 'i', 'd'):
       /* Video in Cinepak format */
-      this->avi->video_type     = BUF_VIDEO_CINEPACK;
+      this->avi->video_type     = BUF_VIDEO_CINEPAK;
       break;
     case mmioFOURCC('V', 'C', 'R', '1'):
       /* Video in ATI VCR1 format */

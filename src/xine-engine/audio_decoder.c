@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.34 2001/09/09 15:39:47 jkeil Exp $
+ * $Id: audio_decoder.c,v 1.35 2001/09/10 03:04:48 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -44,11 +44,11 @@ void *audio_decoder_loop (void *this_gen) {
 
   while (running) {
 
-    /* printf ("audio_loop: waiting for package...\n"); */
+    /* printf ("audio_loop: waiting for package...\n");  */
 
     buf = this->audio_fifo->get (this->audio_fifo);
-
-    /* printf ("audio_loop: got package pts = %d\n", buf->PTS); */
+    
+    /* printf ("audio_loop: got package pts = %d\n", buf->PTS);  */
 
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
@@ -134,7 +134,7 @@ void *audio_decoder_loop (void *this_gen) {
 
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
-	/* printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type);  */
+	/* printf ("audio_loop: got an audio buffer, type %08x\n", buf->type);   */
 	
 	/* update track map */
 	
@@ -143,7 +143,7 @@ void *audio_decoder_loop (void *this_gen) {
 	  i++;
 	
 	/*
-	  printf ("audio_decoder: got an audio buffer, type %08x, %d map entries, i=%d\n", 
+	  printf ("audio_loop: got an audio buffer, type %08x, %d map entries, i=%d\n", 
 	  buf->type, this->audio_track_map_entries, i); 
 	*/
 	
@@ -184,16 +184,18 @@ void *audio_decoder_loop (void *this_gen) {
 	      this->cur_audio_decoder_plugin = decoder;
 	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
 
-	      printf ("audio_decoder: using decoder >%s< \n",
+	      printf ("audio_loop: using decoder >%s< \n",
 		      decoder->get_identifier());
 		
 	    }
+
+	    /* printf ("audio_loop: sending data to decoder\n"); */
 	      
 	    decoder->decode_data (decoder, buf);
 	  }
 	}
       } else
-	printf ("audio_decoder: unknown buffer type: %08x\n", buf->type);
+	printf ("audio_loop: unknown buffer type: %08x\n", buf->type);
 
       profiler_stop_count (1);
     }

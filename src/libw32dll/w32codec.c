@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.20 2001/09/08 18:11:41 guenter Exp $
+ * $Id: w32codec.c,v 1.21 2001/09/10 03:04:48 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -102,9 +102,10 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->flipped=1;
     return "ir32_32.dll";
 
-  case BUF_VIDEO_CINEPACK:
+  case BUF_VIDEO_CINEPAK:
     /* Video in Cinepak format */
-    this->yuv_supported=1;
+    this->flipped=1;
+    this->yuv_supported=0;
     return "iccvid.dll";
 
     /*** Only 16bit .DLL available (can't load under linux) ***
@@ -144,7 +145,7 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
   return ( buf_type == BUF_VIDEO_IV50 ||
            buf_type == BUF_VIDEO_IV41 ||
            buf_type == BUF_VIDEO_IV32 ||
-           buf_type == BUF_VIDEO_CINEPACK ||
+           buf_type == BUF_VIDEO_CINEPAK ||
            /* buf_type == BUF_VIDEO_ATIVCR1 || */
            buf_type == BUF_VIDEO_ATIVCR2 ||
 	   buf_type == BUF_VIDEO_I263);

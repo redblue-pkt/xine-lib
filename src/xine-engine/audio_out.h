@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.13 2001/09/06 13:27:47 jkeil Exp $
+ * $Id: audio_out.h,v 1.14 2001/09/10 03:04:48 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -167,6 +167,7 @@ struct ao_instance_s {
   int             resample_conf;
   int             do_resample;
   int	 	  mode;
+  int             bits;
   int             gap_tolerance;
   uint16_t       *frame_buffer;
   int16_t        *zero_space;

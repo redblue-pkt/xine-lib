@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.12 2001/09/06 15:26:07 joachim_koenig Exp $
+ * $Id: audio_out.c,v 1.13 2001/09/10 03:04:48 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -135,6 +135,7 @@ static int ao_open(ao_instance_t *this,
 
   this->mode                  = mode;
   this->input_frame_rate      = rate;
+  this->bits                  = bits;
   this->audio_started         = 0;
   this->last_audio_vpts       = 0;
 
@@ -150,6 +151,11 @@ static int ao_open(ao_instance_t *this,
   default: /* AUTO */
     this->do_resample = this->output_frame_rate != this->input_frame_rate;
   }
+
+  /* HACK: we do not have resample functions for 8-bit audio */
+  if (this->bits==8)
+    this->do_resample = 0;
+
   if (this->do_resample) 
     printf("audio_out: will resample audio from %d to %d\n",
 	   this->input_frame_rate, this->output_frame_rate);
@@ -311,7 +317,7 @@ static int ao_write(ao_instance_t *this,
     } else switch (this->mode) {
     case AO_CAP_MODE_MONO:
       audio_out_resample_mono (output_frames, num_frames,
-                               this->frame_buffer, num_output_frames);
+			       this->frame_buffer, num_output_frames);
       this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
     case AO_CAP_MODE_STEREO:

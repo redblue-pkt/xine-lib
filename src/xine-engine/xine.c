@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.58 2001/09/06 18:38:12 jkeil Exp $
+ * $Id: xine.c,v 1.59 2001/09/10 03:04:48 guenter Exp $
  *
  * top-level xine functions
  *
@@ -127,7 +127,7 @@ static int try_demux_with_stages(xine_t *this, const char *MRL,
 
   while(stages[s] != -1) {
     for(i = 0; i < this->num_demuxer_plugins; i++) {
-      printf ("trying demuxer %s\n", this->demuxer_plugins[i]->get_identifier());
+      /* printf ("trying demuxer %s\n", this->demuxer_plugins[i]->get_identifier()); */
       if(this->demuxer_plugins[i]->open(this->demuxer_plugins[i], 
 					this->cur_input_plugin, 
 					stages[s]) == DEMUX_CAN_HANDLE) {
@@ -284,8 +284,6 @@ void xine_play (xine_t *this, char *mrl,
     this->metronom->set_speed (this->metronom, SPEED_NORMAL);
     this->audio_mute = 0;
     this->speed = SPEED_NORMAL;
-    
-    printf ("xine_play: demuxer started\n");
   }    
 
   pthread_mutex_unlock (&this->xine_lock);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.11 2001/09/08 18:11:41 guenter Exp $
+ * $Id: buffer.h,v 1.12 2001/09/10 03:04:48 guenter Exp $
  *
  *
  * contents:
@@ -70,7 +70,7 @@ extern "C" {
 #define BUF_VIDEO_BASE       0x02000000
 #define BUF_VIDEO_MPEG       0x02000000
 #define BUF_VIDEO_MPEG4      0x02010000
-#define BUF_VIDEO_QUICKTIME  0x02020000
+#define BUF_VIDEO_CINEPAK    0x02020000
 #define BUF_VIDEO_SORENSON   0x02030000
 #define BUF_VIDEO_MSMPEG4    0x02040000
 #define BUF_VIDEO_MJPEG      0x02050000
@@ -82,7 +82,10 @@ extern "C" {
 #define BUF_VIDEO_ATIVCR2    0x020b0000
 #define BUF_VIDEO_I263       0x020c0000
 #define BUF_VIDEO_RV10       0x020d0000
-#define BUF_VIDEO_CINEPACK   0x020e0000
+#define BUF_VIDEO_FILL       0x020e0000
+#define BUF_VIDEO_RGB        0x020f0000
+#define BUF_VIDEO_YUY2       0x02100000
+#define BUF_VIDEO_JPEG       0x02110000
 
 /* audio buffer types:  */
 
