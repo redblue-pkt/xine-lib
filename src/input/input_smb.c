@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2004 the xine project
  * 
- * This file is part of totem,
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.2 2004/10/18 18:26:12 miguelfreitas Exp $
+ * $Id: input_smb.c,v 1.3 2004/10/18 18:44:56 miguelfreitas Exp $
  */
 
 
