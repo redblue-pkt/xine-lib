@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineintl.h,v 1.4 2002/07/31 22:36:35 f1rmb Exp $
+ * $Id: xineintl.h,v 1.5 2002/09/04 15:25:26 jkeil Exp $
  *
  */
 
@@ -47,6 +47,7 @@ extern "C" {
 #    define gettext(String) (String)
 #    define dgettext(Domain,Message) (Message)
 #    define dcgettext(Domain,Message,Type) (Message)
+#    define ngettext(Singular, Plural, IsPlural) (Singular)
 #    define bindtextdomain(Domain,Directory) (Domain)
 #    define _(String) (String)
 #    define N_(String) (String)
