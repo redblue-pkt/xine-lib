@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.98 2003/12/14 22:13:22 siggi Exp $
+ * $Id: audio_oss_out.c,v 1.99 2003/12/31 12:05:26 siggi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -848,15 +848,16 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   
   this->capabilities = 0;
   
-  bits = 8;
-  if( ioctl(audio_fd, SNDCTL_DSP_SAMPLESIZE,&bits) != -1  && bits == 8)
+  arg = AFMT_U8;
+  if( ioctl(audio_fd, SOUND_PCM_SETFMT, &arg) != -1  && arg == AFMT_U8)
     this->capabilities |= AO_CAP_8BITS;
   
   /* switch back to 16bits, because some soundcards otherwise do not report all their capabilities */
-  bits = 16;
-  if (ioctl(audio_fd, SNDCTL_DSP_SAMPLESIZE, &bits) == -1) {
+  arg = AFMT_S16_NE;
+  if (ioctl(audio_fd, SOUND_PCM_SETFMT, &arg) == -1 || arg != AFMT_S16_NE) {
     xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_oss_out: switching the soundcard to 16 bits mode failed\n");
     free(this);
+    close(audio_fd);
     return NULL;
   }
 
