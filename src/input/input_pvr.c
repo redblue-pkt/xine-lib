@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.17 2003/05/02 15:02:11 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.18 2003/05/02 23:41:18 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -148,7 +148,8 @@ typedef struct {
   int                 scr_tunning;
     
   uint32_t            session;		/* session number used to identify the pvr file */
-  
+  int                 new_session;      /* force going to realtime for new sessions */
+    
   int                 dev_fd;		/* fd of the mpeg2 encoder device */
   int                 rec_fd;		/* fd of the current recording file (session/page) */
   int                 play_fd;		/* fd of the current playback (-1 when realtime) */
@@ -624,8 +625,9 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
       
   /* check for realtime. don't switch back unless enough buffers are
    * free to not block the pvr thread */
-  if( this->play_blk >= this->rec_blk-1 && speed >= XINE_SPEED_NORMAL &&
-      (this->play_fd == -1 || fifo->size(fifo) < fifo->num_free(fifo)) ) {
+  if( this->new_session ||
+      (this->play_blk >= this->rec_blk-1 && speed >= XINE_SPEED_NORMAL &&
+       (this->play_fd == -1 || fifo->size(fifo) < fifo->num_free(fifo))) ) {
      
     this->play_blk = this->rec_blk-1;
      
@@ -642,9 +644,17 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
       printf("input_pvr: switching back to realtime\n");
 #endif
       pvr_report_realtime(this,1);
+      
+    } else if (this->new_session) {
+#ifdef LOG
+      printf("input_pvr: starting new session in realtime\n");
+#endif
+      pvr_report_realtime(this,1);
     }
+    
     this->want_data = 1;
-  
+    this->new_session = 0;
+    
   } else {
 
     if( this->rec_fd == -1 )
@@ -918,7 +928,9 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         time(&this->start_time);
         this->show_time = this->start_time;
         this->session = v4l2_data->session_id;
+        this->new_session = 1;
         pthread_mutex_unlock(&this->lock);
+        xine_demux_flush_engine (this->stream);
       } else {
         /* no session change, break the page and store a new show_time */
         pthread_mutex_lock(&this->dev_lock);
