@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.81 2003/04/16 23:05:25 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.82 2003/04/17 23:23:58 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -128,7 +128,10 @@ static int get_stream (demux_ogg_t *this, int serno)
 }
 
 static int get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos ) {
-  return (granulepos*this->factor[stream_num]/this->quotient[stream_num]);
+  if (this->quotient[stream_num])
+    return (granulepos*this->factor[stream_num]/this->quotient[stream_num]);
+  else
+    return 0;
 }
 
 static int read_ogg_page (demux_ogg_t *this) {
