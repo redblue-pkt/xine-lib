@@ -8,6 +8,9 @@ xine-lib (1-rc2)
   * fix ssa subtitle handling
   * don't find out id3 info in mp3 files saved from non-seekable inputs
   * handle filenames containing # or % more nicely
+  * net buffer controler cleanup and fixes
+  * mms command 0x20 support, bugfixes
+  * concatenated asf streams support
            
 xine-lib (1-rc1)
   * fix incorrect colours when blending frame with a big-endian RGB pixel format
