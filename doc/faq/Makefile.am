@@ -23,28 +23,30 @@ faq.sgml: $(srcdir)/faq.sgml
 
 if HAVE_SGMLTOOLS
 faq.html: faq.sgml
-	  $(SGMLTOOLS) -b onehtml faq.sgml;
+	$(SGMLTOOLS) -b onehtml faq.sgml;
 else
 faq.html: faq.sgml
-	  if test x"$(fail_if_missing)" = x"yes"; then \
-	    echo "Please install sgmltools-lite."; \
-	    exit 1; \
-	  else \
-	    touch $@; \
-	    touch $^; \
-	  fi
+	if test x"$(fail_if_missing)" = x"yes"; then \
+	  echo "Please install sgmltools-lite."; \
+	  exit 1; \
+	else \
+	  touch $@; \
+	  sleep 1; \
+	  touch $^; \
+	fi
 endif
 
 if HAVE_SGMLTOOLS
 faq.txt: faq.sgml
-	  $(SGMLTOOLS) -b txt faq.sgml;
+	$(SGMLTOOLS) -b txt faq.sgml;
 else
 faq.txt: faq.sgml
-	  if test x"$(fail_if_missing)" = x"yes"; then \
-	    echo "Please install sgmltools-lite."; \
-	    exit 1; \
-	  else \
-	    touch $@; \
-	    touch $^; \
-	  fi
+	if test x"$(fail_if_missing)" = x"yes"; then \
+	  echo "Please install sgmltools-lite."; \
+	  exit 1; \
+	else \
+	  touch $@; \
+	  sleep 1; \
+	  touch $^; \
+	fi
 endif

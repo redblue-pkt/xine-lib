@@ -37,24 +37,26 @@ hackersguide.html: $(hackersguide_sgml)
 else
 hackersguide.html: $(hackersguide_sgml)
 	if test x"$(fail_if_missing)" = x"yes"; then \
-	    echo "Please install sgmltools-lite."; \
-	    exit 1; \
+	  echo "Please install sgmltools-lite."; \
+	  exit 1; \
 	else \
-	    touch $@; \
-	    touch $^; \
+	  touch $@; \
+	  sleep 1; \
+	  touch $^; \
 	fi
 endif
 
 if HAVE_FIG2DEV
 %.png: $(srcdir)/%.fig
-	  $(FIG2DEV) -L png -S 4 $< $@;
+	$(FIG2DEV) -L png -S 4 $< $@;
 else
 %.png: $(srcdir)/%.fig
 	if test x"$(fail_if_missing)" = x"yes"; then \
-	    echo "Please install fig2dev."; \
-	    exit 1; \
+	  echo "Please install fig2dev."; \
+	  exit 1; \
 	else \
-	    touch $@; \
-	    touch $^; \
+	  touch $@; \
+	  sleep 1; \
+	  touch $^; \
 	fi
 endif
