@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.5 2003/07/27 12:47:23 hadess Exp $
+ *  $Id: xmlparser.c,v 1.6 2003/09/11 23:05:39 tmattern Exp $
  *
  */
 
@@ -105,7 +105,12 @@ static void xml_parser_free_props(xml_property_t *current_property) {
   }
 }
 
-void xml_parser_free_tree(xml_node_t *current_node) {
+static void xml_parser_free_tree_rec(xml_node_t *current_node, int free_next) {
+
+#ifdef LOG
+  printf("xml_parser: xml_parser_free_tree_rec: %s\n", current_node->name);
+#endif
+
   if (current_node) {
     /* propertys */
     if (current_node->props) {
@@ -114,15 +119,36 @@ void xml_parser_free_tree(xml_node_t *current_node) {
 
     /* child nodes */
     if (current_node->child) {
-      xml_parser_free_tree(current_node->child);
+#ifdef LOG
+      printf("xml_parser: xml_parser_free_tree_rec: child\n");
+#endif
+      xml_parser_free_tree_rec(current_node->child, 1);
     }
 
-    if (current_node->next) {
-      xml_parser_free_tree(current_node->next);
+    /* next nodes */
+    if (free_next) {
+      xml_node_t *next_node = current_node->next;
+      xml_node_t *next_next_node;
+
+      while (next_node) {
+        next_next_node = next_node->next;
+#ifdef LOG
+        printf("xml_parser: xml_parser_free_tree_rec: next\n");
+#endif
+        xml_parser_free_tree_rec(next_node, 0);
+        next_node = next_next_node;
+      }
     }
 
     free_xml_node(current_node);
   }
+}
+
+void xml_parser_free_tree(xml_node_t *current_node) {
+#ifdef LOG
+   printf("xml_parser: xml_parser_free_tree\n");
+#endif
+   xml_parser_free_tree_rec(current_node, 1);
 }
 
 #define STATE_IDLE    0
