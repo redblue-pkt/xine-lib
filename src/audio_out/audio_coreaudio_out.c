@@ -360,7 +360,7 @@ static int ao_coreaudio_get_property (ao_driver_t *this_gen, int property) {
                                kHALOutputParam_Volume,
                                kAudioUnitScope_Output,
                                0, &val);
-        return (int) (val * 100);
+        return (int) (val * 12);
   }
 
   return 0;
@@ -373,7 +373,7 @@ static int ao_coreaudio_set_property (ao_driver_t *this_gen, int property, int v
   switch(property) {
     case AO_PROP_PCM_VOL:
     case AO_PROP_MIXER_VOL:
-        val = value / 100.0;
+        val = value / 12.0;
         AudioUnitSetParameter (this->au_unit,
                                kHALOutputParam_Volume,
                                kAudioUnitScope_Output,
