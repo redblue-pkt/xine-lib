@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.207 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.208 2004/10/08 21:08:26 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -432,15 +432,23 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   if (!img->bad_frame) {
   
-    int dispose_img = 0;
+    int img_already_locked = 1;
     
     /* perform cropping when vo driver does not support it */
     if( (img->crop_left || img->crop_top || 
          img->crop_right || img->crop_bottom) &&
         (this->grab_only ||
          !(this->driver->get_capabilities (this->driver) & VO_CAP_CROP)) ) {
-      img = crop_frame( img->port, img );
-      dispose_img = 1;
+      if (img->format == XINE_IMGFMT_YV12 || img->format == XINE_IMGFMT_YUY2) {
+        img = crop_frame( img->port, img );
+        img_already_locked = 0;
+      } else {
+	/* noone knows how to crop this, so we can only ignore the cropping */
+	img->crop_left   = 0;
+	img->crop_top    = 0;
+	img->crop_right  = 0;
+	img->crop_bottom = 0;
+      }
     }
     
     /* do not call proc_*() for frames that will be dropped */
@@ -476,12 +484,10 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     }
     pthread_mutex_unlock(&this->streams_lock);
 
-    vo_frame_inc_lock( img );
+    if (!img_already_locked)
+      vo_frame_inc_lock( img );
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
     
-    if( dispose_img )
-      vo_frame_dec_lock( img );
-
   } else {
     lprintf ("bad_frame\n");
 

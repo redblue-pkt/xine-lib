@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.111 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.112 2004/10/08 21:08:26 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -143,7 +143,7 @@ struct vo_frame_s {
   int                        proc_called;   /* track use of proc_*() methods */
   
   /* Used to carry private data for accelerated plugins.*/
-  void                       *accel_data;
+  void                      *accel_data;
 
   /* "backward" references to where this frame originates from */
   xine_video_port_t         *port;
