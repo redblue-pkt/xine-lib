@@ -1337,7 +1337,7 @@
      <para>
       You can either use the config dialog of your frontend or edit
       the config file (<filename>~/.xine/config</filename>) yourself:
-      <programlisting>&nbsp;&nbsp;&nbsp;audio.a52_pass_through:1</programlisting>
+      <programlisting>&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:A52_Passthru</programlisting>
       In case the setting is not in the file you can add it.
      </para>
     </sect3>
