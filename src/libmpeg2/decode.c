@@ -356,6 +356,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
     if (current == NULL)
       return ;
 
+    /* printf ("looking for sequence header... %02x\n", code); */
+
     stats_header (code, mpeg2dec->chunk_buffer);
 
     if (code == 0xb3) {	/* sequence_header_code */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.6 2001/06/15 08:58:12 f1rmb Exp $
+ * $Id: w32codec.c,v 1.7 2001/06/18 12:56:28 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -69,6 +69,7 @@ typedef struct w32a_decoder_s {
   unsigned char     sample_buf[40000];
   HACMSTREAM        srcstream;
   int               rec_audio_src_size;
+  int               num_channels;
 } w32a_decoder_t;
 
 
@@ -378,10 +379,11 @@ static int w32a_init_audio (w32a_decoder_t *this, WAVEFORMATEX *in_fmt_){
   }
   
   this->srcstream = 0;
+  this->num_channels  = in_fmt->nChannels;
   
   this->audio_out->open( this->audio_out, 
 			 16, in_fmt->nSamplesPerSec, 
-			 AO_CAP_MODE_STEREO); 
+			 (in_fmt->nChannels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO); 
 
   wf.nChannels       = in_fmt->nChannels;
   wf.nSamplesPerSec  = in_fmt->nSamplesPerSec;
@@ -471,7 +473,8 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 		this->sample_buf[ash.cbDstLengthUsed-2], this->sample_buf[ash.cbDstLengthUsed-1]);
 		*/
 	this->audio_out->write_audio_data (this->audio_out,
-					   (int16_t*) this->sample_buf, ash.cbDstLengthUsed / 4, 
+					   (int16_t*) this->sample_buf, 
+					   ash.cbDstLengthUsed / (this->num_channels*2), 
 					   nPTS); 
       }
     }
