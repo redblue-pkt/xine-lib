@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.25 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.26 2002/04/23 06:48:59 esnel Exp $
  *
  * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
@@ -1212,7 +1212,7 @@ static int quicktime_udta_delete(quicktime_udta_t *udta)
     {
       free(udta->copyright);
     }
-  if(udta->name_len && udta->info)
+  if(udta->name_len && udta->name)
     {
       free(udta->name);
     }
