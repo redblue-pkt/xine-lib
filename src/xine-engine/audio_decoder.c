@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.62 2002/03/05 22:00:25 jcdutton Exp $
+ * $Id: audio_decoder.c,v 1.63 2002/03/10 21:43:30 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -301,9 +301,11 @@ void audio_decoder_shutdown (xine_t *this) {
   
   if(this->audio_out) {
     this->audio_out->exit (this->audio_out);
+    this->audio_out = NULL;
   }
   if (this->audio_fifo) {
     this->audio_fifo->dispose (this->audio_fifo);
+    this->audio_fifo = NULL;
   }
 }
 
