@@ -2,7 +2,7 @@
  * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a free video player.
- * 
+ *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.5 2003/01/31 02:29:59 tmmm Exp $
+ * $Id: fftscope.c,v 1.6 2003/02/09 19:25:25 tmattern Exp $
  *
  */
 
@@ -60,8 +60,10 @@ struct post_plugin_fftscope_s {
 
   int data_idx;
   complex wave[MAXCHANNELS][NUMSAMPLES];
+  int amp_max[MAXCHANNELS][NUMSAMPLES / 2];
+  uint32_t amp_max_yuy2[MAXCHANNELS][NUMSAMPLES / 2];
   audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
-  
+
   int bits;
   int mode;
   int channels;
@@ -244,15 +246,15 @@ static void scale (complex wave[], int bits)
 static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
 
   int i, j, c;
-  int map_ptr;
+  int map_ptr, map_ptr_2;
   int amp_int;
   float amp_float;
-  unsigned int yuy2_pair;
+  uint32_t yuy2_pair, yuy2_pair_max, yuy2_white;
   int c_delta;
 
   /* clear the YUY2 map */
   for (i = 0; i < FFT_WIDTH * FFT_HEIGHT / 2; i++)
-    ((unsigned int *)frame->base[0])[i] = be2me_32(0x00900080);
+    ((uint32_t *)frame->base[0])[i] = be2me_32(0x00900080);
 
   /* get a random delta between 1..6 */
   c_delta = (rand() % 6) + 1;
@@ -289,11 +291,22 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
   }
 
   yuy2_pair = be2me_32(
-    (0xFF << 24) |
+    (0x7F << 24) |
     (this->u_current << 16) |
-    (0xFF << 8) |
+    (0x7F << 8) |
     this->v_current);
 
+  yuy2_pair_max = be2me_32(
+    (0x0F << 24) |
+    (this->u_current << 16) |
+    (0x0F << 8) |
+    this->v_current);
+
+  yuy2_white = be2me_32(
+    (0xFF << 24) |
+    (0x80 << 16) |
+    (0xFF << 8) |
+    0x80);
 
   for (c = 0; c < this->channels; c++){
     /* perform FFT for channel data */
@@ -305,6 +318,7 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
       map_ptr = ((FFT_HEIGHT * (c+1) / this->channels -1 ) * FFT_WIDTH + i * 2) / 2;
+      map_ptr_2 = map_ptr;
       amp_float = amp(i, this->wave[c], LOG_BITS);
       if (amp_float == 0)
         amp_int = 0;
@@ -312,21 +326,37 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
         amp_int = (int)((60/this->channels) * log10(amp_float));
       if (amp_int > 255/this->channels)
         amp_int = 255/this->channels;
+      if (amp_int < 0)
+        amp_int = 0;
 
       for (j = 0; j < amp_int; j++, map_ptr -= FFT_WIDTH / 2)
-        ((unsigned int *)frame->base[0])[map_ptr] = yuy2_pair;
+        ((uint32_t *)frame->base[0])[map_ptr] = yuy2_pair;
+
+      /* amp max */
+      for (j = amp_int; j < this->amp_max[c][i]; j++, map_ptr -= FFT_WIDTH / 2)
+        ((uint32_t *)frame->base[0])[map_ptr] = this->amp_max_yuy2[c][i];
+
+      /* white top max */
+      ((uint32_t *)frame->base[0])[map_ptr] = yuy2_white;
+
+      if (amp_int > this->amp_max[c][i]) {
+        this->amp_max[c][i] = amp_int - 1;
+        this->amp_max_yuy2[c][i] = yuy2_pair_max;
+      } else {
+        this->amp_max[c][i]--;
+      }
     }
   }
 
   /* top line */
   for (map_ptr = 0; map_ptr < FFT_WIDTH / 2; map_ptr++)
-    ((unsigned int *)frame->base[0])[map_ptr] = be2me_32(0xFF80FF80);
+    ((uint32_t *)frame->base[0])[map_ptr] = yuy2_white;
 
   /* lines under each channel */
   for (c = 0; c < this->channels; c++){
     for (i = 0, map_ptr = ((FFT_HEIGHT * (c+1) / this->channels -1 ) * FFT_WIDTH) / 2;
        i < FFT_WIDTH / 2; i++, map_ptr++)
-    ((unsigned int *)frame->base[0])[map_ptr] = be2me_32(0xFF80FF80);
+    ((uint32_t *)frame->base[0])[map_ptr] = yuy2_white;
   }
 
 }
