@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.8 2002/03/17 02:56:37 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.9 2002/03/20 18:38:20 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -1178,19 +1178,6 @@ static void cc_decode_EIA608(cc_decoder_t *this, uint16_t data)
 {
   uint8_t c1 = data & 0x7f;
   uint8_t c2 = (data >> 8) & 0x7f;
-
-  /* Ignore 0 0 encoding altogether; don't even run it through the
-     duplicate CC control code detection. Some MPEG-2 streams
-     apparently encode all captions with 0, 0 interleaved. I am not
-     sure if this interleaving conforms to the EIA-608 standard, but
-     checking for it fixes rare captioning problems with some DVDs.
-  */
-  if (c1 == 0 && c2 == 0)
-    return;
-
-#if LOG_DEBUG >= 3
-  printf("decoding %x %x\n", c1, c2);
-#endif
 
   if (c1 & 0x60) {             /* normal character, 0x20 <= c1 <= 0x7f */
     cc_decode_standard_char(this, c1, c2);
