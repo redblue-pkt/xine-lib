@@ -818,10 +818,6 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
 
 }
 
-/* flush must never allocate any frame (get_frame/duplicate_frame).
- * it is called from inside video_out loop and frame allocation
- * may cause some (rare) deadlocks.
- */
 void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
 
   picture_t *picture = mpeg2dec->picture;
