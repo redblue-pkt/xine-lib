@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.193 2004/05/13 21:38:49 jstembridge Exp $
+ * $Id: video_out.c,v 1.194 2004/05/23 21:30:26 tmattern Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -54,6 +54,10 @@
 #define NUM_FRAME_BUFFERS          15
 #define MAX_USEC_TO_SLEEP       20000
 #define DEFAULT_FRAME_DURATION   3000    /* 30 frames per second */
+
+/* wait this delay if the first frame is still referenced */
+#define FIRST_FRAME_POLL_DELAY   3000
+#define FIRST_FRAME_MAX_POLL       10    /* poll n times at most */
 
 #define NULL_STREAM    (xine_stream_t *)-1
 
@@ -401,7 +405,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     }
     frames_to_skip = ((-1 * diff) / duration + this->frame_drop_limit) * 2;
 
-    if (frames_to_skip<0)
+    if (frames_to_skip < 0)
       frames_to_skip = 0;
 
     lprintf ("delivery diff : %" PRId64 ", current vpts is %" PRId64 ", %d frames to skip\n",
@@ -440,8 +444,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       if (stream == NULL_STREAM) continue;
       pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag == 2) {
-        stream->first_frame_flag = (this->grab_only)?0:1;
-        img->is_first = 1;
+        stream->first_frame_flag = (this->grab_only) ? 0 : 1;
+        img->is_first = FIRST_FRAME_MAX_POLL;
 
         lprintf ("get_next_video_frame first_frame_reached\n");
       }
@@ -649,8 +653,15 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
        * "metronom prebuffering" we should make sure it's 
        * not used as a decoder reference anymore.
        */
-      if( img->lock_counter == 1 )
+      if( img->lock_counter == 1 ) {
+        /* display it immediately */
         img->vpts = cur_vpts;
+      } else {
+        /* poll */
+        lprintf("frame still referenced %d times, is_first=%d\n", img->lock_counter, img->is_first);
+        img->vpts = cur_vpts + FIRST_FRAME_POLL_DELAY;
+      }
+      img->is_first--;
       break;
     }
 
@@ -1071,12 +1082,14 @@ static void *video_out_loop (void *this_gen) {
         xprintf(this->xine, XINE_VERBOSITY_DEBUG,
 		"video_out: vpts/clock error, next_vpts=%" PRId64 " cur_vpts=%" PRId64 "\n", next_frame_vpts,vpts);
                
-      if (usec_to_sleep > 0) 
+      if (usec_to_sleep > 0)
         xine_usec_sleep (usec_to_sleep);
+
+      if (this->discard_frames)
+        break;
 
     } while ( (usec_to_sleep > 0) && this->video_loop_running);
   }
-
 
   /*
    * throw away undisplayed frames
@@ -1456,7 +1469,7 @@ static void vo_flush (xine_video_port_t *this_gen) {
     pthread_mutex_lock(&this->display_img_buf_queue->mutex);
     this->discard_frames++;
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
-   
+    
     /* do not try this in paused mode */
     while(this->clock->speed != XINE_SPEED_PAUSE) {
       pthread_mutex_lock(&this->display_img_buf_queue->mutex);
@@ -1491,7 +1504,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
   
   pthread_mutex_init(&this->streams_lock, NULL);
   pthread_mutex_init(&this->driver_lock, NULL );
-
+  
   this->vo.open                  = vo_open;
   this->vo.get_frame             = vo_get_frame;
   this->vo.get_last_frame        = vo_get_last_frame;
