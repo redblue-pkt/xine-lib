@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.120 2002/04/23 13:30:44 esnel Exp $
+ * $Id: xine.c,v 1.121 2002/04/28 17:39:36 guenter Exp $
  *
  * top-level xine functions
  *
@@ -373,6 +373,7 @@ int xine_play (xine_t *this, char *mrl,
     if (!find_demuxer(this, mrl)) {
       xine_log (this, XINE_LOG_FORMAT, 
 	        _("xine: couldn't find demuxer for >%s<\n"), mrl);
+      this->cur_input_plugin->close(this->cur_input_plugin);
       this->err = XINE_ERROR_NO_DEMUXER_PLUGIN;
       pthread_mutex_unlock (&this->xine_lock);
       return 0;
