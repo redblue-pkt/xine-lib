@@ -30,8 +30,8 @@
 
 #include "net_buf_ctrl.h"
 
-#define DEFAULT_LOW_WATER_MARK  1
-#define DEFAULT_HIGH_WATER_MARK 5000 /* in millisecond */
+#define DEFAULT_LOW_WATER_MARK  2
+#define DEFAULT_HIGH_WATER_MARK 5
 
 /*
 #define LOG
@@ -66,82 +66,47 @@ static void report_progress (xine_stream_t *stream, int p) {
 
 void nbc_check_buffers (nbc_t *this) {
 
-  int fifo_fill, video_fifo_fill, audio_fifo_fill;
-  int data_length, video_data_length, audio_data_length;
-  int video_bitrate, audio_bitrate;
-  
-  video_fifo_fill = this->stream->video_fifo->size(this->stream->video_fifo);
-  if (this->stream->audio_fifo)
-    audio_fifo_fill = this->stream->audio_fifo->size(this->stream->audio_fifo);
-  else
-    audio_fifo_fill = 0;
+  int fifo_fill;
 
-  fifo_fill = audio_fifo_fill + video_fifo_fill;
+  fifo_fill = this->stream->video_fifo->size(this->stream->video_fifo);
+  if (this->stream->audio_fifo) {
+    fifo_fill += 8*this->stream->audio_fifo->size(this->stream->audio_fifo);
+  }
+  if (this->buffering) {
 
-  /* start buffering if fifos are empty */
-  if (fifo_fill == 0) {
+    report_progress (this->stream, fifo_fill*100 / this->high_water_mark);
+
+#ifdef LOG
+    printf ("net_buf_ctl: buffering (%d/%d)...\n", 
+	    fifo_fill, this->high_water_mark);
+#endif
+  }
+  if (fifo_fill<this->low_water_mark) {
     
     if (!this->buffering) {
 
-      /* increase marks to adapt to stream/network needs */
-      this->high_water_mark += this->high_water_mark / 4;
-      /* this->low_water_mark = this->high_water_mark/4; */
-      
-      this->buffering = 1;
-      report_progress (this->stream, 0);
+      if (this->high_water_mark<150) {
 
+	/* increase marks to adapt to stream/network needs */
+
+	this->high_water_mark += 10;
+	/* this->low_water_mark = this->high_water_mark/4; */
+      }
     }
-    /* pause */
+
     this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_PAUSE);
     this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
     if (this->stream->audio_out)
       this->stream->audio_out->set_property(this->stream->audio_out,AO_PROP_PAUSED,2);
+    this->buffering = 1;
 
-  } else {
-  
-    if (this->buffering) {
-    
-      /* compute data length in fifos */
-      video_bitrate = this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE];
-      audio_bitrate = this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE];
-  
-      if (video_bitrate)  
-        video_data_length = (8000 * this->stream->video_fifo->data_size) / video_bitrate;
-      else
-        video_data_length = 0;
-  
-      if (audio_bitrate)  
-        audio_data_length = (8000 * this->stream->audio_fifo->data_size) / audio_bitrate;
-      else
-        audio_data_length = 0;
-    
-      if (video_data_length > audio_data_length) {
-        data_length = video_data_length;
-      } else {
-        data_length = audio_data_length;
-      }  
+  } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
+    this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
+    this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+    if (this->stream->audio_out)
+      this->stream->audio_out->set_property(this->stream->audio_out,AO_PROP_PAUSED,0);
+    this->buffering = 0;
 
-      
-      /* stop buffering if fifos are filled enough */
-      if ((data_length >= this->high_water_mark) ||
-          (video_fifo_fill == 512) ||      /* there is 512 video buffers */
-          (audio_fifo_fill == 230) ) {     /* there is 230 audio buffers */
-        /* unpause */
-        this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
-        this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
-        if (this->stream->audio_out)
-          this->stream->audio_out->set_property(this->stream->audio_out,AO_PROP_PAUSED,0);
-    
-        report_progress (this->stream, 100);
-        this->buffering = 0;
-      } else {
-        report_progress (this->stream, (data_length * 100) / this->high_water_mark);
-      }
-          
-    } else {
-      /* fifos are ok */
-    }
-      
   }
 }
 
@@ -163,9 +128,9 @@ nbc_t *nbc_init (xine_stream_t *stream) {
 }
 
 void nbc_set_high_water_mark(nbc_t *this, int value) {
-/*  this->high_water_mark = value; */
+  this->high_water_mark = value;
 }
 
 void nbc_set_low_water_mark(nbc_t *this, int value) {
-/*  this->low_water_mark = value; */
+  this->low_water_mark = value;
 }

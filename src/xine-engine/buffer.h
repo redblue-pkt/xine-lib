@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.97 2003/01/26 23:31:13 f1rmb Exp $
+ * $Id: buffer.h,v 1.98 2003/01/26 23:36:46 f1rmb Exp $
  *
  *
  * contents:
@@ -391,9 +391,7 @@ typedef struct fifo_buffer_s fifo_buffer_t;
 struct fifo_buffer_s
 {
   buf_element_t  *first, *last;
-  
   int             fifo_size;
-  uint32_t        data_size;
 
   pthread_mutex_t mutex;
   pthread_cond_t  not_empty;
