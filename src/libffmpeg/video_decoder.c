@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.10 2004/03/09 04:09:41 tmmm Exp $
+ * $Id: video_decoder.c,v 1.11 2004/03/14 21:24:21 tmmm Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -526,17 +526,20 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
   } else if (this->context->pix_fmt == PIX_FMT_RGBA32) {
           
     int x, plane_ptr = 0;
-    uint8_t *src;
-            
+    uint32_t *argb_pixels;
+    uint32_t argb;
+
     for(y = 0; y < this->context->height; y++) {
-      src = sy;
+      argb_pixels = (uint32_t *)sy;
       for(x = 0; x < this->context->width; x++) {
         uint8_t r, g, b;
               
-        /* These probably need to be switched for big endian */
-        b = *src; src++;
-        g = *src; src++;
-        r = *src; src += 2;
+        /* this is endian-safe as the ARGB pixels are stored in
+         * machine order */
+        argb = *argb_pixels++;
+        r = (argb >> 16) & 0xFF;
+        g = (argb >>  8) & 0xFF;
+        b = (argb >>  0) & 0xFF;
 
         this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
         this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
@@ -791,7 +794,8 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_ASV1,        CODEC_ID_ASV1,       "ASV v1 Video (ffmpeg)"},
   {BUF_VIDEO_ASV2,        CODEC_ID_ASV2,       "ASV v2 Video (ffmpeg)"},
   {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
-  {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"} };
+  {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
+  {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"} };
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
@@ -1270,6 +1274,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_ASV2,
   BUF_VIDEO_ATIVCR1,
   BUF_VIDEO_FLV1,
+  BUF_VIDEO_QTRLE,
   0 
 };
 
