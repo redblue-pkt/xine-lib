@@ -25,6 +25,7 @@ xine-lib (1-rc4)
   * video_out_pgx64 now disables overlay when fully occluded, fixed displaying
     some frames out of order when multi-buffering.
   * DXR3: option to use Pan & Scan information embedded in MPEG and DVB streams
+  * disable AUD content detection because of false positives
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins

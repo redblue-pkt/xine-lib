@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.17 2004/02/02 00:33:18 tmmm Exp $
+ * $Id: demux_aud.c,v 1.18 2004/04/20 13:57:26 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -290,6 +290,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_CONTENT: /* no reliable detection */
   case METHOD_BY_EXTENSION: {
     char *extensions, *mrl;
 
@@ -303,7 +304,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
   /* falling through is intended */
 
-  case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
     if (!open_aud_file(this)) {
