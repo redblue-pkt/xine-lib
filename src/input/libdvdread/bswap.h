@@ -30,6 +30,11 @@
 
 #else 
 
+/* For __FreeBSD_version */
+#if defined(HAVE_SYS_PARAM_H)
+#include <sys/param.h>
+#endif
+
 #if defined(__linux__)
 #include <byteswap.h>
 #define B2N_16(x) x = bswap_16(x)
@@ -48,9 +53,15 @@
 #define B2N_32(x) x = swap32(x)
 #define B2N_64(x) x = swap64(x)
 
+#elif defined(__FreeBSD__) && __FreeBSD_version >= 470000
+#include <sys/endian.h>
+#define B2N_16(x) x = be16toh(x)
+#define B2N_32(x) x = be32toh(x)
+#define B2N_64(x) x = be64toh(x)
+
 /* This is a slow but portable implementation, it has multiple evaluation 
  * problems so beware.
- * FreeBSD and Solaris don't have <byteswap.h> or any other such 
+ * Old FreeBSD's and Solaris don't have <byteswap.h> or any other such 
  * functionality! 
  */
 

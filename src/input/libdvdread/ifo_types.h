@@ -83,7 +83,8 @@ typedef struct {
   
   unsigned int line21_cc_1          : 1;
   unsigned int line21_cc_2          : 1;
-  unsigned int unknown1             : 2;
+  unsigned int unknown1             : 1;
+  unsigned int bit_rate             : 1;
   
   unsigned int picture_size         : 2;
   unsigned int letterboxed          : 1;
@@ -98,14 +99,15 @@ typedef struct {
   unsigned int letterboxed          : 1;
   unsigned int picture_size         : 2;
   
-  unsigned int unknown1             : 2;
+  unsigned int bit_rate             : 1;
+  unsigned int unknown1             : 1;
   unsigned int line21_cc_2          : 1;
   unsigned int line21_cc_1          : 1;
 #endif
 } ATTRIBUTE_PACKED video_attr_t;
 
 /**
- * Audio Attributes. (Incomplete/Wrong?)
+ * Audio Attributes.
  */
 typedef struct {
 #ifdef WORDS_BIGENDIAN
@@ -130,13 +132,99 @@ typedef struct {
   unsigned int quantization           : 2;
 #endif
   uint16_t lang_code;
-  uint8_t  lang_code2; /* ?? */
   uint8_t  lang_extension;
-  uint16_t unknown2;
+  uint8_t  code_extension;
+  uint8_t unknown3;
+  union {
+    struct ATTRIBUTE_PACKED {
+#ifdef WORDS_BIGENDIAN
+      unsigned int unknown4           : 1;
+      unsigned int channel_assignment : 3;
+      unsigned int version            : 2;
+      unsigned int mc_intro           : 1; /* probably 0: true, 1:false */
+      unsigned int mode               : 1; /* Karaoke mode 0: solo 1: duet */
+#else
+      unsigned int mode               : 1;
+      unsigned int mc_intro           : 1;
+      unsigned int version            : 2;
+      unsigned int channel_assignment : 3;
+      unsigned int unknown4           : 1;
+#endif
+    } karaoke;
+    struct ATTRIBUTE_PACKED {
+#ifdef WORDS_BIGENDIAN
+      unsigned int unknown5           : 4;
+      unsigned int dolby_encoded      : 1; /* suitable for surround decoding */
+      unsigned int unknown6           : 3;
+#else
+      unsigned int unknown6           : 3;
+      unsigned int dolby_encoded      : 1;
+      unsigned int unknown5           : 4;
+#endif
+    } surround;
+  } app_info;
 } ATTRIBUTE_PACKED audio_attr_t;
 
+
 /**
- * Subpicture Attributes.(Incomplete/Wrong)
+ * MultiChannel Extension
+ */
+typedef struct {
+#ifdef WORDS_BIGENDIAN
+  unsigned int zero1      : 7;
+  unsigned int ach0_gme   : 1;
+
+  unsigned int zero2      : 7;
+  unsigned int ach1_gme   : 1;
+
+  unsigned int zero3      : 4;
+  unsigned int ach2_gv1e  : 1;
+  unsigned int ach2_gv2e  : 1;
+  unsigned int ach2_gm1e  : 1;
+  unsigned int ach2_gm2e  : 1;
+
+  unsigned int zero4      : 4;
+  unsigned int ach3_gv1e  : 1;
+  unsigned int ach3_gv2e  : 1;
+  unsigned int ach3_gmAe  : 1;
+  unsigned int ach3_se2e  : 1;
+
+  unsigned int zero5      : 4;
+  unsigned int ach4_gv1e  : 1;
+  unsigned int ach4_gv2e  : 1;
+  unsigned int ach4_gmBe  : 1;
+  unsigned int ach4_seBe  : 1;
+#else
+  unsigned int ach0_gme   : 1;
+  unsigned int zero1      : 7;
+
+  unsigned int ach1_gme   : 1;
+  unsigned int zero2      : 7;
+
+  unsigned int ach2_gm2e  : 1;
+  unsigned int ach2_gm1e  : 1;
+  unsigned int ach2_gv2e  : 1;
+  unsigned int ach2_gv1e  : 1;
+  unsigned int zero3      : 4;
+
+  unsigned int ach3_se2e  : 1;
+  unsigned int ach3_gmAe  : 1;
+  unsigned int ach3_gv2e  : 1;
+  unsigned int ach3_gv1e  : 1;
+  unsigned int zero4      : 4;
+
+  unsigned int ach4_seBe  : 1;
+  unsigned int ach4_gmBe  : 1;
+  unsigned int ach4_gv2e  : 1;
+  unsigned int ach4_gv1e  : 1;
+  unsigned int zero5      : 4;
+#endif
+  uint8_t zero6[19];
+} ATTRIBUTE_PACKED multichannel_ext_t;
+
+
+/**
+ * Subpicture Attributes.
  */
 typedef struct {
   /*
@@ -149,11 +237,19 @@ typedef struct {
    * language: indicates language if type == 1
    * lang extension: if type == 1 contains the lang extension
    */
-  uint8_t type;
-  uint8_t zero1;
+#ifdef WORDS_BIGENDIAN
+  unsigned int code_mode : 3;
+  unsigned int zero1     : 3;
+  unsigned int type      : 2;
+#else
+  unsigned int type      : 2;
+  unsigned int zero1     : 3;
+  unsigned int code_mode : 3;
+#endif
+  uint8_t  zero2;
   uint16_t lang_code;
-  uint8_t lang_extension;
-  uint8_t zero2;
+  uint8_t  lang_extension;
+  uint8_t  code_extension;
 } ATTRIBUTE_PACKED subp_attr_t;
 
 
@@ -237,62 +333,62 @@ typedef struct {
 #ifdef WORDS_BIGENDIAN
   unsigned int zero                           : 7; /* 25-31 */
   unsigned int video_pres_mode_change         : 1; /* 24 */
-
+  
   unsigned int karaoke_audio_pres_mode_change : 1; /* 23 */
-  unsigned int angle_change                   : 1; /* 22 */
-  unsigned int subpic_stream_change           : 1; /* 21 */
-  unsigned int audio_stream_change            : 1; /* 20 */
-  unsigned int pause_on                       : 1; /* 19 */
-  unsigned int still_off                      : 1; /* 18 */
-  unsigned int button_select_or_activate      : 1; /* 17 */
+  unsigned int angle_change                   : 1;
+  unsigned int subpic_stream_change           : 1;
+  unsigned int audio_stream_change            : 1;
+  unsigned int pause_on                       : 1;
+  unsigned int still_off                      : 1;
+  unsigned int button_select_or_activate      : 1;
   unsigned int resume                         : 1; /* 16 */
-
+  
   unsigned int chapter_menu_call              : 1; /* 15 */
-  unsigned int angle_menu_call                : 1; /* 14 */
-  unsigned int audio_menu_call                : 1; /* 13 */
-  unsigned int subpic_menu_call               : 1; /* 12 */
-  unsigned int root_menu_call                 : 1; /* 11 */
-  unsigned int title_menu_call                : 1; /* 10 */
-  unsigned int backward_scan                  : 1; /* 9 */
+  unsigned int angle_menu_call                : 1;
+  unsigned int audio_menu_call                : 1;
+  unsigned int subpic_menu_call               : 1;
+  unsigned int root_menu_call                 : 1;
+  unsigned int title_menu_call                : 1;
+  unsigned int backward_scan                  : 1;
   unsigned int forward_scan                   : 1; /* 8 */
-
+  
   unsigned int next_pg_search                 : 1; /* 7 */
-  unsigned int prev_or_top_pg_search          : 1; /* 6 */
-  unsigned int time_or_chapter_search         : 1; /* 5 */
-  unsigned int go_up                          : 1; /* 4 */
-  unsigned int stop                           : 1; /* 3 */
-  unsigned int title_play                     : 1; /* 2 */
-  unsigned int chapter_search_or_play         : 1; /* 1 */
+  unsigned int prev_or_top_pg_search          : 1;
+  unsigned int time_or_chapter_search         : 1;
+  unsigned int go_up                          : 1;
+  unsigned int stop                           : 1;
+  unsigned int title_play                     : 1;
+  unsigned int chapter_search_or_play         : 1;
   unsigned int title_or_time_play             : 1; /* 0 */
 #else
   unsigned int video_pres_mode_change         : 1; /* 24 */
   unsigned int zero                           : 7; /* 25-31 */
-
+  
   unsigned int resume                         : 1; /* 16 */
-  unsigned int button_select_or_activate      : 1; /* 17 */
-  unsigned int still_off                      : 1; /* 18 */
-  unsigned int pause_on                       : 1; /* 19 */
-  unsigned int audio_stream_change            : 1; /* 20 */
-  unsigned int subpic_stream_change           : 1; /* 21 */
-  unsigned int angle_change                   : 1; /* 22 */
+  unsigned int button_select_or_activate      : 1;
+  unsigned int still_off                      : 1;
+  unsigned int pause_on                       : 1;
+  unsigned int audio_stream_change            : 1;
+  unsigned int subpic_stream_change           : 1;
+  unsigned int angle_change                   : 1;
   unsigned int karaoke_audio_pres_mode_change : 1; /* 23 */
-
+  
   unsigned int forward_scan                   : 1; /* 8 */
-  unsigned int backward_scan                  : 1; /* 9 */
-  unsigned int title_menu_call                : 1; /* 10 */
-  unsigned int root_menu_call                 : 1; /* 11 */
-  unsigned int subpic_menu_call               : 1; /* 12 */
-  unsigned int audio_menu_call                : 1; /* 13 */
-  unsigned int angle_menu_call                : 1; /* 14 */
+  unsigned int backward_scan                  : 1;
+  unsigned int title_menu_call                : 1;
+  unsigned int root_menu_call                 : 1;
+  unsigned int subpic_menu_call               : 1;
+  unsigned int audio_menu_call                : 1;
+  unsigned int angle_menu_call                : 1;
   unsigned int chapter_menu_call              : 1; /* 15 */
-
+  
   unsigned int title_or_time_play             : 1; /* 0 */
-  unsigned int chapter_search_or_play         : 1; /* 1 */
-  unsigned int title_play                     : 1; /* 2 */
-  unsigned int stop                           : 1; /* 3 */
-  unsigned int go_up                          : 1; /* 4 */
-  unsigned int time_or_chapter_search         : 1; /* 5 */
-  unsigned int prev_or_top_pg_search          : 1; /* 6 */
+  unsigned int chapter_search_or_play         : 1;
+  unsigned int title_play                     : 1;
+  unsigned int stop                           : 1;
+  unsigned int go_up                          : 1;
+  unsigned int time_or_chapter_search         : 1;
+  unsigned int prev_or_top_pg_search          : 1;
   unsigned int next_pg_search                 : 1; /* 7 */
 #endif
 } ATTRIBUTE_PACKED user_ops_t;
@@ -361,7 +457,7 @@ typedef struct {
  */
 typedef struct {
   uint16_t lang_code;
-  uint8_t  zero_1;
+  uint8_t  lang_extension;
   uint8_t  exists;
   uint32_t lang_start_byte;
   pgcit_t *pgcit;
@@ -465,7 +561,7 @@ typedef struct {
 typedef struct {
 #ifdef WORDS_BIGENDIAN
   unsigned int zero_1                    : 1;
-  unsigned int multi_or_random_pgc_title : 1; /* 0 == one sequential pgc title */
+  unsigned int multi_or_random_pgc_title : 1; /* 0: one sequential pgc title */
   unsigned int jlc_exists_in_cell_cmd    : 1;
   unsigned int jlc_exists_in_prepost_cmd : 1;
   unsigned int jlc_exists_in_button_cmd  : 1;
@@ -473,13 +569,13 @@ typedef struct {
   unsigned int chapter_search_or_play    : 1; /* UOP 1 */
   unsigned int title_or_time_play        : 1; /* UOP 0 */
 #else
-  unsigned int title_or_time_play        : 1; /* UOP 0 */
-  unsigned int chapter_search_or_play    : 1; /* UOP 1 */
+  unsigned int title_or_time_play        : 1;
+  unsigned int chapter_search_or_play    : 1;
   unsigned int jlc_exists_in_tt_dom      : 1;
   unsigned int jlc_exists_in_button_cmd  : 1;
   unsigned int jlc_exists_in_prepost_cmd : 1;
   unsigned int jlc_exists_in_cell_cmd    : 1;
-  unsigned int multi_or_random_pgc_title : 1; /* 0 == one sequential pgc title */
+  unsigned int multi_or_random_pgc_title : 1;
   unsigned int zero_1                    : 1;
 #endif
 } ATTRIBUTE_PACKED playback_type_t;
@@ -508,6 +604,13 @@ typedef struct {
 } ATTRIBUTE_PACKED tt_srpt_t;
 #define TT_SRPT_SIZE 8
 
+
+/**
+ * Parental Management Information Unit Table.
+ * Level 1 (US: G), ..., 7 (US: NC-17), 8
+ */
+typedef uint16_t pf_level_t[8];
+
 /**
  * Parental Management Information Unit Table.
  */
@@ -516,7 +619,7 @@ typedef struct {
   uint16_t zero_1;
   uint16_t pf_ptl_mai_start_byte;
   uint16_t zero_2;
-  /* uint16_t *pf_ptl_mai // table of nr_of_vtss+1 x 8 */
+  pf_level_t *pf_ptl_mai; /* table of (nr_of_vtss + 1), video_ts is first */
 } ATTRIBUTE_PACKED ptl_mait_country_t;
 #define PTL_MAIT_COUNTRY_SIZE 8
 
@@ -571,6 +674,7 @@ typedef struct {
   uint16_t zero_1;
   uint32_t last_byte;
   vts_attributes_t *vts;
+  uint32_t *vts_atrt_offsets; /* offsets table for each vts_attributes */
 } ATTRIBUTE_PACKED vts_atrt_t;
 #define VTS_ATRT_SIZE 8
 
@@ -588,7 +692,7 @@ typedef struct {
   uint8_t unknown1;
   uint8_t unknown2;
   uint8_t unknown3;
-  uint8_t unknown4;  /*?? allways 0x30 language?, text format? */
+  uint8_t unknown4; /* ?? allways 0x30 language?, text format? */
   uint8_t unknown5;
   uint16_t offset; /* from first */
   
@@ -652,7 +756,7 @@ typedef struct {
   uint32_t vts_ptt_srpt;    /* sector */
   uint32_t vts_pgcit;       /* sector */
   uint32_t vtsm_pgci_ut;    /* sector */
-  uint32_t vts_tmapt;       /* sector */  /* XXX: FIXME TODO Implement */
+  uint32_t vts_tmapt;       /* sector */
   uint32_t vtsm_c_adt;      /* sector */
   uint32_t vtsm_vobu_admap; /* sector */
   uint32_t vts_c_adt;       /* sector */
@@ -677,6 +781,8 @@ typedef struct {
   uint8_t  zero_20[17];
   uint8_t  nr_of_vts_subp_streams;
   subp_attr_t vts_subp_attr[32];
+  uint16_t zero_21;
+  multichannel_ext_t vts_mu_audio_attr[8];
   /* XXX: how much 'padding' here, if any? */
 } ATTRIBUTE_PACKED vtsi_mat_t;
 
@@ -704,6 +810,7 @@ typedef struct {
   uint16_t zero_1;
   uint32_t last_byte;
   ttu_t  *title;
+  uint32_t *ttu_offset; /* offset table for each ttu */
 } ATTRIBUTE_PACKED vts_ptt_srpt_t;
 #define VTS_PTT_SRPT_SIZE 8
 
@@ -733,6 +840,7 @@ typedef struct {
   uint16_t zero_1;
   uint32_t last_byte;
   vts_tmap_t *tmap;
+  uint32_t *tmap_offset; /* offset table for each tmap */
 } ATTRIBUTE_PACKED vts_tmapt_t;
 #define VTS_TMAPT_SIZE 8
 

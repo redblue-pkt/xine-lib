@@ -3,7 +3,8 @@
 
 /*
  * Copyright (C) 2001, 2002 Billy Biggs <vektor@dumbterm.net>,
- *                          Håkan Hjort <d95hjort@dtek.chalmers.se>
+ *                          Håkan Hjort <d95hjort@dtek.chalmers.se>,
+ *                          Björn Englund <d4bjorn@dtek.chalmers.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +29,11 @@
  * This file contains the functions that form the interface to to
  * reading files located on a DVD.
  */
+
+/**
+ * The current version.
+ */
+#define DVDREAD_VERSION 904
 
 /**
  * The length of one Logical Block of a DVD.
@@ -178,6 +184,80 @@ ssize_t DVDReadBytes( dvd_file_t *, void *, size_t );
  * blocks = DVDFileSize(dvd_file);
  */
 ssize_t DVDFileSize( dvd_file_t * );
+
+/**
+ * Get a unique 128 bit disc ID.
+ * This is the MD5 sum of VIDEO_TS.IFO and the VTS_0?_0.IFO files
+ * in title order (those that exist).
+ * If you need a 'text' representation of the id, print it as a
+ * hexadecimal number, using lowercase letters, discid[0] first. 
+ * I.e. the same format as the command-line 'md5sum' program uses.
+ *
+ * @param dvd A read handle to get the disc ID from
+ * @param discid The buffer to put the disc ID into. The buffer must
+ *               have room for 128 bits (16 chars).
+ * @return 0 on success, -1 on error.
+ */
+int DVDDiscID( dvd_reader_t *, unsigned char * );
+
+/**
+ * Get the UDF VolumeIdentifier and VolumeSetIdentifier
+ * from the PrimaryVolumeDescriptor.
+ *
+ * @param dvd A read handle to get the disc ID from
+ * @param volid The buffer to put the VolumeIdentifier into.
+ *              The VolumeIdentifier is latin-1 encoded (8bit unicode)
+ *              null terminated and max 32 bytes (including '\0')
+ * @param volid_size No more than volid_size bytes will be copied to volid.
+ *                   If the VolumeIdentifier is truncated because of this
+ *                   it will still be null terminated.
+ * @param volsetid The buffer to put the VolumeSetIdentifier into.
+ *                 The VolumeIdentifier is 128 bytes as
+ *                 stored in the UDF PrimaryVolumeDescriptor.
+ *                 Note that this is not a null terminated string.
+ * @param volsetid_size At most volsetid_size bytes will be copied to volsetid.
+ * @return 0 on success, -1 on error.
+ */
+int DVDUDFVolumeInfo( dvd_reader_t *, char *, unsigned int,
+		      unsigned char *, unsigned int );
+
+/**
+ * Get the ISO9660 VolumeIdentifier and VolumeSetIdentifier
+ *
+ * * Only use this function as fallback if DVDUDFVolumeInfo returns 0   *
+ * * this will happen on a disc mastered only with a iso9660 filesystem *
+ * * All video DVD discs have UDF filesystem                            *
+ *
+ * @param dvd A read handle to get the disc ID from
+ * @param volid The buffer to put the VolumeIdentifier into.
+ *              The VolumeIdentifier is coded with '0-9','A-Z','_'
+ *              null terminated and max 33 bytes (including '\0')
+ * @param volid_size No more than volid_size bytes will be copied to volid.
+ *                   If the VolumeIdentifier is truncated because of this
+ *                   it will still be null terminated.
+ * @param volsetid The buffer to put the VolumeSetIdentifier into.
+ *                 The VolumeIdentifier is 128 bytes as
+ *                 stored in the ISO9660 PrimaryVolumeDescriptor.
+ *                 Note that this is not a null terminated string.
+ * @param volsetid_size At most volsetid_size bytes will be copied to volsetid.
+ * @return 0 on success, -1 on error.
+ */
+int DVDISOVolumeInfo( dvd_reader_t *, char *, unsigned int,
+		      unsigned char *, unsigned int );
+
+/**
+ * Sets the level of caching that is done when reading from a device
+ *
+ * @param dvd A read handle to get the disc ID from
+ * @param level The level of caching wanted.
+ *             -1 - returns the current setting.
+ *              0 - UDF Cache turned off.
+ *              1 - (default level) Pointers to IFO files and some data from
+ *                  PrimaryVolumeDescriptor are cached. 
+ *
+ * @return The level of caching.
+ */
+int DVDUDFCacheLevel( dvd_reader_t *, int );
 
 #ifdef __cplusplus
 };

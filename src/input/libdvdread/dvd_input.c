@@ -17,33 +17,44 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <dlfcn.h>
 
 #include "dvd_reader.h"
 #include "dvd_input.h"
 
 /* The function pointers that is the exported interface of this file. */
-dvd_input_t (*DVDinput_open)  (const char *);
-int         (*DVDinput_close) (dvd_input_t);
-int         (*DVDinput_seek)  (dvd_input_t, int);
-int         (*DVDinput_title) (dvd_input_t, int); 
-int         (*DVDinput_read)  (dvd_input_t, void *, int, int);
-char *      (*DVDinput_error) (dvd_input_t);
+dvd_input_t (*dvdinput_open)  (const char *);
+int         (*dvdinput_close) (dvd_input_t);
+int         (*dvdinput_seek)  (dvd_input_t, int);
+int         (*dvdinput_title) (dvd_input_t, int); 
+int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
+char *      (*dvdinput_error) (dvd_input_t);
 
-/* For libdvdcss */
+#ifdef HAVE_DVDCSS_DVDCSS_H
+/* linking to libdvdcss */
+#include <dvdcss/dvdcss.h>
+#define DVDcss_open(a) dvdcss_open((char*)(a))
+#define DVDcss_close   dvdcss_close
+#define DVDcss_seek    dvdcss_seek
+#define DVDcss_title   dvdcss_title
+#define DVDcss_read    dvdcss_read
+#define DVDcss_error   dvdcss_error
+#else
+/* dlopening libdvdcss */
+#include <dlfcn.h>
 typedef struct dvdcss_s *dvdcss_handle;
-
-dvdcss_handle (*DVDcss_open)  (const char *);
-int           (*DVDcss_close) (dvdcss_handle);
-int           (*DVDcss_seek)  (dvdcss_handle, int, int);
-int           (*DVDcss_title) (dvdcss_handle, int); 
-int           (*DVDcss_read)  (dvdcss_handle, void *, int, int);
-char *        (*DVDcss_error) (dvdcss_handle);
-
+static dvdcss_handle (*DVDcss_open)  (const char *);
+static int           (*DVDcss_close) (dvdcss_handle);
+static int           (*DVDcss_seek)  (dvdcss_handle, int, int);
+static int           (*DVDcss_title) (dvdcss_handle, int); 
+static int           (*DVDcss_read)  (dvdcss_handle, void *, int, int);
+static char *        (*DVDcss_error) (dvdcss_handle);
+#endif
 
 /* The DVDinput handle, add stuff here for new input methods. */
 struct dvd_input_s {
@@ -72,7 +83,7 @@ static dvd_input_t css_open(const char *target)
   /* Really open it with libdvdcss */
   dev->dvdcss = DVDcss_open(target);
   if(dev->dvdcss == 0) {
-    fprintf(stderr, "libdvdread: Could not open device with libdvdcss.\n");
+    fprintf(stderr, "libdvdread: Could not open %s with libdvdcss.\n", target);
     free(dev);
     return NULL;
   }
@@ -250,11 +261,19 @@ static int file_close(dvd_input_t dev)
 /**
  * Setup read functions with either libdvdcss or minimal DVD access.
  */
-int DVDInputSetup(void)
+int dvdinput_setup(void)
 {
   void *dvdcss_library = NULL;
   char **dvdcss_version = NULL;
-  
+
+#ifdef HAVE_DVDCSS_DVDCSS_H
+  /* linking to libdvdcss */
+  dvdcss_library = &dvdcss_library;  /* Give it some value != NULL */
+  /* the DVDcss_* functions have been #defined at the top */
+  dvdcss_version = &dvdcss_interface_2;
+
+#else
+  /* dlopening libdvdcss */
   dvdcss_library = dlopen("libdvdcss.so.2", RTLD_LAZY);
   
   if(dvdcss_library != NULL) {
@@ -292,6 +311,7 @@ int DVDInputSetup(void)
       dlclose(dvdcss_library);
     }
   }
+#endif /* HAVE_DVDCSS_DVDCSS_H */
   
   if(dvdcss_library != NULL) {
     /*
@@ -303,25 +323,25 @@ int DVDInputSetup(void)
     fprintf(stderr, "libdvdread: Using libdvdcss version %s for DVD access\n",
 	    *dvdcss_version);
     
-    /* libdvdcss wraper functions */
-    DVDinput_open  = css_open;
-    DVDinput_close = css_close;
-    DVDinput_seek  = css_seek;
-    DVDinput_title = css_title;
-    DVDinput_read  = css_read;
-    DVDinput_error = css_error;
+    /* libdvdcss wrapper functions */
+    dvdinput_open  = css_open;
+    dvdinput_close = css_close;
+    dvdinput_seek  = css_seek;
+    dvdinput_title = css_title;
+    dvdinput_read  = css_read;
+    dvdinput_error = css_error;
     return 1;
     
   } else {
     fprintf(stderr, "libdvdread: Encrypted DVD support unavailable.\n");
 
     /* libdvdcss replacement functions */
-    DVDinput_open  = file_open;
-    DVDinput_close = file_close;
-    DVDinput_seek  = file_seek;
-    DVDinput_title = file_title;
-    DVDinput_read  = file_read;
-    DVDinput_error = file_error;
+    dvdinput_open  = file_open;
+    dvdinput_close = file_close;
+    dvdinput_seek  = file_seek;
+    dvdinput_title = file_title;
+    dvdinput_read  = file_read;
+    dvdinput_error = file_error;
     return 0;
   }
 }

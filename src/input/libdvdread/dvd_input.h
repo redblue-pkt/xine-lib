@@ -30,18 +30,18 @@
 typedef struct dvd_input_s *dvd_input_t;
 
 /**
- * Pointers which will be filled either the input meathods functions.
+ * Pointers which will be filled either the input methods functions.
  */
-extern dvd_input_t (*DVDinput_open)  (const char *);
-extern int         (*DVDinput_close) (dvd_input_t);
-extern int         (*DVDinput_seek)  (dvd_input_t, int);
-extern int         (*DVDinput_title) (dvd_input_t, int); 
-extern int         (*DVDinput_read)  (dvd_input_t, void *, int, int);
-extern char *      (*DVDinput_error) (dvd_input_t);
+extern dvd_input_t (*dvdinput_open)  (const char *);
+extern int         (*dvdinput_close) (dvd_input_t);
+extern int         (*dvdinput_seek)  (dvd_input_t, int);
+extern int         (*dvdinput_title) (dvd_input_t, int); 
+extern int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
+extern char *      (*dvdinput_error) (dvd_input_t);
 
 /**
  * Setup function accessed by dvd_reader.c.  Returns 1 if there is CSS support.
  */
-int DVDInputSetup(void);
+int dvdinput_setup(void);
 
 #endif /* DVD_INPUT_H_INCLUDED */
