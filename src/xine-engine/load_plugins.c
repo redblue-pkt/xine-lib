@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.82 2002/09/05 16:24:14 guenter Exp $
+ * $Id: load_plugins.c,v 1.83 2002/09/05 16:50:56 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -576,7 +576,7 @@ static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
 
       i++;
     }
-    node = xine_list_next_content (this->plugin_catalog->input);
+    node = xine_list_next_content (catalog->input);
   }
 
   catalog->ids[i] = NULL;
@@ -596,27 +596,21 @@ char **xine_get_browsable_input_plugin_ids(xine_t *this) {
 
 char *xine_get_input_plugin_description(xine_t *this, char *plugin_id) {
 
-  /* FIXME */
+  plugin_catalog_t   *catalog;
+  plugin_node_t      *node;
 
-#if 0
-  char            *str;
-  input_plugin_t  *ip;
-  int              i;
+  catalog = this->plugin_catalog;
 
-  if((this == NULL) || (this->num_input_plugins < 1) || (plugin_id == NULL))
-    return NULL;
-  
-  for(i = 0; i < this->num_input_plugins; i++) {
-    
-    ip = this->input_plugins[i];
-    
-    if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
-      str = strdup(ip->get_description(ip));
-      return str;
+  node = xine_list_first_content (catalog->input);
+  while (node) {
+
+    if (!strcasecmp (node->info->id, plugin_id)) {
+
+      input_plugin_t *ip = (input_plugin_t *) node->plugin;
+
+      return ip->get_description(ip);
     }
   }
-#endif  
-
   return NULL;
 }
 
@@ -669,11 +663,53 @@ xine_vo_driver_t *xine_open_video_driver (xine_t *this,
  *  audio output plugins section
  */
 
-char **xine_list_audio_output_plugins(void) {
+char **xine_list_audio_output_plugins (xine_t *this) {
 
-  return NULL;
+  plugin_catalog_t   *catalog;
+  int                 i;
+  plugin_node_t      *node;
+
+  catalog = this->plugin_catalog;
+
+  i = 0;
+  node = xine_list_first_content (catalog->aout);
+  while (node) {
+
+    catalog->ids[i] = node->info->id;
+
+    i++;
+
+    node = xine_list_next_content (catalog->aout);
+  }
+
+  catalog->ids[i] = NULL;
+
+  return catalog->ids;
 }
 
+char **xine_list_video_output_plugins (xine_t *this) {
+
+  plugin_catalog_t   *catalog;
+  int                 i;
+  plugin_node_t      *node;
+
+  catalog = this->plugin_catalog;
+
+  i = 0;
+  node = xine_list_first_content (catalog->vout);
+  while (node) {
+
+    catalog->ids[i] = node->info->id;
+
+    i++;
+
+    node = xine_list_next_content (catalog->vout);
+  }
+
+  catalog->ids[i] = NULL;
+
+  return catalog->ids;
+}
 
 xine_ao_driver_t *xine_open_audio_driver (xine_t *this, char *id,
 					  void *data) {
@@ -712,90 +748,59 @@ xine_ao_driver_t *xine_open_audio_driver (xine_t *this, char *id,
   return driver; 
 } 
 
-/** ***************************************************************
- *  Autoplay featured plugins section
+/* 
+ * get autoplay mrl list from input plugin
  */
+
 char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls) {
 
-  /* FIXME */
+  plugin_catalog_t   *catalog;
+  plugin_node_t      *node;
 
-#if 0
-  input_plugin_t  *ip;
-  char           **autoplay_mrls = NULL;
-  int              i;
-  
-  if(!this || !plugin_id)
-    return NULL;
-  
-  if(!this->num_input_plugins)
-    return NULL;
+  catalog = this->plugin_catalog;
 
-  for(i = 0; i < this->num_input_plugins; i++) {
+  node = xine_list_first_content (catalog->input);
+  while (node) {
 
-    ip = this->input_plugins[i];
+    if (!strcasecmp (node->info->id, plugin_id)) {
 
-    if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
-      if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
+      input_plugin_t *ip = (input_plugin_t *) node->plugin;
 
-	if(ip->get_autoplay_list) {
-	  autoplay_mrls = ip->get_autoplay_list(ip, num_mrls);
-	  this->cur_input_plugin = this->input_plugins[i];
-	}
+      if (!( ip->get_capabilities(ip) & INPUT_CAP_AUTOPLAY)) 
+	return NULL;
 
-      }
-      goto autoplay_mrls_done;
+      /* this->cur_input_plugin = ip;  FIXME: needed? */
+
+      return ip->get_autoplay_list (ip, num_mrls);
     }
   }
-
- autoplay_mrls_done:
-  return autoplay_mrls;
-
-
-#endif
   return NULL;
 }
 
 /*
- * browse featured plugins section
+ * input plugin mrl browser support
  */
 xine_mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
 				   char *start_mrl, int *num_mrls) {
 
-  /* FIXME */
+  plugin_catalog_t   *catalog;
+  plugin_node_t      *node;
 
-#if 0
+  catalog = this->plugin_catalog;
 
-  input_plugin_t  *ip;
-  mrl_t **browse_mrls = NULL;
-  int              i;
-  
-  if(!this || !plugin_id)
-    return NULL;
-  
-  if(!this->num_input_plugins)
-    return NULL;
+  node = xine_list_first_content (catalog->input);
+  while (node) {
 
-  for(i = 0; i < this->num_input_plugins; i++) {
+    if (!strcasecmp (node->info->id, plugin_id)) {
 
-    ip = this->input_plugins[i];
+      input_plugin_t *ip = (input_plugin_t *) node->plugin;
 
-    if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
-      if(((ip->get_capabilities(ip)) & INPUT_CAP_GET_DIR)) {
+      if (!( ip->get_capabilities(ip) & INPUT_CAP_GET_DIR)) 
+	return NULL;
 
-	if(ip->get_dir) {
-	  browse_mrls = ip->get_dir(ip, start_mrl, num_mrls);
-	  this->cur_input_plugin = this->input_plugins[i];
-	}
-
-      }
-      goto browse_mrls_done;
+      return ip->get_dir (ip, start_mrl, num_mrls);
     }
   }
-
- browse_mrls_done:
-  return browse_mrls;
-
-#endif
   return NULL;
 }
 

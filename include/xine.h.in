@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.2 2002/09/04 23:31:06 guenter Exp $
+ * $Id: xine.h.in,v 1.3 2002/09/05 16:50:55 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -376,7 +376,13 @@ int xine_register_report_codec_cb(xine_t *self,
 #define XINE_PARAM_AO_MUTE                 0x02000003
 
 /*
- * autoplay / mrl browsing
+ * plugin management / autoplay / mrl browsing
+ *
+ * note: the pointers to strings or string arrays returned
+ *       by some of these functions are pointers to statically
+ *       alloced internal xine memory chunks.
+ *       they're only valid between xine function calls
+ *       and should never be free()d.
  */
 
 typedef struct {
@@ -429,6 +435,14 @@ char **xine_get_autoplay_input_plugin_ids (xine_t *self);
 
 /* get autoplay MRL list from input plugin named <plugin_id> */
 char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls);
+
+/* get a description string for an input plugin */
+char *xine_get_input_plugin_description (xine_t *self, char *plugin_id);
+
+/* get lists of available audio and video output plugins */
+char **xine_list_audio_output_plugins (xine_t *self) ;
+char **xine_list_video_output_plugins (xine_t *self) ;
+
 
 /*
  * visual specific gui <-> xine engine communication

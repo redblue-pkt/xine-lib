@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.93 2002/09/04 23:31:13 guenter Exp $
+ * $Id: xine_internal.h,v 1.94 2002/09/05 16:50:56 guenter Exp $
  *
  */
 
@@ -292,8 +292,6 @@ spu_decoder_t   *get_spu_decoder   (xine_t *this, uint8_t stream_type);
  *
  */
 
-char **xine_list_video_output_plugins (int visual_type);
-
 /*
  * load_video_output_plugin
  *
@@ -306,15 +304,6 @@ xine_vo_driver_t *xine_load_video_output_plugin(xine_t *this,
 /*
  * audio output plugin dynamic loading stuff
  */
-
-/*
- * list_audio_output_plugins
- *
- * returns a list of available audio output plugins 
- * the list returned is sorted by plugin priority
- */
-
-char **xine_list_audio_output_plugins ();
 
 /*
  * load_audio_output_plugin
