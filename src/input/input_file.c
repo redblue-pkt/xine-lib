@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.90 2004/04/10 15:45:11 mroi Exp $
+ * $Id: input_file.c,v 1.91 2004/04/15 00:14:57 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -261,8 +261,19 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
     else
       this->fh = open(this->mrl, O_RDONLY|O_BINARY);
     
-    if (this->fh == -1)
+    if (this->fh == -1) {
+      if (errno == EACCES) {
+        _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
+	xine_log (this->stream->xine, XINE_LOG_MSG,
+		  _("input_file: Permission denied: >%s<\n"), this->mrl);
+      } else if (errno == ENOENT) {
+        _x_message(this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
+	xine_log (this->stream->xine, XINE_LOG_MSG,
+		  _("input_file: File not found: >%s<\n"), this->mrl);
+      }
+
       return 0;
+    }
   }
 
   return 1;

@@ -15,6 +15,8 @@ xine-lib (1-rc4)
   * build improvements - different source and build directory, translations
   * avoid deadlock with raw AC3 streams and visualization
   * fix 24 bpp RGB output - may affect some users of xshm and fb
+  * generate events for "Permission denied" and "File not found" in the
+    http and file plugins
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins

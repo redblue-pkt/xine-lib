@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.85 2004/04/10 15:45:11 mroi Exp $
+ * $Id: input_http.c,v 1.86 2004/04/15 00:14:57 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -790,6 +790,18 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
       	  xine_log (this->stream->xine, XINE_LOG_MSG, 
 		    _("input_http: 3xx redirection: >%d %s<\n"),
 		    httpcode, httpstatus);
+	} else if (httpcode == 404) {
+	  _x_message(this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
+	  xine_log (this->stream->xine, XINE_LOG_MSG,
+		    _("input_http: http status not 2xx: >%d %s<\n"),
+		                        httpcode, httpstatus);
+	  return 0;
+	} else if (httpcode == 403) {
+          _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
+	  xine_log (this->stream->xine, XINE_LOG_MSG,
+		    _("input_http: http status not 2xx: >%d %s<\n"),
+		    httpcode, httpstatus);
+	  return 0;
 	} else if (httpcode < 200 || httpcode >= 300) {
 	  _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ",
 	               httpstatus, NULL);

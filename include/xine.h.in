@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.119 2004/04/09 14:46:02 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.120 2004/04/15 00:14:56 hadess Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1652,6 +1652,7 @@ typedef struct {
 #define XINE_MSG_ENCRYPTED_SOURCE	9  /* none               */
 #define XINE_MSG_SECURITY		10 /* (security message) */
 #define XINE_MSG_AUDIO_OUT_UNAVAILABLE	11 /* none               */
+#define XINE_MSG_PERMISSION_ERROR       12 /* (file name or mrl) */
 
 /* opaque xine_event_queue_t */
 typedef struct xine_event_queue_s xine_event_queue_t;
