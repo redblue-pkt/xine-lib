@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.19 2001/12/06 23:53:20 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.20 2001/12/09 23:09:32 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -35,11 +35,6 @@ extern "C" {
 
 #define INPUT_PLUGIN_IFACE_VERSION   5
  
-/*
- * Return pointer of allocate/cleaned memory size *size*.
- */
-extern void *xmalloc(size_t);
-
 #define MAX_MRL_ENTRIES 255
 
 /* Types of mrls returned by get_dir() */
@@ -140,40 +135,6 @@ extern void *xmalloc(size_t);
     i++;                                                                      \
   }                                                                           \
 }
-
-#define REGISTER_VALID_MRLS(config, mrltype, mrls) {                          \
-  cfg_entry_t *entry;                                                         \
-  char *sticky;                                                               \
-  char *v_mrls;                                                               \
-  char *a_def = NULL;                                                         \
-                                                                              \
-  (config)->register_empty((config), (mrltype));                              \
-  entry = (config)->lookup_entry((config), (mrltype));                        \
-                                                                              \
-  sticky = entry->str_sticky;                                                 \
-  v_mrls = (entry->str_value) ? entry->str_value : entry->unknown_value;      \
-                                                                              \
-  if(v_mrls) {                                                                \
-    a_def = strstr(v_mrls, (mrls));                                           \
-    if(a_def)                                                                 \
-      goto __done;                                                            \
-  }                                                                           \
-                                                                              \
-  if(!sticky) {                                                               \
-    sticky = (char *) xine_xmalloc(strlen((mrls)) + 2);                       \
-    sprintf(sticky, ",%s", (mrls));                                           \
-    entry->str_sticky = sticky;                                               \
-  }                                                                           \
-  else {                                                                      \
-    a_def = strstr(sticky, (mrls));                                           \
-    if(!a_def) {                                                              \
-      sticky = (char *) realloc(sticky, strlen((mrls)) + 2);                  \
-      sprintf(sticky, "%s,%s", sticky, (mrls));                               \
-    }                                                                         \
-  }                                                                           \
-__done:                                                                       \
-} 
-
 
 typedef struct {
   char         *origin;  /* Origin of grabbed mrls (eg: path for file plugin */
