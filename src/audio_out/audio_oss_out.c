@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.16 2001/06/24 02:19:29 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.17 2001/06/24 03:36:30 guenter Exp $
  */
 
 /* required for swab() */
@@ -127,8 +127,9 @@ static int ao_open(ao_functions_t *this_gen,
 
   if (this->audio_fd > -1) {
 
-    if ( (mode == this->mode) && (rate == this->input_sample_rate) )
+    if ( (mode == this->mode) && (rate == this->input_sample_rate) ) {
       return 1;
+    }
 
     close (this->audio_fd);
   }
@@ -601,6 +602,7 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   close (audio_fd);
 
   this->output_sample_rate = 0;
+  this->audio_fd = -1;
 
   this->zero_space = malloc (8192);
   memset (this->zero_space, 0, 8192);
