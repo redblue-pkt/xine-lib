@@ -1044,6 +1044,20 @@
       help.
     </para>
   </sect1>
+
+  <sect1 id="dxr3">
+    <title> Does xine support my dxr3 / hollywood+ card? </title>
+    <para>
+       while xine's focus is clearly on software decoding,
+       the dxr3 is supported.
+    </para>
+    <para>
+       you can find more information about using xine with the dxr3
+       <ulink url="http://www.amalthea.de/xine/">here</ulink>
+       (also covers how to do tv output using the dxr3).
+    </para>
+  </sect1>
+
 </chapter>
 
 <chapter id="audio">
