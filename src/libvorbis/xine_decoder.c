@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2003/11/29 14:28:02 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.33 2003/11/29 14:47:50 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -278,14 +278,7 @@ static void vorbis_dispose (audio_decoder_t *this_gen) {
     lprintf("deinitializing decoder\n");
 
     vorbis_block_clear(&this->vb);
-    /* I couldn't find documentation on how vorbis_dsp_state
-     * should be cleared (synthesis mode).
-     *
-     * vorbis_dsp_clear() seems to segfault sometimes and other
-     * projects are not using it in their decoders.
-     * vorbis_synthesis_clear() does not exist anymore.
-     */
-    /* vorbis_dsp_clear(&this->vd); */
+    vorbis_dsp_clear(&this->vd);
   }
 
   vorbis_comment_clear(&this->vc);
