@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.80 2003/03/05 16:44:51 petli Exp $
+ * $Id: demux_ts.c,v 1.81 2003/04/17 19:01:31 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1825,27 +1825,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    uint8_t buf[MAX_PREVIEW_SIZE];
-    int     got_sample;
+    uint8_t buf[2069];
     int     i, j;
     int     try_again, ts_detected;
 
-    got_sample = 0;
-
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
-      input->seek(input, 0, SEEK_SET);
-
-      if (input->read(input, buf, 2069)) 
-	got_sample = 1;
-
-    } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
-
-      input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
-
-      got_sample = 1;
-    }
-
-    if (!got_sample)
+    if (!xine_demux_read_header(input, buf, 2069))
       return NULL;
 
     ts_detected = 0;
@@ -1874,30 +1858,17 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     break;
 
   case METHOD_BY_EXTENSION: {
-
-    char  *mrl;
-    char  *ending;
+    char  *extensions, *mrl;
 
     mrl = input->get_mrl (input);
-    
-    /*
-     * check extension
-     */
-    
-    ending = strrchr (mrl, '.');
 
-    if (ending) {
-      if (!strncasecmp(ending, ".ts", 3) ||
-	  !strncasecmp(ending, ".m2t", 4) ||
-	  !strncasecmp(ending, ".trp", 4)) {
-	break;
-      } 
-    }
+    /* check extension */
+    extensions = class_gen->get_extensions (class_gen);
 
-    /*
-     * accept dvb streams 
-     */
+    if (xine_demux_check_extension (mrl, extensions))
+      break;
 
+    /* accept dvb streams */
     if (!strncasecmp (mrl, "dvb://", 6))
       break;
 

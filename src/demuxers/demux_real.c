@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.48 2003/04/09 12:08:26 guenter Exp $
+ * $Id: demux_real.c,v 1.49 2003/04/17 19:01:26 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1129,72 +1129,46 @@ static int real_check_stream_type(uint8_t *buf, int len)
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_real_t   *this;
-  uint8_t buf[MAX_PREVIEW_SIZE+1];
-  int len;
+  uint8_t buf[1024+1];
+  int len, stream_type=0;
 
   switch (stream->content_detection_method) {
 
-  case METHOD_BY_CONTENT:
-    {
-      if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+  case METHOD_BY_CONTENT:{
 
-	input->seek(input, 0, SEEK_SET);
-
-	if ((len = input->read(input, buf, 1024))) {
+    if (!(len = xine_demux_read_header(input, buf, 1024)))
+      return NULL;
 
 #ifdef LOG
-	  printf ("demux_real: input seekable, read 4 bytes: %02x %02x %02x %02x\n",
-		  buf[0], buf[1], buf[2], buf[3]);
+    printf ("demux_real: read 4 bytes: %02x %02x %02x %02x\n",
+            buf[0], buf[1], buf[2], buf[3]);
 #endif
 
-	  if (!real_check_stream_type(buf,len))
-	    return NULL;
-	} else
-	  return NULL;
+    if (!(stream_type = real_check_stream_type(buf,len)))
+      return NULL;
+  }
 
-      } else if ((len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW))) {
-	
 #ifdef LOG
-	printf ("demux_real: input provides preview, read 4 bytes: %02x %02x %02x %02x\n",
-		buf[0], buf[1], buf[2], buf[3]);
-#endif
-
-	if (!real_check_stream_type(buf,len))
-	  return NULL;
-      } else
-	return NULL;
-    }
-    
-#ifdef LOG
-    printf ("demux_real: by content accepted.\n");
+  printf ("demux_real: by content accepted.\n");
 #endif
   break;
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
+    char *extensions, *mrl;
 
     mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
 
 #ifdef LOG
-    printf ("demux_real: by extension '%s'\n", mrl); 
+    printf ("demux_real: by extension '%s'\n", mrl);
 #endif
 
-    ending = strrchr(mrl, '.');
-
-#ifdef LOG
-    printf ("demux_real: ending %s\n", ending);
-#endif
-
-    if (!ending) 
+    if (!xine_demux_check_extension (mrl, extensions)) {
       return NULL;
-
-    if (strncasecmp (ending, ".rm", 3)
-	&& strncasecmp (ending, ".ram", 4)) 
-      return NULL;
+    }
 
 #ifdef LOG
     printf ("demux_real: by extension accepted.\n");
@@ -1216,28 +1190,21 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->stream = stream;
   this->input  = input;
 
-  
+
   /* discover stream type */
-  this->reference_mode = 0;
-  if ((len = input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+  if(!stream_type)
+    if (len = xine_demux_read_header(this->input, buf, 1024))
+      stream_type = real_check_stream_type(buf,len);
 
-    input->seek(input, 0, SEEK_SET);
-
-    if ( (len = input->read(input, buf, 1024)) > 0) {
-      if (real_check_stream_type(buf,len) == 2)
-        this->reference_mode = 1;
-    }
-
-  } else if ((len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW))) {
-   
-    if (real_check_stream_type(buf,len) == 2)
-      this->reference_mode = 1;
-  }
-    
-  if(this->reference_mode)
+  if(stream_type == 2){
+    this->reference_mode = 1;
+#ifdef LOG
     printf("demux_real: reference stream detected\n");
-  
-  
+#endif
+  }else
+    this->reference_mode = 0;
+
+
   this->demux_plugin.send_headers      = demux_real_send_headers;
   this->demux_plugin.send_chunk        = demux_real_send_chunk;
   this->demux_plugin.seek              = demux_real_seek;

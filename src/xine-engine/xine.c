@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.242 2003/04/16 22:38:44 miguelfreitas Exp $
+ * $Id: xine.c,v 1.243 2003/04/17 19:01:24 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -531,7 +531,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   
   if (!stream->input_plugin) {
     xine_log (stream->xine, XINE_LOG_MSG,
-	      _("xine: cannot find input plugin for this MRL\n"));
+	      _("xine: cannot find input plugin for MRL [%s]\n"),mrl);
     stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
     return 0;
   } else {
@@ -545,6 +545,8 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   }
 
   if (!stream->input_plugin->open(stream->input_plugin)) {
+    xine_log (stream->xine, XINE_LOG_MSG,
+	      _("xine: input plugin cannot open MRL [%s]\n"),mrl);
     stream->input_plugin->dispose(stream->input_plugin);
     stream->input_plugin = NULL;
     stream->err = XINE_ERROR_INPUT_FAILED;

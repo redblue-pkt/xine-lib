@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2002 the xine project
+ * Copyright (C) 2001-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.18 2003/03/31 19:31:56 tmmm Exp $
+ * $Id: demux_realaudio.c,v 1.19 2003/04/17 19:01:27 miguelfreitas Exp $
  *
  */
 
@@ -85,32 +85,18 @@ static int open_ra_file(demux_ra_t *this) {
 
   unsigned char file_header[RA_FILE_HEADER_SIZE];
   unsigned char audio_header[RA_AUDIO_HEADER_SIZE];
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
   /* check the signature */
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, file_header, RA_FILE_HEADER_SIZE) !=
-      RA_FILE_HEADER_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(file_header, preview, RA_FILE_HEADER_SIZE);
-  }
+  if (!xine_demux_read_header(this->input, file_header, RA_FILE_HEADER_SIZE))
+    return 0;
 
   if ((file_header[0] != '.') ||
       (file_header[1] != 'r') ||
       (file_header[2] != 'a'))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, RA_FILE_HEADER_SIZE, SEEK_SET);
-  }
+  /* file is qualified; skip over the header bytes in the stream */
+  this->input->seek(this->input, RA_FILE_HEADER_SIZE, SEEK_SET);
 
   /* load the audio header */
   if (this->input->read(this->input, audio_header, RA_AUDIO_HEADER_SIZE) !=
@@ -324,6 +310,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -333,33 +332,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
 
   break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".ra", 3)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_ra_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
+  
   default:
     free (this);
     return NULL;

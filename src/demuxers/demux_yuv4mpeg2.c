@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.20 2003/04/02 03:20:43 tmmm Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.21 2003/04/17 19:01:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -92,28 +92,12 @@ typedef struct {
 static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
 
   unsigned char header[Y4M_HEADER_BYTES];
-  unsigned char preview[MAX_PREVIEW_SIZE];
   int i;
 
   this->bih.biWidth = this->bih.biHeight = this->fps = this->data_start = 0;
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-
-    /* back to the start */
-    this->input->seek(this->input, 0, SEEK_SET);
-
-    /* read a chunk of bytes that should contain all the header info */
-    if (this->input->read(this->input, header, Y4M_HEADER_BYTES) !=
-      Y4M_HEADER_BYTES)
-      return 0;
-
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(header, preview, Y4M_HEADER_BYTES);
-  }
+  if (!xine_demux_read_header(this->input, header, Y4M_HEADER_BYTES))
+    return 0;
 
   /* check for the Y4M signature */
   if (memcmp(header, Y4M_SIGNATURE, Y4M_SIGNATURE_SIZE) != 0)
@@ -163,7 +147,7 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
       break;
   this->data_start = i;
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->data_size = this->input->get_length(this->input) - 
+    this->data_size = this->input->get_length(this->input) -
       this->data_start;
   }
 
@@ -172,17 +156,8 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
       !this->fps || !this->data_start)
     return 0;
 
-  /* file is qualified; if the input was not seekable, read the header
-   * bytes out of the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-
-    this->input->seek(this->input, this->data_start, SEEK_SET);
-
-  } else {
-
-    /* seek to first frame */
-    this->input->seek(this->input, this->data_start, SEEK_SET);
-  }
+  /* file is qualified; seek to first frame */
+  this->input->seek(this->input, this->data_start, SEEK_SET);
 
   return 1;
 }
@@ -210,7 +185,7 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
 
   /* load and dispatch the raw frame */
   bytes_remaining = this->frame_size;
-  current_file_pos = 
+  current_file_pos =
     this->input->get_current_pos(this->input) - this->data_start;
   pts = current_file_pos;
   pts /= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
@@ -373,6 +348,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -380,32 +368,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".y4m", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_yuv4mpeg2_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 

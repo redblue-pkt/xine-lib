@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.27 2003/01/17 16:52:38 miguelfreitas Exp $
+ * $Id: demux_vqa.c,v 1.28 2003/04/17 19:01:32 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -111,14 +111,7 @@ static int open_vqa_file(demux_vqa_t *this) {
   unsigned char scratch[12];
   unsigned int chunk_size;
 
-  /* get the actual filesize */
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->filesize = this->input->get_length(this->input);
-    this->input->seek(this->input, 0, SEEK_SET);
-  } else
-    this->filesize = 1;
-
-  if (this->input->read(this->input, scratch, 12) != 12)
+  if (!xine_demux_read_header(this->input, scratch, 12))
     return 0;
 
   /* check for the VQA signatures */
@@ -126,8 +119,12 @@ static int open_vqa_file(demux_vqa_t *this) {
       (BE_32(&scratch[8]) != WVQA_TAG))
     return 0;
 
-  /* skip to the start of the VQA header */
-  this->input->seek(this->input, 8, SEEK_CUR);
+  /* file is qualified; skip to the start of the VQA header */
+  this->input->seek(this->input, 20, SEEK_SET);
+
+  /* get the actual filesize */
+  if ( !(this->filesize = this->input->get_length(this->input)) )
+    this->filesize = 1;
 
   /* load the VQA header */
   if (this->input->read(this->input, this->header, VQA_HEADER_SIZE)
@@ -357,13 +354,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_vqa_t    *this;
 
-/*
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_vqa.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
-*/
-
   this         = xine_xmalloc (sizeof (demux_vqa_t));
   this->stream = stream;
   this->input  = input;
@@ -384,44 +374,26 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
-    if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) {
-      free (this);
-      return NULL;
-    }
-
     if (!open_vqa_file(this)) {
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".vqa", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_vqa_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 

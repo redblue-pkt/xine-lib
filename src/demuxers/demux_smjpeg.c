@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.37 2003/03/07 12:51:48 guenter Exp $
+ * $Id: demux_smjpeg.c,v 1.38 2003/04/17 19:01:27 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -113,13 +113,7 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
   unsigned char signature[8];
   unsigned char header_chunk[SMJPEG_HEADER_CHUNK_MAX_SIZE];
 
-  /* initial state: no video and no audio (until headers found) */
-  this->video_type = this->audio_type = 0;
-  this->input_length = this->input->get_length (this->input);
-
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, signature, SMJPEG_SIGNATURE_SIZE) !=
-    SMJPEG_SIGNATURE_SIZE)
+  if (!xine_demux_read_header(this->input, signature, SMJPEG_SIGNATURE_SIZE))
     return 0;
 
   /* check for the SMJPEG signature */
@@ -133,11 +127,15 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
       (signature[7] != 'G'))
     return 0;
 
-  /* jump over the version to the duration */
-  this->input->seek(this->input, 4, SEEK_CUR);
+  /* file is qualified; jump over the header + version to the duration */
+  this->input->seek(this->input, SMJPEG_SIGNATURE_SIZE + 4, SEEK_SET);
   if (this->input->read(this->input, header_chunk, 4) != 4)
     return 0;
   this->duration = BE_32(&header_chunk[0]);
+  
+  /* initial state: no video and no audio (until headers found) */
+  this->video_type = this->audio_type = 0;
+  this->input_length = this->input->get_length (this->input);
 
   /* traverse the header chunks until the HEND tag is found */
   chunk_tag = 0;
@@ -439,6 +437,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -446,32 +457,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".mjpg", 5)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_smjpeg_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 

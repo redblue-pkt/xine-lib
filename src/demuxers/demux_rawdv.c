@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2000-2002 the xine project
+/*
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_rawdv.c,v 1.5 2003/03/07 00:44:53 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.6 2003/04/17 19:01:26 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  * 
@@ -368,18 +368,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
+    char *extensions, *mrl;
 
     mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
 
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".dv", 3) && strncasecmp (ending, ".dif", 4)) {
+    if (!xine_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }
@@ -406,7 +400,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "dv";
+  return "dv dif";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {

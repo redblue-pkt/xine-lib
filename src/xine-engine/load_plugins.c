@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.146 2003/04/13 16:08:26 tmattern Exp $
+ * $Id: load_plugins.c,v 1.147 2003/04/17 19:01:23 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1156,6 +1156,9 @@ demux_plugin_t *find_demux_plugin_last_probe(xine_stream_t *stream, const char *
 
     i++;
   }
+
+  if( !last_demux )
+    return NULL;
 
   stream->content_detection_method = METHOD_BY_CONTENT;
 

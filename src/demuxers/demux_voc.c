@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2002 the xine project
+ * Copyright (C) 2001-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.29 2003/03/31 19:31:58 tmmm Exp $
+ * $Id: demux_voc.c,v 1.30 2003/04/17 19:01:32 miguelfreitas Exp $
  *
  */
 
@@ -96,31 +96,15 @@ static int open_voc_file(demux_voc_t *this) {
   unsigned char preamble[BLOCK_PREAMBLE_SIZE];
   off_t first_block_offset;
   signed char sample_rate_divisor;
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
-      VOC_HEADER_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(header, preview, VOC_HEADER_SIZE);
-  }
+  if (!xine_demux_read_header(this->input, header, VOC_HEADER_SIZE))
+    return 0;
 
   /* check the signature */
   if (strncmp(header, VOC_SIGNATURE, strlen(VOC_SIGNATURE)) != 0)
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, VOC_HEADER_SIZE, SEEK_SET);
-  }
-
+  /* file is qualified */
   first_block_offset = LE_16(&header[0x14]);
   this->input->seek(this->input, first_block_offset, SEEK_SET);
 
@@ -351,6 +335,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -358,32 +355,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".voc", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_voc_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.134 2003/04/13 16:28:48 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.135 2003/04/17 19:01:25 miguelfreitas Exp $
  *
  */
 
@@ -306,6 +306,8 @@ void xine_demux_control_start        (xine_stream_t *stream);
 void xine_demux_control_end          (xine_stream_t *stream, uint32_t flags);
 int xine_demux_start_thread          (xine_stream_t *stream);
 int xine_demux_stop_thread           (xine_stream_t *stream);
+int xine_demux_read_header           (input_plugin_t *input, unsigned char *buffer, off_t size);
+int xine_demux_check_extension       (char *mrl, char *extensions);
 
 off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -22,7 +22,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.8 2003/04/02 03:20:42 tmmm Exp $
+ * $Id: demux_str.c,v 1.9 2003/04/17 19:01:30 miguelfreitas Exp $
  */
 
 /* CD-XA format:
@@ -569,11 +569,6 @@ static int demux_str_get_optional_data(demux_plugin_t *this_gen,
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
-static char *get_extensions (demux_class_t *this_gen) {
-  /* also .mov, but we don't want to hijack that extension */
-  return "str iki ik2 dps dat xa xa1 xa2 xas xap";
-}
-
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input_gen) {
 
@@ -606,6 +601,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+    
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -613,41 +621,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl, i, *extn;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free(this);
-      return NULL;
-    }
-
-    /* find if any of the extensions match */
-    extn = get_extensions((demux_class_t *) this);
-    for (i = 0; *extn; extn++) {
-      if (*extn == ' ') {
-	if (ending[i+1] == '\0') break;
-      }
-      else {
-	if (*extn == ending[i+1]) i++; else i = 0;
-      }
-    }
-    if (ending[i+1] != '\0') {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_str_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
   break;
 
   default:
@@ -666,6 +639,11 @@ static char *get_description (demux_class_t *this_gen) {
 
 static char *get_identifier (demux_class_t *this_gen) {
   return "PSX STR";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  /* also .mov, but we don't want to hijack that extension */
+  return "str iki ik2 dps dat xa xa1 xa2 xas xap";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {

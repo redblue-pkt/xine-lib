@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.35 2003/02/22 14:06:48 esnel Exp $
+ * $Id: demux_wc3movie.c,v 1.36 2003/04/17 19:01:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -383,37 +383,22 @@ static int open_mve_file(demux_mve_t *this) {
   unsigned char r, g, b;
   int temp;
   unsigned char header[WC3_HEADER_SIZE];
-  unsigned char preview[MAX_PREVIEW_SIZE];
   void *title;
 
   /* these are the frame dimensions unless others are found */
   this->video_width = WC3_USUAL_WIDTH;
   this->video_height = WC3_USUAL_HEIGHT;
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, header, WC3_HEADER_SIZE) != 
-      WC3_HEADER_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(header, preview, WC3_HEADER_SIZE);
-  }
+  if (!xine_demux_read_header(this->input, header, WC3_HEADER_SIZE))
+    return 0;
 
   if ((BE_32(&header[0]) != FORM_TAG) ||
       (BE_32(&header[8]) != MOVE_TAG) ||
       (BE_32(&header[12]) != PC_TAG))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, WC3_HEADER_SIZE, SEEK_SET);
-  }
-
+  /* file is qualified */
+  
   /* load the number of palettes, the only interesting piece of information
    * in the _PC_ chunk; take it for granted that it will always appear at
    * position 0x1C */
@@ -724,6 +709,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -731,32 +729,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".mve", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_mve_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 

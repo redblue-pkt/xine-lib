@@ -149,7 +149,7 @@ void xine_demux_control_headers_done (xine_stream_t *stream) {
 void xine_demux_control_start( xine_stream_t *stream ) {
 
   buf_element_t *buf;
-      
+
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_START;
   stream->video_fifo->put (stream->video_fifo, buf);
@@ -329,6 +329,50 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
   }
   pthread_mutex_unlock (&stream->first_frame_lock);
 
+  return 0;
+}
+
+int xine_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t size){
+  int read_size;
+  unsigned char *buf;
+
+  if (!input || !size || size > MAX_PREVIEW_SIZE)
+    return 0;
+
+  if (input->get_capabilities(input) & INPUT_CAP_SEEKABLE) {
+    input->seek(input, 0, SEEK_SET);
+    read_size = input->read(input, buffer, size);
+    if (read_size != size)
+      return 0;
+    input->seek(input, 0, SEEK_SET);
+  } else if (input->get_capabilities(input) & INPUT_CAP_PREVIEW) {
+    buf = xine_xmalloc(MAX_PREVIEW_SIZE);
+    read_size = input->get_optional_data(input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+    memcpy(buffer, buf, size);
+    free(buf);
+  } else {
+    return 0;
+  }
+  return read_size;
+}
+
+int xine_demux_check_extension (char *mrl, char *extensions){
+  char *last_dot, *e, *ext_copy, *ext_work;
+
+  ext_copy = strdup(extensions);
+  ext_work = ext_copy;
+
+  last_dot = strrchr (mrl, '.');
+  if (last_dot) {
+    last_dot++;
+    while ( ( e = xine_strsep(&ext_work, " ")) != NULL ) {
+      if (strcasecmp (last_dot, e) == 0) {
+        free(ext_copy);
+        return 1;
+      }
+    }
+  }
+  free(ext_copy);
   return 0;
 }
 

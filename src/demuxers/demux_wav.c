@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2002 the xine project
+ * Copyright (C) 2001-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.40 2003/04/11 18:16:48 jcdutton Exp $
+ * $Id: demux_wav.c,v 1.41 2003/04/17 19:01:33 miguelfreitas Exp $
  *
  */
 
@@ -90,21 +90,10 @@ static int open_wav_file(demux_wav_t *this) {
   unsigned int chunk_tag;
   unsigned int chunk_size;
   unsigned char chunk_preamble[8];
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
   /* check the signature */
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, signature, WAV_SIGNATURE_SIZE) !=
-      WAV_SIGNATURE_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(signature, preview, WAV_SIGNATURE_SIZE);
-  }
+  if (!xine_demux_read_header(this->input, signature, WAV_SIGNATURE_SIZE))
+    return 0;
 
   if ((signature[0] != 'R') ||
       (signature[1] != 'I') ||
@@ -120,11 +109,8 @@ static int open_wav_file(demux_wav_t *this) {
       (signature[15] != ' '))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, WAV_SIGNATURE_SIZE, SEEK_SET);
-  }
+  /* file is qualified; skip over the header bytes in the stream */
+  this->input->seek(this->input, WAV_SIGNATURE_SIZE, SEEK_SET);
 
   /* go after the format structure */
   if (this->input->read(this->input,
@@ -380,6 +366,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -387,32 +386,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".wav", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_wav_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 

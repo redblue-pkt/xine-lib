@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.37 2003/03/07 12:51:48 guenter Exp $
+ * $Id: demux_roq.c,v 1.38 2003/04/17 19:01:27 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -94,15 +94,17 @@ static int open_roq_file(demux_roq_t *this) {
   unsigned int chunk_type;
   unsigned int chunk_size;
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
-    RoQ_CHUNK_PREAMBLE_SIZE)
+  if (!xine_demux_read_header(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE))
     return 0;
 
   /* check for the RoQ magic numbers */
   if ((LE_16(&preamble[0]) != RoQ_MAGIC_NUMBER) ||
       (LE_32(&preamble[2]) != 0xFFFFFFFF))
     return 0;
+    
+  /* file is qualified; skip over the header bytes in the stream */
+  this->input->seek(this->input, RoQ_CHUNK_PREAMBLE_SIZE, SEEK_SET);
+
 
   this->width = this->height = 0;
   this->audio_channels = 0;  /* assume no audio at first */
@@ -405,12 +407,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_roq_t    *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("demux_roq.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
-
   this         = xine_xmalloc (sizeof (demux_roq_t));
   this->stream = stream;
   this->input  = input;
@@ -431,6 +427,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -438,32 +447,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".roq", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_roq_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 
