@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.17 2003/01/08 01:02:31 miguelfreitas Exp $
+ * $Id: fli.c,v 1.18 2003/02/08 15:39:07 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -81,6 +81,7 @@ typedef struct fli_decoder_s {
   unsigned char     yuv_palette[PALETTE_SIZE];
   yuv_planes_t      yuv_planes;
   unsigned char    *ghost_image;
+  int               magic_number;  /* FLI file magic number, e.g., 0xAF11 */
   
 } fli_decoder_t;
 
@@ -135,10 +136,14 @@ void decode_fli_frame(fli_decoder_t *this) {
     case FLI_256_COLOR:
     case FLI_COLOR:
       stream_ptr_after_color_chunk = stream_ptr + chunk_size - 6;
-      if (chunk_type == FLI_COLOR)
-        color_shift = 2;
-      else
+      /* check special case: if this has the internal magic number of
+       * 0xAF13, this file is from the Magic Carpet game and uses 6-bit
+       * colors even though it reports 256-color chunks in a 0xAF12-type
+       * file */
+      if ((chunk_type == FLI_256_COLOR) && (this->magic_number != 0xAF13))
         color_shift = 0;
+      else
+        color_shift = 2;
       /* set up the palette */
       color_packets = LE_16(&this->buf[stream_ptr]);
       stream_ptr += 2;
@@ -432,6 +437,7 @@ static void fli_decode_data (video_decoder_t *this_gen,
     this->width = (LE_16(&buf->content[8]) + 1) & ~0x1;
     this->height = LE_16(&buf->content[10]);
     this->video_step = buf->decoder_info[1];
+    this->magic_number = LE_16(&buf->content[4]);
 
     this->ghost_image = xine_xmalloc(this->width * this->height);
     init_yuv_planes(&this->yuv_planes, this->width, this->height);
