@@ -900,7 +900,7 @@ static int find_unused_picture(MpegEncContext *s, int shared){
 int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx)
 {
     int i;
-    AVFrame *pic;
+    AVFrame *pic = NULL;
 
     s->mb_skiped = 0;
     
@@ -927,7 +927,7 @@ int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx)
             }
         }
     }
-alloc:
+
     if(!s->encoding){
         i= find_unused_picture(s, 0);
     
@@ -948,7 +948,9 @@ alloc:
     if(s->pict_type != I_TYPE && s->last_picture.data[0]==NULL){
         fprintf(stderr, "warning: first frame is no keyframe\n");
         XINE_ASSERT(s->pict_type != B_TYPE, "These should have been dropped if we dont have a reference");
-        goto alloc;
+        free_picture(s, (Picture*) pic);
+        s->last_picture.data[0] = s->next_picture.data[0] = NULL;        
+        return -1;
     }
    
     s->hurry_up= s->avctx->hurry_up;
