@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.11 2003/12/09 00:02:38 f1rmb Exp $
+ * $Id: vo_scale.h,v 1.12 2004/04/25 14:50:32 komadori Exp $
  * 
  * vo_scale.h
  *
@@ -123,7 +123,7 @@ struct vo_scale_s {
 			   int video_width, int video_height,
                            double video_pixel_aspect,
 			   int *dest_x, int *dest_y, 
-			   int *dest_height, int *dest_width,
+			   int *dest_width, int *dest_height,
                            double *dest_pixel_aspect,
 			   int *win_x, int *win_y);
   
