@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.31 2004/09/14 02:22:30 hadess Exp $
+ * $Id: video_decoder.c,v 1.32 2004/09/14 22:13:44 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -203,8 +203,6 @@ static void init_video_codec (ff_video_decoder_t *this) {
    * first frame. setting to -1 avoid enabling DR1 for them.
    */
   this->context->pix_fmt = -1;
-
-  this->context->palctrl = &this->palette_control;
 
   /* Some codecs (eg rv10) copy flags in init so it's necessary to set
    * this flag here in case we are going to use direct rendering */
@@ -1188,6 +1186,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->av_frame        = avcodec_alloc_frame();
   this->context         = avcodec_alloc_context();
   this->context->opaque = this;
+  this->context->palctrl = &this->palette_control;
   
   this->decoder_ok    = 0;
   this->buf           = xine_xmalloc(VIDEOBUFSIZE + FF_INPUT_BUFFER_PADDING_SIZE);
