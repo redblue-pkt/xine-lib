@@ -1,3 +1,13 @@
+xine-lib (0.9.10-1) unstable; urgency=low
+
+  * new upstream release
+    * uses new logo mechanism (closes: #145483)
+    * after long fights using sane SONAME (closes: #145668)
+  * build-depends on libz-dev (closes: #14562)
+  * libxine-dev depends on slang1-dev (closes: #140842)
+
+ -- Siggi Langauf <siggi@debian.org>  Fri, 10 May 2002 01:58:38 +0200
+
 xine-lib (0.9.9-2) unstable; urgency=low
 
   * using LIBRARY_PATH to complete circular linking during install
