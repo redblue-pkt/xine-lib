@@ -996,10 +996,9 @@ dnl Video CD
 dnl ---------------------------------------------
 dnl
 AC_ARG_ENABLE(vcd,[  --disable-vcd           Do not compile VCD plugin], [enable_vcd=no], [enable_vcd=yes])
-dnl
 
 dnl Force build of both vcd plugins, for now.
-dnl AC_ARG_ENABLE(vcdo,[  --disable-vcdo         Do not compile old VCD plugin], enable_vcd=no)
+dnl AC_ARG_ENABLE(vcdo,[  --disable-vcdo         Do not compile old VCD plugin], enable_vcdo=no, enable_vcdo=yes)
 dnl
 enable_vcdo="yes"
 
@@ -1031,7 +1030,7 @@ if test x"$enable_vcd" = "xyes"; then
   dnl empty_array_size
 
   external_vcdnav="no"
-  no_vcdnav="no"
+  no_vcdnav="yes"
 
   if test x"$PKG_CONFIG" != "xno" ; then
     AC_MSG_CHECKING(for libcdio)
