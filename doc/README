@@ -11,6 +11,12 @@ engine features common to all frontends.
 faq/
   contains the xine engine FAQ
 
+hackersguide/
+  contains the xine hacker's guide for developers
+
+man/
+  contains some general manpages about xine-lib
+
 README.config_en
   details about xine engine config options 
 
@@ -18,7 +24,6 @@ README.dvb
   instructions on how to get DVB (DigitalTV) working in xine
 
 README.dxr3
-README.dxr3_pl
   instructions on how to get use the DXR3 (hollywood+) in xine
 
 README.freebsd
@@ -38,15 +43,3 @@ README.solaris
 
 README.syncfb
   information about xine's SyncFB video output plugin
-
-README.tvmode
-  how to get tv output working
-
-man/
-  contains some general manpages about xine-lib
-
-hackersguide/
-  contains the xine hacker's guide for developers
-
-dvb_channels
-  sample channel file for DVB 
