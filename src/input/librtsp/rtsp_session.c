@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.1 2002/12/12 22:14:56 holstsn Exp $
+ * $Id: rtsp_session.c,v 1.2 2002/12/14 00:02:31 holstsn Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -64,14 +64,17 @@ rtsp_session_t *rtsp_session_start(char *mrl) {
 
   rtsp_session_t *rtsp_session=malloc(sizeof(rtsp_session_t));
   char *server;
+  char *mrl_line=strdup(mrl);
   rmff_header_t *h;
   uint32_t bandwidth=10485800;
 
+connect:
+
   /* connect to server */
-  rtsp_session->s=rtsp_connect(mrl,NULL);
+  rtsp_session->s=rtsp_connect(mrl_line,NULL);
   if (!rtsp_session->s)
   {
-    printf("rtsp_session: failed to connect to server\n");
+    printf("rtsp_session: failed to connect to server %s\n", mrl_line);
     free(rtsp_session);
     return NULL;
   }
@@ -84,6 +87,19 @@ rtsp_session_t *rtsp_session_start(char *mrl) {
     /* we are talking to a real server ... */
 
     h=real_setup_and_get_header(rtsp_session->s, bandwidth);
+    if (!h) {
+      /* got an redirect? */
+      if (rtsp_search_answers(rtsp_session->s, "Location"))
+      {
+        free(mrl_line);
+	mrl_line=strdup(rtsp_search_answers(rtsp_session->s, "Location"));
+        printf("rtsp_session: redirected to %s\n", mrl_line);
+	rtsp_close(rtsp_session->s);
+	free(server);
+	goto connect; /* *shudder* i made a design mistake somewhere */
+      }
+    }
+	
     rtsp_session->header_len=rmff_dump_header(h,rtsp_session->header,1024);
 
     memcpy(rtsp_session->recv, rtsp_session->header, rtsp_session->header_len);

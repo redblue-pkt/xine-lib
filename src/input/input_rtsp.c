@@ -68,6 +68,7 @@ typedef struct {
   rtsp_session_t           *rtsp;
 
   char            *mrl;
+  char            *public_mrl;
 
   off_t            curpos;
 
@@ -187,13 +188,16 @@ static void rtsp_plugin_dispose (input_plugin_t *this_gen) {
   if(this->mrl)
     free(this->mrl);
   
+  if(this->public_mrl)
+    free(this->public_mrl);
+  
   free (this);
 }
 
 static char* rtsp_plugin_get_mrl (input_plugin_t *this_gen) {
   rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
 
-  return this->mrl;
+  return this->public_mrl;
 }
 
 static int rtsp_plugin_get_optional_data (input_plugin_t *this_gen, 
@@ -230,7 +234,13 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this = (rtsp_input_plugin_t *) xine_xmalloc (sizeof (rtsp_input_plugin_t));
 
   this->rtsp    = rtsp;
-  this->mrl    = mrl; 
+  this->mrl    = mrl;
+  /* since we handle only real streams yet, we can savely add
+   * an .rm extention to force handling by demux_real.
+   */
+  this->public_mrl = xine_xmalloc (sizeof (char)*(strlen(this->mrl)+10));
+  sprintf(this->public_mrl, "%s.rm", this->mrl);
+  
   this->nbc    = nbc_init (stream);
 
   this->input_plugin.get_capabilities  = rtsp_plugin_get_capabilities;

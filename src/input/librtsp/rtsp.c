@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.1 2002/12/12 22:14:55 holstsn Exp $
+ * $Id: rtsp.c,v 1.2 2002/12/14 00:02:31 holstsn Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -654,7 +654,7 @@ char *rtsp_search_answers(rtsp_t *s, const char *tag) {
   answer=s->answers;
 
   while (*answer) {
-    if (!strncmp(*answer,tag,strlen(tag))) {
+    if (!strncasecmp(*answer,tag,strlen(tag))) {
       ptr=strchr(*answer,':');
       ptr++;
       while(*ptr==' ') ptr++;

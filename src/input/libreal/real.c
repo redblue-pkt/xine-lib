@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.1 2002/12/12 22:14:55 holstsn Exp $
+ * $Id: real.c,v 1.2 2002/12/14 00:02:31 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -880,6 +880,7 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   char buf[256];
   char *mrl=rtsp_get_mrl(rtsp_session);
   unsigned int size;
+  int status;
   
   /* get challenge */
   challenge1=strdup(rtsp_search_answers(rtsp_session,"RealChallenge1"));
@@ -892,10 +893,16 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   sprintf(buf, "Bandwidth: %u", bandwidth);
   rtsp_schedule_field(rtsp_session, buf);
   rtsp_schedule_field(rtsp_session, "Require: com.real.retain-entity-for-setup");
-  rtsp_request_describe(rtsp_session,NULL);
+  status=rtsp_request_describe(rtsp_session,NULL);
+
+  if (status != 200) return NULL;
 
   /* receive description */
-  size=atoi(rtsp_search_answers(rtsp_session,"Content-length"));
+  size=0;
+  if (!rtsp_search_answers(rtsp_session,"Content-length"))
+    printf("real: got no Content-length!\n");
+  else
+    size=atoi(rtsp_search_answers(rtsp_session,"Content-length"));
 
   if (!rtsp_search_answers(rtsp_session,"ETag"))
     printf("real: got no ETag!\n");
@@ -921,7 +928,7 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
     h->cont->title, h->cont->copyright, h->cont->author, h->prop->num_streams);
 #endif
   
-  /* setup our 2 streams */
+  /* setup our streams */
   real_calc_response_and_checksum (challenge2, checksum, challenge1);
   sprintf(buf, "RealChallenge2: %s, sd=%s", challenge2, checksum);
   rtsp_schedule_field(rtsp_session, buf);
@@ -930,14 +937,15 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   rtsp_schedule_field(rtsp_session, "Transport: x-pn-tng/tcp;mode=play,rtp/avp/tcp;unicast;mode=play");
   sprintf(buf, "%s/streamid=0", mrl);
   rtsp_request_setup(rtsp_session,buf);
- 
-  rtsp_schedule_field(rtsp_session, "Transport: x-pn-tng/tcp;mode=play,rtp/avp/tcp;unicast;mode=play");
-  sprintf(buf, "If-Match: %s", session_id);
-  rtsp_schedule_field(rtsp_session, buf);
 
-  sprintf(buf, "%s/streamid=1", mrl);
-  rtsp_request_setup(rtsp_session,buf);
+  if (h->prop->num_streams > 1) {
+    rtsp_schedule_field(rtsp_session, "Transport: x-pn-tng/tcp;mode=play,rtp/avp/tcp;unicast;mode=play");
+    sprintf(buf, "If-Match: %s", session_id);
+    rtsp_schedule_field(rtsp_session, buf);
 
+    sprintf(buf, "%s/streamid=1", mrl);
+    rtsp_request_setup(rtsp_session,buf);
+  }
   /* set stream parameter (bandwidth) with our subscribe string */
   rtsp_schedule_field(rtsp_session, subscribe);
   rtsp_request_setparameter(rtsp_session,NULL);
