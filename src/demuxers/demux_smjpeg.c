@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.21 2002/10/27 15:51:53 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.22 2002/10/27 16:14:28 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -372,6 +372,9 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+    (this->audio_channels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =

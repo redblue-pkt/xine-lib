@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.21 2002/10/27 15:51:53 tmmm Exp $
+ * $Id: demux_fli.c,v 1.22 2002/10/27 16:14:23 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -253,6 +253,8 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
 

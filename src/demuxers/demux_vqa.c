@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.14 2002/10/27 02:20:35 tmmm Exp $
+ * $Id: demux_vqa.c,v 1.15 2002/10/27 16:14:30 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -311,6 +311,9 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+    (this->audio_channels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =

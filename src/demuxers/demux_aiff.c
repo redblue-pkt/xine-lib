@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.12 2002/10/26 21:27:35 tmmm Exp $
+ * $Id: demux_aiff.c,v 1.13 2002/10/27 16:14:22 tmmm Exp $
  *
  */
 
@@ -293,6 +293,8 @@ static void demux_aiff_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =

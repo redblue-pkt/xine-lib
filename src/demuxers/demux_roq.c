@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.24 2002/10/26 22:00:54 guenter Exp $
+ * $Id: demux_roq.c,v 1.25 2002/10/27 16:14:28 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -353,6 +353,9 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+    (this->audio_channels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =

@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.21 2002/10/26 22:00:55 guenter Exp $
+ * $Id: demux_wav.c,v 1.22 2002/10/27 16:14:30 tmmm Exp $
  *
  */
 
@@ -260,6 +260,8 @@ static void demux_wav_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 
     this->wave->nChannels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 

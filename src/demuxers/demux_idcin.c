@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.21 2002/10/27 15:51:53 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.22 2002/10/27 16:14:26 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -344,6 +344,9 @@ static int open_idcin_file(demux_idcin_t *this) {
     return 0;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+    (this->audio_channels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
     this->video_width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = 

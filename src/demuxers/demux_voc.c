@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.13 2002/10/26 21:49:58 tmmm Exp $
+ * $Id: demux_voc.c,v 1.14 2002/10/27 16:14:29 tmmm Exp $
  *
  */
 
@@ -268,6 +268,8 @@ static void demux_voc_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =

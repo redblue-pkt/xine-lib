@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.19 2002/10/26 22:00:55 guenter Exp $
+ * $Id: demux_wc3movie.c,v 1.20 2002/10/27 16:14:31 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -365,6 +365,10 @@ static void demux_mve_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  /* this is not strictly correct-- some WC3 MVE files do not contain 
+   * audio, but I'm too lazy to check if that is the case */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =

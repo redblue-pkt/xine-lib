@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.6 2002/10/26 22:59:20 tmmm Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.7 2002/10/27 16:14:31 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -281,6 +281,8 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->bih.biWidth;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
 
