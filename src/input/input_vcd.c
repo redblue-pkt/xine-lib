@@ -17,7 +17,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.25 2001/10/07 15:13:09 guenter Exp $
+ * $Id: input_vcd.c,v 1.26 2001/10/07 22:31:20 guenter Exp $
+ *
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,7 +34,6 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #ifdef HAVE_LINUX_CDROM_H
-# include <linux/config.h> /* Check for DEVFS */
 # include <linux/cdrom.h>
 #endif
 #ifdef HAVE_SYS_CDIO_H
@@ -57,11 +57,7 @@ static uint32_t xine_debug;
 #define	CDROM	       "/vol/dev/aliases/cdrom0"
 #else
 /* for FreeBSD make a link to the right devnode, like /dev/acd0c */
-#if defined(CONFIG_DEVFS_FS)
-#define CDROM          "/dev/cdroms/cdrom"
-#else
 #define CDROM          "/dev/cdrom"
-#endif
 #endif
 #define VCDSECTORSIZE  2324
 
@@ -104,6 +100,8 @@ typedef struct {
 #if defined (__linux__) || defined(__sun)
   uint8_t                cur_min, cur_sec, cur_frame;
 #endif
+
+  const char            *device;
 
   char                  *filelist[100];
 
@@ -320,7 +318,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen, char *mrl) {
   if (strncasecmp (mrl, "vcd://",6))
     return 0;
     
-  this->fd = open (CDROM, O_RDONLY);
+  this->fd = open (this->device, O_RDONLY);
 
   if (this->fd == -1) {
     return 0;
@@ -664,8 +662,8 @@ static off_t vcd_time_to_offset (int min, int sec, int frame) {
   return min * 60 * 75 + sec * 75 + frame;
 }
 
-static void vcd_offset_to_time (off_t offset, int *min, int *sec, 
-				int *frame) {
+static void vcd_offset_to_time (off_t offset, uint8_t *min, uint8_t *sec, 
+				uint8_t *frame) {
 
   *min = offset / (60*75);
   offset %= (60*75);
@@ -680,7 +678,6 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 
   vcd_input_plugin_t  *this = (vcd_input_plugin_t *) this_gen;
   struct cdrom_msf0   *start_msf;
-  uint32_t             dist ;
   off_t                sector_pos;
 
   start_msf = &this->tocent[this->cur_track].cdte_addr.msf;
@@ -851,7 +848,7 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int ret, status;
 
-  if((this->fd = open(CDROM, O_RDONLY|O_NONBLOCK)) > -1) {
+  if((this->fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
     if((status = ioctl(this->fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
       switch(status) {
       case CDS_TRAY_OPEN:
@@ -880,9 +877,10 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
 }
 #elif defined (__FreeBSD__)
 static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int fd;
 
-  if ((fd = open(CDROM, O_RDONLY|O_NONBLOCK)) > -1) {
+  if ((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
     if (ioctl(fd, CDIOCALLOW) == -1) {
       perror("ioctl(cdromallow)");
     } else {
@@ -897,9 +895,10 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
 }
 #elif defined (__sun)
 static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int fd, ret;
 
-  if ((fd = open(CDROM, O_RDONLY|O_NONBLOCK)) > -1) {
+  if ((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
     if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
       xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
     }
@@ -958,10 +957,11 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
     return NULL;
 
   
-  this->fd = open (CDROM, O_RDONLY);
+  this->fd = open (this->device, O_RDONLY);
 
   if (this->fd == -1) {
-    perror ("unable to open " CDROM);
+    fprintf(stderr, "unable to open %s: ", this->device);
+    perror ("");
     return NULL;
   }
 
@@ -1040,10 +1040,11 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int i;
 
-  this->fd = open (CDROM, O_RDONLY);
+  this->fd = open (this->device, O_RDONLY);
 
   if (this->fd == -1) {
-    perror ("unable to open " CDROM);
+    fprintf(stderr, "unable to open %s: ", this->device);
+    perror ("");
     return NULL;
   }
 
@@ -1137,6 +1138,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->input_plugin.handle_input_event= NULL;
   this->input_plugin.is_branch_possible= NULL;
   
+  this->device = config->lookup_str(config, "vcd_device", CDROM);
 
   this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t));
   this->mrls_allocated_entries = 0;
