@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.188 2004/01/28 12:58:30 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.189 2004/02/01 06:06:05 tmmm Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1856,6 +1856,11 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_avi: audio type %s (wFormatTag 0x%x)\n",
                _x_buf_audio_name(this->avi->audio[i]->audio_type),
                (int)this->avi->audio[i]->wavex->wFormatTag);
+
+    /* special case time: An AVI file encoded with Xan video will have Xan
+     * DPCM audio marked as PCM; hack around this */
+    if (this->avi->video_type == BUF_VIDEO_XXAN)
+        this->avi->audio[i]->audio_type = BUF_AUDIO_XAN_DPCM;
   }
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
