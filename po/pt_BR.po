@@ -1,10 +1,10 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Free Software Foundation, Inc.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Portuguese (Brazilian) xine-lib.po file.
+# Copyright (C) 2002 Free Software Foundation, Inc.
+# Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>, 2002
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-02-07 01:14+0100\n"
 "PO-Revision-Date: 2002-01-22 18:31GMT-3\n"
 "Last-Translator: Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>\n"

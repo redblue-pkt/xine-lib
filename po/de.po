@@ -1,10 +1,10 @@
-# xine library translations.
+# German xine-lib.po file.
 # Copyright (C) 2002 Free Software Foundation, Inc.
 # Jens Gutzeit <jens.gutzeit@web.de>, 2002.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib VERSION\n"
+"Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-02-07 01:14+0100\n"
 "PO-Revision-Date: 2002-01-29 21:55+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@pmhahn@users.sf.net>\n"
@@ -115,7 +115,7 @@ msgstr "demux_ts: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_ts.c:1328
 msgid "demux_ts: stop...\n"
-msgstr "demux_ts: Stop...\n"
+msgstr "demux_ts: Stopp...\n"
 
 #: src/demuxers/demux_ts.c:1375
 #, c-format
@@ -148,7 +148,7 @@ msgstr "demux_avi: demux Schleife beendet.\n"
 
 #: src/demuxers/demux_avi.c:866
 msgid "demux_avi: stop...ignored\n"
-msgstr "demux_avi: Stop...Ignoriert\n"
+msgstr "demux_avi: Stopp...Ignoriert\n"
 
 #: src/demuxers/demux_avi.c:924
 #, c-format
@@ -250,7 +250,7 @@ msgstr "demux Schleife beendet (Staus: %d, buf:%x)\n"
 
 #: src/demuxers/demux_mpeg.c:681
 msgid "demux_mpeg: stop...\n"
-msgstr "demux_mpeg: Stop...\n"
+msgstr "demux_mpeg: Stopp...\n"
 
 #: src/demuxers/demux_mpeg.c:784
 #, c-format
@@ -321,7 +321,7 @@ msgstr "demux_mpeg_block: Fehler %02x %02x %02x (sollte 0x000001 sein) \n"
 
 #: src/demuxers/demux_mpeg_block.c:752
 msgid "demux_mpeg_block: stop...ignored\n"
-msgstr "demux_mpeg_block: Stop...Ignoriert\n"
+msgstr "demux_mpeg_block: Stopp...Ignoriert\n"
 
 #: src/demuxers/demux_mpeg_block.c:872
 #, c-format
@@ -358,7 +358,7 @@ msgstr "mpgaudio: Bit-Rate = %.2fkbps\n"
 
 #: src/demuxers/demux_mpgaudio.c:265
 msgid "demux_mpgaudio_block: stop...ignored\n"
-msgstr "demux_mpgaudio_block: Stop...ignoriert\n"
+msgstr "demux_mpgaudio_block: Stopp...ignoriert\n"
 
 #: src/demuxers/demux_mpgaudio.c:369
 #, c-format
@@ -367,7 +367,7 @@ msgstr "demux_mpgaudio: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_pes.c:363
 msgid "demux_pes: stop...\n"
-msgstr "demux_pes: Stop...\n"
+msgstr "demux_pes: Stopp...\n"
 
 #: src/demuxers/demux_pes.c:459
 #, c-format
@@ -421,7 +421,7 @@ msgstr "demux_qt: quicktime_open: Fehlerhafter header\n"
 
 #: src/demuxers/demux_qt.c:4134
 msgid "demux_qt: stop...ignored\n"
-msgstr "demux_qt: Stop...ignoriert\n"
+msgstr "demux_qt: Stopp...ignoriert\n"
 
 #: src/demuxers/demux_qt.c:4196
 #, c-format
@@ -482,7 +482,7 @@ msgstr "demux_ogg: Unbekannter Datenstromtyp, Signatur: >%.8s<\n"
 
 #: src/demuxers/demux_ogg.c:258
 msgid "demux_ogg: stop...ignored\n"
-msgstr "demux_ogg: Stop...ignoriert\n"
+msgstr "demux_ogg: Stopp...ignoriert\n"
 
 #: src/demuxers/demux_ogg.c:360
 #, c-format
@@ -568,7 +568,7 @@ msgstr "demux_asf: Unbekannter Segmenttyp %x\n"
 
 #: src/demuxers/demux_asf.c:1062
 msgid "demux_asf: stop...ignored\n"
-msgstr "demux_asf: stop...ignoriert\n"
+msgstr "demux_asf: Stopp...ignoriert\n"
 
 #: src/demuxers/demux_asf.c:1148
 #, c-format
@@ -610,7 +610,7 @@ msgstr ""
 
 #: src/demuxers/demux_cda.c:155
 msgid "demux_cda: stop...ignored\n"
-msgstr "demux_cda: Stop...ignoriert\n"
+msgstr "demux_cda: Stopp...ignoriert\n"
 
 #: src/demuxers/demux_cda.c:230
 #, c-format

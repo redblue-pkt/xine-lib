@@ -1,17 +1,17 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Free Software Foundation, Inc.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Frensh xine-lib.po file.
+# Copyright (C) 2002 Free Software Foundation, Inc.
+# Daniel Caujolle-Bert <segfault@club-internet.fr>, 2001
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-02-07 01:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI +ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
+"Language-Team: Frensh <fr@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8-bit\n"
 
 #: src/demuxers/demux_ts.c:245
@@ -784,7 +784,8 @@ msgid ""
 "\n"
 msgstr ""
 "\n"
-"input_dvd: Désolé, xine ne peux pas jouer des DVDs encryptés. Le status légal du\n"
+"input_dvd: Désolé, xine ne peux pas jouer des DVDs encryptés. Le status "
+"légal du\n"
 "           decryptage CSS n'est pas clair et nous ne fournirons pas un tel "
 "code.\n"
 "\n"
