@@ -35,7 +35,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 
 - (void) setContentSize: (NSSize) size {
-    [openGLView setViewSizeInMainThread:size];
+    [xineView setViewSizeInMainThread:size];
    
     [super setContentSize: size];
 }
@@ -51,33 +51,33 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
                       defer: flag
                       screen: aScreen];
 
-    openGLView = [[XineOpenGLView alloc] initWithFrame:rect];
+    xineView = [[XineOpenGLView alloc] initWithFrame:rect];
 
     /* receive notifications about window resizing from the xine view */
-    [openGLView setDelegate:self];
+    [xineView setDelegate:self];
 
-    [self setContentView: openGLView];
+    [self setContentView: xineView];
     [self setTitle: @"xine video output"];
     keepAspectRatio = NO;
 
     return self;
 }
 
-- (XineOpenGLView *) getGLView {
-    return openGLView;
+- (XineOpenGLView *) xineView {
+    return xineView;
 }
 
 - (void) fitToScreen {
     NSSize size, video_size;
     float screen_width, screen_height;
     
-    if ([openGLView isFullScreen])
+    if ([xineView isFullScreen])
         return;
     
     screen_width = CGDisplayPixelsWide (kCGDirectMainDisplay);
     screen_height = CGDisplayPixelsHigh (kCGDirectMainDisplay) - 40;
 
-    video_size = [openGLView videoSize];
+    video_size = [xineView videoSize];
 
     if ((screen_width / screen_height) > (video_size.width / video_size.height)) {
         size.width = video_size.width * (screen_height / video_size.height);
@@ -104,14 +104,6 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 - (int) keepsAspectRatio {
     return keepAspectRatio;
-}
-
-- (void) displayTexture {
-    if ([openGLView lockFocusIfCanDraw]) {
-        [openGLView drawRect: [openGLView bounds]];
-        [openGLView reloadTexture];
-        [openGLView unlockFocus];
-    }
 }
 
 /* Delegate methods */

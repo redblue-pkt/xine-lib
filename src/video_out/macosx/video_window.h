@@ -67,12 +67,11 @@ typedef enum {
 @interface XineVideoWindow : NSWindow {
     int               width, height;
     BOOL              keepAspectRatio;
-    XineOpenGLView   *openGLView;
+    XineOpenGLView   *xineView;
 }
 
 - (void) setContentSize: (NSSize) size;
-- (void) displayTexture;
-- (XineOpenGLView *) getGLView;
+- (XineOpenGLView *) xineView;
 - (void) fitToScreen;
 - (void) setKeepsAspectRatio: (BOOL) i;
 - (int) keepsAspectRatio;
