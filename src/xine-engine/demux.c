@@ -27,7 +27,6 @@
 #include "demuxers/demux.h"
 #include "buffer.h"
 
-
 /* internal use only - called from demuxers on seek/stop
  * warning: after clearing decoders fifos an absolute discontinuity
  *          indication must be sent. relative discontinuities are likely
@@ -38,6 +37,7 @@ void xine_demux_flush_engine (xine_t *this) {
   buf_element_t *buf;
 
   this->video_fifo->clear(this->video_fifo);
+
   if( this->audio_fifo )
     this->audio_fifo->clear(this->audio_fifo);
   
@@ -52,10 +52,7 @@ void xine_demux_flush_engine (xine_t *this) {
   }
   
   this->metronom->adjust_clock(this->metronom,
-			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
-
-  if (this->audio_out)
-    this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
+                               this->metronom->get_current_time(this->metronom) + 30 * 90000 );
 }
 
 
