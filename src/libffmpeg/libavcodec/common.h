@@ -148,7 +148,11 @@ inline void dprintf(const char* fmt,...) {}
 #else
 
 #ifdef DEBUG
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__)
+#define dprintf(...)	     printf(__VA_ARGS__)
+#else
 #define dprintf(fmt,args...) printf(fmt, ## args)
+#endif
 #else
 #define dprintf(fmt,args...)
 #endif
