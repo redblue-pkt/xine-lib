@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.33 2002/09/18 14:31:39 mroi Exp $
+ * $Id: configfile.c,v 1.34 2002/09/21 12:20:48 f1rmb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -547,7 +547,7 @@ static void xine_config_update_string (config_values_t *this,
 /*
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
-void xine_load_config (xine_p xine_ro, const char *filename) {
+void xine_config_load (xine_p xine_ro, const char *filename) {
 
   config_values_t *this = xine_ro->config;
   FILE *f_config;
@@ -611,7 +611,7 @@ void xine_load_config (xine_p xine_ro, const char *filename) {
   }
 }
 
-void xine_save_config (xine_p xine_ro, const char *filename) {
+void xine_config_save (xine_p xine_ro, const char *filename) {
 
   config_values_t *this = xine_ro->config;
   FILE *f_config;

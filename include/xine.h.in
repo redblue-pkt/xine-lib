@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.17 2002/09/21 11:58:40 f1rmb Exp $
+ * $Id: xine.h.in,v 1.18 2002/09/21 12:20:47 f1rmb Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -747,9 +747,9 @@ void xine_config_update_entry (xine_p self,
 /*
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
-void xine_load_config  (xine_p self, const char *cfg_filename);
-void xine_save_config  (xine_p self, const char *cfg_filename);
-void xine_reset_config (xine_p self);
+void xine_config_load  (xine_p self, const char *cfg_filename);
+void xine_config_save  (xine_p self, const char *cfg_filename);
+void xine_config_reset (xine_p self);
 
 /*
  * xine event mechanism
