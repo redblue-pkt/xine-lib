@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.157 2004/04/24 13:56:40 tmattern Exp $
+ * $Id: demux_asf.c,v 1.158 2004/05/02 12:32:12 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -304,6 +304,15 @@ static void asf_send_audio_header (demux_asf_t *this, int stream) {
     return;
 
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if (asf_stream->wavex_size > buf->max_size) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "demux_asf: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
+            asf_stream->wavex_size, buf->max_size);
+    buf->free_buffer(buf);
+    this->status = DEMUX_FINISHED;
+    return;
+  }
+  
   memcpy (buf->content, wavex, asf_stream->wavex_size);
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, wavex->wFormatTag);
@@ -335,6 +344,14 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC, bih->biCompression);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  if (asf_stream->bih_size > buf->max_size) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "demux_asf: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
+            asf_stream->bih_size, buf->max_size);
+    buf->free_buffer(buf);
+    this->status = DEMUX_FINISHED;
+    return;
+  }
   
   buf->decoder_flags   = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
                          BUF_FLAG_FRAME_END;
