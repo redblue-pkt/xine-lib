@@ -16,6 +16,8 @@ Options:
 	[--version]
         [--libs]
 	[--cflags]
+	[--plugindir]
+	[--skindir]
 EOF
 	exit $1
 }
@@ -56,6 +58,12 @@ while test $# -gt 0; do
     --libs)
       echo_libs=yes
       ;;
+    --plugindir)
+      echo_plugindir=yes
+      ;;
+    --skindir)
+      echo_skindir=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -78,4 +86,9 @@ fi
 if test "$echo_libs" = "yes"; then
       echo -L@libdir@ -lxine
 fi      
-
+if test "$echo_plugindir" = "yes"; then
+      echo "@XINE_PLUGINPATH@"
+fi      
+if test "$echo_skindir" = "yes"; then
+      echo "@XINE_SKINPATH@"
+fi      
