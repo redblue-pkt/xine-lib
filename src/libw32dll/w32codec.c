@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.57 2002/01/07 18:34:02 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.58 2002/01/15 16:02:02 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -71,6 +71,13 @@ static GUID wmv2_clsid =
 	{0xbd, 0xb1, 0x0c, 0x6e, 0x66, 0x60, 0x71, 0x4f}
 };
 
+static GUID dvsd_clsid =
+{
+	0xB1B77C00, 0xC3E4, 0x11CF,
+	{0xAF, 0x79, 0x00, 0xAA, 0x00, 0xB6, 0x7A, 0x42}
+};
+
+
 pthread_mutex_t win32_codec_name_mutex;
 extern char*   win32_codec_name; 
 
@@ -98,8 +105,9 @@ typedef struct w32v_decoder_s {
   long		    outfmt;
   
   /* profiler */
-  int		   prof_rgb2yuv;
+  int		    prof_rgb2yuv;
 
+  int               ex_functions;
   int               ds_driver;
   GUID             *guid;
   DS_VideoDecoder  *ds_dec;
@@ -238,7 +246,8 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   this->yuv_hack_needed=0;
   this->flipped=0;
   this->ds_driver = 0;
-  
+  this->ex_functions = 0;
+    
   buf_type &= 0xffff0000;
 
   switch (buf_type) {
@@ -307,9 +316,11 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     return "msvidc32.dll";    
     
   case BUF_VIDEO_DV:
-    /* MainConcept DV Codec */
+    /* Sony DV Codec (not working yet) */
     this->yuv_supported=1;
-    return "mcdvd_32.dll";    
+    this->ds_driver = 1;
+    this->guid=&dvsd_clsid;
+    return "qdv.dll";    
   
   case BUF_VIDEO_WMV7:
     this->yuv_supported=1;
@@ -322,6 +333,12 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->ds_driver = 1;
     this->guid=&wmv2_clsid;
     return "wmv8ds32.ax";    
+  
+  case BUF_VIDEO_VP31:
+    this->yuv_supported=1;
+    this->ex_functions=1;
+    this->flipped=1;
+    return "vp31vfw.dll";    
 
   }
 
@@ -357,7 +374,8 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
 	   buf_type == BUF_VIDEO_MSVC ||
 	   buf_type == BUF_VIDEO_DV ||
            buf_type == BUF_VIDEO_WMV7 ||
-           buf_type == BUF_VIDEO_WMV8 );
+           buf_type == BUF_VIDEO_WMV8 ||
+           buf_type == BUF_VIDEO_VP31 );
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
@@ -433,7 +451,9 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   else 
     this->o_bih.biCompression = 0;
       
-  ret = ICDecompressQuery(this->hic, &this->bih, &this->o_bih);
+  ret = (!this->ex_functions) 
+        ?ICDecompressQuery(this->hic, &this->bih, &this->o_bih)
+        :ICDecompressQueryEx(this->hic, &this->bih, &this->o_bih);
   
   if(ret){
     printf("w32codec: ICDecompressQuery failed: Error %ld\n", (long)ret);
@@ -441,7 +461,10 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
     return;
   }
   
-  ret = ICDecompressBegin(this->hic, &this->bih, &this->o_bih);
+  ret = (!this->ex_functions) 
+        ?ICDecompressBegin(this->hic, &this->bih, &this->o_bih)
+        :ICDecompressBeginEx(this->hic, &this->bih, &this->o_bih);
+  
   if(ret){
     printf("w32codec: ICDecompressBegin failed: Error %ld\n", (long)ret);
     this->decoder_ok = 0;
@@ -613,9 +636,13 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			 &this->o_bih, img->base[0]);
       */
       if( !this->ds_driver )
-      ret = ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
-			 &this->bih, this->buf,
-			 &this->o_bih, this->img_buffer);
+        ret = (!this->ex_functions)
+              ?ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
+			    &this->bih, this->buf,
+			    &this->o_bih, this->img_buffer)
+              :ICDecompressEx(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
+			    &this->bih, this->buf,
+			    &this->o_bih, this->img_buffer);
       else {
         ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, 
                          this->size, 0, this->img_buffer);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.7 2002/01/06 00:47:47 guenter Exp $
+ * $Id: buffer_types.c,v 1.8 2002/01/15 16:02:03 miguelfreitas Exp $
  *
  *
  * contents:
@@ -124,6 +124,8 @@ static video_db_t video_db[] = {
     mmioFOURCC('D', 'I', 'V', '6'),
     mmioFOURCC('d', 'i', 'v', '6'),
     mmioFOURCC('3', 'I', 'V', '1'),
+    mmioFOURCC('A', 'P', '4', '1'),
+    mmioFOURCC('M', 'P', 'G', '3'),
     0
   },
   BUF_VIDEO_MSMPEG4_V3,
@@ -278,6 +280,17 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_DV,
   "Sony Digital Video (DV)"
+},
+{
+  {
+    mmioFOURCC('V','P','3','0'),
+    mmioFOURCC('v','p','3','0'),
+    mmioFOURCC('V','P','3','1'),
+    mmioFOURCC('v','p','3','1'),
+    0
+  },
+  BUF_VIDEO_VP31,
+  "On2 VP3.1 Codec"
 },
 { { 0 }, 0, "last entry" }
 };

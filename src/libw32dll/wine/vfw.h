@@ -382,7 +382,7 @@ typedef struct {
 
 long VFWAPIV ICDecompress(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER lpbi,void* lpBits);
 
-long VFWAPIV ICDecompressEx(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER  lpbi,void* lpBits);
+long VFWAPIV ICDecompressEx(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER lpbi,void* lpBits);
 
 long VFWAPIV ICUniversalEx(HIC hic,int command,LPBITMAPINFOHEADER lpbiFormat,LPBITMAPINFOHEADER lpbi);
 
@@ -393,12 +393,24 @@ long VFWAPIV ICUniversalEx(HIC hic,int command,LPBITMAPINFOHEADER lpbiFormat,LPB
 	(long)(void*)(lpbiOutput)				\
     )
 
-#define ICDecompressQuery(hic, lpbiInput, lpbiOutput) 	\
+#define ICDecompressBeginEx(hic, lpbiInput, lpbiOutput) 	\
+    ICUniversalEx(						\
+    	hic, ICM_DECOMPRESSEX_BEGIN, (lpbiInput),		\
+	(lpbiOutput)						\
+    )
+
+#define ICDecompressQuery(hic, lpbiInput, lpbiOutput) 		\
     ICSendMessage(						\
     	hic,ICM_DECOMPRESS_QUERY, (long)(void*)(lpbiInput),	\
 	(long) (void*)(lpbiOutput)				\
     )
 
+#define ICDecompressQueryEx(hic, lpbiInput, lpbiOutput) 	\
+    ICUniversalEx(						\
+    	hic,ICM_DECOMPRESSEX_QUERY, (lpbiInput),		\
+	(lpbiOutput)						\
+    )
+    
 #define ICDecompressGetFormat(hic, lpbiInput, lpbiOutput)		\
     ((long)ICSendMessage(						\
     	hic,ICM_DECOMPRESS_GET_FORMAT, (long)(void*)(lpbiInput),	\
