@@ -1,0 +1,370 @@
+/*
+ * Copyright (C) 2001-2004 the xine project
+ * 
+ * This file is part of xine, a free video player.
+ * 
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * $Id: audio_decoder.c,v 1.1 2004/01/31 01:19:17 jstembridge Exp $
+ *
+ * xine audio decoder plugin using ffmpeg
+ *
+ */
+ 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <inttypes.h>
+#include <string.h>
+#include <pthread.h>
+#include <math.h>
+
+#define LOG_MODULE "ffmpeg_audio_dec"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
+#include "xine_internal.h"
+#include "buffer.h"
+#include "xineutils.h"
+#include "xine_decoder.h"
+
+#define AUDIOBUFSIZE 128*1024
+
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} ff_audio_class_t;
+
+typedef struct ff_audio_decoder_s {
+  audio_decoder_t   audio_decoder;
+
+  xine_stream_t    *stream;
+
+  int               output_open;
+  int               audio_channels;
+  int               audio_bits;
+  int               audio_sample_rate;
+
+  unsigned char    *buf;
+  int               bufsize;
+  int               size;
+
+  AVCodecContext    *context;
+  AVCodec           *codec;
+  
+  char              *decode_buffer;
+  int               decoder_ok;
+
+} ff_audio_decoder_t;
+
+
+static const ff_codec_t ff_audio_lookup[] = {
+  {BUF_AUDIO_WMAV1,      CODEC_ID_WMAV1,          "MS Windows Media Audio 1 (ffmpeg)"},
+  {BUF_AUDIO_WMAV2,      CODEC_ID_WMAV2,          "MS Windows Media Audio 2 (ffmpeg)"},
+  /* FIXME DV Audio has disappeared from libffmpeg  
+  {BUD_AUDIO_DV,         CODEC_ID_DVAUDIO,        "DV Audio (ffmpeg)"}, */
+  {BUF_AUDIO_14_4,       CODEC_ID_RA_144,         "Real 14.4 (ffmpeg)"},
+  {BUF_AUDIO_28_8,       CODEC_ID_RA_288,         "Real 28.8 (ffmpeg)"},
+  {BUF_AUDIO_MPEG,       CODEC_ID_MP3,            "MP3 (ffmpeg)"},
+  {BUF_AUDIO_MSADPCM,    CODEC_ID_ADPCM_MS,       "MS ADPCM (ffmpeg)"},
+  {BUF_AUDIO_QTIMAADPCM, CODEC_ID_ADPCM_IMA_QT,   "QT IMA ADPCM (ffmpeg)"},
+  {BUF_AUDIO_MSIMAADPCM, CODEC_ID_ADPCM_IMA_WAV,  "MS IMA ADPCM (ffmpeg)"},
+  {BUF_AUDIO_DK3ADPCM,   CODEC_ID_ADPCM_IMA_DK3,  "Duck DK3 ADPCM (ffmpeg)"},
+  {BUF_AUDIO_DK4ADPCM,   CODEC_ID_ADPCM_IMA_DK4,  "Duck DK4 ADPCM (ffmpeg)"},
+  {BUF_AUDIO_VQA_IMA,    CODEC_ID_ADPCM_IMA_WS,   "Westwood Studios IMA (ffmpeg)"},
+  {BUF_AUDIO_XA_ADPCM,   CODEC_ID_ADPCM_XA,       "CD-ROM/XA ADPCM (ffmpeg)"},
+  {BUF_AUDIO_4X_ADPCM,   CODEC_ID_ADPCM_4XM,      "4X ADPCM (ffmpeg)"},
+  {BUF_AUDIO_MULAW,      CODEC_ID_PCM_MULAW,      "mu-law logarithmic PCM (ffmpeg)"},
+  {BUF_AUDIO_ALAW,       CODEC_ID_PCM_ALAW,       "A-law logarithmic PCM (ffmpeg)"},
+  {BUF_AUDIO_ROQ,        CODEC_ID_ROQ_DPCM,       "RoQ DPCM (ffmpeg)"},
+  {BUF_AUDIO_INTERPLAY,  CODEC_ID_INTERPLAY_DPCM, "Interplay DPCM (ffmpeg)"} };
+
+
+static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+
+  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  int bytes_consumed;
+  int decode_buffer_size;
+  int offset;
+  int out;
+  audio_buffer_t *audio_buffer;
+  int bytes_to_send;
+
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
+
+    int i, codec_type;
+    xine_waveformatex *audio_header = (xine_waveformatex *)buf->content;
+
+    codec_type = buf->type & 0xFFFF0000;
+    this->codec = NULL;
+
+    for(i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_codec_t); i++)
+      if(ff_audio_lookup[i].type == codec_type) {
+        this->codec = avcodec_find_decoder(ff_audio_lookup[i].id);
+        _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,
+                         ff_audio_lookup[i].name);
+        break;
+      }
+
+    if (!this->codec) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+               _("ffmpeg_audio_dec: couldn't find/open ffmpeg decoder for buf type 0x%X\n"),
+               codec_type);
+      return;
+    }
+
+    this->context = avcodec_alloc_context();
+
+    this->context->sample_rate = this->audio_sample_rate = buf->decoder_info[1];
+    this->audio_bits = buf->decoder_info[2];
+    this->context->channels = this->audio_channels = buf->decoder_info[3];
+    this->context->block_align = audio_header->nBlockAlign;
+    this->context->bit_rate = audio_header->nAvgBytesPerSec * 8;
+    this->context->codec_id = this->codec->id;
+    this->context->codec_tag = _x_stream_info_get(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC);
+    if( audio_header->cbSize > 0 ) {
+      this->context->extradata = malloc(audio_header->cbSize);
+      this->context->extradata_size = audio_header->cbSize;
+      memcpy( this->context->extradata, 
+              (uint8_t *)audio_header + sizeof(xine_waveformatex),
+              audio_header->cbSize ); 
+    }
+
+    this->buf = xine_xmalloc(AUDIOBUFSIZE);
+    this->bufsize = AUDIOBUFSIZE;
+    this->size = 0;
+
+    this->decode_buffer = xine_xmalloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
+
+    if (avcodec_open (this->context, this->codec) < 0) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+               _("ffmpeg_audio_dec: couldn't open decoder\n"));
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
+      return;
+    }
+
+    this->decoder_ok = 1;
+
+    return;
+
+  } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+             (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
+
+    this->context->extradata_size = buf->decoder_info[2];
+    this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+    memcpy(this->context->extradata, buf->decoder_info_ptr[2],
+      buf->decoder_info[2]);
+
+  } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
+
+    if (!this->output_open) {
+      this->output_open = this->stream->audio_out->open(this->stream->audio_out,
+        this->stream, this->audio_bits, this->audio_sample_rate,
+        (this->audio_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
+    }
+
+    /* if the audio still isn't open, bail */
+    if (!this->output_open)
+      return;
+
+    if( buf->decoder_flags & BUF_FLAG_PREVIEW )
+      return;
+
+    if( this->size + buf->size > this->bufsize ) {
+      this->bufsize = this->size + 2 * buf->size;
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+              _("ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"), 
+              this->bufsize);
+      this->buf = realloc( this->buf, this->bufsize );
+    }
+
+    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+    this->size += buf->size;
+
+    if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
+
+      offset = 0;
+      while (this->size>0) {
+        bytes_consumed = avcodec_decode_audio (this->context, 
+                                               (int16_t *)this->decode_buffer,
+                                               &decode_buffer_size, 
+                                               &this->buf[offset],
+                                               this->size);
+
+        if (bytes_consumed<0) {
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                   "ffmpeg_audio_dec: error decompressing audio frame\n");
+          this->size=0;
+          return;
+        }
+
+        /* dispatch the decoded audio */
+        out = 0;
+        while (out < decode_buffer_size) {
+          audio_buffer = 
+            this->stream->audio_out->get_buffer (this->stream->audio_out);
+          if (audio_buffer->mem_size == 0) {
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                     "ffmpeg_audio_dec: Help! Allocated audio buffer with nothing in it!\n");
+            return;
+          }
+
+          if ((decode_buffer_size - out) > audio_buffer->mem_size)
+            bytes_to_send = audio_buffer->mem_size;
+          else
+            bytes_to_send = decode_buffer_size - out;
+
+          /* fill up this buffer */
+          xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[out],
+            bytes_to_send);
+          /* byte count / 2 (bytes / sample) / channels */
+          audio_buffer->num_frames = bytes_to_send / 2 / this->audio_channels;
+
+          audio_buffer->vpts = buf->pts;
+          buf->pts = 0;  /* only first buffer gets the real pts */
+          this->stream->audio_out->put_buffer (this->stream->audio_out,
+            audio_buffer, this->stream);
+
+          out += bytes_to_send;
+        }
+
+        this->size -= bytes_consumed;
+        offset += bytes_consumed;
+      }
+
+      /* reset internal accumulation buffer */
+      this->size = 0;
+    }
+  }
+}
+
+static void ff_audio_reset (audio_decoder_t *this_gen) {
+  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  
+  this->size = 0;
+
+  /* try to reset the wma decoder */
+  if( this->context ) {  
+    avcodec_close (this->context);
+    avcodec_open (this->context, this->codec);
+  }
+}
+
+static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
+}
+
+static void ff_audio_dispose (audio_decoder_t *this_gen) {
+
+  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  
+  if( this->context )
+    avcodec_close (this->context);
+
+  if (this->output_open)
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
+  this->output_open = 0;
+
+  free(this->buf);
+  free(this->decode_buffer);
+
+  if(this->context && this->context->extradata)
+    free(this->context->extradata);
+
+  if(this->context)
+    free(this->context);
+
+  free (this_gen);
+}
+
+static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
+
+  ff_audio_decoder_t *this ;
+
+  this = (ff_audio_decoder_t *) xine_xmalloc (sizeof (ff_audio_decoder_t));
+
+  this->audio_decoder.decode_data         = ff_audio_decode_data;
+  this->audio_decoder.reset               = ff_audio_reset;
+  this->audio_decoder.discontinuity       = ff_audio_discontinuity;
+  this->audio_decoder.dispose             = ff_audio_dispose;
+
+  this->output_open = 0;
+  this->audio_channels = 0;
+  this->stream = stream;
+  this->buf = NULL;
+  this->size = 0;
+  this->decoder_ok = 0;
+  
+  return &this->audio_decoder;
+}
+
+static char *ff_audio_get_identifier (audio_decoder_class_t *this) {
+  return "ffmpeg audio";
+}
+
+static char *ff_audio_get_description (audio_decoder_class_t *this) {
+  return "ffmpeg based audio decoder plugin";
+}
+
+static void ff_audio_dispose_class (audio_decoder_class_t *this) {
+  free (this);
+}
+
+void *init_audio_plugin (xine_t *xine, void *data) {
+
+  ff_audio_class_t *this ;
+
+  this = (ff_audio_class_t *) xine_xmalloc (sizeof (ff_audio_class_t));
+
+  this->decoder_class.open_plugin     = ff_audio_open_plugin;
+  this->decoder_class.get_identifier  = ff_audio_get_identifier;
+  this->decoder_class.get_description = ff_audio_get_description;
+  this->decoder_class.dispose         = ff_audio_dispose_class;
+
+  pthread_once( &once_control, init_once_routine );
+
+  return this;
+}
+
+static uint32_t supported_audio_types[] = { 
+  BUF_AUDIO_WMAV1,
+  BUF_AUDIO_WMAV2,
+  BUF_AUDIO_DV,
+  BUF_AUDIO_14_4,
+  BUF_AUDIO_28_8,
+  BUF_AUDIO_MULAW,
+  BUF_AUDIO_ALAW,
+  BUF_AUDIO_MSADPCM,
+  BUF_AUDIO_QTIMAADPCM,
+  BUF_AUDIO_MSIMAADPCM,
+  BUF_AUDIO_DK3ADPCM,
+  BUF_AUDIO_DK4ADPCM,
+  BUF_AUDIO_XA_ADPCM,
+  BUF_AUDIO_ROQ,
+  BUF_AUDIO_INTERPLAY,
+  BUF_AUDIO_VQA_IMA,
+  BUF_AUDIO_4X_ADPCM,
+  /* BUF_AUDIO_MPEG, */
+  0
+};
+
+decoder_info_t dec_info_ffmpeg_audio = {
+  supported_audio_types,   /* supported types */
+  5                        /* priority        */
+};
+
