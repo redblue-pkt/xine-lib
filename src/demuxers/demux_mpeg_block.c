@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.25 2001/07/13 23:43:12 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.26 2001/07/14 12:50:34 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -47,7 +47,6 @@ typedef struct demux_mpeg_block_s {
 
   fifo_buffer_t        *audio_fifo;
   fifo_buffer_t        *video_fifo;
-  fifo_buffer_t        *spu_fifo;
 
   input_plugin_t       *input;
 
@@ -372,10 +371,6 @@ static void *demux_mpeg_block_loop (void *this_gen) {
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
-/*    buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo); */
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
-/*    this->spu_fifo->put (this->spu_fifo, buf); */
   }
 
   pthread_exit(NULL);
@@ -416,12 +411,6 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
     this->audio_fifo->put (this->audio_fifo, buf);
   }
   
-/*  buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo); */
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 1; /* forced */
-
-/*  this->spu_fifo->put (this->spu_fifo, buf); */
-
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
@@ -433,7 +422,6 @@ static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
 static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 				    fifo_buffer_t *video_fifo, 
 				    fifo_buffer_t *audio_fifo,
-				    fifo_buffer_t *spu_fifo,
 				    off_t pos,
 				    gui_get_next_mrl_cb_t next_mrl_cb,
 				    gui_branched_cb_t branched_cb) 
@@ -444,7 +432,6 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
-  this->spu_fifo    = spu_fifo;
   this->next_mrl_cb = next_mrl_cb;
   this->branched_cb = branched_cb;
 
@@ -464,10 +451,6 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
     buf->type    = BUF_CONTROL_START;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-/*  buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo); */
-  buf->type    = BUF_CONTROL_START;
-/*   this->spu_fifo->put (this->spu_fifo, buf); */
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 
@@ -612,34 +595,28 @@ static void demux_mpeg_block_close (demux_plugin_t *this) {
 
 demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
 
-  demux_mpeg_block_t *this = xmalloc (sizeof (demux_mpeg_block_t));
+  demux_mpeg_block_t *this;
 
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
-
-  switch (iface) {
-
-  case 1:
-
-    this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
-    this->demux_plugin.open              = demux_mpeg_block_open;
-    this->demux_plugin.start             = demux_mpeg_block_start;
-    this->demux_plugin.stop              = demux_mpeg_block_stop;
-    this->demux_plugin.close             = demux_mpeg_block_close;
-    this->demux_plugin.get_status        = demux_mpeg_block_get_status;
-    this->demux_plugin.get_identifier    = demux_mpeg_block_get_id;
-
-    this->scratch = xmalloc_aligned (512, 4096);
-    
-    return (demux_plugin_t *) this;
-    break;
-    
-  default:
-    fprintf(stderr,
-	    "Demuxer plugin doesn't support plugin API version %d.\n"
-	    "PLUGIN DISABLED.\n"
-	    "This means there's a version mismatch between xine and this "
-	    "demuxer plugin.\nInstalling current input plugins should help.\n",
+  if (iface != 2) {
+    printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
+	    "demux_mpeg: this means there's a version mismatch between xine and this "
+	    "demux_mpeg: demuxer plugin.\nInstalling current input plugins should help.\n",
 	    iface);
     return NULL;
   }
+
+  this = xmalloc (sizeof (demux_mpeg_block_t));
+  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+
+  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
+  this->demux_plugin.open              = demux_mpeg_block_open;
+  this->demux_plugin.start             = demux_mpeg_block_start;
+  this->demux_plugin.stop              = demux_mpeg_block_stop;
+  this->demux_plugin.close             = demux_mpeg_block_close;
+  this->demux_plugin.get_status        = demux_mpeg_block_get_status;
+  this->demux_plugin.get_identifier    = demux_mpeg_block_get_id;
+  
+  this->scratch = xmalloc_aligned (512, 4096);
+    
+  return (demux_plugin_t *) this;
 }

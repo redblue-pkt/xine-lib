@@ -24,7 +24,7 @@
  * for the SPDIF AC3 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
  *
- * $Id: audio_alsa05_out.c,v 1.3 2001/06/23 19:45:47 guenter Exp $
+ * $Id: audio_alsa05_out.c,v 1.4 2001/07/14 12:50:33 guenter Exp $
  */
 
 /* required for swab() */
@@ -205,7 +205,6 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
   xprintf (VERBOSE|AUDIO, "bits = %d, rate = %d, channels = %d\n", 
 	   bits, rate, channels);
 
-#warning "FIXME in libAC3"
   if(!rate)
     return 0;
  

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.5 2001/06/16 18:03:22 guenter Exp $
+ * $Id: demux.h,v 1.6 2001/07/14 12:50:34 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -31,7 +31,7 @@
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    1
+#define DEMUXER_PLUGIN_IFACE_VERSION    2
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -85,7 +85,7 @@ struct demux_plugin_s
    */
 
   void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
-		 fifo_buffer_t *audio_fifo, fifo_buffer_t *spu_fifo,
+		 fifo_buffer_t *audio_fifo, 
 		 off_t pos, gui_get_next_mrl_cb_t next_mrl_cb,
 		 gui_branched_cb_t branched_cb) ;
   

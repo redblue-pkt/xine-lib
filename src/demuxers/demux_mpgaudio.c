@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.14 2001/07/03 21:30:38 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.15 2001/07/14 12:50:34 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -177,10 +177,9 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
 }
 
 static void demux_mpgaudio_start (demux_plugin_t *this_gen,
-				 fifo_buffer_t *video_fifo, 
-				 fifo_buffer_t *audio_fifo,
-				 fifo_buffer_t *spu_fifo,
-				 off_t pos,
+				  fifo_buffer_t *video_fifo, 
+				  fifo_buffer_t *audio_fifo,
+				  off_t pos,
 				  gui_get_next_mrl_cb_t next_mrl_cb,
 				  gui_branched_cb_t branched_cb) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
@@ -290,32 +289,28 @@ static void demux_mpgaudio_close (demux_plugin_t *this) {
 }
 
 demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
-  demux_mpgaudio_t *this = malloc (sizeof (demux_mpgaudio_t));
 
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+  demux_mpgaudio_t *this;
 
-  switch (iface) {
-
-  case 1:
-
-    this->demux_plugin.interface_version = DEMUX_MPGAUDIO_IFACE_VERSION;
-    this->demux_plugin.open              = demux_mpgaudio_open;
-    this->demux_plugin.start             = demux_mpgaudio_start;
-    this->demux_plugin.stop              = demux_mpgaudio_stop;
-    this->demux_plugin.close             = demux_mpgaudio_close;
-    this->demux_plugin.get_status        = demux_mpgaudio_get_status;
-    this->demux_plugin.get_identifier    = demux_mpgaudio_get_id;
-    
-    return &this->demux_plugin;
-    break;
-
-  default:
-    fprintf(stderr,
-	    "Demuxer plugin doesn't support plugin API version %d.\n"
-	    "PLUGIN DISABLED.\n"
-	    "This means there's a version mismatch between xine and this "
-	    "demuxer plugin.\nInstalling current input plugins should help.\n",
+  if (iface != 2) {
+    printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
+	    "demux_mpeg: this means there's a version mismatch between xine and this "
+	    "demux_mpeg: demuxer plugin.\nInstalling current input plugins should help.\n",
 	    iface);
     return NULL;
   }
+
+  this = malloc (sizeof (demux_mpgaudio_t));
+  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+
+  this->demux_plugin.interface_version = DEMUX_MPGAUDIO_IFACE_VERSION;
+  this->demux_plugin.open              = demux_mpgaudio_open;
+  this->demux_plugin.start             = demux_mpgaudio_start;
+  this->demux_plugin.stop              = demux_mpgaudio_stop;
+  this->demux_plugin.close             = demux_mpgaudio_close;
+  this->demux_plugin.get_status        = demux_mpgaudio_get_status;
+  this->demux_plugin.get_identifier    = demux_mpgaudio_get_id;
+  
+  return &this->demux_plugin;
 }
+

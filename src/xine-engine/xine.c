@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.32 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: xine.c,v 1.33 2001/07/14 12:50:34 guenter Exp $
  *
  * top-level xine functions
  *
@@ -233,7 +233,7 @@ static void xine_play_internal (xine_t *this, char *mrl,
   this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
 				   this->video_fifo,
 				   this->audio_fifo, 
-				   this->spu_fifo, pos,
+				   pos,
 				   this->get_next_mrl_cb,
 				   this->branched_cb);
   

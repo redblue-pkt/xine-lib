@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu_decoder.h,v 1.2 2001/07/04 20:32:29 uid32519 Exp $
+ * $Id: spu_decoder.h,v 1.3 2001/07/14 12:50:34 guenter Exp $
  */
 #ifndef HAVE_SPU_OUT_H
 #define HAVE_SPU_OUT_H
@@ -123,25 +123,7 @@ struct spu_functions_s {
  * spu output modes + capabilities
  */
 
-#define SPU_CAP_NOCAP            0x00000000 /* Driver have no capabilities  */
-#define SPU_CAP_MODE_AC3         0x00000001 /* Driver support AC3 output    */
-#define SPU_CAP_MODE_AC5         0x00000002 /* Driver support AC5 output    */
-/* 1 sample ==  2 bytes */
-#define SPU_CAP_MODE_MONO        0x00000004 /* Driver support mono output   */
- /* 1 sample ==  4 bytes */
-#define SPU_CAP_MODE_STEREO      0x00000008 /* Driver support stereo output */
- /* 1 sample ==  8 bytes */
-#define SPU_CAP_MODE_4CHANNEL    0x00000010 /* Driver support 4 channels    */
-/* 1 sample == 10 bytes */
-#define SPU_CAP_MODE_5CHANNEL    0x00000020 /* Driver support 5 channels    */
-#define SPU_CAP_MIXER_VOL        0x00000040 /* Driver support mixer control */
-#define SPU_CAP_PCM_VOL          0x00000080 /* Driver support pcm control   */
-#define SPU_CAP_MUTE_VOL         0x00000100 /* Driver can mute volume       */
-
-/* properties supported by get/set_property() */
-#define SPU_PROP_MIXER_VOL       0
-#define SPU_PROP_PCM_VOL         1
-#define SPU_PROP_MUTE_VOL        2
+/* none yet */
 
 typedef struct spu_info_s {
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.27 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: xine_internal.h,v 1.28 2001/07/14 12:50:34 guenter Exp $
  *
  */
 
@@ -130,12 +130,11 @@ typedef struct xine_s {
   off_t                      cur_input_pos;
   char                       cur_mrl[1024];
 
-  spu_functions_t            *spu_out;
-  fifo_buffer_t             *spu_fifo;
+  spu_functions_t           *spu_out;
   pthread_t                  spu_thread;
-  spu_decoder_t           *spu_decoder_plugins[DECODER_PLUGIN_MAX];
+  spu_decoder_t             *spu_decoder_plugins[DECODER_PLUGIN_MAX];
   int                        num_spu_decoder_plugins;
-  spu_decoder_t           *cur_spu_decoder_plugin;
+  spu_decoder_t             *cur_spu_decoder_plugin;
   uint32_t                   spu_track_map[50];
   int                        spu_track_map_entries;
   int                        spu_finished;

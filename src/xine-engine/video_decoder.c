@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.30 2001/07/13 23:43:13 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.31 2001/07/14 12:50:34 guenter Exp $
  *
  */
 
@@ -35,6 +35,7 @@ void *video_decoder_loop (void *this_gen) {
   int              i;
   int              streamtype;
   video_decoder_t *decoder;
+  spu_decoder_t   *spu_decoder;
 
   while (running) {
 
@@ -80,19 +81,19 @@ void *video_decoder_loop (void *this_gen) {
         if ( (buf->type  & 0xFFFF)== this->spu_channel) {
 
           int streamtype = (buf->type>>16) & 0xFF;
-          decoder = this->spu_decoder_plugins [streamtype];
-          if (decoder) {
-            if (this->cur_spu_decoder_plugin != decoder) {
+          spu_decoder = this->spu_decoder_plugins [streamtype];
+          if (spu_decoder) {
+            if (this->cur_spu_decoder_plugin != spu_decoder) {
 
               if (this->cur_spu_decoder_plugin)
                 this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
 
-              this->cur_spu_decoder_plugin = decoder;
+              this->cur_spu_decoder_plugin = spu_decoder;
 
               this->cur_spu_decoder_plugin->init (this->cur_spu_decoder_plugin, this->video_out);
             }
 
-            decoder->decode_data (decoder, buf);
+            spu_decoder->decode_data (spu_decoder, buf);
           }
         }
 
