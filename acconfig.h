@@ -90,3 +90,4 @@
 #undef FPM_PPC
 #undef FPM_SPARC
 #undef FPM_MIPS
+#undef FPM_M68K
