@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.23 2001/11/18 03:53:24 guenter Exp $
+ * $Id: spu.c,v 1.24 2001/11/20 03:43:18 miguelfreitas Exp $
  *
  */
 
@@ -452,6 +452,11 @@ void spu_discover_clut(spu_state_t *state, vo_overlay_t *ovl)
   memset(found,0,sizeof(found));
   rle = ovl->rle;
 
+  /* this seems to be a problem somewhere else,
+     why rle is null? */
+  if( !rle )
+    return;
+  
   /* suppose the first and last pixels are bg */
   if( rle[0].color != rle[ovl->num_rle-1].color )
     return;
