@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.13 2001/09/26 17:19:49 jkeil Exp $
+ * $Id: video_out_syncfb.c,v 1.14 2001/10/10 10:06:52 jkeil Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -828,6 +828,26 @@ printf("move to %d %d with %d %d\n",area->x,area->y,area->w,area->h);
     /* FIXME : implement */
 
     break;
+
+  /* FIXME: implement this
+  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+    {
+      x11_rectangle_t *rect = data;
+      int x1, y1, x2, y2;
+      xv_translate_gui2video(this, rect->x, rect->y,
+			     &x1, &y1);
+      xv_translate_gui2video(this, rect->x + rect->w, rect->y + rect->h,
+			     &x2, &y2);
+      rect->x = x1;
+      rect->y = y1;
+      rect->w = x2-x1;
+      rect->h = y2-y1;
+    }
+    break;
+  */
+
+  default:
+    return -1;
   }
 
   return 0;

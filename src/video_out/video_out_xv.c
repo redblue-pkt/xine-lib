@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.65 2001/10/03 14:01:03 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.66 2001/10/10 10:07:00 jkeil Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -776,6 +776,34 @@ static void xv_get_property_min_max (vo_driver_t *this_gen,
   *max = this->props[property].max;
 }
 
+static void xv_translate_gui2video(xv_driver_t *this,
+				   int x, int y,
+				   int *vid_x, int *vid_y)
+{
+  if (this->output_width > 0 && this->output_height > 0) {
+    /*
+     * 1.
+     * the xv driver may center a small output area inside a larger
+     * gui area.  This is the case in fullscreen mode, where we often
+     * have black borders on the top/bottom/left/right side.
+     */
+    x -= this->output_xoffset;
+    y -= this->output_yoffset;
+
+    /*
+     * 2.
+     * the xv driver scales the delivered area into an output area.
+     * translate output area coordianates into the delivered area
+     * coordiantes.
+     */
+    x = x * this->delivered_width  / this->output_width;
+    y = y * this->delivered_height / this->output_height;
+  }
+
+  *vid_x = x;
+  *vid_y = y;
+}
+
 static int xv_gui_data_exchange (vo_driver_t *this_gen,
 				 int data_type, void *data) {
 
@@ -837,6 +865,27 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     this->drawable = (Drawable) data;
     this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
     break;
+
+  /* FIXME: implement this
+  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+    {
+      int x1, y1, x2, y2;
+      x11_rectangle_t *rect = data;
+
+      xv_translate_gui2video(this, rect->x, rect->y,
+			     &x1, &y1);
+      xv_translate_gui2video(this, rect->x + rect->w, rect->y + rect->h,
+			     &x2, &y2);
+      rect->x = x1;
+      rect->y = y1;
+      rect->w = x2-x1;
+      rect->h = y2-y1;
+    }
+    break;
+  */
+
+  default:
+    return -1;
   }
 
   return 0;

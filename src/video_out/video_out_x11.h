@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.6 2001/07/18 21:38:16 f1rmb Exp $
+ * $Id: video_out_x11.h,v 1.7 2001/10/10 10:06:59 jkeil Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -85,17 +85,19 @@ typedef struct {
 } x11_visual_t;
 
 /*
- * constants for gui_data_exhange's data_type parameter
+ * constants for gui_data_exchange's data_type parameter
  */
 
 /* x11_rectangle_t *data */
-#define GUI_DATA_EX_DEST_POS_SIZE_CHANGED 0
+#define GUI_DATA_EX_DEST_POS_SIZE_CHANGED  0
 /* xevent *data */
-#define GUI_DATA_EX_COMPLETION_EVENT      1
+#define GUI_DATA_EX_COMPLETION_EVENT       1
 /* Drawable has changed */
-#define GUI_DATA_EX_DRAWABLE_CHANGED      2
+#define GUI_DATA_EX_DRAWABLE_CHANGED       2
 /* xevent *data */
-#define GUI_DATA_EX_EXPOSE_EVENT          3
+#define GUI_DATA_EX_EXPOSE_EVENT           3
+/* x11_rectangle_t *data */
+#define GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO 4
 
 #ifdef __cplusplus
 }
