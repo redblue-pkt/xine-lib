@@ -936,8 +936,3 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
-ao_info_t *get_audio_out_plugin_info()
-{
-	return (ao_info_t *)&dec_info_audio;
-}
-

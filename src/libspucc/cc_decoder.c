@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.20 2003/03/26 11:06:55 miguelfreitas Exp $
+ * $Id: cc_decoder.c,v 1.21 2003/05/06 14:02:26 tchamp Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -62,8 +62,15 @@
 /* number of text colors specified by EIA-608 standard */
 #define NUM_FG_COL 7
 
+#ifndef _MSC_VER
 /* colors specified by the EIA 608 standard */
 enum { WHITE, GREEN, BLUE, CYAN, RED, YELLOW, MAGENTA, BLACK, TRANSPARENT };
+#else
+/* colors specified by the EIA 608 standard */
+enum { WHITE, GREEN, BLUE, CYAN, RED, YELLOW, MAGENTA, BLACK };
+#endif
+
+
 
 /* color mapping to OSD text color indices */
 static int text_colormap[NUM_FG_COL] = {

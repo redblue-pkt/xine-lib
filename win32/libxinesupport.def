@@ -165,7 +165,7 @@ ptw32_pop_cleanup
 ptw32_get_exception_services_code
 
 ;------------------------------------------------------------
-; timer exports
+; zlib exports
 
 adler32
 compress
@@ -217,3 +217,8 @@ setitimer
 pause
 sleep
 nanosleep
+
+;------------------------------------------------------------
+; other exports
+setenv
+

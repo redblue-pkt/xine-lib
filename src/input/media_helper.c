@@ -27,9 +27,13 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
+
+#ifndef WIN32
 #include <sys/wait.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
+#endif
+
+#include <unistd.h>
 #include <string.h>
 
 #if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
@@ -38,6 +42,7 @@
 #include <linux/cdrom.h>
 #elif defined(HAVE_SYS_CDIO_H)
 #include <sys/cdio.h>
+#elif WIN32
 #else
 #warning "This might not compile due to missing cdrom ioctls"
 #endif
@@ -47,6 +52,7 @@
 
 static int media_umount_media(char *device)
 {
+#ifndef WIN32
   char *argv[10];
   int i;
   pid_t pid;
@@ -71,11 +77,17 @@ static int media_umount_media(char *device)
   } while(1);
   
   return -1;
+#else
+  return 0;
+#endif /* WIN32 */
 } 
 
 int media_eject_media (char *device) {
+
+#ifndef WIN32
   int   ret, status;
   int   fd;
+#endif /* WIN32 */
 
   /* printf("input_dvd: Eject Device %s current device %s opened=%d handle=%p trying...\n",device, this->current_dvd_device, this->opened, this->dvdnav); */
   media_umount_media(device);
@@ -83,6 +95,8 @@ int media_eject_media (char *device) {
         printf("ipnut_dvd: umount result: %s\n", 
                   strerror(errno));  
    ***********/
+
+#ifndef WIN32
   if ((fd = open (device, O_RDONLY|O_NONBLOCK)) > -1) {
 
 #if defined (__linux__)
@@ -130,5 +144,8 @@ int media_eject_media (char *device) {
     printf("input_dvd: Device %s failed to open during eject calls\n",device);
   }
   return 1;
+#else
+  return 0;
+#endif /* WIN32 */
 }
 

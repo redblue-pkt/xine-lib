@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.156 2003/05/05 22:29:31 tmattern Exp $
+ * $Id: video_out.c,v 1.157 2003/05/06 14:02:27 tchamp Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -837,13 +837,15 @@ static void *video_out_loop (void *this_gen) {
   int64_t            frame_duration, next_frame_vpts;
   int64_t            usec_to_sleep;
  
+#ifndef WIN32
   /* nice(-value) will fail silently for normal users.
    * however when running as root this may provide smoother
    * playback. follow the link for more information:
    * http://cambuca.ldhs.cetuc.puc-rio.br/~miguel/multimedia_sim/
    */
   nice(-2);
-    
+#endif /* WIN32 */
+
   /*
    * here it is - the heart of xine (or rather: one of the hearts
    * of xine) : the video output loop

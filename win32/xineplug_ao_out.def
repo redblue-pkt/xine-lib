@@ -4,4 +4,4 @@
 EXPORTS
 
 xine_plugin_info
-get_audio_out_plugin_info
+;get_audio_out_plugin_info

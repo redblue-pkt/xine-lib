@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.159 2003/05/03 14:24:08 mroi Exp $
+ * $Id: input_dvd.c,v 1.160 2003/05/06 14:02:25 tchamp Exp $
  *
  */
 
@@ -83,13 +83,8 @@
 
 /* DVDNAV includes */
 #ifdef HAVE_DVDNAV
-#ifndef _MSC_VER
 #  include <dvdnav/dvdnav.h>
 #  include <dvdnav/nav_read.h>
-#else
-#  include "dvdnav.h"
-#  include "nav_read.h"
-#endif /* _MSC_VER */
 #else
 #  define DVDNAV_COMPILE
 #  include "dvdnav.h"
@@ -121,6 +116,10 @@
 #if defined(__sun)
 #define DVD_PATH "/vol/dev/aliases/cdrom0"
 #define RDVD_PATH ""
+#elif WIN32
+/* There really isn't a default on Windows! */
+#define DVD_PATH "d:\\"
+#define RDVD_PATH "d:\\"
 #else
 #define DVD_PATH "/dev/dvd"
 #define RDVD_PATH "/dev/rdvd"
@@ -1228,12 +1227,17 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   /* we already checked the "dvd:/" MRL above */
   locator = &this->mrl[strlen(handled_mrl)];
   while (*locator == '/') locator++;
+
+#ifndef _MSC_VER
   /* we skipped at least one slash, get it back */
   locator--;
+#endif
 
   /* Attempt to parse MRL */
   last_slash = strlen(locator);
-  while(last_slash && locator[last_slash] != '/') last_slash--;
+  while(last_slash && 
+	  ((locator[last_slash] != '/') && (locator[last_slash] != '\\')))
+	  last_slash--;
 
   if(last_slash) {
     /* we have an alternative dvd_path */
@@ -1243,7 +1247,13 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   }else{
     intended_dvd_device=class->dvd_device;
   }
+
+#ifdef _MSC_VER
+  if (*locator == '/')
+	  locator++;
+#else
   locator++;
+#endif
 
   if(locator[0]) {
     this->mode = MODE_TITLE; 
@@ -1304,8 +1314,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   /* Set seek mode */
   if (xine_config_lookup_entry(this->stream->xine, "input.dvd_seek_behaviour",
 			       &cache_entry))
-    seek_mode_cb(class, &cache_entry);
-  
+    seek_mode_cb(class, &cache_entry);  
 
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
@@ -1321,8 +1330,8 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 	locator[i] = '\0';
       }
     }
-    tt = strtol(locator, NULL,10);
 
+    tt = strtol(locator, NULL,10);
     dvdnav_get_number_of_titles(this->dvdnav, &titles);
     if((tt <= 0) || (tt > titles)) {
       printf("input_dvd: Title %i is out of range (1 to %i).\n", tt,
@@ -1612,6 +1621,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.160  2003/05/06 14:02:25  tchamp
+ * This is some general Win32 cleanup and getting ready for DVD support.
+ *
  * Revision 1.159  2003/05/03 14:24:08  mroi
  * as announced on xine-devel:
  * * I change the SPU decoder API to make it look less DVD specific

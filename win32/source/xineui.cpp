@@ -21,8 +21,10 @@
  * by Matthew Grooms <elon@altavista.com>
  */
 
+#include <xinesuppt.h>
 #include "xineui.h"
-#include "common.h"
+
+#include <pthread.h> /* pthread_mutex_init() */
 
 /*
 #define LOG 1
@@ -31,7 +33,6 @@
 
 static char                 **video_driver_ids;
 static char                 **audio_driver_ids;
-
 
 static void config_update(xine_cfg_entry_t *entry, 
 			  int type, int min, int max, int value, char *string) {
@@ -468,6 +469,9 @@ bool _XINE_UI::InitXine()
 	/*config = config_file_init( configfile );*/
 
 #else
+
+  setenv("HOME", xine_get_homedir(), 0);
+
   /*
    * Initialize config
    */
@@ -759,8 +763,23 @@ bool _XINE_UI::Play( int newindex )
 
 	// store our new mrl info
 
-	mrl_short_name	= playlist[ playindex ]->mrl_short_name;
+#if (1)
+	mrl_long_name   = strdup("file:");
+	strcat(mrl_long_name, playlist[ playindex ]->mrl_long_name);
+
+	/* This will be used for DVD playing! */
+	/*mrl_long_name   = strdup("dvd:/");*/
+
+	/* DVD Drive */
+	/*strcat(mrl_long_name, "d:\\\\1.1");*/
+
+	/* \\Title.Part */
+	/*strcat(mrl_long_name, "1.1");*/
+#else
 	mrl_long_name	= playlist[ playindex ]->mrl_long_name;
+#endif
+
+	mrl_short_name	= playlist[ playindex ]->mrl_short_name;
 	mrl_type		= playlist[ playindex ]->mrl_type;
 
 	// play our mrl
