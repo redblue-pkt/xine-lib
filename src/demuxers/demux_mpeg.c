@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.139 2004/05/10 11:24:28 hadess Exp $
+ * $Id: demux_mpeg.c,v 1.140 2004/05/10 11:33:54 hadess Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -46,6 +46,7 @@
 #include "xineutils.h"
 
 #define NUM_PREVIEW_BUFFERS 150
+#define SCRATCH_SIZE 256
 
 #define WRAP_THRESHOLD       120000
 
@@ -1047,9 +1048,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     off_t mdat_atom_offset = -1;
     int64_t mdat_atom_size = -1;
     unsigned int fourcc_tag;
-    int i, j;
+    int i, j, read;
     int ok = 0;
-    uint8_t buf[4];
+    uint8_t buf[SCRATCH_SIZE];
 
     /* use demux_mpeg_block for block devices */
     if (input->get_capabilities(input) & INPUT_CAP_BLOCK ) {
@@ -1058,15 +1059,23 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
 
     /* look for mpeg header */
-    if (_x_demux_read_header(input, buf, 4) == 4) {
-      lprintf ("%02x %02x %02x %02x\n", buf[0], buf[1], buf[2], buf[3]);
-      if (!buf[0] && !buf[1] && (buf[2] == 0x01)
-          && (buf[3] == 0xba)) /* if so, take it */
-        break;
-    } else {
+    read = _x_demux_read_header(input, buf, SCRATCH_SIZE);
+    if (!read) {
       free (this);
       return NULL;
     }
+
+    for (i = 0; i < read - 4; i++) {
+      lprintf ("%02x %02x %02x %02x\n", buf[i], buf[i+1], buf[i+2], buf[i+3]);
+      if (!buf[i] && !buf[i+1] && (buf[i+2] == 0x01)
+          && (buf[i+3] == 0xba)) /* if so, take it */ {
+        ok = 1;
+        break;
+      }
+    }
+
+    if (ok == 1)
+      break;
 
     /* the special cases need seeking */
     if (!INPUT_IS_SEEKABLE(input)) {
