@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.113 2003/05/15 20:23:18 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.114 2003/05/20 13:50:57 mroi Exp $
  *
  *
  * contents:
@@ -46,7 +46,12 @@ extern "C" {
 #include <pthread.h>
 #include <inttypes.h>
 #include <sys/types.h>
-#include "attributes.h"
+
+#ifdef XINE_COMPILE
+#  include "attributes.h"
+#else
+#  include <xine/attributes.h>
+#endif
 
 #define BUF_MAX_CALLBACKS 5
 

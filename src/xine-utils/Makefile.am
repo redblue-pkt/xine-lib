@@ -31,9 +31,10 @@ libxineutils_la_LIBADD = $(THREAD_LIBS) $(xv_libs)
 
 include_HEADERS = attributes.h \
 	compat.h \
-	ppcasm_string.h \
 	xineutils.h \
 	xine_check.h \
 	xmllexer.h \
 	xmlparser.h \
 	xine_buffer.h
+
+noinst_HEADERS = ppcasm_string.h

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.5 2002/12/29 14:04:43 mroi Exp $
+ * $Id: post.h,v 1.6 2003/05/20 13:50:57 mroi Exp $
  *
  * post plugin definitions
  *
@@ -26,10 +26,17 @@
 #ifndef XINE_POST_H
 #define XINE_POST_H
 
-#include "xine.h"
-#include "video_out.h"
-#include "audio_out.h"
-#include "xineutils.h"
+#ifdef XINE_COMPILE
+#  include "xine.h"
+#  include "video_out.h"
+#  include "audio_out.h"
+#  include "xineutils.h"
+#else
+#  include <xine.h>
+#  include <xine/video_out.h>
+#  include <xine/audio_out.h>
+#  include <xine/xineutils.h>
+#endif
 
 #define POST_PLUGIN_IFACE_VERSION 2
 

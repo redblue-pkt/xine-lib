@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.137 2003/05/15 20:23:18 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.138 2003/05/20 13:50:57 mroi Exp $
  *
  */
 
@@ -40,38 +40,37 @@ typedef struct extra_info_s extra_info_t;
  */
 
 #ifdef XINE_COMPILE
-#include "include/xine.h"
+#  include "xine.h"
+#  include "input/input_plugin.h"
+#  include "demuxers/demux.h"
+#  include "video_out.h"
+#  include "audio_out.h"
+#  include "metronom.h"
+#  include "osd.h"
+#  include "xineintl.h"
+#  include "plugin_catalog.h"
+#  include "video_decoder.h"
+#  include "audio_decoder.h"
+#  include "spu_decoder.h"
+#  include "scratch.h"
+#  include "broadcaster.h"
 #else
-#include "xine.h"
+#  include <xine.h>
+#  include <xine/input_plugin.h>
+#  include <xine/demux.h>
+#  include <xine/video_out.h>
+#  include <xine/audio_out.h>
+#  include <xine/metronom.h>
+#  include <xine/osd.h>
+#  include <xine/xineintl.h>
+#  include <xine/plugin_catalog.h>
+#  include <xine/video_decoder.h>
+#  include <xine/audio_decoder.h>
+#  include <xine/spu_decoder.h>
+#  include <xine/scratch.h>
+#  include <xine/broadcaster.h>
 #endif
 
-#ifdef XINE_COMPILE
-#include "input/input_plugin.h"
-#include "demuxers/demux.h"
-#else
-#include "input_plugin.h"
-#include "demux.h"
-#endif
-
-#include "video_out.h"
-#include "audio_out.h"
-#include "metronom.h"
-#include "spu_decoder.h"
-#include "lrb.h"
-
-#ifdef XINE_COMPILE
-#include "libspudec/spu_decoder_api.h"
-#else
-#include "spu_decoder_api.h"
-#endif
-
-#include "osd.h"
-#include "scratch.h"
-#include "xineintl.h"
-#include "plugin_catalog.h"
-#include "video_decoder.h"
-#include "audio_decoder.h"
-#include "broadcaster.h"
 
 #define XINE_MAX_EVENT_LISTENERS         50
 #define XINE_MAX_EVENT_TYPES             100
@@ -175,7 +174,12 @@ struct xine_stream_s {
   
   xine_audio_port_t         *audio_out;
   fifo_buffer_t             *audio_fifo;
+  /* FIXME: the next member appears to be unused. Should it be removed? */
+#if 0
   lrb_t                     *audio_temp;
+#else
+  void                      *audio_temp;
+#endif
   pthread_t                  audio_thread;
   audio_decoder_t           *audio_decoder_plugin;
   int                        audio_decoder_streamtype;
@@ -190,8 +194,11 @@ struct xine_stream_s {
   int                        audio_channel_user;
   int                        audio_channel_auto;
 
-  spu_functions_t           *spu_out;
+  /* FIXME: remove these two members on the next structure cleanup,
+   * they are unused */
+  void                      *spu_out;
   pthread_t                  spu_thread;
+  
   spu_decoder_t             *spu_decoder_plugin;
   int                        spu_decoder_streamtype;
   uint32_t                   spu_track_map[50];

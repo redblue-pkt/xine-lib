@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.247 2003/05/15 20:23:18 miguelfreitas Exp $
+ * $Id: xine.c,v 1.248 2003/05/20 13:50:57 mroi Exp $
  *
  * top-level xine functions
  *
@@ -47,7 +47,7 @@
 #include "video_out.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
-#include "libspudec/spu_decoder_api.h"
+#include "spu_decoder.h"
 /* TODO: who uses spu_decoder.h ? */
 #include "spu_decoder.h"
 #include "input/input_plugin.h"
@@ -372,7 +372,6 @@ xine_stream_t *xine_stream_new (xine_t *this,
     stream->stream_info[i]       = 0;
     stream->meta_info[i]         = NULL;
   }
-  stream->spu_out                = NULL;
   stream->spu_decoder_plugin     = NULL;
   stream->spu_decoder_streamtype = -1;
   stream->audio_out              = ao;

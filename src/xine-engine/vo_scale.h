@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.7 2003/04/25 15:34:48 mroi Exp $
+ * $Id: vo_scale.h,v 1.8 2003/05/20 13:50:57 mroi Exp $
  * 
  * vo_scale.h
  *
@@ -35,8 +35,11 @@ extern "C" {
 #include "config.h"
 #endif
 
-/* Added during _MSC_VER port */
-#include <configfile.h>
+#ifdef XINE_COMPILE
+#  include "configfile.h"
+#else
+#  include <xine/configfile.h>
+#endif
 
 typedef struct {
   int x, y;

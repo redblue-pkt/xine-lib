@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.49 2003/05/15 20:23:18 miguelfreitas Exp $
+ * $Id: metronom.h,v 1.50 2003/05/20 13:50:56 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -50,8 +50,14 @@ extern "C" {
 #include <inttypes.h>
 #include <sys/time.h>
 #include <pthread.h>
-#include "video_out.h"
-#include "xine.h"
+
+#ifdef XINE_COMPILE
+#  include "video_out.h"
+#  include "xine.h"
+#else
+#  include <xine/video_out.h>
+#  include <xine.h>
+#endif
 
 typedef struct metronom_s metronom_t ;
 typedef struct metronom_clock_s metronom_clock_t;

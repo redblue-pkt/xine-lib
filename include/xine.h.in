@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.84 2003/05/15 20:23:16 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.85 2003/05/20 13:50:56 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1601,11 +1601,11 @@ void        xine_osd_get_palette   (xine_osd_t *self, uint32_t *color,
 /*********************************************************************
  * TV-mode API, to make it possible to use nvtvd to view movies      *
  *********************************************************************/
+
 typedef enum {
 	XINE_TVSYSTEM_PAL    = 0,
 	XINE_TVSYSTEM_NTSC   = 1,
 } xine_tvsystem;
-
 
 /* connect to nvtvd server and save current TV and X settings */
 int xine_tvmode_init (xine_t *self);

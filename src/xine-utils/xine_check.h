@@ -1,7 +1,12 @@
 #ifndef XINE_CHECK_H
 #define XINE_CHECK_H
 #include <stdio.h>
-#include "xine.h"
+
+#ifdef XINE_COMPILE
+#  include "xine.h"
+#else
+#  include <xine.h>
+#endif
 
 #define XINE_HEALTH_CHECK_OK            0
 #define XINE_HEALTH_CHECK_FAIL          1

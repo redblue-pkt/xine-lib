@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.11 2003/01/03 22:38:29 miguelfreitas Exp $
+ * $Id: plugin_catalog.h,v 1.12 2003/05/20 13:50:56 mroi Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -26,8 +26,13 @@
 #ifndef _PLUGIN_CATALOG_H
 #define _PLUGIN_CATALOG_H
 
-#include "xine_plugin.h"
-#include "xineutils.h"
+#ifdef XINE_COMPILE
+#  include "xine_plugin.h"
+#  include "xineutils.h"
+#else
+#  include <xine/xine_plugin.h>
+#  include <xine/xineutils.h>
+#endif
 
 #define DECODER_MAX 256
 #define PLUGIN_MAX  256

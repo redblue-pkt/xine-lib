@@ -17,19 +17,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.30 2003/04/26 20:15:52 guenter Exp $
+ * $Id: demux.h,v 1.31 2003/05/20 13:50:56 mroi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
 #define HAVE_DEMUX_H
 
-#include "buffer.h"
-#include "video_out.h"
-#include "xine_internal.h"
-#if defined(XINE_COMPILE)
-#include "input/input_plugin.h"
+#ifdef XINE_COMPILE
+#  include "input/input_plugin.h"
+#  include "buffer.h"
+#  include "video_out.h"
+#  include "xine_internal.h"
 #else
-#include "input_plugin.h"
+#  include <xine/input_plugin.h>
+#  include <xine/buffer.h>
+#  include <xine/video_out.h>
+#  include <xine/xine_internal.h>
 #endif
 
 #define DEMUXER_PLUGIN_IFACE_VERSION    21

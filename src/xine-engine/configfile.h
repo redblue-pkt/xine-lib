@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.21 2003/04/25 15:34:45 mroi Exp $
+ * $Id: configfile.h,v 1.22 2003/05/20 13:50:56 mroi Exp $
  *
  * config file management
  *
@@ -31,9 +31,13 @@ extern "C" {
 #endif
 
 #include <inttypes.h>
+#include <pthread.h>
 
-#include "xine.h"
-#include "pthread.h"
+#ifdef XINE_COMPILE
+#  include "xine.h"
+#else
+#  include <xine.h>
+#endif
 
 typedef struct cfg_entry_s cfg_entry_t;
 typedef struct config_values_s config_values_t;

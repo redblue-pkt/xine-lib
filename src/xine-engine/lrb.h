@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: lrb.h,v 1.2 2002/10/23 17:12:32 guenter Exp $
+ * $Id: lrb.h,v 1.3 2003/05/20 13:50:56 mroi Exp $
  *
  * lrb : limited ring buffer
  * used for temporal buffer, limited to n elements
@@ -27,7 +27,11 @@
 #ifndef HAVE_LRB_H
 #define HAVE_LRB_H
 
-#include "buffer.h"
+#ifdef XINE_COMPILE
+#  include "buffer.h"
+#else
+#  include <xine/buffer.h>
+#endif
 
 typedef struct {
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.48 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_plugin.h,v 1.49 2003/05/20 13:50:56 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -25,9 +25,16 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
-#include "xineutils.h"
-#include "buffer.h"
-#include "configfile.h"
+
+#ifdef XINE_COMPILE
+#  include "xineutils.h"
+#  include "buffer.h"
+#  include "configfile.h"
+#else
+#  include <xine/xineutils.h>
+#  include <xine/buffer.h>
+#  include <xine/configfile.h>
+#endif
 
 #define INPUT_PLUGIN_IFACE_VERSION   13
  

@@ -1,144 +1,117 @@
-/* 
- * Copyright (C) 2000-2002 the xine project
- * 
+/*
+ * spu_decoder_api.h
+ *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *
- * This file is part of xine, a free video player.
+ * This file is part of xine, a unix video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ * along with GNU Make; see the file COPYING. If not, write to
+ * the Free Software Foundation, 
  *
- * $Id: spu_decoder.h,v 1.6 2002/10/23 17:12:34 guenter Exp $
  */
-#ifndef HAVE_SPU_OUT_H
-#define HAVE_SPU_OUT_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef HAVE_SPU_API_H
+#define HAVE_SPU_API_H
 
 #include <inttypes.h>
 
-#if defined(XINE_COMPILE)
-#include "metronom.h"
-#include "configfile.h"
+#ifdef XINE_COMPILE
+#  include "buffer.h"
+#else
+#  include <xine/buffer.h>
 #endif
 
-
-#define SPU_OUT_IFACE_VERSION  1
+#define SPU_DECODER_IFACE_VERSION 14
 
 /*
- * spu_functions_s contains the functions every spu output
- * driver plugin has to implement.
+ * generic xine spu decoder plugin interface
  */
 
-typedef struct spu_functions_s spu_functions_t;
+typedef struct spu_decoder_class_s spu_decoder_class_t;
+typedef struct spu_decoder_s spu_decoder_t;
 
-struct spu_functions_s {
-
-  /* 
-   *
-   * find out what output modes + capatilities are supported by 
-   * this plugin (constants for the bit vector to return see above)
-   *
-   * See SPU_CAP_* bellow.
-   */
-  uint32_t (*get_capabilities) (spu_functions_t *this);
+struct spu_decoder_class_s {
 
   /*
-   * connect this driver to the xine engine
+   * open a new instance of this plugin class
    */
-  void (*connect) (spu_functions_t *this, metronom_t *metronom);
+  spu_decoder_t* (*open_plugin) (spu_decoder_class_t *this, xine_stream_t *stream);
+  
+  /*
+   * return short, human readable identifier for this plugin class
+   */
+  char* (*get_identifier) (spu_decoder_class_t *this);
 
   /*
-   * open the driver and make it ready to receive spu data 
-   * buffers may be flushed(!)
-   *
-   * return value: <=0 : failure, 1 : ok
+   * return human readable (verbose = 1 line) description for 
+   * this plugin class
    */
-
-  int (*open)(spu_functions_t *this, uint32_t bits, uint32_t rate, int mode);
+  char* (*get_description) (spu_decoder_class_t *this);
+  
+  /*
+   * free all class-related resources
+   */
+  void (*dispose) (spu_decoder_class_t *this);
+};
+  
+ 
+struct spu_decoder_s {
 
   /*
-   * write spu data to output buffer - may block
-   * spu driver must sync sample playback with metronom
-   */
-
-  void (*write_spu_data)(spu_functions_t *this,
-			   int16_t* spu_data, uint32_t num_samples, 
-			   int64_t pts);
+   * decode data from buf and feed the overlay to overlay manager
+   */  
+  void (*decode_data) (spu_decoder_t *this, buf_element_t *buf);
 
   /*
-   * this is called when the decoder no longer uses the spu
-   * output driver - the driver should get ready to get opened() again
+   * reset decoder after engine flush (prepare for new
+   * SPU data not related to recently decoded data)
    */
-
-  void (*close)(spu_functions_t *this);
+  void (*reset) (spu_decoder_t *this);
+    
+  /*
+   * inform decoder that a time reference discontinuity has happened.
+   * that is, it must forget any currently held pts value
+   */
+  void (*discontinuity) (spu_decoder_t *this);
 
   /*
-   * shut down this spu output driver plugin and
-   * free all resources allocated
+   * close down, free all resources
    */
-
-  void (*exit) (spu_functions_t *this);
+  void (*dispose) (spu_decoder_t *this);
 
   /*
-   * Get, Set a property of spu driver.
-   *
-   * get_property() return 1 in success, 0 on failure.
-   * set_property() return value on success, ~value on failure.
-   *
-   * See AC_PROP_* bellow for available properties.
+   * When the SPU decoder also handles data used in user interaction,
+   * you can query the related information here. The typical example
+   * for this is DVD NAV packets which are handled by the SPU decoder
+   * and can be received readily parsed from here.
+   * The caller and the decoder must agree on the structure which is
+   * passed here.
+   * This function pointer may be NULL, if the plugin does not have
+   * such functionality.
    */
-  int (*get_property) (spu_functions_t *this, int property);
+  int  (*get_interact_info) (spu_decoder_t *this, void *data);
 
-  int (*set_property) (spu_functions_t *this,  int property, int value);
+  /*
+   * When the SPU decoder also handles menu overlays for user inter-
+   * action, you can set a menu button here. The typical example for
+   * this is DVD menus.
+   * This function pointer may be NULL, if the plugin does not have
+   * such functionality.
+   */
+  void (*set_button) (spu_decoder_t *this_gen, int32_t button, int32_t mode);
 
+  void *node; /* used by plugin loader */
 };
 
-
-/*
- * to build a dynamic spu output plugin,
- * you have to implement these functions:
- *
- *
- * spu_functions_t *init_spu_out_plugin (config_values_t *config)
- *
- * init this plugin, check if device is available
- *
- * spu_info_t *get_spu_out_plugin_info ()
- *
- * peek at some (static) information about the plugin without initializing it
- *
- */
-
-/*
- * spu output modes + capabilities
- */
-
-/* none yet */
-
-typedef struct spu_info_s {
-
-  int     interface_version;
-  char   *id;
-  char   *description;
-  int     priority;
-} spu_info_t ;
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif /* HAVE_SPUDEC_H */

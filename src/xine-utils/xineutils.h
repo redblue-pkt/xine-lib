@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.49 2003/04/22 23:30:58 tchamp Exp $
+ * $Id: xineutils.h,v 1.50 2003/05/20 13:54:57 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -33,11 +33,20 @@ extern "C" {
 #include <stdarg.h>
 #include <inttypes.h>
 #include <pthread.h>
-#include "attributes.h"
-#include "compat.h"
-#include "xmlparser.h"
-#include "xine_buffer.h"
-#include "configfile.h"
+
+#ifdef XINE_COMPILE
+#  include "attributes.h"
+#  include "compat.h"
+#  include "xmlparser.h"
+#  include "xine_buffer.h"
+#  include "configfile.h"
+#else
+#  include <xine/attributes.h>
+#  include <xine/compat.h>
+#  include <xine/xmlparser.h>
+#  include <xine/xine_buffer.h>
+#  include <xine/configfile.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

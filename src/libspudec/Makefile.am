@@ -26,4 +26,3 @@ endif
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = spu.h
-include_HEADERS = spu_decoder_api.h
