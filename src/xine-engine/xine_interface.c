@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.44 2003/03/08 17:22:16 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.45 2003/03/08 20:25:52 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -369,6 +369,11 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
       stream->audio_out->set_property (stream->audio_out, AO_PROP_COMPRESSOR, value);
     break;
     
+  case XINE_PARAM_AUDIO_AMP_LEVEL:
+    if (stream->audio_out)
+      stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP, value);
+    break;
+    
   case XINE_PARAM_VERBOSITY:
     stream->xine->verbosity = value;
     
@@ -437,6 +442,11 @@ int  xine_get_param (xine_stream_t *stream, int param) {
     if (!stream->audio_out)
       return -1;
     return stream->audio_out->get_property (stream->audio_out, AO_PROP_COMPRESSOR);
+
+  case XINE_PARAM_AUDIO_AMP_LEVEL:
+    if (!stream->audio_out)
+      return -1;
+    return stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP);
 
   case XINE_PARAM_VERBOSITY:
     return stream->xine->verbosity;

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.111 2003/03/08 17:24:22 mroi Exp $
+ * $Id: audio_out.c,v 1.112 2003/03/08 20:25:52 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -181,6 +181,7 @@ typedef struct {
   int             do_compress;
   double          compression_factor;   /* current compression */
   double          compression_factor_max; /* user limit on compression */
+  double          amp_factor;
 
 } aos_t;
 
@@ -388,7 +389,7 @@ static int mode_channels( int mode ) {
   return 0;
 } 
 
-static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
+static void audio_filter_amp_compress (aos_t *this, int16_t *mem, int num_frames) {
 
   int    i, maxs;
   double f_max;
@@ -432,7 +433,7 @@ static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
 
     /* 0.98 to avoid overflow */
 
-    mem[i] = mem[i] * 0.98 * this->compression_factor;
+    mem[i] = mem[i] * 0.98 * this->compression_factor * this->amp_factor;
   }
 }
 
@@ -445,7 +446,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
    */
 
   if ( this->do_compress && (this->input.bits == 16))
-    audio_filter_compress (this, buf->mem, buf->num_frames);
+    audio_filter_amp_compress (this, buf->mem, buf->num_frames);
 
   /*
    * resample and output audio data
@@ -1343,6 +1344,10 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     ret = this->compression_factor_max*100;
     break;
   
+  case AO_PROP_AMP:
+    ret = this->amp_factor*100;
+    break;
+  
   case AO_PROP_DISCARD_BUFFERS:
     ret = this->discard_buffers;
     break;
@@ -1367,9 +1372,21 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
   case AO_PROP_COMPRESSOR:
 
     this->compression_factor_max = (double) value / 100.0;
-    this->do_compress =  (this->compression_factor_max >1.0);
+
+    this->do_compress = (this->compression_factor_max >1.0)
+      || (this->amp_factor != 1.0);
 
     ret = this->compression_factor_max*100;
+    break;
+  
+  case AO_PROP_AMP:
+
+    this->amp_factor = (double) value / 100.0;
+
+    this->do_compress = (this->compression_factor_max >1.0)
+      || (this->amp_factor != 1.0);
+
+    ret = this->amp_factor*100;
     break;
   
   case AO_PROP_DISCARD_BUFFERS:
@@ -1543,6 +1560,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
 
   this->compression_factor     = 1.0;
   this->compression_factor_max = 4.0;
+  this->amp_factor             = 1.0;
   this->do_compress            = 0;
 
   /*

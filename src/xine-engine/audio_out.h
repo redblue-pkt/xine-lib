@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.52 2003/02/07 17:28:10 mroi Exp $
+ * $Id: audio_out.h,v 1.53 2003/03/08 20:25:52 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -294,6 +294,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_only
 #define AO_PROP_COMPRESSOR      3
 #define AO_PROP_DISCARD_BUFFERS 4
 #define AO_PROP_PAUSED          5
+#define AO_PROP_AMP             6 /* amplifier */
 
 /* audio device control ops */
 #define AO_CTRL_PLAY_PAUSE	0
