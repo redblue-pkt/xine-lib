@@ -54,7 +54,8 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) xineplug_dmx_avi.la\
 	xineplug_dmx_aiff.la \
 	xineplug_dmx_snd.la \
 	xineplug_dmx_yuv4mpeg2.la \
-	xineplug_dmx_real.la 
+	xineplug_dmx_real.la \
+	xineplug_dmx_realaudio.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS)\
@@ -152,6 +153,10 @@ xineplug_dmx_yuv4mpeg2_la_LDFLAGS = -avoid-version -module
 xineplug_dmx_real_la_SOURCES = demux_real.c
 xineplug_dmx_real_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_real_la_LDFLAGS = -avoid-version -module
+
+xineplug_dmx_realaudio_la_SOURCES = demux_realaudio.c
+xineplug_dmx_realaudio_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_realaudio_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = demux.h qtpalette.h
 

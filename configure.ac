@@ -1177,7 +1177,7 @@ echo "   - idcin         - wav"
 echo "   - wc3 mve       - voc"
 echo "   - vqa           - aiff"
 echo "   - cda           - snd/au"
-echo "   - yuv4mpeg2     - real"
+echo "   - yuv4mpeg2     - real/realaudio"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
@@ -1210,7 +1210,7 @@ echo ""
 
 dnl audio decoders
 echo " * audio decoder plugins:"
-echo "   - a52             - dts"
+echo "   - a52/ra-dnet     - dts"
 echo "   - mad             - adpcm"
 echo "   - linear pcm      - roqaudio"
 echo "   - log pcm         - gsm610"

@@ -10,7 +10,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * AIFF file demuxer
   * Sun/NeXT SND/AU file demuxer
   * YUV4MPEG2 file demuxer
-  * RealMedia file demuxer
+  * RealMedia & RealAudio file demuxers
   * Id CIN video decoder
   * QT RLE video decoder
   * QT SMC video decoder

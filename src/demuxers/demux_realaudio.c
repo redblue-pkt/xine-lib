@@ -1,0 +1,517 @@
+/*
+ * Copyright (C) 2001-2002 the xine project
+ *
+ * This file is part of xine, a free video player.
+ *
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
+ *
+ * $Id: demux_realaudio.c,v 1.1 2002/10/27 18:00:30 tmmm Exp $
+ *
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <sched.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+#include "xine_internal.h"
+#include "xineutils.h"
+#include "demux.h"
+#include "buffer.h"
+#include "bswap.h"
+
+#define RA_FILE_HEADER_SIZE 16
+#define RA_AUDIO_HEADER_SIZE 0x39
+
+typedef struct {
+
+  demux_plugin_t       demux_plugin;
+
+  xine_stream_t       *stream;
+
+  config_values_t     *config;
+
+  fifo_buffer_t       *video_fifo;
+  fifo_buffer_t       *audio_fifo;
+
+  input_plugin_t      *input;
+
+  pthread_t            thread;
+  int                  thread_running;
+  pthread_mutex_t      mutex;
+  int                  send_end_buffers;
+  int                  status;
+
+  xine_waveformatex    wave;
+  unsigned int         audio_fourcc;
+  unsigned int         audio_type;
+
+  off_t                data_start;
+  off_t                data_size;
+
+  int                  seek_flag;  /* this is set when a seek just occurred */
+
+  char                 last_mrl[1024];
+} demux_ra_t;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_ra_class_t;
+
+/* returns 1 if the RealAudio file was opened successfully, 0 otherwise */
+static int open_ra_file(demux_ra_t *this) {
+
+  unsigned char file_header[RA_FILE_HEADER_SIZE];
+  unsigned char audio_header[RA_AUDIO_HEADER_SIZE];
+
+  /* check the signature */
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, file_header, RA_FILE_HEADER_SIZE) !=
+    RA_FILE_HEADER_SIZE)
+    return 0;
+
+  if ((file_header[0] != '.') ||
+      (file_header[1] != 'r') ||
+      (file_header[2] != 'a'))
+    return 0;
+
+  /* load the audio header */
+  if (this->input->read(this->input, audio_header, RA_AUDIO_HEADER_SIZE) !=
+    RA_AUDIO_HEADER_SIZE)
+    return 0;
+
+  /* find the important information */
+  this->data_start = RA_FILE_HEADER_SIZE + RA_AUDIO_HEADER_SIZE;
+  this->data_size = BE_32(&audio_header[0x0C]);
+  this->wave.nChannels = audio_header[0x27];
+  this->wave.nSamplesPerSec = BE_16(&audio_header[0x20]);
+  this->wave.nBlockAlign = BE_16(&audio_header[0x1A]);
+  this->wave.wBitsPerSample = audio_header[0x25];
+  this->audio_fourcc = *(unsigned int *)&audio_header[0x2E];
+  this->audio_type = formattag_to_buf_audio(this->audio_fourcc);
+
+  return 1;
+}
+
+static void *demux_ra_loop (void *this_gen) {
+
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+  buf_element_t *buf = NULL;
+  unsigned int remaining_sample_bytes;
+  off_t current_file_pos;
+  int64_t current_pts;
+
+  pthread_mutex_lock( &this->mutex );
+  this->seek_flag = 1;
+
+  /* do-while needed to seek after demux finished */
+  do {
+    /* main demuxer loop */
+    while (this->status == DEMUX_OK) {
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
+      pthread_mutex_lock( &this->mutex );
+
+      /* just load data chunks from wherever the stream happens to be
+       * pointing; issue a DEMUX_FINISHED status if EOF is reached */
+      remaining_sample_bytes = this->wave.nBlockAlign;
+      current_file_pos =
+        this->input->get_current_pos(this->input) - this->data_start;
+
+
+
+      current_pts = 0;  /* let the engine sort out the pts for now */
+
+
+
+      if (this->seek_flag) {
+        xine_demux_control_newpts(this->stream, current_pts, 0);
+        this->seek_flag = 0;
+      }
+
+      while (remaining_sample_bytes) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type = this->audio_type;
+        buf->input_pos = current_file_pos;
+        buf->input_length = this->data_size;
+        buf->input_time = current_pts / 90000;
+        buf->pts = current_pts;
+
+        if (remaining_sample_bytes > buf->max_size)
+          buf->size = buf->max_size;
+        else
+          buf->size = remaining_sample_bytes;
+        remaining_sample_bytes -= buf->size;
+
+        if (this->input->read(this->input, buf->content, buf->size) !=
+          buf->size) {
+          buf->free_buffer(buf);
+          this->status = DEMUX_FINISHED;
+          break;
+        }
+
+        if (!remaining_sample_bytes)
+          buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
+    }
+
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while (this->status == DEMUX_OK);
+
+  printf ("demux_ra: demux loop finished (status: %d)\n",
+          this->status);
+
+  /* seek back to the beginning of the data in preparation for another
+   * start */
+  this->input->seek(this->input, this->data_start, SEEK_SET);
+
+  this->status = DEMUX_FINISHED;
+
+  if (this->send_end_buffers) {
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
+  }
+
+  this->thread_running = 0;
+  pthread_mutex_unlock(&this->mutex);
+  return NULL;
+}
+
+static void demux_ra_send_headers(demux_plugin_t *this_gen) {
+
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+  buf_element_t *buf;
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo = this->stream->video_fifo;
+  this->audio_fifo = this->stream->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->wave.nChannels;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->wave.nSamplesPerSec;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->wave.wBitsPerSample;
+
+  /* send start buffers */
+  xine_demux_control_start(this->stream);
+
+  /* send init info to decoders */
+  if (this->audio_fifo && this->audio_type) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = this->audio_type;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->wave.nSamplesPerSec;
+    buf->decoder_info[2] = this->wave.wBitsPerSample;
+    buf->decoder_info[3] = this->wave.nChannels;
+    memcpy(buf->content, &this->wave, sizeof(this->wave));
+    buf->size = sizeof(this->wave);
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  xine_demux_control_headers_done (this->stream);
+
+  pthread_mutex_unlock (&this->mutex);
+}
+
+static int demux_ra_seek (demux_plugin_t *this_gen,
+                          off_t start_pos, int start_time);
+
+
+static int demux_ra_start (demux_plugin_t *this_gen,
+                           off_t start_pos, int start_time) {
+
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+  int err;
+
+  demux_ra_seek(this_gen, start_pos, start_time);
+
+  pthread_mutex_lock(&this->mutex);
+
+  /* if thread is not running, initialize demuxer */
+  if (!this->thread_running) {
+
+    this->status = DEMUX_OK;
+    this->send_end_buffers = 1;
+    this->thread_running = 1;
+
+    if ((err = pthread_create (&this->thread, NULL, demux_ra_loop, this)) != 0)
+ {
+      printf ("demux_ra: can't create new thread (%s)\n", strerror(err));
+      abort();
+    }
+  }
+
+  pthread_mutex_unlock(&this->mutex);
+
+  return DEMUX_OK;
+}
+
+static int demux_ra_seek (demux_plugin_t *this_gen,
+                           off_t start_pos, int start_time) {
+
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+  int status;
+
+  pthread_mutex_lock(&this->mutex);
+
+  /* check the boundary offsets */
+  if (start_pos <= 0)
+    this->input->seek(this->input, this->data_start, SEEK_SET);
+  else if (start_pos >= this->data_size) {
+    status = this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return status;
+  } else {
+    /* This function must seek along the block alignment. The start_pos
+     * is in reference to the start of the data. Divide the start_pos by
+     * the block alignment integer-wise, and multiply the quotient by the
+     * block alignment to get the new aligned offset. Add the data start
+     * offset and seek to the new position. */
+    start_pos /= this->wave.nBlockAlign;
+    start_pos *= this->wave.nBlockAlign;
+    start_pos += this->data_start;
+
+    this->input->seek(this->input, start_pos, SEEK_SET);
+  }
+
+  this->seek_flag = 1;
+  status = this->status = DEMUX_OK;
+  xine_demux_flush_engine (this->stream);
+  pthread_mutex_unlock(&this->mutex);
+
+  return status;
+}
+
+static void demux_ra_stop (demux_plugin_t *this_gen) {
+
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+  void *p;
+
+  pthread_mutex_lock( &this->mutex );
+
+  if (!this->thread_running) {
+    pthread_mutex_unlock( &this->mutex );
+    return;
+  }
+
+  /* seek back to the beginning of the data in preparation for another
+   * start */
+  this->input->seek(this->input, this->data_start, SEEK_SET);
+
+  this->send_end_buffers = 0;
+  this->status = DEMUX_FINISHED;
+
+  pthread_mutex_unlock( &this->mutex );
+  pthread_join (this->thread, &p);
+
+  xine_demux_flush_engine(this->stream);
+
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+}
+
+static void demux_ra_dispose (demux_plugin_t *this_gen) {
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+
+  demux_ra_stop(this_gen);
+
+  pthread_mutex_destroy (&this->mutex);
+  free(this);
+}
+
+static int demux_ra_get_status (demux_plugin_t *this_gen) {
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+
+  return this->status;
+}
+
+/* return the approximate length in seconds */
+static int demux_ra_get_stream_length (demux_plugin_t *this_gen) {
+
+  demux_ra_t *this = (demux_ra_t *) this_gen;
+
+  return (int)(this->data_size / this->wave.nAvgBytesPerSec);
+}
+
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
+
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_ra_t     *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_ra.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
+
+  this         = xine_xmalloc (sizeof (demux_ra_t));
+  this->stream = stream;
+  this->input  = input;
+
+  this->demux_plugin.send_headers      = demux_ra_send_headers;
+  this->demux_plugin.start             = demux_ra_start;
+  this->demux_plugin.seek              = demux_ra_seek;
+  this->demux_plugin.stop              = demux_ra_stop;
+  this->demux_plugin.dispose           = demux_ra_dispose;
+  this->demux_plugin.get_status        = demux_ra_get_status;
+  this->demux_plugin.get_stream_length = demux_ra_get_stream_length;
+  this->demux_plugin.demux_class       = class_gen;
+
+  this->status = DEMUX_FINISHED;
+  pthread_mutex_init (&this->mutex, NULL);
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    if (!open_ra_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".ra", 3)) {
+      free (this);
+      return NULL;
+    }
+
+    if (!open_ra_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  }
+
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  /* print vital stats */
+  xine_log (this->stream->xine, XINE_LOG_MSG,
+    _("demux_realaudio: RealAudio file, %d bits, %d Hz, %s %c%c%c%c audio\n"),
+    this->wave.wBitsPerSample,
+    this->wave.nSamplesPerSec,
+    (this->wave.nChannels == 1) ? "monaural" : "stereo",
+    *((char *)&this->audio_fourcc + 0),
+    *((char *)&this->audio_fourcc + 1),
+    *((char *)&this->audio_fourcc + 2),
+    *((char *)&this->audio_fourcc + 3));
+
+  return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "RealAudio file demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "RA";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "ra";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_ra_class_t *this = (demux_ra_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_ra_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_ra_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
+  return this;
+}
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_DEMUX, 14, "realaudio", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+
