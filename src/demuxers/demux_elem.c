@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.22 2001/10/17 20:33:09 guenter Exp $
+ * $Id: demux_elem.c,v 1.23 2001/10/19 14:35:52 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -329,7 +329,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_elem_t *this;
   config_values_t   *config;
 
-  if (iface != 3) {
+  if (iface != 4) {
     printf( "demux_elem: plugin doesn't support plugin API version %d.\n"
 	    "demux_elem: this means there's a version mismatch between xine and this "
 	    "demux_elem: demuxer plugin.\nInstalling current demux plugins should help.\n",
