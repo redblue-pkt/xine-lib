@@ -32,9 +32,9 @@ libwine_la_SOURCES = \
 	resource.c \
 	registry.c \
 	vfl.c \
-	win32.c 
-
-libwine_la_LIBADD = stubs.lo wrapper.lo
+	win32.c \
+	stubs.s \
+	wrapper.S 
 
 noinst_HEADERS = \
 	avifmt.h \
@@ -73,10 +73,4 @@ noinst_HEADERS = \
 	winreg.h \
 	winuser.h \
 	wrapper.h
-
-%.lo: %.s
-	$(CC) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
-
-%.lo: %.S
-	$(CC) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
 
