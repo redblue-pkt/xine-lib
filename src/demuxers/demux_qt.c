@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.178 2004/02/29 17:55:28 tmmm Exp $
+ * $Id: demux_qt.c,v 1.179 2004/02/29 18:42:39 tmmm Exp $
  *
  */
 
@@ -2366,6 +2366,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   buf_element_t *buf;
   qt_trak *video_trak = NULL;
   qt_trak *audio_trak = NULL;
+  unsigned int audio_bitrate;
 
   /* for deciding data start and data size */
   int64_t first_video_offset = -1;
@@ -2537,6 +2538,18 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   if ((this->qt->audio_trak != -1) &&
       (audio_trak->properties->audio.codec_buftype) &&
       this->audio_fifo) {
+
+    /* set the audio bitrate field (only for CBR audio) */
+    if (!audio_trak->properties->audio.vbr) {
+      audio_bitrate = 
+        audio_trak->properties->audio.sample_rate /
+        audio_trak->properties->audio.samples_per_frame * 
+        audio_trak->properties->audio.bytes_per_frame *
+        audio_trak->properties->audio.channels *
+        8;
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
+        audio_bitrate);
+    }
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = audio_trak->properties->audio.codec_buftype;
