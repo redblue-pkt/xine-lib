@@ -108,17 +108,19 @@
 #define AUDFILTER 6
 #define AC3FILTER 7
 #define TXTFILTER 8
-#define SUBFILTER 9
 
-#define MAXFILTERS 10
+#define MAXFILTERS 9
 
 #define MAX_AUTOCHANNELS 200
+
+#define MAX_SUBTITLES 4
 
 #define bcdtoint(i) ((((i & 0xf0) >> 4) * 10) + (i & 0x0f))
 
 typedef struct {
   int                            fd_frontend;
   int                            fd_pidfilter[MAXFILTERS];
+  int                            fd_subfilter[MAX_SUBTITLES];
 
   struct dvb_frontend_info       feinfo;
   
@@ -129,6 +131,7 @@ typedef struct {
   char				 demux_device[100];
   
   struct dmx_pes_filter_params   pesFilterParams[MAXFILTERS];
+  struct dmx_pes_filter_params   subFilterParams[MAX_SUBTITLES];
   struct dmx_sct_filter_params	 sectFilterParams[MAXFILTERS];
   xine_t                        *xine;
 } tuner_t;
@@ -149,6 +152,7 @@ typedef struct {
   char                            *name;
   struct dvb_frontend_parameters   front_param;
   int                              pid[MAXFILTERS];
+  int				   subpid[MAX_SUBTITLES];
   int				   service_id;
   int                              sat_no;
   int                              tone;
@@ -407,6 +411,11 @@ static void tuner_dispose(tuner_t * this)
     for (x = 0; x < MAXFILTERS; x++)
       if (this->fd_pidfilter[x] >= 0)
         close(this->fd_pidfilter[x]);
+
+    /* close all pid filter filedescriptors */
+    for (x = 0; x < MAX_SUBTITLES; x++)
+      if (this->fd_subfilter[x] >= 0)
+        close(this->fd_subfilter[x]);
     
     if(this)
       free(this);
@@ -455,6 +464,13 @@ static tuner_t *tuner_init(xine_t * xine, int adapter)
 	return NULL;
       }
    }
+    for (x = 0; x < MAX_SUBTITLES; x++) {
+      this->fd_subfilter[x] = open(this->demux_device, O_RDWR);
+      if (this->fd_subfilter[x] < 0) {
+        xprintf(this->xine, XINE_VERBOSITY_DEBUG, "DEMUX DEVICE Subtitle filter: %s\n", strerror(errno));
+      }
+   }
+
    /* open EIT with NONBLOCK */
    if(fcntl(this->fd_pidfilter[EITFILTER], F_SETFL, O_NONBLOCK)<0)
      xprintf(this->xine,XINE_VERBOSITY_DEBUG,"input_dvb: couldn't set EIT to nonblock: %s\n",strerror(errno));
@@ -902,10 +918,23 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
 	    * will also be present; so we can be quite confident
 	    * that we catch DVB subtitling streams only here, w/o
 	    * parsing the descriptor. */
-	    if(!has_subs) {
+	    if(has_subs <= MAX_SUBTITLES) {
               xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding SUBTITLES: PID 0x%04x\n", elementary_pid);
-	      dvb_set_pidfilter(this, SUBFILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
-              has_subs=1;
+               if(this->channels[this->channel].subpid [has_subs] !=NOPID) {
+                  ioctl(this->tuner->fd_subfilter[has_subs], DMX_STOP);
+               }
+               this->channels[this->channel].subpid [has_subs] = elementary_pid;
+               this->tuner->subFilterParams[has_subs].pid = elementary_pid;
+               this->tuner->subFilterParams[has_subs].input = DMX_IN_FRONTEND;
+               this->tuner->subFilterParams[has_subs].output = DMX_OUT_TS_TAP;
+               this->tuner->subFilterParams[has_subs].pes_type = DMX_PES_OTHER;
+               this->tuner->subFilterParams[has_subs].flags = DMX_IMMEDIATE_START;
+               if (ioctl(this->tuner->fd_subfilter[has_subs], DMX_SET_PES_FILTER, &this->tuner->subFilterParams[has_subs]) < 0)
+               {
+               	   xprintf(this->tuner->xine, XINE_VERBOSITY_DEBUG, "input_dvb: set_pid: %s\n", strerror(errno));
+                   break;
+               }
+               has_subs++;
             }
 	    break;
         } else if (find_descriptor (0x6a, buf + 5, descriptor_len, NULL, NULL)) {
