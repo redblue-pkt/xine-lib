@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.21 2004/01/07 19:52:42 mroi Exp $
+ * $Id: mosaico.c,v 1.22 2004/02/18 16:03:55 mroi Exp $
  */
  
 /*
@@ -78,6 +78,7 @@ typedef struct mosaico_pip_s mosaico_pip_t;
 struct mosaico_pip_s {
   unsigned int  x, y, w, h;
   vo_frame_t   *frame;
+  char         *input_name;
 };
 
 struct post_mosaico_s {
@@ -171,6 +172,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   port->new_frame->draw = mosaico_draw_background;
   port->port_lock       = &this->mutex;
   port->frame_lock      = &this->mutex;
+  input->xine_in.name   = "video in 0";
   this->post.xine_post.video_input[0] = &port->new_port;
 
   for (i = 0; i < inputs - 1; i++) {
@@ -178,6 +180,8 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
     this->pip[i].y = 50;
     this->pip[i].w = 150;
     this->pip[i].h = 150;
+    this->pip[i].input_name = (char *)xine_xmalloc(sizeof("video in ") + 10);
+    snprintf(this->pip[i].input_name, sizeof("video in ") + 10, "video in %d", i+1);
     
     port = _x_post_intercept_video_port(&this->post, video_target[0], &input, NULL);
     port->new_port.close  = mosaico_close;
@@ -185,6 +189,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
     port->new_frame->draw = mosaico_draw;
     port->port_lock       = &this->mutex;
     port->frame_lock      = &this->mutex;
+    input->xine_in.name   = this->pip[i].input_name;
     this->post.xine_post.video_input[i+1] = &port->new_port;
   }
 
@@ -220,6 +225,9 @@ static void mosaico_dispose(post_plugin_t *this_gen)
   post_mosaico_t *this = (post_mosaico_t *)this_gen;
   
   if (_x_post_dispose(this_gen)) {
+    int i;
+    for (i = 0; i < this->pip_count; i++)
+      free(this->pip[i].input_name);
     free(this->pip);
     pthread_cond_destroy(&this->vpts_limit_changed);
     pthread_mutex_destroy(&this->mutex);
