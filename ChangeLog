@@ -14,7 +14,8 @@ xine-lib (1-beta13)
     (23.976, 59.94 and 60 fps)
   * move http proxy configuration to xine itself
   * add expand post video filter for displaying subtitles in borders
-  
+  * speex (http://www.speex.org) audio decoder support
+	
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
   * playback of theorastreams added

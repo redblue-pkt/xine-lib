@@ -27,6 +27,7 @@ SUBDIRS = \
 	libxineadec \
 	libvorbis \
 	libtheora \
+	libspeex \
 	libreal \
 	libfaad \
 	libflac \

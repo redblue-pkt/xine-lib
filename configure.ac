@@ -41,7 +41,7 @@ dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
   XINE_PRE="cvs"
 else
-  XINE_PRE="beta12"
+  XINE_PRE="beta13"
 fi
 
 AC_SUBST(XINE_MAJOR)
@@ -624,6 +624,17 @@ AM_PATH_OGG(
           ],
            AC_MSG_RESULT([*** All of OGG/Theora dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_THEORA, [test x"$no_ogg" != "xyes" -a x"$no_theora" != "xyes"])
+
+dnl ---------------------------------------------
+dnl Ogg/Speex libs.
+dnl ---------------------------------------------
+
+AM_PATH_OGG(
+           [ AM_PATH_SPEEX(AC_DEFINE(HAVE_SPEEX,1,[Define this if you have speex]),
+                           AC_MSG_RESULT([*** All OGG/SPEEX dependent parts will be disabled ***]))
+          ],
+           AC_MSG_RESULT([*** All of OGG/Speex dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_SPEEX, [test x"$no_ogg" != "xyes" -a x"$no_speex" != "xyes"])
 
 dnl ---------------------------------------------
 dnl check for libFLAC
@@ -1364,6 +1375,7 @@ src/libspucc/Makefile
 src/libsputext/Makefile
 src/libvorbis/Makefile
 src/libtheora/Makefile
+src/libspeex/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
 src/libw32dll/DirectShow/Makefile
@@ -1510,6 +1522,9 @@ echo "   - ffmpeg          - interplayaudio"
 echo "   - nosefart"
 if test x"$no_vorbis" != "xyes"; then
   echo "   - vorbis"
+fi
+if test x"$no_speex" != "xyes"; then
+  echo "   - speex"
 fi
 if test x"$enable_w32dll" = "xyes"; then
   echo "   - w32dll"

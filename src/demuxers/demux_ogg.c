@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.100 2003/05/12 19:44:35 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.101 2003/05/25 13:39:14 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -37,6 +37,13 @@
 
 #include <ogg/ogg.h>
 #include <vorbis/codec.h>
+
+#ifdef HAVE_SPEEX
+#include <speex.h>
+#include <speex_header.h>
+#include <speex_stereo.h>
+#include <speex_callbacks.h>
+#endif
 
 #ifdef HAVE_THEORA
 #include <theora/theora.h>
@@ -181,7 +188,7 @@ static int read_ogg_packet (demux_ogg_t *this) {
     buffer = ogg_sync_buffer(&this->oy, CHUNKSIZE);
     bytes  = this->input->read(this->input, buffer, CHUNKSIZE);
     ogg_sync_wrote(&this->oy, bytes);
-    if (bytes < CHUNKSIZE) {
+    if (bytes < CHUNKSIZE/2) {
       return 0;
     }
   }
@@ -369,6 +376,9 @@ static void send_ogg_buf (demux_ogg_t *this,
       og_ghost->packet = buf->content + op_size;
       
       buf->size   = op->bytes;
+    } else if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_SPEEX) {
+      memcpy (buf->content, op->packet, op->bytes);
+      buf->size   = op->bytes;      
     } else {
       memcpy (buf->content, op->packet+1+hdrlen, op->bytes-1-hdrlen);
       buf->size   = op->bytes-1-hdrlen;
@@ -386,7 +396,7 @@ static void send_ogg_buf (demux_ogg_t *this,
       buf->pts = 0; 
 
 #ifdef LOG
-    printf ("demuxogg: audiostream %d op-gpos %lld hdr-gpos %lld pts %lld \n"
+    printf ("demux_ogg: audiostream %d op-gpos %lld hdr-gpos %lld pts %lld \n"
 	    ,stream_num
 	    ,op->granulepos
 	    ,this->header_granulepos[stream_num]
@@ -648,6 +658,54 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  }
 	  vorbis_comment_clear(&vc);
 	  vorbis_info_clear(&vi);
+	} else if (!strncmp (&op.packet[0], "Speex", 5)) {
+
+#ifdef HAVE_SPEEX
+	  void * st;
+	  SpeexMode * mode;
+	  SpeexHeader * header;
+
+	  this->buf_types[stream_num] = BUF_AUDIO_SPEEX
+	    +this->num_audio_streams++;
+
+	  this->preview_buffers[stream_num] = 1;
+
+	  header = speex_packet_to_header (op.packet, op.bytes);
+
+	  if (header) {
+	    int bitrate;
+	    mode = speex_mode_list[header->mode];
+
+	    st = speex_decoder_init (mode);
+
+	    speex_decoder_ctl (st, SPEEX_GET_BITRATE, &bitrate);
+
+	    if (bitrate <= 1)
+	      bitrate = 16000; /* assume 16 kbit */
+
+	    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE]
+	      = bitrate;
+
+	    this->factor[stream_num] = 90000;
+	    this->quotient[stream_num] = header->rate;
+
+	    this->avg_bitrate += bitrate;
+
+#ifdef LOG
+	    printf ("demux_ogg: detected Speex stream,\trate %d\tbitrate %d\n",
+		     header->rate, bitrate);
+#endif
+
+	    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE]
+	      = header->rate;
+
+	    this->preview_buffers[stream_num] += header->extra_headers;
+	  }
+#else
+	  printf ("demux_ogg: Speex stream detected, unable to play\n");
+
+	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
+#endif
 	} else if (!strncmp (&op.packet[1], "video", 5)) {
 	  
 	  buf_element_t    *buf;
@@ -1135,7 +1193,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
     /* printf("demux_ogg: packet: %.8s\n", op.packet); */
     /* printf("demux_ogg:   got a packet\n"); */
 
-    if ((*op.packet & PACKET_TYPE_HEADER) && (this->buf_types[stream_num]!=BUF_VIDEO_THEORA)) {
+    if ((*op.packet & PACKET_TYPE_HEADER) && (this->buf_types[stream_num]!=BUF_VIDEO_THEORA) && (this->buf_types[stream_num]!=BUF_AUDIO_SPEEX)) {
       if (op.granulepos!=-1) {
 	this->header_granulepos[stream_num]=op.granulepos;
 #ifdef LOG
@@ -1487,7 +1545,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       return NULL;
       
     if (strncasecmp(ending, ".ogg", 4) &&
-        strncasecmp(ending, ".ogm", 4)) {
+        strncasecmp(ending, ".ogm", 4) &&
+	strncasecmp(ending, ".spx", 4)) {
       return NULL;
     } 
 
@@ -1542,12 +1601,13 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "ogg ogm";
+  return "ogg ogm spx";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
   return "audio/x-ogg: ogg: OggVorbis Audio;"
-         "application/x-ogg: ogg: OggVorbis Audio;"; 
+         "audio/x-speex: ogg: Speex Audio;"
+         "application/x-ogg: ogg: OggVorbis Audio;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.63 2003/05/19 21:49:57 tmmm Exp $
+ * $Id: buffer_types.c,v 1.64 2003/05/25 13:39:14 guenter Exp $
  *
  *
  * contents:
@@ -862,6 +862,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_28_8,
   "Real 28.8"
+},
+{
+  {
+    0
+  },
+  BUF_AUDIO_SPEEX,
+  "Speex"
 },
 { { 0 }, 0, "last entry" }
 };
