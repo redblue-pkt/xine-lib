@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.73 2004/09/21 14:23:20 hadess Exp $
+ * $Id: xine_decoder.c,v 1.74 2004/12/08 17:10:29 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -32,6 +32,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#ifdef __x86_64__
+  #include <elf.h>
+#endif
 
 #define LOG_MODULE "real_decoder"
 #define LOG_VERBOSE
@@ -103,6 +106,49 @@ void *__builtin_vec_new(uint32_t size);
 void __builtin_vec_delete(void *mem);
 void __pure_virtual(void);
 
+#ifdef __x86_64__
+/* (gb) quick-n-dirty check to be run natively */
+static int is_x86_64_object_(FILE *f)
+{
+  Elf64_Ehdr *hdr = malloc(sizeof(Elf64_Ehdr));
+  if (hdr == NULL)
+	return 0;
+
+  if (fseek(f, 0, SEEK_SET) != 0) {
+	free(hdr);
+	return 0;
+  }
+
+  if (fread(hdr, sizeof(Elf64_Ehdr), 1, f) != 1) {
+	free(hdr);
+	return 0;
+  }
+
+  if (hdr->e_ident[EI_MAG0] != ELFMAG0 ||
+	  hdr->e_ident[EI_MAG1] != ELFMAG1 ||
+	  hdr->e_ident[EI_MAG2] != ELFMAG2 ||
+	  hdr->e_ident[EI_MAG3] != ELFMAG3) {
+	free(hdr);
+	return 0;
+  }
+
+  return hdr->e_machine == EM_X86_64;
+}
+
+static inline int is_x86_64_object(const char *filename)
+{
+  FILE *f;
+  int ret;
+
+  if ((f = fopen(filename, "r")) == NULL)
+	return 0;
+
+  ret = is_x86_64_object_(f);
+  fclose(f);
+  return ret;
+}
+#endif
+
 /*
  * real codec loader
  */
@@ -114,6 +160,12 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
   char path[1024];
 
   snprintf (path, sizeof(path), "%s/%s", entry->str_value, codec_name);
+
+#ifdef __x86_64__
+  /* check whether it's a real x86-64 library */
+  if (!is_x86_64_object(path))
+	return 0;
+#endif
 
   lprintf ("opening shared obj '%s'\n", path);
 
@@ -525,6 +577,8 @@ static void *init_class (xine_t *xine, void *data) {
   real_class_t       *this;
   config_values_t    *config = xine->config;
   char               *real_codec_path;
+  char               *default_real_codec_path = "";
+  struct stat s;
 
   this = (real_class_t *) xine_xmalloc (sizeof (real_class_t));
 
@@ -533,8 +587,27 @@ static void *init_class (xine_t *xine, void *data) {
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
 
+  /* try some auto-detection */
+
+  if (!stat ("/usr/local/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/local/RealPlayer8/Codecs";
+  if (!stat ("/usr/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/RealPlayer8/Codecs";
+  if (!stat ("/usr/lib/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/lib/RealPlayer8/Codecs";
+  if (!stat ("/opt/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/opt/RealPlayer8/Codecs";
+  if (!stat ("/usr/lib/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/lib/RealPlayer9/users/Real/Codecs";
+  if (!stat ("/usr/lib64/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/lib64/RealPlayer8/Codecs";
+  if (!stat ("/usr/lib64/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/lib64/RealPlayer9/users/Real/Codecs";
+  if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/lib/win32";
+  
   real_codec_path = config->register_string (config, "codec.real_codecs_path", 
-					     "unknown",
+					     default_real_codec_path,
 					     _("path to RealPlayer codecs"),
 					     _("If you have RealPlayer installed, specify the path "
 					       "to its codec directory here. You can easily find "
@@ -544,32 +617,6 @@ static void *init_class (xine_t *xine, void *data) {
 					       "for you. Consult the xine FAQ for more information on "
 					       "how to install the codecs."),
 					     10, NULL, this);
-  
-  if (!strcmp (real_codec_path, "unknown")) {
-
-    struct stat s;
-
-    /* try some auto-detection */
-
-    if (!stat ("/usr/local/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-      config->update_string (config, "codec.real_codecs_path", 
-			     "/usr/local/RealPlayer8/Codecs");
-    if (!stat ("/usr/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-      config->update_string (config, "codec.real_codecs_path", 
-			     "/usr/RealPlayer8/Codecs");
-    if (!stat ("/usr/lib/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-      config->update_string (config, "codec.real_codecs_path", 
-			     "/usr/lib/RealPlayer8/Codecs");
-    if (!stat ("/opt/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-      config->update_string (config, "codec.real_codecs_path", 
-			     "/opt/RealPlayer8/Codecs");
-    if (!stat ("/usr/lib/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
-      config->update_string (config, "codec.real_codecs_path", 
-			     "/usr/lib/RealPlayer9/users/Real/Codecs");
-    if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
-      config->update_string (config, "codec.real_codecs_path", 
-			     "/usr/lib/win32");
-  }
 
   lprintf ("real codec path : %s\n",  real_codec_path);
 
