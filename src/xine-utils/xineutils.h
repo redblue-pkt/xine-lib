@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.9 2002/02/06 02:20:59 f1rmb Exp $
+ * $Id: xineutils.h,v 1.10 2002/03/21 21:30:51 guenter Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -33,6 +33,25 @@ extern "C" {
 #include <inttypes.h>
 #include "attributes.h"
 #include "compat.h"
+
+  /*
+   * debugable mutexes
+   */
+
+  typedef struct {
+    pthread_mutex_t  mutex;
+    char             id[80];
+    char            *locked_by;
+  } xine_mutex_t;
+
+  int xine_mutex_init    (xine_mutex_t *mutex, const pthread_mutexattr_t *mutexattr,
+			  char *id);
+  
+  int xine_mutex_lock    (xine_mutex_t *mutex, char *who);
+  int xine_mutex_unlock  (xine_mutex_t *mutex, char *who);
+  int xine_mutex_destroy (xine_mutex_t *mutex);
+
+
 
 			/* CPU Acceleration */
 

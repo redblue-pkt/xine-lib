@@ -6,7 +6,7 @@ CFLAGS = @GLOBAL_CFLAGS@
 
 lib_LTLIBRARIES = libxineutils.la
 
-libxineutils_la_SOURCES = utils.c memcpy.c monitor.c cpu_accel.c
+libxineutils_la_SOURCES = utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c
 
 libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
