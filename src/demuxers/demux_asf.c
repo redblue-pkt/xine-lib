@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.136 2003/10/27 23:23:29 tmattern Exp $
+ * $Id: demux_asf.c,v 1.137 2003/10/28 00:10:18 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -297,7 +297,8 @@ static void asf_send_audio_header (demux_asf_t *this, int stream) {
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   memcpy (buf->content, this->wavex, this->wavex_size);
 
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = wavex->wFormatTag;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
+                       wavex->wFormatTag);
 
 #ifdef LOG
   printf ("demux_asf: wavex header is %d bytes long\n", this->wavex_size);
@@ -324,7 +325,8 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
   buf_element_t    *buf;
   xine_bmiheader   *bih = (xine_bmiheader *) this->bih;
 
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = bih->biCompression;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
+                       bih->biCompression);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags   = BUF_FLAG_HEADER;
@@ -376,7 +378,8 @@ static int asf_read_header (demux_asf_t *this) {
           else
             this->rate = 0;
 
-          this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate*8;
+          xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE,
+                               this->rate*8);
 
           get_le64(this); /* preroll in 1/1000 s*/
           flags = get_le32(this); /* flags */
@@ -596,8 +599,8 @@ static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start
   uint32_t     bitrate = 0;
 
   /* will get overridden later */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
 
   /*
    * initialize asf engine
@@ -648,8 +651,9 @@ static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start
       if ((buf_type == BUF_VIDEO_BASE) &&
           (bitrate > max_vrate || this->video_stream_id == -1)) {
 
-        this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]  = 1;
-        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
+                             bitrate);
 
         max_vrate = bitrate;
         this->video_stream    = i;
@@ -657,8 +661,9 @@ static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start
       } else if ((buf_type == BUF_AUDIO_BASE) &&
                  (bitrate > max_arate || this->audio_stream_id == -1)) {
 
-        this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO]  = 1;
-        this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = bitrate;
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
+                             bitrate);
 
         max_arate = bitrate;
         this->audio_stream    = i;
@@ -666,15 +671,15 @@ static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start
       }
     }
 
-    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = bitrate;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, bitrate);
 
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
       printf("demux_asf: video stream_id: %d, audio stream_id: %d\n",
              this->video_stream_id, this->audio_stream_id);
 
-    if(this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO])
+    if(xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO))
       asf_send_audio_header(this, this->audio_stream);
-    if(this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+    if(xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO))
       asf_send_video_header(this, this->video_stream);
   }
   return 0;

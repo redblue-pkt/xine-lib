@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.10 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_ac3.c,v 1.11 2003/10/28 00:10:18 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -230,8 +230,8 @@ static void demux_ac3_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
