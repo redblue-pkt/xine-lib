@@ -165,6 +165,10 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
 
 
 /*
+#define DEBUG_RLE
+*/
+
+/*
  * send the osd to be displayed at given pts (0=now)
  * the object is not changed. there may be subsequent drawing  on it.
  */
@@ -173,7 +177,7 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   osd_renderer_t *this = osd->renderer;
   video_overlay_manager_t *ovl_manager;
   rle_elem_t rle, *rle_p=0;
-  int x, y, spare;
+  int x, y, required;
   uint8_t *c;
 
   lprintf("osd=%p vpts=%lld\n", osd, vpts);
@@ -190,69 +194,91 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   }
   
   pthread_mutex_lock (&this->osd_mutex);  
-  
+ 
+  /* clip update area to allowed range */  
+  if(osd->x1 > osd->width)
+    osd->x1 = osd->width;
+  if(osd->x2 > osd->width)
+    osd->x2 = osd->width;
+  if(osd->y1 > osd->height)
+    osd->y1 = osd->height;
+  if(osd->y2 > osd->height)
+    osd->y2 = osd->height;
+
+#ifdef DEBUG_RLE  
+  lprintf("osd_show %p rle starts\n", osd);
+#endif  
+
   /* check if osd is valid (something drawn on it) */
-  if( osd->x2 >= osd->x1 ) {
+  if( osd->x2 > osd->x1 && osd->y2 > osd->y1 ) {
  
     this->event.object.handle = osd->handle;
 
-    if(osd->x1 > osd->width)
-      osd->x1 = osd->width;
-    if(osd->x2 > osd->width)
-      osd->x2 = osd->width;
-    if(osd->y1 > osd->height)
-      osd->y1 = osd->height;
-    if(osd->y2 > osd->height)
-      osd->y2 = osd->height;
-    
     memset( this->event.object.overlay, 0, sizeof(*this->event.object.overlay) );
     this->event.object.overlay->unscaled = unscaled;
     this->event.object.overlay->x = osd->display_x + osd->x1;
     this->event.object.overlay->y = osd->display_y + osd->y1;
-    this->event.object.overlay->width = osd->x2 - osd->x1 + 1;
-    this->event.object.overlay->height = osd->y2 - osd->y1 + 1;
+    this->event.object.overlay->width = osd->x2 - osd->x1;
+    this->event.object.overlay->height = osd->y2 - osd->y1;
  
-    this->event.object.overlay->clip_top    = -1;
-    this->event.object.overlay->clip_bottom = this->event.object.overlay->height +
-                                              osd->display_y;
+    this->event.object.overlay->clip_top    = 0;
+    this->event.object.overlay->clip_bottom = this->event.object.overlay->height;
     this->event.object.overlay->clip_left   = 0;
-    this->event.object.overlay->clip_right  = this->event.object.overlay->width +
-                                              osd->display_x;
+    this->event.object.overlay->clip_right  = this->event.object.overlay->width;
    
-    spare = osd->y2 - osd->y1;
+    /* there will be at least that many rle objects (one for each row) */
+    required = osd->y2 - osd->y1;
     this->event.object.overlay->num_rle = 0;
     this->event.object.overlay->data_size = 1024;
+    while (required > this->event.object.overlay->data_size)
+      this->event.object.overlay->data_size += 1024;
     rle_p = this->event.object.overlay->rle = 
        malloc(this->event.object.overlay->data_size * sizeof(rle_elem_t) );
     
-    for( y = osd->y1; y <= osd->y2; y++ ) {
-      rle.len = 0;
-      rle.color = 0;
-      c = osd->area + y * osd->width + osd->x1;                                       
-      for( x = osd->x1; x <= osd->x2; x++, c++ ) {
+    for( y = osd->y1; y < osd->y2; y++ ) {
+#ifdef DEBUG_RLE      
+      lprintf("osd_show %p y = %d: ", osd, y);
+#endif      
+      c = osd->area + y * osd->width + osd->x1;
+
+      /* initialize a rle object with the first pixel's color */
+      rle.len = 1;
+      rle.color = *c++;
+
+      /* loop over the remaining pixels in the row */
+      for( x = osd->x1 + rle.len; x < osd->x2; x++, c++ ) {
         if( rle.color != *c ) {
-          if( rle.len ) {
-            if( (this->event.object.overlay->num_rle + spare) > 
-                this->event.object.overlay->data_size ) {
-                this->event.object.overlay->data_size += 1024;
-                rle_p = this->event.object.overlay->rle = 
-                  realloc( this->event.object.overlay->rle,
-                           this->event.object.overlay->data_size * sizeof(rle_elem_t) );
-                rle_p += this->event.object.overlay->num_rle;
-            }
-            *rle_p++ = rle;
-            this->event.object.overlay->num_rle++;            
+          if( (this->event.object.overlay->num_rle + required) > 
+              this->event.object.overlay->data_size ) {
+            this->event.object.overlay->data_size += 1024;
+            rle_p = this->event.object.overlay->rle = 
+              realloc( this->event.object.overlay->rle,
+                       this->event.object.overlay->data_size * sizeof(rle_elem_t) );
+            rle_p += this->event.object.overlay->num_rle;
           }
+#ifdef DEBUG_RLE          
+          lprintf("(%d, %d), ", rle.len, rle.color);
+#endif
+          *rle_p++ = rle;
+          this->event.object.overlay->num_rle++;            
+
           rle.color = *c;
           rle.len = 1;
         } else {
           rle.len++;
         }  
       }
+#ifdef DEBUG_RLE
+      lprintf("(%d, %d)\n", rle.len, rle.color);
+#endif
       *rle_p++ = rle;
-      this->event.object.overlay->num_rle++;            
+      this->event.object.overlay->num_rle++;
+      /* another row done */
+      required--;
     }
-  
+#ifdef DEBUG_RLE
+    lprintf("osd_show %p rle ends\n", osd);
+#endif
     lprintf("num_rle = %d\n", this->event.object.overlay->num_rle);
   
     memcpy(this->event.object.overlay->clip_color, osd->color, sizeof(osd->color)); 
@@ -1307,9 +1333,9 @@ static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
 
   /* update clipping area */
   osd->x1 = MIN( osd->x1, x1 );
-  osd->x2 = MAX( osd->x2, x1+width-1 );
+  osd->x2 = MAX( osd->x2, x1+width );
   osd->y1 = MIN( osd->y1, y1 );
-  osd->y2 = MAX( osd->y2, y1+height-1 );
+  osd->y2 = MAX( osd->y2, y1+height );
 
   for( y=0; y<height; y++ ) {
     if ( palette_map ) {

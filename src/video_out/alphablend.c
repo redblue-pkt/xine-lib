@@ -713,6 +713,81 @@ static void mem_blend8(uint8_t *mem, uint8_t val, uint8_t o, size_t sz)
   }
 }
 
+
+#define EXACT_BLENDING 1
+
+
+#ifdef EXACT_BLENDING
+
+#define BLEND_MAXWIDTH 2048
+uint8_t blend_yuv_data[ 3 ][ 2 ][ BLEND_MAXWIDTH ];
+uint8_t blend_yuv_data[ 3 ][ 2 ][ BLEND_MAXWIDTH ];
+uint8_t blend_yuv_data[ 3 ][ 2 ][ BLEND_MAXWIDTH ];
+
+void blend_yuv_exact(uint8_t *dst_cr, uint8_t *dst_cb, int src_width, int x_odd);
+void blend_yuv_exact(uint8_t *dst_cr, uint8_t *dst_cb, int src_width, int x_odd)
+{
+  int x;
+  
+  for (x = 0; x < src_width; x += 2) {
+    /* get opacity of the 4 pixels that share chroma */
+    int o00 = blend_yuv_data[ 0 ][ 0 ][ x + 0 ];
+    int o01 = blend_yuv_data[ 0 ][ 0 ][ x + 1 ];
+    int o10 = blend_yuv_data[ 0 ][ 1 ][ x + 0 ];
+    int o11 = blend_yuv_data[ 0 ][ 1 ][ x + 1 ];
+
+    /* are there any pixels a little bit opaque? */
+    if (o00 || o01 || o10 || o11)
+    {
+      /* get the chroma componets of the 4 pixels */
+      int cr00 = -128 + blend_yuv_data[ 1 ][ 0 ][ x + 0 ];
+      int cr01 = -128 + blend_yuv_data[ 1 ][ 0 ][ x + 1 ];
+      int cr10 = -128 + blend_yuv_data[ 1 ][ 1 ][ x + 0 ];
+      int cr11 = -128 + blend_yuv_data[ 1 ][ 1 ][ x + 1 ];
+          
+      int cb00 = -128 + blend_yuv_data[ 2 ][ 0 ][ x + 0 ];
+      int cb01 = -128 + blend_yuv_data[ 2 ][ 0 ][ x + 1 ];
+      int cb10 = -128 + blend_yuv_data[ 2 ][ 1 ][ x + 0 ];
+      int cb11 = -128 + blend_yuv_data[ 2 ][ 1 ][ x + 1 ];
+
+      /* are all pixels completely opaque? */
+      if (o00 >= 0xf && o01 >= 0xf && o10 >= 0xf && o11 >= 0xf)
+      {
+        /* set the output chroma to the average of the four pixels */
+        *dst_cr = 128 + (cr00 + cr01 + cr10 + cr11) / 4;
+        *dst_cb = 128 + (cb00 + cb01 + cb10 + cb11) / 4;
+      }
+      else
+      {
+        int t4, cr, cb;
+        
+        /* blending required, so clamp opacity values to allowed range */
+        if (o00 > 0xf) o00 = 0xf;
+        if (o01 > 0xf) o01 = 0xf;
+        if (o10 > 0xf) o10 = 0xf;
+        if (o11 > 0xf) o11 = 0xf;
+
+        /* calculate transparency of background over the four pixels */
+        t4 = (0xf - o00) + (0xf - o01) + (0xf - o10) + (0xf - o11);
+
+        /* get background chroma */
+        cr = -128 + *dst_cr;
+        cb = -128 + *dst_cb;
+
+        /* blend the output chroma to the average of the four pixels */
+        *dst_cr = 128 + (cr * t4 + cr00 * o00 + cr01 * o01 + cr10 * o10 + cr11 * o11) / (4 * 0xf);
+        *dst_cb = 128 + (cb * t4 + cb00 * o00 + cb01 * o01 + cb10 * o10 + cb11 * o11) / (4 * 0xf);
+      }
+    }
+
+    /* next chroma sample */
+    dst_cr++;
+    dst_cb++;
+  }
+}
+
+#endif
+
 void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
                 int dst_width, int dst_height, int dst_pitches[3])
 {
@@ -725,6 +800,8 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
   rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x_off = img_overl->x;
   int y_off = img_overl->y;
+  int x_odd = x_off & 1;
+  int y_odd = y_off & 1;
   int ymask,xmask;
   int rle_this_bite;
   int rle_remainder;
@@ -732,10 +809,14 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
   int x, y;
   int clip_right;
   uint8_t clr=0;
-
+#ifdef EXACT_BLENDING  
+  int anyLineBufferd = 0;
+  int exactBlendWidth = ((src_width <= (dst_width - x_off)) ? src_width : (dst_width - x_off));
+#endif
+  
   uint8_t *dst_y = dst_base[0] + dst_pitches[0] * y_off + x_off;
-  uint8_t *dst_cr = dst_base[2] + (y_off / 2) * dst_pitches[1] + (x_off / 2) + 1;
-  uint8_t *dst_cb = dst_base[1] + (y_off / 2) * dst_pitches[2] + (x_off / 2) + 1;
+  uint8_t *dst_cr = dst_base[2] + (y_off / 2) * dst_pitches[1] + (x_off / 2);
+  uint8_t *dst_cb = dst_base[1] + (y_off / 2) * dst_pitches[2] + (x_off / 2);
 #ifdef LOG_BLEND_YUV
   printf("overlay_blend started x=%d, y=%d, w=%d h=%d\n",img_overl->x,img_overl->y,img_overl->width,img_overl->height);
 #endif
@@ -743,18 +824,30 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
   my_trans = img_overl->clip_trans;
 
   /* avoid wraping overlay if drawing to small image */
-  if( (x_off + img_overl->clip_right) < dst_width )
+  if( (x_off + img_overl->clip_right) <= dst_width )
     clip_right = img_overl->clip_right;
   else
-    clip_right = dst_width - 1 - x_off;
+    clip_right = dst_width - x_off;
 
   /* avoid buffer overflow */
-  if( (src_height + y_off) >= dst_height )
-    src_height = dst_height - 1 - y_off;
+  if( (src_height + y_off) > dst_height )
+    src_height = dst_height - y_off;
 
+#ifdef EXACT_BLENDING
+  /* make linebuffer transparent */
+  memset(&blend_yuv_data[ 0 ][ 0 ][ 0 ], 0, 2 * BLEND_MAXWIDTH);
+#endif
+  
   rlelen=rle_remainder=0;
   for (y = 0; y < src_height; y++) {
-    ymask = ((img_overl->clip_top > y) || (img_overl->clip_bottom < y));
+    if (rle >= rle_limit) {
+#ifdef LOG_BLEND_YUV
+      printf("y-rle_limit\n");
+#endif
+      break;
+    }
+    
+    ymask = ((y < img_overl->clip_top) || (y >= img_overl->clip_bottom));
     xmask = 0;
 #ifdef LOG_BLEND_YUV
     printf("X started ymask=%d y=%d src_height=%d\n",ymask, y, src_height);
@@ -762,6 +855,14 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
 
     for (x = 0; x < src_width;) {
       uint16_t o;
+      
+      if (rle >= rle_limit) {
+#ifdef LOG_BLEND_YUV
+        printf("x-rle_limit\n");
+#endif
+        break;
+      }
+      
 #ifdef LOG_BLEND_YUV
       printf("1:rle_len=%d, remainder=%d, x=%d\n",rlelen, rle_remainder, x);
 #endif
@@ -788,14 +889,14 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
 #endif
 
       if (ymask == 0) {
-        if (x <= img_overl->clip_left) { 
+        if (x < img_overl->clip_left) { 
           /* Starts outside clip area */
-          if ((x + rle_remainder - 1) > img_overl->clip_left ) {
+          if ((x + rle_remainder) > img_overl->clip_left ) {
 #ifdef LOG_BLEND_YUV
             printf("Outside clip left %d, ending inside\n", img_overl->clip_left); 
 #endif
             /* Cutting needed, starts outside, ends inside */
-            rle_this_bite = (img_overl->clip_left - x + 1);
+            rle_this_bite = (img_overl->clip_left - x);
             rle_remainder -= rle_this_bite;
             rlelen -= rle_this_bite;
             my_clut = (clut_t*) img_overl->color;
@@ -879,48 +980,97 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
 #ifdef LOG_BLEND_YUV
       printf("Trans=%d clr=%d xmask=%d my_clut[clr]=%d\n",o, clr, xmask, my_clut[clr].y);
 #endif
-      if (o) {
-        if(o >= 15) {
-	  memset(dst_y + x, my_clut[clr].y, rle_this_bite);
-	  if (y & 1) {
-	    memset(dst_cr + (x >> 1), my_clut[clr].cr, (rle_this_bite+1) >> 1);
-	    memset(dst_cb + (x >> 1), my_clut[clr].cb, (rle_this_bite+1) >> 1);
-	  }
-        } else {
-	  mem_blend8(dst_y + x, my_clut[clr].y, o, rle_this_bite);
-	  if (y & 1) {
-            /* Blending cr and cb should use a different function, with pre -128 to each sample */
-	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, (rle_this_bite+1) >> 1);
-	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, (rle_this_bite+1) >> 1);
-	  }
-        }
 
+      if (x < (dst_width - x_off))
+      {
+        /* clip against right edge of destination area */
+        if ((x + rle_this_bite) > (dst_width - x_off))
+        {
+          int toClip = (x + rle_this_bite) - (dst_width - x_off);
+          
+          rle_this_bite -= toClip;
+          rle_remainder += toClip;
+          rlelen += toClip;
+        }
+      
+#ifdef EXACT_BLENDING
+        /* remember opacity of current line */
+        memset(&blend_yuv_data[ 0 ][ (y + y_odd) & 1 ][ x + x_odd ], o, rle_this_bite);
+        anyLineBufferd |= ((y + y_odd) & 1) ? 2 : 1;
+#endif
+      
+        if (o) {
+          if(o >= 15) {
+            memset(dst_y + x, my_clut[clr].y, rle_this_bite);
+#ifndef EXACT_BLENDING          
+            if ((y + y_odd) & 1) {
+              memset(dst_cr + ((x + x_odd) >> 1), my_clut[clr].cr, (rle_this_bite+1) >> 1);
+              memset(dst_cb + ((x + x_odd) >> 1), my_clut[clr].cb, (rle_this_bite+1) >> 1);
+            }
+#endif
+          } else {
+            mem_blend8(dst_y + x, my_clut[clr].y, o, rle_this_bite);
+#ifndef EXACT_BLENDING          
+            if ((y + y_odd) & 1) {
+              /* Blending cr and cb should use a different function, with pre -128 to each sample */
+              mem_blend8(dst_cr + ((x + x_odd) >> 1), my_clut[clr].cr, o, (rle_this_bite+1) >> 1);
+              mem_blend8(dst_cb + ((x + x_odd) >> 1), my_clut[clr].cb, o, (rle_this_bite+1) >> 1);
+            }
+#endif
+          }
+          
+#ifdef EXACT_BLENDING          
+          /* remember chroma of current line */
+          memset(&blend_yuv_data[ 1 ][ (y + y_odd) & 1 ][ x + x_odd ], my_clut[ clr ].cr, rle_this_bite);
+          memset(&blend_yuv_data[ 2 ][ (y + y_odd) & 1 ][ x + x_odd ], my_clut[ clr ].cb, rle_this_bite);
+#endif
+        }
       }
 #ifdef LOG_BLEND_YUV
       printf("rle_this_bite=%d, remainder=%d, x=%d\n",rle_this_bite, rle_remainder, x);
 #endif
       x += rle_this_bite;
-      if (rle >= rle_limit) {
-#ifdef LOG_BLEND_YUV
-        printf("x-rle_limit\n");
-#endif
-        break;
-      }
-    }
-    if (rle >= rle_limit) {
-#ifdef LOG_BLEND_YUV
-        printf("x-rle_limit\n");
-#endif
-        break;
     }
 
     dst_y += dst_pitches[0];
 
-    if (y & 1) {
+    if ((y + y_odd) & 1) {
+
+#ifdef EXACT_BLENDING
+      /* blend bufferd chroma */
+      if (anyLineBufferd)
+      {
+        if (!(anyLineBufferd & 2))
+        {
+          /* make second line transparent */
+          memset(&blend_yuv_data[ 0 ][ 1 ][ 0 ], 0, BLEND_MAXWIDTH);
+        }
+        
+        blend_yuv_exact(dst_cr, dst_cb, exactBlendWidth, x_odd);
+
+        anyLineBufferd = 0;
+      }
+#endif
+      
       dst_cr += dst_pitches[2];
       dst_cb += dst_pitches[1];
     }
   }
+  
+#ifdef EXACT_BLENDING
+  /* blend bufferd chroma */
+  if (anyLineBufferd)
+  {
+    if (!(anyLineBufferd & 2))
+    {
+      /* make second line transparent */
+      memset(&blend_yuv_data[ 0 ][ 1 ][ 0 ], 0, BLEND_MAXWIDTH);
+    }
+    
+    blend_yuv_exact(dst_cr, dst_cb, exactBlendWidth, x_odd);
+  }
+#endif
+      
 #ifdef LOG_BLEND_YUV
   printf("overlay_blend ended\n");
 #endif
