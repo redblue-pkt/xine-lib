@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2001-2003 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.106 2003/03/27 17:20:57 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.107 2003/04/03 20:48:44 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1060,7 +1060,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->bufsize = AUDIOBUFSIZE;
     this->size = 0;
 
-    this->decode_buffer = xine_xmalloc(100000);
+    this->decode_buffer = xine_xmalloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
 
     if (avcodec_open (this->context, this->codec) < 0) {
       printf ("ffmpeg: couldn't open decoder\n");
