@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.118 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: demux_ogg.c,v 1.119 2003/11/29 14:30:55 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -227,7 +227,7 @@ static void get_stream_length (demux_ogg_t *this) {
     
     if (filelength!=-1) {
       if (filelength>70000) {
-	this->demux_plugin.seek((demux_plugin_t *)this, (off_t) filelength-65536, 0, 1);
+	this->demux_plugin.seek(&this->demux_plugin, (off_t) filelength-65536, 0, 0);
       }
       done=0;
       while (!done) {
