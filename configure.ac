@@ -490,7 +490,26 @@ dnl ----------------------------------------------
 dnl static linking is preferred!
 dnl but only dynamic linking is possible when using libtool < 1.4.0
 
-AC_PREREQ_LIBTOOL(1.4.0, xv_lib="libXv.a", xv_lib="libXv.so")
+dnl ----------------------------------------------
+dnl SECTION: Check for Xv and XvMC support (iconv is also tested here?)
+dnl ----------------------------------------------
+AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [where libXv is installed]),
+            xv_path="$withval",)
+
+AC_ARG_ENABLE(shared-xv,
+        AC_HELP_STRING([--enable-shared-xv],[Enable this to force linking against libXv.so]),
+        xv_prefer_shared="yes",
+        xv_prefer_shared="no")
+
+if test x"$no_x" != "xyes"; then
+
+  dnl -----------------------------------------------
+  dnl   Finding install Xv library
+  dnl -----------------------------------------------
+  AC_FIND_LIBXV
+
+fi
+
 
 host_or_hostalias="$host"
 if test "$host_or_hostalias" = ""; then
@@ -535,45 +554,6 @@ case "$host_or_hostalias" in
         ;;
 esac
 AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
-
-
-AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [where libXv is installed]),
-            xv_path="$withval", xv_path="/usr/X11R6/$XINE_LIBNAME")
-
-AC_CHECK_LIB(Xv, XvShmCreateImage, 
-             [ AC_MSG_CHECKING(for $xv_lib location)
-               if test -f "$xv_path/$xv_lib"; then
-                 AC_MSG_RESULT(found in $xv_path)
-                 XV_LIB="-L$xv_path -lXv"
-	         AC_DEFINE(HAVE_XV,1,[Define this if you have libXv installed])
-	         ac_have_xv="yes"
-		 if test x$xv_lib = "xlibXv.a" ; then
-		   AC_DEFINE(HAVE_XV_STATIC,1,[Define this if you have libXv.a])
-		 fi
-               else
-                 AC_MSG_RESULT(not found in $xv_path)
-	         echo
-                 echo "****************************************************************"
-		 echo "* if you don't have a libXv.so on your system, use:            *"
-		 echo "* ld --whole-archive -shared -o libXv.so.1 libXv.a             *"
-		 echo "* then: ln -s libXv.so.1 libXv.so                              *"
-	         echo "* to create it or try to use --with-xv-path to set the         *"
-                 echo "* location of libXv.so                                         *"
-                 echo "****************************************************************"
-	         echo
-               fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
-AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
-dnl AM_CONDITIONAL(HAVE_XV_STATIC, test x$ac_have_xv = "xyes" -a x$xv_lib = "xlibXv.a")
-dnl
-dnl xine_check use Xv functions API.
-dnl
-if test x$ac_have_xv = "xyes"; then
-  EXTRA_X_LIBS="-L$xv_path $XV_LIB -lXext"
-  EXTRA_X_CFLAGS=""
-fi
-AC_SUBST(XV_LIB)
-AC_SUBST(EXTRA_X_LIBS)
-AC_SUBST(EXTRA_X_CFLAGS)
 
 dnl
 dnl Check if we can enable the xxmc plugin.
