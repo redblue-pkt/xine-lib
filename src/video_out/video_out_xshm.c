@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.79 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.80 2002/07/16 19:33:37 esnel Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -201,20 +201,6 @@ static void x11_DeInstallXErrorHandler (xshm_driver_t *this)
 {
   XSetErrorHandler (NULL);
   XFlush (this->display);
-}
-
-static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) {
-
-  uint8_t *pMem;
-
-  pMem = xine_xmalloc (size+alignment);
-
-  *chunk = pMem;
-
-  while ((int) pMem % alignment)
-    pMem++;
-
-  return pMem;
 }
 
 /*
@@ -673,12 +659,12 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-      frame->vo_frame.base[0] = my_malloc_aligned (16, frame->vo_frame.pitches[0] * height,   &frame->chunk[0]);
-      frame->vo_frame.base[1] = my_malloc_aligned (16, frame->vo_frame.pitches[1] * ((height+1)/2), &frame->chunk[1]);
-      frame->vo_frame.base[2] = my_malloc_aligned (16, frame->vo_frame.pitches[2] * ((height+1)/2), &frame->chunk[2]);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height,   &frame->chunk[0]);
+      frame->vo_frame.base[1] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[1] * ((height+1)/2), &frame->chunk[1]);
+      frame->vo_frame.base[2] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[2] * ((height+1)/2), &frame->chunk[2]);
     } else {
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = my_malloc_aligned (16, frame->vo_frame.pitches[0] * height, &frame->chunk[0]);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height, &frame->chunk[0]);
       frame->chunk[1] = NULL;
       frame->chunk[2] = NULL;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.22 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out_aa.c,v 1.23 2002/07/16 19:33:37 esnel Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -42,6 +42,7 @@
 
 #include "video_out.h"
 #include "xine_internal.h"
+#include "xineutils.h"
 
 /*
  * global variables
@@ -78,18 +79,6 @@ typedef struct {
  */
 static uint32_t aa_get_capabilities (vo_driver_t *this) {
   return VO_CAP_YV12 | VO_CAP_YUY2;
-}
-
-static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
-  char *aligned;
-
-  aligned = malloc (size+alignment);
-  *mem = aligned;
-
-  while ((int) aligned % alignment)
-    aligned++;
-
-  return aligned;
 }
 
 static void aa_dispose_frame (vo_frame_t *vo_img) {
@@ -158,9 +147,9 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-      frame->vo_frame.base[0] = malloc_aligned(16, frame->vo_frame.pitches[0] * height, (void**) &frame->mem[0]);
-      frame->vo_frame.base[1] = malloc_aligned(16, frame->vo_frame.pitches[1] * ((height+1)/2), (void**) &frame->mem[1]);
-      frame->vo_frame.base[2] = malloc_aligned(16, frame->vo_frame.pitches[2] * ((height+1)/2), (void**) &frame->mem[2]);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height, (void**) &frame->mem[0]);
+      frame->vo_frame.base[1] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[1] * ((height+1)/2), (void**) &frame->mem[1]);
+      frame->vo_frame.base[2] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[2] * ((height+1)/2), (void**) &frame->mem[2]);
 
       /* printf ("allocated yuv memory for %d x %d image\n", width, height); */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.10 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out_directfb.c,v 1.11 2002/07/16 19:33:37 esnel Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -122,24 +122,6 @@ typedef struct directfb_driver_s {
 #define CONTEXT_SAME_DRAWABLE   1
 #define CONTEXT_SET             2
 #define CONTEXT_RELOAD          3
-
-
-/*
- * first, some utility functions
- */
-static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) {
-
-  uint8_t *pMem;
-
-  pMem = xine_xmalloc (size+alignment);
-
-  *chunk = pMem;
-
-  while ((int) pMem % alignment)
-    pMem++;
-
-  return pMem;
-}
 
 
 /*

@@ -28,7 +28,8 @@ xineplug_decode_faad_la_SOURCES = xine_decoder.c \
 	hcb_1.c hcb_2.c hcb_3.c hcb_4.c hcb_5.c hcb_6.c hcb_7.c hcb_8.c \
 	hcb_9.c hcb_10.c hcb_11.c hcb_sf.c
 xineplug_decode_faad_la_LDFLAGS = -avoid-version -module
-xineplug_decode_faad_la_LIBADD = $(top_builddir)/src/libfaad/fftw/libfftw.la
+xineplug_decode_faad_la_LIBADD = $(top_builddir)/src/libfaad/fftw/libfftw.la \
+	$(top_builddir)/src/xine-utils/libxineutils.la
 
 noinst_HEADERS = analysis.h bits.h data.h decoder.h drc.h error.h \
 		 filtbank.h huffman.h ic_predict.h is.h kbd_win.h \

@@ -62,7 +62,8 @@ xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_opengl.c
-xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS)
+xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS) \
+	$(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
