@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.4 2001/05/07 03:40:35 f1rmb Exp $
+ * $Id: audio_out.h,v 1.5 2001/06/18 10:49:31 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -121,20 +121,20 @@ struct ao_functions_s {
  * audio output modes + capabilities
  */
 
-#define AO_CAP_NOCAP            0x00000000 /* Driver have no capabilities  */
-#define AO_CAP_MODE_AC3         0x00000001 /* Driver support AC3 output    */
-#define AO_CAP_MODE_AC5         0x00000002 /* Driver support AC5 output    */
+#define AO_CAP_NOCAP            0x00000000 /* driver has no capabilities    */
+#define AO_CAP_MODE_AC3         0x00000001 /* driver supports AC3 output    */
+#define AO_CAP_MODE_AC5         0x00000002 /* driver supports AC5 output    */
 /* 1 sample ==  2 bytes */
-#define AO_CAP_MODE_MONO        0x00000004 /* Driver support mono output   */
+#define AO_CAP_MODE_MONO        0x00000004 /* driver supports mono output   */
  /* 1 sample ==  4 bytes */
-#define AO_CAP_MODE_STEREO      0x00000008 /* Driver support stereo output */
+#define AO_CAP_MODE_STEREO      0x00000008 /* driver supports stereo output */
  /* 1 sample ==  8 bytes */
-#define AO_CAP_MODE_4CHANNEL    0x00000010 /* Driver support 4 channels    */
+#define AO_CAP_MODE_4CHANNEL    0x00000010 /* driver supports 4 channels    */
 /* 1 sample == 10 bytes */
-#define AO_CAP_MODE_5CHANNEL    0x00000020 /* Driver support 5 channels    */
-#define AO_CAP_MIXER_VOL        0x00000040 /* Driver support mixer control */
-#define AO_CAP_PCM_VOL          0x00000080 /* Driver support pcm control   */
-#define AO_CAP_MUTE_VOL         0x00000100 /* Driver can mute volume       */
+#define AO_CAP_MODE_5CHANNEL    0x00000020 /* driver supports 5 channels    */
+#define AO_CAP_MIXER_VOL        0x00000040 /* driver supports mixer control */
+#define AO_CAP_PCM_VOL          0x00000080 /* driver supports pcm control   */
+#define AO_CAP_MUTE_VOL         0x00000100 /* driver can mute volume        */
 
 /* properties supported by get/set_property() */
 #define AO_PROP_MIXER_VOL       0
