@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "POT-Creation-Date: 2002-12-18 05:27+0100\n"
-"PO-Revision-Date: 2002-11-22 19:05+0100\n"
+"PO-Revision-Date: 2003-01-07 11:47+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -55,9 +55,8 @@ msgid "esd audio output latency (adjust a/v sync)"
 msgstr "Verzögerung der esd Audioausgabe (Verändert A/V Synchronisation)"
 
 #: src/audio_out/audio_esd_out.c:451
-#, fuzzy
 msgid "xine audio output plugin using esound"
-msgstr "xine Soundausgabe benutzt esd"
+msgstr "xine Soundausgabe benutzt esound"
 
 #: src/audio_out/audio_oss_out.c:673
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
@@ -110,9 +109,8 @@ msgid "xine audio output plugin using sun-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt SUN-kompatibles Gerät/Treiber"
 
 #: src/audio_out/audio_arts_out.c:360
-#, fuzzy
 msgid "xine audio output plugin using kde artsd"
-msgstr "xine Soundausgabe benutzt esd"
+msgstr "xine Soundausgabe benutzt kde artsd"
 
 #: src/audio_out/audio_irixal_out.c:385
 msgid "irixal audio output maximum gap length in 1/90000s"
@@ -763,9 +761,8 @@ msgid "xine video output plugin using linux framebuffer device"
 msgstr "xine Videoausgabe benutzt Linux Framebuffer"
 
 #: src/video_out/video_out_sdl.c:547
-#, fuzzy
 msgid "xine video output plugin using the Simple Direct Media Layer"
-msgstr "xine Videoausgabe benutzt 'Simple DirectMedia Layer'"
+msgstr "xine Videoausgabe benutzt 'Simple Direct Media Layer'"
 
 #: src/video_out/video_out_opengl.c:946
 msgid "gamma correction for OpenGL driver"
