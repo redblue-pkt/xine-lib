@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	codeset.m4 \
 	dvdnav.m4 \
 	esd.m4 \
+	ffmpeg.m4 \
 	gettext.m4 \
 	glibc21.m4 \
 	iconv.m4 \
