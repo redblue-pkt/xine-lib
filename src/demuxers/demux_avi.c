@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.168 2003/10/06 15:46:20 mroi Exp $
+ * $Id: demux_avi.c,v 1.169 2003/10/07 19:42:00 hadess Exp $
  *
  * demultiplexer for avi streams
  *
@@ -416,6 +416,7 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
   uint8_t       data2[4];
   off_t         savepos = this->input->seek(this->input, 0, SEEK_CUR);
   off_t         curtagoffset;
+  int           sent_event = 0;
 
   this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
   curtagoffset = this->idx_grow.nexttagoffset;
@@ -441,6 +442,8 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
       event.data_length = sizeof (xine_progress_data_t);
 
       xine_event_send (this->stream, &event);
+
+      sent_event = 1;
     }
 
     if (this->input->read(this->input, data, 8) != 8)
@@ -524,6 +527,21 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
     curtagoffset = this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
     if (curtagoffset != this->idx_grow.nexttagoffset)
       break;
+  }
+
+  if (sent_event == 1) {
+    /* send event to frontend about index generation progress */
+    xine_event_t             event;
+    xine_progress_data_t     prg;
+
+    prg.description = _("Restoring index...");
+    prg.percent = 100;
+
+    event.type = XINE_EVENT_PROGRESS;
+    event.data = &prg;
+    event.data_length = sizeof (xine_progress_data_t);
+
+    xine_event_send (this->stream, &event);
   }
 
   this->input->seek (this->input, savepos, SEEK_SET);
