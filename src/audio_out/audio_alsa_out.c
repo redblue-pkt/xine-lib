@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.49 2002/04/13 15:33:38 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.50 2002/04/15 00:50:44 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -641,7 +641,10 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
 static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int result;
-#if 1
+#if 0
+  /* Alsa 0.9.x pause and result is not stable enough at the moment.
+   * FIXME: Change these to snd_pcm_drop and restart.
+   */
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
