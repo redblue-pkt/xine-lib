@@ -19,7 +19,7 @@ libxine_la_SOURCES = $(nvtv) xine.c metronom.c configfile.c buffer.c \
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
 
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS)\
-	             -lm $(XINEUTILS_LIB) $(X_LIBS) $(EXTRA_X_LIBS)
+	             -lm $(XINEUTILS_LIB)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
