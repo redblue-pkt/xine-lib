@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.18 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: demux_asf.c,v 1.19 2002/01/06 00:25:56 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -456,9 +456,10 @@ static int asf_read_header (demux_asf_t *this) {
       end_time =  get_le64 (this); 
       
       this->length = get_le64(this) / 10000000; 
-      if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+      if ( (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)
+	   && (this->length) )
 	this->rate = this->input->get_length (this->input) / this->length;
-      } else
+      else
 	this->rate = 0;
 
       LOG_MSG(this->xine, _("demux_asf: stream length is %d sec, rate is %d bytes/sec\n"),
@@ -690,7 +691,10 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
     if (stream->fifo == this->video_fifo) {
       buf->input_pos  = this->input->get_current_pos (this->input);
-      buf->input_time = buf->input_pos / this->rate;
+      if (this->rate)
+	buf->input_time = buf->input_pos / this->rate;
+      else
+	buf->input_time = 0;
     } else {
       buf->input_pos  = 0 ;
       buf->input_time = 0 ;
@@ -759,7 +763,10 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 
           if (stream->fifo == this->video_fifo) {
             buf->input_pos  = this->input->get_current_pos (this->input);
-            buf->input_time = buf->input_pos / this->rate;
+	    if (this->rate)
+	      buf->input_time = buf->input_pos / this->rate;
+	    else
+	      buf->input_time = 0;
           } else {
             buf->input_pos  = 0 ;
             buf->input_time = 0 ;
