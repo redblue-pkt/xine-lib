@@ -20,7 +20,7 @@
 ** nes_apu.h
 **
 ** NES APU emulation header file
-** $Id: nes_apu.h,v 1.1 2003/01/08 07:04:35 tmmm Exp $
+** $Id: nes_apu.h,v 1.2 2003/01/09 19:50:03 jkeil Exp $
 */
 
 #ifndef _NES_APU_H_
@@ -295,6 +295,12 @@ extern void apu_getpcmdata(void **data, int *num_samples, int *sample_bits);
 
 /*
 ** $Log: nes_apu.h,v $
+** Revision 1.2  2003/01/09 19:50:03  jkeil
+** NSF audio files were crashing on SPARC.
+**
+** - Define the correct HOST_ENDIAN for SPARC
+** - remove unaligned memory accesses
+**
 ** Revision 1.1  2003/01/08 07:04:35  tmmm
 ** initial import of Nosefart sources
 **

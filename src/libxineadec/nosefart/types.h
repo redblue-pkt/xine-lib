@@ -20,14 +20,18 @@
 ** types.h
 **
 ** Data type definitions
-** $Id: types.h,v 1.1 2003/01/08 07:04:36 tmmm Exp $
+** $Id: types.h,v 1.2 2003/01/09 19:50:04 jkeil Exp $
 */
 
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
 /* Define this if running on little-endian (x86) systems */
+#if defined(sparc)
+#undef	 HOST_LITTLE_ENDIAN
+#else
 #define  HOST_LITTLE_ENDIAN
+#endif
 
 #ifdef __GNUC__
 #define  INLINE      static inline
@@ -84,6 +88,12 @@ typedef  uint8    boolean;
 
 /*
 ** $Log: types.h,v $
+** Revision 1.2  2003/01/09 19:50:04  jkeil
+** NSF audio files were crashing on SPARC.
+**
+** - Define the correct HOST_ENDIAN for SPARC
+** - remove unaligned memory accesses
+**
 ** Revision 1.1  2003/01/08 07:04:36  tmmm
 ** initial import of Nosefart sources
 **

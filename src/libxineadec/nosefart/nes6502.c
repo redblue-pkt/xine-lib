@@ -20,7 +20,7 @@
 ** nes6502.c
 **
 ** NES custom 6502 (2A03) CPU implementation
-** $Id: nes6502.c,v 1.1 2003/01/08 07:04:35 tmmm Exp $
+** $Id: nes6502.c,v 1.2 2003/01/09 19:50:03 jkeil Exp $
 */
 
 
@@ -1189,34 +1189,14 @@ INLINE void bank_writebyte(register uint32 address, register uint8 value)
 
 INLINE uint32 zp_address(register uint8 address)
 {
-#ifdef HOST_LITTLE_ENDIAN
-   /* TODO: this fails if src address is $xFFF */
-   /* TODO: this fails if host architecture doesn't support byte alignment */
-   return (uint32) (*(uint16 *)(ram + address));
-#else
-#ifdef TARGET_CPU_PPC
-   return __lhbrx(ram, address);
-#else
-   uint32 x = (uint32) *(uint16 *)(ram + address);
-   return (x << 8) | (x >> 8);
-#endif /* TARGET_CPU_PPC */
-#endif /* HOST_LITTLE_ENDIAN */
+   uint8 *x = ram + address;
+   return (x[1] << 8) | x[0];
 }
 
 INLINE uint32 bank_readaddress(register uint32 address)
 {
-#ifdef HOST_LITTLE_ENDIAN
-   /* TODO: this fails if src address is $xFFF */
-   /* TODO: this fails if host architecture doesn't support byte alignment */
-   return (uint32) (*(uint16 *)(nes6502_banks[address >> NES6502_BANKSHIFT] + (address & NES6502_BANKMASK)));
-#else
-#ifdef TARGET_CPU_PPC
-   return __lhbrx(nes6502_banks[address >> NES6502_BANKSHIFT], address & NES6502_BANKMASK);
-#else
-   uint32 x = (uint32) *(uint16 *)(nes6502_banks[address >> NES6502_BANKSHIFT] + (address & NES6502_BANKMASK));
-   return (x << 8) | (x >> 8);
-#endif /* TARGET_CPU_PPC */
-#endif /* HOST_LITTLE_ENDIAN */
+   uint8 *x = nes6502_banks[address >> NES6502_BANKSHIFT] + (address & NES6502_BANKMASK);
+   return (x[1] << 8) | x[0];
 }
 
 /* read a byte of 6502 memory */
@@ -2385,6 +2365,12 @@ void nes6502_setdma(int cycles)
 
 /*
 ** $Log: nes6502.c,v $
+** Revision 1.2  2003/01/09 19:50:03  jkeil
+** NSF audio files were crashing on SPARC.
+**
+** - Define the correct HOST_ENDIAN for SPARC
+** - remove unaligned memory accesses
+**
 ** Revision 1.1  2003/01/08 07:04:35  tmmm
 ** initial import of Nosefart sources
 **
