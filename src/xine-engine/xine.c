@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.53 2001/09/01 14:33:00 guenter Exp $
+ * $Id: xine.c,v 1.54 2001/09/01 15:52:17 guenter Exp $
  *
  * top-level xine functions
  *
@@ -576,6 +576,11 @@ int xine_get_av_offset (xine_t *this) {
 void xine_set_speed (xine_t *this, int speed) {
   
   pthread_mutex_lock (&this->xine_lock);
+
+  if (speed < SPEED_PAUSE)
+    speed = SPEED_PAUSE;
+  if (speed > SPEED_FAST_4)
+    speed = SPEED_FAST_4;
 
   printf ("xine_set_speed %d\n", speed);
 
