@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.35 2002/06/24 17:41:59 pmhahn Exp $
+ * $Id: xine_decoder.c,v 1.36 2002/06/24 22:10:48 mshopf Exp $
  *
  * code based on mplayer module:
  *
@@ -656,6 +656,7 @@ static int sub_autodetect (sputext_decoder_t *this) {
 static subtitle_t *sub_read_file (sputext_decoder_t *this) {
 
   int n_max;
+  unsigned long *lastend = NULL;
   subtitle_t *first;
   subtitle_t * (*func[])(sputext_decoder_t *this,subtitle_t *dest)=
   {
@@ -702,7 +703,10 @@ static subtitle_t *sub_read_file (sputext_decoder_t *this) {
       ++this->errs; 
     else {
       int i;
-
+      if (lastend && *lastend == -1) {
+	*lastend = sub->start;
+      }
+      lastend  = &sub->end;
       for(i=0; i<first[this->num].lines; i++)
       { char *tmp;
 	char *in_buff, *out_buff;
@@ -958,7 +962,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
 #ifdef LOG
       printf ("sputext: scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
-	      subtitle->text[0], pts, pts_end, 
+	      subtitle->text[0], sub_start, sub_end, 
 	      this->xine->metronom->get_current_time (this->xine->metronom));
 #endif
 
