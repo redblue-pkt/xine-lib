@@ -5,7 +5,7 @@ AC_DEFUN(AM_PATH_IRIXAL,
 dnl replace by test
   AC_ARG_ENABLE(irixal, [  --enable-irixal         Turn on IRIX AL audio support.], enable_irixal=yes, enable_irixal=no)
 
-  AC_ARG_WITH(irixal-prefix,[  --irixal-prefix=pfx  Prefix where al is installed (optional)],
+  AC_ARG_WITH(irixal-prefix,[  --irixal-prefix=pfx     Prefix where al is installed (optional)],
               irixal_prefix="$withval", irixal_prefix="")
 
   AC_MSG_CHECKING([for IRIX AL support])

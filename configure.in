@@ -306,7 +306,7 @@ AC_LINUX_PATH(/usr/src/linux)
 AC_SUBST(LINUX_INCLUDE)
 
 AC_CHECK_DXR3()
-AM_CONDITIONAL(HAVE_DXR3, test "x$have_dxr3" = xyes)
+AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
 
 dnl
 dnl ip_mreqn

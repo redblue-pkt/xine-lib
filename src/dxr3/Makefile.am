@@ -1,4 +1,4 @@
-CFLAGS = @GLOBAL_CFLAGS@ $(LINUX_INCLUDE)
+CFLAGS = @GLOBAL_CFLAGS@ $(EM8300_INCLUDE_PATH) $(LINUX_INCLUDE)
 
 EXTRA_DIST = dxr3_decoder.c video_out_dxr3.c
 
@@ -19,7 +19,7 @@ xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(EM8300_INCLUDE_PATH) $(LINUX_INCLUDE)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

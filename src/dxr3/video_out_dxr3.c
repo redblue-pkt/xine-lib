@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.2 2001/07/24 13:26:18 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.3 2001/07/24 15:02:05 f1rmb Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -33,7 +33,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <linux/em8300.h>
+#include <em8300.h>
 #include "video_out.h"
 
 #include <pthread.h>

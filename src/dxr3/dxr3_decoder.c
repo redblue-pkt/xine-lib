@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.1 2001/07/20 17:28:21 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.2 2001/07/24 15:02:05 f1rmb Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -32,7 +32,7 @@
 #include <buffer.h>
 #include <xine_internal.h>
 #include <linux/soundcard.h>
-#include <linux/em8300.h>
+#include <em8300.h>
 
 #include <stdio.h>
 #include <errno.h>
