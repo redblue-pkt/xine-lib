@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.92 2002/04/27 23:00:38 cvogler Exp $
+ * $Id: xine.h.tmpl.in,v 1.93 2002/04/28 10:15:37 richwareham Exp $
  *
  */
 
@@ -681,7 +681,7 @@ struct config_values_s {
   /*
    * unregister callback function
    */
-  void (*unregister_callback) (config_values_t *this,
+  void (*unregister_callback) (config_values_t *self,
 			       char *key);
 
   /* 
