@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.5 2003/10/20 01:17:47 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.6 2003/10/21 16:10:31 mroi Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -1768,35 +1768,10 @@ _("Format used in the GUI Title. Similar to the Unix date "
   return class;
 }
 
-/* 
-   Exported plugin catalog entries.
-
-   All plugins listing only the current API number break when the API
-   number is increased. This is by design. 
-
-   Sometimes in the rush to get out a buggy release, the API number is
-   increased without communication let alone a concern for whether it
-   is necessary or how many plugins it might break. And that is
-   precisely when what happened between API release 12 and API
-   13. Input plugin API numbers 12 and 13 are functionally identical.
-
-   Because of problems like this, we'll just put in a future API
-   release. If the number was increased for a reason that doesn't
-   affect us (such as for nor reason at all), then this plugin will
-   work unmodified that future APIs. If on the other hand there was
-   incompatible change, we are no worse off than if we hadn't entered
-   the next API number since in both cases the plugin is broken.
- */
 
 const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, (char *) SHORT_PLUGIN_NAME, XINE_VERSION_CODE, 
-    NULL, vcd_init },
-  { PLUGIN_INPUT, 12, (char *) SHORT_PLUGIN_NAME, XINE_VERSION_CODE, 
-    NULL, vcd_init },
   { PLUGIN_INPUT, 13, (char *) SHORT_PLUGIN_NAME, XINE_VERSION_CODE, 
-    NULL, vcd_init },
-  { PLUGIN_INPUT, 14, (char *) SHORT_PLUGIN_NAME, XINE_VERSION_CODE, 
     NULL, vcd_init },
   { PLUGIN_NONE, 0, (char *) "", 0, NULL, NULL }
 };
