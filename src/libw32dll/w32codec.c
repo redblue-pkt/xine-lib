@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.118 2003/03/09 12:19:13 mroi Exp $
+ * $Id: w32codec.c,v 1.119 2003/03/18 18:21:48 jstembridge Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -107,8 +107,8 @@ static GUID mss1_clsid =
 
 static GUID wma3_clsid =
 {
-	0x2eeb4adf, 0x4578, 0x4d10,
-	{ 0xbc, 0xa7, 0xbb, 0x95, 0x5f, 0x56, 0x32, 0x0a }
+	0x27ca0808, 0x01f5, 0x4e7a,
+	{ 0x8b, 0x05, 0x87, 0xf8, 0x07, 0xa2, 0x33, 0xd1 }
 };
 
 
@@ -1076,7 +1076,7 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
   in_size=in_fmt->nBlockAlign;
 
   this->srcstream = 0;
-  this->num_channels  = in_fmt->nChannels;
+  this->num_channels  = (in_fmt->nChannels >= 2)?2:1;
   this->rate = in_fmt->nSamplesPerSec;
   
   if (this->output_open)
