@@ -658,18 +658,18 @@ AC_ARG_ENABLE(fb, AC_HELP_STRING([--disable-fb], [do not build linux framebuffer
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
 dnl ---------------------------------------------
-dnl Check whether to build MacOSX video output driver
+dnl Check whether to build Mac OS X video output driver
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(macosx_video, AC_HELP_STRING([--enable-macosx-video], [enable support for MacOSX OpenGL video output]),
+AC_ARG_ENABLE(macosx_video, AC_HELP_STRING([--enable-macosx-video], [enable support for Mac OS X OpenGL video output]),
               have_macosx_video=$enableval)
 AM_CONDITIONAL(HAVE_MACOSX_VIDEO, [test x"$have_macosx_video" = "xyes"])
 
 dnl ---------------------------------------------
-dnl Check whether to build MacOSX audio output driver
+dnl Check whether to build Mac OS X audio output driver
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(coreaudio, AC_HELP_STRING([--enable-coreaudio], [enable support for MacOSX Coreaudio output]),
+AC_ARG_ENABLE(coreaudio, AC_HELP_STRING([--enable-coreaudio], [enable support for Mac OS X Coreaudio output]),
               have_coreaudio=$enableval)
 AM_CONDITIONAL(HAVE_COREAUDIO, [test x"$have_coreaudio" = "xyes"])
 
@@ -1616,7 +1616,7 @@ case "$host_or_hostalias" in
     ;;
   
   *darwin*)
-    AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on MacOSX/Darwin])
+    AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
     CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
     DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
     
@@ -2359,7 +2359,7 @@ if test x"$have_directx" = "xyes"; then
   echo "   - directx (DirectX video driver)"
 fi
 if test x"$have_macosx_video" = "xyes"; then
-  echo "   - MacOSX OpenGL"
+  echo "   - Mac OS X OpenGL"
 fi
 
 echo ""
@@ -2390,7 +2390,7 @@ if test x"$have_directx" = "xyes"; then
   echo "   - directx (DirectX audio driver)"
 fi
 if test x"$have_coreaudio" = "xyes"; then
-  echo "   - CoreAudio (MacOSX audio driver)"
+  echo "   - CoreAudio (Mac OS X audio driver)"
 fi  
 echo "---"
 

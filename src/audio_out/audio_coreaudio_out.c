@@ -449,7 +449,7 @@ static char* get_identifier (audio_driver_class_t *this_gen) {
 }
 
 static char* get_description (audio_driver_class_t *this_gen) {
-  return _("xine output plugin for Coreaudio/MacOSX");
+  return _("xine output plugin for Coreaudio/Mac OS X");
 }
 
 static void dispose_class (audio_driver_class_t *this_gen) {

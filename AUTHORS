@@ -490,10 +490,10 @@ Vincent Pelletier <subdino2004@yahoo.fr>
   Word wrap and other improvements in libsputext.
 
 Daniel Mack <xine@zonque.org>
-  native MacOSX video and audio output plugins
+  native Mac OS X video and audio output plugins
 
 André Pang <ozone@algorithm.com.au>
-  MacOSX fixes and framework/frontend work
+  Mac OS X fixes and framework/frontend work
 
 Stefan Kristiansson <stefan@langante.mine.nu>
   moved Xv initialization from class to plugin context
