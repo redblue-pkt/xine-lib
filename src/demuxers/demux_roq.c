@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.16 2002/10/05 14:39:24 komadori Exp $
+ * $Id: demux_roq.c,v 1.17 2002/10/05 21:09:18 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,8 +41,8 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define LE_16(x) (le2me_16((uint16_t)(x)))
-#define LE_32(x) (le2me_32((uint32_t)(x)))
+#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
+#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 #define RoQ_MAGIC_NUMBER 0x1084
 #define RoQ_CHUNK_PREAMBLE_SIZE 8
@@ -113,8 +113,8 @@ static void *demux_roq_loop (void *this_gen) {
         this->status = DEMUX_FINISHED;
         break;
       }
-      chunk_type = LE_16(preamble[0]);
-      chunk_size = LE_32(preamble[2]);
+      chunk_type = LE_16(&preamble[0]);
+      chunk_size = LE_32(&preamble[2]);
 
       /* if the chunk is an audio chunk, route it to the audio fifo */
       if ((chunk_type == RoQ_SOUND_MONO) || (chunk_type == RoQ_SOUND_STEREO)) {
@@ -185,7 +185,7 @@ static void *demux_roq_loop (void *this_gen) {
           this->input->seek(this->input, current_file_pos, SEEK_SET);
 
           /* figure out the total video chunk size */
-          chunk_size += (2 * RoQ_CHUNK_PREAMBLE_SIZE) + LE_32(preamble[2]);
+          chunk_size += (2 * RoQ_CHUNK_PREAMBLE_SIZE) + LE_32(&preamble[2]);
         }
 
         /* packetize the video chunk and route it to the video fifo */
@@ -279,7 +279,7 @@ static int load_roq_and_send_headers(demux_roq_t *this) {
    *
    * therefore, the frame pts increment is 90000 / fps
    */
-  this->fps = LE_16(preamble[6]);
+  this->fps = LE_16(&preamble[6]);
   this->frame_pts_inc = 90000 / this->fps;
 
   /* iterate through the first 2 seconds worth of chunks searching for
@@ -291,16 +291,16 @@ static int load_roq_and_send_headers(demux_roq_t *this) {
     if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
       RoQ_CHUNK_PREAMBLE_SIZE)
       break;
-    chunk_type = LE_16(preamble[0]);
-    chunk_size = LE_32(preamble[2]);
+    chunk_type = LE_16(&preamble[0]);
+    chunk_size = LE_32(&preamble[2]);
 
     if (chunk_type == RoQ_INFO) {
       /* fetch the width and height; reuse the preamble bytes */
       if (this->input->read(this->input, preamble, 8) != 8)
         break;
 
-      this->width = LE_16(preamble[0]);
-      this->height = LE_16(preamble[2]);
+      this->width = LE_16(&preamble[0]);
+      this->height = LE_16(&preamble[2]);
 
       /* if an audio chunk was already found, search is done */
       if (this->audio_channels)
@@ -370,8 +370,8 @@ static int demux_roq_open(demux_plugin_t *this_gen, input_plugin_t *input,
       return DEMUX_CANNOT_HANDLE;
 
     /* check for the RoQ magic numbers */
-    if ((LE_16(preamble[0]) == RoQ_MAGIC_NUMBER) &&
-        (LE_32(preamble[2]) == 0xFFFFFFFF))
+    if ((LE_16(&preamble[0]) == RoQ_MAGIC_NUMBER) &&
+        (LE_32(&preamble[2]) == 0xFFFFFFFF))
       return load_roq_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.91 2002/10/05 14:39:24 komadori Exp $
+ * $Id: demux_qt.c,v 1.92 2002/10/05 21:09:18 komadori Exp $
  *
  */
 
@@ -57,8 +57,8 @@
 
 typedef unsigned int qt_atom;
 
-#define BE_16(x) (be2me_16((uint16_t)(x)))
-#define BE_32(x) (be2me_32((uint32_t)(x)))
+#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
+#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
 
 #define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
@@ -330,8 +330,8 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
       ATOM_PREAMBLE_SIZE)
       break;
 
-    atom_size = BE_32(atom_preamble[0]);
-    atom = BE_32(atom_preamble[4]);
+    atom_size = BE_32(&atom_preamble[0]);
+    atom = BE_32(&atom_preamble[4]);
 
     if (atom == MOOV_ATOM) {
       *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
@@ -345,9 +345,9 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
         ATOM_PREAMBLE_SIZE)
         break;
 
-      atom_size = BE_32(atom_preamble[0]);
+      atom_size = BE_32(&atom_preamble[0]);
       atom_size <<= 32;
-      atom_size |= BE_32(atom_preamble[4]);
+      atom_size |= BE_32(&atom_preamble[4]);
       atom_size -= ATOM_PREAMBLE_SIZE * 2;
     } else
       atom_size -= ATOM_PREAMBLE_SIZE;
@@ -432,10 +432,10 @@ static int is_qt_file(input_plugin_t *qt_file) {
 /* fetch interesting information from the movie header atom */
 static void parse_mvhd_atom(qt_info *info, unsigned char *mvhd_atom) {
 
-  info->creation_time = BE_32(mvhd_atom[0x0C]);
-  info->modification_time = BE_32(mvhd_atom[0x10]);
-  info->timescale = BE_32(mvhd_atom[0x14]);
-  info->duration = BE_32(mvhd_atom[0x18]);
+  info->creation_time = BE_32(&mvhd_atom[0x0C]);
+  info->modification_time = BE_32(&mvhd_atom[0x10]);
+  info->timescale = BE_32(&mvhd_atom[0x14]);
+  info->duration = BE_32(&mvhd_atom[0x18]);
 
 }
 
@@ -464,7 +464,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   unsigned char *trak_atom) {
 
   int i, j;
-  unsigned int trak_atom_size = BE_32(trak_atom[0]);
+  unsigned int trak_atom_size = BE_32(&trak_atom[0]);
   qt_atom current_atom;
   qt_error last_error = QT_OK;
 
@@ -501,7 +501,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
   /* search for media type atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
-    current_atom = BE_32(trak_atom[i]);
+    current_atom = BE_32(&trak_atom[i]);
 
     if (current_atom == VMHD_ATOM) {
       sample_table->type = MEDIA_VIDEO;
@@ -514,10 +514,10 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   
   /* search for the useful atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
-    current_atom = BE_32(trak_atom[i]);
+    current_atom = BE_32(&trak_atom[i]);
 
     if (current_atom == TKHD_ATOM) {
-      sample_table->flags = BE_16(trak_atom[i + 6]);
+      sample_table->flags = BE_16(&trak_atom[i + 6]);
 
       if (sample_table->type == MEDIA_VIDEO) {
         /* fetch display parameters */
@@ -525,9 +525,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
             !sample_table->media_description.video.height ) {
 
           sample_table->media_description.video.width =
-            BE_16(trak_atom[i + 0x50]);
+            BE_16(&trak_atom[i + 0x50]);
           sample_table->media_description.video.height =
-            BE_16(trak_atom[i + 0x54]); 
+            BE_16(&trak_atom[i + 0x54]); 
         }
       }
     } else if (current_atom == ELST_ATOM) {
@@ -538,7 +538,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         goto free_sample_table;
       }
 
-      sample_table->edit_list_count = BE_32(trak_atom[i + 8]);
+      sample_table->edit_list_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->edit_list_table = (edit_list_table_t *)malloc(
         sample_table->edit_list_count * sizeof(edit_list_table_t));
@@ -550,23 +550,23 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       /* load the edit list table */
       for (j = 0; j < sample_table->edit_list_count; j++) {
         sample_table->edit_list_table[j].track_duration =
-          BE_32(trak_atom[i + 12 + j * 12 + 0]);
+          BE_32(&trak_atom[i + 12 + j * 12 + 0]);
         sample_table->edit_list_table[j].media_time =
-          BE_32(trak_atom[i + 12 + j * 12 + 4]);
+          BE_32(&trak_atom[i + 12 + j * 12 + 4]);
       }
 
     } else if (current_atom == MDHD_ATOM)
-      sample_table->timescale = BE_32(trak_atom[i + 0x10]);
+      sample_table->timescale = BE_32(&trak_atom[i + 0x10]);
     else if (current_atom == STSD_ATOM) {
 
       if (sample_table->type == MEDIA_VIDEO) {
 
         /* fetch video parameters */
-        if( BE_16(trak_atom[i + 0x2C]) && BE_16(trak_atom[i + 0x2E]) ) {
+        if( BE_16(&trak_atom[i + 0x2C]) && BE_16(&trak_atom[i + 0x2E]) ) {
           sample_table->media_description.video.width =
-            BE_16(trak_atom[i + 0x2C]);
+            BE_16(&trak_atom[i + 0x2C]);
           sample_table->media_description.video.height =
-            BE_16(trak_atom[i + 0x2E]);
+            BE_16(&trak_atom[i + 0x2E]);
         }
         sample_table->media_description.video.codec_format =
           *(uint32_t *)&trak_atom[i + 0x10];
@@ -580,7 +580,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         /* if the depth is 2, 4, or 8 bpp, file is palettized */
         if ((color_depth == 2) || (color_depth == 4) || (color_depth == 8)) {
 
-          color_flag = BE_16(trak_atom[i + 0x60]);
+          color_flag = BE_16(&trak_atom[i + 0x60]);
 
           if (color_greyscale) {
 
@@ -632,15 +632,15 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           } else {
 
             /* load the palette from the file */
-            color_start = BE_32(trak_atom[i + 0x62]);
-            color_count = BE_16(trak_atom[i + 0x66]);
-            color_end = BE_16(trak_atom[i + 0x68]);
+            color_start = BE_32(&trak_atom[i + 0x62]);
+            color_count = BE_16(&trak_atom[i + 0x66]);
+            color_end = BE_16(&trak_atom[i + 0x68]);
             sample_table->media_description.video.palette_count =
               color_end + 1;
 
             for (j = color_start; j <= color_end; j++) {
 
-              color_index = BE_16(trak_atom[i + 0x6A + j * 8]);
+              color_index = BE_16(&trak_atom[i + 0x6A + j * 8]);
               if (color_count & 0x8000)
                 color_index = j;
               if (color_index < 
@@ -663,7 +663,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         sample_table->media_description.audio.codec_format =
           *(uint32_t *)&trak_atom[i + 0x10];
         sample_table->media_description.audio.sample_rate =
-          BE_16(trak_atom[i + 0x2C]);
+          BE_16(&trak_atom[i + 0x2C]);
         sample_table->media_description.audio.channels = trak_atom[i + 0x25];
         sample_table->media_description.audio.bits = trak_atom[i + 0x27];
 
@@ -679,7 +679,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
         /* special case time: some ima4-encoded files don't have the
          * extra header; compensate */
-        if (BE_32(trak_atom[i + 0x10]) == IMA4_FOURCC) {
+        if (BE_32(&trak_atom[i + 0x10]) == IMA4_FOURCC) {
           sample_table->samples_per_packet = 64;
           sample_table->bytes_per_packet = 34;
           sample_table->bytes_per_frame = 34 * 
@@ -693,16 +693,16 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
          * properties; if a the stsd compressor atom has 0x24 bytes, it
          * appears to be a handler for uncompressed data; if there are an
          * extra 0x10 bytes, there are some more useful decoding params */
-        if (BE_32(trak_atom[i + 0x0C]) > 0x24) {
+        if (BE_32(&trak_atom[i + 0x0C]) > 0x24) {
 
-          if (BE_32(trak_atom[i + 0x30]))
-            sample_table->samples_per_packet = BE_32(trak_atom[i + 0x30]);
-          if (BE_32(trak_atom[i + 0x34]))
-            sample_table->bytes_per_packet = BE_32(trak_atom[i + 0x34]);
-          if (BE_32(trak_atom[i + 0x38]))
-            sample_table->bytes_per_frame = BE_32(trak_atom[i + 0x38]);
-          if (BE_32(trak_atom[i + 0x3C]))
-            sample_table->bytes_per_sample = BE_32(trak_atom[i + 0x3C]);
+          if (BE_32(&trak_atom[i + 0x30]))
+            sample_table->samples_per_packet = BE_32(&trak_atom[i + 0x30]);
+          if (BE_32(&trak_atom[i + 0x34]))
+            sample_table->bytes_per_packet = BE_32(&trak_atom[i + 0x34]);
+          if (BE_32(&trak_atom[i + 0x38]))
+            sample_table->bytes_per_frame = BE_32(&trak_atom[i + 0x38]);
+          if (BE_32(&trak_atom[i + 0x3C]))
+            sample_table->bytes_per_sample = BE_32(&trak_atom[i + 0x3C]);
           sample_table->samples_per_frame =
             (sample_table->bytes_per_frame / sample_table->bytes_per_packet) *
             sample_table->samples_per_packet;
@@ -758,8 +758,8 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
         goto free_sample_table;
       }
 
-      sample_table->sample_size = BE_32(trak_atom[i + 8]);
-      sample_table->sample_size_count = BE_32(trak_atom[i + 12]);
+      sample_table->sample_size = BE_32(&trak_atom[i + 8]);
+      sample_table->sample_size_count = BE_32(&trak_atom[i + 12]);
 
       /* allocate space and load table only if sample size is 0 */
       if (sample_table->sample_size == 0) {
@@ -772,7 +772,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
         /* load the sample size table */
         for (j = 0; j < sample_table->sample_size_count; j++)
           sample_table->sample_size_table[j] =
-            BE_32(trak_atom[i + 16 + j * 4]);
+            BE_32(&trak_atom[i + 16 + j * 4]);
       } else
         /* set the pointer to non-NULL to indicate that the atom type has
          * already been seen for this trak atom */
@@ -786,7 +786,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
         goto free_sample_table;
       }
 
-      sample_table->sync_sample_count = BE_32(trak_atom[i + 8]);
+      sample_table->sync_sample_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->sync_sample_table = (unsigned int *)malloc(
         sample_table->sync_sample_count * sizeof(unsigned int));
@@ -798,7 +798,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
       /* load the sync sample table */
       for (j = 0; j < sample_table->sync_sample_count; j++)
         sample_table->sync_sample_table[j] =
-          BE_32(trak_atom[i + 12 + j * 4]);
+          BE_32(&trak_atom[i + 12 + j * 4]);
 
     } else if (current_atom == STCO_ATOM) {
 
@@ -808,7 +808,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
         goto free_sample_table;
       }
 
-      sample_table->chunk_offset_count = BE_32(trak_atom[i + 8]);
+      sample_table->chunk_offset_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->chunk_offset_table = (int64_t *)malloc(
         sample_table->chunk_offset_count * sizeof(int64_t));
@@ -820,7 +820,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
       /* load the chunk offset table */
       for (j = 0; j < sample_table->chunk_offset_count; j++)
         sample_table->chunk_offset_table[j] =
-          BE_32(trak_atom[i + 12 + j * 4]);
+          BE_32(&trak_atom[i + 12 + j * 4]);
 
     } else if (current_atom == CO64_ATOM) {
 
@@ -830,7 +830,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
         goto free_sample_table;
       }
 
-      sample_table->chunk_offset_count = BE_32(trak_atom[i + 8]);
+      sample_table->chunk_offset_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->chunk_offset_table = (int64_t *)malloc(
         sample_table->chunk_offset_count * sizeof(int64_t));
@@ -842,10 +842,10 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
       /* load the 64-bit chunk offset table */
       for (j = 0; j < sample_table->chunk_offset_count; j++) {
         sample_table->chunk_offset_table[j] =
-          BE_32(trak_atom[i + 12 + j * 8 + 0]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 0]);
         sample_table->chunk_offset_table[j] <<= 32;
         sample_table->chunk_offset_table[j] |=
-          BE_32(trak_atom[i + 12 + j * 8 + 4]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 4]);
       }
 
     } else if (current_atom == STSC_ATOM) {
@@ -856,7 +856,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
         goto free_sample_table;
       }
 
-      sample_table->sample_to_chunk_count = BE_32(trak_atom[i + 8]);
+      sample_table->sample_to_chunk_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->sample_to_chunk_table = (sample_to_chunk_table_t *)malloc(
         sample_table->sample_to_chunk_count * sizeof(sample_to_chunk_table_t));
@@ -868,9 +868,9 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
       /* load the sample to chunk table */
       for (j = 0; j < sample_table->sample_to_chunk_count; j++) {
         sample_table->sample_to_chunk_table[j].first_chunk =
-          BE_32(trak_atom[i + 12 + j * 12 + 0]);
+          BE_32(&trak_atom[i + 12 + j * 12 + 0]);
         sample_table->sample_to_chunk_table[j].samples_per_chunk =
-          BE_32(trak_atom[i + 12 + j * 12 + 4]);
+          BE_32(&trak_atom[i + 12 + j * 12 + 4]);
       }
 
     } else if (current_atom == STTS_ATOM) {
@@ -881,7 +881,7 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
         goto free_sample_table;
       }
 
-      sample_table->time_to_sample_count = BE_32(trak_atom[i + 8]);
+      sample_table->time_to_sample_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->time_to_sample_table = (time_to_sample_table_t *)malloc(
         sample_table->time_to_sample_count * sizeof(time_to_sample_table_t));
@@ -893,9 +893,9 @@ printf("*** audio: %d bits, %d channels, %d Hz\n" \
       /* load the time to sample table */
       for (j = 0; j < sample_table->time_to_sample_count; j++) {
         sample_table->time_to_sample_table[j].count =
-          BE_32(trak_atom[i + 12 + j * 8 + 0]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 0]);
         sample_table->time_to_sample_table[j].duration =
-          BE_32(trak_atom[i + 12 + j * 8 + 4]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 4]);
       }
     }
   }
@@ -1180,7 +1180,7 @@ printf ("bits = %d, channels = %d, audio_frame_counter = %d, pts = %lld\n",
  */
 static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   int i, j;
-  unsigned int moov_atom_size = BE_32(moov_atom[0]);
+  unsigned int moov_atom_size = BE_32(&moov_atom[0]);
   unsigned int sample_table_count = 0;
   qt_sample_table *sample_tables = NULL;
   qt_atom current_atom;
@@ -1189,20 +1189,20 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   int64_t min_offset;
 
   /* make sure this is actually a moov atom */
-  if (BE_32(moov_atom[4]) != MOOV_ATOM) {
+  if (BE_32(&moov_atom[4]) != MOOV_ATOM) {
     info->last_error = QT_NO_MOOV_ATOM;
     return;
   }
 
   /* prowl through the moov atom looking for very specific targets */
   for (i = ATOM_PREAMBLE_SIZE; i < moov_atom_size - 4; i++) {
-    current_atom = BE_32(moov_atom[i]);
+    current_atom = BE_32(&moov_atom[i]);
 
     if (current_atom == MVHD_ATOM) {
       parse_mvhd_atom(info, &moov_atom[i - 4]);
       if (info->last_error != QT_OK)
         return;
-      i += BE_32(moov_atom[i - 4]) - 4;
+      i += BE_32(&moov_atom[i - 4]) - 4;
     } else if (current_atom == TRAK_ATOM) {
 
       /* make a new sample temporary sample table */
@@ -1214,7 +1214,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
         &moov_atom[i - 4]);
       if (info->last_error != QT_OK)
         return;
-      i += BE_32(moov_atom[i - 4]) - 4;
+      i += BE_32(&moov_atom[i - 4]) - 4;
     }
   }
 
@@ -1358,8 +1358,8 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
       return info->last_error;
     }
 
-    top_level_atom_size = BE_32(atom_preamble[0]);
-    top_level_atom = BE_32(atom_preamble[4]);
+    top_level_atom_size = BE_32(&atom_preamble[0]);
+    top_level_atom = BE_32(&atom_preamble[4]);
     /* 64-bit length special case */
     if (top_level_atom_size == 1) {
       preseek_pos = input->get_current_pos(input);
@@ -1367,9 +1367,9 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
         info->last_error = QT_FILE_READ_ERROR;
         return info->last_error;
       }
-      top_level_atom_size = BE_32(atom_preamble[0]);
+      top_level_atom_size = BE_32(&atom_preamble[0]);
       top_level_atom_size <<= 32;
-      top_level_atom_size |= BE_32(atom_preamble[4]);
+      top_level_atom_size |= BE_32(&atom_preamble[4]);
 
       /* rewind 8 bytes */
       if (input->seek(input, preseek_pos, SEEK_SET) != preseek_pos) {
@@ -1403,14 +1403,14 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
       }
 
       /* check if moov is compressed */
-      if (BE_32(moov_atom[12]) == CMOV_ATOM) {
+      if (BE_32(&moov_atom[12]) == CMOV_ATOM) {
 
         info->compressed_header = 1;
 
         z_state.next_in = &moov_atom[0x28];
         z_state.avail_in = top_level_atom_size - 0x28;
-        z_state.avail_out = BE_32(moov_atom[0x24]);
-        unzip_buffer = (unsigned char *)malloc(BE_32(moov_atom[0x24]));
+        z_state.avail_out = BE_32(&moov_atom[0x24]);
+        unzip_buffer = (unsigned char *)malloc(BE_32(&moov_atom[0x24]));
         if (!unzip_buffer) {
           info->last_error = QT_NO_MEMORY;
           return info->last_error;
@@ -1442,7 +1442,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
         /* replace the compressed moov atom with the decompressed atom */
         free (moov_atom);
         moov_atom = unzip_buffer;
-        top_level_atom_size = BE_32(moov_atom[0]);
+        top_level_atom_size = BE_32 (&moov_atom[0]);
       }
     } else {
       input->seek(input, top_level_atom_size - ATOM_PREAMBLE_SIZE, SEEK_CUR);

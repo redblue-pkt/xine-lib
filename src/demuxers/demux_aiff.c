@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.8 2002/10/05 14:39:24 komadori Exp $
+ * $Id: demux_aiff.c,v 1.9 2002/10/05 21:09:18 komadori Exp $
  *
  */
 
@@ -41,8 +41,8 @@
 #include "buffer.h"
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16((uint32_t)(x)))
-#define BE_32(x) (be2me_32((uint32_t)(x)))
+#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
+#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \
@@ -219,8 +219,8 @@ static int load_aiff_and_send_headers(demux_aiff_t *this) {
       pthread_mutex_lock(&this->mutex);
       return DEMUX_CANNOT_HANDLE;
     }
-    chunk_type = BE_32(preamble[0]);
-    chunk_size = BE_32(preamble[4]);
+    chunk_type = BE_32(&preamble[0]);
+    chunk_size = BE_32(&preamble[4]);
 
     if (chunk_type == COMM_TAG) {
       if (this->input->read(this->input, buffer, chunk_size) !=
@@ -230,10 +230,10 @@ static int load_aiff_and_send_headers(demux_aiff_t *this) {
         return DEMUX_CANNOT_HANDLE;
       }
 
-      this->audio_channels = BE_16(buffer[0]);
-      this->audio_frames = BE_32(buffer[2]);
-      this->audio_bits = BE_16(buffer[6]);
-      this->audio_sample_rate = BE_16(buffer[0x0A]);
+      this->audio_channels = BE_16(&buffer[0]);
+      this->audio_frames = BE_32(&buffer[2]);
+      this->audio_bits = BE_16(&buffer[6]);
+      this->audio_sample_rate = BE_16(&buffer[0x0A]);
       this->audio_bytes_per_second = this->audio_channels *
         (this->audio_bits / 8) * this->audio_sample_rate;
 
@@ -299,8 +299,8 @@ static int demux_aiff_open(demux_plugin_t *this_gen,
       return DEMUX_CANNOT_HANDLE;
 
     /* check the signature */
-    if ((BE_32(signature[0]) == FORM_TAG) &&
-        (BE_32(signature[8]) == AIFF_TAG))
+    if ((BE_32(&signature[0]) == FORM_TAG) &&
+        (BE_32(&signature[8]) == AIFF_TAG))
       return load_aiff_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;

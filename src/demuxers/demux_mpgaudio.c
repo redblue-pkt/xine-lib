@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.64 2002/10/05 14:39:24 komadori Exp $
+ * $Id: demux_mpgaudio.c,v 1.65 2002/10/05 21:09:18 komadori Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -556,7 +556,7 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
       if (input->read(input, riff_check, 4) != 4)
         return DEMUX_CANNOT_HANDLE;
       /* head gets to be a generic variable in this case */
-      head = le2me_32((uint32_t)riff_check[0]);
+      head = le2me_32(*(unsigned int *)&riff_check[0]);
       /* skip over the chunk and the 'data' tag and length */
       input->seek(input, head + 8, SEEK_CUR);
 
@@ -567,7 +567,7 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
         return DEMUX_CANNOT_HANDLE;
 
       for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
-        head = be2me_32((uint32_t)riff_check[i]);
+        head = be2me_32(*(unsigned int *)&riff_check[i]);
 #ifdef LOG
 	printf ("demux_mpgaudio: **** mpg123: checking %08X\n", head);
 #endif

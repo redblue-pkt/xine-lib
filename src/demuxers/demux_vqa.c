@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.9 2002/10/05 14:39:24 komadori Exp $
+ * $Id: demux_vqa.c,v 1.10 2002/10/05 21:09:18 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,10 +47,10 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16((uint16_t)(x)))
-#define BE_32(x) (be2me_32((uint32_t)(x)))
-#define LE_16(x) (le2me_16((uint16_t)(x)))
-#define LE_32(x) (le2me_32((uint32_t)(x)))
+#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
+#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
+#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
+#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \
@@ -136,7 +136,7 @@ static void *demux_vqa_loop (void *this_gen) {
       }
 
       current_file_pos = this->input->get_current_pos(this->input);
-      chunk_size = BE_32(preamble[4]);
+      chunk_size = BE_32(&preamble[4]);
       skip_byte = chunk_size & 0x1;
       audio_pts = audio_frames;
       audio_pts *= 90000;
@@ -182,7 +182,7 @@ static void *demux_vqa_loop (void *this_gen) {
         }
 
         current_file_pos = this->input->get_current_pos(this->input);
-        chunk_size = BE_32(preamble[4]);
+        chunk_size = BE_32(&preamble[4]);
         while (chunk_size) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = BUF_VIDEO_VQA;
@@ -261,7 +261,7 @@ static int load_vqa_and_send_headers(demux_vqa_t *this) {
     pthread_mutex_unlock(&this->mutex);
     return DEMUX_CANNOT_HANDLE;
   }
-  last_offset = BE_32(header[0]);
+  last_offset = BE_32(&header[0]);
 
   /* get the actual filesize */
   this->filesize = this->input->get_length(this->input);
@@ -276,11 +276,11 @@ static int load_vqa_and_send_headers(demux_vqa_t *this) {
   }
 
   /* fetch the interesting information */
-  this->video_width = LE_16(header[6]);
-  this->video_height = LE_16(header[8]);
+  this->video_width = LE_16(&header[6]);
+  this->video_height = LE_16(&header[8]);
   this->vector_width = header[10];
   this->vector_height = header[11];
-  this->audio_sample_rate = LE_16(header[24]);
+  this->audio_sample_rate = LE_16(&header[24]);
   this->audio_channels = header[26];
 
   /* skip the FINF chunk */
@@ -290,7 +290,7 @@ static int load_vqa_and_send_headers(demux_vqa_t *this) {
     pthread_mutex_unlock(&this->mutex);
     return DEMUX_CANNOT_HANDLE;
   }
-  chunk_size = BE_32(preamble[4]);
+  chunk_size = BE_32(&preamble[4]);
   this->input->seek(this->input, chunk_size, SEEK_CUR);
 
   /* load stream information */
@@ -327,8 +327,8 @@ static int demux_vqa_open(demux_plugin_t *this_gen, input_plugin_t *input,
       return DEMUX_CANNOT_HANDLE;
 
     /* check for the VQA signatures */
-    if ((BE_32(header[0]) == FORM_TAG) &&
-        (BE_32(header[8]) == WVQA_TAG))
+    if ((BE_32(&header[0]) == FORM_TAG) &&
+        (BE_32(&header[8]) == WVQA_TAG))
       return load_vqa_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.30 2002/10/05 17:05:58 tmmm Exp $
+ * $Id: demux_film.c,v 1.31 2002/10/05 21:09:18 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,8 +41,8 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
-#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
+#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
+#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \

@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.12 2002/10/05 14:39:24 komadori Exp $
+ * $Id: demux_idcin.c,v 1.13 2002/10/05 21:09:18 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -83,8 +83,8 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define LE_16(x) (le2me_16((uint16_t)(x)))
-#define LE_32(x) (le2me_32((uint32_t)(x)))
+#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
+#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
 
 #define VALID_ENDS   "cin"
 #define IDCIN_HEADER_SIZE 20
@@ -214,7 +214,7 @@ static void *demux_idcin_loop (void *this_gen) {
         pthread_mutex_unlock(&this->mutex);
         break;
       }
-      remaining_sample_bytes = LE_32(preamble[0]) - 4;
+      remaining_sample_bytes = LE_32(&preamble[0]) - 4;
 
       while (remaining_sample_bytes) {
         buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -330,11 +330,11 @@ static int load_idcin_and_send_headers(demux_idcin_t *this) {
     return DEMUX_CANNOT_HANDLE;
   }
 
-  this->video_width = LE_32(header[0]);
-  this->video_height = LE_32(header[4]);
-  this->audio_sample_rate = LE_32(header[8]);
-  this->audio_bytes_per_sample = LE_32(header[12]);
-  this->audio_channels = LE_32(header[16]);
+  this->video_width = LE_32(&header[0]);
+  this->video_height = LE_32(&header[4]);
+  this->audio_sample_rate = LE_32(&header[8]);
+  this->audio_bytes_per_sample = LE_32(&header[12]);
+  this->audio_channels = LE_32(&header[16]);
   this->filesize = this->input->get_length(this->input);
 
   /* read the Huffman table */
@@ -394,27 +394,27 @@ static int demux_idcin_open(demux_plugin_t *this_gen,
      */
 
     /* check the width */
-    current_value = LE_32(header[0]);
+    current_value = LE_32(&header[0]);
     if ((current_value == 0) || (current_value > 1024))
       return DEMUX_CANNOT_HANDLE;
 
     /* check the height */
-    current_value = LE_32(header[4]);
+    current_value = LE_32(&header[4]);
     if ((current_value == 0) || (current_value > 1024))
       return DEMUX_CANNOT_HANDLE;
 
     /* check the audio sample rate */
-    current_value = LE_32(header[8]);
+    current_value = LE_32(&header[8]);
     if ((current_value < 8000) || (current_value > 48000))
       return DEMUX_CANNOT_HANDLE;
 
     /* check the audio bytes/sample */
-    current_value = LE_32(header[12]);
+    current_value = LE_32(&header[12]);
     if (current_value > 2)
       return DEMUX_CANNOT_HANDLE;
 
     /* check the audio channels */
-    current_value = LE_32(header[16]);
+    current_value = LE_32(&header[16]);
     if (current_value > 2)
       return DEMUX_CANNOT_HANDLE;
 
