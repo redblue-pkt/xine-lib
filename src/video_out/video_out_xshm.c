@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.41 2001/10/03 15:14:03 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.42 2001/10/09 09:50:22 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -717,13 +717,19 @@ static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
    if (overlay->rle) {
      switch(this->bpp) {
        case 16:
-        blend_rgb16( (uint8_t *)frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        blend_rgb16( (uint8_t *)frame->image->data, overlay, 
+		     frame->rgb_width, frame->rgb_height,
+		     this->delivered_width, this->delivered_height);
         break;
        case 24:
-        blend_rgb24( (uint8_t *)frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        blend_rgb24( (uint8_t *)frame->image->data, overlay,
+		     frame->rgb_width, frame->rgb_height,
+		     this->delivered_width, this->delivered_height);
         break;
        case 32:
-        blend_rgb32( (uint8_t *)frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        blend_rgb32( (uint8_t *)frame->image->data, overlay,
+		     frame->rgb_width, frame->rgb_height,
+		     this->delivered_width, this->delivered_height);
         break;
        default:
 	/* It should never get here */

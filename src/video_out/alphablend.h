@@ -35,15 +35,17 @@ typedef struct {         /* CLUT == Color LookUp Table */
   uint8_t foo   : 8;
 } __attribute__ ((packed)) clut_t;
 
-void blend_rgb16 (uint8_t * img, vo_overlay_t * overlay, int width,
-		int height);
-void blend_rgb24 (uint8_t * img, vo_overlay_t * overlay, int width,
-		int height);
-void blend_rgb32 (uint8_t * img, vo_overlay_t * overlay, int width,
-		int height);
-void blend_yuv (uint8_t * img, vo_overlay_t * overlay, int width,
-
-		int height);
+void blend_rgb16 (uint8_t * img, vo_overlay_t * overlay,
+		  int img_width, int img_height,
+		  int delivered_width, int delivered_height);
+void blend_rgb24 (uint8_t * img, vo_overlay_t * overlay,
+		  int img_width, int img_height,
+		  int delivered_iwdth, int delivered_height);
+void blend_rgb32 (uint8_t * img, vo_overlay_t * overlay,
+		  int img_width, int img_height,
+		  int delivered_iwdth, int delivered_height);
+void blend_yuv (uint8_t * img, vo_overlay_t * overlay,
+		int width, int height);
 void crop_overlay (vo_overlay_t * overlay);
 
 #endif
