@@ -20,7 +20,7 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.7 2003/12/13 11:35:07 valtri Exp $
+ * $Id: audio_directx_out.c,v 1.8 2003/12/14 22:13:22 siggi Exp $
  */
 
 typedef unsigned char boolean;
@@ -46,7 +46,7 @@ typedef unsigned char boolean;
 #define DSBUFF_LEFT		  1
 #define DSBUFF_RIGHT	          2
 
-#define AO_DIRECTX_IFACE_VERSION  7
+#define AO_DIRECTX_IFACE_VERSION  8
 
 /* -----------------------------------------
  *

@@ -31,7 +31,7 @@
  *   this is also useful for extracting streams from Playstation discs
  *
  *
- * $Id: adpcm.c,v 1.35 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: adpcm.c,v 1.36 2003/12/14 22:13:24 siggi Exp $
  */
 
 #include <stdio.h>
@@ -1682,6 +1682,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 13, "adpcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 14, "adpcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

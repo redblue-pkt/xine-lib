@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.57 2003/12/13 00:55:11 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.58 2003/12/14 22:13:25 siggi Exp $
  * 
  * video_out_vidix.c
  *
@@ -1288,10 +1288,10 @@ static vo_info_t vo_info_vidixfb = {
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 18, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
+  { PLUGIN_VIDEO_OUT, 19, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
 #endif
 #ifdef HAVE_FB
-  { PLUGIN_VIDEO_OUT, 18, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
+  { PLUGIN_VIDEO_OUT, 19, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

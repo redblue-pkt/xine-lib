@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several visualization post plugins.
  *
- * $Id: visualizations.c,v 1.8 2003/10/30 22:40:53 mroi Exp $
+ * $Id: visualizations.c,v 1.9 2003/12/14 22:13:25 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,8 +48,8 @@ post_info_t fftgraph_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_POST, 6, "oscope", XINE_VERSION_CODE, &oscope_special_info, &oscope_init_plugin },
-  { PLUGIN_POST, 6, "fftscope", XINE_VERSION_CODE, &fftscope_special_info, &fftscope_init_plugin },
-  { PLUGIN_POST, 6, "fftgraph", XINE_VERSION_CODE, &fftgraph_special_info, &fftgraph_init_plugin },
+  { PLUGIN_POST, 7, "oscope", XINE_VERSION_CODE, &oscope_special_info, &oscope_init_plugin },
+  { PLUGIN_POST, 7, "fftscope", XINE_VERSION_CODE, &fftscope_special_info, &fftscope_init_plugin },
+  { PLUGIN_POST, 7, "fftgraph", XINE_VERSION_CODE, &fftgraph_special_info, &fftgraph_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

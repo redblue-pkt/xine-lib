@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayaudio.c,v 1.5 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: interplayaudio.c,v 1.6 2003/12/14 22:13:24 siggi Exp $
  */
 
 #include <stdio.h>
@@ -351,7 +351,7 @@ static decoder_info_t dec_info_audio = {
  * will export to the public. */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API version, "name", version, special_info, init_function }, */
-  { PLUGIN_AUDIO_DECODER, 13, "interplayaudio", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
+  { PLUGIN_AUDIO_DECODER, 14, "interplayaudio", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

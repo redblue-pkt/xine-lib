@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.177 2003/12/13 01:53:48 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.178 2003/12/14 22:13:23 siggi Exp $
  *
  */
 
@@ -1734,6 +1734,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.178  2003/12/14 22:13:23  siggi
+ * API version bounce
+ *
  * Revision 1.177  2003/12/13 01:53:48  f1rmb
  * set dvdcss verbosity according to xine's one
  *
@@ -2246,6 +2249,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 13, "DVD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 14, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

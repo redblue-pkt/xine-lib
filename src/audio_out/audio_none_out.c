@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_none_out.c,v 1.6 2003/12/08 11:34:37 mroi Exp $
+ * $Id: audio_none_out.c,v 1.7 2003/12/14 22:13:22 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,7 +37,7 @@
 #include "xineutils.h"
 #include "audio_out.h"
 
-#define AO_OUT_NONE_IFACE_VERSION 7
+#define AO_OUT_NONE_IFACE_VERSION 8
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.97 2003/12/13 19:22:33 hadess Exp $
+ * $Id: audio_oss_out.c,v 1.98 2003/12/14 22:13:22 siggi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -91,7 +91,7 @@
 #       define AFMT_AC3         0x00000400  
 #endif
 
-#define AO_OUT_OSS_IFACE_VERSION 7
+#define AO_OUT_OSS_IFACE_VERSION 8
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192

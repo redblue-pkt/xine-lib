@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.88 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: input_file.c,v 1.89 2003/12/14 22:13:23 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -864,6 +864,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 13, "FILE", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_INPUT, 14, "FILE", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.9 2003/11/16 23:33:44 f1rmb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.10 2003/12/14 22:13:23 siggi Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -1560,18 +1560,7 @@ vcd_init (xine_t *xine, void *data)
   vcd_class     = class;
   class->mrls   = NULL;
 
-  if (INPUT_PLUGIN_IFACE_VERSION >= 14) {
-    LOG_MSG("%s%d\n", 
-            _("This plugin should be looked over to see if it is compatible with this input plugin API: "), INPUT_PLUGIN_IFACE_VERSION);
-  }
-  
-  
-#if INPUT_PLUGIN_IFACE_VERSION == 11
-  class->input_class.open_plugin         = vcd_class_get_instance;
-#else
   class->input_class.get_instance        = vcd_class_get_instance;
-#endif
-    
   class->input_class.get_identifier      = vcd_class_get_identifier;
   class->input_class.get_description     = vcd_class_get_description;
   class->input_class.get_dir             = vcd_class_get_dir; 
@@ -1730,9 +1719,7 @@ _("Format used in the GUI Title. Similar to the Unix date "
   gl_default_vcd_log_handler  = vcd_log_set_handler (uninit_log_handler);
   gl_default_cdio_log_handler = cdio_log_set_handler (uninit_log_handler);
 
-#if INPUT_PLUGIN_IFACE_VERSION != 11
   my_vcd.input_plugin.open               = vcd_plugin_open;
-#endif
   my_vcd.input_plugin.get_capabilities   = vcd_plugin_get_capabilities;
   my_vcd.input_plugin.read               = vcd_plugin_read;
   my_vcd.input_plugin.read_block         = vcd_plugin_read_block;
@@ -1761,7 +1748,7 @@ _("Format used in the GUI Title. Similar to the Unix date "
 
 const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 13, (char *) SHORT_PLUGIN_NAME, XINE_VERSION_CODE, 
+  { PLUGIN_INPUT, 14, (char *) SHORT_PLUGIN_NAME, XINE_VERSION_CODE, 
     NULL, vcd_init },
   { PLUGIN_NONE, 0, (char *) "", 0, NULL, NULL }
 };

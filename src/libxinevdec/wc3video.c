@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.17 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: wc3video.c,v 1.18 2003/12/14 22:13:25 siggi Exp $
  */
 
 #include <stdio.h>
@@ -534,6 +534,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 16, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 17, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

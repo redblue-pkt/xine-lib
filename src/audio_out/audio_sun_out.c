@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.33 2003/12/05 15:54:56 f1rmb Exp $
+ * $Id: audio_sun_out.c,v 1.34 2003/12/14 22:13:22 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,7 +59,7 @@
 #define	AUDIO_PRECISION_16	16
 #endif
 
-#define AO_SUN_IFACE_VERSION 7
+#define AO_SUN_IFACE_VERSION 8
 
 #define GAP_TOLERANCE         5000
 #define GAP_NONRT_TOLERANCE   AO_MAX_GAP

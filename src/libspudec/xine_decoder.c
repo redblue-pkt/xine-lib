@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.103 2003/12/07 15:34:30 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.104 2003/12/14 22:13:24 siggi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -382,6 +382,6 @@ static decoder_info_t dec_info_data = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 15, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
+  { PLUGIN_SPU_DECODER, 16, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

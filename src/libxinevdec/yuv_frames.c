@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: yuv_frames.c,v 1.8 2003/12/05 15:55:01 f1rmb Exp $
+ * $Id: yuv_frames.c,v 1.9 2003/12/14 22:13:25 siggi Exp $
  *
  * dummy video decoder for uncompressed video frames as delivered by v4l
  */
@@ -165,6 +165,6 @@ static decoder_info_t dec_info_yuv_frames = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 16, "yuv_frames", XINE_VERSION_CODE, &dec_info_yuv_frames, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 17, "yuv_frames", XINE_VERSION_CODE, &dec_info_yuv_frames, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

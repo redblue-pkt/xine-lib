@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.144 2003/12/05 15:54:59 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.145 2003/12/14 22:13:23 siggi Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1749,8 +1749,8 @@ static decoder_info_t dec_info_ffmpeg_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 16, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
-  { PLUGIN_VIDEO_DECODER, 16, "ffmpeg-wmv8", XINE_VERSION_CODE, &dec_info_ffmpeg_experimental_video, init_video_plugin },
-  { PLUGIN_AUDIO_DECODER, 13, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 17, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
+  { PLUGIN_VIDEO_DECODER, 17, "ffmpeg-wmv8", XINE_VERSION_CODE, &dec_info_ffmpeg_experimental_video, init_video_plugin },
+  { PLUGIN_AUDIO_DECODER, 14, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.16 2003/12/09 00:02:34 f1rmb Exp $
+ * $Id: logpcm.c,v 1.17 2003/12/14 22:13:24 siggi Exp $
  *
  */
 
@@ -307,6 +307,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 13, "logpcm", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
+  { PLUGIN_AUDIO_DECODER, 14, "logpcm", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.19 2003/12/05 15:55:03 f1rmb Exp $
+ * $Id: video_out_none.c,v 1.20 2003/12/14 22:13:25 siggi Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -307,6 +307,6 @@ static vo_info_t vo_info_none = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 18, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
+  { PLUGIN_VIDEO_OUT, 19, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

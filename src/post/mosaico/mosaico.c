@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.19 2003/12/05 15:55:02 f1rmb Exp $
+ * $Id: mosaico.c,v 1.20 2003/12/14 22:13:25 siggi Exp $
  */
  
 /*
@@ -49,7 +49,7 @@ post_info_t mosaico_special_info = { XINE_POST_TYPE_VIDEO_COMPOSE };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 6, "mosaico", MOVERSION, &mosaico_special_info, &mosaico_init_plugin },
+  { PLUGIN_POST, 7, "mosaico", MOVERSION, &mosaico_special_info, &mosaico_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

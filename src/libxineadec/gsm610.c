@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.12 2003/12/09 00:02:34 f1rmb Exp $
+ * $Id: gsm610.c,v 1.13 2003/12/14 22:13:24 siggi Exp $
  *
  */
 
@@ -291,6 +291,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 13, "gsm610", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 14, "gsm610", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

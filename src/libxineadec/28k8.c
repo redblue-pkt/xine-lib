@@ -22,7 +22,7 @@
  * Based on public domain source code from:
  *   http://www.honeypot.net/audio/
  *
- * $Id: 28k8.c,v 1.5 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: 28k8.c,v 1.6 2003/12/14 22:13:24 siggi Exp $
  */
 
 #include <stdio.h>
@@ -550,6 +550,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 13, "28k8", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 14, "28k8", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

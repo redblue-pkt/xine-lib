@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.18 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: foovideo.c,v 1.19 2003/12/14 22:13:25 siggi Exp $
  */
 
 #include <stdio.h>
@@ -297,6 +297,6 @@ static decoder_info_t dec_info_video = {
  */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API, "name", version, special_info, init_function } */
-  { PLUGIN_VIDEO_DECODER, 16, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 17, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

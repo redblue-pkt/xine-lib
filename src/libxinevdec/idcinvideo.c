@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.19 2003/12/05 15:55:01 f1rmb Exp $
+ * $Id: idcinvideo.c,v 1.20 2003/12/14 22:13:25 siggi Exp $
  */
 
 #include <stdio.h>
@@ -402,6 +402,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 16, "idcinvideo", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 17, "idcinvideo", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.17 2003/12/03 10:52:41 andruil Exp $
+ * $Id: fooviz.c,v 1.18 2003/12/14 22:13:25 siggi Exp $
  *
  */
 
@@ -372,6 +372,6 @@ post_info_t fooviz_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 6, "fooviz", XINE_VERSION_CODE, &fooviz_special_info, &fooviz_init_plugin },
+  { PLUGIN_POST, 7, "fooviz", XINE_VERSION_CODE, &fooviz_special_info, &fooviz_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
