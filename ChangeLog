@@ -1,3 +1,9 @@
+xine (0.5.3) unstable; urgency=low
+
+  * small bugfix release
+		
+ -- Guenter Bartsch <guenter@users.sourceforge.net>  Wed Sep  5 02:41:11 CEST 2001
+
 xine (0.5.2) unstable; urgency=low
 
   * many bugfixes

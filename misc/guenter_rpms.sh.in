@@ -3,17 +3,15 @@
 RPM_BA="rpm -ba -ta misc/guenter.spec"
 RPM_BB="rpm -bb -ta misc/guenter.spec"
 
-VERSION=@VERSION@
-
 echo "Creating tarball..."
 rm -f config.cache && ./cvscompile.sh && make dist
-cp xine-lib-$VERSION.tar.gz  /usr/src/redhat/SOURCES
+cp xine-lib-@VERSION@.tar.gz  /usr/src/redhat/SOURCES
 rm -rf rpms
 mkdir rpms
 
 echo "*****************************************************"
 echo
-echo "building rpm for xine-lib $VERSION"
+echo "building rpm for xine-lib @VERSION@"
 echo 
 echo "current architecture:pentiumpro"
 echo "rpms will be copied to ./rpms directory"
@@ -24,12 +22,12 @@ export XINE_BUILD=i686-pc-linux-gnu
 
 eval $RPM_BA
 
-cp '/usr/src/redhat/SRPMS/xine-lib-$VERSION-0.src.rpm' ./rpms/
-mv '/usr/src/redhat/RPMS/i386/xine-lib-$VERSION-0.i386.rpm' './rpms/xine-lib-$VERSION-0.i686.rpm'
+cp '/usr/src/redhat/SRPMS/xine-lib-@VERSION@-0.src.rpm' ./rpms/
+mv '/usr/src/redhat/RPMS/i386/xine-lib-@VERSION@-0.i386.rpm' './rpms/xine-lib-@VERSION@-0.i686.rpm'
 
 echo "*****************************************************"
 echo
-echo "building rpm for xine-lib $VERSION"
+echo "building rpm for xine-lib @VERSION@"
 echo 
 echo "current architecture:k6"
 echo "rpms will be copied to ./rpms directory"
@@ -40,11 +38,11 @@ export XINE_BUILD=k6-pc-linux-gnu
 
 eval $RPM_BB
 
-mv '/usr/src/redhat/RPMS/i386/xine-lib-$VERSION-0.i386.rpm' './rpms/xine-lib-$VERSION-0.k6.rpm'
+mv '/usr/src/redhat/RPMS/i386/xine-lib-@VERSION@-0.i386.rpm' './rpms/xine-lib-@VERSION@-0.k6.rpm'
 
 echo "*****************************************************"
 echo
-echo "building rpm for xine-lib $VERSION"
+echo "building rpm for xine-lib @VERSION@"
 echo 
 echo "current architecture:pentium"
 echo "rpms will be copied to ./rpms directory"
@@ -55,11 +53,11 @@ export XINE_BUILD=i586-pc-linux-gnu
 
 eval $RPM_BB
 
-mv '/usr/src/redhat/RPMS/i386/xine-lib-$VERSION-0.i386.rpm' './rpms/xine-lib-$VERSION-0.i586.rpm'
+mv '/usr/src/redhat/RPMS/i386/xine-lib-@VERSION@-0.i386.rpm' './rpms/xine-lib-@VERSION@-0.i586.rpm'
 
 echo "*****************************************************"
 echo
-echo "building rpm for xine-lib $VERSION"
+echo "building rpm for xine-lib @VERSION@"
 echo 
 echo "current architecture:k7"
 echo "rpms will be copied to ./rpms directory"
@@ -70,6 +68,6 @@ export XINE_BUILD=athlon-pc-linux-gnu
 
 eval $RPM_BB
 
-mv '/usr/src/redhat/RPMS/i386/xine-lib-$VERSION-0.i386.rpm' './rpms/xine-lib-$VERSION-0.k7.rpm'
+mv '/usr/src/redhat/RPMS/i386/xine-lib-@VERSION@-0.i386.rpm' './rpms/xine-lib-@VERSION@-0.k7.rpm'
 
 echo "Done."
