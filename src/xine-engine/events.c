@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.24 2004/04/13 07:59:22 f1rmb Exp $
+ * $Id: events.c,v 1.25 2004/04/15 19:36:57 f1rmb Exp $
  *
  * Event handling functions
  *
@@ -198,8 +198,8 @@ static void *listener_loop (void *queue_gen) {
 
     if (event->type == XINE_EVENT_QUIT)
       running = 0;
-    else 
-      queue->callback (queue->user_data, event);
+    
+    queue->callback (queue->user_data, event);
 
     xine_event_free (event);
   }
