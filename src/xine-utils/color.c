@@ -26,6 +26,8 @@
  * to an RGB value in a palette table, or each pixel is encoded with
  * red, green, and blue values. In the latter case, typically either
  * 15, 16, 24, or 32 bits are used to represent a single pixel.
+ * The facilities in this file are designed to ease the pain of converting
+ * RGB -> YUV.
  *
  * If you want to use these facilities in your decoder, include the
  * xineutils.h header file. Then declare a yuv_planes_t structure. This
@@ -59,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.6 2002/08/28 03:32:48 tmmm Exp $
+ * $Id: color.c,v 1.7 2002/09/12 01:25:28 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -143,9 +145,7 @@ void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height) {
 
   yuv_planes->row_width = width;
   yuv_planes->row_count = height;
-  /* add 6 extra bytes to the plane size to account for residual filtering
-   * on the C planes */
-  plane_size = yuv_planes->row_width * yuv_planes->row_count + 6;
+  plane_size = yuv_planes->row_width * yuv_planes->row_count;
 
   yuv_planes->y = xine_xmalloc(plane_size);
   yuv_planes->u = xine_xmalloc(plane_size);
@@ -287,64 +287,47 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
  * There is a special case when the filter hits the end of the line since
  * it is always necessary to rely on phantom samples beyond the end of the
  * line in order to compute the final 1-3 C samples of a line. This function
- * uses zeros in those phantom positions in order to compute the final 
- * samples. However, the function might read up to 6 samples from the next
- * line which might not exist if the filter is already operation on the 
- * last line of the plane. This is why the planes are allocated to be 6 
- * bytes larger than width * height.
+ * rewinds the C sample stream by a few bytes and reuses a few samples in
+ * order to compute the final samples. This is not strictly correct; a
+ * better approach would be to mirror the final samples before computing
+ * the filter. But this reuse method is fast and apparently accurate
+ * enough.
  *
  */
 void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
   int pitch) {
 #ifdef ARCH_X86
   int h, i, j, k;
+  int width_div_8 = yuv_planes->row_width / 8;
+  int width_mod_8 = yuv_planes->row_width % 8;
   unsigned char *source_plane;
   unsigned char *dest_plane;
-  unsigned char vector[8];
   unsigned char filter[] = {
     0x01, 0x00,
     0x03, 0x00,
     0x03, 0x00,
     0x01, 0x00
   };
-  unsigned char advance2_andmask[] = {
-    0xFF, 0xFF,
-    0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x00
-  };
-  unsigned char advance4_andmask[] = {
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0x00, 0x00,
-    0x00, 0x00
-  };
-  unsigned char advance6_andmask[] = {
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0x00, 0x00
-  };
   int block_loops = yuv_planes->row_width / 6;
   int filter_loops;
-  int advance_count;
+  int residual_filter_loops;
   int row_inc = (pitch - 2 * yuv_planes->row_width);
 
+  residual_filter_loops = (yuv_planes->row_width % 6) / 2;
+  if (!residual_filter_loops)
+    residual_filter_loops = 3;
+
   /* set up some MMX registers: 
-   * mm0 = 0, mm7 = color filter,
-   * mm4..6 = advance 2,4,6 and masks */
+   * mm0 = 0, mm7 = color filter */
   pxor_r2r(mm0, mm0);
   movq_m2r(*filter, mm7);
-  movq_m2r(*advance2_andmask, mm4);
-  movq_m2r(*advance4_andmask, mm5);
-  movq_m2r(*advance6_andmask, mm6);
 
   /* copy the Y samples */
   source_plane = yuv_planes->y;
   dest_plane = yuy2_map;
   for (i = 0; i < yuv_planes->row_count; i++) {
-    /* iterate through blocks of 8 samples, disregarding extra 2 samples */
-    for (j = 0; j < yuv_planes->row_width / 8; j++) {
+    /* iterate through blocks of 8 Y samples */
+    for (j = 0; j < width_div_8; j++) {
 
       movq_m2r(*source_plane, mm1);  /* load 8 Y samples */
       source_plane += 8;
@@ -358,6 +341,14 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
       punpckhbw_r2r(mm0, mm2); /* interleave upper 4 samples with zeros */
       movq_r2m(mm2, *dest_plane);
       dest_plane += 8;
+    }
+
+    /* iterate through residual samples in row if row is not divisible by 8 */
+    for (j = 0; j < width_mod_8; j++) {
+
+      *dest_plane = *source_plane;
+      dest_plane += 2;
+      source_plane++;
     }
 
     dest_plane += row_inc;
@@ -382,28 +373,22 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
       /* iterate through blocks of 6 samples */
       for (j = 0; j <= block_loops; j++) {
 
-        /* special case for end-of-line residual */
-        if (j != block_loops) {
+        if (j == block_loops) {
+
+          /* special case for end-of-line residual */
+          filter_loops = residual_filter_loops;
+          source_plane -= (8 - residual_filter_loops * 2);
+          movq_m2r(*source_plane, mm1); /* load 8 C samples */
+          source_plane += 8;
+          if (residual_filter_loops == 1)
+            psrlq_i2r(32, mm1);  /* toss out 4 samples before starting */
+          else if (residual_filter_loops == 2)
+            psrlq_i2r(16, mm1);  /* toss out 2 samples before starting */
+
+        } else {
+          /* normal case */
           movq_m2r(*source_plane, mm1); /* load 8 C samples */
           source_plane += 6;
-        } else {
-          advance_count = yuv_planes->row_width % 6;
-          if (!advance_count)
-            advance_count = 6;
-          filter_loops = advance_count / 2;
-
-          movq_m2r(*source_plane, mm1); /* load 8 C samples */
-          source_plane += advance_count;
-
-          /* zero out the rest of the samples */
-/*
-          if (advance_count == 2)
-            pand_r2r(mm4, mm1);
-          else if (advance_count == 4)
-            pand_r2r(mm5, mm1);
-          else if (advance_count == 6)
-            pand_r2r(mm6, mm1);
-*/
         }
 
         for (k = 0; k < filter_loops; k++) {
@@ -416,8 +401,12 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
           paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
           psrlq_i2r(3, mm2);       /* divide by 8 */
 
-          movq_r2m(mm2, *vector);
-          dest_plane[0] = vector[0];
+          /* move the lower 32 bits of mm2 into eax */
+          movd_r2r(mm2, eax);
+          /* move al (the final filtered sample) to its spot it memory */
+          __asm__ __volatile__ ("mov %%" "al" ", %0"
+                                : "=X" (*dest_plane)
+                                : /* nothing */ );
           dest_plane += 4;
 
           psrlq_i2r(16, mm1);      /* toss out 2 C samples and loop again */
