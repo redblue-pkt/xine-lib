@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.10 2003/01/18 15:29:22 miguelfreitas Exp $
+ * $Id: tvmode.c,v 1.11 2003/01/19 14:55:56 miguelfreitas Exp $
  *
  * tvmode - TV output selection
  *
@@ -26,6 +26,9 @@
  * xine support hacked in by Matthias Hopf <mat@mshopf.de>
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -259,21 +259,17 @@ AM_CONDITIONAL(HAVE_X11, [test x"$no_x" != "xyes"])
 dnl ---------------------------------------------
 dnl tvmode support using nvtv
 dnl ---------------------------------------------
-AC_ARG_ENABLE(nvtv,
-	[  --enable-nvtv			use nvtv for output fullscreen to TV],
-		enable_nvtv=$enableval, 
-		enable_nvtv=no)
+
+AC_ARG_ENABLE(nvtv, [  --enable-nvtv           use nvtv for output fullscreen to TV  [default=no]], enable_nvtv="$enableval", enable_nvtv=no)
 
 AC_MSG_CHECKING(for nvtv support)
 
-XINE_HAVE_NVTV="#undef XINE_HAVE_NVTV"
 if test x"$enable_nvtv" = "xyes" -a x"$no_x" != "xyes"; then
 	AC_MSG_RESULT(enabled)
-	XINE_HAVE_NVTV="#define XINE_HAVE_NVTV 1"
+    AC_DEFINE(XINE_HAVE_NVTV,1,[Define this if you want nvtvd tvmode support])
 else
 	AC_MSG_RESULT(disabled)
 fi
-AC_SUBST(XINE_HAVE_NVTV)
 
 AM_CONDITIONAL(HAVE_NVTV, [test x"$enable_nvtv" = "xyes" -a x"$no_x" != "xyes"])
 
@@ -1236,6 +1232,7 @@ src/libffmpeg/libavcodec/armv4l/Makefile
 src/libffmpeg/libavcodec/i386/Makefile
 src/libffmpeg/libavcodec/mlib/Makefile
 src/libffmpeg/libavcodec/alpha/Makefile
+src/libflac/Makefile
 src/liblpcm/Makefile
 src/libmad/Makefile
 src/libmpeg2/Makefile
