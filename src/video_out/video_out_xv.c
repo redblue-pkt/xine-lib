@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.131 2002/09/08 16:20:11 mroi Exp $
+ * $Id: video_out_xv.c,v 1.132 2002/09/13 19:57:13 mroi Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -618,14 +618,25 @@ static int xv_redraw_needed (xine_vo_driver_t *this_gen) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   int ret = 0;
 
-  if( vo_scale_redraw_needed( &this->sc ) ) {
-
-    xv_compute_output_size (this);
-
-    xv_clean_output_area (this);
+  if( this->cur_frame ) {
     
+    this->sc.delivered_height   = this->cur_frame->height;
+    this->sc.delivered_width    = this->cur_frame->width;
+    this->sc.delivered_ratio_code = this->cur_frame->ratio_code;
+    
+    xv_compute_ideal_size(this);
+    
+    if( vo_scale_redraw_needed( &this->sc ) ) {  
+
+      xv_compute_output_size (this);
+
+      xv_clean_output_area (this);
+    
+      ret = 1;
+    }
+  } 
+  else
     ret = 1;
-  }
   
   return ret;
 }
