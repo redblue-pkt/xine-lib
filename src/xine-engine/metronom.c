@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.56 2002/02/17 17:32:50 guenter Exp $
+ * $Id: metronom.c,v 1.57 2002/02/18 13:33:19 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -396,7 +396,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	  else
 	    this->video_wrap_offset = this->audio_wrap_offset;
 	  
-	  printf (this->xine, " to %d\n", this->video_wrap_offset);
+	  printf (this->xine, " to %lld\n", this->video_wrap_offset);
 	  
 	  this->wrap_diff_counter = 0;
 	}

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.75 2002/02/17 17:32:51 guenter Exp $
+ * $Id: video_out.c,v 1.76 2002/02/18 13:33:19 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -287,28 +287,6 @@ static int vo_frame_draw (vo_frame_t *img) {
     printf ("video_out: ALERT! frame is already locked for displaying\n");
     return frames_to_skip;
   }
-
-  if (cur_vpts>0) {
-
-    if (diff<(-1 * img->duration) && img->drawn != 2 ) {
-
-      this->num_frames_discarded++;
-#ifdef LOG
-      printf ("video_out: frame rejected, %d frames to skip\n", frames_to_skip);
-#endif
-
-      pthread_mutex_lock (&img->mutex);
-      img->display_locked = 0;
-      pthread_mutex_unlock (&img->mutex);
-
-      vo_frame_displayed (img);
-
-      this->last_frame = img;
-
-      return frames_to_skip;
-
-    }
-  } /* else: we are probably in precaching mode */
 
   if (!img->bad_frame) {
     /*
