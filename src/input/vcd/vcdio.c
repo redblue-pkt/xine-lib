@@ -1,7 +1,7 @@
 /*
-  $Id: vcdio.c,v 1.2 2003/11/06 03:28:18 rockyb Exp $
+  $Id: vcdio.c,v 1.3 2004/09/07 19:29:49 valtri Exp $
  
-  Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,8 +37,12 @@
 #endif
 #include <errno.h>
 
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+#ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
+#endif
 
 #ifdef HAVE_VCDNAV
 #include <libvcd/types.h>
