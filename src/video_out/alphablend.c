@@ -399,8 +399,8 @@ void blend_yuv_vo_frame(vo_frame_t* dst_img, vo_overlay_t* img_overl)
   int x, y;
 
   uint8_t *dst_y = dst_img->base[0] + dst_img->width * y_off + x_off;
-  uint8_t *dst_cr = dst_img->base[1] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
-  uint8_t *dst_cb = dst_img->base[2] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
+  uint8_t *dst_cb = dst_img->base[1] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
+  uint8_t *dst_cr = dst_img->base[2] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
    
   my_clut = (clut_t*) img_overl->color;
   my_trans = img_overl->trans;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.32 2001/11/05 18:08:56 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.33 2001/11/05 23:15:13 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -141,7 +141,7 @@ int gX11Fail;
 //
 // internal video_out_syncfb functions
 // 
-static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cr, uint_8* cb)
+static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cb, uint_8* cr)
 {
    uint_8*  crp;
    uint_8*  cbp;
@@ -160,14 +160,14 @@ static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uin
       crp = cr;
       
       for(w=0; w < src_width/2; w++) {
-	 *dest32++ = (*y) + ((*cr)<<8) + ((*(y+1))<<16) + ((*cb)<<24);
+	 *dest32++ = (*y) + ((*cb)<<8) + ((*(y+1))<<16) + ((*cr)<<24);
 	 y++; y++; cb++; cr++;
       }
 
       dest32 += (bespitch - src_width) / 2;
 
       for(w=0; w < src_width/2; w++) {
-	 *dest32++ = (*y) + ((*crp)<<8) + ((*(y+1))<<16) + ((*cbp)<<24);
+	 *dest32++ = (*y) + ((*cbp)<<8) + ((*(y+1))<<16) + ((*crp)<<24);
 	 y++; y++; cbp++; crp++;
       }
       
@@ -175,7 +175,7 @@ static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uin
    }
 }
 
-static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cr, uint_8* cb)
+static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cb, uint_8* cr)
 {
    uint_8* dest;
    int h;
@@ -200,10 +200,10 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, u
       while(w--) {
 	 register uint_32 temp;
 	 
-	 temp = (*rcr) | (*rcb << 8);
+	 temp = (*rcb) | (*rcr << 8);
 	 rcr++;
 	 rcb++;
-	 temp |= (*rcr << 16) | (*rcb << 24);
+	 temp |= (*rcb << 16) | (*rcr << 24);
 	 rcr++;
 	 rcb++;
 	 *tmp32 = temp;
@@ -222,7 +222,7 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, u
    }
 }
 
-static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cr, uint_8* cb)
+static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cb, uint_8* cr)
 {
    uint_8* dest;
    int h;
@@ -241,15 +241,15 @@ static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame, u
 
    dest = this->video_mem + this->bufinfo.offset_p2;
    for(h=0; h < src_height/2; h++) {
-      fast_memcpy(dest, cr, src_width/2);
-      cr   += src_width/2;
+      fast_memcpy(dest, cb, src_width/2);
+      cb   += src_width/2;
       dest += bespitch/2;
    }
 
    dest = this->video_mem + this->bufinfo.offset_p3;
    for(h=0; h < src_height/2; h++) {
-      fast_memcpy(dest, cb, src_width/2);
-      cb   += src_width/2;
+      fast_memcpy(dest, cr, src_width/2);
+      cr   += src_width/2;
       dest += bespitch/2;
    }
 }
@@ -851,7 +851,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
    // check for formats we need...
    this->supported_capabilities = 0;
    this->yuv_format = 0;
-   
+
    // simple fallback mechanism - we want YUV 4:2:0 (3 plane) but we can also
    // convert YV12 material to YUV 4:2:0 (2 plane) and YUV 4:2:2 ...
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P3)) {
