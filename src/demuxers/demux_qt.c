@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.115 2002/11/18 23:08:31 tmmm Exp $
+ * $Id: demux_qt.c,v 1.116 2002/11/19 02:22:52 tmmm Exp $
  *
  */
 
@@ -95,6 +95,7 @@ typedef unsigned int qt_atom;
 #define ESDS_ATOM QT_ATOM('e', 's', 'd', 's')
 
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
+#define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
 
 #define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
 #define CPY_ATOM QT_ATOM(0xA9, 'c', 'p', 'y')
@@ -887,6 +888,10 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         else
           sample_table->media_description.audio.vbr = 0;
 
+        /* if this is MP4 audio, mark it as VBR */
+        if (BE_32(&trak_atom[i + 0x10]) == MP4A_FOURCC)
+          sample_table->media_description.audio.vbr = 1;
+
         debug_atom_load("    audio description\n");
         debug_atom_load("      %d Hz, %d bits, %d channels, %saudio fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
           sample_table->media_description.audio.sample_rate,
@@ -1377,14 +1382,6 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
              sample_table->media_description.audio.channels) /
              sample_table->samples_per_frame *
              sample_table->bytes_per_frame;
-
-/*
-printf ("bits = %d, channels = %d, audio_frame_counter = %d, pts = %lld\n",
-  sample_table->media_description.audio.bits,
-  sample_table->media_description.audio.channels,
-  audio_frame_counter, sample_table->frames[j].pts);
-*/
-
         }
       }
     }
@@ -1875,12 +1872,14 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes) {
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
+#if 0
         if( this->qt->audio_sample_size_table ) {
           buf->decoder_flags |= BUF_FLAG_SPECIAL;
           buf->decoder_info[1] = BUF_SPECIAL_SAMPLE_SIZE_TABLE;
           buf->decoder_info[3] = (uint32_t)
             &this->qt->audio_sample_size_table[this->qt->frames[i].official_byte_count];
         }
+#endif
       }
 
       this->audio_fifo->put(this->audio_fifo, buf);
