@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.6 2002/01/02 18:16:08 jkeil Exp $
+ * $Id: xineutils.h,v 1.7 2002/01/21 09:52:48 jkeil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -698,6 +698,24 @@ static inline char *_x_strsep(char **stringp, const char *delim) {
 #define xine_strsep _x_strsep
 #endif
 
+
+#ifdef	HAVE_SETENV
+#define	xine_setenv	setenv
+#else
+static inline void _x_setenv(const char *name, const char *val, int _xx)
+{
+  int len  = strlen(name) + strlen(val) + 2;
+  char *env = malloc(len);
+
+  if (env != NULL) {
+    strcpy(env, name);
+    strcat(env, "=");
+    strcat(env, val);
+    putenv(env);
+  }
+}
+#define	xine_setenv	_x_setenv
+#endif
 
 #ifdef __cplusplus
 }
