@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.38 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: load_plugins.c,v 1.39 2001/08/23 13:27:24 jcdutton Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -741,7 +741,7 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config,
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 	  printf("load_plugins: audio output plugin %s failed to link: %s\n",
 		 str, dlerror());
 	  return NULL;
