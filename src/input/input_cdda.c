@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.4 2003/01/08 00:03:58 f1rmb Exp $
+ * $Id: input_cdda.c,v 1.5 2003/01/08 10:05:46 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +38,12 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
+
+#if defined(__sun)
+#define	DEFAULT_CDDA_DEVICE	"/vol/dev/aliases/cdrom0"
+#else
+#define	DEFAULT_CDDA_DEVICE	"/dev/cdrom"
+#endif
 
 /* CD-relevant defines and data structures */
 #define CD_SECONDS_PER_MINUTE 60
@@ -165,6 +171,93 @@ static void read_cdrom_frame(int fd, int frame,
   /* read a frame */
   if(ioctl(fd, CDROMREADRAW, data, data) < 0) {
     perror("CDROMREADRAW");
+    return;
+  }
+}
+
+#elif defined(__sun)
+
+#include <sys/cdio.h>
+
+static void read_cdrom_toc(int fd, cdrom_toc *toc) {
+
+  struct cdrom_tochdr tochdr;
+  struct cdrom_tocentry tocentry;
+  int i;
+
+  /* fetch the table of contents */
+  if (ioctl(fd, CDROMREADTOCHDR, &tochdr) == -1) {
+    perror("CDROMREADTOCHDR");
+    return;
+  }
+
+  toc->first_track = tochdr.cdth_trk0;
+  toc->last_track = tochdr.cdth_trk1;
+  toc->total_tracks = toc->last_track - toc->first_track + 1;
+
+  /* allocate space for the toc entries */
+  toc->toc_entries =
+    (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
+  if (!toc->toc_entries) {
+    perror("malloc");
+    return;
+  }
+
+  /* fetch each toc entry */
+  for (i = toc->first_track; i <= toc->last_track; i++) {
+
+    memset(&tocentry, 0, sizeof(tocentry));
+
+    tocentry.cdte_track = i;
+    tocentry.cdte_format = CDROM_MSF;
+    if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
+      perror("CDROMREADTOCENTRY");
+      return;
+    }
+
+    toc->toc_entries[i-1].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
+    toc->toc_entries[i-1].first_frame_minute = tocentry.cdte_addr.msf.minute;
+    toc->toc_entries[i-1].first_frame_second = tocentry.cdte_addr.msf.second;
+    toc->toc_entries[i-1].first_frame_frame = tocentry.cdte_addr.msf.frame;
+    toc->toc_entries[i-1].first_frame =
+      (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+      (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
+       tocentry.cdte_addr.msf.frame;
+  }
+
+  /* fetch the leadout as well */
+  memset(&tocentry, 0, sizeof(tocentry));
+
+  tocentry.cdte_track = CD_LEADOUT_TRACK;
+  tocentry.cdte_format = CDROM_MSF;
+  if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
+    perror("CDROMREADTOCENTRY");
+    return;
+  }
+
+  toc->leadout_track.track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
+  toc->leadout_track.first_frame_minute = tocentry.cdte_addr.msf.minute;
+  toc->leadout_track.first_frame_second = tocentry.cdte_addr.msf.second;
+  toc->leadout_track.first_frame_frame = tocentry.cdte_addr.msf.frame;
+  toc->leadout_track.first_frame =
+    (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+    (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
+     tocentry.cdte_addr.msf.frame;
+}
+
+static void read_cdrom_frame(int fd, int frame,
+  unsigned char data[CD_RAW_FRAME_SIZE]) {
+
+  struct cdrom_cdda cdda;
+
+  cdda.cdda_addr = frame - 2 * CD_FRAMES_PER_SECOND;
+  cdda.cdda_length = 1;
+  cdda.cdda_data = data;
+  cdda.cdda_subcode = CDROM_DA_NO_SUBCODE;
+
+  /* read a frame */
+  if(ioctl(fd, CDROMCDDA, &cdda) < 0) {
+    perror("CDROMCDDA");
     return;
   }
 }
@@ -331,12 +424,15 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
       track = atoi(&data[5]);
     else
       track = atoi(&data[6]);
+    /* CD tracks start at 1, reject illegal tracks */
+    if (track <= 0)
+      return NULL;
   } else
     return NULL;
 
   /* get the CD TOC */
   init_cdrom_toc(&toc);
-  fd = open ("/dev/cdrom", O_RDONLY);
+  fd = open (DEFAULT_CDDA_DEVICE, O_RDONLY);
   if (fd == -1)
     return NULL;
   read_cdrom_toc(fd, &toc);
