@@ -23,7 +23,40 @@
 #include <mlib_types.h>
 #include <mlib_status.h>
 #include <mlib_sys.h>
+#include <mlib_algebra.h>
 #include <mlib_video.h>
+
+/* misc */
+
+static void get_pixels_mlib(DCTELEM *restrict block, const uint8_t *pixels, int line_size)
+{
+  int i;
+
+  for (i=0;i<8;i++) {
+    mlib_VectorConvert_S16_U8_Mod((mlib_s16 *)block, (mlib_u8 *)pixels, 8);
+
+    pixels += line_size;
+    block += 8;
+  }
+}
+
+static void diff_pixels_mlib(DCTELEM *restrict block, const uint8_t *s1, const uint8_t *s2, int line_size)
+{
+  int i;
+
+  for (i=0;i<8;i++) {
+    mlib_VectorSub_S16_U8_Mod((mlib_s16 *)block, (mlib_u8 *)s1, (mlib_u8 *)s2, 8);
+
+    s1 += line_size;
+    s2 += line_size;
+    block += 8;
+  }
+}
+
+static void add_pixels_clamped_mlib(const DCTELEM *block, uint8_t *pixels, int line_size)
+{
+    mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
+}
 
 /* put block, width 16 pixel, height 8/16 */
 
@@ -337,14 +370,15 @@ static void avg_pixels8_xy2_mlib(uint8_t * dest, const uint8_t * ref,
   }
 }
 
-static void add_pixels_clamped_mlib(const DCTELEM *block, uint8_t *pixels, int line_size)
+/* swap byte order of a buffer */
+
+static void bswap_buf_mlib(uint32_t *dst, uint32_t *src, int w)
 {
-    mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
+  mlib_VectorReverseByteOrder_U32_U32(dst, src, w);
 }
 
+/* transformations */
 
-/* XXX: those functions should be suppressed ASAP when all IDCTs are
-   converted */
 static void ff_idct_put_mlib(uint8_t *dest, int line_size, DCTELEM *data)
 {
     int i;
@@ -380,6 +414,10 @@ static void ff_fdct_mlib(DCTELEM *data)
 
 void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
 {
+    c->get_pixels  = get_pixels_mlib;
+    c->diff_pixels = diff_pixels_mlib;
+    c->add_pixels_clamped = add_pixels_clamped_mlib;
+
     c->put_pixels_tab[0][0] = put_pixels16_mlib;
     c->put_pixels_tab[0][1] = put_pixels16_x2_mlib;
     c->put_pixels_tab[0][2] = put_pixels16_y2_mlib;
@@ -401,20 +439,18 @@ void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
     c->put_no_rnd_pixels_tab[0][0] = put_pixels16_mlib;
     c->put_no_rnd_pixels_tab[1][0] = put_pixels8_mlib;
 
-    c->add_pixels_clamped = add_pixels_clamped_mlib;
+    c->bswap_buf = bswap_buf_mlib;
 }
 
 void MPV_common_init_mlib(MpegEncContext *s)
 {
-    int i;
-
     if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
 	s->dsp.fdct = ff_fdct_mlib;
     }
 
     if(s->avctx->idct_algo==FF_IDCT_AUTO || s->avctx->idct_algo==FF_IDCT_MLIB){
-        s->dsp.idct_put= ff_idct_put_mlib;
-        s->dsp.idct_add= ff_idct_add_mlib;
+        s->dsp.idct_put = ff_idct_put_mlib;
+        s->dsp.idct_add = ff_idct_add_mlib;
         s->dsp.idct_permutation_type= FF_NO_IDCT_PERM;
     }
 }
