@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.34 2001/11/07 17:08:17 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.35 2001/11/07 19:41:26 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  *
@@ -238,7 +238,17 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   case BUF_VIDEO_I263:
     /* Video in I263 format */
     return "i263_32.drv";
+
+  case BUF_VIDEO_MSVC:
+    /* Video in Windows Video 1 */
+    this->yuv_supported=0;
+    return "msvidc32.dll";    
     
+  case BUF_VIDEO_DV:
+    /* MainConcept DV Codec */
+    this->yuv_supported=1;
+    return "mcdvd_32.dll";    
+
   }
 
   printf ("w32codec: this didn't happen: unknown video buf type %08x\n",
@@ -269,7 +279,9 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
            buf_type == BUF_VIDEO_CINEPAK ||
            /* buf_type == BUF_VIDEO_ATIVCR1 || */
            buf_type == BUF_VIDEO_ATIVCR2 ||
-	   buf_type == BUF_VIDEO_I263);
+	   buf_type == BUF_VIDEO_I263 ||
+	   buf_type == BUF_VIDEO_MSVC ||
+	   buf_type == BUF_VIDEO_DV );
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
@@ -537,7 +549,9 @@ static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
   return ( (codec == BUF_AUDIO_DIVXA) ||
 	   (codec == BUF_AUDIO_MSADPCM) ||
 	   (codec == BUF_AUDIO_IMAADPCM) ||
-	   (codec == BUF_AUDIO_MSGSM) );
+	   (codec == BUF_AUDIO_MSGSM) ||
+	   (codec == BUF_AUDIO_IMC) ||
+	   (codec == BUF_AUDIO_LH) );
 }
 
 static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
@@ -553,6 +567,10 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     return "imaadp32.acm";
   case BUF_AUDIO_MSGSM:
     return "msgsm32.acm";
+  case BUF_AUDIO_IMC:
+    return "icm32.acm";
+  case BUF_AUDIO_LH:
+    return "lhacm.acm";
   }
   printf ("w32codec: this didn't happen: unknown audio buf type %08x\n",
 	  buf_type);

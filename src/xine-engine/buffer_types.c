@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.2 2001/11/07 19:06:15 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.3 2001/11/07 19:41:26 miguelfreitas Exp $
  *
  *
  * contents:
@@ -257,6 +257,26 @@ static video_db_t video_db[] = {
   BUF_VIDEO_WMV8,
   "Windows Media Video 8"
 },
+{
+  {
+    mmioFOURCC('c','r','a','m'),
+    mmioFOURCC('C','R','A','M'),
+    mmioFOURCC('M','S','V','C'),
+    0
+  },
+  BUF_VIDEO_MSVC,
+  "Microsoft Video 1"
+},
+{
+  {
+    mmioFOURCC('D','V','S','D'),
+    mmioFOURCC('d','v','s','d'),
+    mmioFOURCC('d','v','c','p'),
+    0
+  },
+  BUF_VIDEO_DV,
+  "Sony Digital Video (DV)"
+},
 { { 0 }, 0, "last entry" }
 };
 
@@ -331,6 +351,34 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_VORBIS,
   "OggVorbis Audio"
+},
+{
+  {
+    0x401, 0
+  },
+  BUF_AUDIO_IMC,
+  "Intel Music Coder"
+},
+{
+  {
+    0x1101, 0x1102, 0x1103, 0x1104, 0
+  },
+  BUF_AUDIO_LH,
+  "Lernout & Hauspie"
+},
+{
+  {
+    0x75, 0
+  },
+  BUF_AUDIO_VOXWARE,
+  "Voxware Metasound"
+},
+{
+  {
+    0x130, 0
+  },
+  BUF_AUDIO_ACELPNET,
+  "ACELP.net"
 },
 { { 0 }, 0, "last entry" }
 };
