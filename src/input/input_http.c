@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.67 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: input_http.c,v 1.68 2003/11/12 19:54:56 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -95,7 +95,6 @@ typedef struct {
   /* scratch buffer for forward seeking */
 
   char             seek_buf[BUFSIZE];
-
   
 } http_input_plugin_t;
 
@@ -110,7 +109,9 @@ typedef struct {
   char             *proxypassword;
   char             *proxyhost;
   int               proxyport;
- 
+
+  char             *proxyhost_env;
+  int               proxyport_env;
 } http_input_class_t;
 
 static void proxy_user_change_cb(void *data, xine_cfg_entry_t *cfg) {
@@ -129,16 +130,21 @@ static void proxy_host_change_cb(void *data, xine_cfg_entry_t *cfg) {
   http_input_class_t *this = (http_input_class_t *) data;
 
   this->proxyhost = cfg->str_value;
+
+  if(this->proxyhost && (!strlen(this->proxyhost))) {
+    this->proxyhost = this->proxyhost_env;
+    this->proxyport = this->proxyport_env;
+  }
 }
 
 static void proxy_port_change_cb(void *data, xine_cfg_entry_t *cfg) {
   http_input_class_t *this = (http_input_class_t *) data;
-
+  
   this->proxyport = cfg->num_value;
 }
 
 static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
-    char** host, int *port, char **filename) {
+				  char** host, int *port, char **filename) {
   char   *start = NULL;
   char   *authcolon = NULL;
   char	 *at = NULL;
@@ -327,17 +333,15 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
   /* get the length of the metadata */
   this_gen->read(this_gen, &len, 1);
 
-#ifdef LOG
-  printf ("input_http: http_plugin_read_metainf: len=%d\n", len);
-#endif
+  lprintf ("input_http: http_plugin_read_metainf: len=%d\n", len);
   
   if (len > 0) {
     this_gen->read(this_gen, metadata_buf, len * 16);
   
     metadata_buf[len * 16] = '\0';
-#ifdef LOG
-  printf ("input_http: http_plugin_read_metainf: %s\n", metadata_buf);
-#endif
+    
+    lprintf ("input_http: http_plugin_read_metainf: %s\n", metadata_buf);
+
     /* Extract the title of the current song */
     if ((songtitle = strstr(metadata_buf, "StreamTitle='"))) {
       songtitle += 13; /* skip "StreamTitle='" */
@@ -347,9 +351,8 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
         if ((!this->shoutcast_songtitle ||
              (strcmp(songtitle, this->shoutcast_songtitle))) &&
             (strlen(songtitle) > 0)) {
-#ifdef LOG
-          printf ("input_http: http_plugin_read_metainf: songtitle: %s\n", songtitle);
-#endif
+	  
+          lprintf ("input_http: http_plugin_read_metainf: songtitle: %s\n", songtitle);
           
           if (this->shoutcast_songtitle)
             free(this->shoutcast_songtitle);
@@ -402,10 +405,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     if (n > (nlen - num_bytes))
       n = nlen - num_bytes;
 
-#ifdef LOG
-    printf ("input_http: %lld bytes from preview (which has %lld bytes)\n",
-            n, this->preview_size);
-#endif
+    lprintf ("input_http: %lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
 
     if (this->shoutcast_mode) {
       if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
@@ -493,9 +493,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 
       linenum++;
 
-#ifdef LOG
-      printf ("input_http: shoutcast answer: >%s<\n", this->buf);
-#endif
+      lprintf ("input_http: shoutcast answer: >%s<\n", this->buf);
 
       if (!strncasecmp(this->buf, "icy-name:", 9)) {
         xine_set_meta_info(this->stream, XINE_META_INFO_ALBUM,
@@ -517,9 +515,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 
       /* metadata interval (in byte) */
       if (sscanf(this->buf, "icy-metaint:%d", &this->shoutcast_metaint) == 1) {
-#ifdef LOG
-        printf("input_http: shoutcast_metaint: %d\n", this->shoutcast_metaint);
-#endif
+        lprintf("input_http: shoutcast_metaint: %d\n", this->shoutcast_metaint);
       }
 
       if (len == -1)
@@ -529,9 +525,8 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
     } else
       len ++;
   }
-#ifdef LOG
-  printf ("input_http: end of the shoutcast header\n");
-#endif
+  
+  lprintf ("input_http: end of the shoutcast header\n");
 
   return 0;
 }
@@ -606,8 +601,9 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
       if( this->curpos <= this->preview_size )
         this->curpos = offset;
       else
-        printf ("http: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
-
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"http: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+      
     } else {
       offset -= this->curpos;
 
@@ -679,7 +675,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 
 static int http_plugin_open (input_plugin_t *this_gen ) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
-  http_input_class_t  *this_klass = (http_input_class_t *) this->input_plugin.input_class;
+  http_input_class_t  *this_class = (http_input_class_t *) this->input_plugin.input_class;
   int                  done,len,linenum;
   int                  shoutcast = 0, httpcode;
   int                  length;
@@ -687,56 +683,56 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   
   this->shoutcast_pos = 0;
   
-  if (this_klass->proxyhost != NULL && strcmp (this_klass->proxyhost, "")) {
-    if (this_klass->proxyport == 0)
-      this_klass->proxyport = DEFAULT_HTTP_PORT;
-
-    if ( (this_klass->proxyuser != NULL) && strcmp (this_klass->proxyuser, "") )
-      if (http_plugin_basicauth (this_klass->proxyuser,
-			         this_klass->proxypassword,
+  if (this_class->proxyhost && strlen(this_class->proxyhost)) {
+    if (this_class->proxyport == 0)
+      this_class->proxyport = DEFAULT_HTTP_PORT;
+    
+    if (this_class->proxyuser && strlen(this_class->proxyuser)) {
+      if (http_plugin_basicauth (this_class->proxyuser,
+			         this_class->proxypassword,
 				 this->proxyauth, BUFSIZE)) {
 	_x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "proxy error", NULL);
 	return 0;
       }
+    }
   }
   
+  
   if (http_plugin_parse_url (this->mrlbuf, &this->user, &this->password,
-			     &this->host, &this->port, &this->filename)) {
+			     &this->host, &this->port, &this->filename))
     return 0;
-  }
-
+  
   if (this->port == 0)
     this->port = DEFAULT_HTTP_PORT;
-
-  if ( (this->user != NULL) && strcmp (this_klass->proxyhost, ""))
+  
+  if ((this->user && strlen(this->user)) && (this_class->proxyhost && strlen(this_class->proxyhost))) {
     if (http_plugin_basicauth (this->user, this->password, this->auth, BUFSIZE)) {
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "basic auth error", NULL);
       return 0;
     }
-
+  }
+  
 #ifdef LOG
   {
-    printf ("input_http: opening >/%s< on host >%s<", 
-	    this->filename, this->host);
-
-    if (this_klass->proxyhost != NULL)
-      printf (" via proxy >%s<", this_klass->proxyhost);
+    printf ("input_http: opening >/%s< on host >%s<", this->filename, this->host);
+    
+    if (this_class->proxyhost && strlen(this_class->proxyhost))
+      printf (" via proxy >%s:%d<", this_class->proxyhost, this_class->proxyport);
     
     printf ("\n");
   }
 #endif
   
-  if ( (this_klass->proxyhost != NULL) && strcmp (this_klass->proxyhost, "") )
-    this->fh = _x_io_tcp_connect (this->stream, this_klass->proxyhost, this_klass->proxyport);
+  if (this_class->proxyhost && strlen(this_class->proxyhost))
+    this->fh = _x_io_tcp_connect (this->stream, this_class->proxyhost, this_class->proxyport);
   else
     this->fh = _x_io_tcp_connect (this->stream, this->host, this->port);
-
+  
   this->curpos = 0;
-
-  if (this->fh == -1) {
+  
+  if (this->fh == -1)
     return 0;
-  }
-
+  
   /* connection timeout 20s */
   progress = 0;
   do {
@@ -747,7 +743,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   if (res != XIO_READY)
     return 0;
   
-  if ( (this_klass->proxyhost != NULL) && strcmp (this_klass->proxyhost, "") ) {
+  if (this_class->proxyhost && strlen(this_class->proxyhost)) {
     if (this->port != DEFAULT_HTTP_PORT) {
       sprintf (this->buf, "GET http://%s:%d/%s HTTP/1.0\015\012",
 	       this->host, this->port, this->filename);
@@ -755,9 +751,9 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
       sprintf (this->buf, "GET http://%s/%s HTTP/1.0\015\012",
 	       this->host, this->filename);
     }
-  } else {
+  } 
+  else
     sprintf (this->buf, "GET /%s HTTP/1.0\015\012", this->filename);
-  }
   
   if (this->port != DEFAULT_HTTP_PORT)
     sprintf (this->buf + strlen(this->buf), "Host: %s:%d\015\012",
@@ -766,17 +762,17 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     sprintf (this->buf + strlen(this->buf), "Host: %s\015\012",
 	     this->host);
   
-  if ( (this_klass->proxyuser != NULL) && strcmp (this_klass->proxyuser, "") )
+  if (this_class->proxyuser && strlen(this_class->proxyuser))
     sprintf (this->buf + strlen(this->buf), "Proxy-Authorization: Basic %s\015\012",
 	     this->proxyauth);
-
-  if ( (this->user != NULL) && strcmp (this->user, "") ) 
+  
+  if (this->user && strlen(this->user))
     sprintf (this->buf + strlen(this->buf), "Authorization: Basic %s\015\012",
 	     this->auth);
- 
+  
   sprintf (this->buf + strlen(this->buf), "User-Agent: xine/%s\015\012",
            VERSION);
-  strcat (this->buf, "Accept: */*\015\012");
+  strcat (this->buf, "Accept: */*\015\012"); /* * */
   strcat (this->buf, "Icy-MetaData: 1\015\012");
   
   strcat (this->buf, "\015\012");
@@ -784,13 +780,11 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   length = strlen(this->buf);
   if (_x_io_tcp_write (this->stream, this->fh, this->buf, length) != length) {
     _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
-    printf ("input_http: couldn't send request\n");
+    xprintf(this_class->xine, XINE_VERBOSITY_DEBUG, "input_http: couldn't send request\n");
     return 0;
   }
 
-#ifdef LOG
-  printf ("input_http: request sent: >%s<\n", this->buf);
-#endif
+  lprintf ("input_http: request sent: >%s<\n", this->buf);
 
   /* read and parse reply */
   done = 0; len = 0; linenum = 0;
@@ -818,9 +812,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
       linenum++;
       
-#ifdef LOG
-      printf ("input_http: answer: >%s<\n", this->buf);
-#endif
+      lprintf ("input_http: answer: >%s<\n", this->buf);
 
       if (linenum == 1) {
         int httpver, httpsub;
@@ -867,10 +859,8 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	if (!strncasecmp(this->buf, "Location: ", 10)) {
 	  char *href = strdup (this->buf + 10);
 
-#ifdef LOG
-	  printf ("input_http: trying to open target of redirection: >%s<\n",
-            href);
-#endif
+	  lprintf ("input_http: trying to open target of redirection: >%s<\n", href);
+
           strncpy (this->mrlbuf, href, BUFSIZE);
           strncpy (this->mrlbuf2, href, BUFSIZE);
           return http_plugin_open(this_gen);
@@ -885,9 +875,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
       len ++;
   }
 
-#ifdef LOG
-  printf ("input_http: end of headers\n");
-#endif
+  lprintf ("input_http: end of headers\n");
 
   /*
    * fill preview buffer
@@ -910,7 +898,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     if (read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
-      printf ("can't read shoutcast header\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "can't read shoutcast header\n");
       return 0;
     }
     this->shoutcast_mode = 1;
@@ -927,7 +915,6 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
  */
 static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
 				    const char *mrl) {
-
   /* http_input_class_t  *cls = (http_input_class_t *) cls_gen;*/
   http_input_plugin_t *this;
   
@@ -969,12 +956,14 @@ static char *http_class_get_identifier (input_class_t *this_gen) {
 
 static void http_class_dispose (input_class_t *this_gen) {
   http_input_class_t  *this = (http_input_class_t *) this_gen;
-
+  
+  if(this->proxyhost_env)
+    free(this->proxyhost_env);
+  
   free (this);
 }
 
 static void *init_class (xine_t *xine, void *data) {
-
   http_input_class_t  *this;
   config_values_t     *config;
 
@@ -992,19 +981,46 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.dispose            = http_class_dispose;
   this->input_class.eject_media        = NULL;
 
-  this->proxyuser = config->register_string(config, "input.http_proxy_user",
-		  "", _("http proxy username"),
-		  NULL, 0, proxy_user_change_cb, (void *) this);
+  this->proxyhost_env = NULL;
+  this->proxyuser     = config->register_string(config, "input.http_proxy_user",
+						"", _("http proxy username"),
+						NULL, 0, proxy_user_change_cb, (void *) this);
   this->proxypassword = config->register_string(config,
-		  "input.http_proxy_password", "", _("http proxy password"),
-		  NULL, 0, proxy_password_change_cb, (void *) this);
-  this->proxyhost = config->register_string(config,
-		  "input.http_proxy_host", "", _("http proxy host"),
-		  NULL, 0, proxy_host_change_cb, (void *) this);
-  this->proxyport = config->register_num(config,
-		  "input.http_proxy_port", DEFAULT_HTTP_PORT,
-		  _("http proxy port"),
-		  NULL, 0, proxy_port_change_cb, (void *) this);
+						"input.http_proxy_password", "", _("http proxy password"),
+						NULL, 0, proxy_password_change_cb, (void *) this);
+  this->proxyhost     = config->register_string(config,
+						"input.http_proxy_host", "", _("http proxy host"),
+						NULL, 0, proxy_host_change_cb, (void *) this);
+  this->proxyport     = config->register_num(config,
+					     "input.http_proxy_port", DEFAULT_HTTP_PORT,
+					     _("http proxy port"),
+					     NULL, 0, proxy_port_change_cb, (void *) this);
+
+  /* Honour http_proxy envvar */
+  if((!this->proxyhost) || (!strlen(this->proxyhost))) {
+    char *proxy_env;
+
+    if((proxy_env = getenv("http_proxy")) && (strlen(proxy_env))) {
+      int   proxy_port = DEFAULT_HTTP_PORT;
+      char  http_proxy[strlen(proxy_env + 1)];
+      char *p;
+      
+      if(!strncmp(proxy_env, "http://", 7))
+	proxy_env += 7;
+      
+      memset(&http_proxy, 0, sizeof(http_proxy));
+      sprintf(http_proxy, "%s", proxy_env);
+      
+      if((p = strrchr(&http_proxy[0], ':')) && (strlen(p) > 1)) {
+	*p++ = '\0';
+	proxy_port = (int) strtol(p, &p, 10);
+      }
+      
+      this->proxyhost_env                   = strdup(http_proxy);
+      this->proxyhost                       = this->proxyhost_env;
+      this->proxyport = this->proxyport_env = proxy_port;
+    }
+  }
 
   return this;
 }
