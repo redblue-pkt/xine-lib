@@ -98,7 +98,7 @@ xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
 xineplug_dmx_qt_la_LIBADD = $(XINELIB)
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_asf_la_SOURCES = demux_asf.c
+xineplug_dmx_asf_la_SOURCES = demux_asf.c asfheader.h
 xineplug_dmx_asf_la_LIBADD = $(XINELIB)
 xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
