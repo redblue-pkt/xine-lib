@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.7 2002/01/21 09:52:48 jkeil Exp $
+ * $Id: xineutils.h,v 1.8 2002/01/25 19:21:39 jkeil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -28,6 +28,8 @@ extern "C" {
 #endif
 
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include "attributes.h"
 #include "compat.h"
