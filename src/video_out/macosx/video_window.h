@@ -50,7 +50,7 @@ typedef enum {
 - (void) initTextures;
 - (void) reloadTexture;
 - (char *) getTextureBuffer;
-- (void) setVideoSize:(int)w height:(int)h;
+- (void) setVideoSizeInMainThread:(int)w height:(int)h;
 
 /* Delegate methods */
 - (id) delegate;

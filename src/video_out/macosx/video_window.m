@@ -38,7 +38,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     width = size.width;
     height = size.height;
 
-    [openGLView setVideoSize: width height: height];
+    [openGLView setVideoSizeInMainThread: width height: height];
    
     if (keepAspectRatio)
         [self setAspectRatio: size];
@@ -465,19 +465,42 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return texture_buffer;
 }
 
-- (void) setVideoSize:(int)w height:(int)h
+- (void) setVideoSizeInMainThread:(int)w height:(int)h
 {
+    /* create an autorelease pool, since we're running in a xine thread that
+     * may not have a pool of its own */
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
+
+    NSSize size = NSMakeSize(w, h);
+    NSValue *sizeWrapper = [NSValue valueWithBytes:&size
+                                          objCType:@encode(NSSize)];
+                                  
+    [self performSelectorOnMainThread:@selector(setVideoSize:)
+                           withObject:sizeWrapper
+		        waitUntilDone:NO];
+
+    [pool release];
+}
+
+- (void) setVideoSize:(NSValue *)sizeWrapper
+{
+    NSSize size;
+    int w, h;
+
+    [sizeWrapper getValue:&size];
+    w = size.width;
+    h = size.height;
+
     if (w != width || h != height) {
         
         NSSize newSize;
+	NSValue *newSizeWrapper;
         
         newSize.width = w;
         newSize.height = h;
         
-        /* If our delegate handles xineViewWillResize:toSize:, send the
-         * message to him; otherwise, just resize ourselves */
+	/* If our delegate handles xineViewWillResize:toSize:, send the
+	 * message to him; otherwise, just resize ourselves */
         if ([delegate respondsToSelector:@selector(xineViewWillResize:toSize:)]) {
             NSSize oldSize = NSMakeSize(width, height);
             NSSize proposedSize = NSMakeSize(w, h);
@@ -489,25 +512,24 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
             height = h;
         }
         
-        [self setFrameSize:newSize];
-        [self setBoundsSize:newSize];
-        
-        /* Post a notification that we resized, and also notify our delegate */
-        NSNotification *note =
-            [NSNotification notificationWithName:XineViewDidResizeNotification
-                                          object:self];
-        [[NSNotificationCenter defaultCenter] postNotification:note];
-        if ([delegate respondsToSelector:@selector(xineViewDidResize:)]) { 
-            [delegate xineViewDidResize:note];
-        }
-        
+	/* Resize the window in the main (UI) thread */
+	[self setFrameSize:size];
+	[self setBoundsSize:size];
+
+	/* Post a notification that we resized and also notify our delegate */
+	NSNotification *note =
+	    [NSNotification notificationWithName:XineViewDidResizeNotification
+					  object:self];
+	[[NSNotificationCenter defaultCenter] postNotification:note];
+	if ([delegate respondsToSelector:@selector(xineViewDidResize:)]) { 
+	    [delegate xineViewDidResize:note];
+	}
+
         if (isFullScreen)
             [self calcFullScreenAspect];
     }
 
     [self initTextures];    
-    
-    [pool release];
 }
 
 - (int) isFullScreen {

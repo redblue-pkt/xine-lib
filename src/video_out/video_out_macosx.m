@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.4 2004/06/18 14:24:14 zonque Exp $
+ * $Id: video_out_macosx.m,v 1.5 2004/06/19 04:11:53 athp Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -156,7 +156,7 @@ static void macosx_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fr
 
     }
 
-    [this->view setVideoSize:width height:height];
+    [this->view setVideoSizeInMainThread:width height:height];
 
     if((format == XINE_IMGFMT_YV12
         && (frame->vo_frame.base[0] == NULL 
