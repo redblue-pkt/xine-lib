@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2004/12/09 13:19:37 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.13 2004/12/13 11:43:45 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -97,9 +97,9 @@ typedef struct dvb_spu_decoder_s {
   
   uint64_t 		pts;
   uint64_t 		vpts;
-
+  uint64_t		end_vpts;
+  
   dvbsub_func_t        *dvbsub;
-  int 			timeout;
   int 			show;
 } dvb_spu_decoder_t;
 
@@ -563,15 +563,13 @@ void draw_subtitles (dvb_spu_decoder_t * this)
 
   if(display){
     /* display immediately at requested PTS*/
-    /* FIXME: we should use the page timeout */
     this->stream->osd_renderer->set_palette(this->osd,(uint32_t *)this->dvbsub->colours,this->dvbsub->trans);
     this->stream->osd_renderer->draw_bitmap (this->osd,this->bitmap, 1,1,720,576,NULL);
-/*   _x_spu_decoder_sleep(this->stream,this->vpts); */
-    this->stream->osd_renderer->hide (this->osd, this->vpts-1);
+    /* end_vpts is updated only once the whole page is drawn */
+    if(this->vpts<this->end_vpts)
+      this->vpts=this->end_vpts;
+ 
     this->stream->osd_renderer->show (this->osd, this->vpts);
-#if 0
-    this->stream->osd_renderer->hide (this->osd, this->vpts+(90000*this->dvbsub->page.page_time_out));
-#endif
   }
 }
 
@@ -665,7 +663,9 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
             case 0x13:
               process_object_data_segment (this);
               break;
-            case 0x80:		/* we have enough data to decode */
+            case 0x80:		/* Page is now completely rendered */
+              this->end_vpts = 90000 + this->vpts; /* 1 second display keeps sync almost correct */
+              this->stream->osd_renderer->hide (this->osd, this->end_vpts);
               break;
             default:
               break;
