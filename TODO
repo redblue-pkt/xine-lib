@@ -13,7 +13,8 @@ required for 1.0
 - update / rewrite xine HOWTO (stefan, guenter)
 - xine bug tracking system?
 - fix stream end detection for real streams
-
+- fix mpeg elementary stream playback (especially logo streams
+  with only one frame)
 
 optional
 --------
