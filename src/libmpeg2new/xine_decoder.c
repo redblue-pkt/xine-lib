@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2003/06/18 10:36:18 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.9 2003/06/19 01:58:25 jcdutton Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -131,6 +131,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
       case STATE_SEQUENCE:
         /* might set nb fbuf, convert format, stride */
         /* might set fbufs */
+        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE]     = info->sequence->byte_rate * 8;
         this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]     = info->sequence->picture_width;
         this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]    = info->sequence->picture_height;
         this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]  = info->sequence->frame_period / 300;
