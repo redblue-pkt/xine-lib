@@ -38,13 +38,12 @@ endif
 
 # For DVD
 if HAVE_DVDNAV
-DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-  $(DVDNAV_CFLAGS)
+DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE
 link_dvdnav = $(DVDNAV_LIBS)
 else
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-  -I$(top_srcdir)/src/input/libdvdnav/ 
-link_dvdnav = libdvdnav/libdvdnav.la 
+  -I$(top_srcdir)/src/input/libdvdnav/
+link_dvdnav = libdvdnav/libdvdnav.la
 endif
 
 AM_CFLAGS = $(GNOME_VFS_CFLAGS) $(DVD_CFLAGS) @ANSI_FLAGS@
