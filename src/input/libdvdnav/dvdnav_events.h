@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_events.h,v 1.6 2003/03/06 23:18:42 mroi Exp $
+ * $Id: dvdnav_events.h,v 1.7 2003/03/08 14:36:13 mroi Exp $
  *
  */
 
@@ -25,8 +25,8 @@
 #define DVDNAV_EVENTS_H_INCLUDED
 
 #include "ifo_types.h"
-#include "../../libspudec/nav_types.h"
 #include "dvd_reader.h"
+#include "nav_types.h"
 
 /**
  * \file dvdnav_events.h

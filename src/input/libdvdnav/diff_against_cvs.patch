@@ -60,11 +60,11 @@
  #define DVDNAV_EVENTS_H_INCLUDED
  
 -#include <dvdread/ifo_types.h>
--#include <dvdread/nav_types.h>
 -#include <dvdread/dvd_reader.h>
+-#include <dvdread/nav_types.h>
 +#include "ifo_types.h"
-+#include "../../libspudec/nav_types.h"
 +#include "dvd_reader.h"
++#include "nav_types.h"
  
  /**
   * \file dvdnav_events.h
@@ -95,7 +95,7 @@
  
  #include "vm.h"
 -#include <dvdread/nav_types.h>
-+#include "../../libspudec/nav_types.h"
++#include "nav_types.h"
  
  /*
  #define BUTTON_TESTING
@@ -108,17 +108,6 @@
  #include "vmcmd.h"
  
  static void print_time(dvd_time_t *dtime) {
---- src/input/libdvdnav/searching.c	Fri Jul 26 12:58:10 2002
-+++ src/input/libdvdnav/searching.c	Fri Aug  9 22:03:20 2002
-@@ -30,7 +30,7 @@
- #include "dvdnav_internal.h"
- 
- #include "vm.h"
--#include <dvdread/nav_types.h>
-+#include "../../libspudec/nav_types.h"
- 
- /*
- #define LOG_DEBUG
 --- src/input/libdvdnav/vm.c	Sat Jul  6 18:12:09 2002
 +++ src/input/libdvdnav/vm.c	Fri Aug  9 22:03:48 2002
 @@ -37,8 +37,8 @@
