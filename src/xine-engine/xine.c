@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.142 2002/07/05 15:08:58 mroi Exp $
+ * $Id: xine.c,v 1.143 2002/07/13 11:11:04 tmattern Exp $
  *
  * top-level xine functions
  *
@@ -356,10 +356,11 @@ int xine_play_internal (xine_t *this, char *mrl,
   int        demux_status;
 
   printf ("xine_play: xine open %s, start pos = %d, start time = %d (sec)\n", 
-	  mrl, start_pos, start_time);
+          mrl, start_pos, start_time);
 
-  xine_set_speed_internal (this, SPEED_NORMAL);
-  
+  if (this->speed != SPEED_NORMAL) {
+    xine_set_speed_internal (this, SPEED_NORMAL);
+  }
   /*
    * stop engine only for different mrl
    */
@@ -373,30 +374,33 @@ int xine_play_internal (xine_t *this, char *mrl,
     if(this->cur_input_plugin) {
 
       if (strcmp (mrl, this->cur_mrl)) 
-	this->cur_input_plugin->close(this->cur_input_plugin);
+        this->cur_input_plugin->close(this->cur_input_plugin);
       else
-	this->cur_input_plugin->stop(this->cur_input_plugin);
+        this->cur_input_plugin->stop(this->cur_input_plugin);
     }
 
     if (this->audio_out)
       this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
     this->status = XINE_STOP;
+  } else {
   }
 
-  /* Is it an 'opt:' mrlstyle ? */ 
-  if(config_file_change_opt(this->config, mrl)) {
-    xine_event_t event;
+  if (strcmp (mrl, this->cur_mrl)) {
+    /* Is it an 'opt:' mrlstyle ? */ 
+    if(config_file_change_opt(this->config, mrl)) {
+      xine_event_t event;
     
-    this->status = XINE_STOP;
+      this->status = XINE_STOP;
     
-    event.type = XINE_EVENT_PLAYBACK_FINISHED;
-    pthread_mutex_unlock (&this->xine_lock);
-    xine_send_event (this, &event);
-    pthread_mutex_lock (&this->xine_lock);
-    return 1;
+      event.type = XINE_EVENT_PLAYBACK_FINISHED;
+      pthread_mutex_unlock (&this->xine_lock);
+      xine_send_event (this, &event);
+      pthread_mutex_lock (&this->xine_lock);
+      return 1;
+    }
   }
-  
+
   if (this->status == XINE_STOP ) {
     /*
      * find input plugin
@@ -447,7 +451,6 @@ int xine_play_internal (xine_t *this, char *mrl,
   /*
    * start demuxer
    */
-
   if (start_pos) {
     /* FIXME: do we need to protect concurrent access to input plugin here? */
     len = this->cur_input_plugin->get_length (this->cur_input_plugin);
@@ -483,7 +486,8 @@ int xine_play_internal (xine_t *this, char *mrl,
     strncpy (this->cur_mrl, mrl, 1024);
     
     /* osd */
-    xine_usec_sleep(100000); /* FIXME: how do we assure an updated cur_input_time? */
+    /* FIXME: how do we assure an updated cur_input_time? */
+    /* xine_usec_sleep(100000); */
     xine_internal_osd (this, ">", this->metronom->get_current_time (this->metronom), 300000);
 
   }
