@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.1 2002/10/04 05:05:58 tmmm Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.2 2002/10/05 17:48:25 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -323,12 +323,17 @@ static int demux_yuv4mpeg2_open(demux_plugin_t *this_gen, input_plugin_t *input,
   return DEMUX_CANNOT_HANDLE;
 }
 
+static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
+                                 off_t start_pos, int start_time);
+
 static int demux_yuv4mpeg2_start (demux_plugin_t *this_gen,
                                   off_t start_pos, int start_time) {
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
   buf_element_t *buf;
   int err;
+
+  demux_yuv4mpeg2_seek(this_gen, start_pos, start_time);
 
   pthread_mutex_lock(&this->mutex);
 
@@ -377,7 +382,26 @@ static int demux_yuv4mpeg2_start (demux_plugin_t *this_gen,
 static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
                                  off_t start_pos, int start_time) {
 
-  return 0;
+  demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
+  int status;
+
+   /* YUV4MPEG2 files are essentially constant bit-rate video. Seek along
+    * the calculated frame boundaries. Divide the requested seek offset
+    * by the frame size integer-wise to obtain the desired frame number 
+    * and then multiply the frame number by the frame size to get the
+    * starting offset. Add the data_start offset to obtain the final
+    * offset. */
+
+  start_pos /= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
+  start_pos *= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
+  start_pos += this->data_start;
+
+  this->input->seek(this->input, start_pos, SEEK_SET);
+  status = this->status = DEMUX_OK;
+  xine_demux_flush_engine (this->xine);
+  pthread_mutex_unlock(&this->mutex);
+
+  return status;
 }
 
 static void demux_yuv4mpeg2_stop (demux_plugin_t *this_gen) {
@@ -422,7 +446,10 @@ static char *demux_yuv4mpeg2_get_id(void) {
 
 static int demux_yuv4mpeg2_get_stream_length (demux_plugin_t *this_gen) {
 
-  return 0;
+  demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
+
+  return (this->data_size / (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE) /
+    this->fps);
 }
 
 static char *demux_yuv4mpeg2_get_mimetypes(void) {
