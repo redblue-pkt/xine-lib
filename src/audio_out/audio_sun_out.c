@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.28 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: audio_sun_out.c,v 1.29 2003/03/07 20:28:42 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,15 +67,17 @@
 
 
 typedef struct {
-  audio_driver_class_t driver_class;
+  audio_driver_class_t	driver_class;
 
-  config_values_t *config;
+  xine_t	       *xine;
 } sun_class_t;
 
 
 typedef struct sun_driver_s {
 
   ao_driver_t    ao_driver;
+
+  xine_t	*xine;
 
   char		*audio_dev;
   int            audio_fd;
@@ -147,8 +149,11 @@ static int realtime_samplecounter_available(char *dev)
   if (silence == NULL)
     goto error;
     
-  if ((fd = open(dev, O_WRONLY)) < 0)
+  if ((fd = open(dev, O_WRONLY|O_NONBLOCK)) < 0)
     goto error;
+
+  /* We wanted non blocking open but now put it back to normal */
+  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
 
   AUDIO_INITINFO(&info);
   info.play.sample_rate = 44100;
@@ -407,10 +412,12 @@ static int ao_sun_open(ao_driver_t *this_gen,
   int pass;
   int ok;
 
-  printf ("audio_sun_out: ao_sun_open rate=%d, mode=%d\n", rate, mode);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf ("audio_sun_out: ao_sun_open rate=%d, mode=%d\n", rate, mode);
 
   if ( (mode & this->capabilities) == 0 ) {
-    printf ("audio_sun_out: unsupported mode %08x\n", mode);
+    if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("audio_sun_out: unsupported mode %08x\n", mode);
     return 0;
   }
 
@@ -430,15 +437,15 @@ static int ao_sun_open(ao_driver_t *this_gen,
    * open audio device
    */
 
-  this->audio_fd=open(this->audio_dev,O_WRONLY|O_NONBLOCK);
+  this->audio_fd = open(this->audio_dev, O_WRONLY|O_NONBLOCK);
   if(this->audio_fd < 0) {
-    printf("audio_sun_out: Opening audio device %s failed: %s\n",
-	   this->audio_dev, strerror(errno));
+    fprintf(stderr, "audio_sun_out: Opening audio device %s failed: %s\n",
+	    this->audio_dev, strerror(errno));
     return 0;
   }
   
   /* We wanted non blocking open but now put it back to normal */
-  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL)&~O_NONBLOCK);
+  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL) & ~O_NONBLOCK);
 
   /*
    * configure audio device
@@ -509,9 +516,9 @@ static int ao_sun_open(ao_driver_t *this_gen,
   }
 
   if (!ok) {
-      printf("audio_sun_out: Cannot configure audio device for "
-	     "%dhz, %d channel, %d bits: %s\n",
-	     rate, info.play.channels, bits, strerror(errno));
+      fprintf(stderr, "audio_sun_out: Cannot configure audio device for "
+	      "%dhz, %d channel, %d bits: %s\n",
+	      rate, info.play.channels, bits, strerror(errno));
       close(this->audio_fd);
       this->audio_fd = -1;
       return 0;
@@ -537,7 +544,8 @@ static int ao_sun_open(ao_driver_t *this_gen,
 	   this->input_sample_rate, this->output_sample_rate);
   */
 
-  printf ("audio_sun_out: %d channels output\n",this->num_channels);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf ("audio_sun_out: %d channels output\n",this->num_channels);
   return this->output_sample_rate;
 }
 
@@ -562,7 +570,7 @@ static int ao_sun_delay(ao_driver_t *this_gen)
       (this->frames_in_buffer == 0 || info.play.samples > 0)) {
 
     if (info.play.samples < this->last_samplecnt) {
-	printf("*** broken sound driver, sample counter runs backwards, cur %u < prev %u\n",
+	fprintf(stderr, "audio_sun_out: broken sound driver, sample counter runs backwards, cur %u < prev %u\n",
 	       info.play.samples, this->last_samplecnt);
     }
     this->last_samplecnt = info.play.samples;
@@ -862,7 +870,7 @@ static int ao_sun_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   sun_class_t         *class = (sun_class_t *) class_gen;
-  config_values_t     *config = class->config;
+  config_values_t     *config = class->xine->config;
   sun_driver_t	      *this;
   char                *devname;
   int                  audio_fd;
@@ -870,6 +878,8 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
   audio_info_t	       info;
 
   this = (sun_driver_t *) malloc (sizeof (sun_driver_t));
+
+  this->xine = class->xine;
 
   /* Fill the .xinerc file with options */ 
   devname = config->register_string(config,
@@ -884,18 +894,19 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
    * find best device driver/channel
    */
 
-  printf ("audio_sun_out: Opening audio device %s...\n", devname);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf ("audio_sun_out: Opening audio device %s...\n", devname);
 
   /*
    * open the device
    */
 
-  audio_fd=open(this->audio_dev = devname, O_WRONLY|O_NONBLOCK);
+  audio_fd = open(this->audio_dev = devname, O_WRONLY|O_NONBLOCK);
 
   if(audio_fd < 0) 
   {
-    fprintf(stderr, "audio_sun_out: opening audio device %s failed:\n%s\n",
-	   devname, strerror(errno));
+    fprintf(stderr, "audio_sun_out: opening audio device %s failed: %s\n",
+	    devname, strerror(errno));
 
     free (this);
     return NULL;
@@ -916,24 +927,12 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
    * get capabilities
    */
 
-  this->capabilities = 0;
-
-  printf ("audio_sun_out: supported modes are ");
-
-  this->capabilities |= AO_CAP_MODE_MONO;
-  printf ("mono ");
-
-  this->capabilities |= AO_CAP_MODE_STEREO;
-  printf ("stereo ");
-
-  this->capabilities |= AO_CAP_8BITS;
-  printf ("8bit ");
-
-  this->capabilities |= AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
-  printf ("\n");
+  this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_8BITS
+  		     | AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
 
   close (audio_fd);
 
+  this->xine = class->xine;
   this->audio_fd = -1;
   this->use_rtsc = realtime_samplecounter_available(this->audio_dev);
   this->output_sample_rate = 0;
@@ -983,7 +982,7 @@ static void *ao_sun_init_class (xine_t *xine, void *data) {
   this->driver_class.get_description = ao_sun_get_description;
   this->driver_class.dispose         = ao_sun_dispose_class;
 
-  this->config = xine->config;
+  this->xine = xine;
 
   return this;
 }
