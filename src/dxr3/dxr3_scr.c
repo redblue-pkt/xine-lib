@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.8 2003/01/12 20:54:14 f1rmb Exp $
+ * $Id: dxr3_scr.c,v 1.9 2003/02/26 20:35:32 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -226,6 +226,7 @@ static void dxr3_scr_exit(scr_plugin_t *scr)
 {
   dxr3_scr_t *this = (dxr3_scr_t *)scr;
   
+  close(this->fd_control);
   pthread_mutex_destroy(&this->mutex);
   free(this);
 }
