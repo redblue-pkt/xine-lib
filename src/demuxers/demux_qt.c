@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.2 2001/09/11 14:11:56 guenter Exp $
+ * $Id: demux_qt.c,v 1.3 2001/09/11 23:02:47 guenter Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -3415,6 +3415,7 @@ static int quicktime_has_audio(quicktime_t *file)
 
 static long quicktime_sample_rate(quicktime_t *file, int track)
 {
+/*   return 8000;*/
   if(file->total_atracks)
     return file->atracks[track].track->mdia.minf.stbl.stsd.table[0].sample_rate;
   return 0;
@@ -3939,14 +3940,37 @@ static void *demux_qt_loop (void *this_gen) {
 
   buf_element_t *buf = NULL;
   demux_qt_t *this = (demux_qt_t *) this_gen;
-  uint32_t audio_pts, video_pts, frame_num;
+  uint32_t audio_pts, video_pts, frame_num, audio_pos;
 
   /* printf ("demux_qt: demux loop starting...\n"); */
 
   do {
 
+    audio_pos = quicktime_audio_position (this->qt, 0);
+
+    if ( (audio_pos + 256) > quicktime_audio_length (this->qt, 0)) {
+      this->status = DEMUX_FINISHED;
+      break;
+    }
+
+    /*
+    printf ("audio pos:%d < %d\n",
+	    audio_pos, quicktime_audio_length (this->qt, 0));
+    */
+
     audio_pts = quicktime_audio_position (this->qt, 0) * this->audio_factor ;
+
     frame_num = quicktime_video_position (this->qt, 0);
+    if ( frame_num == quicktime_video_length (this->qt, 0) ) {
+      this->status = DEMUX_FINISHED;
+      break;
+    }
+
+    /*
+    printf ("video pos:%d < %d\n",
+	    frame_num, quicktime_video_length (this->qt, 0));
+    */
+
     video_pts = frame_num * this->video_step ;
 
     if ( this->audio_fifo && (audio_pts < video_pts)) { 
@@ -3959,13 +3983,26 @@ static void *demux_qt_loop (void *this_gen) {
 	this->status = DEMUX_FINISHED;
 	buf->free_buffer (buf);
       } else {
+
+	int count;
       
 	buf->PTS             = audio_pts;
 	buf->type            = this->audio_type;
 	buf->decoder_info[0] = 1;
 	buf->input_time      = 0;
 	buf->input_pos       = 0;
-	
+
+	/*
+	for (count=0; count<buf->size; count++){
+
+	  printf ("%02x ", buf->content[count]);
+	  if ( !(count % 8) )
+	    printf ("  ");
+	  if ( !(count % 16) )
+	    printf ("\n");
+	}
+	*/
+
 	this->audio_fifo->put (this->audio_fifo, buf);
       }
 
@@ -4012,8 +4049,8 @@ static void *demux_qt_loop (void *this_gen) {
   
 
   /*
-    printf ("demux_qt: demux loop finished (status: %d)\n",
-    this->status);
+  printf ("demux_qt: demux loop finished (status: %d)\n",
+	  this->status);
   */
 
   this->status = DEMUX_FINISHED;
@@ -4170,6 +4207,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
+  this->send_end_buffers = 1;
 
   /*
    * init quicktime parser

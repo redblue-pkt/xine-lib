@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.15 2001/09/11 14:10:04 jcdutton Exp $
+ * $Id: audio_out.c,v 1.16 2001/09/11 23:02:47 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -321,10 +321,12 @@ static int ao_write(ao_instance_t *this,
   if (!bDropPackage) {
     int num_output_frames = (double) num_frames * this->frame_rate_factor;
 
-    if ((!this->do_resample) && (this->mode != AO_CAP_MODE_A52) && (this->mode != AO_CAP_MODE_AC5)) {
+    if ((!this->do_resample) 
+	&& (this->mode != AO_CAP_MODE_A52) 
+	&& (this->mode != AO_CAP_MODE_AC5)) {
       xprintf (VERBOSE|AUDIO, "audio_out: writing without resampling\n");
       this->driver->write (this->driver, output_frames,
-			   num_output_frames );
+			   num_frames );
     } else switch (this->mode) {
     case AO_CAP_MODE_MONO:
       audio_out_resample_mono (output_frames, num_frames,
