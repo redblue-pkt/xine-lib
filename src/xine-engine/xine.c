@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.101 2002/02/01 09:51:28 f1rmb Exp $
+ * $Id: xine.c,v 1.102 2002/02/01 09:59:08 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -545,10 +545,6 @@ xine_t *xine_init (vo_driver_t *vo,
 
 int xine_get_spu_channel (xine_t *this) {
 
-      printf("this->spu_channel_auto = %d\n", this->spu_channel_auto);
-      printf("this->spu_channel_user = %d\n", this->spu_channel_user);
-      printf("this->spu_channel = %d\n", this->spu_channel);
-      printf("return %d\n", this->spu_channel_user);
   return this->spu_channel_user;
 }
 
