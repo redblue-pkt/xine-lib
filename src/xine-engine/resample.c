@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.c,v 1.4 2002/10/23 17:12:34 guenter Exp $
+ * $Id: resample.c,v 1.5 2002/12/11 16:22:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,7 +34,7 @@ void audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples,
   int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
-  uint32_t istep = (in_samples << 16)/out_samples;
+  uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
 
 #ifdef VERBOSE
   printf ("Audio : resample %d samples to %d\n",
@@ -65,7 +65,7 @@ void audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples,
   int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
-  uint32_t istep = (in_samples << 16)/out_samples;
+  uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
 
 #ifdef VERBOSE
   printf ("Audio : resample %d samples to %d\n",
@@ -103,7 +103,7 @@ void audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples,
   int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
-  uint32_t istep = (in_samples << 16)/out_samples;
+  uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
 
 #ifdef VERBOSE
   printf ("Audio : resample %d samples to %d\n",
@@ -157,7 +157,7 @@ void audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples,
   int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
-  uint32_t istep = (in_samples << 16)/out_samples;
+  uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
 
 #ifdef VERBOSE
   printf ("Audio : resample %d samples to %d\n",
@@ -218,7 +218,7 @@ void audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples,
   int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
-  uint32_t istep = (in_samples << 16)/out_samples;
+  uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
 
 #ifdef VERBOSE
   printf ("Audio : resample %d samples to %d\n",
