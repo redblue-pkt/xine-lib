@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.59 2002/02/17 17:32:50 guenter Exp $
+ * $Id: audio_decoder.c,v 1.60 2002/02/18 15:55:44 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -36,6 +36,9 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 
+/*
+#define LOG
+*/
 
 void *audio_decoder_loop (void *this_gen) {
 
@@ -50,16 +53,16 @@ void *audio_decoder_loop (void *this_gen) {
 
   while (running) {
 
-#ifdef AUDIO_DECODER_LOG
+#ifdef LOG
     printf ("audio_loop: waiting for package...\n");  
 #endif
 
     buf = this->audio_fifo->get (this->audio_fifo);
 
     
-#ifdef AUDIO_DECODER_LOG
+#ifdef LOG
     printf ("audio_loop: got package pts = %d, type = %08x\n", 
-	    buf->PTS, buf->type); 
+	    buf->pts, buf->type); 
 #endif    
 
     if (buf->input_pos)

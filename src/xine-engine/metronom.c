@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.57 2002/02/18 13:33:19 guenter Exp $
+ * $Id: metronom.c,v 1.58 2002/02/18 15:55:44 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,8 +46,6 @@
 #define MAX_SCR_PROVIDERS        10
 #define PREBUFFER_PTS_OFFSET  30000
 #define VIDEO_DRIFT_TOLERANCE 45000
-
-#define METRONOM_REPORT
 
 /*
 #define LOG
@@ -433,7 +431,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
 	this->video_vpts -= diff / 8; /* FIXME: better heuristics ? */
 	/* make wrap_offset consistent with the drift correction */
-	this->video_wrap_offset = this->video_vpts - pts;
+	/* this->video_wrap_offset = this->video_vpts - pts; */
+	/* don't touch wrap here, wrap offsets are used for wrap compensation */
 
 #ifdef LOG
 	printf ("metronom: video drift, wrap offset is now %lld\n",

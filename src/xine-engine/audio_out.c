@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.41 2002/02/17 17:32:50 guenter Exp $
+ * $Id: audio_out.c,v 1.42 2002/02/18 15:55:44 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -67,9 +67,8 @@
 #include "resample.h"
 #include "metronom.h"
 
-
 /*
-#define AUDIO_OUT_LOG
+#define LOG
 */
 
 #define NUM_AUDIO_BUFFERS       32
@@ -204,13 +203,14 @@ void write_pause_burst(ao_instance_t *this, uint32_t num_frames)
 }
 
 
-static void ao_fill_gap (ao_instance_t *this, uint32_t pts_len) {
+static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
 
   int num_frames ;
 
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
-  printf ("audio_out: inserting %d 0-frames to fill a gap of %d pts\n",num_frames, pts_len);
+  printf ("audio_out: inserting %d 0-frames to fill a gap of %lld pts\n",
+	  num_frames, pts_len);
 
   if ((this->mode == AO_CAP_MODE_A52) || (this->mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
@@ -233,21 +233,16 @@ static void ao_fill_gap (ao_instance_t *this, uint32_t pts_len) {
 static void *ao_loop (void *this_gen) {
 
   ao_instance_t  *this = (ao_instance_t *) this_gen;
-  uint32_t        hw_vpts;
+  int64_t         hw_vpts;
   audio_buffer_t *buf;
-  int32_t         gap;
+  int64_t         gap;
   int             delay;
-  uint32_t        cur_time;
+  int64_t         cur_time;
   int             num_output_frames ;
   int             paused_wait;
   
   while ((this->audio_loop_running) ||
 	 (!this->audio_loop_running && this->out_fifo->first)) {
-
-
-#ifdef AUDIO_OUT_LOG
-    printf ("audio_out: fifo_remove\n");
-#endif
 
     buf = fifo_remove (this->out_fifo);
 
@@ -262,8 +257,8 @@ static void *ao_loop (void *this_gen) {
       cur_time = this->metronom->get_current_time (this->metronom);
       hw_vpts = cur_time;
   
-#ifdef AUDIO_OUT_LOG
-      printf ("audio_out: current delay is %d, current time is %d\n",
+#ifdef LOG
+      printf ("audio_out: current delay is %d, current time is %lld\n",
 	    delay, cur_time);
 #endif
 
@@ -290,11 +285,10 @@ static void *ao_loop (void *this_gen) {
         xine_usec_sleep (50000);
     } while ( paused_wait );
 
-        
-   /* 
-      printf ("vpts : %d   buffer_vpts : %d  gap %d\n",
-      hw_vpts, buf->vpts, gap);
-    */
+#ifdef LOG
+    printf ("audio_out: hw_vpts : %lld   buffer_vpts : %lld   gap : %lld\n",
+	    hw_vpts, buf->vpts, gap);
+#endif
 
     /*
      * output audio data synced to master clock
@@ -305,8 +299,8 @@ static void *ao_loop (void *this_gen) {
 
       /* drop package */
 
-#ifdef AUDIO_OUT_LOG
-      printf ("audio_out: audio package (vpts = %d %d) dropped\n", 
+#ifdef LOG
+      printf ("audio_out: audio package (vpts = %lld, gap = %lld) dropped\n", 
 	      buf->vpts, gap);
 #endif
 
@@ -317,7 +311,7 @@ static void *ao_loop (void *this_gen) {
 	if (gap>15000) 
 	  ao_fill_gap (this, gap);
 	else {
-	  printf ("audio_out: adjusting master clock %d -> %d\n",
+	  printf ("audio_out: adjusting master clock %lld -> %lld\n",
 		  cur_time, cur_time + gap);
 	  this->metronom->adjust_clock (this->metronom, 
 					cur_time + gap);
@@ -328,8 +322,12 @@ static void *ao_loop (void *this_gen) {
       /*
        * resample and output audio data
        */
-      
+
       num_output_frames = (double) buf->num_frames * this->frame_rate_factor;
+      
+#ifdef LOG
+      printf ("audio_out: outputting %d frames\n", num_output_frames);
+#endif
       
       if ((!this->do_resample) 
 	  && (this->mode != AO_CAP_MODE_A52) 
@@ -430,7 +428,7 @@ static int ao_open(ao_instance_t *this,
   this->frame_rate_factor = (double) this->output_frame_rate / (double) this->input_frame_rate; 
   this->audio_step        = (uint32_t) 90000 * (uint32_t) 32768 / this->input_frame_rate;
   this->frames_per_kpts   = this->output_frame_rate * 1024 / 90000;
-#ifdef AUDIO_OUT_LOG
+#ifdef LOG
   printf ("audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
 #endif
 
@@ -466,13 +464,22 @@ static audio_buffer_t *ao_get_buffer (ao_instance_t *this) {
 
 static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
 
+  int64_t pts;
+
   if (buf->num_frames == 0) {
     fifo_append (this->free_fifo, buf);
     return;
   }
 
-  buf->vpts = this->metronom->got_audio_samples (this->metronom, buf->vpts, 
+  pts = buf->vpts;
+
+  buf->vpts = this->metronom->got_audio_samples (this->metronom, pts, 
 						 buf->num_frames, buf->scr);
+
+#ifdef LOG
+  printf ("audio_out: got buffer, pts=%lld, vpts=%lld\n",
+	  pts, buf->vpts);
+#endif
 
   if ( buf->vpts<this->last_audio_vpts) {
 
