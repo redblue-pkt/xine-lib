@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.52 2002/08/27 22:34:33 tmattern Exp $
+ * $Id: demux_asf.c,v 1.53 2002/08/27 23:12:16 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -128,7 +128,7 @@ typedef struct demux_asf_s {
   int               frame;
 
   pthread_t         thread;
-  int                  thread_running;
+  int               thread_running;
   pthread_mutex_t   mutex;
 
   int               status;
@@ -143,6 +143,7 @@ typedef struct demux_asf_s {
   int               reorder_b;
 
   off_t             header_size;
+  int               buf_flag_seek;
 } demux_asf_t ;
 
 
@@ -699,7 +700,12 @@ static void hexdump (unsigned char *data, int len, xine_t *xine) {
 
 static void asf_send_discontinuity (demux_asf_t *this, int64_t pts) {
 
-  xine_demux_control_newpts(this->xine, pts, 0);
+  if (this->buf_flag_seek) {
+    xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
+    this->buf_flag_seek = 0;
+  } else {
+    xine_demux_control_newpts(this->xine, pts, 0);
+  }
 }
 
 
@@ -1318,13 +1324,16 @@ static int demux_asf_start (demux_plugin_t *this_gen,
 
     if( !this->thread_running ) {
       this->send_end_buffers = 1;
-      this->thread_running = 1;
+      this->thread_running   = 1;
+      this->buf_flag_seek    = 0;
       if ((err = pthread_create (&this->thread,
 			       NULL, demux_asf_loop, this)) != 0) {
         printf ("demux_asf: can't create new thread (%s)\n",
 	      strerror(err));
         abort();
       }
+    } else {
+      this->buf_flag_seek = 1;
     }
   }
 
