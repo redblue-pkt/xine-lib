@@ -1,0 +1,122 @@
+--- src/input/libdvdread/ifo_print.h	Sun Apr  7 19:52:01 2002
++++ src/input/libdvdread/ifo_print.h	Sat Aug 10 15:47:34 2002
+@@ -20,8 +20,8 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/ifo_types.h>
+-#include <dvdread/dvd_reader.h>
++#include "ifo_types.h"
++#include "dvd_reader.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/ifo_read.h	Sun Apr  7 19:52:01 2002
++++ src/input/libdvdread/ifo_read.h	Sat Aug 10 15:47:59 2002
+@@ -20,8 +20,8 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/ifo_types.h>
+-#include <dvdread/dvd_reader.h>
++#include "ifo_types.h"
++#include "dvd_reader.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/ifo_types.h	Sun Apr  7 19:52:01 2002
++++ src/input/libdvdread/ifo_types.h	Sat Aug 10 15:48:25 2002
+@@ -21,7 +21,7 @@
+  */
+ 
+ #include <inttypes.h>
+-#include <dvdread/dvd_reader.h>
++#include "dvd_reader.h"
+ 
+ 
+ #undef ATTRIBUTE_PACKED
+--- src/input/libdvdread/nav_print.h	Sun Apr  7 20:17:19 2002
++++ src/input/libdvdread/nav_print.h	Sat Aug 10 15:48:53 2002
+@@ -20,7 +20,7 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/nav_types.h>
++#include "nav_types.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/nav_read.c	Sun Apr  7 19:52:01 2002
++++ src/input/libdvdread/nav_read.c	Fri Aug  9 17:06:58 2002
+@@ -26,8 +26,12 @@
+ #include "nav_types.h"
+ #include "nav_read.h"
+ 
++/*
++#define STRICT
++*/
++
+ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
+-  int i, j, k;
++  int i, j;
+ 
+   assert(sizeof(pci_t) == PCI_BYTES - 1); // -1 for substream id
+   
+@@ -71,6 +75,7 @@
+ #endif
+ 
+ 
++#ifdef STRICT
+   /* Asserts */
+ 
+   /* pci pci gi */ 
+@@ -95,6 +100,7 @@
+   /* pci hli btnit */
+   for(i = 0; i < pci->hli.hl_gi.btngr_ns; i++) {
+     for(j = 0; j < (36 / pci->hli.hl_gi.btngr_ns); j++) {
++      int k;
+       int n = (36 / pci->hli.hl_gi.btngr_ns) * i + j;
+       assert(pci->hli.btnit[n].zero1 == 0);
+       assert(pci->hli.btnit[n].zero2 == 0);
+@@ -127,6 +133,7 @@
+       }
+     }
+   }
++#endif
+ }
+ 
+ void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
+@@ -178,9 +185,11 @@
+     B2N_32(dsi->synci.sp_synca[i]);
+ 
+   
++#ifdef STRICT
+   /* Asserts */
+ 
+   /* dsi dsi gi */
+   assert(dsi->dsi_gi.zero1 == 0);
++#endif
+ }
+ 
+--- src/input/libdvdread/nav_read.h	Sun Apr  7 20:17:19 2002
++++ src/input/libdvdread/nav_read.h	Sat Aug 10 15:49:26 2002
+@@ -19,7 +19,7 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
+-#include <dvdread/nav_types.h>
++#include "nav_types.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- src/input/libdvdread/nav_types.h	Sun Apr  7 20:41:59 2002
++++ src/input/libdvdread/nav_types.h	Sat Aug 10 15:49:47 2002
+@@ -30,7 +30,7 @@
+  */
+ 
+ #include <inttypes.h>
+-#include <dvdread/ifo_types.h> // only dvd_time_t, vm_cmd_t and user_ops_t
++#include "ifo_types.h" // only dvd_time_t, vm_cmd_t and user_ops_t
+ 
+ 
+ #undef ATTRIBUTE_PACKED
