@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.71 2002/04/09 10:56:19 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.72 2002/04/10 10:37:41 miguelfreitas Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -1053,6 +1053,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		 written, buf->size);
 }
 
+static void spudec_reset (spu_decoder_t *this_gen)
+{
+}
+
 static void spudec_close (spu_decoder_t *this_gen)
 {
 	spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
@@ -1164,7 +1168,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   char *tmpstr;
   int dashpos;
 
-  if (iface_version != 4) {
+  if (iface_version != 5) {
     printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 	    "dxr3: this means there's a version mismatch between xine and this "
 	    "dxr3: decoder plugin.\nInstalling current plugins should help.\n",
@@ -1194,10 +1198,11 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
 
   this = (spudec_decoder_t *) malloc (sizeof (spudec_decoder_t));
 
-  this->spu_decoder.interface_version   = 4;
+  this->spu_decoder.interface_version   = iface_version;
   this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
+  this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 10;
