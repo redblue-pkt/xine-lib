@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.34 2001/12/14 17:39:29 jkeil Exp $
+ * $Id: input_file.c,v 1.35 2001/12/14 21:03:03 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,7 +33,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
-#include <limits.h>	/*PATH_MAX*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -43,13 +42,6 @@
 extern int errno;
 
 #define MAXFILES      65535
-
-#ifndef NAME_MAX
-#define NAME_MAX 256
-#endif
-#ifndef PATH_MAX
-#define PATH_MAX 768
-#endif
 
 #ifndef S_ISLNK
 #define S_ISLNK(mode)  0
@@ -187,7 +179,7 @@ static uint32_t get_file_type(char *filepathname, char *origin) {
   struct stat  pstat;
   int          mode;
   uint32_t     file_type = 0;
-  char         buf[PATH_MAX + NAME_MAX + 1];
+  char         buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 
   if((lstat(filepathname, &pstat)) < 0) {
     sprintf(buf, "%s/%s", origin, filepathname);
@@ -233,7 +225,7 @@ static uint32_t get_file_type(char *filepathname, char *origin) {
  */
 static off_t get_file_size(char *filepathname, char *origin) {
   struct stat  pstat;
-  char         buf[PATH_MAX + NAME_MAX + 1];
+  char         buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 
   if((lstat(filepathname, &pstat)) < 0) {
     sprintf(buf, "%s/%s", origin, filepathname);
@@ -410,9 +402,9 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   struct dirent        *pdirent;
   DIR                  *pdir;
   mrl_t                *hide_files, *dir_files, *norm_files;
-  char                  current_dir[PATH_MAX + 1];
-  char                  current_dir_slashed[PATH_MAX + 1];
-  char                  fullfilename[PATH_MAX + NAME_MAX + 1];
+  char                  current_dir[XINE_PATH_MAX + 1];
+  char                  current_dir_slashed[XINE_PATH_MAX + 1];
+  char                  fullfilename[XINE_PATH_MAX + XINE_NAME_MAX + 1];
   int                   num_hide_files  = 0;
   int                   num_dir_files   = 0;
   int                   num_norm_files  = 0;
@@ -426,14 +418,14 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
    * No origin location, so got the content of the current directory
    */
   if(!filename) {
-    snprintf(current_dir, PATH_MAX, "%s", this->origin_path);
+    snprintf(current_dir, XINE_PATH_MAX, "%s", this->origin_path);
   }
   else {
     /* Remove exceed '/' */
     while((filename[strlen(filename) - 1] == '/') && strlen(filename) > 1)
       filename[strlen(filename) - 1] = '\0';
     
-    snprintf(current_dir, PATH_MAX, "%s", filename);
+    snprintf(current_dir, XINE_PATH_MAX, "%s", filename);
     
   }
 
@@ -482,11 +474,11 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 
 	/* The file is a link, follow it */
 	if(dir_files[num_dir_files].type & mrl_file_symlink) {
-	  char linkbuf[PATH_MAX + NAME_MAX + 1];
+	  char linkbuf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 	  int linksize;
 	  
 	  memset(linkbuf, 0, sizeof(linkbuf));
-	  linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
+	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
 	  if(linksize < 0) {
 	    fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
@@ -521,11 +513,11 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	
 	/* The file is a link, follow it */
 	if(hide_files[num_hide_files].type & mrl_file_symlink) {
-	  char linkbuf[PATH_MAX + NAME_MAX + 1];
+	  char linkbuf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 	  int linksize;
 	  
 	  memset(linkbuf, 0, sizeof(linkbuf));
-	  linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
+	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
 	  if(linksize < 0) {
 	    fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
@@ -557,11 +549,11 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
       
       /* The file is a link, follow it */
       if(norm_files[num_norm_files].type & mrl_file_symlink) {
-	char linkbuf[PATH_MAX + NAME_MAX + 1];
+	char linkbuf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 	int linksize;
 	
 	memset(linkbuf, 0, sizeof(linkbuf));
-	linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
+	linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	
 	if(linksize < 0) {
 	  fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
@@ -839,7 +831,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrls_allocated_entries = 0;
 
   {
-    char current_dir[PATH_MAX + 1];
+    char current_dir[XINE_PATH_MAX + 1];
     
     if(getcwd(current_dir, sizeof(current_dir)) == NULL)
       strcpy(current_dir, ".");

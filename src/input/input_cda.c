@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.11 2001/12/11 00:04:09 f1rmb Exp $
+ * $Id: input_cda.c,v 1.12 2001/12/14 21:03:03 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -81,13 +81,6 @@
 #else
 #define _ENTER_FUNC()
 #define _LEAVE_FUNC()
-#endif
-
-#ifndef NAME_MAX
-#define NAME_MAX 256
-#endif
-#ifndef PATH_MAX
-#define PATH_MAX 768
 #endif
 
 #if defined(__sun)
@@ -227,8 +220,8 @@ static void _cda_mkdir_safe(char *path) {
  */
 static void _cda_mkdir_recursive_safe(char *path) {
   char *p, *pp;
-  char buf[PATH_MAX + NAME_MAX + 1];
-  char buf2[PATH_MAX + NAME_MAX + 1];
+  char buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
+  char buf2[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 
   if(path == NULL)
     return;
@@ -284,7 +277,7 @@ static char *_cda_get_hostname_safe(void) {
  *
  */
 static char *_cda_cddb_get_default_location(void) {
-  static char buf[PATH_MAX + NAME_MAX + 1];
+  static char buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
   
   memset(&buf, 0, sizeof(buf));
   sprintf(buf, "%s/.xine/cddbcache", (xine_get_homedir()));
@@ -419,7 +412,7 @@ static int _cda_cddb_handle_code(char *buf) {
  * Try to load cached cddb infos
  */
 static int _cda_load_cached_cddb_infos(cda_input_plugin_t *this) {
-  char  cdir[PATH_MAX + NAME_MAX + 1];
+  char  cdir[XINE_PATH_MAX + XINE_NAME_MAX + 1];
   DIR  *dir;
 
   if(this == NULL)
@@ -484,7 +477,7 @@ static int _cda_load_cached_cddb_infos(cda_input_plugin_t *this) {
  * Save cddb grabbed infos.
  */
 static void _cda_save_cached_cddb_infos(cda_input_plugin_t *this, char *filecontent) {
-  char   cfile[PATH_MAX + NAME_MAX + 1];
+  char   cfile[XINE_PATH_MAX + XINE_NAME_MAX + 1];
   FILE  *fd;
   
   if((this == NULL) || (filecontent == NULL))

@@ -17,12 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: compat.h,v 1.1 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: compat.h,v 1.2 2001/12/14 21:03:03 f1rmb Exp $
  *
  */
 
 #ifndef XINE_COMPAT_H
 #define XINE_COMPAT_H
+
+#include <limits.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +34,18 @@ extern "C" {
 #define __XINE_FUNCTION__    __func__
 #else
 #define __XINE_FUNCTION__    __FUNCTION__
+#endif
+
+#ifndef NAME_MAX
+#define XINE_NAME_MAX   256
+#else
+#define XINE_NAME_MAX   NAME_MAX
+#endif
+
+#ifndef PATH_MAX
+#define XINE_PATH_MAX   768
+#else
+#define XINE_PATH_MAX   PATH_MAX
 #endif
 
 
