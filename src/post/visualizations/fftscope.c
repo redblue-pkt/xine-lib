@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.3 2003/01/14 21:00:29 miguelfreitas Exp $
+ * $Id: fftscope.c,v 1.4 2003/01/18 15:28:08 tmmm Exp $
  *
  */
 
@@ -245,6 +245,7 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
   int i, j;
   int map_ptr;
   int amp_int;
+  float amp_float;
   unsigned int yuy2_pair;
   int c_delta;
 
@@ -303,10 +304,14 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
       map_ptr = ((FFT_HEIGHT - 1) * FFT_WIDTH + i * 2) / 2;
-      amp_int = (int)amp(i, this->wave[0], LOG_BITS);
-      amp_int >>= 4;
+      amp_float = amp(i, this->wave[0], LOG_BITS);
+      if (amp_float == 0)
+        amp_int = 0;
+      else
+        amp_int = (int)(60 * log10(amp_float));
       if (amp_int > 255)
         amp_int = 255;
+
       for (j = 0; j < amp_int; j++, map_ptr -= FFT_WIDTH / 2)
         ((unsigned int *)frame->base[0])[map_ptr] = yuy2_pair;
     }
@@ -322,10 +327,14 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
       map_ptr = ((FFT_HEIGHT / 2) * FFT_WIDTH + i * 2) / 2;
-      amp_int = (int)amp(i, this->wave[0], LOG_BITS);
-      amp_int >>= 4;
+      amp_float = amp(i, this->wave[0], LOG_BITS);
+      if (amp_float == 0)
+        amp_int = 0;
+      else
+        amp_int = (int)(25 * log10(amp_float));
       if (amp_int > 127)
         amp_int = 127;
+
       for (j = 0; j < amp_int; j++, map_ptr -= FFT_WIDTH / 2)
         ((unsigned int *)frame->base[0])[map_ptr] = yuy2_pair;
     }
@@ -334,10 +343,14 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
       map_ptr = ((FFT_HEIGHT - 1) * FFT_WIDTH + i * 2) / 2;
-      amp_int = (int)amp(i, this->wave[1], LOG_BITS);
-      amp_int >>= 4;
+      amp_float = amp(i, this->wave[0], LOG_BITS);
+      if (amp_float == 0)
+        amp_int = 0;
+      else
+        amp_int = (int)(25 * log10(amp_float));
       if (amp_int > 127)
         amp_int = 127;
+
       for (j = 0; j < amp_int; j++, map_ptr -= FFT_WIDTH / 2)
         ((unsigned int *)frame->base[0])[map_ptr] = yuy2_pair;
     }
