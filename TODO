@@ -15,6 +15,7 @@ required for 1.0
 - fix stream end detection for real streams
 - fix mpeg elementary stream playback (especially logo streams
   with only one frame)
+- clean up config options
 
 optional
 --------
@@ -67,28 +68,17 @@ Open Tasks
 xine's future
 =============
 
--  Separation of lots of audio and video processing functionality into post
-   plugins:
-  - Separate plugins for software scaling, colour space conversion,
-    postprocessing, deinterlacing, cropping, audio resampling, software
-    volume etc. If it's convenient/efficient plugins can do more than one
-    thing at the same time.
-  - Decoders set flags suggesting what needs to be done, e.g. ffmpeg decoder
-    might suggest postprocessing and cropping.
-  - Output drivers advertise what features are supported natively and what
-    limitations there are, e.g. scaling and maximum frame size for Xv.
-  - Front end informs engine what processing the user requests, e.g. audio
-    equaliser
-  - xine engine automatically inserts a chain of plugins for carrying out the
-    necessary processing.
-  Doing this would:
-  - Simplify decoder and output plugins, and therefore make developing new
-    ones much easier
-  - Reduce common code
-  - Increase flexibility of the engine
-  
-  The api should also allow the automatic insertion to be overridden/controlled
-  for applications such as video processing.
+- implement lots of audio and video processing filters as post plugins, e.g.
+  - scaling
+  - colorspace conversion
+  - deinterlacing
+  - audio resampling
+  - compressor
+  ...
+
+  extend public api so post plugins are instantiated automatically when
+  needed, but keep explicit post plugin rewiring functions for advanced
+  video processing frontends 
 
 - see what kind of cooperation can be set up with other media player projects
   - mike will look into moving xine's decoder api closer to the one
