@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.19 2002/07/17 18:17:48 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.20 2002/08/01 03:56:31 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -558,7 +558,6 @@ static int demux_film_start (demux_plugin_t *this_gen,
   demux_film_t *this = (demux_film_t *) this_gen;
   buf_element_t *buf;
   int err;
-  int status;
 
   pthread_mutex_lock(&this->mutex);
 
@@ -652,10 +651,9 @@ static int demux_film_start (demux_plugin_t *this_gen,
     }
   }
 
-  status = this->status;
   pthread_mutex_unlock(&this->mutex);
   
-  return status;
+  return DEMUX_OK;
 }
 
 static int demux_film_seek (demux_plugin_t *this_gen,

@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.9 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_roq.c,v 1.10 2002/08/01 03:56:31 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -466,7 +466,7 @@ static int demux_roq_start (demux_plugin_t *this_gen,
 
   pthread_mutex_unlock(&this->mutex);
 
-  return this->status;
+  return DEMUX_OK;
 }
 
 static int demux_roq_seek (demux_plugin_t *this_gen,

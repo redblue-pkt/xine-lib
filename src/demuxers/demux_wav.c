@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.6 2002/07/19 14:07:38 pmhahn Exp $
+ * $Id: demux_wav.c,v 1.7 2002/08/01 03:56:31 tmmm Exp $
  *
  */
 
@@ -156,6 +156,10 @@ static void *demux_wav_loop (void *this_gen) {
 
   printf ("demux_wav: demux loop finished (status: %d)\n",
           this->status);
+
+  /* seek back to the beginning of the data in preparation for another
+   * start */
+  this->input->seek(this->input, this->data_start, SEEK_SET);
 
   this->status = DEMUX_FINISHED;
 
@@ -316,7 +320,7 @@ static int demux_wav_start (demux_plugin_t *this_gen,
       this->wave->nChannels,
       ngettext("channel", "channels", this->wave->nChannels));
     xine_log(this->xine, XINE_LOG_FORMAT,
-      _("demux_wav: running time = %d min, %d sec\n"),
+      _("demux_wav: running time = %lld min, %lld sec\n"),
       this->data_size / this->wave->nAvgBytesPerSec / 60,
       this->data_size / this->wave->nAvgBytesPerSec % 60);
     xine_log(this->xine, XINE_LOG_FORMAT,
@@ -359,7 +363,7 @@ static int demux_wav_start (demux_plugin_t *this_gen,
 
   pthread_mutex_unlock(&this->mutex);
 
-  return this->status;
+  return DEMUX_OK;
 }
 
 static int demux_wav_seek (demux_plugin_t *this_gen,

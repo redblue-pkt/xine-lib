@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.5 2002/07/19 14:07:38 pmhahn Exp $
+ * $Id: demux_smjpeg.c,v 1.6 2002/08/01 03:56:31 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -130,7 +130,7 @@ static void *demux_smjpeg_loop (void *this_gen) {
       if (this->input->read(this->input, preamble, 
         SMJPEG_CHUNK_PREAMBLE_SIZE) != SMJPEG_CHUNK_PREAMBLE_SIZE) {
         this->status = DEMUX_FINISHED;
-        return NULL;
+        continue;  /* skip to next while() iteration to bail out */
       }
 
       chunk_tag = BE_32(&preamble[0]);
@@ -148,6 +148,8 @@ static void *demux_smjpeg_loop (void *this_gen) {
       pts = BE_32(&preamble[4]);
       pts *= 90;
 
+//printf ("sending %s frame with pts %lld (timestamp = %d ms)\n", 
+//  (chunk_tag == sndD_TAG) ? "audio" : "video", pts, BE_32(&preamble[4]));
       /* break up the data into packets and dispatch them */
       if (((chunk_tag == sndD_TAG) && this->audio_fifo && this->audio_type) ||
         (chunk_tag == vidD_TAG)) {
@@ -196,7 +198,6 @@ static void *demux_smjpeg_loop (void *this_gen) {
 
     }
 
-#if 1
     /* wait before sending end buffers: user might want to do a new seek */
     while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
           this->status != DEMUX_OK){
@@ -204,7 +205,6 @@ static void *demux_smjpeg_loop (void *this_gen) {
       xine_usec_sleep(100000);
       pthread_mutex_lock( &this->mutex );
     }
-#endif
 
   } while (this->status == DEMUX_OK);
 
@@ -452,7 +452,7 @@ this->video_type = BUF_VIDEO_JPEG;
 
   pthread_mutex_unlock(&this->mutex);
 
-  return this->status;
+  return DEMUX_OK;
 }
 
 static int demux_smjpeg_seek (demux_plugin_t *this_gen,

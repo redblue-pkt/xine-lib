@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.74 2002/07/31 06:04:53 tmmm Exp $
+ * $Id: demux_qt.c,v 1.75 2002/08/01 03:56:31 tmmm Exp $
  *
  */
 
@@ -1616,7 +1616,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
   pthread_mutex_unlock(&this->mutex);
 
-  return this->status;
+  return DEMUX_OK;
 }
 
 

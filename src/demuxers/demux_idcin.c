@@ -21,7 +21,7 @@
  * For more information regarding the Id CIN file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_idcin.c,v 1.2 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_idcin.c,v 1.3 2002/08/01 03:56:31 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -336,7 +336,7 @@ return DEMUX_FINISHED;
 
   pthread_mutex_unlock(&this->mutex);
 
-  return this->status;
+  return DEMUX_OK;
 }
 
 static int demux_idcin_seek (demux_plugin_t *this_gen,
