@@ -33,8 +33,8 @@ dnl    if (any interfaces have been _removed_ or _incompatibly changed_)
 dnl       AGE = 0;
 dnl }
 
-LT_CURRENT=9
-LT_REVISION=2
+LT_CURRENT=10
+LT_REVISION=0
 LT_AGE=9
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
