@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.106 2002/08/05 22:09:25 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.107 2002/08/19 18:26:34 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -563,19 +563,6 @@ static int avi_add_index_entry(demux_avi_t *this, avi_t *AVI, unsigned char *tag
   AVI->n_idx++;
 
   return 0;
-}
-
-static void gen_index_show_progress (demux_avi_t *this, int percent) {
-
-  char str[60];
-
-  sprintf (str, "recons. index %3d%%", percent);
-
-  this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
-  this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, str, OSD_TEXT1);
-  this->xine->osd_renderer->show (this->xine->osd, 0);
-
-
 }
 
 static avi_t *AVI_init(demux_avi_t *this)  {
