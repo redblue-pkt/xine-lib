@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.105 2002/10/26 03:56:32 storri Exp $
+ * $Id: load_plugins.c,v 1.106 2002/10/26 16:16:04 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1109,13 +1109,13 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
 
     if (!node->plugin_class) {
       /* remove non working plugin from catalog */
+      printf("load_plugins: plugin %s failed to init its class.\n", node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->video_decoder_map[stream_type][j - 1] =
           catalog->video_decoder_map[stream_type][j];
       catalog->video_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
       i--;
-      pthread_mutex_unlock (&catalog->lock);
-      return NULL;
+      continue;
     }
 
     vd = ((video_decoder_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream);
@@ -1123,10 +1123,17 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
     if (vd) {
       vd->node = node;
       node->ref ++;
+      pthread_mutex_unlock (&catalog->lock);
+      return vd;
+    } else {
+      /* remove non working plugin from catalog */
+      printf("load_plugins: plugin %s failed to instantiate itself.\n", node->info->id);
+      for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
+        catalog->video_decoder_map[stream_type][j - 1] =
+          catalog->video_decoder_map[stream_type][j];
+      catalog->video_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      i--;
     }
-
-    pthread_mutex_unlock (&catalog->lock);
-    return vd;
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1178,13 +1185,13 @@ audio_decoder_t *get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) 
 
     if (!node->plugin_class) {
       /* remove non working plugin from catalog */
+      printf("load_plugins: plugin %s failed to init its class.\n", node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->audio_decoder_map[stream_type][j - 1] =
           catalog->audio_decoder_map[stream_type][j];
       catalog->audio_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
       i--;
-      pthread_mutex_unlock (&catalog->lock);
-      return NULL;
+      continue;
     }
 
     ad = ((audio_decoder_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream);
@@ -1192,10 +1199,17 @@ audio_decoder_t *get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) 
     if (ad) {
       ad->node = node;
       node->ref ++;
+      pthread_mutex_unlock (&catalog->lock);
+      return ad;
+    } else {
+      /* remove non working plugin from catalog */
+      printf("load_plugins: plugin %s failed to instantiate itself.\n", node->info->id);
+      for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
+        catalog->audio_decoder_map[stream_type][j - 1] =
+          catalog->audio_decoder_map[stream_type][j];
+      catalog->audio_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      i--;
     }
-
-    pthread_mutex_unlock (&catalog->lock);
-    return ad;
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1246,13 +1260,13 @@ spu_decoder_t *get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
 
     if (!node->plugin_class) {
       /* remove non working plugin from catalog */
+      printf("load_plugins: plugin %s failed to init its class.\n", node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->spu_decoder_map[stream_type][j - 1] =
           catalog->spu_decoder_map[stream_type][j];
       catalog->spu_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
       i--;
-      pthread_mutex_unlock (&catalog->lock);
-      return NULL;
+      continue;
     }
 
     sd = ((spu_decoder_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream);
@@ -1260,10 +1274,17 @@ spu_decoder_t *get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
     if (sd) {
       sd->node = node;
       node->ref ++;
+      pthread_mutex_unlock (&catalog->lock);
+      return sd;
+    } else {
+      /* remove non working plugin from catalog */
+      printf("load_plugins: plugin %s failed to instantiate itself.\n", node->info->id);
+      for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
+        catalog->spu_decoder_map[stream_type][j - 1] =
+          catalog->spu_decoder_map[stream_type][j];
+      catalog->spu_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      i--;
     }
-
-    pthread_mutex_unlock (&catalog->lock);
-    return sd;
   }
 
   pthread_mutex_unlock (&catalog->lock);
