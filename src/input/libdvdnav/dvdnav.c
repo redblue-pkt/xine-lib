@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.17 2003/02/26 20:44:12 mroi Exp $
+ * $Id: dvdnav.c,v 1.18 2003/03/21 22:13:37 mroi Exp $
  *
  */
 
@@ -393,6 +393,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
  
   /* Check the STOP flag */
   if(this->vm->stopped) {
+    vm_stop(this->vm);
     (*event) = DVDNAV_STOP;
     this->started = 0;
     pthread_mutex_unlock(&this->vm_lock); 
@@ -401,7 +402,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
 
   vm_position_get(this->vm, &this->position_next);
   
-#ifdef TRACE
+#ifdef LOG_DEBUG
   fprintf(MSG_OUT, "libdvdnav: POS-NEXT ");
   vm_position_print(this->vm, &this->position_next);
   fprintf(MSG_OUT, "libdvdnav: POS-CUR  ");
@@ -447,9 +448,9 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
       }
     }
     this->position_current.hop_channel = this->position_next.hop_channel;
-    /* Make blockN > vobu_length to do expected_nav */
+    /* Make blockN == vobu_length to do expected_nav */
     this->vobu.vobu_length = 0;
-    this->vobu.blockN      = 1;
+    this->vobu.blockN      = 0;
     this->sync_wait        = 0;
     pthread_mutex_unlock(&this->vm_lock); 
     return S_OK;
@@ -569,9 +570,9 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     /* vobu info is used for mid cell resumes */
     this->vobu.vobu_start               = this->position_next.cell_start + this->position_next.block;
     this->vobu.vobu_next                = 0;
-    /* Make blockN > vobu_length to do expected_nav */
+    /* Make blockN == vobu_length to do expected_nav */
     this->vobu.vobu_length = 0;
-    this->vobu.blockN      = 1;
+    this->vobu.blockN      = 0;
     
     /* update the spu palette at least on PGC changes */
     this->spu_clut_changed = 1;
@@ -979,6 +980,13 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.18  2003/03/21 22:13:37  mroi
+ * sync to libdvdnav cvs
+ * * method to try-run VM operations, now used for safer chapter skipping and menu jumps
+ * * fixed detection of current PTT to not assume a 1:1 mapping between PTTs and PGs
+ * * releasing stills when jumping to menu fixes some state inconsistencies
+ * * do not assume PGs to be physically layed out in sequence on the disc
+ *
  * Revision 1.17  2003/02/26 20:44:12  mroi
  * sync to current libdvdnav cvs, important change is the new DVDNAV_WAIT event,
  * which allows us to keep libdvdnav and what is seen on screen in sync in certain

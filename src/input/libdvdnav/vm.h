@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.4 2003/02/20 16:02:01 mroi Exp $
+ * $Id: vm.h,v 1.5 2003/03/21 22:13:39 mroi Exp $
  *
  */
 
@@ -113,7 +113,7 @@ typedef struct {
 #define PTL_REG      registers.SPRM[13]
 
 /* Initialisation & destruction */
-vm_t* vm_new_vm();
+vm_t *vm_new_vm();
 void  vm_free_vm(vm_t *vm);
 
 /* IFO access */
@@ -127,6 +127,11 @@ dvd_reader_t *vm_get_dvd_reader(vm_t *vm);
 void vm_start(vm_t *vm);
 void vm_stop(vm_t *vm);
 int  vm_reset(vm_t *vm, const char *dvdroot);
+
+/* copying and merging  - useful for try-running an operation */
+vm_t *vm_new_copy(vm_t *vm);
+void  vm_merge(vm_t *target, vm_t *source);
+void  vm_free_copy(vm_t *vm);
 
 /* regular playback */
 void vm_position_get(vm_t *vm, vm_position_t *position);

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000 Rich Wareham <richwareham@users.sourceforge.net>
  * 
  * This file is part of libdvdnav, a DVD navigation library.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.10 2003/03/08 14:36:13 mroi Exp $
+ * $Id: searching.c,v 1.11 2003/03/21 22:13:38 mroi Exp $
  *
  */
 
@@ -177,14 +177,16 @@ dvdnav_status_t dvdnav_sector_search(dvdnav_t *this,
   }
     
   found = 0;
-  target += state->pgc->cell_playback[first_cell_nr-1].first_sector;
   for(cell_nr = first_cell_nr; (cell_nr <= last_cell_nr) && !found; cell_nr ++) {
     cell =  &(state->pgc->cell_playback[cell_nr-1]);
-    if((cell->first_sector <= target) && (cell->last_sector >= target)) {
+    length = cell->last_sector - cell->first_sector + 1;
+    if (target >= length) {
+      target -= length;
+    } else {
+      /* convert the target sector from Cell-relative to absolute physical sector */
+      target += cell->first_sector;
       found = 1;
-      state->cellN = cell_nr;
-      state->blockN = 0;
-      state->cell_restart++;
+      break;
     }
   }
 
@@ -192,10 +194,14 @@ dvdnav_status_t dvdnav_sector_search(dvdnav_t *this,
     int32_t vobu, start;
 #ifdef LOG_DEBUG
     fprintf(MSG_OUT, "libdvdnav: Seeking to cell %i from choice of %i to %i\n",
-	    state->cellN, first_cell_nr, last_cell_nr);
+	    cell_nr, first_cell_nr, last_cell_nr);
 #endif
     dvdnav_scan_admap(this, state->domain, target, &vobu);
-    start = state->pgc->cell_playback[state->cellN - 1].first_sector;
+
+    start         = state->pgc->cell_playback[cell_nr-1].first_sector;
+    state->blockN = vobu - start;
+    state->cellN  = cell_nr;
+    state->cell_restart++;
 #ifdef LOG_DEBUG
     fprintf(MSG_OUT, "libdvdnav: After cellN=%u blockN=%u target=%x vobu=%x start=%x\n" ,
       state->cellN,
@@ -203,13 +209,6 @@ dvdnav_status_t dvdnav_sector_search(dvdnav_t *this,
       target,
       vobu,
       start);
-#endif
-    state->blockN = vobu - start;
-#ifdef LOG_DEBUG
-    fprintf(MSG_OUT, "libdvdnav: After vobu=%x start=%x blockN=%x\n" ,
-      vobu,
-      start,
-      state->blockN);
 #endif
     this->vm->hop_channel += HOP_SEEK;
     pthread_mutex_unlock(&this->vm_lock);
@@ -298,6 +297,7 @@ dvdnav_status_t dvdnav_top_pg_search(dvdnav_t *this) {
 }
 
 dvdnav_status_t dvdnav_next_pg_search(dvdnav_t *this) {
+  vm_t *try_vm;
 
   if(!this) {
     printerr("Passed a NULL pointer.");
@@ -314,12 +314,24 @@ dvdnav_status_t dvdnav_next_pg_search(dvdnav_t *this) {
 #ifdef LOG_DEBUG
   fprintf(MSG_OUT, "libdvdnav: next chapter\n");
 #endif
-  if (!vm_jump_next_pg(this->vm)) {
-    fprintf(MSG_OUT, "libdvdnav: next chapter failed.\n");
-    printerr("Skip to next chapter failed.");
-    pthread_mutex_unlock(&this->vm_lock);
-    return S_ERR;
+  /* make a copy of current VM and try to navigate the copy to the next PG */
+  try_vm = vm_new_copy(this->vm);
+  if (!vm_jump_next_pg(try_vm) || try_vm->stopped) {
+    vm_free_copy(try_vm);
+    /* next_pg failed, try to jump at least to the next cell */
+    try_vm = vm_new_copy(this->vm);
+    vm_get_next_cell(try_vm);
+    if (try_vm->stopped) {
+      vm_free_copy(try_vm);
+      fprintf(MSG_OUT, "libdvdnav: next chapter failed.\n");
+      printerr("Skip to next chapter failed.");
+      pthread_mutex_unlock(&this->vm_lock);
+      return S_ERR;
+    }
   }
+  /* merge changes on success */
+  vm_merge(this->vm, try_vm);
+  vm_free_copy(try_vm);
   this->position_current.still = 0;
   this->vm->hop_channel++;
 #ifdef LOG_DEBUG
@@ -331,6 +343,7 @@ dvdnav_status_t dvdnav_next_pg_search(dvdnav_t *this) {
 }
 
 dvdnav_status_t dvdnav_menu_call(dvdnav_t *this, DVDMenuID_t menu) {
+  vm_t *try_vm;
   
   if(!this) {
     printerr("Passed a NULL pointer.");
@@ -344,12 +357,19 @@ dvdnav_status_t dvdnav_menu_call(dvdnav_t *this, DVDMenuID_t menu) {
     return S_ERR;
   }
   
-  if (vm_jump_menu(this->vm, menu)) {
+  /* make a copy of current VM and try to navigate the copy to the menu */
+  try_vm = vm_new_copy(this->vm);
+  if (vm_jump_menu(try_vm, menu) && !try_vm->stopped) {
+    /* merge changes on success */
+    vm_merge(this->vm, try_vm);
+    vm_free_copy(try_vm);
+    this->position_current.still = 0;
     this->vm->hop_channel++;
     pthread_mutex_unlock(&this->vm_lock); 
     return S_OK;
   } else {
-    printerr("No such menu.");
+    vm_free_copy(try_vm);
+    printerr("No such menu or menu not reachable.");
     pthread_mutex_unlock(&this->vm_lock); 
     return S_ERR;
   }
@@ -358,8 +378,10 @@ dvdnav_status_t dvdnav_menu_call(dvdnav_t *this, DVDMenuID_t menu) {
 dvdnav_status_t dvdnav_get_position(dvdnav_t *this, unsigned int *pos,
 				    unsigned int *len) {
   uint32_t cur_sector;
+  uint32_t cell_nr;
   uint32_t first_cell_nr;
   uint32_t last_cell_nr;
+  cell_playback_t *cell;
   cell_playback_t *first_cell;
   cell_playback_t *last_cell;
   dvd_state_t *state;
@@ -395,9 +417,21 @@ dvdnav_status_t dvdnav_get_position(dvdnav_t *this, unsigned int *pos,
     last_cell_nr = state->pgc->nr_of_cells;
   }
   last_cell = &(state->pgc->cell_playback[last_cell_nr-1]);
+  
+  *pos = -1;
+  *len = 0;
+  for (cell_nr = first_cell_nr; cell_nr <= last_cell_nr; cell_nr++) {
+    cell = &(state->pgc->cell_playback[cell_nr-1]);
+    if (cell_nr == state->cellN) {
+      /* the current sector is in this cell,
+       * pos is length of PG up to here + sector's offset in this cell */
+      *pos = *len + cur_sector - cell->first_sector;
+    }
+    *len += cell->last_sector - cell->first_sector + 1;
+  }
+  
+  assert(*pos != -1);
 
-  *pos= cur_sector - first_cell->first_sector;
-  *len= last_cell->last_sector - first_cell->first_sector;
   pthread_mutex_unlock(&this->vm_lock);
 
   return S_OK;
