@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.15 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_ipmovie.c,v 1.16 2003/10/30 05:57:26 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -227,7 +227,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           chunk_type = CHUNK_BAD;
           break;
         }
-        this->fps = 1000000 / (LE_32(&scratch[0]) * LE_16(&scratch[4]));
+        this->fps = 1000000.0 / (LE_32(&scratch[0]) * LE_16(&scratch[4]));
         this->frame_pts_inc = (int)(90000.0 / this->fps);
         lprintf("%.1f frames/second (timer div = %d, subdiv = %d)\n",
           this->fps, LE_32(&scratch[0]), LE_16(&scratch[4]));
