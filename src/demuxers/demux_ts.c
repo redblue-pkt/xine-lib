@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.86 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.87 2003/08/09 17:50:16 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -743,7 +743,7 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
      case (i.e. adaptation field only) when it does not get bumped. */
   if (m->counter != INVALID_CC) {
     if ((m->counter & 0x0f) != cc) {
-      printf("demux_ts: PID %d: unexpected cc %d (expected %d)\n",
+      printf("demux_ts: PID 0x%.4x: unexpected cc %d (expected %d)\n",
 	     m->pid, cc, m->counter);
     }
   }
@@ -774,7 +774,7 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
 
     if (!demux_ts_parse_pes_header(m, ts, len, this->stream)) {
       m->corrupted_pes = 1;
-      printf("demux_ts: PID %d: corrupted pes encountered\n", m->pid);
+      printf("demux_ts: PID 0x%.4x: corrupted pes encountered\n", m->pid);
 
     } else {
 
@@ -1077,7 +1077,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     case ISO_13818_AUDIO:
       if (this->audioPid == INVALID_PID) {
 #ifdef TS_PMT_LOG
-        printf ("demux_ts: PMT audio pid %.4x\n", pid);
+        printf ("demux_ts: PMT audio pid 0x%.4x\n", pid);
 #endif
         demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo,stream[0]);
         this->audioPid = pid;
@@ -1099,7 +1099,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       for (i = 5; i < codedLength; i += stream[i+1] + 2) {
         if ((stream[i] == 0x6a) && (this->audioPid == INVALID_PID)) {
 #ifdef TS_PMT_LOG
-          printf ("demux_ts: PMT AC3 audio pid %.4x\n", pid);
+          printf ("demux_ts: PMT AC3 audio pid 0x%.4x\n", pid);
 #endif
           demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo,stream[0]);
           this->audioPid = pid;
@@ -1138,7 +1138,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 				 stream[0]);
 
 #ifdef TS_LOG
-		printf("demux_ts: DVBSUB: pid %u: %s  page %ld %ld\n",
+		printf("demux_ts: DVBSUB: pid 0x%.4x: %s  page %ld %ld\n",
 		       pid, lang->desc.lang,
 		       lang->desc.comp_page_id,
 		       lang->desc.aux_page_id);
@@ -1149,7 +1149,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       break;
     case PRIVATE_A52:
 #ifdef TS_PMT_LOG
-      printf ("demux_ts: PMT streamtype PRIVATE_A52, pid: %.4x\n", pid);
+      printf ("demux_ts: PMT streamtype PRIVATE_A52, pid: 0x%.4x\n", pid);
 
       for (i = 5; i < codedLength; i++)
         printf ("%.2x ", stream[i]);
@@ -1165,7 +1165,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       break;
     default:
 #ifdef TS_PMT_LOG
-      printf ("demux_ts: PMT unknown stream_type: %.2x pid: %.4x\n",
+      printf ("demux_ts: PMT unknown stream_type: 0x%.2x pid: 0x%.4x\n",
               stream[0], pid);
 
       for (i = 5; i < codedLength; i++)
@@ -1187,9 +1187,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   if (this->pcrPid != pid) {
 #ifdef TS_PMT_LOG
     if (this->pcrPid == INVALID_PID) {
-      printf ("demux_ts: PMT pcr pid %.4x\n", pid);
+      printf ("demux_ts: PMT pcr pid 0x%.4x\n", pid);
     } else {
-      printf ("demux_ts: PMT pcr pid changed %.4x\n", pid);
+      printf ("demux_ts: PMT pcr pid changed 0x%.4x\n", pid);
     }
 #endif
     this->pcrPid = pid;
@@ -1463,7 +1463,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     this->scrambled_pids[this->scrambled_npids] = pid;
     this->scrambled_npids++;
 
-    printf ("demux_ts: PID %d is scrambled!\n", pid);
+    printf ("demux_ts: PID 0x%.4x is scrambled!\n", pid);
     return;
   }
 
@@ -1497,7 +1497,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     if (t >= VIDEO_STREAM_S && t <= VIDEO_STREAM_E) {
       if ( this->videoPid == INVALID_PID) {
 
-	printf ("demux_ts: auto-detected video pid %d\n",
+	printf ("demux_ts: auto-detected video pid 0x%.4x\n",
 		pid);
 
 	this->videoPid = pid;
@@ -1507,7 +1507,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     } else if (t >= AUDIO_STREAM_S && t <= AUDIO_STREAM_E) {
       if ( this->audioPid == INVALID_PID) {
 
-	printf ("demux_ts: auto-detected audio pid %d\n",
+	printf ("demux_ts: auto-detected audio pid 0x%.4x\n",
 		pid);
 
 	this->audioPid = pid;
@@ -1529,7 +1529,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
      */
     if (pid == this->videoPid) {
 #ifdef TS_LOG
-      printf ("demux_ts: Video pid: %.4x\n", pid);
+      printf ("demux_ts: Video pid: 0x%.4x\n", pid);
 #endif
       check_newpts(this, this->media[this->videoMedia].pts, PTS_VIDEO);
       demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia,
@@ -1539,7 +1539,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     }
     else if (pid == this->audioPid) {
 #ifdef TS_LOG
-      printf ("demux_ts: Audio pid: %.4x\n", pid);
+      printf ("demux_ts: Audio pid: 0x%.4x\n", pid);
 #endif
       check_newpts(this, this->media[this->audioMedia].pts, PTS_AUDIO);
       demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia,
@@ -1561,7 +1561,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     /* DVBSUB */
     else if (pid == this->spu_pid) {
 #ifdef TS_LOG
-      printf ("demux_ts: SPU pid: %.4x\n", pid);
+      printf ("demux_ts: SPU pid: 0x%.4x\n", pid);
 #endif
       demux_ts_buffer_pes (this, originalPkt+data_offset, this->spu_media,
 			   payload_unit_start_indicator, continuity_counter,
@@ -1573,7 +1573,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
       while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
 	if (pid == this->pmt_pid[program_count]) {
 #ifdef TS_LOG
-	  printf ("demux_ts: PMT prog: %.4x pid: %.4x\n",
+	  printf ("demux_ts: PMT prog: 0x%.4x pid: 0x%.4x\n",
 		  this->program_number[program_count],
 		  this->pmt_pid[program_count]);
 #endif
