@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.1 2001/07/29 22:21:52 guenter Exp $
+ * $Id: demux_ts.c,v 1.2 2001/07/30 16:00:21 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -583,10 +583,17 @@ static void demux_ts_parse_ts(
     demux_ts *this)
 {
     unsigned char originalPkt[PKT_SIZE];
+    unsigned int sync_byte;
+    unsigned int transport_error_indicator;
+    unsigned int payload_unit_start_indicator;
+    unsigned int transport_priority;
     unsigned int pid;
-    unsigned int pus;
-    unsigned int afc;
-    unsigned int cc;
+    unsigned int transport_scrambling_control;
+    unsigned int adaption_field_control;
+    unsigned int continuity_counter;
+    unsigned int data_offset;
+    unsigned int data_len;
+	int n;
 
     /*
      * TBD: implement some sync checking WITH recovery.
@@ -595,57 +602,68 @@ static void demux_ts_parse_ts(
         this->status = DEMUX_FINISHED;
         return;
     }
+    sync_byte=originalPkt[0];
+    transport_error_indicator = (originalPkt[1]  >> 7) & 0x01;
+    payload_unit_start_indicator = (originalPkt[1] >> 6) & 0x01;
+    transport_priority = (originalPkt[1] >> 5) & 0x01;
+    pid = ((originalPkt[1] << 8) | originalPkt[2]) & 0x1fff;
+    transport_scrambling_control = (originalPkt[3] >> 6)  & 0x03;
+    adaption_field_control = (originalPkt[3] >> 4) & 0x03;
+    continuity_counter  = originalPkt[3] & 0x0f;
 
     /*
      * Discard packets that are obviously bad.
      */
-    if (originalPkt[0] != 0x47) {
+    if (sync_byte != 0x47) {
         fprintf (stderr, "demux error! invalid ts sync byte %02x\n",originalPkt[0]);
         return;
     }
-    if (originalPkt[1] & 0x80) {
+    if (transport_error_indicator) {
         fprintf (stderr, "demux error! transport error\n");
         return;
     }
-
-    pid = ((originalPkt[1] << 8) | originalPkt[2]) & 0x1fff;
-    pus = originalPkt[1] & 0x40;
-    afc = originalPkt[3] & 0x30;
-    cc  = originalPkt[3] & 0x0f;
-
-    if (afc & 0x10) {
-        unsigned char *pkt;
-        unsigned len;
-
+   /*
+    for(n=0;n<4;n++) {fprintf(stderr,"%02X ",originalPkt[n]);}
+    fprintf(stderr," sync:%02X TE:%02X PUS:%02X TP:%02X PID:%04X TSC:%02X AFC:%02X CC:%02X\n",
+	sync_byte,
+	transport_error_indicator,
+	payload_unit_start_indicator,
+	transport_priority,
+	pid,
+	transport_scrambling_control,
+	adaption_field_control, 
+	continuity_counter ); 
+   */
+    data_offset=4;
+    if (adaption_field_control & 0x1) {
         /*
          * Has a payload! Calculate & check payload length.
          */
-        pkt = originalPkt;
-        if (afc & 0x20) {
+        if (adaption_field_control & 0x2) {
             /*
              * Skip adaptation header.
              */
-            if (pkt[4])
-                pkt += pkt[4];
-            pkt++;
+            data_offset+=originalPkt[4]+1;
         }
-        len = originalPkt + PKT_SIZE - pkt;
-        if (len > PKT_SIZE) {
-            fprintf (stderr, "demux error! invalid payload size %d\n",len);
+        data_len = PKT_SIZE - data_offset;
+        if (data_len > PKT_SIZE) {
+            fprintf (stderr, "demux error! invalid payload size %d\n",data_len);
         } else {
 
             /*
              * Do the demuxing in descending order of packet frequency!
              */
             if (pid == this->videoPid) {
-                demux_ts_pes_buffer(this, pkt + 4, this->videoMedia, pus, cc, len);
+                demux_ts_pes_buffer(this, originalPkt+data_offset, this->videoMedia, payload_unit_start_indicator, continuity_counter, data_len);
             } else if (pid == this->audioPid) {
-                demux_ts_pes_buffer(this, pkt + 4, this->audioMedia, pus, cc, len);
+                demux_ts_pes_buffer(this, originalPkt+data_offset, this->audioMedia, payload_unit_start_indicator, continuity_counter, data_len);
             } else if (pid == this->pmtPid) {
-                demux_ts_pmt_parse(this, originalPkt, pkt, pus);
+                demux_ts_pmt_parse(this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
             } else if (pid == 0) {
-                demux_ts_pat_parse(this, originalPkt, pkt, pus);
-            };
+                demux_ts_pat_parse(this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
+            } else if (pid == 0x1fff) {
+		fprintf(stderr,"Null Packet\n");
+	    }
         }
     }
 
@@ -668,7 +686,8 @@ static void demux_ts_queue_pes(
   uint32_t       nStreamID;
 
   p = buf->mem; /* len = this->blockSize; */
-
+  /* FIXME: HACK to get the decoders working */
+  buf->decoder_info[0] = 1;
   /* we should have a PES packet here */
 
   if (p[0] || p[1] || (p[2] != 1)) {
@@ -680,7 +699,7 @@ static void demux_ts_queue_pes(
   nPacketLen = p[4] << 8 | p[5];
   nStreamID  = p[3];
 
-  xprintf(VERBOSE|DEMUX, "packet id = %02x len = %d\n",nStreamID, nPacketLen);
+  xprintf(VERBOSE|DEMUX, "packet stream id = %02x len = %d\n",nStreamID, nPacketLen);
 
   if (bMpeg1) {
 
@@ -832,7 +851,7 @@ static void demux_ts_queue_pes(
 
   } else if ((nStreamID >= 0xbc) && ((nStreamID & 0xf0) == 0xe0)) {
 
-    xprintf(VERBOSE|DEMUX, "video %d\n", nStreamID);
+    xprintf(VERBOSE|DEMUX, "video %X\n", nStreamID);
 
     buf->content = p;
     buf->size    = nPacketLen;
@@ -848,10 +867,11 @@ static void demux_ts_queue_pes(
 
     nTrack = nStreamID & 0x1f;
 
-    xprintf(VERBOSE|DEMUX|MPEG, "mpg audio #%d", nTrack);
+    xprintf(VERBOSE|DEMUX|MPEG, "mpg audio #%d\n", nTrack);
+    xprintf(VERBOSE|DEMUX|MPEG, "bMpeg1=%d this->mnAudioChannel %d\n", bMpeg1, this->mnAudioChannel);
 
-    if ((bMpeg1 && (nTrack == this->mnAudioChannel))
-        || (!bMpeg1 && (nTrack == (this->mnAudioChannel-8)))) {
+//    if ((bMpeg1 && (nTrack == this->mnAudioChannel))
+//        || (!bMpeg1 && (nTrack == (this->mnAudioChannel-8)))) {
 
       buf->content  = p;
       buf->size     = nPacketLen;
@@ -862,7 +882,7 @@ static void demux_ts_queue_pes(
 
       this->fifoAudio->put(this->fifoAudio, buf);
       return ;
-    }
+//    }
 
   } else {
     xprintf(VERBOSE | DEMUX, "unknown packet, id = %x\n",nStreamID);
