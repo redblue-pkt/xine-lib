@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.7 2003/09/13 00:05:38 tmattern Exp $
+ *  $Id: xmlparser.c,v 1.8 2003/09/13 14:30:29 tmattern Exp $
  *
  */
 
@@ -477,9 +477,10 @@ int xml_parser_build_tree(xml_node_t **root_node) {
   int res;
 
   tmp_node = new_xml_node();
-  *root_node = tmp_node;
   res = xml_parser_get_node(tmp_node, "", 0);
   if ((tmp_node->child) && (!tmp_node->child->next)) {
+    *root_node = tmp_node->child;
+    free_xml_node(tmp_node);
     res = 0;
   } else {
     printf("xmlparser: error: xml struct\n");
