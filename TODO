@@ -62,7 +62,6 @@ required for 1.0
 optional
 --------
 
-- merge the vcdx plugin instead of current vcd plugin
 - properly localize all user-visible strings
 - rename config entries to a more consistent scheme
   (providing automatic config file conversion, of course)
@@ -70,7 +69,7 @@ optional
 - look over global structures and do some cleanup
 - id3v2.3,v2.4 support
 - "metainfo change" event
-- double-check rate estimation in demux_mgeg/mpeg_block
+- double-check rate estimation in demux_mpeg/mpeg_block
 - fix cook audio streaming
 - better dvd error messages
 - fix streaming of small files (e.g. http) 
