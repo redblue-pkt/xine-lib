@@ -8,6 +8,7 @@
 
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
+#include <assert.h>
 #else
 
 #include <inttypes.h>
