@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.173 2002/10/23 11:44:31 jcdutton Exp $
+ * $Id: xine.c,v 1.174 2002/10/23 22:23:46 guenter Exp $
  *
  * top-level xine functions
  *
@@ -611,19 +611,7 @@ xine_t *xine_new (void) {
 
   pthread_mutex_init (&this->streams_lock, NULL);
 
-  /* 
-   * plugins
-   */
-  
-  scan_plugins(this);
-
   return this;
-}
-
-void xine_scan_plugins(xine_t *this) {
-  printf("scan plugins entered\n");
-  scan_plugins(this);
-  printf("scan plugins finished\n");
 }
 
 void xine_init (xine_t *this) {
@@ -637,6 +625,12 @@ void xine_init (xine_t *this) {
   /* probe for optimized memcpy or config setting */
   xine_probe_fast_memcpy (this->config);
   
+  /* 
+   * plugins
+   */
+  
+  scan_plugins(this);
+
   /*
    * content detection strategy
    */
