@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.113 2002/11/22 17:05:56 mroi Exp $
+ * $Id: video_out.c,v 1.114 2002/11/23 13:08:19 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -968,26 +968,26 @@ static void vo_enable_overlay (xine_video_port_t *this_gen, int overlay_enabled)
  */
 static void vo_flush (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
-  vo_frame_t *img;
+  vo_frame_t *img, *first;
   int        i, num_buffers;
 
   pthread_mutex_lock (&this->display_img_buf_queue->mutex);
   num_buffers = this->display_img_buf_queue->num_buffers;
-  /* last img is kept as backup */
+  /* we keep the first frame so that we have something to display when
+   * seeking wildly around, but we schedule it in the past, so that it
+   * will expire immediately and does not block anything */
+  first = this->display_img_buf_queue->first;
+  if (first) {
+    vo_frame_inc_lock(first);
+    first->vpts -= 30 * 90000;
+  }
   printf ("video_out: flush fifo (%d buffers)\n", num_buffers);
-  for (i = 1; i < num_buffers; i++) {
+  for (i = 0; i < num_buffers; i++) {
     img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
     vo_frame_dec_lock( img );
   }
-  if (this->display_img_buf_queue->first) {
-    if (this->img_backup) {
-#ifdef LOG
-      printf("video_out: overwriting frame backup\n");
-#endif
-      vo_frame_dec_lock( this->img_backup );
-    }
-    this->img_backup = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
-  }
+  if (first)
+    vo_append_to_img_buf_queue_int(this->display_img_buf_queue, first);
   this->redraw_needed = 1;
   pthread_mutex_unlock (&this->display_img_buf_queue->mutex);
 }
