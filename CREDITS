@@ -16,11 +16,13 @@ ffmpeg				build 4669		Mike Melanson
 goom				1.9dev5
 gsm610				1.0.10			Mike Melanson
 liba52				0.7.4
+libcdio				0.64-cvs
 libdvdnav			0.1.9 cvs		Michael Roitzsch
 libfaad				cvs (12/Apr/03)		Miguel Freitas
 libmad				0.14.2b			Miguel Freitas
 libmpeg2			0.2.1 [*]
 libmpg123
+libvcd				0.7.19-cdio
 nosefart                        1.92                    Mike Melanson
 tvtime				0.9.8.4			Miguel Freitas
 wine
