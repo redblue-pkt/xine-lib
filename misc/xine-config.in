@@ -100,7 +100,7 @@ if test "$echo_cflags" = "yes"; then
 fi
 
 if test "$echo_libs" = "yes"; then
-      echo -L@libdir@ -lxine @ZLIB_LIBS@ @THREAD_LIBS@ @EXTRA_X_LIBS@ @LIBICONV@
+      echo -L@libdir@ -lxine @ZLIB_LIBS@ @NET_LIBS@ @THREAD_LIBS@ @EXTRA_X_LIBS@ @LIBICONV@
 fi      
 if test "$echo_plugindir" = "yes"; then
       echo "@XINE_PLUGINPATH@"

@@ -290,6 +290,17 @@ fi
 
 AM_CONDITIONAL(HAVE_NVTV, [test x"$enable_nvtv" = "xyes" -a x"$no_x" != "xyes"])
 
+
+dnl ---------------------------------------------
+dnl socket library
+dnl ---------------------------------------------
+dnl Test for socket and network support library
+NET_LIBS=""
+AC_CHECK_LIB(socket, socket, NET_LIBS="-lsocket $NET_LIBS",)
+AC_CHECK_LIB(nsl, gethostbyname, NET_LIBS="-lnsl $NET_LIBS",)
+AC_SUBST(NET_LIBS)
+
+
 dnl ---------------------------------------------
 dnl zlib
 dnl ---------------------------------------------
