@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.73 2003/04/13 22:02:18 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.74 2003/04/13 22:18:49 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -282,7 +282,7 @@ static void send_ogg_buf (demux_ogg_t *this,
       } else
 	buf->pts  = 0;
 #ifdef LOG
-      printf ("demux_ogg: video granulepos %lld, pts %lld, time %d\n", op->granulepos, buf->pts, buf->pts);
+      printf ("demux_ogg: video granulepos %lld, pts %lld, time %d\n", op->granulepos, buf->pts, buf->pts / 90);
 #endif
       
       buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
