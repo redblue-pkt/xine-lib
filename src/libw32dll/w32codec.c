@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.89 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.90 2002/08/29 06:06:02 tmmm Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -377,6 +377,11 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->guid=&mss1_clsid;
     return "msscds32.ax";    
 
+  case BUF_VIDEO_XXAN:
+    this->flipped=1;
+    this->yuv_supported=0;
+    return "xanlib.dll";    
+    
   }
 
   printf ("w32codec: this didn't happen: unknown video buf type %08x\n",
@@ -414,7 +419,8 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
            buf_type == BUF_VIDEO_WMV7 ||
            buf_type == BUF_VIDEO_WMV8 ||
            buf_type == BUF_VIDEO_VP31 ||
-           buf_type == BUF_VIDEO_MSS1 );
+           buf_type == BUF_VIDEO_MSS1 ||
+           buf_type == BUF_VIDEO_XXAN );
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
