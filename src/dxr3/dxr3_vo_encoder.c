@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.13 2001/12/11 02:26:59 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.14 2001/12/13 00:36:32 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -540,8 +540,7 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 {
 	rte_data_t *this = (rte_data_t*)drv->enc;
 	rte_context* context; 
-	enum rte_mux_mode mux_mode = RTE_VIDEO;
-	/* rte_codec *codec; */
+	rte_codec *codec;
 	enum rte_frame_rate frame_rate;
 	enum rte_pixformat pixformat;
 	int width, height;
@@ -561,11 +560,18 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 	}
 	context = this->context; /* shortcut */
 	rte_set_verbosity(context, 2);
-	/* rte_codec_set seems to create a program stream ... */
-	/*codec = rte_codec_set(context, RTE_STREAM_VIDEO, 0, "mpeg1-video");*/
-	rte_set_mode(context, mux_mode);
+	/* get mpeg codec handle */
+	codec = rte_codec_set(context, RTE_STREAM_VIDEO, 0, "mpeg1_video");
+	if (! codec) {
+		printf("dxr3enc: could not create codec.\n");
+		rte_context_destroy(context);
+		context = 0;
+		return 1;
+	}
 
-	/* start guessing the framerate */
+	/* start guessing the framerate
+	 * (all this stuff can go for librte 0.5, where we can set a float
+	 * fps) */
 	fps = drv->fps;
 	if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
 		printf("dxr3enc: setting mpeg output framerate to NTSC-FILM (23.976 Hz))\n");
@@ -590,6 +596,8 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 	pixformat = (drv->format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV); 
 	this->rte_bitrate=drv->config->register_range(drv->config,"dxr3enc.rte_bitrate",10000, 1000,20000, "Dxr3enc: rte mpeg output bitrate (kbit/s)",NULL,NULL,NULL);
 	this->rte_bitrate *= 1000;
+	/* rte_set_video_parameters is obsolete; should be replaced with
+	 * rte_option_set calls */
 	if (!rte_set_video_parameters(context, pixformat,
 		context->width, context->height, frame_rate, 
 		this->rte_bitrate, "I")) {
@@ -599,7 +607,14 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 		context = 0;
 		return 1;
 	}
-
+	/* there's a bug in rte_set_video_parameters that incorrectly sets
+	 * the frame rate. we set it here explicitly */
+	if (! rte_option_set(codec, "coded_frame_rate", fps)) {
+		printf("dxr3enc: rte_option_set coded_frame_rate failed\n");
+		rte_context_destroy(context);
+		context = 0;
+		return 1;
+	}
 	/* paranoid; make sure we don't do motion searching */
 	rte_set_motion(context, 0, 0);
 	rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
