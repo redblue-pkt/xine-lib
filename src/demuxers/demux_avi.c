@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.69 2002/03/18 02:19:45 guenter Exp $
+ * $Id: demux_avi.c,v 1.70 2002/03/18 10:52:39 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -986,6 +986,8 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   /*
    * seek to start pos / time
    */
+
+  printf ("demux_avi: start pos is %lld, start time is %d\n", start_pos, start_time);
 
   /* seek video */
   if (start_pos) {
