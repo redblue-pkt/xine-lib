@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.187 2004/08/19 10:30:04 mroi Exp $
+ * $Id: input_dvd.c,v 1.188 2004/08/28 15:06:26 jcdutton Exp $
  *
  */
 
@@ -1322,7 +1322,8 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   dvd_input_class_t     *class = (dvd_input_class_t*)this_gen->input_class;
   
   char                  *locator;
-  int                    last_slash = 0, mode;
+  int                    last_colon = 0, mode;
+  int                    locator_len;
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
   xine_event_t           event;
@@ -1330,31 +1331,31 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   
   trace_print("Called\n");
 
+  mode = MODE_NAVIGATE;
   /* we already checked the "dvd:/" MRL before */
   locator = &this->mrl[strlen("dvd:/")];
-  while (*locator == '/') locator++;
-
-#ifndef _MSC_VER
-  /* we skipped at least one slash, get it back */
-  locator--;
-#endif
 
   /* Attempt to parse MRL */
-  last_slash = strlen(locator);
-  while (last_slash && locator[last_slash] != '/' && locator[last_slash] != '\\')
-    last_slash--;
+  /* FIXME: strlen is dangerous, we should use a bounded max len version of strlen. */
+  last_colon = locator_len = strlen(locator);
+  while (last_colon && locator[last_colon] != ':' )
+    last_colon--;
 
-  if(last_slash) {
+  if((last_colon == 0) && (locator_len > 0)) {
+    last_colon = locator_len;
+  }
+  if(last_colon) {
     /* we have an alternative dvd_path */
     intended_dvd_device = locator;
-    intended_dvd_device[last_slash] = '\0';
-    locator += last_slash;
+    intended_dvd_device[last_colon] = '\0';
+    locator += last_colon; /* Set locator to null string */
+    if ( (last_colon + 1) < locator_len ) {
+      locator++; /* Only if there are more characters after the colon, use them for Title mode */
+      mode = MODE_TITLE;
+    }
 
     /* do not use the raw device for the alternative */
     xine_setenv("DVDCSS_RAW_DEVICE", "", 1);
-#ifdef _MSC_VER
-    locator++;
-#endif
 
   }else{
     xine_cfg_entry_t raw_device;
@@ -1363,16 +1364,6 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
         "input.dvd_raw_device", &raw_device))
       xine_setenv("DVDCSS_RAW_DEVICE", raw_device.str_value, 1);
     intended_dvd_device=class->dvd_device;
-  }
-
-#ifndef _MSC_VER
-  locator++;
-#endif
-
-  if(locator[0]) {
-    mode = MODE_TITLE; 
-  } else {
-    mode = MODE_NAVIGATE;
   }
 
   if(this->opened) {
