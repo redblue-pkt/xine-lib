@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.57 2003/07/16 14:14:17 andruil Exp $
+ * $Id: xineutils.h,v 1.58 2003/07/19 11:50:33 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -836,8 +836,10 @@ void xine_print_trace(void);
 # define XINE_ABORT()                            \
   abort();
 #else
-# define XINE_ABORT()
- /* don't abort */
+# define XINE_ABORT()                                                    \
+  /* don't abort, but print warning */                                   \
+  printf("%s: OOPS, your player reached a bad state\n", __FILE__);       \
+  printf("%s: please send a report with the full console output to the xine team.\n", __FILE__);
 #endif
 
 /**
