@@ -1014,21 +1014,25 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 
       if (o && mask) {
         l = rlelen>>1;
-        if( !(x & 1) ) {
-          yuy2 =  my_clut[clr].y + (my_clut[clr].cb << 8) +
-                 (my_clut[clr].y << 16) + (my_clut[clr].cr << 24);
+        if( x & 1 ) {
+          *(((uint8_t *)&yuy2) + 0) = my_clut[clr].y;
+          *(((uint8_t *)&yuy2) + 1) = my_clut[clr].cb;
+          *(((uint8_t *)&yuy2) + 2) = my_clut[clr].y;
+          *(((uint8_t *)&yuy2) + 3) = my_clut[clr].cr;
         } else {
-          yuy2 =  my_clut[clr].y + (my_clut[clr].cr << 8) +
-                 (my_clut[clr].y << 16) + (my_clut[clr].cb << 24);
+          *(((uint8_t *)&yuy2) + 0) = my_clut[clr].y;
+          *(((uint8_t *)&yuy2) + 1) = my_clut[clr].cr;
+          *(((uint8_t *)&yuy2) + 2) = my_clut[clr].y;
+          *(((uint8_t *)&yuy2) + 3) = my_clut[clr].cb;
         }
         
 	if (o >= 15) {
 	  while(l--) {
-	    *((uint16_t *)dst)++ = yuy2 >> 16;
-	    *((uint16_t *)dst)++ = yuy2 & 0xffff;
+	    *((uint16_t *)dst)++ = *(((uint16_t *)&yuy2) + 0);
+	    *((uint16_t *)dst)++ = *(((uint16_t *)&yuy2) + 1);
 	  }
 	  if(rlelen & 1)
-	    *((uint16_t *)dst)++ = yuy2 & 0xffff;
+	    *((uint16_t *)dst)++ = *(((uint16_t *)&yuy2) + 0);
 	} else {
 	  if( l ) {
 	    mem_blend32(dst, (uint8_t *)&yuy2, o, l);
@@ -1036,9 +1040,9 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 	  }
 	  
 	  if(rlelen & 1) {
-	    *dst = BLEND_BYTE(*dst, *((uint8_t *)&yuy2), o);
+	    *dst = BLEND_BYTE(*dst, *(((uint8_t *)&yuy2) + 0), o);
 	    dst++;
-	    *dst = BLEND_BYTE(*dst, *((uint8_t *)&yuy2+1), o);
+	    *dst = BLEND_BYTE(*dst, *(((uint8_t *)&yuy2) + 1), o);
 	    dst++;
 	  }
 	}
