@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2002/09/05 22:18:56 mroi Exp $
+ * $Id: xine_decoder.c,v 1.44 2002/12/06 01:44:06 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -325,25 +325,6 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
       dst_offset_v += img->pitches[2];
     }
   } 
-     
-  /* check for the copy function pointer. If set, we need to call it
-     with slices of 16 lines. Too bad we can't set the y,u and v
-     stride values (because then we wouldn't need the first copy) */
-  if (img->copy && img->bad_frame == 0) {
-    int height = img->height;
-    uint8_t *src[3];
-
-    src[0] = img->base[0];
-    src[1] = img->base[1];
-    src[2] = img->base[2];
-
-    while ((height -= 16) >= 0) {
-      img->copy(img, src);
-      src[0] += 16 * img->pitches[0];
-      src[1] +=  8 * img->pitches[1];
-      src[2] +=  8 * img->pitches[2];
-    }
-  }
 }
 
 static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {

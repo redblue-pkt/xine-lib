@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.14 2002/11/20 11:57:47 mroi Exp $
+ * $Id: svq1.c,v 1.15 2002/12/06 01:44:06 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1428,22 +1428,6 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
 	if (result == 0) {
 	  svq1_copy_frame (this->svq1, img->base, img->pitches);
-	}
-
-	if (img->copy) {
-	  int height = img->height;
-	  uint8_t *src[3];
-
-	  src[0] = img->base[0];
-	  src[1] = img->base[1];
-	  src[2] = img->base[2];
-
-	  while ((height -= 16) >= 0) {
-	    img->copy(img, src);
-	    src[0] += 16 * img->pitches[0];
-	    src[1] +=  8 * img->pitches[1];
-	    src[2] +=  8 * img->pitches[2];
-	  }
 	}
 
 	img->draw(img, this->stream);

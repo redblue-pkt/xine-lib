@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.16 2002/11/20 11:57:47 mroi Exp $
+ * $Id: msvc.c,v 1.17 2002/12/06 01:44:06 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -288,18 +288,6 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  xine_fast_memcpy (dst, src, 2*this->biWidth);
 	  src += 2*this->biWidth;
 	  dst += img->pitches[0];
-	}
-      }
-
-      if (img->copy) {
-	int height = img->height;
-	uint8_t *src[3];
-
-	src[0] = img->base[0];
-
-	while ((height -= 16) >= 0) {
-	  img->copy(img, src);
-	  src[0] += 16 * img->pitches[0];
 	}
       }
 

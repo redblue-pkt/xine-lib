@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.11 2002/11/20 11:57:46 mroi Exp $
+ * $Id: foovideo.c,v 1.12 2002/12/06 01:44:06 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -146,18 +146,6 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
       memset(img->base[0], this->current_yuv_byte,
         this->width * this->height * 2);
       this->current_yuv_byte += 3;
-
-      if (img->copy) {
-        int height = img->height;
-        uint8_t *src[3];
-
-        src[0] = img->base[0];
-
-        while ((height -= 16) >= 0) {
-          img->copy(img, src);
-          src[0] += 16 * img->pitches[0];
-        }
-      }
 
       img->draw(img, this->stream);
       img->free(img);

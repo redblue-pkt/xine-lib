@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.15 2002/11/20 11:57:47 mroi Exp $
+ * $Id: roqvideo.c,v 1.16 2002/12/06 01:44:06 miguelfreitas Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -472,22 +472,6 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
     xine_fast_memcpy(img->base[0], this->cur_y, this->y_size);
     xine_fast_memcpy(img->base[1], this->cur_u, this->c_size);
     xine_fast_memcpy(img->base[2], this->cur_v, this->c_size);
-
-    if (img->copy) {
-      int height = img->height;
-      uint8_t *src[3];
-
-      src[0] = img->base[0];
-      src[1] = img->base[1];
-      src[2] = img->base[2];
-
-      while ((height -= 16) >= 0) {
-	img->copy(img, src);
-	src[0] += 16 * img->pitches[0];
-	src[1] +=  8 * img->pitches[1];
-	src[2] +=  8 * img->pitches[2];
-      }
-    }
 
     this->skipframes = img->draw(img, this->stream);
     if( this->skipframes < 0 )

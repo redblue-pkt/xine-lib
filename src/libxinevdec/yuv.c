@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.14 2002/12/04 05:33:40 tmmm Exp $
+ * $Id: yuv.c,v 1.15 2002/12/06 01:44:06 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -200,22 +200,6 @@ static void yuv_decode_data (video_decoder_t *this_gen,
       img->duration  = this->video_step;
       img->pts       = buf->pts;
       img->bad_frame = 0;
-
-      if (img->copy) {
-	int height = img->height;
-	uint8_t *src[3];
-
-	src[0] = img->base[0];
-	src[1] = img->base[1];
-	src[2] = img->base[2];
-
-	while ((height -= 16) >= 0) {
-	  img->copy(img, src);
-	  src[0] += 16 * img->pitches[0];
-	  src[1] +=  8 * img->pitches[1];
-	  src[2] +=  8 * img->pitches[2];
-	}
-      }
 
       img->draw(img, this->stream);
       img->free(img);

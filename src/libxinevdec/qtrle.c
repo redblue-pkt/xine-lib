@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.7 2002/11/20 11:57:47 mroi Exp $
+ * $Id: qtrle.c,v 1.8 2002/12/06 01:44:06 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -789,18 +789,6 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
       img->duration  = this->video_step;
       img->pts       = buf->pts;
       img->bad_frame = 0;
-
-      if (img->copy) {
-        int height = img->height;
-        uint8_t *src[3];
-
-        src[0] = img->base[0];
-
-        while ((height -= 16) >= 0) {
-          img->copy(img, src);
-          src[0] += 16 * img->pitches[0];
-        }
-      }
 
       img->draw(img, this->stream);
       img->free(img);

@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.10 2002/11/20 11:57:48 mroi Exp $
+ * $Id: wc3video.c,v 1.11 2002/12/06 01:44:06 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -425,18 +425,6 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
 
       wc3_decode_frame (this);
       yuv444_to_yuy2(this->current_frame, img->base[0], img->pitches[0]);
-
-      if (img->copy) {
-        int height = img->height;
-        uint8_t *src[3];
-
-        src[0] = img->base[0];
-
-        while ((height -= 16) >= 0) {
-          img->copy(img, src);
-          src[0] += 16 * img->pitches[0];
-        }
-      }
 
       img->draw(img, this->stream);
       img->free(img);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2002/11/26 02:25:26 guenter Exp $
+ * $Id: xine_decoder.c,v 1.10 2002/12/06 01:44:06 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -335,21 +335,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 			  this->frame_buffer+this->frame_size*5/4, 
 			  this->frame_size/4);
 	
-	if (img->copy) {
-	  int height = img->height;
-	  uint8_t *src[3];
-	  
-	  src[0] = img->base[0];
-	  src[1] = img->base[1];
-	  src[2] = img->base[2];
-	  
-	  while ((height -= 16) >= 0) {
-	    img->copy(img, src);
-	    src[0] += 16 * img->pitches[0];
-	    src[1] +=  8 * img->pitches[1];
-	    src[2] +=  8 * img->pitches[2];
-	  }
-	}
 	img->draw(img, this->stream);
 	img->free(img);
 	

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.104 2002/12/01 17:05:34 tmmm Exp $
+ * $Id: w32codec.c,v 1.105 2002/12/06 01:44:07 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -825,18 +825,6 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif
       }
       
-      if (img->copy && !this->skipframes) {
-	int height = abs(this->o_bih.biHeight);
-	uint8_t *src[3];
-
-	src[0] = img->base[0];
-
-	while ((height -= 16) >= 0) {
-	  img->copy(img, src);
-	  src[0] += 16 * img->pitches[0];
-	}
-      }
-
       this->skipframes = img->draw(img, this->stream);
 
 #ifdef LOG
