@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.20 2001/11/03 17:32:51 joachim_koenig Exp $
+ * $Id: video_out_syncfb.c,v 1.21 2001/11/03 18:20:04 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -262,14 +262,17 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
 }
 
 static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
-				    int dest_x, int dest_y,
-				    int dest_width, int dest_height)
+					int dest_x, int dest_y,
+					int dest_width, int dest_height)
 {
    Window temp_window;
    int posx, posy;
+   
+// for debug 
+//   printf("src width: %d, height: %d - dst width: %d, height: %d\n", this->frame_width, this->frame_height, this->output_width, this->output_height);
 
    XLockDisplay(this->display);
-   
+
    XTranslateCoordinates(this->display, this->drawable, DefaultRootWindow(this->display), 0, 0, &posx, &posy, &temp_window);
    
    if(((double) dest_width / this->ratio_factor) < dest_height) {
@@ -284,6 +287,9 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
      this->output_yoffset  = dest_y;
    }
 
+// for debug
+//   printf("src width: %d, height: %d - dst width: %d, height: %d\n", this->frame_width, this->frame_height, this->output_width, this->output_height);
+   
    //
    // configuring SyncFB module from this point on.
    //
@@ -299,17 +305,13 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
       if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
 	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
 	
-      this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE | SYNCFB_FEATURE_OFFSET | SYNCFB_FEATURE_CROP;
+      this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE;
       if(this->deinterlace_enabled) {
-	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE;
+	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
         this->syncfb_config.src_crop_top   = 1;
         this->syncfb_config.src_crop_bot   = 1;
-        this->syncfb_config.default_repeat = 1;
-      }
-      else {
-        this->syncfb_config.src_crop_top   = 0;
-        this->syncfb_config.src_crop_bot   = 0;
-        this->syncfb_config.default_repeat = 2;
+        this->syncfb_config.src_crop_left  = 0;
+        this->syncfb_config.src_crop_right = 0;
       }
 
       this->syncfb_config.src_palette = this->palette;
@@ -324,12 +326,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
       this->syncfb_config.image_xorg     = posx+this->output_xoffset;
       this->syncfb_config.image_yorg     = posy+this->output_yoffset;
 
-      this->syncfb_config.image_offset_left = 0; // FIXME: what's this about?!
-      this->syncfb_config.image_offset_right= 0; // FIXME: what's this about?!
-
-      this->syncfb_config.image_offset_top = 0;  // FIXME: what's this about?!
-      this->syncfb_config.image_offset_bot = 0;  // FIXME: what's this about?!
-
+      this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : 2;
 
       if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
 	printf("video_out_syncfb: error. (set_config ioctl failed)\n");
@@ -647,7 +644,6 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
    
    // the rest is only successful and safe, if the overlay is really on
    if(this->overlay_state) {
-
       if(this->bufinfo.id != -1) {
 	 printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
 	 return;
@@ -724,7 +720,6 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
 
   switch (data_type) {
    case GUI_DATA_EX_DEST_POS_SIZE_CHANGED: {
-	  
      area = (x11_rectangle_t *) data;
      
      syncfb_adapt_to_output_area(this, area->x, area->y, area->w, area->h);
