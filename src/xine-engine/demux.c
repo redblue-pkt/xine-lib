@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.56 2005/03/06 11:08:40 tmattern Exp $ 
+ * $Id: demux.c,v 1.57 2005/03/20 18:41:55 tmattern Exp $ 
  */
 
 
@@ -332,7 +332,10 @@ int _x_demux_start_thread (xine_stream_t *stream) {
   
   if( !stream->demux_thread_running ) {
 
-    _x_assert(stream->demux_thread == 0);
+    if (stream->demux_thread) {
+      void *p;
+      pthread_join(stream->demux_thread, &p);
+    }
 
     stream->demux_thread_running = 1;
     if ((err = pthread_create (&stream->demux_thread,
