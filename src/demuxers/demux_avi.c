@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.78 2002/04/18 12:08:58 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.79 2002/04/23 00:55:46 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -455,6 +455,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       } else if(lasttag == 2) {
 
 	AVI->audio[AVI->n_audio-1]->wavex=malloc(n);
+	memcpy(AVI->audio[AVI->n_audio-1]->wavex, hdrl_data+i, n);
 	AVI->audio[AVI->n_audio-1]->wavex_len=n;
 	AVI->audio[AVI->n_audio-1]->a_fmt   = str2ushort(hdrl_data+i  );
 	AVI->audio[AVI->n_audio-1]->a_chans = str2ushort(hdrl_data+i+2);
