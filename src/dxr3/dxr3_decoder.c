@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.62 2002/03/07 13:33:44 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.63 2002/03/08 00:24:40 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -172,6 +172,7 @@ typedef struct dxr3scr_s {
 	int priority;
 	int64_t offset;     /* difference between real scr and internal dxr3 clock */
 	uint32_t last_pts;  /* last known value of internal dxr3 clock to detect wrap around */
+	pthread_mutex_t mutex;
 } dxr3scr_t;
 
 static int dxr3scr_get_priority (scr_plugin_t *scr) {
@@ -248,6 +249,7 @@ static void dxr3scr_adjust (scr_plugin_t *scr, int64_t vpts) {
 	int32_t offset32;
 	int64_t cpts;
 	
+	pthread_mutex_lock(&self->mutex);
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &cpts32))
 		printf("dxr3scr: adjust get failed (%s)\n", strerror(errno));
 	cpts = (int64_t)cpts32 << 1;
@@ -264,6 +266,7 @@ static void dxr3scr_adjust (scr_plugin_t *scr, int64_t vpts) {
 		/* the internal clock in the dxr3 is 33 bits wide, so the upper bits
 		   remain as an offset */
 	}
+	pthread_mutex_unlock(&self->mutex);
 }
 
 /* *** dxr3scr_start ***
@@ -275,6 +278,7 @@ static void dxr3scr_start (scr_plugin_t *scr, int64_t start_vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t vpts32 = start_vpts >> 1;
 
+	pthread_mutex_lock(&self->mutex);
 	self->last_pts = vpts32;
 	self->offset = start_vpts & ~0x1FFFFFFFF;
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
@@ -282,6 +286,7 @@ static void dxr3scr_start (scr_plugin_t *scr, int64_t start_vpts) {
 	/* mis-use vpts32 */
 	vpts32 = 0x900;
 	ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &vpts32);
+	pthread_mutex_unlock(&self->mutex);
 }
 
 
@@ -294,13 +299,24 @@ static int64_t dxr3scr_get_current (scr_plugin_t *scr) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t pts;
 
-	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
+	pthread_mutex_lock(&self->mutex);
+        if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
 		printf("dxr3scr: get current failed (%s)\n", strerror(errno));
 	if (pts < self->last_pts) /* wrap around detected, compensate with offset */
 		self->offset += (int64_t)1 << 33;
 	self->last_pts = pts;
+        pthread_mutex_unlock(&self->mutex);
 
 	return ((int64_t)pts << 1) + self->offset;
+}
+ /* *** dxr3scr_exit ***
+    clean up for exit
+ */
+static void dxr3scr_exit (scr_plugin_t *scr) {
+       dxr3scr_t *self = (dxr3scr_t*) scr;
+
+       pthread_mutex_destroy(&self->mutex);
+       free (self);
 }
 
 
@@ -320,9 +336,11 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 	self->scr.adjust            = dxr3scr_adjust;
 	self->scr.start             = dxr3scr_start;
 	self->scr.get_current       = dxr3scr_get_current;
+	self->scr.exit              = dxr3scr_exit;
 
 	self->offset = 0;
 	self->last_pts = 0;
+	pthread_mutex_init(&self->mutex, NULL);
 
 	snprintf (tmpstr, sizeof(tmpstr), "%s%s", devname, devnum);
 	if ((self->fd_control = open (tmpstr, O_WRONLY)) < 0) {
@@ -333,7 +351,7 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 
 	self->priority = dxr3->scr_prio;
 
-	printf("dxr3scr: init complete\n");
+	printf("dxr3scr_init: init complete\n");
 	return &self->scr;
 }
 
@@ -557,12 +575,12 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		duration = get_duration(this->frame_rate_code, 
 					this->repeat_first_field);
 		/* pretend like we have decoded a frame */
-    		img = this->video_out->get_frame (this->video_out,
+		img = this->video_out->get_frame (this->video_out,
                              this->width,
                              this->height,
                              this->aspect,
-                             IMGFMT_YV12,
-                             DXR3_VO_UPDATE_FLAG);
+                             IMGFMT_MPEG,
+                             VO_BOTH_FIELDS);
 		img->pts=buf->pts;
 		img->bad_frame = 0;
 		img->duration = duration;
@@ -570,9 +588,11 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		   and stores the return value in img->vpts
 		   Calling draw with buf->pts==0 is okay; metronome will
 		   extrapolate a value. */
-		skip = img->draw(img);
+		skip = img->draw(img) + (21600 / duration);
 	        if (skip <= 0) { /* don't skip */
-			vpts = img->pts; /* copy so we can free img */
+			vpts = img->vpts - 21600; /* copy so we can free img */
+			/* a note on the 21600: this seems to be a necessary offset,
+			maybe the dxr3 needs some internal time, however it improves sync a lot */
 		}
 		else { /* metronom says skip, so don't set pts */
 			printf("dxr3: skip = %d\n", skip);
@@ -625,7 +645,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		if ((delay > 0) && (delay < 90000) &&
 		    (this->sync_every_frame || buf->pts)) {
 			uint32_t vpts32 = vpts;
-			/* update the dxr3's current pts value */	
+			/* update the dxr3's current pts value */
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts32))
 				printf("dxr3: set video pts failed (%s)\n",
 					 strerror(errno));
@@ -676,6 +696,8 @@ static void dxr3_close (video_decoder_t *this_gen)
 	if (this->scr) {
 		this->video_decoder.metronom->unregister_scr(
 			this->video_decoder.metronom, this->scr);
+		this->scr->exit(this->scr);
+		this->scr = 0;
 	}
 
 	if (this->fd_video >= 0)
@@ -926,13 +948,13 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 #if LOG_SPU
 		printf("dxr3_spu: Got NAV packet\n");
 #endif
-		uint8_t *p;
-		pci_t *pci;
+		uint8_t *p = buf->content;
 		
-		p = buf->content;
 		/* just watch out for menus */
 		if (p[3] == 0xbf && p[6] == 0x00) { /* Private stream 2 */
-			pci=xine_xmalloc(sizeof(pci_t));
+			pci_t *pci;
+			
+			pci = xine_xmalloc(sizeof(pci_t));
 			nav_read_pci(pci, p + 7);
 			
 			if (pci->hli.hl_gi.hli_ss == 1)
@@ -944,6 +966,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 				xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
 				ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
 			}
+			
+			free(pci);
 		}
 		return;
 	}

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.14 2002/03/07 13:33:44 jcdutton Exp $
+ * $Id: dxr3_video_out.h,v 1.15 2002/03/08 00:24:40 jcdutton Exp $
  *
  */
 
@@ -54,9 +54,8 @@
 #define LOOKUP_DEV "dxr3.devicename"
 #define DEFAULT_DEV "/dev/em8300"
 
-/* flag for video_out->get_frame, to tell dxr3 vo to update
-   image size and aspect ratio */
-#define DXR3_VO_UPDATE_FLAG 6667
+/* image format used by dxr3_decoder to tag undecoded mpeg data */
+#define IMGFMT_MPEG (('G'<<24)|('E'<<16)|('P'<<8)|'M')
 
 struct coeff {
     	float 	k,m;
@@ -90,7 +89,6 @@ typedef struct dxr3_driver_s {
         int 		fd_video;
 	int 		aspectratio;
 	int 		tv_mode;
-	int		mpeg_source; /* receiving mpeg data or raw YUV? */
 	int		enhanced_mode; /* enhanced play mode */
 	em8300_bcs_t 	bcs;
 	char		devname[128];
@@ -141,7 +139,6 @@ typedef struct dxr3_frame_s {
   int           width, height,oheight;
   uint8_t       *mem; 		/* allocated for YV12 or YUY2 buffers */
   uint8_t       *real_base[3]; 	/* yuv/yuy2 buffers in mem aligned on 16 */
-  int           format;
   int           copy_calls; 	/* counts calls to dxr3_frame_copy function */
   int		swap_fields;	/* shifts Y buffer one line to exchange odd/even lines*/
 } dxr3_frame_t;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.9 2002/03/07 13:33:44 jcdutton Exp $
+ * $Id: dxr3_video_out.c,v 1.10 2002/03/08 00:24:40 jcdutton Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -217,34 +217,24 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   aspect = this->aspectratio;
   oheight = this->oheight;
 
-  if (flags == DXR3_VO_UPDATE_FLAG) { /* talking to dxr3 decoder */
-	this->mpeg_source = 1;
+  if (format == IMGFMT_MPEG) { /* talking to dxr3 decoder */
+	int aspect;
+
 	/* a bit of a hack. we must release the em8300_mv fd for
 	 * the dxr3 decoder plugin */
 	if (this->fd_video >= 0) {
 		close(this->fd_video);
 		this->fd_video = -1;
 	}
-  }
-  else {
-	/* FIXME: Disable reset of mpeg_source 
-	 * video_out.c can call us without the DXR3_VO_UPDATE_FLAG in
-	 * the still frames code. Needs a better fix... */
-	this->mpeg_source = 0;
-  }
-
-  /* for mpeg source, we don't have to do much. */
-  if (this->mpeg_source) {
-	int aspect;
+	/* for mpeg source, we don't have to do much. */
 	this->video_width  = width;
 	this->video_height = height;
 	this->video_aspect = ratio_code;
 	/* remember, there are no buffers malloc'ed for this frame!
- 	 * the dxr3 decoder plugin is cool about this */
+	 * the dxr3 decoder plugin is cool about this */
 	frame->width  = width;
 	frame->height = height;
 	frame->oheight = oheight;
-	frame->format = format;
 	if (frame->mem) {
 		free (frame->mem);
 		frame->mem = NULL;
@@ -322,7 +312,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 	);
     }
 
-    if (this->mpeg_source == 0 && this->enc && this->enc->on_update_format)
+    if (this->enc && this->enc->on_update_format)
       this->enc->on_update_format(this);
   }
 
@@ -396,7 +386,6 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   frame->width  = width;
   frame->height = height;
   frame->oheight = oheight;
-  frame->format = format;
   frame->swap_fields = this->swap_fields;
   if(this->aspectratio!=aspect)
     dxr3_set_property (this_gen,VO_PROP_ASPECT_RATIO, aspect);
@@ -407,7 +396,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
 	dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen;
 	dxr3_driver_t *this = (dxr3_driver_t *) frame_gen->driver;
-	if (this->mpeg_source == 0 && this->enc && this->enc->on_frame_copy)
+	if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_frame_copy)
 		this->enc->on_frame_copy(this, frame, src);
 }
 
@@ -415,7 +404,7 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
-  if (this->mpeg_source == 0 && this->enc && this->enc->on_display_frame) {
+  if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_display_frame) {
         this->enc->on_display_frame(this, frame);
   } else {
         frame_gen->displayed(frame_gen);
@@ -427,8 +416,7 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
  vo_overlay_t *overlay)
 {
-	dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
-	if ( this->mpeg_source == 0 )
+	if ( frame_gen->format != IMGFMT_MPEG )
 	{
 		/* we have regular YUV frames, so in principle we can blend
 		 * it just like the Xv driver does. Problem is that the
@@ -447,7 +435,6 @@ void dxr3_exit (vo_driver_t *this_gen)
 	if (this->enc && this->enc->on_close)
 		this->enc->on_close(this);
 	printf("dxr3: vo exit called\n");
-	this->mpeg_source = 0;
 
 	if(this->overlay_enabled)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF);
@@ -510,7 +497,6 @@ printf("dxr3_video_out:init_plugin\n");
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
 	this->vo_driver.exit                 = dxr3_exit;
 	this->config=config;
-	this->mpeg_source = 0; /* set by update_frame, by checking the flag */
 
 	this->swap_fields = config->register_bool(config, "dxr3.enc_swap_fields", 0, "swap odd and even lines", NULL, dxr3_update_swap_fields, this);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.60 2002/03/01 09:29:50 guenter Exp $
+ * $Id: metronom.c,v 1.61 2002/03/08 00:24:40 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -179,6 +179,7 @@ static scr_plugin_t* unixscr_init () {
   pthread_mutex_init (&this->lock, NULL);
   
   unixscr_set_speed (&this->scr, SPEED_PAUSE);
+  printf("xine-scr_init: complete\n");
 
   return &this->scr;
 }
