@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.192 2004/09/11 20:01:39 jstembridge Exp $
+ * $Id: demux_qt.c,v 1.193 2004/10/16 10:38:14 tmattern Exp $
  *
  */
 
@@ -2356,6 +2356,13 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       return this->status;
 
     remaining_sample_bytes = audio_trak->frames[i].size;
+
+    /* HACK: MAC3 and MAC6 have wrong frame size */
+    if (audio_trak->properties->audio.codec_buftype == BUF_AUDIO_MAC3)
+      remaining_sample_bytes /= 3;
+    else if (audio_trak->properties->audio.codec_buftype == BUF_AUDIO_MAC6)
+      remaining_sample_bytes /= 6;
+
     this->input->seek(this->input, audio_trak->frames[i].offset,
       SEEK_SET);
 
