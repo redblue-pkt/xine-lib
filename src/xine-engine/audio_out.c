@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.72 2002/10/18 14:20:59 jcdutton Exp $
+ * $Id: audio_out.c,v 1.73 2002/10/20 15:56:27 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -752,6 +752,10 @@ static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
     this->last_audio_vpts = buf->vpts;
 
   }
+
+#ifdef LOG
+  printf ("audio_out: ao_put_buffer done\n");
+#endif
 }
 
 static void ao_close(ao_instance_t *this) {

@@ -34,7 +34,8 @@ SUBDIRS = \
 	libffmpeg \
 	libmpeg2 \
 	liba52 \
-	libmad 
+	libmad \
+	libw32dll 
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
