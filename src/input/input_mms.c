@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.33 2003/01/15 00:53:40 tmattern Exp $
+ * $Id: input_mms.c,v 1.34 2003/01/18 17:19:45 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -357,7 +357,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     bandwidth_changed_cb(cls, &bandwidth_entry);
   }
     
-  switch (this->protocol) {
+  switch (protocol) {
     case PROTOCOL_UNDEFINED:
       mms = mms_connect (stream, mrl, this->bandwidth);
       if (mms) {
