@@ -125,7 +125,7 @@ Contributions
     powerpc patches, oss output softsync
 
   Gert Vervoort <Gert.Vervoort@wxs.nl>
-    LPCM audio decoder plugin
+    LPCM audio decoder plugin, ffmpeg aspect ratio
 
   Peter Weissgerber <peterw2000@altavista.de>
     alsa 05 plugin fixes
