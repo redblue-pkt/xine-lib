@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.24 2001/06/24 04:32:36 guenter Exp $
+ * $Id: audio_decoder.c,v 1.25 2001/08/11 18:27:10 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -183,6 +183,9 @@ void *audio_decoder_loop (void *this_gen) {
 
 void audio_decoder_init (xine_t *this) {
 
+  pthread_attr_t       pth_attrs;
+  struct sched_param   pth_params;
+
   if (this->audio_out == NULL) {
     this->audio_finished = 1;    
     this->audio_fifo     = NULL;
@@ -191,7 +194,12 @@ void audio_decoder_init (xine_t *this) {
   
   this->audio_fifo = fifo_buffer_new (1500, 4096);
 
-  pthread_create (&this->audio_thread, NULL, audio_decoder_loop, this) ;
+  pthread_attr_init(&pth_attrs);
+  pthread_attr_getschedparam(&pth_attrs, &pth_params);
+  pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
+  pthread_attr_setschedparam(&pth_attrs, &pth_params);
+  
+  pthread_create (&this->audio_thread, &pth_attrs, audio_decoder_loop, this) ;
 }
 
 void audio_decoder_shutdown (xine_t *this) {

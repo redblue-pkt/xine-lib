@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.34 2001/08/05 00:59:51 ehasenle Exp $
+ * $Id: video_decoder.c,v 1.35 2001/08/11 18:27:10 guenter Exp $
  *
  */
 
@@ -189,9 +189,17 @@ void *video_decoder_loop (void *this_gen) {
 
 void video_decoder_init (xine_t *this) {
   
+  pthread_attr_t       pth_attrs;
+  struct sched_param   pth_params;
+
   this->video_fifo = fifo_buffer_new (500, 65536);
 
-  pthread_create (&this->video_thread, NULL, video_decoder_loop, this) ;
+  pthread_attr_init(&pth_attrs);
+  pthread_attr_getschedparam(&pth_attrs, &pth_params);
+  pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
+  pthread_attr_setschedparam(&pth_attrs, &pth_params);
+  
+  pthread_create (&this->video_thread, &pth_attrs, video_decoder_loop, this) ;
 }
 
 void video_decoder_shutdown (xine_t *this) {
