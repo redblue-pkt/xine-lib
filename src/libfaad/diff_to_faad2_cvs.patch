@@ -103,3 +103,21 @@ diff -urw /home/thibaut/faad2/libfaad/bits.h ./bits.h
  #define BSWAP(a) __asm__ ( "bswapl %0\n" : "=r" (a) : "0" (a) )
  #else
  #define BSWAP(a) \
+--- sbr_dec.c	3 Dec 2004 01:15:30 -0000
++++ sbr_dec.c	15 Dec 2004 20:55:20 -0000
+@@ -389,6 +389,7 @@
+     return 0;
+ }
+ 
++#if (defined(PS_DEC) || defined(DRM_PS))
+ static void ps_dummy_function(qmf_t X_mono[MAX_NTSR][64],
+                               qmf_t X_left[MAX_NTSR][64], qmf_t X_right[MAX_NTSR][64])
+ {
+@@ -408,7 +409,6 @@
+     }
+ }
+ 
+-#if (defined(PS_DEC) || defined(DRM_PS))
+ uint8_t sbrDecodeSingleFramePS(sbr_info *sbr, real_t *left_channel, real_t *right_channel,
+                                const uint8_t just_seeked, const uint8_t upsample_only)
+ {

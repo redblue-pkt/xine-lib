@@ -1163,8 +1163,8 @@ static int channel_index(dvb_input_plugin_t* this, unsigned int service_id) {
 
 static int compare_epg_by_starttime(const void* a, const void* b) {
     const epg_entry_t **epg_a, **epg_b;
-    epg_a = (const struct epg_entry_t**)a;
-    epg_b = (const struct epg_entry_t**)b;
+    epg_a = (const epg_entry_t**)a;
+    epg_b = (const epg_entry_t**)b;
 
     if ((*epg_a)->starttime < (*epg_b)->starttime) {
 	return -1;
@@ -1469,6 +1469,7 @@ static void render_text_area(osd_renderer_t* renderer, osd_object_t* osd, char* 
   }
 }
 
+#if 0 /* unused */
 /* For debugging. Prints time in human readable form to log. */
 static void print_time(time_t time_to_print) {
     struct tm* timetime;
@@ -1477,6 +1478,7 @@ static void print_time(time_t time_to_print) {
     printf("%d:%d\n", timetime->tm_hour, timetime->tm_min); 
 
 }
+#endif
 
 /* Finds the EPG of the ith next program. 0 means the current program, 1 next. 
    If not found, returns NULL. All these functions expect the EPG entries

@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: sbr_dec.c,v 1.6 2004/12/03 01:15:30 tmattern Exp $
+** $Id: sbr_dec.c,v 1.7 2004/12/15 20:57:28 mroi Exp $
 **/
 
 
@@ -389,6 +389,7 @@ uint8_t sbrDecodeSingleFrame(sbr_info *sbr, real_t *channel,
     return 0;
 }
 
+#if (defined(PS_DEC) || defined(DRM_PS))
 static void ps_dummy_function(qmf_t X_mono[MAX_NTSR][64],
                               qmf_t X_left[MAX_NTSR][64], qmf_t X_right[MAX_NTSR][64])
 {
@@ -408,7 +409,6 @@ static void ps_dummy_function(qmf_t X_mono[MAX_NTSR][64],
     }
 }
 
-#if (defined(PS_DEC) || defined(DRM_PS))
 uint8_t sbrDecodeSingleFramePS(sbr_info *sbr, real_t *left_channel, real_t *right_channel,
                                const uint8_t just_seeked, const uint8_t upsample_only)
 {
