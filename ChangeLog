@@ -6,7 +6,9 @@ xine-lib (1-beta10)
   * font encoding cleanup (xinefonts use unicode now)
   * ffmpeg sync (build 4663). WMV8 decoder enabled.
   * much more accurate time display with DVDs
-    
+  * xine health check fixes for non-mtrr machines
+  * fixes for high-bandwidth RV30 streams
+	
 xine-lib (1-beta9)
   * implement XINE_PARAM_AUDIO_AMP_LEVEL so xine's volume can be
     set independantly from other applications
