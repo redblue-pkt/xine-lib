@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.164 2003/07/16 14:14:17 andruil Exp $
+ * $Id: demux_avi.c,v 1.165 2003/07/19 19:11:45 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -309,8 +309,20 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, long posc,
 
   if (at->dwSampleSize==0) {
     /* variable bitrate */
-    return (int64_t)(90000.0 * (double)posc *
-      (double)at->dwScale_audio / (double)at->dwRate_audio);
+    if (at->dwScale_audio > 1) {
+      /* normal case */
+      return (int64_t)(90000.0 * (double)(posc) *
+        (double)at->dwScale_audio / (double)at->dwRate_audio);
+    } else {
+      /* not really variable bitrate */
+      if( at->wavex && at->wavex->nBlockAlign ) {
+        return (int64_t)((double)(postot + posb) / (double)at->wavex->nBlockAlign *
+          (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
+      } else {
+        return (int64_t)((double)(postot + posb) *
+         (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
+      }
+    }
   } else {
     /* constant bitrate */
     if( at->wavex && at->wavex->nBlockAlign ) {
@@ -740,6 +752,9 @@ static avi_t *AVI_init(demux_avi_t *this) {
           a->audio_strn    = num_stream;
           a->dwScale_audio = str2ulong(hdrl_data+i+20);
           a->dwRate_audio  = str2ulong(hdrl_data+i+24);
+          
+          lprintf("dwScale=%d, dwRate=%d, num_stream=%d\n", a->dwScale_audio, a->dwRate_audio, num_stream);
+          
           a->dwSampleSize  = str2ulong(hdrl_data+i+44);
 	  a->audio_tot     = 0;
           auds_strh_seen = 1;
