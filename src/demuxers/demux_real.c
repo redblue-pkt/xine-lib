@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.74 2003/12/12 22:29:20 jstembridge Exp $
+ * $Id: demux_real.c,v 1.75 2004/01/08 23:17:34 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -652,6 +652,10 @@ unknown:
   /* Send headers and set meta info */
   if(this->video_stream) {
     buf_element_t *buf;
+    
+    /* Check for recognised codec*/
+    if(!this->video_stream->buf_type)
+      this->video_stream->buf_type = BUF_VIDEO_UNKNOWN;
       
     /* Send header */
     buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
@@ -691,6 +695,10 @@ unknown:
   }
 
   if(this->audio_stream) {
+    /* Check for recognised codec */
+    if(!this->audio_stream->buf_type)
+      this->audio_stream->buf_type = BUF_AUDIO_UNKNOWN;
+  
     /* Send headers */
     if(this->audio_fifo) {
       buf_element_t *buf;
