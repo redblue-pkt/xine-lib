@@ -26,6 +26,8 @@
 
 #ifdef __KERNEL__
 #include <linux/types.h>
+#elif defined(__sun)
+#include <inttypes.h>
 #else
 #include <stdint.h>
 #endif

@@ -24,8 +24,11 @@
 #ifndef _FRONTEND_H_
 #define _FRONTEND_H_
 
+#if defined(__sun)
+#include <sys/ioccom.h>
+#else
 #include <asm/types.h>
-
+#endif
 
 #define ENOSIGNAL 768
 #ifndef EBUFFEROVERFLOW
@@ -33,7 +36,7 @@
 #endif
 
 
-typedef __u32 FrontendStatus;
+typedef uint32_t FrontendStatus;
 
 /* bit definitions for FrontendStatus */
 #define FE_HAS_POWER         1
@@ -104,13 +107,13 @@ typedef enum {
 
 
 typedef struct {
-        __u32     SymbolRate; /* symbol rate in Symbols per second */
+        uint32_t     SymbolRate; /* symbol rate in Symbols per second */
         CodeRate  FEC_inner;  /* forward error correction (see above) */
 } QPSKParameters;
 
 
 typedef struct {
-        __u32      SymbolRate; /* symbol rate in Symbols per second */
+        uint32_t      SymbolRate; /* symbol rate in Symbols per second */
         CodeRate   FEC_inner;  /* forward error correction (see above) */
         Modulation QAM;        /* modulation type (see above) */
 } QAMParameters;
@@ -135,7 +138,7 @@ typedef enum {
 
 
 typedef struct {
-        __u32 Frequency;                /* (absolute) frequency in Hz for QAM/OFDM */
+        uint32_t Frequency;                /* (absolute) frequency in Hz for QAM/OFDM */
                                         /* intermediate frequency in kHz for QPSK */
 	SpectralInversion Inversion;    /* spectral inversion */
         union {
@@ -171,12 +174,12 @@ typedef struct {
 
 typedef struct {
         FrontendType type;
-        __u32        minFrequency;
-        __u32        maxFrequency;
-        __u32        maxSymbolRate;
-        __u32        minSymbolRate;
-        __u32        hwType;
-        __u32        hwVersion;
+        uint32_t        minFrequency;
+        uint32_t        maxFrequency;
+        uint32_t        maxSymbolRate;
+        uint32_t        minSymbolRate;
+        uint32_t        hwType;
+        uint32_t        hwVersion;
 } FrontendInfo;
 
 
@@ -192,12 +195,12 @@ typedef enum {
 #define FE_SET_POWER_STATE            _IOW('o', 62, FrontendPowerState)
 #define FE_GET_POWER_STATE            _IOR('o', 63, FrontendPowerState*)
 #define FE_READ_STATUS                _IOR('o', 64, FrontendStatus*)
-#define FE_READ_BER                   _IOW('o', 65, __u32*)
+#define FE_READ_BER                   _IOW('o', 65, uint32_t*)
 #define FE_READ_SIGNAL_STRENGTH       _IOR('o', 66, __s32*)
 #define FE_READ_SNR                   _IOR('o', 67, __s32*)
-#define FE_READ_UNCORRECTED_BLOCKS    _IOW('o', 68, __u32*)
-#define FE_GET_NEXT_FREQUENCY         _IOW('o', 69, __u32*)
-#define FE_GET_NEXT_SYMBOL_RATE       _IOW('o', 70, __u32*)
+#define FE_READ_UNCORRECTED_BLOCKS    _IOW('o', 68, uint32_t*)
+#define FE_GET_NEXT_FREQUENCY         _IOW('o', 69, uint32_t*)
+#define FE_GET_NEXT_SYMBOL_RATE       _IOW('o', 70, uint32_t*)
 
 #define FE_SET_FRONTEND               _IOW('o', 71, FrontendParameters*)
 #define FE_GET_FRONTEND               _IOR('o', 72, FrontendParameters*)
