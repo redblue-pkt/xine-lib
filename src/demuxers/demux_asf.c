@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.102 2003/01/29 02:33:35 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.103 2003/01/29 18:53:54 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -43,6 +43,7 @@
 #include "demux.h"
 #include "xineutils.h"
 #include "asfheader.h"
+#include "xmlparser.h"
 
 /*
 #define LOG
@@ -147,6 +148,7 @@ typedef struct demux_asf_s {
   /* first packet position */
   int64_t           first_packet_pos;
 
+  int               reference_mode;
 } demux_asf_t ;
 
 typedef struct {
@@ -1248,7 +1250,119 @@ static void asf_read_packet(demux_asf_t *this) {
     this->packet_size_left -= frag_len;
   }
 }
+
+/*
+ * parse .asx playlist files
+ */ 
+static int demux_asf_parse_references( demux_asf_t *this) {
+
+  char           *buf = NULL;
+  int             buf_size = 0;
+  int             buf_used = 0;
+  int             len;
+  xine_mrl_reference_data_t *data;
+  xine_event_t    uevent;
+  xml_node_t     *xml_tree, *asx_entry, *asx_ref;
+  xml_property_t *asx_prop;
+  int             result;
+
+
+  /* read file to memory. 
+   * warning: dumb code, but hopefuly ok since reference file is small */
+  do {
+    buf_size += 1024;
+    buf = realloc(buf, buf_size+1);
+    
+    len = this->input->read(this->input, &buf[buf_used], buf_size-buf_used);
+
+    if( len > 0 )
+      buf_used += len;
+      
+    /* 50k of reference file? no way. something must be wrong */
+    if( buf_used > 50*1024 )
+      break;
+  } while( len > 0 );
   
+  if(buf_used)
+    buf[buf_used] = '\0';
+
+  xml_parser_init(buf, buf_used, XML_PARSER_CASE_INSENSITIVE);
+  if((result = xml_parser_build_tree(&xml_tree)) != XML_PARSER_OK)
+    goto __failure;
+      
+  if(!strcasecmp(xml_tree->name, "ASX")) {
+
+    asx_prop = xml_tree->props;
+
+    while((asx_prop) && (strcasecmp(asx_prop->name, "VERSION")))
+      asx_prop = asx_prop->next;
+
+    if(asx_prop) {
+      int  version_major, version_minor = 0;
+
+      if((((sscanf(asx_prop->value, "%d.%d", &version_major, &version_minor)) == 2) ||
+          ((sscanf(asx_prop->value, "%d", &version_major)) == 1)) && 
+         ((version_major == 3) && (version_minor == 0))) {
+    
+        asx_entry = xml_tree->child;
+        while(asx_entry) {
+          if((!strcasecmp(asx_entry->name, "ENTRY")) ||
+             (!strcasecmp(asx_entry->name, "ENTRYREF"))) {
+            char *href   = NULL;
+
+            asx_ref = asx_entry->child;
+            while(asx_ref) {
+
+              if(!strcasecmp(asx_ref->name, "REF")) {
+
+                for(asx_prop = asx_ref->props; asx_prop; asx_prop = asx_prop->next) {
+
+                  if(!strcasecmp(asx_prop->name, "HREF")) {
+
+                    if(!href)
+                      href = asx_prop->value;
+                  }
+                  if(href)
+                    break;
+                }
+              }
+              asx_ref = asx_ref->next;
+            }
+
+            if(href && strlen(href)) {
+              uevent.type = XINE_EVENT_MRL_REFERENCE;
+              uevent.stream = this->stream;
+              uevent.data_length = strlen(href)+sizeof(xine_mrl_reference_data_t);
+              data = malloc(uevent.data_length);
+              uevent.data = data;
+              strcpy(data->mrl, href);
+              data->alternative = 0;
+              xine_event_send(this->stream, &uevent);
+            }
+            href = NULL;
+          }
+          asx_entry = asx_entry->next;
+        }
+      }
+      else
+        printf("demux_asf: Wrong ASX version: %s\n", asx_prop->value);
+
+    }
+    else
+      printf("demux_asf: Unable to find VERSION tag from ASX.\n");
+  }
+  else
+    printf("demux_asf: Unsupported XML type: '%s'.\n", xml_tree->name);
+      
+  xml_parser_free_tree(xml_tree);
+__failure:
+  free(buf);
+  
+  this->status = DEMUX_FINISHED;
+  return this->status;
+}
+
+
 /* 
  * xine specific functions start here
  */
@@ -1256,6 +1370,9 @@ static void asf_read_packet(demux_asf_t *this) {
 static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
+
+  if(this->reference_mode)
+    return demux_asf_parse_references(this);
 
   asf_read_packet (this);
 
@@ -1322,6 +1439,11 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
 
   if (this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE)
     this->input->seek (this->input, 0, SEEK_SET);
+
+  if (this->reference_mode) {
+    xine_demux_control_start(this->stream);
+    return;
+  }
 
   if (!asf_read_header (this)) {
 
@@ -1468,7 +1590,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 				    input_plugin_t *input) {
   
   demux_asf_t *this;
-  uint8_t      buf[8192];
+  uint8_t      buf[4096];
   int          len;
 
   switch (stream->content_detection_method) {
@@ -1483,7 +1605,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       if (input->get_capabilities (input) & INPUT_CAP_SEEKABLE) {
 
 	input->seek (input, 0, SEEK_SET);
-	if (input->read (input, buf, 8192) != 8192)
+	if ( (len=input->read (input, buf, 1024)) <= 0)
 	  return NULL;
 
 #ifdef LOG
@@ -1493,8 +1615,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       } else
 	return NULL;
     }      
-    if (memcmp(buf, &guids[GUID_ASF_HEADER].guid, sizeof(GUID)))
-      return NULL;
+
+    if (memcmp(buf, &guids[GUID_ASF_HEADER].guid, sizeof(GUID))) {
+      buf[len] = '\0';
+      if( !strstr(buf,"asx") && !strstr(buf,"ASX") )
+        return NULL;
+    }
       
 #ifdef LOG
     printf ("demux_asf: file starts with an asf header\n");
@@ -1538,6 +1664,22 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this         = xine_xmalloc (sizeof (demux_asf_t));
   this->stream = stream;
   this->input  = input;
+  
+  /*
+   * check for reference stream
+   */ 
+  this->reference_mode = 0;
+  len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+  if ( (len == INPUT_OPTIONAL_UNSUPPORTED) &&
+       (input->get_capabilities (input) & INPUT_CAP_SEEKABLE) ) {
+    input->seek (input, 0, SEEK_SET);
+    len=input->read (input, buf, 1024);
+  }
+  if(len > 0) {
+    buf[len] = '\0';
+    if( strstr(buf,"asx") || strstr(buf,"ASX") )
+      this->reference_mode = 1;
+  }
 
   this->demux_plugin.send_headers      = demux_asf_send_headers;
   this->demux_plugin.send_chunk        = demux_asf_send_chunk;

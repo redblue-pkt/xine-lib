@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.73 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: input_file.c,v 1.74 2003/01/29 18:53:59 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -63,8 +63,6 @@ typedef struct {
 
   int               fh;
   char             *mrl;
-
-  FILE             *sub;
 
 } file_input_plugin_t;
 
@@ -194,13 +192,6 @@ static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
 static int file_plugin_get_optional_data (input_plugin_t *this_gen, 
 					  void *data, int data_type) {
   
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-#ifdef LOG
-  printf ("input_file: get optional data, type %08x, sub %p\n",
-	  data_type, this->sub);
-#endif
-
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
@@ -208,9 +199,6 @@ static void file_plugin_dispose (input_plugin_t *this_gen ) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
   close(this->fh);
-
-  if (this->sub) 
-    fclose (this->sub);
 
   free (this->mrl);
 
@@ -247,33 +235,16 @@ static char *decode_uri (char *uri) {
 static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
 				    const char *data) {
 
-  file_input_class_t  *cls = (file_input_class_t *) cls_gen;
+  /* file_input_class_t  *cls = (file_input_class_t *) cls_gen; */
   file_input_plugin_t *this;
-  FILE                *sub;
   char                *mrl = strdup(data);
-  char                *filename, *subtitle;
+  char                *filename;
   int                  fh;
 
   if (!strncasecmp (mrl, "file:", 5)) 
     filename = decode_uri (&mrl[5]);
   else
     filename = mrl;
-
-  /* FIXME: find a better solution (multiple streams) for text subtitles */
-  subtitle = strrchr (filename, '?');
-  if (subtitle) {
-    *subtitle = 0;
-    subtitle++;
-
-    xine_log (cls->xine, XINE_LOG_MSG,
-	      _("input_file: trying to open subtitle file '%s'\n"),
-	      subtitle);
-
-    sub = fopen (subtitle, "r");
-
-  } else
-    sub = NULL;
-
 
   fh = open (filename, O_RDONLY);
 
@@ -286,7 +257,6 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->stream = stream;
   this->mrl    = mrl;
   this->fh     = fh;
-  this->sub    = sub;
 
   this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
   this->input_plugin.read               = file_plugin_read;

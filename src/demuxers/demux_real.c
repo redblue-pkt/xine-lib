@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.38 2003/01/29 02:33:36 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.39 2003/01/29 18:53:56 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1222,7 +1222,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       input->seek(input, 0, SEEK_SET);
 
-      if ((len = input->read(input, buf, 1024))) {
+      if ( (len = input->read(input, buf, 1024)) > 0) {
         if (real_check_stream_type(buf,len) == 2)
           this->reference_mode = 1;
       }
