@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.22 2004/09/17 19:21:45 valtri Exp $
+ * $Id: input_gnome_vfs.c,v 1.23 2004/10/30 16:14:33 hadess Exp $
  */
 
 
@@ -28,8 +28,8 @@
 
 #include "xine_internal.h"
 #include "xineutils.h"
-#include "compat.h"
 #include "input_plugin.h"
+#include "net_buf_ctrl.h"
 
 #include <libgnomevfs/gnome-vfs.h>
 
@@ -49,6 +49,7 @@ typedef struct {
 typedef struct {
 	input_plugin_t input_plugin;
 	xine_stream_t *stream;
+	nbc_t *nbc;
 
 	/* File */
 	GnomeVFSHandle *fh;
@@ -203,12 +204,6 @@ gnomevfs_plugin_get_blocksize (input_plugin_t *this_gen)
 	return 0;
 }
 
-static int
-gnomevfs_klass_eject_media (input_class_t *this_gen)
-{
-	return 1; /* doesn't make sense */
-}
-
 static char*
 gnomevfs_plugin_get_mrl (input_plugin_t *this_gen)
 {
@@ -243,6 +238,11 @@ gnomevfs_plugin_dispose (input_plugin_t *this_gen )
 {
 	gnomevfs_input_t *this = (gnomevfs_input_t *) this_gen;
 
+	if (this->nbc)
+	{
+		nbc_close (this->nbc);
+		this->nbc = NULL;
+	}
 	if (this->fh)
 		gnome_vfs_close (this->fh);
 	if (this->mrl)
@@ -265,7 +265,6 @@ gnomevfs_plugin_open (input_plugin_t *this_gen )
 	}
 
 	return 1;
-
 }
 
 static void
@@ -308,6 +307,7 @@ gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
 	this->fh = NULL;
 	this->mrl = g_strdup (mrl);
 	this->uri = uri;
+	this->nbc = nbc_init (this->stream);
 
 	this->input_plugin.open              = gnomevfs_plugin_open;
 	this->input_plugin.get_capabilities  = gnomevfs_plugin_get_capabilities;
@@ -331,11 +331,13 @@ static void
 {
 	gnomevfs_input_class_t *this;
 
-	D("init_input_class");
+	xprintf (xine, XINE_VERBOSITY_DEBUG, "gnome_vfs init_input_class\n");
 
 	if (gnome_vfs_initialized () == FALSE)
-		if (gnome_vfs_init () == FALSE)
+		if (gnome_vfs_init () == FALSE) {
+			xprintf (xine, XINE_VERBOSITY_DEBUG, "Couldn't initialise gnome-vfs\n");
 			return NULL;
+		}
 
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
@@ -349,7 +351,6 @@ static void
 	this->input_class.get_dir            = NULL;
 	this->input_class.get_autoplay_list  = NULL;
 	this->input_class.dispose            = gnomevfs_klass_dispose;
-	this->input_class.eject_media        = gnomevfs_klass_eject_media;
 
 	return (input_class_t *) this;
 }
