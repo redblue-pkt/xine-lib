@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.17 2005/02/06 15:26:16 tmattern Exp $
+ * $Id: demux_image.c,v 1.18 2005/02/13 18:42:49 holstsn Exp $
  *
  * image dummy demultiplexer
  */
@@ -51,6 +51,7 @@ typedef struct demux_image_s {
   fifo_buffer_t        *video_fifo;
   input_plugin_t       *input;
   int                   status;
+  int                   buf_type;
 } demux_image_t ;
 
 typedef struct {
@@ -64,12 +65,12 @@ static int demux_image_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static int demux_image_send_chunk (demux_plugin_t *this_gen) {
+static int demux_image_next (demux_plugin_t *this_gen, int preview) {
   demux_image_t *this = (demux_image_t *) this_gen;
   buf_element_t *buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
   buf->content = buf->mem;
-  buf->type = BUF_VIDEO_IMAGE;
+  buf->type = this->buf_type;
 
   buf->size = this->input->read (this->input, buf->mem, buf->max_size-1);
 
@@ -80,9 +81,17 @@ static int demux_image_send_chunk (demux_plugin_t *this_gen) {
   } else {
     this->status = DEMUX_OK;
   }
-  this->video_fifo->put (this->video_fifo, buf);
   
+  if (preview)
+    buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+  this->video_fifo->put (this->video_fifo, buf);
+
   return this->status;
+}
+
+static int demux_image_send_chunk (demux_plugin_t *this_gen) {
+  return demux_image_next(this_gen, 0);
 }
 
 static void demux_image_send_headers (demux_plugin_t *this_gen) {
@@ -90,12 +99,17 @@ static void demux_image_send_headers (demux_plugin_t *this_gen) {
 
   this->video_fifo  = this->stream->video_fifo;
 
+  _x_demux_control_start(this->stream);
+
+  this->input->seek (this->input, 0, SEEK_SET);
+
+  /* we can send everything here. this makes image decoder a lot easier */
+  while (demux_image_next(this_gen,1) == DEMUX_OK);
+
   this->status = DEMUX_OK;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
-  
-  this->input->seek (this->input, 0, SEEK_SET);
 }
 
 static int demux_image_seek (demux_plugin_t *this_gen,
@@ -133,6 +147,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 				    input_plugin_t *input) {
 
   demux_image_t *this;
+  int buf_type = BUF_VIDEO_IMAGE;
 
   switch (stream->content_detection_method) {
 
@@ -179,6 +194,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->demux_plugin.demux_class       = class_gen;
   
   this->status = DEMUX_FINISHED;
+  this->buf_type = buf_type;
 
   lprintf("opened\n");
   return &this->demux_plugin;
