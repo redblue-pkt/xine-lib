@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.40 2003/05/02 00:46:20 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.41 2003/05/02 00:54:21 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -103,7 +103,6 @@ struct vidix_driver_s {
   int                 next_frame;
   int                 got_frame_data;
 
-  int                 use_colourkey;
   uint32_t            colourkey;
   int                 use_doublebuffer;
     
@@ -311,10 +310,8 @@ static void vidix_clean_output_area(vidix_driver_t *this) {
     XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[2].x, this->sc.border[2].y, this->sc.border[2].w, this->sc.border[2].h);
     XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[3].x, this->sc.border[3].y, this->sc.border[3].w, this->sc.border[3].h);
   
-    if(this->use_colourkey) {
-      XSetForeground(this->display, this->gc, this->colourkey);
-      XFillRectangle(this->display, this->drawable, this->gc, this->sc.output_xoffset, this->sc.output_yoffset, this->sc.output_width, this->sc.output_height);
-    }
+    XSetForeground(this->display, this->gc, this->colourkey);
+    XFillRectangle(this->display, this->drawable, this->gc, this->sc.output_xoffset, this->sc.output_yoffset, this->sc.output_width, this->sc.output_height);
   
     XFlush(this->display);
 
@@ -325,39 +322,31 @@ static void vidix_clean_output_area(vidix_driver_t *this) {
 
 
 static void vidix_update_colourkey(vidix_driver_t *this) {
-
-  if(this->use_colourkey) {
-    this->vidix_grkey.ckey.op = CKEY_TRUE;
+  this->vidix_grkey.ckey.op = CKEY_TRUE;
     
-    switch(this->depth) {
-    
-      case 15:
-        this->colourkey = ((this->vidix_grkey.ckey.red   & 0xF8) << 7) |
-                          ((this->vidix_grkey.ckey.green & 0xF8) << 2) |
-                          ((this->vidix_grkey.ckey.blue  & 0xF8) >> 3);
-        break;
-        
-      case 16:
-        this->colourkey = ((this->vidix_grkey.ckey.red   & 0xF8) << 8) |
-                          ((this->vidix_grkey.ckey.green & 0xFC) << 3) |
-                          ((this->vidix_grkey.ckey.blue  & 0xF8) >> 3);
-        break;
-        
-      case 24:
-      case 32:
-        this->colourkey = ((this->vidix_grkey.ckey.red   & 0xFF) << 16) |
-                          ((this->vidix_grkey.ckey.green & 0xFF) << 8) |
-                          ((this->vidix_grkey.ckey.blue  & 0xFF));
-        break;
-      
-      default:
-        break;
-    }
+  switch(this->depth) {
+    case 15:
+      this->colourkey = ((this->vidix_grkey.ckey.red   & 0xF8) << 7) |
+                        ((this->vidix_grkey.ckey.green & 0xF8) << 2) |
+                        ((this->vidix_grkey.ckey.blue  & 0xF8) >> 3);
+      break;
+    case 16:
+      this->colourkey = ((this->vidix_grkey.ckey.red   & 0xF8) << 8) |
+                        ((this->vidix_grkey.ckey.green & 0xFC) << 3) |
+                        ((this->vidix_grkey.ckey.blue  & 0xF8) >> 3);
+      break;
+    case 24:
+    case 32:
+      this->colourkey = ((this->vidix_grkey.ckey.red   & 0xFF) << 16) |
+                        ((this->vidix_grkey.ckey.green & 0xFF) << 8) |
+                        ((this->vidix_grkey.ckey.blue  & 0xFF));
+      break;
+    default:
+      break;
+  }
                   
-    vidix_clean_output_area(this);
-  } else
-    this->vidix_grkey.ckey.op = CKEY_FALSE;
-
+  vidix_clean_output_area(this);
+  
   vdlSetGrKeys(this->vidix_handler, &this->vidix_grkey);
 }
     
@@ -757,10 +746,6 @@ static void vidix_ckey_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) 
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;  
   
-  if(strcmp(entry->key, "video.vidix_use_colour_key") == 0) {
-    this->use_colourkey = entry->num_value;
-  }
-  
   if(strcmp(entry->key, "video.vidix_colour_key_red") == 0) {
     this->vidix_grkey.ckey.red = entry->num_value;
   }
@@ -1110,11 +1095,6 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
      at the moment) */
   this->capabilities |= VO_CAP_COLORKEY;
   
-  /* Someone might want to disable colour keying (?) */
-  this->use_colourkey = config->register_bool(config, 
-    "video.vidix_use_colour_key", 1, "enable use of overlay colour key", 
-    NULL, 10, (void*) vidix_ckey_callback, this);
-    
   /* Colour key components */
   this->vidix_grkey.ckey.red = config->register_range(config,
     "video.vidix_colour_key_red", 255, 0, 255, 
@@ -1205,9 +1185,6 @@ static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const 
   this->sc.frame_output_cb   = vidixfb_frame_output_cb;
   this->sc.user_data         = this;
     
-  /* No need for colour key on the frame buffer */
-  this->use_colourkey = 0;
-  
   query_fourccs(this);
   
   return &this->vo_driver;
