@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.161 2003/05/07 17:54:18 tchamp Exp $
+ * $Id: input_dvd.c,v 1.162 2003/05/14 16:47:20 mroi Exp $
  *
  */
 
@@ -88,6 +88,7 @@
 #else
 #  define DVDNAV_COMPILE
 #  include "dvdnav.h"
+#  include "nav_read.h"
 #endif
 
 /* Xine includes */
@@ -1627,6 +1628,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.162  2003/05/14 16:47:20  mroi
+ * just to play it safe
+ *
  * Revision 1.161  2003/05/07 17:54:18  tchamp
  * DVD play sort of works on Win32. Also added a couple more plugings to the Win32 build.
  *
