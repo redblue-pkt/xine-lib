@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.123 2004/07/02 19:22:19 athp Exp $
+ * $Id: xine.h.in,v 1.124 2004/07/02 19:32:25 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -427,8 +427,6 @@ int64_t xine_get_current_vpts(xine_stream_t *stream);
  * you must fetch the frames manually with the
  * xine_get_next_* functions.  this ensures that a
  * framegrab port is guaranteed to never miss a frame.
- *
- * warning: highly experimental
  *
  */
 
