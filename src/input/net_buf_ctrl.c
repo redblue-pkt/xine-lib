@@ -42,8 +42,6 @@
 
 #define FULL_FIFO_MARK             5 /* buffers free */
 
-#define WRAP_THRESHOLD       5*90000 /* from the asf demuxer */
-
 #define FIFO_PUT                   0
 #define FIFO_GET                   1
 
@@ -97,15 +95,20 @@ static void report_progress (xine_stream_t *stream, int p) {
   xine_event_send (stream, &event);
 }
 
-static void nbc_set_speed_pause (xine_stream_t *stream) {
-  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
-  _x_set_speed(stream, XINE_SPEED_PAUSE);
+
+static void nbc_set_speed_pause (nbc_t *this) {
+  xine_stream_t *stream = this->stream;
+
+  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_pause\n");
+  _x_set_speed (stream, XINE_SPEED_PAUSE);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
 }
 
-static void nbc_set_speed_normal (xine_stream_t *stream) {
-  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
-  _x_set_speed(stream, XINE_SPEED_NORMAL);
+static void nbc_set_speed_normal (nbc_t *this) {
+  xine_stream_t *stream = this->stream;
+
+  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_normal\n");
+  _x_set_speed (stream, XINE_SPEED_NORMAL);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 }
 
@@ -218,7 +221,9 @@ static void nbc_compute_fifo_length(nbc_t *this,
 static void nbc_alloc_cb (fifo_buffer_t *fifo, void *this_gen) {
   nbc_t *this = (nbc_t*)this_gen;
 
-  if (this->buffering) {
+  lprintf("enter nbc_alloc_cb\n");
+  pthread_mutex_lock(&this->mutex);
+  if (this->enabled && this->buffering) {
 
     /* restart playing if one fifo is full (to avoid deadlock) */
     if (fifo->buffer_pool_num_free <= 1) {
@@ -228,9 +233,11 @@ static void nbc_alloc_cb (fifo_buffer_t *fifo, void *this_gen) {
 
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_alloc_cb: stops buffering\n");
 
-      nbc_set_speed_normal(this->stream);
+      nbc_set_speed_normal(this);
     }
   }
+  pthread_mutex_unlock(&this->mutex);
+  lprintf("exit nbc_alloc_cb\n");
 }
 
 /* Put callback
@@ -243,97 +250,112 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
   int64_t audio_p = 0;
   int has_video, has_audio;
 
+  lprintf("enter nbc_put_cb\n");
   pthread_mutex_lock(&this->mutex);
 
   if ((buf->type & BUF_MAJOR_MASK) != BUF_CONTROL_BASE) {
 
-    /* do nothing if we are at the end of the stream */
-    if (!this->enabled) {
-      /* a new stream starts */
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: starts buffering\n");
-      this->enabled           = 1;
-      this->buffering         = 1;
-      this->video_first_pts   = 0;
-      this->video_last_pts    = 0;
-      this->audio_first_pts   = 0;
-      this->audio_last_pts    = 0;
-      this->video_fifo_length = 0;
-      this->audio_fifo_length = 0;
-      nbc_set_speed_pause(this->stream);
-      this->progress = 0;
-      report_progress (this->stream, progress);
-    }
+    if (this->enabled) {
+      
+      nbc_compute_fifo_length(this, fifo, buf, FIFO_PUT);
 
-    nbc_compute_fifo_length(this, fifo, buf, FIFO_PUT);
+      if (this->buffering) {
 
-    if (this->buffering) {
+        has_video = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
+        has_audio = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
+        /* restart playing if high_water_mark is reached by all fifos
+         * do not restart if has_video and has_audio are false to avoid
+         * a yoyo effect at the beginning of the stream when these values
+         * are not yet known.
+         *
+         * be sure that the next buffer_pool_alloc() call will not deadlock,
+         * we need at least 2 buffers (see buffer.c)
+         */
+        if ((((!has_video) || (this->video_fifo_length > this->high_water_mark)) &&
+             ((!has_audio) || (this->audio_fifo_length > this->high_water_mark)) &&
+             (has_video || has_audio))) {
 
-      has_video = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
-      has_audio = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
-      /* restart playing if high_water_mark is reached by all fifos
-       * do not restart if has_video and has_audio are false to avoid
-       * a yoyo effect at the beginning of the stream when these values
-       * are not yet known.
-       * 
-       * be sure that the next buffer_pool_alloc() call will not deadlock,
-       * we need at least 2 buffers (see buffer.c)
-       */
-      if ((((!has_video) || (this->video_fifo_length > this->high_water_mark)) &&
-           ((!has_audio) || (this->audio_fifo_length > this->high_water_mark)) &&
-           (has_video || has_audio))) {
+          this->progress = 100;
+          report_progress (this->stream, 100);
+          this->buffering = 0;
 
-        this->progress = 100;
-        report_progress (this->stream, 100);
-        this->buffering = 0;
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
 
-        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
+          nbc_set_speed_normal(this);
 
-        nbc_set_speed_normal(this->stream);
-
-      } else {
-        /*  compute the buffering progress
-         *    50%: video
-         *    50%: audio */
-        video_p = ((this->video_fifo_length * 50) / this->high_water_mark);
-        if (video_p > 50) video_p = 50;
-        audio_p = ((this->audio_fifo_length * 50) / this->high_water_mark);
-        if (audio_p > 50) audio_p = 50;
-
-        if ((has_video) && (has_audio)) {
-          progress = video_p + audio_p;
-        } else if (has_video) {
-          progress = 2 * video_p;
         } else {
-          progress = 2 * audio_p;
-        }
+          /*  compute the buffering progress
+           *    50%: video
+           *    50%: audio */
+          video_p = ((this->video_fifo_length * 50) / this->high_water_mark);
+          if (video_p > 50) video_p = 50;
+          audio_p = ((this->audio_fifo_length * 50) / this->high_water_mark);
+          if (audio_p > 50) audio_p = 50;
 
-        /* if the progress can't be computed using the fifo length,
-           use the number of buffers */
-        if (!progress) {
-          video_p = this->video_fifo_fill;
-          audio_p = this->audio_fifo_fill;
-          progress = (video_p > audio_p) ? video_p : audio_p;
-        }
+          if ((has_video) && (has_audio)) {
+            progress = video_p + audio_p;
+          } else if (has_video) {
+            progress = 2 * video_p;
+          } else {
+            progress = 2 * audio_p;
+          }
 
-        if (progress > this->progress) {
-          report_progress (this->stream, progress);
-          this->progress = progress;
+          /* if the progress can't be computed using the fifo length,
+             use the number of buffers */
+          if (!progress) {
+            video_p = this->video_fifo_fill;
+            audio_p = this->audio_fifo_fill;
+            progress = (video_p > audio_p) ? video_p : audio_p;
+          }
+
+          if (progress > this->progress) {
+            report_progress (this->stream, progress);
+            this->progress = progress;
+          }
         }
       }
+      if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+        display_stats(this);
     }
   } else {
 
     switch (buf->type) {
+      case BUF_CONTROL_START:
+        lprintf("BUF_CONTROL_START\n");
+        if (!this->enabled) {
+          /* a new stream starts */
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: starts buffering\n");
+          this->enabled           = 1;
+          this->buffering         = 1;
+          this->video_first_pts   = 0;
+          this->video_last_pts    = 0;
+          this->audio_first_pts   = 0;
+          this->audio_last_pts    = 0;
+          this->video_fifo_length = 0;
+          this->audio_fifo_length = 0;
+          nbc_set_speed_pause(this);
+          this->progress = 0;
+          report_progress (this->stream, progress);
+        }
+        break;
       case BUF_CONTROL_NOP:
+        if (!(buf->decoder_flags & BUF_FLAG_END_USER) &&
+            !(buf->decoder_flags & BUF_FLAG_END_STREAM)) {
+          break;
+        }
+        /* fall through */
       case BUF_CONTROL_END:
-
-        /* end of stream :
-         *   - disable the nbc
-         *   - unpause the engine if buffering
-         */
-        if ((buf->decoder_flags & BUF_FLAG_END_USER) ||
-            (buf->decoder_flags & BUF_FLAG_END_STREAM)) {
+      case BUF_CONTROL_QUIT:
+        lprintf("BUF_CONTROL_END\n");
+        if (this->enabled) {
+          /* end of stream :
+           *   - disable the nbc
+           *   - unpause the engine if buffering
+           */
           this->enabled = 0;
+
+          lprintf("DISABLE netbuf\n");
+
           if (this->buffering) {
             this->buffering = 0;
             this->progress = 100;
@@ -341,7 +363,7 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
 
             xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
 
-            nbc_set_speed_normal(this->stream);
+            nbc_set_speed_normal(this);
           }
         }
         break;
@@ -368,12 +390,8 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
       this->audio_fifo_size = fifo->fifo_data_size;
     }
   }
-
-
-  if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-    display_stats(this);
-
   pthread_mutex_unlock(&this->mutex);
+  lprintf("exit nbc_put_cb\n");
 }
 
 /* Get callback
@@ -381,14 +399,16 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
 static void nbc_get_cb (fifo_buffer_t *fifo,
 			buf_element_t *buf, void *this_gen) {
   nbc_t *this = (nbc_t*)this_gen;
+
+  lprintf("enter nbc_get_cb\n");
   pthread_mutex_lock(&this->mutex);
 
   if ((buf->type & BUF_MAJOR_MASK) != BUF_CONTROL_BASE) {
 
-    nbc_compute_fifo_length(this, fifo, buf, FIFO_GET);
-
     if (this->enabled) {
 
+      nbc_compute_fifo_length(this, fifo, buf, FIFO_GET);
+      
       if (!this->buffering) {
         /* start buffering if one fifo is empty
          */
@@ -413,14 +433,17 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
             report_progress (this->stream, 0);
 
             xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		    "\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
-		    this->video_fifo_fill, this->audio_fifo_fill);
-            nbc_set_speed_pause(this->stream);
+              "\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
+              this->video_fifo_fill, this->audio_fifo_fill);
+            nbc_set_speed_pause(this);
           }
         }
       } else {
-        nbc_set_speed_pause(this->stream);
+        nbc_set_speed_pause(this);
       }
+
+      if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+        display_stats(this);
     }
   } else {
     /* discontinuity management */
@@ -445,10 +468,8 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
     }
   }
 
-  if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-    display_stats(this);
-
   pthread_mutex_unlock(&this->mutex);
+  lprintf("exit nbc_get_cb\n");
 }
 
 nbc_t *nbc_init (xine_stream_t *stream) {
@@ -489,11 +510,9 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   video_fifo->register_put_cb(video_fifo, nbc_put_cb, this);
   video_fifo->register_get_cb(video_fifo, nbc_get_cb, this);
 
-  if (audio_fifo) {
-    audio_fifo->register_alloc_cb(audio_fifo, nbc_alloc_cb, this);
-    audio_fifo->register_put_cb(audio_fifo, nbc_put_cb, this);
-    audio_fifo->register_get_cb(audio_fifo, nbc_get_cb, this);
-  }
+  audio_fifo->register_alloc_cb(audio_fifo, nbc_alloc_cb, this);
+  audio_fifo->register_put_cb(audio_fifo, nbc_put_cb, this);
+  audio_fifo->register_get_cb(audio_fifo, nbc_get_cb, this);
 
   return this;
 }
@@ -504,24 +523,17 @@ void nbc_close (nbc_t *this) {
   xine_t        *xine       = this->stream->xine;
 
   xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close\n");
+  pthread_mutex_lock(&this->mutex);
 
   video_fifo->unregister_alloc_cb(video_fifo, nbc_alloc_cb);
   video_fifo->unregister_put_cb(video_fifo, nbc_put_cb);
   video_fifo->unregister_get_cb(video_fifo, nbc_get_cb);
 
-  if (audio_fifo) {
-    audio_fifo->unregister_alloc_cb(audio_fifo, nbc_alloc_cb);
-    audio_fifo->unregister_put_cb(audio_fifo, nbc_put_cb);
-    audio_fifo->unregister_get_cb(audio_fifo, nbc_get_cb);
-  }
+  audio_fifo->unregister_alloc_cb(audio_fifo, nbc_alloc_cb);
+  audio_fifo->unregister_put_cb(audio_fifo, nbc_put_cb);
+  audio_fifo->unregister_get_cb(audio_fifo, nbc_get_cb);
 
-  pthread_mutex_lock(&this->mutex);
   this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
-
-  if (this->buffering) {
-    this->buffering = 0;
-    nbc_set_speed_normal(this->stream);
-  }
 
   pthread_mutex_unlock(&this->mutex);
   
