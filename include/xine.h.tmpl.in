@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.64 2001/12/09 20:45:07 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.65 2001/12/10 00:11:06 f1rmb Exp $
  *
  */
 
@@ -1687,6 +1687,7 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *self);
   
 #define XINE_LOG_MSG    0
 #define XINE_LOG_CODEC  1
+#define XINE_LOG_NUM    2 /* # of log buffers defined */
 
 void xine_log (xine_t *self, int buf, const char *format, ...);
 
