@@ -188,7 +188,7 @@ if [ "$new_ver" = "$lastver" ]; then
   echo "According to configure.in, the new release is $new_ver, which is"
   echo "exactly the same as the last release."
   echo "Please update version info (XINE_{MAJOR,MINOR,SUB} as well as the"
-  echo "libtool version info (LT_{CURRENT,REVISION,AGE}) and try again!"
+  echo "libtool version info (XINE_LT_{CURRENT,REVISION,AGE}) and try again!"
   exit 1
 fi
 

@@ -66,7 +66,7 @@ Currently, best practice to get a release out looks like this:
    ask for help, so this doesn't take the whole day...
    Then, edit configure.ac:
    - set XINE_MAJOR, XINE_MINOR, XINE_SUB according to the marketing version
-   - set the LT_* constants according to the comments. DO _NOT_ mess with
+   - set the XINE_LT_* constants according to the comments. DO _NOT_ mess with
      these! If you're not sure about changed/added interfaces diff
      include/xine.h against the previous release and/or ask!
 

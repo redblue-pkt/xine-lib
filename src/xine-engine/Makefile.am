@@ -40,7 +40,8 @@ libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
                     $(dirent_lib) $(LIBXINEPOSIX) $(RT_LIBS)
 
 libxine_la_LDFLAGS =  \
-	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) $(def_ldflags)
+	-version-info $(XINE_LT_CURRENT):$(XINE_LT_REVISION):$(XINE_LT_AGE) \
+	$(def_ldflags)
 
 
 include_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \

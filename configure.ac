@@ -12,7 +12,7 @@ dnl
 AC_PREREQ(2.53)
 
 dnl Making releases:
-dnl   XINE_SUB += 1; continue with LT_* values below
+dnl   XINE_SUB += 1; continue with XINE_LT_* values below
 dnl
 XINE_MAJOR=1
 XINE_MINOR=0
@@ -24,34 +24,34 @@ else
   XINE_SUBPART=".$XINE_SUB"
 fi
 
-dnl The libtool version numbers (LT_*); Don't even think about faking this!
+dnl The libtool version numbers (XINE_LT_*); Don't even think about faking this!
 dnl 
 dnl immediately before every release do:
 dnl ===================================
 dnl if (the interface is totally unchanged from previous release)
-dnl    LT_REVISION ++;
+dnl    XINE_LT_REVISION ++;
 dnl else { /* interfaces have been added, removed or changed */
-dnl    LT_REVISION = 0;
-dnl    LT_CURRENT ++;
+dnl    XINE_LT_REVISION = 0;
+dnl    XINE_LT_CURRENT ++;
 dnl    if (any interfaces have been _added_ since last release)
-dnl       AGE ++;
+dnl       XINE_LT_AGE ++;
 dnl    if (any interfaces have been _removed_ or _incompatibly changed_)
-dnl       AGE = 0;
+dnl       XINE_LT_AGE = 0;
 dnl }
 dnl 
 dnl If you want to know more about what you are doing, here are some details:
-dnl  * LT_CURRENT is the current API version
-dnl  * LT_REVISION is an internal revision number which is increased when the API
+dnl  * XINE_LT_CURRENT is the current API version
+dnl  * XINE_LT_REVISION is an internal revision number which is increased when the API
 dnl    itself did not change
-dnl  * LT_AGE is the number of previous API versions still supported by this library
+dnl  * XINE_LT_AGE is the number of previous API versions still supported by this library
 dnl  * libtool has its own numbering scheme, because local library numbering schemes
 dnl    are platform dependent
 dnl  * in Linux, the library will be named
-dnl    libname.so.(LT_CURRENT - LT_AGE).LT_AGE.LT_REVISION
+dnl    libname.so.(XINE_LT_CURRENT - XINE_LT_AGE).XINE_LT_AGE.XINE_LT_REVISION
 
-LT_CURRENT=12
-LT_REVISION=1
-LT_AGE=11
+XINE_LT_CURRENT=12
+XINE_LT_REVISION=1
+XINE_LT_AGE=11
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
@@ -70,9 +70,9 @@ AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR,[xine major version number])
 AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR,[xine minor version number])
 AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB, [xine sub version number])
 
-AC_SUBST(LT_CURRENT)
-AC_SUBST(LT_REVISION)
-AC_SUBST(LT_AGE)
+AC_SUBST(XINE_LT_CURRENT)
+AC_SUBST(XINE_LT_REVISION)
+AC_SUBST(XINE_LT_AGE)
 
 SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR${XINE_SUBPART}$XINE_PRE
 TAR_NAME="xine-lib-"$SPEC_VERSION
