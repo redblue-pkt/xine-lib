@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.18 2004/08/16 15:21:03 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.19 2004/08/16 15:52:24 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -190,7 +190,7 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
 
   pthread_mutex_lock(&this->mutex);
   
-  em_speed = 0x900 * speed / XINE_FINE_SPEED_NORMAL;
+  em_speed = 0x900LL * (int64_t)speed / XINE_FINE_SPEED_NORMAL;
   switch (em_speed) {
   case 0:
     /* pause mode */
