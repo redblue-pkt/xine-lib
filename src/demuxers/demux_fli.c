@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.30 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_fli.c,v 1.31 2002/12/22 23:19:06 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,6 +56,7 @@ typedef struct {
   config_values_t     *config;
 
   fifo_buffer_t       *video_fifo;
+  fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
 
@@ -182,6 +183,7 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
   
       if (this->input->read(this->input, buf->content, buf->size) !=
         buf->size) {
+        buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
@@ -204,8 +206,8 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   demux_fli_t *this = (demux_fli_t *) this_gen;
   buf_element_t *buf;
 
-  this->video_fifo  = this->stream->video_fifo;
-  /* video-only format, don't worry about audio_fifo */
+  this->video_fifo = this->stream->video_fifo;
+  this->audio_fifo = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
