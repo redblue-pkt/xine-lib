@@ -1165,6 +1165,8 @@ src/libxinevdec/Makefile
 src/libxineadec/Makefile
 src/libxineadec/gsm610/Makefile
 src/libreal/Makefile
+src/post/Makefile
+src/post/planar/Makefile
 src/video_out/Makefile
 src/video_out/libdha/Makefile
 src/video_out/libdha/bin/Makefile
@@ -1287,6 +1289,12 @@ echo "   - sputext"
 if test x"$have_dxr3" = "xyes"; then
   echo "   - dxr3_spu"
 fi
+echo ""
+
+dnl post plugins
+echo " * post effect plugins:"
+echo "  * planar video effects:"
+echo "   - invert"
 echo ""
 
 dnl Video plugins
