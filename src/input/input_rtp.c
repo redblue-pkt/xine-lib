@@ -80,7 +80,7 @@
 #include <stdlib.h>
 #include <net/if.h>
 
-#ifdef __sun
+#if defined (__SVR4) && defined (__sun)
 #  include <sys/sockio.h>
 #endif
 
