@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.60 2002/07/05 17:32:00 mroi Exp $
+ * $Id: demux_qt.c,v 1.61 2002/07/08 21:57:42 tmattern Exp $
  *
  */
 
@@ -1105,7 +1105,7 @@ static void *demux_qt_loop (void *this_gen) {
         xine_demux_flush_engine(this->xine);
 
         /* send new pts */
-        xine_demux_control_newpts(this->xine, this->qt->frames[i].pts, 0);
+        xine_demux_control_newpts(this->xine, this->qt->frames[i].pts, BUF_FLAG_SEEK);
 
         /* reset last_frame_pts on seek */
         last_frame_pts = 0;
