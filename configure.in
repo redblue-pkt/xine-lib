@@ -461,7 +461,8 @@ case $host in
             cpu_cflags="-mcpu=supersparc -mtune=supersparc"
             ;;
         sparc64-*)
-	    cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
+	    #cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
+	    cpu_cflags="-mcpu=supersparc -mtune=ultrasparc"
             ;;
 	esac
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
