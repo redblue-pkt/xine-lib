@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.97 2003/03/18 15:42:04 hadess Exp $
+ * $Id: demux_mpgaudio.c,v 1.98 2003/03/18 16:29:44 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -463,16 +463,17 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf, int offset) {
+static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
 
-  uint32_t head=0;
-  int bs = 0;
+  uint32_t  head=0;
+  int       bs = 0;
+  int       i, optional;
 
   if(!input)
     return 0;
 
   if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
-    input->seek(input, offset, SEEK_SET);
+    input->seek(input, 0, SEEK_SET);
 
     if (input->get_capabilities (input) & INPUT_CAP_BLOCK)
       bs = input->get_blocksize(input);
@@ -493,12 +494,22 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf, in
     printf ("demux_mpgaudio: input plugin provides preview\n");
 #endif
 
-    input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
-    head = (buf[offset] << 24) + (buf[offset+1] << 16) + (buf[offset+2] << 8) + buf[offset+3];
+    optional = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+    optional = optional > 256 ? 256 : optional;
+
 #ifdef LOG
     printf ("demux_mpgaudio: got preview %02x %02x %02x %02x\n",
-	    buf[offset], buf[offset+1], buf[offset+2], buf[offset+3]);
+	    buf[0], buf[1], buf[2], buf[3]);
 #endif
+    
+    for(i = 0; i < (optional - 4); i++) {
+      head = (buf[i] << 24) + (buf[i + 1] << 16) + (buf[i + 2] << 8) + buf[i + 3];
+      if(head == RIFF_TAG)
+	return head;
+    }
+
+    head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+    
   } else {
 #ifdef LOG
     printf ("demux_mpgaudio: not seekable, no preview\n");
@@ -527,7 +538,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     uint32_t head;
 
-    head = demux_mpgaudio_read_head(this->input, buf, 0);
+    head = demux_mpgaudio_read_head(this->input, buf);
 
     if (mpg123_head_check(head))
       mpg123_decode_header(this,head);
@@ -619,16 +630,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    uint32_t head, head2;
+    uint32_t head;
 
-    head = demux_mpgaudio_read_head (input, buf, 0);
-    head2 = demux_mpgaudio_read_head (input, buf, 2);
+    head = demux_mpgaudio_read_head (input, buf);
 
 #ifdef LOG
     printf ("demux_mpgaudio: head is %x head2 is %x\n", head, head2);
 #endif
-
-    if (head == RIFF_TAG || head2 == RIFF_TAG) {
+    
+    if (head == RIFF_TAG) {
       int ok;
 
 #ifdef LOG
