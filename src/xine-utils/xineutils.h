@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.8 2002/01/25 19:21:39 jkeil Exp $
+ * $Id: xineutils.h,v 1.9 2002/02/06 02:20:59 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -544,12 +544,6 @@ void xine_probe_fast_memcpy(config_values_t *config);
 
 
 		      /* Debugging/Monitoring */
-
-#ifdef __GNUC__
-#define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
-#else /* C99 version: */
-#define perr(...)	  {fprintf(stderr, __VA_ARGS__);fflush(stderr);}
-#endif
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__) 
 #define xlerror(...) do {                                                     \
