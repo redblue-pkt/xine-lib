@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.66 2002/10/21 20:18:31 tmattern Exp $
+ * $Id: demux_asf.c,v 1.67 2002/10/21 20:27:53 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1424,15 +1424,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
      * try to get a preview of the data
      */
     len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
-    if (len == INPUT_OPTIONAL_UNSUPPORTED) {
-      free (this);
+    if (len == INPUT_OPTIONAL_UNSUPPORTED)
       return NULL;
-    }
       
-    if (memcmp(buf, &asf_header, sizeof(GUID))) {
-      free (this);
+    if (memcmp(buf, &asf_header, sizeof(GUID)))
       return NULL;
-    }
       
 #ifdef LOG
     printf ("demux_asf: file starts with an asf header\n");
@@ -1451,15 +1447,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     
     ending = strrchr (mrl, '.');
     
-    if (!ending) {
-      free (this);
+    if (!ending)
       return NULL;
-    }
       
     if (strncasecmp(ending, ".asf", 4) &&
         strncasecmp(ending, ".wmv", 4) &&
         strncasecmp(ending, ".wma", 4) ) {
-      free (this);
       return NULL;
     }
 #ifdef LOG
@@ -1469,7 +1462,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   break;
   default:
     printf ("demux_asf: warning, unkown method %d\n", stream->content_detection_method);
-    free (this);
     return NULL;
   }
 
