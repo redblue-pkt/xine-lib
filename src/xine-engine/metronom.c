@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.125 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: metronom.c,v 1.126 2003/11/15 20:43:11 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,8 @@
 #include <math.h>
 #include <string.h>
 #include <errno.h>
+
+#define LOG_MODULE "metronom"
 
 #include "xine_internal.h"
 #include "metronom.h"
@@ -184,9 +186,7 @@ static scr_plugin_t* unixscr_init () {
   pthread_mutex_init (&this->lock, NULL);
   
   unixscr_set_speed (&this->scr, XINE_SPEED_PAUSE);
-#ifdef LOG
-  printf("xine-scr_init: complete\n");
-#endif
+  lprintf("xine-scr_init complete\n");
 
   return &this->scr;
 }
@@ -202,9 +202,7 @@ static scr_plugin_t* unixscr_init () {
 static void metronom_start_clock (metronom_clock_t *this, int64_t pts) {
   scr_plugin_t** scr;
 
-#ifdef LOG
-  printf ("metronom: start_clock (at %lld)\n", pts);
-#endif
+  lprintf("start_clock (at %lld)\n", pts);
 
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
     if (*scr) (*scr)->start(*scr, pts);
@@ -260,10 +258,7 @@ static void metronom_set_audio_rate (metronom_t *this, int64_t pts_per_smpls) {
 
   pthread_mutex_unlock (&this->lock);
 
-#ifdef LOG
-  printf ("metronom: %lld pts per %d samples\n", pts_per_smpls, AUDIO_SAMPLE_NUM);
-#endif
-
+  lprintf("%lld pts per %d samples\n", pts_per_smpls, AUDIO_SAMPLE_NUM);
 }
 
 static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
@@ -292,39 +287,33 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
   
-  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-    printf ("metronom: video discontinuity #%d, type is %d, disc_off is %lld\n",
-	    this->video_discontinuity_count, type, disc_off);
+  xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video discontinuity #%d, type is %d, disc_off is %lld\n",
+    this->video_discontinuity_count, type, disc_off);
   
   if (this->have_audio) {
     while (this->audio_discontinuity_count <
 	   this->video_discontinuity_count) {
 
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-	printf ("metronom: waiting for audio discontinuity #%d\n",
-		this->video_discontinuity_count);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "waiting for audio discontinuity #%d\n",
+	this->video_discontinuity_count);
 
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
     }
   }
 
   /* video_vpts and audio_vpts adjustements */
-  cur_time = this->clock->get_current_time(this->clock);
+  cur_time = this->xine->clock->get_current_time(this->xine->clock);
 
   switch (type) {
     case DISC_STREAMSTART:
     case DISC_STREAMSEEK:
-      this->video_vpts = this->stream->metronom_prebuffer + cur_time;
+      this->video_vpts = this->prebuffer + cur_time;
       this->audio_vpts = this->video_vpts;
       this->force_audio_jump = 1;
       this->force_video_jump = 1;
       this->video_drift = 0;
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
-        printf ("metronom: video vpts adjusted with prebuffer to %lld\n", 
-                this->video_vpts);
-        printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", 
-                this->audio_vpts);
-      }
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "vpts adjusted with prebuffer to %lld\n", 
+        this->video_vpts);
       break;
 
     case DISC_ABSOLUTE:
@@ -334,29 +323,23 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
         if (this->audio_vpts > cur_time) {
           /* still frame with audio */
           this->video_vpts = this->audio_vpts;
-          if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-            printf ("metronom: video vpts adjusted to audio vpts\n");
+          xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video vpts adjusted to audio vpts\n");
         } else {
           /* still frame, no audio */
-          this->video_vpts = this->stream->metronom_prebuffer + cur_time;
+          this->video_vpts = this->prebuffer + cur_time;
           this->audio_vpts = this->video_vpts;
           this->force_video_jump = 1;
           this->force_audio_jump = 1;
           this->video_drift = 0;
-          if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
-            printf ("metronom: video vpts adjusted with prebuffer to %lld\n", 
-                    this->video_vpts);
-            printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", 
-                    this->audio_vpts);
-          }
+          xprintf(this->xine, XINE_VERBOSITY_DEBUG, "vpts adjusted with prebuffer to %lld\n",
+	    this->video_vpts);
         }
       } else {
         /* video */
         if (this->audio_vpts < cur_time) {
           /* video, no sound */
           this->audio_vpts = this->video_vpts;
-          if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-            printf ("metronom: audio vpts adjusted to audio vpts\n");
+          xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio vpts adjusted to audio vpts\n");
         } else {
           /* video + audio */
         }
@@ -364,34 +347,24 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
       break;
   }
 
-#ifdef LOG
-  printf ("metronom: video_vpts: %lld, audio_vpts: %lld\n", this->video_vpts, this->audio_vpts);
-#endif
+  lprintf("video_vpts: %lld, audio_vpts: %lld\n", this->video_vpts, this->audio_vpts);
 
   /* vpts_offset adjustements */
   switch (type) {
   case DISC_STREAMSTART:
-#ifdef LOG
-    printf ("metronom: DISC_STREAMSTART\n");
-#endif
+    lprintf("DISC_STREAMSTART\n");
     this->vpts_offset = this->video_vpts;
     break;
   case DISC_ABSOLUTE:
-#ifdef LOG
-    printf ("metronom: DISC_ABSOLUTE\n");
-#endif
+    lprintf("DISC_ABSOLUTE\n");
     this->vpts_offset = this->video_vpts - disc_off;
     break;
   case DISC_RELATIVE:
-#ifdef LOG
-    printf ("metronom: DISC_RELATIVE\n");
-#endif
+    lprintf("DISC_RELATIVE\n");
     this->vpts_offset = this->vpts_offset - disc_off;
     break;
   case DISC_STREAMSEEK:
-#ifdef LOG
-    printf ("metronom: DISC_STREAMSEEK\n");
-#endif
+    lprintf("DISC_STREAMSEEK\n");
     this->vpts_offset = this->video_vpts - disc_off;
     break;
   }
@@ -412,10 +385,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   
   pthread_mutex_lock (&this->lock);
 
-#ifdef LOG
-  printf("metronom: got_video_frame pts = %lld, duration = %d\n",
-         pts, img->duration);
-#endif
+  lprintf("got_video_frame pts = %lld, duration = %d\n", pts, img->duration);
 
   this->img_cpt++;
 
@@ -428,9 +398,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
     if (!img->duration) {
       if (this->last_video_pts && this->img_cpt) {
         this->img_duration = (pts - this->last_video_pts) / this->img_cpt;
-#ifdef LOG
-        printf("metronom: computed frame_duration = %lld\n", this->img_duration );
-#endif
+        lprintf("computed frame_duration = %lld\n", this->img_duration );
       }
       img->duration = this->img_duration;
     } else {
@@ -451,18 +419,14 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
     diff = this->video_vpts - vpts;
 
-#ifdef LOG
-    printf ("metronom: video diff is %lld (predicted %lld, given %lld)\n",
-	    diff, this->video_vpts, vpts);
-#endif
+    lprintf("video diff is %lld (predicted %lld, given %lld)\n", diff, this->video_vpts, vpts);
 
     if ((abs (diff) > VIDEO_DRIFT_TOLERANCE) || (this->force_video_jump)) {
       this->force_video_jump = 0;
       this->video_vpts       = vpts;
       this->video_drift      = 0;
       
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-	printf ("metronom: video jump\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video jump\n");
 
     } else {
 
@@ -471,10 +435,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
       /* this will fix video drift with a constant compensation each
 	 frame for about 1 second of video.  */
 
-#ifdef LOG
-      if (diff)
-        printf ("metronom: video drift, drift is %lld\n", this->video_drift);
-#endif
+      if (diff) lprintf("video drift, drift is %lld\n", this->video_drift);
     }
   } else {
     if (!img->duration) {
@@ -487,10 +448,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   
   img->vpts = this->video_vpts + this->av_offset;
 
-#ifdef LOG
-  printf ("metronom: video vpts for %10lld : %10lld (duration:%d drift:%lld step:%lld)\n", 
+  lprintf("video vpts for %10lld : %10lld (duration:%d drift:%lld step:%lld)\n", 
 	  pts, this->video_vpts, img->duration, this->video_drift, this->video_drift_step );
-#endif
   
   if( this->video_drift * this->video_drift_step > 0 )
   {
@@ -512,17 +471,15 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
   this->audio_discontinuity_count++;
   pthread_cond_signal (&this->audio_discontinuity_reached);
   
-  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-    printf ("metronom: audio discontinuity #%d, type is %d, disc_off %lld\n",
-	    this->audio_discontinuity_count, type, disc_off);
+  xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio discontinuity #%d, type is %d, disc_off %lld\n",
+    this->audio_discontinuity_count, type, disc_off);
   
   /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
   while ( this->audio_discontinuity_count >
 	  this->discontinuity_handled_count ) {
 
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf ("metronom: waiting for in_discontinuity update #%d\n", 
-	      this->audio_discontinuity_count);
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "waiting for in_discontinuity update #%d\n", 
+      this->audio_discontinuity_count);
 
     pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
   }
@@ -539,10 +496,8 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   int64_t vpts;
   int64_t diff;
 
-#ifdef LOG_AUDIO  
-  printf ("metronom: got %d audio samples, pts is %lld, last pts = %lld\n", nsamples, pts, this->last_audio_pts);
-  printf ("metronom: AUDIO pts from last= %lld\n", pts-this->last_audio_pts);
-#endif
+  lprintf("got %d audio samples, pts is %lld, last pts = %lld\n", nsamples, pts, this->last_audio_pts);
+  lprintf("AUDIO pts from last= %lld\n", pts-this->last_audio_pts);
 
   pthread_mutex_lock (&this->lock);
 
@@ -556,14 +511,12 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
       this->force_audio_jump = 0;
       this->audio_vpts       = vpts;
       this->audio_drift_step = 0;
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-        printf("metronom: audio jump, diff=%lld\n", diff);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio jump, diff=%lld\n", diff);
     } else {
       if( this->audio_samples ) {
         /* calculate drift_step to recover vpts errors */
-#ifdef LOG_AUDIO  
-        printf("metronom: audio diff = %lld \n", diff );
-#endif
+        lprintf("audio diff = %lld \n", diff );
+
         diff *= AUDIO_SAMPLE_NUM;
         diff /= this->audio_samples * 4;
         
@@ -575,10 +528,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
         
         this->audio_drift_step = diff;
                 
-#ifdef LOG_AUDIO  
-        printf("metronom: audio_drift = %lld, pts_per_smpls = %lld\n", diff,
-                this->pts_per_smpls );
-#endif
+        lprintf("audio_drift = %lld, pts_per_smpls = %lld\n", diff, this->pts_per_smpls);
       }
     }
     this->audio_samples = 0;
@@ -595,9 +545,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   this->audio_samples += nsamples;
   this->vpts_offset += nsamples * this->audio_drift_step / AUDIO_SAMPLE_NUM;
                         
-#ifdef LOG_AUDIO
-  printf ("metronom: audio vpts for %10lld : %10lld\n", pts, vpts);
-#endif
+  lprintf("audio vpts for %10lld : %10lld\n", pts, vpts);
 
   pthread_mutex_unlock (&this->lock);
 
@@ -611,13 +559,11 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
   switch (option) {
   case METRONOM_AV_OFFSET:
     this->av_offset = value;
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
-      printf ("metronom: av_offset=%lld pts\n", this->av_offset);
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "av_offset=%lld pts\n", this->av_offset);
     break;
   case METRONOM_SPU_OFFSET:
     this->spu_offset = value;
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
-      printf ("metronom: spu_offset=%lld pts\n", this->spu_offset);
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "spu_offset=%lld pts\n", this->spu_offset);
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
     this->audio_vpts += value;
@@ -627,12 +573,14 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
      * once in a while means a small sound card drift (or system
      * clock drift -- who knows?). nothing to worry about.
      */
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-      printf ("metronom: fixing sound card drift by %lld pts\n", value );
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "fixing sound card drift by %lld pts\n", value);
+    break;
+  case METRONOM_PREBUFFER:
+    this->prebuffer = value;
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "prebuffer=%lld pts\n", this->prebuffer);
     break;
   default:
-    printf ("metronom: unknown option in set_option: %d\n",
-	    option);
+    xprintf(this->xine, XINE_VERBOSITY_NONE, "unknown option in set_option: %d\n", option);
   }
 
   pthread_mutex_unlock (&this->lock);
@@ -648,8 +596,7 @@ static void metronom_clock_set_option (metronom_clock_t *this,
     this->scr_adjustable = value;
     break;
   default:
-    printf ("metronom: unknown option in set_option: %d\n",
-	    option);
+    xprintf(this->xine, XINE_VERBOSITY_NONE, "unknown option in set_option: %d\n", option);
   }
 
   pthread_mutex_unlock (&this->lock);
@@ -665,9 +612,10 @@ static int64_t metronom_get_option (metronom_t *this, int option) {
     return this->img_duration;
   case METRONOM_VPTS_OFFSET:
     return this->vpts_offset;
+  case METRONOM_PREBUFFER:
+    return this->prebuffer;
   }
-  printf ("metronom: unknown option in get_option: %d\n",
-	  option);
+  xprintf(this->xine, XINE_VERBOSITY_NONE, "unknown option in get_option: %d\n", option);
   return 0;
 }
 
@@ -676,8 +624,7 @@ static int64_t metronom_clock_get_option (metronom_clock_t *this, int option) {
   case CLOCK_SCR_ADJUSTABLE:
     return this->scr_adjustable;
   }
-  printf ("metronom: unknown option in get_option: %d\n",
-	  option);
+  xprintf(this->xine, XINE_VERBOSITY_NONE, "unknown option in get_option: %d\n", option);
   return 0;
 }
 
@@ -694,7 +641,7 @@ static scr_plugin_t* get_master_scr(metronom_clock_t *this) {
     }
   }
   if (select < 0) {
-    printf ("metronom: panic - no scr provider found!\n");
+    xprintf(this->xine, XINE_VERBOSITY_NONE, "panic - no scr provider found!\n");
     return NULL;
   }
   return this->scr_list[select];
@@ -796,31 +743,31 @@ static void metronom_clock_exit (metronom_clock_t *this) {
 }
 
 
-metronom_t * _x_metronom_init (int have_audio, xine_stream_t *stream) {
+metronom_t * _x_metronom_init (int have_audio, xine_t *xine) {
 
   metronom_t *this = xine_xmalloc (sizeof (metronom_t));
 
-  this->stream               = stream;
-  this->clock                = stream->xine->clock;
-  this->set_audio_rate       = metronom_set_audio_rate;
-  this->got_video_frame      = metronom_got_video_frame;
-  this->got_audio_samples    = metronom_got_audio_samples;
-  this->got_spu_packet       = metronom_got_spu_packet;
+  this->xine                       = xine;
+  this->set_audio_rate             = metronom_set_audio_rate;
+  this->got_video_frame            = metronom_got_video_frame;
+  this->got_audio_samples          = metronom_got_audio_samples;
+  this->got_spu_packet             = metronom_got_spu_packet;
   this->handle_audio_discontinuity = metronom_handle_audio_discontinuity;
   this->handle_video_discontinuity = metronom_handle_video_discontinuity;
-  this->set_option           = metronom_set_option;
-  this->get_option           = metronom_get_option;
-  this->exit                 = metronom_exit;
+  this->set_option                 = metronom_set_option;
+  this->get_option                 = metronom_get_option;
+  this->exit                       = metronom_exit;
 
   pthread_mutex_init (&this->lock, NULL);
 
+  this->prebuffer                   = PREBUFFER_PTS_OFFSET;
   this->av_offset                   = 0;
   this->spu_offset                  = 0;
   this->vpts_offset                 = 0;
 
   /* initialize video stuff */
-
-  this->video_vpts                  = stream->metronom_prebuffer;
+  
+  this->video_vpts                  = this->prebuffer;
   this->video_drift                 = 0;
   this->video_drift_step            = 0;
   this->video_discontinuity_count   = 0;
@@ -835,7 +782,7 @@ metronom_t * _x_metronom_init (int have_audio, xine_stream_t *stream) {
   /* initialize audio stuff */
 
   this->have_audio                  = have_audio;
-  this->audio_vpts                  = this->stream->metronom_prebuffer;
+  this->audio_vpts                  = this->prebuffer;
   this->audio_discontinuity_count   = 0;
   pthread_cond_init (&this->audio_discontinuity_reached, NULL);
     
@@ -844,7 +791,7 @@ metronom_t * _x_metronom_init (int have_audio, xine_stream_t *stream) {
 }
 
 
-metronom_clock_t *_x_metronom_clock_init(void)
+metronom_clock_t *_x_metronom_clock_init(xine_t *xine)
 {
   metronom_clock_t *this = (metronom_clock_t *)malloc(sizeof(metronom_clock_t));
   int err;
@@ -861,8 +808,9 @@ metronom_clock_t *_x_metronom_clock_init(void)
   this->unregister_scr       = metronom_unregister_scr;
   this->exit                 = metronom_clock_exit;
   
-  this->scr_adjustable = 1;
-  this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
+  this->xine                 = xine;
+  this->scr_adjustable       = 1;
+  this->scr_list             = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
   this->register_scr(this, unixscr_init());
   
   pthread_mutex_init (&this->lock, NULL);
@@ -872,7 +820,7 @@ metronom_clock_t *_x_metronom_clock_init(void)
 
   if ((err = pthread_create(&this->sync_thread, NULL,
       			    (void*(*)(void*)) metronom_sync_loop, this)) != 0)
-    printf ("metronom: cannot create sync thread (%s)\n",
+    xprintf(this->xine, XINE_VERBOSITY_NONE, "cannot create sync thread (%s)\n",
 	    strerror(err));
 
   return this;

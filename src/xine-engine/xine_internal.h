@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.147 2003/11/15 15:04:36 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.148 2003/11/15 20:43:12 mroi Exp $
  *
  */
 
@@ -99,6 +99,7 @@ struct xine_s {
   plugin_catalog_t          *plugin_catalog;
   
   int                        demux_strategy;
+  char                      *save_path;
 
   /* log output that may be presented to the user */
   scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
@@ -109,9 +110,6 @@ struct xine_s {
   pthread_mutex_t            streams_lock;
   
   metronom_clock_t          *clock;
-  
-  /* FIXME: move this member beneath demux_strategy on the next structure cleanup */
-  char                      *save_path;
 };
 
 /*
@@ -170,9 +168,6 @@ struct xine_stream_s {
     
   /* dxr3 use this one, should be possible to fix to use the port instead */
   vo_driver_t               *video_driver;
-  
-  /* michael will move this one to metronom i think */
-  int64_t                    metronom_prebuffer;
   
   /* these definitely should be made private! */
   int                        audio_channel_auto;

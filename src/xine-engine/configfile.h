@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.31 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: configfile.h,v 1.32 2003/11/15 20:43:12 mroi Exp $
  *
  * config file management
  *
@@ -64,8 +64,6 @@ struct cfg_entry_s {
   /* type string */
   char            *str_value;
   char            *str_default;
-  /* FIXME: remove this member on the next sturcture cleanup */
-  void            *dummy;
 
   /* common to range, enum, num, bool: */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.64 2003/11/11 18:45:02 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.65 2003/11/15 20:43:11 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -423,7 +423,7 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     break;
   
   case XINE_PARAM_METRONOM_PREBUFFER:
-    stream->metronom_prebuffer = value;
+    stream->metronom->set_option(stream->metronom, METRONOM_PREBUFFER, value);
     break;
 
   case XINE_PARAM_BROADCASTER_PORT:
@@ -523,7 +523,7 @@ int  xine_get_param (xine_stream_t *stream, int param) {
     return stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU];
 
   case XINE_PARAM_METRONOM_PREBUFFER:
-    return stream->metronom_prebuffer;
+    return stream->metronom->get_option(stream->metronom, METRONOM_PREBUFFER);
   
   case XINE_PARAM_BROADCASTER_PORT:
     if( stream->broadcaster )

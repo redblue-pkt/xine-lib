@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.43 2003/11/15 13:01:02 miguelfreitas Exp $
+ * $Id: dxr3_decode_video.c,v 1.44 2003/11/15 20:43:11 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -259,7 +259,7 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
     dxr3_update_correct_durations, this);
   
   /* the dxr3 needs a longer prebuffering to have time for its internal decoding */
-  this->stream->metronom_prebuffer = 90000;
+  this->stream->metronom->set_option(this->stream->metronom, METRONOM_PREBUFFER, 90000);
   
   stream->video_out->open(stream->video_out, stream);
   

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.14 2003/11/15 14:01:00 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.15 2003/11/15 20:43:11 mroi Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -376,7 +376,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   if (!INPUT_IS_SEEKABLE(this->input)) {
     /* "live" DV streams require more prebuffering */
-    this->stream->metronom_prebuffer = 90000;
+    this->stream->metronom->set_option(this->stream->metronom, METRONOM_PREBUFFER, 90000);
   }
 
   return &this->demux_plugin;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.52 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: metronom.h,v 1.53 2003/11/15 20:43:11 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -169,12 +169,10 @@ struct metronom_s {
   void (*exit) (metronom_t *self);
 
   /*
-   * pointer to current xine stream object. 
+   * pointer to current xine object. 
    */
-  xine_stream_t *stream;
+  xine_t *xine;
   
-  metronom_clock_t *clock;
-
   /*
    * metronom internal stuff
    */
@@ -193,6 +191,7 @@ struct metronom_s {
   int             audio_samples;
   int64_t         audio_drift_step;
 
+  int64_t         prebuffer;
   int64_t         av_offset;
   int64_t         spu_offset;
 
@@ -225,8 +224,9 @@ struct metronom_s {
 #define METRONOM_FRAME_DURATION   4
 #define METRONOM_SPU_OFFSET       5
 #define METRONOM_VPTS_OFFSET      6
+#define METRONOM_PREBUFFER        7
 
-metronom_t *_x_metronom_init (int have_audio, xine_stream_t *stream);
+metronom_t *_x_metronom_init (int have_audio, xine_t *xine);
 
 struct metronom_clock_s {
 
@@ -286,8 +286,10 @@ struct metronom_clock_s {
 
   void (*exit) (metronom_clock_t *self);
   
-  scr_plugin_t*   scr_master;
-  scr_plugin_t**  scr_list;
+  xine_t         *xine;
+  
+  scr_plugin_t   *scr_master;
+  scr_plugin_t  **scr_list;
   pthread_t       sync_thread;
   int             thread_running;
   int             scr_adjustable;
@@ -299,7 +301,7 @@ struct metronom_clock_s {
 
 };
 
-metronom_clock_t *_x_metronom_clock_init(void);
+metronom_clock_t *_x_metronom_clock_init(xine_t *xine);
 
 /*
  * clock options
