@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.4 2001/05/30 18:32:15 joachim_koenig Exp $
+ * $Id: video_out_syncfb.c,v 1.5 2001/06/14 18:32:57 guenter Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -866,7 +866,7 @@ static vo_info_t vo_info_mga = {
   "Syncfb",
   "xine video output plugin using MGA Teletux (syncfb) video extension",
   VISUAL_TYPE_X11,
-  10
+  20
 };
 
 vo_info_t *get_video_out_plugin_info() {

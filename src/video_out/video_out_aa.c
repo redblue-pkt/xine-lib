@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.6 2001/06/13 18:25:27 guenter Exp $
+ * $Id: video_out_aa.c,v 1.7 2001/06/14 18:32:57 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -127,6 +127,8 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 
   aa_frame_t *frame = (aa_frame_t *) img;
 
+  /* printf ("aa_update_format...\n"); */
+
   if ((frame->width != width) || (frame->height != height) 
       || (frame->format != format)) {
 
@@ -154,6 +156,9 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
       frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
       frame->vo_frame.base[1] = malloc_aligned(16,image_size/4, (void**) &frame->mem[1]);
       frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, (void**) &frame->mem[2]);
+
+      /* printf ("allocated yuv memory for %d x %d image\n", width, height); */
+
     } else if (format == IMGFMT_YUY2) {
       image_size = width * 2 * height;
       frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
@@ -165,6 +170,8 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
     frame->ratio_code = ratio_code;
 
   }
+
+  /* printf ("aa_update_format done\n"); */
 }
 
 static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
@@ -217,6 +224,7 @@ static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 		aa_imgheight (this->context));
 
   aa_flush (this->context);
+
 }
 
 static int aa_get_property (vo_driver_t *this_gen, int property) {

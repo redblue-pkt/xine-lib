@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.22 2001/06/11 00:50:36 guenter Exp $
+ * $Id: load_plugins.c,v 1.23 2001/06/14 18:32:57 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -35,6 +35,7 @@
 #include <dlfcn.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "xine_internal.h"
 #include "demuxers/demux.h"
@@ -472,6 +473,8 @@ char **xine_list_video_output_plugins (int visual_type) {
   char **plugin_ids;
   int    num_plugins = 0;
   DIR   *dir;
+  int    i,j;
+  int    plugin_prios[50];
 
   plugin_ids = xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
@@ -522,12 +525,23 @@ char **xine_list_video_output_plugins (int visual_type) {
 	      /* printf("video output plugin found : %s (%s)\n",
 		     vo_info->id, vo_info->description); */
 
-	      /* FIXME: sort the list by vo_info->priority */
+	      /* sort the list by vo_info->priority */
 
-	      plugin_ids[num_plugins] = (char *) 
-		malloc (strlen(vo_info->id)+1);
+	      i = 0;
+	      while ( (i<num_plugins) && (vo_info->priority<plugin_prios[i]) )
+		i++;
+	      
+	      j = num_plugins;
+	      while (j>i) {
+		plugin_ids[j]   = plugin_ids[j-1];
+		plugin_prios[j] = plugin_prios[j-1];
+		j--;
+	      }
 
-	      strcpy (plugin_ids[num_plugins], vo_info->id);
+	      plugin_ids[i] = (char *) malloc (strlen(vo_info->id)+1);
+	      strcpy (plugin_ids[i], vo_info->id);
+	      plugin_prios[i] = vo_info->priority;
+
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
 	    }
