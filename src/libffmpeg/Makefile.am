@@ -4,7 +4,11 @@
 
 SUBDIRS = libavcodec 
 
-EXTRA_DIST = diff_to_ffmpeg_cvs.txt
+# I don't think this should include internal docs that are not interesting
+# for end users at all... -siggi
+EXTRA_DIST =
+
+INTERNAL_DOCS = diff_to_ffmpeg_cvs.txt
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
