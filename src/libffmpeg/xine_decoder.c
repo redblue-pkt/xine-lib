@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.95 2003/02/20 02:13:19 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.96 2003/02/22 17:32:31 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -503,7 +503,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  float diff;
    
 	  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
-	  diff = abs_float( this->context->aspect_ratio - 0.0 );
+	  diff = abs_float( this->context->aspect_ratio - 
+			    (float)this->bih.biWidth/(float)this->bih.biHeight);
 
 	  if( diff > abs_float( this->context->aspect_ratio - 1.0 ) ) {
 	    this->xine_aspect_ratio = XINE_VO_ASPECT_SQUARE;
