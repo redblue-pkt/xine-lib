@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.82 2002/10/18 13:13:30 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.83 2002/10/24 13:52:56 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,14 +78,14 @@
 typedef struct {
   audio_driver_class_t driver_class;
 
-  config_values_t *config;
+  xine_t          *xine;
 } alsa_class_t;
 
 typedef struct alsa_driver_s {
 
   xine_ao_driver_t   ao_driver;
 
-  config_values_t *config;
+  alsa_class_t *class;
 
   snd_pcm_t    *audio_fd;
   int           capabilities;
@@ -169,7 +169,7 @@ static long ao_alsa_get_volume_from_percent(int val, long min, long max)
 static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
 {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
-  config_values_t *config = this->config;
+  config_values_t *config = this->class->xine->config;
   char                 *pcm_device;
   snd_pcm_stream_t      direction = SND_PCM_STREAM_PLAYBACK; 
   snd_pcm_hw_params_t  *params;
@@ -257,7 +257,8 @@ static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate
 #endif
 
   if (this->audio_fd != NULL) {
-    xlerror ("Already open...WHY!");
+    xine_log (this->class->xine, XINE_LOG_MSG,
+              "audio_alsa_out:Already open...WHY!");
     snd_pcm_close (this->audio_fd);
   }
 
@@ -806,7 +807,7 @@ static int ao_alsa_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
  */
 static void ao_alsa_mixer_init(xine_ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
-  config_values_t      *config = this->config;
+  config_values_t      *config = this->class->xine->config;
   char                 *pcm_device;
   snd_ctl_card_info_t  *hw_info;
   snd_ctl_t            *ctl_handle;
@@ -996,13 +997,14 @@ static void ao_alsa_mixer_init(xine_ao_driver_t *this_gen) {
 static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   alsa_class_t        *class = (alsa_class_t *) class_gen;
-  config_values_t     *config = class->config;
+  config_values_t     *config = class->xine->config;
   alsa_driver_t       *this;
   int                  err;
   char                *pcm_device;
   snd_pcm_hw_params_t *params;
 
   this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
+  this->class = class;
   snd_pcm_hw_params_alloca(&params);
   /* Fill the .xinerc file with options */ 
   pcm_device = config->register_string(config,
@@ -1065,8 +1067,10 @@ static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const voi
    */
   err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 0);
   if(err <0 ) {
-    xlerror("snd_pcm_open() failed: %d", err); 
-    xlerror(">>> Check if another program don't already use PCM <<<"); 
+    xine_log (this->class->xine, XINE_LOG_MSG,
+          "snd_pcm_open() failed: %d", err); 
+    xine_log (this->class->xine, XINE_LOG_MSG,
+          ">>> Check if another program don't already use PCM <<<"); 
     return NULL; 
   }
 
@@ -1162,8 +1166,6 @@ static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const voi
 
   /* printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities); */
 
-  this->config                        = config;
-
   this->mixer.name = config->register_string(config,
                                              "audio.alsa_mixer_name",
                                              "PCM",
@@ -1221,8 +1223,8 @@ static void *init_class (xine_t *xine, void *data) {
   this->driver_class.get_description = get_description;
   this->driver_class.dispose         = dispose_class;
 
-  this->config = xine->config;
-
+/*  this->config = xine->config; */
+  this->xine = xine;
    return this;
  }
 

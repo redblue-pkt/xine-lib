@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.100 2002/10/24 11:30:38 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.101 2002/10/24 13:52:57 jcdutton Exp $
  *
  */
 
@@ -1577,7 +1577,7 @@ static void *init_class (xine_t *xine, void *data) {
   
 /* FIXME */
 /*  xine_register_event_listener(this->stream, dvd_event_listener, this);*/
-  config->register_string(config,
+  this->dvd_device = config->register_string(config,
 					     "input.dvd_device",
 					     DVD_PATH,
 					     "device used for dvd drive",
@@ -1654,6 +1654,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.101  2002/10/24 13:52:57  jcdutton
+ * Fix some log messages in audio_alsa_out.c
+ * Fix input_dvd.c for new config file loading before init_class().
+ *
  * Revision 1.100  2002/10/24 11:30:38  jcdutton
  * Further changes to DVD code.
  *
