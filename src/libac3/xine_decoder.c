@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2001/07/21 22:05:17 ehasenle Exp $
+ * $Id: xine_decoder.c,v 1.18 2001/07/23 07:48:42 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -36,7 +36,7 @@
 #include "buffer.h"
 #include "xine_internal.h"
 
-#define FRAME_SIZE 4096
+#define FRAME_SIZE 4096+512
 
 int ac3file; 
 
