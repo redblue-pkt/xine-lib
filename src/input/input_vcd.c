@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.68 2003/10/19 14:34:35 siggi Exp $
+ * $Id: input_vcd.c,v 1.69 2003/10/19 23:48:47 rockyb Exp $
  *
  */
 
@@ -837,7 +837,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen) {
   while (*filename == '/') filename++;
 
   if (sscanf (filename, "%d", &this->cur_track) != 1) {
-    printf ("input_vcd: malformed MRL. Use ovcd:/<track #>\n");
+    printf ("input_vcd: malformed MRL. Use vcdo:/<track #>\n");
     return 0;
   }
 
@@ -876,7 +876,7 @@ static input_plugin_t *vcd_class_get_instance (input_class_t *cls_gen, xine_stre
   vcd_input_plugin_t *this;
   char               *mrl = strdup(data);
 
-  if (strncasecmp (mrl, "ovcd:/",6)) {
+  if (strncasecmp (mrl, "vcdo:/",6)) {
     free (mrl);
     return 0;
   }
@@ -913,7 +913,7 @@ static char *vcd_class_get_description (input_class_t *this_gen) {
 }
 
 static char *vcd_class_get_identifier (input_class_t *this_gen) {
-  return "ovcd";
+  return "vcdo";
 }
 
 static void vcd_class_dispose (input_class_t *this_gen) {
@@ -973,7 +973,7 @@ static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *file
     char mrl[1024];
     
     memset(&mrl, 0, sizeof (mrl));
-    sprintf(mrl, "ovcd:/%d",i);
+    sprintf(mrl, "vcdo:/%d",i);
     
     if((i-1) >= this->mrls_allocated_entries) {
       ++this->mrls_allocated_entries;
@@ -1050,7 +1050,7 @@ static char ** vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_fi
     if(this->filelist[i - 1] == NULL)
       this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *) * 256);
 
-    sprintf (this->filelist[i - 1], "ovcd:/%d",i);
+    sprintf (this->filelist[i - 1], "vcdo:/%d",i);
     /* printf ("list[%d] : %d %s\n", i, this->filelist[i-1], this->filelist[i-1]);   */
   }
 
@@ -1098,6 +1098,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 13, "OVCD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 13, "VCDO", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

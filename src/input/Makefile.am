@@ -21,7 +21,7 @@ in_dvd = xineplug_inp_dvd.la
 ## build both vcd for now
 ##if ENABLE_VCDX
 ##else
-in_vcd = xineplug_inp_vcd.la
+in_vcd = xineplug_inp_vcdo.la
 ##endif
 #in_cda = xineplug_inp_cda.la
 endif
@@ -80,9 +80,9 @@ xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c mmsh.c
 xineplug_inp_mms_la_LIBADD = $(XINE_LIB) @LIBICONV@
 xineplug_inp_mms_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_vcd_la_SOURCES = input_vcd.c media_helper.c
-xineplug_inp_vcd_la_LIBADD = $(XINE_LIB)
-xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_inp_vcdo_la_SOURCES = input_vcd.c media_helper.c
+xineplug_inp_vcdo_la_LIBADD = $(XINE_LIB)
+xineplug_inp_vcdo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
 xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB)
