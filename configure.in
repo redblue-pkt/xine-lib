@@ -426,20 +426,19 @@ dnl AM_CONDITIONAL(HAVE_DIVX4, test x"$no_divx4" != "xyes")
 dnl
 dnl Ogg/Vorbis libs.
 dnl
-
-AM_PATH_OGG([no_oggvorbis=no
-            AM_PATH_VORBIS(no_oggvorbis=no, 
-                           AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))],
-            AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_oggvorbis" = "xno"])
+AM_PATH_OGG(
+           [ AM_PATH_VORBIS([], 
+	                    AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***])) 
+	   ], 
+           AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_ogg" != "xyes" -a x"$no_vorbis" != "xyes"])
 
 
 dnl
 dnl XviD libs.
 dnl
-
-AM_PATH_XVID(no_xvid=no, AC_MSG_RESULT([*** All of XviD dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])
+AM_PATH_XVID([], AC_MSG_RESULT([*** All of XviD dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])	
 
 
 dnl
