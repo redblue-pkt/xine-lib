@@ -1,3 +1,10 @@
+xine-lib (1-alpha1-0) experimental; urgency=low
+
+  * another upstream alpha. This is still not ready for prime time, but it will
+    build from source if you really want to give it a try...
+
+ -- Siggi Langauf <siggi@flake.langauf.de>  Sat,  9 Nov 2002 23:39:01 +0100
+
 xine-lib (1-alpha0-0) unstable; urgency=low
 
   * new upstream (alpha!) release
