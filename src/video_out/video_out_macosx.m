@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.3 2004/06/12 19:48:34 zonque Exp $
+ * $Id: video_out_macosx.m,v 1.4 2004/06/18 14:24:14 zonque Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -41,20 +41,20 @@
 #include "macosx/video_window.h"
 
 typedef struct {
-  vo_frame_t           vo_frame;
-  int                  width;
-  int                  height;
-  double               ratio;
-  int                  format;
+  vo_frame_t            vo_frame;
+  int                   width;
+  int                   height;
+  double                ratio;
+  int                   format;
   xine_t               *xine;
 } macosx_frame_t;
 
 typedef struct {
-  vo_driver_t          vo_driver;
-  config_values_t     *config;
-  int                  ratio;
-  xine_t              *xine;
-  XineVideoWindow     *window;
+  vo_driver_t           vo_driver;
+  config_values_t      *config;
+  int                   ratio;
+  xine_t               *xine;
+  id                    view;
 } macosx_driver_t;
 
 typedef struct {
@@ -110,35 +110,36 @@ static vo_frame_t *macosx_alloc_frame(vo_driver_t *vo_driver) {
 }
 
 static void macosx_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_frame,
-				     uint32_t width, uint32_t height, 
-				     double ratio, int format, int flags) {
+                                     uint32_t width, uint32_t height, 
+                                     double ratio, int format, int flags) {
   macosx_driver_t *this = (macosx_driver_t *) vo_driver;
   macosx_frame_t  *frame = (macosx_frame_t *) vo_frame;
 
-  if((frame->width != width) || (frame->height != height) || (frame->format != format)) {
+  if((frame->width != width) || (frame->height != height) ||
+     (frame->format != format)) {
     
     free_framedata(frame);
     
     frame->width  = width;
     frame->height = height;
     frame->format = format;
-    
+
     switch(format) {
 
     case XINE_IMGFMT_YV12: 
       {
-	int y_size, uv_size;
-	
-	frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
-	frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
-	frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-	
-	y_size  = frame->vo_frame.pitches[0] * height;
-	uv_size = frame->vo_frame.pitches[1] * ((height+1)/2);
-	
-	frame->vo_frame.base[0] = malloc (y_size + 2*uv_size);
-	frame->vo_frame.base[1] = frame->vo_frame.base[0]+y_size+uv_size;
-	frame->vo_frame.base[2] = frame->vo_frame.base[0]+y_size;
+        int y_size, uv_size;
+        
+        frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
+        frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
+        frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
+        
+        y_size  = frame->vo_frame.pitches[0] * height;
+        uv_size = frame->vo_frame.pitches[1] * ((height+1)/2);
+        
+        frame->vo_frame.base[0] = malloc (y_size + 2*uv_size);
+        frame->vo_frame.base[1] = frame->vo_frame.base[0]+y_size+uv_size;
+        frame->vo_frame.base[2] = frame->vo_frame.base[0]+y_size;
       }
       break;
 
@@ -155,19 +156,15 @@ static void macosx_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fr
 
     }
 
-  NSSize nssize;
-  nssize.width = width;
-  nssize.height = height;
- 
-  [this->window setContentSize: nssize];
-  
-  if((format == XINE_IMGFMT_YV12 
-	&& (frame->vo_frame.base[0] == NULL 
-	    || frame->vo_frame.base[1] == NULL 
-	    || frame->vo_frame.base[2] == NULL))
-       || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
+    [this->view setVideoSize:width height:height];
+
+    if((format == XINE_IMGFMT_YV12
+        && (frame->vo_frame.base[0] == NULL 
+            || frame->vo_frame.base[1] == NULL 
+            || frame->vo_frame.base[2] == NULL))
+            || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-	       "video_out_macosx: error. (framedata allocation failed: out of memory)\n"); 
+               "video_out_macosx: error. (framedata allocation failed: out of memory)\n"); 
       free_framedata(frame);
     }
   }
@@ -178,21 +175,22 @@ static void macosx_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fr
 static void macosx_display_frame(vo_driver_t *vo_driver, vo_frame_t *vo_frame) {
   macosx_driver_t  *driver = (macosx_driver_t *)vo_driver;
   macosx_frame_t   *frame = (macosx_frame_t *)vo_frame;
-  char *texture_buffer = [[driver->window getGLView] getTextureBuffer];
+  char *texture_buffer = [driver->view getTextureBuffer];
 
   switch (vo_frame->format) {
     case XINE_IMGFMT_YV12: 
       yv12_to_yuy2 (vo_frame->base[0], vo_frame->pitches[0],
                     vo_frame->base[1], vo_frame->pitches[1],
-	            vo_frame->base[2], vo_frame->pitches[2],
+                    vo_frame->base[2], vo_frame->pitches[2],
                     texture_buffer, vo_frame->width * 2,
                     vo_frame->width, vo_frame->height, 0);
   
-      [driver->window displayTexture];
+      [driver->view displayTexture];
       break;
     case XINE_IMGFMT_YUY2:
-      memcpy (texture_buffer, vo_frame->base[0], vo_frame->pitches[0] * vo_frame->height * 3);
-      [driver->window displayTexture];
+      xine_fast_memcpy (texture_buffer, vo_frame->base[0], 
+	                    vo_frame->pitches[0] * vo_frame->height * 2);
+      [driver->view displayTexture];
       break;
     default:
       /* unsupported frame format, do nothing. */
@@ -236,8 +234,8 @@ static int macosx_set_property(vo_driver_t *vo_driver, int property, int value) 
   return value;
 }
 
-static void macosx_get_property_min_max(vo_driver_t *vo_driver, 
-				      int property, int *min, int *max) {
+static void macosx_get_property_min_max(vo_driver_t *vo_driver,
+                                        int property, int *min, int *max) {
   *min = 0;
   *max = 0;
 }
@@ -271,17 +269,17 @@ static int macosx_redraw_needed(vo_driver_t *vo_driver) {
 static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *visual) {
   macosx_class_t    *class = (macosx_class_t *) driver_class;
   macosx_driver_t   *driver;
-  XineVideoWindow   *window = (XineVideoWindow *) visual;
+  XineOpenGLView    *view = (XineOpenGLView *) visual;
   
   driver = (macosx_driver_t *) xine_xmalloc(sizeof(macosx_driver_t));
 
   driver->config = class->config;
   driver->xine   = class->xine;
   driver->ratio  = XINE_VO_ASPECT_AUTO;
-  driver->window = window;
-
+  driver->view   = view;
+  
   driver->vo_driver.get_capabilities     = macosx_get_capabilities;
-  driver->vo_driver.alloc_frame          = macosx_alloc_frame ;
+  driver->vo_driver.alloc_frame          = macosx_alloc_frame;
   driver->vo_driver.update_frame_format  = macosx_update_frame_format;
   driver->vo_driver.overlay_begin        = NULL;
   driver->vo_driver.overlay_blend        = NULL;
@@ -343,3 +341,4 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_VIDEO_OUT | PLUGIN_NO_UNLOAD, 19, "macosx", XINE_VERSION_CODE, &vo_info_macosx, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+
