@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.67 2002/11/13 03:22:41 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.68 2002/11/14 04:22:55 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -752,13 +752,13 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     switch (codec_type) {
     case BUF_AUDIO_WMAV1:
       codec = avcodec_find_decoder (CODEC_ID_WMAV1);
-      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("Windows Media Audio v1");
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Windows Media Audio v1 (ffmpeg)");
       break;
     case BUF_AUDIO_WMAV2:
       codec = avcodec_find_decoder (CODEC_ID_WMAV2);
-      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("Windows Media Audio v2");
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Windows Media Audio v2 (ffmpeg)");
       break;
     }
 
