@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.1 2001/11/07 12:30:54 mlampard Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.2 2001/11/12 23:56:31 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -315,21 +315,23 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       printf("dxr3enc: setting mpeg output framerate to PAL (25 Hz)\n");
       fp.frame_rate_num = 25; fp.frame_rate_den = 1; 
     }  
-    else if (fabs(fps - 23.976) < 0.01) { /* NTSC film */
-      /* 23.976 not supported by mpeg 1 */
-      printf("dxr3enc: setting mpeg output framerate to 24 Hz (should be 23.976)\n");
+    else if (fabs(fps - 24) < 0.01) { /* FILM */
+      printf("dxr3enc: setting mpeg output framerate to FILM (24 Hz))\n");
       fp.frame_rate_num = 24; fp.frame_rate_den = 1; 
+    }
+    else if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
+      printf("dxr3enc: setting mpeg output framerate to NTSC-FILM (23.976 Hz))\n");
+      fp.frame_rate_num = 24000; fp.frame_rate_den = 1001; 
     }
     else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
       printf("dxr3enc: setting mpeg output framerate to NTSC (29.97 Hz)\n");
       fp.frame_rate_num = 30000; fp.frame_rate_den = 1001;
     }
-    else { /* try 1/fps, but libfame will probably go to PAL */
+    else { /* try 1/fps, if not legal, libfame will go to PAL */
       fp.frame_rate_num = (int)(fps + 0.5); fp.frame_rate_den = 1;
       printf("dxr3enc: trying to set mpeg output framerate to %d Hz\n",
              fp.frame_rate_num);
     }
-    object = fame_get_object (fc, "profile/mpeg1");
     fame_init (fc, &fp, buffer, DEFAULT_BUFFER_SIZE);
     
   }

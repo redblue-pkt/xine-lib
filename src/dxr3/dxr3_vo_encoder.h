@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.h,v 1.2 2001/11/07 12:48:58 mlampard Exp $
+ * $Id: dxr3_vo_encoder.h,v 1.3 2001/11/12 23:56:31 hrm Exp $
  *
  */
 
@@ -57,7 +57,6 @@
 
 	/* some global stuff for libfame, could use some cleanup :-) */
 	fame_parameters_t fp = FAME_PARAMETERS_INITIALIZER;
-	fame_object_t *object;
 	fame_yuv_t yuv;
 	fame_context_t *fc; /* needed for fame calls */
 #endif
