@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.22 2002/03/31 20:38:40 jcdutton Exp $
+ * $Id: demux_pes.c,v 1.23 2002/04/09 03:38:00 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -60,6 +60,7 @@ typedef struct demux_pes_s {
   input_plugin_t      *input;
 
   pthread_t            thread;
+  pthread_mutex_t      mutex;
 
   unsigned char        dummy_space[100000];
 
@@ -67,7 +68,9 @@ typedef struct demux_pes_s {
   int                  preview_mode;
 
   int                  send_end_buffers;
-
+  
+  int64_t              last_scr;
+  int                  send_newpts;
 } demux_pes_t ;
 
 static uint32_t read_bytes (demux_pes_t *this, int n) {
@@ -87,7 +90,6 @@ static uint32_t read_bytes (demux_pes_t *this, int n) {
 
   }
   
-
   switch (n)  {
   case 1:
     res = buf[0];
@@ -108,6 +110,28 @@ static uint32_t read_bytes (demux_pes_t *this, int n) {
 
   return res;
 }
+
+static void check_newpts( demux_pes_t *this, int64_t pts )
+{
+  if( this->send_newpts && !this->preview_mode && pts ) {
+    
+    buf_element_t *buf;
+  
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type = BUF_CONTROL_NEWPTS;
+    buf->disc_off = pts;
+    this->video_fifo->put (this->video_fifo, buf);
+
+    if (this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type = BUF_CONTROL_NEWPTS;
+      buf->disc_off = pts;
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }
+    this->send_newpts = 0;
+  }
+}
+
 
 static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
 
@@ -141,6 +165,8 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
       pts |= (w & 0xFFFE) >> 1;
 
       header_len -= 5 ;
+      
+      check_newpts( this, pts );
     }
 
     /* read rest of header */
@@ -165,9 +191,9 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
     buf->type      = BUF_AUDIO_A52 + track;
     buf->pts       = pts;
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
 
     buf->input_pos = this->input->get_current_pos (this->input);
     
@@ -195,6 +221,8 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
       pts |= (w & 0xFFFE) >> 1;
 
       header_len -= 5 ;
+      
+      check_newpts( this, pts );
     }
 
     /* read rest of header */
@@ -210,9 +238,10 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
     buf->type      = BUF_AUDIO_MPEG + track;
     buf->pts       = pts;
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
+    
     buf->input_pos = this->input->get_current_pos(this->input);
 
     if(this->audio_fifo)
@@ -238,6 +267,8 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
       pts |= (w & 0xFFFE) >> 1;
 
       header_len -= 5 ;
+      
+      check_newpts( this, pts );
     }
 
     /* read rest of header */
@@ -255,9 +286,10 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
     buf->type = BUF_VIDEO_MPEG;
     buf->pts  = pts;
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
+    
     buf->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
@@ -299,15 +331,23 @@ static void *demux_pes_loop (void *this_gen) {
 
   demux_pes_t *this = (demux_pes_t *) this_gen;
   buf_element_t *buf;
-  uint32_t w;
+  uint32_t w=0;
 
-  do {
+  while(1) {
+    
+    pthread_mutex_lock( &this->mutex );
+    
+    if( this->status != DEMUX_OK)
+      break;
+    
     w = parse_pack (this);
 
     if (w != 0x000001)
       demux_pes_resync (this, w);
     
-  } while (this->status == DEMUX_OK) ;
+    pthread_mutex_unlock( &this->mutex );
+  
+  }
   
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -326,6 +366,7 @@ static void *demux_pes_loop (void *this_gen) {
   printf ("demux_pes: demux loop finished (status: %d, buf:%x)\n",
 	  this->status, w);
 
+  pthread_mutex_unlock( &this->mutex );
   pthread_exit(NULL);
 
   return NULL;
@@ -337,26 +378,21 @@ static void demux_pes_stop (demux_plugin_t *this_gen) {
   buf_element_t *buf;
   void *p;
 
-  printf ("demux_pes: stop...\n");
-
+  pthread_mutex_lock( &this->mutex );
+  
   if (this->status != DEMUX_OK) {
-
-    this->video_fifo->clear(this->video_fifo);
-    if(this->audio_fifo) 
-      this->audio_fifo->clear(this->audio_fifo);
-
+    printf ("demux_pes: stop...ignored\n");
+    pthread_mutex_unlock( &this->mutex );
     return;
   }
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
-
-  pthread_cancel (this->thread);
+  
+  pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  this->video_fifo->clear(this->video_fifo);
-  if(this->audio_fifo) 
-    this->audio_fifo->clear(this->audio_fifo);
+  xine_flush_engine(this->xine);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
@@ -386,57 +422,88 @@ static void demux_pes_start (demux_plugin_t *this_gen,
   buf_element_t *buf;
   int err;
 
-  this->video_fifo    = video_fifo;
-  this->audio_fifo    = audio_fifo;
+  pthread_mutex_lock( &this->mutex );
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type    = BUF_CONTROL_START;
-  this->video_fifo->put (this->video_fifo, buf);
+  if( this->status != DEMUX_OK ) {
+    this->video_fifo  = video_fifo;
+    this->audio_fifo  = audio_fifo;
 
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    /* 
+     * send start buffer
+     */
+
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type    = BUF_CONTROL_START;
-    this->audio_fifo->put (this->audio_fifo, buf);
+    this->video_fifo->put (this->video_fifo, buf);
+
+    if(this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type    = BUF_CONTROL_START;
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }
+
+    if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
+
+      uint32_t w;
+      int num_buffers = NUM_PREVIEW_BUFFERS;
+
+      this->preview_mode = 1;
+
+      this->input->seek (this->input, 3, SEEK_SET);
+
+      this->status = DEMUX_OK ;
+
+      do {
+        w = parse_pack (this);
+      
+        if (w != 0x000001)
+          demux_pes_resync (this, w);
+      
+        num_buffers --;
+
+      } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
+      this->status = DEMUX_FINISHED;
+    }
   }
-
+  
   if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
-
-    uint32_t w;
-    int num_buffers = NUM_PREVIEW_BUFFERS;
-
-    this->preview_mode = 1;
-
-    this->input->seek (this->input, 3, SEEK_SET);
-
-    this->status = DEMUX_OK ;
-
-    do {
-      w = parse_pack (this);
-      
-      if (w != 0x000001)
-	demux_pes_resync (this, w);
-      
-      num_buffers --;
-
-    } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
-
+    
+    /* FIXME: implement time seek */
     this->input->seek (this->input, start_pos+3, SEEK_SET);
 
-    /* FIXME: implement time seek */
+    if( start_pos )
+      demux_pes_resync (this, read_bytes(this, 3) );
 
   } else
     read_bytes(this, 3);
 
-  this->preview_mode = 0;
-  this->send_end_buffers = 1;
-  this->status = DEMUX_OK ;
+  this->send_newpts = 1;
+    
+  if( this->status != DEMUX_OK ) {
+    this->preview_mode = 0;
+    this->send_end_buffers = 1;
+    this->status = DEMUX_OK ;
 
-  if ((err = pthread_create (&this->thread,
+    if ((err = pthread_create (&this->thread,
 			     NULL, demux_pes_loop, this)) != 0) {
-    printf ("demux_pes: can't create new thread (%s)\n",
-	    strerror(err));
-    exit (1);
+      printf ("demux_pes: can't create new thread (%s)\n",
+	      strerror(err));
+      exit (1);
+    }
   }
+  else {
+    xine_flush_engine(this->xine);
+  }
+  pthread_mutex_unlock( &this->mutex );
+
+}
+
+static void demux_pes_seek (demux_plugin_t *this_gen,
+			     off_t start_pos, int start_time) {
+  demux_pes_t *this = (demux_pes_t *) this_gen;
+
+	demux_pes_start (this_gen, this->video_fifo, this->audio_fifo,
+			 start_pos, start_time);
 }
 
 static int demux_pes_open(demux_plugin_t *this_gen, 
@@ -562,7 +629,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_pes_t     *this;
 
-  if (iface != 6) {
+  if (iface != 7) {
     printf ("demux_pes: plugin doesn't support plugin API version %d.\n"
 	    "           this means there's a version mismatch between xine and this "
 	    "           demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -585,12 +652,16 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_pes_open;
   this->demux_plugin.start             = demux_pes_start;
+  this->demux_plugin.seek              = demux_pes_seek;
   this->demux_plugin.stop              = demux_pes_stop;
   this->demux_plugin.close             = demux_pes_close;
   this->demux_plugin.get_status        = demux_pes_get_status;
   this->demux_plugin.get_identifier    = demux_pes_get_id;
   this->demux_plugin.get_stream_length = demux_pes_get_stream_length;
   this->demux_plugin.get_mimetypes     = demux_pes_get_mimetypes;
+  
+  this->status = DEMUX_FINISHED;
+  pthread_mutex_init( &this->mutex, NULL );
   
   return (demux_plugin_t *) this;
 }

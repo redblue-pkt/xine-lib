@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.72 2002/03/31 20:38:40 jcdutton Exp $
+ * $Id: demux_avi.c,v 1.73 2002/04/09 03:37:59 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -135,6 +135,7 @@ typedef struct demux_avi_s {
   avi_t               *avi;
 
   pthread_t            thread;
+  pthread_mutex_t      mutex;
 
   int                  status;
 
@@ -851,7 +852,10 @@ static int demux_avi_next (demux_avi_t *this) {
     }
   }
 
-  return (buf->size>0);
+  if( buf )
+    return (buf->size>0);
+  else
+    return 0;
 }
 
 static void *demux_avi_loop (void *this_gen) {
@@ -861,14 +865,19 @@ static void *demux_avi_loop (void *this_gen) {
 
   this->send_end_buffers = 1;
 
-  do {
-
-    /* printf ("avi loop (status %d)\n", this->status);  */
-
+  while(1) {
+    
+    pthread_mutex_lock( &this->mutex );
+    
+    if( this->status != DEMUX_OK)
+      break;
+    
     if (!demux_avi_next(this))
       this->status = DEMUX_FINISHED;
-
-  } while (this->status == DEMUX_OK) ;
+    
+    pthread_mutex_unlock( &this->mutex );
+  
+  }
 
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -886,6 +895,7 @@ static void *demux_avi_loop (void *this_gen) {
 
   printf ("demux_avi: demux loop finished.\n");
 
+  pthread_mutex_unlock( &this->mutex );
   pthread_exit(NULL);
 
   return NULL;
@@ -896,26 +906,26 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   demux_avi_t   *this = (demux_avi_t *) this_gen;
   buf_element_t *buf;
   void *p;
+  
+  pthread_mutex_lock( &this->mutex );
 
   if (this->status != DEMUX_OK) {
     printf ("demux_avi: stop...ignored\n");
+    pthread_mutex_unlock( &this->mutex );
     return;
   }
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
   
-  pthread_cancel (this->thread);
+  pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
+  xine_flush_engine(this->xine);
   /*
     AVI_close (this->avi);
     this->avi = NULL;
   */
-
-  this->video_fifo->clear(this->video_fifo);
-  if (this->audio_fifo)
-    this->audio_fifo->clear(this->audio_fifo);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
@@ -951,38 +961,44 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   uint32_t        video_pts = 0;
   int             err;
   unsigned char  *sub;
-
-  this->audio_fifo   = audio_fifo;
-  this->video_fifo   = video_fifo;
-
-  this->status       = DEMUX_OK;
-
-  xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: video format = %s\n"),
-	    this->avi->compressor);
-  xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: video frame size %ld x %ld\n"),
-	    this->avi->width, this->avi->height);
-  for(i=0; i < this->avi->n_audio; i++)
-    xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: audio format[%d] = 0x%lx\n"),
-	      i, this->avi->audio[i]->a_fmt);
-  this->no_audio = 0;
+  int starting;
   
-  for(i=0; i < this->avi->n_audio; i++) {
-    this->avi->audio[i]->audio_type = formattag_to_buf_audio (this->avi->audio[i]->a_fmt);
+  pthread_mutex_lock( &this->mutex );
+
+  starting = (this->status != DEMUX_OK);
+  this->status = DEMUX_OK;
+  
+  if( starting ) {
+    this->audio_fifo   = audio_fifo;
+    this->video_fifo   = video_fifo;
+  
+    xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: video format = %s\n"),
+	      this->avi->compressor);
+    xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: video frame size %ld x %ld\n"),
+	      this->avi->width, this->avi->height);
+    for(i=0; i < this->avi->n_audio; i++)
+      xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: audio format[%d] = 0x%lx\n"),
+	        i, this->avi->audio[i]->a_fmt);
+    this->no_audio = 0;
+  
+    for(i=0; i < this->avi->n_audio; i++) {
+      this->avi->audio[i]->audio_type = formattag_to_buf_audio (this->avi->audio[i]->a_fmt);
    
-    if( !this->avi->audio[i]->audio_type ) {
-      xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: unknown audio type 0x%lx\n"), 
-		this->avi->audio[i]->a_fmt);
-      this->no_audio  = 1;
-      this->avi->audio[i]->audio_type     = BUF_CONTROL_NOP;
+      if( !this->avi->audio[i]->audio_type ) {
+        xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: unknown audio type 0x%lx\n"), 
+		  this->avi->audio[i]->a_fmt);
+        this->no_audio  = 1;
+        this->avi->audio[i]->audio_type     = BUF_CONTROL_NOP;
+      }
+      else
+        xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: audio type %s (wFormatTag 0x%x)\n"),
+		  buf_audio_name(this->avi->audio[i]->audio_type),
+		  (int)this->avi->audio[i]->a_fmt);
     }
-    else
-      xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: audio type %s (wFormatTag 0x%x)\n"),
-		buf_audio_name(this->avi->audio[i]->audio_type),
-		(int)this->avi->audio[i]->a_fmt);
   }
-
+  
   AVI_seek_start (this->avi);
-
+  
   /*
    * seek to start pos / time
    */
@@ -998,7 +1014,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 	this->status = DEMUX_FINISHED;
 
 	printf ("demux_avi: video seek to start failed\n");
-	return;
+	break;
       }
     }
     
@@ -1015,7 +1031,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 	this->status = DEMUX_FINISHED;
 
 	printf ("demux_avi: video seek to start failed\n");
-	return;
+	break;
       }
     }
 
@@ -1024,7 +1040,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   }
 
   /* seek audio */
-  if (!this->no_audio) {
+  if (!this->no_audio && this->status == DEMUX_OK) {
     for(i=0; i < this->avi->n_audio; i++) {
       while (get_audio_pts (this, i, this->avi->audio[i]->audio_posc, 0) < video_pts) {
 	this->avi->audio[i]->audio_posc++;
@@ -1032,110 +1048,135 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 	  this->status = DEMUX_FINISHED;
 	  
 	  printf ("demux_avi: audio seek to start failed\n");
-	  return;
+	  break;
 	}
       }
     }
   }
 
-
   /* 
    * send start buffers
    */
-
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type          = BUF_CONTROL_START;
-  buf->decoder_flags = 0;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if( starting && this->status == DEMUX_OK ) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type          = BUF_CONTROL_START;
     buf->decoder_flags = 0;
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+    this->video_fifo->put (this->video_fifo, buf);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type          = BUF_CONTROL_DISCONTINUITY;
-  buf->disc_off      = video_pts;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type          = BUF_CONTROL_DISCONTINUITY;
-    buf->disc_off      = video_pts;
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
-
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->content = buf->mem;
-  buf->decoder_flags = BUF_FLAG_HEADER;
-  buf->decoder_info[1] = this->video_step;
-  memcpy (buf->content, &this->avi->bih, sizeof (this->avi->bih));
-  buf->size = sizeof (this->avi->bih);
-
-  this->avi->video_type = fourcc_to_buf_video((void*)&this->avi->bih.biCompression);
-  
-  if ( !this->avi->video_type ) {
-    xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: unknown video codec '%.4s'\n"),
-	      (char*)&this->avi->bih.biCompression);
- 
-    this->status = DEMUX_FINISHED;
-    return;
-  }
-  buf->type = this->avi->video_type;
-  xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: video codec is '%s'\n"), 
-	    buf_video_name(buf->type));
-
-  this->video_fifo->put (this->video_fifo, buf);
-  
-  if(this->audio_fifo) {
-    for(i=0; i<this->avi->n_audio; i++) {
-      avi_audio_t *a = this->avi->audio[i];
-
+    if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
-      buf->decoder_flags = BUF_FLAG_HEADER;
-      memcpy (buf->content, &a->wavex, sizeof (a->wavex));
-      buf->size = sizeof (a->wavex);
-      buf->type = a->audio_type | i;
-      buf->decoder_info[0] = 0; /* first package, containing wavex */
-      buf->decoder_info[1] = a->a_rate; /* Audio Rate */
-      buf->decoder_info[2] = a->a_bits; /* Audio bits */
-      buf->decoder_info[3] = a->a_chans; /* Audio bits */
+      buf->type          = BUF_CONTROL_START;
+      buf->decoder_flags = 0;
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }
+  } 
+  else {
+    xine_flush_engine(this->xine);
+  } 
+
+  if( this->status == DEMUX_OK )
+  {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type          = BUF_CONTROL_NEWPTS;
+    buf->disc_off      = video_pts;
+    this->video_fifo->put (this->video_fifo, buf);
+
+    if(this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type          = BUF_CONTROL_NEWPTS;
+      buf->disc_off      = video_pts;
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
-
-  /* 
-   * send external spu file pointer, if present
-   */
-
-  if (this->input->get_optional_data (this->input, &sub, INPUT_OPTIONAL_DATA_TEXTSPU0)) {
-
+  
+  if( starting && this->status == DEMUX_OK ) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = sub;
+    buf->content = buf->mem;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[1] = this->video_step;
+    memcpy (buf->content, &this->avi->bih, sizeof (this->avi->bih));
+    buf->size = sizeof (this->avi->bih);
 
-    buf->type = BUF_SPU_TEXT;
+    this->avi->video_type = fourcc_to_buf_video((void*)&this->avi->bih.biCompression);
+  
+    if ( !this->avi->video_type ) {
+      xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: unknown video codec '%.4s'\n"),
+	        (char*)&this->avi->bih.biCompression);
+ 
+      this->status = DEMUX_FINISHED;
+    }
+    else {
+      buf->type = this->avi->video_type;
+      xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: video codec is '%s'\n"), 
+	        buf_video_name(buf->type));
+
+      this->video_fifo->put (this->video_fifo, buf);
+  
+      if(this->audio_fifo) {
+        for(i=0; i<this->avi->n_audio; i++) {
+          avi_audio_t *a = this->avi->audio[i];
+
+          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+          buf->content = buf->mem;
+          buf->decoder_flags = BUF_FLAG_HEADER;
+          memcpy (buf->content, &a->wavex, sizeof (a->wavex));
+          buf->size = sizeof (a->wavex);
+          buf->type = a->audio_type | i;
+          buf->decoder_info[0] = 0; /* first package, containing wavex */
+          buf->decoder_info[1] = a->a_rate; /* Audio Rate */
+          buf->decoder_info[2] = a->a_bits; /* Audio bits */
+          buf->decoder_info[3] = a->a_chans; /* Audio bits */
+          this->audio_fifo->put (this->audio_fifo, buf);
+        }
+      }
+  
+      /* 
+       * send external spu file pointer, if present
+       */
+
+      if (this->input->get_optional_data (this->input, &sub, INPUT_OPTIONAL_DATA_TEXTSPU0)) {
+
+        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+        buf->content = sub;
+
+        buf->type = BUF_SPU_TEXT;
     
-    buf->decoder_flags   = BUF_FLAG_HEADER;
-    buf->decoder_info[1] = this->avi->width;
-    buf->decoder_info[2] = this->avi->height;
+        buf->decoder_flags   = BUF_FLAG_HEADER;
+        buf->decoder_info[1] = this->avi->width;
+        buf->decoder_info[2] = this->avi->height;
 
-    this->video_fifo->put (this->video_fifo, buf);
+        this->video_fifo->put (this->video_fifo, buf);
 
-    this->have_spu = 1;
+        this->have_spu = 1;
 
-    printf ("demux_avi: text subtitle file available\n");
-
-  } else
-    this->have_spu = 0;
-
-  if ((err = pthread_create (&this->thread, NULL, demux_avi_loop, this)) != 0) {
-    printf ("demux_avi: can't create new thread (%s)\n",
-	    strerror(err));
-    exit (1);
+        printf ("demux_avi: text subtitle file available\n");
+  
+      } else
+        this->have_spu = 0;
+ 
+      if ((err = pthread_create (&this->thread, NULL, demux_avi_loop, this)) != 0) {
+        printf ("demux_avi: can't create new thread (%s)\n",
+	        strerror(err));
+        exit (1);
+      }
+    }
+  } 
+  
+  pthread_mutex_unlock( &this->mutex );
+  
+  if( !starting && this->status != DEMUX_OK ) {
+    void *p;
+    pthread_join (this->thread, &p);
   }
+}
+
+
+static void demux_avi_seek (demux_plugin_t *this_gen,
+			     off_t start_pos, int start_time) {
+  demux_avi_t *this = (demux_avi_t *) this_gen;
+
+	demux_avi_start (this_gen, this->video_fifo, this->audio_fifo,
+			 start_pos, start_time);
 }
 
 static int demux_avi_open(demux_plugin_t *this_gen, 
@@ -1250,7 +1291,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_avi_t     *this;
 
-  if (iface != 6) {
+  if (iface != 7) {
     xine_log (xine, XINE_LOG_PLUGIN,
 	      _("demux_avi: this plugin doesn't support plugin API version %d.\n"
 		"demux_avi: this means there's a version mismatch between xine and this "
@@ -1271,6 +1312,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_avi_open;
   this->demux_plugin.start             = demux_avi_start;
+  this->demux_plugin.seek              = demux_avi_seek;
   this->demux_plugin.stop              = demux_avi_stop;
   this->demux_plugin.close             = demux_avi_close;
   this->demux_plugin.get_status        = demux_avi_get_status;
@@ -1278,5 +1320,8 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_stream_length = demux_avi_get_stream_length;
   this->demux_plugin.get_mimetypes     = demux_avi_get_mimetypes;
   
+  this->status = DEMUX_FINISHED;
+  pthread_mutex_init( &this->mutex, NULL );
+    
   return (demux_plugin_t *) this;
 }

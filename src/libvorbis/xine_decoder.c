@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2002/04/01 18:00:13 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.8 2002/04/09 03:38:01 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -239,7 +239,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   vorbis_decoder_t *this ;
 
-  if (iface_version != 5) {
+  if (iface_version != 6) {
     printf( "libvorbis: plugin doesn't support plugin API version %d.\n"
 	    "libvorbis: this means there's a version mismatch between xine and this "
 	    "libvorbis: decoder plugin.\nInstalling current plugins should help.\n",

@@ -1452,6 +1452,7 @@ static inline int slice_init (picture_t * picture, int code)
         forward_reference_frame = picture->forward_reference_frame;
     }
     else {
+        /* return 1; */
         forward_reference_frame = picture->current_frame;
     }
     
@@ -1459,6 +1460,7 @@ static inline int slice_init (picture_t * picture, int code)
         backward_reference_frame = picture->backward_reference_frame;
     }
     else {
+        /* return 1; */
         backward_reference_frame = picture->current_frame;
     }
     

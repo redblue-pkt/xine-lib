@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.86 2002/04/06 02:23:38 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.87 2002/04/09 03:38:00 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -61,6 +61,7 @@ typedef struct demux_mpeg_block_s {
   input_plugin_t       *input;
 
   pthread_t             thread;
+  pthread_mutex_t       mutex;
 
   int                   status;
   
@@ -341,7 +342,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   }
 
   /* discontinuity ? */
-  if (scr)  {  
+  if (scr && !preview_mode)  {  
     int64_t scr_diff = scr - this->last_scr;
 
 #ifdef LOG
@@ -349,7 +350,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	    scr, this->last_scr, scr_diff);
 #endif
 
-    if ((abs(scr_diff) > DISC_TRESHOLD) && !preview_mode &&
+    if ( (abs(scr_diff) > DISC_TRESHOLD) &&
         !this->ignore_scr_discont) {
       
       buf_element_t *buf;
@@ -491,7 +492,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     }
 
     if ((p[0]&0xF0) == 0x80) {
-
+    
       /*  printf ( "ac3 PES packet, track %02x\n",track);  */
       buf->decoder_info[1] = p[1]; /* Number of frame headers */
       buf->decoder_info[2] = p[2] << 8 | p[3]; /* First access unit pointer */
@@ -623,11 +624,18 @@ static void *demux_mpeg_block_loop (void *this_gen) {
 
   this->send_end_buffers = 1;
 
-  do {
-
+  while(1) {
+    
+    pthread_mutex_lock( &this->mutex );
+    
+    if( this->status != DEMUX_OK)
+      break;
+    
     demux_mpeg_block_parse_pack(this, 0);
-
-  } while (this->status == DEMUX_OK) ;
+    
+    pthread_mutex_unlock( &this->mutex );
+  
+  }
 
   /*
   printf ("demux_mpeg_block: demux loop finished (status: %d)\n",
@@ -651,6 +659,8 @@ static void *demux_mpeg_block_loop (void *this_gen) {
 
   }
 
+  pthread_mutex_unlock( &this->mutex );
+  
   pthread_exit(NULL);
 
   return NULL;
@@ -805,21 +815,22 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   buf_element_t *buf;
   void *p;
 
+  pthread_mutex_lock( &this->mutex );
+  
   if (this->status != DEMUX_OK) {
     printf ("demux_mpeg_block: stop...ignored\n");
+    pthread_mutex_unlock( &this->mutex );
     return;
   }
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
-
-  pthread_cancel (this->thread);
+  
+  pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  this->video_fifo->clear(this->video_fifo);
-  if (this->audio_fifo)
-    this->audio_fifo->clear(this->audio_fifo);
-
+  xine_flush_engine(this->xine);
+  
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
   buf->decoder_flags   = BUF_FLAG_END_USER;
@@ -849,44 +860,50 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   buf_element_t *buf;
   int err;
 
+  pthread_mutex_lock( &this->mutex );
+
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
 
-  /* 
-   * send start buffer
-   */
+  if( this->status != DEMUX_OK ) {
+    /* 
+     * send start buffer
+     */
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type    = BUF_CONTROL_START;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type    = BUF_CONTROL_START;
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+    this->video_fifo->put (this->video_fifo, buf);
 
-  if (!this->rate)
-    this->rate = demux_mpeg_block_estimate_rate (this);
-
-
-  this->last_scr         = 0;
-  this->nav_last_end_pts = 0;
-  this->ignore_scr_discont = 0;
-
-  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-
-    int num_buffers = NUM_PREVIEW_BUFFERS;
-
-    this->input->seek (this->input, 0, SEEK_SET);
-
-    this->status = DEMUX_OK ;
-    while ( (num_buffers>0) && (this->status == DEMUX_OK) ) {
-
-      demux_mpeg_block_parse_pack(this, 1);
-      num_buffers --;
+    if(this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type    = BUF_CONTROL_START;
+      this->audio_fifo->put (this->audio_fifo, buf);
     }
 
+    if (!this->rate)
+      this->rate = demux_mpeg_block_estimate_rate (this);
+
+    this->last_scr         = 0;
+    this->nav_last_end_pts = 0;
+    this->ignore_scr_discont = 0;
+
+    if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+
+      int num_buffers = NUM_PREVIEW_BUFFERS;
+
+      this->input->seek (this->input, 0, SEEK_SET);
+
+      this->status = DEMUX_OK ;
+      while ( (num_buffers>0) && (this->status == DEMUX_OK) ) {
+
+        demux_mpeg_block_parse_pack(this, 1);
+        num_buffers --;
+      }
+    }
+    this->status = DEMUX_FINISHED;
+  }
+  
+  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     if (start_pos) {
       start_pos /= (off_t) this->blocksize;
       start_pos *= (off_t) this->blocksize;
@@ -923,18 +940,34 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
    * now start demuxing
    */
 
-  this->status   = DEMUX_OK ;
-  this->last_scr = 0;
-  this->nav_last_end_pts = 0;
-  this->ignore_scr_discont = 0;
+  if( this->status != DEMUX_OK )
+  {
+    this->status   = DEMUX_OK ;
+    this->last_scr = 0;
+    this->nav_last_end_pts = 0;
+    this->ignore_scr_discont = 0;
 
-  if ((err = pthread_create (&this->thread,
+    if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_block_loop, this)) != 0) {
-    printf ("demux_mpeg_block: can't create new thread (%s)\n",
-	    strerror(err));
-    exit (1);
+      printf ("demux_mpeg_block: can't create new thread (%s)\n",
+	      strerror(err));
+      exit (1);
+    }
   }
+  else {
+    xine_flush_engine(this->xine);
+  }
+  pthread_mutex_unlock( &this->mutex );
 }
+
+static void demux_mpeg_block_seek (demux_plugin_t *this_gen,
+			     off_t start_pos, int start_time) {
+  demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
+
+	demux_mpeg_block_start (this_gen, this->video_fifo, this->audio_fifo,
+			 start_pos, start_time);
+}
+
 
 static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
 					   input_plugin_t *input) {
@@ -1094,6 +1127,9 @@ static char *demux_mpeg_block_get_mimetypes(void) {
 static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
+                        /*
+   * find input plugin
+   */
 
   if (this->rate) 
     return this->input->get_length (this->input) / (this->rate * 50);
@@ -1106,7 +1142,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_mpeg_block_t *this;
 
-  if (iface != 6) {
+  if (iface != 7) {
     printf ("demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
 	    "                  this means there's a version mismatch between xine and this "
 	    "                  demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -1130,6 +1166,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpeg_block_open;
   this->demux_plugin.start             = demux_mpeg_block_start;
+  this->demux_plugin.seek              = demux_mpeg_block_seek;
   this->demux_plugin.stop              = demux_mpeg_block_stop;
   this->demux_plugin.close             = demux_mpeg_block_close;
   this->demux_plugin.get_status        = demux_mpeg_block_get_status;
@@ -1138,6 +1175,8 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_mimetypes     = demux_mpeg_block_get_mimetypes;
   
   this->scratch = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
+  this->status = DEMUX_FINISHED;
+  pthread_mutex_init( &this->mutex, NULL );
     
   return (demux_plugin_t *) this;
 }

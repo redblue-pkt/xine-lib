@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.69 2002/04/06 02:56:04 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.70 2002/04/09 03:38:01 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -70,7 +70,7 @@ void *audio_decoder_loop (void *this_gen) {
     
     if (buf->input_time)
       this->cur_input_time = buf->input_time;
-    
+      
     switch (buf->type) {
       
     case BUF_CONTROL_START:
@@ -128,20 +128,16 @@ void *audio_decoder_loop (void *this_gen) {
     case BUF_CONTROL_NOP:
       break;
 
-    case BUF_CONTROL_DISCONTINUITY:
-      /* reseting decoder on discontinuities is needed to make sure there will
-       * be no held back pts values. it's unlikely that it would do any harm
-       * given metronom's in_discontinuity counter but, at least in theory, 
-       * we might have problems with still frame + audio dvd menus.
-       */
+    case BUF_CONTROL_RESET_DECODER:
       if (this->cur_audio_decoder_plugin)
-	this->cur_audio_decoder_plugin->reset (this->cur_audio_decoder_plugin);
+        this->cur_audio_decoder_plugin->reset (this->cur_audio_decoder_plugin);
+      break;
+          
+    case BUF_CONTROL_DISCONTINUITY:
       this->metronom->handle_audio_discontinuity (this->metronom, DISC_RELATIVE, buf->disc_off);
       break;
 
     case BUF_CONTROL_NEWPTS:
-      if (this->cur_audio_decoder_plugin)
-	this->cur_audio_decoder_plugin->reset (this->cur_audio_decoder_plugin);
       this->metronom->handle_audio_discontinuity (this->metronom, DISC_ABSOLUTE, buf->disc_off);
       break;
 

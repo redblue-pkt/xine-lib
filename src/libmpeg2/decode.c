@@ -181,8 +181,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
 	  
-	  if (!mpeg2dec->drop_frame)
-	    picture->current_frame->bad_frame = 0;
+	  if (mpeg2dec->drop_frame)
+	    picture->current_frame->bad_frame = 1;
    
 	  if (picture->picture_coding_type == B_TYPE) {
 	    if( picture->current_frame && !picture->current_frame->drawn ) {
@@ -479,6 +479,41 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     }
 
     return ret;
+}
+
+void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
+  
+  picture_t *picture = mpeg2dec->picture;
+
+  if( !picture )
+    return;
+  
+  mpeg2dec->pts = 0;
+  
+  if( !picture->mpeg1 )
+    mpeg2dec->is_sequence_needed = 1;
+  
+  mpeg2dec->in_slice = 0;
+
+  /* to free reference frames one also needs to fix slice.c to 
+   * abort when they are NULL. unfortunately it seems to break
+   * DVD menus.
+   */
+  /*
+  if ( picture->current_frame && 
+       picture->current_frame != picture->backward_reference_frame &&
+       picture->current_frame != picture->forward_reference_frame )
+    picture->current_frame->free (picture->current_frame);
+  picture->current_frame = NULL;
+  
+  if (picture->forward_reference_frame)
+    picture->forward_reference_frame->free (picture->forward_reference_frame);
+  picture->forward_reference_frame = NULL;
+  
+  if (picture->backward_reference_frame)
+    picture->backward_reference_frame->free (picture->backward_reference_frame);
+  picture->backward_reference_frame = NULL;
+  */
 }
 
 void mpeg2_flush (mpeg2dec_t * mpeg2dec) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.113 2002/03/24 14:15:37 guenter Exp $
+ * $Id: xine.c,v 1.114 2002/04/09 03:38:01 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -90,6 +90,33 @@ void xine_notify_stream_finished (xine_t *this) {
 	    strerror(err));
     exit (1);
   }
+}
+
+/* internal use only - called from demuxers on seek/stop
+ * warning: after clearing decoders fifos an absolute discontinuity
+ *          indication must be sent. relative discontinuities are likely
+ *          to cause "jumps" on metronom.
+ */
+void xine_flush_engine (xine_t *this) {
+
+  buf_element_t *buf;
+
+  this->video_fifo->clear(this->video_fifo);
+  if( this->audio_fifo )
+    this->audio_fifo->clear(this->audio_fifo);
+  
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type            = BUF_CONTROL_RESET_DECODER;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type            = BUF_CONTROL_RESET_DECODER;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+  
+  this->metronom->adjust_clock(this->metronom,
+			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
 }
 
 static void xine_internal_osd (xine_t *this, char *str, 
@@ -282,10 +309,10 @@ int xine_play (xine_t *this, char *mrl,
   pthread_mutex_lock (&this->xine_lock);
 
   /*
-   * stop engine?
+   * stop engine only for different mrl
    */
 
-  if (this->status == XINE_PLAY) {
+  if (this->status == XINE_PLAY && strcmp (mrl, this->cur_mrl) ) {
     
     if(this->cur_demuxer_plugin) {
       this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
@@ -305,76 +332,82 @@ int xine_play (xine_t *this, char *mrl,
     this->status = XINE_STOP;
   }
 
-  /*
-   * find input plugin
-   */
+  if (this->status == XINE_STOP ) {
+    /*
+     * find input plugin
+     */
+    this->cur_input_plugin = NULL;
 
-  this->cur_input_plugin = NULL;
-
-  for (i = 0; i < this->num_input_plugins; i++) {
-    if (this->input_plugins[i]->open(this->input_plugins[i], mrl)) {
-      this->cur_input_plugin = this->input_plugins[i];
-      break;
+    for (i = 0; i < this->num_input_plugins; i++) {
+      if (this->input_plugins[i]->open(this->input_plugins[i], mrl)) {
+        this->cur_input_plugin = this->input_plugins[i];
+        break;
+      }
     }
-  }
 
-  if (!this->cur_input_plugin) {
+    if (!this->cur_input_plugin) {
+      xine_log (this, XINE_LOG_FORMAT,
+	        _("xine: cannot find input plugin for this MRL\n"));
+      this->cur_demuxer_plugin = NULL;
+      this->err = XINE_ERROR_NO_INPUT_PLUGIN;
+      pthread_mutex_unlock (&this->xine_lock);
+
+      return 0;
+    }
+  
+    printf ("xine: using input plugin >%s< for this MRL (%s).\n", 
+	    this->cur_input_plugin->get_identifier(this->cur_input_plugin), mrl);
+
     xine_log (this, XINE_LOG_FORMAT,
-	      _("xine: cannot find input plugin for this MRL\n"));
-    this->cur_demuxer_plugin = NULL;
-    this->err = XINE_ERROR_NO_INPUT_PLUGIN;
-    pthread_mutex_unlock (&this->xine_lock);
+	      _("using input plugin '%s' for MRL '%s'\n"),
+	      this->cur_input_plugin->get_identifier(this->cur_input_plugin), 
+	      mrl);
 
-    return 0;
+    /*
+     * find demuxer plugin
+     */
+
+    if (!find_demuxer(this, mrl)) {
+      xine_log (this, XINE_LOG_FORMAT, 
+	        _("xine: couldn't find demuxer for >%s<\n"), mrl);
+      this->err = XINE_ERROR_NO_DEMUXER_PLUGIN;
+      pthread_mutex_unlock (&this->xine_lock);
+      return 0;
+    }
+
+    xine_log (this, XINE_LOG_FORMAT,
+	      _("system layer format '%s' detected.\n"),
+	      this->cur_demuxer_plugin->get_identifier());
   }
-  
-  printf ("xine: using input plugin >%s< for this MRL (%s).\n", 
-	  this->cur_input_plugin->get_identifier(this->cur_input_plugin), mrl);
-
-  xine_log (this, XINE_LOG_FORMAT,
-	    _("using input plugin '%s' for MRL '%s'\n"),
-	    this->cur_input_plugin->get_identifier(this->cur_input_plugin), 
-	    mrl);
-
-  /*
-   * find demuxer plugin
-   */
-
-  if (!find_demuxer(this, mrl)) {
-    xine_log (this, XINE_LOG_FORMAT, 
-	      _("xine: couldn't find demuxer for >%s<\n"), mrl);
-    this->err = XINE_ERROR_NO_DEMUXER_PLUGIN;
-    pthread_mutex_unlock (&this->xine_lock);
-    return 0;
-  }
-
-  xine_log (this, XINE_LOG_FORMAT,
-	    _("system layer format '%s' detected.\n"),
-	    this->cur_demuxer_plugin->get_identifier());
-  
+    
   /*
    * start demuxer
    */
 
   if (start_pos) {
+    /* FIXME: do we need to protect concurrent access to input plugin here? */
     len = this->cur_input_plugin->get_length (this->cur_input_plugin);
     share = (double) start_pos / 65535;
     pos = (off_t) (share * len) ;
   } else
     pos = 0;
-
-  this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
-				   this->video_fifo,
-				   this->audio_fifo, 
-				   pos, start_time);
+  
+  if( this->status == XINE_STOP )
+    this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
+				     this->video_fifo,
+				     this->audio_fifo, 
+				     pos, start_time);
+  else
+    this->cur_demuxer_plugin->seek (this->cur_demuxer_plugin,
+				     pos, start_time);
   
   if (this->cur_demuxer_plugin->get_status(this->cur_demuxer_plugin) != DEMUX_OK) {
     xine_log (this, XINE_LOG_MSG, 
 	      _("xine_play: demuxer failed to start\n"));
     
-    this->cur_input_plugin->close(this->cur_input_plugin);
-
-    this->status = XINE_STOP;
+    if( this->status == XINE_STOP )      
+      this->cur_input_plugin->close(this->cur_input_plugin);
+  
   } else {
 
     this->status = XINE_PLAY;
@@ -383,6 +416,7 @@ int xine_play (xine_t *this, char *mrl,
     xine_set_speed_internal (this, SPEED_NORMAL);
 
     /* osd */
+    xine_usec_sleep(100000); /* FIXME: how do we assure an updated cur_input_time? */
     xine_internal_osd (this, ">", this->metronom->get_current_time (this->metronom), 300000);
 
   }
@@ -426,6 +460,8 @@ void xine_exit (xine_t *this) {
   video_decoder_shutdown (this);
 
   this->osd_renderer->close( this->osd_renderer );
+  this->video_out->exit (this->video_out);
+  this->video_fifo->dispose (this->video_fifo);
 
   this->status = XINE_QUIT;
 

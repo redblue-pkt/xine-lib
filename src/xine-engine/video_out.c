@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.92 2002/04/02 19:29:09 esnel Exp $
+ * $Id: video_out.c,v 1.93 2002/04/09 03:38:01 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -666,11 +666,14 @@ static void *video_out_loop (void *this_gen) {
     diff = vpts - this->last_delivery_pts;
     if (diff > 30000 && !this->display_img_buf_queue->first) {
       if (this->xine->cur_video_decoder_plugin) {
-	this->xine->cur_video_decoder_plugin->flush(this->xine->cur_video_decoder_plugin);
 
 #ifdef LOG
-	printf ("video_out: flushing current video decoder plugin\n");
+	printf ("video_out: flushing current video decoder plugin (%d %d)\n", 
+		this->display_img_buf_queue->num_buffers,
+		this->free_img_buf_queue->num_buffers);
 #endif
+	
+	this->xine->cur_video_decoder_plugin->flush(this->xine->cur_video_decoder_plugin);
       }
       this->last_delivery_pts = vpts;
     }
@@ -700,6 +703,10 @@ static void *video_out_loop (void *this_gen) {
 	      usec_to_sleep, vpts);
 #endif
       
+      if ( (next_frame_vpts - vpts) > 2*90000 )
+        printf("video_out: vpts/clock error, next_vpts=%lld cur_vpts=%lld\n",
+               next_frame_vpts,vpts);
+               
       if (usec_to_sleep>0) 
 	xine_usec_sleep (usec_to_sleep);
 

@@ -252,12 +252,6 @@ static int osd_hide (osd_object_t *osd, int64_t vpts) {
   this->event.vpts = vpts;
   this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
 
-  this->event.event_type = EVENT_FREE_HANDLE;
-  this->event.vpts = vpts+1;
-  this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
-  
-  osd->handle = -1; /* handle will be freed */
-
   pthread_mutex_unlock (&this->osd_mutex);  
   
   return 1;
@@ -777,6 +771,16 @@ static void osd_free_object (osd_object_t *osd_to_close) {
 
   if( osd_to_close->handle >= 0 ) {
     osd_hide(osd_to_close,0);
+    
+    this->event.object.handle = osd_to_close->handle;
+  
+    /* not really needed this, but good pratice to clean it up */
+    memset( this->event.object.overlay, 0, sizeof(this->event.object.overlay) );
+    this->event.event_type = EVENT_FREE_HANDLE;
+    this->event.vpts = 0;
+    this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
+  
+    osd_to_close->handle = -1; /* handle will be freed */
   }
   
   pthread_mutex_lock (&this->osd_mutex);  

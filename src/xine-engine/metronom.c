@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.79 2002/04/07 12:09:38 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.80 2002/04/09 03:38:01 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -368,14 +368,12 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 #endif
 
     if (abs (diff) > VIDEO_DRIFT_TOLERANCE) {
-
+      
       this->video_vpts  = vpts;
       this->video_drift = 0;
-
-#ifdef LOG
+      
       printf ("metronom: video jump\n");
-#endif
-	
+
     } else {
 
       this->video_drift = diff;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.74 2002/03/18 19:34:17 guenter Exp $
+ * $Id: xine_internal.h,v 1.75 2002/04/09 03:38:01 miguelfreitas Exp $
  *
  */
 
@@ -55,7 +55,7 @@ extern "C" {
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
 #define DECODER_PLUGIN_MAX     256
-#define DECODER_PLUGIN_IFACE_VERSION      5
+#define DECODER_PLUGIN_IFACE_VERSION      6
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
 #define XINE_MAX_EVENT_LISTENERS 50
@@ -80,6 +80,8 @@ struct video_decoder_s {
 
   void (*decode_data) (video_decoder_t *this, buf_element_t *buf);
 
+  void (*reset) (video_decoder_t *this);
+  
   void (*flush) (video_decoder_t *this);
 
   void (*close) (video_decoder_t *this);
@@ -407,6 +409,7 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls);
  */
 
 void xine_notify_stream_finished (xine_t *this);
+void xine_flush_engine (xine_t *this);
 
 /*
  * video decoder stuff

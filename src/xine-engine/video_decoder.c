@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.80 2002/03/27 15:30:16 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.81 2002/04/09 03:38:01 miguelfreitas Exp $
  *
  */
 
@@ -181,13 +181,19 @@ void *video_decoder_loop (void *this_gen) {
       running = 0;
       break;
 
+    case BUF_CONTROL_RESET_DECODER:
+      if (this->cur_video_decoder_plugin) {
+        this->cur_video_decoder_plugin->reset (this->cur_video_decoder_plugin);
+      }
+      break;
+    
     case BUF_CONTROL_DISCONTINUITY:
       printf ("video_decoder: discontinuity ahead\n");
 
       this->video_in_discontinuity = 1;
 
       this->metronom->handle_video_discontinuity (this->metronom, DISC_RELATIVE, buf->disc_off);
-
+      
       this->video_in_discontinuity = 0;
       break;
     
@@ -197,7 +203,7 @@ void *video_decoder_loop (void *this_gen) {
       this->video_in_discontinuity = 1;
 
       this->metronom->handle_video_discontinuity (this->metronom, DISC_ABSOLUTE, buf->disc_off);
-
+      
       this->video_in_discontinuity = 0;
       break;
     
@@ -301,8 +307,5 @@ void video_decoder_shutdown (xine_t *this) {
   this->video_fifo->put (this->video_fifo, buf);
 
   pthread_join (this->video_thread, &p);
-
-  this->video_out->exit (this->video_out);
-  this->video_fifo->dispose (this->video_fifo);
 }
 

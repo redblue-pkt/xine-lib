@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2002/04/04 00:08:36 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.27 2002/04/09 03:38:00 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -109,6 +109,17 @@ static void mpeg2dec_flush (video_decoder_t *this_gen) {
   pthread_mutex_unlock (&this->lock);
 }
 
+static void mpeg2dec_reset (video_decoder_t *this_gen) {
+  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+
+  pthread_mutex_lock (&this->lock);
+
+  mpeg2_reset (&this->mpeg2);
+
+  pthread_mutex_unlock (&this->lock);
+}
+
+
 static void mpeg2dec_close (video_decoder_t *this_gen) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
@@ -134,7 +145,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   mpeg2dec_decoder_t *this ;
 
-  if (iface_version != 5) {
+  if (iface_version != 6) {
     printf( "libmpeg2: plugin doesn't support plugin API version %d.\n"
 	    "libmpeg2: this means there's a version mismatch between xine and this "
 	    "libmpeg2: decoder plugin.\nInstalling current plugins should help.\n",
@@ -150,6 +161,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.init                = mpeg2dec_init;
   this->video_decoder.decode_data         = mpeg2dec_decode_data;
   this->video_decoder.flush               = mpeg2dec_flush;
+  this->video_decoder.reset               = mpeg2dec_reset;
   this->video_decoder.close               = mpeg2dec_close;
   this->video_decoder.get_identifier      = mpeg2dec_get_id;
   this->video_decoder.priority            = 5;

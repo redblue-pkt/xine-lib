@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.69 2002/04/01 18:01:17 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.70 2002/04/09 03:38:01 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -818,6 +818,26 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 static void w32v_flush (video_decoder_t *this_gen) {
 }
 
+static void w32v_reset (video_decoder_t *this_gen) {
+
+  w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
+  
+  /* FIXME: need to improve this function. currently it
+     doesn't avoid artifacts when seeking. */
+  
+  pthread_mutex_lock(&win32_codec_mutex);
+  if ( !this->ds_driver ) {
+    if (!this->ex_functions) 
+        ICDecompressBegin(this->hic, &this->bih, &this->o_bih);
+    else
+        ICDecompressBeginEx(this->hic, &this->bih, &this->o_bih);
+  } else {
+  }
+  this->size = 0;
+  pthread_mutex_unlock(&win32_codec_mutex);
+}
+
+
 static void w32v_close (video_decoder_t *this_gen) {
 
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
@@ -828,6 +848,8 @@ static void w32v_close (video_decoder_t *this_gen) {
 #endif
   {
     if ( !this->ds_driver ) {
+      ICDecompressEnd(this->hic);
+      ICClose(this->hic);
     } else {
       if( this->ds_dec )
         DS_VideoDecoder_Destroy(this->ds_dec);
@@ -1282,7 +1304,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   w32v_decoder_t *this ;
   config_values_t *cfg;
 
-  if (iface_version != 5) {
+  if (iface_version != 6) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
@@ -1302,6 +1324,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.init                = w32v_init;
   this->video_decoder.decode_data         = w32v_decode_data;
   this->video_decoder.flush               = w32v_flush;
+  this->video_decoder.reset               = w32v_reset;
   this->video_decoder.close               = w32v_close;
   this->video_decoder.get_identifier      = w32v_get_id;
   this->video_decoder.priority            = 1;
@@ -1322,7 +1345,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   w32a_decoder_t *this ;
   config_values_t *cfg;
   
-  if (iface_version != 5) {
+  if (iface_version != 6) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",

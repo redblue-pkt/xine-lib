@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.25 2002/04/07 09:37:11 guenter Exp $
+ * $Id: xine_decoder.c,v 1.26 2002/04/09 03:38:00 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -522,6 +522,11 @@ static char *divx4_get_id(void) {
 static void divx4_flush(video_decoder_t *this_gen) {
 }
 
+static void divx4_reset(video_decoder_t *this_gen) {
+  /* seems to handle seeking quite nicelly without any code here */
+}
+
+
 /* This is pretty generic. I took the liberty to increase the
    priority over that of libffmpeg :-) */
 video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
@@ -532,7 +537,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   decoreFunc libdecore_func = 0;
   config_values_t *cfg;
 
-  if (iface_version != 5) {
+  if (iface_version != 6) {
     printf( "divx4: plugin doesn't support plugin API version %d.\n"
 	    "divx4: this means there's a version mismatch between xine and this "
 	    "divx4: decoder plugin.\nInstalling current plugins should help.\n",
@@ -566,6 +571,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.close               = divx4_close;
   this->video_decoder.get_identifier      = divx4_get_id;
   this->video_decoder.flush               = divx4_flush;
+  this->video_decoder.reset               = divx4_reset;
   this->video_decoder.priority            = cfg->register_num (cfg, "codec.divx4_priority", 4,
 							       "priority of the divx4 plugin (>5 => enable)",
 							       NULL, NULL, NULL); 

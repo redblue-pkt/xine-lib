@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.12 2001/10/25 00:46:58 miguelfreitas Exp $
+ * $Id: demux.h,v 1.13 2002/04/09 03:37:59 miguelfreitas Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    6
+#define DEMUXER_PLUGIN_IFACE_VERSION    7
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -90,6 +90,21 @@ struct demux_plugin_s
 
   void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
 		 fifo_buffer_t *audio_fifo, 
+		 off_t start_pos, int start_time);
+
+  /*
+   * ask running demux thread to seek 
+   *
+   * for seekable streams, a start position can be specified
+   *
+   * start_pos  : position in input source
+   * start_time : position measured in seconds from stream start
+   *
+   * if both parameters are !=0 start_pos will be used
+   * for non-seekable streams both values will be ignored
+   */
+
+  void (*seek) (demux_plugin_t *this, 
 		 off_t start_pos, int start_time);
   
   /*
