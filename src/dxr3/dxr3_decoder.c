@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.34 2001/11/18 08:25:46 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.35 2001/11/19 15:06:12 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -43,7 +43,7 @@
 #include "buffer.h"
 #include "xine-engine/bswap.h"
 
-#define LOOKUP_DEV "dxr3_devname"
+#define LOOKUP_DEV "codec.dxr3_devname"
 #define DEFAULT_DEV "/dev/em8300"
 static char *devname;
 
@@ -326,8 +326,8 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 static void dxr3_flush (video_decoder_t *this_gen) 
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
-	fprintf(stderr,"DXR3 Flushing!!");
-/*	dxr3_mvcommand(this->fd_control, 0x10); */
+	fprintf(stderr,"dxr3_decoder: flushing\n");
+	dxr3_mvcommand(this->fd_control, 0x10); 
 
 }
 
@@ -417,7 +417,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 		return NULL;
 	}
 
-	devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Name of the dxr3 device",NULL,NULL,NULL);
+	devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Dxr3: Device Name",NULL,NULL,NULL);
 
 	dxr3_presence_test ();
 	if (!dxr3_ok) return NULL;
@@ -433,9 +433,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.flush		= dxr3_flush;
 	this->video_decoder.priority            = 10;
 
-	this->scr_prio = cfg->register_num(cfg, "dxr3_scr_prio", 10, "Priority of the Dxr3 SCR plugin",NULL,NULL,NULL); 
+	this->scr_prio = cfg->register_num(cfg, "misc.dxr3_scr_prio", 10, "Dxr3: SCR plugin priority",NULL,NULL,NULL); 
         
-	this->enhanced_mode = cfg->register_bool(cfg,"dxr3_buffer_mode", 0, "Use alternate Play mode",NULL,NULL,NULL);
+	this->enhanced_mode = cfg->register_bool(cfg,"misc.dxr3_buffer_mode", 0, "Dxr3: use alternate Play mode","Enabling this option will utilise a slightly different play mode",NULL,NULL);
 
 	if(this->enhanced_mode)
 	  printf("Dxr3: Using Mode 6 for playback\n");
@@ -637,7 +637,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   }
 
   cfg = xine->config;
-  devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Name of the dxr3 device",NULL,NULL,NULL);
+  devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, NULL,NULL,NULL,NULL);
 
   dxr3_presence_test ();
   if (!dxr3_ok) return NULL;

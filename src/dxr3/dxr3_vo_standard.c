@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_standard.c,v 1.5 2001/11/18 09:41:32 mlampard Exp $
+ * $Id: dxr3_vo_standard.c,v 1.6 2001/11/19 15:06:12 mlampard Exp $
  *
  *******************************************************************
  * Dummy video out plugin for the dxr3. Is responsible for setting *
@@ -202,7 +202,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->config			     = config;
 
 	/* open control device */
-	devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV, "Dxr3 device name", NULL,NULL,NULL);
+	devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV, NULL,NULL,NULL,NULL);
 
 	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
 		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
