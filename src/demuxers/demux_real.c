@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.66 2003/10/27 23:23:29 tmattern Exp $
+ * $Id: demux_real.c,v 1.67 2003/10/28 21:14:17 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -707,6 +707,7 @@ static int demux_real_parse_references( demux_real_t *this) {
   int             buf_used = 0;
   int             len, i, j;
   int             alternative = 0;
+  int             comment = 0;
   xine_mrl_reference_data_t *data;
   xine_event_t    uevent;
 
@@ -739,7 +740,15 @@ static int demux_real_parse_references( demux_real_t *this) {
     if( !strncmp(&buf[i],"--stop--",8) )
       alternative++;
 
-    if( !strncmp(&buf[i],"pnm://",6) || !strncmp(&buf[i],"rtsp://",7) ) {
+    /* rpm files can contain comments which should be skipped */
+    if( !strncmp(&buf[i],"<!--",4) )
+      comment = 1;
+      
+    if( !strncmp(&buf[i],"-->",3) )
+      comment = 0;
+      
+    if( (!strncmp(&buf[i],"pnm://",6) || !strncmp(&buf[i],"rtsp://",7)) &&
+        !comment ) {
       for(j=i; buf[j] && buf[j] != '"' && !isspace(buf[j]); j++ )
         ;
       buf[j]='\0';
