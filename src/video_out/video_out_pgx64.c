@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.58 2004/04/27 10:18:45 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.59 2004/04/28 00:14:13 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -1058,13 +1058,10 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
   pthread_mutex_unlock(&class->mutex);
 
   devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb",
-    _("PGX64/PGX24 device name"),
-    _("Specifies the file name for the PGX64/PGX24 device to be used.\n"
-      "This setting is security critical, because when changed to a different file, xine "
-      "can be used to fill this file with arbitrary content. So you should be careful that "
-      "the value you enter really is a proper PGX64 or PGX24 device."),
+    _("PGX64/PGX24 device path"),
+    _("Specifies the file name for the PGX64/PGX24 device to be used.\n"),
     XINE_CONFIG_SECURITY, NULL, NULL);
-  
+
   if ((fbfd = open(devname, O_RDWR)) < 0) {
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: can't open framebuffer device '%s'\n"), devname);
     return NULL;
@@ -1140,28 +1137,24 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
 
   this->colour_key  = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1,
     _("video overlay colour key"),
-    _("The colour key is used to tell the graphics card where to overlay the video image. "
-      "Try different values, if you experience windows becoming transparent."),
+    _("The colour key is used to tell the graphics card where it can overlay the video image. "
+      "Try using different values if you see the video showing through other windows."),
     20, pgx64_config_changed, this);
-  this->brightness  = class->config->register_range(this->class->config, "video.pgx64_brightness", 0,
-    -64, 63,
+  this->brightness  = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63,
     _("video brightness"),
     _("The brightness of the video image."),
     10, pgx64_config_changed, this);
-  this->saturation  = class->config->register_range(this->class->config, "video.pgx64_saturation", 16,
-    0, 31,
+  this->saturation  = class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31,
     _("video saturation"),
     _("The saturation of the video image."),
     10, pgx64_config_changed, this);
   this->chromakey_en = class->config->register_bool(this->class->config, "video.pgx64_chromakey_en", 0,
     _("enable chroma keying"),
-    _("You can select, whether the graphics hardware shall use chroma keying to overlay the video image."),
+    _("Draw OSD graphics on top of the overlay colour key rather than blend them into each frame."),
     20, pgx64_config_changed, this);
   this->multibuf_en = class->config->register_bool(this->class->config, "video.pgx64_multibuf_en", 1,
     _("enable multi-buffering"),
-    _("Multi buffering will synchronize the update of the video image to the repainting of the entire "
-      "screen (\"vertical retrace\"). This eliminates flickering and tearing artifacts, but will use "
-      "more graphics memory."),
+    _("Multi buffering increases performance at the expense of using more graphics memory."),
     20, pgx64_config_changed, this);
 
   pthread_mutex_init(&this->chromakey_mutex, NULL);
