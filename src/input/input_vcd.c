@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.56 2002/11/07 23:05:08 guenter Exp $
+ * $Id: input_vcd.c,v 1.57 2002/11/08 11:49:02 guenter Exp $
  *
  */
 
@@ -53,26 +53,6 @@
 
 extern int errno;
 
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
-
 #if defined(__sun)
 #define	CDROM	       "/vol/dev/aliases/cdrom0"
 #else
@@ -99,14 +79,18 @@ typedef struct {
 
 typedef struct {
 
-  input_plugin_t         input_plugin;
-  
-  xine_t                *xine;
+  input_class_t     input_class;
 
-  char                  *mrl;
-  config_values_t       *config;
+  xine_t           *xine;
 
-  int                    fd;
+  /* FIXME: add thread/mutex stuff to protect against multiple instantiation */
+
+  const char            *device;
+
+  char                  *filelist[100];
+
+  int                    mrls_allocated_entries;
+  xine_mrl_t           **mrls;
 
 #if defined (__linux__) || defined(__sun)
   struct cdrom_tochdr    tochdr;
@@ -116,24 +100,35 @@ typedef struct {
   struct cd_toc_entry    *tocent;
   off_t                  cur_sector;
 #endif
+
   int                    total_tracks;
+
+} vcd_input_class_t;
+
+typedef struct {
+
+  input_plugin_t         input_plugin;
+  
+  vcd_input_class_t     *cls;
+  
+  xine_stream_t         *stream;
+  
+  char                  *mrl;
+  config_values_t       *config;
+
+  int                    fd;
+
   int                    cur_track;
 
 #if defined (__linux__) || defined(__sun)
   uint8_t                cur_min, cur_sec, cur_frame;
 #endif
 
-  const char            *device;
-
-  char                  *filelist[100];
-
-  int                    mrls_allocated_entries;
-  xine_mrl_t                **mrls;
-
 #if defined(__sun)
   int			 controller_type;
 #endif
 } vcd_input_plugin_t;
+
 
 
 /* ***************************************************************** */
@@ -143,18 +138,18 @@ typedef struct {
  * Callback for configuratoin changes.
  */
 static void device_change_cb (void *data, xine_cfg_entry_t *cfg) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) data;
+  vcd_input_class_t *this = (vcd_input_class_t *) data;
   
   this->device = cfg->str_value;
 }
 
 #if defined (__linux__) || defined(__sun)
-static int input_vcd_read_toc (vcd_input_plugin_t *this) {
+static int input_vcd_read_toc (vcd_input_class_t *this, int fd) {
   int i;
 
   /* read TOC header */
-  if ( ioctl(this->fd, CDROMREADTOCHDR, &this->tochdr) == -1 ) {
-    LOG_MSG_STDERR(this->xine, _("input_vcd : error in ioctl CDROMREADTOCHDR\n"));
+  if ( ioctl(fd, CDROMREADTOCHDR, &this->tochdr) == -1 ) {
+    printf ("input_vcd : error in ioctl CDROMREADTOCHDR\n");
     return -1;
   }
 
@@ -162,9 +157,8 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   for (i=this->tochdr.cdth_trk0; i<=this->tochdr.cdth_trk1; i++) {
     this->tocent[i-1].cdte_track = i;
     this->tocent[i-1].cdte_format = CDROM_MSF;
-    if ( ioctl(this->fd, CDROMREADTOCENTRY, &this->tocent[i-1]) == -1 ) {
-      LOG_MSG_STDERR(this->xine, 
-		     _("input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"), i);
+    if ( ioctl(fd, CDROMREADTOCENTRY, &this->tocent[i-1]) == -1 ) {
+      printf ("input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n", i);
       return -1;
     }
   }
@@ -173,9 +167,9 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   this->tocent[this->tochdr.cdth_trk1].cdte_track = CDROM_LEADOUT;
   this->tocent[this->tochdr.cdth_trk1].cdte_format = CDROM_MSF;
 
-  if (ioctl(this->fd, CDROMREADTOCENTRY, 
+  if (ioctl(fd, CDROMREADTOCENTRY, 
 	    &this->tocent[this->tochdr.cdth_trk1]) == -1 ) {
-    LOG_MSG_STDERR(this->xine, _("input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"));
+    printf ("input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n");
     return -1;
   }
 
@@ -184,14 +178,14 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   return 0;
 }
 #elif defined (__FreeBSD__)
-static int input_vcd_read_toc (vcd_input_plugin_t *this) {
+static int input_vcd_read_toc (vcd_input_class_t *this, int fd) {
 
   struct ioc_read_toc_entry te;
   int ntracks;
 
   /* read TOC header */
-  if ( ioctl(this->fd, CDIOREADTOCHEADER, &this->tochdr) == -1 ) {
-    LOG_MSG_STDERR(this->xine, _("input_vcd : error in ioctl CDROMREADTOCHDR\n"));
+  if ( ioctl(fd, CDIOREADTOCHEADER, &this->tochdr) == -1 ) {
+    printf ("input_vcd : error in ioctl CDROMREADTOCHDR\n");
     return -1;
   }
 
@@ -205,8 +199,8 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   te.data_len = ntracks * sizeof(struct cd_toc_entry);
   te.data = this->tocent;
   
-  if ( ioctl(this->fd, CDIOREADTOCENTRYS, &te) == -1 ){
-    LOG_MSG_STDERR(this->xine, _("input_vcd: error in ioctl CDROMREADTOCENTRY\n"));
+  if ( ioctl(fd, CDIOREADTOCENTRYS, &te) == -1 ){
+    printf ("input_vcd: error in ioctl CDROMREADTOCENTRY\n");
     return -1;
   }
 
@@ -324,7 +318,7 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
 	return -1;
       }
       if (sc.uscsi_status) {
-	LOG_MSG_STDERR(this->xine, _("scsi command failed with status %d\n"), sc.uscsi_status);
+	printf ("scsi command failed with status %d\n", sc.uscsi_status);
 	return -1;
       }
     }
@@ -337,75 +331,6 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
 /*                         END OF PRIVATES                           */
 /* ***************************************************************** */
 
-
-/*
- *
- */
-static int vcd_plugin_open (input_plugin_t *this_gen, const char *mrl) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  char *filename;
-
-  free(this->mrl);
-  this->mrl = strdup(mrl);
-
-  if (strncasecmp (this->mrl, "vcd:/",5))
-    return 0;
-    
-  this->fd = open (this->device, O_RDONLY);
-
-  if (this->fd == -1) {
-    return 0;
-  }
-
-  if (input_vcd_read_toc (this)) {
-    close (this->fd);
-    this->fd = -1;
-    return 0;
-  }
-
-  filename = (char *) &this->mrl[5];
-  while (*filename == '/') filename++;
-
-  if (sscanf (filename, "%d", &this->cur_track) != 1) {
-    LOG_MSG_STDERR(this->xine, _("input_vcd: malformed MRL. Use vcd:/<track #>\n"));
-    close (this->fd);
-    this->fd = -1;
-    return 0;
-  }
-
-  if (this->cur_track>=this->total_tracks) {
-    LOG_MSG_STDERR(this->xine, _("input_vcd: invalid track %d (valid range: 0 .. %d)\n"),
-	    this->cur_track, this->total_tracks-1);
-    close (this->fd);
-    this->fd = -1;
-    return 0;
-  }
-
-#if defined (__linux__) || defined(__sun)
-  this->cur_min   = this->tocent[this->cur_track].cdte_addr.msf.minute;
-  this->cur_sec   = this->tocent[this->cur_track].cdte_addr.msf.second;
-  this->cur_frame = this->tocent[this->cur_track].cdte_addr.msf.frame;
-#elif defined (__FreeBSD__)
-  {
-    int bsize = 2352;
-    if (ioctl (this->fd, CDRIOCSETBLOCKSIZE, &bsize) == -1) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: error in CDRIOCSETBLOCKSIZE %d\n"), errno);
-      return 0;
-    }
-  
-    this->cur_sector = 
-      ntohl(this->tocent
-	    [this->cur_track+1 - this->tochdr.starting_track].addr.lba);
-    
-  }
-#endif
-  
-  return 1;
-}
-
-/*
- *
- */
 #if defined (__linux__)
 static off_t vcd_plugin_read (input_plugin_t *this_gen, 
 				char *buf, off_t nlen) {
@@ -420,7 +345,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = &this->tocent[this->cur_track+1].cdte_addr.msf;
+    end_msf = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
     printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
@@ -439,7 +364,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
     memcpy (&data, &msf, sizeof (msf));
 
     if (ioctl (this->fd, CDROMREADRAW, &data) == -1) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: error in CDROMREADRAW\n"));
+      printf ("input_vcd: error in CDROMREADRAW\n");
       return 0;
     }
 
@@ -474,11 +399,11 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 
   do {
     if (lseek (this->fd, this->cur_sector * bsize, SEEK_SET) == -1) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: seek error %d\n"), errno);
+      printf ("input_vcd: seek error %d\n", errno);
       return 0;
     }
     if (read (this->fd, &data, bsize) == -1) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: read error %d\n"), errno);
+      printf ("input_vcd: read error %d\n", errno);
       return 0;
     }
     this->cur_sector++;
@@ -500,7 +425,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = &this->tocent[this->cur_track+1].cdte_addr.msf;
+    end_msf = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
     printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
@@ -515,7 +440,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
     lba = (this->cur_min * 60 + this->cur_sec) * 75L + this->cur_frame;
 
     if (sun_vcd_read(this, lba, &data) < 0) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: read data failed\n"));
+      printf ("input_vcd: read data failed\n");
       return 0;
     }
 
@@ -539,9 +464,6 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 }
 #endif
 
-/*
- *
- */
 #if defined (__linux__)
 static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen, 
 					     fifo_buffer_t *fifo, off_t nlen) {
@@ -557,7 +479,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = &this->tocent[this->cur_track+1].cdte_addr.msf;
+    end_msf = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
     printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
@@ -576,7 +498,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
     memcpy (&data, &msf, sizeof (msf));
 
     if (ioctl (this->fd, CDROMREADRAW, &data) == -1) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: error in CDROMREADRAW\n"));
+      printf ("input_vcd: error in CDROMREADRAW\n");
       return NULL;
     }
 
@@ -616,11 +538,11 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 
   do {
     if (lseek (this->fd, this->cur_sector * bsize, SEEK_SET) == -1) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: seek error %d\n"), errno);
+      printf ("input_vcd: seek error %d\n", errno);
       return NULL;
     }
     if (read (this->fd, &data, bsize) == -1) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: read error %d\n"), errno);
+      printf ("input_vcd: read error %d\n", errno);
       return NULL;
     }
     this->cur_sector++;
@@ -647,7 +569,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = &this->tocent[this->cur_track+1].cdte_addr.msf;
+    end_msf = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
     printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
@@ -662,7 +584,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
     lba = (this->cur_min * 60 + this->cur_sec) * 75L + this->cur_frame;
 
     if (sun_vcd_read (this, lba, &data) < 0) {
-      LOG_MSG_STDERR(this->xine, _("input_vcd: read data failed\n"));
+      printf ("input_vcd: read data failed\n");
       return NULL;
     }
 
@@ -712,7 +634,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
   struct cdrom_msf0   *start_msf;
   off_t                sector_pos;
 
-  start_msf = &this->tocent[this->cur_track].cdte_addr.msf;
+  start_msf = &this->cls->tocent[this->cur_track].cdte_addr.msf;
 
   switch (origin) {
   case SEEK_SET:
@@ -733,7 +655,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
     break;
   case SEEK_CUR:
     if (offset) 
-      LOG_MSG_STDERR(this->xine, _("input_vcd: SEEK_CUR not implemented for offset != 0\n"));
+      printf ("input_vcd: SEEK_CUR not implemented for offset != 0\n");
 
     /*
     printf ("input_vcd: current pos: %02d:%02d:%02d\n",
@@ -751,8 +673,8 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 
     break;
   default:
-    LOG_MSG_STDERR(this->xine, _("input_vcd: error seek to origin %d not implemented!\n"),
-	     origin);
+    printf ("input_vcd: error seek to origin %d not implemented!\n",
+	    origin);
     return 0;
   }
 
@@ -769,7 +691,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
   off_t sector_pos;
 
   start = 
-    ntohl(this->tocent
+    ntohl(this->cls->tocent
 	  [this->cur_track+1 - this->tochdr.starting_track].addr.lba);
 
   /*  printf("seek: start sector:%lu, origin: %d, offset:%qu\n", 
@@ -784,7 +706,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
   case SEEK_CUR:
 
     if (offset) 
-      LOG_MSG_STDERR(this->xine, _("input_vcd: SEEK_CUR not implemented for offset != 0\n"));
+      printf ("input_vcd: SEEK_CUR not implemented for offset != 0\n");
 
     sector_pos = this->cur_sector;
 
@@ -792,8 +714,8 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 
     break;
   default:
-    LOG_MSG_STDERR(this->xine, _("input_vcd: error seek to origin %d not implemented!\n"),
-	     origin);
+    printf ("input_vcd: error seek to origin %d not implemented!\n",
+	    origin);
     return 0;
   }
 
@@ -801,17 +723,14 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 }
 #endif
 
-/*
- *
- */
 #if defined (__linux__) || defined(__sun)
 static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   struct cdrom_msf0       *end_msf, *start_msf;
   off_t len ;
 
-  start_msf = &this->tocent[this->cur_track].cdte_addr.msf;
-  end_msf   = &this->tocent[this->cur_track+1].cdte_addr.msf;
+  start_msf = &this->cls->tocent[this->cur_track].cdte_addr.msf;
+  end_msf   = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
   len = 75 - start_msf->frame;
 
@@ -835,10 +754,10 @@ static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
 
 
   len = 
-    ntohl(this->tocent
+    ntohl(this->cls->tocent
 	  [this->cur_track+2 
 	  - this->tochdr.starting_track].addr.lba)
-    - ntohl(this->tocent
+    - ntohl(this->cls->tocent
 	    [this->cur_track+1 
 	    - this->tochdr.starting_track].addr.lba);
   
@@ -847,70 +766,195 @@ static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
 }
 #endif
 
-/*
- *
- */
 static off_t vcd_plugin_get_current_pos (input_plugin_t *this_gen){
 
 
   return (vcd_plugin_seek (this_gen, 0, SEEK_CUR));
 }
 
-/*
- *
- */
 static uint32_t vcd_plugin_get_capabilities (input_plugin_t *this_gen) {
   
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK ;
 }
 
-/*
- *
- */
 static uint32_t vcd_plugin_get_blocksize (input_plugin_t *this_gen) {
 
   return VCDSECTORSIZE;
 }
 
-/*
- *
- */
-#if defined (__linux__)
-static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  int ret, status;
+static void vcd_plugin_dispose (input_plugin_t *this_gen ) {
 
-  if((this->fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
-    if((status = ioctl(this->fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
+
+  close(this->fd);
+
+  free (this->mrl);
+  free (this);
+}
+
+static char* vcd_plugin_get_mrl (input_plugin_t *this_gen) {
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
+
+  return this->mrl;
+}
+
+static int vcd_plugin_get_optional_data (input_plugin_t *this_gen, 
+					 void *data, int data_type) {
+
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
+static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+				    const char *data) {
+
+  vcd_input_class_t  *cls = (vcd_input_class_t *) cls_gen; 
+  vcd_input_plugin_t *this;
+  char               *mrl = strdup(data);
+  char               *filename;
+  int                 fd;
+
+  if (strncasecmp (mrl, "vcd:/",5)) {
+    free (mrl);
+    return 0;
+  }
+    
+  fd = open (cls->device, O_RDONLY);
+
+  if (fd == -1) {
+    free (mrl);
+    return 0;
+  }
+
+  this = (vcd_input_plugin_t *) xine_xmalloc(sizeof(vcd_input_plugin_t));
+
+  this->stream = stream;
+  this->mrl    = mrl;
+  this->fd     = fd;
+
+  this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
+  this->input_plugin.read              = vcd_plugin_read;
+  this->input_plugin.read_block        = vcd_plugin_read_block;
+  this->input_plugin.seek              = vcd_plugin_seek;
+  this->input_plugin.get_current_pos   = vcd_plugin_get_current_pos;
+  this->input_plugin.get_length        = vcd_plugin_get_length;
+  this->input_plugin.get_blocksize     = vcd_plugin_get_blocksize;
+  this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
+  this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
+  this->input_plugin.dispose           = vcd_plugin_dispose;
+  this->input_plugin.input_class       = cls_gen;
+  this->cls                            = cls;
+
+  if (input_vcd_read_toc (this->cls, this->fd)) {
+    close (this->fd);
+    free (this);
+    free (mrl);
+    return NULL;
+  }
+
+  filename = (char *) &this->mrl[5];
+  while (*filename == '/') filename++;
+
+  if (sscanf (filename, "%d", &this->cur_track) != 1) {
+    printf ("input_vcd: malformed MRL. Use vcd:/<track #>\n");
+    close (this->fd);
+    free (this);
+    free (mrl);
+    return NULL;
+  }
+
+  if (this->cur_track>=this->cls->total_tracks) {
+    printf ("input_vcd: invalid track %d (valid range: 0 .. %d)\n",
+	    this->cur_track, this->cls->total_tracks-1);
+    close (this->fd);
+    free (this);
+    free (mrl);
+    return NULL;
+  }
+
+#if defined (__linux__) || defined(__sun)
+  this->cur_min   = this->cls->tocent[this->cur_track].cdte_addr.msf.minute;
+  this->cur_sec   = this->cls->tocent[this->cur_track].cdte_addr.msf.second;
+  this->cur_frame = this->cls->tocent[this->cur_track].cdte_addr.msf.frame;
+#elif defined (__FreeBSD__)
+  {
+    int bsize = 2352;
+    if (ioctl (this->fd, CDRIOCSETBLOCKSIZE, &bsize) == -1) {
+      printf ("input_vcd: error in CDRIOCSETBLOCKSIZE %d\n", errno);
+      return 0;
+    }
+  
+    this->cur_sector = 
+      ntohl(this->cls->tocent
+	    [this->cur_track+1 - this->tochdr.starting_track].addr.lba);
+    
+  }
+#endif
+  
+
+  return &this->input_plugin;
+}
+
+/*
+ * vcd input plugin class stuff
+ */
+
+static char *vcd_class_get_description (input_class_t *this_gen) {
+  return _("Video CD input plugin");
+}
+
+static char *vcd_class_get_identifier (input_class_t *this_gen) {
+  return "vcd";
+}
+
+static void vcd_class_dispose (input_class_t *this_gen) {
+
+  vcd_input_class_t  *this = (vcd_input_class_t *) this_gen;
+  int                 i;
+
+  for (i = 0; i < 100; i++)
+    free (this->filelist[i]);
+
+  free (this->mrls);
+  free (this);
+}
+
+#if defined (__linux__)
+static int vcd_class_eject_media (input_class_t *this_gen) {
+
+  vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
+  int ret, status, fd;
+
+  if ((fd = open (this->device, O_RDONLY|O_NONBLOCK)) > -1) {
+    if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
       switch(status) {
       case CDS_TRAY_OPEN:
-	if((ret = ioctl(this->fd, CDROMCLOSETRAY)) != 0) {
-	  LOG_MSG(this->xine, _("input_vcd: CDROMCLOSETRAY failed: %s\n"), strerror(errno));  
+	if((ret = ioctl(fd, CDROMCLOSETRAY)) != 0) {
+	  printf ("input_vcd: CDROMCLOSETRAY failed: %s\n", strerror(errno));  
 	}
 	break;
       case CDS_DISC_OK:
-	if((ret = ioctl(this->fd, CDROMEJECT)) != 0) {
-	  LOG_MSG(this->xine, _("input_vcd: CDROMEJECT failed: %s\n"), strerror(errno));  
+	if((ret = ioctl(fd, CDROMEJECT)) != 0) {
+	  printf ("input_vcd: CDROMEJECT failed: %s\n", strerror(errno));  
 	}
 	break;
       }
     }
     else {
-      LOG_MSG(this->xine, _("input_vcd: CDROM_DRIVE_STATUS failed: %s\n"), 
+      printf ("input_vcd: CDROM_DRIVE_STATUS failed: %s\n", 
 	      strerror(errno));
-      close(this->fd);
+      close(fd);
       return 0;
     }
   }
 
-  close(this->fd);
+  close(fd);
   
   return 1;
 }
 #elif defined (__FreeBSD__)
-static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  int fd;
+static int vcd_plugin_eject_media (input_class_t *this_gen) {
+  vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
+  int          fd;
 
   if ((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
     if (ioctl(fd, CDIOCALLOW) == -1) {
@@ -926,13 +970,14 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
   return 1;
 }
 #elif defined (__sun)
-static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  int fd, ret;
+static int vcd_plugin_eject_media (vcd_input_class_t *this) {
+
+  vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
+  int          fd, ret;
 
   if ((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
     if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
-      LOG_MSG(this->xine, _("input_vcd: CDROMEJECT failed: %s\n"), strerror(errno));  
+      printf ("input_vcd: CDROMEJECT failed: %s\n", strerror(errno));  
     }
     close(fd);
   }
@@ -941,72 +986,38 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
 }
 #endif
 
-/*
- *
- */
-static void vcd_plugin_close (input_plugin_t *this_gen) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
+static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *filename, 
+				       int *num_files) {
+  vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
 
-  close(this->fd);
-  this->fd = -1;
-}
+  int i, fd;
 
-/*
- *
- */
-static void vcd_plugin_stop (input_plugin_t *this_gen) {
-  vcd_plugin_close(this_gen);
-}
-
-/*
- *
- */
-static char *vcd_plugin_get_description (input_plugin_t *this_gen) {
-  return _("vcd device input plugin as shipped with xine");
-}
-
-/*
- *
- */
-static char *vcd_plugin_get_identifier (input_plugin_t *this_gen) {
-  return "VCD";
-}
-
-/*
- *
- */
-static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen, 
-						    const char *filename, int *nEntries) {
-
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  int i;
-
-  *nEntries = 0;
+  *num_files = 0;
 
   if (filename)
     return NULL;
 
   
-  this->fd = open (this->device, O_RDONLY);
+  fd = open (this->device, O_RDONLY);
 
-  if (this->fd == -1) {
-    LOG_MSG_STDERR(this->xine, _("unable to open %s: %s.\n"), this->device, strerror(errno));
+  if (fd == -1) {
+    printf ("unable to open %s: %s.\n", this->device, strerror(errno));
     return NULL;
   }
 
-  if (input_vcd_read_toc (this)) {
-    close (this->fd);
-    this->fd = -1;
+  if (input_vcd_read_toc (this, fd)) {
+    close (fd);
+    fd = -1;
 
-    LOG_MSG(this->xine, _("vcd_read_toc failed\n"));
+    printf ("vcd_read_toc failed\n");
 
     return NULL;
   }
 
-  close (this->fd);
-  this->fd = -1;
+  close (fd);
+  fd = -1;
 
-  *nEntries = this->total_tracks - 1;
+  *num_files = this->total_tracks - 1;
   
   /* printf ("%d tracks\n", this->total_tracks); */
 
@@ -1040,7 +1051,6 @@ static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
     this->mrls[i-1]->type = (0 | mrl_vcd);
 
     /* hack */
-    this->cur_track = i;
     this->mrls[i-1]->size = vcd_plugin_get_length ((input_plugin_t *) this);
   }
 
@@ -1048,45 +1058,42 @@ static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   /*
    * Freeing exceeded mrls if exists.
    */
-  while(this->mrls_allocated_entries > *nEntries) {
+  while(this->mrls_allocated_entries > *num_files) {
     MRL_ZERO(this->mrls[this->mrls_allocated_entries - 1]);
     free(this->mrls[this->mrls_allocated_entries--]);
   }
 
-  this->mrls[*nEntries] = NULL;
+  this->mrls[*num_files] = NULL;
   
   return this->mrls;
 }
 
-/*
- *
- */
-static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen, 
-							int *nFiles) {
+static char ** vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_files) {
 
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  int i;
+  vcd_input_class_t  *this = (vcd_input_class_t *) this_gen; 
+  int i, fd;
 
-  this->fd = open (this->device, O_RDONLY);
 
-  if (this->fd == -1) {
-    LOG_MSG_STDERR(this->xine, _("unable to open %s: %s.\n"), this->device, strerror(errno));
+  fd = open (this->device, O_RDONLY);
+
+  if (fd == -1) {
+    printf ("input_vcd: unable to open %s: %s.\n", this->device, strerror(errno));
     return NULL;
   }
 
-  if (input_vcd_read_toc (this)) {
-    close (this->fd);
-    this->fd = -1;
+  if (input_vcd_read_toc (this, fd)) {
+    close (fd);
+    fd = -1;
 
-    LOG_MSG(this->xine, _("vcd_read_toc failed\n"));
+    printf ("input_vcd: vcd_read_toc failed\n");
 
     return NULL;
   }
 
-  close (this->fd);
-  this->fd = -1;
+  close (fd);
+  fd = -1;
 
-  *nFiles = this->total_tracks - 1;
+  *num_files = this->total_tracks - 1;
   
   /* printf ("%d tracks\n", this->total_tracks); */
 
@@ -1105,83 +1112,34 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   return this->filelist;
 }
 
-/*
- *
- */
-static char* vcd_plugin_get_mrl (input_plugin_t *this_gen) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
+static void *init_class (xine_t *xine, void *data) {
 
-  return this->mrl;
-}
-
-/*
- *
- */
-static int vcd_plugin_get_optional_data (input_plugin_t *this_gen, 
-					 void *data, int data_type) {
-
-  return INPUT_OPTIONAL_UNSUPPORTED;
-}
-
-static void vcd_plugin_dispose (input_plugin_t *this_gen ) {
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  int i;
-
-  for (i = 0; i < 100; i++)
-    free (this->filelist[i]);
-
-  free (this->mrls);
-  free (this->mrl);
-  free (this);
-}
-
-/*
- *
- */
-static void *init_input_plugin (xine_t *xine, void *data) {
-
-  vcd_input_plugin_t *this;
-  config_values_t    *config;
+  vcd_input_class_t  *this;
+  config_values_t    *config = xine->config;
   int                 i;
 
-  this       = (vcd_input_plugin_t *) xine_xmalloc(sizeof(vcd_input_plugin_t));
-  config     = xine->config;
-  this->xine = xine;
+  this = (vcd_input_class_t *) xine_xmalloc (sizeof (vcd_input_class_t));
 
-  for (i = 0; i < 100; i++) {
-    this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
-  }
-  
-  this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
-  this->input_plugin.open              = vcd_plugin_open;
-  this->input_plugin.read              = vcd_plugin_read;
-  this->input_plugin.read_block        = vcd_plugin_read_block;
-  this->input_plugin.seek              = vcd_plugin_seek;
-  this->input_plugin.get_current_pos   = vcd_plugin_get_current_pos;
-  this->input_plugin.get_length        = vcd_plugin_get_length;
-  this->input_plugin.get_blocksize     = vcd_plugin_get_blocksize;
-  this->input_plugin.eject_media       = vcd_plugin_eject_media;
-  this->input_plugin.close             = vcd_plugin_close;
-  this->input_plugin.stop              = vcd_plugin_stop;
-  this->input_plugin.get_identifier    = vcd_plugin_get_identifier;
-  this->input_plugin.get_description   = vcd_plugin_get_description;
-  this->input_plugin.get_dir           = vcd_plugin_get_dir;
-  this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
-  this->input_plugin.get_autoplay_list = vcd_plugin_get_autoplay_list;
-  this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
-  this->input_plugin.dispose           = vcd_plugin_dispose;
-  this->input_plugin.is_branch_possible= NULL;
-  
-  this->device = config->register_string(config, "input.vcd_device", CDROM,
-					 _("path to your local vcd device file"),
-					 NULL, 10, device_change_cb, (void *)this);
+  this->xine   = xine;
+
+  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_identifier     = vcd_class_get_identifier;
+  this->input_class.get_description    = vcd_class_get_description;
+  this->input_class.get_dir            = vcd_class_get_dir;
+  this->input_class.get_autoplay_list  = vcd_class_get_autoplay_list;
+  this->input_class.dispose            = vcd_class_dispose;
+  this->input_class.eject_media        = vcd_class_eject_media;
+
+  this->device = config->register_string (config, "input.vcd_device", CDROM,
+					  _("path to your local vcd device file"),
+					  NULL, 10, device_change_cb, (void *)this);
 
   this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;
 
-  this->fd      = -1;
-  this->mrl     = NULL;
-  this->config  = config;
+  for (i = 0; i < 100; i++) {
+    this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
+  }
   
   return this;
 }
@@ -1192,6 +1150,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 8, "vcd", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_INPUT, 9, "VCD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
