@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.21 2001/10/14 14:39:36 guenter Exp $
+ * $Id: audio_out.c,v 1.22 2001/10/16 17:57:31 joachim_koenig Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -172,40 +172,16 @@ static int ao_open(ao_instance_t *this,
   return this->output_frame_rate;
 }
 
-static void ao_fill_gap (ao_instance_t *this, uint32_t pts_len) {
-
-  int num_frames ;
-  xprintf (VERBOSE|AUDIO, "audio_out : fill_gap\n");
-
-  if (pts_len > MAX_GAP)
-    pts_len = MAX_GAP;
-
-  num_frames = pts_len * this->frames_per_kpts / 1024;
-
-  if ((this->mode == AO_CAP_MODE_A52) || (this->mode == AO_CAP_MODE_AC5)) return; /* FIXME */
-
-  printf ("audio_out: inserting %d 0-frames to fill a gap of %d pts\n",num_frames, pts_len);
-
-  while (num_frames > 0) {
-    if (num_frames > ZERO_BUF_SIZE) {
-      this->driver->write(this->driver, this->zero_space, ZERO_BUF_SIZE);
-      num_frames -= ZERO_BUF_SIZE;
-    } else {
-      this->driver->write(this->driver, this->zero_space, num_frames);
-      num_frames = 0;
-    }
-  }
-}
-
-/*
+/* 
  * This routine is currently not used, but I do not want to loose it.
  * I think "(c) 2001 Andy Lo A Foe <andy@alsaplayer.org>" originally added it
  * to ./xine-lib/src/audio_out/audio_alsa_out.c before the architecture changes
  * So it has moved to here.
  */
 
-void write_pause_burst(ao_instance_t *this, int error)
-{
+void write_pause_burst(ao_instance_t *this, uint32_t num_frames)
+{ 
+  int error = 0;
   unsigned char buf[8192];
   unsigned short *sbuf = (unsigned short *)&buf[0];
   
@@ -218,14 +194,54 @@ void write_pause_burst(ao_instance_t *this, int error)
   else
     /* user stop, skip or error */
     sbuf[2] = 0x0103;
-  
+
   sbuf[3] = 0x0020;
   sbuf[4] = 0x0000;
   sbuf[5] = 0x0000;
-  
+
   memset(&sbuf[6], 0, 6144 - 96);
-  this->driver->write(this->driver, sbuf, 6144 / 4);
+  while (num_frames > 1536) {
+    if(num_frames > 1536) {
+      this->driver->write(this->driver, sbuf, 1536);
+      num_frames -= 1536;
+    } else {
+      this->driver->write(this->driver, sbuf, num_frames);
+      num_frames = 0;
+    }
+  }
+
 }
+
+
+static void ao_fill_gap (ao_instance_t *this, uint32_t pts_len) {
+
+  int num_frames ;
+  xprintf (VERBOSE|AUDIO, "audio_out : fill_gap\n");
+
+  if (pts_len > MAX_GAP)
+    pts_len = MAX_GAP;
+
+  num_frames = pts_len * this->frames_per_kpts / 1024;
+
+  printf ("audio_out: inserting %d 0-frames to fill a gap of %d pts\n",num_frames, pts_len);
+
+  if ((this->mode == AO_CAP_MODE_A52) || (this->mode == AO_CAP_MODE_AC5)) {
+    write_pause_burst(this,num_frames);
+    return; 
+  }
+
+
+  while (num_frames > 0) {
+    if (num_frames > ZERO_BUF_SIZE) {
+      this->driver->write(this->driver, this->zero_space, ZERO_BUF_SIZE);
+      num_frames -= ZERO_BUF_SIZE;
+    } else {
+      this->driver->write(this->driver, this->zero_space, num_frames);
+      num_frames = 0;
+    }
+  }
+}
+
 
 static int ao_write(ao_instance_t *this,
 		    int16_t* output_frames, uint32_t num_frames,
@@ -312,8 +328,6 @@ static int ao_write(ao_instance_t *this,
   /*
    * resample and output frames
    */
-  if ((this->mode == AO_CAP_MODE_A52) || (this->mode == AO_CAP_MODE_AC5)) 
-    bDropPackage=0;
 
   if (!bDropPackage) {
     int num_output_frames = (double) num_frames * this->frame_rate_factor;
