@@ -4,7 +4,8 @@
   * real media rv20/rv30 video and cook/sipro/dnet audio should work 
     (except dnet x86 only)
   * real media rtsp protocol streaming support
-	
+  * mms input plugin cleanup/bugfixes/improvements
+
 xine-lib (1-beta0)
   * fix decoder priority configuration
   * cache available plugins for faster xine loading
