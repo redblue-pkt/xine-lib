@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.110 2003/04/25 14:13:43 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.111 2003/04/26 19:28:54 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -280,9 +280,27 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       header_len -= 5 ;
     }
 
-    /* read rest of header */
-    i = this->input->read (this->input, this->dummy_space, header_len+4);
+    i = this->input->read (this->input, this->dummy_space, 1);
 
+    if((this->dummy_space[0] & 0xE0) == 0x20) {
+
+      buf = this->input->read_block (this->input, this->video_fifo, header_len+3+len);
+
+      track = (this->dummy_space[0] & 0x1f);
+
+      buf->type      = BUF_SPU_DVD + track;
+      buf->decoder_flags |= BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+      buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
+      buf->pts       = pts;
+      
+      this->video_fifo->put (this->video_fifo, buf);    
+     
+      return;
+    }
+
+    /* read rest of header */
+    i = this->input->read (this->input, this->dummy_space+1, header_len+3);
     track = this->dummy_space[0] & 0x0F ;
 
     /* contents */
