@@ -18,9 +18,9 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
 *
 * Xine Health Check:
-* 
+*
 * Overview: Checking the setup of the user's system is the task of
-* xine-check.sh for now. At present this is intended to replace 
+* xine-check.sh for now. At present this is intended to replace
 * xine_check to provide a more robust way of informing users new
 * to xine of the setup of their system.
 *
@@ -28,7 +28,7 @@
 * to check the user's system. It is expected that the values for
 * hc->cdrom_dev and hc->dvd_dev will be defined. For example,
 * hc->cdrom_dev = /dev/cdrom and hc->/dev/dvd. If at any point a
-* step fails the entire process returns with a failed status, 
+* step fails the entire process returns with a failed status,
 * XINE_HEALTH_CHECK_FAIL, and an error message contained in hc->msg.
 *
 * Author: Stephen Torri <storri@users.sourceforge.net>
@@ -50,6 +50,7 @@
 #include <sys/utsname.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <errno.h>
 
 #ifdef HAVE_X11
@@ -330,27 +331,27 @@ xine_health_check_xv (xine_health_check_t* hc) {
   dlclose(dl_handle);
 
   if(!(dpy = (*xopendisplay)(disname))) {
-    if (disname != NULL) {
-      display_name = disname;
+    if (!disname) {
+      disname = (*xdisplayname)(NULL);
     }
-    else {
-      display_name = (*xdisplayname)(NULL);
-    }
-    hc->msg = (char*) malloc (sizeof (char) * (28-2) + strlen(display_name) + 1);
-    sprintf(hc->msg, "Unable to open display: %s\n", display_name);
+    hc->msg = (char*) malloc (sizeof (char) * (28-2) + strlen(disname) + 1);
+    sprintf(hc->msg, "Unable to open display: %s\n", disname);
     hc->status = XINE_HEALTH_CHECK_FAIL;
     return hc;
   }
 
   if((Success != XvQueryExtension(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
-    hc->msg = (char*) malloc (sizeof (char) * 80);
-    sprintf(hc->msg, "No X-Video Extension on %s", (disname != NULL) ? disname : xdisplayname(NULL));
+    if (!disname) {
+      disname = xdisplayname(NULL);
+    }
+    hc->msg = (char*) malloc (sizeof (char) * (26-2) + strlen(disname) + 1);
+    sprintf(hc->msg, "No X-Video Extension on %s", disname);
     hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
   }
   else {
     hc->msg = (char*) malloc (sizeof (char) * (33-4) + sizeof(unsigned int) * 2 + 1);
     sprintf(hc->msg, "X-Video Extension version %d.%d\n", ver , rev);
-    hc->status = XINE_HEALTH_CHECK_OK;
   }
 
   /*
@@ -407,3 +408,43 @@ xine_health_check (xine_health_check_t* hc, int check_num)
   return hc;
 }
 #endif	/* !__linux__ */
+
+char *get_string(char *format, ...) {
+
+  va_list   args;
+  char     *buf = NULL;
+  int       n, size;
+
+  if (!format) {
+    return NULL;
+  }
+
+  size = strlen(format) + 1;
+
+  if((buf = malloc(size)) == NULL) {
+    return NULL;
+  }
+
+  while(1) {
+    va_start(args, format);
+    n = vsnprintf(buf, size, format, args);
+    va_end(args);
+
+    if(n > -1 && n < size) {
+      break;
+    }
+
+    if(n > -1) {
+      size = n + 1;
+    }
+    else {
+      size *= 2;
+    }
+
+    if((buf = realloc(buf, size)) == NULL) {
+      return NULL;
+    }
+  }
+
+  return buf;
+}
