@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.59 2002/10/19 19:36:54 guenter Exp $
+ * $Id: xine_decoder.c,v 1.60 2002/10/28 07:57:50 tmattern Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -229,7 +229,7 @@ static void find_sequence_header (ff_decoder_t *this,
       default:
 	printf ("ffmpeg: invalid/unknown frame rate code : %d \n",
 		frame_rate_code); 
-	this->video_step      = 3000;
+	this->video_step      = 0;
       }
 
       this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = width;
