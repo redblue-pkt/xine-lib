@@ -1230,6 +1230,7 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
 		printf(MGA_MSG" Found MGA G400/G450\n");
 		is_g400 = 1;
 		goto card_found;
+#ifndef CRTC2
 	    case DEVICE_MATROX_MGA_G200_AGP:
 		printf(MGA_MSG" Found MGA G200 AGP\n");
 		is_g400 = 0;
@@ -1238,24 +1239,19 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
 		printf(MGA_MSG" Found MGA G200 PCI\n");
 		is_g400 = 0;
 		goto card_found;
+#endif
 	    }
 	}
     }
 
     if (is_g400 == -1)
     {
-	printf(MGA_MSG" No supported cards found\n");
+	if(verbose)
+	  printf(MGA_MSG" Can't find chip\n\n");
 	return(ENXIO);
     }
 
 card_found:
-#ifdef CRTC2
-    if(!is_g400)
-    {
-	printf(MGA_MSG" G200 second head not supported\n");
-	return(ENXIO);
-    }
-#endif
     probed = 1;
     memcpy(&pci_info, &lst[i], sizeof(pciinfo_t));
 
