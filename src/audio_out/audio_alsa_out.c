@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.92 2003/04/23 10:39:33 jstembridge Exp $
+ * $Id: audio_alsa_out.c,v 1.93 2003/06/06 14:01:11 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -100,6 +100,7 @@ typedef struct alsa_driver_s {
   uint32_t      bytes_per_frame;
   uint32_t      bytes_in_buffer;      /* number of bytes writen to audio hardware   */
   snd_pcm_sframes_t  buffer_size;
+  int32_t            mmap; 
 
   struct {
     pthread_t          thread;
@@ -175,6 +176,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_stream_t      direction = SND_PCM_STREAM_PLAYBACK; 
   snd_pcm_hw_params_t  *params;
   snd_pcm_sw_params_t  *swparams;
+  snd_pcm_access_mask_t *mask;
   snd_pcm_sframes_t     buffer_size;
   snd_pcm_sframes_t     period_size;
   int                   err, dir;
@@ -288,8 +290,24 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   /* set interleaved access */
-  err = snd_pcm_hw_params_set_access(this->audio_fd, params,
+  if (this->mmap != 0) {
+    mask = alloca(snd_pcm_access_mask_sizeof());
+    snd_pcm_access_mask_none(mask);
+    snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+    snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+    snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_COMPLEX);
+    err = snd_pcm_hw_params_set_access_mask(this->audio_fd, params, mask);
+    if (err < 0) {
+      printf ("audio_alsa_out: mmap not availiable, falling back to compatiblity mode\n");
+      this->mmap=0;
+      err = snd_pcm_hw_params_set_access(this->audio_fd, params,
                                      SND_PCM_ACCESS_RW_INTERLEAVED);
+    }
+  } else {
+    err = snd_pcm_hw_params_set_access(this->audio_fd, params,
+                                     SND_PCM_ACCESS_RW_INTERLEAVED);
+  }
+      
   if (err < 0) {
     printf ("audio_alsa_out: access type not available\n");
     goto __close;
@@ -546,7 +564,12 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
       printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
 #endif
     }
-    result = snd_pcm_writei(this->audio_fd, buffer, number_of_frames);
+    if (this->mmap != 0) {
+      result = snd_pcm_mmap_writei(this->audio_fd, buffer, number_of_frames);
+    } else {
+      result = snd_pcm_writei(this->audio_fd, buffer, number_of_frames);
+    }
+
     if (result < 0) {
 #ifdef LOG_DEBUG
       printf("audio_alsa_out:write:result=%ld:%s\n",result, snd_strerror(result));
@@ -1011,6 +1034,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   this->class = class;
   snd_pcm_hw_params_alloca(&params);
   /* Fill the .xinerc file with options */ 
+  this->mmap = config->register_bool (config,
+                               "audio.alsa_mmap_enable",
+                               0,
+                               _("used to inform xine about what the sound card can do"),
+                               NULL,
+                               0, NULL,
+                               NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_default_device",
 				       "default",
