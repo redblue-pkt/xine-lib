@@ -11,7 +11,8 @@ ac3_level               0..~200% : ac3 volume control
 ac3_pass_through        1/0 : enable ac3 output via spdif port
 
 audio_driver_name       audio driver to use, same as command line 
-                        option -A (e.g. oss, alsa, esd, artsd)
+                        option -A
+                        (e.g. alsa05, alsa09, arts, esd, sun)
 
 colorkey                colorkey to use, may be usefull to change
                         if parts of your desktio become transparent
@@ -53,10 +54,12 @@ oss_device_num		-1, 0-16: Forces the OSS plugin to use the specified
 			Note: /dev/dsp is usually a symlink to /dev/dsp0
 
 skin                    skin to use, see <prefix>/share/xine/skins
-                        for installed skins (e.g. metal, lcd, pitt)
+                        for installed skins
+                        (e.g. default, metal, lcd, pitt, xinetic)
 
 video_driver_name       video driver to use, same as command line 
-                        option -V (e.g. Xv, XShm)
+                        option -V
+                        (e.g. aa, Syncfb, XShm, Xv)
 
 win32_path              path to where you have installed win32
                         codec dlls for avi playback, e.g. 
