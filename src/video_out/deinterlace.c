@@ -180,7 +180,8 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
 /* Deinterlace the latest field, with a tendency to weave rather than bob.
    Good for high detail on low-movement scenes.
-   NOT FINISHED! WEIRD OUTPUT!!!
+   Seems to produce bad output in general case, need to check if this
+   is normal or if the code is broken. 
 */
 static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
@@ -688,6 +689,12 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
         deinterlace_onefield_yuv_mmx(pdst,psrc,width,height);
       else /* FIXME: provide an alternative? */
         abort_mmx_missing();
+      break;
+    case DEINTERLACE_ONEFIELDXV:
+      printf("deinterlace: ONEFIELDXV must be handled by the video driver.\n");
+      break;
+    default:
+      printf("deinterlace: unknow method %d.\n",method);
       break;
   }
 }

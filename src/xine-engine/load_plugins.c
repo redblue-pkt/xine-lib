@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.50 2001/10/25 00:47:02 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.51 2001/10/27 16:12:21 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -132,11 +132,17 @@ void load_demux_plugins (xine_t *this,
 void xine_list_demux_plugins (config_values_t *config,
                           char **identifiers, char **mimetypes) {
   DIR *dir;
-  xine_t *this = xmalloc (sizeof (xine_t));
+  xine_t *this;
+  int sizeid, sizemime;
+  int incsize;
+  char *s;
+   
+  this = xmalloc (sizeof (xine_t));
   
-  *identifiers = xmalloc (1024);
-  *mimetypes = xmalloc (8192);
-  
+  sizeid = sizemime = incsize = 4096;
+  *identifiers = xmalloc (sizeid);
+  *mimetypes = xmalloc (sizemime);
+    
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
@@ -176,12 +182,24 @@ void xine_list_demux_plugins (config_values_t *config,
 	      
 	    dxp = (demux_plugin_t *) initplug(DEMUXER_PLUGIN_IFACE_VERSION, this);
 	    if (dxp) {
-	      strcat(*identifiers,dxp->get_identifier());
-              strcat(*identifiers,"\n");
-	      strcat(*mimetypes,dxp->get_mimetypes());
+	      /* realloc sucks, but it will make this code much simpler */
+	      s = dxp->get_identifier();
+	      if( strlen(s) + strlen(*identifiers) + 2 > sizeid ) {
+	        sizeid += incsize;
+	        *identifiers = realloc( *identifiers, sizeid );
+	      }
+	      strcat(*identifiers, s);
+	      strcat(*identifiers, "\n");
+
+	      s = dxp->get_mimetypes(); 
+	      if( strlen(s) + strlen(*mimetypes) + 2 > sizemime ) {
+	        sizemime += incsize;
+	        *identifiers = realloc( *identifiers, sizemime );
+	      }
+	      strcat(*mimetypes, s);
 	    }
 	  }
-          dlclose(plugin);
+	  dlclose(plugin);
 	}
       }
     }

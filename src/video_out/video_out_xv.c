@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.71 2001/10/24 20:45:06 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.72 2001/10/27 16:12:21 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -57,6 +57,7 @@
 /* #include "overlay.h" */
 #include "alphablend.h"
 #include "deinterlace.h"
+#include "memcpy.h"
 
 uint32_t xine_debug;
 
@@ -411,10 +412,13 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
   uint8_t *recent_bitmaps[VO_NUM_RECENT_FRAMES];
   xv_frame_t *frame = this->recent_frames[0];
   int i;
+  int xvscaling;
 
+  xvscaling = (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) ? 2 : 1;
+  
   if ( !this->deinterlace_frame.image
       || (frame->width != this->deinterlace_frame.width)
-      || (frame->height != this->deinterlace_frame.height)
+      || (frame->height / xvscaling != this->deinterlace_frame.height )
       || (frame->format != this->deinterlace_frame.format)) {
     XLockDisplay (this->display);
 
@@ -423,47 +427,84 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
                       this->deinterlace_frame.image);
 
     this->deinterlace_frame.image = create_ximage (this, &this->deinterlace_frame.shminfo,
-                                             frame->width,frame->height, frame->format);
+                                             frame->width,frame->height / xvscaling,
+                                             frame->format);
     this->deinterlace_frame.width  = frame->width;
-    this->deinterlace_frame.height = frame->height;
+    this->deinterlace_frame.height = frame->height / xvscaling;
     this->deinterlace_frame.format = frame->format;
 
     XUnlockDisplay (this->display);
   }
 
+  
+  if ( this->deinterlace_method != DEINTERLACE_ONEFIELDXV ) {
 #ifdef DEINTERLACE_CROMA
 
-  /* I don't think this is the right way to do it (deinterlacing croma by croma info).
-     DScaler deinterlaces croma together with luma, but it's easier for them because
-     they have that components 1:1 at the same table.
-  */
-  for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-    recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
-    + frame->width*frame->height : NULL;
-  deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height,
-    recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
-  for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-    recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
-    + frame->width*frame->height*5/4 : NULL;
-  deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height*5/4,
-    recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
+    /* I don't think this is the right way to do it (deinterlacing croma by croma info).
+       DScaler deinterlaces croma together with luma, but it's easier for them because
+       they have that components 1:1 at the same table.
+    */
+    for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
+      recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
+      + frame->width*frame->height : NULL;
+    deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height,
+      recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
+    for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
+      recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
+      + frame->width*frame->height*5/4 : NULL;
+    deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height*5/4,
+      recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
 
 #else
 
-  /* know bug: we are not deinterlacing Cb and Cr */
-  memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
-         frame->image->data + frame->width*frame->height,
-         frame->width*frame->height*1/2);
+    /* know bug: we are not deinterlacing Cb and Cr */
+    fast_memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
+           frame->image->data + frame->width*frame->height,
+           frame->width*frame->height*1/2);
 
 #endif
 
-  for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-    recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data :
-                        NULL;
+    for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
+      recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data :
+                          NULL;
 
-  deinterlace_yuv( this->deinterlace_frame.image->data, recent_bitmaps,
-                   frame->width, frame->height, this->deinterlace_method );
-
+    deinterlace_yuv( this->deinterlace_frame.image->data, recent_bitmaps,
+                     frame->width, frame->height, this->deinterlace_method );
+  }
+  else {
+    /*
+       dirty and cheap deinterlace method: we give half of the lines to xv
+                                           driver and let it scale for us.
+       note that memcpy's below don't seem to impact much on performance,
+       specially when fast memcpys are available.
+    */
+    uint8_t *dst, *src;
+    
+    dst = this->deinterlace_frame.image->data;
+    src = this->recent_frames[0]->image->data;
+    for( i = 0; i < frame->height; i+=2 ) {
+      fast_memcpy(dst,src,frame->width);
+      dst+=frame->width;
+      src+=2*frame->width;
+    }
+    
+    dst = this->deinterlace_frame.image->data + frame->width*frame->height/2;
+    src = this->recent_frames[0]->image->data + frame->width*frame->height;
+    for( i = 0; i < frame->height; i+=4 ) {
+      fast_memcpy(dst,src,frame->width/2);
+      dst+=frame->width/2;
+      src+=frame->width;
+    }
+    
+    dst = this->deinterlace_frame.image->data + frame->width*frame->height*5/8;
+    src = this->recent_frames[0]->image->data + frame->width*frame->height*5/4;
+    for( i = 0; i < frame->height; i+=4 ) {
+      fast_memcpy(dst,src,frame->width/2);
+      dst+=frame->width/2;
+      src+=frame->width;
+    }
+  }
+  
   this->cur_frame = &this->deinterlace_frame;
 }
 

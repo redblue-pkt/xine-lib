@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.50 2001/10/22 17:10:20 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.51 2001/10/27 16:12:21 miguelfreitas Exp $
  *
  */
 
@@ -267,17 +267,11 @@ int xine_check_version(int major, int minor, int sub);
  */
 #define VO_PROP_COLORKEY          6
 /**
- * \def VO_PROP_SOFT_DEINTERLACE
- * Software deinterlacing (BOB) property.
- * \sa vo_driver_t
- */
-#define VO_PROP_SOFT_DEINTERLACE  7
-/**
  * \def VO_NUM_PROPERTIES
  * Number of available properties property.
  * \sa vo_driver_t
  */
-#define VO_NUM_PROPERTIES         8
+#define VO_NUM_PROPERTIES         7
 
                /** @} end of video_prop */
 
@@ -1277,6 +1271,17 @@ char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls);
 #define VISUAL_TYPE_GTK   4
 
                /** @} end of visual_types */
+
+/**
+ * \fn void xine_list_demux_plugins (config_values_t *config, char **identifiers, char **mimetypes)
+ * \brief list available demux plugins
+ * \param config current configuration ( #see config_file_init() )
+ * \param identifiers pointer to a (char *) that will be allocated and filled with all demux identifiers 
+ * \param mimetypes pointer to a (char *) that will be allocated and filled with all demux mimetypes 
+ * \return none (strings are returned on *identifiers and *mimetypes). It is up to called to free these after use.
+ */
+void xine_list_demux_plugins (config_values_t *config,
+                              char **identifiers, char **mimetypes);
 
 /**
  * \fn char **xine_list_video_output_plugins (int visual_type)

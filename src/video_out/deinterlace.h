@@ -32,10 +32,11 @@
 void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
     int width, int height, int method );
 
-#define DEINTERLACE_NONE     0
-#define DEINTERLACE_BOB      1
-#define DEINTERLACE_WEAVE    2
-#define DEINTERLACE_GREEDY   3
-#define DEINTERLACE_ONEFIELD 4
+#define DEINTERLACE_NONE        0
+#define DEINTERLACE_BOB         1
+#define DEINTERLACE_WEAVE       2
+#define DEINTERLACE_GREEDY      3
+#define DEINTERLACE_ONEFIELD    4
+#define DEINTERLACE_ONEFIELDXV  5
 
 #endif
