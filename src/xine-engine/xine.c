@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.302 2004/11/17 01:38:41 miguelfreitas Exp $
+ * $Id: xine.c,v 1.303 2004/11/24 15:44:15 mroi Exp $
  */
 
 /*
@@ -1716,7 +1716,18 @@ int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
   *width = frame->width;
   *height = frame->height;
 
-  *ratio_code = frame->ratio;
+  *ratio_code = 10000.0 * frame->ratio;
+  /* make ratio_code backward compatible */
+#define RATIO_LIKE(a, b)  ((b) - 1 <= (a) && (a) <= 1 + (b))
+  if (RATIO_LIKE(*ratio_code, 10000))
+    *ratio_code = XINE_VO_ASPECT_SQUARE;
+  else if (RATIO_LIKE(*ratio_code, 13333))
+    *ratio_code = XINE_VO_ASPECT_4_3;
+  else if (RATIO_LIKE(*ratio_code, 17778))
+    *ratio_code = XINE_VO_ASPECT_ANAMORPHIC;
+  else if (RATIO_LIKE(*ratio_code, 21100))
+    *ratio_code = XINE_VO_ASPECT_DVB;
+  
   *format = frame->format;
 
   if (img){
