@@ -43,6 +43,7 @@
 
 extern int errno;
 
+#define PREVIEW_SIZE            2200
 #define BUFSIZE 1024
 
 #define DEFAULT_HTTP_PORT 80
@@ -78,6 +79,11 @@ typedef struct {
   char            *proxypassword;
   char            *proxyhost;
   int              proxyport;
+
+  char             preview[PREVIEW_SIZE];
+  off_t            preview_size;
+  off_t            preview_pos;
+
 } http_input_plugin_t;
 
 
@@ -275,6 +281,9 @@ static int http_plugin_basicauth (const char *user, const char *password,
   free(tmp);
   return 0;
 }
+
+static off_t http_plugin_read (input_plugin_t *this_gen, 
+			       char *buf, off_t nlen) ;
 
 static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
@@ -478,6 +487,14 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   this->nbc    = nbc_init (this->xine);
 
+  /*
+   * fill preview buffer
+   */
+
+  this->preview_size = http_plugin_read (&this->input_plugin, this->preview,
+					 PREVIEW_SIZE);
+  this->preview_pos  = 0;
+
   return 1;
 }
 
@@ -492,7 +509,23 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 
   while (num_bytes < nlen) {
 
-    n = read (this->fh, &buf[num_bytes], nlen - num_bytes);
+    if (this->preview_pos < this->preview_size) {
+
+      n = this->preview_size - this->preview_pos;
+      if (n > (nlen - num_bytes)) 
+	n = nlen - num_bytes;
+
+#ifdef LOG
+      printf ("stdin: %lld bytes from preview (which has %lld bytes)\n",
+	      n, this->preview_size);
+#endif
+
+      memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
+
+      this->preview_pos += n;
+
+    } else
+      n = read (this->fh, &buf[num_bytes], nlen - num_bytes);
 
     if (n <= 0) {
       
@@ -524,7 +557,7 @@ static void pool_release_buffer (void *arg) {
 
 static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
 
-  off_t                 num_bytes, total_bytes;
+  off_t                 total_bytes;
   http_input_plugin_t  *this = (http_input_plugin_t *) this_gen;
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
 
@@ -535,19 +568,12 @@ static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buf
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
-  total_bytes = 0;
 
-  while (total_bytes < todo) {
-    pthread_testcancel();
-    num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
-    if (num_bytes < 0) {
-      xine_log (this->xine, XINE_LOG_MSG, _("input_http: read error (%s)\n"), strerror (errno));
-      buf->free_buffer (buf);
-      buf = NULL;
-      break;
-    }
-    total_bytes += num_bytes;
-    this->curpos += num_bytes;
+  total_bytes = http_plugin_read (this_gen, buf->content, todo);
+
+  if (total_bytes != todo) {
+    buf->free_buffer (buf);
+    buf = NULL;
   }
 
   if (buf != NULL)
@@ -618,6 +644,17 @@ static char* http_plugin_get_mrl (input_plugin_t *this_gen) {
 
 static int http_plugin_get_optional_data (input_plugin_t *this_gen, 
 					  void *data, int data_type) {
+
+  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
+
+  switch (data_type) {
+  case INPUT_OPTIONAL_DATA_PREVIEW:
+
+    memcpy (data, this->preview, this->preview_size);
+    return this->preview_size;
+
+    break;
+  }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }

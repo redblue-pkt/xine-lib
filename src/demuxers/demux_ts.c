@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.38 2002/03/11 12:31:24 guenter Exp $
+ * $Id: demux_ts.c,v 1.39 2002/03/23 21:57:30 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1209,6 +1209,15 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
        }
       }
     }
+
+    if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
+
+      if(buf[0] == 0x47) {
+	this->input = input;
+	return DEMUX_CAN_HANDLE;
+      }
+    }
+
     return DEMUX_CANNOT_HANDLE;
   }
   break;
