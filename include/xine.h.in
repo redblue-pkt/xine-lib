@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.40 2002/11/21 00:26:06 guenter Exp $
+ * $Id: xine.h.in,v 1.41 2002/12/01 15:07:01 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -287,6 +287,138 @@ int xine_get_video_frame (xine_stream_t *stream,
 /* TODO: xine_get_audio_frame */
 
 #endif
+
+
+/*
+ * post effect plugin functions
+ *
+ * after the data leaves the decoder it can pass an arbitrary tree
+ * of post plugins allowing for effects to be applied to the video
+ * frames/audio buffers before the reach the output stage
+ */
+
+typedef struct xine_post_s xine_post_t;
+
+struct xine_post_s {
+
+  /* a NULL-terminated array of audio input ports this post plugin
+   * provides; you can hand these to other post plugin's outputs or
+   * pass it to the initialization of a stream
+   */
+  xine_audio_port_t **audio_input;
+  
+  /* a NULL-terminated array of video input ports this post plugin
+   * provides; you can hand these to other post plugin's outputs or
+   * pass it to the initialization of a stream
+   */
+  xine_video_port_t **video_input;
+  
+};
+
+
+/*
+ * initialize a post plugin
+ *
+ * returns xine_post_t* on success, NULL on failure
+ *
+ * Initializes the post plugin with the given name and connects its
+ * outputs to the NULL-terminated arrays of audio and video ports.
+ * Some plugins also care about the number of inputs you request
+ * (e.g. mixer plugins), others simply ignore this number.
+ */
+xine_post_t *xine_post_init(xine_t *xine, const char *name,
+			    int inputs,
+			    xine_audio_port_t **audio_target,
+			    xine_video_port_t **video_target);
+
+
+/* get a list of all available post plugins */
+const char *const *xine_list_post_plugins(xine_t *xine);
+
+/*
+ * post plugin input/output
+ *
+ * These structures encapsulate inputs/outputs for post plugins
+ * to transfer arbitrary data. Frontends can also provide inputs
+ * and outputs and connect them to post plugins to exchange data
+ * with them.
+ */
+
+typedef struct xine_post_in_s  xine_post_in_t;
+typedef struct xine_post_out_s xine_post_out_t;
+
+struct xine_post_in_s {
+
+  /* the name identifying this input */
+  const char   *name;
+  
+  /* the datatype of this input, use one of XINE_POST_DATA_* here */
+  int           type;
+  
+  /* the data pointer; input is directed to this memory location,
+   * so you simply access the pointer to access the input data */
+  void         *data;
+  
+};
+
+struct xine_post_out_s {
+
+  /* the name identifying this output */
+  const char   *name;
+  
+  /* the datatype of this output, use one of XINE_POST_DATA_* here */
+  int           type;
+  
+  /* the data pointer; output should be directed to this memory location,
+   * so in the easy case you simply write through the pointer */
+  void         *data;
+  
+  /* this function is called, when the output should be redirected
+   * to another input, you sould set the data pointer to direct
+   * any output to this new input;
+   * a special situation is, when this function is called with a NULL
+   * argument: in this case you should disconnect the data pointer
+   * from any output and if necessary to avoid writing to some stray
+   * memory you should make it point to some dummy location,
+   * returns 1 on success, 0 on failure */
+  int (*rewire) (xine_post_out_t *self, void *data);
+
+};
+
+
+/* get a list of all inputs of a post plugin */
+const char *const *xine_post_list_inputs(xine_post_t *self);
+
+/* get a list of all outputs of a post plugin */
+const char *const *xine_post_list_outputs(xine_post_t *self);
+
+/* retrieve one specific input of a post plugin */
+const xine_post_in_t *xine_post_input(xine_post_t *self, char *name);
+
+/* retrieve one specific output of a post plugin */
+const xine_post_out_t *xine_post_output(xine_post_t *self, char *name);
+
+/*
+ * wire an input to an output
+ * returns 1 on success, 0 on failure
+ */
+int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target);
+
+
+/*
+ * disposes the post plugin
+ * please make sure that no other post plugin and no stream is
+ * connected to any of this plugin's inputs
+ */
+void xine_post_dispose(xine_t *xine, xine_post_t *self);
+
+
+/* post plugin data types */
+#define XINE_POST_DATA_VIDEO          0
+#define XINE_POST_DATA_AUDIO          1
+#define XINE_POST_DATA_INT            3
+#define XINE_POST_DATA_DOUBLE         4
+
 
 /*
  * xine log functions
