@@ -15,7 +15,7 @@ noinst_HEADERS = decoder.h dvdnav.h dvdnav_events.h \
 	dvdnav_internal.h vm.h vmcmd.h read_cache.h dvd_types.h
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(OGG_CFLAGS) $(VORBIS_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(DVD_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
