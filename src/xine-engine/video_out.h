@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.93 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.94 2003/08/05 15:03:14 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -250,7 +250,7 @@ struct xine_video_port_s {
 #define VO_TOP_FIELD       1
 #define VO_BOTTOM_FIELD    2
 #define VO_BOTH_FIELDS     (VO_TOP_FIELD | VO_BOTTOM_FIELD)
-#define VO_PREDICTION_FLAG 4
+#define VO_PAN_SCAN_FLAG   4
 #define VO_INTERLACED_FLAG 8
 
 /* video driver capabilities */
