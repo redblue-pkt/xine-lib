@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.27 2002/10/26 22:00:50 guenter Exp $
+ * $Id: demux_cda.c,v 1.28 2002/10/27 02:40:00 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,13 +37,11 @@
 #include "compat.h"
 #include "demux.h"
 
-#define DEMUX_CDA_IFACE_VERSION 3
-
 typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t       *stream;
 
   config_values_t     *config;
 
@@ -62,7 +60,18 @@ typedef struct {
   int                  send_end_buffers;
   int                  blocksize;
 
+  char                 last_mrl[1024];
 } demux_cda_t ;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_cda_class_t;
 
 /*
  *
@@ -123,7 +132,7 @@ static void *demux_cda_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
   
   this->thread_running = 0;
@@ -147,7 +156,7 @@ static void demux_cda_stop (demux_plugin_t *this_gen) {
   }
   
   /* Force stop */  
-  this->input->stop(this->input);
+/*  this->input->stop(this->input);*/
   
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
@@ -155,18 +164,9 @@ static void demux_cda_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
-}
-
-/*
- *
- */
-static int demux_cda_get_status (demux_plugin_t *this_gen) {
-  demux_cda_t *this = (demux_cda_t *) this_gen;
-  
-  return this->status;
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 /*
@@ -185,7 +185,7 @@ static int demux_cda_start (demux_plugin_t *this_gen,
   this->blocksize  = this->input->get_blocksize(this->input);
 
   if( !this->thread_running ) {
-    xine_demux_control_start(this->xine);
+    xine_demux_control_start(this->stream);
   }
   
   /*
@@ -224,73 +224,25 @@ static int demux_cda_seek (demux_plugin_t *this_gen,
 /*
  *
  */
-static int demux_cda_send_headers(demux_cda_t *this) {
+static void demux_cda_send_headers(demux_plugin_t *this_gen) {
+
+  demux_cda_t *this = (demux_cda_t *) this_gen;
 
   pthread_mutex_lock(&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
   /* hardwired stream information */
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 44100;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 44100;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
 
-  xine_demux_control_headers_done (this->xine);
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
-}
-
-/*
- *
- */
-static int demux_cda_open(demux_plugin_t *this_gen, input_plugin_t *input, int stage) {
-  demux_cda_t *this = (demux_cda_t *) this_gen;
-
-  switch(stage) {
-    
-  case STAGE_BY_CONTENT:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-    
-  case STAGE_BY_EXTENSION: {
-    char *media;
-    char *MRL = input->get_mrl(input);
-    
-    media = strstr(MRL, "://");
-    if(media) {
-      if(!strncasecmp(MRL, "cda", 3)) {
-	this->input = input;
-	return demux_cda_send_headers(this);
-      }
-    }
-  }
-  break;
-  
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-  }
-  
-  return DEMUX_CANNOT_HANDLE;
-}
-
-/*
- *
- */
-static char *demux_cda_get_id(void) {
-  return "CDA";
-}
-
-/*
- *
- */
-static char *demux_cda_get_mimetypes(void) {
-  return "audio/cda: CD Audio";
 }
 
 /*
@@ -303,35 +255,119 @@ static void demux_cda_dispose (demux_plugin_t *this) {
 /*
  *
  */
-static int demux_cda_get_stream_length (demux_plugin_t *this_gen) {
-
-  return 0;
+static int demux_cda_get_status (demux_plugin_t *this_gen) {
+  demux_cda_t *this = (demux_cda_t *) this_gen;
+  
+  return this->status;
 }
 
 /*
  *
  */
-static void *init_demuxer_plugin(xine_t *xine, void *data) {
-  demux_cda_t *this;
-  
-  this         = (demux_cda_t *) xine_xmalloc(sizeof(demux_cda_t));
-  this->config = xine->config;
-  this->xine   = xine;
+static int demux_cda_get_stream_length (demux_plugin_t *this_gen) {
 
-  this->demux_plugin.open              = demux_cda_open;
+  return 0;
+}
+
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
+
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_cda_t    *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_cda.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
+
+  this         = xine_xmalloc (sizeof (demux_cda_t));
+  this->stream = stream;
+  this->input  = input;
+
+  this->demux_plugin.send_headers      = demux_cda_send_headers;
   this->demux_plugin.start             = demux_cda_start;
   this->demux_plugin.seek              = demux_cda_seek;
   this->demux_plugin.stop              = demux_cda_stop;
   this->demux_plugin.dispose           = demux_cda_dispose;
   this->demux_plugin.get_status        = demux_cda_get_status;
-  this->demux_plugin.get_identifier    = demux_cda_get_id;
   this->demux_plugin.get_stream_length = demux_cda_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_cda_get_mimetypes;
-  
+  this->demux_plugin.demux_class       = class_gen;
+
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
-  
+  pthread_mutex_init (&this->mutex, NULL);
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    /* for CD audio, there is no content to validate */
+    free (this);
+    return NULL;
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *media;
+    char *MRL = input->get_mrl(input);
+    
+    media = strstr(MRL, "://");
+    if(media) {
+      if(strncasecmp(MRL, "cda", 3) != 0) {
+        free (this);
+        return NULL;
+      }
+    }
+  }
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
   return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "CD audio demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "CDA";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return "audio/cda: CD Audio";
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_cda_class_t *this = (demux_cda_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_cda_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_cda_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
+  return this;
 }
 
 /*
@@ -340,6 +376,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "cda", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "cda", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
