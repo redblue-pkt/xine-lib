@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.5 2002/01/13 21:15:48 jcdutton Exp $
+ * $Id: scratch.c,v 1.6 2002/01/16 17:35:34 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -88,7 +88,7 @@ scratch_buffer_t *new_scratch_buffer (int num_lines) {
   this->ordered[i]  = NULL;
   this->lines[i]    = NULL;
 
-  this->printf      = scratch_printf;
+  this->scratch_printf = scratch_printf;
   this->get_content = scratch_get_content;
 
   this->num_lines   = num_lines;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.98 2002/01/15 13:51:10 guenter Exp $
+ * $Id: xine.c,v 1.99 2002/01/16 17:35:34 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -859,7 +859,7 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
 
   va_start (argp, format);
 
-  this->log_buffers[buf]->printf (this->log_buffers[buf], format, argp);
+  this->log_buffers[buf]->scratch_printf (this->log_buffers[buf], format, argp);
 
   va_end (argp);
 }
