@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.29 2004/09/12 15:43:23 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.30 2004/09/12 16:07:57 mroi Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -692,7 +692,7 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
   {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
   {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"},
-  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg"} };
+  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg)"} };
 
 static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
   if (size > this->bufsize) {
