@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.84 2001/12/09 21:07:34 guenter Exp $
+ * $Id: video_out_xv.c,v 1.85 2001/12/09 23:13:31 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -543,9 +543,9 @@ static void xv_clear_unused_output_area (xv_driver_t *this,
     XFillRectangle (this->display, this->drawable, this->gc,
 		    dest_x, dest_y, dest_width, dest_height);
   }
-  /*
+  
   XSetForeground (this->display, this->gc, this->black.pixel);
-  */
+  
 
   /* top black band */
   XFillRectangle(this->display, this->drawable, this->gc,
