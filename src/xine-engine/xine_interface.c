@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.80 2004/03/03 20:09:18 mroi Exp $
+ * $Id: xine_interface.c,v 1.81 2004/04/10 17:41:44 valtri Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -867,6 +867,8 @@ int _x_message(xine_stream_t *stream, int type, ...) {
     "Encrypted media stream detected",
     "Security message:"
   };
+
+  if (!stream) return 0;
 
   if( type >= 0 && type < sizeof(std_explanation)/
                            sizeof(std_explanation[0]) ) {

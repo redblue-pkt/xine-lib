@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.49 2004/04/10 15:45:10 mroi Exp $
+ * $Id: input_cdda.c,v 1.50 2004/04/10 17:41:44 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -894,13 +894,15 @@ static int network_command( xine_stream_t *stream, int socket, char *data_buf, c
 
   if( _x_io_tcp_write(stream, socket, buf, strlen(buf)) < (int)strlen(buf) )
   {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: error writing to socket.\n");
+    if (stream)
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: error writing to socket.\n");
     return -1;
   }
 
   if (_x_io_tcp_read_line(stream, socket, buf, _BUFSIZ) <= 0)
   {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: error reading from socket.\n");
+    if (stream)
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: error reading from socket.\n");
     return -1;
   }
 
@@ -908,8 +910,9 @@ static int network_command( xine_stream_t *stream, int socket, char *data_buf, c
 
   if( n ) {
     if( !data_buf ) {
-      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
-	      "input_cdda: protocol error, data returned but no buffer provided.\n");
+      if (stream)
+        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
+                "input_cdda: protocol error, data returned but no buffer provided.\n");
       return -1;
     }
       if ( _x_io_tcp_read(stream, socket, data_buf, n) < n )
@@ -959,7 +962,8 @@ static int network_read_cdrom_toc(xine_stream_t *stream, int fd, cdrom_toc *toc)
 
   /* fetch the table of contents */
   if( network_command(stream, fd, buf, "cdda_tochdr" ) == -1) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCHDR error.\n");
+    if (stream)
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCHDR error.\n");
     return -1;
   }
 
@@ -979,7 +983,8 @@ static int network_read_cdrom_toc(xine_stream_t *stream, int fd, cdrom_toc *toc)
 
     /* fetch the table of contents */
     if( network_command( stream, fd, buf, "cdda_tocentry %d", i ) == -1) {
-      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCENTRY error.\n");
+      if (stream)
+        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCENTRY error.\n");
       return -1;
     }
 
@@ -996,7 +1001,8 @@ static int network_read_cdrom_toc(xine_stream_t *stream, int fd, cdrom_toc *toc)
 
   /* fetch the leadout as well */
   if( network_command( stream, fd, buf, "cdda_tocentry %d", CD_LEADOUT_TRACK ) == -1) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCENTRY error.\n");
+    if (stream)
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCENTRY error.\n");
     return -1;
   }
 
@@ -2218,15 +2224,14 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
      * gets called, before a plugin instance has been created;
      * let's create a dummy instance in such a condition */
     ip = (cdda_input_plugin_t *)xine_xmalloc(sizeof(cdda_input_plugin_t));
+    ip->stream = NULL;
 
 #ifndef WIN32
   if( strchr(this->cdda_device,':') ) {
-    ip->stream = xine_stream_new(this->xine, NULL, NULL);
     fd = network_connect(ip->stream, this->cdda_device);
     if( fd != -1 ) {
       err = network_read_cdrom_toc(ip->stream, fd, toc);
     }
-    xine_dispose(ip->stream);
   }
 #endif
 

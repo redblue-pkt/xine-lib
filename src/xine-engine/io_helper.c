@@ -98,7 +98,8 @@ static int _x_io_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int p
     if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
 #else
     if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEWOULDBLOCK) {
-      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+      if (stream)
+        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
 #endif /* WIN32 */
 
       _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(errno), NULL);
@@ -127,8 +128,9 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
   hints.ai_family = PF_UNSPEC; 
 
   snprintf(strport, sizeof(strport), "%d", port);
-  
-  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "Resolving host '%s' at port '%s'\n", host, strport);
+
+  if (stream)
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "Resolving host '%s' at port '%s'\n", host, strport);
 
   error = getaddrinfo(host, strport, &hints, &res);
 
@@ -166,8 +168,9 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
     if (connect(s, tmpaddr->ai_addr, 
 		tmpaddr->ai_addrlen)==-1 && 
 	WSAGetLastError() != WSAEWOULDBLOCK) {
-	
-      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+
+      if (stream)
+        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
 #endif /* WIN32 */
 
       error = errno;
@@ -224,7 +227,7 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
      *   aborts current read if action pending. otherwise xine
      *   cannot be stopped when no more data is available.
      */
-    if (stream->demux_action_pending)
+    if (stream && stream->demux_action_pending)
       return XIO_ABORTED;
 
     total_time_usec += XIO_POLLING_INTERVAL;
@@ -313,7 +316,8 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
 #else
       if (WSAGetLastError() == WSAEWOULDBLOCK)
         continue;
-      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+      if (stream)
+        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
 #endif
       
       return ret;

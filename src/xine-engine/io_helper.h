@@ -44,10 +44,13 @@
  * not freeze the engine.
  *
  * params :
+ *   stream        needed for aborting and reporting errors but may be NULL
  *   fd            file/socket descriptor
  *   state         XIO_READ_READY, XIO_WRITE_READY
- *  *abort         an other thread can abort this function by setting *abort
  *   timeout_sec   timeout in seconds
+ *
+ * An other thread can abort this function if stream != NULL by setting
+ * stream->demux_action_pending.
  *
  * return value :
  *   XIO_READY     the file descriptor is ready for cmd
@@ -61,12 +64,28 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec);
 /*
  * open a tcp connection
  *
+ * params :
+ *   stream        needed for reporting errors but may be NULL
+ *   host          address of target
+ *   port          port on target
+ *
  * returns a socket descriptor or -1 if an error occured
  */
 int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port);
 
 /*
  * wait for finish connection
+ *
+ * params :
+ *   stream        needed for aborting and reporting errors but may be NULL
+ *   fd            socket descriptor
+ *   timeout_msec  timeout in milliseconds
+ *
+ * return value:
+ *   XIO_READY     host respond, the socket is ready for cmd
+ *   XIO_ERROR     an i/o error occured
+ *   XIO_ABORTED   command aborted by an other thread
+ *   XIO_TIMEOUT   the file descriptor is not ready after timeout
  */
 int _x_io_tcp_connect_finish(xine_stream_t *stream, int fd, int timeout_msec);
 
