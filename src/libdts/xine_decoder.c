@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.35 2003/05/11 17:18:45 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.36 2003/05/12 12:05:49 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -67,12 +67,22 @@ typedef struct dts_decoder_s {
   int              output_open;
 } dts_decoder_t;
 
+#ifdef ENABLE_DTS_PARSE
+
 typedef struct {
   uint8_t *start;
   uint32_t byte_position;
   uint32_t bit_position;
   uint8_t byte;
 } getbits_state_t;
+
+static float AdjTable[] = {
+  1.0000,
+  1.1250,
+  1.2500,
+  1.4375
+};
+
 
 static int32_t getbits_init(getbits_state_t *state, uint8_t *start) {
   if ((state == NULL) || (start == NULL)) return -1;
@@ -135,7 +145,7 @@ static uint32_t getbits(getbits_state_t *state, uint32_t number_of_bits) {
   return result;
 }
 
-
+#endif
 
 
 void dts_reset (audio_decoder_t *this_gen) {
@@ -146,6 +156,8 @@ void dts_reset (audio_decoder_t *this_gen) {
 
 void dts_discontinuity (audio_decoder_t *this_gen) {
 }
+
+#ifdef ENABLE_DTS_PARSE
 
 static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   uint8_t        *data_in = (uint8_t *)buf->content;
@@ -178,6 +190,19 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   int8_t         dialog_normalisation_parameter;
   int8_t         dialog_normalisation_unspecified;
   int8_t         dialog_normalisation_gain;
+  int8_t         number_of_subframes;
+  int8_t         number_of_primary_audio_channels;
+  int8_t         subband_activity_count[8];
+  int8_t         high_frequency_VQ_start_subband[8];
+  int8_t         joint_intensity_coding_index[8];
+  int8_t         transient_mode_code_book[8];
+  int8_t         scales_factor_code_book[8];
+  int8_t         bit_allocation_quantizer_select[8];
+  int8_t         quantization_index_codebook_select[8][26];
+  float        scale_factor_adjustment_index[8][10];
+  uint16_t       audio_header_crc_check_word;
+
+
 
   uint32_t       channel_extension_sync_word;
   uint16_t       extension_primary_frame_byte_size; 
@@ -187,7 +212,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   uint16_t       extension_frame_byte_data_size_FSIZE96;
   uint8_t        revision_number;
 
-  int32_t        n;
+  int32_t        n, ch;
   if ((data_in[0] != 0x7f) || 
       (data_in[1] != 0xfe) ||
       (data_in[2] != 0x80) ||
@@ -240,6 +265,86 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     dialog_normalisation_gain = dialog_normalisation_parameter = 0;
     break;
   }
+
+
+  number_of_subframes = getbits(&state, 4) + 1 ;
+  number_of_primary_audio_channels = getbits(&state, 3) + 1 ;
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    subband_activity_count[ch] = getbits(&state, 5) + 2 ;
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    high_frequency_VQ_start_subband[ch] = getbits(&state, 5) + 1 ;
+  }
+  for (n=0; ch<number_of_primary_audio_channels; ch++) {
+    joint_intensity_coding_index[ch] = getbits(&state, 3) ;
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    transient_mode_code_book[ch] = getbits(&state, 2) ;
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    scales_factor_code_book[ch] = getbits(&state, 3) ;
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    bit_allocation_quantizer_select[ch] = getbits(&state, 3) ;
+  }
+
+  /* ABITS=1: */
+  n=0;
+  for (ch=0; ch<number_of_primary_audio_channels; ch++)
+    quantization_index_codebook_select[ch][n] = getbits(&state, 1);
+  /* ABITS = 2 to 5: */
+  for (n=1; n<5; n++)
+    for (ch=0; ch<number_of_primary_audio_channels; ch++)
+      quantization_index_codebook_select[ch][n] = getbits(&state, 2);
+  /* ABITS = 6 to 10: */
+  for (n=5; n<10; n++)
+    for (ch=0; ch<number_of_primary_audio_channels; ch++)
+      quantization_index_codebook_select[ch][n] = getbits(&state, 3);
+  /* ABITS = 11 to 26: */
+  for (n=10; n<26; n++)
+    for (ch=0; ch<number_of_primary_audio_channels; ch++)
+      quantization_index_codebook_select[ch][n] = 0; /* Not transmitted, set to zero. */
+
+  // ABITS = 1:
+  n = 0;
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    int32_t adj;
+    if ( quantization_index_codebook_select[ch][n] == 0 ) { // Transmitted only if SEL=0 (Huffman code used)
+      // Extract ADJ index
+      adj = getbits(&state, 2);
+      // Look up ADJ table
+      scale_factor_adjustment_index[ch][n] = AdjTable[adj];
+    }
+  }
+  // ABITS = 2 to 5:
+  for (n=1; n<5; n++){
+    for (ch=0; ch<number_of_primary_audio_channels; ch++){
+      int32_t adj;
+      if ( quantization_index_codebook_select[ch][n] < 3 ) { // Transmitted only when SEL<3
+        // Extract ADJ index
+        adj = getbits(&state, 2);
+        // Look up ADJ table
+        scale_factor_adjustment_index[ch][n] = AdjTable[adj];
+      }
+    }
+  }
+  // ABITS = 6 to 10:
+  for (n=5; n<10; n++){
+    for (ch=0; ch<number_of_primary_audio_channels; ch++){
+      int32_t adj;
+      if ( quantization_index_codebook_select[ch][n] < 7 ) { // Transmitted only when SEL<7
+        // Extract ADJ index
+        adj = getbits(&state, 2);
+        // Look up ADJ table
+        scale_factor_adjustment_index[ch][n] = AdjTable[adj];
+      }
+    }
+  }
+
+  if (crc_present_flag == 1) { /* Present only if CPF=1. */
+    audio_header_crc_check_word = getbits(&state, 16);
+  }
+
 
   printf("getbits status: byte_pos = %d, bit_pos = %d\n", 
           state.byte_position,
@@ -342,7 +447,7 @@ assert(0);
 
 return;
 }
-
+#endif
 
 void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
@@ -356,12 +461,11 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  ac5_pcm_length;
   uint32_t  number_of_frames;
   uint32_t  first_access_unit;
-  int n,i;
+  int n;
   
 #ifdef LOG_DEBUG
   printf("libdts: DTS decode_data called.\n");
 #endif
-  printf("DTS Decoding\n");
 #ifdef ENABLE_DTS_PARSE
   dts_parse_data (this, buf);
 #endif
