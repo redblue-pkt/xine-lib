@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.13 2001/06/09 22:05:30 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.14 2001/06/10 13:59:33 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -443,15 +443,32 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     uint8_t buf[4096];
     
     if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
-      input->seek(input, 0, SEEK_SET);
       
       this->blocksize = input->get_blocksize(input);
       
-      if (!this->blocksize)
-	this->blocksize = 2048;
+      if (!this->blocksize) {
+
+	/* detect blocksize */
+	input->seek(input, 2048, SEEK_SET);
+	if (!input->read(input, buf, 4)) 
+	  return DEMUX_CANNOT_HANDLE;
+
+	if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba)) {
+
+	  input->seek(input, 2324, SEEK_SET);
+	  if (!input->read(input, buf, 4)) 
+	    return DEMUX_CANNOT_HANDLE;
+	  if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba)) 
+	    return DEMUX_CANNOT_HANDLE;
+	  this->blocksize = 2324;
+	  
+	} else
+	  this->blocksize = 2048;
+      }
 
       /* make sure it's mpeg-2 */
 
+      input->seek(input, 0, SEEK_SET);
       if (input->read(input, buf, this->blocksize)) {
 	
 	if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba))
