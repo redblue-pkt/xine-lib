@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/08/08 20:48:32 guenter Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/08/10 17:37:50 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -280,8 +280,12 @@ static void ff_close (video_decoder_t *this_gen) {
 
   ff_decoder_t *this = (ff_decoder_t *) this_gen;
 
-  avcodec_close (&this->context);
-  this->video_out->close(this->video_out);
+  if (this->decoder_ok) {
+    avcodec_close (&this->context);
+
+    this->video_out->close(this->video_out);
+    this->decoder_ok = 0;
+  }
 }
 
 static char *ff_get_id(void) {

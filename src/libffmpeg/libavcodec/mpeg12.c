@@ -28,9 +28,9 @@
 #ifdef USE_FASTMEMCPY
 #include "fastmemcpy.h"
 #endif
-//#define DEBUG
+//#define DEBUG_PRINTS
 
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
 #define dprintf(fmt,args...) printf(fmt, ## args)
 #else
 #define dprintf(fmt,args...)
@@ -585,7 +585,7 @@ static int mpeg_decode_mb(MpegEncContext *s,
         !s->frame_pred_frame_dct &&
         (mb_type & (MB_PAT | MB_INTRA))) {
         s->interlaced_dct = get_bits1(&s->gb);
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
         if (s->interlaced_dct)
             printf("interlaced_dct\n");
 #endif

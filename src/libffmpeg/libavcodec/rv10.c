@@ -24,8 +24,6 @@
 #include "avcodec.h"
 #include "mpegvideo.h"
 
-//#define DEBUG
-
 static const UINT16 rv_lum_code[256] =
 {
  0x3e7f, 0x0f00, 0x0f01, 0x0f02, 0x0f03, 0x0f04, 0x0f05, 0x0f06,
@@ -290,7 +288,7 @@ static int rv10_decode_picture_header(MpegEncContext *s)
 
     pb_frame = get_bits(&s->gb, 1);
 
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
     printf("pict_type=%d pb_frame=%d\n", s->pict_type, pb_frame);
 #endif
     
@@ -305,7 +303,7 @@ static int rv10_decode_picture_header(MpegEncContext *s)
             s->last_dc[0] = get_bits(&s->gb, 8);
             s->last_dc[1] = get_bits(&s->gb, 8);
             s->last_dc[2] = get_bits(&s->gb, 8);
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
             printf("DC:%d %d %d\n",
                    s->last_dc[0],
                    s->last_dc[1],
@@ -383,7 +381,7 @@ static int rv10_decode_frame(AVCodecContext *avctx,
     DCTELEM block[6][64];
     AVPicture *pict = data; 
 
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
     printf("*****frame %d size=%d\n", avctx->frame_number, buf_size);
 #endif
 
@@ -397,7 +395,7 @@ static int rv10_decode_frame(AVCodecContext *avctx,
 
     mb_count = rv10_decode_picture_header(s);
     if (mb_count < 0) {
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
         printf("HEADER ERROR\n");
 #endif
         return -1;
@@ -405,7 +403,7 @@ static int rv10_decode_frame(AVCodecContext *avctx,
     
     if (s->mb_x >= s->mb_width ||
         s->mb_y >= s->mb_height) {
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
         printf("POS ERROR %d %d\n", s->mb_x, s->mb_y);
 #endif
         return -1;
@@ -413,7 +411,7 @@ static int rv10_decode_frame(AVCodecContext *avctx,
     mb_pos = s->mb_y * s->mb_width + s->mb_x;
     left = s->mb_width * s->mb_height - mb_pos;
     if (mb_count > left) {
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
         printf("COUNT ERROR\n");
 #endif
         return -1;
@@ -423,7 +421,7 @@ static int rv10_decode_frame(AVCodecContext *avctx,
         MPV_frame_start(s);
     }
 
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
     printf("qscale=%d\n", s->qscale);
 #endif
 
@@ -436,7 +434,7 @@ static int rv10_decode_frame(AVCodecContext *avctx,
     
     /* decode each macroblock */
     for(i=0;i<mb_count;i++) {
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
         printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y);
 #endif
         
@@ -444,7 +442,7 @@ static int rv10_decode_frame(AVCodecContext *avctx,
         s->mv_dir = MV_DIR_FORWARD;
         s->mv_type = MV_TYPE_16X16; 
         if (h263_decode_mb(s, block) < 0) {
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
             printf("ERROR\n");
 #endif
             return -1;

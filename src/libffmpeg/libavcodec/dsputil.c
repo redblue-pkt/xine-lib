@@ -447,8 +447,10 @@ void dsputil_init(void)
     block_permute(default_intra_matrix);
     block_permute(default_non_intra_matrix);
 
+#ifndef DEBUG
 #ifdef HAVE_MMX
     printf ("ffmpeg: init mmx\n");
     dsputil_init_mmx();
+#endif
 #endif
 }

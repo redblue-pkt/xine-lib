@@ -19,6 +19,10 @@
  * MMX optimization by Nick Kurshev <nickols_k@mail.ru>
  */
 
+#include "config.h"
+
+#ifndef DEBUG
+
 static void DEF(put_pixels_x2)(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
   int dh, hh;
@@ -342,3 +346,4 @@ static void DEF(sub_pixels_y2)( DCTELEM  *block, const UINT8 *pixels, int line_s
  } while (--h);
 }
 
+#endif

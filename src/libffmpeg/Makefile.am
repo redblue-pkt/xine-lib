@@ -4,7 +4,7 @@
 
 SUBDIRS = libavcodec 
 
-CFLAGS = @GLOBAL_CFLAGS@ 
+CFLAGS = @CFLAGS@ -D_FILE_OFFSET_BITS=64 -Wall -DXINE_COMPILE 
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -21,7 +21,7 @@ xineplug_decode_ff_la_LDFLAGS = \
 noinst_HEADERS = config.h
 
 debug:
-	$(MAKE) CFLAGS="-Wall -DDEBUG -g -DXINE_COMPILE"
+	@$(MAKE) CFLAGS="-D_FILE_OFFSET_BITS=64 -Wall -DDEBUG -O -finline-functions -g -DXINE_COMPILE -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

@@ -23,8 +23,6 @@
 #include "avcodec.h"
 #include "mpegvideo.h"
 
-//#define DEBUG
-
 static int h263_decode_init(AVCodecContext *avctx)
 {
     MpegEncContext *s = avctx->priv_data;
@@ -81,7 +79,7 @@ static int h263_decode_frame(AVCodecContext *avctx,
     int ret;
     AVPicture *pict = data; 
 
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
     printf("*****frame %d size=%d\n", avctx->frame_number, buf_size);
     printf("bytes=%x %x %x %x\n", buf[0], buf[1], buf[2], buf[3]);
 #endif
@@ -109,15 +107,15 @@ static int h263_decode_frame(AVCodecContext *avctx,
 
     MPV_frame_start(s);
 
-#ifdef DEBUG
+#ifdef DEBUG_PRINTS
     printf("qscale=%d\n", s->qscale);
 #endif
 
     /* decode each macroblock */
     for(s->mb_y=0; s->mb_y < s->mb_height; s->mb_y++) {
         for(s->mb_x=0; s->mb_x < s->mb_width; s->mb_x++) {
-#ifdef DEBUG
-            printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y);
+#ifdef DEBUG_PRINTS
+            printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y); 
 #endif
             /* DCT & quantize */
             if (s->h263_msmpeg4) {
