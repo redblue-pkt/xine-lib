@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.2 2004/01/05 01:22:11 tmmm Exp $
+ * $Id: demux_matroska.c,v 1.3 2004/01/05 08:02:35 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1433,6 +1433,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
+    if (!(input->get_capabilities (input) & INPUT_CAP_SEEKABLE))
+      return NULL;
     input->seek(input, 0, SEEK_SET);
     ebml = new_ebml_parser(stream->xine, input);
     if (!ebml_check_header(ebml))
