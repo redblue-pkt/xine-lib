@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.17 2003/07/27 12:47:23 hadess Exp $
+ * $Id: utils.c,v 1.18 2003/09/16 02:11:45 storri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -28,15 +28,8 @@
 
 #include "xineutils.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
-#include <string.h>
-#include <unistd.h>
 #include <pwd.h>
-#include <time.h>
-#include <sys/types.h>
-#include <pthread.h>
 #if HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
@@ -44,7 +37,6 @@
 #include <ucontext.h>
 #endif
 
-#include "compat.h"
 
 void *xine_xmalloc(size_t size) {
   void *ptr;
@@ -68,7 +60,7 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
   
   *base = ptr = xine_xmalloc (size+alignment);
   
-  while ((int) ptr % alignment)
+  while ((size_t) ptr % alignment)
     ptr++;
     
   return ptr;
@@ -161,7 +153,7 @@ void xine_print_trace (void) {
   size = backtrace (array, 10);
   strings = backtrace_symbols (array, size);
 
-  printf ("Obtained %d stack frames.\n", size);
+  printf ("Obtained %lu stack frames.\n", (unsigned long) size);
 
   for (i = 0; i < size; i++) {
      printf ("%s\n", strings[i]);
