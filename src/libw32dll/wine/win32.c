@@ -3298,9 +3298,13 @@ static HANDLE WINAPI expFindFirstFileA(LPCSTR s, LPWIN32_FIND_DATAA lpfd)
 	return FILE_HANDLE_quicktimeqts;
     }
 #endif
-    dbgprintf("FindFirstFileA(0x%x='%s', 0x%x) => 0\n", s, s, lpfd);
-    strcpy(lpfd->cFileName, "msms001.vwp");
-    strcpy(lpfd->cAlternateFileName, "msms001.vwp");
+    if(strstr(s, "*.vwp")){
+      // hack for VoxWare codec plugins:
+      dbgprintf("FindFirstFileA(0x%x='%s', 0x%x) => 0\n", s, s, lpfd);
+      strcpy(lpfd->cFileName, "msms001.vwp");
+      strcpy(lpfd->cAlternateFileName, "msms001.vwp");
+      return (HANDLE)0;
+    }
     return (HANDLE)-1;
 }
 
