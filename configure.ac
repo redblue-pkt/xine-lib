@@ -1273,6 +1273,26 @@ AC_ARG_ENABLE(faad, [  --disable-faad          Do not build FAAD decoder],
 	      enable_faad=no, enable_faad=yes)
 AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" = "xyes")
 
+dnl ---------------------------------------------
+dnl libmodplug support 
+dnl ---------------------------------------------
+if test x$PKG_CONFIG = xno ; then
+  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
+  echo "*** All of MODPLUG dependent parts will be disabled"
+else
+    LIBMODPLUG_REQUIRED_VERSION=0.7
+    if $PKG_CONFIG --atleast-version $LIBMODPLUG_REQUIRED_VERSION libmodplug ; then
+        LIBMODPLUG_CFLAGS=`$PKG_CONFIG --cflags libmodplug`
+        LIBMODPLUG_LIBS=`$PKG_CONFIG --libs libmodplug`
+        AC_DEFINE(HAVE_MODPLUG,1,[define this if you have libmodplug installed])
+        have_modplug="yes"
+    else
+        AC_MSG_RESULT([*** All of MODPLUG dependent parts will be disabled ***])
+    fi
+fi
+AC_SUBST(LIBMODPLUG_CFLAGS)
+AC_SUBST(LIBMODPLUG_LIBS)
+AM_CONDITIONAL(HAVE_MODPLUG, [test x"$have_modplug" = x"yes"])
 
 dnl ---------------------------------------------
 dnl ip_mreqn

@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.11 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: group_audio.c,v 1.12 2004/02/11 20:40:00 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,5 +49,8 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 24, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
   { PLUGIN_DEMUX, 24, "vox", XINE_VERSION_CODE, NULL, demux_vox_init_plugin },
   { PLUGIN_DEMUX, 24, "wav", XINE_VERSION_CODE, NULL, demux_wav_init_plugin },
+#ifdef HAVE_MODPLUG
+  { PLUGIN_DEMUX, 24, "mod", XINE_VERSION_CODE, NULL, demux_mod_init_plugin },
+#endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
