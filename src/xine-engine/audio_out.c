@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.79 2002/11/12 00:15:08 guenter Exp $
+ * $Id: audio_out.c,v 1.80 2002/11/12 16:52:33 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1085,8 +1085,8 @@ ao_instance_t *ao_new_instance (xine_ao_driver_t *driver,
 
     audio_buffer_t *buf;
 
-    buf = (audio_buffer_t *) malloc (sizeof (audio_buffer_t));
-    buf->mem = malloc (AUDIO_BUF_SIZE);
+    buf = (audio_buffer_t *) xine_xmalloc (sizeof (audio_buffer_t));
+    buf->mem = xine_xmalloc (AUDIO_BUF_SIZE);
     buf->mem_size = AUDIO_BUF_SIZE;
 
     fifo_append (this->free_fifo, buf);
@@ -1097,8 +1097,8 @@ ao_instance_t *ao_new_instance (xine_ao_driver_t *driver,
 
     audio_buffer_t *buf;
 
-    buf = (audio_buffer_t *) malloc (sizeof (audio_buffer_t));
-    buf->mem = malloc (4*AUDIO_BUF_SIZE);
+    buf = (audio_buffer_t *) xine_xmalloc (sizeof (audio_buffer_t));
+    buf->mem = xine_xmalloc (4*AUDIO_BUF_SIZE);
     buf->mem_size = 4*AUDIO_BUF_SIZE;
 
     this->frame_buf[i] = buf;
