@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.20 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.21 2002/04/14 00:45:46 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -36,11 +36,18 @@
 
 #include <ogg/ogg.h>
 
+#define	WINE_TYPEDEFS_ONLY
+#include "libw32dll/wine/avifmt.h"
+#include "libw32dll/wine/windef.h"
+#include "libw32dll/wine/vfw.h"
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
 
+/*
 #define LOG
+*/
 
 #define CHUNKSIZE 8500
 
@@ -155,14 +162,19 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
   
   int ret = ogg_sync_pageout(&this->oy,&this->og);
   
-  /* printf("demux_ogg: pageout: %d\n", ret); */
-  
+#ifdef LOG
+  printf ("demux_ogg: send package...\n");
+#endif
+
   if (ret == 0) {
     buffer = ogg_sync_buffer(&this->oy, CHUNKSIZE);
     bytes  = this->input->read(this->input, buffer, CHUNKSIZE);
     
     if (bytes < CHUNKSIZE) {
       this->status = DEMUX_FINISHED;
+#ifdef LOG
+      printf ("demux_ogg: EOF\n");
+#endif
       return;
     }
     
@@ -210,14 +222,20 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 
 	} else if (!strncmp (&op.packet[1], "video", 5)) {
 
-	  dsogg_header_t *oggh;
+	  dsogg_header_t   *oggh;
+	  buf_element_t    *buf;
+	  BITMAPINFOHEADER  bih;
 
+#ifdef LOG
 	  printf ("demux_ogg: direct show filter created stream detected, hexdump:\n");
-	  
 	  hex_dump (op.packet, op.bytes);
+#endif
 
 	  oggh = (dsogg_header_t *) &op.packet[1];
 
+	  this->buf_types[stream_num] = fourcc_to_buf_video (oggh->subtype);
+
+#ifdef LOG
 	  printf ("demux_ogg: subtype          %.4s\n", oggh->subtype);
 	  printf ("demux_ogg: time_unit        %lld\n", oggh->time_unit);
 	  printf ("demux_ogg: samples_per_unit %lld\n", oggh->samples_per_unit);
@@ -226,8 +244,29 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	  printf ("demux_ogg: bits_per_sample  %d\n", oggh->bits_per_sample); 
 	  printf ("demux_ogg: width            %d\n", oggh->hubba.video.width); 
 	  printf ("demux_ogg: height           %d\n", oggh->hubba.video.height); 
+	  printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);  
+#endif
 
-	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
+	  bih.biSize=sizeof(BITMAPINFOHEADER);
+	  bih.biWidth = oggh->hubba.video.width;
+	  bih.biHeight= oggh->hubba.video.height;
+	  bih.biPlanes= 0;
+	  memcpy(&bih.biCompression, oggh->subtype, 4);
+	  bih.biBitCount= 0;
+	  bih.biSizeImage=oggh->hubba.video.width*oggh->hubba.video.height;
+	  bih.biXPelsPerMeter=1;
+	  bih.biYPelsPerMeter=1;
+	  bih.biClrUsed=0;
+	  bih.biClrImportant=0;
+
+	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+	  buf->content = buf->mem;
+	  buf->decoder_flags = BUF_FLAG_HEADER;
+	  buf->decoder_info[1] = oggh->time_unit * 9 / 1000;
+	  memcpy (buf->content, &bih, sizeof (BITMAPINFOHEADER));
+	  buf->size = sizeof (BITMAPINFOHEADER);	  
+	  buf->type = this->buf_types[stream_num];
+	  this->video_fifo->put (this->video_fifo, buf);
 
 	} else {
 	  printf ("demux_ogg: unknown streamtype, signature: >%.8s<\n",
@@ -276,6 +315,30 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	buf->type = this->buf_types[stream_num];
 	
 	this->audio_fifo->put (this->audio_fifo, buf);
+      } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) {
+	buf_element_t *buf;
+
+#ifdef LOG
+	printf ("demux_ogg: video buffer, type=%08x\n", this->buf_types[stream_num]);
+#endif
+
+	buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+	
+	buf->content = buf->mem;
+
+	/* FIXME: split up package if it is too big for one bufffer! */
+
+	memcpy (buf->content, op.packet, op.bytes);
+	buf->size = op.bytes;
+	buf->pts  = 0; /* FIXME */
+	buf->decoder_flags = BUF_FLAG_FRAME_END;
+
+	buf->input_pos  = this->input->get_current_pos (this->input);
+	buf->input_time = 0;
+	
+	buf->type = this->buf_types[stream_num];
+	
+	this->video_fifo->put (this->video_fifo, buf);
       }
     }
   }
@@ -286,7 +349,9 @@ static void *demux_ogg_loop (void *this_gen) {
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   buf_element_t *buf;
 
-  /* printf ("demux_ogg: demux loop starting...\n"); */
+#ifdef LOG
+  printf ("demux_ogg: demux loop starting...\n"); 
+#endif
 
   this->send_end_buffers = 1;
 
@@ -303,10 +368,10 @@ static void *demux_ogg_loop (void *this_gen) {
   
   }
 
-  /*
-    printf ("demux_ogg: demux loop finished (status: %d)\n",
-    this->status);
-  */
+#ifdef LOG
+  printf ("demux_ogg: demux loop finished (status: %d)\n",
+	  this->status);
+#endif
 
   this->status = DEMUX_FINISHED;
 
@@ -345,6 +410,8 @@ static void demux_ogg_stop (demux_plugin_t *this_gen) {
   void *p;
 
   pthread_mutex_lock( &this->mutex );
+
+  printf ("demux_ogg: demux_ogg_stop\n");
   
   if (this->status != DEMUX_OK) {
     printf ("demux_ogg: stop...ignored\n");
@@ -452,13 +519,12 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
     this->status = DEMUX_OK;
 
     if ((err = pthread_create (&this->thread,
-			     NULL, demux_ogg_loop, this)) != 0) {
+			       NULL, demux_ogg_loop, this)) != 0) {
       printf ("demux_ogg: can't create new thread (%s)\n",
 	      strerror(err));
       exit (1);
     }
-  }
-  else {
+  } else {
     xine_flush_engine(this->xine);
   }
   
