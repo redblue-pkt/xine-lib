@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.60 2003/07/16 14:14:17 andruil Exp $
+ * $Id: demux_real.c,v 1.61 2003/07/18 23:34:36 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -79,7 +79,7 @@
 
 #define PN_KEYFRAME_FLAG 0x0002
 
-#define MAX_VIDEO_STREAMS 8
+#define MAX_VIDEO_STREAMS 10
 #define MAX_AUDIO_STREAMS 8
 
 typedef struct {
@@ -412,6 +412,12 @@ static void real_parse_headers (demux_real_t *this) {
         if(BE_32(mdpr->type_specific_data) == RA_TAG) {
           int version;
 
+          if(this->num_audio_streams == MAX_AUDIO_STREAMS) {
+            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                    "maximum number of audio stream exceeded\n");
+            goto unknown;
+          }
+          
           version = BE_16(mdpr->type_specific_data + 4);
 
           lprintf("audio version %d detected\n", version);
@@ -440,6 +446,12 @@ static void real_parse_headers (demux_real_t *this) {
 
         } else if(BE_32(mdpr->type_specific_data + 4) == VIDO_TAG) {
 
+          if(this->num_video_streams == MAX_VIDEO_STREAMS) {
+            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                    "maximum number of video stream exceeded\n");
+            goto unknown;
+          }
+          
           lprintf ("video detected\n");
           fourcc = *(uint32_t *) (mdpr->type_specific_data + 8);
           lprintf("fourcc = %.4s\n", (char *) &fourcc);
