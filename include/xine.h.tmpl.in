@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.37 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: xine.h.tmpl.in,v 1.38 2001/08/25 08:50:11 guenter Exp $
  *
  */
 
@@ -640,6 +640,29 @@ void xine_seek (xine_t *self, char *MRL, int pos);
  * Toggle pause mode.
  */
 void xine_pause (xine_t *self);
+
+/*
+ * set playback speed
+ *
+ * constants see below
+ */
+
+void xine_set_speed (xine_t *this, int speed);
+int xine_get_speed (xine_t *this);
+
+#define SPEED_PAUSE   0
+#define SPEED_SLOW_4  1
+#define SPEED_SLOW_2  2
+#define SPEED_NORMAL  4
+#define SPEED_FAST_2  8
+#define SPEED_FAST_4 16
+
+/*
+ * manually adjust a/v sync
+ */
+
+void xine_set_av_offset (xine_t *this, int offset_pts);
+int xine_get_av_offset (xine_t *this);
 
 /**
  * \fn void xine_stop (xine_t *self)
