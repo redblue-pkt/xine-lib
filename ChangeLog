@@ -1,3 +1,4 @@
+  * network input plugin is working again
   * handle avi files produced by dvgrab
   * real media demuxer should handle most files now 
   * real media rv20/rv30 video and cook/sipro/dnet audio should work 
