@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.138 2003/08/26 21:18:32 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.139 2003/08/29 20:35:44 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -410,7 +410,8 @@ static void write_pause_burst(aos_t *this, uint32_t num_frames) {
   memset(&sbuf[6], 0, 6144 - 96);
   while (num_frames > 1536) {
     pthread_mutex_lock( &this->driver_lock );
-    this->driver->write(this->driver, sbuf, 1536);
+    if(this->driver_open)
+      this->driver->write(this->driver, sbuf, 1536);
     pthread_mutex_unlock( &this->driver_lock );
     num_frames -= 1536;
   }
@@ -436,12 +437,14 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
   while (num_frames > 0 && !this->discard_buffers) {
     if (num_frames > ZERO_BUF_SIZE) {
       pthread_mutex_lock( &this->driver_lock );
-      this->driver->write(this->driver, this->zero_space, ZERO_BUF_SIZE);
+      if(this->driver_open)
+        this->driver->write(this->driver, this->zero_space, ZERO_BUF_SIZE);
       pthread_mutex_unlock( &this->driver_lock );
       num_frames -= ZERO_BUF_SIZE;
     } else {
       pthread_mutex_lock( &this->driver_lock );
-      this->driver->write(this->driver, this->zero_space, num_frames);
+      if(this->driver_open)
+        this->driver->write(this->driver, this->zero_space, num_frames);
       pthread_mutex_unlock( &this->driver_lock );
       num_frames = 0;
     }
@@ -1009,7 +1012,6 @@ static void *ao_loop (void *this_gen) {
     /*
      * output audio data synced to master clock
      */
-    /* pthread_mutex_lock( &this->driver_lock ); */
 
     if (gap < (-1 * AO_MAX_GAP) || !in_buf->num_frames ) {
 
@@ -1085,7 +1087,6 @@ static void *ao_loop (void *this_gen) {
       fifo_append (this->free_fifo, in_buf);
       in_buf = NULL;
     }
-    /* pthread_mutex_unlock( &this->driver_lock ); */
   }
 
   if (in_buf)
@@ -1654,16 +1655,18 @@ static int ao_control (xine_audio_port_t *this_gen, int cmd, ...) {
   aos_t *this = (aos_t *) this_gen;
   va_list args;
   void *arg;
-  int rval;
+  int rval = 0;
 
   if (this->grab_only)
     return 0;
 
   pthread_mutex_lock( &this->driver_lock );
-  va_start(args, cmd);
-  arg = va_arg(args, void*);
-  rval = this->driver->control(this->driver, cmd, arg);
-  va_end(args);
+  if(this->driver_open) {
+    va_start(args, cmd);
+    arg = va_arg(args, void*);
+    rval = this->driver->control(this->driver, cmd, arg);
+    va_end(args);
+  }
   pthread_mutex_unlock( &this->driver_lock );
 
   return rval;
