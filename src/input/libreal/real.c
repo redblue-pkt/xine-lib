@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.17 2004/04/24 16:55:42 miguelfreitas Exp $
+ * $Id: real.c,v 1.18 2004/04/24 20:43:57 miguelfreitas Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -601,7 +601,7 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, unsigned char **buffer) {
   size-=12;
   n=rtsp_read_data(rtsp_session, (*buffer)+12, size);
   
-  return n+12;
+  return (n <= 0) ? 0 : n+12;
 }
 
 rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwidth) {
@@ -661,7 +661,10 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
 
   description = malloc(sizeof(char)*(size+1));
 
-  rtsp_read_data(rtsp_session, description, size);
+  if( rtsp_read_data(rtsp_session, description, size) <= 0) {
+    xine_buffer_free(buf);
+    return NULL;
+  }
   description[size]=0;
 
   /* parse sdp (sdpplin) and create a header and a subscribe string */
