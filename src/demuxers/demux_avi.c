@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.40 2001/09/10 03:04:48 guenter Exp $
+ * $Id: demux_avi.c,v 1.41 2001/09/12 16:55:42 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -577,6 +577,8 @@ static void AVI_seek_start(avi_t *AVI)
 {
   AVI->video_posf = 0;
   AVI->video_posb = 0;
+  AVI->audio_posc = 0;
+  AVI->audio_posb = 0;
 }
 
 static long AVI_read_audio(demux_avi_t *this, avi_t *AVI, char *audbuf, 
