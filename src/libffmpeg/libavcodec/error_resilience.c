@@ -18,8 +18,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <alloca.h>
-
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
@@ -297,16 +295,14 @@ static void v_block_filter(MpegEncContext *s, UINT8 *dst, int w, int h, int stri
 }
 
 static void guess_mv(MpegEncContext *s){
-    UINT8 *fixed;
+    UINT8 fixed[s->mb_num];
 #define MV_FROZEN    3
 #define MV_CHANGED   2
 #define MV_UNCHANGED 1
     const int mb_width = s->mb_width;
     const int mb_height= s->mb_height;
     int i, depth, num_avail;
-
-    fixed = alloca(s->mb_num);
-
+   
     num_avail=0;
     for(i=0; i<s->mb_num; i++){
         int f=0;

@@ -14,6 +14,7 @@ noinst_LTLIBRARIES = libavcodec_ppc.la
 
 libavcodec_ppc_src =  dsputil_altivec.c \
 		      dsputil_ppc.c \
+		      fft_altivec.c \
 		      idct_altivec.c \
 		      mpegvideo_altivec.c \
 		      mpegvideo_ppc.c

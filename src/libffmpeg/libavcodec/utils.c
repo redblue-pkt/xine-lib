@@ -120,11 +120,14 @@ typedef struct DefaultPicOpaque{
     uint8_t *data[4];
 }DefaultPicOpaque;
 
-int avcodec_default_get_buffer(AVCodecContext *s, AVVideoFrame *pic){
+int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     int i;
     const int width = s->width;
     const int height= s->height;
     DefaultPicOpaque *opaque;
+    
+    assert(pic->data[0]==NULL);
+    /* assert(pic->type==0 || pic->type==FF_TYPE_INTERNAL); */
 
     if(pic->opaque){
         opaque= (DefaultPicOpaque *)pic->opaque;
@@ -186,20 +189,23 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVVideoFrame *pic){
             memset(pic->base[i], 128, pic->linesize[i]*h>>v_shift);
         
             if(s->flags&CODEC_FLAG_EMU_EDGE)
-                pic->data[i] = pic->base[i];
+                pic->data[i] = pic->base[i] + 16; //FIXME 16
             else
-                pic->data[i] = pic->base[i] + (pic->linesize[i]*EDGE_WIDTH>>v_shift) + (EDGE_WIDTH>>h_shift);
+                pic->data[i] = pic->base[i] + (pic->linesize[i]*EDGE_WIDTH>>v_shift) + (EDGE_WIDTH>>h_shift) + 16; //FIXME 16
             
             opaque->data[i]= pic->data[i];
         }
         pic->age= 256*256*256*64;
+        pic->type= FF_BUFFER_TYPE_INTERNAL;
     }
 
     return 0;
 }
 
-void avcodec_default_release_buffer(AVCodecContext *s, AVVideoFrame *pic){
+void avcodec_default_release_buffer(AVCodecContext *s, AVFrame *pic){
     int i;
+    
+    assert(pic->type==FF_BUFFER_TYPE_INTERNAL);
     
     for(i=0; i<3; i++)
         pic->data[i]=NULL;
@@ -211,6 +217,8 @@ void avcodec_get_context_defaults(AVCodecContext *s){
     s->bit_rate_tolerance= s->bit_rate*10;
     s->qmin= 2;
     s->qmax= 31;
+    s->mb_qmin= 2;
+    s->mb_qmax= 31;
     s->rc_eq= "tex^qComp";
     s->qcompress= 0.5;
     s->max_qdiff= 3;
@@ -226,6 +234,7 @@ void avcodec_get_context_defaults(AVCodecContext *s){
     s->me_method= ME_EPZS;
     s->get_buffer= avcodec_default_get_buffer;
     s->release_buffer= avcodec_default_release_buffer;
+    s->me_subpel_quality=8;
 }
 
 /**
@@ -243,11 +252,11 @@ AVCodecContext *avcodec_alloc_context(void){
 }
 
 /**
- * allocates a AVPicture and set it to defaults.
+ * allocates a AVPFrame and set it to defaults.
  * this can be deallocated by simply calling free() 
  */
-AVVideoFrame *avcodec_alloc_picture(void){
-    AVVideoFrame *pic= av_mallocz(sizeof(AVVideoFrame));
+AVFrame *avcodec_alloc_frame(void){
+    AVFrame *pic= av_mallocz(sizeof(AVFrame));
     
     return pic;
 }
@@ -257,6 +266,7 @@ int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
     int ret;
 
     avctx->codec = codec;
+    avctx->codec_id = codec->id;
     avctx->frame_number = 0;
     if (codec->priv_data_size > 0) {
         avctx->priv_data = av_mallocz(codec->priv_data_size);
@@ -284,7 +294,7 @@ int avcodec_encode_audio(AVCodecContext *avctx, UINT8 *buf, int buf_size,
 }
 
 int avcodec_encode_video(AVCodecContext *avctx, UINT8 *buf, int buf_size, 
-                         const AVVideoFrame *pict)
+                         const AVFrame *pict)
 {
     int ret;
 
@@ -299,7 +309,7 @@ int avcodec_encode_video(AVCodecContext *avctx, UINT8 *buf, int buf_size,
 /* decode a frame. return -1 if error, otherwise return the number of
    bytes used. If no frame could be decompressed, *got_picture_ptr is
    zero. Otherwise, it is non zero */
-int avcodec_decode_video(AVCodecContext *avctx, AVVideoFrame *picture, 
+int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture, 
                          int *got_picture_ptr,
                          UINT8 *buf, int buf_size)
 {
@@ -642,13 +652,39 @@ void avcodec_init(void)
     //dsputil_init();
 }
 
-/* this should be called after seeking and before trying to decode the next frame */
+/* this can be called after seeking and before trying to decode the next keyframe */
 void avcodec_flush_buffers(AVCodecContext *avctx)
 {
+    int i;
     MpegEncContext *s = avctx->priv_data;
-    s->num_available_buffers=0;
+    
+    switch(avctx->codec_id){
+    case CODEC_ID_MPEG1VIDEO:
+    case CODEC_ID_H263:
+    case CODEC_ID_RV10:
+    case CODEC_ID_MJPEG:
+    case CODEC_ID_MJPEGB:
+    case CODEC_ID_MPEG4:
+    case CODEC_ID_MSMPEG4V1:
+    case CODEC_ID_MSMPEG4V2:
+    case CODEC_ID_MSMPEG4V3:
+    case CODEC_ID_WMV1:
+    case CODEC_ID_WMV2:
+    case CODEC_ID_H263P:
+    case CODEC_ID_H263I:
+    case CODEC_ID_SVQ1:
+        for(i=0; i<MAX_PICTURE_COUNT; i++){
+           if(s->picture[i].data[0] && (   s->picture[i].type == FF_BUFFER_TYPE_INTERNAL
+                                        || s->picture[i].type == FF_BUFFER_TYPE_USER))
+            avctx->release_buffer(avctx, (AVFrame*)&s->picture[i]);
+	}
+	s->last_picture.data[0] = s->next_picture.data[0] = NULL;
+        break;
+    default:
+        //FIXME
+        break;
+    }
 }
-
 
 static int raw_encode_init(AVCodecContext *s)
 {

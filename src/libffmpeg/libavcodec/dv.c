@@ -33,7 +33,7 @@ typedef struct DVVideoDecodeContext {
     int sampling_411; /* 0 = 420, 1 = 411 */
     int width, height;
     UINT8 *current_picture[3]; /* picture structure */
-    AVVideoFrame picture;
+    AVFrame picture;
     int linesize[3];
     DCTELEM block[5*6][64] __align8;
     UINT8 dv_zigzag[2][64];
@@ -497,7 +497,6 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
 {
     DVVideoDecodeContext *s = avctx->priv_data;
     int sct, dsf, apt, ds, nb_dif_segs, vs, width, height, i, packet_size;
-    unsigned size;
     UINT8 *buf_ptr;
     const UINT16 *mb_pos_ptr;
     
@@ -595,8 +594,8 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     emms_c();
 
     /* return image */
-    *data_size = sizeof(AVVideoFrame);
-    *(AVVideoFrame*)data= s->picture;
+    *data_size = sizeof(AVFrame);
+    *(AVFrame*)data= s->picture;
     
     avctx->release_buffer(avctx, &s->picture);
     

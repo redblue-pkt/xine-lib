@@ -4,8 +4,13 @@
 #define BIN_ONLY_SHAPE   2
 #define GRAY_SHAPE       3
 
-#define SIMPLE_VO_TYPE 1
-#define CORE_VO_TYPE   3
+#define SIMPLE_VO_TYPE             1
+#define CORE_VO_TYPE               3
+#define MAIN_VO_TYPE               4
+#define NBIT_VO_TYPE               5
+#define ARTS_VO_TYPE               10
+#define ACE_VO_TYPE                12
+#define ADV_SIMPLE_VO_TYPE         17
 
 // aspect_ratio_info
 #define EXTENDED_PAR 15
@@ -21,6 +26,12 @@
 #define MB_TYPE_B_BIDIR  1
 #define MB_TYPE_B_BACKW  2
 #define MB_TYPE_B_FORW   3
+
+#define VOS_STARTCODE        0x1B0
+#define USER_DATA_STARTCODE  0x1B2
+#define GOP_STARTCODE        0x1B3
+#define VISUAL_OBJ_STARTCODE 0x1B5
+#define VOP_STARTCODE        0x1B6
 
 /* dc encoding for mpeg4 */
 const UINT8 DCtab_lum[13][2] =

@@ -4,7 +4,7 @@
 
 SUBDIRS = armv4l i386 mlib alpha
 
-EXTRA_DIST = fdctref.c imgresample.c
+EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c 
 
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
@@ -22,15 +22,18 @@ libavcodec_la_SOURCES = \
 	fft.c \
 	h263.c \
 	h263dec.c \
+	huffyuv.c \
 	imgconvert.c \
 	jfdctfst.c \
 	jfdctint.c \
 	jrevdct.c \
 	mdct.c \
+	mace.c \
 	mem.c \
 	mjpeg.c \
 	motion_est.c \
 	mpeg12.c \
+	mpegaudiodec.c \
 	mpegvideo.c \
 	msmpeg4.c \
 	ratecontrol.c \
@@ -39,6 +42,7 @@ libavcodec_la_SOURCES = \
 	svq1.c \
 	utils.c \
 	wmadec.c 
+#	wmv2.c
 #imgresample.c
 
 libavcodec_la_LDFLAGS = \
@@ -57,6 +61,9 @@ noinst_HEADERS = \
 	mangle.h \
 	mpeg4data.h \
 	mpeg12data.h \
+	mpegaudio.h \
+	mpegaudiodectab.h \
+	mpegaudiotab.h \
 	mpegvideo.h \
 	msmpeg4data.h \
 	simple_idct.h \

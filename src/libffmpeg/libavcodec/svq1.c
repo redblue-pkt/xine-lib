@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <alloca.h>
 
 #include "common.h"
 #include "avcodec.h"
@@ -1064,7 +1063,7 @@ static int svq1_decode_frame(AVCodecContext *avctx,
   MpegEncContext *s=avctx->priv_data;
   uint8_t      *current, *previous;
   int		result, i, x, y, width, height;
-  AVVideoFrame *pict = data; 
+  AVFrame *pict = data; 
 
   /* initialize bit buffer */
   init_get_bits(&s->gb,buf,buf_size);
@@ -1137,9 +1136,7 @@ static int svq1_decode_frame(AVCodecContext *avctx,
 	current += 16*linesize;
       }
     } else {
-      svq1_pmv_t *pmv;
-
-      pmv = alloca((width/8+3) * sizeof(svq1_pmv_t));
+      svq1_pmv_t pmv[width/8+3];
       /* delta frame */
       memset (pmv, 0, ((width / 8) + 3) * sizeof(svq1_pmv_t));
 
@@ -1164,12 +1161,12 @@ static int svq1_decode_frame(AVCodecContext *avctx,
     }
   }
   
-  *pict = *(AVVideoFrame*)&s->current_picture;
+  *pict = *(AVFrame*)&s->current_picture;
 
 
   MPV_frame_end(s);
   
-  *data_size=sizeof(AVVideoFrame);
+  *data_size=sizeof(AVFrame);
   return buf_size;
 }
 
@@ -1182,7 +1179,7 @@ static int svq1_decode_init(AVCodecContext *avctx)
     s->height = (avctx->height+3)&~3;
     s->codec_id= avctx->codec->id;
     avctx->pix_fmt = PIX_FMT_YUV410P;
-    avctx->has_b_frames= s->has_b_frames=1; // not true, but DP frames and these behave like unidirectional b frames
+    avctx->has_b_frames= 1; // not true, but DP frames and these behave like unidirectional b frames
     s->flags= avctx->flags;
     if (MPV_common_init(s) < 0) return -1;
     return 0;

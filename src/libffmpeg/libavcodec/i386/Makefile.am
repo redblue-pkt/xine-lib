@@ -16,11 +16,11 @@ libavcodec_mmx_src = \
 	cputest.c \
 	dsputil_mmx.c \
 	fdct_mmx.c \
+	fft_sse.c \
 	idct_mmx.c \
 	motion_est_mmx.c \
 	mpegvideo_mmx.c \
 	simple_idct_mmx.c
-#	fft_sse.c - needs new header from gcc 3.1
 
 libavcodec_mmx_dummy = libavcodec_mmx_dummy.c
 
