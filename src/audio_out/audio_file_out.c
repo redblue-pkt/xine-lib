@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_file_out.c,v 1.1 2004/03/02 19:48:41 hadess Exp $
+ * $Id: audio_file_out.c,v 1.2 2004/04/23 12:41:30 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -77,6 +77,7 @@ typedef struct file_driver_s {
 	char	      *fname;
 	int            fd;
 	size_t         bytes_written;
+	struct timeval endtime;
 } file_driver_t;
 
 typedef struct {
@@ -142,13 +143,13 @@ static int ao_file_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 	w.wChannels = le2me_16(this->num_channels);
 	w.dwSamplesPerSecond = le2me_32(this->sample_rate);
 	w.dwAvgBytesPerSec = le2me_32(this->sample_rate * this->bytes_per_frame);
-	w.wBlockAlign = this->bytes_per_frame;
-	w.wBitsPerSample = this->bits_per_sample;
+	w.wBlockAlign = le2me_16(this->bytes_per_frame);
+	w.wBitsPerSample = le2me_16(this->bits_per_sample);
 	w.bData[0] = 'd';
 	w.bData[1] = 'a';
 	w.bData[2] = 't';
 	w.bData[3] = 'a';
-	w.dwDataLength = 0x7ffff000;
+	w.dwDataLength = le2me_32(0x7ffff000);
 
 	this->bytes_written = 0;
 	if (write(this->fd, &w, sizeof(w)) != sizeof(w)) {
@@ -158,6 +159,7 @@ static int ao_file_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 		this->fd = -1;
 		return 0;
 	}
+	gettimeofday(&this->endtime, NULL);
 	return this->sample_rate;
 }
 
@@ -184,7 +186,22 @@ static int ao_file_write(ao_driver_t *this_gen, int16_t *data,
 {
 	file_driver_t *this = (file_driver_t *) this_gen;
 	size_t len = num_frames * this->bytes_per_frame;
+	unsigned long usecs;
 
+#ifdef WORDS_BIGENDIAN
+	/* Eep. .WAV format is little-endian. We need to swap.
+	   Remind me why I picked this output format again? */
+	if (this->bits_per_sample == 16) {
+		int i;
+		for (i=0; i<len/2; i++)
+			data[i] = bswap_16(data[i]);
+	} else if (this->bits_per_sample == 32) {
+		int i;
+		uint32_t *d32 = (void *)data;
+		for (i=0; i<len/4; i++)
+			d32[i] = bswap_16(d32[i]);
+	}
+#endif
 	while(len) {
 		size_t thislen = write(this->fd, data, len);
 
@@ -198,14 +215,41 @@ static int ao_file_write(ao_driver_t *this_gen, int16_t *data,
 	}
 
 	/* Delay for an appropriate amount of time to prevent padding */
-	xine_usec_sleep ((1000 * num_frames / this->sample_rate)*1000);
-    
+	usecs = ((10000 * num_frames / (this->sample_rate/100)));
+
+	this->endtime.tv_usec += usecs;
+	while (this->endtime.tv_usec > 1000000) {
+		this->endtime.tv_usec -= 1000000;
+		this->endtime.tv_sec++;
+	}
 	return 1;
 }
 
 
 static int ao_file_delay (ao_driver_t *this_gen)
 {
+	file_driver_t *this = (file_driver_t *) this_gen;
+	struct timeval now;
+	unsigned long tosleep;
+
+	/* Work out how long we need to sleep for, and how much
+	   time we've already taken */
+	gettimeofday(&now, NULL);
+
+	if (now.tv_sec > this->endtime.tv_sec) {
+		/* We slipped. Compensate */
+		this->endtime = now;
+		return 0;
+	}
+	if (now.tv_sec == this->endtime.tv_sec &&
+	    now.tv_usec >= this->endtime.tv_usec)
+		return 0;
+
+	tosleep = this->endtime.tv_sec - now.tv_sec;
+	tosleep *= 1000000;
+	tosleep += this->endtime.tv_usec - now.tv_usec;
+
+	xine_usec_sleep(tosleep);
 	return 0;
 }
 
