@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.18 2002/10/20 17:19:11 tmmm Exp $
+ * $Id: adpcm.c,v 1.19 2002/10/29 02:07:45 komadori Exp $
  */
 
 #include <stdio.h>
@@ -69,6 +69,11 @@ static int ms_adapt_coeff1[] = {
 
 static int ms_adapt_coeff2[] = {
   0, -256, 0, 64, 0, -208, -232
+};
+
+static int ea_adpcm_table[] = {
+  0, 240, 460, 392, 0, 0, -208, -220, 0, 1,
+  3, 4, 7, 8, 10, 11, 0, -1, -3, -4
 };
 
 #define QT_IMA_ADPCM_PREAMBLE_SIZE 2
@@ -840,6 +845,9 @@ static void smjpeg_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf)
   block_size *= 2;  /* 2 samples / byte */
   if (block_size > this->out_block_size) {
     this->out_block_size = block_size;
+    if (this->decode_buffer) {
+      free(this->decode_buffer);
+    }
     this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
   }
 
@@ -964,6 +972,99 @@ static void vqa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   this->size = 0;
 }
 
+static void ea_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+  uint32_t samples_in_chunk;
+  int32_t previous_left_sample, previous_right_sample;
+  int32_t current_left_sample, current_right_sample;
+  int32_t next_left_sample, next_right_sample;
+  int32_t coeff1l, coeff2l, coeff1r, coeff2r;
+  uint8_t shift_left, shift_right;
+
+  int count1, count2, i = 0, j = 0;
+
+  samples_in_chunk = ALE_32(&this->buf[i]);
+  i += 4;
+  current_left_sample = (int16_t)ALE_16(&this->buf[i]);
+  i += 2;
+  previous_left_sample = (int16_t)ALE_16(&this->buf[i]);
+  i += 2;
+  current_right_sample = (int16_t)ALE_16(&this->buf[i]);
+  i += 2;
+  previous_right_sample = (int16_t)ALE_16(&this->buf[i]);
+  i += 2;
+
+  if (samples_in_chunk * 4 > this->out_block_size) {
+    this->out_block_size = samples_in_chunk * 4;
+    if (this->decode_buffer) {
+      free(this->decode_buffer);
+    }
+    this->decode_buffer = xine_xmalloc(this->out_block_size);
+  }
+
+  for (count1 = 0; count1 < samples_in_chunk/28;count1++) {
+    coeff1l = ea_adpcm_table[(this->buf[i] >> 4) & 0x0F];
+    coeff2l = ea_adpcm_table[((this->buf[i] >> 4) & 0x0F) + 4];
+    coeff1r = ea_adpcm_table[this->buf[i] & 0x0F];
+    coeff2r = ea_adpcm_table[(this->buf[i] & 0x0F) + 4];
+    i++;
+
+    shift_left = ((this->buf[i] >> 4) & 0x0F) + 8;
+    shift_right = (this->buf[i] & 0x0F) + 8;
+    i++;
+
+    for (count2 = 0; count2 < 28; count2++) {
+      next_left_sample = (((this->buf[i] & 0xF0) << 24) >> shift_left);
+      next_right_sample = (((this->buf[i] & 0x0F) << 28) >> shift_right);
+      i++;
+
+      next_left_sample = (next_left_sample + (current_left_sample * coeff1l) + (previous_left_sample * coeff2l) + 0x80) >> 8;
+      next_right_sample = (next_right_sample + (current_right_sample * coeff1r) + (previous_right_sample * coeff2r) + 0x80) >> 8;
+      CLAMP_S16(next_left_sample);
+      CLAMP_S16(next_right_sample);
+
+      previous_left_sample = current_left_sample;
+      current_left_sample = next_left_sample;
+      previous_right_sample = current_right_sample;
+      current_right_sample = next_right_sample;
+      this->decode_buffer[j] = (unsigned short)current_left_sample;
+      j++;
+      this->decode_buffer[j] = (unsigned short)current_right_sample;
+      j++;
+    }
+  }
+
+  i = 0;
+  while (i < j) {
+    audio_buffer_t *audio_buffer;
+    int bytes_to_send;
+
+    audio_buffer = this->stream->audio_out->get_buffer(this->stream->audio_out);
+    if (audio_buffer->mem_size == 0) {
+      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+      return;
+    }
+
+    if (((j - i) * 2) > audio_buffer->mem_size) {
+      bytes_to_send = audio_buffer->mem_size;
+    }
+    else {
+      bytes_to_send = (j - i) * 2;
+    }
+
+    xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[i], bytes_to_send);
+
+    audio_buffer->num_frames = (bytes_to_send / 4);
+    audio_buffer->vpts = buf->pts;
+    buf->pts = 0;
+    this->stream->audio_out->put_buffer(this->stream->audio_out,
+audio_buffer);
+
+    i += bytes_to_send / 2;
+  }
+
+  this->size = 0;
+}
+
 static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
@@ -1023,7 +1124,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     /* the decoder will not know the size of the output buffer until
      * an audio packet comes through */
-    if (buf->type == BUF_AUDIO_SMJPEG_IMA) {
+    if ((buf->type == BUF_AUDIO_SMJPEG_IMA) || (buf->type == BUF_AUDIO_EA_ADPCM)) {
       this->in_block_size = this->out_block_size = 0;
       this->decode_buffer = NULL;
     }
