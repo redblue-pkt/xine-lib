@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.17 2001/08/28 19:16:20 guenter Exp $
+ * $Id: w32codec.c,v 1.18 2001/08/30 17:14:23 jkeil Exp $
  *
  * routines for using w32 codecs
  *
@@ -217,7 +217,7 @@ static void w32v_init_codec (w32v_decoder_t *this) {
   this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
   
   win32_codec_name = get_vids_codec_name (this, this->bih.biCompression, &this->bih);  
-  this->hic = ICOpen( 0x63646976, this->bih.biCompression, ICMODE_FASTDECOMPRESS);
+  this->hic = ICOpen( mmioFOURCC('v','i','d','c'), this->bih.biCompression, ICMODE_FASTDECOMPRESS);
 
   if(!this->hic){
     printf ("ICOpen failed! unknown codec / wrong parameters?\n");
@@ -336,8 +336,6 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	img->bFrameBad = 0;
       
       if (img->copy) {
-	/* note: dest stuff works with video_out_xshm & YV12 */
-
 	int height = abs(this->o_bih.biHeight);
 	int stride = this->o_bih.biWidth;
 	uint8_t* src[3];
