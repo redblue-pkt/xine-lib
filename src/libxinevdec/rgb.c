@@ -27,10 +27,10 @@
  * file can be 32-, 24-, 16-, 8-, 4-, 2-, or 1-bit. Any resolutions <= 8
  * can also be greyscale depending on what the QT file specifies.
  *
- * One more catch: Raw RGB from a Microsoft is upside down. This is indicated
- * by a negative height parameter.
+ * One more catch: Raw RGB from a Microsoft file is upside down. This is 
+ * indicated by a negative height parameter.
  * 
- * $Id: rgb.c,v 1.27 2004/05/29 22:34:43 tmmm Exp $
+ * $Id: rgb.c,v 1.28 2004/05/29 22:55:11 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -133,8 +133,10 @@ static void rgb_decode_data (video_decoder_t *this_gen,
       this->upside_down = 0;
     this->ratio = (double)this->width/(double)this->height;
 
+    this->bit_depth = bih->biBitCount;
+    if (this->bit_depth > 32)
+      this->bit_depth &= 0x1F;
     /* round this number up in case of 15 */
-    this->bit_depth = bih->biBitCount & 0x1F;
     this->bytes_per_pixel = (this->bit_depth + 1) / 8;
 
     if (this->buf)
