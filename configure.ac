@@ -1206,6 +1206,7 @@ src/libxineadec/gsm610/Makefile
 src/libreal/Makefile
 src/post/Makefile
 src/post/planar/Makefile
+src/post/goom/Makefile
 src/video_out/Makefile
 src/video_out/libdha/Makefile
 src/video_out/libdha/bin/Makefile
