@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.47 2004/04/06 00:25:29 tmattern Exp $
+ * $Id: input_mms.c,v 1.48 2004/04/07 19:44:29 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -237,7 +237,7 @@ static uint32_t mms_plugin_get_blocksize (input_plugin_t *this_gen) {
 
 static off_t mms_plugin_get_current_pos (input_plugin_t *this_gen){
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
-  off_t curpos;
+  off_t curpos = 0;
   
   /*
   printf ("current pos is %lld\n", this->curpos);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.29 2004/04/06 06:43:06 tmattern Exp $
+ * $Id: mmsh.c,v 1.30 2004/04/07 19:44:29 mroi Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -113,6 +113,7 @@ static const char* mmsh_LiveRequest =
     "Connection: Close\r\n\r\n";
 
 /* Unused requests */
+#if 0
 static const char* mmsh_PostRequest =
     "POST %s HTTP/1.0\r\n"
     "Accept: */*\r\n"
@@ -133,7 +134,7 @@ static const char* mmsh_RangeRequest =
     "Range: bytes=%Lu-\r\n"
     CLIENTGUID
     "Connection: Close\r\n\r\n";
-
+#endif
 
 
 /* 
