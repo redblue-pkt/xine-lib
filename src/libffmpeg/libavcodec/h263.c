@@ -3605,14 +3605,26 @@ static void mpeg4_decode_sprite_trajectory(MpegEncContext * s)
     int a= 2<<s->sprite_warping_accuracy;
     int rho= 3-s->sprite_warping_accuracy;
     int r=16/a;
+#if __GNUC__ && !__STRICT_ANSI__
     const int vop_ref[4][2]= {{0,0}, {s->width,0}, {0, s->height}, {s->width, s->height}}; /* only true for rectangle shapes */
     int d[4][2]={{0,0}, {0,0}, {0,0}, {0,0}};
+#else
+    int vop_ref[4][2];
+    int d[4][2];
+#endif
     int sprite_ref[4][2];
     int virtual_ref[2][2];
     int w2, h2;
     int alpha=0, beta=0;
     int w= s->width;
     int h= s->height;
+#if !__GNUC__ || __STRICT_ANSI__
+    vop_ref[0][0] = 0;		vop_ref[0][1] = 0;
+    vop_ref[1][0] = s->width;	vop_ref[1][1] = 0;
+    vop_ref[2][0] = 0;		vop_ref[2][1] = s->height;
+    vop_ref[3][0] = s->width;   vop_ref[3][1] = s->height;
+    memset(d, 0, sizeof(d));
+#endif
 /* printf("SP %d\n", s->sprite_warping_accuracy); */
     for(i=0; i<s->num_sprite_warping_points; i++){
         int length;
