@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.139 2003/01/08 01:02:28 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.140 2003/01/10 11:57:17 miguelfreitas Exp $
  *
  */
 
@@ -1916,7 +1916,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       buf->type = this->qt->video_type;
       buf->extra_info->input_pos = this->qt->frames[i].offset - this->data_start;
       buf->extra_info->input_length = this->data_size;
-      buf->extra_info->input_time = this->qt->frames[i].pts / 90000;
+      buf->extra_info->input_time = this->qt->frames[i].pts / 90;
       buf->pts = this->qt->frames[i].pts;
 
       buf->decoder_flags |= BUF_FLAG_FRAMERATE;
@@ -1970,7 +1970,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       if ((buf->type == BUF_AUDIO_LPCM_BE) || 
           (buf->type == BUF_AUDIO_LPCM_LE)) { 
         if (first_buf) {
-          buf->extra_info->input_time = this->qt->frames[i].pts / 90000;
+          buf->extra_info->input_time = this->qt->frames[i].pts / 90;
           buf->pts = this->qt->frames[i].pts;
           first_buf = 0;
         } else {
@@ -1978,7 +1978,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
           buf->pts = 0;
         }
       } else {
-        buf->extra_info->input_time = this->qt->frames[i].pts / 90000;
+        buf->extra_info->input_time = this->qt->frames[i].pts / 90;
         buf->pts = this->qt->frames[i].pts;
       }
 

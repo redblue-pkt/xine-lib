@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.10 2003/01/08 01:02:28 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.11 2003/01/10 11:57:17 miguelfreitas Exp $
  *
  */
 
@@ -148,7 +148,7 @@ static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
     buf->type = this->audio_type;
     buf->extra_info->input_pos = current_file_pos;
     buf->extra_info->input_length = this->data_size;
-    buf->extra_info->input_time = current_pts / 90000;
+    buf->extra_info->input_time = current_pts / 90;
     buf->pts = current_pts;
 
     if (remaining_sample_bytes > buf->max_size)

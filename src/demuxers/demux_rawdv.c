@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_rawdv.c,v 1.2 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.3 2003/01/10 11:57:17 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  * 
@@ -103,7 +103,7 @@ static int demux_raw_dv_next (demux_raw_dv_t *this) {
    */
   
   buf->pts                    = this->pts;
-  buf->extra_info->input_time = this->pts/90000;
+  buf->extra_info->input_time = this->pts/90;
   buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
   buf->extra_info->frame_number  = this->cur_frame;
   buf->type                   = BUF_VIDEO_DV;

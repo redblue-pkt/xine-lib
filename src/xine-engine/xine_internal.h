@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.121 2003/01/08 01:02:33 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.122 2003/01/10 11:57:19 miguelfreitas Exp $
  *
  */
 
@@ -124,9 +124,12 @@ struct extra_info_s {
 
   off_t                 input_pos; /* remember where this buf came from in the input source */
   off_t                 input_length; /* remember the length of the input source */
-  int                   input_time;/* time offset in seconds from beginning of stream       */
+  int                   input_time;/* time offset in miliseconds from beginning of stream       */
   uint32_t              frame_number; /* number of current frame if known */
+  
   int                   seek_count; /* internal engine use */
+  pthread_mutex_t       lock;       /* keep consistency */
+  int64_t               vpts;       /* set on output layers only */ 
 };
 
 /*

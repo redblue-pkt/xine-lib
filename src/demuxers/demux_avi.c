@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.145 2003/01/09 13:26:03 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.146 2003/01/10 11:57:16 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1088,7 +1088,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
         return 0;
       }
 
-      buf->extra_info->input_time = audio_pts / 90000;
+      buf->extra_info->input_time = audio_pts / 90;
       buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
 
       buf->type = audio->audio_type | i;
@@ -1112,7 +1112,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     buf->size       = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_flags);
     buf->type       = this->avi->video_type;
 
-    buf->extra_info->input_time = video_pts / 90000;
+    buf->extra_info->input_time = video_pts / 90;
     buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
     /* use video_frames-2 instead of video_frames-1 to fix problems with weird
        non-interleaved streams */

@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.3 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_ipmovie.c,v 1.4 2003/01/10 11:57:16 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -346,7 +346,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
           buf->type = this->audio_type;
           buf->extra_info->input_pos = current_file_pos;
           buf->extra_info->input_length = this->data_size;
-          buf->extra_info->input_time = audio_pts / 90000;
+          buf->extra_info->input_time = audio_pts / 90;
           buf->pts = audio_pts;
 
           if (opcode_size > buf->max_size)
@@ -434,7 +434,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
           buf->type = BUF_VIDEO_INTERPLAY;
           buf->extra_info->input_pos = current_file_pos;
           buf->extra_info->input_length = this->data_size;
-          buf->extra_info->input_time = this->video_pts / 90000;
+          buf->extra_info->input_time = this->video_pts / 90;
           buf->pts = this->video_pts;
 
           if (opcode_size > buf->max_size)
@@ -474,7 +474,7 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
           buf->type = BUF_VIDEO_INTERPLAY;
           buf->extra_info->input_pos = current_file_pos;
           buf->extra_info->input_length = this->data_size;
-          buf->extra_info->input_time = this->video_pts / 90000;
+          buf->extra_info->input_time = this->video_pts / 90;
           buf->pts = this->video_pts;
 
           if (opcode_size > buf->max_size)

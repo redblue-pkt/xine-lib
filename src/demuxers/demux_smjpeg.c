@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.33 2003/01/08 01:02:28 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.34 2003/01/10 11:57:17 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -271,7 +271,7 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
 
       buf->extra_info->input_pos = current_file_pos;
       buf->extra_info->input_length = this->input_length;
-      buf->extra_info->input_time = pts / 90000;
+      buf->extra_info->input_time = pts / 90;
       buf->pts = pts;
 
       if (last_frame_pts) {

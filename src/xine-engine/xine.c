@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.208 2003/01/09 13:26:03 miguelfreitas Exp $
+ * $Id: xine.c,v 1.209 2003/01/10 11:57:19 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -1084,7 +1084,7 @@ int xine_get_pos_length (xine_stream_t *stream, int *pos_stream,
   if (pos_stream)
     *pos_stream  = pos; 
   if (pos_time)
-    *pos_time    = stream->current_extra_info->input_time * 1000;
+    *pos_time    = stream->current_extra_info->input_time;
   if (length_time)
     *length_time = xine_get_stream_length (stream) * 1000;
 

@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.31 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.32 2003/01/10 11:57:18 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -231,7 +231,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
         buf->type = BUF_AUDIO_LPCM_LE;
         buf->extra_info->input_pos = current_file_pos;
         buf->extra_info->input_length = this->data_size;
-        buf->extra_info->input_time = audio_pts / 90000;
+        buf->extra_info->input_time = audio_pts / 90;
         buf->pts = audio_pts;
 
         if (chunk_size > buf->max_size)
@@ -260,7 +260,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
         buf->type = BUF_VIDEO_WC3;
         buf->extra_info->input_pos = current_file_pos;
         buf->extra_info->input_length = this->data_size;
-        buf->extra_info->input_time = this->video_pts / 90000;
+        buf->extra_info->input_time = this->video_pts / 90;
         buf->pts = this->video_pts;
 
         if (chunk_size > buf->max_size)

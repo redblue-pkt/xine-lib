@@ -20,7 +20,7 @@
  * VOX Demuxer by Mike Melanson (melanson@pcisys.net)
  * This a demuxer for .vox files containing raw Dialogic ADPCM data.
  *
- * $Id: demux_vox.c,v 1.1 2003/01/07 06:29:16 tmmm Exp $
+ * $Id: demux_vox.c,v 1.2 2003/01/10 11:57:18 miguelfreitas Exp $
  *
  */
 
@@ -102,7 +102,7 @@ static int demux_vox_send_chunk (demux_plugin_t *this_gen) {
 
   buf->extra_info->input_pos = current_file_pos;
   buf->extra_info->input_length = this->input->get_length(this->input);
-  buf->extra_info->input_time = audio_pts / 90000;
+  buf->extra_info->input_time = audio_pts / 90;
   buf->pts = audio_pts;
   buf->decoder_flags |= BUF_FLAG_FRAME_END;
 

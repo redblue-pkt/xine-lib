@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.153 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.154 2003/01/10 11:57:16 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -209,7 +209,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   buf->extra_info->input_length = this->input->get_length (this->input);
 
   if (this->rate)
-    buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
+    buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
 
   if (p[3] == 0xBA) { /* program stream pack header */
 
@@ -236,7 +236,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	this->rate |= (p[11] >> 1);
       }
 
-      buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
+      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
 
       p   += 12;
 

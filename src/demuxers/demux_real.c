@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.31 2003/01/08 14:42:46 esnel Exp $
+ * $Id: demux_real.c,v 1.32 2003/01/10 11:57:17 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -786,7 +786,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       buf->pts           = pts;
       buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
 
-      buf->extra_info->input_time    = buf->extra_info->input_pos * 8 / this->avg_bitrate ; 
+      buf->extra_info->input_time    = buf->extra_info->input_pos * 8 * 1000 / 
+                                       this->avg_bitrate ; 
       buf->type          = this->video_buf_type;
       
       check_newpts (this, pts, PTS_VIDEO, 0);
@@ -870,7 +871,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     buf->content       = buf->mem;
     buf->pts           = pts;
     buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
-    buf->extra_info->input_time    = buf->extra_info->input_pos * 8 / this->avg_bitrate ; 
+    buf->extra_info->input_time    = buf->extra_info->input_pos * 8 * 1000 /
+                                     this->avg_bitrate ; 
     buf->type          = this->audio_buf_type;
     buf->decoder_flags = 0;
     buf->size          = size;

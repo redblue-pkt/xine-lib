@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.4 2003/01/09 04:23:14 tmmm Exp $
+ * $Id: demux_nsf.c,v 1.5 2003/01/10 11:57:17 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -187,7 +187,7 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
     buf->type = BUF_AUDIO_NSF;
     buf->extra_info->input_pos = this->current_song - 1;
     buf->extra_info->input_length = this->total_songs;
-    buf->extra_info->input_time = this->current_pts / 90000;
+    buf->extra_info->input_time = this->current_pts / 90;
     buf->pts = this->current_pts;
     buf->size = 0;
     this->audio_fifo->put (this->audio_fifo, buf);

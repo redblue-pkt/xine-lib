@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.32 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_idcin.c,v 1.33 2003/01/10 11:57:16 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -202,7 +202,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
     buf->type = BUF_VIDEO_IDCIN;
     buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     buf->extra_info->input_length = this->filesize;
-    buf->extra_info->input_time = pts_counter / 90000;
+    buf->extra_info->input_time = pts_counter / 90;
     buf->pts = pts_counter;
 
     if (remaining_sample_bytes > buf->max_size)
@@ -242,7 +242,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       buf->type = BUF_AUDIO_LPCM_LE;
       buf->extra_info->input_pos = this->input->get_current_pos(this->input);
       buf->extra_info->input_length = this->filesize;
-      buf->extra_info->input_time = pts_counter / 90000;
+      buf->extra_info->input_time = pts_counter / 90;
       buf->pts = pts_counter;
 
       if (remaining_sample_bytes > buf->max_size)

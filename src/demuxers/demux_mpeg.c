@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.102 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.103 2003/01/10 11:57:16 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -529,7 +529,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     
     buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
-      buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
+      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -552,7 +552,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     
     buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
-      buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
+      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
 
     this->video_fifo->put (this->video_fifo, buf);
 

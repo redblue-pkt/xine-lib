@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.34 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_fli.c,v 1.35 2003/01/10 11:57:16 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -169,7 +169,7 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_FLI;
       buf->extra_info->input_pos = current_file_pos;
-      buf->extra_info->input_time = pts_counter / 90000;
+      buf->extra_info->input_time = pts_counter / 90;
       buf->extra_info->input_length = this->stream_len;
       buf->pts = pts_counter;
   

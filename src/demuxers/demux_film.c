@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.51 2003/01/08 01:02:28 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.52 2003/01/10 11:57:16 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -344,7 +344,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       buf->extra_info->input_pos = 
         this->sample_table[i].sample_offset - this->data_start;
       buf->extra_info->input_length = this->data_size;
-      buf->extra_info->input_time = this->sample_table[i].pts / 90000;
+      buf->extra_info->input_time = this->sample_table[i].pts / 90;
       buf->pts = this->sample_table[i].pts;
 
       /* set the frame duration */
@@ -423,7 +423,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       buf->extra_info->input_pos = 
         this->sample_table[i].sample_offset - this->data_start;
       buf->extra_info->input_length = this->data_size;
-      buf->extra_info->input_time = this->sample_table[i].pts / 90000;
+      buf->extra_info->input_time = this->sample_table[i].pts / 90;
       buf->pts = this->sample_table[i].pts;
 
       /* set the frame duration */
@@ -461,7 +461,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       buf->extra_info->input_pos = 
         this->sample_table[i].sample_offset - this->data_start;
       buf->extra_info->input_length = this->data_size;
-      buf->extra_info->input_time = this->sample_table[i].pts / 90000;
+      buf->extra_info->input_time = this->sample_table[i].pts / 90;
       buf->pts = this->sample_table[i].pts;
 
       if (remaining_sample_bytes > buf->max_size)
