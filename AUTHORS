@@ -42,6 +42,9 @@ xine is using
 
   avifile (Win32 codecs and DirectShow support) <http://avifile.sf.net>
     Written by Eugene Kuznetsov and Zdenek Kabelac
+    
+  FAAD2 - Freeware Advanced Audio Decoder version 2
+    Written by M. Bakker <http://www.audiocoding.com/>
 
 Contributions 
 
@@ -81,7 +84,7 @@ Contributions
 
   w32codec support is based on work from:
   avifile http://avifile.sf.net
-  MPlayer http://banki1.banki.hu/~arpi/MPlayer.html
+  MPlayer http://www.mplayerhq.hu/
   wine    http://www.winehq.com
 
   Christian Bauer <cbauer@student.physik.uni-mainz.de>
