@@ -699,13 +699,13 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   {
     char buf[256];
 
-    sprintf (buf, _("input_http: opening >/%s< on host >%s<"), 
+    snprintf (buf, 255, _("input_http: opening >/%s< on host >%s<"), 
 	     this->filename, this->host);
 
     if (proxy != NULL)
-      sprintf(buf, _("%s via proxy >%s<"), buf, this->proxyhost);
+      snprintf(buf, 255, _("%s via proxy >%s<"), buf, this->proxyhost);
     
-    sprintf(buf, "%s\n", buf);
+    snprintf(buf, 255, "%s\n", buf);
 
 #ifdef LOG
     printf (buf);
