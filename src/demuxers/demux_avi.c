@@ -17,12 +17,34 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.83 2002/05/12 12:13:28 tmattern Exp $
+ * $Id: demux_avi.c,v 1.84 2002/05/13 15:56:54 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
  * part of the code is taken from
  * avilib (C) 1999 Rainer Johanni <Rainer@Johanni.de>
+ *
+ */
+
+/*
+ * Ian Goldberg <ian@cypherpunks.ca> modified this code so that it can
+ * handle "streaming" AVI files.  By that I mean real seekable files, but
+ * ones that are growing as we're displaying them.  Examples include
+ * AVI's you're downloading, or ones you're writing in real time using
+ * xawtv streamer, or whatever.  This latter is really useful, for
+ * example,  for doing the PVR trick of starting the streamer to record
+ * TV, starting to watch it ~10 minutes later, and skipping the
+ * commercials to catch up to real time.  If you accidentally hit the
+ * end of the stream, just hit your "back 15 seconds" key, and all is
+ * good.
+ *
+ * Theory of operation: the video and audio indices have been separated
+ * out of the main avi_t and avi_audio_t structures into separate
+ * structures that can grow during playback.  We use the idx_grow_t
+ * structure to keep track of the offset into the AVI file where we
+ * expect to find the next A/V frame.  We periodically check if we can
+ * read data from the file at that offset.  If we can, we append index
+ * data for as many frames as we can read at the time.
  *
  */
 
@@ -66,6 +88,30 @@ typedef struct
   long tot;
 } audio_index_entry_t;
 
+/* These next three are the video and audio structures that can grow
+ * during the playback of a streaming file. */
+
+typedef struct
+{
+  long   video_frames;      /* Number of video frames */
+  long   alloc_frames;      /* Allocated number of frames */
+  video_index_entry_t   *vindex;
+} video_index_t;
+
+typedef struct
+{
+  long   audio_chunks;      /* Chunks of audio data in the file */
+  long   alloc_chunks;      /* Allocated number of chunks */
+  audio_index_entry_t   *aindex;
+} audio_index_t;
+
+typedef struct
+{
+  off_t  nexttagoffset;     /* The offset into the AVI file where we expect */
+                            /* to find the next A/V frame */
+} idx_grow_t;
+
+
 typedef struct
 {
   long   dwScale_audio, dwRate_audio;
@@ -78,8 +124,6 @@ typedef struct
   long   a_rate;            /* Rate in Hz */
   long   a_bits;            /* bits per audio sample */
   long   audio_strn;        /* Audio stream number */
-  long   audio_bytes;       /* Total number of bytes of audio data */
-  long   audio_chunks;      /* Chunks of audio data in the file */
   char   audio_tag[4];      /* Tag of audio data */
   long   audio_posc;        /* Audio position: chunk */
   long   audio_posb;        /* Audio position: byte within chunk */
@@ -87,7 +131,7 @@ typedef struct
   char   *wavex;
   int    wavex_len;
 
-  audio_index_entry_t   *audio_index;
+  audio_index_t  audio_idx;
 
 } avi_audio_t;
 
@@ -100,7 +144,6 @@ typedef struct
 
   char   compressor[8];     /* Type of compressor, 4 bytes + padding for 0 byte */
   long   video_strn;        /* Video stream number */
-  long   video_frames;      /* Number of video frames */
   char   video_tag[4];      /* Tag of video data */
   long   video_posf;        /* Number of next frame to be read
 			       (if index present) */
@@ -109,6 +152,7 @@ typedef struct
 
   avi_audio_t		*audio[MAX_AUDIO_STREAMS];
   int			n_audio;
+  long   audio_tot;         /* Total number of audio bytes */
 
   uint32_t video_type;      /* BUF_VIDEO_xxx type */
 
@@ -116,7 +160,7 @@ typedef struct
   long                   n_idx;    /* number of index entries actually filled */
   long                   max_idx;  /* number of index entries actually allocated */
   unsigned char        (*idx)[16]; /* index entries (AVI idx1 tag) */
-  video_index_entry_t   *video_index;
+  video_index_t          video_idx;
   BITMAPINFOHEADER       bih;
   off_t                  movi_start;
 } avi_t;
@@ -150,6 +194,8 @@ typedef struct demux_avi_s {
   int                  send_end_buffers;
 
   char                 last_mrl[1024];
+
+  idx_grow_t           idx_grow;
 } demux_avi_t ;
 
 #define AVI_ERR_SIZELIM      1     /* The write of the data would exceed
@@ -193,6 +239,55 @@ typedef struct demux_avi_s {
                                       getIndex==0, but an operation has been
                                       performed that needs an index */
 
+/* Append an index entry for a newly-found video frame */
+static int video_index_append(avi_t *AVI, long pos, long len, long flags)
+{
+  video_index_t *vit = &(AVI->video_idx);
+
+  /* Make sure there's room */
+  if (vit->video_frames == vit->alloc_frames) {
+    long newalloc = vit->alloc_frames + 4096;
+    video_index_entry_t *newindex =
+      realloc(vit->vindex, newalloc*sizeof(video_index_entry_t));
+    if (!newindex) return -1;
+    vit->vindex = newindex;
+    vit->alloc_frames = newalloc;
+  }
+
+  /* Set the new index entry */
+  vit->vindex[vit->video_frames].pos = pos;
+  vit->vindex[vit->video_frames].len = len;
+  vit->vindex[vit->video_frames].flags = flags;
+  vit->video_frames += 1;
+
+  return 0;
+}
+
+/* Append an index entry for a newly-found audio frame */
+static int audio_index_append(avi_t *AVI, int stream, long pos, long len,
+    long tot)
+{
+  audio_index_t *ait = &(AVI->audio[stream]->audio_idx);
+
+  /* Make sure there's room */
+  if (ait->audio_chunks == ait->alloc_chunks) {
+    long newalloc = ait->alloc_chunks + 4096;
+    audio_index_entry_t *newindex =
+      realloc(ait->aindex, newalloc*sizeof(audio_index_entry_t));
+    if (!newindex) return -1;
+    ait->aindex = newindex;
+    ait->alloc_chunks = newalloc;
+  }
+
+  /* Set the new index entry */
+  ait->aindex[ait->audio_chunks].pos = pos;
+  ait->aindex[ait->audio_chunks].len = len;
+  ait->aindex[ait->audio_chunks].tot = tot;
+  ait->audio_chunks += 1;
+
+  return 0;
+}
+
 static unsigned long str2ulong(unsigned char *str)
 {
   return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
@@ -211,15 +306,103 @@ static void long2str(unsigned char *dst, int n)
   dst[3] = (n>>24)&0xff;
 }
 
+#define PAD_EVEN(x) ( ((x)+1) & ~1 )
+
+/* This is called periodically to check if there's more file now than
+ * there was before.  If there is, we constuct the index for (just) the
+ * new part, and append it to the index we've got so far. */
+void idx_grow(demux_avi_t *this)
+{
+  unsigned long n;
+  long i;
+  long ioff = 8;
+  char data[256];
+  off_t curpos = this->input->seek(this->input, 0, SEEK_CUR);
+  this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
+
+  while(1) {
+    if( this->input->read(this->input, data,8) != 8 )
+      break;
+    n = str2ulong(data+4);
+
+    /* The movi list may contain sub-lists, ignore them */
+
+    if(strncasecmp(data,"LIST",4)==0) {
+      this->idx_grow.nexttagoffset =
+	this->input->seek(this->input, 4,SEEK_CUR);
+      continue;
+    }
+
+    /* Check if we got a tag ##db, ##dc or ##wb */
+
+    if (strncasecmp(data, this->avi->video_tag, 3) == 0 &&
+	  (data[3]=='b' || data[3]=='B' || data[3]=='c' || data[3]=='C') ) {
+      long flags = AVIIF_KEYFRAME;
+      long pos = this->idx_grow.nexttagoffset + ioff;
+      long len = n;
+      if (video_index_append(this->avi, pos, len, flags) == -1) {
+	/* If we're out of memory, we just don't grow the index, but
+	 * nothing really bad happens. */
+      }
+    }
+    for(i=0; i < this->avi->n_audio; ++i) {
+      if (strncasecmp(data, this->avi->audio[i]->audio_tag, 4) == 0) {
+	long pos = this->idx_grow.nexttagoffset + ioff;
+	long len = n;
+	if (audio_index_append(this->avi, i, pos, len,
+	    this->avi->audio_tot) == -1) {
+	  /* As above. */
+	}
+        this->avi->audio_tot += len;
+      }
+    }
+
+    this->idx_grow.nexttagoffset =
+      this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
+  }
+  this->input->seek(this->input, curpos, SEEK_SET);
+
+}
+
+/* Fetch the current video index entry, growing the index if necessary. */
+static video_index_entry_t *video_cur_index_entry(demux_avi_t *this)
+{
+  avi_t *AVI = this->avi;
+  if (AVI->video_posf >= AVI->video_idx.video_frames) {
+    /* We don't have enough frames; see if the file's bigger yet. */
+    idx_grow(this);
+  }
+  if (AVI->video_posf >= AVI->video_idx.video_frames) {
+    /* We still don't have enough frames.  Oh, well. */
+    return NULL;
+  }
+  return &(AVI->video_idx.vindex[AVI->video_posf]);
+}
+
+/* Fetch the current audio index entry, growing the index if necessary. */
+static audio_index_entry_t *audio_cur_index_entry(demux_avi_t *this,
+    avi_audio_t *AVI_A)
+{
+  if (AVI_A->audio_posc >= AVI_A->audio_idx.audio_chunks) {
+    /* We don't have enough chunks; see if the file's bigger yet. */
+    idx_grow(this);
+  }
+  if (AVI_A->audio_posc >= AVI_A->audio_idx.audio_chunks) {
+    /* We still don't have enough chunks.  Oh, well. */
+    return NULL;
+  }
+  return &(AVI_A->audio_idx.aindex[AVI_A->audio_posc]);
+}
+
 static void AVI_close(avi_t *AVI)
 {
   int i;
 
   if(AVI->idx) free(AVI->idx);
-  if(AVI->video_index) free(AVI->video_index);
+  if(AVI->video_idx.vindex) free(AVI->video_idx.vindex);
 
   for(i=0; i<AVI->n_audio; i++) {
-    if(AVI->audio[i]->audio_index) free(AVI->audio[i]->audio_index);
+    if(AVI->audio[i]->audio_idx.aindex) free(AVI->audio[i]->audio_idx.aindex);
     if(AVI->audio[i]->wavex) free(AVI->audio[i]->wavex);
     free(AVI->audio[i]);
   }
@@ -232,8 +415,6 @@ do {			\
    free (AVI);  \
    return 0;		\
 } while(0)
-
-#define PAD_EVEN(x) ( ((x)+1) & ~1 )
 
 static int avi_sampsize(avi_t *AVI, int track)
 {
@@ -292,8 +473,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
   long i, n, idx_type;
   unsigned char *hdrl_data;
   long hdrl_len=0;
-  long nvi, nai[MAX_AUDIO_STREAMS], ioff;
-  long tot;
+  long ioff;
   int lasttag = 0;
   int vids_strh_seen = 0;
   int vids_strf_seen = 0;
@@ -327,6 +507,10 @@ static avi_t *AVI_init(demux_avi_t *this)  {
   hdrl_data = NULL;
 
   while(1) {
+
+    /* Keep track of where we try to read frames from. */
+    this->idx_grow.nexttagoffset =
+      this->input->seek(this->input, 0, SEEK_CUR);
 
     if (this->input->read(this->input, data,8) != 8 )
       break; /* We assume it's EOF */
@@ -411,7 +595,6 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
         this->video_step = (long) (90000.0 / AVI->fps);
 
-        AVI->video_frames    = str2ulong(hdrl_data+i+32);
         AVI->video_strn = num_stream;
         vids_strh_seen = 1;
         lasttag = 1; /* vids */
@@ -425,7 +608,6 @@ static avi_t *AVI_init(demux_avi_t *this)  {
           memset((void *)a,0,sizeof(avi_audio_t));
           AVI->audio[AVI->n_audio] = a;
 
-          a->audio_bytes   = str2ulong(hdrl_data+i+32)*avi_sampsize(AVI, AVI->n_audio);
           a->audio_strn    = num_stream;
           a->dwScale_audio = str2ulong(hdrl_data+i+20);
           a->dwRate_audio  = str2ulong(hdrl_data+i+24);
@@ -479,7 +661,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
   hdrl_data = NULL;
 
   /* somehow ffmpeg doesn't specify the number of frames here */
-  /* if (!vids_strh_seen || !vids_strf_seen || AVI->video_frames==0) { */
+  /* if (!vids_strh_seen || !vids_strf_seen || AVI->video_frames==0) */
   if (!vids_strh_seen || !vids_strf_seen)
     ERR_EXIT(AVI_ERR_NO_VIDS);
 
@@ -543,7 +725,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
   if(idx_type == 0) {
     /* we must search through the file to get the index */
 
-    this->input->seek(this->input, AVI->movi_start, SEEK_SET);
+    this->idx_grow.nexttagoffset =
+      this->input->seek(this->input, AVI->movi_start, SEEK_SET);
 
     AVI->n_idx = 0;
     i=0;
@@ -572,7 +755,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       /* The movi list may contain sub-lists, ignore them */
 
       if(strncasecmp(data,"LIST",4)==0) {
-        this->input->seek(this->input, 4,SEEK_CUR);
+	this->idx_grow.nexttagoffset =
+	  this->input->seek(this->input, 4,SEEK_CUR);
         continue;
       }
 
@@ -585,8 +769,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
         avi_add_index_entry(this, AVI, data, AVIIF_KEYFRAME, this->input->seek(this->input, 0, SEEK_CUR)-8, n);
       }
 
-      this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
-
+      this->idx_grow.nexttagoffset =
+	this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
     }
     printf ("\ndemux_avi: index recostruction done.\n");
     this->xine->osd_renderer->hide (this->xine->osd, 0);
@@ -595,54 +779,32 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
   /* Now generate the video index and audio index arrays */
 
-  nvi = 0;
-  memset((void *)nai,0,sizeof(long) * MAX_AUDIO_STREAMS);
+  /* Note that we no longer need to do two passes.  Technically, we
+   * don't even have to construct the idx, but we may as well use the
+   * one we were given, if in fact we were given one. */
 
-  for(i=0;i<AVI->n_idx;i++) {
-    if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0) nvi++;
-    for(n = 0; n < AVI->n_audio; n++)
-      if(strncasecmp(AVI->idx[i],AVI->audio[n]->audio_tag,4) == 0) nai[n]++;
-  }
-
-  AVI->video_frames = nvi;
-   for(n = 0; n < AVI->n_audio; n++)
-    AVI->audio[n]->audio_chunks = nai[n];
-
-  if (AVI->video_frames==0) {
-    ERR_EXIT(AVI_ERR_NO_VIDS) ;
-  }
-
-
-  AVI->video_index = (video_index_entry_t *) xine_xmalloc(nvi*sizeof(video_index_entry_t));
-  if(AVI->video_index==0) ERR_EXIT(AVI_ERR_NO_MEM) ;
-
-  for(n = 0; n < AVI->n_audio; n++)
-    if(AVI->audio[n]->audio_chunks) {
-      AVI->audio[n]->audio_index = (audio_index_entry_t *) xine_xmalloc(nai[n] * sizeof(audio_index_entry_t));
-      if(AVI->audio[n]->audio_index==0) ERR_EXIT(AVI_ERR_NO_MEM) ;
-    }
-
-  nvi = 0;
-  memset((void *)nai,0,sizeof(long) * MAX_AUDIO_STREAMS);
-  tot = 0;
+  AVI->audio_tot = 0;
   ioff = idx_type == 1 ? 8 : AVI->movi_start+4;
 
   for(i=0;i<AVI->n_idx;i++) {
     if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0)	{
-      AVI->video_index[nvi].pos   = str2ulong(AVI->idx[i]+ 8)+ioff;
-      AVI->video_index[nvi].len   = str2ulong(AVI->idx[i]+12);
-      AVI->video_index[nvi].flags = str2ulong(AVI->idx[i]+ 4);
-      nvi++;
-    }
-    for(n = 0; n < AVI->n_audio; n++)
-      if(strncasecmp(AVI->idx[i],AVI->audio[n]->audio_tag,4) == 0) {
-        AVI->audio[n]->audio_index[nai[n]].pos = str2ulong(AVI->idx[i]+ 8)+ioff;
-        AVI->audio[n]->audio_index[nai[n]].len = str2ulong(AVI->idx[i]+12);
-        AVI->audio[n]->audio_index[nai[n]].tot = tot;
-        AVI->audio[n]->audio_bytes += AVI->audio[n]->audio_index[nai[n]].len;
-        tot += AVI->audio[n]->audio_index[nai[n]].len;
-        nai[n]++;
+      long pos = str2ulong(AVI->idx[i]+ 8)+ioff;
+      long len = str2ulong(AVI->idx[i]+12);
+      long flags = str2ulong(AVI->idx[i]+4);
+      if (video_index_append(AVI, pos, len, flags) == -1) {
+	ERR_EXIT(AVI_ERR_NO_MEM) ;
       }
+    }
+    for(n = 0; n < AVI->n_audio; n++) {
+      if(strncasecmp(AVI->idx[i],AVI->audio[n]->audio_tag,4) == 0) {
+	long pos = str2ulong(AVI->idx[i]+ 8)+ioff;
+	long len = str2ulong(AVI->idx[i]+12);
+	if (audio_index_append(AVI, n, pos, len, AVI->audio_tot) == -1) {
+	  ERR_EXIT(AVI_ERR_NO_MEM) ;
+	}
+        AVI->audio_tot += len;
+      }
+    }
   }
 
 
@@ -672,8 +834,9 @@ static long AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
                            long bytes, int *buf_flags) {
 
   long nr, pos, left, todo;
+  audio_index_entry_t *aie = audio_cur_index_entry(this, AVI_A);
 
-  if(!AVI_A->audio_index)  {
+  if(!aie)  {
     this->AVI_errno = AVI_ERR_NO_IDX;   return -1;
   }
 
@@ -683,21 +846,26 @@ static long AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
 
 
   while(bytes>0) {
-    left = AVI_A->audio_index[AVI_A->audio_posc].len - AVI_A->audio_posb;
+    left = aie->len - AVI_A->audio_posb;
     if(left==0) {
       AVI_A->audio_posc++;
       AVI_A->audio_posb = 0;
+      aie = audio_cur_index_entry(this, AVI_A);
+      if (!aie) {
+	this->AVI_errno = AVI_ERR_NO_IDX;
+	return -1;
+      }
       if (nr>0) {
         *buf_flags = BUF_FLAG_FRAME_END;
         return nr;
       }
-      left = AVI_A->audio_index[AVI_A->audio_posc].len - AVI_A->audio_posb;
+      left = aie->len - AVI_A->audio_posb;
     }
     if(bytes<left)
       todo = bytes;
     else
       todo = left;
-    pos = AVI_A->audio_index[AVI_A->audio_posc].pos + AVI_A->audio_posb;
+    pos = aie->pos + AVI_A->audio_posb;
     /* printf ("demux_avi: read audio from %d\n", pos); */
     if (this->input->seek (this->input, pos, SEEK_SET)<0)
       return -1;
@@ -711,7 +879,7 @@ static long AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
     AVI_A->audio_posb += todo;
   }
 
-  left = AVI_A->audio_index[AVI_A->audio_posc].len - AVI_A->audio_posb;
+  left = aie->len - AVI_A->audio_posb;
   if (left==0)
     *buf_flags = BUF_FLAG_FRAME_END;
   else
@@ -724,8 +892,9 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
                            long bytes, int *buf_flags) {
 
   long nr, pos, left, todo;
+  video_index_entry_t *vie = video_cur_index_entry(this);
 
-  if (!AVI->video_index) {
+  if (!vie) {
     this->AVI_errno = AVI_ERR_NO_IDX;
     return -1;
   }
@@ -734,22 +903,27 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
 
   while(bytes>0) {
 
-    left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
+    left = vie->len - AVI->video_posb;
 
     if(left==0) {
       AVI->video_posf++;
       AVI->video_posb = 0;
+      vie = video_cur_index_entry(this);
+      if (!vie) {
+	this->AVI_errno = AVI_ERR_NO_IDX;
+	return -1;
+      }
       if (nr>0) {
         *buf_flags = BUF_FLAG_FRAME_END;
         return nr;
       }
-      left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
+      left = vie->len - AVI->video_posb;
     }
     if(bytes<left)
       todo = bytes;
     else
       todo = left;
-    pos = AVI->video_index[AVI->video_posf].pos + AVI->video_posb;
+    pos = vie->pos + AVI->video_posb;
     /* printf ("demux_avi: read video from %d\n", pos); */
     if (this->input->seek (this->input, pos, SEEK_SET)<0)
       return -1;
@@ -763,7 +937,7 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
     AVI->video_posb += todo;
   }
 
-  left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
+  left = vie->len - AVI->video_posb;
   if (left==0)
     *buf_flags = BUF_FLAG_FRAME_END;
   else
@@ -772,13 +946,14 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
   return nr;
 }
 
-static int64_t get_audio_pts (demux_avi_t *this, int track, long posc, long posb) {
+static int64_t get_audio_pts (demux_avi_t *this, int track, long posc,
+	long postot, long posb) {
 
   if (this->avi->audio[track]->dwSampleSize==0)
     return posc * (double) this->avi->audio[track]->dwScale_audio /
       this->avi->audio[track]->dwRate_audio * 90000.0;
   else
-    return (this->avi->audio[track]->audio_index[posc].tot+posb)/
+    return (postot+posb)/
       this->avi->audio[track]->dwSampleSize * (double) this->avi->audio[track]->dwScale_audio /
       this->avi->audio[track]->dwRate_audio * 90000.0;
 }
@@ -795,11 +970,16 @@ static int demux_avi_next (demux_avi_t *this) {
   int64_t        audio_pts, video_pts;
   int            do_read_video = (this->avi->n_audio == 0);
 
-  if (this->avi->video_frames <= this->avi->video_posf)
+  /* Try to grow the index, in case more of the avi file has shown up
+   * since we last checked. */
+  idx_grow(this);
+
+  /* If it's still too small, well then we're at the end. */
+  if (this->avi->video_idx.video_frames <= this->avi->video_posf)
     return 0;
 
   for (i=0; i < this->avi->n_audio; i++)
-    if (!this->no_audio && (this->avi->audio[i]->audio_chunks <= this->avi->audio[i]->audio_posc))
+    if (!this->no_audio && (this->avi->audio[i]->audio_idx.audio_chunks <= this->avi->audio[i]->audio_posc))
       return 0;
 
 
@@ -807,8 +987,14 @@ static int demux_avi_next (demux_avi_t *this) {
 
   for (i=0; i < this->avi->n_audio; i++) {
     avi_audio_t *audio = this->avi->audio[i];
+    audio_index_entry_t *aie = audio_cur_index_entry(this, audio);
 
-    audio_pts = get_audio_pts (this, i, audio->audio_posc, audio->audio_posb);
+    /* The tests above mean aie should never be NULL, but just to be
+     * safe. */
+    if (!aie) return 0;
+
+    audio_pts =
+      get_audio_pts (this, i, audio->audio_posc, aie->tot, audio->audio_posb);
     if (!this->no_audio && (audio_pts < video_pts)) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->content = buf->mem;
@@ -1010,6 +1196,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   uint32_t        video_pts = 0;
   int             err;
   unsigned char  *sub;
+  video_index_entry_t *vie = NULL;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -1054,15 +1241,18 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
   /* seek video */
   if (start_pos) {
-    while ( (this->avi->video_index[this->avi->video_posf].pos < start_pos)
-            || !(this->avi->video_index[this->avi->video_posf].flags & AVIIF_KEYFRAME) ) {
-      this->avi->video_posf++;
-      if (this->avi->video_posf>this->avi->video_frames) {
+    while (1) {
+      vie = video_cur_index_entry(this);
+      if (vie && (vie->pos >= start_pos) && (vie->flags & AVIIF_KEYFRAME) ) {
+	break;
+      }
+      if (!vie) {
         this->status = DEMUX_FINISHED;
 
         printf ("demux_avi: video seek to start failed\n");
         break;
       }
+      this->avi->video_posf++;
     }
 
     video_pts = get_video_pts (this, this->avi->video_posf);
@@ -1071,15 +1261,19 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
     video_pts = start_time * 90000;
 
-    while ( (get_video_pts (this, this->avi->video_posf) < video_pts)
-            || !(this->avi->video_index[this->avi->video_posf].flags & AVIIF_KEYFRAME) ) {
-      this->avi->video_posf++;
-      if (this->avi->video_posf>this->avi->video_frames) {
+    while (1) {
+      vie = video_cur_index_entry(this);
+      if (vie && (get_video_pts (this, this->avi->video_posf) >= video_pts)
+            && (vie->flags & AVIIF_KEYFRAME) ) {
+	break;
+      }
+      if (!vie) {
         this->status = DEMUX_FINISHED;
 
         printf ("demux_avi: video seek to start failed\n");
         break;
       }
+      this->avi->video_posf++;
     }
 
     video_pts = get_video_pts (this, this->avi->video_posf);
@@ -1089,14 +1283,21 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   /* seek audio */
   if (!this->no_audio && this->status == DEMUX_OK) {
     for(i=0; i < this->avi->n_audio; i++) {
-      while (get_audio_pts (this, i, this->avi->audio[i]->audio_posc, 0) < video_pts) {
-        this->avi->audio[i]->audio_posc++;
-        if (this->avi->audio[i]->audio_posc>this->avi->audio[i]->audio_chunks) {
+      while (1) {
+	audio_index_entry_t *aie =
+	  audio_cur_index_entry(this, this->avi->audio[i]);
+
+	if (aie && get_audio_pts(this, i, this->avi->audio[i]->audio_posc,
+	    aie->tot, 0) >= video_pts) {
+	  break;
+	}
+        if (!aie) {
           this->status = DEMUX_FINISHED;
 
           printf ("demux_avi: audio seek to start failed\n");
           break;
         }
+        this->avi->audio[i]->audio_posc++;
       }
     }
   }
@@ -1250,7 +1451,7 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 
     if (this->avi) {
 
-      printf ("demux_avi: %ld frames\n", this->avi->video_frames);
+      printf ("demux_avi: %ld frames\n", this->avi->video_idx.video_frames);
 
       strncpy(this->last_mrl, input->get_mrl (input), 1024);
 
@@ -1326,7 +1527,7 @@ static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
   if (this->avi) {
-    return get_video_pts(this, this->avi->video_frames) / 90000 ;
+    return get_video_pts(this, this->avi->video_idx.video_frames) / 90000 ;
   }
 
   return 0;
