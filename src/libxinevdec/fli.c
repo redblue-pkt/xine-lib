@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.26 2004/01/12 17:35:18 miguelfreitas Exp $
+ * $Id: fli.c,v 1.27 2004/02/09 22:04:11 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -427,6 +427,9 @@ static void fli_decode_data (video_decoder_t *this_gen,
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+    this->video_step = buf->decoder_info[0];
+  
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
 
@@ -437,7 +440,6 @@ static void fli_decode_data (video_decoder_t *this_gen,
     this->width = (LE_16(&buf->content[8]) + 1) & ~0x1;
     this->height = LE_16(&buf->content[10]);
     this->ratio = (double)this->width/(double)this->height;
-    this->video_step = buf->decoder_info[1];
     this->magic_number = LE_16(&buf->content[4]);
 
     this->ghost_image = xine_xmalloc(this->width * this->height);
@@ -466,9 +468,6 @@ static void fli_decode_data (video_decoder_t *this_gen,
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 

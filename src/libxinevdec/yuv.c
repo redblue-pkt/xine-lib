@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.29 2004/01/12 17:35:19 miguelfreitas Exp $
+ * $Id: yuv.c,v 1.30 2004/02/09 22:04:11 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -86,6 +86,11 @@ static void yuv_decode_data (video_decoder_t *this_gen,
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
+
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
 
@@ -96,9 +101,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     this->width = (bih->biWidth + 3) & ~0x03;
     this->height = (bih->biHeight + 3) & ~0x03;
 
-    this->video_step = buf->decoder_info[1];
-
-    this->progressive = buf->decoder_info[0];
+    this->progressive = buf->decoder_info[1];
     this->top_field_first = buf->decoder_info[2];    
             
     if(buf->decoder_info[3] && buf->decoder_info[4])
@@ -135,8 +138,6 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
     }
     
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
-    
     return;
   } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
@@ -148,9 +149,6 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 

@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.22 2004/01/12 17:35:18 miguelfreitas Exp $
+ * $Id: idcinvideo.c,v 1.23 2004/02/09 22:04:11 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -233,6 +233,11 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
         COMPUTE_V(palette[i].r, palette[i].g, palette[i].b);
     }
   }
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
 
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     xine_bmiheader *bih = (xine_bmiheader *)buf->content;
@@ -245,7 +250,6 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
     this->width = bih->biWidth;
     this->height = bih->biHeight;
     this->ratio = (double)this->width/(double)this->height;
-    this->video_step = buf->decoder_info[1];
 
     /* initialize the Huffman tables */
     histograms = (unsigned char *)buf->content + sizeof(xine_bmiheader);
@@ -280,9 +284,6 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 

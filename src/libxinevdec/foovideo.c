@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.21 2004/01/12 17:35:18 miguelfreitas Exp $
+ * $Id: foovideo.c,v 1.22 2004/02/09 22:04:11 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -92,6 +92,11 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
+  
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
 
@@ -102,7 +107,6 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
     this->width = bih->biWidth;
     this->height = bih->biHeight;
     this->ratio = (double)this->width/(double)this->height;
-    this->video_step = buf->decoder_info[1];
 
     if (this->buf)
       free (this->buf);
@@ -129,9 +133,6 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 

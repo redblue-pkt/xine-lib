@@ -22,7 +22,7 @@
  * suitable for display under xine. It's based on the rgb-decoder
  * and the development documentation from the Amiga Developer CD
  *
- * $Id: bitplane.c,v 1.1 2004/02/02 22:22:52 manfredtremmel Exp $
+ * $Id: bitplane.c,v 1.2 2004/02/09 22:04:11 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -155,6 +155,11 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
 
     return;
   }
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
 
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
@@ -167,7 +172,6 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
     this->width_decode                  = (bih->biWidth + 15) & ~0x0f;
     this->height                        = bih->biHeight;
     this->ratio                         = (double)this->width/(double)this->height;
-    this->video_step                    = buf->decoder_info[1];
     /* Palette based Formates use up to 8 Bit per pixel, always use 8 Bit if less */
     this->bytes_per_pixel               = (bih->biBitCount + 1) / 8;
     if( this->bytes_per_pixel < 1 )
@@ -229,9 +233,6 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size                         += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 

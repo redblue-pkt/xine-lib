@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.19 2004/01/12 17:35:19 miguelfreitas Exp $
+ * $Id: wc3video.c,v 1.20 2004/02/09 22:04:11 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -365,14 +365,17 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
         COMPUTE_V(palette[i].r, palette[i].g, palette[i].b);
     }
   }
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
 
     if(this->buf)
       free(this->buf);
-
-    this->video_step = buf->decoder_info[1];
 
     if (this->buf)
       free (this->buf);
@@ -400,9 +403,6 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 

@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.37 2004/01/12 17:35:18 miguelfreitas Exp $
+ * $Id: cinepak.c,v 1.38 2004/02/09 22:04:11 jstembridge Exp $
  */
 
 #include <stdlib.h>
@@ -387,13 +387,17 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         COMPUTE_V(palette[i].r, palette[i].g, palette[i].b);
     }
   }
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
 
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     xine_bmiheader *bih;
     int		    chroma_size;
 
     bih = (xine_bmiheader *) buf->content;
-    this->video_step = buf->decoder_info[1];
 
     this->width		= (bih->biWidth + 1) & ~0x1;
     this->height	= (bih->biHeight + 1) & ~0x1;
@@ -433,9 +437,6 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
