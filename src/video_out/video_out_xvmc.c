@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.14 2004/03/03 20:09:15 mroi Exp $
+ * $Id: video_out_xvmc.c,v 1.15 2004/04/26 17:50:11 mroi Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -1279,7 +1279,8 @@ static void xvmc_check_capability (xvmc_driver_t *this,
 				   int property, XvAttribute attr,
 				   int base_id, char *str_prop,
 				   char *config_name,
-				   char *config_desc) {
+				   char *config_desc,
+				   char *config_help) {
   int          int_default;
   cfg_entry_t *entry;
 
@@ -1304,13 +1305,13 @@ static void xvmc_check_capability (xvmc_driver_t *this,
     if ((attr.min_value == 0) && (attr.max_value == 1)) {
       this->config->register_bool (this->config, config_name, int_default,
 				   config_desc,
-				   NULL, 10, xvmc_property_callback, &this->props[property]);
+				   NULL, 20, xvmc_property_callback, &this->props[property]);
       
     } else {
       this->config->register_range (this->config, config_name, int_default,
 				    this->props[property].min, this->props[property].max,
 				    config_desc,
-				    NULL, 10, xvmc_property_callback, &this->props[property]);
+				    NULL, 20, xvmc_property_callback, &this->props[property]);
     }
 
     entry = this->config->lookup_entry (this->config, config_name);
@@ -1461,39 +1462,47 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 	if(!strcmp(attr[k].name, "XV_HUE")) {
 	  xvmc_check_capability (this, VO_PROP_HUE, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_HUE",
-				 NULL, NULL);
+				 NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
 	  xvmc_check_capability (this, VO_PROP_SATURATION, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_SATURATION",
-				 NULL, NULL);
+				 NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
 	  xvmc_check_capability (this, VO_PROP_BRIGHTNESS, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_BRIGHTNESS",
-				 NULL, NULL);
+				 NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
 	  xvmc_check_capability (this, VO_PROP_CONTRAST, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_CONTRAST",
-				 NULL, NULL);
+				 NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xvmc_check_capability (this, VO_PROP_COLORKEY, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_COLORKEY",
 				 "video.xv_colorkey",
-				 _("Colorkey used for Xv video overlay"));
+				 _("video overlay colour key"),
+			         _("The colour key is used to tell the graphics card where to "
+				   "overlay the video image. Try different values, if you experience "
+				   "windows becoming transparent."));
 
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 	  xvmc_check_capability (this, VO_PROP_AUTOPAINT_COLORKEY, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
-				 NULL, NULL);
+				 "video.xv_autopaint_colorkey",
+				 _("autopaint colour key"),
+				 _("Make Xv autopaint its colorkey."));
 
 	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
 	  int xvmc_double_buffer;
 	  xvmc_double_buffer = config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
-						      _("double buffer to sync video to the retrace"),
-						      NULL, 10, xvmc_update_XV_DOUBLE_BUFFER, this);
+	    _("enable double buffering"),
+	    _("Double buffering will synchronize the update of the video image to the "
+	      "repainting of the entire screen (\"vertical retrace\"). This eliminates "
+	      "flickering and tearing artifacts, but will use more graphics memory."),
+	    20, xvmc_update_XV_DOUBLE_BUFFER, this);
 	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xvmc_double_buffer);
 	}
       }
@@ -1549,10 +1558,35 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     XUnLockDisplay(this->display);
   */
   
-  this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
-						    deinterlace_methods, 
-						    _("Software deinterlace method (Key I toggles deinterlacer on/off)"),
-						    NULL, 10, xvmc_update_deinterlace, this);
+  this->deinterlace_method =
+    config->register_enum (config, "video.deinterlace_method", 4,
+			   deinterlace_methods, 
+			   _("deinterlace method"),
+			   _("From the old days of analog television, where the even and odd numbered "
+			     "lines of a video frame would be displayed at different times comes the "
+			     "idea to increase motion smoothness by also recording the lines at "
+			     "different times. This is called \"interlacing\". But unfortunately, "
+			     "todays displays show the even and odd numbered lines as one complete frame "
+			     "all at the same time (called \"progressive display\"), which results in "
+			     "ugly frame errors known as comb artifacts. Software deinterlacing is an "
+			     "approach to reduce these artifacts. The individual values are:\n\n"
+			     "none\n"
+			     "Disables software deinterlacing.\n\n"
+			     "bob\n"
+			     "Interpolates between the lines for moving parts of the image.\n\n"
+			     "weave\n"
+			     "Similar to bob, but with a tendency to preserve the full resolution, "
+			     "better for high detail in low movement scenes.\n\n"
+			     "greedy\n"
+			     "Very good adaptive deinterlacer, but needs a lot of CPU power.\n\n"
+			     "onefield\n"
+			     "Always interpolates and reduces vertical resolution.\n\n"
+			     "onefieldxv\n"
+			     "Same as onefield, but does the interpolation in hardware.\n\n"
+			     "linearblend\n"
+			     "Applies a slight vertical blur to remove the comb artifacts. Good results "
+			     "with medium CPU usage."),
+			   10, xvmc_update_deinterlace, this);
 
   this->deinterlace_enabled = 1;  /* default is enabled */
   lprintf("deinterlace_methods %d ",this->deinterlace_method);

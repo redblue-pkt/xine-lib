@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.171 2004/04/07 18:07:25 mroi Exp $
+ * $Id: audio_out.c,v 1.172 2004/04/26 17:50:12 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1843,7 +1843,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   int              i, err;
   pthread_attr_t   pth_attrs;
   static     char *resample_modes[] = {"auto", "off", "on", NULL};
-  static     char *av_sync_methods[] = {"metronom_feedback", "resample", NULL};
+  static     char *av_sync_methods[] = {"metronom feedback", "resample", NULL};
 
   this = xine_xmalloc (sizeof (aos_t)) ;
 
@@ -1883,26 +1883,59 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 
   this->av_sync_method_conf = config->register_enum(config, "audio.av_sync_method", 0,
                                                     av_sync_methods,
-                                                    _("choose method to sync audio and video"),
-                                                    _("'resample' might be better if you use a "
-                                                      "DXR3/H+ card and (analog) audio is "
-                                                      "processed by your sound card"),
-                                                    30, ao_update_av_sync_method, this);
+                                                    _("method to sync audio and video"),
+						    _("When playing audio and video, there are at least "
+						      "two clocks involved: The system clock, to which "
+						      "video frames are synchronized and the clock "
+						      "in your sound hardware, which determines the "
+						      "speed of the audio playback. These clocks are "
+						      "never ticking at the same speed except for some "
+						      "rare cases where they are physically identical. "
+						      "In general, the two clocks will run drift after "
+						      "some time, for which xine offers two ways to "
+						      "keep audio and video synchronized:\n\n"
+						      "metronom feedback\n"
+						      "This is the standard method, which applies a "
+						      "countereffecting video drift, as soon as the audio "
+						      "drift has accumulated over a threshold.\n\n"
+						      "resample\n"
+						      "For some video hardware, which is limited to a "
+						      "fixed frame rate (like the DXR3 or other decoder "
+						      "cards) the above does not work, because the video "
+						      "cannot drift. Therefore we resample the audio "
+						      "stream to make it longer or shorter to compensate "
+						      "the audio drift error. This does not work for "
+						      "digital passthrough, where audio data is passed to "
+						      "an external decoder in digital form."),
+                                                    20, ao_update_av_sync_method, this);
   config->update_num(config,"audio.av_sync_method",this->av_sync_method_conf);
   
   this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
 					       resample_modes,
-					       _("adjust whether resampling is done or not"),
-					       NULL, 20, NULL, NULL);
+					       _("enable resampling"),
+					       _("When the sample rate of the decoded audio does not "
+						 "match the capabilities of your sound hardware, an "
+						 "adaptation called \"resampling\" is required. Here you "
+						 "can select, whether resampling is enabled, disabled or "
+						 "used automatically when necessary."),
+					       20, NULL, NULL);
   this->force_rate    = config->register_num (config, "audio.force_rate", 0,
-					      _("if !=0 always resample to given rate"),
-					      NULL, 20, NULL, NULL);
+					      _("always resample to this rate (0 to disable)"),
+					      _("Some audio drivers do not correctly announce the "
+						"capabilities of the audio hardware. By setting a "
+						"value other than zero here, you can force the audio "
+						"stream to be resampled to the given rate."),
+					      20, NULL, NULL);
 
   this->passthrough_offset = config->register_num (config,
 						   "audio.passthrough_offset",
 						   0,
-						   _("adjust if audio is offsync"),
-						   NULL, 10, NULL, NULL);
+						   _("offset for digital passthrough"),
+						   _("If you use an external surround decoder and "
+						     "audio is ahead or behind video, you can enter "
+						     "a fixed offset here to compensate.\nThe unit of "
+						     "the value is one PTS tick, which is the 90000th "
+						     "part of a second."), 10, NULL, NULL);
 
   this->compression_factor     = 2.0;
   this->compression_factor_max = 0.0;
@@ -1968,13 +2001,13 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
     int vol;
     
     vol = config->register_range (config, "audio.mixer_volume", 
-				  50, 0, 100, _("Audio volume"), 
-				  NULL, 0, NULL, NULL);
+				  50, 0, 100, _("startup audio volume"), 
+				  _("The overall audio volume set at xine startup."), 10, NULL, NULL);
     
     if(config->register_bool (config, "audio.remember_volume", 0,
 			      _("restore volume level at startup"), 
-			      _("if this not set, xine will not touch any mixer settings at startup"),
-			      0, NULL, NULL)) {
+			      _("If disabled, xine will not modify any mixer settings at startup."),
+			      10, NULL, NULL)) {
       int prop = 0;
 
       if((ao_get_capabilities(&this->ao)) & AO_CAP_MIXER_VOL)

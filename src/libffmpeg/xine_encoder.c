@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.12 2004/04/15 15:49:56 mroi Exp $
+ * $Id: xine_encoder.c,v 1.13 2004/04/26 17:50:07 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -151,23 +151,31 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* put sample parameters */
   this->context->bit_rate = drv->class->xine->config->register_range(drv->class->xine->config,
     "dxr3.lavc_bitrate", 10000, 1000, 20000,
-    _("Dxr3enc: libavcodec mpeg output bitrate (kbit/s)"),
-    _("The bitrate the libavcodec mpeg encoder should use for dxr3's encoding mode"), 10,
-    NULL, NULL);
+    _("libavcodec mpeg output bitrate (kbit/s)"),
+    _("The bitrate the libavcodec mpeg encoder should use for DXR3's encoding mode. 
+      "Higher values will increase quality and CPU usage.\n"
+      "This setting is only considered, when constant quality mode is disabled."), 10, NULL, NULL);
     this->context->bit_rate *= 1000; /* config in kbit/s, libavcodec wants bit/s */
     
   use_quantizer = drv->class->xine->config->register_bool(drv->class->xine->config,
     "dxr3.lavc_quantizer", 1,
-    _("Dxr3enc: Use quantizer instead of bitrate"),NULL, 0, NULL, NULL);
+    _("constant quality mode"),
+    _("When enabled, libavcodec will use a constant quality mode by danymically "
+      "compressing the images based on their complexity. When disabled, libavcodec "
+      "will use constant bitrate mode."), 10, NULL, NULL);
 
   if (use_quantizer) {        
     this->context->qmin = drv->class->xine->config->register_range(drv->class->xine->config,
     "dxr3.lavc_qmin", 1, 1, 10,
-    _("Dxr3enc: Minimum quantizer"),NULL , 10, NULL, NULL);
+    _("minimum compression"),
+    _("The minimum compression to apply to an image in constant quality mode."),
+    10, NULL, NULL);
      
     this->context->qmax = drv->class->xine->config->register_range(drv->class->xine->config,
     "dxr3.lavc_qmax", 2, 1, 20,
-    _("Dxr3enc: Maximum quantizer"),NULL, 10, NULL, NULL);  
+    _("maximum quantizer"),
+    _("The maximum compression to apply to an image in constant quality mode."),
+    10, NULL, NULL);  
   }
 
 #if LOG_ENC

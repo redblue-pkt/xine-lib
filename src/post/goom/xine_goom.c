@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.50 2004/04/17 19:54:31 mroi Exp $
+ * $Id: xine_goom.c,v 1.51 2004/04/26 17:50:09 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -51,7 +51,7 @@
 /* colorspace conversion methods */
 const char * goom_csc_methods[]={
   "Fast but not photorealistic",
-  "Slow but looks better (mmx)",
+  "Slow but looks better",
   NULL
 };
 
@@ -193,22 +193,28 @@ static void *goom_init_plugin(xine_t *xine, void *data)
   cfg = xine->config;
 
   cfg->register_num (cfg, "post.goom_fps", FPS,
-                                 _("Frames per second to generate with Goom"),
-                                 NULL, 10, fps_changed_cb, this);
+                                 _("frames per second to generate"),
+                                 _("With more frames per second, the animation will get "
+				   "smoother and faster, but will also require more CPU power."),
+				 10, fps_changed_cb, this);
 
   cfg->register_num (cfg, "post.goom_width", GOOM_WIDTH,
-                                   _("Goom image width in pixels"),
-                                   NULL, 20, width_changed_cb, this);
+                                   _("goom image width"),
+				   _("The width in pixels of the image to be generated."),
+                                   10, width_changed_cb, this);
   
   cfg->register_num (cfg, "post.goom_height", GOOM_HEIGHT,
-                                    _("Goom image height in pixels"),
-                                    NULL, 20, height_changed_cb, this);
+                                    _("goom image height"),
+				    _("The height in pixels of the image to be generated."),
+                                    10, height_changed_cb, this);
   
 
   cfg->register_enum (cfg, "post.goom_csc_method", 0,
                            (char **)goom_csc_methods,
-                           _("Colorspace conversion method used by Goom"),
-                           NULL, 20, csc_method_changed_cb, this);
+                           _("colorspace conversion method"),
+                           _("You can choose the colorspace conversion method used by goom.\n"
+			     "The available selections should be self-explaining."),
+			   20, csc_method_changed_cb, this);
 
   return &this->class;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.69 2004/03/16 14:12:04 mroi Exp $
+ * $Id: xine_decoder.c,v 1.70 2004/04/26 17:50:07 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -60,7 +60,7 @@ typedef struct {
   config_values_t *config;
   
   float            a52_level;
-  int              disable_dynrng;
+  int              disable_dynrng_compress;
   int              enable_surround_downmix;
   
 } a52dec_class_t;
@@ -145,6 +145,12 @@ static const struct frmsize_s frmsizecod_tbl[64] =
   { 640 ,{1280 ,1394 ,1920 } }
 };
 
+/* config callbacks */
+static void a52_level_change_cb(void *this_gen, xine_cfg_entry_t *entry);
+static void dynrng_compress_change_cb(void *this_gen, xine_cfg_entry_t *entry);
+static void surround_downmix_change_cb(void *this_gen, xine_cfg_entry_t *entry);
+
+
 static void a52dec_reset (audio_decoder_t *this_gen) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
@@ -226,7 +232,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
       return;
     }
 
-    if (this->class->disable_dynrng)
+    if (this->class->disable_dynrng_compress)
       a52_dynrng (this->a52_state, NULL, NULL);
 
     this->have_lfe = a52_output_flags & A52_LFE;
@@ -770,18 +776,49 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
 						 0, 200,
-						 _("a/52 volume control"),
-						 NULL, 0, NULL, NULL) / 100.0;
-  this->disable_dynrng = !cfg->register_bool (cfg, "codec.a52_dynrng", 0,
-					      _("enable a/52 dynamic range compensation"),
-					      NULL, 0, NULL, NULL);
+						 _("A/52 volume"),
+						 _("With A/52 audio, you can modify the volume "
+						   "at the decoder level. This has the advantage "
+						   "of the audio being already decoded for the "
+						   "specified volume, so later operations like "
+						   "channel downmixing will work on an audio stream "
+						   "of the given volume."),
+						 10, a52_level_change_cb, this) / 100.0;
+  this->disable_dynrng_compress = !cfg->register_bool (cfg, "codec.a52_dynrng", 0,
+						_("use A/52 dynamic range compression"),
+						_("Dynamic range compression limits the dynamic "
+						  "range of the audio. This means making the loud "
+						  "sounds softer, and the soft sounds louder, so you can "
+						  "more easily listen to the audio in a noisy "
+						  "environment without disturbing anyone."),
+						0, dynrng_compress_change_cb, this);
   this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
-						      _("enable audio downmixing to 2.0 surround stereo"),
-						      NULL, 0, NULL, NULL);
-  
-  
+						_("downmix audio to 2 channel surround stereo"),
+						_("When you want to listen to multichannel surround "
+						  "sound, but you have only two speakers or a "
+						  "surround decoder or amplifier which does some "
+						  "sort of matrix surround decoding like prologic, "
+						  "you should enable this option so that the "
+						  "additional channels are mixed into the stereo "
+						  "signal."),
+						0, surround_downmix_change_cb, this);
   lprintf ("init_plugin called\n");
   return this;
+}
+
+static void a52_level_change_cb(void *this_gen, xine_cfg_entry_t *entry)
+{
+  ((a52dec_class_t *)this_gen)->a52_level = entry->num_value / 100.0;
+}
+
+static void dynrng_compress_change_cb(void *this_gen, xine_cfg_entry_t *entry)
+{
+  ((a52dec_class_t *)this_gen)->disable_dynrng_compress = !entry->num_value;
+}
+
+static void surround_downmix_change_cb(void *this_gen, xine_cfg_entry_t *entry)
+{
+  ((a52dec_class_t *)this_gen)->enable_surround_downmix = entry->num_value;
 }
 
 

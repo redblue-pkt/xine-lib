@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.14 2004/04/19 21:18:01 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.15 2004/04/26 17:50:07 mroi Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1209,8 +1209,14 @@ void *init_video_plugin (xine_t *xine, void *data) {
   config = xine->config;
   
   this->pp_quality = xine->config->register_range(config, "codec.ffmpeg_pp_quality", 3, 
-    0, PP_QUALITY_MAX,  _("ffmpeg mpeg-4 postprocessing quality"), NULL,
-    10, pp_quality_cb, this);  
+    0, PP_QUALITY_MAX,
+    _("MPEG-4 postprocessing quality"),
+    _("You can adjust the amount of post processing applied to MPEG-4 video.\n"
+      "Higher values result in better quality, but need more CPU. Lower values may "
+      "result in image defects like block artifacts. For high quality content, "
+      "too heavy post processing can actually make the image worse by blurring it "
+      "too much."),
+    10, pp_quality_cb, this);
   
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.79 2004/04/07 18:10:20 valtri Exp $
+ * $Id: xine_decoder.c,v 1.80 2004/04/26 17:50:08 mroi Exp $
  *
  */
 
@@ -670,28 +670,44 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 			      "misc.spu_subtitle_size", 
 			       1,
 			       subtitle_size_strings,
-			       _("Subtitle size (relative window size)"), 
-			       NULL, 0, update_subtitle_size, this);
+			       _("subtitle size"),
+			       _("You can adjust the subtitle size here. The setting will "
+			         "be evaluated relative to the window size."),
+			       0, update_subtitle_size, this);
   this->vertical_offset  = xine->config->register_num(xine->config,
 			      "misc.spu_vertical_offset", 
 			      0,
-			      _("Subtitle vertical offset (relative window size)"), 
-			      NULL, 0, update_vertical_offset, this);
-  strcpy(this->font,       xine->config->register_string(xine->config, 
-				"misc.spu_font", 
-				"sans", 
-				_("Font for external subtitles"), 
-				NULL, 0, update_osd_font, this));
+			      _("subtitle vertical offset"),
+			      _("You can adjust the vertical position of the subtitle. "
+			        "The setting will be evaluated relative to the window size."),
+			      0, update_vertical_offset, this);
+  strcpy(this->font, xine->config->register_string(xine->config,
+				"misc.spu_font",
+				"sans",
+				_("font for subtitles"),
+				_("A font from the xine font directory to be used for the "
+				  "subtitle text."),
+				10, update_osd_font, this));
   this->src_encoding  = xine->config->register_string(xine->config, 
 				"misc.spu_src_encoding", 
-				"iso-8859-1", 
-				_("Encoding of subtitles"), 
-				NULL, 10, update_src_encoding, this);
-  this->use_unscaled  = xine->config->register_bool(xine->config, 
-			      "misc.spu_use_unscaled_osd", 
+				"iso-8859-1",
+				_("encoding of the subtitles"),
+				_("The encoding of the subtitle text in the stream. This setting "
+				  "is used to render non-ASCII characters correctly. If non-ASCII "
+				  "charachters are not displayed as you expect, ask the "
+				  "creator of the subtitles what encoding was used."),
+				10, update_src_encoding, this);
+  this->use_unscaled  = xine->config->register_bool(xine->config,
+			      "misc.spu_use_unscaled_osd",
 			       1,
-			       _("Use unscaled OSD if possible"), 
-			       NULL, 0, update_use_unscaled, this);
+			       _("use unscaled OSD if possible"),
+			       _("The unscaled OSD will be rendered independently of the video "
+				 "frame and will always be sharp, even if the video is magnified. "
+				 "This will look better, but does not work with all graphics "
+				 "hardware. The alternative is the scaled OSD, which will become "
+				 "blurry, if you enlarge a low resolution video to fullscreen, but "
+				 "it works with all graphics cards."),
+			       10, update_use_unscaled, this);
 
   return &this->class;
 }

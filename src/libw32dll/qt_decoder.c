@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.34 2004/03/16 14:12:04 mroi Exp $
+ * $Id: qt_decoder.c,v 1.35 2004/04/26 17:50:08 mroi Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -613,10 +613,15 @@ static void *qta_init_class (xine_t *xine, void *data) {
   this->decoder_class.dispose         = qta_dispose_class;
 
   cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "codec.win32_path", 
-					 WIN32_PATH,
-					 _("path to win32 codec dlls"),
-					 NULL, 0, NULL, NULL);
+  win32_def_path = cfg->register_string (cfg, "codec.win32_path", WIN32_PATH,
+					 _("path to Win32 codecs"),
+					 _("If you have the Windows or Apple Quicktime codec packs "
+					   "installed, specify the path the codec directory here. "
+					   "If xine can find the Windows or Apple Quicktime codecs, "
+					   "it will use them to decode various Windows Media and "
+					   "Quicktime streams for you. Consult the xine FAQ for "
+					   "more information on how to install the codecs."),
+					 10, NULL, NULL);
 
   return this;
 }
@@ -1128,8 +1133,14 @@ static void *qtv_init_class (xine_t *xine, void *data) {
   config_values_t    *cfg = xine->config; 
 
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", WIN32_PATH,
-					 _("path to win32 codec dlls"),
-					 NULL, 0, NULL, NULL);
+					 _("path to Win32 codecs"),
+					 _("If you have the Windows or Apple Quicktime codec packs "
+					   "installed, specify the path the codec directory here. "
+					   "If xine can find the Windows or Apple Quicktime codecs, "
+					   "it will use them to decode various Windows Media and "
+					   "Quicktime streams for you. Consult the xine FAQ for "
+					   "more information on how to install the codecs."),
+					 10, NULL, NULL);
 
   lprintf ("%s...\n", __XINE_FUNCTION__);
 

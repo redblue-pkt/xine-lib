@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.5 2004/04/25 15:05:31 komadori Exp $
+ * $Id: video_out_pgx32.c,v 1.6 2004/04/26 17:50:10 mroi Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -753,7 +753,14 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
   class->instance_count++;
   pthread_mutex_unlock(&class->mutex);
 
-  devname = class->config->register_string(class->config, "video.pgx32_device", "/dev/fb", _("path to pgx32 device"), NULL, 10, NULL, NULL);
+  devname = class->config->register_string(class->config, "video.pgx32_device", "/dev/fb",
+    _("PGX32 device name"),
+    _("Specifies the file name for the PGX32 device to be used.\n"
+      "This setting is security critical, because when changed to a different file, xine "
+      "can be used to fill this file with arbitrary content. So you should be careful that "
+      "the value you enter really is a proper PGX32 device."),
+    XINE_CONFIG_SECURITY, NULL, NULL);
+  
   if ((fbfd = open(devname, O_RDWR)) < 0) {
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: can't open framebuffer device '%s'\n"), devname);
     return NULL;

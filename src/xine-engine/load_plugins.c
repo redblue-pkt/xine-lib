@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.174 2004/04/11 14:51:20 mroi Exp $
+ * $Id: load_plugins.c,v 1.175 2004/04/26 17:50:12 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -303,6 +303,7 @@ static void _insert_plugin (xine_t *this,
   uint32_t          *types;
   int                priority = 0;
   char               key[80];
+  char               desc[100];
   int                i;
 
   if (info->API != api_version) {
@@ -359,13 +360,14 @@ static void _insert_plugin (xine_t *this,
     priority = decoder_new->priority = decoder_old->priority;
     
     sprintf(key, "decoder.%s_priority", info->id);
+    sprintf(desc, _("priority for decoder %s"), info->id);
     this->config->register_num (this->config,
 				key,
 				0,
-				"decoder's priority compared to others",
-				"The priority provides a ranking in case some media "
-				"can be handled by more than one decoder.\n"
-				"A priority of 0 enables the decoder's default priority.", 20,
+				desc,
+				_("The priority provides a ranking in case some media "
+				  "can be handled by more than one decoder.\n"
+				  "A priority of 0 enables the decoder's default priority."), 20,
 				_decoder_priority_cb, (void *)this);
 
     /* reset priority on old config files */

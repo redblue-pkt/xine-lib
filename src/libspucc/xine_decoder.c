@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.28 2003/12/14 22:13:24 siggi Exp $
+ * $Id: xine_decoder.c,v 1.29 2004/04/26 17:50:08 mroi Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -218,41 +218,46 @@ static void spucc_register_cfg_vars(spucc_decoder_t *this,
 				    config_values_t *xine_cfg) {
   cc_config_t *cc_vars = &this->cc_cfg;
 
-  cc_vars->cc_enabled = xine_cfg->register_bool(xine_cfg, 
+  cc_vars->cc_enabled = xine_cfg->register_bool(xine_cfg,
 						"misc.cc_enabled", 0,
-						_("Enable closed captions in MPEG-2 streams"),
-						NULL, 0, spucc_cfg_enable_change,
-						this);
+						_("display closed captions in MPEG-2 streams"),
+						_("Closed captions are subtitles mostly meant "
+						  "to help the hearing impaired."),
+						0, spucc_cfg_enable_change, this);
   
   cc_vars->cc_scheme = xine_cfg->register_enum(xine_cfg,
 					       "misc.cc_scheme", 0,
 					       cc_schemes,
-					       _("Closed-captioning foreground/background scheme"),
-					       NULL, 10, spucc_cfg_scheme_change,
-					       this);
+					       _("closed-captioning foreground/background scheme"),
+					       _("Choose your favourite rendering of the closed "
+					         "captions."),
+					       10, spucc_cfg_scheme_change, this);
   
   copy_str(cc_vars->font, 
 	   xine_cfg->register_string(xine_cfg, "misc.cc_font", "cc",
-				     _("Standard closed captioning font"),
-				     NULL, 10, spucc_font_change, this),
+				     _("standard closed captioning font"),
+				     _("Choose the font for standard closed captions text."),
+				     20, spucc_font_change, this),
 	   CC_FONT_MAX);
   
   copy_str(cc_vars->italic_font,
 	   xine_cfg->register_string(xine_cfg, "misc.cc_italic_font", "cci",
-				     _("Italic closed captioning font"),
-				     NULL, 10, spucc_font_change, this),
+				     _("italic closed captioning font"),
+				     _("Choose the font for italic closed captions text."),
+				     20, spucc_font_change, this),
 	   CC_FONT_MAX);
   
   cc_vars->font_size = xine_cfg->register_num(xine_cfg, "misc.cc_font_size",
 					      24,
-					      _("Closed captioning font size"),
-					      NULL, 10, spucc_num_change,
-					      this);
+					      _("closed captioning font size"),
+					      _("Choose the font size for closed captions text."),
+					      10, spucc_num_change, this);
   
   cc_vars->center = xine_cfg->register_bool(xine_cfg, "misc.cc_center", 1,
-					    _("Center-adjust closed captions"),
-					    NULL, 10, spucc_num_change,
-					    this);
+					    _("center-adjust closed captions"),
+					    _("When enabled, closed captions will be positioned "
+					      "by the center of the individual lines."),
+					    20, spucc_num_change, this);
 }
 
 

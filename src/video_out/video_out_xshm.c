@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.129 2004/04/10 15:31:10 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.130 2004/04/26 17:50:11 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1062,9 +1062,13 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   
   this->sc.user_ratio       = XINE_VO_ASPECT_AUTO;
   
-  this->sc.scaling_disabled = config->register_bool (config, "video.disable_scaling", 0,
-						     _("disable all video scaling (faster!)"),
-						     NULL, 10, NULL, NULL);
+  this->sc.scaling_disabled =
+    config->register_bool(config, "video.disable_scaling", 0,
+			  _("disable all video scaling"),
+			  _("You can disable video scaling globally. The image will then no longer "
+			    "adapt to the size of the video window, which can dramatically "
+			    "reduce CPU usage."),
+			  10, NULL, NULL);
   this->drawable	    = visual->d;
   this->cur_frame           = NULL;
   XLockDisplay(this->display);
@@ -1217,8 +1221,12 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   this->yuv2rgb_swap  = swapped;
   this->yuv2rgb_brightness = config->register_range (config, "video.xshm_gamma", 0,
 						     -128, 127,
-						     _("gamma correction for XShm driver"),
-						     NULL, 0, NULL, NULL);
+						     _("brightness correction"),
+						     _("The brightness correction can be used to "
+						       "lighten or darken the image. It changes the "
+						       "blacklevel without modifying the contrast, "
+						       "but it limits the tonal range."),
+						     0, NULL, NULL);
   this->yuv2rgb_contrast = 128;
   this->yuv2rgb_saturation = 128;
   

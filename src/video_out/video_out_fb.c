@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.35 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_fb.c,v 1.36 2004/04/26 17:50:09 mroi Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -126,7 +126,7 @@ typedef struct fb_driver_s
 	
   int                yuv2rgb_mode;
   int                yuv2rgb_swap;
-  int                yuv2rgb_gamma;
+  int                yuv2rgb_brightness;
   uint8_t           *yuv2rgb_cmap;
   yuv2rgb_factory_t *yuv2rgb_factory;
 
@@ -616,7 +616,7 @@ static int fb_get_property(vo_driver_t *this_gen, int property)
       return this->sc.user_ratio;
 
     case VO_PROP_BRIGHTNESS:
-      return this->yuv2rgb_gamma;
+      return this->yuv2rgb_brightness;
 
     case VO_PROP_WINDOW_WIDTH:
       return this->sc.gui_width;
@@ -647,10 +647,10 @@ static int fb_set_property(vo_driver_t *this_gen, int property, int value)
       break;
 
     case VO_PROP_BRIGHTNESS:
-      this->yuv2rgb_gamma = value;
+      this->yuv2rgb_brightness = value;
       this->yuv2rgb_factory->
 	set_csc_levels(this->yuv2rgb_factory, value, 128, 128);
-      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_fb: gamma changed to %d\n", value);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_fb: brightness changed to %d\n", value);
       break;
 
     default:
@@ -771,9 +771,17 @@ static int open_fb_device(config_values_t *config, xine_t *xine)
   char *device_name;
   int fd;
 
+  /* This config entry is security critical, is it really necessary
+   * or is a number enough? */
   device_name = config->register_string(config, devkey, "",
-					_("framebuffer device"),
-					NULL, 10, NULL, NULL);
+					_("framebuffer device name"),
+					_("Specifies the file name for the framebuffer device "
+					  "to be used.\nThis setting is security critical, "
+					  "because when changed to a different file, xine "
+					  "can be used to fill this file with arbitrary content. "
+					  "So you should be careful that the value you enter "
+					  "really is a proper framebuffer device."),
+					XINE_CONFIG_SECURITY, NULL, NULL);
   if(strlen(device_name) > 3)
   {
     fd = open(device_name, O_RDWR);
@@ -854,17 +862,20 @@ static int setup_yuv2rgb(fb_driver_t *this, config_values_t *config,
     return 0;
 
   this->yuv2rgb_swap  = 0;
-  this->yuv2rgb_gamma =
+  this->yuv2rgb_brightness =
     config->register_range(config, "video.fb_gamma", 0,
-			   -100, 100, 
-			   "gamma correction for fb driver",
-			   NULL, 0, NULL, NULL);
+			   -100, 100,
+			   _("brightness correction"),
+			   _("The brightness correction can be used to lighten or darken the image. "
+			     "It changes the blacklevel without modifying the contrast, but it "
+			     "limits the tonal range."),
+			   0, NULL, NULL);
 
   this->yuv2rgb_factory = yuv2rgb_factory_init(this->yuv2rgb_mode,
 					       this->yuv2rgb_swap, 
 					       this->yuv2rgb_cmap);
   this->yuv2rgb_factory->set_csc_levels(this->yuv2rgb_factory,
-					this->yuv2rgb_gamma, 128, 128);
+					this->yuv2rgb_brightness, 128, 128);
   
   return 1;
 }
@@ -979,8 +990,11 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
 
   this->sc.scaling_disabled =
     config->register_bool(config, "video.disable_scaling", 0,
-			  _("disable all video scaling (faster!)"),
-			  NULL, 10, NULL, NULL);
+			  _("disable all video scaling"),
+			  _("You can disable video scaling globally. The image will then no longer "
+			    "adapt to the size of the video window, which can dramatically "
+			    "reduce CPU usage."),
+			  10, NULL, NULL);
   
   setup_buffers(this, &this->fb_var);
 

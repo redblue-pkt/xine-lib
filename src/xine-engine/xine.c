@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.290 2004/04/16 16:34:22 hadess Exp $
+ * $Id: xine.c,v 1.291 2004/04/26 17:50:13 mroi Exp $
  */
 
 /*
@@ -1459,9 +1459,18 @@ void xine_init (xine_t *this) {
   this->demux_strategy  = this->config->register_enum (
       this->config, "misc.demux_strategy", 0,
       demux_strategies,
-      _("Media format detection strategy"),
-      NULL, 
-      10, __config_demux_strategy_cb, this);
+      _("media format detection strategy"),
+      _("xine offers various methods to detect the media format of input to play. "
+	"The individual values are:\n\n"
+	"default\n"
+	"First try to detect by content, then by file name extension.\n\n"
+	"reverse\n"
+	"First try to detect by file name extension, then by content.\n\n"
+	"content\n"
+	"Detect by content only.\n\n"
+	"extension\n"
+	"Detect by file name extension only.\n"),
+      20, __config_demux_strategy_cb, this);
 
   /*
    * save directory
@@ -1469,8 +1478,11 @@ void xine_init (xine_t *this) {
   this->save_path  = this->config->register_string (
       this->config, 
       "misc.save_dir", "",
-      _("Path for saving streams"),
-      _("Streams will be saved only into this directory"),
+      _("directory for saving streams"),
+      _("When using the stream save feature, files will be written only into this directory.\n"
+	"This setting is security critical, because when changed to a different directory, xine "
+	"can be used to fill files in it with arbitrary content. So you should be careful that "
+	"the directory you specify is robust against any content in any file."),
       XINE_CONFIG_SECURITY, __config_save_cb, this);
   
   /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.96 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_syncfb.c,v 1.97 2004/04/26 17:50:10 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -991,10 +991,14 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   /* FIXME: setting the default_repeat to anything higher than 1 will result
             in a distorted video, so for now, set this manually to 0 until
             the kernel driver is fixed... */
+#if 0
   this->default_repeat       = config->register_range(config, 
-						      "video.syncfb_default_repeat", 3, 1, 4, 
-						      "default frame repeat for SyncFB", NULL, 
-						      0, NULL, NULL);
+						      "video.syncfb_default_repeat", 3, 1, 4,
+						      _("default number of frame repetitions"),
+						      _("This specifies how many times a single video "
+						        "frame will be displayed consecutively."),
+						      10, NULL, NULL);
+#endif
   this->default_repeat       = 0;
  
   this->display              = visual->display;
@@ -1055,11 +1059,16 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   char*             device_name;
   int               fd;
 
-  device_name = xine->config->register_string(xine->config,
-					"video.syncfb_device", "/dev/syncfb",
-					_("syncfb (teletux) device node"), 
-					NULL, 10, NULL, NULL);
-   
+  device_name = xine->config->register_string(xine->config, "video.syncfb_device", "/dev/syncfb",
+					_("SyncFB device name"),
+					_("Specifies the file name for the SyncFB (TeleTux) device "
+					  "to be used.\nThis setting is security critical, "
+					  "because when changed to a different file, xine "
+					  "can be used to fill this file with arbitrary content. "
+					  "So you should be careful that the value you enter "
+					  "really is a proper framebuffer device."),
+					XINE_CONFIG_SECURITY, NULL, NULL);
+  
   /* check for syncfb device */
   if((fd = open(device_name, O_RDWR)) < 0) {
      xprintf(xine, XINE_VERBOSITY_DEBUG,

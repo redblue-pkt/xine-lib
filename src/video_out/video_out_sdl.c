@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.36 2003/12/29 18:07:49 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.37 2004/04/26 17:50:10 mroi Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -469,8 +469,11 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
   
   this->hw_accel = class->config->register_bool(class->config, 
-    "video.sdl_hw_accel", 1, "use hardware acceleration if available",
-    NULL, 10, NULL, this);
+    "video.sdl_hw_accel", 1,
+    _("use hardware acceleration if available"),
+    _("When your system supports it, hardware acceleration provided by your "
+      "graphics hardware will be used. This might not work, so you can disable it, "
+      "if things go wrong."), 10, NULL, NULL);
 
   xine_setenv("SDL_VIDEO_YUV_HWACCEL", (this->hw_accel) ? "1" : "0", 1);
   xine_setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.148 2004/04/08 13:37:54 mroi Exp $
+ * $Id: video_decoder.c,v 1.149 2004/04/26 17:50:12 mroi Exp $
  *
  */
 
@@ -456,9 +456,12 @@ void _x_video_decoder_init (xine_stream_t *stream) {
     num_buffers = stream->xine->config->register_num (stream->xine->config,
                                                       "video.num_buffers",
                                                       500,
-                                                      "number of video buffers to allocate (higher values mean smoother playback but higher latency)",
-                                                      NULL, 20,
-                                                      NULL, NULL);
+                                                      _("number of video buffers"),
+						      _("The number of video buffers (each is 8k in size) "
+						        "xine uses in its internal queue. Higher values "
+							"mean smoother playback for unreliable inputs, but "
+							"also increased latency and memory comsumption."),
+                                                      20, NULL, NULL);
   
     stream->video_fifo = _x_fifo_buffer_new (num_buffers, 8192);
     stream->spu_track_map_entries = 0;

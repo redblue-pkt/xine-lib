@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.36 2004/03/03 20:09:15 mroi Exp $
+ * $Id: video_out_opengl.c,v 1.37 2004/04/26 17:50:09 mroi Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -168,7 +168,7 @@ typedef struct opengl_driver_s {
     int              output_xoffset, output_yoffset;
 #endif 
     /* software yuv2rgb related */
-    int                yuv2rgb_gamma;
+    int                yuv2rgb_brightness;
     uint8_t           *yuv2rgb_cmap;
     yuv2rgb_factory_t *yuv2rgb_factory;
 
@@ -752,7 +752,7 @@ static int opengl_get_property (vo_driver_t *this_gen, int property) {
     case VO_PROP_ASPECT_RATIO:
 	return this->sc.user_ratio ;
     case VO_PROP_BRIGHTNESS:
-	return this->yuv2rgb_gamma;
+	return this->yuv2rgb_brightness;
     case VO_PROP_WINDOW_WIDTH:
         return this->sc.gui_width;
     case VO_PROP_WINDOW_HEIGHT:
@@ -783,9 +783,9 @@ static int opengl_set_property (vo_driver_t *this_gen,
 //	opengl_redraw_needed      ((vo_driver_t *) this);
 	break;
     case VO_PROP_BRIGHTNESS:
-	this->yuv2rgb_gamma = value;
+	this->yuv2rgb_brightness = value;
 	this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory, value, 128, 128);
-	xrintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl: gamma changed to %d\n",value);
+	xrintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl: brightness changed to %d\n",value);
 	break;
     default:
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
@@ -958,14 +958,18 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
     this->vo_driver.dispose              = opengl_dispose;
     this->vo_driver.redraw_needed        = opengl_redraw_needed;
 
-    this->yuv2rgb_gamma = class->config->register_range (class->config,
-	  "video.opengl_gamma", 0, -100, 100,
-	  _("gamma correction for OpenGL driver"),
-	  NULL, 0, NULL, NULL);
+    this->yuv2rgb_brightness =
+      config->register_range(this->config, "video.opengl_gamma", 0,
+			     -100, 100,
+			     _("brightness correction"),
+			     _("The brightness correction can be used to lighten or darken the image. "
+			       "It changes the blacklevel without modifying the contrast, but it "
+			       "limits the tonal range."),
+			     0, NULL, NULL);
     this->yuv2rgb_factory = yuv2rgb_factory_init (YUV_FORMAT, YUV_SWAP_MODE, 
 						  this->yuv2rgb_cmap);
     this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
-					   this->yuv2rgb_gamma, 128, 128);
+					   this->yuv2rgb_brightness, 128, 128);
     return &this->vo_driver;
 }
 

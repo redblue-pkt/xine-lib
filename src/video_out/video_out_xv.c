@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.196 2004/04/10 15:31:10 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.197 2004/04/26 17:50:11 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1057,7 +1057,8 @@ static void xv_check_capability (xv_driver_t *this,
 				 int property, XvAttribute attr,
 				 int base_id, char *str_prop,
 				 char *config_name,
-				 char *config_desc) {
+				 char *config_desc,
+				 char *config_help) {
   int          int_default;
   cfg_entry_t *entry;
   
@@ -1082,13 +1083,13 @@ static void xv_check_capability (xv_driver_t *this,
     if ((attr.min_value == 0) && (attr.max_value == 1)) {
       this->config->register_bool (this->config, config_name, int_default,
 				   config_desc,
-				   NULL, 10, xv_property_callback, &this->props[property]);
+				   config_help, 20, xv_property_callback, &this->props[property]);
 
     } else {
       this->config->register_range (this->config, config_name, int_default,
 				    this->props[property].min, this->props[property].max,
 				    config_desc,
-				    NULL, 10, xv_property_callback, &this->props[property]);
+				    config_help, 20, xv_property_callback, &this->props[property]);
     }
 
     entry = this->config->lookup_entry (this->config, config_name);
@@ -1261,49 +1262,65 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 	  } else {
 	    xv_check_capability (this, VO_PROP_HUE, attr[k],
 			         class->adaptor_info[class->adaptor_num].base_id, "XV_HUE",
-			         NULL, NULL);
+			         NULL, NULL, NULL);
 	  }
 	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
 	  xv_check_capability (this, VO_PROP_SATURATION, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_SATURATION",
-			       NULL, NULL);
+			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
 	  xv_check_capability (this, VO_PROP_BRIGHTNESS, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_BRIGHTNESS",
-			       NULL, NULL);
+			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
 	  xv_check_capability (this, VO_PROP_CONTRAST, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_CONTRAST",
-			       NULL, NULL);
+			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xv_check_capability (this, VO_PROP_COLORKEY, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_COLORKEY",
 			       "video.xv_colorkey",
-			       _("Colorkey used for Xv video overlay"));
+			       _("video overlay colour key"),
+			       _("The colour key is used to tell the graphics card where to "
+				 "overlay the video image. Try different values, if you experience "
+				 "windows becoming transparent."));
 
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 	  xv_check_capability (this, VO_PROP_AUTOPAINT_COLORKEY, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
 			       "video.xv_autopaint_colorkey",
-			       _("Make Xv autopaint its colorkey"));
+			       _("autopaint colour key"),
+			       _("Make Xv autopaint its colorkey."));
 
 	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
 	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
 	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
 					      attr[k].min_value, attr[k].max_value,
-					      _("bilinear scaling mode (permedia 2/3)"),
-					      NULL, 10, xv_update_XV_FILTER, this);
+					      _("bilinear scaling mode"),
+					      _("Selects the bilinear scaling mode for Permedia cards. "
+						"The individual values are:\n\n"
+						"Permedia 2\n"
+						"0 - disable bilinear filtering\n"
+						"1 - enable bilinear filtering\n\n"
+						"Permedia 3\n"
+						"0 - disable bilinear filtering\n"
+						"1 - horizontal linear filtering\n"
+						"2 - enable full bilinear filtering"),
+					      20, xv_update_XV_FILTER, this);
 	  config->update_num(config,"video.XV_FILTER",xv_filter);
 	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
 	  int xv_double_buffer;
 	  xv_double_buffer = 
 	    config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
-				   _("double buffer to sync video to the retrace"),
-				   NULL, 10, xv_update_XV_DOUBLE_BUFFER, this);
+	      _("enable double buffering"),
+	      _("Double buffering will synchronize the update of the video image to the "
+		"repainting of the entire screen (\"vertical retrace\"). This eliminates "
+		"flickering and tearing artifacts, but will use more graphics memory."),
+	      20, xv_update_XV_DOUBLE_BUFFER, this);
 	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xv_double_buffer);
 	}
       }
@@ -1359,14 +1376,39 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
   this->use_pitch_alignment = 
     config->register_bool (config, "video.xv_pitch_alignment", 0,
-			   _("workaround for some (buggy) XVideo drivers"),
-			   NULL, 10, xv_update_xv_pitch_alignment, this);
+			   _("pitch alignment workaround"),
+			   _("Some buggy video drivers need a workaround to function properly."),
+			   10, xv_update_xv_pitch_alignment, this);
 
   this->deinterlace_method = 
     config->register_enum (config, "video.deinterlace_method", 4,
 			   deinterlace_methods,
-			   _("Software deinterlace method (Key I toggles deinterlacer on/off)"),
-			   NULL, 10, xv_update_deinterlace, this);
+			   _("deinterlace method"),
+			   _("From the old days of analog television, where the even and odd numbered "
+			     "lines of a video frame would be displayed at different times comes the "
+			     "idea to increase motion smoothness by also recording the lines at "
+			     "different times. This is called \"interlacing\". But unfortunately, "
+			     "todays displays show the even and odd numbered lines as one complete frame "
+			     "all at the same time (called \"progressive display\"), which results in "
+			     "ugly frame errors known as comb artifacts. Software deinterlacing is an "
+			     "approach to reduce these artifacts. The individual values are:\n\n"
+			     "none\n"
+			     "Disables software deinterlacing.\n\n"
+			     "bob\n"
+			     "Interpolates between the lines for moving parts of the image.\n\n"
+			     "weave\n"
+			     "Similar to bob, but with a tendency to preserve the full resolution, "
+			     "better for high detail in low movement scenes.\n\n"
+			     "greedy\n"
+			     "Very good adaptive deinterlacer, but needs a lot of CPU power.\n\n"
+			     "onefield\n"
+			     "Always interpolates and reduces vertical resolution.\n\n"
+			     "onefieldxv\n"
+			     "Same as onefield, but does the interpolation in hardware.\n\n"
+			     "linearblend\n"
+			     "Applies a slight vertical blur to remove the comb artifacts. Good results "
+			     "with medium CPU usage."),
+			   10, xv_update_deinterlace, this);
   this->deinterlace_enabled = 0;
 
   XLockDisplay (this->display);

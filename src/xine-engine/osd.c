@@ -1375,8 +1375,11 @@ osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream ) {
   this->textpalette = this->stream->xine->config->register_enum (this->stream->xine->config,
                                              "misc.osd_text_palette", 0,
                                              textpalettes_str, 
-                                             _("Palette (foreground-border-background) to use on subtitles"),
-                                             NULL, 10, update_text_palette, this);
+                                             _("palette (foreground-border-background) to use for subtitles and OSD"),
+                                             _("The palette for on-screen-display and some subtitle formats that do "
+					       "not specify any colouring themselves. The palettes are listed in the "
+					       "form: foreground-border-background."),
+                                             10, update_text_palette, this);
   
   /*
    * set up function pointer

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.68 2004/03/16 14:12:04 mroi Exp $
+ * $Id: xine_decoder.c,v 1.69 2004/04/26 17:50:07 mroi Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -536,8 +536,15 @@ static void *init_class (xine_t *xine, void *data) {
 
   real_codec_path = config->register_string (config, "codec.real_codecs_path", 
 					     "unknown",
-					     _("path to real player codecs, if installed"),
-					     NULL, 10, NULL, NULL);
+					     _("path to RealPlayer codecs"),
+					     _("If you have RealPlayer installed, specify the path "
+					       "to its codec directory here. You can easily find "
+					       "the codec directory by looking for a file named "
+					       "\"drv3.so.6.0\" in it. If xine can find the RealPlayer "
+					       "codecs, it will use them to decode RealPlayer content "
+					       "for you. Consult the xine FAQ for more information on "
+					       "how to install the codecs."),
+					     10, NULL, this);
   
   if (!strcmp (real_codec_path, "unknown")) {
 
