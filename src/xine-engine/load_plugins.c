@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.182 2004/06/19 19:48:42 mroi Exp $
+ * $Id: load_plugins.c,v 1.183 2004/06/23 19:45:52 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -367,21 +367,17 @@ static void _insert_plugin (xine_t *this,
     /* write the description on the heap because the config system
      * does not strdup() it, so we have to provide a different pointer
      * for each decoder */
-    if (catalog->prio_desc_size - catalog->prio_desc_next < strlen(desc) + 1) {
-      catalog->prio_desc_size += 1024;
-      catalog->prio_desc_mem = (char *)realloc(catalog->prio_desc_mem,
-	catalog->prio_desc_size * sizeof(char));
-    }
-    strcpy(catalog->prio_desc_mem + catalog->prio_desc_next, desc);
+    for (i = 0; catalog->prio_desc[i]; i++);
+    catalog->prio_desc[i] = (char *)malloc((strlen(desc) + 1) * sizeof(char));
+    strcpy(catalog->prio_desc[i], desc);
     this->config->register_num (this->config,
 				key,
 				0,
-				catalog->prio_desc_mem + catalog->prio_desc_next,
+				catalog->prio_desc[i],
 				_("The priority provides a ranking in case some media "
 				  "can be handled by more than one decoder.\n"
 				  "A priority of 0 enables the decoder's default priority."), 20,
 				_decoder_priority_cb, (void *)this);
-    catalog->prio_desc_next += strlen(desc) + 1;
 
     /* reset priority on old config files */
     if (this->config->current_version < 1)
@@ -469,6 +465,7 @@ static void collect_plugins(xine_t *this, char *path){
 
   dir = opendir(path);
   if (dir) {
+    int plugin_count = 0, decoder_count = 0;
     struct dirent *pEntry;
 
     while ((pEntry = readdir (dir)) != NULL) {
@@ -531,51 +528,62 @@ static void collect_plugins(xine_t *this, char *path){
 		xine_log (this, XINE_LOG_PLUGIN,
 			  _("load_plugins: plugin %s found\n"), str);
 		
-		switch (info->type & PLUGIN_TYPE_MASK){
-		case PLUGIN_INPUT:
-		  _insert_plugin (this, this->plugin_catalog->input, str,
-				  &statbuffer, info,
-				  INPUT_PLUGIN_IFACE_VERSION);
-		  break;
-		case PLUGIN_DEMUX:
-		  _insert_plugin (this, this->plugin_catalog->demux, str,
-				  &statbuffer, info,
-				  DEMUXER_PLUGIN_IFACE_VERSION);
-		  break;
-		case PLUGIN_AUDIO_DECODER:
-		  _insert_plugin (this, this->plugin_catalog->audio, str,
-				  &statbuffer, info,
-				  AUDIO_DECODER_IFACE_VERSION);
-		  break;
-		case PLUGIN_VIDEO_DECODER:
-		  _insert_plugin (this, this->plugin_catalog->video, str,
-				  &statbuffer, info,
-				  VIDEO_DECODER_IFACE_VERSION);
-		  break;
-		case PLUGIN_SPU_DECODER:
-		  _insert_plugin (this, this->plugin_catalog->spu, str,
-				  &statbuffer, info,
-				  SPU_DECODER_IFACE_VERSION);
-		  break;
-		case PLUGIN_AUDIO_OUT:
-		  _insert_plugin (this, this->plugin_catalog->aout, str,
-				  &statbuffer, info,
-				  AUDIO_OUT_IFACE_VERSION);
-		  break;
-		case PLUGIN_VIDEO_OUT:
-		  _insert_plugin (this, this->plugin_catalog->vout, str,
-				  &statbuffer, info,
-				  VIDEO_OUT_DRIVER_IFACE_VERSION);
-		  break;
-		case PLUGIN_POST:
-		  _insert_plugin (this, this->plugin_catalog->post, str,
-    				  &statbuffer, info,
-				  POST_PLUGIN_IFACE_VERSION);
-		  break;
-		default:
+		if (plugin_count >= PLUGIN_MAX ||
+		    (decoder_count >= DECODER_MAX &&
+		     info->type >= PLUGIN_AUDIO_DECODER && info->type <= PLUGIN_SPU_DECODER)) {
 		  xine_log (this, XINE_LOG_PLUGIN,
-			    _("load_plugins: unknown plugin type %d in %s\n"),
-			    info->type, str);
+			    _("load_plugins: plugin limit reached, %s could not be loaded\n"), str);
+		} else {
+		  switch (info->type & PLUGIN_TYPE_MASK){
+		  case PLUGIN_INPUT:
+		    _insert_plugin (this, this->plugin_catalog->input, str,
+				    &statbuffer, info,
+				    INPUT_PLUGIN_IFACE_VERSION);
+		    break;
+		  case PLUGIN_DEMUX:
+		    _insert_plugin (this, this->plugin_catalog->demux, str,
+				    &statbuffer, info,
+				    DEMUXER_PLUGIN_IFACE_VERSION);
+		    break;
+		  case PLUGIN_AUDIO_DECODER:
+		    _insert_plugin (this, this->plugin_catalog->audio, str,
+				    &statbuffer, info,
+				    AUDIO_DECODER_IFACE_VERSION);
+		    decoder_count++;
+		    break;
+		  case PLUGIN_VIDEO_DECODER:
+		    _insert_plugin (this, this->plugin_catalog->video, str,
+				    &statbuffer, info,
+				    VIDEO_DECODER_IFACE_VERSION);
+		    decoder_count++;
+		    break;
+		  case PLUGIN_SPU_DECODER:
+		    _insert_plugin (this, this->plugin_catalog->spu, str,
+				    &statbuffer, info,
+				    SPU_DECODER_IFACE_VERSION);
+		    decoder_count++;
+		    break;
+		  case PLUGIN_AUDIO_OUT:
+		    _insert_plugin (this, this->plugin_catalog->aout, str,
+				    &statbuffer, info,
+				    AUDIO_OUT_IFACE_VERSION);
+		    break;
+		  case PLUGIN_VIDEO_OUT:
+		    _insert_plugin (this, this->plugin_catalog->vout, str,
+				    &statbuffer, info,
+				    VIDEO_OUT_DRIVER_IFACE_VERSION);
+		    break;
+		  case PLUGIN_POST:
+		    _insert_plugin (this, this->plugin_catalog->post, str,
+				    &statbuffer, info,
+				    POST_PLUGIN_IFACE_VERSION);
+		    break;
+		  default:
+		    xine_log (this, XINE_LOG_PLUGIN,
+			      _("load_plugins: unknown plugin type %d in %s\n"),
+			      info->type, str);
+		  }
+		  plugin_count++;
 		}
 
 		/* get next info either from lib or cache */
@@ -2269,6 +2277,8 @@ static void dispose_plugin_list (xine_list_t *list) {
 void _x_dispose_plugins (xine_t *this) {
 
   if(this->plugin_catalog) {
+    int i;
+    
     dispose_plugin_list (this->plugin_catalog->input);
     dispose_plugin_list (this->plugin_catalog->demux);
     dispose_plugin_list (this->plugin_catalog->spu);
@@ -2280,7 +2290,9 @@ void _x_dispose_plugins (xine_t *this) {
     
     dispose_plugin_list (this->plugin_catalog->cache);
     
-    free (this->plugin_catalog->prio_desc_mem);
+    for (i = 0; this->plugin_catalog->prio_desc[i]; i++)
+      free(this->plugin_catalog->prio_desc[i]);
+    
     free (this->plugin_catalog);
   }
 }

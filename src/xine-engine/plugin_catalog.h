@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.15 2004/06/19 19:48:42 mroi Exp $
+ * $Id: plugin_catalog.h,v 1.16 2004/06/23 19:45:54 mroi Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -34,7 +34,7 @@
 #  include <xine/xineutils.h>
 #endif
 
-#define DECODER_MAX 256
+#define DECODER_MAX 128
 #define PLUGIN_MAX  256
 
 /* the engine takes this many plugins for one stream type */
@@ -72,9 +72,7 @@ struct plugin_catalog_s {
   const char      *ids[PLUGIN_MAX];
   
   /* memory block for the decoder priority config entry descriptions */
-  char            *prio_desc_mem;
-  int              prio_desc_next;
-  int              prio_desc_size;
+  char            *prio_desc[DECODER_MAX];
 
   pthread_mutex_t  lock;
 };
