@@ -85,9 +85,11 @@
    <para>
     <programlisting>&nbsp;&nbsp;&nbsp;input_plugin_t *get_instance(input_class_t *class_gen, xine_stream_t *stream, const char *mrl);</programlisting>
     The plugin should try, if it can handle the specified MRL and return an
-    instance of itself if so. If not, NULL should be returned.
+    instance of itself if so. If not, NULL should be returned. When a new MRL
+    is to be played, xine engine asks all the available input plugins one by
+    one if they can handle the MRL.
     Note that input plugins are not guaranteed to be queried
-    in anay particular order and the first input plugin to claim an MRL
+    in any particular order and the first input plugin to claim an MRL
     gets control so try not to duplicate MRLs already found within xine.
    </para>
    <para>
