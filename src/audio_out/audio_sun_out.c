@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.34 2003/12/14 22:13:22 siggi Exp $
+ * $Id: audio_sun_out.c,v 1.35 2004/03/18 09:07:00 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -438,7 +438,7 @@ static int ao_sun_open(ao_driver_t *this_gen,
   this->audio_fd = open(this->audio_dev, O_WRONLY|O_NONBLOCK);
   if(this->audio_fd < 0) {
     xprintf(this->xine, XINE_VERBOSITY_LOG, 
-	    _("audio_sun_out: Opening audio device %s failed: %s\n"), this->audio_dev, strerror(errno));
+	    _("audio_sun_out: opening audio device %s failed: %s\n"), this->audio_dev, strerror(errno));
     return 0;
   }
   

@@ -50,7 +50,7 @@ msgstr ""
 
 #: src/audio_out/audio_alsa_out.c:430
 msgid ""
-"audio_alsa_out: >>> check if another program don't already use PCM <<<\n"
+"audio_alsa_out: >>> check if another program already uses PCM <<<\n"
 msgstr ""
 
 #: src/audio_out/audio_alsa_out.c:443
@@ -82,7 +82,7 @@ msgid "snd_pcm_open() failed:%d:%s\n"
 msgstr "input_cda: open(%s) a échoué: %s.\n"
 
 #: src/audio_out/audio_alsa_out.c:1400
-msgid ">>> Check if another program don't already use PCM <<<\n"
+msgid ">>> Check if another program already uses PCM <<<\n"
 msgstr ""
 
 #: src/audio_out/audio_alsa_out.c:1423
@@ -199,7 +199,7 @@ msgstr ""
 
 #: src/audio_out/audio_oss_out.c:227
 #, c-format
-msgid "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n"
+msgid "audio_oss_out: audio rate : %d requested, %d provided by device\n"
 msgstr ""
 
 #: src/audio_out/audio_oss_out.c:536 src/audio_out/audio_oss_out.c:587
@@ -226,7 +226,7 @@ msgstr ""
 msgid ""
 "The audio device name is created by concatenating the oss_device_name and "
 "the audio device number (eg /dev/sound/dsp2). If you do not need a number, "
-"set to -1 (eg /dev/sound/dsp. The range of this variable is -1 or 0-15."
+"set to -1 (eg /dev/sound/dsp). The range of this variable is -1 or 0-15."
 msgstr ""
 
 #: src/audio_out/audio_oss_out.c:755
@@ -308,16 +308,11 @@ msgstr "input_cda: open(%s) a échoué: %s.\n"
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "plugin de sortie audio de xine utilisant les pilotes/périphériques oss"
 
-#: src/audio_out/audio_sun_out.c:441
-#, c-format
-msgid "audio_sun_out: Opening audio device %s failed: %s\n"
-msgstr ""
-
 #: src/audio_out/audio_sun_out.c:889
 msgid "device used for audio output with the 'Sun' audio plugin"
 msgstr "Périphérique utilisé pour le plugin audio 'Sun'"
 
-#: src/audio_out/audio_sun_out.c:909
+#: src/audio_out/audio_sun_out.c:441 src/audio_out/audio_sun_out.c:909
 #, c-format
 msgid "audio_sun_out: opening audio device %s failed: %s\n"
 msgstr ""
@@ -343,9 +338,7 @@ msgstr "plugin de sortie audio de xine utilisant esd"
 
 #: src/demuxers/demux_asf.c:446
 #, c-format
-msgid ""
-"demux_asf: warning: The stream id=%d is encrypted\n"
-"."
+msgid "demux_asf: warning: The stream id=%d is encrypted.\n"
 msgstr ""
 
 #: src/demuxers/demux_asf.c:448

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.150 2004/03/08 23:54:39 tmattern Exp $
+ * $Id: demux_asf.c,v 1.151 2004/03/18 09:07:00 pmhahn Exp $
  *
  * demultiplexer for asf streams
  *
@@ -443,7 +443,7 @@ static int asf_read_header (demux_asf_t *this) {
              * Parse the end of the header but do not demux the stream. 
              */
             xine_log(this->stream->xine, XINE_LOG_MSG,
-		     _("demux_asf: warning: The stream id=%d is encrypted\n."), stream_id);
+		     _("demux_asf: warning: The stream id=%d is encrypted.\n"), stream_id);
             _x_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE,
 		       _("Media stream scrambled/encrypted"), NULL);
             this->mode = ASF_MODE_ENCRYPTED_CONTENT;

@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: xine-lib 1.0.0rc2\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-03-17 08:34+0100\n"
-"PO-Revision-Date: 2003-11-04 22:36+0100\n"
+"PO-Revision-Date: 2004-03-18 09:55+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -40,17 +40,18 @@ msgstr "Gerät für 5.1-Kanalausgabe"
 
 #: src/audio_out/audio_alsa_out.c:413
 msgid "audio_alsa_out:Already open...WHY!"
-msgstr ""
+msgstr "audio_alsa_out:Bereits geöffnet...WARUM?"
 
 #: src/audio_out/audio_alsa_out.c:428
 #, c-format
 msgid "audio_alsa_out: snd_pcm_open() of %s failed: %s\n"
-msgstr ""
+msgstr "audio_alsa_out: snd_pcm_open() von %s schlug fehl: %s\n"
 
 #: src/audio_out/audio_alsa_out.c:430
-msgid ""
-"audio_alsa_out: >>> check if another program don't already use PCM <<<\n"
+msgid "audio_alsa_out: >>> check if another program already uses PCM <<<\n"
 msgstr ""
+"audio_alsa_out: >>> Überprüfen Sie, ob ein anderen Programm PCM bereits "
+"benutzt<<<\n"
 
 #: src/audio_out/audio_alsa_out.c:443
 #, c-format
@@ -58,6 +59,8 @@ msgid ""
 "audio_alsa_out: broken configuration for this PCM: no configurations "
 "available: %s\n"
 msgstr ""
+"audio_alsa_out: Kaputte Konfiguration für dieses PCM: Keine Konfiguration "
+"verfügbar: %s\n"
 
 #: src/audio_out/audio_alsa_out.c:1261 src/audio_out/audio_alsa_out.c:1535
 msgid "alsa mixer device"
@@ -66,7 +69,7 @@ msgstr "ALSA Mixergerät"
 #: src/audio_out/audio_alsa_out.c:1333
 #, c-format
 msgid "snd_lib_error_set_handler() failed: %d"
-msgstr ""
+msgstr "snd_lib_error_set_handler() schlug fehl: %d"
 
 #: src/audio_out/audio_alsa_out.c:1340 src/audio_out/audio_alsa_out.c:1440
 #: src/audio_out/audio_alsa_out.c:1454 src/audio_out/audio_alsa_out.c:1468
@@ -77,74 +80,70 @@ msgstr ""
 "Wird gebraucht, um xine über die Fähigkeiten der Soundkarte zu informieren"
 
 #: src/audio_out/audio_alsa_out.c:1398
-#, fuzzy, c-format
+#, c-format
 msgid "snd_pcm_open() failed:%d:%s\n"
-msgstr "osd: iconv_open() schlug fehl\n"
+msgstr "snd_pcm_open() schlug fehl:%d:%s\n"
 
 #: src/audio_out/audio_alsa_out.c:1400
-msgid ">>> Check if another program don't already use PCM <<<\n"
-msgstr ""
+#, fuzzy
+msgid ">>> Check if another program already uses PCM <<<\n"
+msgstr ">>> Überprüfen Sie, ob ein anderen Programm bereis PCM benutzt <<<\n"
 
 #: src/audio_out/audio_alsa_out.c:1423
 msgid "audio_alsa_out : supported modes are "
-msgstr ""
+msgstr "audio_alsa_out : Unterstützte Modi sind "
 
 #: src/audio_out/audio_alsa_out.c:1426
 msgid "8bit "
-msgstr ""
+msgstr "8Bit "
 
 #: src/audio_out/audio_alsa_out.c:1430
-#, fuzzy
 msgid "mono "
-msgstr "Metronom"
+msgstr "Mono "
 
 #: src/audio_out/audio_alsa_out.c:1434
 msgid "stereo "
-msgstr ""
+msgstr "Stereo "
 
 #: src/audio_out/audio_alsa_out.c:1445
-#, fuzzy
 msgid "4-channel "
-msgstr "Kanal"
+msgstr "4-Kanal "
 
 #: src/audio_out/audio_alsa_out.c:1448
 msgid "(4-channel not enabled in xine config) "
-msgstr ""
+msgstr "(4-Kanal nicht aktiviert in xine Konfiguration) "
 
 #: src/audio_out/audio_alsa_out.c:1459
-#, fuzzy
 msgid "4.1-channel "
-msgstr "Kanal"
+msgstr "4.1-Kanal "
 
 #: src/audio_out/audio_alsa_out.c:1462
 msgid "(4.1-channel not enabled in xine config) "
-msgstr ""
+msgstr "(4.1-Kanal nicht aktiviert in xine Konfiguration) "
 
 #: src/audio_out/audio_alsa_out.c:1473
-#, fuzzy
 msgid "5-channel "
-msgstr "Kanal"
+msgstr "5-Kanal "
 
 #: src/audio_out/audio_alsa_out.c:1476
 msgid "(5-channel not enabled in xine config) "
-msgstr ""
+msgstr "(5-Kanal nicht aktiviert in xine Konfiguration) "
 
 #: src/audio_out/audio_alsa_out.c:1487
-#, fuzzy
 msgid "5.1-channel "
-msgstr "Kanal"
+msgstr "5.1-Kanal "
 
 #: src/audio_out/audio_alsa_out.c:1490
 msgid "(5.1-channel not enabled in xine config) "
-msgstr ""
+msgstr "(5.1-Kanal nicht aktiviert in xine Konfiguration) "
 
 #: src/audio_out/audio_alsa_out.c:1525
 msgid "a/52 and DTS pass-through\n"
-msgstr ""
+msgstr "a/52 und DTS pass-through\n"
 
 #: src/audio_out/audio_alsa_out.c:1528
 msgid "(a/52 and DTS pass-through not enabled in xine config)\n"
-msgstr ""
+msgstr "(a/52 und DTS pass-through nicht aktiviert in xine Konfiguration)\n"
 
 #: src/audio_out/audio_alsa_out.c:1568
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
@@ -157,16 +156,16 @@ msgstr "xine Soundausgabe benutzt kde artsd"
 #: src/audio_out/audio_esd_out.c:167
 #, c-format
 msgid "audio_esd_out: connecting to ESD server %s: %s\n"
-msgstr ""
+msgstr "audio_esd_out: Verbinde ESD Server %s: %s\n"
 
 #: src/audio_out/audio_esd_out.c:499
 msgid "audio_esd_out: connecting to esd server...\n"
-msgstr ""
+msgstr "audio_esd_out: Verbinde ESD Server...\n"
 
 #: src/audio_out/audio_esd_out.c:511
 #, c-format
 msgid "audio_esd_out: can't connect to %s ESD server: %s\n"
-msgstr ""
+msgstr "audio_esd_out: Kann ESD Server %s nicht verbinden: %s\n"
 
 #: src/audio_out/audio_esd_out.c:536
 msgid "esd audio output latency (adjust a/v sync)"
@@ -187,28 +186,30 @@ msgstr "xine Soundausgabe benutzt IRIX-kompatibles Gerät/Treiber"
 #: src/audio_out/audio_oss_out.c:193
 #, c-format
 msgid "audio_oss_out: Opening audio device %s: %s\n"
-msgstr ""
+msgstr "audio_oss_out: Öffne Audiogerät %s: %s\n"
 
 #: src/audio_out/audio_oss_out.c:215
 #, c-format
 msgid ""
 "audio_oss_out: warning: sampling rate %d Hz not supported, trying 44100 Hz\n"
 msgstr ""
+"audio_oss_out: Warnung: Abtastrate %d Hz nicht unterstützt, versuche 44100 "
+"Hz\n"
 
 #: src/audio_out/audio_oss_out.c:227
 #, c-format
-msgid "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n"
-msgstr ""
+msgid "audio_oss_out: audio rate : %d requested, %d provided by device\n"
+msgstr "audio_oss_out: Audiodatenrate: %d gefordert, %d genutzt von Gerät\n"
 
 #: src/audio_out/audio_oss_out.c:536 src/audio_out/audio_oss_out.c:587
 #: src/audio_out/audio_oss_out.c:623
-#, fuzzy, c-format
+#, c-format
 msgid "audio_oss_out: open() %s failed: %s\n"
-msgstr "input_cda: open(%s) schlug fehl: %s.\n"
+msgstr "audio_oss_out: open() %s schlug fehl: %s\n"
 
 #: src/audio_out/audio_oss_out.c:739
 msgid "OSS audio device name"
-msgstr ""
+msgstr "OSS Audio-Gerätename"
 
 #: src/audio_out/audio_oss_out.c:740
 msgid ""
@@ -224,7 +225,7 @@ msgstr ""
 msgid ""
 "The audio device name is created by concatenating the oss_device_name and "
 "the audio device number (eg /dev/sound/dsp2). If you do not need a number, "
-"set to -1 (eg /dev/sound/dsp. The range of this variable is -1 or 0-15."
+"set to -1 (eg /dev/sound/dsp). The range of this variable is -1 or 0-15."
 msgstr ""
 
 #: src/audio_out/audio_oss_out.c:755
@@ -294,7 +295,6 @@ msgid "Enable 5.1 channel analog surround output"
 msgstr "Aktiviere analogen 5.1-Kanalraumklang"
 
 #: src/audio_out/audio_oss_out.c:959
-#, fuzzy
 msgid "OSS mixer device"
 msgstr "OSS Mixergerät"
 
@@ -307,19 +307,14 @@ msgstr "input_cda: open(%s) schlug fehl: %s.\n"
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt OSS-kompatibles Gerät/Treiber"
 
-#: src/audio_out/audio_sun_out.c:441
-#, fuzzy, c-format
-msgid "audio_sun_out: Opening audio device %s failed: %s\n"
-msgstr "input_cda: Das öffnen des Servers '%s:%d' schlug fehl: %s\n"
-
 #: src/audio_out/audio_sun_out.c:889
 msgid "device used for audio output with the 'Sun' audio plugin"
 msgstr "Gerät für Soundausgabe mit 'Sun'-Audio-Plugin"
 
-#: src/audio_out/audio_sun_out.c:909
-#, fuzzy, c-format
+#: src/audio_out/audio_sun_out.c:441 src/audio_out/audio_sun_out.c:909
+#, c-format
 msgid "audio_sun_out: opening audio device %s failed: %s\n"
-msgstr "input_cda: Das öffnen des Servers '%s:%d' schlug fehl: %s\n"
+msgstr "audio_sun_out: Öffnen des Audiogeräts %s schlug fehl: %s\n"
 
 #: src/audio_out/audio_sun_out.c:965
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
@@ -330,31 +325,26 @@ msgid "xine dummy audio output plugin"
 msgstr "xine Dummy Soundausgabe"
 
 #: src/audio_out/audio_file_out.c:318
-#, fuzzy
 msgid "xine file audio output plugin"
-msgstr "xine Dummy Soundausgabe"
+msgstr "xine Date Soundausgabe"
 
 #: src/audio_out/audio_directx_out.c:832 src/audio_out/audio_directx_out.c:849
 msgid "xine audio output plugin for win32 using directx"
 msgstr "xine Soundausgabe benutzt für win32 benutzt directx"
 
 #: src/demuxers/demux_asf.c:446
-#, fuzzy, c-format
-msgid ""
-"demux_asf: warning: The stream id=%d is encrypted\n"
-"."
-msgstr ""
-"demux_mpeg_pes: Warnung: PACK-Datenstrom id=0x%x Dekodierung "
-"fehlgeschlagen.\n"
+#, c-format
+msgid "demux_asf: warning: The stream id=%d is encrypted.\n"
+msgstr "demux_asf: Warnung: Datenstrom id=%d ist verschlüsselt.\n"
 
 #: src/demuxers/demux_asf.c:448
 msgid "Media stream scrambled/encrypted"
-msgstr ""
+msgstr "Medienstrom gestört/verschlüsselt"
 
 #: src/demuxers/demux_asf.c:1699
-#, fuzzy, c-format
+#, c-format
 msgid "demux_asf: Wrong ASX version: %s\n"
-msgstr "demux_asf: Copyright    : %s\n"
+msgstr "demux_asf: Falsche ASX Version: %s\n"
 
 #: src/demuxers/demux_avi.c:542 src/demuxers/demux_avi.c:658
 msgid "Restoring index..."

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.101 2004/03/04 16:06:03 valtri Exp $
+ * $Id: audio_oss_out.c,v 1.102 2004/03/18 09:07:00 pmhahn Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -224,7 +224,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
     this->output_sample_rate = tmp;
     this->output_sample_k_rate = this->output_sample_rate / 1000;
     xprintf(this->xine, XINE_VERBOSITY_LOG,
-	    _("audio_oss_out: audio rate : %d requested, %d provided by device/sec\n"),
+	    _("audio_oss_out: audio rate : %d requested, %d provided by device\n"),
 	    this->input_sample_rate, this->output_sample_rate);
   }
   /*
@@ -747,7 +747,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				     _("The audio device name is created by concatenating the "
 				       "oss_device_name and the audio device number (eg /dev/sound/dsp2). "
 				       "If you do not need a "
-				       "number, set to -1 (eg /dev/sound/dsp. "
+				       "number, set to -1 (eg /dev/sound/dsp). "
 				       "The range of this variable is -1 or 0-15."),
 				     10, NULL, NULL);
   if (devname_val == 0) {
