@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.20 2002/05/24 22:09:44 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.21 2002/06/03 20:30:40 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -240,6 +240,9 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->bcs.brightness = config->register_range(config, "dxr3.brightness",
     this->bcs.brightness, 100, 900, "Dxr3: brightness control", NULL, NULL, NULL);
 
+  /* set aspect */
+  dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, this->aspect);
+
   /* overlay or tvout? */
   confstr = config->register_string(config, "dxr3.videoout_mode", "tv",
     "Dxr3: videoout mode (tv or overlay)", NULL, NULL, NULL);
@@ -321,11 +324,11 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
     if (dxr3_overlay_set_attributes(&this->overlay) != 0)
       printf("video_out_dxr3: setting an overlay attribute failed.\n");
     
+    /* finally switch to overlay mode */
     if (ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SETMODE, EM8300_OVERLAY_MODE_OVERLAY) != 0)
       printf("video_out_dxr3: failed to enable overlay.\n");
   }
   
-  dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, this->aspect);
   return &this->vo_driver;
 }
 
@@ -936,9 +939,9 @@ static int dxr3_overlay_read_state(dxr3_overlay_t *this)
 
   /* store previous locale */
   loc = setlocale(LC_NUMERIC, NULL);
-  /* set american locale for floating point values
+  /* set C locale for floating point values
    * (used by .overlay/res file) */
-  setlocale(LC_NUMERIC, "en_US");
+  setlocale(LC_NUMERIC, "C");
 
   snprintf(tmp, sizeof(tmp), "/res_%dx%dx%d",
     this->screen_xres, this->screen_yres, this->screen_depth);
@@ -1084,7 +1087,7 @@ static int dxr3_overlay_set_attributes(dxr3_overlay_t *this)
 
 
 static int dxr3_overlay_set_window(dxr3_overlay_t *this,
- int xpos, int ypos, int width, int height)
+  int xpos, int ypos, int width, int height)
 {
   em8300_overlay_window_t win;
 
@@ -1105,31 +1108,27 @@ static int dxr3_overlay_set_window(dxr3_overlay_t *this,
 static void dxr3_overlay_update(dxr3_driver_t *this)
 {
   if (this->overlay_enabled) {
-    int gui_win_x, gui_win_y, gypos, gxpos, gw, gh;
+    int gui_win_x, gui_win_y, win_off_x, win_off_y, gui_width, gui_height;
+    XWindowAttributes a;
     
     this->frame_output_cb(this->user_data,
       this->video_width, this->video_oheight,
-      &gxpos, &gypos, &gw, &gh, &gui_win_x, &gui_win_y);
-
-    if (this->xpos != gxpos || this->ypos != gypos ||
-        this->width != gw || this->height != gh) {
-      XWindowAttributes a;
-      Window junkwin;
-      int rx, ry;
+      &win_off_x, &win_off_y, &gui_width, &gui_height, &gui_win_x, &gui_win_y);
       
-      /* detect true window position and adapt overlay to it */
+    if (this->xpos != (gui_win_x + win_off_x) ||
+        this->ypos != (gui_win_y + win_off_y) ||
+        this->width != gui_width || this->height != gui_height) {
+      
+      this->xpos   = gui_win_x + win_off_x;
+      this->ypos   = gui_win_y + win_off_y;
+      this->width  = gui_width;
+      this->height = gui_height;
+      
       XLockDisplay(this->display);
       XSetForeground(this->display, this->gc, this->color.pixel);
       XGetWindowAttributes(this->display, this->win, &a);
-      XTranslateCoordinates (this->display, this->win, a.root,
-        gxpos + 1, gypos + 1, &rx, &ry, &junkwin);
       XUnlockDisplay(this->display);
-  
-      this->xpos   = rx;
-      this->ypos   = ry;
-      this->width  = gw;
-      this->height = gh;
-      
+
       dxr3_overlay_set_window(&this->overlay, this->xpos, this->ypos,
         this->width, this->height);
     }
