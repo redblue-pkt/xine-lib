@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.54 2003/04/18 20:04:29 guenter Exp $
+ * $Id: audio_out.h,v 1.55 2003/04/23 14:11:08 tchamp Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -57,7 +57,7 @@ struct ao_driver_s {
    *
    * See AO_CAP_* bellow.
    */
-  uint32_t (*get_capabilities) (ao_driver_t *this);
+  uint32_t (*get_capabilities) (ao_driver_t *);
 
   /*
    * open the driver and make it ready to receive audio data 
@@ -65,7 +65,7 @@ struct ao_driver_s {
    *
    * return value: 0 : failure, >0 : output sample rate
    */
-  int (*open)(ao_driver_t *this, uint32_t bits, uint32_t rate, int mode);
+  int (*open)(ao_driver_t *, uint32_t bits, uint32_t rate, int mode);
 
   /* return the number of audio channels
    */
@@ -94,20 +94,20 @@ struct ao_driver_s {
    *   0 => audio samples were not yet processed, 
    *        call write_audio_data with the _same_ samples again
    */
-  int (*write)(ao_driver_t *this,
+  int (*write)(ao_driver_t *,
 	       int16_t* audio_data, uint32_t num_samples);
 
   /*
    * this is called when the decoder no longer uses the audio
    * output driver - the driver should get ready to get opened() again
    */
-  void (*close)(ao_driver_t *this);
+  void (*close)(ao_driver_t *);
 
   /*
    * shut down this audio output driver plugin and
    * free all resources allocated
    */
-  void (*exit) (ao_driver_t *this);
+  void (*exit) (ao_driver_t *);
 
   /*
    * Get, Set a property of audio driver.
@@ -117,9 +117,9 @@ struct ao_driver_s {
    *
    * See AO_PROP_* below for available properties.
    */
-  int (*get_property) (ao_driver_t *this, int property);
+  int (*get_property) (ao_driver_t *, int property);
 
-  int (*set_property) (ao_driver_t *this, int property, int value);
+  int (*set_property) (ao_driver_t *, int property, int value);
 
 
   /*
@@ -127,7 +127,7 @@ struct ao_driver_s {
    *
    * See AO_CTRL_* below.
    */
-  int (*control) (ao_driver_t *this, int cmd, /* arg */ ...);
+  int (*control) (ao_driver_t *, int cmd, /* arg */ ...);
 
   void *node;
 };
@@ -178,56 +178,56 @@ struct ao_format_s {
  */
 
 struct xine_audio_port_s {
-  uint32_t (*get_capabilities) (xine_audio_port_t *this); /* for constants see below */
+  uint32_t (*get_capabilities) (xine_audio_port_t *); /* for constants see below */
 
   /*   * Get/Set audio property
    *
    * See AO_PROP_* bellow
    */
-  int (*get_property) (xine_audio_port_t *this, int property);
-  int (*set_property) (xine_audio_port_t *this, int property, int value);
+  int (*get_property) (xine_audio_port_t *, int property);
+  int (*set_property) (xine_audio_port_t *, int property, int value);
 
   /* open audio driver for audio output 
    * return value: 0:failure, >0:output sample rate
    */
-  int (*open) (xine_audio_port_t *this, xine_stream_t *stream,
+  int (*open) (xine_audio_port_t *, xine_stream_t *stream,
 	       uint32_t bits, uint32_t rate, int mode);
 
   /*
    * get a piece of memory for audio data 
    */
 
-  audio_buffer_t * (*get_buffer) (xine_audio_port_t *this);
+  audio_buffer_t * (*get_buffer) (xine_audio_port_t *);
 
   /*
    * append a buffer filled with audio data to the audio fifo
    * for output
    */
 
-  void (*put_buffer) (xine_audio_port_t *this, audio_buffer_t *buf, xine_stream_t *stream);
+  void (*put_buffer) (xine_audio_port_t *, audio_buffer_t *buf, xine_stream_t *stream);
 
   /* audio driver is no longer used by decoder => close */
   void (*close) (xine_audio_port_t *self, xine_stream_t *stream);
 
   /* called on xine exit */
-  void (*exit) (xine_audio_port_t *this);
+  void (*exit) (xine_audio_port_t *);
 
   /*
    * misc control operations on the audio device.
    *
    * See AO_CTRL_* below.
    */
-  int (*control) (xine_audio_port_t *this, int cmd, /* arg */ ...);
+  int (*control) (xine_audio_port_t *, int cmd, /* arg */ ...);
 
   /*
    * Flush audio_out fifo.
    */
-  void (*flush) (xine_audio_port_t *this);
+  void (*flush) (xine_audio_port_t *);
   
   /*
    * Check if port is opened for this stream and get parameters.
    */
-  int (*status) (xine_audio_port_t *this, xine_stream_t *stream,
+  int (*status) (xine_audio_port_t *, xine_stream_t *stream,
 	       uint32_t *bits, uint32_t *rate, int *mode);
 
 };
@@ -239,24 +239,24 @@ struct audio_driver_class_s {
   /*
    * open a new instance of this plugin class
    */
-  ao_driver_t* (*open_plugin) (audio_driver_class_t *this, const void *data);
+  ao_driver_t* (*open_plugin) (audio_driver_class_t *, const void *data);
   
   /*
    * return short, human readable identifier for this plugin class
    */
-  char* (*get_identifier) (audio_driver_class_t *this);
+  char* (*get_identifier) (audio_driver_class_t *);
 
   /*
    * return human readable (verbose = 1 line) description for 
    * this plugin class
    */
-  char* (*get_description) (audio_driver_class_t *this);
+  char* (*get_description) (audio_driver_class_t *);
 
   /*
    * free all class-related resources
    */
 
-  void (*dispose) (audio_driver_class_t *this);
+  void (*dispose) (audio_driver_class_t *);
 };
 
 /* 
