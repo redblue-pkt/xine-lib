@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.31 2001/07/14 12:50:34 guenter Exp $
+ * $Id: video_decoder.c,v 1.32 2001/07/30 19:21:29 guenter Exp $
  *
  */
 
@@ -45,7 +45,7 @@ void *video_decoder_loop (void *this_gen) {
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
 
-    /* printf ("video_decoder: got buffer %d\n", buf->type);   */
+    /* printf ("video_decoder: got buffer %d\n", buf->type);    */
 
     switch (buf->type & 0xffff0000) {
     case BUF_CONTROL_START:
@@ -104,7 +104,7 @@ void *video_decoder_loop (void *this_gen) {
       /*
       printf ("video_decoder: got package %d, decoder_info[0]:%d\n", 
 	      buf, buf->decoder_info[0]);
-	      */
+      */      
 
       streamtype = (buf->type>>16) & 0xFF;
 
@@ -124,7 +124,6 @@ void *video_decoder_loop (void *this_gen) {
 	
 	decoder->decode_data (this->cur_video_decoder_plugin, buf);  
       }
-
       break;
 
     case BUF_CONTROL_END:

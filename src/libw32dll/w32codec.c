@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.13 2001/07/30 17:13:21 guenter Exp $
+ * $Id: w32codec.c,v 1.14 2001/07/30 19:21:29 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -633,7 +633,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   this->audio_decoder.decode_data         = w32a_decode_data;
   this->audio_decoder.close               = w32a_close;
   this->audio_decoder.get_identifier      = w32a_get_id;
-  this->audio_decoder.priority            = 0;
+  this->audio_decoder.priority            = 1;
   
   return (audio_decoder_t *) this;
 }
