@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2003/02/19 22:18:15 mroi Exp $
+ * $Id: xine_decoder.c,v 1.35 2003/05/11 17:18:45 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -36,6 +36,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <netinet/in.h> /* ntohs */
+#include <assert.h>
 
 #include "xine_internal.h"
 #include "audio_out.h"
@@ -43,6 +44,10 @@
 
 /*
 #define LOG_DEBUG
+*/
+
+/*
+#define ENABLE_DTS_PARSE
 */
 
 typedef struct {
@@ -62,6 +67,76 @@ typedef struct dts_decoder_s {
   int              output_open;
 } dts_decoder_t;
 
+typedef struct {
+  uint8_t *start;
+  uint32_t byte_position;
+  uint32_t bit_position;
+  uint8_t byte;
+} getbits_state_t;
+
+static int32_t getbits_init(getbits_state_t *state, uint8_t *start) {
+  if ((state == NULL) || (start == NULL)) return -1;
+  state->start = start;
+  state->bit_position = 0;
+  state->byte_position = 0;
+  state->byte = start[0];
+  return 0;
+}
+/* Non-optimized getbits. */
+/* This can easily be optimized for particular platforms. */
+static uint32_t getbits(getbits_state_t *state, uint32_t number_of_bits) {
+  uint32_t result=0;
+  uint8_t byte=0;
+  if (number_of_bits > 32) {
+    printf("Number of bits > 32 in getbits\n");
+    assert(0);
+  }
+
+  if ((state->bit_position) > 0) {  /* Last getbits left us in the middle of a byte. */
+    if (number_of_bits > (8-state->bit_position)) { /* this getbits will span 2 or more bytes. */
+      byte = state->byte;
+      byte = byte >> (state->bit_position);
+      result = byte;
+      number_of_bits -= (8-state->bit_position);
+      state->bit_position = 0;
+      state->byte_position++;
+      state->byte = state->start[state->byte_position];
+    } else {
+      byte=state->byte;
+      state->byte = state->byte << number_of_bits;
+      byte = byte >> (8 - number_of_bits);
+      result = byte;
+      state->bit_position += number_of_bits; /* Here it is impossible for bit_position > 8 */
+      if (state->bit_position == 8) {
+        state->bit_position = 0;
+        state->byte_position++;
+        state->byte = state->start[state->byte_position];
+      }
+      number_of_bits = 0;
+    }
+  }
+  if ((state->bit_position) == 0)
+    while (number_of_bits > 7) {
+      result = (result << 8) + state->byte;
+      state->byte_position++;
+      state->byte = state->start[state->byte_position];
+      number_of_bits -= 8;
+    }
+    if (number_of_bits > 0) { /* number_of_bits < 8 */
+      byte = state->byte;
+      state->byte = state->byte << number_of_bits;
+      state->bit_position += number_of_bits; /* Here it is impossible for bit_position > 7 */
+      if (state->bit_position > 7) printf ("bit_pos2 too large: %d\n",state->bit_position);
+      byte = byte >> (8 - number_of_bits);
+      result = (result << number_of_bits) + byte;
+      number_of_bits = 0;
+    }
+
+  return result;
+}
+
+
+
 
 void dts_reset (audio_decoder_t *this_gen) {
 
@@ -70,6 +145,202 @@ void dts_reset (audio_decoder_t *this_gen) {
 }
 
 void dts_discontinuity (audio_decoder_t *this_gen) {
+}
+
+static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
+  uint8_t        *data_in = (uint8_t *)buf->content;
+  getbits_state_t state;
+  uint8_t        frame_type;
+  uint8_t        deficit_sample_count;
+  uint8_t        crc_present_flag;
+  uint8_t        number_of_pcm_blocks;
+  uint16_t       primary_frame_byte_size;
+  uint8_t        audio_channel_arrangement;
+  uint8_t        core_audio_sampling_frequency;
+  uint8_t        transmission_bit_rate;
+  uint8_t        embedded_down_mix_enabled;
+  uint8_t        embedded_dynamic_range_flag;
+  uint8_t        embedded_time_stamp_flag;
+  uint8_t        auxiliary_data_flag;
+  uint8_t        hdcd;
+  uint8_t        extension_audio_descriptor_flag;
+  uint8_t        extended_coding_flag;
+  uint8_t        audio_sync_word_insertion_flag;
+  uint8_t        low_frequency_effects_flag;
+  uint8_t        predictor_history_flag_switch;
+  uint16_t       header_crc_check_bytes;
+  uint8_t        multirate_interpolator_switch;
+  uint8_t        encoder_software_revision;
+  uint8_t        copy_history;
+  uint8_t        source_pcm_resolution;
+  uint8_t        front_sum_difference_flag;
+  uint8_t        surrounds_sum_difference_flag;
+  int8_t         dialog_normalisation_parameter;
+  int8_t         dialog_normalisation_unspecified;
+  int8_t         dialog_normalisation_gain;
+
+  uint32_t       channel_extension_sync_word;
+  uint16_t       extension_primary_frame_byte_size; 
+  uint8_t        extension_channel_arrangement;
+
+  uint32_t       extension_sync_word_SYNC96;
+  uint16_t       extension_frame_byte_data_size_FSIZE96;
+  uint8_t        revision_number;
+
+  int32_t        n;
+  if ((data_in[0] != 0x7f) || 
+      (data_in[1] != 0xfe) ||
+      (data_in[2] != 0x80) ||
+      (data_in[3] != 0x01)) {
+    printf("libdts: DTS Sync bad\n");
+    return;
+  }
+  printf("libdts: DTS Sync OK\n");
+  getbits_init(&state, &data_in[4]);
+  
+  frame_type = getbits(&state, 1); /* 1: Normal Frame, 2:Termination Frame */
+  deficit_sample_count = getbits(&state, 5);
+  crc_present_flag = getbits(&state, 1);
+  number_of_pcm_blocks = getbits(&state, 7);
+  primary_frame_byte_size = getbits(&state, 14);
+  audio_channel_arrangement = getbits(&state, 6);
+  core_audio_sampling_frequency = getbits(&state, 4);
+  transmission_bit_rate = getbits(&state, 5);
+  embedded_down_mix_enabled = getbits(&state, 1);
+  embedded_dynamic_range_flag = getbits(&state, 1);
+  embedded_time_stamp_flag = getbits(&state, 1);
+  auxiliary_data_flag = getbits(&state, 1);
+  hdcd = getbits(&state, 1);
+  extension_audio_descriptor_flag = getbits(&state, 3);
+  extended_coding_flag = getbits(&state, 1);
+  audio_sync_word_insertion_flag = getbits(&state, 1);
+  low_frequency_effects_flag = getbits(&state, 2);
+  predictor_history_flag_switch = getbits(&state, 1);
+  if (crc_present_flag == 1) 
+    header_crc_check_bytes  = getbits(&state, 16);
+  multirate_interpolator_switch = getbits(&state, 1);
+  encoder_software_revision = getbits(&state, 4);
+  copy_history = getbits(&state, 2);
+  source_pcm_resolution = getbits(&state, 3);
+  front_sum_difference_flag = getbits(&state, 1);
+  surrounds_sum_difference_flag = getbits(&state, 1);
+  switch (encoder_software_revision) {
+  case 6:
+    dialog_normalisation_unspecified = 0;
+    dialog_normalisation_parameter = getbits(&state, 4);
+    dialog_normalisation_gain = - (16+dialog_normalisation_parameter);
+    break;
+  case 7:
+    dialog_normalisation_unspecified = 0;
+    dialog_normalisation_parameter = getbits(&state, 4);
+    dialog_normalisation_gain = - (dialog_normalisation_parameter);
+    break;
+  default:
+    dialog_normalisation_unspecified = getbits(&state, 4);
+    dialog_normalisation_gain = dialog_normalisation_parameter = 0;
+    break;
+  }
+
+  printf("getbits status: byte_pos = %d, bit_pos = %d\n", 
+          state.byte_position,
+          state.bit_position);
+  for(n=0;n<2016;n++) {
+    if((n % 32) == 0) printf("\n");
+    printf("%02X ",state.start[state.byte_position+n]);
+  }
+  printf("\n");
+  if ((extension_audio_descriptor_flag == 0)
+     || (extension_audio_descriptor_flag == 3)) {
+    printf("libdts:trying extension...\n");
+    channel_extension_sync_word = getbits(&state, 32);
+    extension_primary_frame_byte_size = getbits(&state, 10); 
+    extension_channel_arrangement = getbits(&state, 4);
+
+
+extension_sync_word_SYNC96 = getbits(&state, 32);
+extension_frame_byte_data_size_FSIZE96 = getbits(&state, 12);
+revision_number = getbits(&state, 4);
+}
+
+
+  printf("frame_type = %d\n",
+          frame_type);
+  printf("deficit_sample_count = %d\n",
+          deficit_sample_count);
+  printf("crc_present_flag = %d\n",
+          crc_present_flag);
+  printf("number_of_pcm_blocks = %d\n",
+          number_of_pcm_blocks);
+  printf("primary_frame_byte_size = %d\n",
+          primary_frame_byte_size);
+  printf("audio_channel_arrangement = %d\n",
+          audio_channel_arrangement);
+  printf("core_audio_sampling_frequency = %d\n",
+          core_audio_sampling_frequency);
+  printf("transmission_bit_rate = %d\n",
+          transmission_bit_rate);
+  printf("embedded_down_mix_enabled = %d\n",
+          embedded_down_mix_enabled);
+  printf("embedded_dynamic_range_flag = %d\n",
+          embedded_dynamic_range_flag);
+  printf("embedded_time_stamp_flag = %d\n",
+          embedded_time_stamp_flag);
+  printf("auxiliary_data_flag = %d\n",
+          auxiliary_data_flag);
+  printf("hdcd = %d\n",
+          hdcd);
+  printf("extension_audio_descriptor_flag = %d\n",
+          extension_audio_descriptor_flag);
+  printf("extended_coding_flag = %d\n",
+          extended_coding_flag);
+  printf("audio_sync_word_insertion_flag = %d\n",
+          audio_sync_word_insertion_flag);
+  printf("low_frequency_effects_flag = %d\n",
+          low_frequency_effects_flag);
+  printf("predictor_history_flag_switch = %d\n",
+          predictor_history_flag_switch);
+  if (crc_present_flag == 1) { 
+    printf("header_crc_check_bytes = %d\n",
+            header_crc_check_bytes);
+  }
+  printf("multirate_interpolator_switch = %d\n",
+          multirate_interpolator_switch);
+  printf("encoder_software_revision = %d\n",
+          encoder_software_revision);
+  printf("copy_history = %d\n",
+          copy_history);
+  printf("source_pcm_resolution = %d\n",
+          source_pcm_resolution);
+  printf("front_sum_difference_flag = %d\n",
+          front_sum_difference_flag);
+  printf("surrounds_sum_difference_flag = %d\n",
+          surrounds_sum_difference_flag);
+  printf("dialog_normalisation_parameter = %d\n",
+          dialog_normalisation_parameter);
+  printf("dialog_normalisation_unspecified = %d\n",
+          dialog_normalisation_unspecified);
+  printf("dialog_normalisation_gain = %d\n",
+          dialog_normalisation_gain);
+
+  printf("channel_extension_sync_word = 0x%08X\n",
+          channel_extension_sync_word);
+  printf("extension_primary_frame_byte_sizes = %d\n", 
+          extension_primary_frame_byte_size); 
+  printf("extension_channel_arrangement = %d\n",
+          extension_channel_arrangement);
+
+  printf("extension_sync_word_SYNC96 = 0x%08X\n",
+          extension_sync_word_SYNC96);
+  printf("extension_frame_byte_data_size_FSIZE96 = %d\n",
+          extension_frame_byte_data_size_FSIZE96);
+  printf("revision_number = %d\n",
+          revision_number);
+
+
+
+assert(0);
+
+return;
 }
 
 
@@ -85,10 +356,14 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  ac5_pcm_length;
   uint32_t  number_of_frames;
   uint32_t  first_access_unit;
-  int n;
+  int n,i;
   
 #ifdef LOG_DEBUG
   printf("libdts: DTS decode_data called.\n");
+#endif
+  printf("DTS Decoding\n");
+#ifdef ENABLE_DTS_PARSE
+  dts_parse_data (this, buf);
 #endif
 
   if ((this->stream->audio_out->get_capabilities(this->stream->audio_out) & AO_CAP_MODE_AC5) == 0) {
