@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.48 2002/03/21 00:34:35 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.49 2002/04/13 15:33:38 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -369,6 +369,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: buffer time and period time match, could not use\n");
     goto __close;
   }
+  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
+			    && snd_pcm_hw_params_can_resume (params) );
   if ((err = snd_pcm_hw_params(this->audio_fd, params)) < 0) {
     printf ("audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
     goto __close;
@@ -482,6 +484,7 @@ static void ao_alsa_close(ao_driver_t *this_gen)
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   if(this->audio_fd) snd_pcm_close(this->audio_fd);
   this->audio_fd = NULL;
+  this->has_pause_resume = 0; /* This is set at open time */
 }
 
 static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
@@ -637,23 +640,31 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
 
 static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
-
-#if 0
+  int result;
+#if 1
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
-    if (this->has_pause_resume)
-      snd_pcm_pause(this->audio_fd, 1);
+    if ((this->has_pause_resume) && (this->audio_fd > 0)) {
+      if ((result=snd_pcm_pause(this->audio_fd, 1)) < 0) {
+        printf("Pause call failed err=%d\n",result);
+      }
+    }
     break;
 
   case AO_CTRL_PLAY_RESUME:
-    if (this->has_pause_resume)
-      snd_pcm_pause(this->audio_fd, 0);
+    if ((this->has_pause_resume) && (this->audio_fd > 0) ) {
+      if ((result=snd_pcm_pause(this->audio_fd, 0)) < 0) {
+        printf("Resume call failed err=%d\n",result);
+      }
+    }
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
-    snd_pcm_drop(this->audio_fd);
-    snd_pcm_prepare(this->audio_fd);
+    if (this->audio_fd > 0) {
+      snd_pcm_drop(this->audio_fd);
+      snd_pcm_prepare(this->audio_fd);
+    }
     break;
   }
 #endif
@@ -990,8 +1001,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     printf ("(5.1-channel not enabled in xine config) " );
   }
  
-  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
-			    && snd_pcm_hw_params_can_resume (params) );
+  this->has_pause_resume = 0; /* This is checked at open time instead */
 
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
