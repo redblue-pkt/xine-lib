@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.16 2002/10/29 09:47:39 esnel Exp $
+ * $Id: events.c,v 1.17 2002/11/02 10:45:46 mroi Exp $
  *
  * Event handling functions
  *
@@ -112,6 +112,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) {
   pthread_cond_init (&queue->new_event, NULL);
   queue->events = xine_list_new ();
   queue->stream = stream;
+  queue->listener_thread = NULL;
 
   pthread_mutex_lock (&stream->event_queues_lock);
   xine_list_append_content (stream->event_queues, queue);
