@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.67 2001/12/24 00:45:03 guenter Exp $
+ * $Id: video_decoder.c,v 1.68 2002/01/04 00:23:06 jcdutton Exp $
  *
  */
 
@@ -114,6 +114,7 @@ void *video_decoder_loop (void *this_gen) {
     case BUF_SPU_CLUT:
     case BUF_SPU_PACKAGE:
     case BUF_SPU_TEXT:
+    case BUF_SPU_NAV:
       xine_profiler_start_count (prof_spu_decode);
 
       spu_decoder = update_spu_decoder(this, buf->type);

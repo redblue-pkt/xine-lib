@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.70 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: demux_mpeg_block.c,v 1.71 2002/01/04 00:23:06 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -505,8 +505,14 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       
       return ;
     }
-
-
+  } else if (stream_id == 0xbf) {  /* NAV Packet */
+    buf->content   = p-9;
+    buf->size      = packet_len;
+    buf->type      = BUF_SPU_NAV;
+    buf->PTS       = PTS;
+    buf->input_pos = this->input->get_current_pos(this->input);
+    this->video_fifo->put (this->video_fifo, buf);
+    return ;
 
   } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
 

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2002/01/03 23:56:44 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.47 2002/01/04 00:23:06 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -65,7 +65,7 @@ static clut_t __default_clut[] = {
 
 static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
   int type = buf_type & 0xFFFF0000;
-  return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT || type == BUF_SPU_SUBP_CONTROL) ;
+  return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT || type == BUF_SPU_NAV || type == BUF_SPU_SUBP_CONTROL) ;
 }
 
 /* FIXME: This function needs checking */
@@ -250,6 +250,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     for (i = 0; i < 32; i++) {
       this->spu_stream_state[i].stream_filter = subp_control[i]; 
     }
+    return;
+  }
+  if (buf->type == BUF_SPU_NAV) {
+    /* printf("libspudec:got nav packet 1\n"); */
+    /* spudec_decode_nav(this,buf); */
     return;
   }
 
