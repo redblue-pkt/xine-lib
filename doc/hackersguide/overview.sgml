@@ -395,6 +395,15 @@
       <para>
        <variablelist>
         <varlistentry>
+         <term><filename>audio</filename></term>
+         <listitem>
+          <para>
+           Some audio effects as xine audio filter posts.
+          </para>
+          <para></para>
+         </listitem>
+        </varlistentry>
+        <varlistentry>
          <term><filename>deinterlace</filename> (imported)</term>
          <listitem>
           <para>
