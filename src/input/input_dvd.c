@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.80 2002/09/15 14:05:37 mroi Exp $
+ * $Id: input_dvd.c,v 1.81 2002/09/16 16:13:56 jcdutton Exp $
  *
  */
 
@@ -387,9 +387,13 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
     
+  memset(&region_entry, 0, sizeof(xine_cfg_entry_t));
+  memset(&lang_entry, 0, sizeof(xine_cfg_entry_t));
+  memset(&cache_entry, 0, sizeof(xine_cfg_entry_t));
+
   trace_print("Called\n");
   /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
- 
+   
   free(this->mrl);
   this->mrl = strdup(mrl);
   this->pause_timer            = 0;
@@ -1483,6 +1487,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.81  2002/09/16 16:13:56  jcdutton
+ * Prevent a segfault when accessing the config.
+ *
  * Revision 1.80  2002/09/15 14:05:37  mroi
  * be more distinct with UI info texts for
  * "no subtitles because user switched it off"
