@@ -189,7 +189,6 @@ dnl Checks for Ascii-Art library
 dnl
 
 AC_CHECK_LIB(aa, main, 
-             LIBS="$LIBS -laa"
 	     AC_DEFINE(HAVE_AA)
 	     ac_have_aa="yes",,)
 AM_CONDITIONAL(HAVE_AA, test x$ac_have_aa = "xyes")
