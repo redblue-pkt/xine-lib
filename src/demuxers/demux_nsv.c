@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.19 2004/11/30 00:41:00 tmattern Exp $
+ * $Id: demux_nsv.c,v 1.20 2004/12/03 01:53:59 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -101,32 +101,34 @@ typedef struct {
 
 static void nsv_parse_framerate(demux_nsv_t *this, uint8_t framerate)
 {
-    /* need 1 more byte */
-    this->fps = framerate;
-    if (this->fps & 0x80) {
-      switch (this->fps & 0x7F) {
-      case 1:
-        /* 29.97 fps */
-        this->frame_pts_inc = 3003;
-        break;
-
-      case 3:
-        /* 23.976 fps */
-        this->frame_pts_inc = 3753;
-        break;
-
-      case 5:
-        /* 14.98 fps */
-        this->frame_pts_inc = 6006;
-        break;
-
-      default:
-        lprintf("unknown framerate: 0x%02X\n", this->fps);
-        this->frame_pts_inc = 90000;
-        break;
-      }
-    } else
-      this->frame_pts_inc = 90000 / this->fps;
+  /* need 1 more byte */
+  this->fps = framerate;
+  if (this->fps & 0x80) {
+    switch (this->fps & 0x7F) {
+    case 1:
+      /* 29.97 fps */
+      this->frame_pts_inc = 3003;
+      break;
+      
+    case 3:
+      /* 23.976 fps */
+      this->frame_pts_inc = 3753;
+      break;
+      
+    case 5:
+      /* 14.98 fps */
+      this->frame_pts_inc = 6006;
+      break;
+      
+    default:
+      lprintf("unknown framerate: 0x%02X\n", this->fps);
+      this->frame_pts_inc = 90000;
+      break;
+    }
+  } else
+    this->frame_pts_inc = 90000 / this->fps;
+  
+  lprintf("frame_pts_inc=%d\n", this->frame_pts_inc);
 }
 
 static off_t nsv_read(demux_nsv_t *this, uint8_t *buffer, off_t len) {
@@ -337,7 +339,7 @@ static int open_nsv_file(demux_nsv_t *this) {
 	      preview[11],
 	      this->audio_type);
 
-      nsv_parse_framerate(this, preview[12]);
+      nsv_parse_framerate(this, preview[16]);
       NSVs_found = 1;
       break;
     
