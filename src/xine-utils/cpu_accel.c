@@ -41,6 +41,12 @@
 #include "xineutils.h"
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
+
+static jmp_buf sigill_return;
+
+static void sigill_handler (int n) {
+  longjmp(sigill_return, 1);
+}
 static uint32_t arch_accel (void)
 {
   uint32_t caps;
@@ -162,11 +168,6 @@ static uint32_t arch_accel (void)
   return caps;
 }
 
-static jmp_buf sigill_return;
-
-static void sigill_handler (int n) {
-  longjmp(sigill_return, 1);
-}
 #endif /* ARCH_X86 */
 
 #if defined(ARCH_PPC) && defined(ENABLE_ALTIVEC)
