@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.15 2001/10/07 03:53:11 heikos Exp $
+ * $Id: buffer.h,v 1.16 2001/10/10 10:54:48 jkeil Exp $
  *
  *
  * contents:
@@ -142,6 +142,7 @@ typedef struct fifo_buffer_s fifo_buffer_t;
 struct fifo_buffer_s
 {
   buf_element_t  *first, *last;
+  int             fifo_size;
 
   pthread_mutex_t mutex;
   pthread_cond_t  not_empty;
@@ -155,6 +156,8 @@ struct fifo_buffer_s
   buf_element_t *(*get) (fifo_buffer_t *fifo);
 
   void (*clear) (fifo_buffer_t *fifo) ;
+
+  int (*size) (fifo_buffer_t *fifo);
 
   /* 
    * alloc buffer for this fifo from global buf pool 
@@ -173,6 +176,7 @@ struct fifo_buffer_s
   pthread_mutex_t  buffer_pool_mutex;
   pthread_cond_t   buffer_pool_cond_not_empty;
   int              buffer_pool_num_free;
+  int		   buffer_pool_capacity;
 } ;
 
 /*

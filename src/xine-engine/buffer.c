@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.7 2001/09/05 16:02:29 guenter Exp $
+ * $Id: buffer.c,v 1.8 2001/10/10 10:54:48 jkeil Exp $
  *
  *
  * contents:
@@ -121,6 +121,7 @@ static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
 
   fifo->last  = element;
   element->next = NULL;
+  fifo->fifo_size++;
 
   pthread_cond_signal (&fifo->not_empty);
 
@@ -145,6 +146,8 @@ static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
   fifo->first = fifo->first->next;
   if (fifo->first==NULL)
     fifo->last = NULL;
+
+  fifo->fifo_size--;
 
   pthread_mutex_unlock (&fifo->mutex);
 
@@ -178,6 +181,8 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
       if (!next)
 	fifo->last = prev;
       
+      fifo->fifo_size--;
+
       buf->free_buffer(buf);
     } else
       prev = buf;
@@ -202,6 +207,19 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
 }
 
 /*
+ * Return the number of elements in the fifo buffer
+ */
+static int fifo_buffer_size (fifo_buffer_t *this) {
+  int size;
+
+  pthread_mutex_lock(&this->mutex);
+  size = this->fifo_size;
+  pthread_mutex_unlock(&this->mutex);
+
+  return size;
+}
+
+/*
  * allocate and initialize new (empty) fifo buffer
  */
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
@@ -215,9 +233,11 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
   this->first           = NULL;
   this->last            = NULL;
+  this->fifo_size       = 0;
   this->put             = fifo_buffer_put;
   this->get             = fifo_buffer_get;
   this->clear           = fifo_buffer_clear;
+  this->size		= fifo_buffer_size;
 
   pthread_mutex_init (&this->mutex, NULL);
   pthread_cond_init (&this->not_empty, NULL);
@@ -255,6 +275,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
     buffer_pool_free (buf);
   }
   this->buffer_pool_num_free = num_buffers;
+  this->buffer_pool_capacity = num_buffers;
   this->buffer_pool_alloc    = buffer_pool_alloc;
 
   return this;
