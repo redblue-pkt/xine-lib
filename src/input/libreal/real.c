@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.4 2002/12/17 10:33:35 holstsn Exp $
+ * $Id: real.c,v 1.5 2002/12/22 16:46:27 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -408,7 +408,7 @@ void real_calc_response_and_checksum (char *response, char *chksum, char *challe
  * returns a pointer to selected data and number of bytes in that.
  */
 
-static int select_mlti_data(const char *mlti_chunk, int selection, char *out) {
+static int select_mlti_data(const char *mlti_chunk, int mlti_size, int selection, char *out) {
 
   int numrules, codec, size;
   int i;
@@ -420,8 +420,11 @@ static int select_mlti_data(const char *mlti_chunk, int selection, char *out) {
       ||(mlti_chunk[2] != 'T')
       ||(mlti_chunk[3] != 'I'))
   {
-    printf("libreal: MLTI tag not detected\n");
-    return 0;
+#ifdef LOG
+    printf("libreal: MLTI tag not detected, copying data\n");
+#endif
+    memcpy(out, mlti_chunk, mlti_size);
+    return mlti_size;
   }
 
   mlti_chunk+=4;
@@ -469,7 +472,7 @@ static int select_mlti_data(const char *mlti_chunk, int selection, char *out) {
  * Decodes base64 strings (based upon b64 package)
  */
 
-static char *b64_decode(const char *in)
+static char *b64_decode(const char *in, int *size)
 {
   char dtable[256];              /* Encode / decode table */
   int i,j,k;
@@ -514,10 +517,12 @@ static char *b64_decode(const char *in)
     i = a[2] == '=' ? 1 : (a[3] == '=' ? 2 : 3);
     if (i < 3) {
       out[k]=0;
+      *size=k;
       return out;
     }
   }
   out[k]=0;
+  *size=k;
   return out;
 }
 
@@ -533,6 +538,7 @@ static int sdp_filter(const char *in, const char *filter, char *out) {
   if (!strncmp(in,filter,flen))
   {
     if(in[flen]=='"') flen++;
+    if(in[len-1]==13) len--;
     if(in[len-1]=='"') len--;
     memcpy(out, &in[flen], len-flen);
     out[len-flen]=0;
@@ -617,16 +623,16 @@ rmff_header_t *real_parse_sdp(const char *data, char *stream_rules, uint32_t ban
     /* cont stuff */
   
     len=sdp_filter(data,"a=Title:buffer;",buf);
-    if (len) h->cont->title=b64_decode(buf);
+    if (len) h->cont->title=b64_decode(buf,&len);
     
     len=sdp_filter(data,"a=Author:buffer;",buf);
-    if (len) h->cont->author=b64_decode(buf);
+    if (len) h->cont->author=b64_decode(buf,&len);
     
     len=sdp_filter(data,"a=Copyright:buffer;",buf);
-    if (len) h->cont->copyright=b64_decode(buf);
+    if (len) h->cont->copyright=b64_decode(buf,&len);
     
     len=sdp_filter(data,"a=Abstract:buffer;",buf);
-    if (len) h->cont->comment=b64_decode(buf);
+    if (len) h->cont->comment=b64_decode(buf,&len);
 
     /* prop stuff */
 
@@ -681,7 +687,10 @@ rmff_header_t *real_parse_sdp(const char *data, char *stream_rules, uint32_t ban
       len=sdp_filter(data,"a=OpaqueData:buffer;",buf);
       if (len)
       {
-        media->mlti_data=b64_decode(buf);
+        media->mlti_data=b64_decode(buf, &(media->mlti_data_size));
+#ifdef LOG
+	printf("mlti_data_size: %i\n", media->mlti_data_size);
+#endif
       }
       len=sdp_filter(data,"a=ASMRuleBook:string;",buf);
       if (len)
@@ -732,7 +741,7 @@ rmff_header_t *real_parse_sdp(const char *data, char *stream_rules, uint32_t ban
 
     /* select a codec */
     h->streams[1]->type_specific_len=select_mlti_data(
-          h->streams[1]->mlti_data, sr[1], buf);
+          h->streams[1]->mlti_data, h->streams[1]->mlti_data_size, sr[1], buf);
     h->streams[1]->type_specific_data=malloc(sizeof(char)*h->streams[1]->type_specific_len);
     memcpy(h->streams[1]->type_specific_data, buf, h->streams[1]->type_specific_len);
     
@@ -758,7 +767,7 @@ rmff_header_t *real_parse_sdp(const char *data, char *stream_rules, uint32_t ban
  
     /* select a codec */
     h->streams[0]->type_specific_len=select_mlti_data(
-          h->streams[0]->mlti_data, sr[0], buf);
+          h->streams[0]->mlti_data, h->streams[0]->mlti_data_size, sr[0], buf);
     h->streams[0]->type_specific_data=malloc(sizeof(char)*h->streams[0]->type_specific_len);
     memcpy(h->streams[0]->type_specific_data, buf, h->streams[0]->type_specific_len);
     

@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.27 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.28 2002/12/22 16:46:27 holstsn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -598,6 +598,9 @@ static void real_parse_headers (demux_real_t *this) {
 
     default:
       /* this should not occur, but in case it does, skip the chunk */
+#ifdef LOG
+      printf("demux_real: skipping a chunk!\n");
+#endif
       this->input->seek(this->input, chunk_size - PREAMBLE_SIZE, SEEK_CUR);
       break;
 
@@ -868,6 +871,10 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     buf_element_t *buf;
     int            n;
 
+#ifdef LOG
+    printf ("demux_real: audio chunk detected.\n");
+#endif
+
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
     buf->content       = buf->mem;
@@ -897,7 +904,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   } else {
 
     /* discard */
-
+#ifdef LOG
+    printf ("demux_real: chunk not detected; discarding.\n");
+#endif
     this->input->seek(this->input, size, SEEK_CUR);
 
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.h,v 1.1 2002/12/12 22:14:55 holstsn Exp $
+ * $Id: rmff.h,v 1.2 2002/12/22 16:46:27 holstsn Exp $
  *
  * some functions for real media file headers
  * adopted from joschkas real tools
@@ -122,6 +122,7 @@ typedef struct {
   uint32_t  type_specific_len;
   char      *type_specific_data;
 
+  int       mlti_data_size;
   char      *mlti_data;
 
 } rmff_mdpr_t;
