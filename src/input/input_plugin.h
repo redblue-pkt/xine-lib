@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.13 2001/10/17 20:33:09 guenter Exp $
+ * $Id: input_plugin.h,v 1.14 2001/10/18 23:46:40 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -308,6 +308,13 @@ struct input_plugin_s
 #define INPUT_EVENT_MOUSEBUTTON 1
 #define INPUT_EVENT_KEYPRESS    2
 #define INPUT_EVENT_MOUSEMOVE   3
+#define INPUT_EVENT_UP          4
+#define INPUT_EVENT_DOWN        5
+#define INPUT_EVENT_LEFT        6
+#define INPUT_EVENT_RIGHT       7
+#define INPUT_EVENT_MENU1       8
+#define INPUT_EVENT_MENU2       9
+#define INPUT_EVENT_MENU3       10
 
 /*
  * each input plugin _must_ implement this function:

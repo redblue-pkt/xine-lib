@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.68 2001/10/18 14:43:00 richwareham Exp $
+ * $Id: xine.c,v 1.69 2001/10/18 23:46:40 guenter Exp $
  *
  * top-level xine functions
  *
@@ -408,10 +408,25 @@ static void event_handler(xine_t *xine, event_t *event, void *data) {
       }
     }
     break;
+  case XINE_MENU1_EVENT:
+    xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
+					       INPUT_EVENT_MENU1,
+					       0, 0, 0);
+    break;
+  case XINE_MENU2_EVENT:
+    xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
+					       INPUT_EVENT_MENU2,
+					       0, 0, 0);
+    break;
+  case XINE_MENU3_EVENT:
+    xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
+					       INPUT_EVENT_MENU3,
+					       0, 0, 0);
+    break;
   case XINE_SPU_EVENT:
     if (xine->cur_spu_decoder_plugin)
       xine->cur_spu_decoder_plugin->event(xine->cur_spu_decoder_plugin,
-		(spu_event_t*) event);
+					  (spu_event_t*) event);
     break;
   }
 }

@@ -103,8 +103,16 @@ typedef struct ui_event_s {
 
 /* EOF UI sub-types */
 
+/**
+ * MENU events
+ */
+#define XINE_MENU1_EVENT 0x0005
+#define XINE_MENU2_EVENT 0x0006
+#define XINE_MENU3_EVENT 0x0007
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* HAVE_EVENTS_H */ 
+
