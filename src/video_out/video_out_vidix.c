@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.37 2003/04/12 16:43:48 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.38 2003/04/23 10:46:00 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -505,8 +505,8 @@ static void vidix_config_playback (vidix_driver_t *this) {
     memset(this->vidix_mem + this->vidix_play.offsets[i], 0x80,
            this->vidix_play.frame_size);
 
-  switch(this->delivered_format) {
-    case XINE_IMGFMT_YV12:
+  switch(this->vidix_play.fourcc) {
+    case IMGFMT_YV12:
       apitch = this->vidix_play.dest.pitch.y-1;
       this->dstrides.y = (this->sc.delivered_width + apitch) & ~apitch;
       apitch = this->vidix_play.dest.pitch.v-1;
@@ -514,7 +514,7 @@ static void vidix_config_playback (vidix_driver_t *this) {
       apitch = this->vidix_play.dest.pitch.u-1;
       this->dstrides.u = (this->sc.delivered_width + apitch) & ~apitch;
       break;
-    case XINE_IMGFMT_YUY2:
+    case IMGFMT_YUY2:
       apitch = this->vidix_play.dest.pitch.y-1;
       this->dstrides.y = (this->sc.delivered_width*2 + apitch) & ~apitch;
       break;
