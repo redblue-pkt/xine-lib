@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.2 2001/05/16 15:32:03 guenter Exp $
+ * $Id: video_out_x11.h,v 1.3 2001/05/19 21:53:46 guenter Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -49,9 +49,6 @@ typedef struct {
   /* drawable to display the video in/on */
   Drawable d;
   
-  /* area of that drawable to be used by video */
-  x11_rectangle_t dest_area;
-
   /*
    * calc dest size
    *

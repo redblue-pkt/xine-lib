@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.15 2001/05/16 15:32:03 guenter Exp $
+ * $Id: video_out_xv.c,v 1.16 2001/05/19 21:53:46 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -570,10 +570,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->screen            = visual->screen;
   this->display_ratio     = visual->display_ratio;
   this->request_dest_size = visual->request_dest_size;
-  this->output_xoffset    = visual->dest_area.x;
-  this->output_yoffset    = visual->dest_area.y;
-  this->output_width      = visual->dest_area.w;
-  this->output_height     = visual->dest_area.h;
+  this->output_xoffset    = 0;
+  this->output_yoffset    = 0;
+  this->output_width      = 0;
+  this->output_height     = 0;
   this->drawable          = visual->d;
   this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
   this->xv_port           = xv_port;
