@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.28 2001/10/26 13:39:21 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.29 2001/10/26 15:10:54 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -457,8 +457,13 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->PTS) {
     metronom_t *metronom = this->ovl_src.metronom;
     uint32_t vpts = metronom->got_spu_packet(metronom, buf->PTS, 0);
-    if (vpts < this->buf_pts)
-      spudec_reset(this);
+    if (vpts < this->buf_pts) {
+      /* FIXME: Don't do this yet, 
+         because it will cause all sorts of 
+         problems with malloc. 
+       */
+      /* spudec_reset(this); */
+    }
 
     this->spu_stream_state[stream_id].vpts = vpts; /* Show timer */
     this->spu_stream_state[stream_id].pts = buf->PTS; /* Required to match up with NAV packets */
