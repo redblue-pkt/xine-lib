@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.89 2002/03/29 19:34:06 esnel Exp $
+ * $Id: video_out.c,v 1.90 2002/03/29 19:52:16 f1rmb Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -115,7 +115,7 @@ static int _load_logo_file(vos_t *this) {
   if((fp = gzopen (this->logo_pathname, "rb")) != NULL) {
 
     if(this->logo_yuy2)
-      memleak_free (this->logo_yuy2);
+      free (this->logo_yuy2);
 
     this->logo_w = gzread_i16 (fp);
     this->logo_h = gzread_i16 (fp);
