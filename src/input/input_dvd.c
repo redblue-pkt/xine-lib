@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.132 2003/03/04 10:30:28 mroi Exp $
+ * $Id: input_dvd.c,v 1.133 2003/03/12 13:28:12 mroi Exp $
  *
  */
 
@@ -691,7 +691,8 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
     return -1;
   }
  
-  return dvdnav_sector_search(this->dvdnav, offset / DVD_BLOCK_SIZE , origin) * DVD_BLOCK_SIZE;
+  dvdnav_sector_search(this->dvdnav, offset / DVD_BLOCK_SIZE , origin);
+  return dvd_plugin_get_current_pos(this_gen);
 }
 
 static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
@@ -705,7 +706,7 @@ static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
     return 0;
   }
   result = dvdnav_get_position(this->dvdnav, &pos, &length);
-  return (off_t)pos * (off_t)2048;
+  return (off_t)pos * (off_t)DVD_BLOCK_SIZE;
 }
 
 static off_t dvd_plugin_get_length (input_plugin_t *this_gen) {
@@ -1566,6 +1567,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.133  2003/03/12 13:28:12  mroi
+ * fix wrong return value of seek function, kindly reported by Nick Kurshev
+ *
  * Revision 1.132  2003/03/04 10:30:28  mroi
  * fix compiler warnings at least in xine's native code
  *
