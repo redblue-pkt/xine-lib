@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.34 2002/12/14 18:34:57 esnel Exp $
+ * $Id: xine_interface.c,v 1.35 2002/12/25 15:02:23 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -635,7 +635,7 @@ const xine_post_out_t *xine_post_output(xine_post_t *this_gen, char *name) {
 }
 
 int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target) {
-  if (source) {
+  if (source && source->rewire) {
     if (target) {
       if (source->type == target->type)
         return source->rewire(source, target->data);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.47 2002/12/21 16:14:32 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.48 2002/12/25 15:02:23 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -383,7 +383,8 @@ struct xine_post_out_s {
    * argument: in this case you should disconnect the data pointer
    * from any output and if necessary to avoid writing to some stray
    * memory you should make it point to some dummy location,
-   * returns 1 on success, 0 on failure */
+   * returns 1 on success, 0 on failure;
+   * if you do not implement rewiring, set this to NULL */
   int (*rewire) (xine_post_out_t *self, void *data);
 
 };
