@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.32 2003/08/25 21:51:39 f1rmb Exp $
+ * $Id: input_cdda.c,v 1.33 2003/09/06 23:10:37 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -91,6 +91,7 @@ typedef struct _cdrom_toc {
   int   first_track;
   int   last_track;
   int   total_tracks;
+  int   ignore_last_track;
 
   cdrom_toc_entry *toc_entries;
   cdrom_toc_entry leadout_track;  /* need to know where last track ends */
@@ -375,6 +376,7 @@ static int read_cdrom_toc(int fd, cdrom_toc *toc) {
 
   struct cdrom_tochdr tochdr;
   struct cdrom_tocentry tocentry;
+  struct cdrom_multisession ms;
   int i;
 
   /* fetch the table of contents */
@@ -383,8 +385,19 @@ static int read_cdrom_toc(int fd, cdrom_toc *toc) {
     return -1;
   }
 
+  ms.addr_format = CDROM_LBA;
+  if (ioctl(fd, CDROMMULTISESSION, &ms) == -1) {
+    perror("CDROMMULTISESSION");
+    return -1;
+  }
+
   toc->first_track = tochdr.cdth_trk0;
   toc->last_track = tochdr.cdth_trk1;
+  if (ms.xa_flag) {
+    toc->ignore_last_track = 1;
+  } else {
+    toc->ignore_last_track = 0;
+  }
   toc->total_tracks = toc->last_track - toc->first_track + 1;
 
   /* allocate space for the toc entries */
@@ -2431,6 +2444,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   cdrom_toc toc;
   char trackmrl[20];
   int fd, i, err = -1;
+  int num_tracks;
 
   /* free old playlist */
   for( i = 0; this->autoplaylist[i]; i++ ) {
@@ -2474,7 +2488,10 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   if ( err < 0 )
     return NULL;
   
-  for ( i = 0; i <= toc.last_track - toc.first_track; i++ ) {
+  num_tracks = toc.last_track - toc.first_track;
+  if (toc.ignore_last_track)
+    num_tracks--;
+  for ( i = 0; i <= num_tracks; i++ ) {
     sprintf(trackmrl,"cdda:/%d",i+toc.first_track);
     this->autoplaylist[i] = strdup(trackmrl);    
   }
