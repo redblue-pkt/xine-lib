@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.87 2002/12/06 01:13:17 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.88 2002/12/14 16:17:57 jkeil Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -207,7 +207,7 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
 }
 
 
-void write_pause_burst(xine_audio_port_t *this, uint32_t num_frames) { 
+static void write_pause_burst(xine_audio_port_t *this, uint32_t num_frames) { 
  
   int error = 0;
   unsigned char buf[8192];
@@ -567,7 +567,9 @@ static void *ao_loop (void *this_gen) {
     delay = this->driver->delay(this->driver);
     while (delay < 0 && this->audio_loop_running) {
       /* Get the audio card into RUNNING state. */
+      pthread_mutex_unlock( &this->driver_lock ); 
       ao_fill_gap (this, 10000); /* FIXME, this PTS of 1000 should == period size */
+      pthread_mutex_lock( &this->driver_lock ); 
       delay = this->driver->delay(this->driver);
     }
     pthread_mutex_unlock( &this->driver_lock ); 
