@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.10 2002/10/22 17:18:23 jkeil Exp $
+ * $Id: dvdnav.c,v 1.11 2003/01/27 21:02:42 mroi Exp $
  *
  */
 
@@ -82,6 +82,8 @@ static int8_t NCLK_dvdnav_get_audio_logical_stream(dvdnav_t *this, uint8_t audio
     audio_num = 0;
   
   state = &(this->vm->state);
+  if (!state || !state->pgc)
+    return -1;
   
   if(audio_num < 8) {
     if(state->pgc->audio_control[audio_num] & (1 << 15)) {
@@ -1010,6 +1012,10 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.11  2003/01/27 21:02:42  mroi
+ * temporary fix for segfaulting DVDs
+ * libdvdnav cleanup needed (will start tomorrow)
+ *
  * Revision 1.10  2002/10/22 17:18:23  jkeil
  * Recursive comments, picked up via CVS $Log keyword.  Trying to fix...
  *
