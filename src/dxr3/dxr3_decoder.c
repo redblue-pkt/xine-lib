@@ -17,13 +17,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.55 2002/01/07 21:26:04 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.56 2002/01/07 23:36:37 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
  * Takes precedence over the libmpeg2 and libspudec due to a higher
  * priority.
  * also incorporates an scr plugin for metronom
+ *
+ * update 7/1/2002 by jcdutton:
+ *   Updated to work better with the changes done to dvdnav.
+ *   Subtitles display properly now.
+ *   TODO: Process NAV packets so that the first
+ *         menu button appears, and also so that
+ *         menu buttons disappear when one starts playing the movie.
+ *         Processing NAV packets will also make "The White Rabbit"
+ *         work on DXR3 as I currently works on XV.
  *
  * update 25/11/01 by Harm:
  * Major retooling; so much so that I've decided to cvs-tag the dxr3 sources
@@ -611,15 +620,13 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		this->last_pts = vpts;
 		/* SETPTS only if less then one second in the future and
 		 * either buffer has PTS or sync_every_frame is set */
-		if ((delay > 0) && (delay < 90000) &&
-		    (this->sync_every_frame || buf->PTS)) {
+//		if ((delay > 0) && (delay < 90000) &&
+//		    (this->sync_every_frame || buf->PTS)) {
 			/* update the dxr3's current pts value */	
-/*************
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				printf("dxr3: set video pts failed (%s)\n",
 					 strerror(errno));
-**************/
-		}
+//		}
 		if (delay >= 90000) {
 			/* frame more than 1 sec ahead */
 			printf("dxr3: WARNING: vpts %d is %.02f seconds ahead of time!\n",
@@ -885,26 +892,29 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 #endif
           return;
         }
-/*
+/* spu_channel is now set based on whether we are in the menu or not. */
+/* Bit 7 is set if only forced display SPUs should be shown */
+        if ( (this->xine->spu_channel & 0x1f) != stream_id  ) { 
+#if LOG_SPU
+          printf ("dxr3_spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
+#endif
+          return;
+        }
+//        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
+        /* Hide any previous button highlights */
+	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
 	if (buf->PTS) {
 		int vpts;
 		vpts = this->spu_decoder.metronom->got_spu_packet
 		 (this->spu_decoder.metronom, buf->PTS, 0, buf->SCR);
+#if LOG_SPU
+                printf ("dxr3_spu: PTS=%u VPTS=%u\n", buf->PTS, vpts);
+#endif
 
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
 			printf("dxr3: spu setpts failed (%s)\n", strerror(errno));
 	}
-*/
-/* spu_channel is now set based on whether we are in the menu or not. */
-/* Bit 7 is set if only forced display SPUs should be shown */
-      if ( (this->xine->spu_channel & 0x1f) != stream_id  ) { 
-#if LOG_SPU
-        printf ("dxr3_spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
-#endif
-        return;
-      }
 
-//        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
 
 #if LOG_SPU
         printf ("dxr3_spu: write: SPU_FD = %i\n",this->fd_spu);
