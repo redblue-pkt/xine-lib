@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.119 2003/05/23 10:52:40 mroi Exp $
+ * $Id: xine_decoder.c,v 1.120 2003/05/26 20:07:10 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -52,6 +52,7 @@
 #define ENABLE_DIRECT_RENDERING
 
 #define SLICE_BUFFER_SIZE (1194 * 1024)
+#define RV10_CHUNK_TAB_SIZE 128         /* from libreal/xine_decoder.c */
 #define abs_float(x) ( ((x)<0) ? -(x) : (x) )
 
 typedef struct ff_video_decoder_s ff_video_decoder_t;
@@ -239,6 +240,16 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   
   if(bih)
     this->context->bits_per_sample = bih->biBitCount;
+    
+  if(this->codec->id == CODEC_ID_RV10) {
+    this->context->sub_id = this->bih.biCompression;
+    this->context->slice_offset = malloc(sizeof(int) * RV10_CHUNK_TAB_SIZE);
+  }
+  
+  /* Some codecs (eg rv10) copy flags in init so it's necessary to set
+   * this flag here in case we are going to use direct rendering */
+  if(this->codec->capabilities & CODEC_CAP_DR1)
+    this->context->flags |= CODEC_FLAG_EMU_EDGE;
 
   if (avcodec_open (this->context, this->codec) < 0) {
     printf ("ffmpeg: couldn't open decoder\n");
@@ -272,7 +283,6 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 #ifdef ENABLE_DIRECT_RENDERING
     if( this->context->pix_fmt == PIX_FMT_YUV420P &&
         this->codec->capabilities & CODEC_CAP_DR1 ) {
-      this->context->flags |= CODEC_FLAG_EMU_EDGE; 
       this->context->get_buffer = get_buffer;
       this->context->release_buffer = release_buffer;
       if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
@@ -772,6 +782,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
    
     if(!(buf->decoder_flags & BUF_FLAG_FRAME_START)) {
       xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+      
+      if(codec_type == BUF_VIDEO_RV10) {
+        this->context->slice_offset[this->context->slice_count] = this->size;
+        this->context->slice_count++;     
+      }
 
       this->size += buf->size;
     }
@@ -934,6 +949,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     if(buf->decoder_flags & BUF_FLAG_FRAME_START) {
       xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+      
+      if(codec_type == BUF_VIDEO_RV10) {
+        this->context->slice_offset[0] = this->size;
+        this->context->slice_count = 1;
+      }
 
       this->size += buf->size;
     }
@@ -1020,6 +1040,9 @@ static void ff_dispose (video_decoder_t *this_gen) {
     this->decoder_ok = 0;
   }
 
+  if(this->context && this->context->slice_offset)
+    free(this->context->slice_offset);
+  
   if(this->context && this->context->extradata)
     free(this->context->extradata);
 

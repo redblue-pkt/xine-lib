@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.54 2003/05/26 12:32:40 jstembridge Exp $
+ * $Id: demux_real.c,v 1.55 2003/05/26 20:07:09 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -607,11 +607,14 @@ static void real_parse_headers (demux_real_t *this) {
 
 		    memcpy(&bih.biWidth, mdpr->type_specific_data+off+8, 2);
 		    memcpy(&bih.biHeight, mdpr->type_specific_data+off+10, 2);
+		    memcpy(&bih.biCompression, mdpr->type_specific_data+off+26, 4);
 		    bih.biWidth=bswap_16(bih.biWidth);
 		    bih.biHeight=bswap_16(bih.biHeight);
+		    bih.biCompression=bswap_32(bih.biCompression);
 		    bih.biSize=sizeof(bih);
 #ifdef LOG
 		    printf("demux_real: setting size to w:%u h:%u for RV10\n", bih.biWidth, bih.biHeight);
+                    printf("demux_real: setting sub-codec to %X for RV10\n", bih.biCompression);
 #endif
 		    memcpy(buf->content, &bih, bih.biSize);
 
