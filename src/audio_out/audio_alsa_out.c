@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.101 2003/08/09 23:11:42 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.102 2003/08/26 02:37:21 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -444,6 +444,14 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
 	    this->input_sample_rate, this->output_sample_rate);
   }
+
+  /* Set period to buffer size ratios at 8 periods to 1 buffer */
+  err = snd_pcm_hw_params_set_periods(this->audio_fd, params, 8 ,0);
+  if (err < 0) {
+    printf ("audio_alsa_out: unable to set 8 periods\n");
+    goto __close;
+  }
+
   /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
   dir=0;
   err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, &buffer_time, &dir);
@@ -452,6 +460,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
+
+#if 0
   /* set the period time [us] (interrupt every x us|y samples ...) */
   dir=0;
   period_size=this->buffer_size/8;
@@ -460,6 +470,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: period time not available");
     goto __close;
   }
+#endif
   dir=0;
   err = snd_pcm_hw_params_get_period_size(params, &period_size, &dir);
   if (2*period_size > this->buffer_size) {
