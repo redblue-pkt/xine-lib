@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.215 2005/01/05 22:14:31 tmattern Exp $
+ * $Id: demux_avi.c,v 1.216 2005/01/09 20:52:19 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -620,7 +620,7 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
         if ((data[0] == audio->audio_tag[0]) &&
             (data[1] == audio->audio_tag[1])) {
           off_t pos = chunk_pos + AVI_HEADER_SIZE;
-  
+
           valid_chunk = 1;
           /* VBR streams (hack from mplayer) */
           if (audio->wavex && audio->wavex->nBlockAlign) {
@@ -687,6 +687,7 @@ static video_index_entry_t *video_cur_index_entry(demux_avi_t *this) {
 static audio_index_entry_t *audio_cur_index_entry(demux_avi_t *this,
     avi_audio_t *AVI_A) {
 
+  lprintf("posc: %d, chunks: %d\n", AVI_A->audio_posc, AVI_A->audio_idx.audio_chunks);
   if (AVI_A->audio_posc >= AVI_A->audio_idx.audio_chunks) {
     /* We don't have enough chunks; see if the file's bigger yet. */
     if (idx_grow(this, audio_pos_stopper, AVI_A) < 0) {
@@ -1056,6 +1057,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
 #endif
       }
 
+      this->has_index = 1;
       if (lasttag == 1) {
          /* V I D E O */
          AVI->video_superindex = superindex;
@@ -1230,12 +1232,11 @@ static avi_t *AVI_init(demux_avi_t *this) {
       int k = 0, audtr = 0;
       uint32_t nrEntries = 0;
       int nvi, nai[MAX_AUDIO_STREAMS];
-      uint64_t totb, tot[MAX_AUDIO_STREAMS];
 
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                "demux_avi: This is an OpenDML stream\n");
       nvi = 0;
-      for(audtr=0; audtr<AVI->n_audio; ++audtr) nai[audtr] = tot[audtr] = 0; 
+      for(audtr=0; audtr<AVI->n_audio; ++audtr) nai[audtr] = 0; 
 
       /* ************************ */
       /* VIDEO */
@@ -1306,27 +1307,28 @@ static avi_t *AVI_init(demux_avi_t *this) {
       /* ************************ */
       lprintf("audio tracks\n");
       for(audtr=0; audtr<AVI->n_audio; ++audtr) {
+        avi_audio_t *audio = AVI->audio[audtr];
 
         k = 0;
-        if (!AVI->audio[audtr]->audio_superindex) {
+        if (!audio->audio_superindex) {
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
                    "demux_avi: Warning: cannot read audio index for track %d\n", audtr);
           continue;
         }
-        for (j=0; j<AVI->audio[audtr]->audio_superindex->nEntriesInUse; j++) {
+        for (j=0; j<audio->audio_superindex->nEntriesInUse; j++) {
 
           /* read from file */
-          chunk_start = en = malloc (AVI->audio[audtr]->audio_superindex->aIndex[j].dwSize+hdrl_len);
+          chunk_start = en = malloc (audio->audio_superindex->aIndex[j].dwSize+hdrl_len);
 
-          if (this->input->seek(this->input, AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset, SEEK_SET) == (off_t)-1) {
-            lprintf("cannot seek to 0x%" PRIx64 "\n", AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset);
+          if (this->input->seek(this->input, audio->audio_superindex->aIndex[j].qwOffset, SEEK_SET) == (off_t)-1) {
+            lprintf("cannot seek to 0x%" PRIx64 "\n", audio->audio_superindex->aIndex[j].qwOffset);
             free(chunk_start);
             continue;
           }
 
-          if (this->input->read(this->input, en, AVI->audio[audtr]->audio_superindex->aIndex[j].dwSize+hdrl_len) <= 0) {
+          if (this->input->read(this->input, en, audio->audio_superindex->aIndex[j].dwSize+hdrl_len) <= 0) {
             lprintf("cannot read from offset 0x%" PRIx64 "; broken (incomplete) file?\n",
-              AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset);
+              audio->audio_superindex->aIndex[j].qwOffset);
             free(chunk_start);
             continue;
           }
@@ -1348,19 +1350,25 @@ static avi_t *AVI_init(demux_avi_t *this) {
 
             pos = offset + LE_32(en); en += 4;
             len = odml_len(en); en += 4;
-            totb = tot[audtr];
-            tot[audtr] += len;
-            audio_index_append(AVI, audtr, pos, len, totb, k);
+          
+            /* VBR streams (hack from mplayer) */
+            if (audio->wavex && audio->wavex->nBlockAlign) {
+              audio->block_no += (len + audio->wavex->nBlockAlign - 1) /
+                                 audio->wavex->nBlockAlign;
+            } else {
+              audio->block_no += 1;
+            }
 
+            audio_index_append(AVI, audtr, pos, len, audio->audio_tot, audio->block_no);
 
 #ifdef DEBUG_ODML
             /*
             printf("[%d:%d] POS 0x%llX len=%d offset (%llx) (%ld)\n", k, audtr,
             pos, (int)len,
-            offset, (long)AVI->audio[audtr]->audio_superindex->aIndex[j].dwSize);
+            offset, (long)audio->audio_superindex->aIndex[j].dwSize);
             */
 #endif
-
+            audio->audio_tot += len;
             ++k;
           }
           free(chunk_start);
@@ -1423,24 +1431,9 @@ static int AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
 
   /* lprintf ("avi audio package len: %d\n", AVI_A->audio_index[AVI_A->audio_posc].len); */
 
-
-  while(bytes > 0) {
-    left = aie->len - AVI_A->audio_posb;
-    if(left == 0) {
-      AVI_A->audio_posc++;
-      AVI_A->audio_posb = 0;
-      aie = audio_cur_index_entry(this, AVI_A);
-      if (!aie) {
-        this->AVI_errno = AVI_ERR_NO_IDX;
-        return -1;
-      }
-      if (nr > 0) {
-        *buf_flags = BUF_FLAG_FRAME_END;
-        return nr;
-      }
-      left = aie->len - AVI_A->audio_posb;
-    }
-    if(bytes < left)
+  left = aie->len - AVI_A->audio_posb;
+  while ((bytes > 0) && (left > 0)) {
+    if (bytes < left)
       todo = bytes;
     else
       todo = left;
@@ -1456,13 +1449,16 @@ static int AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
     bytes -= todo;
     nr    += todo;
     AVI_A->audio_posb += todo;
+    left = aie->len - AVI_A->audio_posb;
   }
 
-  left = aie->len - AVI_A->audio_posb;
-  if (left == 0)
+  if (left == 0) {
+    AVI_A->audio_posc++;
+    AVI_A->audio_posb = 0;
     *buf_flags = BUF_FLAG_FRAME_END;
-  else
+  } else {
     *buf_flags = 0;
+  }
 
   return nr;
 }
@@ -1481,25 +1477,10 @@ static int AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
 
   nr = 0; /* total number of bytes read */
 
-  while(bytes>0) {
-
-    left = vie->len - AVI->video_posb;
-
-    if(left==0) {
-      AVI->video_posf++;
-      AVI->video_posb = 0;
-      vie = video_cur_index_entry(this);
-      if (!vie) {
-        this->AVI_errno = AVI_ERR_NO_IDX;
-        return -1;
-      }
-      if (nr>0) {
-        *buf_flags = BUF_FLAG_FRAME_END;
-        return nr;
-      }
-      left = vie->len - AVI->video_posb;
-    }
-    if(bytes<left)
+  left = vie->len - AVI->video_posb;
+  
+  while ((bytes > 0) && (left > 0)) {
+    if (bytes < left)
       todo = bytes;
     else
       todo = left;
@@ -1515,14 +1496,16 @@ static int AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
     bytes -= todo;
     nr    += todo;
     AVI->video_posb += todo;
+    left = vie->len - AVI->video_posb;
   }
 
-  left = vie->len - AVI->video_posb;
-  if (left==0)
+  if (left == 0) {
+    AVI->video_posf++;
+    AVI->video_posb = 0;
     *buf_flags = BUF_FLAG_FRAME_END;
-  else
+  } else {
     *buf_flags = 0;
-
+  }
   return nr;
 }
 
