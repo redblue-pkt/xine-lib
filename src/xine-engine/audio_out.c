@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.105 2003/02/16 19:56:12 guenter Exp $
+ * $Id: audio_out.c,v 1.106 2003/02/16 20:16:01 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1183,9 +1183,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld, flushmode=%d\n",
 	  pts, buf->vpts, this->discard_buffers);
 #endif
-  printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld, flushmode=%d\n",
-	  pts, buf->vpts, this->discard_buffers);
-
+ 
   if (!this->discard_buffers) 
     fifo_append (this->out_fifo, buf);
   else
