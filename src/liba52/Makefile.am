@@ -9,6 +9,7 @@ lib_LTLIBRARIES = xineplug_decode_a52.la
 xineplug_decode_a52_la_SOURCES = \
 	bitstream.c \
 	bit_allocate.c \
+	crc.c \
 	downmix.c \
 	imdct.c \
 	parse.c \

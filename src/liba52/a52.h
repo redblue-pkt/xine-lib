@@ -58,5 +58,6 @@ void a52_dynrng (a52_state_t * state,
 		 sample_t (* call) (sample_t, void *), void * data);
 int a52_block (a52_state_t * state);
 void a52_free (a52_state_t * state);
+uint16_t crc16_block(uint8_t *data,uint32_t num_bytes);
 
 #endif /* A52_H */

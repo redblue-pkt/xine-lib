@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.57 2003/09/15 04:02:45 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.58 2003/10/06 17:03:25 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -199,7 +199,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 #endif 
   if (!this->bypass_mode) {
 
-    int              a52_output_flags, i;
+    int              a52_output_flags, i,n;
     sample_t         level = this->class->a52_level;
     audio_buffer_t  *buf;
     int16_t         *int_samples;
@@ -271,7 +271,14 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 
     for (i = 0; i < 6; i++) {
       if (a52_block (this->a52_state)) {
-	printf ("liba52: a52_block error\n");
+	printf ("liba52: a52_block error on audio channel %d\n", i);
+#if 0	
+	for(n=0;n<2000;n++) {
+	  printf("%02x ",this->frame_buffer[n]);
+	  if ((n % 32) == 0) printf("\n");
+	}
+	printf("\n");
+#endif	
 	buf->num_frames = 0;
 	break;
       }
@@ -385,9 +392,12 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
   uint8_t          *current = buf->content;
+  uint8_t          *sync_start=current + 1;
   uint8_t          *end = buf->content + buf->size;
   uint8_t           byte;
   int32_t	n;
+  uint16_t          crc16;
+  uint16_t          crc16_result;
 
 #ifdef LOG
   printf ("liba52: decode data %d bytes of type %08x, pts=%lld\n",
@@ -457,6 +467,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           break;
 
     case 1:  /* Looking for enough bytes for sync_info. */
+          sync_start = current - 1;
 	  *this->frame_ptr++ = *current++;
           if ((this->frame_ptr - this->frame_buffer) > 16) {
 	    int a52_flags_old       = this->a52_flags;
@@ -467,6 +478,13 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 					       &this->a52_flags,
 					       &this->a52_sample_rate,
 					       &this->a52_bit_rate);
+
+            if (this->frame_length < 80) { /* Invalid a52 frame_length */
+	      this->syncword = 0;
+	      current = sync_start;
+	      this->sync_state = 0;
+	      break;
+	    }
 #ifdef LOG
             printf("Frame length = %d\n",this->frame_length);
 #endif
@@ -507,12 +525,22 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             
     case 2:  /* Filling frame_buffer with sync_info bytes */
 	  *this->frame_ptr++ = *current++;
-          this->frame_todo--;
-          if (this->frame_todo < 1) {
+	  this->frame_todo--;
+	  if (this->frame_todo < 1) {
 	    this->sync_state = 3;
           } else break;
       
     case 3:  /* Ready for decode */
+	  crc16 = (uint16_t) ((this->frame_buffer[2] << 8) |  this->frame_buffer[3]) ;
+	  crc16_result = crc16_block(&this->frame_buffer[2], this->frame_length - 2) ; /* frame_length */
+	  if (crc16_result != 0) { /* CRC16 failed */
+	    printf("liba52:a52 frame failed crc16 checksum.\n");
+	    current = sync_start;
+            this->pts = 0;
+	    this->syncword = 0;
+	    this->sync_state = 0;
+	    break;
+	  }
           a52dec_decode_frame (this, this->pts_list[0], buf->decoder_flags & BUF_FLAG_PREVIEW);
           for(n=0;n<4;n++) {
             this->pts_list[n] = this->pts_list[n+1];
