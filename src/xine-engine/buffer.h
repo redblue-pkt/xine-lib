@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.95 2003/01/18 15:29:21 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.96 2003/01/19 21:29:55 guenter Exp $
  *
  *
  * contents:
@@ -141,6 +141,7 @@ extern "C" {
 #define BUF_VIDEO_INTERPLAY	0x02380000
 #define BUF_VIDEO_RV40		0x02390000
 #define BUF_VIDEO_PSX_MDEC	0x023A0000
+#define BUF_VIDEO_YUV_FRAMES	0x023B0000 /* uncompressed YUV, delivered by v4l input plugin */
 
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
