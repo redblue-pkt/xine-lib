@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.145 2003/02/16 16:49:39 tmmm Exp $
+ * $Id: demux_qt.c,v 1.146 2003/02/17 15:07:53 tmmm Exp $
  *
  */
 
@@ -1726,7 +1726,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
 
   /* Decide the trak from which to dispatch a frame. Policy: Dispatch
    * the frames in offset order as much as possible. If the pts difference
-   * between the current frames from the audio and video tables is too
+   * between the current frames from the audio and video traks is too
    * wide, make an exception. This exception deals with non-interleaved
    * Quicktime files. */
   if (!audio_trak && !video_trak) {
@@ -1867,6 +1867,11 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
   } else {
     /* load an audio sample and packetize it */
     i = audio_trak->current_frame++;
+
+    /* only go through with this procedure if audio_fifo exists */
+    if (!this->audio_fifo)
+      return this->status;
+
     remaining_sample_bytes = audio_trak->frames[i].size;
     this->input->seek(this->input, audio_trak->frames[i].offset,
       SEEK_SET);
