@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.119 2002/11/22 16:23:58 mroi Exp $
+ * $Id: input_dvd.c,v 1.120 2002/11/23 11:09:29 f1rmb Exp $
  *
  */
 
@@ -137,21 +137,6 @@ extern int errno;
 #define MAX_STR_LEN     255  
 
 typedef struct {
-
-  input_class_t     input_class;
-
-  xine_t           *xine;
-  config_values_t  *config;       /* Pointer to XineRC config file   */  
-
-  int               mrls_allocated_entries;
-  xine_mrl_t      **mrls;
-  char		   *dvd_device;	  /* Default DVD device		     */
-
-  char             *filelist2[MAX_DIR_ENTRIES];
-
-} dvd_input_class_t;
-
-typedef struct {
   input_plugin_t    input_plugin; /* Parent input plugin type        */
 
   xine_stream_t    *stream;
@@ -180,10 +165,6 @@ typedef struct {
   char              filelist[MAX_DIR_ENTRIES][MAX_STR_LEN];
   char              ui_title[MAX_STR_LEN + 1];
   
-  int32_t           read_ahead_flag;
-  int32_t           region;
-  int32_t           language;
-
   /* special buffer handling for libdvdnav caching */
   pthread_mutex_t   buf_mutex;
   void             *source;
@@ -191,6 +172,27 @@ typedef struct {
   int               mem_stack;
   unsigned char    *mem[1024];
 } dvd_input_plugin_t;
+
+typedef struct {
+
+  input_class_t       input_class;
+
+  xine_t             *xine;
+  config_values_t    *config;       /* Pointer to XineRC config file   */  
+
+  int                 mrls_allocated_entries;
+  xine_mrl_t        **mrls;
+  char		     *dvd_device;	  /* Default DVD device		     */
+
+  dvd_input_plugin_t *ip;
+
+  int32_t             read_ahead_flag;
+  int32_t             language;
+  int32_t             region;
+
+  char               *filelist2[MAX_DIR_ENTRIES];
+
+} dvd_input_class_t;
 
 static void dvd_handle_events(dvd_input_plugin_t *this);
 static void flush_buffers(dvd_input_plugin_t *this);
@@ -217,38 +219,50 @@ static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
 }
 
 void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
-  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
+  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
 
-  if(!this)
+  if(!class)
    return;
-  this->read_ahead_flag = entry->num_value;
 
-  dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);
+  class->read_ahead_flag = entry->num_value;
+
+  if(class->ip) {
+    dvd_input_plugin_t *this = class->ip;
+
+    dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);
+  }
 }
  
 void region_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
-  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
+  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
 
-  if(!this)
+  if(!class)
    return;
 
-  this->region = entry->num_value;
+  class->region = entry->num_value;
 
-  if((entry->num_value >= 1) && (entry->num_value <= 8))
+  if(class->ip && ((entry->num_value >= 1) && (entry->num_value <= 8))) {
+    dvd_input_plugin_t *this = class->ip;
+
     dvdnav_set_region_mask(this->dvdnav, 1<<(entry->num_value-1));
+  }
 }
 
 void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
-  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
+  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
 
-  if(!this)
+  if(!class)
    return;
 
-  this->language = entry->str_value[0] << 8 | entry->str_value[1];
+  class->language = entry->str_value[0] << 8 | entry->str_value[1];
   
-  dvdnav_menu_language_select(this->dvdnav, entry->str_value);
-  dvdnav_audio_language_select(this->dvdnav, entry->str_value);
-  dvdnav_spu_language_select(this->dvdnav, entry->str_value);
+  if(class->ip) {
+    dvd_input_plugin_t *this = class->ip;
+    
+    dvdnav_menu_language_select(this->dvdnav, entry->str_value);
+    dvdnav_audio_language_select(this->dvdnav, entry->str_value);
+    dvdnav_spu_language_select(this->dvdnav, entry->str_value);
+  }
 }
  
 void update_title_display(dvd_input_plugin_t *this) {
@@ -1207,8 +1221,6 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
   config_values_t       *config = stream->xine->config;
-  static char           *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
-  void                  *dvdcss;
 
   printf("input_dvd.c: open_plugin called.\n");
 
@@ -1217,6 +1229,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     printf("input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
     assert(0);
   }
+
   this->input_plugin.get_capabilities   = dvd_plugin_get_capabilities;
   this->input_plugin.read               = dvd_plugin_read;
   this->input_plugin.read_block         = dvd_plugin_read_block;
@@ -1359,75 +1372,25 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
       printf("input_dvd: NAME OPEN FAILED\n");
     }
   }
-  
-  if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
-    /* we have found libdvdcss, enable the specific config options */
-#ifndef HAVE_DVDNAV
-    char *raw_device;
-#endif
-    static char *decrypt_modes[] = { "key", "disc", "title", NULL };
-    int mode;
-    
-#ifndef HAVE_DVDNAV
-    /* only our local copy of libdvdread supports raw device reads,
-     * so we don't provide this option, when we are using a shared version
-     * of libdvdnav/libdvdread */
-    raw_device = config->register_string(config, "input.dvd_raw_device",
-					 RDVD_PATH, "raw device set up for dvd access",
-					 NULL, 10, NULL, NULL);
-    if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
-#endif
-    
-    mode = config->register_enum(config, "input.css_decryption_method", 0,
-				 decrypt_modes, "the css decryption method libdvdcss should use",
-				 NULL, 10, NULL, NULL);
-    xine_setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
-    
-    dlclose(dvdcss);
-  }
-  
-  config->register_num(config, "input.dvd_region",
-		       1,
-		       "Region that DVD player claims "
-		       "to be (1 -> 8)",
-		       "This only needs to be changed "
-		       "if your DVD jumps to a screen "
-		       "complaining about region code ",
-		       0, region_changed_cb,
-		       this);
-  config->register_string(config, "input.dvd_language",
-			  "en",
-			  "The default language for dvd",
-			  "The dvdnav plugin tries to use this "
-			  "language as a default. This must be a"
-			  "two character ISO country code.",
-			  0, language_changed_cb, this);
-  config->register_bool(config, "input.dvd_use_readahead",
-			1,
-			"Do we use read-ahead caching?",
-			"This "
-			"may lead to jerky playback on low-end "
-			"machines.",
-			10, read_ahead_cb, this);
-  config->register_enum(config, "input.dvd_skip_behaviour", 0,
-			skip_modes,
-			"Skipping will work on this basis.",
-			NULL, 10, NULL, NULL);
+
+  /* config callbacks may react now */
+  class->ip = this;
+
   /* Set region code */
   if (xine_config_lookup_entry (this->stream->xine, "input.dvd_region", 
 				&region_entry)) 
-    region_changed_cb (this, &region_entry);
+    region_changed_cb (class, &region_entry);
   
   /* Set languages */
   if (xine_config_lookup_entry (this->stream->xine, "input.dvd_language",
 				&lang_entry)) 
-    language_changed_cb (this, &lang_entry);
+    language_changed_cb (class, &lang_entry);
   
   /* Set cache usage */
   if (xine_config_lookup_entry(this->stream->xine, "input.dvd_use_readahead",
 			       &cache_entry))
-    read_ahead_cb(this, &cache_entry);
-   
+    read_ahead_cb(class, &cache_entry);
+  
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
     int titles;
@@ -1612,8 +1575,10 @@ static int dvd_class_eject_media (input_class_t *this_gen) {
 }
 
 static void *init_class (xine_t *xine, void *data) {
-  dvd_input_class_t *this;
-  config_values_t *config = xine->config;
+  dvd_input_class_t   *this;
+  config_values_t     *config = xine->config;
+  void                *dvdcss;
+  static char         *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
 
   trace_print("Called\n");
 #ifdef INPUT_DEBUG
@@ -1634,8 +1599,11 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.dispose            = dvd_class_dispose;
   this->input_class.eject_media        = dvd_class_eject_media;
   
-  this->config                 = config;
-  this->mrls                   = NULL;
+  this->config                         = config;
+  this->mrls                           = NULL;
+
+  this->ip                             = NULL;
+
 /*  this->num_mrls               = 0; */
   
 /*  pthread_mutex_init(&this->buf_mutex, NULL);
@@ -1648,6 +1616,59 @@ static void *init_class (xine_t *xine, void *data) {
 					     "device used for dvd drive",
 					     NULL,
 					     0, device_change_cb, (void *)this);
+  
+  if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
+    /* we have found libdvdcss, enable the specific config options */
+#ifndef HAVE_DVDNAV
+    char *raw_device;
+#endif
+    static char *decrypt_modes[] = { "key", "disc", "title", NULL };
+    int mode;
+    
+#ifndef HAVE_DVDNAV
+    /* only our local copy of libdvdread supports raw device reads,
+     * so we don't provide this option, when we are using a shared version
+     * of libdvdnav/libdvdread */
+    raw_device = config->register_string(config, "input.dvd_raw_device",
+					 RDVD_PATH, "raw device set up for dvd access",
+					 NULL, 10, NULL, NULL);
+    if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
+#endif
+    
+    mode = config->register_enum(config, "input.css_decryption_method", 0,
+				 decrypt_modes, "the css decryption method libdvdcss should use",
+				 NULL, 10, NULL, NULL);
+    xine_setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
+    
+    dlclose(dvdcss);
+  }
+  
+  config->register_num(config, "input.dvd_region",
+		       1,
+		       "Region that DVD player claims "
+		       "to be (1 -> 8)",
+		       "This only needs to be changed "
+		       "if your DVD jumps to a screen "
+		       "complaining about region code ",
+		       0, region_changed_cb, this);
+  config->register_string(config, "input.dvd_language",
+			  "en",
+			  "The default language for dvd",
+			  "The dvdnav plugin tries to use this "
+			  "language as a default. This must be a"
+			  "two character ISO country code.",
+			  0, language_changed_cb, this);
+  config->register_bool(config, "input.dvd_use_readahead",
+			1,
+			"Do we use read-ahead caching?",
+			"This "
+			"may lead to jerky playback on low-end "
+			"machines.",
+			10, read_ahead_cb, this);
+  config->register_enum(config, "input.dvd_skip_behaviour", 0,
+			skip_modes,
+			"Skipping will work on this basis.",
+			NULL, 10, NULL, NULL);
 
 #ifdef __sun
   check_solaris_vold_device(this);
@@ -1661,6 +1682,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.120  2002/11/23 11:09:29  f1rmb
+ * registering config entries at init_class time
+ *
  * Revision 1.119  2002/11/22 16:23:58  mroi
  * do not play with the clock any more, we have dedicated flush functions for that now
  * (This should fix Daniels MP3 problems, since the end of one stream would
