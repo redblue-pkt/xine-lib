@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.7 2002/08/01 03:56:31 tmmm Exp $
+ * $Id: demux_wav.c,v 1.8 2002/08/02 13:11:25 tmmm Exp $
  *
  */
 
@@ -256,6 +256,7 @@ static int demux_wav_start (demux_plugin_t *this_gen,
   unsigned int chunk_tag;
   unsigned int chunk_size;
   unsigned char chunk_preamble[8];
+  int status;
 
   pthread_mutex_lock(&this->mutex);
 
@@ -268,26 +269,26 @@ static int demux_wav_start (demux_plugin_t *this_gen,
     this->input->seek(this->input, WAV_SIGNATURE_SIZE, SEEK_SET);
     if (this->input->read(this->input,
       (unsigned char *)&this->wave_size, 4) != 4) {
-      this->status = DEMUX_FINISHED;
+      status = this->status = DEMUX_FINISHED;
       pthread_mutex_unlock(&this->mutex);
-      return this->status;
+      return status;
     }
     this->wave_size = le2me_32(this->wave_size);
     this->wave = (xine_waveformatex *) malloc( this->wave_size );
     
     if (this->input->read(this->input, (void *)this->wave, this->wave_size) !=
       this->wave_size) {
-      this->status = DEMUX_FINISHED;
+      status = this->status = DEMUX_FINISHED;
       pthread_mutex_unlock(&this->mutex);
-      return this->status;
+      return status;
     }
     xine_waveformatex_le2me(this->wave);
     this->audio_type = formattag_to_buf_audio(this->wave->wFormatTag);
     if(!this->audio_type) {
       xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->audio_type, 0, 0);
-      this->status = DEMUX_FINISHED;
+      status = this->status = DEMUX_FINISHED;
       pthread_mutex_unlock(&this->mutex);
-      return this->status;
+      return status;
     }
 
     /* traverse through the chunks to find the 'data' chunk */
@@ -295,9 +296,9 @@ static int demux_wav_start (demux_plugin_t *this_gen,
     while (this->data_start == 0) {
 
       if (this->input->read(this->input, chunk_preamble, 8) != 8) {
-        this->status = DEMUX_FINISHED;
+        status = this->status = DEMUX_FINISHED;
         pthread_mutex_unlock(&this->mutex);
-        return this->status;
+        return status;
       }
       chunk_tag = LE_32(&chunk_preamble[0]);      
       chunk_size = LE_32(&chunk_preamble[4]);
