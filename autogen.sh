@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
 #
-# $Id: autogen.sh,v 1.7 2003/01/05 19:32:34 storri Exp $
+# $Id: autogen.sh,v 1.8 2003/02/27 22:56:52 miguelfreitas Exp $
 #
 # Maintained by Stephen Torri <storri@users.sourceforge.net>
 #
@@ -27,6 +27,7 @@
 PROG=xine-lib
 
 # Minimum value required to build
+export WANT_AUTOMAKE_1_6=1
 AUTOMAKE_MIN=1.6.0
 AUTOCONF_MIN=2.53
 LIBTOOL_MIN=1.4.0
