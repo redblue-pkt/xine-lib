@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.37 2001/09/06 15:40:47 joachim_koenig Exp $
+ * $Id: audio_oss_out.c,v 1.38 2001/09/08 16:29:30 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -91,6 +91,7 @@
 #define ZERO_BUF_SIZE        15360
 
 #define GAP_TOLERANCE         5000
+#define GAP_NONRT_TOLERANCE  15000
 #define MAX_GAP              90000
 
 #ifdef CONFIG_DEVFS_FS
@@ -295,7 +296,11 @@ static int ao_oss_bytes_per_frame(ao_driver_t *this_gen)
 
 static int ao_oss_get_gap_tolerance (ao_driver_t *this_gen)
 {
-  return GAP_TOLERANCE;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  if (this->audio_has_realtime)
+    return GAP_TOLERANCE;
+  else
+    return GAP_NONRT_TOLERANCE;
 }
 
 static int ao_oss_delay(ao_driver_t *this_gen)
