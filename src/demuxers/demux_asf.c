@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.79 2002/11/18 03:39:07 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.80 2002/11/20 01:49:42 komadori Exp $
  *
  * demultiplexer for asf streams
  *
@@ -49,6 +49,7 @@
 #define FRAME_HEADER_SIZE    17
 #define CODEC_TYPE_AUDIO      0
 #define CODEC_TYPE_VIDEO      1
+#define CODEC_TYPE_CONTROL    2
 #define MAX_NUM_STREAMS      23
 
 #define DEFRAG_BUFSIZE    65536
@@ -164,6 +165,7 @@ static const GUID stream_header = {
   0xB7DC0791, 0xA9B7, 0x11CF, { 0x8E, 0xE6, 0x00, 0xC0, 0x0C, 0x20, 0x53, 0x65 },
 };
 
+
 static const GUID audio_stream = {
   0xF8699E40, 0x5B4D, 0x11CF, { 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B },
 };
@@ -175,12 +177,18 @@ static const GUID audio_conceal_none = {
 static const GUID audio_conceal_interleave = {
   0xbfc3cd50, 0x618f, 0x11cf, {0x8b, 0xb2, 0x00, 0xaa, 0x00, 0xb4, 0xe2, 0x20} };
 
+
 static const GUID video_stream = {
   0xBC19EFC0, 0x5B4D, 0x11CF, { 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B },
 };
 
 static const GUID video_conceal_none = {
   0x20FB5700, 0x5B55, 0x11CF, { 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B },
+};
+
+
+static const GUID control_stream = {
+  0x59dacfc0, 0x59e6, 0x11d0, { 0xa3, 0xac, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 },
 };
 
 
@@ -194,6 +202,7 @@ static const GUID codec_comment_header = {
 static const GUID codec_comment1_header = {
   0x86d15241, 0x311d, 0x11d0, { 0xa3, 0xa4, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 },
 };
+
 
 static const GUID data_header = {
   0x75b22636, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c },
@@ -214,6 +223,7 @@ static const GUID head2_guid = {
 static const GUID stream_group_guid = {
   0x7bf875ce, 0x468d, 0x11d1, { 0x8d, 0x82, 0x00, 0x60, 0x97, 0xc9, 0xa2, 0xb2 },
 };
+
 
 /* I am not a number !!! This GUID is the one found on the PC used to
    generate the stream */
@@ -458,6 +468,8 @@ static int asf_read_header (demux_asf_t *this) {
         type = CODEC_TYPE_AUDIO;
       } else if (!memcmp(&g, &video_stream, sizeof(GUID))) {
         type = CODEC_TYPE_VIDEO;
+      } else if (!memcmp(&g, &control_stream, sizeof(GUID))) {
+        type = CODEC_TYPE_CONTROL;
       } else {
         goto fail;
       }
@@ -513,7 +525,8 @@ static int asf_read_header (demux_asf_t *this) {
         printf ("demux_asf: found a_stream id=%d \n", stream_id);
 #endif
         this->num_audio_streams++;
-      } else {
+      }
+      else if (type == CODEC_TYPE_AUDIO) {
 
         int i;
 
@@ -542,6 +555,10 @@ static int asf_read_header (demux_asf_t *this) {
         printf ("demux_asf: found v_stream id=%d \n", stream_id);
 #endif
         this->num_video_streams++;
+      }
+      else if (type == CODEC_TYPE_CONTROL) {
+        while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
+        while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
       }
 
       this->num_streams++;
