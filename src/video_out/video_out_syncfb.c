@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.36 2001/11/06 13:16:47 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.37 2001/11/06 13:20:57 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -916,7 +916,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       printf("video_out_syncfb: SyncFB module supports YUY2.\n");
    }
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_RGB565)) {
-      this->supported_capabilities |= VO_CAP_RGB;
+// FIXME: no RGB support yet
+//      this->supported_capabilities |= VO_CAP_RGB;
       printf("video_out_syncfb: SyncFB module supports RGB565.\n");
    }
    
