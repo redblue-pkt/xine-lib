@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2002/04/23 15:45:22 esnel Exp $
+ * $Id: xine_decoder.c,v 1.30 2002/04/23 16:05:12 richwareham Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -527,6 +527,9 @@ static void divx4_reset(video_decoder_t *this_gen) {
   /* seems to handle seeking quite nicelly without any code here */
 }
 
+static void divx4_dispose(video_decoder_t *this_gen) {
+  /* FIXME: Do we need anything here? */
+}
 
 /* This is pretty generic. I took the liberty to increase the
    priority over that of libffmpeg :-) */
@@ -573,6 +576,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.get_identifier      = divx4_get_id;
   this->video_decoder.flush               = divx4_flush;
   this->video_decoder.reset               = divx4_reset;
+  this->video_decoder.dispose             = divx4_dispose;
   this->video_decoder.priority            = cfg->register_num (cfg, "codec.divx4_priority", 4,
 							       "priority of the divx4 plugin (>5 => enable)",
 							       NULL, NULL, NULL); 
