@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.8 2001/08/16 22:40:54 f1rmb Exp $
+* $Id: spu.c,v 1.9 2001/08/17 07:26:14 richwareham Exp $
 *
 *****/
 
@@ -324,9 +324,6 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 	vlc = (vlc << 4) | get_bits (4);
 	if (vlc < 0x0040) {
 	  vlc = (vlc << 4) | get_bits (4);
-	  if(vlc < 0x0100) {
-	    vlc = 0;
-	  }
 	}
       }
     }
