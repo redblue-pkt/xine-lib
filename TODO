@@ -17,7 +17,7 @@ optional
 
 - fix streaming of small files (e.g. http) 
 - implement timeout in input_http, implement it correctly using select()
-- mmsh support
+- mmsh support (thibaut)
 - detect broken savage drivers in health check, disable Xv in that case
 - id3v2 (guenter)
 - directfb video output plugin
