@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.57 2001/08/17 16:00:02 ehasenle Exp $
+ * $Id: video_out_xv.c,v 1.58 2001/09/10 14:18:47 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -926,31 +926,31 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	if(!strcmp(attr[k].name, "XV_HUE")) {
 	  xv_check_capability (this, VO_CAP_HUE, 
 			       VO_PROP_HUE, attr[k],
-			       adaptor_info[i].base_id, "XV_HUE");
+			       adaptor_info[adaptor_num].base_id, "XV_HUE");
 	  printf("XV_HUE ");
 	}
 	else if(!strcmp(attr[k].name, "XV_SATURATION")) {
 	  xv_check_capability (this, VO_CAP_SATURATION, 
 			       VO_PROP_SATURATION, attr[k],
-			       adaptor_info[i].base_id, "XV_SATURATION");
+			       adaptor_info[adaptor_num].base_id, "XV_SATURATION");
 	  printf("XV_SATURATION ");
 	}
 	else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
 	  xv_check_capability (this, VO_CAP_BRIGHTNESS,
 			       VO_PROP_BRIGHTNESS, attr[k],
-			       adaptor_info[i].base_id, "XV_BRIGHTNESS");
+			       adaptor_info[adaptor_num].base_id, "XV_BRIGHTNESS");
 	  printf("XV_BRIGHTNESS ");
 	}
 	else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
 	  xv_check_capability (this, VO_CAP_CONTRAST, 
 			       VO_PROP_CONTRAST, attr[k],
-			       adaptor_info[i].base_id, "XV_CONTRAST");
+			       adaptor_info[adaptor_num].base_id, "XV_CONTRAST");
 	  printf("XV_CONTRAST ");
 	}
 	else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xv_check_capability (this, VO_CAP_COLORKEY, 
 			       VO_PROP_COLORKEY, attr[k],
-			       adaptor_info[i].base_id, "XV_COLORKEY");
+			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY");
 	  printf("video_out_xv: colorkey is %08x\n", this->props[VO_PROP_COLORKEY].value);
 	}
       }
