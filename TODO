@@ -37,7 +37,6 @@ optional
 - id3v2 (guenter)
 - syncfb video output plugin
 - vidix video output plugin
-- sdl video output plugin
 - directfb video output plugin
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
 - bring dxr3 video out to work with aaxine (michael)
