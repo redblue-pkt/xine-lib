@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.132 2002/10/27 01:52:15 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.133 2002/10/27 22:56:08 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -42,9 +42,6 @@
 /*
 #define LOG
 */
-
-#define VALID_MRLS          "dvd,stdin,fifo"
-#define VALID_ENDS          "vob"
 
 #define NUM_PREVIEW_BUFFERS   250
 #define DISC_TRESHOLD       90000
@@ -1038,12 +1035,14 @@ static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                    input_plugin_t *input_gen) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
-  static int count = 0;
+  input_plugin_t     *input = (input_plugin_t *) input_gen;
+  static int          count = 0;
   demux_mpeg_block_t *this;
+
   count++;
-  printf ("demux_mpeg_block:open_plugin:input ID=%s count = %d\n",input->input_class->get_identifier(input->input_class), count );
-/*  if (count > 1) assert (0); */
+  printf ("demux_mpeg_block:open_plugin:input ID=%s count = %d\n",
+	  input->input_class->get_identifier(input->input_class), count );
+  /*  if (count > 1) assert (0); */
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf("demux_mpeg_block.c: not seekable, can't handle!\n");
     return NULL;
@@ -1052,10 +1051,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->stream = stream;
   this->input  = input;
-/*  
-  this->config = xine->config;
-  this->xine   = xine;
-*/  
+
   this->demux_plugin.send_headers      = demux_mpeg_block_send_headers;
   this->demux_plugin.start             = demux_mpeg_block_start;
   this->demux_plugin.seek              = demux_mpeg_block_seek;
@@ -1065,36 +1061,25 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
-/*  this->demux_plugin.open              = demux_mpeg_block_open; ????*/
-
-#if 0
-  /* Calling register_string() configure valid mrls in configfile */
-  (void*) this->config->register_string(this->config, "mrl.mrls_mpeg_block", VALID_MRLS,
-					_("valid mrls for mpeg block demuxer"),
-					NULL, 20, NULL, NULL);
-  (void*) this->config->register_string(this->config,
-					"mrl.ends_mpeg_block", VALID_ENDS,
-					_("valid mrls ending for mpeg block demuxer"),
-					NULL, 20, NULL, NULL);    
-#endif
   
   this->scratch = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
 
 #ifdef LOG
-  printf("demux_mpeg_block:open_plugin:detection_method=%d\n",stream->content_detection_method);
+  printf ("demux_mpeg_block:open_plugin:detection_method=%d\n",
+	  stream->content_detection_method);
 #endif
  
   switch (stream->content_detection_method) {
-
+    
   case METHOD_BY_CONTENT: {
 
-    if(((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
+    if (((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
 
       this->blocksize = input->get_blocksize(input);
 #ifdef LOG
-  printf("demux_mpeg_block:open_plugin:blocksize=%d\n",this->blocksize);
+      printf("demux_mpeg_block:open_plugin:blocksize=%d\n",this->blocksize);
 #endif
 
       if (!this->blocksize)
@@ -1108,13 +1093,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       input->seek(input, 0, SEEK_SET);
       if (input->read(input, this->scratch, this->blocksize)) {
 #ifdef LOG
-  printf("demux_mpeg_block:open_plugin:read worked\n");
+	printf("demux_mpeg_block:open_plugin:read worked\n");
 #endif
 
         if (this->scratch[0] || this->scratch[1]
             || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
 #ifdef LOG
-  printf("demux_mpeg_block:open_plugin:scratch failed\n");
+	  printf("demux_mpeg_block:open_plugin:scratch failed\n");
 #endif
           free (this);
           return NULL;
@@ -1150,8 +1135,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-    if( (strncmp((ending + 3), "mpeg2", 5)) ||
-            (strncmp((ending + 3), "mpeg1", 5)) ) {
+    if( (!strncmp((ending + 3), "mpeg2", 5)) ||
+            (!strncmp((ending + 3), "mpeg1", 5)) ) {
       this->blocksize = 2048;
       demux_mpeg_block_accept_input(this, input);
     } else if(!strncmp(mrl, "vcd", 3)) {
@@ -1167,7 +1152,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     free (this);
     return NULL;
   }
-/*  strncpy (this->last_mrl, input->get_mrl (input), 1024); */
+
   return &this->demux_plugin;
 }
 
