@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.35 2004/09/26 22:54:52 valtri Exp $
+ * $Id: video_decoder.c,v 1.36 2004/12/08 21:41:46 miguelfreitas Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1095,6 +1095,21 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       
         img->pts      = this->pts;
         this->pts     = 0;
+
+        /* workaround for weird 120fps streams */
+        if( this->video_step == 750 ) {
+#if 0          
+          /* use ffmpeg frame rate if available. i'm unsure if ffmpeg
+           * really knows it better than what demux told us.
+           */
+          if( this->context->frame_rate && this->context->frame_rate_base )
+            this->video_step = 90000 * this->context->frame_rate_base / 
+                               this->context->frame_rate;
+          else
+#endif
+            /* fallback to the VIDEO_PTS_MODE */
+            this->video_step = 0;
+        }
         
         if (!this->av_frame->repeat_pict)
           img->duration = this->video_step;
