@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_alsa_out.c,v 1.5 2001/05/31 18:36:08 joachim_koenig Exp $
+ * $Id: audio_alsa_out.c,v 1.6 2001/06/01 07:25:26 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +34,8 @@
 #include <sys/asoundlib.h>
 #include <sys/ioctl.h>
 #include <inttypes.h>
+
+#if (SND_LIB_MAJOR >= 0) && (SND_LIB_MINOR >= 9)
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #define error(...) do {\
@@ -540,3 +542,4 @@ ao_info_t *get_audio_out_plugin_info() {
   return &ao_info_alsa;
 }
 
+#endif /*(SND_LIB_MAJOR >= 0) && (SND_LIB_MINOR >= 9) */
