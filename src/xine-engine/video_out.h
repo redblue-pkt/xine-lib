@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.61 2002/09/09 03:06:14 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.62 2002/09/18 22:12:17 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -235,7 +235,7 @@ struct vo_instance_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  6
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  9
 
 struct xine_vo_driver_s {
 
