@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.29 2003/07/12 12:31:14 mroi Exp $
+ * $Id: input_pvr.c,v 1.30 2003/08/04 02:52:23 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -1335,19 +1335,21 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
   void          *p;
   saved_show_t  *show;
 
+  if( this->pvr_running ) {
 #ifdef LOG
-  printf("input_pvr: finishing pvr thread\n");
+    printf("input_pvr: finishing pvr thread\n");
 #endif
-  pthread_mutex_lock(&this->lock);
-  this->pvr_running = 0;
-  this->want_data = 0;
-  pthread_cond_signal (&this->wake_pvr);
-  pthread_mutex_unlock(&this->lock);
-  pthread_join (this->pvr_thread, &p); 
+    pthread_mutex_lock(&this->lock);
+    this->pvr_running = 0;
+    this->want_data = 0;
+    pthread_cond_signal (&this->wake_pvr);
+    pthread_mutex_unlock(&this->lock);
+    pthread_join (this->pvr_thread, &p); 
 #ifdef LOG
-  printf("input_pvr: pvr thread joined\n");
+    printf("input_pvr: pvr thread joined\n");
 #endif
-  
+  }
+ 
   if (this->scr) {
     this->stream->xine->clock->unregister_scr(this->stream->xine->clock, &this->scr->scr);
     this->scr->scr.exit(&this->scr->scr);
@@ -1381,50 +1383,11 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
 
 static int pvr_plugin_open (input_plugin_t *this_gen ) {
   pvr_input_plugin_t  *this = (pvr_input_plugin_t *) this_gen;
-  char                *aux;
-  int                  dev_fd;
   int64_t              time;
   int                  err;
 #ifdef USE_V4L2
   struct ivtv_ioctl_codec codec;
 #endif
-    
-  aux = &this->mrl[4];
-
-  dev_fd = open (PVR_DEVICE, O_RDWR);
-  if (dev_fd == -1) {
-    printf("input_pvr: error opening device %s\n", PVR_DEVICE );
-    return 0;
-  }
-
-#ifdef USE_V4L2
-  if (ioctl(dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
-    printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
-  } else {
-    codec.bitrate_mode  = 0;
-    codec.bitrate	= 6000000;
-    codec.bitrate_peak	= 9000000;
-    codec.stream_type	= IVTV_STREAM_DVD;
-
-    if (ioctl(dev_fd, IVTV_IOC_S_CODEC, &codec) < 0) {
-      printf("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n");
-    }
-  }
-#endif
-    
-  this->dev_fd       = dev_fd;
-  
-  /* register our own scr provider */   
-  time = this->stream->xine->clock->get_current_time(this->stream->xine->clock);
-  this->scr = pvrscr_init();
-  this->scr->scr.start(&this->scr->scr, time);
-  this->stream->xine->clock->register_scr(this->stream->xine->clock, &this->scr->scr);
-  this->scr_tunning = 0;
-    
-  this->event_queue = xine_event_new_queue (this->stream);
-    
-  /* enable resample method */
-  this->stream->xine->config->update_num(this->stream->xine->config,"audio.av_sync_method",1);
     
   this->session = 0;
   this->rec_fd = -1;
@@ -1438,7 +1401,40 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
   this->preview_buffers = NUM_PREVIEW_BUFFERS;
 
   this->saved_id = 0;
-      
+
+  this->dev_fd = open (PVR_DEVICE, O_RDWR);
+  if (this->dev_fd == -1) {
+    printf("input_pvr: error opening device %s\n", PVR_DEVICE );
+    return 0;
+  }
+
+#ifdef USE_V4L2
+  if (ioctl(this->dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
+    printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
+  } else {
+    codec.bitrate_mode  = 0;
+    codec.bitrate	= 6000000;
+    codec.bitrate_peak	= 9000000;
+    codec.stream_type	= IVTV_STREAM_DVD;
+
+    if (ioctl(this->dev_fd, IVTV_IOC_S_CODEC, &codec) < 0) {
+      printf("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n");
+    }
+  }
+#endif
+    
+  /* register our own scr provider */   
+  time = this->stream->xine->clock->get_current_time(this->stream->xine->clock);
+  this->scr = pvrscr_init();
+  this->scr->scr.start(&this->scr->scr, time);
+  this->stream->xine->clock->register_scr(this->stream->xine->clock, &this->scr->scr);
+  this->scr_tunning = 0;
+    
+  this->event_queue = xine_event_new_queue (this->stream);
+    
+  /* enable resample method */
+  this->stream->xine->config->update_num(this->stream->xine->config,"audio.av_sync_method",1);
+    
   this->pvr_running = 1;
   
   if ((err = pthread_create (&this->pvr_thread,
