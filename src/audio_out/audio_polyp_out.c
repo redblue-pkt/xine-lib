@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_polyp_out.c,v 1.2 2004/11/17 01:03:28 miguelfreitas Exp $
+ * $Id: audio_polyp_out.c,v 1.3 2004/11/19 21:52:33 miguelfreitas Exp $
  *
  * ao plugin for polypaudio:
  * http://0pointer.de/lennart/projects/polypaudio/
@@ -98,33 +98,34 @@ typedef struct {
 } polyp_class_t;
 
 
-/** Wait until no further actions are pending on the connection context */
-static void wait_for_completion(polyp_driver_t *this) {
-  assert(this->context && this->mainloop);
-
-  while (pa_context_is_pending(this->context))
-    pa_mainloop_iterate(this->mainloop, 1, NULL);
-}
-
-#if 0
 /** Make sure that the connection context doesn't starve to death */
 static void keep_alive(polyp_driver_t *this) {
   assert(this->context && this->mainloop);
 
   while (pa_mainloop_iterate(this->mainloop, 0, NULL) > 0);
 }
-#endif
+
+/** Wait until no further actions are pending on the connection context */
+static void wait_for_completion(polyp_driver_t *this) {
+  assert(this->context && this->mainloop);
+
+  while (pa_mainloop_deferred_pending(this->mainloop) || pa_context_is_pending(this->context)) {
+    int r = pa_mainloop_iterate(this->mainloop, 1, NULL);
+    assert(r >= 0);
+  }
+}
 
 /** Wait until the specified operation completes */
 static void wait_for_operation(polyp_driver_t *this, struct pa_operation *o) {
   assert(o && this->context && this->mainloop);
 
-  while (pa_operation_get_state(o) == PA_OPERATION_RUNNING)
-    pa_mainloop_iterate(this->mainloop, 1, NULL);
+  while (pa_operation_get_state(o) == PA_OPERATION_RUNNING) {
+    int r = pa_mainloop_iterate(this->mainloop, 1, NULL);
+    assert(r >= 0);
+  }
 
   pa_operation_unref(o);
 }
-
 
 /*
  * open the audio device for writing to
@@ -208,7 +209,7 @@ static int ao_polyp_open(ao_driver_t *this_gen,
   a.prebuf = a.tlength/2;
   a.minreq = a.tlength/10;
 
-  pa_stream_connect_playback(this->stream, this->sink, &a, PA_STREAM_INTERPOLATE_LATENCY, PA_VOLUME_NORM);
+  pa_stream_connect_playback(this->stream, this->sink, &a, PA_STREAM_INTERPOLATE_LATENCY, this->volume);
 
   wait_for_completion(this);
 
@@ -217,9 +218,6 @@ static int ao_polyp_open(ao_driver_t *this_gen,
              pa_strerror(pa_context_errno(this->context)));
     goto fail;
   }
-  wait_for_operation(this,
-    pa_context_set_sink_input_volume(this->context, pa_stream_get_index(this->stream),
-    this->volume, NULL, NULL));
   pthread_mutex_unlock(&this->lock);
 
   this->frames_written = 0;
@@ -264,26 +262,26 @@ static int ao_polyp_write(ao_driver_t *this_gen, int16_t *data,
   if (pa_stream_get_state(this->stream) == PA_STREAM_READY) {
 
     while (size > 0) {
-        size_t l;
+      size_t l;
 
-        l = pa_stream_writable_size(this->stream);
+      keep_alive(this);
+        
+      while (!(l = pa_stream_writable_size(this->stream))) {
+        pthread_mutex_unlock(&this->lock);
+        xine_usec_sleep (10000);
+        pthread_mutex_lock(&this->lock);
+        keep_alive(this);
+      }
 
-        if (l > size)
-            l = size;
+      if (l > size)
+        l = size;
+        
+      pa_stream_write(this->stream, data, l, NULL, 0);
+      data = (int16_t *) ((uint8_t*) data + l);
+      size -= l;
 
-        if (!l) {
-          pthread_mutex_unlock(&this->lock);
-          xine_usec_sleep (10000);
-          pthread_mutex_lock(&this->lock);
-          pa_mainloop_iterate(this->mainloop, 1, NULL);
-        } else
-          pa_stream_write(this->stream, data, l, NULL, 0);
-          
-        data = (int16_t *) ((uint8_t*) data + l);
-        size -= l;
+      wait_for_completion(this);
     }
-
-    wait_for_completion(this);
 
     this->frames_written += num_frames;
 
@@ -303,12 +301,13 @@ static int ao_polyp_delay (ao_driver_t *this_gen)
   int delay_frames;
   
   pthread_mutex_lock(&this->lock);
-  latency = pa_stream_get_interpolated_latency(this->stream, NULL);
+  keep_alive(this);
+  latency = pa_stream_get_interpolated_latency(this->stream, NULL); 
   pthread_mutex_unlock(&this->lock);
   
   /* convert latency (us) to frame units. */
   delay_frames = (int)(latency * this->sample_rate / 1000000);
-
+      
   if( delay_frames > this->frames_written )
     return this->frames_written;
   else
@@ -323,7 +322,6 @@ static void ao_polyp_close(ao_driver_t *this_gen)
   if (this->stream) {
     if (pa_stream_get_state(this->stream) == PA_STREAM_READY)
       wait_for_operation(this, pa_stream_drain(this->stream, NULL, NULL));
-
     pa_stream_unref(this->stream);
     this->stream = NULL;
   }
@@ -428,6 +426,7 @@ static int ao_polyp_ctrl(ao_driver_t *this_gen, int cmd, ...) {
     assert(this->stream && this->context);
     if(pa_stream_get_state(this->stream) == PA_STREAM_READY)
       wait_for_operation(this,pa_stream_cork(this->stream, 0, NULL, NULL));
+    wait_for_completion(this);
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
