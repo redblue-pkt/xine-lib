@@ -652,6 +652,9 @@ dnl ---------------------------------------------
 dnl ip_mreqn
 dnl ---------------------------------------------
 AC_CHECK_IP_MREQN
+if test x"$have_ip_mreqn" = "xyes"; then
+  AC_DEFINE(HAVE_IP_MREQN,1,[Define this if you have ip_mreqn in netinet/in.h])
+fi
 
 
 dnl ---------------------------------------------
@@ -959,10 +962,13 @@ AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH",[Path where catalog files 
 AC_SUBST(XINE_LOCALEPATH)
 
 AC_SUBST(XINE_PLUGINDIR)
-AC_SUBST(XINE_DEMUXDIR)
 AC_SUBST(XINE_FONTDIR)
 AC_SUBST(XINE_LOCALEDIR)
 
+
+dnl Where architecture independent data (e.g. logo) will/should be installed
+eval XINE_DATADIR="${datadir}/xine"
+AC_SUBST(XINE_DATADIR)
 
 dnl Where scripts will/should be installed.
 eval XINE_SCRIPTPATH="${datadir}/xine/scripts"
