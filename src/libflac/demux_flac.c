@@ -507,6 +507,11 @@ open_plugin (demux_class_t *class_gen,
                      (buf[2] != 'a') || (buf[3] != 'C') )
                     return NULL;
             }
+            else {
+		printf("demux_flac: failed reading signature.\n");
+		/* FIXME: use preview buffer instead */
+		return NULL;
+            }
         }
         break;
         case METHOD_BY_EXTENSION: {
