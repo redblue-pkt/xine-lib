@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.4 2001/09/16 23:13:45 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.5 2001/09/20 13:25:40 heikos Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -4155,6 +4155,8 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
 
   }  else if (!strncasecmp (video, "jpeg", 4))
     this->video_type = BUF_VIDEO_JPEG;
+  else if (!strncasecmp (video, "3IV1", 4))
+    this->video_type = BUF_VIDEO_MSMPEG4_V3;
   else if (!strncasecmp (video, "raw ", 4))
     this->video_type = BUF_VIDEO_RGB;
   else if (!strncasecmp (video, "yuv2", 4))
@@ -4190,6 +4192,8 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   if (!strncasecmp (audio, "raw ", 4)) {
     this->audio_type = BUF_AUDIO_LPCM_LE;
     this->wavex.wFormatTag = WAVE_FORMAT_ADPCM;
+  } else if (!strncasecmp (audio, ".mp3", 4)) {
+    this->audio_type = BUF_AUDIO_MPEG;
   } else {
     printf ("demux_qt: unknown audio codec >%s<\n",
 	    audio);
