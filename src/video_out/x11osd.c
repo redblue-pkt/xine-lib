@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.8 2004/04/10 15:31:10 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.9 2004/05/06 03:09:32 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -66,9 +66,7 @@ struct x11osd
     } shaped;
     struct {
       uint32_t colorkey;
-      vo_scale_t *scaling;
-      int bordercount;
-      XRectangle borders[4];
+      vo_scale_t *sc;
     } colorkey;
   } u;
   Window window;
@@ -86,55 +84,6 @@ struct x11osd
   enum {DRAWN, WIPED, UNDEFINED} clean;
   xine_t *xine;
 };
-
-static void x11osd_colorkey_compute_borders(x11osd *osd)
-{
-  assert (osd);
-  assert (osd->mode==X11OSD_COLORKEY);
-
-  if(osd->u.colorkey.scaling) {
-    XRectangle *r=osd->u.colorkey.borders;
-    vo_scale_t *scaling=osd->u.colorkey.scaling;
-    int tmp, count=0;
-
-    if(scaling->output_yoffset>0) {
-      r->x=r->y=0;
-      r->width=osd->width;
-      r->height=scaling->output_yoffset;
-      r++;
-      count++;
-    }
-    tmp=osd->height-scaling->output_yoffset-scaling->output_height;
-    if(tmp>0) {
-      r->x=0;
-      r->width=osd->width;
-      r->y=osd->height-tmp;
-      r->height=tmp;
-      r++;
-      count++;
-    }
-    if(scaling->output_xoffset>0) {
-      r->x=0;
-      r->y=scaling->output_yoffset;
-      r->width=scaling->output_xoffset;
-      r->height=scaling->output_height;
-      r++;
-      count++;
-    }
-    tmp=osd->width-scaling->output_xoffset-scaling->output_width;
-    if(tmp>0) {
-      r->x=osd->width-tmp;
-      r->y=scaling->output_yoffset;
-      r->width=tmp;
-      r->height=scaling->output_height;
-      r++;
-      count++;
-    }
-    osd->u.colorkey.bordercount=count;
-  }
-  else
-    osd->u.colorkey.bordercount=0;
-}
 
 
 void
@@ -186,8 +135,6 @@ x11osd_resize (x11osd * osd, int width, int height)
       osd->u.shaped.mask_bitmap =
 	XCreatePixmap (osd->display, osd->u.shaped.window, osd->width, osd->height,
 		       1);
-      XFillRectangle (osd->display, osd->u.shaped.mask_bitmap, osd->u.shaped.mask_gc_back,
-		      0, 0, osd->width, osd->height);
       osd->bitmap =
 	XCreatePixmap (osd->display, osd->u.shaped.window,
 		       osd->width, osd->height, osd->depth);
@@ -198,12 +145,14 @@ x11osd_resize (x11osd * osd, int width, int height)
 		       osd->width, osd->height, osd->depth);
       break;
   }
+  x11osd_clear(osd);
 }
 
 void
 x11osd_drawable_changed (x11osd * osd, Window window)
 {
   XSetWindowAttributes  attr;
+  XWindowAttributes getattr;
 
   assert (osd);
 
@@ -223,6 +172,10 @@ x11osd_drawable_changed (x11osd * osd, Window window)
 
   osd->window = window;
   
+  XGetWindowAttributes (osd->display, osd->window, &getattr);
+  osd->width = getattr.width;
+  osd->height = getattr.height;
+  
   switch(osd->mode) {
     case X11OSD_SHAPED:
       XFreePixmap (osd->display, osd->u.shaped.mask_bitmap);
@@ -240,8 +193,6 @@ x11osd_drawable_changed (x11osd * osd, Window window)
 
       osd->u.shaped.mask_bitmap = XCreatePixmap (osd->display, osd->u.shaped.window,
 						 osd->width, osd->height, 1);
-      XFillRectangle (osd->display, osd->u.shaped.mask_bitmap, osd->u.shaped.mask_gc_back,
-		      0, 0, osd->width, osd->height);
 
       osd->bitmap = XCreatePixmap (osd->display, osd->u.shaped.window, osd->width,
 				   osd->height, osd->depth);
@@ -252,7 +203,6 @@ x11osd_drawable_changed (x11osd * osd, Window window)
     case X11OSD_COLORKEY:
       osd->bitmap = XCreatePixmap (osd->display, osd->window, osd->width,
 				   osd->height, osd->depth);
-      /*x11osd_colorkey_compute_borders(osd);*/
       osd->cmap = XCreateColormap(osd->display, osd->window, 
                               osd->visual, AllocNone);
 
@@ -260,6 +210,7 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   }
     
   osd->clean = UNDEFINED;
+  x11osd_clear(osd);
   x11osd_expose(osd);
 }
 
@@ -278,6 +229,7 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x
   int event_basep, error_basep;
   XErrorHandler   old_handler = NULL;
   XSetWindowAttributes  attr;
+  XWindowAttributes getattr;
 
   osd = xine_xmalloc (sizeof (x11osd));
   if (!osd)
@@ -294,8 +246,10 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x
 
   osd->visual = DefaultVisual (osd->display, osd->screen);
   osd->depth = DefaultDepth (osd->display, osd->screen);
-  osd->width = XDisplayWidth (osd->display, osd->screen);
-  osd->height = XDisplayHeight (osd->display, osd->screen);         
+  
+  XGetWindowAttributes (osd->display, osd->window, &getattr);
+  osd->width = getattr.width;
+  osd->height = getattr.height;
 
   switch (mode) {
     case X11OSD_SHAPED:
@@ -350,7 +304,6 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x
     case X11OSD_COLORKEY:
       osd->bitmap = XCreatePixmap (osd->display, osd->window, osd->width, 
                    osd->height, osd->depth);
-      /*x11osd_colorkey_compute_borders(osd);	done in x11osd_colorkey */
       osd->gc = XCreateGC (osd->display, osd->window, 0, NULL);
       osd->cmap = XCreateColormap(osd->display, osd->window, 
                               osd->visual, AllocNone);
@@ -400,16 +353,15 @@ error2:
   return NULL;
 }
 
-void x11osd_colorkey(x11osd * osd, uint32_t colorkey, vo_scale_t *scaling)
+void x11osd_colorkey(x11osd * osd, uint32_t colorkey, vo_scale_t *sc)
 {
   assert (osd);
   assert (osd->mode==X11OSD_COLORKEY);
 
   osd->u.colorkey.colorkey=colorkey;
-  osd->u.colorkey.scaling=scaling;
-  /*x11osd_colorkey_compute_borders(osd);
-  x11osd_clear(osd);	Workaround: we clear on the first blend instead.
-  x11osd_expose(osd);*/
+  osd->u.colorkey.sc=sc;
+  x11osd_clear(osd);
+  x11osd_expose(osd);
 }
 
 void
@@ -433,6 +385,8 @@ x11osd_destroy (x11osd * osd)
 
 void x11osd_clear(x11osd *osd)
 {
+  int i;
+  
   if( osd->clean!=WIPED )
     switch (osd->mode) {
       case X11OSD_SHAPED:
@@ -441,16 +395,20 @@ void x11osd_clear(x11osd *osd)
 	break;
       case X11OSD_COLORKEY:
 	XSetForeground(osd->display, osd->gc, osd->u.colorkey.colorkey);
-	if(osd->u.colorkey.scaling) {
-	  x11osd_colorkey_compute_borders(osd);
+	if(osd->u.colorkey.sc) {
 	  XFillRectangle (osd->display, osd->bitmap, osd->gc,
-			  osd->u.colorkey.scaling->output_xoffset,
-			  osd->u.colorkey.scaling->output_yoffset,
-			  osd->u.colorkey.scaling->output_width,
-			  osd->u.colorkey.scaling->output_height);
+			  osd->u.colorkey.sc->output_xoffset,
+			  osd->u.colorkey.sc->output_yoffset,
+			  osd->u.colorkey.sc->output_width,
+			  osd->u.colorkey.sc->output_height);
 	  XSetForeground(osd->display, osd->gc, BlackPixel(osd->display, osd->screen));
-	  XFillRectangles (osd->display, osd->bitmap, osd->gc, 
-			   osd->u.colorkey.borders, osd->u.colorkey.bordercount);
+          for( i = 0; i < 4; i++ ) {
+            if( osd->u.colorkey.sc->border[i].w && osd->u.colorkey.sc->border[i].h ) {
+              XFillRectangle(osd->display, osd->bitmap, osd->gc,
+                            osd->u.colorkey.sc->border[i].x, osd->u.colorkey.sc->border[i].y,
+                            osd->u.colorkey.sc->border[i].w, osd->u.colorkey.sc->border[i].h);
+            }
+          }
 	} else
 	  XFillRectangle (osd->display, osd->bitmap, osd->gc, 0, 0, osd->width, osd->height);
 	break;
@@ -465,7 +423,7 @@ void x11osd_clear(x11osd *osd)
 void x11osd_blend(x11osd *osd, vo_overlay_t *overlay)
 {
   if (osd->clean==UNDEFINED)
-    x11osd_clear(osd);	/* Workaround. Colorkey mode needs scaling data before the clear. */
+    x11osd_clear(osd);	/* Workaround. Colorkey mode needs sc data before the clear. */
   if (overlay->rle) {
     int i, x, y, len, width;
     int use_clip_palette, max_palette_colour[2];

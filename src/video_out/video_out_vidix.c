@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.61 2004/04/26 17:50:11 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.62 2004/05/06 03:09:32 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -263,17 +263,26 @@ static void vidix_clean_output_area(vidix_driver_t *this) {
 
   if(this->visual_type == XINE_VISUAL_TYPE_X11) {
 #ifdef HAVE_X11
+    int i;
+    
     XLockDisplay(this->display);      
       
     XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[0].x, this->sc.border[0].y, this->sc.border[0].w, this->sc.border[0].h);
-    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[1].x, this->sc.border[1].y, this->sc.border[1].w, this->sc.border[1].h);
-    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[2].x, this->sc.border[2].y, this->sc.border[2].w, this->sc.border[2].h);
-    XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[3].x, this->sc.border[3].y, this->sc.border[3].w, this->sc.border[3].h);
-  
+    
+    for( i = 0; i < 4; i++ ) {
+      if( this->sc.border[i].w && this->sc.border[i].h ) {
+        XFillRectangle(this->display, this->drawable, this->gc,
+                      this->sc.border[i].x, this->sc.border[i].y,
+                      this->sc.border[i].w, this->sc.border[i].h);
+      }
+    }
+    
     XSetForeground(this->display, this->gc, this->colourkey);
     XFillRectangle(this->display, this->drawable, this->gc, this->sc.output_xoffset, this->sc.output_yoffset, this->sc.output_width, this->sc.output_height);
   
+    if (this->xoverlay)
+      x11osd_resize (this->xoverlay, this->sc.gui_width, this->sc.gui_height);
+    
     XFlush(this->display);
 
     XUnlockDisplay(this->display);
@@ -1127,8 +1136,15 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   query_fourccs(this);
 
   XLockDisplay (this->display);
-  this->xoverlay = x11osd_create (this->xine, this->display, this->screen, 
-                                  this->drawable, X11OSD_SHAPED);
+  if(this->colourkey) { 
+    this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
+                                    this->drawable, X11OSD_COLORKEY);
+    if(this->xoverlay)
+      x11osd_colorkey(this->xoverlay, this->colourkey, &this->sc);
+  } else {
+    this->xoverlay = x11osd_create (this->xine, this->display, this->screen, 
+                                    this->drawable, X11OSD_SHAPED);
+  }
   XUnlockDisplay (this->display);
 
   if( this->xoverlay )

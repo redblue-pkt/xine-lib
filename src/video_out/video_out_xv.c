@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.197 2004/04/26 17:50:11 mroi Exp $
+ * $Id: video_out_xv.c,v 1.198 2004/05/06 03:09:32 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -586,6 +586,10 @@ static void xv_clean_output_area (xv_driver_t *this) {
 		    this->sc.output_xoffset, this->sc.output_yoffset,
 		    this->sc.output_width, this->sc.output_height);
   }
+  
+  if (this->xoverlay)
+    x11osd_resize (this->xoverlay, this->sc.gui_width, this->sc.gui_height);
+  
   XUnlockDisplay (this->display);
 }
 
@@ -1077,7 +1081,12 @@ static void xv_check_capability (xv_driver_t *this,
 
   xprintf(this->xine, XINE_VERBOSITY_DEBUG,
 	  "video_out_xv: port attribute %s (%d) value is %d\n", str_prop, property, int_default);
-  
+
+  /* disable autopaint colorkey by default */
+  /* might be overridden using config entry */
+  if(strcmp(str_prop, "XV_AUTOPAINT_COLORKEY") == 0)
+    int_default = 0;
+    
   if (config_name) {
     /* is this a boolean property ? */
     if ((attr.min_value == 0) && (attr.max_value == 1)) {
