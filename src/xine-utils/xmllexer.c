@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.9 2005/01/16 17:51:04 dsalt Exp $
+ *  $Id: xmllexer.c,v 1.10 2005/01/16 18:47:19 mroi Exp $
  *
  */
 
@@ -415,7 +415,9 @@ int lexer_get_token(char * tok, int tok_size) {
 }
 
 static struct {
-  char code, namelen, name[6];
+  char code;
+  unsigned char namelen;
+  char name[6];
 } lexer_entities[] = {
   { '"',  4, "quot" },
   { '&',  3, "amp" },
@@ -425,7 +427,7 @@ static struct {
   { 0 }
 };
 
-char *lexer_decode_entities (const char *tok)
+char *lexer_decode_entities (char *tok)
 {
   char *buf = xine_xmalloc (strlen (tok) + 1);
   char *bp = buf;
@@ -438,7 +440,7 @@ char *lexer_decode_entities (const char *tok)
     else
     {
       /* parse the character entity (on failure, treat it as literal text) */
-      const char *tp = tok;
+      char *tp = tok;
       long i;
 
       for (i = 0; lexer_entities[i].code; ++i)
