@@ -437,7 +437,7 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
       printf("1:rle_len=%d, remainder=%d, x=%d\n",rlelen, rle_remainder, x);
 #endif
 
-      if (rlelen < 0 || rle_remainder < 0) {
+      if ((rlelen < 0) || (rle_remainder < 0)) {
         printf("alphablend: major bug in blend_yuv < 0\n");
       } 
       if (rlelen == 0) {
@@ -448,7 +448,7 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
       if (rle_remainder == 0) {
         rle_remainder = rlelen;
       }
-      if (rle_remainder + x > src_width) {
+      if ((rle_remainder + x) > src_width) {
         /* Do something for long rlelengths */
         rle_remainder = src_width - x; 
         ;
@@ -460,7 +460,7 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
       if (ymask == 0) {
         if (x <= img_overl->clip_left) { 
           /* Starts outside clip area */
-          if (x + rle_remainder > img_overl->clip_left ) {
+          if ((x + rle_remainder - 1) > img_overl->clip_left ) {
 #ifdef LOG_BLEND_YUV
             printf("Outside clip left %d, ending inside\n", img_overl->clip_left); 
 #endif
@@ -485,12 +485,12 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
           }
         } else if (x < img_overl->clip_right) {
           /* Starts inside clip area */
-          if (x + rle_remainder >= img_overl->clip_right ) { 
+          if ((x + rle_remainder) > img_overl->clip_right ) { 
 #ifdef LOG_BLEND_YUV
             printf("Inside clip right %d, ending outside\n", img_overl->clip_right); 
 #endif
             /* Cutting needed, starts inside, ends outside */
-            rle_this_bite = (img_overl->clip_right - x + 1);
+            rle_this_bite = (img_overl->clip_right - x);
             rle_remainder -= rle_this_bite;
             rlelen -= rle_this_bite;
             my_clut = (clut_t*) img_overl->clip_color;
@@ -510,7 +510,7 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
           }
         } else if (x >= img_overl->clip_right) {
           /* Starts outside clip area, ends outsite clip area */
-          if (x + rle_remainder > src_width ) { 
+          if ((x + rle_remainder ) > src_width ) { 
 #ifdef LOG_BLEND_YUV
             printf("Outside clip right %d, ending eol\n", img_overl->clip_right); 
 #endif
