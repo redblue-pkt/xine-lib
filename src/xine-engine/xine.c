@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.150 2002/09/05 12:51:18 guenter Exp $
+ * $Id: xine.c,v 1.151 2002/09/05 23:20:21 guenter Exp $
  *
  * top-level xine functions
  *
@@ -1033,14 +1033,6 @@ int xine_get_audio_lang (xine_t *this, int channel, char *str) {
 int xine_get_spu_channel (xine_t *this) {
 
   return this->spu_channel_user;
-}
-
-int xine_is_stream_seekable (xine_t *this) {
-
-  if (this->cur_input_plugin)
-    return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SEEKABLE;
-
-  return -1;
 }
 
 osd_renderer_t *xine_get_osd_renderer (xine_t *this) {

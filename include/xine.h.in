@@ -17,9 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.4 2002/09/05 20:59:14 guenter Exp $
+ * $Id: xine.h.in,v 1.5 2002/09/05 23:20:20 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
+ *
+ * _important_note_: as a rule of thumb, never free() any pointers
+ *                   returned by the xine engine
+ *                   (unless stated otherwise)
  *
  */
  
@@ -165,12 +169,6 @@ int  xine_get_param (xine_t *self, int param);
 int  xine_get_audio_lang (xine_t *self, int channel, char *str);
 int  xine_get_spu_lang   (xine_t *self, int channel, char *str);
 
-/*
- * check if the stream is seekable (at the moment).
- * this state may change during playback
- */
-int  xine_is_stream_seekable (xine_t *self);
-
 /* 
  * get position / length information 
  *
@@ -278,6 +276,7 @@ int xine_register_report_codec_cb(xine_t *self,
 #define XINE_PARAM_AUDIO_CHANNEL_LOGICAL   3  
 #define XINE_PARAM_SPU_CHANNEL             4  
 #define XINE_PARAM_VIDEO_CHANNEL           5  
+#define XINE_PARAM_AUDIO_VOLUME            6
 
 /* stream format detection strategies */
 
@@ -328,6 +327,7 @@ int xine_register_report_codec_cb(xine_t *self,
 #define XINE_STREAM_INFO_AUDIO_CHANNELS    7
 #define XINE_STREAM_INFO_AUDIO_BITS        8
 #define XINE_STREAM_INFO_AUDIO_SAMPLERATE  9
+#define XINE_STREAM_INFO_HAS_CHAPTERS      10
 
 /*
  * video stuff 
@@ -814,7 +814,7 @@ typedef struct {
   char            *message;
   char            *button0, *button1, *button2;
   int              num_buttons;
-  int              resposne;
+  int              response;
 } xine_ui_message_event_t;
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.3 2002/09/05 20:19:50 guenter Exp $
+ * $Id: xine_interface.c,v 1.4 2002/09/05 23:20:21 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -314,6 +314,10 @@ void xine_set_param (xine_t *this, int param, int value) {
     this->video_channel = value;
     pthread_mutex_unlock (&this->xine_lock);
     break;
+
+  case XINE_PARAM_AUDIO_VOLUME:
+    break; /* FIXME: implement */
+
   }
 }
 
@@ -335,6 +339,9 @@ int  xine_get_param (xine_t *this, int param) {
   case XINE_PARAM_VIDEO_CHANNEL:
     return this->video_channel;
 
+  case XINE_PARAM_AUDIO_VOLUME:
+    return -1; /* FIXME: implement */
+
   default:
     printf ("xine_interface: unknown param %d\n", param);
     abort ();
@@ -343,7 +350,51 @@ int  xine_get_param (xine_t *this, int param) {
   return 0;
 }
 
-uint32_t xine_get_stream_info (xine_t *self, int info) {
+uint32_t xine_get_stream_info (xine_t *this, int info) {
   printf ("xine_interface: xine_get_stream_info: not implemented\n");
-  abort();
+
+  switch (info) {
+
+  case XINE_STREAM_INFO_WIDTH:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_HEIGHT:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_SEEKABLE:
+    if (this->cur_input_plugin)
+      return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SEEKABLE;
+    return 0;
+
+  case XINE_STREAM_INFO_VIDEO_FOURCC:
+    return 0; /* FIXME */
+    
+  case XINE_STREAM_INFO_VIDEO_CHANNELS:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_VIDEO_STREAMS:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_AUDIO_FOURCC:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_AUDIO_CHANNELS:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_AUDIO_BITS:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_AUDIO_SAMPLERATE:
+    return 0; /* FIXME */
+
+  case XINE_STREAM_INFO_HAS_CHAPTERS:
+    if (this->cur_input_plugin)
+      return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_CHAPTERS;
+    return 0;
+  default:
+    printf ("xine_interface: error, unknown info (%d) requested\n",
+	    info);
+  }
+  return 0;
 }
+
