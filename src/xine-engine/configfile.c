@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.40 2002/10/31 16:58:15 mroi Exp $
+ * $Id: configfile.c,v 1.41 2002/12/21 16:25:31 rockyb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -674,9 +674,12 @@ void xine_config_save (xine_t *xine_ro, const char *filename) {
 
 	fprintf (f_config, "}, default: %d\n",
 		 entry->num_default);
-	fprintf (f_config, "%s:", entry->key);
 
-	fprintf (f_config, "%s\n", entry->enum_values[entry->num_value]);
+	if (entry->enum_values[entry->num_value] != NULL) {
+	  fprintf (f_config, "%s:", entry->key);
+	  fprintf (f_config, "%s\n", entry->enum_values[entry->num_value]);
+	}
+
 	fprintf (f_config, "\n");
 	break;
       }
