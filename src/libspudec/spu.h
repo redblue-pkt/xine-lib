@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.13 2002/04/23 21:48:06 jcdutton Exp $
+ * $Id: spu.h,v 1.14 2002/04/24 13:42:17 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -78,7 +78,6 @@ typedef struct {
   int32_t visible;      /* Must the sub-picture be shown? */
   int32_t forced_display; /* This overlay is a menu */
   int32_t delay;        /* Delay in 90Khz / 1000 */
-  int32_t b_show;       /* is a button shown? */
   int32_t need_clut;    /* doesn't have the right clut yet */
   int32_t cur_colors[4];/* current 4 colors been used */
 
@@ -113,6 +112,8 @@ typedef struct spudec_decoder_s {
   pci_t            pci;
   uint32_t         buttonN;  /* Current button number for highlights */
   int32_t button_filter; /* Allow highlight changes or not */
+  pthread_mutex_t nav_pci_lock;
+  int64_t          last_event_vpts;
 } spudec_decoder_t;
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
