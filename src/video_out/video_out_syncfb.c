@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.21 2001/11/03 18:20:04 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.22 2001/11/03 19:54:44 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -267,14 +267,11 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 {
    Window temp_window;
    int posx, posy;
-   
-// for debug 
-//   printf("src width: %d, height: %d - dst width: %d, height: %d\n", this->frame_width, this->frame_height, this->output_width, this->output_height);
 
    XLockDisplay(this->display);
 
    XTranslateCoordinates(this->display, this->drawable, DefaultRootWindow(this->display), 0, 0, &posx, &posy, &temp_window);
-   
+
    if(((double) dest_width / this->ratio_factor) < dest_height) {
       this->output_width   = dest_width;
       this->output_height  = (double) dest_width / this->ratio_factor;
@@ -286,9 +283,6 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
      this->output_xoffset  = dest_x + (dest_width - this->output_width) / 2;
      this->output_yoffset  = dest_y;
    }
-
-// for debug
-//   printf("src width: %d, height: %d - dst width: %d, height: %d\n", this->frame_width, this->frame_height, this->output_width, this->output_height);
    
    //
    // configuring SyncFB module from this point on.
@@ -686,8 +680,7 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       printf("video_out_syncfb: VO_PROP_INTERLACED(%d)\n",
 	     this->props[property].value);
       this->deinterlace_enabled = value;
-      syncfb_adapt_to_output_area(this, this->output_xoffset, this->output_yoffset,
-				  this->output_width, this->output_height);
+      syncfb_calc_format(this, this->delivered_width, this->delivered_height, this->delivered_ratio_code);
       break;
    case VO_PROP_ASPECT_RATIO:
       if(value>=NUM_ASPECT_RATIOS)
