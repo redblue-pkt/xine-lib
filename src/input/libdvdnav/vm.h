@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.5 2003/03/21 22:13:39 mroi Exp $
+ * $Id: vm.h,v 1.6 2003/03/25 13:17:23 mroi Exp $
  *
  */
 
@@ -69,8 +69,11 @@ typedef struct vm_position_s {
   int32_t  angle_channel; /* angle channel to use */
   int32_t  audio_channel; /* audio channel to use */
   int32_t  hop_channel;   /* channel hopping. E.g menu button pressed */
+#if 0
+  /* currently unused */
   int32_t  title;         /* title number */
   int32_t  chapter;       /* chapter number */
+#endif
   int32_t  cell;          /* cell number */
   int32_t  cell_restart;  /* get cell to restart */
   int32_t  cell_start;    /* sector number of start of current cell in use */
@@ -139,6 +142,7 @@ void vm_get_next_cell(vm_t *vm);
 
 /* Jumping - all these return 1, if a hop has been performed */
 int vm_jump_pg(vm_t *vm, int pg);
+int vm_jump_cell_block(vm_t *vm, int cell, int block);
 int vm_jump_title_part(vm_t *vm, int title, int part);
 int vm_jump_top_pg(vm_t *vm);
 int vm_jump_next_pg(vm_t *vm);

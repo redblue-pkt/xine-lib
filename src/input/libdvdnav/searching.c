@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.11 2003/03/21 22:13:38 mroi Exp $
+ * $Id: searching.c,v 1.12 2003/03/25 13:17:22 mroi Exp $
  *
  */
 
@@ -77,7 +77,7 @@ static dvdnav_status_t dvdnav_scan_admap(dvdnav_t *this, int32_t domain, int32_t
     int found = 0;
 
     /* Search through ADMAP for best sector */
-    vobu_start = 0x3fffffff;
+    vobu_start = SRI_END_OF_CELL;
     /* FIXME: Implement a faster search algorithm */
     while((!found) && ((address<<2) < admap->last_byte)) {
       next_vobu = admap->vobu_start_sectors[address];
@@ -120,10 +120,6 @@ dvdnav_status_t dvdnav_sector_search(dvdnav_t *this,
   }
   
   result = dvdnav_get_position(this, &target, &length);
-#ifdef LOG_DEBUG
-  fprintf(MSG_OUT, "libdvdnav: seeking to offset=%lu pos=%u length=%u\n", offset, target, length); 
-  fprintf(MSG_OUT, "libdvdnav: Before cellN=%u blockN=%u\n", state->cellN, state->blockN);
-#endif
   if(!result) {
     return S_ERR;
   }
@@ -135,6 +131,10 @@ dvdnav_status_t dvdnav_sector_search(dvdnav_t *this,
     pthread_mutex_unlock(&this->vm_lock);
     return S_ERR;
   }
+#ifdef LOG_DEBUG
+  fprintf(MSG_OUT, "libdvdnav: seeking to offset=%lu pos=%u length=%u\n", offset, target, length); 
+  fprintf(MSG_OUT, "libdvdnav: Before cellN=%u blockN=%u\n", state->cellN, state->blockN);
+#endif
 
   switch(origin) {
    case SEEK_SET:
@@ -167,15 +167,20 @@ dvdnav_status_t dvdnav_sector_search(dvdnav_t *this,
     pthread_mutex_unlock(&this->vm_lock);
     return S_ERR;
   }
-
-  /* First find closest cell number in program */
-  first_cell_nr = state->pgc->program_map[state->pgN-1];
-  if(state->pgN < state->pgc->nr_of_programs) {
-    last_cell_nr = state->pgc->program_map[state->pgN] - 1;
-  } else {
+  
+  if (this->pgc_based) {
+    first_cell_nr = 1;
     last_cell_nr = state->pgc->nr_of_cells;
+  } else {
+    /* Find start cell of program. */
+    first_cell_nr = state->pgc->program_map[state->pgN-1];
+    /* Find end cell of program */
+    if(state->pgN < state->pgc->nr_of_programs)
+      last_cell_nr = state->pgc->program_map[state->pgN] - 1;
+    else
+      last_cell_nr = state->pgc->nr_of_cells;
   }
-    
+
   found = 0;
   for(cell_nr = first_cell_nr; (cell_nr <= last_cell_nr) && !found; cell_nr ++) {
     cell =  &(state->pgc->cell_playback[cell_nr-1]);
@@ -191,31 +196,27 @@ dvdnav_status_t dvdnav_sector_search(dvdnav_t *this,
   }
 
   if(found) {
-    int32_t vobu, start;
+    int32_t vobu;
 #ifdef LOG_DEBUG
     fprintf(MSG_OUT, "libdvdnav: Seeking to cell %i from choice of %i to %i\n",
 	    cell_nr, first_cell_nr, last_cell_nr);
 #endif
-    dvdnav_scan_admap(this, state->domain, target, &vobu);
-
-    start         = state->pgc->cell_playback[cell_nr-1].first_sector;
-    state->blockN = vobu - start;
-    state->cellN  = cell_nr;
-    state->cell_restart++;
+    if (dvdnav_scan_admap(this, state->domain, target, &vobu) == S_OK) {
+      int32_t start = state->pgc->cell_playback[cell_nr-1].first_sector;
+      
+      if (vm_jump_cell_block(this->vm, cell_nr, vobu - start)) {
 #ifdef LOG_DEBUG
-    fprintf(MSG_OUT, "libdvdnav: After cellN=%u blockN=%u target=%x vobu=%x start=%x\n" ,
-      state->cellN,
-      state->blockN,
-      target,
-      vobu,
-      start);
+        fprintf(MSG_OUT, "libdvdnav: After cellN=%u blockN=%u target=%x vobu=%x start=%x\n" ,
+          state->cellN, state->blockN, target, vobu, start);
 #endif
-    this->vm->hop_channel += HOP_SEEK;
-    pthread_mutex_unlock(&this->vm_lock);
-    return S_OK;
+        this->vm->hop_channel += HOP_SEEK;
+        pthread_mutex_unlock(&this->vm_lock);
+        return S_OK;
+      }
+    }
   }
   
-  fprintf(MSG_OUT, "libdvdnav: Error when seeking, asked to seek outside program\n");
+  fprintf(MSG_OUT, "libdvdnav: Error when seeking\n");
   fprintf(MSG_OUT, "libdvdnav: FIXME: Implement seeking to location %u\n", target); 
   printerr("Error when seeking.");
   pthread_mutex_unlock(&this->vm_lock);
@@ -382,8 +383,6 @@ dvdnav_status_t dvdnav_get_position(dvdnav_t *this, unsigned int *pos,
   uint32_t first_cell_nr;
   uint32_t last_cell_nr;
   cell_playback_t *cell;
-  cell_playback_t *first_cell;
-  cell_playback_t *last_cell;
   dvd_state_t *state;
 
   if(!this || !pos || !len) {
@@ -406,18 +405,19 @@ dvdnav_status_t dvdnav_get_position(dvdnav_t *this, unsigned int *pos,
   /* Get current sector */
   cur_sector = this->vobu.vobu_start + this->vobu.blockN;
 
-  /* Find start cell of program. */
-  first_cell_nr = state->pgc->program_map[state->pgN-1];
-  first_cell = &(state->pgc->cell_playback[first_cell_nr-1]);
-  
-  /* Find end cell of program */
-  if(state->pgN < state->pgc->nr_of_programs) {
-    last_cell_nr = state->pgc->program_map[state->pgN] - 1;
-  } else {
+  if (this->pgc_based) {
+    first_cell_nr = 1;
     last_cell_nr = state->pgc->nr_of_cells;
+  } else {
+    /* Find start cell of program. */
+    first_cell_nr = state->pgc->program_map[state->pgN-1];
+    /* Find end cell of program */
+    if(state->pgN < state->pgc->nr_of_programs)
+      last_cell_nr = state->pgc->program_map[state->pgN] - 1;
+    else
+      last_cell_nr = state->pgc->nr_of_cells;
   }
-  last_cell = &(state->pgc->cell_playback[last_cell_nr-1]);
-  
+
   *pos = -1;
   *len = 0;
   for (cell_nr = first_cell_nr; cell_nr <= last_cell_nr; cell_nr++) {

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.7 2003/02/26 20:44:14 mroi Exp $
+ * $Id: dvdnav_internal.h,v 1.8 2003/03/25 13:17:22 mroi Exp $
  *
  */
 
@@ -147,6 +147,7 @@ struct dvdnav_s {
   int spu_clut_changed;           /* The SPU CLUT changed */ 
   int started;                    /* vm_start has been called? */
   int use_read_ahead;             /* 1 - use read-ahead cache, 0 - don't */
+  int pgc_based;                  /* positioning works PGC based instead of PG based */
   
   /* VM */
   vm_t *vm;

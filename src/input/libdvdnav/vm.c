@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.14 2003/03/21 22:13:38 mroi Exp $
+ * $Id: vm.c,v 1.15 2003/03/25 13:17:22 mroi Exp $
  *
  */
 
@@ -471,6 +471,13 @@ int vm_jump_pg(vm_t *vm, int pg) {
   return 1;
 }
 
+int vm_jump_cell_block(vm_t *vm, int cell, int block) {
+  (vm->state).cellN = cell;
+  process_command(vm, play_Cell(vm));
+  (vm->state).blockN = block;
+  return 1;
+}
+
 int vm_jump_title_part(vm_t *vm, int title, int part) {
   int vtsN;
 
@@ -479,7 +486,6 @@ int vm_jump_title_part(vm_t *vm, int title, int part) {
   if(!set_VTS_PTT(vm, vtsN, title, part))
     return 0;
   process_command(vm, play_PGC_PG(vm, (vm->state).pgN));
-  vm->hop_channel++;
   return 1;
 }
 
@@ -1799,6 +1805,11 @@ void vm_position_print(vm_t *vm, vm_position_t *position) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.15  2003/03/25 13:17:22  mroi
+ * sync to cvs of libdvdnav
+ *   * optional PGC based seeking
+ *   * new event on cell changes for timing info (currently not used by xine-lib)
+ *
  * Revision 1.14  2003/03/21 22:13:38  mroi
  * sync to libdvdnav cvs
  * * method to try-run VM operations, now used for safer chapter skipping and menu jumps

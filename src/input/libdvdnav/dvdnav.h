@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.h,v 1.7 2003/03/21 22:13:37 mroi Exp $
+ * $Id: dvdnav.h,v 1.8 2003/03/25 13:17:21 mroi Exp $
  *
  */
 
@@ -169,6 +169,28 @@ dvdnav_status_t dvdnav_set_readahead_flag(dvdnav_t *self, int use_readahead);
  * \sa dvdnav_get_readahead_flag()
  */
 dvdnav_status_t dvdnav_get_readahead_flag(dvdnav_t *self, int* flag);
+
+/**
+ * Specify whether the positioning works PGC or PG based.
+ * Programs (PGs) on DVDs are similar to Chapters and the program chain (PGC)
+ * usually covers a whole feature. This affects the behaviour of the
+ * functions dvdnav_get_position() and dvdnav_sector_search().
+ * Default is PG based positioning.
+ *
+ * \param self Pointer to dvdnav_t associated with this operation.
+ * \param pgc 0 - PG based, 1 - PGC based
+ */
+dvdnav_status_t dvdnav_set_PGC_positioning_flag(dvdnav_t *self, int pgc);
+
+/**
+ * Query whether positioning is PG or PGC based.
+ *
+ * \param self Pointer to dvdnav_t associated with this operation.
+ * \param flag Pointer to int to recieve flag value.
+ *
+ * \sa dvdnav_set_PGC_positioning_flag()
+ */
+dvdnav_status_t dvdnav_get_PGC_positioning_flag(dvdnav_t *self, int *flag);
 
 /**
  * @}

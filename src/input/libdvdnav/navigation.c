@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: navigation.c,v 1.5 2003/02/26 20:44:15 mroi Exp $
+ * $Id: navigation.c,v 1.6 2003/03/25 13:17:22 mroi Exp $
  *
  */
 
@@ -156,6 +156,8 @@ dvdnav_status_t dvdnav_part_play(dvdnav_t *this, int title, int part) {
     return S_ERR;
   }
   retval = vm_jump_title_part(this->vm, title, part);
+  if (retval)
+    this->vm->hop_channel++;
   pthread_mutex_unlock(&this->vm_lock);
 
   return retval ? S_OK : S_ERR;

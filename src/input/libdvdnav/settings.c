@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: settings.c,v 1.3 2003/02/20 16:02:01 mroi Exp $
+ * $Id: settings.c,v 1.4 2003/03/25 13:17:22 mroi Exp $
  *
  */
 
@@ -100,4 +100,24 @@ dvdnav_status_t dvdnav_audio_language_select(dvdnav_t *this, char *code) {
 
 dvdnav_status_t dvdnav_spu_language_select(dvdnav_t *this, char *code) {
   return set_language_register(this, code, 18);
+}
+
+dvdnav_status_t dvdnav_set_PGC_positioning_flag(dvdnav_t *this, int pgc) {
+  if(!this) {
+    printerr("Passed a NULL this pointer.");
+    return S_ERR;
+  }
+
+  this->pgc_based = pgc;
+  return S_OK;
+}
+
+dvdnav_status_t dvdnav_get_PGC_positioning_flag(dvdnav_t *this, int *flag) {
+  if(!this || !flag) {
+    printerr("Passed a NULL this pointer.");
+    return S_ERR;
+  }
+
+  (*flag) = this->pgc_based;
+  return S_OK;
 }
