@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.70 2003/05/19 20:24:14 tmattern Exp $
+ * $Id: demux_elem.c,v 1.71 2003/05/19 23:31:07 tmattern Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -78,19 +78,22 @@ typedef struct {
 
 static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf_element_t *buf;
-  int n;
 
 #ifdef LOG
   printf ("demux_elem: next piece\n");
 #endif
 
   buf = this->input->read_block(this->input, this->video_fifo, this->blocksize);
-  n = buf->size;
 
+  if (!buf) {
+    this->status = DEMUX_FINISHED;
+    return 0;
+  }
 #ifdef LOG
-  printf ("demux_elem: n = %d\n", n);
+  printf ("demux_elem: size = %d\n", buf->size);
 #endif
-  if (!buf || (n <= 0)) {
+  
+  if (buf->size <= 0) {
     buf->free_buffer (buf);
     this->status = DEMUX_FINISHED;
     return 0;
@@ -211,7 +214,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_mpeg_elem_t *this;
 
-  assert(input);
   this         = xine_xmalloc (sizeof (demux_mpeg_elem_t));
   this->stream = stream;
   this->input  = input;
