@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.58 2002/07/05 15:10:48 tmmm Exp $
+ * $Id: demux_qt.c,v 1.59 2002/07/05 15:43:33 tmmm Exp $
  *
  */
 
@@ -1467,7 +1467,8 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   this->waiting_for_keyframe = 1;
   keyframe_pts = this->qt->frames[best_index].pts;
   while (best_index--) {
-    if (this->qt->frames[best_index].type == MEDIA_AUDIO) {
+    if ((this->qt->frames[best_index].type == MEDIA_AUDIO) &&
+        (this->qt->frames[best_index].pts < keyframe_pts)) {
       break;
     }
   }
