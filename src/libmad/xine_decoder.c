@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2002/10/20 21:15:07 guenter Exp $
+ * $Id: xine_decoder.c,v 1.33 2002/10/21 23:22:29 tmattern Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -115,7 +115,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef LOG
   printf ("libmad: decode data, decoder_flags: %d\n", buf->decoder_flags);
 #endif  
-
+  
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {
     printf ("libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
 	    buf->size, INPUT_BUF_SIZE-this->bytes_in_buffer);
@@ -125,9 +125,9 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if ((buf->decoder_flags & BUF_FLAG_HEADER) == 0) {
 
     xine_fast_memcpy (&this->buffer[this->bytes_in_buffer], 
-	    buf->content, buf->size);
+                        buf->content, buf->size);
     this->bytes_in_buffer += buf->size;
-
+    
     /*
     printf ("libmad: decode data - doing it\n");
     */
@@ -209,11 +209,8 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	mad_synth_frame (&this->synth, &this->frame);
 
-	if ( buf->decoder_flags & BUF_FLAG_PREVIEW )
-	  return;
-
-
-	{
+	if ( (buf->decoder_flags & BUF_FLAG_PREVIEW) == 0 ) {
+        
 	  unsigned int         nchannels, nsamples;
 	  mad_fixed_t const   *left_ch, *right_ch;
 	  struct mad_pcm      *pcm = &this->synth.pcm;
