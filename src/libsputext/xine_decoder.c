@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.45 2003/01/11 12:25:10 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.46 2003/01/11 12:52:03 miguelfreitas Exp $
  *
  */
 
@@ -215,21 +215,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   do {
   
     /* initialize decoder if needed */
-    if( !this->width || !this->height ) {
+    if( !this->width || !this->height || !this->img_duration ) {
       
       if( this->stream->video_out->status(this->stream->video_out, NULL,
-                                           &this->width, &this->height )) {
+                                           &this->width, &this->height, &this->img_duration )) {
                                              
-        if( this->width && this->height ) {
+        if( this->width && this->height && this->img_duration ) {
           this->renderer = this->stream->osd_renderer;
         
-          if( this->stream->master_stream )
-            this->img_duration = this->stream->master_stream->metronom->get_option(
-              this->stream->master_stream->metronom, METRONOM_FRAME_DURATION);
-          else
-            this->img_duration = this->stream->metronom->get_option(
-              this->stream->metronom, METRONOM_FRAME_DURATION);
-    
           this->osd = NULL;
         
           update_font_size (this);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.133 2003/01/11 03:47:01 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.134 2003/01/11 12:51:18 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -83,6 +83,7 @@ typedef struct {
   extra_info_t             *extra_info_base; /* used to free mem chunk */
 
   int                       current_width, current_height;
+  int64_t                   current_duration;
 } vos_t;
 
 /*
@@ -304,6 +305,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   this->current_height = img->height;
   
   stream->metronom->got_video_frame (stream->metronom, img);
+  this->current_duration = img->duration;
 
   pic_vpts = img->vpts;
   img->extra_info->vpts = img->vpts;
@@ -955,7 +957,7 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
 }
 
 static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
-                      int *width, int *height) {
+                      int *width, int *height, int64_t *img_duration) {
 
   vos_t      *this = (vos_t *) this_gen;
   xine_stream_t *cur;
@@ -967,6 +969,7 @@ static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
     if (cur == stream || !stream) {
       *width = this->current_width;
       *height = this->current_height;
+      *img_duration = this->current_duration;
       ret = 1;
       break;
     }

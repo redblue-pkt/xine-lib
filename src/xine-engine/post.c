@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.9 2003/01/10 13:12:20 miguelfreitas Exp $
+ * $Id: post.c,v 1.10 2003/01/11 12:51:17 miguelfreitas Exp $
  */
  
 /*
@@ -76,9 +76,9 @@ static void post_video_flush(xine_video_port_t *port_gen) {
 }
 
 static int post_video_status(xine_video_port_t *port_gen, xine_stream_t *stream,
-                             int *width, int *height) {
+                             int *width, int *height, int64_t *img_duration) {
   post_video_port_t *port = (post_video_port_t *)port_gen;
-  return port->original_port->status(port->original_port, stream, width, height);
+  return port->original_port->status(port->original_port, stream, width, height, img_duration);
 }
 
 post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *original) {
