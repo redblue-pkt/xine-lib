@@ -1,3 +1,10 @@
+xine-lib (1-rc3a-2) unstable; urgency=high
+
+  * updated shlibs: 1-rc3(a) provides new OSD functions (will close: 225618)
+  * fixed OSS plugin initialization code (closes: 225275)
+
+ -- Siggi Langauf <siggi@debian.org>  Wed, 31 Dec 2003 15:41:17 +0100
+
 xine-lib (1-rc3a-1) unstable; urgency=high
 
   * new upstream release
