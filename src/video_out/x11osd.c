@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.1 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.2 2003/11/26 10:02:52 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -160,12 +160,20 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   XSelectInput (osd->display, osd->window, ExposureMask);
 }
 
+static int x11_error = False ;
+
+static int x11_error_handler(Display *dpy, XErrorEvent *error)
+{
+  x11_error = True;
+  return 0;
+}
 
 x11osd *
 x11osd_create (Display *display, int screen, Window window)
 {
   x11osd *osd;
   int event_basep, error_basep;
+  XErrorHandler   old_handler = NULL;
 
   osd = malloc (sizeof (x11osd));
   memset (osd, 0, sizeof (x11osd));
@@ -176,8 +184,13 @@ x11osd_create (Display *display, int screen, Window window)
   osd->screen = screen;
   osd->parent_window = window;
 
-  if (!XShapeQueryExtension (osd->display, &event_basep, &error_basep))
+  if (!XShapeQueryExtension (osd->display, &event_basep, &error_basep)) {
+    printf(_("x11osd: XShape extension not available. unscaled overlay disabled.\n"));
     goto error2;
+  }
+
+  x11_error = False;
+  old_handler = XSetErrorHandler(x11_error_handler);
 
   osd->visual = DefaultVisual (osd->display, osd->screen);
   osd->depth = DefaultDepth (osd->display, osd->screen);
@@ -190,13 +203,29 @@ x11osd_create (Display *display, int screen, Window window)
                                      osd->width, osd->height, 1, 
                                      BlackPixel (osd->display, osd->screen),
                                      BlackPixel (osd->display, osd->screen));
+  XSync(osd->display, False);
+  if( x11_error ) {
+    printf(_("x11osd: error creating window. unscaled overlay disabled.\n"));
+    goto error3;
+  }
 
   osd->mask_bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width, osd->height,
-		   1);
+    XCreatePixmap (osd->display, osd->window, osd->width, 
+                   osd->height, 1);
+  XSync(osd->display, False);
+  if( x11_error ) {
+    printf(_("x11osd: error creating pixmap. unscaled overlay disabled.\n"));
+    goto error4;
+  }
+
   osd->bitmap =
-    XCreatePixmap (osd->display, osd->window, osd->width,
-		   osd->height, osd->depth);
+    XCreatePixmap (osd->display, osd->window, osd->width, 
+                   osd->height, osd->depth);
+  XSync(osd->display, False);
+  if( x11_error ) {
+    printf(_("x11osd: error creating pixmap. unscaled overlay disabled.\n"));
+    goto error5;
+  }
 
   osd->gc = XCreateGC (osd->display, osd->window, 0, NULL);
   osd->mask_gc = XCreateGC (osd->display, osd->mask_bitmap, 0, NULL);
@@ -222,17 +251,23 @@ x11osd_create (Display *display, int screen, Window window)
   osd->mapped = 0;
   x11osd_expose(osd);
 
+  XSetErrorHandler(old_handler);
+
   return osd;
 
 /*
-error3:
   XFreeGC (osd->display, osd->gc);
   XFreeGC (osd->display, osd->mask_gc);
   XFreeGC (osd->display, osd->mask_gc_back);
-  XFreePixmap (osd->display, osd->bitmap);
-  XFreePixmap (osd->display, osd->mask_bitmap);
-  XDestroyWindow (osd->display, osd->window);
 */
+
+error5:
+  XFreePixmap (osd->display, osd->bitmap);
+error4:
+  XFreePixmap (osd->display, osd->mask_bitmap);
+error3:
+  XDestroyWindow (osd->display, osd->window);
+  XSetErrorHandler(old_handler);
 error2:
   free (osd);
   return NULL;
