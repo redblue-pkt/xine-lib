@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.160 2003/11/02 14:12:52 valtri Exp $
+ * $Id: load_plugins.c,v 1.161 2003/11/02 23:05:55 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -86,6 +86,21 @@ static void remove_segv_handler(void){
 
 #endif
 #endif /* 0 */
+
+
+static void _build_list_typed_plugins(plugin_catalog_t **catalog, xine_list_t *type) {
+  plugin_node_t    *node;
+  int               i = 0;
+  
+  node = xine_list_first_content (type);
+  while (node) {
+    (*catalog)->ids[i] = node->info->id;
+    i++;
+    node = xine_list_next_content (type);
+  }
+  (*catalog)->ids[i] = NULL;
+}
+
 
 /*
  * plugin list/catalog management functions
@@ -1422,57 +1437,21 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
  *  audio output plugins section
  */
 
-const char *const *xine_list_audio_output_plugins (xine_t *this) {
-
-  plugin_catalog_t   *catalog;
-  int                 i;
-  plugin_node_t      *node;
-
-  catalog = this->plugin_catalog;
-
+const char *const *xine_list_audio_output_plugins (xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  
   pthread_mutex_lock (&catalog->lock);
-
-  i = 0;
-  node = xine_list_first_content (catalog->aout);
-  while (node) {
-
-    catalog->ids[i] = node->info->id;
-
-    i++;
-
-    node = xine_list_next_content (catalog->aout);
-  }
-
-  catalog->ids[i] = NULL;
-
+  _build_list_typed_plugins(&catalog, catalog->aout);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
 }
 
-const char *const *xine_list_video_output_plugins (xine_t *this) {
-
-  plugin_catalog_t   *catalog;
-  int                 i;
-  plugin_node_t      *node;
-
-  catalog = this->plugin_catalog;
-
+const char *const *xine_list_video_output_plugins (xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  
   pthread_mutex_lock (&catalog->lock);
-
-  i = 0;
-  node = xine_list_first_content (catalog->vout);
-  while (node) {
-
-    catalog->ids[i] = node->info->id;
-
-    i++;
-
-    node = xine_list_next_content (catalog->vout);
-  }
-
-  catalog->ids[i] = NULL;
-
+  _build_list_typed_plugins(&catalog, catalog->vout);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -1866,23 +1845,63 @@ void free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
   pthread_mutex_unlock (&catalog->lock);
 }
 
-const char *const *xine_list_post_plugins(xine_t *xine) {
+const char *const *xine_list_demuxer_plugins(xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
-  plugin_node_t    *node;
-  int               i;
   
   pthread_mutex_lock (&catalog->lock);
-
-  i = 0;
-  node = xine_list_first_content (catalog->post);
-  while (node) {
-    catalog->ids[i] = node->info->id;
-    i++;
-    node = xine_list_next_content (catalog->post);
-  }
-  catalog->ids[i] = NULL;
-
+  _build_list_typed_plugins(&catalog, catalog->demux);
   pthread_mutex_unlock (&catalog->lock);
+
+  return catalog->ids;
+}
+
+const char *const *xine_list_input_plugins(xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  
+  pthread_mutex_lock (&catalog->lock);
+  _build_list_typed_plugins(&catalog, catalog->input);
+  pthread_mutex_unlock (&catalog->lock);
+
+  return catalog->ids;
+}
+
+const char *const *xine_list_spu_plugins(xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  
+  pthread_mutex_lock (&catalog->lock);
+  _build_list_typed_plugins(&catalog, catalog->spu);
+  pthread_mutex_unlock (&catalog->lock);
+
+  return catalog->ids;
+}
+
+const char *const *xine_list_audio_decoder_plugins(xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  
+  pthread_mutex_lock (&catalog->lock);
+  _build_list_typed_plugins(&catalog, catalog->audio);
+  pthread_mutex_unlock (&catalog->lock);
+
+  return catalog->ids;
+}
+
+const char *const *xine_list_video_decoder_plugins(xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  
+  pthread_mutex_lock (&catalog->lock);
+  _build_list_typed_plugins(&catalog, catalog->video);
+  pthread_mutex_unlock (&catalog->lock);
+
+  return catalog->ids;
+}
+
+const char *const *xine_list_post_plugins(xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  
+  pthread_mutex_lock (&catalog->lock);
+  _build_list_typed_plugins(&catalog, catalog->post);
+  pthread_mutex_unlock (&catalog->lock);
+
   return catalog->ids;
 }
 
