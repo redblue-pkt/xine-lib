@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.141 2003/09/03 16:38:48 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.142 2003/09/03 21:17:58 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1681,7 +1681,11 @@ static void ao_flush (xine_audio_port_t *this_gen) {
     
     /* do not try this in paused mode */
     while( this->flush_audio_driver ) {
+      /* release mutex to get a buffer, otherwise a deadlock may happen */
+      pthread_mutex_unlock(&this->flush_audio_driver_lock);
       buf = fifo_remove (this->free_fifo);
+      pthread_mutex_lock(&this->flush_audio_driver_lock);
+
       buf->num_frames = 0;
       buf->stream = NULL;
       fifo_append (this->out_fifo, buf);
