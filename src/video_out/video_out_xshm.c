@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.23 2001/07/24 12:57:30 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.24 2001/07/24 13:20:02 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -314,8 +314,6 @@ static void dispose_ximage (xshm_driver_t *this,
     }
 
   } else {
-
-    free (myimage->data);
 
     XDestroyImage (myimage);
 
