@@ -1,13 +1,17 @@
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ $(LINUX_INCLUDE)
 
-EXTRA_DIST = dxr3_decoder.c video_out_dxr3.c overlay.c
+EXTRA_DIST = dxr3_decoder.c video_out_dxr3.c video_out_dxr3enc.c overlay.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
+dxr3enc_module = 
+#uncomment the next line and the lines below to compile the dxr3enc plugin
+#dxr3enc_module = xineplug_vo_out_dxr3enc.la
+
 if HAVE_DXR3
-dxr3_modules = xineplug_decode_dxr3.la xineplug_vo_out_dxr3.la
+dxr3_modules = xineplug_decode_dxr3.la xineplug_vo_out_dxr3.la $(dxr3enc_module)
 endif
 
 lib_LTLIBRARIES = $(dxr3_modules)
@@ -17,6 +21,9 @@ xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c overlay.c
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(X_LIBS)
+
+#xineplug_vo_out_dxr3enc_la_SOURCES = video_out_dxr3enc.c overlay.c
+#xineplug_vo_out_dxr3enc_la_LDFLAGS = -avoid-version -module -lfame $(X_LIBS)
 
 include_HEADERS = dxr3_overlay.h
 

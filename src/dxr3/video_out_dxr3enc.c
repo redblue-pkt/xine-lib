@@ -1,0 +1,861 @@
+/* 
+ * Copyright (C) 2000-2001 the xine project
+ * 
+ * This file is part of xine, a unix video player.
+ * 
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * $Id: video_out_dxr3enc.c,v 1.1 2001/10/27 15:50:34 hrm Exp $
+ *
+ * mpeg1 encoding video out plugin for the dxr3.  
+ *
+ * modifications to the original dxr3 video out plugin by 
+ * Mike Lampard <mike at web2u.com.au>
+ * Harm van der Heijden <hrm at users.sourceforge.net>
+ *
+ * Changes are mostly in dxr3_update_frame_format() (init stuff) and
+ * dxr3_frame_copy() (encoding). The driver and frame structs are
+ * changed too.
+ *
+ * What it does
+ * - automatically insert black borders to correct a.r. to 16:9 of 4:3
+ *   if needed (these are the only ones that dxr3 supports).
+ * - detect framerate from frame's duration value and set it as mpeg1's
+ *   framerate. We are hampered a little by the fact that mpeg1 supports
+ *   a limited number of frame rates. Most notably 23.976 (NTSC-FILM) 
+ *   is missing
+ * - (ab)uses the vo_frame_t->copy() function to encode mpeg1 as soon as
+ *   the frame is available.
+ * - full support for YUY2 output; automatic conversion to YV12
+ *
+ * TODO:
+ * - try ffmpeg encoder instead of libfame
+ * - jerkiness issues with mpeg1 output
+ * - sync issues
+ * - split off code that is shared with original dxr3 decoder, for
+ *   maintainability of the whole thing.
+ *
+ */
+ 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
+#include <linux/em8300.h>
+#include "video_out.h"
+#include "xine_internal.h"
+#include "dxr3_overlay.h"
+
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <X11/Xutil.h>
+#ifdef HAVE_XINERAMA
+#include <X11/extensions/Xinerama.h>
+#endif
+#include "../video_out/video_out_x11.h"
+
+#define LOOKUP_DEV "dxr3_devname"
+#define DEFAULT_DEV "/dev/em8300"
+static char *devname;
+
+#include <fame.h>
+#include <math.h>
+
+#define DEFAULT_BUFFER_SIZE 1024*1024
+
+/* enable to buffer the mpeg1 stream; makes jerkiness
+ * worse for some reason... */
+#define BUFFER_FRAMES 0 
+
+fame_parameters_t fp = FAME_PARAMETERS_INITIALIZER;
+fame_object_t *object;
+fame_yuv_t yuv;
+fame_context_t *fc; /* needed for fame calls */
+int fd_video;
+unsigned char *buffer;
+#if BUFFER_FRAMES
+unsigned char *out_buffer;
+int out_buffer_pos;
+int out_buffer_frames;
+#endif
+
+typedef struct dxr3_driver_s {
+	vo_driver_t      vo_driver;
+	config_values_t *config;
+	int fd_control;
+	int aspectratio;
+	int tv_mode;
+	em8300_bcs_t bcs;
+        uint8_t *out[3]; /* aligned buffer for YV12 data, copied from frames */
+        uint8_t *buf[3]; /* unaligned YV12 buffer */
+        int oheight; /* height after adding black bars to correct a.r. */
+	/* for overlay */
+	dxr3_overlay_t overlay;
+	Display *display;
+	Drawable win;
+	GC gc;     
+	XColor color;
+	int xpos, ypos;
+	int width, height; 
+	int overlay_enabled;
+	float desired_ratio;
+
+	int video_width;
+	int video_iheight; // input height (before adding black bars)
+	int video_height; // output height (after adding bars)
+	int video_aspect;
+	void (*request_dest_size) (int video_width, int video_height, int *dest_x,
+        int *dest_y, int *dest_height, int *dest_width);
+} dxr3_driver_t;
+
+typedef struct dxr3_frame_s {
+  vo_frame_t    vo_frame;
+  int           width, height;
+  uint8_t       *mem[3]; /* allocated for YV12 or YUY2 buffers */
+  uint8_t       *real_base[3]; /* same buffers alligned on 16 bytes */
+  int           format;
+  dxr3_driver_t *vo_instance; /* points to self, for use in dxr3_frame_copy */
+  int           copy_calls; /* counts calls to dxr3_frame_copy function */
+}dxr3_frame_t;
+
+static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
+  char *aligned;
+   
+  aligned = malloc (size+alignment);
+  *mem = aligned;
+        
+  while ((int) aligned % alignment)
+    aligned++;
+               
+  return aligned;
+}
+
+static int dxr3_set_property (vo_driver_t *this_gen, int property, int value);
+
+static void dxr3_overlay_adapt_area(dxr3_driver_t *this,
+ int dest_x, int dest_y, int dest_width, int dest_height)
+{
+	XWindowAttributes a;
+	Window junkwin;
+	int rx, ry;
+
+	XLockDisplay(this->display);
+
+	XSetForeground(this->display, this->gc, this->color.pixel);
+	XGetWindowAttributes(this->display, this->win, &a);
+    XTranslateCoordinates (this->display, this->win, a.root,
+	 dest_x, dest_y, &rx, &ry, &junkwin);
+
+	XUnlockDisplay(this->display);
+	
+	this->xpos = rx; this->ypos = ry;
+	this->width = dest_width; this->height = dest_height;
+
+	dxr3_overlay_set_window(&this->overlay, this->xpos, this->ypos,
+	 this->width, this->height);
+}
+
+static void dxr3_get_keycolor(dxr3_driver_t *this)
+{
+	this->color.red   = ((this->overlay.colorkey >> 16) & 0xff) * 256;
+	this->color.green = ((this->overlay.colorkey >>  8) & 0xff) * 256;
+	this->color.blue  = ((this->overlay.colorkey      ) & 0xff) * 256;
+
+	XAllocColor(this->display, DefaultColormap(this->display,0), &this->color);
+}
+	
+void dxr3_read_config(dxr3_driver_t *this, config_values_t *config)
+{
+	char* str;
+
+	if (ioctl(this->fd_control, EM8300_IOCTL_GETBCS, &this->bcs))
+		fprintf(stderr, "dxr3_vo: cannot read bcs values (%s)\n",
+		 strerror(errno));
+	this->vo_driver.set_property(&this->vo_driver,
+	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
+
+	str = config->lookup_str(config, "dxr3_tvmode", "default");
+	if (!strcmp(str, "ntsc")) {
+		this->tv_mode = EM8300_VIDEOMODE_NTSC;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to NTSC\n");
+	} else if (!strcmp(str, "pal")) {
+		this->tv_mode = EM8300_VIDEOMODE_PAL;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 50Hz\n");
+	} else if (!strcmp(str, "pal60")) {
+		this->tv_mode = EM8300_VIDEOMODE_PAL60;
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 60Hz\n");
+	} else if (!strcmp(str, "overlay")) {
+		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
+		fprintf(stderr, "dxr3_vo: setting up overlay mode\n");
+		if (dxr3_overlay_read_state(&this->overlay) == 0) {
+			this->overlay_enabled = 1;
+			
+			str = config->lookup_str(config, "dxr3_keycolor", "0x80a040");
+			sscanf(str, "%x", &this->overlay.colorkey);
+
+			str = config->lookup_str(config, "dxr3_color_interval", "50.0");
+			sscanf(str, "%f", &this->overlay.color_interval);
+		} else {
+			fprintf(stderr, "dxr3_vo: please run autocal, overlay disabled\n");
+		}
+	} else {
+		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
+	}
+	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
+		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
+			fprintf(stderr, "dxr3_vo: setting video mode failed.");
+}
+
+static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
+{
+	/* Since we have no vo format, we return dummy values here */
+	return VO_CAP_YV12 | VO_CAP_YUY2 |
+		VO_CAP_SATURATION | VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST;
+}
+
+/* This are dummy functions to fill in the frame object */
+
+static void dummy_frame_field (vo_frame_t *vo_img, int which_field)
+{
+	fprintf(stderr, "dxr3_vo: dummy_frame_field called!\n");
+}
+
+static void dxr3_frame_dispose (vo_frame_t *frame_gen)
+{
+  dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
+  if (frame->mem[0])
+    free (frame->mem[0]);
+  if (frame->mem[1])
+    free (frame->mem[1]);
+  if (frame->mem[2])
+    free (frame->mem[2]);
+  free(frame);
+}
+
+static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src);
+
+static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
+{
+  /* dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; */
+  dxr3_frame_t   *frame;
+
+  frame = (dxr3_frame_t *) malloc (sizeof (dxr3_frame_t));
+  memset (frame, 0, sizeof(dxr3_frame_t));
+
+  frame->vo_frame.copy    = dxr3_frame_copy; 
+  frame->vo_frame.field   = dummy_frame_field; 
+  frame->vo_frame.dispose = dxr3_frame_dispose;
+
+  return (vo_frame_t*) frame;
+}
+
+static void dxr3_update_frame_format (vo_driver_t *this_gen,
+				      vo_frame_t *frame_gen,
+				      uint32_t width, uint32_t height,
+				      int ratio_code, int format, int flags)
+{
+  dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
+  int aspect;  
+  dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
+  int image_size, oheight;
+  float fps;
+
+  /* reset the copy calls counter (number of calls to dxr3_frame_copy) */	
+  frame->copy_calls = 0;
+  frame->vo_instance = this;
+
+  aspect = this->aspectratio;
+  oheight = this->oheight;
+
+  /* check aspect ratio, see if we need to add black borders */
+  if ((this->video_width != width) || (this->video_iheight != height) ||
+      (this->video_aspect != ratio_code)) {
+    switch (ratio_code) {
+    case XINE_ASPECT_RATIO_4_3: /* 4:3 */
+      aspect = ASPECT_FULL;
+      oheight = height; 
+      break;
+    case XINE_ASPECT_RATIO_ANAMORPHIC:
+      aspect = ASPECT_ANAMORPHIC;
+      oheight = height; 
+      break;
+    default: /* assume square pixel */
+      aspect = ASPECT_ANAMORPHIC;
+      oheight = (int)(width * 9./16.);
+      if (oheight < height) { /* frame too high, try 4:3 */
+        aspect = ASPECT_FULL;
+        oheight = (int)(width * 3./4.);
+      }
+    }  
+    /* find closest multiple of 16 */
+    oheight = 16*(int)(oheight / 16. + 0.5);
+    if (oheight < height)
+      oheight = height;/* no good, need horizontal bars (not yet) */
+
+    this->oheight = oheight;
+
+    /* Tell the viewers about the aspect ratio stuff. */
+    if (oheight - height > 0) 
+      printf("dxr3enc: adding %d black lines to get %s a.r.\n", 
+              oheight-height, aspect == ASPECT_FULL ? "4:3" : "16:9");
+
+    /* if YUY2 and dimensions changed, we need to re-allocate the
+     * internal YV12 buffer */
+    if (format == IMGFMT_YUY2) {
+      if (this->buf[0]) free(this->buf[0]);  
+      if (this->buf[1]) free(this->buf[1]);  
+      if (this->buf[2]) free(this->buf[2]);
+
+      image_size = width * oheight;
+
+      this->out[0] = malloc_aligned(16, image_size, (void*)&this->buf[0]);
+      this->out[1] = malloc_aligned(16, image_size/4, (void*)&this->buf[1]);
+      this->out[2] = malloc_aligned(16, image_size/4, (void*)&this->buf[2]);
+
+      /* fill with black (yuv 16,128,128) */
+      memset(this->out[0], 16, image_size);
+      memset(this->out[1], 128, image_size/4);
+      memset(this->out[2], 128, image_size/4);
+
+      printf("dxr3enc: Using YUY2->YV12 conversion\n");  
+    }
+  }
+
+  /* if dimensions changed, we need to re-allocate frame memory */
+  if ((frame->width != width) || (frame->height != height)) {
+    if (frame->mem[0]) {
+      free (frame->mem[0]);
+      frame->mem[0] = NULL;
+    }
+    if (frame->mem[1]) {
+      free (frame->mem[1]);
+      frame->mem[1] = NULL;
+    }
+    if (frame->mem[2]) {
+      free (frame->mem[2]);
+      frame->mem[2] = NULL;
+    }
+
+    if (format == IMGFMT_YUY2) {
+      image_size = width * height; /* does not include black bars */
+      /* planar format, only base[0] */
+      frame->vo_frame.base[0] = malloc_aligned(16, image_size*2, (void**)&frame->mem[0]);
+      frame->vo_frame.base[1] = frame->vo_frame.base[2] = 0;
+      frame->real_base[0] = frame->real_base[1] = frame->real_base[2] = 0;
+      /* we do the black bar stuff while converting to YV12 */
+    }
+    else { /* IMGFMT_YV12 */
+      image_size = width * oheight; /* includes black bars */
+      frame->real_base[0] = malloc_aligned(16,image_size, 
+                                             (void**) &frame->mem[0]);
+      frame->real_base[1] = malloc_aligned(16,image_size/4, 
+                                             (void**) &frame->mem[1]);
+      frame->real_base[2] = malloc_aligned(16,image_size/4, 
+                                             (void**) &frame->mem[2]);
+      /* fill with black (yuv 16,128,128) */
+      memset(frame->real_base[0], 16, image_size);
+      memset(frame->real_base[1], 128, image_size/4);
+      memset(frame->real_base[2], 128, image_size/4);
+
+      /* fix offsets, so the decoder does not see the top black bar */
+      frame->vo_frame.base[0] = frame->real_base[0] + width * (oheight - height)/2;
+      frame->vo_frame.base[1] = frame->real_base[1] + width/2 * (oheight - height)/4;
+      frame->vo_frame.base[2] = frame->real_base[2] + width/2 * (oheight - height)/4;
+    }
+  }
+      
+  frame->width  = width;
+  frame->height = height;
+  frame->format = format;
+  this->video_width  = width;
+  this->video_iheight = height;
+  this->video_height = oheight;
+  this->video_aspect = ratio_code;
+
+  /* init fame if needed */
+  if (!fc)
+  {
+    fd_video = open ("/dev/em8300_mv", O_WRONLY);// | O_NDELAY); 
+    //fd_video = creat("out.mpg", 0666);// | O_NDELAY); 
+    if (!(fc = fame_open ()))
+      puts ("Couldn't start the FAME library");
+   
+    buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
+#if BUFFER_FRAMES
+    out_buffer = (unsigned char *) malloc (BUFFER_FRAMES*DEFAULT_BUFFER_SIZE);
+    out_buffer_pos = 0;
+    out_buffer_frames = 0;
+#endif
+    fp.quality=this->config->lookup_int(this->config,"dxr3_enc_quality",90);
+    fp.width = width;
+    fp.height = oheight;
+    fp.profile = "mpeg1";
+    fp.coding = "I";
+    fp.verbose = 0;   /* we don't need any more info.. thanks :) */ 
+
+    /* start guessing the framerate */
+    fps = 90000.0/frame->vo_frame.duration;
+    if (fabs(fps - 25) < 0.01) { /* PAL */
+      printf("dxr3enc: setting mpeg output framerate to PAL (25 Hz)\n");
+      fp.frame_rate_num = 25; fp.frame_rate_den = 1; 
+    }  
+    else if (fabs(fps - 23.976) < 0.01) { /* NTSC film */
+      /* 23.976 not supported by mpeg 1 */
+      printf("dxr3enc: setting mpeg output framerate to 24 Hz (should be 23.976)\n");
+      fp.frame_rate_num = 24; fp.frame_rate_den = 1; 
+    }
+    else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
+      printf("dxr3enc: setting mpeg output framerate to NTSC (29.97 Hz)\n");
+      fp.frame_rate_num = 30000; fp.frame_rate_den = 10001;
+    }
+    else { /* try 1/fps, but libfame will probably go to PAL */
+      fp.frame_rate_num = (int)(fps + 0.5); fp.frame_rate_den = 1;
+      printf("dxr3enc: trying to set mpeg output framerate to %d Hz\n",
+             fp.frame_rate_num);
+    }
+#if 0           
+    sfps = this->config->lookup_str(this->config,"dxr3_framerate", "PAL");
+    if (! strcasecmp(sfps, "PAL")) {
+      fp.frame_rate_num = 25; fp.frame_rate_den = 1;
+    } else if (! strcasecmp(sfps, "FILM")) {
+      fp.frame_rate_num = 24; fp.frame_rate_den = 1;
+    } else if (! strcasecmp(sfps, "NTSC")) {
+      fp.frame_rate_num = 30000; fp.frame_rate_den = 1001;
+    } else if (! strcasecmp(sfps, "NTSC-FILM")) {
+      fp.frame_rate_num = 24000; fp.frame_rate_den = 1001;
+    } else {
+      printf("dxr3_vo: unknown framerate \"%s\", using \"PAL\"\n", sfps);
+      fp.frame_rate_num = 25; fp.frame_rate_den = 1;
+    }
+#endif
+	      
+    object = fame_get_object (fc, "profile/mpeg1");
+    fame_init (fc, &fp, buffer, DEFAULT_BUFFER_SIZE);
+    
+  }
+
+  if(this->aspectratio!=aspect)
+    dxr3_set_property (this_gen,VO_PROP_ASPECT_RATIO, aspect);
+}
+
+static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
+{
+  int size, i, j, hoffset, w2;
+  dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen;
+  dxr3_driver_t *this = frame->vo_instance;
+  uint8_t *y, *u, *v, *yuy2;
+
+  if (frame_gen->bad_frame)
+    return;
+
+  if (frame->copy_calls == frame->height/16) {
+    /* shouldn't happen */
+    printf("dxr3enc: Internal error. Too many calls to dxr3_frame_copy (%d)\n", 
+           frame->copy_calls);
+    return; 
+  }
+
+  if (frame_gen->format == IMGFMT_YV12) {
+    y = frame->real_base[0];
+    u = frame->real_base[1];
+    v = frame->real_base[2];
+  }
+  else { /* must be YUY2 */
+    if (! (this->out[0] && this->out[1] && this->out[2]) ) {
+      printf("dxr3enc: Internal error. Internal YV12 buffer not created.\n");
+      return;
+    }
+    /* need conversion */
+    hoffset = (this->oheight - frame->height)/2; 
+    y = this->out[0] + frame->width*(hoffset + frame->copy_calls*16);
+    u = this->out[1] + frame->width/2*(hoffset/2 + frame->copy_calls*8);
+    v = this->out[2] + frame->width/2*(hoffset/2 + frame->copy_calls*8);
+    yuy2 = src[0];
+    w2 = frame->width/2;
+    /* we get 16 lines each time */
+    for (i=0; i<16; i+=2) {
+      for (j=0; j<w2; j++) {
+        /* packed YUV 422 is: Y[i] U[i] Y[i+1] V[i] */
+        *(y++) = *(yuy2++);
+        *(u++) = *(yuy2++);
+        *(y++) = *(yuy2++);
+        *(v++) = *(yuy2++);
+      }
+      /* down sampling */
+      for (j=0; j<w2; j++) {
+        /* skip every second line for U and V */
+        *(y++) = *(yuy2++);
+        yuy2++;
+        *(y++) = *(yuy2++);
+        yuy2++;
+      }
+    }
+    /* reset for encoder */
+    y = this->out[0];
+    u = this->out[1];
+    v = this->out[2];
+  }
+
+  frame->copy_calls++;
+
+  /* frame complete yet? */
+  if (frame->copy_calls == frame->height/16) {
+    yuv.y=y;
+    yuv.u=u;
+    yuv.v=v;
+    size = fame_encode_frame(fc, &yuv, NULL);
+#if BUFFER_FRAMES
+    memcpy(out_buffer + out_buffer_pos, buffer, size);
+    out_buffer_pos += size;
+    out_buffer_frames++;
+#else
+    write(fd_video, buffer, size);
+#endif
+  }
+}
+
+static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
+{
+#if BUFFER_FRAMES
+  if (out_buffer_frames > BUFFER_FRAMES/2) {
+    write(fd_video, out_buffer, out_buffer_pos);
+    out_buffer_pos = 0;
+    out_buffer_frames = 0;
+  }
+#endif
+  frame_gen->displayed (frame_gen); 
+}
+
+static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
+ vo_overlay_t *overlay)
+{
+	/* dxr3_driver_t *this = (dxr3_driver_t *) this_gen; */
+	fprintf(stderr, "dxr3_vo: dummy function dxr3_overlay_blend called!\n");
+}
+
+static int dxr3_get_property (vo_driver_t *this_gen, int property)
+{
+	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
+	int val;
+
+	switch (property) {
+	case VO_PROP_SATURATION:
+		val = this->bcs.saturation;
+		break;
+		
+	case VO_PROP_CONTRAST:
+		val = this->bcs.contrast;
+		break;
+		
+	case VO_PROP_BRIGHTNESS:
+		val = this->bcs.brightness;
+		break;
+
+	case VO_PROP_ASPECT_RATIO:
+		val = this->aspectratio;
+		break;
+	
+	case VO_PROP_COLORKEY:
+		val = this->overlay.colorkey;
+		break;
+	default:
+		val = 0;
+		fprintf(stderr, "dxr3_vo: property %d not implemented!\n", property);
+	}
+
+	return val;
+}
+
+static int is_fullscreen(dxr3_driver_t *this)
+{
+	XWindowAttributes a;
+
+	XGetWindowAttributes(this->display, this->win, &a);
+	/* this is a good place for gathering the with and height
+	 * although it is a mis-use for is_fullscreen */
+	this->width  = a.width;
+	this->height = a.height;
+	
+	return a.x==0 && a.y==0 &&
+	 a.width  == this->overlay.screen_xres &&
+	 a.height == this->overlay.screen_yres;
+}
+
+static int dxr3_set_property (vo_driver_t *this_gen, 
+			      int property, int value)
+{
+	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
+	int val, bcs_changed = 0;
+	int fullscreen;
+
+	switch (property) {
+	case VO_PROP_SATURATION:
+		this->bcs.saturation = value;
+		bcs_changed = 1;
+		break;
+	case VO_PROP_CONTRAST:
+		this->bcs.contrast = value;
+		bcs_changed = 1;
+		break;
+	case VO_PROP_BRIGHTNESS:
+		this->bcs.brightness = value;
+		bcs_changed = 1;
+		break;
+	case VO_PROP_ASPECT_RATIO:
+		/* xitk-ui just increments the value, so we make
+		 * just a two value "loop"
+		 */
+		if (value > ASPECT_FULL)
+			value = ASPECT_ANAMORPHIC;
+		this->aspectratio = value;
+		fullscreen = is_fullscreen(this);
+
+		if (value == ASPECT_ANAMORPHIC) {
+			fprintf(stderr, "dxr3_vo: setting aspect ratio to anamorphic\n");
+			if (!this->overlay_enabled || fullscreen)
+				val = EM8300_ASPECTRATIO_16_9;
+			else /* The overlay window can adapt to the ratio */
+				val = EM8300_ASPECTRATIO_4_3;
+			this->desired_ratio = 16.0/9.0;
+		} else {
+			fprintf(stderr, "dxr3_vo: setting aspect ratio to full\n");
+			val = EM8300_ASPECTRATIO_4_3;
+			this->desired_ratio = 4.0/3.0;
+		}
+
+		if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
+			fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
+			 strerror(errno));
+		if (this->overlay_enabled && !fullscreen){
+			int foo;
+			this->request_dest_size(this->width,
+			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
+		}
+		break;
+	case VO_PROP_COLORKEY:
+		fprintf(stderr, "dxr3_vo: VO_PROP_COLORKEY not implemented!");
+		this->overlay.colorkey = val;
+		break;
+	}
+
+	if (bcs_changed)
+		if (ioctl(this->fd_control, EM8300_IOCTL_SETBCS, &this->bcs))
+			fprintf(stderr, "dxr3_vo: bcs set failed (%s)\n",
+			 strerror(errno));
+	return value;
+}
+
+static void dxr3_get_property_min_max (vo_driver_t *this_gen, 
+ int property, int *min, int *max)
+{
+	/* dxr3_driver_t *this = (dxr3_driver_t *) this_gen;  */
+
+	switch (property) {
+	case VO_PROP_SATURATION:
+	case VO_PROP_CONTRAST:
+	case VO_PROP_BRIGHTNESS:
+		*min = 0;
+		*max = 1000;
+		break;
+
+	default:
+		*min = 0;
+		*max = 0;
+	}
+}
+
+static void dxr3_translate_gui2video(dxr3_driver_t *this,
+				     int x, int y,
+				     int *vid_x, int *vid_y)
+{
+	x = x * this->video_width / this->width;
+	y = y * this->video_height / this->height;
+	*vid_x = x;
+	*vid_y = y;
+}
+
+static int dxr3_gui_data_exchange (vo_driver_t *this_gen, 
+				 int data_type, void *data)
+{
+	dxr3_driver_t *this = (dxr3_driver_t*) this_gen;
+	x11_rectangle_t *area;
+	XWindowAttributes a;
+
+	if (!this->overlay_enabled) return 0;
+
+	switch (data_type) {
+	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
+		area = (x11_rectangle_t*) data;
+		dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
+		break;
+	case GUI_DATA_EX_EXPOSE_EVENT:
+		XLockDisplay(this->display);
+		XFillRectangle(this->display, this->win,
+		 this->gc, 0, 0, this->width, this->height);
+		XUnlockDisplay(this->display);
+		break;
+	case GUI_DATA_EX_DRAWABLE_CHANGED:
+		this->win = (Drawable) data;
+		this->gc = XCreateGC(this->display, this->win, 0, NULL);
+		XGetWindowAttributes(this->display, this->win, &a);
+		dxr3_set_property((vo_driver_t*) this,
+		 VO_PROP_ASPECT_RATIO, this->aspectratio);
+		break;
+	case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+		{
+			int x1, y1, x2, y2;
+			x11_rectangle_t *rect = data;
+
+			dxr3_translate_gui2video(this, rect->x, rect->y,
+						 &x1, &y1);
+			dxr3_translate_gui2video(this, rect->w, rect->h,
+						 &x2, &y2);
+			rect->x = x1;
+			rect->y = y1;
+			rect->w = x2-x1;
+			rect->h = y2-y1;
+		}
+		break;
+	default:
+		return -1;
+	}
+	return 0;
+}
+
+static void dxr3_exit (vo_driver_t *this_gen)
+{
+  dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
+  if(fc){
+    fame_close(fc);
+    fc = 0;
+    free(buffer);
+    close(fd_video);
+  }
+  if (this->buf[0]) free(this->buf[0]);  
+  if (this->buf[1]) free(this->buf[1]);  
+  if (this->buf[2]) free(this->buf[2]);
+  if(this->overlay_enabled)
+    dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
+  close(this->fd_control);
+}
+
+static void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
+{
+	int scrn;
+#ifdef HAVE_XINERAMA
+	int screens;
+	int dummy_a, dummy_b;
+	XineramaScreenInfo *screeninfo = NULL;
+#endif
+
+	this->win = vis->d;
+	this->display = vis->display;
+	this->gc = XCreateGC(this->display, this->win, 0, NULL);
+	scrn = DefaultScreen(this->display);
+
+	/* Borrowed from xine-ui in order to detect fullscreen */
+#ifdef HAVE_XINERAMA
+	if (XineramaQueryExtension(this->display, &dummy_a, &dummy_b) &&
+	 (screeninfo = XineramaQueryScreens(this->display, &screens)) &&
+	 XineramaIsActive(this->display))
+	{
+		this->overlay.screen_xres = screeninfo[0].width;
+		this->overlay.screen_yres = screeninfo[0].height;
+	} else
+#endif
+	{
+		this->overlay.screen_xres = DisplayWidth(this->display, scrn);
+		this->overlay.screen_yres = DisplayHeight(this->display, scrn);
+	}
+
+	this->overlay.screen_depth = DisplayPlanes(this->display, scrn);
+	this->request_dest_size = vis->request_dest_size;
+	printf("xres %d yres %d depth %d\n", this->overlay.screen_xres, this->overlay.screen_yres, this->overlay.screen_depth);
+}
+
+vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
+{
+	dxr3_driver_t *this;
+
+	/*
+	* allocate plugin struct
+	*/
+
+	this = malloc (sizeof (dxr3_driver_t));
+
+	if (!this) {
+		printf ("video_out_dxr3: malloc failed\n");
+		return NULL;
+	}
+
+	memset (this, 0, sizeof(dxr3_driver_t));
+
+	this->vo_driver.get_capabilities     = dxr3_get_capabilities;
+	this->vo_driver.alloc_frame          = dxr3_alloc_frame;
+	this->vo_driver.update_frame_format  = dxr3_update_frame_format;
+	this->vo_driver.display_frame        = dxr3_display_frame;
+	this->vo_driver.overlay_blend        = dxr3_overlay_blend;
+	this->vo_driver.get_property         = dxr3_get_property;
+	this->vo_driver.set_property         = dxr3_set_property;
+	this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
+	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
+	this->vo_driver.exit                 = dxr3_exit;
+	this->config=config;
+	
+	/* open control device */
+	devname = config->lookup_str (config, LOOKUP_DEV, DEFAULT_DEV);
+	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
+		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
+		 devname, strerror(errno));
+		return 0;
+	}
+
+	gather_screen_vars(this, visual_gen);
+	
+	/* default values */
+	this->overlay_enabled = 0;
+	this->aspectratio = ASPECT_FULL;
+
+	dxr3_read_config(this, config);
+	
+	if (this->overlay_enabled) {
+		dxr3_get_keycolor(this);
+		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
+	}
+
+	/* fame context */
+	fc = 0;
+	return &this->vo_driver;
+}
+
+static vo_info_t vo_info_dxr3 = {
+  2, /* api version */
+  "dxr3enc",
+  "xine mpeg1 encoding video output plugin for dxr3 cards",
+  VISUAL_TYPE_X11,
+  10  /* priority */
+};
+
+vo_info_t *get_video_out_plugin_info()
+{
+	return &vo_info_dxr3;
+}
+
