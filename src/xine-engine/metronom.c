@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.77 2002/03/31 14:36:42 mlampard Exp $
+ * $Id: metronom.c,v 1.78 2002/04/01 12:09:10 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -521,14 +521,10 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     this->scr_adjustable = value;
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
-    if (!this->deny_backward_adjust || value > 0)
-      this->vpts_offset += value;
+    this->vpts_offset += value;
 /*#ifdef LOG*/
     printf ("metronom: adjusting vpts_offset by %lld\n", value );
 /*#endif*/
-    break;
-  case METRONOM_DENY_BACKWARD_ADJUST:
-    this->deny_backward_adjust = value;
     break;
   default:
     printf ("metronom: unknown option in set_option: %d\n",
@@ -544,8 +540,6 @@ static int64_t metronom_get_option (metronom_t *this, int option) {
     return this->av_offset;
   case METRONOM_SCR_ADJUSTABLE:
     return this->scr_adjustable;
-  case METRONOM_DENY_BACKWARD_ADJUST:
-    return this->deny_backward_adjust;
   }
   printf ("metronom: unknown option in get_option: %d\n",
 	  option);
@@ -698,7 +692,6 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   this->in_discontinuity          = 0;
   this->vpts_offset               = 0;
   this->next_vpts_offset          = 0;
-  this->deny_backward_adjust      = 0;
 
   /* initialize video stuff */
 
