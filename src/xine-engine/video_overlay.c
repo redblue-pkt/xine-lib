@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.15 2002/03/14 04:31:49 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.16 2002/03/14 13:57:15 miguelfreitas Exp $
  *
  */
 
@@ -329,7 +329,7 @@ static void video_overlay_print_overlay( vo_overlay_t *ovl ) {
    process overlay events
    if vpts == 0 will process everything now (used in flush)
 */
-static void video_overlay_event( video_overlay_t *this, int vpts ) {
+static void video_overlay_event( video_overlay_t *this, int64_t vpts ) {
   int32_t      handle;
   uint32_t     this_event;
   
@@ -567,7 +567,7 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
         }
         if ( (this->video_overlay_events[this_event].event->object.pts != 
                 this->video_overlay_objects[handle].pts) ) {
-          printf ("MENU BUTTON DROPPED menu pts=%u spu pts=%u\n",      
+          printf ("MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
             this->video_overlay_events[this_event].event->object.pts,
             this->video_overlay_objects[handle].pts);
         }
@@ -602,7 +602,7 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 /* This is called from video_out.c 
  * must call output->overlay_blend for each active overlay.
  */
-static void video_overlay_multiple_overlay_blend(video_overlay_instance_t *this_gen, int vpts, 
+static void video_overlay_multiple_overlay_blend(video_overlay_instance_t *this_gen, int64_t vpts, 
                                          vo_driver_t *output, vo_frame_t *vo_img, int enabled) {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   int i;

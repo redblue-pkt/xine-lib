@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.49 2002/03/14 04:31:49 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.50 2002/03/14 13:57:15 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -354,7 +354,7 @@ struct video_overlay_instance_s {
   
   void (*flush_events) (video_overlay_instance_t *this_gen );
   
-  void (*multiple_overlay_blend) (video_overlay_instance_t *this_gen, int vpts, 
+  void (*multiple_overlay_blend) (video_overlay_instance_t *this_gen, int64_t vpts, 
                                   vo_driver_t *output, vo_frame_t *vo_img, int enabled);
 };
 

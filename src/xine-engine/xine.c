@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.108 2002/03/12 19:51:29 guenter Exp $
+ * $Id: xine.c,v 1.109 2002/03/14 13:57:15 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -383,7 +383,7 @@ int xine_play (xine_t *this, char *mrl,
     xine_set_speed_internal (this, SPEED_NORMAL);
 
     /* osd */
-    xine_internal_osd (this, ">", 0, 300000);
+    xine_internal_osd (this, ">", this->metronom->get_current_time (this->metronom), 300000);
 
   }
 

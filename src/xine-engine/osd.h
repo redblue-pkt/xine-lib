@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.8 2002/03/14 04:31:49 miguelfreitas Exp $
+ * $Id: osd.h,v 1.9 2002/03/14 13:57:15 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -56,13 +56,13 @@ struct osd_renderer_s {
    * send the osd to be displayed at given pts (0=now)
    * the object is not changed. there may be subsequent drawing  on it.
    */
-  int (*show) (osd_object_t *osd, uint32_t vpts );
+  int (*show) (osd_object_t *osd, int64_t vpts );
 
   /*
    * send event to hide osd at given pts (0=now)
    * the object is not changed. there may be subsequent drawing  on it.
    */
-  int (*hide) (osd_object_t *osd, uint32_t vpts );
+  int (*hide) (osd_object_t *osd, int64_t vpts );
 
   /*
    * Bresenham line implementation on osd object

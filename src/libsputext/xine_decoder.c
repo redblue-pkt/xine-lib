@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2002/03/11 12:31:26 guenter Exp $
+ * $Id: xine_decoder.c,v 1.17 2002/03/14 13:57:15 miguelfreitas Exp $
  *
  * code based on mplayer module:
  *
@@ -756,7 +756,6 @@ static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
 }
 
 
-
 static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
@@ -776,8 +775,9 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
-
-  if (buf->decoder_info[0] == 0) {
+  int64_t current_time;
+  
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
     int y;
 
@@ -809,8 +809,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     this->renderer->set_position (this->osd, 0, y); 
 
     this->renderer->render_text (this->osd, 0, 0, "sputext decoder", OSD_TEXT1);
-    this->renderer->show (this->osd, 0);
-    this->renderer->hide (this->osd, 300000);      
+    
+    current_time = this->xine->metronom->get_current_time (this->xine->metronom);
+    this->renderer->show (this->osd, current_time);
+    this->renderer->hide (this->osd, current_time+300000);      
 
     this->fd = (FILE *) buf->content;
   
@@ -829,11 +831,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     subtitle_t *subtitle;
 
     subtitle = NULL;
-
+      
     pts       = buf->pts;
     pts_end   = pts;
     frame_num = buf->decoder_info[1];
-
+    
     /* 
      * find out which subtitle to display 
      */
@@ -929,7 +931,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       this->renderer->hide (this->osd, pts_end);
 
 #ifdef LOG
-      printf ("sputext: scheduling subtitle >%s< at %d until %d, current time is %d\n",
+      printf ("sputext: scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
 	      subtitle->text[0], pts, pts_end, 
 	      this->xine->metronom->get_current_time (this->xine->metronom));
 #endif

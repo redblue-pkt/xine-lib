@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.67 2002/03/12 11:04:06 guenter Exp $
+ * $Id: demux_avi.c,v 1.68 2002/03/14 13:57:15 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -802,14 +802,14 @@ static int demux_avi_next (demux_avi_t *this) {
      * send packages to inform & drive text spu decoder
      */
 
-    if (this->have_spu && (buf->decoder_info[0] == 2)) {
+    if (this->have_spu && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
       buf_element_t *buf;
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       
-      buf->type    = BUF_SPU_TEXT;
-      buf->pts     = video_pts;
+      buf->decoder_flags = BUF_FLAG_FRAME_END;
+      buf->type          = BUF_SPU_TEXT;
+      buf->pts           = video_pts;
     
-      buf->decoder_info[0] = 1;
       buf->decoder_info[1] = this->avi->video_posf;
       
       this->video_fifo->put (this->video_fifo, buf);

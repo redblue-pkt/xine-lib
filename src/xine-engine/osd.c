@@ -140,7 +140,7 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
  * send the osd to be displayed at given pts (0=now)
  * the object is not changed. there may be subsequent drawing  on it.
  */
-static int osd_show (osd_object_t *osd, uint32_t vpts ) {
+static int osd_show (osd_object_t *osd, int64_t vpts ) {
      
   osd_renderer_t *this = osd->renderer;
   rle_elem_t rle, *rle_p=0;
@@ -148,7 +148,7 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
   uint8_t *c;
 
 #ifdef LOG_DEBUG  
-  printf("osd_show %p vpts=%d\n", osd, vpts);
+  printf("osd_show %p vpts=%lld\n", osd, vpts);
 #endif
       
   if( osd->handle < 0 ) {
@@ -230,12 +230,12 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
  * send event to hide osd at given pts (0=now)
  * the object is not changed. there may be subsequent drawing  on it.
  */
-static int osd_hide (osd_object_t *osd, uint32_t vpts) {     
+static int osd_hide (osd_object_t *osd, int64_t vpts) {     
 
   osd_renderer_t *this = osd->renderer;
   
 #ifdef LOG_DEBUG  
-  printf("osd_hide %p vpts=%d\n",osd, vpts);
+  printf("osd_hide %p vpts=%lld\n",osd, vpts);
 #endif
     
   if( osd->handle < 0 )

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.6 2002/03/08 13:50:41 jcdutton Exp $
+ * $Id: video_overlay.h,v 1.7 2002/03/14 13:57:15 miguelfreitas Exp $
  *
  */
 
@@ -78,7 +78,7 @@ typedef struct vo_buttons_s {
 typedef struct video_overlay_object_s {
   int32_t	 handle;       /* Used to match Show and Hide events. */
   uint32_t	 object_type;  /* 0=Subtitle, 1=Menu */
-  uint32_t       pts;          /* Needed for Menu button compares */
+  int64_t        pts;          /* Needed for Menu button compares */
   vo_overlay_t  *overlay;      /* The image data. */
   uint32_t       palette_type; /* 1 Y'CrCB, 2 R'G'B' */
   uint32_t	*palette;      /* If NULL, no palette contained in this event. */
@@ -89,7 +89,7 @@ typedef struct video_overlay_object_s {
 /* This will hold all details of an event item, needed for event queue to function */
 typedef struct video_overlay_event_s {
   uint32_t	 event_type;  /* Show SPU, Show OSD, Hide etc. */
-  uint32_t	 vpts;        /* Time when event will action. 0 means action now */
+  int64_t	 vpts;        /* Time when event will action. 0 means action now */
 /* Once video_out blend_yuv etc. can take rle_elem_t with Colour, blend and length information.
  * we can remove clut and blend from this structure.
  * This will allow for many more colours for OSD.
