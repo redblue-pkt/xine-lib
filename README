@@ -39,7 +39,8 @@ other stream types and output devices in the future.
 supported platforms / requirements:
 -----------------------------------
 
-- xine needs a X11 server of 15, 16, 24 or 32 bit depth for video output
+- xine needs a X11 server of 8, 15, 16, 24 or 32 bit depth for video
+  output
 - aaxine uses aalib for output and can run on nearly any terminal
 - xine can detect and use the MIT X video and X shared memory extension
   for better playback performance
