@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.61 2002/07/08 21:57:42 tmattern Exp $
+ * $Id: demux_qt.c,v 1.62 2002/07/09 20:39:26 miguelfreitas Exp $
  *
  */
 
@@ -1159,6 +1159,7 @@ static void *demux_qt_loop (void *this_gen) {
 
           if (this->input->read(this->input, buf->content, buf->size) !=
             buf->size) {
+            buf->free_buffer(buf);
             this->status = DEMUX_FINISHED;
             break;
           }
@@ -1196,6 +1197,7 @@ static void *demux_qt_loop (void *this_gen) {
 
           if (this->input->read(this->input, buf->content, buf->size) !=
             buf->size) {
+            buf->free_buffer(buf);
             this->status = DEMUX_FINISHED;
             break;
           }
@@ -1388,7 +1390,9 @@ static int demux_qt_start (demux_plugin_t *this_gen,
       buf->decoder_info[2] = this->qt->audio_bits;
       buf->decoder_info[3] = this->qt->audio_channels;
       this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    } else
+      buf->free_buffer(buf);
+
 
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
