@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.115 2003/01/08 01:02:30 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.116 2003/01/16 22:29:55 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -495,7 +495,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
       outfmt = IMGFMT_YUY2;
   }
 
-  this->hic = ICOpen (mmioFOURCC('v','i','d','c'), 
+  this->hic = ICOpen ((int)win32_codec_name, 
 		      this->bih->biCompression, 
 		      ICMODE_FASTDECOMPRESS);
 
@@ -1108,6 +1108,8 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
    
   if( this->driver_type == DRIVER_STD ) {
    
+    MSACM_RegisterDriver(win32_codec_name, in_fmt->wFormatTag, 0);
+
     ret=acmStreamOpen(&this->srcstream,(HACMDRIVER)NULL,
                       in_fmt,
                       &wf,
