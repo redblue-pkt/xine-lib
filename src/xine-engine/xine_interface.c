@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.28 2002/11/01 01:10:01 guenter Exp $
+ * $Id: xine_interface.c,v 1.29 2002/11/11 04:57:18 tmmm Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -491,13 +491,20 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
   case XINE_STREAM_INFO_VIDEO_CHANNELS:
   case XINE_STREAM_INFO_VIDEO_STREAMS:
   case XINE_STREAM_INFO_VIDEO_BITRATE:
+  case XINE_STREAM_INFO_VIDEO_FOURCC:
+  case XINE_STREAM_INFO_VIDEO_HANDLED:
   case XINE_STREAM_INFO_FRAME_DURATION:
   case XINE_STREAM_INFO_AUDIO_CHANNELS:
   case XINE_STREAM_INFO_AUDIO_BITS:
   case XINE_STREAM_INFO_AUDIO_SAMPLERATE:
   case XINE_STREAM_INFO_AUDIO_BITRATE:
+  case XINE_STREAM_INFO_AUDIO_FOURCC:
+  case XINE_STREAM_INFO_AUDIO_HANDLED:
   case XINE_STREAM_INFO_HAS_AUDIO:
   case XINE_STREAM_INFO_HAS_VIDEO:
+  case XINE_STREAM_INFO_IGNORE_VIDEO:
+  case XINE_STREAM_INFO_IGNORE_AUDIO:
+  case XINE_STREAM_INFO_IGNORE_SPU:
     return stream->stream_info[info];
 
   default:
