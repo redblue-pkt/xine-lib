@@ -877,8 +877,12 @@ static int mjpeg_decode_sof0(MJpegDecodeContext *s)
             if (s->interlaced)
                 w *= 2;
             s->linesize[i] = w;
-            /* memory test is done in mjpeg_decode_sos() */
             s->current_picture[i] = av_mallocz(w * h);
+	    if (!s->current_picture[i])
+	    {
+		dprintf("error: no picture buffers allocated\n");
+		return -1;
+	    }
         }
         s->first_picture = 0;
     }
@@ -1176,9 +1180,11 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
 	    get_bits(&s->gb, 8), get_bits(&s->gb, 8));
 	if (get_bits(&s->gb, 8) == 0)
 	{
-	    s->avctx->aspect_ratio_info = FF_ASPECT_EXTENDED;
-	    s->avctx->aspected_width = get_bits(&s->gb, 16);
-	    s->avctx->aspected_height = get_bits(&s->gb, 16);
+	    int x_density = get_bits(&s->gb, 16);
+	    int y_density = get_bits(&s->gb, 16);
+
+            //MN: needs to be checked
+            s->avctx->aspect_ratio= s->width*y_density/((float)s->height*x_density);
 	}
 	else
 	{
@@ -1419,7 +1425,8 @@ static int mjpeg_decode_frame(AVCodecContext *avctx,
                     mjpeg_decode_dht(s);
                     break;
                 case SOF0:
-                    mjpeg_decode_sof0(s);
+                    if (mjpeg_decode_sof0(s) < 0)
+			return -1;
                     break;
 		case EOI:
 eoi_parser:
@@ -1463,7 +1470,7 @@ eoi_parser:
                         }
                         /* dummy quality */
                         /* XXX: infer it with matrix */
-                    	avctx->quality = 3; 
+//                    	avctx->quality = 3; 
                         goto the_end;
                     }
 		    break;
@@ -1578,7 +1585,8 @@ read_header:
     {
 	init_get_bits(&s->gb, buf+sof_offs, buf_end - (buf+sof_offs));
 	s->start_code = SOF0;
-	mjpeg_decode_sof0(s);
+	if (mjpeg_decode_sof0(s) < 0)
+	    return -1;
     }
 
     sos_offs = get_bits(&hgb, 32);
@@ -1629,7 +1637,7 @@ read_header:
     }
     /* dummy quality */
     /* XXX: infer it with matrix */
-    avctx->quality = 3; 
+//    avctx->quality = 3; 
 
     return buf_ptr - buf;
 }

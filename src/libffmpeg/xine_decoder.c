@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.74 2002/12/04 05:51:46 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.75 2002/12/06 01:55:32 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -68,7 +68,7 @@ typedef struct ff_decoder_s {
   int               size;
   int               skipframes;
 
-  AVPicture         av_picture;
+  AVVideoFrame      *av_picture;
   AVCodecContext    *context;
 
   /* mpeg sequence header parsing, stolen from libmpeg2 */
@@ -114,18 +114,29 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 #define AUDIOBUFSIZE VIDEOBUFSIZE
 
 
-static void init_video_codec (ff_video_decoder_t *this, AVCodec *codec) {
+static void init_video_codec (ff_video_decoder_t *this, AVCodec *codec, xine_bmiheader *bih) {
 
+#if 0  /* now we have strides, i don't think this is needed anymore */ 
   /* force (width % 8 == 0), otherwise there will be 
-   * display problems with Xv.
-   */
+   * display problems with Xv. 
+   */ 
   this->bih.biWidth = (this->bih.biWidth + 7) & (~7);
-  
+#endif
+
+  this->av_picture = avcodec_alloc_picture();
   this->context = avcodec_alloc_context();
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
   this->context->fourcc = this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC];
   
+  if( bih && bih->biSize > sizeof(xine_bmiheader) ) {
+    this->context->extradata_size = bih->biSize - sizeof(xine_bmiheader);
+    this->context->extradata = malloc(this->context->extradata_size);
+    memcpy( this->context->extradata, 
+            (uint8_t *)bih + sizeof(xine_bmiheader),
+            this->context->extradata_size ); 
+  }
+
   if (avcodec_open (this->context, codec) < 0) {
     printf ("ffmpeg: couldn't open decoder\n");
     free(this->context);
@@ -273,7 +284,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
       }
 
       this->is_continous = 1;
-      init_video_codec (this, codec);
+      init_video_codec (this, codec, NULL);
     }
   }
 }
@@ -302,7 +313,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
     AVCodec *codec = NULL;
-    xine_bmiheader *bih;
     int codec_type;
 
 #ifdef LOG
@@ -311,8 +321,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     /* init package containing bih */
 
-    bih = (xine_bmiheader *)buf->content;
-    memcpy ( &this->bih, bih, sizeof (xine_bmiheader));
+    memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
     this->video_step = buf->decoder_info[1];
 
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->bih.biWidth;
@@ -399,16 +408,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       return;
     }
 
-    init_video_codec (this, codec);
+    init_video_codec (this, codec, (xine_bmiheader *)buf->content );
 
-    if( bih->biSize > sizeof(xine_bmiheader) ) {
-      this->context->extradata_size = bih->biSize - sizeof(xine_bmiheader);
-      this->context->extradata = malloc(this->context->extradata_size);
-      memcpy( this->context->extradata, 
-              (uint8_t *)bih + sizeof(xine_bmiheader),
-              this->context->extradata_size ); 
-    }
- 
   } else if (this->decoder_ok) {
 
     if( this->size + buf->size > this->bufsize ) {
@@ -439,7 +440,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       offset = 0;
       while (this->size>0) {
-	len = avcodec_decode_video (this->context, &this->av_picture,
+	len = avcodec_decode_video (this->context, this->av_picture,
 				    &got_picture, &this->buf[offset],
 				    this->size);
 	if (len<0) {
@@ -469,6 +470,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	emms_c ();
 #endif
 
+	/* FIXME: ffmpeg has changed, now we must use this->context->aspect_ratio 
+	 *        which is a float value. for now, set ASPECT_DONT_TOUCH.
+	 */
+#if 0
 	switch(this->context->aspect_ratio_info) {
 	case FF_ASPECT_SQUARE:
 	  ratio = XINE_VO_ASPECT_SQUARE;
@@ -484,6 +489,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	default:
 	  ratio = XINE_VO_ASPECT_DONT_TOUCH;
 	}
+#else
+	ratio = XINE_VO_ASPECT_DONT_TOUCH;
+#endif
 	
 	img = this->stream->video_out->get_frame (this->stream->video_out,
 						  /* this->av_picture.linesize[0],  */
@@ -506,26 +514,26 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  dy = img->base[0];
 	  du = img->base[1];
 	  dv = img->base[2];
-	  sy = this->av_picture.data[0];
-	  su = this->av_picture.data[1];
-	  sv = this->av_picture.data[2];
+	  sy = this->av_picture->data[0];
+	  su = this->av_picture->data[1];
+	  sv = this->av_picture->data[2];
 	  
           if (this->context->pix_fmt == PIX_FMT_YUV410P) {
 
             yuv9_to_yv12(
              /* Y */
-              this->av_picture.data[0],
-              this->av_picture.linesize[0],
+              this->av_picture->data[0],
+              this->av_picture->linesize[0],
               img->base[0],
               img->pitches[0],
              /* U */
-              this->av_picture.data[1],
-              this->av_picture.linesize[1],
+              this->av_picture->data[1],
+              this->av_picture->linesize[1],
               img->base[1],
               img->pitches[1],
              /* V */
-              this->av_picture.data[2],
-              this->av_picture.linesize[2],
+              this->av_picture->data[2],
+              this->av_picture->linesize[2],
               img->base[2],
               img->pitches[2],
              /* width x height */
@@ -539,7 +547,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    
 	    dy += img->pitches[0];
 	  
-	    sy += this->av_picture.linesize[0];
+	    sy += this->av_picture->linesize[0];
 	  }
 	
           if (this->context->pix_fmt != PIX_FMT_YUV410P)
@@ -577,27 +585,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    dv += img->pitches[2];
 	    
 	    if (this->context->pix_fmt != PIX_FMT_YUV420P) {
-	      su += 2*this->av_picture.linesize[1];
-	      sv += 2*this->av_picture.linesize[2];
+	      su += 2*this->av_picture->linesize[1];
+	      sv += 2*this->av_picture->linesize[2];
 	    } else {
-	      su += this->av_picture.linesize[1];
-	      sv += this->av_picture.linesize[2];
-	    }
-	  }
-	
-	  if (img->copy) {
-	    int height = img->height;
-	    uint8_t *src[3];
-	    
-	    src[0] = img->base[0];
-	    src[1] = img->base[1];
-	    src[2] = img->base[2];
-	    
-	    while ((height -= 16) >= 0) {
-	      img->copy(img, src);
-	      src[0] += 16 * img->pitches[0];
-	      src[1] +=  8 * img->pitches[1];
-	      src[2] +=  8 * img->pitches[2];
+	      su += this->av_picture->linesize[1];
+	      sv += this->av_picture->linesize[2];
 	    }
 	  }
 	}
@@ -686,6 +678,9 @@ static void ff_dispose (video_decoder_t *this_gen) {
 
   if( this->context )
     free( this->context );
+
+  if( this->av_picture )
+    free( this->av_picture );
   
   if (this->buf)
     free(this->buf);
@@ -1016,7 +1011,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MJPEG,
   BUF_VIDEO_H263, 
   BUF_VIDEO_RV10,
-  BUF_VIDEO_SORENSON_V1,
+  /* BUF_VIDEO_SORENSON_V1, -- ffmpeg svq1 decoder is segfaulting */ 
   BUF_VIDEO_JPEG, 
   BUF_VIDEO_MPEG, 
   BUF_VIDEO_DV,
