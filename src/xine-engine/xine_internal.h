@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.23 2001/06/16 18:03:22 guenter Exp $
+ * $Id: xine_internal.h,v 1.24 2001/06/18 09:39:05 richwareham Exp $
  *
  */
 
@@ -129,6 +129,7 @@ typedef struct xine_s {
   char                       cur_mrl[1024];
 
   fifo_buffer_t             *spu_fifo;
+  pthread_t                  spu_thread;
 
   int                        audio_channel;
   int                        spu_channel;
@@ -299,6 +300,23 @@ void video_decoder_init (xine_t *this);
  */
 
 void video_decoder_shutdown (xine_t *this);
+
+/*
+ * spu decoder stuff
+ */
+
+/*
+ * init spu decoder, allocate spu fifo,
+ * start spu decoder thread
+ */
+
+void spu_decoder_init (xine_t *this);
+
+/*
+ * quit spu thread
+ */
+
+void spu_decoder_shutdown (xine_t *this);
 
 /*
  * init audio decoders, allocate audio fifo,
