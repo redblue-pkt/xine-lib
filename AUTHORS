@@ -262,4 +262,7 @@ Contributions
   Staszek Pasko <staszek@evopolska.com>
     binary index search for avi demuxer
 
+  Dan Lindstrom <lindstromd@gmx.net>
+    64-bit Quicktime fixes
+
     (let us know if we've forgotten anyone)
