@@ -8,14 +8,14 @@ EXTRA_DIST = cpu_accel.c
 
 lib_LTLIBRARIES = libxine.la
 
-libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
-	utils.c load_plugins.c video_decoder.c spu_decoder.c \
+libxine_la_SOURCES = xine.c metronom.c configfile.c spu_decoder.c buffer.c monitor.c \
+	utils.c load_plugins.c video_decoder.c \
 	audio_decoder.c video_out.c
 libxine_la_LIBADD = cpu_accel.lo \
-	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
-	$(DYNAMIC_LD_LIBS)
+	$(DYNAMIC_LD_LIBS)		\
 	-lm 
+
 libxine_la_LDFLAGS =  -version-info 5:0:5
 
 include_HEADERS  = buffer.h metronom.h configfile.h \

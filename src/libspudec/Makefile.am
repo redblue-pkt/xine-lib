@@ -1,12 +1,38 @@
-CFLAGS = @BUILD_LIB_STATIC@ @GLOBAL_CFLAGS@
+CFLAGS = @GLOBAL_CFLAGS@ 
 
-EXTRA_DIST = 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
-noinst_LTLIBRARIES = libspudec.la
+libdir = $(XINE_PLUGINDIR)
 
-libspudec_la_SOURCES = spudec.c spudec.h
+lib_LTLIBRARIES = xineplug_decode_spu.la
 
-noinst_HEADERS = spudec.h
+xineplug_decode_spu_la_SOURCES =  spu.c xine_decoder.c 
+xineplug_decode_spu_la_LDFLAGS = -avoid-version -module
+
+noinst_HEADERS = spu.h spu_decoder_api.h
+
+##
+## Install header files (default=$includedir/xine)
+##
+install-includeHEADERS: $(include_HEADERS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
+	@list='$(include_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
+	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
+	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
+	done
+
+
+##
+## Remove them
+##
+uninstall-includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	list='$(include_HEADERS)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
+	done
+
 
 debug:
 	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

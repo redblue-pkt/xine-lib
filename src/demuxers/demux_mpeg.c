@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.23 2001/07/03 21:25:03 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.24 2001/07/04 17:10:24 uid32519 Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -536,6 +536,7 @@ static void *demux_mpeg_loop (void *this_gen) {
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
+
   xprintf (VERBOSE|DEMUX, "demux loop finished (status: %d, buf:%x)\n",
 	   this->status, w);
   printf ("demux loop finished (status: %d, buf:%x)\n",

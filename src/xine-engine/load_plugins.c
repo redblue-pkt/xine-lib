@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.27 2001/07/01 23:37:05 guenter Exp $
+ * $Id: load_plugins.c,v 1.28 2001/07/04 17:10:24 uid32519 Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -268,6 +268,9 @@ void load_decoder_plugins (xine_t *this,
   /*
    * clean up first
    */
+  this->cur_spu_decoder_plugin = NULL;
+  for (i=0; i<DECODER_PLUGIN_MAX; i++)
+    this->spu_decoder_plugins[i] = NULL;
 
   this->cur_video_decoder_plugin = NULL;
   for (i=0; i<DECODER_PLUGIN_MAX; i++)
@@ -312,6 +315,29 @@ void load_decoder_plugins (xine_t *this,
 
 	} else {
 	  void *(*initplug) (int, config_values_t *);
+
+          /*
+           * does this plugin provide an spu decoder plugin?
+           */
+
+          if((initplug = dlsym(plugin, "init_spu_decoder_plugin")) != NULL) {
+
+            spu_decoder_t *sdp;
+            int              streamtype;
+
+            sdp = (spu_decoder_t *) initplug(iface_version, config);
+               printf("SPU Can Handle ?\n");
+            for (streamtype = 0; streamtype<256; streamtype++) {
+              if (sdp->can_handle (sdp, (streamtype<<16) | BUF_SPU_BASE))
+               printf("SPU Can Handle yes %x\n",streamtype);
+                this->spu_decoder_plugins[streamtype] = sdp;
+            }
+
+            printf("spu decoder plugin found : %s\n",
+                   sdp->get_identifier());
+        }
+
+
 	  
 	  /*
 	   * does this plugin provide an video decoder plugin?
@@ -360,6 +386,7 @@ void load_decoder_plugins (xine_t *this,
     }
   }
 
+  this->cur_spu_decoder_plugin = NULL;
   this->cur_video_decoder_plugin = NULL;
   this->cur_audio_decoder_plugin = NULL;
 }
@@ -498,22 +525,30 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 
 	  if ((getinfo = dlsym(plugin, "get_video_out_plugin_info")) != NULL) {
 	    vo_info = getinfo();
-	  
-	    if (!strcmp(id, vo_info->id)) {
-	      void *(*initplug) (config_values_t *, void *);
+
+	    if (!strcmp(id, vo_info->id) ) {
+
+	      if (vo_info->interface_version == VIDEO_OUT_IFACE_VERSION) {
+
+		void *(*initplug) (config_values_t *, void *);
 	    
-	      if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
+		if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
+		  
+		  vod = (vo_driver_t *) initplug(config, visual);
+		  
+		  if (vod)
+		    printf("load_plugins: video output plugin %s successfully"
+			   " loaded.\n", id);
+		  else
+		    printf("load_plugins: video output plugin %s: "
+			   "init_video_out_plugin failed.\n", str);
+		  
+		  return vod;
+		}
+	      } else {
 		
-		vod = (vo_driver_t *) initplug(config, visual);
-		
-		if (vod)
-		  printf("load_plugins: video output plugin %s successfully"
-			 " loaded.\n", id);
-		else
-		  printf("load_plugins: video output plugin %s: "
-			 "init_video_out_plugin failed.\n", str);
-		
-		return vod;
+		printf("load_plugins: video output plugin %s: "
+		       "wrong interface version %d.\n", str, vo_info->interface_version);
 	      }
 	    }
 	  }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.5 2001/06/24 02:19:29 guenter Exp $
+ * $Id: metronom.h,v 1.6 2001/07/04 17:10:24 uid32519 Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -125,7 +125,7 @@ struct metronom_s {
   /*
    * start metronom clock (no clock reset)
    */
-  void (*start_clock) (metronom_t *this, int32_t pts);
+  void (*start_clock) (metronom_t *this, uint32_t pts);
 
 
   /*

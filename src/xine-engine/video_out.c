@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.27 2001/07/04 14:14:39 uid56437 Exp $
+ * $Id: video_out.c,v 1.28 2001/07/04 17:10:24 uid32519 Exp $
  *
  */
 
@@ -29,14 +29,12 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "video_out.h"
 #include "utils.h"
 #include "monitor.h"
-
-#include "libspudec/spudec.h"
 
 #define NUM_FRAME_BUFFERS     20
 
@@ -148,7 +146,7 @@ static void *video_out_loop (void *this_gen) {
   /*
   int                dummysignum;
   */
-  struct timespec    ts;
+  /* struct timespec    ts; */
 
   /* printf ("%d video_out start\n", getpid());  */
   /*
@@ -278,11 +276,6 @@ static void *video_out_loop (void *this_gen) {
     img->bDisplayLock = 0;
     pthread_mutex_unlock (&img->mutex);
 
-    /* Overlay SPU FIXME: Check image format */
-    
-    this->spu_decoder->overlay_yuv (this->spu_decoder, pts, 
-				    img->base[0], img->base[1], img->base[2]);
-    
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
     this->driver->display_frame (this->driver, img); 
   }
@@ -496,7 +489,18 @@ static int vo_frame_draw (vo_frame_t *img) {
   return frames_to_skip;
 }
 
-vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom, spudec_t *spu_decoder) {
+static vo_overlay_t *vo_get_overlay (vo_instance_t *this,
+				     int width, int height) {
+  /* FIXME: implement */
+  return NULL;
+}
+
+static void vo_queue_overlay (vo_instance_t *this, vo_overlay_t *overlay) {
+  
+  /* FIXME: implement */
+}
+
+vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
 
   vo_instance_t *this;
   int            i;
@@ -505,13 +509,14 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom, spude
 
   this->driver                = driver;
   this->metronom              = metronom;
-  this->spu_decoder           = spu_decoder;
 
   this->open                  = vo_open;
   this->get_frame             = vo_get_frame;
   this->close                 = vo_close;
   this->exit                  = vo_exit;
   this->get_capabilities      = vo_get_capabilities;
+  this->get_overlay           = vo_get_overlay;
+  this->queue_overlay         = vo_queue_overlay;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.13 2001/07/03 21:25:04 guenter Exp $
+ * $Id: metronom.c,v 1.14 2001/07/04 17:10:24 uid32519 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -390,7 +390,6 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
   pthread_mutex_lock (&this->lock);
 
   if (pts) {
-    int32_t diff;
 
     /*
      * first audio pts ?

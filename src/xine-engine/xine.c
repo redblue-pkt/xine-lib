@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.31 2001/07/03 21:25:04 guenter Exp $
+ * $Id: xine.c,v 1.32 2001/07/04 17:10:24 uid32519 Exp $
  *
  * top-level xine functions
  *
@@ -49,7 +49,8 @@
 #ifdef ARCH_X86
 #include "libw32dll/w32codec.h"
 #endif
-#include "libspudec/spudec.h"
+#include "libspudec/spu_decoder_api.h"
+#include "spu_decoder.h"
 #include "input/input_plugin.h"
 #include "metronom.h"
 #include "configfile.h"
@@ -94,8 +95,6 @@ void xine_stop (xine_t *this) {
     this->cur_input_plugin->close(this->cur_input_plugin);
     this->cur_input_plugin = NULL;
   }
-
-  this->spu_fifo->clear(this->spu_fifo);
 
   printf ("xine_stop: done\n");
   
@@ -364,6 +363,7 @@ xine_t *xine_init (vo_driver_t *vo,
 		   gui_branched_cb_t branched_cb) {
 
   xine_t *this = xmalloc (sizeof (xine_t));
+  printf("xine_init entered\n");
 
   this->stream_end_cb   = stream_end_cb;
   this->get_next_mrl_cb = get_next_mrl_cb;
@@ -398,26 +398,25 @@ xine_t *xine_init (vo_driver_t *vo,
   this->cur_input_pos = 0;
 
   /*
-   * init SPU decoder (must be done before video decoder
-   * so that this->spu_decoder is valid).
-   */
-  spu_decoder_init (this);
-
-  /*
    * init and start decoder threads
    */
 
   load_decoder_plugins (this, config, DECODER_PLUGIN_IFACE_VERSION);
 
-  this->video_out = vo_new_instance (vo, this->metronom, this->spu_decoder);
+  this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
+  /*
+   * init SPU decoder (must be done before video decoder
+   * so that this->spu_decoder is valid).
+   */
+  spu_decoder_init (this);
 
   if(ao) {
     this->audio_out = ao;
     this->audio_out->connect (this->audio_out, this->metronom);
   }
   audio_decoder_init (this);
-
+  printf("xine_init returning\n");
   return this;
 }
 

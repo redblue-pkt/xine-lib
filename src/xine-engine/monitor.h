@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.h,v 1.1 2001/04/18 22:36:07 f1rmb Exp $
+ * $Id: monitor.h,v 1.2 2001/07/04 17:10:24 uid32519 Exp $
  *
  * debug print and profiling functions
  *
@@ -30,18 +30,18 @@
 
 extern uint32_t xine_debug;
 
-#define VERBOSE        (xine_debug & 0x8000>>1)
-#define METRONOM       (xine_debug & 0x8000>>2)
-#define AUDIO          (xine_debug & 0x8000>>3)
-#define DEMUX          (xine_debug & 0x8000>>4)
-#define INPUT          (xine_debug & 0x8000>>5)
-#define VIDEO          (xine_debug & 0x8000>>6)
-#define VPTS           (xine_debug & 0x8000>>7)
-#define MPEG           (xine_debug & 0x8000>>8)
-#define VAVI           (xine_debug & 0x8000>>9)
-#define AC3            (xine_debug & 0x8000>>10)
-#define LOOP           (xine_debug & 0x8000>>11)
-#define GUI            (xine_debug & 0x8000>>12)
+#define VERBOSE        (xine_debug & 0x8000>>1)   // 16384
+#define METRONOM       (xine_debug & 0x8000>>2)   //  8192
+#define AUDIO          (xine_debug & 0x8000>>3)   //  4096
+#define DEMUX          (xine_debug & 0x8000>>4)   //  2048
+#define INPUT          (xine_debug & 0x8000>>5)   //  1024
+#define VIDEO          (xine_debug & 0x8000>>6)   //   512
+#define VPTS           (xine_debug & 0x8000>>7)   //   256
+#define MPEG           (xine_debug & 0x8000>>8)   //   128
+#define VAVI           (xine_debug & 0x8000>>9)   //    64
+#define AC3            (xine_debug & 0x8000>>10)  //    32
+#define LOOP           (xine_debug & 0x8000>>11)  //    16
+#define GUI            (xine_debug & 0x8000>>12)  //     8
 
 #define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
 

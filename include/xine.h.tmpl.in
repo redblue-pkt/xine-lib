@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.24 2001/06/24 05:30:03 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.25 2001/07/04 17:10:24 uid32519 Exp $
  *
  */
 
@@ -128,6 +128,7 @@ struct config_values_s {
 
 typedef struct vo_driver_s vo_driver_t;
 typedef void vo_frame_t;
+typedef void vo_overlay_t;
 
 struct vo_driver_s {
 
@@ -150,6 +151,9 @@ struct vo_driver_s {
 
   /* display a given frame */
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
+
+  /* overlay functions */
+  void (*set_overlay) (vo_driver_t *this,  vo_overlay_t *overlay);
 
   /*
    * these can be used by the gui directly:

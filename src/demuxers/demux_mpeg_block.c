@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.23 2001/07/03 21:25:04 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.24 2001/07/04 17:10:24 uid32519 Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -371,6 +371,11 @@ static void *demux_mpeg_block_loop (void *this_gen) {
       buf->decoder_info[0] = 0; /* stream finished */
       this->audio_fifo->put (this->audio_fifo, buf);
     }
+
+    buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo);
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 0; /* stream finished */
+    this->spu_fifo->put (this->spu_fifo, buf);
   }
 
   pthread_exit(NULL);
@@ -411,6 +416,12 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
     this->audio_fifo->put (this->audio_fifo, buf);
   }
   
+  buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo);
+  buf->type            = BUF_CONTROL_END;
+  buf->decoder_info[0] = 1; /* forced */
+
+  this->spu_fifo->put (this->spu_fifo, buf);
+
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
@@ -453,6 +464,10 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
     buf->type    = BUF_CONTROL_START;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
+
+  buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo);
+  buf->type    = BUF_CONTROL_START;
+  this->spu_fifo->put (this->spu_fifo, buf);
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.13 2001/07/04 14:01:50 uid56437 Exp $
+ * $Id: video_out_xshm.c,v 1.14 2001/07/04 17:10:24 uid32519 Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -94,6 +94,7 @@ typedef struct xshm_driver_s {
   yuv2rgb_t       *yuv2rgb;
 
   xshm_frame_t    *cur_frame;
+  vo_overlay_t    *overlay;
 
   /* size / aspect ratio calculations */
   int              delivered_width;      /* everything is set up for these frame dimensions    */
@@ -652,6 +653,13 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   }
 }
 
+/* Stores an overlay in the Video Out driver */
+static void xshm_set_overlay (vo_driver_t *this_gen, vo_overlay_t *overlay) {
+  xshm_driver_t *this = (xshm_driver_t *) this_gen;
+
+  this->overlay = overlay;
+}
+
 static int xshm_get_property (vo_driver_t *this_gen, int property) {
   
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
@@ -823,11 +831,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.alloc_frame          = xshm_alloc_frame;
   this->vo_driver.update_frame_format  = xshm_update_frame_format;
   this->vo_driver.display_frame        = xshm_display_frame;
+  this->vo_driver.set_overlay          = xshm_set_overlay;
   this->vo_driver.get_property         = xshm_get_property;
   this->vo_driver.set_property         = xshm_set_property;
   this->vo_driver.get_property_min_max = xshm_get_property_min_max;
   this->vo_driver.gui_data_exchange    = xshm_gui_data_exchange;
   this->vo_driver.exit                 = xshm_exit;
+
 
   /*
    *
@@ -924,7 +934,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_shm = {
-  VIDEO_OUT_IFACE_VERSION,
+  2,
   "XShm",
   "xine video output plugin using the MIT X shared memory extension",
   VISUAL_TYPE_X11,

@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2000-2001 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.8 2001/06/18 15:43:01 richwareham Exp $
+ * $Id: video_out.h,v 1.9 2001/07/04 17:10:24 uid32519 Exp $
  *
  *
  * xine version of video_out.h 
@@ -48,8 +48,8 @@ typedef struct vo_frame_s vo_frame_t;
 typedef struct vo_driver_s vo_driver_t ;
 typedef struct vo_instance_s vo_instance_t;
 typedef struct img_buf_fifo_s img_buf_fifo_t;
+typedef struct vo_overlay_s vo_overlay_t;
 
-typedef struct spudec_s spudec_t;
 
 /* public part, video drivers may add private fields */
 struct vo_frame_s {
@@ -111,6 +111,10 @@ struct vo_instance_s {
   vo_frame_t* (*get_frame) (vo_instance_t *this, uint32_t width, 
 			    uint32_t height, int ratio_code, 
 			    int format, uint32_t duration);
+  
+  /* overlay stuff */
+  vo_overlay_t* (*get_overlay) (vo_instance_t *this);
+  void (*queue_overlay) (vo_instance_t *this, vo_overlay_t *overlay);
 
   /* video driver is no longer used by decoder => close */
   void (*close) (vo_instance_t *this);
@@ -122,7 +126,6 @@ struct vo_instance_s {
 
   vo_driver_t       *driver;
   metronom_t        *metronom;
-  spudec_t          *spu_decoder;
   
   img_buf_fifo_t    *free_img_buf_queue;
   img_buf_fifo_t    *display_img_buf_queue;
@@ -188,7 +191,7 @@ struct vo_instance_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_IFACE_VERSION 1
+#define VIDEO_OUT_IFACE_VERSION 2
 
 struct vo_driver_s {
 
@@ -211,6 +214,10 @@ struct vo_driver_s {
 
   /* display a given frame */
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
+
+  /* overlay functions */
+  void (*set_overlay) (vo_driver_t *this, vo_overlay_t *overlay);
+
 
   /*
    * these can be used by the gui directly:
@@ -236,13 +243,32 @@ struct vo_driver_s {
 
 };
 
+struct vo_overlay_s {
+  uint8_t          *data;          /* 7-4: mixer key, 3-0: color index */
+  int               x;             /* x start of subpicture area       */
+  int               y;             /* y start of subpicture area       */
+  int               width;         /* width of subpicture area         */
+  int               height;        /* height of subpicture area        */
+  
+  uint8_t           clut[4];       /* color lookup table               */
+  uint8_t           trans[4];      /* mixer key table                  */
+  
+  uint32_t          PTS, duration; /* 1/90000 s                        */
+
+  struct overlay_s *next;          /* optionally more overlays         */
+
+  /* private stuff */
+  int	_x;		/* current destination x, y */
+  int	_y;
+  int	offset[2];	/* address in PXD to fetch next rle-code from, one per field */
+};
 
 /*
  * build a video_out_instance from
  * a given video driver
  */
 
-vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom, spudec_t *spu_decoder) ;
+vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) ;
 
 /*
  * to build a dynamic video output plugin

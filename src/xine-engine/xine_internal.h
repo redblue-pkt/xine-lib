@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.26 2001/06/23 14:05:47 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.27 2001/07/04 17:10:24 uid32519 Exp $
  *
  */
 
@@ -30,6 +30,8 @@
 #include "video_out.h"
 #include "audio_out.h"
 #include "metronom.h"
+#include "spu_decoder.h"
+#include "libspudec/spu_decoder_api.h"
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
@@ -128,9 +130,15 @@ typedef struct xine_s {
   off_t                      cur_input_pos;
   char                       cur_mrl[1024];
 
+  spu_functions_t            *spu_out;
   fifo_buffer_t             *spu_fifo;
   pthread_t                  spu_thread;
-  spudec_t                  *spu_decoder;
+  spu_decoder_t           *spu_decoder_plugins[DECODER_PLUGIN_MAX];
+  int                        num_spu_decoder_plugins;
+  spu_decoder_t           *cur_spu_decoder_plugin;
+  uint32_t                   spu_track_map[50];
+  int                        spu_track_map_entries;
+  int                        spu_finished;
 
   int                        audio_channel;
   int                        spu_channel;

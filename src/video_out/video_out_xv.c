@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.47 2001/06/25 09:51:47 guenter Exp $
+ * $Id: video_out_xv.c,v 1.48 2001/07/04 17:10:24 uid32519 Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -54,6 +54,8 @@
 #include "video_out.h"
 #include "video_out_x11.h"
 #include "xine_internal.h"
+/* #include "overlay.h" */
+#include "alphablend.h"
 
 uint32_t xine_debug;
 
@@ -102,6 +104,7 @@ typedef struct {
   uint32_t           capabilities;
 
   xv_frame_t        *cur_frame;
+  vo_overlay_t      *overlay;
 
   /* size / aspect ratio calculations */
   int                delivered_width;      /* everything is set up for 
@@ -134,8 +137,6 @@ int gX11Fail;
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
-
-  printf ("video_out_xv: get capabilities\n");
 
   return this->capabilities;
 }
@@ -396,9 +397,6 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
   frame->ratio_code = ratio_code;
 }
 
-/*
- *
- */
 static void xv_adapt_to_output_area (xv_driver_t *this, 
 				     int dest_x, int dest_y, 
 				     int dest_width, int dest_height) {
@@ -447,9 +445,6 @@ static void xv_adapt_to_output_area (xv_driver_t *this,
   XUnlockDisplay (this->display); 
 }
 
-/*
- *
- */
 static void xv_calc_format (xv_driver_t *this, 
 			    int width, int height, int ratio_code) {
 
@@ -567,6 +562,10 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
+// Alpha Blend here
+   if (this->overlay) {
+        blend_yuv( frame->image->data, this->overlay, frame->width, frame->height);
+   }
 
     XLockDisplay (this->display);
     
@@ -595,9 +594,13 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   }
 }
 
-/*
- *
- */
+/* Stores an overlay in the Video Out driver */
+static void xv_set_overlay (vo_driver_t *this_gen, vo_overlay_t *overlay) {
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+
+  this->overlay = overlay;
+}
+
 static int xv_get_property (vo_driver_t *this_gen, int property) {
   
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -605,9 +608,6 @@ static int xv_get_property (vo_driver_t *this_gen, int property) {
   return this->props[property].value;
 }
 
-/*
- *
- */
 static int xv_set_property (vo_driver_t *this_gen, 
 			    int property, int value) {
 
@@ -649,9 +649,6 @@ static int xv_set_property (vo_driver_t *this_gen,
   return value;
 }
 
-/*
- *
- */
 static void xv_get_property_min_max (vo_driver_t *this_gen, 
 				     int property, int *min, int *max) {
 
@@ -661,9 +658,6 @@ static void xv_get_property_min_max (vo_driver_t *this_gen,
   *max = this->props[property].max;
 }
 
-/*
- *
- */
 static int xv_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data) {
 
@@ -730,9 +724,6 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
   return 0;
 }
 
-/*
- *
- */
 static void xv_exit (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -744,9 +735,6 @@ static void xv_exit (vo_driver_t *this_gen) {
   XUnlockDisplay (this->display);
 }
 
-/*
- *
- */
 static int xv_check_yv12 (Display *display, XvPortID port) {
   XvImageFormatValues * formatValues;
   int formats;
@@ -763,9 +751,6 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
   return 1;
 }
 
-/*
- *
- */
 static void xv_check_capability (xv_driver_t *this, 
 				 uint32_t capability, 
 				 int property, XvAttribute attr, 
@@ -786,9 +771,6 @@ static void xv_check_capability (xv_driver_t *this,
 		   this->config->lookup_int (this->config, str_prop, nDefault));
 }
 
-/*
- *
- */
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xv_driver_t          *this;
@@ -875,6 +857,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->config            = config;
   this->display           = visual->display;
+  this->overlay           = NULL;
   this->screen            = visual->screen;
   this->display_ratio     = visual->display_ratio;
   this->request_dest_size = visual->request_dest_size;
@@ -897,6 +880,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.alloc_frame          = xv_alloc_frame;
   this->vo_driver.update_frame_format  = xv_update_frame_format;
   this->vo_driver.display_frame        = xv_display_frame;
+  this->vo_driver.set_overlay          = xv_set_overlay;
   this->vo_driver.get_property         = xv_get_property;
   this->vo_driver.set_property         = xv_set_property;
   this->vo_driver.get_property_min_max = xv_get_property_min_max;
@@ -1010,11 +994,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   return &this->vo_driver;
 }
 
-/*
- *
- */
 static vo_info_t vo_info_xv = {
-  VIDEO_OUT_IFACE_VERSION,
+  2,
   "Xv",
   "xine video output plugin using the MIT X video extension",
   VISUAL_TYPE_X11,
