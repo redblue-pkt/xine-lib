@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.110 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.111 2002/12/22 03:03:21 tmmm Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -47,9 +47,9 @@
 #include "buffer.h"
 #include "xineutils.h"
 
-
+/*
 #define LOG
-
+*/
 
 static GUID CLSID_Voxware =
 {
