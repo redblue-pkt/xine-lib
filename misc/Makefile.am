@@ -1,6 +1,6 @@
 EXTRA_DIST = autogen.sh upload.pl SlackBuild.in SlackBuild build_rpms.sh \
 	xine-lib.spec.in xine-lib.spec guenter.spec.in guenter.spec\
-	xine_logo.png
+	xine_logo.png vga.xinefont.gz
 
 bin_SCRIPTS = xine-config
 
