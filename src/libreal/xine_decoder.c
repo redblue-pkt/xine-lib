@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.40 2003/07/09 22:09:10 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.41 2003/07/11 18:42:40 hadess Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -46,8 +46,7 @@
 typedef struct {
   video_decoder_class_t   decoder_class;
 
-  char                   *real_codec_path;
-
+  /* empty so far */
 } real_class_t;
 
 #define BUF_SIZE       65536
@@ -70,7 +69,7 @@ typedef struct realdec_decoder_s {
 
   void            *context;
 
-  int              width, height;
+  uint32_t         width, height;
 
   uint8_t         *chunk_buffer;
   int              chunk_buffer_size;
@@ -148,9 +147,11 @@ static void hexdump (char *buf, int length) {
 
 static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
+  cfg_entry_t* entry = this->stream->xine->config->lookup_entry(
+			 this->stream->xine->config, "codec.real_codecs_path");
   char path[1024];
 
-  sprintf (path, "%s/%s", this->cls->real_codec_path, codec_name);
+  sprintf (path, "%s/%s", entry->str_value, codec_name);
 
 #ifdef LOG
   printf ("libreal: opening shared obj '%s'\n", path);
@@ -258,7 +259,6 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   if ((init_data.format>=0x20200002) && (buf->type != BUF_VIDEO_RV40)) {
     unsigned long cmsg24[8];
     unsigned long cmsg_data[9];
-    int result;
 
     cmsg24[0]=this->width;
     cmsg24[1]=this->height;
@@ -296,7 +296,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 }
 
 static void realdec_copy_frame (realdec_decoder_t *this, uint8_t *base[3], int pitches[3]) {
-  int i, j;
+  uint_fast32_t i, j;
   uint8_t *src, *dst;
 
   src = this->frame_buffer;
@@ -607,16 +607,12 @@ void __pure_virtual(void) {
   /*      exit(1); */
 }
 
-static void codec_path_cb (void *data, xine_cfg_entry_t *cfg) {
-  real_class_t *this = (real_class_t *) data;
-  
-  this->real_codec_path = cfg->str_value;
-}
 
 static void *init_class (xine_t *xine, void *data) {
 
   real_class_t       *this;
   config_values_t    *config = xine->config;
+  char               *real_codec_path;
 
   this = (real_class_t *) xine_xmalloc (sizeof (real_class_t));
 
@@ -625,12 +621,12 @@ static void *init_class (xine_t *xine, void *data) {
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
 
-  this->real_codec_path = config->register_string (config, "codec.real_codecs_path", 
-						   "unknown",
-						   _("path to real player codecs, if installed"),
-						   NULL, 10, codec_path_cb, (void *)this);
+  real_codec_path = config->register_string (config, "codec.real_codecs_path", 
+					     "unknown",
+					     _("path to real player codecs, if installed"),
+					     NULL, 10, NULL, NULL);
   
-  if (!strcmp (this->real_codec_path, "unknown")) {
+  if (!strcmp (real_codec_path, "unknown")) {
 
     struct stat s;
 
@@ -657,7 +653,7 @@ static void *init_class (xine_t *xine, void *data) {
   }
 
 #ifdef LOG
-  printf ("libareal: real codec path : %s\n",  this->real_codec_path);
+  printf ("libareal: real codec path : %s\n",  real_codec_path);
 #endif
 
   return this;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.23 2003/04/09 12:29:13 guenter Exp $
+ * $Id: audio_decoder.c,v 1.24 2003/07/11 18:42:40 hadess Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -45,8 +45,7 @@
 typedef struct {
   audio_decoder_class_t   decoder_class;
 
-  char                   *real_codec_path;
-
+  /* empty so far */
 } real_class_t;
 
 typedef struct realdec_decoder_s {
@@ -144,9 +143,11 @@ void __builtin_delete (void *foo) {
 
 static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
+  cfg_entry_t* entry = this->stream->xine->config->lookup_entry(
+			 this->stream->xine->config, "codec.real_codecs_path");
   char path[1024];
 
-  sprintf (path, "%s/%s", this->cls->real_codec_path, codec_name);
+  sprintf (path, "%s/%s", entry->str_value, codec_name);
 
 #ifdef LOG
   printf ("libareal: (audio) opening shared obj '%s'\n", path);
@@ -185,7 +186,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
     char path[1024];
 
-    sprintf(path, "DT_Codecs=%s", this->cls->real_codec_path);
+    sprintf(path, "DT_Codecs=%s", entry->str_value);
     if (path[strlen(path)-1]!='/'){
       path[strlen(path)+1]=0;
       path[strlen(path)]='/';
@@ -697,16 +698,11 @@ void __pure_virtual(void) {
  * real audio codec loader
  */
 
-static void codec_path_cb (void *data, xine_cfg_entry_t *cfg) {
-  real_class_t *this = (real_class_t *) data;
-  
-  this->real_codec_path = cfg->str_value;
-}
-
 static void *init_class (xine_t *xine, void *data) {
 
   real_class_t       *this;
   config_values_t    *config = xine->config;
+  char               *real_codec_path;
 
   this = (real_class_t *) xine_xmalloc (sizeof (real_class_t));
 
@@ -715,12 +711,12 @@ static void *init_class (xine_t *xine, void *data) {
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
 
-  this->real_codec_path = config->register_string (config, "codec.real_codecs_path", 
-						   "unknown",
-						   _("path to real player codecs, if installed"),
-						   NULL, 10, codec_path_cb, (void *)this);
+  real_codec_path = config->register_string (config, "codec.real_codecs_path", 
+					     "unknown",
+					     _("path to real player codecs, if installed"),
+					     NULL, 10, NULL, NULL);
   
-  if (!strcmp (this->real_codec_path, "unknown")) {
+  if (!strcmp (real_codec_path, "unknown")) {
 
     struct stat s;
 
@@ -747,7 +743,7 @@ static void *init_class (xine_t *xine, void *data) {
   }
 
 #ifdef LOG
-  printf ("libareal: real codec path : %s\n",  this->real_codec_path);
+  printf ("libareal: real codec path : %s\n",  real_codec_path);
 #endif
 
   return this;
