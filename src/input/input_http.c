@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.103 2005/01/05 00:37:29 dsalt Exp $
+ * $Id: input_http.c,v 1.104 2005/01/05 21:48:05 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +33,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <ctype.h>
 
 #ifndef WIN32
 #include <netdb.h>

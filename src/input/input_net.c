@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.60 2004/09/17 19:21:46 valtri Exp $
+ * $Id: input_net.c,v 1.61 2005/01/05 21:48:05 dsalt Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -206,7 +206,6 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   struct addrinfo hints, *res, *tmpaddr;
   int error;
   char strport[16];
-  int             i;
   int             s;
 	
   memset(&hints, 0, sizeof(hints));
