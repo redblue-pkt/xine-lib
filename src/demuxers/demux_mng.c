@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mng.c,v 1.2 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_mng.c,v 1.3 2002/12/22 17:49:50 komadori Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -51,7 +51,7 @@ typedef struct {
 
   mng_handle mngh;
   xine_bmiheader bih;
-  void *image;
+  uint8_t *image;
   int started, tick_count, timer_count;
   
   char last_mrl[1024];
@@ -159,7 +159,7 @@ mng_bool mymng_refresh(mng_handle mngh, mng_uint32 x, mng_uint32 y, mng_uint32 w
 static int demux_mng_send_chunk(demux_mng_t *this)
 {
   int size = this->bih.biWidth * this->bih.biHeight * 3;
-  void *image_ptr = this->image;
+  uint8_t *image_ptr = this->image;
 
   int err = mng_display_resume(this->mngh);
   if ((err != MNG_NOERROR) && (err != MNG_NEEDTIMERWAIT)) {
