@@ -1,4 +1,46 @@
+/*
+ * Copyright (C) 2000-2001 the xine project
+ * 
+ * This file is part of xine, a unix video player.
+ * 
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * $Id: ldt_keeper.c,v 1.3 2001/11/08 21:39:04 miguelfreitas Exp $
+ *
+ *
+ * contents:
+ *
+ * Allocate an LDT entry for the TEB (thread environment block)
+ * TEB is a the only thread specific structure provided to userspace
+ * by MS Windows. 
+ * Any W32 dll may access the TEB through FS:0, so we must provide it.
+ *
+ * Additional notes:
+ * aviplay used to use the same LDT/TEB/FS to all his threads and did it
+ * by calling these functions before any threads have been created. this
+ * is a ugly hack, as the main code includes a plugin function at its
+ * initialization.
+ * Also, IMHO, that was slightly wrong. The TEB is supposed to be unique 
+ * per W32 thread. The current xine implementation will allocate different
+ * TEBs for the audio and video codecs.
+ *
+ */
+ 
+ 
 /**
+ * OLD AVIFILE COMMENT:
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  * This file MUST be in main library because LDT must
  * be modified before program creates first thread
@@ -7,6 +49,9 @@
  */
 
 #include "ldt_keeper.h"
+/*
+#include "winnt.h"
+*/
 
 #include <string.h>
 #include <stdlib.h>
@@ -19,6 +64,8 @@
 #ifdef __linux__
 #include <asm/unistd.h>
 #include <asm/ldt.h>
+/* prototype it here, so we won't depend on kernel headers */
+int modify_ldt(int func, void *ptr, unsigned long bytecount);
 #else
 #if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <machine/sysarch.h>
@@ -41,7 +88,7 @@ extern int sysi86(int, void*);
 #define NUMSYSLDTS     6       /* Let's hope the SunOS 5.8 value is OK */
 #endif
 
-#define       TEB_SEL_IDX     NUMSYSLDTS
+#define TEB_SEL_IDX     NUMSYSLDTS
 #endif
 
 #define LDT_ENTRIES     8192
@@ -68,9 +115,11 @@ struct modify_ldt_ldt_s {
 /* user level (privilege level: 3) ldt (1<<2) segment selector */
 #define       LDT_SEL(idx) ((idx) << 3 | 1 << 2 | 3)
 
+/* i got this value from wine sources, it's the first free LDT entry */
 #ifndef       TEB_SEL_IDX
-#define       TEB_SEL_IDX     1
+#define       TEB_SEL_IDX     17
 #endif
+
 #define       TEB_SEL LDT_SEL(TEB_SEL_IDX)
 
 /**
@@ -80,8 +129,7 @@ struct modify_ldt_ldt_s {
  *
  */
 
-static void* fs_seg = NULL;
-static char* prev_struct = NULL;
+
 /**
  * here is a small logical problem with Restore for multithreaded programs -
  * in C++ we use static class for this...
@@ -90,18 +138,22 @@ static char* prev_struct = NULL;
 #ifdef __cplusplus
 extern "C"
 #endif
+
+
 void Setup_FS_Segment(void)
 {
-/*
     __asm__ __volatile__(
 	"movl %0,%%eax; movw %%ax, %%fs" : : "i" (TEB_SEL)
     );
-*/
 }
 
+/* (just in case someday we need dynamic entry indexes) 
+__ASM_GLOBAL_FUNC( __set_fs, "movl 4(%esp),%eax\n\tmovw %ax,%fs\n\tret" )
+*/
+
+/* we don't need this - use modify_ldt instead */
+#if 0
 #ifdef __linux__
-/* XXX: why is this routine from libc redefined here? */
-/* NOTE: the redefined version ignores the count param, count is hardcoded as 16 */
 static int LDT_Modify( int func, struct modify_ldt_ldt_s *ptr,
 		       unsigned long count )
 {
@@ -131,6 +183,7 @@ static int LDT_Modify( int func, struct modify_ldt_ldt_s *ptr,
     return -1;
 }
 #endif
+#endif
 
 #if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 static void LDT_EntryToBytes( unsigned long *buffer, const struct modify_ldt_ldt_s *content )
@@ -148,25 +201,23 @@ static void LDT_EntryToBytes( unsigned long *buffer, const struct modify_ldt_ldt
 }
 #endif
 
-void Setup_LDT_Keeper(void)
+LDT_FS * Setup_LDT_Keeper(void)
 {
     struct modify_ldt_ldt_s array;
-    int fd;
     int ret;
-
-    if (fs_seg)
-        return;
-
-    prev_struct = 0;
-    fd = open("/dev/zero", O_RDWR);
-    fs_seg = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_PRIVATE,
-		  fd, 0);
-    if(fs_seg==(void*)-1)
+    LDT_FS *ldt_fs;
+    
+    ldt_fs = malloc( sizeof( LDT_FS ) );
+    
+    ldt_fs->fd = open("/dev/zero", O_RDWR);
+    ldt_fs->fs_seg = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_PRIVATE,
+		  ldt_fs->fd, 0);
+    if(ldt_fs->fs_seg==(void*)-1)
     {
 	perror("ERROR: Couldn't allocate memory for fs segment");
-	return;
+	return NULL;
     }
-    array.base_addr=(int)fs_seg;
+    array.base_addr=(int)ldt_fs->fs_seg;
     array.entry_number=TEB_SEL_IDX;
     array.limit=array.base_addr+getpagesize()-1;
     array.seg_32bit=1;
@@ -175,7 +226,7 @@ void Setup_LDT_Keeper(void)
     array.contents=MODIFY_LDT_CONTENTS_DATA;
     array.limit_in_pages=0;
 #ifdef __linux__
-    ret=LDT_Modify(0x1, &array, sizeof(struct modify_ldt_ldt_s));
+    ret=modify_ldt(0x1, &array, sizeof(struct modify_ldt_ldt_s));
     if(ret<0)
     {
 	perror("install_fs");
@@ -218,17 +269,23 @@ void Setup_LDT_Keeper(void)
 
     Setup_FS_Segment();
 
-    prev_struct = (char*)malloc(sizeof(char) * 8);
-    *(void**)array.base_addr = prev_struct;
-    close(fd);
+    ldt_fs->prev_struct = (char*)malloc(sizeof(char) * 8);
+    *(void**)array.base_addr = ldt_fs->prev_struct;
+    
+    return ldt_fs;
 }
 
-void Restore_LDT_Keeper(void)
+void Restore_LDT_Keeper(LDT_FS *ldt_fs)
 {
-    if (fs_seg == 0)
+    if (ldt_fs == NULL)
+        return;
+    if (ldt_fs->fs_seg == 0)
 	return;
-    if (prev_struct)
-	free(prev_struct);
-    munmap((char*)fs_seg, getpagesize());
-    fs_seg = 0;
+    if (ldt_fs->prev_struct)
+	free(ldt_fs->prev_struct);
+    munmap((char*)ldt_fs->fs_seg, getpagesize());
+    
+    close(ldt_fs->fd);
+    
+    free( ldt_fs );    
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.38 2001/11/08 02:47:46 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.39 2001/11/08 21:39:03 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  *
@@ -64,6 +64,8 @@ typedef struct w32v_decoder_s {
 
   /* profiler */
   int		   prof_rgb2yuv;
+  
+  LDT_FS *ldt_fs;
 } w32v_decoder_t;
 
 typedef struct w32a_decoder_s {
@@ -80,6 +82,8 @@ typedef struct w32a_decoder_s {
   HACMSTREAM        srcstream;
   int               rec_audio_src_size;
   int               num_channels;
+  
+  LDT_FS *ldt_fs;
 } w32a_decoder_t;
 
 
@@ -309,6 +313,8 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   memset(&this->o_bih, 0, sizeof(BITMAPINFOHEADER));
   this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
   
+  this->ldt_fs = Setup_LDT_Keeper();
+  
   win32_codec_name = get_vids_codec_name (this, buf_type);
 
   outfmt = IMGFMT_15RGB;
@@ -535,6 +541,8 @@ static void w32v_close (video_decoder_t *this_gen) {
   free (this->img_buffer);
 
   this->video_out->close(this->video_out);
+  
+  Restore_LDT_Keeper( this->ldt_fs );
 }
 
 static char *w32v_get_id(void) {
@@ -619,6 +627,8 @@ static int w32a_init_audio (w32a_decoder_t *this,
     return 0;
   }
 
+  this->ldt_fs = Setup_LDT_Keeper();
+  
   wf.nChannels       = in_fmt->nChannels;
   wf.nSamplesPerSec  = in_fmt->nSamplesPerSec;
   wf.nAvgBytesPerSec = 2*wf.nSamplesPerSec*wf.nChannels;
@@ -767,6 +777,8 @@ static void w32a_close (audio_decoder_t *this_gen) {
 
   acmStreamClose(this->srcstream, 0);
 
+  Restore_LDT_Keeper(this->ldt_fs);
+  
   if (!this->output_open) {
     this->audio_out->close (this->audio_out);
     this->output_open = 0;
@@ -812,9 +824,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   this->prof_rgb2yuv = profiler_allocate_slot ("w32codec rgb2yuv convert");
 
-  /* FIXME: we need a kind of destructor to call Restore_LDT_Keeper() */
-  //Setup_LDT_Keeper();
-  
+
   return (video_decoder_t *) this;
 }
 

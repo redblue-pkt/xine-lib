@@ -5,9 +5,16 @@
 extern "C"
 {
 #endif
+
+typedef struct {
+  void* fs_seg;
+  char* prev_struct;
+  int fd;
+} LDT_FS;
+
 void Setup_FS_Segment(void);
-void Setup_LDT_Keeper(void);
-void Restore_LDT_Keeper(void);
+LDT_FS * Setup_LDT_Keeper(void);
+void Restore_LDT_Keeper(LDT_FS * ldt_fs);
 #ifdef __cplusplus
 }
 #endif
