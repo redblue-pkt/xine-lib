@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.39 2004/10/27 22:22:25 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.40 2004/10/30 14:29:23 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -1128,13 +1128,13 @@ static int sub_autodetect (demux_sputext_t *this) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subrip 0.9 subtitle format detected\n");
       return FORMAT_SUBRIP09;
     }
-  }
   
     if (sscanf (line, "[%d][%d]", &i, &i) == 2) {
       this->uses_time = 1;
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "mpl2 subtitle format detected\n");
       return FORMAT_MPL2;
     }
+  }
   return FORMAT_UNKNOWN;  /* too many bad lines */
 }
 
