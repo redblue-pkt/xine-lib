@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.88 2002/03/28 12:44:37 f1rmb Exp $
+ * $Id: video_out.c,v 1.89 2002/03/29 19:34:06 esnel Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -109,12 +109,13 @@ static uint16_t gzread_i16(gzFile *fp) {
 static int _load_logo_file(vos_t *this) {
   gzFile *fp;
   int     retval = 0;
-  
+
   pthread_mutex_lock(&this->logo_mutex);
-  
+
   if((fp = gzopen (this->logo_pathname, "rb")) != NULL) {
-    
-    free (this->logo_yuy2);
+
+    if(this->logo_yuy2)
+      memleak_free (this->logo_yuy2);
 
     this->logo_w = gzread_i16 (fp);
     this->logo_h = gzread_i16 (fp);
@@ -122,9 +123,9 @@ static int _load_logo_file(vos_t *this) {
     printf ("video_out: loading logo %d x %d pixels, yuy2\n",
 	    this->logo_w, this->logo_h);
 #endif
-    
+
     this->logo_yuy2 = malloc (this->logo_w * this->logo_h *2);
-    
+
     gzread (fp, this->logo_yuy2, this->logo_w * this->logo_h *2);
     gzclose (fp);
 
