@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.12 2001/09/04 16:19:27 guenter Exp $
+ * $Id: demux_ts.c,v 1.13 2001/09/10 00:55:48 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,8 @@
  *
  * Date        Author
  * ----        ------
+ * 10-Sep-2001 James Courtier-Dutton <jcdutton>
+ *                              Re-wrote sync code so that it now does not loose any data.
  * 27-Aug-2001 Hubert Matthews  Reviewed by: n/a
  *	                        Added in synchronisation code.
  *
@@ -72,6 +74,9 @@
 #define PKT_SIZE 188
 #define BODY_SIZE (188 - 4)
 #define MAX_PIDS ((BODY_SIZE - 1 - 13) / 4)
+#define SYNC_BYTE   0x47
+#define MIN_SYNCS   5
+#define BUF_SIZE    ((MIN_SYNCS+1) * PKT_SIZE)
 
 #define NULL_PID 8191
 #define INVALID_PID ((unsigned int)(-1))
@@ -617,114 +622,52 @@ static void demux_ts_parse_pmt(demux_ts *this,
   }
 }
 
-/*********************************************************************
- *
- * 2001/08/26 Hubert Matthews
- *
- * Added input synchronisation code.  This code ensures synchronisation 
- * where possible by checking that we have 5 sync bytes at 188 bytes apart.  
- * On startup, it finds the first packet with a sync byte in it and starts 
- * buffering after that.  It starts to release packets to the demux when it
- * has found five synchronised packets in a row.  If sync is broken at any 
- * time (bit error or dropped multicast packet, for instance) it dumps all 
- * its buffers and attempts to acquire sync again. 
- *
- * Returns NULL when it is in buffering mode, and the address of an aligned
- * packet otherwise.  NULL causes the calling function to go back around its 
- * loop, so its harmless and easier than doing the packet looping internally.
- */
+void correct_for_sync(demux_ts *this,uint8_t *buf) {
+  int32_t n, read_length;
+  if((buf[0] == SYNC_BYTE) && (buf[PKT_SIZE] == SYNC_BYTE) &&
+     (buf[PKT_SIZE*2] == SYNC_BYTE) && (buf[PKT_SIZE*3] == SYNC_BYTE)) {
+        return;
+  }
+  for(n=1;n<PKT_SIZE;n++) {
+    if((buf[n] == SYNC_BYTE) && (buf[n+PKT_SIZE] == SYNC_BYTE) &&
+     (buf[n+(PKT_SIZE*2)] == SYNC_BYTE) && (buf[n+(PKT_SIZE*3)] == SYNC_BYTE)) {
+      /* Found sync, fill in */
+     memmove(&buf[0],&buf[n],((PKT_SIZE*MIN_SYNCS)-n));
+     read_length = this->input->read(this->input, &buf[(PKT_SIZE*MIN_SYNCS)-n], n);            
+     return;
+    }
+  }
+  printf("RE-Sync failed\n"); /* Sync up here */
+  return;
 
-#define SYNC_BYTE   0x47
-#define MIN_SYNCS   5
-#define BUF_SIZE    ((MIN_SYNCS+1) * PKT_SIZE)
-#define WRAP_ADD(x, incr, limit)    \
-					(x) += (incr); \
-					if ((x) >= (limit)) (x) -= (limit)
-#define BUMP(x)     WRAP_ADD((x), PKT_SIZE, (BUF_SIZE - PKT_SIZE))
-
-/* When we've acquired sync, we need to set all of the continuity
- * counters to an invalid value to disable the sequence checking */
-
-static void resetAllCCs(demux_ts * this)  {
-  int i;
-  for (i = 0; i != MAX_PIDS; ++i)
-    this->media[i].counter = INVALID_CC;
 }
-
-/* Find the first sync byte in the packet pointed to by p */
-
-static int searchForSyncByte(const unsigned char * p) {
-  const unsigned char * start = p, * end = p + PKT_SIZE;
-  
-  while (p != end && *p != SYNC_BYTE)
-    p++;
-  
-  if (p == end)
-    return -1;
-  else
-    return p - start;
-}
+    
 
 /* Main synchronisation routine.
- * Returns NULL when it is in buffering mode, and the address of an aligned
- * packet otherwise.  NULL causes the calling function to go back around its 
- * loop, so its harmless and easier than doing the packet looping internally.
  */
 
 static unsigned char * demux_synchronise(demux_ts * this) {
-  static int in, out, count;          /* statics are zeroed */
-  static unsigned char buf[BUF_SIZE];
-  
-  int syncByte, syncBytePosn;
-  unsigned char * retPtr = NULL;
-  
-  if (this->input->read(this->input, &buf[in], PKT_SIZE) != PKT_SIZE) {
-    if (count > 0) {
-      int oldOut = out;	/* drain pipeline on end of stream */
-      BUMP(out);
-      count--;
-      retPtr = &buf[oldOut];
-    } else {
-      this->status = DEMUX_FINISHED;
+  static int32_t packet_number=MIN_SYNCS; 
+  static uint8_t buf[BUF_SIZE]; /* This should change to a malloc. */
+  uint8_t       *return_pointer = NULL;
+  int32_t n, read_length;
+
+  if (packet_number == MIN_SYNCS) {
+    for(n=0;n<MIN_SYNCS;n++) {
+      read_length = this->input->read(this->input, &buf[n*PKT_SIZE], PKT_SIZE); 
+      if(read_length != PKT_SIZE) { 
+        this->status = DEMUX_FINISHED;
+        return NULL;
+      }
     }
-    return retPtr;
-  }
-  
-  syncBytePosn = out;
-  WRAP_ADD(syncBytePosn, count * PKT_SIZE, BUF_SIZE - PKT_SIZE);
-  syncByte = buf[syncBytePosn];
-  
-  if (syncByte != SYNC_BYTE) {        /* new packet not in sync */
-    int syncPosn = searchForSyncByte(&buf[in]);
-    if (syncPosn > 0) {
-      memmove(&buf[0], &buf[in + syncPosn], PKT_SIZE - syncPosn);
-      in = PKT_SIZE - syncPosn;
-    } else {
-      in = 0;         /* no sync byte in packet, so start again */
-    }
-    out = count = 0;
-  } else {                /* this packet extends the sync run */
-    BUMP(in);
-    count++;
-    if (count > MIN_SYNCS) {	/* sync acquired */
-      int oldOut = out;
-      resetAllCCs(this);
-      BUMP(out);
-      count--;
-      retPtr = &buf[oldOut];
-    }
-  }
-  
-  return retPtr;
+    packet_number=0;
+    correct_for_sync(this,&buf[0]);
+  } 
+  return_pointer=&buf[PKT_SIZE*packet_number];
+  packet_number++;
+  return return_pointer;
 }
-
-#undef BUMP
-#undef WRAP_ADD
-#undef MIN_SYNCS
-#undef BUF_SIZE
-#undef SYNC_BYTE
-
-
+  
 /* transport stream packet layer */
 
 static void demux_ts_parse_packet (demux_ts *this) {
@@ -757,7 +700,6 @@ static void demux_ts_parse_packet (demux_ts *this) {
   
   /*
    * Discard packets that are obviously bad.
-   * FIXME: maybe search for 0x47 is the first 188 bytes[packet size] of stream.
    */
   if (sync_byte != 0x47) {
     fprintf (stderr, "demux error! invalid ts sync byte %02x\n",originalPkt[0]);
