@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.160 2003/06/29 00:14:05 tmattern Exp $
+ * $Id: demux_avi.c,v 1.161 2003/07/11 20:32:34 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -462,8 +462,8 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
     
     /* Check if we got a tag ##db, ##dc or ##wb */
 
-    if (strncasecmp(data, this->avi->video_tag, 3) == 0 &&
-          (data[3]=='b' || data[3]=='B' || data[3]=='c' || data[3]=='C') ) {
+    if ((data[0] == this->avi->video_tag[0]) &&
+        (data[1] == this->avi->video_tag[1])) {
       long flags = AVIIF_KEYFRAME;
       off_t pos = curtagoffset + ioff;
       long len = n;
@@ -502,7 +502,8 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
       }
     }
     for(i=0; i < this->avi->n_audio; ++i) {
-      if (strncasecmp(data, this->avi->audio[i]->audio_tag, 4) == 0) {
+      if ((data[0] == this->avi->audio[i]->audio_tag[0]) &&
+          (data[1] == this->avi->audio[i]->audio_tag[1])) {
         off_t pos = curtagoffset + ioff;
         long len = n;
         if (audio_index_append(this->avi, i, pos, len,
@@ -1214,15 +1215,17 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
   long          i;
   char          data[256];
 
-#ifdef LOG
-  printf("demux_avi: get_chunk_header, pos=%lld\n",
-    this->input->get_current_pos(this->input));
-#endif
-
   while (1) {
     if (this->input->read(this->input, data,8) != 8)
       break;
     *len = str2ulong(data+4);
+
+#ifdef LOG
+  printf("demux_avi: get_chunk_header, %c%c%c%c, pos=%lld, len=%u\n",
+    data[0], data[1], data[2], data[3],
+    this->input->get_current_pos(this->input),
+    *len);
+#endif
 
     /* Dive into RIFF and LIST entries */
     if(strncasecmp(data, "LIST", 4) == 0 ||
@@ -1232,20 +1235,30 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
       continue;
     }
 
-    /* Check if we got a tag ##db, ##dc or ##wb */
-    if (strncasecmp(data, this->avi->video_tag, 3) == 0 &&
-         (data[3]=='b' || data[3]=='B' || data[3]=='c' || data[3]=='C') ) {
+    /*
+     * Check if we got a tag ##db, ##dc or ##wb
+     * only the 2 first bytes are reliable
+     */
+    if ((data[0] == this->avi->video_tag[0]) &&
+        (data[1] == this->avi->video_tag[1])) {
       return AVI_HEADER_VIDEO;
     }
 
     for(i=0; i < this->avi->n_audio; ++i) {
-      if (strncasecmp(data, this->avi->audio[i]->audio_tag, 4) == 0) {
+      /*
+       * only the 2 first bytes are reliable
+       */
+      if ((data[0] == this->avi->audio[i]->audio_tag[0]) &&
+          (data[1] == this->avi->audio[i]->audio_tag[1])) {
         *audio_stream = i;
         this->avi->audio[i]->audio_tot += *len;
         return AVI_HEADER_AUDIO;
       }
     }
 
+#ifdef LOG
+    printf("demux_avi: unknown header: %c %c %c %c\n", data[0], data[1], data[2], data[3]);
+#endif
     return AVI_HEADER_UNKNOWN;
   }
   return AVI_HEADER_UNKNOWN;
@@ -1360,7 +1373,13 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
       break;
 
     case AVI_HEADER_UNKNOWN:
-      return 0;
+#ifdef LOG
+  printf("demux_avi: demux_avi_next_streaming, AVI_HEADER_UNKNOWN\n");
+#endif
+      current_pos = this->input->get_current_pos(this->input);
+      if (this->input->seek(this->input, chunk_len, SEEK_CUR) != (current_pos + chunk_len)) {
+        return 0;
+      }
       break;
   }
 
