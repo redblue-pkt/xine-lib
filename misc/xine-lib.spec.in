@@ -726,8 +726,8 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
 mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
-grep "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
-grep -v "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
+grep "xineplug_vo_out_x[x|v]mc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
+grep -v "xineplug_vo_out_x[x|v]mc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 %endif
@@ -869,6 +869,8 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Tue Dec 07 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- included xxmc video out plugin into xvmc sub-rpm
 * Sat Sep 11 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added missing Requires-Statements in the subpackages
 * Fri Sep 03 2004 František Dvořák <valtri@users.sourceforge.net>
