@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.h,v 1.1 2001/10/22 00:52:10 guenter Exp $
+ * $Id: monitor.h,v 1.2 2001/10/23 21:33:43 jcdutton Exp $
  *
  * debug print and profiling functions
  *
@@ -46,6 +46,7 @@ extern uint32_t xine_debug;
 #define AC3            (xine_debug & 0x8000>>10)  //    32
 #define LOOP           (xine_debug & 0x8000>>11)  //    16
 #define GUI            (xine_debug & 0x8000>>12)  //     8
+#define SPU            (xine_debug & 0x8000>>13)  //     4
 
 #ifdef	__GNUC__
 #define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
