@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.179 2003/05/10 21:28:13 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.180 2003/05/10 23:11:06 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -607,17 +607,26 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
   } else { /* mpeg 2 */
 
 
+    if ((p[6] & 0xC0) != 0x80) {
+      xine_log (this->stream->xine, XINE_LOG_MSG,
+		_("demux_mpeg_block: warning: PES header reserved 10 bits not found\n"));
+      buf->free_buffer(buf);
+      return -1;
+    }
 
-#if CHECK_DVD_PES_SCRAMBLED
+
     /* check PES scrambling_control */
 
-    if ((p[6] & 0x80) == 80 && (p[6] & 30) != 0) {
+    if ((p[6] & 0x30) != 0) {
+      printf("demux_mpeg_block: warning: PES header indicates that this stream may be encrypted (encryption mode %d)\n", (p[6] & 0x30) >> 4);
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: warning: PES header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
-
-      this->warned++;
+      xine_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
+                      "Media stream scrambled/encrypted", NULL);
+      this->status = DEMUX_FINISHED;
+      buf->free_buffer(buf);
+      return -1;
     }
-#endif
 
     if (p[7] & 0x80) { /* pts avail */
 
@@ -662,7 +671,7 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
     int32_t result;
 
     result = parse_pes_for_pts(this, p, buf);
-    if (result < 0) assert(0);
+    if (result < 0) return -1;
 
     p += result;
     track = p[0] & 0x0F; /* hack : ac3 track */
@@ -822,7 +831,7 @@ static int32_t parse_video_stream(demux_mpeg_block_t *this, uint8_t *p, buf_elem
   int32_t result;
 
   result = parse_pes_for_pts(this, p, buf);
-  if (result < 0) assert(0);
+  if (result < 0) return -1;
 
   p += result;
 
@@ -847,7 +856,7 @@ static int32_t parse_audio_stream(demux_mpeg_block_t *this, uint8_t *p, buf_elem
   int32_t result;
 
   result = parse_pes_for_pts(this, p, buf);
-  if (result < 0) assert(0);
+  if (result < 0) return -1;
 
   p += result;
 
