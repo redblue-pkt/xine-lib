@@ -1,4 +1,6 @@
-  * move win32 frontend into separate modul
+xine-lib (1-rc6)
+  * move win32 frontend into separate module
+  * fix Xv initialization to enable multiple instances of the Xv plugin
 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris

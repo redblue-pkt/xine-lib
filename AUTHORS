@@ -492,5 +492,11 @@ Vincent Pelletier <subdino2004@yahoo.fr>
 Daniel Mack <xine@zonque.org>
   native MacOSX video and audio output plugins
 
+André Pang <athp@users.sourceforge.net>
+  MacOSX fixes and framework/frontend work
+
+Stefan Kristiansson <stefan@langante.mine.nu>
+  moved Xv initialization from class to plugin context
+
   
 (let us know if we've forgotten anyone)
