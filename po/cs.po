@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-07-10 07:56+0200\n"
-"PO-Revision-Date: 2002-07-08 17:41+0200\n"
+"PO-Revision-Date: 2002-07-23 20:04+0200\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -65,11 +65,11 @@ msgstr "zaøízení /dev/dsp# pou¾ité pro výstup oss, -1 => autodetekce"
 #: src/audio_out/audio_oss_out.c:708
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr ""
-"Metoda synchronizace zvuku/videa pou¾itá OSS, závisí na ovladaèi/hardwaru"
+"metoda synchronizace zvuku/videa pou¾itá OSS, zále¾í na ovladaèi/hardwaru"
 
 #: src/audio_out/audio_oss_out.c:775
 msgid "Adjust a/v sync for OSS softsync"
-msgstr "Úprava synchronizace zvuku a videa pro softsync OSS"
+msgstr "úprava synchronizace zvuku a videa pro softsync OSS"
 
 #: src/audio_out/audio_oss_out.c:776
 msgid "Use this to manually adjust a/v sync if you're using softsync"
@@ -79,19 +79,19 @@ msgstr ""
 
 #: src/audio_out/audio_oss_out.c:802
 msgid "Enable 4.0 channel analog surround output"
-msgstr "Povolit 4.0 kanálový analogový surround výstup"
+msgstr "povolit 4.0 kanálový analogový surround výstup"
 
 #: src/audio_out/audio_oss_out.c:813
 msgid "Enable 5.0 channel analog surround output"
-msgstr "Povolit 5.0 kanálový analogový surround výstup "
+msgstr "povolit 5.0 kanálový analogový surround výstup"
 
 #: src/audio_out/audio_oss_out.c:824
 msgid "Enable 5.1 channel analog surround output"
-msgstr "Povolit 5.1 kanálový analogový surround výstup "
+msgstr "povolit 5.1 kanálový analogový surround výstup"
 
 #: src/audio_out/audio_oss_out.c:835
 msgid "Enable A52 / AC5 digital audio output via spdif"
-msgstr "Povolit A52 / AC5 digitální zvukový výstup pøes spdif"
+msgstr "povolit A52 / AC5 digitální zvukový výstup pøes spdif"
 
 #: src/audio_out/audio_oss_out.c:851
 msgid "oss mixer device"
@@ -363,7 +363,7 @@ msgstr "platná zakonèení MRL pro demultiplexor QT"
 #: src/demuxers/demux_qt.c:1344
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
-msgstr "demux_qt: Soubor Apple Quicktime, %sèas: %d min, %d s\n"
+msgstr "demux_qt: Soubor Apple Quicktime, %sdoba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_qt.c:1350
 #, c-format
@@ -371,17 +371,20 @@ msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 
 #: src/demuxers/demux_qt.c:1359
-#, fuzzy, c-format
+#, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
 
 #: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
 #: src/demuxers/demux_wav.c:322
 msgid "channel"
-msgid_plural "channels"
-msgstr[0] "kanál"
-msgstr[1] "kanály"
-msgstr[2] "kanálù"
+msgstr "kanál"
+
+#: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
+#: src/demuxers/demux_wav.c:322
+#, fuzzy
+msgid "channels"
+msgstr "kanál"
 
 #: src/demuxers/demux_qt.c:1548
 #, c-format
@@ -509,7 +512,7 @@ msgstr "platná zakonèení MRL pro demultiplexor FILM"
 #: src/demuxers/demux_film.c:587
 #, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
-msgstr "demux_film: FILM verze %c%c%c%c, èas: %d min, %d s\n"
+msgstr "demux_film: FILM verze %c%c%c%c, doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_film.c:596
 #, c-format
@@ -611,30 +614,29 @@ msgstr ""
 #: src/demuxers/demux_fli.c:311
 #, c-format
 msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
-msgstr ""
+msgstr "demux_fli: typ FLI: %04X, rychlost: %d/%d\n"
 
 #: src/demuxers/demux_fli.c:315
-#, fuzzy, c-format
+#, c-format
 msgid "demux_fli: %d frames, %dx%d\n"
-msgstr "demux_fli: %d velikost rámce videa %d x %d\n"
+msgstr "demux_fli: %d rámcù, %dx%d\n"
 
 #: src/demuxers/demux_idcin.c:206 src/demuxers/demux_idcin.c:420
-#, fuzzy
 msgid "valid mrls ending for idcin demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor IdCIN"
 
 #: src/demuxers/demux_idcin.c:269
-#, fuzzy, c-format
+#, c-format
 msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
 msgstr "demux_idcin: Soubor Id CIN, obraz je %dx%d, 14 snímkù/s\n"
 
 #: src/demuxers/demux_idcin.c:274
-#, fuzzy, c-format
+#, c-format
 msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
-msgstr "demux_idcin: %d-bitový, %d Hz, %s PCM zvuk\n"
+msgstr "demux_idcin: %d-bitový, %d Hz %s PCM zvuk\n"
 
 #: src/demuxers/demux_idcin.c:407
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_idcin: plugin doesn't support plugin API version %d.\n"
 "             this means there's a version mismatch between xine and "
@@ -647,27 +649,26 @@ msgstr ""
 "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
 #: src/demuxers/demux_smjpeg.c:276
-#, fuzzy
 msgid "valid mrls ending for smjpeg demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor SMJPEG"
 
 #: src/demuxers/demux_smjpeg.c:398
-#, fuzzy, c-format
+#, c-format
 msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
-msgstr "demux_smjpeg: Soubor SMJPEG, èas: %d min, %d s\n"
+msgstr "demux_smjpeg: Soubor SMJPEG, doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_smjpeg.c:403
-#, fuzzy, c-format
+#, c-format
 msgid "demux_smjpeg: %c%c%c%c video @ %dx%d\n"
-msgstr "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
+msgstr "demux_smjpeg: %c%c%c%c video @ %dx%d\n"
 
 #: src/demuxers/demux_smjpeg.c:412
-#, fuzzy, c-format
+#, c-format
 msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr "demux_smjpeg: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
 
 #: src/demuxers/demux_smjpeg.c:531
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_smjpeg: plugin doesn't support plugin API version %d.\n"
 "              this means there's a version mismatch between xine and "
@@ -680,27 +681,26 @@ msgstr ""
 "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
 #: src/demuxers/demux_wav.c:227 src/demuxers/demux_wav.c:482
-#, fuzzy
 msgid "valid mrls ending for wav demuxer"
 msgstr "platná zakonèení MRL pro demultiplexor WAV"
 
 #: src/demuxers/demux_wav.c:317
-#, fuzzy, c-format
+#, c-format
 msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
-msgstr "demux_wav: 0x%X zvuk @ %d Hz, %d bitù, %d %s\n"
+msgstr "demux_wav: formát zvuku 0x%X, %d Hz, %d bitù/vzorek, %d %s\n"
 
 #: src/demuxers/demux_wav.c:324
-#, fuzzy, c-format
+#, c-format
 msgid "demux_wav: running time = %d min, %d sec\n"
-msgstr "demux_wav: èas: %d min, %d s\n"
+msgstr "demux_wav: doba pøehrávání = %d min, %d s\n"
 
 #: src/demuxers/demux_wav.c:328
 #, c-format
 msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
-msgstr ""
+msgstr "demux_wav: prùmìrnì %d bytù/s, zarovnání bloku %d\n"
 
 #: src/demuxers/demux_wav.c:469
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_wav: plugin doesn't support plugin API version %d.\n"
 "           this means there's a version mismatch between xine and "
@@ -963,7 +963,7 @@ msgstr "cesta k va¹emu souboru DVD zaøízení"
 
 #: src/input/input_dvd.c:860
 msgid "path to a raw device set up for dvd access"
-msgstr "cesta k raw zaøízení nastavenému pro dvd pøístup"
+msgstr "cesta k raw zaøízení nastavenému pro pøístup k dvd"
 
 #: src/input/input_file.c:209
 #, c-format
@@ -1214,7 +1214,7 @@ msgstr "input_cda: úspì¹né pøipojení k serveru '%s:%d'.\n"
 #: src/input/input_cda.c:587
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
-msgstr "input_cda: selhalo otvírání serveru '%s:%d': %s\n"
+msgstr "input_cda: selhal pøístup k serveru '%s:%d': %s\n"
 
 #: src/input/input_cda.c:755
 #, c-format
@@ -1346,7 +1346,7 @@ msgstr "adresáø se záznamy cddbp"
 
 #: src/input/net_buf_ctrl.c:67
 msgid "buffering..."
-msgstr ""
+msgstr "nahrává se..."
 
 #: src/libmpeg2/xine_decoder.c:156
 #, c-format
@@ -1390,7 +1390,7 @@ msgid "path to win32 codec dlls"
 msgstr "cesta ke kodekùm win32"
 
 #: src/libw32dll/w32codec.c:1443
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "w32codec: plugin doesn't support plugin API version %d.\n"
 "w32codec: this means there's a version mismatch between xine and this "
@@ -1400,7 +1400,7 @@ msgstr ""
 "w32codec: modul nepodporuje programové rozhraní ve verzi %d.\n"
 "          Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
 "          dekódovacím modulem.\n"
-"Nainstalování aktuálních modulù by mìlo pomoci.\n"
+"Nainstalování aktuálních modulù na dekódování by mìlo pomoci.\n"
 
 #: src/video_out/video_out_aa.c:307
 msgid "xine video output plugin using the ascii-art library"
@@ -1430,11 +1430,11 @@ msgstr "výstupní modul videa xine pou¾ije roz¹íøení MIT X shared memory"
 
 #: src/video_out/video_out_xv.c:1160 src/video_out/video_out_xv.c:1166
 msgid "Xv property"
-msgstr "vlastnosti Xv"
+msgstr "vlastnost Xv"
 
 #: src/video_out/video_out_xv.c:1408
 msgid "bilinear scaling mode (permedia 2/3)"
-msgstr "bilineární ¹kálovací re¾im (permedia 2/3)"
+msgstr "bilineární re¾im ¹kálování (permedia 2/3)"
 
 #: src/video_out/video_out_xv.c:1414
 msgid "double buffer to sync video to the retrace"
@@ -1442,7 +1442,8 @@ msgstr "dvojitý buffer k synchronizaci videa se zpìtným bìhem paprsku"
 
 #: src/video_out/video_out_xv.c:1463
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
-msgstr "Softwarová metoda deinterlace (klávesa I zapíná/vypíná deinterlacer)"
+msgstr ""
+"softwarová metoda korekce prokládání (klávesa I zapíná/vypíná deinterlacer)"
 
 #: src/video_out/video_out_xv.c:1479
 msgid "xine video output plugin using the MIT X video extension"
@@ -1532,7 +1533,7 @@ msgstr "xine: nelze nalézt demultiplexor pro >%s<\n"
 #: src/xine-engine/xine.c:443
 #, c-format
 msgid "system layer format '%s' detected.\n"
-msgstr ""
+msgstr "systémová vrstva zjistila formát '%s'.\n"
 
 #: src/xine-engine/xine.c:471
 msgid "xine_play: demuxer failed to start\n"
@@ -1556,7 +1557,7 @@ msgstr "modul"
 
 #: src/xine-engine/audio_out.c:825
 msgid "adjust whether resampling is done or not"
-msgstr ""
+msgstr "upravit, jestli se má pøevzorkovávat nebo ne"
 
 #: src/xine-engine/audio_out.c:828
 msgid "if !=0 always resample to given rate"
@@ -1564,7 +1565,7 @@ msgstr "pøi !=0 v¾dy pøevzorkovat na danou frekvenci"
 
 #: src/xine-engine/audio_out.c:868
 msgid "Audio volume"
-msgstr "Hlasitost zvuku"
+msgstr "hlasitost zvuku"
 
 #: src/xine-engine/audio_out.c:872
 msgid "restore volume level at startup"
@@ -1713,11 +1714,11 @@ msgstr "Jestli¾e je zakázáno, bude se pøedpokládat video s pomìrem stran 4:3."
 
 #: src/dxr3/video_out_dxr3.c:160
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
-msgstr ""
+msgstr "dxr3: pou¾ít alternativní re¾im pøehrávání pro mpeg kodér"
 
 #: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
 msgid "Enabling this option will utilise a smoother play mode."
-msgstr ""
+msgstr "Povolením této volby se vyu¾ije hlad¹í re¾im pøehrávání"
 
 #: src/dxr3/video_out_dxr3.c:221
 msgid "the encoder for non mpeg content"
@@ -1749,15 +1750,15 @@ msgstr "Dxr3: videovýstupní re¾im (tv nebo overlay)"
 
 #: src/dxr3/video_out_dxr3.c:287
 msgid "Dxr3: overlay colorkey value"
-msgstr ""
+msgstr "Dxr3: hodnota klíèové barvy overlay"
 
 #: src/dxr3/video_out_dxr3.c:290
 msgid "Dxr3: overlay colorkey range"
-msgstr ""
+msgstr "Dxr3: rozsah klíèové barvy overlay"
 
 #: src/dxr3/video_out_dxr3.c:291
 msgid "A greater value widens the tolerance for the overlay keycolor"
-msgstr ""
+msgstr "Vìt¹í hodnota roz¹íøí toleranci pro klíèové barvy overlay"
 
 #: src/dxr3/video_out_dxr3.c:303
 msgid "dxr3 preferred tv mode"
@@ -1816,15 +1817,15 @@ msgstr "Toto má význam jen pro postupné video (nejvíce filmù PAL)"
 
 #: src/dxr3/dxr3_decode_video.c:180
 msgid "Use alternate Play mode"
-msgstr ""
+msgstr "Pou¾ít alternativní re¾im pøehrávání"
 
 #: src/dxr3/dxr3_decode_video.c:184
 msgid "Correct frame durations in broken streams"
-msgstr "Správná délka snímku v poru¹ených sekvencích"
+msgstr "Opravit dobu trvání snímkù v poru¹ených sekvencích"
 
 #: src/dxr3/dxr3_decode_video.c:185
 msgid "Enable this for streams with wrong frame durations."
-msgstr "Povolte toto pro sekvence se ¹patnou délkou snímkù."
+msgstr "Toto povolte pro sekvence s nesprávnou délkou snímkù."
 
 #: src/dxr3/dxr3_scr.c:81
 msgid "Dxr3: SCR plugin priority"
@@ -1832,7 +1833,7 @@ msgstr "Dxr3: priorita modulu SCR"
 
 #: src/dxr3/dxr3_scr.c:82
 msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
-msgstr "Priority SCR vìt¹í ne¾ 5 ~vytvoøí z~ dxr3 hlavní hodiny xine."
+msgstr "Priorita SCR vìt¹í ne¾ 5 udìlá z dxr3 hlavní hodiny xine."
 
 #: src/dxr3/dxr3_mpeg_encoders.c:182
 msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
@@ -1890,7 +1891,7 @@ msgstr "povolit dynamické vyrovnávání rozsahu a/52"
 
 #: src/liba52/xine_decoder.c:580
 msgid "enable audio downmixing to 2.0 surround stereo"
-msgstr ""
+msgstr "povolit redukci zvuku do 2.0 surround stereo"
 
 #: src/libdts/xine_decoder.c:233
 #, c-format
@@ -1937,7 +1938,7 @@ msgstr "pou¾ít modul divx4 pro sekvence msmpeg4v3"
 
 #: src/libdivx4/xine_decoder.c:607
 msgid "Divx version to check for (set to 0 (default) if unsure)"
-msgstr ""
+msgstr "nejmen¹í dovolená verze Divx (jestli nevíte, nastavte 0 (pøedvolené))"
 
 #: src/libvorbis/xine_decoder.c:247
 #, c-format
@@ -1973,7 +1974,7 @@ msgstr "font titulkù pro AVI"
 
 #: src/libsputext/xine_decoder.c:1084
 msgid "subtitle size (relative window size)"
-msgstr "velikost titulkù (relativnì k velikosti okna)"
+msgstr "velikost titulkù (vzhledem k velikosti okna)"
 
 #: src/libsputext/xine_decoder.c:1089
 msgid "source encoding of subtitles"
@@ -1989,27 +1990,27 @@ msgstr "èasový posun titulkù v 1/100 s"
 
 #: src/libspucc/xine_decoder.c:220
 msgid "Enable closed captions in MPEG-2 streams"
-msgstr ""
+msgstr "Povolit skryté titulky v sekvencích MPEG-2"
 
 #: src/libspucc/xine_decoder.c:227
 msgid "Closed-captioning foreground/background scheme"
-msgstr ""
+msgstr "Zobrazení skrytých titulkù (popøedí/pozadí)"
 
 #: src/libspucc/xine_decoder.c:233
 msgid "Standard closed captioning font"
-msgstr ""
+msgstr "Standardní font skrytých titulkù"
 
 #: src/libspucc/xine_decoder.c:239
 msgid "Italic closed captioning font"
-msgstr ""
+msgstr "Font kurzívy u skrytých titulkù"
 
 #: src/libspucc/xine_decoder.c:245
 msgid "Closed captioning font size"
-msgstr ""
+msgstr "Velikost fontu skrytých titulkù"
 
 #: src/libspucc/xine_decoder.c:250
 msgid "Center-adjust closed captions"
-msgstr ""
+msgstr "Centrování skrytých titulkù"
 
 #: src/libspucc/xine_decoder.c:389
 #, c-format
@@ -2044,7 +2045,7 @@ msgstr ""
 "xvid: nekompatibilita mezi programovým rozhraním v souèasné dobì\n"
 "      instalované knihovny Xvid (%d.%d) a knihovny pou¾ité ke kompilaci\n"
 "      tohoto modulu (%d.%d).\n"
-"      Pøekompilování tohoto modulu se souèasnou knihovnou XviD by mìla "
+"      Pøekompilování tohoto modulu se souèasnou knihovnou XviD by mìlo "
 "pomoci.\n"
 
 #: src/libxvid/xine_decoder.c:255
@@ -2089,6 +2090,12 @@ msgstr ""
 "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
 "           dekódovacím modulem.\n"
 "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+
+#~ msgid "demux_fli: running time: %d min, %d sec\n"
+#~ msgstr "demux_fli: doba pøehrávání: %d min, %d s\n"
+
+#~ msgid "NVidia TV-Out support."
+#~ msgstr "Podpora TV-výstupu NVidia"
 
 #~ msgid "unable to open %s: %s."
 #~ msgstr "nelze otevøít %s: %s."
