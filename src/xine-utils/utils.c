@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.24 2004/03/27 12:59:46 valtri Exp $
+ * $Id: utils.c,v 1.25 2004/03/29 19:10:36 mroi Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -379,7 +379,7 @@ static const lang_locale_t *_get_first_lang_locale(char *lcal) {
 /*
  * get encoding of current locale
  */
-char *xine_get_system_encoding() {
+char *xine_get_system_encoding(void) {
   char *codeset = NULL;
   
 #ifdef HAVE_LANGINFO_CODESET
