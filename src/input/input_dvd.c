@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.3 2001/05/05 23:44:33 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,51 +51,64 @@ static uint32_t xine_debug;
 #define DVD     "/dev/dvd"
 #define RDVD    "/dev/rdvd"
 
-/*
- * global Variables:
- */
+typedef struct {
 
-static int                dvd_fd, raw_fd;
-static off_t              file_size, file_size_left;
-static int                file_lbstart, file_lbcur;
-static int                gVTSMinor, gVTSMajor;
-
-/*
- * udf dir function 
- */
-
-#define MAX_DIR_ENTRIES 250
-
-static char              *filelist[MAX_DIR_ENTRIES];
-static char              *filelist2[MAX_DIR_ENTRIES];
-
-static int openDrive () {
+  input_plugin_t    input_plugin;
   
-  dvd_fd = open(DVD, O_RDONLY | O_NONBLOCK);
+  char             *mrl;
+  config_values_t  *config;
 
-  if (dvd_fd < 0) {
+  int               dvd_fd;
+  int               raw_fd;
+  off_t             file_size;
+  off_t             file_size_left;
+  int               file_lbstart;
+  int               file_lbcur;
+  int               gVTSMinor;
+  int               gVTSMajor;
+  
+  /*
+   * udf dir function 
+   */
+#define MAX_DIR_ENTRIES 250
+  
+  char              *filelist[MAX_DIR_ENTRIES];
+  char              *filelist2[MAX_DIR_ENTRIES];
+
+} dvd_input_plugin_t;
+
+
+
+/* ***************************************************************** */
+/*                        Private functions                          */
+/* ***************************************************************** */
+static int openDrive (dvd_input_plugin_t *this) {
+  
+  this->dvd_fd = open(DVD, O_RDONLY | O_NONBLOCK);
+
+  if (this->dvd_fd < 0) {
     printf ("input_dvd: unable to open dvd drive (%s): %s\n", DVD,
 	    strerror(errno));
     return -1;
   }
 
-  raw_fd = open(RDVD, O_RDONLY | O_NONBLOCK);
-  if (raw_fd < 0) {
-    raw_fd = dvd_fd;
+  this->raw_fd = open(RDVD, O_RDONLY | O_NONBLOCK);
+  if (this->raw_fd < 0) {
+    this->raw_fd = this->dvd_fd;
   }
-  return raw_fd;
+  return this->raw_fd;
 }
 
-static void closeDrive () {
+static void closeDrive (dvd_input_plugin_t *this) {
 
-  if (dvd_fd<0)
+  if (this->dvd_fd < 0)
     return;
 
-  close (dvd_fd);
-  if (raw_fd!=dvd_fd)
-    close (raw_fd);
+  close (this->dvd_fd);
+  if (this->raw_fd != this->dvd_fd)
+    close (this->raw_fd);
 
-  dvd_fd = -1;
+  this->dvd_fd = -1;
 }
 
 /*
@@ -103,102 +116,106 @@ static void closeDrive () {
  *
  * returns lbnum on success, 0 otherwise
  */
+static int openDVDFile (dvd_input_plugin_t *this, 
+			char *filename, off_t *size) {
+  char  str[256];
+  int   lbnum;
 
-static int openDVDFile (char *filename, off_t *size) {
+  xprintf (VERBOSE|INPUT, "input_dvd : openDVDFile >%s<\n", filename);
 
-  char               str[256];
-  int                lbnum;
-
-  xprintf (VERBOSE|INPUT, "input_dvd : openDVDFile >%s<\n",filename);
-
-  if (openDrive() < 0) {
+  if (openDrive(this) < 0) {
     printf ("input_dvd: cannot open dvd drive >%s<\n", DVD);
     return 0;
   }
 
   snprintf (str, sizeof(str), "/VIDEO_TS/%s", filename);
 
-  xprintf (VERBOSE|INPUT, "UDFFindFile %s\n",str);
+  xprintf (VERBOSE|INPUT, "UDFFindFile %s\n", str);
 
-  if (!(lbnum=UDFFindFile(dvd_fd, str, size))) {
+  if (!(lbnum = UDFFindFile(this->dvd_fd, str, size))) {
     printf ("input_dvd: cannot open file >%s<\n", filename);
 
-    closeDrive ();
+    closeDrive (this);
 
     return 0;
   }
 
-  lseek (raw_fd, lbnum * (off_t) DVD_VIDEO_LB_LEN, SEEK_SET) ;
+  lseek (this->raw_fd, lbnum * (off_t) DVD_VIDEO_LB_LEN, SEEK_SET) ;
 
   return lbnum;
 }
+/* ***************************************************************** */
+/*                         END OF PRIVATES                           */
+/* ***************************************************************** */
 
-
-static void input_plugin_init (void) {
-  int i;
-  
-  /*
-   * allocate space for directory listing
-   */
-
-  for (i=0; i<MAX_DIR_ENTRIES; i++) {
-    filelist[i] = (char *) malloc (256);
-    filelist2[i] = (char *) malloc (256);
-  }
+/*
+ *
+ */
+static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this) {
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY;
 }
 
-static int input_plugin_open (const char *mrl) {
+/*
+ *
+ */
+static int dvd_plugin_open (input_plugin_t *this_gen, char *mrl) {
+  char                *filename;
+  dvd_input_plugin_t  *this = (dvd_input_plugin_t *) this_gen;
 
-  char *filename;
+  this->mrl = mrl;
 
   xprintf (VERBOSE|INPUT, "input dvd : input_plugin_open >%s<\n", mrl);
 
   /*
    * do we handle this kind of MRL ?
    */
-
-  if (strncasecmp (mrl, "dvd://",6))
+  if (strncasecmp (mrl, "dvd://", 6))
     return 0;
 
   filename = (char *) &mrl[6];
 
-  xprintf (VERBOSE|INPUT, "input dvd : input_plugin_open media type correct. file name is %s\n",
-	  filename);
+  xprintf (VERBOSE|INPUT, "input dvd : dvd_plugin_open media type correct."
+	   " file name is %s\n", filename);
 
-  sscanf (filename, "VTS_%d_%d.VOB", &gVTSMajor, &gVTSMinor);
+  sscanf (filename, "VTS_%d_%d.VOB", &this->gVTSMajor, &this->gVTSMinor);
 
-  file_lbstart = openDVDFile (filename, &file_size) ;
-  file_lbcur = file_lbstart;
+  this->file_lbstart = openDVDFile (this, filename, &this->file_size) ;
+  this->file_lbcur = this->file_lbstart;
 
-  if (!file_lbstart) {
-    fprintf (stderr, "unable to find >%s< on dvd.\n",filename);
+  if (!this->file_lbstart) {
+    fprintf (stderr, "Unable to find >%s< on dvd.\n", filename);
     return 0;
   }
 
-  file_size_left = file_size;
+  this->file_size_left = this->file_size;
  
   return 1 ;
 }
 
-static uint32_t input_plugin_read (char *buf, uint32_t nlen) {
+/*
+ *
+ */
+static off_t dvd_plugin_read (input_plugin_t *this_gen, 
+			      char *buf, off_t nlen) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
   if (nlen != DVD_VIDEO_LB_LEN) {
     /* 
      * Hide the error reporting now, demuxer try to read 6 bytes
      * at STAGE_BY_CONTENT probe stage
      */
-    fprintf (stderr, "ERROR in input_dvd plugin read: %d bytes "
-      	     "is not a sector!\n", nlen);
+    fprintf (stderr, "ERROR in input_dvd plugin read: %Ld bytes "
+             "is not a sector!\n", nlen);
     return 0;
   }
-
-  if (file_size_left < nlen)
+  
+  if (this->file_size_left < nlen)
     return 0;
 
-  if (read (raw_fd, buf, DVD_VIDEO_LB_LEN)) {
+  if (read (this->raw_fd, buf, DVD_VIDEO_LB_LEN)) {
 
-    file_lbcur++;
-    file_size_left -= DVD_VIDEO_LB_LEN;
+    this->file_lbcur++;
+    this->file_size_left -= DVD_VIDEO_LB_LEN;
 
     return DVD_VIDEO_LB_LEN;
   } else
@@ -207,50 +224,108 @@ static uint32_t input_plugin_read (char *buf, uint32_t nlen) {
   return 0;
 }
 
-static off_t input_plugin_seek (off_t offset, int origin) {
+/*
+ *
+ */
+static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen, 
+					     fifo_buffer_t *fifo, off_t nlen) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+  buf_element_t      *buf = fifo->buffer_pool_alloc (fifo);
+
+  if (nlen != DVD_VIDEO_LB_LEN) {
+    /* 
+     * Hide the error reporting now, demuxer try to read 6 bytes
+     * at STAGE_BY_CONTENT probe stage
+     */
+    fprintf (stderr, "ERROR in input_dvd plugin read: %Ld bytes "
+      	     "is not a sector!\n", nlen);
+    return NULL;
+  }
+
+  if (this->file_size_left < nlen)
+    return NULL;
+
+  if (read (this->raw_fd, buf, DVD_VIDEO_LB_LEN)) {
+
+    this->file_lbcur++;
+    this->file_size_left -= DVD_VIDEO_LB_LEN;
+
+    return buf;
+  } else
+    fprintf (stderr, "read error in input_dvd plugin\n");
+
+  return NULL;
+}
+
+/*
+ *
+ */
+static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
   offset /= DVD_VIDEO_LB_LEN;
 
   switch (origin) {
   case SEEK_END:
-    offset = (file_size / DVD_VIDEO_LB_LEN) - offset;
+    offset = (this->file_size / DVD_VIDEO_LB_LEN) - offset;
 
   case SEEK_SET:
-    file_lbcur = file_lbstart + offset;
-    file_size_left = file_size - (offset * DVD_VIDEO_LB_LEN);
+    this->file_lbcur = this->file_lbstart + offset;
+    this->file_size_left = this->file_size - (offset * DVD_VIDEO_LB_LEN);
     break;
   case SEEK_CUR:
     if (offset) {
-      file_lbcur += offset;
-      file_size_left = file_size - ((file_lbcur - file_lbstart) * DVD_VIDEO_LB_LEN);
+      this->file_lbcur += offset;
+      this->file_size_left = this->file_size - 
+	((this->file_lbcur - this->file_lbstart) * DVD_VIDEO_LB_LEN);
     } else {
-      return (file_lbcur - file_lbstart) * (off_t) DVD_VIDEO_LB_LEN;
+      return (this->file_lbcur - this->file_lbstart) * 
+	(off_t) DVD_VIDEO_LB_LEN;
     }
 
     break;
   default:
-    fprintf (stderr, "error in input dvd plugin seek:%d is an unknown origin\n"
-	     ,origin);
+    fprintf (stderr, "error in input dvd plugin seek: %d is an unknown "
+	     "origin\n", origin);
   }
   
-  return lseek (raw_fd, file_lbcur * (off_t) DVD_VIDEO_LB_LEN, SEEK_SET) - file_lbstart * (off_t) DVD_VIDEO_LB_LEN;
+  return lseek (this->raw_fd, 
+		this->file_lbcur * (off_t) DVD_VIDEO_LB_LEN, SEEK_SET) 
+    - this->file_lbstart * (off_t) DVD_VIDEO_LB_LEN;
 }
 
-static off_t input_plugin_get_length (void) {
-  return file_size;
+/*
+ *
+ */
+static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+
+  return (this->file_lbcur * DVD_VIDEO_LB_LEN);
 }
 
-static uint32_t input_plugin_get_capabilities (void) {
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY;
+/*
+ *
+ */
+static off_t dvd_plugin_get_length (input_plugin_t *this_gen) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+
+  return this->file_size;
 }
 
-static uint32_t input_plugin_get_blocksize (void) {
+/*
+ *
+ */
+static uint32_t dvd_plugin_get_blocksize (input_plugin_t *this_gen) {
+
   return DVD_VIDEO_LB_LEN;
 }
 
-static int input_plugin_eject (void) {
-  int ret, status;
-  int fd;
+/*
+ *
+ */
+static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
+  int   ret, status;
+  int   fd;
 
   if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
 
@@ -259,7 +334,8 @@ static int input_plugin_eject (void) {
       switch(status) {
       case CDS_TRAY_OPEN:
 	if((ret = ioctl(fd, CDROMCLOSETRAY)) != 0) {
-	  xprintf(VERBOSE|INPUT, "CDROMCLOSETRAY failed: %s\n", strerror(errno));  
+	  xprintf(VERBOSE|INPUT, "CDROMCLOSETRAY failed: %s\n", 
+		  strerror(errno));  
 	}
 	break;
       case CDS_DISC_OK:
@@ -293,16 +369,37 @@ static int input_plugin_eject (void) {
   return 1;
 }
 
-static void input_plugin_close (void) {
-  closeDrive ();
+/*
+ *
+ */
+static void dvd_plugin_close (input_plugin_t *this_gen) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+
+  closeDrive (this);
 }
 
-static char *input_plugin_get_identifier (void) {
+/*
+ *
+ */
+static char *dvd_plugin_get_description (input_plugin_t *this_gen) {
+
+  return "dvd device input plugin as shipped with xine";
+}
+
+/*
+ *
+ */
+static char *dvd_plugin_get_identifier (input_plugin_t *this_gen) {
+
   return "DVD";
 }
 
-static char** input_plugin_get_dir (char *filename, int *nEntries) {
-
+/*
+ *
+ */
+static char **dvd_plugin_get_dir (input_plugin_t *this_gen, 
+				  char *filename, int *nEntries) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int i, fd;
 
   if (filename) {
@@ -314,20 +411,20 @@ static char** input_plugin_get_dir (char *filename, int *nEntries) {
 
     int    nFiles, nFiles2;
 
-    UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, filelist, &nFiles);
+    UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles);
 
     nFiles2 = 0;
     for (i=0; i<nFiles; i++) {
       int nLen;
 
-      nLen = strlen (filelist[i]);
+      nLen = strlen (this->filelist[i]);
 
       if (nLen<4) 
 	continue;
       
-      if (!strcasecmp (&filelist[i][nLen-4], ".VOB")) {
+      if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
 
-	sprintf (filelist2[nFiles2], "dvd://%s",filelist[i]); 
+	sprintf (this->filelist2[nFiles2], "dvd://%s", this->filelist[i]); 
 
 	nFiles2++;
       }
@@ -343,30 +440,34 @@ static char** input_plugin_get_dir (char *filename, int *nEntries) {
     return NULL;
   }
 
-  return filelist2;
+  return this->filelist2;
 }
 
-static char **input_plugin_get_autoplay_list (int *nFiles) {
-
+/*
+ *
+ */
+static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen, 
+					    int *nFiles) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int i, fd;
-
+  
   if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
     int    nFiles3, nFiles2;
-
-    UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, filelist, &nFiles3);
-
+    
+    UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles3);
+    
     nFiles2 = 0;
     for (i=0; i<nFiles3; i++) {
       int nLen;
 
-      nLen = strlen (filelist[i]);
+      nLen = strlen (this->filelist[i]);
 
       if (nLen<4) 
 	continue;
       
-      if (!strcasecmp (&filelist[i][nLen-4], ".VOB")) {
+      if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
 
-	sprintf (filelist2[nFiles2], "dvd://%s",filelist[i]); 
+	sprintf (this->filelist2[nFiles2], "dvd://%s", this->filelist[i]); 
 
 	nFiles2++;
       }
@@ -382,57 +483,69 @@ static char **input_plugin_get_autoplay_list (int *nFiles) {
     return NULL;
   }
 
-  return filelist2;
+  return this->filelist2;
 }
 
-static int input_plugin_is_branch_possible (const char *next_mrl) {
+/*
+ *
+ */
+static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+
+  return this->mrl;
+}
+
+/*
+ *
+ */
+input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
+  dvd_input_plugin_t *this;
+
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
   
-  char *filename;
-  int   vts_minor, vts_major;
+  switch (iface) {
+  case 1: {
+    int i;
+    
+    this = (dvd_input_plugin_t *) malloc (sizeof (dvd_input_plugin_t));
 
-  printf ("input_dvd: is_branch_possible to %s ?\n", next_mrl);
-
-  /*
-   * do we handle this kind of MRL ?
-   */
-
-  if (strncmp (next_mrl, "dvd://",6))
-    return 0;
-
-  filename = (char *) &next_mrl[6];
-
-  if (sscanf (filename, "VTS_%d_%d.VOB", &vts_major, &vts_minor) == 2) {
-    if ((vts_major==gVTSMajor) && (vts_minor==(gVTSMinor+1))) {
-      printf ("input_dvd: branching is possible\n");
-      return 1;
+    for (i = 0; i < MAX_DIR_ENTRIES; i++) {
+      this->filelist[i] = (char *) malloc (256);
+      this->filelist2[i] = (char *) malloc (256);
     }
+    
+    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
+    this->input_plugin.get_capabilities  = dvd_plugin_get_capabilities;
+    this->input_plugin.open              = dvd_plugin_open;
+    this->input_plugin.read              = dvd_plugin_read;
+    this->input_plugin.read_block        = dvd_plugin_read_block;
+    this->input_plugin.seek              = dvd_plugin_seek;
+    this->input_plugin.get_current_pos   = dvd_plugin_get_current_pos;
+    this->input_plugin.get_length        = dvd_plugin_get_length;
+    this->input_plugin.get_blocksize     = dvd_plugin_get_blocksize;
+    this->input_plugin.eject_media       = dvd_plugin_eject_media;
+    this->input_plugin.close             = dvd_plugin_close;
+    this->input_plugin.get_identifier    = dvd_plugin_get_identifier;
+    this->input_plugin.get_description   = dvd_plugin_get_description;
+    this->input_plugin.get_dir           = dvd_plugin_get_dir;
+    this->input_plugin.get_mrl           = dvd_plugin_get_mrl;
+    this->input_plugin.get_autoplay_list = dvd_plugin_get_autoplay_list;
+    this->input_plugin.get_clut          = NULL;
+
+    //    this->fh      = -1;
+    this->mrl     = NULL;
+    this->config  = config;
+    
+    return (input_plugin_t *) this;
   }
-
-  return 0;
-}
-
-static input_plugin_t plugin_op = {
-  NULL,
-  NULL,
-  input_plugin_init,
-  input_plugin_open,
-  input_plugin_read,
-  input_plugin_seek,
-  input_plugin_get_length,
-  input_plugin_get_capabilities,
-  input_plugin_get_dir,
-  input_plugin_get_blocksize,
-  input_plugin_eject,
-  input_plugin_close,
-  input_plugin_get_identifier,
-  input_plugin_get_autoplay_list,
-  input_plugin_is_branch_possible,
-  NULL
-};
-
-input_plugin_t *input_plugin_getinfo(uint32_t dbglvl) {
-
-  xine_debug = dbglvl;
-
-  return &plugin_op;
+    break;
+  default:
+    fprintf(stderr,
+	    "File input plugin doesn't support plugin API version %d.\n"
+	    "PLUGIN DISABLED.\n"
+	    "This means there's a version mismatch between xine and this input"
+	    "plugin.\nInstalling current input plugins should help.\n",
+	    iface);
+    return NULL;
+  }
 }

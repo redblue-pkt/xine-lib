@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.7 2001/05/03 00:02:42 f1rmb Exp $
+ * $Id: input_file.c,v 1.8 2001/05/05 23:44:33 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>

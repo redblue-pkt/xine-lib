@@ -18,13 +18,13 @@ libdir = $(XINE_PLUGINDIR)
 #lib_LTLIBRARIES = xineplug_inp_net.la xineplug_inp_dvd.la \
 #	xineplug_inp_vcd.la xineplug_inp_stdin_fifo.la \
 #	xineplug_inp_rtp.la
-lib_LTLIBRARIES = xineplug_inp_file.la
+lib_LTLIBRARIES = xineplug_inp_file.la xineplug_inp_dvd.la
 
 xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c
-#xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
+xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c
+xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
 #xineplug_inp_net_la_SOURCES = input_net.c
 #xineplug_inp_net_la_LDFLAGS = -avoid-version -module
