@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.24 2001/07/24 13:20:02 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.25 2001/08/17 16:00:02 ehasenle Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -697,7 +697,7 @@ static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
 
   /* Alpha Blend here */
-   if (overlay->data) {
+   if (overlay->rle) {
      switch(this->bpp) {
        case 16:
         blend_rgb16( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);

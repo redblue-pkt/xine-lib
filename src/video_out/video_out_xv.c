@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.56 2001/07/25 23:26:14 richwareham Exp $
+ * $Id: video_out_xv.c,v 1.57 2001/08/17 16:00:02 ehasenle Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -547,7 +547,7 @@ static void xv_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_o
    * As XV drivers improve to support Hardware overlay, we will change this function.
    */
 
-  if (overlay->data) {
+  if (overlay->rle) {
     blend_yuv( frame->image->data, overlay, frame->width, frame->height);
   }
 }
