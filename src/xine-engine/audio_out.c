@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.180 2004/06/19 20:07:15 mroi Exp $
+ * $Id: audio_out.c,v 1.181 2004/06/27 13:33:57 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1002,19 +1002,21 @@ static void *ao_loop (void *this_gen) {
       delay = 0;
 
       pthread_mutex_unlock( &this->driver_lock );
-      xprintf(this->xine, XINE_VERBOSITY_LOG,
-              _("audio_out: delay calculation impossible with an unavailable audio device\n"));
+      
+      if (in_buf && in_buf->num_frames) {
+	xprintf(this->xine, XINE_VERBOSITY_LOG,
+		_("audio_out: delay calculation impossible with an unavailable audio device\n"));
 
-      pthread_mutex_lock(&this->xine->streams_lock);
-      for (stream = xine_list_first_content(this->xine->streams);
-           stream; stream = xine_list_next_content(this->xine->streams))
-      {
-        _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
-	/* This is necessary for the message to get to the front-end at some
-	 * point before another message is sent */
-	sched_yield();
+	pthread_mutex_lock(&this->streams_lock);
+	for (stream = xine_list_first_content(this->streams);
+	     stream; stream = xine_list_next_content(this->streams)) {
+	  _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+	  /* This is necessary for the message to get to the front-end at some
+	   * point before another message is sent */
+	  sched_yield();
+	}
+	pthread_mutex_unlock(&this->streams_lock);
       }
-      pthread_mutex_unlock(&this->xine->streams_lock);
     }
 
     cur_time = this->clock->get_current_time (this->clock);  
