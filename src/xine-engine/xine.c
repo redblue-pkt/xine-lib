@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.274 2003/12/05 15:55:05 f1rmb Exp $
+ * $Id: xine.c,v 1.275 2003/12/12 01:44:40 f1rmb Exp $
  */
 
 /*
@@ -141,10 +141,10 @@ static void __set_speed_internal (xine_stream_t *stream, int speed) {
      * samples from the sound driver
      */
     if (speed != XINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
-      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
+      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS, NULL);
 
     stream->audio_out->control(stream->audio_out,
-			       speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME);
+			       speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME, NULL);
   }
 }
 
@@ -897,7 +897,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
     /* remove buffered samples from the sound device driver */
     /* why? */
     /*if (stream->audio_out)
-      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
+      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS, NULL);
     */
 
     stream->status = XINE_STATUS_STOP;

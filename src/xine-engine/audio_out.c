@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.157 2003/12/10 20:51:01 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.158 2003/12/12 01:44:40 f1rmb Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -893,7 +893,7 @@ static void *ao_loop (void *this_gen) {
 
     pthread_mutex_lock(&this->flush_audio_driver_lock);
     if (this->flush_audio_driver) {
-      this->ao.control(&this->ao, AO_CTRL_FLUSH_BUFFERS);
+      this->ao.control(&this->ao, AO_CTRL_FLUSH_BUFFERS, NULL);
       this->flush_audio_driver--;
       pthread_cond_broadcast(&this->flush_audio_driver_reached);
     }

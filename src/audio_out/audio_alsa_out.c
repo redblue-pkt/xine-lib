@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.120 2003/12/07 15:34:29 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.121 2003/12/12 01:44:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -977,7 +977,7 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
           xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 		  "audio_alsa_out: Pause call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
-          ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_PAUSE);
+          ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_PAUSE, NULL);
         }
       } else {
         if ((err=snd_pcm_reset(this->audio_fd)) < 0) {
