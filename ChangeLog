@@ -21,6 +21,7 @@ xine-lib (1-xxx)
   * improved support for transport streams
   * new plugin for DVB subtitles
   * suport realplayer codecs on AMD64
+  * fixed restoring xv settings on exit for some frontends
 
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
