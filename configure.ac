@@ -2120,7 +2120,10 @@ dnl ---------------------------------------------
 
 AC_SUBST(mkdir_p)
 if test -n "$ac_aux_dir"; then
-  MKINSTALLDIRS="$ac_aux_dir/install-sh -d"
+  case "$ac_aux_dir" in
+    /*) MKINSTALLDIRS="$ac_aux_dir/install-sh -d" ;;
+    *) MKINSTALLDIRS="\$(top_builddir)/$ac_aux_dir/install-sh -d" ;;
+  esac
 else
   MKINSTALLDIRS="\$(top_srcdir)/install-sh -d"
 fi

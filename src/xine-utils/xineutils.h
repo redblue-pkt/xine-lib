@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.95 2004/10/29 23:11:38 miguelfreitas Exp $
+ * $Id: xineutils.h,v 1.96 2004/12/12 13:51:30 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -25,6 +25,10 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
 #endif
 
 #include <stdlib.h>
@@ -40,16 +44,17 @@ extern "C" {
 #  include "xine_buffer.h"
 #  include "configfile.h"
 #else
+#  ifdef WIN32
+#    include <winsock.h>
+#  else
+#    include <sys/time.h>
+#  endif
 #  include <xine/os_types.h>
 #  include <xine/attributes.h>
 #  include <xine/compat.h>
 #  include <xine/xmlparser.h>
 #  include <xine/xine_buffer.h>
 #  include <xine/configfile.h>
-#endif
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
 #endif
 
 #include <stdio.h>

@@ -24,6 +24,7 @@ xine-lib (1-xxx)
   * fixed restoring xv settings on exit for some frontends
   * UTF-8 support for cddb (freedb) client
   * identify AAC, MPEG4 and H264 on transport streams
+  * build fixes and improvements (not using mkinstalldirs, mingw32)
 
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers

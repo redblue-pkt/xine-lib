@@ -33,7 +33,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <inttypes.h>
 
 #include "xine_internal.h"
 #include "video_out.h"

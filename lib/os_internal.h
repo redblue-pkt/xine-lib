@@ -35,6 +35,7 @@ char *_xine_private_strtok_r(char *s, const char *delim, char **ptrptr);
 #ifndef HAVE_GETTIMEOFDAY
 #  ifdef WIN32
 #    include <winsock.h>
+struct timezone;
 #  else
 #    include <sys/time.h>
 #  endif

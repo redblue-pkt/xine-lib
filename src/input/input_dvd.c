@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project, 
+ * Copyright (C) 2000-2004 the xine project, 
  *                         Rich Wareham <richwareham@users.sourceforge.net>
  * 
  * This file is part of xine, a free video player.
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.193 2004/12/08 18:24:21 mroi Exp $
+ * $Id: input_dvd.c,v 1.194 2004/12/12 13:51:29 valtri Exp $
  *
  */
 
@@ -41,9 +41,9 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-#ifndef _MSC_VER
+#ifndef WIN32
 #include <sys/param.h>
-#endif /* _MSC_VER */
+#endif /* WIN32 */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,13 +56,13 @@
 #include <errno.h>
 #include <dlfcn.h>
 
-#ifndef _MSC_VER
+#ifndef WIN32
 #include <sys/mount.h>
 #include <sys/wait.h>
 
 #include <sys/poll.h>
 #include <sys/ioctl.h>
-#endif /* _MSC_VER */
+#endif /* WIN32 */
 
 
 #if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
