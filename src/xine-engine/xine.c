@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.163 2002/10/12 10:36:52 jcdutton Exp $
+ * $Id: xine.c,v 1.164 2002/10/12 19:22:05 jkeil Exp $
  *
  * top-level xine functions
  *
@@ -218,6 +218,10 @@ static void xine_set_speed_internal (xine_t *this, int speed) {
     this->audio_out->audio_paused = (speed != XINE_SPEED_NORMAL) + 
                                     (speed == XINE_SPEED_PAUSE);
 
+    /*
+     * slow motion / fast forward does not play sound, drop buffered
+     * samples from the sound driver
+     */
     if (speed != XINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
 	this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
@@ -238,9 +242,7 @@ void xine_stop_internal (xine_t *this) {
     return;
   }
   
-  if (this->audio_out)
-    this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
-
+  /* make sure we're not in "paused" state */
   xine_set_speed_internal(this, XINE_SPEED_NORMAL);
 
   /* Don't change status if we're quitting */
@@ -260,6 +262,10 @@ void xine_stop_internal (xine_t *this) {
       /* remember the last input plugin for a possible eject */
       this->last_input_plugin = this->cur_input_plugin;
   }
+
+  /* remove buffered samples from the sound device driver */
+  if (this->audio_out)
+    this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
   printf ("xine_stop: done\n");
 }
@@ -405,6 +411,7 @@ int xine_open_internal (xine_t *this, const char *mrl) {
         this->cur_input_plugin->stop(this->cur_input_plugin);
     }
 
+    /* remove buffered samples from the sound device driver */
     if (this->audio_out)
       this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
