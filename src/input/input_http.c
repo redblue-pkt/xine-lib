@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.98 2004/09/20 19:30:04 valtri Exp $
+ * $Id: input_http.c,v 1.99 2004/09/28 15:38:11 athp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,10 +38,6 @@
 #include <netdb.h>
 #include <errno.h>
 #endif /* WIN32 */
-
-#ifdef HOST_OS_DARWIN
-#define __STDC_LIBRARY_SUPPORTED__
-#endif /* HOST_OS_DARWIN */
 
 #include <sys/time.h>
 

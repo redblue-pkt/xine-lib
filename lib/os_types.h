@@ -96,6 +96,15 @@
    typedef long int64_t;
    typedef unsigned long int64_t;
 
+#elif defined(HOST_OS_DARWIN)
+
+  /* Darwin (Mac OS X) needs __STDC_LIBRARY_SUPPORTED__ for SCNx64 and
+   * SCNxMAX macros */
+#  ifndef __STDC_LIBRARY_SUPPORTED__
+#    define __STDC_LIBRARY_SUPPORTED__
+#  endif /* __STDC_LIBRARY_SUPPORTED__ */
+#  include <inttypes.h>
+
 #else
 
   /* 
