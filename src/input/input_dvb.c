@@ -997,11 +997,11 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 			if(*channame)
 			{
 				/* try to find the specified channel */
+				int idx = 0;
 
 				xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
 					_("input_dvb: searching for channel %s\n"),channame);
 
-				int idx = 0;
 				while(idx < num_channels)
 				{
 					if(strcasecmp(channels[idx].name,channame) == 0)break;
@@ -1020,12 +1020,12 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 					 * that the channels have really ugly names, sometimes prefixed
 					 * by numbers...
 					 */
+					int chanlen = strlen(channame);
+					int offset = 0;
 
 					xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
 							_("input_dvb: exact match for %s not found: trying partial matches\n"),channame);
 
-					int chanlen = strlen(channame);
-					int offset = 0;
 					do {
 						idx = 0;
 						while(idx < num_channels)
