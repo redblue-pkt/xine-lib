@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.56 2002/06/20 03:51:49 tmmm Exp $
+ * $Id: demux_qt.c,v 1.57 2002/07/01 18:53:22 miguelfreitas Exp $
  *
  */
 
@@ -1309,6 +1309,12 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
     this->bih.biCompression = this->qt->video_codec;
     this->qt->video_type = fourcc_to_buf_video(this->bih.biCompression);
+
+    /* hack: workaround a fourcc clash! 'mpg4' is used by MS and Sorenson
+     * mpeg4 codecs (they are not compatible).
+     */
+    if( this->qt->video_type == BUF_VIDEO_MSMPEG4_V1 )
+      this->qt->video_type = BUF_VIDEO_MPEG4;
     
     if( !this->qt->video_type )
       xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
