@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.9 2001/08/29 00:51:58 guenter Exp $
+ * $Id: audio_out.c,v 1.10 2001/09/02 00:30:22 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -335,7 +335,7 @@ static int ao_write(ao_instance_t *this,
       this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
     case AO_CAP_MODE_A52:
-      num_output_frames = (num_frames+8)/4;
+
       this->frame_buffer[0] = 0xf872;  /* spdif syncword */
       this->frame_buffer[1] = 0x4e1f;  /* .............  */
       this->frame_buffer[2] = 0x0001;  /* AC3 data       */
@@ -348,10 +348,8 @@ static int ao_write(ao_instance_t *this,
 
       /* ac3 seems to be swabbed data */
       swab(output_frames,this->frame_buffer+4,  num_frames  );
-      this->driver->write(this->driver, this->zero_space, 2); /* Prevents crackle at start. */
-      this->driver->write(this->driver, this->frame_buffer, num_output_frames);
-      this->driver->write(this->driver, this->zero_space, 1534-num_output_frames);
-      num_output_frames=num_output_frames;
+      this->driver->write(this->driver, this->frame_buffer, 1536);
+
       break;
     }
 
