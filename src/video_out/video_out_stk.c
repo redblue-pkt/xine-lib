@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.2 2003/08/13 13:42:20 miguelfreitas Exp $
+ * $Id: video_out_stk.c,v 1.3 2003/09/13 17:20:50 miguelfreitas Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -187,14 +187,14 @@ static void stk_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
             printf ("video_out_stk: format YV12\n");
 #endif
             frame->overlay = stk_surface_create_overlay(this->surface, width, height, 
-                    STK_YV12_OVERLAY);
+                    STK_FORMAT_YV12);
 
         } else if (format == XINE_IMGFMT_YUY2) {
 #ifdef STK_LOG
             printf("video_out_stk: format YUY2\n");
 #endif
             frame->overlay = stk_surface_create_overlay(this->surface, width, height, 
-                    STK_YUY2_OVERLAY);
+                    STK_FORMAT_YUY2);
         }
 
         if (frame->overlay == NULL)
