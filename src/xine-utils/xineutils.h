@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.31 2002/12/30 20:53:05 esnel Exp $
+ * $Id: xineutils.h,v 1.32 2002/12/31 19:30:53 esnel Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -625,7 +625,7 @@ void xine_strdupa(char *dest, char *src);
                               } while(0)
 
 /* Shamefully copied from glibc 2.2.3 */
-#if defined(HAVE_STRPBRK) || !defined(XINE_COMPILE)
+#ifdef HAVE_STRPBRK
 #define xine_strpbrk strpbrk
 #else
 static inline char *_x_strpbrk(const char *s, const char *accept) {
@@ -643,7 +643,7 @@ static inline char *_x_strpbrk(const char *s, const char *accept) {
 #define xine_strpbrk _x_strpbrk
 #endif
 
-#if defined(HAVE_STRSEP) || !defined(XINE_COMPILE)
+#ifdef HAVE_STRSEP
 #define xine_strsep strsep
 #else
 static inline char *_x_strsep(char **stringp, const char *delim) {
@@ -683,7 +683,7 @@ static inline char *_x_strsep(char **stringp, const char *delim) {
 #endif
 
 
-#if defined(HAVE_SETENV) || !defined(XINE_COMPILE)
+#ifdef HAVE_SETENV
 #define	xine_setenv	setenv
 #else
 static inline void _x_setenv(const char *name, const char *val, int _xx)
