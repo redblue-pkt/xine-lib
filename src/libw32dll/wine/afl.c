@@ -512,6 +512,7 @@ MMRESULT WINAPI acmStreamOpen(PHACMSTREAM phas, HACMDRIVER had, PWAVEFORMATEX pw
 	if (phas)
 	    *phas = (HACMSTREAM)was;
 	TRACE("=> (%d)\n", ret);
+	CodecAlloc();
 	return ret;
     }
 errCleanUp:		
@@ -538,6 +539,7 @@ MMRESULT WINAPI acmStreamClose(HACMSTREAM has, DWORD fdwClose)
 	if (was->hAcmDriver)
 	    acmDriverClose(was->hAcmDriver, 0L);	
 	HeapFree(MSACM_hHeap, 0, was);
+	CodecRelease();
     }
     TRACE("=> (%d)\n", ret);
     return ret;

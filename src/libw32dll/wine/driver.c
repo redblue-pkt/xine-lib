@@ -96,7 +96,7 @@ static NPDRVR DrvAlloc(HDRVR*lpDriver, LPUINT lpDrvResult)
                                                                                                                     
 static void DrvFree(HDRVR hDriver)
 {
-    int i;
+    /* int i; -- unused */
     Setup_FS_Segment();
     if(hDriver)
     	if(((DRVR*)hDriver)->hDriverModule)
@@ -115,6 +115,7 @@ static void DrvFree(HDRVR hDriver)
 void DrvClose(HDRVR hdrvr)
 {
     DrvFree(hdrvr);
+    CodecRelease();
 }
 
 
@@ -123,7 +124,7 @@ char* win32_codec_name=NULL;  // must be set before calling DrvOpen() !!!
 HDRVR VFWAPI
 DrvOpen(LPARAM lParam2)
 {
-    ICOPEN *icopen=(ICOPEN *) lParam2;
+    /* ICOPEN *icopen=(ICOPEN *) lParam2; -- unused */
     UINT uDrvResult;
     HDRVR hDriver;
     NPDRVR npDriver;
@@ -221,6 +222,7 @@ DrvOpen(LPARAM lParam2)
      
 //     printf("Successfully loaded codec %s\n",win32_codec_name);
      
+     CodecAlloc();
      return (hDriver);
 }
   
