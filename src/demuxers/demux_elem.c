@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.11 2001/06/17 00:23:34 guenter Exp $
+ * $Id: demux_elem.c,v 1.12 2001/06/17 23:17:40 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -36,6 +36,8 @@
 #include "xine_internal.h"
 #include "monitor.h"
 #include "demux.h"
+
+#define NUM_PREVIEW_BUFFERS 400
 
 #define DEMUX_MPEG_ELEM_IFACE_VERSION 1
 
@@ -62,7 +64,7 @@ static uint32_t xine_debug;
 /*
  *
  */
-static int demux_mpeg_elem_next (demux_mpeg_elem_t *this) {
+static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf_element_t *buf;
 
   buf = this->input->read_block(this->input, 
@@ -73,10 +75,15 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this) {
     return 0;
   }
 
-  buf->DTS       = 0;
-  buf->PTS       = 0;
-  buf->input_pos = this->input->get_current_pos(this->input);
-  buf->type      = BUF_VIDEO_MPEG;
+  if(preview_mode)
+    buf->decoder_info[0] = 0;
+  else
+    buf->decoder_info[0] = 1;
+
+  buf->DTS             = 0;
+  buf->PTS             = 0;
+  buf->input_pos       = this->input->get_current_pos(this->input);
+  buf->type            = BUF_VIDEO_MPEG;
 
   this->video_fifo->put(this->video_fifo, buf);
   
@@ -94,7 +101,7 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
 
   do {
 
-    if (!demux_mpeg_elem_next(this))
+    if (!demux_mpeg_elem_next(this, 0))
       this->status = DEMUX_FINISHED;
 
   } while (this->status == DEMUX_OK) ;
@@ -196,6 +203,22 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
     buf->type    = BUF_CONTROL_START;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
+
+  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+    int num_buffers = NUM_PREVIEW_BUFFERS;
+    
+    this->input->seek (this->input, 0, SEEK_SET);
+    
+    this->status = DEMUX_OK ;
+    while ((num_buffers > 0) && (this->status == DEMUX_OK)) {
+      demux_mpeg_elem_next(this, 1);
+      num_buffers--;
+    }
+
+    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
+    this->input->seek (this->input, pos, SEEK_SET);
+  }
+
   /*
    * now start demuxing
    */

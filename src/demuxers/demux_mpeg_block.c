@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.19 2001/06/17 21:58:22 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.20 2001/06/17 23:17:40 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -38,7 +38,7 @@
 #include "demux.h"
 #include "utils.h"
 
-#define NUM_PREVIEW_BUFFERS 50
+#define NUM_PREVIEW_BUFFERS 400
 
 static uint32_t xine_debug;
 
