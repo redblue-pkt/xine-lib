@@ -38,4 +38,5 @@ EXTRA_DIST = \
 	theora.m4 \
 	xine.m4 \
 	_xine.m4 \
-	xvid.m4
+	xvid.m4 \
+	vcd.m4

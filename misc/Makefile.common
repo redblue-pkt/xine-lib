@@ -43,7 +43,7 @@ uninstall-includeHEADERS:
 	done
 
 uninstall-hook:
-	@if test '$(libdir)' = '$(XINE_PLUGINDIR)'; then \
+	@if echo '$(libdir)' | egrep ^'$(XINE_PLUGINDIR)' >/dev/null; then \
 	  list='$(lib_LTLIBRARIES)'; for p in $$list; do \
 	    p="`echo $$p | sed -e 's/\.la$$/\.so/g;s|^.*/||'`"; \
 	    echo " rm -f $(DESTDIR)$(libdir)/$$p"; \

@@ -12,7 +12,7 @@ docs_DATA = hackersguide.html \
             architecture.png library.png overlays.png post_frame.png
 
 EXTRA_DIST = README $(hackersguide_sgml) \
-	architecture.fig library.fig overlays.fig post_frame.fig
+	architecture.fig library.fig overlays.fig post_frame.fig $(docs_DATA)
 
 docsdir = $(prefix)/share/doc/xine/hackersguide
 
@@ -20,10 +20,12 @@ docs: $(docs_DATA)
 
 distclean-generic: clean-docs
 
-docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml))
-	for file in $(hackersguide_sgml); do \
-	  test -f ./$$file || cp $(srcdir)/$$file .; \
-	done
+docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml) $(wildcard *.fig))
+	if test "$(srcdir)" != "." ; then \
+	  for file in $(hackersguide_sgml) *.fig ; do \
+	    test -f ./$$file -a ./$$file -nt $(srcdir)/$$file || cp $(srcdir)/$$file .; \
+	  done ; \
+	fi
 
 clean-docs:
 	rm -f $(docs_DATA)
@@ -31,17 +33,19 @@ clean-docs:
 
 dist-hook:
 	@make fail_if_missing=yes docs
-	cp $(docs_DATA) $(distdir)
 
 if HAVE_SGMLTOOLS
-hackersguide.html: docs-prepare $(hackersguide_sgml)
+hackersguide.html: $(hackersguide_sgml)
+	$(MAKE) docs-prepare
 	$(SGMLTOOLS) -b onehtml hackersguide.sgml;
 else
-hackersguide.html: docs-prepare $(hackersguide_sgml)
+hackersguide.html: $(hackersguide_sgml)
+	$(MAKE) docs-prepare
 	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install sgmltools-lite."; \
 	  exit 1; \
-	else \
+	fi
+	-if test x"$(fail_if_missing)" != x"yes"; then \
 	  touch $@; \
 	  sleep 1; \
 	  touch $^; \
@@ -49,14 +53,17 @@ hackersguide.html: docs-prepare $(hackersguide_sgml)
 endif
 
 if HAVE_FIG2DEV
-%.png: $(srcdir)/%.fig
+%.png: %.fig
+	$(MAKE) docs-prepare
 	$(FIG2DEV) -L png -S 4 $< $@;
 else
-%.png: $(srcdir)/%.fig
-	-if test x"$(fail_if_missing)" = x"yes"; then \
+%.png: %.fig
+	$(MAKE) docs-prepare
+	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install fig2dev."; \
 	  exit 1; \
-	else \
+	fi
+	-if test x"$(fail_if_missing)" != x"yes"; then \
 	  touch $@; \
 	  sleep 1; \
 	  touch $^; \
