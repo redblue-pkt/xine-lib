@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.32 2001/09/02 16:19:44 guenter Exp $
+ * $Id: demux_avi.c,v 1.33 2001/09/02 22:26:54 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -776,7 +776,7 @@ static void *demux_avi_loop (void *this_gen) {
 
   do {
 
-    /* printf ("avi loop (status %d)\n", this->status); */
+    /* printf ("avi loop (status %d)\n", this->status);  */
 
     if (!demux_avi_next(this))
       this->status = DEMUX_FINISHED;
@@ -797,7 +797,7 @@ static void *demux_avi_loop (void *this_gen) {
     }
   }
 
-  xprintf (VERBOSE|DEMUX, "demux_avi: demux loop finished.\n");
+  printf ("demux_avi: demux loop finished.\n");
 
   pthread_exit(NULL);
 
@@ -903,6 +903,8 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       this->avi->video_posf++;
       if (this->avi->video_posf>this->avi->video_frames) {
 	this->status = DEMUX_FINISHED;
+
+	printf ("demux_avi: video seek to start failed\n");
 	return;
       }
     }
@@ -918,6 +920,8 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       this->avi->video_posf++;
       if (this->avi->video_posf>this->avi->video_frames) {
 	this->status = DEMUX_FINISHED;
+
+	printf ("demux_avi: video seek to start failed\n");
 	return;
       }
     }
@@ -930,6 +934,8 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       this->avi->audio_posc++;
       if (this->avi->audio_posc>this->avi->audio_chunks) {
 	this->status = DEMUX_FINISHED;
+
+	printf ("demux_avi: audio seek to start failed\n");
 	return;
       }
     }

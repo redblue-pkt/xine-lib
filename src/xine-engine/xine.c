@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.55 2001/09/01 17:10:01 jkeil Exp $
+ * $Id: xine.c,v 1.56 2001/09/02 22:26:54 guenter Exp $
  *
  * top-level xine functions
  *
@@ -266,15 +266,24 @@ void xine_play (xine_t *this, char *mrl,
 				   this->get_next_mrl_cb,
 				   this->branched_cb);
   
-  this->status = XINE_PLAY;
-  strncpy (this->cur_mrl, mrl, 1024);
+  if (this->cur_demuxer_plugin->get_status(this->cur_demuxer_plugin) != DEMUX_OK) {
+    printf("xine_play: demuxer failed to start\n");
+    
+    this->cur_input_plugin->close(this->cur_input_plugin);
 
-  this->metronom->set_speed (this->metronom, SPEED_NORMAL);
-  this->audio_mute = 0;
-  this->speed = SPEED_NORMAL;
+    this->status = XINE_STOP;
+  } else {
 
-  printf ("xine_play: demuxer started\n");
-  
+    this->status = XINE_PLAY;
+    strncpy (this->cur_mrl, mrl, 1024);
+    
+    this->metronom->set_speed (this->metronom, SPEED_NORMAL);
+    this->audio_mute = 0;
+    this->speed = SPEED_NORMAL;
+    
+    printf ("xine_play: demuxer started\n");
+  }    
+
   pthread_mutex_unlock (&this->xine_lock);
 }
 
