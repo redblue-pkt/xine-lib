@@ -27,6 +27,7 @@ xine-lib (1-rc3)
   * load xine fonts on demand - faster startup
   * decoder priority can be changed without restarting
   * fix length of mpeg 2 audio vbr streams
+  * use AUDIODEV enviroment variable on Sun
   
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
