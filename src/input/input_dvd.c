@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.185 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_dvd.c,v 1.186 2004/08/01 16:18:43 mroi Exp $
  *
  */
 
@@ -207,7 +207,8 @@ typedef struct {
   void             *source;
   void            (*free_buffer)(buf_element_t *);
   int               mem_stack;
-  unsigned char    *mem[1024];
+  int               mem_stack_max;
+  unsigned char   **mem;
   int               freeing;
 } dvd_input_plugin_t;
 
@@ -414,6 +415,7 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
     this->freeing = 1;
   } else {
     pthread_mutex_destroy(&this->buf_mutex);
+    free(this->mem);
     free(this);
   }
 }
@@ -517,6 +519,7 @@ static void dvd_plugin_free_buffer(buf_element_t *buf) {
   if (this->freeing && !this->mem_stack) {
     /* all buffers returned, we can free the plugin now */
     pthread_mutex_destroy(&this->buf_mutex);
+    free(this->mem);
     free(this);
   }
 }
@@ -745,7 +748,20 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
      * necessary values to reconstruct xine's buffer and modify it according to
      * our needs. */
     pthread_mutex_lock(&this->buf_mutex);
-    if (this->mem_stack < 1024) {
+    if (this->mem_stack >= this->mem_stack_max) {
+      void *mem;
+
+      mem = realloc(this->mem, sizeof(unsigned char *) * (this->mem_stack_max + 1024));
+      if (mem) {
+        this->mem_stack_max += 1024;
+        this->mem = mem;
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: Memory stack increased to %d entries.\n", this->mem_stack_max);
+      } else {
+        xprintf(this->stream->xine, XINE_VERBOSITY_NONE, "%s: realloc() failed: %s.\n",
+          __XINE_FUNCTION__, strerror(errno));
+      }
+    }
+    if (this->mem_stack < this->mem_stack_max) {
       this->mem[this->mem_stack++] = buf->mem;
       this->free_buffer = buf->free_buffer;
       this->source = buf->source;
@@ -756,8 +772,6 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
       /* the stack for storing the memory chunks from xine is full, we cannot
        * modify the buffer, because we would not be able to reconstruct it.
        * Therefore we copy the data and give the buffer back. */
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	      "input_dvd: too many buffers issued, memory stack exceeded\n");
       memcpy(buf->mem, block, DVD_BLOCK_SIZE);
       dvdnav_free_cache_block(this->dvdnav, block);
       buf->content = buf->mem;
@@ -1499,8 +1513,17 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
     return NULL;
 
   this = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
-  if (!this)
+  if (!this) {
     return NULL;
+  }
+
+  this->mem_stack     = 0;
+  this->mem_stack_max = 1024;
+  this->mem           = xine_xmalloc(sizeof(unsigned char *) * this->mem_stack_max);
+  if (!this->mem) {
+    free(this);
+    return NULL;
+  }
 
   this->input_plugin.open               = dvd_plugin_open;
   this->input_plugin.get_capabilities   = dvd_plugin_get_capabilities;
@@ -1532,7 +1555,6 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->mrl                    = strdup(data);
 
   pthread_mutex_init(&this->buf_mutex, NULL);
-  this->mem_stack              = 0;
   this->freeing                = 0;
   
   this->event_queue = xine_event_new_queue (this->stream);
