@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.109 2003/09/28 14:16:00 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.110 2003/09/28 23:53:32 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -63,16 +63,30 @@
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
 #define CDXA_TAG FOURCC_TAG('C', 'D', 'X', 'A')
-#define ID3V22_TAG FOURCC_TAG('I', 'D', '3', 2)  /* ID3 v2.2 tags */
-#define ID3V23_TAG FOURCC_TAG('I', 'D', '3', 3)  /* ID3 v2.3 tags */
-#define ID3V24_TAG FOURCC_TAG('I', 'D', '3', 4)  /* ID3 v2.4 tags */
-#define XING_TAG FOURCC_TAG('X', 'i', 'n', 'g')
 
 /* Xing header stuff */
+#define XING_TAG FOURCC_TAG('X', 'i', 'n', 'g')
 #define XING_FRAMES_FLAG     0x0001
 #define XING_BYTES_FLAG      0x0002
 #define XING_TOC_FLAG        0x0004
 #define XING_VBR_SCALE_FLAG  0x0008
+
+/* id3v2 */
+#define ID3V22_TAG FOURCC_TAG('I', 'D', '3', 2)  /* id3 v2.2 tags */
+#define ID3V23_TAG FOURCC_TAG('I', 'D', '3', 3)  /* id3 v2.3 tags */
+#define ID3V24_TAG FOURCC_TAG('I', 'D', '3', 4)  /* id3 v2.4 tags */
+#define ID3V2_UNSYNCH_FLAG   0x8000
+
+/* id2v2.2 */
+#define ID3V2_COMPRESS_FLAG  0x4000
+
+/* id2v2.3 */
+#define ID3V2_EXTHEAD_FLAG   0x4000
+#define ID3V2_EXP_FLAG       0x2000
+
+/* id2v2.4 */
+#define ID3V2_FOOTER_FLAG    0x1000
+
 
 typedef struct {
   /* header */
@@ -96,6 +110,34 @@ typedef struct {
   int       samplerate;
   int       length;               /* in bytes */
 } mpg_audio_frame_t;
+
+typedef struct {
+  uint32_t  id;
+  uint8_t   revision;
+  uint8_t   flags;
+  uint32_t  size;
+} id3v2_header_t;
+
+typedef struct {
+  uint32_t  id;
+  uint32_t  size;
+} id3v22_frame_header_t;
+
+typedef struct {
+  uint32_t  id;
+  uint32_t  size;
+  uint16_t  flags;
+} id3v23_frame_header_t;
+
+typedef struct {
+  char tag[3];
+  char title[30];
+  char artist[30];
+  char album[30];
+  char year[4];
+  char comment[30];
+  char genre;
+} id3v1_tag_t;
 
 typedef struct {
 
@@ -468,16 +510,6 @@ static int sniff_buffer_looks_like_mp3 (input_plugin_t *input)
   return 0;
 }
 
-struct id3v1_tag_s {
-  char tag[3];
-  char title[30];
-  char artist[30];
-  char album[30];
-  char year[4];
-  char comment[30];
-  char genre;
-};
-
 static void chomp (char *str) {
 
   int i,len;
@@ -494,7 +526,7 @@ static void chomp (char *str) {
 static void read_id3_tags (demux_mpgaudio_t *this) {
 
   off_t len;
-  struct id3v1_tag_s tag;
+  id3v1_tag_t tag;
 
   /* id3v1 */
   len = this->input->read (this->input, (char *)&tag, 128);
@@ -527,6 +559,139 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
   }
 }
 
+static int id3v2_parse_header(demux_mpgaudio_t *this, uint8_t *mp3_frame_header,
+                              id3v2_header_t *tag_header) {
+  uint8_t buf[6];
+
+  tag_header->id = BE_32(mp3_frame_header);
+  if (this->input->read (this->input, buf, 6) == 6) {
+    tag_header->revision = buf[0];
+    tag_header->flags    = buf[1];
+
+    /* only 7 bits per byte */
+    tag_header->size     = (buf[2] << 21) + (buf[3] << 14) + (buf[4] << 7) + buf[5];
+    lprintf("tag: ID3 v2.%d.%d\n", mp3_frame_header[3], tag_header->revision);
+    lprintf("flags: %d\n", tag_header->flags);
+    lprintf("size: %d\n", tag_header->size);
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+static int id3v22_parse_frame_header(demux_mpgaudio_t *this,
+                                     id3v22_frame_header_t *frame_header) {
+  uint8_t buf[6];
+
+  if (this->input->read (this->input, buf, 6) == 6) {
+    frame_header->id    = (buf[0] << 16) + (buf[1] << 8) + buf[2];
+
+    /* only 7 bits per byte */
+    frame_header->size  = (buf[3] << 14) + (buf[4] << 7) + buf[5];
+
+    lprintf("frame: %c%c%c: size: %d\n", buf[0], buf[1], buf[2],
+            frame_header->size);
+
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+static void mpg123_set_meta_info(xine_stream_t *stream, int info, char* txt) {
+  if (stream->meta_info [info])
+    free(stream->meta_info [info]);
+  stream->meta_info [info] = strdup(txt);
+}
+
+static int id3v22_interp_frame(demux_mpgaudio_t *this,
+                               id3v22_frame_header_t *frame_header) {
+  /*
+   * FIXME: supports unicode
+   */
+  char buf[4096];
+
+  if (frame_header->size > 4096) {
+    lprintf("too long\n");
+    return 1;
+  }
+
+  if (this->input->read (this->input, buf, frame_header->size) == frame_header->size) {
+    buf[frame_header->size] = 0;
+
+    switch (frame_header->id) {
+      case (FOURCC_TAG(0, 'T', 'T', '1')):
+        mpg123_set_meta_info(this->stream, XINE_META_INFO_GENRE, buf + 1);
+        break;
+
+      case (FOURCC_TAG(0, 'T', 'T', '2')):
+        mpg123_set_meta_info(this->stream, XINE_META_INFO_TITLE, buf + 1);
+        break;
+
+      case (FOURCC_TAG(0, 'T', 'P', '1')):
+        mpg123_set_meta_info(this->stream, XINE_META_INFO_ARTIST, buf + 1);
+        break;
+
+      case (FOURCC_TAG(0, 'T', 'A', 'L')):
+        mpg123_set_meta_info(this->stream, XINE_META_INFO_ALBUM, buf + 1);
+        break;
+
+      case (FOURCC_TAG(0, 'T', 'Y', 'E')):
+        mpg123_set_meta_info(this->stream, XINE_META_INFO_YEAR, buf + 1);
+        break;
+
+      case (FOURCC_TAG(0, 'C', 'O', 'M')):
+        mpg123_set_meta_info(this->stream, XINE_META_INFO_COMMENT, buf + 1 + 3);
+        break;
+
+      default:
+        lprintf("unhandled frame\n");
+    }
+
+    return 1;
+  } else {
+    lprintf("read error\n");
+    return 0;
+  }
+}
+
+
+static int id3v22_parse_tag(demux_mpgaudio_t *this, int8_t *mp3_frame_header) {
+  id3v2_header_t tag_header;
+  id3v22_frame_header_t tag_frame_header;
+  int pos = 0;
+
+  if (id3v2_parse_header(this, mp3_frame_header, &tag_header)) {
+
+    while ((pos + 6) < tag_header.size) {
+      if (id3v22_parse_frame_header(this, &tag_frame_header)) {
+        pos += 6;
+        if (tag_frame_header.id && tag_frame_header.size) {
+          if ((pos + tag_frame_header.size) < tag_header.size) {
+            if (!id3v22_interp_frame(this, &tag_frame_header)) {
+              lprintf("invalid frame content\n");
+            }
+          } else {
+            lprintf("invalid frame header\n");
+            return 0;
+          }
+          pos += tag_frame_header.size;
+        } else {
+          /* end of frames, the rest is padding */
+          this->input->seek (this->input, tag_header.size - pos, SEEK_CUR);
+          return 1;
+        }
+      } else {
+        lprintf("id3v2_parse_frame_header problem\n");
+        return 0;
+      }
+    }
+    return 1;
+  } else {
+    lprintf("id3v2_parse_header problem\n");
+    return 0;
+  }
+}
 
 static int mpg123_read_frame_header(demux_mpgaudio_t *this, uint8_t *header_buf, int bytes) {
   off_t len;
@@ -563,18 +728,20 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
 
       } else if ((BE_32(header_buf)) == ID3V22_TAG) {
         lprintf("ID3V2.2 tag\n");
-        /* TODO: add parsing here */
-        bytes = 1;
+        if (!id3v22_parse_tag(this, header_buf)) {
+          return 0;
+        }
+        bytes = 4;
 
       } else if ((BE_32(header_buf)) == ID3V23_TAG) {
         lprintf("ID3V2.3 tag\n");
         /* TODO: add parsing here */
-        bytes = 1;
+        bytes = 1; /* resync */
 
       } else if ((BE_32(header_buf)) == ID3V24_TAG) {
         lprintf("ID3V2.4 tag\n");
         /* TODO: add parsing here */
-        bytes = 1;
+        bytes = 1; /* resync */
 
       } else {
         /* skip */
