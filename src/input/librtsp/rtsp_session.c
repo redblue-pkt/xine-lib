@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.9 2003/02/11 16:20:40 heikos Exp $
+ * $Id: rtsp_session.c,v 1.10 2003/04/13 19:02:08 miguelfreitas Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -61,7 +61,7 @@ struct rtsp_session_s {
 
 };
 
-rtsp_session_t *rtsp_session_start(char *mrl) {
+rtsp_session_t *rtsp_session_start(xine_stream_t *stream, char *mrl) {
 
   rtsp_session_t *rtsp_session=malloc(sizeof(rtsp_session_t));
   char *server;
@@ -72,7 +72,7 @@ rtsp_session_t *rtsp_session_start(char *mrl) {
 connect:
 
   /* connect to server */
-  rtsp_session->s=rtsp_connect(mrl_line,NULL);
+  rtsp_session->s=rtsp_connect(stream, mrl_line,NULL);
   if (!rtsp_session->s)
   {
     printf("rtsp_session: failed to connect to server %s\n", mrl_line);

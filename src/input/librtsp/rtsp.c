@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.9 2003/04/10 02:30:48 miguelfreitas Exp $
+ * $Id: rtsp.c,v 1.10 2003/04/13 19:02:07 miguelfreitas Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -49,6 +49,8 @@
 #define MAX_FIELDS 256
 
 struct rtsp_s {
+
+  xine_stream_t *stream;
 
   int           s;
 
@@ -169,15 +171,16 @@ static int write_stream(int s, const char *buf, int len) {
   return total;
 }
 
-static ssize_t read_stream(int fd, void *buf, size_t count) {
-  
+static ssize_t read_stream(rtsp_t *s, void *buf, size_t count) {
+
+#if 0  
   ssize_t ret, total;
 
   total = 0;
 
   while (total < count) {
   
-    ret=read (fd, ((uint8_t*)buf)+total, count-total);
+    ret=read (s->s, ((uint8_t*)buf)+total, count-total);
 
     if (ret<0) {
       if(errno == EAGAIN) {
@@ -185,12 +188,12 @@ static ssize_t read_stream(int fd, void *buf, size_t count) {
         struct timeval timeout;
     
         FD_ZERO (&rset);
-        FD_SET  (fd, &rset);
+        FD_SET  (s->s, &rset);
         
         timeout.tv_sec  = 30;
         timeout.tv_usec = 0;
         
-        if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
+        if (select (s->s+1, &rset, NULL, NULL, &timeout) <= 0) {
           return -1;
         }
         continue;
@@ -206,6 +209,11 @@ static ssize_t read_stream(int fd, void *buf, size_t count) {
   }
 
   return total;
+#else
+
+  return xine_read_abort(s->stream, s->s, buf, count );
+
+#endif
 }
 
 /*
@@ -255,7 +263,7 @@ static char *rtsp_get(rtsp_t *s) {
   char *string;
 
   while (n<BUF_SIZE) {
-    read_stream(s->s, &s->buffer[n], 1);
+    read_stream(s, &s->buffer[n], 1);
     if ((s->buffer[n-1]==0x0d)&&(s->buffer[n]==0x0a)) break;
     n++;
   }
@@ -531,7 +539,7 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
   int i,seq;
 
   if (size>=4) {
-    i=read_stream(s->s, buffer, 4);
+    i=read_stream(s, buffer, 4);
     if (i<4) return i;
     if ((buffer[0]=='S')&&(buffer[1]=='E')&&(buffer[2]=='T')&&(buffer[3]=='_'))
     {
@@ -559,14 +567,14 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
       sprintf(rest,"CSeq: %u", seq);
       rtsp_put(s, rest);
       rtsp_put(s, "");
-      i=read_stream(s->s, buffer, size);
+      i=read_stream(s, buffer, size);
     } else
     {
-      i=read_stream(s->s, buffer+4, size-4);
+      i=read_stream(s, buffer+4, size-4);
       i+=4;
     }
   } else
-    i=read_stream(s->s, buffer, size);
+    i=read_stream(s, buffer, size);
 #ifdef LOG
   printf("librtsp: << %d of %d bytes\n", i, size);
 #endif
@@ -578,7 +586,7 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
  * connect to a rtsp server
  */
 
-rtsp_t *rtsp_connect(const char *mrl, const char *user_agent) {
+rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_agent) {
 
   rtsp_t *s=malloc(sizeof(rtsp_t));
   char *mrl_ptr=strdup(mrl);
@@ -599,6 +607,7 @@ rtsp_t *rtsp_connect(const char *mrl, const char *user_agent) {
     s->scheduled[i]=NULL;
   }
 
+  s->stream=stream;
   s->host=NULL;
   s->port=554; /* rtsp standard port */
   s->path=NULL;

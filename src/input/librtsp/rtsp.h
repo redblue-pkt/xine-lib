@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.h,v 1.2 2002/12/16 21:50:55 holstsn Exp $
+ * $Id: rtsp.h,v 1.3 2003/04/13 19:02:07 miguelfreitas Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -27,7 +27,7 @@
 #define HAVE_RTSP_H
 
 /*#include <inttypes.h> */
-/*#include "xine_internal.h" */
+#include "xine_internal.h"
 
 #ifdef __CYGWIN__
 #define uint32_t unsigned int
@@ -42,7 +42,7 @@
 
 typedef struct rtsp_s rtsp_t;
 
-rtsp_t*  rtsp_connect (const char *mrl, const char *user_agent);
+rtsp_t*  rtsp_connect (xine_stream_t *stream, const char *mrl, const char *user_agent);
 
 int rtsp_request_options(rtsp_t *s, const char *what);
 int rtsp_request_describe(rtsp_t *s, const char *what);
