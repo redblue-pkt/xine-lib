@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.3 2004/10/31 22:29:07 miguelfreitas Exp $
+ * $Id: input_cache.c,v 1.4 2004/11/16 21:16:43 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,7 +44,6 @@ typedef struct {
 
   input_plugin_t   *main_input_plugin; /* original input plugin */
   xine_stream_t    *stream;
-  off_t             cur_pos;
 
   uint8_t           buf[BUFFER_SIZE];
   int               buf_len;
@@ -152,8 +151,6 @@ static off_t cache_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
     }
   }
   
-  if( read_len > 0 )
-    this->cur_pos += read_len;
   return read_len;
 }
 
@@ -195,60 +192,72 @@ static buf_element_t *cache_plugin_read_block(input_plugin_t *this_gen, fifo_buf
     buf = this->main_input_plugin->read_block(this->main_input_plugin, fifo, todo);
     this->read_call++;
     this->main_read_call++;
-    if(buf)
-      this->cur_pos += buf->size;
   }
   return buf;
 }
 
 static off_t cache_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin) {
   cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
-  off_t abs_offset;
+  off_t cur_pos;
   off_t rel_offset;
   off_t new_buf_pos;
 
   lprintf("offset: %lld, origin: %d\n", offset, origin);
   this->seek_call++;
 
-  switch (origin) {
-  case SEEK_CUR:
-    abs_offset = this->cur_pos + offset;
-    rel_offset = offset;
-    break;
-
-  case SEEK_SET:
-    abs_offset = offset;
-    rel_offset = offset - this->cur_pos;
-    break;
-    
-  default:
-    /* invalid origin */
-    return this->cur_pos;
-  }
-
-
-  new_buf_pos = (off_t)this->buf_pos + rel_offset;
-  lprintf("buf_len: %d, abs_offset=%lld, rel_offset=%lld, new_buf_pos=%lld\n",
-	  this->buf_len, abs_offset, rel_offset, new_buf_pos);
-
-  if ((new_buf_pos < 0) || (new_buf_pos >= this->buf_len)) {
-    this->buf_len = this->buf_pos = 0;
-    this->cur_pos = this->main_input_plugin->seek(this->main_input_plugin, abs_offset, SEEK_SET);
+  if( !this->buf_len ) {
+    cur_pos = this->main_input_plugin->seek(this->main_input_plugin, offset, origin);
     this->main_seek_call++;
   } else {
-    this->buf_pos = (int)new_buf_pos;
-    this->cur_pos = abs_offset;
+    cur_pos = this->main_input_plugin->get_current_pos(this->main_input_plugin);
+    cur_pos -= (this->buf_len - this->buf_pos);
+
+    switch (origin) {
+    case SEEK_CUR:
+      rel_offset = offset;
+      break;
+  
+    case SEEK_SET:
+      rel_offset = offset - cur_pos;
+      break;
+      
+    default:
+      /* invalid origin - main input should know better */
+      cur_pos = this->main_input_plugin->seek(this->main_input_plugin, offset, origin);
+      this->buf_len = this->buf_pos = 0;
+      this->main_seek_call++;
+      return cur_pos;
+    }
+  
+    new_buf_pos = (off_t)this->buf_pos + rel_offset;
+    lprintf("buf_len: %d, rel_offset=%lld, new_buf_pos=%lld\n",
+  	  this->buf_len, rel_offset, new_buf_pos);
+  
+    if ((new_buf_pos < 0) || (new_buf_pos >= this->buf_len)) {
+      if( origin == SEEK_SET )
+        cur_pos = this->main_input_plugin->seek(this->main_input_plugin, offset, origin);
+      else
+        cur_pos = this->main_input_plugin->seek(this->main_input_plugin, 
+                  offset - (this->buf_len - this->buf_pos), origin);
+      this->buf_len = this->buf_pos = 0;
+      this->main_seek_call++;
+    } else {
+      this->buf_pos = (int)new_buf_pos;
+      cur_pos += rel_offset;
+    }
   }
-  return this->cur_pos;
+  return cur_pos;
 }
 
 static off_t cache_plugin_get_current_pos(input_plugin_t *this_gen) {
   cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
+  off_t cur_pos;
+  
+  cur_pos = this->main_input_plugin->get_current_pos(this->main_input_plugin);
+  if( this->buf_len )
+    cur_pos -= (this->buf_len - this->buf_pos);
 
-  if (!this->buf_len)
-    this->cur_pos = this->main_input_plugin->get_current_pos(this->main_input_plugin);  
-
-  return this->cur_pos;
+  return cur_pos;
 }
 
 static off_t cache_plugin_get_length (input_plugin_t *this_gen) {
