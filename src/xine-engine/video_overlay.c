@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.22 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.23 2002/09/01 05:52:15 jcdutton Exp $
  *
  */
 
@@ -299,7 +299,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
       this->events[new_event].event->object.overlay = NULL;
     }
   } else {
-    printf("No spare subtitle event slots\n");
+    printf("video_overlay:No spare subtitle event slots\n");
     new_event = -1;
   }
   
@@ -511,7 +511,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
         }
         if ( (this->events[this_event].event->object.pts != 
                 this->objects[handle].pts) ) {
-          printf ("MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
+          printf ("video_overlay:MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
             this->events[this_event].event->object.pts,
             this->objects[handle].pts);
         }
