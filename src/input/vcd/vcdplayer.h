@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.h,v 1.4 2004/12/29 16:16:52 jcdutton Exp $
+  $Id: vcdplayer.h,v 1.5 2004/12/30 09:05:57 rockyb Exp $
 
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -183,8 +183,8 @@ typedef struct vcdplayer_input_s {
   /*--------------------------------------------------------------
     (S)VCD Medium information
    ---------------------------------------------------------------*/
-  char       *psz_source;   /* VCD device currently open */
-  bool       opened;                /* true if initialized */
+  char         *psz_source; /* VCD device currently open */
+  bool          opened;     /* true if initialized */
 
   track_t       i_tracks;   /* # of playable MPEG tracks. This is 
                                 generally one less than the number

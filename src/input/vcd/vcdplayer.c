@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.9 2004/12/29 16:16:52 jcdutton Exp $
+  $Id: vcdplayer.c,v 1.10 2004/12/30 09:05:57 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -280,7 +280,7 @@ _vcdplayer_update_entry(vcdinfo_obj_t *p_vcdinfo, uint16_t ofs,
     vcdinfo_offset_t *off = vcdinfo_get_offset_t(p_vcdinfo, ofs);
     if (off != NULL) {
       *entry = off->lid;
-      dbg_print(INPUT_DBG_PBC, "%s: %d\n", label, off->lid);
+      dbg_print(INPUT_DBG_PBC, "%s: LID %d\n", label, off->lid);
     } else
       *entry = VCDINFO_INVALID_ENTRY;
   }
@@ -803,12 +803,12 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
         vcdplayer_play(p_vcdplayer, itemid);
         goto skip_next_play;
       } else {
-        int num_selections = vcdinf_get_num_selections(p_vcdplayer->pxd.psd);
-        if (num_selections > 0) {
+        int i_selections = vcdinf_get_num_selections(p_vcdplayer->pxd.psd);
+        if (i_selections > 0) {
           /* Pick a random selection. */
           unsigned int bsn=vcdinf_get_bsn(p_vcdplayer->pxd.psd);
           int rand_selection=bsn +
-            (int) ((num_selections+0.0)*rand()/(RAND_MAX+1.0));
+            (int) ((i_selections+0.0)*rand()/(RAND_MAX+1.0));
 
 #if defined(LIBVCD_VERSION)
           /* version 0.7.21 or greater */
@@ -932,8 +932,8 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *buf,
 
   if ( p_vcdplayer->i_lsn >= p_vcdplayer->end_lsn ) {
     vcdplayer_read_status_t read_status;
-
-    /* We've run off of the end of p_vcdplayer entry. Do we continue or stop? */
+    
+    /* We've run off of the end of this entry. Do we continue or stop? */
     dbg_print( (INPUT_DBG_LSN|INPUT_DBG_PBC), 
               "end reached, cur: %u, end: %u\n", 
                p_vcdplayer->i_lsn, p_vcdplayer->end_lsn);
@@ -956,7 +956,7 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *buf,
   */
 
   {
-    CdIo *img = vcdinfo_get_cd_image(p_vcdplayer->vcd);
+    CdIo *p_img = vcdinfo_get_cd_image(p_vcdplayer->vcd);
     typedef struct {
       uint8_t subheader	[CDIO_CD_SUBHEADER_SIZE];
       uint8_t data	[M2F2_SECTOR_SIZE];
@@ -965,10 +965,10 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *buf,
     vcdsector_t vcd_sector;
 
     do {
-      dbg_print(INPUT_DBG_LSN, "LSN: %u\n", p_vcdplayer->i_lsn);
-      if (cdio_read_mode2_sector(img, &vcd_sector, 
-                                 p_vcdplayer->i_lsn, true)!=0) {
+      if (cdio_read_mode2_sector(p_img, &vcd_sector, 
+				 p_vcdplayer->i_lsn, true)!=0) {
         dbg_print(INPUT_DBG_LSN, "read error\n");
+	p_vcdplayer->i_lsn++;
         return READ_ERROR;
       }
       p_vcdplayer->i_lsn++;

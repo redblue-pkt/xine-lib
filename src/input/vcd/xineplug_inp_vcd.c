@@ -1,9 +1,9 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.27 2004/12/29 09:23:56 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.28 2004/12/30 09:05:57 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
-  Program is free software; you can redistribute it and/or modify
+  This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
@@ -139,6 +139,7 @@ struct vcd_input_plugin_tag {
   xine_stream_t      *stream;
   xine_event_queue_t *event_queue;
 
+  time_t	      pause_end_time;
   vcd_input_class_t  *class;
   vcd_config_t        v_config;    /* Config stuff initially inherited   */
   bool                jumped;      /* True if we changed tracks or any
@@ -353,7 +354,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   /* Record MRL's for tracks */
   for (n=1; n<=player->i_tracks; n++) { 
     memset(&mrl, 0, sizeof (mrl));
-    sprintf(mrl, "%s%s@T%2u", MRL_PREFIX, vcd_device, n);
+    snprintf(mrl, sizeof(mrl), "%s%s@T%u", MRL_PREFIX, vcd_device, n);
     vcd_add_mrl_slot(class, mrl, player->track[n-1].size, &i);
   }
     
@@ -364,7 +365,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   if (i_entries > 0) {
     for (n=0; n<i_entries; n++) { 
       memset(&mrl, 0, sizeof (mrl));
-      sprintf(mrl, "%s%s@E%4u", MRL_PREFIX, vcd_device, n);
+      snprintf(mrl, sizeof(mrl), "%s%s@E%u", MRL_PREFIX, vcd_device, n);
       vcd_add_mrl_slot(class, mrl, player->entry[n].size, &i);
     }
   }
@@ -376,7 +377,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
       uint16_t ofs = vcdinf_get_lot_offset(vcdinfo_get_lot(player->vcd), n);
       if (ofs != PSD_OFS_DISABLED || player->show_rejected) {
         memset(&mrl, 0, sizeof (mrl));
-        sprintf(mrl, "%s%s@P%4u%s", MRL_PREFIX, vcd_device, n+1, 
+        snprintf(mrl, sizeof(mrl), "%s%s@P%u%s", MRL_PREFIX, vcd_device, n+1, 
                 ofs == PSD_OFS_DISABLED ? "*" : "");
         vcd_add_mrl_slot(class, mrl, 0, &i);
         class->mrl_segment_offset++;
@@ -408,7 +409,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
       }
 
       memset(&mrl, 0, sizeof (mrl));
-      sprintf(mrl, "%s%s@%c%4u", MRL_PREFIX, vcd_device, c, n);
+      snprintf(mrl, sizeof(mrl), "%s%s@%c%u", MRL_PREFIX, vcd_device, c, n);
       vcd_add_mrl_slot(class, mrl, player->segment[n].size, &i);
     }
   }
@@ -1784,6 +1785,25 @@ _("Format used in the GUI Title. Similar to the Unix date "
   return class;
 }
 
+/* 
+   Exported plugin catalog entries.
+
+   All plugins listing only the current API number break when the API
+   number is increased. This is by design. 
+
+   Sometimes in the rush to get out a buggy release, the API number is
+   increased without communication let alone a concern for whether it
+   is necessary or how many plugins it might break. And that is
+   precisely when what happened between API release 12 and API
+   13. Input plugin API numbers 12 and 13 are functionally identical.
+
+   Because of problems like this, we'll just put in a future API
+   release. If the number was increased for a reason that doesn't
+   affect us (such as for nor reason at all), then this plugin will
+   work unmodified that future APIs. If on the other hand there was
+   incompatible change, we are no worse off than if we hadn't entered
+   the next API number since in both cases the plugin is broken.
+ */
 
 const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
