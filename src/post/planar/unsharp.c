@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.15 2005/01/03 20:09:49 dsalt Exp $
+ * $Id: unsharp.c,v 1.16 2005/02/06 19:53:00 valtri Exp $
  *
  * mplayer's unsharp
  * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
@@ -238,7 +238,7 @@ static char * get_help (void) {
            "  Chroma_amount: Relative amount of sharpness/blur (=0 disable, <0 blur, >0 sharpen)\n"
            "\n"
            "\n"
-           "* mplayer's unsharp (C) 2002 RÃ©mi Guyomarch\n"
+           "* mplayer's unsharp (C) 2002 Remi Guyomarch\n"
          );
 }
 

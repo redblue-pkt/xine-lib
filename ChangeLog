@@ -23,6 +23,7 @@ xine-lib (1.0.1)
   * published documentation about Win32 platform
   * brand new DirectX audio output plugin for Windows
   * updated win32 MSVC port
+  * used only ASCII characters for C locale
 
 xine-lib (1.0)
   * unbreak DXR3 plugin

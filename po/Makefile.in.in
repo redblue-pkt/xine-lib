@@ -86,8 +86,9 @@ all-no:
 
 $(srcdir)/$(PACKAGE).pot: $(POTFILES) $(srcdir)/POTFILES.in
 	$(XGETTEXT) --default-domain=$(PACKAGE) --directory=$(top_srcdir) \
-	  --add-comments --from-code=iso-8859-1 --keyword=_ --keyword=N_ \
+	  --add-comments --keyword=_ --keyword=N_ \
 	  --files-from=$(srcdir)/POTFILES.in \
+	  --msgid-bugs-address='http://sourceforge.net/tracker/?atid=109655&group_id=9655' \
 	&& test ! -f $(PACKAGE).po \
 	   || ( rm -f $(srcdir)/$(PACKAGE).pot \
 		&& mv $(PACKAGE).po $(srcdir)/$(PACKAGE).pot )
