@@ -7,11 +7,30 @@ xine-lib (0.9.2-1) unstable; urgency=high
     * deinterlace.c should compile everywhere (closes: #112748)
     * including string.h in m4 test (closes: #115271)
     * aclocal file is in /usr/share/aclocal (just as 0.9.1)  (closes: #115033)
-    * enables -fPIC on (all?) architectures that need it (closes: #115006)
+    * enables -fPIC on all architectures except i386 (closes: #115006)
     * many more fixes/features (see upstream changelog)
 
- -- Siggi Langauf <siggi@debian.org>  Sun, 14 Oct 2001 22:22:38 +0200
+ -- Siggi Langauf <siggi@debian.org>  Mon, 15 Oct 2001 21:14:12 +0200
 
+  
+xine-lib (0.9.1-1.1) unstable; urgency=low
+
+  * NMU.
+  * Added ia64 support to configure.in.
+  * For performance reasons, the shared libs are not compiled with
+    -fPIC in the standard distribution, which is incorrect behavior.
+    As a compromise, I've added a "--disable-fpic" configure option
+    which will only do this on platforms where this is allowed.
+    Closes: #115006.
+  * m4/xine.m4: autoconf test uses strdup w/o including string.h.
+    Closes: #115271.
+  * Don't install aclocal files in /usr/local in libxine-dev.
+    Closes: #115033.
+  * Fixed typo in src/video_out/deinterlace.c.  Closes: #112748.
+
+ -- Jeff Licquia <jlicquia@progeny.com>  Tue,  9 Oct 2001 09:55:23 -0600
+  
+  
 xine-lib (0.9.1-1) unstable; urgency=low
 
   * new upstream release (mostly bugfix release, new deinterlacer)
