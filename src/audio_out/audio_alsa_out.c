@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.65 2002/07/01 11:41:20 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.66 2002/07/01 11:45:25 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -299,20 +299,21 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
-  /* ERROR: Set period size [samples] */
-  period_size = 128;
-  do {
-    period_size *= 2;
-    tmp = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params,
-                                                 period_size, 0);
-    printf("audio_alsa_out:open:period_size=%ld tmp=%ld\n",period_size,tmp);
-    
-    if (period_size < 0) {
+  buffer_size = snd_pcm_hw_params_get_buffer_size(params);
+  /* set the period time [us] (interrupt very x us|y samples ...) */
+#warning "FIXME: 256 samples div 48kHz are less than 5ms. When ALSA resamples->BOOM"
+  for (period_size = 256; period_size < buffer_size; period_size *= 2) {
+    err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params,
+                                                 period_size, &dir);
+    if (err < 0) {
       printf ("audio_alsa_out: period size not available");
-      goto __close;
+      continue;
     }
-  } while (period_size <= (buffer_size/2) && (period_size != tmp));
-  if (buffer_size == period_size) {
+    tmp = snd_pcm_hw_params_get_period_size(params, NULL);
+    printf("audio_alsa_out:open:period_size=%ld tmp=%ld\n",period_size,tmp);
+    if (period_size == tmp) break;
+  };
+  if (period_size >= buffer_size) {
     printf ("audio_alsa_out: buffer time and period time match, could not use\n");
     goto __close;
   }
