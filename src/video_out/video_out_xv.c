@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.96 2002/02/26 00:55:34 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.97 2002/02/26 21:41:41 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -384,13 +384,20 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 
     char *data;
 
-    /* This cause segfault with remote display */
-    /* data = malloc (width * height * 3/2); */
-    data = malloc (width * height * 2);
+    switch (format) {
+    case IMGFMT_YV12:
+      data = malloc (width * height * 3/2);
+      break;
+    case IMGFMT_YUY2:
+      data = malloc (width * height * 2);
+      break;
+    default:
+      fprintf (stderr, "create_ximage: unknown format %08x\n",format);
+      exit (1);
+    }
+
     image = XvCreateImage (this->display, this->xv_port,
 			   xv_format, data, width, height);
-
-
   }
   return image;
 }
