@@ -874,6 +874,13 @@ PIXOP2(put, op_put)
 #define avg2(a,b) ((a+b+1)>>1)
 #define avg4(a,b,c,d) ((a+b+c+d+2)>>2)
 
+static void put_no_rnd_pixels16_l2_c(uint8_t *dst, const uint8_t *a, const uint8_t *b, int stride, int h){
+    put_no_rnd_pixels16_l2(dst, a, b, stride, stride, stride, h);
+}
+
+static void put_no_rnd_pixels8_l2_c(uint8_t *dst, const uint8_t *a, const uint8_t *b, int stride, int h){
+    put_no_rnd_pixels8_l2(dst, a, b, stride, stride, stride, h);
+}
 
 static void gmc1_c(uint8_t *dst, uint8_t *src, int stride, int h, int x16, int y16, int rounder)
 {
@@ -2532,6 +2539,29 @@ static int pix_abs8_xy2_c(void *v, uint8_t *pix1, uint8_t *pix2, int line_size, 
     return s;
 }
 
+static int try_8x8basis_c(int16_t rem[64], int16_t weight[64], int16_t basis[64], int scale){
+    int i;
+    unsigned int sum=0;
+
+    for(i=0; i<8*8; i++){
+        int b= rem[i] + ((basis[i]*scale + (1<<(BASIS_SHIFT - RECON_SHIFT-1)))>>(BASIS_SHIFT - RECON_SHIFT));
+        int w= weight[i];
+        b>>= RECON_SHIFT;
+        assert(-512<b && b<512);
+
+        sum += (w*b)*(w*b)>>4;
+    }
+    return sum>>2;
+}
+
+static void add_8x8basis_c(int16_t rem[64], int16_t basis[64], int scale){
+    int i;
+
+    for(i=0; i<8*8; i++){
+        rem[i] += (basis[i]*scale + (1<<(BASIS_SHIFT - RECON_SHIFT-1)))>>(BASIS_SHIFT - RECON_SHIFT);
+    }    
+}
+
 /**
  * permutes an 8x8 block.
  * @param block the block which will be permuted according to the given permutation vector
@@ -3094,6 +3124,11 @@ void dsputil_init(DSPContext* c, AVCodecContext *avctx)
         c->idct_permutation_type= FF_NO_IDCT_PERM;
     }
 
+    /* VP3 DSP support */
+    c->vp3_dsp_init = vp3_dsp_init_c;
+    c->vp3_idct_put = vp3_idct_put_c;
+    c->vp3_idct_add = vp3_idct_add_c;
+
     c->get_pixels = get_pixels_c;
     c->diff_pixels = diff_pixels_c;
     c->put_pixels_clamped = put_pixels_clamped_c;
@@ -3134,6 +3169,9 @@ void dsputil_init(DSPContext* c, AVCodecContext *avctx)
     dspfunc(avg, 2, 4);
     dspfunc(avg, 3, 2);
 #undef dspfunc
+
+    c->put_no_rnd_pixels_l2[0]= put_no_rnd_pixels16_l2_c;
+    c->put_no_rnd_pixels_l2[1]= put_no_rnd_pixels8_l2_c;
 
     c->put_tpel_pixels_tab[ 0] = put_tpel_pixels_mc00_c;
     c->put_tpel_pixels_tab[ 1] = put_tpel_pixels_mc10_c;
@@ -3235,6 +3273,9 @@ void dsputil_init(DSPContext* c, AVCodecContext *avctx)
     
     c->h263_h_loop_filter= h263_h_loop_filter_c;
     c->h263_v_loop_filter= h263_v_loop_filter_c;
+    
+    c->try_8x8basis= try_8x8basis_c;
+    c->add_8x8basis= add_8x8basis_c;
 
 #ifdef HAVE_MMX
     dsputil_init_mmx(c, avctx);

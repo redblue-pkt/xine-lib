@@ -17,7 +17,8 @@ libavcodec_mmx_src = \
 	idct_mmx.c \
 	motion_est_mmx.c \
 	mpegvideo_mmx.c \
-	simple_idct_mmx.c
+	simple_idct_mmx.c \
+	vp3dsp_mmx.c
 
 libavcodec_mmx_dummy = libavcodec_mmx_dummy.c
 

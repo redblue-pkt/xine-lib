@@ -360,6 +360,11 @@ static int rv20_decode_picture_header(MpegEncContext *s)
         return -1;
     }
     
+    if(s->last_picture_ptr==NULL && s->pict_type==B_TYPE){
+        av_log(s->avctx, AV_LOG_ERROR, "early B pix\n");
+        return -1;
+    }
+    
     if (get_bits(&s->gb, 1)){
         av_log(s->avctx, AV_LOG_ERROR, "unknown bit set\n");
         return -1;
@@ -403,7 +408,7 @@ static int rv20_decode_picture_header(MpegEncContext *s)
             s->time= seq;
             s->pb_time= s->pp_time - (s->last_non_b_time - s->time);
             if(s->pp_time <=s->pb_time || s->pp_time <= s->pp_time - s->pb_time || s->pp_time<=0){
-                printf("messed up order, seeking?, skiping current b frame\n");
+                av_log(s->avctx, AV_LOG_DEBUG, "messed up order, seeking?, skiping current b frame\n");
                 return FRAME_SKIPED;
             }
         }
@@ -448,6 +453,12 @@ static int rv10_decode_init(AVCodecContext *avctx)
         s->rv10_version= 0;
         s->h263_long_vectors=0;
         s->low_delay=1;
+        break;
+    case 0x10002000:
+        s->rv10_version= 3;
+        s->h263_long_vectors=1;
+        s->low_delay=1;
+        s->obmc=1;
         break;
     case 0x10003000:
         s->rv10_version= 3;
@@ -586,13 +597,14 @@ static int rv10_decode_packet(AVCodecContext *avctx,
     s->block_wrap[5]= s->mb_width + 2;
     ff_init_block_index(s);
     /* decode each macroblock */
-    for(i=0;i<mb_count;i++) {
+
+    for(s->mb_num_left= mb_count; s->mb_num_left>0; s->mb_num_left--) {
         int ret;
         ff_update_block_index(s);
 #ifdef DEBUG
         printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y);
 #endif
-        
+
 	s->dsp.clear_blocks(s->block[0]);
         s->mv_dir = MV_DIR_FORWARD;
         s->mv_type = MV_TYPE_16X16; 

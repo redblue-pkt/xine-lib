@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -I../
 ASFLAGS =
 
 noinst_LTLIBRARIES = libpostprocess.la

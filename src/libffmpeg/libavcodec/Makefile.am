@@ -53,6 +53,7 @@ libavcodec_la_SOURCES = \
 	msvideo1.c \
 	opts.c \
 	pcm.c \
+	qtrle.c \
 	ra144.c \
 	ra288.c \
 	ratecontrol.c \
@@ -68,6 +69,7 @@ libavcodec_la_SOURCES = \
 	vcr1.c \
 	vmdav.c \
 	vp3.c \
+	vp3dsp.c \
 	vqavideo.c \
 	wmadec.c \
 	xan.c
