@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2001/08/28 19:16:20 guenter Exp $
+ * $Id: xine_decoder.c,v 1.8 2001/08/30 12:48:10 jkeil Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -67,7 +67,9 @@ typedef struct ff_decoder_s {
   int               video_step;
   int               decoder_ok;
 
-  BITMAPINFOHEADER  bih; 
+  BITMAPINFOHEADER  bih;
+  long		    biWidth;
+  long		    biHeight;
   unsigned char     buf[128*1024];
   int               size;
 
@@ -79,6 +81,20 @@ typedef struct ff_decoder_s {
 /*
 #define IMGFMT_YUY2  mmioFOURCC('Y','U','Y','2')
 #define IMGFMT_YV12  mmioFOURCC('Y','V','1','2')
+*/
+
+static unsigned long str2ulong(void *data)
+{
+  unsigned char *str = data;
+  return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
+}
+
+/*
+static unsigned short str2ushort(void *data)
+{
+  unsigned char *str = data;
+  return ( str[0] | (str[1]<<8) );
+}
 */
 
 static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
@@ -115,6 +131,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     /* init package containing bih */
 
     memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
+    this->biWidth = str2ulong(&this->bih.biWidth);
+    this->biHeight = str2ulong(&this->bih.biHeight);
     this->video_step = buf->decoder_info[1];
 
     /* init codec */
@@ -122,7 +140,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     codec_type = buf->type & 0xFFFF0000;
 
     /*
-    if (this->bih.biCompression == mmioFOURCC('D', 'I', 'V', 'X')) {
+    if (str2ulong(&this->bih.biCompression) == mmioFOURCC('D', 'I', 'V', 'X')) {
       printf ("ffmpeg: mpeg4 (opendivx) format detected\n");
 
       codec = avcodec_find_decoder (CODEC_ID_OPENDIVX);
@@ -159,8 +177,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     memset(&this->context, 0, sizeof(this->context));
-    this->context.width = this->bih.biWidth;
-    this->context.height = this->bih.biHeight;
+    this->context.width = this->biWidth;
+    this->context.height = this->biHeight;
 
     if (avcodec_open (&this->context, codec) < 0) {
       printf ("ffmpeg: couldn't open decoder\n");
@@ -195,8 +213,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       img = this->video_out->get_frame (this->video_out,
 					/* this->av_picture.linesize[0],  */
-					this->bih.biWidth, 
-					this->bih.biHeight, 
+					this->biWidth,
+					this->biHeight,
 					42, 
 					IMGFMT_YV12,
 					this->video_step,
@@ -216,22 +234,22 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	su = this->av_picture.data[1];
 	sv = this->av_picture.data[2];
 	
-	for (y=0; y<this->bih.biHeight; y++) {
+	for (y=0; y<this->biHeight; y++) {
 	  
-	  memcpy (dy, sy, this->bih.biWidth);
+	  memcpy (dy, sy, this->biWidth);
 	  
-	  dy += this->bih.biWidth;
+	  dy += this->biWidth;
 	  
 	  sy += this->av_picture.linesize[0];
 	}
 	
-	for (y=0; y<(this->bih.biHeight/2); y++) {
+	for (y=0; y<(this->biHeight/2); y++) {
 	  
-	  memcpy (du, su, this->bih.biWidth/2);
-	  memcpy (dv, sv, this->bih.biWidth/2);
+	  memcpy (du, su, this->biWidth/2);
+	  memcpy (dv, sv, this->biWidth/2);
 	  
-	  du += this->bih.biWidth/2;
-	  dv += this->bih.biWidth/2;
+	  du += this->biWidth/2;
+	  dv += this->biWidth/2;
 	  
 	  su += this->av_picture.linesize[1];
 	  sv += this->av_picture.linesize[2];
@@ -239,8 +257,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	
 	if (img->copy) {
 	  
-	  int height = abs(this->bih.biHeight);
-	  int stride = this->bih.biWidth;
+	  int height = abs(this->biHeight);
+	  int stride = this->biWidth;
 	  uint8_t* src[3];
 	  
 	  src[0] = img->base[0];
