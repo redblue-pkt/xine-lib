@@ -625,8 +625,10 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
   if (picture->current_frame && !picture->current_frame->drawn &&
       !picture->current_frame->bad_frame) {
     
+#ifdef LOG
     printf ("libmpeg2: blasting out current frame %d on flush\n",
 	    picture->current_frame->id);
+#endif
     
     picture->current_frame->drawn = 1;
     get_frame_duration(mpeg2dec, picture->current_frame);
@@ -655,7 +657,9 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
  
     if ( picture->current_frame ) {
       if( !picture->current_frame->drawn ) {
+#ifdef LOG
         printf ("libmpeg2: blasting out current frame on close\n");
+#endif
         picture->current_frame->pts = 0;
         get_frame_duration(mpeg2dec, picture->current_frame);
         picture->current_frame->draw (picture->current_frame, mpeg2dec->stream);
@@ -677,7 +681,9 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     
     if (picture->backward_reference_frame) {
       if( !picture->backward_reference_frame->drawn) {
+#ifdef LOG
         printf ("libmpeg2: blasting out backward reference frame on close\n");
+#endif
         picture->backward_reference_frame->pts = 0;
         get_frame_duration(mpeg2dec, picture->backward_reference_frame);
         picture->backward_reference_frame->draw (picture->backward_reference_frame, mpeg2dec->stream);
