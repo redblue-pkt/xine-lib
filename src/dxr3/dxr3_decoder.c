@@ -17,12 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.36 2001/11/19 17:07:15 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.37 2001/11/24 11:09:30 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
  * Takes precedence over the libmpeg2 and libspudec due to a higher
  * priority.
+ * also incorporates an scr plugin for metronom
  */
 
 
@@ -95,6 +96,19 @@ static void dxr3_presence_test()
 	dxr3_ok = 1;
 }
 
+
+/* *** dxr3_mvcommand ***
+   Changes the dxr3 playmode.  Possible playmodes (currently) are
+   0 	- Stop
+   2 	- Pause
+   3 	- Start playback
+   4 	- Play intra frames only (for FFWD/FBackward)
+   6 	- Alternate playmode - not much is known about this mode
+     	  other than it buffers frames, possibly re-organising them
+     	  on-the-fly to match SCR vs PTS values
+   0x11 - Flush the onboard buffer???????
+   0x10 - as above??? 
+*/
 static int dxr3_mvcommand(int fd_control, int command) {
        	em8300_register_t regs; 
        	regs.microcode_register=1; 	/* Yes, this is a MC Reg */
@@ -115,6 +129,12 @@ static int dxr3scr_get_priority (scr_plugin_t *scr) {
 	return self->priority;
 }
 
+
+/* *** dxr3scr_set_speed ***
+   sets the speed and playmode of the dxr3.  if FFWD is requested
+   the function changes the speed of the onboard clock, and sets
+   the playmode to SCAN (mv_command 4).
+*/
 int scanning_mode=0;
 static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
@@ -164,6 +184,12 @@ static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 	return speed;
 }
 
+
+/* *** dxr3scr_adjust ***
+   Adjusts the SCR value of the card to match that given.
+   This function is only called if the dxr3 SCR plugin is
+   _NOT_ master...
+*/
 static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	vpts >>= 1;
@@ -173,6 +199,11 @@ static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
 
 }
 
+/* *** dxr3scr_start ***
+   sets the dxr3 onboard system reference clock to match that handed to
+   it in start_vpts.  also sets the speed of the clock to 0x900 - which
+   is normal speed.
+*/
 static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	start_vpts >>= 1;
@@ -184,6 +215,12 @@ static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
 	ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &start_vpts);
 }
 
+
+/* *** dxr3_get_current ***
+   returns the current SCR value as indicated by the hardware clock 
+   on the dxr3 - apparently only called when the dxr3_scr plugin is
+   master..
+*/
 static uint32_t dxr3scr_get_current (scr_plugin_t *scr) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t pts;
@@ -194,6 +231,10 @@ static uint32_t dxr3scr_get_current (scr_plugin_t *scr) {
 	return pts << 1;
 }
 
+
+/* *** dxr3scr_init ***
+   initialise the SCR plugin
+*/
 static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 	dxr3scr_t *self;
 
@@ -260,6 +301,12 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	this->scr->start(this->scr, 0);
 }
 
+
+/* *** find_aspect ***
+   Does a partial parse of the mpeg buffer, extracting information such as
+   frame width & height, aspect ratio, and framerate, and sends it to the 
+   video_out plugin via get_frame 
+*/
 #define HEADER_OFFSET 4
 static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 {
@@ -323,23 +370,35 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 	}
 }
 
+
+/* *** dxr3_flush ***
+   flush the dxr3's onboard buffers - but I'm not sure that this is 
+   doing that - more testing is required.
+*/
 static void dxr3_flush (video_decoder_t *this_gen) 
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	fprintf(stderr,"dxr3_decoder: flushing\n");
-	dxr3_mvcommand(this->fd_control, 0x10); 
-
+	dxr3_mvcommand(this->fd_control, 0x11); 
 }
+
 
 static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
-
+	int x;
+	
 	/* The dxr3 does not need the preview-data */
 	if (buf->decoder_info[0] == 0) return;
 
-	/* Act like other plugins... keeps metronom in check :) */
+	/* A buffer type of BUF_VIDEO_FILL is used when still frames are 
+	   required (after an initial frame is sent for display, BUF_VIDEO_FILL
+	   grabs and re-displays the last frame) - the dxr3 doesn't
+	   require this functionality, but for interoperability purposes
+	   this plugin must implement it in order to override xine's 
+	   builtin version - this also allows metronom to keep its
+	   idea of pts in sync with reality during still frames */
 	if(buf->type == BUF_VIDEO_FILL) {
 	    	vo_frame_t *img;
 	    	img = this->video_out->get_frame (this->video_out,
@@ -349,26 +408,41 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              IMGFMT_YV12,
                              this->duration,
                              VO_BOTH_FIELDS);
+		img->PTS=0;
 	        img->draw(img);
 	 	img->free(img);
 		return;
 	}
 
+	/* Each buffer has (at least 1) PTS value associated with it.  
+	   From my testing a buffer contains around 12-13 frames, and 
+	   is sent here every .5 seconds or so...*/
 	if (buf->PTS) {
-		int vpts;
+		long vpts;
 
+		/* receive an updated (perhaps interpolated) pts value
+		   from metronom... This function is apparently meant to
+		   be called for _every_ frame, with or without a pts.
+		   ie. if the frame PTS is unknown, a value of zero
+		   should be sent, and metronom will send an interpolated
+		   value... this function (dxr3_decode_data), is only called 
+		   every 12-13 frames... perhaps we need to create another
+		   thread that automatically calls got_video_frame every
+		   nth of a second??? */
+		   
 		vpts = this->video_decoder.metronom->got_video_frame(
 		 this->video_decoder.metronom, buf->PTS, buf->SCR );
 		if (this->last_pts < vpts)
 		{
 			this->last_pts = vpts;
-			
+			/* update the dxr3's current pts value */	
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				fprintf(stderr, "dxr3: set video pts failed (%s)\n",
 				 strerror(errno));
 		}
 	}
 
+	/* if the dxr3_alt_play option is used, change the dxr3 playmode */
 	if(this->enhanced_mode && !scanning_mode)
 		dxr3_mvcommand(this->fd_control, 6);
 	
@@ -385,6 +459,19 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 	/* run the header parser here... otherwise the dxr3 tends to block... */
 	find_aspect(this, buf->content);	
+
+	/* FIXME: for testing purposes..... call the got_video_frame func
+	   (x=number_of_frames since last called) times.. perhaps we
+	   need to do this nth of a second? */
+	for(x=0;x<12;x++){
+		long vpts;	
+		vpts=this->video_decoder.metronom->got_video_frame(
+		 this->video_decoder.metronom, 0, 0 );
+			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
+				fprintf(stderr, "dxr3: set video pts failed (%s)\n",
+				 strerror(errno));
+		 
+	}
 }
 
 static void dxr3_close (video_decoder_t *this_gen)
