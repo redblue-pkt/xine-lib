@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.50 2001/08/25 14:56:19 guenter Exp $
+ * $Id: xine.c,v 1.51 2001/08/28 22:52:57 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -74,6 +74,11 @@ void xine_stop (xine_t *this) {
     printf ("xine_stop ignored\n");
     pthread_mutex_unlock (&this->xine_lock);
     return;
+  }
+  else if(this->status == XINE_PAUSE) {
+    this->metronom->set_speed (this->metronom, SPEED_NORMAL);
+    this->paused     = 0;
+    this->audio_mute = 0;
   }
 
   this->status = XINE_STOP;
@@ -250,20 +255,41 @@ static void xine_play_internal (xine_t *this, char *mrl,
 }
 
 void xine_play (xine_t *this, char *MRL, int spos) {
-
+  
   pthread_mutex_lock (&this->xine_lock);
+  
+  if(this->status == XINE_PAUSE) {
 
-  if (this->status != XINE_STOP) {
-
+    this->metronom->set_speed (this->metronom, SPEED_NORMAL);
+    this->paused     = 0;
+    this->audio_mute = 0;
+    
+    if(this->cur_demuxer_plugin) {
+      this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+      this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
+      this->cur_demuxer_plugin = NULL;
+    }
+    
+    printf ("xine_stop: closing input\n");
+    
+    if(this->cur_input_plugin) {
+      this->cur_input_plugin->close(this->cur_input_plugin);
+    }
+    
+    this->status = XINE_STOP;
+    
+  }  
+  else if (this->status != XINE_STOP) {
+    
     this->metronom->set_speed (this->metronom, SPEED_NORMAL);
     this->audio_mute = 0;
     
     pthread_mutex_unlock (&this->xine_lock);
     return;
   }
-
+  
   xine_play_internal (this, MRL, spos, (off_t) 0);
-
+  
   pthread_mutex_unlock (&this->xine_lock);
 }
 
@@ -273,7 +299,13 @@ void xine_seek (xine_t *this, char *mrl, int pos) {
 
   printf ("xine_seek\n");
 
-  if (this->status == XINE_PLAY) {
+  if (this->status == XINE_PLAY || this->status == XINE_PAUSE) {
+    
+    if(this->status == XINE_PAUSE) {
+      this->metronom->set_speed (this->metronom, SPEED_NORMAL);
+      this->paused     = 0;
+      this->audio_mute = 0;
+    }
     
     if(this->cur_demuxer_plugin) {
       this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
@@ -315,21 +347,29 @@ void xine_exit (xine_t *this) {
   printf ("xine_exit: try to get lock...\n");
 
   pthread_mutex_lock (&this->xine_lock);
-
+  
+  if(this->status == XINE_PAUSE) {
+    this->metronom->set_speed (this->metronom, SPEED_NORMAL);
+    this->paused     = 0;
+    this->status     = XINE_STOP;
+  }
+  
   /*
    * stop decoder threads
    */
 
   if(this->cur_demuxer_plugin) {
-    printf ("xine_exit: stopping demuxer\n");
+    printf ("xine_exit: closing demuxer\n");
 
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+    this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
 
   if(this->cur_input_plugin) {
     printf ("xine_exit: closing input plugin\n");
 
+    this->cur_input_plugin->stop (this->cur_input_plugin);
     this->cur_input_plugin->close(this->cur_input_plugin);
     this->cur_input_plugin = NULL;
   }
@@ -359,24 +399,25 @@ void xine_pause (xine_t *this) {
 
   printf ("xine_pause\n");
 
-  if (this->status != XINE_PLAY) {
+  if (this->status != XINE_PLAY && this->status != XINE_PAUSE ) {
     printf ("xine: error, pause called when not in playback mode\n");
-
+    pthread_mutex_unlock (&this->xine_lock);
     return;
   }
-
 
   if (this->paused) {
 
     this->metronom->set_speed (this->metronom, SPEED_NORMAL);
     this->audio_mute = 0;
     this->paused     = 0;
+    this->status     = XINE_PLAY;
 
   } else {
 
     this->metronom->set_speed (this->metronom, SPEED_PAUSE);
     this->paused     = 1;
     this->audio_mute = 2;
+    this->status     = XINE_PAUSE;
 
   }
 

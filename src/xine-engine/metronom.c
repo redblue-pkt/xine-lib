@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.22 2001/08/26 09:38:23 jcdutton Exp $
+ * $Id: metronom.c,v 1.23 2001/08/28 22:52:57 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -340,8 +340,8 @@ static void metronom_audio_stream_end (metronom_t *this) {
   }
 
   this->audio_stream_running = 0;
+
   while (this->video_stream_running) {
-    
     printf ("waiting for video to end...\n");
     pthread_cond_wait (&this->video_ended, &this->lock);
   }

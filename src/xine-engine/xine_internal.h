@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.41 2001/08/25 07:12:16 guenter Exp $
+ * $Id: xine_internal.h,v 1.42 2001/08/28 22:52:57 f1rmb Exp $
  *
  */
 
@@ -120,6 +120,7 @@ typedef void (*gui_stream_end_cb_t)(int nStatus);
 #define XINE_STOP      0 
 #define XINE_PLAY      1 
 #define XINE_QUIT      2
+#define XINE_PAUSE     3
 
 typedef struct xine_s xine_t;
 

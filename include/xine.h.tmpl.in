@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.38 2001/08/25 08:50:11 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.39 2001/08/28 22:52:57 f1rmb Exp $
  *
  */
 
@@ -100,24 +100,18 @@ extern "C" {
  * \sa xine_get_status()
  */
 #define XINE_PLAY      1
+/** 
+ * \def XINE_QUIT
+ * Quit status.
+ * \sa xine_get_status()
+ */
+#define XINE_QUIT      2
 /**
  * \def XINE_PAUSE
  * Pause status.
  * \sa xine_get_status()
  */
-#define XINE_PAUSE     2
-/** 
- * \def XINE_QUIT
- * Quit status.
- * \sa xine_get_status()
- */
-#define XINE_SEEK      3
-/** 
- * \def XINE_QUIT
- * Quit status.
- * \sa xine_get_status()
- */
-#define XINE_QUIT      4
+#define XINE_PAUSE     3
 
           /** @} end of status_group */
 
