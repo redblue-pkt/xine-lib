@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.3 2002/11/25 00:14:39 guenter Exp $
+ * $Id: audio_decoder.c,v 1.4 2002/11/25 02:06:28 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -221,9 +221,16 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     samples_per_sec = BE_16 (buf->content+44);
     bits_per_sample = BE_16 (buf->content+48);
     num_channels    = BE_16 (buf->content+50);
+
     /* FIXME: */
-    data_len        = BE_32 (buf->content+0x39);
-    extras          = buf->content+0x44;
+    if (buf->type==BUF_AUDIO_COOK) {
+      
+      printf ("libareal: audio header version 4 for COOK audio not supported.\n");
+      abort();
+    }
+    data_len        = 0; /* FIXME: COOK audio needs this */
+    extras          = buf->content+0x43;
+
   } else {
     samples_per_sec = BE_16 (buf->content+50);
     bits_per_sample = BE_16 (buf->content+54);
@@ -272,7 +279,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   case BUF_AUDIO_SIPRO:
     if (!load_syms_linux (this, "sipr.so.6.0"))
       return 0;
-    this->block_align = 19;
+    /* this->block_align = 19; */
     break;
 
   default:
@@ -368,9 +375,12 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   } else {
 
-    printf ("libareal: data reordering for sps==0 not implemented\n");
-    abort();
+    this->frame_size      = this->w*this->h;
+    this->frame_buffer    = xine_xmalloc (this->frame_size);
+    this->frame_reordered = this->frame_buffer;
+    this->frame_num_bytes = 0;
 
+    printf ("libareal: frame size is %d\n", this->frame_size);
   }
 
   /*
@@ -400,6 +410,13 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   return 1;
 }
+
+static unsigned char sipr_swaps[38][2]={
+    {0,63},{1,22},{2,44},{3,90},{5,81},{7,31},{8,86},{9,58},{10,36},{12,68},
+    {13,39},{14,73},{15,53},{16,69},{17,57},{19,88},{20,34},{21,71},{24,46},
+    {25,94},{26,54},{28,75},{29,50},{32,70},{33,92},{35,74},{38,85},{40,56},
+    {42,87},{43,65},{45,59},{48,79},{49,93},{51,89},{55,95},{61,76},{67,83},
+    {77,80} };
 
 static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
@@ -462,33 +479,37 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
 	if (!sps) {
 
-	  printf ("libareal: sipr reordering not implemented yet\n");
-	  abort();
-	  
-#if 0
-	  int j,n;
-	  int bs=h*w*2/96; // nibbles per subpacket
-	  unsigned char *p=sh->a_in_buffer;
+	  int            j,n;
+	  int            bs=h*w*2/96; /* nibbles per subpacket */
+	  unsigned char *p=this->frame_buffer;
 	  
 	  /* 'sipr' way */
-	  demux_read_data(sh->ds, p, h*w);
-	  for(n=0;n<38;n++){
+	  /* demux_read_data(sh->ds, p, h*w); */
+	  for (n=0;n<38;n++){
 	    int i=bs*sipr_swaps[n][0];
 	    int o=bs*sipr_swaps[n][1];
-	    // swap nibbles of block 'i' with 'o'      TODO: optimize
-	    for(j=0;j<bs;j++){
+	    /* swap nibbles of block 'i' with 'o'      TODO: optimize */
+	    for (j=0;j<bs;j++) {
 	      int x=(i&1) ? (p[(i>>1)]>>4) : (p[(i>>1)]&15);
 	      int y=(o&1) ? (p[(o>>1)]>>4) : (p[(o>>1)]&15);
-	      if(o&1) p[(o>>1)]=(p[(o>>1)]&0x0F)|(x<<4);
-	      else  p[(o>>1)]=(p[(o>>1)]&0xF0)|x;
-	      if(i&1) p[(i>>1)]=(p[(i>>1)]&0x0F)|(y<<4);
-	      else  p[(i>>1)]=(p[(i>>1)]&0xF0)|y;
-	      ++i;++o;
+	      if (o&1) 
+		p[(o>>1)]=(p[(o>>1)]&0x0F)|(x<<4);
+	      else  
+		p[(o>>1)]=(p[(o>>1)]&0xF0)|x;
+
+	      if (i&1) 
+		p[(i>>1)]=(p[(i>>1)]&0x0F)|(y<<4);
+	      else  
+		p[(i>>1)]=(p[(i>>1)]&0xF0)|y;
+
+	      ++i;
+	      ++o;
 	    }
 	  }
+	  /*
 	  sh->a_in_buffer_size=
 	    sh->a_in_buffer_len=w*h;
-#endif 
+	  */
 
 	} else {
 	  int      x, y;
