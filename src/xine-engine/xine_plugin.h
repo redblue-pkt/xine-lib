@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.10 2003/11/19 20:35:07 f1rmb Exp $
+ * $Id: xine_plugin.h,v 1.11 2003/11/26 19:33:40 mroi Exp $
  *
  * generic plugin definitions
  *
@@ -68,7 +68,6 @@ typedef struct {
 typedef struct {
   uint32_t                *supported_types;         /* streamtypes this decoder can handle       */
   int                      priority;
-  xine_t                  *xine;
 } decoder_info_t;
 
 /* special info for a post plugin */
