@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.99 2002/06/12 12:22:25 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.100 2002/06/16 22:15:11 f1rmb Exp $
  *
  */
 
@@ -2003,14 +2003,14 @@ char *xine_set_locale(void);
  * \brief connect to nvtvd server and save current TV and X settings
  * \param none
  */
-void xine_tvmode_init ();
+void xine_tvmode_init (void);
 
 /**
  * \fn void xine_tvmode_exit ();
  * \brief restore old TV and X settings and close nvtvd connection
  * \param none
  */
-void xine_tvmode_exit ();
+void xine_tvmode_exit (void);
 
 /**
  * \fn int xine_tvmode_switch (int type, int width, int height, double fps);
