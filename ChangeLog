@@ -16,7 +16,8 @@
   * font encoding support for avi subtitles
   * mms streaming plugin
   * better playing support for ffmpeg/win32 codecs on slow machines
- 
+  * using "%" instead of ":" as subtitle file seperator
+	
 xine (0.9.8) unstable; urgency=low
 
   * Linux framebuffer video out driver (experimental)
