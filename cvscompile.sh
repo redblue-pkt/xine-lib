@@ -3,7 +3,7 @@
 
 ## extract automake version
 automake_1_5x=no
-AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)]//g'`"
+AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
 if test $AM -lt 100 ; then
   AM=`expr $AM \* 10`
 fi
