@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.40 2003/03/02 17:28:55 f1rmb Exp $
+ * $Id: xineutils.h,v 1.41 2003/03/02 18:11:37 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -797,7 +797,7 @@ extern int v_b_table[256];
 
 
 /* Obtain a backtrace and print it to stdout. */
-static void print_trace (void) {
+static inline void print_trace (void) {
 #if HAVE_BACKTRACE
   /* Code Taken from GNU C Library manual */
   void *array[10];
@@ -820,8 +820,6 @@ static void print_trace (void) {
   printf("stack backtrace not available.\n");
 #endif
 }
-
-#define DUMMY_PRINT_TRACE print_trace
 
 /**
  * Provide assert like feature with better description of failure 
