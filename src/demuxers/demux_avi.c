@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.176 2003/11/15 14:00:40 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.177 2003/11/15 15:04:35 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -443,7 +443,7 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
   chunk_pos = this->idx_grow.nexttagoffset;
 
   while (((retval = stopper(this, stopdata)) < 0) &&
-         (!this->stream->demux_action_pending)) {
+         (!_x_action_pending(this->stream))) {
     int valid_chunk = 0;
 
     num_read += 1;

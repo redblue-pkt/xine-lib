@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.71 2003/11/15 13:01:08 miguelfreitas Exp $
+ * $Id: input_http.c,v 1.72 2003/11/15 15:04:36 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -432,7 +432,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
       int i = this->shoutcast_metaint - this->shoutcast_pos;
       i = _x_io_tcp_read (this->stream, this->fh, &buf[num_bytes], i);
       if (i < 0) {
-        if (!this->stream->demux_action_pending) 
+        if (!_x_action_pending(this->stream)) 
 	  _x_message (this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
         xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
         return 0;
@@ -453,7 +453,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 
     /* read errors */
     if (n < 0) {
-      if (!this->stream->demux_action_pending) 
+      if (!_x_action_pending(this->stream)) 
 	_x_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
       xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
       return 0;

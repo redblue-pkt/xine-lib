@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.146 2003/11/15 14:54:31 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.147 2003/11/15 15:04:36 miguelfreitas Exp $
  *
  */
 
@@ -158,21 +158,22 @@ struct xine_stream_s {
   /* demuxers send data to audio decoders using this fifo */
   fifo_buffer_t             *audio_fifo;
 
+  /* provide access to osd api */
+  osd_renderer_t            *osd_renderer;
+
+  /* master/slave streams */
+  xine_stream_t             *master; /* usually a pointer to itself */
+  xine_stream_t             *slave;
+
   /* input_dvd uses this one. is it possible to add helper functions instead? */
   spu_decoder_t             *spu_decoder_plugin;
     
-  /* may we change osd api to make this private? */
-  osd_renderer_t            *osd_renderer;
-  
   /* dxr3 use this one, should be possible to fix to use the port instead */
   vo_driver_t               *video_driver;
   
   /* michael will move this one to metronom i think */
   int64_t                    metronom_prebuffer;
   
-  /* spudec uses this one. (should be checked) */
-  xine_stream_t             *master;
-
   /* these definitely should be made private! */
   int                        audio_channel_auto;
   int                        spu_decoder_streamtype;
@@ -180,7 +181,6 @@ struct xine_stream_s {
   int                        spu_channel_auto;
   int                        spu_channel_letterbox;
   int                        spu_channel;
-  int                        demux_action_pending;
     
 #ifdef XINE_ENGINE_INTERNAL
   /* these are private variables, plugins must not access them */
@@ -228,11 +228,6 @@ struct xine_stream_s {
   int                        stream_info[XINE_STREAM_INFO_MAX];
   char                      *meta_info  [XINE_STREAM_INFO_MAX];
 
-  
-  /* master/slave streams */
-/*  xine_stream_t             *master; */
-  xine_stream_t             *slave;
-  
   /* seeking slowdown */
   int                        first_frame_flag;
   pthread_mutex_t            first_frame_lock;
@@ -254,7 +249,7 @@ struct xine_stream_s {
   pthread_t                  demux_thread;
   int                        demux_thread_running;
   pthread_mutex_t            demux_lock;
-/*  int                        demux_action_pending; */
+  int                        demux_action_pending;
 
   extra_info_t              *current_extra_info;
   pthread_mutex_t            current_extra_info_lock;
