@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.7 2003/02/28 14:31:27 skaboy Exp $
+ * $Id: mosaico.c,v 1.8 2003/03/04 10:30:29 mroi Exp $
  */
  
 /*
@@ -450,7 +450,7 @@ static int _mosaico_draw_1(vo_frame_t *frame, post_mosaico_out_t *output) {
 
 static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int cont) {
 
-  unsigned long size, i, j, wx, wy, ciclo;
+  unsigned long i, j, wx, wy, ciclo;
   unsigned long zx, zy, wid, wid2, des1, des2, hei;
   unsigned long scalex, scaley, pos_in_x, pos_in_y, pos_in;
   post_video_port_t *port;  

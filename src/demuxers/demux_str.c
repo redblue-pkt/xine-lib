@@ -22,7 +22,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.5 2003/02/14 04:32:28 tmmm Exp $
+ * $Id: demux_str.c,v 1.6 2003/03/04 10:30:28 mroi Exp $
  */
 
 /* CD-XA format:
@@ -303,7 +303,7 @@ static int open_str_file(demux_str_t *this) {
 	 * sectors with 0 as the type, despite having plenty of
 	 * video/audio sectors
 	 */
-	/*return 0;*/
+	/*return 0*/;
     }
 
     /* seek to the next sector and read in the header */

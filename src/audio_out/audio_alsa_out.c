@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.86 2003/02/28 02:51:47 storri Exp $
+ * $Id: audio_alsa_out.c,v 1.87 2003/03/04 10:30:27 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -443,13 +443,11 @@ static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
  */
 static int ao_alsa_delay (ao_driver_t *this_gen) 
 {
-  snd_pcm_state_t    state;
   snd_pcm_sframes_t delay = 0;
   int err = 0;
-  snd_timestamp_t tstamp;
-  struct timeval now;
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
 #ifdef LOG_DEBUG
+  struct timeval now;
   printf("audio_alsa_out:delay:ENTERED\n");
 #endif
   err=snd_pcm_delay( this->audio_fd, &delay );
@@ -499,7 +497,9 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
   snd_pcm_sframes_t result;
   snd_pcm_status_t *pcm_stat;
   snd_pcm_state_t    state;
+#ifdef LOG_DEBUG
   struct timeval now;
+#endif
   int wait_result;
   int res;
   uint8_t *buffer=(uint8_t *)data;

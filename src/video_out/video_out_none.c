@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.12 2003/02/19 13:41:07 esnel Exp $
+ * $Id: video_out_none.c,v 1.13 2003/03/04 10:30:29 mroi Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -111,7 +111,6 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
 				     uint32_t width, uint32_t height, 
 				     int ratio_code, int format, int flags) {
   none_frame_t  *frame = (none_frame_t *)vo_frame;
-  uint32_t      frame_size = (width * height);
 
   if((frame->width != width) || (frame->height != height) || (frame->format != format)) {
     

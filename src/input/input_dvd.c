@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.131 2003/02/28 02:51:48 storri Exp $
+ * $Id: input_dvd.c,v 1.132 2003/03/04 10:30:28 mroi Exp $
  *
  */
 
@@ -337,10 +337,10 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
 
 
 static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
-  int num_titles, *num_parts;
 /* FIXME */
-  return;
 #if 0
+  int num_titles, *num_parts;
+
   /* skip DVD if already open */
   if (this->opened) return;
   if (this->class->mrls) {
@@ -411,11 +411,9 @@ static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
     }
     free(num_parts);
   }
+#else
+  return;
 #endif
-
-  /* Reset the VM so that we don't break anything */
-/* FIXME: Is this really needed */
-  dvdnav_reset(this->dvdnav);
 }
 
 static void dvd_plugin_free_buffer(buf_element_t *buf) {
@@ -1568,6 +1566,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.132  2003/03/04 10:30:28  mroi
+ * fix compiler warnings at least in xine's native code
+ *
  * Revision 1.131  2003/02/28 02:51:48  storri
  * Xine assert() replacement:
  *

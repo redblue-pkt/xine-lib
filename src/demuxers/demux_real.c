@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.44 2003/02/28 15:47:52 mroi Exp $
+ * $Id: demux_real.c,v 1.45 2003/03/04 10:30:28 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -723,8 +723,6 @@ static int stream_read_word (demux_real_t *this) {
 static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
   demux_real_t   *this = (demux_real_t *) this_gen;
-  char            preamble[PREAMBLE_SIZE];
-  unsigned char   data_chunk_header[DATA_CHUNK_HEADER_SIZE];
   char            header[DATA_PACKET_HEADER_SIZE];
   int             stream, size, keyframe;
   uint32_t        timestamp;
@@ -984,7 +982,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
   /* check if it's time to reload */
   if (!this->current_data_chunk_packet_count && 
-    this->next_data_chunk_offset) {
+      this->next_data_chunk_offset) {
+    char            preamble[PREAMBLE_SIZE];
+    unsigned char   data_chunk_header[DATA_CHUNK_HEADER_SIZE];
 
     /* seek to the next DATA chunk offset */
     this->input->seek(this->input, this->next_data_chunk_offset, SEEK_SET);
