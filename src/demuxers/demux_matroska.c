@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,12 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.24 2004/04/26 23:33:35 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.25 2004/04/29 23:03:49 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
  * TODO:
- *   more codecs
+ *   more decoders
  *   metadata
  *
  */
@@ -85,13 +85,6 @@ typedef struct {
   int                  preview_mode;
 
   /* meta seek info */
-  off_t                seekhead_pos;
-  off_t                info_pos;
-  off_t                tracks_pos;
-  off_t                chapters_pos;
-  off_t                cues_pos;
-  off_t                attachments_pos;
-  off_t                tags_pos;
   int                  has_seekhead;
   int                  seekhead_handled;
 
@@ -1495,6 +1488,7 @@ static int parse_cluster(demux_matroska_t *this) {
   return 1;
 }
 
+static int parse_top_level_head(demux_matroska_t *this, int *next_level);
 
 static int parse_seek_entry(demux_matroska_t *this) {
   ebml_parser_t *ebml = this->ebml;
@@ -1529,38 +1523,39 @@ static int parse_seek_entry(demux_matroska_t *this) {
     }
     next_level = ebml_get_next_level(ebml, &elem);
   }
+  
   if (has_id && has_position) {
+    off_t current_pos, seek_pos;
+    int current_level;
     
-    switch (id) {
-      case MATROSKA_ID_INFO:
-        lprintf("Seek Entry: Info: %lld\n", pos);
-        this->info_pos = this->segment.start + pos;
-        break;
-      case MATROSKA_ID_SEEKHEAD:
-        lprintf("Seek Entry: SeekHead: %lld\n", pos);
-        this->seekhead_pos = this->segment.start + pos;
-        break;
-      case MATROSKA_ID_CLUSTER:
-        lprintf("Seek Entry: Cluster: %lld\n", pos);
-        break;
-      case MATROSKA_ID_TRACKS:
-        lprintf("Seek Entry: Tracks: %lld\n", pos);
-        this->tracks_pos = this->segment.start + pos;
-        break;
-      case MATROSKA_ID_CUES:
-        lprintf("Seek Entry: Cues: %lld\n", pos);
-        this->cues_pos = this->segment.start + pos;
-        break;
-      case MATROSKA_ID_ATTACHMENTS:
-        lprintf("Seek Entry: Attachements: %lld\n", pos);
-        this->attachments_pos = this->segment.start + pos;
-        break;
-      case MATROSKA_ID_CHAPTERS:
-        lprintf("Seek Entry: Chapters: %lld\n", pos);
-        this->chapters_pos = this->segment.start + pos;
-        break;
-      default:
-        lprintf("Unhandled Seek Entry ID: 0x%llx\n", id);
+    seek_pos = this->segment.start + pos;
+    
+    if ((seek_pos > 0) && (seek_pos < this->input->get_length(this->input))) {
+
+      /* backup current pos */
+      current_pos = this->input->get_current_pos(this->input);
+      current_level = next_level;
+    
+      /* seek and parse the top_level element */
+      this->ebml->level = 1;
+      if (this->input->seek(this->input, seek_pos, SEEK_SET) < 0) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                "demux_matroska: failed to seek to pos: %lld\n", seek_pos);
+        return 0;
+      }
+      if (!parse_top_level_head(this, &next_level))
+        return 0;
+
+      /* restore current pos */
+      this->ebml->level = current_level;
+      if (this->input->seek(this->input, current_pos, SEEK_SET) < 0) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                "demux_matroska: failed to seek to pos: %lld\n", current_pos);
+        return 0;
+      }
+    } else {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "demux_matroska: invalid seek pos: %lld\n", seek_pos);
     }
     return 1;
   } else {
@@ -1573,8 +1568,6 @@ static int parse_seek_entry(demux_matroska_t *this) {
 static int parse_seekhead(demux_matroska_t *this) {
   ebml_parser_t *ebml = this->ebml;
   int next_level = 2;
-  
-  this->has_seekhead = 1;
   
   while (next_level == 2) {
     ebml_elem_t elem;
@@ -1598,35 +1591,22 @@ static int parse_seekhead(demux_matroska_t *this) {
     next_level = ebml_get_next_level(ebml, &elem);
   }
 
-  if ((this->cues_pos > 0) &&
-      (this->cues_pos < this->input->get_length(this->input))) {
-    off_t current_pos;
-    int current_level;
-
-    current_pos = this->input->get_current_pos(this->input);
-    current_level = next_level;
-    if (this->input->seek(this->input, this->cues_pos, SEEK_SET) != this->cues_pos) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-              "demux_matroska: failed to seek to cues_pos: %lld\n", this->cues_pos);
-      return 0;
-    }
-    this->ebml->level = 2;
-    parse_cues(this);
-    if (this->input->seek(this->input, current_pos, SEEK_SET) != current_pos) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-              "demux_matroska: failed to seek to pos: %lld\n", current_pos);
-      return 0;
-    }
-    this->ebml->level = current_level;
-  }
-
   return 1;
 }
 
 
+/*
+ * Function used to parse a top level when opening the file.
+ * It does'nt parse clusters.
+ * retuned value:
+ *   0: error
+ *   1: ok
+ *   2: cluster
+ */
 static int parse_top_level_head(demux_matroska_t *this, int *next_level) {
   ebml_parser_t *ebml = this->ebml;
   ebml_elem_t elem;
+  int ret_value = 1;
 
   if (!ebml_read_elem_head(ebml, &elem))
     return 0;
@@ -1665,6 +1645,7 @@ static int parse_top_level_head(demux_matroska_t *this, int *next_level) {
       lprintf("Cluster\n");
       if (!ebml_skip(ebml, &elem))
         return 0;
+      ret_value = 2;
       break;
     case MATROSKA_ID_CUES:
       lprintf("Cues\n");
@@ -1695,9 +1676,15 @@ static int parse_top_level_head(demux_matroska_t *this, int *next_level) {
   }
   if (next_level)
     *next_level = ebml_get_next_level(ebml, &elem);
-  return 1;
+
+  return ret_value;
 }
 
+/*
+ * Function used to parse a top level element during the playback.
+ * It skips all elements except clusters.
+ * Others elements should have been parsed before by the send_headers() function.
+ */
 static int parse_top_level(demux_matroska_t *this, int *next_level) {
   ebml_parser_t *ebml = this->ebml;
   ebml_elem_t elem;
@@ -1760,7 +1747,9 @@ static int parse_top_level(demux_matroska_t *this, int *next_level) {
   return 1;
 }
 
-
+/*
+ * Parse the mkv file structure.
+ */
 static int parse_segment(demux_matroska_t *this) {
   ebml_parser_t *ebml = this->ebml;
 
@@ -1769,66 +1758,21 @@ static int parse_segment(demux_matroska_t *this) {
     return 0;
 
   if (this->segment.id == MATROSKA_ID_SEGMENT) {
+    int res;
     int next_level;
     
-    lprintf("Segment\n");
+    lprintf("Segment detected\n");
 
     if (!ebml_read_master (ebml, &this->segment))
       return 0;
     
+    res = 1;
     next_level = 1;
-    while (next_level == 1) {
-      if (!parse_top_level_head(this, &next_level))
+    /* stop the loop on the first cluster */
+    while ((next_level == 1) && (res == 1)) {
+      res = parse_top_level_head(this, &next_level);
+      if (!res)
         return 0;
-#if 0
-      if (this->has_seekhead && !this->seekhead_handled) {
-        if (this->seekhead_pos) {
-          if (this->input->seek(this->input, this->seekhead_pos, SEEK_SET) < 0)
-            return 0;
-          this->seekhead_pos = 0;
-        } else {
-          /* parse all top level elements except clusters */
-          if (this->info_pos) {
-            if (this->input->seek(this->input, this->info_pos, SEEK_SET) < 0)
-              return 0;
-            if (!parse_top_level(this, &next_level))
-              return 0;
-          }
-          if (this->tracks_pos) {
-            if (this->input->seek(this->input, this->tracks_pos, SEEK_SET) < 0)
-              return 0;
-            if (!parse_top_level(this, &next_level))
-              return 0;
-          }
-          if (this->chapters_pos) {
-            if (this->input->seek(this->input, this->chapters_pos, SEEK_SET) < 0)
-              return 0;
-            if (!parse_top_level(this, &next_level))
-              return 0;
-          }
-          if (this->cues_pos) {
-            if (this->input->seek(this->input, this->cues_pos, SEEK_SET) < 0)
-              return 0;
-            if (!parse_top_level(this, &next_level))
-              return 0;
-          }
-          if (this->attachments_pos) {
-            if (this->input->seek(this->input, this->attachments_pos, SEEK_SET) < 0)
-              return 0;
-            if (!parse_top_level(this, &next_level))
-              return 0;
-          }
-          if (this->tags_pos) {
-            if (this->input->seek(this->input, this->tags_pos, SEEK_SET) < 0)
-              return 0;
-            if (!parse_top_level(this, &next_level))
-              return 0;
-          }
-          /* this->seekhead_handled = 1; */
-          return 1;
-        }
-      }
-#endif
     }
     return 1;
   } else {
@@ -1877,24 +1821,22 @@ static void demux_matroska_send_headers (demux_plugin_t *this_gen) {
   /*
    * send preview buffers
    */
-/*
-  for (i = 0; i < NUM_PREVIEW_BUFFERS; i++) {
-    if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
-      break;
-    }
-  }
-    */
 
   /* enter in the segment */
   ebml_read_master (this->ebml, &this->segment);
-
-  /* seek to the beginning of the segment */
-  this->input->seek(this->input, this->segment.start, SEEK_SET);
-
+  
+  /* seek back to the beginning of the segment */
+  next_level = 1;
+  if (this->input->seek(this->input, this->segment.start, SEEK_SET) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "demux_matroska: failed to seek to pos: %lld\n", this->segment.start);
+    this->status = DEMUX_FINISHED;
+    return;
+  }
+  
   this->preview_sent = 0;
   this->preview_mode = 1;
 
-  next_level = 1;
   while ((this->preview_sent < NUM_PREVIEW_BUFFERS) && (next_level == 1)) {
     if (!parse_top_level (this, &next_level)) {
       break;
@@ -1902,8 +1844,13 @@ static void demux_matroska_send_headers (demux_plugin_t *this_gen) {
   }
   this->preview_mode = 0;
 
-  /* seek to the beginning of the segment */
-  this->input->seek(this->input, this->segment.start, SEEK_SET);
+  /* seek back to the beginning of the segment */
+  next_level = 1;
+  if (this->input->seek(this->input, this->segment.start, SEEK_SET) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "demux_matroska: failed to seek to pos: %lld\n", this->segment.start);
+    this->status = DEMUX_FINISHED;
+  }
 }
 
 
@@ -2025,11 +1972,10 @@ static int demux_matroska_seek (demux_plugin_t *this_gen,
             start_pos ? (int64_t)start_pos : (int64_t)start_time,
             index->track_num, index->timecode[entry], index->pos[entry]);
     
-    if (this->input->seek(this->input, index->pos[entry], SEEK_SET) == -1)
+    if (this->input->seek(this->input, index->pos[entry], SEEK_SET) < 0)
       this->status = DEMUX_FINISHED;
     
-    /* we always seek to the ebml level 1
-     * this allows seeking even if the end of file has been reached */
+    /* we always seek to the ebml level 1 */
     this->ebml->level = 1;
 
     this->skip_to_timecode = index->timecode[entry];
