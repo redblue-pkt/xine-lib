@@ -20,14 +20,18 @@
 ** types.h
 **
 ** Data type definitions
-** $Id: types.h,v 1.2 2003/01/09 19:50:04 jkeil Exp $
+** $Id: types.h,v 1.3 2003/01/11 15:53:53 tmmm Exp $
 */
 
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /* Define this if running on little-endian (x86) systems */
-#if defined(sparc)
+#ifdef WORDS_BIGENDIAN
 #undef	 HOST_LITTLE_ENDIAN
 #else
 #define  HOST_LITTLE_ENDIAN
@@ -88,6 +92,9 @@ typedef  uint8    boolean;
 
 /*
 ** $Log: types.h,v $
+** Revision 1.3  2003/01/11 15:53:53  tmmm
+** make the Nosefart engine aware of the config's WORDS_BIGENDIAN #define
+**
 ** Revision 1.2  2003/01/09 19:50:04  jkeil
 ** NSF audio files were crashing on SPARC.
 **
