@@ -38,7 +38,7 @@ xineplug_vo_out_syncfb_la_SOURCES =  video_out_syncfb.c
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
-xineplug_vo_out_aa_la_LIBADD = -laa
+xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS)
 xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = yuv2rgb.h video_out_syncfb.h alphablend.h
