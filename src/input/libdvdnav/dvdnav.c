@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.19 2003/03/25 13:17:20 mroi Exp $
+ * $Id: dvdnav.c,v 1.20 2003/03/27 13:46:47 mroi Exp $
  *
  */
 
@@ -210,14 +210,16 @@ static int64_t dvdnav_convert_time(dvd_time_t *time) {
   int64_t result;
   int frames;
   
-  result  = (time->hour    & 0xf0) * 10 * 60 * 60 * 90000;
+  result  = (time->hour    >> 4  ) * 10 * 60 * 60 * 90000;
   result += (time->hour    & 0x0f)      * 60 * 60 * 90000;
-  result += (time->minute  & 0xf0)      * 10 * 60 * 90000;
+  result += (time->minute  >> 4  )      * 10 * 60 * 90000;
   result += (time->minute  & 0x0f)           * 60 * 90000;
-  result += (time->second  & 0xf0)           * 10 * 90000;
+  result += (time->second  >> 4  )           * 10 * 90000;
   result += (time->second  & 0x0f)                * 90000;
-  frames  = (time->frame_u & 0x30)                * 10   ;
-  frames += (time->frame_u & 0x0f)                       ;
+  
+  frames  = ((time->frame_u & 0x30) >> 4) * 10;
+  frames += ((time->frame_u & 0x0f)     )     ;
+  
   if (time->frame_u & 0x80)
     result += frames * 3000;
   else
@@ -1016,6 +1018,10 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.20  2003/03/27 13:46:47  mroi
+ * sync to libdvdnav cvs
+ *  * fix conversion of dvd_time_t (I do know BCD, I just did it wrong...)
+ *
  * Revision 1.19  2003/03/25 13:17:20  mroi
  * sync to cvs of libdvdnav
  *   * optional PGC based seeking

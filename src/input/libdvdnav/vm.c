@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.15 2003/03/25 13:17:22 mroi Exp $
+ * $Id: vm.c,v 1.16 2003/03/27 13:46:47 mroi Exp $
  *
  */
 
@@ -444,11 +444,11 @@ void vm_position_get(vm_t *vm, vm_position_t *position) {
     int time;
     int size = (vm->state).pgc->cell_playback[(vm->state).cellN - 1].last_sector -
 	       (vm->state).pgc->cell_playback[(vm->state).cellN - 1].first_sector;
-    time  = ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.hour   & 0xf0) * 36000;
+    time  = ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.hour   >> 4  ) * 36000;
     time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.hour   & 0x0f) * 3600;
-    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.minute & 0xf0) * 600;
+    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.minute >> 4  ) * 600;
     time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.minute & 0x0f) * 60;
-    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.second & 0xf0) * 10;
+    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.second >> 4  ) * 10;
     time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.second & 0x0f) * 1;
     if (size / time > 30)
       /* datarate is too high, it might be a very short, but regular cell */
@@ -474,7 +474,9 @@ int vm_jump_pg(vm_t *vm, int pg) {
 int vm_jump_cell_block(vm_t *vm, int cell, int block) {
   (vm->state).cellN = cell;
   process_command(vm, play_Cell(vm));
-  (vm->state).blockN = block;
+  /* play_Cell can jump to a different cell in case of angles */
+  if ((vm->state).cellN == cell)
+    (vm->state).blockN = block;
   return 1;
 }
 
@@ -1805,6 +1807,10 @@ void vm_position_print(vm_t *vm, vm_position_t *position) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.16  2003/03/27 13:46:47  mroi
+ * sync to libdvdnav cvs
+ *  * fix conversion of dvd_time_t (I do know BCD, I just did it wrong...)
+ *
  * Revision 1.15  2003/03/25 13:17:22  mroi
  * sync to cvs of libdvdnav
  *   * optional PGC based seeking
