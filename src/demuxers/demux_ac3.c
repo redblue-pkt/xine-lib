@@ -21,7 +21,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.4 2003/02/08 16:01:09 tmmm Exp $
+ * $Id: demux_ac3.c,v 1.5 2003/02/27 22:26:48 mroi Exp $
  *
  */
 
@@ -323,16 +323,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
-  case METHOD_BY_CONTENT:
-  case METHOD_EXPLICIT:
-
-    if (!open_ac3_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  break;
-
   case METHOD_BY_EXTENSION: {
     char *ending, *mrl;
 
@@ -351,7 +341,18 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
 
   }
+  /* falling through is intended */
+  
+  case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
+
+    if (!open_ac3_file(this)) {
+      free (this);
+      return NULL;
+    }
+
   break;
+
 
   default:
     free (this);
