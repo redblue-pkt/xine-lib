@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.20 2003/12/05 18:07:04 hadess Exp $
+ * $Id: input_rip.c,v 1.21 2003/12/25 21:57:28 valtri Exp $
  */
 
 /* TODO:
@@ -528,10 +528,11 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   input_plugin_t *main_plugin = stream->input_plugin;
   struct stat pstat;
   const char *mode;
-  char target[MAX_TARGET_LEN];
-  char *fnc;
+  char target[MAX_TARGET_LEN], target_no[MAX_TARGET_LEN];
+  char *fnc, *target_basename;
+  int i;
 
-  lprintf("_x_rip_plugin_get_instance(catch file = %s), path = %s\n", filename ? filename : "(null)", stream->xine->save_path);
+  lprintf("catch file = %s, path = %s\n", filename, stream->xine->save_path);
 
   /* check given input plugin */
   if (!stream->input_plugin) {
@@ -569,35 +570,38 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   this->savepos = 0;
 
   fnc = strdup(filename);
+  target_basename = basename(fnc);
   dir_file_concat(target, MAX_TARGET_LEN, stream->xine->save_path, 
-                  basename(fnc));
-  free(fnc);
-  lprintf("target file: %s\n", target);
-  
-  /* find out type of target */
-  if (stat(target, &pstat) < 0 && errno != ENOENT) {
-    xine_log(this->stream->xine, XINE_LOG_MSG,
-	     _("input_rip: stat on the file %s failed: %s\n"), target, strerror(errno));
-    free(this);
-    return NULL;
-  }
-#ifndef _MSC_VER
-  if (errno != ENOENT && S_ISFIFO(pstat.st_mode)) {
-    this->regular = 0;
-    mode = "wb";
-  } else {
-    this->regular = 1;
-    mode = "wb+";
-  }
-#else
-  /* no fifos under MSVC */
-  this->regular = 1;
+                  target_basename);
+  strcpy(target_no, target);
+
+  i = 1;
   mode = "wb+";
+  do {
+    /* find out kind of target */
+    if (stat(target_no, &pstat) < 0) break;
+#ifndef _MSC_VER
+    if (S_ISFIFO(pstat.st_mode)) this->regular = 0;
+    else this->regular = 1;
+#else
+    /* no fifos under MSVC */
+    this->regular = 1;
 #endif
-  
-  if ((this->file = fopen(target, mode)) == NULL) {
+    /* we want write into fifos */
+    if (!this->regular) {
+      mode = "wb";
+      break;
+    }
+
+    snprintf(target_no, MAX_TARGET_LEN, "%s.%d", target, i);
+    i++;
+  } while(1);
+  free(fnc);
+  lprintf("target file: %s\n", target_no);
+
+  if ((this->file = fopen(target_no, mode)) == NULL) {
     xine_log(this->stream->xine, XINE_LOG_MSG, 
-	     _("input_rip: error opening file %s: %s\n"), target, strerror(errno));
+	     _("input_rip: error opening file %s: %s\n"), target_no, strerror(errno));
     free(this);
     return NULL;
   }
