@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.125 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.126 2002/12/12 03:50:37 tmmm Exp $
  *
  */
 
@@ -95,6 +95,7 @@ typedef unsigned int qt_atom;
 #define CO64_ATOM QT_ATOM('c', 'o', '6', '4')
 
 #define ESDS_ATOM QT_ATOM('e', 's', 'd', 's')
+#define WAVE_ATOM QT_ATOM('w', 'a', 'v', 'e')
 
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
 #define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
@@ -178,6 +179,8 @@ typedef struct {
       unsigned int channels;
       unsigned int bits;
       unsigned int vbr;
+      unsigned int wave_present;
+      xine_waveformatex wave;
     } audio;
 
   } media_description;
@@ -250,6 +253,8 @@ typedef struct {
   unsigned int audio_vbr;    /* flag to indicate if audio is VBR */
   void *audio_decoder_config;
   int audio_decoder_config_len;
+  int wave_present;
+  xine_waveformatex wave;
 
   qt_atom video_codec;
   unsigned int video_type;
@@ -595,6 +600,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   int i, j;
   unsigned int trak_atom_size = BE_32(&trak_atom[0]);
   qt_atom current_atom;
+  unsigned int current_atom_size;
   qt_error last_error = QT_OK;
 
   /* for palette traversal */
@@ -636,14 +642,6 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   /* default type */
   sample_table->type = MEDIA_OTHER;
 
-  /* video size and depth not yet known */
-  sample_table->media_description.video.width = 0;
-  sample_table->media_description.video.height = 0;
-  sample_table->media_description.video.depth = 0;
-
-  /* assume no palette at first */
-  sample_table->media_description.video.palette_count = 0;
-
   /* search for media type atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
     current_atom = BE_32(&trak_atom[i]);
@@ -663,6 +661,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
   /* search for the useful atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
+    current_atom_size = BE_32(&trak_atom[i - 4]);	
     current_atom = BE_32(&trak_atom[i]);
 
     if (current_atom == TKHD_ATOM) {
@@ -716,6 +715,14 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
     else if (current_atom == STSD_ATOM) {
 
       if (sample_table->type == MEDIA_VIDEO) {
+
+        /* initialize to sane values */
+        sample_table->media_description.video.width = 0;
+        sample_table->media_description.video.height = 0;
+        sample_table->media_description.video.depth = 0;
+
+        /* assume no palette at first */
+        sample_table->media_description.video.palette_count = 0;
 
         /* fetch video parameters */
         if( BE_16(&trak_atom[i + 0x2C]) && BE_16(&trak_atom[i + 0x2E]) ) {
@@ -896,6 +903,18 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         /* if this is MP4 audio, mark it as VBR */
         if (BE_32(&trak_atom[i + 0x10]) == MP4A_FOURCC)
           sample_table->media_description.audio.vbr = 1;
+
+        /* check for a MS-style WAVE format header */
+        if ((current_atom_size >= 0x48) && 
+            (BE_32(&trak_atom[i + 0x44]) == WAVE_ATOM)) {
+          sample_table->media_description.audio.wave_present = 1;
+          memcpy(&sample_table->media_description.audio.wave, 
+            &trak_atom[i + 0x5C],
+            sizeof(sample_table->media_description.audio.wave));
+          xine_waveformatex_le2me(&sample_table->media_description.audio.wave);
+        } else {
+          sample_table->media_description.audio.wave_present = 0;
+        }
 
         debug_atom_load("    audio description\n");
         debug_atom_load("      %d Hz, %d bits, %d channels, %saudio fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
@@ -1525,6 +1544,11 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
 
       info->audio_decoder_config = sample_tables[i].decoder_config;
       info->audio_decoder_config_len = sample_tables[i].decoder_config_len;
+
+      info->wave_present = 
+        sample_tables[i].media_description.audio.wave_present;
+      memcpy(&info->wave, &sample_tables[i].media_description.audio.wave,
+        sizeof(xine_waveformatex));
     }
   }
   debug_frame_table("  qt: finished building frame tables, merging into one...\n");
@@ -2002,6 +2026,8 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[1] = this->qt->audio_sample_rate;
     buf->decoder_info[2] = this->qt->audio_bits;
     buf->decoder_info[3] = this->qt->audio_channels;
+    buf->content = (void *)&this->qt->wave;
+    buf->size = sizeof(this->qt->wave);
     this->audio_fifo->put (this->audio_fifo, buf);
     
     if( this->qt->audio_decoder_config ) {
