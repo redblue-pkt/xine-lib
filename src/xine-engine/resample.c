@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.c,v 1.2 2001/12/27 14:30:30 f1rmb Exp $
+ * $Id: resample.c,v 1.3 2002/07/01 13:51:28 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -277,4 +277,52 @@ void audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples,
   output_samples[out_samples*6-3] = input_samples[in_samples*6-3];
   output_samples[out_samples*6-2] = input_samples[in_samples*6-2];
   output_samples[out_samples*6-1] = input_samples[in_samples*6-1];
+}
+
+void audio_out_resample_8to16(int8_t* input_samples, 
+                              int16_t* output_samples, uint32_t samples)
+{
+  while( samples-- ) {
+    int16_t os;
+    
+    os = *input_samples++;
+    os = (os - 0x80) << 8;
+    *output_samples++ = os;
+  }
+}
+
+void audio_out_resample_16to8(int16_t* input_samples, 
+                              int8_t* output_samples, uint32_t samples)
+{
+  while( samples-- ) {
+    int16_t os;
+    
+    os = *input_samples++;
+    os = (os >> 8) + 0x80;
+    *output_samples++ = os;
+  }
+}
+
+void audio_out_resample_monotostereo(int16_t* input_samples, 
+                                     int16_t* output_samples, uint32_t frames)
+{
+  while( frames-- ) {
+    int16_t os;
+    
+    os = *input_samples++;
+    *output_samples++ = os;
+    *output_samples++ = os;
+  }
+}
+
+void audio_out_resample_stereotomono(int16_t* input_samples, 
+                                     int16_t* output_samples, uint32_t frames)
+{
+  while( frames-- ) {
+    int16_t os;
+    
+    os = (*input_samples++)>>1;
+    os += (*input_samples++)>>1;
+    *output_samples++ = os;
+  }
 }

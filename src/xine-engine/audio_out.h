@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.30 2002/05/24 12:23:58 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.31 2002/07/01 13:51:28 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -148,6 +148,14 @@ struct audio_buffer_s {
   uint32_t           first_access_unit;
 };
 
+typedef struct ao_format_s ao_format_t;
+
+struct ao_format_s {
+  uint32_t bits; 
+  uint32_t rate;
+  int mode;
+};
+
 typedef struct ao_instance_s ao_instance_t;
 
 struct ao_instance_s {
@@ -207,20 +215,19 @@ struct ao_instance_s {
 
   int             audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
   int32_t         frames_per_kpts;      /* frames per 1024/90000 sec                  */
-  int32_t         output_frame_rate, input_frame_rate;
+  
+  ao_format_t     input, output;        /* format conversion done at audio_out.c */
   double          frame_rate_factor;
-  uint32_t        num_channels;
-  int64_t         last_audio_vpts;
+  
   int             resample_conf;
   int             force_rate;           /* force audio output rate to this value if non-zero */
   int             do_resample;
-  int	 	  mode;
-  int             bits;
   int             gap_tolerance;
   audio_fifo_t   *free_fifo;
   audio_fifo_t   *out_fifo;
-  uint16_t       *frame_buffer;
-  uint32_t        frame_buffer_size;
+  int64_t         last_audio_vpts;
+  
+  audio_buffer_t *frame_buf[2];         /* two buffers for "stackable" conversions */
   int16_t        *zero_space;
 };
 
@@ -263,6 +270,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) ;
 #define AO_CAP_MIXER_VOL        0x00000080 /* driver supports mixer control */
 #define AO_CAP_PCM_VOL          0x00000100 /* driver supports pcm control   */
 #define AO_CAP_MUTE_VOL         0x00000200 /* driver can mute volume        */
+#define AO_CAP_8BITS            0x00000400 /* driver support 8-bit samples  */
 
 /* properties supported by get/set_property() */
 #define AO_PROP_MIXER_VOL       0

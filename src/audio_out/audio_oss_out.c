@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.69 2002/06/13 18:36:26 tmattern Exp $
+ * $Id: audio_oss_out.c,v 1.70 2002/07/01 13:51:27 miguelfreitas Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -622,7 +622,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   int              rate ;
   int              devnum;
   int              audio_fd;
-  int              num_channels, status, arg;
+  int              num_channels, bits, status, arg;
   static char     *sync_methods[] = {"auto", "getodelay", "getoptr", "softsync", "probebuffer", NULL};
   
   this = (oss_driver_t *) malloc (sizeof (oss_driver_t));
@@ -775,7 +775,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 					  NULL, NULL);
   
   this->capabilities = 0;
-
+  
+  bits = 8;
+  if( ioctl(audio_fd, SNDCTL_DSP_SAMPLESIZE,&bits) != -1 )
+    this->capabilities |= AO_CAP_8BITS;
+    
   printf ("audio_oss_out : supported modes are ");
   num_channels = 1; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.59 2002/06/22 13:40:38 mroi Exp $
+ * $Id: audio_out.c,v 1.60 2002/07/01 13:51:27 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -231,7 +231,7 @@ static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
   printf ("audio_out: inserting %d 0-frames to fill a gap of %lld pts\n",
 	  num_frames, pts_len);
 
-  if ((this->mode == AO_CAP_MODE_A52) || (this->mode == AO_CAP_MODE_AC5)) {
+  if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
     return; 
   }
@@ -247,19 +247,48 @@ static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
   }
 }
 
-static void ensure_buffer_size (ao_instance_t *this, int size)
+static void ensure_buffer_size (audio_buffer_t *buf, int bytes_per_frame,
+                                int frames)
 {
-  if (this->frame_buffer_size < size) {
-    this->frame_buffer = realloc( this->frame_buffer, size );
-    this->frame_buffer_size = size;
+  int size = bytes_per_frame * frames;
+  
+  if (buf->mem_size < size) {
+    buf->mem = realloc( buf->mem, size );
+    buf->mem_size = size;
   }
+  buf->num_frames = frames;
 }
+
+static audio_buffer_t * swap_frame_buffers ( ao_instance_t *this ) {
+  audio_buffer_t *tmp;
+
+  tmp = this->frame_buf[1];
+  this->frame_buf[1] = this->frame_buf[0];
+  this->frame_buf[0] = tmp;
+  return this->frame_buf[0];
+}
+
+static int mode_channels( int mode ) {
+  switch( mode ) {
+      case AO_CAP_MODE_MONO:
+        return 1;
+      case AO_CAP_MODE_STEREO:
+        return 2;
+      case AO_CAP_MODE_4CHANNEL:
+        return 4;
+      case AO_CAP_MODE_5CHANNEL:
+        return 5;
+      case AO_CAP_MODE_5_1CHANNEL:
+        return 6;
+  }
+  return 0;
+} 
 
 static void *ao_loop (void *this_gen) {
 
   ao_instance_t  *this = (ao_instance_t *) this_gen;
   int64_t         hw_vpts;
-  audio_buffer_t *buf;
+  audio_buffer_t *buf, *in_buf;
   int64_t         gap;
   int             delay;
   int64_t         cur_time;
@@ -274,7 +303,7 @@ static void *ao_loop (void *this_gen) {
   while ((this->audio_loop_running) ||
 	 (!this->audio_loop_running && this->out_fifo->first)) {
 
-    buf = fifo_remove (this->out_fifo);
+    in_buf = buf = fifo_remove (this->out_fifo);
     bufs_since_sync++;
 
 #ifdef LOG
@@ -300,7 +329,7 @@ static void *ao_loop (void *this_gen) {
 #endif
 
       /* External A52 decoder delay correction */
-      if ((this->mode==AO_CAP_MODE_A52) || (this->mode==AO_CAP_MODE_AC5)) 
+      if ((this->output.mode==AO_CAP_MODE_A52) || (this->output.mode==AO_CAP_MODE_AC5)) 
         delay+=10; 
   
       hw_vpts += delay * 1024 / this->frames_per_kpts;
@@ -387,53 +416,104 @@ static void *ao_loop (void *this_gen) {
       printf ("audio_out: outputting %d frames\n", num_output_frames);
 #endif
       
-      /* check if resample is needed */
-      if (((!this->do_resample) || (buf->num_frames == num_output_frames))
-	  && (this->mode != AO_CAP_MODE_A52) 
-	  && (this->mode != AO_CAP_MODE_AC5)) {
-
-	this->driver->write (this->driver, buf->mem,
-			     buf->num_frames );
-      } else switch (this->mode) {
-      case AO_CAP_MODE_MONO:
-	ensure_buffer_size(this, 2*num_output_frames);
-	audio_out_resample_mono (buf->mem, buf->num_frames,
-				 this->frame_buffer, num_output_frames);
-	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
-	break;
-      case AO_CAP_MODE_STEREO:
-	ensure_buffer_size(this, 4*num_output_frames);
-	audio_out_resample_stereo (buf->mem, buf->num_frames,
-				   this->frame_buffer, num_output_frames);
-	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
-	break;
-      case AO_CAP_MODE_4CHANNEL:
-	ensure_buffer_size(this, 8*num_output_frames);
-	audio_out_resample_4channel (buf->mem, buf->num_frames,
-				     this->frame_buffer, num_output_frames);
-	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
-	break;
-      case AO_CAP_MODE_5CHANNEL:
-	ensure_buffer_size(this, 10*num_output_frames);
-	audio_out_resample_5channel (buf->mem, buf->num_frames,
-				     this->frame_buffer, num_output_frames);
-	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
-	break;
-      case AO_CAP_MODE_5_1CHANNEL:
-	ensure_buffer_size(this, 12*num_output_frames);
-	audio_out_resample_6channel (buf->mem, buf->num_frames,
-				     this->frame_buffer, num_output_frames);
-	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
-	break;
-      case AO_CAP_MODE_A52:
-      case AO_CAP_MODE_AC5:
-	this->driver->write(this->driver, buf->mem, buf->num_frames);
-	break;
+      /* convert 8 bit samples as needed */
+      if( this->input.bits == 8 &&
+          (this->do_resample || this->output.bits != 8 ||
+           this->input.mode != this->output.mode ) ) {
+        ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
+                           buf->num_frames );
+        audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
+                                 mode_channels(this->input.mode) * buf->num_frames );
+        buf = swap_frame_buffers(this);
       }
+
+      /* check if resampling may be skipped */
+      if ( this->do_resample &&  
+           buf->num_frames != num_output_frames ) {
+        switch (this->input.mode) {
+          case AO_CAP_MODE_MONO:
+            ensure_buffer_size(this->frame_buf[1], 2, num_output_frames);
+            audio_out_resample_mono (buf->mem, buf->num_frames,
+                                     this->frame_buf[1]->mem, num_output_frames);
+            buf = swap_frame_buffers(this);
+            break;
+          case AO_CAP_MODE_STEREO:
+            ensure_buffer_size(this->frame_buf[1], 4, num_output_frames);
+            audio_out_resample_stereo (buf->mem, buf->num_frames,
+                                       this->frame_buf[1]->mem, num_output_frames);
+            buf = swap_frame_buffers(this);
+            break;
+          case AO_CAP_MODE_4CHANNEL:
+            ensure_buffer_size(this->frame_buf[1], 8, num_output_frames);
+            audio_out_resample_4channel (buf->mem, buf->num_frames,
+                                         this->frame_buf[1]->mem, num_output_frames);
+            buf = swap_frame_buffers(this);
+            break;
+          case AO_CAP_MODE_5CHANNEL:
+            ensure_buffer_size(this->frame_buf[1], 10, num_output_frames);
+            audio_out_resample_5channel (buf->mem, buf->num_frames,
+                                         this->frame_buf[1]->mem, num_output_frames);
+            buf = swap_frame_buffers(this);
+            break;
+          case AO_CAP_MODE_5_1CHANNEL:
+            ensure_buffer_size(this->frame_buf[1], 12, num_output_frames);
+            audio_out_resample_6channel (buf->mem, buf->num_frames,
+                                         this->frame_buf[1]->mem, num_output_frames);
+            buf = swap_frame_buffers(this);
+            break;
+          case AO_CAP_MODE_A52:
+          case AO_CAP_MODE_AC5:
+            /* pass-through modes: no resampling */
+            break;
+        }
+      }
+      
+      /* mode conversion */
+      if ( this->input.mode != this->output.mode ) {
+        switch (this->input.mode) {
+          case AO_CAP_MODE_MONO:
+            if( this->output.mode == AO_CAP_MODE_STEREO ) {
+              ensure_buffer_size(this->frame_buf[1], 4, buf->num_frames );
+              audio_out_resample_monotostereo(buf->mem, this->frame_buf[1]->mem,
+                                              buf->num_frames );
+              buf = swap_frame_buffers(this);
+            }
+            break;
+          case AO_CAP_MODE_STEREO:
+            if( this->output.mode == AO_CAP_MODE_MONO ) {
+              ensure_buffer_size(this->frame_buf[1], 2, buf->num_frames );
+              audio_out_resample_stereotomono(buf->mem, this->frame_buf[1]->mem,
+                                              buf->num_frames );
+              buf = swap_frame_buffers(this);
+            }
+            break;
+          case AO_CAP_MODE_4CHANNEL:
+            break;
+          case AO_CAP_MODE_5CHANNEL:
+            break;
+          case AO_CAP_MODE_5_1CHANNEL:
+            break;
+          case AO_CAP_MODE_A52:
+          case AO_CAP_MODE_AC5:
+            break;
+        }
+      }
+      
+      /* convert back to 8 bits after resampling */
+      if( this->output.bits == 8 && (this->do_resample || 
+          this->input.mode != this->output.mode) ) {
+        ensure_buffer_size(this->frame_buf[1], 1*mode_channels(this->output.mode),
+                           buf->num_frames );
+        audio_out_resample_16to8(buf->mem, (int8_t *)this->frame_buf[1]->mem,
+                                 mode_channels(this->output.mode) * buf->num_frames );
+        buf = swap_frame_buffers(this);
+      }
+      
+      this->driver->write (this->driver, buf->mem, buf->num_frames );
     }
     pthread_mutex_unlock( &this->driver_lock );
 
-    fifo_append (this->free_fifo, buf);
+    fifo_append (this->free_fifo, in_buf);
 
   }
 
@@ -455,6 +535,29 @@ static int ao_open(ao_instance_t *this,
 	    "audio_out: stream audio format is %d kHz sampling rate, %d bits. mode is %d.\n",
 	    rate, bits, mode);
 
+  this->input.mode            = mode;
+  this->input.rate            = rate;
+  this->input.bits            = bits;
+  
+  /* not all drivers/cards support 8 bits */
+  if( this->input.bits == 8 && 
+      !(this->driver->get_capabilities(this->driver) & AO_CAP_8BITS) ) {
+    bits = 16;      
+    printf("audio_out: 8 bits not supported by driver, converting to 16 bits.\n");
+  }
+    
+  /* provide mono->stereo and stereo->mono conversions */
+  if( this->input.mode == AO_CAP_MODE_MONO && 
+      !(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_MONO) ) {
+    mode = AO_CAP_MODE_STEREO;
+    printf("audio_out: mono not supported by driver, converting to stereo.\n");
+  }
+  if( this->input.mode == AO_CAP_MODE_STEREO && 
+      !(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_STEREO) ) {
+    mode = AO_CAP_MODE_MONO;
+    printf("audio_out: stereo not supported by driver, converting to mono.\n");
+  }
+ 
   pthread_mutex_lock( &this->driver_lock );
   output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode);
   pthread_mutex_unlock( &this->driver_lock );
@@ -466,11 +569,10 @@ static int ao_open(ao_instance_t *this,
 
   printf("audio_out: output sample rate %d\n", output_sample_rate);
 
-  this->mode                  = mode;
-  this->input_frame_rate      = rate;
-  this->bits                  = bits;
   this->last_audio_vpts       = 0;
-  this->output_frame_rate     = output_sample_rate;
+  this->output.mode           = mode;
+  this->output.rate           = output_sample_rate;
+  this->output.bits           = bits;
 
   switch (this->resample_conf) {
   case 1: /* force off */
@@ -480,24 +582,16 @@ static int ao_open(ao_instance_t *this,
     this->do_resample = 1;
     break;
   default: /* AUTO */
-    this->do_resample = this->output_frame_rate != this->input_frame_rate;
+    this->do_resample = this->output.rate != this->input.rate;
   }
-
-  /* HACK: we do not have resample functions for 8-bit audio */
-  if (this->bits==8)
-    this->do_resample = 0;
 
   if (this->do_resample) 
     printf("audio_out: will resample audio from %d to %d\n",
-	   this->input_frame_rate, this->output_frame_rate);
+	   this->input.rate, this->output.rate);
 
-  pthread_mutex_lock( &this->driver_lock );
-  this->num_channels      = this->driver->num_channels(this->driver); 
-  pthread_mutex_unlock( &this->driver_lock );
-
-  this->frame_rate_factor = (double) this->output_frame_rate / (double) this->input_frame_rate; 
-  this->audio_step        = (uint32_t) 90000 * (uint32_t) 32768 / this->input_frame_rate;
-  this->frames_per_kpts   = this->output_frame_rate * 1024 / 90000;
+  this->frame_rate_factor = (double) this->output.rate / (double) this->input.rate; 
+  this->audio_step        = (uint32_t) 90000 * (uint32_t) 32768 / this->input.rate;
+  this->frames_per_kpts   = this->output.rate * 1024 / 90000;
 #ifdef LOG
   printf ("audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
 #endif
@@ -525,7 +619,7 @@ static int ao_open(ao_instance_t *this,
   } else
     printf ("audio_out: thread created\n");
 
-  return this->output_frame_rate;
+  return this->output.rate;
 }
 
 static audio_buffer_t *ao_get_buffer (ao_instance_t *this) {
@@ -616,7 +710,10 @@ static void ao_exit(ao_instance_t *this) {
   this->driver->exit(this->driver);
   pthread_mutex_unlock( &this->driver_lock );
 
-  free (this->frame_buffer);
+  free (this->frame_buf[0]->mem);
+  free (this->frame_buf[0]);
+  free (this->frame_buf[1]->mem);
+  free (this->frame_buf[1]);
   free (this->zero_space);
 
   buf = this->free_fifo->first;
@@ -719,8 +816,6 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->control		      = ao_control;
   this->audio_loop_running    = 0;
   this->audio_paused          = 0;
-  this->frame_buffer          = xine_xmalloc (4 * AUDIO_BUF_SIZE);
-  this->frame_buffer_size     = 4 * AUDIO_BUF_SIZE;
   this->zero_space            = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
   this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 
@@ -748,6 +843,18 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
     buf->mem_size = AUDIO_BUF_SIZE;
 
     fifo_append (this->free_fifo, buf);
+  }
+  
+  /* buffers used for audio conversions */
+  for (i=0; i<2; i++) {
+
+    audio_buffer_t *buf;
+
+    buf = (audio_buffer_t *) malloc (sizeof (audio_buffer_t));
+    buf->mem = malloc (4*AUDIO_BUF_SIZE);
+    buf->mem_size = 4*AUDIO_BUF_SIZE;
+
+    this->frame_buf[i] = buf;
   }
 
   /*

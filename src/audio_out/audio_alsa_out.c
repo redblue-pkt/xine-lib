@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.66 2002/07/01 11:45:25 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.67 2002/07/01 13:51:26 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -942,7 +942,12 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     printf ("audio_alsa_out: access type not available");
     return NULL;
   }
+
   this->capabilities = 0;
+
+  if ( !(snd_pcm_hw_params_set_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) 
+    this->capabilities |= AO_CAP_8BITS;
+
   printf ("audio_alsa_out : supported modes are ");
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) {
     this->capabilities |= AO_CAP_MODE_MONO;
