@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.37 2003/10/06 21:52:44 miguelfreitas Exp $
+ * $Id: video_out_aa.c,v 1.38 2003/10/22 20:38:10 komadori Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -109,7 +109,8 @@ static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
   frame = (aa_frame_t *) malloc (sizeof (aa_frame_t));
   memset (frame, 0, sizeof (aa_frame_t));
 
-  frame->vo_frame.copy = NULL;
+  frame->vo_frame.proc_slice = NULL;
+  frame->vo_frame.proc_frame = NULL;
   frame->vo_frame.field = aa_frame_field;
   frame->vo_frame.dispose = aa_dispose_frame;
   frame->vo_frame.driver = this;
@@ -328,6 +329,6 @@ static vo_info_t vo_info_aa = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 17, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
+  { PLUGIN_VIDEO_OUT, 18, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

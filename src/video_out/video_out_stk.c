@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.5 2003/10/07 17:35:51 miguelfreitas Exp $
+ * $Id: video_out_stk.c,v 1.6 2003/10/22 20:38:10 komadori Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -105,7 +105,7 @@ static uint32_t stk_get_capabilities (vo_driver_t *this_gen) {
 }
 
 /* copy YUV to RGB data (see fb driver)*/
-static void stk_frame_copy (vo_frame_t *vo_img, uint8_t **src)
+static void stk_frame_proc_slice (vo_frame_t *vo_img, uint8_t **src)
 {
     /* not needed by SDL, we may need it for other stk backends */
     //printf("video_out_stk: frame_copy()\n");
@@ -138,9 +138,10 @@ static vo_frame_t *stk_alloc_frame(vo_driver_t *this_gen) {
     pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
     /* map the frame function pointers */
-    frame->vo_frame.copy    = stk_frame_copy;
-    frame->vo_frame.field   = stk_frame_field;
-    frame->vo_frame.dispose = stk_frame_dispose;
+    frame->vo_frame.proc_slice = stk_frame_proc_slice;
+    frame->vo_frame.proc_frame = NULL;
+    frame->vo_frame.field      = stk_frame_field;
+    frame->vo_frame.dispose    = stk_frame_dispose;
 
     return (vo_frame_t *) frame;
 }
@@ -477,7 +478,7 @@ static vo_info_t vo_info_stk = {
 
 plugin_info_t xine_plugin_info[] = {
     /* type, API, "name", version, special_info, init_function */
-    { PLUGIN_VIDEO_OUT, 17, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
+    { PLUGIN_VIDEO_OUT, 18, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
     { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
 };
 

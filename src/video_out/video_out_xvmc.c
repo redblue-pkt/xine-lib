@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.2 2003/10/06 21:52:44 miguelfreitas Exp $
+ * $Id: video_out_xvmc.c,v 1.3 2003/10/22 20:38:10 komadori Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -623,9 +623,10 @@ static vo_frame_t *xvmc_alloc_frame (vo_driver_t *this_gen) {
    * supply required functions
    */
 
-  frame->vo_frame.copy    = NULL;
-  frame->vo_frame.field   = xvmc_frame_field;
-  frame->vo_frame.dispose = xvmc_frame_dispose;
+  frame->vo_frame.proc_slice = NULL;
+  frame->vo_frame.proc_frame = NULL;
+  frame->vo_frame.field      = xvmc_frame_field;
+  frame->vo_frame.dispose    = xvmc_frame_dispose;
   frame->vo_frame.proc_macro_block = xvmc_proc_macro_block;
 
   frame->vo_frame.driver  = this_gen;
@@ -1901,7 +1902,7 @@ static vo_info_t vo_info_xvmc = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 17, "xvmc", XINE_VERSION_CODE, &vo_info_xvmc, init_class },
+  { PLUGIN_VIDEO_OUT, 18, "xvmc", XINE_VERSION_CODE, &vo_info_xvmc, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

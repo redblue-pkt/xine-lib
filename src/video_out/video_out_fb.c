@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.28 2003/10/06 21:52:44 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.29 2003/10/22 20:38:10 komadori Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -149,13 +149,12 @@ typedef struct
 
 static uint32_t fb_get_capabilities(vo_driver_t *this_gen)
 {
-  return VO_CAP_COPIES_IMAGE |
-    VO_CAP_YV12         |
+  return VO_CAP_YV12    |
     VO_CAP_YUY2         |
     VO_CAP_BRIGHTNESS;
 }
 
-static void fb_frame_copy(vo_frame_t *vo_img, uint8_t **src)
+static void fb_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src)
 {
   fb_frame_t *frame = (fb_frame_t *)vo_img ;
   
@@ -225,10 +224,11 @@ static vo_frame_t *fb_alloc_frame(vo_driver_t *this_gen)
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
   
   /* supply required functions */
-  frame->vo_frame.copy    = fb_frame_copy;
-  frame->vo_frame.field   = fb_frame_field; 
-  frame->vo_frame.dispose = fb_frame_dispose;
-  frame->vo_frame.driver  = this_gen;
+  frame->vo_frame.proc_slice = fb_frame_proc_slice;
+  frame->vo_frame.proc_frame = NULL;
+  frame->vo_frame.field      = fb_frame_field; 
+  frame->vo_frame.dispose    = fb_frame_dispose;
+  frame->vo_frame.driver     = this_gen;
   
   frame->this = this;
   
@@ -1053,7 +1053,7 @@ plugin_info_t xine_plugin_info[] =
   /* type, API, "name", version, special_info, init_function */  
   {
     PLUGIN_VIDEO_OUT,
-    17,
+    18,
     "fb",
     XINE_VERSION_CODE,
     &vo_info_fb, fb_init_class

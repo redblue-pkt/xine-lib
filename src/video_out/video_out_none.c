@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.16 2003/10/06 21:52:44 miguelfreitas Exp $
+ * $Id: video_out_none.c,v 1.17 2003/10/22 20:38:10 komadori Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -99,10 +99,11 @@ static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
   frame->vo_frame.base[1] = NULL;
   frame->vo_frame.base[2] = NULL;
   
-  frame->vo_frame.copy    = NULL;
-  frame->vo_frame.field   = none_frame_field;
-  frame->vo_frame.dispose = none_frame_dispose;
-  frame->vo_frame.driver  = vo_driver;
+  frame->vo_frame.proc_slice = NULL;
+  frame->vo_frame.proc_frame = NULL;
+  frame->vo_frame.field      = none_frame_field;
+  frame->vo_frame.dispose    = none_frame_dispose;
+  frame->vo_frame.driver     = vo_driver;
   
   return (vo_frame_t *)frame;
 }
@@ -302,6 +303,6 @@ static vo_info_t vo_info_none = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 17, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
+  { PLUGIN_VIDEO_OUT, 18, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

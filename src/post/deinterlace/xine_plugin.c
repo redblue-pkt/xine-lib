@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.16 2003/10/19 20:58:27 f1rmb Exp $
+ * $Id: xine_plugin.c,v 1.17 2003/10/22 20:38:09 komadori Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -536,7 +536,8 @@ static vo_frame_t *deinterlace_get_frame(xine_video_port_t *port_gen, uint32_t w
     /* replace with our own draw function */
     frame->draw = deinterlace_draw;
     /* decoders should not copy the frames, since they won't be displayed */
-    frame->copy = NULL;
+    frame->proc_slice = NULL;
+    frame->proc_frame = NULL;
   }
 
   pthread_mutex_unlock (&this->lock);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.15 2003/10/06 21:52:44 miguelfreitas Exp $
+ * $Id: post.c,v 1.16 2003/10/22 20:38:10 komadori Exp $
  */
  
 /*
@@ -125,10 +125,17 @@ static void post_frame_free(vo_frame_t *vo_img) {
   vo_img->free(vo_img);
 }
   
-static void post_frame_copy(vo_frame_t *vo_img, uint8_t **src) {
+static void post_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
   vo_img->port = port->original_port;
-  port->original_frame.copy(vo_img, src);
+  port->original_frame.proc_slice(vo_img, src);
+  vo_img->port = &port->port;
+}
+
+static void post_frame_proc_frame(vo_frame_t *vo_img, uint8_t **src) {
+  post_video_port_t *port = (post_video_port_t *)vo_img->port;
+  vo_img->port = port->original_port;
+  port->original_frame.proc_frame(vo_img, src);
   vo_img->port = &port->port;
 }
 
@@ -188,7 +195,8 @@ static void post_frame_proc_macro_block(int x,
 void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   port->original_frame.port       = frame->port;
   port->original_frame.free       = frame->free;
-  port->original_frame.copy       = frame->copy;
+  port->original_frame.proc_slice = frame->proc_slice;
+  port->original_frame.proc_frame = frame->proc_frame;
   port->original_frame.field      = frame->field;
   port->original_frame.draw       = frame->draw;
   port->original_frame.lock       = frame->lock;
@@ -197,7 +205,8 @@ void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   
   frame->port                     = &port->port;
   frame->free                     = post_frame_free;
-  frame->copy                     = frame->copy ? post_frame_copy : NULL; /* this one can be NULL */
+  frame->proc_slice               = frame->proc_slice ? post_frame_proc_slice : NULL;
+  frame->proc_frame               = frame->proc_frame ? post_frame_proc_frame : NULL;
   frame->field                    = post_frame_field;
   frame->draw                     = post_frame_draw;
   frame->lock                     = post_frame_lock;
@@ -208,7 +217,8 @@ void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
 void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->port                     = port->original_port;
   frame->free                     = port->original_frame.free;
-  frame->copy                     = port->original_frame.copy;
+  frame->proc_slice               = port->original_frame.proc_slice;
+  frame->proc_frame               = port->original_frame.proc_frame;
   frame->field                    = port->original_frame.field;
   frame->draw                     = port->original_frame.draw;
   frame->lock                     = port->original_frame.lock;

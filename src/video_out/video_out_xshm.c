@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.115 2003/10/18 23:01:21 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.116 2003/10/22 20:38:10 komadori Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -307,11 +307,11 @@ static void dispose_ximage (xshm_driver_t *this,
  */
 
 static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 |
+  return VO_CAP_YV12 | VO_CAP_YUY2 |
 	 VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST | VO_CAP_SATURATION;
 }
 
-static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
+static void xshm_frame_proc_slice (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   /*xshm_driver_t *this = (xshm_driver_t *) vo_img->driver; */
 
@@ -390,10 +390,11 @@ static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
    * supply required functions/fields
    */
   
-  frame->vo_frame.copy    = xshm_frame_copy;
-  frame->vo_frame.field   = xshm_frame_field; 
-  frame->vo_frame.dispose = xshm_frame_dispose;
-  frame->vo_frame.driver  = this_gen;
+  frame->vo_frame.proc_slice = xshm_frame_proc_slice;
+  frame->vo_frame.proc_frame = NULL;
+  frame->vo_frame.field      = xshm_frame_field; 
+  frame->vo_frame.dispose    = xshm_frame_dispose;
+  frame->vo_frame.driver     = this_gen;
 
   /*
    * colorspace converter for this frame
@@ -1229,6 +1230,6 @@ static vo_info_t vo_info_xshm = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 17, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
+  { PLUGIN_VIDEO_OUT, 18, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.176 2003/10/18 23:01:21 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.177 2003/10/22 20:38:10 komadori Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -207,10 +207,11 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   /*
    * supply required functions
    */
-  frame->vo_frame.copy    = NULL;
-  frame->vo_frame.field   = xv_frame_field;
-  frame->vo_frame.dispose = xv_frame_dispose;
-  frame->vo_frame.driver  = this_gen;
+  frame->vo_frame.proc_slice = NULL;
+  frame->vo_frame.proc_frame = NULL;
+  frame->vo_frame.field      = xv_frame_field;
+  frame->vo_frame.dispose    = xv_frame_dispose;
+  frame->vo_frame.driver     = this_gen;
 
   return (vo_frame_t *) frame;
 }
@@ -1466,7 +1467,7 @@ static vo_info_t vo_info_xv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 17, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
+  { PLUGIN_VIDEO_OUT, 18, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

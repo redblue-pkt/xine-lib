@@ -361,9 +361,10 @@ static vo_frame_t *expand_get_frame(xine_video_port_t *port_gen, uint32_t width,
      *  - letting the decoder copy the image
      *  - copying the bottom black bar in expand_draw()
      */
-    cloned_frame->copy  = NULL;
-    cloned_frame->field = expand_field;
-    cloned_frame->lock  = expand_lock;
+    cloned_frame->proc_slice = NULL;
+    cloned_frame->proc_frame = NULL;
+    cloned_frame->field      = expand_field;
+    cloned_frame->lock       = expand_lock;
     
     cloned_frame->port  = port_gen;
     /* misuse the next pointer to remember the original */

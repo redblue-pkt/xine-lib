@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.173 2003/10/08 02:32:04 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.174 2003/10/22 20:38:10 komadori Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -221,9 +221,12 @@ static void vo_frame_dec_lock (vo_frame_t *img) {
 
 /* call vo_driver->copy method for the entire frame */
 static void vo_frame_driver_copy(vo_frame_t *img)
-{ 
-  if (img->format == XINE_IMGFMT_YV12) {
-    if (img->copy) {
+{
+  if (img->proc_frame) {
+    img->proc_frame(img, img->base);
+  }
+  else if (img->proc_slice) {
+    if (img->format == XINE_IMGFMT_YV12) {
       int height = img->height;
       uint8_t* src[3];
   
@@ -231,21 +234,19 @@ static void vo_frame_driver_copy(vo_frame_t *img)
       src[1] = img->base[1];
       src[2] = img->base[2];
       while ((height -= 16) > -16) {
-        img->copy(img, src);
+        img->proc_slice(img, src);
         src[0] += 16 * img->pitches[0];
         src[1] +=  8 * img->pitches[1];
         src[2] +=  8 * img->pitches[2];
       }
-    }
-  } else {
-    if (img->copy) {
+    } else {
       int height = img->height;
       uint8_t* src[3];
       
       src[0] = img->base[0];
       
       while ((height -= 16) > -16) {
-        img->copy(img, src);
+        img->proc_slice(img, src);
         src[0] += 16 * img->pitches[0];
       }
     }
@@ -391,7 +392,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   if (!img->bad_frame) {
 
     /* do not call copy() for frames that will be dropped */
-    if( !frames_to_skip && img->copy && !img->copy_called )
+    if( !frames_to_skip && !img->copy_called )
       vo_frame_driver_copy(img);
     
     /*
@@ -791,7 +792,7 @@ static void overlay_and_display_frame (vos_t *this,
   /* no, this is not were copy() is usually called.
    * it's just to catch special cases like late or duplicated frames.
    */
-  if( img->copy && !img->copy_called )
+  if(!img->copy_called )
     vo_frame_driver_copy(img);
   
   pthread_mutex_lock( &img->stream->current_extra_info_lock );

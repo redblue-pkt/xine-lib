@@ -1438,27 +1438,27 @@ do {								\
 		  mpeg2_mc.avg : mpeg2_mc.put));		\
 } while (0)
 
-#define NEXT_MACROBLOCK							\
-do {									\
-    picture->offset += 16;						\
-    if (picture->offset == picture->coded_picture_width) {		\
-	do { /* just so we can use the break statement */		\
-	    if (picture->current_frame->copy) {				\
-		picture->current_frame->copy (picture->current_frame,	\
-					      picture->dest);		\
-	    }								\
-	    picture->dest[0] += 16 * picture->pitches[0];		\
-	    picture->dest[1] += 8 * picture->pitches[1];		\
-	    picture->dest[2] += 8 * picture->pitches[2];		\
-	} while (0);							\
-	picture->v_offset += 16;					\
-	if (picture->v_offset > picture->limit_y) {			\
-	    if (mpeg2_cpu_state_restore)				\
-		mpeg2_cpu_state_restore (&cpu_state);			\
-	    return;							\
-	}								\
-	picture->offset = 0;						\
-    }									\
+#define NEXT_MACROBLOCK							    \
+do {									    \
+    picture->offset += 16;						    \
+    if (picture->offset == picture->coded_picture_width) {		    \
+	do { /* just so we can use the break statement */		    \
+	    if (picture->current_frame->proc_slice) {			    \
+		picture->current_frame->proc_slice (picture->current_frame, \
+						    picture->dest);	    \
+	    }								    \
+	    picture->dest[0] += 16 * picture->pitches[0];		    \
+	    picture->dest[1] += 8 * picture->pitches[1];		    \
+	    picture->dest[2] += 8 * picture->pitches[2];		    \
+	} while (0);							    \
+	picture->v_offset += 16;					    \
+	if (picture->v_offset > picture->limit_y) {			    \
+	    if (mpeg2_cpu_state_restore)				    \
+		mpeg2_cpu_state_restore (&cpu_state);			    \
+	    return;							    \
+	}								    \
+	picture->offset = 0;						    \
+    }									    \
 } while (0)
 
 static inline int slice_init (picture_t * picture, int code)
@@ -1605,7 +1605,7 @@ static inline int slice_init (picture_t * picture, int code)
 
     while (picture->offset - picture->coded_picture_width >= 0) {
 	picture->offset -= picture->coded_picture_width;
-	if ((picture->current_frame->copy == NULL) ||
+	if ((picture->current_frame->proc_slice == NULL) ||
 	    (picture->picture_coding_type != B_TYPE)) {
 	    picture->dest[0] += 16 * picture->pitches[0];
 	    picture->dest[1] += 8 * picture->pitches[1];

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.97 2003/10/06 21:52:45 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.98 2003/10/22 20:38:10 komadori Exp $
  *
  *
  * xine version of video_out.h 
@@ -84,10 +84,14 @@ struct vo_frame_s {
 
   /* this frame is no longer used by the decoder, video driver, etc */
   void (*free) (vo_frame_t *vo_img);
-  
+
+  /* tell video driver to copy/convert the whole of this frame, may be NULL */
+  /* this function MUST set the variable copy_called above */
+  void (*proc_frame) (vo_frame_t *vo_img, uint8_t **src);
+
   /* tell video driver to copy/convert a slice of this frame, may be NULL */
   /* this function MUST set the variable copy_called above */
-  void (*copy) (vo_frame_t *vo_img, uint8_t **src);
+  void (*proc_slice) (vo_frame_t *vo_img, uint8_t **src);
 
   /* tell video driver that the decoder starts a new field */
   void (*field) (vo_frame_t *vo_img, int which_field);
@@ -284,10 +288,6 @@ struct xine_video_port_s {
 
 /* video driver capabilities */
 
-/* driver copies image (i.e. converts it to
-   rgb buffers in the private fields of image buffer) */
-#define VO_CAP_COPIES_IMAGE 0x00000001
-
 #define VO_CAP_YV12         0x00000002 /* driver can handle YUV 4:2:0 pictures */
 #define VO_CAP_YUY2         0x00000004 /* driver can handle YUY2      pictures */
 
@@ -335,7 +335,7 @@ struct xine_video_port_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  17
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  18
 
 struct vo_driver_s {
 

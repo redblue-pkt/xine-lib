@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.28 2003/10/06 21:52:44 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.29 2003/10/22 20:38:10 komadori Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -189,11 +189,11 @@ enum { CONTEXT_BAD = 0, CONTEXT_SAME_DRAWABLE, CONTEXT_RELOAD, CONTEXT_SET };
 
 
 static uint32_t opengl_get_capabilities (vo_driver_t *this_gen) {
-    return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
+    return VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
 }
 
 
-static void opengl_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
+static void opengl_frame_proc_slice (vo_frame_t *vo_img, uint8_t **src) {
     opengl_frame_t  *frame = (opengl_frame_t *) vo_img ;
   
     vo_img->copy_called = 1;
@@ -285,10 +285,11 @@ static vo_frame_t *opengl_alloc_frame (vo_driver_t *this_gen) {
     /*
      * supply required functions/fields
      */
-    frame->vo_frame.copy    = opengl_frame_copy;
-    frame->vo_frame.field   = opengl_frame_field; 
-    frame->vo_frame.dispose = opengl_frame_dispose;
-    frame->vo_frame.driver  = this_gen;
+    frame->vo_frame.proc_slice = opengl_frame_proc_slice;
+    frame->vo_frame.proc_frame = opengl_frame_proc_frame;
+    frame->vo_frame.field      = opengl_frame_field; 
+    frame->vo_frame.dispose    = opengl_frame_dispose;
+    frame->vo_frame.driver     = this_gen;
   
     /*
      * colorspace converter for this frame
@@ -1000,7 +1001,7 @@ static vo_info_t vo_info_opengl = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 17, "opengl", XINE_VERSION_CODE,
+  { PLUGIN_VIDEO_OUT, 18, "opengl", XINE_VERSION_CODE,
     &vo_info_opengl, opengl_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq.c,v 1.6 2003/10/06 21:52:43 miguelfreitas Exp $
+ * $Id: eq.c,v 1.7 2003/10/22 20:38:10 komadori Exp $
  *
  * mplayer's eq (soft video equalizer)
  * Copyright (C) Richard Felker
@@ -417,7 +417,8 @@ static vo_frame_t *eq_get_frame(xine_video_port_t *port_gen, uint32_t width,
   /* replace with our own draw function */
   frame->draw = eq_draw;
   /* decoders should not copy the frames, since they won't be displayed */
-  frame->copy = NULL;
+  frame->proc_slice = NULL;
+  frame->proc_frame = NULL;
 
   return frame;
 }

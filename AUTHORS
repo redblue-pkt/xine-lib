@@ -48,14 +48,15 @@ James Courtier-Dutton <James@superbug.demon.co.uk>
   interface
 
 Juergen Keil <jk@tools.de>
-  solaris port and other bugfixes
+  Solaris port and other bugfixes
 
 Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
   IRIX port, video out interface, opengl video output
 
 Robin KAY <komadori@myrealbox.com>
-  pgx64[fb] video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
-  decoder, SunPro compiler fixes, various bugfixes
+  pgx64 video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
+  decoder, Solaris port improvements and bugfixes, various video_out,
+  misc bugfixes
 
 Stephen Torri <storri@users.sourceforge.net>
   Automake, autoconf, libtool development, and build fixes,

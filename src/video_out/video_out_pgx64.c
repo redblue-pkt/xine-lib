@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.40 2003/10/19 03:12:47 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.41 2003/10/22 20:38:10 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -267,7 +267,18 @@ static int vram_alloc(pgx64_driver_t* this, int size)
  * XINE VIDEO DRIVER FUNCTIONS
  */
 
-static void pgx64_frame_copy(pgx64_frame_t *frame, uint8_t **src)
+static void pgx64_frame_proc_frame(pgx64_frame_t *frame, uint8_t **src)
+{
+  int i;
+
+  frame->vo_frame.copy_called = 1;
+
+  for (i=0; i<frame->planes; i++) {
+    memcpy(frame->buffer_ptrs[i], src[i], frame->lengths[i]);
+  }
+}
+
+static void pgx64_frame_proc_slice(pgx64_frame_t *frame, uint8_t **src)
 {
   int i, len;
 
@@ -279,6 +290,8 @@ static void pgx64_frame_copy(pgx64_frame_t *frame, uint8_t **src)
     frame->stripe_offsets[i] += len;
   }
 }
+
+
 
 static void pgx64_frame_field(pgx64_frame_t *frame, int which_field)
 {
@@ -292,8 +305,7 @@ static void pgx64_frame_dispose(pgx64_frame_t *frame)
 
 static uint32_t pgx64_get_capabilities(pgx64_driver_t *this)
 {
-  return VO_CAP_COPIES_IMAGE |
-         VO_CAP_YV12 |
+  return VO_CAP_YV12 |
          VO_CAP_YUY2 |
          VO_CAP_COLORKEY |
          VO_CAP_SATURATION |
@@ -313,9 +325,10 @@ static pgx64_frame_t* pgx64_alloc_frame(pgx64_driver_t *this)
 
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
-  frame->vo_frame.copy    = NULL; 
-  frame->vo_frame.field   = (void*)pgx64_frame_field; 
-  frame->vo_frame.dispose = (void*)pgx64_frame_dispose;
+  frame->vo_frame.proc_frame = NULL;
+  frame->vo_frame.proc_slice = NULL;
+  frame->vo_frame.field      = (void*)pgx64_frame_field;
+  frame->vo_frame.dispose    = (void*)pgx64_frame_dispose;
 
   return frame;
 }
@@ -334,7 +347,8 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
     frame->format = format;
     frame->pitch = ((width + 7) / 8) * 8;
 
-    frame->vo_frame.copy = NULL; 
+    frame->vo_frame.proc_frame = NULL; 
+    frame->vo_frame.proc_slice = NULL; 
 
     switch (format) {
       case XINE_IMGFMT_YUY2:
@@ -435,7 +449,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
   if (this->buf_mode == BUF_MODE_MULTI) {
     int i;
 
-    if (frame->vo_frame.copy != (void*)pgx64_frame_copy) {
+    if (frame->vo_frame.proc_slice != (void*)pgx64_frame_proc_slice) {
       for (i=0; i<frame->planes; i++) {
         if ((frame->buffers[i] = vram_alloc(this, frame->lengths[i])) < 0) {
           if (this->detained_frames < MAX_DETAINED_FRAMES) {
@@ -455,7 +469,8 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
         }
       }
 
-      frame->vo_frame.copy = (void*)pgx64_frame_copy;
+      frame->vo_frame.proc_frame = (void*)pgx64_frame_proc_frame;
+      frame->vo_frame.proc_slice = (void*)pgx64_frame_proc_slice;
     }
 
     for (i=0; i<frame->planes; i++) {
@@ -506,7 +521,8 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
       memcpy(this->buffer_ptrs[this->dblbuf_select][i], frame->vo_frame.base[i], frame->lengths[i]);
     }
 
-    frame->vo_frame.copy = NULL;
+    frame->vo_frame.proc_slice = NULL;
+    frame->vo_frame.proc_frame = NULL;
   }
 
   this->vregs[CAPTURE_CONFIG] = this->dblbuf_select ? le2me_32(CAPTURE_CONFIG_BUF1) : le2me_32(CAPTURE_CONFIG_BUF0);
@@ -522,7 +538,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
 {
   if (overlay->rle) {
-    if (frame->vo_frame.copy == (void*)pgx64_frame_copy) {
+    if (frame->vo_frame.proc_slice == (void*)pgx64_frame_proc_slice) {
       /* FIXME: Implement out of place alphablending functions for better performance */
       switch (frame->format) {
         case XINE_IMGFMT_YV12: {
@@ -1074,6 +1090,6 @@ static pgx64_driver_class_t* pgx64_init_class(xine_t *xine, void *visual_gen)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  {PLUGIN_VIDEO_OUT, 17, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
+  {PLUGIN_VIDEO_OUT, 18, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };
