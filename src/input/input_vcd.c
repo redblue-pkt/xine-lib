@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.40 2002/04/23 15:45:21 esnel Exp $
+ * $Id: input_vcd.c,v 1.41 2002/04/24 08:12:13 f1rmb Exp $
  *
  */
 
@@ -1121,7 +1121,7 @@ static int vcd_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static int vcd_plugin_dispose (input_plugin_t *this_gen ) {
+static void vcd_plugin_dispose (input_plugin_t *this_gen ) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int i;
 

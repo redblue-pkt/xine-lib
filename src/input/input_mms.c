@@ -308,7 +308,7 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static int mms_plugin_dispose (input_plugin_t *this_gen ) {
+static void mms_plugin_dispose (input_plugin_t *this_gen ) {
   free (this_gen);
 }
 

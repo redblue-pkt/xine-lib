@@ -659,7 +659,7 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static int http_plugin_dispose (input_plugin_t *this_gen ) {
+static void http_plugin_dispose (input_plugin_t *this_gen ) {
   free (this_gen);
 }
 

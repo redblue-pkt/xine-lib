@@ -476,15 +476,14 @@ static int rtp_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static int rtp_plugin_dispose (input_plugin_t *this_gen ) {
+static void rtp_plugin_dispose (input_plugin_t *this_gen ) {
   rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
   input_buffer_t *buf;
 
   if (this->fifo_tail.next) {
     while (this->fifo_tail.next != &this->fifo_tail) {
-      buf = this->fifo_tail.next->buf;
+      buf = this->fifo_tail.next;
       this->fifo_tail.next = this->fifo_tail.next->next;
-
       free (buf->buf);
       free (buf);
     }

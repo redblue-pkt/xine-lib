@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.21 2002/04/23 15:45:20 esnel Exp $
+ * $Id: input_cda.c,v 1.22 2002/04/24 08:12:13 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1768,7 +1768,7 @@ static int cda_plugin_get_optional_data (input_plugin_t *this_gen, void *data, i
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static int cda_plugin_dispose (input_plugin_t *this_gen ) {
+static void cda_plugin_dispose (input_plugin_t *this_gen ) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int i;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.24 2002/04/23 15:45:21 esnel Exp $
+ * $Id: input_stdin_fifo.c,v 1.25 2002/04/24 08:12:13 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -341,7 +341,7 @@ static int stdin_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static int stdin_plugin_dispose (input_plugin_t *this_gen ) {
+static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
   free (this_gen);
 }
 
