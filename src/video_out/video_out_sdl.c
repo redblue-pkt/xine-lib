@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.21 2003/01/29 15:34:28 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.22 2003/02/13 19:04:52 heikos Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -47,7 +47,11 @@
 #include <string.h>
 #include <inttypes.h>
 #include <math.h>
-#include <SDL/SDL.h>
+#if defined (__FreeBSD__)
+# include <SDL11/SDL.h>
+#else
+# include <SDL/SDL.h>
+#endif
 
 #include "xine.h"
 #include "xine_internal.h"

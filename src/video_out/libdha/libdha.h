@@ -16,7 +16,11 @@
 #ifndef LIBDHA_H
 #define LIBDHA_H
 
-#include <stdint.h>
+#if defined (__FreeBSD__)
+# include <inttypes.h>
+#else
+# include <stdint.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

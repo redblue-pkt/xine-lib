@@ -1,6 +1,7 @@
 /* HW IRQ support */
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <sys/mman.h> /* mlock */
 #include <pthread.h>
 #include <errno.h>

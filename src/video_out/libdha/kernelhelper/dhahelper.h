@@ -7,7 +7,7 @@
 #ifndef DHAHELPER_H
 #define DHAHELPER_H
 
-#include <linux/ioctl.h>
+/* #include <linux/ioctl.h> */
 
 /* feel free to change */
 #define DEFAULT_MAJOR	252  /* 240-254		LOCAL/EXPERIMENTAL USE */

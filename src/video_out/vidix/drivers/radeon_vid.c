@@ -11,6 +11,7 @@
 #include <string.h>
 #include <math.h>
 #include <inttypes.h>
+#include <sys/types.h>
 #include <sys/mman.h>
 #include "bswap.h"
 #include "pci_ids.h"
