@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.20 2003/12/14 22:13:25 siggi Exp $
+ * $Id: idcinvideo.c,v 1.21 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -234,7 +234,7 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
     }
   }
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     xine_bmiheader *bih = (xine_bmiheader *)buf->content;
 
     this->stream->video_out->open (this->stream->video_out, this->stream);

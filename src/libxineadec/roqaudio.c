@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.20 2003/12/14 22:13:25 siggi Exp $
+ * $Id: roqaudio.c,v 1.21 2004/01/09 01:26:34 miguelfreitas Exp $
  *
  */
 
@@ -75,7 +75,7 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   int predictor[2];
   int channel_number = 0;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     this->output_channels = buf->decoder_info[3];
 
     this->buf = xine_xmalloc(AUDIOBUFSIZE);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.127 2003/12/13 11:35:07 valtri Exp $
+ * $Id: buffer.h,v 1.128 2004/01/09 01:26:34 miguelfreitas Exp $
  *
  *
  * contents:
@@ -282,19 +282,44 @@ struct buf_element_s {
 
 } ;
 
+/* keyframe should be set whenever possible (that is, when demuxer
+ * knows about frames and keyframes).                                 */
 #define BUF_FLAG_KEYFRAME    0x0001
+
+/* frame start/end. BUF_FLAG_FRAME_END is sent on last buf of a frame */
 #define BUF_FLAG_FRAME_START 0x0002
 #define BUF_FLAG_FRAME_END   0x0004
+
+/* any out-of-band data needed to initialize decoder must have
+ * this flag set.                                                     */
 #define BUF_FLAG_HEADER      0x0008
+
+/* preview buffers are normal data buffers that must not produce any
+ * output in decoders (may be used to sneak details about the stream
+ * to come).                                                          */
 #define BUF_FLAG_PREVIEW     0x0010
+
+/* set when user stop the playback                                    */
 #define BUF_FLAG_END_USER    0x0020
+
+/* set when stream finished naturaly                                  */
 #define BUF_FLAG_END_STREAM  0x0040
+
+/* decoder_info[0] carries the frame step (1/90000).                  */
 #define BUF_FLAG_FRAMERATE   0x0080
+
+/* hint to metronom that seeking has occurred                         */
 #define BUF_FLAG_SEEK        0x0100
+
+/* special information inside, see below.                             */
 #define BUF_FLAG_SPECIAL     0x0200
-#define BUF_FLAG_NO_VIDEO    0x0400
-/* do not decode the buffer contents, detect framing only */
-#define BUF_FLAG_FRAMING     0x0800
+
+/* header use standard xine_bmiheader or xine_waveformatex structs.
+ * xine_waveformatex is actually optional since the most important
+ * information for audio init is available from decoder_info[].
+ * note: BUF_FLAG_HEADER must also be set.                            */
+#define BUF_FLAG_STDHEADER   0x0400 
+
 
 /* Special buffer types:
  * Sometimes there is a need to relay special information from a demuxer

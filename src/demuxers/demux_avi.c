@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.185 2003/12/23 16:58:25 mroi Exp $
+ * $Id: demux_avi.c,v 1.186 2004/01/09 01:26:32 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1532,7 +1532,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     _x_demux_control_start (this->stream);
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[1] = this->video_step;
     memcpy (buf->content, this->avi->bih, this->avi->bih->biSize);
     buf->size = this->avi->bih->biSize;
@@ -1562,7 +1562,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     /* send off the palette, if there is one */
     if (this->avi->palette_count) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
       buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
       buf->decoder_info[2] = this->avi->palette_count;
       buf->decoder_info_ptr[2] = &this->avi->palette;
@@ -1578,7 +1578,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         wavex_len = (a->wavex_len < buf->max_size) ? a->wavex_len : buf->max_size; 
-        buf->decoder_flags = BUF_FLAG_HEADER;
+        buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
         memcpy (buf->content, a->wavex, wavex_len);
         buf->size = wavex_len;
         buf->type = a->audio_type | i;

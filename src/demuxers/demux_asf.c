@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.145 2003/12/05 15:54:57 f1rmb Exp $
+ * $Id: demux_asf.c,v 1.146 2004/01/09 01:26:32 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -307,7 +307,7 @@ static void asf_send_audio_header (demux_asf_t *this, int stream) {
 
   buf->size = this->wavex_size;
   buf->type = this->streams[stream].buf_type;
-  buf->decoder_flags   = BUF_FLAG_HEADER;
+  buf->decoder_flags   = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   buf->decoder_info[1] = wavex->nSamplesPerSec;
   buf->decoder_info[2] = wavex->wBitsPerSample;
   buf->decoder_info[3] = wavex->nChannels;
@@ -329,7 +329,7 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC, bih->biCompression);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags   = BUF_FLAG_HEADER;
+  buf->decoder_flags   = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   buf->decoder_info[1] = 3000; /* FIXME ! */
   memcpy (buf->content, &this->bih, this->bih_size);
   buf->size = this->bih_size;

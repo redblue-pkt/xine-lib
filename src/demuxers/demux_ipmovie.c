@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.20 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_ipmovie.c,v 1.21 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -435,7 +435,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         /* send off any new palette data */
         if (this->new_palette) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->decoder_flags = BUF_FLAG_SPECIAL;
+          buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
           buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
           buf->decoder_info[2] = 256;
           buf->decoder_info_ptr[2] = &this->palette;
@@ -580,7 +580,7 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
   /* send init info to video decoder */
   this->bih.biSize = sizeof(xine_bmiheader);
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   buf->decoder_info[0] = 0;
   /* bogus initial video_step, but we won't know for sure until we see
    * the first video frame; however, fps for these files is usually 15 */
@@ -592,7 +592,7 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
 
   /* send off the palette */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_SPECIAL;
+  buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
   buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
   buf->decoder_info[2] = 256;
   buf->decoder_info_ptr[2] = &this->palette;
@@ -609,7 +609,7 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->wave.nSamplesPerSec;
     buf->decoder_info[2] = this->wave.wBitsPerSample;

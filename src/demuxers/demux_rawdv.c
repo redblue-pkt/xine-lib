@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.16 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_rawdv.c,v 1.17 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -178,7 +178,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   buf->content = buf->mem;
   buf->type = BUF_VIDEO_DV;
-  buf->decoder_flags |= BUF_FLAG_HEADER;
+  buf->decoder_flags |= BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
 
   bih = (xine_bmiheader *)buf->content;
 

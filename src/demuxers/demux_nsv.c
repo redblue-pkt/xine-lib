@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.12 2004/01/04 11:59:33 hadess Exp $
+ * $Id: demux_nsv.c,v 1.13 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -378,7 +378,7 @@ static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
   /* send init info to the video decoder */
   if (this->video_fifo && this->video_type) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->frame_pts_inc;
     memcpy(buf->content, &this->bih, sizeof(this->bih));

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.148 2004/01/03 14:50:13 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.149 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -768,7 +768,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
     lprintf ("header\n");
 
@@ -1358,7 +1358,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   audio_buffer_t *audio_buffer;
   int bytes_to_send;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
     int codec_type;
     xine_waveformatex *audio_header = (xine_waveformatex *)buf->content;

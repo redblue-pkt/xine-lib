@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.47 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: demux_smjpeg.c,v 1.48 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -331,7 +331,7 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = 3000;  /* initial video_step */
   memcpy(buf->content, &this->bih, sizeof(this->bih));
@@ -342,7 +342,7 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo && this->audio_type) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->audio_sample_rate;
     buf->decoder_info[2] = this->audio_bits;

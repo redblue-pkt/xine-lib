@@ -21,7 +21,7 @@
  * player. It really works too! It will output a continuous sine wave in
  * place of the data it should actually send.
  *
- * $Id: fooaudio.c,v 1.10 2003/12/14 22:13:24 siggi Exp $
+ * $Id: fooaudio.c,v 1.11 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -82,7 +82,7 @@ static void fooaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   int64_t samples_to_generate;
   int samples_to_send;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
     /* When the engine sends a BUF_FLAG_HEADER flag, it is time to initialize
      * the decoder. The buffer element type has 4 decoder_info fields,

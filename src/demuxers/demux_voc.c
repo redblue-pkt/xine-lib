@@ -25,7 +25,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.37 2003/12/05 15:54:57 f1rmb Exp $
+ * $Id: demux_voc.c,v 1.38 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -218,7 +218,7 @@ static void demux_voc_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo && this->audio_type) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->audio_sample_rate;
     buf->decoder_info[2] = this->audio_bits;

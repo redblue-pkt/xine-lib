@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.27 2003/12/14 22:13:25 siggi Exp $
+ * $Id: msvc.c,v 1.28 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -223,7 +223,7 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         &this->color_table[i]);
   }
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     xine_bmiheader *bih;
     int		    image_size;
 

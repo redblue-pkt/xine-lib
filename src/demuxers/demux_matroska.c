@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.4 2004/01/05 19:39:10 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.5 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -296,7 +296,7 @@ static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
   else
     buf->content = NULL;
 
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
   buf->type          = track->buf_type;
   buf->pts           = 0;
   track->fifo->put (track->fifo, buf);
@@ -336,7 +336,7 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
   else
     buf->content = NULL;
 
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
   buf->type          = track->buf_type;
   buf->pts           = 0;
   track->fifo->put (track->fifo, buf);

@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.75 2004/01/08 23:17:34 jstembridge Exp $
+ * $Id: demux_real.c,v 1.76 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -672,15 +672,16 @@ unknown:
       lprintf("setting size to w:%u h:%u for RV10\n", bih.biWidth, bih.biHeight);
       lprintf("setting sub-codec to %X for RV10\n", bih.biCompression);
       memcpy(buf->content, &bih, bih.biSize);
+      buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     } else {
       memcpy(buf->content, this->video_stream->mdpr->type_specific_data,
              this->video_stream->mdpr->type_specific_len);
 
       buf->size = this->video_stream->mdpr->type_specific_len;
+      buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
     }
 
     buf->type                   = this->video_stream->buf_type;
-    buf->decoder_flags          = BUF_FLAG_HEADER;
     buf->extra_info->input_pos  = 0;
     buf->extra_info->input_time = 0;
 
@@ -713,7 +714,7 @@ unknown:
       buf->size = this->audio_stream->mdpr->type_specific_len - 4;
 
       buf->type                   = this->audio_stream->buf_type;
-      buf->decoder_flags          = BUF_FLAG_HEADER;
+      buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
       buf->extra_info->input_pos  = 0;
       buf->extra_info->input_time = 0;
 

@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.35 2003/12/14 22:13:25 siggi Exp $
+ * $Id: cinepak.c,v 1.36 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -388,7 +388,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
   }
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     xine_bmiheader *bih;
     int		    chroma_size;
 

@@ -29,7 +29,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.38 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: demux_vqa.c,v 1.39 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -269,7 +269,7 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = VQA_PTS_INC;  /* initial video_step */
   memcpy(buf->content, this->bih, sizeof(xine_bmiheader) + VQA_HEADER_SIZE);
@@ -280,7 +280,7 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo && this->wave.nChannels) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_VQA_IMA;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->wave.nSamplesPerSec;
     buf->decoder_info[2] = 16;  /* bits/samples */

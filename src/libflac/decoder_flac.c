@@ -241,7 +241,7 @@ flac_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     /* We are getting the stream header, open up the audio
      * device, and collect information about the stream
      */
-    if (buf->decoder_flags & BUF_FLAG_HEADER)
+    if (buf->decoder_flags & BUF_FLAG_STDHEADER)
     {
         int mode = AO_CAP_MODE_MONO;
 

@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.14 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_ac3.c,v 1.15 2004/01/09 01:26:32 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -240,7 +240,7 @@ static void demux_ac3_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_A52;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
     buf->size = 0;
     this->audio_fifo->put (this->audio_fifo, buf);
   }

@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayaudio.c,v 1.6 2003/12/14 22:13:24 siggi Exp $
+ * $Id: interplayaudio.c,v 1.7 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -121,7 +121,7 @@ static void interplay_decode_data (audio_decoder_t *this_gen, buf_element_t *buf
   int sequence_number;
   int channel_number = 0;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
     /* When the engine sends a BUF_FLAG_HEADER flag, it is time to initialize
      * the decoder. The buffer element type has 4 decoder_info fields,

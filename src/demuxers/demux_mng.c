@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.18 2003/12/10 00:54:25 hadess Exp $
+ * $Id: demux_mng.c,v 1.19 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -220,7 +220,7 @@ static void demux_mng_send_headers(demux_mng_t *this){
   buf->type = BUF_VIDEO_RGB;
   buf->size = sizeof(xine_bmiheader);
   memcpy(buf->content, &this->bih, sizeof(xine_bmiheader));
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   this->video_fifo->put(this->video_fifo, buf);
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.136 2003/12/24 16:55:36 mroi Exp $
+ * $Id: w32codec.c,v 1.137 2004/01/09 01:26:34 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -750,7 +750,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
   
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     int num_decoders;
 
     if ( buf->type & 0xff )
@@ -1448,7 +1448,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
   
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     lprintf ("got audio header\n");
 
     pthread_mutex_lock(&win32_codec_mutex);

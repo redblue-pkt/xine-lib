@@ -21,7 +21,7 @@
  * This demuxer presently only detects a raw AAC file by the extension 
  * '.aac'. Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.1 2003/12/19 05:09:16 tmmm Exp $
+ * $Id: demux_aac.c,v 1.2 2004/01/09 01:26:32 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -107,7 +107,7 @@ static void demux_aac_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_AAC;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     /* this is a guess at the correct parameters */
     buf->decoder_info[1] = 44100;

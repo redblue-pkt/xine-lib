@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.174 2004/01/06 05:39:07 tmmm Exp $
+ * $Id: demux_qt.c,v 1.175 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  */
 
@@ -2424,7 +2424,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   if (video_trak &&
       (video_trak->properties->video.codec_buftype)) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     /* initial video step; not necessary since each QT frame has its own
      * duration, but set it non-zero as a matter of custom */
@@ -2446,7 +2446,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     /* send off the palette, if there is one */
     if (video_trak->properties->video.palette_count) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
       buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
       buf->decoder_info[2] = video_trak->properties->video.palette_count;
       buf->decoder_info_ptr[2] = &video_trak->properties->video.palette;
@@ -2457,7 +2457,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
     /* send stsd to the decoder */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_SPECIAL;
+    buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
     buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
     buf->decoder_info[2] = video_trak->properties->video.properties_atom_size;
     buf->decoder_info_ptr[2] = video_trak->properties->video.properties_atom;
@@ -2472,7 +2472,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = audio_trak->properties->audio.codec_buftype;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = audio_trak->properties->audio.sample_rate;
     buf->decoder_info[2] = audio_trak->properties->audio.bits;
@@ -2485,7 +2485,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = audio_trak->properties->audio.codec_buftype;
       buf->size = 0;
-      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
       buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
       buf->decoder_info[2] = audio_trak->decoder_config_len;
       buf->decoder_info_ptr[2] = audio_trak->decoder_config;
@@ -2494,7 +2494,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
     /* send stsd to the decoder */
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->decoder_flags = BUF_FLAG_SPECIAL;
+    buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
     buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
     buf->decoder_info[2] = audio_trak->properties->audio.properties_atom_size;
     buf->decoder_info_ptr[2] = audio_trak->properties->audio.properties_atom;

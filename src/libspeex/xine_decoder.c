@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2003/12/14 22:13:24 siggi Exp $
+ * $Id: xine_decoder.c,v 1.10 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -197,7 +197,8 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   lprintf ("decode buf=%8p content=%8p flags=%08x\n",
 	   buf, buf->content, buf->decoder_flags);
 
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+  if ( (buf->decoder_flags & BUF_FLAG_HEADER) &&
+       !(buf->decoder_flags & BUF_FLAG_STDHEADER) ) {
     lprintf ("preview buffer, %d headers to go\n", this->header_count);
 
     if (this->header_count) {

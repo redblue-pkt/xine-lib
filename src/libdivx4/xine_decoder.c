@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2003/12/09 00:02:31 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.49 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -368,7 +368,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     /* only proceed if version is good and initialization succeeded */
 
     lprintf ("get_version...\n");

@@ -32,7 +32,7 @@
  *     (no examples found and description isn't as clear as it should)
  * * 16SV, the same support as 8SVX
  *
- * $Id: demux_iff.c,v 1.2 2004/01/04 00:41:33 manfredtremmel Exp $
+ * $Id: demux_iff.c,v 1.3 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -743,7 +743,7 @@ static void demux_iff_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo && this->audio_type) {
     buf                                 = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type                           = this->audio_type;
-    buf->decoder_flags                  = BUF_FLAG_HEADER;
+    buf->decoder_flags                  = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0]                = 0;
     buf->decoder_info[1]                = this->vhdr_samplesPerSec;
     buf->decoder_info[2]                = this->audio_bits;

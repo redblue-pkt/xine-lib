@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.49 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: demux_roq.c,v 1.50 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -325,7 +325,7 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
   buf->size = sizeof(xine_bmiheader);
@@ -341,7 +341,7 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_ROQ;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = RoQ_AUDIO_SAMPLE_RATE;
     buf->decoder_info[2] = 16;

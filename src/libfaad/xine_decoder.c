@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2004/01/04 16:19:45 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.27 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  */
 
@@ -209,7 +209,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   /* get audio parameters from file header 
      (may be overwritten by libfaad returned parameters) */  
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->num_channels=buf->decoder_info[3] ; 

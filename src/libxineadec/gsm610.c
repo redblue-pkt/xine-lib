@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.13 2003/12/14 22:13:24 siggi Exp $
+ * $Id: gsm610.c,v 1.14 2004/01/09 01:26:34 miguelfreitas Exp $
  *
  */
 
@@ -101,7 +101,7 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   audio_buffer_t *audio_buffer;
   int in_ptr;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     this->sample_rate = buf->decoder_info[1];
 
     this->buf = xine_xmalloc(AUDIOBUFSIZE);

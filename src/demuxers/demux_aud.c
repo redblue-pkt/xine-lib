@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.15 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_aud.c,v 1.16 2004/01/09 01:26:32 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -211,7 +211,7 @@ static void demux_aud_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->audio_samplerate;
     buf->decoder_info[2] = this->audio_bits;

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_eawve.c,v 1.26 2003/11/26 19:43:29 f1rmb Exp $
+ * $Id: demux_eawve.c,v 1.27 2004/01/09 01:26:32 miguelfreitas Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -299,7 +299,7 @@ static void demux_eawve_send_headers(demux_plugin_t *this_gen){
 
     buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
     buf->type = BUF_AUDIO_EA_ADPCM;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = 22050;
     buf->decoder_info[2] = 16;

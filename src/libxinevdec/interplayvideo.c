@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayvideo.c,v 1.9 2003/12/14 22:13:25 siggi Exp $
+ * $Id: interplayvideo.c,v 1.10 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1151,7 +1151,7 @@ static void interplay_decode_data (video_decoder_t *this_gen,
     }
   }
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
 
     if(this->buf)

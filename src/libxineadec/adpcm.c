@@ -31,7 +31,7 @@
  *   this is also useful for extracting streams from Playstation discs
  *
  *
- * $Id: adpcm.c,v 1.36 2003/12/14 22:13:24 siggi Exp $
+ * $Id: adpcm.c,v 1.37 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1370,7 +1370,7 @@ static void xa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     xine_waveformatex *audio_header;
 
     this->rate = buf->decoder_info[1];

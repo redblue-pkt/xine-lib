@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.22 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: demux_str.c,v 1.23 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 /*
@@ -459,7 +459,7 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
 
 	/* send init info to video decoder */
 	buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-	buf->decoder_flags = BUF_FLAG_HEADER;
+	buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
 	buf->decoder_info[0] = 0;
 	buf->decoder_info[1] = FRAME_DURATION;  /* initial video_step */
 	buf->size = sizeof(xine_bmiheader);
@@ -483,7 +483,7 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
       if (this->audio_fifo) {
 	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 	buf->type = BUF_AUDIO_XA_ADPCM | channel;
-	buf->decoder_flags = BUF_FLAG_HEADER;
+	buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
 	buf->decoder_info[0] = 0;
 	buf->decoder_info[1] = (audio_info & 0x04) ? 18900 : 37800;
 	buf->decoder_info[2] = (audio_info & 0x10) ? 1 : 0;

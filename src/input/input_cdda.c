@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.42 2004/01/07 22:21:40 hadess Exp $
+ * $Id: input_cdda.c,v 1.43 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,9 +50,9 @@
 
 #define LOG_MODULE "input_cdda"
 #define LOG_VERBOSE
-
+/*
 #define LOG
-
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.29 2003/12/14 22:13:25 siggi Exp $
+ * $Id: svq1.c,v 1.30 2004/01/09 01:26:34 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1327,7 +1327,7 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     this->video_step = buf->decoder_info[1];
 
     if (this->buf)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2003/12/14 22:13:24 siggi Exp $
+ * $Id: xine_decoder.c,v 1.20 2004/01/09 01:26:33 miguelfreitas Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -171,7 +171,8 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (!collect_data(this, buf)) return;
   /*return, until a entire packets is collected*/
 
-  if ( (buf->decoder_flags & BUF_FLAG_PREVIEW) ) {
+  if ( (buf->decoder_flags & BUF_FLAG_HEADER) &&
+       !(buf->decoder_flags & BUF_FLAG_STDHEADER) ) {
     /*get the first 3 packets and decode the header during preview*/
 
 

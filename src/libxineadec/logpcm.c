@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.17 2003/12/14 22:13:24 siggi Exp $
+ * $Id: logpcm.c,v 1.18 2004/01/09 01:26:34 miguelfreitas Exp $
  *
  */
 
@@ -151,7 +151,7 @@ static void logpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   int i;
   int bytes_to_send;
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
     this->samplerate = buf->decoder_info[1];
     this->output_channels = buf->decoder_info[3];

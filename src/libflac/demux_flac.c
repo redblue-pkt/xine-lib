@@ -359,7 +359,7 @@ demux_flac_send_headers (demux_plugin_t *this_gen) {
     if (this->audio_fifo) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = BUF_AUDIO_FLAC;
-        buf->decoder_flags   = BUF_FLAG_HEADER;
+        buf->decoder_flags   = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
         buf->decoder_info[0] = 0;
         buf->decoder_info[1] = this->sample_rate;
         buf->decoder_info[2] = this->bits_per_sample;

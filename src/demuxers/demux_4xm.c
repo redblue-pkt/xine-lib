@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.12 2003/11/26 19:43:27 f1rmb Exp $
+ * $Id: demux_4xm.c,v 1.13 2004/01/09 01:26:32 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -402,7 +402,7 @@ static void demux_fourxm_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = this->video_pts_inc;  /* initial video_step */
   memcpy(buf->content, &this->bih, sizeof(this->bih));
@@ -413,7 +413,7 @@ static void demux_fourxm_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo && this->track_count > 0) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->tracks[0].audio_type;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->tracks[0].sample_rate;
     buf->decoder_info[2] = this->tracks[0].bits;

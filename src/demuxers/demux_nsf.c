@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.20 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: demux_nsf.c,v 1.21 2004/01/09 01:26:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -216,7 +216,7 @@ static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_NSF;
-    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
     buf->decoder_info[0] = 5;
     buf->decoder_info[1] = NSF_SAMPLERATE;
     buf->decoder_info[2] = NSF_BITS;

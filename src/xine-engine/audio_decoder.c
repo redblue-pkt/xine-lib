@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.118 2003/12/09 00:02:35 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.119 2004/01/09 01:26:34 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -46,11 +46,15 @@
 
 static void *audio_decoder_loop (void *stream_gen) {
 
-  buf_element_t   *buf;
+  buf_element_t   *buf = NULL;
+  buf_element_t   *first_header = NULL;
+  buf_element_t   *last_header = NULL;
+  int              replaying_headers = 0;
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
   int              running = 1;
   int              prof_audio_decode = -1;
   uint32_t         buftype_unknown = 0;
+  int              audio_channel_user = stream->audio_channel_user;
 
   if (prof_audio_decode == -1)
     prof_audio_decode = xine_profiler_allocate_slot ("audio decoder/output");
@@ -59,7 +63,8 @@ static void *audio_decoder_loop (void *stream_gen) {
 
     lprintf ("audio_loop: waiting for package...\n");  
 
-    buf = stream->audio_fifo->get (stream->audio_fifo);
+    if( !replaying_headers )
+      buf = stream->audio_fifo->get (stream->audio_fifo);
 
     lprintf ("audio_loop: got package pts = %lld, type = %08x\n", buf->pts, buf->type); 
 
@@ -113,6 +118,19 @@ static void *audio_decoder_loop (void *stream_gen) {
       break;
       
     case BUF_CONTROL_END:
+
+      /* free all held header buffers, see comments below */
+      if( first_header ) {
+        buf_element_t  *cur, *next;
+
+        cur = first_header;
+        while( cur ) {
+          next = cur->next;
+          cur->free_buffer (cur);
+          cur = next;
+        }
+        first_header = last_header = NULL;
+      }
 
       /* wait for video to reach this marker, if necessary */
       pthread_mutex_lock (&stream->counter_lock);
@@ -189,6 +207,7 @@ static void *audio_decoder_loop (void *stream_gen) {
       }
       break;
 
+
     default:
 
       if (_x_stream_info_get(stream, XINE_STREAM_INFO_IGNORE_AUDIO))
@@ -205,7 +224,7 @@ static void *audio_decoder_loop (void *stream_gen) {
         printf("audio_decoder: buf_type=%08x auto=%08x user=%08x\n",
 	       buf->type, 
 	       stream->audio_channel_auto,
-	       stream->audio_channel_user);
+	       audio_channel_user);
 	       */
 
         /* update track map */
@@ -233,12 +252,12 @@ static void *audio_decoder_loop (void *stream_gen) {
 	/* find out which audio type to decode */
 
 	lprintf ("audio_channel_user = %d, map[0]=%08x\n",
-		 stream->audio_channel_user,
+		 audio_channel_user,
 		 stream->audio_track_map[0]);
 
-	if (stream->audio_channel_user > -2) {
+	if (audio_channel_user > -2) {
 
-	  if (stream->audio_channel_user == -1) {
+	  if (audio_channel_user == -1) {
 
 	    /* auto */
 
@@ -255,8 +274,8 @@ static void *audio_decoder_loop (void *stream_gen) {
 	      audio_type = stream->audio_track_map[0];
 
 	  } else {
-	    if (stream->audio_channel_user <= stream->audio_track_map_entries)
-	      audio_type = stream->audio_track_map[stream->audio_channel_user];
+	    if (audio_channel_user <= stream->audio_track_map_entries)
+	      audio_type = stream->audio_track_map[audio_channel_user];
 	    else
 	      audio_type = -1;
 	  }
@@ -328,8 +347,53 @@ static void *audio_decoder_loop (void *stream_gen) {
 
       xine_profiler_stop_count (prof_audio_decode);
     }
-    
-    buf->free_buffer (buf);
+
+    /* some decoders require a full reinitialization when audio
+     * channel is changed (rate might be change and even a
+     * different codec may be used). 
+     * 
+     * we must close the old decoder and process all the headers
+     * again, since they are needed for decoder initialization.
+     */
+    if( audio_channel_user != stream->audio_channel_user &&
+        !replaying_headers ) {
+      audio_channel_user = stream->audio_channel_user;
+
+      if (stream->audio_decoder_plugin) {
+        _x_free_audio_decoder (stream, stream->audio_decoder_plugin);
+        stream->audio_decoder_plugin = NULL;
+        stream->audio_track_map_entries = 0;
+        stream->audio_type = 0;
+      }
+
+      buf->free_buffer (buf);
+      if( first_header ) {
+        replaying_headers = 1;
+        buf = first_header;
+      } else {
+        replaying_headers = 0;
+      }
+    } else if( !replaying_headers ) {
+
+      /* header buffers are never freed. instead they
+       * are added to a list to allow replaying them
+       * in case of a channel change.
+       */
+      if( (buf->decoder_flags & BUF_FLAG_HEADER) ) {
+        if( last_header )
+          last_header->next = buf;
+        else
+          first_header = buf;
+        buf->next = NULL;
+        last_header = buf;
+      } else {
+        buf->free_buffer (buf);
+      }
+    } else {
+      buf = buf->next;
+      if( !buf )
+        replaying_headers = 0;
+    }
   }
 
   return NULL;
