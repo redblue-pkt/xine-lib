@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.89 2003/02/02 06:08:30 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.90 2003/02/02 15:42:04 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -32,13 +32,13 @@
 #include <inttypes.h>
 #include <string.h>
 #include <pthread.h>
+#include <math.h>
 
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
 #include "xineutils.h"
-#include "math.h"
 
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
@@ -48,6 +48,7 @@
 */
 
 #define SLICE_BUFFER_SIZE (1194 * 1024)
+#define abs(x) ( ((x)<0) ? -(x) : (x) )
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -81,6 +82,9 @@ typedef struct ff_decoder_s {
 
   int               is_continous;
 
+  float             aspect_ratio;
+  int               xine_aspect_ratio;
+  
 } ff_video_decoder_t;
 
 typedef struct {
@@ -292,7 +296,6 @@ static void find_sequence_header (ff_video_decoder_t *this,
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
-  int ratio;
   int codec_type;
   
 #ifdef LOG
@@ -478,34 +481,42 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	emms_c ();
 #endif
 
-	/* FIXME: ffmpeg has changed, now we must use this->context->aspect_ratio 
-	 *        which is a float value. for now, set ASPECT_DONT_TOUCH.
-	 */
-#if 0
-	switch(this->context->aspect_ratio_info) {
-	case FF_ASPECT_SQUARE:
-	  ratio = XINE_VO_ASPECT_SQUARE;
-	  break;
-	case FF_ASPECT_4_3_625:
-	case FF_ASPECT_4_3_525:
-	  ratio = XINE_VO_ASPECT_4_3;
-	  break;
-	case FF_ASPECT_16_9_625:
-	case FF_ASPECT_16_9_525:
-	  ratio = XINE_VO_ASPECT_ANAMORPHIC;
-	  break;
-	default:
-	  ratio = XINE_VO_ASPECT_DONT_TOUCH;
+	if(this->context->aspect_ratio != this->aspect_ratio) {
+	  float diff;
+   
+	  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
+	  diff = abs( this->context->aspect_ratio - 0.0 );
+
+	  if( diff > abs( this->context->aspect_ratio - 1.0 ) ) {
+	    this->xine_aspect_ratio = XINE_VO_ASPECT_SQUARE;
+	    diff = abs( this->context->aspect_ratio - 1.0 );
+	  }
+	  
+	  if( diff > abs( this->context->aspect_ratio - 4.0/3.0 ) ) {
+	    this->xine_aspect_ratio = XINE_VO_ASPECT_4_3;
+	    diff = abs( this->context->aspect_ratio - 4.0/3.0 );
+	  }
+   
+	  if( diff > abs( this->context->aspect_ratio - 16.0/9.0 ) ) {
+	    this->xine_aspect_ratio = XINE_VO_ASPECT_ANAMORPHIC;
+	    diff = abs( this->context->aspect_ratio - 16.0/9.0 );
+	  }
+	  
+	  if( diff > abs( this->context->aspect_ratio - 1.0/2.0 ) ) {
+	    this->xine_aspect_ratio = XINE_VO_ASPECT_DVB;
+	    diff = abs( this->context->aspect_ratio - 1.0/2.0 );
+	  }
+	  
+	  this->aspect_ratio = this->context->aspect_ratio;
+	  printf ("ffmpeg: aspect ratio code %d selected for %.2f\n",
+	          this->xine_aspect_ratio, this->aspect_ratio);
 	}
-#else
-	ratio = XINE_VO_ASPECT_DONT_TOUCH;
-#endif
 	
 	img = this->stream->video_out->get_frame (this->stream->video_out,
 						  /* this->av_frame.linesize[0],  */
 						  this->bih.biWidth,
 						  this->bih.biHeight,
-						  ratio, 
+						  this->xine_aspect_ratio, 
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
 	
@@ -763,6 +774,8 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->chunk_ptr     = this->chunk_buffer;
 
   this->is_continous  = 0;
+  this->aspect_ratio = 0;
+  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
 
   return &this->video_decoder;
 }
@@ -1026,7 +1039,7 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
   this->buf = NULL;
   this->size = 0;
   this->decoder_ok = 0;
-
+  
   return &this->audio_decoder;
 }
 
