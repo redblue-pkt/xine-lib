@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2003/05/23 22:14:29 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.40 2003/05/24 13:21:24 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -214,7 +214,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   uint8_t        audio_sync_word_insertion_flag;
   uint8_t        low_frequency_effects_flag;
   uint8_t        predictor_history_flag_switch;
-  uint16_t       header_crc_check_bytes;
+  uint16_t       header_crc_check_bytes=0;
   uint8_t        multirate_interpolator_switch;
   uint8_t        encoder_software_revision;
   uint8_t        copy_history;
@@ -364,37 +364,37 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     for (ch=0; ch<number_of_primary_audio_channels; ch++)
       quantization_index_codebook_select[ch][n] = 0; /* Not transmitted, set to zero. */
 
-  // ABITS = 1:
+  /* ABITS = 1: */
   n = 0;
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     int32_t adj;
-    if ( quantization_index_codebook_select[ch][n] == 0 ) { // Transmitted only if SEL=0 (Huffman code used)
-      // Extract ADJ index
+    if ( quantization_index_codebook_select[ch][n] == 0 ) { /* Transmitted only if SEL=0 (Huffman code used) */
+      /* Extract ADJ index */
       adj = getbits(&state, 2);
-      // Look up ADJ table
+      /* Look up ADJ table */
       scale_factor_adjustment_index[ch][n] = AdjTable[adj];
     }
   }
-  // ABITS = 2 to 5:
+  /* ABITS = 2 to 5: */
   for (n=1; n<5; n++){
     for (ch=0; ch<number_of_primary_audio_channels; ch++){
       int32_t adj;
-      if ( quantization_index_codebook_select[ch][n] < 3 ) { // Transmitted only when SEL<3
-        // Extract ADJ index
+      if ( quantization_index_codebook_select[ch][n] < 3 ) { /* Transmitted only when SEL<3 */
+        /* Extract ADJ index */
         adj = getbits(&state, 2);
-        // Look up ADJ table
+        /* Look up ADJ table */
         scale_factor_adjustment_index[ch][n] = AdjTable[adj];
       }
     }
   }
-  // ABITS = 6 to 10:
+  /* ABITS = 6 to 10: */
   for (n=5; n<10; n++){
     for (ch=0; ch<number_of_primary_audio_channels; ch++){
       int32_t adj;
-      if ( quantization_index_codebook_select[ch][n] < 7 ) { // Transmitted only when SEL<7
-        // Extract ADJ index
+      if ( quantization_index_codebook_select[ch][n] < 7 ) { /* Transmitted only when SEL<7 */
+        /* Extract ADJ index */
         adj = getbits(&state, 2);
-        // Look up ADJ table
+        /* Look up ADJ table */
         scale_factor_adjustment_index[ch][n] = AdjTable[adj];
       }
     }
@@ -494,6 +494,32 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
 
   printf("number_of_subframes = %d\n",number_of_subframes);
   printf("number_of_primary_audio_channels = %d\n", number_of_primary_audio_channels);
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    printf("subband_activity_count[%d] = %d\n", ch, subband_activity_count[ch]);
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    printf("high_frequency_VQ_start_subband[%d] = %d\n", ch, high_frequency_VQ_start_subband[ch]);
+  }
+  for (n=0; ch<number_of_primary_audio_channels; ch++) {
+    printf("joint_intensity_coding_index[%d] = %d\n", ch, joint_intensity_coding_index[ch]);
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    printf("transient_mode_code_book[%d] = %d\n", ch, transient_mode_code_book[ch]);
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    printf("scales_factor_code_book[%d] = %d\n", ch, scales_factor_code_book[ch]);
+  }
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    printf("bit_allocation_quantizer_select[%d] = %d\n", ch, bit_allocation_quantizer_select[ch]);
+  }
+
+  printf("quantization_index_codebook_select: -\n");
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    for(n=0; n < 10;n++) {
+      printf("%04d ",quantization_index_codebook_select[ch][n]);
+    }
+    printf("\n");
+  }
 
 
 #if 0
