@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.23 2002/07/16 19:33:37 esnel Exp $
+ * $Id: video_out_aa.c,v 1.24 2002/07/20 21:07:01 f1rmb Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -155,7 +155,7 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 
     } else if (format == IMGFMT_YUY2) {
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = malloc_aligned(16, frame->vo_frame.pitches[0] * height, (void**) &frame->mem[0]);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height, (void**) &frame->mem[0]);
     } else {
       printf ("alert! unsupported image format %04x\n", format);
       abort();
