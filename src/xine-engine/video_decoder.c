@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.48 2001/09/10 13:36:56 jkeil Exp $
+ * $Id: video_decoder.c,v 1.49 2001/09/11 09:03:51 jkeil Exp $
  *
  */
 
@@ -55,8 +55,13 @@ void *video_decoder_loop (void *this_gen) {
   int              streamtype;
   video_decoder_t *decoder;
   spu_decoder_t   *spu_decoder;
-  int		   prof_video_decode = profiler_allocate_slot ("video decoder");
-  int		   prof_spu_decode = profiler_allocate_slot ("spu decoder");
+  static int	   prof_video_decode = -1;
+  static int	   prof_spu_decode = -1;
+
+  if (prof_video_decode == -1)
+    prof_video_decode = profiler_allocate_slot ("video decoder");
+  if (prof_spu_decode == -1)
+    prof_spu_decode = profiler_allocate_slot ("spu decoder");
 
   while (running) {
 

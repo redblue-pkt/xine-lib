@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.43 2001/09/10 13:36:56 jkeil Exp $
+ * $Id: video_out.c,v 1.44 2001/09/11 09:03:51 jkeil Exp $
  *
  */
 
@@ -143,13 +143,19 @@ static void *video_out_loop (void *this_gen) {
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
   sigset_t           vo_mask;
-  int		     prof_video_out = profiler_allocate_slot ("video output");
-  int		     prof_spu_blend = profiler_allocate_slot ("spu blend");
+  static int	     prof_video_out = -1;
+  static int	     prof_spu_blend = -1;
   /*
   int                dummysignum;
   */
 
   /* printf ("%d video_out start\n", getpid());  */
+
+  if (prof_video_out == -1)
+    prof_video_out = profiler_allocate_slot ("video output");
+  if (prof_spu_blend == -1)
+    prof_spu_blend = profiler_allocate_slot ("spu blend");
+
   /*
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.36 2001/09/10 13:36:56 jkeil Exp $
+ * $Id: audio_decoder.c,v 1.37 2001/09/11 09:03:51 jkeil Exp $
  *
  *
  * functions that implement audio decoding
@@ -41,7 +41,10 @@ void *audio_decoder_loop (void *this_gen) {
   int              running = 1;
   int              i,j;
   audio_decoder_t *decoder;
-  int		   prof_audio_decode = profiler_allocate_slot ("audio decoder/output");
+  static int	   prof_audio_decode = -1;
+
+  if (prof_audio_decode == -1)
+    prof_audio_decode = profiler_allocate_slot ("audio decoder/output");
 
   while (running) {
 
