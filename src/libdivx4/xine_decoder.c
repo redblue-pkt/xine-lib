@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/10/14 00:43:06 guenter Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/10/15 16:13:23 jkeil Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -286,6 +286,26 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  }
         } 
       }
+
+      /* more video-out voodoo:
+	 some sort of copy operation, looks like. Straight from the ffmpeg
+	 plugin. The XShm driver seems to need it, the Xv one does not. */
+      if (img->copy && img->bad_frame == 0) {
+	int height = abs(this->biHeight);
+	int stride = this->biWidth;
+	uint8_t* src[3];
+	  
+	src[0] = img->base[0];
+	src[1] = img->base[1];
+	src[2] = img->base[2];
+	while ((height -= 16) >= 0) {
+	  img->copy(img, src);
+	  src[0] += 16 * stride;
+	  src[1] +=  4 * stride;
+	  src[2] +=  4 * stride;
+	}
+      }
+
 
       /* this again from ffmpeg plugin */
       img->PTS = buf->PTS;
