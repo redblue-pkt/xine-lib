@@ -10,7 +10,7 @@ dnl It looks for ffmpeg, defines FFMPEG_CPPFLAGS and FFMPEG_LIBS.
 dnl
 AC_DEFUN([AM_PATH_FFMPEG], [
 
-AC_ARG_WITH(external-ffmpeg, AC_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]),
+AC_ARG_WITH(external-ffmpeg, AC_HELP_STRING([--with-external-ffmpeg@<:@=DIR@:>@], [use external ffmpeg library]),
   [external_ffmpeg="$withval"],
   [external_ffmpeg="no"]
 )
