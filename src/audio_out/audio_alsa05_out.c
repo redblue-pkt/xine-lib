@@ -24,7 +24,7 @@
  * for the SPDIF A52 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
  *
- * $Id: audio_alsa05_out.c,v 1.11 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: audio_alsa05_out.c,v 1.12 2001/11/19 13:55:03 hrm Exp $
  */
 
 /* required for swab() */
@@ -186,10 +186,11 @@ static int ao_alsa_open(ao_driver_t *this_gen,uint32_t bits, uint32_t rate, int 
     return 0;
     break;
   }
-  
+
+#ifdef LOG_DEBUG  
   xprintf (VERBOSE|AUDIO, "bits = %d, rate = %d, channels = %d\n", 
 	   bits, rate, channels);
-
+#endif
  
   if(!rate)
     return 0;
@@ -259,9 +260,10 @@ static int ao_alsa_open(ao_driver_t *this_gen,uint32_t bits, uint32_t rate, int 
   }
   this->format = pcm_format.format;
 
+#ifdef LOG_DEBUG
   xprintf (VERBOSE|AUDIO, "format name = '%s'\n", 
        snd_pcm_get_format_name(pcm_format.format));
-
+#endif
   
   pcm_format.voices = this->voices = channels;
   pcm_format.rate = this->rate = rate;
@@ -270,8 +272,10 @@ static int ao_alsa_open(ao_driver_t *this_gen,uint32_t bits, uint32_t rate, int 
   this->num_channels    = channels;
   this->bytes_per_frame = (bits*this->num_channels)/8;
 
+#ifdef LOG_DEBUG
   xprintf (VERBOSE|AUDIO, "audio channels = %d ao_mode = %d\n", 
 	   this->num_channels,ao_mode);
+#endif
   
   if(rate > pcm_chan_info.max_rate)
     this->output_sample_rate = pcm_chan_info.max_rate;
@@ -493,46 +497,63 @@ ao_driver_t *init_audio_out_plugin(config_values_t *config) {
     if((err = snd_card_load(snd_default_card)) < 0) {
       perr("snd_card_load() failed: %s\n", snd_strerror(err));
     }
+#ifdef LOG_DEBUG
     xprintf (VERBOSE|AUDIO, "%d card(s) installed. Default = %d\n",
 	     devnum, snd_default_card);
+#endif
     
     if((snd_default_mixer_card = snd_defaults_mixer_card()) < 0) {
       perr("snd_defaults_mixer_card() failed: %s\n", 
 	   snd_strerror(snd_default_mixer_card));
     }
+#ifdef LOG_DEBUG
     xprintf (VERBOSE|AUDIO, "default mixer card = %d\n", 
 	     snd_default_mixer_card);
+#endif
 
     if((snd_default_mixer_device = snd_defaults_mixer_device()) < 0) {
       perr("snd_defaults_mixer_device() failed: %s\n", 
 	   snd_strerror(snd_default_mixer_device));
     }
+#ifdef LOG_DEBUG
     xprintf (VERBOSE|AUDIO, "default mixer device = %d\n", 
 	     snd_default_mixer_device);
+#endif
   }
   
+#ifdef LOG_DEBUG
   xprintf (VERBOSE|AUDIO, "Opening audio device...");
+#endif
 
   if((this->pcm_default_card = snd_defaults_pcm_card()) < 0) {
     perr("There is no default pcm card.\n");
     exit(1);
   }
+#ifdef LOG_DEBUG
   xprintf (VERBOSE|AUDIO, "snd_defaults_pcm_card() return %d\n", 
 	   this->pcm_default_card);
+#endif
 
   if((this->pcm_default_device = snd_defaults_pcm_device()) < 0) {
     perr("There is no default pcm device.\n");
     exit(1);
   }
+#ifdef LOG_DEBUG
   xprintf (VERBOSE|AUDIO, "snd_defaults_pcm_device() return %d\n", 
 	   this->pcm_default_device);
+#endif
 
   this->capabilities = AO_CAP_MODE_STEREO;
-  if (config->lookup_int (config, "a52_pass_through", 0))  {
+  if (config->register_bool (config,
+                             "audio.a52_pass_through",
+                             0,
+                             "used to inform xine about what the sound card can do",
+                             NULL,
+                             NULL,
+                             NULL) ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
   }
-
 
   this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
   this->ao_driver.get_property        = ao_alsa_get_property;
@@ -568,6 +589,7 @@ ao_driver_t *init_audio_out_plugin(config_values_t *config) {
     exit(1);
   }
   
+#ifdef LOG_DEBUG
   xprintf (VERBOSE|AUDIO, "snd_pcm_info():\n");
   xprintf (VERBOSE|AUDIO, "---------------\n");
   xprintf (VERBOSE|AUDIO, "type      = 0x%x\n", pcm_info.type); 
@@ -576,6 +598,7 @@ ao_driver_t *init_audio_out_plugin(config_values_t *config) {
   xprintf (VERBOSE|AUDIO, "name      = '%s'\n", pcm_info.name); 
   xprintf (VERBOSE|AUDIO, "playback  = %d\n", pcm_info.playback);
   xprintf (VERBOSE|AUDIO, "capture   = %d\n", pcm_info.capture); 
+#endif
   
   memset(&pcm_chan_info, 0, sizeof(snd_pcm_channel_info_t));
   pcm_chan_info.channel = SND_PCM_CHANNEL_PLAYBACK;
@@ -587,6 +610,7 @@ ao_driver_t *init_audio_out_plugin(config_values_t *config) {
   
   best_rate = pcm_chan_info.rates;
 
+#ifdef LOG_DEBUG
   xprintf (VERBOSE|AUDIO, "best_rate = %d\n", best_rate);
   xprintf (VERBOSE|AUDIO, "snd_pcm_channel_info(PLAYBACK):\n");
   xprintf (VERBOSE|AUDIO, "-------------------------------\n");
@@ -628,7 +652,7 @@ ao_driver_t *init_audio_out_plugin(config_values_t *config) {
 	   pcm_chan_info.mmap_size); 
   xprintf (VERBOSE|AUDIO, "mixer_device        = %d\n",
 	   pcm_chan_info.mixer_device);
-  
+#endif  
   snd_pcm_close (this->front_handle);
   this->front_handle = NULL;
 
