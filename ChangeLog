@@ -41,6 +41,7 @@ xine-lib (1-rc1)
   * fix colors of YUY2 overlay blending
   * new fftgraph viz plugin
   * updated goom support
+  * fix crasher in CDDA plugin
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)

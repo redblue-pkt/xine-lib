@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.34 2003/09/10 22:54:40 komadori Exp $
+ * $Id: input_cdda.c,v 1.35 2003/09/21 12:29:59 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -111,7 +111,7 @@ typedef struct {
 
 typedef struct {
   input_plugin_t       input_plugin;
-
+  input_class_t       *class;
   xine_stream_t       *stream;
 
   struct  {
@@ -304,7 +304,7 @@ struct SRB_ExecSCSICmd
 
 #endif /* WIN32 */
 
-
+#ifdef LOG
 static void print_cdrom_toc(cdrom_toc *toc) {
 
 	int i;
@@ -355,17 +355,25 @@ static void print_cdrom_toc(cdrom_toc *toc) {
 		}
 	}	
 }
+#endif
 
-static void init_cdrom_toc(cdrom_toc *toc) {
+static cdrom_toc * init_cdrom_toc(void) {
 
+  cdrom_toc *toc;
+
+  toc = (cdrom_toc *) xine_xmalloc(sizeof (cdrom_toc));
   toc->first_track = toc->last_track = toc->total_tracks = 0;
   toc->toc_entries = NULL;
+
+  return toc;
 }
 
 static void free_cdrom_toc(cdrom_toc *toc) {
 
   if(toc && toc->toc_entries)
     free(toc->toc_entries);
+  if (toc)
+    free (toc);
 }
 
 #if defined (__linux__)
@@ -2282,7 +2290,11 @@ static void cdda_plugin_dispose (input_plugin_t *this_gen ) {
 
   if (this->cdda_device)
     free(this->cdda_device);
-  
+  if (this->class) {
+    cdda_input_class_t *inp = (cdda_input_class_t *) this->class;
+    inp->ip = NULL;
+  }
+
   free(this);
 }
 
@@ -2290,7 +2302,7 @@ static void cdda_plugin_dispose (input_plugin_t *this_gen ) {
 static int cdda_plugin_open (input_plugin_t *this_gen ) {
   cdda_input_plugin_t *this = (cdda_input_plugin_t *) this_gen;
   cdda_input_class_t  *class = (cdda_input_class_t *) this_gen->input_class;
-  cdrom_toc            toc;
+  cdrom_toc            *toc;
   int                  fd  = -1;
   char                *cdda_device;
   int                  err = -1;
@@ -2300,7 +2312,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 #endif
 
   /* get the CD TOC */
-  init_cdrom_toc(&toc);
+  toc = init_cdrom_toc();
 
   if( this->cdda_device )
     cdda_device = this->cdda_device;
@@ -2313,47 +2325,47 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     if( fd != -1 ) {
       this->net_fd = fd;
 
-      err = network_read_cdrom_toc(this->net_fd, &toc);
+      err = network_read_cdrom_toc(this->net_fd, toc);
     }
   }
 #endif
 
   if( this->net_fd == -1 ) {
 
-    if (cdda_open(this, cdda_device, &toc, &fd) == -1) {
-      free_cdrom_toc(&toc);
+    if (cdda_open(this, cdda_device, toc, &fd) == -1) {
+      free_cdrom_toc(toc);
       return 0;
     }
 
 #ifndef WIN32    
-    err = read_cdrom_toc(this->fd, &toc);
+    err = read_cdrom_toc(this->fd, toc);
 #else
-    err = read_cdrom_toc(this, &toc);
+    err = read_cdrom_toc(this, toc);
 #endif
 
 #ifdef LOG
-	print_cdrom_toc(&toc);
+	print_cdrom_toc(toc);
 #endif
 
   }
 
   
-  if ( (err < 0) || (toc.first_track > (this->track + 1)) || 
-      (toc.last_track < (this->track + 1))) {
+  if ( (err < 0) || (toc->first_track > (this->track + 1)) || 
+      (toc->last_track < (this->track + 1))) {
 
 	cdda_close(this);
       
-    free_cdrom_toc(&toc);
+    free_cdrom_toc(toc);
     return 0;
   }
 
   /* set up the frame boundaries for this particular track */
   this->first_frame = this->current_frame = 
-    toc.toc_entries[this->track].first_frame;
-  if (this->track + 1 == toc.last_track)
-    this->last_frame = toc.leadout_track.first_frame - 1;
+    toc->toc_entries[this->track].first_frame;
+  if (this->track + 1 == toc->last_track)
+    this->last_frame = toc->leadout_track.first_frame - 1;
   else
-    this->last_frame = toc.toc_entries[this->track + 1].first_frame - 1;
+    this->last_frame = toc->toc_entries[this->track + 1].first_frame - 1;
 
   /* invalidate cache */
   this->cache_first = this->cache_last = -1;
@@ -2364,7 +2376,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
    */
   _cdda_free_cddb_info(this);
 
-  this->cddb.num_tracks = toc.total_tracks;
+  this->cddb.num_tracks = toc->total_tracks;
 
   if(this->cddb.num_tracks) {
     int t;
@@ -2372,18 +2384,18 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     this->cddb.track = (trackinfo_t *) xine_xmalloc(sizeof(trackinfo_t) * this->cddb.num_tracks);
 
     for(t = 0; t < this->cddb.num_tracks; t++) {
-      int length = (toc.toc_entries[t].first_frame_minute * CD_SECONDS_PER_MINUTE + 
-		    toc.toc_entries[t].first_frame_second);
+      int length = (toc->toc_entries[t].first_frame_minute * CD_SECONDS_PER_MINUTE + 
+		    toc->toc_entries[t].first_frame_second);
       
       this->cddb.track[t].start = (length * CD_FRAMES_PER_SECOND + 
-				   toc.toc_entries[t].first_frame_frame);
+				   toc->toc_entries[t].first_frame_frame);
       this->cddb.track[t].title = NULL;
     }
     
   }
 
-  this->cddb.disc_length = (toc.leadout_track.first_frame_minute * CD_SECONDS_PER_MINUTE + 
-			    toc.leadout_track.first_frame_second);
+  this->cddb.disc_length = (toc->leadout_track.first_frame_minute * CD_SECONDS_PER_MINUTE + 
+			    toc->leadout_track.first_frame_second);
   this->cddb.disc_id     = _cdda_get_cddb_id(this);
 
   if(this->cddb.enabled && ((this->cddb.have_cddb_info == 0) || (_cdda_is_cd_changed(this) == 1)))
@@ -2439,7 +2451,8 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     this->stream->meta_info[XINE_META_INFO_YEAR] = strdup(this->cddb.disc_year);
   }
 
-  free_cdrom_toc(&toc);
+  free_cdrom_toc(toc);
+
   return 1;
 }
 
@@ -2448,7 +2461,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 
   cdda_input_class_t *this = (cdda_input_class_t *) this_gen;
   cdda_input_plugin_t *ip = this->ip;
-  cdrom_toc toc;
+  cdrom_toc *toc;
   char trackmrl[20];
   int fd, i, err = -1;
   int num_tracks;
@@ -2460,7 +2473,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   }  
   
   /* get the CD TOC */
-  init_cdrom_toc(&toc);
+  toc = init_cdrom_toc();
 
   fd = -1;
 
@@ -2468,26 +2481,26 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   if( strchr(this->cdda_device,':') ) {
     fd = network_connect(this->cdda_device);
     if( fd != -1 ) {
-      err = network_read_cdrom_toc(fd, &toc);
+      err = network_read_cdrom_toc(fd, toc);
     }
   }
 #endif
 
   if (fd == -1) {
-    if (cdda_open(ip, this->cdda_device, &toc, &fd) == -1) {
+    if (cdda_open(ip, this->cdda_device, toc, &fd) == -1) {
       return NULL;
     }
   }
 
 
 #ifndef WIN32
-    err = read_cdrom_toc(fd, &toc);
+    err = read_cdrom_toc(fd, toc);
 #else
-    err = read_cdrom_toc(ip, &toc);
+    err = read_cdrom_toc(ip, toc);
 #endif /* WIN32 */
 
 #ifdef LOG
-	print_cdrom_toc(&toc);
+	print_cdrom_toc(toc);
 #endif
 
   cdda_close(ip);  
@@ -2495,17 +2508,17 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   if ( err < 0 )
     return NULL;
   
-  num_tracks = toc.last_track - toc.first_track;
-  if (toc.ignore_last_track)
+  num_tracks = toc->last_track - toc->first_track;
+  if (toc->ignore_last_track)
     num_tracks--;
   for ( i = 0; i <= num_tracks; i++ ) {
-    sprintf(trackmrl,"cdda:/%d",i+toc.first_track);
+    sprintf(trackmrl,"cdda:/%d",i+toc->first_track);
     this->autoplaylist[i] = strdup(trackmrl);    
   }
 
-  *num_files = toc.last_track - toc.first_track + 1;
+  *num_files = toc->last_track - toc->first_track + 1;
 
-  free_cdrom_toc(&toc);
+  free_cdrom_toc(toc);
   return this->autoplaylist;
 }
 
@@ -2562,6 +2575,7 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   this->cddb.track = NULL;
   this->fd         = -1;
   this->net_fd     = -1;
+  this->class      = (input_class_t *) class;
   
   this->input_plugin.open               = cdda_plugin_open;
   this->input_plugin.get_capabilities   = cdda_plugin_get_capabilities;
@@ -2579,7 +2593,6 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   /*
    * Lookup config entries.
    */
-  class->ip = this;
   if(xine_config_lookup_entry(this->stream->xine, "input.cdda_use_cddb", 
 			      &enable_entry)) 
     enable_cddb_changed_cb(class, &enable_entry);
@@ -2596,7 +2609,7 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
 			      &cachedir_entry)) 
     cachedir_changed_cb(class, &cachedir_entry);
 
-  return &this->input_plugin;
+  return (input_plugin_t *)this;
 }
 
 
@@ -2606,15 +2619,6 @@ static char *cdda_class_get_identifier (input_class_t *this_gen) {
 
 static char *cdda_class_get_description (input_class_t *this_gen) {
   return _("CD Digital Audio (aka. CDDA)");
-}
-
-static xine_mrl_t **cdda_class_get_dir (input_class_t *this_gen,
-                                        const char *filename, int *nFiles) {
-
-  cdda_input_class_t   *this = (cdda_input_class_t *) this_gen;
-
-  *nFiles = 0; /* Unsupported */
-  return this->mrls;
 }
 
 static void cdda_class_dispose (input_class_t *this_gen) {
@@ -2651,8 +2655,9 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->input_class.dispose            = cdda_class_dispose;
   this->input_class.eject_media        = cdda_class_eject_media;
 
-  this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
+  this->mrls = NULL;
   this->mrls_allocated_entries = 0;
+  this->ip = NULL;
   
   this->cdda_device = config->register_string(config, "input.cdda_device", 
 					      DEFAULT_CDDA_DEVICE,
