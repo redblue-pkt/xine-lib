@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.16 2001/12/18 22:38:38 f1rmb Exp $
+ * $Id: audio_esd_out.c,v 1.17 2001/12/18 22:46:16 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -65,7 +65,6 @@ typedef struct esd_driver_s {
   struct timeval   start_time;
 
   struct {
-    char          *name;
     int            source_id;
     int            volume;
     int            mute;
