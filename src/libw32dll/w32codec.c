@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.72 2002/04/20 18:31:03 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.73 2002/04/23 00:58:32 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -969,22 +969,20 @@ static void w32a_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->outbuf = NULL;
 }
 
-static int w32a_init_audio (w32a_decoder_t *this,
-			    WAVEFORMATEX *in_fmt_,
-			    int buf_type) {
+static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
 
   HRESULT ret;
   void *ret2;
   static WAVEFORMATEX wf;     
   static WAVEFORMATEX *in_fmt;
-  unsigned long in_size=in_fmt_->nBlockAlign;
+  unsigned long in_size;
   unsigned long out_size;
   audio_buffer_t *audio_buffer;
   int audio_buffer_mem_size;
 
-  in_fmt = (WAVEFORMATEX *) malloc (64);
-
-  memcpy (in_fmt, in_fmt_, sizeof (WAVEFORMATEX) + in_fmt_->cbSize);
+  in_fmt = (WAVEFORMATEX *) malloc (buf->size);
+  memcpy (in_fmt, buf->content, buf->size);
+  in_size=in_fmt->nBlockAlign;
 
   this->srcstream = 0;
   this->num_channels  = in_fmt->nChannels;
@@ -1018,7 +1016,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
   
   pthread_mutex_lock(&win32_codec_mutex);
   this->ldt_fs = Setup_LDT_Keeper();
-  win32_codec_name = get_auds_codec_name (this, buf_type);
+  win32_codec_name = get_auds_codec_name (this, buf->type);
   
   if( !this->ds_driver ) {
     ret=acmStreamOpen(&this->srcstream,(HACMDRIVER)NULL,
@@ -1247,7 +1245,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     printf ("w32codec: got audio header\n");
 #endif
 
-    this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content, buf->type);
+    this->decoder_ok = w32a_init_audio (this, buf);
 
 #ifdef SYNC_SHUTDOWN
     if( this->decoder_ok )
