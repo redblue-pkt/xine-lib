@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.16 2001/06/09 17:07:21 guenter Exp $
+ * $Id: demux_avi.c,v 1.17 2001/06/09 19:05:59 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -714,9 +714,24 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
   return nr;
 }
 
+static uint32_t get_audio_pts (demux_avi_t *this, long posc, long posb) {
+
+  if (this->avi->dwSampleSize==0)
+    return posc * (double) this->avi->dwScale_audio / this->avi->dwRate_audio * 90000.0;
+  else 
+    return (this->avi->audio_index[posc].tot+posb)/this->avi->dwSampleSize * (double) this->avi->dwScale_audio / this->avi->dwRate_audio * 90000.0;
+}
+
+static uint32_t get_video_pts (demux_avi_t *this, long pos) {
+  return pos * (double) this->avi->dwScale / this->avi->dwRate * 90000.0;
+}
+
+
 static int demux_avi_next (demux_avi_t *this) {
 
   buf_element_t *buf = NULL;
+  uint32_t       audio_pts, video_pts;
+
 
   if (this->avi->video_frames <= this->avi->video_posf)
     return 0;
@@ -729,18 +744,16 @@ static int demux_avi_next (demux_avi_t *this) {
   buf->content = buf->mem;
   buf->DTS  = 0 ; /* FIXME */
 
-  if (this->avi->audio_index[this->avi->audio_posc].pos<
-      this->avi->video_index[this->avi->video_posf].pos) {
+  audio_pts = get_audio_pts (this, this->avi->audio_posc, this->avi->audio_posb);
+  video_pts = get_video_pts (this, this->avi->video_posf);
+
+  if (audio_pts < video_pts) {
 
     /* read audio */
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: audio \n");
 
-    if (this->avi->dwSampleSize==0)
-      buf->PTS = this->avi->audio_posc * (double) this->avi->dwScale_audio / this->avi->dwRate_audio * 90000.0;
-    else 
-      buf->PTS = (this->avi->audio_index[this->avi->audio_posc].tot+this->avi->audio_posb)/this->avi->dwSampleSize * (double) this->avi->dwScale_audio / this->avi->dwRate_audio * 90000.0;
-
-    buf->size      = AVI_read_audio (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
+    buf->PTS    = audio_pts;
+    buf->size   = AVI_read_audio (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
 
     if (buf->size<0) {
       buf->free_buffer (buf);
@@ -780,7 +793,7 @@ static int demux_avi_next (demux_avi_t *this) {
     /* read video */
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: video \n");
 
-    buf->PTS   = this->avi->video_posf * (double) this->avi->dwScale / this->avi->dwRate * 90000.0;
+    buf->PTS   = video_pts;
     buf->size  = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
     buf->type  = BUF_VIDEO_AVI ; 
 
@@ -861,6 +874,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 {
   buf_element_t *buf;
   demux_avi_t *this = (demux_avi_t *) this_gen;
+  uint32_t audio_pts;
 
   this->audio_fifo   = audio_fifo;
   this->video_fifo   = video_fifo;
@@ -885,10 +899,12 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     }
   }
 
+  audio_pts = get_audio_pts (this, this->avi->audio_posc, 0); 
+
   /* seek video */
 
   
-  while (this->avi->video_index[this->avi->video_posf].pos < pos) {
+  while (get_video_pts (this, this->avi->video_posf) < audio_pts) {
     this->avi->video_posf++;
     if (this->avi->video_posf>this->avi->video_frames) {
       this->status = DEMUX_FINISHED;
