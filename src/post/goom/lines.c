@@ -52,8 +52,8 @@ extern unsigned int resolx,c_resoly;
 static void draw_line (int *data, int x1,int y1,int x2,int y2, int col, int screenx, int screeny) {
    int x, y, dx, dy, yy, xx;
    int *p;
-//   DATA32 *p;
-//   DATA8 aaa, nr, ng, nb, rr, gg, bb, aa, na;
+/*    DATA32 *p; */
+/*    DATA8 aaa, nr, ng, nb, rr, gg, bb, aa, na; */
 
    /* clip to top edge */
    if ((y1 < 0) && (y2 < 0))
@@ -189,7 +189,7 @@ static void draw_line (int *data, int x1,int y1,int x2,int y2, int col, int scre
 			   if (xx < (screenx - 1))
                  {
 				   p++;
-//				   DRAWMETHOD;
+/* 				   DRAWMETHOD; */
                  }
 			   x += dx;
 			 }
@@ -208,7 +208,7 @@ static void draw_line (int *data, int x1,int y1,int x2,int y2, int col, int scre
                  if (yy < (screeny - 1))
 				   {
 					 p += screeny;
-//					 DRAWMETHOD;
+/* 					 DRAWMETHOD; */
 				   }
                  y += dy;
 			 }
@@ -233,7 +233,7 @@ static void draw_line (int *data, int x1,int y1,int x2,int y2, int col, int scre
 			   if (xx < (screenx - 1))
                  {
 				   p--;
-//				   DRAWMETHOD;
+/* 				   DRAWMETHOD; */
                  }
 			   x += dx;
 			 }
@@ -252,7 +252,7 @@ static void draw_line (int *data, int x1,int y1,int x2,int y2, int col, int scre
 			   if (yy < (screeny - 1))
                  {
 				   p += screeny;
-//				   DRAWMETHOD;
+/* 				   DRAWMETHOD; */
                  }
 			   y += dy;
 			 }
@@ -358,7 +358,7 @@ void goom_lines_switch_to (GMLine *gml, int IDdest, float param, int col) {
   gml->IDdest = IDdest;
   gml->param = param;
   gml->color2 = getcouleur (col);
-//  printf ("couleur %d : %x\n",col,gml->color2);
+/*   printf ("couleur %d : %x\n",col,gml->color2); */
 }
 
 inline unsigned char  lighten(unsigned char value,float power)

@@ -1,9 +1,9 @@
 
-//#define VERSION "1.9dev5"
-//#define _DEBUG
+/* #define VERSION "1.9dev5" */
+/* #define _DEBUG */
 
 #define COLOR_BGRA
-//#define COLOR_ARGB
+/* #define COLOR_ARGB */
 
 #ifdef COLOR_BGRA
 /** position des composantes **/
@@ -19,14 +19,14 @@
 #endif
 		
 
-// target
+/*  target */
 #define XMMS_PLUGIN
-//#define STANDALONE
+/* #define STANDALONE */
 
-// for pc users with mmx processors.
-//#define MMX
-//#define POWERPC
-//#define VERBOSE
+/*  for pc users with mmx processors. */
+/* #define MMX */
+/* #define POWERPC */
+/* #define VERBOSE */
 
 #ifndef guint32
 #define guint8 unsigned char

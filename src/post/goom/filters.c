@@ -10,7 +10,7 @@
 *		la vitesse est maintenant comprise dans [0..128] au lieu de [0..100]
 */
 
-//#define _DEBUG_PIXEL;
+/* #define _DEBUG_PIXEL; */
 
 #include "filters.h"
 #include "graphic.h"
@@ -53,12 +53,12 @@ unsigned int ppcsize4;
 #endif /* PowerPC */
 
 
-signed int *brutS = 0, *freebrutS = 0; // source
-signed int *brutD = 0, *freebrutD = 0; // dest
-signed int *brutT = 0, *freebrutT = 0; // temp (en cours de génération)
+signed int *brutS = 0, *freebrutS = 0; /*  source */
+signed int *brutD = 0, *freebrutD = 0; /*  dest */
+signed int *brutT = 0, *freebrutT = 0; /*  temp (en cours de génération) */
 
-guint32 *expix1 = 0; // pointeur exporte vers p1
-guint32 *expix2 = 0; // pointeur exporte vers p2
+guint32 *expix1 = 0; /*  pointeur exporte vers p1 */
+guint32 *expix2 = 0; /*  pointeur exporte vers p2 */
 guint32 zoom_width;
 
 int prevX=0,prevY=0;
@@ -72,25 +72,25 @@ static int vPlaneEffect = 0;
 static int hPlaneEffect = 0;
 static char noisify = 2;
 static int middleX , middleY ;
-//static unsigned char sqrtperte = 16 ;
+/* static unsigned char sqrtperte = 16 ; */
 
 /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
-//static int buffratio = 0;
+/* static int buffratio = 0; */
 int buffratio = 0;
 #define BUFFPOINTNB 16
 #define BUFFPOINTMASK 0xffff
 #define BUFFINCR 0xff
 
 #define sqrtperte 16
-// faire : a % sqrtperte <=> a & pertemask
+/*  faire : a % sqrtperte <=> a & pertemask */
 #define PERTEMASK 0xf
-// faire : a / sqrtperte <=> a >> PERTEDEC
+/*  faire : a / sqrtperte <=> a >> PERTEDEC */
 #define PERTEDEC 4
 
 static int * firedec = 0 ;
 
 
-// retourne x>>s , en testant le signe de x
+/*  retourne x>>s , en testant le signe de x */
 inline int ShiftRight (int x, const unsigned char s)
 {
     if (x<0)
@@ -109,10 +109,10 @@ void generatePrecalCoef () {
 	int coefh,coefv;
 	firstime = 0;
 
-	//		precalCoef = (int**) malloc (17*sizeof (int*));
+	/* 		precalCoef = (int**) malloc (17*sizeof (int*)); */
 
 	for (coefh=0;coefh<16;coefh++) {
-	    //			precalCoef [coefh] = (int *) malloc (17*sizeof (int));
+	    /* 			precalCoef [coefh] = (int *) malloc (17*sizeof (int)); */
 
 	    for (coefv=0;coefv<16;coefv++) {
 		int i;
@@ -122,7 +122,7 @@ void generatePrecalCoef () {
 		diffcoeffh = sqrtperte - coefh;
 		diffcoeffv = sqrtperte - coefv;
 
-		//			coeffs[myPos] = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC)) << 2;
+		/* 			coeffs[myPos] = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC)) << 2; */
 		if (!(coefh || coefv)) i = 255 ;
 		else {
 		    int i1,i2,i3,i4;
@@ -185,10 +185,10 @@ inline void calculatePXandPY (int x, int y, int *px, int *py)
 		vy = (y - middleY) << 9;
 		
         if (hPlaneEffect) vx += hPlaneEffect * (y - middleY);
-		//        else vx = (x - middleX) << 9 ;
+		/*         else vx = (x - middleX) << 9 ; */
 		
         if (vPlaneEffect) vy += vPlaneEffect * (x - middleX);
-		//        else vy = (y - middleY) << 9 ;
+		/*         else vy = (y - middleY) << 9 ; */
 		
 		if (waveEffect) {
 		  fvitesse *= 1024 + ShiftRight (
@@ -235,7 +235,7 @@ inline void calculatePXandPY (int x, int y, int *px, int *py)
 		if (fvitesse < -3024)
 		  fvitesse = -3024;
 		
-        if (vx<0) // pb avec decalage sur nb negatif
+        if (vx<0) /*  pb avec decalage sur nb negatif */
 		  ppx = - (-(vx * fvitesse) >> 16);
 		/* 16 = 9 + 7 (7 = nb chiffre virgule de vitesse
 		 * (v = 128 => immobile)
@@ -253,28 +253,28 @@ inline void calculatePXandPY (int x, int y, int *px, int *py)
     }
 }
 
-//#define _DEBUG
+/* #define _DEBUG */
 
 inline void setPixelRGB(Uint *buffer, Uint x, Uint y, Color c)
 {
-    //		buffer[ y*WIDTH + x ] = (c.r<<16)|(c.v<<8)|c.b
+    /* 		buffer[ y*WIDTH + x ] = (c.r<<16)|(c.v<<8)|c.b */
 #ifdef _DEBUG_PIXEL
     if ( x+y*resolx >= resolx * resoly)
 	  {
 		fprintf (stderr,"setPixel ERROR : hors du tableau... %i, %i\n", x,y) ;
-		//exit (1) ;
+		/* exit (1) ; */
 	  }
 #endif
 	
-//#ifdef USE_DGA
-//    buffer[ y*resolx + x ] = (c.b<<16)|(c.v<<8)|c.r ;
-//#else
-//#ifdef COLOR_BGRA
+/* #ifdef USE_DGA */
+/*     buffer[ y*resolx + x ] = (c.b<<16)|(c.v<<8)|c.r ; */
+/* #else */
+/* #ifdef COLOR_BGRA */
     buffer[ y*resolx + x ] = (c.b<<(BLEU*8))|(c.v<<(VERT*8))|(c.r<<(ROUGE*8)) ;
-//#else
-//    buffer[ y*resolx + x ] = (c.r<<16)|(c.v<<8)|c.b ;
-//#endif
-//#endif
+/* #else */
+/*     buffer[ y*resolx + x ] = (c.r<<16)|(c.v<<8)|c.b ; */
+/* #endif */
+/* #endif */
 }
 
 
@@ -284,49 +284,51 @@ inline void setPixelRGB_ (Uint *buffer, Uint x, Color c)
   if ( x >= resolx*c_resoly )
     {
 	  printf ("setPixel ERROR : hors du tableau... %i\n", x) ;
-	  //	exit (1) ;
+	  /* 	exit (1) ; */
     }
 #endif
   
-//#ifdef USE_DGA
-//    buffer[ x ] = (c.b<<16)|(c.v<<8)|c.r ;
-//#else
-//#ifdef COLOR_BGRA
-//    buffer[ x ] = (c.b<<24)|(c.v<<16)|(c.r<<8) ;
-//#else
+/* #ifdef USE_DGA */
+/*     buffer[ x ] = (c.b<<16)|(c.v<<8)|c.r ; */
+/* #else */
+/* #ifdef COLOR_BGRA */
+/*     buffer[ x ] = (c.b<<24)|(c.v<<16)|(c.r<<8) ; */
+/* #else */
     buffer[ x ] = (c.r<<(ROUGE*8))|(c.v<<(VERT*8))|c.b<<(BLEU*8) ;
-//#endif
-//#endif
+/* #endif */
+/* #endif */
 }
 
 
 
 inline void getPixelRGB (Uint *buffer, Uint x, Uint y, Color *c)
 {
-//    register unsigned char *tmp8;
+/*     register unsigned char *tmp8; */
   unsigned int i;
 #ifdef _DEBUG
     if (x + y * resolx >= resolx * c_resoly)
     {
 	  printf ("getPixel ERROR : hors du tableau... %i, %i\n", x,y) ;
-	  //	exit (1) ;
+	  /* 	exit (1) ; */
     }
 #endif
 	
-	//#ifdef __BIG_ENDIAN__
-	//    c->b = *(unsigned char *)(tmp8 = (unsigned char*)(buffer + (x + y*resolx)));
-	//    c->r = *(unsigned char *)(++tmp8);
-	//    c->v = *(unsigned char *)(++tmp8);
-	//    c->b = *(unsigned char *)(++tmp8);
+    /*
+	#ifdef __BIG_ENDIAN__
+	    c->b = *(unsigned char *)(tmp8 = (unsigned char*)(buffer + (x + y*resolx)));
+	    c->r = *(unsigned char *)(++tmp8);
+	    c->v = *(unsigned char *)(++tmp8);
+	    c->b = *(unsigned char *)(++tmp8);
 	
-	//#else
+	#else
+    */
     /* ATTENTION AU PETIT INDIEN  */
 	i = *(buffer + (x + y*resolx));
 	c->b = (i>>(BLEU*8)) & 0xff;
 	c->v = (i>>(VERT*8)) & 0xff;
 	c->r = (i>>(ROUGE*8)) & 0xff;
-    //	*c = (Color) buffer[x+y*WIDTH] ;
-//#endif
+    /* 	*c = (Color) buffer[x+y*WIDTH] ; */
+/* #endif */
 }
 
 
@@ -338,7 +340,7 @@ inline void getPixelRGB_ (Uint *buffer, Uint x, Color *c)
     if ( x >= resolx * c_resoly )
 	  {
 		printf ("getPixel ERROR : hors du tableau... %i\n", x) ;
-		//	exit (1) ;
+		/* 	exit (1) ; */
 	  }
 #endif
 
@@ -353,7 +355,7 @@ inline void getPixelRGB_ (Uint *buffer, Uint x, Color *c)
     c->b = *(unsigned char *)(tmp8 = (unsigned char*)(buffer + x));
     c->v = *(unsigned char *)(++tmp8);
     c->r = *(unsigned char *)(++tmp8);
-    //	*c = (Color) buffer[x+y*WIDTH] ;
+    /* 	*c = (Color) buffer[x+y*WIDTH] ; */
 #endif
 }
 
@@ -386,7 +388,7 @@ void c_zoom () {
 	  }
 	  else {
 		pos = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC));
-		// coef en modulo 15
+		/*  coef en modulo 15 */
 		coeffs = precalCoef [px & PERTEMASK][py & PERTEMASK];
 	  }
 	  
@@ -445,7 +447,7 @@ void zoomFilterFastRGB (Uint *pix1,
 {
   register Uint x, y;
   
-  static char reverse = 0 ; //vitesse inversé..(zoom out)
+  static char reverse = 0 ; /* vitesse inversé..(zoom out) */
   static unsigned char pertedec = 8 ;
   static char firstTime = 1;
   
@@ -494,7 +496,7 @@ void zoomFilterFastRGB (Uint *pix1,
   if (firstTime || zf)
 	{
 	  
-	  // generation d'une table de sinus
+	  /*  generation d'une table de sinus */
 	  if (firstTime)
 		{
 		  unsigned short us ;
@@ -576,7 +578,7 @@ void zoomFilterFastRGB (Uint *pix1,
 		  }
 		}
 	  
-	  // generation du buffer de trans
+	  /*  generation du buffer de trans */
 	  {
 		
 		/* sauvegarde de l'etat actuel dans la nouvelle source */
@@ -596,7 +598,7 @@ void zoomFilterFastRGB (Uint *pix1,
 			for (x = 0; x < prevX ; x++)
 			  {
 				int px,py;
-								//unsigned char coefv,coefh;
+								/* unsigned char coefv,coefh; */
 				
 				calculatePXandPY (x,y,&px, &py) ;
 
@@ -636,7 +638,7 @@ void zoomFilterFastRGB (Uint *pix1,
   
 #ifdef USE_ASM
 #ifdef MMX
-//  mmx_zoom () ;
+/*   mmx_zoom () ; */
 	if (use_asm) {
 		zoom_filter_mmx (prevX, prevY, expix1, expix2, brutS, brutD, buffratio, precalCoef);
 	}
@@ -649,9 +651,9 @@ void zoomFilterFastRGB (Uint *pix1,
   zoom_width = prevX;
   if (useAltivec)
 	{
-	  //ppcsize4 = ((unsigned int)(prevX*prevY))/4;
-	  //ppc_zoom_altivec();
-	  ppc_zoom(expix1,expix2,prevX,prevY, brutS, brutD, buffratio, precalCoef); // FIXME Altivec disabled since dynamic zooms
+/* 	  ppcsize4 = ((unsigned int)(prevX*prevY))/4; */
+/* 	  ppc_zoom_altivec(); */
+	  ppc_zoom(expix1,expix2,prevX,prevY, brutS, brutD, buffratio, precalCoef);  /* FIXME Altivec disabled since dynamic zooms */
 	}
   else
 	{

@@ -33,7 +33,7 @@ static const char sccsid[] = "@(#)ifs.c	5.00 2002/04/11 baffe";
  *              that onto the screen, to reduce flicker.
  */
 
-//#ifdef STANDALONE
+/* #ifdef STANDALONE */
 
 #include <math.h>
 #include <stdlib.h>
@@ -55,24 +55,24 @@ static const char sccsid[] = "@(#)ifs.c	5.00 2002/04/11 baffe";
 
 #define SMOOTH_COLORS
 
-//#include "xlockmore.h"		/* in xscreensaver distribution */
-//#else /* STANDALONE */
-//#include "xlock.h"		/* in xlockmore distribution */
-//#endif /* STANDALONE */
+/* #include "xlockmore.h"		/\* in xscreensaver distribution *\/ */
+/* #else /\* STANDALONE *\/ */
+/* #include "xlock.h"		/\* in xlockmore distribution *\/ */
+/* #endif /\* STANDALONE *\/ */
 
-//#ifdef MODE_ifs
+/* #ifdef MODE_ifs */
 
-//ModeSpecOpt ifs_opts =
-//{0, (XrmOptionDescRec *) NULL, 0, (argtype *) NULL, (OptionStruct *) NULL};
+/* ModeSpecOpt ifs_opts = */
+/* {0, (XrmOptionDescRec *) NULL, 0, (argtype *) NULL, (OptionStruct *) NULL}; */
 
-//#ifdef USE_MODULES
-//ModStruct   ifs_description =
-//{"ifs", "init_ifs", "draw_ifs", "release_ifs",
-// "init_ifs", "init_ifs", (char *) NULL, &ifs_opts,
-// 1000, 1, 1, 1, 64, 1.0, "",
-// "Shows a modified iterated function system", 0, NULL};
+/* #ifdef USE_MODULES */
+/* ModStruct   ifs_description = */
+/* {"ifs", "init_ifs", "draw_ifs", "release_ifs", */
+/*  "init_ifs", "init_ifs", (char *) NULL, &ifs_opts, */
+/*  1000, 1, 1, 1, 64, 1.0, "", */
+/*  "Shows a modified iterated function system", 0, NULL}; */
 
-//#endif
+/* #endif */
 
 #define LRAND()                    ((long) (rand() & 0x7fffffff))
 #define NRAND(n)           ((int) (LRAND() % (n)))
@@ -123,8 +123,8 @@ struct Fractal_Struct {
 	int         Cur_Pt, Max_Pt;
 
 	IFSPoint    *Buffer1, *Buffer2;
-//	Pixmap      dbuf;
-//	GC          dbuf_gc;
+/* 	Pixmap      dbuf; */
+/* 	GC          dbuf_gc; */
 };
 
 static FRACTAL *Root = (FRACTAL *) NULL, *Cur_F;
@@ -200,7 +200,7 @@ init_ifs(int width, int height)
 	int         i;
 	FRACTAL    *Fractal;
 
-//	printf ("initing ifs\n");
+/* 	printf ("initing ifs\n"); */
 
 	if (Root == NULL) {
 	  Root = (FRACTAL *) malloc(sizeof(FRACTAL));
@@ -211,9 +211,9 @@ init_ifs(int width, int height)
 	}
 	Fractal = Root;
 
-//	fprintf (stderr,"--ifs freeing ex-buffers\n");
+/* 	fprintf (stderr,"--ifs freeing ex-buffers\n"); */
 	free_ifs_buffers(Fractal);
-//	fprintf (stderr,"--ifs ok\n");
+/* 	fprintf (stderr,"--ifs ok\n"); */
 
 	i = (NRAND(4)) + 2;	/* Number of centers */
 	switch (i) {
@@ -246,7 +246,7 @@ init_ifs(int width, int height)
 			Fractal->dr2_mean = .4;
 			break;
 	}
-//	fprintf( stderr, "N=%d\n", i );
+/* 	fprintf( stderr, "N=%d\n", i ); */
 	Fractal->Nb_Simi = i;
 	Fractal->Max_Pt = Fractal->Nb_Simi - 1;
 	for (i = 0; i <= Fractal->Depth + 2; ++i)
@@ -263,7 +263,7 @@ init_ifs(int width, int height)
 	  return;
 	}
 	
-//	printf ("--ifs setting params\n");
+/* 	printf ("--ifs setting params\n"); */
 	Fractal->Speed = 6;
 	Fractal->Width = width; /* modif by JeKo */
 	Fractal->Height = height; /* modif by JeKo */
@@ -306,10 +306,10 @@ init_ifs(int width, int height)
 	  }
 	  #endif
 	*/
-	//	MI_CLEARWINDOW(mi);
+	/* 	MI_CLEARWINDOW(mi); */
 
 	/* don't want any exposure events from XCopyPlane */
-	//	XSetGraphicsExposures(display, gc, False);
+	/* 	XSetGraphicsExposures(display, gc, False); */
 	
 }
 
@@ -449,7 +449,7 @@ draw_ifs(/*ModeInfo * mi*/ int *nbpt)
 
 	if (Root == NULL)
 	  return NULL;
-	F = Root; //[/*MI_SCREEN(mi)*/0];
+	F = Root; /* [/\*MI_SCREEN(mi)*\/0]; */
 	if (F->Buffer1 == NULL)
 	  return NULL;
 
@@ -477,7 +477,7 @@ draw_ifs(/*ModeInfo * mi*/ int *nbpt)
 		S->A2 = u0 * S1->A2 + u1 * S2->A2 + u2 * S3->A2 + u3 * S4->A2;
 	}
 
-	//MI_IS_DRAWN(mi) = True;
+	/* MI_IS_DRAWN(mi) = True; */
 
 	Draw_Fractal(/*mi*/);
 
@@ -526,4 +526,4 @@ release_ifs()
   }
 }
 
-//#endif /* MODE_ifs */
+/* #endif /\* MODE_ifs *\/ */

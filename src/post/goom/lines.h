@@ -15,7 +15,7 @@ typedef struct _GMUNITPOINTER {
   float angle;
 } GMUnitPointer;
 
-// tableau de points
+/*  tableau de points */
 typedef struct _GMLINE {
 
   GMUnitPointer *points;
@@ -36,18 +36,18 @@ typedef struct _GMLINE {
   float powinc;
 } GMLine;
 
-// les ID possibles
+/*  les ID possibles */
 
 #define GML_CIRCLE 0
-// (param = radius)
+/*  (param = radius) */
 
 #define GML_HLINE 1
-// (param = y)
+/*  (param = y) */
 
 #define GML_VLINE 2
-// (param = x)
+/*  (param = x) */
 
-// les modes couleur possible (si tu mets un autre c'est noir)
+/*  les modes couleur possible (si tu mets un autre c'est noir) */
 
 #define GML_BLEUBLANC 0
 #define GML_RED 1
@@ -71,5 +71,5 @@ void goom_lines_free (GMLine **gml);
 void goom_lines_draw (GMLine *gml,
 					  gint16 data [512],
 					  unsigned int* p);
-//void goom_lines_conf(gint16 config [25]);
+/* void goom_lines_conf(gint16 config [25]); */
 

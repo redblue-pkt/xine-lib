@@ -73,8 +73,8 @@ void sinFilter(Uint *pix1,Uint *pix2,
 #define SIN_MUL 1
 #define SIN_ADD 2
 
-//#ifdef USE_ASM
-//void setAsmUse (int useIt);
-//#endif
+/* #ifdef USE_ASM */
+/* void setAsmUse (int useIt); */
+/* #endif */
 
 #endif
