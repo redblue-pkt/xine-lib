@@ -1,6 +1,6 @@
 /*
  * 
- * Copyright (C) 2002-2003 the xine project
+ * Copyright (C) 2002 the xine project
  * Copyright (C) 2002 the ffmpeg project
  * 
  * This library is free software; you can redistribute it and/or
