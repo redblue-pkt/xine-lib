@@ -432,8 +432,10 @@ static int config_flags = -1;
       continue;
     
     t = rdtsc();
-    for(j=0;j<100;j++)
+    for(j=0;j<50;j++) {	  
+      memcpy_method[i].function(buf2,buf1,BUFSIZE);
       memcpy_method[i].function(buf1,buf2,BUFSIZE);
+    }     
     t = rdtsc() - t;
     memcpy_method[i].time = t;
     
