@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.185 2003/05/12 23:30:49 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.186 2003/05/15 20:16:42 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -105,26 +105,6 @@ typedef struct {
   config_values_t  *config;
 } demux_mpeg_block_class_t;
 
-/* OK, i think demux_mpeg_block discontinuity handling demands some
-   explanation:
-   
-   - The preferred discontinuity handling/detection for DVD is based on
-   NAV packets information. Most of the time it will provide us very
-   accurate and reliable information.
-   
-   - Has been shown that sometimes a DVD discontinuity may happen before
-   a new NAV packet arrives (seeking?). To avoid sending wrong PTS to
-   decoders we _used_ to check for SCR discontinuities. Unfortunately
-   some VCDs have very broken SCR values causing false triggering.
-   
-   - To fix the above problem (also note that VCDs don't have NAV
-   packets) we fallback to the same PTS-based wrap detection as used
-   in demux_mpeg. The only trick is to not send discontinuity information
-   if NAV packets have already done the job.
-   
-   [Miguel 02-05-2002]
-*/
-
 static int32_t parse_video_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf);
 static int32_t parse_audio_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf);
 static int32_t parse_ancillary_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf);
@@ -149,8 +129,25 @@ static int32_t parse_program_stream_directory(demux_mpeg_block_t *this, uint8_t 
 static int32_t parse_program_stream_pack_header(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf);
 
 
-
-
+/* OK, i think demux_mpeg_block discontinuity handling demands some
+   explanation:
+   
+   - The preferred discontinuity handling/detection for DVD is based on
+   NAV packets information. Most of the time it will provide us very
+   accurate and reliable information.
+   
+   - Has been shown that sometimes a DVD discontinuity may happen before
+   a new NAV packet arrives (seeking?). To avoid sending wrong PTS to
+   decoders we _used_ to check for SCR discontinuities. Unfortunately
+   some VCDs have very broken SCR values causing false triggering.
+   
+   - To fix the above problem (also note that VCDs don't have NAV
+   packets) we fallback to the same PTS-based wrap detection as used
+   in demux_mpeg. The only trick is to not send discontinuity information
+   if NAV packets have already done the job.
+   
+   [Miguel 02-05-2002]
+*/
 
 static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
 {
