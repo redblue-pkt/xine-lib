@@ -105,6 +105,15 @@
 #  endif /* __STDC_LIBRARY_SUPPORTED__ */
 #  include <inttypes.h>
 
+#elif defined(MINGW32)
+
+#  include <inttypes.h>
+
+   struct timezone {
+     int tz_minuteswest;
+     int tz_dstime;
+   };
+
 #else
 
   /* 
