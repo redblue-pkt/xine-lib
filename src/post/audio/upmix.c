@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: upmix.c,v 1.2 2004/05/15 18:22:26 jcdutton Exp $
+ * $Id: upmix.c,v 1.3 2004/05/16 02:56:35 jcdutton Exp $
  *
  */
 
@@ -291,9 +291,9 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
       /* pass data to original port */
       port->original_port->put_buffer(port->original_port, this->buf, stream );  
     }
+    /* free data from origial buffer */
+    buf->num_frames=0; /* UNDOCUMENTED, but hey, it works! Force old audio_out buffer free. */
   }
-  /* free data from origial buffer */
-  buf->num_frames=0; /* UNDOCUMENTED, but hey, it works! Force old audio_out buffer free. */
   port->original_port->put_buffer(port->original_port, buf, stream );  
   
   return;
