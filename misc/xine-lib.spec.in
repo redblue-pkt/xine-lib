@@ -516,8 +516,8 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_zw
 echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_devel
 echo "%doc doc/hackersguide/*.sgml doc/hackersguide/*.fig doc/hackersguide/README" >> ${RPM_BUILD_DIR}/filelist_libxine1_devel
 mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
-grep -E "/include/|dhahelper\.o|libxine*\.(so|la)$|_vid\.(so|la)$|\.m4$" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_devel
-grep -v -E "/include/|dhahelper\.o|libxine*\.(so|la)$|_vid\.(so|la)$|\.m4$" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
+grep -E "/include/|dhahelper\.o|libxine*\.(so|la)$|\.m4$" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_devel
+grep -v -E "/include/|dhahelper\.o|libxine*\.(so|la)$|\.m4$" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
@@ -744,6 +744,9 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Tue Apr 06 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- removed xvid modules from -devel package and put it back
+  to main package.
 * Fri Feb 13 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added new sub-rpm for stk videoout plugin
 * Fri Nov 21 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
