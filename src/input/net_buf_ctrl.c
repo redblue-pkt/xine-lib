@@ -40,6 +40,8 @@
 #define DEFAULT_LOW_WATER_MARK     1
 #define DEFAULT_HIGH_WATER_MARK 5000 /* in 1/1000 s */
 
+#define FULL_FIFO_MARK             5 /* buffers free */
+
 #define WRAP_THRESHOLD       5*90000 /* from the asf demuxer */
 
 #define FIFO_PUT                   0
@@ -403,7 +405,7 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
 
           /* Don't pause if the other fifo is full because the next
              put() will restart the engine */
-          if (other_fifo_free > 2) {
+          if (other_fifo_free > FULL_FIFO_MARK) {
             this->buffering = 1;
             this->progress  = 0;
             report_progress (this->stream, 0);
