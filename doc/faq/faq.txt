@@ -759,6 +759,12 @@ optimizing options. A few things you should check (in order of importance):
               raw /dev/raw1 /dev/hdc
             
    
+  * For slow / high-latency dvd drives it might help to increase the number of
+    video buffers xine allocates. Try setting
+              video.num_buffers:500
+            
+    to a higher value (e.g. 1000 or 2500)
+   
 -------------------------------------------------------------------------------
 
 I have problems when using xine on FreeBSD, Solaris, ... !

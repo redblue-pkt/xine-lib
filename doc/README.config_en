@@ -270,7 +270,12 @@ video.XV_DOUBLE_BUFFER          Enable double buffering to sync video on
                                 monitor retrace. At least nvidia drivers
                                 should support this.
 
+video.num_buffers               Number of video buffers (8k each) xine
+				allocates. Higher values (e.g. 2500)
+				might lead to smoother playback on some
+				dvd drives while increasing latency
+				for multiangle playback.
 
 --- 
 version of this file:
- $Id: README.config_en,v 1.1 2003/01/05 13:11:53 guenter Exp $
+ $Id: README.config_en,v 1.2 2003/02/21 16:54:43 guenter Exp $

@@ -4,7 +4,7 @@
 >The xine engine FAQ</TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.7"></HEAD
+CONTENT="Modular DocBook HTML Stylesheet Version 1.77+"></HEAD
 ><BODY
 CLASS="BOOK"
 ><DIV
@@ -319,12 +319,12 @@ HREF="#SBLIVESPDIF"
 ><DL
 ><DT
 ><A
-HREF="#AEN358"
+HREF="#AEN361"
 >Requirements</A
 ></DT
 ><DT
 ><A
-HREF="#AEN370"
+HREF="#AEN373"
 >The OSS driver is maintained by creative and can be downloaded at
              <A
 HREF="http://opensource.creative.com/"
@@ -334,12 +334,12 @@ TARGET="_top"
 ></DT
 ><DT
 ><A
-HREF="#AEN392"
+HREF="#AEN395"
 >Setting up xine for SPDIF (AC3_passthrough) output</A
 ></DT
 ><DT
 ><A
-HREF="#AEN397"
+HREF="#AEN400"
 >The cable used for the SBLive can easily be self-made 
               or buy a stereo 3.5mm jack to dual RCA cable.</A
 ></DT
@@ -1996,6 +1996,28 @@ CLASS="PROGRAMLISTING"
 >
 	  </P
 ></LI
+><LI
+><P
+>	    For slow / high-latency dvd drives it might help to increase
+	    the number of video buffers xine allocates. 
+	    Try setting
+	    <TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><PRE
+CLASS="PROGRAMLISTING"
+>	      video.num_buffers:500
+	    </PRE
+></TD
+></TR
+></TABLE
+>
+	    to a higher value (e.g. 1000 or 2500)
+	  </P
+></LI
 ></UL
 >
     </P
@@ -2335,7 +2357,7 @@ CLASS="SECT2"
 ><HR><H3
 CLASS="SECT2"
 ><A
-NAME="AEN358"
+NAME="AEN361"
 ></A
 >Requirements</H3
 ><P
@@ -2370,7 +2392,7 @@ CLASS="SECT2"
 ><HR><H3
 CLASS="SECT2"
 ><A
-NAME="AEN370"
+NAME="AEN373"
 ></A
 >The OSS driver is maintained by creative and can be downloaded at
              <A
@@ -2585,7 +2607,7 @@ CLASS="SECT2"
 ><HR><H3
 CLASS="SECT2"
 ><A
-NAME="AEN392"
+NAME="AEN395"
 ></A
 >Setting up xine for SPDIF (AC3_passthrough) output</H3
 ><P
@@ -2616,7 +2638,7 @@ CLASS="SECT2"
 ><HR><H3
 CLASS="SECT2"
 ><A
-NAME="AEN397"
+NAME="AEN400"
 ></A
 >The cable used for the SBLive can easily be self-made 
               or buy a stereo 3.5mm jack to dual RCA cable.</H3

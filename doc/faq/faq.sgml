@@ -1006,6 +1006,17 @@
 	    </programlisting>
 	  </para>
 	</listitem>
+	<listitem>
+	  <para>
+	    For slow / high-latency dvd drives it might help to increase
+	    the number of video buffers xine allocates. 
+	    Try setting
+	    <programlisting>
+	      video.num_buffers:500
+	    </programlisting>
+	    to a higher value (e.g. 1000 or 2500)
+	  </para>
+	</listitem>	  
       </itemizedlist>
     </para>
 
@@ -1018,8 +1029,7 @@
     <para>
       Check out the the corresponding README files in the directory <filename>xine-lib/doc</filename>
     </para>
-  </sect1>
-
+  </sect1
 
   <sect1 id="aaxine">
 
