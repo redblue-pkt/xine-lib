@@ -1479,6 +1479,7 @@ echo "   - ea wve        - raw dv"
 echo "   - interplay mve - psx str"
 echo "   - ws aud        - pva"
 echo "   - vox           - nsf"
+echo "   - nsv           - 4xm"
 echo "   - ac3"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
