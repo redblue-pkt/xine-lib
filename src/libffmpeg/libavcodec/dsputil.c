@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include "avcodec.h"
 #include "dsputil.h"
+#include "cpu_accel.h"
 
 void (*ff_idct)(DCTELEM *block);
 void (*get_pixels)(DCTELEM *block, const UINT8 *pixels, int line_size);
@@ -413,8 +414,12 @@ void block_permute(INT16 *block)
 void dsputil_init(void)
 {
     int i, j;
+#ifdef ARCH_X86
+    uint32_t mm = mm_accel();
+#endif
     int use_permuted_mmx_idct;
     int accel_dsputil;
+
 
     for(i=0;i<256;i++) cropTbl[i + MAX_NEG_CROP] = i;
     for(i=0;i<MAX_NEG_CROP;i++) {
@@ -440,8 +445,8 @@ void dsputil_init(void)
     use_permuted_mmx_idct = 1;
     accel_dsputil = 0;
 
-#ifdef HAVE_MMX
-    if (!accel_dsputil) {
+#ifdef ARCH_X86
+    if (!accel_dsputil && (mm & MM_ACCEL_X86_MMX)) {
 	dsputil_init_mmx();
 	accel_dsputil = 1;
 	/* printf("AVCODEC: Using mmx idct\n"); */

@@ -74,22 +74,11 @@ static inline int block_permute_op(int j)
 
 void block_permute(INT16 *block);
 
-#if defined(HAVE_MMX)
+#if defined(ARCH_X86)
 
-#define MM_MMX    0x0001 /* standard MMX */
-#define MM_3DNOW  0x0004 /* AMD 3DNOW */
-#define MM_MMXEXT 0x0002 /* SSE integer functions or AMD MMX ext */
-#define MM_SSE    0x0008 /* SSE functions */
-#define MM_SSE2   0x0010 /* PIV SSE2 functions */
+#include "cpu_accel.h"
 
 extern int mm_flags;
-
-int mm_support(void);
-
-static inline void emms(void)
-{
-    __asm __volatile ("emms;":::"memory");
-}
 
 #define emms_c() \
 {\

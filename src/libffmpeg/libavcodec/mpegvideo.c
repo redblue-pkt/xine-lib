@@ -106,7 +106,7 @@ int MPV_common_init(MpegEncContext *s)
     else
         s->dct_unquantize = dct_unquantize_mpeg1_c;
         
-#ifdef HAVE_MMX
+#ifdef ARCH_X86
     MPV_common_init_mmx(s);
 #endif
     s->mb_width = (s->width + 15) / 16;

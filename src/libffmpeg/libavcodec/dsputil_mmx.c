@@ -105,6 +105,7 @@ static void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
     const DCTELEM *p;
     UINT8 *pix;
     int i;
+    static int p_inc = 32;  /* hack to avoid gcc-2.95.2 loop unrolling bug */
 
     /* read the pixels */
     p = block;
@@ -132,7 +133,7 @@ static void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
 		:"m"(*p)
 		:"memory");
         pix += line_size*4;
-        p += 32;
+        p += p_inc;
     }
 }
 
@@ -141,6 +142,7 @@ static void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
     const DCTELEM *p;
     UINT8 *pix;
     int i;
+    static int p_inc = 16;  /* hack to avoid gcc-2.95.2 loop unrolling bug */
 
     /* read the pixels */
     p = block;
@@ -172,7 +174,7 @@ static void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
 		:"m"(*p)
 		:"memory");
         pix += line_size*2;
-        p += 16;
+        p += p_inc;
     }
 }
 
@@ -965,7 +967,7 @@ static void   sub_pixels_xy2_mmx( DCTELEM  *block, const UINT8 *pixels, int line
 
 void dsputil_init_mmx(void)
 {
-    mm_flags = mm_support();
+    mm_flags = mm_accel();
 #if 0
     printf("CPU flags:");
     if (mm_flags & MM_MMX)

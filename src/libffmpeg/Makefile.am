@@ -21,7 +21,10 @@ xineplug_decode_ff_la_LDFLAGS = \
 noinst_HEADERS = config.h
 
 debug:
-	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) || exit;\
+	done;
+	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
