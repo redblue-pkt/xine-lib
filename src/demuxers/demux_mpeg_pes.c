@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.1 2003/07/01 14:09:17 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.2 2003/07/01 15:42:49 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -194,6 +194,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
   uint8_t       *p;
   int32_t        result;
   off_t          i;
+  int32_t        n;
   this->scr = 0;
   this->preview_mode = preview_mode;
 
@@ -205,7 +206,6 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
   } else {
     return;
   }
-  //buf = this->input->read_block (this->input, this->video_fifo, 2048);
 
   if (preview_mode)
     buf->decoder_flags = BUF_FLAG_PREVIEW;
@@ -225,39 +225,35 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
 
   p = buf->mem;
 
-  if (p[0] || p[1] || (p[2] != 1)) {
-    printf ("demux_mpeg_pes: error! %02x %02x %02x (should be 0x000001)\n",
-             p[0], p[1], p[2]);
-    printf ("demux_mpeg_pes: bad block. skipping.\n");
-    /* FIXME: We should find some way for the input plugin to inform us of: -
-     * 1) Normal sector read.
-     * 2) Sector error read due to bad crc etc.
-     * Because we would like to handle these two cases differently.
-     */
-    /* FIXME: Put some resync code here */
-#if 0
-    this->warned++;
-    if (this->warned > 5) {
-      xine_log (this->stream->xine, XINE_LOG_MSG,
-               _("demux_mpeg_pes: too many errors, stopping playback. Maybe this stream is scrambled?\n"));
+  while (p[0] || p[1] || (p[2] != 1)) {
+    /* resync code */
+    for(n=0;n<5;n++) p[n]=p[n+1];
+    i = this->input->read (this->input, p+5, (off_t) 1);
+    if (i != 1) {
+      buf->free_buffer (buf);
       this->status = DEMUX_FINISHED;
+      return;
     }
-#endif
 
-    return;
   }
 
     this->stream_id  = p[3];
     if (this->stream_id == 0xBA) {
-      /* FIXME: Implement pack_headers, they don't have a packet_len field */
-      assert(0);
+      /* This just fills this->scr, and this->rate */
       result = parse_program_stream_pack_header(this, p, buf);
+      return;
+    } else if (this->stream_id == 0xB9) {
+      /* End of stream marker */
+      buf->free_buffer (buf);
+      return;
+    } else if (this->stream_id < 0xB9) {
+      buf->free_buffer (buf);
       return;
     }
     this->packet_len = p[4] << 8 | p[5];
-#ifdef LOG
+//#ifdef LOG
     printf("demux_pes: stream_id=0x%x, packet_len=%d\n",this->stream_id, this->packet_len);
-#endif
+//#endif
     if (this->packet_len <= (buf->max_size - 6)) {
       i = this->input->read (this->input, buf->mem+6, (off_t) this->packet_len);
       if (i != this->packet_len) {
@@ -280,6 +276,8 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
     } else if (this->stream_id == 0xBE) {
       result = parse_padding_stream(this, p, buf);
     } else if (this->stream_id == 0xBF) {
+      buf->free_buffer (buf);
+      return;
       result = parse_private_stream_2(this, p, buf);
     } else if ((this->stream_id >= 0xC0)
             && (this->stream_id < 0xDF)) {
@@ -316,6 +314,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       result = parse_program_stream_directory(this, p, buf);
     } else {
       printf("xine-lib:demux_mpeg_pes: Unrecognised stream_id 0x%02x. Please report this to xine developers.\n", this->stream_id);
+      printf("xine-lib:demux_mpeg_pes: packet_len=%d\n", this->packet_len);
       buf->free_buffer (buf);
       return;
     }
@@ -418,7 +417,14 @@ static int32_t parse_ancillary_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 
 static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
   /* program stream pack header */
+  off_t          i;
 
+  i = this->input->read (this->input, buf->mem+6, (off_t) 6);
+  if (i != 6) {
+    buf->free_buffer (buf);
+    this->status = DEMUX_FINISHED;
+    return -1;
+  }
   this->mpeg1 = (p[4] & 0x40) == 0;
 
   if (this->mpeg1) {
@@ -440,6 +446,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
       this->rate |= (p[11] >> 1);
     }
 
+    buf->free_buffer (buf);
     return 12;
 
   } else { /* mpeg2 */
@@ -471,9 +478,22 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
       this->rate |= (p[0xB] << 6);
       this->rate |= (p[0xB] >> 2);
     }
+    i = this->input->read (this->input, buf->mem+12, (off_t) 2);
+    if (i != 2) {
+      buf->free_buffer (buf);
+      this->status = DEMUX_FINISHED;
+      return -1;
+    }
 
     num_stuffing_bytes = p[0xD] & 0x07;
+    i = this->input->read (this->input, buf->mem+14, (off_t) num_stuffing_bytes);
+    if (i != num_stuffing_bytes) {
+      buf->free_buffer (buf);
+      this->status = DEMUX_FINISHED;
+      return -1;
+    }
 
+    buf->free_buffer (buf);
     return 14 + num_stuffing_bytes;
   }
 
@@ -559,7 +579,7 @@ static int32_t parse_private_stream_2(demux_mpeg_pes_t *this, uint8_t *p, buf_el
   buf->pts       = 0;   /* NAV packets do not have PES values */
   this->video_fifo->put (this->video_fifo, buf);
 
-  return -1;
+  return this->packet_len;
 }
 
 /* FIXME: Extension data is not parsed, and is also not skipped. */
@@ -794,7 +814,7 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
         return this->packet_len + result;
       } else {
 	buf->free_buffer(buf);
-        return -1;
+        return this->packet_len + result;
       }
       
     } else if ((p[0]&0xf0) == 0xa0) {
@@ -861,7 +881,7 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
         return this->packet_len + result;
       } else {
 	buf->free_buffer(buf);
-        return -1;
+        return this->packet_len + result;
       }
       
     }
@@ -870,7 +890,7 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
      */
     printf("demux_mpeg_pes:Unrecognised private stream 1 0x%02x. Please report this to xine developers.\n", p[0]);
     buf->free_buffer(buf);
-    return -1;
+    return this->packet_len + result;
 }
 
 static int32_t parse_video_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
@@ -923,7 +943,7 @@ static int32_t parse_audio_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elemen
 #endif
   }
 
-  return -1;
+  return this->packet_len + result;
 }
 
 static int demux_mpeg_pes_send_chunk (demux_plugin_t *this_gen) {
