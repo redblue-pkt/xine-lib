@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.31 2005/01/02 13:51:01 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.32 2005/01/08 11:59:27 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -619,15 +619,22 @@ vcd_plugin_read (input_plugin_t *this_gen, char *buf, const off_t nlen)
   return (off_t) 1;
 }
 
-#define SLEEP_1_SEC_AND_HANDLE_EVENTS                    \
-  if (p_vcdplayer->handle_events()) goto read_block;     \
-  p_vcdplayer->sleep(250000);                            \
-  if (p_vcdplayer->handle_events()) goto read_block;     \
-  p_vcdplayer->sleep(250000);                            \
-  if (p_vcdplayer->handle_events()) goto read_block;     \
-  p_vcdplayer->sleep(250000);                            \
-  if (p_vcdplayer->handle_events()) goto read_block;     \
-  p_vcdplayer->sleep(250000);                            
+/* Allocate and return a no-op buffer. This signals the outside
+   to do nothing, but in contrast to returning NULL, it doesn't 
+   mean the stream has ended. We use this say for still frames.
+ */
+#define RETURN_NOOP_BUF                                  \
+  buf = fifo->buffer_pool_alloc (fifo);                  \
+  buf->type = BUF_CONTROL_NOP;                           \
+  return buf
+
+/* Handle keyboard events and if there were non which might affect
+   playback, then sleep a little bit and return;
+ */
+#define SLEEP_AND_HANDLE_EVENTS                          \
+  xine_usec_sleep(50000);                                \
+  if (vcd_handle_events()) goto read_block;              \
+  RETURN_NOOP_BUF
 
 /*!
   From xine plugin spec:
@@ -641,6 +648,7 @@ static buf_element_t *
 vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
 			  const off_t nlen) 
 {
+  vcd_input_plugin_t *vcd_input_plugin= (vcd_input_plugin_t *) this_gen;
   vcdplayer_t        *p_vcdplayer = &my_vcd.player;
   buf_element_t      *buf;
   uint8_t            data[M2F2_SECTOR_SIZE];
@@ -655,7 +663,23 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   /* Should we change this to <= instead of !=? */
   if (nlen != M2F2_SECTOR_SIZE) return NULL;
 
-  if (p_vcdplayer->i_still > 0) goto read_still;
+  if (vcd_handle_events()) goto read_block;
+
+  if (p_vcdplayer->i_still > 0) {
+    if ( time(NULL) >= vcd_input_plugin->pause_end_time ) {
+      if (STILL_INDEFINITE_WAIT == p_vcdplayer->i_still) {
+        dbg_print(INPUT_DBG_STILL, "Continuing still indefinite wait time\n");
+        vcd_input_plugin->pause_end_time = time(NULL) + p_vcdplayer->i_still;
+        SLEEP_AND_HANDLE_EVENTS;
+      } else {
+        dbg_print(INPUT_DBG_STILL, "Still time ended\n");
+        p_vcdplayer->i_still = 0;
+      }
+    } else {
+      SLEEP_AND_HANDLE_EVENTS;
+    }
+  }
+  
 
  read_block:
   switch (vcdplayer_read(p_vcdplayer, data, nlen)) {
@@ -665,15 +689,15 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   case READ_ERROR:
     /* Some sort of error. */
     return NULL;
+#if INACCURATE_STILL_TIME
   read_still:
+#endif /* INACCURATE_STILL_TIME */
   case READ_STILL_FRAME: 
     {
-      p_vcdplayer->i_still--;
-      SLEEP_1_SEC_AND_HANDLE_EVENTS ;
-      dbg_print(INPUT_DBG_STILL, "Handled still event\n");
-      buf = fifo->buffer_pool_alloc (fifo);
-      buf->type = BUF_CONTROL_NOP;
-      break;
+      dbg_print(INPUT_DBG_STILL, "Handled still event wait time %u\n",
+                p_vcdplayer->i_still);
+      vcd_input_plugin->pause_end_time = time(NULL) + p_vcdplayer->i_still;
+      RETURN_NOOP_BUF;
     }
     
   default:
@@ -1637,9 +1661,7 @@ vcd_init (xine_t *xine, void *data)
   my_vcd.player.update_title           = &vcd_update_title;
   my_vcd.player.log_err                = (generic_fn) &xine_log_err;
   my_vcd.player.log_msg                = (generic_fn) &xine_log_msg;
-  my_vcd.player.sleep                  = &xine_usec_sleep;
   my_vcd.player.force_redisplay        = &vcd_force_redisplay;
-  my_vcd.player.handle_events          = &vcd_handle_events;
   
   /*-------------------------------------------------------------
      Playback control-specific fields 

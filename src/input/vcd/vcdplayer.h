@@ -1,7 +1,7 @@
 /* 
-  $Id: vcdplayer.h,v 1.6 2005/01/01 02:43:57 rockyb Exp $
+  $Id: vcdplayer.h,v 1.7 2005/01/08 11:59:27 rockyb Exp $
 
-  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -97,8 +97,12 @@ typedef struct {
 
 typedef int (*generic_fn)();
 
-/* Value for indefinite wait period on a still frame */
-#define STILL_INDEFINITE_WAIT 255
+/* The maximim wait time that can be encoded in a VCD still frame is
+   2,000 seconds (33.33 minutes).  We'll use a number larger than this
+   to signal indefinite wait.
+*/
+#define STILL_INDEFINITE_WAIT  3000 
+
 /* Value when we have yet to finish reading blocks of a frame. */
 #define STILL_READING          -5
 
@@ -126,14 +130,8 @@ typedef struct vcdplayer_input_s {
   /* Function to flush any audio or  video buffers */
   void (*flush_buffers) (void); 
 
-  /* Function to flush sleep for a number of milliseconds. */
-  void (*sleep) (unsigned int usecs); 
-
   /* Function to force a redisplay. */
   void (*force_redisplay) (void); 
-
-  /* Function to handle player events. Returns true if play item changed. */
-  bool (*handle_events) (void); 
 
   /* Function to update title of selection. */
   void (*update_title) ();

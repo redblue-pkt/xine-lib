@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.13 2005/01/02 13:51:01 rockyb Exp $
+  $Id: vcdplayer.c,v 1.14 2005/01/08 11:59:27 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -733,6 +733,10 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
     if (_vcdplayer_inc_play_item(p_vcdplayer))
       goto skip_next_play;
 
+    /* This needs to be improved in libvcdinfo when I get around to it.
+     */
+    if (-1 == wait_time) wait_time = STILL_INDEFINITE_WAIT;
+
     /* Set caller to handle wait time given. */
     if (STILL_READING == p_vcdplayer->i_still && wait_time > 0) {
       p_vcdplayer->i_still = wait_time;
@@ -875,8 +879,6 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *p_buf,
                 const off_t nlen) 
 {
 
-  p_vcdplayer->handle_events ();
-
   if ( p_vcdplayer->i_lsn >= p_vcdplayer->end_lsn ) {
     vcdplayer_read_status_t read_status;
     
@@ -890,6 +892,10 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *p_buf,
       ? vcdplayer_pbc_nav(p_vcdplayer, p_buf) 
       : vcdplayer_non_pbc_nav(p_vcdplayer, p_buf);
 
+    if (READ_STILL_FRAME == read_status) {
+      *p_buf = p_vcdplayer->i_still;
+      return READ_STILL_FRAME;
+    }
     if (READ_BLOCK != read_status) return read_status;
   }
 
