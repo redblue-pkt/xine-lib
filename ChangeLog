@@ -7,6 +7,7 @@ xine-lib (1-beta5)
   * fix flac content detection (caused trouble to other demuxers)
   * OSS driver fixes (for cards using GETOPTR sync method)
   * fixed gnome-vfs plugin to be used for remote locations (other than http)
+  * at least for DVD input, the language reporting is now channel-aware
 
 xine-lib (1-beta4)
   * http input fixes
