@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.17 2002/09/15 11:35:09 jcdutton Exp $
+ * $Id: configfile.h,v 1.18 2002/09/18 14:31:39 mroi Exp $
  *
  * config file management
  *
@@ -177,6 +177,11 @@ struct config_values_s {
    * config values are stored here:
    */
   cfg_entry_t         *first, *last, *cur;
+  
+  /*
+   * mutex for modification to the config
+   */
+  pthread_mutex_t      config_lock;
 };
 
 /*

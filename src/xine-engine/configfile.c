@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.32 2002/09/18 12:12:35 guenter Exp $
+ * $Id: configfile.c,v 1.33 2002/09/18 14:31:39 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -126,6 +126,7 @@ static char *_xine_config_register_string (config_values_t *this,
 
   entry = _xine_config_lookup_entry (this, key);
 
+  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = copy_string(def_value);
@@ -165,6 +166,8 @@ static char *_xine_config_register_string (config_values_t *this,
   entry->callback       = changed_cb; 
   entry->callback_data  = cb_data;   
   
+  pthread_mutex_unlock(&this->config_lock);
+  
   return entry->str_value;
 }
 
@@ -188,6 +191,7 @@ static int _xine_config_register_num (config_values_t *this,
 
   entry = _xine_config_lookup_entry (this, key);
 
+  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
@@ -220,6 +224,8 @@ static int _xine_config_register_num (config_values_t *this,
   entry->callback       = changed_cb; 
   entry->callback_data  = cb_data;   
 
+  pthread_mutex_unlock(&this->config_lock);
+  
   return entry->num_value;
 }
 
@@ -244,6 +250,7 @@ static int _xine_config_register_bool (config_values_t *this,
 
   entry = _xine_config_lookup_entry (this, key);
 
+  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
@@ -276,6 +283,8 @@ static int _xine_config_register_bool (config_values_t *this,
   entry->callback       = changed_cb; 
   entry->callback_data  = cb_data;   
 
+  pthread_mutex_unlock(&this->config_lock);
+  
   return entry->num_value;
 }
 
@@ -300,6 +309,8 @@ static int _xine_config_register_range (config_values_t *this,
   /* make sure this entry exists, create it if not */
 
   entry = _xine_config_lookup_entry (this, key);
+  
+  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
@@ -333,6 +344,8 @@ static int _xine_config_register_range (config_values_t *this,
   entry->callback      = changed_cb; 
   entry->callback_data = cb_data;   
 
+  pthread_mutex_unlock(&this->config_lock);
+  
   return entry->num_value;
 }
 
@@ -389,6 +402,8 @@ static int _xine_config_register_enum (config_values_t *this,
   /* make sure this entry exists, create it if not */
 
   entry = _xine_config_lookup_entry (this, key);
+  
+  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
@@ -422,6 +437,8 @@ static int _xine_config_register_enum (config_values_t *this,
   entry->callback      = changed_cb; 
   entry->callback_data = cb_data;   
 
+  pthread_mutex_unlock(&this->config_lock);
+  
   return entry->num_value;
 }
 
@@ -474,6 +491,7 @@ static void xine_config_update_num (config_values_t *this,
     return;
   }
 
+  pthread_mutex_lock(&this->config_lock);
   entry->num_value = value;
 
   if (entry->callback) {
@@ -481,6 +499,7 @@ static void xine_config_update_num (config_values_t *this,
     xine_config_shallow_copy(&cb_entry, entry);
     entry->callback (entry->callback_data, &cb_entry);
   }
+  pthread_mutex_unlock(&this->config_lock);
 }
 
 static void xine_config_update_string (config_values_t *this,
@@ -510,6 +529,7 @@ static void xine_config_update_string (config_values_t *this,
     return;
   }
 
+  pthread_mutex_lock(&this->config_lock);
   if (value != entry->str_value) {
     free (entry->str_value);
 
@@ -521,6 +541,7 @@ static void xine_config_update_string (config_values_t *this,
     xine_config_shallow_copy(&cb_entry, entry);
     entry->callback (entry->callback_data, &cb_entry);
   }
+  pthread_mutex_unlock(&this->config_lock);
 }
 
 /*
@@ -557,8 +578,10 @@ void xine_load_config (xine_p xine_ro, const char *filename) {
 	value++;
 	
 	if (!(entry = _xine_config_lookup_entry(this, line))) {
+	  pthread_mutex_lock(&this->config_lock);
 	  entry = xine_config_add (this, line);
 	  entry->unknown_value = copy_string (value);
+	  pthread_mutex_unlock(&this->config_lock);
 	} else {
           switch (entry->type) {
           case XINE_CONFIG_TYPE_RANGE:
@@ -571,8 +594,11 @@ void xine_load_config (xine_p xine_ro, const char *filename) {
             xine_config_update_string (this, entry->key, value);
             break;
           case CONFIG_TYPE_UNKNOWN:
+	    pthread_mutex_lock(&this->config_lock);
 	    free(entry->unknown_value);
 	    entry->unknown_value = copy_string (value);
+	    pthread_mutex_unlock(&this->config_lock);
+	    break;
           default:
             printf ("xine_interface: error, unknown config entry type %d\n", entry->type);
             abort();
@@ -601,7 +627,8 @@ void xine_save_config (xine_p xine_ro, const char *filename) {
     cfg_entry_t *entry;
 
     fprintf (f_config, "#\n# xine config file\n#\n\n");
-
+    
+    pthread_mutex_lock(&this->config_lock);
     entry = this->first;
 
     while (entry) {
@@ -669,6 +696,7 @@ void xine_save_config (xine_p xine_ro, const char *filename) {
       
       entry = entry->next;
     }    
+    pthread_mutex_unlock(&this->config_lock);
     fclose (f_config);
   }  
 }
@@ -677,6 +705,7 @@ static void xine_config_dispose (config_values_t *this) {
 
   cfg_entry_t *entry, *last;
 
+  pthread_mutex_lock(&this->config_lock);
   entry = this->first;
 
 #ifdef LOG
@@ -699,6 +728,9 @@ static void xine_config_dispose (config_values_t *this) {
 
     free (last);
   }
+  pthread_mutex_unlock(&this->config_lock);
+  
+  pthread_mutex_destroy(&this->config_lock);
   free (this);
 }
 
@@ -734,6 +766,8 @@ config_values_t *xine_config_init () {
 
   this->first = NULL;
   this->last  = NULL;
+  
+  pthread_mutex_init(&this->config_lock, NULL);
 
   this->register_string = _xine_config_register_string;
   this->register_range  = _xine_config_register_range;

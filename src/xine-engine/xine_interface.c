@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.15 2002/09/18 12:12:35 guenter Exp $
+ * $Id: xine_interface.c,v 1.16 2002/09/18 14:31:39 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -217,16 +217,18 @@ static int xine_config_get_current_entry (xine_p this,
  * get first config item 
  */
 int  xine_config_get_first_entry (xine_p this, xine_cfg_entry_t *entry) {
-
+  int result;
   config_values_t *config = this->config;
 
+  pthread_mutex_lock(&config->config_lock);
   config->cur = config->first;
-
   /* do not hand out unclaimed entries */
   while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN);
     config->cur = config->cur->next;
+  result = xine_config_get_current_entry (this, entry);
+  pthread_mutex_unlock(&config->config_lock);
 
-  return xine_config_get_current_entry (this, entry);
+  return result;
 }
   
 
@@ -235,15 +237,18 @@ int  xine_config_get_first_entry (xine_p this, xine_cfg_entry_t *entry) {
  * this will return NULL when called after returning the last item
  */     
 int xine_config_get_next_entry (xine_p this, xine_cfg_entry_t *entry) {
-
+  int result;
   config_values_t *config = this->config;
 
+  pthread_mutex_lock(&config->config_lock);
   /* do not hand out unclaimed entries */
   do {
     config->cur = config->cur->next;
   } while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN);
+  result = xine_config_get_current_entry (this, entry);
+  pthread_mutex_unlock(&config->config_lock);
 
-  return xine_config_get_current_entry (this, entry);
+  return result;
 } 
   
 
@@ -253,16 +258,18 @@ int xine_config_get_next_entry (xine_p this, xine_cfg_entry_t *entry) {
 
 int xine_config_lookup_entry (xine_p this, const char *key,
 			      xine_cfg_entry_t *entry) {
-
+  int result;
   config_values_t *config = this->config;
 
+  pthread_mutex_lock(&config->config_lock);
   config->cur = config->lookup_entry (config, key);
-
   /* do not hand out unclaimed entries */
   if (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN)
     config->cur = NULL;
-  
-  return xine_config_get_current_entry (this, entry);
+  result = xine_config_get_current_entry (this, entry);
+  pthread_mutex_unlock(&config->config_lock);
+
+  return result;
 }
   
 
@@ -296,6 +303,7 @@ void xine_reset_config (xine_p this) {
   config_values_t *config = this->config;
   cfg_entry_t *entry;
 
+  pthread_mutex_lock(&config->config_lock);
   config->cur = NULL;
 
   entry = config->first;
@@ -308,6 +316,7 @@ void xine_reset_config (xine_p this) {
 
   config->first = NULL;
   config->last = NULL;
+  pthread_mutex_unlock(&config->config_lock);
 }
   
 int xine_gui_send_vo_data (xine_p this,
