@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.119 2003/06/16 16:42:51 holstsn Exp $
+ * $Id: buffer.h,v 1.120 2003/08/05 15:20:00 mroi Exp $
  *
  *
  * contents:
@@ -330,7 +330,7 @@ struct buf_element_s {
 /*
  * In a BUF_SPECIAL_ASPECT buffer:
  * decoder_info[1] = BUF_SPECIAL_ASPECT
- * decoder_info[2] = aspect ratio code
+ * decoder_info[2] = MPEG2 aspect ratio code
  * decoder_info[3] = stream scale prohibitions
  * This buffer is used to force mpeg decoders to use a certain aspect.
  * Currently xine-dvdnav uses this, because it has more accurate information
