@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.4 2002/05/27 18:18:25 tmmm Exp $
+ * $Id: demux_film.c,v 1.5 2002/05/27 18:53:54 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -286,6 +286,8 @@ static void *demux_film_loop (void *this_gen) {
        * must be time to send a new pts */
       if (this->last_sample + 1 != this->current_sample) {
 printf ("************ sending new pts\n");
+        xine_flush_engine(this->xine);
+
         /* send new pts */
         if (this->video_fifo && this->video_type) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -658,6 +660,7 @@ static int demux_film_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
   demux_film_t *this = (demux_film_t *) this_gen;
   int i;
+  int best_index;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -667,8 +670,26 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   }
 
 printf ("seek: start pos, time = %lld, %d\n", start_pos, start_time);
-  /* perform a binary search through the table to get the closest pts */
 
+  /* perform a linear search through the table to get the closest offset */
+  best_index = this->sample_count - 1;
+  for (i = 0; i < this->sample_count; i++) {
+    if (this->sample_table[i].sample_offset > start_pos) {
+      best_index = i;
+      break;
+    }
+  }
+
+printf ("best index guess = %d\n", best_index);
+  /* search back in the table for the nearest keyframe */
+  while (best_index--) {
+    if ((this->sample_table[best_index].syncinfo1 & 0x80000000) == 0) {
+      this->current_sample = best_index;
+      break;
+    }
+  }
+
+printf ("actual new index = %d\n", this->current_sample);
   pthread_mutex_unlock( &this->mutex );
 
   return this->status;
