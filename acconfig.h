@@ -58,3 +58,9 @@
 
 /* Define this if you have kernel statistics available via kstat interface */
 #undef HAVE_KSTAT
+
+/* Define this if you have ARTS (libartsc) installed */
+#undef HAVE_ARTS
+
+/* Define this if you have ARTS (libartsc) installed */
+#undef HAVE_ARTS
