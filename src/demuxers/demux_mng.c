@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.17 2003/12/05 15:54:57 f1rmb Exp $
+ * $Id: demux_mng.c,v 1.18 2003/12/10 00:54:25 hadess Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -28,12 +28,17 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+#undef HAVE_CONFIG_H
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+#ifdef HAVE_STDLIB_H
+#undef HAVE_STDLIB_H
+#endif
 
 #include <libmng.h>
 
