@@ -1,3 +1,8 @@
+xine-lib (0.9.13) unstable; urgency=low
+
+  * improved audio resampling for cards limited to 16 bits, stereo or mono
+  * native wmv7 decoder using ffmpeg
+
 xine-lib (0.9.12) unstable; urgency=low
 
   * demux_ts fixes for ATSC streams
