@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.60 2001/12/08 13:37:58 guenter Exp $
+ * $Id: xine_internal.h,v 1.61 2001/12/09 17:24:39 guenter Exp $
  *
  */
 
@@ -49,6 +49,7 @@ extern "C" {
 #include "spu_decoder_api.h"
 #endif
 #include "osd.h"
+#include "scratch.h"
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
@@ -131,6 +132,13 @@ struct audio_decoder_s {
 #define XINE_PLAY      1 
 #define XINE_QUIT      2
 
+/*
+ * log output
+ */
+#define XINE_LOG_MSG    0
+#define XINE_LOG_CODEC  1
+#define XINE_LOG_NUM    2 /* # of log buffers defined */
+
 typedef struct xine_s xine_t;
 
 typedef void (*xine_event_listener_t) (void *user_data, xine_event_t *);
@@ -211,6 +219,10 @@ struct xine_s {
 
   /* scratch string buffer */
   char                       str[1024];
+  
+  /* log output that may be presented to the user */
+  scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
+
 };
 
 /*
@@ -567,6 +579,14 @@ int xine_get_current_frame (xine_t *this, int *width, int *height,
 #define XINE_ASPECT_RATIO_DONT_TOUCH 42
 
 osd_renderer_t *xine_get_osd_renderer (xine_t *this);
+  
+/*
+ * xine log functions 
+ */
+  
+void xine_log (xine_t *this, int buf, const char *format, ...);
+
+char **xine_get_log (xine_t *this, int buf);
 
 #ifdef __cplusplus
 }

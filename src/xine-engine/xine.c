@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.86 2001/12/08 13:37:58 guenter Exp $
+ * $Id: xine.c,v 1.87 2001/12/09 17:24:39 guenter Exp $
  *
  * top-level xine functions
  *
@@ -247,6 +247,10 @@ void xine_play (xine_t *this, char *mrl,
   printf ("xine_play: xine open %s, start pos = %d, start time = %d (sec)\n", 
 	   mrl, start_pos, start_time);
 
+  xine_log (this, XINE_LOG_MSG,
+	    "xine_play: xine open %s, start pos = %d, start time = %d (sec)\n", 
+	    mrl, start_pos, start_time);
+
   pthread_mutex_lock (&this->xine_lock);
 
   /*
@@ -295,8 +299,11 @@ void xine_play (xine_t *this, char *mrl,
     return;
   }
   
-  printf ("xine: using input plugin >%s< for this MRL.\n", 
-	  this->cur_input_plugin->get_identifier(this->cur_input_plugin));
+  xine_log (this, XINE_LOG_MSG,
+	    "xine: using input plugin >%s< for this MRL (%s).\n", 
+	    this->cur_input_plugin->get_identifier(this->cur_input_plugin), mrl);
+  printf  ("xine: using input plugin >%s< for this MRL (%s).\n", 
+	   this->cur_input_plugin->get_identifier(this->cur_input_plugin), mrl);
 
   /*
    * find demuxer plugin
@@ -308,6 +315,10 @@ void xine_play (xine_t *this, char *mrl,
     return;
   }
 
+  xine_log (this, XINE_LOG_MSG,
+	    "xine: using demuxer plugin >%s< for this MRL.\n", 
+	    this->cur_demuxer_plugin->get_identifier());
+  
   printf ("xine: using demuxer plugin >%s< for this MRL.\n", 
 	  this->cur_demuxer_plugin->get_identifier());
   
@@ -395,9 +406,10 @@ xine_t *xine_init (vo_driver_t *vo,
 		   ao_driver_t *ao,
 		   config_values_t *config) {
 
-  xine_t *this = xine_xmalloc (sizeof (xine_t));
+  xine_t      *this = xine_xmalloc (sizeof (xine_t));
   static char *demux_strategies[] = {"default", "reverse", "content",
 				     "extension", NULL};
+  int          i;
 
   printf("xine_init entered\n");
 
@@ -407,6 +419,11 @@ xine_t *xine_init (vo_driver_t *vo,
   
   /* initialize aligned mem allocator */
   xine_init_mem_aligned();
+
+  /* init log buffers */
+
+  for (i=0; i<XINE_LOG_NUM; i++)
+    this->log_buffers[i] = new_scratch_buffer (25);
   
   /*
    * init locks
@@ -776,3 +793,26 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *this) {
 
   return this->osd_renderer;
 }
+
+/*
+ * log functions
+ */
+
+void xine_log (xine_t *this, int buf, const char *format, ...) {
+
+  va_list argp;
+
+  va_start (argp, format);
+
+  this->log_buffers[buf]->printf (this->log_buffers[buf], format, argp);
+
+  va_end (argp);
+}
+
+char **xine_get_log (xine_t *this, int buf) {
+
+  return this->log_buffers[buf]->get_content (this->log_buffers[buf]);
+
+}
+
+
