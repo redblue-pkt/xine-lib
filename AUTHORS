@@ -1,39 +1,84 @@
 active developers
 =================
 
-main xine programming
+Guenter Bartsch <guenter@users.sourceforge.net>
+  project lead, main xine programming
 
-  Guenter Bartsch <guenter@users.sourceforge.net>
+Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+  various suggestions, bug and build fixes, alsa plugin, gui
 
-various suggestions, bug and build fixes, alsa plugin, gui 
+Siegfried Langauf <siggi@users.sourceforge.net>
+  Debian package, user support
 
-  Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+Miguel Freitas <miguel@cetuc.puc-rio.br>
+  many bug and deadlock fixes, bitrate detection, soft deinterlacer,
+massive libwin32 updates
 
-many bug and deadlock fixes, bitrate detection, soft deinterlacer, 
-  massive libwin32 updates
+Michel Lespinasse <walken@zoy.org>
+  liba52/libmpeg2 developement
 
-  Miguel Freitas <miguel@cetuc.puc-rio.br>
+Steffen Lorscheider <loli@users.sourceforge.net>
+  gui programming
 
-teletux/syncfb video output module, various bugfixes/reviews, alsa
+Heiko Schaefer <heikos@users.sourceforge.net>
+  FreeBSD support, project administration, testing, ideas
 
-  Joachim Koenig <Joachim.Koenig@gmx.net>
+Paul Flinders <paul@dawa.demon.co.uk>
+  stdin/net plugin testing/bugfixes, audio downsampling
 
-liba52/libmpeg2 developement
+Joachim Koenig <Joachim.Koenig@gmx.net>
+  teletux/syncfb video output module, various bugfixes/reviews, alsa
 
-  Michel Lespinasse <walken@zoy.org>
+Christian Bauer <cbauer@student.physik.uni-mainz.de>
+  gui bugfixes (wm support, clean exit)
 
-Debian package, user support
+Rich Wareham <richwareham@users.sourceforge.net>
+  subtitle support, navigation
 
-  Siegfried Langauf <siggi@users.sourceforge.net>
+James Courtier-Dutton <James@superbug.demon.co.uk>
+  AC3 direct out via spdif on oss, subtitle interface, audio_output
+interface
+
+Juergen Keil <jk@tools.de>
+  solaris port and other bugfixes
+
+Eduard Hasenleithner <eduardh@aon.at>
+  dxr3 support
+
+Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
+  IRIX port
+
+Thibaut Mattern <tmattern@noos.fr>
+  zooming feature for Xv video-out plugin, demuxer cleanups and fixes
+
+Christian Vogler <cvogler@gradient.cis.upenn.edu>
+  closed caption decoding, osd fixes
+
+Michael Roitzsch <mroi@users.sourceforge.net>
+  several dxr3 fixes
+
+Mike Melanson <melanson@pcisys.net>
+  QT, FILM, RoQ, WAV, FLI, SMJPEG, Id CIN, WC3 movie, VOC, VQA, AIFF,
+SND/AU, YUV4MPEG2, and Real file demuxers; RoQ audio decoder; various
+ADPCM audio decoders; raw RGB & YUV support; FLI, MS & QT RLE, and QT 
+SMC video decoders
+
+Dennis Bjorklund <db@zigo.dhs.org>
+  configurable size of avi subtitles, patch to fix flashing subtitles in
+libsputext
+
+Robin KAY <komadori@myrealbox.com>
+  pgx64[fb] video output plugin, WVE demuxer, EA ADPCM decoder, various
+bugfixes
 
 xine is using
-
   mpeg2dec - a free MPEG-2 video stream decoder
   liba52   - a free A/52 audio stream decoder
     Written by Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
 
   libmpg123 - a free MPEG audio decoder
     Written by Michael Hipp <http://www.mpg123.de>
+
   FFmpeg - Streaming Multimedia System
     Written by Fabrice Bellard <http://ffmpeg.sourceforge.net>
 
@@ -42,7 +87,7 @@ xine is using
 
   avifile (Win32 codecs and DirectShow support) <http://avifile.sf.net>
     Written by Eugene Kuznetsov and Zdenek Kabelac
-    
+
   FAAD2 - Freeware Advanced Audio Decoder version 2
     Written by M. Bakker <http://www.audiocoding.com/>
 
@@ -50,239 +95,194 @@ xine is using
     Written by Jutta Degener and Carsten Bormann
     http://kbs.cs.tu-berlin.de/~jutta/toast.html
 
-Contributions 
+  w32codec support is based on work from:
+    avifile http://avifile.sf.net
+    MPlayer http://www.mplayerhq.hu/
+    wine    http://www.winehq.com
 
+Contributions
   many thanks to the Linux Video and DVD Project "LiViD"
   (http://www.linuxvideo.org/), where the original ideas for the xine
   video player came from.
 
-  Alan Cox
-    bug fixes, net-input-plugin
+Alan Cox
+  bug fixes, net-input-plugin
 
+Alexander G. Rubio <rubio@c2i.net>
   many thanks for those great skins to
-  Alexander G. Rubio <rubio@c2i.net>
 
-  Steffen Lorscheider <loli@users.sourceforge.net>
-    gui programming
+Marc Bufe <nylon@users.sourceforge.net>
+  web design
 
-  Heiko Schaefer <heikos@users.sourceforge.net>
-    FreeBSD support, project administration, testing, ideas   
+Hugo Trippaers <spark@ision.nl>
+  Xinerama support
 
-  Marc Bufe <nylon@users.sourceforge.net>
-    web design
+Roland Barmettler <roli@freestone.net>
+  NTSC aspect ratio patches
 
-  Paul Flinders <paul@dawa.demon.co.uk>
-    stdin/net plugin testing/bugfixes, audio downsampling
+nakamura <pdf30044@biglobe.ne.jp>
+  Liner PCM patch
 
-  Hugo Trippaers <spark@ision.nl>
-    Xinerama support
+Bruno Schwander <bruno.schwander@technologist.com>
+Soren Schmidt <sos@freebsd.dk>
+  input_vcd code for FreeBSD
 
-  Roland Barmettler <roli@freestone.net>
-    NTSC aspect ratio patches
+Christoph Pittracher <pitt@gmx.at>
+  pitt skin
 
-  nakamura <pdf30044@biglobe.ne.jp>
-    Liner PCM patch
+Dave Gilbert <gilbertd@treblig.org>
+  alpha support
 
-  Joachim Koenig <Joachim.Koenig@gmx.net>
-    teletux/syncfb video output module, various bugfixes/reviews, alsa
+Bastien Nocera <hadess@hadess.net>
+  powerpc patch
 
-  w32codec support is based on work from:
-  avifile http://avifile.sf.net
-  MPlayer http://www.mplayerhq.hu/
-  wine    http://www.winehq.com
+Philip Stadermann <pstadermann@gmx.de>
+  arts audio server support, kde frontend
 
-  Christian Bauer <cbauer@student.physik.uni-mainz.de>
-    gui bugfixes (wm support, clean exit)
+Ji';?e Villette <villette@chem.leidenuniv.nl>
+  'xinetic', 'CelomaGold', 'CelomaMdk' and 'CelomaChrome'skins.
 
-  Bruno Schwander <bruno.schwander@technologist.com> and
-  Soren Schmidt <sos@freebsd.dk>
-    input_vcd code for FreeBSD
+Bill Fink <billfink@mindspring.com>
+  powerpc patches, oss output softsync, "skip by chapter" feature
 
-  Rich Wareham <richwareham@users.sourceforge.net>
-    subtitle support, navigation
+Gert Vervoort <Gert.Vervoort@wxs.nl>
+  LPCM audio decoder plugin, ffmpeg aspect ratio
 
-  Christoph Pittracher <pitt@gmx.at>
-    pitt skin
+Peter Weissgerber <peterw2000@altavista.de>
+  alsa 05 plugin fixes
 
-  Dave Gilbert <gilbertd@treblig.org>
-    alpha support
+Alfredo J. Delaiti alfredodelaiti@netscape.net
+  FAQ spanish translation
 
-  Bastien Nocera <hadess@hadess.net>
-    powerpc patch
+Marco Solari <marcosolari@libero.it>
+  FAQ and README italian translation
 
-  James Courtier-Dutton <James@superbug.demon.co.uk>
-    AC3 direct out via spdif on oss, subtitle interface, audio_output interface
+Luis Silva <luix.silvix@clix.pt>
+  xine about movie
 
-  Juergen Keil <jk@tools.de>
-    solaris port and other bugfixes
+Harm van der Heijden <hrm@users.sourceforge.net>
+  libdivx4 plugin, dxr3 support and encoding
 
-  Philip Stadermann <pstadermann@gmx.de>
-    arts audio server support, kde frontend
+Chris Rankin <rankinc@pacbell.net>
+  configurable VCD device patch
 
-  Eduard Hasenleithner <eduardh@aon.at>
-    dxr3 support
+Andrew Meredith <andrew@anvil.org>
+  Snapshot feature
 
-  Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
-    IRIX port
+Stefan Reinauer <stepan@suse.de>
+  ia64, s/390 patches
 
-  Jérôme Villette <villette@chem.leidenuniv.nl>
-    'xinetic', 'CelomaGold', 'CelomaMdk' and 'CelomaChrome' skins.
+Bartlomiej Muryn <forever@klub.chip.pl>
+  README.dxr3 and xine-ui polish translations, dxr3 testing
 
-  Bill Fink <billfink@mindspring.com>
-    powerpc patches, oss output softsync, "skip by chapter" feature
+Damien Clermonte <damien.clermonte@free.fr>
+  http input plugin patches
 
-  Gert Vervoort <Gert.Vervoort@wxs.nl>
-    LPCM audio decoder plugin, ffmpeg aspect ratio
+Matthias Dahl <matthew2k@web.de>
+  syncfb video-out plugin, XF86VidMode support, FAQ/README overhaul,
+bugfixes
 
-  Peter Weissgerber <peterw2000@altavista.de>
-    alsa 05 plugin fixes
+Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>
+  w32dll audio and xine-ui bugfixes
 
-  Alfredo J. Delaiti alfredodelaiti@netscape.net 
-    FAQ spanish translation
-    
-  Marco Solari <marcosolari@libero.it>
-    FAQ and README italian translation
+George Staikos <staikos@0wned.org>
+  xinerama bugfixes
 
-  Luis Silva <luix.silvix@clix.pt>
-    xine about movie
+Juan Manuel Garc? Molina <juanmagm@mail.com>
+  spanish internationalization files.
 
-  Harm van der Heijden <hrm@users.sourceforge.net>
-    libdivx4 plugin, dxr3 support and encoding
+Jeffrey W. Baker <jwbaker@acm.org>
+  altivec support for libmpeg2
 
-  Chris Rankin <rankinc@pacbell.net>
-    configurable VCD device patch
+Gurer Ozen <madcat@users.sourceforge.net>
+  gtk+ frontend
 
-  Andrew Meredith <andrew@anvil.org>
-    Snapshot feature
+Tommi Asiala <sir@kase.fi>
+  Readme in Finnish
 
-  Stefan Reinauer <stepan@suse.de>
-    ia64, s/390 patches
+Daniel Erat <dan_erat@pobox.com>
+  'cloudy' skin.
 
-  Bartlomiej Muryn <forever@klub.chip.pl>
-    README.dxr3 and xine-ui polish translations, dxr3 testing
+Ewald Snel <ewald@rambo.its.tudelft.nl>
+  metronom sync loop fix, safe ffmpeg multithread init, memleak fixes
 
-  Damien Clermonte <damien.clermonte@free.fr>
-    http input plugin patches
-
-  Thibaut Mattern <tmattern@noos.fr>
-    zooming feature for Xv video-out plugin, demuxer cleanups and fixes
-
-  Matthias Dahl <matthew2k@web.de>
-    syncfb video-out plugin, XF86VidMode support, FAQ/README overhaul, bugfixes
-
-  Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>
-    w32dll audio and xine-ui bugfixes
+Bruno Pinaud <bpinaud@wanadoo.fr>
+  french translation updates/fixes.
 
-  George Staikos <staikos@0wned.org>
-    xinerama bugfixes
-      
-  Juan Manuel García Molina <juanmagm@mail.com>
-    spanish internationalization files.
+Philipp Matthias Hahn <pmhahn@titan.lahn.de>
+  many translation files and man pages updates/fixes
 
-  Jeffrey W. Baker <jwbaker@acm.org>
-    altivec support for libmpeg2
+Tomas Kovar <tomask@mac.com>
+  slovak internationalization files (xine lib), xvid support
 
-  Gurer Ozen <madcat@users.sourceforge.net>
-    gtk+ frontend
-  
-  Christian Vogler <cvogler@gradient.cis.upenn.edu>
-    closed caption decoding, osd fixes
+Daniel Bena <Daniel.Bena@dm-drogeriemarkt.sk>
+  slovak internationalization files (xine ui).
 
-  Tommi Asiala <sir@kase.fi>
-    Readme in Finnish
+Scott Smith <ssmith@akamai.com>
+  yuv2rgb optimizations and downscaling support
 
-  Daniel Erat <dan_erat@pobox.com>
-    'cloudy' skin.
-  
-  Ewald Snel <ewald@rambo.its.tudelft.nl>
-    metronom sync loop fix, safe ffmpeg multithread init, memleak fixes
+Jirka Novak <j.novak@netsystem.cz>
+  font encoding support for avi subtitles
 
-  Bruno Pinaud <bpinaud@wanadoo.fr>
-    french translation updates/fixes.
+Michael Jochum <e9725005@stud3.tuwien.ac.at>
+  avi multiple audio stream support
 
-  Philipp Matthias Hahn <pmhahn@titan.lahn.de>
-    many translation files and man pages updates/fixes
+Andrei Lahun <Uman@editec-lotteries.com>
+  mms/browser plugin enhancements, asf fixes
 
-  Tomas Kovar <tomask@mac.com>
-    slovak internationalization files (xine lib), xvid support
- 
-  Daniel Bena <Daniel.Bena@dm-drogeriemarkt.sk>
-    slovak internationalization files (xine ui).
+Sergiy Kudryk <linux_ua@yahoo.com>
+  ukrainian internationalization files (xine ui).
 
-  Scott Smith <ssmith@akamai.com>
-    yuv2rgb optimizations and downscaling support
+Frantisek Dvorak <valtri@atlas.cz>
+  czech internationalization files (xine lib/ui).
 
-  Jirka Novak <j.novak@netsystem.cz>
-    font encoding support for avi subtitles
+Ian Goldberg <ian@cypherpunks.ca>
+  streaming AVI support (plays growing files), >2GB AVI files
 
-  Michael Jochum <e9725005@stud3.tuwien.ac.at>
-    avi multiple audio stream support
- 
-  Andrei Lahun <Uman@editec-lotteries.com>	
-    mms/browser plugin enhancements, asf fixes
+Rogi';io Brito <rbrito@ime.usp.br>
+  C version for linear blend deinterlacer
 
-  Sergiy Kudryk <linux_ua@yahoo.com>
-    ukrainian internationalization files (xine ui).
+Tim Ferguson <timf@mail.csse.monash.edu.au>
+  CYUV, RoQ, and Id CIN video decoders
 
-  Michael Roitzsch <mroi@users.sourceforge.net>
-    several dxr3 fixes
-    
-  Frantisek Dvorak <valtri@atlas.cz>
-    czech internationalization files (xine lib/ui).
+Andrew Patrikalakis <anrp@irulethe.net>
+  powerpc assembly memcpy() implementaions with assistance from
+    Rogi';io Brito <rbrito@iname.com>
+    Benjamin Herrenschmidt <benh@kernel.crashing.org>
+    Michel Dzer <daenzer@debian.org>
+    Others
 
-  Ian Goldberg <ian@cypherpunks.ca>
-    "streaming" AVI support (plays growing files), >2GB AVI files
+Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
+  demux_ts fixes and improvements
 
-  Rogério Brito <rbrito@ime.usp.br>
-    C version for linear blend deinterlacer
+Carsten Weinhold <cw.news@gmx.net>
+  patch to improve quality of linearblend filter
 
-  Mike Melanson <melanson@pcisys.net>
-    QT, FILM, RoQ, WAV, FLI, SMJPEG, Id CIN, WC3 movie, VOC, VQA, AIFF,
-    SND/AU, YUV4MPEG2, and Real file demuxers; RoQ audio decoder;
-    various ADPCM audio decoders; raw RGB & YUV support; FLI, MS & QT
-    RLE, and QT SMC video decoders
+Claire Griffin <claire@comedia.com>
+  demux_ts fixes for ATSC streams
 
-  Tim Ferguson <timf@mail.csse.monash.edu.au>
-    CYUV, RoQ, and Id CIN video decoders
+Staszek Pasko <staszek@evopolska.com>
+  binary index search for avi demuxer
 
-  Andrew Patrikalakis <anrp@irulethe.net>
-    powerpc assembly memcpy() implementaions (after lots of discussion with
-			Rogério Brito <rbrito@iname.com>,
-			Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-			Michel Dänzer <daenzer@debian.org> and others)
+Dan Lindstrom <lindstromd@gmx.net>
+  64-bit Quicktime fixes
 
-  Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
-    demux_ts fixes and improvements
+Andres Salomon <dilinger@voxel.net>
+  memory leakage fixes
 
-  Carsten Weinhold <cw.news@gmx.net>
-    patch to improve quality of linearblend filter
+Pierre Lombard <p-l-42@wanadoo.fr>
+  patch to avoid loss of first line in linearblend deinterlacer
 
-  Dennis Bjorklund <db@zigo.dhs.org>
-    configurable size of avi subtitles,
-    patch to fix flashing subtitles in libsputext
-      
-  Claire Griffin <claire@comedia.com>
-    demux_ts fixes for ATSC streams
+Igor Mokrushin <igor@avtomir.ru>
+  Software stereo volume control for aRts
 
-  Staszek Pasko <staszek@evopolska.com>
-    binary index search for avi demuxer
+Roberto Togni <rtogni@bresciaonline.it>
+  RPZA video decoder
 
-  Dan Lindstrom <lindstromd@gmx.net>
-    64-bit Quicktime fixes
+Mario Brito <mbrito@student.dei.uc.pt>
+  Wing Commander III video decoder
 
-  Andres Salomon <dilinger@voxel.net>
-    memory leakage fixes
+Howdy Pierce <howdy@cardinalpeak.com>
+  pgx64 memory corruption patch, xshm bounds check patch
 
-  Pierre Lombard <p-l-42@wanadoo.fr>
-    patch to avoid loss of first line in linearblend deinterlacer
-
-  Igor Mokrushin <igor@avtomir.ru>
-    Software stereo volume control for aRts
-
-  Roberto Togni <rtogni@bresciaonline.it>
-    RPZA video decoder
-
-  Mario Brito <mbrito@student.dei.uc.pt>
-    Wing Commander III video decoder
-
-    (let us know if we've forgotten anyone)
+(let us know if we've forgotten anyone)
