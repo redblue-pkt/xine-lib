@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.138 2003/03/30 10:57:48 mroi Exp $
+ * $Id: input_dvd.c,v 1.139 2003/04/01 11:45:32 jcdutton Exp $
  *
  */
 
@@ -84,7 +84,7 @@
 #include "xine_internal.h"
 
 /* Print debug messages? */
-/* #define INPUT_DEBUG */
+#define INPUT_DEBUG
 
 /* Print trace messages? */
 /* #define INPUT_DEBUG_TRACE */
@@ -1625,6 +1625,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.139  2003/04/01 11:45:32  jcdutton
+ * Fix race condition, where spudec_reset is called and then a button update arrives from input_dvd.c before we have our this->menu_handle back.
+ *
  * Revision 1.138  2003/03/30 10:57:48  mroi
  * additional sanity check on the part number
  *

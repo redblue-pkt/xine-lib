@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.94 2003/03/08 14:11:53 mroi Exp $
+ * $Id: xine_decoder.c,v 1.95 2003/04/01 11:45:33 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -171,12 +171,11 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
   spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
   int                       i;
   video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
-  
+
   if( this->menu_handle >= 0 )
     ovl_instance->free_handle(ovl_instance,
 			      this->menu_handle);
   this->menu_handle = -1;
-
 
   for (i=0; i < MAX_STREAMS; i++) {
     if( this->spudec_stream_state[i].overlay_handle >= 0 )
@@ -223,9 +222,17 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   /* FIXME: Watch out for threads. We should really put a lock on this
    * because events is a different thread than decode_data */
 
+  if( this->menu_handle < 0 ) {
+    if (this->stream->video_out) {
+      ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
+      this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
+    }
+  }
 #ifdef LOG_BUTTON
-  printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%u\n",this->menu_handle);
+  printf ("libspudec:xine_decoder.c:spudec_event_listener:this=%p\n",this);
+  printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%d\n",this->menu_handle);
 #endif
+  XINE_ASSERT(this->menu_handle >= 0, "Menu handle alloc failed. No more overlays objects available. Only 5 at once please.");
 
   if (show > 0) {
 #ifdef LOG_NAV
