@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.20 2001/06/16 18:03:22 guenter Exp $
+ * $Id: audio_decoder.c,v 1.21 2001/06/17 19:14:26 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -41,7 +41,8 @@ void *audio_decoder_loop (void *this_gen) {
 
     buf = this->audio_fifo->get (this->audio_fifo);
 
-    this->cur_input_pos = buf->input_pos;
+    if (buf->input_pos)
+      this->cur_input_pos = buf->input_pos;
     
     /* 
      * Call update status callback function if

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.24 2001/06/16 18:03:22 guenter Exp $
+ * $Id: video_decoder.c,v 1.25 2001/06/17 19:14:26 guenter Exp $
  *
  */
 
@@ -40,7 +40,8 @@ void *video_decoder_loop (void *this_gen) {
     /* printf ("video_decoder: getting buffer...\n"); */
 
     buf = this->video_fifo->get (this->video_fifo);
-    this->cur_input_pos = buf->input_pos;
+    if (buf->input_pos)
+      this->cur_input_pos = buf->input_pos;
 
     /* printf ("video_decoder: got buffer %d\n", buf->type); */
 
