@@ -1401,7 +1401,11 @@ dnl Some extra checks.
 dnl ---------------------------------------------
 
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv basename hstrerror memset])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk basename hstrerror memset])
+AC_CHECK_FUNC(setenv, [
+  AC_DEFINE(HAVE_SETENV, 1, [Define this if you have setenv function])
+  ac_have_setenv=yes
+])
 AC_FUNC_FSEEKO
 AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h sys/times.h sys/ioctl.h)
 AM_CONDITIONAL(HAVE_SETENV, test x$ac_have_setenv = "xyes")
@@ -1606,6 +1610,7 @@ case "$host_or_hostalias" in
         case "$host_or_hostalias" in
 	*-*-cygwin) 
           enable_w32dll="no" 
+          LIBS="$LIBS @INTLLIBS@"
 	  ;;
 	esac
     else
@@ -2483,7 +2488,7 @@ fi
 
 dnl warn if no X11 plugins will be built
 if test x"$no_x" = "xyes" \
-        -a x$SYS != "xmingw32" -a x$SYS = "xcygwin" ; then
+        -a x$SYS != "xmingw32" -a x$SYS != "xcygwin" ; then
   echo
   echo "****************************************************************"
   echo "WARNING! No X11 output plugins will be built."

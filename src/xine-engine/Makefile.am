@@ -6,15 +6,19 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool
 lib_LTLIBRARIES = libxine.la
 
 XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la
-if !HAVE_ZLIB
 INTERNAL_ZLIB_LIB = $(top_builddir)/win32/contrib/zlib/libzlib.la
-endif
-if WIN32
 DIRENT_LIB = $(top_builddir)/win32/contrib/libdirent.la
 INTERNAL_PTHREAD_LIB = $(top_builddir)/win32/contrib/pthreads/libpthread.la
-endif
-if !SETENV
 SETENV_LIB = $(top_builddir)/win32/contrib/libsetenv.la
+if !HAVE_ZLIB
+zlib_lib = $(INTERNAL_ZLIB_LIB)
+endif
+if WIN32
+dirent_lib = $(DIRENT_LIB)
+pthread_lib = $(INTERNAL_PTHREAD_LIB)
+endif
+if !HAVE_SETENV
+setenv_lib = $(SETENV_LIB)
 endif
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
@@ -27,12 +31,12 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 # FIXME: these are currently unused:
 EXTRA_DIST = lrb.c lrb.h
 
-libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(INTERNAL_ZLIB_LIB) \
-                          $(DIRENT_LIB) $(INTERNAL_PTHREAD_LIB) \
-                          $(SETENV_LIB)
+libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(zlib_lib) \
+                          $(dirent_lib) $(pthread_lib) \
+                          $(setenv_lib)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) \
-                    $(DIRENT_LIB) $(SETENV_LIB)
+                    $(dirent_lib) $(setenv_lib)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
