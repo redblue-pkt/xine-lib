@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.277 2003/12/14 12:31:27 f1rmb Exp $
+ * $Id: xine.c,v 1.278 2003/12/28 15:01:39 siggi Exp $
  */
 
 /*
@@ -1610,13 +1610,14 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
   
   va_start (argp, format);
   this->log_buffers[buf]->scratch_printf (this->log_buffers[buf], format, argp);
-  
+  va_end(argp);
+
   if(this->verbosity) {
+    va_start(argp, format);
     vsnprintf(buffer, SCRATCH_LINE_LEN_MAX, format, argp);
-    printf(buffer);
-  }
-  
-  va_end (argp);
+    printf("%s", buffer);
+    va_end (argp);
+  }  
 }
 
 const char *const *xine_get_log (xine_t *this, int buf) {

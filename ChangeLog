@@ -8,7 +8,8 @@ xine-lib (1-rc3a)
     of top_field_first)
   * ogg/ogm demuxer fixes for big endian machines
   * update win32 port, working ffmpeg decode plugin
-
+  * fixed segfault when running in verbose mode
+	
 xine-lib (1-rc3)
   * fix dvd menu blending when using tvtime plugin (yuy2 blend)
   * fix problems with some more elaborate post plugin setups
