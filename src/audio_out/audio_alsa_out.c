@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.136 2004/04/11 15:27:19 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.137 2004/04/14 21:30:32 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1171,16 +1171,16 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 						    &this->mixer.left_vol)) < 0) {
 	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
-	snd_mixer_close(this->mixer.handle);
-	return;
+	this->mixer.elem = NULL;
+	continue;
       }
       
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    &this->mixer.right_vol)) < 0) {
 	xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 		 "audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
-	snd_mixer_close(this->mixer.handle);
-	return;
+	this->mixer.elem = NULL;
+	continue;
       }
       
       /* Channels mute */
