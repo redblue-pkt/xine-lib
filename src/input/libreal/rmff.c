@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 the xine project
+ * Copyright (C) 2002-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.c,v 1.5 2003/11/27 22:33:01 mroi Exp $
+ * $Id: rmff.c,v 1.6 2003/12/04 22:11:25 jstembridge Exp $
  *
  * functions for real media file format
  * adopted from joschkas real tools
@@ -38,36 +38,6 @@
                    (((uint8_t*)(x))[2] << 8) | \
                     ((uint8_t*)(x))[3])
 
-static void hexdump (const char *buf, int length) {
-
-  int i;
-
-  printf ("rmff: ascii>");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    if ((c >= 32) && (c <= 128))
-      printf ("%c", c);
-    else
-      printf (".");
-  }
-  printf ("\n");
-
-  printf ("rmff: hexdump> ");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15)
-      printf ("\nrmff:         ");
-
-    if ((i % 2) == 1)
-      printf (" ");
-
-  }
-  printf ("\n");
-}
 
 /*
  * writes header data to a buffer
@@ -481,7 +451,7 @@ rmff_header_t *rmff_scan_header(const char *data) {
       break;
     default:
       printf("unknown chunk\n");
-      hexdump(ptr,10);
+      xine_hexdump(ptr,10);
       chunk_size=1;
       break;
     }
@@ -518,7 +488,7 @@ rmff_header_t *rmff_scan_header_stream(int fd) {
         break;
       default:
         printf("rmff_scan_header_stream: unknown chunk");
-        hexdump(buf+index-8, 8);
+        xine_hexdump(buf+index-8, 8);
         chunk_type=DATA_TAG;
     }
   } while (chunk_type != DATA_TAG);
@@ -737,7 +707,7 @@ void rmff_print_header(rmff_header_t *h) {
       printf("pre-buffer : %i ms\n", (*stream)->preroll);
       printf("duration   : %i ms\n", (*stream)->duration);
       printf("type specific data:\n");
-      hexdump((*stream)->type_specific_data, (*stream)->type_specific_len);
+      xine_hexdump((*stream)->type_specific_data, (*stream)->type_specific_len);
       stream++;
     }
   }

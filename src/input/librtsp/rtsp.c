@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.12 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: rtsp.c,v 1.13 2003/12/04 22:11:25 jstembridge Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -218,42 +218,6 @@ static ssize_t read_stream(rtsp_t *s, void *buf, size_t count) {
 
 #endif
 }
-
-/*
- * debugging utilities
- */
-#if 0 
-static void hexdump (char *buf, int length) {
-
-  int i;
-
-  printf ("rtsp: ascii>");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    if ((c >= 32) && (c <= 128))
-      printf ("%c", c);
-    else
-      printf (".");
-  }
-  printf ("\n");
-
-  printf ("rtsp: hexdump> ");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15)
-      printf ("\nrtsp:         ");
-
-    if ((i % 2) == 1)
-      printf (" ");
-
-  }
-  printf ("\n");
-}
-#endif
 
 /*
  * rtsp_get gets a line from stream

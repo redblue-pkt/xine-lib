@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 the xine project
+ * Copyright (C) 2002-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.9 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: real.c,v 1.10 2003/12/04 22:11:25 jstembridge Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -29,9 +29,9 @@
 
 #define LOG_MODULE "real"
 #define LOG_VERBOSE
-/*
+
 #define LOG
-*/
+
 
 #include "real.h"
 #include "asmrp.h"
@@ -60,28 +60,6 @@ const unsigned char xor_table[] = {
 
 #define MAX(x,y) ((x>y) ? x : y)
 
-#ifdef LOG
-static void hexdump (const char *buf, int length) {
-
-  int i;
-
-  printf (" hexdump> ");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15)
-      printf ("\n         ");
-
-    if ((i % 2) == 1)
-      printf (" ");
-
-  }
-  printf ("\n");
-}
-#endif
-
 
 static void hash(char *field, char *param) {
 
@@ -97,7 +75,7 @@ static void hash(char *field, char *param) {
   lprintf("hash input: %x %x %x %x\n", a, b, c, d);
   lprintf("hash parameter:\n");
 #ifdef LOG
-  hexdump(param, 64);
+  xine_hexdump(param, 64);
 #endif
   
   a = ((b & c) | (~b & d)) + *((uint32_t*)(param+0x00)) + a - 0x28955B88;
@@ -455,7 +433,7 @@ static int select_mlti_data(const char *mlti_chunk, int mlti_size, int selection
   size=BE_32(mlti_chunk);
 
 #ifdef LOG
-  hexdump(mlti_chunk+4, size);
+  xine_hexdump(mlti_chunk+4, size);
 #endif
   memcpy(out,mlti_chunk+4, size);
   return size;
@@ -580,6 +558,11 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer) {
   }
   size=(header[1]<<12)+(header[2]<<8)+(header[3]);
   flags1=header[4];
+  if ((flags1==0x86)||(flags1==0x82))
+  {
+    lprintf("got end of stream packet: 0x%02x\n",flags1);
+    return 0;
+  }
   if ((flags1!=0x40)&&(flags1!=0x42))
   {
     lprintf("got flags1: 0x%02x\n",flags1);
@@ -590,7 +573,7 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer) {
     if (n<5) return 0;
     lprintf("ignoring bytes:\n");
 #ifdef LOG
-    hexdump(header, 8);
+    xine_hexdump(header, 8);
 #endif
     n=rtsp_read_data(rtsp_session, header+4, 4);
     if (n<4) return 0;
