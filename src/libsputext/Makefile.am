@@ -14,7 +14,6 @@ xineplug_dmx_sputext_la_LIBADD  = $(XINELIB) $(GICONV_BSD_LIBS)
 xineplug_dmx_sputext_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_sputext_la_SOURCES = xine_decoder.c 
-# libgiconv is only needed with FreeBSD
 xineplug_decode_sputext_la_LIBADD  = $(XINELIB)
 xineplug_decode_sputext_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
