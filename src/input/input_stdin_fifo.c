@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.56 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_stdin_fifo.c,v 1.57 2004/04/19 20:20:51 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -279,7 +279,8 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *class_gen,
 
 
   if (!strncasecmp(mrl, "stdin:/", 7)
-      || !strncmp(mrl, "-", 1)) {
+      || !strncmp(mrl, "-", 1)
+      || !strncmp(mrl, "fd://0", 6)) {
 
     fh = STDIN_FILENO;
 
