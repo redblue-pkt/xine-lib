@@ -990,7 +990,7 @@ void dsputil_init_mmx(void)
         pix_abs16x16_x2 = pix_abs16x16_x2_mmx;
         pix_abs16x16_y2 = pix_abs16x16_y2_mmx;
         pix_abs16x16_xy2 = pix_abs16x16_xy2_mmx;
-        av_fdct = fdct_mmx;
+        /* av_fdct = fdct_mmx; */
 
         put_pixels_tab[0] = put_pixels_mmx;
         put_pixels_tab[1] = put_pixels_x2_mmx;

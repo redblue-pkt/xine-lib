@@ -17,17 +17,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/08/07 13:14:09 guenter Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/08/08 20:48:32 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
 
+#include "cpu_accel.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
@@ -198,6 +203,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       len = avcodec_decode_video (&this->context, &this->av_picture,
 				  &got_picture, this->buf,
 				  this->size);
+#ifdef ARCH_X86
+      emms ();
+#endif
 
       img = this->video_out->get_frame (this->video_out,
 					/* this->av_picture.linesize[0],  */
@@ -242,14 +250,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	su += this->av_picture.linesize[1];
 	sv += this->av_picture.linesize[2];
       }
-      /*
-	memcpy (img->base[0], this->av_picture.data[0],
-		this->context.height * this->av_picture.linesize[0]);
-	memcpy (img->base[1], this->av_picture.data[1],
-		this->context.height * this->av_picture.linesize[1]/2);
-	memcpy (img->base[2], this->av_picture.data[2],
-		this->context.height * this->av_picture.linesize[2]/2);
-      */
 
       if (img->copy) {
 
@@ -258,8 +258,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	uint8_t* src[3];
 	  
 	src[0] = img->base[0];
-	src[2] = src[0] + height * this->bih.biWidth;
-	src[1] = src[2] + height * this->bih.biWidth / 4;
+	src[1] = img->base[1];
+	src[2] = img->base[2];
 	while ((height -= 16) >= 0) {
 	  img->copy(img, src);
 	  src[0] += 16 * stride;

@@ -5,5 +5,7 @@
 #include "../../config.h"
 
 #ifdef ARCH_X86
+/*
 #define HAVE_MMX
+*/
 #endif
