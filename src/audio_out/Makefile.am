@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS) $(DIRECTX_CFLAGS)
+AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
 
 EXTRA_DIST = audio_irixal_out.c
 
@@ -95,6 +95,7 @@ xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
 xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_ao_out_directx_la_SOURCES = audio_directx_out.c
+xineplug_ao_out_directx_la_CPPFLAGS = $(DIRECTX_CPPFLAGS)
 xineplug_ao_out_directx_la_LIBADD = $(DIRECTX_AUDIO_LIBS) $(XINE_LIB)
 xineplug_ao_out_directx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

@@ -10,6 +10,7 @@ INTERNAL_ZLIB_LIB = $(top_builddir)/win32/contrib/zlib/libzlib.la
 DIRENT_LIB = $(top_builddir)/win32/contrib/libdirent.la
 INTERNAL_PTHREAD_LIB = $(top_builddir)/win32/contrib/pthreads/libpthread.la
 TIMER_LIB = $(top_builddir)/win32/contrib/libtimer.la
+DEF_FILE = libxine-$(XINE_MAJOR).def
 if !HAVE_ZLIB
 zlib_dep = $(INTERNAL_ZLIB_LIB)
 endif
@@ -17,7 +18,7 @@ if WIN32
 dirent_lib = $(DIRENT_LIB)
 pthread_dep = $(INTERNAL_PTHREAD_LIB)
 timer_lib = $(TIMER_LIB)
-def_ldflags="-Wl,--output-def,libxine.def"
+def_ldflags="-Wl,--output-def,$(DEF_FILE)"
 endif
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
@@ -47,6 +48,14 @@ include_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \
 	io_helper.h broadcaster.h info_helper.h
 
 noinst_HEADERS = bswap.h
+
+if WIN32
+install-exec-local:
+	cp -p $(DEF_FILE) $(DESTDIR)$(libdir)
+
+uninstall-local:
+	rm -f $(DEF_FILE) $(DESTDIR)$(libdir)
+endif
 
 @INCLUDED_INTL_TRUE@@INTLLIBS@:
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la

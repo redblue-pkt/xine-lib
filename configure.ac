@@ -771,47 +771,8 @@ AM_CONDITIONAL(HAVE_STK, [test x"$have_stk" = x"yes"])
 dnl ---------------------------------------------
 dnl check for DirectX
 dnl ---------------------------------------------
-AC_MSG_CHECKING(for DirectX)
-DIRECTX_VIDEO_LIBS="$DIRECTX_LIBS -lgdi32 -lddraw"
-DIRECTX_AUDIO_LIBS="$DIRECTX_LIBS -ldsound"
-AC_LANG_SAVE()
-AC_LANG_C()
-ac_save_CFLAGS="$CFLAGS"
-ac_save_LIBS="$LIBS"
-CFLAGS="$CFLAGS $DIRECTX_CFLAGS"
-LIBS="$LIBS  $DIRECTX_VIDEO_LIBS $DIRECTX_AUDIO_LIBS"
-AC_COMPILE_IFELSE(
-  [
-#include <stddef.h>
 
-#include <windows.h>
-#include <ddraw.h>
-#include <dsound.h>
-
-int main() {
-  DirectDrawCreate(0, NULL, 0);
-  DirectsoundCreate(0, NULL, 0);
-  
-  return 0;
-}
-  ],
-  [have_directx=yes
-   AC_DEFINE(HAVE_DIRECTX,1,[Define this if you have DirectX])],,)
-CFLAGS=$ac_save_CFLAGS
-LIBS=$ac_save_LIBS
-AC_LANG_RESTORE()
-
-if test x$have_directx = xyes ; then
-  AC_MSG_RESULT(yes)
-else
-  AC_MSG_RESULT(no)
-  AC_MSG_RESULT(*** All DirectX dependent parts will be disabled ***)
-fi
-
-AC_SUBST(DIRECTX_CFLAGS)
-AC_SUBST(DIRECTX_AUDIO_LIBS)
-AC_SUBST(DIRECTX_VIDEO_LIBS)
-AM_CONDITIONAL(HAVE_DIRECTX, test x$have_directx = "xyes" )
+AM_PATH_DIRECTX()
 
 
 dnl ---------------------------------------------
@@ -1420,7 +1381,7 @@ dnl Some extra checks.
 dnl ---------------------------------------------
 
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk basename hstrerror memset setenv])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk basename hstrerror lstat memset setenv])
 AC_FUNC_FSEEKO
 AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h sys/times.h sys/ioctl.h)
 
@@ -2131,7 +2092,8 @@ src/xine-engine/xineintl.h
 win32/Makefile
 win32/contrib/Makefile
 win32/contrib/pthreads/Makefile
-win32/contrib/zlib/Makefile])
+win32/contrib/zlib/Makefile
+win32/include/Makefile])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT
 

@@ -15,6 +15,7 @@ EXTRA_DIST = \
 	as.m4 \
 	caca.m4 \
 	codeset.m4 \
+	directx.m4 \
 	dl.m4 \
 	dvdnav.m4 \
 	esd.m4 \
@@ -38,5 +39,4 @@ EXTRA_DIST = \
 	theora.m4 \
 	xine.m4 \
 	_xine.m4 \
-	xvid.m4 \
-	vcd.m4
+	xvid.m4

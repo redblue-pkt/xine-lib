@@ -257,10 +257,6 @@ SOURCE=.\contrib\zlib\zutil.c
 # Begin Group "Source Files ( other )"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\contrib\setenv.c
-# End Source File
 # End Group
 # Begin Group "Source Files ( timer )"
 

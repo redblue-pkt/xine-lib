@@ -37,12 +37,7 @@
 #ifndef _SYS_UNISTD_H_
 #define _SYS_UNISTD_H_
 
-#ifndef inline
-#  define inline __inline
-#endif
-
 #define mkdir( A, B )	_mkdir( A )
-#define lstat			stat
 
 #ifndef S_ISDIR
 # define S_ISDIR(m) ((m) & _S_IFDIR)
@@ -75,17 +70,6 @@
 #define  M_PI			3.14159265358979323846  /* pi */
 
 #define bzero( A, B ) memset( A, 0, B )
-
-#ifndef strcasecmp
-#  define strcasecmp _stricmp
-#endif
-
-#ifndef strncasecmp
-#  define strncasecmp _strnicmp
-#endif
-
-#define snprintf _snprintf
-#define vsnprintf _vsnprintf
 
 #define readlink(PATH, BUF, BUFSIZ) 0
 

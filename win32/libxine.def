@@ -35,7 +35,7 @@ xine_list_append_content
 xine_list_insert_content
 xine_list_delete_current
 
-basename
+xine_basename
 
 xine_buffer_init
 _xine_buffer_free

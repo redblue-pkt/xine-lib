@@ -11,7 +11,7 @@ VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 AM_CFLAGS = $(X_CFLAGS) -DXINE_COMPILE \
         $(SUNDGA_CFLAGS) $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
 	$(AALIB_CFLAGS) $(MLIB_CFLAGS) $(LIBSTK_CFLAGS) \
-	$(DIRECTFB_CFLAGS) $(DIRECTX_CFLAGS) $(CACA_CFLAGS)
+	$(DIRECTFB_CFLAGS) $(CACA_CFLAGS)
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -153,6 +153,7 @@ xineplug_vo_out_stk_la_LIBADD = $(LIBSTK_LIBS)
 xineplug_vo_out_stk_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_directx_la_SOURCES = alphablend.c yuv2rgb.c yuv2rgb_mmx.c video_out_directx.c 
+xineplug_vo_out_directx_la_CPPFLAGS = $(DIRECTX_CPPFLAGS)
 xineplug_vo_out_directx_la_LIBADD = $(DIRECTX_VIDEO_LIBS) $(XINE_LIB)
 xineplug_vo_out_directx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

@@ -219,7 +219,3 @@ sleep
 nanosleep
 alarm
 
-;------------------------------------------------------------
-; other exports
-setenv
-

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.91 2004/09/01 18:19:51 valtri Exp $
+ * $Id: xineutils.h,v 1.92 2004/09/06 18:34:39 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -27,7 +27,6 @@
 extern "C" {
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -577,6 +576,26 @@ typedef	union {
 			      : "X" (mem))
 #endif /*ARCH_X86 */
 
+
+#ifndef HAVE_LSTAT
+#  define lstat(FILENAME, BUF) stat((FILENAME), (BUF))
+#endif
+
+
+#ifdef _MSC_VER
+#  define snprintf _snprintf
+#  define vsnprintf _vsnprintf
+#endif
+
+
+#ifdef WIN32
+#  ifndef strcasecmp
+#    define strcasecmp _stricmp
+#  endif
+#  ifndef strncasecmp
+#    define strncasecmp _strnicmp
+#  endif
+#endif
 
 
 		     /* Optimized/fast memcpy */
