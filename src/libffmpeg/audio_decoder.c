@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.11 2004/06/10 04:46:18 tmmm Exp $
+ * $Id: audio_decoder.c,v 1.12 2004/07/03 16:47:55 tmattern Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -46,7 +46,7 @@
 #include "bswap.h"
 #include "xine_decoder.h"
 
-#define AUDIOBUFSIZE 128*1024
+#define AUDIOBUFSIZE (64 * 1024)
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -103,8 +103,8 @@ static const ff_codec_t ff_audio_lookup[] = {
 
 
  static void ff_audio_ensure_buffer_size(ff_audio_decoder_t *this, int size) {
-  if (this->size + size > this->bufsize) {
-    this->bufsize = this->size + 2 * size;
+  if (size > this->bufsize) {
+    this->bufsize = size + size / 2;
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
             _("ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"), 
             this->bufsize);
@@ -217,7 +217,6 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       this->context->codec_id    = this->codec->id;
       this->context->codec_tag   = _x_stream_info_get(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC);
   
-      ff_audio_ensure_buffer_size(this, AUDIOBUFSIZE);
       this->size = 0;
   
       this->decode_buffer = xine_xmalloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
@@ -375,6 +374,8 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
   this->bufsize = 0;
   this->decoder_ok = 0;
   
+  ff_audio_ensure_buffer_size(this, AUDIOBUFSIZE);
+
   return &this->audio_decoder;
 }
 
