@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.31 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: video_out_pgx64.c,v 1.32 2003/08/11 22:19:33 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -66,16 +66,22 @@
 #define OVERLAY_GRAPHICS_KEY_CLR 0x004
 #define OVERLAY_GRAPHICS_KEY_MSK 0x005
 #define OVERLAY_KEY_CNTL 0x006
+#define OVERLAY_KEY_EN 0x00000050
 #define SCALER_COLOUR_CNTL 0x054
 
 #define SCALER_BUF0_OFFSET 0x00D
 #define SCALER_BUF0_OFFSET_U 0x075
 #define SCALER_BUF0_OFFSET_V 0x076
+#define SCALER_BUF1_OFFSET 0x00E
+#define SCALER_BUF1_OFFSET_U 0x077
+#define SCALER_BUF1_OFFSET_V 0x078
 #define SCALER_BUF_PITCH 0x00F
 #define VIDEO_FORMAT 0x012
 #define VIDEO_FORMAT_YUV12 0x000A0000
 #define VIDEO_FORMAT_YUY2 0x000B0000
 #define CAPTURE_CONFIG 0x014
+#define CAPTURE_CONFIG_BUF0 0x00000000
+#define CAPTURE_CONFIG_BUF1 0x20000000
 
 #define OVERLAY_X_Y_START 0x000
 #define OVERLAY_X_Y_END 0x001
@@ -86,7 +92,7 @@
 #define OVERLAY_EXCLUSIVE_VERT 0x017
 #define OVERLAY_EXCLUSIVE_EN 0x80000000
 #define OVERLAY_SCALE_CNTL 0x009
-#define OVERLAY_EN 0xC0000000
+#define OVERLAY_SCALE_EN 0xC0000000
 
 typedef struct {
   video_driver_class_t vo_driver_class;
@@ -102,30 +108,31 @@ typedef struct {
   vo_frame_t vo_frame;
 
   int lengths[3];  
-  uint32_t buf_y, buf_u, buf_v;
-  int width, height, pitch, format;
+  int width, height, pitch, format, native_format;
   double ratio;
 } pgx64_frame_t;
 
 typedef struct {   
   vo_driver_t vo_driver;
   vo_scale_t vo_scale;
+
   pgx64_driver_class_t *class;
   pgx64_frame_t *current;
- 
-  int visual_type;
+
   Display *display;
   int screen;
   Drawable drawable;
   GC gc;
 
   int fbfd;
-  uint8_t *fbbase;
-  volatile uint32_t *fbregs;
-  uint32_t top, fb_width, fb_height;
+  uint8_t *vram;
+  volatile uint32_t *vregs;
+  uint32_t fb_bottom, fb_top, fb_width, fb_height, fb_depth;
+  uint32_t buf_y[2], buf_u[2], buf_v[2];
+  int allocated, delivered_format, dbl_buf_en, buf_num;
 
-  int colour_key, depth_mask, brightness, saturation;
-  int deinterlace, use_exclusive;
+  int colour_key, brightness, saturation;
+  int use_deinterlace, use_exclusive;
 } pgx64_driver_t;
 
 /*
@@ -149,73 +156,46 @@ static void dispose_frame_internals(pgx64_frame_t *frame)
 }
 
 /*
- * Read and write to the little endian framebuffer registers
- */
-
-static inline uint32_t read_reg(pgx64_driver_t *this, int reg)
-{
-  return le2me_32(this->fbregs[reg]);
-}
-
-static inline void write_reg(pgx64_driver_t *this, int reg, uint32_t value)
-{
-  this->fbregs[reg] = le2me_32(value);
-}
-
-static inline void set_reg_bits(pgx64_driver_t *this, int reg, uint32_t mask)
-{
-  this->fbregs[reg] |= le2me_32(mask);
-}
-
-static inline void clear_reg_bits(pgx64_driver_t *this, int reg, uint32_t mask)
-{
-  this->fbregs[reg] &= le2me_32(~mask);
-}
-
-/*
  * Paint the output area with the colour key and black borders
  */
 
 static void repaint_output_area(pgx64_driver_t *this)
 {
-  switch (this->visual_type) {
-    case XINE_VISUAL_TYPE_X11: {
-#ifdef HAVE_X11
-      XLockDisplay(this->display);
-      XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[0].x, this->vo_scale.border[0].y, this->vo_scale.border[0].w, this->vo_scale.border[0].h);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[1].x, this->vo_scale.border[1].y, this->vo_scale.border[1].w, this->vo_scale.border[1].h);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[2].x, this->vo_scale.border[2].y, this->vo_scale.border[2].w, this->vo_scale.border[2].h);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[3].x, this->vo_scale.border[3].y, this->vo_scale.border[3].w, this->vo_scale.border[3].h);
-      XSetForeground(this->display, this->gc, this->colour_key);
-      XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
-      XFlush(this->display);
-      XUnlockDisplay(this->display);
-#endif
-    }
-    break;
+  XLockDisplay(this->display);
+  XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[0].x, this->vo_scale.border[0].y, this->vo_scale.border[0].w, this->vo_scale.border[0].h);
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[1].x, this->vo_scale.border[1].y, this->vo_scale.border[1].w, this->vo_scale.border[1].h);
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[2].x, this->vo_scale.border[2].y, this->vo_scale.border[2].w, this->vo_scale.border[2].h);
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[3].x, this->vo_scale.border[3].y, this->vo_scale.border[3].w, this->vo_scale.border[3].h);
+  XSetForeground(this->display, this->gc, this->colour_key);
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
+  XFlush(this->display);
+  XUnlockDisplay(this->display);
+}
 
-    case XINE_VISUAL_TYPE_FB: {
-      /* FIXME: Do this properly */
-      write_reg(this, OVERLAY_KEY_CNTL, 0x00000010);
-    }
+/*
+ * Allocate a portion of video memory
+ */
+
+static void vram_free_all(pgx64_driver_t* this)
+{
+  this->allocated = this->fb_top;
+}
+
+static int vram_alloc(pgx64_driver_t* this, int size)
+{
+  if (this->allocated - size < this->fb_bottom) {
+    return 0;
+  }
+  else {
+    this->allocated -= size;
+    return this->allocated;
   }
 }
 
 /*
  * XINE VIDEO DRIVER FUNCTIONS
  */
-
-static void pgx64fb_output_callback(pgx64_driver_t *this, int video_width, int video_height, double video_pixel_aspect, int *dest_x, int *dest_y, int *dest_width, int *dest_height, double *dest_pixel_aspect, int *win_x, int *win_y)
-{
-  *dest_x            = 0;
-  *dest_y            = 0;
-  *dest_width        = this->fb_width;
-  *dest_height       = this->fb_height;
-  *dest_pixel_aspect = 1.0;
-  *win_x             = 0;
-  *win_y             = 0;
-}
 
 static void pgx64_frame_field(pgx64_frame_t *frame, int which_field)
 {
@@ -271,13 +251,16 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
 
     switch (format) {
       case XINE_IMGFMT_YUY2:
+        frame->native_format = VIDEO_FORMAT_YUY2;
         frame->vo_frame.pitches[0] = frame->pitch * 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
+        frame->lengths[1] = 0;
+        frame->lengths[2] = 0;
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
-        frame->buf_y = (this->top - frame->lengths[0]) & ~0x07;
       break;
 
       case XINE_IMGFMT_YV12:
+        frame->native_format = VIDEO_FORMAT_YUV12;
         frame->vo_frame.pitches[0] = frame->pitch;
         frame->vo_frame.pitches[1] = frame->pitch / 2;
         frame->vo_frame.pitches[2] = frame->pitch / 2;
@@ -287,9 +270,6 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
         frame->vo_frame.base[1] = (void*)memalign(8, frame->lengths[1]);
         frame->vo_frame.base[2] = (void*)memalign(8, frame->lengths[2]);
-        frame->buf_y = (this->top - frame->lengths[0]) & ~0x07;
-        frame->buf_u = (frame->buf_y - frame->lengths[1]) & ~0x07;
-        frame->buf_v = (frame->buf_u - frame->lengths[2]) & ~0x07;
       break;
     }
   }
@@ -299,12 +279,28 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 {
   if ((frame->width != this->vo_scale.delivered_width) ||
       (frame->height != this->vo_scale.delivered_height) ||
-      (frame->ratio != this->vo_scale.delivered_ratio)) {
+      (frame->ratio != this->vo_scale.delivered_ratio) ||
+      (frame->format != this->delivered_format)) {
 
     this->vo_scale.delivered_width  = frame->width;
     this->vo_scale.delivered_height = frame->height;
     this->vo_scale.delivered_ratio  = frame->ratio;
-    this->vo_scale.force_redraw     = 1;
+    this->delivered_format          = frame->format;
+
+    vram_free_all(this);
+    if (((this->buf_y[0] = vram_alloc(this, frame->lengths[0])) == 0) ||
+        ((this->buf_u[0] = vram_alloc(this, frame->lengths[1])) == 0) ||
+        ((this->buf_v[0] = vram_alloc(this, frame->lengths[2])) == 0)) {
+      printf("video_out_pgx64: insufficient video memory for frame\n");
+      return;
+    }
+
+    this->buf_num = 0;
+    this->dbl_buf_en = (((this->buf_y[1] = vram_alloc(this, frame->lengths[0])) != 0) &&
+                        ((this->buf_u[1] = vram_alloc(this, frame->lengths[1])) != 0) &&
+                        ((this->buf_v[1] = vram_alloc(this, frame->lengths[2])) != 0));
+
+    this->vo_scale.force_redraw = 1;
     vo_scale_compute_ideal_size(&this->vo_scale);
   }
 
@@ -312,98 +308,79 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     vo_scale_compute_output_size(&this->vo_scale);
     repaint_output_area(this);
 
-    set_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
-    write_reg(this, OVERLAY_SCALE_CNTL, 0x04000000);
-    write_reg(this, SCALER_H_COEFF0, SCALER_H_COEFF0_DEFAULT);
-    write_reg(this, SCALER_H_COEFF1, SCALER_H_COEFF1_DEFAULT);
-    write_reg(this, SCALER_H_COEFF2, SCALER_H_COEFF2_DEFAULT);
-    write_reg(this, SCALER_H_COEFF3, SCALER_H_COEFF3_DEFAULT);
-    write_reg(this, SCALER_H_COEFF4, SCALER_H_COEFF4_DEFAULT);
-    write_reg(this, CAPTURE_CONFIG, 0x00000000);
-    write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
-    write_reg(this, OVERLAY_KEY_CNTL, 0x00000050);
-    write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
-    write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, this->depth_mask);
+    this->vregs[BUS_CNTL] |= le2me_32(BUS_EXT_REG_EN);
+    this->vregs[OVERLAY_SCALE_CNTL] = 0;
+    this->vregs[SCALER_H_COEFF0] = le2me_32(SCALER_H_COEFF0_DEFAULT);
+    this->vregs[SCALER_H_COEFF1] = le2me_32(SCALER_H_COEFF1_DEFAULT);
+    this->vregs[SCALER_H_COEFF2] = le2me_32(SCALER_H_COEFF2_DEFAULT);
+    this->vregs[SCALER_H_COEFF3] = le2me_32(SCALER_H_COEFF3_DEFAULT);
+    this->vregs[SCALER_H_COEFF4] = le2me_32(SCALER_H_COEFF4_DEFAULT);
+    this->vregs[CAPTURE_CONFIG] = le2me_32(CAPTURE_CONFIG_BUF0);
+    this->vregs[SCALER_COLOUR_CNTL] = le2me_32((this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
+    this->vregs[OVERLAY_KEY_CNTL] = le2me_32(OVERLAY_KEY_EN);
+    this->vregs[OVERLAY_GRAPHICS_KEY_CLR] = le2me_32(this->colour_key);
+    this->vregs[OVERLAY_GRAPHICS_KEY_MSK] = le2me_32(0xffffffff >> (32 - this->fb_depth));
 
-    write_reg(this, VIDEO_FORMAT, (frame->format == XINE_IMGFMT_YUY2) ? VIDEO_FORMAT_YUY2 : VIDEO_FORMAT_YUV12);
-    write_reg(this, SCALER_BUF0_OFFSET, frame->buf_y);
-    write_reg(this, SCALER_BUF0_OFFSET_U, frame->buf_u);
-    write_reg(this, SCALER_BUF0_OFFSET_V, frame->buf_v);
-    write_reg(this, SCALER_BUF_PITCH, frame->pitch);
-    write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
-    write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
-    write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
-    write_reg(this, SCALER_HEIGHT_WIDTH, (frame->width << 16) | (this->deinterlace ? frame->height/2 : frame->height));
+    this->vregs[VIDEO_FORMAT] = le2me_32(frame->native_format);
+    this->vregs[SCALER_BUF0_OFFSET] = le2me_32(this->buf_y[0]);
+    this->vregs[SCALER_BUF0_OFFSET_U] = le2me_32(this->buf_u[0]);
+    this->vregs[SCALER_BUF0_OFFSET_V] = le2me_32(this->buf_v[0]);
+    this->vregs[SCALER_BUF1_OFFSET] = le2me_32(this->buf_y[1]);
+    this->vregs[SCALER_BUF1_OFFSET_U] = le2me_32(this->buf_u[1]);
+    this->vregs[SCALER_BUF1_OFFSET_V] = le2me_32(this->buf_v[1]);
+    this->vregs[SCALER_BUF_PITCH] = le2me_32(this->use_deinterlace ? frame->pitch*2 : frame->pitch);
+    this->vregs[OVERLAY_X_Y_START] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
+    this->vregs[OVERLAY_X_Y_END] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
+    this->vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->use_deinterlace ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
+    this->vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->use_deinterlace ? frame->height/2 : frame->height));
 
     if (this->use_exclusive) {
       int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
       int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
 
-      write_reg(this, OVERLAY_EXCLUSIVE_VERT, (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
-      write_reg(this, OVERLAY_EXCLUSIVE_HORZ,  horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
+      this->vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
+      this->vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
     }
     else {
-      write_reg(this, OVERLAY_EXCLUSIVE_HORZ, 0);
+      this->vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
     }
 
-    set_reg_bits(this, OVERLAY_SCALE_CNTL, OVERLAY_EN);
+    this->vregs[OVERLAY_SCALE_CNTL] = le2me_32(OVERLAY_SCALE_EN);
   }
+
+  memcpy(this->vram+this->buf_y[this->buf_num], frame->vo_frame.base[0], frame->lengths[0]);
 
   if (frame->format == XINE_IMGFMT_YV12) {
-    if (this->deinterlace) {
-      uint8_t *y = frame->vo_frame.base[0];
-      uint8_t *ydest = this->fbbase+frame->buf_y;
-      uint8_t *u = frame->vo_frame.base[1];
-      uint8_t *v = frame->vo_frame.base[2];
-      uint8_t *udest = this->fbbase+frame->buf_u;
-      uint8_t *vdest = this->fbbase+frame->buf_v;
-      int i;
-
-      for (i = 0; i < frame->height/2; i++, y += 2*frame->vo_frame.pitches[0], ydest += frame->vo_frame.pitches[0]) {
-        memcpy(ydest, y, frame->vo_frame.pitches[0]);
-      }
-
-      for (i = 0; i < frame->height/4; i++, u += 2*frame->vo_frame.pitches[1], udest += frame->vo_frame.pitches[1], v += 2*frame->vo_frame.pitches[2], vdest += frame->vo_frame.pitches[2]) {
-        memcpy(udest, u, frame->vo_frame.pitches[1]);
-        memcpy(vdest, v, frame->vo_frame.pitches[2]);
-      }
-    }
-    else {
-      memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
-
-      memcpy(this->fbbase+frame->buf_u, frame->vo_frame.base[1], frame->lengths[1]);
-      memcpy(this->fbbase+frame->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
-    }
-  }
-  else {
-    if (this->deinterlace) {
-      uint8_t *y = frame->vo_frame.base[0];
-      uint8_t *ydest = this->fbbase+frame->buf_y;
-      int i;
-
-      for (i = 0; i < frame->height/2; i++, y += 2*frame->vo_frame.pitches[0], ydest += frame->vo_frame.pitches[0]) {
-        memcpy(ydest, y, frame->vo_frame.pitches[0]);
-      }
-    }
-    else {
-      memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
-    }
+    memcpy(this->vram+this->buf_u[this->buf_num], frame->vo_frame.base[1], frame->lengths[1]);
+    memcpy(this->vram+this->buf_v[this->buf_num], frame->vo_frame.base[2], frame->lengths[2]);
   }
 
-  if ((this->current != NULL) && (this->current != frame)) {
+  if (this->dbl_buf_en) {
+    this->vregs[CAPTURE_CONFIG] = this->buf_num ? le2me_32(CAPTURE_CONFIG_BUF1) : le2me_32(CAPTURE_CONFIG_BUF0);
+    this->buf_num = 1 - this->buf_num;
+  }
+
+  /*if ((this->current != NULL) && (this->current != frame)) {
     frame->vo_frame.free(&this->current->vo_frame);
   }
-  this->current = frame;
+  this->current = frame;*/
+
+  frame->vo_frame.free(&frame->vo_frame);
 }
 
 static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
 {
   if (overlay->rle) {
-    if (frame->format == XINE_IMGFMT_YV12) {
-      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
-    }
-    else {
-      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+    switch (frame->format) {
+      case XINE_IMGFMT_YV12: {
+        blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+      }
+      break;
+
+      case XINE_IMGFMT_YUY2: {
+        blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+      }
+      break;
     }
   }
 }
@@ -412,7 +389,7 @@ static int pgx64_get_property(pgx64_driver_t *this, int property)
 {
   switch (property) {
     case VO_PROP_INTERLACED:
-      return this->deinterlace;
+      return this->use_deinterlace;
     break;
 
     case VO_PROP_ASPECT_RATIO:
@@ -439,13 +416,9 @@ static int pgx64_get_property(pgx64_driver_t *this, int property)
 
 static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
 {
-#ifdef LOG
-  printf("video_out_pgx64: Propery %d was set to 0x%08x\n", property, value);
-#endif
-
   switch (property) {
     case VO_PROP_INTERLACED: {
-      this->deinterlace = value;
+      this->use_deinterlace = value;
       this->vo_scale.force_redraw = 1;
     }
     break;
@@ -496,6 +469,11 @@ static void pgx64_get_property_min_max(pgx64_driver_t *this, int property, int *
     }
     break;
 
+    case VO_PROP_COLORKEY: {
+      *min = 0;
+      *max = 0xffffffff >> (32 - this->fb_depth);
+    }
+
     default:
       *min = 0;
       *max = 0;
@@ -507,15 +485,11 @@ static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *da
 {
   switch (data_type) {
     case XINE_GUI_SEND_DRAWABLE_CHANGED: {
-      if (this->visual_type == XINE_VISUAL_TYPE_X11) {
-        this->drawable = (Drawable)data;
-#ifdef HAVE_X11
-        XLockDisplay(this->display);
-	XFreeGC(this->display, this->gc);
-        this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
-        XUnlockDisplay(this->display);
-#endif
-      }
+      this->drawable = (Drawable)data;
+      XLockDisplay(this->display);
+      XFreeGC(this->display, this->gc);
+      this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+      XUnlockDisplay(this->display);
     }
     break;
 
@@ -558,10 +532,10 @@ static int pgx64_redraw_needed(pgx64_driver_t *this)
 
 static void pgx64_dispose(pgx64_driver_t *this)
 {
-  write_reg(this, OVERLAY_EXCLUSIVE_HORZ, 0);
-  write_reg(this, OVERLAY_SCALE_CNTL, 0);
-  clear_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
-  munmap(this->fbbase, ADDRSPACE);
+  this->vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
+  this->vregs[OVERLAY_SCALE_CNTL] = 0;
+  this->vregs[BUS_CNTL] &= ~BUS_EXT_REG_EN;
+  munmap(this->vram, ADDRSPACE);
   close(this->fbfd);
 
   pthread_mutex_lock(&this->class->mutex);
@@ -592,12 +566,24 @@ static void pgx64_config_changed(pgx64_driver_t *this, xine_cfg_entry_t *entry)
  * XINE VIDEO DRIVER CLASS FUNCTIONS
  */
 
-static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
+static void pgx64_dispose_class(pgx64_driver_class_t *this)
 {
+  pthread_mutex_destroy(&this->mutex);
+
+  free(this);
+}
+
+static vo_info_t vo_info_pgx64 = {
+  10,
+  XINE_VISUAL_TYPE_X11
+};
+
+static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visual_gen)
+{  
   pgx64_driver_t *this;
   char *devname;
   int fbfd;
-  uint8_t *baseaddr;
+  void *baseaddr;
   struct fbgattr attr;
 
   pthread_mutex_lock(&class->mutex);
@@ -639,9 +625,6 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   }
   memset(this, 0, sizeof(pgx64_driver_t));
 
-  this->class   = class;
-  this->current = NULL;
-
   this->vo_driver.get_capabilities     = (void*)pgx64_get_capabilities;
   this->vo_driver.alloc_frame          = (void*)pgx64_alloc_frame;
   this->vo_driver.update_frame_format  = (void*)pgx64_update_frame_format;
@@ -655,57 +638,34 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   this->vo_driver.gui_data_exchange    = (void*)pgx64_gui_data_exchange;
   this->vo_driver.redraw_needed        = (void*)pgx64_redraw_needed;
   this->vo_driver.dispose              = (void*)pgx64_dispose;
-
-  this->colour_key = this->class->config->register_num(this->class->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, (void*)pgx64_config_changed, this);
-  this->brightness = this->class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, (void*)pgx64_config_changed, this);
-  this->saturation = this->class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, (void*)pgx64_config_changed, this);
-  this->use_exclusive = this->class->config->register_bool(this->class->config, "video.pgx64_use_exclusive", 0, "use exclusive video overlays", NULL, 10, (void*)pgx64_config_changed, this);
-
-  this->fbfd = fbfd;
-  this->top = attr.sattr.dev_specific[0];
-  this->fbbase = baseaddr;
-  this->fbregs = (uint32_t*)(baseaddr + REGBASE);
-  this->fb_width = attr.fbtype.fb_width;
-  this->fb_height = attr.fbtype.fb_height;
-  this->depth_mask = 0xffffffff >> (32 - attr.fbtype.fb_depth);
-
-  vo_scale_init(&this->vo_scale, 0, 0, this->class->config);
+  
+  vo_scale_init(&this->vo_scale, 0, 0, class->config);
   this->vo_scale.user_ratio = XINE_VO_ASPECT_AUTO;
+  this->vo_scale.user_data       = ((x11_visual_t*)visual_gen)->user_data;
+  this->vo_scale.frame_output_cb = ((x11_visual_t*)visual_gen)->frame_output_cb;
+  this->vo_scale.dest_size_cb    = ((x11_visual_t*)visual_gen)->dest_size_cb;
 
-  return this;
-}
-
-static void pgx64_dispose_class(pgx64_driver_class_t *this)
-{
-  pthread_mutex_destroy(&this->mutex);
-
-  free(this);
-}
-
-#ifdef HAVE_X11
-static vo_info_t vo_info_pgx64 = {
-  10,
-  XINE_VISUAL_TYPE_X11
-};
-
-static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visual_gen)
-{  
-  pgx64_driver_t *this = init_driver(class);
-
-  if (this == NULL) {
-    return NULL;
-  }
+  this->class = class;
+  this->current = NULL;
 
   this->display  = ((x11_visual_t*)visual_gen)->display;
   this->screen   = ((x11_visual_t*)visual_gen)->screen;
   this->drawable = ((x11_visual_t*)visual_gen)->d;
   this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
 
-  this->vo_scale.user_data       = ((x11_visual_t*)visual_gen)->user_data;
-  this->vo_scale.frame_output_cb = ((x11_visual_t*)visual_gen)->frame_output_cb;
-  this->vo_scale.dest_size_cb    = ((x11_visual_t*)visual_gen)->dest_size_cb;
+  this->fbfd = fbfd;
+  this->vram = (uint8_t*)baseaddr;
+  this->vregs = (uint32_t*)(this->vram + REGBASE);
+  this->fb_bottom = attr.fbtype.fb_width * attr.fbtype.fb_height * ((attr.fbtype.fb_depth > 8) ? ((attr.fbtype.fb_depth > 16) ? 4 : 2) : 1);
+  this->fb_top = attr.sattr.dev_specific[0];
+  this->fb_width = attr.fbtype.fb_width;
+  this->fb_height = attr.fbtype.fb_height;
+  this->fb_depth = attr.fbtype.fb_depth;
 
-  this->visual_type = XINE_VISUAL_TYPE_X11;
+  this->colour_key = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, (void*)pgx64_config_changed, this);
+  this->brightness = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, (void*)pgx64_config_changed, this);
+  this->saturation = class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, (void*)pgx64_config_changed, this);
+  this->use_exclusive = class->config->register_bool(this->class->config, "video.pgx64_use_exclusive", 0, "use exclusive video overlays", NULL, 10, (void*)pgx64_config_changed, this);
 
   return this;
 }
@@ -742,66 +702,8 @@ static pgx64_driver_class_t* pgx64_init_class(xine_t *xine, void *visual_gen)
 
   return this;
 }
-#endif
-
-static vo_info_t vo_info_pgx64fb = {
-  10,
-  XINE_VISUAL_TYPE_FB
-};
-
-static pgx64_driver_t* pgx64fb_init_driver(pgx64_driver_class_t *class, void *visual_gen)
-{
-  pgx64_driver_t *this = init_driver(class);
-
-  if (this == NULL) {
-    return NULL;
-  }
-
-  this->vo_scale.user_data       = this;
-  this->vo_scale.frame_output_cb = (void*)pgx64fb_output_callback;
-
-  this->visual_type = XINE_VISUAL_TYPE_FB;
-
-  return this;
-}
-
-static char* pgx64fb_get_identifier(pgx64_driver_class_t *this)
-{
-  return "pgx64fb";
-}
-
-static char* pgx64fb_get_description(pgx64_driver_class_t *this)
-{
-  return "xine video output plugin for Sun PGX64/PGX24 framebuffers";
-}
-
-static pgx64_driver_class_t* pgx64fb_init_class(xine_t *xine, void *visual_gen)
-{
-  pgx64_driver_class_t *this;
-
-  if ((this = (pgx64_driver_class_t*)malloc(sizeof(pgx64_driver_class_t))) == NULL) {
-    printf("video_out_pgx64: driver class malloc failed\n");
-    return NULL;
-  }
-  memset(this, 0, sizeof(pgx64_driver_class_t));
-
-  this->vo_driver_class.open_plugin     = (void*)pgx64fb_init_driver;
-  this->vo_driver_class.get_identifier  = (void*)pgx64fb_get_identifier;
-  this->vo_driver_class.get_description = (void*)pgx64fb_get_description;
-  this->vo_driver_class.dispose         = (void*)pgx64_dispose_class;
-
-  this->xine   = xine;
-  this->config = xine->config;
-
-  pthread_mutex_init(&this->mutex, NULL);
-
-  return this;
-}
 
 plugin_info_t xine_plugin_info[] = {
-#ifdef HAVE_X11
   {PLUGIN_VIDEO_OUT, 16, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
-#endif
-  {PLUGIN_VIDEO_OUT, 16, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };
