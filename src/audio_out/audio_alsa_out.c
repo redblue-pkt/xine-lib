@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.80 2002/10/10 13:12:17 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.81 2002/10/12 10:36:50 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -785,15 +785,8 @@ static int ao_alsa_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
 
   case AO_CTRL_FLUSH_BUFFERS:
     if (this->audio_fd > 0) {
-      printf("audio_alsa_out: flush buffer\n");
-      if ((result=snd_pcm_reset(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Reset call failed err=%d\n",result);
-      }
-      if ((result=snd_pcm_drain(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Drain call failed err=%d\n",result);
-      }
-      if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Prepare call failed err=%d\n",result);
+      if ((result=snd_pcm_drop(this->audio_fd)) < 0) {
+        printf("audio_alsa_out: Drop call failed err=%d\n",result);
       }
     }
     break;

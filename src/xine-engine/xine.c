@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.162 2002/10/03 17:46:29 jkeil Exp $
+ * $Id: xine.c,v 1.163 2002/10/12 10:36:52 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -231,7 +231,7 @@ static void xine_set_speed_internal (xine_t *this, int speed) {
 
 void xine_stop_internal (xine_t *this) {
 
-  printf ("xine_stop\n");
+  printf ("xine_stop. status before = %d\n", this->status);
 
   if (this->status == XINE_STATUS_STOP) {
     printf ("xine_stop ignored\n");

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.67 2002/10/10 13:12:18 jcdutton Exp $
+ * $Id: audio_out.c,v 1.68 2002/10/12 10:36:52 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -459,9 +459,13 @@ static void *ao_loop (void *this_gen) {
       case 2:
         {
         this->metronom->allow_full_ao_fill_gap = 1;
+#ifdef LOG
         printf ("audio_out:loop:pause: I feel sleepy.\n");
+#endif
         xine_usec_sleep (10000);
+#ifdef LOG
         printf ("audio_out:loop:pause: I wake up.\n");
+#endif
         break;
         }
       }
