@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.35 2002/06/02 19:18:56 tmmm Exp $
+ * $Id: demux_qt.c,v 1.36 2002/06/03 12:43:22 f1rmb Exp $
  *
  */
 
@@ -294,10 +294,12 @@ qt_info *create_qt_info(void) {
 /* release a qt_info structure and associated data */
 void free_qt_info(qt_info *info) {
 
-  free(info->frames);
-  free(info);
-  info = NULL;
-
+  if(info) {
+    if(info->frames)
+      free(info->frames);
+    free(info);
+    info = NULL;
+  }
 }
 
 /* returns 1 if the file is determined to be a QT file, 0 otherwise */
