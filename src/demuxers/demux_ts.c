@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.23 2001/11/11 16:23:50 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.24 2001/11/11 17:09:33 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -193,25 +193,45 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
     printf ("demux_ts: demux error! PAT with invalid pointer\n");
     return;
   }
-  if (!(pkt[10] & 0x01)) {
+  table_id = (unsigned int)pkt[5] ;
+  section_syntax_indicator = (((unsigned int)pkt[6] >> 8) & 1) ;
+  section_length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
+  transport_stream_id = ((uint32_t)pkt[8] << 8) | pkt[9];
+  version_number = ((uint32_t)pkt[10] >> 1) & 0x1f;
+  current_next_indicator = ((uint32_t)pkt[10] & 0x01);
+  section_number = (uint32_t)pkt[11];
+  last_section_number = (uint32_t)pkt[12];
+
+  xprintf (VERBOSE|DEMUX,"PAT table_id=%d\n",
+           table_id);
+  xprintf (VERBOSE|DEMUX,"\tsection_syntax=%d\n",
+           section_syntax_indicator);
+  xprintf (VERBOSE|DEMUX,"\tsection_length=%d\n",
+           section_length);
+  xprintf (VERBOSE|DEMUX,"\ttransport_stream_id=0x%04x\n",
+           transport_stream_id);
+  xprintf (VERBOSE|DEMUX,"\tversion_number=%d\n",
+           version_number);
+  xprintf (VERBOSE|DEMUX,"\tcurrent_next_indicator=%d\n",
+           current_next_indicator);
+  xprintf (VERBOSE|DEMUX,"\tsection_number=%d\n",
+           section_number);
+  xprintf (VERBOSE|DEMUX,"\tlast_section_number=%d\n",
+           last_section_number);
+
+  if (!(current_next_indicator)) {
     /*
      * Not current!
      */
     return;
   }
-  table_id = (unsigned int)pkt[5] ;
-  section_syntax_indicator = (((unsigned int)pkt[6] >> 8) & 1) ;
-  section_length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
-  xprintf (VERBOSE|DEMUX,"PAT table_id=%d section_syntax=%d section len=%d\n",
-           table_id,
-           section_syntax_indicator,
-           section_length);
   if (pkt - original_pkt > BODY_SIZE - 1 - 3 - (int)section_length) {
     printf ("demux_ts: demux error! PAT with invalid section length\n");
     return;
   }
-  if ((pkt[11]) || (pkt[12])) {
-    printf ("demux_ts: demux error! PAT with invalid section %02x of %02x\n", pkt[11], pkt[12]);
+  if ((section_number) || (last_section_number)) {
+    printf ("demux_ts: demux error! PAT with invalid section %02x of %02x\n",
+      section_number, last_section_number);
     return;
   }
   
@@ -245,7 +265,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
      */
     program_count = 0;
     while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
-      xprintf(VERBOSE|DEMUX, "acquiring count=%d programNumber=%u pmtPid=%04x\n",
+      xprintf(VERBOSE|DEMUX, "PAT acquiring count=%d programNumber=0x%04x pmtPid=0x%04x\n",
 	 program_count,
          this->program_number[program_count],
          this->pmt_pid[program_count]);
@@ -508,7 +528,7 @@ static void demux_ts_parse_pmt(demux_ts *this,
   uint32_t	 table_id;
   uint32_t	 section_syntax_indicator;
   uint32_t	 section_length;
-  uint32_t	 transport_stream_id;
+  uint32_t	 program_number;
   uint32_t	 version_number;
   uint32_t	 current_next_indicator;
   uint32_t	 section_number;
@@ -537,25 +557,45 @@ static void demux_ts_parse_pmt(demux_ts *this,
     fprintf (stderr, "demux error! PMT with invalid pointer\n");
     return;
   }
-  if (!(pkt[10] & 0x01)) {
+  table_id = (unsigned int)pkt[5] ;
+  section_syntax_indicator = (((unsigned int)pkt[6] >> 8) & 1) ;
+  section_length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
+  program_number = ((uint32_t)pkt[8] << 8) | pkt[9];
+  version_number = ((uint32_t)pkt[10] >> 1) & 0x1f;
+  current_next_indicator = ((uint32_t)pkt[10] & 0x01);
+  section_number = (uint32_t)pkt[11];
+  last_section_number = (uint32_t)pkt[12];
+
+  xprintf (VERBOSE|DEMUX,"PMT table_id=%d\n",
+           table_id);
+  xprintf (VERBOSE|DEMUX,"\tsection_syntax_indicator=%d\n",
+           section_syntax_indicator);
+  xprintf (VERBOSE|DEMUX,"\tsection_length=%d\n",
+           section_length);
+  xprintf (VERBOSE|DEMUX,"\tprogram_number=0x%04x\n",
+           program_number);
+  xprintf (VERBOSE|DEMUX,"\tversion_number=%d\n",
+           version_number);
+  xprintf (VERBOSE|DEMUX,"\tcurrent_next_indicator=%d\n",
+           current_next_indicator);
+  xprintf (VERBOSE|DEMUX,"\tsection_number=%d\n",
+           section_number);
+  xprintf (VERBOSE|DEMUX,"\tlast_section_number=%d\n",
+           last_section_number);
+
+  if (!(current_next_indicator)) {
     /*
      * Not current!
      */
     return;
   }
-  table_id = (unsigned int)pkt[5] ;
-  section_syntax_indicator = (((unsigned int)pkt[6] >> 8) & 1) ;
-  section_length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
-  printf ("PMT table_id=%d section_syntax=%d section len=%d\n",
-           table_id,
-           section_syntax_indicator,
-           section_length);
   if (pkt - originalPkt > BODY_SIZE - 1 - 3 - (int)section_length) {
     fprintf (stderr, "demux error! PMT with invalid section length\n");
     return;
   }
-  if ((pkt[11]) || (pkt[12])) {
-    fprintf (stderr, "demux error! PMT with invalid section %02x of %02x\n", pkt[11], pkt[12]);
+  if ((section_number) || (last_section_number)) {
+    fprintf (stderr, "demux error! PMT with invalid section %02x of %02x\n",
+      section_number, last_section_number);
     return;
   }
   
@@ -601,7 +641,7 @@ static void demux_ts_parse_pmt(demux_ts *this,
     case ISO_11172_VIDEO:
     case ISO_13818_VIDEO:
       if (this->videoPid == INVALID_PID) {
-	xprintf(VERBOSE|DEMUX, "PMT video pid  %04x\n", pid);
+	xprintf(VERBOSE|DEMUX, "PMT video pid 0x%04x\n", pid);
 	demux_ts_pes_new(this, mediaIndex, pid, this->fifoVideo);
       }
       this->videoPid = pid;
@@ -610,14 +650,14 @@ static void demux_ts_parse_pmt(demux_ts *this,
     case ISO_11172_AUDIO:
     case ISO_13818_AUDIO:
       if (this->audioPid == INVALID_PID) {
-	xprintf(VERBOSE|DEMUX, "PMT audio pid  %04x\n", pid);
+	xprintf(VERBOSE|DEMUX, "PMT audio pid 0x%04x\n", pid);
 	demux_ts_pes_new(this, mediaIndex, pid, this->fifoAudio);
       }
       this->audioPid = pid;
       this->audioMedia = mediaIndex;
       break;
     default:
-      xprintf(VERBOSE|DEMUX, "PMT stream_type unknown %d pid  %04x\n", stream[0], pid);
+      xprintf(VERBOSE|DEMUX, "PMT stream_type unknown %d pid 0x%04x\n", stream[0], pid);
       break;
     }
     mediaIndex++;
@@ -632,9 +672,9 @@ static void demux_ts_parse_pmt(demux_ts *this,
     pkt[14];
   if (this->pcrPid != pid) {
     if (this->pcrPid == INVALID_PID) {
-      xprintf(VERBOSE|DEMUX, "pcr pid %04x\n", pid);
+      xprintf(VERBOSE|DEMUX, "PMT pcr pid 0x%04x\n", pid);
     } else {
-      xprintf(VERBOSE|DEMUX, "pcr pid changed %04x\n", pid);
+      xprintf(VERBOSE|DEMUX, "PMT pcr pid changed 0x%04x\n", pid);
     }
     this->pcrPid = pid;
   }
@@ -830,12 +870,12 @@ static void demux_ts_parse_packet (demux_ts *this) {
        * Do the demuxing in descending order of packet frequency!
        */
       if (pid == this->videoPid ) {
-        xprintf(VERBOSE|DEMUX, "Video pid = %04x\n",pid);
+        xprintf(VERBOSE|DEMUX, "Video pid = 0x%04x\n",pid);
 	demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia, 
 			     payload_unit_start_indicator, continuity_counter, data_len);
         return;
       } else if (pid == this->audioPid) {
-        xprintf(VERBOSE|DEMUX, "Audio pid = %04x\n",pid);
+        xprintf(VERBOSE|DEMUX, "Audio pid = 0x%04x\n",pid);
 	demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia, 
 			     payload_unit_start_indicator, continuity_counter, data_len);
         return;
@@ -850,7 +890,7 @@ static void demux_ts_parse_packet (demux_ts *this) {
         program_count = 0;
         while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
           if ( pid == this->pmt_pid[program_count] ) {
-	    xprintf(VERBOSE|DEMUX,"PMT prog %04X pid %04X\n",
+	    xprintf(VERBOSE|DEMUX,"PMT prog 0x%04x pid 0x%04x\n",
               this->program_number[program_count],
               this->pmt_pid[program_count]);
 	    demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
