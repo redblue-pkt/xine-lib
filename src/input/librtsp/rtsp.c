@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.16 2004/04/24 20:43:58 miguelfreitas Exp $
+ * $Id: rtsp.c,v 1.17 2004/05/27 00:24:52 miguelfreitas Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -233,24 +233,24 @@ static int rtsp_get_answers(rtsp_t *s) {
     if (!answer)
       return 0;
     
-    if (!strncmp(answer,"Cseq:",5)) {
-      sscanf(answer,"Cseq: %u",&answer_seq);
+    if (!strncasecmp(answer,"Cseq:",5)) {
+      sscanf(answer,"%*s %u",&answer_seq);
       if (s->cseq != answer_seq) {
         lprintf("warning: Cseq mismatch. got %u, assumed %u", answer_seq, s->cseq);
 
         s->cseq=answer_seq;
       }
     }
-    if (!strncmp(answer,"Server:",7)) {
+    if (!strncasecmp(answer,"Server:",7)) {
       char *buf = xine_xmalloc(strlen(answer));
-      sscanf(answer,"Server: %s",buf);
+      sscanf(answer,"%*s %s",buf);
       if (s->server) free(s->server);
       s->server=strdup(buf);
       free(buf);
     }
-    if (!strncmp(answer,"Session:",8)) {
+    if (!strncasecmp(answer,"Session:",8)) {
       char *buf = xine_xmalloc(strlen(answer));
-      sscanf(answer,"Session: %s",buf);
+      sscanf(answer,"%*s %s",buf);
       if (s->session) {
         if (strcmp(buf, s->session)) {
           xprintf(s->stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -402,8 +402,8 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
         rest=rtsp_get(s);
         if (!rest)
           return -1;
-        if (!strncmp(rest,"Cseq:",5))
-          sscanf(rest,"Cseq: %u",&seq);
+        if (!strncasecmp(rest,"Cseq:",5))
+          sscanf(rest,"%*s %u",&seq);
       } while (strlen(rest)!=0);
       free(rest);
       if (seq<0) {
