@@ -165,7 +165,7 @@ Contributions
     rpm .spec file maintainer, syncfb and other patches
 
   Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>
-    w32dll audio bugfixes
+    w32dll audio and xine-ui bugfixes
 
   George Staikos <staikos@0wned.org>
     xinerama bugfixes
