@@ -32,7 +32,7 @@ pci_db2c.awk:
 oth/pci.db:
 
 $(awk_generated): pci_db2c.awk oth/pci.db
-	$(AWK) -f $(top_srcdir)/src/video_out/libdha/pci_db2c.awk \
+	LC_ALL=C $(AWK) -f $(top_srcdir)/src/video_out/libdha/pci_db2c.awk \
 	  $(top_srcdir)/src/video_out/libdha/oth/pci.db
 
 pci_names.lo: $(awk_generated)
