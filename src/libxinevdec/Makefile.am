@@ -21,9 +21,11 @@ lib_LTLIBRARIES = \
 	xineplug_decode_qtrle.la
 
 xineplug_decode_cinepak_la_SOURCES = cinepak.c
+xineplug_decode_cinepak_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_cinepak_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_cyuv_la_SOURCES = cyuv.c
+xineplug_decode_cyuv_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_cyuv_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_msvc_la_SOURCES = msvc.c
@@ -36,6 +38,7 @@ xineplug_decode_svq1_la_SOURCES = svq1.c svq1_codebooks.h
 xineplug_decode_svq1_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_fli_la_SOURCES = fli.c
+xineplug_decode_fli_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_fli_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_rgb_la_SOURCES = rgb.c
@@ -48,6 +51,7 @@ xineplug_decode_msrle_la_SOURCES = msrle.c
 xineplug_decode_msrle_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_idcinvideo_la_SOURCES = idcinvideo.c
+xineplug_decode_idcinvideo_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_idcinvideo_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_qtsmc_la_SOURCES = qtsmc.c

@@ -19,6 +19,7 @@ lib_LTLIBRARIES = xineplug_decode_ff.la
 xineplug_decode_ff_la_SOURCES = xine_decoder.c
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module
 xineplug_decode_ff_la_LIBADD = \
+	$(top_builddir)/src/xine-engine/libxine.la \
 	$(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la
 
 debug:

@@ -15,6 +15,7 @@ xineplug_decode_a52_la_SOURCES = \
 	parse.c \
 	xine_decoder.c
 
+xineplug_decode_a52_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_a52_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = \
