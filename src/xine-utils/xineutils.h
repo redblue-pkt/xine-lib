@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.62 2003/11/01 17:25:49 mroi Exp $
+ * $Id: xineutils.h,v 1.63 2003/11/04 14:38:26 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -33,6 +33,9 @@ extern "C" {
 #include <stdarg.h>
 #include <inttypes.h>
 #include <pthread.h>
+#if HAVE_LIBGEN_H
+#  include <libgen.h>
+#endif
 
 #ifdef XINE_COMPILE
 #  include "attributes.h"
@@ -907,24 +910,18 @@ void xine_print_trace(void);
 #endif /* LOG_VERBOSE */
 
 #ifdef LOG
-  #ifdef __GNUC__
-    #define lprintf(fmt, args...)     \
-      do{                             \
-        LONG_LOG_MODULE_STRING        \
-        printf( fmt, ##args );        \
-      }while(0)
-  #else
-    #define lprintf(...)              \
-      do{                             \
-        LONG_LOG_MODULE_STRING        \
-        printf( __VA_ARGS__ );        \
-      }while(0)
-  #endif /* __GNUC__ */
+  #define lprintf \
+    LONG_LOG_MODULE_STRING \
+    printf
 #else
   #ifdef __GNUC__
     #define lprintf(fmt, args...)     ;
   #else
+  #ifdef _MSC_VER
+    #define lprintf
+  #else
     #define lprintf(...)              ;
+  #endif /* _MSC_VER */
   #endif /* __GNUC__ */
 #endif /* LOG */
 
@@ -937,6 +934,15 @@ void xine_print_trace(void);
       }                                  \
     }while(0)
 #else
+#ifdef _MSC_VER
+  #define llprintf(cat, fmtargs)         \
+    do{                                  \
+      if(cat){                           \
+        LONG_LOG_MODULE_STRING           \
+        printf( "%s", fmtargs );         \
+      }                                  \
+    }while(0)
+#else 
   #define llprintf(cat, ...)             \
     do{                                  \
       if(cat){                           \
@@ -944,6 +950,7 @@ void xine_print_trace(void);
         printf( __VA_ARGS__ );           \
       }                                  \
     }while(0)
+#endif /* _MSC_VER */
 #endif /* __GNUC__ */
 
 #ifdef  __GNUC__
@@ -955,6 +962,15 @@ void xine_print_trace(void);
       }                                         \
     } while(0)
 #else
+#ifdef _MSC_VER
+  #define xprintf(xine, verbose, fmtargs)       \
+    do {                                        \
+      if((xine)->verbosity >= verbose){         \
+        LOG_MODULE_STRING                       \
+        printf("%s", fmtargs);                  \
+      }                                         \
+    } while(0)
+#else 
   #define xprintf(xine, verbose, ...)           \
     do {                                        \
       if((xine)->verbosity >= verbose){         \
@@ -962,6 +978,7 @@ void xine_print_trace(void);
         printf(__VA_ARGS__);                    \
       }                                         \
     } while(0)
+#endif /* _MSC_VER */
 #endif /* __GNUC__ */
 
 /* time measuring macros for profiling tasks */

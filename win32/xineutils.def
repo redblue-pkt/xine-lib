@@ -41,3 +41,5 @@ init_yuv_conversion
 xml_parser_free_tree
 xml_parser_build_tree
 xml_parser_init
+
+basename
