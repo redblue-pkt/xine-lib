@@ -29,6 +29,7 @@ xineplug_decode_cyuv_la_LIBADD = $(XINE_LIB)
 xineplug_decode_cyuv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_msvc_la_SOURCES = msvc.c
+xineplug_decode_msvc_la_LIBADD = $(XINE_LIB)
 xineplug_decode_msvc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_roqvideo_la_SOURCES = roqvideo.c

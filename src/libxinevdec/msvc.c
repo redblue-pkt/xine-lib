@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.18 2002/12/18 19:20:33 esnel Exp $
+ * $Id: msvc.c,v 1.19 2002/12/18 19:48:51 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -58,11 +58,15 @@ typedef struct msvc_decoder_s {
   int		    bufsize;
   int		    size;
 
-  uint16_t	    biWidth;
-  uint16_t	    biHeight;
-  uint32_t	    biBitCount;
-  uint16_t	   *img_buffer;
+  unsigned int	    coded_width;
+  unsigned int	    coded_height;
+  int		    pitch;
+  int		    depth;
+  uint8_t	   *current;
   yuy2_t	    color_table[256];
+
+  unsigned int	    width;
+  unsigned int	    height;
 } msvc_decoder_t;
 
 /* taken from libw32dll */
@@ -96,7 +100,7 @@ static inline void rgb_to_yuy2 (const int bits, uint32_t rgb, yuy2_t *c) {
   c->yv = le2me_16 (y | (v << 8));
 }
 
-static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
+static int msvc_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
   uint8_t  *eod = (data + size);
   uint32_t  ctrl, clr8, skip;
   int	    x, y, i, j;
@@ -105,26 +109,26 @@ static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
 
   skip = 0;
 
-  for (y=(this->biHeight - 4); y >= 0; y-=4) {
+  for (y=(this->coded_height - 4); y >= 0; y-=4) {
 
-    out[0] = this->img_buffer + (y * this->biWidth);
-    out[1] = out[0] + this->biWidth;
-    out[2] = out[1] + this->biWidth;
-    out[3] = out[2] + this->biWidth;
+    out[0] = (uint16_t *) &this->current[y * this->pitch];
+    out[1] = (uint16_t *) (((uint8_t *) out[0]) + this->pitch);
+    out[2] = (uint16_t *) (((uint8_t *) out[1]) + this->pitch);
+    out[3] = (uint16_t *) (((uint8_t *) out[2]) + this->pitch);
 
-    for (x=0; x < this->biWidth; x+=4) {
+    for (x=0; x < this->coded_width; x+=4) {
       if (skip == 0 || --skip == 0) {
 	if ((data + 2) >= eod)
-	  return;
+	  return 0;
 
-	ctrl  = data[0] | (data[1] << 8);
+	ctrl  = LE_16 (data);
 	data += 2;
 
-	if ((ctrl & ((this->biBitCount == 8) ? 0xF000 : 0x8000)) == 0x8000) {
+	if ((ctrl & ((this->depth == 8) ? 0xF000 : 0x8000)) == 0x8000) {
 	  if ((ctrl & ~0x3FF) == 0x8400) {
 	    skip = (ctrl & 0x3FF);
 	  } else {
-	    if (this->biBitCount == 8)
+	    if (this->depth == 8)
 	      c[0] = this->color_table[(ctrl & 0xFF)];
 	    else
 	      rgb_to_yuy2 (15, ctrl, &c[0]);
@@ -137,9 +141,9 @@ static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
 	    }
 	  }
 	} else {
-	  if (this->biBitCount == 8) {
+	  if (this->depth == 8) {
 	    if ((data + 2) >= eod)
-	      return;
+	      return -1;
 
 	    c[1] = this->color_table[data[0]];
 	    c[0] = this->color_table[data[1]];
@@ -147,10 +151,10 @@ static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
 	    data += 2;
 	  } else {
 	    if ((data + 4) >= eod)
-	      return;
+	      return -1;
 
-	    rgb_to_yuy2 (15, (data[0] | (data[1] << 8)), &c[1]);
-	    rgb_to_yuy2 (15, (data[2] | (data[3] << 8)), &c[0]);
+	    rgb_to_yuy2 (15, LE_16 (&data[0]), &c[1]);
+	    rgb_to_yuy2 (15, LE_16 (&data[2]), &c[0]);
 	    clr8 = (data[1] & 0x80);
 	    data += 4;
 	  }
@@ -164,19 +168,19 @@ static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
 	      ctrl >>= 2;
 
 	      if (clr8 && !(i & j)) {
-		if (this->biBitCount == 8) {
+		if (this->depth == 8) {
 		  if ((data + 2) >= eod)
-		    return;
+		    return -1;
 
 		  c[1] = this->color_table[data[0]];
 		  c[0] = this->color_table[data[1]];
 		  data += 2;
 		} else {
 		  if ((data + 4) >= eod)
-		   return;
+		   return -1;
  
-		  rgb_to_yuy2 (15, (data[0] | (data[1] << 8)), &c[1]);
-		  rgb_to_yuy2 (15, (data[2] | (data[3] << 8)), &c[0]);
+		  rgb_to_yuy2 (15, LE_16 (&data[0]), &c[1]);
+		  rgb_to_yuy2 (15, LE_16 (&data[2]), &c[0]);
 		  data += 4;
 		}
 	      }
@@ -193,6 +197,8 @@ static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
       out[3] += 4;
     }
   }
+
+  return 0;
 }
 
 static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -218,21 +224,25 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     xine_bmiheader *bih;
+    int		    image_size;
 
     bih = (xine_bmiheader *) buf->content;
-    this->biWidth = (bih->biWidth + 3) & ~0x03;
-    this->biHeight = (bih->biHeight + 3) & ~0x03;
-    this->biBitCount = bih->biBitCount;
     this->video_step = buf->decoder_info[1];
 
-    if (this->biBitCount != 8 && this->biBitCount != 16) {
-      fprintf (stderr, "Unsupported bit depth (%d)\n", this->biBitCount);
+    this->width		= (bih->biWidth + 1) & ~0x1;
+    this->height	= bih->biHeight;
+    this->coded_width	= (this->width + 3) & ~0x3;
+    this->coded_height	= (this->height + 3) & ~0x3;
+    this->pitch		= 2*this->coded_width;
+    this->depth		= bih->biBitCount;
+
+    if (this->depth != 8 && this->depth != 16) {
+      fprintf (stderr, "Unsupported bit depth (%d)\n", this->depth);
       return;
     }
 
-    if (this->img_buffer)
-      free (this->img_buffer);
-    this->img_buffer = malloc((this->biWidth * this->biHeight) << 1);
+    image_size		= (this->pitch * this->coded_height);
+    this->current	= (uint8_t *) realloc (this->current, image_size);
 
     if (this->buf)
       free (this->buf);
@@ -264,29 +274,30 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
       vo_frame_t *img;
-      /* unused variable: int n = (this->biWidth * this->biHeight); */
+      int	  result;
 
-      cram_decode_frame (this, this->buf, this->size);
+      result = msvc_decode_frame (this, this->buf, this->size);
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
-					this->biWidth, this->biHeight,
-					XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+						this->width, this->height,
+						XINE_VO_ASPECT_DONT_TOUCH,
+						XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts	     = buf->pts;
-      img->bad_frame = 0;
+      img->bad_frame = (result != 0);
 
-      if (2*this->biWidth == img->pitches[0]) {
-	xine_fast_memcpy (img->base[0], this->img_buffer, img->pitches[0]*this->biHeight);
+      if (this->pitch == img->pitches[0]) {
+	xine_fast_memcpy (img->base[0], this->current, img->pitches[0]*this->height);
       } else {
 	uint8_t *src, *dst;
 
-	src = (uint8_t *) this->img_buffer;
+	src = (uint8_t *) this->current;
 	dst = img->base[0];
 
-	for (i=0; i < this->biHeight; i++) {
-	  xine_fast_memcpy (dst, src, 2*this->biWidth);
-	  src += 2*this->biWidth;
+	for (i=0; i < this->height; i++) {
+	  xine_fast_memcpy (dst, src, 2*this->width);
+	  src += this->pitch;
 	  dst += img->pitches[0];
 	}
       }
@@ -315,9 +326,9 @@ static void msvc_dispose (video_decoder_t *this_gen) {
 
   msvc_decoder_t *this = (msvc_decoder_t *) this_gen;
 
-  if (this->img_buffer) {
-    free (this->img_buffer);
-    this->img_buffer = NULL;
+  if (this->current) {
+    free (this->current);
+    this->current = NULL;
   }
 
   if (this->buf) {
