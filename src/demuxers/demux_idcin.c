@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.23 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_idcin.c,v 1.24 2002/10/30 00:29:30 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -476,7 +476,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     /* check the audio sample rate */
     current_value = LE_32(&header[8]);
-    if ((current_value < 8000) || (current_value > 48000)) {
+    if ((current_value != 0) && 
+       ((current_value < 8000) || (current_value > 48000))) {
       free (this);
       return NULL;
     }
