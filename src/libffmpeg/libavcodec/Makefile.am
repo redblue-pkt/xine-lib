@@ -82,10 +82,12 @@ libavcodec_la_LDFLAGS = \
 
 noinst_HEADERS = \
 	avcodec.h \
+	bswap.h \
 	cabac.h \
 	common.h \
 	dsputil.h \
 	dvdata.h \
+	faandct.h \
 	golomb.h \
 	imgconvert_template.h \
 	indeo3data.h \
