@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.13 2001/05/06 14:25:42 guenter Exp $
+ * $Id: video_out_xv.c,v 1.14 2001/05/08 23:00:03 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -53,6 +53,7 @@
 
 #include "monitor.h"
 #include "video_out.h"
+#include "video_out_x11.h"
 #include "xine_internal.h"
 
 uint32_t xine_debug;
@@ -109,9 +110,6 @@ typedef struct xv_driver_s {
 
   /* display anatomy */
   double           display_ratio;    /* calced from display resolution */
-  int              fullscreen_width; /* this is basically how big the screen is */
-  int              fullscreen_height;
-  int              in_fullscreen;    /* is the window in fullscreen mode? */
 
 } xv_driver_t;
 
@@ -466,7 +464,7 @@ static void xv_check_capability (xv_driver_t *this,
 }
 
 
-vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
+vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xv_driver_t          *this;
   Display              *display = NULL;
@@ -480,13 +478,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   double                res_h, res_v;
   XColor                ignored;
   int                   dummy_a, dummy_b;
+  x11_visual_t         *visual;
 #ifdef HAVE_XINERAMA
   int                   screens;
   XineramaScreenInfo   *screeninfo = NULL;
 #endif
 
 
-  display = (Display *) visual;
+  visual = (x11_visual_t *) visual_gen;
+  display = visual->display;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   /*
@@ -545,11 +545,12 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
 
   memset (this, 0, sizeof(xv_driver_t));
 
-  this->display      = display;
-  this->screen       = DefaultScreen(display);
-  this->xv_port      = xv_port;
-  this->capabilities = 0;
-  this->config       = config;
+  this->display       = display;
+  this->screen        = visual->screen;
+  this->xv_port       = xv_port;
+  this->capabilities  = 0;
+  this->config        = config;
+  this->display_ratio = visual->display_ratio;
 
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
@@ -572,9 +573,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
     this->props[i].atom  = 0;
   }
 
-  this->props[VO_PROP_WINDOW_VISIBLE].value = 1;
-  this->props[VO_PROP_CURSOR_VISIBLE].value = 1;
-  this->props[VO_PROP_FULLSCREEN].value     = 0;
   this->props[VO_PROP_INTERLACED].value     = 0;
   this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
 
@@ -641,67 +639,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
       printf ("video_out_xv: this adaptor supports the rgb format.\n");
     }
   }
-
-  /*
-   * find out screen dimensions
-   */
-
-#ifdef HAVE_XINERAMA
-  /* Spark
-   * some Xinerama stuff
-   * I want to figure out what fullscreen means for this setup
-   */
-
-  if ((XineramaQueryExtension (display, &dummy_a, &dummy_b)) 
-      && (screeninfo = XineramaQueryScreens(display, &screens))) {
-    /* Xinerama Detected */
-    xprintf (VERBOSE|VIDEO, 
-	     "Display is using Xinerama with %d screens\n", screens);
-    xprintf (VERBOSE|VIDEO, 
-	     " going to assume we are using the first screen.\n");
-    xprintf (VERBOSE|VIDEO, " size of the first screen is %dx%d.\n", 
-	     screeninfo[0].width, screeninfo[0].height);
-    
-    if (XineramaIsActive(display)) {
-      this->fullscreen_width  = screeninfo[0].width;
-      this->fullscreen_height = screeninfo[0].height;
-    } else {
-      this->fullscreen_width  = DisplayWidth  (display, this->screen);
-      this->fullscreen_height = DisplayHeight (display, this->screen);
-    }
-
-  } else {
-    /* no Xinerama */
-    xprintf (VERBOSE|VIDEO, "Display is not using Xinerama.\n");
-    this->fullscreen_width  = DisplayWidth (display, this->screen);
-    this->fullscreen_height = DisplayHeight (display, this->screen);
-  } 
-#else
-  this->fullscreen_width  = DisplayWidth (display, this->screen);
-  this->fullscreen_height = DisplayHeight (display, this->screen);
-#endif    
-
-  res_h = (this->fullscreen_width*1000 / DisplayWidthMM (display, this->screen));
-  res_v =  (this->fullscreen_height*1000 / DisplayHeightMM (display, this->screen));
-  this->display_ratio = res_h / res_v;
-
-/*  printf ("video_out_xv: fullscreen_width = %d, fullscreen_height = %d, res_h = %f, res_v = %f\n",this->fullscreen_width, this->fullscreen_height, res_h, res_v); */
-	  
-
-  /*
-   * init window
-   */
-
-  
-  xv_calc_format (this, 720, 576, 2);
-  xv_setup_window (this);
-  
-  /* 
-   * Create cursors, then display the current one.
-   */
-  xv_create_cursors(this);
-  xv_display_cursor(&this->vo_driver, 
-		    this->props[VO_PROP_CURSOR_VISIBLE].value);
 
   return &this->vo_driver;
 }
