@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.58 2002/03/25 13:57:25 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.59 2002/04/06 15:40:19 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -34,7 +34,7 @@
 #include "buffer.h"
 #include "events.h"
 #include "xine_internal.h"
-#include "video_out/alphablend.h"
+#include "video_out/alphablend.h" /* For clut_t */
 #include "xine-engine/bswap.h"
 #include "xineutils.h"
 #include "spu.h"
@@ -74,12 +74,20 @@ static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
 static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
+  int i;
 
   this->vo_out      = vo_out;
   this->ovl_caps    = vo_out->get_capabilities(vo_out);
   this->output_open = 0;
 
-  spudec_reset(this);
+  this->state.visible = 0;
+
+  for (i=0; i < MAX_STREAMS; i++) {
+    this->spudec_stream_state[i].stream_filter = 1; /* So it works with non-navdvd plugins */
+    this->spudec_stream_state[i].ra_seq.complete = 1;
+    this->spudec_stream_state[i].overlay_handle = -1;
+  }
+
 /* FIXME:Do we really need a default clut? */
   xine_fast_memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
   this->state.need_clut = 1;
@@ -87,10 +95,10 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t stream_id;
-  spu_seq_t       *cur_seq;
+  spudec_seq_t       *cur_seq;
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
   stream_id = buf->type & 0x1f ;
-  cur_seq = &this->spu_stream_state[stream_id].ra_seq;
+  cur_seq = &this->spudec_stream_state[stream_id].ra_seq;
 
   if (buf->type == BUF_SPU_CLUT) {
     printf("libspudec: SPU CLUT\n");
@@ -105,12 +113,13 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     this->state.need_clut = 0;
     return;
   }
-  
+ 
   if (buf->type == BUF_SPU_SUBP_CONTROL) {
+    /* FIXME: I don't think SUBP_CONTROL is used any more */
     int i;
     uint32_t *subp_control = (uint32_t*) buf->content;
     for (i = 0; i < 32; i++) {
-      this->spu_stream_state[i].stream_filter = subp_control[i]; 
+      this->spudec_stream_state[i].stream_filter = subp_control[i]; 
     }
     return;
   }
@@ -122,28 +131,25 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
 
-
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)  /* skip preview data */
     return;
 
-  if ( this->spu_stream_state[stream_id].stream_filter == 0) 
+  if ( this->spudec_stream_state[stream_id].stream_filter == 0) 
     return;
 
   if (buf->pts) {
     metronom_t *metronom = this->xine->metronom;
     int64_t vpts = metronom->got_spu_packet(metronom, buf->pts, 0);
     
-    this->spu_stream_state[stream_id].vpts = vpts; /* Show timer */
-    this->spu_stream_state[stream_id].pts = buf->pts; /* Required to match up with NAV packets */
+    this->spudec_stream_state[stream_id].vpts = vpts; /* Show timer */
+    this->spudec_stream_state[stream_id].pts = buf->pts; /* Required to match up with NAV packets */
   }
 
-  this->spu_stream_state[stream_id].ra_complete = 
-     spu_reassembly(&this->spu_stream_state[stream_id].ra_seq,
-                     this->spu_stream_state[stream_id].ra_complete,
+  spudec_reassembly(&this->spudec_stream_state[stream_id].ra_seq,
                      buf->content,
                      buf->size);
-  if(this->spu_stream_state[stream_id].ra_complete == 1) { 
-    spu_process(this,stream_id);
+  if(this->spudec_stream_state[stream_id].ra_seq.complete == 1) { 
+    spudec_process(this,stream_id);
   }
 }
 
@@ -159,10 +165,10 @@ static void spudec_close (spu_decoder_t *this_gen) {
 
 
   for (i=0; i < MAX_STREAMS; i++) {
-    if( this->spu_stream_state[i].overlay_handle >= 0 )
+    if( this->spudec_stream_state[i].overlay_handle >= 0 )
       ovl_instance->free_handle(ovl_instance,
-				this->spu_stream_state[i].overlay_handle);
-    this->spu_stream_state[i].overlay_handle = -1;
+				this->spudec_stream_state[i].overlay_handle);
+    this->spudec_stream_state[i].overlay_handle = -1;
   }
 }
 
@@ -178,37 +184,16 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
   switch (event->event.type) {
   case XINE_EVENT_SPU_BUTTON:
     {
+      /* This function will move to video_overlay 
+       * when video_overlay does menus */
+
       video_overlay_event_t *overlay_event = NULL;
       vo_overlay_t        *overlay = NULL;
       spu_button_t        *but = event->data;
 
-#ifdef LOG_DEBUG
-      printf ("MALLOC1: overlay_event %p, len=%d\n",
-	      overlay_event,
-	      sizeof(video_overlay_event_t));
-#endif
-
       overlay_event = xine_xmalloc (sizeof(video_overlay_event_t));
 
-#ifdef LOG_DEBUG
-      printf("MALLOC2: overlay_event %p, len=%d\n",
-	     overlay_event,
-	     sizeof(video_overlay_event_t));
-#endif
-
-#ifdef LOG_DEBUG
-      printf ("MALLOC1: overlay %p, len=%d\n",
-	      overlay,
-	      sizeof(vo_overlay_t));
-#endif
-
       overlay = xine_xmalloc (sizeof(vo_overlay_t));
-
-#ifdef LOG_DEBUG
-      printf ("MALLOC2: overlay %p, len=%d\n",
-	      overlay,
-	      sizeof(vo_overlay_t));
-#endif
 
 #ifdef LOG_DEBUG
       printf ("BUTTON\n");
@@ -222,7 +207,9 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       printf ("\tpts = %u\n",
 	   but->pts );
 #endif
-      if (!this->state.menu) return;
+      /* FIXME: Watch out for threads. We should really put a lock on this 
+       * because events is a different thread than decode_data */
+      if (!this->state.forced_display) return;
 
 #ifdef LOG_DEBUG
       printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%u\n",this->menu_handle);
@@ -263,7 +250,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
   case XINE_EVENT_SPU_CLUT:
     {
     /* FIXME: This function will need checking before it works. */
-      spu_cltbl_t *clut = event->data;
+      spudec_clut_table_t *clut = event->data;
       if (clut) {
         xine_fast_memcpy(this->state.clut, clut->clut, sizeof(uint32_t)*16);
         this->state.need_clut = 0;

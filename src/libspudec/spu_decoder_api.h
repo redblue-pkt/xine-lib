@@ -65,8 +65,8 @@ struct spu_button_s {
   uint32_t buttonN;
 };
 
-typedef struct spu_cltbl_s spu_cltbl_t;
-struct spu_cltbl_s {
+typedef struct spudec_clut_table_s spudec_clut_table_t;
+struct spudec_clut_table_s {
   uint32_t clut[16];
 };
 

@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.31 2002/03/25 13:57:25 jcdutton Exp $
+ * $Id: spu.c,v 1.32 2002/04/06 15:40:19 jcdutton Exp $
  *
  */
 
@@ -63,23 +63,18 @@
 
 /*
 #define LOG_DEBUG 1
+#define LOG_NAV 1
 */
 
-/* FIXME: This function needs checking */
-void spudec_reset (spudec_decoder_t *this) {
-  int i;
-  
-  this->ovl_pts = 0;
-  this->buf_pts = 0;
-
-  this->state.visible = 0;
-
-  for (i=0; i < MAX_STREAMS; i++) {
-    this->spu_stream_state[i].stream_filter = 1; /* So it works with non-navdvd plugins */
-    this->spu_stream_state[i].ra_complete = 1;
-    this->spu_stream_state[i].overlay_handle = -1;
-  }
-}
+void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
+void spudec_process( spudec_decoder_t *this, uint32_t stream_id);
+void spudec_decode_nav( spudec_decoder_t *this, buf_element_t *buf);
+static void spudec_do_commands (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
+static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
+static void spudec_discover_clut (spudec_state_t *state, vo_overlay_t *ovl);
+static void spudec_update_menu (spudec_state_t *state, vo_overlay_t *ovl);
+static void spudec_print_overlay( vo_overlay_t *overlay );
+static void spudec_copy_nav_to_spu( spudec_decoder_t *this );
 
 void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   uint8_t                  *p;
@@ -110,24 +105,24 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
  *   printf("\n p[0]=0x%02x\n",p[0]);
  */
     if(p[0] == 0x00) {
-#ifdef LOG_DEBUG
+#ifdef LOG_NAV
       printf("libspudec:nav_PCI\n");
 #endif
       nav_read_pci(&pci, p+1);
-#ifdef LOG_DEBUG
-      printf("libspudec:nav:hli_ss=%u, hli_s_ptm=%u, hli_e_ptm=%u, btn_sl_e_ptm=%u pts=%u\n",
-       pci->hli.hl_gi.hli_ss,
-       pci->hli.hl_gi.hli_s_ptm,
-       pci->hli.hl_gi.hli_e_ptm,
-       pci->hli.hl_gi.btn_se_e_ptm,
+#ifdef LOG_NAV
+      printf("libspudec:nav:hli_ss=%u, hli_s_ptm=%u, hli_e_ptm=%u, btn_sl_e_ptm=%u pts=%llu\n",
+       pci.hli.hl_gi.hli_ss,
+       pci.hli.hl_gi.hli_s_ptm,
+       pci.hli.hl_gi.hli_e_ptm,
+       pci.hli.hl_gi.btn_se_e_ptm,
        buf->pts);
       printf("libspudec:nav:btn_sn/ofn=%u, btn_ns=%u, fosl_btnn=%u, foac_btnn=%u\n",
-       pci->hli.hl_gi.btn_ofn, pci->hli.hl_gi.btn_ns,
-       pci->hli.hl_gi.fosl_btnn, pci->hli.hl_gi.foac_btnn);
-      printf("btngr_ns      %d\n",  pci->hli.hl_gi.btngr_ns);
-      printf("btngr%d_dsp_ty    0x%02x\n", 1, pci->hli.hl_gi.btngr1_dsp_ty);
-      printf("btngr%d_dsp_ty    0x%02x\n", 2, pci->hli.hl_gi.btngr2_dsp_ty);
-      printf("btngr%d_dsp_ty    0x%02x\n", 3, pci->hli.hl_gi.btngr3_dsp_ty);
+       pci.hli.hl_gi.btn_ofn, pci.hli.hl_gi.btn_ns,
+       pci.hli.hl_gi.fosl_btnn, pci.hli.hl_gi.foac_btnn);
+      printf("btngr_ns      %d\n",  pci.hli.hl_gi.btngr_ns);
+      printf("btngr%d_dsp_ty    0x%02x\n", 1, pci.hli.hl_gi.btngr1_dsp_ty);
+      printf("btngr%d_dsp_ty    0x%02x\n", 2, pci.hli.hl_gi.btngr2_dsp_ty);
+      printf("btngr%d_dsp_ty    0x%02x\n", 3, pci.hli.hl_gi.btngr3_dsp_ty);
       //navPrint_PCI(&pci); 
 
 #endif
@@ -140,7 +135,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
     if(p[6] == 0x01) {
       packet_len = p[4] << 8 | p[5];
       p += 6;
-#ifdef LOG_DEBUG
+#ifdef LOG_NAV
       printf("NAV DSI packet\n");  
 #endif
       nav_read_dsi(&dsi, p+1);
@@ -177,17 +172,11 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   return;
 }
 
-/* Return value: reassembly complete = 1 */
-int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
+void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
 {
-#ifdef LOG_DEBUG
-  printf ("spu: pkt_len: %d\n", pkt_len);
-  printf ("spu: Reassembly: start=%d seq=%p\n", start,seq);
-#endif
-
-  if (start) {
-    seq->seq_len = (((u_int)pkt_data[0])<<8) | pkt_data[1];
-    seq->cmd_offs = (((u_int)pkt_data[2])<<8) | pkt_data[3];
+  if (seq->complete) {
+    seq->seq_len = (((uint32_t)pkt_data[0])<<8) | pkt_data[1];
+    seq->cmd_offs = (((uint32_t)pkt_data[2])<<8) | pkt_data[3];
 
     if (seq->buf_len < seq->seq_len) {
       seq->buf_len = seq->seq_len;
@@ -222,23 +211,129 @@ int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
 
   if (seq->ra_offs == seq->seq_len) {
     seq->finished = 0;
-    return 1; /* sequence ready */
+    seq->complete = 1;
+    return; /* sequence ready */
   }
-
-  return 0;	
+  seq->complete = 0;
+  return;
 }
 
-int spu_next_event(spu_state_t *state, spu_seq_t* seq, int64_t pts)
-{
-  uint8_t *buf = state->cmd_ptr;
+void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
+  spudec_seq_t    *cur_seq;
+  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  int pending = 1;
+  cur_seq = &this->spudec_stream_state[stream_id].ra_seq;
 
-  if (state->next_pts == -1) { /* timestamp valid? */
-    state->next_pts = seq->pts + ((buf[0] << 8) + buf[1]) * 1024;
-    buf += 2;
-    state->cmd_ptr = buf;
-  }
+#ifdef LOG_DEBUG
+  printf ("spu: Found SPU from stream %d pts=%lld vpts=%lld\n",stream_id, 
+          this->spudec_stream_state[stream_id].pts,
+          this->spudec_stream_state[stream_id].vpts); 
+#endif
+  this->state.cmd_ptr = cur_seq->buf + cur_seq->cmd_offs;
+  this->state.modified = 1; /* Only draw picture if = 1 on first event of SPU */
+  this->state.visible = 0; /* 0 - No value, 1 - Show, 2 - Hide. */
+  this->state.forced_display = 0; /* 0 - No value, 1 - Forced Display. */
+  this->state.delay = 0;
+  cur_seq->finished=0;
+  
+  do {
+    if (!(cur_seq->finished) ) {
+      
+      /* Get do commands to build the event. */
+      spudec_do_commands(&this->state, cur_seq, &this->overlay);
+      /* FIXME: Check for Forced-display or subtitle stream
+       *        For subtitles, open event.
+       *        For menus, store it for later.
+       */
+      /* spu_channel is now set based on whether we are in the menu or not. */
+      /* Bit 7 is set if only forced display SPUs should be shown */
+      if ( (this->xine->spu_channel & 0x1f) != stream_id  ) { 
+#ifdef LOG_DEBUG
+        printf ("spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
+#endif
+        return;
+      }
+      if ( (this->state.forced_display == 0) && (this->xine->spu_channel & 0x80) ) { 
+#ifdef LOG_DEBUG
+        printf ("spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
+#endif
+        return;
+      }
 
-  return state->next_pts <= pts;
+#ifdef LOG_DEBUG
+      /* spudec_print_overlay( &this->overlay ); */
+      printf ("spu: forced display:%s\n", this->state.forced_display ? "Yes" : "No" ); 
+#endif
+      if (this->pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts) {
+        spudec_copy_nav_to_spu(this);
+      } else {
+      /* Subtitle and not a menu button */
+        int i;
+        for (i = 0;i < 4; i++) {
+          this->overlay.clip_color[i] = this->overlay.color[i];
+          this->overlay.clip_trans[i] = this->overlay.trans[i];
+        }
+      }
+
+      if ( !(this->overlay.trans[0] | this->overlay.trans[1] | this->overlay.trans[2] | this->overlay.trans[3] |
+        this->overlay.clip_trans[0] | this->overlay.clip_trans[1] | this->overlay.clip_trans[2] | this->overlay.clip_trans[3]) ) {
+        /* SPU is transparent so why bother displaying it. */
+        printf ("spu: transparent spu found, discarding it.\n" ); 
+        return;
+      }
+  
+      if ((this->state.modified) ) { 
+        spudec_draw_picture(&this->state, cur_seq, &this->overlay);
+      }
+      
+      if (this->state.need_clut) {
+        spudec_discover_clut(&this->state, &this->overlay);
+      }
+      
+      /* Subtitle */
+      if( this->menu_handle < 0 ) {
+        this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
+      }
+ 
+      if( this->menu_handle < 0 ) {
+        printf("libspudec: No video_overlay handles left for menu\n");
+        return;
+      }
+      this->event.object.handle = this->menu_handle;
+      this->event.object.pts = this->spudec_stream_state[stream_id].pts;
+
+      xine_fast_memcpy(this->event.object.overlay, 
+             &this->overlay,
+             sizeof(vo_overlay_t));
+      this->overlay.rle=NULL;
+      /* For force display menus */
+      if ( !(this->state.visible) ) {
+        this->state.visible = EVENT_SHOW_SPU;
+      }
+     
+      this->event.event_type = this->state.visible;
+      /*
+      printf("spu event %d handle: %d vpts: %d\n", this->event.event_type,
+         this->event.object.handle, this->event.vpts ); 
+      */
+      
+      /* if !vpts then we are near a discontinuity but video_out havent detected
+         it yet and we cannot provide correct vpts values. use current_time 
+         instead as an aproximation.
+      */
+      if( this->spudec_stream_state[stream_id].vpts ) {
+        this->event.vpts = this->spudec_stream_state[stream_id].vpts+(this->state.delay*1000); 
+      } else {
+        this->event.vpts = this->xine->metronom->get_current_time(this->xine->metronom)
+                           + (this->state.delay*1000); 
+        printf("libspudec: vpts current time estimation around discontinuity\n");
+      }
+      ovl_instance->add_event(ovl_instance, (void *)&this->event);
+    } else {
+      pending = 0;
+    }
+  } while (pending);
+
 }
 
 #define CMD_SPU_FORCE_DISPLAY	0x00
@@ -251,13 +346,13 @@ int spu_next_event(spu_state_t *state, spu_seq_t* seq, int64_t pts)
 #define CMD_SPU_WIPE		0x07  /* Not currently implemented */
 #define CMD_SPU_EOF		0xff
 
-void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
+static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl)
 {
   uint8_t *buf = state->cmd_ptr;
   uint8_t *next_seq;
 
 #ifdef LOG_DEBUG
-  printf ("spu: SPU EVENT\n");
+  printf ("spu: SPU DO COMMANDS\n");
 #endif
   
   state->delay = (buf[0] << 8) + buf[1];
@@ -266,6 +361,9 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 #endif
   next_seq = seq->buf + (buf[2] << 8) + buf[3];
   buf += 4;
+#ifdef LOG_DEBUG
+  printf ("spu: \tnext_seq=%d\n",next_seq - seq->buf);
+#endif
 
 /* if next equals current, this is the last one
  */
@@ -293,7 +391,7 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       break;
       
     case CMD_SPU_SET_PALETTE: {	/* CLUT */
-      spu_clut_t *clut = (spu_clut_t *) (buf+1);
+      spudec_clut_t *clut = (spudec_clut_t *) (buf+1);
       
       state->cur_colors[3] = clut->entry0;
       state->cur_colors[2] = clut->entry1;
@@ -323,7 +421,7 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       break;
     }	
     case CMD_SPU_SET_ALPHA:	{	/* transparency palette */
-      spu_clut_t *trans = (spu_clut_t *) (buf+1);
+      spudec_clut_t *trans = (spudec_clut_t *) (buf+1);
 /* This should go into state for now */
       
       ovl->trans[3] = trans->entry0;
@@ -392,7 +490,7 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 #ifdef LOG_DEBUG
       printf ("spu: \tForce Display/Menu\n");
 #endif
-      state->menu = 1;
+      state->forced_display = 1;
       buf++;
       break;
 
@@ -405,14 +503,11 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   if (next_seq >= seq->buf + seq->seq_len)
     seq->finished = 1;       /* last sub-sequence */
   
-  state->next_pts = -1;      /* invalidate timestamp */
-
-
   state->cmd_ptr = next_seq;
 
 
 }
-
+/* FIXME: Get rid of all these static values */
 static uint8_t *bit_ptr[2];
 static int field;		// which field we are currently decoding
 static int put_x, put_y;
@@ -445,7 +540,7 @@ static u_int get_bits (u_int bits)
   return ret;
 }
 
-static int spu_next_line (vo_overlay_t *spu)
+static int spudec_next_line (vo_overlay_t *spu)
 {
   get_bits (0); // byte align rle data
 	
@@ -462,7 +557,7 @@ static int spu_next_line (vo_overlay_t *spu)
   return 0;
 }
 
-void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
+static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl)
 {
   rle_elem_t *rle;
   field = 0;
@@ -488,7 +583,7 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   printf ("spu: MALLOC1: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
 #endif
   if (ovl->rle) {
-    printf ("libspudec: spu_draw_picture: ovl->rle is not empty!!!! It should be!!! You should never see this message.\n");
+    printf ("libspudec: spudec_draw_picture: ovl->rle is not empty!!!! It should be!!! You should never see this message.\n");
     free(ovl->rle);
     ovl->rle=NULL;
   }
@@ -530,7 +625,7 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     put_x += len;
 
     if (put_x >= ovl->width) {
-      if (spu_next_line (ovl) < 0)
+      if (spudec_next_line (ovl) < 0)
         break;
     }
   }
@@ -551,7 +646,7 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
    MINFOUND is the number of ocurrences threshold.
 */
 #define MINFOUND 20
-void spu_discover_clut(spu_state_t *state, vo_overlay_t *ovl)
+static void spudec_discover_clut(spudec_state_t *state, vo_overlay_t *ovl)
 {
   int bg,c;
   int seqcolor[10];
@@ -633,9 +728,9 @@ void spu_discover_clut(spu_state_t *state, vo_overlay_t *ovl)
 }
 
 
-void spu_update_menu (spu_state_t *state, vo_overlay_t *ovl) {
+static void spudec_update_menu (spudec_state_t *state, vo_overlay_t *ovl) {
 
-  if (!state->menu)
+  if (!state->forced_display)
     return;
 
   if (state->b_show) {
@@ -662,7 +757,7 @@ void spu_update_menu (spu_state_t *state, vo_overlay_t *ovl) {
   }
 }
 
-void spudec_print_overlay( vo_overlay_t *ovl ) {
+static void spudec_print_overlay( vo_overlay_t *ovl ) {
 #ifdef LOG_DEBUG
   printf ("spu: OVERLAY to show\n");
   printf ("spu: \tx = %d y = %d width = %d height = %d\n",
@@ -676,7 +771,7 @@ void spudec_print_overlay( vo_overlay_t *ovl ) {
 #endif
   return;
 } 
-void spudec_copy_nav_to_spu(spudec_decoder_t *this) {
+static void spudec_copy_nav_to_spu(spudec_decoder_t *this) {
   int button;
   btni_t *button_ptr;
   int i;
@@ -727,126 +822,5 @@ void spudec_copy_nav_to_spu(spudec_decoder_t *this) {
   
 }
 
-void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
-  spu_seq_t    *cur_seq;
-  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
-  int pending = 1;
-  cur_seq = &this->spu_stream_state[stream_id].ra_seq;
-
-/* FIXME:Get Handle after we have found if "Forced display" is set or not. 
- */
-    
-#ifdef LOG_DEBUG
-  printf ("spu: Found SPU from stream %d pts=%d vpts=%d\n",stream_id, 
-          this->spu_stream_state[stream_id].pts,
-          this->spu_stream_state[stream_id].vpts); 
-#endif
-  this->state.cmd_ptr = cur_seq->buf + cur_seq->cmd_offs;
-  this->state.next_pts = -1; /* invalidate timestamp */
-  this->state.modified = 1; /* Only draw picture if = 1 on first event of SPU */
-  this->state.visible = 0; /* 0 - No value, 1 - Show, 2 - Hide. */
-  this->state.menu = 0; /* 0 - No value, 1 - Forced Display. */
-  this->state.delay = 0;
-  cur_seq->finished=0;
-  
-  do {
-    if (!(cur_seq->finished) ) {
-      
-      /* Get do commands to build the event. */
-      spu_do_commands(&this->state, cur_seq, &this->overlay);
-      /* FIXME: Check for Forced-display or subtitle stream
-       *        For subtitles, open event.
-       *        For menus, store it for later.
-       */
-      /* spu_channel is now set based on whether we are in the menu or not. */
-      /* Bit 7 is set if only forced display SPUs should be shown */
-      if ( (this->xine->spu_channel & 0x1f) != stream_id  ) { 
-#ifdef LOG_DEBUG
-        printf ("spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
-#endif
-        return;
-      }
-      if ( (this->state.menu == 0) && (this->xine->spu_channel & 0x80) ) { 
-#ifdef LOG_DEBUG
-        printf ("spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
-#endif
-        return;
-      }
-
-#ifdef LOG_DEBUG
-      /* spudec_print_overlay( &this->overlay ); */
-      printf ("spu: forced display:%s\n", this->state.menu ? "Yes" : "No" ); 
-#endif
-      if (this->pci.hli.hl_gi.hli_s_ptm == this->spu_stream_state[stream_id].pts) {
-        spudec_copy_nav_to_spu(this);
-      } else {
-      /* Subtitle and not a menu button */
-        int i;
-        for (i = 0;i < 4; i++) {
-          this->overlay.clip_color[i] = this->overlay.color[i];
-          this->overlay.clip_trans[i] = this->overlay.trans[i];
-        }
-      }
-
-      if ( !(this->overlay.trans[0] | this->overlay.trans[1] | this->overlay.trans[2] | this->overlay.trans[3] |
-        this->overlay.clip_trans[0] | this->overlay.clip_trans[1] | this->overlay.clip_trans[2] | this->overlay.clip_trans[3]) ) {
-        /* SPU is transparent so why bother displaying it. */
-        printf ("spu: transparent spu found, discarding it.\n" ); 
-        return;
-      }
-  
-      if ((this->state.modified) ) { 
-        spu_draw_picture(&this->state, cur_seq, &this->overlay);
-      }
-      
-      if (this->state.need_clut) {
-        spu_discover_clut(&this->state, &this->overlay);
-      }
-      
-      /* Subtitle */
-      if( this->menu_handle < 0 ) {
-        this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
-      }
- 
-      if( this->menu_handle < 0 ) {
-        printf("libspudec: No video_overlay handles left for menu\n");
-        return;
-      }
-      this->event.object.handle = this->menu_handle;
-      this->event.object.pts = this->spu_stream_state[stream_id].pts;
-
-      xine_fast_memcpy(this->event.object.overlay, 
-             &this->overlay,
-             sizeof(vo_overlay_t));
-      this->overlay.rle=NULL;
-      /* For force display menus */
-      if ( !(this->state.visible) ) {
-        this->state.visible = EVENT_SHOW_SPU;
-      }
-     
-      this->event.event_type = this->state.visible;
-      /*
-      printf("spu event %d handle: %d vpts: %d\n", this->event.event_type,
-         this->event.object.handle, this->event.vpts ); 
-      */
-      
-      /* if !vpts then we are near a discontinuity but video_out havent detected
-         it yet and we cannot provide correct vpts values. use current_time 
-         instead as an aproximation.
-      */
-      if( this->spu_stream_state[stream_id].vpts ) {
-        this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
-      } else {
-        this->event.vpts = this->xine->metronom->get_current_time(this->xine->metronom)
-                           + (this->state.delay*1000); 
-        printf("libspudec: vpts current time estimation around discontinuity\n");
-      }
-      ovl_instance->add_event(ovl_instance, (void *)&this->event);
-    } else {
-      pending = 0;
-    }
-  } while (pending);
-
-}
 
 
