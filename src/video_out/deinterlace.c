@@ -688,29 +688,47 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 #endif
 }
 
-/* Linear Blend filter - C version contributed by Rogerio Brito. */
+/* Linear Blend filter - C version contributed by Rogerio Brito.
+   This algorithm has the same interface as the other functions.
+
+   The destination "screen" (pdst) is constructed from the source
+   screen (psrc[0]) line by line.
+
+   The i-th line of the destination screen is the average of 3 lines
+   from the source screen: the i-th, (i+1)-th and (i+2)-th lines, with
+   the (i+1)-th line having weight 2 in the computation.
+
+   Remarks:
+   * each line on pdst doesn't depend on previous lines;
+   * due to the way the algorithm is defined, the last two lines of the
+     screen aren't deinterlaced.
+   
+*/
 static void deinterlace_linearblend_yuv( uint8_t *pdst, uint8_t *psrc[],
                                          int width, int height )
 {
-  register int x, y, z;
-  register uint8_t *src = psrc[0];
-  register uint8_t *dst = pdst;
+  register int x, y;
+  register uint8_t *l0, *l1, *l2, *l3;
 
-  for (y = 0; y < height-1; ++y) {
-    for (x = 0; x <= width; ++x) {
-      /* computes avg of: 1*current line + 2*next line + 1*line after that */
-      z = y*width + x;
-      dst[z] = (src[z] + 2*src[z+width] + src[z + (2*width)]) >> 2;
-      /* the above is trying to help the compiler, but is is actually doing:
-       * dst[y*width + x] =
-       *   (src[y*width + x] + 2*src[(y+1)*width + x] + src[(y+2)*width + x])/4;
-       */
+  l0 = pdst;		/* target line */
+  l1 = psrc[0];		/* 1st source line */
+  l2 = l1 + width;	/* 2nd source line = line that follows l1 */
+  l3 = l2 + width;	/* 3rd source line = line that follows l2 */
+
+  for (y = 0; y < height-1; ++y) { 
+    /* computes avg of: l1 + 2*l2 + l3 */
+
+    for (x = 0; x < width; ++x) {
+      l0[x] = (l1[x] + (l2[x]<<1) + l3[x]) >> 2;
     }
+
+    /* updates the line pointers */
+    l1 = l2; l2 = l3; l3 += width;
+    l0 += width;
   }
+
   /* copies the last two lines */
-  xine_fast_memcpy(dst + y*width, src + y*width, width);
-  ++y;
-  xine_fast_memcpy(dst + y*width, src + y*width, width);
+  xine_fast_memcpy(l0, l1, 2*width);
 }
 
 static int check_for_mmx(void)
