@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.125 2002/05/02 12:31:03 f1rmb Exp $
+ * $Id: xine.c,v 1.126 2002/05/02 18:59:30 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -555,16 +555,12 @@ xine_t *xine_init (vo_driver_t *vo,
   static char *demux_strategies[] = {"default", "reverse", "content",
 				     "extension", NULL};
   int          i;
-  char         default_logo[2048];
-  
+
   /* setting default logo mrl */
   pthread_mutex_init (&this->logo_lock, NULL);
 
-  memset(&default_logo, 0, sizeof(default_logo));
-  snprintf(default_logo, 2048, "file://%s/xine_logo.mpg", XINE_SKINDIR);
-
   pthread_mutex_lock (&this->logo_lock);
-  this->logo_mrl = config->register_string(config, "misc.logo_mrl", default_logo,
+  this->logo_mrl = config->register_string(config, "misc.logo_mrl", XINE_LOGO_FILE,
 					   "logo mrl, displayed in video output window",
 					   NULL, _logo_change_cb, (void *) this);
   pthread_mutex_unlock (&this->logo_lock);
