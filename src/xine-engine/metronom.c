@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.84 2002/04/30 01:48:18 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.85 2002/06/19 23:41:16 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -281,7 +281,10 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
 static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 						 int64_t disc_off) {
 
+  int64_t av_diff;
   pthread_mutex_lock (&this->lock);
+
+  av_diff = this->video_vpts - this->audio_vpts;
 
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
@@ -325,6 +328,13 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
   case DISC_RELATIVE:
     this->next_vpts_offset = this->vpts_offset - disc_off;
     this->in_discontinuity = 30;
+    break;
+  case DISC_STREAMSEEK:
+    this->vpts_offset      = this->video_vpts - disc_off;
+    this->next_vpts_offset = this->video_vpts - disc_off;
+    this->in_discontinuity = 0;
+    this->audio_vpts = this->video_vpts - av_diff;
+    this->allow_full_ao_fill_gap = 1;
     break;
   }
   
@@ -538,9 +548,9 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
     this->vpts_offset += value;
-#ifdef LOG
+
     printf ("metronom: adjusting vpts_offset by %lld\n", value );
-#endif
+
     break;
   default:
     printf ("metronom: unknown option in set_option: %d\n",
@@ -723,6 +733,7 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   this->have_audio                = have_audio;
   this->audio_vpts                = PREBUFFER_PTS_OFFSET;
   this->audio_discontinuity_count = 0;
+  this->allow_full_ao_fill_gap    = 0;
   pthread_cond_init (&this->audio_discontinuity_reached, NULL);
     
 
