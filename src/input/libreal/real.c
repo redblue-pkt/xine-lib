@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.18 2004/04/24 20:43:57 miguelfreitas Exp $
+ * $Id: real.c,v 1.19 2004/09/08 15:09:30 miguelfreitas Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -556,7 +556,7 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, unsigned char **buffer) {
     lprintf("rdt chunk not recognized: got 0x%02x\n", header[0]);
     return 0;
   }
-  size=(header[1]<<12)+(header[2]<<8)+(header[3]);
+  size=(header[1]<<16)+(header[2]<<8)+(header[3]);
   flags1=header[4];
   if ((flags1!=0x40)&&(flags1!=0x42))
   {
@@ -580,7 +580,7 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, unsigned char **buffer) {
     flags1=header[4];
     size-=9;
   }
-  unknown1=(header[5]<<12)+(header[6]<<8)+(header[7]);
+  unknown1=(header[5]<<16)+(header[6]<<8)+(header[7]);
   n=rtsp_read_data(rtsp_session, header, 6);
   if (n<6) return 0;
   ts=BE_32(header);
