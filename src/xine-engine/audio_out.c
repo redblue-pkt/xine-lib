@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.173 2004/04/27 20:46:26 f1rmb Exp $
+ * $Id: audio_out.c,v 1.174 2004/05/15 23:44:26 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -699,19 +699,19 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
        buf->num_frames != num_output_frames ) {
     switch (this->input.mode) {
     case AO_CAP_MODE_MONO:
-      ensure_buffer_size(this->frame_buf[1], 2, num_output_frames);
+      ensure_buffer_size(this->frame_buf[1], (this->output.bits>>3), num_output_frames);
       _x_audio_out_resample_mono (buf->mem, buf->num_frames,
 			       this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
       break;
     case AO_CAP_MODE_STEREO:
-      ensure_buffer_size(this->frame_buf[1], 4, num_output_frames);
+      ensure_buffer_size(this->frame_buf[1], (this->output.bits>>3)*2, num_output_frames);
       _x_audio_out_resample_stereo (buf->mem, buf->num_frames,
 				 this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
       break;
     case AO_CAP_MODE_4CHANNEL:
-      ensure_buffer_size(this->frame_buf[1], 8, num_output_frames);
+      ensure_buffer_size(this->frame_buf[1], (this->output.bits>>3)*4, num_output_frames);
       _x_audio_out_resample_4channel (buf->mem, buf->num_frames,
 				   this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
@@ -719,7 +719,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
     case AO_CAP_MODE_4_1CHANNEL:
     case AO_CAP_MODE_5CHANNEL:
     case AO_CAP_MODE_5_1CHANNEL:
-      ensure_buffer_size(this->frame_buf[1], 12, num_output_frames);
+      ensure_buffer_size(this->frame_buf[1], (this->output.bits>>3)*6, num_output_frames);
       _x_audio_out_resample_6channel (buf->mem, buf->num_frames,
 				   this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
@@ -736,7 +736,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
     switch (this->input.mode) {
     case AO_CAP_MODE_MONO:
       if( this->output.mode == AO_CAP_MODE_STEREO ) {
-	ensure_buffer_size(this->frame_buf[1], 4, buf->num_frames );
+	ensure_buffer_size(this->frame_buf[1], (this->output.bits>>3)*2, buf->num_frames );
 	_x_audio_out_resample_monotostereo(buf->mem, this->frame_buf[1]->mem,
 					   buf->num_frames );
 	buf = swap_frame_buffers(this);
@@ -744,7 +744,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
       break;
     case AO_CAP_MODE_STEREO:
       if( this->output.mode == AO_CAP_MODE_MONO ) {
-	ensure_buffer_size(this->frame_buf[1], 2, buf->num_frames );
+	ensure_buffer_size(this->frame_buf[1], (this->output.bits>>3), buf->num_frames );
 	_x_audio_out_resample_stereotomono(buf->mem, this->frame_buf[1]->mem,
 					   buf->num_frames );
 	buf = swap_frame_buffers(this);

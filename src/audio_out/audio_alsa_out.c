@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.140 2004/05/15 20:27:50 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.141 2004/05/15 23:44:25 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -452,7 +452,11 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     format = SND_PCM_FORMAT_S16;
     break;
   case 3:
-    format = SND_PCM_FORMAT_S24;
+#ifdef WORDS_BIGENDIAN
+    format = SND_PCM_FORMAT_S24_3BE; /* 24 bit samples taking 3 bytes. */
+#else
+    format = SND_PCM_FORMAT_S24_3LE;
+#endif
     break;
   case 4:
     format = SND_PCM_FORMAT_FLOAT;
