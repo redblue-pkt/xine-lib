@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.7 2003/12/13 11:35:08 valtri Exp $ 
+ * $Id: info_helper.c,v 1.8 2003/12/14 00:28:02 f1rmb Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #define XINE_ENGINE_INTERNAL
 
@@ -229,6 +230,51 @@ void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int le
     snprintf(str, len + 1 , "%s", buf);
     __meta_info_set_unlocked(stream, info, (const char *) &str[0]);
 	free(str);
+  }
+  pthread_mutex_unlock(&stream->meta_mutex);
+}
+
+/*
+ * Set private meta info value, from multiple arguments.
+ */
+void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...) {
+
+  pthread_mutex_lock(&stream->meta_mutex);
+  if(__meta_valid(info)) {
+    va_list   ap;
+    char     *args[1024];
+    char     *buf;
+    int       n, len;
+    
+    len = n = 0;
+
+    va_start(ap, info);
+    while((buf = va_arg(ap, char *)) && (n < 1024)) {
+      len += strlen(buf) + 1;
+      args[n] = buf;
+      n++;
+    }
+    va_end(ap);
+    
+    args[n] = NULL;
+    
+    if(len) {
+      char *p, *meta;
+      
+      p = meta = (char *) xine_xmalloc(len + 1);
+      
+      n = 0;
+      while(args[n]) {
+	strcpy(meta, args[n]);
+	meta += strlen(args[n]) + 1;
+	n++;
+      }
+      
+      *meta = '\0';
+
+      __meta_info_set_unlocked(stream, info, (const char *) p);
+    }
+
   }
   pthread_mutex_unlock(&stream->meta_mutex);
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.73 2003/12/09 00:02:38 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.74 2003/12/14 00:28:02 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -783,8 +783,8 @@ int _x_message(xine_stream_t *stream, int type, ...) {
   int                     n;
   va_list                 ap;
   char                   *s, *params;
-
-  static char *std_explanation[] = {
+  char                   *args[1024];
+  static char            *std_explanation[] = {
     "",
     "Warning:",
     "Unknown host:",
@@ -809,43 +809,48 @@ int _x_message(xine_stream_t *stream, int type, ...) {
 
   n = 0;
   va_start(ap, type);
-  while( (s = va_arg(ap, char *)) != NULL ) {
+  while(((s = va_arg(ap, char *)) != NULL) && (n < 1024)) {
     size += strlen(s) + 1;
+    args[n] = s;
     n++;
   }
   va_end(ap);
 
+  args[n] = NULL;
+  
   size += sizeof(xine_ui_message_data_t) + 1;
   data = xine_xmalloc( size );
-  strcpy(data->compatibility.str, 
-         "Upgrade your frontend to see the error messages");
-  data->type = type;
+
+  strcpy(data->compatibility.str, "Upgrade your frontend to see the error messages");
+  data->type           = type;
   data->num_parameters = n;
   
   if( explanation ) {
-    strcpy (data->messages, explanation);
+    strcpy(data->messages, explanation);
     data->explanation = data->messages - (char *)data;
     params = data->messages + strlen(explanation) + 1;
   } else {
     data->explanation = 0;
-    params = data->messages;
+    params            = data->messages;
   }
+
   data->parameters = params - (char *)data;
-
-  params[0] = '\0';
-  va_start(ap, type);
-  while( (s = va_arg(ap, char *)) != NULL ) {
-    strcpy(params, s);
-    params += strlen(s) + 1;
+  
+  n       = 0;
+  *params = '\0';
+  
+  while(args[n]) {
+    strcpy(params, args[n]);
+    params += strlen(args[n]) + 1;
+    n++;
   }
-  va_end(ap);
 
-  params[0] = '\0';
+  *params = '\0';
 
-  event.type = XINE_EVENT_UI_MESSAGE;
-  event.stream = stream;
+  event.type        = XINE_EVENT_UI_MESSAGE;
+  event.stream      = stream;
   event.data_length = size;
-  event.data = data;
+  event.data        = data;
   xine_event_send(stream, &event);
 
   free(data);

@@ -26,6 +26,7 @@
 #ifndef INFO_HELPER_H
 #define INFO_HELPER_H
 
+#include <stdarg.h>
 #include "xine_internal.h"
 
 /*
@@ -89,6 +90,17 @@ uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info);
  *
  */
 void _x_meta_info_set(xine_stream_t *stream, int info, const char *str);
+
+/*
+ * set a stream meta multiple info
+ *
+ * params:
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_META_INFO_*)
+ *   ...           one or more meta info, followed by a NULL pointer
+ *
+ */
+void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...);
 
 /*
  * set a stream meta info
