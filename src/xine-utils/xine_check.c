@@ -6,9 +6,11 @@
 #include <sys/utsname.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <errno.h>
+
+#if defined(__linux__)
 #include <linux/major.h>
 #include <linux/hdreg.h>
-#include <errno.h>
 
 typedef struct {
   FILE    *fd;
@@ -269,4 +271,9 @@ int xine_health_check_xv(void)
 
 	return retval;
 }
-
+#else	/* !__linux__ */
+int xine_health_check()
+{
+	return 0;
+}
+#endif	/* !__linux__ */
