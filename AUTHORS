@@ -363,5 +363,8 @@ Markus Plail <xine-user@gitteundmarkus.de>
 
 Dilb (?)
   demux_ogg.c strongarm patch
+  
+Dan Dennedy <dan@dennedy.org>
+  rawdv demuxer fixes, dvaudio patch, stdin input fixes
 
 (let us know if we've forgotten anyone)

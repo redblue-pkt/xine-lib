@@ -10,6 +10,8 @@ xine-lib (1-beta7)
     not handle sequence counter.  There's also a deadlock in many demuxers
     when trying to stop during a network timeout, xine has to be SIGKILLED
     in this case.
+  * dvaudio support
+  * stdin plugin fix (pause engine when there is no data available)
 
 xine-lib (1-beta6)
   * inform the width and height for the v4l input plugin
