@@ -310,5 +310,8 @@ Xavier Izard <xizard@enib.fr>
 Anders D. Wiehe <anders@wiehe.org>
   OSD stream informations patch.
 
+Zoltán Böszörményi <zboszor@freemail.hu>
+  tremendous help in porting sputext to 1.0 API
+
 
 (let us know if we've forgotten anyone)
