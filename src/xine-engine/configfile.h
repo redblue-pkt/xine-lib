@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.7 2001/12/01 22:38:32 guenter Exp $
+ * $Id: configfile.h,v 1.8 2002/02/06 10:57:15 f1rmb Exp $
  *
  * config file management
  *
@@ -178,7 +178,7 @@ struct config_values_s {
  * init internal data structures, read config file
  * (if it exists)
  */
-config_values_t *config_file_init (char *filename);
+config_values_t *xine_config_file_init (char *filename);
 
 #ifdef __cplusplus
 }
@@ -188,6 +188,9 @@ config_values_t *config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.8  2002/02/06 10:57:15  f1rmb
+ * rename config_file_init to xine_config_file_init.
+ *
  * Revision 1.7  2001/12/01 22:38:32  guenter
  * add avi subtitle decoder (based on mplayer code), minor cleanups, removed register_empty function from configfile (undocumented and doesn't make sense)
  *

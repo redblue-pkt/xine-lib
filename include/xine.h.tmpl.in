@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.77 2002/02/02 17:05:43 richwareham Exp $
+ * $Id: xine.h.tmpl.in,v 1.78 2002/02/06 10:57:15 f1rmb Exp $
  *
  */
 
@@ -663,7 +663,7 @@ struct config_values_s {
   
 
 /**
- * \fn config_values_t *config_file_init (char *filename)
+ * \fn config_values_t *xine_config_file_init (char *filename)
  * \brief Configuration file initialisation.
  * \param filename Pathname of configuration file.
  * \return Current config
@@ -672,7 +672,7 @@ struct config_values_s {
  *
  * Read config file and init a config object of config_values_t type (if it exists)
  */
-config_values_t *config_file_init (char *filename);
+config_values_t *xine_config_file_init (char *filename);
 
                /** 
 		* \defgroup ui_callbacks UI communication callbacks.
@@ -721,7 +721,7 @@ config_values_t *config_file_init (char *filename);
  * \brief Initialisation of xine.
  * \param vo video driver ( #see @ref xine_load_video_output_plugin() )
  * \param ao audio driver ( #see @ref xine_load_audio_output_plugin() )
- * \param config current configuration ( #see config_file_init() )
+ * \param config current configuration ( #see xine_config_file_init() )
  * \return Current xine engine configuration
  * \sa vo_driver_t, ao_driver_t, config_values_t, gui_stream_end_cb_t, gui_get_next_mrl_cb_t, gui_branched_cb_t
  * \warning This function should be called before any other xine_*() function.
@@ -1477,7 +1477,7 @@ char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls);
 /**
  * \fn void xine_list_demux_plugins (config_values_t *config, char **identifiers, char **mimetypes)
  * \brief list available demux plugins
- * \param config current configuration ( #see config_file_init() )
+ * \param config current configuration ( #see xine_config_file_init() )
  * \param identifiers pointer to a (char *) that will be allocated and filled with all demux identifiers 
  * \param mimetypes pointer to a (char *) that will be allocated and filled with all demux mimetypes 
  * \return none (strings are returned on *identifiers and *mimetypes). It is up to called to free these after use.
@@ -1496,7 +1496,7 @@ char **xine_list_video_output_plugins (int visual_type);
 
 /**
  * \fn vo_driver_t *xine_load_video_output_plugin(config_values_t *config, char *id, int visual_type, void *visual)
- * \param config current configuration ( #see config_file_init() )
+ * \param config current configuration ( #see xine_config_file_init() )
  * \param id driver name.
  * \param visual_type #see @ref visual_types
  * \param visual visual type dependant data pointer.
@@ -1515,7 +1515,7 @@ char **xine_list_audio_output_plugins (void);
 
 /**
  * \fn ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id)
- * \param config current configuration ( #see config_file_init() )
+ * \param config current configuration ( #see xine_config_file_init() )
  * \param id driver name.
  * \brief load a specific audio output plugin.
  * \sa ao_driver_t

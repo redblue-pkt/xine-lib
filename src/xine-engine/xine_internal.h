@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.70 2002/02/02 17:05:43 richwareham Exp $
+ * $Id: xine_internal.h,v 1.71 2002/02/06 10:57:15 f1rmb Exp $
  *
  */
 
@@ -240,7 +240,7 @@ struct xine_s {
  * read config file and init a config object
  * (if it exists)
  */
-config_values_t *config_file_init (char *filename);
+config_values_t *xine_config_file_init (char *filename);
 
 /*
  * init xine - call once at startup

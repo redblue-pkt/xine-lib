@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.17 2002/01/13 23:08:27 jcdutton Exp $
+ * $Id: configfile.c,v 1.18 2002/02/06 10:57:15 f1rmb Exp $
  *
  * config file management - implementation
  *
@@ -89,7 +89,7 @@ static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
  * external interface
  */
 
-cfg_entry_t *config_file_lookup_entry (config_values_t *this, char *key) {
+static cfg_entry_t *config_file_lookup_entry (config_values_t *this, char *key) {
   cfg_entry_t *entry;
 
   entry = this->first;
@@ -107,7 +107,7 @@ static char *config_file_register_string (config_values_t *this,
 					  char *help,
 					  config_cb_t changed_cb,
 					  void *cb_data) {
-
+  
   cfg_entry_t *entry;
 
   assert (key);
@@ -167,7 +167,7 @@ static int config_file_register_num (config_values_t *this,
 				     char *help,
 				     config_cb_t changed_cb,
 				     void *cb_data) {
-
+  
   cfg_entry_t *entry;
 
   assert (key);
@@ -262,7 +262,7 @@ static int config_file_register_range (config_values_t *this,
 				       char *help,
 				       config_cb_t changed_cb,
 				       void *cb_data) {
-
+  
   cfg_entry_t *entry;
 
   assert (key);
@@ -557,7 +557,7 @@ static void config_file_read (config_values_t *this, char *filename){
   }
 }
 
-config_values_t *config_file_init (char *filename) {
+config_values_t *xine_config_file_init (char *filename) {
 
 #ifdef HAVE_IRIXAL
   volatile /* is this a (old, 2.91.66) irix gcc bug?!? */
@@ -594,6 +594,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.18  2002/02/06 10:57:15  f1rmb
+ * rename config_file_init to xine_config_file_init.
+ *
  * Revision 1.17  2002/01/13 23:08:27  jcdutton
  * Fix another compiler warning.
  *
