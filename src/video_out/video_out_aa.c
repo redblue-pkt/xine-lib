@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.1 2001/06/10 23:16:23 heikos Exp $
+ * $Id: video_out_aa.c,v 1.2 2001/06/11 01:27:42 heikos Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -37,6 +37,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+
+#include <aalib.h>
 
 #include "video_out.h"
 #include "xine_internal.h"
@@ -63,6 +65,8 @@ typedef struct {
   config_values_t   *config;
 
   int                user_ratio;
+
+  aa_context        *context;
 
 } aa_driver_t;
 
@@ -142,10 +146,42 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 }
 
 static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+  int x,y;
+  double x_fact, y_fact; /* ratio between aa's and frame's width/height */
 
+  uint8_t *img;
+  uint8_t *src_image;
+
+  aa_driver_t *this = (aa_driver_t*) this_gen;
   aa_frame_t *frame = (aa_frame_t *) frame_gen;
 
-  /* fixme: implement */
+  x_fact = (double) frame->width / (double) aa_imgwidth (this->context);
+  y_fact = (double) frame->height / (double) aa_imgheight (this->context);
+
+  src_image = frame->vo_frame.base[0];
+  img = aa_image(this->context); /* pointer to the beginning of the output */
+
+  fprintf(stderr,
+	  "aalib sez: width: %d, height: %d\n",
+	  aa_imgwidth (this->context),
+	  aa_imgheight (this->context));
+
+  for (y = 0; y<aa_imgheight (this->context); y++) {
+    for (x = 0; x<aa_imgwidth (this->context); x++) {
+      
+      *img++ = src_image[(int) (((double) x * x_fact) +
+				frame->width * ((double) y * y_fact))];
+      
+    }
+  }
+
+  frame->vo_frame.displayed (&frame->vo_frame);
+
+  aa_fastrender(this->context, 0, 0, 
+		aa_imgwidth (this->context), 
+		aa_imgheight (this->context));
+
+  aa_flush (this->context);
 }
 
 static int aa_get_property (vo_driver_t *this_gen, int property) {
@@ -187,10 +223,11 @@ static void aa_exit (vo_driver_t *this_gen) {
 
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
-
   aa_driver_t          *this;
 
   this = (aa_driver_t*) malloc (sizeof (aa_driver_t));
+
+  this->context = (aa_context*) visual_gen;
 
   this->config = config;
 
