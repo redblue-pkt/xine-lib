@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.171 2003/12/29 16:24:33 mroi Exp $
+ * $Id: load_plugins.c,v 1.172 2004/02/12 18:23:35 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -47,6 +47,7 @@
 */
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES 1
+#define XINE_ENGINE_INTERNAL
 #include "xine_internal.h"
 #include "xine_plugin.h"
 #include "plugin_catalog.h"
@@ -1910,8 +1911,10 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 	xine_post_out_t *output;
 	int i;
 	
-        post->node = node;
-        node->ref++;
+	post->running_ticket = xine->port_ticket;
+	post->xine = xine;
+	post->node = node;
+	node->ref++;
 	pthread_mutex_unlock(&catalog->lock);
 	
 	/* init the lists of announced connections */
@@ -1968,14 +1971,9 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 
 void xine_post_dispose(xine_t *xine, xine_post_t *post_gen) {
   post_plugin_t *post = (post_plugin_t *)post_gen;
-  plugin_node_t *node = post->node;
-  
-  pthread_mutex_lock(&xine->plugin_catalog->lock);
-  free(post->input_ids);
-  free(post->output_ids);
   post->dispose(post);
-  node->ref--;
-  pthread_mutex_unlock(&xine->plugin_catalog->lock);
+  /* we cannot decrement the reference counter, since post plugins can delay
+   * their disposal if they are still in use => post.c handles the counting for us */
 }
 
 /* get a list of file extensions for file types supported by xine
