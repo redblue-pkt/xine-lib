@@ -136,7 +136,7 @@ static void cinepak_decode_vectors (cvid_frame_t *frame, cvid_strip_t *strip,
     for (x=strip->x1; x < strip->x2; x+=4) {
       if ((chunk_id & 0x0100) && !(mask >>= 1)) {
 	if ((data + 4) > eod)
-	  break;
+	  return;
 
 	flag  = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
 	data += 4;
@@ -146,7 +146,7 @@ static void cinepak_decode_vectors (cvid_frame_t *frame, cvid_strip_t *strip,
       if (!(chunk_id & 0x0100) || (flag & mask)) {
 	if (!(chunk_id & 0x0200) && !(mask >>= 1)) {
 	  if ((data + 4) > eod)
-	    break;
+	    return;
 
 	  flag  = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
 	  data += 4;
@@ -155,7 +155,7 @@ static void cinepak_decode_vectors (cvid_frame_t *frame, cvid_strip_t *strip,
 
 	if ((chunk_id & 0x0200) || (~flag & mask)) {
 	  if (data >= eod)
-	    break;
+	    return;
 
 	  codebook = &strip->v1_codebook[*data++];
 	  iy[0][0] = codebook->y0;  iy[0][1] = codebook->y0;
@@ -176,7 +176,7 @@ static void cinepak_decode_vectors (cvid_frame_t *frame, cvid_strip_t *strip,
 
 	} else if (flag & mask) {
 	  if ((data + 4) > eod)
-	    break;
+	    return;
 
 	  codebook = &strip->v4_codebook[*data++];
 	  iy[0][0] = codebook->y0;  iy[0][1] = codebook->y1;
@@ -441,8 +441,6 @@ static void cvid_flush (video_decoder_t *this_gen)
 static void cvid_reset (video_decoder_t *this_gen)
 {
   cvid_decoder_t *this = (cvid_decoder_t *) this_gen;
-
-  cinepak_reset (&this->frame);
 
   this->size = 0;
 }
