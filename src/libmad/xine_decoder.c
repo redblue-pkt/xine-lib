@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/09/01 17:59:42 jkeil Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -114,7 +114,9 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       fflush (stdout); */
 
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {
-    printf ("libmad: ALERT input buffer too small!\n");
+    printf ("libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
+	    buf->size, INPUT_BUF_SIZE-this->bytes_in_buffer);
+    buf->size = INPUT_BUF_SIZE-this->bytes_in_buffer;
   }
   
   if (buf->decoder_info[0] >0) {
