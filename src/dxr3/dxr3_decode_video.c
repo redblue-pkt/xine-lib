@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.32 2003/03/07 17:07:14 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.33 2003/05/23 10:36:29 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -263,6 +263,9 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   if (!this->dxr3_vo->overlay_enabled)
     /* set a/v offset to compensate dxr3 internal delay */
     this->stream->metronom->set_option(this->stream->metronom, METRONOM_AV_OFFSET, -21600);
+  
+  /* the dxr3 needs a longer prebuffering to have time for its internal decoding */
+  this->stream->metronom_prebuffer = 90000;
   
   stream->video_out->open(stream->video_out, stream);
   
@@ -513,11 +516,13 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
         printf("dxr3_decode_video: set video pts failed (%s)\n",
           strerror(errno));
     }
-    if (delay >= 90000)   /* frame more than 1 sec ahead */
-      printf("dxr3_decode_video: WARNING: vpts %lld is %.02f seconds ahead of time!\n",
-        vpts, delay/90000.0); 
-    if (delay < 0)
-      printf("dxr3_decode_video: WARNING: overdue frame.\n");
+    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+      if (delay >= 90000)   /* frame more than 1 sec ahead */
+	printf("dxr3_decode_video: WARNING: vpts %lld is %.02f seconds ahead of time!\n",
+	  vpts, delay/90000.0); 
+      if (delay < 0)
+	printf("dxr3_decode_video: WARNING: overdue frame.\n");
+    }
   }
 #if LOG_PTS
   else if (buf->pts) {
@@ -710,16 +715,16 @@ static int get_duration(dxr3_decoder_t *this)
     duration = 1509;
     break;
   default:
-    printf("dxr3_decode_video: WARNING: unknown frame rate code %d: using PAL\n",
+    printf("dxr3_decode_video: WARNING: unknown frame rate code %d\n",
       this->frame_rate_code);
-    duration = 3600;  /* PAL 25fps */
+    duration = 0;
     break;
   }
   
   /* update stream metadata */
   this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = duration;
   
-  if (this->correct_durations) {
+  if (this->correct_durations && duration) {
     /* we set an initial average frame duration here */
     if (!this->avg_duration) this->avg_duration = duration;
   
