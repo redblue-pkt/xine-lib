@@ -1,5 +1,5 @@
 SUBDIRS = \
-	planar goom visualizations
+	planar goom visualizations mosaico
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
