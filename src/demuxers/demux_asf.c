@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.149 2004/03/07 20:02:40 tmattern Exp $
+ * $Id: demux_asf.c,v 1.150 2004/03/08 23:54:39 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -143,6 +143,7 @@ typedef struct demux_asf_s {
   int32_t           frame_duration;
   int               send_newpts;
   int64_t           last_frame_pts;
+  int               last_frame_cpt;
 
   /* only for reading */
   uint32_t          packet_padsize;
@@ -741,8 +742,7 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
     }
   }
 #endif
-
-  if (pts && (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD)) ) {
+  if (pts && (this->send_newpts || (this->last_pts[video] && abs(diff) > WRAP_THRESHOLD))) {
 
     lprintf ("sending newpts %lld (video = %d diff = %lld)\n", pts, video, diff);
 
@@ -753,8 +753,10 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
       _x_demux_control_newpts(this->stream, pts, 0);
     }
 
-    this->send_newpts = 0;
-    this->last_pts[1-video] = 0;
+    this->send_newpts         = 0;
+    this->last_pts[1 - video] = 0;
+    this->last_frame_pts      = 0;
+    this->last_frame_cpt      = 0;
   }
 
   if (pts)
@@ -767,20 +769,19 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
 
     if (this->last_frame_pts) {
 
-      diff = pts - this->last_frame_pts;
+      diff = (pts - this->last_frame_pts) / this->last_frame_cpt;
 
-      if ( (diff>0) && (diff < MAX_FRAME_DUR) ) {
-	lprintf ("last_frame_pts = %8lld, diff=%8lld\n",
-		this->last_frame_pts, diff);
-
-	this->frame_duration = (15*this->frame_duration + diff) / 16;
-	
-	lprintf ("frame_duration is %d\n", this->frame_duration);
+      if ( (diff > 0) && (diff < MAX_FRAME_DUR) ) {
+        lprintf ("last_frame_pts = %8lld, diff=%8lld\n",
+                 this->last_frame_pts, diff);
+        this->frame_duration = (9 * this->frame_duration + diff) / 10;
+        this->last_frame_cpt = 0;
       }
     }
-
     this->last_frame_pts = pts;
   }
+  if (video && frame_end)
+    this->last_frame_cpt++;
 }
 
 
