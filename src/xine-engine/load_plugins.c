@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.34 2001/07/27 21:46:59 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.35 2001/07/30 17:13:22 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -252,48 +252,39 @@ char **xine_get_browsable_input_plugin_ids(xine_t *this) {
  *  Decoder plugins section
  */
 static int decide_spu_insert(spu_decoder_t *p, int streamtype, int prio) {
-int plugin_prio;
+
   if (!p->can_handle (p, (streamtype<<16) | BUF_SPU_BASE))
     return 0;
-  /* Only iface_version 2 is known to have priorities */
-  if (p->interface_version == 2)
-    plugin_prio = p->priority;
-  else
-    plugin_prio = 5;
-  if (plugin_prio < prio)
+  
+  if (p->priority < prio)
     return 0;
+
   /* All conditions successfully passed */
-  return plugin_prio;
+  return p->priority;
 }
 
 static int decide_video_insert(video_decoder_t *p, int streamtype, int prio) {
-int plugin_prio;
+
   if (!p->can_handle (p, (streamtype<<16) | BUF_VIDEO_BASE))
     return 0;
-  /* Only iface_version 2 is known to have priorities */
-  if (p->interface_version == 2)
-    plugin_prio = p->priority;
-  else
-    plugin_prio = 5;
-  if (plugin_prio < prio)
+
+  if (p->priority < prio)
     return 0;
+
   /* All conditions successfully passed */
-  return plugin_prio;
+  return p->priority;
 }
 
 static int decide_audio_insert(audio_decoder_t *p, int streamtype, int prio) {
-int plugin_prio;
+
   if (!p->can_handle (p, (streamtype<<16) | BUF_AUDIO_BASE))
     return 0;
-  /* Only iface_version 2 is known to have priorities */
-  if (p->interface_version == 2)
-    plugin_prio = p->priority;
-  else
-    plugin_prio = 5;
-  if (plugin_prio < prio)
+
+  if (p->priority < prio)
     return 0;
+
   /* All conditions successfully passed */
-  return plugin_prio;
+  return p->priority;
 }
 
 /*
@@ -381,19 +372,19 @@ void load_decoder_plugins (xine_t *this,
             int            streamtype;
 
             sdp = (spu_decoder_t *) initplug(iface_version, config);
-            sdp->metronom = this->metronom;
+	    if (sdp) {
+	      sdp->metronom = this->metronom;
 
-            printf("SPU Can Handle ?\n");
-            for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-              if ((plugin_prio =
-              decide_spu_insert(sdp, streamtype, spu_prio[streamtype]))) {
-                printf("SPU Can Handle yes %x\n",streamtype);
-                this->spu_decoder_plugins[streamtype] = sdp;
-                spu_prio[streamtype] = plugin_prio;
-              }
-
-            printf("spu decoder plugin found : %s\n",
-			   sdp->get_identifier());
+	      for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
+		if ((plugin_prio =
+		     decide_spu_insert(sdp, streamtype, spu_prio[streamtype]))) {
+		  this->spu_decoder_plugins[streamtype] = sdp;
+		  spu_prio[streamtype] = plugin_prio;
+		}
+	      
+	      printf("spu decoder plugin found : %s\n",
+		     sdp->get_identifier());
+	    }
 	  }
 
 	  /*
@@ -406,18 +397,19 @@ void load_decoder_plugins (xine_t *this,
 	    int              streamtype;
 	      
 	    vdp = (video_decoder_t *) initplug(iface_version, config);
-	    vdp->metronom = this->metronom;
+	    if (vdp) {
+	      vdp->metronom = this->metronom;
 
-            for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-              if ((plugin_prio =
-              decide_video_insert(vdp, streamtype, video_prio[streamtype]))) {
-                this->video_decoder_plugins[streamtype] = vdp;
-                video_prio[streamtype] = plugin_prio;
-              }
+	      for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
+		if ((plugin_prio =
+		     decide_video_insert(vdp, streamtype, video_prio[streamtype]))) {
+		  this->video_decoder_plugins[streamtype] = vdp;
+		  video_prio[streamtype] = plugin_prio;
+		}
 	    
-	    printf("video decoder plugin found : %s\n", 
-		   vdp->get_identifier());
-
+	      printf("video decoder plugin found : %s\n", 
+		     vdp->get_identifier());
+	    }
 	  }
 	  
 	  /*
@@ -430,17 +422,18 @@ void load_decoder_plugins (xine_t *this,
 	    int              streamtype;
 	      
 	    adp = (audio_decoder_t *) initplug(iface_version, config);
-
-	    for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-              if ((plugin_prio =
-              decide_audio_insert(adp, streamtype, audio_prio[streamtype]))) {
-		this->audio_decoder_plugins[streamtype] = adp; 
-                audio_prio[streamtype] = plugin_prio;
-              }
-
-	    printf("audio decoder plugin found : %s\n", 
-		   adp->get_identifier());
-
+	    if (adp) {
+	    
+	      for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
+		if ((plugin_prio =
+		     decide_audio_insert(adp, streamtype, audio_prio[streamtype]))) {
+		  this->audio_decoder_plugins[streamtype] = adp; 
+		  audio_prio[streamtype] = plugin_prio;
+		}
+	      
+	      printf("audio decoder plugin found : %s\n", 
+		     adp->get_identifier());
+	    }
 	  }
 	  
 	}

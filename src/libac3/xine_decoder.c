@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2001/07/23 23:15:16 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.20 2001/07/30 17:13:21 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -448,17 +448,24 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   ac3dec_decoder_t *this ;
 
-  if (iface_version != 1)
+  if (iface_version != 2) {
+    printf( "libac3: plugin doesn't support plugin API version %d.\n"
+	    "libac3: this means there's a version mismatch between xine and this "
+	    "libac3: decoder plugin.\nInstalling current plugins should help.\n",
+	    iface_version);
     return NULL;
+  }
 
   this = (ac3dec_decoder_t *) malloc (sizeof (ac3dec_decoder_t));
 
-  this->audio_decoder.interface_version   = 1;
+  this->audio_decoder.interface_version   = 2;
   this->audio_decoder.can_handle          = ac3dec_can_handle;
   this->audio_decoder.init                = ac3dec_init;
   this->audio_decoder.decode_data         = ac3dec_decode_data;
   this->audio_decoder.close               = ac3dec_close;
   this->audio_decoder.get_identifier      = ac3dec_get_id;
+  this->audio_decoder.priority            = 0;
+  
 
   this->ac3_level = (float) cfg->lookup_int (cfg, "ac3_level", 100) / 100.0;
   
