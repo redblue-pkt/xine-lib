@@ -1609,23 +1609,20 @@ case "$host_or_hostalias" in
   
   *darwin*)
     AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on MacOSX/Darwin])
-#    AM_CONDITIONAL(HOST_OS_DARWIN, 1)
     CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
-    CXXFLAGS="${CXXFLAGS} -no-cpp-precomp -D_INTL_REDIRECT_MACROS"
-    #EBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
-    dnl OBJCFLAGS="${CXXFLAGS} -fconstant-string-class=NSConstantString"
-    AC_SUBST(OBJCFLAGS)
+    DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
+    
     dnl avoid ppc compilation crash
     AS="$CC"
     AC_DEFINE_UNQUOTED(FPM_PPC,,[Define to select libmad fixed point arithmetic implementation])
     AC_DEFINE_UNQUOTED(ARCH_PPC,,[Define this if you're running PowerPC architecture])
-	    
-    dnl OBJC='gcc'
-    dnl AC_SUBST(OBJC)
-    dnl OBJCDEPMODE="depmode=gcc3"
-    dnl AC_SUBST(OBJCDEPMODE)
 
-    host_os_darwin="yes"
+    OBJC=${CC:-gcc}
+    AC_SUBST(OBJC)
+    OBJCFLAGS="-no-cpp-precomp -D_INTL_REDIRECT_MACROS -fconstant-string-class=NSConstantString $OBJCFLAGS"
+    AC_SUBST(OBJCFLAGS)
+    OBJCDEPMODE="depmode=gcc3"
+    AC_SUBST(OBJCDEPMODE)
     ;;
 
   ppc-*-linux* | powerpc-*) 
@@ -1825,20 +1822,6 @@ if test "$with_gnu_ld" = yes; then
    XINE_PLUGIN_MIN_SYMS=""
 fi
 
-if test "$host_os_darwin" = yes; then
-   dnl 
-   dnl Darwins implementation of dlclose() likes to crash badly when trying
-   dnl to close a library that contains objective c code in it.
-   dnl Unfortunately, there is no way to figure out wheter we're dealing
-   dnl with such a file or not, so a dirty hack was made that add a
-   dnl dummy symbol to these called 'plugin_contains_objc_code' and omit
-   dnl closing such an module when this symbol is present.
-   dnl To make it beeing exported, XINE_PLUGIN_SYMS must be unset in this
-   dnl case.
-   dnl
-   XINE_PLUGIN_MIN_SYMS=""
-fi
-
 AC_SUBST(XINE_PLUGIN_MIN_SYMS)
 
 
@@ -1965,21 +1948,20 @@ AC_CHECK_PROG(SGMLTOOLS, sgmltools, sgmltools, no)
 AC_CHECK_PROG(FIG2DEV, fig2dev, fig2dev, no)
 
 
-dnl --------------------------
+dnl ---------------------------------------------
 dnl Newest automake workaround
-dnl --------------------------
+dnl ---------------------------------------------
+
 AC_SUBST(mkdir_p)
 if test x"$mkdir_p" = "x"; then
   MKINSTALLDIRS="mkinstalldirs"
 fi
 AC_SUBST(MKINSTALLDIRS)
 
-
-
-dnl Make Objective-C work with automake 1.7.x
-dnl if test x"am__api_version" = "x1.7"; then
-dnl   AM_CONDITIONAL([am__fastdepOBJC], false)
-dnl fi
+dnl this is an internal function we should not use, but
+dnl as long as neither autoconf nor automake offer an A[CM]_PROG_OBJC
+dnl check we will have to call it
+_AM_DEPENDENCIES([OBJC])
 
 
 dnl ---------------------------------------------
@@ -2070,6 +2052,7 @@ src/video_out/libdha/bin/Makefile
 src/video_out/libdha/kernelhelper/Makefile
 src/video_out/libdha/oth/Makefile
 src/video_out/libdha/sysdep/Makefile
+src/video_out/macosx/Makefile
 src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
 src/xine-utils/Makefile
