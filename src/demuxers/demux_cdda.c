@@ -22,7 +22,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.6 2003/05/06 14:02:25 tchamp Exp $
+ * $Id: demux_cdda.c,v 1.7 2003/05/06 15:20:13 esnel Exp $
  *
  */
 
@@ -282,13 +282,3 @@ void *demux_cdda_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "cdda", XINE_VERSION_CODE, NULL, demux_cdda_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
