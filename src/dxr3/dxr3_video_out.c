@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.10 2002/03/08 00:24:40 jcdutton Exp $
+ * $Id: dxr3_video_out.c,v 1.11 2002/03/31 14:33:12 mlampard Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -224,7 +224,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 	 * the dxr3 decoder plugin */
 	if (this->fd_video >= 0) {
 		close(this->fd_video);
-		this->fd_video = -1;
+		this->fd_video = CLOSED_FOR_DECODER;
 	}
 	/* for mpeg source, we don't have to do much. */
 	this->video_width  = width;
@@ -253,6 +253,11 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   }
 
   /* the following is for the mpeg encoding part only */
+  
+  if (this->fd_video == CLOSED_FOR_DECODER) { /* decoder should have released it */
+	this->fd_video = CLOSED_FOR_ENCODER; /* allow encoder to reopen it */
+	this->need_redraw = 1;
+  }
 
   if (this->add_bars == 0) {
 	/* don't add black bars; assume source is in 4:3 */
@@ -296,6 +301,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
     this->video_aspect = ratio_code;
     this->fps = 90000.0/frame->vo_frame.duration;
     this->format = format;
+    this->need_redraw = 1;
 
     if (! this->enc) {
       /* no encoder plugin! Let's bug the user! */
@@ -392,6 +398,17 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
 }
 
+static int dxr3_redraw_needed(vo_driver_t *this_gen)
+{
+	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
+	
+	if (this->need_redraw) {
+		this->need_redraw = 0;
+		return 1;
+	}
+	return 0;
+}
+
 static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
 	dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen;
@@ -418,7 +435,8 @@ static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 {
 	if ( frame_gen->format != IMGFMT_MPEG )
 	{
-		/* we have regular YUV frames, so in principle we can blend
+		/* FIXME: Do something useful here.
+		 * we have regular YUV frames, so in principle we can blend
 		 * it just like the Xv driver does. Problem is that the
 		 * alphablend.c code file is not nearby */
 	}
@@ -495,6 +513,7 @@ printf("dxr3_video_out:init_plugin\n");
 	this->vo_driver.set_property         = dxr3_set_property;
 	this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
+	this->vo_driver.redraw_needed        = dxr3_redraw_needed;
 	this->vo_driver.exit                 = dxr3_exit;
 	this->config=config;
 
@@ -545,7 +564,7 @@ printf("dxr3_video_out:init_plugin\n");
 		}
 	        /* close now and and let the encoders reopen if they want */
 	        close(this->fd_video);
-        	this->fd_video = -1;
+        	this->fd_video = CLOSED_FOR_DECODER;
 	}
 
 	/* which encoder to use? Whadda we got? */
@@ -580,7 +599,6 @@ printf("dxr3_video_out:init_plugin\n");
 			printf(
 "dxr3: mpeg encoder \"%s\" not compiled in or not supported.\n"
 "dxr3: valid options are %s\n", encoder, available_encoders);
-			return 0;
 		}
 	}
 	else {
@@ -608,7 +626,7 @@ printf("dxr3_video_out:init_plugin\n");
 }
 
 static vo_info_t vo_info_dxr3 = {
-  4, /* api version */
+  5, /* api version */
   "dxr3",
   "xine video output plugin for dxr3 cards",
   VISUAL_TYPE_X11,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.66 2002/03/14 13:56:49 richwareham Exp $
+ * $Id: dxr3_decoder.c,v 1.67 2002/03/31 14:33:12 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -98,6 +98,9 @@ static char devnum[3];
  #define MVCOMMAND_SCAN 4
 #endif
 
+/* we give metronom two seconds to recover from our resyncing */
+#define SYNC_RECOVER_TIME (2 * 90000)
+
 
 typedef struct dxr3_decoder_s {
 	video_decoder_t video_decoder;
@@ -107,6 +110,7 @@ typedef struct dxr3_decoder_s {
 	int fd_control;
 	int fd_video;
 	int64_t last_pts;
+	int64_t last_metronom_resync;
 	scr_plugin_t *scr;
 	int scr_prio;
 	int width;
@@ -247,14 +251,12 @@ static void dxr3scr_adjust (scr_plugin_t *scr, int64_t vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t cpts32;
 	int32_t offset32;
-	int64_t cpts;
 	
 	pthread_mutex_lock(&self->mutex);
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &cpts32))
 		printf("dxr3scr: adjust get failed (%s)\n", strerror(errno));
-	cpts = (int64_t)cpts32 << 1;
 	self->last_pts = cpts32;
-	self->offset = vpts - cpts;
+	self->offset = vpts - ((int64_t)cpts32 << 1);
 	offset32 = self->offset / 4;
 	/* kernel driver ignores diffs < 7200, so abs(offset32) must be > 7200 / 4 */
 	if (offset32 < -7200/4 || offset32 > 7200/4) {
@@ -296,6 +298,7 @@ static void dxr3scr_start (scr_plugin_t *scr, int64_t start_vpts) {
 static int64_t dxr3scr_get_current (scr_plugin_t *scr) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t pts;
+	int64_t current;
 
 	pthread_mutex_lock(&self->mutex);
         if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
@@ -303,9 +306,10 @@ static int64_t dxr3scr_get_current (scr_plugin_t *scr) {
 	if (pts < self->last_pts) /* wrap around detected, compensate with offset */
 		self->offset += (int64_t)1 << 33;
 	self->last_pts = pts;
+	current = ((int64_t)pts << 1) + self->offset;
         pthread_mutex_unlock(&self->mutex);
 
-	return ((int64_t)pts << 1) + self->offset;
+	return current;
 }
  /* *** dxr3scr_exit ***
     clean up for exit
@@ -362,7 +366,10 @@ static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
+	metronom_t *metronom = this->video_decoder.metronom;
 	char tmpstr[128];
+	int64_t time, cur_offset;
+	int cur_deny_back_adj;
 
 	snprintf (tmpstr, sizeof(tmpstr), "%s%s", devname, devnum);
 	printf("dxr3: Entering video init, devname=%s.\n",tmpstr);
@@ -378,25 +385,19 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	video_out->open(video_out);
 	this->video_out = video_out;
 
-	this->last_pts = this->video_decoder.metronom->
-		get_current_time(this->video_decoder.metronom);
+	time = metronom->get_current_time(metronom);
+	this->last_metronom_resync = this->last_pts = time;
 	this->decoder_thread = pthread_self();
-
-	if (!this->scr) {
-		this->scr = dxr3scr_init(this);
-		/* dxr3_init is called while the master scr already runs.
-		   therefore the scr must be started here */
-		this->scr->start(this->scr, this->video_decoder.metronom->
-			get_current_time(this->video_decoder.metronom));
-		this->video_decoder.metronom->register_scr(
-			this->video_decoder.metronom, this->scr);
-
-		if (this->video_decoder.metronom->scr_master == this->scr) {
-			printf("dxr3: dxr3scr plugin is master\n");
-		} else {
-			printf("dxr3: dxr3scr plugin is NOT master\n");
-		}
-	}
+	
+	cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
+	metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset - 21600);
+	/* a note on the 21600: this seems to be a necessary offset,
+	   maybe the dxr3 needs some internal time, however it improves sync a lot */
+	
+	cur_deny_back_adj = metronom->get_option(metronom, METRONOM_DENY_BACKWARD_ADJUST);
+	metronom->set_option(metronom, METRONOM_DENY_BACKWARD_ADJUST, ++cur_deny_back_adj);
+	/* this is a boolean metronom option, but we increase it, so that we can
+	   easily revert our change when the decoder exits */
 }
 
 
@@ -471,7 +472,7 @@ static void dxr3_flush (video_decoder_t *this_gen)
 	 * to need it anyway... */
 	printf("dxr3_decoder: flush requested, disabled for the moment.\n");
 	/* dxr3_mvcommand(this->fd_control, 0x11);
-	this->have_header_info = 0; */
+	this->have_header_info = 0;*/
 	if (this->fd_video >= 0)
 		fsync(this->fd_video);
 }
@@ -487,37 +488,9 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	uint8_t *buffer, byte;
 	uint32_t shift;
 
+	if (buf->decoder_flags & BUF_FLAG_PREVIEW) return;
+
 	vpts = 0;
-
-#if 0
-	/* if we're just coming from a BUF_VIDEO_FILL situation,
-	 * do a flush for good riddance. (doesn't help much though) */
-	if (this->in_buffer_fill && buf->type != BUF_VIDEO_FILL)
-		dxr3_flush(this_gen);
-	this->in_buffer_fill = (buf->type == BUF_VIDEO_FILL);
-
-	/* FIXME What are we supposed to do with this? */
-	if (buf->type == BUF_VIDEO_FILL && this->have_header_info) {
-		duration = get_duration(this->frame_rate_code, 0); 
-		/* printf("dxr3enc: BUF_VIDEO_FILL\n"); */
-		/* require have_header_info, otherwise width and height
-	 	 * settings may be random */
-    		img = this->video_out->get_frame (this->video_out,
-                             this->width,
-                             this->height,
-                             this->aspect,
-                             IMGFMT_YV12,
-			     duration,
-                             DXR3_VO_UPDATE_FLAG);
-		img->PTS=0;
-		img->bad_frame = 0;
-	        img->draw(img);
-		vpts = img->PTS;
-		img->free(img);
-		this->last_pts += duration; /* predict vpts */
-		return;
-	}
-#endif
 
 	/* count the number of frame codes in this block of data 
 	 * this code borrowed from libmpeg2. 
@@ -586,15 +559,26 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		   and stores the return value in img->vpts
 		   Calling draw with buf->pts==0 is okay; metronome will
 		   extrapolate a value. */
-		skip = img->draw(img) + (21600 / duration);
+		skip = img->draw(img);
 	        if (skip <= 0) { /* don't skip */
-			vpts = img->vpts - 21600; /* copy so we can free img */
-			/* a note on the 21600: this seems to be a necessary offset,
-			maybe the dxr3 needs some internal time, however it improves sync a lot */
+			vpts = img->vpts; /* copy so we can free img */
 		}
-		else { /* metronom says skip, so don't set pts */
+		else { /* metronom says skip, so don't set vpts */
+			metronom_t *metronom = this->video_decoder.metronom;
+			int64_t time;
+			
 			printf("dxr3: skip = %d\n", skip);
 			vpts = 0;
+			
+			/* Adjust metronom's vpts_offset to make it think, the 
+			   stream started later, so that it no longer gives us too old
+			   vpts values and therefore makes skipping unnecessary. */
+			time = metronom->get_current_time(metronom);
+			if (time > this->last_metronom_resync + SYNC_RECOVER_TIME) {
+				metronom->set_option(metronom, METRONOM_ADJ_VPTS_OFFSET,
+					skip * duration);
+				this->last_metronom_resync = time;
+			}
 		}
 		img->free(img);
 		this->last_pts += duration; /* predict vpts */
@@ -630,14 +614,35 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	 * FIXME: the exact conditions here are a bit uncertain... */
 	if (vpts)
 	{
-		int64_t delay;
-		delay = vpts - this->video_decoder.metronom->get_current_time(
-				this->video_decoder.metronom);
+		int64_t delay, time;
+		time = this->video_decoder.metronom->get_current_time(
+			this->video_decoder.metronom);
+		delay = vpts - time;
 #if LOG_PTS
 		printf("dxr3: SETPTS got %lld expected = %lld (delta %lld) delay = %lld\n", 
 			vpts, this->last_pts, vpts-this->last_pts, delay);
 #endif
 		this->last_pts = vpts;
+		
+		/* We are going to issue a SETPTS, so make sure the scr plugin
+		   is running and registered. Unfortuantely wa cannot do this
+		   earlier, because the dxr3's internal scr gets confused
+		   when started with a closed video device. Maybe this is a
+		   driver bug and gets fixed somewhen. FIXME: We might then
+		   want to move this code to dxr3_init. */
+		if (!this->scr) {
+			this->scr = dxr3scr_init(this);
+			this->scr->start(this->scr, time);
+			this->video_decoder.metronom->register_scr(
+				this->video_decoder.metronom, this->scr);
+
+			if (this->video_decoder.metronom->scr_master == this->scr) {
+				printf("dxr3: dxr3scr plugin is master\n");
+			} else {
+				printf("dxr3: dxr3scr plugin is NOT master\n");
+			}
+		}
+
 		/* SETPTS only if less then one second in the future and
 		 * either buffer has pts or sync_every_frame is set */
 		if ((delay > 0) && (delay < 90000) &&
@@ -647,6 +652,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts32))
 				printf("dxr3: set video pts failed (%s)\n",
 					 strerror(errno));
+			this->last_metronom_resync = time;
 		}
 		if (delay >= 90000) {
 			/* frame more than 1 sec ahead */
@@ -690,14 +696,24 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 static void dxr3_close (video_decoder_t *this_gen)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
+	metronom_t *metronom = this->video_decoder.metronom;
+	int64_t cur_offset;
+	int cur_deny_back_adj;
 
 	if (this->scr) {
-		this->video_decoder.metronom->unregister_scr(
-			this->video_decoder.metronom, this->scr);
+		metronom->unregister_scr(metronom, this->scr);
 		this->scr->exit(this->scr);
 		this->scr = 0;
 	}
-
+	
+	/* revert av_offset change done in dxr3_init */
+	cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
+	metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset + 21600);
+	
+	/* revert deny_backward_adjust change done in dxr3_init */
+	cur_deny_back_adj = metronom->get_option(metronom, METRONOM_DENY_BACKWARD_ADJUST);
+	metronom->set_option(metronom, METRONOM_DENY_BACKWARD_ADJUST, --cur_deny_back_adj);
+	
 	if (this->fd_video >= 0)
 		close(this->fd_video);
 	this->fd_video = -1;
@@ -950,22 +966,19 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		
 		/* just watch out for menus */
 		if (p[3] == 0xbf && p[6] == 0x00) { /* Private stream 2 */
-			pci_t *pci;
+			pci_t pci;
 			
-			pci = xine_xmalloc(sizeof(pci_t));
-			nav_read_pci(pci, p + 7);
+			nav_read_pci(&pci, p + 7);
 			
-			if (pci->hli.hl_gi.hli_ss == 1)
+			if (pci.hli.hl_gi.hli_ss == 1)
 				/* menu ahead, remember pci for later evaluation */
-				xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
+				xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
 			
-			if ((pci->hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
+			if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
 				/* leaving menu */
-				xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
+				xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
 				ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
 			}
-			
-			free(pci);
 		}
 		return;
 	}
@@ -1194,4 +1207,3 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   
   return (spu_decoder_t *) this;
 }
-

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.17 2002/03/07 13:33:44 jcdutton Exp $
+ * $Id: dxr3_vo_core.c,v 1.18 2002/03/31 14:33:12 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -105,7 +105,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 	config_values_t *config=this->config;
 	
 	if (ioctl(this->fd_control, EM8300_IOCTL_GETBCS, &this->bcs))
-		fprintf(stderr, "dxr3_vo: cannot read bcs values (%s)\n",
+		printf("dxr3_vo: cannot read bcs values (%s)\n",
 		 strerror(errno));
 
 	this->bcs.contrast = config->register_range(config, "dxr3.contrast", this->bcs.contrast,100,900,"Dxr3: contrast control",NULL,NULL,NULL);
@@ -124,7 +124,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 		this->tv_switchable=0;  /* don't allow on-the-fly switching */		
 	} else if (!strcasecmp(str, "overlay")) {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
-		fprintf(stderr, "dxr3_vo: setting up overlay mode\n");
+		printf("dxr3_vo: setting up overlay mode\n");
 		if (dxr3_overlay_read_state(&this->overlay) == 0) {
 			this->overlay_enabled = 1;
 			this->tv_switchable=1;	
@@ -136,7 +136,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 
 			sscanf(str, "%f", &this->overlay.color_interval);
 		} else {
-			fprintf(stderr, "dxr3_vo: please run autocal, overlay disabled\n");
+			printf("dxr3_vo: please run autocal, overlay disabled\n");
 			this->overlay_enabled=0;
 			this->tv_switchable=0;
 		}
@@ -145,13 +145,13 @@ void dxr3_read_config(dxr3_driver_t *this)
 
 	if (!strcasecmp(str, "ntsc")) {
 		this->tv_mode = EM8300_VIDEOMODE_NTSC;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to NTSC\n");
+		printf("dxr3_vo: setting tv_mode to NTSC\n");
 	} else if (!strcasecmp(str, "pal")) {
 		this->tv_mode = EM8300_VIDEOMODE_PAL;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 50Hz\n");
+		printf("dxr3_vo: setting tv_mode to PAL 50Hz\n");
 	} else if (!strcasecmp(str, "pal60")) {
 		this->tv_mode = EM8300_VIDEOMODE_PAL60;
-		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 60Hz\n");
+		printf("dxr3_vo: setting tv_mode to PAL 60Hz\n");
 	} else {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
 	}
@@ -159,7 +159,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 	
 	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
-			fprintf(stderr, "dxr3_vo: setting video mode failed.");
+			printf("dxr3_vo: setting video mode failed.");
 }
 
 
@@ -254,7 +254,7 @@ int dxr3_get_property (vo_driver_t *this_gen, int property)
 		break;
 	default:
 		val = 0;
-		fprintf(stderr, "dxr3_vo: property %d not implemented!\n", property);
+		printf("dxr3_vo: property %d not implemented!\n", property);
 	}
 
 	return val;
@@ -290,20 +290,20 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		fullscreen = this->overlay_enabled ? is_fullscreen(this) : 0;
 
 		if (value == ASPECT_ANAMORPHIC) {
-			fprintf(stderr, "dxr3_vo: setting aspect ratio to anamorphic\n");
+			printf("dxr3_vo: setting aspect ratio to anamorphic\n");
 			if (!this->overlay_enabled || fullscreen)
 				val = EM8300_ASPECTRATIO_16_9;
 			else /* The overlay window can adapt to the ratio */
 				val = EM8300_ASPECTRATIO_4_3;
 			this->desired_ratio = 16.0/9.0;
 		} else {
-			fprintf(stderr, "dxr3_vo: setting aspect ratio to full\n");
+			printf("dxr3_vo: setting aspect ratio to full\n");
 			val = EM8300_ASPECTRATIO_4_3;
 			this->desired_ratio = 4.0/3.0;
 		}
 
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
-			fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
+			printf("dxr3_vo: failed to set aspect ratio (%s)\n",
 			 strerror(errno));
 		
 		if (this->overlay_enabled && !fullscreen){
@@ -313,22 +313,22 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		}
 		break;
 	case VO_PROP_COLORKEY:
-		fprintf(stderr, "dxr3_vo: VO_PROP_COLORKEY not implemented!");
+		printf("dxr3_vo: VO_PROP_COLORKEY not implemented!");
 		this->overlay.colorkey = val;
 		break;
 	case VO_PROP_ZOOM_FACTOR:   /* FIXME: Was ZOOM_X */
 		if(!this->overlay_enabled){  /* TV-out only */
 		  if(value==1){
-			fprintf(stderr, "dxr3_vo: enabling 16:9 zoom\n");
+			printf("dxr3_vo: enabling 16:9 zoom\n");
 			val=EM8300_ASPECTRATIO_4_3;
 			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
-				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
+				printf("dxr3_vo: failed to set aspect ratio (%s)\n",
 				 strerror(errno));
 			dxr3_zoomTV(this);
 		  }else if (value==-1){
-			fprintf(stderr, "dxr3_vo: disabling 16:9 zoom\n");		
+			printf("dxr3_vo: disabling 16:9 zoom\n");		
 			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &this->aspectratio))
-				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
+				printf("dxr3_vo: failed to set aspect ratio (%s)\n",
 				 strerror(errno));
 		  }
 		}
@@ -340,15 +340,15 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		  	newmode++;
 		  	if (newmode>EM8300_VIDEOMODE_LAST)
 		  		newmode=EM8300_VIDEOMODE_PAL;
-				fprintf(stderr, "dxr3_vo: Changing TVMode to ");
+				printf("dxr3_vo: Changing TVMode to ");
 				if(newmode==EM8300_VIDEOMODE_PAL)
-					fprintf(stderr, "PAL\n");
+					printf("PAL\n");
 				if(newmode==EM8300_VIDEOMODE_PAL60)
-					fprintf(stderr, "PAL60\n");
+					printf("PAL60\n");
 				if(newmode==EM8300_VIDEOMODE_NTSC)
-					fprintf(stderr, "NTSC\n");
+					printf("NTSC\n");
 		  	if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &newmode))
-			fprintf(stderr, "dxr3_vo: setting video mode failed.");
+			printf("dxr3_vo: setting video mode failed.");
 		}
 		break;
 	default:
@@ -357,7 +357,7 @@ int dxr3_set_property (vo_driver_t *this_gen,
 
 	if (bcs_changed){
 		if (ioctl(this->fd_control, EM8300_IOCTL_SETBCS, &this->bcs))
-			fprintf(stderr, "dxr3_vo: bcs set failed (%s)\n",
+			printf("dxr3_vo: bcs set failed (%s)\n",
 			 strerror(errno));
 		this->config->update_num(this->config, "dxr3.contrast", this->bcs.contrast);
 		this->config->update_num(this->config, "dxr3.saturation", this->bcs.saturation);
@@ -452,11 +452,11 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 			int window_showing;
 			(int *)window_showing = (int *)data;
 			if(!window_showing){
-				fprintf(stderr, "dxr3_vo: Hiding VO window and diverting video to TV\n");
+				printf("dxr3_vo: Hiding VO window and diverting video to TV\n");
 				dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
 				this->overlay_enabled=0;
 			}else{
-				fprintf(stderr, "dxr3_vo: Using VO window for overlaying video\n");
+				printf("dxr3_vo: Using VO window for overlaying video\n");
 				dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OVERLAY );			
 				this->overlay_enabled=1;
 			}

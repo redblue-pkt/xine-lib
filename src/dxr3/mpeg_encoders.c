@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpeg_encoders.c,v 1.5 2002/03/14 13:56:49 richwareham Exp $
+ * $Id: mpeg_encoders.c,v 1.6 2002/03/31 14:33:12 mlampard Exp $
  *
  * mpeg encoders for the dxr3 video out plugin.  
  */ 
@@ -68,10 +68,12 @@ static void mp1e_callback(rte_context *context, void *data, ssize_t size,
     regs.val=6; /* Mike's mystery number :-) */
     ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &regs);
   }
-  if (this->fd_video < 0) {
-    snprintf (tmpstr, sizeof(tmpstr), "%s_mv", this->devname);
-    this->fd_video = open(tmpstr, O_WRONLY);
+  if (this->fd_video == CLOSED_FOR_ENCODER) {
+    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
+    this->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK);
   }
+  if (this->fd_video < 0) return;
+  /* FIXME: Is a SETPTS necessary here? */
   if (write(this->fd_video, data, size) < 0)
     perror("dxr3: writing to video device");
 }
@@ -406,14 +408,15 @@ static int fame_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame)
 		ioctl(drv->fd_control, EM8300_IOCTL_WRITEREG, &regs);
 	}
 
-	if (drv->fd_video < 0) {
-		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", drv->devname);
-		drv->fd_video = open(tmpstr, O_WRONLY);
+	if (drv->fd_video == CLOSED_FOR_ENCODER) {
+		snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", drv->devname, drv->devnum);
+		drv->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK);
 	}
-	//if (write(drv->fd_video, frame->mpeg, frame->mpeg_size) < 0) 
-	if (write(drv->fd_video, this->buffer, size) < 0) 
-		perror("dxr3: writing to video device");
-  	frame->vo_frame.displayed(&frame->vo_frame); 
+	if (drv->fd_video >= 0)
+		/* FIXME: Is a SETPTS necessary here? */
+		if (write(drv->fd_video, this->buffer, size) < 0) 
+			perror("dxr3: writing to video device");
+	frame->vo_frame.displayed(&frame->vo_frame); 
 	return 0;
 }
 

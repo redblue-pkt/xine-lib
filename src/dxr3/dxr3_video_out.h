@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.15 2002/03/08 00:24:40 jcdutton Exp $
+ * $Id: dxr3_video_out.h,v 1.16 2002/03/31 14:33:12 mlampard Exp $
  *
  */
 
@@ -57,6 +57,10 @@
 /* image format used by dxr3_decoder to tag undecoded mpeg data */
 #define IMGFMT_MPEG (('G'<<24)|('E'<<16)|('P'<<8)|'M')
 
+/* values for fd_video indicating why it is closed */
+#define CLOSED_FOR_DECODER -1
+#define CLOSED_FOR_ENCODER -2
+
 struct coeff {
     	float 	k,m;
 };
@@ -90,6 +94,7 @@ typedef struct dxr3_driver_s {
 	int 		aspectratio;
 	int 		tv_mode;
 	int		enhanced_mode; /* enhanced play mode */
+	int		need_redraw;
 	em8300_bcs_t 	bcs;
 	char		devname[128];
 	char		devnum[3];
