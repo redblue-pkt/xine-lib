@@ -381,7 +381,7 @@ static struct {
   char *name;
   void *(* function)(void *to, const void *from, size_t len);
 
-  unsigned long long time; /* This type could be used for non-MSC build too! */
+  uint64_t time; /* This type could be used for non-MSC build too! */
 
   uint32_t cpu_require;
 } memcpy_method[] =
