@@ -366,6 +366,177 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 #endif
 }
 
+
+// This is a simple lightweight DeInterlace method that uses little CPU time
+// but gives very good results for low or intermedite motion. (MORE CPU THAN BOB)
+// It defers frames by one field, but that does not seem to produce noticeable
+// lip sync problems.
+//
+// The method used is to take either the older or newer weave pixel depending
+// upon which give the smaller comb factor, and then clip to avoid large damage
+// when wrong.
+//
+// I'd intended this to be part of a larger more elaborate method added to
+// Blended Clip but this give too good results for the CPU to ignore here.
+static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
+    int width, int height )
+{
+#ifdef ARCH_X86
+  int Line;
+  int	LoopCtr;
+  uint64_t *L1;					// ptr to Line1, of 3
+  uint64_t *L2;					// ptr to Line2, the weave line
+  uint64_t *L3;					// ptr to Line3
+  uint64_t *LP2;					// ptr to prev Line2
+  uint64_t *Dest;
+  uint8_t* pEvenLines = psrc[0];
+  uint8_t* pOddLines = psrc[0]+width;
+  uint8_t* pPrevLines;
+
+  const uint64_t ShiftMask = 0xfefefefefefefefe;
+
+  int LineLength = width;
+  int SourcePitch = width * 2;
+  int IsOdd = 1;
+  long GreedyMaxComb = 15;
+  uint64_t MaxComb;
+  uint64_t i;
+
+  if ( psrc[0] == NULL || psrc[1] == NULL )
+    return 0;
+
+  if (IsOdd)
+    pPrevLines = psrc[1] + width;
+  else
+    pPrevLines = psrc[1];
+
+
+	i = GreedyMaxComb;			// How badly do we let it weave? 0-255
+	MaxComb = i << 56 | i << 48 | i << 40 | i << 32 | i << 24 | i << 16 | i << 8 | i;
+
+
+	// copy first even line no matter what, and the first odd line if we're
+	// processing an EVEN field. (note diff from other deint rtns.)
+  memcpy(pdst, pEvenLines, LineLength); //DL0
+  if (!IsOdd)
+    memcpy(pdst + LineLength, pOddLines, LineLength); //DL1
+
+  height = height / 2;
+  for (Line = 0; Line < height - 1; ++Line)
+  {
+    LoopCtr = LineLength / 8;				// there are LineLength / 8 qwords per line
+
+    if (IsOdd)
+    {
+      L1 = (uint64_t *)(pEvenLines + Line * SourcePitch);
+      L2 = (uint64_t *)(pOddLines + Line * SourcePitch);
+      L3 = (uint64_t *)(pEvenLines + (Line + 1) * SourcePitch);
+      LP2 = (uint64_t *)(pPrevLines + Line * SourcePitch); // prev Odd lines
+      Dest = (uint64_t *)(pdst + (Line * 2 + 1) * LineLength);
+    }
+    else
+    {
+      L1 = (uint64_t *)(pOddLines + Line * SourcePitch);
+      L2 = (uint64_t *)(pEvenLines + (Line + 1) * SourcePitch);
+      L3 = (uint64_t *)(pOddLines + (Line + 1) * SourcePitch);
+      LP2 = (uint64_t *)(pPrevLines + (Line + 1) * SourcePitch); //prev even lines
+      Dest = (uint64_t *)(pdst + (Line * 2 + 2) * LineLength);
+    }
+
+    memcpy((char *)Dest + LineLength, L3, LineLength);
+
+// For ease of reading, the comments below assume that we're operating on an odd
+// field (i.e., that info->IsOdd is true).  Assume the obvious for even lines..
+
+    while( LoopCtr-- )
+		{
+      movq_m2r ( *L1++, mm1 );
+      movq_m2r ( *L2++, mm2 );
+      movq_m2r ( *L3++, mm3 );
+      movq_m2r ( *LP2++, mm0 );
+
+      // average L1 and L3 leave result in mm4
+      movq_r2r ( mm1, mm4 );	// L1
+
+      pand_m2r ( *&ShiftMask, mm4 );
+      psrlw_i2r ( 01, mm4 );
+      movq_r2r ( mm3, mm5 );  // L3
+      pand_m2r ( *&ShiftMask, mm5 );
+      psrlw_i2r ( 01, mm5 );
+      paddb_r2r ( mm5, mm4 );  // the average, for computing comb
+
+      // get abs value of possible L2 comb
+			movq_r2r	( mm2, mm7 );				// L2
+			psubusb_r2r ( mm4, mm7 );				// L2 - avg
+			movq_r2r ( mm4, mm5 );				// avg
+			psubusb_r2r ( mm2, mm5 );				// avg - L2
+			por_r2r ( mm7, mm5 );				// abs(avg-L2)
+			movq_r2r ( mm4, mm6 );     // copy of avg for later
+
+      // get abs value of possible LP2 comb
+			movq_r2r ( mm0, mm7 );				// LP2
+			psubusb_r2r ( mm4, mm7 );				// LP2 - avg
+			psubusb_r2r ( mm0, mm4 );				// avg - LP2
+			por_r2r ( mm7, mm4 );				// abs(avg-LP2)
+
+      // use L2 or LP2 depending upon which makes smaller comb
+			psubusb_r2r ( mm5, mm4 );				// see if it goes to zero
+			psubusb_r2r ( mm5, mm5 );				// 0
+			pcmpeqb_r2r ( mm5, mm4 );				// if (mm4=0) then FF else 0
+			pcmpeqb_r2r ( mm4, mm5 );				// opposite of mm4
+
+      // if Comb(LP2) <= Comb(L2) then mm4=ff, mm5=0 else mm4=0, mm5 = 55
+			pand_r2r ( mm2, mm5 );				// use L2 if mm5 == ff, else 0
+			pand_r2r ( mm0, mm4 );				// use LP2 if mm4 = ff, else 0
+			por_r2r ( mm5, mm4 );				// may the best win
+
+      // Now lets clip our chosen value to be not outside of the range
+      // of the high/low range L1-L3 by more than abs(L1-L3)
+      // This allows some comb but limits the damages and also allows more
+      // detail than a boring oversmoothed clip.
+
+			movq_r2r ( mm1, mm2 );				// copy L1
+			psubusb_r2r ( mm3, mm2 );				// - L3, with saturation
+			paddusb_r2r ( mm3, mm2 );                // now = Max(L1,L3)
+
+			pcmpeqb_r2r ( mm7, mm7 );				// all ffffffff
+			psubusb_r2r ( mm1, mm7 );				// - L1
+			paddusb_r2r ( mm7, mm3 );				// add, may sat at fff..
+			psubusb_r2r ( mm7, mm3 );				// now = Min(L1,L3)
+
+      // allow the value to be above the high or below the low by amt of MaxComb
+			paddusb_m2r ( *&MaxComb, mm2 );			// increase max by diff
+			psubusb_m2r ( *&MaxComb, mm3 );			// lower min by diff
+
+			psubusb_r2r ( mm3, mm4 );				// best - Min
+			paddusb_r2r ( mm3, mm4 );				// now = Max(best,Min(L1,L3)
+
+			pcmpeqb_r2r ( mm7, mm7 );				// all ffffffff
+			psubusb_r2r ( mm4, mm7 );				// - Max(best,Min(best,L3)
+			paddusb_r2r ( mm7, mm2 );				// add may sat at FFF..
+			psubusb_r2r ( mm7, mm2 );				// now = Min( Max(best, Min(L1,L3), L2 )=L2 clipped
+
+		  movq_r2m ( mm2, *Dest++ );        // move in our clipped best
+
+		}
+	}
+
+	// Copy last odd line if we're processing an Odd field.
+  if (IsOdd)
+  {
+    memcpy(pdst + (height * 2 - 1) * LineLength,
+                      pOddLines + (height - 1) * SourcePitch,
+                      LineLength);
+  }
+
+  // clear out the MMX registers ready for doing floating point again
+  emms();
+
+  return 1;
+#endif
+}
+
+
 static int check_for_mmx(void)
 {
 #ifdef ARCH_X86
@@ -412,6 +583,15 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
       if( check_for_mmx() )
       {
         if( !deinterlace_weave_yuv_mmx(pdst,psrc,width,height) )
+          memcpy(pdst,psrc[0],width*height);
+      }
+      else /* FIXME: provide an alternative? */
+        abort_mmx_missing();
+      break;
+    case DEINTERLACE_GREEDY:
+      if( check_for_mmx() )
+      {
+        if( !deinterlace_greedy_yuv_mmx(pdst,psrc,width,height) )
           memcpy(pdst,psrc[0],width*height);
       }
       else /* FIXME: provide an alternative? */
