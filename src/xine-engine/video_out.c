@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.169 2003/08/15 14:35:09 mroi Exp $
+ * $Id: video_out.c,v 1.170 2003/09/05 14:39:46 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -443,7 +443,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
    * performance measurement
    */
 
-  if ((this->num_frames_delivered % 200) == 0) {
+  if ((this->num_frames_delivered % 200) == 0 && this->num_frames_delivered) {
     int send_event;
 
     if( (100 * this->num_frames_skipped / this->num_frames_delivered) >
