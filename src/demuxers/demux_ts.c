@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.89 2003/08/09 23:01:58 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.90 2003/10/06 15:46:20 mroi Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -935,7 +935,6 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   uint32_t       current_next_indicator;
   uint32_t       section_number;
   uint32_t       last_section_number;
-  uint32_t       PCR_PID;
   uint32_t       program_info_length;
   uint32_t       crc32;
   uint32_t       calc_crc32;

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.165 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.166 2003/10/06 15:46:20 mroi Exp $
  *
  */
 
@@ -418,37 +418,6 @@ static inline void debug_video_demux(const char *format, ...) { }
 #else
 static inline void debug_audio_demux(const char *format, ...) { }
 #endif
-
-static void hexdump (char *buf, int length) {
-
-  int i;
-
-  printf ("demux_qt: ascii contents>");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    if ((c >= 32) && (c < 128))
-      printf ("%c", c);
-    else
-      printf (".");
-  }
-  printf ("\n");
-
-  printf ("demux_qt: complete hexdump of package follows:\ndemux_qt 0x0000:  ");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15)
-      printf ("\ndemux_qt 0x%04x: ", i);
-
-    if ((i % 2) == 1)
-      printf (" ");
-
-  }
-  printf ("\n");
-}
 
 static inline void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {
 #if DEBUG_DUMP_MOOV
@@ -844,7 +813,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
       debug_atom_load ("demux_qt: stsd atom\n");
 #if DEBUG_ATOM_LOAD
-      hexdump (&trak_atom[i], current_atom_size);
+      xine_hexdump (&trak_atom[i], current_atom_size);
 #endif
 
       /* allocate space for each of the properties unions */
@@ -1451,7 +1420,7 @@ static qt_error parse_reference_atom (reference_t *ref,
 
 /* This is a little support function used to process the edit list when
  * building a frame table. */
-#define MAX_DURATION 0x7FFFFFFFFFFFFFFF
+#define MAX_DURATION 0x7FFFFFFFFFFFFFFFLL
 static void get_next_edit_list_entry(qt_trak *trak, 
   int *edit_list_index,
   unsigned int *edit_list_media_time, 
@@ -2713,7 +2682,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   /* fetch bandwidth config */
-  this->bandwidth = 0x7FFFFFFFFFFFFFFF;  /* assume infinite bandwidth */
+  this->bandwidth = 0x7FFFFFFFFFFFFFFFLL;  /* assume infinite bandwidth */
   if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth",
                                 &entry)) {
     if ((entry.num_value >= 0) && (entry.num_value <= 11))

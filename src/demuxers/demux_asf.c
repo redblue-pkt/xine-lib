@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.129 2003/09/13 11:50:06 tmattern Exp $
+ * $Id: demux_asf.c,v 1.130 2003/10/06 15:46:20 mroi Exp $
  *
  * demultiplexer for asf streams
  *
@@ -313,9 +313,11 @@ static void asf_send_audio_header (demux_asf_t *this, int stream) {
   this->audio_fifo->put (this->audio_fifo, buf);
 }
 
+#if 0
 static unsigned long str2ulong(unsigned char *str) {
   return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
 }
+#endif
 
 static void asf_send_video_header (demux_asf_t *this, int stream) {
 
@@ -605,15 +607,6 @@ static void asf_reorder(demux_asf_t *this, uint8_t *src, int len){
 
   xine_fast_memcpy(src,dst,i);
   free(dst);
-}
-
-static void hexdump (unsigned char *data, int len, xine_t *xine) {
-  int i;
-
-  for (i = 0; i < len; i++)
-    printf("%02x ", data[i]);
-  printf("\n");
-
 }
 
 /* redefine abs as macro to handle 64-bit diffs.

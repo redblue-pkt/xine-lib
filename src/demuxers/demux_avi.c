@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.167 2003/09/10 23:11:53 tmattern Exp $
+ * $Id: demux_avi.c,v 1.168 2003/10/06 15:46:20 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -299,6 +299,7 @@ static unsigned long str2ulong(unsigned char *str) {
   return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
 }
 
+#if 0
 static unsigned long str2ushort(unsigned char *str) {
   return ( str[0] | (str[1]<<8) );
 }
@@ -309,6 +310,7 @@ static void long2str(unsigned char *dst, int n) {
   dst[2] = (n>>16)&0xff;
   dst[3] = (n>>24)&0xff;
 }
+#endif
 
 #define PAD_EVEN(x) ( ((x)+1) & ~1 )
 
@@ -580,6 +582,7 @@ do {			\
    return 0;		\
 } while(0)
 
+#if 0
 static int avi_sampsize(avi_t *AVI, int track) {
   int s;
   s = ((AVI->audio[track]->wavex->wBitsPerSample+7)/8)*
@@ -616,6 +619,7 @@ static int avi_add_index_entry(demux_avi_t *this, avi_t *AVI, unsigned char *tag
 
   return 0;
 }
+#endif
 
 static avi_t *AVI_init(demux_avi_t *this) {
 

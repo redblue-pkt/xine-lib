@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.108 2003/09/03 13:41:10 andruil Exp $
+ * $Id: demux_ogg.c,v 1.109 2003/10/06 15:46:20 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -144,6 +144,7 @@ typedef struct {
 } demux_ogg_class_t;
 
 
+#ifdef HAVE_THEORA
 static int intlog(int num) {
   int ret=0;
 
@@ -153,6 +154,7 @@ static int intlog(int num) {
   }
   return(ret);
 }
+#endif
 
 static int get_stream (demux_ogg_t *this, int serno) {
   /*finds the stream_num, which belongs to a ogg serno*/
@@ -247,6 +249,7 @@ static void get_stream_length (demux_ogg_t *this) {
   }
 }
 
+#ifdef HAVE_THEORA
 static void send_ogg_packet (demux_ogg_t *this,
 			     fifo_buffer_t *fifo,
 			     ogg_packet *op,
@@ -309,6 +312,7 @@ static void send_ogg_packet (demux_ogg_t *this,
     fifo->put (fifo, buf);
   }
 }
+#endif
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.32 2003/07/25 21:02:04 miguelfreitas Exp $
+ * $Id: demux.h,v 1.33 2003/10/06 15:46:20 mroi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
