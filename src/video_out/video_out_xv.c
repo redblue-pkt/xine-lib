@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.27 2001/05/28 20:13:46 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.28 2001/05/29 15:55:14 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -56,18 +56,17 @@
 
 uint32_t xine_debug;
 
-/* override xprintf definition */
-/* #define xprintf(LVL, FMT, ARGS...) { printf(FMT, ##ARGS); } */
+typedef struct {
+  int                value;
+  int                min;
+  int                max;
+  Atom               atom;
+  char              *key;
 
-typedef struct xv_property_s {
-  int   value;
-  int   min;
-  int   max;
-  Atom  atom;
-  char *key;
 } xv_property_t;
 
-typedef struct xv_frame_s {
+
+typedef struct {
   vo_frame_t         vo_frame;
 
   int                width, height, ratio_code, format;
@@ -77,48 +76,59 @@ typedef struct xv_frame_s {
 
 } xv_frame_t;
 
-typedef struct xv_driver_s {
 
-  vo_driver_t      vo_driver;
+typedef struct {
 
-  config_values_t *config;
+  vo_driver_t        vo_driver;
+
+  config_values_t   *config;
 
   /* X11 / Xv related stuff */
-  Display         *display;
-  int              screen;
-  Drawable         drawable;
-  unsigned int     xv_format_rgb, xv_format_yv12, xv_format_yuy2;
-  XVisualInfo      vinfo;
-  GC               gc;
-  unsigned int     xv_port;
-  XColor           black;
+  Display           *display;
+  int                screen;
+  Drawable           drawable;
+  unsigned int       xv_format_rgb;
+  unsigned int       xv_format_yv12;
+  unsigned int       xv_format_yuy2;
+  XVisualInfo        vinfo;
+  GC                 gc;
+  XvPortID           xv_port;
+  XColor             black;
 
-  xv_property_t    props[VO_NUM_PROPERTIES];
-  uint32_t         capabilities;
+  xv_property_t      props[VO_NUM_PROPERTIES];
+  uint32_t           capabilities;
 
-  xv_frame_t      *cur_frame;
+  xv_frame_t        *cur_frame;
 
   /* size / aspect ratio calculations */
-  int              delivered_width;      /* everything is set up for these frame dimensions    */
-  int              delivered_height;     /* the dimension as they come from the decoder        */
-  int              delivered_ratio_code;
-  double           ratio_factor; /* output frame must fullfill: height = width * ratio_factor  */
-  int              output_width;         /* frames will appear in this size (pixels) on screen */
-  int              output_height;
-  int              output_xoffset;
-  int              output_yoffset;
+  int                delivered_width;      /* everything is set up for 
+					      these frame dimensions          */
+  int                delivered_height;     /* the dimension as they come 
+					      from the decoder                */
+  int                delivered_ratio_code;
+  double             ratio_factor;         /* output frame must fullfill: 
+					      height = width * ratio_factor   */
+  int                output_width;         /* frames will appear in this 
+					      size (pixels) on screen         */
+  int                output_height;
+  int                output_xoffset;
+  int                output_yoffset;
 
   /* display anatomy */
-  double           display_ratio;        /* given by visual parameter from init function */
+  double             display_ratio;        /* given by visual parameter 
+					      from init function              */
 
   /* gui callback */
 
-  void (*request_dest_size) (int video_width, int video_height,
-			     int *dest_x, int *dest_y, 
-			     int *dest_height, int *dest_width);
+  void             (*request_dest_size) (int video_width, int video_height,
+					 int *dest_x, int *dest_y, 
+					 int *dest_height, int *dest_width);
 
 } xv_driver_t;
 
+/*
+ *
+ */
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -126,6 +136,9 @@ static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
   return this->capabilities;
 }
 
+/*
+ *
+ */
 static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
 
   xv_frame_t     *frame ;
@@ -142,15 +155,21 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   return (vo_frame_t *) frame;
 }
 
-static void xv_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen,
-				    uint32_t width, uint32_t height, int ratio_code,
-				    int format) {
+/*
+ *
+ */
+static void xv_update_frame_format (vo_driver_t *this_gen,
+				    vo_frame_t *frame_gen,
+				    uint32_t width, uint32_t height,
+				    int ratio_code, int format) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
   unsigned int  xv_format;
 
-  if ((frame->width != width) || (frame->height != height) || (frame->format != format)) {
+  if ((frame->width != width) 
+      || (frame->height != height)
+      || (frame->format != format)) {
 
     /* printf ("video_out_xv: updating frame to %d x %d (ratio=%d, format=%08x)\n",width,height,ratio_code,format); */
 
@@ -198,7 +217,8 @@ static void xv_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen
 				IPC_CREAT | 0777);
 
     if (frame->image->data_size==0) {  
-      fprintf(stderr, "xv_update_frame_format: XvShmCreateImage returned a zero size\n");
+      fprintf(stderr, "xv_update_frame_format: XvShmCreateImage "
+	      "returned a zero size\n");
       exit (1);
     }   
 
@@ -210,12 +230,14 @@ static void xv_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen
     frame->shminfo.shmaddr  = (char *) shmat(frame->shminfo.shmid, 0, 0);
   
     if (frame->shminfo.shmaddr == NULL) {
-      fprintf(stderr, "xv_update_frame_format: shared memory error (address error NULL)\n");
+      fprintf(stderr, "xv_update_frame_format: shared memory "
+	      "error (address error NULL)\n");
       exit (1);
     }
 
     if (frame->shminfo.shmaddr == ((char *) -1)) {
-      fprintf(stderr, "xv_update_frame_format: shared memory error (address error)\n");
+      fprintf(stderr, "xv_update_frame_format: shared memory "
+	      "error (address error)\n");
       exit (1);
     }
 
@@ -243,7 +265,12 @@ static void xv_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen
   frame->ratio_code = ratio_code;
 }
 
-static void xv_adapt_to_output_area (xv_driver_t *this, int dest_x, int dest_y, int dest_width, int dest_height) {
+/*
+ *
+ */
+static void xv_adapt_to_output_area (xv_driver_t *this, 
+				     int dest_x, int dest_y, 
+				     int dest_width, int dest_height) {
 
   /*
    * make the frames fit into the given destination area
@@ -278,16 +305,21 @@ static void xv_adapt_to_output_area (xv_driver_t *this, int dest_x, int dest_y, 
 
   XFillRectangle(this->display, this->drawable, this->gc, 
 		 dest_x, this->output_yoffset+this->output_height, 
-		 dest_width, dest_height - this->output_yoffset - this->output_height);
+		 dest_width, 
+		 dest_height - this->output_yoffset - this->output_height);
 
   XFillRectangle(this->display, this->drawable, this->gc, 
 		 this->output_xoffset+this->output_width, dest_y, 
-		 dest_width - this->output_xoffset - this->output_width, dest_height);
-
+		 dest_width - this->output_xoffset - this->output_width, 
+		 dest_height);
 
 }
 
-static void xv_calc_format (xv_driver_t *this, int width, int height, int ratio_code) {
+/*
+ *
+ */
+static void xv_calc_format (xv_driver_t *this, 
+			    int width, int height, int ratio_code) {
 
   double image_ratio, desired_ratio;
   double corr_factor;
@@ -302,10 +334,12 @@ static void xv_calc_format (xv_driver_t *this, int width, int height, int ratio_
    * aspect ratio calculation
    */
 
-  image_ratio = (double) this->delivered_width / (double) this->delivered_height;
+  image_ratio = 
+    (double) this->delivered_width / (double) this->delivered_height;
 
-  xprintf (VERBOSE | VIDEO, "display_ratio : %f\n",this->display_ratio);
-  xprintf (VERBOSE | VIDEO, "stream aspect ratio : %f , code : %d\n", image_ratio, ratio_code);
+  xprintf (VERBOSE | VIDEO, "display_ratio : %f\n", this->display_ratio);
+  xprintf (VERBOSE | VIDEO, "stream aspect ratio : %f , code : %d\n", 
+	   image_ratio, ratio_code);
 
   switch (this->props[VO_PROP_ASPECT_RATIO].value) {
   case ASPECT_AUTO: 
@@ -321,7 +355,8 @@ static void xv_calc_format (xv_driver_t *this, int width, int height, int ratio_
     case 1: /* "square" => 4:3 */
     case 2: /* 4:3             */
     default:
-      xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n", ratio_code);
+      xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n", 
+	       ratio_code);
       desired_ratio = 4.0 / 3.0;
       break;
     }
@@ -370,12 +405,16 @@ static void xv_calc_format (xv_driver_t *this, int width, int height, int ratio_
   xv_adapt_to_output_area (this, dest_x, dest_y, dest_width, dest_height);
 }
 
+/*
+ *
+ */
 static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
 
-  if ( (frame->width != this->delivered_width) || (frame->height != this->delivered_height) 
+  if ( (frame->width != this->delivered_width)
+       || (frame->height != this->delivered_height) 
        || (frame->ratio_code != this->delivered_ratio_code) ) {
 
     xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
@@ -383,11 +422,11 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   XLockDisplay (this->display);
 
-  XvShmPutImage(this->display, this->xv_port, this->drawable, this->gc, frame->image,
+  XvShmPutImage(this->display, this->xv_port, 
+		this->drawable, this->gc, frame->image,
 		0, 0,  frame->width, frame->height-5,
 		this->output_xoffset, this->output_yoffset,
 		this->output_width, this->output_height, False);
-
 
   XFlush(this->display); 
 
@@ -401,6 +440,9 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   this->cur_frame = frame;
 }
 
+/*
+ *
+ */
 static int xv_get_property (vo_driver_t *this_gen, int property) {
   
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -408,6 +450,9 @@ static int xv_get_property (vo_driver_t *this_gen, int property) {
   return this->props[property].value;
 }
 
+/*
+ *
+ */
 static int xv_set_property (vo_driver_t *this_gen, 
 			    int property, int value) {
 
@@ -428,7 +473,8 @@ static int xv_set_property (vo_driver_t *this_gen,
     switch (property) {
     case VO_PROP_INTERLACED:
       this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_INTERLACED(%d)\n", this->props[property].value);
+      printf("video_out_xv: VO_PROP_INTERLACED(%d)\n", 
+	     this->props[property].value);
       break;
     case VO_PROP_ASPECT_RATIO:
 
@@ -436,7 +482,8 @@ static int xv_set_property (vo_driver_t *this_gen,
 	value = ASPECT_AUTO;
 
       this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n", this->props[property].value);
+      printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n", 
+	     this->props[property].value);
 
       xv_calc_format (this, this->delivered_width, this->delivered_height, 
 		      this->delivered_ratio_code) ;
@@ -448,20 +495,23 @@ static int xv_set_property (vo_driver_t *this_gen,
   return value;
 }
 
+/*
+ *
+ */
 static void xv_get_property_min_max (vo_driver_t *this_gen, 
 				     int property, int *min, int *max) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
-  printf("this property(%d): min=%d, max=%d\n", property,
-	 this->props[property].min,
-	 this->props[property].max);
-
   *min = this->props[property].min;
   *max = this->props[property].max;
 }
 
-static int xv_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *data) {
+/*
+ *
+ */
+static int xv_gui_data_exchange (vo_driver_t *this_gen, 
+				 int data_type, void *data) {
 
   xv_driver_t     *this = (xv_driver_t *) this_gen;
   x11_rectangle_t *area;
@@ -495,12 +545,16 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *dat
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
     this->drawable = (Drawable) data;
+    this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
     break;
   }
 
   return 0;
 }
 
+/*
+ *
+ */
 static void xv_exit (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -510,8 +564,10 @@ static void xv_exit (vo_driver_t *this_gen) {
   }
 }
 
-static int xv_check_yv12 (Display *display, XvPortID port)
-{
+/*
+ *
+ */
+static int xv_check_yv12 (Display *display, XvPortID port) {
   XvImageFormatValues * formatValues;
   int formats;
   int i;
@@ -527,10 +583,14 @@ static int xv_check_yv12 (Display *display, XvPortID port)
   return 1;
 }
 
+/*
+ *
+ */
 static void xv_check_capability (xv_driver_t *this, 
-				 uint32_t capability, int property, 
-				 XvAttribute attr, int base_id, char *str_prop) {
-
+				 uint32_t capability, 
+				 int property, XvAttribute attr, 
+				 int base_id, char *str_prop) {
+  
   int          nDefault;
   
   this->capabilities |= capability;
@@ -539,35 +599,39 @@ static void xv_check_capability (xv_driver_t *this,
   this->props[property].atom = XInternAtom (this->display, str_prop, False);
   this->props[property].key  = str_prop;
   
-  XvGetPortAttribute (this->display, this->xv_port, this->props[property].atom, &nDefault);
+  XvGetPortAttribute (this->display, this->xv_port,
+		      this->props[property].atom, &nDefault);
 
-  xv_set_property (&this->vo_driver, property, this->config->lookup_int (this->config, str_prop, nDefault) );
+  xv_set_property (&this->vo_driver, property, 
+		   this->config->lookup_int (this->config, str_prop, nDefault));
 }
 
+/*
+ *
+ */
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xv_driver_t          *this;
   Display              *display = NULL;
   unsigned int          adaptor_num, adaptors, i, j, formats;
   unsigned int          ver,rel,req,ev,err;
-  unsigned int          xv_port;
+  XvPortID              xv_port;
   XvAttribute          *attr;
   XvAdaptorInfo        *adaptor_info;
   XvImageFormatValues  *fo;
   int                   nattr;
-  x11_visual_t         *visual;
+  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XColor                dummy;
-
-  visual = (x11_visual_t *) visual_gen;
+  
   display = visual->display;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
-
+  
   /*
    * check for Xvideo support 
    */
 
   if (Success != XvQueryExtension(display,&ver,&rel,&req,&ev,&err)) {
-    printf ("video_out_xv: Xv extension not present.\n");
+    fprintf (stderr, "video_out_xv: Xv extension not present.\n");
     return NULL;
   }
 
@@ -577,7 +641,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   if (Success != XvQueryAdaptors(display,DefaultRootWindow(display), 
 				 &adaptors,&adaptor_info))  {
-    printf("video_out_xv: XvQueryAdaptors failed.\n");
+    fprintf(stderr, "video_out_xv: XvQueryAdaptors failed.\n");
     return NULL;
   }
 
@@ -585,25 +649,34 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   adaptor_num = 0;
 
   while ( (adaptor_num < adaptors) && !xv_port) {
-    if (adaptor_info[adaptor_num].type & XvImageMask)
+
+    if (adaptor_info[adaptor_num].type & XvImageMask) {
+
       for (j = 0; j < adaptor_info[adaptor_num].num_ports; j++)
-	if (( !(xv_check_yv12 (display, adaptor_info[adaptor_num].base_id + j))) 
-	    && (XvGrabPort (display, adaptor_info[adaptor_num].base_id + j, 0) == Success)) {
+	if (( !(xv_check_yv12 (display, 
+			       adaptor_info[adaptor_num].base_id + j))) 
+	    && (XvGrabPort (display, 
+			    adaptor_info[adaptor_num].base_id + j, 
+			    0) == Success)) {
 	  xv_port = adaptor_info[adaptor_num].base_id + j;
 	  break; 
 	}
-
+      
+    }
+    
     adaptor_num++;
   }
 
-
   if (!xv_port) {
-    printf ("video_out_xv: Xv extension is present but I couldn't find a usable yuv12 port.\n");
-    printf ("              Looks like your graphics hardware driver doesn't support Xv?!\n");
+    fprintf (stderr, "video_out_xv: Xv extension is present but "
+	     "I couldn't find a usable yuv12 port.\n");
+    fprintf (stderr, "              Looks like your graphics hardware "
+	     "driver doesn't support Xv?!\n");
     XvFreeAdaptorInfo (adaptor_info);
     return NULL;
   } else
-    printf ("video_out_xv: using Xv port %d for hardware colorspace conversion and scaling.\n", xv_port);
+    fprintf (stderr, "video_out_xv: using Xv port %ld for hardware "
+	     "colorspace conversion and scaling.\n", xv_port);
 
   /*
    * from this point on, nothing should go wrong anymore; so let's start initializing this driver
@@ -635,7 +708,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XAllocNamedColor(this->display, 
 		   DefaultColormap(this->display, this->screen), 
 		   "black", &this->black, &dummy);
-
 
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
@@ -708,7 +780,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     printf("\n");
     XFree(attr);
   } else {
-    printf("video_out_xv: no port attributes defined.\n");
+    fprintf(stderr, "video_out_xv: no port attributes defined.\n");
   }
 
   XvFreeAdaptorInfo (adaptor_info);
@@ -730,21 +802,24 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     if (fo[i].id == IMGFMT_YV12)  {
       this->xv_format_yv12 = fo[i].id;
       this->capabilities |= VO_CAP_YV12;
-      printf ("video_out_xv: this adaptor supports the yv12 format.\n");
+      fprintf(stderr, "video_out_xv: this adaptor supports the yv12 format.\n");
     } else if (fo[i].id == IMGFMT_YUY2) {
       this->xv_format_yuy2 = fo[i].id;
       this->capabilities |= VO_CAP_YUY2;
-      printf ("video_out_xv: this adaptor supports the yuy2 format.\n");
+      fprintf(stderr, "video_out_xv: this adaptor supports the yuy2 format.\n");
     } else if (fo[i].id == IMGFMT_RGB) {
       this->xv_format_rgb = fo[i].id;
       this->capabilities |= VO_CAP_RGB;
-      printf ("video_out_xv: this adaptor supports the rgb format.\n");
+      fprintf(stderr, "video_out_xv: this adaptor supports the rgb format.\n");
     }
   }
 
   return &this->vo_driver;
 }
 
+/*
+ *
+ */
 static vo_info_t vo_info_xv = {
   VIDEO_OUT_IFACE_VERSION,
   "Xv",
@@ -756,6 +831,5 @@ static vo_info_t vo_info_xv = {
 vo_info_t *get_video_out_plugin_info() {
   return &vo_info_xv;
 }
-
 
 #endif
