@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.147 2002/11/04 10:07:50 siggi Exp $
+ * $Id: video_out_xv.c,v 1.148 2002/11/10 13:38:04 mroi Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -439,7 +439,8 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
   if ( !this->deinterlace_frame.image
        || (frame->width != this->deinterlace_frame.width)
        || (frame->height != this->deinterlace_frame.height )
-       || (frame->format != this->deinterlace_frame.format)) {
+       || (frame->format != this->deinterlace_frame.format)
+       || (frame->ratio_code != this->deinterlace_frame.ratio_code)) {
     XLockDisplay (this->display);
 
     if( this->deinterlace_frame.image )
