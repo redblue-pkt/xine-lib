@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.26 2003/04/09 21:47:35 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.27 2003/05/12 07:07:12 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -520,7 +520,9 @@ static int pgx64_get_property(pgx64_driver_t *this, int property)
 
 static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
 {
+#ifdef LOG
   printf("video_out_pgx64: Propery %d was set to 0x%08x\n", property, value);
+#endif
 
   switch (property) {
     case VO_PROP_INTERLACED: {
@@ -682,8 +684,6 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   int fbfd;
   uint8_t *baseaddr;
   struct fbgattr attr;
-
-  printf("video_out_pgx64: PGX64 video output plugin - By Robin Kay\n");
 
   pthread_mutex_lock(&class->mutex);
   if (class->instance_count > 0) {
