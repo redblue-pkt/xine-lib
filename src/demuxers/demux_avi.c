@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.73 2002/04/09 03:37:59 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.74 2002/04/09 04:14:13 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1102,6 +1102,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     if ( !this->avi->video_type ) {
       xine_log (this->xine, XINE_LOG_FORMAT, _("demux_avi: unknown video codec '%.4s'\n"),
 	        (char*)&this->avi->bih.biCompression);
+      buf->free_buffer (buf);
  
       this->status = DEMUX_FINISHED;
     }
