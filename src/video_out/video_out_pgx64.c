@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.57 2004/04/26 17:50:10 mroi Exp $
+ * $Id: video_out_pgx64.c,v 1.58 2004/04/27 10:18:45 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -493,7 +493,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
     }
 
-    if (dgavis == DGA_VIS_UNOBSCURED) {
+    if ((dgavis == DGA_VIS_UNOBSCURED) && !this->chromakey_en) {
       int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
       int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
 
