@@ -363,7 +363,7 @@ void render_font (FT_Face face, char *fontname, int size, int thickness,
    * generate filename, open file
    */
    
-  sprintf (filename, "%s-%d.xinefont.gz", fontname, size);
+  snprintf (filename, sizeof(filename), "%s-%d.xinefont.gz", fontname, size);
 
   fp = gzopen(filename,"w");
  
@@ -376,7 +376,8 @@ void render_font (FT_Face face, char *fontname, int size, int thickness,
    * set up font
    */
 
-  strcpy(font.name, fontname);
+  strncpy(font.name, fontname, sizeof(font.name));
+  font.name[sizeof(font.name) - 1] = '\0';
   /* changes from version 1 to version 2: 
    *   'code' in characters is defined as little endian 16-bit unicode
    *   characters are sorted by 'code'
