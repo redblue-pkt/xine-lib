@@ -781,12 +781,10 @@ case "$host_or_hostalias" in
                 ;;
 	    pentium-mmx-*)
 		archopt_val="pentium-mmx" 
-		enable_ffmmx="yes"
 		CFLAGS="$CFLAGS $f_mmmx"
 		;;
 	    pentiumpro-* | pentium2-* | i686-*)
 		archopt_val="pentiumpro"
-		enable_ffmmx="yes"
 		if test x"$check_athlon" = "xyes"; then
 		    if test -f /proc/cpuinfo; then
 			modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
@@ -800,28 +798,28 @@ case "$host_or_hostalias" in
 		fi
                 CFLAGS="$CFLAGS $f_mmmx"
 		;;
+	    k6-2-* | k6-3-*)
+		archopt_val="k6-2"
+		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow"
+		;;
 	    k6-*)
 		archopt_val="k6"
-		CFLAGS="$CFLAGS $f_m3dnow"
+		CFLAGS="$CFLAGS $f_mmmx"
 		;;
 	    pentium3-*)
 		archopt_val="pentium3"
-		enable_ffmmx="yes"
 		CFLAGS="$CFLAGS $f_mmmx $f_msse"
 		;;
 	    pentium4-*)
 		archopt_val="pentium4"
-		enable_ffmmx="yes"
 		CFLAGS="$CFLAGS $f_mmmx $f_msse2"
 		;;
 	    athlon-4-* | athlon-xp-* | athlon-mp-*)
 		archopt_val="athlon-4"
-		enable_ffmmx="yes"
 		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow $f_msse"
 		;;
 	    k7-* | athlon-tbird-* | athlon-*)
 		archopt_val="athlon"
-		enable_ffmmx="yes"
 		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow"
 		;;
 	    
@@ -841,6 +839,7 @@ case "$host_or_hostalias" in
 	dnl
     	AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
 	AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
+	enable_ffmmx="yes"
 	enable_w32dll="yes"
     else
 	dnl add x86 specific cc CFLAGS
