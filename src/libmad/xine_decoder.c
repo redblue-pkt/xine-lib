@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2003/01/08 01:02:29 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.40 2003/01/11 11:29:22 esnel Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -59,6 +59,7 @@ typedef struct mad_decoder_s {
 
   uint8_t           buffer[INPUT_BUF_SIZE];
   int               bytes_in_buffer;
+  int               preview_mode;
 
 } mad_decoder_t;
 
@@ -72,6 +73,7 @@ static void mad_reset (audio_decoder_t *this_gen) {
 
   this->pts = 0;
   this->bytes_in_buffer = 0;
+  this->preview_mode = 0;
 
   mad_synth_init  (&this->synth);
   mad_stream_init (&this->stream);
@@ -134,6 +136,15 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
   
   if ((buf->decoder_flags & BUF_FLAG_HEADER) == 0) {
+
+    /* reset decoder on leaving preview mode */
+    if ((buf->decoder_flags & BUF_FLAG_PREVIEW) == 0) {
+      if (this->preview_mode) {
+	mad_reset (this_gen);
+      }
+    } else {
+      this->preview_mode = 1;
+    }
 
     xine_fast_memcpy (&this->buffer[this->bytes_in_buffer], 
                         buf->content, buf->size);
@@ -293,6 +304,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->output_open     = 0;
   this->bytes_in_buffer = 0;
+  this->preview_mode    = 0;
 
   this->xstream         = stream;
 
