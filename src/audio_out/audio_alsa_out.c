@@ -18,13 +18,14 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * Credits go 
- * for the SPDIF AC3 sync part
- * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
+ * - for the SPDIF AC3 sync part
+ * - frame size calculation added (16-08-2001)
+ * (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
  * for initial ALSA 0.9.x support.
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.14 2001/08/14 01:38:17 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.15 2001/08/20 11:15:57 joachim_koenig Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,6 +79,56 @@
 #define GAP_TOLERANCE        15000
 #define MAX_MASTER_CLOCK_DIV  5000
 #define MAX_GAP              90000
+
+struct frmsize_s
+{
+		uint16_t bit_rate;
+		uint16_t frm_size[3];
+};
+
+
+static const struct frmsize_s frmsizecod_tbl[64] = 
+{
+		{ 32  ,{64   ,69   ,96   } },
+		{ 32  ,{64   ,70   ,96   } },
+		{ 40  ,{80   ,87   ,120  } },
+		{ 40  ,{80   ,88   ,120  } },
+		{ 48  ,{96   ,104  ,144  } },
+		{ 48  ,{96   ,105  ,144  } },
+		{ 56  ,{112  ,121  ,168  } },
+		{ 56  ,{112  ,122  ,168  } },
+		{ 64  ,{128  ,139  ,192  } },
+		{ 64  ,{128  ,140  ,192  } },
+		{ 80  ,{160  ,174  ,240  } },
+		{ 80  ,{160  ,175  ,240  } },
+		{ 96  ,{192  ,208  ,288  } },
+		{ 96  ,{192  ,209  ,288  } },
+		{ 112 ,{224  ,243  ,336  } },
+		{ 112 ,{224  ,244  ,336  } },
+		{ 128 ,{256  ,278  ,384  } },
+		{ 128 ,{256  ,279  ,384  } },
+		{ 160 ,{320  ,348  ,480  } },
+		{ 160 ,{320  ,349  ,480  } },
+		{ 192 ,{384  ,417  ,576  } },
+		{ 192 ,{384  ,418  ,576  } },
+		{ 224 ,{448  ,487  ,672  } },
+		{ 224 ,{448  ,488  ,672  } },
+		{ 256 ,{512  ,557  ,768  } },
+		{ 256 ,{512  ,558  ,768  } },
+		{ 320 ,{640  ,696  ,960  } },
+		{ 320 ,{640  ,697  ,960  } },
+		{ 384 ,{768  ,835  ,1152 } },
+		{ 384 ,{768  ,836  ,1152 } },
+		{ 448 ,{896  ,975  ,1344 } },
+		{ 448 ,{896  ,976  ,1344 } },
+		{ 512 ,{1024 ,1114 ,1536 } },
+		{ 512 ,{1024 ,1115 ,1536 } },
+		{ 576 ,{1152 ,1253 ,1728 } },
+		{ 576 ,{1152 ,1254 ,1728 } },
+		{ 640 ,{1280 ,1393 ,1920 } },
+		{ 640 ,{1280 ,1394 ,1920 } }
+};
+
 
 typedef struct alsa_functions_s {
 
@@ -360,8 +411,8 @@ static void ao_fill_gap (alsa_functions_t *this, uint32_t pts_len) {
   num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
 
   if(this->open_mode == AO_CAP_MODE_AC3) {
-    write_pause_burst(this,0);
-printf("audio_alsa_out: SPDIF write pause\n");
+    //write_pause_burst(this,0);
+	//printf("audio_alsa_out: SPDIF write pause\n");
     return; 
   }
 
@@ -410,7 +461,7 @@ void xrun(alsa_functions_t *this)
 void write_burst(alsa_functions_t *this,u_char *data, size_t count)
 {
     ssize_t r;
-
+	
    while( count > 0) {
       r = snd_pcm_writei(this->audio_fd, data, count);
       if (r == -EAGAIN || (r >=0 && r < count)) {
@@ -467,6 +518,10 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   int      bDropPackage;
   uint16_t sample_buffer[8192];
   int      num_output_samples;
+  int	   frame_size;
+  int      fscod;
+  int	   frmsizecod;
+  uint8_t  *data;
   snd_pcm_sframes_t res = 0;                                                                
 
   if (this->audio_fd == NULL) {
@@ -541,19 +596,22 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
        sample_buffer[0] = 0xf872;  //spdif syncword
        sample_buffer[1] = 0x4e1f;  // .............
        sample_buffer[2] = 0x0001;  // AC3 data
-       sample_buffer[3] = num_samples * 16;
-       sample_buffer[4] = 0x0b77;  // AC3 syncwork
 
+	   data = (uint8_t *)&output_samples[1]; // skip AC3 sync
+	   fscod = (data[2] >> 6) & 0x3;
+	   frmsizecod = data[2] & 0x3f;
+	   frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] << 4;
+	   sample_buffer[3] = frame_size;
+	   
        // ac3 seems to be swabbed data
-       swab(&output_samples[1],&sample_buffer[5],  num_samples * 2 );
-    }
+       swab(&output_samples[0],&sample_buffer[4],  num_samples * 2 );
+   }
 
 
 
     /* Special note, the new ALSA outputs in counts of frames.
      * A Frame is one sample for all channels, so here a Stereo 16 bits frame is 4 bytes.
      */
-
     write_burst(this, (unsigned char *)sample_buffer, num_output_samples);    
     /*
      * step values
@@ -639,12 +697,12 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
   this = (alsa_functions_t *) malloc (sizeof (alsa_functions_t));
  
-  pcm_device = config->lookup_str(config,"alsa_pcm_device", "plug:0,0");
-  ac3_device = config->lookup_str(config,"alsa_ac3_device", "plug:0,2");
+  pcm_device = config->lookup_str(config,"alsa_pcm_device", "hw:0,0");
+  ac3_device = config->lookup_str(config,"alsa_ac3_device", "hw:0,2");
 
  
   strcpy(this->audio_dev,pcm_device);
-
+  
   /*
    * find best device driver/channel
    */
