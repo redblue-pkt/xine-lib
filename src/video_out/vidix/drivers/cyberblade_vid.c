@@ -1,9 +1,7 @@
 /*
-    Driver for CyberBlade/i1 - Version 0.1.1
+    Driver for CyberBlade/i1 - Version 0.1.3
 
     Copyright (C) 2002 by Alastair M. Robinson.
-    Official homepage: http://www.blackfiveservices.co.uk/EPIAVidix.shtml
-
     Based on Permedia 3 driver by Måns Rullgård
 
     Thanks to Gilles Frattini for bugfixes
@@ -55,9 +53,14 @@ unsigned char *cyberblade_mem;
 int cyberblade_crtc;
 char save_colourkey[6];
 
-/* Helper functions for reading registers.
-   Implementing these as macros leads to problems
-   which are either cache or timing related... */
+#ifdef DEBUG_LOGFILE
+FILE *logfile=0;
+#define LOGWRITE(x) {if(logfile) fprintf(logfile,x);}
+#else
+#define LOGWRITE(x)
+#endif
+
+/* Helper functions for reading registers. */
 
 static int CRINW(int reg)
 {
@@ -69,6 +72,7 @@ static int CRINW(int reg)
 
 static void CROUTW(int reg,int val)
 {
+	val&=0xffff;
 	CROUTB(reg,val&255);
 	CROUTB(reg+1,(val>>8)&255);
 }
@@ -83,8 +87,31 @@ static int SRINW(int reg)
 
 static void SROUTW(int reg,int val)
 {
+	val&=0xffff;
 	SROUTB(reg,val&255);
 	SROUTB(reg+1,(val>>8)&255);
+}
+
+void DumpRegisters()
+{
+#ifdef DEBUG_LOGFILE
+	int reg,val;
+	if(logfile)
+	{
+		LOGWRITE("CRTC Register Dump:\n")
+		for(reg=0;reg<256;++reg)
+		{
+			val=CRINB(reg);
+			fprintf(logfile,"CR0x%2x: 0x%2x\n",reg,val);
+		}
+		LOGWRITE("SR Register Dump:\n")
+		for(reg=0;reg<256;++reg)
+		{
+			val=SRINB(reg);
+			fprintf(logfile,"SR0x%2x: 0x%2x\n",reg,val);
+		}
+	}
+#endif
 }
 
 /* --- */
@@ -172,15 +199,21 @@ int VIDIX_NAME(vixInit)(const char *args)
 {
 	cyberblade_reg_base = map_phys_mem(pci_info.base1, 0x20000);
 	cyberblade_mem = map_phys_mem(pci_info.base0, 0x800000);
-	if(INB(0x3cc)&1)
-		cyberblade_crtc=0x3d0;
-	else
-		cyberblade_crtc=0x3b0;
+	enable_app_io();
+	OUTPORT8(0x3d4,0x39);
+	OUTPORT8(0x3d5,INPORT(0x3d5)|1); /* Make sure MMIO is enabled... */
 
-	printf(CYBERBLADE_MSG" Using IOBase: 0x%lx, FBBase: 0x%lx, CRTC at 0x%x\n",
-	       (long unsigned) cyberblade_reg_base,(long unsigned) cyberblade_mem,
-	       (unsigned) cyberblade_crtc);
+#ifdef DEBUG_LOGFILE
+	logfile=fopen("/tmp/cyberblade_vidix.log","w");
+#endif
 
+	SRINB(0x0b); /* Select new mode */
+
+	printf(CYBERBLADE_MSG" Using IOBase: 0x%lx, FBBase: 0x%lx\n",
+	       (unsigned long) cyberblade_reg_base,
+	       (unsigned long) cyberblade_mem);
+
+	LOGWRITE("Colour key:\n");
 	save_colourkey[0]=SRINB(0x50);
 	save_colourkey[1]=SRINB(0x51);
 	save_colourkey[2]=SRINB(0x52);
@@ -188,12 +221,19 @@ int VIDIX_NAME(vixInit)(const char *args)
 	save_colourkey[4]=SRINB(0x55);
 	save_colourkey[5]=SRINB(0x56);
 
+	printf(CYBERBLADE_MSG" Saved colourkey: %x, %x, %x, %x, %x, %x\n",
+		save_colourkey[0],save_colourkey[1],save_colourkey[2],
+		save_colourkey[3],save_colourkey[4],save_colourkey[5]);
+
+	LOGWRITE("Colour key done:\n");
+
 	return 0;
 }
 
 void VIDIX_NAME(vixDestroy)(void)
 {
 	int protect;
+	LOGWRITE("Cleanup:\n");
 	protect=SRINB(0x11);
 	SROUTB(0x11, 0x92);
 	CROUTB(0x8E, 0xc4); /* Disable overlay */
@@ -204,9 +244,13 @@ void VIDIX_NAME(vixDestroy)(void)
 	SROUTB(0x55,save_colourkey[4]);
 	SROUTB(0x56,save_colourkey[5]);
 	SROUTB(0x11, protect);
+	LOGWRITE("Done\n");
+#ifdef DEBUG_LOGFILE
+	fclose(logfile);
+#endif
+	disable_app_io();
 	unmap_phys_mem(cyberblade_reg_base, 0x20000);
 	unmap_phys_mem(cyberblade_mem, 0x800000);
-	disable_app_io();
 }
 
 
@@ -223,6 +267,7 @@ static int is_supported_fourcc(uint32_t fourcc)
 	{
 		case IMGFMT_YUY2:
 		case IMGFMT_YV12:
+		case IMGFMT_I420:
 		case IMGFMT_YVU9:
 		case IMGFMT_BGR16:
 			return 1;
@@ -263,33 +308,42 @@ int VIDIX_NAME(vixSetGrKeys)(const vidix_grkey_t *grkey)
 {
 	int pixfmt=CRINB(0x38);
 	int protect;
-	memcpy(&cyberblade_grkey, grkey, sizeof(vidix_grkey_t));
+	if(grkey!=(&cyberblade_grkey))
+		memcpy(&cyberblade_grkey, grkey, sizeof(vidix_grkey_t));
 
+	LOGWRITE("Setting colour key:\n");
 	protect=SRINB(0x11);
 	SROUTB(0x11, 0x92);
 
 	if(pixfmt&0x28) /* 32 or 24 bpp */
 	{
+		LOGWRITE("\t24 / 32 bit:\n");
 		SROUTB(0x50, cyberblade_grkey.ckey.blue); /* Colour Key */
 		SROUTB(0x51, cyberblade_grkey.ckey.green); /* Colour Key */
 		SROUTB(0x52, cyberblade_grkey.ckey.red); /* Colour Key */
 		SROUTB(0x54, 0xff); /* Colour Key Mask */
 		SROUTB(0x55, 0xff); /* Colour Key Mask */
 		SROUTB(0x56, 0xff); /* Colour Key Mask */
+		printf(CYBERBLADE_MSG" Setting colourkey for 24/32 bit: %x, %x, %x\n",
+			cyberblade_grkey.ckey.blue,cyberblade_grkey.ckey.green,cyberblade_grkey.ckey.red);
 	}
 	else
 	{
 		int tmp=((cyberblade_grkey.ckey.blue & 0xF8)>>3)
 			| ((cyberblade_grkey.ckey.green & 0xfc)<<3)
 			| ((cyberblade_grkey.ckey.red & 0xf8)<<8);
+		LOGWRITE("\t16 bit:\n");
 		SROUTB(0x50, tmp&0xff); /* Colour Key */
 		SROUTB(0x51, (tmp>>8)&0xff); /* Colour Key */
 		SROUTB(0x52, 0); /* Colour Key */
 		SROUTB(0x54, 0xff); /* Colour Key Mask */
 		SROUTB(0x55, 0xff); /* Colour Key Mask */
 		SROUTB(0x56, 0x00); /* Colour Key Mask */
+		printf(CYBERBLADE_MSG" Setting colourkey for 16 bit: %x, %x\n",
+			tmp&0xff,(tmp>>8)&0xff);
 	}
 	SROUTB(0x11,protect);
+	LOGWRITE("Done\n");
 	return(0);
 }
 
@@ -332,13 +386,15 @@ int VIDIX_NAME(vixPlaybackSetEq)( const vidix_video_eq_t * eq)
 	sat = (equal.saturation + 1000) * 16 / 2000;
 	if (sat < 0) sat = 0; if(sat > 31) sat = 31;
 
+	LOGWRITE("Contrast/Brightness:\n");
 	protect=SRINB(0x11);
 	SROUTB(0x11, 0x92);
 
 	SROUTB(0xBC,cr);
 	SROUTW(0xB0,(br<<10)|4);
-
+	printf(CYBERBLADE_MSG" Setting contrast and brightness: %x, %x\n",cr,(br<<10|4));
 	SROUTB(0x11, protect);
+	LOGWRITE("Done:\n");
 
 	return 0;
 }
@@ -385,6 +441,15 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 			info->frame_size = y_pitch*src_h + 2*uv_pitch*(src_h/2);
 			layout=0x1; /* planar, 4:1:1 */
 			break;
+		case IMGFMT_I420:
+			y_pitch = (src_w+15) & ~15;
+			uv_pitch = ((src_w/2)+7) & ~7;
+			YOffs=info->offset.y = 0;
+			VOffs=info->offset.u = y_pitch*src_h;
+			UOffs=info->offset.v = info->offset.u+(uv_pitch)*(src_h/2);
+			info->frame_size = y_pitch*src_h + 2*uv_pitch*(src_h/2);
+			layout=0x1; /* planar, 4:1:1 */
+			break;
 		case IMGFMT_YVU9:
 			y_pitch = (src_w+15) & ~15;
 			uv_pitch = ((src_w/4)+3) & ~3;
@@ -395,6 +460,10 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 			layout=0x51; /* planar, 16:1:1 */
 			break;
 	}
+
+	printf(CYBERBLADE_MSG" Initialised FourCC: %lx, Pitches: %x, %x\n",
+	       (unsigned long) info->fourcc,(unsigned) y_pitch,(unsigned) uv_pitch);
+	printf(CYBERBLADE_MSG" Framesize: %x, Offsets: %x, %x, %x\n",info->frame_size,YOffs,UOffs,VOffs);
 
 	/* Assume we have 2 MB to play with */
 	info->num_frames = 0x200000 / info->frame_size;
@@ -415,46 +484,18 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 		frames[i] = base0+info->offsets[i];
 	}
 
-	enable_app_io();
-	OUTPORT8(0x3d4,0x39);
-	OUTPORT8(0x3d5,INPORT(0x3d5)|1);
-
-	SRINB(0x0b); /* Select new mode */
-
+	LOGWRITE("ConfigPlayback:\n");
+	LOGWRITE("\tKey mode:\n");
 	/* Unprotect hardware registers... */
 	protect=SRINB(0x11);
 	SROUTB(0x11, 0x92);
 
-	SROUTB(0x57, 0xc0); /* Playback key function */
+	SROUTB(0x57, 0xcc); /* Playback key function */
 	SROUTB(0x21, 0x34); /* Signature control */
-	SROUTB(0x37, 0x30); /* Video key mode */
+	SROUTB(0x37, 0x30); /* Video key mode - was 0x30 */
 
-	{
-		int pixfmt=CRINB(0x38);
-		if(pixfmt&0x28) /* 32 or 24 bpp */
-		{
-			SROUTB(0x50, cyberblade_grkey.ckey.blue); /* Colour Key */
-			SROUTB(0x51, cyberblade_grkey.ckey.green); /* Colour Key */
-			SROUTB(0x52, cyberblade_grkey.ckey.red); /* Colour Key */
-			SROUTB(0x54, 0xff); /* Colour Key Mask */
-			SROUTB(0x55, 0xff); /* Colour Key Mask */
-			SROUTB(0x56, 0xff); /* Colour Key Mask */
-                        printf(CYBERBLADE_MSG" 24/32-bit mode detected\n"); 
-		}
-		else
-		{
-			int tmp=((cyberblade_grkey.ckey.blue & 0xf8)>>3)
-				|((cyberblade_grkey.ckey.green & 0xfc)<<3)
-				|((cyberblade_grkey.ckey.red & 0xf8)<<8);
-			SROUTB(0x50, tmp&0xff); /* Colour Key */
-			SROUTB(0x51, (tmp>>8)&0xff); /* Colour Key */
-			SROUTB(0x52, 0x00); /* Colour Key */
-			SROUTB(0x54, 0xff); /* Colour Key Mask */
-			SROUTB(0x55, 0xff); /* Colour Key Mask */
-			SROUTB(0x56, 0x00); /* Colour Key Mask */
-                        printf(CYBERBLADE_MSG" 16-bit assumed\n"); 
-		}
-	}
+	vixSetGrKeys(&cyberblade_grkey);
+
 	/* compute_scale_factor(&src_w, &drw_w, &shrink, &zoom); */
 	{
 		int HTotal,VTotal,HSync,VSync,Overflow;
@@ -462,6 +503,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 
 		if(CRINB(0xd1)&0x80)
 		{
+			LOGWRITE("\tTV-CRTC:\n");
 			printf(CYBERBLADE_MSG" Using TV-CRTC\n");
 			HTotal=CRINB(0xe0);
 			HSync=CRINB(0xe4);
@@ -478,6 +520,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 		}
 		else
 		{
+			LOGWRITE("\tStandard CRTC:\n");
 			printf(CYBERBLADE_MSG" Using Standard CRTC\n");
 			HTotal=CRINB(0x00);
 			HSync=CRINB(0x04);
@@ -500,6 +543,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 		tx2=tx1+info->dest.w;
 		ty2=ty1+info->dest.h;
 
+		LOGWRITE("\tWindow:\n");
 		CROUTW(0x86,tx1);
 		CROUTW(0x88,ty1);
 		CROUTW(0x8a,tx2);
@@ -521,11 +565,15 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 	if(drw_h<src_h)
 		vscale=0x8000|((drw_h<<10)/(src_h));
 
+	printf(CYBERBLADE_MSG" HScale: 0x%x, VScale: 0x%x\n",hscale,vscale);
+
 	/* Write scale factors to hardware */
 
+	LOGWRITE("\tScale:\n");
 	CROUTW(0x80,hscale); /* Horizontal Scale */
 	CROUTW(0x82,vscale); /* Vertical Scale */
 
+	LOGWRITE("Data layout:\n");
 	/* Now set the start address and data layout */
 	{
 		int lb = (y_pitch+2) >> 2;
@@ -537,7 +585,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 		CROUTB(0xBB, 0x00); /* Chroma key */
 		CROUTB(0xBC, 0xFF); /* Chroma key */
 		CROUTB(0xBD, 0xFF); /* Chroma key */
-		CROUTB(0xBE, 0x05); /* Capture control */
+		CROUTB(0xBE, 0x04); /* Was: 0x05 Capture control */
 
 		if(src_w > 384)
 			layout|=4; /* 2x line buffers */
@@ -560,6 +608,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 				break;
 		}
 
+		LOGWRITE("\tFramebuffer address:\n");
 		CROUTB(0x92, ((base0+info->offset.y) >> 3) &0xff); /* Lower 8 bits of start address */
 		CROUTB(0x93, ((base0+info->offset.y) >> 11) &0xff); /* Mid 8 bits of start address */
 		CROUTB(0x94, ((base0+info->offset.y) >> 19) &0xf); /* Upper 4 bits of start address */
@@ -575,24 +624,40 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 
 	/* Protect hardware registers again */
 	SROUTB(0x11, protect);
+	LOGWRITE("Done\n");
+	DumpRegisters();
 	return 0;
 }
 
 
 int VIDIX_NAME(vixPlaybackOn)(void)
 {
+	int protect;
 	/* Enable overlay */
+	LOGWRITE("Enable overlay:\n");
+	protect=SRINB(0x11);
+	SROUTB(0x11, 0x92);
+
 	CROUTB(0x8E, 0xd4); /* VDE Flags*/
 
+	SROUTB(0x11, protect);
+	LOGWRITE("Done\n");
 	return 0;
 }
 
 
 int VIDIX_NAME(vixPlaybackOff)(void)
 {
+	int protect;
 	/* Disable overlay */
+	LOGWRITE("Disable overlay:\n");
+	protect=SRINB(0x11);
+	SROUTB(0x11, 0x92);
+
 	CROUTB(0x8E, 0xc4); /* VDE Flags*/
 
+	SROUTB(0x11, protect);
+	LOGWRITE("Done\n");
 	return 0;
 }
 
@@ -600,6 +665,7 @@ int VIDIX_NAME(vixPlaybackOff)(void)
 int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
 {
 	int protect;
+	LOGWRITE("Frame Select:\n");
 	protect=SRINB(0x11);
 	SROUTB(0x11, 0x92);
 	/* Set overlay address to that of selected frame */
@@ -613,6 +679,7 @@ int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
 	SROUTB(0x84, ((frames[frame]+UOffs) >> 11) &0xff); /* Mid 8 bits of start address */
 	SROUTB(0x85, ((frames[frame]+UOffs) >> 19) &0xf); /* Upper 4 bits of start address */
 	SROUTB(0x11, protect);
+	LOGWRITE("Done\n");
 	return 0;
 }
 
