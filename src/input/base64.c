@@ -41,7 +41,7 @@
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-     $Id: base64.c,v 1.1 2004/05/05 09:11:39 hadess Exp $
+     $Id: base64.c,v 1.2 2004/05/05 18:44:19 mroi Exp $
 
 ----------------------------------------------------------------------------*/
 /*
@@ -91,6 +91,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+
+#include "base64.h"
 
 
 /* NOTE: This is not true RFC822 anymore. The use of the characters
