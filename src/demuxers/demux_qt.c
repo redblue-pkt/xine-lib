@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.161 2003/06/16 02:44:46 tmmm Exp $
+ * $Id: demux_qt.c,v 1.162 2003/06/29 01:38:57 hadess Exp $
  *
  */
 
@@ -1394,7 +1394,8 @@ static qt_error parse_reference_atom (reference_t *ref,
     if (current_atom == RDRF_ATOM) {
 
       /* if the URL starts with "http://", copy it */
-      if (strncmp(&ref_atom[i + 12], "http://", 7) == 0) {
+      if (strncmp(&ref_atom[i + 12], "http://", 7) == 0
+        || strncmp(&ref_atom[i + 16], "rtsp://", 7) == 0) {
 
         /* URL is spec'd to terminate with a NULL; don't trust it */
         ref->url = xine_xmalloc(BE_32(&ref_atom[i + 12]) + 1);
@@ -2674,6 +2675,9 @@ static int demux_qt_get_status (demux_plugin_t *this_gen) {
 static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
+
+  if (this->qt->timescale == 0)
+    return 0;
 
   return (int)((int64_t) 1000 * this->qt->duration / this->qt->timescale);
 }
