@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.122 2004/06/05 16:06:12 jcdutton Exp $
+ * $Id: xine.h.in,v 1.123 2004/07/02 19:22:19 athp Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -421,6 +421,12 @@ int64_t xine_get_current_vpts(xine_stream_t *stream);
  * access to decoded audio and video frames from a stream
  * these functions are intended to provide the basis for
  * re-encoding and other video processing applications
+ *
+ * note that the xine playback engine will block when
+ * rendering to a framegrab port: to unblock the stream,
+ * you must fetch the frames manually with the
+ * xine_get_next_* functions.  this ensures that a
+ * framegrab port is guaranteed to never miss a frame.
  *
  * warning: highly experimental
  *
