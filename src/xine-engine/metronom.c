@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.20 2001/08/25 21:34:25 jcdutton Exp $
+ * $Id: metronom.c,v 1.21 2001/08/26 09:32:38 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -70,11 +70,36 @@ static int unixscr_get_priority (scr_plugin_t *scr) {
   return 5; /* low priority */
 }
 
+/* Only call this when already mutex locked */
+static void unixscr_set_pivot (unixscr_t *this) {
+
+  struct   timeval tv;
+  uint32_t pts;
+  double   pts_calc; 
+
+  gettimeofday(&tv, NULL);
+  
+  pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
+  pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
+
+  pts = this->cur_pts + pts_calc;
+/* This next part introduces a one off inaccuracy 
+ * to the scr due to rounding tv to pts. 
+ */
+  this->cur_time.tv_sec=tv.tv_sec;
+  this->cur_time.tv_usec=tv.tv_usec;
+  printf("Old:New PTS=%d:%d\n",this->cur_pts,pts);
+
+  this->cur_pts=pts; 
+
+  return ;
+}
+
 static int unixscr_set_speed (scr_plugin_t *scr, int speed) {
   unixscr_t *this = (unixscr_t*) scr;
 
   pthread_mutex_lock (&this->lock);
-
+  unixscr_set_pivot( this );
   this->speed_factor = (double) speed * 90000.0 / 4.0;
 
   pthread_mutex_unlock (&this->lock);
@@ -135,7 +160,6 @@ static scr_plugin_t* unixscr_init () {
   this->scr.adjust            = unixscr_adjust;
   this->scr.start             = unixscr_start;
   this->scr.get_current       = unixscr_get_current;
-
   unixscr_set_speed (&this->scr, SPEED_NORMAL);
 
   pthread_mutex_init (&this->lock, NULL);
