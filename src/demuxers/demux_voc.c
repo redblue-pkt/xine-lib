@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.6 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_voc.c,v 1.7 2002/09/21 18:18:46 tmmm Exp $
  *
  */
 
@@ -73,6 +73,7 @@ typedef struct {
   int                  send_end_buffers;
   int                  status;
 
+  unsigned int         voc_audio_type;
   unsigned int         audio_type;
   unsigned int         audio_sample_rate;
   unsigned int         audio_bits;
@@ -178,6 +179,95 @@ static void *demux_voc_loop (void *this_gen) {
   return NULL;
 }
 
+static int load_voc_and_send_headers(demux_voc_t *this) {
+
+  unsigned char header[VOC_HEADER_SIZE];
+  unsigned char preamble[BLOCK_PREAMBLE_SIZE];
+  off_t first_block_offset;
+  signed char sample_rate_divisor;
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* load the header */
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
+    VOC_HEADER_SIZE) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  first_block_offset = LE_16(&header[0x14]);
+  this->input->seek(this->input, first_block_offset, SEEK_SET);
+
+  /* load the block preamble */
+  if (this->input->read(this->input, preamble, BLOCK_PREAMBLE_SIZE) != 
+    BLOCK_PREAMBLE_SIZE) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* so far, this demuxer only cares about type 1 blocks */
+  if (preamble[0] != 1) {
+    xine_log(this->xine, XINE_LOG_MSG,
+      _("unknown VOC block type (0x%02X); please report to xine developers\n"),
+      preamble[0]);
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* assemble 24-bit, little endian length */
+  this->data_size = preamble[1] | (preamble[2] << 8) | (preamble[3] << 16);
+
+  /* get the next 2 bytes (re-use preamble bytes) */
+  if (this->input->read(this->input, preamble, 2) != 2) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* this app only knows how to deal with format 0 data (raw PCM) */
+  this->voc_audio_type = preamble[1];
+  if (preamble[1] != 0) {
+    xine_log(this->xine, XINE_LOG_MSG,
+      _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
+      preamble[1]);
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  this->audio_type = BUF_AUDIO_LPCM_BE;
+  sample_rate_divisor = preamble[0];
+  this->audio_sample_rate = 256 - (1000000 / sample_rate_divisor);
+  this->data_start = this->input->get_current_pos(this->input);
+  this->data_end = this->data_start + this->data_size;
+  this->audio_bits = 8;
+  this->audio_channels = 1;
+  this->running_time = this->data_size / this->audio_sample_rate;
+
+  /* load stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->audio_channels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->audio_sample_rate;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->audio_bits;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_voc_open(demux_plugin_t *this_gen,
                           input_plugin_t *input, int stage) {
 
@@ -197,7 +287,7 @@ static int demux_voc_open(demux_plugin_t *this_gen,
 
     /* check the signature */
     if (strncmp(header, VOC_SIGNATURE, strlen(VOC_SIGNATURE)) == 0)
-      return DEMUX_CAN_HANDLE;
+      return load_voc_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -223,10 +313,8 @@ static int demux_voc_open(demux_plugin_t *this_gen,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        return load_voc_and_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -241,22 +329,17 @@ static int demux_voc_open(demux_plugin_t *this_gen,
 }
 
 static int demux_voc_start (demux_plugin_t *this_gen,
-                            fifo_buffer_t *video_fifo,
-                            fifo_buffer_t *audio_fifo,
                             off_t start_pos, int start_time) {
 
   demux_voc_t *this = (demux_voc_t *) this_gen;
   buf_element_t *buf;
   int err;
-  unsigned char header[VOC_HEADER_SIZE];
-  unsigned char preamble[BLOCK_PREAMBLE_SIZE];
-  off_t first_block_offset;
-  signed char sample_rate_divisor;
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
+#if 0
     this->video_fifo = video_fifo;
     this->audio_fifo = audio_fifo;
 
@@ -282,7 +365,7 @@ static int demux_voc_start (demux_plugin_t *this_gen,
 
     /* so far, this demuxer only cares about type 1 blocks */
     if (preamble[0] != 1) {
-      xine_log(this->xine, XINE_LOG_FORMAT,
+      xine_log(this->xine, XINE_LOG_MSG,
         _("unknown VOC block type (0x%02X); please report to xine developers\n"),
         preamble[0]);
       this->status = DEMUX_FINISHED;
@@ -302,7 +385,7 @@ static int demux_voc_start (demux_plugin_t *this_gen,
 
     /* this app only knows how to deal with format 0 data (raw PCM) */
     if (preamble[1] != 0) {
-      xine_log(this->xine, XINE_LOG_FORMAT,
+      xine_log(this->xine, XINE_LOG_MSG,
         _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
         preamble[1]);
       this->status = DEMUX_FINISHED;
@@ -318,11 +401,12 @@ static int demux_voc_start (demux_plugin_t *this_gen,
     this->audio_bits = 8;
     this->audio_channels = 1;
     this->running_time = this->data_size / this->audio_sample_rate;
+#endif
 
     /* print vital stats */
-    xine_log(this->xine, XINE_LOG_FORMAT,
+    xine_log(this->xine, XINE_LOG_MSG,
       _("demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"),
-      preamble[1], 
+      this->voc_audio_type, 
       this->audio_sample_rate,
       this->running_time / 60,
       this->running_time % 60);
@@ -423,7 +507,7 @@ static void demux_voc_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_voc_close (demux_plugin_t *this_gen) {
+static void demux_voc_dispose (demux_plugin_t *this_gen) {
   demux_voc_t *this = (demux_voc_t *) this_gen;
 
   pthread_mutex_destroy (&this->mutex);
@@ -469,7 +553,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_voc_start;
   this->demux_plugin.seek              = demux_voc_seek;
   this->demux_plugin.stop              = demux_voc_stop;
-  this->demux_plugin.close             = demux_voc_close;
+  this->demux_plugin.dispose           = demux_voc_dispose;
   this->demux_plugin.get_status        = demux_voc_get_status;
   this->demux_plugin.get_identifier    = demux_voc_get_id;
   this->demux_plugin.get_stream_length = demux_voc_get_stream_length;
@@ -487,6 +571,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "voc", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "voc", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

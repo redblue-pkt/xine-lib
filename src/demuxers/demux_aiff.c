@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.5 2002/09/10 15:07:13 mroi Exp $
+ * $Id: demux_aiff.c,v 1.6 2002/09/21 18:18:46 tmmm Exp $
  *
  */
 
@@ -189,6 +189,99 @@ static void *demux_aiff_loop (void *this_gen) {
   return NULL;
 }
 
+static int load_aiff_and_send_headers(demux_aiff_t *this) {
+
+  unsigned char preamble[PREAMBLE_SIZE];
+  unsigned int chunk_type;
+  unsigned int chunk_size;
+  unsigned char buffer[100];
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* audio type is PCM unless proven otherwise */
+  this->audio_type = BUF_AUDIO_LPCM_BE;
+  this->audio_frames = 0;
+  this->audio_channels = 0;
+  this->audio_bits = 0;
+  this->audio_sample_rate = 0;
+  this->audio_bytes_per_second = 0;
+
+  /* skip past the file header and traverse the chunks */
+  this->input->seek(this->input, 12, SEEK_SET);
+  while (1) {
+    if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+      PREAMBLE_SIZE) {
+      this->status = DEMUX_FINISHED;
+      pthread_mutex_lock(&this->mutex);
+      return DEMUX_CANNOT_HANDLE;
+    }
+    chunk_type = BE_32(&preamble[0]);
+    chunk_size = BE_32(&preamble[4]);
+
+    if (chunk_type == COMM_TAG) {
+      if (this->input->read(this->input, buffer, chunk_size) !=
+        chunk_size) {
+        this->status = DEMUX_FINISHED;
+        pthread_mutex_lock(&this->mutex);
+        return DEMUX_CANNOT_HANDLE;
+      }
+
+      this->audio_channels = BE_16(&buffer[0]);
+      this->audio_frames = BE_32(&buffer[2]);
+      this->audio_bits = BE_16(&buffer[6]);
+      this->audio_sample_rate = BE_16(&buffer[0x0A]);
+      this->audio_bytes_per_second = this->audio_channels *
+        (this->audio_bits / 8) * this->audio_sample_rate;
+
+    } else if ((chunk_type == SSND_TAG) || 
+               (chunk_type == APCM_TAG)) {
+
+      /* audio data has been located; proceed to demux loop after
+       * skipping 8 more bytes (2 more 4-byte numbers) */
+      this->input->seek(this->input, 8, SEEK_CUR);
+      this->data_start = this->input->get_current_pos(this->input);
+      this->data_size = this->audio_frames * this->audio_channels *
+        (this->audio_bits / 8);
+      this->running_time = this->audio_frames / this->audio_sample_rate;
+      this->data_end = this->data_start + this->data_size;
+
+      this->audio_block_align = PCM_BLOCK_ALIGN;
+
+      break;
+
+    } else {
+      /* unrecognized; skip it */
+      this->input->seek(this->input, chunk_size, SEEK_CUR);
+    }
+  }
+
+  /* the audio parameters should have been set at this point */
+  if (!this->audio_channels) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_lock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* load stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->audio_channels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->audio_sample_rate;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->audio_bits;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_aiff_open(demux_plugin_t *this_gen,
                            input_plugin_t *input, int stage) {
 
@@ -210,7 +303,7 @@ static int demux_aiff_open(demux_plugin_t *this_gen,
     /* check the signature */
     if ((BE_32(&signature[0]) == FORM_TAG) &&
         (BE_32(&signature[8]) == AIFF_TAG))
-      return DEMUX_CAN_HANDLE;
+      return load_aiff_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -236,10 +329,8 @@ static int demux_aiff_open(demux_plugin_t *this_gen,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        return load_aiff_and_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -254,97 +345,25 @@ static int demux_aiff_open(demux_plugin_t *this_gen,
 }
 
 static int demux_aiff_start (demux_plugin_t *this_gen,
-                             fifo_buffer_t *video_fifo,
-                             fifo_buffer_t *audio_fifo,
                              off_t start_pos, int start_time) {
 
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
   buf_element_t *buf;
   int err;
-  unsigned char preamble[PREAMBLE_SIZE];
-  unsigned int chunk_type;
-  unsigned int chunk_size;
-  unsigned char buffer[100];
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
-    /* audio type is PCM unless proven otherwise */
-    this->audio_type = BUF_AUDIO_LPCM_BE;
-    this->audio_frames = 0;
-    this->audio_channels = 0;
-    this->audio_bits = 0;
-    this->audio_sample_rate = 0;
-    this->audio_bytes_per_second = 0;
-
-    /* skip past the file header and traverse the chunks */
-    this->input->seek(this->input, 12, SEEK_SET);
-    while (1) {
-      if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-        PREAMBLE_SIZE) {
-        this->status = DEMUX_FINISHED;
-        pthread_mutex_lock(&this->mutex);
-        return DEMUX_FINISHED;
-      }
-      chunk_type = BE_32(&preamble[0]);
-      chunk_size = BE_32(&preamble[4]);
-
-      if (chunk_type == COMM_TAG) {
-        if (this->input->read(this->input, buffer, chunk_size) !=
-          chunk_size) {
-          this->status = DEMUX_FINISHED;
-          pthread_mutex_lock(&this->mutex);
-          return DEMUX_FINISHED;
-        }
-
-        this->audio_channels = BE_16(&buffer[0]);
-        this->audio_frames = BE_32(&buffer[2]);
-        this->audio_bits = BE_16(&buffer[6]);
-        this->audio_sample_rate = BE_16(&buffer[0x0A]);
-        this->audio_bytes_per_second = this->audio_channels *
-          (this->audio_bits / 8) * this->audio_sample_rate;
-
-      } else if ((chunk_type == SSND_TAG) || 
-                 (chunk_type == APCM_TAG)) {
-
-        /* audio data has been located; proceed to demux loop after
-         * skipping 8 more bytes (2 more 4-byte numbers) */
-        this->input->seek(this->input, 8, SEEK_CUR);
-        this->data_start = this->input->get_current_pos(this->input);
-        this->data_size = this->audio_frames * this->audio_channels *
-          (this->audio_bits / 8);
-        this->running_time = this->audio_frames / this->audio_sample_rate;
-        this->data_end = this->data_start + this->data_size;
-
-        this->audio_block_align = PCM_BLOCK_ALIGN;
-
-        break;
-
-      } else {
-        /* unrecognized; skip it */
-        this->input->seek(this->input, chunk_size, SEEK_CUR);
-      }
-    }
-
-    /* the audio parameters should have been set at this point */
-    if (!this->audio_channels) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_lock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
 
     /* print vital stats */
-    xine_log(this->xine, XINE_LOG_FORMAT,
+    xine_log(this->xine, XINE_LOG_MSG,
       _("demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"),
       this->audio_sample_rate,
       this->audio_channels,
       this->audio_bits,
       this->audio_frames);
-    xine_log(this->xine, XINE_LOG_FORMAT,
+    xine_log(this->xine, XINE_LOG_MSG,
       _("demux_aiff: running time: %d min, %d sec\n"),
       this->running_time / 60,
       this->running_time % 60);
@@ -446,7 +465,7 @@ static void demux_aiff_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_aiff_close (demux_plugin_t *this_gen) {
+static void demux_aiff_dispose (demux_plugin_t *this_gen) {
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
 
   pthread_mutex_destroy (&this->mutex);
@@ -492,7 +511,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_aiff_start;
   this->demux_plugin.seek              = demux_aiff_seek;
   this->demux_plugin.stop              = demux_aiff_stop;
-  this->demux_plugin.close             = demux_aiff_close;
+  this->demux_plugin.dispose           = demux_aiff_dispose;
   this->demux_plugin.get_status        = demux_aiff_get_status;
   this->demux_plugin.get_identifier    = demux_aiff_get_id;
   this->demux_plugin.get_stream_length = demux_aiff_get_stream_length;
@@ -510,6 +529,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "aiff", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "aiff", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

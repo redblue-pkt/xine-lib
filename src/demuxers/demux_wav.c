@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.12 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_wav.c,v 1.13 2002/09/21 18:18:45 tmmm Exp $
  *
  */
 
@@ -102,7 +102,7 @@ static void *demux_wav_loop (void *this_gen) {
       pthread_mutex_lock( &this->mutex );
 
       /* just load data chunks from wherever the stream happens to be
-       * pointing; issue a DEMUX_FINISHED status is EOF is reached */
+       * pointing; issue a DEMUX_FINISHED status if EOF is reached */
       remaining_sample_bytes = this->wave->nBlockAlign;
       current_file_pos = this->input->get_current_pos(this->input);
 
@@ -172,6 +172,81 @@ static void *demux_wav_loop (void *this_gen) {
   return NULL;
 }
 
+static int load_wav_and_send_headers(demux_wav_t *this) {
+
+  unsigned int chunk_tag;
+  unsigned int chunk_size;
+  unsigned char chunk_preamble[8];
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* go straight for the format structure */
+  this->input->seek(this->input, WAV_SIGNATURE_SIZE, SEEK_SET);
+  if (this->input->read(this->input,
+    (unsigned char *)&this->wave_size, 4) != 4) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+  this->wave_size = le2me_32(this->wave_size);
+  this->wave = (xine_waveformatex *) malloc( this->wave_size );
+    
+  if (this->input->read(this->input, (void *)this->wave, this->wave_size) !=
+    this->wave_size) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+  xine_waveformatex_le2me(this->wave);
+  this->audio_type = formattag_to_buf_audio(this->wave->wFormatTag);
+  if(!this->audio_type) {
+    xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->audio_type, 0, 0);
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* traverse through the chunks to find the 'data' chunk */
+  this->data_start = this->data_size = this->data_end = 0;
+  while (this->data_start == 0) {
+
+    if (this->input->read(this->input, chunk_preamble, 8) != 8) {
+      this->status = DEMUX_FINISHED;
+      pthread_mutex_unlock(&this->mutex);
+      return DEMUX_CANNOT_HANDLE;
+    }
+    chunk_tag = LE_32(&chunk_preamble[0]);      
+    chunk_size = LE_32(&chunk_preamble[4]);
+
+    if (chunk_tag == data_TAG) {
+      this->data_start = this->input->get_current_pos(this->input);
+      this->data_size = chunk_size;
+      this->data_end = this->data_start + chunk_size;
+    } else {
+      this->input->seek(this->input, chunk_size, SEEK_CUR);
+    }
+  }
+
+  /* load stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 
+    this->wave->nChannels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 
+    this->wave->nSamplesPerSec;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 
+    this->wave->wBitsPerSample;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_wav_open(demux_plugin_t *this_gen,
                          input_plugin_t *input, int stage) {
 
@@ -203,7 +278,7 @@ static int demux_wav_open(demux_plugin_t *this_gen,
         (signature[13] == 'm') &&
         (signature[14] == 't') &&
         (signature[15] == ' '))
-      return DEMUX_CAN_HANDLE;
+      return load_wav_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -228,10 +303,8 @@ static int demux_wav_open(demux_plugin_t *this_gen,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        return load_wav_and_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -246,85 +319,30 @@ static int demux_wav_open(demux_plugin_t *this_gen,
 }
 
 static int demux_wav_start (demux_plugin_t *this_gen,
-                            fifo_buffer_t *video_fifo,
-                            fifo_buffer_t *audio_fifo,
                             off_t start_pos, int start_time) {
 
   demux_wav_t *this = (demux_wav_t *) this_gen;
   buf_element_t *buf;
   int err;
-  unsigned int chunk_tag;
-  unsigned int chunk_size;
-  unsigned char chunk_preamble[8];
-  int status;
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
-    /* go straight for the format structure */
-    this->input->seek(this->input, WAV_SIGNATURE_SIZE, SEEK_SET);
-    if (this->input->read(this->input,
-      (unsigned char *)&this->wave_size, 4) != 4) {
-      status = this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return status;
-    }
-    this->wave_size = le2me_32(this->wave_size);
-    this->wave = (xine_waveformatex *) malloc( this->wave_size );
-    
-    if (this->input->read(this->input, (void *)this->wave, this->wave_size) !=
-      this->wave_size) {
-      status = this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return status;
-    }
-    xine_waveformatex_le2me(this->wave);
-    this->audio_type = formattag_to_buf_audio(this->wave->wFormatTag);
-    if(!this->audio_type) {
-      xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->audio_type, 0, 0);
-      status = this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return status;
-    }
-
-    /* traverse through the chunks to find the 'data' chunk */
-    this->data_start = this->data_size = this->data_end = 0;
-    while (this->data_start == 0) {
-
-      if (this->input->read(this->input, chunk_preamble, 8) != 8) {
-        status = this->status = DEMUX_FINISHED;
-        pthread_mutex_unlock(&this->mutex);
-        return status;
-      }
-      chunk_tag = LE_32(&chunk_preamble[0]);      
-      chunk_size = LE_32(&chunk_preamble[4]);
-
-      if (chunk_tag == data_TAG) {
-        this->data_start = this->input->get_current_pos(this->input);
-        this->data_size = chunk_size;
-        this->data_end = this->data_start + chunk_size;
-      } else {
-        this->input->seek(this->input, chunk_size, SEEK_CUR);
-      }
-    }
 
     /* print vital stats */
-    xine_log(this->xine, XINE_LOG_FORMAT,
+    xine_log(this->xine, XINE_LOG_MSG,
       _("demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"),
       this->wave->wFormatTag,
       this->wave->nSamplesPerSec,
       this->wave->wBitsPerSample,
       this->wave->nChannels,
       ngettext("channel", "channels", this->wave->nChannels));
-    xine_log(this->xine, XINE_LOG_FORMAT,
+    xine_log(this->xine, XINE_LOG_MSG,
       _("demux_wav: running time = %lld min, %lld sec\n"),
       this->data_size / this->wave->nAvgBytesPerSec / 60,
       this->data_size / this->wave->nAvgBytesPerSec % 60);
-    xine_log(this->xine, XINE_LOG_FORMAT,
+    xine_log(this->xine, XINE_LOG_MSG,
       _("demux_wav: average bytes/sec = %d, block alignment = %d\n"),
       this->wave->nAvgBytesPerSec,
       this->wave->nBlockAlign);
@@ -432,7 +450,7 @@ static void demux_wav_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_wav_close (demux_plugin_t *this_gen) {
+static void demux_wav_dispose (demux_plugin_t *this_gen) {
   demux_wav_t *this = (demux_wav_t *) this_gen;
 
   pthread_mutex_destroy (&this->mutex);
@@ -478,7 +496,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_wav_start;
   this->demux_plugin.seek              = demux_wav_seek;
   this->demux_plugin.stop              = demux_wav_stop;
-  this->demux_plugin.close             = demux_wav_close;
+  this->demux_plugin.dispose           = demux_wav_dispose;
   this->demux_plugin.get_status        = demux_wav_get_status;
   this->demux_plugin.get_identifier    = demux_wav_get_id;
   this->demux_plugin.get_stream_length = demux_wav_get_stream_length;
@@ -496,6 +514,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "wav", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "wav", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
