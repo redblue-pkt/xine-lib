@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.22 2003/12/04 21:37:40 tmattern Exp $
+ * $Id: mmsh.c,v 1.23 2003/12/04 22:07:05 tmattern Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -58,7 +58,7 @@
 #include "xineutils.h"
 
 #include "bswap.h"
-#include "url_helper.h"
+#include "http_helper.h"
 #include "mmsh.h"
 #include "../demuxers/asfheader.h"
 
