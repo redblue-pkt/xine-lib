@@ -4,6 +4,8 @@
 
 /*
  *
+ * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
+ * 
  * Copyright (C) 2000  Thomas Mirlacher
  *
  * This program is free software; you can redistribute it and/or modify
@@ -249,15 +251,15 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 	int src_width = img_overl->width;
 	int src_height = img_overl->height;
 	uint8_t *src_data = img_overl->data;
-
+	int step=dst_width - src_width;
 	int x_off = img_overl->x;
 	int y_off = img_overl->y;
 
 	uint8_t *dst_y = dst_img + dst_width * y_off + x_off;
 	uint8_t *dst_cr = dst_img + dst_width * dst_height +
-	    (y_off / 2) * (dst_width / 2) + (x_off / 2);
+	    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
 	uint8_t *dst_cb = dst_img + (dst_width * dst_height * 5) / 4 +
-	    (y_off / 2) * (dst_width / 2) + (x_off / 2);
+	    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
 
 	int x,
 	 y;
@@ -298,11 +300,11 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 			src_data++;
 		}
 
-		dst_y += dst_width - src_width;
+		dst_y += step;
 
 		if (y & 1) {
-			dst_cr += (dst_width - src_width) / 2;
-			dst_cb += (dst_width - src_width) / 2;
+			dst_cr += (step + 1) / 2;
+			dst_cb += (step + 1) / 2;
 		}
 	}
 }

@@ -1,6 +1,9 @@
 /*****
 *
-* This file is part of the OMS program.
+ * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
+ *
+ * This file is part of xine
+ * This file was originally part of the OMS program.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by 
@@ -18,10 +21,8 @@
 *
 *****/
 
-#define DENT_TEST
-
 /*
- * subpic_decode.c - converts DVD subtitles to an XPM image
+ * spu.c - converts DVD subtitles to an XPM image
  *
  * Mostly based on hard work by:
  *

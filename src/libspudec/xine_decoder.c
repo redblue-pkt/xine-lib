@@ -1,6 +1,8 @@
 /* 
  * Copyright (C) 2000-2001 the xine project
  * 
+ * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
+ *
  * This file is part of xine, a unix video player.
  * 
  * xine is free software; you can redistribute it and/or modify
@@ -17,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: xine_decoder.c,v 1.2 2001/07/04 20:32:29 uid32519 Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -82,6 +84,7 @@ void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
 }
 
+/* overlay_txt is just for test purposes */
 u_int *overlay_txt (vo_overlay_t *spu, float o1)
 {
   u_int x, y;
@@ -141,7 +144,7 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     printf("X=%d Y=%d w=%d h=%d\n",
 	   this->spu->x,this->spu->y,
 	   this->spu->width,this->spu->height);
-    /* overlay_txt(this->spu,1.0); ??? */
+    /* overlay_txt(this->spu,1.0); Just for test purposes */
     this->spu->PTS = buf->PTS;
     this->vo_out->queue_overlay (this->vo_out, this->spu);
     this->spu = NULL;

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2000-2001 the xine project
  *
+ * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
+ *
  * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
@@ -17,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.1 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: spu.h,v 1.2 2001/07/04 20:32:29 uid32519 Exp $
  *
  * This file was originally part of the OMS program.
  *

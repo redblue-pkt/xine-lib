@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.9 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: video_out.h,v 1.10 2001/07/04 20:32:29 uid32519 Exp $
  *
  *
  * xine version of video_out.h 
@@ -125,6 +125,7 @@ struct vo_instance_s {
   /* private stuff */
 
   vo_driver_t       *driver;
+  vo_overlay_t      *overlay;
   metronom_t        *metronom;
   
   img_buf_fifo_t    *free_img_buf_queue;

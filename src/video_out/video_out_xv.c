@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.48 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: video_out_xv.c,v 1.49 2001/07/04 20:32:29 uid32519 Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -28,6 +28,7 @@
  *
  * xine-specific code by Guenter Bartsch <bartscgr@studbox.uni-stuttgart.de>
  * 
+ * overlay support by James Courtier-Dutton <James@superbug.demon.co.uk> - July 2001
  */
 
 #ifdef HAVE_CONFIG_H
