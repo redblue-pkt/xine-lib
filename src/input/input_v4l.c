@@ -294,7 +294,7 @@ static int v4l_plugin_open (input_plugin_t *this_gen) {
   int                 i, j, ret, found;
 
 #ifdef LOG
-  printf ("input_v4l: trying to open '%s'\n", mrl);
+  printf ("input_v4l: trying to open '%s'\n", this->mrl);
 #endif
   found = 0;
 

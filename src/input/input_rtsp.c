@@ -222,7 +222,7 @@ static int rtsp_plugin_open (input_plugin_t *this_gen) {
   rtsp_session_t      *rtsp;
 
 #ifdef LOG
-  printf ("input_rtsp: trying to open '%s'\n", mrl);
+  printf ("input_rtsp: trying to open '%s'\n", this->mrl);
 #endif
 
   rtsp = rtsp_session_start(this->stream,this->mrl);
