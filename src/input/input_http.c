@@ -80,11 +80,6 @@ typedef struct {
   int              port;
   char            *filename;
   
-  char            *proxyuser;
-  char            *proxypassword;
-  char            *proxyhost;
-  int              proxyport;
-
   char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
   
@@ -107,8 +102,37 @@ typedef struct {
 
   xine_t           *xine;
   config_values_t  *config;
-  
+
+  char            *proxyuser;
+  char            *proxypassword;
+  char            *proxyhost;
+  int              proxyport;
+ 
 } http_input_class_t;
+
+static void proxy_user_change_cb(void *data, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *) data;
+
+  this->proxyuser = cfg->str_value;
+}
+
+static void proxy_password_change_cb(void *data, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *) data;
+
+  this->proxypassword = cfg->str_value;
+}
+
+static void proxy_host_change_cb(void *data, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *) data;
+
+  this->proxyhost = cfg->str_value;
+}
+
+static void proxy_port_change_cb(void *data, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *) data;
+
+  this->proxyport = cfg->num_value;
+}
 
 static int http_plugin_host_connect_attempt (struct in_addr ia, int port, 
 					     http_input_plugin_t *this) {
@@ -663,29 +687,20 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   
 static int http_plugin_open (input_plugin_t *this_gen ) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
-  char                *proxy;
+  http_input_class_t  *this_klass = (http_input_class_t *) this_gen;
   int                  done,len,linenum;
   int                  shoutcast = 0, httpcode;
   int                  length;
   
   this->shoutcast_pos = 0;
-  this->proxybuf[0] = '\0';
-  proxy = getenv("http_proxy");
   
-  if (proxy != NULL)  {
-    strncpy(this->proxybuf, proxy, BUFSIZE);
-    
-    if (http_plugin_parse_url (this->proxybuf, &this->proxyuser,
-			       &this->proxypassword, &this->proxyhost, 
-			       &this->proxyport, NULL)) {
-      return 0;
-    }
-    
-    if (this->proxyport == 0)
-      this->proxyport = DEFAULT_HTTP_PORT;
-    
-    if (this->proxyuser != NULL)
-      if (http_plugin_basicauth (this->proxyuser, this->proxypassword,
+  if (this_klass->proxyhost != NULL && strcmp (this_klass->proxyhost, "")) {
+    if (this_klass->proxyport == 0)
+      this_klass->proxyport = DEFAULT_HTTP_PORT;
+
+    if (this_klass->proxyuser != NULL)
+      if (http_plugin_basicauth (this_klass->proxyuser,
+			         this_klass->proxypassword,
 				 this->proxyauth, BUFSIZE)) {
 	xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "proxy error", NULL);
 	return 0;
@@ -706,24 +721,24 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
       return 0;
     }
 
+#ifdef LOG
   {
     char buf[256];
 
     snprintf (buf, 255, _("input_http: opening >/%s< on host >%s<"), 
 	     this->filename, this->host);
 
-    if (proxy != NULL)
-      snprintf(buf, 255, _("%s via proxy >%s<"), buf, this->proxyhost);
+    if (this_klass->proxyhost != NULL)
+      snprintf(buf, 255, _("%s via proxy >%s<"), buf, this_klass->proxyhost);
     
     snprintf(buf, 255, "%s\n", buf);
 
-#ifdef LOG
     printf (buf);
-#endif
   }
+#endif
   
-  if (proxy != NULL)
-    this->fh = http_plugin_host_connect (this->proxyhost, this->proxyport, this);
+  if (this_klass->proxyhost != NULL)
+    this->fh = http_plugin_host_connect (this_klass->proxyhost, this_klass->proxyport, this);
   else
     this->fh = http_plugin_host_connect (this->host, this->port, this);
 
@@ -733,15 +748,17 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     return 0;
   }
 
-  if (proxy != NULL)
-    if (this->port != DEFAULT_HTTP_PORT)
+  if (this_klass->proxyhost != NULL) {
+    if (this->port != DEFAULT_HTTP_PORT) {
       sprintf (this->buf, "GET http://%s:%d/%s HTTP/1.0\015\012",
 	       this->host, this->port, this->filename);
-    else
+    } else {
       sprintf (this->buf, "GET http://%s/%s HTTP/1.0\015\012",
 	       this->host, this->filename);
-  else
+    }
+  } else {
     sprintf (this->buf, "GET /%s HTTP/1.0\015\012", this->filename);
+  }
   
   if (this->port != DEFAULT_HTTP_PORT)
     sprintf (this->buf + strlen(this->buf), "Host: %s:%d\015\012",
@@ -750,7 +767,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     sprintf (this->buf + strlen(this->buf), "Host: %s\015\012",
 	     this->host);
   
-  if (this->proxyuser != NULL)
+  if (this_klass->proxyuser != NULL)
     sprintf (this->buf + strlen(this->buf), "Proxy-Authorization: Basic %s\015\012",
 	     this->proxyauth);
 
@@ -997,6 +1014,20 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.get_autoplay_list  = NULL;
   this->input_class.dispose            = http_class_dispose;
   this->input_class.eject_media        = NULL;
+
+  this->proxyuser = config->register_string(config, "input.http_proxy_user",
+		  "", _("http proxy username"),
+		  NULL, 0, proxy_user_change_cb, (void *) this);
+  this->proxypassword = config->register_string(config,
+		  "input.http_proxy_password", "", _("http proxy password"),
+		  NULL, 0, proxy_password_change_cb, (void *) this);
+  this->proxyhost = config->register_string(config,
+		  "input.http_proxy_host", "", _("http proxy host"),
+		  NULL, 0, proxy_host_change_cb, (void *) this);
+  this->proxyport = config->register_num(config,
+		  "input.http_proxy_port", DEFAULT_HTTP_PORT,
+		  _("http proxy port"),
+		  NULL, 0, proxy_port_change_cb, (void *) this);
 
   return this;
 }
