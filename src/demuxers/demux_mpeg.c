@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.84 2002/10/23 20:26:33 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.85 2002/10/23 20:42:38 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -842,6 +842,9 @@ static int demux_mpeg_get_status (demux_plugin_t *this_gen) {
 static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
 
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
+  uint32_t w;
+  int num_buffers = NUM_PREVIEW_BUFFERS;
+    
   pthread_mutex_lock( &this->mutex );
 
   this->video_fifo  = this->stream->video_fifo;
@@ -852,31 +855,32 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
   this->last_pts[1]   = 0;
   
   xine_demux_control_start(this->stream);
+
+  /*
+   * send preview buffers for stream/meta_info
+   */
   
-  if ((this->input->get_capabilities (this->input) & INPUT_CAP_PREVIEW) != 0 ) {
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+
+  this->preview_mode = 1;
     
-    uint32_t w;
-    int num_buffers = NUM_PREVIEW_BUFFERS;
+  this->input->seek (this->input, 4, SEEK_SET);
     
-    this->preview_mode = 1;
+  this->status = DEMUX_OK ;
     
-    this->input->seek (this->input, 4, SEEK_SET);
-    
-    this->status = DEMUX_OK ;
-    
-    do {
+  do {
       
-      w = parse_pack_preview (this, &num_buffers);
+    w = parse_pack_preview (this, &num_buffers);
       
-      if (w != 0x000001ba)
-	demux_mpeg_resync (this, w);
+    if (w != 0x000001ba)
+      demux_mpeg_resync (this, w);
       
-      num_buffers --;
+    num_buffers --;
       
-    } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
+  } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
     
-    /* printf ("demux_mpeg: rate %d\n", this->rate); */
-  }
+  this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate*50*8;
 
   xine_demux_control_headers_done (this->stream);
 
