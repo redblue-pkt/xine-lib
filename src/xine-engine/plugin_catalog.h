@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.17 2005/02/09 20:03:21 tmattern Exp $
+ * $Id: plugin_catalog.h,v 1.18 2005/02/12 18:30:46 valtri Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -83,6 +83,9 @@ struct plugin_catalog_s {
   char            *prio_desc[DECODER_MAX];
 
   pthread_mutex_t  lock;
+
+  int              plugin_count;
+  int              decoder_count;
 };
 typedef struct plugin_catalog_s plugin_catalog_t;
 
