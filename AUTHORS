@@ -289,7 +289,8 @@ Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
 
 Carsten Weinhold <news.cw@gmx.net>
   patch to improve quality of linearblend filter, new AV sync
-  method by resampling audio, fixed pthread starvation in audio out
+  method by resampling audio, fixed pthread starvation in audio out,
+  improved audio vpts precision
 
 Claire Griffin <claire@comedia.com>
   demux_ts fixes for ATSC streams

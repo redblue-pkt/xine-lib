@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.136 2004/02/19 02:50:26 rockyb Exp $
+ * $Id: metronom.c,v 1.137 2004/04/09 15:06:02 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -310,6 +310,7 @@ static void metronom_handle_discontinuity (metronom_t *this, int type,
     case DISC_STREAMSEEK:
       this->video_vpts = this->prebuffer + cur_time;
       this->audio_vpts = this->video_vpts;
+      this->audio_vpts_rmndr = 0;
       this->force_audio_jump = 1;
       this->force_video_jump = 1;
       this->video_drift = 0;
@@ -329,6 +330,7 @@ static void metronom_handle_discontinuity (metronom_t *this, int type,
           /* still frame, no audio */
           this->video_vpts = this->prebuffer + cur_time;
           this->audio_vpts = this->video_vpts;
+          this->audio_vpts_rmndr = 0;
           this->force_video_jump = 1;
           this->force_audio_jump = 1;
           this->video_drift = 0;
@@ -340,6 +342,7 @@ static void metronom_handle_discontinuity (metronom_t *this, int type,
         if (this->audio_vpts < cur_time) {
           /* video, no sound */
           this->audio_vpts = this->video_vpts;
+          this->audio_vpts_rmndr = 0;
           xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio vpts adjusted to audio vpts\n");
         } else {
           /* video + audio */
@@ -588,6 +591,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
         this->video_vpts = this->audio_vpts = this->master->video_vpts;
       else
         this->video_vpts = this->audio_vpts = this->master->audio_vpts;
+      this->audio_vpts_rmndr = 0;        
       /* when being attached to the first master, do not drift into
        * his vpts values but adopt at once */
       this->force_audio_jump = 1;
@@ -615,6 +619,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
     if((abs(diff) > AUDIO_DRIFT_TOLERANCE) || (this->force_audio_jump)) {
       this->force_audio_jump = 0;
       this->audio_vpts       = vpts;
+      this->audio_vpts_rmndr = 0;        
       this->audio_drift_step = 0;
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio jump, diff=%" PRId64 "\n", diff);
     } else {
@@ -645,8 +650,22 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
    * good because sound card won't play it faster or slower just because
    * we want. however, adding the error to the vpts_offset will force video
    * to change it's frame rate to keep in sync with us.
+   * 
+   * Since we are using integer division below, it can happen that we lose
+   * precision for the calculated duration in vpts for each audio buffer
+   * (< 1 PTS, e.g. 0.25 PTS during playback of most DVDs with LPCM audio).
+   * This would lead to a situation where the sound card actually needs
+   * more time to play back the buffers, than the audio buffer's vpts field
+   * indicates. This makes audio_out loop think we are in sync with the
+   * soundcard, while we actually are not. So that's why there is the extra
+   * modulo calculation, to keep track of the truncated, fractional part.
    */
-  this->audio_vpts += nsamples * this->pts_per_smpls / AUDIO_SAMPLE_NUM;
+  this->audio_vpts_rmndr += nsamples * this->pts_per_smpls % AUDIO_SAMPLE_NUM;
+  this->audio_vpts       += nsamples * this->pts_per_smpls / AUDIO_SAMPLE_NUM;
+  if (this->audio_vpts_rmndr >= AUDIO_SAMPLE_NUM) {
+    this->audio_vpts       += 1;
+    this->audio_vpts_rmndr -= AUDIO_SAMPLE_NUM;
+  }
   this->audio_samples += nsamples;
   this->vpts_offset += nsamples * this->audio_drift_step / AUDIO_SAMPLE_NUM;
                         
@@ -678,7 +697,8 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     xprintf(this->xine, XINE_VERBOSITY_LOG, "spu_offset=%" PRId64 " pts\n", this->spu_offset);
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
-    this->audio_vpts += value;
+    this->audio_vpts      += value;
+    this->audio_vpts_rmndr = 0;
 
     /* that message should be rare, please report otherwise.
      * when xine is in some sort of "steady state" hearing it
@@ -915,6 +935,7 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
   this->have_video                  = have_video;
   this->have_audio                  = have_audio;
   this->audio_vpts                  = this->prebuffer;
+  this->audio_vpts_rmndr            = 0;
   this->audio_discontinuity_count   = 0;
   pthread_cond_init (&this->audio_discontinuity_reached, NULL);
     

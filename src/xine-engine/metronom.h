@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.57 2004/02/16 20:19:10 uid86226 Exp $
+ * $Id: metronom.h,v 1.58 2004/04/09 15:06:03 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -189,6 +189,7 @@ struct metronom_s {
   int64_t         video_vpts;
   int64_t         spu_vpts;
   int64_t         audio_vpts;
+  int64_t         audio_vpts_rmndr;  /* the remainder for integer division */
 
   int64_t         vpts_offset;
 
