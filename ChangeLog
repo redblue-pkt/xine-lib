@@ -12,6 +12,7 @@ xine-lib (1-rc3)
   * handle comments in rpm playlist files
   * realaudio demuxer improvements including support for 14.4 codec and reading
     meta info
+  * post plugin for ffmpeg libpostprocess (pp)
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
