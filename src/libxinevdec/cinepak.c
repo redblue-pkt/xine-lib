@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.23 2002/12/15 16:35:51 esnel Exp $
+ * $Id: cinepak.c,v 1.24 2002/12/15 18:02:35 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -140,8 +140,8 @@ static void cinepak_decode_codebook (cvid_codebook_t *codebook,
   }
 }
 
-static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
-				    int chunk_id, int size, uint8_t *data)
+static int cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
+				   int chunk_id, int size, uint8_t *data)
 {
   uint8_t	  *eod = (data + size);
   uint32_t	   flag, mask;
@@ -169,7 +169,7 @@ static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
     for (x=strip->x1; x < strip->x2; x+=4) {
       if ((chunk_id & 0x0100) && !(mask >>= 1)) {
 	if ((data + 4) > eod)
-	  return;
+	  return -1;
 
 	flag  = BE_32 (data);
 	data += 4;
@@ -179,7 +179,7 @@ static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
       if (!(chunk_id & 0x0100) || (flag & mask)) {
 	if (!(chunk_id & 0x0200) && !(mask >>= 1)) {
 	  if ((data + 4) > eod)
-	    return;
+	    return -1;
 
 	  flag  = BE_32 (data);
 	  data += 4;
@@ -188,7 +188,7 @@ static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
 
 	if ((chunk_id & 0x0200) || (~flag & mask)) {
 	  if (data >= eod)
-	    return;
+	    return -1;
 
 	  codebook = &strip->v1_codebook[*data++];
 	  iy[0][0] = codebook->y0;  iy[0][1] = codebook->y0;
@@ -209,7 +209,7 @@ static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
 
 	} else if (flag & mask) {
 	  if ((data + 4) > eod)
-	    return;
+	    return -1;
 
 	  codebook = &strip->v4_codebook[*data++];
 	  iy[0][0] = codebook->y0;  iy[0][1] = codebook->y1;
@@ -239,10 +239,12 @@ static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
       iv[0] += 2;  iv[1] += 2;
     }
   }
+
+  return 0;
 }
 
-static void cinepak_decode_strip (cvid_decoder_t *this,
-				  cvid_strip_t *strip, uint8_t *data, int size)
+static int cinepak_decode_strip (cvid_decoder_t *this,
+				 cvid_strip_t *strip, uint8_t *data, int size)
 {
   uint8_t *eod = (data + size);
   int	   chunk_id, chunk_size;
@@ -250,7 +252,7 @@ static void cinepak_decode_strip (cvid_decoder_t *this,
   if (strip->x1 >= this->biWidth  || strip->x2 > this->biWidth  ||
       strip->y1 >= this->biHeight || strip->y2 > this->biHeight ||
       strip->x1 >= strip->x2      || strip->y1 >= strip->y2)
-    return;
+    return -1;
 
   while ((data + 4) <= eod) {
     chunk_id   = BE_16 (&data[0]);
@@ -274,21 +276,22 @@ static void cinepak_decode_strip (cvid_decoder_t *this,
     case 0x3000:
     case 0x3100:
     case 0x3200:
-      cinepak_decode_vectors (this, strip, chunk_id, chunk_size, data);
-      return;
+      return cinepak_decode_vectors (this, strip, chunk_id, chunk_size, data);
     }
 
     data += chunk_size;
   }
+
+  return -1;
 }
 
-static void cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size) {
+static int cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size) {
   uint8_t      *eod = (data + size);
-  int		i, strip_size, frame_flags, num_strips;
+  int		i, result, strip_size, frame_flags, num_strips;
   int		y0 = 0;
 
   if (size < 10)
-    return;
+    return -1;
 
   frame_flags = data[0];
   num_strips  = BE_16 (&data[8]);
@@ -299,7 +302,7 @@ static void cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size)
 
   for (i=0; i < num_strips; i++) {
     if ((data + 12) > eod)
-      break;
+      return -1;
 
     this->strips[i].id = BE_16 (data);
     this->strips[i].y1 = y0;
@@ -319,11 +322,16 @@ static void cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size)
 			sizeof(this->strips[i].v1_codebook));
     }
 
-    cinepak_decode_strip (this, &this->strips[i], data, strip_size);
+    result = cinepak_decode_strip (this, &this->strips[i], data, strip_size);
+
+    if (result != 0)
+      return result;
 
     data += strip_size;
     y0    = this->strips[i].y2;
   }
+
+  return 0;
 }
 
 static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -394,9 +402,10 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       vo_frame_t *img;
       uint8_t    *dy, *du, *dv, *sy, *su, *sv;
-      int	  y;
+      int	  result, y;
 
-      cinepak_decode_frame (this, this->buf, this->size);
+      result = cinepak_decode_frame (this, this->buf, this->size);
+      result = 0;
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
 					this->biWidth, this->biHeight,
@@ -405,32 +414,34 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       img->duration  = this->video_step;
       img->pts	     = buf->pts;
-      img->bad_frame = 0;
+      img->bad_frame = (result != 0);
 
-      dy = img->base[0];
-      du = img->base[1];
-      dv = img->base[2];
-      sy = this->img_buffer;
-      su = this->img_buffer + (this->biWidth * this->biHeight);
-      sv = this->img_buffer + ((this->biWidth * this->biHeight * 5) / 4);
+      if (result == 0) {
+	dy = img->base[0];
+	du = img->base[1];
+	dv = img->base[2];
+	sy = this->img_buffer;
+	su = this->img_buffer + (this->biWidth * this->biHeight);
+	sv = this->img_buffer + ((this->biWidth * this->biHeight * 5) / 4);
 
-      for (y=0; y < this->biHeight; y++) {
-	xine_fast_memcpy (dy, sy, this->biWidth);
-	  
-	dy += img->pitches[0];  
-	sy += this->biWidth;
+	for (y=0; y < this->biHeight; y++) {
+	  xine_fast_memcpy (dy, sy, this->biWidth);
+
+	  dy += img->pitches[0];
+	  sy += this->biWidth;
+	}
+
+	for (y=0; y < (this->biHeight/2); y++) {
+	  xine_fast_memcpy (du, su, this->biWidth/2);
+	  xine_fast_memcpy (dv, sv, this->biWidth/2);
+
+	  du += img->pitches[1];
+	  dv += img->pitches[2];
+	  su += this->biWidth/2;
+	  sv += this->biWidth/2;
+	}
       }
 
-      for (y=0; y < (this->biHeight/2); y++) {
-	xine_fast_memcpy (du, su, this->biWidth/2);
-	xine_fast_memcpy (dv, sv, this->biWidth/2);
-
-	du += img->pitches[1];
-	dv += img->pitches[2];
-	su += this->biWidth/2;
-	sv += this->biWidth/2;
-      }
-	
       img->draw(img, this->stream);
       img->free(img);
 
