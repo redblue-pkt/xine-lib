@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.70 2002/03/22 00:31:10 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.71 2002/03/26 19:40:43 mshopf Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -405,6 +405,7 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
     break;
   case VO_BOTH_FIELDS:
     frame->rgb_dst    = (uint8_t *)frame->image->data;
+    frame->stripe_inc = frame->stripe_height * frame->image->bytes_per_line;
     break;
   }
 }
@@ -707,25 +708,8 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       break;
     }
   }
-  
-  /*
-   * reset dest pointers
-   */
 
-  switch (flags) {
-  case VO_TOP_FIELD:
-    frame->rgb_dst    = (uint8_t *)frame->image->data;
-    frame->stripe_inc = 2 * frame->stripe_height * frame->image->bytes_per_line;
-    break;
-  case VO_BOTTOM_FIELD:
-    frame->rgb_dst    = (uint8_t *)frame->image->data + frame->image->bytes_per_line ;
-    frame->stripe_inc = 2 * frame->stripe_height * frame->image->bytes_per_line;
-    break;
-  case VO_BOTH_FIELDS:
-    frame->rgb_dst    = (uint8_t *)frame->image->data;
-    frame->stripe_inc = frame->stripe_height * frame->image->bytes_per_line;
-    break;
-  }
+  xshm_frame_field ((vo_frame_t *)frame, flags);
 }
 
 static void xshm_overlay_clut_yuv2rgb(xshm_driver_t  *this, vo_overlay_t *overlay,
