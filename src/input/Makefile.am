@@ -37,8 +37,8 @@ DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
 link_dvdnav = libdvdnav/libdvdnav.la libdvdread/libdvdread.la
 endif
 
-AM_CFLAGS = $(DVD_CFLAGS) 
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS) 
+AM_CFLAGS = $(DVD_CFLAGS) @ANSI_FLAGS@
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS) @ANSI_FLAGS@
 
 lib_LTLIBRARIES = \
 	xineplug_inp_file.la \

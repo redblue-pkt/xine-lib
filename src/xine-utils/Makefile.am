@@ -10,7 +10,7 @@ if PPC_ARCH
 pppc_files = ppcasm_string.S 
 endif
 
-AM_CFLAGS = $(THREAD_CFLAGS)
+AM_CFLAGS = $(THREAD_CFLAGS) @ANSI_FLAGS@
 
 libxineutils_la_SOURCES = $(pppc_files) \
 	cpu_accel.c \

@@ -693,9 +693,8 @@ if test "$GCC" = yes; then
         f_al="-malign-loops=4")
     AC_TRY_CFLAGS("-falign-jumps=4", f_aj="-falign-jumps=4",
         f_aj="-malign-jumps=4")
-    AC_TRY_CFLAGS("-ansi", f_ansi="-ansi", f_ansi="")
-    AC_TRY_CFLAGS("-pedantic",f_ped="-pedantic", f_ped="")
-    AC_TRY_CFLAGS("-pedantic-errors",f_ped_err="-pedantic-errors",f_ped_err="")
+    ANSI_FLAGS="-ansi"
+    AC_SUBST(ANSI_FLAGS)
 fi
 
 dnl Flags not supported by all *cc* variants
@@ -712,7 +711,7 @@ enable_armv4l="no"
 
 case "$host_or_hostalias" in
   i386-*-freebsd*)
-    CFLAGS="$CFLAGS -pipe -fomit-frame-pointer $f_ansi $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
+    CFLAGS="$CFLAGS -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS"
     AC_DEFINE(__i386__,1,[Define this if you're running x86 architecture])
     AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
@@ -739,7 +738,7 @@ case "$host_or_hostalias" in
         AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
 	dnl add x86 specific gcc CFLAGS
-	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_ansi $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
+	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
 
 	DEBUG_CFLAGS="$DEBUG_CFLAGS"
 

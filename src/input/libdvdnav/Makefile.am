@@ -1,7 +1,7 @@
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
   -I$(top_srcdir)/src/input/libdvdread/
 
-AM_CFLAGS = $(DVD_CFLAGS) 
+AM_CFLAGS = $(DVD_CFLAGS) @ANSI_FLAGS@
 
 noinst_LTLIBRARIES = libdvdnav.la
 

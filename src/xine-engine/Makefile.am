@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS)
+AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) @ANSI_FLAGS@
 
 lib_LTLIBRARIES = libxine.la
 

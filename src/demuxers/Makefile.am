@@ -1,4 +1,4 @@
-AM_CFLAGS = $(OGG_CFLAGS)
+AM_CFLAGS = $(OGG_CFLAGS) @ANSI_FLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
