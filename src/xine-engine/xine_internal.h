@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.124 2003/01/11 03:47:01 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.125 2003/01/13 02:15:07 miguelfreitas Exp $
  *
  */
 
@@ -212,8 +212,8 @@ struct xine_stream_s {
 
   
   /* master/slave streams */
-  xine_stream_t             *master_stream;
-  xine_stream_t             *slave_stream;
+  xine_stream_t             *master;
+  xine_stream_t             *slave;
   
   /* seeking slowdown */
   int                        first_frame_flag;
@@ -244,6 +244,8 @@ struct xine_stream_s {
 
   xine_post_out_t            video_source;
   xine_post_out_t            audio_source;
+  
+  int                        slave_is_subtitle; /* ... and will be automaticaly disposed */
   
   int                        err;
 };

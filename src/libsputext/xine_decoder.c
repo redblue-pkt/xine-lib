@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2003/01/12 15:29:08 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.49 2003/01/13 02:15:08 miguelfreitas Exp $
  *
  */
 
@@ -182,6 +182,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   int uses_time;
   int32_t start, end, diff;
   int64_t start_vpts, end_vpts;
+  int64_t spu_offset;
   int i;
   uint32_t *val;
   char *str;
@@ -209,10 +210,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 #endif
   }
   
-  if( this->stream->master_stream )
-    xine_get_current_info (this->stream->master_stream, &extra_info, sizeof(extra_info) );
-  else
-    xine_get_current_info (this->stream, &extra_info, sizeof(extra_info) );
+  spu_offset = this->stream->master->metronom->get_option (this->stream->metronom,
+                                                           METRONOM_SPU_OFFSET);
+  start += (spu_offset / 90);
+  end += (spu_offset / 90);
+   
+  xine_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
   
   if( !this->seek_count ) {
     this->seek_count = extra_info.seek_count;
@@ -221,7 +224,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   while(this->seek_count == extra_info.seek_count) {
   
     /* initialize decoder if needed */
-    if( !this->width || !this->height || !this->img_duration ) {
+    if( !this->width || !this->height || !this->img_duration || !this->osd ) {
       
       if( this->stream->video_out->status(this->stream->video_out, NULL,
                                            &this->width, &this->height, &this->img_duration )) {
@@ -283,11 +286,15 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       }
     }
     
-    if( this->stream->master_stream )
-      status = xine_get_status (this->stream->master_stream);
-    else
-      status = xine_get_status (this->stream);
+    status = xine_get_status (this->stream->master);
+   
+    if( status == XINE_STATUS_QUIT || status == XINE_STATUS_STOP ) {
+      this->width = this->height = 0;
+      return;
+    }
     
+    status = xine_get_status (this->stream);
+   
     if( status == XINE_STATUS_QUIT || status == XINE_STATUS_STOP ) {
       this->width = this->height = 0;
       return;
@@ -295,11 +302,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     xine_usec_sleep (50000);
             
-    if( this->stream->master_stream )
-      xine_get_current_info (this->stream->master_stream, &extra_info, sizeof(extra_info) );
-    else
-      xine_get_current_info (this->stream, &extra_info, sizeof(extra_info) );
-
+    xine_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
   }
 }  
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.109 2003/01/11 03:47:01 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.110 2003/01/13 02:15:07 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,8 +47,6 @@
 #define PREBUFFER_PTS_OFFSET  30000
 #define VIDEO_DRIFT_TOLERANCE 45000
 #define AUDIO_DRIFT_TOLERANCE 45000
-
-/*#define OLD_DRIFT_CORRECTION  1*/
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
@@ -273,7 +271,7 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
 
   pthread_mutex_lock (&this->lock);
 
-  vpts = pts + this->vpts_offset;
+  vpts = pts + this->vpts_offset + this->spu_offset;
   
   /* no vpts going backwards please */
   if( vpts < this->spu_vpts )
@@ -549,15 +547,9 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
    * we want. however, adding the error to the vpts_offset will force video
    * to change it's frame rate to keep in sync with us.
    */
-#if OLD_DRIFT_CORRECTION
-  this->audio_vpts += nsamples * (this->pts_per_smpls-this->audio_drift_step)
-                      / AUDIO_SAMPLE_NUM;
-  this->audio_samples += nsamples;
-#else
   this->audio_vpts += nsamples * this->pts_per_smpls / AUDIO_SAMPLE_NUM;
   this->audio_samples += nsamples;
   this->vpts_offset += nsamples * this->audio_drift_step / AUDIO_SAMPLE_NUM;
-#endif                 
                         
 #ifdef LOG
   printf ("metronom: audio vpts for %10lld : %10lld\n", pts, vpts);
@@ -577,12 +569,12 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     this->av_offset = value;
     printf ("metronom: av_offset=%lld pts\n", this->av_offset);
     break;
+  case METRONOM_SPU_OFFSET:
+    this->spu_offset = value;
+    printf ("metronom: av_offset=%lld pts\n", this->spu_offset);
+    break;
   case METRONOM_ADJ_VPTS_OFFSET:
-#if OLD_DRIFT_CORRECTION
-    this->vpts_offset += value;
-#else
     this->audio_vpts += value;
-#endif
 
 /*#ifdef LOG*/
     /* that message should be rare, please report otherwise.
@@ -622,6 +614,8 @@ static int64_t metronom_get_option (metronom_t *this, int option) {
   switch (option) {
   case METRONOM_AV_OFFSET:
     return this->av_offset;
+  case METRONOM_SPU_OFFSET:
+    return this->spu_offset;
   case METRONOM_FRAME_DURATION:
     return this->img_duration;
   }
@@ -774,6 +768,7 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
   pthread_mutex_init (&this->lock, NULL);
 
   this->av_offset                   = 0;
+  this->spu_offset                  = 0;
   this->vpts_offset                 = 0;
 
   /* initialize video stuff */

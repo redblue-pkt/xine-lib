@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.214 2003/01/11 12:51:19 miguelfreitas Exp $
+ * $Id: xine.c,v 1.215 2003/01/13 02:15:07 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -218,6 +218,9 @@ void xine_stop (xine_stream_t *stream) {
   if (stream->video_out)
     stream->video_out->flush(stream->video_out);
   
+  if (stream->slave)
+    xine_stop(stream->slave);
+  
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
@@ -225,6 +228,15 @@ void xine_stop (xine_stream_t *stream) {
 static void xine_close_internal (xine_stream_t *stream) {
 
   int i ;
+
+  if( stream->slave ) {
+    xine_close( stream->slave );
+    if( stream->slave_is_subtitle ) {
+      xine_dispose(stream->slave);
+      stream->slave = NULL;
+      stream->slave_is_subtitle = 0;
+    }
+  }
 
   xine_stop_internal( stream );
   
@@ -362,7 +374,14 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->finished_count_audio   = 0; 
   stream->finished_count_video   = 0; 
   stream->err                    = 0;
-
+  
+  /*
+   * initial master/slave
+   */
+  stream->master                 = stream;
+  stream->slave                  = NULL;
+  stream->slave_is_subtitle      = 0;
+  
   /*
    * init mutexes and conditions
    */
@@ -600,6 +619,39 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	}
 	continue;
       }
+      if (strncasecmp(stream_setup, "subtitle", 8) == 0) {
+        if (*(stream_setup += 8) == ':') {
+	  char *tmp = ++stream_setup;
+	  char *subtitle_mrl;
+	  stream_setup = strchr(stream_setup, ';');
+	  if (stream_setup) {
+	    subtitle_mrl = (char *)malloc(stream_setup - tmp + 1);
+	    memcpy(subtitle_mrl, tmp, stream_setup - tmp);
+	    subtitle_mrl[stream_setup - tmp] = '\0';
+	  } else {
+	    subtitle_mrl = (char *)malloc(strlen(tmp));
+	    memcpy(subtitle_mrl, tmp, strlen(tmp));
+	    subtitle_mrl[strlen(tmp)] = '\0';
+	  }
+	  stream->slave = xine_stream_new (stream->xine, NULL, stream->video_out );
+	  if( xine_open( stream->slave, subtitle_mrl ) ) {
+	    printf("xine: subtitle mrl opened\n");
+	    stream->slave->master = stream;
+	    stream->slave_is_subtitle = 1; 
+	  } else {
+	    printf("xine: error opening subtitle mrl\n");
+	    xine_dispose( stream->slave );
+	    stream->slave = NULL;
+	  }
+	  free(subtitle_mrl);
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	continue;
+      }
       {
         /* when we got here, the stream setup parameter must be a config entry */
 	char *tmp = stream_setup;
@@ -719,7 +771,7 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
 #endif
 
   ret = xine_open_internal (stream, mrl);
-
+  
   pthread_mutex_unlock (&stream->frontend_lock);
 
   return ret;
@@ -814,6 +866,8 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
   pthread_mutex_lock (&stream->frontend_lock);
 
   ret = xine_play_internal (stream, start_pos, start_time/1000);
+  if( stream->slave )
+    xine_play (stream->slave, start_pos, start_time/1000);
 
   pthread_mutex_unlock (&stream->frontend_lock);
   
@@ -857,7 +911,8 @@ void xine_dispose (xine_stream_t *stream) {
   video_decoder_shutdown (stream);
 
   stream->osd_renderer->close( stream->osd_renderer );
-  stream->video_out->exit (stream->video_out);
+  /* it makes no sense to dispose a video port on stream dispose */
+  /* stream->video_out->exit (stream->video_out); */
   stream->video_fifo->dispose (stream->video_fifo);
 
   pthread_mutex_destroy (&stream->frontend_lock);
@@ -1305,8 +1360,8 @@ int xine_trick_mode (xine_stream_t *stream, int mode, int value) {
 
 int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
                          int affection) {
-  master->slave_stream = slave;
-  slave->master_stream = master;                           
+  master->slave = slave;
+  slave->master = master;       
   return 1;
 }                           
 

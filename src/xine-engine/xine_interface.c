@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.37 2002/12/27 22:49:38 esnel Exp $
+ * $Id: xine_interface.c,v 1.38 2003/01/13 02:15:07 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -322,6 +322,10 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
   case XINE_PARAM_AV_OFFSET:
     stream->metronom->set_option (stream->metronom, METRONOM_AV_OFFSET, value);
     break;
+  
+  case XINE_PARAM_SPU_OFFSET:
+    stream->metronom->set_option (stream->metronom, METRONOM_SPU_OFFSET, value);
+    break;
 
   case XINE_PARAM_AUDIO_CHANNEL_LOGICAL:
     pthread_mutex_lock (&stream->frontend_lock);
@@ -402,6 +406,9 @@ int  xine_get_param (xine_stream_t *stream, int param) {
 
   case XINE_PARAM_AV_OFFSET:
     return stream->metronom->get_option (stream->metronom, METRONOM_AV_OFFSET);
+  
+  case XINE_PARAM_SPU_OFFSET:
+    return stream->metronom->get_option (stream->metronom, METRONOM_SPU_OFFSET);
 
   case XINE_PARAM_AUDIO_CHANNEL_LOGICAL:
     return stream->audio_channel_user;

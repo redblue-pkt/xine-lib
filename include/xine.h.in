@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.51 2003/01/11 19:06:52 guenter Exp $
+ * $Id: xine.h.in,v 1.52 2003/01/13 02:15:07 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -585,6 +585,7 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 #define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, 100=>100% (default) */
 #define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
 #define XINE_PARAM_VERBOSITY              11 /* control console output      */
+#define XINE_PARAM_SPU_OFFSET             12 /* unit: 1/90000 sec           */
 
 /* stream format detection strategies */
 
