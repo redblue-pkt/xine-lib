@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.33 2002/06/24 07:55:13 dennisbj Exp $
+ * $Id: xine_decoder.c,v 1.34 2002/06/24 08:10:35 dennisbj Exp $
  *
  * code based on mplayer module:
  *
@@ -1035,14 +1035,7 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
 spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
-  static char *subtitle_size_strings[SUBTITLE_SIZE_NUM+1] = { NULL };
-
-  if (!subtitle_size_strings[0]) {
-    subtitle_size_strings[SUBTITLE_SIZE_SMALL]  = _("Small");
-    subtitle_size_strings[SUBTITLE_SIZE_NORMAL] = _("Normal");
-    subtitle_size_strings[SUBTITLE_SIZE_LARGE]  = _("Large");
-    subtitle_size_strings[SUBTITLE_SIZE_NUM]    = NULL; /* allready NULL since static, but good for documentation */
-  }
+  static char *subtitle_size_strings[] = { "small", "normal", "large", NULL };
 
   if (iface_version != 8) {
     printf(_("libsputext: doesn't support plugin api version %d.\n"
