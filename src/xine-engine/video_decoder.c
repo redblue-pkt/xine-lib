@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.81 2002/04/09 03:38:01 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.82 2002/04/09 13:53:52 miguelfreitas Exp $
  *
  */
 
@@ -184,6 +184,9 @@ void *video_decoder_loop (void *this_gen) {
     case BUF_CONTROL_RESET_DECODER:
       if (this->cur_video_decoder_plugin) {
         this->cur_video_decoder_plugin->reset (this->cur_video_decoder_plugin);
+      }
+      if (this->cur_spu_decoder_plugin) {
+        this->cur_spu_decoder_plugin->reset (this->cur_spu_decoder_plugin);
       }
       break;
     

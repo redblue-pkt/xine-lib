@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2002/03/25 22:55:42 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.19 2002/04/09 13:53:52 miguelfreitas Exp $
  *
  * code based on mplayer module:
  *
@@ -947,6 +947,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 }  
 
 
+static void spudec_reset (spu_decoder_t *this_gen) {
+  sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
+
+  this->cur = 0;
+}
+
 static void spudec_close (spu_decoder_t *this_gen) {
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
 
@@ -995,7 +1001,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
 
-  if (iface_version != 4) {
+  if (iface_version != 5) {
     printf("libsputext: doesn't support plugin api version %d.\n"
 	   "libsputext: This means there is a version mismatch between xine and\n"
 	   "libsputext: this plugin.\n", iface_version);
@@ -1008,6 +1014,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
+  this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 1;

@@ -44,6 +44,8 @@ struct spu_decoder_s {
 
   void (*decode_data) (spu_decoder_t *this, buf_element_t *buf);
 
+  void (*reset) (spu_decoder_t *this);
+    
   void (*close) (spu_decoder_t *this);
 
   char* (*get_identifier) (void);

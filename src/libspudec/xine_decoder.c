@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.59 2002/04/06 15:40:19 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.60 2002/04/09 13:53:52 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -153,6 +153,9 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
+static void spudec_reset (spu_decoder_t *this_gen) {
+}
+
 static void spudec_close (spu_decoder_t *this_gen) {
   spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
   int                       i;
@@ -268,7 +271,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   spudec_decoder_t *this ;
 
-  if (iface_version != 4) {
+  if (iface_version != 5) {
     printf("libspudec: Doesn't support plugin API version %d.\n"
 	   "libspudec: This means there is a version mismatch between XINE and\n"
 	   "libspudec: this plugin.\n", iface_version);
@@ -279,10 +282,11 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 /* xine_xmalloc does memset */
 /*  memset (this, 0, sizeof(*this)); */
 
-  this->spu_decoder.interface_version   = 4;
+  this->spu_decoder.interface_version   = iface_version;
   this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
+  this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 1;
