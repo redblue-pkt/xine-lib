@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.71 2003/12/14 22:13:24 siggi Exp $
+ * $Id: xine_decoder.c,v 1.72 2003/12/30 02:16:43 miguelfreitas Exp $
  *
  */
 
@@ -413,11 +413,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   }
   
-  lprintf("decoder data [%s]\n", this->text[0]);
-  lprintf("mode %d timing %d->%d\n", uses_time, start, end);
+  xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
+          "libsputext: decoder data [%s]\n", this->text[0]);
+  xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
+          "libsputext: mode %d timing %d->%d\n", uses_time, start, end);
 
   if( end <= start ) {
-    lprintf("libsputext: discarding subtitle with invalid timing\n");
+    xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
+            "libsputext: discarding subtitle with invalid timing\n");
     return;
   }
   
@@ -477,7 +480,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           
           /* discard old subtitles */
           if( diff < 0 ) {
-            lprintf("discarding old\n");
+            xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+                    "libsputext: discarding old subtitle\n");
             return;
           }
             
@@ -504,7 +508,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           
           /* discard old subtitles */
           if( diff < 0 ) {
-            lprintf("discarding old\n");
+            xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
+                    "libsputext: discarding old subtitle\n");
             return;
           }
             
