@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.18 2003/05/06 00:22:39 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.19 2003/05/06 16:43:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -400,6 +400,384 @@ static int read_cdrom_frames(int fd, int frame, int num_frames,
 #endif
 
 
+/**************************************************************************
+ * network support functions. plays audio cd over the network.
+ * see xine-lib/misc/cdda_server.c for the server application
+ *************************************************************************/
+
+#define _BUFSIZ 300
+
+static int host_connect_attempt (struct in_addr ia, int port)
+{
+  int                s;
+  struct sockaddr_in sin;
+
+  s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  if (s==-1) {
+    printf("input_cdda: failed to open socket\n");
+    return -1;
+  }
+
+  sin.sin_family = AF_INET;
+  sin.sin_addr   = ia;
+  sin.sin_port   = htons(port);
+
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
+    printf("input_cdda: cannot connect to host\n");
+    close(s);
+    return -1;
+  }
+
+  return s;
+}
+
+static int host_connect (const char *host, int port)
+{
+  struct hostent *h;
+  int i;
+  int s;
+
+  h=gethostbyname(host);
+  if (h==NULL) {
+        printf("input_cdda: unable to resolve >%s<\n", host);
+        return -1;
+  }
+
+  for(i=0; h->h_addr_list[i]; i++) {
+    struct in_addr ia;
+    memcpy(&ia, h->h_addr_list[i], 4);
+    s=host_connect_attempt(ia, port);
+    if(s != -1) {
+      signal( SIGPIPE, SIG_IGN );
+      return s;
+    }
+  }
+
+  printf("input_cdda: unable to connect to >%s<\n", host);
+  return -1;
+}
+
+
+static int parse_url (char *urlbuf, char** host, int *port) {
+  char   *start = NULL;
+  char   *portcolon = NULL;
+
+  if (host != NULL)
+    *host = NULL;
+
+  if (port != NULL)
+    *port = 0;
+
+  start = strstr(urlbuf, "://");
+  if (start != NULL)
+    start += 3;
+  else
+    start = urlbuf;
+
+  while( *start == '/' )
+    start++;
+
+  portcolon = strchr(start, ':');
+
+  if (host != NULL)
+    *host = start;
+
+  if (portcolon != NULL)
+  {
+    *portcolon = '\0';
+
+    if (port != NULL)
+        *port = atoi(portcolon + 1);
+  }
+
+  return 0;
+}
+
+static int sock_check_opened(int socket) {
+  fd_set   readfds, writefds, exceptfds;
+  int      retval;
+  struct   timeval timeout;
+
+  for(;;) {
+    FD_ZERO(&readfds);
+    FD_ZERO(&writefds);
+    FD_ZERO(&exceptfds);
+    FD_SET(socket, &exceptfds);
+
+    timeout.tv_sec  = 0;
+    timeout.tv_usec = 0;
+
+    retval = select(socket + 1, &readfds, &writefds, &exceptfds, &timeout);
+
+    if(retval == -1 && (errno != EAGAIN && errno != EINTR))
+      return 0;
+
+    if (retval != -1)
+      return 1;
+  }
+
+  return 0;
+}
+
+/*
+ * read binary data from socket
+ */
+static int sock_data_read (int socket, char *buf, int nlen) {
+  int n, num_bytes;
+
+  if((socket < 0) || (buf == NULL))
+    return -1;
+
+  if(!sock_check_opened(socket))
+    return -1;
+
+  num_bytes = 0;
+
+  while (num_bytes < nlen) {
+
+    n = read (socket, &buf[num_bytes], nlen - num_bytes);
+
+    /* read errors */
+    if (n < 0) {
+      if(errno == EAGAIN) {
+        fd_set rset;
+        struct timeval timeout;
+
+        FD_ZERO (&rset);
+        FD_SET  (socket, &rset);
+
+        timeout.tv_sec  = 30;
+        timeout.tv_usec = 0;
+
+        if (select (socket+1, &rset, NULL, NULL, &timeout) <= 0) {
+          printf ("input_cdda: timeout on read\n");
+          return 0;
+        }
+        continue;
+      }
+      printf ("input_cdda: read error %d\n", errno);
+      return 0;
+    }
+
+    num_bytes += n;
+
+    /* end of stream */
+    if (!n) break;
+  }
+
+  return num_bytes;
+}
+
+/*
+ * read a line (\n-terminated) from socket
+ */
+static int sock_string_read(int socket, char *buf, int len) {
+  char    *pbuf;
+  int      r, rr;
+  void    *nl;
+
+  if((socket < 0) || (buf == NULL))
+    return -1;
+
+  if(!sock_check_opened(socket))
+    return -1;
+
+  if (--len < 1)
+    return(-1);
+
+  pbuf = buf;
+
+  do {
+
+    if((r = recv(socket, pbuf, len, MSG_PEEK)) <= 0)
+      return -1;
+
+    if((nl = memchr(pbuf, '\n', r)) != NULL)
+      r = ((char *) nl) - pbuf + 1;
+
+    if((rr = read(socket, pbuf, r)) < 0)
+      return -1;
+
+    pbuf += rr;
+    len -= rr;
+
+  } while((nl == NULL) && len);
+
+  if (pbuf > buf && *(pbuf-1) == '\n'){
+    *(pbuf-1) = '\0';
+  }
+  *pbuf = '\0';
+  return (pbuf - buf);
+}
+
+/*
+ * Write to socket.
+ */
+static int sock_data_write(int socket, char *buf, int len) {
+  ssize_t  size;
+  int      wlen = 0;
+
+  if((socket < 0) || (buf == NULL))
+    return -1;
+
+  if(!sock_check_opened(socket))
+    return -1;
+
+  while(len) {
+    size = write(socket, buf, len);
+
+    if(size <= 0)
+      return -1;
+
+    len -= size;
+    wlen += size;
+    buf += size;
+  }
+
+  return wlen;
+}
+
+static int network_command( int socket, char *data_buf, char *msg, ...)
+{
+  char     buf[_BUFSIZ];
+  va_list  args;
+  int      ret, n;
+
+  va_start(args, msg);
+  vsnprintf(buf, _BUFSIZ, msg, args);
+  va_end(args);
+
+  /* Each line sent is '\n' terminated */
+  if((buf[strlen(buf)] == '\0') && (buf[strlen(buf) - 1] != '\n'))
+    sprintf(buf, "%s%c", buf, '\n');
+
+  if( sock_data_write(socket, buf, strlen(buf)) < (int)strlen(buf) )
+  {
+    printf("input_cdda: error writing to socket\n");
+    return -1;
+  }
+
+  if( sock_string_read(socket, buf, _BUFSIZ) <= 0 )
+  {
+    printf("input_cdda: error reading from socket\n");
+    return -1;
+  }
+
+  sscanf(buf, "%d %d", &ret, &n );
+
+  if( n ) {
+    if( !data_buf ) {
+      printf("input_cdda: protocol error, data returned but no buffer provided.\n");
+      return -1;
+    }
+    if( sock_data_read(socket, data_buf, n) < n )
+      return -1;
+  } else if ( data_buf ) {
+
+    strcpy( data_buf, buf );
+  }
+
+  return ret;
+}
+
+
+static int network_connect( char *url )
+{
+  char *host;
+  int port;
+  int fd;
+
+  url = strdup(url);
+  parse_url(url, &host, &port);
+
+  if( !host || !strlen(host) || !port )
+  {
+    free(url);
+    return -1;
+  }
+
+  fd = host_connect( host, port );
+  free(url);
+
+  if( fd != -1 ) {
+    if( network_command(fd, NULL, "cdda_open") < 0 ) {
+      printf("input_cdda: error opening remote drive\n");
+      close(fd);
+      return -1;
+    }
+  }
+  return fd;
+}
+                   
+static void network_read_cdrom_toc(int fd, cdrom_toc *toc) {
+
+  char buf[_BUFSIZ];
+  int i;
+
+  /* fetch the table of contents */
+  if( network_command( fd, buf, "cdda_tochdr" ) == -1) {
+    printf("input_cdda: network CDROMREADTOCHDR error\n");
+    return;
+  }
+
+  sscanf(buf,"%*s %*s %d %d", &toc->first_track, &toc->last_track);
+  toc->total_tracks = toc->last_track - toc->first_track + 1;
+
+  /* allocate space for the toc entries */
+  toc->toc_entries =
+    (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
+  if (!toc->toc_entries) {
+    perror("malloc");
+    return;
+  }
+
+  /* fetch each toc entry */
+  for (i = toc->first_track; i <= toc->last_track; i++) {
+
+    /* fetch the table of contents */
+    if( network_command( fd, buf, "cdda_tocentry %d", i ) == -1) {
+      printf("input_cdda: network CDROMREADTOCENTRY error\n");
+      return;
+    }
+
+    sscanf(buf,"%*s %*s %d %d %d %d", &toc->toc_entries[i-1].track_mode,
+                                      &toc->toc_entries[i-1].first_frame_minute,
+                                      &toc->toc_entries[i-1].first_frame_second,
+                                      &toc->toc_entries[i-1].first_frame_frame);
+
+    toc->toc_entries[i-1].first_frame =
+      (toc->toc_entries[i-1].first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+      (toc->toc_entries[i-1].first_frame_second * CD_FRAMES_PER_SECOND) +
+       toc->toc_entries[i-1].first_frame_frame;
+  }
+
+  /* fetch the leadout as well */
+  if( network_command( fd, buf, "cdda_tocentry %d", CD_LEADOUT_TRACK ) == -1) {
+    printf("input_cdda: network CDROMREADTOCENTRY error\n");
+    return;
+  }
+
+  sscanf(buf,"%*s %*s %d %d %d %d", &toc->leadout_track.track_mode,
+                                    &toc->leadout_track.first_frame_minute,
+                                    &toc->leadout_track.first_frame_second,
+                                    &toc->leadout_track.first_frame_frame);
+
+  toc->leadout_track.first_frame =
+    (toc->leadout_track.first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+    (toc->leadout_track.first_frame_second * CD_FRAMES_PER_SECOND) +
+     toc->leadout_track.first_frame_frame;
+}
+
+static void network_read_cdrom_frames(int fd, int first_frame, int num_frames,
+  unsigned char data[CD_RAW_FRAME_SIZE]) {
+
+  if( network_command( fd, data, "cdda_read %d %d", first_frame, num_frames ) == -1) {
+    printf("input_netcd: read error");
+    return;
+  }
+}
+
 
 /**************************************************************************
  * xine interface functions
@@ -440,11 +818,14 @@ typedef struct {
   } cddb;
 
   int                  fd;
+  int                  net_fd;
   int                  track;
   char                *mrl;
   int                  first_frame;
   int                  current_frame;
   int                  last_frame;
+
+  char                *cdda_device;
 
   unsigned char        cache[CACHED_FRAMES][CD_RAW_FRAME_SIZE];
   int                  cache_first;
@@ -1199,9 +1580,14 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
     if( this->cache_last > this->last_frame )
       this->cache_last = this->last_frame;
     
-    read_cdrom_frames(this->fd, this->cache_first,
-                      this->cache_last - this->cache_first + 1,
-                      this->cache[0]);
+    if( this->fd != -1 )
+      read_cdrom_frames(this->fd, this->cache_first,
+                        this->cache_last - this->cache_first + 1,
+                        this->cache[0]);
+    else if ( this->net_fd != -1 )
+      network_read_cdrom_frames(this->net_fd, this->cache_first,
+                                this->cache_last - this->cache_first + 1,
+                                this->cache[0]);
   }
     
   memcpy(frame_data, this->cache[this->current_frame-this->cache_first], CD_RAW_FRAME_SIZE);
@@ -1271,8 +1657,14 @@ static void cdda_plugin_dispose (input_plugin_t *this_gen ) {
   if (this->fd != -1)
     close(this->fd);
 
+  if (this->net_fd != -1)
+    close(this->net_fd);
+
   free(this->mrl);
 
+  if (this->cdda_device)
+    free(this->cdda_device);
+  
   free(this);
 }
 
@@ -1281,27 +1673,56 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
   cdda_input_class_t  *class = (cdda_input_class_t *) this_gen->input_class;
   cdrom_toc            toc;
   int                  fd;
-  
+  char                *cdda_device;
+    
 #ifdef LOG
   printf("cdda_plugin_open\n");
 #endif
-  
+
   /* get the CD TOC */
   init_cdrom_toc(&toc);
-  fd = open (class->cdda_device, O_RDONLY);
-  if (fd == -1)
-    return 0;
-  read_cdrom_toc(fd, &toc);
 
+  if( this->cdda_device )
+    cdda_device = this->cdda_device;
+  else
+    cdda_device = class->cdda_device;
+      
+  if( strchr(cdda_device,':') ) {
+    fd = network_connect(cdda_device);
+    if( fd != -1 ) {
+      this->net_fd = fd;
+
+      network_read_cdrom_toc(this->net_fd, &toc);
+    }
+  }
+
+  if( this->net_fd == -1 ) {
+    fd = open (cdda_device, O_RDONLY);
+    if (fd == -1) {
+      free_cdrom_toc(&toc);
+      return 0;
+    }
+    this->fd = fd;
+    
+    read_cdrom_toc(this->fd, &toc);
+  }
+
+  
   if ((toc.first_track > (this->track + 1)) || 
       (toc.last_track < (this->track + 1))) {
-    close(fd);
+
+    if( this->fd != -1 )
+      close(this->fd);
+    this->fd = -1;
+    
+    if( this->net_fd != -1 )
+      close(this->net_fd);
+    this->net_fd = -1;
+      
     free_cdrom_toc(&toc);
     return 0;
   }
 
-  this->fd = fd;
-  
   /* set up the frame boundaries for this particular track */
   this->first_frame = this->current_frame = 
     toc.toc_entries[this->track].first_frame;
@@ -1394,10 +1815,24 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   
   /* get the CD TOC */
   init_cdrom_toc(&toc);
-  fd = open (this->cdda_device, O_RDONLY);
-  if (fd == -1)
-    return NULL;
-  read_cdrom_toc(fd, &toc);
+
+  fd = -1;
+  if( strchr(this->cdda_device,':') ) {
+    fd = network_connect(this->cdda_device);
+    if( fd != -1 ) {
+      network_read_cdrom_toc(fd, &toc);
+    }
+  }
+
+  if( fd == -1 ) {
+    fd = open (this->cdda_device, O_RDONLY);
+    if (fd == -1) {
+      return NULL;
+    }
+
+    read_cdrom_toc(fd, &toc);
+  }
+  
   close(fd);
   
   for( i = 0; i <= toc.last_track - toc.first_track; i++ ) {
@@ -1418,30 +1853,52 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   cdda_input_class_t  *class = (cdda_input_class_t *) cls_gen;
   int                  track;
   xine_cfg_entry_t     enable_entry, server_entry, port_entry, cachedir_entry;
+  char                *cdda_device = NULL;
 
 #ifdef LOG
   printf("cdda_class_get_instance\n");
 #endif
+
   /* fetch the CD track to play */
   if (!strncasecmp (mrl, "cdda:/", 6)) {
-    track = atoi(&mrl[6]);
+
+    if ( strlen(mrl) > 8 && strchr(&mrl[8],'/') ) {
+      int i;
+
+      cdda_device = strdup(&mrl[6]);
+
+      i = strlen(cdda_device)-1;
+      while( i && cdda_device[i] != '/' )
+        i--;
+
+      if( i ) {
+        cdda_device[i] = '\0';
+        track = atoi(&cdda_device[i+1]);
+      } else
+        track = -1;        
+
+    } else {
+      track = atoi(&mrl[6]);
+    }
+    
     /* CD tracks start at 1, reject illegal tracks */
     if (track <= 0)
       return NULL;
   } else
     return NULL;
 
-
   this = (cdda_input_plugin_t *) xine_xmalloc (sizeof (cdda_input_plugin_t));
   
   class->ip = this;
-  this->stream     = stream;
-  this->mrl        = strdup(mrl);
+  this->stream      = stream;
+  this->mrl         = strdup(mrl);
+  this->cdda_device = cdda_device;
   
   /* CD tracks start from 1; internal data structure indexes from 0 */
   this->track      = track - 1;
   this->cddb.track = NULL;
   this->fd         = -1;
+  this->net_fd     = -1;
   
   this->input_plugin.open               = cdda_plugin_open;
   this->input_plugin.get_capabilities   = cdda_plugin_get_capabilities;
