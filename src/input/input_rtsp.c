@@ -278,7 +278,7 @@ static char *rtsp_class_get_description (input_class_t *this_gen) {
   return _("rtsp streaming input plugin");
 }
 
-static char *rtsp_class_get_identifier (input_class_t *this_gen) {
+static const char *rtsp_class_get_identifier (input_class_t *this_gen) {
   return "rtsp";
 }
 

@@ -265,7 +265,7 @@ static char *pnm_class_get_description (input_class_t *this_gen) {
   return _("pnm streaming input plugin");
 }
 
-static char *pnm_class_get_identifier (input_class_t *this_gen) {
+static const char *pnm_class_get_identifier (input_class_t *this_gen) {
   return "pnm";
 }
 

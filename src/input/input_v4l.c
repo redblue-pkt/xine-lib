@@ -1889,7 +1889,7 @@ static char *v4l_class_get_radio_description (input_class_t *this_gen) {
   return _("v4l radio input plugin");
 }
 
-static char *v4l_class_get_identifier (input_class_t *this_gen) {
+static const char *v4l_class_get_identifier (input_class_t *this_gen) {
   return "v4l";
 }
 

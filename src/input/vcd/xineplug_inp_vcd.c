@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.22 2004/07/20 00:31:37 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.23 2004/07/20 00:50:11 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -920,7 +920,7 @@ vcd_class_get_description (input_class_t *this_gen)
   this is used for GUI buttons, The identifier must have max. 4 characters
   characters (max. 5 including terminating \0)
 */
-static char *
+static const char *
 vcd_class_get_identifier (input_class_t *this_gen) {
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
   return SHORT_PLUGIN_NAME;

@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.93 2004/07/05 20:47:42 f1rmb Exp $
+ * $Id: input_http.c,v 1.94 2004/07/20 00:50:11 rockyb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -977,7 +977,7 @@ static char *http_class_get_description (input_class_t *this_gen) {
   return _("http input plugin");
 }
 
-static char *http_class_get_identifier (input_class_t *this_gen) {
+static const char *http_class_get_identifier (input_class_t *this_gen) {
   return "http";
 }
 

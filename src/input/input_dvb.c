@@ -1284,7 +1284,7 @@ static char *dvb_class_get_description (input_class_t *this_gen) {
   return _("DVB (Digital TV) input plugin");
 }
 
-static char *dvb_class_get_identifier (input_class_t *this_gen) {
+static const char *dvb_class_get_identifier (input_class_t *this_gen) {
   return "dvb";
 }
 

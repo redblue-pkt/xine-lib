@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.74 2004/06/13 21:28:56 miguelfreitas Exp $
+ * $Id: input_vcd.c,v 1.75 2004/07/20 00:50:11 rockyb Exp $
  *
  */
 
@@ -922,7 +922,7 @@ static char *vcd_class_get_description (input_class_t *this_gen) {
   return _("Video CD input plugin");
 }
 
-static char *vcd_class_get_identifier (input_class_t *this_gen) {
+static const char *vcd_class_get_identifier (input_class_t *this_gen) {
   return "vcdo";
 }
 
