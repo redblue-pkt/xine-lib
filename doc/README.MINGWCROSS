@@ -1,0 +1,198 @@
+Introduction
+------------
+
+MinGW is short for the Minimalist GNU Windows. It's package which allows you
+to use GCC and other GNU tools to compile native windows programs.
+
+In this case "native" means programs which don't require extra DLLs like
+cygwin DLL. Mingw32 programs use DLLs supplied with all current Win32
+platforms. Thus the programs are light weight and easy to distribute.
+
+
+This document describes by shell commands how to compile and install MinGW
+cross development tools on Unix host and how to use it for building windows
+version of xine.
+
+
+Download
+--------
+
+  MinGW packages:
+
+    http://mingw.org/download.shtml
+
+    1) binutils (sources)
+    2) gcc-core, gcc-c++ (sources)
+    3) w32api, mingw-runtime (binaries and sources)
+
+  DirectX headers (tested with version 7):
+
+    http://www.google.com/search?hl=cs&q=win32-dx7headers.tgz
+    http://www.google.com/search?q=dx7adxf.exe
+
+
+Build
+-----
+
+In following text are used symbols PREFIX and USER with this meaning:
+
+  PREFIX .... directory of the mingw cross environtment
+  USER ...... current user
+
+
+1. compile binutils
+
+  tar xzf binutils-2.13.90-20030111-1-src.tar.gz
+  mkdir bin
+  cd bin
+  ../binutils-2.13.90-20030111-1-src/configure \
+    --target=i386-mingw32 \
+    --prefix=PREFIX
+  make
+  su
+  make install
+  exit
+
+
+2. add PREFIX/bin into PATH
+
+  ...
+
+
+3. compile compiler (gcc-core, gcc-c++)
+
+  #
+  # it's always good doing things under unprivileged user,
+  # this commands ensure write permission to target
+  #
+  su
+  chmod g+w PREFIX{/lib,/i386-mingw32{/,/lib}}
+  chown root:USER PREFIX{/lib,/i386-mingw32{/,/lib}}
+  exit
+
+  #
+  # prepare runtime environment from binaries
+  #
+  mkdir runtime
+  cd runtime
+  tar xzf ../w32api-2.5.tar.gz
+  tar xzf ../mingw-runtime-3.3.tar.gz
+  cd ..
+
+  #
+  # compile and install the compiler
+  #
+  # if you'll want rerun this step, I recommend delete 
+  # PREFIX/i386-mingw32/sys-include
+  #
+  tar xzf gcc-core-3.3.1-20030804-1-src.tar.gz
+  tar xzf gcc-g++-3.3.1-20030804-1-src.tar.gz
+  mkdir gcc-bin
+  cd gcc-bin 
+  ../gcc-3.3.1-20030804-1/configure \
+    --disable-shared \
+    --enable-static \
+    --target=i386-mingw32 \
+    --with-headers=../runtime/include \
+    --with-libs=../runtime/lib \
+    --prefix=PREFIX
+  make
+  su
+  make install
+  exit
+
+  #
+  # set the permissions back
+  #
+  su
+  chmod -R g-w PREFIX
+  chown -R root:root PREFIX
+  exit
+
+
+4. recompile w32api and mingw-runtime from sources (optional)
+ 
+  #
+  # installing must be into PREFIX/i386-mingw32
+  #
+  tar xzf w32api-2.5-src.tar.gz
+  cd w32api-2.5
+  ./configure --prefix=PREFIX/i386-mingw32 --host=i386-mingw32
+  make
+  su
+  make install
+  exit
+
+  #
+  # installing must be into PREFIX/i386-mingw32
+  #
+  tar xzf mingw-runtime-3.3-src.tar.gz
+  cd mingw-runtime-3.3
+  # copying w32api headers into ./include (because of a bug in runtime
+  # package)
+  ...
+  # compiling
+  CC=i386-mingw32-gcc \
+  DLLTOOL=i386-mingw32-dlltool \
+  AR=i386-mingw32-ar \
+  AS=i386-mingw32-as \
+  RANLIB=i386-mingw32-ranlib \
+  ./configure --prefix=PREFIX/i386-mingw32 --target=i386-mingw32
+  make
+  su
+  make install
+  exit
+
+
+5. install DirectX headers and other libraries
+  su
+  cd PREFIX/include
+  # untar dx7headers.tar.gz
+  ...
+  exit
+
+
+Using MinGW cross development tools
+-----------------------------------
+
+We can build xine library for Windows by this way:
+
+  #
+  # configure for mingw cross compiling
+  # (the build option is needed only for forcing cross compilation mode)
+  #
+  ./configure \
+    --host=i386-mingw32 \
+    --build=i686-debian-linux \
+    --disable-freetype \
+    --disable-vcd \
+    --with-dxheaders=/mingw32/include/dx7headers
+
+  #
+  # build system isn't fully prepared for cross compiling, so it's needed
+  # manually or by patch disable plugins in Makefiles depending on wrongly
+  # detected libraries
+  #
+  ...
+
+  #
+  # compile
+  #
+  make
+
+  #
+  # install
+  #
+  make install DESTDIR=/tmp/xine-lib-mingwcross
+  rm /tmp/xine-lib-mingwcross/bin/plugins{/,/post}/*.a
+
+  #
+  # if we want to use xine library in M$ compilers, we will need some tools from
+  # M$ Visual C: LIB.EXE, LINK.EXE, MSPDB60.DLL and wine
+  #
+  # create libxine-1.lib file
+  #
+  cd <path_where_libxine_is_installed_>/lib
+  cp ../bin/libxine-1.dll .
+  wine LIB.EXE /machine:i386 /def:libxine-1.def
+  rm libxine-1.dll

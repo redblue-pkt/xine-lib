@@ -422,6 +422,16 @@
     </para>
    </sect2>
 
+   <sect2 id="win32build">
+    <title>How to compile xine for Windows?</title>
+    <para>
+     For compiling xine under MinGW, CygWin or MS Visual C see <ulink url="http://cvs.sourceforge.net/viewcvs.py/*checkout*/xine/xine-lib/doc/README.WIN32"><filename>README.WIN32</filename></ulink>.
+    </para>
+    <para>
+     For cross-compiling xine under MinGW from comfortable unix-like environment see <ulink url="http://cvs.sourceforge.net/viewcvs.py/*checkout*/xine/xine-lib/doc/README.MINGWCROSS"><filename>README.MINGWCROSS</filename></ulink>.
+    </para>
+   </sect2>
+
   </sect1>
 
   <sect1 id="playback">

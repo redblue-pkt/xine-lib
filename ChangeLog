@@ -20,6 +20,7 @@ xine-lib (1.0.1)
   * fixed PNG/MNG image distortion and incorrect colouring
   * fixed build on solaris and other platforms [bugs #1062987, #1114677 and
     #1115001]
+  * published documentation about Win32 platform
 
 xine-lib (1.0)
   * unbreak DXR3 plugin

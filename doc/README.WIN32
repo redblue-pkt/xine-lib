@@ -1,0 +1,147 @@
+Introduction
+------------
+
+This document describes how to build xine library under Windows.
+
+
+Download
+--------
+Checkout source code from CVS (under Windows can be used CygWin or another tool). You will need 'xine-lib' (the library) and 'xine-win32' (testing Windows frontend).
+
+
+Build
+-----
+
+There are three different ports on Windows:
+ 1) MinGW (the simplest and recommended)
+ 1) CygWin
+ 3) M$ Visual C, or maybe .NET (recommended for debugging)
+
+
+1. MinGW port
+-------------
+This is the best way. Final library is 100% native Windows with all optimizations.
+
+Also you can use cross-build from comfortable unix-like system. See README.MINGWCROSS for more information.
+
+Requirements for compilation under Windows:
+  a) MinGW installed on Windows
+  b) LIB.EXE, LINK.EXE and MSPDB60.DLL from M$ Visual C 
+     (necessary only for usability created xine library by M$ compilers)
+
+How to build:
+    #
+    # configure for building in MinGW under Windows
+    #
+    ./configure --with-dxheaders=DIRECTORY
+
+    #
+    # compile
+    #
+    make
+
+    #
+    # install and manually remove the static plugins
+    #
+    make install DESTDIR=/tmp/xine-lib
+    rm /tmp/xine-lib/bin/plugins/*.a
+    rm /tmp/xine-lib/bin/plugins/post/*.a
+
+Prepare xine library for using in M$ compilers too:
+    # run terminal window (MinGW for example)
+    ...
+    # creating libxine-1.lib file
+    cd <path_where_libxine_is_installed_>/lib
+    cp ../bin/libxine-1.dll .
+    <path_to_M$VC>/VC98/BIN/LIB.EXE /machine:i386 /def:libxine-1.def
+    rm libxine-1.dll
+
+
+2. CygWin port
+--------------
+This is the second way. Created library won't be 100% windows native: it will contains some additional emulation code and I'm not sure, if can be used with M$ compilers.
+
+It's possible to use CygWin for cross-compiling with MinGW.
+
+How to build:
+    #
+    # configure
+    #
+    ./configure --with-dxheaders=DIRECTORY
+
+    #
+    # compile
+    #
+    make
+
+    #
+    # install
+    #
+    make install DESTDIR=/tmp/xine-lib
+
+
+3. M$ Visual C port
+-------------------
+This build system is different from the one, used for all other platforms, but we partially keep it up to date - just for experimental reasons, but only if we have access to some M$ computer.
+
+Reasons, why not to use this port:
+ - can't compile included ffmpeg (important multi-decoder in xine)
+ - can't compile new assembler code (it means degradation of power)
+ - never 100% up to date
+ - somebody must buy the OS and compiler
+
+Reasons, why to use this port:
+ - obtaining backtrace after crash, debugging
+
+How to build xine in M$ Visual C:
+  - Set up MSVC to look for DirectX headers.
+
+  - Open up the xine.dsw workspace/project in MSVC.
+
+  - Unless you have a project file to build css you must select Cancel when prompted for the libdvdcss.dsp file.
+
+  - Click on the FileView tab.
+
+  - Build the following projects in this order:
+    libxinesuppt
+    libxine
+    libdvdnav
+
+  - Next build any desired plugins (decoders/demuxers ...). The ao_out_directx and vo_out_directx are required for Win32. There is an option to use the vo_out_sdl but a sdl.dll must be present for that to take place. There have also been some issues observed with the directX video driver on some machines.
+
+  - If you want ffmpeg decoder plugin, you must use precompiled version. If you want to compile it, you should have the files LIB.EXE, LINK.EXE and MSPDB60.DLL from the Visual C++.
+    Under MinGW you can compile ffmpeg for xine by this way:
+
+    #
+    # for cross-compiling add "--cross-prefix=i386-mingw32-" and "--disable-mmx"
+    #
+    ./configure \
+       --enable-gpl \
+       --enable-pp \
+       --enable-shared \
+       --disable-zlib \
+       --enable-mingw32
+    make
+    make install prefix=/tmp/ffmpeg
+    cp avcodec/avcodec.def /tmp/ffmpeg
+    #
+    # for cross-compiling finalize linking by running this command 
+    #
+    wine LIB.EXE /machine:i386 /def:avcodec.def
+
+Status
+------
+
+There remains many of work yet on Windows port.
+
+Limitations:
+ - doesn't work under Win95/98 (DirectX? win32-pthreads?)
+ - file > 1GB doesn't work (MinGW problem?)
+ - missing full Win32 frontend
+ - build system isn't fully tuned for cross-compiling
+
+Bugs:
+ - use GetCurrentDirectory(SIZE, STR) because of changing volume drive!
+ - random crashes
+ - seeking doesn't work with testing frontend
+ - non-seekable input plugins crash
