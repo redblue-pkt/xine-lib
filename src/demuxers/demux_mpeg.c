@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.82 2002/10/23 10:08:48 jkeil Exp $
+ * $Id: demux_mpeg.c,v 1.83 2002/10/23 20:22:42 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -42,9 +42,6 @@
 #include "xine_internal.h"
 #include "demux.h"
 #include "xineutils.h"
-
-#define VALID_MRLS          "stdin,fifo"
-#define VALID_ENDS          "mpg,mpeg,mpe"
 
 #define NUM_PREVIEW_BUFFERS 150
 
@@ -1154,15 +1151,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->stream = stream;
   this->input  = input;
 
-  /* Calling register_string() configure valid mrls in configfile */
-  (void*) config->register_string(config, "mrl.mrls_mpeg", VALID_MRLS,
-				  _("valid mrls for mpeg demuxer"),
-				  NULL, 20, NULL, NULL);
-  (void*) config->register_string(config,
-				  "mrl.ends_mpeg", VALID_ENDS,
-				  _("valid mrls ending for mpeg demuxer"),
-				  NULL, 20, NULL, NULL);
-
   this->demux_plugin.send_headers      = demux_mpeg_send_headers;
   this->demux_plugin.start             = demux_mpeg_start;
   this->demux_plugin.seek              = demux_mpeg_seek;
@@ -1179,7 +1167,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
-  case XINE_DEMUX_CONTENT_STRATEGY: {
+  case METHOD_BY_CONTENT: {
     uint8_t buf[4096];
     off_t mdat_atom_offset = -1;
     int64_t mdat_atom_size = -1;
@@ -1297,7 +1285,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  case XINE_DEMUX_EXTENSION_STRATEGY: {
+  case METHOD_BY_EXTENSION: {
     char *ending, *mrl;
 
     mrl = input->get_mrl (input);
@@ -1309,7 +1297,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
 
-    if (strncasecmp(ending, ".MPEG", 4)) {
+    if (strncasecmp(ending, ".MPEG", 4)
+	&& strncasecmp (ending, ".mpg", 3)) {
       free (this);
       return NULL;
     }
@@ -1325,7 +1314,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 }
 
 static char *get_description (demux_class_t *this_gen) {
-  return "Mpeg-1 demux plugin";
+  return "MPEG program stream demux plugin";
 }
 
 static char *get_identifier (demux_class_t *this_gen) {
@@ -1333,7 +1322,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "mpeg";
+  return "mpg mpeg";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
