@@ -1,6 +1,8 @@
 xine-lib (1-beta12)
   * playback of theorastreams added
   * updated nvtv support, and bug fixes
+  * ac3 pcm-audiotype .wav files now supported via software decode.
+    Passthru not implemented yet due to lack of re-sync code in liba52 passthru mode.
   * playback of cd/dvd over the network (see README.network_dvd)
   * use variable block program stream demuxer for mpeg2 files
   * cdda improvements (error handling, device on mrl)

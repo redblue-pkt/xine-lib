@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.41 2003/04/17 19:01:33 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.42 2003/05/09 20:17:29 jcdutton Exp $
  *
  */
 
@@ -86,10 +86,10 @@ typedef struct {
 /* returns 1 if the WAV file was opened successfully, 0 otherwise */
 static int open_wav_file(demux_wav_t *this) {
 
-  unsigned char signature[WAV_SIGNATURE_SIZE];
-  unsigned int chunk_tag;
-  unsigned int chunk_size;
-  unsigned char chunk_preamble[8];
+  uint8_t signature[WAV_SIGNATURE_SIZE];
+  uint32_t chunk_tag;
+  uint32_t chunk_size;
+  uint8_t chunk_preamble[8];
 
   /* check the signature */
   if (!xine_demux_read_header(this->input, signature, WAV_SIGNATURE_SIZE))
@@ -146,6 +146,18 @@ static int open_wav_file(demux_wav_t *this) {
       this->data_size = chunk_size;
     } else {
       this->input->seek(this->input, chunk_size, SEEK_CUR);
+    }
+  }
+  if (this->audio_type == BUF_AUDIO_LPCM_LE) {
+    if (this->input->read(this->input, chunk_preamble, 4) != 4 ) {
+      free (this->wave);
+      return 0;
+    }
+    if (chunk_preamble[0] == 0x72 &&
+        chunk_preamble[1] == 0xf8 &&
+        chunk_preamble[2] == 0x1f &&
+        chunk_preamble[3] == 0x4e ) {
+      this->audio_type = BUF_AUDIO_DNET;
     }
   }
 
