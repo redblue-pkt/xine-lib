@@ -58,6 +58,7 @@ PIMAGE_RESOURCE_DIRECTORY GetResDirEntryW(PIMAGE_RESOURCE_DIRECTORY resdirptr,
 		char	buf[10];
 
 		lstrcpynWtoA(buf,name+1,10);
+		buf[9] = '\0';
 		return GetResDirEntryW(resdirptr,(LPCWSTR)atoi(buf),root,allowdefault);
 	}
 	entryTable = (PIMAGE_RESOURCE_DIRECTORY_ENTRY) (
