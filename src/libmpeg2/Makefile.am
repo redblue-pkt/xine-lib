@@ -2,8 +2,6 @@ include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = $(LIBMPEG2_CFLAGS)
 
-EXTRA_DIST = idct_mlib.c idct_mlib.h motion_comp_mlib.c
-
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_mpeg2.la
@@ -29,4 +27,4 @@ xineplug_decode_mpeg2_la_SOURCES = \
 xineplug_decode_mpeg2_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB)
 xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h
+noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h idct_mlib.h vis.h
