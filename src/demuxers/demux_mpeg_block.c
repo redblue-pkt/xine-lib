@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.176 2003/05/07 02:04:31 rockyb Exp $
+ * $Id: demux_mpeg_block.c,v 1.177 2003/05/07 02:16:59 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -447,7 +447,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   } else { /* mpeg 2 */
 #if CHECK_DVD_PES_SCRAMBLED
     /* check PES scrambling_control */
-    if (((p[6] & 0xF0) != 80) ) {
+
+    if ((p[6] & 0x80) == 80 && (p[6] & 30) != 0) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: warning: PES header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
 
