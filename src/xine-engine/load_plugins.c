@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.14 2001/04/28 22:03:03 guenter Exp $
+ * $Id: load_plugins.c,v 1.15 2001/04/28 22:29:36 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -379,7 +379,8 @@ char **xine_list_video_output_plugins (int visual_type) {
 
 	      /* FIXME: sort the list by vo_info->priority */
 
-	      plugin_ids[num_plugins] = vo_info->id;
+	      plugin_ids[num_plugins] = (char *) malloc (strlen(vo_info->id)+1);
+	      strcpy (plugin_ids[num_plugins], vo_info->id);
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
 	    }
@@ -388,6 +389,7 @@ char **xine_list_video_output_plugins (int visual_type) {
 	    printf("load_plugins: %s seems to be an invalid plugin (lacks get_video_out_plugin_info() function)\n",  str);
 
 	  }
+	  dlclose (plugin);
 	}
       }
     }
@@ -514,7 +516,8 @@ char **xine_list_audio_output_plugins() {
 
 	      /* FIXME: sort the list by ao_info->priority */
 
-	      plugin_ids[num_plugins] = ao_info->id;
+	      plugin_ids[num_plugins] = (char *) malloc (strlen(ao_info->id)+1);
+	      strcpy (plugin_ids[num_plugins], ao_info->id);
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
 	    }
@@ -523,6 +526,7 @@ char **xine_list_audio_output_plugins() {
 	    printf("load_plugins: %s seems to be an invalid plugin (lacks get_audio_out_plugin_info() function)\n",  str);
 
 	  }
+	  dlclose (plugin);
 	}
       }
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.7 2001/04/28 22:03:03 guenter Exp $
+ * $Id: video_out_xv.c,v 1.8 2001/04/28 22:29:36 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -916,10 +916,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
    * init window
    */
 
-  /*
+  
   xv_calc_format (this, 720, 576, 2);
   xv_setup_window (this);
-  */
+  
   return &this->vo_driver;
 }
 
