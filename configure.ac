@@ -802,10 +802,13 @@ AC_ARG_WITH(external-dvdnav,[  --with-external-dvdnav  Use external dvdnav libra
 
 if test x"$external_dvdnav" = "xyes"; then
   AM_PATH_DVDNAV(0.1.9,
-	  AC_DEFINE(HAVE_DVDNAV,1,[Define this if you have a suitable version of libdvdnav]),
+	  [
+	  	CFLAGS="$CFLAGS $DVDNAV_CFLAGS"
+	  	AC_DEFINE(HAVE_DVDNAV,1,[Define this if you have a suitable version of libdvdnav])
+	  ],
 	  [AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])])
 else
-  AC_MSG_RESULT([Use included DVDNAV/DVDREAD support])
+  AC_MSG_RESULT([Use included DVDNAV support])
 fi
 
 AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
