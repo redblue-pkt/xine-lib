@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.156 2005/02/13 22:12:50 holstsn Exp $
+ * $Id: video_decoder.c,v 1.157 2005/02/13 22:14:17 holstsn Exp $
  *
  */
 
@@ -236,12 +236,12 @@ static void *video_decoder_loop (void *stream_gen) {
       pthread_mutex_unlock (&stream->counter_lock);
 
       /* Wake up xine_play if it's waiting for a frame */
-      /*pthread_mutex_lock (&stream->first_frame_lock);
+      pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag) {
         stream->first_frame_flag = 0;
         pthread_cond_broadcast(&stream->first_frame_reached);
       }
-      pthread_mutex_unlock (&stream->first_frame_lock);*/
+      pthread_mutex_unlock (&stream->first_frame_lock);
       break;
 
     case BUF_CONTROL_QUIT:
