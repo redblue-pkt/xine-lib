@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.5 2002/07/03 19:38:45 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.6 2002/07/08 16:35:32 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -62,6 +62,7 @@ int         dxr3_rte_init(dxr3_driver_t *drv);
 /* functions required by encoder api */
 static int  rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame);
 static int  rte_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame);
+static int  rte_on_unneeded(dxr3_driver_t *drv);
 static int  rte_on_close(dxr3_driver_t *drv);
 
 /* helper function */
@@ -85,6 +86,7 @@ int        dxr3_fame_init(dxr3_driver_t *drv);
 /* functions required by encoder api */
 static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame);
 static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame);
+static int fame_on_unneeded(dxr3_driver_t *drv);
 static int fame_on_close(dxr3_driver_t *drv);
 
 /* encoder structure */
@@ -123,6 +125,7 @@ int dxr3_rte_init(dxr3_driver_t *drv)
   this->encoder_data.on_update_format = rte_on_update_format;
   this->encoder_data.on_frame_copy    = NULL;
   this->encoder_data.on_display_frame = rte_on_display_frame;
+  this->encoder_data.on_unneeded       = rte_on_unneeded;
   this->encoder_data.on_close         = rte_on_close;
   this->context                       = 0;
   
@@ -264,15 +267,22 @@ static int rte_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   return 1;
 }
 
-static int rte_on_close(dxr3_driver_t *drv)
+static int rte_on_unneeded(dxr3_driver_t *drv)
 {
   rte_data_t *this = (rte_data_t *)drv->enc;
   
   if (this->context) {
     rte_stop(this->context);
     rte_context_destroy(this->context);
+    this->context = 0;
   }
-  free(this);
+  return 1;
+}
+
+static int rte_on_close(dxr3_driver_t *drv)
+{
+  rte_on_unneeded(drv);
+  free(drv->enc);
   drv->enc = 0;
   return 1;
 }
@@ -315,6 +325,7 @@ int dxr3_fame_init(dxr3_driver_t *drv)
   this->encoder_data.on_update_format = fame_on_update_format;
   this->encoder_data.on_frame_copy    = NULL;
   this->encoder_data.on_display_frame = fame_on_display_frame;
+  this->encoder_data.on_unneeded      = fame_on_unneeded;
   this->encoder_data.on_close         = fame_on_close;
   this->context                       = 0;
   
@@ -489,13 +500,21 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   return 1;
 }
 
-static int fame_on_close(dxr3_driver_t *drv)
+static int fame_on_unneeded(dxr3_driver_t *drv)
 {
   fame_data_t *this = (fame_data_t *)drv->enc;
   
-  if (this->context)
+  if (this->context) {
     fame_close(this->context);
-  free(this);
+    this->context = 0;
+  }
+  return 1;
+}
+
+static int fame_on_close(dxr3_driver_t *drv)
+{
+  fame_on_unneeded(drv);
+  free(drv->enc);
   drv->enc = 0;
   return 1;
 }

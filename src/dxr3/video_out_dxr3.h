@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.3 2002/06/30 10:47:06 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.4 2002/07/08 16:35:33 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -124,6 +124,7 @@ struct encoder_data_s {
   int            (*on_update_format)(dxr3_driver_t *, dxr3_frame_t *);
   int            (*on_frame_copy)(dxr3_driver_t *, dxr3_frame_t *, uint8_t **src);
   int            (*on_display_frame)(dxr3_driver_t *, dxr3_frame_t *);
+  int            (*on_unneeded)(dxr3_driver_t *);
   int            (*on_close)(dxr3_driver_t *);
 }; 
 
