@@ -16,7 +16,7 @@ extern "C" {
 
 #define FFMPEG_VERSION_INT     0x000408
 #define FFMPEG_VERSION         "0.4.8"
-#define LIBAVCODEC_BUILD       4687
+#define LIBAVCODEC_BUILD       4688
 
 #define LIBAVCODEC_VERSION_INT FFMPEG_VERSION_INT
 #define LIBAVCODEC_VERSION     FFMPEG_VERSION
@@ -117,6 +117,9 @@ enum CodecID {
     CODEC_ID_ROQ_DPCM,
     CODEC_ID_INTERPLAY_DPCM,
     CODEC_ID_XAN_DPCM,
+    
+    CODEC_ID_MPEG2TS, /* _FAKE_ codec to indicate a raw MPEG2 transport
+                         stream (only used by libavformat) */
 };
 
 /* CODEC_ID_MP3LAME is absolete */
@@ -126,6 +129,7 @@ enum CodecType {
     CODEC_TYPE_UNKNOWN = -1,
     CODEC_TYPE_VIDEO,
     CODEC_TYPE_AUDIO,
+    CODEC_TYPE_DATA,
 };
 
 /**
@@ -449,7 +453,13 @@ typedef struct AVPanScan{
      * - decoding: set by lavc\
      */\
     AVPanScan *pan_scan;\
-    
+    \
+    /**\
+     * tell user application that palette has changed from previous frame.\
+     * - encoding: ??? (no palette-enabled encoder yet)\
+     * - decoding: set by lavc (default 0)\
+     */\
+    int palette_has_changed;\
 
 #define FF_QSCALE_TYPE_MPEG1	0
 #define FF_QSCALE_TYPE_MPEG2	1
@@ -918,6 +928,7 @@ typedef struct AVCodecContext {
 #define FF_DCT_MMX     3
 #define FF_DCT_MLIB    4
 #define FF_DCT_ALTIVEC 5
+#define FF_DCT_FAAN    6
     
     /**
      * luminance masking (0-> disabled).
@@ -1340,6 +1351,13 @@ typedef struct AVCodecContext {
      * - decoding: unused
      */
     int lmax;
+
+    /**
+     * Palette control structure
+     * - encoding: ??? (no palette-enabled encoder yet)
+     * - decoding: set by user.
+     */
+    struct AVPaletteControl *palctrl;
     
 } AVCodecContext;
 
@@ -1421,17 +1439,18 @@ typedef struct AVPicture {
  * This structure defines a method for communicating palette changes
  * between and demuxer and a decoder.
  */
+#define AVPALETTE_SIZE 256
 typedef struct AVPaletteControl {
 
     /* demuxer sets this to 1 to indicate the palette has changed;
      * decoder resets to 0 */
     int palette_changed;
 
-    /* 256 3-byte RGB palette entries; the components should be
-     * formatted in the buffer as "RGBRGB..." and should be scaled to
-     * 8 bits if they originally represented 6-bit VGA palette
-     * components */
-    unsigned char palette[256 * 3];
+    /* 4-byte ARGB palette entries, stored in native byte order; note that
+     * the individual palette components should be on a 8-bit scale; if
+     * the palette data comes from a IBM VGA native format, the component
+     * data is probably 6 bits in size and needs to be scaled */
+    unsigned int palette[AVPALETTE_SIZE];
 
 } AVPaletteControl;
 

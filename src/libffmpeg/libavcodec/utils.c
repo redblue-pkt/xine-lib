@@ -318,6 +318,7 @@ void avcodec_get_context_defaults(AVCodecContext *s){
     
     s->intra_quant_bias= FF_DEFAULT_QUANT_BIAS;
     s->inter_quant_bias= FF_DEFAULT_QUANT_BIAS;
+    s->palctrl = NULL;
 }
 
 /**
@@ -523,6 +524,10 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
             else if (enc->sub_id == 1)
                 codec_name = "mp1";
         }
+    } else if (enc->codec_id == CODEC_ID_MPEG2TS) {
+        /* fake mpeg2 transport stream codec (currently not
+           registered) */
+        codec_name = "mpeg2ts";
     } else if (enc->codec_name[0] != '\0') {
         codec_name = enc->codec_name;
     } else {
@@ -604,6 +609,10 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
             bitrate = enc->bit_rate;
             break;
         }
+        break;
+    case CODEC_TYPE_DATA:
+        snprintf(buf, buf_size, "Data: %s", codec_name);
+        bitrate = enc->bit_rate;
         break;
     default:
         av_abort();

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.132 2003/10/27 22:26:03 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.133 2003/10/30 06:00:19 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -104,6 +104,7 @@ struct ff_video_decoder_s {
   
   int               output_format;
   yuv_planes_t      yuv;
+  AVPaletteControl  palette_control;
 };
 
 typedef struct {
@@ -231,6 +232,8 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
    */
   this->context->pix_fmt = -1;
 
+  this->context->palctrl = &this->palette_control;
+
   if( bih && bih->biSize > sizeof(xine_bmiheader) ) {
     this->context->extradata_size = bih->biSize - sizeof(xine_bmiheader);
     this->context->extradata = malloc(this->context->extradata_size);
@@ -238,14 +241,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
             (uint8_t *)bih + sizeof(xine_bmiheader),
             this->context->extradata_size ); 
   }
-  if ((this->codec->id == CODEC_ID_XAN_WC3) ||
-      (this->codec->id == CODEC_ID_INTERPLAY_VIDEO)) {
-    /* dupe certain decoders by giving them an empty palette; these
-     * decoders do not care about the palette during initialization */
-    this->context->extradata_size = sizeof(AVPaletteControl);
-    this->context->extradata = xine_xmalloc(this->context->extradata_size);
-  }
-  
+
   if(bih)
     this->context->bits_per_sample = bih->biBitCount;
     
@@ -940,18 +936,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     init_video_codec (this, (xine_bmiheader *)buf->content );
     init_postprocess (this);
 
-    free(this->context->extradata);
-    this->context->extradata = NULL;
-    this->context->extradata_size = 0;
-
   } else if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
 
     /* take care of all the various types of special buffers */
-
-    /* first, free any previous extradata chunk */
-    free(this->context->extradata);
-    this->context->extradata = NULL;
-    this->context->extradata_size = 0;
 
     if (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM) {
 
@@ -966,16 +953,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       palette_entry_t *demuxer_palette;
       AVPaletteControl *decoder_palette;
 
-      this->context->extradata_size = sizeof(AVPaletteControl);
-      this->context->extradata = xine_xmalloc(this->context->extradata_size);
-
-      decoder_palette = (AVPaletteControl *)this->context->extradata;
+      decoder_palette = (AVPaletteControl *)this->context->palctrl;
       demuxer_palette = (palette_entry_t *)buf->decoder_info_ptr[2];
 
       for (i = 0; i < buf->decoder_info[2]; i++) {
-        decoder_palette->palette[i * 3 + 0] = demuxer_palette[i].r;
-        decoder_palette->palette[i * 3 + 1] = demuxer_palette[i].g;
-        decoder_palette->palette[i * 3 + 2] = demuxer_palette[i].b;
+        decoder_palette->palette[i] = 
+          (demuxer_palette[i].r << 16) |
+          (demuxer_palette[i].g <<  8) |
+          (demuxer_palette[i].b <<  0);
       }
       decoder_palette->palette_changed = 1;
     }
@@ -1264,7 +1249,7 @@ static void ff_dispose (video_decoder_t *this_gen) {
 
   if(this->context && this->context->slice_offset)
     free(this->context->slice_offset);
-  
+
   if(this->context && this->context->extradata)
     free(this->context->extradata);
 
