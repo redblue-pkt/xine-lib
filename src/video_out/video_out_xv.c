@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.202 2004/06/27 11:16:20 mroi Exp $
+ * $Id: video_out_xv.c,v 1.203 2004/07/17 20:22:42 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -185,6 +185,7 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
     }
     else {
       XLockDisplay (this->display);
+      free (frame->image->data);
       XFree (frame->image);
       XUnlockDisplay (this->display);
     }
@@ -388,9 +389,11 @@ static void dispose_ximage (xv_driver_t *this,
     }
 
   } 
-  else
+  else {
+    free (myimage->data);
+    
     XFree (myimage);
-
+  }
 }
 
 static void xv_update_frame_format (vo_driver_t *this_gen,
