@@ -82,6 +82,7 @@ noinst_HEADERS = \
 	os_support.h \
 	simple_idct.h \
 	svq1_cb.h \
+	svq1_vlc.h \
 	vp3data.h \
 	wmadata.h
 
