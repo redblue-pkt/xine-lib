@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.82 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: xine.c,v 1.83 2001/11/30 01:02:18 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -433,7 +433,6 @@ xine_t *xine_init (vo_driver_t *vo,
   this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
 
-#ifdef USE_OSD
   this->osd_renderer = osd_renderer_init( this->video_out->overlay_source );
   osd_renderer_load_font( this->osd_renderer, "vga" ); 
   
@@ -446,7 +445,6 @@ xine_t *xine_init (vo_driver_t *vo,
     osd_set_position(osd,10,10);
     osd_show(osd,0);
   }
-#endif
   
   if(ao) 
     this->audio_out = ao_new_instance (ao, this->metronom, config);
