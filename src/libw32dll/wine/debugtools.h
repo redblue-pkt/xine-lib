@@ -61,8 +61,10 @@ extern int dbg_header_fixme( const char *dbg_channel, const char *func );
 extern int dbg_header_trace( const char *dbg_channel, const char *func );
 extern int dbg_vprintf( const char *format, va_list args );
 
+#if 0   /* causes undefined symbols */
 static inline LPCSTR debugstr_a( LPCSTR s )  { return debugstr_an( s, 80 ); }
 static inline LPCSTR debugstr_w( LPCWSTR s ) { return debugstr_wn( s, 80 ); }
+#endif
 
 #ifdef __GNUC__
 extern int dbg_printf(const char *format, ...) __attribute__((format (printf,1,2)));
