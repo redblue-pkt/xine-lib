@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.183 2002/10/29 16:02:51 mroi Exp $
+ * $Id: xine.c,v 1.184 2002/10/29 21:31:02 guenter Exp $
  *
  * top-level xine functions
  *
@@ -802,16 +802,16 @@ int xine_get_speed (xine_stream_t *stream) {
 
 static int xine_get_stream_length (xine_stream_t *stream) {
 
-  pthread_mutex_lock( &stream->demux_lock );
+  /* pthread_mutex_lock( &stream->demux_lock ); */
 
   if (stream->demux_plugin) {
     int len = stream->demux_plugin->get_stream_length (stream->demux_plugin); 
-    pthread_mutex_unlock( &stream->demux_lock );
+    /* pthread_mutex_unlock( &stream->demux_lock ); */
 
     return len;
   }
   
-  pthread_mutex_unlock( &stream->demux_lock );
+  /* pthread_mutex_unlock( &stream->demux_lock ); */
 
   return 0;
 }
