@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.89 2002/03/21 16:21:01 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.90 2002/03/24 13:22:23 esnel Exp $
  *
  */
 
@@ -511,7 +511,7 @@ struct vo_driver_s {
   /**
    * Check if a redraw is needed (due to resize)
    */
-  int (*redraw_needed) (vo_driver_t *this);
+  int (*redraw_needed) (vo_driver_t *self);
 
 };
           /** @} end of video_group */
