@@ -19,8 +19,7 @@ libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 	-release $(LT_RELEASE)
 
-noinst_HEADERS  = attributes.h
-include_HEADERS = xineutils.h
+include_HEADERS = xineutils.h attributes.h
 
 ###
 # Hardcoded rule: 
