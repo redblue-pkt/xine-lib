@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.83 2002/09/05 16:50:56 guenter Exp $
+ * $Id: load_plugins.c,v 1.84 2002/09/06 13:15:02 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -140,6 +140,7 @@ static void _insert_plugin (xine_list_t *list,
 
   case PLUGIN_AUDIO_DECODER:
   case PLUGIN_VIDEO_DECODER:
+  case PLUGIN_SPU_DECODER:
     decoder_old = info->special_info;
     decoder_new = xine_xmalloc(sizeof(decoder_info_t));
     if (decoder_old == NULL) {
@@ -845,7 +846,23 @@ audio_decoder_t *get_audio_decoder (xine_t *this, uint8_t stream_type) {
 }
 
 spu_decoder_t   *get_spu_decoder   (xine_t *this, uint8_t stream_type) {
-  return NULL; /* FIXME */
+
+  plugin_node_t   *node;
+
+#ifdef LOG
+  printf ("load_plugins: looking for spu decoder for streamtype %02x\n",
+	  stream_type);
+#endif
+
+  node = this->plugin_catalog->spu_decoder_map[stream_type];
+
+  if (!node)
+    return NULL;
+
+  if (!node->plugin) 
+    node->plugin = _load_plugin(this, node->filename, node->info, NULL);
+
+  return node->plugin; 
 }
 
 
