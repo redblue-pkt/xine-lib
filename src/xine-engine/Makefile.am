@@ -9,7 +9,6 @@ lib_LTLIBRARIES = libxine.la
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
 	utils.c cpu_accel.c load_plugins.c video_decoder.c \
 	audio_decoder.c video_out.c
-libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
@@ -45,10 +44,6 @@ debug:
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-
-libsdeps:
-	@cd $(top_builddir)/src/libmpg123 && $(MAKE) CFLAGS="$(CFLAGS)" libmpg123.la
-##	@cd $(top_builddir)/src/libspudec && $(MAKE) libspudec.la
 
 
 ###
