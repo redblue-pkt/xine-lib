@@ -590,6 +590,8 @@ uid=0\(* )
     ACLOCAL_DIR="/usr/local/share/aclocal"
     AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
   fi
+  escapedprefix=`echo "$prefix"|sed -e 's/\//\/\//g'`
+  ACLOCAL_DIR=`echo "$ACLOCAL_DIR"|sed -e s/^"$escapedprefix"/'\${prefix}'/`
   AC_SUBST(ACLOCAL_DIR)
   ;;
 esac

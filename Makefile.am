@@ -6,7 +6,10 @@ AUTOMAKE_OPTIONS = 1.3
 
 SUBDIRS = doc m4 src misc include
 
-EXTRA_DIST = cvscompile.sh automake.diff
+EXTRA_DIST = cvscompile.sh automake.diff \
+             debian/README.Debian debian/changelog debian/control \
+             debian/copyright debian/dirs debian/docs debian/postinst \
+             debian/postrm debian/preinst debian/prerm debian/rules
 
 noinst_HEADERS = config.h
 
