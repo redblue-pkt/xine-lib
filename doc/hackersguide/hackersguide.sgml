@@ -466,7 +466,318 @@ struct demux_plugin_s
     <title>Adding support for a new media type,
            e.g. disc format, network transport method
            (writing an input plugin)</title>
-    <para></para>
+    <para>
+      Many media players expect streams to be stored within files on
+      some local medium. In actual fact, media may be streamed over a 
+      network (e.g. via HTTP or RTP), encoded onto a specialist medium
+      (e.g. DVD), etc. To allow you to access this media, xine supports
+      the concept of an "input plugin". The tasks performed by an
+      input plugin are:
+    </para>
+    <para>
+      <itemizedlist>
+      <listitem>
+        <para>
+	Validation of Media Resource Locators (MRLs).
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	MRL specific session management (e.g. opening and closing local files).
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	Reading blocks/specific numbers of bytes from the input device.
+	</para>
+      </listitem>
+      </itemizedlist>
+    </para>
+    <para>
+      In addition to these tasks, the input plugin may keep track of some
+      input device-specific state information (e.g. a DVD plugin may keep
+      track of navigational state data such as current title/chapter).
+    </para>
+    <para>
+      There are two classes of input device which xine recognises. 
+      Byte-oriented devices can, upon request, return an arbitary
+      non-zero number of bytes from a stream. Examples of such devices
+      are files or network streams. Block-oriented devices, however, have
+      a prefered block or "frame"-size. An example of such a device is
+      a DVD where data is stored in logical blocks of 2048 bytes. One may
+      pass the hint to xine that the plugin is block-oriented by setting the
+      INPUT_CAP_BLOCK capability. Note that this is only a hint and
+      xine does not guarantee that all requests to the plugin will
+      be purely block based.
+    </para>
+    <para>
+      The input plugin should export at least the following function:
+    </para>
+    <programlisting>
+  input_plugin_t *init_input_plugin (int iface, xine_t *xine)
+    </programlisting>
+    <para>
+      The <varname>iface</varname> parameter is the input plugin interface
+      xine is requesting (as of writing this is '5'). The 
+      <varname>xine</varname> parameter is a pointer to the global 
+      <type>xine_t</type> for this session.
+    </para>
+    <para>
+      The function should return a pointer to an allocated 
+      <type>input_plugin_t</type> (defined in
+      <filename>xine/input_plugin.h</filename>) which has the following
+      definition:
+    </para>
+    <programlisting>
+struct input_plugin_s
+{
+
+  /*
+   * plugin interface version, lower versions _may_ be supported
+   */
+  int interface_version;
+
+  /*
+   * return capabilities of input source
+   */
+
+  uint32_t (*get_capabilities) (input_plugin_t *this);
+
+  /*
+   * open input MRL - return 1 if succ
+   */
+  int (*open) (input_plugin_t *this, char *mrl);
+
+  /*
+   * read nlen bytes, return number of bytes read
+   */
+  off_t (*read) (input_plugin_t *this, char *buf, off_t nlen);
+
+  /*
+   * read one block, return newly allocated block (or NULL on failure)
+   * for blocked input sources len must be == blocksize
+   * the fifo parameter is only used to get access to the buffer_pool_alloc function
+   */
+  buf_element_t *(*read_block)(input_plugin_t *this, fifo_buffer_t *fifo, off_t len);
+
+  /*
+   * seek position, return new position 
+   *
+   * if seeking failed, -1 is returned
+   */
+  off_t (*seek) (input_plugin_t *this, off_t offset, int origin);
+
+  /*
+   * get current position in stream.
+   *
+   */
+  off_t (*get_current_pos) (input_plugin_t *this);
+
+  /*
+   * return length of input (-1 => unlimited, e.g. stream)
+   */
+  off_t (*get_length) (input_plugin_t *this);
+
+  /*
+   * return block size of input source (if supported, 0 otherwise)
+   */
+  uint32_t (*get_blocksize) (input_plugin_t *this);
+
+  /*
+   * ls function
+   * return value: NULL => filename is a file, **char=> filename is a dir
+   */
+  mrl_t** (*get_dir) (input_plugin_t *this, char *filename, int *nFiles);
+
+  /*
+   * eject/load the media (if it's possible)
+   *
+   * returns 0 for temporary failures
+   */
+  int (*eject_media) (input_plugin_t *this);
+
+  /*
+   * return current MRL
+   */
+  char * (*get_mrl) (input_plugin_t *this);
+
+  /*
+   * stop input source
+   */
+  void (*stop) (input_plugin_t *this);
+
+  /*
+   * close input source
+   */
+  void (*close) (input_plugin_t *this);
+
+  /*
+   * return human readable (verbose = 1 line) description for this plugin
+   */
+  char* (*get_description) (input_plugin_t *this);
+
+  /*
+   * return short, human readable identifier for this plugin
+   * this is used for GUI buttons, The identifier must have max. 4 characters
+   * characters (max. 5 including terminating \0)
+   */
+  char* (*get_identifier) (input_plugin_t *this);
+
+  /*
+   * generate autoplay list
+   * return value: list of MRLs
+   */
+  char** (*get_autoplay_list) (input_plugin_t *this, int *nFiles);
+
+  /*
+   * request optional data from input plugin.
+   */
+  int (*get_optional_data) (input_plugin_t *this, void *data, int data_type);
+
+  /*
+   * check if it is possible/valid to directly branch to this MRL
+   * optional: may be NULL
+   */
+  
+  int (*is_branch_possible) (input_plugin_t *this, char *next_mrl);
+};
+    </programlisting>
+    <para>
+      Typically the <function>init_input_plugin</function> function will
+      initialise all these parameters.
+    </para>
+    <para>
+      The <varname>get_capabilities</varname> parameter points to a function
+      which returns a bit mask describing the input device's capabilities.
+      You may logically OR the following constants together to get
+      a suitable bit-mask (via the '|' operator).
+    </para>
+    <itemizedlist>
+    <listitem>
+      <para>
+      INPUT_CAP_NOCAP -- Input device has no capabilities (alias for '0').
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+      INPUT_CAP_SEEKABLE -- Input device may be 'seeked' (i.e. 
+      random access is possible, usually not available on, e.g., network
+      streams).
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+      INPUT_CAP_BLOCK -- Input device has a prefered block size (i.e. is
+      block-oriented).
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+      INPUT_CAP_AUTOPLAY -- Device can return an 'autoplay' list.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+      INPUT_CAP_GET_DIR -- Device supports the concept of 'directorys' or
+      'folders' containing other MRLs.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+      INPUT_CAP_BROWSABLE -- Device supports possible MRL enumeration and
+      browsing via the MRL browser.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+      INPUT_CAP_CLUT -- Somewhat of an obsolete kludge. Device supports
+      the querying of sub-picture-unit colour palettes.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+      INPUT_CAP_AUDIOLANG -- Device supports multiple audio streams with
+      different names.
+      </para>
+    </listitem>
+     <listitem>
+      <para>
+      INPUT_CAP_SPULANG -- Device supports multiple sub-picture-unit (SPU)
+      streams with different names.
+      </para>
+    </listitem>
+     <listitem>
+      <para>
+      INPUT_CAP_VARIABLE_BITRATE -- Xine may not experimentally read from the
+      plugin in order to guestimate bit-rate.
+      </para>
+    </listitem>
+      </itemizedlist>
+
+    <para>
+      The <varname>open</varname> parameter points to a function which accepts
+      an MRL and returns a flag indicating whether this plugin accepts the 
+      MRL or not. Note that input plugins are not guaranteed to be queried
+      in anay particular order and the first input plugin to claim an MRL
+      gets control so try not to duplicate MRLs already found within xine.
+      You should also do any device-specific initialisation within this
+      function.
+    </para>
+    <para>
+      The <varname>close</varname> parameter points to a function which
+      cleans up after <varname>open</varname>.
+    </para>
+    <para>
+      The <varname>read</varname> reads a specified number of bytes into
+      a buffer and returns the number of bytes actually copied.
+    </para>
+    <para>
+      Should the input plugin set the block-oriented hint and if the
+      demuxer supports it, the function pointed to by 
+      <varname>read_block</varname> will be called to read a block directly
+      into xine's demuxer FIFO buffer.
+    </para>
+    <para>
+      The <varname>seek</varname> parameter points to a function called by
+      xine when it is required that subsequent reads come from another part
+      of the stream.
+    </para>
+    <para>
+      The <varname>get_current_pos</varname> parameter points to a function
+      which returns the current position within a finite length stream.
+      Similarly the <varname>get_length</varname> function returns the
+      length of the stream.
+    </para>
+    <para>
+      The <varname>get_blocksize</varname> parameter points to a function
+      which returns the device's prefered block-size if applicable.
+    </para>
+    <para>
+      The <varname>get_dir</varname> parameter point to a function
+      which returns a NULL terminated
+      array of pointers to MRLs which are within the 'directory' passed.
+    </para>
+    <para>
+      The <varname>eject_media</varname> parameter points to a function
+      called when the user requests that the media be 'ejected' if possible.
+    </para>
+    <para>
+      The <varname>get_mrl</varname> parameter points to a function which
+      returns the current MRL.
+    </para>
+    <para>
+      The <varname>stop</varname> parameter points to a function which
+      stops (but does not close) the input device.
+    </para>
+    <para>
+      <varname>get_identifier</varname> points to a function returning a
+      (short) human-readable description for the plugin (e.g. CDA, NAV, DVD).
+    </para>
+    <para>
+      <varname>get_autoplay_list</varname> points to a function returning
+      a NULL-temrinated array of MRLs which arise due to the 'autoplay'
+      feature of the plugin.
+    </para>
   </sect1>
 </chapter>
 
