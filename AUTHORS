@@ -72,6 +72,10 @@ Andreas Heinchen <andreas.heinchen@gmx.de>
 Manfred Tremmel <manfred.tremmel@iiv.de>
   iff support, spec-file
 
+James Stembridge <jstembridge@users.sourceforge.net>
+  VIDIX driver, real media and ffmpeg interface fixes and improvements
+  mpeg-4 postprocessing, initial software DTS decoding
+
 xine is using
 =============
 
@@ -94,6 +98,9 @@ xine is using
 
   FAAD2 - Freeware Advanced Audio Decoder version 2
     Written by M. Bakker <http://www.audiocoding.com/>
+    
+  libdts - a free DTS Coherent Acoustics decoder
+    Written by Gildas Bazin <http://www.videolan.org/dtsdec.html>
 
   GSM 06.10 Lossy Speech Compression Library
     Written by Jutta Degener and Carsten Bormann
@@ -357,10 +364,6 @@ Zoltán Böszörményi <zboszor@freemail.hu>
 Micael Beronius <micael.beronius@telia.com>
 Chris Purnell <cjp@lost.org.uk>
   DVB plugin port to new API, DVB-C support, updates, fixes
-
-James Stembridge <jstembridge@gmx.net>
-  several VIDIX driver updates and improvements
-  support for HuffYUV decoder, mpeg-4 postprocessing
 
 Mattias Eriksson <snaggen@acc.umu.se>
   ported nvtv/tvmode code
