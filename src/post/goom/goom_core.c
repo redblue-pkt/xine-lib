@@ -663,7 +663,7 @@ goom_update (gint16 data[2][512],
 		update_message (message);
 
 		if (fps > 0) {
-			sprintf (text, "%3.f fps", fps);
+			sprintf (text, "%3.0f fps", fps);
 			goom_draw_text (p1 + c_offset,
 											24, 24, text, 1, 1);
 		}
