@@ -9,6 +9,11 @@ various suggestions, bug and build fixes, alsa plugin, gui
 
   Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 
+many bug and deadlock fixes, bitrate detection, soft deinterlacer, 
+  massive libwin32 updates
+
+  Miguel Freitas <miguel@cetuc.puc-rio.br>
+
 teletux/syncfb video output module, various bugfixes/reviews, alsa
 
   Joachim Koenig <Joachim.Koenig@gmx.net>
@@ -85,7 +90,7 @@ Contributions
     input_vcd code for FreeBSD
 
   Rich Wareham <richwareham@users.sourceforge.net>
-    subtitle support
+    subtitle support, navigation
 
   Christoph Pittracher <pitt@gmx.at>
     pitt skin
@@ -97,13 +102,13 @@ Contributions
     powerpc patch
 
   James Courtier-Dutton <James@superbug.demon.co.uk>
-    AC3 direct out via spdif on oss
+    AC3 direct out via spdif on oss, subtitle interface, audio_output interface
 
   Juergen Keil <jk@tools.de>
     solaris port and other bugfixes
 
   Philip Stadermann <pstadermann@gmx.de>
-    arts audio server support
+    arts audio server support, kde frontend
 
   Eduard Hasenleithner <eduardh@aon.at>
     dxr3 support
@@ -128,9 +133,6 @@ Contributions
     
   Marco Solari <marcosolari@libero.it>
     FAQ and README italian translation
-
-  Miguel Freitas <miguel@cetuc.puc-rio.br>
-    buf types cleanup, bitrate detection, soft deinterlacer
 
   Luis Silva <luix.silvix@clix.pt>
     xine about movie

@@ -10,8 +10,11 @@ xine (0.9.5) unstable; urgency=low
   * snapshots of YUY2 images should work now
   * SyncFB video out plugin: bug fixes, YUY2 support and several enhancements
   * dxr3 overlay<->tv & TV mode switching on-the-fly (see README.dxr3)
+  * new config file handling (.xinerc is gone, .xine/config is the replacement)
+  * setup dialog preview
+  * new metronom code for smoother playback of streams containing broken pts
 	
- -- Guenter Bartsch <guenter@users.sourceforge.net> Tue Nov  6 11:06:53 CET 2001
+ -- Guenter Bartsch <guenter@users.sourceforge.net> Fri Nov 23 14:10:26 CET 2001
 
 xine (0.9.4) unstable; urgency=low
 
