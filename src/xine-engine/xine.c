@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.219 2003/01/13 17:47:35 mroi Exp $
+ * $Id: xine.c,v 1.220 2003/01/13 23:03:13 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -919,7 +919,6 @@ void xine_dispose (xine_stream_t *stream) {
   video_decoder_shutdown (stream);
 
   stream->osd_renderer->close( stream->osd_renderer );
-  stream->video_out->exit (stream->video_out);
   stream->video_fifo->dispose (stream->video_fifo);
 
   pthread_mutex_destroy (&stream->frontend_lock);

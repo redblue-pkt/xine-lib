@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.99 2003/01/11 19:06:52 guenter Exp $
+ * $Id: audio_out.c,v 1.100 2003/01/13 23:02:51 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -757,11 +757,11 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   audio_buffer_t *buf;
   xine_stream_t  *stream;
 
-  while (!stream) {
+  do {
     stream = xine_list_first_content(this->streams);
     if (!stream)
       xine_usec_sleep (1000);
-  } 
+  } while( !stream );
   
   pthread_mutex_lock (&this->out_fifo->mutex);
 

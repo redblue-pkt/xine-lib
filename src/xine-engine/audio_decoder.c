@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.100 2003/01/09 02:44:39 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.101 2003/01/13 23:02:41 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -384,10 +384,6 @@ void audio_decoder_shutdown (xine_stream_t *stream) {
     pthread_join (stream->audio_thread, &p); 
   }
   
-  if(stream->audio_out) {
-    stream->audio_out->exit (stream->audio_out);
-    stream->audio_out = NULL;
-  }
   if (stream->audio_fifo) {
     stream->audio_fifo->dispose (stream->audio_fifo);
     stream->audio_fifo = NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.133 2003/01/13 17:43:11 mroi Exp $
+ * $Id: load_plugins.c,v 1.134 2003/01/13 23:02:58 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1445,14 +1445,14 @@ xine_audio_port_t *xine_new_framegrab_audio_port (xine_t *this) {
   return port;
 }
 
-void xine_close_audio_driver (xine_t *this, xine_audio_port_t  *driver) {
+void xine_close_audio_driver (xine_t *this, xine_audio_port_t  *ao_port) {
 
-  /* FIXME : implement */
+  ao_port->exit(ao_port);
 
 }
-void xine_close_video_driver (xine_t *this, xine_video_port_t  *driver) {
+void xine_close_video_driver (xine_t *this, xine_video_port_t  *vo_port) {
 
-  /* FIXME : implement */
+  vo_port->exit(vo_port);
 
 }
 
