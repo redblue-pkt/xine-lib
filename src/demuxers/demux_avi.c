@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.97 2002/06/23 18:35:41 tmattern Exp $
+ * $Id: demux_avi.c,v 1.98 2002/06/25 03:37:53 tmmm Exp $
  *
  * demultiplexer for avi streams
  *
@@ -158,6 +158,9 @@ typedef struct
   video_index_t          video_idx;
   xine_bmiheader         bih;
   off_t                  movi_start;
+
+  int                    palette_count;
+  palette_entry_t        palette[256];
 } avi_t;
 
 typedef struct demux_avi_s {
@@ -572,7 +575,7 @@ static void gen_index_show_progress (demux_avi_t *this, int percent) {
 static avi_t *AVI_init(demux_avi_t *this)  {
 
   avi_t *AVI;
-  long i, n, idx_type;
+  long i, j, n, idx_type;
   unsigned char *hdrl_data;
   long hdrl_len=0;
   off_t ioff;
@@ -738,6 +741,19 @@ static avi_t *AVI_init(demux_avi_t *this)  {
                  &AVI->bih.biCompression);
         */
         vids_strf_seen = 1;
+
+        /* load the palette, if there is one */
+        AVI->palette_count = AVI->bih.biClrUsed;
+        if (AVI->palette_count > 256) {
+          printf ("demux_avi: number of colors exceeded 256 (%d)",
+            AVI->palette_count);
+          AVI->palette_count = 256;
+        }
+        for (j = 0; j < AVI->palette_count; j++) {
+          AVI->palette[j].b = *(hdrl_data + i + sizeof(AVI->bih) + j * 4 + 0);
+          AVI->palette[j].g = *(hdrl_data + i + sizeof(AVI->bih) + j * 4 + 1);
+          AVI->palette[j].r = *(hdrl_data + i + sizeof(AVI->bih) + j * 4 + 2);
+        }
 
       } else if(lasttag == 2) {
 
@@ -1375,6 +1391,19 @@ static int demux_avi_start (demux_plugin_t *this_gen,
                 buf_video_name(buf->type));
 
       this->video_fifo->put (this->video_fifo, buf);
+
+      /* send off the palette, if there is one */
+      if (this->avi->palette_count) {
+        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+        buf->content = buf->mem;
+        buf->decoder_flags = BUF_FLAG_SPECIAL;
+        buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+        buf->decoder_info[2] = this->avi->palette_count;
+        buf->decoder_info[3] = (unsigned int)&this->avi->palette;
+        buf->size = 0;
+        buf->type = this->avi->video_type;
+        this->video_fifo->put (this->video_fifo, buf);
+      }
 
       if(this->audio_fifo) {
         for(i=0; i<this->avi->n_audio; i++) {

@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.5 2002/06/03 17:31:29 esnel Exp $
+ * $Id: msvc.c,v 1.6 2002/06/25 03:37:53 tmmm Exp $
  */
 
 #include <stdlib.h>
@@ -203,8 +203,23 @@ static void msvc_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   msvc_decoder_t *this = (msvc_decoder_t *) this_gen;
 
+  int i;
+  palette_entry_t *palette;
+
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
+
+  if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+      (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
+    palette = (palette_entry_t *)buf->decoder_info[3];
+    for (i = 0; i < buf->decoder_info[2]; i++)
+      rgb_to_yuy2(
+        32,
+        (palette[i].r << 16) |
+        (palette[i].g <<  8) |
+        (palette[i].b <<  0),
+        &this->color_table[i]);
+  }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     xine_bmiheader *bih;

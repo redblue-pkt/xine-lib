@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.51 2002/06/19 23:25:15 tmattern Exp $
+ * $Id: buffer.h,v 1.52 2002/06/25 03:37:52 tmmm Exp $
  *
  *
  * contents:
@@ -192,6 +192,26 @@ struct buf_element_s {
 #define BUF_FLAG_END_STREAM  0x0040
 #define BUF_FLAG_FRAMERATE   0x0080
 #define BUF_FLAG_SEEK        0x0100
+#define BUF_FLAG_SPECIAL     0x0200
+
+/* these are the types of special buffers */
+/* 
+ * In a BUF_SPECIAL_PALETTE buffer:
+ * decoder_info[1] = BUF_SPECIAL_PALETTE
+ * decoder_info[2] = number of entries in palette table
+ * decoder_info[3] = pointer to palette table
+ * A palette table is an array of palette_entry_t structures. A decoder
+ * should not count on this array to exist for the duration of the
+ * program's execution and should copy, manipulate, and store the palette
+ * data privately if it needs the palette information.
+ */
+#define BUF_SPECIAL_PALETTE  1
+
+typedef struct palette_entry_s palette_entry_t;
+struct palette_entry_s
+{
+  unsigned char r, g, b;
+} ;
 
 typedef struct fifo_buffer_s fifo_buffer_t;
 struct fifo_buffer_s
