@@ -96,6 +96,7 @@ noinst_HEADERS = \
 	os_support.h \
 	ra144.h \
 	ra288.h \
+	rational.h \
 	simple_idct.h \
 	svq1_cb.h \
 	svq1_vlc.h \
