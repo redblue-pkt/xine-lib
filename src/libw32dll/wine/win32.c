@@ -857,6 +857,8 @@ static HANDLE WINAPI expCreateMutexA(void *pSecAttr,
     /* 10l to QTX, if CreateMutex returns a real mutex, WaitForSingleObject
        waits for ever, else it works ;) */
     return mlist;
+#else
+    return NULL;
 #endif
 }
 
