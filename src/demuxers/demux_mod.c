@@ -192,8 +192,8 @@ static void demux_mod_send_headers(demux_plugin_t *this_gen) {
 
   _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->title);
   _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->artist);
-  sprintf(copyright, "(C) %s", this->copyright);
-  _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, copyright);
+  snprintf(copyright, 100, "(C) %s", this->copyright);
+  _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, this->copyright);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);
@@ -235,7 +235,9 @@ static int demux_mod_seek (demux_plugin_t *this_gen,
 
 static void demux_mod_dispose (demux_plugin_t *this_gen) {
   demux_mod_t *this = (demux_mod_t *) this_gen;
-
+  
+  ModPlug_Unload(this->mpfile);
+  free(this->buffer);
   free(this->title);
   free(this->artist);
   free(this->copyright);
