@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2002/12/04 04:08:42 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.13 2002/12/08 20:46:00 tmmm Exp $
  *
  */
 
@@ -205,18 +205,6 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #endif
   }
 
-#if 0
-  /* get sample sizes table. this is needed since sample size 
-     might differ from faac_finfo.bytesconsumed */
-  if( (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
-      buf->decoder_info[1] == BUF_SPECIAL_SAMPLE_SIZE_TABLE ) {
-#ifdef LOG
-     printf("libfaad: sample_size_table received\n");
-#endif
-     this->sample_size_table = (unsigned int *)buf->decoder_info[3];
-  }
-#endif
-
   /* get audio parameters from file header 
      (may be overwritten by libfaad returned parameters) */  
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
@@ -235,6 +223,11 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->faac_dec = NULL;
     this->faac_failed = 0;
                                                
+    /* stream/meta info */
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = 
+      strdup("AAC (libfaad)");
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
+
   } else {
 
 #ifdef LOG
