@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.31 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.32 2001/12/14 16:50:57 f1rmb Exp $
  *
  *
  * xine version of video_out.h 
@@ -160,19 +160,20 @@ struct vo_instance_s {
 
 /* constants for the get/set property functions */
 
-#define VO_PROP_INTERLACED        0
-#define VO_PROP_ASPECT_RATIO      1
-#define VO_PROP_HUE               2
-#define VO_PROP_SATURATION        3
-#define VO_PROP_CONTRAST          4
-#define VO_PROP_BRIGHTNESS        5
-#define VO_PROP_COLORKEY          6
-#define VO_PROP_ZOOM_X            7 
-#define VO_PROP_ZOOM_Y            8 
-#define VO_PROP_OFFSET_X          9 
-#define VO_PROP_OFFSET_Y          10
-#define VO_PROP_TVMODE		  11 
-#define VO_NUM_PROPERTIES         12
+#define VO_PROP_INTERLACED            0
+#define VO_PROP_ASPECT_RATIO          1
+#define VO_PROP_HUE                   2
+#define VO_PROP_SATURATION            3
+#define VO_PROP_CONTRAST              4
+#define VO_PROP_BRIGHTNESS            5
+#define VO_PROP_COLORKEY              6
+#define VO_PROP_AUTOPAINT_COLORKEY    7
+#define VO_PROP_ZOOM_X                8 
+#define VO_PROP_ZOOM_Y                9 
+#define VO_PROP_OFFSET_X              10 
+#define VO_PROP_OFFSET_Y              11
+#define VO_PROP_TVMODE		      12 
+#define VO_NUM_PROPERTIES             13
 
 /* zoom specific constants FIXME: generate this from xine.tmpl.in */
 #define VO_ZOOM_STEP        100
@@ -218,11 +219,12 @@ struct vo_instance_s {
 #define VO_CAP_YV12         0x00000004 /* driver can handle YUV 4:2:0 pictures */
 #define VO_CAP_YUY2         0x00000008 /* driver can handle YUY2      pictures */
 
-#define VO_CAP_HUE          0x00000010 /* driver can set HUE value             */
-#define VO_CAP_SATURATION   0x00000020 /* driver can set SATURATION value      */
-#define VO_CAP_BRIGHTNESS   0x00000040 /* driver can set BRIGHTNESS value      */
-#define VO_CAP_CONTRAST     0x00000080 /* driver can set CONTRAST value        */
-#define VO_CAP_COLORKEY     0x00000100 /* driver can set COLORKEY value        */
+#define VO_CAP_HUE                    0x00000010 /* driver can set HUE value                */
+#define VO_CAP_SATURATION             0x00000020 /* driver can set SATURATION value         */
+#define VO_CAP_BRIGHTNESS             0x00000040 /* driver can set BRIGHTNESS value         */
+#define VO_CAP_CONTRAST               0x00000080 /* driver can set CONTRAST value           */
+#define VO_CAP_COLORKEY               0x00000100 /* driver can set COLORKEY value           */
+#define VO_CAP_AUTOPAINT_COLORKEY     0x00000200 /* driver can set AUTOPAINT_COLORKEY value */
 
 /*
  * vo_driver_s contains the functions every display driver

@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.67 2001/12/13 22:24:17 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.68 2001/12/14 16:50:57 f1rmb Exp $
  *
  */
 
@@ -216,6 +216,11 @@ int xine_check_version(int major, int minor, int sub);
  * Driver can set COLORKEY value.
  */
 #define VO_CAP_COLORKEY     0x00000100
+/**
+ * \def VO_CAP_AUTOPAINT_COLORKEY
+ * Driver can set AUTOPAINT_COLORKEY value.
+ */
+#define VO_CAP_AUTOPAINT_COLORKEY     0x00000400
 
                /** @} end of video_cap */
 
@@ -229,79 +234,85 @@ int xine_check_version(int major, int minor, int sub);
  * Interleave property.
  * \sa vo_driver_t
  */
-#define VO_PROP_INTERLACED        0
+#define VO_PROP_INTERLACED           0
 /**
  * \def VO_PROP_ASPECT_RATIO
  * Aspect ratio property.
  * \sa vo_driver_t, video_ratio
  */
-#define VO_PROP_ASPECT_RATIO      1
+#define VO_PROP_ASPECT_RATIO         1
 /**
  * \def VO_PROP_HUE
  * Hue property.
  * \sa vo_driver_t
  */
-#define VO_PROP_HUE               2
+#define VO_PROP_HUE                  2
 /**
  * \def VO_PROP_SATURATION
  * Saturation property.
  * \sa vo_driver_t
  */
-#define VO_PROP_SATURATION        3
+#define VO_PROP_SATURATION           3
 /**
  * \def VO_PROP_CONTRAST
  * Contrast property.
  * \sa vo_driver_t
  */
-#define VO_PROP_CONTRAST          4
+#define VO_PROP_CONTRAST             4
 /**
  * \def VO_PROP_BRIGHTNESS
  * Brightness property.
  * \sa vo_driver_t
  */
-#define VO_PROP_BRIGHTNESS        5
+#define VO_PROP_BRIGHTNESS           5
 /**
  * \def VO_PROP_COLORKEY
  * Colorkey property.
  * \sa vo_driver_t
  */
-#define VO_PROP_COLORKEY          6
+#define VO_PROP_COLORKEY             6
+/**
+ * \def VO_PROP_AUTOPAINT_COLORKEY
+ * Autopaint colorkey property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_AUTOPAINT_COLORKEY   7
 /**
  * \def VO_PROP_ZOOM_X
  * Horizontal zoom  property.
  * \sa vo_driver_t
  */
-#define VO_PROP_ZOOM_X            7 
+#define VO_PROP_ZOOM_X               8
 /**
  * \def VO_PROP_ZOOM_Y
  * Vertical zoom property.
  * \sa vo_driver_t
  */
-#define VO_PROP_ZOOM_Y            8 
+#define VO_PROP_ZOOM_Y               9
 /**
  * \def VO_PROP_OFFSET_X
  * Horizontal offset property.
  * \sa vo_driver_t
  */
-#define VO_PROP_OFFSET_X          9 
+#define VO_PROP_OFFSET_X             10
 /**
  * \def VO_PROP_OFFSET_Y
  * Vertical offset property.
  * \sa vo_driver_t
  */
-#define VO_PROP_OFFSET_Y          10 
+#define VO_PROP_OFFSET_Y             11
 /**
  * \def VO_PROP_TVMODE
  * Change TVmode property.
  * \sa vo_driver_t
  */
-#define VO_PROP_TVMODE            11 
+#define VO_PROP_TVMODE               12
 /**
  * \def VO_NUM_PROPERTIES
  * Number of available properties property.
  * \sa vo_driver_t
  */
-#define VO_NUM_PROPERTIES         12 
+#define VO_NUM_PROPERTIES            13
 
                /** @} end of video_prop */
 

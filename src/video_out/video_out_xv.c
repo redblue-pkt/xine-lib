@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.85 2001/12/09 23:13:31 guenter Exp $
+ * $Id: video_out_xv.c,v 1.86 2001/12/14 16:50:57 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1162,10 +1162,17 @@ static void xv_check_capability (xv_driver_t *this,
   cfg_entry_t *entry;
 
   this->capabilities |= capability;
+
+  /* 
+   * Some Xv drivers (Gatos ATI) report some ~0 as max values, this is confusing.
+   */
+  if(VO_PROP_COLORKEY && (attr.max_value == ~0))
+    attr.max_value = 2147483615;
+  
   this->props[property].min  = attr.min_value;
   this->props[property].max  = attr.max_value;
   this->props[property].atom = XInternAtom (this->display, str_prop, False);
-
+  
   XvGetPortAttribute (this->display, this->xv_port,
 		      this->props[property].atom, &int_default);
 
@@ -1174,14 +1181,22 @@ static void xv_check_capability (xv_driver_t *this,
 
   sprintf (this->scratch, "video.%s", str_prop);
 
-  this->config->register_range (this->config, this->scratch, int_default,
-			      this->props[property].min, this->props[property].max,   
-			      "Xv property", NULL, xv_property_callback, &this->props[property]);
-
+  /* This is a boolean property */
+  if((attr.min_value == 0) && (attr.max_value == 1)) {
+    this->config->register_bool (this->config, this->scratch, int_default,
+				 "Xv property", NULL, xv_property_callback, &this->props[property]);
+  
+  }
+  else {
+    this->config->register_range (this->config, this->scratch, int_default,
+				  this->props[property].min, this->props[property].max,   
+				  "Xv property", NULL, xv_property_callback, &this->props[property]);
+  }
+  
   entry = this->config->lookup_entry (this->config, this->scratch);
-
+  
   this->props[property].entry = entry;
-
+  
   xv_set_property (&this->vo_driver, property, entry->num_value);
 
   if (capability == VO_CAP_COLORKEY) {
@@ -1390,6 +1405,11 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  xv_check_capability (this, VO_CAP_COLORKEY,
 			       VO_PROP_COLORKEY, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY");
+	  
+	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
+	  xv_check_capability (this, VO_CAP_AUTOPAINT_COLORKEY,
+			       VO_PROP_AUTOPAINT_COLORKEY, attr[k],
+			       adaptor_info[adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY");
 
 	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
 	  int xv_filter;
