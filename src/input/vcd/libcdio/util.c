@@ -1,5 +1,5 @@
 /*
-    $Id: util.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: util.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
@@ -28,10 +28,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef HAVE_INTTYPES_H
+#include "inttypes.h"
+#endif
+
 #include "cdio_assert.h"
+#include <cdio/types.h>
 #include <cdio/util.h>
 
-static const char _rcsid[] = "$Id: util.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: util.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $";
 
 size_t
 _cdio_strlenv(char **str_array)
@@ -169,15 +174,15 @@ _cdio_strdup_upper (const char str[])
 }
 
 uint8_t
-to_bcd8 (uint8_t n)
+cdio_to_bcd8 (uint8_t n)
 {
-  cdio_assert (n < 100);
+  /*cdio_assert (n < 100);*/
 
   return ((n/10)<<4) | (n%10);
 }
 
 uint8_t
-from_bcd8(uint8_t p)
+cdio_from_bcd8(uint8_t p)
 {
   return (0xf & p)+(10*(p >> 4));
 }

@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.10 2004/12/30 09:05:57 rockyb Exp $
+  $Id: vcdplayer.c,v 1.11 2005/01/01 02:43:57 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -810,15 +810,10 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
           int rand_selection=bsn +
             (int) ((i_selections+0.0)*rand()/(RAND_MAX+1.0));
 
-#if defined(LIBVCD_VERSION)
           /* version 0.7.21 or greater */
           lid_t rand_lid=vcdinfo_selection_get_lid(p_vcdplayer->vcd, 
                                                    p_vcdplayer->i_lid, 
                                                    rand_selection);
-#else 
-          lid_t rand_lid=vcdplayer_selection2lid (p_vcdplayer, rand_selection);
-#endif /* LIBVCD_VERSION */
-
           itemid.num = rand_lid;
           itemid.type = VCDINFO_ITEM_TYPE_LID;
           dbg_print(INPUT_DBG_PBC, "random selection %d, lid: %d\n", 

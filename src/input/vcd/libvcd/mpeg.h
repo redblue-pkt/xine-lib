@@ -1,5 +1,5 @@
 /*
-    $Id: mpeg.h,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: mpeg.h,v 1.3 2005/01/01 02:43:59 rockyb Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -103,7 +103,7 @@ typedef struct {
       unsigned vbvsize;
       bool constrained_flag;
 
-      VcdList *aps_list; /* filled up by vcd_mpeg_source */
+      CdioList *aps_list; /* filled up by vcd_mpeg_source */
       double last_aps_pts; /* temp, see ->packet */
       
     } shdr[3];

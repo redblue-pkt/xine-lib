@@ -1,5 +1,5 @@
 /*
-    $Id: inf.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: inf.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
 
     Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
 
@@ -50,17 +50,17 @@
 #endif
 
 #include <cdio/cdio.h>
+#include <cdio/bytesex.h>
 #include <cdio/util.h>
 
 /* Eventually move above libvcd includes but having vcdinfo including. */
 #include <libvcd/info.h>
 
 /* Private headers */
-#include "bytesex.h"
 #include "info_private.h"
 #include "pbc.h"
 
-static const char _rcsid[] = "$Id: inf.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: inf.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
 
 #define BUF_COUNT 16
 #define BUF_SIZE 80
@@ -105,21 +105,10 @@ vcdinf_area_str (const struct psd_area_t *_area)
    some problem in getting this. 
 */
 const char *
-vcdinf_get_album_id(const InfoVcd *info)
+vcdinf_get_album_id(const InfoVcd_t *info)
 {
   if (NULL==info) return NULL;
   return vcdinfo_strip_trail (info->album_desc, MAX_ALBUM_LEN);
-}
-
-/*!
-  Return the VCD application ID.
-  NULL is returned if there is some problem in getting this. 
-*/
-const char * 
-vcdinf_get_application_id(const iso9660_pvd_t *pvd)
-{
-  if (NULL==pvd) return NULL;
-  return(vcdinfo_strip_trail(pvd->application_id, MAX_APPLICATION_ID));
 }
 
 /*!
@@ -127,7 +116,7 @@ vcdinf_get_application_id(const iso9660_pvd_t *pvd)
   Time is in seconds unless it is -1 (unlimited).
 */
 int
-vcdinf_get_autowait_time (const PsdPlayListDescriptor *d) 
+vcdinf_get_autowait_time (const PsdPlayListDescriptor_t *d) 
 {
   return vcdinfo_get_wait_time (d->atime);
 }
@@ -137,7 +126,7 @@ vcdinf_get_autowait_time (const PsdPlayListDescriptor *d)
   is an error.
 */
 unsigned int
-vcdinf_get_bsn(const PsdSelectionListDescriptor *psd)
+vcdinf_get_bsn(const PsdSelectionListDescriptor_t *psd)
 {
   if (NULL==psd) return VCDINFO_INVALID_BSN;
   return(psd->bsn);
@@ -179,7 +168,7 @@ vcdinf_get_format_version_str (vcd_type_t vcd_type)
   Return loop count. 0 is infinite loop.
 */
 uint16_t
-vcdinf_get_loop_count (const PsdSelectionListDescriptor *psd) 
+vcdinf_get_loop_count (const PsdSelectionListDescriptor_t *psd) 
 {
   return 0x7f & psd->loop;
 }
@@ -188,7 +177,7 @@ vcdinf_get_loop_count (const PsdSelectionListDescriptor *psd)
   Return LOT offset
 */
 uint16_t
-vcdinf_get_lot_offset (const LotVcd *lot, unsigned int n) 
+vcdinf_get_lot_offset (const LotVcd_t *lot, unsigned int n) 
 {
   return uint16_from_be (lot->offset[n]);
 }
@@ -197,7 +186,7 @@ vcdinf_get_lot_offset (const LotVcd *lot, unsigned int n)
   Return the number of entries in the VCD.
 */
 unsigned int
-vcdinf_get_num_entries(const EntriesVcd *entries)
+vcdinf_get_num_entries(const EntriesVcd_t *entries)
 {
   if (NULL==entries) return 0;
   return (uint16_from_be (entries->entry_count));
@@ -207,7 +196,7 @@ vcdinf_get_num_entries(const EntriesVcd *entries)
   Return the number of segments in the VCD. 
 */
 segnum_t
-vcdinf_get_num_segments(const InfoVcd *info)
+vcdinf_get_num_segments(const InfoVcd_t *info)
 {
   if (NULL==info) return 0;
   return (uint16_from_be (info->item_count));
@@ -217,7 +206,7 @@ vcdinf_get_num_segments(const InfoVcd *info)
   Return number of LIDs. 
 */
 lid_t
-vcdinf_get_num_LIDs (const InfoVcd *info) 
+vcdinf_get_num_LIDs (const InfoVcd_t *info) 
 {
   if (NULL==info) return 0;
   /* Should probably use _vcd_pbc_max_lid instead? */
@@ -228,7 +217,7 @@ vcdinf_get_num_LIDs (const InfoVcd *info)
   Return the number of menu selections for selection list descriptor psd.
 */
 unsigned int
-vcdinf_get_num_selections(const PsdSelectionListDescriptor *psd)
+vcdinf_get_num_selections(const PsdSelectionListDescriptor_t *psd)
 {
   return psd->nos;
 }
@@ -238,53 +227,20 @@ vcdinf_get_num_selections(const PsdSelectionListDescriptor *psd)
   Time is in 1/15-second units.
 */
 uint16_t
-vcdinf_get_play_time (const PsdPlayListDescriptor *d) 
+vcdinf_get_play_time (const PsdPlayListDescriptor_t *d) 
 {
   if (NULL==d) return 0;
   return uint16_from_be (d->ptime);
 }
 
 /*!
-   Return a string containing the VCD preparer id with trailing
-   blanks removed.
-*/
-const char *
-vcdinf_get_preparer_id(const iso9660_pvd_t *pvd)
-{
-  if (NULL==pvd) return NULL;
-  return(vcdinfo_strip_trail(pvd->preparer_id, MAX_PREPARER_ID));
-}
-
-/*!
-   Return a string containing the VCD publisher id with trailing
-   blanks removed.
-*/
-const char *
-vcdinf_get_publisher_id(const iso9660_pvd_t *pvd)
-{
-  if (NULL==pvd) return NULL;
-  return(vcdinfo_strip_trail(pvd->publisher_id, MAX_PUBLISHER_ID));
-}
-
-/*!
   Return number of bytes in PSD. 
 */
 uint32_t
-vcdinf_get_psd_size (const InfoVcd *info)
+vcdinf_get_psd_size (const InfoVcd_t *info)
 {
   if (NULL==info) return 0;
   return uint32_from_be (info->psd_size);
-}
-
-/*!
-   Return a string containing the VCD system id with trailing
-   blanks removed.
-*/
-const char *
-vcdinf_get_system_id(const iso9660_pvd_t *pvd)
-{
-  if (NULL==pvd) return NULL;
-  return(vcdinfo_strip_trail(pvd->system_id, MAX_SYSTEM_ID));
 }
 
 /*!
@@ -293,7 +249,7 @@ vcdinf_get_system_id(const iso9660_pvd_t *pvd)
   Time is in seconds unless it is -1 (unlimited).
 */
 uint16_t
-vcdinf_get_timeout_offset (const PsdSelectionListDescriptor *d)
+vcdinf_get_timeout_offset (const PsdSelectionListDescriptor_t *d)
 {
   if (NULL == d) return VCDINFO_INVALID_OFFSET;
   return uint16_from_be (d->timeout_ofs);
@@ -304,7 +260,7 @@ vcdinf_get_timeout_offset (const PsdSelectionListDescriptor *d)
   Time is in seconds unless it is -1 (unlimited).
 */
 int
-vcdinf_get_timeout_time (const PsdSelectionListDescriptor *d)
+vcdinf_get_timeout_time (const PsdSelectionListDescriptor_t *d)
 {
   return vcdinfo_get_wait_time (d->totime);
 }
@@ -315,12 +271,12 @@ vcdinf_get_timeout_time (const PsdSelectionListDescriptor *d)
   (We don't count the header track?)
 */
 track_t
-vcdinf_get_track(const EntriesVcd *entries, const unsigned int entry_num)
+vcdinf_get_track(const EntriesVcd_t *entries, const unsigned int entry_num)
 {
   const unsigned int entry_count = uint16_from_be (entries->entry_count);
   /* Note entry_num is 0 origin. */
   return entry_num < entry_count ?
-    from_bcd8 (entries->entry[entry_num].n):
+    cdio_from_bcd8 (entries->entry[entry_num].n):
     VCDINFO_INVALID_TRACK;
 }
 
@@ -328,20 +284,10 @@ vcdinf_get_track(const EntriesVcd *entries, const unsigned int entry_num)
   Return the VCD volume count - the number of CD's in the collection.
 */
 unsigned int 
-vcdinf_get_volume_count(const InfoVcd *info) 
+vcdinf_get_volume_count(const InfoVcd_t *info) 
 {
   if (NULL==info) return 0;
   return(uint16_from_be( info->vol_count));
-}
-
-/*!
-  Return the VCD ID.
-*/
-const char *
-vcdinf_get_volume_id(const iso9660_pvd_t *pvd) 
-{
-  if (NULL == pvd) return NULL;
-  return(vcdinfo_strip_trail(pvd->volume_id, MAX_VOLUME_ID));
 }
 
 /*!
@@ -349,21 +295,10 @@ vcdinf_get_volume_id(const iso9660_pvd_t *pvd)
   This is a number between 1 and the volume count.
 */
 unsigned int
-vcdinf_get_volume_num(const InfoVcd *info)
+vcdinf_get_volume_num(const InfoVcd_t *info)
 {
   if (NULL == info) return 0;
   return uint16_from_be(info->vol_id);
-}
-
-/*!
-  Return the VCD volumeset ID.
-  NULL is returned if there is some problem in getting this. 
-*/
-const char *
-vcdinf_get_volumeset_id(const iso9660_pvd_t *pvd)
-{
-  if ( NULL == pvd ) return NULL;
-  return vcdinfo_strip_trail(pvd->volume_set_id, MAX_VOLUMESET_ID);
 }
 
 /*!
@@ -371,7 +306,7 @@ vcdinf_get_volumeset_id(const iso9660_pvd_t *pvd)
   Time is in seconds unless it is -1 (unlimited).
 */
 int
-vcdinf_get_wait_time (const PsdPlayListDescriptor *d) 
+vcdinf_get_wait_time (const PsdPlayListDescriptor_t *d) 
 {
   return vcdinfo_get_wait_time (d->wtime);
 }
@@ -380,7 +315,7 @@ vcdinf_get_wait_time (const PsdPlayListDescriptor *d)
   Return true if loop has a jump delay
 */
 bool
-vcdinf_has_jump_delay (const PsdSelectionListDescriptor *psd) 
+vcdinf_has_jump_delay (const PsdSelectionListDescriptor_t *psd) 
 {
   if (NULL==psd) return false;
   return ((0x80 & psd->loop) != 0);
@@ -419,7 +354,7 @@ vcdinf_lid_t_cmp (vcdinfo_offset_t *a, vcdinfo_offset_t *b)
    VCDINFO_REJECTED_MASK is returned d on error or pld is NULL. 
 */
 lid_t
-vcdinf_pld_get_lid(const PsdPlayListDescriptor *pld)
+vcdinf_pld_get_lid(const PsdPlayListDescriptor_t *pld)
 {
   return (pld != NULL) 
     ? uint16_from_be (pld->lid) & VCDINFO_LID_MASK
@@ -433,7 +368,7 @@ vcdinf_pld_get_lid(const PsdPlayListDescriptor *pld)
  entry or pld is NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_pld_get_next_offset(const PsdPlayListDescriptor *pld)
+vcdinf_pld_get_next_offset(const PsdPlayListDescriptor_t *pld)
 {
   if (NULL == pld) return VCDINFO_INVALID_OFFSET;
   return uint16_from_be (pld->next_ofs);
@@ -443,7 +378,7 @@ vcdinf_pld_get_next_offset(const PsdPlayListDescriptor *pld)
   Return number of items in LIDs. Return 0 if error or not found.
 */
 int 
-vcdinf_pld_get_noi (const PsdPlayListDescriptor *pld)
+vcdinf_pld_get_noi (const PsdPlayListDescriptor_t *pld)
 {
   if ( NULL == pld ) return 0;
   return pld->noi;
@@ -453,7 +388,7 @@ vcdinf_pld_get_noi (const PsdPlayListDescriptor *pld)
   Return the playlist item i in d. 
 */
 uint16_t
-vcdinf_pld_get_play_item(const PsdPlayListDescriptor *pld, unsigned int i)
+vcdinf_pld_get_play_item(const PsdPlayListDescriptor_t *pld, unsigned int i)
 {
   if (NULL==pld) return 0;
   return uint16_from_be(pld->itemid[i]);
@@ -466,7 +401,7 @@ vcdinf_pld_get_play_item(const PsdPlayListDescriptor *pld, unsigned int i)
  entry or pld is NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_pld_get_prev_offset(const PsdPlayListDescriptor *pld)
+vcdinf_pld_get_prev_offset(const PsdPlayListDescriptor_t *pld)
 {
   return (pld != NULL) ? 
     uint16_from_be (pld->prev_ofs) : VCDINFO_INVALID_OFFSET;
@@ -479,7 +414,7 @@ vcdinf_pld_get_prev_offset(const PsdPlayListDescriptor *pld)
  "return" entry or pld is NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_pld_get_return_offset(const PsdPlayListDescriptor *pld)
+vcdinf_pld_get_return_offset(const PsdPlayListDescriptor_t *pld)
 {
   return (pld != NULL) ? 
     uint16_from_be (pld->return_ofs) : VCDINFO_INVALID_OFFSET;
@@ -492,7 +427,7 @@ vcdinf_pld_get_return_offset(const PsdPlayListDescriptor *pld)
  * NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_psd_get_default_offset(const PsdSelectionListDescriptor *psd)
+vcdinf_psd_get_default_offset(const PsdSelectionListDescriptor_t *psd)
 {
   if (NULL == psd) return VCDINFO_INVALID_OFFSET;
   return uint16_from_be (psd->default_ofs);
@@ -503,7 +438,7 @@ vcdinf_psd_get_default_offset(const PsdSelectionListDescriptor *psd)
   VCDINFO_REJECTED_MASK is returned on error or if psd is NULL. 
 */
 uint16_t
-vcdinf_psd_get_itemid(const PsdSelectionListDescriptor *psd)
+vcdinf_psd_get_itemid(const PsdSelectionListDescriptor_t *psd)
 {
   return (psd != NULL) ? uint16_from_be(psd->itemid) : VCDINFO_REJECTED_MASK;
 }
@@ -513,7 +448,7 @@ vcdinf_psd_get_itemid(const PsdSelectionListDescriptor *psd)
   VCDINFO_REJECTED_MASK is returned on error or psd is NULL. 
 */
 lid_t
-vcdinf_psd_get_lid(const PsdSelectionListDescriptor *psd)
+vcdinf_psd_get_lid(const PsdSelectionListDescriptor_t *psd)
 {
   return (psd != NULL) 
     ? uint16_from_be (psd->lid) & VCDINFO_LID_MASK
@@ -525,7 +460,7 @@ vcdinf_psd_get_lid(const PsdSelectionListDescriptor *psd)
   true is also returned d is NULL. 
 */
 bool
-vcdinf_psd_get_lid_rejected(const PsdSelectionListDescriptor *psd)
+vcdinf_psd_get_lid_rejected(const PsdSelectionListDescriptor_t *psd)
 {
   return (psd != NULL) 
     ? vcdinfo_is_rejected(uint16_from_be(psd->lid)) 
@@ -539,7 +474,7 @@ vcdinf_psd_get_lid_rejected(const PsdSelectionListDescriptor *psd)
  * NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_psd_get_next_offset(const PsdSelectionListDescriptor *psd)
+vcdinf_psd_get_next_offset(const PsdSelectionListDescriptor_t *psd)
 {
   if (NULL == psd) return VCDINFO_INVALID_OFFSET;
   return uint16_from_be (psd->next_ofs);
@@ -553,7 +488,7 @@ vcdinf_psd_get_next_offset(const PsdSelectionListDescriptor *psd)
  * NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_psd_get_offset(const PsdSelectionListDescriptor *psd, 
+vcdinf_psd_get_offset(const PsdSelectionListDescriptor_t *psd, 
                       unsigned int entry_num) 
 {
   return (psd != NULL && entry_num < vcdinf_get_num_selections(psd))
@@ -567,7 +502,7 @@ vcdinf_psd_get_offset(const PsdSelectionListDescriptor *psd,
  entry or psd is NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_psd_get_prev_offset(const PsdSelectionListDescriptor *psd)
+vcdinf_psd_get_prev_offset(const PsdSelectionListDescriptor_t *psd)
 {
   return (psd != NULL) ? 
     uint16_from_be (psd->prev_ofs) : VCDINFO_INVALID_OFFSET;
@@ -580,7 +515,7 @@ vcdinf_psd_get_prev_offset(const PsdSelectionListDescriptor *psd)
  "return" entry or psd is NULL. Otherwise the LID offset is returned.
  */
 uint16_t
-vcdinf_psd_get_return_offset(const PsdSelectionListDescriptor *psd)
+vcdinf_psd_get_return_offset(const PsdSelectionListDescriptor_t *psd)
 {
   return (psd != NULL) ? 
     uint16_from_be (psd->return_ofs) : VCDINFO_INVALID_OFFSET;

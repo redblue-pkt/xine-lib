@@ -1,1 +1,1 @@
-#define LIBVCD_VERSION "0.7.20"
+#define LIBVCD_VERSION "0.7.20a"

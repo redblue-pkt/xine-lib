@@ -1,5 +1,5 @@
 /*
-    $Id: types.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: types.h,v 1.3 2005/01/01 02:43:58 rockyb Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
@@ -106,11 +106,11 @@ extern "C" {
     {
       false = 0,
       true = 1
-    } _Bool;
+    } _cdio_Bool;
   
 #  define false   false
 #  define true    true
-#  define bool _Bool
+#  define bool _cdio_Bool
 # endif
 #endif
   
@@ -204,16 +204,21 @@ extern "C" {
   typedef uint8_t bitfield_t;
 #endif
   
-  /*! The type of a Logical Block Address. 
+  /*! The type of a Logical Block Address. We allow for an lba to be 
+    negative to be consistent with an lba, although I'm not sure this
+    this is possible.
+      
+   */
+  typedef int32_t lba_t;
+  
+  /*! The type of a Logical Sector Number. Note that an lba lsn be negative
+    and the MMC3 specs allow for a conversion of a negative lba
 
     @see msf_t
   */
-  typedef uint32_t lba_t;
+  typedef int32_t lsn_t;
   
-  /*! The type of an Logical Sector Number. */
-  typedef uint32_t lsn_t;
-  
-  /*! The type of an track number 0..99. */
+  /*! The type of a track number 0..99. */
   typedef uint8_t track_t;
   
   /*! 
@@ -221,17 +226,142 @@ extern "C" {
   */
 #define CDIO_INVALID_TRACK   0xFF
   
+  /*! The type of a session number 0..99. */
+  typedef uint8_t session_t;
+  
   /*! 
-    Constant for invalid LBA
+    Constant for invalid session number
   */
-#define CDIO_INVALID_LBA   0xFFFFFFFF
+#define CDIO_INVALID_SESSION   0xFF
+  
+  /*! 
+    Constant for invalid LBA. It is 151 less than the most negative
+    LBA -45150. This provide slack for the 150-frame offset in
+    LBA to LSN 150 conversions
+  */
+#define CDIO_INVALID_LBA    -45301
   
   /*! 
     Constant for invalid LSN
   */
-#define CDIO_INVALID_LSN   0xFFFFFFFF
+#define CDIO_INVALID_LSN    CDIO_INVALID_LBA
 
-typedef int cdio_fs_anal_t;
+  /*! 
+    Number of ASCII bytes in a media catalog number (MCN).
+  */
+#define CDIO_MCN_SIZE       13
+
+  /*! 
+    Type to hold ASCII bytes in a media catalog number (MCN).
+    We include an extra 0 byte so these can be used as C strings.
+  */
+  typedef char cdio_mcn_t[CDIO_MCN_SIZE+1];
+  
+
+  /*! 
+    Number of ASCII bytes in International Standard Recording Codes (ISRC)
+  */
+#define CDIO_ISRC_SIZE       12
+
+  /*! 
+    Type to hold ASCII bytes in a media catalog number (MCN).
+    We include an extra 0 byte so these can be used as C strings.
+  */
+  typedef char cdio_isrc_t[CDIO_ISRC_SIZE+1];
+
+  typedef int cdio_fs_anal_t;
+
+  /*! The type of an drive capability bit mask. See below for values*/
+  typedef uint32_t cdio_drive_read_cap_t;
+  typedef uint32_t cdio_drive_write_cap_t;
+  typedef uint32_t cdio_drive_misc_cap_t;
+  
+  /*!
+    \brief Drive types returned by cdio_get_drive_cap()
+    
+    NOTE: Setting a bit here means the presence of a capability.
+  */ 
+
+#define CDIO_DRIVE_CAP_ERROR          0x40000 /**< Error */
+#define CDIO_DRIVE_CAP_UNKNOWN        0x80000 /**< Dunno. It can be on if we
+					        have only partial information 
+                                                or are not completely certain
+                                              */
+
+#define CDIO_DRIVE_CAP_MISC_CLOSE_TRAY     0x00001 /**< caddy systems can't 
+                                                   close... */
+#define CDIO_DRIVE_CAP_MISC_EJECT          0x00002 /**< but can eject.  */
+#define CDIO_DRIVE_CAP_MISC_LOCK	   0x00004 /**< disable manual eject */
+#define CDIO_DRIVE_CAP_MISC_SELECT_SPEED   0x00008 /**< programmable speed */
+#define CDIO_DRIVE_CAP_MISC_SELECT_DISC    0x00010 /**< select disc from 
+                                                      juke-box */
+#define CDIO_DRIVE_CAP_MISC_MULTI_SESSION  0x00020 /**< read sessions>1 */
+#define CDIO_DRIVE_CAP_MISC_MEDIA_CHANGED  0x00080 /**< media changed */
+#define CDIO_DRIVE_CAP_MISC_RESET          0x00100 /**< hard reset device */
+#define CDIO_DRIVE_CAP_MCN                 0x00200 /**< can read MCN      */
+#define CDIO_DRIVE_CAP_ISRC                0x00200 /**< can read ISRC     */
+#define CDIO_DRIVE_CAP_MISC_FILE           0x20000 /**< drive is really a file,
+                                                      i.e a CD file image */
+
+  /*! Reading masks.. */
+#define CDIO_DRIVE_CAP_READ_AUDIO       0x00001 /**< drive can play CD audio */
+#define CDIO_DRIVE_CAP_READ_CD_DA       0x00002 /**< drive can read CD-DA */
+#define CDIO_DRIVE_CAP_READ_CD_G        0x00004 /**< drive can read CD+G  */
+#define CDIO_DRIVE_CAP_READ_CD_R        0x00008 /**< drive can read CD-R  */
+#define CDIO_DRIVE_CAP_READ_CD_RW       0x00010 /**< drive can read CD-RW */
+#define CDIO_DRIVE_CAP_READ_DVD_R       0x00020 /**< drive can read DVD-R */
+#define CDIO_DRIVE_CAP_READ_DVD_PR      0x00040 /**< drive can read DVD+R */
+#define CDIO_DRIVE_CAP_READ_DVD_RAM     0x00080 /**< drive can read DVD-RAM */
+#define CDIO_DRIVE_CAP_READ_DVD_ROM     0x00100 /**< drive can read DVD-ROM */
+#define CDIO_DRIVE_CAP_READ_DVD_RW      0x00200 /**< drive can read DVD-RW  */
+#define CDIO_DRIVE_CAP_READ_DVD_RPW     0x00400 /**< drive can read DVD+RW  */
+#define CDIO_DRIVE_CAP_READ_C2_ERRS     0x00800 /**< has C2 error correction */
+
+  /*! Writing masks.. */
+#define CDIO_DRIVE_CAP_WRITE_CD_R       0x00001 /**< drive can write CD-R */
+#define CDIO_DRIVE_CAP_WRITE_CD_RW      0x00002 /**< drive can write CD-R */
+#define CDIO_DRIVE_CAP_WRITE_DVD_R      0x00004 /**< drive can write DVD-R */
+#define CDIO_DRIVE_CAP_WRITE_DVD_PR     0x00008 /**< drive can write DVD+R */
+#define CDIO_DRIVE_CAP_WRITE_DVD_RAM    0x00010 /**< drive can write DVD-RAM */
+#define CDIO_DRIVE_CAP_WRITE_DVD_RW     0x00020 /**< drive can write DVD-RW */
+#define CDIO_DRIVE_CAP_WRITE_DVD_RPW    0x00040 /**< drive can write DVD+RW */
+#define CDIO_DRIVE_CAP_WRITE_MT_RAINIER 0x00080 /**< Mount Rainier           */
+#define CDIO_DRIVE_CAP_WRITE_BURN_PROOF 0x00100 /**< burn proof */
+
+/**< Masks derived from above... */
+#define CDIO_DRIVE_CAP_WRITE_CD (                \
+    CDIO_DRIVE_CAP_WRITE_CD_R                    \
+    | CDIO_DRIVE_CAP_WRITE_CD_RW                 \
+    ) 
+/**< Has some sort of CD writer ability */
+
+/**< Masks derived from above... */
+#define CDIO_DRIVE_CAP_WRITE_DVD (               \
+    | CDIO_DRIVE_CAP_WRITE_DVD_R                 \
+    | CDIO_DRIVE_CAP_WRITE_DVD_PR                \
+    | CDIO_DRIVE_CAP_WRITE_DVD_RAM               \
+    | CDIO_DRIVE_CAP_WRITE_DVD_RW                \
+    | CDIO_DRIVE_CAP_WRITE_DVD_RPW               \
+    ) 
+/**< Has some sort of DVD writer ability */
+
+#define CDIO_DRIVE_CAP_WRITE \
+   (CDIO_DRIVE_CAP_WRITE_CD | CDIO_DRIVE_CAP_WRITE_DVD)
+/**< Has some sort of DVD or CD writing ability */
+
+  /*! 
+    track flags
+    Q Sub-channel Control Field (4.2.3.3)
+  */
+  typedef enum {
+    CDIO_TRACK_FLAG_NONE = 		 0x00,	/**< no flags set */
+    CDIO_TRACK_FLAG_PRE_EMPHASIS =	 0x01,	/**< audio track recorded with
+                                                   pre-emphasis */
+    CDIO_TRACK_FLAG_COPY_PERMITTED =	 0x02,	/**< digital copy permitted */
+    CDIO_TRACK_FLAG_DATA =		 0x04,	/**< data track */
+    CDIO_TRACK_FLAG_FOUR_CHANNEL_AUDIO = 0x08,  /**< 4 audio channels */
+  CDIO_TRACK_FLAG_SCMS =		 0x10	/**< SCMS (5.29.2.7) */
+} cdio_track_flag;
 
 #ifdef __cplusplus
 }

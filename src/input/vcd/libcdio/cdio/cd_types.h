@@ -1,5 +1,5 @@
 /*
-    $Id: cd_types.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: cd_types.h,v 1.3 2005/01/01 02:43:58 rockyb Exp $
 
     Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
     Copyright (C) 1996,1997,1998  Gerd Knorr <kraxel@bytesex.org>
@@ -67,6 +67,15 @@ extern "C" {
  */
 #define CDIO_FS_3DO		    10
 
+/**
+   Microsoft X-BOX CD.
+ */
+#define CDIO_FS_XISO 		    11
+#define CDIO_FS_UDFX 		    12
+#define CDIO_FS_UDF 		    13
+#define CDIO_FS_ISO_UDF             14
+
+
 #define CDIO_FS_MASK		    15  /**< Note: this should be 2**n-1 and
                                              and greater than the highest 
                                              CDIO_FS number above */
@@ -82,20 +91,21 @@ extern "C" {
  *  higher-level than the fs-type information above and may be determined
  *  based of the fs type information.
  */
-#define CDIO_FS_ANAL_XA		        16 /**< eXtended Architecture format */
-#define CDIO_FS_ANAL_MULTISESSION	32 /**< CD has multisesion */
-#define CDIO_FS_ANAL_PHOTO_CD	        64 /**< Is a Kodak Photo CD */
-#define CDIO_FS_ANAL_HIDDEN_TRACK      128 /**< Hidden track at the 
+#define CDIO_FS_ANAL_XA		    0x0010 /**< eXtended Architecture format */
+#define CDIO_FS_ANAL_MULTISESSION   0x0020 /**< CD has multisesion */
+#define CDIO_FS_ANAL_PHOTO_CD	    0x0040 /**< Is a Kodak Photo CD */
+#define CDIO_FS_ANAL_HIDDEN_TRACK   0x0080 /**< Hidden track at the 
                                                 beginning of the CD */
-#define CDIO_FS_ANAL_CDTV	       256
-#define CDIO_FS_ANAL_BOOTABLE          512 /**< CD is bootable */
-#define CDIO_FS_ANAL_VIDEOCD          1024 /**< VCD 1.1 */
-#define CDIO_FS_ANAL_ROCKRIDGE        2048 /**< Has Rock Ridge Extensions to
+#define CDIO_FS_ANAL_CDTV	    0x0100
+#define CDIO_FS_ANAL_BOOTABLE       0x0200 /**< CD is bootable */
+#define CDIO_FS_ANAL_VIDEOCD        0x0400 /**< VCD 1.1 */
+#define CDIO_FS_ANAL_ROCKRIDGE      0x0800 /**< Has Rock Ridge Extensions to
                                                 ISO 9660 */
-#define CDIO_FS_ANAL_JOLIET           4096 /**< Microsoft Joliet extensions 
+#define CDIO_FS_ANAL_JOLIET         0x1000 /**< Microsoft Joliet extensions 
                                                 to ISO 9660 */
-#define CDIO_FS_ANAL_SVCD             8192 /**< Super VCD or Choiji Video CD */
-#define CDIO_FS_ANAL_CVD       	     16384 /**< Choiji Video CD */
+#define CDIO_FS_ANAL_SVCD           0x2000 /**< Super VCD or Choiji Video CD */
+#define CDIO_FS_ANAL_CVD       	    0x4000 /**< Choiji Video CD */
+#define CDIO_FS_ANAL_XISO      	    0x8000 /**< XBOX CD */
 
 /**
  * Pattern which can be used by cdio_get_devices to specify matching
@@ -117,6 +127,8 @@ typedef struct
   char          iso_label[33]; /**< This is 32 + 1 for null byte at the end in 
 				    formatting the string */
   unsigned int  isofs_size;
+  uint8_t       UDFVerMinor;   /**< For UDF filesystems only */
+  uint8_t       UDFVerMajor;   /**< For UDF filesystems only */
 } cdio_iso_analysis_t;
 
 /**

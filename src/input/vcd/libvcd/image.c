@@ -1,5 +1,5 @@
 /*
-    $Id: image.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: image.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
                   2002 Rocky Bernstein <rocky@panix.com>
@@ -34,7 +34,7 @@
 #include "image_sink.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: image.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: image.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
 
 /*
  * VcdImageSink routines next.
@@ -68,7 +68,7 @@ vcd_image_sink_destroy (VcdImageSink *obj)
 }
 
 int
-vcd_image_sink_set_cuesheet (VcdImageSink *obj, const VcdList *vcd_cue_list)
+vcd_image_sink_set_cuesheet (VcdImageSink *obj, const CdioList *vcd_cue_list)
 {
   vcd_assert (obj != NULL);
 
@@ -76,7 +76,7 @@ vcd_image_sink_set_cuesheet (VcdImageSink *obj, const VcdList *vcd_cue_list)
 }
 
 int
-vcd_image_sink_write (VcdImageSink *obj, void *buf, uint32_t lsn)
+vcd_image_sink_write (VcdImageSink *obj, void *buf, lsn_t lsn)
 {
   vcd_assert (obj != NULL);
 

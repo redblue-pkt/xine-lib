@@ -22,7 +22,8 @@ libdvdnav			0.1.10			Michael Roitzsch
 libfaad				2.0			Miguel Freitas
 libmad				0.15.1b			Miguel Freitas
 libmpeg2			0.2.1 [*]
-libvcd				0.7.20
+libcdio				0.71 [o]
+libvcd				0.7.21 [o]
 nosefart                        1.92                    Mike Melanson
 tvtime				0.9.8.4			Miguel Freitas
 wine
@@ -54,3 +55,9 @@ note that we have also backported some fixes/improvements from libmpeg2
 cvs (eg. motion vector clipping for broken streams). if you need any
 specific change or fix feel free to send us a patch or discuss the issue
 at xine-devel.
+
+
+[o] These libraries are not well maintained and subsetted from the
+    packages where they come from. The external versions of libcdio
+    and libvcdinfo are preferred. You also get regression tests and
+    CD/VCD diagnostic tools.

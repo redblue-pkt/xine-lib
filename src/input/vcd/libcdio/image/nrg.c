@@ -1,8 +1,8 @@
 /*
-    $Id: nrg.c,v 1.1 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: nrg.c,v 1.2 2005/01/01 02:43:59 rockyb Exp $
 
-    Copyright (C) 2001, 2003 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
+    Copyright (C) 2001, 2003 Herbert Valerio Riedel <hvr@gnu.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,9 +22,7 @@
    CD-image format residing inside a disk file (*.nrg).
 */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
+#include "image.h"
 
 #ifdef HAVE_STDIO_H
 #include <stdio.h>
@@ -39,107 +37,21 @@
 #include <glob.h>
 #endif
 
+#include <cdio/bytesex.h>
+#include <cdio/ds.h>
 #include <cdio/logging.h>
-#include <cdio/sector.h>
 #include <cdio/util.h>
+#include <cdio/version.h>
 #include "cdio_assert.h"
-#include "bytesex.h"
-#include "ds.h"
-#include "cdio_private.h"
 #include "_cdio_stdio.h"
+#include "nrg.h"
 
-static const char _rcsid[] = "$Id: nrg.c,v 1.1 2004/04/11 12:20:32 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: nrg.c,v 1.2 2005/01/01 02:43:59 rockyb Exp $";
 
-/* structures used */
-
-/* this ugly image format is typical for lazy win32 programmers... at
-   least structure were set big endian, so at reverse
-   engineering wasn't such a big headache... */
-
-PRAGMA_BEGIN_PACKED
-typedef struct {
-  uint32_t start      GNUC_PACKED;
-  uint32_t length     GNUC_PACKED;
-  uint32_t type       GNUC_PACKED; /* 0x0 -> MODE1,  0x2 -> MODE2 form1,
-				      0x3 -> MIXED_MODE2 2336 blocksize 
-				   */
-  uint32_t start_lsn  GNUC_PACKED; /* does not include any pre-gaps! */
-  uint32_t _unknown   GNUC_PACKED; /* wtf is this for? -- always zero... */
-} _etnf_array_t;
-
-/* finally they realized that 32bit offsets are a bit outdated for IA64 *eg* */
-typedef struct {
-  uint64_t start      GNUC_PACKED;
-  uint64_t length     GNUC_PACKED;
-  uint32_t type       GNUC_PACKED; /* 0x0 -> MODE1,  0x2 -> MODE2 form1,
-				      0x3 -> MIXED_MODE2 2336 blocksize 
-				   */
-  uint32_t start_lsn  GNUC_PACKED;
-  uint64_t _unknown   GNUC_PACKED; /* wtf is this for? -- always zero... */
-} _etn2_array_t;
-
-typedef struct {
-  uint8_t  _unknown1  GNUC_PACKED; /* 0x41 == 'A' */
-  uint8_t  track      GNUC_PACKED; /* binary or BCD?? */
-  uint8_t  index      GNUC_PACKED; /* makes 0->1 transitions */
-  uint8_t  _unknown2  GNUC_PACKED; /* ?? */
-  uint32_t lsn        GNUC_PACKED; 
-} _cuex_array_t;
-
-typedef struct {
-  uint8_t  _unknown[64]  GNUC_PACKED;
-} _daox_array_t;
-
-typedef struct {
-  uint32_t id                    GNUC_PACKED;
-  uint32_t len                   GNUC_PACKED;
-  char data[EMPTY_ARRAY_SIZE]    GNUC_PACKED;
-} _chunk_t;
-
-PRAGMA_END_PACKED
-
-/* to be converted into BE */
-#define CUEX_ID  0x43554558
-#define CUES_ID  0x43554553
-#define DAOX_ID  0x44414f58
-#define DAOI_ID  0x44414f49
-#define END1_ID  0x454e4421
-#define ETN2_ID  0x45544e32
-#define ETNF_ID  0x45544e46
-#define NER5_ID  0x4e455235
-#define NERO_ID  0x4e45524f
-#define SINF_ID  0x53494e46  /* Session information */
-#define MTYP_ID  0x4d545950  /* Disc Media type? */
-
-#define MTYP_AUDIO_CD 1 /* This isn't correct. But I don't know the
-			   the right thing is and it sometimes works (and
-			   sometimes is wrong). */
-
-/* Disk track type Values gleaned from DAOX */
-#define DTYP_MODE1     0 
-#define DTYP_MODE2_XA  2 
-#define DTYP_INVALID 255
 
 /* reader */
 
 #define DEFAULT_CDIO_DEVICE "image.nrg"
-
-typedef struct {
-  int            track_num;  /* Probably is index+1 */
-  msf_t          start_msf;
-  lba_t          start_lba;
-  int            start_index;
-  int            sec_count;  /* Number of sectors in track. Does not 
-				 include pregap before next entry. */
-  int            flags;      /* "DCP", "4CH", "PRE" */
-  track_format_t track_format;
-  bool           track_green;
-  uint16_t  datasize;        /* How much is in the portion we return back? */
-  long int  datastart;       /* Offset from begining that data starts */
-  uint16_t  endsize;         /* How much stuff at the end to skip over. This
-			       stuff may have error correction (EDC, or ECC).*/
-  uint16_t  blocksize;       /* total block size = start + size + end */
-} track_info_t;
 
 /* 
    Link element of track structure as a linked list.
@@ -150,6 +62,7 @@ typedef struct {
 			     include pregap before next entry. */
   uint64_t img_offset;    /* Bytes offset from beginning of disk image file.*/
   uint32_t blocksize;     /* Number of bytes in a block */
+  int      flags;         /* don't copy, 4 channel, pre-emphasis */
 } _mapping_t;
 
 
@@ -158,6 +71,17 @@ typedef struct {
      This must be first. */
   generic_img_private_t gen; 
   internal_position_t pos; 
+
+  /* This is common to all image drivers... */
+  char         *psz_cue_name;
+  char         *psz_mcn;         /* Media Catalog Number (5.22.3) */
+
+  track_info_t  tocent[CDIO_CD_MAX_TRACKS+1]; /* entry info for each track 
+					         add 1 for leadout. */
+  discmode_t    disc_mode;
+
+  /* Nero Specific stuff. Note: for the image_free to work, this *must*
+     be last. */
   bool          is_dao;          /* True if some of disk at once. False
 				    if some sort of track at once. */
   uint32_t      mtyp;            /* Value of MTYP (media type?) tag */
@@ -166,38 +90,38 @@ typedef struct {
   /* This is a hack because I don't really understnad NERO better. */
   bool            is_cues;
 
-  char         *mcn;             /* Media catalog number. */
-  track_info_t  tocent[100];     /* entry info for each track */
-  track_t       total_tracks;    /* number of tracks in image */
-  track_t       first_track_num; /* track number of first track */
   CdioList     *mapping;         /* List of track information */
   uint32_t      size;
 } _img_private_t;
 
-static bool     _cdio_parse_nero_footer (_img_private_t *_obj);
-static uint32_t _cdio_stat_size (void *env);
+static bool     parse_nrg (_img_private_t *env, const char *psz_cue_name);
+static uint32_t _stat_size_nrg (void *user_data);
+
+#include "image_common.h"
 
 /* Updates internal track TOC, so we can later 
    simulate ioctl(CDROMREADTOCENTRY).
  */
 static void
-_register_mapping (_img_private_t *_obj, lsn_t start_lsn, uint32_t sec_count,
+_register_mapping (_img_private_t *env, lsn_t start_lsn, uint32_t sec_count,
 		   uint64_t img_offset, uint32_t blocksize,
-		   track_format_t track_format, bool track_green)
+		   track_format_t track_format, bool track_green,
+		   int flags)
 {
-  const int track_num=_obj->total_tracks;
-  track_info_t  *this_track=&(_obj->tocent[_obj->total_tracks]);
+  const int track_num=env->gen.i_tracks;
+  track_info_t  *this_track=&(env->tocent[env->gen.i_tracks]);
   _mapping_t *_map = _cdio_malloc (sizeof (_mapping_t));
 
   _map->start_lsn  = start_lsn;
   _map->sec_count  = sec_count;
   _map->img_offset = img_offset;
   _map->blocksize  = blocksize;
+  _map->flags      = flags;
 
-  if (!_obj->mapping) _obj->mapping = _cdio_list_new ();
-  _cdio_list_append (_obj->mapping, _map);
+  if (!env->mapping) env->mapping = _cdio_list_new ();
+  _cdio_list_append (env->mapping, _map);
 
-  _obj->size = MAX (_obj->size, (start_lsn + sec_count));
+  env->size = MAX (env->size, (start_lsn + sec_count));
 
   /* Update *this_track and track_num. These structures are
      in a sense redundant witht the obj->mapping list. Perhaps one
@@ -208,7 +132,7 @@ _register_mapping (_img_private_t *_obj, lsn_t start_lsn, uint32_t sec_count,
   this_track->start_lba = cdio_msf_to_lba(&this_track->start_msf);
   this_track->track_num = track_num+1;
   this_track->blocksize = blocksize;
-  if (_obj->is_cues) 
+  if (env->is_cues) 
     this_track->datastart = img_offset;
   else 
     this_track->datastart = 0;
@@ -260,10 +184,10 @@ _register_mapping (_img_private_t *_obj, lsn_t start_lsn, uint32_t sec_count,
   default:
     /*this_track->datasize=CDIO_CD_FRAMESIZE_RAW;*/
     cdio_warn ("track %d has unknown format %d",
-	       _obj->total_tracks, this_track->track_format);
+	       env->gen.i_tracks, this_track->track_format);
   }
   
-  _obj->total_tracks++;
+  env->gen.i_tracks++;
 
   cdio_debug ("start lsn: %lu sector count: %0lu -> %8ld (%08lx)", 
 	      (long unsigned int) start_lsn, 
@@ -276,66 +200,50 @@ _register_mapping (_img_private_t *_obj, lsn_t start_lsn, uint32_t sec_count,
 /* 
    Disk and track information for a Nero file are located at the end
    of the file. This routine extracts that information.
+
+   FIXME: right now psz_nrg_name is not used. It will be in the future.
  */
 static bool
-_cdio_parse_nero_footer (_img_private_t *_obj)
+parse_nrg (_img_private_t *env, const char *psz_nrg_name)
 {
   long unsigned int footer_start;
   long unsigned int size;
   char *footer_buf = NULL;
+  cdio_log_level_t log_level = (NULL == env) ? CDIO_LOG_INFO : CDIO_LOG_WARN;
 
-  if (_obj->size) return true;
-
-  size = cdio_stream_stat (_obj->gen.data_source);
+  size = cdio_stream_stat (env->gen.data_source);
   if (-1 == size) return false;
 
   {
-PRAGMA_BEGIN_PACKED
-    union {
-      struct {
-	uint32_t __x          GNUC_PACKED;
-	uint32_t ID           GNUC_PACKED;
-	uint32_t footer_ofs   GNUC_PACKED;
-      } v50;
-      struct {
-	uint32_t ID           GNUC_PACKED;
-	uint64_t footer_ofs   GNUC_PACKED;
-      } v55;
-    } buf;
-PRAGMA_END_PACKED
-
+    _footer_t buf;
     cdio_assert (sizeof (buf) == 12);
  
-    cdio_stream_seek (_obj->gen.data_source, size - sizeof (buf), SEEK_SET);
-    cdio_stream_read (_obj->gen.data_source, (void *) &buf, sizeof (buf), 1);
+    cdio_stream_seek (env->gen.data_source, size - sizeof (buf), SEEK_SET);
+    cdio_stream_read (env->gen.data_source, (void *) &buf, sizeof (buf), 1);
     
-    if (buf.v50.ID == UINT32_TO_BE (0x4e45524f)) /* "NERO" */
-      {
-	cdio_info ("detected v50 (32bit offsets) NRG magic");
-	footer_start = uint32_to_be (buf.v50.footer_ofs); 
-      }
-    else if (buf.v55.ID == UINT32_TO_BE (0x4e455235)) /* "NER5" */
-      {
-	cdio_info ("detected v55 (64bit offsets) NRG magic");
-	footer_start = uint64_from_be (buf.v55.footer_ofs);
-      }
-    else
-      {
-	cdio_warn ("Image not recognized as either v50 or v55 type NRG");
-	return false;
-      }
+    if (buf.v50.ID == UINT32_TO_BE (NERO_ID)) {
+      cdio_info ("detected Nero version 5.0 (32-bit offsets) NRG magic");
+      footer_start = uint32_to_be (buf.v50.footer_ofs); 
+    } else if (buf.v55.ID == UINT32_TO_BE (NER5_ID)) {
+      cdio_info ("detected Nero version 5.5.x (64-bit offsets) NRG magic");
+      footer_start = uint64_from_be (buf.v55.footer_ofs);
+    } else {
+      cdio_log (log_level, "Image not recognized as either version 5.0 or "
+		"version 5.5.x-6.x type NRG");
+      return false;
+    }
 
-    cdio_debug ("nrg footer start = %ld, length = %ld", 
+    cdio_debug (".NRG footer start = %ld, length = %ld", 
 	       (long) footer_start, (long) (size - footer_start));
 
     cdio_assert (IN ((size - footer_start), 0, 4096));
 
     footer_buf = _cdio_malloc (size - footer_start);
 
-    cdio_stream_seek (_obj->gen.data_source, footer_start, SEEK_SET);
-    cdio_stream_read (_obj->gen.data_source, footer_buf, size - footer_start, 1);
+    cdio_stream_seek (env->gen.data_source, footer_start, SEEK_SET);
+    cdio_stream_read (env->gen.data_source, footer_buf, 
+		      size - footer_start, 1);
   }
-
   {
     int pos = 0;
 
@@ -355,7 +263,7 @@ PRAGMA_END_PACKED
 	  unsigned entries = UINT32_FROM_BE (chunk->len);
 	  _cuex_array_t *_entries = (void *) chunk->data;
 	  
-	  cdio_assert (_obj->mapping == NULL);
+	  cdio_assert (env->mapping == NULL);
 	  
 	  cdio_assert ( sizeof (_cuex_array_t) == 8 );
 	  cdio_assert ( UINT32_FROM_BE (chunk->len) % sizeof(_cuex_array_t) 
@@ -368,15 +276,22 @@ PRAGMA_END_PACKED
 	    int idx;
 	    
 	    cdio_info ("CUES type image detected" );
-	    /*cdio_assert (lsn == 0?);*/
+
+	    /* CUES LSN has 150 pregap include at beginning? -/
+	       cdio_assert (lsn == 0?);
+	    */
 	    
-	    _obj->is_cues         = true; /* HACK alert. */
-	    _obj->total_tracks    = 0;
-	    _obj->first_track_num = 1;
+	    env->is_cues       = true; /* HACK alert. */
+	    env->gen.i_tracks      = 0;
+	    env->gen.i_first_track = 1;
 	    for (idx = 1; idx < entries-1; idx += 2) {
 	      lsn_t sec_count;
-	      
-	      cdio_assert (_entries[idx].index == 0);
+	      int addrtype = _entries[idx].addr_ctrl / 16;
+	      int control  = _entries[idx].addr_ctrl % 16;
+	      int flags = 0;
+	      if ( 1 == control )
+  		     flags &= ~CDIO_TRACK_FLAG_COPY_PERMITTED;
+
 	      cdio_assert (_entries[idx].track == _entries[idx + 1].track);
 	      
 	      /* lsn and sec_count*2 aren't correct, but it comes closer on the
@@ -384,103 +299,177 @@ PRAGMA_END_PACKED
 		 We are picking up the wrong fields and/or not interpreting
 		 them correctly.
 	      */
+
+	      switch (addrtype) {
+	      case 0:
+		lsn = UINT32_FROM_BE (_entries[idx].lsn);
+		break;
+	      case 1: 
+		{
+#if 0
+		  msf_t msf = (msf_t) _entries[idx].lsn;
+		  lsn = cdio_msf_to_lsn(&msf);
+#else
+		  lsn = CDIO_INVALID_LSN;
+#endif		  
+		  cdio_warn ("untested (i.e. probably wrong) CUE MSF code");
+		  break;
+		}
+	      default:
+		lsn = CDIO_INVALID_LSN;
+		cdio_warn("unknown addrtype %d", addrtype);
+	      }
 	      
-	      lsn       = UINT32_FROM_BE (_entries[idx].lsn);
 	      sec_count = UINT32_FROM_BE (_entries[idx + 1].lsn);
 	      
-	      _register_mapping (_obj, lsn, sec_count*2, 
+	      _register_mapping (env, lsn, sec_count*2, 
 				 (lsn+CDIO_PREGAP_SECTORS) * M2RAW_SECTOR_SIZE,
-				 M2RAW_SECTOR_SIZE, TRACK_FORMAT_XA, true);
+				 M2RAW_SECTOR_SIZE, TRACK_FORMAT_XA, true,
+				 flags);
 	    }
 	  } else {
 	    lsn_t lsn = UINT32_FROM_BE (_entries[0].lsn);
 	    int idx;
 	    
 	    cdio_info ("CUEX type image detected");
-	    cdio_assert (lsn == 0xffffff6a);
+
+	    /* LSN must start at -150 (LBA 0)? */
+	    cdio_assert (lsn == -150); 
 	    
 	    for (idx = 2; idx < entries; idx += 2) {
 	      lsn_t sec_count;
-	      
-	      cdio_assert (_entries[idx].index == 1);
+	      int addrtype = _entries[idx].addr_ctrl >> 4;
+	      int control  = _entries[idx].addr_ctrl & 0xf;
+	      int flags = 0;
+	      if ( 1 == control )
+  		     flags &= ~CDIO_TRACK_FLAG_COPY_PERMITTED;
+
+	      /* extractnrg.pl has addrtype for LBA's 0, and
+		 for MSF 1. ???
+
+		 FIXME: Should decode as appropriate for addrtype.
+	       */
+	      cdio_assert ( addrtype == 0 || addrtype == 1 );
+
 	      cdio_assert (_entries[idx].track != _entries[idx + 1].track);
 	      
 	      lsn       = UINT32_FROM_BE (_entries[idx].lsn);
 	      sec_count = UINT32_FROM_BE (_entries[idx + 1].lsn);
 	      
-	      _register_mapping (_obj, lsn, sec_count - lsn, 
+	      _register_mapping (env, lsn, sec_count - lsn, 
 				 (lsn + CDIO_PREGAP_SECTORS)*M2RAW_SECTOR_SIZE,
-				 M2RAW_SECTOR_SIZE, TRACK_FORMAT_XA, true);
+				 M2RAW_SECTOR_SIZE, TRACK_FORMAT_XA, true,
+				 flags);
 	    }
 	  }
 	  break;
 	}
 	
-      case DAOI_ID: /* "DAOI" */
       case DAOX_ID: /* "DAOX" */ 
+      case DAOI_ID: /* "DAOI" */
 	{
-	  _daox_array_t *_entries = (void *) chunk->data;
 	  track_format_t track_format;
-	  int form     = _entries->_unknown[18];
-	  _obj->dtyp   = _entries->_unknown[36];
-	  _obj->is_dao = true;
+	  int form2;
+
+	  /* We include an extra 0 byte so these can be used as C strings.*/
+	  env->psz_mcn    = _cdio_malloc (CDIO_MCN_SIZE+1);
+
+	  if (DAOX_ID == opcode) {
+	    _daox_array_t *_entries = (void *) chunk->data;
+	    form2         = _entries->_unknown[1];
+	    env->dtyp   = _entries->_unknown[19];
+	    memcpy(env->psz_mcn, &(_entries->psz_mcn), CDIO_MCN_SIZE);
+	    env->psz_mcn[CDIO_MCN_SIZE] = '\0';
+	  } else {
+	    _daoi_array_t *_entries = (void *) chunk->data;
+	    form2         = _entries->_unknown[1];
+	    env->dtyp   = _entries->_unknown[19];
+	    memcpy(env->psz_mcn, &(_entries->psz_mcn), CDIO_MCN_SIZE);
+	    env->psz_mcn[CDIO_MCN_SIZE] = '\0';
+	  }
+
+	  env->is_dao = true;
 	  cdio_debug ("DAO%c tag detected, track format %d, form %x\n", 
-		      opcode==DAOX_ID ? 'X': 'I', _obj->dtyp, form);
-	  switch (_obj->dtyp) {
+		      opcode==DAOX_ID ? 'X': 'I', env->dtyp, form2);
+	  switch (env->dtyp) {
 	  case 0:
-	    track_format = TRACK_FORMAT_DATA;
+	    /* Mode 1 */
+	    track_format   = TRACK_FORMAT_DATA;
+	    env->disc_mode = CDIO_DISC_MODE_CD_DATA;
+	    break;
+	  case 2:
+	    /* Mode 2 form 1 */
+	    form2          = 0;
+	    track_format   = TRACK_FORMAT_XA;
+	    env->disc_mode = CDIO_DISC_MODE_CD_XA;
+	    break;
+	  case 3:
+	    /* Mode 2 */
+	    track_format   = TRACK_FORMAT_XA;
+	    env->disc_mode = CDIO_DISC_MODE_CD_XA; /* ?? */
 	    break;
 	  case 0x6:
-	  case 0x20:
-	    track_format = TRACK_FORMAT_XA;
+	    /* Mode2 form mix */
+	    track_format   = TRACK_FORMAT_XA;
+	    env->disc_mode = CDIO_DISC_MODE_CD_MIXED;
+	    break;
+	  case 0x20: /* ??? Mode2 form 2, Mode2 raw?? */
+	    track_format   = TRACK_FORMAT_XA;
+	    env->disc_mode = CDIO_DISC_MODE_CD_XA; /* ??. */
 	    break;
 	  case 0x7:
-	    track_format = TRACK_FORMAT_AUDIO;
+	    track_format   = TRACK_FORMAT_AUDIO;
+	    env->disc_mode = CDIO_DISC_MODE_CD_DA;
 	    break;
 	  default:
-	    cdio_warn ("Unknown track format %x\n", 
-		      _obj->dtyp);
+	    cdio_log (log_level, "Unknown track format %x\n", 
+		      env->dtyp);
 	    track_format = TRACK_FORMAT_AUDIO;
 	  }
-	  if (0 == form) {
+	  if (0 == form2) {
 	    int i;
-	    for (i=0; i<_obj->total_tracks; i++) {
-	      _obj->tocent[i].track_format= track_format;
-	      _obj->tocent[i].datastart   = 0;
-	      _obj->tocent[i].track_green = false;
+	    for (i=0; i<env->gen.i_tracks; i++) {
+	      cdtext_init (&(env->gen.cdtext_track[i]));
+	      env->tocent[i].track_format= track_format;
+	      env->tocent[i].datastart   = 0;
+	      env->tocent[i].track_green = false;
 	      if (TRACK_FORMAT_AUDIO == track_format) {
-		_obj->tocent[i].blocksize   = CDIO_CD_FRAMESIZE_RAW;
-		_obj->tocent[i].datasize    = CDIO_CD_FRAMESIZE_RAW;
-		_obj->tocent[i].endsize     = 0;
+		env->tocent[i].blocksize   = CDIO_CD_FRAMESIZE_RAW;
+		env->tocent[i].datasize    = CDIO_CD_FRAMESIZE_RAW;
+		env->tocent[i].endsize     = 0;
 	      } else {
-		_obj->tocent[i].datasize    = CDIO_CD_FRAMESIZE;
-		_obj->tocent[i].datastart  =  0;
+		env->tocent[i].datasize    = CDIO_CD_FRAMESIZE;
+		env->tocent[i].datastart  =  0;
 	      }
 	    }
-	  } else if (2 == form) {
+	  } else if (2 == form2) {
 	    int i;
-	    for (i=0; i<_obj->total_tracks; i++) {
-	      _obj->tocent[i].track_green = true;
-	      _obj->tocent[i].track_format= track_format;
-	      _obj->tocent[i].datasize    = CDIO_CD_FRAMESIZE;
+	    for (i=0; i<env->gen.i_tracks; i++) {
+	      cdtext_init (&(env->gen.cdtext_track[i]));
+	      env->tocent[i].track_green = true;
+	      env->tocent[i].track_format= track_format;
+	      env->tocent[i].datasize    = CDIO_CD_FRAMESIZE;
 	      if (TRACK_FORMAT_XA == track_format) {
-		_obj->tocent[i].datastart   = CDIO_CD_SYNC_SIZE 
+		env->tocent[i].datastart   = CDIO_CD_SYNC_SIZE 
 		  + CDIO_CD_HEADER_SIZE + CDIO_CD_SUBHEADER_SIZE;
-		_obj->tocent[i].endsize     = CDIO_CD_SYNC_SIZE 
+		env->tocent[i].endsize     = CDIO_CD_SYNC_SIZE 
 		  + CDIO_CD_ECC_SIZE;
 	      } else {
-		_obj->tocent[i].datastart   = CDIO_CD_SYNC_SIZE 
+		env->tocent[i].datastart   = CDIO_CD_SYNC_SIZE 
 		  + CDIO_CD_HEADER_SIZE;
-		_obj->tocent[i].endsize     = CDIO_CD_EDC_SIZE 
+		env->tocent[i].endsize     = CDIO_CD_EDC_SIZE 
 		  + CDIO_CD_M1F1_ZERO_SIZE + CDIO_CD_ECC_SIZE;
 	      
 	      }
 	    }
+	  } else {
+	    cdio_log (log_level, "Don't know if form1 or form2 form2: %x\n", 
+		      form2);
 	  }
 	  break;
 	}
-      case NERO_ID: /* "NER0" */
-      case NER5_ID: /* "NER5" */
+      case NERO_ID: 
+      case NER5_ID: 
 	cdio_error ("unexpected nrg magic ID NER%c detected",
 		    opcode==NERO_ID ? 'O': '5');
 	free(footer_buf);
@@ -496,7 +485,7 @@ PRAGMA_END_PACKED
 	unsigned entries = UINT32_FROM_BE (chunk->len);
 	_etnf_array_t *_entries = (void *) chunk->data;
 	
-	cdio_assert (_obj->mapping == NULL);
+	cdio_assert (env->mapping == NULL);
 	
 	cdio_assert ( sizeof (_etnf_array_t) == 20 );
 	cdio_assert ( UINT32_FROM_BE(chunk->len) % sizeof(_etnf_array_t) 
@@ -519,28 +508,49 @@ PRAGMA_END_PACKED
 	    
 	    switch (track_mode) {
 	    case 0:
-	      track_format = TRACK_FORMAT_DATA;
-	      track_green  = false; /* ?? */
-	      blocksize    = CDIO_CD_FRAMESIZE;
+	      /* Mode 1 */
+	      track_format   = TRACK_FORMAT_DATA;
+	      track_green    = false; /* ?? */
+	      blocksize      = CDIO_CD_FRAMESIZE;
+	      env->disc_mode = CDIO_DISC_MODE_CD_DATA;
 	      break;
 	    case 2:
-	      track_format = TRACK_FORMAT_XA;
-	      track_green  = false; /* ?? */
-	      blocksize    = CDIO_CD_FRAMESIZE;
+	      /* Mode 2 form 1 */
+	      track_format   = TRACK_FORMAT_XA;
+	      track_green    = false; /* ?? */
+	      blocksize      = CDIO_CD_FRAMESIZE;
+	      env->disc_mode = CDIO_DISC_MODE_CD_XA;
 	      break;
 	    case 3:
-	      track_format = TRACK_FORMAT_XA;
-	      track_green  = true;
-	      blocksize    = M2RAW_SECTOR_SIZE;
+	      /* Mode 2 */
+	      track_format   = TRACK_FORMAT_XA;
+	      track_green    = true;
+	      blocksize      = M2RAW_SECTOR_SIZE;
+	      env->disc_mode = CDIO_DISC_MODE_CD_XA; /* ?? */
+	      break;
+	    case 06:
+	      /* Mode2 form mix */
+	      track_format   = TRACK_FORMAT_XA;
+	      track_green    = true;
+	      blocksize      = M2RAW_SECTOR_SIZE;
+	      env->disc_mode = CDIO_DISC_MODE_CD_MIXED;
+	      break;
+	    case 0x20: /* ??? Mode2 form 2, Mode2 raw?? */
+	      track_format   = TRACK_FORMAT_XA;
+	      track_green    = true;
+	      blocksize      = M2RAW_SECTOR_SIZE;
+	      env->disc_mode = CDIO_DISC_MODE_CD_XA; /* ??. */
 	      break;
 	    case 7:
-	      track_format = TRACK_FORMAT_AUDIO;
-	      track_green  = false;
-	      blocksize    = CDIO_CD_FRAMESIZE_RAW;
+	      track_format   = TRACK_FORMAT_AUDIO;
+	      track_green    = false;
+	      blocksize      = CDIO_CD_FRAMESIZE_RAW;
+	      env->disc_mode = CDIO_DISC_MODE_CD_DA;
 	      break;
 	    default:
-	      cdio_warn ("Don't know how to handle track mode (%lu)?",
-			 (long unsigned int) track_mode);
+	      cdio_log (log_level, 
+			"Don't know how to handle track mode (%lu)?",
+			(long unsigned int) track_mode);
 	      free(footer_buf);
 	      return false;
 	    }
@@ -552,8 +562,8 @@ PRAGMA_END_PACKED
 	    cdio_assert (_start * blocksize == _start2);
 	    
 	    _start += idx * CDIO_PREGAP_SECTORS;
-	    _register_mapping (_obj, _start, _len, _start2, blocksize,
-			       track_format, track_green);
+	    _register_mapping (env, _start, _len, _start2, blocksize,
+			       track_format, track_green, 0);
 
 	  }
 	}
@@ -564,7 +574,7 @@ PRAGMA_END_PACKED
 	unsigned entries = uint32_from_be (chunk->len);
 	_etn2_array_t *_entries = (void *) chunk->data;
 	
-	cdio_assert (_obj->mapping == NULL);
+	cdio_assert (env->mapping == NULL);
 	
 	cdio_assert (sizeof (_etn2_array_t) == 32);
 	cdio_assert (uint32_from_be (chunk->len) % sizeof (_etn2_array_t) == 0);
@@ -607,25 +617,30 @@ PRAGMA_END_PACKED
 	      blocksize    = CDIO_CD_FRAMESIZE_RAW;
 	      break;
 	    default:
-	      cdio_warn ("Don't know how to handle track mode (%lu)?",
-			 (long unsigned int) track_mode);
+	      cdio_log (log_level, 
+			"Don't know how to handle track mode (%lu)?",
+			(long unsigned int) track_mode);
 	      free(footer_buf);
 	      return false;
 	    }
 	    
 	    if (_len % blocksize != 0) {
-	      cdio_warn ("length is not a multiple of blocksize " 
+	      cdio_log (log_level, 
+			"length is not a multiple of blocksize " 
 			 "len %lu, size %d, rem %lu", 
 			 (long unsigned int) _len, blocksize, 
 			 (long unsigned int) _len % blocksize);
 	      if (0 == _len % CDIO_CD_FRAMESIZE) {
-		cdio_warn("Adjusting blocksize to %d", CDIO_CD_FRAMESIZE);
+		cdio_log(log_level, "Adjusting blocksize to %d", 
+			 CDIO_CD_FRAMESIZE);
 		blocksize = CDIO_CD_FRAMESIZE;
 	      } else if (0 == _len % M2RAW_SECTOR_SIZE) {
-		cdio_warn("Adjusting blocksize to %d", M2RAW_SECTOR_SIZE);
+		cdio_log(log_level,
+			 "Adjusting blocksize to %d", M2RAW_SECTOR_SIZE);
 		blocksize = M2RAW_SECTOR_SIZE;
 	      } else if (0 == _len % CDIO_CD_FRAMESIZE_RAW) {
-		cdio_warn("Adjusting blocksize to %d", CDIO_CD_FRAMESIZE_RAW);
+		cdio_log(log_level, 
+			 "Adjusting blocksize to %d", CDIO_CD_FRAMESIZE_RAW);
 		blocksize = CDIO_CD_FRAMESIZE_RAW;
 	      }
 	    }
@@ -633,24 +648,28 @@ PRAGMA_END_PACKED
 	    _len /= blocksize;
 	    
 	    if (_start * blocksize != _start2) {
-	      cdio_warn ("%lu * %d != %lu", 
+	      cdio_log (log_level,
+			"%lu * %d != %lu", 
 			 (long unsigned int) _start, blocksize, 
 			 (long unsigned int) _start2);
 	      if (_start * CDIO_CD_FRAMESIZE == _start2) {
-		cdio_warn("Adjusting blocksize to %d", CDIO_CD_FRAMESIZE);
+		cdio_log(log_level,
+			 "Adjusting blocksize to %d", CDIO_CD_FRAMESIZE);
 		blocksize = CDIO_CD_FRAMESIZE;
 	      } else if (_start * M2RAW_SECTOR_SIZE == _start2) {
-		cdio_warn("Adjusting blocksize to %d", M2RAW_SECTOR_SIZE);
+		cdio_log(log_level,
+			 "Adjusting blocksize to %d", M2RAW_SECTOR_SIZE);
 		blocksize = M2RAW_SECTOR_SIZE;
 	      } else if (0 == _start * CDIO_CD_FRAMESIZE_RAW == _start2) {
-		cdio_warn("Adjusting blocksize to %d", CDIO_CD_FRAMESIZE_RAW);
+		cdio_log(log_level,
+			 "Adjusting blocksize to %d", CDIO_CD_FRAMESIZE_RAW);
 		blocksize = CDIO_CD_FRAMESIZE_RAW;
 	      }
 	    }
 	    
 	    _start += idx * CDIO_PREGAP_SECTORS;
-	    _register_mapping (_obj, _start, _len, _start2, blocksize,
-			       track_format, track_green);
+	    _register_mapping (env, _start, _len, _start2, blocksize,
+			       track_format, track_green, 0);
 	  }
 	}
 	break;
@@ -677,15 +696,24 @@ PRAGMA_END_PACKED
 		    (long unsigned int) UINT32_FROM_BE (*mtyp_p));
 
 	if (mtyp != MTYP_AUDIO_CD) {
-	  cdio_warn ("Unknown MTYP value: %u", (unsigned int) mtyp);
+	  cdio_log (log_level,
+		    "Unknown MTYP value: %u", (unsigned int) mtyp);
 	}
-	_obj->mtyp = mtyp;
+	env->mtyp = mtyp;
       }
 	break;
 	
+      case CDTX_ID: { /* "CD TEXT" */
+	
+	cdio_log (log_level,
+		  "Don't know how to handle CD TEXT yet" );
+	break;
+      }
+
       default:
-	cdio_warn ("unknown tag %8.8x seen", 
-		   (unsigned int) UINT32_FROM_BE (chunk->id));
+	cdio_log (log_level,
+		  "unknown tag %8.8x seen", 
+		  (unsigned int) UINT32_FROM_BE (chunk->id));
 	break;
       }
 	
@@ -698,14 +726,17 @@ PRAGMA_END_PACKED
   }
 
   /* Fake out leadout track. */
-  /* Don't use _cdio_stat_size since that will lead to recursion since
+  /* Don't use _stat_size_nrg since that will lead to recursion since
      we haven't fully initialized things yet.
   */
-  cdio_lsn_to_msf (_obj->size, &_obj->tocent[_obj->total_tracks].start_msf);
-  _obj->tocent[_obj->total_tracks].start_lba = cdio_lsn_to_lba(_obj->size);
-  _obj->tocent[_obj->total_tracks-1].sec_count = 
-    cdio_lsn_to_lba(_obj->size - _obj->tocent[_obj->total_tracks-1].start_lba);
+  cdio_lsn_to_msf (env->size, &env->tocent[env->gen.i_tracks].start_msf);
+  env->tocent[env->gen.i_tracks].start_lba = cdio_lsn_to_lba(env->size);
+  env->tocent[env->gen.i_tracks-1].sec_count = 
+    cdio_lsn_to_lba(env->size - env->tocent[env->gen.i_tracks-1].start_lba);
 
+  env->gen.b_cdtext_init  = true;
+  env->gen.b_cdtext_error = false;
+  env->gen.toc_init       = true;
   free(footer_buf);
   return true;
 }
@@ -714,20 +745,31 @@ PRAGMA_END_PACKED
   Initialize image structures.
  */
 static bool
-_cdio_init (_img_private_t *_obj)
+_init_nrg (_img_private_t *env)
 {
-  if (_obj->gen.init) {
+  if (env->gen.init) {
     cdio_error ("init called more than once");
     return false;
   }
   
-  if (!(_obj->gen.data_source = cdio_stdio_new (_obj->gen.source_name))) {
-    cdio_warn ("init failed");
+  if (!(env->gen.data_source = cdio_stdio_new (env->gen.source_name))) {
+    cdio_warn ("can't open nrg image file %s for reading", 
+	       env->gen.source_name);
     return false;
   }
 
-  _cdio_parse_nero_footer (_obj);
-  _obj->gen.init = true;
+  env->psz_mcn       = NULL;
+  env->disc_mode     = CDIO_DISC_MODE_NO_INFO;
+
+  cdtext_init (&(env->gen.cdtext));
+
+  if ( !parse_nrg (env, env->gen.source_name) ) {
+    cdio_warn ("image file %s is not a Nero image", 
+	       env->gen.source_name);
+    return false;
+  }
+  
+  env->gen.init = true;
   return true;
 
 }
@@ -739,40 +781,40 @@ _cdio_init (_img_private_t *_obj)
   information in each sector.
 */
 static off_t
-_cdio_lseek (void *env, off_t offset, int whence)
+_lseek_nrg (void *user_data, off_t offset, int whence)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
 
   /* real_offset is the real byte offset inside the disk image
      The number below was determined empirically. 
   */
-  off_t real_offset= _obj->is_dao ? 0x4b000 : 0;
+  off_t real_offset= env->is_dao ? 0x4b000 : 0;
 
   unsigned int i;
 
-  for (i=0; i<_obj->total_tracks; i++) {
-    track_info_t  *this_track=&(_obj->tocent[i]);
-    _obj->pos.index = i;
+  for (i=0; i<env->gen.i_tracks; i++) {
+    track_info_t  *this_track=&(env->tocent[i]);
+    env->pos.index = i;
     if ( (this_track->sec_count*this_track->datasize) >= offset) {
       int blocks            = offset / this_track->datasize;
       int rem               = offset % this_track->datasize;
       int block_offset      = blocks * this_track->blocksize;
       real_offset          += block_offset + rem;
-      _obj->pos.buff_offset = rem;
-      _obj->pos.lba        += blocks;
+      env->pos.buff_offset = rem;
+      env->pos.lba        += blocks;
       break;
     }
     real_offset   += this_track->sec_count*this_track->blocksize;
     offset        -= this_track->sec_count*this_track->datasize;
-    _obj->pos.lba += this_track->sec_count;
+    env->pos.lba += this_track->sec_count;
   }
 
-  if (i==_obj->total_tracks) {
+  if (i==env->gen.i_tracks) {
     cdio_warn ("seeking outside range of disk image");
     return -1;
   } else
-    real_offset += _obj->tocent[i].datastart;
-    return cdio_stream_seek(_obj->gen.data_source, real_offset, whence);
+    real_offset += env->tocent[i].datastart;
+    return cdio_stream_seek(env->gen.data_source, real_offset, whence);
 }
 
 /*!
@@ -783,18 +825,18 @@ _cdio_lseek (void *env, off_t offset, int whence)
    boundaries.
 */
 static ssize_t
-_cdio_read (void *env, void *buf, size_t size)
+_read_nrg (void *user_data, void *buf, size_t size)
 {
-  _img_private_t *_obj = env;
-  return cdio_stream_read(_obj->gen.data_source, buf, size, 1);
+  _img_private_t *env = user_data;
+  return cdio_stream_read(env->gen.data_source, buf, size, 1);
 }
 
 static uint32_t 
-_cdio_stat_size (void *env)
+_stat_size_nrg (void *user_data)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
 
-  return _obj->size;
+  return env->size;
 }
 
 /*!
@@ -802,21 +844,21 @@ _cdio_stat_size (void *env)
    from LSN. Returns 0 if no error. 
  */
 static int
-_cdio_read_audio_sectors (void *env, void *data, lsn_t lsn, 
+_read_audio_sectors_nrg (void *user_data, void *data, lsn_t lsn, 
 			  unsigned int nblocks)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
 
   CdioListNode *node;
 
-  if (lsn >= _obj->size)
+  if (lsn >= env->size)
     {
       cdio_warn ("trying to read beyond image size (%lu >= %lu)", 
-		 (long unsigned int) lsn, (long unsigned int) _obj->size);
+		 (long unsigned int) lsn, (long unsigned int) env->size);
       return -1;
     }
 
-  _CDIO_LIST_FOREACH (node, _obj->mapping) {
+  _CDIO_LIST_FOREACH (node, env->mapping) {
     _mapping_t *_map = _cdio_list_node_data (node);
     
     if (IN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
@@ -825,10 +867,10 @@ _cdio_read_audio_sectors (void *env, void *data, lsn_t lsn,
       
       img_offset += (lsn - _map->start_lsn) * CDIO_CD_FRAMESIZE_RAW;
       
-      ret = cdio_stream_seek (_obj->gen.data_source, img_offset, 
+      ret = cdio_stream_seek (env->gen.data_source, img_offset, 
 			      SEEK_SET); 
       if (ret!=0) return ret;
-      ret = cdio_stream_read (_obj->gen.data_source, data, 
+      ret = cdio_stream_read (env->gen.data_source, data, 
 			      CDIO_CD_FRAMESIZE_RAW, nblocks);
       if (ret==0) return ret;
       break;
@@ -842,22 +884,22 @@ _cdio_read_audio_sectors (void *env, void *data, lsn_t lsn,
 }
 
 static int
-_cdio_read_mode1_sector (void *env, void *data, lsn_t lsn, 
+_read_mode1_sector_nrg (void *user_data, void *data, lsn_t lsn, 
 			 bool b_form2)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
   char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
 
   CdioListNode *node;
 
-  if (lsn >= _obj->size)
+  if (lsn >= env->size)
     {
       cdio_warn ("trying to read beyond image size (%lu >= %lu)", 
-		 (long unsigned int) lsn, (long unsigned int) _obj->size);
+		 (long unsigned int) lsn, (long unsigned int) env->size);
       return -1;
     }
 
-  _CDIO_LIST_FOREACH (node, _obj->mapping) {
+  _CDIO_LIST_FOREACH (node, env->mapping) {
     _mapping_t *_map = _cdio_list_node_data (node);
     
     if (IN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
@@ -866,12 +908,12 @@ _cdio_read_mode1_sector (void *env, void *data, lsn_t lsn,
       
       img_offset += (lsn - _map->start_lsn) * _map->blocksize;
       
-      ret = cdio_stream_seek (_obj->gen.data_source, img_offset, 
+      ret = cdio_stream_seek (env->gen.data_source, img_offset, 
 			      SEEK_SET); 
       if (ret!=0) return ret;
 
       /* FIXME: Not completely sure the below is correct. */
-      ret = cdio_stream_read (_obj->gen.data_source, 
+      ret = cdio_stream_read (env->gen.data_source, 
 			      (M2RAW_SECTOR_SIZE == _map->blocksize)
 			      ? (buf + CDIO_CD_SYNC_SIZE + CDIO_CD_HEADER_SIZE)
 			      : buf,
@@ -896,16 +938,16 @@ _cdio_read_mode1_sector (void *env, void *data, lsn_t lsn,
    Returns 0 if no error. 
  */
 static int
-_cdio_read_mode1_sectors (void *env, void *data, uint32_t lsn, 
-			  bool b_form2, unsigned nblocks)
+_read_mode1_sectors_nrg (void *user_data, void *data, lsn_t lsn, 
+			 bool b_form2, unsigned nblocks)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
   int i;
   int retval;
   unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
 
   for (i = 0; i < nblocks; i++) {
-    if ( (retval = _cdio_read_mode1_sector (_obj, 
+    if ( (retval = _read_mode1_sector_nrg (env, 
 					    ((char *)data) + (blocksize * i),
 					    lsn + i, b_form2)) )
       return retval;
@@ -914,22 +956,22 @@ _cdio_read_mode1_sectors (void *env, void *data, uint32_t lsn,
 }
 
 static int
-_cdio_read_mode2_sector (void *env, void *data, lsn_t lsn, 
+_read_mode2_sector_nrg (void *user_data, void *data, lsn_t lsn, 
 			 bool b_form2)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
   char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
 
   CdioListNode *node;
 
-  if (lsn >= _obj->size)
+  if (lsn >= env->size)
     {
       cdio_warn ("trying to read beyond image size (%lu >= %lu)", 
-		 (long unsigned int) lsn, (long unsigned int) _obj->size);
+		 (long unsigned int) lsn, (long unsigned int) env->size);
       return -1;
     }
 
-  _CDIO_LIST_FOREACH (node, _obj->mapping) {
+  _CDIO_LIST_FOREACH (node, env->mapping) {
     _mapping_t *_map = _cdio_list_node_data (node);
     
     if (IN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
@@ -938,10 +980,10 @@ _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn,
       
       img_offset += (lsn - _map->start_lsn) * _map->blocksize;
       
-      ret = cdio_stream_seek (_obj->gen.data_source, img_offset, 
+      ret = cdio_stream_seek (env->gen.data_source, img_offset, 
 			      SEEK_SET); 
       if (ret!=0) return ret;
-      ret = cdio_stream_read (_obj->gen.data_source, 
+      ret = cdio_stream_read (env->gen.data_source, 
 			      (M2RAW_SECTOR_SIZE == _map->blocksize)
 			      ? (buf + CDIO_CD_SYNC_SIZE + CDIO_CD_HEADER_SIZE)
 			      : buf,
@@ -969,16 +1011,16 @@ _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn,
    Returns 0 if no error. 
  */
 static int
-_cdio_read_mode2_sectors (void *env, void *data, uint32_t lsn, 
-			  bool b_form2, unsigned nblocks)
+_read_mode2_sectors_nrg (void *user_data, void *data, lsn_t lsn, 
+			 bool b_form2, unsigned nblocks)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
   int i;
   int retval;
   unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
 
   for (i = 0; i < nblocks; i++) {
-    if ( (retval = _cdio_read_mode2_sector (_obj, 
+    if ( (retval = _read_mode2_sector_nrg (env, 
 					    ((char *)data) + (blocksize * i),
 					    lsn + i, b_form2)) )
       return retval;
@@ -990,52 +1032,28 @@ _cdio_read_mode2_sectors (void *env, void *data, uint32_t lsn,
   Free memory resources associated with NRG object.
 */
 static void 
-_cdio_nrg_destroy (void *obj) 
+_free_nrg (void *user_data) 
 {
-  _img_private_t *env = obj;
+  _img_private_t *env = user_data;
 
   if (NULL == env) return;
   if (NULL != env->mapping)
     _cdio_list_free (env->mapping, true); 
-  cdio_generic_stdio_free(env);
-  free(env);
-}
 
-/*
-  Set the device to use in I/O operations.
-*/
-static int
-_cdio_set_arg (void *env, const char key[], const char value[])
-{
-  _img_private_t *_obj = env;
-
-  if (!strcmp (key, "source"))
-    {
-      free (_obj->gen.source_name);
-
-      if (!value)
-	return -2;
-
-      _obj->gen.source_name = strdup (value);
-    }
-  else
-    return -1;
-
-  return 0;
+  /* The remaining part of the image is like the other image drivers,
+     so free that in the same way. */
+  _free_image(user_data);
 }
 
 /*!
-  Return the value associated with the key "arg".
-*/
-static const char *
-_cdio_get_arg (void *env, const char key[])
+  Eject media -- there's nothing to do here except free resources.
+  We always return 2.
+ */
+static int
+_eject_media_nrg(void *obj)
 {
-  _img_private_t *_obj = env;
-
-  if (!strcmp (key, "source")) {
-    return _obj->gen.source_name;
-  } 
-  return NULL;
+  _free_nrg (obj);
+  return 2;
 }
 
 /*!
@@ -1074,28 +1092,14 @@ cdio_get_default_device_nrg(void)
   return drive;
 }
 
-/*!
-  Return the number of of the first track. 
-  CDIO_INVALID_TRACK is returned on error.
-*/
-static track_t
-_cdio_get_first_track_num(void *env) 
+static bool
+get_hwinfo_nrg ( const CdIo *p_cdio, /*out*/ cdio_hwinfo_t *hw_info)
 {
-  _img_private_t *_obj = env;
+  strcpy(hw_info->psz_vendor, "libcdio");
+  strcpy(hw_info->psz_model, "Nero");
+  strcpy(hw_info->psz_revision, CDIO_VERSION);
+  return true;
   
-  return _obj->first_track_num;
-}
-
-/*!
-  Return the number of tracks. We fake it an just say there's
-  one big track. 
-*/
-static track_t
-_cdio_get_num_tracks(void *env) 
-{
-  _img_private_t *_obj = env;
-
-  return _obj->total_tracks;
 }
 
 /*!
@@ -1103,15 +1107,15 @@ _cdio_get_num_tracks(void *env)
   CDIO_INVALID_TRACK is returned on error.
 */
 static track_format_t
-_cdio_get_track_format(void *env, track_t track_num) 
+get_track_format_nrg(void *user_data, track_t track_num) 
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
   
-  if (track_num > _obj->total_tracks || track_num == 0) 
+  if (track_num > env->gen.i_tracks || track_num == 0) 
     return TRACK_FORMAT_ERROR;
 
-  if ( _obj->dtyp != DTYP_INVALID) {
-    switch (_obj->dtyp) {
+  if ( env->dtyp != DTYP_INVALID) {
+    switch (env->dtyp) {
     case DTYP_MODE2_XA:
       return TRACK_FORMAT_XA;
     case DTYP_MODE1:
@@ -1120,8 +1124,8 @@ _cdio_get_track_format(void *env, track_t track_num)
     }
   }
     
-  /*if ( MTYP_AUDIO_CD == _obj->mtyp) return TRACK_FORMAT_AUDIO; */
-  return _obj->tocent[track_num-1].track_format;
+  /*if ( MTYP_AUDIO_CD == env->mtyp) return TRACK_FORMAT_AUDIO; */
+  return env->tocent[track_num-1].track_format;
 }
 
 /*!
@@ -1133,90 +1137,131 @@ _cdio_get_track_format(void *env, track_t track_num)
   FIXME: there's gotta be a better design for this and get_track_format?
 */
 static bool
-_cdio_get_track_green(void *env, track_t track_num) 
+_get_track_green_nrg(void *user_data, track_t track_num) 
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = user_data;
   
-  if (track_num > _obj->total_tracks || track_num == 0) 
+  if (track_num > env->gen.i_tracks || track_num == 0) 
     return false;
 
-  if ( MTYP_AUDIO_CD == _obj->mtyp) return false;
-  return _obj->tocent[track_num-1].track_green;
+  if ( MTYP_AUDIO_CD == env->mtyp) return false;
+  return env->tocent[track_num-1].track_green;
 }
 
-/*!  
-  Return the starting MSF (minutes/secs/frames) for the track number
-  track_num in obj.  Tracks numbers start at 1.
-  The "leadout" track is specified either by
-  using track_num LEADOUT_TRACK or the total tracks+1.
+/*! 
+  Check that a NRG file is valid. 
+
 */
-static bool
-_cdio_get_track_msf(void *env, track_t track_num, msf_t *msf)
+/* Later we'll probably do better. For now though, this gets us 
+   started for now.
+*/
+bool
+cdio_is_nrg(const char *psz_nrg) 
 {
-  _img_private_t *_obj = env;
+  unsigned int i;
+  
+  if (psz_nrg == NULL) return false;
 
-  if (NULL == msf) return 1;
-
-  if (track_num == CDIO_CDROM_LEADOUT_TRACK) track_num = _obj->total_tracks+1;
-
-  if (track_num <= _obj->total_tracks+1 && track_num != 0) {
-    *msf = _obj->tocent[track_num-1].start_msf;
-    return true;
-  } else 
-    return false;
+  i=strlen(psz_nrg)-strlen("nrg");
+  
+  if (i>0) {
+    if (psz_nrg[i]=='n' && psz_nrg[i+1]=='r' && psz_nrg[i+2]=='g') {
+      return true;
+    } 
+    else if (psz_nrg[i]=='N' && psz_nrg[i+1]=='R' && psz_nrg[i+2]=='G') {
+      return true;
+    }
+  }
+  return false;
 }
+
+/*!
+  Initialization routine. This is the only thing that doesn't
+  get called via a function pointer. In fact *we* are the
+  ones to set that up.
+ */
+CdIo *
+cdio_open_am_nrg (const char *psz_source_name, const char *psz_access_mode)
+{
+  if (psz_access_mode != NULL && strcmp(psz_access_mode, "image"))
+    cdio_warn ("there is only one access mode for nrg. Arg %s ignored",
+	       psz_access_mode);
+  return cdio_open_nrg(psz_source_name);
+}
+
 
 CdIo *
-cdio_open_nrg (const char *source_name)
+cdio_open_nrg (const char *psz_source)
 {
   CdIo *ret;
   _img_private_t *_data;
 
-  cdio_funcs _funcs = {
-    .eject_media        = cdio_generic_bogus_eject_media,
-    .free               = _cdio_nrg_destroy,
-    .get_arg            = _cdio_get_arg,
-    .get_devices        = cdio_get_devices_nrg,
-    .get_default_device = cdio_get_default_device_nrg,
-    .get_first_track_num= _cdio_get_first_track_num,
-    .get_num_tracks     = _cdio_get_num_tracks,
-    .get_track_format   = _cdio_get_track_format,
-    .get_track_green    = _cdio_get_track_green,
-    .get_track_lba      = NULL, /* Will use generic routine via msf */
-    .get_track_msf      = _cdio_get_track_msf,
-    .lseek              = _cdio_lseek,
-    .read               = _cdio_read,
-    .read_audio_sectors = _cdio_read_audio_sectors,
-    .read_mode1_sector  = _cdio_read_mode1_sector,
-    .read_mode1_sectors = _cdio_read_mode1_sectors,
-    .read_mode2_sector  = _cdio_read_mode2_sector,
-    .read_mode2_sectors = _cdio_read_mode2_sectors,
-    .set_arg            = _cdio_set_arg,
-    .stat_size          = _cdio_stat_size,
-  };
+  cdio_funcs _funcs;
 
-  _data                 = _cdio_malloc (sizeof (_img_private_t));
-  _data->gen.init       = false;
+  memset( &_funcs, 0, sizeof(_funcs) );
 
-  _data->total_tracks   = 0;
-  _data->mtyp           = 0; 
-  _data->dtyp           = DTYP_INVALID; 
-  _data->first_track_num= 1;
-  _data->is_dao         = false; 
-  _data->is_cues        = false; /* FIXME: remove is_cues. */
+  _funcs.eject_media        = _eject_media_nrg;
+  _funcs.free               = _free_nrg;
+  _funcs.get_arg            = _get_arg_image;
+  _funcs.get_cdtext         = get_cdtext_generic;
+  _funcs.get_devices        = cdio_get_devices_nrg;
+  _funcs.get_default_device = cdio_get_default_device_nrg;
+  _funcs.get_discmode       = _get_discmode_image;
+  _funcs.get_drive_cap      = _get_drive_cap_image;
+  _funcs.get_first_track_num= _get_first_track_num_image;
+  _funcs.get_hwinfo         = get_hwinfo_nrg;
+  _funcs.get_mcn            = _get_mcn_image;
+  _funcs.get_num_tracks     = _get_num_tracks_image;
+  _funcs.get_track_format   = get_track_format_nrg;
+  _funcs.get_track_green    = _get_track_green_nrg;
+  _funcs.get_track_lba      = NULL; /* Will use generic routine via msf */
+  _funcs.get_track_msf      = _get_track_msf_image;
+  _funcs.lseek              = _lseek_nrg;
+  _funcs.read               = _read_nrg;
+  _funcs.read_audio_sectors = _read_audio_sectors_nrg;
+  _funcs.read_mode1_sector  = _read_mode1_sector_nrg;
+  _funcs.read_mode1_sectors = _read_mode1_sectors_nrg;
+  _funcs.read_mode2_sector  = _read_mode2_sector_nrg;
+  _funcs.read_mode2_sectors = _read_mode2_sectors_nrg;
+  _funcs.set_arg            = _set_arg_image;
+  _funcs.stat_size          = _stat_size_nrg;
 
+  _data                   = _cdio_malloc (sizeof (_img_private_t));
+  _data->gen.init         = false;
 
-  _cdio_set_arg(_data, "source", (NULL == source_name) 
-		? DEFAULT_CDIO_DEVICE: source_name);
+  _data->gen.i_tracks     = 0;
+  _data->mtyp             = 0; 
+  _data->dtyp             = DTYP_INVALID; 
+  _data->gen.i_first_track= 1;
+  _data->is_dao           = false; 
+  _data->is_cues          = false; /* FIXME: remove is_cues. */
 
-  ret = cdio_new (_data, &_funcs);
-  if (ret == NULL) return NULL;
+  ret = cdio_new ((void *)_data, &_funcs);
 
-  if (_cdio_init(_data))
+  if (ret == NULL) {
+    free(_data);
+    return NULL;
+  }
+
+  _set_arg_image(_data, "source", (NULL == psz_source) 
+	       ? DEFAULT_CDIO_DEVICE: psz_source);
+
+  _data->psz_cue_name   = strdup(_get_arg_image(_data, "source"));
+
+  if (!cdio_is_nrg(_data->psz_cue_name)) {
+    cdio_debug ("source name %s is not recognized as a NRG image", 
+		_data->psz_cue_name);
+    _free_nrg(_data);
+    return NULL;
+  }
+
+  _set_arg_image (_data, "cue", _data->psz_cue_name);
+
+  if (_init_nrg(_data))
     return ret;
   else {
-    cdio_generic_stdio_free (_data);
-    free(_data);
+    _free_nrg(_data);
+    free(ret);
     return NULL;
   }
 

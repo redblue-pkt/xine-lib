@@ -1,5 +1,5 @@
 /*
-    $Id: cdio_private.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: cdio_private.h,v 1.3 2005/01/01 02:43:57 rockyb Exp $
 
     Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
@@ -29,6 +29,8 @@
 #endif
 
 #include <cdio/cdio.h>
+#include <cdio/cdtext.h>
+#include "scsi_mmc_private.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,6 +38,18 @@ extern "C" {
 
   /* Opaque type */
   typedef struct _CdioDataSource CdioDataSource;
+
+#ifdef __cplusplus
+}
+
+#endif /* __cplusplus */
+
+#include "generic.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 
   typedef struct {
     
@@ -55,6 +69,18 @@ extern "C" {
     */
     const char * (*get_arg) (void *env, const char key[]);
     
+    /*! 
+      Get cdtext information for a CdIo object.
+    
+      @param obj the CD object that may contain CD-TEXT information.
+      @return the CD-TEXT object or NULL if obj is NULL
+      or CD-TEXT information does not exist.
+    
+      If i_track is 0 or CDIO_CDROM_LEADOUT_TRACK the track returned
+      is the information assocated with the CD. 
+    */
+    const cdtext_t * (*get_cdtext) (void *env, track_t i_track);
+    
     /*!
       Return an array of device names. if CdIo is NULL (we haven't
       initialized a specific device driver), then find a suitable device 
@@ -69,18 +95,39 @@ extern "C" {
     */
     char * (*get_default_device)(void);
     
-    /*!  
-      Return the media catalog number MCN from the CD or NULL if
-      there is none or we don't have the ability to get it.
+    /*! 
+      Get disc mode associated with cd_obj.
     */
-    char * (*get_mcn) (void *env);
+    discmode_t (*get_discmode) (void *p_env);
 
+    /*!
+      Return the what kind of device we've got.
+      
+      See cd_types.h for a list of bitmasks for the drive type;
+    */
+    void (*get_drive_cap) (const void *env,
+			   cdio_drive_read_cap_t  *p_read_cap,
+			   cdio_drive_write_cap_t *p_write_cap,
+			   cdio_drive_misc_cap_t  *p_misc_cap);
     /*!
       Return the number of of the first track. 
       CDIO_INVALID_TRACK is returned on error.
     */
-    track_t (*get_first_track_num) (void *env);
+    track_t (*get_first_track_num) (void *p_env);
     
+    /*! 
+      Get the CD-ROM hardware info via a SCSI MMC INQUIRY command.
+      False is returned if we had an error getting the information.
+    */
+    bool (*get_hwinfo) ( const CdIo *p_cdio, 
+			 /* out*/ cdio_hwinfo_t *p_hw_info );
+
+    /*!  
+      Return the media catalog number MCN from the CD or NULL if
+      there is none or we don't have the ability to get it.
+    */
+    char * (*get_mcn) (const void *env);
+
     /*! 
       Return the number of tracks in the current medium.
       CDIO_INVALID_TRACK is returned on error.
@@ -153,14 +200,14 @@ extern "C" {
       from lsn.
       Returns 0 if no error. 
     */
-    int (*read_mode2_sectors) (void *env, void *buf, lsn_t lsn, 
+    int (*read_mode2_sectors) (void *p_env, void *p_buf, lsn_t lsn, 
 			       bool mode2_form2, unsigned int nblocks);
     
     /*!
       Reads a single mode1 sector from cd device into buf starting
       from lsn. Returns 0 if no error. 
     */
-    int (*read_mode1_sector) (void *env, void *buf, lsn_t lsn, 
+    int (*read_mode1_sector) (void *p_env, void *p_buf, lsn_t lsn, 
 			      bool mode1_form2);
     
     /*!
@@ -168,9 +215,29 @@ extern "C" {
       from lsn.
       Returns 0 if no error. 
     */
-    int (*read_mode1_sectors) (void *env, void *buf, lsn_t lsn, 
+    int (*read_mode1_sectors) (void *p_env, void *p_buf, lsn_t lsn, 
 			       bool mode1_form2, unsigned int nblocks);
     
+    bool (*read_toc) ( void *p_env ) ;
+
+    /*!
+      Run a SCSI MMC command. 
+      
+      cdio	        CD structure set by cdio_open().
+      i_timeout_ms      time in milliseconds we will wait for the command
+                        to complete. 
+      cdb_len           number of bytes in cdb (6, 10, or 12).
+      cdb	        CDB bytes. All values that are needed should be set on 
+                        input. 
+      b_return_data	TRUE if the command expects data to be returned in 
+                        the buffer
+      len	        Size of buffer
+      buf	        Buffer for data, both sending and receiving
+      
+      Returns 0 if command completed successfully.
+    */
+    scsi_mmc_run_cmd_fn_t run_scsi_mmc_cmd;
+
     /*!
       Set the arg "key" with "value" in the source device.
     */
@@ -180,35 +247,17 @@ extern "C" {
       Return the size of the CD in logical block address (LBA) units.
     */
     uint32_t (*stat_size) (void *env);
-    
+
   } cdio_funcs;
 
 
-  /* Implementation of CdIo type */
+  /*! Implementation of CdIo type */
   struct _CdIo {
-    driver_id_t driver_id; /* Particular driver opened. */
-    cdio_funcs op;         /* driver-specific routines handling implimentatin*/
-    void *env;       /* environment. Passed to routine above. */
+    driver_id_t driver_id; /**< Particular driver opened. */
+    cdio_funcs op;         /**< driver-specific routines handling
+			      implementation*/
+    void *env;             /**< environment. Passed to routine above. */
   };
-
-  /*!
-    Things common to private device structures. Even though not all
-    devices may have some of these fields, by listing common ones
-    we facilitate writing generic routines and even cut-and-paste
-    code.
-   */
-  typedef struct {
-    char *source_name;      /* Name used in open. */
-    bool  init;             /* True if structure has been initialized */
-    bool  toc_init;         /* True TOC read in */
-    int   ioctls_debugged;  /* for debugging */
-
-    /* Only one of the below is used. The first is for CD-ROM devices 
-       and the second for stream reading (bincue, nrg, toc, network).
-     */
-    int   fd;               /* File descriptor of device */
-    CdioDataSource *data_source;
-  } generic_img_private_t;
 
   /* This is used in drivers that must keep their own internal 
      position pointer for doing seeks. Stream-based drivers (like bincue,
@@ -221,7 +270,7 @@ extern "C" {
     lba_t   lba;              /* Current LBA */
   } internal_position_t;
   
-  CdIo * cdio_new (void *env, const cdio_funcs *funcs);
+  CdIo * cdio_new (generic_img_private_t *p_env, cdio_funcs *funcs);
 
   /* The below structure describes a specific CD Input driver  */
   typedef struct 
@@ -231,9 +280,11 @@ extern "C" {
     const char  *name;
     const char  *describe;
     bool (*have_driver) (void); 
-    CdIo *(*driver_open) (const char *source_name); 
+    CdIo *(*driver_open) (const char *psz_source_name); 
+    CdIo *(*driver_open_am) (const char *psz_source_name, 
+			     const char *psz_access_mode); 
     char *(*get_default_device) (void); 
-    bool (*is_device) (const char *source_name);
+    bool (*is_device) (const char *psz_source_name);
     char **(*get_devices) (void);
   } CdIo_driver_t;
 
@@ -255,63 +306,8 @@ extern "C" {
     Use cdio_free_device_list() to free this device_list.
   */
   void cdio_add_device_list(char **device_list[], const char *drive, 
-			    int *num_drives);
+			    unsigned int *i_drives);
 
-  /*!
-    Bogus eject media when there is no ejectable media, e.g. a disk image
-    We always return 2. Should we also free resources? 
-  */
-  int cdio_generic_bogus_eject_media (void *env);
-
-  /*!
-    Release and free resources associated with cd. 
-  */
-  void cdio_generic_free (void *env);
-
-  /*!
-    Initialize CD device.
-  */
-  bool cdio_generic_init (void *env);
-
-  /*!
-    Reads into buf the next size bytes.
-    Returns -1 on error. 
-    Is in fact libc's read().
-  */
-  off_t cdio_generic_lseek (void *env, off_t offset, int whence);
-
-  /*!
-    Reads into buf the next size bytes.
-    Returns -1 on error. 
-    Is in fact libc's read().
-  */
-  ssize_t cdio_generic_read (void *env, void *buf, size_t size);
-
-  /*!
-    Release and free resources associated with stream or disk image.
-  */
-  void cdio_generic_stdio_free (void *env);
-
-  /*!  
-    Return true if source_name could be a device containing a CD-ROM on
-    Win32
-  */
-  bool cdio_is_device_win32(const char *source_name);
-
-  
-  /*!  
-    Return true if source_name could be a device containing a CD-ROM on
-    most Unix servers with block and character devices.
-  */
-  bool cdio_is_device_generic(const char *source_name);
-
-  
-  /*!  
-    Like above, but don't give a warning device doesn't exist.
-  */
-  bool cdio_is_device_quiet_generic(const char *source_name);
-
-  
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -128,6 +128,10 @@ xine is using
   VCD interpretation code in the extended VCD plugin from VCDImager
    by Herbert Valerio Riedel http://vcdimager.org 
 
+  CD I/O routines for the above from GNU libcdio
+   by Rocky Bernstein and Herbert Valerio Riedel
+   http://www.gnu.org/software/libcdio
+
   Goom - visual effects generator 
     Written by Jean-Christophe Hoelt et. al.
     http://ios.free.fr/?page=projet&quoi=1

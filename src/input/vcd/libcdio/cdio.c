@@ -1,5 +1,5 @@
 /*
-    $Id: cdio.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: cdio.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $
 
     Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
@@ -26,7 +26,9 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <errno.h>
 #include <string.h>
 
@@ -37,13 +39,31 @@
 #include <cdio/logging.h>
 #include "cdio_private.h"
 
-static const char _rcsid[] = "$Id: cdio.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: cdio.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $";
 
 
 const char *track_format2str[6] = 
   {
     "audio", "CD-i", "XA", "data", "PSX", "error"
   };
+
+/* Must match discmode enumeration */
+const char *discmode2str[] = {
+  "CD-DA", 
+  "CD-DATA Form 1", 
+  "CD DATA Form 2", 
+  "CD-ROM Mixed",
+  "DVD-ROM", 
+  "DVD-RAM", 
+  "DVD-R", 
+  "DVD-RW", 
+  "DVD+R",
+  "DVD+RW", 
+  "Unknown/unclassified DVD", 
+  "No information",
+  "Error in getting information"
+};
+
 
 /* The below array gives of the drivers that are currently available for 
    on a particular host. */
@@ -58,12 +78,27 @@ CdIo_driver_t CdIo_driver[CDIO_MAX_DRIVER] = { {0} };
 #define CDIO_DRIVER_UNINIT -1
 int CdIo_last_driver = CDIO_DRIVER_UNINIT;
 
+#ifdef HAVE_BSDI_CDROM
+const driver_id_t cdio_os_driver = DRIVER_BSDI;
+#elif  HAVE_FREEBSD_CDROM
+const driver_id_t cdio_os_driver = DRIVER_FREEBSD;
+#elif  HAVE_LINUX_CDROM
+const driver_id_t cdio_os_driver = DRIVER_LINUX;
+#elif  HAVE_DARWIN_CDROM
+const driver_id_t cdio_os_driver = DRIVER_OSX;
+#elif  HAVE_DARWIN_SOLARIS
+const driver_id_t cdio_os_driver = DRIVER_SOLARIS;
+#elif  HAVE_DARWIN_WIN32
+const driver_id_t cdio_os_driver = DRIVER_WIN32;
+#else 
+const driver_id_t cdio_os_driver = DRIVER_UNKNOWN;
+#endif
+
 static bool 
 cdio_have_false(void)
 {
   return false;
 }
-
 
 /* The below array gives all drivers that can possibly appear.
    on a particular host. */
@@ -77,6 +112,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    NULL,
    NULL,
    NULL,
+   NULL,
    NULL
   },
 
@@ -86,6 +122,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    "BSDI ATAPI and SCSI driver",
    &cdio_have_bsdi,
    &cdio_open_bsdi,
+   &cdio_open_am_bsdi,
    &cdio_get_default_device_bsdi,
    &cdio_is_device_generic,
    &cdio_get_devices_bsdi
@@ -97,6 +134,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    "FreeBSD driver",
    &cdio_have_freebsd,
    &cdio_open_freebsd,
+   &cdio_open_am_freebsd,
    &cdio_get_default_device_freebsd,
    &cdio_is_device_generic,
    NULL
@@ -108,6 +146,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    "GNU/Linux ioctl and MMC driver",
    &cdio_have_linux,
    &cdio_open_linux,
+   &cdio_open_am_linux,
    &cdio_get_default_device_linux,
    &cdio_is_device_generic,
    &cdio_get_devices_linux
@@ -119,6 +158,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    "Solaris ATAPI and SCSI driver",
    &cdio_have_solaris,
    &cdio_open_solaris,
+   &cdio_open_am_solaris,
    &cdio_get_default_device_solaris,
    &cdio_is_device_generic,
    &cdio_get_devices_solaris
@@ -130,6 +170,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    "Apple Darwin OS X driver",
    &cdio_have_osx,
    &cdio_open_osx,
+   &cdio_open_am_osx,
    &cdio_get_default_device_osx,
    &cdio_is_device_generic,
    &cdio_get_devices_osx
@@ -138,12 +179,25 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
   {DRIVER_WIN32, 
    CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
    "WIN32",
-   "Windows 32-bit ASPI and winNT/2K/XP ioctl driver",
+   "MS Windows ASPI and ioctl driver",
    &cdio_have_win32,
    &cdio_open_win32,
+   &cdio_open_am_win32,
    &cdio_get_default_device_win32,
    &cdio_is_device_win32,
    &cdio_get_devices_win32
+  },
+
+  {DRIVER_CDRDAO,
+   CDIO_SRC_IS_DISK_IMAGE_MASK,
+   "CDRDAO",
+   "cdrdao (TOC) disk image driver",
+   &cdio_have_cdrdao,
+   &cdio_open_cdrdao,
+   &cdio_open_am_cdrdao,
+   &cdio_get_default_device_cdrdao,
+   NULL,
+   &cdio_get_devices_cdrdao
   },
 
   {DRIVER_BINCUE,
@@ -152,6 +206,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    "bin/cuesheet disk image driver",
    &cdio_have_bincue,
    &cdio_open_bincue,
+   &cdio_open_am_bincue,
    &cdio_get_default_device_bincue,
    NULL,
    &cdio_get_devices_bincue
@@ -163,6 +218,7 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
    "Nero NRG disk image driver",
    &cdio_have_nrg,
    &cdio_open_nrg,
+   &cdio_open_am_nrg,
    &cdio_get_default_device_nrg,
    NULL,
    &cdio_get_devices_nrg
@@ -171,13 +227,15 @@ CdIo_driver_t CdIo_all_drivers[CDIO_MAX_DRIVER+1] = {
 };
 
 static CdIo *
-scan_for_driver(driver_id_t start, driver_id_t end, const char *source_name) 
+scan_for_driver(driver_id_t start, driver_id_t end, 
+                const char *psz_source, const char *access_mode) 
 {
   driver_id_t driver_id;
   
   for (driver_id=start; driver_id<=end; driver_id++) {
     if ((*CdIo_all_drivers[driver_id].have_driver)()) {
-      CdIo *ret=(*CdIo_all_drivers[driver_id].driver_open)(source_name);
+      CdIo *ret=
+        (*CdIo_all_drivers[driver_id].driver_open_am)(psz_source, access_mode);
       if (ret != NULL) {
         ret->driver_id = driver_id;
         return ret;
@@ -246,6 +304,25 @@ cdio_get_arg (const CdIo *obj, const char key[])
   }
 }
 
+/*! 
+  Get cdtext information for a CdIo object .
+  
+  @param obj the CD object that may contain CD-TEXT information.
+  @return the CD-TEXT object or NULL if obj is NULL
+  or CD-TEXT information does not exist.
+*/
+const cdtext_t *
+cdio_get_cdtext (CdIo *obj, track_t i_track)
+{
+  if (obj == NULL) return NULL;
+  
+  if (obj->op.get_cdtext) {
+    return obj->op.get_cdtext (obj->env, i_track);
+  } else {
+    return NULL;
+  }
+}
+
 /*!
   Return a string containing the default CD device if none is specified.
   if CdIo is NULL (we haven't initialized a specific device driver), 
@@ -285,22 +362,31 @@ cdio_get_default_device (const CdIo *obj)
 char **
 cdio_get_devices (driver_id_t driver_id)
 {
-  CdIo *cdio;
+  /* Probably could get away with &driver_id below. */
+  driver_id_t driver_id_temp = driver_id; 
+  return cdio_get_devices_ret (&driver_id_temp);
+}
 
-  switch (driver_id) {
+char **
+cdio_get_devices_ret (/*in/out*/ driver_id_t *p_driver_id)
+{
+  CdIo *p_cdio;
+
+  switch (*p_driver_id) {
     /* FIXME: spit out unknown to give image drivers as well.  */
   case DRIVER_UNKNOWN:
   case DRIVER_DEVICE:
-    cdio = scan_for_driver(DRIVER_UNKNOWN, CDIO_MAX_DRIVER, NULL);
+    p_cdio = scan_for_driver(DRIVER_UNKNOWN, CDIO_MAX_DRIVER, NULL, NULL);
+    *p_driver_id = cdio_get_driver_id(p_cdio);
     break;
   default:
-    return (*CdIo_all_drivers[driver_id].get_devices)();
+    return (*CdIo_all_drivers[*p_driver_id].get_devices)();
   }
   
-  if (cdio == NULL) return NULL;
-  if (cdio->op.get_devices) {
-    char **devices = cdio->op.get_devices ();
-    cdio_destroy(cdio);
+  if (p_cdio == NULL) return NULL;
+  if (p_cdio->op.get_devices) {
+    char **devices = p_cdio->op.get_devices ();
+    cdio_destroy(p_cdio);
     return devices;
   } else {
     return NULL;
@@ -324,14 +410,26 @@ cdio_get_devices (driver_id_t driver_id)
   the value is NULL. This also means nothing was found.
 */
 char **
-cdio_get_devices_with_cap (char* search_devices[], 
+cdio_get_devices_with_cap (/*out*/ char* search_devices[], 
                            cdio_fs_anal_t capabilities, bool any)
+{
+  driver_id_t p_driver_id;
+  return cdio_get_devices_with_cap_ret (search_devices, capabilities, any,
+                                        &p_driver_id);
+}
+
+char **
+cdio_get_devices_with_cap_ret (/*out*/ char* search_devices[], 
+                               cdio_fs_anal_t capabilities, bool any,
+                               /*out*/ driver_id_t *p_driver_id)
 {
   char **drives=search_devices;
   char **drives_ret=NULL;
-  int num_drives=0;
+  unsigned int i_drives=0;
 
-  if (NULL == drives) drives=cdio_get_devices(DRIVER_DEVICE);
+  *p_driver_id = DRIVER_DEVICE;
+
+  if (NULL == drives) drives=cdio_get_devices_ret(p_driver_id);
   if (NULL == drives) return NULL;
 
   if (capabilities == CDIO_FS_MATCH_ALL) {
@@ -339,7 +437,7 @@ cdio_get_devices_with_cap (char* search_devices[],
     char **d = drives;
     
     for( ; *d != NULL; d++ ) {
-      cdio_add_device_list(&drives_ret, *d, &num_drives);
+      cdio_add_device_list(&drives_ret, *d, &i_drives);
     }
   } else {
     cdio_fs_anal_t got_fs=0;
@@ -349,7 +447,7 @@ cdio_get_devices_with_cap (char* search_devices[],
     need_fs_ext = capabilities & ~CDIO_FS_MASK;
       
     for( ;  *d != NULL; d++ ) {
-      CdIo *cdio = cdio_open(*d, DRIVER_UNKNOWN);
+      CdIo *cdio = cdio_open(*d, *p_driver_id);
       
       if (NULL != cdio) {
         track_t first_track = cdio_get_first_track_num(cdio);
@@ -363,18 +461,83 @@ cdio_get_devices_with_cap (char* search_devices[],
               ? (got_fs & need_fs_ext)  != 0
               : (got_fs | ~need_fs_ext) == -1;
             if (doit) 
-              cdio_add_device_list(&drives_ret, *drives, &num_drives);
+              cdio_add_device_list(&drives_ret, *d, &i_drives);
           }
              
         cdio_destroy(cdio);
       }
     }
   }
-  cdio_add_device_list(&drives_ret, NULL, &num_drives);
+  cdio_add_device_list(&drives_ret, NULL, &i_drives);
   cdio_free_device_list(drives);
   free(drives);
   return drives_ret;
 }
+
+/*! 
+  Get medium associated with cd_obj.
+*/
+discmode_t
+cdio_get_discmode (CdIo *cd_obj)
+{
+  if (cd_obj == NULL) return CDIO_DISC_MODE_ERROR;
+  
+  if (cd_obj->op.get_discmode) {
+    return cd_obj->op.get_discmode (cd_obj->env);
+  } else {
+    return CDIO_DISC_MODE_NO_INFO;
+  }
+}
+
+/*!
+  Return the the kind of drive capabilities of device.
+
+  Note: string is malloc'd so caller should free() then returned
+  string when done with it.
+
+ */
+void
+cdio_get_drive_cap (const CdIo *p_cdio, 
+                    cdio_drive_read_cap_t  *p_read_cap,
+                    cdio_drive_write_cap_t *p_write_cap,
+                    cdio_drive_misc_cap_t  *p_misc_cap)
+{
+  /* This seems like a safe bet. */
+  *p_read_cap  = CDIO_DRIVE_CAP_UNKNOWN;
+  *p_write_cap = CDIO_DRIVE_CAP_UNKNOWN;
+  *p_misc_cap  = CDIO_DRIVE_CAP_UNKNOWN;
+  
+  if (p_cdio && p_cdio->op.get_drive_cap) {
+    p_cdio->op.get_drive_cap(p_cdio->env, p_read_cap, p_write_cap, p_misc_cap);
+  }
+}
+
+/*!
+  Return the the kind of drive capabilities of device.
+
+  Note: string is malloc'd so caller should free() then returned
+  string when done with it.
+
+ */
+void
+cdio_get_drive_cap_dev (const char *device,
+			cdio_drive_read_cap_t  *p_read_cap,
+			cdio_drive_write_cap_t *p_write_cap,
+			cdio_drive_misc_cap_t  *p_misc_cap)
+{
+  /* This seems like a safe bet. */
+  CdIo *cdio=scan_for_driver(CDIO_MIN_DRIVER, CDIO_MAX_DRIVER, 
+                             device, NULL);
+  if (cdio) {
+    cdio_get_drive_cap(cdio, p_read_cap, p_write_cap, p_misc_cap);
+    cdio_destroy(cdio);
+  } else {
+    *p_read_cap  = CDIO_DRIVE_CAP_UNKNOWN;
+    *p_write_cap = CDIO_DRIVE_CAP_UNKNOWN;
+    *p_misc_cap  = CDIO_DRIVE_CAP_UNKNOWN;
+  }
+}
+
 
 /*!
   Return a string containing the name of the driver in use.
@@ -384,21 +547,34 @@ cdio_get_devices_with_cap (char* search_devices[],
 const char *
 cdio_get_driver_name (const CdIo *cdio) 
 {
+  if (NULL==cdio) return NULL;
   return CdIo_all_drivers[cdio->driver_id].name;
+}
+
+  /*!
+    Return the driver id. 
+    if CdIo is NULL (we haven't initialized a specific device driver), 
+    then return DRIVER_UNKNOWN.
+  */
+driver_id_t
+cdio_get_driver_id (const CdIo *cdio) 
+{
+  if (NULL==cdio) return DRIVER_UNKNOWN;
+  return cdio->driver_id;
 }
 
 
 /*!
-  Return the number of of the first track. 
+  Return the number of the first track. 
   CDIO_INVALID_TRACK is returned on error.
 */
 track_t
-cdio_get_first_track_num (const CdIo *cdio)
+cdio_get_first_track_num (const CdIo *p_cdio)
 {
-  cdio_assert (cdio != NULL);
+  if (NULL == p_cdio) return CDIO_INVALID_TRACK;
 
-  if (cdio->op.get_first_track_num) {
-    return cdio->op.get_first_track_num (cdio->env);
+  if (p_cdio->op.get_first_track_num) {
+    return p_cdio->op.get_first_track_num (p_cdio->env);
   } else {
     return CDIO_INVALID_TRACK;
   }
@@ -409,11 +585,29 @@ cdio_get_first_track_num (const CdIo *cdio)
   if CdIo is NULL (we haven't initialized a specific device driver), 
   then return NULL.
 */
-char *
-cdio_get_mcn (const CdIo *cdio) 
+bool
+cdio_get_hwinfo (const CdIo *p_cdio, cdio_hwinfo_t *hw_info) 
 {
-  if (cdio->op.get_mcn) {
-    return cdio->op.get_mcn (cdio->env);
+  if (!p_cdio) return false;
+  if (p_cdio->op.get_hwinfo) {
+    return p_cdio->op.get_hwinfo (p_cdio, hw_info);
+  } else {
+    /* Perhaps driver forgot to initialize.  We are no worse off Using
+       scsi_mmc than returning false here. */
+    return scsi_mmc_get_hwinfo(p_cdio, hw_info);
+  }
+}
+
+/*!
+  Return a string containing the name of the driver in use.
+  if CdIo is NULL (we haven't initialized a specific device driver), 
+  then return NULL.
+*/
+char *
+cdio_get_mcn (const CdIo *p_cdio) 
+{
+  if (p_cdio->op.get_mcn) {
+    return p_cdio->op.get_mcn (p_cdio->env);
   } else {
     return NULL;
   }
@@ -424,12 +618,12 @@ cdio_get_mcn (const CdIo *cdio)
   CDIO_INVALID_TRACK is returned on error.
 */
 track_t
-cdio_get_num_tracks (const CdIo *cdio)
+cdio_get_num_tracks (const CdIo *p_cdio)
 {
-  if (cdio == NULL) return CDIO_INVALID_TRACK;
+  if (p_cdio == NULL) return CDIO_INVALID_TRACK;
 
-  if (cdio->op.get_num_tracks) {
-    return cdio->op.get_num_tracks (cdio->env);
+  if (p_cdio->op.get_num_tracks) {
+    return p_cdio->op.get_num_tracks (p_cdio->env);
   } else {
     return CDIO_INVALID_TRACK;
   }
@@ -439,12 +633,12 @@ cdio_get_num_tracks (const CdIo *cdio)
   Get format of track. 
 */
 track_format_t
-cdio_get_track_format(const CdIo *cdio, track_t track_num)
+cdio_get_track_format(const CdIo *p_cdio, track_t i_track)
 {
-  cdio_assert (cdio != NULL);
+  cdio_assert (p_cdio != NULL);
 
-  if (cdio->op.get_track_format) {
-    return cdio->op.get_track_format (cdio->env, track_num);
+  if (p_cdio->op.get_track_format) {
+    return p_cdio->op.get_track_format (p_cdio->env, i_track);
   } else {
     return TRACK_FORMAT_ERROR;
   }
@@ -562,11 +756,25 @@ cdio_have_driver(driver_id_t driver_id)
   return (*CdIo_all_drivers[driver_id].have_driver)();
 }
 
+/*!  
+  Return the Joliet level recognized for p_cdio.
+*/
+uint8_t 
+cdio_get_joliet_level(const CdIo *p_cdio)
+{
+  if (!p_cdio) return 0;
+  {
+    const generic_img_private_t *p_env 
+      = (generic_img_private_t *) (p_cdio->env);
+    return p_env->i_joliet_level;
+  }
+}
+
 bool
-cdio_is_device(const char *source_name, driver_id_t driver_id)
+cdio_is_device(const char *psz_source, driver_id_t driver_id)
 {
   if (CdIo_all_drivers[driver_id].is_device == NULL) return false;
-  return (*CdIo_all_drivers[driver_id].is_device)(source_name);
+  return (*CdIo_all_drivers[driver_id].is_device)(psz_source);
 }
 
 
@@ -599,16 +807,19 @@ cdio_init(void)
 }
 
 CdIo *
-cdio_new (void *env, const cdio_funcs *funcs)
+cdio_new (generic_img_private_t *p_env, cdio_funcs *p_funcs)
 {
-  CdIo *new_cdio;
+  CdIo *p_new_cdio = _cdio_malloc (sizeof (CdIo));
 
-  new_cdio = _cdio_malloc (sizeof (CdIo));
-
-  new_cdio->env = env;
-  new_cdio->op = *funcs;
-
-  return new_cdio;
+  if (NULL == p_new_cdio) return NULL;
+  
+  p_new_cdio->env = p_env;      /* This is the private "environment" that
+                                   driver-dependent routines use. */
+  p_new_cdio->op  = *p_funcs;
+  p_env->cdio     = p_new_cdio; /* A way for the driver-dependent routines 
+                                   to access the higher-level general cdio 
+                                   object. */
+  return p_new_cdio;
 }
 
 /*!
@@ -646,35 +857,44 @@ cdio_lseek (const CdIo *cdio, off_t offset, int whence)
   Similar to (if not the same as) libc's read()
 */
 ssize_t
-cdio_read (const CdIo *cdio, void *buf, size_t size)
+cdio_read (const CdIo *p_cdio, void *buf, size_t size)
 {
-  if (cdio == NULL) return -1;
+  if (p_cdio == NULL) return -1;
   
-  if (cdio->op.read)
-    return cdio->op.read (cdio->env, buf, size);
+  if (p_cdio->op.read)
+    return p_cdio->op.read (p_cdio->env, buf, size);
   return -1;
 }
 
+/*!
+  Reads an audio sector from cd device into data starting
+  from lsn. Returns 0 if no error. 
+*/
 int
-cdio_read_audio_sector (const CdIo *cdio, void *buf, lsn_t lsn) 
+cdio_read_audio_sector (const CdIo *p_cdio, void *buf, lsn_t lsn) 
 {
-  cdio_assert (cdio != NULL);
-  cdio_assert (buf != NULL);
 
-  if  (cdio->op.read_audio_sectors != NULL)
-    return cdio->op.read_audio_sectors (cdio->env, buf, lsn, 1);
+  if (NULL == p_cdio || NULL == buf || CDIO_INVALID_LSN == lsn )
+    return 0;
+
+  if  (p_cdio->op.read_audio_sectors != NULL)
+    return p_cdio->op.read_audio_sectors (p_cdio->env, buf, lsn, 1);
   return -1;
 }
 
+/*!
+  Reads audio sectors from cd device into data starting
+  from lsn. Returns 0 if no error. 
+*/
 int
-cdio_read_audio_sectors (const CdIo *cdio, void *buf, lsn_t lsn,
+cdio_read_audio_sectors (const CdIo *p_cdio, void *buf, lsn_t lsn,
                          unsigned int nblocks) 
 {
-  cdio_assert (cdio != NULL);
-  cdio_assert (buf != NULL);
+  if ( NULL == p_cdio || NULL == buf || CDIO_INVALID_LSN == lsn )
+    return 0;
 
-  if  (cdio->op.read_audio_sectors != NULL)
-    return cdio->op.read_audio_sectors (cdio->env, buf, lsn, nblocks);
+  if  (p_cdio->op.read_audio_sectors != NULL)
+    return p_cdio->op.read_audio_sectors (p_cdio->env, buf, lsn, nblocks);
   return -1;
 }
 
@@ -687,20 +907,21 @@ cdio_read_audio_sectors (const CdIo *cdio, void *buf, lsn_t lsn,
    into data starting from lsn. Returns 0 if no error. 
  */
 int
-cdio_read_mode1_sector (const CdIo *cdio, void *data, lsn_t lsn, bool b_form2)
+cdio_read_mode1_sector (const CdIo *p_cdio, void *data, lsn_t lsn, 
+                        bool b_form2)
 {
   uint32_t size = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE ;
-  char buf[M2RAW_SECTOR_SIZE] = { 0, };
   
-  cdio_assert (cdio != NULL);
-  cdio_assert (data != NULL);
+  if (NULL == p_cdio || NULL == data || CDIO_INVALID_LSN == lsn )
+    return 0;
 
-  if (cdio->op.read_mode1_sector && cdio->op.read_mode1_sector) {
-    return cdio->op.read_mode1_sector(cdio->env, data, lsn, b_form2);
-  } else if (cdio->op.lseek && cdio->op.read) {
-    if (0 > cdio_lseek(cdio, CDIO_CD_FRAMESIZE*lsn, SEEK_SET))
+  if (p_cdio->op.read_mode1_sector) {
+    return p_cdio->op.read_mode1_sector(p_cdio->env, data, lsn, b_form2);
+  } else if (p_cdio->op.lseek && p_cdio->op.read) {
+    char buf[CDIO_CD_FRAMESIZE] = { 0, };
+    if (0 > cdio_lseek(p_cdio, CDIO_CD_FRAMESIZE*lsn, SEEK_SET))
       return -1;
-    if (0 > cdio_read(cdio, buf, CDIO_CD_FRAMESIZE))
+    if (0 > cdio_read(p_cdio, buf, CDIO_CD_FRAMESIZE))
       return -1;
     memcpy (data, buf, size);
     return 0;
@@ -714,8 +935,10 @@ int
 cdio_read_mode1_sectors (const CdIo *cdio, void *buf, lsn_t lsn, 
                          bool b_form2,  unsigned int num_sectors)
 {
-  cdio_assert (cdio != NULL);
-  cdio_assert (buf != NULL);
+
+  if (NULL == cdio || NULL == buf || CDIO_INVALID_LSN == lsn )
+    return 0;
+
   cdio_assert (cdio->op.read_mode1_sectors != NULL);
   
   return cdio->op.read_mode1_sectors (cdio->env, buf, lsn, b_form2, 
@@ -730,8 +953,9 @@ int
 cdio_read_mode2_sector (const CdIo *cdio, void *buf, lsn_t lsn, 
                         bool b_form2)
 {
-  cdio_assert (cdio != NULL);
-  cdio_assert (buf != NULL);
+  if (NULL == cdio || NULL == buf || CDIO_INVALID_LSN == lsn )
+    return 0;
+
   cdio_assert (cdio->op.read_mode2_sector != NULL 
 	      || cdio->op.read_mode2_sectors != NULL);
 
@@ -748,8 +972,10 @@ int
 cdio_read_mode2_sectors (const CdIo *cdio, void *buf, lsn_t lsn, 
                          bool b_form2, unsigned int num_sectors)
 {
-  cdio_assert (cdio != NULL);
-  cdio_assert (buf != NULL);
+
+  if (NULL == cdio || NULL == buf || CDIO_INVALID_LSN == lsn )
+    return 0;
+
   cdio_assert (cdio->op.read_mode2_sectors != NULL);
   
   return cdio->op.read_mode2_sectors (cdio->env, buf, lsn,
@@ -787,58 +1013,42 @@ cdio_set_arg (CdIo *cdio, const char key[], const char value[])
 CdIo *
 cdio_open (const char *orig_source_name, driver_id_t driver_id)
 {
-  char *source_name;
+  return cdio_open_am(orig_source_name, driver_id, NULL);
+}
+
+/*! Sets up to read from place specified by source_name and
+  driver_id. This should be called before using any other routine,
+  except cdio_init. This will call cdio_init, if that hasn't been
+  done previously.
+  
+  NULL is returned on error.
+*/
+CdIo *
+cdio_open_am (const char *psz_orig_source, driver_id_t driver_id,
+              const char *psz_access_mode)
+{
+  char *psz_source;
   
   if (CdIo_last_driver == -1) cdio_init();
 
-  if (NULL == orig_source_name || strlen(orig_source_name)==0) 
-    source_name = cdio_get_default_device(NULL);
+  if (NULL == psz_orig_source || strlen(psz_orig_source)==0) 
+    psz_source = cdio_get_default_device(NULL);
   else 
-    source_name = strdup(orig_source_name);
+    psz_source = strdup(psz_orig_source);
   
- retry:
   switch (driver_id) {
   case DRIVER_UNKNOWN: 
     {
       CdIo *cdio=scan_for_driver(CDIO_MIN_DRIVER, CDIO_MAX_DRIVER, 
-                                 source_name);
-      if (cdio != NULL && cdio_is_device(source_name, cdio->driver_id)) {
-        driver_id = cdio->driver_id;
-      } else {
-        struct stat buf;
-        if (0 != stat(source_name, &buf)) {
-          return NULL;
-        }
-        if (S_ISREG(buf.st_mode)) {
-        /* FIXME: check to see if is a text file. If so, then 
-           set SOURCE_CUE. */
-          int i=strlen(source_name)-strlen("bin");
-          if (i > 0
-              && ( (source_name)[i]   =='n' || (source_name)[i]   =='N' )
-              && ( (source_name)[i+1] =='r' || (source_name)[i+1] =='R' )
-              && ( (source_name)[i+2] =='g' || (source_name)[i+2] =='G' ) )
-            driver_id = DRIVER_NRG;
-          else if (i > 0
-                   && ( (source_name)[i]   =='c' || (source_name)[i]   =='C')
-                   && ( (source_name)[i+1] =='u' || (source_name)[i+1] =='U')
-                   && ( (source_name)[i+2] =='e' || (source_name)[i+2] =='E') )
-            driver_id = DRIVER_BINCUE;
-          else
-            driver_id = DRIVER_BINCUE;
-        } else {
-          cdio_destroy(cdio);
-          return NULL;
-        }
-        
-      }
-      cdio_destroy(cdio);
-      goto retry;
+                                 psz_source, psz_access_mode);
+      free(psz_source);
+      return cdio;
     }
   case DRIVER_DEVICE: 
     {  
       /* Scan for a driver. */
-      CdIo *ret = cdio_open_cd(source_name);
-      free(source_name);
+      CdIo *ret = cdio_open_am_cd(psz_source, psz_access_mode);
+      free(psz_source);
       return ret;
     }
     break;
@@ -850,19 +1060,42 @@ cdio_open (const char *orig_source_name, driver_id_t driver_id)
   case DRIVER_OSX:
   case DRIVER_NRG:
   case DRIVER_BINCUE:
+  case DRIVER_CDRDAO:
     if ((*CdIo_all_drivers[driver_id].have_driver)()) {
-      CdIo *ret = (*CdIo_all_drivers[driver_id].driver_open)(source_name);
+      CdIo *ret = 
+        (*CdIo_all_drivers[driver_id].driver_open_am)(psz_source, 
+                                                      psz_access_mode);
       if (ret) ret->driver_id = driver_id;
-      free(source_name);
+      free(psz_source);
       return ret;
     }
   }
 
-  free(source_name);
+  free(psz_source);
   return NULL;
 }
 
 
+/*! 
+  Set up CD-ROM for reading. The device_name is
+  the some sort of device name.
+  
+  @return the cdio object for subsequent operations. 
+  NULL on error or there is no driver for a some sort of hardware CD-ROM.
+*/
+CdIo *
+cdio_open_cd (const char *psz_source)
+{
+  return cdio_open_am_cd(psz_source, NULL);
+}
+
+/*! 
+  Set up CD-ROM for reading. The device_name is
+  the some sort of device name.
+  
+  @return the cdio object for subsequent operations. 
+  NULL on error or there is no driver for a some sort of hardware CD-ROM.
+*/
 /* In the future we'll have more complicated code to allow selection
    of an I/O routine as well as code to find an appropriate default
    routine among the "registered" routines. Possibly classes too
@@ -872,13 +1105,13 @@ cdio_open (const char *orig_source_name, driver_id_t driver_id)
    For now though, we'll start more simply...
 */
 CdIo *
-cdio_open_cd (const char *source_name)
+cdio_open_am_cd (const char *psz_source, const char *psz_access_mode)
 {
   if (CdIo_last_driver == -1) cdio_init();
 
   /* Scan for a driver. */
   return scan_for_driver(CDIO_MIN_DEVICE_DRIVER, CDIO_MAX_DEVICE_DRIVER, 
-                         source_name);
+                         psz_source, psz_access_mode);
 }
 
 

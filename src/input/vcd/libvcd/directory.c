@@ -1,5 +1,5 @@
 /*
-    $Id: directory.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: directory.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -26,16 +26,16 @@
 #include <string.h>
 
 /* Public headers */
+#include <cdio/bytesex.h>
 #include <cdio/iso9660.h>
 #include <libvcd/logging.h>
 
 /* Private headers */
 #include "vcd_assert.h"
-#include "bytesex.h"
 #include "directory.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: directory.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: directory.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
 
 /* CD-ROM XA */
 

@@ -1,7 +1,7 @@
 /*
-    $Id: files.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: files.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
 
-    Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
+    Copyright (C) 2000, 2004 Herbert Valerio Riedel <hvr@gnu.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 #include <math.h>
 
 #include <cdio/cdio.h>
+#include <cdio/bytesex.h>
 #include <cdio/util.h>
 
 /* Public headers */
@@ -40,13 +41,12 @@
 
 /* Private headers */
 #include "vcd_assert.h"
-#include "bytesex.h"
 #include "mpeg_stream.h"
 #include "obj.h"
 #include "pbc.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: files.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: files.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
 
 inline static bool
 _pal_p (const struct vcd_mpeg_stream_vid_info *_info)
@@ -136,15 +136,15 @@ _derive_aud_type (const struct vcd_mpeg_stream_info *_info, bool svcd)
 void
 set_entries_vcd (VcdObj *obj, void *buf)
 {
-  VcdListNode *node = NULL;
+  CdioListNode *node = NULL;
   int idx = 0;
   int track_idx = 0;
-  EntriesVcd entries_vcd;
+  EntriesVcd_t entries_vcd;
 
-  vcd_assert (sizeof(EntriesVcd) == 2048);
+  vcd_assert (sizeof(EntriesVcd_t) == 2048);
 
-  vcd_assert (_vcd_list_length (obj->mpeg_track_list) <= MAX_ENTRIES);
-  vcd_assert (_vcd_list_length (obj->mpeg_track_list) > 0);
+  vcd_assert (_cdio_list_length (obj->mpeg_track_list) <= MAX_ENTRIES);
+  vcd_assert (_cdio_list_length (obj->mpeg_track_list) > 0);
 
   memset(&entries_vcd, 0, sizeof(entries_vcd)); /* paranoia / fixme */
 
@@ -193,29 +193,29 @@ set_entries_vcd (VcdObj *obj, void *buf)
 
   idx = 0;
   track_idx = 2;
-  _VCD_LIST_FOREACH (node, obj->mpeg_sequence_list)
+  _CDIO_LIST_FOREACH (node, obj->mpeg_sequence_list)
     {
-      mpeg_sequence_t *track = _vcd_list_node_data (node);
+      mpeg_sequence_t *track = _cdio_list_node_data (node);
       uint32_t lsect = track->relative_start_extent;
-      VcdListNode *node2;
+      CdioListNode *node2;
 
       lsect += obj->iso_size;
 
-      entries_vcd.entry[idx].n = to_bcd8(track_idx);
+      entries_vcd.entry[idx].n = cdio_to_bcd8(track_idx);
       cdio_lba_to_msf(cdio_lsn_to_lba(lsect), 
                       &(entries_vcd.entry[idx].msf));
 
       idx++;
       lsect += obj->track_front_margin;
 
-      _VCD_LIST_FOREACH (node2, track->entry_list)
+      _CDIO_LIST_FOREACH (node2, track->entry_list)
         {
-          entry_t *_entry = _vcd_list_node_data (node2);
+          entry_t *_entry = _cdio_list_node_data (node2);
           /* additional entries */
 
           vcd_assert (idx < MAX_ENTRIES);
 
-          entries_vcd.entry[idx].n = to_bcd8(track_idx);
+          entries_vcd.entry[idx].n = cdio_to_bcd8(track_idx);
           cdio_lba_to_msf(lsect + cdio_lsn_to_lba(_entry->aps.packet_no),
                           &(entries_vcd.entry[idx].msf));
 
@@ -257,16 +257,16 @@ get_psd_size (VcdObj *obj, bool extended)
 void
 set_psd_vcd (VcdObj *obj, void *buf, bool extended)
 {
-  VcdListNode *node;
+  CdioListNode *node;
 
   if (extended)
     vcd_assert (_vcd_obj_has_cap_p (obj, _CAP_PBC_X));
 
   vcd_assert (_vcd_pbc_available (obj));
 
-  _VCD_LIST_FOREACH (node, obj->pbc_list)
+  _CDIO_LIST_FOREACH (node, obj->pbc_list)
     {
-      pbc_t *_pbc = _vcd_list_node_data (node);
+      pbc_t *_pbc = _cdio_list_node_data (node);
       char *_buf = buf;
       unsigned offset = (extended ? _pbc->offset_ext : _pbc->offset);
       
@@ -279,23 +279,23 @@ set_psd_vcd (VcdObj *obj, void *buf, bool extended)
 void
 set_lot_vcd(VcdObj *obj, void *buf, bool extended)
 {
-  LotVcd *lot_vcd = NULL;
-  VcdListNode *node;
+  LotVcd_t *lot_vcd = NULL;
+  CdioListNode *node;
 
   if (extended)
     vcd_assert (_vcd_obj_has_cap_p (obj, _CAP_PBC_X));
 
   vcd_assert (_vcd_pbc_available (obj));
 
-  lot_vcd = _vcd_malloc (sizeof (LotVcd));
-  memset(lot_vcd, 0xff, sizeof(LotVcd));
+  lot_vcd = _vcd_malloc (sizeof (LotVcd_t));
+  memset(lot_vcd, 0xff, sizeof(LotVcd_t));
 
   lot_vcd->reserved = 0x0000;
 
-  _VCD_LIST_FOREACH (node, obj->pbc_list)
+  _CDIO_LIST_FOREACH (node, obj->pbc_list)
     {
-      pbc_t *_pbc = _vcd_list_node_data (node);
-      unsigned offset = extended ? _pbc->offset_ext : _pbc->offset;
+      pbc_t *_pbc = _cdio_list_node_data (node);
+      unsigned int offset = extended ? _pbc->offset_ext : _pbc->offset;
       
       vcd_assert (offset % INFO_OFFSET_MULT == 0);
 
@@ -307,19 +307,19 @@ set_lot_vcd(VcdObj *obj, void *buf, bool extended)
       lot_vcd->offset[_pbc->lid - 1] = uint16_to_be (offset);
     }
 
-  memcpy(buf, lot_vcd, sizeof(LotVcd));
+  memcpy(buf, lot_vcd, sizeof(LotVcd_t));
   free(lot_vcd);
 }
 
 void
 set_info_vcd(VcdObj *obj, void *buf)
 {
-  InfoVcd info_vcd;
-  VcdListNode *node = NULL;
+  InfoVcd_t info_vcd;
+  CdioListNode *node = NULL;
   int n = 0;
 
-  vcd_assert (sizeof (InfoVcd) == 2048);
-  vcd_assert (_vcd_list_length (obj->mpeg_track_list) <= 98);
+  vcd_assert (sizeof (InfoVcd_t) == 2048);
+  vcd_assert (_cdio_list_length (obj->mpeg_track_list) <= 98);
   
   memset (&info_vcd, 0, sizeof (info_vcd));
 
@@ -373,9 +373,9 @@ set_info_vcd(VcdObj *obj, void *buf)
       /* NTSC/PAL bitset */
 
       n = 0;
-      _VCD_LIST_FOREACH (node, obj->mpeg_track_list)
+      _CDIO_LIST_FOREACH (node, obj->mpeg_track_list)
         {
-          mpeg_track_t *track = _vcd_list_node_data (node);
+          mpeg_track_t *track = _cdio_list_node_data (node);
           
           const struct vcd_mpeg_stream_vid_info *_info = &track->info->shdr[0];
 
@@ -407,7 +407,7 @@ set_info_vcd(VcdObj *obj, void *buf)
       info_vcd.offset_mult = _vcd_pbc_available (obj) ? INFO_OFFSET_MULT : 0;
       info_vcd.lot_entries = uint16_to_be (_vcd_pbc_max_lid (obj));
       
-      if (_vcd_list_length (obj->mpeg_segment_list))
+      if (_cdio_list_length (obj->mpeg_segment_list))
         {
           unsigned segments = 0;
         
@@ -415,9 +415,9 @@ set_info_vcd(VcdObj *obj, void *buf)
             vcd_warn ("segment items available, but no PBC items set!"
                       " SPIs will be unreachable");
 
-          _VCD_LIST_FOREACH (node, obj->mpeg_segment_list)
+          _CDIO_LIST_FOREACH (node, obj->mpeg_segment_list)
             {
-              mpeg_segment_t *segment = _vcd_list_node_data (node);
+              mpeg_segment_t *segment = _cdio_list_node_data (node);
               unsigned idx;
               InfoSpiContents contents = { 0, };
 
@@ -465,20 +465,20 @@ set_tracks_svd_v30 (VcdObj *obj, void *buf)
 {
   char tracks_svd_buf[ISO_BLOCKSIZE] = { 0, };
   TracksSVD_v30 *tracks_svd = (void *) tracks_svd_buf;
-  VcdListNode *node;
+  CdioListNode *node;
   double playtime;
   int n;
 
   strncpy (tracks_svd->file_id, TRACKS_SVD_FILE_ID, 
            sizeof (TRACKS_SVD_FILE_ID));
   tracks_svd->version = TRACKS_SVD_VERSION;
-  tracks_svd->tracks = _vcd_list_length (obj->mpeg_track_list);
+  tracks_svd->tracks = _cdio_list_length (obj->mpeg_track_list);
 
   n = 0;
   playtime = 0;
-  _VCD_LIST_FOREACH (node, obj->mpeg_track_list)
+  _CDIO_LIST_FOREACH (node, obj->mpeg_track_list)
     {
-      mpeg_track_t *track = _vcd_list_node_data (node);
+      mpeg_track_t *track = _cdio_list_node_data (node);
       int i;
 
       playtime += track->info->playing_time;
@@ -502,7 +502,8 @@ set_tracks_svd_v30 (VcdObj *obj, void *buf)
         f = modf(playtime, &i);
         
         cdio_lba_to_msf (i * 75, &tracks_svd->track[n].cum_playing_time);
-        tracks_svd->track[n].cum_playing_time.f = to_bcd8 (floor (f * 75.0));
+        tracks_svd->track[n].cum_playing_time.f = 
+          cdio_to_bcd8 (floor (f * 75.0));
       }
       
       n++;
@@ -517,7 +518,7 @@ set_tracks_svd (VcdObj *obj, void *buf)
   char tracks_svd[ISO_BLOCKSIZE] = { 0, };
   TracksSVD *tracks_svd1 = (void *) tracks_svd;
   TracksSVD2 *tracks_svd2;
-  VcdListNode *node;
+  CdioListNode *node;
   int n;
 
   vcd_assert (_vcd_obj_has_cap_p (obj, _CAP_4C_SVCD));
@@ -533,15 +534,15 @@ set_tracks_svd (VcdObj *obj, void *buf)
   strncpy (tracks_svd1->file_id, TRACKS_SVD_FILE_ID, sizeof (TRACKS_SVD_FILE_ID));
   tracks_svd1->version = TRACKS_SVD_VERSION;
 
-  tracks_svd1->tracks = _vcd_list_length (obj->mpeg_track_list);
+  tracks_svd1->tracks = _cdio_list_length (obj->mpeg_track_list);
 
   tracks_svd2 = (void *) &(tracks_svd1->playing_time[tracks_svd1->tracks]);
 
   n = 0;
 
-  _VCD_LIST_FOREACH (node, obj->mpeg_track_list)
+  _CDIO_LIST_FOREACH (node, obj->mpeg_track_list)
     {
-      mpeg_track_t *track = _vcd_list_node_data (node);
+      mpeg_track_t *track = _cdio_list_node_data (node);
       const double playtime = track->info->playing_time;
 
       int _video;
@@ -574,7 +575,7 @@ set_tracks_svd (VcdObj *obj, void *buf)
           }
 
         cdio_lba_to_msf (i * 75, &(tracks_svd1->playing_time[n]));
-        tracks_svd1->playing_time[n].f = to_bcd8 (floor (f * 75.0));
+        tracks_svd1->playing_time[n].f = cdio_to_bcd8 (floor (f * 75.0));
       }
       
       n++;
@@ -587,11 +588,11 @@ static double
 _get_cumulative_playing_time (const VcdObj *obj, unsigned up_to_track_no)
 {
   double result = 0;
-  VcdListNode *node;
+  CdioListNode *node;
 
-  _VCD_LIST_FOREACH (node, obj->mpeg_track_list)
+  _CDIO_LIST_FOREACH (node, obj->mpeg_track_list)
     {
-      mpeg_track_t *track = _vcd_list_node_data (node);
+      mpeg_track_t *track = _cdio_list_node_data (node);
 
       if (!up_to_track_no)
         break;
@@ -611,7 +612,7 @@ _get_scanpoint_count (const VcdObj *obj)
 {
   double total_playing_time;
 
-  total_playing_time = _get_cumulative_playing_time (obj, _vcd_list_length (obj->mpeg_track_list));
+  total_playing_time = _get_cumulative_playing_time (obj, _cdio_list_length (obj->mpeg_track_list));
 
   return ceil (total_playing_time * 2.0);
 }
@@ -623,39 +624,39 @@ get_search_dat_size (const VcdObj *obj)
     + (_get_scanpoint_count (obj) * sizeof (msf_t));
 }
 
-static VcdList *
+static CdioList *
 _make_track_scantable (const VcdObj *obj)
 {
-  VcdList *all_aps = _vcd_list_new ();
-  VcdList *scantable = _vcd_list_new ();
+  CdioList *all_aps = _cdio_list_new ();
+  CdioList *scantable = _cdio_list_new ();
   unsigned scanpoints = _get_scanpoint_count (obj);
   unsigned track_no;
-  VcdListNode *node;
+  CdioListNode *node;
 
   track_no = 0;
-  _VCD_LIST_FOREACH (node, obj->mpeg_track_list)
+  _CDIO_LIST_FOREACH (node, obj->mpeg_track_list)
     {
-      mpeg_track_t *track = _vcd_list_node_data (node);
-      VcdListNode *node2;
+      mpeg_track_t *track = _cdio_list_node_data (node);
+      CdioListNode *node2;
       
-      _VCD_LIST_FOREACH (node2, track->info->shdr[0].aps_list)
+      _CDIO_LIST_FOREACH (node2, track->info->shdr[0].aps_list)
         {
           struct aps_data *_data = _vcd_malloc (sizeof (struct aps_data));
           
-          *_data = *(struct aps_data *)_vcd_list_node_data (node2);
+          *_data = *(struct aps_data *)_cdio_list_node_data (node2);
 
           _data->timestamp += _get_cumulative_playing_time (obj, track_no);
           _data->packet_no += obj->iso_size + track->relative_start_extent;
           _data->packet_no += obj->track_front_margin;
 
-          _vcd_list_append (all_aps, _data);
+          _cdio_list_append (all_aps, _data);
         }
       track_no++;
     }
   
   {
-    VcdListNode *aps_node = _vcd_list_begin (all_aps);
-    VcdListNode *n;
+    CdioListNode *aps_node = _cdio_list_begin (all_aps);
+    CdioListNode *n;
     struct aps_data *_data;
     double aps_time;
     double playing_time;
@@ -667,15 +668,16 @@ _make_track_scantable (const VcdObj *obj)
 
     vcd_assert (aps_node != NULL);
 
-    _data = _vcd_list_node_data (aps_node);
+    _data = _cdio_list_node_data (aps_node);
     aps_time = _data->timestamp;
     aps_packet = _data->packet_no;
 
     for (t = 0; t < playing_time; t += 0.5)
       {
-	for(n = _vcd_list_node_next (aps_node); n; n = _vcd_list_node_next (n))
+	for(n = _cdio_list_node_next (aps_node); n; 
+            n = _cdio_list_node_next (n))
 	  {
-	    _data = _vcd_list_node_data (n);
+	    _data = _cdio_list_node_data (n);
 
 	    if (fabs (_data->timestamp - t) < fabs (aps_time - t))
 	      {
@@ -691,16 +693,16 @@ _make_track_scantable (const VcdObj *obj)
           uint32_t *lsect = _vcd_malloc (sizeof (uint32_t));
           
           *lsect = aps_packet;
-          _vcd_list_append (scantable, lsect);
+          _cdio_list_append (scantable, lsect);
         }
         
       }
 
   }
 
-  _vcd_list_free (all_aps, true);
+  _cdio_list_free (all_aps, true);
 
-  vcd_assert (scanpoints == _vcd_list_length (scantable));
+  vcd_assert (scanpoints == _cdio_list_length (scantable));
 
   return scantable;
 }
@@ -708,8 +710,8 @@ _make_track_scantable (const VcdObj *obj)
 void
 set_search_dat (VcdObj *obj, void *buf)
 {
-  VcdList *scantable;
-  VcdListNode *node;
+  CdioList *scantable;
+  CdioListNode *node;
   SearchDat search_dat;
   unsigned n;
 
@@ -729,10 +731,10 @@ set_search_dat (VcdObj *obj, void *buf)
   scantable = _make_track_scantable (obj);
 
   n = 0;
-  _VCD_LIST_FOREACH (node, scantable)
+  _CDIO_LIST_FOREACH (node, scantable)
     {
       SearchDat *search_dat2 = buf;
-      uint32_t sect = *(uint32_t *) _vcd_list_node_data (node);
+      uint32_t sect = *(uint32_t *) _cdio_list_node_data (node);
           
       cdio_lba_to_msf(cdio_lsn_to_lba(sect), &(search_dat2->points[n]));
       n++;
@@ -740,7 +742,7 @@ set_search_dat (VcdObj *obj, void *buf)
 
   vcd_assert (n = _get_scanpoint_count (obj));
 
-  _vcd_list_free (scantable, true);
+  _cdio_list_free (scantable, true);
 }
 
 static uint32_t 
@@ -752,7 +754,7 @@ _get_scandata_count (const struct vcd_mpeg_stream_info *info)
 static uint32_t *
 _get_scandata_table (const struct vcd_mpeg_stream_info *info)
 {
-  VcdListNode *n, *aps_node = _vcd_list_begin (info->shdr[0].aps_list);
+  CdioListNode *n, *aps_node = _cdio_list_begin (info->shdr[0].aps_list);
   struct aps_data *_data;
   double aps_time, t;
   int aps_packet;
@@ -761,15 +763,15 @@ _get_scandata_table (const struct vcd_mpeg_stream_info *info)
   
   retval = _vcd_malloc (_get_scandata_count (info) * sizeof (uint32_t));
 
-  _data = _vcd_list_node_data (aps_node);
+  _data = _cdio_list_node_data (aps_node);
   aps_time = _data->timestamp;
   aps_packet = _data->packet_no;
 
   for (t = 0, i = 0; t < info->playing_time; t += 0.5, i++)
     {
-      for(n = _vcd_list_node_next (aps_node); n; n = _vcd_list_node_next (n))
+      for(n = _cdio_list_node_next (aps_node); n; n = _cdio_list_node_next (n))
         {
-          _data = _vcd_list_node_data (n);
+          _data = _cdio_list_node_data (n);
 
           if (fabs (_data->timestamp - t) < fabs (aps_time - t))
             {
@@ -800,7 +802,7 @@ get_scandata_dat_size (const VcdObj *obj)
 
   /* struct 1 */
   retval += sizeof (ScandataDat1);
-  retval += sizeof (msf_t) * _vcd_list_length (obj->mpeg_track_list);
+  retval += sizeof (msf_t) * _cdio_list_length (obj->mpeg_track_list);
 
   /* struct 2 */
   /* vcd_assert (sizeof (ScandataDat2) == 0);
@@ -809,16 +811,16 @@ get_scandata_dat_size (const VcdObj *obj)
 
   /* struct 3 */
   retval += sizeof (ScandataDat3);
-  retval += (sizeof (uint8_t) + sizeof (uint16_t)) * _vcd_list_length (obj->mpeg_track_list);
+  retval += (sizeof (uint8_t) + sizeof (uint16_t)) * _cdio_list_length (obj->mpeg_track_list);
 
   /* struct 4 */
   /* vcd_assert (sizeof (ScandataDat4) == 0);
      retval += sizeof (ScandataDat4); */
   {
-    VcdListNode *node;
-    _VCD_LIST_FOREACH (node, obj->mpeg_track_list)
+    CdioListNode *node;
+    _CDIO_LIST_FOREACH (node, obj->mpeg_track_list)
       {
-        const mpeg_track_t *track = _vcd_list_node_data (node);
+        const mpeg_track_t *track = _cdio_list_node_data (node);
         
         retval += sizeof (msf_t) * _get_scandata_count (track->info);
       }
@@ -830,7 +832,7 @@ get_scandata_dat_size (const VcdObj *obj)
 void
 set_scandata_dat (VcdObj *obj, void *buf)
 {
-  const unsigned tracks = _vcd_list_length (obj->mpeg_track_list);
+  const unsigned tracks = _cdio_list_length (obj->mpeg_track_list);
 
   ScandataDat1 *scandata_dat1 = (ScandataDat1 *) buf;
   ScandataDat2 *scandata_dat2 = 
@@ -844,7 +846,7 @@ set_scandata_dat (VcdObj *obj, void *buf)
     __cd_offsetof (ScandataDat3, mpeg_track_offsets[tracks])
     - __cd_offsetof (ScandataDat3, mpeg_track_offsets);
 
-  VcdListNode *node;
+  CdioListNode *node;
   unsigned n;
   uint16_t _tmp_offset;
 
@@ -875,7 +877,7 @@ set_scandata_dat (VcdObj *obj, void *buf)
       vcd_assert (i >= 0);
 
       cdio_lba_to_msf (i * 75, &(scandata_dat1->cum_playtimes[n]));
-      scandata_dat1->cum_playtimes[n].f = to_bcd8 (floor (f * 75.0));
+      scandata_dat1->cum_playtimes[n].f = cdio_to_bcd8 (floor (f * 75.0));
     }
 
   /* struct 2 -- nothing yet */
@@ -890,9 +892,9 @@ set_scandata_dat (VcdObj *obj, void *buf)
   scandata_dat3->mpegtrack_start_index = uint16_to_be (_begin_offset);
 
   n = 0;
-  _VCD_LIST_FOREACH (node, obj->mpeg_track_list)
+  _CDIO_LIST_FOREACH (node, obj->mpeg_track_list)
     {
-      const mpeg_track_t *track = _vcd_list_node_data (node);
+      const mpeg_track_t *track = _cdio_list_node_data (node);
       uint32_t *_table;
       const unsigned scanpoints = _get_scandata_count (track->info);
       const unsigned _table_ofs =
@@ -932,7 +934,7 @@ set_scandata_dat (VcdObj *obj, void *buf)
 vcd_type_t
 vcd_files_info_detect_type (const void *info_buf)
 {
-  const InfoVcd *_info = info_buf;
+  const InfoVcd_t *_info = info_buf;
   vcd_type_t _type = VCD_TYPE_INVALID;
 
   vcd_assert (info_buf != NULL);

@@ -1,5 +1,5 @@
 /*
-    $Id: vcd_read.h,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: vcd_read.h,v 1.3 2005/01/01 02:43:59 rockyb Exp $
 
     Copyright (C) 2003 Rocky Bernstein <rocky@gnu.org>
 
@@ -29,8 +29,8 @@
 #include <libvcd/files_private.h>
 
 bool read_pvd(CdIo *cdio, iso9660_pvd_t *pvd);
-bool read_entries(CdIo *cdio, EntriesVcd *entries);
-bool read_info(CdIo *cdio, InfoVcd *info, vcd_type_t *vcd_type);
+bool read_entries(CdIo *cdio, EntriesVcd_t *entries);
+bool read_info(CdIo *cdio, InfoVcd_t *info, vcd_type_t *vcd_type);
 
 
 

@@ -1,5 +1,5 @@
 /*
-    $Id: xa.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: xa.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003 Rocky Bernstein <rocky@panix.com>
@@ -31,10 +31,10 @@
 /* Public headers */
 #include <cdio/iso9660.h>
 #include <cdio/util.h>
+#include <cdio/bytesex.h>
 
 /* Private headers */
 #include "cdio_assert.h"
-#include "bytesex.h"
 
 #define BUF_COUNT 16
 #define BUF_SIZE 80

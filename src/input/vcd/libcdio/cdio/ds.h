@@ -1,5 +1,5 @@
 /*
-    $Id: ds.h,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: ds.h,v 1.1 2005/01/01 02:43:58 rockyb Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 

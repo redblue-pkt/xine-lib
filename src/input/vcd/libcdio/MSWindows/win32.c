@@ -1,5 +1,5 @@
 /*
-    $Id: win32.c,v 1.1 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: win32.c,v 1.2 2005/01/01 02:43:58 rockyb Exp $
 
     Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
@@ -26,14 +26,14 @@
 # include "config.h"
 #endif
 
-static const char _rcsid[] = "$Id: win32.c,v 1.1 2004/04/11 12:20:31 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: win32.c,v 1.2 2005/01/01 02:43:58 rockyb Exp $";
 
 #include <cdio/cdio.h>
 #include <cdio/sector.h>
 #include <cdio/util.h>
+#include <cdio/scsi_mmc.h>
 #include "cdio_assert.h"
 #include "cdio_private.h" /* protoype for cdio_is_device_win32 */
-#include "scsi_mmc.h"
 
 #include <string.h>
 
@@ -41,25 +41,56 @@ static const char _rcsid[] = "$Id: win32.c,v 1.1 2004/04/11 12:20:31 miguelfreit
 
 #include <ctype.h>
 #include <stdio.h>
+
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
+#endif
+
+#ifdef HAVE_ERRNO_H
 #include <errno.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 
 #include <windows.h>
 #include <winioctl.h>
 #include "win32.h"
 
+#ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
-#include <sys/types.h>
-#include "aspi32.h"
+#endif
 
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#if defined (MSVC) || defined (_XBOX)
+#undef IN
+#else
+#include "aspi32.h"
+#endif
+
+#ifdef _XBOX
+#include "stdint.h"
+#include <xtl.h>
+#define WIN_NT 1
+#else
 #define WIN_NT               ( GetVersion() < 0x80000000 )
+#endif
 
 /* General ioctl() CD-ROM command function */
 static bool 
 _cdio_mciSendCommand(int id, UINT msg, DWORD flags, void *arg)
 {
+#ifdef _XBOX
+  return false;
+#else
   MCIERROR mci_error;
   
   mci_error = mciSendCommand(id, msg, flags, (DWORD)arg);
@@ -70,14 +101,84 @@ _cdio_mciSendCommand(int id, UINT msg, DWORD flags, void *arg)
     cdio_warn("mciSendCommand() error: %s", error);
   }
   return(mci_error == 0);
+#endif
+}
+
+static access_mode_t 
+str_to_access_mode_win32(const char *psz_access_mode) 
+{
+  const access_mode_t default_access_mode = 
+    WIN_NT ? _AM_IOCTL : _AM_ASPI;
+
+  if (NULL==psz_access_mode) return default_access_mode;
+  
+  if (!strcmp(psz_access_mode, "ioctl"))
+    return _AM_IOCTL;
+  else if (!strcmp(psz_access_mode, "ASPI")) {
+#ifdef _XBOX
+    return _AM_ASPI;
+#else 
+    cdio_warn ("XBOX doesn't support access type: %s. Default used instead.", 
+	       psz_access_mode);
+    return default_access_mode;
+#endif    
+  } else {
+    cdio_warn ("unknown access type: %s. Default used instead.", 
+	       psz_access_mode);
+    return default_access_mode;
+  }
+}
+
+static discmode_t
+get_discmode_win32(void *p_user_data) 
+{
+  _img_private_t *p_env = p_user_data;
+
+  if (p_env->hASPI) {
+    return get_discmode_aspi (p_env);
+  } else {
+    return get_discmode_win32ioctl (p_env);
+  }
 }
 
 static const char *
-cdio_is_cdrom(const char drive_letter) {
+is_cdrom_win32(const char drive_letter) {
   if ( WIN_NT ) {
-    return win32ioctl_is_cdrom(drive_letter);
+    return is_cdrom_win32ioctl (drive_letter);
   } else {
-    return wnaspi32_is_cdrom(drive_letter);
+    return is_cdrom_aspi(drive_letter);
+  }
+}
+
+/*!
+  Run a SCSI MMC command. 
+ 
+  env	        private CD structure 
+  i_timeout_ms  time in milliseconds we will wait for the command
+                to complete. If this value is -1, use the default 
+		time-out value.
+  p_buf	        Buffer for data, both sending and receiving
+  i_buf	        Size of buffer
+  e_direction	direction the transfer is to go.
+  cdb	        CDB bytes. All values that are needed should be set on 
+                input. We'll figure out what the right CDB length should be.
+
+  Return 0 if command completed successfully.
+ */
+static int
+run_scsi_cmd_win32( const void *p_user_data, unsigned int i_timeout_ms,
+		    unsigned int i_cdb, const scsi_mmc_cdb_t *p_cdb, 
+		    scsi_mmc_direction_t e_direction, 
+		    unsigned int i_buf, /*in/out*/ void *p_buf )
+{
+  const _img_private_t *p_env = p_user_data;
+
+  if (p_env->hASPI) {
+    return run_scsi_cmd_aspi( p_env, i_timeout_ms, i_cdb, p_cdb,  
+			      e_direction, i_buf, p_buf );
+  } else {
+    return run_scsi_cmd_win32ioctl( p_env, i_timeout_ms, i_cdb, p_cdb,  
+				    e_direction, i_buf, p_buf );
   }
 }
 
@@ -87,26 +188,29 @@ cdio_is_cdrom(const char drive_letter) {
 static bool
 _cdio_init_win32 (void *user_data)
 {
-  _img_private_t *env = user_data;
-  if (env->gen.init) {
+  _img_private_t *p_env = user_data;
+  if (p_env->gen.init) {
     cdio_error ("init called more than once");
     return false;
   }
   
-  env->gen.init = true;
-  env->toc_init = false;
-
+  p_env->gen.init     = true;
+  p_env->gen.toc_init = false;
+  p_env->gen.b_cdtext_init  = false;
+  p_env->gen.b_cdtext_error = false;
 
   /* Initializations */
-  env->h_device_handle = NULL;
-  env->i_sid = 0;
-  env->hASPI = 0;
-  env->lpSendCommand = 0;
-  
-  if ( WIN_NT ) {
-    return win32ioctl_init_win32(env);
+  p_env->h_device_handle = NULL;
+  p_env->i_sid           = 0;
+  p_env->hASPI           = 0;
+  p_env->lpSendCommand   = 0;
+  p_env->b_aspi_init     = false;
+  p_env->b_ioctl_init    = false;
+
+  if ( _AM_IOCTL == p_env->access_mode ) {
+    return init_win32ioctl(p_env);
   } else {
-    return wnaspi32_init_win32(env);
+    return init_aspi(p_env);
   }
 }
 
@@ -114,19 +218,19 @@ _cdio_init_win32 (void *user_data)
   Release and free resources associated with cd. 
  */
 static void
-_cdio_win32_free (void *user_data)
+_free_win32 (void *user_data)
 {
-  _img_private_t *env = user_data;
+  _img_private_t *p_env = user_data;
 
-  if (NULL == env) return;
-  free (env->gen.source_name);
+  if (NULL == p_env) return;
+  free (p_env->gen.source_name);
 
-  if( env->h_device_handle )
-    CloseHandle( env->h_device_handle );
-  if( env->hASPI )
-    FreeLibrary( (HMODULE)env->hASPI );
+  if( p_env->h_device_handle )
+    CloseHandle( p_env->h_device_handle );
+  if( p_env->hASPI )
+    FreeLibrary( (HMODULE)p_env->hASPI );
 
-  free (env);
+  free (p_env);
 }
 
 /*!
@@ -137,11 +241,11 @@ static int
 _cdio_read_audio_sectors (void *user_data, void *data, lsn_t lsn, 
 			  unsigned int nblocks) 
 {
-  _img_private_t *env = user_data;
-  if ( env->hASPI ) {
-    return wnaspi32_read_audio_sectors( env, data, lsn, nblocks );
+  _img_private_t *p_env = user_data;
+  if ( p_env->hASPI ) {
+    return read_audio_sectors_aspi( p_env, data, lsn, nblocks );
   } else {
-    return win32ioctl_read_audio_sectors( env, data, lsn, nblocks );
+    return read_audio_sectors_win32ioctl( p_env, data, lsn, nblocks );
   }
 }
 
@@ -153,26 +257,26 @@ static int
 _cdio_read_mode1_sector (void *user_data, void *data, lsn_t lsn, 
 			 bool b_form2)
 {
-  _img_private_t *env = user_data;
+  _img_private_t *p_env = user_data;
 
-  if (env->gen.ioctls_debugged == 75)
+  if (p_env->gen.ioctls_debugged == 75)
     cdio_debug ("only displaying every 75th ioctl from now on");
 
-  if (env->gen.ioctls_debugged == 30 * 75)
+  if (p_env->gen.ioctls_debugged == 30 * 75)
     cdio_debug ("only displaying every 30*75th ioctl from now on");
   
-  if (env->gen.ioctls_debugged < 75 
-      || (env->gen.ioctls_debugged < (30 * 75)  
-	  && env->gen.ioctls_debugged % 75 == 0)
-      || env->gen.ioctls_debugged % (30 * 75) == 0)
+  if (p_env->gen.ioctls_debugged < 75 
+      || (p_env->gen.ioctls_debugged < (30 * 75)  
+	  && p_env->gen.ioctls_debugged % 75 == 0)
+      || p_env->gen.ioctls_debugged % (30 * 75) == 0)
     cdio_debug ("reading %lu", (unsigned long int) lsn);
   
-  env->gen.ioctls_debugged++;
+  p_env->gen.ioctls_debugged++;
 
-  if ( env->hASPI ) {
-    return 1;
+  if ( p_env->hASPI ) {
+    return read_mode1_sector_aspi( p_env, data, lsn, b_form2 );
   } else {
-    return win32ioctl_read_mode1_sector( env, data, lsn, b_form2 );
+    return read_mode1_sector_win32ioctl( p_env, data, lsn, b_form2 );
   }
 }
 
@@ -185,19 +289,19 @@ static int
 _cdio_read_mode1_sectors (void *user_data, void *data, lsn_t lsn, 
 			  bool b_form2, unsigned int nblocks)
 {
-  _img_private_t *env = user_data;
+  _img_private_t *p_env = user_data;
   int i;
   int retval;
 
   for (i = 0; i < nblocks; i++) {
     if (b_form2) {
-      if ( (retval = _cdio_read_mode1_sector (env, 
+      if ( (retval = _cdio_read_mode1_sector (p_env, 
 					  ((char *)data) + (M2RAW_SECTOR_SIZE * i),
 					  lsn + i, true)) )
 	return retval;
     } else {
       char buf[M2RAW_SECTOR_SIZE] = { 0, };
-      if ( (retval = _cdio_read_mode1_sector (env, buf, lsn + i, false)) )
+      if ( (retval = _cdio_read_mode1_sector (p_env, buf, lsn + i, false)) )
 	return retval;
       
       memcpy (((char *)data) + (CDIO_CD_FRAMESIZE * i), 
@@ -216,25 +320,25 @@ _cdio_read_mode2_sector (void *user_data, void *data, lsn_t lsn,
 		    bool b_form2)
 {
   char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
-  _img_private_t *env = user_data;
+  _img_private_t *p_env = user_data;
 
-  if (env->gen.ioctls_debugged == 75)
+  if (p_env->gen.ioctls_debugged == 75)
     cdio_debug ("only displaying every 75th ioctl from now on");
 
-  if (env->gen.ioctls_debugged == 30 * 75)
+  if (p_env->gen.ioctls_debugged == 30 * 75)
     cdio_debug ("only displaying every 30*75th ioctl from now on");
   
-  if (env->gen.ioctls_debugged < 75 
-      || (env->gen.ioctls_debugged < (30 * 75)  
-	  && env->gen.ioctls_debugged % 75 == 0)
-      || env->gen.ioctls_debugged % (30 * 75) == 0)
+  if (p_env->gen.ioctls_debugged < 75 
+      || (p_env->gen.ioctls_debugged < (30 * 75)  
+	  && p_env->gen.ioctls_debugged % 75 == 0)
+      || p_env->gen.ioctls_debugged % (30 * 75) == 0)
     cdio_debug ("reading %lu", (unsigned long int) lsn);
   
-  env->gen.ioctls_debugged++;
+  p_env->gen.ioctls_debugged++;
 
-  if ( env->hASPI ) {
+  if ( p_env->hASPI ) {
     int ret;
-    ret = wnaspi32_read_mode2_sector(user_data, buf, lsn);
+    ret = read_mode2_sector_aspi(user_data, buf, lsn, 1);
     if( ret != 0 ) return ret;
     if (b_form2)
       memcpy (data, buf, M2RAW_SECTOR_SIZE);
@@ -242,7 +346,7 @@ _cdio_read_mode2_sector (void *user_data, void *data, lsn_t lsn,
       memcpy (((char *)data), buf + CDIO_CD_SUBHEADER_SIZE, CDIO_CD_FRAMESIZE);
     return 0;
   } else {
-    return win32ioctl_read_mode2_sector( env, data, lsn, b_form2 );
+    return read_mode2_sector_win32ioctl( p_env, data, lsn, b_form2 );
   }
 }
 
@@ -272,29 +376,40 @@ _cdio_read_mode2_sectors (void *user_data, void *data, lsn_t lsn,
    Return the size of the CD in logical block address (LBA) units.
  */
 static uint32_t 
-_cdio_stat_size (void *user_data)
+stat_size_win32 (void *user_data)
 {
-  _img_private_t *env = user_data;
+  _img_private_t *p_env = user_data;
 
-  return env->tocent[env->total_tracks].start_lsn;
+  return p_env->tocent[p_env->gen.i_tracks].start_lsn;
 }
 
 /*!
   Set the key "arg" to "value" in source device.
 */
 static int
-_cdio_set_arg (void *user_data, const char key[], const char value[])
+set_arg_win32 (void *user_data, const char key[], const char value[])
 {
-  _img_private_t *env = user_data;
+  _img_private_t *p_env = user_data;
 
   if (!strcmp (key, "source"))
     {
       if (!value)
 	return -2;
 
-      free (env->gen.source_name);
+      free (p_env->gen.source_name);
       
-      env->gen.source_name = strdup (value);
+      p_env->gen.source_name = strdup (value);
+    }
+  else if (!strcmp (key, "access-mode"))
+    {
+      p_env->access_mode = str_to_access_mode_win32(value);
+      if (p_env->access_mode == _AM_ASPI && !p_env->b_aspi_init) 
+	return init_aspi(p_env) ? 1 : -3;
+      else if (p_env->access_mode == _AM_IOCTL && !p_env->b_ioctl_init) 
+	return init_win32ioctl(p_env) ? 1 : -3;
+      else
+	return -4;
+      return 0;
     }
   else 
     return -1;
@@ -307,15 +422,16 @@ _cdio_set_arg (void *user_data, const char key[], const char value[])
   Return true if successful or false if an error.
 */
 static bool
-_cdio_read_toc (_img_private_t *env) 
+read_toc_win32 (void *p_user_data) 
 {
+  _img_private_t *p_env = p_user_data;
   bool ret;
-  if( env->hASPI ) {
-    ret = wnaspi32_read_toc( env );
+  if( p_env->hASPI ) {
+    ret = read_toc_aspi( p_env );
   } else {
-    ret =win32ioctl_read_toc(env);
+    ret = read_toc_win32ioctl( p_env );
   }
-  if (ret) env->gen.toc_init = true ;
+  if (ret) p_env->gen.toc_init = true ;
   return true;
 }
 
@@ -324,7 +440,9 @@ _cdio_read_toc (_img_private_t *env)
  */
 static int 
 _cdio_eject_media (void *user_data) {
-
+#ifdef _XBOX
+  return -1;
+#else
   _img_private_t *env = user_data;
 
 
@@ -354,13 +472,14 @@ _cdio_eject_media (void *user_data) {
     ret = 0;
   
   return ret;
+#endif
 }
 
 /*!
   Return the value associated with the key "arg".
 */
 static const char *
-_cdio_get_arg (void *user_data, const char key[])
+_get_arg_win32 (void *user_data, const char key[])
 {
   _img_private_t *env = user_data;
 
@@ -369,26 +488,10 @@ _cdio_get_arg (void *user_data, const char key[])
   } else if (!strcmp (key, "access-mode")) {
     if (env->hASPI) 
       return "ASPI";
-    else if ( WIN_NT ) 
-      return "winNT/2K/XP ioctl";
     else 
-      return "undefined WIN32";
+      return "ioctl";
   } 
   return NULL;
-}
-
-/*!
-  Return the number of of the first track. 
-  CDIO_INVALID_TRACK is returned on error.
-*/
-static track_t
-_cdio_get_first_track_num(void *user_data) 
-{
-  _img_private_t *env = user_data;
-  
-  if (!env->toc_init) _cdio_read_toc (env) ;
-
-  return env->first_track_num;
 }
 
 /*!
@@ -399,47 +502,36 @@ _cdio_get_first_track_num(void *user_data)
 
  */
 static char *
-_cdio_get_mcn (void *env) {
+_cdio_get_mcn (const void *p_user_data) {
+  const _img_private_t *p_env = p_user_data;
 
-  _img_private_t *_env = env;
-
-  if( ! _env->hASPI ) {
-    win32ioctl_get_mcn(_env);
+  if( p_env->hASPI ) {
+    return scsi_mmc_get_mcn( p_env->gen.cdio );
+  } else {
+    return get_mcn_win32ioctl(p_env);
   }
-  return NULL;
-}
-
-/*!
-  Return the number of tracks in the current medium.
-  CDIO_INVALID_TRACK is returned on error.
-*/
-static track_t
-_cdio_get_num_tracks(void *user_data) 
-{
-  _img_private_t *env = user_data;
-  
-  if (!env->toc_init) _cdio_read_toc (env) ;
-
-  return env->total_tracks;
 }
 
 /*!  
   Get format of track. 
 */
 static track_format_t
-_cdio_get_track_format(void *obj, track_t track_num) 
+_cdio_get_track_format(void *p_obj, track_t i_track) 
 {
-  _img_private_t *env = obj;
+  _img_private_t *p_env = p_obj;
   
-  if (!env->gen.toc_init) _cdio_read_toc (env) ;
+  if ( !p_env ) return TRACK_FORMAT_ERROR;
+  
+  if (!p_env->gen.toc_init) read_toc_win32 (p_env) ;
 
-  if (track_num > env->total_tracks || track_num == 0)
+  if ( i_track < p_env->gen.i_first_track
+       || i_track >= p_env->gen.i_tracks + p_env->gen.i_first_track )
     return TRACK_FORMAT_ERROR;
 
-  if( env->hASPI ) {
-    return wnaspi32_get_track_format(env, track_num);
+  if( p_env->hASPI ) {
+    return get_track_format_aspi(p_env, i_track);
   } else {
-    return win32ioctl_get_track_format(env, track_num);
+    return get_track_format_win32ioctl(p_env, i_track);
   }
 }
 
@@ -452,22 +544,20 @@ _cdio_get_track_format(void *obj, track_t track_num)
   FIXME: there's gotta be a better design for this and get_track_format?
 */
 static bool
-_cdio_get_track_green(void *obj, track_t track_num) 
+_cdio_get_track_green(void *obj, track_t i_track) 
 {
-  _img_private_t *env = obj;
+  _img_private_t *p_env = obj;
   
-  if (!env->toc_init) _cdio_read_toc (env) ;
-
-  if (track_num == CDIO_CDROM_LEADOUT_TRACK) track_num = env->total_tracks+1;
-
-  if (track_num > env->total_tracks+1 || track_num == 0)
-    return false;
-
-  switch (_cdio_get_track_format(env, track_num)) {
+  switch (_cdio_get_track_format(p_env, i_track)) {
+  case TRACK_FORMAT_XA:
+    return true;
   case TRACK_FORMAT_ERROR:
   case TRACK_FORMAT_CDI:
   case TRACK_FORMAT_AUDIO:
     return false;
+  case TRACK_FORMAT_DATA:
+    if (_AM_ASPI == p_env->access_mode ) 
+      return ((p_env->tocent[i_track-p_env->gen.i_first_track].Control & 8) != 0);
   default:
     break;
   }
@@ -475,31 +565,31 @@ _cdio_get_track_green(void *obj, track_t track_num)
   /* FIXME: Dunno if this is the right way, but it's what 
      I was using in cd-info for a while.
    */
-  return ((env->tocent[track_num-1].Control & 2) != 0);
+  return ((p_env->tocent[i_track-p_env->gen.i_first_track].Control & 2) != 0);
 }
 
 /*!  
   Return the starting MSF (minutes/secs/frames) for track number
-  track_num in obj.  Track numbers start at 1.
+  i_tracks in obj.  Track numbers start at 1.
   The "leadout" track is specified either by
-  using track_num LEADOUT_TRACK or the total tracks+1.
+  using i_tracks LEADOUT_TRACK or the total tracks+1.
   False is returned if there is no track entry.
 */
 static bool
-_cdio_get_track_msf(void *env, track_t track_num, msf_t *msf)
+_cdio_get_track_msf(void *p_user_data, track_t i_tracks, msf_t *msf)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *p_env = p_user_data;
 
   if (NULL == msf) return false;
 
-  if (!_obj->toc_init) _cdio_read_toc (_obj) ;
+  if (!p_env->gen.toc_init) read_toc_win32 (p_env) ;
 
-  if (track_num == CDIO_CDROM_LEADOUT_TRACK) track_num = _obj->total_tracks+1;
+  if (i_tracks == CDIO_CDROM_LEADOUT_TRACK) i_tracks = p_env->gen.i_tracks+1;
 
-  if (track_num > _obj->total_tracks+1 || track_num == 0) {
+  if (i_tracks > p_env->gen.i_tracks+1 || i_tracks == 0) {
     return false;
   } else {
-    cdio_lsn_to_msf(_obj->tocent[track_num-1].start_lsn, msf);
+    cdio_lsn_to_msf(p_env->tocent[i_tracks-1].start_lsn, msf);
     return true;
   }
 }
@@ -538,7 +628,7 @@ cdio_get_devices_win32 (void)
      Not always 100% reliable, so use the USE_MNTENT code above first.
   */
   for (drive_letter='A'; drive_letter <= 'Z'; drive_letter++) {
-    const char *drive_str=cdio_is_cdrom(drive_letter);
+    const char *drive_str=is_cdrom_win32(drive_letter);
     if (drive_str != NULL) {
       cdio_add_device_list(&drives, drive_str, &num_drives);
     }
@@ -563,7 +653,7 @@ cdio_get_default_device_win32(void)
   char drive_letter;
 
   for (drive_letter='A'; drive_letter <= 'Z'; drive_letter++) {
-    const char *drive_str=cdio_is_cdrom(drive_letter);
+    const char *drive_str=is_cdrom_win32(drive_letter);
     if (drive_str != NULL) {
       return strdup(drive_str);
     }
@@ -579,8 +669,8 @@ bool
 cdio_is_device_win32(const char *source_name)
 {
   unsigned int len;
-  len = strlen(source_name);
 
+  len = strlen(source_name);
   if (NULL == source_name) return false;
 
 #ifdef HAVE_WIN32_CDROM
@@ -607,51 +697,94 @@ cdio_is_device_win32(const char *source_name)
   ones to set that up.
  */
 CdIo *
-cdio_open_win32 (const char *source_name)
+cdio_open_win32 (const char *psz_source_name)
+{
+#ifdef HAVE_WIN32_CDROM
+  if ( WIN_NT ) {
+    return cdio_open_am_win32(psz_source_name, "ioctl");
+  } else {
+    return cdio_open_am_win32(psz_source_name, "ASPI");
+  }
+#else 
+  return NULL;
+#endif /* HAVE_WIN32_CDROM */
+}
+
+/*!
+  Initialization routine. This is the only thing that doesn't
+  get called via a function pointer. In fact *we* are the
+  ones to set that up.
+ */
+CdIo *
+cdio_open_am_win32 (const char *psz_orig_source, const char *psz_access_mode)
 {
 
 #ifdef HAVE_WIN32_CDROM
   CdIo *ret;
   _img_private_t *_data;
+  char *psz_source;
 
-  cdio_funcs _funcs = {
-    .eject_media        = _cdio_eject_media,
-    .free               = _cdio_win32_free,
-    .get_arg            = _cdio_get_arg,
-    .get_default_device = cdio_get_default_device_win32,
-    .get_devices        = cdio_get_devices_win32,
-    .get_first_track_num= _cdio_get_first_track_num,
-    .get_mcn            = _cdio_get_mcn, 
-    .get_num_tracks     = _cdio_get_num_tracks,
-    .get_track_format   = _cdio_get_track_format,
-    .get_track_green    = _cdio_get_track_green,
-    .get_track_lba      = NULL, /* This could be implemented if need be. */
-    .get_track_msf      = _cdio_get_track_msf,
-    .lseek              = NULL,
-    .read               = NULL,
-    .read_audio_sectors = _cdio_read_audio_sectors,
-    .read_mode1_sector  = _cdio_read_mode1_sector,
-    .read_mode1_sectors = _cdio_read_mode1_sectors,
-    .read_mode2_sector  = _cdio_read_mode2_sector,
-    .read_mode2_sectors = _cdio_read_mode2_sectors,
-    .set_arg            = _cdio_set_arg,
-    .stat_size          = _cdio_stat_size
-  };
+  cdio_funcs _funcs;
+
+  memset( &_funcs, 0, sizeof(_funcs) );
+
+  _funcs.eject_media        = _cdio_eject_media;
+  _funcs.free               = _free_win32;
+  _funcs.get_arg            = _get_arg_win32;
+  _funcs.get_cdtext         = get_cdtext_generic;
+  _funcs.get_default_device = cdio_get_default_device_win32;
+  _funcs.get_devices        = cdio_get_devices_win32;
+  _funcs.get_discmode       = get_discmode_win32;
+  _funcs.get_drive_cap      = scsi_mmc_get_drive_cap_generic;
+  _funcs.get_first_track_num= get_first_track_num_generic;
+  _funcs.get_hwinfo         = NULL;
+  _funcs.get_mcn            = _cdio_get_mcn;
+  _funcs.get_num_tracks     = get_num_tracks_generic;
+  _funcs.get_track_format   = _cdio_get_track_format;
+  _funcs.get_track_green    = _cdio_get_track_green;
+  _funcs.get_track_lba      = NULL; /* This could be implemented if need be. */
+  _funcs.get_track_msf      = _cdio_get_track_msf;
+  _funcs.lseek              = NULL;
+  _funcs.read               = NULL;
+  _funcs.read_audio_sectors = _cdio_read_audio_sectors;
+  _funcs.read_mode1_sector  = _cdio_read_mode1_sector;
+  _funcs.read_mode1_sectors = _cdio_read_mode1_sectors;
+  _funcs.read_mode2_sector  = _cdio_read_mode2_sector;
+  _funcs.read_mode2_sectors = _cdio_read_mode2_sectors;
+  _funcs.read_toc           = &read_toc_win32;
+  _funcs.run_scsi_mmc_cmd   = &run_scsi_cmd_win32;
+  _funcs.set_arg            = set_arg_win32;
+  _funcs.stat_size          = stat_size_win32;
 
   _data                 = _cdio_malloc (sizeof (_img_private_t));
+  _data->access_mode    = str_to_access_mode_win32(psz_access_mode);
   _data->gen.init       = false;
   _data->gen.fd         = -1;
 
-  _cdio_set_arg(_data, "source", (NULL == source_name) 
-		? cdio_get_default_device_win32(): source_name);
+  if (NULL == psz_orig_source) {
+    psz_source=cdio_get_default_device_win32();
+    if (NULL == psz_source) return NULL;
+    set_arg_win32(_data, "source", psz_source);
+    free(psz_source);
+  } else {
+    if (cdio_is_device_win32(psz_orig_source))
+      set_arg_win32(_data, "source", psz_orig_source);
+    else {
+      /* The below would be okay if all device drivers worked this way. */
+#if 0
+      cdio_info ("source %s is a not a device", psz_orig_source);
+#endif
+      return NULL;
+    }
+  }
 
-  ret = cdio_new (_data, &_funcs);
+  ret = cdio_new ((void *)_data, &_funcs);
   if (ret == NULL) return NULL;
 
   if (_cdio_init_win32(_data))
     return ret;
   else {
-    _cdio_win32_free (_data);
+    _free_win32 (_data);
     return NULL;
   }
   

@@ -1,5 +1,5 @@
 /*
-    $Id: vcd_read.c,v 1.3 2004/04/11 14:59:23 mroi Exp $
+    $Id: vcd_read.c,v 1.4 2005/01/01 02:43:59 rockyb Exp $
 
     Copyright (C) 2001,2003 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003 Rocky Bernstein <rocky@gnu.org>
@@ -19,7 +19,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-
+
 #include "vcd_read.h"
 #include "vcd_assert.h"
 #include <libvcd/inf.h>
@@ -53,7 +53,7 @@ read_pvd(CdIo *cdio, iso9660_pvd_t *pvd)
 }
 
 bool 
-read_entries(CdIo *cdio, EntriesVcd *entries) 
+read_entries(CdIo *cdio, EntriesVcd_t *entries) 
 {
   if (cdio_read_mode2_sector (cdio, entries, ENTRIES_VCD_SECTOR, false)) {
     vcd_error ("error reading Entries sector (%d)", ENTRIES_VCD_SECTOR);
@@ -74,7 +74,7 @@ read_entries(CdIo *cdio, EntriesVcd *entries)
 }
 
 bool 
-read_info(CdIo *cdio, InfoVcd *info, vcd_type_t *vcd_type) 
+read_info(CdIo *cdio, InfoVcd_t *info, vcd_type_t *vcd_type) 
 {
   if (cdio_read_mode2_sector (cdio, info, INFO_VCD_SECTOR, false)) {
     vcd_error ("error reading Info sector (%d)", INFO_VCD_SECTOR);

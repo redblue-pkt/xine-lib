@@ -1,7 +1,7 @@
 /*
-    $Id: image_nrg.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: image_nrg.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
 
-    Copyright (C) 2001,2003 Herbert Valerio Riedel <hvr@gnu.org>
+    Copyright (C) 2001, 2003, 2004 Herbert Valerio Riedel <hvr@gnu.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include <cdio/cdio.h>
+#include <cdio/bytesex.h>
 #include <cdio/iso9660.h>
 
 /* Public headers */
@@ -39,12 +40,11 @@
 
 /* Private headers */
 #include "vcd_assert.h"
-#include "bytesex.h"
 #include "image_sink.h"
 #include "stream_stdio.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: image_nrg.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: image_nrg.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
 
 /* structures used */
 
@@ -107,7 +107,7 @@ typedef struct {
   VcdDataSink *nrg_snk;
   char *nrg_fname;
 
-  VcdList *vcd_cue_list;
+  CdioList *vcd_cue_list;
   int tracks;
   uint32_t cue_end_lsn;
 
@@ -139,23 +139,23 @@ _sink_free (void *user_data)
 }
 
 static int
-_set_cuesheet (void *user_data, const VcdList *vcd_cue_list)
+_set_cuesheet (void *user_data, const CdioList *vcd_cue_list)
 {
   _img_nrg_snk_t *_obj = user_data;
-  VcdListNode *node;
+  CdioListNode *node;
   int num;
 
   _sink_init (_obj);
 
-  _obj->vcd_cue_list = _vcd_list_new ();
+  _obj->vcd_cue_list = _cdio_list_new ();
 
   num = 0;
-  _VCD_LIST_FOREACH (node, (VcdList *) vcd_cue_list)
+  _CDIO_LIST_FOREACH (node, (CdioList *) vcd_cue_list)
     {
-      const vcd_cue_t *_cue = _vcd_list_node_data (node);
+      const vcd_cue_t *_cue = _cdio_list_node_data (node);
       vcd_cue_t *_cue2 = _vcd_malloc (sizeof (vcd_cue_t));
       *_cue2 = *_cue;
-      _vcd_list_append (_obj->vcd_cue_list, _cue2);
+      _cdio_list_append (_obj->vcd_cue_list, _cue2);
   
       if (_cue->type == VCD_CUE_TRACK_START)
 	num++;
@@ -166,7 +166,7 @@ _set_cuesheet (void *user_data, const VcdList *vcd_cue_list)
 
   _obj->tracks = num;
 
-  vcd_assert (num > 0 && num < 100);
+  vcd_assert (CDIO_CD_MIN_TRACK_NO >= 1 && num <= CDIO_CD_MAX_TRACKS);
 
   return 0;
 }
@@ -174,15 +174,15 @@ _set_cuesheet (void *user_data, const VcdList *vcd_cue_list)
 static uint32_t
 _map (_img_nrg_snk_t *_obj, uint32_t lsn)
 {
-  VcdListNode *node;
+  CdioListNode *node;
   uint32_t result = lsn;
   vcd_cue_t *_cue = NULL, *_last = NULL;
 
   vcd_assert (_obj->cue_end_lsn > lsn);
 
-  _VCD_LIST_FOREACH (node, _obj->vcd_cue_list)
+  _CDIO_LIST_FOREACH (node, _obj->vcd_cue_list)
     {
-      _cue = _vcd_list_node_data (node);
+      _cue = _cdio_list_node_data (node);
       
       if (lsn < _cue->lsn)
 	break;
@@ -226,7 +226,7 @@ _map (_img_nrg_snk_t *_obj, uint32_t lsn)
 static int
 _write_tail (_img_nrg_snk_t *_obj, uint32_t offset)
 {
-  VcdListNode *node;
+  CdioListNode *node;
   int _size;
   _chunk_t _chunk;
 
@@ -238,13 +238,14 @@ _write_tail (_img_nrg_snk_t *_obj, uint32_t offset)
 
   vcd_data_sink_write (_obj->nrg_snk, &_chunk, sizeof (_chunk_t), 1);
 
-  _VCD_LIST_FOREACH (node, _obj->vcd_cue_list)
+  _CDIO_LIST_FOREACH (node, _obj->vcd_cue_list)
     {
-      vcd_cue_t *_cue = _vcd_list_node_data (node);
+      vcd_cue_t *_cue = _cdio_list_node_data (node);
       
       if (_cue->type == VCD_CUE_TRACK_START)
 	{
-	  vcd_cue_t *_cue2 = _vcd_list_node_data (_vcd_list_node_next (node));
+	  vcd_cue_t *_cue2 = 
+	    _cdio_list_node_data (_cdio_list_node_next (node));
 
 	  _etnf_array_t _etnf = { 0, };
 
@@ -281,7 +282,7 @@ _write_tail (_img_nrg_snk_t *_obj, uint32_t offset)
 }
  
 static int
-_vcd_image_nrg_write (void *user_data, const void *data, uint32_t lsn)
+_vcd_image_nrg_write (void *user_data, const void *data, lsn_t lsn)
 {
   const char *buf = data;
   _img_nrg_snk_t *_obj = user_data;

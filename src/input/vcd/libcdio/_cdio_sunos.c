@@ -1,5 +1,5 @@
 /*
-    $Id: _cdio_sunos.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: _cdio_sunos.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
@@ -26,22 +26,23 @@
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
-#ifdef HAVE_GLOB_H
-#include <glob.h>
-#endif
 
 #include <cdio/logging.h>
 #include <cdio/sector.h>
 #include <cdio/util.h>
+#include <cdio/scsi_mmc.h>
 #include "cdio_assert.h"
 #include "cdio_private.h"
-#include "scsi_mmc.h"
 
 #define DEFAULT_CDIO_DEVICE "/vol/dev/aliases/cdrom0"
 
 #ifdef HAVE_SOLARIS_CDROM
 
-static const char _rcsid[] = "$Id: _cdio_sunos.c,v 1.2 2004/04/11 12:20:31 miguelfreitas Exp $";
+static const char _rcsid[] = "$Id: _cdio_sunos.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $";
+
+#ifdef HAVE_GLOB_H
+#include <glob.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,18 +63,14 @@ static const char _rcsid[] = "$Id: _cdio_sunos.c,v 1.2 2004/04/11 12:20:31 migue
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include "cdtext_private.h"
 
-#define TOTAL_TRACKS    (_obj->tochdr.cdth_trk1)
-#define FIRST_TRACK_NUM (_obj->tochdr.cdth_trk0)
+/* not defined in dkio.h yet */
+#define DK_DVDRW 0x13
 
 /* reader */
 
-typedef struct {
-  /* Things common to all drivers like this. 
-     This must be first. */
-  generic_img_private_t gen; 
-  
-  enum {
+typedef  enum {
     _AM_NONE,
     _AM_SUN_CTRL_ATAPI,
     _AM_SUN_CTRL_SCSI
@@ -81,27 +78,95 @@ typedef struct {
     _AM_READ_CD,
     _AM_READ_10
 #endif
-  } access_mode;
+} access_mode_t;
 
+
+typedef struct {
+  /* Things common to all drivers like this. 
+     This must be first. */
+  generic_img_private_t gen; 
+  
+  access_mode_t access_mode;
+
+  /* Some of the more OS specific things. */
+  /* Entry info for each track, add 1 for leadout. */
+  struct cdrom_tocentry  tocent[CDIO_CD_MAX_TRACKS+1]; 
 
   /* Track information */
   struct cdrom_tochdr    tochdr;
-  struct cdrom_tocentry  tocent[100];    /* entry info for each track */
-
 } _img_private_t;
+
+static track_format_t get_track_format_solaris(void *p_user_data, 
+					       track_t i_track);
+
+static access_mode_t 
+str_to_access_mode_sunos(const char *psz_access_mode) 
+{
+  const access_mode_t default_access_mode = _AM_SUN_CTRL_SCSI;
+
+  if (NULL==psz_access_mode) return default_access_mode;
+  
+  if (!strcmp(psz_access_mode, "ATAPI"))
+    return _AM_SUN_CTRL_SCSI; /* force ATAPI to be SCSI */
+  else if (!strcmp(psz_access_mode, "SCSI"))
+    return _AM_SUN_CTRL_SCSI;
+  else {
+    cdio_warn ("unknown access type: %s. Default SCSI used.", 
+	       psz_access_mode);
+    return default_access_mode;
+  }
+}
+
 
 /*!
   Initialize CD device.
  */
 static bool
-_cdio_init (_img_private_t *_obj)
+init_solaris (_img_private_t *p_env)
 {
 
-  if (!cdio_generic_init(_obj)) return false;
+  if (!cdio_generic_init(p_env)) return false;
   
-  _obj->access_mode = _AM_SUN_CTRL_SCSI;    
+  p_env->access_mode = _AM_SUN_CTRL_SCSI;    
 
   return true;
+}
+
+/*!
+  Run a SCSI MMC command. 
+ 
+  p_user_data   internal CD structure.
+  i_timeout_ms   time in milliseconds we will wait for the command
+                to complete. 
+  i_cdb	        Size of p_cdb
+  p_cdb	        CDB bytes. 
+  e_direction	direction the transfer is to go.
+  i_buf	        Size of buffer
+  p_buf	        Buffer for data, both sending and receiving
+
+  Return 0 if no error.
+ */
+static int
+run_scsi_cmd_solaris( const void *p_user_data, unsigned int i_timeout_ms,
+		      unsigned int i_cdb, const scsi_mmc_cdb_t *p_cdb, 
+		      scsi_mmc_direction_t e_direction, 
+		      unsigned int i_buf, /*in/out*/ void *p_buf )
+{
+  const _img_private_t *p_env = p_user_data;
+  struct uscsi_cmd cgc;
+
+  memset (&cgc, 0, sizeof (struct uscsi_cmd));
+  cgc.uscsi_cdb = (caddr_t) p_cdb;
+
+  cgc.uscsi_flags = SCSI_MMC_DATA_READ == e_direction ? 
+    USCSI_READ : USCSI_WRITE;
+
+  cgc.uscsi_timeout = msecs2secs(i_timeout_ms);
+  cgc.uscsi_bufaddr = p_buf;   
+  cgc.uscsi_buflen  = i_buf;
+  cgc.uscsi_cdblen  = i_cdb;
+  
+  return ioctl(p_env->gen.fd, USCSICMD, &cgc);
 }
 
 /*!
@@ -113,44 +178,44 @@ _cdio_init (_img_private_t *_obj)
 */
 
 static int
-_cdio_read_audio_sectors (void *env, void *data, lsn_t lsn, 
+_read_audio_sectors_solaris (void *p_user_data, void *data, lsn_t lsn, 
 			  unsigned int nblocks)
 {
-  char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
-  struct cdrom_msf *msf = (struct cdrom_msf *) &buf;
+  struct cdrom_msf solaris_msf;
   msf_t _msf;
   struct cdrom_cdda cdda;
 
-  _img_private_t *_obj = env;
+  _img_private_t *p_env = p_user_data;
 
   cdio_lba_to_msf (cdio_lsn_to_lba(lsn), &_msf);
-  msf->cdmsf_min0   = from_bcd8(_msf.m);
-  msf->cdmsf_sec0   = from_bcd8(_msf.s);
-  msf->cdmsf_frame0 = from_bcd8(_msf.f);
+  solaris_msf.cdmsf_min0   = cdio_from_bcd8(_msf.m);
+  solaris_msf.cdmsf_sec0   = cdio_from_bcd8(_msf.s);
+  solaris_msf.cdmsf_frame0 = cdio_from_bcd8(_msf.f);
   
-  if (_obj->gen.ioctls_debugged == 75)
+  if (p_env->gen.ioctls_debugged == 75)
     cdio_debug ("only displaying every 75th ioctl from now on");
   
-  if (_obj->gen.ioctls_debugged == 30 * 75)
+  if (p_env->gen.ioctls_debugged == 30 * 75)
     cdio_debug ("only displaying every 30*75th ioctl from now on");
   
-  if (_obj->gen.ioctls_debugged < 75 
-      || (_obj->gen.ioctls_debugged < (30 * 75)  
-	  && _obj->gen.ioctls_debugged % 75 == 0)
-      || _obj->gen.ioctls_debugged % (30 * 75) == 0)
+  if (p_env->gen.ioctls_debugged < 75 
+      || (p_env->gen.ioctls_debugged < (30 * 75)  
+	  && p_env->gen.ioctls_debugged % 75 == 0)
+      || p_env->gen.ioctls_debugged % (30 * 75) == 0)
     cdio_debug ("reading %d", lsn);
   
-  _obj->gen.ioctls_debugged++;
+  p_env->gen.ioctls_debugged++;
   
-  cdda.cdda_addr   = lsn;
-  cdda.cdda_length = nblocks;
-  cdda.cdda_data   = (caddr_t) data;
-  if (ioctl (_obj->gen.fd, CDROMCDDA, &cdda) == -1) {
+  cdda.cdda_addr    = lsn;
+  cdda.cdda_length  = nblocks;
+  cdda.cdda_data    = (caddr_t) data;
+  cdda.cdda_subcode = CDROM_DA_NO_SUBCODE;
+  
+  if (ioctl (p_env->gen.fd, CDROMCDDA, &cdda) == -1) {
     perror ("ioctl(..,CDROMCDDA,..)");
 	return 1;
 	/* exit (EXIT_FAILURE); */
   }
-  memcpy (data, buf, CDIO_CD_FRAMESIZE_RAW);
   
   return 0;
 }
@@ -160,21 +225,15 @@ _cdio_read_audio_sectors (void *env, void *data, lsn_t lsn,
    from lsn. Returns 0 if no error. 
  */
 static int
-_cdio_read_mode1_sector (void *env, void *data, lsn_t lsn, 
-			 bool b_form2)
+_read_mode1_sector_solaris (void *env, void *data, lsn_t lsn, 
+			    bool b_form2)
 {
 
-  char buf[M2RAW_SECTOR_SIZE] = { 0, };
 #if FIXED
   do something here. 
 #else
-  if (0 > cdio_generic_lseek(env, CDIO_CD_FRAMESIZE*lsn, SEEK_SET))
-    return -1;
-  if (0 > cdio_generic_read(env, buf, CDIO_CD_FRAMESIZE))
-    return -1;
-  memcpy (data, buf, b_form2 ? M2RAW_SECTOR_SIZE: CDIO_CD_FRAMESIZE);
+  return cdio_generic_read_form1_sector(env, data, lsn);
 #endif
-  return 0;
 }
 
 /*!
@@ -183,18 +242,18 @@ _cdio_read_mode1_sector (void *env, void *data, lsn_t lsn,
    Returns 0 if no error. 
  */
 static int
-_cdio_read_mode1_sectors (void *env, void *data, lsn_t lsn, 
-			  bool b_form2, unsigned int nblocks)
+_read_mode1_sectors_solaris (void *p_user_data, void *p_data, lsn_t lsn, 
+			     bool b_form2, unsigned int nblocks)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *p_env = p_user_data;
   unsigned int i;
   int retval;
   unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
 
   for (i = 0; i < nblocks; i++) {
-    if ( (retval = _cdio_read_mode1_sector (_obj, 
-					    ((char *)data) + (blocksize * i),
-					    lsn + i, b_form2)) )
+    if ( (retval = _read_mode1_sector_solaris (p_env, 
+					    ((char *)p_data) + (blocksize * i),
+					       lsn + i, b_form2)) )
       return retval;
   }
   return 0;
@@ -205,36 +264,37 @@ _cdio_read_mode1_sectors (void *env, void *data, lsn_t lsn,
    Returns 0 if no error. 
  */
 static int
-_cdio_read_mode2_sector (void *env, void *data, lsn_t lsn, 
-			 bool b_form2)
+_read_mode2_sector_solaris (void *p_user_data, void *p_data, lsn_t lsn, 
+			    bool b_form2)
 {
   char buf[CDIO_CD_FRAMESIZE_RAW] = { 0, };
-  struct cdrom_msf *msf = (struct cdrom_msf *) &buf;
+  struct cdrom_msf solaris_msf;
   msf_t _msf;
   int offset = 0;
   struct cdrom_cdxa cd_read;
 
-  _img_private_t *_obj = env;
+  _img_private_t *p_env = p_user_data;
 
   cdio_lba_to_msf (cdio_lsn_to_lba(lsn), &_msf);
-  msf->cdmsf_min0 = from_bcd8(_msf.m);
-  msf->cdmsf_sec0 = from_bcd8(_msf.s);
-  msf->cdmsf_frame0 = from_bcd8(_msf.f);
+  solaris_msf.cdmsf_min0   = cdio_from_bcd8(_msf.m);
+  solaris_msf.cdmsf_sec0   = cdio_from_bcd8(_msf.s);
+  solaris_msf.cdmsf_frame0 = cdio_from_bcd8(_msf.f);
   
-  if (_obj->gen.ioctls_debugged == 75)
+  if (p_env->gen.ioctls_debugged == 75)
     cdio_debug ("only displaying every 75th ioctl from now on");
   
-  if (_obj->gen.ioctls_debugged == 30 * 75)
+  if (p_env->gen.ioctls_debugged == 30 * 75)
     cdio_debug ("only displaying every 30*75th ioctl from now on");
   
-  if (_obj->gen.ioctls_debugged < 75 
-      || (_obj->gen.ioctls_debugged < (30 * 75)  
-	  && _obj->gen.ioctls_debugged % 75 == 0)
-      || _obj->gen.ioctls_debugged % (30 * 75) == 0)
+  if (p_env->gen.ioctls_debugged < 75 
+      || (p_env->gen.ioctls_debugged < (30 * 75)  
+	  && p_env->gen.ioctls_debugged % 75 == 0)
+      || p_env->gen.ioctls_debugged % (30 * 75) == 0)
     cdio_debug ("reading %2.2d:%2.2d:%2.2d",
-	       msf->cdmsf_min0, msf->cdmsf_sec0, msf->cdmsf_frame0);
+		solaris_msf.cdmsf_min0, solaris_msf.cdmsf_sec0, 
+		solaris_msf.cdmsf_frame0);
   
-  _obj->gen.ioctls_debugged++;
+  p_env->gen.ioctls_debugged++;
   
   /* Using CDROMXA ioctl will actually use the same uscsi command
    * as ATAPI, except we don't need to be root
@@ -244,16 +304,16 @@ _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn,
   cd_read.cdxa_data = buf;
   cd_read.cdxa_length = 1;
   cd_read.cdxa_format = CDROM_XA_SECTOR_DATA;
-  if (ioctl (_obj->gen.fd, CDROMCDXA, &cd_read) == -1) {
+  if (ioctl (p_env->gen.fd, CDROMCDXA, &cd_read) == -1) {
     perror ("ioctl(..,CDROMCDXA,..)");
     return 1;
     /* exit (EXIT_FAILURE); */
   }
   
   if (b_form2)
-    memcpy (data, buf + (offset-CDIO_CD_SUBHEADER_SIZE), M2RAW_SECTOR_SIZE);
+    memcpy (p_data, buf + (offset-CDIO_CD_SUBHEADER_SIZE), M2RAW_SECTOR_SIZE);
   else
-    memcpy (((char *)data), buf + offset, CDIO_CD_FRAMESIZE);
+    memcpy (((char *)p_data), buf + offset, CDIO_CD_FRAMESIZE);
   
   return 0;
 }
@@ -264,18 +324,18 @@ _cdio_read_mode2_sector (void *env, void *data, lsn_t lsn,
    Returns 0 if no error. 
  */
 static int
-_cdio_read_mode2_sectors (void *env, void *data, lsn_t lsn, 
-			  bool b_form2, unsigned int nblocks)
+_read_mode2_sectors_solaris (void *p_user_data, void *data, lsn_t lsn, 
+			     bool b_form2, unsigned int nblocks)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = p_user_data;
   unsigned int i;
   int retval;
   unsigned int blocksize = b_form2 ? M2RAW_SECTOR_SIZE : CDIO_CD_FRAMESIZE;
 
   for (i = 0; i < nblocks; i++) {
-    if ( (retval = _cdio_read_mode2_sector (_obj, 
+    if ( (retval = _read_mode2_sector_solaris (env, 
 					    ((char *)data) + (blocksize * i),
-					    lsn + i, b_form2)) )
+					       lsn + i, b_form2)) )
       return retval;
   }
   return 0;
@@ -286,16 +346,16 @@ _cdio_read_mode2_sectors (void *env, void *data, lsn_t lsn,
    Return the size of the CD in logical block address (LBA) units.
  */
 static uint32_t 
-_cdio_stat_size (void *env)
+_cdio_stat_size (void *p_user_data)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = p_user_data;
 
   struct cdrom_tocentry tocent;
   uint32_t size;
 
-  tocent.cdte_track = CDIO_CDROM_LEADOUT_TRACK;
-  tocent.cdte_format = CDROM_LBA;
-  if (ioctl (_obj->gen.fd, CDROMREADTOCENTRY, &tocent) == -1)
+  tocent.cdte_track  = CDIO_CDROM_LEADOUT_TRACK;
+  tocent.cdte_format = CDIO_CDROM_LBA;
+  if (ioctl (env->gen.fd, CDROMREADTOCENTRY, &tocent) == -1)
     {
       perror ("ioctl(CDROMREADTOCENTRY)");
       exit (EXIT_FAILURE);
@@ -315,27 +375,22 @@ _cdio_stat_size (void *env)
   0 is returned if no error was found, and nonzero if there as an error.
 */
 static int
-_cdio_set_arg (void *env, const char key[], const char value[])
+_set_arg_solaris (void *p_user_data, const char key[], const char value[])
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = p_user_data;
 
   if (!strcmp (key, "source"))
     {
       if (!value)
 	return -2;
 
-      free (_obj->gen.source_name);
+      free (env->gen.source_name);
       
-      _obj->gen.source_name = strdup (value);
+      env->gen.source_name = strdup (value);
     }
   else if (!strcmp (key, "access-mode"))
     {
-      if (!strcmp(value, "ATAPI"))
-	_obj->access_mode = _AM_SUN_CTRL_SCSI; /* force ATAPI to be SCSI */
-      else if (!strcmp(value, "SCSI"))
-	_obj->access_mode = _AM_SUN_CTRL_SCSI;
-      else
-	cdio_warn ("unknown access type: %s. ignored.", value);
+      env->access_mode = str_to_access_mode_sunos(key);
     }
   else 
     return -1;
@@ -348,23 +403,27 @@ _cdio_set_arg (void *env, const char key[], const char value[])
   Return true if successful or false if an error.
 */
 static bool
-_cdio_read_toc (_img_private_t *_obj) 
+read_toc_solaris (void *p_user_data) 
 {
+  _img_private_t *p_env = p_user_data;
   int i;
 
   /* read TOC header */
-  if ( ioctl(_obj->gen.fd, CDROMREADTOCHDR, &_obj->tochdr) == -1 ) {
-    cdio_error("%s: %s\n", 
+  if ( ioctl(p_env->gen.fd, CDROMREADTOCHDR, &p_env->tochdr) == -1 ) {
+    cdio_warn("%s: %s\n", 
             "error in ioctl CDROMREADTOCHDR", strerror(errno));
     return false;
   }
 
+  p_env->gen.i_first_track = p_env->tochdr.cdth_trk0;
+  p_env->gen.i_tracks      = p_env->tochdr.cdth_trk1;
+  
   /* read individual tracks */
-  for (i=_obj->tochdr.cdth_trk0; i<=_obj->tochdr.cdth_trk1; i++) {
-    _obj->tocent[i-1].cdte_track = i;
-    _obj->tocent[i-1].cdte_format = CDROM_MSF;
-    if ( ioctl(_obj->gen.fd, CDROMREADTOCENTRY, &_obj->tocent[i-1]) == -1 ) {
-      cdio_error("%s %d: %s\n",
+  for (i=p_env->gen.i_first_track; i<=p_env->gen.i_tracks; i++) {
+    p_env->tocent[i-1].cdte_track = i;
+    p_env->tocent[i-1].cdte_format = CDIO_CDROM_MSF;
+    if ( ioctl(p_env->gen.fd, CDROMREADTOCENTRY, &p_env->tocent[i-1]) == -1 ) {
+      cdio_warn("%s %d: %s\n",
               "error in ioctl CDROMREADTOCENTRY for track", 
               i, strerror(errno));
       return false;
@@ -372,18 +431,18 @@ _cdio_read_toc (_img_private_t *_obj)
   }
 
   /* read the lead-out track */
-  _obj->tocent[_obj->tochdr.cdth_trk1].cdte_track = CDIO_CDROM_LEADOUT_TRACK;
-  _obj->tocent[_obj->tochdr.cdth_trk1].cdte_format = CDROM_MSF;
+  p_env->tocent[p_env->tochdr.cdth_trk1].cdte_track = CDIO_CDROM_LEADOUT_TRACK;
+  p_env->tocent[p_env->tochdr.cdth_trk1].cdte_format = CDIO_CDROM_MSF;
 
-  if (ioctl(_obj->gen.fd, CDROMREADTOCENTRY, 
-	    &_obj->tocent[_obj->tochdr.cdth_trk1]) == -1 ) {
-    cdio_error("%s: %s\n", 
+  if (ioctl(p_env->gen.fd, CDROMREADTOCENTRY, 
+	    &p_env->tocent[p_env->tochdr.cdth_trk1]) == -1 ) {
+    cdio_warn("%s: %s\n", 
 	     "error in ioctl CDROMREADTOCENTRY for lead-out",
             strerror(errno));
     return false;
   }
 
-  _obj->gen.toc_init = true;
+  p_env->gen.toc_init = true;
   return true;
 }
 
@@ -392,17 +451,17 @@ _cdio_read_toc (_img_private_t *_obj)
   also free obj.
  */
 static int 
-_cdio_eject_media (void *env) {
+eject_media_solaris (void *p_user_data) {
 
-  _img_private_t *_obj = env;
+  _img_private_t *env = p_user_data;
   int ret;
 
-  close(_obj->gen.fd);
-  _obj->gen.fd = -1;
-  if (_obj->gen.fd > -1) {
-    if ((ret = ioctl(_obj->gen.fd, CDROMEJECT)) != 0) {
-      cdio_generic_free((void *) _obj);
-      cdio_error ("CDROMEJECT failed: %s\n", strerror(errno));
+  close(env->gen.fd);
+  env->gen.fd = -1;
+  if (env->gen.fd > -1) {
+    if ((ret = ioctl(env->gen.fd, CDROMEJECT)) != 0) {
+      cdio_generic_free((void *) env);
+      cdio_warn ("CDROMEJECT failed: %s\n", strerror(errno));
       return 1;
     } else {
       return 0;
@@ -419,7 +478,7 @@ _cdio_malloc_and_zero(size_t size) {
   if( !size ) size++;
     
   if((ptr = malloc(size)) == NULL) {
-    cdio_error("malloc() failed: %s", strerror(errno));
+    cdio_warn("malloc() failed: %s", strerror(errno));
     return NULL;
   }
 
@@ -431,14 +490,14 @@ _cdio_malloc_and_zero(size_t size) {
   Return the value associated with the key "arg".
 */
 static const char *
-_cdio_get_arg (void *env, const char key[])
+get_arg_solaris (void *p_user_data, const char key[])
 {
-  _img_private_t *_obj = env;
+  _img_private_t *env = p_user_data;
 
   if (!strcmp (key, "source")) {
-    return _obj->gen.source_name;
+    return env->gen.source_name;
   } else if (!strcmp (key, "access-mode")) {
-    switch (_obj->access_mode) {
+    switch (env->access_mode) {
     case _AM_SUN_CTRL_ATAPI:
       return "ATAPI";
     case _AM_SUN_CTRL_SCSI:
@@ -478,57 +537,147 @@ cdio_get_default_device_solaris(void)
     }
     return device;
   }
+  /* Check if it could be a Solaris media*/
+  if((stat(DEFAULT_CDIO_DEVICE, &stb) == 0) && S_ISDIR(stb.st_mode)) {
+    device = _cdio_malloc_and_zero(strlen(DEFAULT_CDIO_DEVICE) + 4);
+    sprintf(device, "%s/s0", DEFAULT_CDIO_DEVICE);
+    return device;
+  }
   return strdup(DEFAULT_CDIO_DEVICE);
 }
 
-/*!
-  Return the number of of the first track. 
-  CDIO_INVALID_TRACK is returned on error.
+/*! 
+  Get disc type associated with cd object.
 */
-static track_t
-_cdio_get_first_track_num(void *env) 
+
+static discmode_t
+get_discmode_solaris (void *p_user_data)
 {
-  _img_private_t *_obj = env;
-  
-  if (!_obj->gen.toc_init) _cdio_read_toc (_obj) ;
+  _img_private_t *p_env = p_user_data;
+  track_t i_track;
+  discmode_t discmode=CDIO_DISC_MODE_NO_INFO;
+  struct dk_minfo media;
+  int ret;
 
-  return FIRST_TRACK_NUM;
-}
+  /* Get the media info */
+  if((ret = ioctl(p_env->gen.fd, DKIOCGMEDIAINFO, &media)) != 0) {
+     cdio_warn ("DKIOCGMEDIAINFO failed: %s\n", strerror(errno));
+	 return CDIO_DISC_MODE_NO_INFO;
+  }
+  switch(media.dki_media_type) {
+  case DK_CDROM:
+  case DK_CDR:
+  case DK_CDRW:
+  /* Do cdrom detection */
+  break;
+  case DK_DVDROM:	return CDIO_DISC_MODE_DVD_ROM;
+  case DK_DVDR:		discmode = CDIO_DISC_MODE_DVD_R;
+  break;
+  case DK_DVDRAM:	discmode = CDIO_DISC_MODE_DVD_RAM;
+  break;
+  case DK_DVDRW:
+  case DK_DVDRW+1:	discmode = CDIO_DISC_MODE_DVD_RW;
+  break;
+  default: /* no valid match */
+  return CDIO_DISC_MODE_NO_INFO; 
+  }
 
-/*!
-  Return the number of tracks in the current medium.
-*/
-static track_t
-_cdio_get_num_tracks(void *env) 
-{
-  _img_private_t *_obj = env;
-  
-  if (!_obj->gen.toc_init) _cdio_read_toc (_obj) ;
+  if((discmode == CDIO_DISC_MODE_DVD_RAM || 
+      discmode == CDIO_DISC_MODE_DVD_RW ||
+      discmode == CDIO_DISC_MODE_DVD_R)) {
+    /* Fallback to uscsi if we can */
+    if(geteuid() == 0)
+      return get_discmode_solaris(p_user_data);
+    return discmode;
+  }
 
-  return TOTAL_TRACKS;
+  if (!p_env->gen.toc_init) 
+    read_toc_solaris (p_env);
+
+  if (!p_env->gen.toc_init) 
+    return CDIO_DISC_MODE_NO_INFO;
+
+  for (i_track = p_env->gen.i_first_track; 
+       i_track < p_env->gen.i_first_track + p_env->tochdr.cdth_trk1 ; 
+       i_track ++) {
+    track_format_t track_fmt=get_track_format_solaris(p_env, i_track);
+
+    switch(track_fmt) {
+    case TRACK_FORMAT_AUDIO:
+      switch(discmode) {
+	case CDIO_DISC_MODE_NO_INFO:
+	  discmode = CDIO_DISC_MODE_CD_DA;
+	  break;
+	case CDIO_DISC_MODE_CD_DA:
+	case CDIO_DISC_MODE_CD_MIXED: 
+	case CDIO_DISC_MODE_ERROR: 
+	  /* No change*/
+	  break;
+      default:
+	  discmode = CDIO_DISC_MODE_CD_MIXED;
+      }
+      break;
+    case TRACK_FORMAT_XA:
+      switch(discmode) {
+	case CDIO_DISC_MODE_NO_INFO:
+	  discmode = CDIO_DISC_MODE_CD_XA;
+	  break;
+	case CDIO_DISC_MODE_CD_XA:
+	case CDIO_DISC_MODE_CD_MIXED: 
+	case CDIO_DISC_MODE_ERROR: 
+	  /* No change*/
+	  break;
+      default:
+	discmode = CDIO_DISC_MODE_CD_MIXED;
+      }
+      break;
+    case TRACK_FORMAT_DATA:
+      switch(discmode) {
+	case CDIO_DISC_MODE_NO_INFO:
+	  discmode = CDIO_DISC_MODE_CD_DATA;
+	  break;
+	case CDIO_DISC_MODE_CD_DATA:
+	case CDIO_DISC_MODE_CD_MIXED: 
+	case CDIO_DISC_MODE_ERROR: 
+	  /* No change*/
+	  break;
+      default:
+	discmode = CDIO_DISC_MODE_CD_MIXED;
+      }
+      break;
+    case TRACK_FORMAT_ERROR:
+    default:
+      discmode = CDIO_DISC_MODE_ERROR;
+    }
+  }
+  return discmode;
 }
 
 /*!  
   Get format of track. 
 */
 static track_format_t
-_cdio_get_track_format(void *env, track_t track_num) 
+get_track_format_solaris(void *p_user_data, track_t i_track) 
 {
-  _img_private_t *_obj = env;
+  _img_private_t *p_env = p_user_data;
   
-  if (!_obj->gen.init) _cdio_init(_obj);
-  if (!_obj->gen.toc_init) _cdio_read_toc (_obj) ;
+  if ( !p_env ) return TRACK_FORMAT_ERROR;
+  if (!p_env->gen.init) init_solaris(p_env);
+  if (!p_env->gen.toc_init) read_toc_solaris (p_user_data) ;
 
-  if (track_num > TOTAL_TRACKS || track_num == 0)
+  if ( (i_track > p_env->gen.i_tracks+p_env->gen.i_first_track) 
+       || i_track < p_env->gen.i_first_track)
     return TRACK_FORMAT_ERROR;
+
+  i_track -= p_env->gen.i_first_track;
 
   /* This is pretty much copied from the "badly broken" cdrom_count_tracks
      in linux/cdrom.c.
    */
-  if (_obj->tocent[track_num-1].cdte_ctrl & CDROM_DATA_TRACK) {
-    if (_obj->tocent[track_num-1].cdte_format == 0x10)
+  if (p_env->tocent[i_track].cdte_ctrl & CDROM_DATA_TRACK) {
+    if (p_env->tocent[i_track].cdte_format == CDIO_CDROM_CDI_TRACK)
       return TRACK_FORMAT_CDI;
-    else if (_obj->tocent[track_num-1].cdte_format == 0x20) 
+    else if (p_env->tocent[i_track].cdte_format == CDIO_CDROM_XA_TRACK) 
       return TRACK_FORMAT_XA;
     else
       return TRACK_FORMAT_DATA;
@@ -546,50 +695,56 @@ _cdio_get_track_format(void *env, track_t track_num)
   FIXME: there's gotta be a better design for this and get_track_format?
 */
 static bool
-_cdio_get_track_green(void *env, track_t track_num) 
+_cdio_get_track_green(void *p_user_data, track_t i_track) 
 {
-  _img_private_t *_obj = env;
+  _img_private_t *p_env = p_user_data;
   
-  if (!_obj->gen.init) _cdio_init(_obj);
-  if (!_obj->gen.toc_init) _cdio_read_toc (_obj) ;
+  if ( !p_env ) return false;
+  if (!p_env->gen.init) init_solaris(p_env);
+  if (!p_env->gen.toc_init) read_toc_solaris (p_env) ;
 
-  if (track_num == CDIO_CDROM_LEADOUT_TRACK) track_num = TOTAL_TRACKS+1;
-
-  if (track_num > TOTAL_TRACKS+1 || track_num == 0)
+  if (i_track >= p_env->gen.i_tracks+p_env->gen.i_first_track 
+      || i_track < p_env->gen.i_first_track)
     return false;
 
+  i_track -= p_env->gen.i_first_track;
+
   /* FIXME: Dunno if this is the right way, but it's what 
-     I was using in cdinfo for a while.
+     I was using in cd-info for a while.
    */
-  return ((_obj->tocent[track_num-1].cdte_ctrl & 2) != 0);
+  return ((p_env->tocent[i_track].cdte_ctrl & 2) != 0);
 }
 
 /*!  
   Return the starting MSF (minutes/secs/frames) for track number
-  track_num in obj.  Tracks numbers start at 1.
+  track_num in obj.  Track numbers usually start at something 
+  greater than 0, usually 1.
+
   The "leadout" track is specified either by
   using track_num LEADOUT_TRACK or the total tracks+1.
   False is returned if there is no entry.
 */
 static bool
-_cdio_get_track_msf(void *env, track_t track_num, msf_t *msf)
+_cdio_get_track_msf(void *p_user_data, track_t i_track, msf_t *msf)
 {
-  _img_private_t *_obj = env;
+  _img_private_t *p_env = p_user_data;
 
   if (NULL == msf) return false;
 
-  if (!_obj->gen.init) _cdio_init(_obj);
-  if (!_obj->gen.toc_init) _cdio_read_toc (_obj) ;
+  if (!p_env->gen.init) init_solaris(p_env);
+  if (!p_env->gen.toc_init) read_toc_solaris (p_env) ;
 
-  if (track_num == CDIO_CDROM_LEADOUT_TRACK) track_num = TOTAL_TRACKS+1;
+  if (i_track == CDIO_CDROM_LEADOUT_TRACK) 
+    i_track = p_env->gen.i_tracks + p_env->gen.i_first_track;
 
-  if (track_num > TOTAL_TRACKS+1 || track_num == 0) {
+  if (i_track > (p_env->gen.i_tracks+p_env->gen.i_first_track) 
+      || i_track < p_env->gen.i_first_track) {
     return false;
   } else {
-    struct cdrom_tocentry *msf0 = &_obj->tocent[track_num-1];
-    msf->m = to_bcd8(msf0->cdte_addr.msf.minute);
-    msf->s = to_bcd8(msf0->cdte_addr.msf.second);
-    msf->f = to_bcd8(msf0->cdte_addr.msf.frame);
+    struct cdrom_tocentry *msf0 = &p_env->tocent[i_track-1];
+    msf->m = cdio_to_bcd8(msf0->cdte_addr.msf.minute);
+    msf->s = cdio_to_bcd8(msf0->cdte_addr.msf.second);
+    msf->f = cdio_to_bcd8(msf0->cdte_addr.msf.frame);
     return true;
   }
 }
@@ -603,6 +758,7 @@ cdio_get_default_device_solaris(void)
 {
   return strdup(DEFAULT_CDIO_DEVICE);
 }
+
 #endif /* HAVE_SOLARIS_CDROM */
 
 /*!
@@ -614,21 +770,41 @@ cdio_get_devices_solaris (void)
 #ifndef HAVE_SOLARIS_CDROM
   return NULL;
 #else
+  char volpath[256];
+  struct stat st;
   char **drives = NULL;
-  unsigned int num_files=0;
+  unsigned int i_files=0;
 #ifdef HAVE_GLOB_H
   unsigned int i;
   glob_t globbuf;
+
   globbuf.gl_offs = 0;
   glob("/vol/dev/aliases/cdrom*", GLOB_DOOFFS, NULL, &globbuf);
   for (i=0; i<globbuf.gl_pathc; i++) {
-    cdio_add_device_list(&drives, globbuf.gl_pathv[i], &num_files);
+    if(stat(globbuf.gl_pathv[i], &st) < 0)
+      continue;
+
+    /* Check if this is a directory, if so it's probably Solaris media */
+    if(S_ISDIR(st.st_mode)) {
+      sprintf(volpath, "%s/s0", globbuf.gl_pathv[i]);
+      if(stat(volpath, &st) == 0)
+        cdio_add_device_list(&drives, volpath, &i_files);
+	}else
+      cdio_add_device_list(&drives, globbuf.gl_pathv[i], &i_files);
   }
   globfree(&globbuf);
 #else
-  cdio_add_device_list(&drives, DEFAULT_CDIO_DEVICE, &num_files);
+  if(stat(DEFAULT_CDIO_DEVICE, &st) == 0) {
+    /* Check if this is a directory, if so it's probably Solaris media */
+    if(S_ISDIR(st.st_mode)) {
+      sprintf(volpath, "%s/s0", DEFAULT_CDIO_DEVICE);
+      if(stat(volpath, &st) == 0)
+        cdio_add_device_list(&drives, volpath, &i_files);
+    }else
+      cdio_add_device_list(&drives, DEFAULT_CDIO_DEVICE, &i_files);
+  }
 #endif /*HAVE_GLOB_H*/
-  cdio_add_device_list(&drives, NULL, &num_files);
+  cdio_add_device_list(&drives, NULL, &i_files);
   return drives;
 #endif /*HAVE_SOLARIS_CDROM*/
 }
@@ -639,47 +815,85 @@ cdio_get_devices_solaris (void)
   ones to set that up.
  */
 CdIo *
-cdio_open_solaris (const char *source_name)
+cdio_open_solaris (const char *psz_source_name)
+{
+  return cdio_open_am_solaris(psz_source_name, NULL);
+}
+
+/*!
+  Initialization routine. This is the only thing that doesn't
+  get called via a function pointer. In fact *we* are the
+  ones to set that up.
+ */
+CdIo *
+cdio_open_am_solaris (const char *psz_orig_source, const char *access_mode)
 {
 
 #ifdef HAVE_SOLARIS_CDROM
   CdIo *ret;
   _img_private_t *_data;
+  char *psz_source;
 
-  cdio_funcs _funcs = {
-    .eject_media        = _cdio_eject_media,
-    .free               = cdio_generic_free,
-    .get_arg            = _cdio_get_arg,
-    .get_devices        = cdio_get_devices_solaris,
-    .get_default_device = cdio_get_default_device_solaris,
-    .get_first_track_num= _cdio_get_first_track_num,
-    .get_mcn            = NULL,
-    .get_num_tracks     = _cdio_get_num_tracks,
-    .get_track_format   = _cdio_get_track_format,
-    .get_track_green    = _cdio_get_track_green,
-    .get_track_lba      = NULL, /* This could be implemented if need be. */
-    .get_track_msf      = _cdio_get_track_msf,
-    .lseek              = cdio_generic_lseek,
-    .read               = cdio_generic_read,
-    .read_audio_sectors = _cdio_read_audio_sectors,
-    .read_mode1_sector  = _cdio_read_mode1_sector,
-    .read_mode1_sectors = _cdio_read_mode1_sectors,
-    .read_mode2_sector  = _cdio_read_mode2_sector,
-    .read_mode2_sectors = _cdio_read_mode2_sectors,
-    .stat_size          = _cdio_stat_size,
-    .set_arg            = _cdio_set_arg
-  };
+  cdio_funcs _funcs;
+
+  _funcs.eject_media        = eject_media_solaris;
+  _funcs.free               = cdio_generic_free;
+  _funcs.get_arg            = get_arg_solaris;
+  _funcs.get_cdtext         = get_cdtext_generic;
+  _funcs.get_default_device = cdio_get_default_device_solaris;
+  _funcs.get_devices        = cdio_get_devices_solaris;
+  _funcs.get_discmode       = get_discmode_solaris;
+  _funcs.get_drive_cap      = scsi_mmc_get_drive_cap_generic;
+  _funcs.get_first_track_num= get_first_track_num_generic;
+  _funcs.get_hwinfo         = NULL;
+  _funcs.get_mcn            = scsi_mmc_get_mcn_generic,
+  _funcs.get_num_tracks     = get_num_tracks_generic;
+  _funcs.get_track_format   = get_track_format_solaris;
+  _funcs.get_track_green    = _cdio_get_track_green;
+  _funcs.get_track_lba      = NULL; /* This could be implemented if need be. */
+  _funcs.get_track_msf      = _cdio_get_track_msf;
+  _funcs.lseek              = cdio_generic_lseek;
+  _funcs.read               = cdio_generic_read;
+  _funcs.read_audio_sectors = _read_audio_sectors_solaris;
+  _funcs.read_mode1_sector  = _read_mode1_sector_solaris;
+  _funcs.read_mode1_sectors = _read_mode1_sectors_solaris;
+  _funcs.read_mode2_sector  = _read_mode2_sector_solaris;
+  _funcs.read_mode2_sectors = _read_mode2_sectors_solaris;
+  _funcs.read_toc           = read_toc_solaris;
+  _funcs.run_scsi_mmc_cmd   = run_scsi_cmd_solaris;
+  _funcs.stat_size          = _cdio_stat_size;
+  _funcs.set_arg            = _set_arg_solaris;
 
   _data                 = _cdio_malloc (sizeof (_img_private_t));
+
+  _data->access_mode    = _AM_SUN_CTRL_SCSI;
+  _data->gen.init       = false;
   _data->gen.fd         = -1;
+  _data->gen.toc_init   = false;
+  _data->gen.b_cdtext_init  = false;
+  _data->gen.b_cdtext_error = false;
 
-  _cdio_set_arg(_data, "source", (NULL == source_name) 
-		? DEFAULT_CDIO_DEVICE: source_name);
+  if (NULL == psz_orig_source) {
+    psz_source = cdio_get_default_device_solaris();
+    if (NULL == psz_source) return NULL;
+    _set_arg_solaris(_data, "source", psz_source);
+    free(psz_source);
+  } else {
+    if (cdio_is_device_generic(psz_orig_source))
+      _set_arg_solaris(_data, "source", psz_orig_source);
+    else {
+      /* The below would be okay if all device drivers worked this way. */
+#if 0
+      cdio_info ("source %s is not a device", psz_orig_source);
+#endif
+      return NULL;
+    }
+  }
 
-  ret = cdio_new (_data, &_funcs);
+  ret = cdio_new ( (void *) _data, &_funcs );
   if (ret == NULL) return NULL;
 
-  if (_cdio_init(_data))
+  if (init_solaris(_data))
     return ret;
   else {
     cdio_generic_free (_data);
@@ -701,4 +915,3 @@ cdio_have_solaris (void)
   return false;
 #endif /* HAVE_SOLARIS_CDROM */
 }
-

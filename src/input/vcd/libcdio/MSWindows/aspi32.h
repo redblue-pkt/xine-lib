@@ -1,6 +1,6 @@
 /* Win32 aspi specific */
 /*
-    $Id: aspi32.h,v 1.1 2004/04/11 12:20:31 miguelfreitas Exp $
+    $Id: aspi32.h,v 1.2 2005/01/01 02:43:58 rockyb Exp $
 
     Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
@@ -28,8 +28,59 @@
 #define SC_GET_DEV_TYPE     0x01
 #define SC_EXEC_SCSI_CMD    0x02
 #define SC_GET_DISK_INFO    0x06
-#define SS_COMP             0x01
-#define SS_PENDING          0x00
+
+//*****************************************************************************
+//      %%% SRB Status %%%
+//*****************************************************************************
+
+#define SS_PENDING                0x00  // SRB being processed
+#define SS_COMP                   0x01  // SRB completed without error
+#define SS_ABORTED                0x02  // SRB aborted
+#define SS_ABORT_FAIL             0x03  // Unable to abort SRB
+#define SS_ERR                    0x04  // SRB completed with error
+
+#define SS_INVALID_CMD            0x80  // Invalid ASPI command
+#define SS_INVALID_HA             0x81  // Invalid host adapter number
+#define SS_NO_DEVICE              0x82  // SCSI device not installed
+
+#define SS_INVALID_SRB            0xE0  // Invalid parameter set in SRB
+#define SS_OLD_MANAGER            0xE1  // ASPI manager doesn't support Windows
+#define SS_BUFFER_ALIGN           0xE1  // Buffer not aligned (replaces 
+                                        // OLD_MANAGER in Win32)
+#define SS_ILLEGAL_MODE           0xE2  // Unsupported Windows mode
+#define SS_NO_ASPI                0xE3  // No ASPI managers resident
+#define SS_FAILED_INIT            0xE4  // ASPI for windows failed init
+#define SS_ASPI_IS_BUSY           0xE5  // No resources available to execute 
+                                        // cmd
+#define SS_BUFFER_TOO_BIG         0xE6  // Buffer size to big to handle!
+#define SS_MISMATCHED_COMPONENTS  0xE7  // The DLLs/EXEs of ASPI don't version 
+                                        // check
+#define SS_NO_ADAPTERS            0xE8  // No host adapters to manage
+#define SS_INSUFFICIENT_RESOURCES 0xE9  // Couldn't allocate resources needed 
+                                        // to init
+#define SS_ASPI_IS_SHUTDOWN       0xEA  // Call came to ASPI after 
+                                        // PROCESS_DETACH
+#define SS_BAD_INSTALL            0xEB  // The DLL or other components are installed wrong
+
+//*****************************************************************************
+//      %%% Host Adapter Status %%%
+//*****************************************************************************
+
+#define HASTAT_OK                 0x00    // Host adapter did not detect an
+                                          // error
+#define HASTAT_SEL_TO             0x11    // Selection Timeout
+#define HASTAT_DO_DU              0x12    // Data overrun data underrun
+#define HASTAT_BUS_FREE           0x13    // Unexpected bus free
+#define HASTAT_PHASE_ERR          0x14    // Target bus phase sequence
+                                          // failure
+#define HASTAT_TIMEOUT            0x09    // Timed out while SRB was
+                                          // waiting to beprocessed.
+#define HASTAT_COMMAND_TIMEOUT    0x0B    // Adapter timed out processing SRB.
+#define HASTAT_MESSAGE_REJECT     0x0D    // While processing SRB, the
+                                          // adapter received a MESSAGE
+#define HASTAT_BUS_RESET            0x0E  // A bus reset was detected.
+#define HASTAT_PARITY_ERROR         0x0F  // A parity error was detected.
+#define HASTAT_REQUEST_SENSE_FAILED 0x10  // The adapter failed in issuing
 #define SS_NO_ADAPTERS      0xE8
 #define SRB_DIR_IN          0x08
 #define SRB_DIR_OUT         0x10
@@ -114,33 +165,85 @@ typedef struct                     // Offset
 }
 SRB_HAInquiry;
 
-const char * wnaspi32_is_cdrom(const char drive_letter);
+/*! 
+  Get disc type associated with cd object.
+*/
+discmode_t get_discmode_aspi (_img_private_t *p_env);
 
 /*!
-  Initialize CD device.
+  Return the the kind of drive capabilities of device.
+
+  Note: string is malloc'd so caller should free() then returned
+  string when done with it.
+
  */
-bool wnaspi32_init_win32 (_img_private_t *env);
+char * get_mcn_aspi (const _img_private_t *env);
+
+/*!  
+  Get the format (XA, DATA, AUDIO) of a track. 
+*/
+track_format_t get_track_format_aspi(const _img_private_t *env, 
+				     track_t i_track); 
 
 /*!
-   Reads an audio device into data starting from lsn.
-   Returns 0 if no error. 
+  Initialize internal structures for CD device.
  */
-int wnaspi32_read_audio_sectors (_img_private_t *env, void *data, lsn_t lsn, 
-			       unsigned int nblocks);
+bool init_aspi (_img_private_t *env);
+
+/*
+  Read cdtext information for a CdIo object .
+  
+  return true on success, false on error or CD-TEXT information does
+  not exist.
+*/
+bool init_cdtext_aspi (_img_private_t *env);
+
+const char *is_cdrom_aspi(const char drive_letter);
+
+/*!
+   Reads an audio device using the DeviceIoControl method into data
+   starting from lsn.  Returns 0 if no error.
+ */
+int read_audio_sectors_aspi (_img_private_t *obj, void *data, lsn_t lsn, 
+			     unsigned int nblocks);
+/*!
+   Reads a single mode1 sector using the DeviceIoControl method into
+   data starting from lsn. Returns 0 if no error.
+ */
+int read_mode1_sector_aspi (const _img_private_t *env, void *data, 
+			    lsn_t lsn, bool b_form2);
 /*!
    Reads a single mode2 sector from cd device into data starting
    from lsn. Returns 0 if no error. 
  */
-int wnaspi32_read_mode2_sector (_img_private_t *env, void *data, lsn_t lsn);
+int read_mode2_sector_aspi (const _img_private_t *env, void *data, lsn_t lsn, 
+			    bool b_form2);
 
 /*! 
   Read and cache the CD's Track Table of Contents and track info.
   Return true if successful or false if an error.
 */
-bool wnaspi32_read_toc (_img_private_t *env);
+bool read_toc_aspi (_img_private_t *env);
 
-/*!  
-  Get format of track. 
-*/
-track_format_t wnaspi32_get_track_format(_img_private_t *env, 
-					 track_t track_num);
+/*!
+  Run a SCSI MMC command. 
+ 
+  env	        private CD structure 
+  i_timeout     time in milliseconds we will wait for the command
+                to complete. If this value is -1, use the default 
+		time-out value.
+  p_buf	        Buffer for data, both sending and receiving
+  i_buf	        Size of buffer
+  e_direction	direction the transfer is to go.
+  cdb	        CDB bytes. All values that are needed should be set on 
+                input. We'll figure out what the right CDB length should be.
+
+  Return 0 if command completed successfully.
+ */
+int run_scsi_cmd_aspi( const void *p_user_data, 
+		       unsigned int i_timeout,
+		       unsigned int i_cdb, 
+		       const scsi_mmc_cdb_t * p_cdb,
+		       scsi_mmc_direction_t e_direction, 
+		       unsigned int i_buf, /*in/out*/ void *p_buf );
+

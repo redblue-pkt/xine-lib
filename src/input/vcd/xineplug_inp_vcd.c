@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.28 2004/12/30 09:05:57 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.29 2005/01/01 02:43:57 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -1024,7 +1024,6 @@ vcd_handle_events (void)
             num = 0; 
             break;
           case XINE_EVENT_INPUT_MENU2: 
-#if defined(LIBVCD_VERSION)
             if  (vcdplayer_pbc_is_on(this)) {
               lid_t lid=vcdinfo_get_multi_default_lid(this->vcd, this->i_lid,
                                                       this->i_lsn);
@@ -1046,17 +1045,6 @@ vcd_handle_events (void)
               LOG_MSG("%s\n", _("DEFAULT selected but PBC is not on."));
               ;
             }
-#else 
-            if (this->default_entry == VCDINFO_INVALID_ENTRY) {
-              LOG_MSG("%s\n", _("selection has no DEFAULT entry"));
-              return false;
-            }
-            itemid.num = this->default_entry;
-            dbg_print((INPUT_DBG_PBC|INPUT_DBG_EVENT), 
-                      "DEFAULT to %d\n", itemid.num);
-            /* Don't loop around -- doesn't make sense to loop a return*/
-            num = 0; 
-#endif /* LIBVCD_VERSION */
             break;
           case XINE_EVENT_INPUT_NEXT: 
             if (this->next_entry == VCDINFO_INVALID_ENTRY) {
@@ -1093,13 +1081,9 @@ vcd_handle_events (void)
         number_addend = 0;
         
         if (vcdplayer_pbc_is_on(this)) {
-#if defined(LIBVCD_VERSION)
           /* version 0.7.21 or greater */
           lid_t next_num=vcdinfo_selection_get_lid(this->vcd, this->i_lid, 
                                                    itemid.num);
-#else 
-          lid_t next_num=vcdplayer_selection2lid(this, itemid.num);
-#endif /* LIBVCD_VERSION */
           if (VCDINFO_INVALID_LID != next_num) {
             itemid.num = next_num;
             _x_demux_flush_engine(my_vcd.stream);
