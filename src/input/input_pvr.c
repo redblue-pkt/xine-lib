@@ -29,10 +29,7 @@
  * requires:
  *   - audio.av_sync_method=resample
  *   - ivtv driver must be set to send dvd-like mpeg2 stream.
- *   - the stream must start with the mpeg marker (00 00 01 ba)
  *
- * todo:
- *   - event processing code to switch channels, start and stop recording.
  *
  * MRL: 
  *   pvr:<prefix_to_tmp_files>!<prefix_to_saved_files>!<max_page_age>
@@ -40,7 +37,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.6 2003/03/07 16:23:02 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.7 2003/03/10 23:21:27 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,12 +69,17 @@
 #define PVR_BLOCK_SIZE    2048			/* pvr works with dvd-like data */
 #define BLOCKS_PER_PAGE   102400		/* 200MB per page. each session can have several pages */
 #define MAX_PAGES         10000			/* maximum number of pages to keep track */
-#define PVR_FILENAME      "%s-%08d-%08d.vob"
+#define PVR_FILENAME      "%s_%08d_%08d.vob"
 #define PVR_FILENAME_SIZE 1+8+1+8+4+1
 #define SAVE_FILENAME     "%sch%03d %02d-%02d-%04d %02d:%02d:%02d_%04d.vob"
 #define SAVE_FILENAME_SIZE 2+3+1+2+1+2+1+4+1+2+1+2+1+2+1+4+4+1
 
+#define NUM_PREVIEW_BUFFERS   250  /* used in mpeg_block demuxer */
+
 #define LOG 1
+/*
+#define SCRLOG 1
+*/
 
 typedef struct pvrscr_s pvrscr_t;
 
@@ -139,7 +141,9 @@ typedef struct {
   pthread_t           pvr_thread;
   int                 pvr_running;
   int                 pvr_playing;
-  
+
+  int                 preview_buffers;
+      
   /* device properties */
   int                 input;
   int                 channel;
@@ -303,7 +307,7 @@ static pvrscr_t* pvrscr_init (void) {
   
   pvrscr_speed_tunning(this, 1.0 );
   pvrscr_set_speed (&this->scr, XINE_SPEED_PAUSE);
-#ifdef LOG
+#ifdef SCRLOG
   printf("input_pvr: scr init complete\n");
 #endif
 
@@ -323,7 +327,7 @@ static uint32_t block_to_page(pvr_input_plugin_t *this, uint32_t block) {
 
 static uint32_t pvr_plugin_get_capabilities (input_plugin_t *this_gen) {
 
-  /*pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen;*/
+  /* pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen; */
 
   return INPUT_CAP_BLOCK | INPUT_CAP_SEEKABLE;
 }
@@ -364,7 +368,7 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
     /* buffer is empty. pause it for a while */
     this->scr_tunning = -2; /* marked as paused */
     pvrscr_speed_tunning(this->scr, 0.0);
-#ifdef LOG
+#ifdef SCRLOG
     printf("input_pvr: buffer empty, pausing playback\n" );
 #endif
   
@@ -375,7 +379,7 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
       this->scr_tunning = 0;
       
       pvrscr_speed_tunning(this->scr, 1.0 );
-#ifdef LOG
+#ifdef SCRLOG
       printf("input_pvr: resuming playback\n" );
 #endif
     }
@@ -393,7 +397,7 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
     
     if( scr_tunning != this->scr_tunning ) {
       this->scr_tunning = scr_tunning;
-#ifdef LOG
+#ifdef SCRLOG
       printf("input_pvr: scr_tunning = %d (used: %d free: %d)\n", scr_tunning, num_used, num_free );
 #endif
       
@@ -415,6 +419,9 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
 static int pvr_break_rec_page (pvr_input_plugin_t *this) {
   
   char filename[strlen(this->tmp_prefix) + PVR_FILENAME_SIZE];
+  
+  if( this->session == -1 ) /* not recording */
+    return 1;
      
   if( this->rec_fd != -1 && this->rec_fd != this->play_fd ) {
     close(this->rec_fd);  
@@ -708,9 +715,9 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       sprintf(src_filename, PVR_FILENAME, this->tmp_prefix, this->session, i);
       if( !strlen(this->save_name) )
         sprintf(dst_filename, SAVE_FILENAME, this->save_prefix, 
-                this->channel, rec_time.tm_mon, rec_time.tm_mday,
-                rec_time.tm_year, rec_time.tm_hour, rec_time.tm_min,
-                rec_time.tm_sec, i-this->first_page+1);
+                this->channel, rec_time.tm_mon+1, rec_time.tm_mday,
+                rec_time.tm_year+1900, rec_time.tm_hour, rec_time.tm_min,
+                rec_time.tm_sec, i-this->save_page+1);
       else
         sprintf(dst_filename, "%s%s-%04d.vob", this->save_prefix, this->save_name,
                 i-this->first_page+1);
@@ -760,6 +767,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         pvr_finish_recording(this);
         time(&this->start_time);
         this->show_time = this->start_time;
+        this->session = v4l2_data->session_id;
       } else {
         /* no session change, break the page and store a new show_time */
         pthread_mutex_lock(&this->dev_lock);
@@ -770,11 +778,13 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
       }
       
       if( v4l2_data->input != this->input ||
-          v4l2_data->channel != this->channel ) {
+          v4l2_data->channel != this->channel || 
+          v4l2_data->frequency != this->frequency ) {
         struct video_channel v;
 
         this->input = v4l2_data->input;
         this->channel = v4l2_data->channel;
+        this->frequency = v4l2_data->frequency;
 #ifdef LOG
         printf("input_pvr: switching to input:%d chan:%d freq:%.2f\n", 
                v4l2_data->input, 
@@ -792,7 +802,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         pthread_mutex_unlock(&this->dev_lock);
         
         /* FIXME: also flush the device */
-        xine_demux_flush_engine(this->stream);
+        /* xine_demux_flush_engine(this->stream); */
       }
       break;
     
@@ -871,7 +881,8 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
     this->want_data = 0;
     pthread_cond_signal (&this->wake_pvr);
   } else if ( !this->pvr_playing && !this->stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] ) {
-    this->pvr_playing = 1;    
+    this->pvr_playing = 1;
+    this->play_blk = this->rec_blk;
   }
       
   if( this->pvr_playing )
@@ -906,12 +917,19 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
       this->valid_data = 0;
       pthread_cond_signal (&this->wake_pvr);
     }
-  } else {
-    buf->type = BUF_CONTROL_NOP;
-    buf->size = 0;    
-  }
+    pthread_mutex_unlock(&this->lock);
   
-  pthread_mutex_unlock(&this->lock);
+  } else {
+    pthread_mutex_unlock(&this->lock);
+    
+    buf->type = BUF_CONTROL_NOP;
+    buf->size = 0; 
+    
+    if(this->preview_buffers)
+      this->preview_buffers--;
+    else
+      xine_usec_sleep (20000);
+  }
   
   return buf;
 }
@@ -1101,6 +1119,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->input = -1;
   this->channel = -1;
   this->pvr_playing = 1;
+  this->preview_buffers = NUM_PREVIEW_BUFFERS;
   
   this->pvr_running = 1;
   pthread_mutex_init (&this->lock, NULL);
