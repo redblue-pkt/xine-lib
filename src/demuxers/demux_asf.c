@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.109 2003/02/23 09:06:54 esnel Exp $
+ * $Id: demux_asf.c,v 1.110 2003/03/04 19:58:30 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1255,7 +1255,7 @@ static void asf_read_packet(demux_asf_t *this) {
  * parse a m$ http reference
  * format :
  * [Reference]
- * Ref1=http://64.202.98.55:80/dcradio700
+ * Ref1=http://www.blabla.com/blabla
  */
 static int demux_asf_parse_http_references( demux_asf_t *this) {
   char           *buf = NULL;
@@ -1305,6 +1305,68 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
     data = malloc(uevent.data_length);
     uevent.data = data;
     strcpy(data->mrl, href);
+    data->alternative = 0;
+    xine_event_send(this->stream, &uevent);
+  }
+
+  free (buf);
+
+  this->status = DEMUX_FINISHED;
+  return this->status;
+}
+
+/*
+ * parse a stupid ASF reference in an asx file
+ * format : "ASF http://www.blabla.com/blabla"
+ */
+static int demux_asf_parse_asf_references( demux_asf_t *this) {
+  char           *buf = NULL;
+  char           *ptr;
+  int             buf_size = 0;
+  int             buf_used = 0;
+  int             len;
+  xine_mrl_reference_data_t *data;
+  xine_event_t    uevent;
+  int             i;
+
+  /* read file to memory.
+   * warning: dumb code, but hopefuly ok since reference file is small */
+  do {
+    buf_size += 1024;
+    buf = realloc(buf, buf_size+1);
+
+    len = this->input->read(this->input, &buf[buf_used], buf_size-buf_used);
+
+    if( len > 0 )
+      buf_used += len;
+
+    /* 50k of reference file? no way. something must be wrong */
+    if( buf_used > 50*1024 )
+      break;
+  } while( len > 0 );
+
+  if(buf_used)
+    buf[buf_used] = '\0';
+
+  ptr = buf;
+  if (!strncmp(ptr, "ASF ", 4)) {
+    ptr += 4;
+
+    /* find the end of the string */
+    for (i = 4; i < buf_used; i++) {
+      if ((buf[i] == ' ') || (buf[i] == '\r') || (buf[i] == '\n')) {
+        buf[i] = '\0';
+        break;
+      }
+    }
+
+    printf("demux_asf: asf ref: %s\n", ptr);
+    uevent.type = XINE_EVENT_MRL_REFERENCE;
+    uevent.stream = this->stream;
+    uevent.data_length = strlen(ptr) + sizeof(xine_mrl_reference_data_t);
+    data = malloc(uevent.data_length);
+    uevent.data = data;
+    strcpy(data->mrl, ptr);
     data->alternative = 0;
     xine_event_send(this->stream, &uevent);
   }
@@ -1442,6 +1504,10 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
 
     case 2:
       return demux_asf_parse_http_references(this);
+      break;
+
+    case 3:
+      return demux_asf_parse_asf_references(this);
       break;
 
     default:
@@ -1692,6 +1758,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       if( !strstr(buf,"asx") &&
           !strstr(buf,"ASX") &&
           strncmp(buf,"[Reference]", 11) &&
+          strncmp(buf,"ASF ", 4) &&
 	  ((buf[0] != 0x30)
 	   || (buf[1] != 0x26)
 	   || (buf[2] != 0xb2)
@@ -1758,6 +1825,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       this->reference_mode = 1;
     if( strstr(buf,"[Reference]") )
       this->reference_mode = 2;
+    if( strstr(buf,"ASF ") )
+      this->reference_mode = 3;
   }
 
   this->demux_plugin.send_headers      = demux_asf_send_headers;
