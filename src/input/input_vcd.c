@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.45 2002/06/23 15:59:22 dennisbj Exp $
+ * $Id: input_vcd.c,v 1.46 2002/07/05 17:32:02 mroi Exp $
  *
  */
 
@@ -1141,7 +1141,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t    *config;
   int                 i;
 
-  if (iface != 7) {
+  if (iface != 8) {
     LOG_MSG(xine, 
 	    _("vcd input plugin doesn't support plugin API version %d.\n"
 	      "PLUGIN DISABLED.\n"

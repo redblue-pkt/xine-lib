@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.27 2002/06/16 00:53:39 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.28 2002/07/05 17:32:03 mroi Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -183,7 +183,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   lpcm_decoder_t *this ;
 
-  if (iface_version != 8) {
+  if (iface_version != 9) {
     printf(_("liblpcm: plugin doesn't support plugin API version %d.\n"
 	     "liblpcm: this means there's a version mismatch between xine and this "
 	     "liblpcm: decoder plugin.\nInstalling current plugins should help.\n"),

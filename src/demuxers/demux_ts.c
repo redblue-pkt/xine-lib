@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.51 2002/06/21 20:01:48 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.52 2002/07/05 17:32:01 mroi Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1657,7 +1657,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_ts        *this;
   int              i;
 
-  if (iface != 9) {
+  if (iface != 10) {
     LOG_MSG (xine,
              _("demux_ts: plugin doesn't support plugin API version %d.\n"
                "          This means there's a version mismatch between xine "

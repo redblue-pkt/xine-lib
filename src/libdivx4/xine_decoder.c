@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2002/07/01 17:56:05 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.39 2002/07/05 17:32:02 mroi Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -552,7 +552,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   decoreFunc libdecore_func = 0;
   config_values_t *cfg;
 
-  if (iface_version != 9) {
+  if (iface_version != 10) {
     printf(_("divx4: plugin doesn't support plugin API version %d.\n"
 	     "divx4: this means there's a version mismatch between xine and this "
 	     "divx4: decoder plugin.\nInstalling current plugins should help.\n"),

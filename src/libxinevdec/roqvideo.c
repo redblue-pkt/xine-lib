@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.4 2002/06/12 12:22:37 f1rmb Exp $
+ * $Id: roqvideo.c,v 1.5 2002/07/05 17:32:04 mroi Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -492,7 +492,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   roq_decoder_t *this ;
 
-  if (iface_version != 9) {
+  if (iface_version != 10) {
     printf(_("RoQ: plugin doesn't support plugin API version %d.\n"
 	     "RoQ: this means there's a version mismatch between xine and this "
 	     "RoQ: decoder plugin.\nInstalling current plugins should help.\n"),

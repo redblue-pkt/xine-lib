@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.6 2002/06/19 16:33:01 esnel Exp $
+ * $Id: demux_roq.c,v 1.7 2002/07/05 17:32:01 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -532,7 +532,7 @@ static char *demux_roq_get_mimetypes(void) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_roq_t *this;
 
-  if (iface != 9) {
+  if (iface != 10) {
     printf (_("demux_roq: plugin doesn't support plugin API version %d.\n"
 	      "           this means there's a version mismatch between xine and this "
 	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),

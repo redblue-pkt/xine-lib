@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.50 2002/06/12 12:22:33 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.51 2002/07/05 17:32:00 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -521,7 +521,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_mpgaudio_t *this;
 
-  if (iface != 9) {
+  if (iface != 10) {
     printf (_("demux_mpeg: plugin doesn't support plugin API version %d.\n"
 	      "            this means there's a version mismatch between xine and this "
 	      "            demuxer plugin.\nInstalling current demux plugins should help.\n"),

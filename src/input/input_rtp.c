@@ -509,7 +509,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t    *config;
   int                 bufn;
 
-  if (iface != 7) {
+  if (iface != 8) {
     LOG_MSG(xine,
 	    _("rtp input plugin doesn't support plugin API version %d.\n"
 	      "PLUGIN DISABLED.\n"

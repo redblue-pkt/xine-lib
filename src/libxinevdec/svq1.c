@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.1 2002/06/20 17:47:11 siggi Exp $
+ * $Id: svq1.c,v 1.2 2002/07/05 17:32:04 mroi Exp $
  */
 
 #include <stdio.h>
@@ -1505,7 +1505,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   svq1dec_decoder_t *this ;
 
-  if (iface_version != 9) {
+  if (iface_version != 10) {
     printf( "svq1: plugin doesn't support plugin API version %d.\n"
 	    "svq1: this means there's a version mismatch between xine and this "
 	    "svq1: decoder plugin.\nInstalling current plugins should help.\n",

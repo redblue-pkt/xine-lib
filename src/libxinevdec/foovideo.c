@@ -20,7 +20,7 @@
  * General description and author credits go here...
  * 
  * Leave the following line intact for when the decoder is committed to CVS:
- * $Id: foovideo.c,v 1.1 2002/06/10 05:18:46 tmmm Exp $
+ * $Id: foovideo.c,v 1.2 2002/07/05 17:32:04 mroi Exp $
  */
 
 #include <stdio.h>
@@ -267,7 +267,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   foovideo_decoder_t *this ;
 
-  if (iface_version != 9) {
+  if (iface_version != 10) {
     printf( "foovideo: plugin doesn't support plugin API version %d.\n"
             "foovideo: this means there's a version mismatch between xine and this "
             "foovideo: decoder plugin.\nInstalling current plugins should help.\n",

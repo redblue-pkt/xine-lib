@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.99 2002/07/02 17:05:28 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.100 2002/07/05 17:31:59 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1594,7 +1594,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   
   demux_avi_t     *this;
   
-  if (iface != 9) {
+  if (iface != 10) {
     xine_log (xine, XINE_LOG_PLUGIN,
               _("demux_avi: this plugin doesn't support plugin API version %d.\n"
                 "demux_avi: this means there's a version mismatch between xine and this "

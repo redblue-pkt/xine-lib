@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.7 2002/06/20 02:57:41 tmmm Exp $
+ * $Id: adpcm.c,v 1.8 2002/07/05 17:32:04 mroi Exp $
  */
 
 #include <stdio.h>
@@ -953,7 +953,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   adpcm_decoder_t *this ;
 
-  if (iface_version != 8) {
+  if (iface_version != 9) {
     printf( "libadpcm: plugin doesn't support plugin API version %d.\n"
             "libadpcm: this means there's a version mismatch between xine and this "
             "libadpcm: decoder plugin.\nInstalling current plugins should help.\n",

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2002/06/25 11:48:02 mshopf Exp $
+ * $Id: xine_decoder.c,v 1.38 2002/07/05 17:32:03 mroi Exp $
  *
  * code based on mplayer module:
  *
@@ -1052,7 +1052,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   sputext_decoder_t *this ;
   static char *subtitle_size_strings[] = { "small", "normal", "large", NULL };
 
-  if (iface_version != 8) {
+  if (iface_version != 9) {
     printf(_("libsputext: doesn't support plugin api version %d.\n"
 	     "libsputext: This means there is a version mismatch between xine and\n"
 	     "libsputext: this plugin.\n"), iface_version);

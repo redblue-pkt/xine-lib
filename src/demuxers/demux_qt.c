@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.59 2002/07/05 15:43:33 tmmm Exp $
+ * $Id: demux_qt.c,v 1.60 2002/07/05 17:32:00 mroi Exp $
  *
  */
 
@@ -1540,7 +1540,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_qt_t      *this;
 
-  if (iface != 9) {
+  if (iface != 10) {
     printf (_("demux_qt: plugin doesn't support plugin API version %d.\n"
 	      "          this means there's a version mismatch between xine and this "
 	      "          demuxer plugin.\nInstalling current demux plugins should help.\n"),
