@@ -21,6 +21,8 @@ lib_LTLIBRARIES = $(divx4_module)
 xineplug_decode_divx4_la_SOURCES = xine_decoder.c
 xineplug_decode_divx4_la_LDFLAGS = -avoid-version -module
 
+noinst_HEADERS = decore-if.h
+
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
