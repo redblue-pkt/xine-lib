@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.147 2004/06/23 00:05:38 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.148 2004/07/09 01:27:42 athp Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -102,6 +102,9 @@ typedef struct stream_info_s {
   int64_t               quotient;
   int                   resync;
   char                  *language;
+  /* Annodex-specific stream information */
+  int                   hide_first_header;
+  int                   delivered_bos;
 } stream_info_t;
 
 typedef struct demux_ogg_s {
@@ -149,6 +152,10 @@ typedef struct demux_ogg_s {
 typedef struct {
   demux_class_t     demux_class;
 } demux_ogg_class_t;
+
+typedef struct {
+  demux_class_t     demux_class;
+} demux_anx_class_t;
 
 
 #ifdef HAVE_THEORA
@@ -558,6 +565,13 @@ static void send_ogg_buf (demux_ogg_t *this,
   
   hdrlen = (*op->packet & PACKET_LEN_BITS01) >> 6;
   hdrlen |= (*op->packet & PACKET_LEN_BITS2) << 1;
+
+  /* for Annodex files: the first packet after the AnxData info packet needs
+   * to have its BOS flag set: we set it here */
+  if (!this->si[stream_num]->delivered_bos) {
+    op->b_o_s = 1;
+    this->si[stream_num]->delivered_bos = 1;
+  }
 
   if ( this->audio_fifo
        && (this->si[stream_num]->buf_types & 0xFF000000) == BUF_AUDIO_BASE) {
@@ -1119,6 +1133,71 @@ static void decode_theora_header (demux_ogg_t *this, const int stream_num, ogg_p
 #endif
 }
 
+static void decode_annodex_header (demux_ogg_t *this, const int stream_num, ogg_packet *op) {
+  lprintf ("Annodex stream detected\n");
+  this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
+  this->si[stream_num]->headers = 1;
+  this->si[stream_num]->header_granulepos = op->granulepos;
+  _x_meta_info_set(this->stream, XINE_META_INFO_SYSTEMLAYER, "Annodex");
+}
+
+static void decode_anxdata_header (demux_ogg_t *this, const int stream_num, ogg_packet *op) {
+  int64_t granule_rate_n, granule_rate_d;
+  uint32_t secondary_headers;
+  char content_type[1024];
+  int content_type_length;
+
+  lprintf("AnxData stream detected\n");
+
+  /* read granule rate */
+  granule_rate_n = LE_64(&op->packet[8]);
+  granule_rate_d = LE_64(&op->packet[16]);
+  secondary_headers = LE_32(&op->packet[24]);
+
+  lprintf("granule_rate %" PRId64 "/%" PRId64 ", %d secondary headers\n",
+      granule_rate_n, granule_rate_d, secondary_headers);
+
+  /* read "Content-Tyoe" MIME header */
+  sscanf(&op->packet[28], "Content-Type: %1024s\r\n", content_type);
+  content_type_length = strlen(content_type);
+
+  lprintf("Content-Type: %s (length:%d)\n", content_type, content_type_length);
+
+  /* how many header packets in the AnxData stream? */
+  this->si[stream_num]->headers = secondary_headers + 1;
+  this->si[stream_num]->hide_first_header = 1;
+
+  /* set factor and quotient */
+  this->si[stream_num]->factor = (int64_t) 90000 * granule_rate_d;
+  this->si[stream_num]->quotient = granule_rate_n;
+
+  lprintf("factor: %" PRId64 ", quotient: %" PRId64 "\n",
+          this->si[stream_num]->factor, this->si[stream_num]->quotient);
+
+  /* what type of stream are we dealing with? */
+  if (!strncmp(content_type, "audio/x-vorbis", content_type_length)) {
+    this->si[stream_num]->buf_types = BUF_AUDIO_VORBIS;
+    this->num_audio_streams++;
+  } else if (!strncmp(content_type, "audio/x-speex", content_type_length)) {
+#ifdef HAVE_SPEEX
+    this->si[stream_num]->buf_types = BUF_AUDIO_SPEEX;
+    this->num_audio_streams++;
+#else
+    this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
+#endif
+  } else if (!strncmp(content_type, "video/x-theora", content_type_length)) {
+#ifdef HAVE_THEORA
+    this->si[stream_num]->buf_types = BUF_VIDEO_THEORA;
+    this->num_video_streams++;
+#else
+    this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
+#endif
+  } else {
+    this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
+  }
+  
+}
+
 /*
  * interpret stream start packages, send headers
  */
@@ -1183,8 +1262,12 @@ static void send_header (demux_ogg_t *this) {
           decode_dshow_header(this, stream_num, &op);
         } else if (!strncmp (&op.packet[1], "text", 4)) {
           decode_text_header(this, stream_num, &op);
-        } else if (!strncmp (&op.packet[1], "theora", 4)) {
+        } else if (!strncmp (&op.packet[1], "theora", 6)) {
           decode_theora_header(this, stream_num, &op);
+        } else if (!strncmp (&op.packet[0], "Annodex", 7)) {
+          decode_annodex_header(this, stream_num, &op);
+        } else if (!strncmp (&op.packet[0], "AnxData", 7)) {
+          decode_anxdata_header(this, stream_num, &op);
         } else {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
                   "demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
@@ -1199,11 +1282,15 @@ static void send_header (demux_ogg_t *this) {
       /* send preview buffer */
       if (this->si[stream_num]->headers > 0 ||
           op.packet[0] == PACKET_TYPE_COMMENT) {
-        lprintf ("sending preview buffer of stream type %08x\n",
-                 this->si[stream_num]->buf_types);
+        if (this->si[stream_num]->hide_first_header)
+          this->si[stream_num]->hide_first_header = 0;
+        else {
+          lprintf ("sending preview buffer of stream type %08x\n",
+              this->si[stream_num]->buf_types);
 
-        send_ogg_buf (this, &op, stream_num, BUF_FLAG_HEADER);
-        this->si[stream_num]->headers --;
+          send_ogg_buf (this, &op, stream_num, BUF_FLAG_HEADER);
+          this->si[stream_num]->headers --;
+        }
       }
 
       /* are we finished ? */
@@ -1643,46 +1730,99 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
   }
 }
 
-static demux_plugin_t *open_plugin (demux_class_t *class_gen,
-				    xine_stream_t *stream, 
-				    input_plugin_t *input) {
+static int detect_content (int detection_method, demux_class_t *class_gen,
+                            input_plugin_t *input)
+{
+  switch (detection_method) {
+
+    case METHOD_BY_CONTENT: {
+      uint8_t buf[4];
+
+      if (_x_demux_read_header(input, buf, 4) != 4)
+        return 0;
+
+      if ((buf[0] != 'O')
+          || (buf[1] != 'g')
+          || (buf[2] != 'g')
+          || (buf[3] != 'S'))
+        return 0;
+    }
+    break;
+
+    case METHOD_BY_EXTENSION: {
+      char *extensions, *mrl;
+
+      mrl = input->get_mrl (input);
+      extensions = class_gen->get_extensions (class_gen);
+
+      if (!_x_demux_check_extension (mrl, extensions)) {
+        return 1;
+      }
+    }
+    break;
+
+    case METHOD_EXPLICIT:
+    break;
+
+    default:
+    return 0;
+  }
+}
+
+static demux_plugin_t *anx_open_plugin (demux_class_t *class_gen,
+				        xine_stream_t *stream, 
+				        input_plugin_t *input) {
 
   demux_ogg_t *this;
 
-  switch (stream->content_detection_method) {
-
-  case METHOD_BY_CONTENT: {
-    uint8_t buf[4];
-
-    if (_x_demux_read_header(input, buf, 4) != 4)
-      return NULL;
-
-    if ((buf[0] != 'O')
-        || (buf[1] != 'g')
-        || (buf[2] != 'g')
-        || (buf[3] != 'S'))
-      return NULL;
-  }
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *extensions, *mrl;
-
-    mrl = input->get_mrl (input);
-    extensions = class_gen->get_extensions (class_gen);
-
-    if (!_x_demux_check_extension (mrl, extensions)) {
-      return NULL;
-    }
-  }
-  break;
-
-  case METHOD_EXPLICIT:
-  break;
-
-  default:
+  if (detect_content(stream->content_detection_method, class_gen, input) == 0)
     return NULL;
-  }
+
+  /*
+   * if we reach this point, the input has been accepted.
+   */
+
+  this         = xine_xmalloc (sizeof (demux_ogg_t));
+  memset (this, 0, sizeof(demux_ogg_t));
+  this->stream = stream;
+  this->input  = input;
+
+  /* the Annodex demuxer currently calls into exactly the same functions as
+   * the Ogg demuxer, which seems to make this function a bit redundant, but
+   * this design leaves us a bit more room to change an Annodex demuxer's
+   * behaviour in the future if necessary */
+  this->demux_plugin.send_headers      = demux_ogg_send_headers;
+  this->demux_plugin.send_chunk        = demux_ogg_send_chunk;
+  this->demux_plugin.seek              = demux_ogg_seek;
+  this->demux_plugin.dispose           = demux_ogg_dispose;
+  this->demux_plugin.get_status        = demux_ogg_get_status;
+  this->demux_plugin.get_stream_length = demux_ogg_get_stream_length;
+  this->demux_plugin.get_capabilities  = demux_ogg_get_capabilities;
+  this->demux_plugin.get_optional_data = demux_ogg_get_optional_data;
+  this->demux_plugin.demux_class       = class_gen;
+  
+  this->status = DEMUX_FINISHED;
+
+#ifdef HAVE_THEORA
+  theora_info_init (&this->t_info);
+  theora_comment_init (&this->t_comment);
+#endif  
+
+  this->chapter_info = 0;
+  this->title = 0;
+  this->event_queue = xine_event_new_queue (this->stream);
+
+  return &this->demux_plugin;
+}
+
+static demux_plugin_t *ogg_open_plugin (demux_class_t *class_gen,
+				        xine_stream_t *stream, 
+				        input_plugin_t *input) {
+
+  demux_ogg_t *this;
+
+  if (detect_content(stream->content_detection_method, class_gen, input) == 0)
+    return NULL;
 
   /*
    * if we reach this point, the input has been accepted.
@@ -1718,44 +1858,85 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 }
 
 /*
+ * Annodex demuxer class
+ */
+
+static char *anx_get_description (demux_class_t *this_gen) {
+  return "Annodex demux plugin";
+}
+ 
+static char *anx_get_identifier (demux_class_t *this_gen) {
+  return "Annodex";
+}
+
+static char *anx_get_extensions (demux_class_t *this_gen) {
+  return "anx axa axv";
+}
+
+static char *anx_get_mimetypes (demux_class_t *this_gen) {
+  return "application/x-annodex: ogg: Annodex media;";
+}
+
+static void anx_class_dispose (demux_class_t *this_gen) {
+  demux_anx_class_t *this = (demux_anx_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *anx_init_class (xine_t *xine, void *data) {
+  demux_anx_class_t     *this;
+
+  this = xine_xmalloc (sizeof (demux_anx_class_t));
+
+  this->demux_class.open_plugin     = anx_open_plugin;
+  this->demux_class.get_description = anx_get_description;
+  this->demux_class.get_identifier  = anx_get_identifier;
+  this->demux_class.get_mimetypes   = anx_get_mimetypes;
+  this->demux_class.get_extensions  = anx_get_extensions;
+  this->demux_class.dispose         = anx_class_dispose;
+
+  return this;
+}
+
+/*
  * ogg demuxer class
  */
 
-static char *get_description (demux_class_t *this_gen) {
+static char *ogg_get_description (demux_class_t *this_gen) {
   return "OGG demux plugin";
 }
  
-static char *get_identifier (demux_class_t *this_gen) {
+static char *ogg_get_identifier (demux_class_t *this_gen) {
   return "OGG";
 }
 
-static char *get_extensions (demux_class_t *this_gen) {
+static char *ogg_get_extensions (demux_class_t *this_gen) {
   return "ogg ogm spx";
 }
 
-static char *get_mimetypes (demux_class_t *this_gen) {
+static char *ogg_get_mimetypes (demux_class_t *this_gen) {
   return "audio/x-ogg: ogg: OggVorbis Audio;"
          "audio/x-speex: ogg: Speex Audio;"
          "application/x-ogg: ogg: OggVorbis Audio;";
 }
 
-static void class_dispose (demux_class_t *this_gen) {
+static void ogg_class_dispose (demux_class_t *this_gen) {
   demux_ogg_class_t *this = (demux_ogg_class_t *) this_gen;
 
   free (this);
 }
 
-static void *init_class (xine_t *xine, void *data) {
+static void *ogg_init_class (xine_t *xine, void *data) {
   demux_ogg_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_ogg_class_t));
 
-  this->demux_class.open_plugin     = open_plugin;
-  this->demux_class.get_description = get_description;
-  this->demux_class.get_identifier  = get_identifier;
-  this->demux_class.get_mimetypes   = get_mimetypes;
-  this->demux_class.get_extensions  = get_extensions;
-  this->demux_class.dispose         = class_dispose;
+  this->demux_class.open_plugin     = ogg_open_plugin;
+  this->demux_class.get_description = ogg_get_description;
+  this->demux_class.get_identifier  = ogg_get_identifier;
+  this->demux_class.get_mimetypes   = ogg_get_mimetypes;
+  this->demux_class.get_extensions  = ogg_get_extensions;
+  this->demux_class.dispose         = ogg_class_dispose;
 
   return this;
 }
@@ -1763,12 +1944,18 @@ static void *init_class (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
+demuxer_info_t demux_info_anx = {
+  20                       /* priority */
+};
+
 demuxer_info_t demux_info_ogg = {
   10                       /* priority */
 };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 25, "ogg", XINE_VERSION_CODE, &demux_info_ogg, init_class },
+  { PLUGIN_DEMUX, 25, "ogg", XINE_VERSION_CODE, &demux_info_ogg, ogg_init_class },
+  { PLUGIN_DEMUX, 25, "anx", XINE_VERSION_CODE, &demux_info_anx, anx_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+
