@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.186 2004/08/01 16:18:43 mroi Exp $
+ * $Id: input_dvd.c,v 1.187 2004/08/19 10:30:04 mroi Exp $
  *
  */
 
@@ -408,12 +408,17 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   if (this->event_queue)
     xine_event_dispose_queue (this->event_queue);
    
-  if (this->dvdnav) {
-    dvdnav_close(this->dvdnav);
+  ((dvd_input_class_t *)this_gen->input_class)->ip = NULL;
+  dvdnav_close(this->dvdnav);
+  
+  pthread_mutex_lock(&this->buf_mutex);
+  if (this->mem_stack) {
     /* raise the freeing flag, so that the plugin will be freed as soon
      * as all buffers have returned to the libdvdnav read ahead cache */
     this->freeing = 1;
+    pthread_mutex_unlock(&this->buf_mutex);
   } else {
+    pthread_mutex_unlock(&this->buf_mutex);
     pthread_mutex_destroy(&this->buf_mutex);
     free(this->mem);
     free(this);
