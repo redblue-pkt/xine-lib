@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.103 2004/04/10 14:53:43 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.104 2004/04/11 15:27:19 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -818,12 +818,12 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 					       "SNDCTL_DSP_GETODELAY ioctl\n\n"
 					       "softsync\n"
 					       "uses software synchronization with the system clock; audio "
-					       "and video can get severly out of sync if the system clock "
+					       "and video can get severely out of sync if the system clock "
 					       "speed does not precisely match your sound card's playback "
 					       "speed\n\n"
 					       "probebuffer\n"
 					       "probes the sound card buffer size on initialization to "
-					       "calculate the latency for a/v sync; thy this if your "
+					       "calculate the latency for a/v sync; try this if your "
 					       "system does not support any of the realtime ioctls and "
 					       "you experience sync errors after long playback"),
 					     20, NULL, NULL);
@@ -953,7 +953,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     if (config->register_bool (config, "audio.five_channel", 0,
                                _("sound system can handle 5.0 audio"),
                                _("Enable this, if you want your sound system to "
-                                 "receive four channel surround sound from xine. "
+                                 "receive five channel surround sound from xine. "
                                  "This means three front channels (left, center and "
                                  "right) and two rear channels (left and right).\n"
                                  "You need to connect the necessary speakers to "

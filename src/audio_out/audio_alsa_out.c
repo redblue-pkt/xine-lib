@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.135 2004/04/10 14:53:42 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.136 2004/04/11 15:27:19 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1462,7 +1462,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0,
                                _("sound system can handle 5.0 audio"),
                                _("Enable this, if you want your sound system to "
-                                 "receive four channel surround sound from xine. "
+                                 "receive five channel surround sound from xine. "
                                  "This means three front channels (left, center and "
                                  "right) and two rear channels (left and right).\n"
                                  "You need to connect the necessary speakers to "

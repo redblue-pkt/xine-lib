@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.38 2004/04/11 14:41:09 mroi Exp $
+ * $Id: audio_sun_out.c,v 1.39 2004/04/11 15:27:19 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -890,7 +890,7 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
 				    _("Specifies the file name for the Sun audio device "
 				      "to be used.\nThis setting is security critical, "
 				      "because when changed to a different file, xine "
-				      "can be used to fill this file with arbitrary content."
+				      "can be used to fill this file with arbitrary content. "
 				      "So you should be careful that the value you enter "
 				      "really is a proper Sun audio device."),
 				    XINE_CONFIG_SECURITY, NULL,

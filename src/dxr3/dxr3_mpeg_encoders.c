@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.18 2004/04/10 15:29:57 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.19 2004/04/11 15:27:20 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -187,7 +187,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->rte_bitrate = drv->class->xine->config->register_range(drv->class->xine->config,
     "dxr3.rte_bitrate", 10000, 1000, 20000,
     _("rte mpeg output bitrate (kbit/s)"), 
-    _("The bitrate the mpeg encoder library librte should use for DXR3's encoding mode."
+    _("The bitrate the mpeg encoder library librte should use for DXR3's encoding mode. "
       "Higher values will increase quality and CPU usage."), 10, NULL, NULL);
   this->rte_bitrate *= 1000; /* config in kbit/s, rte wants bit/s */
   
