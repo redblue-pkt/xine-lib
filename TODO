@@ -111,7 +111,9 @@ Open Tasks
 - Multiple DVD Subtitles displayed at the same time 
 - Move read cache code from libdvdnav into input_dvd.c
 - Support DVD "Trick" modes. Super Fast forward/reverse
-
+- detect raw ac3/a52 in MPEG Program streams.
+- detect raw ac3/a52 in MPEG Transport streams that lack PAT/PMT tables.
+- handle MPEG PES/PS streams with PES_packet_length = 0
 
 xine's future
 =============
