@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.104 2002/10/26 02:12:27 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.105 2002/10/27 01:52:15 guenter Exp $
  *
  */
 
@@ -183,8 +183,10 @@ void *video_decoder_loop (void *stream_gen) {
 
       stream->finished_count_video++;
 
+#ifdef LOG
       printf ("video_decoder: reached end marker # %d\n", 
 	      stream->finished_count_video);
+#endif
 
       pthread_cond_broadcast (&stream->counter_changed);
 
@@ -229,7 +231,9 @@ void *video_decoder_loop (void *stream_gen) {
       break;
     
     case BUF_CONTROL_DISCONTINUITY:
+#ifdef LOG
       printf ("video_decoder: discontinuity ahead\n");
+#endif
 
       stream->video_in_discontinuity = 1;
 
@@ -239,7 +243,9 @@ void *video_decoder_loop (void *stream_gen) {
       break;
     
     case BUF_CONTROL_NEWPTS:
+#ifdef LOG
       printf ("video_decoder: new pts %lld\n", buf->disc_off);
+#endif
       
       stream->video_in_discontinuity = 1;
       

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.131 2002/10/27 00:01:14 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.132 2002/10/27 01:52:15 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -939,7 +939,6 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
 				   off_t start_pos, int start_time) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  buf_element_t *buf;
   int err;
   int status;
 

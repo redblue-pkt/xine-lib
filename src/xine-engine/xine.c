@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.176 2002/10/26 22:08:08 guenter Exp $
+ * $Id: xine.c,v 1.177 2002/10/27 01:52:15 guenter Exp $
  *
  * top-level xine functions
  *
@@ -606,7 +606,8 @@ xine_t *xine_new (void) {
     printf ("xine: failed to malloc xine_t\n");
     abort();
   }
-  
+
+  this->verbosity = 0;
 
 #ifdef ENABLE_NLS
   /*
@@ -875,11 +876,13 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
   this->log_buffers[buf]->scratch_printf (this->log_buffers[buf], format, argp);
   va_end (argp);
 
-  va_start (argp, format);
+  if (this->verbosity) {
+    va_start (argp, format);
 
-  vprintf (format, argp);
+    vprintf (format, argp);
 
-  va_end (argp);
+    va_end (argp);
+  }
 }
 
 const char *const *xine_get_log (xine_t *this, int buf) {

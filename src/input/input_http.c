@@ -331,7 +331,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
 	continue;
       default:
-	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
+	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
 	return 0;
       }
     }

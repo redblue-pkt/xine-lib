@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2002/09/18 00:51:34 guenter Exp $
+ * $Id: xine_decoder.c,v 1.20 2002/10/27 01:52:15 guenter Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -42,12 +42,15 @@
 #define LOG
 */
 
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} vorbis_class_t;
+
 typedef struct vorbis_decoder_s {
   audio_decoder_t   audio_decoder;
 
   int64_t           pts;
 
-  ao_instance_t    *audio_out;
   int               output_sampling_rate;
   int               output_open;
   int               output_mode;
@@ -63,7 +66,7 @@ typedef struct vorbis_decoder_s {
 
   int               header_count;
 
-  xine_t           *xine;
+  xine_stream_t    *stream;
 
 } vorbis_decoder_t;
 
@@ -74,24 +77,6 @@ static void vorbis_reset (audio_decoder_t *this_gen) {
 
   vorbis_synthesis_init(&this->vd,&this->vi); 
   vorbis_block_init(&this->vd,&this->vb);     
-}
-
-static void vorbis_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
-
-  vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
-
-  this->audio_out       = audio_out;
-  this->output_open     = 0;
-  this->header_count    = 3;
-  this->convsize        = 0;
-
-  vorbis_info_init(&this->vi);
-  vorbis_comment_init(&this->vc);
-
-#ifdef LOG
-  printf ("libvorbis: init\n"); 
-#endif
-
 }
 
 /* Known vorbis comment keys from ogg123 sources*/
@@ -130,7 +115,7 @@ static void get_metadata (vorbis_decoder_t *this) {
 		i, vorbis_comment_keys[i].xine_metainfo_index);
 #endif
 
-	this->xine->meta_info[vorbis_comment_keys[i].xine_metainfo_index] 
+	this->stream->meta_info[vorbis_comment_keys[i].xine_metainfo_index] 
 	  = strdup (comment + strlen(vorbis_comment_keys[i].key));
 
       }
@@ -138,7 +123,7 @@ static void get_metadata (vorbis_decoder_t *this) {
     ++ptr;
   }
 
-  this->xine->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("vorbis");
+  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("vorbis");
 }
 
 static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -153,7 +138,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
 #ifdef LOG
-    printf ("libvorbis: preview buffer\n");
+    printf ("libvorbis: preview buffer, %d headers to go\n", this->header_count);
 #endif
     if (this->header_count) {
 
@@ -197,10 +182,13 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	this->convsize=MAX_NUM_SAMPLES/this->vi.channels;
 
 	if (!this->output_open) {
-	  this->output_open = this->audio_out->open(this->audio_out, 
+	  this->output_open = this->stream->audio_out->open(this->stream->audio_out, 
 						    16,
 						    this->vi.rate,
 						    mode) ;
+
+	  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE]=this->vi.bitrate_nominal;
+
 	}
 	
 	vorbis_synthesis_init(&this->vd,&this->vi); 
@@ -223,7 +211,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       int bout=(samples<this->convsize?samples:this->convsize);
       audio_buffer_t *audio_buffer;
 
-      audio_buffer = this->audio_out->get_buffer (this->audio_out);
+      audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
       
       /* convert floats to 16 bit signed ints (host order) and
 	 interleave */
@@ -249,15 +237,20 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       audio_buffer->vpts       = buf->pts;
       audio_buffer->num_frames = bout;
 
-      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
 
       buf->pts=0;
       vorbis_synthesis_read(&this->vd,bout);
     }
-  }
+  } 
+#ifdef LOG
+  else
+    printf ("libvorbis: output not open\n");
+
+#endif
 }
 
-static void vorbis_close (audio_decoder_t *this_gen) {
+static void vorbis_dispose (audio_decoder_t *this_gen) {
 
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen; 
 
@@ -267,32 +260,61 @@ static void vorbis_close (audio_decoder_t *this_gen) {
   vorbis_info_clear(&this->vi);  /* must be called last */
 
   if (this->output_open) 
-    this->audio_out->close (this->audio_out);
-}
+    this->stream->audio_out->close (this->stream->audio_out);
 
-static char *vorbis_get_id(void) {
-  return "vorbis";
-}
-
-static void vorbis_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, 
+				     xine_stream_t *stream) {
 
   vorbis_decoder_t *this ;
 
   this = (vorbis_decoder_t *) malloc (sizeof (vorbis_decoder_t));
 
-  this->audio_decoder.init                = vorbis_init;
   this->audio_decoder.decode_data         = vorbis_decode_data;
   this->audio_decoder.reset               = vorbis_reset;
-  this->audio_decoder.close               = vorbis_close;
-  this->audio_decoder.get_identifier      = vorbis_get_id;
   this->audio_decoder.dispose             = vorbis_dispose;
-  this->xine                              = xine;
-  
+  this->stream                            = stream;
+
+  this->output_open     = 0;
+  this->header_count    = 3;
+  this->convsize        = 0;
+
+  vorbis_info_init(&this->vi);
+  vorbis_comment_init(&this->vc);
+
   return (audio_decoder_t *) this;
+}
+
+/*
+ * vorbis plugin class
+ */
+
+static char *get_identifier (audio_decoder_class_t *this) {
+  return "vorbis";
+}
+
+static char *get_description (audio_decoder_class_t *this) {
+  return "vorbis audio decoder plugin";
+}
+
+static void dispose_class (audio_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  vorbis_class_t *this;
+  
+  this = (vorbis_class_t *) malloc (sizeof (vorbis_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  return this;
 }
 
 static uint32_t audio_types[] = { 
@@ -306,6 +328,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 9, "vorbis", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 10, "vorbis", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

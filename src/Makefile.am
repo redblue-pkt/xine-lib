@@ -40,7 +40,8 @@ SUBDIRS = \
 	libw32dll \
 	liblpcm \
 	libxinevdec \
-	libxineadec 
+	libxineadec \
+	libvorbis 
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

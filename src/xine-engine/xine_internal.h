@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.106 2002/10/23 21:52:16 guenter Exp $
+ * $Id: xine_internal.h,v 1.107 2002/10/27 01:52:15 guenter Exp $
  *
  */
 
@@ -103,6 +103,8 @@ struct xine_s {
 
   /* log output that may be presented to the user */
   scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
+
+  int                        verbosity;
 
   xine_list_t               *streams;
   pthread_mutex_t            streams_lock;

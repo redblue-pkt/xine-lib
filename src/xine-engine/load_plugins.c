@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.106 2002/10/26 16:16:04 mroi Exp $
+ * $Id: load_plugins.c,v 1.107 2002/10/27 01:52:15 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -129,8 +129,9 @@ static void _insert_plugin (xine_t *this,
   int                i;
 
   if (info->API != api_version) {
-    printf ("load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n",
-	    info->id, info->API, api_version);
+    if (this->verbosity)
+      printf ("load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n",
+	      info->id, info->API, api_version);
     return;
   }
 
@@ -246,14 +247,13 @@ static void collect_plugins(xine_t *this, char *path){
 
 	  if(!(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 
-/*#ifdef LOG*/
-	    {
+
+	    if (this->verbosity) {
 	      char *dl_error_msg = dlerror();
 	      /* too noisy -- but good to catch unresolved references */
 	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
 		      str, dl_error_msg);
 	    }
-/*#endif*/
 	  }
 	  else {
 
@@ -1109,7 +1109,9 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
 
     if (!node->plugin_class) {
       /* remove non working plugin from catalog */
-      printf("load_plugins: plugin %s failed to init its class.\n", node->info->id);
+      if (stream->xine->verbosity) 
+	printf("load_plugins: plugin %s failed to init its class.\n", 
+	       node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->video_decoder_map[stream_type][j - 1] =
           catalog->video_decoder_map[stream_type][j];

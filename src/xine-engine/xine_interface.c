@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.25 2002/10/24 19:37:29 guenter Exp $
+ * $Id: xine_interface.c,v 1.26 2002/10/27 01:52:15 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -357,6 +357,9 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
       stream->audio_out->set_property (stream->audio_out, AO_PROP_COMPRESSOR, value);
     break;
     
+  case XINE_PARAM_VERBOSITY:
+    stream->xine->verbosity = value;
+    
   case XINE_PARAM_VO_DEINTERLACE:
   case XINE_PARAM_VO_ASPECT_RATIO:
   case XINE_PARAM_VO_HUE:
@@ -408,6 +411,9 @@ int  xine_get_param (xine_stream_t *stream, int param) {
       return -1;
     return stream->audio_out->get_property (stream->audio_out, AO_PROP_COMPRESSOR);
 
+  case XINE_PARAM_VERBOSITY:
+    return stream->xine->verbosity;
+    
   case XINE_PARAM_VO_DEINTERLACE:
   case XINE_PARAM_VO_ASPECT_RATIO:
   case XINE_PARAM_VO_HUE:
@@ -420,7 +426,7 @@ int  xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_VO_TVMODE:
     return stream->video_driver->get_property(stream->video_driver, param & 0xffffff);
     break;
-    
+
   default:
     printf ("xine_interface: unknown param %d\n", param);
   }
