@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.48 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_pgx64.c,v 1.49 2003/12/18 00:30:19 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -156,16 +156,17 @@ typedef struct {
   Drawable drawable;
   GC gc;
   Visual *visual;
+  Colormap cmap;
 
   int fbfd, free_top, free_bottom, free_mark, fb_width, fb_height, fb_depth;
   int buf_mode, dblbuf_select, detained_frames, buffers[2][3];
   uint8_t *vram, *buffer_ptrs[2][3];
   volatile uint32_t *vregs;
 
-  int ovl_mode, ovl_changed, ovl_regen_needed, stdcolmap_size;
+  int ovl_mode, ovl_changed, ovl_regen_needed;
   pthread_mutex_t ovl_mutex;
   pgx64_overlay_t *first_overlay;
-  XStandardColormap *stdcolmap;
+
 
   int delivered_format, colour_key, brightness, saturation;
   int deinterlace_en, multibuf_en;
@@ -316,7 +317,7 @@ static uint32_t pgx64_get_capabilities(vo_driver_t *this_gen)
 
 static vo_frame_t* pgx64_alloc_frame(vo_driver_t *this_gen)
 {
-  pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
+  /*pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;*/
   pgx64_frame_t *frame;
 
   frame = (pgx64_frame_t *) xine_xmalloc(sizeof(pgx64_frame_t));
@@ -691,20 +692,22 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
           }
           for (j=max_palette_colour[use_clip_palette]+1; j<=overlay->rle[i].color; j++) {
             if (src_trans[j]) {
-              if (this->stdcolmap) {
-                int y, u, v, r, g, b;
+              XColor col;
+              int y, u, v, r, g, b;
 
-                y = saturate(src_clut[j].y, 16, 235);
-                u = saturate(src_clut[j].cb, 16, 240);
-                v = saturate(src_clut[j].cr, 16, 240);
-                y = (9 * y) / 8;
-                r = y + (25 * v) / 16 - 218;
-                r = ((this->stdcolmap->red_max + 1) * saturate(r, 0, 255)) / 256;
-                g = y + (-13 * v) / 16 + (-25 * u) / 64 + 136;
-                g = ((this->stdcolmap->green_max + 1) * saturate(g, 0, 255)) / 256;
-                b = y + 2 * u - 274;
-                b = ((this->stdcolmap->blue_max + 1) * saturate(b, 0, 255)) / 256;
-                palette[use_clip_palette][j] = this->stdcolmap->base_pixel + this->stdcolmap->red_mult * r + this->stdcolmap->green_mult * g + this->stdcolmap->blue_mult * b;
+              y = saturate(src_clut[j].y, 16, 235);
+              u = saturate(src_clut[j].cb, 16, 240);
+              v = saturate(src_clut[j].cr, 16, 240);
+              y = (9 * y) / 8;
+              r = y + (25 * v) / 16 - 218;
+              g = y + (-13 * v) / 16 + (-25 * u) / 64 + 136;
+              b = y + 2 * u - 274;
+
+              col.red = (r & 0xff) << 8;
+              col.green = (g & 0xff) << 8;
+              col.blue = (b & 0xff) << 8;
+              if (XAllocColor(this->display, this->cmap, &col)) {
+                palette[use_clip_palette][j] = col.pixel;
               }
               else {
                 if (src_clut[j].y > 127) {
@@ -713,7 +716,7 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
                 else {
                   palette[use_clip_palette][j] = BlackPixel(this->display, this->screen);
                 }
-              }
+              } 
             }
             else {
               palette[use_clip_palette][j] = this->colour_key;
@@ -731,8 +734,7 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
       }
     }
     if (y < overlay->height) {
-      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
-	      "video_out_pgx64: Notice: RLE data doesn't extend to height of overlay\n");
+      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Notice: RLE data doesn't extend to height of overlay\n");
       XFillRectangle(this->display, ovl->p, this->gc, scale_down(x * x_scale), scale_down(y * y_scale), ovl->width, scale_down(overlay->height * y_scale) - scale_down(y * y_scale));
     }
     XUnlockDisplay(this->display);
@@ -865,8 +867,15 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
 
   switch (data_type) {
     case XINE_GUI_SEND_DRAWABLE_CHANGED: {
-      this->drawable = (Drawable)data;
+      XWindowAttributes win_attrs;
+
       XLockDisplay(this->display);
+      this->drawable = (Drawable)data;
+      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+      this->depth  = win_attrs.depth;
+      this->visual = win_attrs.visual;
+      XFreeColormap(this->display, this->cmap);
+      this->cmap = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
       XFreeGC(this->display, this->gc);
       this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
       XUnlockDisplay(this->display);
@@ -915,7 +924,10 @@ static void pgx64_dispose(vo_driver_t *this_gen)
 
   this->vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
   this->vregs[OVERLAY_SCALE_CNTL] = 0;
-  this->vregs[BUS_CNTL] &= le2me_32(~BUS_EXT_REG_EN);
+
+  XLockDisplay (this->display);
+  XFreeGC(this->display, this->gc);
+  XUnlockDisplay (this->display);
 
   munmap(this->vram, FB_ADDRSPACE);
   close(this->fbfd);
@@ -923,33 +935,12 @@ static void pgx64_dispose(vo_driver_t *this_gen)
   pthread_mutex_lock(&this->class->mutex);
   this->class->instance_count--;
   pthread_mutex_unlock(&this->class->mutex);
-
-  XLockDisplay (this->display);
-  XFreeGC(this->display, this->gc);
-  XUnlockDisplay (this->display);
   
   free(this);
 }
 
 static void set_overlay_mode(pgx64_driver_t* this, int ovl_mode)
 {
-  if ((ovl_mode == OVL_MODE_CHROMA_KEY) && (!this->stdcolmap)) {
-    if (this->stdcolmap) {
-      XFree(this->stdcolmap);
-      this->stdcolmap = NULL;
-    }
-    if ((XGetRGBColormaps(this->display, RootWindow(this->display, this->screen), &this->stdcolmap, &this->stdcolmap_size, XA_RGB_BEST_MAP) == 0) ||
-        (this->stdcolmap->red_max == 0) ||
-        (!this->stdcolmap->colormap)) {
-      xprintf(this->class->xine, XINE_VERBOSITY_LOG, 
-	      _("video_out_pgx64: Warning: RGB_BEST_MAP property not set or malformed. Run xstdcmap(1).\n"));
-      if (this->stdcolmap) {
-        XFree(this->stdcolmap);
-        this->stdcolmap = NULL; 
-      }
-    }
-  }
-
   pthread_mutex_lock(&this->ovl_mutex);
   if (ovl_mode == OVL_MODE_CHROMA_KEY) {
     this->vo_driver.overlay_begin = pgx64_overlay_key_begin;
@@ -1025,35 +1016,32 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
 
   devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb", "name of pgx64 device", NULL, 10, NULL, NULL);
   if ((fbfd = open(devname, O_RDWR)) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_pgx64: Error: can't open framebuffer device '%s'\n", devname);
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: can't open framebuffer device '%s'\n", devname);
     return NULL;
   }
 
   if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_pgx64: Error: ioctl failed, unable to determine framebuffer characteristics\n");
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: ioctl failed, unable to determine framebuffer characteristics\n");
     close(fbfd);
     return NULL;
   }
 
   if (attr.real_type != 22) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_pgx64: Error: '%s' is not a mach64 framebuffer device\n", devname);
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: '%s' is not a mach64 framebuffer device\n", devname);
     close(fbfd);
     return NULL;
   }
 
   if ((baseaddr = mmap(0, FB_ADDRSPACE, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_pgx64: Error: unable to memory map framebuffer\n");
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
     close(fbfd);
     return NULL;
   }
 
   this = (pgx64_driver_t*)xine_xmalloc(sizeof(pgx64_driver_t));
-  if (!this)
+  if (!this) {
     return NULL;
+  }
 
   this->vo_driver.get_capabilities     = pgx64_get_capabilities;
   this->vo_driver.alloc_frame          = pgx64_alloc_frame;
@@ -1086,6 +1074,7 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
   XGetWindowAttributes(this->display, this->drawable, &win_attrs);
   this->depth  = win_attrs.depth;
   this->visual = win_attrs.visual;
+  this->cmap   = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
 
   this->fbfd = fbfd;
   this->vram = (uint8_t*)baseaddr;
