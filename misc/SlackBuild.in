@@ -8,7 +8,6 @@
 CWD=`pwd`
 PACKAGE=@PACKAGE@.tgz
 @HAVE_OSS_TRUE@ossPACKAGE=@PACKAGE@-oss.tgz
-@HAVE_ALSA05_TRUE@alsa05PACKAGE=@PACKAGE@-alsa05.tgz
 @HAVE_ALSA09_TRUE@alsa09PACKAGE=@PACKAGE@-alsa09.tgz
 @HAVE_DXR3_TRUE@dxr3PACKAGE=@PACKAGE@-dxr3.tgz
 @HAVE_ARTS_TRUE@artsPACKAGE=@PACKAGE@-arts.tgz
@@ -54,12 +53,6 @@ EOF
 @HAVE_OSS_TRUE@@PACKAGE@-oss:
 @HAVE_OSS_TRUE@@PACKAGE@-oss: audio plugin with oss support.
 @HAVE_OSS_TRUE@EOF
-
-@HAVE_ALSA05_TRUE@cat > package_descriptions_alsa05 << EOF
-@HAVE_ALSA05_TRUE@@PACKAGE@-alsa05: @PACKAGE@-alsa05 @SPEC_VERSION@.
-@HAVE_ALSA05_TRUE@@PACKAGE@-alsa05:
-@HAVE_ALSA05_TRUE@@PACKAGE@-alsa05: audio plugin with alsa 0.5.x support.
-@HAVE_ALSA05_TRUE@EOF
 
 @HAVE_ALSA09_TRUE@cat > package_descriptions_alsa09 << EOF
 @HAVE_ALSA09_TRUE@@PACKAGE@-alsa09: @PACKAGE@-alsa09 @SPEC_VERSION@.
@@ -111,7 +104,7 @@ EOF
 }
 
 #
-# Create extra packages (alsa05, alsa09 and dxr3, etc...)
+# Create extra packages (alsa09 and dxr3, etc...)
 #
 do_extra_packages() {
     cwd=`pwd`
@@ -124,15 +117,6 @@ do_extra_packages() {
 @HAVE_OSS_TRUE@    echo "move $ossPACKAGE to $SLCK" && mv $ossPACKAGE $SLCK) && \
 @HAVE_OSS_TRUE@    rm -rf oss && \
 @HAVE_OSS_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.so
-
-## Alsa 0.5 plugin
-@HAVE_ALSA05_TRUE@    mkdir -p alsa05$PREFIX/lib/xine/plugins && \
-@HAVE_ALSA05_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.so alsa05$PREFIX/lib/xine/plugins && \
-@HAVE_ALSA05_TRUE@    (cd alsa05 && \
-@HAVE_ALSA05_TRUE@    echo "n" | makepkg $alsa05PACKAGE && \
-@HAVE_ALSA05_TRUE@    echo "move $alsa05PACKAGE to $SLCK" && mv $alsa05PACKAGE $SLCK) && \
-@HAVE_ALSA05_TRUE@    rm -rf alsa05 && \
-@HAVE_ALSA05_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.so
 
 ## Alsa 0.9 plugin
 @HAVE_ALSA09_TRUE@    mkdir -p alsa09$PREFIX/lib/xine/plugins && \
@@ -237,7 +221,6 @@ do_clean() {
   rm -rf $TMPBUILD
   rm -f $PACKAGE package_descriptions
 @HAVE_OSS_TRUE@   rm -f $ossPACKAGE
-@HAVE_ALSA05_TRUE@   rm -f $alsa05PACKAGE
 @HAVE_ALSA09_TRUE@   rm -f $alsa09PACKAGE
 @HAVE_DXR3_TRUE@   rm -f $dxr3PACKAGE
 @HAVE_ARTS_TRUE@   rm -f $artsPACKAGE
@@ -270,9 +253,6 @@ build_pentiumpro() {
 @HAVE_OSS_TRUE@    rm -f package_descriptions
 @HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
 @HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-i686.tar.gz $ossPACKAGE package_descriptions
-@HAVE_ALSA05_TRUE@    rm -f package_descriptions
-@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
-@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-i686.tar.gz $alsa05PACKAGE package_descriptions
 @HAVE_ALSA09_TRUE@    rm -f package_descriptions
 @HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
 @HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-i686.tar.gz $alsa09PACKAGE package_descriptions
@@ -322,9 +302,6 @@ build_pentium() {
 @HAVE_OSS_TRUE@    rm -f package_descriptions
 @HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
 @HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-i586.tar.gz $ossPACKAGE package_descriptions
-@HAVE_ALSA05_TRUE@    rm -f package_descriptions
-@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
-@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-i586.tar.gz $alsa05PACKAGE package_descriptions
 @HAVE_ALSA09_TRUE@    rm -f package_descriptions
 @HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
 @HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-i586.tar.gz $alsa09PACKAGE package_descriptions
@@ -373,9 +350,6 @@ build_k6() {
 @HAVE_OSS_TRUE@    rm -f package_descriptions
 @HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
 @HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-k6.tar.gz $ossPACKAGE package_descriptions
-@HAVE_ALSA05_TRUE@    rm -f package_descriptions
-@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
-@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-k6.tar.gz $alsa05PACKAGE package_descriptions
 @HAVE_ALSA09_TRUE@    rm -f package_descriptions
 @HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
 @HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-k6.tar.gz $alsa09PACKAGE package_descriptions
@@ -424,9 +398,6 @@ build_k7() {
 @HAVE_OSS_TRUE@    rm -f package_descriptions
 @HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
 @HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-k7.tar.gz $ossPACKAGE package_descriptions
-@HAVE_ALSA05_TRUE@    rm -f package_descriptions
-@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
-@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-k7.tar.gz $alsa05PACKAGE package_descriptions
 @HAVE_ALSA09_TRUE@    rm -f package_descriptions
 @HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
 @HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-k7.tar.gz $alsa09PACKAGE package_descriptions

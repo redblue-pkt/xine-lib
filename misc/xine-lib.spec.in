@@ -21,11 +21,6 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_OSS_TRUE@Group:       Development/Libraries
 @HAVE_OSS_TRUE@Requires:    xine-lib >= %{ver}
 
-@HAVE_ALSA05_TRUE@%package alsa05
-@HAVE_ALSA05_TRUE@Summary:     XINE - alsa 0.5.x support.
-@HAVE_ALSA05_TRUE@Group:       Development/Libraries
-@HAVE_ALSA05_TRUE@Requires:    xine-lib >= %{ver}
-
 @HAVE_ALSA09_TRUE@%package alsa09
 @HAVE_ALSA09_TRUE@Summary:     XINE - alsa >= 0.9.x support.
 @HAVE_ALSA09_TRUE@Group:       Development/Libraries
@@ -108,9 +103,6 @@ ler qualquer vídeo com máximo desempenho.
 
 @HAVE_OSS_TRUE@%description oss
 @HAVE_OSS_TRUE@audio plugin with oss support.
-
-@HAVE_ALSA05_TRUE@%description alsa05
-@HAVE_ALSA05_TRUE@audio plugin with alsa 0.5.x support.
 
 @HAVE_ALSA09_TRUE@%description alsa09
 @HAVE_ALSA09_TRUE@audio plugin with alsa >= 0.9.x support.
@@ -277,11 +269,6 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_OSS_TRUE@%defattr(-,root,root)
 @HAVE_OSS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la
 @HAVE_OSS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.so
-
-@HAVE_ALSA05_TRUE@%files alsa05
-@HAVE_ALSA05_TRUE@%defattr(-,root,root)
-@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
-@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.so
 
 @HAVE_ALSA09_TRUE@%files alsa09
 @HAVE_ALSA09_TRUE@%defattr(-,root,root)
