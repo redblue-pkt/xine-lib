@@ -1,5 +1,6 @@
 xine (0.9.5) unstable; urgency=low
 
+  * libwin32dll bugfixes (no directshow yet)
   * demux_asf bugfixes
   * input_http bugfixes, proxy, auth and proxy-auth support
   * snapshots of YUY2 images should work now
