@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.14 2004/04/22 15:20:53 hadess Exp $
+ * $Id: real.c,v 1.15 2004/04/22 15:23:55 hadess Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -330,13 +330,10 @@ void real_calc_response_and_checksum (char *response, char *chksum, char *challe
   /* initialize buffer */
   memset(buf, 0, 128);
   ptr=buf;
-  printf("ptr at %p\n", ptr);
   BE_32C(ptr, 0xa1e9149d);
   ptr+=4;
-  printf("ptr at %p\n", ptr);
   BE_32C(ptr, 0x0e6b3b59);
   ptr+=4;
-  printf("ptr at %p\n", ptr);
 
   /* some (length) checks */
   if (challenge != NULL)
