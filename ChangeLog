@@ -5,6 +5,7 @@ xine-lib (1-rc2)
   * new tvtime/deinterlacer option "cheap mode": skips format conversion.
     (uses less cpu but it's not 100% accurate)
   * encoding of URL with multibyte characters in MMS
+  * fix ssa subtitle handling
            
 xine-lib (1-rc1)
   * fix incorrect colours when blending frame with a big-endian RGB pixel format
