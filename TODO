@@ -71,8 +71,6 @@ optional
 --------
 
 - merge the vcdx plugin instead of current vcd plugin
-- small refactoring of post plugin common code while killing the
-  "early dispose" bug Thibaut found
 - properly localize all user-visible strings
 - rename config entries to a more consistent scheme
   (providing automatic config file conversion, of course)
