@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.119 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_mpeg_block.c,v 1.120 2002/10/18 07:13:10 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -61,10 +61,7 @@
 typedef struct demux_mpeg_block_s {
   demux_plugin_t        demux_plugin;
 
-  xine_t               *xine;
-
-  config_values_t      *config;
-  
+  xine_stream_t        *stream;  
   fifo_buffer_t        *audio_fifo;
   fifo_buffer_t        *video_fifo;
 
@@ -94,6 +91,15 @@ typedef struct demux_mpeg_block_s {
 
 } demux_mpeg_block_t ;
 
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_mpeg_block_class_t;
 
 /* OK, i think demux_mpeg_block discontinuity handling demands some
    explanation:
@@ -130,10 +136,10 @@ static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
       printf("demux_mpeg_block: discontinuity detected by pts wrap\n");
 #endif
       if (this->buf_flag_seek) {
-        xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
+        xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
         this->buf_flag_seek = 0;
       } else {
-        xine_demux_control_newpts(this->xine, pts, 0);
+        xine_demux_control_newpts(this->stream, pts, 0);
       }
       this->send_newpts = 0;
     } else {
@@ -166,6 +172,12 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 #endif
 
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
+
+  if (buf==NULL) {
+    this->status = DEMUX_FINISHED;
+    return ;
+  }
+#if 0
 
   if (buf==NULL) {
     xine_next_mrl_event_t event;
@@ -221,6 +233,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       return ;
     }
   }
+#endif
 
   /* If this is not a block for the demuxer, pass it
    * straight through. */
@@ -346,7 +359,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     this->warned++;
     if (this->warned > 5) {
-      xine_log (this->xine, XINE_LOG_MSG,
+      xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: too many errors, stopping playback. Maybe this stream is scrambled?\n"));
       this->status = DEMUX_FINISHED;
     }
@@ -390,10 +403,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       printf("demux_mpeg_block: discontinuity detected by nav packet\n" );
 #endif
       if (this->buf_flag_seek) {
-        xine_demux_control_newpts(this->xine, start_pts, BUF_FLAG_SEEK);
+        xine_demux_control_newpts(this->stream, start_pts, BUF_FLAG_SEEK);
         this->buf_flag_seek = 0;
       } else {
-        xine_demux_control_newpts(this->xine, start_pts, 0);
+        xine_demux_control_newpts(this->stream, start_pts, 0);
       }
     }
     this->nav_last_end_pts = end_pts;
@@ -458,7 +471,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     /* check PES scrambling_control */
     if (((p[6] & 0x30) != 0) && !this->warned) {
 
-      xine_log (this->xine, XINE_LOG_MSG,
+      xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: warning: pes header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
 
       this->warned = 1;
@@ -700,7 +713,7 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -874,9 +887,9 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
   
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
@@ -907,26 +920,27 @@ static int demux_mpeg_detect_blocksize(demux_mpeg_block_t *this,
     return 2048;
 }
 
-static int demux_mpeg_block_send_headers (demux_mpeg_block_t *this) {
+static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
 
+  demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   pthread_mutex_lock (&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     if (!this->blocksize)
       this->blocksize = demux_mpeg_detect_blocksize( this, this->input );
 
     if (!this->blocksize)
-      return DEMUX_CANNOT_HANDLE;
+      return;
   }
   
   /* 
    * send start buffer
    */
   
-  xine_demux_control_start(this->xine);
+  xine_demux_control_start(this->stream);
   
   if (!this->rate)
     this->rate = demux_mpeg_block_estimate_rate (this);
@@ -946,11 +960,11 @@ static int demux_mpeg_block_send_headers (demux_mpeg_block_t *this) {
   }
   this->status = DEMUX_FINISHED;
 
-  xine_demux_control_headers_done (this->xine);
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
 
-  return DEMUX_CAN_HANDLE;
+  return;
 }
 
 
@@ -1020,7 +1034,7 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
   } else {
     this->buf_flag_seek = 1;
     this->nav_last_end_pts = this->nav_last_start_pts = 0;
-    xine_demux_flush_engine(this->xine);
+    xine_demux_flush_engine(this->stream);
   }
   
   /* this->status is saved because we can be interrupted between
@@ -1058,126 +1072,6 @@ static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
 	    this->cur_mrl, this->rate * 50 * 8);
 }
 
-static int demux_mpeg_block_open(demux_plugin_t *this_gen,
-				 input_plugin_t *input, int stage) {
-
-  demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-
-  switch(stage) {
-
-  case STAGE_BY_CONTENT: {
-
-    if(((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) &&
-       ((input->get_capabilities(input) & INPUT_CAP_VARIABLE_BITRATE) == 0) ) {
-
-      this->blocksize = input->get_blocksize(input);
-
-      if (!this->blocksize)
-        this->blocksize = demux_mpeg_detect_blocksize( this, input );
-
-      if (!this->blocksize)
-        return DEMUX_CANNOT_HANDLE;
-
-      input->seek(input, 0, SEEK_SET);
-      if (input->read(input, this->scratch, this->blocksize)) {
-
-	if (this->scratch[0] || this->scratch[1] 
-	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba))
-	  return DEMUX_CANNOT_HANDLE;
-
-	/* if it's a file then make sure it's mpeg-2 */
-	if ( !input->get_blocksize(input) 
-	     && ((this->scratch[4]>>4) != 4) )
-	  return DEMUX_CANNOT_HANDLE;
-
-	demux_mpeg_block_accept_input (this, input);	  
-	return demux_mpeg_block_send_headers (this);
-      }	
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  case STAGE_BY_EXTENSION: {
-    char *media;
-    char *ending;
-    char *MRL;
-    char *m, *valid_mrls, *valid_ends;
-
-    xine_strdupa(valid_mrls, (this->config->register_string(this->config,
-							    "mrl.mrls_mpeg_block", VALID_MRLS,
-							    _("valid mrls for mpeg block demuxer"),
-							    NULL, 20, NULL, NULL)));
-    
-    MRL = input->get_mrl (input);
-    
-    media = strstr(MRL, "://");
-    if(media) {
-      
-      while((m = xine_strsep(&valid_mrls, ",")) != NULL) { 
-	
-	while(*m == ' ' || *m == '\t') m++;
-	
-	if(((!strncmp(MRL, m, strlen(m))) && ((strncmp((media + 3), "mpeg2", 5)) && (strncmp((media + 3), "mpeg1", 5))))
-	   || (((!strncmp(MRL, m, strlen(m))) && (!strncmp((media + 3), "mpeg2", 5))) &&
-	       ((!strncmp(MRL, m, strlen(m))) && (strncmp((media + 3), "mpeg1", 5))))) {
-	  
-	  this->blocksize = 2048;
-	  demux_mpeg_block_accept_input(this, input);
-	  return demux_mpeg_block_send_headers (this);
-	}
-	
-      }
-      
-      if(!strncmp(MRL, "vcd", 3)) {
-	this->blocksize = 2324;
-	demux_mpeg_block_accept_input (this, input);	  
-	return demux_mpeg_block_send_headers (this);
-      }
-    } 
-    
-    /*
-     * check ending
-     */
-    
-    ending = strrchr(MRL, '.');
-    
-    if(!ending)
-      return DEMUX_CANNOT_HANDLE;
-    
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-							    "mrl.ends_mpeg_block", VALID_ENDS,
-							    _("valid mrls ending for mpeg block demuxer"),
-							    NULL, 20, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
-      
-      while(*m == ' ' || *m == '\t') m++;
-
-      if(!strcasecmp((ending + 1), m)) {
-	this->blocksize = 0;
-	demux_mpeg_block_accept_input (this, input);	  
-	return demux_mpeg_block_send_headers (this);
-      }
-    }
-  }
-  break;
-
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-  }
-
-  return DEMUX_CANNOT_HANDLE;
-}
-
-static char *demux_mpeg_block_get_id(void) {
-  return "MPEG_BLOCK";
-}
-
-static char *demux_mpeg_block_get_mimetypes(void) {
-  return "";
-}
-
 static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
@@ -1191,15 +1085,35 @@ static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
     return 0;
 
 }
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                   input_plugin_t *input_gen) {
 
-static void *init_demuxer_plugin (xine_t *xine, void *data) {
+  input_plugin_t *input = (input_plugin_t *) input_gen;
 
   demux_mpeg_block_t *this;
 
-  this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf("demux_mpeg_block.c: not seekable, can't handle!\n");
+    return NULL;
+  }
 
+  this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
+  this->stream = stream;
+  this->input  = input;
+//  this->config = xine->config;
+//  this->xine   = xine;
+  this->demux_plugin.send_headers      = demux_mpeg_block_send_headers;
+  this->demux_plugin.start             = demux_mpeg_block_start;
+  this->demux_plugin.seek              = demux_mpeg_block_seek;
+  this->demux_plugin.stop              = demux_mpeg_block_stop;
+  this->demux_plugin.dispose           = demux_mpeg_block_dispose;
+  this->demux_plugin.get_status        = demux_mpeg_block_get_status;
+  this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
+  this->demux_plugin.demux_class       = class_gen;
+
+//  this->demux_plugin.open              = demux_mpeg_block_open; /*????*/
+
+#if 0
   /* Calling register_string() configure valid mrls in configfile */
   (void*) this->config->register_string(this->config, "mrl.mrls_mpeg_block", VALID_MRLS,
 					_("valid mrls for mpeg block demuxer"),
@@ -1208,21 +1122,124 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 					"mrl.ends_mpeg_block", VALID_ENDS,
 					_("valid mrls ending for mpeg block demuxer"),
 					NULL, 20, NULL, NULL);    
-
-  this->demux_plugin.open              = demux_mpeg_block_open;
-  this->demux_plugin.start             = demux_mpeg_block_start;
-  this->demux_plugin.seek              = demux_mpeg_block_seek;
-  this->demux_plugin.stop              = demux_mpeg_block_stop;
-  this->demux_plugin.dispose           = demux_mpeg_block_dispose;
-  this->demux_plugin.get_status        = demux_mpeg_block_get_status;
-  this->demux_plugin.get_identifier    = demux_mpeg_block_get_id;
-  this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_mpeg_block_get_mimetypes;
+#endif
   
   this->scratch = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
-    
+
+  switch (stream->content_detection_method) {
+
+  case XINE_DEMUX_CONTENT_STRATEGY: {
+
+    if(((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) &&
+       ((input->get_capabilities(input) & INPUT_CAP_VARIABLE_BITRATE) == 0) ) {
+
+      this->blocksize = input->get_blocksize(input);
+
+      if (!this->blocksize)
+        this->blocksize = demux_mpeg_detect_blocksize( this, input );
+
+      if (!this->blocksize) {
+        free (this);
+        return NULL;
+      }
+
+      input->seek(input, 0, SEEK_SET);
+      if (input->read(input, this->scratch, this->blocksize)) {
+
+        if (this->scratch[0] || this->scratch[1]
+            || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
+          free (this);
+          return NULL;
+        }
+
+        /* if it's a file then make sure it's mpeg-2 */
+        if ( !input->get_blocksize(input)
+             && ((this->scratch[4]>>4) != 4) ) {
+          free (this);
+          return NULL;
+        }
+
+        demux_mpeg_block_accept_input (this, input);
+        break;
+      }
+    }
+    free (this);
+    return NULL;
+  }
+  break;
+
+  case XINE_DEMUX_EXTENSION_STRATEGY: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+    if( (strncmp((ending + 3), "mpeg2", 5)) ||
+            (strncmp((ending + 3), "mpeg1", 5)) ) {
+      this->blocksize = 2048;
+      demux_mpeg_block_accept_input(this, input);
+    } else if(!strncmp(mrl, "vcd", 3)) {
+      this->blocksize = 2324;
+      demux_mpeg_block_accept_input (this, input);
+    } else {
+      free (this);
+      return NULL;
+    }
+  }
+  break;
+  default:
+    free (this);
+    return NULL;
+  }
+//  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+  return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "DVD/VOB demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "MPEG_BLOCK";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "vob";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return "";
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_mpeg_block_class_t *this = (demux_mpeg_block_class_t *) this_gen;
+
+  free (this);
+ }
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_mpeg_block_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_mpeg_block_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
   return this;
 }
 
@@ -1232,6 +1249,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "mpeg_block", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
