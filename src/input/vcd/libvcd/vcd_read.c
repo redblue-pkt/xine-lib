@@ -1,5 +1,5 @@
 /*
-    $Id: vcd_read.c,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: vcd_read.c,v 1.3 2004/04/11 14:59:23 mroi Exp $
 
     Copyright (C) 2001,2003 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003 Rocky Bernstein <rocky@gnu.org>
@@ -19,7 +19,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-
+
 #include "vcd_read.h"
 #include "vcd_assert.h"
 #include <libvcd/inf.h>
