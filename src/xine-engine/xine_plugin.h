@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.12 2003/12/09 00:02:38 f1rmb Exp $
+ * $Id: xine_plugin.h,v 1.13 2004/05/16 17:58:16 tmattern Exp $
  *
  * generic plugin definitions
  *
@@ -74,5 +74,15 @@ typedef struct {
 typedef struct {
   uint32_t                 type;                    /* type of the post plugin, use one of XINE_POST_TYPE_* */
 } post_info_t;
+
+/* special info for a demuxer plugin */
+typedef struct {
+  int                      priority;
+} demuxer_info_t;
+
+/* special info for an input plugin */
+typedef struct {
+  int                      priority;
+} input_info_t;
 
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.175 2004/04/26 17:50:12 mroi Exp $
+ * $Id: load_plugins.c,v 1.176 2004/05/16 17:58:16 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -300,6 +300,8 @@ static void _insert_plugin (xine_t *this,
   ao_info_t         *ao_new, *ao_old;
   decoder_info_t    *decoder_new, *decoder_old;
   post_info_t       *post_new, *post_old;
+  demuxer_info_t    *demux_new, *demux_old;
+  input_info_t      *input_new, *input_old;
   uint32_t          *types;
   int                priority = 0;
   char               key[80];
@@ -382,6 +384,41 @@ static void _insert_plugin (xine_t *this,
     post_new = xine_xmalloc(sizeof(post_info_t));
     post_new->type = post_old->type;
     entry->info->special_info = post_new;
+    break;
+    
+  case PLUGIN_DEMUX:
+    demux_old = info->special_info;
+    demux_new = xine_xmalloc(sizeof(demuxer_info_t));
+    
+    if (demux_old) {
+      priority = demux_new->priority = demux_old->priority;
+      lprintf("demux: %s, priority: %d\n", info->id, priority);
+    } else {
+      xprintf(this, XINE_VERBOSITY_LOG, 
+              _("load_plugins: demuxer plugin %s does not provide a priority,"
+                " xine-lib will use the default priority.\n"),
+              info->id);
+      priority = demux_new->priority = 0;
+    }
+    entry->info->special_info = demux_new;
+    break;
+
+  case PLUGIN_INPUT:
+    input_old = info->special_info;
+    input_new = xine_xmalloc(sizeof(input_info_t));
+    
+    if (input_old) {
+      priority = input_new->priority = input_old->priority;
+      lprintf("input: %s, priority: %d\n", info->id, priority);
+    } else {
+      xprintf(this, XINE_VERBOSITY_LOG, 
+              _("load_plugins: input plugin %s does not provide a priority,"
+                " xine-lib will use the default priority.\n"),
+              info->id);
+      priority = input_new->priority = 0;
+    }
+    entry->info->special_info = input_new;
+    break;
   }
 
   xine_list_append_priority_content (list, entry, priority);
