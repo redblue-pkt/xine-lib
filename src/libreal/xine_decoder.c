@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2002/11/25 01:14:26 guenter Exp $
+ * $Id: xine_decoder.c,v 1.7 2002/11/25 02:26:51 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -45,13 +45,9 @@
 
 typedef struct {
   video_decoder_class_t   decoder_class;
-  void                   *rv_handle;
 
-  unsigned long (*rvyuv_custom_message)(unsigned long*,void*);
-  unsigned long (*rvyuv_free)(void*);
-  unsigned long (*rvyuv_hive_message)(unsigned long,unsigned long);
-  unsigned long (*rvyuv_init)(void*, void*); /* initdata,context */
-  unsigned long (*rvyuv_transform)(char*, char*,unsigned long*,unsigned long*,void*);
+  char                   *real_codec_path;
+
 } real_class_t;
 
 #define BUF_SIZE       32768
@@ -63,6 +59,14 @@ typedef struct realdec_decoder_s {
   real_class_t    *cls;
 
   xine_stream_t   *stream;
+
+  void            *rv_handle;
+
+  unsigned long (*rvyuv_custom_message)(unsigned long*,void*);
+  unsigned long (*rvyuv_free)(void*);
+  unsigned long (*rvyuv_hive_message)(unsigned long,unsigned long);
+  unsigned long (*rvyuv_init)(void*, void*); /* initdata,context */
+  unsigned long (*rvyuv_transform)(char*, char*,unsigned long*,unsigned long*,void*);
 
   void            *context;
 
@@ -129,9 +133,118 @@ static void hexdump (char *buf, int length) {
 }
 
 
+/*
+ * real codec loader
+ */
+
+static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
+
+  char path[1024];
+
+  sprintf (path, "%s/%s", this->cls->real_codec_path, codec_name);
+
+  printf ("libreal: opening shared obj '%s'\n", path);
+  this->rv_handle = dlopen (path, RTLD_LAZY);
+
+  if (!this->rv_handle) {
+    printf ("libreal: error: %s\n", dlerror());
+    return 0;
+  }
+  
+  this->rvyuv_custom_message = dlsym (this->rv_handle, "RV20toYUV420CustomMessage");
+  this->rvyuv_free           = dlsym (this->rv_handle, "RV20toYUV420Free");
+  this->rvyuv_hive_message   = dlsym (this->rv_handle, "RV20toYUV420HiveMessage");
+  this->rvyuv_init           = dlsym (this->rv_handle, "RV20toYUV420Init");
+  this->rvyuv_transform      = dlsym (this->rv_handle, "RV20toYUV420Transform");
+  
+  if (this->rvyuv_custom_message &&
+      this->rvyuv_free &&
+      this->rvyuv_hive_message &&
+      this->rvyuv_init &&
+      this->rvyuv_transform) 
+    return 1;
+
+  printf ("libreal: Error resolving symbols! (version incompatibility?)\n");
+  return 0;
+}
+
+static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
+
+  unsigned int* extrahdr = (unsigned int*) (buf->content+28);
+  int           result;
+  rv_init_t     init_data = {11, 0, 0, 0, 0, 
+			     0, 1, 0}; /* rv30 */
+
+
+  printf ("libareal: loading codec...\n");
+
+  switch (buf->type) {
+  case BUF_VIDEO_RV20:
+    if (!load_syms_linux (this, "drv2.so.6.0"))
+      return 0;
+    break;
+  case BUF_VIDEO_RV30:
+    if (!load_syms_linux (this, "drv3.so.6.0"))
+      return 0;
+    break;
+  default:
+    printf ("libreal: error, i don't handle buf type 0x%08x\n",
+	    buf->type);
+    abort();
+  }
+
+  init_data.w = BE_16(&buf->content[12]);
+  init_data.h = BE_16(&buf->content[14]);
+  
+  this->width  = init_data.w;
+  this->height = init_data.h;
+  
+  init_data.subformat = BE_32(&buf->content[26]);
+  init_data.format    = BE_32(&buf->content[30]);
+  
+  hexdump (&init_data, sizeof (init_data));
+  
+  hexdump (buf->content, 32);
+  hexdump (extrahdr, 10);
+  
+  printf ("libreal: init codec %dx%d... %x %x\n", 
+	  init_data.w, init_data.h,
+	  init_data.subformat, init_data.format );
+  
+  this->context = NULL;
+  
+  result = this->rvyuv_init (&init_data, &this->context); 
+  
+  printf ("libreal: ... done %d\n", result);
+
+  /* setup rv30 codec (codec sub-type and image dimensions): */
+  if (init_data.format>=0x20200002){
+    unsigned long cmsg24[4]={this->width,this->height,
+			     this->width,this->height};
+    unsigned long cmsg_data[3]={0x24,1+((init_data.subformat>>16)&7),
+				(unsigned long) &cmsg24};
+    
+    printf ("libreal: cmsg24:\n");
+    hexdump (cmsg24, sizeof (cmsg24));
+    printf ("libreal: cmsg_data:\n");
+    hexdump (cmsg_data, sizeof (cmsg_data));
+    
+    this->rvyuv_custom_message (cmsg_data, this->context);
+    
+    printf ("libreal: special setup for rv30 done\n");
+    
+  }
+  
+  this->stream->video_out->open(this->stream->video_out, this->stream);
+    
+  this->frame_size   = this->width*this->height;
+  this->frame_buffer = xine_xmalloc (this->width*this->height*3/2);
+
+  return 1;
+}
+
 static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
-  real_class_t      *cls  = this->cls;
 
 #ifdef LOG
   printf ("libreal: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
@@ -141,57 +254,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     /* real_find_sequence_header (&this->real, buf->content, buf->content + buf->size);*/
   } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
-    unsigned int* extrahdr = (unsigned int*) (buf->content+28);
-    int           result;
-    rv_init_t     init_data = {11, 0, 0, 0, 0, 
-			       0, 1, 0}; /* rv30 */
-
-    init_data.w = BE_16(&buf->content[12]);
-    init_data.h = BE_16(&buf->content[14]);
-
-    this->width  = init_data.w;
-    this->height = init_data.h;
-
-    init_data.subformat = BE_32(&buf->content[26]);
-    init_data.format    = BE_32(&buf->content[30]);
-
-    hexdump (&init_data, sizeof (init_data));
-
-    hexdump (buf->content, 32);
-    hexdump (extrahdr, 10);
-
-    printf ("libreal: init codec %dx%d... %x %x\n", 
-	    init_data.w, init_data.h,
-	    init_data.subformat, init_data.format );
-
-    this->context = NULL;
-
-    result = cls->rvyuv_init (&init_data, &this->context); 
-
-    printf ("libreal: ... done %d\n", result);
-
-    /* setup rv30 codec (codec sub-type and image dimensions): */
-    if (init_data.format>=0x20200002){
-      unsigned long cmsg24[4]={this->width,this->height,
-			       this->width,this->height};
-      unsigned long cmsg_data[3]={0x24,1+((init_data.subformat>>16)&7),
-				  (unsigned long) &cmsg24};
-
-      printf ("libreal: cmsg24:\n");
-      hexdump (cmsg24, sizeof (cmsg24));
-      printf ("libreal: cmsg_data:\n");
-      hexdump (cmsg_data, sizeof (cmsg_data));
-
-      cls->rvyuv_custom_message (cmsg_data, this->context);
-
-      printf ("libreal: special setup for rv30 done\n");
-
-    }
-
-    this->stream->video_out->open(this->stream->video_out, this->stream);
-    
-    this->frame_size   = this->width*this->height;
-    this->frame_buffer = xine_xmalloc (this->width*this->height*3/2);
+    init_codec (this, buf);
 
   } else if (this->context) {
 
@@ -254,7 +317,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	printf ("libreal: chunk_table:\n");
 	hexdump (this->chunk_tab, this->num_chunks*8+8);
 	
-	result = cls->rvyuv_transform (this->chunk_buffer, 
+	result = this->rvyuv_transform (this->chunk_buffer, 
 				       this->frame_buffer, 
 				       transform_in,
 				       transform_out, 
@@ -314,7 +377,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 }
 
 static void realdec_flush (video_decoder_t *this_gen) {
-  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 #ifdef LOG
   printf ("libreal: flush\n");
@@ -323,12 +386,12 @@ static void realdec_flush (video_decoder_t *this_gen) {
 }
 
 static void realdec_reset (video_decoder_t *this_gen) {
-  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 }
 
 static void realdec_discontinuity (video_decoder_t *this_gen) {
-  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 }
 
@@ -400,54 +463,47 @@ void __pure_virtual(void) {
   /*      exit(1); */
 }
 
-/*
- * real codec loader
- */
-
-static int load_syms_linux (real_class_t *cls, char *path) {
-
-  printf ("libreal: opening shared obj '%s'\n", path);
-  cls->rv_handle = dlopen (path, RTLD_LAZY);
-
-  if (!cls->rv_handle) {
-    printf ("libreal: error: %s\n", dlerror());
-    return 0;
-  }
+static void codec_path_cb (void *data, xine_cfg_entry_t *cfg) {
+  real_class_t *this = (real_class_t *) data;
   
-  cls->rvyuv_custom_message = dlsym (cls->rv_handle, "RV20toYUV420CustomMessage");
-  cls->rvyuv_free           = dlsym (cls->rv_handle, "RV20toYUV420Free");
-  cls->rvyuv_hive_message   = dlsym (cls->rv_handle, "RV20toYUV420HiveMessage");
-  cls->rvyuv_init           = dlsym (cls->rv_handle, "RV20toYUV420Init");
-  cls->rvyuv_transform      = dlsym (cls->rv_handle, "RV20toYUV420Transform");
-  
-  if (cls->rvyuv_custom_message &&
-      cls->rvyuv_free &&
-      cls->rvyuv_hive_message &&
-      cls->rvyuv_init &&
-      cls->rvyuv_transform) 
-    return 1;
-
-  printf ("libreal: Error resolving symbols! (version incompatibility?)\n");
-  return 0;
+  this->real_codec_path = cfg->str_value;
 }
 
 static void *init_class (xine_t *xine, void *data) {
 
-  real_class_t *this;
+  real_class_t       *this;
+  config_values_t    *config = xine->config;
 
   this = (real_class_t *) xine_xmalloc (sizeof (real_class_t));
-
-  if (!load_syms_linux (this, "/usr/local/RealPlayer8/Codecs/drv3.so.6.0")) {
-    if (!load_syms_linux (this, "/opt/RealPlayer8/Codecs/drv3.so.6.0")) {
-      free (this);
-      return NULL;
-    }
-  }
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
+
+  this->real_codec_path = config->register_string (config, "codec.real_codecs_path", 
+						   "unknown",
+						   _("path to real player codecs, if installed"),
+						   NULL, 10, codec_path_cb, (void *)this);
+  
+  if (!strcmp (this->real_codec_path, "unknown")) {
+
+    struct stat s;
+
+    /* try some auto-detection */
+
+    if (!stat ("/usr/local/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/usr/local/RealPlayer8/Codecs");
+    if (!stat ("/usr/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/usr/RealPlayer8/Codecs");
+    if (!stat ("/opt/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/opt/RealPlayer8/Codecs");
+  }
+
+  printf ("libareal: real codec path : %s\n",  this->real_codec_path);
 
   return this;
 }
