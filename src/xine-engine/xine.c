@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.256 2003/10/04 15:19:23 siggi Exp $
+ * $Id: xine.c,v 1.257 2003/10/08 05:33:28 valtri Exp $
  */
 
 /*
@@ -40,6 +40,10 @@
 #include <endian.h>
 #elif defined (__FreeBSD__)
 #include <machine/endian.h>
+#endif
+
+#ifdef HAVE_SETLOCALE
+#include <locale.h>
 #endif
 
 /********** logging **********/
@@ -1219,6 +1223,11 @@ void xine_init (xine_t *this) {
   /*
    * content detection strategy
    */
+
+#ifdef HAVE_SETLOCALE
+  if (!setlocale(LC_CTYPE, ""))
+    printf("xine: locale not supported by C library\n");
+#endif
 
   this->demux_strategy  = this->config->register_enum (this->config,
 						       "misc.demux_strategy",

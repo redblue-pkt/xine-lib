@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.30 2003/08/25 21:51:39 f1rmb Exp $
+ * $Id: mms.c,v 1.31 2003/10/08 05:33:28 valtri Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -45,6 +45,13 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
+
+#if !defined(_MSC_VER) && defined(HAVE_LANGINFO_CODESET)
+#define USE_ICONV
+#include <iconv.h>
+#include <locale.h>
+#include <langinfo.h>
+#endif
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -291,7 +298,28 @@ static int send_command (mms_t *this, int command, uint32_t switches,
   return 1;
 }
 
-static void string_utf16(char *dest, char *src, int len) {
+#ifdef USE_ICONV
+static iconv_t string_utf16_open() {
+    return iconv_open("UTF-16LE", nl_langinfo(CODESET));
+}
+
+static void string_utf16_close(iconv_t url_conv) {
+    iconv_close(url_conv);
+}
+
+static void string_utf16(iconv_t url_conv, char *dest, char *src, int len) {
+    size_t len1, len2;
+    char *ip, *op;
+
+    memset(dest, 0, 1000);
+    len1 = len; len2 = 1000;
+    ip = src; op = dest;
+
+    iconv(url_conv, &ip, &len1, &op, &len2);
+}
+
+#else
+static void string_utf16(int unused, char *dest, char *src, int len) {
   int i;
 
   memset (dest, 0, 1000);
@@ -304,6 +332,7 @@ static void string_utf16(char *dest, char *src, int len) {
   dest[i * 2] = 0;
   dest[i * 2 + 1] = 0;
 }
+#endif
 
 static void print_answer (char *data, int len) {
 
@@ -763,6 +792,11 @@ static void mms_gen_guid(char guid[]) {
  */
 mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   mms_t  *this;
+#ifdef USE_ICONV
+  iconv_t url_conv;
+#else
+  int     url_conv = 0;
+#endif
   int     i;
   int     video_stream = 0;
   int     audio_stream = 0;
@@ -814,6 +848,9 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
           "path=%s\nlibmms:   file=%s\n", url, host, path, file);
 #endif
 
+#ifdef USE_ICONV
+  url_conv = string_utf16_open();
+#endif
   /*
    * let the negotiations begin...
    */
@@ -822,7 +859,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   mms_gen_guid(this->guid);
   sprintf (this->str, "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
     this->guid, this->host);
-  string_utf16 (this->scmd_body, this->str, strlen(this->str) + 2);
+  string_utf16 (url_conv, this->scmd_body, this->str, strlen(this->str) + 2);
 
   if (!send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8)) {
     printf("libmms: failed to send command 0x01\n");
@@ -838,7 +875,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
 
   /* TODO: insert network timing rquest here */
   /* command 0x2 */
-  string_utf16 (&this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
+  string_utf16 (url_conv, &this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
   memset (this->scmd_body, 0, 8);
   if (!send_command (this, 2, 0, 0, 28 * 2 + 8)) {
     printf("libmms: failed to send command 0x02\n");
@@ -861,7 +898,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   report_progress (stream, 50);
 
   /* command 0x5 */
-  string_utf16 (&this->scmd_body[8], this->path, strlen(this->path));
+  string_utf16 (url_conv, &this->scmd_body[8], this->path, strlen(this->path));
   memset (this->scmd_body, 0, 8);
   if (!send_command (this, 5, 0, 0, strlen(this->path) * 2 + 12))
     goto fail;
@@ -1021,6 +1058,10 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   }
 
   report_progress (stream, 100);
+
+#ifdef USE_ICONV
+  string_utf16_close(url_conv);
+#endif
 
 #ifdef LOG
   printf(" mms_connect: passed\n" );
