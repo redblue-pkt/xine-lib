@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2002/12/14 20:01:53 guenter Exp $
+ * $Id: xine_decoder.c,v 1.42 2002/12/15 16:05:23 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -436,6 +436,9 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  this->sync_todo--;
 
 	  if (this->sync_todo==0) {
+	    int a52_flags_old       = this->a52_flags;
+	    int a52_sample_rate_old = this->a52_sample_rate;
+	    int a52_bit_rate_old    = this->a52_bit_rate;
 
 	    this->frame_length = a52_syncinfo (this->frame_buffer,
 					       &this->a52_flags,
@@ -448,17 +451,22 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    if (this->frame_length) {
 	      this->frame_todo = this->frame_length - 7;
 
-	      if (!this->stream->meta_info[XINE_META_INFO_AUDIOCODEC]) {
+	      if (!this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] ||
+	          a52_flags_old       != this->a52_flags ||
+		  a52_sample_rate_old != this->a52_sample_rate ||
+		  a52_bit_rate_old    != this->a52_bit_rate) {
 
-		if ((this->a52_flags & A52_3F2R) && (this->a52_flags & A52_LFE))
+		if (((this->a52_flags & A52_CHANNEL_MASK) == A52_3F2R) && (this->a52_flags & A52_LFE))
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 5.1");
-		else if ((this->a52_flags & A52_2F2R) || (this->a52_flags & A52_3F1R))
+		else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F2R) ||
+			((this->a52_flags & A52_CHANNEL_MASK) == A52_3F1R))
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 4.0");
-		else if ((this->a52_flags & A52_2F1R) || (this->a52_flags & A52_3F))
+		else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F1R) ||
+			((this->a52_flags & A52_CHANNEL_MASK) == A52_3F))
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 3.0");
-		else if (this->a52_flags & A52_STEREO)
+		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_STEREO)
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0");
-		else if (this->a52_flags & A52_MONO)
+		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_MONO)
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 1.0");
 		else
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52");
