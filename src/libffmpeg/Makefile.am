@@ -9,7 +9,7 @@ INTERNAL_DOCS = diff_to_ffmpeg_cvs.txt
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_ff.la
+lib_LTLIBRARIES = xineplug_decode_ff.la xineplug_decode_dvaudio.la
 
 if HAVE_DXR3
 AM_CPPFLAGS = -I$(top_srcdir)/src/dxr3 $(X_CFLAGS)
@@ -26,5 +26,9 @@ endif
 xineplug_decode_ff_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) -lm $(ZLIB_LIBS) \
 	$(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la \
 	$(top_builddir)/src/libffmpeg/libavcodec/libpostproc/libpostprocess.la
+
+xineplug_decode_dvaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_dvaudio_la_SOURCES = dvaudio_decoder.c
+xineplug_decode_dvaudio_la_LIBADD  = $(XINE_LIB)
 
 noinst_HEADERS = xine_decoder.h

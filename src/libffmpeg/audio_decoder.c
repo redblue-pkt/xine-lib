@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.7 2004/03/16 14:12:03 mroi Exp $
+ * $Id: audio_decoder.c,v 1.8 2004/03/16 23:31:30 jstembridge Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -78,8 +78,6 @@ typedef struct ff_audio_decoder_s {
 static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_WMAV1,      CODEC_ID_WMAV1,          "MS Windows Media Audio 1 (ffmpeg)"},
   {BUF_AUDIO_WMAV2,      CODEC_ID_WMAV2,          "MS Windows Media Audio 2 (ffmpeg)"},
-  /* FIXME DV Audio has disappeared from libffmpeg  
-  {BUD_AUDIO_DV,         CODEC_ID_DVAUDIO,        "DV Audio (ffmpeg)"}, */
   {BUF_AUDIO_14_4,       CODEC_ID_RA_144,         "Real 14.4 (ffmpeg)"},
   {BUF_AUDIO_28_8,       CODEC_ID_RA_288,         "Real 28.8 (ffmpeg)"},
   {BUF_AUDIO_MPEG,       CODEC_ID_MP3,            "MP3 (ffmpeg)"},
@@ -397,7 +395,6 @@ void *init_audio_plugin (xine_t *xine, void *data) {
 static uint32_t supported_audio_types[] = { 
   BUF_AUDIO_WMAV1,
   BUF_AUDIO_WMAV2,
-  BUF_AUDIO_DV,
   BUF_AUDIO_14_4,
   BUF_AUDIO_28_8,
   BUF_AUDIO_MULAW,
