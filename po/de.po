@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.9\n"
+"Project-Id-Version: xine-lib 0.9.12\n"
 "POT-Creation-Date: 2002-06-23 10:57+0200\n"
-"PO-Revision-Date: 2002-06-10 07:50+0200\n"
+"PO-Revision-Date: 2002-06-24 19:42+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -16,105 +16,105 @@ msgstr ""
 #: src/audio_out/audio_alsa_out.c:189 src/audio_out/audio_alsa_out.c:721
 #: src/audio_out/audio_alsa_out.c:903 src/audio_out/audio_alsa_out.c:947
 msgid "device used for mono output"
-msgstr ""
+msgstr "Gerät für Monoausgabe"
 
 #: src/audio_out/audio_alsa_out.c:199 src/audio_out/audio_alsa_out.c:910
 msgid "device used for stereo output"
-msgstr ""
+msgstr "Gerät für Stereoausgabe"
 
 #: src/audio_out/audio_alsa_out.c:209 src/audio_out/audio_alsa_out.c:917
 msgid "device used for 4-channel output"
-msgstr ""
+msgstr "Gerät für 4-Kanalausgabe"
 
 #: src/audio_out/audio_alsa_out.c:219 src/audio_out/audio_alsa_out.c:924
 msgid "device used for 5-channel output"
-msgstr ""
+msgstr "Gerät für 5-Kanalausgabe"
 
 #: src/audio_out/audio_alsa_out.c:229 src/audio_out/audio_alsa_out.c:240
 #: src/audio_out/audio_alsa_out.c:931 src/audio_out/audio_alsa_out.c:938
 msgid "device used for 5.1-channel output"
-msgstr ""
+msgstr "Gerät für 5.1-Kanalausgabe"
 
 #: src/audio_out/audio_alsa_out.c:855 src/audio_out/audio_alsa_out.c:1057
 msgid "alsa mixer device"
-msgstr ""
+msgstr "ALSA Mixergerät"
 
 #: src/audio_out/audio_alsa_out.c:994 src/audio_out/audio_alsa_out.c:1007
 #: src/audio_out/audio_alsa_out.c:1020 src/audio_out/audio_alsa_out.c:1038
 msgid "used to inform xine about what the sound card can do"
-msgstr ""
+msgstr "Wird gebraucht, um xine über die Fähigkeiten der Soundkarte zu informieren"
 
 #: src/audio_out/audio_alsa_out.c:1090
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
-msgstr ""
+msgstr "xine Soundausgabe benutzt ALSA-kompatibles Gerät/Treiber"
 
 #: src/audio_out/audio_esd_out.c:414
 msgid "esd audio output latency (adjust a/v sync)"
-msgstr ""
+msgstr "Verzögerung der esd Audioausgabe (Verändert A/V Synchronisation)"
 
 #: src/audio_out/audio_esd_out.c:441
 msgid "xine audio output plugin using esd"
-msgstr ""
+msgstr "xine Soundausgabe benutzt esd"
 
 #: src/audio_out/audio_oss_out.c:638
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
-msgstr ""
+msgstr "/dev/dsp# Gerät für OSS-Soundausgabe, -1 für automatische Erkennung"
 
 #: src/audio_out/audio_oss_out.c:706
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
-msgstr ""
+msgstr "A/V Synchronisationmethode für OSS, abhängig von Treiber/Hardware"
 
 #: src/audio_out/audio_oss_out.c:773
 msgid "Adjust a/v sync for OSS softsync"
-msgstr ""
+msgstr "A/V Synchronisationsanpassung für OSS SoftSync"
 
 #: src/audio_out/audio_oss_out.c:774
 msgid "Use this to manually adjust a/v sync if you're using softsync"
-msgstr ""
+msgstr "Benutze dies um die A/V Synchronisation manuell anzupassen, falls SoftSync benutzt wird"
 
 #: src/audio_out/audio_oss_out.c:796
 msgid "Enable 4.0 channel analog surround output"
-msgstr ""
+msgstr "Aktiviere analogen 4.0-Kanalraumklang"
 
 #: src/audio_out/audio_oss_out.c:807
 msgid "Enable 5.0 channel analog surround output"
-msgstr ""
+msgstr "Aktiviere analogen 5.0-Kanalraumklang"
 
 #: src/audio_out/audio_oss_out.c:818
 msgid "Enable 5.1 channel analog surround output"
-msgstr ""
+msgstr "Aktiviere analogen 5.1-Kanalraumklang"
 
 #: src/audio_out/audio_oss_out.c:829
 msgid "Enable A52 / AC5 digital audio output via spdif"
-msgstr ""
+msgstr "Aktiviere digitalen A52 / AC5 Raumklang via SPDIF"
 
 #: src/audio_out/audio_oss_out.c:845
 msgid "oss mixer device"
-msgstr ""
+msgstr "OSS Mixergerät"
 
 #: src/audio_out/audio_oss_out.c:917
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
-msgstr ""
+msgstr "xine Soundausgabe benutzt OSS-kompatibles Gerät/Treiber"
 
 #: src/audio_out/audio_sun_out.c:664
 msgid "device used for audio output with the 'Sun' audio plugin"
-msgstr ""
+msgstr "Gerät für Soundausgabe mit 'Sun'-Audio-Plugin"
 
 #: src/audio_out/audio_sun_out.c:748
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
-msgstr ""
+msgstr "xine Soundausgabe benutzt SUN-kompatibles Gerät/Treiber"
 
 #: src/audio_out/audio_arts_out.c:359
 msgid "xine audio output plugin using arts-compliant audio devices/drivers"
-msgstr ""
+msgstr "xine Soundausgabe benutzt ARTS-kompatibles Gerät/Treiber"
 
 #: src/audio_out/audio_irixal_out.c:382
 msgid "irixal audio output maximum gap length in 1/90000s"
-msgstr ""
+msgstr "Maximaler Zwischenraum für IRIXAL Soundausgabe in 1/90000s"
 
 #: src/audio_out/audio_irixal_out.c:411
 msgid "xine audio output plugin using IRIX libaudio"
-msgstr ""
+msgstr "xine Soundausgabe benutzt IRIX-kompatibles Gerät/Treiber"
 
 #: src/demuxers/demux_ts.c:337
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
@@ -192,7 +192,7 @@ msgstr "demux_ts: demux Fehler! Fehlerhafte Nutzdaten Größe %d\n"
 
 #: src/demuxers/demux_ts.c:1465 src/demuxers/demux_ts.c:1679
 msgid "valid mrls for ts demuxer"
-msgstr ""
+msgstr "Gültige MRLs für TS-Demuxer"
 
 #: src/demuxers/demux_ts.c:1472
 #, c-format
@@ -201,7 +201,7 @@ msgstr "demux %u ts_open!\n"
 
 #: src/demuxers/demux_ts.c:1500 src/demuxers/demux_ts.c:1683
 msgid "valid mrls ending for ts demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für TS-Demuxer"
 
 #: src/demuxers/demux_ts.c:1573
 #, c-format
@@ -216,10 +216,10 @@ msgid ""
 "demuxer plugin.\n"
 "          Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ts: Das Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"demux_ts: Das Plugin unterstützt die API-Version %d nicht.\n"
 "          Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"          diesem demuxer Plugin besteht.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"          diesem Demultiplexer-Plugin besteht.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_avi.c:656
 msgid "demux_avi: avi index is broken\n"
@@ -262,7 +262,7 @@ msgstr "demux_avi: Video Codec ist '%s'\n"
 
 #: src/demuxers/demux_avi.c:1503 src/demuxers/demux_avi.c:1580
 msgid "valid mrls ending for avi demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für AVI-Demuxer"
 
 #: src/demuxers/demux_avi.c:1567
 #, c-format
@@ -272,14 +272,14 @@ msgid ""
 "demux_avi: demuxer plugin.\n"
 "Installing current demuxer plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
+"demux_avi: Das Plugin unterstützt die API-Version %d nicht.\n"
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"           diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_elem.c:319 src/demuxers/demux_elem.c:383
 msgid "valid mrls ending for elementary demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für 'elementary'-Demuxer"
 
 #: src/demuxers/demux_elem.c:370
 #, c-format
@@ -289,14 +289,14 @@ msgid ""
 "this             demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_elem: Plugin unterstützt die Plugin-API-Version %s nicht.\n"
-"            das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"            diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_elem: Das Plugin unterstützt die API-Version %d nicht.\n"
+"            Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"            diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_mpeg.c:893 src/demuxers/demux_mpeg.c:990
 msgid "valid mrls for mpeg demuxer"
-msgstr ""
+msgstr "Gültige MRLs für MPEG-Demuxer"
 
 #: src/demuxers/demux_mpeg.c:912
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
@@ -304,7 +304,7 @@ msgstr "demug_mpeg: Bitte mpeg(mpeg1/mpeg2) Datenstromtyp angeben.\n"
 
 #: src/demuxers/demux_mpeg.c:926 src/demuxers/demux_mpeg.c:994
 msgid "valid mrls ending for mpeg demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für MPEG-Demuxer"
 
 #: src/demuxers/demux_mpeg.c:977 src/demuxers/demux_mpgaudio.c:525
 #, c-format
@@ -314,10 +314,10 @@ msgid ""
 "this             demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_mpeg: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
-"            das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"            diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_mpeg: Das Plugin unterstützt die API-Version %d nicht.\n"
+"            Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"            diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_mpgaudio.c:184
 #, c-format
@@ -330,15 +330,15 @@ msgstr "demux_mpgaudio: Kein Audio-Treiber!\n"
 
 #: src/demuxers/demux_mpgaudio.c:469 src/demuxers/demux_mpgaudio.c:538
 msgid "valid mrls ending for mpeg audio demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für MPEG-Audiodemuxer"
 
 #: src/demuxers/demux_pes.c:532 src/demuxers/demux_pes.c:620
 msgid "valid mrls for pes demuxer"
-msgstr ""
+msgstr "Gültige MRLs für PES-Demuxer"
 
 #: src/demuxers/demux_pes.c:562 src/demuxers/demux_pes.c:624
 msgid "valid mrls ending for pes demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für PES-Demuxer"
 
 #: src/demuxers/demux_pes.c:608
 #, c-format
@@ -348,14 +348,14 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_pes: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
-"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
-"           diesem Demuxer-Plugin existiert.\n"
-"Das installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_pes: Das Plugin unterstützt die API-Version %d nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Demultiplexer-Plugin existiert.\n"
+"Das installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_qt.c:1256 src/demuxers/demux_qt.c:1501
 msgid "valid mrls ending for qt demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für QT-Demuxer"
 
 #: src/demuxers/demux_qt.c:1323
 #, c-format
@@ -370,7 +370,7 @@ msgstr "demux_qt: '%c%c%c%c' Video @ %dx%d\n"
 #: src/demuxers/demux_qt.c:1338
 #, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"
-msgstr "demux_qt: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d Kanal\n"
+msgstr "demux_qt: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d Kanal%c\n"
 
 #: src/demuxers/demux_qt.c:1488
 #, c-format
@@ -380,10 +380,10 @@ msgid ""
 "this           demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_qt: Plugin unterstützt die-API-Version %d nicht.\n"
-"          Das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"          diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_qt: Das Plugin unterstützt die API-Version %d nicht.\n"
+"          Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"          diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_ogg.c:220
 msgid "ogg: vorbis audio stream detected\n"
@@ -396,7 +396,7 @@ msgstr "ogg: Unbekannter Datenstromtyp (Signatur >%.8s<)\n"
 
 #: src/demuxers/demux_ogg.c:611 src/demuxers/demux_ogg.c:662
 msgid "valid mrls ending for ogg demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für OGG-Demuxer"
 
 #: src/demuxers/demux_ogg.c:649
 #, c-format
@@ -406,10 +406,10 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ogg: Plugin unterstüzt die Plugin-API-Version %d nicht.\n"
-"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
-"           diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_ogg: Das Plugin unterstüzt die API-Version %d nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_asf.c:335
 #, c-format
@@ -448,7 +448,7 @@ msgstr "demux_asf: Kommentar    : %s\n"
 
 #: src/demuxers/demux_asf.c:1363 src/demuxers/demux_asf.c:1415
 msgid "valid mrls ending for asf demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für ASF-Demuxer"
 
 #: src/demuxers/demux_asf.c:1402
 #, c-format
@@ -458,10 +458,10 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_asf: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
-"           Das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"           diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_asf: Das Plugin unterstützt die API-Version %d nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_cda.c:297
 #, c-format
@@ -471,59 +471,59 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_cda: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
-"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
-"           diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_cda: Das Plugin unterstützt die API-Version %d nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_film.c:138
 msgid "demux_film: This is not a FILM file (why was it sent to this demuxer?\n"
-msgstr ""
+msgstr "demux_film: Das ist keine FILM-Datei (Warum dieser Demuxer?)\n"
 
 #: src/demuxers/demux_film.c:164
 msgid "invalid FILM chunk size\n"
-msgstr ""
+msgstr "Ungültige Größe des FILM-Pakets\n"
 
 #: src/demuxers/demux_film.c:242
 msgid "unrecognized FILM chunk\n"
-msgstr ""
+msgstr "Nicht erkanntes FILM-Paket\n"
 
 #: src/demuxers/demux_film.c:509 src/demuxers/demux_film.c:754
 msgid "valid mrls ending for film demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für FILM-Demuxer"
 
 #: src/demuxers/demux_film.c:558
-#, fuzzy, c-format
+#, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
-msgstr "demux_qt: Apple Quicktime Datei, %sLaufzeit: %d min, %d sek\n"
+msgstr "demux_film: FILM Version %c%c%c%c, Laufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_film.c:567
-#, fuzzy, c-format
+#, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
-msgstr "demux_qt: '%c%c%c%c' Video @ %dx%d\n"
+msgstr "demux_film: %c%c%c%c Video @ %dx%d, %d Hz Wiedergabegeschwindigkeit\n"
 
 #: src/demuxers/demux_film.c:577
-#, fuzzy, c-format
+#, c-format
 msgid "demux_film: unknown video codec %c%c%c%c\n"
-msgstr "demux_qt: Unbekannter Video-Codec '%s'\n"
+msgstr "demux_film: Unbekannter Video-Codec %c%c%c%c\n"
 
 #: src/demuxers/demux_film.c:587
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
-msgstr ""
+msgstr "demux_film: %d Hz, %d-Bits %s%s PCM Audio\n"
 
 #: src/demuxers/demux_film.c:741
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_film: plugin doesn't support plugin API version %d.\n"
 "            this means there's a version mismatch between xine and "
 "this             demuxer plugin. Installing current demux plugins should "
 "help.\n"
 msgstr ""
-"demux_elem: Plugin unterstützt die Plugin-API-Version %s nicht.\n"
-"            das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"            diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_film: Das Plugin unterstützt die API-Version %d nicht.\n"
+"            Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"            diesem Demultiplexer-Plugin existiert.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_mpeg_block.c:335
 msgid ""
@@ -548,11 +548,11 @@ msgstr "demux_mpeg_block: Unbekannte Blockgröße. Versuche demux_mpeg.\n"
 
 #: src/demuxers/demux_mpeg_block.c:1086 src/demuxers/demux_mpeg_block.c:1190
 msgid "valid mrls for mpeg block demuxer"
-msgstr ""
+msgstr "Gültige MRLs für MPEG-Block-Demuxer"
 
 #: src/demuxers/demux_mpeg_block.c:1127 src/demuxers/demux_mpeg_block.c:1194
 msgid "valid mrls ending for mpeg block demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für MPEG-Block-Demuxer"
 
 #: src/demuxers/demux_mpeg_block.c:1177
 #, c-format
@@ -564,35 +564,35 @@ msgid ""
 msgstr ""
 "demux_mpeg_block: Plugin unterstützt die-API-Version %d nicht.\n"
 "                  Es existiert ein Versionsunterschied zwischen xine und\n"
-"                  diesem Demuxer-Plugin.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"                  diesem Demultiplexer-Plugin.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_roq.c:298 src/demuxers/demux_roq.c:549
 msgid "valid mrls ending for roq demuxer"
-msgstr ""
+msgstr "Gültige MRL-Endungen für RoQ-Demuxer"
 
 #: src/demuxers/demux_roq.c:419
 #, c-format
 msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
-msgstr ""
+msgstr "demux_roq: RoQ Datei, Video ist %dx%d, %d Bilder/s\n"
 
 #: src/demuxers/demux_roq.c:423
 #, c-format
 msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
-msgstr ""
+msgstr "demux_roq: 16-Bit, 22050 Hz %s RoQ DPCM Audio\n"
 
 #: src/demuxers/demux_roq.c:536
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_roq: plugin doesn't support plugin API version %d.\n"
 "           this means there's a version mismatch between xine and "
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ogg: Plugin unterstüzt die Plugin-API-Version %d nicht.\n"
-"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
-"           diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"demux_roq: Das Plugin unterstüzt die API-Version %d nicht.\n"
+"           Es existiert ein Versionsunterschied zwischen xine und\n"
+"           diesem Demultiplexer-Plugin.\n"
+"Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/input/input_net.c:102
 #, c-format
@@ -626,7 +626,7 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"net-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"Das net-Plugin unterstützt die API-Version %d nicht.\n"
 "PLUGIN DEAKTIVIERT.\n"
 "Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
@@ -687,7 +687,7 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"rtp-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"Das rtp-Plugin unterstützt die API-Version %d nicht.\n"
 "PLUGIN DEAKTIVIERT.\n"
 "Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
@@ -708,7 +708,7 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"stdin/fifo-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"Das stdin/fifo-Plugin unterstützt die API-Version %d nicht.\n"
 "PLUGIN DEAKTIVIERT.\n"
 "Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
@@ -835,18 +835,18 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"DVD-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"Das DVD-Plugin unterstützt die API-Version %d nicht.\n"
 "PLUGIN DEAKTIVIERT.\n"
 "Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
 "Das installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_dvd.c:857
 msgid "path to your local dvd device file"
-msgstr ""
+msgstr "Pfad zum lokalen DVD-Laufwerk"
 
 #: src/input/input_dvd.c:860
 msgid "path to a raw device set up for dvd access"
-msgstr ""
+msgstr "Pfad zum RAW-Device des DVD-Laufwerks"
 
 #: src/input/input_file.c:209
 #, c-format
@@ -893,11 +893,11 @@ msgstr ""
 
 #: src/input/input_file.c:908
 msgid "origin path to grab file mrls"
-msgstr ""
+msgstr "Startverzeichnis für Datei-MRLs"
 
 #: src/input/input_file.c:913
 msgid "hidden files displaying."
-msgstr ""
+msgstr "Versteckte Dateien anzeigen."
 
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
 msgid "input_vcd : error in ioctl CDROMREADTOCHDR\n"
@@ -1003,14 +1003,14 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"vcd-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"Das vcd-Plugin unterstützt die API-Version %d nicht.\n"
 "PLUGIN DEAKTIVIERT.\n"
 "Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_vcd.c:1184
 msgid "path to your local vcd device file"
-msgstr ""
+msgstr "Pfad zum lokalen VideoCD-Laufwerk"
 
 #: src/input/input_http.c:98
 msgid "input_http: failed to open socket\n"
@@ -1083,7 +1083,7 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"http-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"Das http-Plugin unterstützt die API-Version %d nicht.\n"
 "PLUGIN DEAKTIVIERT.\n"
 "Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
@@ -1210,159 +1210,158 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"CDA-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"Das CDA-Plugin unterstützt die API-Version %d nicht.\n"
 "PLUGIN DEAKTIVIERT.\n"
 "Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_cda.c:1842
 msgid "path to your local cd audio device file"
-msgstr ""
+msgstr "Pfad zum lokalen Audio-CD-Laufwerk"
 
 #: src/input/input_cda.c:1847
 msgid "cddbp server name"
-msgstr ""
+msgstr "CDDBp Servername"
 
 #: src/input/input_cda.c:1851
 msgid "cddbp server port"
-msgstr ""
+msgstr "CDDBp Serverport"
 
 #: src/input/input_cda.c:1858
 msgid "cddbp cache directory"
-msgstr ""
+msgstr "CDDBp Cacheverzeichnis"
 
 #: src/libmpeg2/xine_decoder.c:156
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libmpeg2: plugin doesn't support plugin API version %d.\n"
 "libmpeg2: this means there's a version mismatch between xine and this "
 "libmpeg2: decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_pes: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
-"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
-"           diesem Demuxer-Plugin existiert.\n"
-"Das installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"libmpeg2: Das Plugin unterstützt die API-Version %d nicht.\n"
+"          Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"          diesem Dekodierungs-Plugin existiert.\n"
+"Das installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
 #: src/libmpg123/xine_decoder.c:109
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libmpg123: plugin doesn't support plugin API version %d.\n"
 "libmpg123: this means there's a version mismatch between xine and this "
 "libmpg123: decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_qt: Plugin unterstützt die-API-Version %d nicht.\n"
-"          Das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"          diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"libmpg123: Plugin unterstützt die API-Version %d nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
 #: src/libspudec/xine_decoder.c:305
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libspudec: Doesn't support plugin API version %d.\n"
 "libspudec: This means there is a version mismatch between XINE and\n"
 "libspudec: this plugin.\n"
 msgstr ""
-"Datei-Plugin unterstützt die Plugin API Version %d nicht.\n"
-"PLUGIN DEAKTIVIERT.\n"
-"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
-"Das Installieren aktueller Plugins sollte helfen.\n"
+"libspudec: Plugin unterstützt die API-Version %d nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Plugin existiert.\n"
 
 #: src/libw32dll/w32codec.c:1379 src/libw32dll/w32codec.c:1428
 msgid "path to win32 codec dlls"
-msgstr ""
+msgstr "Pfad zu win32-Codec-DLLs"
 
 #: src/libw32dll/w32codec.c:1418
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "w32codec: plugin doesn't support plugin API version %d.\n"
 "w32codec: this means there's a version mismatch between xine and this "
 "w32codec: decoder plugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"w32codec: Dieses Plugin unterstützt die API-Version %d nicht.\n"
+"          Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"          diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
 #: src/video_out/video_out_aa.c:307
 msgid "xine video output plugin using the ascii-art library"
-msgstr ""
+msgstr "xine Videoausgabe benutzt ASCII-Art Bibliothek"
 
 #: src/video_out/video_out_syncfb.c:995
 msgid "syncfb (teletux) device node"
-msgstr ""
+msgstr "Gerät für SyncFB (TeleTUX)"
 
 #: src/video_out/video_out_syncfb.c:1170
 msgid ""
 "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
-msgstr ""
+msgstr "xine Videoausgabe benutzt SyncFB-Modul für Matrox G200/G400-Karten"
 
 #: src/video_out/video_out_fb.c:705 src/video_out/video_out_xshm.c:1283
 msgid "disable all video scaling (faster!)"
-msgstr ""
+msgstr "Alle Videoskalierungen deaktivieren (schneller!)"
 
 #: src/video_out/video_out_xshm.c:1426
 msgid "gamma correction for XShm driver"
-msgstr ""
+msgstr "Gamma-Korrektur für XShm-Treiber"
 
 #: src/video_out/video_out_xshm.c:1445
 msgid "xine video output plugin using the MIT X shared memory extension"
-msgstr ""
+msgstr "xine Videoausgabe benutzt 'MIX X Shared Memory' Erweiterung"
 
 #: src/video_out/video_out_xv.c:1160 src/video_out/video_out_xv.c:1166
 msgid "Xv property"
-msgstr ""
+msgstr "Xv Eingenschaften"
 
 #: src/video_out/video_out_xv.c:1408
 msgid "bilinear scaling mode (permedia 2/3)"
-msgstr ""
+msgstr "Bilineare Skalierung (Permedia 2/3)"
 
 #: src/video_out/video_out_xv.c:1414
 msgid "double buffer to sync video to the retrace"
-msgstr ""
+msgstr "Schattenpuffer zur Synchronisation mit Strahlenrücklauf"
 
 #: src/video_out/video_out_xv.c:1463
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
-msgstr ""
+msgstr "Software Deinterlacing Methode (Taste 'i' schaltet Deinterlacing ein/aus)"
 
 #: src/video_out/video_out_xv.c:1479
 msgid "xine video output plugin using the MIT X video extension"
-msgstr ""
+msgstr "xine Videoausgabe benutzt 'MIX XVideo' Erweiterung"
 
 #: src/video_out/video_out_fb.c:721
 msgid "framebuffer device"
-msgstr ""
+msgstr "Framebuffer Gerät"
 
 #: src/video_out/video_out_fb.c:885
 msgid "xine video output plugin using linux framebuffer device"
-msgstr ""
+msgstr "xine Videoausgabe benutzt Linux Framebuffer"
 
 #: src/video_out/video_out_sdl.c:696
 msgid "xine video output plugin using Simple DirectMedia Layer"
-msgstr ""
+msgstr "xine Videoausgabe benutzt 'Simple DirectMedia Layer'"
 
 #: src/video_out/video_out_opengl.c:1106
 msgid "gamma correction for OpenGL driver"
-msgstr ""
+msgstr "Gamma-Korrektur für OpenGL-Treiber"
 
 #: src/video_out/video_out_opengl.c:1124
 msgid "xine video output plugin using OpenGL(tm)"
-msgstr ""
+msgstr "xine Videoausgabe benutzt OpenGL(tm)"
 
 #: src/video_out/video_out_directfb.c:569
 msgid "xine video output plugin using the DirectFB library."
-msgstr ""
+msgstr "xine Videoausgabe benutzt DirectFB-Bibliothek"
 
 #: src/video_out/video_out_vidix.c:869
 msgid "xine video output plugin using libvidix"
-msgstr ""
+msgstr "xine Videoausgabe benutzt libvidix"
 
 #: src/xine-engine/video_out.c:308
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
-msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %f Bilder verworfen\n"
+msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %d Bilder verworfen\n"
 
 #: src/xine-engine/video_out.c:351
 #, c-format
@@ -1416,11 +1415,11 @@ msgstr "System-layer Format '%s' erkannt.\n"
 
 #: src/xine-engine/xine.c:471
 msgid "xine_play: demuxer failed to start\n"
-msgstr "xine_play: Der Start des Demuxer-Plugins schlug fehl\n"
+msgstr "xine_play: Der Start des Demultiplexer-Plugins schlug fehl\n"
 
 #: src/xine-engine/xine.c:600
 msgid "logo mrl, displayed in video output window"
-msgstr ""
+msgstr "Logo-MRL, wird in Videoausgabefenster angezeigt"
 
 #: src/xine-engine/xine.c:1022
 msgid "stream format"
@@ -1436,27 +1435,27 @@ msgstr "Plugin"
 
 #: src/xine-engine/audio_out.c:729
 msgid "adjust whether resampling is done or not"
-msgstr ""
+msgstr "Audiofrequenz anpassen oder nicht"
 
 #: src/xine-engine/audio_out.c:732
 msgid "if !=0 always resample to given rate"
-msgstr ""
+msgstr "Wenn !=0, immer auf diese Frequenz anpassen"
 
 #: src/xine-engine/audio_out.c:760
 msgid "Audio volume"
-msgstr ""
+msgstr "Lautstärke"
 
 #: src/xine-engine/audio_out.c:764
 msgid "restore volume level at startup"
-msgstr ""
+msgstr "Läustärke beim Starten wiederherstellen"
 
 #: src/xine-engine/audio_out.c:765
 msgid "if this not set, xine will not touch any mixer settings at startup"
-msgstr ""
+msgstr "Wenn nicht angewählte, wird xine die Lautstärke beim Starten unverändert lassen"
 
 #: src/xine-engine/osd.c:863
 msgid "Palette (foreground-border-background) to use on subtitles"
-msgstr ""
+msgstr "Farbpalette (Vordergrund,Rand,Hintergrund) für Untertitel"
 
 #: src/xine-engine/load_plugins.c:100 src/xine-engine/load_plugins.c:455
 #, c-format
@@ -1469,17 +1468,17 @@ msgid ""
 "load_plugins: cannot open demux plugin %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: Kann Demuxer-Plugin %s nicht öffnen:\n"
+"load_plugins: Kann Demultiplexer-Plugin %s nicht öffnen:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:153
 #, c-format
 msgid "load_plugins: demux plugin found : %s\n"
-msgstr "load_plugins: Demuxer-Plugin gefunden : %s\n"
+msgstr "load_plugins: Demultiplexer-Plugin gefunden : %s\n"
 
 #: src/xine-engine/load_plugins.c:161
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
-msgstr "load_plugins: Zu viele Demuxer-Plugins installiert, beende jetzt.\n"
+msgstr "load_plugins: Zu viele Demultiplexer-Plugins installiert, beende jetzt.\n"
 
 #: src/xine-engine/load_plugins.c:300
 #, c-format
@@ -1543,382 +1542,376 @@ msgid "audio decoder plugin found : %s\n"
 msgstr "Audio-Dekodierungs-Plugin gefunden : %s\n"
 
 #: src/liblpcm/xine_decoder.c:187
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "liblpcm: plugin doesn't support plugin API version %d.\n"
 "liblpcm: this means there's a version mismatch between xine and this "
 "liblpcm: decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_qt: Plugin unterstützt die-API-Version %d nicht.\n"
-"          Das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"          diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"liblpcm: Plugin unterstützt die API-Version %d nicht.\n"
+"         Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"         diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
 #: src/libffmpeg/xine_decoder.c:375
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
 "ffmpeg: this means there's a version mismatch between xine and this ffmpeg: "
 "decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_pes: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
-"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
-"           diesem Demuxer-Plugin existiert.\n"
-"Das installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"ffmpeg: Das Plugin unterstützt die API-Version %d nicht.\n"
+"        Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"        diesem Dekodierungs-Plugin existiert.\n"
+"Das installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
 #. data for the device name config entry
 #: src/dxr3/dxr3.h:33
 msgid "Dxr3: Device Name"
-msgstr ""
+msgstr "DXR3: Gerätepfad"
 
 #: src/dxr3/dxr3.h:34
 msgid "The device file of the dxr3 mpeg decoder card control device."
-msgstr ""
+msgstr "Der Gerätepfad für das Steuergerät der DXR3-MPEG-Dekoderkarte."
 
 #: src/dxr3/dxr3_decode_spu.c:100
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
 "dxr3_decode_spu: this means there's a version mismatch between xine and this "
 "dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"dxr3_decode_spu: Plugin unterstützt die API-Version %d nicht.\n"
+"                 Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"                 diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
 #: src/dxr3/dxr3_decode_video.c:127
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
 "dxr3_decode_video: this means there's a version mismatch between xine and "
 "this\n"
 "dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"dxr3_decode_video: Plugin unterstützt die API-Version %d nicht.\n"
+"                   Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"                   diesem Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/dxr3/dxr3_decode_video.c:164
 msgid "Dxr3: video decoder priority"
-msgstr ""
+msgstr "DXR3: Videodekoder Priorität"
 
 #: src/dxr3/dxr3_decode_video.c:165
 msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
-msgstr ""
+msgstr "Dekoderprioritäten größer 5 aktivieren Hardwaredekodierung, 0 deaktiviert sie."
 
 #: src/dxr3/dxr3_decode_video.c:175
 msgid "Try to sync video every frame"
-msgstr ""
+msgstr "Versuche Video mit jedem Bild zu synchonisieren"
 
 #: src/dxr3/dxr3_decode_video.c:176
 msgid "This is relevant for progressive video only (most PAL films)."
-msgstr ""
+msgstr "Dies ist nur für progessive Videos (die meisten PAL-Filme) interessant."
 
 #: src/dxr3/dxr3_decode_video.c:180
 msgid "Use alternate Play mode"
-msgstr ""
+msgstr "Alternativen Wiedergabemodus benutzen"
 
-#: src/dxr3/dxr3_decode_video.c:181
+#: src/dxr3/video_out_dxr3.c:161 src/dxr3/dxr3_decode_video.c:181
 msgid "Enabling this option will utilise a smoother play mode."
-msgstr ""
+msgstr "Das Aktivieren dieser Option sorgt für eine flüssigere Wiedergabe."
 
 #: src/dxr3/dxr3_decode_video.c:184
 msgid "Correct frame durations in broken streams"
-msgstr ""
+msgstr "Korrigiere Frame-Dauer in kaputten Streams"
 
 #: src/dxr3/dxr3_decode_video.c:185
 msgid "Enable this for streams with wrong frame durations."
-msgstr ""
+msgstr "Aktivieren Sie dies für Streams mit falscher Anzeigedauer für Bilder."
 
 #: src/dxr3/dxr3_mpeg_encoders.c:174
 msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
-msgstr ""
+msgstr "DXR3enc: Bitrate der RTE-MPEG Wiedergabe (kBit/s)"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:175
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
-msgstr ""
+msgstr "Bitrate für die MPEG-Enkodierungsbibliothek librte zur DXR3 Enkodierung."
 
 #: src/dxr3/dxr3_mpeg_encoders.c:375
 msgid "Dxr3enc: fame mpeg encoding quality"
-msgstr ""
+msgstr "DXR3enc: fame-MPEG-Enkodierungsqualität"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:376
 msgid "The encoding quality of the libfame mpeg encoder library."
-msgstr ""
+msgstr "Die Enkodierungsqualität für die MPEC-Encoderbibliothek libfame."
 
 #: src/dxr3/dxr3_scr.c:81
 msgid "Dxr3: SCR plugin priority"
-msgstr ""
+msgstr "DXR3: SCR-Plugin Priorität"
 
 #: src/dxr3/dxr3_scr.c:82
 msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
-msgstr ""
+msgstr "SCR-Prioritäten größer 5 machen die DXR3 zu xine's Hauptzeitgeber."
 
 #: src/dxr3/video_out_dxr3.c:119
 msgid "xine video output plugin for dxr3 cards"
-msgstr ""
+msgstr "xine Videoausgabe benutzt DXR3-Karte"
 
 #: src/dxr3/video_out_dxr3.c:153
 msgid "swap odd and even lines"
-msgstr ""
+msgstr "Vertausche gerade und ungerade Zeilen"
 
 #: src/dxr3/video_out_dxr3.c:156
 msgid "Add black bars to correct aspect ratio"
-msgstr ""
+msgstr "Verwende schwarze Balken zur Korrektur des Seitenverhältnisses"
 
 #: src/dxr3/video_out_dxr3.c:157
 msgid "If disabled, will assume source has 4:3 aspect ratio."
-msgstr ""
+msgstr "Falls deaktiviert, geht xine von einem 4:3 Seitenverhältniss aus."
 
 #: src/dxr3/video_out_dxr3.c:160
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:161
-msgid "Enabling this option will utilise a smoother play mode"
-msgstr ""
+msgstr "dxr3: Benutze alternativen Wiedergabemodus für MPEG-Wiedergabe"
 
 #: src/dxr3/video_out_dxr3.c:214 src/dxr3/video_out_dxr3.c:236
-#, fuzzy
 msgid "none"
-msgstr "Fertig\n"
+msgstr "Keine"
 
 #: src/dxr3/video_out_dxr3.c:221
 msgid "the encoder for non mpeg content"
-msgstr ""
+msgstr "Der Enkodierer für nicht-MPEG-Inhalte"
 
 #: src/dxr3/video_out_dxr3.c:222
 msgid ""
 "Content other than mpeg has to pass an additional reencoding stage, because "
 "the dxr3 handles mpeg only."
-msgstr ""
+msgstr "Nicht-MPEG-Inhalte müssen eine zusätzliche Reenkodierungsstufe durchlaufen, da die DXR3 nur MPEG kann."
 
 #: src/dxr3/video_out_dxr3.c:252
 msgid "Dxr3: contrast control"
-msgstr ""
+msgstr "DXR3: Kontrasteinstellung"
 
 #: src/dxr3/video_out_dxr3.c:254
 msgid "Dxr3: saturation control"
-msgstr ""
+msgstr "DXR3: Sättigungseinstellung"
 
 #: src/dxr3/video_out_dxr3.c:256
 msgid "Dxr3: brightness control"
-msgstr ""
+msgstr "DXR3: Helligkeitseinstellung"
 
 #: src/dxr3/video_out_dxr3.c:260
 msgid "Dxr3: videoout mode (tv or overlay)"
-msgstr ""
+msgstr "DXR3: Videoausgabemodus (TV oder Overlay)"
 
 #: src/dxr3/video_out_dxr3.c:278
 msgid "Dxr3: overlay colorkey value"
-msgstr ""
+msgstr "DXR3: Farbwert für Overlay"
 
 #: src/dxr3/video_out_dxr3.c:281
 msgid "Dxr3: overlay colorkey range"
-msgstr ""
+msgstr "DXR3: Farbbereich für Overlay"
 
 #: src/dxr3/video_out_dxr3.c:282
 msgid "A greater value widens the tolerance for the overlay keycolor"
-msgstr ""
+msgstr "Ein größerer Wert vergrößert die Toleranz für die den Farbwert des Overlays"
 
 #: src/dxr3/video_out_dxr3.c:293
 msgid "dxr3 preferred tv mode"
-msgstr ""
+msgstr "Bevorzugter TV-Modues der DXR3"
 
 #: src/libmad/xine_decoder.c:283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libmad: plugin doesn't support plugin API version %d.\n"
 "libmad: this means there's a version mismatch between xine and this libmad: "
 "decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"libmad: Plugin unterstützt die API-Version %d nicht.\n"
+"        Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"        diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/liba52/xine_decoder.c:550
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "liba52: plugin doesn't support plugin API version %d.\n"
 "liba52: this means there's a version mismatch between xine and this liba52: "
 "decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
+"demux_avi: Plugin unterstützt die API-Version %d nicht.\n"
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"           diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/liba52/xine_decoder.c:574
 msgid "a/52 volume control"
-msgstr ""
+msgstr "A/52 Lautstärke"
 
 #: src/liba52/xine_decoder.c:577
 msgid "enable a/52 dynamic range compensation"
-msgstr ""
+msgstr "Aktiviere dynamische A/52 Kompensation"
 
 #: src/liba52/xine_decoder.c:580
 msgid "enable audio downmixing to 2.0 surround stereo"
-msgstr ""
+msgstr "Aktivierte Audiozusammenmischung zu Stereo-2.0-Raumklang"
 
 #: src/libdts/xine_decoder.c:233
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libdts: plugin doesn't support plugin API version %d.\n"
 "libdts: this means there's a version mismatch between xine and this libdts: "
 "decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_qt: Plugin unterstützt die-API-Version %d nicht.\n"
-"          Das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"          diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"libdts: Plugin unterstützt die API-Version %d nicht.\n"
+"        Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"        diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/libdivx4/xine_decoder.c:555
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "divx4: plugin doesn't support plugin API version %d.\n"
 "divx4: this means there's a version mismatch between xine and this divx4: "
 "decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"divx4: Plugin unterstützt die API-Version %d nicht.\n"
+"       Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"       diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/libdivx4/xine_decoder.c:568
 msgid "Relative path to libdivxdecore.so to open"
-msgstr ""
+msgstr "Relativer Pfad zu libdivxdecore.so"
 
 #: src/libdivx4/xine_decoder.c:593
 msgid "priority of the divx4 plugin (>5 => enable)"
-msgstr ""
+msgstr "Priorität des divx4-Plugins (>5 zum aktivieren)"
 
 #: src/libdivx4/xine_decoder.c:598
 msgid "the postprocessing level, 0 = none and fast, 6 = all and slow"
-msgstr ""
+msgstr "Nachbearbeitungsstufe, 0 = keine, aber schnell, 6 = alles, dafür langsam"
 
 #: src/libdivx4/xine_decoder.c:601
 msgid "use divx4 plugin for msmpeg4v3 streams"
-msgstr ""
+msgstr "Benutzte divx4-Plugin für MSmpeg4v3-Ströme"
 
 #: src/libdivx4/xine_decoder.c:606
 msgid "Divx version to check for (set to 0 (default) if unsure)"
-msgstr ""
+msgstr "Zu überprüfende Divx-Version (Falls unsicher, Standardwert 0 belassen)"
 
 #: src/libvorbis/xine_decoder.c:247
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libvorbis: plugin doesn't support plugin API version %d.\n"
 "libvorbis: this means there's a version mismatch between xine and this "
 "libvorbis: decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
+"libvorbis: Plugin unterstützt die API-Version %d nicht.\n"
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"           diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/xine-utils/memcpy.c:437
 msgid "Memcopy method to use in xine for large data chunks."
-msgstr ""
+msgstr "Kopiermethode für große Datenbereiche."
 
 #: src/libsputext/xine_decoder.c:1039
 msgid "Small"
-msgstr ""
+msgstr "Klein"
 
 #: src/libsputext/xine_decoder.c:1040
 msgid "Normal"
-msgstr ""
+msgstr "Normal"
 
 #: src/libsputext/xine_decoder.c:1041
 msgid "Large"
-msgstr ""
+msgstr "Groß"
 
 #: src/libsputext/xine_decoder.c:1045
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
 "libsputext: This means there is a version mismatch between xine and\n"
 "libsputext: this plugin.\n"
 msgstr ""
-"Datei-Plugin unterstützt die Plugin API Version %d nicht.\n"
-"PLUGIN DEAKTIVIERT.\n"
-"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
-"Das Installieren aktueller Plugins sollte helfen.\n"
+"libsputext: Plugin unterstützt die API-Version %d nicht.\n"
+"            Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"            diesem Plugin existiert.\n"
 
 #: src/libsputext/xine_decoder.c:1067
 msgid "font for avi subtitles"
-msgstr ""
+msgstr "Zeichensatz für AVI-Untertitel"
 
 #: src/libsputext/xine_decoder.c:1073
 msgid "subtitle size (relative window size)"
-msgstr ""
+msgstr "Untertitelgröße (Relativ zu Fenstergröße)"
 
 #: src/libsputext/xine_decoder.c:1078
-msgid "source encoging of subtitles"
-msgstr ""
+msgid "source encoding of subtitles"
+msgstr "Zeichenkodierung für Untertitel"
 
 #: src/libsputext/xine_decoder.c:1083
-msgid "target encoging for subtitles (have to match font encoding)"
-msgstr ""
+msgid "target encoding for subtitles (have to match font encoding)"
+msgstr "Zielzeichenkodierung für Untertitel (muß mit Zeichensatzkodierung übereinstimmen)"
 
 #: src/libspucc/xine_decoder.c:220
 msgid "Enable closed captions in MPEG-2 streams"
-msgstr ""
+msgstr "Aktiviere Untertitel in MEPG-2-Strömen"
 
 #: src/libspucc/xine_decoder.c:227
 msgid "Closed-captioning foreground/background scheme"
-msgstr ""
+msgstr "Untertitelschema für Vordergrund-/Hintergrundfarbe"
 
 #: src/libspucc/xine_decoder.c:233
 msgid "Standard closed captioning font"
-msgstr ""
+msgstr "Standard Zeichensatz für Untertitel"
 
 #: src/libspucc/xine_decoder.c:239
 msgid "Italic closed captioning font"
-msgstr ""
+msgstr "Italic-Zeichensatz für Untertitel"
 
 #: src/libspucc/xine_decoder.c:245
 msgid "Closed captioning font size"
-msgstr ""
+msgstr "Zeichensatzgröße für Untertitel"
 
 #: src/libspucc/xine_decoder.c:250
 msgid "Center-adjust closed captions"
-msgstr ""
+msgstr "Zentrieren von Untertiteln"
 
 #: src/libspucc/xine_decoder.c:389
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libspucc: doesn't support plugin api version %d.\n"
 "libspucc: This means there is a version mismatch between xine and\n"
 "libspucc: this plugin.\n"
 msgstr ""
-"Datei-Plugin unterstützt die Plugin API Version %d nicht.\n"
-"PLUGIN DEAKTIVIERT.\n"
-"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"libspucc: Plugin unterstützt die API-Version %d nicht.\n"
+"          Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"          diesem Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/libxvid/xine_decoder.c:224
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "xvid: plugin doesn't support plugin API version %d.\n"
 "xvid: this means there's a version mismatch between xine and this\n"
 "xvid: decoder plugin. Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"xvid: Plugin unterstützt die API-Version %d nicht.\n"
+"      Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"      diesem Dekodierung-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/libxvid/xine_decoder.c:234
 #, c-format
@@ -1927,45 +1920,48 @@ msgid ""
 "xvid: library (%d.%d) and library used to compile this plugin (%d.%d).\n"
 "xvid: Compiling this plugin against current XviD library should help.\n"
 msgstr ""
+"xvid: Es existiert ein API-Versionsunterschied zwischen der verwendeten\n"
+"      XviD-Bibliothek (%d.%d) und der Version zum Übersetzungszeitpunkt\n"
+"      (%d.%d). Das Neuübersetzten mit der momentanen Bibliothek sollte hefen.\n"
 
 #: src/libxinevdec/cinepak.c:432
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "cinepak: plugin doesn't support plugin API version %d.\n"
 "cinepak: this means there's a version mismatch between xine and this "
 "cinepak: decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"cinepak: Plugin unterstützt die API-Version %d nicht.\n"
+"         Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"         diesem Dekodierung-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/libxinevdec/roqvideo.c:496
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "RoQ: plugin doesn't support plugin API version %d.\n"
 "RoQ: this means there's a version mismatch between xine and this RoQ: "
 "decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_qt: Plugin unterstützt die-API-Version %d nicht.\n"
-"          Das bedeutet das ein Versions Unterschied zwischen xine und\n"
-"          diesem Demuxer-Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"RoQ-Video: Plugin unterstützt die API-Version %d nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Dekodierung-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/libxineadec/roqaudio.c:194
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "RoQ Audio: plugin doesn't support plugin API version %d.\n"
 "RoQ Audio: this means there's a version mismatch between xine and this\n"
 "RoQ Audio: decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
+"RoQ-Audio: Plugin unterstützt die API-Version %d nicht.\n"
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demuxer Plugin existiert.\n"
-"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
+"           diesem Dekodierungs-Plugin existiert.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #~ msgid ""
 #~ "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
@@ -2312,7 +2308,7 @@ msgstr ""
 #~ "xine_play: xine geöffnet %s, Startpos. = %d, Startzeit = %d (Sek.)\n"
 
 #~ msgid "xine: using demuxer plugin >%s< for this MRL.\n"
-#~ msgstr "xine: Benutze Demuxer-Plugin >%s< für diese MRL.\n"
+#~ msgstr "xine: Benutze Demultiplexer-Plugin >%s< für diese MRL.\n"
 
 #~ msgid "inputs"
 #~ msgstr "Eingaben"
