@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.5 2001/04/24 22:18:15 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.6 2001/04/25 22:17:08 guenter Exp $
  *
  */
 
@@ -51,7 +51,7 @@
 /** @} end of versgroup */
 
 #ifndef DOC_HIDDEN
-typedef void vo_instance_t;
+typedef void vo_driver_t;
 typedef void ao_functions_t;
 typedef void config_values_t;
 typedef void xine_t;
@@ -113,24 +113,22 @@ typedef void (*gui_status_callback_func_t)(int nStatus);
 config_values_t *config_file_init (char *filename);
 
 /**
- * \fn xine_t *xine_init (vo_instance_t *vo, ao_functions_t *ao, gui_status_callback_func_t gui_status_callback, config_values_t *config, int demux_strategy, uint32_t debug_lvl)
+ * \fn xine_t *xine_init (vo_driver_t *vo, ao_functions_t *ao, gui_status_callback_func_t gui_status_callback, config_values_t *config)
  * \brief Initialisation of xine.
  * \param vo Video driver ( should be previously initialized by vo_init() )
  * \param ao Audio driver ( should be previously initializef by ao_init() )
  * \param gui_status_callback Pointer to UI function ( #see gui_status_callback_func_t() function type )
  * \param config Current configuration ( #see config_file_init() )
- * \param demux_strategy ** Will be removed **
- * \param debug_lvl ** Will be removed **
  * \return Current xine engine configuration
  * \warning This function should be called before any of xine_*() functions.
  *
  * Init of xine. It should called once at startup.
  *
  */
-xine_t *xine_init (vo_instance_t *vo, 
+xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
 		   gui_status_callback_func_t gui_status_callback,
-		   config_values_t *config, int demux_strategy, uint32_t debug_lvl) ;
+		   config_values_t *config) ;
 
 /**
  * \fn void xine_exit (xine_t *this)
@@ -323,3 +321,7 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
 
 /** @} end of xine_api */
 #endif
+
+
+
+
