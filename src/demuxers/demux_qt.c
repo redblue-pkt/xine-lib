@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.64 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.65 2002/07/15 02:15:38 miguelfreitas Exp $
  *
  */
 
@@ -201,6 +201,10 @@ typedef struct {
 
   /* flags that indicate how a trak is supposed to be used */
   unsigned int flags;
+  
+  /* decoder data pass information to the AAC decoder */
+  void *decoder_config;
+  int decoder_config_len;
 
 } qt_sample_table;
 
@@ -224,6 +228,8 @@ typedef struct {
   unsigned int audio_sample_rate;
   unsigned int audio_channels;
   unsigned int audio_bits;
+  void *audio_decoder_config;
+  int audio_decoder_config_len;
 
   qt_atom video_codec;
   unsigned int video_type;
@@ -296,6 +302,7 @@ qt_info *create_qt_info(void) {
   info->audio_sample_rate = 0;
   info->audio_channels = 0;
   info->audio_bits = 0;
+  info->audio_decoder_config = NULL;
 
   info->video_codec = 0;
 
@@ -310,6 +317,8 @@ void free_qt_info(qt_info *info) {
   if(info) {
     if(info->frames)
       free(info->frames);
+    if(info->audio_decoder_config)
+      free(info->audio_decoder_config);
     free(info);
     info = NULL;
   }
@@ -352,6 +361,23 @@ static void parse_mvhd_atom(qt_info *info, unsigned char *mvhd_atom) {
 
 }
 
+/* helper function from mplayer's parse_mp4.c */
+static int mp4_read_descr_len(unsigned char *s, uint32_t *length) {
+  uint8_t b;
+  uint8_t numBytes = 0;
+  
+  *length = 0;
+
+  do {
+    b = *s++;
+    numBytes++;
+    *length = (*length << 7) | (b & 0x7F);
+  } while ((b & 0x80) && numBytes < 4);
+
+  return numBytes;
+}
+
+
 /*
  * This function traverses through a trak atom searching for the sample
  * table atoms, which it loads into an internal sample table structure.
@@ -371,6 +397,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   sample_table->sync_sample_table = NULL;
   sample_table->sample_to_chunk_table = NULL;
   sample_table->time_to_sample_table = NULL;
+  sample_table->decoder_config = NULL;
 
   /* default type */
   sample_table->type = MEDIA_OTHER;
@@ -433,12 +460,31 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           BE_16(&trak_atom[i + 0x2C]);
         sample_table->media_description.audio.channels = trak_atom[i + 0x25];
         sample_table->media_description.audio.bits = trak_atom[i + 0x27];
+      }
 
-        /* test stuff - will be removed
-        if( BE_32(&trak_atom[i + 0x34]) == ESDS_ATOM ) {
-          int atom_len = BE_32(&trak_atom[i + 0x30]) - 8;
-          printf("esds atom! size=%d\n", atom_len);
-        }*/
+    } else if (current_atom == ESDS_ATOM) {
+
+      uint32_t len;
+      
+      if (sample_table->type == MEDIA_VIDEO || 
+          sample_table->type == MEDIA_AUDIO) {
+        
+        j = i + 8;
+        if( trak_atom[j++] == 0x03 ) {
+          j += mp4_read_descr_len( &trak_atom[j], &len );
+          j++;
+        }
+        j += 2;
+        if( trak_atom[j++] == 0x04 ) {
+          j += mp4_read_descr_len( &trak_atom[j], &len );
+          j += 13;
+          if( trak_atom[j++] == 0x05 ) {
+            j += mp4_read_descr_len( &trak_atom[j], &len );
+            sample_table->decoder_config = malloc(len);
+            sample_table->decoder_config_len = len;
+            memcpy(sample_table->decoder_config,&trak_atom[j],len);
+          }        
+        }
       }
 
     } else if (current_atom == STSZ_ATOM) {
@@ -602,6 +648,7 @@ free_sample_table:
   free(sample_table->sync_sample_table);
   free(sample_table->sample_to_chunk_table);
   free(sample_table->time_to_sample_table);
+  free(sample_table->decoder_config);
 
   return last_error;
 }
@@ -844,6 +891,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       info->audio_codec =
         sample_tables[i].media_description.audio.codec_format;
 
+      info->audio_decoder_config = sample_tables[i].decoder_config;
+      info->audio_decoder_config_len = sample_tables[i].decoder_config_len;
     }
   }
 
@@ -1391,6 +1440,17 @@ static int demux_qt_start (demux_plugin_t *this_gen,
       buf->decoder_info[2] = this->qt->audio_bits;
       buf->decoder_info[3] = this->qt->audio_channels;
       this->audio_fifo->put (this->audio_fifo, buf);
+    
+      if( this->qt->audio_decoder_config ) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type = this->qt->audio_type;
+        buf->size = 0;
+        buf->decoder_flags = BUF_FLAG_SPECIAL;
+        buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
+        buf->decoder_info[2] = this->qt->audio_decoder_config_len;
+        buf->decoder_info[3] = (uint32_t)this->qt->audio_decoder_config;
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
     }
 
     this->status = DEMUX_OK;

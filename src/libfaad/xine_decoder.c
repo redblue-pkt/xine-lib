@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2002/07/14 23:43:02 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.2 2002/07/15 02:15:38 miguelfreitas Exp $
  *
  */
 
@@ -164,29 +164,22 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
-/*  if( !this->faac_dec && (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
-      buf->decoder_info[1] == BUF_SPECIAL_ESDS ) {
-*/
-  if( !this->faac_dec ) {
-    /* hardcoded test stuff - demux_qt must send us that info */                
-    static unsigned char tmp[4] = { 0x12, 0x90, 0x00, 0x18 };
+  if( !this->faac_dec && (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+      buf->decoder_info[1] == BUF_SPECIAL_DECODER_CONFIG ) {
     
     this->faac_dec = faacDecOpen();
     if( !this->faac_dec ) {
       if( faad_open_dec(this) )
         return;
     }
-      
-/*    used = faacDecInit2(this->faac_dec, (void *)buf->decoder_info[3],
+
+    used = faacDecInit2(this->faac_dec, (void *)buf->decoder_info[3],
                         buf->decoder_info[2], &this->rate, &this->num_channels);
-*/
-    used = faacDecInit2(this->faac_dec, tmp,
-                        4, &this->rate, &this->num_channels);
+    
     if( used < 0 ) {
       xine_log (this->xine, XINE_LOG_MSG,
               "libfaad: libfaad faacDecInit2() failed.\n" );
       this->faac_failed++;
-      faacDecClose(this->faac_dec);
       this->faac_dec = NULL;
       xine_report_codec( this->xine, XINE_CODEC_AUDIO, 0, buf->type, 0);
       return;
