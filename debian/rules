@@ -54,18 +54,9 @@ ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
  DEB_HOST_GNU_OPTION := --host=$(DEB_HOST_GNU_TYPE)
 endif
 
-ifeq (,$(findstring hppa-,$(DEB_HOST_GNU_TYPE)))
-  OVERRIDE_CC=gcc
-else
-  #on HPPA
-  OVERRIDE_CC=gcc-3.2
-endif
-
-
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	env CC=$(OVERRIDE_CC) \
 	./configure --prefix=/usr --mandir=\$${prefix}/share/man \
                     $(DEB_HOST_GNU_OPTION)
 	touch configure-stamp
@@ -125,7 +116,7 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine1 (>= 1-alpha0)'
+	dh_makeshlibs -V 'libxine1 (>= 1-beta2)'
 	dh_installdeb
 #	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh

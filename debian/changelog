@@ -1,3 +1,10 @@
+xine-lib (1-beta2-4) unstable; urgency=low
+
+  * removed HPPA compiler hacks (3.2 is now default, and it choked anyway...)
+  * removed DXR3 support (closes: #175392, reopens: #117170)
+  
+ -- Siggi Langauf <siggi@debian.org>  Wed,  8 Jan 2003 21:49:25 +0100
+
 xine-lib (1-beta2-3) unstable; urgency=high
 
   * A backslash got lost in the last upload.
