@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.22 2001/10/27 17:33:28 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.23 2001/10/28 11:14:39 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -47,10 +47,17 @@
 #define DEFAULT_DEV "/dev/em8300"
 static char *devname;
 
+#define MV_COMMAND 0
+#define MV_STATUS  1
+#ifndef MVCOMMAND_SCAN
+ #define MVCOMMAND_SCAN 4
+#endif
+
 typedef struct dxr3_decoder_s {
 	video_decoder_t video_decoder;
 	vo_instance_t *video_out;
-
+	
+	int fd_control;
 	int fd_video;
 	int last_pts;
 	scr_plugin_t *scr;
@@ -58,6 +65,7 @@ typedef struct dxr3_decoder_s {
 	int width;
 	int height;
 	int aspect;
+	int duration;
 } dxr3_decoder_t;
 
 static int dxr3_tested = 0;
@@ -86,6 +94,15 @@ static void dxr3_presence_test()
 	dxr3_ok = 1;
 }
 
+static int dxr3_mvcommand(int fd_control, int command) {
+       	em8300_register_t regs; 
+       	regs.microcode_register=1; 	/* Yes, this is a MC Reg */
+       	regs.reg = MV_COMMAND;
+	regs.val=command;
+	
+	return (ioctl(fd_control, EM8300_IOCTL_WRITEREG, &regs));
+}
+
 typedef struct dxr3scr_s {
 	scr_plugin_t scr;
 	int fd_control;
@@ -97,32 +114,49 @@ static int dxr3scr_get_priority (scr_plugin_t *scr) {
 	return self->priority;
 }
 
+int scanning_mode=0;
 static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t em_speed;
-
+	int playmode;
+	
 	switch(speed){
 	case SPEED_PAUSE:
 		em_speed = 0;
+		playmode=MVCOMMAND_PAUSE;
 		break;
 	case SPEED_SLOW_4:
 		em_speed = 0x900/4;
+		playmode=MVCOMMAND_START;
 		break;
 	case SPEED_SLOW_2:
 		em_speed = 0x900/2;
+		playmode=MVCOMMAND_START;		
 		break;
 	case SPEED_NORMAL:
 		em_speed = 0x900;
+		playmode=MVCOMMAND_START;
 		break;
 	case SPEED_FAST_2:
 		em_speed = 0x900*2;
+		playmode=MVCOMMAND_SCAN;
 		break;
 	case SPEED_FAST_4:
 		em_speed = 0x900*4;
+		playmode=MVCOMMAND_SCAN;
 		break;
 	default:
 		em_speed = 0;
+		playmode = MVCOMMAND_PAUSE;
 	}
+	if(em_speed>0x900)
+		scanning_mode=1;
+	else
+		scanning_mode=0;
+
+	if(dxr3_mvcommand(self->fd_control,playmode))
+		fprintf(stderr, "dxr3scr: failed to playmode (%s)\n", strerror(errno));
+		
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &em_speed))
 		fprintf(stderr, "dxr3scr: failed to set speed (%s)\n", strerror(errno));
 
@@ -135,6 +169,7 @@ static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts))
 		fprintf(stderr, "dxr3scr: adjust failed (%s)\n", strerror(errno));
+
 }
 
 static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
@@ -204,6 +239,12 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 		return;
 	}
 
+	if ((this->fd_control = open (devname, O_WRONLY)) < 0) {
+		fprintf(stderr, "dxr3: Failed to open control device %s (%s)\n",
+		 devname, strerror(errno));
+		return;
+	}
+
 	video_out->open(video_out);
 	this->video_out = video_out;
 
@@ -227,6 +268,9 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 		int old_w = this->width;
 		int old_a = this->aspect;
 
+		/* framerate code... needed for metronom */
+		int framecode = buffer[HEADER_OFFSET+3] & 15;
+		
 		/* grab video resolution and aspect ratio from the stream */
 		this->height = (buffer[HEADER_OFFSET+0] << 16) |
 		               (buffer[HEADER_OFFSET+1] <<  8) |
@@ -235,12 +279,33 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 		this->height = ((this->height & 0xfff) + 15) & ~15;
 		this->aspect = buffer[HEADER_OFFSET+3] >> 4;
 
+		switch (framecode){
+		case 2:
+			this->duration=90000/24;
+			break;
+		case 3:
+			this->duration=90000/25;
+			break;
+		case 5:
+			this->duration=90000/30;
+			break;
+		case 6:
+			this->duration=90000/50;
+			break;
+		case 8: 
+			this->duration=90000/60;
+			break;
+		default:
+			this->duration=90000/25;  /* PAL 25fps */
+			break;
+		}
+				
 		/* and ship the data if different ... appeasing any other vo plugins
 		that are active ... */
 		if (old_h!=this->height || old_w!=this->width || old_a!=this->aspect)
 			this->video_out->get_frame(this->video_out,
 			 this->width,this->height,this->aspect,
-			 IMGFMT_YV12, 1, 6667); /* dxr3_decoder = 6667 */
+			 IMGFMT_YV12, this->duration, 6667);  /* dxr3_decoder = 6667 */
 	}
 }
 
@@ -249,28 +314,44 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
 
-	/* Increment vpts for videofill packets to keep in sync with audio...
-	   fixes issues with the Matrix etc... */
-	if(buf->type == BUF_VIDEO_FILL) {
-		int vpts;
-		static int videofill_count=0;
-	/*	pthread_mutex_lock  (&this->video_decoder.metronom->lock); */
-		videofill_count += this->video_decoder.metronom->pts_per_frame + 
-			this->video_decoder.metronom->video_pts_delta; 
-	/*	pthread_mutex_unlock  (&this->video_decoder.metronom->lock);*/			
-		vpts = this->video_decoder.metronom->got_video_frame(
-			this->video_decoder.metronom, videofill_count);
-	return;
-	}
 
 	/* The dxr3 does not need the preview-data */
 	if (buf->decoder_info[0] == 0) return;
+
+	/* Act like other plugins... keeps metronom in check :) */
+	if(buf->type == BUF_VIDEO_FILL) {
+	vo_frame_t *img;
+	    img = this->video_out->get_frame (this->video_out,
+                             this->width,
+                             this->height,
+                             this->aspect,
+                             IMGFMT_YV12,
+                             this->duration,
+                             VO_BOTH_FIELDS);
+
+		img->draw(img);
+	 	img->free(img);
+		return;
+	}
+
+	if(scanning_mode){
+	vo_frame_t *img;
+	    img = this->video_out->get_frame (this->video_out,
+                             this->width,
+                             this->height,
+                             this->aspect,
+                             IMGFMT_YV12,
+                             this->duration,
+                             VO_BOTH_FIELDS);
+
+		img->draw(img);
+	 	img->free(img);
+	}	
 
 	if (buf->PTS) {
 		int vpts;
 		vpts = this->video_decoder.metronom->got_video_frame(
 		 this->video_decoder.metronom, buf->PTS);
-
 		if (this->last_pts < vpts)
 		{
 			this->last_pts = vpts;

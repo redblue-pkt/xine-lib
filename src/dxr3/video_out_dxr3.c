@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.15 2001/10/24 15:53:23 mlampard Exp $
+ * $Id: video_out_dxr3.c,v 1.16 2001/10/28 11:14:39 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -76,6 +76,26 @@ typedef struct dxr3_driver_s {
 	void (*request_dest_size) (char *user_data, int video_width, int video_height,
 	 	int *dest_x, int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;
+
+typedef struct dxr3_frame_s {
+  	vo_frame_t    vo_frame;
+	int           width, height;
+	uint8_t       *mem[3];
+	int           format;
+}dxr3_frame_t;
+
+static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
+  char *aligned;
+   
+  aligned = malloc (size+alignment);
+  *mem = aligned;
+        
+  while ((int) aligned % alignment)
+    aligned++;
+               
+  return aligned;
+}
+
 
 static int dxr3_set_property (vo_driver_t *this_gen, int property, int value);
 
@@ -178,31 +198,63 @@ static void dummy_frame_field (vo_frame_t *vo_img, int which_field)
 	fprintf(stderr, "dxr3_vo: dummy_frame_field called!\n");
 }
 
-static void dummy_frame_dispose (vo_frame_t *frame)
+static void dummy_frame_dispose (vo_frame_t *frame_gen)
 {
-	free(frame);
+  dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen;
+
+  if (frame->mem[0])
+  	free (frame->mem[0]);
+  if (frame->mem[1])
+        free (frame->mem[1]);
+  if (frame->mem[2])
+        free (frame->mem[2]);
+  free(frame);
 }
 
 static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
 {
-	vo_frame_t     *frame;
-
-	frame = (vo_frame_t *) malloc (sizeof (vo_frame_t));
-	memset (frame, 0, sizeof(vo_frame_t));
-
-	frame->copy    = dummy_frame_copy;
-	frame->field   = dummy_frame_field; 
-	frame->dispose = dummy_frame_dispose;
-
-	return frame;
+        dxr3_frame_t   *frame;
+        
+        frame = (dxr3_frame_t *) malloc (sizeof (dxr3_frame_t));
+        memset (frame, 0, sizeof(dxr3_frame_t));
+                 
+        frame->vo_frame.copy    = dummy_frame_copy;
+        frame->vo_frame.field   = dummy_frame_field;
+        frame->vo_frame.dispose = dummy_frame_dispose;
+        
+	return (vo_frame_t*) frame;
 }
 
+
 static void dxr3_update_frame_format (vo_driver_t *this_gen,
-				      vo_frame_t *frame,
+				      vo_frame_t *frame_gen,
 				      uint32_t width, uint32_t height,
 				      int ratio_code, int format, int flags)
 {
 	dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
+	dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
+	int image_size;
+	
+  if ((frame->width != width) || (frame->height != height)
+        || (frame->format != format)) {
+         
+        if (frame->mem[0]) {
+           free (frame->mem[0]);
+           frame->mem[0] = NULL;
+        }
+        if (frame->mem[1]) {
+           free (frame->mem[1]);
+           frame->mem[1] = NULL;
+        }
+        if (frame->mem[2]) {
+           free (frame->mem[2]);
+           frame->mem[2] = NULL;
+        }
+
+        frame->width  = width;
+        frame->height = height;
+        frame->format = format;
+
 	if(flags == 6667){  		/* dxr3 flag anyone? :) */
 		int aspect;
 		this->video_width  = width;
@@ -216,18 +268,29 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 		if(this->aspectratio!=aspect)
 		  dxr3_set_property ((vo_driver_t*)this, VO_PROP_ASPECT_RATIO, aspect);
 	}
-	else{
-	  /* inform the user that we don't do non-mpeg streams and exit nicely */
-	  fprintf(stderr,"\nDxr3 videoout plugin doesn't currently play non-mpeg streams\n");
-	  fprintf(stderr,"Please try xine with -VXv or -VShm for this stream.  Exiting...\n");
-	  exit(1);
+        
+        if (format == IMGFMT_YV12) {
+           image_size = width * height;
+      	   frame->vo_frame.base[0] = malloc_aligned(16,image_size, 
+      	    		(void**) &frame->mem[0]);
+	   frame->vo_frame.base[1] = malloc_aligned(16,image_size/4, 
+	   		(void**) &frame->mem[1]);
+	   frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, 
+	   		(void**) &frame->mem[2]);
+	}else if (format == IMGFMT_YUY2) {
+	   printf("DXR3_Overlay: this plugin doesn't support AVIs\n");
+	   printf("DXR3_Overlay: Exiting......");
+	   exit(1);
 	}
+      }
 }
 
-static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame)
+static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
 	/* dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; */
-	fprintf(stderr, "dxr3_vo: dummy function dxr3_display_frame called!\n");
+	dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen; 
+
+        frame->vo_frame.displayed (&frame->vo_frame); 
 }
 
 static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
