@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.61 2002/07/01 11:28:29 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.62 2002/07/01 11:33:18 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -309,7 +309,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   }
   this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
 			    && snd_pcm_hw_params_can_resume (params) );
-  if ((err = snd_pcm_hw_params(this->audio_fd, params)) < 0) {
+  err = snd_pcm_hw_params(this->audio_fd, params);
+  if (err < 0) {
     printf ("audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
     goto __close;
   }
@@ -318,14 +319,32 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   /*
    * audio buffer size handling
    */
-  /* Copy current parameters into swparams */
-  snd_pcm_sw_params_current(this->audio_fd, swparams);
-  tmp=snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, period_size);
-  tmp=snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, 1);
-  tmp=snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
+  err = snd_pcm_sw_params_current(this->audio_fd, swparams);
+  if (err < 0) {
+    printf ("audio_alsa_out: Unable to determine current swparams: %s\n", snd_strerror(err));
+    goto __close;
+  }
+  err = snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 1);
+  if (err < 0) {
+    printf ("audio_alsa_out: Unable to set transfer alignment: %s\n", snd_strerror(err));
+    goto __close;
+  }
+  err = snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, period_size);
+  if (err < 0) {
+    printf ("audio_alsa_out: Unable to set available min: %s\n", snd_strerror(err));
+    goto __close;
+  }
+  err = snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
+  if (err < 0) {
+    printf ("audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror(err));
+    goto __close;
+  }
 
-  /* Install swparams into current parameters */
-  snd_pcm_sw_params(this->audio_fd, swparams);
+  err = snd_pcm_sw_params(this->audio_fd, swparams);
+  if (err < 0) {
+    printf ("audio_alsa_out: Unable to set swparams: %s\n", snd_strerror(err));
+    goto __close;
+  }
   snd_pcm_dump_setup(this->audio_fd, jcd_out); 
   snd_pcm_sw_params_dump(swparams, jcd_out);
   return this->output_sample_rate;
