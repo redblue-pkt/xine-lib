@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.222 2003/01/18 20:35:28 f1rmb Exp $
+ * $Id: xine.c,v 1.223 2003/01/27 00:02:57 tmattern Exp $
  *
  * top-level xine functions
  *
@@ -716,6 +716,9 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     stream->meta_info[XINE_META_INFO_SYSTEMLAYER]
       = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
   }
+
+  printf("xine: found input plugin  : %s\n",stream->input_plugin->input_class->get_description(stream->input_plugin->input_class));
+  printf("xine: found demuxer plugin: %s\n",stream->demux_plugin->demux_class->get_description(stream->demux_plugin->demux_class));
 
   extra_info_reset( stream->current_extra_info );
   extra_info_reset( stream->video_decoder_extra_info );
