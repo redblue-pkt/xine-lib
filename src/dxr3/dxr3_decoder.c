@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.73 2002/04/23 15:45:19 esnel Exp $
+ * $Id: dxr3_decoder.c,v 1.74 2002/04/24 20:26:06 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -1029,7 +1029,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		uint32_t vpts32;
 		
 		vpts = this->spu_decoder.metronom->got_spu_packet
-		 (this->spu_decoder.metronom, buf->pts, 0);
+		 (this->spu_decoder.metronom, buf->pts);
 #if LOG_SPU
                 printf ("dxr3_spu: pts=%lld vpts=%lld\n", buf->pts, vpts);
 #endif

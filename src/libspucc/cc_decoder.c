@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.14 2002/03/31 23:14:48 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.15 2002/04/24 20:26:07 jcdutton Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -829,7 +829,7 @@ static int64_t cc_renderer_calc_vpts(cc_renderer_t *this, int64_t pts,
 				      uint32_t ntsc_frame_offset)
 {
   metronom_t *metronom = this->metronom;
-  int64_t vpts = metronom->got_spu_packet(metronom, pts, 0);
+  int64_t vpts = metronom->got_spu_packet(metronom, pts);
   return vpts + ntsc_frame_offset * NTSC_FRAME_DURATION;
 }
 

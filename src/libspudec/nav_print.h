@@ -34,6 +34,14 @@ extern "C" {
 
 void navPrint_PCI(pci_t *pci);
 void navPrint_DSI(dsi_t *dsi);
+void print_time(dvd_time_t *dtime);
+void navPrint_PCI_GI(pci_gi_t *pci_gi);
+void navPrint_NSML_AGLI(nsml_agli_t *nsml_agli);
+void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns);
+void navPrint_BTN_COLIT(btn_colit_t *btn_colit);
+void navPrint_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns);
+void navPrint_HLI(hli_t *hli);
+
 
 #ifdef __cplusplus
 };

@@ -32,7 +32,7 @@
 #include "nav_print.h"
 
 
-static void print_time(dvd_time_t *dtime) {
+void print_time(dvd_time_t *dtime) {
   const char *rate;
   assert((dtime->hour>>4) < 0xa && (dtime->hour&0xf) < 0xa);
   assert((dtime->minute>>4) < 0x7 && (dtime->minute&0xf) < 0xa);
@@ -59,16 +59,16 @@ static void print_time(dvd_time_t *dtime) {
 }
 
 
-static void navPrint_PCI_GI(pci_gi_t *pci_gi) {
+void navPrint_PCI_GI(pci_gi_t *pci_gi) {
   int i;
 
   printf("pci_gi:\n");
   printf("nv_pck_lbn    0x%08x\n", pci_gi->nv_pck_lbn);
   printf("vobu_cat      0x%04x\n", pci_gi->vobu_cat);
   printf("vobu_uop_ctl  0x%08x\n", *(uint32_t*)&pci_gi->vobu_uop_ctl);
-  printf("vobu_s_ptm    %u\n", pci_gi->vobu_s_ptm);
-  printf("vobu_e_ptm    %u\n", pci_gi->vobu_e_ptm);
-  printf("vobu_se_e_ptm %u\n", pci_gi->vobu_se_e_ptm);
+  printf("vobu_s_ptm    0x%08x\n", pci_gi->vobu_s_ptm);
+  printf("vobu_e_ptm    0x%08x\n", pci_gi->vobu_e_ptm);
+  printf("vobu_se_e_ptm 0x%08x\n", pci_gi->vobu_se_e_ptm);
   printf("e_eltm        ");
   print_time(&pci_gi->e_eltm);
   printf("\n");
@@ -84,7 +84,7 @@ static void navPrint_PCI_GI(pci_gi_t *pci_gi) {
   printf("\"\n");
 }
 
-static void navPrint_NSML_AGLI(nsml_agli_t *nsml_agli) {
+void navPrint_NSML_AGLI(nsml_agli_t *nsml_agli) {
   int i, j = 0;
   
   for(i = 0; i < 9; i++)
@@ -99,16 +99,16 @@ static void navPrint_NSML_AGLI(nsml_agli_t *nsml_agli) {
 	     nsml_agli->nsml_agl_dsta[i]);
 }
 
-static void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns) {
+void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns) {
   
   if((hl_gi->hli_ss & 0x03) == 0)
     return;
   
   printf("hl_gi:\n");
   printf("hli_ss        0x%01x\n", hl_gi->hli_ss & 0x03);
-  printf("hli_s_ptm     %u\n", hl_gi->hli_s_ptm);
-  printf("hli_e_ptm     %u\n", hl_gi->hli_e_ptm);
-  printf("btn_se_e_ptm  %u\n", hl_gi->btn_se_e_ptm);
+  printf("hli_s_ptm     0x%08x\n", hl_gi->hli_s_ptm);
+  printf("hli_e_ptm     0x%08x\n", hl_gi->hli_e_ptm);
+  printf("btn_se_e_ptm  0x%08x\n", hl_gi->btn_se_e_ptm);
 
   *btngr_ns = hl_gi->btngr_ns;
   printf("btngr_ns      %d\n",  hl_gi->btngr_ns);
@@ -124,7 +124,7 @@ static void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns) {
   printf("foac_btnn     %d\n", hl_gi->foac_btnn);
 }
 
-static void navPrint_BTN_COLIT(btn_colit_t *btn_colit) {
+void navPrint_BTN_COLIT(btn_colit_t *btn_colit) {
   int i, j;
   
   j = 0;
@@ -141,7 +141,7 @@ static void navPrint_BTN_COLIT(btn_colit_t *btn_colit) {
 	     btn_colit->btn_coli[i][j]);
 }
 
-static void navPrint_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns) {
+void navPrint_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns) {
   int i, j;
   
   printf("btnit:\n");
@@ -174,7 +174,7 @@ static void navPrint_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns) {
   }
 }
 
-static void navPrint_HLI(hli_t *hli) {
+void navPrint_HLI(hli_t *hli) {
   int btngr_ns = 0, btn_ns = 0;
   
   printf("hli:\n");

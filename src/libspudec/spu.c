@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.38 2002/04/24 13:42:17 jcdutton Exp $
+ * $Id: spu.c,v 1.39 2002/04/24 20:26:07 jcdutton Exp $
  *
  */
 
@@ -64,8 +64,8 @@
 /*
 #define LOG_DEBUG 1
 #define LOG_NAV 1
+#define LOG_BUTTON 1
 */
-
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
 void spudec_process( spudec_decoder_t *this, uint32_t stream_id);
@@ -106,6 +106,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
  */
     if(p[0] == 0x00) {
 #ifdef LOG_NAV
+      int btngr_ns = 0, btn_ns = 0;
       printf("libspudec:nav_PCI\n");
 #endif
       nav_read_pci(&pci, p+1);
@@ -124,7 +125,10 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       printf("btngr%d_dsp_ty    0x%02x\n", 2, pci.hli.hl_gi.btngr2_dsp_ty);
       printf("btngr%d_dsp_ty    0x%02x\n", 3, pci.hli.hl_gi.btngr3_dsp_ty);
       //navPrint_PCI(&pci); 
-
+      navPrint_PCI_GI(&pci.pci_gi);
+      navPrint_NSML_AGLI(&pci.nsml_agli);
+      //navPrint_HLI(&pci.hli);
+      navPrint_HL_GI(&pci.hli.hl_gi, & btngr_ns, & btn_ns);
 #endif
     }
 
@@ -144,55 +148,84 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 //      self->vobu_length = self->dsi.dsi_gi.vobu_ea;
     }
   }
-  if (pci.hli.hl_gi.hli_ss == 1) {
-    pthread_mutex_lock(&this->nav_pci_lock);
-    xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
-    this->button_filter=1;
-    pthread_mutex_unlock(&this->nav_pci_lock);
-    /*******************************
-     * We should do something about fosl_btnn, but
-     * until we can send the info to dvdnav, ignore it.
-     * if( pci.hli.hl_gi.fosl_btnn) {
-     *   this->buttonN = pci.hli.hl_gi.fosl_btnn;
-     * }
-     *******************************/
-  }
-  if ( (pci.hli.hl_gi.hli_ss == 0) &&
-    (this->pci.hli.hl_gi.hli_ss == 1) ) {
-    pthread_mutex_lock(&this->nav_pci_lock);
-    xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
-    this->button_filter=0;
-    pthread_mutex_unlock(&this->nav_pci_lock);
-    /* Hide menu spu between menus */
-    printf("libspudec:nav:SHOULD HIDE SPU here\n");
-    if( this->menu_handle < 0 ) {
-      this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
-    }
-    if( this->menu_handle >= 0 ) {
-      metronom_t *metronom = this->xine->metronom;
-      this->event.object.handle = this->menu_handle;
-      this->event.event_type = EVENT_HIDE_MENU;
-      /* if !vpts then we are near a discontinuity but video_out havent detected
-         it yet and we cannot provide correct vpts values. use current_time 
-         instead as an aproximation.
-      */
-      this->event.vpts = metronom->got_spu_packet(metronom, pci.pci_gi.vobu_s_ptm, 0);
-      /* Keep all the events in the correct order. */
-      /* This corrects for errors during estimation around discontinuity */
-      if( this->event.vpts < this->last_event_vpts ) {
-        this->event.vpts = this->last_event_vpts + 1;
+  pthread_mutex_lock(&this->nav_pci_lock);
+  switch (pci.hli.hl_gi.hli_ss) {
+    case 0:
+      /* No Highlight information for this VOBU */
+      if ( this->pci.hli.hl_gi.hli_ss == 1) {
+        /* Hide menu spu between menus */
+#ifdef LOG_BUTTON
+        printf("libspudec:nav:SHOULD HIDE SPU here\n");
+#endif
+        if( this->menu_handle < 0 ) {
+          this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
+        }
+        if( this->menu_handle >= 0 ) {
+          int64_t vpts_offset; 
+          metronom_t *metronom = this->xine->metronom;
+          this->event.object.handle = this->menu_handle;
+          this->event.event_type = EVENT_HIDE_MENU;
+          /* if !vpts then we are near a discontinuity but video_out havent detected
+             it yet and we cannot provide correct vpts values. use current_time 
+             instead as an aproximation.
+           */
+          vpts_offset = metronom->got_spu_packet(metronom, -1);
+          this->event.vpts = metronom->got_spu_packet(metronom, this->pci.pci_gi.vobu_e_ptm);
+          /* Keep all the events in the correct order. */
+          /* This corrects for errors during estimation around discontinuity */
+          if( this->event.vpts < this->last_event_vpts ) {
+#ifdef LOG_BUTTON
+            fprintf(stdout, "libspudec: add_event estimation correction. vpts was %lld\n", this->event.vpts);
+#endif
+            this->event.vpts = this->last_event_vpts + 1;
+          }
+          this->last_event_vpts = this->event.vpts;
+#ifdef LOG_BUTTON
+          fprintf(stdout, "libspudec: add_event HIDE_MENU type=%d : current time=%lld, spu vpts=%lld, vpts_offset=%lld\n",
+                  this->event.event_type,
+                  this->xine->metronom->get_current_time(this->xine->metronom),
+                  this->event.vpts,
+                  vpts_offset);
+#endif
+          ovl_instance->add_event(ovl_instance, (void *)&this->event);
+        } else {
+          printf("libspudec: No video_overlay handles left for menu\n");
+        }
       }
-      this->last_event_vpts = this->event.vpts;
-      fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lld\n",
-        this->event.event_type,
-        this->xine->metronom->get_current_time(this->xine->metronom),
-        this->event.vpts);
-      assert(this->event.event_type != 2);
-      ovl_instance->add_event(ovl_instance, (void *)&this->event);
-    } else {
-      printf("libspudec: No video_overlay handles left for menu\n");
-    }
+      xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+      this->button_filter=0;
+
+      break;
+    case 1: 
+      /* All New Highlight information for this VOBU */
+      xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+      this->button_filter=1;
+      /*******************************
+       * We should do something about fosl_btnn, but
+       * until we can send the info to dvdnav, ignore it.
+       * if( pci.hli.hl_gi.fosl_btnn) {
+       *   this->buttonN = pci.hli.hl_gi.fosl_btnn;
+       * }
+       *******************************/
+      break;
+    case 2:
+      /* Use Highlight information from previous VOBU */
+      this->pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
+      this->pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
+      this->pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
+      break;
+    case 3:
+      /* Use Highlight information from previous VOBU except commands, which come from this VOBU */
+      this->pci.pci_gi.vobu_s_ptm = pci.pci_gi.vobu_s_ptm;
+      this->pci.pci_gi.vobu_e_ptm = pci.pci_gi.vobu_e_ptm;
+      this->pci.pci_gi.vobu_se_e_ptm = pci.pci_gi.vobu_se_e_ptm;
+      /* FIXME: Add command copying here */
+      break;
+   default:
+      assert(0);
+      break;
   }
+  pthread_mutex_unlock(&this->nav_pci_lock);
   return;
 }
 
@@ -299,7 +332,9 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
           spu_button.buttonN  = this->buttonN;
           xine_send_event(this->xine, &spu_event.event);
         }
+#ifdef LOG_BUTTON
         fprintf(stderr, "libspudec:Full Overlay\n");
+#endif
         spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0, &this->overlay );
       } else {
       /* Subtitle and not a menu button */
@@ -355,7 +390,9 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       } else {
         this->event.vpts = this->xine->metronom->get_current_time(this->xine->metronom)
                            + (this->state.delay*1000); 
+#ifdef LOG_BUTTON
         printf("libspudec: vpts current time estimation around discontinuity\n");
+#endif
       }
       /* Keep all the events in the correct order. */
       /* This corrects for errors during estimation around discontinuity */
@@ -364,12 +401,12 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       }
       this->last_event_vpts = this->event.vpts;
 
+#ifdef LOG_BUTTON
       fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lld\n",
         this->event.event_type,
         this->xine->metronom->get_current_time(this->xine->metronom),
         this->event.vpts);
-      assert(this->event.event_type != 2);
- 
+#endif 
       ovl_instance->add_event(ovl_instance, (void *)&this->event);
     } else {
       pending = 0;
@@ -538,6 +575,8 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
 
     default:
       printf("libspudec: unknown seqence command (%02x)\n", buf[0]);
+      /* FIXME: SPU should be dropped, and buffers resynced */
+      assert(0);
       buf++;
       break;
     }
@@ -809,22 +848,30 @@ void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, 
   overlay->clip_right = button_ptr->x_end;
   overlay->clip_bottom = button_ptr->y_end;
   if(button_ptr->btn_coln != 0) {
+#ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: normal button clut\n");
+#endif
     for (i = 0;i < 4; i++) {
       overlay->clip_color[i] = clut[0xf & (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> (16 + 4*i))];
       overlay->clip_trans[i] = 0xf & (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> (4*i));
     }
   } else {
+#ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: abnormal button clut\n");
+#endif
     for (i = 0;i < 4; i++) {
+#ifdef LOG_BUTTON
       printf("libspudec:btn_coln = 0, clip_color = color\n");
+#endif
       overlay->clip_color[i] = overlay->color[i];
       overlay->clip_trans[i] = overlay->trans[i];
     }
   }
 
   /* spudec_print_overlay( overlay ); */
+#ifdef LOG_BUTTON
   printf("libspudec:xine_decoder.c:NAV to SPU pts match!\n");
+#endif
   
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.29 2002/04/07 12:09:38 miguelfreitas Exp $
+ * $Id: metronom.h,v 1.30 2002/04/24 20:26:07 jcdutton Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -115,7 +115,7 @@ struct metronom_s {
    * due to the lack of regularity on spu packets)
    */
 
-  int64_t (*got_spu_packet) (metronom_t *this, int64_t pts, int64_t duration);
+  int64_t (*got_spu_packet) (metronom_t *this, int64_t pts);
 
   /*
    * tell metronom about discontinuities.

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.81 2002/04/17 22:02:13 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.82 2002/04/24 20:26:07 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -254,22 +254,20 @@ static void metronom_set_audio_rate (metronom_t *this, int64_t pts_per_smpls) {
 
 }
 
-static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts,
-					int64_t duration) {
+static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
   int64_t vpts;
   
   pthread_mutex_lock (&this->lock);
   
-  if (pts) {
-    this->spu_vpts=pts;
+  if (pts >= 0 ) {
+    if ( !this->in_discontinuity ) {
+      vpts = pts + this->vpts_offset;
+    } else {
+      vpts = 0;
+    }
   } else {
-    pts=this->spu_vpts;
-  }
-
-  if ( !this->in_discontinuity ) {
-    vpts = pts + this->vpts_offset;
-  } else {
-    vpts = 0;      
+    /* pts < 0 */
+    vpts = this->vpts_offset;
   }
   
   pthread_mutex_unlock (&this->lock);
