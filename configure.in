@@ -197,10 +197,10 @@ AM_CONDITIONAL(HAVE_ESD, test x"$no_esd" != "xyes")
 
 
 dnl
-dnl
+dnl Some extra checks.
 dnl
 AC_CHECK_FUNC(getpwuid_r,AC_DEFINE(HAVE_GETPWUID_R))
-
+AC_CHECK_HEADERS(byteswap.h)
 
 dnl
 dnl check cflags not supported by all gcc versions

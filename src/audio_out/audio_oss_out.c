@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.5 2001/05/07 03:40:35 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.6 2001/05/08 11:31:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,6 +50,15 @@
 #include "resample.h"
 #include "metronom.h"
 #include "utils.h"
+
+#ifndef AFMT_S16_NE
+# if defined(sparc) || defined(__sparc__) || defined(PPC)
+/* Big endian machines */
+#  define AFMT_S16_NE AFMT_S16_BE
+# else
+#  define AFMT_S16_NE AFMT_S16_LE
+# endif
+#endif
 
 #define AO_OUT_OSS_IFACE_VERSION 1
 
