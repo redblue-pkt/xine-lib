@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.70 2002/08/06 01:59:22 tmmm Exp $
+ * $Id: demux_mpeg.c,v 1.71 2002/08/07 03:13:37 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -105,6 +105,19 @@ typedef struct demux_mpeg_s {
 #define WIDE_ATOM QT_ATOM('w', 'i', 'd', 'e')
 
 #define ATOM_PREAMBLE_SIZE 8
+
+/* a little something for dealing with RIFF headers */
+
+#define FOURCC_TAG(ch0, ch1, ch2, ch3) QT_ATOM(ch0, ch1, ch2, ch3)
+
+#define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
+#define WAVE_TAG FOURCC_TAG('W', 'A', 'V', 'E')
+#define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
+
+/* arbitrary number of initial file bytes to check for an MPEG marker */
+#define RIFF_CHECK_KILOBYTES 1024
+
+#define MPEG_MARKER FOURCC_TAG( 0x00, 0x00, 0x01, 0xBA )
 
 /*
  * This function traverses a file and looks for a mdat atom. Upon exit:
@@ -925,6 +938,8 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
   off_t mdat_atom_offset = -1;
   int64_t mdat_atom_size = -1;
+  unsigned int fourcc_tag;
+  int i, j;
 
   this->input = input;
 
@@ -939,7 +954,7 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
       if(input->get_blocksize(input))
         return DEMUX_CANNOT_HANDLE;
 
-      if(input->read(input, buf, 6)) {
+      if(input->read(input, buf, 16) == 16) {
 
         if(!buf[0] && !buf[1] && (buf[2] == 0x01))
           switch(buf[3]) {
@@ -973,34 +988,62 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
         /* special case for MPEG streams hidden inside QT files; check
          * is there is an mdat atom  */
         find_mdat_atom(input, &mdat_atom_offset, &mdat_atom_size);
-        if (mdat_atom_offset == -1)
-          return DEMUX_CANNOT_HANDLE;
+        if (mdat_atom_offset != -1) {
+          /* seek to the start of the mdat data, which might be in different
+           * depending on the size type of the atom */
+          if (mdat_atom_size == 1)
+            input->seek(input, mdat_atom_offset + 16, SEEK_SET);
+          else
+            input->seek(input, mdat_atom_offset + 8, SEEK_SET);
 
-        /* seek to the start of the mdat data, which might be in different
-         * depending on the size type of the atom */
-        if (mdat_atom_size == 1)
-          input->seek(input, mdat_atom_offset + 16, SEEK_SET);
-        else
-          input->seek(input, mdat_atom_offset + 8, SEEK_SET);
+          /* go through the same MPEG detection song and dance */
+          if(input->read(input, buf, 6)) {
+            if(buf[0] || buf[1] || (buf[2] != 0x01))
+              return DEMUX_CANNOT_HANDLE;
 
-        /* go through the same MPEG detection song and dance */
-        if(input->read(input, buf, 6)) {
-          if(buf[0] || buf[1] || (buf[2] != 0x01))
+            switch(buf[3]) {
+
+            case 0xba:
+              if((buf[4] & 0xf0) == 0x20) {
+                uint32_t pckbuf ;
+
+                pckbuf = read_bytes (this, 1);
+                if ((pckbuf>>4) != 4) {
+                  this->input = input;
+                  return DEMUX_CAN_HANDLE;
+                }
+              }
+              break;
+            }
+          }
+        }
+
+        /* special case for MPEG streams with a RIFF header */
+        fourcc_tag = BE_32(&buf[0]);
+        if (fourcc_tag == RIFF_TAG) {
+          fourcc_tag = BE_32(&buf[8]);
+          /* disregard the RIFF file if it is certainly a better known
+           * format like AVI or WAVE */
+          if ((fourcc_tag == WAVE_TAG) ||
+              (fourcc_tag == AVI_TAG))
             return DEMUX_CANNOT_HANDLE;
 
-          switch(buf[3]) {
+          /* Iterate through first n kilobytes of RIFF file searching for
+           * MPEG video marker. No, it's not a very efficient approach, but
+           * if execution has reached this special case, this is currently
+           * the best chance for detecting the file automatically. Also,
+           * be extra lazy and do not bother skipping over the data 
+           * header. */
+          for (i = 0; i < RIFF_CHECK_KILOBYTES; i++) {
+            if (input->read(input, buf, 1024) != 1024)
+              return DEMUX_CANNOT_HANDLE;
 
-          case 0xba:
-            if((buf[4] & 0xf0) == 0x20) {
-              uint32_t pckbuf ;
-
-              pckbuf = read_bytes (this, 1);
-              if ((pckbuf>>4) != 4) {
+            for (j = 0; j < 1024 - 4; j++) {
+              if (BE_32(&buf[j]) == MPEG_MARKER) {
                 this->input = input;
                 return DEMUX_CAN_HANDLE;
               }
             }
-            break;
           }
         }
       }
