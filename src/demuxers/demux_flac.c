@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.4 2004/06/15 21:22:34 miguelfreitas Exp $
+ * $Id: demux_flac.c,v 1.5 2004/07/09 13:16:59 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -92,7 +92,7 @@ static int open_flac_file(demux_flac_t *flac) {
 
   unsigned char preamble[4];
   unsigned int block_length;
-  unsigned char buffer[16];
+  unsigned char buffer[FLAC_SEEKPOINT_SIZE];
   unsigned char *streaminfo = flac->streaminfo + sizeof(xine_waveformatex);
   int i;
 
@@ -167,8 +167,7 @@ static int open_flac_file(demux_flac_t *flac) {
       flac->seekpoints = xine_xmalloc(flac->seekpoint_count * 
         sizeof(flac_seekpoint_t));
       for (i = 0; i < flac->seekpoint_count; i++) {
-        if (flac->input->read(flac->input, buffer, FLAC_SEEKPOINT_SIZE) !=
-            FLAC_SEEKPOINT_SIZE)
+        if (flac->input->read(flac->input, buffer, FLAC_SEEKPOINT_SIZE) != FLAC_SEEKPOINT_SIZE)
           return 0;
         flac->seekpoints[i].sample_number = BE_64(&buffer[0]);
         lprintf (" %d: sample %lld, ", i, flac->seekpoints[i].sample_number);
