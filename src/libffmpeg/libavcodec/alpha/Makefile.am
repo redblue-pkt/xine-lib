@@ -1,5 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+
 EXTRA_DIST = asm.h \
 	dsputil_alpha.c \
 	mpegvideo_alpha.c \

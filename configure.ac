@@ -219,7 +219,7 @@ AC_SUBST(LIBFFMPEG_CFLAGS)
 
 LIBMPEG2_CFLAGS=""
 LIBA52_CFLAGS=""
-LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY"
+LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_ENCODERS"
 
 AC_ARG_ENABLE(altivec,
 	[  --disable-altivec       use assembly codes for Motorola 74xx CPUs],
@@ -278,7 +278,7 @@ dnl ---------------------------------------------
 dnl tvmode support using nvtv
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(nvtv, [  --enable-nvtv           use nvtv for output fullscreen to TV  [default=yes]], enable_nvtv="$enableval", enable_nvtv=no)
+AC_ARG_ENABLE(nvtv, [  --enable-nvtv           use nvtv for output fullscreen to TV], enable_nvtv="$enableval", enable_nvtv=no)
 
 AC_MSG_CHECKING(for nvtv support)
 

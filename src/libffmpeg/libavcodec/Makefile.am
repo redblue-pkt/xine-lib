@@ -10,7 +10,7 @@ EXTRA_DIST = fdctref.c motion_est_template.c svq3.c wmv2.c \
 	ppc/mpegvideo_ppc.c ppc/dsputil_altivec.h  ppc/idct_altivec.c \
 	imgresample.c motion_est.c
 
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -DCONFIG_RISKY -DCONFIG_ENCODERS
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec.la
