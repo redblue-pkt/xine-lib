@@ -36,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.74 2004/04/09 15:01:29 mroi Exp $
+ * $Id: spu.c,v 1.75 2004/04/10 17:17:06 mroi Exp $
  *
  */
 
@@ -209,7 +209,9 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       if (this->pci_cur.pci.hli.hl_gi.hli_ss != 0 &&
 	  pci.hli.hl_gi.hli_s_ptm > this->pci_cur.pci.hli.hl_gi.hli_s_ptm) {
 	pci_node_t *node = &this->pci_cur;
-	printf("libspudec: DEBUG: allocating new PCI node for hli_s_ptm %d\n", pci.hli.hl_gi.hli_s_ptm);
+#ifdef LOG_DEBUG
+	printf("libspudec: allocating new PCI node for hli_s_ptm %d\n", pci.hli.hl_gi.hli_s_ptm);
+#endif
 	/* append PCI at the end of the list */
 	while (node->next) node = node->next;
 	node->next = (pci_node_t *)xine_xmalloc(sizeof(pci_node_t));
