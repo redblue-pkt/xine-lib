@@ -1,3 +1,9 @@
+xine-lib (1.0.0-alpha2/beta0)
+  * configurable image position
+  * DVD menu button highlight position fixes
+  * internal engine changes to allow a new layer of post effect plugins
+  * VCD playback fixed (actually it was a bug in the real demuxer)
+
 xine-lib (1.0.0-alpha1) 
   * transport stream demuxer fixes
   * DVD playback should be working again (please report DVDs that don't play!)
