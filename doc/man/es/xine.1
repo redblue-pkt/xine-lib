@@ -1,0 +1,194 @@
+.\" -*-Nroff-*-
+.\""
+.TH XINE 1x 2001-07-18 "El proyecto Xine"
+.\" NAME should be all caps, SECTION should be 1-8, maybe w/ subsection
+.\" other parms are allowed: see man(7), man(1)
+.\""
+.SH NOMBRE
+xine \- un reproductor libre de vídeo
+.SH SINOPSIS
+.B xine
+.I "[opciones] [MRL] ..."
+.SH "DESCRIPCIÒN"
+Esta página del manual documentan brevemente al reproductor de sonido/imágen
+.BR Xine
+.
+.PP
+.B Xine
+reproduce secuencias MPEG (sonido e imágen), secuencias elementales mpeg 
+(ej.: archivos .mp3 ó .mpv), archivos avi (usando codecs win32), (S)VCDs 
+y DVDs.
+.SH OPCIONES
+El programa sigue las sintaxis usuales de líneas de comando GNU, con 
+largas opciones comenzando con dos rayas (`-').
+Debajo están incluidas un conjunto de opciones.
+Para una descripción completa, vea la FAQ_es y el LEAME_es en 
+/usr/share/doc/xine o en la página inicial de Xine.
+.TP
+.B \-h, \-\-help (ayuda)
+Muestra el conjunto de opciones y los controladores de salida disponibles 
+(plugins).
+.TP
+.B \-a, \-\-audio\-channel <num> (canal de audio <número>
+Selecciona le canal de sonido dado. <num> es el número del canal de sonido, 
+por omisión es el "0".
+.br
+Xine 0.5 y superiores prueba la mejor colección de todos los canales válidos 
+de secuenias de sonido (ac3, sonido mpeg, sonido avi, ...) y asignandoles
+"canales virtuales" con números de canales comenzado en 0.
+.TP
+.B \-V, \-\-video\-driver <drv>
+Selección del controlador de vídeo. Mire "xine --help" 
+para una lista de plugins de salida de vídeo disponibles en su sistema.
+Esta selección es almacenada automaticamente en su .xinerc por lo 
+que tendrá que especificar sólo una vez el controlado de vídeo.
+.TP
+.B \-A, \-\-audio\-driver <drv>
+Selección del controlador de sonido. Mire "xine --help" 
+para una lista de plugins de salida de sonido disponibles en su sistema.
+Esta selección es almacenada automaticamente en su .xinerc por lo 
+que tendrá que especificar sólo una vez el controlado de sonido.
+.TP
+.B \-u, \-\-spu\-channel <num>
+Selección de los subtítulos. <num> es la identificación del subtítulo elegido,
+por defecto no se selecciona ningún subtítulo (-1).
+.TP
+.B \-p[f][h][q][d][v]
+Comenzar la reproducción despúes de iniciado Xine. Puede ser seguido
+por "f" para pasar al modo de pantalla completa y/o "h" para esconder
+la GUI (Interfaz Gráfica del Usuario), y/o "q" para salir al finalizar la reproducción. Es también
+posible pedir la lista de reprodución del DVD 'd' o el VCD 'v'.
+.TP
+.B \-R, \-\-recognize\-by <option>
+Cambio de la manera en que Xine tratará de reconocer los tipos de secuencias de vídeo.
+Las opciones válidas son: 
+.br
+"default" ("por omisión") (primero por contenido, despúes por extensión),
+.br
+"revert" ("inverso") (primero por extensión,luego por contenido),
+.br
+"content" ("contenido") (solo por contenido),
+.br
+"extension" ("extensión") (solo por extensión). Si ninguna opción es dada, 
+la opción "revert" es seleccionada.
+.TP
+.B MRL (media resource locator)
+.br
+Los MRLs son similares a las URLs en su navegador de internet. Ellos describen
+los medios de donde leer. MRLs válidos pueden ser nombres de archivos simples
+o uno de los siguientes:
+
+.BR file://<ruta 
+o 
+.BR trayectoria>
+.br
+.BR fifo://<ruta 
+o 
+.BR trayectoria>
+.br
+.BR stdin://mpeg1
+o
+.BR "stdin://mpeg2"
+.br
+.BR dvd://VTS_xx_y.VOB
+.br
+.BR "vcd://<número de pista>"
+.br
+.BR "net://???"
+.LP
+Varias MRLs pueden ser especificadas en el orden consecutivo en que 
+las secuencias se van a reproducir.
+.LP
+Si no especifica ningún MRL,tendrá que seleccionar un archivo, arrastrarlo 
+y soltarlo. Archivos arrastrados del Midnight Commander de GNOME (gmc) se 
+sabe que funciona.
+.SH "VEA TAMBIÉN"
+El programa esta totalmente documentado en la página inicial de Xine:
+.IR "http://xine.sourceforge.net/"
+.SH TECLAS DE CONTROL
+Muchas de las características pueden se controladas presionando las teclas de
+control. Las teclas asociadas  son:
+.LP
+.BR ENTRADA :
+Reproducción
+.br
+.BR ESPACIO
+o
+.BR P :
+Pausa.
+.br
+.BR F :
+Alternar al modo de pantalla completa.
+.br
+.BR G :
+Ocultar/mostrar la gui.
+.br
+.BR H :
+Ocultar/mostrar la ventana de salida de vídeo.
+.br
+.BR A :
+Alternar la relación de aspecto (AUTO/16:9/4:3/DVB).
+.br
+.BR B :
+Ocultar/mostrar el navegador MRL.
+.br
+.BR C :
+Mostrar/ocultar la ventana de configuración de vídeo.
+.br
+.BR E :
+Expulsar los medios actuales.
+.br
+.BR 0 :
+Salte para empezar la secuencia actual.
+.br
+.BR 1..9 :
+Salte al 10%..90% de la secuencia actual.
+.br
+.BR PgUp :
+Salte a la anterior secuencia de la lista de reproducción.
+.br
+.BR PgDown :
+Salte a la siguiente secuencia de la lista de reproducción.
+.br
+.BR + :
+Seleccione el siguiente canal de sonido 
+(puede pasar algunos segundos hasta que tenga efecto).
+.br
+.BR - :
+Seleccione el canal de sonido previo.
+.br
+.BR > :
+Agrande la ventana de salida.
+.br
+.BR . :
+Seleccione el siguiente subtítulo.
+.br
+.BR < :
+Reduzca la ventana de salida.
+.br
+.BR , :
+Seleccione el subtítulo anterior.
+.br
+.BR Q :
+Salir.
+.br
+.SH Sintonía fina de sincronización
+Algunas secuencias tienen una mala marca de tiempo, por eso falla la 
+sincronización. Esto puede ser corregido usando las teclas con flechas:
+.br
+.BR Izquierda :
+presione si la imágen sale adelantada al sonido
+.br
+.BR Derecha :
+presione si la imágen se retraza al sonido
+.br
+.BR Inicio :
+presione para reiniciar sonido e imagen a 0, así la marcas de tiempo 
+de la secuencia son inalteradas.
+
+.SH AUTHOR
+Estas páginas del manual fueron escritas por Siggi Langauf <siggi@debian.org>,
+para el proyecto xine. Con muchos agregados de
+Guenter Bartsch <guenter@users.sourceforge.net> y
+Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+Traducción: Alfredo Delaiti <alfredodelaiti@netscape.net>
