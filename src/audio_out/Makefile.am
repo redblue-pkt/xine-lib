@@ -100,5 +100,11 @@ xineplug_ao_out_directx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYM
 
 xineplug_ao_out_coreaudio_la_SOURCES = audio_coreaudio_out.c
 xineplug_ao_out_coreaudio_la_LIBADD = $(XINE_LIB)
-xineplug_ao_out_coreaudio_la_LDFLAGS = -framework CoreAudio -framework AudioUnit -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+# The "-Wl,-framework -Wl,..." is needed for libtool versions before
+# 1.5.x (1.257): the default version that ships with Mac OS X is 1.5 (1.1220)
+xineplug_ao_out_coreaudio_la_LDFLAGS = \
+	-Wl,-framework -Wl,Cocoa -framework CoreAudio \
+	-Wl,-framework -Wl,AudioUnit -framework AudioUnit \
+	-avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_ao_out_coreaudio_la_CFLAGS = -framework CoreAudio -framework AudioUnit
+
