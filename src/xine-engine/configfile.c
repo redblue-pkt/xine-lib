@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.28 2002/09/09 20:40:27 uid86226 Exp $
+ * $Id: configfile.c,v 1.29 2002/09/10 14:06:33 jcdutton Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -139,7 +139,7 @@ static char *_xine_config_register_string (config_values_t *this,
      * it to default value 
      */
     if(!entry->unknown_value)
-      entry->unknown_value = strdup(def_value);
+      entry->unknown_value = copy_string(def_value);
     
     /* 
      * Check for sticky string
