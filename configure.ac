@@ -394,44 +394,7 @@ AC_SUBST(ZLIB_LIBS)
 dnl ---------------------------------------------
 dnl Check for OpenGL & [GLut | GLU]
 dnl ---------------------------------------------
-
-case "$host" in
-    *darwin*) dnl Use native interface
-        OPENGL_LIBS="-framework Carbon -framework AGL -framework OpenGL -framework AppKit"
-        OPENGL_CFLAGS="-framework Carbon -framework AGL -framework OpenGL -framework AppKit"
-        AC_SUBST(OPENGL_LIBS)
-        AC_SUBST(OPENGL_CFLAGS)
-        ;;
-    *)
-	AC_CHECK_LIB(GL, glBegin,
-		[AC_CHECK_HEADER(GL/gl.h,
-		     [ ac_have_opengl="yes"
-		       OPENGL_LIBS="-lGL" 
-		       AC_CHECK_LIB(glut, glutInit, dnl check for glut
-				    [ ac_have_glut="yes"
-				      GLUT_LIBS="-lglut"
-				      AC_DEFINE(HAVE_GLUT,1,[Define this if you have GLut support available])
-				      AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
-				    [ ac_have_glut="no" dnl fallback, check for GLU
-				      AC_CHECK_LIB(GLU, gluPerspective,
-						   [ ac_have_glu="yes"
-						     GLU_LIBS="-lGLU -lm" 
-						     AC_DEFINE(HAVE_GLU,1,[Define this if you have GLU support available])
-						     AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
-						   [ ac_have_glu="no" ], 
-						   [$X_LIBS $X_PRE_LIBS $OPENGL_LIBS -lGLU -lm $X_EXTRA_LIBS])], 
-				    [$X_LIBS $X_PRE_LIBS -lglut $X_EXTRA_LIBS])
-		     ],
-		[])],
-	   [],
-	   [$X_LIBS $X_PRE_LIBS -lGL $X_EXTRA_LIBS])
-	;;
-esac
-
-AC_SUBST(OPENGL_LIBS)
-AC_SUBST(GLUT_LIBS)
-AC_SUBST(GLU_LIBS)
-AM_CONDITIONAL(HAVE_OPENGL, [ test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o x$ac_have_opengl = "xyes" -a x$ac_have_glu="xyes" ] )
+AM_PATH_OPENGL()
 
 
 dnl ---------------------------------------------

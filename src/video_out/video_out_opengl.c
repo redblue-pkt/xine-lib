@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.38 2004/04/30 22:12:15 jcdutton Exp $
+ * $Id: video_out_opengl.c,v 1.39 2004/08/26 17:57:53 valtri Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -557,7 +557,6 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	    glXDestroyContext (this->display, this->context);
 	}
 
-      DEBUGF ((stderr, "screen %dx%d\n", ((Screen *) this->screen)->width, ((Screen *)this->screen)->height));
       DEBUGF ((stderr, "glXChooseVisual\n"));
 
       this->vinfo = glXChooseVisual (this->display, this->screen, glxAttrib);
