@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.55 2003/01/13 14:35:45 mroi Exp $
+ * $Id: xine.h.in,v 1.56 2003/01/13 20:53:08 f1rmb Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -647,6 +647,9 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 
 /* return last error  */
 int  xine_get_error (xine_stream_t *stream);
+
+/* get current xine engine status (constants see below) */
+int  xine_get_status (xine_stream_t *stream);
 
 /*
  * engine status codes
