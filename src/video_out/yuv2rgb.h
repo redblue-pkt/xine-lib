@@ -69,6 +69,7 @@ int yuv2rgb_setup (yuv2rgb_t *this,
 
 void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode);
 void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode);
+void yuv2rgb_init_mlib (yuv2rgb_t *this, int mode);
 
 /*
 void Color565DitherYV12MMX1X(unsigned char *lum, unsigned char *cr,
