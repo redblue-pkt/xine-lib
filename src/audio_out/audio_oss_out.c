@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.79 2002/10/20 23:58:52 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.80 2002/11/12 00:32:29 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -141,8 +141,6 @@ typedef struct oss_driver_s {
 
   struct timeval   start_time;
 
-  pthread_mutex_t  lock;
-
 } oss_driver_t;
 
 typedef struct {
@@ -168,12 +166,9 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
     return 0;
   }
 
-  pthread_mutex_lock (&this->lock);
-
   if (this->audio_fd > -1) {
 
     if ( (mode == this->mode) && (rate == this->input_sample_rate) ) {
-      pthread_mutex_unlock (&this->lock);
       return this->output_sample_rate;
     }
 
@@ -194,7 +189,6 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
   if(this->audio_fd < 0) {
     printf("audio_oss_out: Opening audio device %s: %s\n",
 	   this->audio_dev, strerror(errno));
-    pthread_mutex_unlock (&this->lock);
     return 0;
   }
   
@@ -220,7 +214,6 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
       tmp = 44100;
       if (ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
         printf ("audio_oss_out: error: 44100 Hz sampling rate not supported\n");
-	pthread_mutex_unlock (&this->lock);
         return 0;
       }
     }
@@ -294,7 +287,6 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
           printf("audio_oss_out: ioctl succeeded but set format to 0x%x.\n",tmp);
         else
           printf("audio_oss_out: The AFMT_U8 ioctl failed.\n");
-	pthread_mutex_unlock (&this->lock);
         return 0;
       } else {
 	printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_S16_NE.\n");
@@ -302,7 +294,6 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
           printf("audio_oss_out: ioctl succeeded but set format to 0x%x.\n",tmp);
         else
           printf("audio_oss_out: The AFMT_S16_NE ioctl failed.\n");
-	pthread_mutex_unlock (&this->lock);
         return 0;
       }          
     }
@@ -312,7 +303,6 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
     tmp = AFMT_AC3;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
       printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
-      pthread_mutex_unlock (&this->lock);
       return 0;
     }
     break;
@@ -339,8 +329,6 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
 
      ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
-
-  pthread_mutex_unlock (&this->lock);
 
   return this->output_sample_rate;
 }
@@ -401,9 +389,7 @@ static int ao_oss_delay(xine_ao_driver_t *this_gen) {
       bytes_left = 0;
     break;
   case OSS_SYNC_GETOPTR:
-    pthread_mutex_lock (&this->lock);
     ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
-    pthread_mutex_unlock (&this->lock);
     
     bytes_left = this->bytes_in_buffer - info.bytes; /* calc delay */
       
@@ -411,9 +397,7 @@ static int ao_oss_delay(xine_ao_driver_t *this_gen) {
       bytes_left = 0;
     break;
   case OSS_SYNC_GETODELAY:
-    pthread_mutex_lock (&this->lock);
     ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left);
-    pthread_mutex_unlock (&this->lock);
     break;
   }
 
@@ -457,13 +441,11 @@ static int ao_oss_write(xine_ao_driver_t *this_gen,
 
   this->bytes_in_buffer += num_frames * this->bytes_per_frame;
 
-  pthread_mutex_lock (&this->lock);
   n = write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame); 
 
 #ifdef LOG
   printf ("audio_oss_out: ao_oss_write done\n");
 #endif
-  pthread_mutex_unlock (&this->lock);
 
   return n;
 }
@@ -630,10 +612,8 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
 #ifdef LOG
     printf ("audio_oss_out: AO_CTRL_PLAY_PAUSE\n");
 #endif
-    pthread_mutex_lock (&this->lock);
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
-    pthread_mutex_unlock (&this->lock);
     /*  Uncomment the following lines if RESET causes problems
      *  ao_oss_close(this_gen);
      *  ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
@@ -650,13 +630,11 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
 #ifdef LOG
     printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS\n");
 #endif
-    pthread_mutex_lock (&this->lock);
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
 #ifdef LOG
     printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS done\n");
 #endif
-    pthread_mutex_unlock (&this->lock);
     break;
   }
 
@@ -964,8 +942,6 @@ static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const voi
   this->ao_driver.get_gap_tolerance   = ao_oss_get_gap_tolerance;
   this->ao_driver.control	      = ao_oss_ctrl;
 
-  pthread_mutex_init (&this->lock, NULL);
-
   return &this->ao_driver;
 }
 
@@ -1005,7 +981,7 @@ static void *init_class (xine_t *xine, void *data) {
 }
 
 static ao_info_t ao_info_oss = {
-  10
+  9 /* less than alsa so xine will use alsa's native interface by default */
 };
 
 /*
