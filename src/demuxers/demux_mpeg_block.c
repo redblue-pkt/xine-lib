@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.151 2003/01/03 13:21:19 rockyb Exp $
+ * $Id: demux_mpeg_block.c,v 1.152 2003/01/03 13:32:56 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -638,6 +638,7 @@ static int demux_mpeg_block_send_chunk (demux_plugin_t *this_gen) {
   return this->status;
 }
 
+#ifdef ESTIMATE_RATE_FIXED
 /*! 
    Estimate bitrate by looking inside the MPEG file for presentation 
    time stamps (PTS) and computing how far apart these are 
@@ -798,6 +799,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   return rate;
   
 }
+#endif /*ESTIMATE_RATE_FIXED*/
 
 static void demux_mpeg_block_dispose (demux_plugin_t *this_gen) {
 
@@ -856,13 +858,13 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
   
   xine_demux_control_start(this->stream);
   
-  if (!this->rate) {
-#ifdef ESITMATE_RATE_FIXED
+#ifdef USE_ILL_ADVISED_ESTIMATE_RATE_INITIALLY
+  if (!this->rate) 
     this->rate = demux_mpeg_block_estimate_rate (this);
 #else 
-    this->rate = 0;
+  /* Set to Use rate given in by stream initially. */
+  this->rate = 0; 
 #endif
-  }
   
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     
@@ -941,12 +943,17 @@ static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
 
     strncpy (this->cur_mrl, input->get_mrl(input), 256);
 
+#ifdef LOG
     printf ("demux_mpeg_block: mrl %s is new\n",
 	    this->cur_mrl);
+#endif
 
   } else
+#ifdef LOG    
     printf ("demux_mpeg_block: mrl %s is known, bitrate: %d\n",
-	    this->cur_mrl, this->rate * 50 * 8);
+	    this->cur_mrl, this->rate * 50 * 8)
+#endif
+      ;
 }
 
 static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
