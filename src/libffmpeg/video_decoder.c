@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.18 2004/05/23 16:34:42 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.19 2004/06/28 22:44:57 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -992,6 +992,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       lprintf("no memcpy needed to accumulate data\n");
     } else {
       ff_check_bufsize(this, this->size + buf->size);
+      ffbuf = this->buf; /* ff_check_bufsize can realloc this->buf */
       xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
       this->size += buf->size;
       lprintf("accumulate data into this->buf\n");
