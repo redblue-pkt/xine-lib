@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.55 2002/03/07 13:26:16 jcdutton Exp $
+ * $Id: video_out_syncfb.c,v 1.56 2002/03/18 11:01:07 richwareham Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -29,18 +29,27 @@
  *          video_out_mga      by Aaron Holtzman   <aholtzma@ess.engr.uvic.ca>
  * 
  * tied togehter with lot of glue for xine by Matthias Dahl <matthew2k@web.de>
- * 
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h> 
-#ifdef __sun
-#include <sys/ioccom.h>
+#ifdef HAVE_XV
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#if defined(__FreeBSD__)
+#include <machine/param.h>
 #endif
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/time.h>
+
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -52,6 +61,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/cursorfont.h>
+#include <X11/extensions/XShm.h>
+
 #include "video_out_syncfb.h"
 
 #include "video_out.h"
@@ -60,6 +74,13 @@
 #include "alphablend.h"
 #include "xineutils.h"
 
+/*
+#define LOG
+*/
+
+typedef struct syncfb_driver_s syncfb_driver_t;
+
+
 typedef struct {
   int                value;
   int                min;
@@ -67,30 +88,40 @@ typedef struct {
   char              *key;
 } syncfb_property_t;
 
+
 typedef struct {
   vo_frame_t         vo_frame;
+
   int                width, height, ratio_code, format, id;
 } syncfb_frame_t;
 
-typedef struct {   
+
+struct syncfb_driver_s {
+
   vo_driver_t        vo_driver;
+
   config_values_t   *config;
 
   /* X11 related stuff */
   Display           *display;
+  int                screen;
   Drawable           drawable;
+  XVisualInfo        vinfo;
   GC                 gc;
   XColor             black;
-  int                screen;
-   
+  int                expecting_event; /* completion event handling */
+  /* display anatomy */
+  double             display_ratio;        /* given by visual parameter
+					      from init function              */
+ 
   int                virtual_screen_width;
   int                virtual_screen_height;
   int                screen_depth;
 
-  int                video_win_visibility;
-   
-  syncfb_property_t props[VO_NUM_PROPERTIES];
+  syncfb_property_t      props[VO_NUM_PROPERTIES];
 
+  syncfb_frame_t        *recent_frames[VO_NUM_RECENT_FRAMES];
+  syncfb_frame_t        *cur_frame;
   vo_overlay_t      *overlay;
 
   /* syncfb module related stuff */
@@ -105,55 +136,77 @@ typedef struct {
   syncfb_capability_t  capabilities;
   syncfb_buffer_info_t bufinfo;
   syncfb_param_t       params;
-   
+
   /* size / aspect ratio calculations */
-  /* delivered images */
-  int                delivered_width;      /* everything is set up for
-					      these frame dimensions          */
-  int                delivered_height;     /* the dimension as they come
-					      from the decoder                */
+
+  /* 
+   * "delivered" size:
+   * frame dimension / aspect as delivered by the decoder
+   * used (among other things) to detect frame size changes
+   */
+  int                delivered_width;   
+  int                delivered_height;     
   int                delivered_ratio_code;
-  double             ratio_factor;         /* output frame must fullfill:
-					      height = width * ratio_factor   */
-   
-  /* displayed part of delivered images */
-  int                displayed_width;
-  int                displayed_height;
+
+  /* 
+   * displayed part of delivered images,
+   * taking zoom into account
+   */
+
   int                displayed_xoffset;
   int                displayed_yoffset;
-   
-  /* Window */
-  int                window_width;
-  int                window_height;
-  int                window_xoffset;
-  int                window_yoffset;
+  int                displayed_width;
+  int                displayed_height;
 
-  /* output screen area */  
-  int                output_width;         /* frames will appear in this
-					      size (pixels) on screen         */
+  /* 
+   * "ideal" size :
+   * displayed width/height corrected by aspect ratio
+   */
+
+  int                ideal_width, ideal_height;
+  double             ratio_factor;         /* output frame must fullfill:
+					      height = width * ratio_factor   */
+
+  /*
+   * "gui" size / offset:
+   * what gui told us about where to display the video
+   */
+  
+  int                gui_x, gui_y;
+  int                gui_width, gui_height;
+
+  /*
+   * "output" size:
+   *
+   * this is finally the ideal size "fitted" into the
+   * gui size while maintaining the aspect ratio
+   * 
+   */
+
+  /* Window */
+  int                output_width;
   int                output_height;
   int                output_xoffset;
   int                output_yoffset;
 
-  int                frame_width;
-  int                frame_height;
-  int                frame_format;
-
+  syncfb_frame_t         deinterlace_frame;
+  int                deinterlace_method;
   int                deinterlace_enabled;
-
-  /* display anatomy */
-  double             display_ratio;        /* given by visual parameter
-					      from init function              */
 
   void              *user_data;
 
   /* gui callback */
 
-  void             (*request_dest_size) (void *user_data,
-					 int video_width, int video_height,
-					 int *dest_x, int *dest_y,
-					 int *dest_height, int *dest_width);
-} syncfb_driver_t;
+  void (*frame_output_cb) (void *user_data,
+			   int video_width, int video_height,
+			   int *dest_x, int *dest_y, 
+			   int *dest_height, int *dest_width);
+
+  char               scratch[256];
+
+  int                use_colorkey;
+  uint32_t           colorkey;
+};
 
 int gX11Fail;
 
@@ -332,383 +385,57 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
    }
 }
 
-static void syncfb_clear_unused_output_area(syncfb_driver_t* this, int dest_x, int dest_y, int dest_width, int dest_height)
-{
-  XLockDisplay(this->display);
-  XSetForeground(this->display, this->gc, this->black.pixel);
+static uint32_t syncfb_get_capabilities (vo_driver_t *this_gen) {
 
-  /* top black band */
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 dest_x, dest_y, dest_width, this->output_yoffset - dest_y);
-   
-  /* left black band */
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 dest_x, dest_y, this->output_xoffset-dest_x, dest_height);
+  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
-  /* bottom black band */    
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 dest_x, this->output_yoffset+this->output_height,
-		 dest_width,
-		 dest_height - this->output_yoffset - this->output_height);
-   
-  /* right black band */
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 this->output_xoffset+this->output_width, dest_y, 
-		 dest_width - this->output_xoffset - this->output_width,
-		 dest_height);
-   
-  XUnlockDisplay(this->display);
+  return this->supported_capabilities;
 }
 
-static void syncfb_adapt_to_zoom_x(syncfb_driver_t* this, int normal_xoffset, int normal_width)
-{
-  int    ideal_width;
-  double zoom_factor_x;
-
-  zoom_factor_x = ((double)this->props[VO_PROP_ZOOM_X].value + (double)VO_ZOOM_STEP) / (double)VO_ZOOM_STEP;   
-  ideal_width   = (double)normal_width * zoom_factor_x;
-   
-  if(ideal_width > this->window_width)
-  {
-    /* cut left and right borders */
-    this->output_width      = this->window_width;
-    this->output_xoffset    = this->window_xoffset;
-    this->displayed_width   = (double)this->delivered_width * ((double)this->window_width / (double)ideal_width);
-    this->displayed_xoffset = (this->delivered_width - this->displayed_width) / 2;
-  } else {
-    this->output_width      = ideal_width;
-    this->output_xoffset    = this->window_xoffset + (this->window_width - ideal_width) / 2;
-    this->displayed_xoffset = 0;
-    this->displayed_width   = this->delivered_width;
-  }    
+static void syncfb_frame_field (vo_frame_t *vo_img, int which_field) {
+  /* not needed for Xv */
 }
 
-static void syncfb_adapt_to_zoom_y(syncfb_driver_t* this, int normal_yoffset, int normal_height)
-{
-  int    ideal_height;
-  double zoom_factor_y;
+static void syncfb_frame_dispose (vo_frame_t *vo_img) {
 
-  zoom_factor_y = ((double)this->props[VO_PROP_ZOOM_Y].value + (double)VO_ZOOM_STEP) / (double)VO_ZOOM_STEP;
-  ideal_height  = (double)normal_height * zoom_factor_y;
+  syncfb_frame_t  *frame = (syncfb_frame_t *) vo_img ;
    
-  if(ideal_height > this->window_height)
-  {
-    /* cut */
-    this->output_height     = this->window_height;
-    this->output_yoffset    = this->window_yoffset;
-    this->displayed_height  = (double)(this->delivered_height) * ((double)this->window_height / (double)ideal_height);
-    this->displayed_yoffset = ((this->delivered_height) - this->displayed_height) / 2;
-  } else {
-    this->output_height     = ideal_height;
-    this->output_yoffset    = this->window_yoffset + (this->window_height - ideal_height) / 2;
-    this->displayed_yoffset = 0;
-    this->displayed_height  = this->delivered_height;
+  if(frame->vo_frame.base[0]) {
+    shmdt(frame->vo_frame.base[0]);
+    shmctl(frame->id,IPC_RMID,NULL);
+    frame->vo_frame.base[0] = NULL;
   }
+
+  free (frame);
 }
 
-static void syncfb_adapt_to_offset(syncfb_driver_t* this, int xoffset, int yoffset)
-{
-  int ideal_x, ideal_y;
+static vo_frame_t *syncfb_alloc_frame (vo_driver_t *this_gen) {
 
-  /* try move displayed area */
-  ideal_x = this->displayed_xoffset + xoffset;
-  ideal_y = this->displayed_yoffset + yoffset;
+  syncfb_frame_t     *frame ;
   
-  if(ideal_x < 0)
-    ideal_x = 0;
-   
-  if((ideal_x + this->displayed_width) > this->delivered_width)
-    ideal_x = this->delivered_width - this->displayed_width;
-   
-  if(ideal_y < 0)
-    ideal_y = 0;
-   
-  if((ideal_y + this->displayed_height) > this->delivered_height)
-    ideal_y = this->delivered_height - this->displayed_height;
+  frame = (syncfb_frame_t *) malloc (sizeof (syncfb_frame_t));
+  memset (frame, 0, sizeof(syncfb_frame_t));
 
-  this->displayed_xoffset = ideal_x;
-  this->displayed_yoffset = ideal_y;
-}
+  if (frame==NULL) {
+    printf ("syncfb_alloc_frame: out of memory\n");
+  }
 
-static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
-					int dest_x, int dest_y,
-					int dest_width, int dest_height)
-{
-   XWindowAttributes window_attributes;
-   Window            temp_window;
-   
-   int posx, posy, normal_width, normal_height, normal_xoffset, normal_yoffset;
-   
-   static int prev_output_width      = 0;
-   static int prev_output_height     = 0;
-   static int prev_output_xoffset    = 0;
-   static int prev_output_yoffset    = 0;
-   static int prev_displayed_xoffset = 0;
-   static int prev_displayed_yoffset = 0;
-   static int prev_deinterlacing     = 0;
-   static int prev_posx              = 0;
-   static int prev_posy              = 0;
-   static int prev_v_w_visibility    = 0;
-   
-   XLockDisplay(this->display);
-   
-   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
-
-   if (!this->video_win_visibility || window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
-     posx = posy = -1;
-   else
-     XTranslateCoordinates(this->display, this->drawable, window_attributes.root, 0, 0, &posx, &posy, &temp_window);
-   
-   this->window_xoffset = dest_x;
-   this->window_yoffset = dest_y;
-   this->window_width   = dest_width;
-   this->window_height  = dest_height;
-
-   /*
-    * make the frames fit into the given destination area
-    */
-
-   if(((double) dest_width / this->ratio_factor) < dest_height) {
-      normal_width   = dest_width;
-      normal_height  = (double) dest_width / this->ratio_factor;
-      normal_xoffset = dest_x;
-      normal_yoffset = dest_y + (dest_height - this->output_height) / 2;
-   } else {
-      normal_width   = (double) dest_height * this->ratio_factor;
-      normal_height  = dest_height;
-      normal_xoffset = dest_x + (dest_width - this->output_width) / 2;
-      normal_yoffset = dest_y;
-   }
-
-   /* Calc output area size, and displayed area size */
-   syncfb_adapt_to_zoom_x(this, normal_xoffset, normal_width);
-   syncfb_adapt_to_zoom_y(this, normal_yoffset, normal_height);   
-   syncfb_adapt_to_offset(this, this->props[VO_PROP_OFFSET_X].value, this->props[VO_PROP_OFFSET_Y].value);
-
-   this->output_width  = (this->output_width + 1) & 0xfffe;   /* Round to even */
-   this->output_height = (this->output_height + 1) & 0xfffe;   /* Round to even */
-
-   /* try to minimize our config ioctls by checking if anything really has
-    * changed, otherwise leave things untouched because every config ioctl
-    * also turns off and on the SyncFB module.
-    */
-   if(prev_output_width      != this->output_width         ||
-      prev_output_height     != this->output_height        ||
-      prev_output_xoffset    != this->output_xoffset       ||
-      prev_output_yoffset    != this->output_yoffset       ||
-      prev_displayed_xoffset != this->displayed_xoffset    ||
-      prev_displayed_yoffset != this->displayed_yoffset    ||
-      prev_deinterlacing     != this->deinterlace_enabled  ||
-      prev_posx              != posx                       ||
-      prev_posy              != posy                       ||
-      prev_v_w_visibility    != this->video_win_visibility) {
-      
-      prev_output_width      = this->output_width;
-      prev_output_height     = this->output_height;
-      prev_output_xoffset    = this->output_xoffset;
-      prev_output_yoffset    = this->output_yoffset;
-      prev_displayed_xoffset = this->displayed_xoffset;
-      prev_displayed_yoffset = this->displayed_yoffset;
-      prev_deinterlacing     = this->deinterlace_enabled;
-      prev_posx              = posx;
-      prev_posy              = posy;
-      prev_v_w_visibility    = this->video_win_visibility;
-	
-      /*
-       * configuring SyncFB module from this point on.
-       */
-      syncfb_overlay_off(this);
-
-      /* sanity checking - certain situations *may* crash the SyncFB module, so
-       * take care that we always have valid numbers.
-       */
-      if(posx >= 0 && posy >= 0 && this->frame_width > 0 && this->frame_height > 0 && this->output_width > 0 && this->output_height > 0 && this->frame_format > 0) {
-	 if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
-	   printf("video_out_syncfb: error. (get_config ioctl failed)\n");
-	
-	 this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE | SYNCFB_FEATURE_CROP;
-	 
-	 if(this->deinterlace_enabled)
-	   this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
-	 
-	 switch(this->frame_format) {
-	  case IMGFMT_YV12:
-	    this->syncfb_config.src_palette = this->yuv_format;
-	    break;
-	    
-	  case IMGFMT_YUY2:
-	    this->syncfb_config.src_palette = VIDEO_PALETTE_YUV422;
-	    break;
-	    
-	  default:
-	    this->syncfb_config.src_palette = 0;
-	    break;
-	 }
-	 
-	 this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8) * 2;
-	 this->syncfb_config.src_width      = this->frame_width;
-	 this->syncfb_config.src_height     = this->frame_height;
-
-	 this->syncfb_config.image_width    = this->output_width;
-	 this->syncfb_config.image_height   = (this->deinterlace_enabled) ? (this->output_height-2) : this->output_height;
-
-	 this->syncfb_config.image_xorg     = posx+this->output_xoffset;
-	 this->syncfb_config.image_yorg     = posy+this->output_yoffset;
-
-	 this->syncfb_config.src_crop_top   = this->displayed_yoffset;
-	 this->syncfb_config.src_crop_bot   = (this->deinterlace_enabled && this->displayed_yoffset == 0) ? 1 : this->displayed_yoffset;
-	 this->syncfb_config.src_crop_left  = this->displayed_xoffset;
-	 this->syncfb_config.src_crop_right = this->displayed_xoffset;
-
-	 this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : this->default_repeat;
-
-	 if(this->capabilities.palettes & (1<<this->syncfb_config.src_palette)) {
-	    if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
-	      printf("video_out_syncfb: error. (set_config ioctl failed)\n");
-	    
-	    syncfb_overlay_on(this);
-	 }
-      }
-   }
-   
-  syncfb_clear_unused_output_area (this, dest_x, dest_y, dest_width, dest_height);
-   
-  XUnlockDisplay (this->display);
-}
-
-static void syncfb_calc_format(syncfb_driver_t* this,
-			       int width, int height, int ratio_code) {
-
-  double image_ratio, desired_ratio;
-  double corr_factor;
-  int ideal_width, ideal_height;
-  int dest_x, dest_y, dest_width, dest_height;
-
-  this->delivered_width      = width;
-  this->delivered_height     = height;
-  this->delivered_ratio_code = ratio_code;
-
-  if((!width) || (!height))
-    return;
+  pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
   /*
-   * aspect ratio calculation
+   * supply required functions
    */
 
-  image_ratio =
-    (double) this->delivered_width / (double) this->delivered_height;
+  frame->vo_frame.copy    = NULL;
+  frame->vo_frame.field   = syncfb_frame_field;
+  frame->vo_frame.dispose = syncfb_frame_dispose;
 
-  switch (this->props[VO_PROP_ASPECT_RATIO].value) {
-  case ASPECT_AUTO:
-    switch (ratio_code) {
-    case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
-      desired_ratio = 16.0 /9.0;
-      break;
-    case XINE_ASPECT_RATIO_211_1:        /* 2.11:1 */
-      desired_ratio = 2.11/1.0;
-      break;
-    case XINE_ASPECT_RATIO_SQUARE:       /* "square" source pels */
-    case XINE_ASPECT_RATIO_DONT_TOUCH:   /* probably non-mpeg stream => don't touch aspect ratio */
-      desired_ratio = image_ratio;
-      break;
-    case 0:                              /* forbidden       */
-      printf ("video_out_syncfb: invalid ratio, using 4:3\n");
-    default:
-      printf ("video_out_syncfb: unknown aspect ratio (%d) in stream => using 4:3\n",
-	      ratio_code);
-    case XINE_ASPECT_RATIO_4_3:          /* 4:3             */
-      desired_ratio = 4.0 / 3.0;
-      break;
-    }
-    break;
-  case ASPECT_ANAMORPHIC:
-    desired_ratio = 16.0 / 9.0;
-    break;
-  case ASPECT_DVB:
-    desired_ratio = 2.0 / 1.0;
-    break;
-  case ASPECT_SQUARE:
-    desired_ratio = image_ratio;
-    break;
-  case ASPECT_FULL:
-  default:
-    desired_ratio = 4.0 / 3.0;
-  }
+  frame->vo_frame.driver  = this_gen;
 
-  this->ratio_factor = this->display_ratio * desired_ratio;
-
-  /*
-   * calc ideal output frame size
-   */
-
-  corr_factor = this->ratio_factor / image_ratio ;
-
-  if (corr_factor >= 1.0) {
-    ideal_width  = this->delivered_width * corr_factor;
-    ideal_height = this->delivered_height ;
-  }
-  else {
-    ideal_width  = this->delivered_width;
-    ideal_height = this->delivered_height / corr_factor;
-  }
-
-  /* little hack to zoom mpeg1 / other small streams by default*/
-  if(ideal_width<400) {
-    ideal_width  *=2;
-    ideal_height *=2;
-  }
-  /*
-   * ask gui to adapt to this size
-   */
-
-  this->request_dest_size (this->user_data,
-			   ideal_width, ideal_height,
-			   &dest_x, &dest_y, &dest_width, &dest_height);
-
-  /*
-   * Reset zoom values to 100%
-   */
-  this->props[VO_PROP_ZOOM_X].value = 0;
-  this->props[VO_PROP_ZOOM_Y].value = 0; 
-   
-  syncfb_adapt_to_output_area(this, dest_x, dest_y, dest_width, dest_height);
+  return (vo_frame_t *) frame;
 }
 
-static void syncfb_translate_gui2video(syncfb_driver_t* this,
-		                       int x, int y,
-				       int* vid_x, int* vid_y)
-{
-  if (this->output_width > 0 && this->output_height > 0) {
-    /*
-     * 1.
-     * the xv driver may center a small output area inside a larger
-     * gui area.  This is the case in fullscreen mode, where we often
-     * have black borders on the top/bottom/left/right side.
-     */
-    x -= this->output_xoffset;
-    y -= this->output_yoffset;
-
-    /*
-     * 2.
-     * the xv driver scales the delivered area into an output area.
-     * translate output area coordianates into the delivered area
-     * coordiantes.
-     */
-    x = x * this->delivered_width  / this->output_width;
-    y = y * this->delivered_height / this->output_height;
-  }
-
-  *vid_x = x;
-  *vid_y = y;
-}
-
-
-/*
- * X error handler functions
- * (even though the syncfb plugin doesn't check for gX11Fail yet, it is
- *  probably a good idea to leave this in place for future use)
- */
-int HandleXError(Display* display, XErrorEvent* xevent) {
+int HandleXError (Display *display, XErrorEvent *xevent) {
 
   char str [1024];
 
@@ -718,80 +445,28 @@ int HandleXError(Display* display, XErrorEvent* xevent) {
 
   gX11Fail = 1;
   return 0;
+
 }
 
-static void x11_InstallXErrorHandler(syncfb_driver_t* this) {
-
+static void x11_InstallXErrorHandler (syncfb_driver_t *this)
+{
   XSetErrorHandler (HandleXError);
   XFlush (this->display);
 }
 
-static void x11_DeInstallXErrorHandler(syncfb_driver_t* this) {
-
+static void x11_DeInstallXErrorHandler (syncfb_driver_t *this)
+{
   XSetErrorHandler (NULL);
   XFlush (this->display);
 }
 
-/*
- * video_out_syncfb functions available to the outside world :)
- */ 
-static uint32_t syncfb_get_capabilities(vo_driver_t* this_gen) {
-  /* FIXME: VO_CAP_CONTRAST and VO_CAP_BRIGHTNESS unsupported at the moment,
-   *        because they seem to be disabled in the syncfb module anyway. :(
-   */
-  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
-  
-  return this->supported_capabilities;
-}
+static void syncfb_update_frame_format (vo_driver_t *this_gen,
+				    vo_frame_t *frame_gen,
+				    uint32_t width, uint32_t height,
+				    int ratio_code, int format, int flags) {
 
-static void syncfb_frame_field (vo_frame_t *vo_img, int which_field) {
-  /* not needed for Xv */
-}
+  syncfb_frame_t   *frame = (syncfb_frame_t *) frame_gen;
 
-static void syncfb_frame_dispose(vo_frame_t* vo_img) {
-
-  syncfb_frame_t*  frame = (syncfb_frame_t *) vo_img ;
-   
-   if(frame->vo_frame.base[0]) {
-      shmdt(frame->vo_frame.base[0]);
-      shmctl(frame->id,IPC_RMID,NULL);
-      frame->vo_frame.base[0] = NULL;
-   }
-
-  free (frame);
-}
-
-static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen) {
-
-   syncfb_frame_t*  frame;
-
-   frame = (syncfb_frame_t *) malloc(sizeof (syncfb_frame_t));
-   memset(frame, 0, sizeof(syncfb_frame_t));
-
-   if(frame == NULL) {
-      printf ("video_out_syncfb: error. (memory allocating of frame failed)\n");
-   }
-
-   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
-
-   /*
-    * supply required functions
-    */
-
-   frame->vo_frame.copy    = NULL;
-   frame->vo_frame.field   = syncfb_frame_field;
-   frame->vo_frame.dispose = syncfb_frame_dispose;
-
-   return (vo_frame_t *) frame;
-}
-
-static void syncfb_update_frame_format(vo_driver_t* this_gen,
-				       vo_frame_t* frame_gen,
-				       uint32_t width, uint32_t height,
-				       int ratio_code, int format, int flags) {
-
-   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
-   
    if((frame->width != width)
       || (frame->height != height)
       || (frame->format != format)) {
@@ -835,91 +510,365 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
       frame->vo_frame.base[2] = frame->vo_frame.base[0] + width * height;
    }
 
-   frame->ratio_code = ratio_code;
+  frame->ratio_code = ratio_code;
 }
 
-static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay) {
+static void syncfb_clean_output_area (syncfb_driver_t *this) {
 
-  syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
+  XLockDisplay (this->display);
 
-  if(overlay->rle) {
-    if( frame->format == IMGFMT_YV12 )
-      blend_yuv( frame->vo_frame.base, overlay, frame->vo_frame.width,
-                 frame->vo_frame.height);
-    else
-      blend_yuy2( frame->vo_frame.base[0], overlay, frame->vo_frame.width, 
-                 frame->vo_frame.height);
+  XSetForeground (this->display, this->gc, this->black.pixel);
+
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 this->gui_x, this->gui_y, this->gui_width, this->gui_height);
+
+  XUnlockDisplay (this->display);
+}
+
+/*
+ * convert delivered height/width to ideal width/height
+ * taking into account aspect ratio and zoom factor
+ */
+
+static void syncfb_compute_ideal_size (syncfb_driver_t *this) {
+
+  double zoom_factor;
+  double image_ratio, desired_ratio, corr_factor;
+  
+  /*
+   * zoom
+   */
+
+  zoom_factor = (double)this->props[VO_PROP_ZOOM_FACTOR].value / (double)VO_ZOOM_STEP;
+   
+  this->displayed_width   = this->delivered_width  / zoom_factor;
+  this->displayed_height  = this->delivered_height / zoom_factor;
+  this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
+  this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
+
+
+  /* 
+   * aspect ratio
+   */
+
+  image_ratio = (double) this->delivered_width / (double) this->delivered_height;
+  
+  switch (this->props[VO_PROP_ASPECT_RATIO].value) {
+  case ASPECT_AUTO:
+    switch (this->delivered_ratio_code) {
+    case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
+      desired_ratio = 16.0 /9.0;
+      break;
+    case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
+      desired_ratio = 2.11/1.0;
+      break;
+    case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
+    case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
+      desired_ratio = image_ratio;
+      break;
+    case 0:                             /* forbidden -> 4:3 */
+      printf ("video_out_xshm: invalid ratio, using 4:3\n");
+    default:
+      printf ("video_out_xshm: unknown aspect ratio (%d) in stream => using 4:3\n",
+	      this->delivered_ratio_code);
+    case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
+      desired_ratio = 4.0 / 3.0;
+      break;
+    }
+    break;
+  case ASPECT_ANAMORPHIC:
+    desired_ratio = 16.0 / 9.0;
+    break;
+  case ASPECT_DVB:
+    desired_ratio = 2.0 / 1.0;
+    break;
+  case ASPECT_SQUARE:
+    desired_ratio = image_ratio;
+    break;
+  case ASPECT_FULL:
+  default:
+    desired_ratio = 4.0 / 3.0;
+  }
+
+  this->ratio_factor = this->display_ratio * desired_ratio;
+
+  corr_factor = this->ratio_factor / image_ratio ;
+
+  if (fabs(corr_factor - 1.0) < 0.005) {
+    this->ideal_width  = this->delivered_width;
+    this->ideal_height = this->delivered_height;
+
+  } else {
+
+    if (corr_factor >= 1.0) {
+      this->ideal_width  = this->delivered_width * corr_factor + 0.5;
+      this->ideal_height = this->delivered_height;
+    } else {
+      this->ideal_width  = this->delivered_width;
+      this->ideal_height = this->delivered_height / corr_factor + 0.5;
+    }
   }
 }
 
-static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen) {
 
-   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
-   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
+/*
+ * make ideal width/height "fit" into the gui
+ */
 
-   if((frame->width != this->frame_width) || (frame->height != this->frame_height) || (frame->format != this->frame_format)) {
-      this->frame_height = frame->height;
-      this->frame_width  = frame->width;
-      this->frame_format = frame->format;
-   }
-   
-   if((frame->width != this->delivered_width)
-      || (frame->height != this->delivered_height)
-      || (frame->ratio_code != this->delivered_ratio_code) ) {
-      syncfb_calc_format(this, frame->width, frame->height, frame->ratio_code);
-   }
-   
-   /* the rest is only successful and safe, if the overlay is really on */
-   if(this->overlay_state) {
-      if(this->bufinfo.id != -1) {
-	 printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
-	 return;
-      }
+static void syncfb_compute_output_size (syncfb_driver_t *this) {
+  
+  double x_factor, y_factor;
 
-      if(ioctl(this->fd, SYNCFB_REQUEST_BUFFER, &this->bufinfo))
-	printf("video_out_syncfb: error. (request ioctl failed)\n");
-   
-      if(this->bufinfo.id == -1) {
-	 printf("video_out_syncfb: error. (syncfb module couldn't allocate image buffer)\n");
-	 frame->vo_frame.displayed(&frame->vo_frame);
+  x_factor = (double) this->gui_width  / (double) this->ideal_width;
+  y_factor = (double) this->gui_height / (double) this->ideal_height;
+  
+  if ( x_factor < y_factor ) {
+    this->output_width   = (double) this->ideal_width  * x_factor ;
+    this->output_height  = (double) this->ideal_height * x_factor ;
+  } else {
+    this->output_width   = (double) this->ideal_width  * y_factor ;
+    this->output_height  = (double) this->ideal_height * y_factor ;
+  }
+
+  this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
+  this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
+
+#ifdef LOG
+  printf ("video_out_xv: frame source %d x %d => screen output %d x %d\n",
+	  this->delivered_width, this->delivered_height,
+	  this->output_width, this->output_height);
+#endif
+
+      /*
+       * configuring SyncFB module from this point on.
+       */
+      syncfb_overlay_off(this);
+
+      /* sanity checking - certain situations *may* crash the SyncFB module, so
+       * take care that we always have valid numbers.
+       */
       
-	 return;
-      }
-
-      write_frame_sfb(this, frame);
-   
-      if(ioctl(this->fd, SYNCFB_COMMIT_BUFFER, &this->bufinfo))
-	printf("video_out_syncfb: error. (commit ioctl failed)\n");
-   }
-   
-   frame->vo_frame.displayed(&frame->vo_frame);
-   this->bufinfo.id = -1;  
+      if(this->output_xoffset >= 0 && this->output_yoffset >= 0 && 
+	 this->cur_frame->width > 0 && this->cur_frame->height > 0 && 
+	 this->output_width > 0 && this->output_height > 0 && 
+	 this->cur_frame->format > 0) {
+	if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
+	 printf("video_out_syncfb: error. (get_config ioctl failed)\n");
+	
+	this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE | SYNCFB_FEATURE_CROP;
+	
+	if(this->deinterlace_enabled)
+	 this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
+	
+	switch(this->cur_frame->format) {
+	 case IMGFMT_YV12:
+	  this->syncfb_config.src_palette = this->yuv_format;
+	  break;
+	  
+	 case IMGFMT_YUY2:
+	  this->syncfb_config.src_palette = VIDEO_PALETTE_YUV422;
+	  break;
+	  
+	 default:
+	  this->syncfb_config.src_palette = 0;
+	  break;
+	}
+	
+	this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8) * 2;
+	this->syncfb_config.src_width      = this->cur_frame->width;
+	this->syncfb_config.src_height     = this->cur_frame->height;
+	
+       	this->syncfb_config.image_width    = this->output_width;
+	this->syncfb_config.image_height   = (this->deinterlace_enabled) ? (this->output_height-2) : this->output_height;
+	
+       	this->syncfb_config.image_xorg     = this->output_xoffset;
+	this->syncfb_config.image_yorg     = this->output_yoffset;
+	
+       	this->syncfb_config.src_crop_top   = this->displayed_yoffset;
+	this->syncfb_config.src_crop_bot   = (this->deinterlace_enabled && this->displayed_yoffset == 0) ? 1 : this->displayed_yoffset;
+	this->syncfb_config.src_crop_left  = this->displayed_xoffset;
+	this->syncfb_config.src_crop_right = this->displayed_xoffset;
+	
+       	this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : this->default_repeat;
+	
+       	if(this->capabilities.palettes & (1<<this->syncfb_config.src_palette)) {
+	  if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
+	   printf("video_out_syncfb: error. (set_config ioctl failed)\n");
+	  
+	  syncfb_overlay_on(this);
+	}
+      }     
 }
 
-static int syncfb_get_property(vo_driver_t* this_gen, int property) {
+static void syncfb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
-  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
+  syncfb_frame_t   *frame = (syncfb_frame_t *) frame_gen;
+
+  /* Alpha Blend here
+   * As XV drivers improve to support Hardware overlay, we will change this function.
+   */
+
+  if (overlay->rle) {
+    if( frame->format == IMGFMT_YV12 )
+      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
+    else
+      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
+  }
+}
+
+static void syncfb_add_recent_frame (syncfb_driver_t *this, syncfb_frame_t *frame) {
+  int i;
+
+  i = VO_NUM_RECENT_FRAMES-1;
+  if( this->recent_frames[i] )
+    this->recent_frames[i]->vo_frame.displayed
+       (&this->recent_frames[i]->vo_frame);
+
+  for( ; i ; i-- )
+    this->recent_frames[i] = this->recent_frames[i-1];
+
+  this->recent_frames[0] = frame;
+}
+
+/* currently not used - we could have a method to call this from video loop */
+#if 0
+static void syncfb_flush_recent_frames (syncfb_driver_t *this) {
+
+  int i;
+
+  for( i=0; i < VO_NUM_RECENT_FRAMES; i++ )
+  {
+    if( this->recent_frames[i] )
+      this->recent_frames[i]->vo_frame.displayed
+         (&this->recent_frames[i]->vo_frame);
+    this->recent_frames[i] = NULL;
+  }
+}
+#endif
+
+
+static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+
+  syncfb_driver_t  *this = (syncfb_driver_t *) this_gen;
+  syncfb_frame_t   *frame = (syncfb_frame_t *) frame_gen;
+
+  if (this->expecting_event) {
+
+    frame->vo_frame.displayed (&frame->vo_frame);
+    this->expecting_event--;
+
+    printf ("video_out_xv: xv_display_frame... not displayed, waiting for completion event\n");
+
+  } else {
+  int gui_x, gui_y, gui_width, gui_height;
+
+    /* 
+     * queue frames (deinterlacing)
+     * free old frames
+     */
+
+    syncfb_add_recent_frame (this, frame); /* deinterlacing */
+
+    this->cur_frame = frame;
+
+    /*
+     * let's see if this frame is different in size / aspect
+     * ratio from the previous one
+     */
+
+    if ( (frame->width != this->delivered_width)
+	 || (frame->height != this->delivered_height)
+	 || (frame->ratio_code != this->delivered_ratio_code) ) {
+#ifdef LOG
+      printf("video_out_xv: frame format changed\n");
+#endif
+
+      this->delivered_width      = frame->width;
+      this->delivered_height     = frame->height;
+      this->delivered_ratio_code = frame->ratio_code;
+
+      syncfb_compute_ideal_size (this);
+      
+      this->gui_width = 0; /* trigger re-calc of output size */
+    }
+
+    /* 
+     * tell gui that we are about to display a frame,
+     * ask for offset and output size
+     */
+
+    this->frame_output_cb (this->user_data,
+			   this->ideal_width, this->ideal_height, 
+			   &gui_x, &gui_y, &gui_width, &gui_height);
+
+    if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
+	 || (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
+
+      this->gui_x      = gui_x;
+      this->gui_y      = gui_y;
+      this->gui_width  = gui_width;
+      this->gui_height = gui_height;
+
+      syncfb_compute_output_size (this);
+
+      syncfb_clean_output_area (this);
+    }
+
+    
+   /* the rest is only successful and safe, if the overlay is really on */
+    if(this->overlay_state) {
+      if(this->bufinfo.id != -1) {
+	printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
+	return;
+      }
+      
+      if(ioctl(this->fd, SYNCFB_REQUEST_BUFFER, &this->bufinfo))
+       printf("video_out_syncfb: error. (request ioctl failed)\n");
+   
+      if(this->bufinfo.id == -1) {
+	printf("video_out_syncfb: error. (syncfb module couldn't allocate image buffer)\n");
+	frame->vo_frame.displayed(&frame->vo_frame);
+  	
+	return;
+      }
+      
+      write_frame_sfb(this, frame);
+      
+      if(ioctl(this->fd, SYNCFB_COMMIT_BUFFER, &this->bufinfo))
+       printf("video_out_syncfb: error. (commit ioctl failed)\n");
+    }
+    
+    frame->vo_frame.displayed(&frame->vo_frame);
+    this->bufinfo.id = -1;   
+  }
+}
+
+static int syncfb_get_property (vo_driver_t *this_gen, int property) {
+
+  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
   
   return this->props[property].value;
 }
 
-static int syncfb_set_property(vo_driver_t* this_gen, int property, int value) {
+static void syncfb_property_callback (void *property_gen, cfg_entry_t *entry) {
 
-  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
+  /* syncfb_property_t *property = (syncfb_property_t *) property_gen; */
+}
+
+static int syncfb_set_property (vo_driver_t *this_gen,
+			    int property, int value) {
+
+  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
   
   switch (property) {
-   case VO_PROP_INTERLACED:
+    case VO_PROP_INTERLACED:
+
       this->props[property].value = value;
-      this->deinterlace_enabled   = value;
-     
-      printf("video_out_syncfb: VO_PROP_INTERLACED(%d)\n",
+      printf("video_out_xv: VO_PROP_INTERLACED(%d)\n",
 	     this->props[property].value);
-     
-      syncfb_calc_format(this, this->delivered_width, this->delivered_height,
-			 this->delivered_ratio_code);
+      this->deinterlace_enabled = value;
       break;
-     
-   case VO_PROP_ASPECT_RATIO:
+    case VO_PROP_ASPECT_RATIO:
       if(value>=NUM_ASPECT_RATIOS)
 	value = ASPECT_AUTO;
 
@@ -928,58 +877,24 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value) {
       printf("video_out_syncfb: VO_PROP_ASPECT_RATIO(%d)\n",
 	     this->props[property].value);
 
-      syncfb_calc_format(this, this->delivered_width, this->delivered_height,
-	                 this->delivered_ratio_code);
-      break;
-     
-    case VO_PROP_ZOOM_X:
-      if((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
-	 this->props[property].value = value;
-	 
-	 printf("video_out_syncfb: VO_PROP_ZOOM_X(%d) \n",
-		this->props[property].value);
-	           
-	 syncfb_adapt_to_output_area(this, this->window_xoffset,
-				     this->window_yoffset, this->window_width,
-				     this->window_height);
-      }
-      break;
-     
-    case VO_PROP_ZOOM_Y:
-      if((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
-	 this->props[property].value = value;
-	 
-         printf("video_out_syncfb: VO_PROP_ZOOM_Y(%d) \n",
-		this->props[property].value);
-	           
-         syncfb_adapt_to_output_area(this, this->window_xoffset, 
-				     this->window_yoffset, this->window_width,
-				     this->window_height);
-      }
-      break;
-     
-    case VO_PROP_OFFSET_X:
-      this->props[property].value = value;
-     
-      printf("video_out_syncfb: VO_PROP_OFFSET_X(%d) \n",
-	     this->props[property].value);
-	           
-      syncfb_adapt_to_output_area(this, this->window_xoffset,
-				  this->window_yoffset, this->window_width,
-				  this->window_height);
-      break;
-     
-    case VO_PROP_OFFSET_Y:
-      this->props[property].value = value;
-     
-      printf("video_out_syncfb: VO_PROP_OFFSET_Y(%d) \n",
-             this->props[property].value);
-	           
-      syncfb_adapt_to_output_area(this, this->window_xoffset,
-				  this->window_yoffset, this->window_width,
-				  this->window_height);
-      break;
+      syncfb_compute_ideal_size (this);
+      syncfb_compute_output_size (this);
+      syncfb_clean_output_area (this);
 
+      break;
+    case VO_PROP_ZOOM_FACTOR:
+
+      printf ("video_out_xv: VO_PROP_ZOOM %d <=? %d <=? %d\n",
+	      VO_ZOOM_MIN, value, VO_ZOOM_MAX);
+
+      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+        this->props[property].value = value;
+        printf ("video_out_xv: VO_PROP_ZOOM = %d\n",
+		this->props[property].value);
+	           
+	syncfb_compute_ideal_size (this);
+      }
+      break;
     case VO_PROP_CONTRAST:
       this->props[property].value = value;
 
@@ -1018,13 +933,13 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value) {
       }
 
       break;
-
-  }
+  } 
 
   return value;
 }
 
-static void syncfb_get_property_min_max (vo_driver_t *this_gen, int property, int *min, int *max) {
+static void syncfb_get_property_min_max (vo_driver_t *this_gen,
+				     int property, int *min, int *max) {
 
   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
@@ -1032,48 +947,69 @@ static void syncfb_get_property_min_max (vo_driver_t *this_gen, int property, in
   *max = this->props[property].max;
 }
 
-static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void *data) {
+static void syncfb_translate_gui2video(syncfb_driver_t *this,
+				   int x, int y,
+				   int *vid_x, int *vid_y) {
 
-  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
-  x11_rectangle_t* area;
+  if (this->output_width > 0 && this->output_height > 0) {
+    /*
+     * 1.
+     * the xv driver may center a small output area inside a larger
+     * gui area.  This is the case in fullscreen mode, where we often
+     * have black borders on the top/bottom/left/right side.
+     */
+    x -= this->output_xoffset;
+    y -= this->output_yoffset;
 
+    /*
+     * 2.
+     * the xv driver scales the delivered area into an output area.
+     * translate output area coordianates into the delivered area
+     * coordiantes.
+     */
+    x = x * this->delivered_width  / this->output_width;
+    y = y * this->delivered_height / this->output_height;
+  }
+
+  *vid_x = x;
+  *vid_y = y;
+}
+
+static int syncfb_gui_data_exchange (vo_driver_t *this_gen,
+				 int data_type, void *data) {
+
+  syncfb_driver_t     *this = (syncfb_driver_t *) this_gen;
+  
   switch (data_type) {
-   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED: {
-     area = (x11_rectangle_t *) data;
-     
-     syncfb_adapt_to_output_area(this, area->x, area->y, area->w, area->h);
-   }     
-     break;
 
-  /* FIXME: consider if this is of use for us... */
-  case GUI_DATA_EX_EXPOSE_EVENT:
-     break;
+  case GUI_DATA_EX_EXPOSE_EVENT: {
+   XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
+
+   if (cev->drawable == this->drawable) {
+      this->expecting_event = 0;
+   }
+				 }
+  break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
     this->drawable = (Drawable) data;
     this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
     break;
 
-  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO: {
-    int x1, y1, x2, y2;
-    x11_rectangle_t *rect = data;
+  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+    {
+      int x1, y1, x2, y2;
+      x11_rectangle_t *rect = data;
 
-    syncfb_translate_gui2video(this, rect->x, rect->y,
-                               &x1, &y1);
-    syncfb_translate_gui2video(this, rect->x + rect->w, rect->y + rect->h,
-	                       &x2, &y2);
-    rect->x = x1;
-    rect->y = y1;
-    rect->w = x2-x1;
-    rect->h = y2-y1;
-  }
-    break;
-
-  case GUI_DATA_EX_VIDEOWIN_VISIBLE: {
-     this->video_win_visibility = (int)(int *)data;
-     
-     syncfb_adapt_to_output_area(this, this->output_xoffset, this->output_yoffset, this->output_width, this->output_height);
-  }
+      syncfb_translate_gui2video(this, rect->x, rect->y,
+			     &x1, &y1);
+      syncfb_translate_gui2video(this, rect->x + rect->w, rect->y + rect->h,
+			     &x2, &y2);
+      rect->x = x1;
+      rect->y = y1;
+      rect->w = x2-x1;
+      rect->h = y2-y1;
+    }
     break;
 
   default:
@@ -1083,31 +1019,41 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
   return 0;
 }
 
-static void syncfb_exit (vo_driver_t* this_gen) {
+static void syncfb_exit (vo_driver_t *this_gen) {
 
-   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
+  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
-   /* get it off the screen - I wanna see my desktop again :-) */
-   syncfb_overlay_off(this);
-   
-   /* don't know if it is necessary are even right, but anyway...?! */
-   munmap(0, this->capabilities.memory_size);   
-   
-   close(this->fd);
+  /* get it off the screen - I wanna see my desktop again :-) */
+  syncfb_overlay_off(this);
+  
+  /* don't know if it is necessary are even right, but anyway...?! */
+  munmap(0, this->capabilities.memory_size);   
+  
+  close(this->fd);
+}
+
+static void syncfb_update_deinterlace(void *this_gen, cfg_entry_t *entry)
+{
+  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
+  
+  this->deinterlace_method = entry->num_value;
 }
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
-   XWindowAttributes attr;
-   XColor dummy;
-   
-   syncfb_driver_t*  this;
-   x11_visual_t*     visual = (x11_visual_t *) visual_gen;
+  syncfb_driver_t          *this;
+  Display              *display = NULL;
+  unsigned int          i=0;
+  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
+  XColor                dummy;
+  char*             device_name;
+  XWindowAttributes attr;
+ ;
 
-   int               i = 0;
-   char*             device_name;
-   
-   device_name = config->register_string (config, "video.syncfb_device", "/dev/syncfb",
+  display = visual->display;
+
+  
+  device_name = config->register_string (config, "video.syncfb_device", "/dev/syncfb",
 					  "syncfb (teletux) device node", NULL, NULL, NULL);
    
    if(!(this = malloc (sizeof (syncfb_driver_t)))) {
@@ -1210,39 +1156,36 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);   
    
   this->bufinfo.id            = -1;   
-  this->config                = config;
-  this->default_repeat        = config->register_num (config, "video.syncfb_default_repeat", 3,
-						      "Specifies how many times a frame is repeated",
-						      NULL, NULL, NULL);
-  this->display               = visual->display;
-  this->display_ratio         = visual->display_ratio;
-  this->displayed_height      = 0;
-  this->displayed_width       = 0;
-  this->displayed_xoffset     = 0;
-  this->displayed_yoffset     = 0;
-  this->drawable              = visual->d;
-  this->frame_format          = 0;
-  this->frame_height          = 0;
-  this->frame_width           = 0;
-  this->gc                    = XCreateGC (this->display, this->drawable, 0, NULL);
-  this->output_height         = 0;
-  this->output_width          = 0;
-  this->output_xoffset        = 0;
-  this->output_yoffset        = 0;
-  this->overlay               = NULL;
-  this->overlay_state         = 0;
-  this->request_dest_size     = visual->request_dest_size;
-  this->screen                = visual->screen;
-  this->screen_depth          = attr.depth;
-  this->user_data             = visual->user_data;
-  this->video_win_visibility  = 1;
+  this->config            = config;
+  this->display           = visual->display;
+  this->overlay           = NULL;
+  this->screen            = visual->screen;
+  this->display_ratio     = visual->display_ratio;
+  this->frame_output_cb   = visual->frame_output_cb;
+  this->user_data         = visual->user_data;
+  this->output_xoffset    = 0;
+  this->output_yoffset    = 0;
+  this->output_width      = 0;
+  this->output_height     = 0;
+  this->displayed_xoffset = 0;
+  this->displayed_yoffset = 0;
+  this->displayed_width   = 0;
+  this->displayed_height  = 0;
+  this->gui_x             = 0;
+  this->gui_y             = 0;
+  this->gui_width         = 0;
+  this->gui_height        = 0;
+  this->drawable          = visual->d;
+  this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
+  this->supported_capabilities      = 0;
+  this->expecting_event   = 0;
+  this->deinterlace_method = 0;
+  this->use_colorkey      = 0;
+  this->colorkey          = 0;
   this->virtual_screen_height = attr.height;
   this->virtual_screen_width  = attr.width;
-  this->window_height         = 0;
-  this->window_width          = 0;
-  this->window_xoffset        = 0;
-  this->window_yoffset        = 0;
-
+  this->screen_depth          = attr.depth;
+  
   XAllocNamedColor(this->display,
 		   DefaultColormap(this->display, this->screen),
 		   "black", &this->black, &dummy);
@@ -1256,22 +1199,37 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.set_property         = syncfb_set_property;
   this->vo_driver.get_property_min_max = syncfb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = syncfb_gui_data_exchange;
-  this->vo_driver.exit                 = syncfb_exit;   
-   
+  this->vo_driver.exit                 = syncfb_exit;
+
+  /*
+   * init properties
+   */
+
+  for (i=0; i<VO_NUM_PROPERTIES; i++) {
+    this->props[i].value = 0;
+    this->props[i].min   = 0;
+    this->props[i].max   = 0;
+  }
+
+  this->props[VO_PROP_INTERLACED].value     = 0;
+  this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
+  this->props[VO_PROP_ZOOM_FACTOR].value    = 100;
+
   this->deinterlace_enabled = 0;
 
   return &this->vo_driver;
 }
 
 static vo_info_t vo_info_syncfb = {
-  3,
+  4,
   "SyncFB",
   "xine video output plugin using the SyncFB module for Matrox G200/G400 cards",
   VISUAL_TYPE_X11,
   10
 };
 
-vo_info_t *get_video_out_plugin_info()
-{
+vo_info_t *get_video_out_plugin_info() {
   return &vo_info_syncfb;
 }
+
+#endif
