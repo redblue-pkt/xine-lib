@@ -15,7 +15,7 @@ building xine on solaris
 
 * To get VIS accelerated video decoding and colour space conversion 
   on Solaris SPARC with an UltraSPARC cpu, download and install Sun's
-  mediaLib 2.0, available here:
+  mediaLib 2.0 before compiling xine. mediaLib is available here:
 
     http://www.sun.com/sparc/vis/mediaLib.html
 
@@ -36,3 +36,29 @@ Known Problems
 
   Reboot the machine after modifying /etc/system to activate the new
   shared memory defaults.
+
+
+* When using an 8-bit display, xine aborts with the error message:
+
+	IMLIB ERROR: Cannot Find Palette. A Palette is required for this mode
+	Unable to initialize Imlib
+
+  xine expects an installed Imlib package, installed using the "prefix" /
+  xine is looking for the global Imlib config file in /etc/imrc.
+
+  If you have the solaris 8 companion CD installed, an Imlib package is
+  already installed on your system, but it uses the "prefix" /opt/sfw.
+  
+  To work around the problem:
+  
+  - install a symbolic link /etc/imrc, pointing to /opt/sfw/etc/imrc
+    (needs root permission)
+
+	# ln -s /opt/sfw/etc/imrc /etc
+
+  or 
+
+  - install an ".imrc" file in your home directory,
+    with the following contents:
+
+	PaletteFile     /opt/sfw/etc/im_palette.pal
