@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.61 2002/10/29 16:30:53 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.62 2002/10/31 05:26:46 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -51,12 +51,12 @@
 typedef struct {
   video_decoder_class_t   decoder_class;
   int                     illegal_vlc;
-} ff_class_t;
+} ff_video_class_t;
 
 typedef struct ff_decoder_s {
   video_decoder_t   video_decoder;
 
-  ff_class_t       *class;
+  ff_video_class_t *class;
 
   xine_stream_t    *stream;
   int               video_step;
@@ -80,12 +80,38 @@ typedef struct ff_decoder_s {
 
   int               is_continous;
 
-} ff_decoder_t;
+} ff_video_decoder_t;
+
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} ff_audio_class_t;
+
+typedef struct ff_audio_decoder_s {
+  audio_decoder_t   audio_decoder;
+
+  xine_stream_t    *stream;
+
+  int               output_open;
+  int               audio_channels;
+  int               audio_bits;
+  int               audio_sample_rate;
+
+  unsigned char    *buf;
+  int               bufsize;
+  int               size;
+
+  AVCodecContext    context;
+  char              *decode_buffer;
+  int               decoder_ok;
+
+} ff_audio_decoder_t;
+
 
 #define VIDEOBUFSIZE 128*1024
+#define AUDIOBUFSIZE VIDEOBUFSIZE
 
 
-static void init_codec (ff_decoder_t *this, AVCodec *codec) {
+static void init_codec (ff_video_decoder_t *this, AVCodec *codec) {
 
   /* force (width % 8 == 0), otherwise there will be 
    * display problems with Xv.
@@ -121,7 +147,7 @@ static void init_codec (ff_decoder_t *this, AVCodec *codec) {
   this->skipframes = 0;
 }
 
-static void find_sequence_header (ff_decoder_t *this,
+static void find_sequence_header (ff_video_decoder_t *this,
 				  uint8_t * current, uint8_t * end){
 
   uint8_t code;
@@ -256,11 +282,11 @@ static void find_sequence_header (ff_decoder_t *this,
 }
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
-  ff_decoder_t *this = (ff_decoder_t *) this_gen;
+  ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
   int ratio;
   
 #ifdef LOG
-  printf ("ffmpeg: processing packet type = %08x, buf : %d, buf->decoder_flags=%08x\n", 
+  printf ("ffmpeg: processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
 	  buf->type, buf, buf->decoder_flags);
 #endif
 
@@ -318,6 +344,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       codec = avcodec_find_decoder (CODEC_ID_WMV1);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms wmv 7 (ffmpeg)");
+      break;
+    case BUF_VIDEO_WMV8:
+      codec = avcodec_find_decoder (CODEC_ID_WMV2);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("ms wmv 8 (ffmpeg)");
       break;
     case BUF_VIDEO_MPEG4 :
     case BUF_VIDEO_XVID :
@@ -623,7 +654,7 @@ void avcodec_register_all(void)
 }
 
 static void ff_dispose (video_decoder_t *this_gen) {
-  ff_decoder_t *this = (ff_decoder_t *) this_gen;
+  ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
 
 #ifdef LOG
   printf ("ffmpeg: ff_dispose\n");
@@ -643,15 +674,15 @@ static void ff_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
+static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  ff_decoder_t  *this ;
+  ff_video_decoder_t  *this ;
 
 #ifdef LOG
   printf ("ffmpeg: open_plugin\n");
 #endif
 
-  this = (ff_decoder_t *) malloc (sizeof (ff_decoder_t));
+  this = (ff_video_decoder_t *) malloc (sizeof (ff_video_decoder_t));
 
   this->video_decoder.decode_data         = ff_decode_data;
   this->video_decoder.flush               = ff_flush;
@@ -660,7 +691,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->size				  = 0;
 
   this->stream                            = stream;
-  this->class                             = (ff_class_t *) class_gen;
+  this->class                             = (ff_video_class_t *) class_gen;
 
   this->chunk_buffer = xine_xmalloc (SLICE_BUFFER_SIZE + 4);
 
@@ -680,15 +711,15 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
  * ffmpeg plugin class
  */
 
-static char *get_identifier (video_decoder_class_t *this) {
-  return "ffmpeg";
+static char *ff_video_get_identifier (video_decoder_class_t *this) {
+  return "ffmpeg video";
 }
 
-static char *get_description (video_decoder_class_t *this) {
+static char *ff_video_get_description (video_decoder_class_t *this) {
   return "ffmpeg based video decoder plugin";
 }
 
-static void dispose_class (video_decoder_class_t *this) {
+static void ff_video_dispose_class (video_decoder_class_t *this) {
   free (this);
 }
 
@@ -697,17 +728,17 @@ static void init_once_routine(void) {
   avcodec_register_all();
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+static void *init_video_plugin (xine_t *xine, void *data) {
 
-  ff_class_t *this;
+  ff_video_class_t *this;
   static pthread_once_t once_control = PTHREAD_ONCE_INIT;
   
-  this = (ff_class_t *) malloc (sizeof (ff_class_t));
+  this = (ff_video_class_t *) malloc (sizeof (ff_video_class_t));
 
-  this->decoder_class.open_plugin     = open_plugin;
-  this->decoder_class.get_identifier  = get_identifier;
-  this->decoder_class.get_description = get_description;
-  this->decoder_class.dispose         = dispose_class;
+  this->decoder_class.open_plugin     = ff_video_open_plugin;
+  this->decoder_class.get_identifier  = ff_video_get_identifier;
+  this->decoder_class.get_description = ff_video_get_description;
+  this->decoder_class.dispose         = ff_video_dispose_class;
 
   this->illegal_vlc = xine->config->register_bool (xine->config, "codec.ffmpeg_illegal_vlc", 1,
 						   _("allow illegal vlc codes in mpeg4 streams"), NULL, 
@@ -718,28 +749,272 @@ static void *init_plugin (xine_t *xine, void *data) {
   return this;
 }
 
+
+static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+
+  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  int bytes_consumed;
+  int decode_buffer_size;
+  int offset;
+  int out;
+  audio_buffer_t *audio_buffer;
+  int bytes_to_send;
+
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+
+    AVCodec *codec = NULL;
+    int codec_type;
+    xine_waveformatex *audio_header = (xine_waveformatex *)buf->content;
+
+    codec_type = buf->type & 0xFFFF0000;
+
+    switch (codec_type) {
+    case BUF_AUDIO_WMAV1:
+      codec = avcodec_find_decoder (CODEC_ID_WMAV1);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("Windows Media Audio v1");
+      break;
+    case BUF_AUDIO_WMAV2:
+      codec = avcodec_find_decoder (CODEC_ID_WMAV2);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+	= strdup ("Windows Media Audio v2");
+      break;
+    }
+
+    if (!codec) {
+      printf (" could not open ffmpeg decoder for buf type 0x%X\n",
+        codec_type);
+      return;
+    }
+
+    memset(&this->context, 0, sizeof(this->context));
+
+    this->context.sample_rate = this->audio_sample_rate = buf->decoder_info[1];
+    this->audio_bits = buf->decoder_info[2];
+    this->context.channels = this->audio_channels = buf->decoder_info[3];
+    this->context.block_align = audio_header->nBlockAlign;
+    this->buf = xine_xmalloc(AUDIOBUFSIZE);
+    this->bufsize = AUDIOBUFSIZE;
+    this->size = 0;
+
+printf ("decode buffer (before) = %p\n", this->decode_buffer);
+    this->decode_buffer = xine_xmalloc(50000);
+printf ("decode buffer  (after) = %p\n", this->decode_buffer);
+
+    if (avcodec_open (&this->context, codec) < 0) {
+      printf ("ffmpeg: couldn't open decoder\n");
+      return;
+    }
+
+    this->decoder_ok = 1;
+
+    return;
+  } else if (this->decoder_ok) {
+
+    if (!this->output_open) {
+      this->output_open = this->stream->audio_out->open(this->stream->audio_out,
+        this->audio_bits, this->audio_sample_rate,
+        (this->audio_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
+    }
+
+    /* if the audio still isn't open, bail */
+    if (!this->output_open)
+      return;
+
+    if( this->size + buf->size > this->bufsize ) {
+      this->bufsize = this->size + 2 * buf->size;
+      printf("ffmpeg: increasing source buffer to %d to avoid overflow.\n",
+        this->bufsize);
+      this->buf = realloc( this->buf, this->bufsize );
+    }
+
+printf ("  *** accumulating audio data\n");
+    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+    this->size += buf->size;
+
+    if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
+printf ("  *** time to decode audio\n");
+
+      offset = 0;
+      while (this->size>0) {
+printf ("    size = %d\n", this->size);
+        bytes_consumed = avcodec_decode_audio (&this->context, 
+                                               (INT16 *)this->decode_buffer,
+                                               &decode_buffer_size, 
+                                               &this->buf[offset],
+                                               this->size);
+printf ("    bytes consumed = %d, decode buffer size = %d\n",
+  bytes_consumed, decode_buffer_size);
+
+        if (bytes_consumed<0) {
+          printf ("ffmpeg: error decompressing audio frame\n");
+          this->size=0;
+          return;
+        }
+
+        /* dispatch the decoded audio */
+        out = 0;
+printf ("    preparing to dispatch...\n");
+        while (out < decode_buffer_size) {
+printf ("      dispatching audio buffer, out = %d, decoder buffer size = %d\n",
+  out, decode_buffer_size);
+          audio_buffer = 
+            this->stream->audio_out->get_buffer (this->stream->audio_out);
+          if (audio_buffer->mem_size == 0) {
+            printf ("ffmpeg: Help! Allocated audio buffer with nothing in it!\n");
+            return;
+          }
+
+          if ((decode_buffer_size - out) > audio_buffer->mem_size)
+{
+            bytes_to_send = audio_buffer->mem_size;
+printf("      1) bytes/send = %d\n", bytes_to_send);
+}
+          else
+{
+            bytes_to_send = decode_buffer_size - out;
+printf("      2) bytes/send = %d\n", bytes_to_send);
+}
+
+          /* fill up this buffer */
+          xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[out],
+            bytes_to_send);
+          /* byte count / 2 (bytes / sample) / channels */
+          audio_buffer->num_frames = bytes_to_send / 2 / this->audio_channels;
+
+          audio_buffer->vpts = buf->pts;
+          buf->pts = 0;  /* only first buffer gets the real pts */
+          this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+
+          out += bytes_to_send;
+        }
+
+        this->size -= bytes_consumed;
+        offset += bytes_consumed;
+
+        if (!decode_buffer_size) {
+          printf ("ffmpeg: didn't get an audio frame, got %d bytes left\n",
+            this->size);
+
+          if (this->size>0)
+            memmove (this->buf, &this->buf[offset], this->size);
+
+          return;
+        }
+
+      }
+
+      /* reset internal accumulation buffer */
+      this->size = 0;
+    }
+  }
+}
+
+static void ff_audio_reset (audio_decoder_t *this_gen) {
+}
+
+static void ff_audio_dispose (audio_decoder_t *this_gen) {
+
+  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+
+  if (this->output_open)
+    this->stream->audio_out->close (this->stream->audio_out);
+  this->output_open = 0;
+
+  free(this->buf);
+  free(this->decode_buffer);
+
+  free (this_gen);
+}
+
+static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
+
+  ff_audio_decoder_t *this ;
+
+  this = (ff_audio_decoder_t *) malloc (sizeof (ff_audio_decoder_t));
+
+  this->audio_decoder.decode_data         = ff_audio_decode_data;
+  this->audio_decoder.reset               = ff_audio_reset;
+  this->audio_decoder.dispose             = ff_audio_dispose;
+
+  this->output_open = 0;
+  this->audio_channels = 0;
+  this->stream = stream;
+  this->buf = NULL;
+  this->size = 0;
+  this->decoder_ok = 0;
+
+  return &this->audio_decoder;
+}
+
+static char *ff_audio_get_identifier (audio_decoder_class_t *this) {
+  return "ffmpeg audio";
+}
+
+static char *ff_audio_get_description (audio_decoder_class_t *this) {
+  return "ffmpeg based audio decoder plugin";
+}
+
+static void ff_audio_dispose_class (audio_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_audio_plugin (xine_t *xine, void *data) {
+
+  ff_audio_class_t *this ;
+
+  this = (ff_audio_class_t *) malloc (sizeof (ff_audio_class_t));
+
+  this->decoder_class.open_plugin     = ff_audio_open_plugin;
+  this->decoder_class.get_identifier  = ff_audio_get_identifier;
+  this->decoder_class.get_description = ff_audio_get_description;
+  this->decoder_class.dispose         = ff_audio_dispose_class;
+
+  return this;
+}
+
 /*
  * exported plugin catalog entry
  */
 
-static uint32_t supported_types[] = { 
-  BUF_VIDEO_MSMPEG4_V3, BUF_VIDEO_MSMPEG4_V2,
-  BUF_VIDEO_MSMPEG4_V1, BUF_VIDEO_WMV7, BUF_VIDEO_MPEG4,
-  BUF_VIDEO_XVID, BUF_VIDEO_DIVX5, BUF_VIDEO_MJPEG,
-  BUF_VIDEO_H263, BUF_VIDEO_RV10,
+static uint32_t supported_video_types[] = { 
+  BUF_VIDEO_MSMPEG4_V1, 
+  BUF_VIDEO_MSMPEG4_V2,
+  BUF_VIDEO_MSMPEG4_V3, 
+  BUF_VIDEO_WMV7, 
+  /*BUF_VIDEO_WMV8,*/ 
+  BUF_VIDEO_MPEG4,
+  BUF_VIDEO_XVID, 
+  BUF_VIDEO_DIVX5, 
+  BUF_VIDEO_MJPEG,
+  BUF_VIDEO_H263, 
+  BUF_VIDEO_RV10,
   /* PIX_FMT_YUV410P must be supported to enable svq1 */
   /* BUF_VIDEO_SORENSON_V1 */
-  BUF_VIDEO_JPEG, BUF_VIDEO_MPEG, 0 
+  BUF_VIDEO_JPEG, 
+  BUF_VIDEO_MPEG, 
+  0 
 };
 
-static decoder_info_t dec_info_ffmpeg = {
-  supported_types,     /* supported types */
-  5                    /* priority        */
+static uint32_t supported_audio_types[] = { 
+  BUF_AUDIO_WMAV1,
+  BUF_AUDIO_WMAV2,
+  0
 };
 
+static decoder_info_t dec_info_ffmpeg_video = {
+  supported_video_types,   /* supported types */
+  9                        /* priority        */
+};
+
+static decoder_info_t dec_info_ffmpeg_audio = {
+  supported_audio_types,   /* supported types */
+  9                        /* priority        */
+};
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "ffmpeg", XINE_VERSION_CODE, &dec_info_ffmpeg, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
+/*  { PLUGIN_AUDIO_DECODER, 10, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },*/
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
