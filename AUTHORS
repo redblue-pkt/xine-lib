@@ -50,6 +50,9 @@ Stephen Torri <storri@users.sourceforge.net>
   Automake, autoconf, libtool development, and build fixes,
   health check
 
+Stefan Holst <mail@s-holst.de>
+  real media streaming support, input_net fixes
+
 xine is using
 =============
 
