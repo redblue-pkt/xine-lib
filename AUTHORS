@@ -476,4 +476,7 @@ Ian MacIntosh <ian_macintosh@users.sourceforge.net>
 Mike Lampard <mike_lampard@hotmail.com>
   Pan & Scan support for the DXR3 MPEG decoder
 
+Moritz Bunkus <moritz@bunkus.org>
+  Seeking support for the Matroska demuxer.
+
 (let us know if we've forgotten anyone)
