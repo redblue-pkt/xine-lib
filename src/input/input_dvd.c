@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.163 2003/05/16 15:07:36 tchamp Exp $
+ * $Id: input_dvd.c,v 1.164 2003/05/23 10:34:13 mroi Exp $
  *
  */
 
@@ -1251,11 +1251,18 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
     intended_dvd_device[last_slash] = '\0';
     locator += last_slash;
 
+    /* do not use the raw device for the alternative */
+    xine_setenv("DVDCSS_RAW_DEVICE", "", 1);
 #ifdef _MSC_VER
-	locator++;
+    locator++;
 #endif
 
   }else{
+    xine_cfg_entry_t raw_device;
+    
+    if (xine_config_lookup_entry(this->stream->xine,
+        "input.dvd_raw_device", &raw_device))
+      xine_setenv("DVDCSS_RAW_DEVICE", raw_device.str_value, 1);
     intended_dvd_device=class->dvd_device;
   }
 
@@ -1629,6 +1636,16 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.164  2003/05/23 10:34:13  mroi
+ * make alternative devices (dvd:<path> and dvd:<device> style MRLs) work with
+ * raw devices configured
+ *
+ * problem is: The raw device setting is passed to libdvdcss through an environment
+ * variable. Libdvdcss then replaces ANY read from anywhere with a read from the
+ * raw device. This fails, when you want to play a disc image with dvd:<path>, but
+ * there is actually a DVD in the drive associated with the raw device which has
+ * nothing to do with what you want to play.
+ *
  * Revision 1.163  2003/05/16 15:07:36  tchamp
  * Fix win32 build and start adding additional plugin support
  *
