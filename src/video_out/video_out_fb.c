@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.6 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_fb.c,v 1.7 2002/03/07 13:26:15 jcdutton Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -136,12 +136,6 @@ typedef struct fb_driver_s {
 /* possible values for fb_driver_t, field gui_changed */
 #define	GUI_SIZE_CHANGED	1
 #define	GUI_ASPECT_CHANGED	2
-
-
-/*
- * first, some utility functions
- */
-vo_info_t *get_video_out_plugin_info();
 
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.104 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_xv.c,v 1.105 2002/03/07 13:26:16 jcdutton Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -196,8 +196,6 @@ struct xv_driver_s {
 };
 
 int gX11Fail;
-
-vo_info_t *get_video_out_plugin_info();
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.6 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_directfb.c,v 1.7 2002/03/07 13:26:15 jcdutton Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -130,8 +130,6 @@ typedef struct directfb_driver_s {
 /*
  * first, some utility functions
  */
-vo_info_t *get_video_out_plugin_info();
-
 static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) {
 
   uint8_t *pMem;

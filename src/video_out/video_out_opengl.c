@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.6 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_opengl.c,v 1.7 2002/03/07 13:26:16 jcdutton Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -203,8 +203,6 @@ typedef struct opengl_driver_s {
 /*
  * first, some utility functions
  */
-vo_info_t *get_video_out_plugin_info();
-
 static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) {
 
   uint8_t *pMem;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.5 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_sdl.c,v 1.6 2002/03/07 13:26:16 jcdutton Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -127,8 +127,6 @@ struct sdl_driver_s {
 					 int *dest_x, int *dest_y,
 					 int *dest_height, int *dest_width);
 };
-
-vo_info_t *get_video_out_plugin_info();
 
 static uint32_t sdl_get_capabilities (vo_driver_t *this_gen) {
 

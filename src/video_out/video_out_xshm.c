@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.66 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_xshm.c,v 1.67 2002/03/07 13:26:16 jcdutton Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -176,8 +176,6 @@ int gX11Fail;
 /*
  * first, some utility functions
  */
-vo_info_t *get_video_out_plugin_info();
-
 static int HandleXError (Display *display, XErrorEvent *xevent) {
   
   char str [1024];

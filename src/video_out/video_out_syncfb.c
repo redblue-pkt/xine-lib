@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.54 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_syncfb.c,v 1.55 2002/03/07 13:26:16 jcdutton Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -160,7 +160,6 @@ int gX11Fail;
 /*
  * internal video_out_syncfb functions
  */
-vo_info_t *get_video_out_plugin_info();
 
 /* returns boolean value (1 success, 0 failure) */
 int syncfb_overlay_on(syncfb_driver_t* this) {

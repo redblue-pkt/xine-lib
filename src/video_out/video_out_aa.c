@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.15 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: video_out_aa.c,v 1.16 2002/03/07 13:26:15 jcdutton Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -76,8 +76,6 @@ typedef struct {
 /*
  * our video driver
  */
-vo_info_t *get_video_out_plugin_info();
-
 static uint32_t aa_get_capabilities (vo_driver_t *this) {
   return VO_CAP_YV12 | VO_CAP_YUY2;
 }
