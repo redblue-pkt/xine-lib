@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.20 2004/02/08 18:17:28 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.21 2004/02/12 18:02:17 mroi Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1730,7 +1730,7 @@ static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
                 /* the string got truncated */
                 str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
             } else {
-              snprintf(str, XINE_LANG_MAX, "eng",channel);
+              snprintf(str, XINE_LANG_MAX, "eng");
             }
             return DEMUX_OPTIONAL_SUCCESS;
           }
@@ -1752,7 +1752,7 @@ static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
                 /* the string got truncated */
                 str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
             } else {
-              snprintf(str, XINE_LANG_MAX, "eng", channel);
+              snprintf(str, XINE_LANG_MAX, "eng");
             }
             return DEMUX_OPTIONAL_SUCCESS;
           }
