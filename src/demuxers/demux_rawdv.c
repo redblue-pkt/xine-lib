@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.11 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.12 2003/10/30 00:49:07 tmattern Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -188,14 +188,16 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
     this->duration = buf->decoder_info[1] = 3003;
     bih->biWidth = 720;
     bih->biHeight = 480;
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = NTSC_FRAME_SIZE * NTSC_FRAME_RATE * 8;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
+                         NTSC_FRAME_SIZE * NTSC_FRAME_RATE * 8);
   } else {
     /* PAL */
     this->frame_size = PAL_FRAME_SIZE;
     this->duration = buf->decoder_info[1] = 3600;
     bih->biWidth = 720;
     bih->biHeight = 576;
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = PAL_FRAME_SIZE * PAL_FRAME_RATE * 8;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
+                         PAL_FRAME_SIZE * PAL_FRAME_RATE * 8);
   }
   bih->biSize = sizeof(xine_bmiheader);
   bih->biPlanes = 1;
@@ -211,7 +213,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
  
   this->status = DEMUX_OK;
 
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
 
   if (this->audio_fifo) {
     int done = 0;
@@ -275,7 +277,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
     abuf->decoder_info[2] = 16; /* Audio bits (ffmpeg upsamples 12 to 16bit) */
     abuf->decoder_info[3] = 2; /* Audio bits (ffmpeg only supports 2 channels) */
     this->audio_fifo->put (this->audio_fifo, abuf);
-    this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   }
 
 }

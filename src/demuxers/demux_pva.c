@@ -23,7 +23,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.11 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_pva.c,v 1.12 2003/10/30 00:49:07 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -279,8 +279,8 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

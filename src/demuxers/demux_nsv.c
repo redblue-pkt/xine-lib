@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.5 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_nsv.c,v 1.6 2003/10/30 00:49:07 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -337,10 +337,14 @@ static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = (this->video_type) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = (this->audio_type) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->bih.biWidth;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO,
+    (this->video_type) ? 1 : 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
+    (this->audio_type) ? 1 : 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+    this->bih.biWidth);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+    this->bih.biHeight);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.44 2003/10/24 02:57:58 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.45 2003/10/30 00:49:07 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -334,19 +334,19 @@ static int open_idcin_file(demux_idcin_t *this) {
     return 0;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
-    (this->wave.nChannels) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
-    bih->biWidth;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] =
-    bih->biHeight;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->wave.nChannels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->wave.nSamplesPerSec;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->wave.wBitsPerSample;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
+    (this->wave.nChannels) ? 1 : 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+    bih->biWidth);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+    bih->biHeight);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+    this->wave.nChannels);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+    this->wave.nSamplesPerSec);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+    this->wave.wBitsPerSample);
 
   this->filesize = this->input->get_length(this->input) - 
     IDCIN_HEADER_SIZE - HUFFMAN_TABLE_SIZE;

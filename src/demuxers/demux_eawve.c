@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_eawve.c,v 1.20 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_eawve.c,v 1.21 2003/10/30 00:49:07 tmattern Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -287,11 +287,11 @@ static void demux_eawve_send_headers(demux_plugin_t *this_gen){
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 22050;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 2);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, 22050);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 16);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.195 2003/09/02 18:59:06 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.196 2003/10/30 00:49:07 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -1188,9 +1188,9 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
 
   this->status = DEMUX_OK;
 
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_BITRATE]   = this->rate * 50 * 8;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, this->rate * 50 * 8);
 }
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.119 2003/10/27 23:23:29 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.120 2003/10/30 00:49:07 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -803,8 +803,8 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   this->status        = DEMUX_OK;
   this->check_xing    = 1;
 
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* read id3 info only from inputs with seeking and without "live" flag */
   if ((this->input->get_capabilities(this->input) & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEK)) == INPUT_CAP_SEEKABLE) {
@@ -833,17 +833,17 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   }
 
   if (this->is_vbr)
-    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->abr;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, this->abr);
   else
-    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->br;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, this->br);
 
   if (this->cur_frame.samplerate) {
     if (this->cur_frame.layer == 1)
-      this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
-        384000 / this->cur_frame.samplerate;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+        384000 / this->cur_frame.samplerate);
     else
-      this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
-        1152000 / this->cur_frame.samplerate;
+      xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+        1152000 / this->cur_frame.samplerate);
   }
   this->status = DEMUX_OK;
 }

@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.14 2003/10/24 04:44:43 tmmm Exp $
+ * $Id: demux_ipmovie.c,v 1.15 2003/10/30 00:49:07 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -568,10 +568,10 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->bih.biWidth;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->bih.biWidth);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

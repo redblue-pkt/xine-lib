@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.65 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_film.c,v 1.66 2003/10/30 00:49:07 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -665,19 +665,19 @@ static void demux_film_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 
-    (this->video_type) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
-    (this->audio_type) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = this->video_codec;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->audio_channels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->sample_rate;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->audio_bits;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO,
+    (this->video_type) ? 1 : 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
+    (this->audio_type) ? 1 : 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->bih.biWidth);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC, this->video_codec);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+    this->audio_channels);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+    this->sample_rate);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+    this->audio_bits);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);

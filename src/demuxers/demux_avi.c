@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.169 2003/10/07 19:42:00 hadess Exp $
+ * $Id: demux_avi.c,v 1.170 2003/10/30 00:49:07 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1477,8 +1477,8 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
   this->status = DEMUX_OK;
 
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->avi->width;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->avi->height;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->avi->width);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->avi->height);
 
   if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
     for (i=0; i < this->avi->n_audio; i++)
@@ -1503,8 +1503,8 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
                (int)this->avi->audio[i]->wavex->wFormatTag);
   }
 
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]  = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = !this->no_audio;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, !this->no_audio);
 
   /*
    * send start/header buffers
@@ -1530,7 +1530,8 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     } else
       this->avi->video_type = fourcc_to_buf_video(this->avi->compressor);
 
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = this->avi->compressor;
+    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
+                         this->avi->compressor);
 
     if (!this->avi->video_type) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,

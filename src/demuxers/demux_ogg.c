@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.110 2003/10/27 23:23:29 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.111 2003/10/30 00:49:07 tmattern Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -232,8 +232,8 @@ static void get_stream_length (demux_ogg_t *this) {
       while (!done) {
 	if (!read_ogg_packet (this)) {
 	  if (this->time_length) {
-	    this->stream->stream_info[XINE_STREAM_INFO_BITRATE]
-	      = ((int64_t) 8000*filelength)/this->time_length;
+	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE,
+	                         ((int64_t) 8000*filelength)/this->time_length);
 	    /*this is a fine place to compute avg_bitrate*/
 	    this->avg_bitrate= 8000*filelength/this->time_length;
 	  }

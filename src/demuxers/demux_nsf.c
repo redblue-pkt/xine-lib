@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.15 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_nsf.c,v 1.16 2003/10/30 00:49:07 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -162,9 +162,9 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
       this->new_song = 0;
       sprintf(title, "%s, song %d/%d",
         this->title, this->current_song, this->total_songs);
-      if (this->stream->meta_info[XINE_META_INFO_TITLE])
-        free (this->stream->meta_info[XINE_META_INFO_TITLE]);
-      this->stream->meta_info[XINE_META_INFO_TITLE] = strdup(title);
+
+      xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, title);
+
       xine_demux_control_newpts(this->stream, this->current_pts, 0);
 
     } else
@@ -195,19 +195,19 @@ static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    NSF_CHANNELS;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    NSF_SAMPLERATE;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    NSF_BITS;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+    NSF_CHANNELS);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+    NSF_SAMPLERATE);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+    NSF_BITS);
 
-  this->stream->meta_info[XINE_META_INFO_TITLE] = strdup(this->title);
-  this->stream->meta_info[XINE_META_INFO_ARTIST] = strdup(this->artist);
+  xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->title);
+  xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, this->artist);
   sprintf(copyright, "(C) %s", this->copyright);
-  this->stream->meta_info[XINE_META_INFO_COMMENT] = strdup(copyright);
+  xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, copyright);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
