@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.49 2002/12/27 03:40:07 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.50 2002/12/29 14:04:43 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -316,6 +316,11 @@ struct xine_post_s {
    */
   xine_video_port_t **video_input;
   
+  /* the type of the post plugin
+   * one of XINE_POST_TYPE_* can be used here
+   */
+  int type;
+  
 };
 
 
@@ -337,6 +342,9 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name,
 
 /* get a list of all available post plugins */
 const char *const *xine_list_post_plugins(xine_t *xine);
+
+/* get a list of all post plugins of one type */
+const char *const *xine_list_post_plugins_typed(xine_t *xine, int type);
 
 /*
  * post plugin input/output
@@ -408,19 +416,32 @@ const xine_post_out_t *xine_post_output(xine_post_t *self, char *name);
  */
 int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target);
 
+
 /*
- * wire a video port to an output
+ * wire a video port to a video output
+ * This can be used to rewire different post plugins to the video output
+ * plugin layer. The ports you hand in at xine_post_init() will already
+ * be wired with the post plugin, so you need this function for
+ * _re_connecting only.
+ *
  * returns 1 on success, 0 on failure
  */
 int xine_post_wire_video_port(xine_post_out_t *source, xine_video_port_t *vo);
 
 /*
- * wire an audio port to an output
+ * wire an audio port to an audio output
+ * This can be used to rewire different post plugins to the audio output
+ * plugin layer. The ports you hand in at xine_post_init() will already
+ * be wired with the post plugin, so you need this function for
+ * _re_connecting only.
+ *
  * returns 1 on success, 0 on failure
  */
 int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *vo);
 
-
+/*
+ * Extracts an output for a stream. Use this to rewire the outputs of streams.
+ */
 xine_post_out_t * xine_get_video_source(xine_stream_t *stream);
 xine_post_out_t * xine_get_audio_source(xine_stream_t *stream);
 
@@ -433,29 +454,36 @@ xine_post_out_t * xine_get_audio_source(xine_stream_t *stream);
 void xine_post_dispose(xine_t *xine, xine_post_t *self);
 
 
+/* post plugin types */
+#define XINE_POST_TYPE_VIDEO_FILTER		0x010000
+#define XINE_POST_TYPE_VIDEO_VISUALIZATION	0x010001
+#define XINE_POST_TYPE_AUDIO_FILTER		0x020000
+#define XINE_POST_TYPE_AUDIO_VISUALIZATION	0x020001
+
+
 /* post plugin data types */
 
 /* video port data
  * input->data is a xine_video_port_t*
- * output->data is a xine_video_port_t**
+ * output->data usually is a xine_video_port_t**
  */
 #define XINE_POST_DATA_VIDEO          0
 
 /* audio port data
  * input->data is a xine_audio_port_t*
- * output->data is a xine_audio_port_t**
+ * output->data usually is a xine_audio_port_t**
  */
 #define XINE_POST_DATA_AUDIO          1
 
 /* integer data
  * input->data is a int*
- * output->data is a int*
+ * output->data usually is a int*
  */
 #define XINE_POST_DATA_INT            3
 
 /* double precision floating point data
  * input->data is a double*
- * output->data is a double*
+ * output->data usually is a double*
  */
 #define XINE_POST_DATA_DOUBLE         4
 

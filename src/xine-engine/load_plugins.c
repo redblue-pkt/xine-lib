@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.126 2002/12/27 16:47:11 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.127 2002/12/29 14:04:43 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -154,6 +154,7 @@ static void _insert_plugin (xine_t *this,
   vo_info_t         *vo_new, *vo_old;
   ao_info_t         *ao_new, *ao_old;
   decoder_info_t    *decoder_new, *decoder_old;
+  post_info_t       *post_new, *post_old;
   uint32_t          *types;
   int                priority = 0;
   int                i;
@@ -215,6 +216,12 @@ static void _insert_plugin (xine_t *this,
 
     entry->info->special_info = decoder_new;
     break;
+  
+  case PLUGIN_POST:
+    post_old = info->special_info;
+    post_new = xine_xmalloc(sizeof(post_info_t));
+    post_new->type = post_old->type;
+    entry->info->special_info = post_new;
   }
 
   xine_list_append_priority_content (list, entry, priority);
@@ -497,6 +504,7 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
   decoder_info_t *decoder_info;
   vo_info_t *vo_info;
   ao_info_t *ao_info;
+  post_info_t *post_info;
   
   int i;
 
@@ -536,6 +544,11 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
         fprintf(fp, "\n");
         fprintf(fp, "decoder_priority=%d\n", decoder_info->priority );
         break;
+      
+      case PLUGIN_POST:
+        post_info = node->info->special_info;
+	fprintf(fp, "post_type=%d\n", post_info->type);
+	break;
     }        
     
     fprintf(fp, "\n");
@@ -552,6 +565,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
   decoder_info_t *decoder_info = NULL;
   vo_info_t *vo_info = NULL;
   ao_info_t *ao_info = NULL;
+  post_info_t *post_info = NULL;
   int i;
   unsigned long long llu;
   unsigned long lu;
@@ -580,6 +594,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
       decoder_info        = NULL;
       vo_info             = NULL;
       ao_info             = NULL;
+      post_info           = NULL;
     }
 
     if ((value = strchr (line, '='))) {
@@ -624,6 +639,11 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
               decoder_info = node->info->special_info =
                              xine_xmalloc(sizeof(decoder_info_t));
               break;
+	    
+	    case PLUGIN_POST:
+	      post_info = node->info->special_info =
+			  xine_xmalloc(sizeof(post_info_t));
+	      break;
           }        
           
         } else if( !strcmp("api",line) ) {
@@ -657,7 +677,10 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
         } else if( !strcmp("decoder_priority",line) && decoder_info ) {
           sscanf(value," %d",&i);
           decoder_info->priority = i;
-        }
+        } else if( !strcmp("post_type",line) && post_info ) {
+	  sscanf(value," %d",&i);
+	  post_info->type = i;
+	}
       }
     }
   }
@@ -701,6 +724,7 @@ static void save_catalog (xine_t *this) {
     save_plugin_list (fp, this->plugin_catalog->video);
     save_plugin_list (fp, this->plugin_catalog->aout);
     save_plugin_list (fp, this->plugin_catalog->vout);
+    save_plugin_list (fp, this->plugin_catalog->post);
     fclose(fp);
   }
   free(cachefile);
@@ -1680,6 +1704,26 @@ const char *const *xine_list_post_plugins(xine_t *xine) {
   return catalog->ids;
 }
 
+const char *const *xine_list_post_plugins_typed(xine_t *xine, int type) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  plugin_node_t    *node;
+  int               i;
+  
+  pthread_mutex_lock (&catalog->lock);
+
+  i = 0;
+  node = xine_list_first_content (catalog->post);
+  while (node) {
+    if (((post_info_t *)node->info->special_info)->type == type)
+      catalog->ids[i++] = node->info->id;
+    node = xine_list_next_content (catalog->post);
+  }
+  catalog->ids[i] = NULL;
+
+  pthread_mutex_unlock (&catalog->lock);
+  return catalog->ids;
+}
+
 xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 			    xine_audio_port_t **audio_target,
 			    xine_video_port_t **video_target) {
@@ -1745,6 +1789,9 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 	  output = xine_list_next_content(post->output);
 	}
 	post->output_ids[i] = NULL;
+	
+	/* copy the post plugin type to the public part */
+	post->xine_post.type = ((post_info_t *)node->info->special_info)->type;
 	
 	return &post->xine_post;
       } else {
