@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.14 2004/01/17 01:50:43 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.15 2004/01/22 00:41:53 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -63,6 +63,7 @@
 #define INIT_STD_VIDEO            0
 #define INIT_STD_AUDIO            1
 #define INIT_VORBIS               2
+#define INIT_SUBTITLE             3
 
 
 typedef struct {
@@ -377,6 +378,7 @@ static void init_codec_vorbis(demux_matroska_t *this, matroska_track_t *track) {
 }
 
 static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
+                              int decoder_flags,
                               uint8_t *data, int data_len,
                               int64_t data_pts, int data_duration,
                               off_t input_pos, off_t input_length,
@@ -393,7 +395,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
   _x_demux_send_data(track->fifo,
                      data + chunk_tab_size + 1,
                      data_len - chunk_tab_size - 1,
-                     data_pts, track->buf_type, 0,
+                     data_pts, track->buf_type, decoder_flags,
                      input_pos, input_length, input_time,
                      this->duration, 0);
 
@@ -403,7 +405,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
 
     buf = track->fifo->buffer_pool_alloc(track->fifo);
 
-    buf->decoder_flags = BUF_FLAG_SPECIAL | BUF_FLAG_FRAMERATE;
+    buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL | BUF_FLAG_FRAMERATE;
     buf->decoder_info[0] = data_duration;
     buf->decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE;
     buf->decoder_info[2] = chunks;
@@ -419,6 +421,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
 }
 
 static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
+                            int decoder_flags,
                             uint8_t *data, int data_len,
                             int64_t data_pts, int data_duration,
                             off_t input_pos, off_t input_length,
@@ -430,6 +433,7 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
   char last_char = 0;
   char *dest;
   int dest_len;
+  int skip = 0;
 
   lprintf ("pts: %lld, duration: %d\n", data_pts, data_duration);
   /* skip ',' */
@@ -440,23 +444,34 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
 
   buf = track->fifo->buffer_pool_alloc(track->fifo);
   buf->type = track->buf_type;
+  buf->decoder_flags = decoder_flags;
 
   val = (uint32_t *)buf->content;
-  *val++ = 1;                                /* number of lines */
-  *val++ = 1;                                /* use time */
   *val++ = data_pts / 90;                    /* start time */
   *val++ = (data_pts + data_duration) / 90;  /* end time   */
 
-  dest = (char *)buf->content + 16;
-  dest_len = buf->max_size;
+  dest = buf->content + 8;
+  dest_len = buf->max_size - 8;
   while (data_len && dest_len) {
-    if ((last_char == '\\') && ((*data == 'n') || (*data == 'N'))) {
-      lines++;
-      *dest = '\0';
+    if (skip) {
+      if (*data == '}')
+        skip--;
+      else if (*data == '{')
+        skip++;
     } else {
-      if (*data != '\\') {
-        *dest = *data;
+      if ((last_char == '\\') && ((*data == 'n') || (*data == 'N'))) {
+        lines++;
+        *dest = '\n';
         dest++; dest_len--;
+      } else {
+        if (*data != '\\') {
+          if (*data == '{') {
+            skip++;
+          } else {
+            *dest = *data;
+            dest++; dest_len--;
+          }
+        }
       }
     }
     
@@ -468,10 +483,10 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
 
     *dest = '\0'; dest++; dest_len--;
     buf->size = dest - (char *)buf->content;
+    buf->extra_info->input_pos     = input_pos;
+    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_time    = input_time;
   
-    val = (uint32_t *)buf->content;
-    *val = lines;
-
     track->fifo->put(track->fifo, buf);
   } else {
     buf->free_buffer(buf);
@@ -479,6 +494,7 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
 }
 
 static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
+                             int decoder_flags,
                              uint8_t *data, int data_len,
                              int64_t data_pts, int data_duration,
                              off_t input_pos, off_t input_length,
@@ -489,6 +505,8 @@ static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
   buf = track->fifo->buffer_pool_alloc(track->fifo);
 
   buf->size = data_len + 9;  /* 2 uint32_t + '\0' */
+  buf->decoder_flags = decoder_flags;
+  
   if (buf->max_size >= buf->size) {
 
     buf->type = track->buf_type;
@@ -500,6 +518,9 @@ static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
     buf->content[8 + data_len] = '\0';
 
     lprintf("sub: %s\n", buf->content + 8);
+    buf->extra_info->input_pos     = input_pos;
+    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_time    = input_time;
     track->fifo->put(track->fifo, buf);
   } else {
     buf->free_buffer(buf);
@@ -704,20 +725,24 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_UTF8\n");
       track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_utf8;
+      init_mode = INIT_SUBTITLE;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_SSA) ||
                !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_SSA)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_SSA\n");
-      track->buf_type = BUF_SPU_TEXT;
+      track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_ssa;
+      init_mode = INIT_SUBTITLE;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_ASS) ||
                !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_ASS)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_ASS\n");
-      track->buf_type = BUF_SPU_TEXT;
+      track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_ssa;
+      init_mode = INIT_SUBTITLE;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_USF)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_USF\n");
       track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_utf8;
+      init_mode = INIT_SUBTITLE;
     } else {
       lprintf("unknown codec\n");
     }
@@ -1035,9 +1060,10 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
 
     if (track->handle_content != NULL) {
       track->handle_content((demux_plugin_t *)this, track,
-                            data, block_size_left,
-                            pts, xduration,
-                            block_pos, file_len, pts / 90);
+                             decoder_flags,
+                             data, block_size_left,
+                             pts, xduration,
+                             block_pos, file_len, pts / 90);
     } else {
       _x_demux_send_data(track->fifo, data, block_size_left,
                          pts, track->buf_type, decoder_flags,
@@ -1127,16 +1153,18 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
     }
     /* send each frame to the decoder */
     for (i = 0; i <= lace_num; i++) {
-    if (track->handle_content != NULL) {
-      track->handle_content((demux_plugin_t *)this, track,
-                            data, frame[i], pts,
-                            block_pos, file_len, pts / 90, this->duration);
-    } else {
-      _x_demux_send_data(track->fifo, data, frame[i],
-                         pts, track->buf_type, decoder_flags,
-                         block_pos, file_len, pts / 90,
-                         0, 0);
-    }
+      if (track->handle_content != NULL) {
+        track->handle_content((demux_plugin_t *)this, track,
+                               decoder_flags,
+                               data, frame[i],
+                               pts, 0,
+                               block_pos, file_len, pts / 90);
+      } else {
+        _x_demux_send_data(track->fifo, data, frame[i],
+                           pts, track->buf_type, decoder_flags,
+                           block_pos, file_len, pts / 90,
+                           this->duration, 0);
+      }
       data += frame[i];
       pts = 0;
     }
@@ -1671,11 +1699,11 @@ static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
   switch (data_type) {
     case DEMUX_OPTIONAL_DATA_SPULANG:
       lprintf ("DEMUX_OPTIONAL_DATA_SPULANG channel = %d\n",channel);
-      if ((channel >= 0) && (channel < this->num_tracks)) {
+      if ((channel >= 0) && (channel < this->num_sub_tracks)) {
         for (track_num = 0; track_num < this->num_tracks; track_num++) {
           matroska_track_t *track = this->tracks[track_num];
           
-          if ((track->buf_type & 0xFF00001F) == BUF_SPU_BASE + channel) {
+          if ((track->buf_type & 0xFF00001F) == (BUF_SPU_BASE + channel)) {
             if (track->language) {
               strncpy (str, track->language, XINE_LANG_MAX);
               str[XINE_LANG_MAX - 1] = '\0';
@@ -1697,7 +1725,7 @@ static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
         for (track_num = 0; track_num < this->num_tracks; track_num++) {
           matroska_track_t *track = this->tracks[track_num];
           
-          if ((track->buf_type & 0xFF00001F) == BUF_AUDIO_BASE + channel) {
+          if ((track->buf_type & 0xFF00001F) == (BUF_AUDIO_BASE + channel)) {
             if (track->language) {
               strncpy (str, track->language, XINE_LANG_MAX);
               str[XINE_LANG_MAX - 1] = '\0';

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.4 2004/01/17 01:50:43 tmattern Exp $
+ * $Id: matroska.h,v 1.5 2004/01/22 00:41:53 tmattern Exp $
  *
  */
 #ifndef MATROSKA_H
@@ -221,6 +221,7 @@ struct matroska_track_s {
 
   void                   (*handle_content) (demux_plugin_t *this_gen,
                                             matroska_track_t *track,
+		                            int decoder_flags,
                                             uint8_t *data, int data_len,
                                             int64_t data_pts, int data_duration,
                                             off_t input_pos, off_t input_length,
