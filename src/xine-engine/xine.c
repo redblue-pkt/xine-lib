@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.67 2001/10/09 03:06:24 miguelfreitas Exp $
+ * $Id: xine.c,v 1.68 2001/10/18 14:43:00 richwareham Exp $
  *
  * top-level xine functions
  *
@@ -441,6 +441,14 @@ xine_t *xine_init (vo_driver_t *vo,
   pthread_mutex_init (&this->finished_lock, NULL);
 
   /*
+   * init event listeners
+   */
+  this->num_event_listeners = 0; /* Initially there are none */
+  this->cur_input_plugin = NULL; /* In case the input plugin event handlers
+                                  * are called too early. */
+  this->cur_spu_decoder_plugin = NULL; 
+  
+  /*
    * create a metronom
    */
 
@@ -475,11 +483,8 @@ xine_t *xine_init (vo_driver_t *vo,
   audio_decoder_init (this);
   printf("xine_init returning\n");
 
-  /*
-   * init event listeners
-   */
-  this->num_event_listeners = 0; /* Initially there are none */
-
+  /* Add an event listener */
+  
   if((xine_register_event_listener(this, event_handler)) < 1) {
     fprintf(stderr, "xine_register_event_listener() failed.\n");
   }

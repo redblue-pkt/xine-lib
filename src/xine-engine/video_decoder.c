@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.54 2001/10/05 01:56:57 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.55 2001/10/18 14:43:00 richwareham Exp $
  *
  */
 
@@ -241,9 +241,11 @@ static void spu_event_handler(xine_t *this, event_t *event, void *data) {
   
   switch(event->type) {
   case XINE_SPU_EVENT:
+   /* -- This can cause a segfault!
     if (!this->cur_spu_decoder_plugin)
-      update_spu_decoder(this, BUF_SPU_CLUT); /* preload spu decoder */
-
+      update_spu_decoder(this, BUF_SPU_CLUT);
+   */
+   
     if (this->cur_spu_decoder_plugin)
       this->cur_spu_decoder_plugin->event(this->cur_spu_decoder_plugin,
 		(spu_event_t*) event);
