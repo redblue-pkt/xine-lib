@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.34 2002/01/08 16:47:57 cvogler Exp $
+ * $Id: video_out.h,v 1.35 2002/01/09 22:33:04 jcdutton Exp $
  *
  *
  * xine version of video_out.h 
@@ -53,6 +53,7 @@ extern "C" {
 typedef struct vo_frame_s vo_frame_t; 
 typedef struct vo_driver_s vo_driver_t ;
 typedef struct vo_instance_s vo_instance_t;
+typedef struct vo_info_s vo_info_t;
 typedef struct img_buf_fifo_s img_buf_fifo_t;
 typedef struct vo_overlay_s vo_overlay_t;
 typedef struct video_overlay_instance_s video_overlay_instance_t;
@@ -254,7 +255,7 @@ struct vo_instance_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_IFACE_VERSION 2
+#define VIDEO_OUT_IFACE_VERSION 3
 
 struct vo_driver_s {
 
@@ -302,6 +303,7 @@ struct vo_driver_s {
 			    void *data);
 
   void (*exit) (vo_driver_t *this);
+  vo_info_t* (*get_info) ();
 
 };
 
@@ -385,7 +387,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) ;
  * return value: vo_info_t* : some information about the plugin
  */
 
-typedef struct vo_info_s {
+struct vo_info_s {
    
   int    interface_version; /* plugin interface version                  */
   char  *id;                /* id of this plugin                         */
@@ -393,7 +395,7 @@ typedef struct vo_info_s {
   int    visual_type;       /* visual type supported by this plugin      */
   int    priority;          /* priority of this plugin for auto-probing  */
 
-} vo_info_t;
+};
 
 #ifdef __cplusplus
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.13 2001/10/03 15:14:03 jkeil Exp $
+ * $Id: video_out_aa.c,v 1.14 2002/01/09 22:33:04 jcdutton Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -76,6 +76,7 @@ typedef struct {
 /*
  * our video driver
  */
+vo_info_t *get_video_out_plugin_info();
 
 static uint32_t aa_get_capabilities (vo_driver_t *this) {
   return VO_CAP_YV12 | VO_CAP_YUY2;
@@ -288,12 +289,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = aa_get_property_min_max;
   this->vo_driver.gui_data_exchange    = NULL;
   this->vo_driver.exit                 = aa_exit;
+  this->vo_driver.get_info             = get_video_out_plugin_info;
 
   return (vo_driver_t*) this;
 }    
 
 static vo_info_t vo_info_aa = {
-  2,
+  3,
   "aa",
   "xine video output plugin using the ascii-art library",
   VISUAL_TYPE_AA,

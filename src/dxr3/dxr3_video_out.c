@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.4 2001/12/24 19:31:13 hrm Exp $
+ * $Id: dxr3_video_out.c,v 1.5 2002/01/09 22:33:04 jcdutton Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -161,6 +161,8 @@ int dxr3_fame_init(dxr3_driver_t *);
 #endif
 
 #define MV_COMMAND 0
+
+vo_info_t *get_video_out_plugin_info();
 
 /* some helper stuff so that the decoder plugin can test for the
  * presence of the dxr3 vo driver */
@@ -510,6 +512,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	/*
 	* allocate plugin struct
 	*/
+printf("dxr3_video_out:init_plugin\n");
 
 	this = malloc (sizeof (dxr3_driver_t));
 
@@ -530,6 +533,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
 	this->vo_driver.exit                 = dxr3_exit;
+	this->vo_driver.get_info             = get_video_out_plugin_info;
 	this->config=config;
 	this->mpeg_source = 0; /* set by update_frame, by checking the flag */
 
@@ -632,7 +636,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 }
 
 static vo_info_t vo_info_dxr3 = {
-  2, /* api version */
+  3, /* api version */
   "dxr3",
   "xine video output plugin for dxr3 cards",
   VISUAL_TYPE_X11,

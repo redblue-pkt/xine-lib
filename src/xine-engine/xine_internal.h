@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.68 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.69 2002/01/09 22:33:04 jcdutton Exp $
  *
  */
 
@@ -190,6 +190,7 @@ struct xine_s {
   int                        spu_channel_auto;
   int                        spu_channel;
 
+  vo_driver_t               *video_driver;
   vo_instance_t             *video_out;
   fifo_buffer_t             *video_fifo;
   pthread_t                  video_thread;

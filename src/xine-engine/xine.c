@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.96 2002/01/08 16:47:57 cvogler Exp $
+ * $Id: xine.c,v 1.97 2002/01/09 22:33:04 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -435,6 +435,8 @@ xine_t *xine_init (vo_driver_t *vo,
   static char *demux_strategies[] = {"default", "reverse", "content",
 				     "extension", NULL};
   int          i;
+
+  this->video_driver = vo;
 
   /* init log buffers */
   for (i = 0; i < XINE_LOG_NUM; i++)

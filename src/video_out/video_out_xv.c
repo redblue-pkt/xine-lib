@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.87 2002/01/05 13:49:30 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.88 2002/01/09 22:33:04 jcdutton Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -167,6 +167,8 @@ struct xv_driver_s {
 };
 
 int gX11Fail;
+
+vo_info_t *get_video_out_plugin_info();
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
@@ -1369,6 +1371,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = xv_get_property_min_max;
   this->vo_driver.gui_data_exchange    = xv_gui_data_exchange;
   this->vo_driver.exit                 = xv_exit;
+  this->vo_driver.get_info             = get_video_out_plugin_info;
 
   /*
    * init properties
@@ -1499,7 +1502,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_xv = {
-  2,
+  3,
   "Xv",
   "xine video output plugin using the MIT X video extension",
   VISUAL_TYPE_X11,

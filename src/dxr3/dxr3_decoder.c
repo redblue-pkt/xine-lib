@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.56 2002/01/07 23:36:37 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.57 2002/01/09 22:33:03 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -137,16 +137,22 @@ static int dxr3_check_vo(config_values_t* cfg)
 static int dxr3_tested = 0;
 static int dxr3_ok;
 
-static void dxr3_presence_test()
+static void dxr3_presence_test( xine_t* xine)
 {
 	int fd, val;
+        vo_info_t *info;
 
 	if (dxr3_tested)
 		return;
 
 	dxr3_tested = 1;
 	dxr3_ok = 0;
-	
+        if (xine && xine->video_driver ) {
+          info = xine->video_driver->get_info();
+          if ((strncmp (info->id, "dxr3", 4)) != 0) {
+              return;
+          }
+        }
 	if ((fd = open(devname, O_WRONLY))<0) {
 		printf("dxr3: not detected (%s: %s)\n",
 			devname, strerror(errno));
@@ -734,7 +740,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	cfg = xine->config;
 	devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Dxr3: Device Name",NULL,NULL,NULL);
 
-	dxr3_presence_test ();
+	dxr3_presence_test ( xine );
 	if (!dxr3_ok) return NULL;
 
 	this = (dxr3_decoder_t *) malloc (sizeof (dxr3_decoder_t));
@@ -1047,8 +1053,10 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   cfg = xine->config;
   devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, NULL,NULL,NULL,NULL);
 
-  dxr3_presence_test ();
-  if (!dxr3_ok) return NULL;
+  dxr3_presence_test ( xine );
+  if (!dxr3_ok) {
+    return NULL;
+  }
 
   this = (spudec_decoder_t *) malloc (sizeof (spudec_decoder_t));
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.52 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.53 2002/01/09 22:33:04 jcdutton Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -159,6 +159,7 @@ int gX11Fail;
 /*
  * first, some utility functions
  */
+vo_info_t *get_video_out_plugin_info();
 
 int HandleXError (Display *display, XErrorEvent *xevent) {
   
@@ -1224,6 +1225,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = xshm_get_property_min_max;
   this->vo_driver.gui_data_exchange    = xshm_gui_data_exchange;
   this->vo_driver.exit                 = xshm_exit;
+  this->vo_driver.get_info             = get_video_out_plugin_info;
 
 
   /*
@@ -1348,7 +1350,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_shm = {
-  2,
+  3,
   "XShm",
   "xine video output plugin using the MIT X shared memory extension",
   VISUAL_TYPE_X11,
