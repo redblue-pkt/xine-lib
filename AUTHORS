@@ -223,4 +223,7 @@ Contributions
   Frantisek Dvorak <valtri@atlas.cz>
     czech internationalization files (xine lib/ui).
 
+  Ian Goldberg <ian@cypherpunks.ca>
+    "streaming" AVI support (plays growing files)
+
     (let us know if we've forgotten anyone)

@@ -1,5 +1,6 @@
 xine (0.9.10) unstable; urgency=low
 
+  * "streaming" AVI support (plays growing files)
   * new resizing behaviour for xine-ui: user may choose if stream
     size changes should update video window size.
   * fix VCD playback
