@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.141 2004/02/15 18:26:51 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.142 2004/02/19 18:04:27 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -37,6 +37,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include <ogg/ogg.h>
 #include <vorbis/codec.h>
@@ -342,7 +343,7 @@ static void send_ogg_packet (demux_ogg_t *this,
 static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview) {
   int64_t diff;
 
-  lprintf ("new pts %lld found in stream\n",pts);
+  lprintf ("new pts %" PRId64 " found in stream\n",pts);
 
   diff = pts - this->last_pts[video];
 
@@ -350,7 +351,7 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-             "diff=%lld (pts=%lld, last_pts=%lld)\n", diff, pts, this->last_pts[video]);
+             "diff=%" PRId64 " (pts=%" PRId64 ", last_pts=%" PRId64 ")\n", diff, pts, this->last_pts[video]);
 
     if (this->buf_flag_seek) {
       _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -597,7 +598,7 @@ static void send_ogg_buf (demux_ogg_t *this,
     } else
       pts = 0;
 
-    lprintf ("audiostream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
+    lprintf ("audiostream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
              stream_num,
              op->granulepos,
              this->si[stream_num]->header_granulepos,
@@ -632,7 +633,7 @@ static void send_ogg_buf (demux_ogg_t *this,
     } else
       pts = 0;
 
-    lprintf ("theorastream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
+    lprintf ("theorastream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
              stream_num,
              op->granulepos,
              this->si[stream_num]->header_granulepos,
@@ -664,7 +665,7 @@ static void send_ogg_buf (demux_ogg_t *this,
       } else
         pts = 0;
       
-      lprintf ("videostream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
+      lprintf ("videostream %d op-gpos %" PRId64 " hdr-gpos %" PRId64 " pts %" PRId64 " \n",
                stream_num,
                op->granulepos,
                this->si[stream_num]->header_granulepos,
@@ -840,8 +841,8 @@ static void decode_video_header (demux_ogg_t *this, const int stream_num, ogg_pa
   this->si[stream_num]->headers = 0; /* header is sent below */
 
   lprintf ("subtype          %.4s\n", (char*)&locsubtype);
-  lprintf ("time_unit        %lld\n", loctime_unit);
-  lprintf ("samples_per_unit %lld\n", locsamples_per_unit);
+  lprintf ("time_unit        %" PRId64 "\n", loctime_unit);
+  lprintf ("samples_per_unit %" PRId64 "\n", locsamples_per_unit);
   lprintf ("default_len      %d\n", locdefault_len);
   lprintf ("buffersize       %d\n", locbuffersize);
   lprintf ("bits_per_sample  %d\n", locbits_per_sample);
@@ -927,8 +928,8 @@ static void decode_audio_header (demux_ogg_t *this, const int stream_num, ogg_pa
     }
 
     lprintf ("subtype          0x%x\n", codec);
-    lprintf ("time_unit        %lld\n", loctime_unit);
-    lprintf ("samples_per_unit %lld\n", locsamples_per_unit);
+    lprintf ("time_unit        %" PRId64 "\n", loctime_unit);
+    lprintf ("samples_per_unit %" PRId64 "\n", locsamples_per_unit);
     lprintf ("default_len      %d\n", locdefault_len);
     lprintf ("buffersize       %d\n", locbuffersize);
     lprintf ("bits_per_sample  %d\n", locbits_per_sample);
@@ -1343,7 +1344,7 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
           iframe=op.granulepos>>keyframe_granule_shift;
           pframe=op.granulepos-(iframe<<keyframe_granule_shift);
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                   "seeking keyframe i %lld p %lld\n", iframe, pframe);
+                   "seeking keyframe i %" PRId64 " p %" PRId64 "\n", iframe, pframe);
           if (pframe!=0)
             continue;
         } else
@@ -1447,7 +1448,7 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
   if (this->status == DEMUX_OK) {
     _x_demux_control_start(this->stream);
     send_header (this);
-    lprintf ("headers sent, avg bitrate is %lld\n", this->avg_bitrate);
+    lprintf ("headers sent, avg bitrate is %" PRId64 "\n", this->avg_bitrate);
   }
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO,
@@ -1510,15 +1511,15 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
 	    );
 	}
 
-	lprintf ("current_pos is%lld\n",current_pos);
-	lprintf ("new_pos is %lld\n",start_pos); 
+	lprintf ("current_pos is %" PRId64 "\n",current_pos);
+	lprintf ("new_pos is %" PRId64 "\n",start_pos); 
 
       } else {
 	/*seek using avg_bitrate*/
 	start_pos = start_time * this->avg_bitrate/8;
       }
 
-      lprintf ("seeking to %d seconds => %lld bytes\n",
+      lprintf ("seeking to %d seconds => %" PRId64 " bytes\n",
 	      start_time, start_pos);
 
     }
@@ -1534,7 +1535,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     if (start_pos == 0)	 
       this->keyframe_needed = 0;	 
 
-    lprintf ("seek to %lld called\n",start_pos);
+    lprintf ("seek to %" PRId64 " called\n",start_pos);
 
     this->input->seek (this->input, start_pos, SEEK_SET);
 
