@@ -2,7 +2,7 @@ Source: xine-lib
 Section: libs
 Priority: optional
 Maintainer: Siggi Langauf <siggi@debian.org>
-Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), libasound1-dev (0.5.10-1), xlibs-dev (>> 4.1), libesd0-dev, zlib1g-dev (>= 1:1.1.3)
+Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), libasound1-dev (0.5.10-1), xlibs-dev (>> 4.1), libesd0-dev, zlib1g-dev (>= 1:1.1.3), libarts-dev (>=4:2.2.0-final-3)
 Standards-Version: 3.2.1
 
 Package: libxine-dev
