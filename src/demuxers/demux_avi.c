@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.60 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: demux_avi.c,v 1.61 2002/01/17 14:32:08 mshopf Exp $
  *
  * demultiplexer for avi streams
  *
@@ -346,7 +346,13 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 	ERR_EXIT(AVI_ERR_NO_MEM);
 
       if (this->input->read(this->input, (char *)AVI->idx, n) != n ) 
-	ERR_EXIT(AVI_ERR_READ);
+      {
+        LOG_MSG(this->xine, _("demux_avi: avi index is broken\n"));
+	free (AVI->idx);	/* Index is broken, reconstruct */
+	AVI->idx = NULL;
+	AVI->n_idx = AVI->max_idx = 0;
+	break; /* EOF */
+      }
 
     } else
       this->input->seek(this->input, n, SEEK_CUR);
