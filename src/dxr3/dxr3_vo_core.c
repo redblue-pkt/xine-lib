@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.11 2001/11/29 07:17:08 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.12 2001/12/23 02:36:55 hrm Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -40,6 +40,8 @@
  *************************************************************************/
  
 #include "dxr3_video_out.h"
+
+#define OVERLAY_LOG 0
 
 void *malloc_aligned (size_t alignment, size_t size, void **mem) {
   char *aligned;
@@ -536,13 +538,18 @@ static int lookup_parameter(struct lut_entry *lut, char *name,
  void **ptr, int *type) 
 {
 	int i;
-
 	for(i=0; lut[i].name; i++)
 	 if(!strcmp(name,lut[i].name)) {
 		*ptr = lut[i].ptr;
 		*type = lut[i].type;
+#if OVERLAY_LOG
+		printf("dxr3: found parameter \"%s\"\n", name);
+#endif
 		return 1;
 	 }
+#if OVERLAY_LOG
+	printf("dxr3: WARNING: unknown parameter \"%s\"\n", name);
+#endif
 	return 0;
 }
 
@@ -562,7 +569,9 @@ int dxr3_overlay_read_state(dxr3_overlay_t *this)
 	sprintf(tmp,"/res_%dx%dx%d",
 	 this->screen_xres,this->screen_yres,this->screen_depth);
 	strcat(fname,tmp);
-
+#if OVERLAY_LOG
+	printf("dxr3: attempting to open %s\n", fname);
+#endif
 	if(!(fp=fopen(fname,"r"))){
 		printf("ERRROR Reading overlay init file!! run autocal !!!\n");
 	return -1;
@@ -575,23 +584,38 @@ int dxr3_overlay_read_state(dxr3_overlay_t *this)
 			break;
 		tok=strtok(line," ");
 		if(lookup_parameter(lut,tok,&ptr,&type)) {
-			tok=strtok(NULL," ");
+			tok=strtok(NULL," \n");
 			switch(type) {
 			case TYPE_INT:
 				sscanf(tok,"%d",(int *)ptr);
+#if OVERLAY_LOG
+				printf("dxr3: value \"%s\" -> %d\n", tok, *(int*)ptr);
+#endif
 				break;
 			case TYPE_XINT:
 				sscanf(tok,"%x",(int *)ptr);
+#if OVERLAY_LOG
+				printf("dxr3: value \"%s\" -> %d\n", tok, *(int*)ptr);
+#endif
 				break;
 			case TYPE_FLOAT:
 				sscanf(tok,"%f",(float *)ptr);
+#if OVERLAY_LOG
+				printf("dxr3: value \"%s\" -> %f\n", tok, *(float*)ptr);
+#endif
 				break;
 			case TYPE_COEFF:
 				for(j=0;j<3;j++) {
 					sscanf(tok,"%f",&((struct coeff *)ptr)[j].k);
-					tok=strtok(NULL," ");
+#if OVERLAY_LOG
+					printf("dxr3: value (%d,k) \"%s\" -> %f\n", j, tok, ((struct coeff*)ptr)[j].k);
+#endif
+					tok=strtok(NULL," \n");
 					sscanf(tok,"%f",&((struct coeff *)ptr)[j].m);
-					tok=strtok(NULL," ");
+#if OVERLAY_LOG
+					printf("dxr3: value (%d,m) \"%s\" -> %f\n", j, tok, ((struct coeff*)ptr)[j].m);
+#endif
+					tok=strtok(NULL," \n");
 				}
 				break;	    
 			}
@@ -621,24 +645,40 @@ int dxr3_overlay_set_keycolor(dxr3_overlay_t *this)
 	int32_t overlay_limit;
 	em8300_attribute_t attr;
 
+#if OVERLAY_LOG
+	printf("dxr3: set_keycolor: r=%f g=%f b=%f, interval = %f\n",
+		r,g,b,interval);
+#endif
 	overlay_limit =  /* lower limit */
-		col_interp(r - interval, this->colcal_upper[0]) << 16 |
-		col_interp(g - interval, this->colcal_upper[1]) <<  8 |
-		col_interp(b - interval, this->colcal_upper[2]);
+		col_interp(r - interval, this->colcal_lower[0]) << 16 |
+		col_interp(g - interval, this->colcal_lower[1]) <<  8 |
+		col_interp(b - interval, this->colcal_lower[2]);
 
+#if OVERLAY_LOG
+	printf("dxr3: lower overlay_limit = %d\n", overlay_limit);
+#endif
 	attr.attribute = EM9010_ATTRIBUTE_KEYCOLOR_LOWER;
 	attr.value = overlay_limit;
 	ret = ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SET_ATTRIBUTE, &attr);
-	if (ret < 0) return ret;
+	if (ret < 0) {
+		printf("dxr3: WARNING: error setting overlay upperl limit attribute\n");
+		return ret;
+	}
 
 	overlay_limit =  /* upper limit */
 		col_interp(r + interval, this->colcal_upper[0]) << 16 |
 		col_interp(g + interval, this->colcal_upper[1]) <<  8 |
 		col_interp(b + interval, this->colcal_upper[2]);
-
+#if OVERLAY_LOG
+	printf("dxr3: upper overlay_limit = %d\n", overlay_limit);
+#endif
 	attr.attribute = EM9010_ATTRIBUTE_KEYCOLOR_UPPER;
 	attr.value = overlay_limit;
-	return ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SET_ATTRIBUTE, &attr);
+	ret = ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SET_ATTRIBUTE, &attr);
+	if (ret < 0) {
+		printf("dxr3: WARNING: error setting overlay upperl limit attribute\n");
+	}
+	return ret;
 }
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.1 2001/12/16 19:05:44 hrm Exp $
+ * $Id: dxr3_video_out.c,v 1.2 2001/12/23 02:36:55 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -200,8 +200,6 @@ static void dxr3_frame_dispose (vo_frame_t *frame_gen)
   dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
   if (frame->mem)
     free (frame->mem);
-  if (frame->mpeg)
-    free(frame->mpeg);
   free(frame);
 }
 
@@ -222,8 +220,6 @@ static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
   frame->vo_frame.field   = dummy_frame_field; 
   frame->vo_frame.dispose = dxr3_frame_dispose;
 
-  frame->mpeg = 0;
-
   return (vo_frame_t*) frame;
 }
 
@@ -235,7 +231,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
   int aspect,i;  
   dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
-  int image_size, oheight, top_bar;
+  int image_size, oheight; 
 
   /* reset the copy calls counter (number of calls to dxr3_frame_copy) */	
   frame->copy_calls = 0;
@@ -243,8 +239,6 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
   aspect = this->aspectratio;
   oheight = this->oheight;
-
-  frame->mpeg_size = 0;
 
   if (flags == DXR3_VO_UPDATE_FLAG) { /* talking to dxr3 decoder */
 	this->mpeg_source = 1;
@@ -289,6 +283,11 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   }
 
   /* the following is for the mpeg encoding part only */
+
+  if (this->add_bars == 0) {
+	/* don't add black bars; assume source is in 4:3 */
+	ratio_code = XINE_ASPECT_RATIO_4_3;
+  }
 
   /* check aspect ratio, see if we need to add black borders */
   if ((this->video_width != width) || (this->video_iheight != height) ||
@@ -349,23 +348,27 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
 
   /* if dimensions changed, we need to re-allocate frame memory */
-  if ((frame->width != width) || (frame->height != height)) {
+  if ((frame->width != width) || (frame->height != height) || 
+	(frame->oheight != oheight)) {
     if (frame->mem) {
       free (frame->mem);
       frame->mem = NULL;
     }
     /* make top black bar multiple of 16, 
      * so old and new macroblocks overlap */ 
-    top_bar = ((oheight - height) / 32) * 16; 
-
+    this->top_bar = ((oheight - height) / 32) * 16; 
     if (format == IMGFMT_YUY2) {
       image_size = width * oheight; /* includes black bars */
       /* planar format, only base[0] */
-      frame->real_base[0] = malloc_aligned(16, image_size*2, (void**)&frame->mem);
+      /* add one extra line for field swap stuff */
+      frame->real_base[0] = malloc_aligned(16, (image_size+width)*2, 
+		(void**)&frame->mem);
+      /* don't use first line */
+      frame->real_base[0] += width * 2;
       frame->real_base[1] = frame->real_base[2] = 0;
 
       /* fix offset, so the decoder does not see the top black bar */
-      frame->vo_frame.base[0] = frame->real_base[0] + width * 2 * top_bar; 
+      frame->vo_frame.base[0] = frame->real_base[0] + width * 2 * this->top_bar; 
       frame->vo_frame.base[1] = frame->vo_frame.base[2] = 0;
 
       /* fill with black (yuy2 16,128,16,128,...) */
@@ -375,8 +378,11 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
     }
     else { /* IMGFMT_YV12 */
       image_size = width * oheight; /* includes black bars */
-      frame->real_base[0] = malloc_aligned(16, image_size * 3/2, 
+      /* add one extra line for field swap stuff */
+      frame->real_base[0] = malloc_aligned(16, (image_size + width) * 3/2, 
                                              (void**) &frame->mem);
+      /* don't use first line */
+      frame->real_base[0] += width;
       frame->real_base[1] = frame->real_base[0] + image_size; 
       frame->real_base[2] = frame->real_base[1] + image_size/4; 
 
@@ -386,16 +392,32 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       memset(frame->real_base[2], 128, image_size/4);
 
       /* fix offsets, so the decoder does not see the top black bar */
-      frame->vo_frame.base[0] = frame->real_base[0] + width * top_bar;
-      frame->vo_frame.base[1] = frame->real_base[1] + width * top_bar/4;
-      frame->vo_frame.base[2] = frame->real_base[2] + width * top_bar/4;
+      frame->vo_frame.base[0] = frame->real_base[0] + width * this->top_bar;
+      frame->vo_frame.base[1] = frame->real_base[1] + width * this->top_bar/4;
+      frame->vo_frame.base[2] = frame->real_base[2] + width * this->top_bar/4;
     }
   }
-      
+     
+  if (this->swap_fields != frame->swap_fields) {
+	if (format == IMGFMT_YUY2) {
+		if (this->swap_fields) 
+			frame->vo_frame.base[0] -= width *2;
+		else  
+			frame->vo_frame.base[0] += width *2;
+	}
+	else {
+		if (this->swap_fields) 
+			frame->vo_frame.base[0] -= width;
+		else  
+			frame->vo_frame.base[0] += width;
+	}
+  }
+ 
   frame->width  = width;
   frame->height = height;
   frame->oheight = oheight;
   frame->format = format;
+  frame->swap_fields = this->swap_fields;
   if(this->aspectratio!=aspect)
     dxr3_set_property (this_gen,VO_PROP_ASPECT_RATIO, aspect);
 
@@ -450,6 +472,29 @@ void dxr3_exit (vo_driver_t *this_gen)
 	dxr3_set_vo(this, 0);
 }
 
+void dxr3_update_add_bars(void *data, cfg_entry_t* entry)
+{
+	dxr3_driver_t* this = (dxr3_driver_t*)data;
+	this->add_bars = entry->num_value;
+	printf("dxr3: add bars to correct a.r. is %s\n", 
+		(this->add_bars ? "on" : "off"));
+}
+
+void dxr3_update_swap_fields(void *data, cfg_entry_t* entry)
+{
+	dxr3_driver_t* this = (dxr3_driver_t*)data;
+	this->swap_fields = entry->num_value;
+	printf("dxr3: set swap field to %s\n", 
+		(this->swap_fields ? "on" : "off"));
+}
+
+static void dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry)
+{
+	((dxr3_driver_t*)this_gen)->enhanced_mode = entry->num_value;
+	printf("dxr3: encode: set enhanced mode to %s\n", 
+		(entry->num_value ? "on" : "off"));
+}
+
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 {
 	dxr3_driver_t *this;
@@ -482,8 +527,12 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->vo_driver.exit                 = dxr3_exit;
 	this->config=config;
 	this->mpeg_source = 0; /* set by update_frame, by checking the flag */
+
+	this->swap_fields = config->register_bool(config, "dxr3.enc_swap_fields", 0, "swap odd and even lines", NULL, dxr3_update_swap_fields, this);
+
+	this->add_bars = config->register_bool(config, "dxr3.enc_add_bars", 1, "Add black bars to correct aspect ratio", "If disabled, will assume source has 4:3 a.r.", dxr3_update_add_bars, this);
 	
-	this->enhanced_mode = config->register_bool(config,"dxr3.enc_alt_play_mode", 1, "dxr3: use alternate play mode for mpeg encoder playback","Enabling this option will utilise a slightly different play mode",NULL,NULL);
+	this->enhanced_mode = config->register_bool(config,"dxr3.enc_alt_play_mode", 1, "dxr3: use alternate play mode for mpeg encoder playback","Enabling this option will utilise a slightly different play mode",dxr3_update_enhanced_mode,this);
 	/* open control device */
 	this->devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV,NULL,NULL,NULL,NULL);
 

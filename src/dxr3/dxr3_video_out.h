@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.11 2001/12/16 19:05:44 hrm Exp $
+ * $Id: dxr3_video_out.h,v 1.12 2001/12/23 02:36:55 hrm Exp $
  *
  */
 
@@ -100,8 +100,11 @@ typedef struct dxr3_driver_s {
 	double		fps; /* frames per second */
 	int		format; /* color format */
 	const char	*file_out;
+	int		swap_fields; /* swap fields */
+	int		add_bars; /* add black bars to correct a.r. */
 	/* height after adding black bars to correct a.r. */
         int 		oheight; 
+	int		top_bar; /* number of lines in top black bar */
 	/* input height (before adding black bars) */
 	int 		video_iheight; 
 	/* output height (after adding bars) */
@@ -140,8 +143,7 @@ typedef struct dxr3_frame_s {
   int           format;
   dxr3_driver_t *vo_instance; 	/* points to self, for use in dxr3_frame_copy */
   int           copy_calls; 	/* counts calls to dxr3_frame_copy function */
-  unsigned char *mpeg; 		/* encoded mpeg data */
-  unsigned int  mpeg_size; 	/* length of data */
+  int		swap_fields;	/* shifts Y buffer one line to exchange odd/even lines*/
 } dxr3_frame_t;
 
 struct encoder_data_s {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.47 2001/12/19 01:53:43 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.48 2001/12/23 02:36:54 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -45,6 +45,10 @@
  * get a lot of "throwing away frame..." messages, especially just
  * after start/seek, but those are relatively harmless. (I guess we
  * call img->draw a tad too often).
+ *
+ * update 21/12/01 by Harm
+ * many revisions, but I've been too lazy to document them here.
+ * read the cvs log, that's what it's for anyways.
  */
 
 
@@ -72,7 +76,8 @@
 #define DEFAULT_DEV "/dev/em8300"
 static char *devname;
 
-#define METRONOM_HACK 0
+/* lots of poohaa about pts things */
+#define LOG_PTS 0 
 
 #define MV_COMMAND 0
 #define MV_STATUS  1
@@ -94,7 +99,13 @@ typedef struct dxr3_decoder_s {
 	int width;
 	int height;
 	int aspect;
-	int duration;
+	int frame_rate_code;
+	int repeat_first_field;
+	/* try to sync PTS every frame. will be disabled if non-progessive
+	   video is detected via repeat first field */
+	int sync_every_frame;
+	/* if disabled by repeat first field, retry after 500 frames */
+	int sync_retry; 
 	int enhanced_mode;
 	int have_header_info;
 	int in_buffer_fill;
@@ -230,14 +241,14 @@ static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
    Adjusts the SCR value of the card to match that given.
    This function is only called if the dxr3 SCR plugin is
    _NOT_ master...
+   Harm: wish that were so. It's called by audio_out
+   (those adjusting master clock x->y messages)
 */
 static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	vpts >>= 1;
-
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts))
 		printf("dxr3scr: adjust failed (%s)\n", strerror(errno));
-
 }
 
 /* *** dxr3scr_start ***
@@ -314,18 +325,10 @@ static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
-	char tmpstr[100];
 
 	printf("dxr3: Entering video init, devname=%s.\n",devname);
-    
-	/* open video device */
-	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
-	if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
-		/* printf("dxr3: Failed to open video device %s (%s)\n",
-		 tmpstr, strerror(errno)); */
-		/* it's possible that the dxr3 video out plugin still
-		 * has it. We try again before writing */
-	}
+   
+	this->fd_video = -1; /* open later */
 
 	if ((this->fd_control = open (devname, O_WRONLY)) < 0) {
 		printf("dxr3: Failed to open control device %s (%s)\n",
@@ -337,7 +340,6 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	this->video_out = video_out;
 
 	this->last_pts = 0;
-	
 	this->scr = dxr3scr_init(this);
 	this->video_decoder.metronom->register_scr(
 	 this->video_decoder.metronom, this->scr);
@@ -363,7 +365,7 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
 {
 	/* framerate code... needed for metronom */
-	int framecode = buffer[HEADER_OFFSET+3] & 15;
+	this->frame_rate_code = buffer[HEADER_OFFSET+3] & 15;
 	
 	/* grab video resolution and aspect ratio from the stream */
 	this->height = (buffer[HEADER_OFFSET+0] << 16) |
@@ -372,44 +374,47 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
 	this->width  = ((this->height >> 12) + 15) & ~15;
 	this->height = ((this->height & 0xfff) + 15) & ~15;
 	this->aspect = buffer[HEADER_OFFSET+3] >> 4;
-
-	switch (framecode){
-	case 1: /* 23.976 */
-		this->duration=3913;
-		break;
-	case 2: /* 24.000 */
-		this->duration=3750;
-		break;
-	case 3: /* 25.000 */
-		this->duration=3600;
-		break;
-	case 4: /* 29.970 */
-		this->duration=3003;
-		break;
-	case 5: /* 30.000 */
-		this->duration=3000;
-		break;
-	case 6: /* 50.000 */
-		this->duration=1800;
-		break;
-	case 7: /* 59.940 */
-		this->duration=1525;
-		break;
-	case 8: /* 60.000 */
-		this->duration=1509;
-		break;
-	default:
-		/* only print this warning once */
-		if (this->duration != 3600) {
-			printf("dxr3: warning: unknown frame rate code %d: using PAL\n", framecode);
-		}
-		this->duration=3600;  /* PAL 25fps */
-		break;
-	}
 	
 	this->have_header_info = 1;
 }
 
+static int get_duration(int framecode, int repeat_first_field)
+{
+	int duration;
+	switch (framecode){
+	case 1: /* 23.976 */
+		duration=3913;
+		break;
+	case 2: /* 24.000 */
+		duration=3750;
+		break;
+	case 3: /* 25.000 */
+		duration=repeat_first_field ? 5400 : 3600;
+		/*duration=3600;*/
+		break;
+	case 4: /* 29.970 */
+		duration=repeat_first_field ? 3754 : 3003;
+		/*duration=3003;*/
+		break;
+	case 5: /* 30.000 */
+		duration=3000;
+		break;
+	case 6: /* 50.000 */
+		duration=1800;
+		break;
+	case 7: /* 59.940 */
+		duration=1525;
+		break;
+	case 8: /* 60.000 */
+		duration=1509;
+		break;
+	default:
+		printf("dxr3: warning: unknown frame rate code %d: using PAL\n", framecode);
+		duration=3600;  /* PAL 25fps */
+		break;
+	}
+	return duration;
+}
 
 /* *** dxr3_flush ***
    flush the dxr3's onboard buffers - but I'm not sure that this is 
@@ -430,7 +435,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
-	int vpts, i;
+	int vpts, i, duration, skip;
         vo_frame_t *img;
 	uint8_t *buffer, byte;
 	uint32_t shift;
@@ -445,6 +450,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 	/* FIXME What are we supposed to do with this? */
 	if (buf->type == BUF_VIDEO_FILL && this->have_header_info) {
+		duration = get_duration(this->frame_rate_code, 0); 
 		/* printf("dxr3enc: BUF_VIDEO_FILL\n"); */
 		/* require have_header_info, otherwise width and height
 	 	 * settings may be random */
@@ -453,13 +459,14 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              this->height,
                              this->aspect,
                              IMGFMT_YV12,
-                             this->duration,
+			     duration,
                              DXR3_VO_UPDATE_FLAG);
 		img->PTS=0;
 		img->bad_frame = 0;
 	        img->draw(img);
 		vpts = img->PTS;
 		img->free(img);
+		this->last_pts += duration; /* predict vpts */
 		return;
 	}
 
@@ -485,8 +492,28 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 			parse_mpeg_header(this, buffer);
 			continue;
 		}
+		if (byte == 0xb5) {
+			/* extension data */
+			if ((buffer[0] & 0xf0) == 0x80) {
+				/* picture coding extension */
+    				this->repeat_first_field = (buffer[3] >> 1) & 1;
+			}
+			/* check if we can keep syncing */
+			if (this->repeat_first_field && this->sync_every_frame) {
+				/* metronom can't handle variable duration */
+				printf("dxr3: non-progressive video detected. "
+					"disabling sync_every_frame.\n");
+				this->sync_every_frame = 0;
+				this->sync_retry = 500; /* see you later */
+			}
+			if (this->repeat_first_field && this->sync_retry) {
+				/* reset counter */
+				this->sync_retry = 500;	
+			}
+			continue;
+		}
 		if (byte != 0x00) {
-			/* not a new frame */
+			/* Don't care what it is. It's not a new frame */
 			continue;
 		}
 		/* we have a code for a new frame */
@@ -494,13 +521,15 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 			/* this->width et al may still be undefined */
 			continue;
 		}
+		duration = get_duration(this->frame_rate_code, 
+					this->repeat_first_field);
 		/* pretend like we have decoded a frame */
     		img = this->video_out->get_frame (this->video_out,
                              this->width,
                              this->height,
                              this->aspect,
                              IMGFMT_YV12,
-                             this->duration,
+                             duration,
                              DXR3_VO_UPDATE_FLAG);
 		img->PTS=buf->PTS;
 		img->bad_frame = 0;
@@ -508,10 +537,28 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		   and stores the return value back in img->PTS
 		   Calling draw with buf->PTS==0 is okay; metronome will
 		   extrapolate a value. */
-	        img->draw(img);
-		vpts = img->PTS; /* copy so we can free img */
-		/* store at what time we called draw last */
+		skip = img->draw(img);
+	        if (skip <= 0) { /* don't skip */
+			vpts = img->PTS; /* copy so we can free img */
+		}
+		else { /* metronom says skip, so don't set PTS */
+			printf("dxr3: skip = %d\n", skip);
+			vpts = 0;
+		}
 		img->free(img);
+		this->last_pts += duration; /* predict vpts */
+		
+		/* if sync_every_frame was disabled, decrease the counter
+		 * for a retry 
+		 * (it might be due to crappy studio logos and stuff
+		 * so we should give the main movie a chance) */
+		if (this->sync_retry) {
+			this->sync_retry--;
+			if (!this->sync_retry) {
+				printf("dxr3: retrying sync_every_frame");
+				this->sync_every_frame = 1;
+			}
+		}
 	}
 
 
@@ -521,7 +568,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	if (this->fd_video < 0) {	
 		char tmpstr[128];
 		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
-		if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
+		if ((this->fd_video = open (tmpstr, O_WRONLY | O_NONBLOCK)) < 0) {
 			printf("dxr3: Failed to open video device %s (%s)\n",
 				tmpstr, strerror(errno)); 
 			return;
@@ -530,16 +577,40 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 	/* From time to time, update the pts value 
 	 * FIXME: the exact conditions here are a bit uncertain... */
-	if (buf->PTS && vpts && this->last_pts < vpts)
+	if (vpts)
 	{
+		int delay;
+		delay = vpts - this->video_decoder.metronom->get_current_time(
+				this->video_decoder.metronom);
+#if LOG_PTS
+		printf("dxr3: SETPTS got %d expected = %d (delta %d) delay = %d\n", 
+			vpts, this->last_pts, vpts-this->last_pts, delay);
+#endif
 		this->last_pts = vpts;
-		/* update the dxr3's current pts value */	
-		if (this->fd_video >= 0 && 
-		    ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts)) {
+		/* SETPTS only if less then one second in the future and
+		 * either buffer has PTS or sync_every_frame is set */
+		if ((delay > 0) && (delay < 90000) &&
+		    (this->sync_every_frame || buf->PTS)) {
+			/* update the dxr3's current pts value */	
+			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				printf("dxr3: set video pts failed (%s)\n",
-				 strerror(errno));
+					 strerror(errno));
+		}
+		if (delay >= 90000) {
+			/* frame more than 1 sec ahead */
+			printf("dxr3: WARNING: vpts %d is %.02f seconds ahead of time!\n",
+				vpts, delay/90000.0); 
+		}
+		if (delay < 0) {
+			printf("dxr3: WARNING: overdue frame.\n");
 		}
 	}
+#if LOG_PTS
+	else if (buf->PTS) {
+		printf("dxr3: skip buf->PTS = %d (no vpts) last_vpts = %d\n", 
+			buf->PTS, this->last_pts);
+	}
+#endif
 	/* if the dxr3_alt_play option is used, change the dxr3 playmode */
 	if(this->enhanced_mode && !scanning_mode)
 		dxr3_mvcommand(this->fd_control, 6);
@@ -548,8 +619,14 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	   break with open source tradition, check the return value */
 	written = write(this->fd_video, buf->content, buf->size);
 	if (written < 0) {
-		printf("dxr3: video device write failed (%s)\n",
-		 strerror(errno));
+		if (errno == EAGAIN) {
+			printf("dxr3: write to device would block. flushing\n");
+			dxr3_flush(this_gen);
+		}
+		else {
+			printf("dxr3: video device write failed (%s)\n",
+			 	strerror(errno));
+		}
 		return;
 	}
 	if (written != buf->size)
@@ -562,8 +639,10 @@ static void dxr3_close (video_decoder_t *this_gen)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 
-	this->video_decoder.metronom->unregister_scr(
-	 this->video_decoder.metronom, this->scr);
+	if (this->scr) {
+		this->video_decoder.metronom->unregister_scr(
+			this->video_decoder.metronom, this->scr);
+	}
 
 	if (this->fd_video >= 0)
 		close(this->fd_video);
@@ -575,6 +654,28 @@ static void dxr3_close (video_decoder_t *this_gen)
 
 static char *dxr3_get_id(void) {
   return "dxr3-mpeg2";
+}
+
+static void dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry)
+{
+	((dxr3_decoder_t*)this_gen)->enhanced_mode = entry->num_value;
+	printf("dxr3: mpeg playback: set enhanced mode to %s\n", 
+		(entry->num_value ? "on" : "off"));
+}
+
+static void dxr3_update_sync_mode(void *this_gen, cfg_entry_t *entry)
+{
+	((dxr3_decoder_t*)this_gen)->sync_every_frame = entry->num_value;
+	printf("dxr3: set sync_every_frame to %s\n", 
+		(entry->num_value ? "on" : "off"));
+}
+
+static void dxr3_flush_decoder(void *this_gen, cfg_entry_t *entry)
+{
+	printf("dxr3: flush requested\n");
+	dxr3_flush(this_gen);
+	/* reset to false, so it'll look like a button in the gui :-) */
+	entry->num_value = 0;	
 }
 
 video_decoder_t *init_video_decoder_plugin (int iface_version,
@@ -607,12 +708,35 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.priority            = 10;
 	this->config			        = cfg;
 
+	this->frame_rate_code = 0;
+	this->repeat_first_field = 0;
+	this->sync_every_frame = 1;
+
 	this->scr_prio = cfg->register_num(cfg, "dxr3.scr_priority", 10, "Dxr3: SCR plugin priority",NULL,NULL,NULL); 
         
-	this->enhanced_mode = cfg->register_bool(cfg,"dxr3.alt_play_mode", 0, "Dxr3: use alternate Play mode","Enabling this option will utilise a slightly different play mode",NULL,NULL);
+	this->sync_every_frame = cfg->register_bool(cfg,
+		"dxr3.sync_every_frame", 
+		1, 
+		"Try to sync video every frame",
+		"This is relevant for progressive video only (most PAL films)",
+		dxr3_update_sync_mode, this);
 
+	this->sync_retry = 0;
+
+	this->enhanced_mode = cfg->register_bool(cfg,
+		"dxr3.alt_play_mode", 
+		0, 
+		"Use alternate Play mode",
+		"Enabling this option will utilise a slightly different play mode",
+		dxr3_update_enhanced_mode, this);
+
+	/* a boolean that's really a button; request a decoder flush */
+	cfg->register_bool(cfg, "dxr3.flush", 0, "Flush decoder now", 
+		"Flushing the decoder might unfreeze playback or restore sync", 
+		dxr3_flush_decoder, this);
+		
 	if(this->enhanced_mode)
-	  printf("Dxr3: Using Mode 6 for playback\n");
+	  printf("dxr3: Using Mode 6 for playback\n");
 	this->have_header_info = 0;
 	this->in_buffer_fill = 0;
 	return (video_decoder_t *) this;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpeg_encoders.c,v 1.2 2001/12/16 22:34:21 hrm Exp $
+ * $Id: mpeg_encoders.c,v 1.3 2001/12/23 02:36:55 hrm Exp $
  *
  * mpeg encoders for the dxr3 video out plugin.  
  */ 
@@ -45,6 +45,7 @@
 #ifdef HAVE_LIBRTE
 typedef struct {
 	encoder_data_t encoder_data;
+	int width, height;
 	rte_context* context; /* handle for encoding */
 	void* rte_ptr; /* buffer maintened by librte */
 	double rte_time; /* frame time (s) */
@@ -92,6 +93,8 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 		rte_context_delete(this->context);
 		this->context = 0;
 	}
+	this->width = width;
+	this->height = height;
 
 	this->context = rte_context_new (width, height, "mp1e", drv);
 	if (! this->context) {
@@ -169,6 +172,11 @@ static int rte_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame )
 {
 	int size;
 	rte_data_t* this = (rte_data_t*)drv->enc;
+
+	if ( (this->width != frame->width) || (this->height != frame->height)){
+		/* maybe we were reinitialized and get an old frame. */
+		return 0;
+	}
 	size = frame->width * frame->oheight;
 	if (frame->format == IMGFMT_YV12)
 		xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size*3/2);
@@ -319,22 +327,14 @@ static int fame_on_update_format(dxr3_driver_t *drv)
 	return 0;
 }
 
-static int fame_on_frame_copy(dxr3_driver_t *drv, dxr3_frame_t *frame, 
-				uint8_t **src)
+static int fame_prepare_frame(fame_data_t* this, dxr3_driver_t *drv, 
+	dxr3_frame_t *frame) 
 {
-	int size, i, j, hoffset, w2;
+	int i, j, w2;
 	uint8_t *y, *u, *v, *yuy2;
-	fame_data_t *this = (fame_data_t*)drv->enc;
 
 	if (frame->vo_frame.bad_frame)
 		return 0;
-
-	if (frame->copy_calls == frame->height/16) {
-		/* shouldn't happen */
-		printf("dxr3: Internal error. Too many calls to dxr3_frame_copy (%d)\n", 
-		frame->copy_calls);
-		return 1; 
-	}
 
 	if (frame->vo_frame.format == IMGFMT_YUY2) {
 		/* need YUY2->YV12 conversion */
@@ -343,14 +343,12 @@ static int fame_on_frame_copy(dxr3_driver_t *drv, dxr3_frame_t *frame,
 			return 1;
 		}
 		/* need conversion */
-		hoffset = ((frame->oheight - frame->height)/32)*16; 
-		y = this->out[0] + frame->width*(hoffset + frame->copy_calls*16);
-		u = this->out[1] + frame->width/2*(hoffset/2 + frame->copy_calls*8);
-		v = this->out[2] + frame->width/2*(hoffset/2 + frame->copy_calls*8);
-		yuy2 = src[0];
+		y = this->out[0] + frame->width*drv->top_bar;
+		u = this->out[1] + frame->width/2*(drv->top_bar/2);
+		v = this->out[2] + frame->width/2*(drv->top_bar/2);
+		yuy2 = frame->vo_frame.base[0];
 		w2 = frame->width/2;
-		/* we get 16 lines each time */
-		for (i=0; i<16; i+=2) {
+		for (i=0; i<frame->height; i+=2) {
 			for (j=0; j<w2; j++) {
 				/* packed YUV 422 is: Y[i] U[i] Y[i+1] V[i] */
 				*(y++) = *(yuy2++);
@@ -378,31 +376,9 @@ static int fame_on_frame_copy(dxr3_driver_t *drv, dxr3_frame_t *frame,
 		v = frame->real_base[2];
 	}
 
-	frame->copy_calls++;
-
-	/* frame complete yet? */
-	if (frame->copy_calls != frame->height/16)
-		return 0;
-	/* frame is complete: encode */
 	this->yuv.y=y;
 	this->yuv.u=u;
 	this->yuv.v=v;
-	size = fame_encode_frame(this->fc, &this->yuv, NULL);
-    	if (size >= DEFAULT_BUFFER_SIZE) {
-		printf("dxr3: warning, mpeg buffer too small!\n");
-		size = DEFAULT_BUFFER_SIZE;
-	}
-	/* alloc frame does not allocate the mpeg buffer. do this now */
-	if (! frame->mpeg) {
- 		frame->mpeg = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
-	}
-	if (! frame->mpeg) {
- 		printf("dxr3: error, could not allocate mpeg buffer!\n");
-		return 1;	
-	}
-	/* copy mpeg data to frame */
-	xine_fast_memcpy(frame->mpeg, this->buffer, size);
-	frame->mpeg_size = size;
 	return 0;
 }
 
@@ -411,6 +387,17 @@ static int fame_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame)
 {
 	char tmpstr[128];
 	em8300_register_t regs; 
+	int size;
+	fame_data_t *this = (fame_data_t*)drv->enc;
+
+	if ((frame->width != this->fp.width) || (frame->oheight != this->fp.height)) {
+		/* probably an old frame for a previous context. ignore it */
+		return 0;
+	}
+
+	fame_prepare_frame(this, drv, frame);
+	size = fame_encode_frame(this->fc, &this->yuv, NULL);
+	
 	if (drv->enhanced_mode)
 	{
 		regs.microcode_register=1; /* Yes, this is a MC Reg */
@@ -423,7 +410,8 @@ static int fame_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame)
 		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", drv->devname);
 		drv->fd_video = open(tmpstr, O_WRONLY);
 	}
-	if (write(drv->fd_video, frame->mpeg, frame->mpeg_size) < 0) 
+	//if (write(drv->fd_video, frame->mpeg, frame->mpeg_size) < 0) 
+	if (write(drv->fd_video, this->buffer, size) < 0) 
 		perror("dxr3: writing to video device");
   	frame->vo_frame.displayed(&frame->vo_frame); 
 	return 0;
@@ -451,7 +439,7 @@ int dxr3_fame_init( dxr3_driver_t *drv )
 	/* fame context */
 	this->fc = 0;
 	this->encoder_data.on_update_format = fame_on_update_format;
-	this->encoder_data.on_frame_copy = fame_on_frame_copy;
+	this->encoder_data.on_frame_copy = NULL;
 	this->encoder_data.on_display_frame = fame_on_display_frame;
 	this->encoder_data.on_close = fame_on_close;
 	drv->enc = (encoder_data_t*)this;
