@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.20 2001/09/01 22:47:59 guenter Exp $
+ * $Id: input_dvd.c,v 1.21 2001/09/08 00:44:40 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -264,6 +264,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
   if ((buf->size = read (this->raw_fd, buf->mem, DVD_VIDEO_LB_LEN)) > 0) {
     this->file_lbcur++;
     this->file_size_left -= DVD_VIDEO_LB_LEN;
+    buf->type = BUF_DEMUX_BLOCK;
     return buf;
   } else
     fprintf (stderr, "read error in input_dvd plugin\n");

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.21 2001/09/06 18:38:12 jkeil Exp $
+ * $Id: input_file.c,v 1.22 2001/09/08 00:44:40 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -287,6 +287,7 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
 
   buf->content = buf->mem;
+  buf->type = BUF_DEMUX_BLOCK;
   total_bytes = 0;
 
   while (total_bytes < todo) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.9 2001/09/06 15:23:46 joachim_koenig Exp $
+ * $Id: buffer.h,v 1.10 2001/09/08 00:44:41 guenter Exp $
  *
  *
  * contents:
@@ -99,6 +99,9 @@ extern "C" {
 #define BUF_SPU_CLUT         0x04000000
 #define BUF_SPU_PACKAGE      0x04010000
 
+/* demuxer block types: */
+
+#define BUF_DEMUX_BLOCK      0x05000000
 
 typedef struct buf_element_s buf_element_t;
 struct buf_element_s {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.21 2001/09/05 16:02:29 guenter Exp $
+ * $Id: input_vcd.c,v 1.22 2001/09/08 00:44:40 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -568,6 +568,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
   
   buf = fifo->buffer_pool_alloc (fifo);
   buf->content = buf->mem;
+  buf->type = BUF_DEMUX_BLOCK;
   memcpy (buf->mem, data.data, VCDSECTORSIZE); /* FIXME */
   return buf;
 }
