@@ -1,3 +1,4 @@
+xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
   * fix stuttering playback of some realmedia streams
   * fix end of stream handling in the http plugin
