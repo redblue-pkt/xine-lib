@@ -17,6 +17,10 @@ xineplug_decode_sputext_la_SOURCES = xine_decoder.c
 xineplug_decode_sputext_la_LIBADD  = $(XINELIB)
 xineplug_decode_sputext_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
+xineplug_decode_spuogm_la_SOURCES = xine_decoder_ogm.c 
+xineplug_decode_spuogm_la_LIBADD  = $(XINELIB)
+xineplug_decode_spuogm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
 ##
 ## Install header files (default=$includedir/xine)
 ##

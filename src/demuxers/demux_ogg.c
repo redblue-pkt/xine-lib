@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.80 2003/04/15 23:54:40 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.81 2003/04/16 23:05:25 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -358,46 +358,13 @@ static void send_ogg_buf (demux_ogg_t *this,
        
 	val = (uint32_t * )buf->content;
 
-	/*num_lines will be set later, when we know the correct value*/
-	*val++ = 0;
-
-	/*times are in ms*/
-	*val++ = 1;
 	*val++ = start;
 	*val++ = end;
 	str = (char *)val;
 
-       for ( i=0, ignore=0, lines=0 ; i<strlen(subtitle) ; i++ ) {
-	 /*fixme: the maximum SUB_BUFSIZE isn't considered*/
-	 /*fixme: font tags aren't ignored correctly*/
-	 switch (subtitle[i]) {
-	 case '<':
-	   ignore=1;
-	   break;
-	 case '>':
-	   ignore=0;
-	   break;
-	 case 13:
-	   if (ignore==0) {
-	     str[0]=0;
-	     lines++;
-	     str+=1;
-	   }
-	   break;
-	 default:
-	   if (ignore==0) {
-	     str[0]=subtitle[i];
-	     str+=1;
-	   }
-	   break;
-	 }
-	 str[0]=0;
-       }
+	memcpy (str, subtitle, 1+strlen(subtitle));
 
-       val = (uint32_t * )buf->content;
-       *val = lines;
-
-       this->video_fifo->put (this->video_fifo, buf);
+	this->video_fifo->put (this->video_fifo, buf);
       }
     }
   }
@@ -800,7 +767,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 #endif
 	  this->preview_buffers[stream_num] = 2;
 	  channel= this->num_spu_streams++;
-	  this->buf_types[stream_num] = BUF_SPU_TEXT | channel;
+	  this->buf_types[stream_num] = BUF_SPU_OGM | channel;
 	} else {
 	  printf ("demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
 		  op.packet);
