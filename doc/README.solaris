@@ -7,9 +7,9 @@ building xine on solaris
   referenced symbol not found" error when running xine, re-configure 
   xine-lib with gcc as the linker command (env LD=gcc configure ...)
 
-* To get VIS accelerated MPEG decoding and colour space conversion 
-  on Solaris SPARC, download and install Sun's mediaLib 2.0, available
-  here:
+* To get VIS accelerated video decoding and colour space conversion 
+  on Solaris SPARC with an UltraSPARC cpu, download and install Sun's
+  mediaLib 2.0, available here:
 
     http://www.sun.com/sparc/vis/mediaLib.html
 
@@ -20,11 +20,24 @@ Known Problems
 * Can't use MIT shared memory for local video display
 
   The default value for the maximum allowed shared memory segment size
-  (1MByte) is very small on solaris.  You may want to increase the
-  max. allowed shared memory segment size.  Add the following line to
-  /etc/system to increase the shmmax parameter to 8MBytes:
+  (1MByte) and the number of allowed shared memory segments (6)
+  is very small on solaris.  You may want to increase both parameters.
+  Add the following lines to /etc/system to increase the shmmax parameter
+  to 8MBytes and the shmseg parameter to 32:
 
 	set shmsys:shminfo_shmmax=8388608
+	set shmsys:shminfo_shmseg=32
 
   Reboot the machine after modifying /etc/system to activate the new
-  default.
+  shared memory defaults.
+
+* No Video, or video stops after a few frames
+
+  If you're on Solaris 8, try to use XINE with the "alternate libthread
+  implementation".  The alternate thread implementation can be selected
+  at runtime by adding /usr/lib/lwp into the LD_LIBRARY_PATH environment
+  variable:
+
+	LD_LIBRARY_PATH=/usr/lib/lwp
+
+  See also the threads(3THR) man page, "ALTERNATE IMPLEMENTATION"
