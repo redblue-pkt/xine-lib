@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.7 2002/03/07 13:26:15 jcdutton Exp $
+ * $Id: video_out_fb.c,v 1.8 2002/03/17 16:53:24 richwareham Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -915,7 +915,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_fb = {
-  3,
+  4,
   "fb",
   "xine video output plugin using linux framebuffer device",
   VISUAL_TYPE_FB,
