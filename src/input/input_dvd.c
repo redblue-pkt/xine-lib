@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.176 2003/12/07 15:34:30 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.177 2003/12/13 01:53:48 f1rmb Exp $
  *
  */
 
@@ -1682,6 +1682,12 @@ static void *init_class (xine_t *xine, void *data) {
       xine_setenv("DVDCSS_CACHE", css_cache, 0);
     free(css_cache_default);
     
+
+    if(xine->verbosity > XINE_VERBOSITY_NONE)
+      xine_setenv("DVDCSS_VERBOSE", "2", 0);
+    else
+      xine_setenv("DVDCSS_VERBOSE", "0", 0);
+
     dlclose(dvdcss);
   }
   
@@ -1728,6 +1734,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.177  2003/12/13 01:53:48  f1rmb
+ * set dvdcss verbosity according to xine's one
+ *
  * Revision 1.176  2003/12/07 15:34:30  f1rmb
  * get rid of XINE_{ASSERT,ABORT} and useless xine_print_trace (useless). Replace XINE_ASSERT by _x_assert, which works exaclty as assert, except that it still warns with NDEBUG defined (but don't abort). Fix missuning of assert(0), which isn't safe, abort is abort, assert is for debugging purpose only, so all assert(0) has been converted to abort() alls. In osd_preload_fonts(): alloc needed memory chunk. Define NDEBUG in CFLAGS, for non DEBUG build only.
  *
