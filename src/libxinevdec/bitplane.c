@@ -22,7 +22,7 @@
  * suitable for display under xine. It's based on the rgb-decoder
  * and the development documentation from the Amiga Developer CD
  *
- * $Id: bitplane.c,v 1.7 2004/02/29 19:22:42 manfredtremmel Exp $
+ * $Id: bitplane.c,v 1.8 2004/03/03 20:00:38 mroi Exp $
  */
 
 #include <stdio.h>
@@ -395,6 +395,8 @@ static void bitplane_decode_ham (uint8_t *ham_buffer,
   }
 }
 
+/* this function is currently unused */
+#if 0
 /* decoding method 4 */
 static void bitplane_set_dlta_short (uint8_t *current_buffer,
   uint8_t *index_buf,
@@ -452,6 +454,7 @@ static void bitplane_set_dlta_short (uint8_t *current_buffer,
   }
   bitplane_decode_bitplane(current_buffer, index_buf, width, height, num_bitplanes, 1);
 }
+#endif
 
 /* decoding method 5 */
 static void bitplane_dlta_5 (bitplane_decoder_t *this) {
