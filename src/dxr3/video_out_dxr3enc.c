@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3enc.c,v 1.2 2001/10/27 17:27:48 hrm Exp $
+ * $Id: video_out_dxr3enc.c,v 1.3 2001/10/27 17:48:25 mlampard Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -122,7 +122,7 @@ typedef struct dxr3_driver_s {
 	int video_iheight; // input height (before adding black bars)
 	int video_height; // output height (after adding bars)
 	int video_aspect;
-	void (*request_dest_size) (int video_width, int video_height, int *dest_x,
+	void (*request_dest_size) (char *userdata, int video_width, int video_height, int *dest_x,
         int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;
 
@@ -646,7 +646,8 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 			 strerror(errno));
 		if (this->overlay_enabled && !fullscreen){
 			int foo;
-			this->request_dest_size(this->width,
+			char *foo2;
+			this->request_dest_size(foo2,this->width,
 			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
 		}
 		break;
