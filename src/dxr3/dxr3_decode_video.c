@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.29 2003/02/18 12:58:44 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.30 2003/02/18 13:15:46 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -486,12 +486,10 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     this->scr->scr_plugin.start(&this->scr->scr_plugin, time);
     this->class->clock->register_scr(
       this->class->clock, &this->scr->scr_plugin);
+#if LOG_VID
     if (this->class->clock->scr_master == &this->scr->scr_plugin)
-#if LOG_VID
       printf("dxr3_decode_video: dxr3_scr plugin is master\n");
-#endif
     else
-#if LOG_VID
       printf("dxr3_decode_video: dxr3scr plugin is NOT master\n");
 #endif
   }
