@@ -25,11 +25,6 @@ Assigned tasks
   James Courtier-Dutton,
   Guenter Bartsch
 
-- avi subtitles
-  
-  Guenter Bartsch
-
-
 - Solaris(SPARC/intel) port
 
   Juergen Keil
@@ -61,19 +56,25 @@ Assigned tasks
 Open Tasks
 ==========
 
-- SDL based video and audio output plugins
-  I've seen patches about this before but with the monolitic xine
-  this would have ment xine to become SDL-dependant. But now,
-  with our flexible dynamic audio/video plugin architecture
-  this is no longer a problem
-- fbdev based video output plugin
-- a win32 port, based on the SDL output plugins
-- a decoder plugin that uses xanim's quicktime codec plugins
-  (pretty much like the libwin32) this could enable 3ivx support btw
-- port to other OS (Net/OpenBSD, Win32 ...?)
-- asd support
-- xine hacker's guide
-- MicroDVD plugin
+- resurrect the win32 port
+- port to other OS (Net/OpenBSD, Win32, hurd ...?)
+- MicroDVD input plugin
 - video output synced to vertical blank
+  preferably without requiring
+  root privileges (XSync extension? MAS?)
+- direct playback of vcd images
+- isma support (mpeg4ip.sf.net)
+- find out what all those people requesting rtp/multicast/... support
+  really want and how to implement it :)
+- resolve issues with ffmpeg's live http streaming server
+- videolan streaming support
+- support for theora         
+- MAS support (http://www.mediaapplicationserver.net)
+- support for the DV format
+- nonlinear video editing frontend
+- stream format conversion frontend
+- audio filters (e.g. compressor plugin)
+
+
 
 
