@@ -14,6 +14,7 @@ Group:       Development/Libraries
 Source:      http://xine.sourceforge.net/files/@PACKAGE@-@VERSION@.tar.gz
 URL:         http://xine.sourceforge.net
 Packager:    Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+Requires:    zlib
 BuildRoot:   /tmp/%{name}-root
 
 @HAVE_OSS_TRUE@%package oss
