@@ -25,7 +25,7 @@
 %define BUILD_SDL       0
 %define BUILD_SYNCFB    0
 %define BUILD_W32DLL    0
-#%define BUILD_XVMC      0
+%define BUILD_XVMC      0
 
 Name:           %{name}
 Summary:        A portable video/audio library for unix-like systems.
@@ -366,6 +366,7 @@ Summary(de):    libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
 Summary(fi):    libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 Group:          Development/Libraries
 Obsoletes:      xine-lib-oggvorbis, %{libname}-oggvorbis, %{libname}-oggtheora
+Provides:       xine-lib-oggvorbis, %{libname}-oggvorbis, %{libname}-oggtheora
 
 %description ogg
 libxine sound/video input plugin for ogg/ogm-files
@@ -397,21 +398,21 @@ libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
 %endif
 %endif
 
-#%if %BUILD_XVMC
-#%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
-#%package xvmc
-#Summary:        libxine video output plugin using XVideo-extension with motion compensation
-#Summary(de):    libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
-#Group:          Development/Libraries
-#Obsoletes:      libxine0-xvmc
-#
-#%description xvmc
-#libxine video output plugin using XVideo-extension with motion compensation
-#
-#%description xvmc -l de
-#libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
-#%endif
-#%endif
+%if %BUILD_XVMC
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
+%package xvmc
+Summary:        libxine video output plugin using XVideo-extension with motion compensation
+Summary(de):    libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
+Group:          Development/Libraries
+Obsoletes:      libxine0-xvmc
+
+%description xvmc
+libxine video output plugin using XVideo-extension with motion compensation
+
+%description xvmc -l de
+libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
+%endif
+%endif
 
 %if %BUILD_W32DLL
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
@@ -443,10 +444,6 @@ if [ ! -f configure ]; then
    NO_CONFIGURE=1 ./autogen.sh
 fi
 
-%ifarch i386 i486 i586 i686 i786 i868 i968 k6 k7 athlon
-BUILD_ARGS=${BUILD_ARGS}" --enable-nvtv"
-%endif
-
 #
 # currently we do not use %%configure as it seems to cause trouble with
 # certain automake produced configure scripts - depending on automake version.
@@ -459,7 +456,7 @@ BUILD_ARGS=${BUILD_ARGS}" --enable-nvtv"
             --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
             --localstatedir=%{_localstatedir} \
             --sharedstatedir=%{_sharedstatedir} --mandir=%{_mandir} \
-            --infodir=%{_infodir} $BUILD_ARGS
+            --infodir=%{_infodir}
 
 # Error in libfaad when compiling with mmx enabled
 mv src/libfaad/Makefile src/libfaad/Makefile_save
@@ -558,13 +555,13 @@ grep -v -E "xineplug_vo_out_syncfb\.|README\.syncfb" ${RPM_BUILD_DIR}/filelist_l
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
-#%if %BUILD_XVMC
-#echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
-#mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
-#grep "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
-#grep -v "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
-#rm ${RPM_BUILD_DIR}/filelist_libxine1_old
-#%endif
+%if %BUILD_XVMC
+echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
+mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
+grep "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
+grep -v "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
+rm ${RPM_BUILD_DIR}/filelist_libxine1_old
+%endif
 
 %if %BUILD_W32DLL
 echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_w32dll
@@ -660,11 +657,11 @@ rm -rf ${RPM_BUILD_ROOT}
 %files syncfb -f ../filelist_libxine1_syncfb
 %endif
 
-#%if %BUILD_XVMC
-#%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
-#%files xvmc -f ../filelist_libxine1_xvmc
-#%endif
-#%endif
+%if %BUILD_XVMC
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
+%files xvmc -f ../filelist_libxine1_xvmc
+%endif
+%endif
 
 %if %BUILD_W32DLL
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
@@ -693,6 +690,8 @@ rm -rf ${RPM_BUILD_ROOT}
 %endif
 
 %changelog
+* Tue Oct 07 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- activated separte xvmc package, when this is wanted.
 * Sun Jul 20 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - made ogg-package out of oggvorbis, oggtheora and the new
   oggspeex xine-plugins
