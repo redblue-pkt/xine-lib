@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.17 2001/07/11 23:31:44 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.18 2001/07/16 09:18:24 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -257,36 +257,19 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
 
   if (!this->use_shm) {
 
-    char *data;
-
-    switch (this->vinfo.depth) {
-    case 15:
-    case 16:
-      this->bpp = 16;
-      break;
-    case 24:
-      this->bpp = 24;
-      break;
-    case 32:
-      this->bpp = 32;
-    default:
-      printf ("video_out_xshm: !!!!!!! unknown depth : %d\n",this->vinfo.depth);
-      this->bpp = 16;
-    }      
-
-
-    this->bytes_per_pixel = this->bpp / 8;
-
-    data = xmalloc (width * this->bytes_per_pixel * height);
-
     myimage = XCreateImage (this->display,
 			    this->vinfo.visual,
 			    this->vinfo.depth,
 			    ZPixmap, 0,
-			    data,
+			    NULL,
 			    width, 
 			    height,
-			    8, width * this->bytes_per_pixel);
+			    8, 0);
+
+    this->bpp = myimage->bits_per_pixel;
+    this->bytes_per_pixel = this->bpp / 8;
+
+    myimage->data = xmalloc (width * this->bytes_per_pixel * height);
   }
 
   return myimage;
@@ -660,7 +643,8 @@ static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
         blend_rgb32( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
         break;
        default:
-/* It should never get here */
+	/* It should never get here */
+	break;
      }        
    }
 }
