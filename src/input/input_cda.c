@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.15 2002/01/14 21:43:00 f1rmb Exp $
+ * $Id: input_cda.c,v 1.16 2002/01/15 13:20:59 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,7 +51,13 @@
 # include <sys/cdio.h>
 /* TODO: not clean yet */
 # if defined (__FreeBSD__)
-#define CDIOREADSUBCHANNEL CDIOCREADSUBCHANNEL
+#  define CDIOREADSUBCHANNEL CDIOCREADSUBCHANNEL
+#  ifndef MAX_TRACKS
+#   define MAX_TRACKS 100
+#  endif
+#  ifndef CDROM_DATA_TRACK
+#   define CDROM_DATA_TRACK 4
+#  endif
 #  include <sys/cdrio.h>
 # endif
 #endif
@@ -1057,7 +1063,7 @@ static void _cda_stop_cd(cdainfo_t *cda) {
   
   if(cda->status != CDA_STOP) {
 #ifdef CDIOCSTOP
-    ioctl(cda->cd, CDIOCSTOP);
+    ioctl(cda->fd, CDIOCSTOP);
 #endif
 #ifdef CDROMSTOP
     ioctl(cda->fd, CDROMSTOP);
