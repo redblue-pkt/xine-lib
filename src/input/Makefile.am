@@ -28,11 +28,11 @@ endif
 if HAVE_DVDNAV
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
   $(DVDNAV_CFLAGS) \
-  -Ilibdvdread/
+  -I$(top_srcdir)/src/input/libdvdread/
 else
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-  -Ilibdvdnav/ \
-  -Ilibdvdread/
+  -I$(top_srcdir)/src/input/libdvdnav/ \
+  -I$(top_srcdir)/src/input/libdvdread/
 endif
 
 CFLAGS = @CFLAGS@ $(DVD_CFLAGS) 

@@ -1,5 +1,5 @@
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-  -I../libdvdread/
+  -I$(top_srcdir)/src/input/libdvdread/
 
 CFLAGS = @CFLAGS@ $(DVD_CFLAGS) 
 
