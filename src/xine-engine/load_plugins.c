@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.134 2003/01/13 23:02:58 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.135 2003/01/17 16:10:32 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1550,7 +1550,7 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->video_decoder_map[stream_type][j - 1] =
           catalog->video_decoder_map[stream_type][j];
-      catalog->video_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      catalog->video_decoder_map[stream_type][PLUGINS_PER_TYPE-1] = NULL;
       i--;
       continue;
     }
@@ -1568,7 +1568,7 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->video_decoder_map[stream_type][j - 1] =
           catalog->video_decoder_map[stream_type][j];
-      catalog->video_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      catalog->video_decoder_map[stream_type][PLUGINS_PER_TYPE-1] = NULL;
       i--;
     }
   }
@@ -1626,7 +1626,7 @@ audio_decoder_t *get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) 
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->audio_decoder_map[stream_type][j - 1] =
           catalog->audio_decoder_map[stream_type][j];
-      catalog->audio_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      catalog->audio_decoder_map[stream_type][PLUGINS_PER_TYPE-1] = NULL;
       i--;
       continue;
     }
@@ -1644,7 +1644,7 @@ audio_decoder_t *get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) 
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->audio_decoder_map[stream_type][j - 1] =
           catalog->audio_decoder_map[stream_type][j];
-      catalog->audio_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      catalog->audio_decoder_map[stream_type][PLUGINS_PER_TYPE-1] = NULL;
       i--;
     }
   }
@@ -1701,7 +1701,7 @@ spu_decoder_t *get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->spu_decoder_map[stream_type][j - 1] =
           catalog->spu_decoder_map[stream_type][j];
-      catalog->spu_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      catalog->spu_decoder_map[stream_type][PLUGINS_PER_TYPE-1] = NULL;
       i--;
       continue;
     }
@@ -1719,7 +1719,7 @@ spu_decoder_t *get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->spu_decoder_map[stream_type][j - 1] =
           catalog->spu_decoder_map[stream_type][j];
-      catalog->spu_decoder_map[stream_type][PLUGINS_PER_TYPE] = NULL;
+      catalog->spu_decoder_map[stream_type][PLUGINS_PER_TYPE-1] = NULL;
       i--;
     }
   }
