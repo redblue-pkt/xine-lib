@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.143 2002/10/27 22:50:01 tmattern Exp $
+ * $Id: video_out_xv.c,v 1.144 2002/10/29 00:36:21 komadori Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -586,9 +586,9 @@ static void xv_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen,
 
   if (overlay->rle) {
     if (frame->format == XINE_IMGFMT_YV12)
-      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
+      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
     else
-      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
+      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
   }
 }
 

@@ -727,7 +727,7 @@ static void mem_blend8(uint8_t *mem, uint8_t val, uint8_t o, size_t sz)
 }
 
 void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
-                int dst_width, int dst_height)
+                int dst_width, int dst_height, int dst_pitches[3])
 {
   clut_t *my_clut;
   uint8_t *my_trans;
@@ -746,11 +746,9 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
   int clip_right;
   uint8_t clr=0;
 
-  uint8_t *dst_y = dst_base[0] + dst_width * y_off + x_off;
-  uint8_t *dst_cr = dst_base[2] +
-    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
-  uint8_t *dst_cb = dst_base[1] +
-    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
+  uint8_t *dst_y = dst_base[0] + dst_pitches[0] * y_off + x_off;
+  uint8_t *dst_cr = dst_base[2] + (y_off / 2) * dst_pitches[1] + (x_off / 2) + 1;
+  uint8_t *dst_cb = dst_base[1] + (y_off / 2) * dst_pitches[2] + (x_off / 2) + 1;
 #ifdef LOG_BLEND_YUV
   printf("overlay_blend started x=%d, y=%d, w=%d h=%d\n",img_overl->x,img_overl->y,img_overl->width,img_overl->height);
 #endif
@@ -794,8 +792,7 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
       }
       if ((rle_remainder + x) > src_width) {
         /* Do something for long rlelengths */
-        rle_remainder = src_width - x; 
-        ;
+        rle_remainder = src_width - x;
       }
 #ifdef LOG_BLEND_YUV
       printf("2:rle_len=%d, remainder=%d, x=%d\n",rlelen, rle_remainder, x);
@@ -928,11 +925,11 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
         break;
     }
 
-    dst_y += dst_width;
+    dst_y += dst_pitches[0];
 
     if (y & 1) {
-      dst_cr += (dst_width + 1) / 2;
-      dst_cb += (dst_width + 1) / 2;
+      dst_cr += dst_pitches[2];
+      dst_cb += dst_pitches[1];
     }
   }
 #ifdef LOG_BLEND_YUV
@@ -941,7 +938,7 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
 }
             
 void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
-                int dst_width, int dst_height)
+                int dst_width, int dst_height, int dst_pitch)
 {
   clut_t *my_clut;
   uint8_t *my_trans;
@@ -958,7 +955,7 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
   int clip_right;
   uint32_t yuy2;
   
-  uint8_t *dst_y = dst_img + 2 * (dst_width * y_off + x_off);
+  uint8_t *dst_y = dst_img + dst_pitch * y_off + 2 * x_off;
   uint8_t *dst;
 
   my_clut = (clut_t*) img_overl->clip_color;
@@ -1019,7 +1016,8 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
         
 	if (o >= 15) {
 	  while(l--) {
-	    *((uint32_t *)dst)++ = yuy2;
+	    *((uint16_t *)dst)++ = yuy2 >> 16;
+	    *((uint16_t *)dst)++ = yuy2 & 0xffff;
 	  }
 	  if(rlelen & 1)
 	    *((uint16_t *)dst)++ = yuy2 & 0xffff;
@@ -1046,6 +1044,6 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
     }
     if (rle >= rle_limit) break;
 
-    dst_y += dst_width*2;
+    dst_y += dst_pitch;
   }
 }

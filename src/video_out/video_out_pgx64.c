@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.9 2002/10/13 15:39:30 jkeil Exp $
+ * $Id: video_out_pgx64.c,v 1.10 2002/10/29 00:36:21 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -98,11 +98,18 @@ static char *deinterlace_methods[] = {"one field",
                                       NULL};
 
 typedef struct {
+  video_driver_class_t vo_driver_class;
+
+  xine_t *xine;
+  config_values_t *config;
+} pgx64_driver_class_t;
+
+typedef struct {
   vo_frame_t vo_frame;
 
   int lengths[3];  
   uint32_t buf_y, buf_u, buf_v;
-  int width, height, ratio_code, format;
+  int width, height, pitch, ratio_code, format;
 } pgx64_frame_t;
 
 typedef struct {   
@@ -126,19 +133,6 @@ typedef struct {
   int colour_key, brightness, saturation;
   int deinterlace, deinterlace_method;
 } pgx64_driver_t;
-
-static void pgx64_config_changed(pgx64_driver_t*, xine_cfg_entry_t*);
-static uint32_t pgx64_get_capabilities(pgx64_driver_t*);
-static pgx64_frame_t* pgx64_alloc_frame(pgx64_driver_t*);
-static void pgx64_update_frame_format(pgx64_driver_t*, pgx64_frame_t*, uint32_t, uint32_t, int, int, int);
-static void pgx64_display_frame(pgx64_driver_t*, pgx64_frame_t*);
-static void pgx64_overlay_blend(pgx64_driver_t*, pgx64_frame_t*, vo_overlay_t*);
-static int pgx64_get_property(pgx64_driver_t*, int);
-static int pgx64_set_property(pgx64_driver_t*, int, int);
-static void pgx64_get_property_min_max(pgx64_driver_t*, int, int*, int*);
-static int pgx64_gui_data_exchange(pgx64_driver_t*, int, void*);
-static int pgx64_redraw_needed(pgx64_driver_t*);
-static void pgx64_exit(pgx64_driver_t*);
 
 /*
  * Dispose of any allocated image data within a pgx64_frame_t
@@ -210,6 +204,7 @@ static void repaint_output_area(pgx64_driver_t *this)
 {
   switch (this->visual_type) {
     case XINE_VISUAL_TYPE_X11: {
+#ifdef HAVE_X11
       XLockDisplay(this->display);
       XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
       XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[0].x, this->vo_scale.border[0].y, this->vo_scale.border[0].w, this->vo_scale.border[0].h);
@@ -220,6 +215,7 @@ static void repaint_output_area(pgx64_driver_t *this)
       XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
       XFlush(this->display);
       XUnlockDisplay(this->display);
+#endif
     }
     break;
 
@@ -231,112 +227,8 @@ static void repaint_output_area(pgx64_driver_t *this)
 }
 
 /*
- * Initialize plugin
+ * XINE VIDEO DRIVER FUNCTIONS
  */
-
-static pgx64_driver_t* init_plugin(xine_t *xine)
-{
-  pgx64_driver_t *this;
-  char *devname;
-  int fbfd;
-  void *baseaddr;
-  struct fbgattr attr;
-
-  printf("video_out_pgx64: PGX64 video output plugin - By Robin Kay\n");
-
-  devname = xine->config->register_string(xine->config, "video.pgx64_device", "/dev/m640", "name of pgx64 device", NULL, 10, NULL, NULL);
-  if ((fbfd = open(devname, O_RDWR)) < 0) {
-    printf("video_out_pgx64: can't open framebuffer device (%s)\n", devname);
-    return NULL;
-  }
-
-  if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    printf("video_out_pgx64: unable to determine amount of available video memory\n");
-    close(fbfd);
-    return NULL;
-  }
-
-  if ((baseaddr = mmap(baseaddr, ADDRSPACE, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
-    printf("video_out_pgx64: unable to memory map framebuffer\n");
-    close(fbfd);
-    return NULL;
-  }
-
-  this = (pgx64_driver_t*)malloc(sizeof(pgx64_driver_t));
-  if (!this) {
-    printf("video_out_pgx64: driver malloc failed\n");
-    return NULL;
-  }
-  memset(this, 0, sizeof(pgx64_driver_t));
-
-  this->xine    = xine;
-  this->config  = xine->config;
-  this->current = NULL;
-
-  this->vo_driver.get_capabilities     = (void*)pgx64_get_capabilities;
-  this->vo_driver.alloc_frame          = (void*)pgx64_alloc_frame;
-  this->vo_driver.update_frame_format  = (void*)pgx64_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
-  this->vo_driver.overlay_blend        = (void*)pgx64_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
-  this->vo_driver.display_frame        = (void*)pgx64_display_frame;
-  this->vo_driver.get_property         = (void*)pgx64_get_property;
-  this->vo_driver.set_property         = (void*)pgx64_set_property;
-  this->vo_driver.get_property_min_max = (void*)pgx64_get_property_min_max;
-  this->vo_driver.gui_data_exchange    = (void*)pgx64_gui_data_exchange;
-  this->vo_driver.redraw_needed        = (void*)pgx64_redraw_needed;
-  this->vo_driver.exit                 = (void*)pgx64_exit;
-
-  this->colour_key = this->config->register_num(this->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, (void*)pgx64_config_changed, this);
-  this->brightness = this->config->register_range(this->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, (void*)pgx64_config_changed, this);
-  this->saturation = this->config->register_range(this->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, (void*)pgx64_config_changed, this);
-  this->deinterlace_method = this->config->register_enum(this->config, "video.pgx64_deinterlace_method", 0, deinterlace_methods, "video deinterlacing method", NULL, 10, (void*)pgx64_config_changed, this);
-
-  this->fbfd = fbfd;
-  this->top = attr.sattr.dev_specific[0];
-  this->fbbase = baseaddr;
-  this->fbregs = baseaddr + REGBASE;
-  this->fb_width = attr.fbtype.fb_width;
-  this->fb_height = attr.fbtype.fb_height;
-
-  vo_scale_init(&this->vo_scale, 0, 0);
-  this->vo_scale.user_ratio = ASPECT_AUTO;
-
-  set_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
-  write_reg(this, OVERLAY_SCALE_CNTL, 0x04000000);
-  write_reg(this, SCALER_H_COEFF0, SCALER_H_COEFF0_DEFAULT);
-  write_reg(this, SCALER_H_COEFF1, SCALER_H_COEFF1_DEFAULT);
-  write_reg(this, SCALER_H_COEFF2, SCALER_H_COEFF2_DEFAULT);
-  write_reg(this, SCALER_H_COEFF3, SCALER_H_COEFF3_DEFAULT);
-  write_reg(this, SCALER_H_COEFF4, SCALER_H_COEFF4_DEFAULT);
-  write_reg(this, CAPTURE_CONFIG, 0x00000000);
-  write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
-  write_reg(this, OVERLAY_KEY_CNTL, 0x00000050);
-  write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
-  write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, 0x00ffffff);
-
-  return this;
-}
-
-/*
- * !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT!
- * All the following functions are defined by the xine video_out API
- * !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT!
- */
-
-static void pgx64_config_changed(pgx64_driver_t *this, xine_cfg_entry_t *entry)
-{
-  if (strcmp(entry->key, "video.pgx64_colour_key") == 0) {
-    pgx64_set_property(this, VO_PROP_COLORKEY, entry->num_value);
-  } else if (strcmp(entry->key, "video.pgx64_brightness") == 0) {
-    pgx64_set_property(this, VO_PROP_BRIGHTNESS, entry->num_value);
-  } else if (strcmp(entry->key, "video.pgx64_saturation") == 0) {
-    pgx64_set_property(this, VO_PROP_SATURATION, entry->num_value);
-  } else if (strcmp(entry->key, "video.pgx64_deinterlace_method") == 0) {
-    this->deinterlace_method = entry->num_value;
-    this->vo_scale.force_redraw = 1;
-  }
-}
 
 static void pgx64fb_output_callback(pgx64_driver_t *this, int video_width, int video_height, double video_pixel_aspect, int *dest_x, int *dest_y, int *dest_width, int *dest_height, double *dest_pixel_aspect, int *win_x, int *win_y)
 {
@@ -395,18 +287,24 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
       (format != frame->format)) {
     dispose_frame_internals(frame);
 
+    frame->width = width;
+    frame->height = height;
+    frame->ratio_code = ratio_code;
+    frame->format = format;
+    frame->pitch = ((width + 7) / 8) * 8;
+
     switch (format) {
       case XINE_IMGFMT_YUY2:
-        frame->vo_frame.pitches[0] = width * 2;
+        frame->vo_frame.pitches[0] = frame->pitch * 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
         frame->buf_y = (this->top - frame->lengths[0]) & ~0x07;
       break;
 
       case XINE_IMGFMT_YV12:
-        frame->vo_frame.pitches[0] = width;
-        frame->vo_frame.pitches[1] = width / 2;
-        frame->vo_frame.pitches[2] = width / 2;
+        frame->vo_frame.pitches[0] = frame->pitch;
+        frame->vo_frame.pitches[1] = frame->pitch / 2;
+        frame->vo_frame.pitches[2] = frame->pitch / 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
         frame->lengths[1] = frame->vo_frame.pitches[1] * height;
         frame->lengths[2] = frame->vo_frame.pitches[2] * height;
@@ -418,11 +316,6 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
         frame->buf_v = (frame->buf_u - frame->lengths[2]) & ~0x07;
       break;
     }
-
-    frame->width = width;
-    frame->height = height;
-    frame->ratio_code = ratio_code;
-    frame->format = format;
   }
 }
 
@@ -447,7 +340,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     write_reg(this, SCALER_BUF0_OFFSET, frame->buf_y);
     write_reg(this, SCALER_BUF0_OFFSET_U, frame->buf_u);
     write_reg(this, SCALER_BUF0_OFFSET_V, frame->buf_v);
-    write_reg(this, SCALER_BUF_PITCH, this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->width*2 : frame->width);
+    write_reg(this, SCALER_BUF_PITCH, this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->pitch * 2 : frame->pitch);
     write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
     write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height));
     write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
@@ -519,10 +412,10 @@ static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_o
 {
   if (overlay->rle) {
     if (frame->format == XINE_IMGFMT_YV12) {
-      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height);
+      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
     }
     else {
-      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height);
+      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
     }
   }
 }
@@ -627,9 +520,11 @@ static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *da
     case XINE_GUI_SEND_DRAWABLE_CHANGED: {
       if (this->visual_type == XINE_VISUAL_TYPE_X11) {
         this->drawable = (Drawable)data;
+#ifdef HAVE_X11
         XLockDisplay(this->display);
         this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
         XUnlockDisplay(this->display);
+#endif
       }
     }
     break;
@@ -671,20 +566,131 @@ static int pgx64_redraw_needed(pgx64_driver_t *this)
   return 0;
 }
 
-static void pgx64_exit(pgx64_driver_t *this)
+static void pgx64_dispose(pgx64_driver_t *this)
 {
   write_reg(this, OVERLAY_SCALE_CNTL, 0);
   clear_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
   munmap(this->fbbase, ADDRSPACE);
   close(this->fbfd);
+
+  free(this);
 }
 
-static pgx64_driver_t* pgx64_init_plugin(xine_t *xine, void *visual_gen)
-{  
-  pgx64_driver_t *this = init_plugin(xine);
+static void pgx64_config_changed(pgx64_driver_t *this, xine_cfg_entry_t *entry)
+{
+  if (strcmp(entry->key, "video.pgx64_colour_key") == 0) {
+    pgx64_set_property(this, VO_PROP_COLORKEY, entry->num_value);
+  } else if (strcmp(entry->key, "video.pgx64_brightness") == 0) {
+    pgx64_set_property(this, VO_PROP_BRIGHTNESS, entry->num_value);
+  } else if (strcmp(entry->key, "video.pgx64_saturation") == 0) {
+    pgx64_set_property(this, VO_PROP_SATURATION, entry->num_value);
+  } else if (strcmp(entry->key, "video.pgx64_deinterlace_method") == 0) {
+    this->deinterlace_method = entry->num_value;
+    this->vo_scale.force_redraw = 1;
+  }
+}
 
-  if (this == NULL)
+/*
+ * XINE VIDEO DRIVER CLASS FUNCTIONS
+ */
+
+static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
+{
+  pgx64_driver_t *this;
+  char *devname;
+  int fbfd;
+  void *baseaddr;
+  struct fbgattr attr;
+
+  printf("video_out_pgx64: PGX64 video output plugin - By Robin Kay\n");
+
+  devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/m640", "name of pgx64 device", NULL, 10, NULL, NULL);
+  if ((fbfd = open(devname, O_RDWR)) < 0) {
+    printf("video_out_pgx64: can't open framebuffer device (%s)\n", devname);
     return NULL;
+  }
+
+  if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
+    printf("video_out_pgx64: ioctl failed, unable to determine framebuffer characteristics\n");
+    close(fbfd);
+    return NULL;
+  }
+
+  if ((baseaddr = mmap(0, ADDRSPACE, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
+    printf("video_out_pgx64: unable to memory map framebuffer\n");
+    close(fbfd);
+    return NULL;
+  }
+
+  this = (pgx64_driver_t*)malloc(sizeof(pgx64_driver_t));
+  if (!this) {
+    printf("video_out_pgx64: driver malloc failed\n");
+    return NULL;
+  }
+  memset(this, 0, sizeof(pgx64_driver_t));
+
+  this->xine    = class->xine;
+  this->config  = class->config;
+  this->current = NULL;
+
+  this->vo_driver.get_capabilities     = (void*)pgx64_get_capabilities;
+  this->vo_driver.alloc_frame          = (void*)pgx64_alloc_frame;
+  this->vo_driver.update_frame_format  = (void*)pgx64_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_blend        = (void*)pgx64_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.display_frame        = (void*)pgx64_display_frame;
+  this->vo_driver.get_property         = (void*)pgx64_get_property;
+  this->vo_driver.set_property         = (void*)pgx64_set_property;
+  this->vo_driver.get_property_min_max = (void*)pgx64_get_property_min_max;
+  this->vo_driver.gui_data_exchange    = (void*)pgx64_gui_data_exchange;
+  this->vo_driver.redraw_needed        = (void*)pgx64_redraw_needed;
+  this->vo_driver.dispose              = (void*)pgx64_dispose;
+
+  this->colour_key = this->config->register_num(this->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, (void*)pgx64_config_changed, this);
+  this->brightness = this->config->register_range(this->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, (void*)pgx64_config_changed, this);
+  this->saturation = this->config->register_range(this->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, (void*)pgx64_config_changed, this);
+  this->deinterlace_method = this->config->register_enum(this->config, "video.pgx64_deinterlace_method", 0, deinterlace_methods, "video deinterlacing method", NULL, 10, (void*)pgx64_config_changed, this);
+
+  this->fbfd = fbfd;
+  this->top = attr.sattr.dev_specific[0];
+  this->fbbase = baseaddr;
+  this->fbregs = baseaddr + REGBASE;
+  this->fb_width = attr.fbtype.fb_width;
+  this->fb_height = attr.fbtype.fb_height;
+
+  vo_scale_init(&this->vo_scale, 0, 0);
+  this->vo_scale.user_ratio = ASPECT_AUTO;
+
+  set_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
+  write_reg(this, OVERLAY_SCALE_CNTL, 0x04000000);
+  write_reg(this, SCALER_H_COEFF0, SCALER_H_COEFF0_DEFAULT);
+  write_reg(this, SCALER_H_COEFF1, SCALER_H_COEFF1_DEFAULT);
+  write_reg(this, SCALER_H_COEFF2, SCALER_H_COEFF2_DEFAULT);
+  write_reg(this, SCALER_H_COEFF3, SCALER_H_COEFF3_DEFAULT);
+  write_reg(this, SCALER_H_COEFF4, SCALER_H_COEFF4_DEFAULT);
+  write_reg(this, CAPTURE_CONFIG, 0x00000000);
+  write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
+  write_reg(this, OVERLAY_KEY_CNTL, 0x00000050);
+  write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
+  write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, 0x00ffffff);
+
+  return this;
+}
+
+#ifdef HAVE_X11
+static vo_info_t vo_info_pgx64 = {
+  10,
+  XINE_VISUAL_TYPE_X11
+};
+
+static pgx64_driver_t* pgx64_init_driver(pgx64_driver_class_t *class, void *visual_gen)
+{  
+  pgx64_driver_t *this = init_driver(class);
+
+  if (this == NULL) {
+    return NULL;
+  }
 
   this->display  = ((x11_visual_t*)visual_gen)->display;
   this->screen   = ((x11_visual_t*)visual_gen)->screen;
@@ -700,12 +706,50 @@ static pgx64_driver_t* pgx64_init_plugin(xine_t *xine, void *visual_gen)
   return this;
 }
 
-static pgx64_driver_t* pgx64fb_init_plugin(xine_t *xine, void *visual_gen)
+static char* pgx64_get_identifier(pgx64_driver_class_t *this)
 {
-  pgx64_driver_t *this = init_plugin(xine);
+  return "pgx64";
+}
 
-  if (this == NULL)
+static char* pgx64_get_description(pgx64_driver_class_t *this)
+{
+  return "xine video output plugin for Sun PGX64/PGX24 framebuffers";
+}
+
+static pgx64_driver_class_t* pgx64_init_class(xine_t *xine, void *visual_gen)
+{
+  pgx64_driver_class_t *this;
+
+  if ((this = (pgx64_driver_class_t*)malloc(sizeof(pgx64_driver_class_t))) == NULL) {
+    printf("video_out_pgx64: driver class malloc failed\n");
     return NULL;
+  }
+  memset(this, 0, sizeof(pgx64_driver_class_t));
+
+  this->vo_driver_class.open_plugin     = (void*)pgx64_init_driver;
+  this->vo_driver_class.get_identifier  = (void*)pgx64_get_identifier;
+  this->vo_driver_class.get_description = (void*)pgx64_get_description;
+  this->vo_driver_class.dispose         = (void*)free;
+
+  this->xine    = xine;
+  this->config  = xine->config;
+
+  return this;
+}
+#endif
+
+static vo_info_t vo_info_pgx64fb = {
+  10,
+  XINE_VISUAL_TYPE_FB
+};
+
+static pgx64_driver_t* pgx64fb_init_driver(pgx64_driver_class_t *class, void *visual_gen)
+{
+  pgx64_driver_t *this = init_driver(class);
+
+  if (this == NULL) {
+    return NULL;
+  }
 
   this->vo_scale.user_data       = this;
   this->vo_scale.frame_output_cb = (void*)pgx64fb_output_callback;
@@ -715,20 +759,41 @@ static pgx64_driver_t* pgx64fb_init_plugin(xine_t *xine, void *visual_gen)
   return this;
 }
 
-static vo_info_t vo_info_pgx64 = {
-  10,
-  "xine video output plugin for Sun PGX64/PGX24 framebuffers",
-  XINE_VISUAL_TYPE_X11
-};
+static char* pgx64fb_get_identifier(pgx64_driver_class_t *this)
+{
+  return "pgx64fb";
+}
 
-static vo_info_t vo_info_pgx64fb = {
-  10,
-  "xine video output plugin for Sun PGX64/PGX24 framebuffers",
-  XINE_VISUAL_TYPE_FB
-};
+static char* pgx64fb_get_description(pgx64_driver_class_t *this)
+{
+  return "xine video output plugin for Sun PGX64/PGX24 framebuffers";
+}
+
+static pgx64_driver_class_t* pgx64fb_init_class(xine_t *xine, void *visual_gen)
+{
+  pgx64_driver_class_t *this;
+
+  if ((this = (pgx64_driver_class_t*)malloc(sizeof(pgx64_driver_class_t))) == NULL) {
+    printf("video_out_pgx64: driver class malloc failed\n");
+    return NULL;
+  }
+  memset(this, 0, sizeof(pgx64_driver_class_t));
+
+  this->vo_driver_class.open_plugin     = (void*)pgx64fb_init_driver;
+  this->vo_driver_class.get_identifier  = (void*)pgx64fb_get_identifier;
+  this->vo_driver_class.get_description = (void*)pgx64fb_get_description;
+  this->vo_driver_class.dispose         = (void*)free;
+
+  this->xine    = xine;
+  this->config  = xine->config;
+
+  return this;
+}
 
 plugin_info_t xine_plugin_info[] = {
-  {PLUGIN_VIDEO_OUT, 9, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, pgx64_init_plugin},
-  {PLUGIN_VIDEO_OUT, 9, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, pgx64fb_init_plugin},
+#ifdef HAVE_X11
+  {PLUGIN_VIDEO_OUT, 10, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
+#endif
+  {PLUGIN_VIDEO_OUT, 10, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };
