@@ -563,10 +563,9 @@ AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_ogg" != "xyes" -a x"$no_vorbis" != "xyes
 dnl ---------------------------------------------
 dnl check for libFLAC
 dnl ---------------------------------------------
-AM_PATH_LIBFLAC(, 
-	AC_DEFINE(HAVE_FLAC,1,[Define this if you have FLAC library installed]),
-	[])
-AM_CONDITIONAL(HAVE_FLAC, [test x"$no_flac" != x"yes"])
+AM_PATH_LIBFLAC([],
+	AC_MSG_RESULT([*** All FLAC dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_FLAC, [test x"$no_libFLAC" != "xyes"])
 
 dnl ---------------------------------------------
 dnl XviD libs.
