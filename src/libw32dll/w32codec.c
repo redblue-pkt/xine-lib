@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.55 2002/01/07 02:17:10 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.56 2002/01/07 17:21:16 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -102,6 +102,7 @@ typedef struct w32v_decoder_s {
   GUID             *guid;
   DS_VideoDecoder  *ds_dec;
 
+  int               stream_id;
     
   LDT_FS *ldt_fs;
 } w32v_decoder_t;
@@ -559,6 +560,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       w32v_init_codec (this, buf->type);
     else
       w32v_init_ds_codec (this, buf->type);
+      
+    this->stream_id = -1;
     
   } else if (this->decoder_ok) {
 
@@ -566,6 +569,12 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if( (int) buf->size <= 0 )
         return;
        
+    if( this->stream_id < 0 )
+       this->stream_id = buf->type & 0xff;
+    
+    if( this->stream_id != (buf->type & 0xff) )
+       return;
+    
     if( this->size + buf->size > this->bufsize ) {
       this->bufsize = this->size + 2 * buf->size;
       printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
