@@ -26,9 +26,32 @@ noinst_HEADERS = \
 	ifo_read.h \
         ifo_print.h \
 	md5.h \
-	nav_types.h \
 	nav_read.h \
 	nav_print.h
+
+include_HEADERS = nav_types.h
+
+##
+## Install header files (default=$includedir/xine)
+##
+install-includeHEADERS: $(include_HEADERS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
+	@list='$(include_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
+	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
+	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
+	done
+
+
+##
+## Remove them
+##
+uninstall-includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	list='$(include_HEADERS)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
+	done
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(OGG_CFLAGS) $(VORBIS_CFLAGS)"
