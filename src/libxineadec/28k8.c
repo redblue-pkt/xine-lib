@@ -20,9 +20,9 @@
  * RealAudio 28k8 Decoder by Ewald Snel <ewald@rambo.its.tudelft.nl>
  *
  * Based on public domain source code from:
- *   http://members.tripod.com/~ladsoft/
+ *   http://www.honeypot.net/audio/
  *
- * $Id: 28k8.c,v 1.1 2003/05/08 19:21:45 esnel Exp $
+ * $Id: 28k8.c,v 1.2 2003/05/08 19:45:08 esnel Exp $
  */
 
 #include <stdio.h>
