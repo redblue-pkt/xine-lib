@@ -83,7 +83,10 @@ typedef struct xvid_decoder_s {
 
 static int xvid_can_handle (video_decoder_t *this_gen, int buf_type) {
     buf_type &= (BUF_MAJOR_MASK|BUF_DECODER_MASK);
-    return (buf_type == BUF_VIDEO_MPEG4);
+
+    /* FIXME: what is it exactly that xvid can handle? :> */
+
+    return ((buf_type == BUF_VIDEO_XVID) || (buf_type == BUF_VIDEO_DIVX5));
 }
 
 static void xvid_init_plugin (video_decoder_t *this_gen, vo_instance_t *video_out) {

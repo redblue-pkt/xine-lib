@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.31 2002/04/20 20:20:43 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -114,6 +114,8 @@ static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
   return ( buf_type == BUF_VIDEO_MSMPEG4_V3 ||
            /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
            buf_type == BUF_VIDEO_MPEG4 ||
+           buf_type == BUF_VIDEO_XVID  ||
+           buf_type == BUF_VIDEO_DIVX5 ||
            buf_type == BUF_VIDEO_MJPEG ||
 	   /* buf_type == BUF_VIDEO_I263 || */
 	   buf_type == BUF_VIDEO_H263 ||
