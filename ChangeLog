@@ -5,7 +5,8 @@ xine-lib (1-beta5)
   * nvtv bugfixes
   * network code bugfixes (again long wait for some streams)
   * fix flac content detection (caused trouble to other demuxers)
-    
+  * OSS driver fixes (for cards using GETOPTR sync method)
+        
 xine-lib (1-beta4)
   * http input fixes
   * rtsp input fixes (remove long wait on end of stream)
