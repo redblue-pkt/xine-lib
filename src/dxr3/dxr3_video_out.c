@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.13 2002/04/02 14:05:59 mlampard Exp $
+ * $Id: dxr3_video_out.c,v 1.14 2002/04/03 09:40:40 mlampard Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -211,7 +211,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   int image_size, oheight; 
 
   /* update the overlay window co-ords if required */
-  dxr3_redraw_needed((vo_driver_t *)this);
+  dxr3_overlay_update(this);
 
   /* reset the copy calls counter (number of calls to dxr3_frame_copy) */	
   frame->copy_calls = 0;
@@ -402,24 +402,10 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
 int dxr3_redraw_needed(vo_driver_t *this_gen)
 {
-	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
-	int gui_win_x, gui_win_y, gypos,gxpos,gw,gh; 	
+	dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+	
+	dxr3_overlay_update(this);
 
-	if(this->overlay_enabled){
-		this->frame_output_cb (this->user_data,
-                   this->video_width, this->video_height,
-                        &gxpos, &gypos, &gw, &gh,
-                             &gui_win_x, &gui_win_y );
-
-		if(this->xpos!=gxpos || this->ypos!=gypos ||
-		   this->width !=gw || this->height!=gh) {
-			this->xpos=gxpos+1;
-			this->ypos=gypos+1;
-			this->width=gw;
-			this->height=gh;
-			dxr3_overlay_adapt_area(this, this->xpos, this->ypos, this->width, this->height, gui_win_x, gui_win_y);
-		}
-	}
 	if (this->need_redraw) {
 		this->need_redraw = 0;
   		return 1;
@@ -634,8 +620,7 @@ printf("dxr3_video_out:init_plugin\n");
 	this->overlay_enabled = 0;
 	this->aspectratio = ASPECT_FULL;
 
-	gather_screen_vars(this, visual_gen);
-	dxr3_read_config(this);
+	dxr3_read_config(this, visual_gen);
 	
 	if (this->overlay_enabled) {
 		dxr3_get_keycolor(this);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.19 2002/04/02 13:31:03 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.20 2002/04/03 09:40:40 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -56,6 +56,28 @@ void *malloc_aligned (size_t alignment, size_t size, void **mem) {
     aligned++;
                
   return aligned;
+}
+
+/****** update the overlay window ******/
+void dxr3_overlay_update(dxr3_driver_t *this)
+{
+	if(this->overlay_enabled) {
+		int gui_win_x, gui_win_y, gypos,gxpos,gw,gh;
+		
+		this->frame_output_cb (this->user_data,
+                   this->video_width, this->video_height,
+                        &gxpos, &gypos, &gw, &gh,
+                             &gui_win_x, &gui_win_y );
+
+		if(this->xpos!=gxpos || this->ypos!=gypos ||
+		   this->width !=gw || this->height!=gh) {
+			this->xpos=gxpos+1;
+			this->ypos=gypos+1;
+			this->width=gw;
+			this->height=gh;
+			dxr3_overlay_adapt_area(this, this->xpos, this->ypos, this->width, this->height);
+		}
+	}
 }
 
 
@@ -99,7 +121,7 @@ void dxr3_get_keycolor(dxr3_driver_t *this)
  *  overlay setup data is read from ~/.overlay/res* in the     *
  *   		     overlay section below  		       *
  ***************************************************************/	
-void dxr3_read_config(dxr3_driver_t *this)
+void dxr3_read_config(dxr3_driver_t *this, void * visual_gen)
 {
 	char* str;
 	config_values_t *config=this->config;
@@ -125,6 +147,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 	} else if (!strcasecmp(str, "overlay")) {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
 		printf("dxr3_vo: setting up overlay mode\n");
+		gather_screen_vars(this, visual_gen);
 		if (dxr3_overlay_read_state(&this->overlay) == 0) {
 			this->overlay_enabled = 1;
 			this->tv_switchable=1;	
@@ -408,7 +431,7 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 /*************************************************************************
  *  FIXME: Removed due to changes in XV by Guenter, but don't know what to replace it with
  *	Update 2/4/02 - Mike Lampard:
- *	  This functionality is now incorporated into dxr3_redraw_needed until
+ *	  This functionality is now incorporated into dxr3_overlay_update until
  *        a cleaner way can be found to update window changes.
 	  
 	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:{
@@ -427,7 +450,7 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 			XFillRectangle(this->display, this->win,
 				 this->gc, 0, 0, this->width, this->height);
 			XUnlockDisplay(this->display);
-			dxr3_redraw_needed((vo_driver_t*)this);
+			dxr3_overlay_update(this);
 		}
 		break;
 	case GUI_DATA_EX_DRAWABLE_CHANGED:{

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.17 2002/04/02 13:31:04 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.18 2002/04/03 09:40:40 mlampard Exp $
  *
  */
 
@@ -172,11 +172,13 @@ int dxr3_overlay_set_attributes(dxr3_overlay_t *this);
 int dxr3_overlay_set_screen(dxr3_overlay_t *this);
 int dxr3_overlay_set_window(dxr3_overlay_t *this,
 				 int xpos, int ypos, int width, int height);
-
+void dxr3_overlay_adapt_area(dxr3_driver_t *this,
+				 int xpos, int ypos, int width, int height);
+void dxr3_overlay_update(dxr3_driver_t *this);
 void dxr3_overlay_buggy_preinit(dxr3_overlay_t *this, int fd);
 int dxr3_overlay_read_state(dxr3_overlay_t *this);
 void dxr3_get_keycolor(dxr3_driver_t *this);
-void dxr3_read_config(dxr3_driver_t *this);
+void dxr3_read_config(dxr3_driver_t *this, void *visual_gen);
 
 void *malloc_aligned (size_t alignment, size_t size, void **mem);
 void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis);
