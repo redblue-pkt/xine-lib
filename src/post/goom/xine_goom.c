@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.32 2003/07/26 17:13:00 tmattern Exp $
+ * $Id: xine_goom.c,v 1.33 2003/07/26 23:31:55 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -46,6 +46,9 @@
 
 #define GOOM_WIDTH  320
 #define GOOM_HEIGHT 240
+
+/* skip frames if there is less than LOW_MARK pts in the audio_out fifo */
+#define LOW_MARK    90000 / 5
 
 /* colorspace conversion methods */
 const char * goom_csc_methods[]={
@@ -91,7 +94,9 @@ struct post_plugin_goom_s {
   int csc_method;
 
   yuv_planes_t yuv;
-  int frame_to_skip;
+  
+  /* frame skipping */
+  int skip_frame;
 };
 
 typedef struct post_goom_out_s post_goom_out_t;
@@ -340,7 +345,6 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   
   this->post.dispose = goom_dispose;
 
-  this->frame_to_skip = 0;
   return &this->post;
 }
 
@@ -453,6 +457,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->stream = stream;
   this->data_idx = 0;
   init_yuv_planes(&this->yuv, this->width, this->height);
+  this->skip_frame = 0;
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
@@ -480,10 +485,11 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   int16_t *data;
   int8_t *data8;
   int samples_used = 0;
-  uint64_t vpts = buf->vpts;
+  int64_t vpts = buf->vpts;
   int i, j;
   uint8_t *dest_ptr;
   int width, height;
+  int64_t cur_vpts, diff;
   
   /* HACK: compute a pts using metronom internals */
   if (!vpts) {
@@ -552,9 +558,25 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       vpts = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
       this->sample_counter -= this->samples_per_frame;
-  
+
+      /* skip frames if there is less than LOW_MARK in audio output fifo */
+      {
+        metronom_t *metronom = this->stream->metronom;
+        cur_vpts = metronom->clock->get_current_time(metronom->clock);
+        pthread_mutex_lock(&metronom->lock);
+        diff = metronom->audio_vpts - cur_vpts;
+        pthread_mutex_unlock(&metronom->lock);
+        if (diff < LOW_MARK) {
+          lprintf("skip frame: diff = %lld, spf=%d, nf=%d, sr=%d\n",
+                 diff, this->samples_per_frame, buf->num_frames, this->sample_rate);
+          this->skip_frame = 1;
+        } else {
+          this->skip_frame = 0;
+        }
+      }
+      
+      if (!this->skip_frame) {
         /* Try to be fast */
-      if (!this->frame_to_skip) {
         goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
         dest_ptr = frame -> base[0];
         goom_frame_end = goom_frame + 4 * (this->width_back * this->height_back);
@@ -613,12 +635,8 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
           }
         }
 
-        this->frame_to_skip = frame->draw(frame, stream);
-        if (this->frame_to_skip) {
-          lprintf("xine_goom: skip %d frames\n", this->frame_to_skip);
-        }
+        frame->draw(frame, stream);
       } else {
-        this->frame_to_skip--;
         frame->bad_frame = 1;
         frame->draw(frame, stream);
       }
