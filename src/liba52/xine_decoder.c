@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.44 2002/12/22 23:32:30 miguelfreitas Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -523,7 +523,9 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   a52dec_decoder_t *this ;
   config_values_t *cfg;
+#ifdef LOG
   printf ("liba52:open_plugin called\n");
+#endif
 
   this = (a52dec_decoder_t *) malloc (sizeof (a52dec_decoder_t));
   memset(this, 0, sizeof (a52dec_decoder_t));
@@ -646,17 +648,23 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 }
 
 static char *get_identifier (audio_decoder_class_t *this) {
+#ifdef LOG
   printf ("liba52:get_identifier called\n");
+#endif
   return "a/52dec";
 }
 
 static char *get_description (audio_decoder_class_t *this) {
+#ifdef LOG
   printf ("liba52:get_description called\n");
+#endif
   return "liba52 based a52 audio decoder plugin";
 }
 
 static void dispose_class (audio_decoder_class_t *this) {
+#ifdef LOG
   printf ("liba52:dispose_class called\n");
+#endif
   free (this);
 }
 
@@ -673,7 +681,9 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   this->config = xine->config;
 
+#ifdef LOG
   printf ("liba52:init_plugin called\n");
+#endif
   return this;
 }
 
