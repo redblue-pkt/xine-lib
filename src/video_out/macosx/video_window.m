@@ -17,10 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: 
- *
+ * Written by Daniel Mack <xine@zonque.org>
+ * 
  * Most parts of this code were taken from VLC, http://www.videolan.org
- * Thanks for the good research, folks!
+ * Thanks for the good research!
  */
 
 #include <OpenGL/OpenGL.h>
@@ -43,7 +43,10 @@
     height = size.height;
 
     [openGLView setVideoSize: width : height];
-    
+   
+    if (keepAspectRatio)
+        [self setAspectRatio: size];
+   
     [super setContentSize: size];
 }
 
@@ -61,6 +64,7 @@
     openGLView = [[XineOpenGLView alloc] initWithFrame:rect];
     [self setContentView: openGLView];
     [self setTitle: @"xine video output"];
+    keepAspectRatio = 0;
 
     return self;
 }
@@ -69,18 +73,92 @@
     return openGLView;
 }
 
-- (void) goFullScreen {
-    [openGLView goFullScreen];
+- (void) goFullScreen: (XineVideoWindowFullScreenMode) mode {
+    [openGLView goFullScreen: mode];
 }
 
 - (void) exitFullScreen {
     [openGLView exitFullScreen];
 }
 
+- (void) setNormalSize {
+    NSSize size;
+    
+    if ([openGLView isFullScreen])
+        return;
+    
+    size.width = width;
+    size.height = height;
+    
+    [super setContentSize: size];
+}
+
+- (void) setHalfSize {
+    NSSize size;
+    
+    if ([openGLView isFullScreen])
+        return;
+    
+    size.width = width / 2;
+    size.height = height / 2;
+
+    [super setContentSize: size];
+}
+
+- (void) setDoubleSize {
+    NSSize size;
+    
+    if ([openGLView isFullScreen])
+        return;
+    
+    size.width = width * 2;
+    size.height = height * 2;
+
+    [super setContentSize: size];
+}
+
+- (void) fitToScreen {
+    NSSize size;
+    int screen_width, screen_height;
+    
+    if ([openGLView isFullScreen])
+        return;
+    
+    screen_width = CGDisplayPixelsWide (kCGDirectMainDisplay);
+    screen_height = CGDisplayPixelsHigh (kCGDirectMainDisplay) - 40;
+
+    if (((float) screen_width / (float) screen_height) > ((float) width / (float) height)) {
+        size.width = (float) width * ((float) screen_height / (float) height);
+        size.height = screen_height;
+    } else {
+        size.width = screen_width;
+        size.height = (float) height * ((float) screen_width / (float) width);
+    }
+
+    [super setContentSize: size];
+}
+
+- (void) setKeepsAspectRatio: (int) i {
+    if (i)
+        [self setAspectRatio:NSMakeSize(width, height)];
+    else
+        [self setResizeIncrements:NSMakeSize(1.0, 1.0)];
+    
+    keepAspectRatio = i;
+}
+
+- (int) keepsAspectRatio {
+    return keepAspectRatio;
+}
+
 @end
 
 
 @implementation XineOpenGLView
+
+- (BOOL)mouseDownCanMoveWindow {
+    return YES;
+}
 
 - (id) initWithFrame: (NSRect) frame {
     
@@ -127,15 +205,11 @@
 - (void) reshape {
     if (!initDone)
         return;
-    
+   
     [currentContext makeCurrentContext];
 
     NSRect bounds = [self bounds];
-    glViewport (0, 0, (GLint) bounds.size.width,
-                (GLint) bounds.size.height);
-
-    f_x = 1.0;
-    f_y = 1.0;
+    glViewport (0, 0, bounds.size.width, bounds.size.height);
 }
 
 
@@ -206,7 +280,49 @@
             texture_buffer);
 }
 
-- (void) goFullScreen {
+- (void) calcFullScreenAspect {
+    int fs_width, fs_height, x, y, w, h;
+   
+    fs_width = CGDisplayPixelsWide (kCGDirectMainDisplay);
+    fs_height = CGDisplayPixelsHigh (kCGDirectMainDisplay);
+
+    switch (fullscreen_mode) {
+    case XINE_FULLSCREEN_OVERSCAN:
+        if (((float) fs_width / (float) fs_height) > ((float) width / (float) height)) {
+           w = (float) width * ((float) fs_height / (float) height);
+            h = fs_height;
+            x = (fs_width - w) / 2;
+            y = 0;
+        } else {
+            w = fs_width;
+            h = (float) height * ((float) fs_width / (float) width);
+            x = 0;
+            y = (fs_height - h) / 2;
+        }
+        break;
+	
+    case XINE_FULLSCREEN_CROP:
+        if (((float) fs_width / (float) fs_height) > ((float) width / (float) height)) {
+            w = fs_width;
+            h = (float) height * ((float) fs_width / (float) width);
+            x = 0;
+            y = (fs_height - h) / 2;
+        } else {
+            w = (float) width * ((float) fs_height / (float) height);
+            h = fs_height;
+            x = (fs_width - w) / 2;
+            y = 0;
+        }
+        break;
+    }
+
+    printf ("MacOSX fullscreen mode: %dx%d => w = %dx%d @ %d,%d\n", width, height, w, h, x, y);
+
+    glViewport (x, y, w, h);
+}
+
+- (void) goFullScreen: (XineVideoWindowFullScreenMode) mode {
+
     /* Create the new pixel format */
     NSOpenGLPixelFormatAttribute attribs[] = {
         NSOpenGLPFAAccelerated,
@@ -245,16 +361,10 @@
     [fullScreenContext setFullScreen];
     [fullScreenContext makeCurrentContext];
 
-    /* Fix ratio */
-    width = CGDisplayPixelsWide (kCGDirectMainDisplay);
-    height = CGDisplayPixelsHigh (kCGDirectMainDisplay);
+    fullscreen_mode = mode;
 
-    f_x = 1.0;
-    f_y = 1.0;
-
-    /* Update viewport, re-init textures */
-    glViewport (0, 0, width, height);
     [self initTextures];
+    [self calcFullScreenAspect];
 
     /* Redraw the last picture */
     [self setNeedsDisplay: YES];
@@ -263,23 +373,28 @@
 }
 
 - (void) exitFullScreen {
+    initDone = 0;
+    currentContext = [self openGLContext];
+    
     /* Free current OpenGL context */
     [NSOpenGLContext clearCurrentContext];
     [fullScreenContext clearDrawable];
     [fullScreenContext release];
     CGReleaseAllDisplays();
 
-    currentContext = [self openGLContext];
-    [self initTextures];
     [self reshape];
+    [self initTextures];
 
     /* Redraw the last picture */
     [self setNeedsDisplay: YES];
 
     isFullScreen = 0;
+    initDone = 1;
 }
 
 - (void) drawQuad {
+    float f_x = 1.0, f_y = 1.0;
+    
     glBegin (GL_QUADS);
         /* Top left */
         glTexCoord2f (0.0, 0.0);
@@ -289,7 +404,7 @@
         glVertex2f (-f_x, -f_y);
         /* Bottom right */
         glTexCoord2f ((float) width, (float) height);
-        glVertex2f (f_x, - f_y);
+        glVertex2f (f_x, -f_y);
         /* Top right */
         glTexCoord2f ((float) width, 0.0);
         glVertex2f (f_x, f_y);
@@ -328,7 +443,15 @@
 - (void) setVideoSize: (int) w : (int) h {
     width = w;
     height = h;
+    
     [self initTextures];
+    
+    if (isFullScreen)
+        [self calcFullScreenAspect];
+}
+
+- (int) isFullScreen {
+    return isFullScreen;
 }
 
 @end

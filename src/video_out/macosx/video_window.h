@@ -17,29 +17,33 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: 
- *
  */
 
 #include <Cocoa/Cocoa.h>
 
+typedef enum {
+    XINE_FULLSCREEN_OVERSCAN,
+    XINE_FULLSCREEN_CROP
+} XineVideoWindowFullScreenMode;
+
+
 @interface XineOpenGLView : NSOpenGLView {
-        int               width, height;
-        char             *texture_buffer;
-        unsigned long     i_texture;
-        float             f_x;
-        float             f_y;
-        int               initDone;
-        int               isFullScreen;
-	NSOpenGLContext * opengl_context;
-        NSOpenGLContext * fullScreenContext;
-        NSOpenGLContext * currentContext;
+    int                        width, height;
+    char                      *texture_buffer;
+    unsigned long              i_texture;
+    int                        initDone;
+    int                        isFullScreen;
+    XineVideoWindowFullScreenMode fullscreen_mode;
+    NSOpenGLContext           *opengl_context;
+    NSOpenGLContext           *fullScreenContext;
+    NSOpenGLContext  *currentContext;
 }
 
 - (void) drawQuad;
 - (void) drawRect: (NSRect) rect;
-- (void) goFullScreen;
+- (void) goFullScreen: (XineVideoWindowFullScreenMode) mode;
 - (void) exitFullScreen;
+- (int) isFullScreen;
 - (void) reshape;
 - (void) initTextures;
 - (void) reloadTexture;
@@ -51,14 +55,21 @@
 
 
 @interface XineVideoWindow : NSWindow {
-	int               width, height;
-	XineOpenGLView   *openGLView;
+    int               width, height;
+    int               keepAspectRatio;
+    XineOpenGLView   *openGLView;
 }
 
 - (void) setContentSize: (NSSize) size;
 - (void) displayTexture;
 - (XineOpenGLView *) getGLView;
-- (void) goFullScreen;
+- (void) goFullScreen: (XineVideoWindowFullScreenMode) mode;
 - (void) exitFullScreen;
-
+- (void) setNormalSize;
+- (void) setHalfSize;
+- (void) setDoubleSize;
+- (void) fitToScreen;
+- (void) setKeepsAspectRatio: (int) i;
+- (int) keepsAspectRatio;
 @end
+
