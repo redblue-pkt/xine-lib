@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <inttypes.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "a52.h"
@@ -36,6 +37,15 @@ void * memalign (size_t align, size_t size);
 /* assume malloc alignment is sufficient */
 #define memalign(align,size) malloc (size)
 #endif
+
+static sample_t q_1[2];
+static sample_t q_2[2];
+static sample_t q_4;
+static int q_1_pointer;
+static int q_2_pointer;
+static int q_4_pointer;
+
+static uint8_t halfrate[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3};
 
 sample_t * a52_init (uint32_t mm_accel)
 {
@@ -53,8 +63,6 @@ sample_t * a52_init (uint32_t mm_accel)
 
     return samples;
 }
-
-static uint8_t halfrate[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3};
 
 int a52_syncinfo (uint8_t * buf, int * flags,
 		  int * sample_rate, int * bit_rate)
@@ -272,17 +280,9 @@ static inline int zero_snr_offsets (int nfchans, a52_state_t * state)
     return 1;
 }
 
-static sample_t q_1[2];
-static sample_t q_2[2];
-static sample_t q_4;
-static int q_1_pointer;
-static int q_2_pointer;
-static int q_4_pointer;
-
-static uint16_t lfsr_state = 1;
-
 static inline int16_t dither_gen (void)
 {
+    static uint16_t lfsr_state = 1;
     int16_t state;
 
     state = dither_lut[lfsr_state >> 8] ^ (lfsr_state << 8);
@@ -301,24 +301,23 @@ static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
     for (i = 0; i <= 24; i++)
 	factor[i] = scale_factor[i] * level;
 
-    i = 0;
-    while (i < end) {
+    for (i = 0; i < end; i++) {
 	int bapi;
 
 	bapi = bap[i];
 	switch (bapi) {
 	case 0:
 	    if (dither) {
-		coeff[i++] = dither_gen() * LEVEL_3DB * factor[exp[i]];
+		coeff[i] = dither_gen() * LEVEL_3DB * factor[exp[i]];
 		continue;
 	    } else {
-		coeff[i++] = 0;
+		coeff[i] = 0;
 		continue;
 	    }
 
 	case -1:
 	    if (q_1_pointer >= 0) {
-		coeff[i++] = q_1[q_1_pointer--] * factor[exp[i]];
+		coeff[i] = q_1[q_1_pointer--] * factor[exp[i]];
 		continue;
 	    } else {
 		int code;
@@ -328,13 +327,13 @@ static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
 		q_1_pointer = 1;
 		q_1[0] = q_1_2[code];
 		q_1[1] = q_1_1[code];
-		coeff[i++] = q_1_0[code] * factor[exp[i]];
+		coeff[i] = q_1_0[code] * factor[exp[i]];
 		continue;
 	    }
 
 	case -2:
 	    if (q_2_pointer >= 0) {
-		coeff[i++] = q_2[q_2_pointer--] * factor[exp[i]];
+		coeff[i] = q_2[q_2_pointer--] * factor[exp[i]];
 		continue;
 	    } else {
 		int code;
@@ -344,18 +343,18 @@ static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
 		q_2_pointer = 1;
 		q_2[0] = q_2_2[code];
 		q_2[1] = q_2_1[code];
-		coeff[i++] = q_2_0[code] * factor[exp[i]];
+		coeff[i] = q_2_0[code] * factor[exp[i]];
 		continue;
 	    }
 
 	case 3:
-	    coeff[i++] = q_3[bitstream_get (3)] * factor[exp[i]];
+	    coeff[i] = q_3[bitstream_get (3)] * factor[exp[i]];
 	    continue;
 
 	case -3:
 	    if (q_4_pointer == 0) {
 		q_4_pointer = -1;
-		coeff[i++] = q_4 * factor[exp[i]];
+		coeff[i] = q_4 * factor[exp[i]];
 		continue;
 	    } else {
 		int code;
@@ -364,16 +363,16 @@ static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
 
 		q_4_pointer = 0;
 		q_4 = q_4_1[code];
-		coeff[i++] = q_4_0[code] * factor[exp[i]];
+		coeff[i] = q_4_0[code] * factor[exp[i]];
 		continue;
 	    }
 
 	case 4:
-	    coeff[i++] = q_5[bitstream_get (4)] * factor[exp[i]];
+	    coeff[i] = q_5[bitstream_get (4)] * factor[exp[i]];
 	    continue;
 
 	default:
-	    coeff[i++] = ((bitstream_get_2 (bapi) << (16 - bapi)) *
+	    coeff[i] = ((bitstream_get_2 (bapi) << (16 - bapi)) *
 			  factor[exp[i]]);
 	}
     }
