@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.53 2001/12/24 19:31:13 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.54 2002/01/05 22:06:44 miguelfreitas Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -708,18 +708,20 @@ static void dxr3_flush_decoder(void *this_gen, cfg_entry_t *entry)
 }
 
 video_decoder_t *init_video_decoder_plugin (int iface_version,
- config_values_t *cfg)
+ xine_t *xine)
 {
 	dxr3_decoder_t *this ;
+	config_values_t *cfg;
 
-	if (iface_version != 4) {
+	if (iface_version != 5) {
 		printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 		 "dxr3: this means there's a version mismatch between xine and this\n"
 		 "dxr3: decoder plugin. Installing current plugins should help.\n",
 		 iface_version);
 		return NULL;
 	}
-
+ 
+	cfg = xine->config;
 	devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Dxr3: Device Name",NULL,NULL,NULL);
 
 	dxr3_presence_test ();
