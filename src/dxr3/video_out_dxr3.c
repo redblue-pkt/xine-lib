@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.8 2001/08/14 19:43:43 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.9 2001/10/10 10:05:03 jkeil Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -335,6 +335,14 @@ static void dxr3_get_property_min_max (vo_driver_t *this_gen,
 	}
 }
 
+static void dxr3_translate_gui2video(dxr3_driver_t *this,
+				     int x, int y,
+				     int *vid_x, int *vid_y)
+{
+	*vid_x = x;
+	*vid_y = y;
+}
+
 static int dxr3_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data)
 {
@@ -362,6 +370,25 @@ static int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 		dxr3_set_property((vo_driver_t*) this,
 		 VO_PROP_ASPECT_RATIO, this->aspectratio);
 		break;
+	/* FIXME: implement this
+	case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+		{
+	    	int x1, y1, x2, y2;
+		x11_rectangle_t *rect = data;
+
+		dxr3_translate_gui2video(this, rect->x, rect->y,
+					 &x1, &y1);
+		dxr3_translate_gui2video(this, rect->x+rect->w, rect->y+rect->h,
+					 &x2, &y2);
+		rect->x = x1;
+		rect->y = y1;
+		rect->w = x2-x1;
+		rect->h = y2-y1;
+		}
+		break;
+	*/
+	default:
+		return -1;
 	}
 	return 0;
 }
