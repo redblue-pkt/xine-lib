@@ -788,7 +788,7 @@ AC_ARG_WITH(external-dvdnav,[  --with-external-dvdnav  Use external dvdnav libra
             [external_dvdnav="yes"], [no_dvdnav="yes"; external_dvdnav="no"])
 
 if test x"$external_dvdnav" = "xyes"; then
-  AM_PATH_DVDNAV(0.1.8,
+  AM_PATH_DVDNAV(0.1.9,
 	  AC_DEFINE(HAVE_DVDNAV,1,[Define this if you have a suitable version of libdvdnav]),
 	  [AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])])
 else
@@ -1317,7 +1317,6 @@ src/demuxers/Makefile
 src/dxr3/Makefile
 src/input/Makefile
 src/input/libdvdnav/Makefile
-src/input/libdvdread/Makefile
 src/input/dvb/Makefile
 src/input/librtsp/Makefile
 src/input/libreal/Makefile

@@ -16,7 +16,15 @@ libdvdnav_la_SOURCES = \
 	searching.c \
 	settings.c \
 	vm.c \
-	vmcmd.c 
+	vmcmd.c \
+	ifo_print.c \
+	ifo_read.c \
+	md5.c \
+	nav_print.c \
+	nav_read.c \
+	dvd_reader.c \
+	dvd_input.c \
+        dvd_udf.c
 
 libdvdnav_la_LDFLAGS = $(THREAD_LIBS) -avoid-version -module
 
@@ -29,7 +37,18 @@ noinst_HEADERS = \
 	vm.h \
 	vmcmd.h \
 	read_cache.h \
-	dvd_types.h
+	dvd_types.h \
+	ifo_print.h \
+	ifo_read.h \
+	ifo_types.h \
+	md5.h \
+	nav_print.h \
+	nav_read.h \
+	nav_types.h \
+	dvd_reader.h \
+	dvd_input.h \
+	dvd_udf.h \
+	bswap.h 
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(DVD_CFLAGS)"

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.156 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_dvd.c,v 1.157 2003/04/29 15:58:28 jcdutton Exp $
  *
  */
 
@@ -85,16 +85,15 @@
 #ifdef HAVE_DVDNAV
 #ifndef _MSC_VER
 #  include <dvdnav/dvdnav.h>
+#  include <dvdnav/nav_read.h>
 #else
 #  include "dvdnav.h"
+#  include "nav_read.h"
 #endif /* _MSC_VER */
 #else
 #  define DVDNAV_COMPILE
 #  include "dvdnav.h"
 #endif
-
-/* libdvdread includes */
-#include "nav_read.h"
 
 /* Xine includes */
 #include "xineutils.h"
@@ -1616,6 +1615,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.157  2003/04/29 15:58:28  jcdutton
+ * Update from the libdvdnav project.
+ *
  * Revision 1.156  2003/04/26 22:34:32  guenter
  * bump up input plugin interface version number
  *

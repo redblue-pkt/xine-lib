@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.7 2003/02/20 16:02:00 mroi Exp $
+ * $Id: read_cache.c,v 1.8 2003/04/29 15:58:30 jcdutton Exp $
  *
  */
 
@@ -114,7 +114,11 @@ struct read_cache_s {
 # if READ_CACHE_TRACE
 #  define dprintf(fmt, ...) fprintf(MSG_OUT, "libdvdnav: %s: "fmt,  __func__ , __VA_ARGS__)
 # else
+#ifdef _MSC_VER
+#  define dprintf(fmt, str) /* Nowt */
+#else
 #  define dprintf(fmt, ...) /* Nowt */
+#endif /* _MSC_VER */
 # endif
 #endif
 

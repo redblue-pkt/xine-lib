@@ -15,14 +15,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: remap.c,v 1.2 2003/02/20 16:02:00 mroi Exp $
+ * $Id: remap.c,v 1.3 2003/04/29 15:58:30 jcdutton Exp $
  */
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#ifndef _MSC_VER 
 #include <sys/param.h>
 #include <sys/fcntl.h>
+#else
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 255
+#endif
+#endif /* _MSC_VER */
+
 #include <assert.h>
 #include "remap.h"
 #include "dvdnav_internal.h"

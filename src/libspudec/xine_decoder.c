@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.95 2003/04/01 11:45:33 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.96 2003/04/29 15:58:32 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -37,8 +37,13 @@
 #include "xine-engine/bswap.h"
 #include "xineutils.h"
 #include "spu.h"
-#include "nav_types.h"
-#include "nav_read.h"
+#ifdef HAVE_DVDNAV
+#include <dvdnav/nav_read.h>
+#include <dvdnav/nav_types.h>
+#else
+#include "../input/libdvdnav/nav_read.h"
+#include "../input/libdvdnav/nav_types.h"
+#endif
 
 /*
 #define LOG_DEBUG 1

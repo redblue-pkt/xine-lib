@@ -1,4 +1,3 @@
-/* !! DO NO EDIT THIS FILE, it is automatically generated */
 /* 
  * Copyright (C) 2001 Rich Wareham <richwareham@users.sourceforge.net>
  * 
@@ -18,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.10 2003/04/29 15:58:30 jcdutton Exp $
+ * $Id: dvdnav_internal.h.in,v 1.1 2003/04/29 15:58:30 jcdutton Exp $
  *
  */
 
@@ -36,7 +35,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#undef WORDS_BIGENDIAN
+@BIGENDIAN@
 
 #include "dvd_reader.h"
 #include "ifo_read.h"

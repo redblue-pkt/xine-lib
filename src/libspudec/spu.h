@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.19 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: spu.h,v 1.20 2003/04/29 15:58:32 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -35,7 +35,11 @@
 #include <inttypes.h>
 #include "video_out.h"
 #include "video_overlay.h"
-#include "nav_types.h"
+#ifdef HAVE_DVDNAV
+#include <dvdnav/nav_types.h>
+#else
+#include "../input/libdvdnav/nav_types.h"
+#endif
 
 #define NUM_SEQ_BUFFERS 50
 #define MAX_STREAMS 32

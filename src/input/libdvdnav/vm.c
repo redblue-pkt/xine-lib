@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.19 2003/04/07 18:10:50 mroi Exp $
+ * $Id: vm.c,v 1.20 2003/04/29 15:58:31 jcdutton Exp $
  *
  */
 
@@ -41,6 +41,11 @@
 #include "ifo_read.h"
 
 #include "dvdnav_internal.h"
+
+#ifdef _MSC_VER
+#include <io.h>   /* read() */
+#define lseek64 lseek
+#endif /* _MSC_VER */
 
 /*
 #define STRICT
@@ -479,20 +484,13 @@ int vm_jump_cell_block(vm_t *vm, int cell, int block) {
 }
 
 int vm_jump_title_part(vm_t *vm, int title, int part) {
-  link_t link;
-  
   if(!set_PTT(vm, title, part))
     return 0;
   /* Some DVDs do not want us to jump directly into a title and have
    * PGC pre commands taking us back to some menu. Since we do not like that,
-   * we do not execute PGC pre commands that would do a jump. */
+   * we do not execute PGC pre commands but directly play the PG. */
   /* process_command(vm, play_PGC_PG(vm, (vm->state).pgN)); */
-  link = play_PGC_PG(vm, (vm->state).pgN);
-  if (link.command != PlayThis)
-    /* jump occured -> ignore it and play the PG anyway */
-    process_command(vm, play_PG(vm));
-  else
-    process_command(vm, link);
+  process_command(vm, play_PG(vm));
   return 1;
 }
 
@@ -1846,193 +1844,3 @@ void vm_position_print(vm_t *vm, vm_position_t *position) {
 #endif
 
 
-/*
- * $Log: vm.c,v $
- * Revision 1.19  2003/04/07 18:10:50  mroi
- * merging libdvdnav, since some nice fixes took place
- *
- * Revision 1.18  2003/04/01 19:42:41  jcdutton
- * Add some comments.
- * Remove a FIXME comment.
- *
- * Revision 1.17  2003/03/29 13:19:09  mroi
- * sync to libdvdnav cvs once again
- *  * some changes to mutual header inclusion to make it compile warning-less
- *    when tracing is enabled
- *  * title/part jumping should work much more reliable now
- *
- * Revision 1.16  2003/03/27 13:46:47  mroi
- * sync to libdvdnav cvs
- *  * fix conversion of dvd_time_t (I do know BCD, I just did it wrong...)
- *
- * Revision 1.15  2003/03/25 13:17:22  mroi
- * sync to cvs of libdvdnav
- *   * optional PGC based seeking
- *   * new event on cell changes for timing info (currently not used by xine-lib)
- *
- * Revision 1.14  2003/03/21 22:13:38  mroi
- * sync to libdvdnav cvs
- * * method to try-run VM operations, now used for safer chapter skipping and menu jumps
- * * fixed detection of current PTT to not assume a 1:1 mapping between PTTs and PGs
- * * releasing stills when jumping to menu fixes some state inconsistencies
- * * do not assume PGs to be physically layed out in sequence on the disc
- *
- * Revision 1.13  2003/02/20 16:02:01  mroi
- * syncing to libdvdnav 0.1.5 and modifying input plugin accordingly
- * quoting the ChangeLog:
- *   * some bugfixes
- *   * code cleanup
- *   * build process polishing
- *   * more sensible event order in get_next_block to ensure useful event delivery
- *   * VOBU level resume
- *   * fixed: seeking in a multiangle feature briefly showed the wrong angle
- *
- * Revision 1.12  2003/02/11 16:28:47  heikos
- * freebsd compile fix
- *
- * Revision 1.11  2003/01/13 13:53:33  mroi
- * sync to latest cvs of libdvdnav
- * * small fix for "Spy Game" RC2
- * * implement LinkNoLink (Disney's "Beauty and the Beast" RC2 deluxe uses it,
- *   but the interactive game still does not work)
- * * slightly improved logic of program jumps -> chapter skipping should work
- *   correctly in more (if not all) cases now
- *
- * Revision 1.10  2002/11/23 11:08:12  mroi
- * sync to latest libdvdnav cvs:
- * * "Back to the Future" German RC2 fix
- * * patch from Marco Zühlke for correct title number display
- *
- * Revision 1.9  2002/11/18 12:41:16  mroi
- * sync to libdvdnav cvs
- * * fix read cache and improve it for slower drives
- * * improve chapter skipping
- *
- * Revision 1.8  2002/10/22 17:18:24  jkeil
- * Recursive comments, picked up via CVS $Log keyword.  Trying to fix...
- *
- * Revision 1.7  2002/10/22 04:39:30  storri
- * Changed comments to standard / * ... * /
- *
- * Revision 1.6  2002/09/20 12:53:53  mroi
- * sync to latest libdvdnav cvs version
- *
- * Revision 1.5  2002/09/04 11:07:47  mroi
- * sync to libdvdnav cvs
- *
- * Revision 1.4  2002/08/27 19:24:33  mroi
- * sync to libdvdnav cvs, this should now conform to the way xine outputs
- * its console messages (write to stdout, "libdvdnav: " in front each line)
- *
- * Revision 1.3  2002/08/09 22:52:14  mroi
- * change includes from system include to local include where the file is in
- * our tree now to avoid version clashes
- *
- * Revision 1.2  2002/08/08 21:55:54  richwareham
- * Changed loads of #include <dvdread/...> to #include <...>
- *
- * Revision 1.1  2002/08/08 17:49:21  richwareham
- * First stage of DVD plugin -> dvdnav conversion
- *
- * Revision 1.24  2002/07/05 14:18:55  mroi
- * report all spu types (widescreen, letterbox and pan&scan), not widescreen
- * only and report the stream's scale permissions to detect pan&scan material
- *
- * Revision 1.23  2002/07/05 01:42:30  jcdutton
- * Add more debug info for Menu language selection.
- * Only do vm_start when we have to.
- *
- * Revision 1.22  2002/07/04 00:38:51  jcdutton
- * Add some menu language printf's.
- *
- * Revision 1.21  2002/07/03 02:41:31  jcdutton
- * Fix another long standing bug.
- * Now changing PGC will force a start at the first PG of the PGC.
- *
- * Revision 1.20  2002/07/02 22:57:10  jcdutton
- * Rename some of the functions in vm.c to help readability.
- * Hopefully fix __FUNCTION__ problem. Use __func_ as recommended in C99.
- * Fix bug where libdvdnav would not immeadiately replay the same cell due to menu buttons.
- *
- * Revision 1.19  2002/06/04 13:35:16  richwareham
- * Removed more C++ style comments
- *
- * Revision 1.18  2002/05/30 19:25:08  richwareham
- * Another small fix
- *
- * Revision 1.17  2002/05/30 15:56:41  richwareham
- * Fixed (what appears to be) an error in JumpVTS_PTT implementation, it didn't call play_PGC after jumping.
- *
- * Revision 1.16  2002/04/24 21:15:25  jcdutton
- * Quiet please!!!
- *
- * Revision 1.15  2002/04/23 13:18:31  jcdutton
- * Insert some assert commands to hopefully catch a DVD which will give us information on what to do if these values are != 0.
- *
- * Revision 1.14  2002/04/23 12:34:39  f1rmb
- * Why rewrite vm function, use it instead (this remark is for me, of course ;-) ).
- * Comment unused var, shut compiler warnings.
- *
- * Revision 1.13  2002/04/23 02:12:27  jcdutton
- * Re-implemented seeking.
- *
- * Revision 1.12  2002/04/22 22:00:48  jcdutton
- * Start of rewrite of libdvdnav. Still need to re-implement seeking.
- *
- * Revision 1.11  2002/04/12 20:06:41  jcdutton
- * Implement General Register Counters or GPRM counters.
- * Navigation timers are not supported yet. SPRM[9] and SPRM[10].
- *
- * Revision 1.10  2002/04/12 12:43:36  jcdutton
- * Display DVD disk region setting.
- * Display possible RCE region protection message.
- *
- * Revision 1.9  2002/04/10 16:45:57  jcdutton
- * Actually fix the const this time!
- *
- * Revision 1.8  2002/04/10 16:40:52  jcdutton
- * Fix a const problem.
- *
- * Revision 1.7  2002/04/10 13:09:40  jcdutton
- * Some improvements to decoder.c
- * Registers should be updated correctly now, but still needs checking.
- *
- * Revision 1.6  2002/04/09 15:19:07  jcdutton
- * Added some debug info, to hopefully help in tracking bugs in libdvdnav.
- *
- * Revision 1.5  2002/04/07 19:35:54  jcdutton
- * Added some comments into the code.
- *
- * Revision 1.4  2002/04/06 18:31:50  jcdutton
- * Some cleaning up.
- * changed exit(1) to assert(0) so they actually get seen by the user so that it helps developers more.
- *
- * Revision 1.3  2002/04/02 18:22:27  richwareham
- * Added reset patch from Kees Cook <kees@outflux.net>
- *
- * Revision 1.2  2002/04/01 18:56:28  richwareham
- * Added initial example programs directory and make sure all debug/error output goes to stderr.
- *
- * Revision 1.1.1.1  2002/03/12 19:45:55  richwareham
- * Initial import
- *
- * Revision 1.18  2002/01/22 16:56:49  jcdutton
- * Fix clut after seeking.
- * Add a few virtual machine debug messages, to help diagnose problems with "Deep Purple - Total Abandon" DVD as I don't have the DVD itvm.
- * Fix a few debug messages, so they do not say FIXME.
- * Move the FIXME debug messages to comments in the code.
- *
- * Revision 1.17  2002/01/21 01:16:30  jcdutton
- * Added some debug messages, to hopefully get info from users.
- *
- * Revision 1.16  2002/01/20 21:40:46  jcdutton
- * Start to fix some assert failures.
- *
- * Revision 1.15  2002/01/19 20:24:38  jcdutton
- * Just some FIXME notes added.
- *
- * Revision 1.14  2002/01/13 22:17:57  jcdutton
- * Change logging.
- *
- *
- */
