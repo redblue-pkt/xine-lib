@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.54 2004/11/03 19:30:05 mroi Exp $
+ * $Id: xine_decoder.c,v 1.55 2004/11/19 05:35:49 tmmm Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -132,7 +132,14 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO;
 
-    this->output_open = this->stream->audio_out->open (this->stream->audio_out, this->stream,
+    /* force 24-bit samples into 16 bits for now */
+    if (this->bits_per_sample == 24)
+      this->output_open = this->stream->audio_out->open (this->stream->audio_out, this->stream,
+                                               16,
+                                               this->rate,
+                                               this->ao_cap_mode) ;
+    else
+      this->output_open = this->stream->audio_out->open (this->stream->audio_out, this->stream,
                                                this->bits_per_sample,
                                                this->rate,
                                                this->ao_cap_mode) ;
@@ -178,8 +185,28 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         n -= 10; 
       }
     }
-  }
-  else {
+  } else if( this->bits_per_sample == 24 ) {
+    uint8_t *s = (uint8_t *)sample_buffer;
+    uint8_t *d = (uint8_t *)audio_buffer->mem;
+    int n = buf->size;
+
+    while (n >= 0) {
+      *d++ = s[8];
+      *d++ = s[0];
+
+      *d++ = s[9];
+      *d++ = s[2];
+
+      *d++ = s[10];
+      *d++ = s[4];
+
+      *d++ = s[11];
+      *d++ = s[6];
+
+      s += 12;
+      n -= 12;
+    }
+  } else {
     memcpy (audio_buffer->mem, sample_buffer, buf->size);
   }
   
