@@ -300,6 +300,23 @@ AM_CHECK_CDROM_IOCTLS(AC_DEFINE(HAVE_CDROM_IOCTLS),
 AM_CONDITIONAL(HAVE_CDROM_IOCTLS, test x"$have_cdrom_ioctls" = "xyes")
 
 dnl
+dnl dxr3 / hollywood plus card
+dnl
+AC_ARG_WITH(linux-path,
+ [  --with-linux-path=PATH  Where the linux sources are located],
+            linux_path="$withval", linux_path="/usr/src/linux")
+
+AC_ARG_ENABLE(dxr3,
+ [  --enable-dxr3           Turn on DXR3/HW+ decoder support],
+ enable_dxr3=yes, enable_dxr3=no)
+
+if test x$enable_dxr3 = xyes; then
+	AC_CHECK_HEADER($linux_path/include/linux/em8300.h, have_dxr3=yes,
+		AC_MSG_ERROR(DXR3 headers not found))
+fi
+AM_CONDITIONAL(HAVE_DXR3, test "x$have_dxr3" = xyes)
+
+dnl
 dnl ip_mreqn
 dnl
 AC_CHECK_IP_MREQN
@@ -537,6 +554,7 @@ src/Makefile
 src/audio_out/Makefile
 src/video_out/Makefile
 src/demuxers/Makefile
+src/dxr3/Makefile
 src/libmpeg2/Makefile
 src/libac3/Makefile
 src/libmpg123/Makefile
