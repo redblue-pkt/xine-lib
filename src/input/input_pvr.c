@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.9 2003/03/20 22:58:40 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.10 2003/03/21 16:59:48 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -836,7 +836,7 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       free(src_filename);
     }
     
-    if( !this->save_name || !strlen(this->save_name) ) {
+    if( this->save_page != -1 && !this->save_name || !strlen(this->save_name) ) {
       saved_show_t        *show = malloc(sizeof(saved_show_t));
       xine_event_t         event;
       xine_pvr_save_data_t data;
