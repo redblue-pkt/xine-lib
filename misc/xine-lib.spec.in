@@ -280,6 +280,10 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/xine_logo.png
 %{prefix}/share/xine/fonts/*
+## intl files
+%{prefix}/share/locale/fr/LC_MESSAGES/xine-lib.mo
+%{prefix}/share/locale/de/LC_MESSAGES/xine-lib.mo
+%{prefix}/share/locale/pt_BR/LC_MESSAGES/xine-lib.mo
 
 @HAVE_OSS_TRUE@%files oss
 @HAVE_OSS_TRUE@%defattr(-,root,root)
@@ -347,6 +351,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Wed Feb 6 2002 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- added 'de,fr,pt_BR' translation catalogs.
 * Sat Dec 26 2001 Matthias Dahl <matthew2k@web.de>
 - added sputext decode plugin and fonts.
 * Sat Dec 8 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-01-20 14:05+0100\n"
+"POT-Creation-Date: 2002-02-07 01:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,54 +146,59 @@ msgstr ""
 msgid "demux_avi: video format = %s, audio format = 0x%lx\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:931
+#: src/demuxers/demux_avi.c:926
+#, c-format
+msgid "demux_avi: video frame size %d x %d\n"
+msgstr ""
+
+#: src/demuxers/demux_avi.c:933
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:936
+#: src/demuxers/demux_avi.c:938
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:954 src/demuxers/demux_avi.c:971
+#: src/demuxers/demux_avi.c:956 src/demuxers/demux_avi.c:973
 msgid "demux_avi: video seek to start failed\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:988
+#: src/demuxers/demux_avi.c:990
 msgid "demux_avi: audio seek to start failed\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1019
+#: src/demuxers/demux_avi.c:1021
 #, c-format
 msgid "demux_avi: unknown avi format %.4s\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1026
+#: src/demuxers/demux_avi.c:1028
 #, c-format
 msgid "demux_avi: video codec >%s<\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1063
+#: src/demuxers/demux_avi.c:1065
 msgid "demux_avi: text subtitle file available\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1069
+#: src/demuxers/demux_avi.c:1071
 #, c-format
 msgid "demux_avi: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1101
+#: src/demuxers/demux_avi.c:1103
 #, c-format
 msgid "demux_avi: %ld frames\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1107 src/demuxers/demux_avi.c:1144
+#: src/demuxers/demux_avi.c:1109 src/demuxers/demux_avi.c:1146
 #, c-format
 msgid "demux_avi: AVI_init failed (AVI_errno: %d)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1189
+#: src/demuxers/demux_avi.c:1191
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -293,22 +298,22 @@ msgstr ""
 msgid "demux_mpeg_block: stop...ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:871
+#: src/demuxers/demux_mpeg_block.c:872
 #, c-format
 msgid "demux_mpeg_block: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:888
+#: src/demuxers/demux_mpeg_block.c:889
 #, c-format
 msgid "demux_mpeg_block: mrl %s is new, will estimated bitrate\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:892
+#: src/demuxers/demux_mpeg_block.c:893
 #, c-format
 msgid "demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1048
+#: src/demuxers/demux_mpeg_block.c:1050
 #, c-format
 msgid ""
 "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
@@ -501,53 +506,53 @@ msgstr ""
 msgid "demux_asf: audio conceal interleave detected (%d x %d x %d)\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:613
+#: src/demuxers/demux_asf.c:615
 msgid "demux_asf: absolute size ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:816
+#: src/demuxers/demux_asf.c:818
 msgid "demux_asf: buffer overflow on defrag!\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:847
+#: src/demuxers/demux_asf.c:849
 msgid "demux_asf: get_packet failed\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:881
+#: src/demuxers/demux_asf.c:883
 #, c-format
 msgid "demux_asf: unknow segtype %x\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1060
+#: src/demuxers/demux_asf.c:1062
 msgid "demux_asf: stop...ignored\n"
-msgstr ""
-
-#: src/demuxers/demux_asf.c:1146
-#, c-format
-msgid "demux_asf: title        : %s\n"
-msgstr ""
-
-#: src/demuxers/demux_asf.c:1147
-#, c-format
-msgid "demux_asf: author       : %s\n"
 msgstr ""
 
 #: src/demuxers/demux_asf.c:1148
 #, c-format
-msgid "demux_asf: copyright    : %s\n"
+msgid "demux_asf: title        : %s\n"
 msgstr ""
 
 #: src/demuxers/demux_asf.c:1149
 #, c-format
+msgid "demux_asf: author       : %s\n"
+msgstr ""
+
+#: src/demuxers/demux_asf.c:1150
+#, c-format
+msgid "demux_asf: copyright    : %s\n"
+msgstr ""
+
+#: src/demuxers/demux_asf.c:1151
+#, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1177
+#: src/demuxers/demux_asf.c:1179
 #, c-format
 msgid "demux_asf: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1252
+#: src/demuxers/demux_asf.c:1254
 #, c-format
 msgid ""
 "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -1279,52 +1284,48 @@ msgstr ""
 msgid "metronom: panic - no scr provider found!\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:947
+#: src/xine-engine/metronom.c:948
 #, c-format
 msgid "metronom: cannot create sync thread (%s)\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:216
+#: src/xine-engine/video_out.c:257
 msgid "video_out: sigprocmask failed.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:297
+#: src/xine-engine/video_out.c:338
 #, c-format
 msgid ""
 "video_out : throwing away image with pts %d because it's too old (diff : %d "
 "> %d).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:537
-#, c-format
-msgid "video_out : can't create thread (%s)\n"
-msgstr ""
-
-#. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:539
-msgid "video_out : sorry, this should not happen. please restart xine.\n"
-msgstr ""
-
-#: src/xine-engine/video_out.c:543
-msgid "video_out : thread created\n"
-msgstr ""
-
-#: src/xine-engine/video_out.c:545
-msgid "video_out : vo_open : warning! video thread already running\n"
-msgstr ""
-
-#: src/xine-engine/video_out.c:759
+#: src/xine-engine/video_out.c:792
 msgid "video_out : ALERT! frame is already locked for displaying\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:772
+#: src/xine-engine/video_out.c:805
 #, c-format
 msgid "video_out: rejected, %d frames to skip\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:820
+#: src/xine-engine/video_out.c:853
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
+msgstr ""
+
+#: src/xine-engine/video_out.c:973
+#, c-format
+msgid "video_out: can't create thread (%s)\n"
+msgstr ""
+
+#. FIXME: how does this happen ?
+#: src/xine-engine/video_out.c:976
+msgid "video_out: sorry, this should not happen. please restart xine.\n"
+msgstr ""
+
+#: src/xine-engine/video_out.c:979
+msgid "video_out : thread created\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:107
@@ -1393,54 +1394,46 @@ msgstr ""
 msgid "xine_exit: bye!\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:449
-msgid "xine_init entered\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:522
-msgid "xine_init returning\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:563
+#: src/xine-engine/xine.c:582
 msgid "xine: xine_get_current_position: no input source\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:684
+#: src/xine-engine/xine.c:703
 #, c-format
 msgid "xine: set_speed %d\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:844
+#: src/xine-engine/xine.c:863
 msgid "messages"
 msgstr ""
 
 #. XINE_LOG_MSG
-#: src/xine-engine/xine.c:845
+#: src/xine-engine/xine.c:864
 msgid "inputs"
 msgstr ""
 
 #. XINE_LOG_INPUT
-#: src/xine-engine/xine.c:846
+#: src/xine-engine/xine.c:865
 msgid "demuxers"
 msgstr ""
 
 #. XINE_LOG_DEMUX
-#: src/xine-engine/xine.c:847
+#: src/xine-engine/xine.c:866
 msgid "codecs"
 msgstr ""
 
 #. XINE_LOG_CODEC
-#: src/xine-engine/xine.c:848
+#: src/xine-engine/xine.c:867
 msgid "video"
 msgstr ""
 
 #. XINE_LOG_VIDEO
-#: src/xine-engine/xine.c:849
+#: src/xine-engine/xine.c:868
 msgid "metronom"
 msgstr ""
 
 #. XINE_LOG_METRONOM
-#: src/xine-engine/xine.c:850
+#: src/xine-engine/xine.c:869
 msgid "plugin"
 msgstr ""
 

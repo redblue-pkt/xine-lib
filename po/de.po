@@ -1,35 +1,36 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Free Software Foundation, Inc.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# xine library translations.
+# Copyright (C) 2002 Free Software Foundation, Inc.
+# Jens Gutzeit <jens.gutzeit@web.de>, 2002.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: xine-lib VERSION\n"
 "POT-Creation-Date: 2002-02-07 01:14+0100\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI +ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2002-01-29 21:55+0100\n"
+"Last-Translator: Philipp Hahn <pmhahn@pmhahn@users.sf.net>\n"
+"Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
-"Content-Transfer-Encoding: 8-bit\n"
+"Content-Type: text/plain; charset=ISO-8859-1\n"
+"Content-Transfer-Encoding: 8bit\n"
 
 #: src/demuxers/demux_ts.c:245
 msgid "demux_ts: demux error! PAT without payload unit start indicator\n"
-msgstr ""
+msgstr "demux_ts: demux Fehler! PAT ohne Nutzdaten-Startindikator\n"
 
 #: src/demuxers/demux_ts.c:255
 msgid "demux_ts: demux error! PAT with invalid pointer\n"
-msgstr ""
+msgstr "demux_ts: demux Fehler! PAT mit fehlerhaftem Zeiger\n"
 
 #: src/demuxers/demux_ts.c:288
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
-msgstr ""
+msgstr "demux_ts: FIXME: (nicht unterstützt) PAT umfasst mehrere TS Packete\n"
 
 #: src/demuxers/demux_ts.c:294
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
+"demux_ts: FIXME: (nicht unterstützt) PAT besteht aus mehreren (%d) "
+"Sektionen\n"
 
 #: src/demuxers/demux_ts.c:304
 #, c-format
@@ -37,33 +38,35 @@ msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 msgstr ""
+"demux_ts: demux Fehler! PAT mit fehlerhaftem CRC32: packet_crc32: %.8x "
+"calc_crc32: %.8x\n"
 
 #: src/demuxers/demux_ts.c:368
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
-msgstr ""
+msgstr "demux_ts: Fehler %02x %02x %02x (sollte 0x000001 sein)\n"
 
 #: src/demuxers/demux_ts.c:505
 #, c-format
 msgid "fifo unavailable (%d)\n"
-msgstr ""
+msgstr "fifo nicht verfügbar (%d)\n"
 
 #: src/demuxers/demux_ts.c:517
 #, c-format
 msgid "demux_ts: dropped input packet cc: %d expected: %d\n"
-msgstr ""
+msgstr "demux_ts: Datenpacket verworfen; ist: %d erwartet: %d\n"
 
 #: src/demuxers/demux_ts.c:531
 msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
-msgstr ""
+msgstr "demux_ts: PUSI gesetzt aber kein PES Header (korrupter Datenstrom?)\n"
 
 #: src/demuxers/demux_ts.c:539
 msgid "demux_ts: broken pes encountered\n"
-msgstr ""
+msgstr "demux_ts: Fehlerhaften PES entdeckt\n"
 
 #: src/demuxers/demux_ts.c:640
 msgid "demux error! PMT with invalid pointer\n"
-msgstr ""
+msgstr "demux Fehler! PMT mit fehlerhaftem Zeiger\n"
 
 #: src/demuxers/demux_ts.c:745
 #, c-format
@@ -71,46 +74,48 @@ msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 msgstr ""
+"demux_ts: demux Fehler! PMT mit fehlerhaftem CRC32: packet_crc32: %#.8x "
+"calc_crc32: %#.8x\n"
 
 #: src/demuxers/demux_ts.c:760
 msgid "demux error! PMT with inconsistent progInfo length\n"
-msgstr ""
+msgstr "demux Fehler! PMT mit inkosistenter progInfo-Länge\n"
 
 #: src/demuxers/demux_ts.c:777
 msgid "demux error! PMT with inconsistent streamInfo length\n"
-msgstr ""
+msgstr "demux Fehler! PMT mit inkosistenter streamInfo-Länge\n"
 
 #: src/demuxers/demux_ts.c:896
 msgid "RE-Sync failed\n"
-msgstr ""
+msgstr "RE-Synchronization schlug fehl\n"
 
 #: src/demuxers/demux_ts.c:1044
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
-msgstr ""
+msgstr "demux Fehler! Fehlerhaftes TS-Sync-Byte %.2x\n"
 
 #: src/demuxers/demux_ts.c:1049
 msgid "demux error! transport error\n"
-msgstr ""
+msgstr "demux Fehler! Transportfehler\n"
 
 #: src/demuxers/demux_ts.c:1074
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
-msgstr ""
+msgstr "demux_ts: demux Fehler! Fehlerhafte Nutzdaten Größe %d\n"
 
 #: src/demuxers/demux_ts.c:1226
 #, c-format
 msgid "demux %u ts_open!\n"
-msgstr ""
+msgstr "demux %u ts_open!\n"
 
 #: src/demuxers/demux_ts.c:1317
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_ts: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_ts.c:1328
 msgid "demux_ts: stop...\n"
-msgstr ""
+msgstr "demux_ts: Stop...\n"
 
 #: src/demuxers/demux_ts.c:1375
 #, c-format
@@ -120,87 +125,87 @@ msgid ""
 "this           demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ts: le plugin ne support par la version de l'API %d.\n"
-"          ceci veux dire que les version entre xine et le\n"
-"          plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_ts: Das Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"          Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"          diesem demuxer Plugin.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_avi.c:350
 msgid "demux_avi: avi index is broken\n"
-msgstr ""
+msgstr "demux_avi: AVI-Index ist fehlerhaft\n"
 
 #: src/demuxers/demux_avi.c:515
 msgid "demux_avi: reconstructing index"
-msgstr ""
+msgstr "demux_avi: Rekonstruiere Index"
 
 #: src/demuxers/demux_avi.c:546
 msgid "done\n"
-msgstr ""
+msgstr "Fertig\n"
 
 #: src/demuxers/demux_avi.c:852
 msgid "demux_avi: demux loop finished.\n"
-msgstr ""
+msgstr "demux_avi: demux Schleife beendet.\n"
 
 #: src/demuxers/demux_avi.c:866
 msgid "demux_avi: stop...ignored\n"
-msgstr ""
+msgstr "demux_avi: Stop...Ignoriert\n"
 
 #: src/demuxers/demux_avi.c:924
 #, c-format
 msgid "demux_avi: video format = %s, audio format = 0x%lx\n"
-msgstr ""
+msgstr "demux_avi: Videoformat = %s, Audioformat = 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:926
 #, c-format
 msgid "demux_avi: video frame size %d x %d\n"
-msgstr ""
+msgstr "demux_avi: Video-Bildgröße %d x %d\n"
 
 #: src/demuxers/demux_avi.c:933
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
-msgstr ""
+msgstr "demux_avi: Unbekannter Audiotyp 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:938
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
-msgstr ""
+msgstr "demux_avi: Audiotyp %s (wFormatTag 0x%x)\n"
 
 #: src/demuxers/demux_avi.c:956 src/demuxers/demux_avi.c:973
 msgid "demux_avi: video seek to start failed\n"
-msgstr ""
+msgstr "demux_avi: Positionieren zum Videoanfang schlug fehl\n"
 
 #: src/demuxers/demux_avi.c:990
 msgid "demux_avi: audio seek to start failed\n"
-msgstr ""
+msgstr "demux_avi: Positionieren zum Audioanfang schlug fehl\n"
 
 #: src/demuxers/demux_avi.c:1021
 #, c-format
 msgid "demux_avi: unknown avi format %.4s\n"
-msgstr ""
+msgstr "demux_avi: Unbekanntes avi-Format %.4s\n"
 
 #: src/demuxers/demux_avi.c:1028
 #, c-format
 msgid "demux_avi: video codec >%s<\n"
-msgstr ""
+msgstr "demux_avi: Video Codec >%s<\n"
 
 #: src/demuxers/demux_avi.c:1065
 msgid "demux_avi: text subtitle file available\n"
-msgstr ""
+msgstr "demux_avi: Untertitle Textdatei verfügbar\n"
 
 #: src/demuxers/demux_avi.c:1071
 #, c-format
 msgid "demux_avi: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_avi: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_avi.c:1103
 #, c-format
 msgid "demux_avi: %ld frames\n"
-msgstr ""
+msgstr "demux_avi: %ld Frames\n"
 
 #: src/demuxers/demux_avi.c:1109 src/demuxers/demux_avi.c:1146
 #, c-format
 msgid "demux_avi: AVI_init failed (AVI_errno: %d)\n"
-msgstr ""
+msgstr "demux_avi: AVI_init mit Fehler abgebrochen (AVI_errno: %d)\n"
 
 #: src/demuxers/demux_avi.c:1191
 #, c-format
@@ -210,15 +215,15 @@ msgid ""
 "demux_avi: demuxer plugin.\n"
 "Installing current demuxer plugins should help.\n"
 msgstr ""
-"demux_avi: le plugin ne support par la version de l'API %d.\n"
-"           ceci veux dire que les version entre xine et le\n"
-"           plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_avi: Dieses Plugin unterstützt die Plugin API %s Version nicht.\n"
+"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"           diesem Demuxer Plugin existiert.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_elem.c:250
 #, c-format
 msgid "demux_elem: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_elem: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_elem.c:363
 #, c-format
@@ -228,33 +233,33 @@ msgid ""
 "this             demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_elem: le plugin ne support par la version de l'API %d.\n"
-"            ceci veux dire que les version entre xine et le\n"
-"            plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_elem: Plugin unterstützt die Plugin-API-Version %s nicht.\n"
+"            das bedeutet das ein Versions Unterschied zwischen xine und\n"
+"            diesem Demuxer Plugin existiert.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_mpeg.c:130 src/demuxers/demux_pes.c:126
 #, c-format
 msgid "How how - something wrong in wonderland demux:read_bytes (%d)\n"
-msgstr ""
+msgstr "Oh oh - Irgendwas lief schief im Wunderland demux:read_bytes (%d)\n"
 
 #: src/demuxers/demux_mpeg.c:667 src/demuxers/demux_pes.c:349
 #, c-format
 msgid "demux loop finished (status: %d, buf:%x)\n"
-msgstr ""
+msgstr "demux Schleife beendet (Staus: %d, buf:%x)\n"
 
 #: src/demuxers/demux_mpeg.c:681
 msgid "demux_mpeg: stop...\n"
-msgstr ""
+msgstr "demux_mpeg: Stop...\n"
 
 #: src/demuxers/demux_mpeg.c:784
 #, c-format
 msgid "demux_mpeg: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_mpeg: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_mpeg.c:873
 msgid "You should specify mpeg(mpeg1/mpeg2) stream type.\n"
-msgstr ""
+msgstr "Sie sollten den mpeg(mpeg1/mpeg2) Datenstromtyp angeben.\n"
 
 #: src/demuxers/demux_mpeg.c:938 src/demuxers/demux_mpgaudio.c:468
 #, c-format
@@ -264,34 +269,36 @@ msgid ""
 "this             demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_mpeg: le plugin ne support par la version de l'API %d.\n"
-"            ceci veux dire que les version entre xine et le\n"
-"            plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_mpeg: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"            das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"            diesem Demuxer Plugin existiert.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_mpeg_block.c:117
 msgid "demux_mpeg_block: read_block failed\n"
-msgstr ""
+msgstr "demux_mpeg_block: read_block schlug fehl\n"
 
 #: src/demuxers/demux_mpeg_block.c:131
 #, c-format
 msgid "demux_mpeg_block: checking if we can branch to %s\n"
-msgstr ""
+msgstr "demux_mpeg_block: Überprüfe, ob verzweigt werden kann zu %s\n"
 
 #: src/demuxers/demux_mpeg_block.c:136
 msgid "demux_mpeg_block: branching\n"
-msgstr ""
+msgstr "demux_mpeg_block: verzweige\n"
 
 #: src/demuxers/demux_mpeg_block.c:266
 #, c-format
 msgid "demux_mpeg_block: error! %02x %02x %02x (should be 0x000001) \n"
-msgstr ""
+msgstr "demux_mpeg_block: Fehler! %02x %02x %02x (sollte 0x000001 sein) \n"
 
 #: src/demuxers/demux_mpeg_block.c:272
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
 msgstr ""
+"demux_mpeg_block: Zu viele Fehler, breche den Abspielvorgang ab. Ist dieser "
+"Datenstrom möglicherweise fehlerhaft ?\n"
 
 #: src/demuxers/demux_mpeg_block.c:377
 #, c-format
@@ -299,35 +306,37 @@ msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
+"demux_mpeg_block: Warnung: PES-Header deutet an, das dieser Datenstrom "
+"verschlüsselt sein könnte (Verschlüsselungsmodus %d)\n"
 
 #: src/demuxers/demux_mpeg_block.c:491
 #, c-format
 msgid "illegal lpcm sample format (%d), assume 16-bit samples\n"
-msgstr ""
+msgstr "Illegales lpcm-sample-Format (%d), erwarte 16-bit Samples\n"
 
 #: src/demuxers/demux_mpeg_block.c:651
 #, c-format
 msgid "demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n"
-msgstr ""
+msgstr "demux_mpeg_block: Fehler %02x %02x %02x (sollte 0x000001 sein) \n"
 
 #: src/demuxers/demux_mpeg_block.c:752
 msgid "demux_mpeg_block: stop...ignored\n"
-msgstr ""
+msgstr "demux_mpeg_block: Stop...Ignoriert\n"
 
 #: src/demuxers/demux_mpeg_block.c:872
 #, c-format
 msgid "demux_mpeg_block: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_mpeg_block: Kann neunen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_mpeg_block.c:889
 #, c-format
 msgid "demux_mpeg_block: mrl %s is new, will estimated bitrate\n"
-msgstr ""
+msgstr "demug_mpeg_block: mrl %s ist neu, werde Datenrate bestimmen\n"
 
 #: src/demuxers/demux_mpeg_block.c:893
 #, c-format
 msgid "demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n"
-msgstr ""
+msgstr "demux_mpeg_block: mrl %s ist bekannt, voraussichtliche Datenrate: %d\n"
 
 #: src/demuxers/demux_mpeg_block.c:1050
 #, c-format
@@ -337,33 +346,33 @@ msgid ""
 "this                   demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_mpeg_block: le plugin ne support par la version de l'API %d.\n"
-"                  ceci veux dire que les version entre xine et le\n"
-"                  plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_mpeg_block: Plugin unterstützt die-API-Version %d nicht.\n"
+"                  Es existiert ein Versionsunterschied zwischen xine und\n"
+"                  diesem Demuxer-Plugin.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_mpgaudio.c:176
 #, c-format
 msgid "mpgaudio: bitrate = %.2fkbps\n"
-msgstr ""
+msgstr "mpgaudio: Bit-Rate = %.2fkbps\n"
 
 #: src/demuxers/demux_mpgaudio.c:265
 msgid "demux_mpgaudio_block: stop...ignored\n"
-msgstr ""
+msgstr "demux_mpgaudio_block: Stop...ignoriert\n"
 
 #: src/demuxers/demux_mpgaudio.c:369
 #, c-format
 msgid "demux_mpgaudio: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_mpgaudio: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_pes.c:363
 msgid "demux_pes: stop...\n"
-msgstr ""
+msgstr "demux_pes: Stop...\n"
 
 #: src/demuxers/demux_pes.c:459
 #, c-format
 msgid "demux_pes: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_pes: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_pes.c:590
 #, c-format
@@ -373,71 +382,71 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_pes: le plugin ne support par la version de l'API %d.\n"
-"           ceci veux dire que les version entre xine et le\n"
-"           plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_pes: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
+"           diesem Demuxer-Plugin existiert.\n"
+"Das installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_qt.c:3199
 msgid "Header not compressed with zlib\n"
-msgstr ""
+msgstr "Der Header wurde nicht mit zlib komprimiert\n"
 
 #: src/demuxers/demux_qt.c:3220
 msgid "QT cmov: malloc err 0"
-msgstr ""
+msgstr "QT cmov: Speicheranforderungsfehler 0"
 
 #: src/demuxers/demux_qt.c:3228
 #, c-format
 msgid "QT cmov: read err tlen %llu\n"
-msgstr ""
+msgstr "QT cmov: Lesefehler tlen %llu\n"
 
 #: src/demuxers/demux_qt.c:3237
 #, c-format
 msgid "QT cmov: malloc err moov_sz %u\n"
-msgstr ""
+msgstr "QT cmov: Speicheranforderungsfehler moov_sz %u\n"
 
 #: src/demuxers/demux_qt.c:3251
 #, c-format
 msgid "QT cmov: inflateInit err %d\n"
-msgstr ""
+msgstr "QT cmov: inflateInit-Fehler %d\n"
 
 #: src/demuxers/demux_qt.c:3256
 #, c-format
 msgid "QT cmov inflate: ERR %d\n"
-msgstr ""
+msgstr "QT cmov: inflate-Fehler %d\n"
 
 #: src/demuxers/demux_qt.c:3965
 msgid "demux_qt: quicktime_open: error in header\n"
-msgstr ""
+msgstr "demux_qt: quicktime_open: Fehlerhafter header\n"
 
 #: src/demuxers/demux_qt.c:4134
 msgid "demux_qt: stop...ignored\n"
-msgstr ""
+msgstr "demux_qt: Stop...ignoriert\n"
 
 #: src/demuxers/demux_qt.c:4196
 #, c-format
 msgid "demux_qt: unknown video codec >%s<\n"
-msgstr ""
+msgstr "demux_qt: Unbekannter Video-Codec >%s<\n"
 
 #: src/demuxers/demux_qt.c:4200
 #, c-format
 msgid "demux_qt: video codec >%s<\n"
-msgstr ""
+msgstr "demux_qt: Video-Codec >%s<\n"
 
 #: src/demuxers/demux_qt.c:4221
 #, c-format
 msgid "demux_qt: unknown audio codec >%s<\n"
-msgstr ""
+msgstr "demux_qt: Unbekannter Audio-Codec >%s<\n"
 
 #: src/demuxers/demux_qt.c:4253
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
-msgstr ""
+msgstr "demux_qt: Video-Codec %s (%f fps), Audio-Codec %s (%ld Hz, %d bits)\n"
 
 #: src/demuxers/demux_qt.c:4332
 #, c-format
 msgid "demux_qt: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_qt: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_qt.c:4421
 #, c-format
@@ -447,10 +456,10 @@ msgid ""
 "this           demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_qt: le plugin ne support par la version de l'API %d.\n"
-"          ceci veux dire que les version entre xine et le\n"
-"          plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_qt: Plugin unterstützt die-API-Version %d nicht.\n"
+"          Das bedeutet das ein Versions Unterschied zwischen xine und\n"
+"          diesem Demuxer-Plugin existiert.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_ogg.c:127
 #, c-format
@@ -458,25 +467,27 @@ msgid ""
 "demux_ogg: beginning of stream\n"
 "demux_ogg: serial number %d\n"
 msgstr ""
+"demux_ogg: Beginn des Datenstroms\n"
+"demux_ogg: Seriennummer %d\n"
 
 #: src/demuxers/demux_ogg.c:143
 #, c-format
 msgid "demux_ogg: found a new stream, serialnumber %d\n"
-msgstr ""
+msgstr "demux_ogg: Neuen Datenstrom gefunden, Seriennummer %d\n"
 
 #: src/demuxers/demux_ogg.c:159
 #, c-format
 msgid "demux_ogg: unknown streamtype, signature: >%.8s<\n"
-msgstr ""
+msgstr "demux_ogg: Unbekannter Datenstromtyp, Signatur: >%.8s<\n"
 
 #: src/demuxers/demux_ogg.c:258
 msgid "demux_ogg: stop...ignored\n"
-msgstr ""
+msgstr "demux_ogg: Stop...ignoriert\n"
 
 #: src/demuxers/demux_ogg.c:360
 #, c-format
 msgid "demux_ogg: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_ogg: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_ogg.c:434
 #, c-format
@@ -486,35 +497,35 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ogg: le plugin ne support par la version de l'API %d.\n"
-"           ceci veux dire que les version entre xine et le\n"
-"           plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_ogg: Plugin unterstüzt die Plugin-API-Version %d nicht.\n"
+"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
+"           diesem Demuxer-Plugin existiert.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_asf.c:238 src/demuxers/demux_asf.c:255
 #: src/demuxers/demux_asf.c:272 src/demuxers/demux_asf.c:287
 msgid "demux_asf: end of data\n"
-msgstr ""
+msgstr "demux_asf: Ende der Daten\n"
 
 #: src/demuxers/demux_asf.c:340
 #, c-format
 msgid "demux_asf: unknown audio type 0x%x\n"
-msgstr ""
+msgstr "demux_asf: Unbekannter Audiotyp 0x%x\n"
 
 #: src/demuxers/demux_asf.c:344
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
-msgstr ""
+msgstr "demux_asf: Audioformat: %s (wFormatTag 0x%x)\n"
 
 #: src/demuxers/demux_asf.c:364
 #, c-format
 msgid "demux_asf: wavex header is %d bytes long\n"
-msgstr ""
+msgstr "demux_asf: wavex-Header ist %d bytes lang\n"
 
 #: src/demuxers/demux_asf.c:391
 #, c-format
 msgid "demux_asf: unknown video format %.4s\n"
-msgstr ""
+msgstr "demux_asf: unbekanntes Videoformat %.4s\n"
 
 #.
 #. printf ("demux_asf: video format : %.4s\n", (char*)&bih->biCompression);
@@ -522,67 +533,67 @@ msgstr ""
 #: src/demuxers/demux_asf.c:407
 #, c-format
 msgid "demux_asf: video format : %s\n"
-msgstr ""
+msgstr "demux_asf: Videoformat: %s\n"
 
 #: src/demuxers/demux_asf.c:431
 msgid "demux_asf: file doesn't start with an asf header\n"
-msgstr ""
+msgstr "demux_asf: Datei beginnt nicht mit einem asf-Header\n"
 
 #: src/demuxers/demux_asf.c:465
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
-msgstr ""
+msgstr "demux_asf: Datenstrom länge ist %d sek., Rate ist %d bytes/sek.\n"
 
 #: src/demuxers/demux_asf.c:516
 #, c-format
 msgid "demux_asf: audio conceal interleave detected (%d x %d x %d)\n"
-msgstr ""
+msgstr "demux_asf: Audio conceal-interleave erkannt (%d x %d x %d)\n"
 
 #: src/demuxers/demux_asf.c:615
 msgid "demux_asf: absolute size ignored\n"
-msgstr ""
+msgstr "demux_asf: Absolute Größe ignoriert\n"
 
 #: src/demuxers/demux_asf.c:818
 msgid "demux_asf: buffer overflow on defrag!\n"
-msgstr ""
+msgstr "demux_asf: Pufferüberlauf bei Defragmentierung!\n"
 
 #: src/demuxers/demux_asf.c:849
 msgid "demux_asf: get_packet failed\n"
-msgstr ""
+msgstr "demux_asf: get_packet ist mit einem Fehler abgebrochen\n"
 
 #: src/demuxers/demux_asf.c:883
 #, c-format
 msgid "demux_asf: unknow segtype %x\n"
-msgstr ""
+msgstr "demux_asf: Unbekannter Segmenttyp %x\n"
 
 #: src/demuxers/demux_asf.c:1062
 msgid "demux_asf: stop...ignored\n"
-msgstr ""
+msgstr "demux_asf: stop...ignoriert\n"
 
 #: src/demuxers/demux_asf.c:1148
 #, c-format
 msgid "demux_asf: title        : %s\n"
-msgstr ""
+msgstr "demux_asf: Titel        : %s\n"
 
 #: src/demuxers/demux_asf.c:1149
 #, c-format
 msgid "demux_asf: author       : %s\n"
-msgstr ""
+msgstr "demux_asf: Autor        : %s\n"
 
 #: src/demuxers/demux_asf.c:1150
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
-msgstr ""
+msgstr "demux_asf: Copyright    : %s\n"
 
 #: src/demuxers/demux_asf.c:1151
 #, c-format
 msgid "demux_asf: comment      : %s\n"
-msgstr ""
+msgstr "demux_asf: Kommentar    : %s\n"
 
 #: src/demuxers/demux_asf.c:1179
 #, c-format
 msgid "demux_asf: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_asf: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_asf.c:1254
 #, c-format
@@ -592,19 +603,19 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_asf: le plugin ne support par la version de l'API %d.\n"
-"           ceci veux dire que les version entre xine et le\n"
-"           plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_asf: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"           Das bedeutet das ein Versions Unterschied zwischen xine und\n"
+"           diesem Demuxer-Plugin existiert.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_cda.c:155
 msgid "demux_cda: stop...ignored\n"
-msgstr ""
+msgstr "demux_cda: Stop...ignoriert\n"
 
 #: src/demuxers/demux_cda.c:230
 #, c-format
 msgid "demux_cda: can't create new thread (%s)\n"
-msgstr ""
+msgstr "demux_cda: Kann neuen Thread (%s) nicht erzeugen\n"
 
 #: src/demuxers/demux_cda.c:306
 #, c-format
@@ -614,35 +625,34 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_cda: le plugin ne support par la version de l'API %d.\n"
-"           ceci veux dire que les version entre xine et le\n"
-"           plugin de demultiplexage ne correspondent pas.\n"
-"Installer la version courante des plugins de demultiplexage peux aider.\n"
+"demux_cda: Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"           Das bedeutet das ein Versions unterschied zwischen xine und\n"
+"           diesem Demuxer-Plugin existiert.\n"
+"Das Installieren aktueller Demuxer-Plugins sollte helfen.\n"
 
 #: src/input/input_net.c:106
 #, c-format
 msgid "input_net: socket(): %s\n"
-msgstr ""
+msgstr "input_net: socket(): %s\n"
 
 #: src/input/input_net.c:115
 #, c-format
 msgid "input_net: connect(): %s\n"
-msgstr ""
+msgstr "input_net: connect(): %s\n"
 
 #: src/input/input_net.c:130
 #, c-format
 msgid "input_net: unable to resolve '%s'.\n"
-msgstr "input_net: impossible de resoudre '%s'.\n"
+msgstr "input_net: Kann '%s' nicht auflösen.\n"
 
 #: src/input/input_net.c:142
 #, c-format
 msgid "input_net: unable to connect to '%s'.\n"
-msgstr "input_net: impossible de se connecter à '%s'.\n"
+msgstr "input_net: Kann keine Verbindung zu '%s' herstellen.\n"
 
 #: src/input/input_net.c:340
-#, fuzzy
 msgid "net input plugin as shipped with xine"
-msgstr "plugin d'entrée réseau fournis avec xine"
+msgstr "Mit xine ausgeliefertes net Plugin"
 
 #: src/input/input_net.c:378
 #, c-format
@@ -652,60 +662,58 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin net ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"net-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_rtp.c:157
 #, c-format
 msgid "socket(): %s.\n"
-msgstr ""
+msgstr "socket(): %s.\n"
 
 #: src/input/input_rtp.c:167
 #, c-format
 msgid "bind(): %s.\n"
-msgstr ""
+msgstr "bind(): %s.\n"
 
 #: src/input/input_rtp.c:185
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
-msgstr ""
+msgstr "setsockopt(IP_ADD_MEMBERSHIP) abgbrochen (multicast Kernel?): %s.\n"
 
 #: src/input/input_rtp.c:205
 #, c-format
 msgid "unable to resolve '%s'.\n"
-msgstr ""
+msgstr "Kann '%s' nicht auflösen.\n"
 
 #: src/input/input_rtp.c:218
 #, c-format
 msgid "unable to connect to '%s'.\n"
-msgstr ""
+msgstr "Kann keine Verbindung zu '%s' herstellen.\n"
 
 #: src/input/input_rtp.c:241
 msgid "OUCH - ran out of buffers\n"
-msgstr ""
+msgstr "OUCH - Es steht kein Speicher mehr zur Verfügung\n"
 
 #: src/input/input_rtp.c:271
 #, c-format
 msgid "OUCH - dropped input packet %d %d\n"
-msgstr ""
+msgstr "OUCH - Packet %d %d verworfen\n"
 
 #: src/input/input_rtp.c:311
 #, c-format
 msgid "Opening >%s<\n"
-msgstr ""
+msgstr "Öffne >%s<\n"
 
 #: src/input/input_rtp.c:339
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
-msgstr ""
+msgstr "input_rtp: Kann neuen Thread (%s) nicht erstellen\n"
 
 #: src/input/input_rtp.c:450
-#, fuzzy
 msgid "rtp input plugin as shipped with xine"
-msgstr "Plugin d'entrée pour lecteur de DVD fournis avec xine"
+msgstr "Mit xine ausgeliefertes rtp Plugin"
 
 #: src/input/input_rtp.c:490
 #, c-format
@@ -715,20 +723,18 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin rtp ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"rtp-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_rtp.c:506 src/input/input_rtp.c:511
 msgid "unable to allocate input buffer.\n"
-msgstr ""
+msgstr "Puffer kann nicht eingerichtet werden.\n"
 
 #: src/input/input_stdin_fifo.c:252
-#, fuzzy
 msgid "stdin/fifo input plugin as shipped with xine"
-msgstr "Plugin d'entrée pour lecteur de DVD fournis avec xine"
+msgstr "Mit xine ausgeliefertes stdin/fifi Plugin"
 
 #: src/input/input_stdin_fifo.c:281
 #, c-format
@@ -738,43 +744,42 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin stdin/fifo ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"stdin/fifo-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_dvd.c:145 src/input/input_dvd.c:692
 #: src/input/input_dvd.c:752
 #, c-format
 msgid "input_dvd: unable to open dvd drive (%s): %s\n"
-msgstr "input_dvd: impossible d'ouvrir le périphérique dvd (%s): %s\n"
+msgstr "input_dvd: Kann DVD-Laufwerk (%s) nicht ansprechen: %s\n"
 
 #: src/input/input_dvd.c:242
 #, c-format
 msgid "USCSICMD dvd_read_copyright: %s"
-msgstr ""
+msgstr "USCSICMD dvd_read_copyright: %s"
 
 #: src/input/input_dvd.c:246
 msgid "bad status: READ DVD STRUCTURE (copyright)\n"
-msgstr ""
+msgstr "Schlechter Status: Lese DVD-Struktur (copyright)\n"
 
 #: src/input/input_dvd.c:300
 #, c-format
 msgid "input_dvd: cannot open dvd drive >%s<\n"
-msgstr "input_dvd: ne peux pas ouvrir le périphérique dvd >%s<\n"
+msgstr "input_dvd: Kann DVD-Laufwerk >%s< nicht ansprechen\n"
 
 #: src/input/input_dvd.c:311 src/input/input_dvd.c:324
 msgid "input_dvd: Could not read Copyright Structure\n"
-msgstr "input_dvd: Ne peux pas lire la structure de Copyright\n"
+msgstr "input_dvd: Kann Copyright-Struktur nicht lesen\n"
 
 #: src/input/input_dvd.c:337
 msgid ""
 "input_dvd: Could not read Copyright Structure.\n"
 "           Assuming disk is not encrypted.\n"
 msgstr ""
-"input_dvd: Ne peux pas lire la structure de Copyright.\n"
-"           Considère que le disque n'est pas encrypté.\n"
+"input_dvd: Kann Copyright Struktur nicht lesen.\n"
+"           Das Medium scheint nicht verschlüsselt zu sein.\n"
 
 #: src/input/input_dvd.c:346
 msgid ""
@@ -784,78 +789,79 @@ msgid ""
 "\n"
 msgstr ""
 "\n"
-"input_dvd: Désolé, xine ne peux pas jouer des DVDs encryptés. Le status légal du\n"
-"           decryptage CSS n'est pas clair et nous ne fournirons pas un tel "
-"code.\n"
+"input_dvd: Tschuldigung, xine kann keine verschlüsselten DVDs abspielen..\n"
+"           Die rechtsliche Situation bezüglich der CSS Entschlüsselung ist\n"
+"           unklar, deswegen ist der Code dazu nicht in xine enthalten\n"
 "\n"
 
 #: src/input/input_dvd.c:354
 #, c-format
 msgid "input_dvd: cannot open file >%s<\n"
-msgstr "input_dvd: ne peux pas ouvrir le fichier >%s<\n"
+msgstr "input_dvd: Kann Datei >%s< nicht öffnen\n"
 
 #: src/input/input_dvd.c:399
 #, c-format
 msgid "input_dvd: Unable to find >%s< on dvd.\n"
-msgstr "input_dvd: impossible de trouver >%s< sur le dvd.\n"
+msgstr "input_dvd: Kann >%s< nicht auf der DVD finden.\n"
 
 #: src/input/input_dvd.c:434
 #, c-format
 msgid "input_dvd: error read: %Ld bytes is not a sector!\n"
-msgstr "input_dvd: erreur de lecture: %Ld octets n'est pas un secteur!\n"
+msgstr "input_dvd: Lesefehler: %Ld Bytes ist kein Sektor!\n"
 
 #: src/input/input_dvd.c:451
 #, c-format
 msgid "input_dvd: read error in input_dvd plugin (%s)\n"
-msgstr "input_dvd: erreur de lecture dans le plugin input_dvd (%s)\n"
+msgstr "input_dvd: Lesefehler im input_dvd-Plugin (%s)\n"
 
 #: src/input/input_dvd.c:455
 #, c-format
 msgid "input_dvd: short read in input_dvd (%d != %d)\n"
-msgstr ""
+msgstr "input_dvd: Kurzes Lesen in input_dvd (%d != %d)\n"
 
 #: src/input/input_dvd.c:474
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
 msgstr ""
+"input_dvd: Lesefehler im input_dvd-Plugin: %Ld Bytes ist kein Sektor!\n"
 
 #: src/input/input_dvd.c:486
 msgid "input_dvd: read error in input_dvd plugin\n"
-msgstr ""
+msgstr "input_dvd: Lesefehler im input_dvd-Plugin\n"
 
 #: src/input/input_dvd.c:519
 #, c-format
 msgid "input_dvd: seek: %d is an unknown origin\n"
-msgstr ""
+msgstr "input_dvd: seek: %d ist ein unbekannter Ursprung\n"
 
 #: src/input/input_dvd.c:560
 #, c-format
 msgid "input_dvd: CDROMCLOSETRAY failed: %s\n"
-msgstr ""
+msgstr "input_dvd: Das Einziehen der DVD schlug fehl: %s\n"
 
 #: src/input/input_dvd.c:566 src/input/input_dvd.c:583
 #, c-format
 msgid "input_dvd: CDROMEJECT failed: %s\n"
-msgstr ""
+msgstr "input_dvd: Das Auswerfen der DVD schlug fehl: %s\n"
 
 #: src/input/input_dvd.c:572
 #, c-format
 msgid "input_dvd: CDROM_DRIVE_STATUS failed: %s\n"
-msgstr ""
+msgstr "input_dvd: Auslesen vom Status des DVD-Laufwerks schlug fehl: %s\n"
 
 #: src/input/input_dvd.c:588
 #, c-format
 msgid "ioctl(cdromallow): %s"
-msgstr ""
+msgstr "ioctl(cdromallow): %s"
 
 #: src/input/input_dvd.c:591
 #, c-format
 msgid "ioctl(cdromeject): %s"
-msgstr ""
+msgstr "ioctl(cdromeject): %s"
 
 #: src/input/input_dvd.c:618
 msgid "dvd device input plugin as shipped with xine"
-msgstr "Plugin d'entrée pour lecteur de DVD fournis avec xine"
+msgstr "Mit xine ausgeliefertes DVD Plugin"
 
 #: src/input/input_dvd.c:798
 #, c-format
@@ -865,41 +871,40 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin dvd ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"DVD-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_file.c:209
 #, c-format
 msgid "lstat failed for %s{%s}\n"
-msgstr "lstat a échoué pour %s{%s}\n"
+msgstr "lstat schlug fehl für %s{%s}\n"
 
 #: src/input/input_file.c:292
 #, c-format
 msgid "input_file: trying to open subtitle file '%s'\n"
-msgstr "input_file: tente d'ouvrir le fichier de sous-titre '%s'\n"
+msgstr "input_file: Versuche Datei mit Untertitle '%s' zu öffnen\n"
 
 #: src/input/input_file.c:350
 #, c-format
 msgid "input_file: read error (%s)\n"
-msgstr "input_file: erreur de lecture (%s)\n"
+msgstr "input_file: Lesefehler (%s)\n"
 
 #: src/input/input_file.c:518 src/input/input_file.c:557
 #: src/input/input_file.c:593
 #, c-format
 msgid "%s(%d): readlink() failed: %s\n"
-msgstr "%s(%d): readlink() à échoué: %s\n"
+msgstr "%s(%d): readlink() schlug fehl: %s\n"
 
 #: src/input/input_file.c:781
 msgid "plain file input plugin as shipped with xine"
-msgstr "plugin d'entrée pour lecteur de fichier fournis avec xine"
+msgstr "Mit xine ausgeliefertes Datei Plugin"
 
 #: src/input/input_file.c:799
 #, c-format
 msgid "input_file: get optional data, type %08x, sub %p\n"
-msgstr ""
+msgstr "input_file: Bekomme zusätzliche Daten, Typ %08x, sub %p\n"
 
 #: src/input/input_file.c:829
 #, c-format
@@ -909,108 +914,106 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin file ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"Datei-Plugin unterstützt die Plugin API Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
 msgid "input_vcd : error in ioctl CDROMREADTOCHDR\n"
-msgstr ""
+msgstr "input_vcd: Fehler in ioctl CDROMREADTOCHDR\n"
 
 #: src/input/input_vcd.c:167
 #, c-format
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-msgstr ""
+msgstr "input_vcd: Fehler in ioctl CDROMREADTOCENTRY für Track %d\n"
 
 #: src/input/input_vcd.c:178
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
-msgstr ""
+msgstr "input_vcd: Fehler in ioctl CDROMREADTOCENTRY für Abschluß\n"
 
 #: src/input/input_vcd.c:209
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY\n"
-msgstr ""
+msgstr "input_vcd: Fehler in ioctl CDROMREADTOCENTRY\n"
 
 #: src/input/input_vcd.c:327
 #, c-format
 msgid "scsi command failed with status %d\n"
-msgstr ""
+msgstr "SCSI-Kommando schlug mit dem Status %d fehl\n"
 
 #: src/input/input_vcd.c:368
 msgid "input_vcd: malformed MRL. Use vcd://<track #>\n"
-msgstr ""
+msgstr "input_vcd: Ungültige MRL: Benutze vcd://<Track #>\n"
 
 #: src/input/input_vcd.c:375
 #, c-format
 msgid "input_vcd: invalid track %d (valid range: 0 .. %d)\n"
-msgstr ""
+msgstr "input_vcd: Fehlerhafter Track %d (Gültiger Bereich: 0 .. %d)\n"
 
 #: src/input/input_vcd.c:390
 #, c-format
 msgid "input_vcd: error in CDRIOCSETBLOCKSIZE %d\n"
-msgstr ""
+msgstr "input_vcd: Fehler in CDRIOCSETBLOCKSIZE %d\n"
 
 #: src/input/input_vcd.c:440 src/input/input_vcd.c:577
 msgid "input_vcd: error in CDROMREADRAW\n"
-msgstr ""
+msgstr "input_vcd: Fehler in CDROMREADRAW\n"
 
 #: src/input/input_vcd.c:475 src/input/input_vcd.c:617
 #, c-format
 msgid "input_vcd: seek error %d\n"
-msgstr ""
+msgstr "input_vcd: Positionierungsfehler %d\n"
 
 #: src/input/input_vcd.c:479 src/input/input_vcd.c:621
 #, c-format
 msgid "input_vcd: read error %d\n"
-msgstr ""
+msgstr "input_vcd: Lesefehler %d\n"
 
 #: src/input/input_vcd.c:516 src/input/input_vcd.c:663
 msgid "input_vcd: read data failed\n"
-msgstr ""
+msgstr "input_vcd: Das Lesen der Daten schlug fehl\n"
 
 #: src/input/input_vcd.c:734 src/input/input_vcd.c:785
 msgid "input_vcd: SEEK_CUR not implemented for offset != 0\n"
-msgstr ""
+msgstr "input_vcd: SEEK_CUR nicht implementiert für Versatz != 0\n"
 
 #: src/input/input_vcd.c:752 src/input/input_vcd.c:793
 #, c-format
 msgid "input_vcd: error seek to origin %d not implemented!\n"
-msgstr ""
+msgstr "input_vcd: Fehler Positionierung auf %d nicht implementiert!\n"
 
 #: src/input/input_vcd.c:886
 #, c-format
 msgid "input_vcd: CDROMCLOSETRAY failed: %s\n"
-msgstr ""
+msgstr "input_vcd: Das Einziegen der VCD schlug fehl: %s\n"
 
 #: src/input/input_vcd.c:891 src/input/input_vcd.c:933
 #, c-format
 msgid "input_vcd: CDROMEJECT failed: %s\n"
-msgstr ""
+msgstr "input_vcd: Das Auswerfen der VCD schlug fehl: %s\n"
 
 #: src/input/input_vcd.c:897
 #, c-format
 msgid "input_vcd: CDROM_DRIVE_STATUS failed: %s\n"
-msgstr ""
+msgstr "input_vcd: Auslesen vom Status des VCD-Laufwerks schlug fehl: %s\n"
 
 #: src/input/input_vcd.c:963
-#, fuzzy
 msgid "vcd device input plugin as shipped with xine"
-msgstr "Plugin d'entrée pour lecteur de DVD fournis avec xine"
+msgstr "Mit xine ausgeliefertes VCD Plugin"
 
 #: src/input/input_vcd.c:991
 #, c-format
 msgid "unable to open %s: %s.\n"
-msgstr ""
+msgstr "Kann %s nicht öffnen: %s.\n"
 
 #: src/input/input_vcd.c:999 src/input/input_vcd.c:1079
 msgid "vcd_read_toc failed\n"
-msgstr ""
+msgstr "vcd_read_toc schlug fehl\n"
 
 #: src/input/input_vcd.c:1071
 #, c-format
 msgid "unable to open %s: %s."
-msgstr ""
+msgstr "Kann %s nicht öffnen: %s."
 
 #: src/input/input_vcd.c:1135
 #, c-format
@@ -1020,88 +1023,87 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin vcd ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"vcd-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_http.c:109
 msgid "input_http: failed to open socket\n"
-msgstr ""
+msgstr "input_http: Öffnen des Sockets schlug fehl\n"
 
 #: src/input/input_http.c:118
 msgid "input_http: cannot connect to host\n"
-msgstr ""
+msgstr "input_http: Kann keine Verbindung zum Rechner aufbauen\n"
 
 #: src/input/input_http.c:133
 #, c-format
 msgid "input_http: unable to resolve >%s<\n"
-msgstr ""
+msgstr "input_http: Kann >%s< nicht auflösen\n"
 
 #: src/input/input_http.c:145
 #, c-format
 msgid "http: unable to connect to >%s<\n"
-msgstr ""
+msgstr "http: Kann keine Verbindung zu >%s< aufbauen\n"
 
 #: src/input/input_http.c:342
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
-msgstr ""
+msgstr "input_http: Öffne >/%s< auf Rechner >%s<"
 
 #: src/input/input_http.c:345
 #, c-format
 msgid "%s via proxy >%s<"
-msgstr ""
+msgstr "%s über Proxy >%s<"
 
 #: src/input/input_http.c:417 src/input/input_http.c:506
 msgid "input_http: EAGAIN\n"
-msgstr ""
+msgstr "input_http: EAGAIN\n"
 
 #: src/input/input_http.c:420 src/input/input_http.c:509
 msgid "input_http: read error\n"
-msgstr ""
+msgstr "input_http: Lesefehler\n"
 
 #: src/input/input_http.c:437
 #, c-format
 msgid "input_http: answer: >%s<\n"
-msgstr ""
+msgstr "input_http: Antwort: >%s<\n"
 
 #: src/input/input_http.c:447
 msgid "input_http: invalid http answer\n"
-msgstr ""
+msgstr "input_http: Ungültige http-Antwort\n"
 
 #: src/input/input_http.c:452
 #, c-format
 msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
-msgstr ""
+msgstr "input_http: 3xx Weiterleitung nicht implementiert: >%d %s<\n"
 
 #: src/input/input_http.c:457
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
-msgstr ""
+msgstr "input_http: http-Status ungleich 2xx: >%d %s<\n"
 
 #: src/input/input_http.c:466
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
-msgstr ""
+msgstr "input_http: Inhaltslänge = %Ld bytes\n"
 
 #: src/input/input_http.c:473
 msgid "input_http: Location redirection not implemented\n"
-msgstr ""
+msgstr "input_http: Weiterleitung nicht implementiert\n"
 
 #: src/input/input_http.c:486
 msgid "input_http: end of headers\n"
-msgstr ""
+msgstr "input_http: Ende des Headers\n"
 
 #: src/input/input_http.c:547
 #, c-format
 msgid "input_http: read error (%s)\n"
-msgstr ""
+msgstr "input_http: Lesefehler (%s)\n"
 
 #: src/input/input_http.c:604
 msgid "http network stream input plugin"
-msgstr ""
+msgstr "http Netzwerkdatenstrom-Plugin"
 
 #: src/input/input_http.c:630
 #, c-format
@@ -1111,126 +1113,124 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin http ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"http-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/input/input_cda.c:467 src/input/input_cda.c:525
 #, c-format
 msgid "input_cda: fopen(%s) failed: %s\n"
-msgstr "input_cda: fopen(%s) à échoué: %s\n"
+msgstr "input_cda: fopen(%s) schlug fehl: %s\n"
 
 #: src/input/input_cda.c:615
 #, c-format
 msgid "input_cda: server '%s:%d' successfuly connected.\n"
-msgstr "input_cda: serveur '%s:%d' connecté avec succés.\n"
+msgstr "input_cda: Verbindung zum Server '%s:%d' steht.\n"
 
 #: src/input/input_cda.c:620
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
-msgstr "input_cda: l'ouverture du serveur '%s:%d' a échouée: %s\n"
+msgstr "input_cda: Das öffnen des Servers '%s:%d' schlug fehl: %s\n"
 
 #: src/input/input_cda.c:789
 #, c-format
 msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
-msgstr "input_cda: l'ioctl(CDROMSUBCHNL) a échouée: %s.\n"
+msgstr "input_cda: ioctl(CDROM_MEDIA_CHANGED) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:856
 #, c-format
 msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMSUBCHNL) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:991
 #, c-format
 msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDIOCSTART) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:997
 #, c-format
 msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMSTART) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1003
 #, c-format
 msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDIOCPLAYMSF) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1009
 #, c-format
 msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMPLAYMSF) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1030
 #, c-format
 msgid "input_cda: No rights to open %s.\n"
-msgstr "input_cda: pas de droits pour ouvrir %s.\n"
+msgstr "input_cda: Keine Rechte zum öffnen von %s.\n"
 
 #: src/input/input_cda.c:1033
 #, c-format
 msgid "input_cda: open(%s) failed: %s.\n"
-msgstr "input_cda: open(%s) a échoué: %s.\n"
+msgstr "input_cda: open(%s) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1127
 #, c-format
 msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMCLOSETRAY) schlug fehl: %s\n"
 
 #: src/input/input_cda.c:1132 src/input/input_cda.c:1148
 #: src/input/input_cda.c:1153
 #, c-format
 msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMEJECT) schlug fehl: %s\n"
 
 #: src/input/input_cda.c:1138
 #, c-format
 msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROM_DRIVE_STATUS) schlug fehl: %s\n"
 
 #: src/input/input_cda.c:1144
 #, c-format
 msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMALLOW) schlug fehl: %s\n"
 
 #: src/input/input_cda.c:1184
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDIOREADTOCHEADER) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1192
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMREADTOCHDR) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1229
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDIOREADTOCENTRYS) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1252
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
-msgstr ""
+msgstr "input_cda: ioctl(CDROMREADTOCRNTRY) schlug fehl: %s.\n"
 
 #: src/input/input_cda.c:1435
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
-msgstr "input_cda: MRL malformée. Utilisez cda://<piste #>\n"
+msgstr "input_cda: Ungültige MRL. Benutze cda://<Track #>\n"
 
 #: src/input/input_cda.c:1441
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
-msgstr "input_cda: piste %d invalide (limites correctes: 1 .. %d)\n"
+msgstr "input_cda: Fehlerfafter Track %d (Gültiger Bereich: 1 .. %d)\n"
 
 #: src/input/input_cda.c:1524
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
-msgstr "input_cda: erreur seek depuis origine %d non implémentée!\n"
+msgstr "input_cda: Fehler Positionierung auf %d nicht implementiert!\n"
 
 #: src/input/input_cda.c:1640
-#, fuzzy
 msgid "cd audio plugin as shipped with xine"
-msgstr "plugin d'entrée pour lecture de CD audio fournis avec xine"
+msgstr "Mit xine ausgeliefertes Audio-CD Plugin"
 
 #: src/input/input_cda.c:1815
 #, c-format
@@ -1240,83 +1240,82 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Le plugin cda ne support par la version de l'API %d.\n"
-"PLUGIN DESACTIVE.\n"
-"Ceci veux dire que les version entre xine et le plugin \n"
-"d'entrée ne correspondent pas.\n"
-"Installer la version courante des plugins d'entrée peux aider.\n"
+"CDA-Plugin unterstützt die Plugin-API-Version %d nicht.\n"
+"PLUGIN DEAKTIVIERT.\n"
+"Es existiert ein Versionsunterschied zwischen xine und diesem Plugin.\n"
+"Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/xine-engine/metronom.c:256
 msgid "metronom: video stream start...\n"
-msgstr "metronom: démarrage flux vidéo ...\n"
+msgstr "metronom: Start des Video-Datenstromst...\n"
 
 #: src/xine-engine/metronom.c:259
 msgid "metronom: video stream start ignored\n"
-msgstr "metronom: démarrage flux vidéo ignoré\n"
+msgstr "metronom: Beginn des Video-Datenstroms ignoriert\n"
 
 #: src/xine-engine/metronom.c:286
 msgid "metronom: waiting for audio to start...\n"
-msgstr "metronom: attente de démarrage de l'audio...\n"
+msgstr "metronom: Warte auf Anfang von Audio...\n"
 
 #: src/xine-engine/metronom.c:302
 msgid "metronom: video stream end\n"
-msgstr "metronom: fin de flux vidéo\n"
+msgstr "metronom: Ende des Video-Datenstroms\n"
 
 #: src/xine-engine/metronom.c:305
 msgid "metronom: video stream end ignored\n"
-msgstr "metronom: fin de flux vidéo ignoré\n"
+msgstr "metronom: Ende des Video-Datenstroms ignoriert\n"
 
 #: src/xine-engine/metronom.c:315
 msgid "metronom: waiting for audio to end...\n"
-msgstr "metronom: attente de fin d'audio...\n"
+msgstr "metronom: Warte auf Ende von Audio...\n"
 
 #: src/xine-engine/metronom.c:329
 msgid "metronom: audio stream start...\n"
-msgstr "metronom: démarrage de flux audio...\n"
+msgstr "metronom: Start des Audio-Datenstroms...\n"
 
 #: src/xine-engine/metronom.c:332
 msgid "metronom: audio stream start ignored\n"
-msgstr "metronom: démarrage de flux audio ignoré\n"
+msgstr "metronom: Beginn des Audio-Datenstroms ignoriert\n"
 
 #: src/xine-engine/metronom.c:357
 msgid "metronom: waiting for video to start...\n"
-msgstr "metronom: attente de démarrage vidéo...\n"
+msgstr "metronom: Warte auf Anfang von Video...\n"
 
 #: src/xine-engine/metronom.c:365
 msgid "metronom: audio stream start...done\n"
-msgstr "metronom: démarrage flux audio...terminé\n"
+msgstr "metronom: Anfang des Audio-Datenstroms...Fertig\n"
 
 #: src/xine-engine/metronom.c:374
 msgid "metronom: audio stream end\n"
-msgstr "metronom: fin de flux audio\n"
+msgstr "metronom: Ende des Audio-Datenstroms\n"
 
 #: src/xine-engine/metronom.c:376
 msgid "metronom: audio stream end ignored\n"
-msgstr "metronom: fin de flux audio ignoré\n"
+msgstr "metronom: Ende des Audio-Datenstroms ignoriert\n"
 
 #: src/xine-engine/metronom.c:385
 msgid "metronom: waiting for video to end...\n"
-msgstr "metronom: attente de fin de vidéo...\n"
+msgstr "metronom: Warte auf Ende von Video...\n"
 
 #: src/xine-engine/metronom.c:481
 #, c-format
 msgid "metronom: video discontinuity #%d\n"
-msgstr "metronom: discontinuitée vidéo #%d\n"
+msgstr "metronom: Video-Unstetigkeit #%d\n"
 
 #: src/xine-engine/metronom.c:488
 #, c-format
 msgid "metronom: waiting for audio discontinuity #%d\n"
-msgstr "metronom: attente de discontinuitée audio #%d\n"
+msgstr "metronom: Warte auf Audio-Unstetigkeit #%d\n"
 
 #: src/xine-engine/metronom.c:496
 #, c-format
 msgid "metronom: video vpts adjusted to %d\n"
-msgstr "metronom: vpts vidéo ajusté à %d\n"
+msgstr "metronom: Video vpts korrigiert auf %d\n"
 
 #: src/xine-engine/metronom.c:527 src/xine-engine/metronom.c:742
 #, c-format
 msgid "metronom: audio/video vpts too old, adjusted to %d\n"
-msgstr "metronom: vpts audio/vidéo trop vieux, ajusté a %d\n"
+msgstr "metronom: audio/video vpts zu alt, korrigiert auf %d\n"
 
 #: src/xine-engine/metronom.c:566
 #, c-format
@@ -1324,36 +1323,38 @@ msgid ""
 "metronom: video pts discontinuity/start, pts is %d, wrap_offset is %d, vpts "
 "is %d\n"
 msgstr ""
+"metronom: Video-pts-Unstetigkeit/Start, pts ist %d, Überlaufversatz ist %d, "
+"vpts ist %d\n"
 
 #: src/xine-engine/metronom.c:581 src/xine-engine/metronom.c:784
 #, c-format
 msgid "metronom: forcing video_wrap (%d) and audio wrap (%d)"
-msgstr ""
+msgstr "metronom: Erzwinge Video-Umbruch (%d) und Audio-Umbruch (%d)"
 
 #: src/xine-engine/metronom.c:589
 #, c-format
 msgid " to %d\n"
-msgstr ""
+msgstr " nach %d\n"
 
 #: src/xine-engine/metronom.c:653
 #, c-format
 msgid "metronom: delta too big, setting vpts to %d\n"
-msgstr ""
+msgstr "metronom: Unterschied ist zu groß, setze vpts auf %d\n"
 
 #: src/xine-engine/metronom.c:696
 #, c-format
 msgid "metronom: audio discontinuity #%d\n"
-msgstr ""
+msgstr "metronom: Audio-Unstetigkeit #%d\n"
 
 #: src/xine-engine/metronom.c:702
 #, c-format
 msgid "metronom: waiting for video_discontinuity #%d\n"
-msgstr ""
+msgstr "metronom: Warte auf Video-Unstetigkeit #%d\n"
 
 #: src/xine-engine/metronom.c:710
 #, c-format
 msgid "metronom: audio vpts adjusted to %d\n"
-msgstr ""
+msgstr "metronom: Audio-vpts eingestellt auf %d\n"
 
 #: src/xine-engine/metronom.c:767
 #, c-format
@@ -1361,29 +1362,31 @@ msgid ""
 "metronom: audio pts discontinuity/start, pts is %d, wrap_offset is %d, vpts "
 "is %d\n"
 msgstr ""
+"metronom: Audio-pts-Unstetigkeit/Start, pts ist %d, Überlaufversatz ist %d, "
+"vpts ist %d\n"
 
 #: src/xine-engine/metronom.c:792
 #, c-format
 msgid "to %d\n"
-msgstr ""
+msgstr "auf %d\n"
 
 #: src/xine-engine/metronom.c:842
 #, c-format
 msgid "metronom: av_offset=%d pts\n"
-msgstr ""
+msgstr "metronom: av_Versatz=%d pts\n"
 
 #: src/xine-engine/metronom.c:862
 msgid "metronom: panic - no scr provider found!\n"
-msgstr ""
+msgstr "metronom: Panik - konnte keinen scr-Anbieter finden!\n"
 
 #: src/xine-engine/metronom.c:948
 #, c-format
 msgid "metronom: cannot create sync thread (%s)\n"
-msgstr ""
+msgstr "metronom: Kann sync-Thread (%s) nicht erzeugen\n"
 
 #: src/xine-engine/video_out.c:257
 msgid "video_out: sigprocmask failed.\n"
-msgstr ""
+msgstr "video_out: sigprocmask schlug fehl.\n"
 
 #: src/xine-engine/video_out.c:338
 #, c-format
@@ -1391,149 +1394,152 @@ msgid ""
 "video_out : throwing away image with pts %d because it's too old (diff : %d "
 "> %d).\n"
 msgstr ""
+"video_out : Verwerfe Bild mit pts %d, weil es zu alt ist (Unterschied : %d > "
+"%d).\n"
 
 #: src/xine-engine/video_out.c:792
 msgid "video_out : ALERT! frame is already locked for displaying\n"
-msgstr ""
+msgstr "video_out : ALARM! Bild bereits zum Anzeigen vorgesehen\n"
 
 #: src/xine-engine/video_out.c:805
 #, c-format
 msgid "video_out: rejected, %d frames to skip\n"
-msgstr ""
+msgstr "video_out: Zurückgewiesen, %d Bilder werden ausgelassen\n"
 
 #: src/xine-engine/video_out.c:853
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
-msgstr ""
+msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %f Bilder verworfen\n"
 
 #: src/xine-engine/video_out.c:973
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
-msgstr ""
+msgstr "video_out: Kann Thread (%s) nicht erzeugen\n"
 
 #. FIXME: how does this happen ?
 #: src/xine-engine/video_out.c:976
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
+"video_out : Ups, das sollte eigentlich nicht passieren, bitte xine "
+"neustarten.\n"
 
 #: src/xine-engine/video_out.c:979
 msgid "video_out : thread created\n"
-msgstr ""
+msgstr "video_out : Thread erzeugt\n"
 
 #: src/xine-engine/xine.c:107
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
-msgstr ""
+msgstr "xine_notify_stream_finished: Kann neuen Thread (%s) nicht anlegen\n"
 
 #: src/xine-engine/xine.c:149
 msgid "xine_stop\n"
-msgstr ""
+msgstr "xine_stop\n"
 
 #: src/xine-engine/xine.c:154
 msgid "xine_stop ignored\n"
-msgstr ""
+msgstr "xine_stop ignoriert\n"
 
 #: src/xine-engine/xine.c:167
 msgid "xine_stop: stopping demuxer\n"
-msgstr ""
+msgstr "xine_stop: Stoppe demuxer\n"
 
 #: src/xine-engine/xine.c:184
 msgid "xine_stop: done\n"
-msgstr ""
+msgstr "xine_stop: Fertig\n"
 
 #: src/xine-engine/xine.c:215
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
-msgstr ""
+msgstr "%s(%d) Fehlerhafte 1. Stufe = %d !!\n"
 
 #: src/xine-engine/xine.c:278
 #, c-format
 msgid "xine_play: xine open %s, start pos = %d, start time = %d (sec)\n"
-msgstr ""
+msgstr "xine_play: xine geöffnet %s, Startpos. = %d, Startzeit = %d (Sek.)\n"
 
 #: src/xine-engine/xine.c:323
 msgid "xine: cannot find input plugin for this MRL\n"
-msgstr ""
+msgstr "xine: Kann kein Plugin für diese MRL finden\n"
 
 #: src/xine-engine/xine.c:331
 #, c-format
 msgid "xine: using input plugin >%s< for this MRL (%s).\n"
-msgstr ""
+msgstr "xine: Benutze Plugin >%s< für diese MRL (%s).\n"
 
 #: src/xine-engine/xine.c:339
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
-msgstr ""
+msgstr "xine: Kann keinen Demuxer für >%s< finden\n"
 
 #: src/xine-engine/xine.c:345
 #, c-format
 msgid "xine: using demuxer plugin >%s< for this MRL.\n"
-msgstr ""
+msgstr "xine: Benutze Demuxer-Plugin >%s< für diese MRL.\n"
 
 #: src/xine-engine/xine.c:365
 msgid "xine_play: demuxer failed to start\n"
-msgstr ""
+msgstr "xine_play: Der Start des Demuxer-Plugins schlug fehl\n"
 
 #: src/xine-engine/xine.c:414
 msgid "xine_exit: shutdown audio\n"
-msgstr ""
+msgstr "xine_exit: Beende Audio\n"
 
 #: src/xine-engine/xine.c:418
 msgid "xine_exit: shutdown video\n"
-msgstr ""
+msgstr "xine_exit: Beende Video\n"
 
 #: src/xine-engine/xine.c:424
 msgid "xine_exit: bye!\n"
-msgstr ""
+msgstr "xine_exit: Tschüss!\n"
 
 #: src/xine-engine/xine.c:582
 msgid "xine: xine_get_current_position: no input source\n"
-msgstr ""
+msgstr "xine: xine_get_current_position: Keine Eingabequelle\n"
 
 #: src/xine-engine/xine.c:703
 #, c-format
 msgid "xine: set_speed %d\n"
-msgstr ""
+msgstr "xine: set_speed %d\n"
 
 #: src/xine-engine/xine.c:863
 msgid "messages"
-msgstr "messages"
+msgstr "Nachrichten"
 
 #. XINE_LOG_MSG
 #: src/xine-engine/xine.c:864
-#, fuzzy
 msgid "inputs"
-msgstr "entrée"
+msgstr "Eingaben"
 
 #. XINE_LOG_INPUT
 #: src/xine-engine/xine.c:865
 msgid "demuxers"
-msgstr ""
+msgstr "demuxers"
 
 #. XINE_LOG_DEMUX
 #: src/xine-engine/xine.c:866
 msgid "codecs"
-msgstr "codec"
+msgstr "codecs"
 
 #. XINE_LOG_CODEC
 #: src/xine-engine/xine.c:867
 msgid "video"
-msgstr ""
+msgstr "Video"
 
 #. XINE_LOG_VIDEO
 #: src/xine-engine/xine.c:868
 msgid "metronom"
-msgstr ""
+msgstr "Metronom"
 
 #. XINE_LOG_METRONOM
 #: src/xine-engine/xine.c:869
 msgid "plugin"
-msgstr ""
+msgstr "Plugin"
 
 #: src/xine-engine/load_plugins.c:121 src/xine-engine/load_plugins.c:473
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
-msgstr ""
+msgstr "%s(%s@%d): Parameter sollte nicht null sein, Beende jetzt\n"
 
 #: src/xine-engine/load_plugins.c:158
 #, c-format
@@ -1541,15 +1547,17 @@ msgid ""
 "load_plugins: cannot open demux plugin %s:\n"
 "%s\n"
 msgstr ""
+"load_plugins: Kann Demuxer-Plugin %s nicht öffnen:\n"
+"%s\n"
 
 #: src/xine-engine/load_plugins.c:172
 #, c-format
 msgid "load_plugins: demux plugin found : %s\n"
-msgstr ""
+msgstr "load_plugins: Demuxer-Plugin gefunden : %s\n"
 
 #: src/xine-engine/load_plugins.c:180
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
-msgstr ""
+msgstr "load_plugins: Zu viele Demuxer-Plugins installiert, beende jetzt.\n"
 
 #: src/xine-engine/load_plugins.c:318
 #, c-format
@@ -1557,11 +1565,13 @@ msgid ""
 "load_plugins: cannot open input plugin %s:\n"
 "%s\n"
 msgstr ""
+"load_plugins: Kann Plugin %s nicht öffnen:\n"
+"%s\n"
 
 #: src/xine-engine/load_plugins.c:330
 #, c-format
 msgid "load_plugins: input plugin found : %s\n"
-msgstr ""
+msgstr "load_plugins: Eingabe-Plugin gefunden : %s\n"
 
 #: src/xine-engine/load_plugins.c:337
 #, c-format
@@ -1569,11 +1579,13 @@ msgid ""
 "load_plugins: %s is no valid input plugin (lacks init_input_plugin() "
 "function)\n"
 msgstr ""
+"load_plugins: %s ist kein brauchbares Plugin (init_input_plugin() Funktion "
+"fehlt)\n"
 
 #: src/xine-engine/load_plugins.c:341
 #, c-format
 msgid "%s(%d): too many input plugins installed, exiting.\n"
-msgstr ""
+msgstr "%s(%d): Zu viele Eingabe-Plugins installiert, Beende jetzt.\n"
 
 #: src/xine-engine/load_plugins.c:354
 #, c-format
@@ -1581,6 +1593,8 @@ msgid ""
 "load_plugins: no input plugins found in %s! - Did you install xine "
 "correctly??\n"
 msgstr ""
+"load_plugins: Keine Eingabe-Plugins in %s gefunden! - Ist xine richtig "
+"Installiert??\n"
 
 #: src/xine-engine/load_plugins.c:534
 #, c-format
@@ -1588,18 +1602,29 @@ msgid ""
 "load_plugins: failed to load plugin %s:\n"
 "%s\n"
 msgstr ""
+"load_plugins: Fehler beim laden des Plugins %s:\n"
+"%s\n"
 
 #: src/xine-engine/load_plugins.c:562
 #, c-format
 msgid "spu decoder plugin found : %s\n"
-msgstr ""
+msgstr "spu-Dekodierungs-Plugin gefunden : %s\n"
 
 #: src/xine-engine/load_plugins.c:590
 #, c-format
 msgid "video decoder plugin found : %s\n"
-msgstr ""
+msgstr "Video-Dekodierungs-Plugin gefunden : %s\n"
 
 #: src/xine-engine/load_plugins.c:614
 #, c-format
 msgid "audio decoder plugin found : %s\n"
-msgstr ""
+msgstr "Audio-Dekodierungs-Plugin gefunden : %s\n"
+
+#~ msgid "video_out : vo_open : warning! video thread already running\n"
+#~ msgstr "video_out : vo_open : Warnung! Video-Thread läuft bereits\n"
+
+#~ msgid "xine_init entered\n"
+#~ msgstr "xine_init betreten\n"
+
+#~ msgid "xine_init returning\n"
+#~ msgstr "xine_init zurückgekehrt\n"
