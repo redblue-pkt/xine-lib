@@ -6,6 +6,7 @@ xine-lib (1-rc3)
   * fix best streams choice in mmsh
   * updated internal copy of ffmpeg with a lot of warning fixes
   * help texts for video post plugins
+  * fix pts handling bug that caused long freezing in some animated dvd menus
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
