@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.34 2005/02/06 15:00:38 tmattern Exp $
+  $Id: xineplug_inp_vcd.c,v 1.35 2005/02/09 20:18:17 mroi Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1845,8 +1845,8 @@ _("Format used in the GUI Title. Similar to the Unix date "
 
 const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 16, (char *) SHORT_PLUGIN_NAME, XINE_VERSION_CODE, 
-    NULL, vcd_init },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 16, (char *) SHORT_PLUGIN_NAME,
+    XINE_VERSION_CODE, NULL, vcd_init },
   { PLUGIN_NONE, 0, (char *) "", 0, NULL, NULL }
 };
 
