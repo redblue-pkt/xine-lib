@@ -617,6 +617,7 @@ static int osd_renderer_load_font(osd_renderer_t *this, char *filename) {
             known_font->num_fontchars = font->num_fontchars;
             known_font->loaded = 1;
             known_font->fontchar = font->fontchar;
+            free(font);
           } else {
             xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
 		    _("font '%s-%d' already loaded, weird.\n"), font->name, font->size);
@@ -695,8 +696,7 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
     }
 
     last = font;
-    free(font);
-    font = last->next;
+    font = font->next;
   }
 
   pthread_mutex_unlock (&this->osd_mutex);
@@ -1280,7 +1280,7 @@ static void osd_renderer_close (osd_renderer_t *this) {
 
   while( this->osds )
     osd_free_object ( this->osds );
-  
+
   while( this->fonts )
     osd_renderer_unload_font( this, this->fonts->name );
 
