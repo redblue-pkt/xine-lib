@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.158 2003/05/29 17:54:16 jstembridge Exp $
+ * $Id: demux_avi.c,v 1.159 2003/06/17 20:54:57 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1532,12 +1532,10 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
   min_pos = 0;
 
   if (start_pos) {
-    if (idx_grow(this, start_pos_stopper, &start_pos) < 0)
-      this->status = DEMUX_FINISHED;
+    idx_grow(this, start_pos_stopper, &start_pos);
   } else if (start_time) {
     video_pts = start_time * 90000;
-    if (idx_grow(this, start_time_stopper, &video_pts) < 0)
-      this->status = DEMUX_FINISHED;
+    idx_grow(this, start_time_stopper, &video_pts);
   }
 
   if (this->status == DEMUX_OK) {
@@ -1554,10 +1552,10 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
       while(min_pos < max_pos - 1) {
         cur_pos = (min_pos+max_pos)/2-1;
         do {
-          this->avi->video_posf=++cur_pos;
+          this->avi->video_posf=--cur_pos;
           vie = video_cur_index_entry(this);
         } while (!(vie->flags & AVIIF_KEYFRAME));
-        if (cur_pos == max_pos) break;
+        if (cur_pos == min_pos) break;
         if (vie->pos >= start_pos) {
           max_pos = cur_pos;
         } else {
@@ -1568,10 +1566,10 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
       while(min_pos < max_pos - 1) {
         cur_pos = (min_pos+max_pos)/2-1;
         do {
-          this->avi->video_posf=++cur_pos;
+          this->avi->video_posf=--cur_pos;
           vie = video_cur_index_entry(this);
         } while (!(vie->flags & AVIIF_KEYFRAME));
-        if (cur_pos == max_pos) break;
+        if (cur_pos == min_pos) break;
         if (get_video_pts (this, cur_pos) >= video_pts) {
           max_pos = cur_pos;
         } else {
