@@ -84,8 +84,6 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 
-extern int errno;
-
 #ifdef __GNUC__
 #define LOG_MSG_STDERR(xine, message, args...) {                     \
     xine_log(xine, XINE_LOG_MSG, message, ##args);                 \

@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.40 2002/12/21 13:45:57 esnel Exp $
+ * $Id: input_net.c,v 1.41 2002/12/27 16:47:11 miguelfreitas Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -57,8 +57,6 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
-
-extern int errno;
 
 #ifdef __GNUC__
 #define LOG_MSG(xine, message, args...) {                            \

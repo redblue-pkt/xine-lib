@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.61 2002/12/21 16:11:23 rockyb Exp $
+ * $Id: input_vcd.c,v 1.62 2002/12/27 16:47:11 miguelfreitas Exp $
  *
  */
 
@@ -50,8 +50,6 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
-
-extern int errno;
 
 #if defined(__sun)
 #define	CDROM	       "/vol/dev/aliases/cdrom0"

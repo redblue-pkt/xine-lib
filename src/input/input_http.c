@@ -41,8 +41,6 @@
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
 
-extern int errno;
-
 /*
 #define LOG
 */

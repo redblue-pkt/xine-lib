@@ -49,8 +49,6 @@
 
 #define BUFSIZE 1025
 
-extern int errno;
-
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define FNDELAY O_NDELAY
 #endif

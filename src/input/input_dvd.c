@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.124 2002/12/22 23:35:42 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.125 2002/12/27 16:47:10 miguelfreitas Exp $
  *
  */
 
@@ -128,9 +128,6 @@
 #  define trace_print(s, ...) /* Nothing */
 # endif
 #endif
-
-/* Globals */
-extern int errno;
 
 /* Array to hold MRLs returned by get_autoplay_list */
 #define MAX_DIR_ENTRIES 1250
@@ -1648,6 +1645,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.125  2002/12/27 16:47:10  miguelfreitas
+ * man errno: "must not be  explicitly  declared; errno  may  be a macro"
+ * (thanks Chris Rankin for noticing)
+ *
  * Revision 1.124  2002/12/22 23:35:42  miguelfreitas
  * it doesn't make sense to reimplement flush here.
  * (this is why xine_demux_flush_engine was created, to avoid redundant code)

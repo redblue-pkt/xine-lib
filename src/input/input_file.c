@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.70 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: input_file.c,v 1.71 2002/12/27 16:47:10 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,8 +38,6 @@
 #include "xineutils.h"
 #include "compat.h"
 #include "input_plugin.h"
-
-extern int errno;
 
 #define MAXFILES      65535
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.37 2002/11/01 17:51:57 mroi Exp $
+ * $Id: input_cda.c,v 1.38 2002/12/27 16:47:10 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -74,8 +74,6 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
-
-extern int errno;
 
 /*
 #define DEBUG_DISC

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.125 2002/12/23 17:15:00 guenter Exp $
+ * $Id: load_plugins.c,v 1.126 2002/12/27 16:47:11 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -54,8 +54,6 @@
 /*
 #define LOG
 */
-
-extern int errno;
 
 static char *plugin_name;
 

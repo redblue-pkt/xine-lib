@@ -51,8 +51,6 @@
 #define LOG
 */
 
-extern int errno;
-
 #define FRONTEND_DEVICE "/dev/ost/frontend"
 #define SEC_DEVICE      "/dev/ost/sec"
 #define DEMUX_DEVICE    "/dev/ost/demux"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.29 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: input_mms.c,v 1.30 2002/12/27 16:47:10 miguelfreitas Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -48,8 +48,6 @@
 /*
 #define LOG
 */
-
-extern int errno;
 
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define FNDELAY O_NDELAY
