@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.22 2001/07/22 11:22:00 ehasenle Exp $
+ * $Id: audio_oss_out.c,v 1.23 2001/07/22 14:18:22 ehasenle Exp $
  */
 
 /* required for swab() */
@@ -108,6 +108,7 @@ typedef struct oss_functions_s {
   
   int            audio_started;
   uint32_t       last_audio_vpts;
+  int            resample_conf;
   int            do_resample;
 } oss_functions_t;
 
@@ -244,7 +245,14 @@ static int ao_open(ao_functions_t *this_gen,
   ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
 
-  this->do_resample = this->output_sample_rate != this->input_sample_rate;
+  switch (this->resample_conf) {
+  case 1: /* force off */
+    this->do_resample = 0;
+  case 2: /* force on */
+    this->do_resample = 1;
+  default: /* AUTO */
+    this->do_resample = this->output_sample_rate != this->input_sample_rate;
+  }
 
   return 1;
 }
@@ -625,6 +633,8 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   printf ("\n");
 
   close (audio_fd);
+
+  this->resample_conf = config->lookup_int (config, "oss_resample", 0);
 
   this->output_sample_rate = 0;
   this->audio_fd = -1;
