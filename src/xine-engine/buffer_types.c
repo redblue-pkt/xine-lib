@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.54 2003/02/19 21:37:17 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.55 2003/03/18 20:41:03 jstembridge Exp $
  *
  *
  * contents:
@@ -594,6 +594,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_WMAV3,
   "Windows Media Audio v3"
+},
+{
+  {
+    0xA, 0
+  },
+  BUF_AUDIO_WMAV,
+  "Windows Media Audio Voice"
 },
 {
   {

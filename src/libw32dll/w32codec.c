@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.119 2003/03/18 18:21:48 jstembridge Exp $
+ * $Id: w32codec.c,v 1.120 2003/03/18 20:40:59 jstembridge Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -109,6 +109,12 @@ static GUID wma3_clsid =
 {
 	0x27ca0808, 0x01f5, 0x4e7a,
 	{ 0x8b, 0x05, 0x87, 0xf8, 0x07, 0xa2, 0x33, 0xd1 }
+};
+
+static GUID wmav_clsid =
+{
+	0x874131cb, 0x4ecc, 0x443b,
+        { 0x89, 0x48, 0x74, 0x6b, 0x89, 0x59, 0x5d, 0x20 }
 };
 
 
@@ -1005,6 +1011,12 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("Windows Media Audio v3 (win32)");
     return "wma9dmod.dll";
+  case BUF_AUDIO_WMAV:
+    this->driver_type = DRIVER_DMO;
+    this->guid=&wmav_clsid;
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC]
+      = strdup ("Windows Media Audio Voice (win32)");
+    return "wmspdmod.dll";
   case BUF_AUDIO_MSADPCM:
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
       = strdup ("MS ADPCM (win32)");
@@ -1588,7 +1600,7 @@ static decoder_info_t dec_info_video = {
 static uint32_t audio_types[] = { 
   BUF_AUDIO_WMAV1, BUF_AUDIO_WMAV2, BUF_AUDIO_WMAV3, BUF_AUDIO_MSADPCM, 
   BUF_AUDIO_MSIMAADPCM, BUF_AUDIO_MSGSM, BUF_AUDIO_IMC, BUF_AUDIO_LH,
-  BUF_AUDIO_VOXWARE, BUF_AUDIO_ACELPNET, BUF_AUDIO_VIVOG723,
+  BUF_AUDIO_VOXWARE, BUF_AUDIO_ACELPNET, BUF_AUDIO_VIVOG723, BUF_AUDIO_WMAV,
   0
  };
 
