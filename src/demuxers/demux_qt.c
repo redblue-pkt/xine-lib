@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.180 2004/03/02 02:53:59 tmmm Exp $
+ * $Id: demux_qt.c,v 1.181 2004/04/30 10:13:33 hadess Exp $
  *
  */
 
@@ -1764,7 +1764,12 @@ static qt_error build_frame_table(qt_trak *trak,
           /* the chunk size is actually the audio frame count */
           audio_frame_counter += trak->frames[j].size;
 
-          /* compute the actual chunk size */
+          /* Work-around for the ALAC codec (iTunes Lossless Codec) */
+	  if (trak->properties->audio.samples_per_frame == 0) {
+	    return QT_HEADER_TROUBLE;
+	  }
+
+	  /* compute the actual chunk size */
           trak->frames[j].size =
             (trak->frames[j].size *
              trak->properties->audio.channels) /
@@ -1797,7 +1802,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
   int i, j;
   unsigned int moov_atom_size = BE_32(&moov_atom[0]);
   qt_atom current_atom;
-  int string_size;
+  int string_size, error;
   unsigned int max_video_frames = 0;
   unsigned int max_audio_frames = 0;
 
@@ -1893,7 +1898,11 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
 
     debug_frame_table("    qt: building frame table #%d (%s)\n", i,
       (info->traks[i].type == MEDIA_VIDEO) ? "video" : "audio");
-    build_frame_table(&info->traks[i], info->timescale);
+    error = build_frame_table(&info->traks[i], info->timescale);
+    if (error != QT_OK) {
+      info->last_error = error;
+      return;
+    }
 
     /* dump the frame table in debug mode */
     for (j = 0; j < info->traks[i].frame_count; j++)
