@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.42 2003/05/09 20:17:29 jcdutton Exp $
+ * $Id: demux_wav.c,v 1.43 2003/05/23 15:36:58 jcdutton Exp $
  *
  */
 
@@ -149,7 +149,7 @@ static int open_wav_file(demux_wav_t *this) {
     }
   }
   if (this->audio_type == BUF_AUDIO_LPCM_LE) {
-    if (this->input->read(this->input, chunk_preamble, 4) != 4 ) {
+    if (this->input->read(this->input, chunk_preamble, 6) != 6 ) {
       free (this->wave);
       return 0;
     }
@@ -159,6 +159,24 @@ static int open_wav_file(demux_wav_t *this) {
         chunk_preamble[3] == 0x4e ) {
       this->audio_type = BUF_AUDIO_DNET;
     }
+    if (chunk_preamble[0] == 0xff &&
+        chunk_preamble[1] == 0x1f &&
+        chunk_preamble[2] == 0x00 &&
+        chunk_preamble[3] == 0xe8 &&
+        chunk_preamble[4] == 0xf1 &&    /* DTS standard document was wrong here! */
+        chunk_preamble[5] == 0x07 ) {   /* DTS standard document was wrong here! */
+      this->audio_type = BUF_AUDIO_DTS; /* DTS but in 14bit format. */
+    }
+#if 0
+    printf("Preamble=%02x %02x %02x %02x %02x %02x\n",
+        chunk_preamble[0],
+        chunk_preamble[1],
+        chunk_preamble[2],
+        chunk_preamble[3],
+        chunk_preamble[4],
+        chunk_preamble[5]);
+#endif
+
   }
 
   return 1;
