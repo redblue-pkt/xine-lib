@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.190 2004/02/01 15:34:59 tmmm Exp $
+ * $Id: demux_avi.c,v 1.191 2004/02/02 17:40:11 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -71,9 +71,9 @@
 #define LOG_MODULE "demux_avi"
 #define LOG_VERBOSE
 /*
+#define DEBUG_ODML
 #define LOG
 */
-
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
@@ -428,13 +428,14 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, uint32_t posc,
 
   if ((at->dwSampleSize == 0) && (at->dwScale > 1)) {
     /* variable bitrate */
-    lprintf("get_audio_pts: VBR: dwScale=%d, dwRate=%d\n", at->dwScale, at->dwRate);
+    lprintf("get_audio_pts: VBR: nBlockAlign=%d, dwSampleSize=%d, dwScale=%d, dwRate=%d\n",
+            at->wavex->nBlockAlign, at->dwSampleSize, at->dwScale, at->dwRate);
     return (int64_t)(90000.0 * (double)(posc) *
       (double)at->dwScale / (double)at->dwRate);
   } else {
     /* constant bitrate */
-    lprintf("get_audio_pts: CBR: nBlockAlign=%d, dwSampleSize=%d\n",
-            at->wavex->nBlockAlign, at->dwSampleSize);
+    lprintf("get_audio_pts: CBR: nBlockAlign=%d, dwSampleSize=%d, dwScale=%d, dwRate=%d\n",
+            at->wavex->nBlockAlign, at->dwSampleSize, at->dwScale, at->dwRate);
     if( at->wavex && at->wavex->nBlockAlign ) {
       return (int64_t)((double)(postot + posb) / (double)at->wavex->nBlockAlign *
         (double)at->dwScale / (double)at->dwRate * 90000.0);
@@ -550,8 +551,10 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
       sent_event = 1;
     }
 
-    if (this->input->read(this->input, data, AVI_HEADER_SIZE) != AVI_HEADER_SIZE)
+    if (this->input->read(this->input, data, AVI_HEADER_SIZE) != AVI_HEADER_SIZE) {
+      lprintf("read failed, chunk_pos=%lld\n", chunk_pos);
       break;
+    }
 
     /* Dive into RIFF and LIST entries */
     if(strncasecmp(data, "LIST", 4) == 0 ||
@@ -582,8 +585,10 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
        *   i've added XVID which looks like iso mpeg 4
        */
 
-      if (this->input->read(this->input, data2, 4) != 4)
+      if (this->input->read(this->input, data2, 4) != 4) {
+        lprintf("read failed\n");
         break;
+      }
       tmp = data2[3] | (data2[2]<<8) | (data2[1]<<16) | (data2[0]<<24);
       switch(this->avi->video_type) {
         case BUF_VIDEO_MSMPEG4_V1:
@@ -639,8 +644,10 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
                 data[0], data[1], data[2], data[3], chunk_pos);
     }
     chunk_pos = this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
-    if (chunk_pos != this->idx_grow.nexttagoffset)
+    if (chunk_pos != this->idx_grow.nexttagoffset) {
+      lprintf("seek failed: %lld != %lld\n", chunk_pos, this->idx_grow.nexttagoffset);
       break;
+    }
   }
 
   if (sent_event == 1) {
@@ -715,8 +722,17 @@ do {			\
 } while(0)
 
 
-#define DEBUG_ODML
-#undef DEBUG_ODML
+static void reset_idx(demux_avi_t *this, avi_t *AVI) {
+  int n;
+  
+  this->idx_grow.nexttagoffset = AVI->movi_start;
+  this->has_index = 0;
+  
+  AVI->video_idx.video_frames = 0;
+  for(n = 0; n < AVI->n_audio; n++) {
+    AVI->audio[n]->audio_idx.audio_chunks = 0;
+  }
+}
 
 static avi_t *AVI_init(demux_avi_t *this) {
 
@@ -814,10 +830,11 @@ static avi_t *AVI_init(demux_avi_t *this) {
       /* n must be a multiple of 16, but the reading does not
       break if this is not the case */
 
-      AVI->n_idx = AVI->max_idx = n/16;
-      free(AVI->idx);  /* On the off chance there are multiple index chunks */
-      AVI->idx = (unsigned  char((*)[16]) ) xine_xmalloc(n);
-      if (AVI->idx==0)
+      AVI->n_idx = AVI->max_idx = n / 16;
+      if (AVI->idx)
+        free(AVI->idx);  /* On the off chance there are multiple index chunks */
+      AVI->idx = (unsigned char((*)[16])) xine_xmalloc(n);
+      if (AVI->idx == 0)
         ERR_EXIT(AVI_ERR_NO_MEM);
 
       if (this->input->read(this->input, (char *)AVI->idx, n) != n ) {
@@ -828,7 +845,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
         AVI->n_idx = AVI->max_idx = 0;
         break; /* EOF */
       }
-    }    
+    }
     if (next_chunk != this->input->seek(this->input, next_chunk, SEEK_SET)) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
                 _("demux_avi: failed to seek to the next chunk (pos %lld)\n"),
@@ -845,8 +862,8 @@ static avi_t *AVI_init(demux_avi_t *this) {
             hdrl_data[i], hdrl_data[i+1], hdrl_data[i+2], hdrl_data[i+3]);
 
 
-    if (strncasecmp(hdrl_data+i,"LIST",4)==0) {
-      i+= 12;
+    if (strncasecmp(hdrl_data + i, "LIST", 4) == 0) {
+      i += 12;
       continue;
     }
 
@@ -874,7 +891,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
 
         AVI->video_strn = num_stream;
         vids_strh_seen = 1;
-        lprintf("video stream header\n");
+        lprintf("video stream header, num_stream=%d\n", num_stream);
         lasttag = 1; /* vids */
         lprintf("dwScale=%d, dwRate=%d, dwInitialFrames=%d, dwStart=%d, num_stream=%d\n",
                 AVI->dwScale, AVI->dwRate, AVI->dwInitialFrames, AVI->dwStart, num_stream);
@@ -900,17 +917,17 @@ static avi_t *AVI_init(demux_avi_t *this) {
           a->dwSampleSize  = LE_32(hdrl_data + i + 44);
 	  a->audio_tot     = 0;
           auds_strh_seen   = 1;
-          lprintf("audio stream header\n");
+          lprintf("audio stream header, num_stream=%d\n", num_stream);
 
           lasttag = 2; /* auds */
           AVI->n_audio++;
         }
       } else {
+        /* unknown stream type */
         lasttag = 0;
       }
       num_stream++;
-    }
-    else if(strncasecmp(hdrl_data+i,"dmlh",4) == 0) {
+    } else if(strncasecmp(hdrl_data+i,"dmlh",4) == 0) {
 	  AVI->total_frames = LE_32(hdrl_data+i+8);
 #ifdef DEBUG_ODML
 	  lprintf( "AVI: real number of frames %d\n", AVI->total_frames);
@@ -966,114 +983,71 @@ static avi_t *AVI_init(demux_avi_t *this) {
         auds_strf_seen = 1;
       }
 
-    } else if(strncasecmp(hdrl_data+i,"indx",4) == 0) {
-	 char *a;
-	 int j;
+    } else if(strncasecmp(hdrl_data + i, "indx",4) == 0) {
+	 uint8_t             *a;
+	 int                  j;
+	 avisuperindex_chunk *superindex;
 
-	 if(lasttag == 1) /* V I D E O */
-	 { 
-
-	    a = hdrl_data+i;
-
-	    AVI->video_superindex = (avisuperindex_chunk *) malloc (sizeof (avisuperindex_chunk));
-	    memcpy (AVI->video_superindex->fcc, a, 4);             a += 4;
-	    AVI->video_superindex->dwSize = LE_32(a);              a += 4;
-	    AVI->video_superindex->wLongsPerEntry = LE_16(a);      a += 2;
-	    AVI->video_superindex->bIndexSubType = *a;             a += 1;
-	    AVI->video_superindex->bIndexType = *a;                a += 1;
-	    AVI->video_superindex->nEntriesInUse = LE_32(a);       a += 4;
-	    memcpy (AVI->video_superindex->dwChunkId, a, 4);       a += 4;
-
-	    /* 3 * reserved */
-	    a += 4; a += 4; a += 4;
-
-	    if (AVI->video_superindex->bIndexSubType != 0) {lprintf("Invalid Header, bIndexSubType != 0\n"); }
-	    
-	    AVI->video_superindex->aIndex = 
-	       malloc (AVI->video_superindex->wLongsPerEntry * AVI->video_superindex->nEntriesInUse * sizeof (uint32_t));
-
-	    /* position of ix## chunks */
-	    for (j=0; j<AVI->video_superindex->nEntriesInUse; ++j) {
-	       AVI->video_superindex->aIndex[j].qwOffset = LE_64 (a);   a += 8;
-	       AVI->video_superindex->aIndex[j].dwSize = LE_32 (a);     a += 4;
-	       AVI->video_superindex->aIndex[j].dwDuration = LE_32 (a); a += 4;
-
-#ifdef DEBUG_ODML
-	       printf("[%d] 0x%llx 0x%lx %lu\n", j, (unsigned long long)AVI->video_superindex->aIndex[j].qwOffset,
-		     (unsigned long)AVI->video_superindex->aIndex[j].dwSize, 
-		     (unsigned long)AVI->video_superindex->aIndex[j].dwDuration);
-#endif
-	    }
-
-
-#ifdef DEBUG_ODML
-	    printf("FOURCC \"%c%c%c%c\"\n", AVI->video_superindex->fcc[0], AVI->video_superindex->fcc[1], 
-		                            AVI->video_superindex->fcc[2], AVI->video_superindex->fcc[3]);
-	    printf("LEN \"%ld\"\n", (long)AVI->video_superindex->dwSize);
-	    printf("wLongsPerEntry \"%d\"\n", AVI->video_superindex->wLongsPerEntry);
-	    printf("bIndexSubType \"%d\"\n", AVI->video_superindex->bIndexSubType);
-	    printf("bIndexType \"%d\"\n", AVI->video_superindex->bIndexType);
-	    printf("nEntriesInUse \"%ld\"\n", (long)AVI->video_superindex->nEntriesInUse);
-	    printf("dwChunkId \"%c%c%c%c\"\n", AVI->video_superindex->dwChunkId[0], AVI->video_superindex->dwChunkId[1], 
-		                               AVI->video_superindex->dwChunkId[2], AVI->video_superindex->dwChunkId[3]);
-	    printf("--\n");
-#endif
-
-	    AVI->is_opendml = 1;
-
+	 if (n < sizeof (avisuperindex_chunk)) {
+	    lprintf("broken index !, dwSize=%d\n", n);
+	    i += 8 + n;
+	    continue;
 	 }
-         else if(lasttag == 2) /* A U D I O */
-         {
-
-	    a = hdrl_data+i;
-
-	    AVI->audio[AVI->n_audio-1]->audio_superindex = (avisuperindex_chunk *) malloc (sizeof (avisuperindex_chunk));
-	    memcpy (AVI->audio[AVI->n_audio-1]->audio_superindex->fcc, a, 4);             a += 4;
-	    AVI->audio[AVI->n_audio-1]->audio_superindex->dwSize = LE_32(a);          a += 4;
-	    AVI->audio[AVI->n_audio-1]->audio_superindex->wLongsPerEntry = LE_16(a); a += 2;
-	    AVI->audio[AVI->n_audio-1]->audio_superindex->bIndexSubType = *a;             a += 1;
-	    AVI->audio[AVI->n_audio-1]->audio_superindex->bIndexType = *a;                a += 1;
-	    AVI->audio[AVI->n_audio-1]->audio_superindex->nEntriesInUse = LE_32(a);   a += 4;
-	    memcpy (AVI->audio[AVI->n_audio-1]->audio_superindex->dwChunkId, a, 4);       a += 4;
-
-	    /* 3 * reserved */
-	    a += 4; a += 4; a += 4;
-
-	    if (AVI->audio[AVI->n_audio-1]->audio_superindex->bIndexSubType != 0) {lprintf("Invalid Header, bIndexSubType != 0\n"); }
-	    
-	    AVI->audio[AVI->n_audio-1]->audio_superindex->aIndex = 
-	       malloc (AVI->audio[AVI->n_audio-1]->audio_superindex->wLongsPerEntry * 
-		     AVI->audio[AVI->n_audio-1]->audio_superindex->nEntriesInUse * sizeof (uint32_t));
-
-	    /* position of ix## chunks */
-	    for (j=0; j<AVI->audio[AVI->n_audio-1]->audio_superindex->nEntriesInUse; ++j) {
-	       AVI->audio[AVI->n_audio-1]->audio_superindex->aIndex[j].qwOffset = LE_64(a);  a += 8;
-	       AVI->audio[AVI->n_audio-1]->audio_superindex->aIndex[j].dwSize = LE_32(a);     a += 4;
-	       AVI->audio[AVI->n_audio-1]->audio_superindex->aIndex[j].dwDuration = LE_32 (a); a += 4;
-
+	 
+	 superindex = (avisuperindex_chunk *) malloc (sizeof (avisuperindex_chunk));
+	 a = hdrl_data + i;
+	 memcpy (superindex->fcc, a, 4);             a += 4;
+	 superindex->dwSize = LE_32(a);              a += 4;
+	 superindex->wLongsPerEntry = LE_16(a);      a += 2;
+	 superindex->bIndexSubType = *a;             a += 1;
+	 superindex->bIndexType = *a;                a += 1;
+	 superindex->nEntriesInUse = LE_32(a);       a += 4;
+	 memcpy (superindex->dwChunkId, a, 4);       a += 4;
+	 
 #ifdef DEBUG_ODML
-	       printf("[%d] 0x%llx 0x%lx %lu\n", j, (long long)AVI->audio[AVI->n_audio-1]->audio_superindex->aIndex[j].qwOffset,
-		     (long)AVI->audio[AVI->n_audio-1]->audio_superindex->aIndex[j].dwSize, (long)AVI->audio[AVI->n_audio-1]->audio_superindex->aIndex[j].dwDuration);
+	 printf("FOURCC \"%c%c%c%c\"\n", superindex->fcc[0], superindex->fcc[1], 
+		                         superindex->fcc[2], superindex->fcc[3]);
+	 printf("LEN \"%ld\"\n", (long)superindex->dwSize);
+	 printf("wLongsPerEntry \"%d\"\n", superindex->wLongsPerEntry);
+	 printf("bIndexSubType \"%d\"\n", superindex->bIndexSubType);
+	 printf("bIndexType \"%d\"\n", superindex->bIndexType);
+	 printf("nEntriesInUse \"%ld\"\n", (long)superindex->nEntriesInUse);
+	 printf("dwChunkId \"%c%c%c%c\"\n", superindex->dwChunkId[0],
+		                            superindex->dwChunkId[1],
+		                            superindex->dwChunkId[2],
+		                            superindex->dwChunkId[3]);
+	 printf("--\n");
 #endif
-	    }
-
+	 /* 3 * reserved */
+	 a += 4; a += 4; a += 4;
+	  
+	 if (superindex->bIndexSubType != 0) {
+	    lprintf("Invalid Header, bIndexSubType != 0\n");
+	 }
+	 
+	 superindex->aIndex = malloc (superindex->wLongsPerEntry * superindex->nEntriesInUse * sizeof (uint32_t));
+	 /* position of ix## chunks */
+	 for (j = 0; j < superindex->nEntriesInUse; ++j) {
+	       superindex->aIndex[j].qwOffset = LE_64 (a);   a += 8;
+	       superindex->aIndex[j].dwSize = LE_32 (a);     a += 4;
+	       superindex->aIndex[j].dwDuration = LE_32 (a); a += 4;
 #ifdef DEBUG_ODML
-	    printf("FOURCC \"%c%c%c%c\"\n", AVI->audio[AVI->n_audio-1]->audio_superindex->fcc[0], 
-		                            AVI->audio[AVI->n_audio-1]->audio_superindex->fcc[1], 
-		                            AVI->audio[AVI->n_audio-1]->audio_superindex->fcc[2], 
-					    AVI->audio[AVI->n_audio-1]->audio_superindex->fcc[3]);
-	    printf("LEN \"%ld\"\n", (long)AVI->audio[AVI->n_audio-1]->audio_superindex->dwSize);
-	    printf("wLongsPerEntry \"%d\"\n", AVI->audio[AVI->n_audio-1]->audio_superindex->wLongsPerEntry);
-	    printf("bIndexSubType \"%d\"\n", AVI->audio[AVI->n_audio-1]->audio_superindex->bIndexSubType);
-	    printf("bIndexType \"%d\"\n", AVI->audio[AVI->n_audio-1]->audio_superindex->bIndexType);
-	    printf("nEntriesInUse \"%ld\"\n", (long)AVI->audio[AVI->n_audio-1]->audio_superindex->nEntriesInUse);
-	    printf("dwChunkId \"%c%c%c%c\"\n", AVI->audio[AVI->n_audio-1]->audio_superindex->dwChunkId[0], 
-		                               AVI->audio[AVI->n_audio-1]->audio_superindex->dwChunkId[1], 
-		                               AVI->audio[AVI->n_audio-1]->audio_superindex->dwChunkId[2], 
-					       AVI->audio[AVI->n_audio-1]->audio_superindex->dwChunkId[3]);
-	    printf("--\n");
+	    printf("[%d] 0x%llx 0x%lx %lu\n", j, (unsigned long long)superindex->aIndex[j].qwOffset,
+		     (unsigned long)superindex->aIndex[j].dwSize, 
+		     (unsigned long)superindex->aIndex[j].dwDuration);
 #endif
+	 }
 
+	 if (lasttag == 1) {
+	    /* V I D E O */
+	    AVI->video_superindex = superindex;
+	    AVI->is_opendml = 1;
+	 } else if (lasttag == 2) {
+	    /* A U D I O */
+	    AVI->audio[AVI->n_audio-1]->audio_superindex = superindex;
+	    AVI->is_opendml = 1;
+	 } else {
+	    printf("there should not be an index there, lasttag = %d\n", lasttag);
 	 }
     } else if(strncasecmp(hdrl_data+i,"JUNK",4) == 0) {
 	 i += 8;
@@ -1105,7 +1079,8 @@ static avi_t *AVI_init(demux_avi_t *this) {
 
   for(i = 0; i < AVI->n_audio; i++) {
     /* Audio tag is set to "99wb" if no audio present */
-    if(!AVI->audio[i]->wavex->nChannels) AVI->audio[i]->audio_strn = 99;
+    if (!AVI->audio[i]->wavex->nChannels)
+      AVI->audio[i]->audio_strn = 99;
 
     AVI->audio[i]->audio_tag[0] = AVI->audio[i]->audio_strn / 10 + '0';
     AVI->audio[i]->audio_tag[1] = AVI->audio[i]->audio_strn % 10 + '0';
@@ -1152,11 +1127,11 @@ static avi_t *AVI_init(demux_avi_t *this) {
       len = LE_32(AVI->idx[i] + 12);
 
       this->input->seek(this->input, pos, SEEK_SET);
-      if(this->input->read(this->input, data, 8) != 8) ERR_EXIT(AVI_ERR_READ) ;
+      if(this->input->read(this->input, data, 8) != 8)
+        ERR_EXIT(AVI_ERR_READ) ;
 
-      if( strncasecmp(data,AVI->idx[i], 4)==0 && LE_32(data + 4) == len ) {
+      if( (strncasecmp(data, AVI->idx[i], 4) == 0) && (LE_32(data + 4) == len) ) {
         idx_type = 1; /* Index from start of file */
-
       } else {
 
         this->input->seek(this->input, pos + AVI->movi_start - 4, SEEK_SET);
@@ -1170,14 +1145,17 @@ static avi_t *AVI_init(demux_avi_t *this) {
     }
   }
 
+  lprintf("idx_type=%d, AVI->n_idx=%d\n", idx_type, AVI->n_idx);
+  
   if (idx_type != 0 && !AVI->is_opendml) {
     /* Now generate the video index and audio index arrays from the
      * idx1 record. */
     this->has_index = 1;
 
-    ioff = idx_type == 1 ? AVI_HEADER_SIZE : AVI->movi_start + 4;
+    ioff = (idx_type == 1) ? AVI_HEADER_SIZE : AVI->movi_start + 4;
 
     for(i = 0; i < AVI->n_idx; i++) {
+
       if((AVI->idx[i][0] == AVI->video_tag[0]) &&
          (AVI->idx[i][1] == AVI->video_tag[1])) {
 	off_t pos = LE_32(AVI->idx[i] + 8) + ioff;
@@ -1186,31 +1164,43 @@ static avi_t *AVI_init(demux_avi_t *this) {
 	if (video_index_append(AVI, pos, len, flags) == -1) {
 	  ERR_EXIT(AVI_ERR_NO_MEM) ;
 	}
-      }
-      for(n = 0; n < AVI->n_audio; n++) {
-	avi_audio_t *audio = AVI->audio[n];
+      } else {
+        for(n = 0; n < AVI->n_audio; n++) {
+          avi_audio_t *audio = AVI->audio[n];
 
-	if((AVI->idx[i][0] == AVI->audio[n]->audio_tag[0]) &&
-           (AVI->idx[i][1] == AVI->audio[n]->audio_tag[1])) {
-	  off_t pos = LE_32(AVI->idx[i] + 8) + ioff;
-	  uint32_t len = LE_32(AVI->idx[i] + 12);
+          if((AVI->idx[i][0] == audio->audio_tag[0]) &&
+             (AVI->idx[i][1] == audio->audio_tag[1])) {
+            off_t pos = LE_32(AVI->idx[i] + 8) + ioff;
+            uint32_t len = LE_32(AVI->idx[i] + 12);
 
-	  /* VBR streams (hack from mplayer) */
-	  if (audio->wavex && audio->wavex->nBlockAlign) {
-	    audio->block_no += (len + audio->wavex->nBlockAlign - 1) /
-                               audio->wavex->nBlockAlign;
-	  } else {
-	    audio->block_no += 1;
-	  }
+            /* VBR streams (hack from mplayer) */
+            if (audio->wavex && audio->wavex->nBlockAlign) {
+              audio->block_no += (len + audio->wavex->nBlockAlign - 1) /
+                                 audio->wavex->nBlockAlign;
+            } else {
+              audio->block_no += 1;
+            }
 
-	  if (audio_index_append(AVI, n, pos, len, audio->audio_tot,
-	                         audio->block_no) == -1) {
-	    ERR_EXIT(AVI_ERR_NO_MEM) ;
-	  }
-	  AVI->audio[n]->audio_tot += len;
-	}
+            if (audio_index_append(AVI, n, pos, len, audio->audio_tot,
+                                   audio->block_no) == -1) {
+              ERR_EXIT(AVI_ERR_NO_MEM) ;
+            }
+            AVI->audio[n]->audio_tot += len;
+            break;
+          }
+        }
       }
     }
+    /* check index validity, there must be an index for each video/audio stream */
+    if (AVI->video_idx.video_frames == 0) {
+      reset_idx(this, AVI);
+    }
+    for(n = 0; n < AVI->n_audio; n++) {
+      if (AVI->audio[n]->audio_idx.audio_chunks == 0) {
+        reset_idx(this, AVI);
+      }
+    }
+    
   } else if (AVI->is_opendml) {
       uint64_t offset = 0;
       int hdrl_len = 4+4+2+1+1+4+4+8+4;
@@ -1504,14 +1494,14 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
   int64_t        audio_pts, video_pts;
   int            do_read_video = (this->avi->n_audio == 0);
 
-  lprintf("begin");
+  lprintf("begin\n");
   
   /* Try to grow the index, in case more of the avi file has shown up
    * since we last checked.  If it's still too small, well then we're at
-   * the end. */
+   * the end of the stream. */
   if (this->avi->video_idx.video_frames <= this->avi->video_posf) {
     if (idx_grow(this, video_pos_stopper, NULL) < 0) {
-      lprintf("end: idx_grow video_pos_stopper");
+      lprintf("end: idx_grow video_pos_stopper\n");
       return 0;
     }
   }
@@ -1522,7 +1512,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     if (!this->no_audio &&
         (audio->audio_idx.audio_chunks <= audio->audio_posc)) {
       if (idx_grow(this, audio_pos_stopper, this->avi->audio[i]) < 0) {
-        lprintf("end: idx_grow audio_stopper");
+        lprintf("end: idx_grow audio_pos_stopper\n");
         return 0;
       }
     }
@@ -1537,7 +1527,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     /* The tests above mean aie should never be NULL, but just to be
      * safe. */
     if (!aie) {
-      lprintf("end: aie == NULL");
+      lprintf("end: aie == NULL\n");
       return 0;
     }
 
@@ -1553,12 +1543,13 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
       /* read audio */
 
       buf->pts    = audio_pts;
+      buf->pts    = 0;
       buf->size   = AVI_read_audio (this, audio, buf->mem, buf->max_size, &buf->decoder_flags);
       buf->decoder_flags |= decoder_flags;
 
       if (buf->size < 0) {
         buf->free_buffer (buf);
-        lprintf("end: audio buf->size < 0");
+        lprintf("end: audio buf->size < 0\n");
         return 0;
       }
 
@@ -1594,7 +1585,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
 
     if (buf->size < 0) {
       buf->free_buffer (buf);
-      lprintf("end: video buf->size < 0");
+      lprintf("end: video buf->size < 0\n");
       return 0;
     }
 
@@ -2070,15 +2061,17 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
   if (!this->no_audio && this->status == DEMUX_OK) {
     audio_index_entry_t *aie;
     int i;
-    for(i=0; i < this->avi->n_audio; i++) {
-      max_pos=this->avi->audio[i]->audio_idx.audio_chunks-1;
-      min_pos=0;
+    
+    for(i = 0; i < this->avi->n_audio; i++) {
+      max_pos = this->avi->audio[i]->audio_idx.audio_chunks - 1;
+      min_pos = 0;
+      lprintf("audio_chunks=%d, min=%lld, max=%lld\n", this->avi->audio[i]->audio_idx.audio_chunks, min_pos, max_pos);
       while (min_pos < max_pos) {
         cur_pos = this->avi->audio[i]->audio_posc = (max_pos + min_pos) / 2;
         if (cur_pos == min_pos) break;
         aie = audio_cur_index_entry(this, this->avi->audio[i]);
         if (aie) {
-          if ( (audio_pts=get_audio_pts(this, i, aie->block_no, aie->tot, 0)) >= video_pts) {
+          if ( (audio_pts = get_audio_pts(this, i, aie->block_no, aie->tot, 0)) >= video_pts) {
             max_pos = cur_pos;
           } else {
             min_pos = cur_pos;
@@ -2103,19 +2096,19 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
        * yeah, i know this implementation is pathetic (gb)
        */
 
-      if ((audio_pts>video_pts) && (this->avi->audio[i]->audio_posc>0))
+      if ((audio_pts > video_pts) && (this->avi->audio[i]->audio_posc>0))
 	this->avi->audio[i]->audio_posc--;
 
       aie = audio_cur_index_entry(this, this->avi->audio[i]);
       if (aie) {
-	while ((this->avi->audio[i]->audio_posb<aie->len)
-	       && ((audio_pts=get_audio_pts(this, i, aie->block_no, aie->tot,
-                                            this->avi->audio[i]->audio_posb)) < video_pts))
+	while ((this->avi->audio[i]->audio_posb < aie->len)
+	       && ((audio_pts = get_audio_pts(this, i, aie->block_no, aie->tot,
+                                              this->avi->audio[i]->audio_posb)) < video_pts))
 	  this->avi->audio[i]->audio_posb++;
       }
     }
   }
-  lprintf ("video posc: %d, audio posc: %lld\n", this->avi->video_posf, audio_pts);
+  lprintf ("video posc: %d\n", this->avi->video_posf);
 
   this->send_newpts = 1;
   this->buf_flag_seek = 1;
