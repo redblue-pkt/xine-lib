@@ -70,8 +70,8 @@ slackbuild:
 
 
 install-data-hook:
-	@rm -f $(XINE_PLUGINDIR)/*.la
-	@rm -f $(XINE_PLUGINDIR)/*/*.la
+	@rm -f $(DESTDIR)$(XINE_PLUGINDIR)/*.la
+	@rm -f $(DESTDIR)$(XINE_PLUGINDIR)/*/*.la
 	@if test -x "$(top_srcdir)/post-install.sh" ; then \
 	  $(top_srcdir)/post-install.sh ; \
 	fi
