@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.149 2003/02/20 05:34:52 tmmm Exp $
+ * $Id: demux_qt.c,v 1.150 2003/02/21 04:51:22 tmmm Exp $
  *
  */
 
@@ -107,6 +107,12 @@ typedef unsigned int qt_atom;
 #define DES_ATOM QT_ATOM(0xA9, 'd', 'e', 's')
 #define CMT_ATOM QT_ATOM(0xA9, 'c', 'm', 't')
 
+#define RMDA_ATOM QT_ATOM('r', 'm', 'd', 'a')
+#define RDRF_ATOM QT_ATOM('r', 'd', 'r', 'f')
+#define RMDR_ATOM QT_ATOM('r', 'm', 'd', 'r')
+#define RMVC_ATOM QT_ATOM('r', 'm', 'v', 'c')
+#define QTIM_ATOM QT_ATOM('q', 't', 'i', 'm')
+
 /* placeholder for cutting and pasting */
 #define _ATOM QT_ATOM('', '', '', '')
 
@@ -114,6 +120,10 @@ typedef unsigned int qt_atom;
 #define PALETTE_COUNT 256
 
 #define MAX_PTS_DIFF 100000
+
+/* network bandwidth, cribbed from src/input/input_mms.c */
+const int64_t bandwidths[]={14400,19200,28800,33600,34430,57600,
+                            115200,262200,393216,524300,1544000,10485800};
 
 /* these are things that can go wrong */
 typedef enum {
@@ -157,6 +167,12 @@ typedef struct {
   unsigned int count;
   unsigned int duration;
 } time_to_sample_table_t;
+
+typedef struct {
+  unsigned char *url;
+  int64_t data_rate;
+  int qtim_version;
+} reference_t;
 
 typedef struct {
 
@@ -267,6 +283,14 @@ typedef struct {
   char              *description;
   char              *comment;
 
+  /* a QT movie may contain a number of references pointing to URLs */
+  reference_t       *references;
+  int                reference_count;
+  int                chosen_reference;
+
+  /* need to know base MRL to construct URLs from relative paths */
+  char              *base_mrl;
+
   qt_error last_error;
 } qt_info;
 
@@ -292,6 +316,8 @@ typedef struct {
 
   off_t                data_start;
   off_t                data_size;
+
+  int64_t              bandwidth;
 
   char                 last_mrl[1024];
 } demux_qt_t;
@@ -541,6 +567,12 @@ qt_info *create_qt_info(void) {
   info->description = NULL;
   info->comment = NULL;
 
+  info->references = NULL;
+  info->reference_count = 0;
+  info->chosen_reference = -1;
+
+  info->base_mrl = NULL;
+
   info->last_error = QT_OK;
 
   return info;
@@ -549,9 +581,17 @@ qt_info *create_qt_info(void) {
 /* release a qt_info structure and associated data */
 void free_qt_info(qt_info *info) {
 
+  int i;
+
   if(info) {
     if(info->traks)
       free(info->traks);
+    if(info->references) {
+      for (i = 0; i < info->reference_count; i++)
+        free(info->references[i].url);
+      free(info->references);
+    }
+    free(info->base_mrl);
     free(info->copyright);
     free(info->description);
     free(info->comment);
@@ -650,7 +690,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
   int color_greyscale;
   unsigned char *color_table;
 
-  /* initialize sample table structure */
+  /* initialize trak structure */
   trak->edit_list_count = 0;
   trak->edit_list_table = NULL;
   trak->chunk_offset_count = 0;
@@ -1259,6 +1299,78 @@ free_trak:
   return last_error;
 }
 
+/* Traverse through a reference atom and extract the URL and data rate. */
+static qt_error parse_reference_atom (reference_t *ref,
+                                      unsigned char *ref_atom,
+                                      char *base_mrl) {
+
+  int i, j;
+  unsigned int ref_atom_size = BE_32(&ref_atom[0]);
+  qt_atom current_atom;
+  unsigned int current_atom_size;
+
+  /* initialize reference atom */
+  ref->url = NULL;
+  ref->data_rate = 0;
+  ref->qtim_version = 0;
+
+  /* traverse through the atom looking for the key atoms */
+  for (i = ATOM_PREAMBLE_SIZE; i < ref_atom_size - 4; i++) {
+
+    current_atom_size = BE_32(&ref_atom[i - 4]);
+    current_atom = BE_32(&ref_atom[i]);
+
+    if (current_atom == RDRF_ATOM) {
+
+      /* if the URL starts with "http://", copy it */
+      if (strncmp(&ref_atom[i + 12], "http://", 7) == 0) {
+
+        /* URL is spec'd to terminate with a NULL; don't trust it */
+        ref->url = xine_xmalloc(BE_32(&ref_atom[i + 12]) + 1);
+        strncpy(ref->url, &ref_atom[i + 16], BE_32(&ref_atom[i + 12]));
+        ref->url[BE_32(&ref_atom[i + 12]) - 1] = '\0';
+
+      } else {
+
+        int string_size = strlen(base_mrl) + BE_32(&ref_atom[i + 12]) + 1;
+
+        /* otherwise, append relative URL to base MRL */
+        ref->url = xine_xmalloc(string_size);
+        strcpy(ref->url, base_mrl);
+        strncat(ref->url, &ref_atom[i + 16], BE_32(&ref_atom[i + 12]));
+        ref->url[string_size - 1] = '\0';
+      }
+
+      debug_atom_load("    qt rdrf URL reference:\n      %s\n", ref->url);
+
+    } else if (current_atom == RMDR_ATOM) {
+
+      /* load the data rate */
+      ref->data_rate = BE_32(&ref_atom[i + 8]);
+      ref->data_rate *= 10;
+
+      debug_atom_load("    qt rmdr data rate = %lld\n", ref->data_rate);
+
+    } else if (current_atom == RMVC_ATOM) {
+
+      debug_atom_load("    qt rmvc atom\n");
+
+      /* search the rmvc atom for 'qtim'; 2 bytes will follow the qtim
+       * chars so only search to 6 bytes to the end */
+      for (j = 4; j < current_atom_size - 6; j++) {
+
+        if (BE_32(&ref_atom[i + j]) == QTIM_ATOM) {
+
+          ref->qtim_version = BE_16(&ref_atom[i + j + 4]);
+          debug_atom_load("      qtim version = %04X\n", ref->qtim_version);
+        }
+      }
+    }
+  }
+
+  return QT_OK;
+}
+
 /* This is a little support function used to process the edit list when
  * building a frame table. */
 #define MAX_DURATION 0x7FFFFFFFFFFFFFFF
@@ -1519,7 +1631,8 @@ static qt_error build_frame_table(qt_trak *trak,
  * finishes successfully, qt_info will have a list of qt_frame objects,
  * ordered by offset.
  */
-static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
+static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
+                            int64_t bandwidth) {
   int i, j;
   unsigned int moov_atom_size = BE_32(&moov_atom[0]);
   qt_atom current_atom;
@@ -1574,11 +1687,23 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       info->comment = xine_xmalloc(string_size);
       strncpy(info->comment, &moov_atom[i + 8], string_size - 1);
       info->comment[string_size - 1] = 0;
+
+    } else if (current_atom == RMDA_ATOM) {
+
+      /* create a new reference structure */
+      info->reference_count++;
+      info->references = (reference_t *)realloc(info->references,
+        info->reference_count * sizeof(reference_t));
+
+printf (" parsing ref #%d\n", info->reference_count);
+      parse_reference_atom(&info->references[info->reference_count - 1],
+        &moov_atom[i - 4], info->base_mrl);
+
     }
   }
   debug_atom_load("  qt: finished parsing moov atom\n");
 
-  /* build frame tables corresponding to each sample table */
+  /* build frame tables corresponding to each trak */
   debug_frame_table("  qt: preparing to build %d frame tables\n",
     info->trak_count);
   for (i = 0; i < info->trak_count; i++) {
@@ -1610,9 +1735,35 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       max_audio_frames = info->traks[i].frame_count;
     }
   }
+
+  /* check for references */
+  if (info->reference_count > 0) {
+
+    /* init chosen reference to the first entry */
+    info->chosen_reference = 0;
+
+    /* iterate through 1..n-1 reference entries and decide on the right one */
+    for (i = 1; i < info->reference_count; i++) {
+
+      if (info->references[i].qtim_version > 
+          info->references[info->chosen_reference].qtim_version)
+        info->chosen_reference = i;
+      else if ((info->references[i].data_rate <= bandwidth) &&
+               (info->references[i].data_rate > 
+                info->references[info->chosen_reference].data_rate))
+        info->chosen_reference = i;
+    }
+
+    debug_atom_load("  qt: chosen reference is ref #%d, qtim version %04X, %lld bps\n      URL: %s\n",
+      info->chosen_reference,
+      info->references[info->chosen_reference].qtim_version,
+      info->references[info->chosen_reference].data_rate,
+      info->references[info->chosen_reference].url);
+  }
 }
 
-static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
+static qt_error open_qt_file(qt_info *info, input_plugin_t *input,
+                             int64_t bandwidth) {
 
   unsigned char *moov_atom = NULL;
   off_t moov_atom_offset = -1;
@@ -1623,6 +1774,19 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   z_stream z_state;
   int z_ret_code;
   unsigned char *unzip_buffer;
+
+  /* extract the base MRL if this is a http MRL */
+  if (strncmp(input->get_mrl(input), "http://", 7) == 0) {
+
+    char *slash;
+
+    /* this will copy a few bytes too many, but no big deal */
+    info->base_mrl = strdup(input->get_mrl(input));
+    /* terminate the string after the last slash character */
+    slash = strrchr(info->base_mrl, '/');
+    if (slash)
+      *(slash + 1) = '\0';
+  }
 
   if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE))
     find_moov_atom(input, &moov_atom_offset, &moov_atom_size);
@@ -1721,7 +1885,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   dump_moov_atom(moov_atom, moov_atom_size);
 
   /* take apart the moov atom */
-  parse_moov_atom(info, moov_atom);
+  parse_moov_atom(info, moov_atom, bandwidth);
   if (info->last_error != QT_OK)
     return info->last_error;
 
@@ -1746,12 +1910,38 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
   qt_trak *audio_trak = NULL;
   int dispatch_audio;  /* boolean for deciding which trak to dispatch */
   int64_t pts_diff;
+  xine_event_t uevent;
+  xine_mrl_reference_data_t *data;
+
+  /* check if it's time to send a reference up to the UI */
+  if (this->qt->chosen_reference != -1) {
+
+    uevent.type = XINE_EVENT_MRL_REFERENCE;
+    uevent.stream = this->stream;
+    uevent.data_length = 
+      strlen(this->qt->references[this->qt->chosen_reference].url) +
+      sizeof(xine_mrl_reference_data_t);
+    data = malloc(uevent.data_length);
+    uevent.data = data;
+    strcpy(data->mrl, this->qt->references[this->qt->chosen_reference].url);
+    data->alternative = 0;
+    xine_event_send(this->stream, &uevent);
+
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
 
   if (this->qt->video_trak != -1) {
     video_trak = &this->qt->traks[this->qt->video_trak];
   }
   if (this->qt->audio_trak != -1) {
     audio_trak = &this->qt->traks[this->qt->audio_trak];
+  }
+
+  if (!audio_trak && !video_trak) {
+    /* something is really wrong if this case is reached */
+    this->status = DEMUX_FINISHED;
+    return this->status;
   }
 
   /* check if it is time to seek */
@@ -1775,13 +1965,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
    * between the current frames from the audio and video traks is too
    * wide, make an exception. This exception deals with non-interleaved
    * Quicktime files. */
-  if (!audio_trak && !video_trak) {
-
-    /* something is really wrong if this case is reached */
-    this->status = DEMUX_FINISHED;
-    return this->status;
-
-  } else if (!audio_trak) {
+  if (!audio_trak) {
 
     /* only video is present */
     dispatch_audio = 0;
@@ -2206,7 +2390,7 @@ static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
   int left, middle, right;
   int found;
 
-  /* perform a binary search on the sample table, testing the offset
+  /* perform a binary search on the trak, testing the offset
    * boundaries first; offset request has precedent over time request */
   if (start_pos) {
     if (start_pos <= trak->frames[0].offset)
@@ -2362,6 +2546,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_qt_t     *this;
+  xine_cfg_entry_t entry;
 
   if ((input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
     return NULL;
@@ -2370,6 +2555,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this         = xine_xmalloc (sizeof (demux_qt_t));
   this->stream = stream;
   this->input  = input;
+
+  /* fetch bandwidth config */
+  this->bandwidth = 0x7FFFFFFFFFFFFFFF;  /* assume infinite bandwidth */
+  if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth",
+                                &entry)) {
+    if ((entry.num_value >= 0) && (entry.num_value <= 11))
+      this->bandwidth = bandwidths[entry.num_value];
+  }
 
   this->demux_plugin.send_headers      = demux_qt_send_headers;
   this->demux_plugin.send_chunk        = demux_qt_send_chunk;
@@ -2397,7 +2590,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-    if (open_qt_file(this->qt, this->input) != QT_OK) {
+    if (open_qt_file(this->qt, this->input, this->bandwidth) != QT_OK) {
       free (this);
       return NULL;
     }
@@ -2435,7 +2628,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-    if (open_qt_file(this->qt, this->input) != QT_OK) {
+    if (open_qt_file(this->qt, this->input, this->bandwidth) != QT_OK) {
       free (this);
       return NULL;
     }
