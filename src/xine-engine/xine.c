@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.241 2003/04/13 16:08:26 tmattern Exp $
+ * $Id: xine.c,v 1.242 2003/04/16 22:38:44 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -221,14 +221,6 @@ void xine_stop (xine_stream_t *stream) {
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
 
   xine_stop_internal (stream);
-  
-/* redundant? (xine_stop_internal calls xine_demux_flush_engine)
-  if (stream->audio_out)
-    stream->audio_out->flush(stream->audio_out);
-
-  if (stream->video_out)
-    stream->video_out->flush(stream->video_out);
-*/
   
   if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_STOP))
     xine_stop(stream->slave);
@@ -944,10 +936,18 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   }
 
   stream->demux_action_pending = 1;
+  if (stream->audio_out)
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
+  if (stream->video_out)
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
   pthread_mutex_lock( &stream->demux_lock );
   demux_status = stream->demux_plugin->seek (stream->demux_plugin,
 						   pos, start_time);
   stream->demux_action_pending = 0;
+  if (stream->audio_out)
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
+  if (stream->video_out)
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
   pthread_mutex_lock (&stream->first_frame_lock);
   stream->first_frame_flag = 1;
   pthread_mutex_unlock (&stream->first_frame_lock);
