@@ -21,7 +21,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.4 2003/01/16 22:25:54 miguelfreitas Exp $
+ * $Id: demux_pva.c,v 1.5 2003/01/19 07:10:51 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -154,6 +154,7 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
   unsigned char pts_buf[4];
   off_t current_file_pos;
   int64_t pts;
+  unsigned int flags, header_len;
 
   if (this->input->read(this->input, preamble, PVA_PREAMBLE_SIZE) !=
     PVA_PREAMBLE_SIZE) {
@@ -219,9 +220,67 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
   } else if (preamble[2] == 2) {
 
     /* audio */
+    if(!this->audio_fifo) {
+      this->input->seek(this->input, chunk_size, SEEK_CUR);
+      return this->status;
+    }
 
-    /* skip for the time being */
-    this->input->seek(this->input, chunk_size, SEEK_CUR);
+    /* mostly cribbed from demux_pes.c */
+    /* validate start of packet */
+    if (this->input->read(this->input, preamble, 6) != 6) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+    if (BE_32(&preamble[0]) != 0x000001C0) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+    chunk_size = BE_16(&preamble[4]);
+
+    /* get next 3 header bytes */
+    if (this->input->read(this->input, preamble, 3) != 3) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+
+    flags = preamble[1];
+    header_len = preamble[2];
+
+    chunk_size -= header_len + 3;
+
+    pts = 0;
+
+    if ((flags & 0x80) == 0x80) {
+
+      if (this->input->read(this->input, preamble, 5) != 5) {
+        this->status = DEMUX_FINISHED;
+        return this->status;
+      }
+
+      pts = (preamble[0] & 0x0e) << 29 ;
+      pts |= (BE_16(&preamble[1]) & 0xFFFE) << 14;
+      pts |= (BE_16(&preamble[3]) & 0xFFFE) >> 1;
+
+      header_len -= 5 ;
+
+      check_newpts( this, pts, PTS_AUDIO );
+    }
+
+    /* skip rest of header */
+    this->input->seek (this->input, header_len, SEEK_CUR);
+
+    buf = this->input->read_block (this->input, this->audio_fifo, chunk_size);
+
+    if (buf == NULL) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+    buf->type = BUF_AUDIO_MPEG;
+    buf->pts = pts;
+
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+
+    this->audio_fifo->put (this->audio_fifo, buf);
 
   } else {
 
@@ -246,8 +305,7 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
 
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-/*  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1; */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
@@ -267,9 +325,9 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
 
   buf->size = n;
 
-  buf->pts             = 0;
-  buf->extra_info->input_pos       = this->input->get_current_pos(this->input);
-  buf->type            = BUF_VIDEO_MPEG;
+  buf->pts = 0;
+  buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+  buf->type = BUF_VIDEO_MPEG;
 
   buf->decoder_flags = BUF_FLAG_PREVIEW;
 
@@ -278,17 +336,71 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
   /* send init info to the audio decoder */
   if (this->audio_fifo) {
 
-    /* figure out the situation with PES audio */
+    buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+    buf->content = buf->mem;
+    buf->type = BUF_DEMUX_BLOCK;
 
+    n = this->input->read (this->input, buf->mem, 2048);
+
+    if (n<=0) {
+      buf->free_buffer (buf);
+      this->status = DEMUX_FINISHED;
+      return;
+    }
+
+    buf->size = n;
+
+    buf->pts = 0;
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    buf->type = BUF_AUDIO_MPEG;
+
+    buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+    this->video_fifo->put(this->audio_fifo, buf);
   }
-
 
 }
 
+#define SEEK_BUFFER_SIZE 1024
 static int demux_pva_seek (demux_plugin_t *this_gen,
                                off_t start_pos, int start_time) {
 
   demux_pva_t *this = (demux_pva_t *) this_gen;
+  unsigned char seek_buffer[SEEK_BUFFER_SIZE];
+  int found = 0;
+  int i;
+
+  /* start from the start_pos */
+  this->input->seek(this->input, start_pos, SEEK_SET);
+
+  /* find the start of the next packet by searching for an 'A' followed
+   * by a 'V' followed by either a 1 or a 2 */
+  while (!found) {
+
+    if (this->input->read(this->input, seek_buffer, SEEK_BUFFER_SIZE) !=
+      SEEK_BUFFER_SIZE) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+
+    for (i = 0; i < SEEK_BUFFER_SIZE - 3; i++) {
+      if ((seek_buffer[i + 0] == 'A') &&
+          (seek_buffer[i + 1] == 'V') &&
+          ((seek_buffer[i + 2] == 1) || (seek_buffer[i + 2] == 2))) {
+
+        found = 1;
+        break;
+      }
+    }
+
+    /* rewind 3 bytes since the 3-byte marker may very well be split
+     * across the boundary */
+    if (!found)
+      this->input->seek(this->input, -3, SEEK_CUR);
+  }
+
+  /* reposition file at new offset */
+  this->input->seek(this->input, -(SEEK_BUFFER_SIZE - i), SEEK_CUR);
 
   /* if thread is not running, initialize demuxer */
   if( !this->stream->demux_thread_running ) {
@@ -297,9 +409,8 @@ static int demux_pva_seek (demux_plugin_t *this_gen,
 
     this->status = DEMUX_OK;
 
-    /* start at the very beginning of the file */
-    this->input->seek(this->input, 0, SEEK_SET);
-  }
+  } else 
+    xine_demux_flush_engine(this->stream);
 
   return this->status;
 }
