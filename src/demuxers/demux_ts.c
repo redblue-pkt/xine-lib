@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.111 2004/12/09 07:07:40 mlampard Exp $
+ * $Id: demux_ts.c,v 1.112 2004/12/09 13:16:52 mlampard Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -682,8 +682,8 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
 
       m->content = p;
       m->size = packet_len;
-      m->type = BUF_SPU_DVB + payload_len;
-      
+      m->type = BUF_SPU_DVB;
+      m->buf->decoder_info[2] = payload_len;
       return 1;
     } else if ((p[0] & 0xE0) == 0x20) {
       spu_id = (p[0] & 0x1f);
@@ -787,11 +787,6 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
       
-      if( (m->buf->type & 0xffff0000) == BUF_SPU_DVB ) {
-        m->buf->decoder_info[2] = m->buf->type & 0xffff;
-        m->buf->type = BUF_SPU_DVB;
-      }
-
       if( this->input->get_length (this->input) )
         m->buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
                                          65535 / this->input->get_length (this->input) );
@@ -805,16 +800,18 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       printf ("demux_ts: produced buffer, pts=%lld\n", m->pts);
 #endif
     }
+    /* allocate the buffer here, as pes_header needs a valid buf for dvbsubs */
+     m->buf = m->fifo->buffer_pool_alloc(m->fifo);
 
     if (!demux_ts_parse_pes_header(this->stream->xine, m, ts, len, this->stream)) {
       m->corrupted_pes = 1;
+      m->buf->free_buffer(m->buf);
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	      "demux_ts: PID 0x%.4x: corrupted pes encountered\n", m->pid);
 
     } else {
 
       m->corrupted_pes = 0;
-      m->buf = m->fifo->buffer_pool_alloc(m->fifo);
       memcpy(m->buf->mem, ts+len-m->size, m->size);
       m->buffered_bytes = m->size;
     }
@@ -833,15 +830,6 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       if (this->rate)
         m->buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
                                          * 1000 / (this->rate * 50));
-
-      /* DVBSUB: reset PES packet length field in buffer type, to
-       * indicate that the next buffer is in the middle of a PES
-       * packet. Put the PES packet size into decoder_info[2] */
-      if( (m->buf->type & 0xffff0000) == BUF_SPU_DVB ) {
-        m->buf->decoder_info[2] = m->buf->type & 0xffff;
-        m->buf->type = BUF_SPU_DVB;
-        m->type = BUF_SPU_DVB;
-      }
 
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
