@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2003/04/09 12:29:13 guenter Exp $
+ * $Id: xine_decoder.c,v 1.35 2003/05/26 22:33:39 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -252,7 +252,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 #endif
 
   /* setup rv30 codec (codec sub-type and image dimensions): */
-  if (init_data.format>=0x20200002){
+  if ((init_data.format>=0x20200002) && (buf->type != BUF_VIDEO_RV40)) {
     unsigned long cmsg24[8];
     unsigned long cmsg_data[9];
     int result;
@@ -446,7 +446,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	      this->num_chunks);
 #endif
 
-      if ( (buf->content[0] & 0x20) == 0) {
+      if (((buf->content[0] & 0x20) == 0) || (buf->type != BUF_VIDEO_RV30)) {
 
 	memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
 

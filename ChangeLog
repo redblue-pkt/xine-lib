@@ -19,7 +19,7 @@ xine-lib (1-beta13)
   * dxr3: libavcodec from xine's ffmpeg plugin can now be used for MPEG reencoding
     (so reencoding is now possible without installing any additional libraries)
   * add support seeking in real media files
-  * fix playback of real video 1.0 (rv10)
+  * fix playback of real video versions 1 (rv10) and 4 (rv40)
 	
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
