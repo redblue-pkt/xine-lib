@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "POT-Creation-Date: 2003-03-07 23:47+0100\n"
-"PO-Revision-Date: 2003-02-18 09:04+0100\n"
+"PO-Revision-Date: 2003-03-14 08:53+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -261,9 +261,9 @@ msgid "socket(): %s.\n"
 msgstr "socket(): %s.\n"
 
 #: src/input/input_rtp.c:176
-#, fuzzy, c-format
+#, c-format
 msgid "setsockopt(SO_RCVBUF): %s.\n"
-msgstr "socket(): %s.\n"
+msgstr "setsockopt(SO_RCVBUF): %s.\n"
 
 #: src/input/input_rtp.c:182
 #, c-format
@@ -281,31 +281,30 @@ msgid "unable to resolve '%s'.\n"
 msgstr "Kann '%s' nicht auflösen.\n"
 
 #: src/input/input_rtp.c:233
-#, fuzzy, c-format
+#, c-format
 msgid "unable to bind to '%s'.\n"
 msgstr "Kann keine Verbindung zu '%s' herstellen.\n"
 
 #: src/input/input_rtp.c:262
-#, fuzzy, c-format
+#, c-format
 msgid "recv(): %s.\n"
-msgstr "socket(): %s.\n"
+msgstr "recv(): %s.\n"
 
 #: src/input/input_rtp.c:489
-#, fuzzy
 msgid "RTP: waiting for preview data\n"
-msgstr "metronom: Warte auf Anfang von Video...\n"
+msgstr "RTP: Warte auf Vorschaudaten\n"
 
 #: src/input/input_rtp.c:495
 msgid "RTP: waiting for preview data: timeout\n"
-msgstr ""
+msgstr "RTP: Warte auf Vorschaudaten: Zeitüberschreitung\n"
 
 #: src/input/input_rtp.c:532
 msgid "RTP: stopping reading thread...\n"
-msgstr ""
+msgstr "RTP: Stoppe Lese-Thread...\n"
 
 #: src/input/input_rtp.c:537
 msgid "RTP: reading thread terminated\n"
-msgstr ""
+msgstr "RTP: Lese-Thread terminiert\n"
 
 #: src/input/input_rtp.c:581
 #, c-format
@@ -318,9 +317,8 @@ msgid "input_rtp: can't create new thread (%s)\n"
 msgstr "input_rtp: Kann neuen Thread (%s) nicht erstellen\n"
 
 #: src/input/input_rtp.c:631
-#, fuzzy
 msgid "RTP and UDP input plugin as shipped with xine"
-msgstr "Mit xine ausgeliefertes net Plugin"
+msgstr "Mit xine ausgeliefertes RTP und UDP Plugin"
 
 #: src/input/input_stdin_fifo.c:384
 msgid "stdin streaming input plugin"
@@ -370,9 +368,8 @@ msgid "http: unable to connect to >%s<\n"
 msgstr "http: Kann keine Verbindung zu >%s< aufbauen\n"
 
 #: src/input/input_http.c:451
-#, fuzzy
 msgid "input_http: timeout\n"
-msgstr "input_http: Lesefehler\n"
+msgstr "input_http: Zeitüberschreitung\n"
 
 #: src/input/input_http.c:456
 #, c-format
@@ -475,7 +472,7 @@ msgstr "Schattenpuffer zur Synchronisation mit Strahlenrücklauf"
 
 #: src/video_out/video_out_xv.c:1357
 msgid "workaround for some (buggy) XVideo drivers"
-msgstr ""
+msgstr "Workaraound für einige (fehlerhafte) XVideo-Treiber"
 
 #: src/video_out/video_out_xv.c:1362
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
@@ -491,7 +488,6 @@ msgid "framebuffer device"
 msgstr "Framebuffer Gerät"
 
 #: src/video_out/video_out_fb.c:1002
-#, fuzzy
 msgid "Xine video output plugin using the Linux frame buffer device"
 msgstr "xine Videoausgabe benutzt Linux Framebuffer"
 
@@ -512,14 +508,12 @@ msgid "xine video output plugin using the DirectFB library."
 msgstr "xine Videoausgabe benutzt DirectFB-Bibliothek"
 
 #: src/video_out/video_out_vidix.c:1081
-#, fuzzy
 msgid "xine video output plugin using libvidix for x11"
-msgstr "xine Videoausgabe benutzt libvidix"
+msgstr "xine Videoausgabe benutzt libvidix für X11"
 
 #: src/video_out/video_out_vidix.c:1154
-#, fuzzy
 msgid "xine video output plugin using libvidix for linux frame buffer"
-msgstr "xine Videoausgabe benutzt Linux Framebuffer"
+msgstr "xine Videoausgabe benutzt libvidix für Linux Framebuffer"
 
 #: src/xine-engine/tvmode.c:302
 msgid "NVidia TV-Out support."
@@ -561,9 +555,9 @@ msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: Demultiplexer-Plugins %s startete nicht\n"
 
 #: src/xine-engine/xine.c:583
-#, fuzzy, c-format
+#, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
-msgstr "xine: Demultiplexer-Plugins %s startete nicht\n"
+msgstr "xine: Letztes Demultiplexer-Plugins %s startete nicht\n"
 
 #: src/xine-engine/xine.c:794
 #, c-format
@@ -592,13 +586,15 @@ msgstr "Plugin"
 
 #: src/xine-engine/audio_out.c:1525
 msgid "choose method to sync audio and video"
-msgstr ""
+msgstr "Methode für Audio/Videosynchronisation wählen"
 
 #: src/xine-engine/audio_out.c:1526
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
+"'resample' kann besser sein, falls eine DXR3/H+ Karte verwendet wird und "
+"(analoges) Audio über die Soundkarte wiedergegeben wird"
 
 #: src/xine-engine/audio_out.c:1532
 msgid "adjust whether resampling is done or not"
@@ -732,6 +728,7 @@ msgstr ""
 #: src/dxr3/video_out_dxr3.c:394
 msgid "Crops the overlay area from top and bottom to avoid green lines"
 msgstr ""
+"Beschneidet den Overlaybereich oben und unten um grüne Linien zu vermeiden"
 
 #: src/dxr3/video_out_dxr3.c:407
 msgid "dxr3 preferred tv mode"
