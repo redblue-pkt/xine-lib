@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.16 2001/07/27 15:50:04 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.17 2001/07/27 22:00:27 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,7 +56,7 @@ static uint32_t xine_debug;
 #define RDVD    "/vol/dev/aliases/cdrom0"
 #define DVD     RDVD
 #else
-#if defined(CONFIG_DEVFS_FS) && defined(CONFIG_DEVFS_MOUNT)
+#if defined(CONFIG_DEVFS_FS)
 #define DVD     "/dev/cdroms/dvd"
 #define RDVD    "/dev/cdroms/rdvd"
 #else

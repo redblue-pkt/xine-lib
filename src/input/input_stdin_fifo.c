@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.9 2001/07/27 15:50:04 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.10 2001/07/27 22:00:27 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -64,7 +64,7 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
 
   if(!strncasecmp(mrl, "stdin:", 6) 
       || !strncmp(mrl, "-", 1)) {
-#if defined(CONFIG_DEVFS_FS) && defined (CONFIG_DEVFS_MOUNT)
+#if defined(CONFIG_DEVFS_FS)
     filename = "/dev/vc/stdin";
 #else
     filename = "/dev/stdin";
