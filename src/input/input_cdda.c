@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.9 2003/01/30 23:28:11 f1rmb Exp $
+ * $Id: input_cdda.c,v 1.10 2003/02/26 21:02:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1361,7 +1361,8 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->input_class.open_plugin        = open_plugin;
   this->input_class.get_identifier     = cdda_class_get_identifier;
   this->input_class.get_description    = cdda_class_get_description;
-  this->input_class.get_dir            = cdda_class_get_dir;
+  /* this->input_class.get_dir            = cdda_class_get_dir; */
+  this->input_class.get_dir            = NULL;
   this->input_class.get_autoplay_list  = cdda_class_get_autoplay_list;
   this->input_class.dispose            = cdda_class_dispose;
   this->input_class.eject_media        = NULL;
