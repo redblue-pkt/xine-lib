@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.12 2001/08/29 00:51:58 guenter Exp $
+ * $Id: audio_out.h,v 1.13 2001/09/06 13:27:47 jkeil Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -126,7 +126,7 @@ typedef struct ao_instance_s ao_instance_t;
 struct ao_instance_s {
   uint32_t (*get_capabilities) (ao_instance_t *this); /* for constants see below */
 
-  /* open display driver for video output */
+  /* open audio driver for audio output */
   int (*open) (ao_instance_t *this,
 	       uint32_t bits, uint32_t rate, int mode);
 
