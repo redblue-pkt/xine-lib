@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -30,6 +30,8 @@ typedef struct nbc_s nbc_t;
 nbc_t *nbc_init (xine_stream_t *xine);
 
 void nbc_check_buffers (nbc_t *this);
+
+void nbc_end_of_stream (nbc_t *this);
 
 void nbc_close (nbc_t *this);
 
