@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.74 2002/01/25 00:35:46 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.75 2002/02/01 13:01:57 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -970,8 +970,9 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 	
 	while(*m == ' ' || *m == '\t') m++;
 	
-	if((!strncmp(MRL, m, strlen(m))) 
-	   || ((!strncmp(MRL, m, strlen(m))) && (!strncmp((media + 3), "mpeg2", 5)))) {
+	if(((!strncmp(MRL, m, strlen(m))) && ((strncmp((media + 3), "mpeg2", 5)) && (strncmp((media + 3), "mpeg1", 5))))
+	   || (((!strncmp(MRL, m, strlen(m))) && (!strncmp((media + 3), "mpeg2", 5))) &&
+	       ((!strncmp(MRL, m, strlen(m))) && (strncmp((media + 3), "mpeg1", 5))))) {
 	  
 	  this->blocksize = 2048;
 	  demux_mpeg_block_accept_input(this, input);
