@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.18 2001/09/04 16:19:27 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.19 2001/09/05 16:02:29 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -54,9 +54,25 @@ typedef struct {
   int                  status;
 
   int                  send_end_buffers;
+
+  int                  stream_length;
 } demux_mpgaudio_t ;
 
 static uint32_t xine_debug;
+
+int tabsel_123[2][3][16] = {
+   { {0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,},
+     {0,32,48,56, 64, 80, 96,112,128,160,192,224,256,320,384,},
+     {0,32,40,48, 56, 64, 80, 96,112,128,160,192,224,256,320,} },
+
+   { {0,32,48,56,64,80,96,112,128,144,160,176,192,224,256,},
+     {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,},
+     {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,} }
+};
+
+long freqs[9] = { 44100, 48000, 32000,
+                  22050, 24000, 16000 ,
+                  11025 , 12000 , 8000 };
 
 static int mpg123_head_check(unsigned long head) {
   if ((head & 0xffe00000) != 0xffe00000)
@@ -79,9 +95,66 @@ static int mpg123_head_check(unsigned long head) {
   return 1;
 }
 
+static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
+{
+  int lsf, mpeg25;
+  int lay, sampling_frequency, bitrate_index, padding;
+  long framesize = 1;
+  static int bs[4] = {0, 384, 1152, 1152};
+  double tpf, bitrate;
+
+  if( newhead & (1<<20) ) {
+    lsf = (newhead & (1<<19)) ? 0x0 : 0x1;
+    mpeg25 = 0;
+  }
+  else {
+    lsf = 1;
+    mpeg25 = 1;
+  }
+
+  lay = 4-((newhead>>17)&3);
+
+  if(mpeg25) {
+    sampling_frequency = 6 + ((newhead>>10)&0x3);
+  }
+  else {
+    sampling_frequency = ((newhead>>10)&0x3) + (lsf*3);
+  }
+
+  bitrate_index = ((newhead>>12)&0xf);
+  padding   = ((newhead>>9)&0x1);
+
+  switch(lay)
+  {
+    case 1:
+      framesize  = (long) tabsel_123[lsf][0][bitrate_index] * 12000;
+      framesize /= freqs[sampling_frequency];
+      framesize  = ((framesize+padding)<<2)-4;
+      break;
+    case 2:
+      framesize = (long) tabsel_123[lsf][1][bitrate_index] * 144000;
+      framesize /= freqs[sampling_frequency];
+      framesize += padding - 4;
+      break;
+    case 3:
+      framesize  = (long) tabsel_123[lsf][2][bitrate_index] * 144000;
+      framesize /= freqs[sampling_frequency]<<(lsf);
+      framesize = framesize + padding - 4;
+      break;
+  }
+
+  tpf = (double) bs[lay];
+  tpf /= freqs[sampling_frequency] << lsf;
+
+  bitrate = (double) framesize / tpf;
+  printf("mpgaudio: bitrate = %.2lfkbps\n", bitrate/1024.0*8.0 );
+  this->stream_length = (int)(this->input->get_length(this->input) / bitrate);
+}
+
 static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
 
   buf_element_t *buf = NULL;
+  uint32_t head;
   
   if(this->audio_fifo)
     buf = this->input->read_block(this->input, 
@@ -92,8 +165,26 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
     return 0;
   }
 
+  if( this->stream_length == 0 )
+  {
+    int i;
+    for( i = 0; i < buf->size-4; i++ )
+    {
+      head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
+             (buf->mem[i+2] << 8) + buf->mem[i+3];
+
+      if (mpg123_head_check(head))
+      {
+         mpg123_decode_header(this,head);
+         break;
+      }
+    }
+  }
+
   buf->PTS             = 0;
   buf->input_pos       = this->input->get_current_pos(this->input);
+  buf->input_time      = buf->input_pos * this->stream_length /
+                         this->input->get_length(this->input);
   buf->type            = BUF_AUDIO_MPEG;
   buf->decoder_info[0] = 1;
 
@@ -177,6 +268,30 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
+static uint32_t demux_mpgaudio_read_head(input_plugin_t *input)
+{
+  uint8_t buf[4096];
+  uint32_t head=0;
+  int bs = 0;
+
+  if(!input)
+    return 0;
+
+  if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+    input->seek(input, 0, SEEK_SET);
+
+    if (input->get_capabilities (input) & INPUT_CAP_BLOCK)
+      bs = input->get_blocksize(input);
+
+    if(!bs)
+      bs = 4;
+
+    if(input->read(input, buf, bs))
+      head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+  }
+  return head;
+}
+
 static void demux_mpgaudio_start (demux_plugin_t *this_gen,
 				  fifo_buffer_t *video_fifo, 
 				  fifo_buffer_t *audio_fifo,
@@ -190,13 +305,22 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
   this->audio_fifo  = audio_fifo;
   
   this->status = DEMUX_OK;
+  this->stream_length = 0;
   
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+    uint32_t head;
+
+    head = demux_mpgaudio_read_head(this->input);
+
+    if (mpg123_head_check(head))
+       mpg123_decode_header(this,head);
+
+    if (!start_pos && start_time && this->stream_length > 0)
+         start_pos = start_time * this->input->get_length(this->input) /
+                     this->stream_length;
+
     xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",start_pos);
     this->input->seek (this->input, start_pos, SEEK_SET);
-
-    /* FIMXE: implement seeking to start_time */
-
   }
   
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -223,32 +347,17 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
   switch(stage) {
     
   case STAGE_BY_CONTENT: {
-    uint8_t buf[4096];
     uint32_t head;
-    int bs = 0;
     
     if(!input)
       return DEMUX_CANNOT_HANDLE;
 
-    if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
-      input->seek(input, 0, SEEK_SET);
+    head = demux_mpgaudio_read_head(input);
 
-      if (input->get_capabilities (input) & INPUT_CAP_BLOCK) 
-	bs = input->get_blocksize(input);
-      
-      if(!bs) 
-	bs = 4;
-
-      if(input->read(input, buf, bs)) {
-
-	head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
-	  
 	if (mpg123_head_check(head)) {
 	  this->input = input;
 	  return DEMUX_CAN_HANDLE;
 	}
-      }
-    }
     return DEMUX_CANNOT_HANDLE;
   }
   break;
@@ -289,9 +398,14 @@ static void demux_mpgaudio_close (demux_plugin_t *this) {
   /* nothing */
 }
 
-static int demux_mpgaudio_get_stream_length (demux_plugin_t *this) {
-  /* FIXME: implement */
+static int demux_mpgaudio_get_stream_length (demux_plugin_t *this_gen) {
+  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
+  if( this->stream_length > 0 )
+  {
+    return this->stream_length;
+  }
+  else
   return 0;
 }
 

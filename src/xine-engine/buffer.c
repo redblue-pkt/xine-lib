@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.6 2001/08/12 15:12:54 guenter Exp $
+ * $Id: buffer.c,v 1.7 2001/09/05 16:02:29 guenter Exp $
  *
  *
  * contents:
@@ -82,6 +82,8 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   
   buf_element_t *buf;
 
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
+
   pthread_cleanup_push( pool_release_lock, &this->buffer_pool_mutex);
 
   pthread_mutex_lock (&this->buffer_pool_mutex);
@@ -97,6 +99,10 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   pthread_cleanup_pop (0); 
 
   pthread_mutex_unlock (&this->buffer_pool_mutex);
+
+  /* needed because cancellation points defined by POSIX
+     (eg. 'read') would leak allocated buffers */
+  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
 
   return buf;
 }
@@ -191,6 +197,7 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
   }
   */
 
+  /*printf("Free buffers after clear: %d\n", fifo->buffer_pool_num_free);*/
   pthread_mutex_unlock (&fifo->mutex);
 }
 

@@ -372,13 +372,22 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     */
 
     if (picture->throwaway_frame) 
+    {
+      picture->throwaway_frame->displayed (picture->throwaway_frame);
       picture->throwaway_frame->free (picture->throwaway_frame);
+    }
 
     if (picture->forward_reference_frame) 
+    {
+      picture->forward_reference_frame->displayed (picture->forward_reference_frame);
       picture->forward_reference_frame->free (picture->forward_reference_frame);
+    }
 
     if (picture->backward_reference_frame) 
+    {
+      picture->backward_reference_frame->displayed (picture->backward_reference_frame);
       picture->backward_reference_frame->free (picture->backward_reference_frame);
+    }
 
     /* FIXME
     free (mpeg2dec->chunk_buffer);

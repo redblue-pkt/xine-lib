@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.20 2001/09/01 22:47:59 guenter Exp $
+ * $Id: input_vcd.c,v 1.21 2001/09/05 16:02:29 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -517,7 +517,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t nlen) {
   
   vcd_input_plugin_t      *this = (vcd_input_plugin_t *) this_gen;
-  buf_element_t           *buf = fifo->buffer_pool_alloc (fifo);
+  buf_element_t           *buf;
   static struct cdrom_msf  msf ;
   static cdsector_t        data;
   struct cdrom_msf0       *end_msf;
@@ -566,6 +566,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
   }
   while((data.subheader[2]&~0x01)==0x60);
   
+  buf = fifo->buffer_pool_alloc (fifo);
   buf->content = buf->mem;
   memcpy (buf->mem, data.data, VCDSECTORSIZE); /* FIXME */
   return buf;
@@ -575,7 +576,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t nlen) {
   
   vcd_input_plugin_t  *this = (vcd_input_plugin_t *) this_gen;
-  buf_element_t       *buf = fifo->buffer_pool_alloc (fifo);
+  buf_element_t       *buf;
   static cdsector_t    data;
   int                  bsize = 2352;
 
@@ -594,6 +595,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
     this->cur_sector++;
   } while ((data.subheader[2]&~0x01)==0x60);
 
+  buf = fifo->buffer_pool_alloc (fifo);
   buf->content = buf->mem;
   memcpy (buf->mem, data.data, VCDSECTORSIZE);
   return buf;
@@ -603,7 +605,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t nlen) {
   
   vcd_input_plugin_t      *this = (vcd_input_plugin_t *) this_gen;
-  buf_element_t           *buf = fifo->buffer_pool_alloc (fifo);
+  buf_element_t           *buf;
   static cdsector_t        data;
   struct cdrom_msf0       *end_msf;
   long			   lba;
@@ -648,6 +650,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
   }
   while((data.subheader[2]&~0x01)==0x60);
   
+  buf = fifo->buffer_pool_alloc (fifo);
   buf->content = buf->mem;
   memcpy (buf->mem, data.data, VCDSECTORSIZE); /* FIXME */
   return buf;
