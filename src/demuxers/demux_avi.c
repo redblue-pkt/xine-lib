@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.28 2001/08/30 12:46:31 jkeil Exp $
+ * $Id: demux_avi.c,v 1.29 2001/08/31 17:57:54 jkeil Exp $
  *
  * demultiplexer for avi streams
  *
@@ -864,7 +864,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   this->no_audio = 0;
   switch (this->avi->a_fmt) {
   case 0x01:
-    this->avi->audio_type     = BUF_AUDIO_LPCM;
+    this->avi->audio_type     = BUF_AUDIO_LPCM_LE;
     break;
   case 0x2000:
     this->avi->audio_type     = BUF_AUDIO_A52;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.33 2001/08/29 11:14:12 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.34 2001/08/31 17:57:54 jkeil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -312,7 +312,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   
       buf->content   = p+pcm_offset;
       buf->size      = nPacketLen-pcm_offset;
-      buf->type      = BUF_AUDIO_LPCM + nTrack;
+      buf->type      = BUF_AUDIO_LPCM_BE + nTrack;
       buf->PTS       = nPTS;
       buf->DTS       = nDTS ;
       buf->input_pos = this->input->get_current_pos(this->input);
