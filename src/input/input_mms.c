@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.49 2004/04/10 15:45:11 mroi Exp $
+ * $Id: input_mms.c,v 1.50 2004/04/15 22:10:55 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -161,15 +161,15 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   }
   
   switch (origin) {
-  case SEEK_SET:
-    dest = offset;
-    break;
-  case SEEK_CUR:
-    dest = curpos + offset;
-    break;
-  default:
-    printf ("input_mms: unknown origin in seek!\n");
-    return curpos;
+    case SEEK_SET:
+      dest = offset;
+      break;
+    case SEEK_CUR:
+      dest = curpos + offset;
+      break;
+    default:
+      printf ("input_mms: unknown origin in seek!\n");
+      return curpos;
   }
 
   if (curpos > dest) {
@@ -228,7 +228,10 @@ static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t mms_plugin_get_capabilities (input_plugin_t *this_gen) {
-  return INPUT_CAP_PREVIEW;
+  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen; 
+  uint32_t cap = INPUT_CAP_PREVIEW;
+  
+  return cap;
 }
 
 static uint32_t mms_plugin_get_blocksize (input_plugin_t *this_gen) {
@@ -239,9 +242,6 @@ static off_t mms_plugin_get_current_pos (input_plugin_t *this_gen){
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   off_t curpos = 0;
   
-  /*
-  printf ("current pos is %lld\n", this->curpos);
-  */
   switch (this->protocol) {
     case PROTOCOL_MMST:
       curpos = mms_get_current_pos(this->mms);
