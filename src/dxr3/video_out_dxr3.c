@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.6 2001/07/31 17:41:32 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.7 2001/08/02 18:13:19 ehasenle Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -435,6 +435,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
 	this->vo_driver.exit                 = dxr3_exit;
 
+	/* open control device */
+	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
+		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
+		 devname, strerror(errno));
+		return 0;
+	}
+
 	gather_screen_vars(this, visual_gen);
 	
 	/* default values */
@@ -442,13 +449,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->aspectratio = ASPECT_FULL;
 	dxr3_set_property((vo_driver_t*) this,
 	 VO_PROP_ASPECT_RATIO, this->aspectratio);
-
-	/* open control device */
-	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
-		 devname, strerror(errno));
-		return 0;
-	}
 
 	dxr3_read_config(this, config);
 	
