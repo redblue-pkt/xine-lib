@@ -4,14 +4,14 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_ac3.la
+lib_LTLIBRARIES = xineplug_decode_a52.la
 
-xineplug_decode_ac3_la_SOURCES =  bitstream.c bit_allocate.c \
+xineplug_decode_a52_la_SOURCES =  bitstream.c bit_allocate.c \
 	parse.c downmix.c imdct.c imdct_mlib.c \
 	xine_decoder.c
-xineplug_decode_ac3_la_LDFLAGS = -avoid-version -module
+xineplug_decode_a52_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = ac3.h ac3_internal.h \
+noinst_HEADERS = a52.h a52_internal.h \
 	bitstream.h tables.h
 
 ##

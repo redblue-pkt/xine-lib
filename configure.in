@@ -617,7 +617,7 @@ src/video_out/Makefile
 src/demuxers/Makefile
 src/dxr3/Makefile
 src/libmpeg2/Makefile
-src/libac3/Makefile
+src/liba52/Makefile
 src/libffmpeg/Makefile
 src/libffmpeg/libavcodec/Makefile
 src/liblpcm/Makefile

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.11 2001/08/24 01:05:31 guenter Exp $
+ * $Id: audio_out.h,v 1.12 2001/08/29 00:51:58 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -196,7 +196,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom, confi
  */
 
 #define AO_CAP_NOCAP            0x00000000 /* driver has no capabilities    */
-#define AO_CAP_MODE_AC3         0x00000001 /* driver supports AC3 output    */
+#define AO_CAP_MODE_A52         0x00000001 /* driver supports A/52 output   */
 #define AO_CAP_MODE_AC5         0x00000002 /* driver supports AC5 output    */
 /* 1 sample ==  2 bytes (C)               */
 #define AO_CAP_MODE_MONO        0x00000004 /* driver supports mono output   */

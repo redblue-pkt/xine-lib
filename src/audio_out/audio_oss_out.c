@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.34 2001/08/25 08:11:41 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.35 2001/08/29 00:51:57 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -79,7 +79,7 @@
 #endif
 
 #ifndef AFMT_AC3
-#       define AFMT_AC3         0x00000400      /* Dolby Digital AC3 */
+#       define AFMT_AC3         0x00000400  
 #endif
 
 #define AO_OUT_OSS_IFACE_VERSION 2
@@ -167,9 +167,9 @@ static int ao_oss_open(ao_driver_t *this_gen,
 
   /*
    * configure audio device
-   * In AC3 mode, skip all other SNDCTL commands
+   * In A52 mode, skip all other SNDCTL commands
    */
-  if(!(mode & AO_CAP_MODE_AC3)) {
+  if(!(mode & AO_CAP_MODE_A52)) {
     tmp = (mode & AO_CAP_MODE_STEREO) ? 1 : 0;
     ioctl(this->audio_fd,SNDCTL_DSP_STEREO,&tmp);
 
@@ -225,7 +225,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
     ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
     this->num_channels = tmp;
     break;
-  case AO_CAP_MODE_AC3:
+  case AO_CAP_MODE_A52:
     tmp = AFMT_AC3;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
         printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
@@ -233,7 +233,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
     }
     this->num_channels = 2; /* FIXME: is this correct ? */
     this->output_sample_rate = this->input_sample_rate;
-    printf ("audio_oss_out : AO_CAP_MODE_AC3\n");
+    printf ("audio_oss_out : AO_CAP_MODE_A52\n");
     break;
   }
 
@@ -548,7 +548,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
   if (caps & AFMT_AC3) {
     if (config->lookup_int (config, "ac3_pass_through", 0)) {
-      this->capabilities |= AO_CAP_MODE_AC3;
+      this->capabilities |= AO_CAP_MODE_A52;
       printf ("ac3-pass-through ");
     } else 
       printf ("(ac3-pass-through not enabled in .xinerc)");

@@ -1,25 +1,22 @@
-/* 
- *  imdct.c
+/*
+ * imdct.c
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
- *	Copyright (C) Aaron Holtzman - May 1999
+ * This file is part of a52dec, a free ATSC A-52 stream decoder.
  *
- *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
- *	
- *  ac3dec is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  ac3dec is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *   
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * a52dec is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
+ * a52dec is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #include "config.h"
@@ -27,11 +24,11 @@
 #include <inttypes.h>
 #include <math.h>
 
-#include "ac3.h"
-#include "ac3_internal.h"
+#include "a52.h"
+#include "a52_internal.h"
 
-void (* imdct_256) (sample_t data[], sample_t delay[]);
-void (* imdct_512) (sample_t data[], sample_t delay[]);
+void (* imdct_256) (sample_t data[], sample_t delay[], sample_t bias);
+void (* imdct_512) (sample_t data[], sample_t delay[], sample_t bias);
 
 typedef struct complex_s {
     sample_t real;
@@ -144,7 +141,7 @@ static inline complex_t cmplx_mult(complex_t a, complex_t b)
 }
 
 void
-imdct_do_512(sample_t data[],sample_t delay[])
+imdct_do_512(sample_t data[],sample_t delay[], sample_t bias)
 {
     int i,k;
     int p,q;
@@ -161,18 +158,16 @@ imdct_do_512(sample_t data[],sample_t delay[])
     sample_t *delay_ptr;
     sample_t *window_ptr;
 	
-    //
-    // 512 IMDCT with source and dest data in 'data'
-    //
+    /* 512 IMDCT with source and dest data in 'data' */
 	
-    // Pre IFFT complex multiply plus IFFT cmplx conjugate 
+    /* Pre IFFT complex multiply plus IFFT cmplx conjugate */
     for( i=0; i < 128; i++) {
 	/* z[i] = (X[256-2*i-1] + j * X[2*i]) * (xcos1[i] + j * xsin1[i]) ; */ 
 	buf[i].real =         (data[256-2*i-1] * xcos1[i])  -  (data[2*i]       * xsin1[i]);
 	buf[i].imag = -1.0 * ((data[2*i]       * xcos1[i])  +  (data[256-2*i-1] * xsin1[i]));
     }
 
-    //Bit reversed shuffling
+    /* Bit reversed shuffling */
     for(i=0; i<128; i++) {
 	k = bit_reverse_512[i];
 	if (k < i)
@@ -219,13 +214,13 @@ imdct_do_512(sample_t data[],sample_t delay[])
 
     /* Window and convert to real valued signal */
     for(i=0; i< 64; i++) { 
-	*data_ptr++   = 2.0f * (-buf[64+i].imag   * *window_ptr++ + *delay_ptr++); 
-	*data_ptr++   = 2.0f * ( buf[64-i-1].real * *window_ptr++ + *delay_ptr++); 
+	*data_ptr++   = -buf[64+i].imag   * *window_ptr++ + *delay_ptr++ + bias; 
+	*data_ptr++   =  buf[64-i-1].real * *window_ptr++ + *delay_ptr++ + bias; 
     }
 
     for(i=0; i< 64; i++) { 
-	*data_ptr++  = 2.0f * (-buf[i].real       * *window_ptr++ + *delay_ptr++); 
-	*data_ptr++  = 2.0f * ( buf[128-i-1].imag * *window_ptr++ + *delay_ptr++); 
+	*data_ptr++  = -buf[i].real       * *window_ptr++ + *delay_ptr++ + bias; 
+	*data_ptr++  =  buf[128-i-1].imag * *window_ptr++ + *delay_ptr++ + bias; 
     }
 
     /* The trailing edge of the window goes into the delay line */
@@ -243,7 +238,7 @@ imdct_do_512(sample_t data[],sample_t delay[])
 }
 
 void
-imdct_do_256(sample_t data[],sample_t delay[])
+imdct_do_256(sample_t data[],sample_t delay[],sample_t bias)
 {
     int i,k;
     int p,q;
@@ -281,7 +276,7 @@ imdct_do_256(sample_t data[],sample_t delay[])
 	buf_2[k].imag = -1.0f * ( data[q + 1] * xcos2[k] + data[p + 1] * xsin2[k]); 
     }
 
-    //IFFT Bit reversed shuffling
+    /* IFFT Bit reversed shuffling */
     for(i=0; i<64; i++) { 
 	k = bit_reverse_256[i];
 	if (k < i) {
@@ -295,7 +290,7 @@ imdct_do_256(sample_t data[],sample_t delay[])
 	two_m = (1 << m);
 	two_m_plus_one = (1 << (m+1));
 
-	//FIXME
+	/* FIXME */
 	if(m)
 	    two_m = (1 << m);
 	else
@@ -305,7 +300,7 @@ imdct_do_256(sample_t data[],sample_t delay[])
 	    for(i = 0; i < 64; i += two_m_plus_one) {
 		p = k + i;
 		q = p + two_m;
-		//Do block 1
+		/* Do block 1 */
 		tmp_a_r = buf_1[p].real;
 		tmp_a_i = buf_1[p].imag;
 		tmp_b_r = buf_1[q].real * w[m][k].real - buf_1[q].imag * w[m][k].imag;
@@ -315,7 +310,7 @@ imdct_do_256(sample_t data[],sample_t delay[])
 		buf_1[q].real = tmp_a_r - tmp_b_r;
 		buf_1[q].imag =  tmp_a_i - tmp_b_i;
 
-		//Do block 2
+		/* Do block 2 */
 		tmp_a_r = buf_2[p].real;
 		tmp_a_i = buf_2[p].imag;
 		tmp_b_r = buf_2[q].real * w[m][k].real - buf_2[q].imag * w[m][k].imag;
@@ -348,13 +343,13 @@ imdct_do_256(sample_t data[],sample_t delay[])
 
     /* Window and convert to real valued signal */
     for(i=0; i< 64; i++) { 
-	*data_ptr++  = 2.0f * (-buf_1[i].imag      * *window_ptr++ + *delay_ptr++);
-	*data_ptr++  = 2.0f * ( buf_1[64-i-1].real * *window_ptr++ + *delay_ptr++);
+	*data_ptr++  = -buf_1[i].imag      * *window_ptr++ + *delay_ptr++ + bias;
+	*data_ptr++  =  buf_1[64-i-1].real * *window_ptr++ + *delay_ptr++ + bias;
     }
 
     for(i=0; i< 64; i++) {
-	*data_ptr++  = 2.0f * (-buf_1[i].real      * *window_ptr++ + *delay_ptr++);
-	*data_ptr++  = 2.0f * ( buf_1[64-i-1].imag * *window_ptr++ + *delay_ptr++);
+	*data_ptr++  = -buf_1[i].real      * *window_ptr++ + *delay_ptr++ + bias;
+	*data_ptr++  =  buf_1[64-i-1].imag * *window_ptr++ + *delay_ptr++ + bias;
     }
 	
     delay_ptr = delay;
@@ -370,34 +365,37 @@ imdct_do_256(sample_t data[],sample_t delay[])
     }
 }
 
-void imdct_init (void)
+void imdct_init (uint32_t mm_accel)
 {
-#ifdef LIBAC3_MLIB
-    imdct_512 = imdct_do_512_mlib;
-    imdct_256 = imdct_do_256_mlib;
-#else
-    int i, j, k;
-
-    /* Twiddle factors to turn IFFT into IMDCT */
-    for (i = 0; i < 128; i++) {
-	xcos1[i] = -cos ((M_PI / 2048) * (8 * i + 1));
-	xsin1[i] = -sin ((M_PI / 2048) * (8 * i + 1));
-    }
-
-    /* More twiddle factors to turn IFFT into IMDCT */
-    for (i = 0; i < 64; i++) {
-	xcos2[i] = -cos ((M_PI / 1024) * (8 * i + 1));
-	xsin2[i] = -sin ((M_PI / 1024) * (8 * i + 1));
-    }
-
-    for (i = 0; i < 7; i++) {
-	j = 1 << i;
-	for (k = 0; k < j; k++) {
-	    w[i][k].real = cos (-M_PI * k / j);
-	    w[i][k].imag = sin (-M_PI * k / j);
-	}
-    }
-    imdct_512 = imdct_do_512;
-    imdct_256 = imdct_do_256;
+#ifdef LIBA52_MLIB
+    if (mm_accel & MM_ACCEL_MLIB) {
+	imdct_512 = imdct_do_512_mlib;
+	imdct_256 = imdct_do_256_mlib;
+    } else
 #endif
+    {
+	int i, j, k;
+
+	/* Twiddle factors to turn IFFT into IMDCT */
+	for (i = 0; i < 128; i++) {
+	    xcos1[i] = -cos ((M_PI / 2048) * (8 * i + 1));
+	    xsin1[i] = -sin ((M_PI / 2048) * (8 * i + 1));
+	}
+
+	/* More twiddle factors to turn IFFT into IMDCT */
+	for (i = 0; i < 64; i++) {
+	    xcos2[i] = -cos ((M_PI / 1024) * (8 * i + 1));
+	    xsin2[i] = -sin ((M_PI / 1024) * (8 * i + 1));
+	}
+
+	for (i = 0; i < 7; i++) {
+	    j = 1 << i;
+	    for (k = 0; k < j; k++) {
+		w[i][k].real = cos (-M_PI * k / j);
+		w[i][k].imag = sin (-M_PI * k / j);
+	    }
+	}
+	imdct_512 = imdct_do_512;
+	imdct_256 = imdct_do_256;
+    }
 }

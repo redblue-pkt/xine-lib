@@ -6,9 +6,11 @@
 option                  meaning
 --------------------------------------------------------------------
 
-ac3_level               0..~200% : ac3 volume control
+a52_dynrng              1/0: enable a/52 dynamic range compensation
 
-ac3_pass_through        1/0 : enable ac3 output via spdif port
+a52_level               0..~200% : a/52 volume control
+
+a52_pass_through        1/0 : enable a/52 output via spdif port
 
 audio_driver_name       audio driver to use, same as command line 
                         option -A

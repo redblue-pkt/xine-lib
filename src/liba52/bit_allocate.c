@@ -1,32 +1,30 @@
-/* 
- *  bit_allocate.c
+/*
+ * bit_allocate.c
+ * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
- *	Copyright (C) Aaron Holtzman - May 1999
+ * This file is part of a52dec, a free ATSC A-52 stream decoder.
  *
- *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
- *	
- *  ac3dec is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  ac3dec is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *   
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * a52dec is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
+ * a52dec is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #include "config.h"
 
 #include <inttypes.h>
 
-#include "ac3.h"
-#include "ac3_internal.h"
+#include "a52.h"
+#include "a52_internal.h"
 
 static int hthtab[3][50] = {
     {0x730, 0x730, 0x7c0, 0x800, 0x820, 0x840, 0x850, 0x850, 0x860, 0x860,
@@ -52,7 +50,7 @@ static int8_t baptab[305] = {
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,	// 93 padding entries
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,	/* 93 padding elems */
 
     16, 16, 16, 16, 16, 16, 16, 16, 16, 14, 14, 14, 14, 14, 14, 14,
     14, 12, 12, 12, 12, 11, 11, 11, 11, 10, 10, 10, 10,  9,  9,  9,
@@ -68,7 +66,7 @@ static int8_t baptab[305] = {
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-     0,  0,  0,  0					// 148 padding entries
+     0,  0,  0,  0					/* 148 padding elems */
 };
 
 static int bndtab[30] = {21, 22,  23,  24,  25,  26,  27,  28,  31,  34,
@@ -121,7 +119,7 @@ do {						\
     mask -= floor;				\
 } while (0)
 
-void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
+void bit_allocate (a52_state_t * state, a52_ba_t * ba, int bndstart,
 		   int start, int end, int fastleak, int slowleak,
 		   uint8_t * exp, int8_t * bap)
 {
@@ -155,7 +153,7 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 
     i = bndstart;
     j = start;
-    if (start == 0) {	// not the coupling channel
+    if (start == 0) {	/* not the coupling channel */
 	int lowcomp;
 
 	lowcomp = 0;
@@ -170,8 +168,7 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	    psd = 128 * exp[i];
 	    mask = psd + fgain + lowcomp;
 	    COMPUTE_MASK ();
-	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
-	    i++;
+	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
 	} while ((i < 3) || ((i < 7) && (exp[i] > exp[i-1])));
 	fastleak = psd + fgain;
 	slowleak = psd + sgain;
@@ -188,11 +185,10 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	    mask = ((fastleak + lowcomp < slowleak) ?
 		    fastleak + lowcomp : slowleak);
 	    COMPUTE_MASK ();
-	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
-	    i++;
+	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
 	}
 
-	if (end == 7)	// lfe channel
+	if (end == 7)	/* lfe channel */
 	    return;
 
 	do {
@@ -205,19 +201,17 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	    mask = ((fastleak + lowcomp < slowleak) ?
 		    fastleak + lowcomp : slowleak);
 	    COMPUTE_MASK ();
-	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
-	    i++;
+	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
 	} while (i < 20);
 
-	while (lowcomp > 128) {		// two iterations maximum
+	while (lowcomp > 128) {		/* two iterations maximum */
 	    lowcomp -= 128;
 	    psd = 128 * exp[i];
 	    UPDATE_LEAK ();
 	    mask = ((fastleak + lowcomp < slowleak) ?
 		    fastleak + lowcomp : slowleak);
 	    COMPUTE_MASK ();
-	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
-	    i++;
+	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
 	}
 	j = i;
     }
@@ -245,17 +239,16 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 		break;
 	    }
 	}
-	// minpsd = -289
+	/* minpsd = -289 */
 	UPDATE_LEAK ();
 	mask = (fastleak < slowleak) ? fastleak : slowleak;
 	COMPUTE_MASK ();
 	i++;
 	j = startband;
 	do {
-	    // max(mask+4*exp)=147=-(minpsd+fgain-deltba-snroffset)>>5+4*exp
-	    // min(mask+4*exp)=-156=-(sgain-deltba-snroffset)>>5
-	    bap[j] = (baptab+156)[mask + 4 * exp[j]];
-	    j++;
+	    /* max(mask+4*exp)=147=-(minpsd+fgain-deltba-snroffset)>>5+4*exp */
+	    /* min(mask+4*exp)=-156=-(sgain-deltba-snroffset)>>5 */
+	    bap[j++] = (baptab+156)[mask + 4 * exp[j]];
 	} while (j < endband);
     } while (j < end);
 }

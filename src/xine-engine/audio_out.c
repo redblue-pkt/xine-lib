@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.8 2001/08/24 01:05:31 guenter Exp $
+ * $Id: audio_out.c,v 1.9 2001/08/29 00:51:58 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -176,7 +176,7 @@ static void ao_fill_gap (ao_instance_t *this, uint32_t pts_len) {
 
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
-  if (this->mode == AO_CAP_MODE_AC3) return; /* FIXME */
+  if (this->mode == AO_CAP_MODE_A52) return; /* FIXME */
 
   printf ("audio_out: inserting %d 0-frames to fill a gap of %d pts\n",num_frames, pts_len);
 
@@ -264,8 +264,8 @@ static int ao_write(ao_instance_t *this,
   else
     delay = 0;
 
-  /* External AC3 decoder delay correction */
-  if (this->mode==AO_CAP_MODE_AC3) 
+  /* External A52 decoder delay correction */
+  if (this->mode==AO_CAP_MODE_A52) 
     delay+=10; 
 
   buffer_vpts += delay * 1024 / this->frames_per_kpts;
@@ -298,13 +298,13 @@ static int ao_write(ao_instance_t *this,
   /*
    * resample and output frames
    */
-  if (this->mode == AO_CAP_MODE_AC3) 
+  if (this->mode == AO_CAP_MODE_A52) 
     bDropPackage=0;
 
   if (!bDropPackage) {
     int num_output_frames = (double) num_frames * this->frame_rate_factor;
 
-    if ((!this->do_resample) && (this->mode != AO_CAP_MODE_AC3)) {
+    if ((!this->do_resample) && (this->mode != AO_CAP_MODE_A52)) {
       xprintf (VERBOSE|AUDIO, "audio_out: writing without resampling\n");
       this->driver->write (this->driver, output_frames,
 			   num_output_frames );
@@ -334,7 +334,7 @@ static int ao_write(ao_instance_t *this,
                                    this->frame_buffer, num_output_frames);
       this->driver->write(this->driver, this->frame_buffer, num_output_frames);
       break;
-    case AO_CAP_MODE_AC3:
+    case AO_CAP_MODE_A52:
       num_output_frames = (num_frames+8)/4;
       this->frame_buffer[0] = 0xf872;  /* spdif syncword */
       this->frame_buffer[1] = 0x4e1f;  /* .............  */
