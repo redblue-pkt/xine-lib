@@ -20,7 +20,7 @@
 ** nsf.c
 **
 ** NSF loading/saving related functions
-** $Id: nsf.c,v 1.1 2003/01/08 07:04:35 tmmm Exp $
+** $Id: nsf.c,v 1.2 2003/01/09 18:36:40 jkeil Exp $
 */
 
 #include <stdio.h>
@@ -486,7 +486,7 @@ nsf_t *nsf_load(char *filename, void *source, int length)
          free(new_fn);
    }
    else
-      memcpy(temp_nsf->data, (uint8 *) source + NSF_HEADER_SIZE, length);
+      memcpy(temp_nsf->data, (uint8 *) source + NSF_HEADER_SIZE, length - NSF_HEADER_SIZE);
 
    /* Set up some variables */
    nsf_setup(temp_nsf);
@@ -579,6 +579,9 @@ void nsf_setfilter(nsf_t *nsf, int filter_type)
 
 /*
 ** $Log: nsf.c,v $
+** Revision 1.2  2003/01/09 18:36:40  jkeil
+** memcpy copies too much, corrupts malloc heap
+**
 ** Revision 1.1  2003/01/08 07:04:35  tmmm
 ** initial import of Nosefart sources
 **
