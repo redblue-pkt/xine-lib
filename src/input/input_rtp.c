@@ -533,7 +533,7 @@ static char* rtp_plugin_get_mrl (input_plugin_t *this_gen) {
  */
 static int rtp_plugin_get_optional_data (input_plugin_t *this_gen, 
 					 void *data, int data_type) {
-  rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
+  /* rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen; */
   
   /* TODO: this input plugin should support preview */
   return INPUT_OPTIONAL_UNSUPPORTED;
