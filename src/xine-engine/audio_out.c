@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.136 2003/07/20 19:28:14 f1rmb Exp $
+ * $Id: audio_out.c,v 1.137 2003/07/26 00:27:20 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1063,8 +1063,9 @@ static void *ao_loop (void *this_gen) {
        *        We should get the card into a closed state here, that involves closing
        *        the PCM as well as the MIXER.
        *        Maybe we should pause the stream until the USB device is plugged in again.
+       *        Return values 0 happen even if usb not unplugged, so needs further investigation.
        */
-      XINE_ASSERT(result > 0, "write to sound card failed. Was a USB device unplugged?");
+      XINE_ASSERT(result >= 0, "write to sound card failed. Was a USB device unplugged?");
 
       lprintf ("loop: next buf from fifo\n");
       fifo_append (this->free_fifo, in_buf);
