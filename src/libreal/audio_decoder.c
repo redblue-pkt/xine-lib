@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.24 2003/07/11 18:42:40 hadess Exp $
+ * $Id: audio_decoder.c,v 1.25 2003/07/18 23:50:25 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -37,6 +37,7 @@
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
+#include "xineutils.h"
 
 /*
 #define LOG
@@ -99,38 +100,6 @@ typedef struct {
     void  *extras;
 } ra_init_t;
 
-#ifdef LOG
-static void hexdump (char *buf, int length) {
-
-  int i;
-
-  printf ("libareal: ascii contents>");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    if ((c >= 32) && (c <= 128))
-      printf ("%c", c);
-    else
-      printf (".");
-  }
-  printf ("\n");
-
-  printf ("libareal: complete hexdump of package follows:\nlibareal 0x0000:  ");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15)
-      printf ("\nlibareal 0x%04x: ", i+1);
-
-    if ((i % 2) == 1)
-      printf (" ");
-
-  }
-  printf ("\n");
-}
-#endif
 
 void *__builtin_new(unsigned long size) {
   return malloc(size);
@@ -220,7 +189,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
 #ifdef LOG
   printf ("libareal: header buffer detected, header version %d\n", version);
-  hexdump (buf->content, buf->size);
+  xine_hexdump (buf->content, buf->size);
 #endif
     
   flavor           = BE_16 (buf->content+18);
@@ -336,9 +305,9 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
 #ifdef LOG
     printf ("libareal: init_data:\n");
-    hexdump (&init_data, sizeof (ra_init_t));
+    xine_hexdump ((char *) &init_data, sizeof (ra_init_t));
     printf ("libareal: extras :\n");
-    hexdump (init_data.extras, data_len);
+    xine_hexdump (init_data.extras, data_len);
 #endif
      
     result = this->raInitDecoder (this->context, &init_data);
@@ -352,7 +321,9 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   if (this->raSetPwd){
     /* used by 'SIPR' */
     this->raSetPwd (this->context, "Ardubancel Quazanga"); /* set password... lol. */
+#ifdef LOG    
     printf ("libareal: password set\n");
+#endif
   }
 
   result = this->raSetFlavor (this->context, flavor);
@@ -556,7 +527,7 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 	}
 
 #ifdef LOG
-	hexdump (this->frame_reordered, buf->size);
+	xine_hexdump (this->frame_reordered, buf->size);
 #endif
   
 	n = 0;
