@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.40 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_mms.c,v 1.41 2003/10/22 12:04:42 hadess Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -303,7 +303,7 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-void bandwidth_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
+static void bandwidth_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   mms_input_class_t *class = (mms_input_class_t*) this_gen;
 
 #ifdef LOG
