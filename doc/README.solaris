@@ -62,3 +62,17 @@ Known Problems
     with the following contents:
 
 	PaletteFile     /opt/sfw/etc/im_palette.pal
+
+
+* On Solaris x86, you cannot reliably play DVDs using a capacity >4GB:
+
+  The sd(7D) driver on solaris x86 has a bug when accessing a disk
+  block >4GB on a device using a logical blocksize != DEV_BSIZE (i.e.
+  CDROM and DVD media).  Due to a 32bit int overflow, a disk address
+  modulo 4GB is accessed.
+  
+  There's no workaround available.
+
+  See the following message for more details about this bug:
+
+	http://groups.yahoo.com/group/solarisonintel/message/22516
