@@ -304,6 +304,11 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
 
     while (remaining_sample_bytes)
     {
+        if(!this->audio_fifo) {
+          this->status = DEMUX_FINISHED;
+          break;
+        }
+
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = BUF_AUDIO_FLAC;
         buf->extra_info->input_pos    = current_file_pos;
