@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.124 2003/06/11 23:08:56 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.125 2003/06/12 18:46:24 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -153,7 +153,8 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   width  = (context->width +align)&~align;
   height = (context->height+align)&~align;
 
-  if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
+  if( (this->context->pix_fmt != PIX_FMT_YUV420P) ||
+      (width != context->width) || (height != context->height) ) {
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
       printf("ffmpeg: unsupported frame format, DR1 disabled.\n");
 
