@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.49 2003/04/06 22:56:17 guenter Exp $
+ * $Id: xine_interface.c,v 1.50 2003/04/06 23:58:18 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -748,12 +748,15 @@ int xine_message(xine_stream_t *stream, int type, ...) {
   data->type = type;
   data->num_parameters = n;
   
-  params = data->messages;
-
   if( explanation ) {
     strcpy (data->messages, explanation);
+    data->explanation = data->messages - (char *)data;
     params = data->messages + strlen(explanation) + 1;
+  } else {
+    data->explanation = 0;
+    params = data->messages;
   }
+  data->parameters = params - (char *)data;
 
   params[0] = '\0';
   va_start(ap, type);
