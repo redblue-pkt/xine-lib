@@ -5,7 +5,8 @@ xine-lib
     [bug #1086775]
   * added support for OGG chained streams
   * fixed deadlock with ASF chained streams due to fifo buffer leak
-  * DVB Subtitles: fix for flashing, repeating subs, fix sync & timeouts
+  * DVB Subtitles: fixed flashing, repeating subs, fix sync & timeouts
+  * DVB EPG: fixed incorrectly parsed running status, clear old epg data, cropped epg texts
 
 xine-lib (1-rc8)
   * Multiple security vulnerabilities fixed on PNM and Real RTSP clients
