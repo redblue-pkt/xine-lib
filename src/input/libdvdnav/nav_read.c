@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <assert.h>
 
 #include "bswap.h"
 #include "nav_types.h"
@@ -36,13 +35,13 @@ typedef struct {
   uint8_t byte;
 } getbits_state_t;
 
-static int32_t getbits_init(getbits_state_t *state, uint8_t *start) {
-  if ((state == NULL) || (start == NULL)) return -1;
+static int getbits_init(getbits_state_t *state, uint8_t *start) {
+  if ((state == NULL) || (start == NULL)) return 0;
   state->start = start;
   state->bit_position = 0;
   state->byte_position = 0;
   state->byte = start[0];
-  return 0;
+  return 1;
 }
 
 /* Non-optimized getbits. */
@@ -78,7 +77,7 @@ static uint32_t getbits(getbits_state_t *state, uint32_t number_of_bits) {
       number_of_bits = 0;
     }
   }
-  if ((state->bit_position) == 0)
+  if ((state->bit_position) == 0) {
     while (number_of_bits > 7) {
       result = (result << 8) + state->byte;
       state->byte_position++;
@@ -93,9 +92,12 @@ static uint32_t getbits(getbits_state_t *state, uint32_t number_of_bits) {
       result = (result << number_of_bits) + byte;
       number_of_bits = 0;
     }
+  }
 
   return result;
 }
+
+#if 0  /* TODO: optimized versions not yet used */
 
 /* WARNING: This function can only be used on a byte boundary.
             No checks are made that we are in fact on a byte boundary.
@@ -121,10 +123,12 @@ static uint32_t get32bits(getbits_state_t *state) {
   return result;
 }
 
+#endif
+
 void navRead_PCI(pci_t *pci, unsigned char *buffer) {
   int32_t i, j;
   getbits_state_t state;
-  if (getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
+  if (!getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
 
   /* pci pci_gi */
   pci->pci_gi.nv_pck_lbn = getbits(&state, 32 );
@@ -292,7 +296,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
   int i;
   getbits_state_t state;
-  if (getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
+  if (!getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
 
   /* dsi dsi gi */
   dsi->dsi_gi.nv_pck_scr = getbits(&state, 32 );

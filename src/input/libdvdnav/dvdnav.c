@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.29 2003/05/16 09:56:50 mroi Exp $
+ * $Id: dvdnav.c,v 1.30 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -29,10 +29,8 @@
 #define LOG_DEBUG
 */
 
-#include <pthread.h>
 #include "dvdnav_internal.h"
 #include "read_cache.h"
-
 #include "nav_read.h"
 
 #include <stdlib.h>
@@ -46,8 +44,6 @@ static dvdnav_status_t dvdnav_clear(dvdnav_t * this) {
 
   if (this->file) DVDCloseFile(this->file);
   this->file = NULL;
-  this->open_vtsN = -1;
-  this->open_domain = -1;
 
   memset(&this->pci,0,sizeof(this->pci));
   memset(&this->dsi,0,sizeof(this->dsi));
@@ -231,7 +227,7 @@ static int64_t dvdnav_convert_time(dvd_time_t *time) {
 
 /*
  * Returns 1 if block contains NAV packet, 0 otherwise.
- * Precesses said NAV packet if present.
+ * Processes said NAV packet if present.
  *
  * Most of the code in here is copied from xine's MPEG demuxer
  * so any bugs which are found in that should be corrected here also.
@@ -522,8 +518,8 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, uint8_t **buf,
       this->file = NULL;
     }
 
-    vts_event->old_vtsN = this->open_vtsN;
-    vts_event->old_domain = this->open_domain;
+    vts_event->old_vtsN = this->position_current.vts;
+    vts_event->old_domain = this->position_current.domain;
      
     /* Use the DOMAIN to find whether to open menu or title VOBs */
     switch(this->position_next.domain) {

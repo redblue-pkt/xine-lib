@@ -1,4 +1,4 @@
-xine-lib (1-rc4)
+xine-lib (1-rc3b)
   * fix SDL plugin that was broken in rc3
   * updated libfaad 2.0 RC3 cvs (fix some raw aac problems, HE support)
   * Win32 Cygwin updates, using DirectX
@@ -45,6 +45,9 @@ xine-lib (1-rc4)
   * fix a playback problem with some mp3 with id3v2 tags
   * asf demuxer fixes
   * new Flash Video (FLV) demuxer
+  * option to pass an interface name in RTP MRLs
+  * sync to latest libdvdnav fixes some menu problems and tries
+    to continue playback in case of errors
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.13 2003/05/16 10:22:51 mroi Exp $
+ * $Id: dvdnav_internal.h,v 1.14 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -33,11 +33,36 @@
 #include <unistd.h>
 #include <limits.h>
 #include <string.h>
+
+#ifdef WIN32
+
+/* pthread_mutex_* wrapper for win32 */
+#include <windows.h>
+#include <process.h>
+typedef CRITICAL_SECTION pthread_mutex_t;
+#define pthread_mutex_init(a, b) InitializeCriticalSection(a)
+#define pthread_mutex_lock(a)    EnterCriticalSection(a)
+#define pthread_mutex_unlock(a)  LeaveCriticalSection(a)
+#define pthread_mutex_destroy(a)
+
+/* replacement gettimeofday implementation */
+#include <sys/timeb.h>
+static inline int gettimeofday( struct timeval *tv, void *tz )
+{
+  struct timeb t;
+  ftime( &t );
+  tv->tv_sec = t.time;
+  tv->tv_usec = t.millitm * 1000;
+  return 0;
+}
+#include <io.h> /* read() */
+#define lseek64 _lseeki64
+
+#else
+
 #include <pthread.h>
 
-#include "dvd_reader.h"
-#include "ifo_read.h"
-#include "ifo_types.h"
+#endif /* WIN32 */
 
 /* Uncomment for VM command tracing */
 /* #define TRACE */
@@ -126,8 +151,6 @@ struct dvdnav_s {
   /* General data */
   char        path[MAX_PATH_LEN]; /* Path to DVD device/dir */
   dvd_file_t *file;               /* Currently opened file */
-  int         open_vtsN;          /* The domain and number of the... */
-  int         open_domain;        /* ..currently opened VOB */
  
   /* Position data */
   vm_position_t position_next;

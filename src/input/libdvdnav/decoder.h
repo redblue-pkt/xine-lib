@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.h,v 1.8 2003/05/11 13:44:05 jcdutton Exp $
+ * $Id: decoder.h,v 1.9 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -101,7 +101,7 @@ typedef struct {
 /* the big VM function, executing the given commands and writing
  * the link where to continue, the return value indicates if a jump
  * has been performed */
-int vmEval_CMD(vm_cmd_t commands[], int32_t num_commands, 
+int32_t vmEval_CMD(vm_cmd_t commands[], int32_t num_commands, 
 	       registers_t *registers, link_t *return_values);
 
 /* extracts some bits from the command */

@@ -24,17 +24,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <dlfcn.h>
-
 #include "dvd_reader.h"
 #include "dvd_input.h"
 
-
-#ifndef _MSC_VER
-#define LIBDVDCSS_NAME = "libdvdcss.so.2"
-#else
-#define LIBDVDCSS_NAME = "libdvdcss.dll"
-#endif
 
 /* The function pointers that is the exported interface of this file. */
 dvd_input_t (*dvdinput_open)  (const char *);
@@ -56,7 +48,12 @@ char *      (*dvdinput_error) (dvd_input_t);
 #else
 
 /* dlopening libdvdcss */
+#ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
+#else
+/* Only needed on MINGW at the moment */
+#include "../../msvc/contrib/dlfcn.c"
+#endif
 
 typedef struct dvdcss_s *dvdcss_handle;
 static dvdcss_handle (*DVDcss_open)  (const char *);
@@ -172,8 +169,8 @@ static dvd_input_t file_open(const char *target)
   }
   
   /* Open the device */
-#ifndef _MSC_VER
-  dev->fd = open(target, O_RDONLY|O_EXCL);
+#ifndef WIN32
+  dev->fd = open(target, O_RDONLY | O_EXCL);
 #else
   dev->fd = open(target, O_RDONLY | O_BINARY);
 #endif
@@ -290,7 +287,7 @@ int dvdinput_setup(void)
 #else
   /* dlopening libdvdcss */
 
-#ifndef _MSC_VER
+#ifndef WIN32
   dvdcss_library = dlopen("libdvdcss.so.2", RTLD_LAZY);
 #else
   dvdcss_library = dlopen("libdvdcss.dll", RTLD_LAZY);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: navigation.c,v 1.9 2003/05/11 13:44:05 jcdutton Exp $
+ * $Id: navigation.c,v 1.10 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -60,11 +60,9 @@ dvdnav_status_t dvdnav_get_number_of_titles(dvdnav_t *this, int32_t *titles) {
     printerr("Passed a NULL pointer.");
     return DVDNAV_STATUS_ERR;
   }
-
   if(!this->started) {
-    /* Start the VM */
-    vm_start(this->vm);
-    this->started = 1;
+    printerr("Virtual DVD machine not started.");
+    return DVDNAV_STATUS_ERR;
   }
 
   (*titles) = vm_get_vmgi(this->vm)->tt_srpt->nr_of_srpts;

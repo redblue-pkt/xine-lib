@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: highlight.c,v 1.16 2003/06/02 06:36:33 f1rmb Exp $
+ * $Id: highlight.c,v 1.17 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -479,8 +479,8 @@ dvdnav_status_t dvdnav_mouse_select(dvdnav_t *this, pci_t *pci, int32_t x, int32
   
   /* Loop through all buttons */
   for(button = 1; button <= pci->hli.hl_gi.btn_ns; button++) {
-    btni_t *button_ptr = &(this->pci.hli.btnit[button-1]);
-    
+    btni_t *button_ptr = &(pci->hli.btnit[button-1]);
+
     if((x >= button_ptr->x_start) && (x <= button_ptr->x_end) &&
        (y >= button_ptr->y_start) && (y <= button_ptr->y_end)) {
       mx = (button_ptr->x_start + button_ptr->x_end)/2;

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2000, 2001 Martin Norbäck, Håkan Hjort
+ *               2002-2004 the dvdnav project
  * 
  * This file is part of libdvdnav, a DVD navigation library. It is modified
  * from a file originally part of the Ogle DVD player.
@@ -18,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.13 2003/12/07 15:34:30 f1rmb Exp $
+ * $Id: decoder.c,v 1.14 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -31,7 +32,6 @@
 #include <inttypes.h>
 #include <string.h>  /* For memset */
 #include "ifo_types.h" /* vm_cmd_t */
-#include <assert.h>
 
 #include "dvdnav_internal.h"
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.17 2003/05/11 13:44:05 jcdutton Exp $
+ * $Id: searching.c,v 1.18 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -405,7 +405,7 @@ dvdnav_status_t dvdnav_get_position(dvdnav_t *this, uint32_t *pos,
 
   pthread_mutex_lock(&this->vm_lock);
   state = &(this->vm->state);
-  if(!state->pgc) {
+  if(!state->pgc || this->vm->stopped) {
     printerr("No current PGC.");
     pthread_mutex_unlock(&this->vm_lock);
     return DVDNAV_STATUS_ERR;

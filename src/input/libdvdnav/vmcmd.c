@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2000, 2001 Martin Norbäck, Håkan Hjort
+ *               2002-2004 the dvdnav project
  * 
  * This file is part of libdvdnav, a DVD navigation library. It is modified
  * from a file originally part of the Ogle DVD player.
@@ -18,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vmcmd.c,v 1.5 2003/04/07 18:10:52 mroi Exp $
+ * $Id: vmcmd.c,v 1.6 2004/03/16 11:43:38 mroi Exp $
  *
  */
 
@@ -29,12 +30,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <inttypes.h>
-#include <assert.h>
 
 #include "dvdnav_internal.h"
-
-
-#ifdef TRACE
 
 /*  freebsd compatibility */
 #ifndef PRIu8
@@ -152,7 +149,7 @@ static void print_set_op(uint8_t op) {
 
 static void print_reg_or_data(command_t* command, int immediate, int start) {
   if(immediate) {
-    int i = vm_getbits(command, start, 16);
+    uint32_t i = vm_getbits(command, start, 16);
     
     fprintf(MSG_OUT, "0x%x", i);
     if(isprint(i & 0xff) && isprint((i>>8) & 0xff))
@@ -171,7 +168,7 @@ static void print_reg_or_data_2(command_t* command, int immediate, int start) {
 
 static void print_reg_or_data_3(command_t* command, int immediate, int start) {
   if(immediate) {
-    int i = vm_getbits(command, start, 16);
+    uint32_t i = vm_getbits(command, start, 16);
     
     fprintf(MSG_OUT, "0x%x", i);
     if(isprint(i & 0xff) && isprint((i>>8) & 0xff))
@@ -275,8 +272,8 @@ static void print_special_instruction(command_t* command) {
 }
 
 static void print_linksub_instruction(command_t* command) {
-  int linkop = vm_getbits(command, 7, 8);
-  int button = vm_getbits(command, 15, 6);
+  uint32_t linkop = vm_getbits(command, 7, 8);
+  uint32_t button = vm_getbits(command, 15, 6);
   
   if(linkop < sizeof(link_table)/sizeof(char *) && link_table[linkop] != NULL)
     fprintf(MSG_OUT, "%s (button %" PRIu8 ")", link_table[linkop], button);
@@ -540,4 +537,3 @@ void vm_print_cmd(int row, vm_cmd_t *vm_command) {
   fprintf(MSG_OUT, "\n");
 }
 
-#endif
