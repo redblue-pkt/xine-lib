@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.17 2001/09/14 20:44:01 jcdutton Exp $
+ * $Id: audio_out.h,v 1.18 2001/10/01 23:04:57 f1rmb Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -125,6 +125,14 @@ typedef struct ao_instance_s ao_instance_t;
 
 struct ao_instance_s {
   uint32_t (*get_capabilities) (ao_instance_t *this); /* for constants see below */
+
+  /*
+   * Get/Set audio property
+   *
+   * See AO_PROP_* bellow
+   */
+  int (*get_property) (ao_instance_t *this, int property);
+  int (*set_property) (ao_instance_t *this, int property, int value);
 
   /* open audio driver for audio output 
    * return value: 0:failure, >0:output sample rate

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.40 2001/09/30 23:12:05 heikos Exp $
+ * $Id: audio_oss_out.c,v 1.41 2001/10/01 23:04:57 f1rmb Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -100,21 +100,31 @@ static int use_getodelay = 0;
 
 typedef struct oss_driver_s {
 
-  ao_driver_t ao_driver;
-  char           audio_dev[20];
-  int            audio_fd;
-  int            capabilities;
-  int            mode;
+  ao_driver_t      ao_driver;
+  char             audio_dev[20];
+  int              audio_fd;
+  int              capabilities;
+  int              mode;
 
-  int32_t        output_sample_rate, input_sample_rate;
-  uint32_t       num_channels;
-  uint32_t	 bits_per_sample;
-  uint32_t	 bytes_per_frame;
-  uint32_t       bytes_in_buffer;      /* number of bytes writen to audio hardware   */
+  config_values_t *config;
+
+  int32_t          output_sample_rate, input_sample_rate;
+  uint32_t         num_channels;
+  uint32_t	   bits_per_sample;
+  uint32_t	   bytes_per_frame;
+  uint32_t         bytes_in_buffer;      /* number of bytes writen to audio hardware   */
   
-  int            audio_started;
-  int            audio_has_realtime;   /* OSS driver supports real-time              */
-  int            static_delay;         /* estimated delay for non-realtime drivers   */
+  int              audio_started;
+  int              audio_has_realtime;   /* OSS driver supports real-time              */
+  int              static_delay;         /* estimated delay for non-realtime drivers   */
+
+  struct {
+    char          *name;
+    int            prop;
+    int            volume;
+    int            mute;
+  } mixer;
+
 } oss_driver_t;
 
 /*
@@ -368,6 +378,10 @@ static uint32_t ao_oss_get_capabilities (ao_driver_t *this_gen) {
 static void ao_oss_exit(ao_driver_t *this_gen)
 {
   oss_driver_t *this = (oss_driver_t *) this_gen;
+  config_values_t *config = this->config;
+
+  config->set_int (config, "mixer_volume", this->mixer.volume);
+  config->save(config);
   
   if (this->audio_fd != -1)
     close(this->audio_fd);
@@ -375,41 +389,128 @@ static void ao_oss_exit(ao_driver_t *this_gen)
   free (this);
 }
 
-/*
- *
- */
 static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
-  oss_driver_t *this = (oss_driver_t *) this;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  int           mixer_fd;
+  int           audio_devs;
 
-  /* FIXME: implement some properties
   switch(property) {
-  case AO_PROP_MIXER_VOL:
-    break;
   case AO_PROP_PCM_VOL:
+  case AO_PROP_MIXER_VOL:
+    mixer_fd = open(this->mixer.name, O_RDONLY);
+    if(mixer_fd != -1) {
+      int cmd = 0;
+      int v;
+      
+      ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+      
+      if(audio_devs & SOUND_MASK_PCM)
+	cmd = SOUND_MIXER_READ_PCM;
+      else if(audio_devs & SOUND_MASK_VOLUME)
+	cmd = SOUND_MIXER_READ_VOLUME;
+      else {
+	close(mixer_fd);
+	return 0;
+      }
+      ioctl(mixer_fd, cmd, &v);
+      this->mixer.volume = (((v & 0xFF00) >> 8) + (v & 0x00FF)) / 2;
+      close(mixer_fd);
+    }
+    else
+      printf("%s(): open() %s failed: %s\n", 
+	     __FUNCTION__, this->mixer.name, strerror(errno));
+    
+    return this->mixer.volume;
     break;
+
   case AO_PROP_MUTE_VOL:
+    return this->mixer.mute;
     break;
   }
-  */
+
   return 0;
 }
 
-/*
- *
- */
 static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) {
-  oss_driver_t *this = (oss_driver_t *) this;
+  oss_driver_t *this = (oss_driver_t *) this_gen;
+  int           mixer_fd;
+  int           audio_devs;
 
-  /* FIXME: Implement property support.
   switch(property) {
-  case AO_PROP_MIXER_VOL:
-    break;
   case AO_PROP_PCM_VOL:
+  case AO_PROP_MIXER_VOL:
+    if(!this->mixer.mute) {
+
+      mixer_fd = open(this->mixer.name, O_RDONLY);
+
+      if(mixer_fd != -1) {
+	int cmd = 0;
+	int v;
+	
+	ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+	
+	if(audio_devs & SOUND_MASK_PCM)
+	  cmd = SOUND_MIXER_WRITE_PCM;
+	else if(audio_devs & SOUND_MASK_VOLUME)
+	  cmd = SOUND_MIXER_WRITE_VOLUME;
+	else {
+	  close(mixer_fd);
+	  return ~value;
+	}
+	v = (value << 8) | value;
+	ioctl(mixer_fd, cmd, &v);
+	close(mixer_fd);
+	
+	if(!this->mixer.mute)
+	  this->mixer.volume = value;
+	
+      }
+      else
+	printf("%s(): open() %s failed: %s\n", 
+	       __FUNCTION__, this->mixer.name, strerror(errno));
+    }
+    else
+      this->mixer.volume = value;
+
+    return this->mixer.volume;
     break;
+
   case AO_PROP_MUTE_VOL:
+    this->mixer.mute = (value) ? 1 : 0;
+
+    if(this->mixer.mute) {
+
+      mixer_fd = open(this->mixer.name, O_RDONLY);
+
+      if(mixer_fd != -1) {
+	int cmd = 0;
+	int v = 0;
+	
+	ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+	
+	if(audio_devs & SOUND_MASK_PCM)
+	  cmd = SOUND_MIXER_WRITE_PCM;
+	else if(audio_devs & SOUND_MASK_VOLUME)
+	  cmd = SOUND_MIXER_WRITE_VOLUME;
+	else {
+	  close(mixer_fd);
+	  return ~value;
+	}
+
+	ioctl(mixer_fd, cmd, &v);
+	close(mixer_fd);
+	
+      }
+      else
+	printf("%s(): open() %s failed: %s\n", 
+	       __FUNCTION__, this->mixer.name, strerror(errno));
+    }
+    else
+      (void) ao_oss_set_property(&this->ao_driver, this->mixer.prop, this->mixer.volume);
+    
+    return value;
     break;
   }
-  */
 
   return ~value;
 }
@@ -428,7 +529,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   int              devnum;
   int              audio_fd;
   int              num_channels, status, arg;
-
+  
   this = (oss_driver_t *) malloc (sizeof (oss_driver_t));
 
   /*
@@ -574,7 +675,61 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   }    
 
   printf ("\n");
+  
+  /*
+   * Mixer initialisation.
+   */
+ __again:
+  this->mixer.name = config->lookup_str(config, "mixer_name", "/dev/mixer");
+  {
+    int mixer_fd;
+    int audio_devs;
+    
+    mixer_fd = open(this->mixer.name, O_RDONLY);
 
+    if(mixer_fd != -1) {
+
+      ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+      
+      if(audio_devs & SOUND_MASK_PCM) {
+	this->capabilities |= AO_CAP_PCM_VOL;
+	this->mixer.prop = AO_PROP_PCM_VOL;
+      }
+      else if(audio_devs & SOUND_MASK_VOLUME) {
+	this->capabilities |= AO_CAP_MIXER_VOL;
+	this->mixer.prop = AO_PROP_MIXER_VOL;
+      }
+      
+      /*
+       * This is obsolete in Linux kernel OSS 
+       * implementation, so this will certainly doesn't work.
+       * So we just simulate the mute stuff
+       */
+      /*
+	if(audio_devs & SOUND_MASK_MUTE)
+	this->capabilities |= AO_CAP_MUTE_VOL;
+      */
+      this->capabilities |= AO_CAP_MUTE_VOL;
+      
+    }
+    else {
+      if(strcmp(this->mixer.name, "/dev/mixer")) {
+	config->set_str(config, "mixer_name", "/dev/mixer");
+	config->save(config);
+	goto __again;
+      }
+      else
+	printf("%s(): open() %s failed: %s\n", 
+	       __FUNCTION__, this->mixer.name, strerror(errno));
+    }
+    
+    this->mixer.mute = 0;
+    this->mixer.volume = ao_oss_get_property (&this->ao_driver, this->mixer.prop);
+    this->mixer.volume = config->lookup_int (config, "mixer_volume", 50);
+    
+    (void) ao_oss_set_property(&this->ao_driver, this->mixer.prop, this->mixer.volume);
+    
+  }
   close (audio_fd);
 
   this->output_sample_rate = 0;
@@ -582,6 +737,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this->static_delay = config->lookup_int (config, "oss_static_delay", 1000);
 
+  this->config                        = config;
   this->ao_driver.get_capabilities    = ao_oss_get_capabilities;
   this->ao_driver.get_property        = ao_oss_get_property;
   this->ao_driver.set_property        = ao_oss_set_property;

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.17 2001/09/12 22:00:51 joachim_koenig Exp $
+ * $Id: audio_out.c,v 1.18 2001/10/01 23:04:57 f1rmb Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -406,10 +406,24 @@ static void ao_close(ao_instance_t *this)
   this->driver->close(this->driver);  
 }
 
+static void ao_exit(ao_instance_t *this) {
+  this->driver->exit(this->driver);
+}
+
 static uint32_t ao_get_capabilities (ao_instance_t *this) {
   uint32_t result;
   result=this->driver->get_capabilities(this->driver);  
   return result;
+}
+
+static int ao_get_property (ao_instance_t *this, int property) {
+
+  return(this->driver->get_property(this->driver, property));
+}
+
+static int ao_set_property (ao_instance_t *this, int property, int value) {
+
+  return(this->driver->set_property(this->driver, property, value));
 }
 
 ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom, 
@@ -425,7 +439,10 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   this->open                  = ao_open;
   this->write                 = ao_write;
   this->close                 = ao_close;
+  this->exit                  = ao_exit;
   this->get_capabilities      = ao_get_capabilities;
+  this->get_property          = ao_get_property;
+  this->set_property          = ao_set_property;
   this->audio_loop_running    = 0;
   this->frame_buffer          = xmalloc (40000);
   this->zero_space            = xmalloc (ZERO_BUF_SIZE * 2 * 6);

@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.42 2001/09/26 17:19:48 jkeil Exp $
+ * $Id: xine.h.tmpl.in,v 1.43 2001/10/01 23:04:57 f1rmb Exp $
  *
  */
 
@@ -808,6 +808,38 @@ int xine_get_spu_channel (xine_t *self);
 void xine_select_spu_channel (xine_t *self, int channel);
 
          /** @} end of xine_management */
+
+          /** 
+	   * \defgroup audio_group Audio.
+	   * @{
+	   */
+#warning ADD COMMENTS
+#define AO_CAP_NOCAP            0x00000000 /* driver has no capabilities    */
+#define AO_CAP_MODE_A52         0x00000001 /* driver supports A/52 output   */
+#define AO_CAP_MODE_AC5         0x00000002 /* driver supports AC5 output    */
+/* 1 sample ==  2 bytes (C)               */
+#define AO_CAP_MODE_MONO        0x00000004 /* driver supports mono output   */
+/* 1 sample ==  4 bytes (L,R)             */
+#define AO_CAP_MODE_STEREO      0x00000008 /* driver supports stereo output */
+/* 1 sample ==  8 bytes (L,R,LR,RR)       */
+#define AO_CAP_MODE_4CHANNEL    0x00000010 /* driver supports 4 channels    */
+/* 1 sample == 10 bytes (L,R,LR,RR,C)     */
+#define AO_CAP_MODE_5CHANNEL    0x00000020 /* driver supports 5 channels    */
+/* 1 sample == 12 bytes (L,R,LR,RR,C,LFE) */
+#define AO_CAP_MODE_5_1CHANNEL  0x00000040 /* driver supports 5.1 channels  */
+#define AO_CAP_MIXER_VOL        0x00000080 /* driver supports mixer control */
+#define AO_CAP_PCM_VOL          0x00000100 /* driver supports pcm control   */
+#define AO_CAP_MUTE_VOL         0x00000200 /* driver can mute volume        */
+
+/* properties supported by get/set_property() */
+#define AO_PROP_MIXER_VOL       0
+#define AO_PROP_PCM_VOL         1
+#define AO_PROP_MUTE_VOL        2
+
+int xine_get_audio_capabilities(xine_t *self);
+int xine_get_audio_property(xine_t *self, int property);
+int xine_set_audio_property(xine_t *self, int property, int value);
+          /** @} end of audio_group */
 
          /**
 	  * \defgroup browse_group Browsing support

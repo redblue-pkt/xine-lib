@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.60 2001/09/10 13:36:56 jkeil Exp $
+ * $Id: xine.c,v 1.61 2001/10/01 23:04:57 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -621,4 +621,27 @@ int xine_get_stream_length (xine_t *this) {
   return 0;
 }
 
+int xine_get_audio_capabilities(xine_t *this) {
+
+  if(this->audio_out)
+    return (this->audio_out->get_capabilities(this->audio_out));
+
+  return AO_CAP_NOCAP;
+}
+
+int xine_get_audio_property(xine_t *this, int property) {
+  
+  if(this->audio_out)
+    return(this->audio_out->get_property(this->audio_out, property));
+
+  return 0;
+}
+
+int xine_set_audio_property(xine_t *this, int property, int value) {
+
+  if(this->audio_out)
+    return(this->audio_out->set_property(this->audio_out, property, value));
+  
+  return ~value;
+}
 
