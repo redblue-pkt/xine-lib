@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.88 2002/05/21 00:12:31 siggi Exp $
+ * $Id: demux_avi.c,v 1.89 2002/05/24 11:32:02 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1482,7 +1482,7 @@ static int demux_avi_start (demux_plugin_t *this_gen,
 }
 
 
-static void demux_avi_seek (demux_plugin_t *this_gen,
+static int demux_avi_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
