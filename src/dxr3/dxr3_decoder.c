@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.58 2002/01/10 21:30:10 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.59 2002/02/15 11:43:16 guenter Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -263,7 +263,7 @@ static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
    Harm: wish that were so. It's called by audio_out
    (those adjusting master clock x->y messages)
 */
-static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
+static void dxr3scr_adjust (scr_plugin_t *scr, int64_t vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t cpts;
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &cpts))
@@ -284,7 +284,7 @@ static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
    it in start_vpts.  also sets the speed of the clock to 0x900 - which
    is normal speed.
 */
-static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
+static void dxr3scr_start (scr_plugin_t *scr, int64_t start_vpts) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	start_vpts >>= 1;
 
@@ -302,7 +302,7 @@ static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
    on the dxr3 - apparently only called when the dxr3_scr plugin is
    master..
 */
-static uint32_t dxr3scr_get_current (scr_plugin_t *scr) {
+static int64_t dxr3scr_get_current (scr_plugin_t *scr) {
 	dxr3scr_t *self = (dxr3scr_t*) scr;
 	uint32_t pts;
 
@@ -350,7 +350,7 @@ static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 		return 0;
 	}
 	buf_type &= 0xFFFF0000;
-	return (buf_type == BUF_VIDEO_MPEG) || (buf_type == BUF_VIDEO_FILL);
+	return (buf_type == BUF_VIDEO_MPEG);
 }
 
 static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
@@ -566,17 +566,16 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              this->height,
                              this->aspect,
                              IMGFMT_YV12,
-                             duration,
                              DXR3_VO_UPDATE_FLAG);
-		img->PTS=buf->PTS;
+		img->pts=buf->pts;
 		img->bad_frame = 0;
 		/* draw calls metronom->got_video_frame with img pts and scr
 		   and stores the return value back in img->PTS
-		   Calling draw with buf->PTS==0 is okay; metronome will
+		   Calling draw with buf->pts==0 is okay; metronome will
 		   extrapolate a value. */
 		skip = img->draw(img);
 	        if (skip <= 0) { /* don't skip */
-			vpts = img->PTS; /* copy so we can free img */
+			vpts = img->pts; /* copy so we can free img */
 		}
 		else { /* metronom says skip, so don't set PTS */
 			printf("dxr3: skip = %d\n", skip);
@@ -627,7 +626,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		/* SETPTS only if less then one second in the future and
 		 * either buffer has PTS or sync_every_frame is set */
 		if ((delay > 0) && (delay < 90000) &&
-		    (this->sync_every_frame || buf->PTS)) {
+		    (this->sync_every_frame || buf->pts)) {
 			/* update the dxr3's current pts value */	
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				printf("dxr3: set video pts failed (%s)\n",
@@ -909,10 +908,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 //        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
         /* Hide any previous button highlights */
 	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
-	if (buf->PTS) {
+	if (buf->pts) {
 		int vpts;
 		vpts = this->spu_decoder.metronom->got_spu_packet
-		 (this->spu_decoder.metronom, buf->PTS, 0, buf->SCR);
+		 (this->spu_decoder.metronom, buf->pts, 0, buf->scr);
 #if LOG_SPU
                 printf ("dxr3_spu: PTS=%u VPTS=%u\n", buf->PTS, vpts);
 #endif
