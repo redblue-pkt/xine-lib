@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.57 2002/10/29 00:25:06 guenter Exp $
+ * $Id: demux_elem.c,v 1.58 2002/10/29 01:28:41 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -73,26 +73,30 @@ typedef struct {
 
 static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf_element_t *buf;
+  int n;
 
-  buf = this->input->read_block(this->input, 
-				this->video_fifo, this->blocksize);
 
-  if (buf == NULL) {
+  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+  buf->content = buf->mem;
+  buf->type = BUF_DEMUX_BLOCK;
+
+  n = this->input->read (this->input, buf->mem, this->blocksize);
+
+  if (n<=0) {
+    buf->free_buffer (buf);
     this->status = DEMUX_FINISHED;
     return 0;
   }
 
-  if (preview_mode)
-    buf->decoder_flags = BUF_FLAG_PREVIEW;
+  buf->size = n;
 
   buf->pts             = 0;
-  /*buf->scr             = 0;*/
   buf->input_pos       = this->input->get_current_pos(this->input);
   buf->type            = BUF_VIDEO_MPEG;
 
   this->video_fifo->put(this->video_fifo, buf);
   
-  return (buf->size == this->blocksize);
+  return buf->size>0;
 }
 
 static int demux_mpeg_elem_send_chunk (demux_plugin_t *this_gen) {
@@ -137,6 +141,9 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
   }
 
   this->status = DEMUX_OK;
+
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
 
   xine_demux_control_headers_done (this->stream);
 }
