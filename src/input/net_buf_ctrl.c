@@ -101,16 +101,12 @@ static void nbc_set_speed_pause (xine_stream_t *stream) {
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_PAUSE);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
-  if (stream->audio_out)
-    stream->audio_out->set_property(stream->audio_out,AO_PROP_PAUSED,2);
 }
 
 static void nbc_set_speed_normal (xine_stream_t *stream) {
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_NORMAL);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
-  if (stream->audio_out)
-    stream->audio_out->set_property(stream->audio_out,AO_PROP_PAUSED,0);
 }
 
 void nbc_check_buffers (nbc_t *this) {

@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.40 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_pvr.c,v 1.41 2004/02/12 18:09:20 mroi Exp $
  */
 
 /**************************************************************************
@@ -461,8 +461,6 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
     pvrscr_speed_tunning(this->scr, 1.0);
     this->speed_before_pause = speed;
     this->stream->xine->clock->set_speed ( this->stream->xine->clock, XINE_SPEED_PAUSE);
-    if( this->stream->audio_out )
-      this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 2 );
 #ifdef SCRLOG
     printf("input_pvr: buffer empty, pausing playback\n" );
 #endif
@@ -475,8 +473,6 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
       
       pvrscr_speed_tunning(this->scr, 1.0 );
       this->stream->xine->clock->set_speed ( this->stream->xine->clock, this->speed_before_pause);
-      if( this->stream->audio_out )
-        this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
 #ifdef SCRLOG
       printf("input_pvr: resuming playback\n" );
 #endif
@@ -677,11 +673,8 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
      
     this->play_blk = (this->rec_blk) ? (this->rec_blk-1) : 0;
      
-    if( speed > XINE_SPEED_NORMAL ) {
+    if( speed > XINE_SPEED_NORMAL )
       this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
-      if( this->stream->audio_out )
-        this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
-    }
     
     if( this->play_fd != -1 ) {
       if(this->play_fd != this->rec_fd )
@@ -985,8 +978,6 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
     case XINE_EVENT_SET_V4L2:
       /* make sure we are not paused */
       this->stream->xine->clock->set_speed ( this->stream->xine->clock, XINE_SPEED_NORMAL);
-      if( this->stream->audio_out )
-        this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
 
       if( v4l2_data->session_id != this->session ) {
         /* if session changes -> closes the old one */

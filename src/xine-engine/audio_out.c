@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.162 2004/01/07 19:52:42 mroi Exp $
+ * $Id: audio_out.c,v 1.163 2004/02/12 18:09:19 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -217,7 +217,6 @@ typedef struct {
 
   int             audio_loop_running;
   int             grab_only; /* => do not start thread, frontend will consume samples */
-  int             audio_paused;
   pthread_t       audio_thread;
 
   int64_t         audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
@@ -919,13 +918,13 @@ static void *ao_loop (void *this_gen) {
 
     /* 
      * wait until user unpauses stream
-     * audio_paused == 1 means we are playing at a different speed
-     * them we must process buffers otherwise the entire engine will stop.
+     * if we are playing at a different speed
+     * we must process buffers otherwise the entire engine will stop.
      */
     
-    if ( this->audio_paused && this->audio_loop_running )  {
+    if ( this->clock->speed != XINE_SPEED_NORMAL && this->audio_loop_running )  {
 
-      if (this->audio_paused == 1) {
+      if (this->clock->speed != XINE_SPEED_PAUSE) {
 
 	cur_time = this->clock->get_current_time (this->clock);
 	if (in_buf->vpts < cur_time ) {
@@ -1420,7 +1419,6 @@ static void ao_exit(xine_audio_port_t *this_gen) {
     void *p;
 
     this->audio_loop_running = 0;
-    this->audio_paused = 0;
 
     buf = fifo_remove(this->free_fifo);
     buf->num_frames = 0;
@@ -1557,10 +1555,6 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     ret = this->discard_buffers;
     break;
 
-  case AO_PROP_PAUSED:
-    ret = this->audio_paused;
-    break;
-
   default:
     inc_num_driver_actions(this);
     pthread_mutex_lock( &this->driver_lock );
@@ -1655,11 +1649,6 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     }
     break;
 
-  case AO_PROP_PAUSED:
-    this->audio_paused = value;
-    ret = this->audio_paused;
-    break;
-
   case AO_PROP_CLOSE_DEVICE:
     inc_num_driver_actions(this);
     pthread_mutex_lock( &this->driver_lock );
@@ -1717,7 +1706,7 @@ static void ao_flush (xine_audio_port_t *this_gen) {
     this->flush_audio_driver++;
     
     /* do not try this in paused mode */
-    while( this->flush_audio_driver && !this->audio_paused) {
+    while( this->flush_audio_driver && this->clock->speed != XINE_SPEED_PAUSE) {
       struct timeval  tv;
       struct timespec ts;
 
@@ -1824,7 +1813,6 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->num_driver_actions     = 0;  
   this->audio_loop_running     = 0;
   this->grab_only              = grab_only;
-  this->audio_paused           = 0;
   this->flush_audio_driver     = 0;
   this->discard_buffers        = 0;
   this->zero_space             = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);

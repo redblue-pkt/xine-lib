@@ -1177,8 +1177,6 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     
     this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_PAUSE);
     this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
-    if (this->stream->audio_out != NULL)
-      this->stream->audio_out->set_property(this->stream->audio_out, AO_PROP_PAUSED, 2);
     
     this->scr_tunning = SCR_PAUSED;
     /*      pvrscr_speed_tunning(this->scr, 0.0); */
@@ -1200,8 +1198,6 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
       
       this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
       this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
-      if (this->stream->audio_out != NULL)
-	this->stream->audio_out->set_property(this->stream->audio_out, AO_PROP_PAUSED, 0);
     }
   } else if (scr_tunning == SCR_SKIP) {
     if (num_used < 2 * num_free) {
