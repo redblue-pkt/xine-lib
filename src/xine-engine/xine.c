@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.186 2002/10/31 16:58:24 mroi Exp $
+ * $Id: xine.c,v 1.187 2002/11/02 10:51:01 mroi Exp $
  *
  * top-level xine functions
  *
@@ -736,7 +736,7 @@ void xine_dispose (xine_stream_t *stream) {
 
   stream->status = XINE_STATUS_QUIT;
 
-  xine_stop(stream);
+  xine_close(stream);
 
   printf ("xine_exit: shutdown audio\n");
 
