@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.14 2004/01/12 17:35:18 miguelfreitas Exp $
+ * $Id: image.c,v 1.15 2004/07/11 21:38:05 mroi Exp $
  *
  * a image video decoder
  */
@@ -208,6 +208,7 @@ static void row_callback(png_structp png_ptr, png_bytep new_row,
 #define	FIX(x)	 	( (int32_t) ( (x) * (1<<SCALEBITS) + 0.5 ) )
 #define	ONE_HALF	( (int32_t) (1<< (SCALEBITS-1)) )
 #define	CBCR_OFFSET	(CENTERSAMPLE << SCALEBITS)
+#define	FOOTROOM	(16 << SCALEBITS)
 
 static void end_callback(png_structp png_ptr, png_infop info) {
 
@@ -246,16 +247,16 @@ static void end_callback(png_structp png_ptr, png_infop info) {
 	r = *(this->rows[row]+col*3);
 	g = *(this->rows[row]+col*3+1);
 	b = *(this->rows[row]+col*3+2);
-	y = (FIX(0.299) * r + FIX(0.587) * g + FIX(0.114) * b + ONE_HALF)
+	y = (FIX(0.257) * r + FIX(0.504) * g + FIX(0.098) * b + ONE_HALF + FOOTROOM)
 	    >> SCALEBITS;
 	if (!(col & 0x0001)) {
 	  /* even pixel, do u */
-	  u = (- FIX(0.16874) * r - FIX(0.33126) * g + FIX(0.5) * b
+	  u = (- FIX(0.148) * r - FIX(0.291) * g + FIX(0.439) * b
 	      + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
 	  *out = ( (uint16_t) u << 8) | (uint16_t) y;
 	} else {
 	  /* odd pixel, do v */
-	  v = (FIX(0.5) * r - FIX(0.41869) * g - FIX(0.08131) * b
+	  v = (FIX(0.439) * r - FIX(0.368) * g - FIX(0.071) * b
 	      + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
 	  *out = ( (uint16_t) v << 8) | (uint16_t) y;
 	}
