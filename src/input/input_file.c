@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.81 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_file.c,v 1.82 2003/10/13 11:14:46 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,6 +40,12 @@
 #include "input_plugin.h"
 
 #define MAXFILES      65535
+
+#ifndef _MSC_VER
+/* MS needs O_BINARY to open files, for everyone else,
+ * make sure it doesn't get in the way */
+#  define O_BINARY  0
+#endif
 
 typedef struct {
 
@@ -201,6 +207,8 @@ static char *decode_uri (char *uri) {
 
   int len = strlen (uri);
   int i;
+  
+  uri = strdup(uri);
 
   for (i=0; i<len; i++) {
 
@@ -231,23 +239,25 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
   #ifdef LOG
   printf("file_plugin_open\n");
   #endif
-  if (!strncasecmp (this->mrl, "file:", 5)) 
-    filename = decode_uri (&(this->mrl[5]));
+  if (strncasecmp (this->mrl, "file:", 5) == 0)
+    filename = decode_uri(&(this->mrl[5]));
   else
     filename = decode_uri(this->mrl);
 
-#ifdef _MSC_VER
-  /* 
-     added O_BINARY flag, <CTRL>-Z char 
-     is interperated as EOF on win32.
-  */
   this->fh = open (filename, O_RDONLY|O_BINARY);
-#else
-  this->fh = open (filename, O_RDONLY);
-#endif /* _MSC_VER */
+  
+  free(filename);
 
   if (this->fh == -1) {
-    return 0;
+    /* try again without unescaping; such MRLs might be invalid,
+     * but we are a nice software */
+    if (strncasecmp (this->mrl, "file:", 5) == 0)
+      this->fh = open(&this->mrl[5], O_RDONLY|O_BINARY);
+    else
+      this->fh = open(this->mrl, O_RDONLY|O_BINARY);
+    
+    if (this->fh == -1)
+      return 0;
   }
 
   return 1;
