@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.27 2004/09/11 20:01:39 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.28 2004/09/11 20:52:17 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -700,7 +700,7 @@ static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
 	    _("ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"), 
 	    this->bufsize);
-    this->buf = realloc(this->buf, this->bufsize);
+    this->buf = realloc(this->buf, this->bufsize + FF_INPUT_BUFFER_PADDING_SIZE);
   }
 }
 
@@ -753,7 +753,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       if (this->bih.biSize > sizeof(xine_bmiheader)) {
         this->context->extradata_size = this->bih.biSize - sizeof(xine_bmiheader);
-        this->context->extradata = malloc(this->context->extradata_size);
+        this->context->extradata = malloc(this->context->extradata_size + 
+                                          FF_INPUT_BUFFER_PADDING_SIZE);
         memcpy(this->context->extradata, buf->content + sizeof(xine_bmiheader),
                this->context->extradata_size);
       }
@@ -792,7 +793,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       lprintf("BUF_SPECIAL_STSD_ATOM\n");
       this->context->extradata_size = buf->decoder_info[2];
-      this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+      this->context->extradata = xine_xmalloc(buf->decoder_info[2] + 
+                                              FF_INPUT_BUFFER_PADDING_SIZE);
       memcpy(this->context->extradata, buf->decoder_info_ptr[2],
         buf->decoder_info[2]);
 
@@ -801,7 +803,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       
       lprintf("BUF_SPECIAL_DECODER_CONFIG\n");
       this->context->extradata_size = buf->decoder_info[2];
-      this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+      this->context->extradata = xine_xmalloc(buf->decoder_info[2] +
+                                              FF_INPUT_BUFFER_PADDING_SIZE);
       memcpy(this->context->extradata, buf->decoder_info_ptr[2],
         buf->decoder_info[2]);
         
@@ -841,8 +844,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       return; /* do not send special data to the decoder */
     }
   } else {
-    if (((this->size == 0) && (buf->decoder_flags & BUF_FLAG_FRAME_END)) ||
-        (this->is_mpeg12)) {
+    if ((((this->size == 0) && (buf->decoder_flags & BUF_FLAG_FRAME_END)) ||
+         (this->is_mpeg12)) && 
+        ((buf->size + FF_INPUT_BUFFER_PADDING_SIZE) < buf->max_size)) {
       /* buf contains a full frame */
       /* no memcpy needed */
       ffbuf = buf->content;
@@ -912,6 +916,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       /* skip decoding b frames if too late */
       this->context->hurry_up = (this->skipframes > 0);
 
+      /* pad input data */
+      ffbuf[this->size] = 0;
+      
       offset = 0;
       while ((this->size > 0) || (flush == 1)){
         
@@ -1182,7 +1189,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->context->opaque = this;
   
   this->decoder_ok    = 0;
-  this->buf           = xine_xmalloc(VIDEOBUFSIZE);
+  this->buf           = xine_xmalloc(VIDEOBUFSIZE + FF_INPUT_BUFFER_PADDING_SIZE);
   this->bufsize       = VIDEOBUFSIZE;
 
   this->is_mpeg12    = 0;
