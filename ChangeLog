@@ -11,6 +11,7 @@ xine-lib (1-rc4)
   * preliminary matroska support
   * support for AAC audio in RealMedia files
   * implement chapter skipping in ogm files
+  * fix endianness problem in OSD texts (using UCS-2LE or UCS-2BE encoding)
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

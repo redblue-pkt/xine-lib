@@ -74,6 +74,13 @@
  */
 #define ALIAS_CHARACTER_FONT '_'
 
+/* we want UCS-2 encoding in the machine endian */
+#ifdef WORDS_BIGENDIAN
+#  define UCS2_ENCODING "UCS-2BE"
+#else
+#  define UCS2_ENCODING "UCS-2LE"
+#endif
+
 #ifdef MAX
 #undef MAX
 #endif
@@ -891,9 +898,9 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
   }
 
   /* prepare conversion to UCS-2 */
-  if ((osd->cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
+  if ((osd->cd = iconv_open(UCS2_ENCODING, encoding)) == (iconv_t)-1) {
     xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
-	    _("osd: unsupported conversion %s -> UCS-2, no conversion performed\n"), encoding);
+	    _("osd: unsupported conversion %s -> %s, no conversion performed\n"), encoding, UCS2_ENCODING);
     return 0;
   }
 
