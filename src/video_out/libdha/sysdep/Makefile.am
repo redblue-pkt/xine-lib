@@ -6,6 +6,8 @@ EXTRA_DIST = \
 	pci_arm32.c \
 	pci_bsdi.c \
 	pci_freebsd.c \
+	pci_generic_cpu.c \
+	pci_generic_os.c \
 	pci_ia64.c \
 	pci_isc.c \
 	pci_linux.c \
@@ -24,6 +26,7 @@ EXTRA_DIST = \
 noinst_HEADERS = \
 	AsmMacros_alpha.h \
 	AsmMacros_arm32.h \
+	AsmMacros_generic.h \
 	AsmMacros_ia64.h \
 	AsmMacros_powerpc.h \
 	AsmMacros_sparc.h \

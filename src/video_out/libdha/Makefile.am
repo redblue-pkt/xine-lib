@@ -19,7 +19,7 @@ EXTRA_PROGRAMS = test
 test_SOURCES = test.c
 test_LDADD = $(top_builddir)/src/video_out/libdha/libdha.la
 
-noinst_HEADERS = AsmMacros.h libdha.h pci_ids.h pci_names.h pci_vendors.h
+noinst_HEADERS = AsmMacros.h config.h libdha.h pci_ids.h pci_names.h pci_vendors.h
 
 ## for OpenBSD LIBS += -li386
 
