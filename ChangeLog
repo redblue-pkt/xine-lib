@@ -8,6 +8,7 @@ xine-lib (1-beta12)
   * use variable block program stream demuxer for mpeg2 files
   * cdda improvements (error handling, device on mrl)
   * input_pvr (ivtv) updates
+  * demux_mpeg_block improved to cure problems with VCDs and bogus encrypted messages.
     
 xine-lib (1-beta11)
   * fix bugs in selecting ogm subtitles

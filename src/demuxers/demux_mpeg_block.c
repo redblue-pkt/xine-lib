@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.178 2003/05/10 21:14:44 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.179 2003/05/10 21:28:13 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -324,49 +324,64 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   return ;
 }
 
-static int32_t parse_program_stream_map(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
-  assert(0);
-}
 static int32_t parse_padding_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  buf->free_buffer (buf);
+  return -1;
+}
+static int32_t parse_program_stream_map(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_ecm_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_emm_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_dsmcc_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_iec_13522_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_h222_typeA_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_h222_typeB_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_h222_typeC_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_h222_typeD_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_h222_typeE_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_IEC14496_SL_packetized_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_IEC14496_FlexMux_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_program_stream_directory(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 static int32_t parse_ancillary_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
+  printf("xine-lib:demux_mpeg_block: Unhandled stream_id %02x\n", this->stream_id);
   assert(0);
 }
 
@@ -518,6 +533,8 @@ static int32_t parse_private_stream_2(demux_mpeg_block_t *this, uint8_t *p, buf_
 
   return -1;
 }
+
+/* FIXME: Extension data is not parsed, and is also not skipped. */
 
 static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   int32_t header_len;
