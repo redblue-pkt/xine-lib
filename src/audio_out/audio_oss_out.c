@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.99 2003/12/31 12:05:26 siggi Exp $
+ * $Id: audio_oss_out.c,v 1.100 2004/01/01 15:55:24 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -693,7 +693,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   int              rate ;
   int              devnum;
   int              audio_fd;
-  int              num_channels, bits, status, arg;
+  int              num_channels, status, arg;
   static char     *sync_methods[] = {"auto", "getodelay", "getoptr", "softsync", "probebuffer", NULL};
   
   this = (oss_driver_t *) xine_xmalloc (sizeof (oss_driver_t));
