@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.66 2002/11/12 18:40:51 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.67 2002/11/13 03:22:41 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -788,9 +788,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->bufsize = AUDIOBUFSIZE;
     this->size = 0;
 
-printf ("decode buffer (before) = %p\n", this->decode_buffer);
     this->decode_buffer = xine_xmalloc(100000);
-printf ("decode buffer  (after) = %p\n", this->decode_buffer);
 
     if (avcodec_open (this->context, codec) < 0) {
       printf ("ffmpeg: couldn't open decoder\n");
@@ -819,23 +817,18 @@ printf ("decode buffer  (after) = %p\n", this->decode_buffer);
       this->buf = realloc( this->buf, this->bufsize );
     }
 
-printf ("  *** accumulating audio data\n");
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
     this->size += buf->size;
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
-printf ("  *** time to decode audio\n");
 
       offset = 0;
       while (this->size>0) {
-printf ("    size = %d\n", this->size);
         bytes_consumed = avcodec_decode_audio (this->context, 
                                                (INT16 *)this->decode_buffer,
                                                &decode_buffer_size, 
                                                &this->buf[offset],
                                                this->size);
-printf ("    bytes consumed = %d, decode buffer size = %d\n",
-  bytes_consumed, decode_buffer_size);
 
         if (bytes_consumed<0) {
           printf ("ffmpeg: error decompressing audio frame\n");
@@ -845,10 +838,7 @@ printf ("    bytes consumed = %d, decode buffer size = %d\n",
 
         /* dispatch the decoded audio */
         out = 0;
-printf ("    preparing to dispatch...\n");
         while (out < decode_buffer_size) {
-printf ("      dispatching audio buffer, out = %d, decoder buffer size = %d\n",
-  out, decode_buffer_size);
           audio_buffer = 
             this->stream->audio_out->get_buffer (this->stream->audio_out);
           if (audio_buffer->mem_size == 0) {
@@ -857,15 +847,9 @@ printf ("      dispatching audio buffer, out = %d, decoder buffer size = %d\n",
           }
 
           if ((decode_buffer_size - out) > audio_buffer->mem_size)
-{
             bytes_to_send = audio_buffer->mem_size;
-printf("      1) bytes/send = %d\n", bytes_to_send);
-}
           else
-{
             bytes_to_send = decode_buffer_size - out;
-printf("      2) bytes/send = %d\n", bytes_to_send);
-}
 
           /* fill up this buffer */
           xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[out],
