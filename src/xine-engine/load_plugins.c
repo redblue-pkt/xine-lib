@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.96 2002/09/19 00:40:02 guenter Exp $
+ * $Id: load_plugins.c,v 1.97 2002/09/19 00:53:43 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -100,7 +100,23 @@ static char  *_strclone(const char *str){
   return new;
 }
 
-static void _insert_plugin (xine_list_t *list,
+static int _get_decoder_priority (xine_t *this, int default_priority,
+				  char *id) {
+
+  char str[80];
+
+  sprintf (str, "decoder.%s_priority", id);
+
+  return this->config->register_num (this->config,
+				     str,
+				     default_priority,
+				     "decoder's priority compared to others",
+				     NULL, 20, 
+				     NULL, NULL /* FIXME: implement callback */);
+}
+
+static void _insert_plugin (xine_t *this, 
+			    xine_list_t *list,
 			    char *filename, plugin_info_t *info, 
 			    int api_version){
 
@@ -161,6 +177,9 @@ static void _insert_plugin (xine_list_t *list,
     }
     decoder_new->supported_types = types;
     priority = decoder_new->priority = decoder_old->priority;
+
+    priority = _get_decoder_priority (this, priority, info->id);
+
     entry->info->special_info = decoder_new;
     break;
   }
@@ -247,32 +266,32 @@ static void collect_plugins(xine_t *this, char *path){
 
 		switch (info->type){
 		case PLUGIN_INPUT:
-		  _insert_plugin(this->plugin_catalog->input, str, info, 
-				 INPUT_PLUGIN_IFACE_VERSION);
+		  _insert_plugin (this, this->plugin_catalog->input, str, info, 
+				  INPUT_PLUGIN_IFACE_VERSION);
 		  break;
 		case PLUGIN_DEMUX:
-		  _insert_plugin(this->plugin_catalog->demux, str, info,
-				 DEMUXER_PLUGIN_IFACE_VERSION);
+		  _insert_plugin (this, this->plugin_catalog->demux, str, info,
+				  DEMUXER_PLUGIN_IFACE_VERSION);
 		  break;
 		case PLUGIN_AUDIO_DECODER:
-		  _insert_plugin(this->plugin_catalog->audio, str, info,
-				 AUDIO_DECODER_IFACE_VERSION);
+		  _insert_plugin (this, this->plugin_catalog->audio, str, info,
+				  AUDIO_DECODER_IFACE_VERSION);
 		  break;
 		case PLUGIN_VIDEO_DECODER:
-		  _insert_plugin(this->plugin_catalog->video, str, info,
-				 VIDEO_DECODER_IFACE_VERSION);
+		  _insert_plugin (this, this->plugin_catalog->video, str, info,
+				  VIDEO_DECODER_IFACE_VERSION);
 		  break;
 		case PLUGIN_SPU_DECODER:
-		  _insert_plugin(this->plugin_catalog->spu, str, info,
-				 SPU_DECODER_IFACE_VERSION);
+		  _insert_plugin (this, this->plugin_catalog->spu, str, info,
+				  SPU_DECODER_IFACE_VERSION);
 		  break;
 		case PLUGIN_AUDIO_OUT:
-		  _insert_plugin(this->plugin_catalog->aout, str, info,
-				 AUDIO_OUT_IFACE_VERSION);
+		  _insert_plugin (this, this->plugin_catalog->aout, str, info,
+				  AUDIO_OUT_IFACE_VERSION);
 		  break;
 		case PLUGIN_VIDEO_OUT:
-		  _insert_plugin(this->plugin_catalog->vout, str, info,
-				 VIDEO_OUT_DRIVER_IFACE_VERSION);
+		  _insert_plugin (this, this->plugin_catalog->vout, str, info,
+				  VIDEO_OUT_DRIVER_IFACE_VERSION);
 		  break;
 		default:
 		  xine_log (this, XINE_LOG_PLUGIN,
