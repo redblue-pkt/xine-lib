@@ -341,8 +341,6 @@ AC_CHECK_LIB(z, gzsetparams,
 	[ AC_CHECK_HEADER(zlib.h,
 	  have_zlib=yes
 	  ZLIB_LIBS="-lz",)], AC_MSG_ERROR(zlib needed))
-
-AM_CONDITIONAL(HAVE_ZLIB, [test x"$have_zlib" = "xyes"])
 AC_SUBST(ZLIB_LIBS)
 
 
@@ -491,7 +489,7 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
 	         echo
                fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
-AM_CONDITIONAL(HAVE_XV_STATIC, test x$ac_have_xv = "xyes" -a x$xv_lib = "xlibXv.a")
+dnl AM_CONDITIONAL(HAVE_XV_STATIC, test x$ac_have_xv = "xyes" -a x$xv_lib = "xlibXv.a")
 dnl
 dnl xine_check use Xv functions API.
 dnl
@@ -532,7 +530,7 @@ AC_CHECK_LIB(XvMC, XvMCQueryExtension,
                fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 	   
 AM_CONDITIONAL(HAVE_XVMC, test x$ac_have_xvmc = "xyes")
-AM_CONDITIONAL(HAVE_XVMC_STATIC, test x$ac_have_xvmc = "xyes" -a x$xvmc_lib = "xlibXvMC.a")
+dnl AM_CONDITIONAL(HAVE_XVMC_STATIC, test x$ac_have_xvmc = "xyes" -a x$xvmc_lib = "xlibXvMC.a")
 dnl
 dnl xine_check use XvMC functions API.
 dnl
@@ -551,7 +549,7 @@ AC_CHECK_LIB(Xinerama, XineramaQueryExtension,
               AC_DEFINE(HAVE_XINERAMA,1,[Define this if you have libXinerama installed])
               ac_have_xinerama="yes"],,
              [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
-AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
+dnl AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 
  
 dnl ---------------------------------------------
@@ -719,7 +717,6 @@ esac
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
 AM_CONDITIONAL(HAVE_LIBFAME, test x"$have_libfame" = "xyes")
 AM_CONDITIONAL(HAVE_LIBRTE, test x"$have_librte" = "xyes")
-AM_CONDITIONAL(HAVE_ENCODER, test x"$have_encoder" = "xyes")
 
 
 dnl ---------------------------------------------
@@ -769,6 +766,7 @@ AM_CONDITIONAL(HAVE_LINUX, test x"$enable_linux" = "xyes")
 AM_CONDITIONAL(BUILD_DHA_KMOD, test x"$enable_dha_kmod" = "xyes")
 AC_CHECK_PROG(MKNOD, mknod, mknod, no)
 AC_CHECK_PROG(DEPMOD, depmod, depmod, no, $PATH:/sbin)
+
 
 dnl ---------------------------------------------
 dnl Check for divx4
@@ -849,15 +847,6 @@ dnl ---------------------------------------------
 dnl PNG lib.
 dnl ---------------------------------------------
 
-dnl AC_CHECK_LIB(png, png_create_read_struct,
-dnl	[ AC_CHECK_HEADER(png.h,
-dnl		[ have_libpng=yes
-dnl		  PNG_LIBS="-lpng" ], 
-dnl		AC_MSG_RESULT([*** image decoder will be disabled ***]))],
-dnl	AC_MSG_RESULT([*** image decoder will be disabled ***]))
-dnl AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes")
-dnl AC_SUBST(PNG_LIBS)
-
 AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
 if test "$LIBPNG_CONFIG" = "no" ; then
   AC_CHECK_LIB(png, png_create_read_struct,
@@ -890,7 +879,7 @@ else
   AC_DEFINE(HAVE_FT2,1,[Define this if you have freetype2 library])
 fi
 
-AM_CONDITIONAL(HAVE_FT2, test x"$have_ft2" = "xyes" )
+dnl AM_CONDITIONAL(HAVE_FT2, test x"$have_ft2" = "xyes" )
 AC_SUBST(FT2_CFLAGS)
 AC_SUBST(FT2_LIBS)
 
@@ -1273,6 +1262,7 @@ AC_ARG_ENABLE(faad, [  --disable-faad          Do not build FAAD decoder],
 	      enable_faad=no, enable_faad=yes)
 AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" = "xyes")
 
+
 dnl ---------------------------------------------
 dnl libmodplug support 
 dnl ---------------------------------------------
@@ -1292,7 +1282,8 @@ else
 fi
 AC_SUBST(LIBMODPLUG_CFLAGS)
 AC_SUBST(LIBMODPLUG_LIBS)
-AM_CONDITIONAL(HAVE_MODPLUG, [test x"$have_modplug" = x"yes"])
+dnl AM_CONDITIONAL(HAVE_MODPLUG, [test x"$have_modplug" = x"yes"])
+
 
 dnl ---------------------------------------------
 dnl ip_mreqn
@@ -2034,6 +2025,9 @@ if test x"$no_vorbis" != "xyes"; then
 fi
 if test x"$have_libmng" = "xyes"; then
   echo "   - mng"
+fi
+if test x"$have_modplug" = x"yes"; then
+  echo "   - mod"
 fi
 echo ""
 
