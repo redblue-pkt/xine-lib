@@ -314,19 +314,21 @@ case "$host_or_hostalias" in
 	;;
 
  i386-*-freebsd*)
-	AC_CHECK_FILE(/usr/local/include/iconv.h,
-	              GICONV_BSD_LIBS="-lgiconv"
-		      no_BSDiconv="no", 
-                      [ no_BSDiconv="yes"
-	                echo
-                        echo "****************************************************************"
-		        echo "* You need to install a recent version of the port 'libiconv'  *"
-			echo "* (in /usr/ports/converters/libiconv).                         *"
-			echo "* The library in this port is needed to successfully compile   *"
-			echo "* libsputext plugin.                                           *"
-                        echo "****************************************************************"
-	                echo 
-                      ],)
+	AC_CHECK_HEADER(/usr/local/include/iconv.h,
+			CFLAGS="$CFLAGS -I/usr/local/include"
+			LDFLAGS="$LDFLAGS -L/usr/local/include"
+	                GICONV_BSD_LIBS="-lgiconv"
+		        no_BSDiconv="no", 
+                        [ no_BSDiconv="yes"
+	                  echo
+                          echo "****************************************************************"
+		          echo "* You need to install a recent version of the port 'libiconv'  *"
+			  echo "* (in /usr/ports/converters/libiconv).                         *"
+			  echo "* The library in this port is needed to successfully compile   *"
+			  echo "* libsputext plugin.                                           *"
+                          echo "****************************************************************"
+	                  echo 
+                        ],)
         ;;
 
   ppc-*-linux* | powerpc-*)
