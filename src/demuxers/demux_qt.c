@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.133 2002/12/21 13:45:56 esnel Exp $
+ * $Id: demux_qt.c,v 1.134 2002/12/21 21:57:43 esnel Exp $
  *
  */
 
@@ -1589,8 +1589,9 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       }
 
       /* stsd atom */
-      info->video_stsd      = sample_tables[i].stsd;
+      info->video_stsd      = realloc (info->video_stsd, sample_tables[i].stsd_size);
       info->video_stsd_size = sample_tables[i].stsd_size;
+      memcpy(info->video_stsd, sample_tables[i].stsd, info->video_stsd_size);
 
     } else if (sample_tables[i].type == MEDIA_AUDIO) {
 
@@ -1614,8 +1615,9 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
         sizeof(xine_waveformatex));
 
       /* stsd atom */
-      info->audio_stsd      = sample_tables[i].stsd;
+      info->audio_stsd      = realloc (info->audio_stsd, sample_tables[i].stsd_size);
       info->audio_stsd_size = sample_tables[i].stsd_size;
+      memcpy(info->audio_stsd, sample_tables[i].stsd, info->audio_stsd_size);
     }
   }
   debug_frame_table("  qt: finished building frame tables, merging into one...\n");
@@ -1689,6 +1691,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
     free(sample_tables[i].sample_to_chunk_table);
     free(sample_tables[i].sync_sample_table);
     free(sample_tables[i].frames);
+    free(sample_tables[i].stsd);
   }
   free(sample_tables);
   free(sample_table_indices);
