@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.106 2002/10/26 22:50:52 guenter Exp $
+ * $Id: input_dvd.c,v 1.107 2002/10/27 20:07:39 mroi Exp $
  *
  */
 
@@ -945,7 +945,7 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
         }
         if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
 	  xine_input_data_t *input = event->data;
-	  printf("input_dvd: Mouse move (x,y) = (%i,%i)\n", input->x, input->y); 
+	  /* printf("input_dvd: Mouse move (x,y) = (%i,%i)\n", input->x, input->y); */
 	  dvdnav_mouse_select(this->dvdnav, &nav_pci, input->x, input->y);
           xine_dvd_send_button_update(this, 0);
         }
@@ -1646,12 +1646,12 @@ static void *init_class (xine_t *xine, void *data) {
 			"may lead to jerky playback on low-end "
 			"machines.",
 			10, read_ahead_cb, this);
+#endif
   config->register_enum(config, "input.dvd_skip_behaviour", 0,
 			skip_modes,
 			"Skipping will work on this basis.",
 			NULL, 10, NULL, NULL);
   
-#endif
 #ifdef __sun
   check_solaris_vold_device(this);
 #endif
@@ -1662,6 +1662,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.107  2002/10/27 20:07:39  mroi
+ * less noise and register skip_behaviour (chapter skip keys work again)
+ *
  * Revision 1.106  2002/10/26 22:50:52  guenter
  * timeouts for mms, send progress report events, introduce verbosity engine parameter (not implemented yet), document new plugin loader in changelog
  *
