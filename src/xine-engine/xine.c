@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.171 2002/10/20 23:55:23 guenter Exp $
+ * $Id: xine.c,v 1.172 2002/10/21 12:11:03 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -654,7 +654,6 @@ void xine_init (xine_t *this) {
 void xine_select_spu_channel (xine_stream_t *stream, int channel) {
 
   pthread_mutex_lock (&stream->frontend_lock);
-
   stream->spu_channel_user = (channel >= -2 ? channel : -2);
 
   switch (stream->spu_channel_user) {
@@ -670,6 +669,7 @@ void xine_select_spu_channel (xine_stream_t *stream, int channel) {
     stream->spu_channel = stream->spu_channel_user;
     stream->video_out->enable_ovl (stream->video_out, 1);
   }
+  printf("xine-lib:xine_select_spu_channel:set to %d\n",stream->spu_channel);
 
   pthread_mutex_unlock (&stream->frontend_lock);
 }

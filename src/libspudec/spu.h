@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.15 2002/07/06 16:36:43 mroi Exp $
+ * $Id: spu.h,v 1.16 2002/10/21 12:11:01 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -93,10 +93,15 @@ typedef struct spudec_stream_state_s {
   int32_t          overlay_handle;
 } spudec_stream_state_t;
 
+typedef struct {
+  spu_decoder_class_t   decoder_class;
+} spudec_class_t;
+
 typedef struct spudec_decoder_s {
   spu_decoder_t    spu_decoder;
 
-  xine_t          *xine;
+  spudec_class_t  *class;
+  xine_stream_t   *stream;
   spudec_stream_state_t spudec_stream_state[MAX_STREAMS];
   
   video_overlay_event_t      event;

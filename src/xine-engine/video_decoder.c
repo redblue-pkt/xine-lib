@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.102 2002/10/19 18:51:22 guenter Exp $
+ * $Id: video_decoder.c,v 1.103 2002/10/21 12:11:02 jcdutton Exp $
  *
  */
 
@@ -37,18 +37,18 @@
 #define LOG
 */
 
-static spu_decoder_t* update_spu_decoder (xine_stream_t *this, int type) {
+static spu_decoder_t* update_spu_decoder (xine_stream_t *stream, int type) {
 
   int streamtype = (type>>16) & 0xFF;
   
-  if( this->spu_decoder_streamtype != streamtype ||
-      !this->spu_decoder_plugin ) {
+  if( stream->spu_decoder_streamtype != streamtype ||
+      !stream->spu_decoder_plugin ) {
     
-    if (this->spu_decoder_plugin)
-      this->spu_decoder_plugin->close (this->spu_decoder_plugin);
+    if (stream->spu_decoder_plugin)
+      free_spu_decoder (stream, stream->spu_decoder_plugin);
           
-    this->spu_decoder_streamtype = streamtype;
-    this->spu_decoder_plugin = get_spu_decoder (this, streamtype);
+    stream->spu_decoder_streamtype = streamtype;
+    stream->spu_decoder_plugin = get_spu_decoder (stream, streamtype);
 
     /* obsolete?
     if (this->spu_decoder_plugin )
@@ -56,7 +56,7 @@ static spu_decoder_t* update_spu_decoder (xine_stream_t *this, int type) {
                                         this->video_out);
     */                                       
   }
-  return this->spu_decoder_plugin;
+  return stream->spu_decoder_plugin;
 }
 
 void *video_decoder_loop (void *stream_gen) {

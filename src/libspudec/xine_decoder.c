@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.78 2002/10/14 14:00:19 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.79 2002/10/21 12:11:01 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -67,28 +67,6 @@ static clut_t __default_clut[] = {
   CLUT_Y_CR_CB_INIT(0x28, 0x6d, 0xef)
 };
 
-static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
-
-  spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
-  int i;
-
-  pthread_mutex_init(&this->nav_pci_lock, NULL);
-
-  this->vo_out      = vo_out;
-  this->ovl_caps    = vo_out->get_capabilities(vo_out);
-  this->output_open = 0;
-  this->last_event_vpts = 0;
-  for (i=0; i < MAX_STREAMS; i++) {
-    this->spudec_stream_state[i].stream_filter = 1; /* So it works with non-navdvd plugins */
-    this->spudec_stream_state[i].ra_seq.complete = 1;
-    this->spudec_stream_state[i].overlay_handle = -1;
-  }
-
-/* FIXME:Do we really need a default clut? */
-  xine_fast_memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
-  this->state.need_clut = 1;
-}
-
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t stream_id;
   spudec_seq_t       *cur_seq;
@@ -134,7 +112,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
 
   if (buf->pts) {
-    metronom_t *metronom = this->xine->metronom;
+    metronom_t *metronom = this->stream->metronom;
     int64_t vpts = metronom->got_spu_packet(metronom, buf->pts);
     
     this->spudec_stream_state[stream_id].vpts = vpts; /* Show timer */
@@ -152,29 +130,13 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 static void spudec_reset (spu_decoder_t *this_gen) {
 }
 
-static void spudec_close (spu_decoder_t *this_gen) {
-  spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
-  int                       i;
-  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
-  
-  if( this->menu_handle >= 0 )
-    ovl_instance->free_handle(ovl_instance,
-			      this->menu_handle);
-  this->menu_handle = -1;
-
-
-  for (i=0; i < MAX_STREAMS; i++) {
-    if( this->spudec_stream_state[i].overlay_handle >= 0 )
-      ovl_instance->free_handle(ovl_instance,
-				this->spudec_stream_state[i].overlay_handle);
-    this->spudec_stream_state[i].overlay_handle = -1;
-  }
-  pthread_mutex_destroy(&this->nav_pci_lock);
-}
-
 static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
+#if 0
+/* FIXME: get events working again. */
+
   xine_spu_event_t *event = (xine_spu_event_t *) event_gen;
+
   video_overlay_instance_t *ovl_instance;
 
   if((!this) || (!event)) {
@@ -256,7 +218,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 #ifdef LOG_NAV
         fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
           overlay_event->event_type,
-          this->xine->metronom->get_current_time(this->xine->metronom),
+          this->stream->metronom->get_current_time(this->stream->metronom),
           overlay_event->vpts);
 #endif
         ovl_instance->add_event (ovl_instance, (void *)overlay_event);
@@ -279,20 +241,35 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
     }
     break;
   }
-}
-
-static char *spudec_get_id(void) {
-  return "spudec";
+#endif
 }
 
 static void spudec_dispose (spu_decoder_t *this_gen) {
-  spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
 
-  xine_remove_event_listener (this->xine, spudec_event_listener);
+  spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
+  int                       i;
+  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  
+  if( this->menu_handle >= 0 )
+    ovl_instance->free_handle(ovl_instance,
+			      this->menu_handle);
+  this->menu_handle = -1;
+
+
+  for (i=0; i < MAX_STREAMS; i++) {
+    if( this->spudec_stream_state[i].overlay_handle >= 0 )
+      ovl_instance->free_handle(ovl_instance,
+				this->spudec_stream_state[i].overlay_handle);
+    this->spudec_stream_state[i].overlay_handle = -1;
+  }
+  pthread_mutex_destroy(&this->nav_pci_lock);
+  /* FIXME: get events working. */
+  /*xine_remove_event_listener (this->stream, spudec_event_listener);*/
 
   free (this->event.object.overlay);
   free (this);
 }
+
 /* gets the current already correctly processed nav_pci info */
 /* This is not perfectly in sync with the display, but all the same, */
 /* much closer than doing it at the input stage. */
@@ -310,41 +287,90 @@ static int spudec_get_nav_pci (spu_decoder_t *this_gen, pci_t *pci) {
 
 }
  
-static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
+static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   spudec_decoder_t *this ;
+  int i;
 
   this = (spudec_decoder_t *) xine_xmalloc (sizeof (spudec_decoder_t));
 
-  this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
   this->spu_decoder.reset               = spudec_reset;
-  this->spu_decoder.close               = spudec_close;
-  this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.dispose             = spudec_dispose;
   this->spu_decoder.get_nav_pci         = spudec_get_nav_pci;
-
-  this->xine                            = xine;
+  this->stream                          = stream;
+  this->class                           = (spudec_class_t *) class_gen;
   
   this->menu_handle = -1;
   this->buttonN = 1;
   this->event.object.overlay = malloc(sizeof(vo_overlay_t));
  
-  xine_register_event_listener(xine, spudec_event_listener, this);
+/* FIXME: get events working again. */
+  /*xine_register_event_listener(xine, spudec_event_listener, this);*/
 
-  return (spu_decoder_t *) this;
+  pthread_mutex_init(&this->nav_pci_lock, NULL);
+
+  this->vo_out      = stream->video_out;
+  this->ovl_caps    = stream->video_out->get_capabilities(stream->video_out);
+  this->output_open = 0;
+  this->last_event_vpts = 0;
+  for (i=0; i < MAX_STREAMS; i++) {
+    this->spudec_stream_state[i].stream_filter = 1; /* So it works with non-navdvd plugins */
+    this->spudec_stream_state[i].ra_seq.complete = 1;
+    this->spudec_stream_state[i].overlay_handle = -1;
+  }
+
+/* FIXME:Do we really need a default clut? */
+  xine_fast_memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
+  this->state.need_clut = 1;
+
+  return &this->spu_decoder;
+}
+
+static char *get_identifier (spu_decoder_class_t *this) {
+  printf ("libspudec:get_identifier called\n");
+  return "spudec";
+}
+
+static char *get_description (spu_decoder_class_t *this) {
+  printf ("libspudec:get_description called\n");
+  return "DVD/VOB SPU decoder plugin";
+}
+
+static void dispose_class (spu_decoder_class_t *this) {
+  printf ("libspudec:dispose_class called\n");
+  free (this);
+}
+
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  spudec_class_t *this;
+
+  this = (spudec_class_t *) malloc (sizeof (spudec_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+/* FIXME: get config stuff working */
+
+/*  this->config = xine->config; */
+
+  printf ("libspudec:init_plugin called\n");
+  return this;
 }
 
 /* plugin catalog information */
 static uint32_t supported_types[] = { BUF_SPU_PACKAGE, BUF_SPU_CLUT, BUF_SPU_NAV, BUF_SPU_SUBP_CONTROL, 0 };
 
-static decoder_info_t spudec_info = {
+static decoder_info_t dec_info_data = {
   supported_types,     /* supported types */
   5                    /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 9, "spudec", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
+  { PLUGIN_SPU_DECODER, 9, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.24 2002/09/04 23:31:13 guenter Exp $
+ * $Id: video_overlay.c,v 1.25 2002/10/21 12:11:03 jcdutton Exp $
  *
  */
 
@@ -252,6 +252,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
   video_overlay_event_t *event = (video_overlay_event_t *) event_gen;
   video_overlay_t *this = (video_overlay_t *) this_gen;
   uint32_t   last_event,this_event,new_event;
+  printf("xine-lib:video_overlay_add_event called\n");
 
   pthread_mutex_lock (&this->events_mutex);
   

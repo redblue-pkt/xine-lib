@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.48 2002/09/30 05:16:45 jcdutton Exp $
+ * $Id: spu.c,v 1.49 2002/10/21 12:11:00 jcdutton Exp $
  *
  */
 
@@ -162,7 +162,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
         }
         if( this->menu_handle >= 0 ) {
           int64_t vpts_offset; 
-          metronom_t *metronom = this->xine->metronom;
+          metronom_t *metronom = this->stream->metronom;
           this->event.object.handle = this->menu_handle;
           this->event.event_type = EVENT_HIDE_MENU;
           /* if !vpts then we are near a discontinuity but video_out havent detected
@@ -183,7 +183,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 #ifdef LOG_BUTTON
           fprintf(stdout, "libspudec: add_event HIDE_MENU type=%d : current time=%lld, spu vpts=%lli, vpts_offset=%lli\n",
                   this->event.event_type,
-                  this->xine->metronom->get_current_time(this->xine->metronom),
+                  this->stream->metronom->get_current_time(this->stream->metronom),
                   this->event.vpts,
                   vpts_offset);
 #endif
@@ -304,13 +304,13 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
        */
       /* spu_channel is now set based on whether we are in the menu or not. */
       /* Bit 7 is set if only forced display SPUs should be shown */
-      if ( (this->xine->spu_channel & 0x1f) != stream_id  ) { 
+      if ( (this->stream->spu_channel & 0x1f) != stream_id  ) { 
 #ifdef LOG_DEBUG
         printf ("spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
 #endif
         return;
       }
-      if ( (this->state.forced_display == 0) && (this->xine->spu_channel & 0x80) ) { 
+      if ( (this->state.forced_display == 0) && (this->stream->spu_channel & 0x80) ) { 
 #ifdef LOG_DEBUG
         printf ("spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
 #endif
@@ -333,6 +333,8 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
         }
         if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
           spu_button_t spu_button;
+#if 0
+/* FIXME: get events working again. */
           xine_spu_event_t spu_event;
           this->buttonN = this->pci.hli.hl_gi.fosl_btnn ;
           spu_event.event.type = XINE_EVENT_INPUT_BUTTON_FORCE;
@@ -342,6 +344,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
              so the nav_pci info has to be passed in the event instead. */
           memcpy(&spu_button.nav_pci, &this->pci, sizeof(pci_t) );
           xine_send_event(this->xine, &spu_event.event);
+#endif
         }
 #ifdef LOG_BUTTON
         fprintf(stderr, "libspudec:Full Overlay\n");
@@ -400,7 +403,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       if( this->spudec_stream_state[stream_id].vpts ) {
         this->event.vpts = this->spudec_stream_state[stream_id].vpts+(this->state.delay*1000); 
       } else {
-        this->event.vpts = this->xine->metronom->get_current_time(this->xine->metronom)
+        this->event.vpts = this->stream->metronom->get_current_time(this->stream->metronom)
                            + (this->state.delay*1000); 
 #ifdef LOG_BUTTON
         printf("libspudec: vpts current time estimation around discontinuity\n");
@@ -416,7 +419,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #ifdef LOG_BUTTON
       fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
         this->event.event_type,
-        this->xine->metronom->get_current_time(this->xine->metronom),
+        this->stream->metronom->get_current_time(this->stream->metronom),
         this->event.vpts);
 #endif 
       ovl_instance->add_event(ovl_instance, (void *)&this->event);

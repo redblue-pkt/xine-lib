@@ -34,6 +34,7 @@ SUBDIRS = \
 	libffmpeg \
 	libmpeg2 \
 	liba52 \
+	libspudec \
 	libmad \
 	libw32dll 
 

@@ -63,13 +63,13 @@ struct spu_decoder_class_s {
  
 struct spu_decoder_s {
 
-  void (*init) (spu_decoder_t *this, vo_instance_t *video_out);
+/*  void (*init) (spu_decoder_t *this, vo_instance_t *video_out);*/
 
   void (*decode_data) (spu_decoder_t *this, buf_element_t *buf);
 
   void (*reset) (spu_decoder_t *this);
     
-  void (*close) (spu_decoder_t *this);
+/*  void (*close) (spu_decoder_t *this); */
 
   void (*dispose) (spu_decoder_t *this);
 
