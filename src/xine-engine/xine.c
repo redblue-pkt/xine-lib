@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.170 2002/10/19 21:23:52 guenter Exp $
+ * $Id: xine.c,v 1.171 2002/10/20 23:55:23 guenter Exp $
  *
  * top-level xine functions
  *
@@ -56,6 +56,10 @@
 
 #include "xineutils.h"
 #include "compat.h"
+
+/*
+#define LOG
+*/
 
 void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
 
@@ -121,10 +125,14 @@ static void xine_stop_internal (xine_stream_t *stream) {
   int finished_count_audio = 0;
   int finished_count_video = 0;
 
+#ifdef LOG
   printf ("xine: xine_stop. status before = %d\n", stream->status);
+#endif
 
   if (stream->status == XINE_STATUS_STOP) {
+#ifdef LOG
     printf ("xine: xine_stop ignored\n");
+#endif
     return;
   }
   
@@ -148,7 +156,9 @@ static void xine_stop_internal (xine_stream_t *stream) {
   finished_count_video = stream->finished_count_video + 1;
   pthread_mutex_unlock (&stream->counter_lock);
 
+#ifdef LOG
   printf ("xine_stop: stopping demux\n");
+#endif
   if (stream->demux_plugin) {
     stream->demux_plugin->dispose (stream->demux_plugin);
     stream->demux_plugin = NULL;
@@ -157,15 +167,21 @@ static void xine_stop_internal (xine_stream_t *stream) {
      * wait until engine has really stopped
      */
 
+#if 0
     pthread_mutex_lock (&stream->counter_lock);
     while ((stream->finished_count_audio<finished_count_audio) || 
 	   (stream->finished_count_video<finished_count_video)) {
+#ifdef LOG
       printf ("xine: waiting for finisheds.\n");
+#endif
       pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
     }
     pthread_mutex_unlock (&stream->counter_lock);
+#endif
   }
+#ifdef LOG
   printf ("xine_stop: demux stopped\n");
+#endif
 
   /*
    * close input plugin
@@ -180,7 +196,9 @@ static void xine_stop_internal (xine_stream_t *stream) {
   if (stream->audio_out)
     stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
+#ifdef LOG
   printf ("xine_stop: done\n");
+#endif
 }
 
 void xine_stop (xine_stream_t *stream) {
@@ -288,6 +306,12 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->osd_renderer = osd_renderer_init (stream->video_out->get_overlay_instance (stream->video_out), stream->xine->config );
   
   /*
+   * start metronom clock
+   */
+
+  stream->metronom->start_clock (stream->metronom, 0);
+
+  /*
    * register stream
    */
 
@@ -302,6 +326,20 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 
   int header_count_audio;
   int header_count_video;
+
+#ifdef LOG
+  printf ("xine: xine_open_internal '%s'...\n", mrl);
+#endif
+
+  /*
+   * stop engine if necessary
+   */
+
+  xine_stop_internal (stream);
+
+#ifdef LOG
+  printf ("xine: engine should be stopped now\n");
+#endif
 
   /*
    * find an input plugin
@@ -337,14 +375,12 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     return 0;
   }
 
+#ifdef LOG
+  printf ("xine: demux and input plugin found\n");
+#endif
+
   stream->meta_info[XINE_META_INFO_SYSTEMLAYER] 
     = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
-
-  /*
-   * start metronom clock
-   */
-
-  stream->metronom->start_clock (stream->metronom, 0);
 
   /*
    * send and decode headers
@@ -369,6 +405,9 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   }
   pthread_mutex_unlock (&stream->counter_lock);
 
+#ifdef LOG
+  printf ("xine: xine_open_internal done\n");
+#endif
   return 1;
 }
 
@@ -378,7 +417,9 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
+#ifdef LOG
   printf ("xine: xine_open %s\n", mrl);
+#endif
 
   ret = xine_open_internal (stream, mrl);
 
