@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xvmc_mocomp.c,v 1.1 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: xvmc_mocomp.c,v 1.2 2004/10/03 12:36:15 totte67 Exp $
  *
  * XvMC image support by Jack Kelliher
  */
@@ -236,31 +236,16 @@ void xxmc_xvmc_proc_macro_block(int x, int y, int mb_type, int motion_type,
     fflush(stdout);
 #endif
 
-    if (picture_coding_type == XINE_PICT_B_TYPE)
-      xvmc_render_macro_blocks(
-			  current_frame,
-			  backward_ref_frame,
-			  forward_ref_frame,
-			  picture_structure,
-			  second_field ? XVMC_SECOND_FIELD : 0,
-			  mbs);
-    if (picture_coding_type == XINE_PICT_P_TYPE)
-      xvmc_render_macro_blocks(
-			  current_frame,
-			  NULL,
-			  forward_ref_frame,
-			  picture_structure,
-			  second_field ? XVMC_SECOND_FIELD : 0,
-			  mbs);
-    if (picture_coding_type == XINE_PICT_I_TYPE)
-      xvmc_render_macro_blocks(
-			  current_frame,
-			  NULL,
-			  NULL,
-			  picture_structure,
-			  second_field ? XVMC_SECOND_FIELD : 0,
-			  mbs);
-       
+    xvmc_render_macro_blocks(
+			     current_frame,
+			     (picture_coding_type == XINE_PICT_B_TYPE) ? 
+			     backward_ref_frame : NULL,
+			     (picture_coding_type != XINE_PICT_I_TYPE) ? 
+			     forward_ref_frame : NULL,
+			     picture_structure,
+			     second_field ? XVMC_SECOND_FIELD : 0,
+			     mbs);
+
     mbs->num_blocks       = 0;
     mbs->macroblockptr    = mbs->macroblockbaseptr;
     mbs->xine_mc.blockptr = mbs->xine_mc.blockbaseptr;

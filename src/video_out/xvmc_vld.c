@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xvmc_vld.c,v 1.1 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: xvmc_vld.c,v 1.2 2004/10/03 12:36:15 totte67 Exp $
  *
  * xvmc_vld.c, X11 decoding accelerated video extension interface for xine
  *
@@ -143,29 +143,4 @@ void xvmc_vld_slice(vo_frame_t *this_gen)
   }
 }
 #endif
-
-extern void xvmc_vld_flush(vo_frame_t *this_gen) 
-{
-
-  xxmc_frame_t
-    *frame = (xxmc_frame_t *) this_gen;
-  xxmc_driver_t
-    *driver = (xxmc_driver_t *) this_gen->driver;
-
-  xvmc_context_reader_lock( &driver->xvmc_lock );
-
-  if ( ! xxmc_xvmc_surface_valid( driver, frame->xvmc_surf)) {
-    frame->xxmc_data.result = 128;
-    xvmc_context_reader_unlock( &driver->xvmc_lock );    
-    return;
-  }
-
-  XVMCLOCKDISPLAY( driver->display );
-  frame->xxmc_data.result = XvMCFlushSurface( driver->display, frame->xvmc_surf );
-  frame->xxmc_data.result = XvMCSyncSurface( driver->display, frame->xvmc_surf );
-  XVMCUNLOCKDISPLAY( driver->display );
-
-  xvmc_context_reader_unlock( &driver->xvmc_lock );
-
-}
 

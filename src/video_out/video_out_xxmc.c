@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.1 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: video_out_xxmc.c,v 1.2 2004/10/03 12:36:14 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -352,6 +352,32 @@ static void xxmc_xvmc_free_subpicture(xxmc_driver_t *this, XvMCSubpicture *sub)
 /*
  * Here follows a number of callback function.
  */
+
+static void xvmc_flush(vo_frame_t *this_gen) 
+{
+
+  xxmc_frame_t
+    *frame = (xxmc_frame_t *) this_gen;
+  xxmc_driver_t
+    *driver = (xxmc_driver_t *) this_gen->driver;
+
+  xvmc_context_reader_lock( &driver->xvmc_lock );
+
+  if ( ! xxmc_xvmc_surface_valid( driver, frame->xvmc_surf)) {
+    frame->xxmc_data.result = 128;
+    xvmc_context_reader_unlock( &driver->xvmc_lock );    
+    return;
+  }
+
+  XVMCLOCKDISPLAY( driver->display );
+  frame->xxmc_data.result = XvMCFlushSurface( driver->display, frame->xvmc_surf );
+  frame->xxmc_data.result = XvMCSyncSurface( driver->display, frame->xvmc_surf );
+  XVMCUNLOCKDISPLAY( driver->display );
+
+  xvmc_context_reader_unlock( &driver->xvmc_lock );
+
+}
+
 
 
 /*
@@ -744,7 +770,8 @@ static int xxmc_find_context(xxmc_driver_t *driver, xine_xxmc_t *xxmc,
 
   request_mpeg_flags = xxmc->mpeg;
   found = 0;
-
+  curCap = NULL;
+  
   for (k = 0; k < NUM_ACCEL_PRIORITY; ++k) {
     request_accel_flags = xxmc->acceleration & accel_priority[k];
     if (!request_accel_flags) continue;
@@ -773,6 +800,7 @@ static int xxmc_find_context(xxmc_driver_t *driver, xine_xxmc_t *xxmc,
   }
   if ( found ) {
     driver->xvmc_accel = request_accel_flags;
+    driver->unsigned_intra = curCap->flags & XVMC_INTRA_UNSIGNED;
     return 1;
   }
   driver->xvmc_accel = 0;
@@ -785,7 +813,7 @@ static int xxmc_create_context(xxmc_driver_t *driver, unsigned width, unsigned h
 
   curCap = driver->xvmc_cap + driver->xvmc_cur_cap;
   xprintf(driver->xine, XINE_VERBOSITY_LOG,
-	  "video_out_xxmc: Creating new XvMC Context\n");
+	  "video_out_xxmc: Creating new XvMC Context %d\n",curCap->type_id);
   XVMCLOCKDISPLAY( driver->display );
   if (Success == XvMCCreateContext( driver->display, driver->xv_port, 
 				    curCap->type_id, width,
@@ -1079,17 +1107,23 @@ static void xxmc_update_xxmc(vo_frame_t *vo_img) {
       xxmc->format = XINE_IMGFMT_XXMC;
       xxmc->acceleration = driver->xvmc_accel;
       xxmc->xvmc.macroblocks = (xine_macroblocks_t *) &driver->macroblocks;
+      xxmc->xvmc.macroblocks->xvmc_accel = (driver->unsigned_intra) ? 
+	0 : XINE_VO_SIGNED_INTRA;
       switch(driver->xvmc_accel) {
       case XINE_XVMC_ACCEL_IDCT:
-	xxmc->xvmc.macroblocks->xvmc_accel = XINE_VO_IDCT_ACCEL;
+	xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_IDCT_ACCEL;
 	break;
       case XINE_XVMC_ACCEL_MOCOMP:
-	xxmc->xvmc.macroblocks->xvmc_accel = XINE_VO_MOTION_ACCEL;
+	xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_MOTION_ACCEL; 
 	break;
       default:
 	xxmc->xvmc.macroblocks->xvmc_accel = 0;
       }
-    }	  
+    }
+    driver->macroblocks.num_blocks = 0;
+    driver->macroblocks.macroblockptr = driver->macroblocks.macroblockbaseptr;
+    driver->macroblocks.xine_mc.blockptr = driver->macroblocks.xine_mc.blockbaseptr;
+
     xxmc->decoded = 0;
   } 
   xvmc_context_writer_unlock( &driver->xvmc_lock);
@@ -1131,18 +1165,17 @@ static void xxmc_update_frame_format (vo_driver_t *this_gen,
   xxmc_driver_t  *this  = (xxmc_driver_t *) this_gen;
   xxmc_frame_t   *frame = (xxmc_frame_t *) frame_gen;
 
+  frame->vo_frame.accel_data = &frame->xxmc_data;
   if ( XINE_IMGFMT_XXMC == format ) {
     frame->xxmc_data.proc_xxmc_frame = xxmc_update_xxmc;
-    frame->xxmc_data.proc_xxmc_flush = xvmc_vld_flush;
+    frame->xxmc_data.proc_xxmc_flush = xvmc_flush;
 #ifdef HAVE_VLDXVMC
     frame->xxmc_data.proc_xxmc_begin = xvmc_vld_frame;
     frame->xxmc_data.proc_xxmc_slice = xvmc_vld_slice;
 #endif
     frame->xxmc_data.xvmc.proc_macro_block = xxmc_xvmc_proc_macro_block;
-    frame->vo_frame.accel_data = &frame->xxmc_data;
     frame->vo_frame.proc_duplicate_frame_data = xxmc_duplicate_frame_data;
   } else {
-    frame->vo_frame.accel_data = &frame->xxmc_data;
     frame->xxmc_data.format = format;
   }
 

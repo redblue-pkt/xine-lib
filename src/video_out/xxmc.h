@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xxmc.h,v 1.1 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: xxmc.h,v 1.2 2004/10/03 12:36:15 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -248,6 +248,7 @@ struct xxmc_driver_s {
   unsigned           xvmc_height;
   int                have_xvmc_autopaint;
   int                xoverlay_ck;
+  int                unsigned_intra;
 
   /*
    * Only creation and destruction of the below.
@@ -277,7 +278,6 @@ extern int xxmc_xvmc_surface_valid(xxmc_driver_t *this, XvMCSurface *surf);
 
 extern void xvmc_vld_slice(vo_frame_t *this_gen);
 extern void xvmc_vld_frame(struct vo_frame_s *this_gen);
-extern void xvmc_vld_flush(vo_frame_t *this_gen); 
 
 extern void xxmc_xvmc_proc_macro_block(int x, int y, int mb_type, int motion_type, 
 				       int (*mv_field_sel)[2], int *dmvector, 
