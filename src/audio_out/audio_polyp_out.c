@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_polyp_out.c,v 1.4 2004/11/22 20:26:42 miguelfreitas Exp $
+ * $Id: audio_polyp_out.c,v 1.5 2004/12/19 20:39:06 miguelfreitas Exp $
  *
  * ao plugin for polypaudio:
  * http://0pointer.de/lennart/projects/polypaudio/
@@ -322,11 +322,13 @@ static void ao_polyp_close(ao_driver_t *this_gen)
   if (this->stream) {
     if (pa_stream_get_state(this->stream) == PA_STREAM_READY)
       wait_for_operation(this, pa_stream_drain(this->stream, NULL, NULL));
+    pa_stream_disconnect(this->stream);
     pa_stream_unref(this->stream);
     this->stream = NULL;
   }
 
   if (this->context) {
+    pa_context_disconnect(this->context);
     pa_context_unref(this->context);
     this->context = NULL;
   }
