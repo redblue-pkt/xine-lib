@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.71 2002/10/18 13:13:30 jcdutton Exp $
+ * $Id: audio_out.c,v 1.72 2002/10/18 14:20:59 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -67,9 +67,9 @@
 #include "resample.h"
 #include "metronom.h"
 
-
+/*
 #define LOG
-
+*/
 
 #define NUM_AUDIO_BUFFERS       32
 #define AUDIO_BUF_SIZE       32768
@@ -548,8 +548,27 @@ static void *ao_loop (void *this_gen) {
         ao_fill_gap (this, gap / 2);
       }
     } else {
+#if 0
+      {
+        int count;
+        printf("Audio data\n");
+        for (count=0;count < 10;count++) {
+          printf("%x ",buf->mem[count]);
+        }
+        printf("\n");
+      }
+#endif
       out_buf = prepare_samples(this, buf);
-
+#if 0
+      {
+        int count;
+        printf("Audio data2\n");
+        for (count=0;count < 10;count++) {
+          printf("%x ",out_buf->mem[count]);
+        }
+        printf("\n");
+      }
+#endif
       this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
 #ifdef LOG
       printf ("audio_out:loop: next fifo\n");
