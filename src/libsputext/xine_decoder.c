@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.22 2002/05/01 19:42:57 guenter Exp $
+ * $Id: xine_decoder.c,v 1.23 2002/05/16 12:39:56 f1rmb Exp $
  *
  * code based on mplayer module:
  *
@@ -1034,7 +1034,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 									"codec.spu_src_encoding", 
 									"windows-1250", 
 									"source encoging of subtitles", 
-									NULL, update_osd_dst_encoding, this);
+									NULL, update_osd_src_encoding, this);
   this->dst_encoding                    = xine->config->register_string(xine->config, 
 									"codec.spu_dst_encoding", 
 									"iso-8859-2", 
