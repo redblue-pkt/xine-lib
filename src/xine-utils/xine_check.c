@@ -285,24 +285,50 @@ xine_health_check_xv (xine_health_check_t* hc) {
   char * disname = NULL;
   void * dl_handle;
   int (*xvquery_extension)(Display*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*);
+  Display* (*xopendisplay)(Display*);
+  char* (*xdisplayname)(char*);
+  char* display_name = "";
   char * err = NULL;
 
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
 
-  if(!(dpy = XOpenDisplay(disname))) {
-    char* display_name = "";
-    if (disname != NULL) {
-      display_name = disname;
-    }
-    else {
-      display_name = XDisplayName(NULL);
-    }
-    hc->msg = (char*) malloc (sizeof (char) * (28-2) + strlen(display_name) + 1);
-    sprintf(hc->msg, "Unable to open display: %s\n", display_name);
+  /* Get reference to XOpenDisplay */
+  dlerror(); /* clear error code */
+  dl_handle = dlopen("libX11.a", RTLD_LAZY);
+  if(!dl_handle) {
+    hc->msg = dlerror();
     hc->status = XINE_HEALTH_CHECK_FAIL;
     return hc;
   }
 
+  xopendisplay = dlsym(dl_handle,"XOpenDisplay");
+
+  if((err = dlerror()) != NULL) {
+    hc->msg = err;
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
+  }
+  dlclose(dl_handle);
+
+  /* Get reference to XDisplayName */
+  dlerror(); /* clear error code */
+  dl_handle = dlopen("libX11.a", RTLD_LAZY);
+  if(!dl_handle) {
+    hc->msg = dlerror();
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
+  }
+
+  xdisplayname = dlsym(dl_handle,"XDisplayName");
+
+  if((err = dlerror()) != NULL) {
+    hc->msg = err;
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
+  }
+  dlclose(dl_handle);
+
+  /* Get reference to XvQueryExtension */
   dlerror(); /* clear error code */
   dl_handle = dlopen("libXv.a", RTLD_LAZY);
   if(!dl_handle) {
@@ -318,6 +344,20 @@ xine_health_check_xv (xine_health_check_t* hc) {
     hc->status = XINE_HEALTH_CHECK_FAIL;
     return hc;
   }
+  dlclose(dl_handle);
+
+  if(!(dpy = (*xopendisplay)(disname))) {
+    if (disname != NULL) {
+      display_name = disname;
+    }
+    else {
+      display_name = (*xdisplayname)(NULL);
+    }
+    hc->msg = (char*) malloc (sizeof (char) * (28-2) + strlen(display_name) + 1);
+    sprintf(hc->msg, "Unable to open display: %s\n", display_name);
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
+  }
 
   if((Success != (*xvquery_extension)(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
     hc->msg = (char*) malloc (sizeof (char) * 80);
@@ -329,7 +369,7 @@ xine_health_check_xv (xine_health_check_t* hc) {
     sprintf(hc->msg, "X-Video Extension version %d.%d\n", ver , rev);
     hc->status = XINE_HEALTH_CHECK_OK;
   }
-  dlclose(dl_handle);
+
   return hc;
 #else
   hc->msg = (char*) malloc (sizeof (char) * 20);
