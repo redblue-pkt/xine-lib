@@ -34,8 +34,8 @@ ZoomFilterData;
 #define YONLY_MODE 8
 #define SPEEDWAY_MODE 9
 
-void    pointFilter (guint32 * pix1, Color c,
-		     float t1, float t2, float t3, float t4, guint32 cycle);
+void    pointFilter (Uint * pix1, Color c,
+		     float t1, float t2, float t3, float t4, Uint cycle);
 
 /* filtre de zoom :
  * le contenu de pix1 est copie dans pix2.
@@ -43,10 +43,10 @@ void    pointFilter (guint32 * pix1, Color c,
  * resx,resy : taille des buffers.
  */
 
-void    zoomFilterFastRGB (guint32 * pix1,
-			   guint32 * pix2,
+void    zoomFilterFastRGB (Uint * pix1,
+			   Uint * pix2,
 			   ZoomFilterData * zf,
-			   guint32 resx, guint32 resy,
+			   Uint resx, Uint resy,
 			   int switchIncr, float switchMult);
 
 

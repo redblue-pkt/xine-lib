@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.194 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_avi.c,v 1.195 2004/02/29 17:26:48 valtri Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1223,15 +1223,15 @@ static avi_t *AVI_init(demux_avi_t *this) {
 	 chunk_start = en = malloc (AVI->video_superindex->aIndex[j].dwSize+hdrl_len);
 
 	 if (this->input->seek(this->input, AVI->video_superindex->aIndex[j].qwOffset, SEEK_SET) == (off_t)-1) {
-	    lprintf("(%s) cannot seek to 0x%llx\n", __FILE__, 
-(unsigned long long)AVI->video_superindex->aIndex[j].qwOffset);
+	    lprintf("(%s) cannot seek to 0x%" PRIx64 "\n", __FILE__, 
+	    AVI->video_superindex->aIndex[j].qwOffset);
 	    free(chunk_start);
 	    continue;
 	 }
 
 	 if (this->input->read(this->input, en, AVI->video_superindex->aIndex[j].dwSize+hdrl_len) <= 0) {
-	    lprintf("(%s) cannot read from offset 0x%llx %ld bytes; broken (incomplete) file?\n", 
-		  __FILE__, (unsigned long long)AVI->video_superindex->aIndex[j].qwOffset,
+	    lprintf("(%s) cannot read from offset 0x%" PRIx64 " %ld bytes; broken (incomplete) file?\n", 
+		  __FILE__, AVI->video_superindex->aIndex[j].qwOffset,
 		  (unsigned long)AVI->video_superindex->aIndex[j].dwSize+hdrl_len);
 	    free(chunk_start);
 	    continue;
@@ -1289,14 +1289,14 @@ static avi_t *AVI_init(demux_avi_t *this) {
 	    chunk_start = en = malloc (AVI->audio[audtr]->audio_superindex->aIndex[j].dwSize+hdrl_len);
 
 	    if (this->input->seek(this->input, AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset, SEEK_SET) == (off_t)-1) {
-	       lprintf("(%s) cannot seek to 0x%llx\n", __FILE__, (unsigned long long)AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset);
+	       lprintf("(%s) cannot seek to 0x%" PRIx64 "\n", __FILE__, AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset);
 	       free(chunk_start);
 	       continue;
 	    }
 
 	    if (this->input->read(this->input, en, AVI->audio[audtr]->audio_superindex->aIndex[j].dwSize+hdrl_len) <= 0) {
-	       lprintf("(%s) cannot read from offset 0x%llx; broken (incomplete) file?\n", 
-		     __FILE__,(unsigned long long) AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset);
+	       lprintf("(%s) cannot read from offset 0x%" PRIx64 "; broken (incomplete) file?\n", 
+		     __FILE__, AVI->audio[audtr]->audio_superindex->aIndex[j].qwOffset);
 	       free(chunk_start);
 	       continue;
 	    }

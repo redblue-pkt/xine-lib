@@ -479,10 +479,8 @@ case "$host_or_hostalias" in
 	AC_CHECK_HEADER(/usr/local/include/iconv.h,
 			CFLAGS="-I/usr/local/include $CFLAGS"
 			LDFLAGS="-L/usr/local/lib $LDFLAGS"
-	                GICONV_BSD_LIBS="-liconv"
-		        no_BSDiconv="no", 
-                        [ no_BSDiconv="yes"
-	                  echo
+	                LIBICONV="-liconv"
+                        [ echo
                           echo "****************************************************************"
 		          echo "* You need to install a recent version of the port 'libiconv'  *"
 			  echo "* (in /usr/ports/converters/libiconv).                         *"
@@ -498,11 +496,8 @@ case "$host_or_hostalias" in
         ;;
 
   *)
-        no_BSDiconv="no"
         ;;
 esac
-AC_SUBST(GICONV_BSD_LIBS)
-AM_CONDITIONAL(HAVE_GICONV, test x$no_BSDiconv != "xyes")
 AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
 
 

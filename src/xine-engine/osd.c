@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -34,9 +34,9 @@
 #include <dirent.h>
 #include <errno.h>
 
-#ifndef _MSC_VER 
-#include <iconv.h>
-#endif /* _MSC_VER */
+#ifdef HAVE_ICONV
+#  include <iconv.h>
+#endif
 
 #ifdef HAVE_LANGINFO_CODESET
 #include <langinfo.h>
@@ -47,6 +47,7 @@
 /*
 #define LOG
 */
+#define LOG
 
 #define XINE_ENGINE_INTERNAL
 
@@ -154,7 +155,7 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
 
   osd->handle = -1;
 
-#ifndef _MSC_VER
+#ifdef HAVE_ICONV
   osd->cd       = (iconv_t)-1;
   osd->encoding = NULL;
 #endif
@@ -835,7 +836,7 @@ static int osd_search(osd_fontchar_t *array, size_t n, uint16_t code) {
 }
 
 
-#ifndef _MSC_VER
+#ifdef HAVE_ICONV
 /* 
  * get next unicode value 
  */
@@ -876,7 +877,7 @@ static uint16_t osd_iconv_getunicode(xine_t *xine,
  * free iconv encoding
  */
 static void osd_free_encoding(osd_object_t *osd) {
-#ifndef _MSC_VER
+#ifdef HAVE_ICONV
   if (osd->cd != (iconv_t)-1) {
     iconv_close(osd->cd);
     osd->cd = (iconv_t)-1;
@@ -896,9 +897,10 @@ static void osd_free_encoding(osd_object_t *osd) {
  * ""   ... locale encoding
  */
 static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
-#ifndef _MSC_VER
+#ifdef HAVE_ICONV
   osd_free_encoding(osd);
 
+  lprintf("osd=%p, encoding=%s\n", osd, encoding ? (encoding[0] ? encoding : "locale") : "no conversion");
   if (!encoding) return 1;
   if (!encoding[0]) {
 #ifdef HAVE_LANGINFO_CODESET
@@ -910,6 +912,7 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
 #else
     return 0;
 #endif
+    lprintf("locale encoding='%s'\n", osd, encoding);
   }
 
   /* prepare conversion to UCS-2 */
@@ -923,7 +926,7 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
   return 1;
 #else
   return encoding == NULL;
-#endif /* _MSC_VER */
+#endif /* HAVE_ICONV */
 }
 
 
@@ -976,7 +979,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   inbytesleft = strlen(text);
   
   while( inbytesleft ) {
-#ifndef _MSC_VER
+#ifdef HAVE_ICONV
     unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding, 
                                    (char **)&inbuf, &inbytesleft);
 #else
@@ -1119,7 +1122,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   inbytesleft = strlen(text);
   
   while( inbytesleft ) {
-#ifndef _MSC_VER
+#ifdef HAVE_ICONV
     unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding, 
                                    (char **)&inbuf, &inbytesleft);
 #else

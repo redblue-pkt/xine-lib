@@ -19,7 +19,7 @@ EXTRA_DIST = lrb.c lrb.h
 
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
-		-lm $(XINEUTILS_LIB) $(GICONV_BSD_LIBS) $(FT2_LIBS)
+		-lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
