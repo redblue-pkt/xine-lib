@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.119 2003/11/29 14:30:55 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.120 2003/12/02 14:07:27 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -728,7 +728,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
       stream_num = get_stream(this, cur_serno);
       if (stream_num == -1) {
 	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "help, stream with no beginning!\n");
-	abort();
+        this->status = DEMUX_FINISHED;
+        return;
       }
     }
 
