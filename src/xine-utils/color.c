@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.18 2003/06/22 15:03:43 miguelfreitas Exp $
+ * $Id: color.c,v 1.19 2003/07/12 03:10:15 miguelfreitas Exp $
  */
 
 #include "xine_internal.h"
@@ -148,7 +148,12 @@ void (*yv12_to_yuy2)
    unsigned char *v_src, int v_src_pitch, 
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive);
-
+void (*yuy2_to_yv12)
+  (unsigned char *yuy2_map, int yuy2_pitch,
+   unsigned char *y_dst, int y_dst_pitch, 
+   unsigned char *u_dst, int u_dst_pitch, 
+   unsigned char *v_dst, int v_dst_pitch, 
+   int width, int height);
 
 /*
  * init_yuv_planes
@@ -949,6 +954,59 @@ void yv12_to_yuy2_mmxext
 #endif
 }
 
+#define C_YUYV_YUV420( )                                          \
+    *p_y1++ = *p_line1++; *p_y2++ = *p_line2++;                   \
+    *p_u++ = (*p_line1++ + *p_line2++)>>1;                        \
+    *p_y1++ = *p_line1++; *p_y2++ = *p_line2++;                   \
+    *p_v++ = (*p_line1++ + *p_line2++)>>1;
+
+void yuy2_to_yv12_c
+  (unsigned char *yuy2_map, int yuy2_pitch,
+   unsigned char *y_dst, int y_dst_pitch, 
+   unsigned char *u_dst, int u_dst_pitch, 
+   unsigned char *v_dst, int v_dst_pitch, 
+   int width, int height) {
+
+    uint8_t *p_line1, *p_line2 = yuy2_map;
+    uint8_t *p_y1, *p_y2 = y_dst;
+    uint8_t *p_u = u_dst;
+    uint8_t *p_v = v_dst;
+    uint8_t *p_u2 = u_dst + u_dst_pitch;
+    uint8_t *p_v2 = v_dst + v_dst_pitch;
+
+    int i_x, i_y;
+
+    const int i_dest_margin = y_dst_pitch - width;
+    const int i_dest_u_margin = u_dst_pitch - width/2;
+    const int i_dest_v_margin = v_dst_pitch - width/2;
+    const int i_source_margin = yuy2_pitch - width*2;
+
+
+    for( i_y = height / 2 ; i_y-- ; )
+    {
+        p_line1 = p_line2;
+        p_line2 += yuy2_pitch;
+  
+        p_y1 = p_y2;
+        p_y2 += y_dst_pitch;
+  
+        for( i_x = width / 8 ; i_x-- ; )
+        {
+            C_YUYV_YUV420( );
+            C_YUYV_YUV420( );
+            C_YUYV_YUV420( );
+            C_YUYV_YUV420( );
+        }
+  
+        p_y2 += i_dest_margin;
+        p_u += i_dest_u_margin;
+        p_v += i_dest_v_margin;
+        p_line2 += i_source_margin;
+    }
+}
+
+
+
 /*
  * init_yuv_conversion
  *
@@ -987,6 +1045,9 @@ void init_yuv_conversion(void) {
     yv12_to_yuy2 = yv12_to_yuy2_mmxext;
   else
     yv12_to_yuy2 = yv12_to_yuy2_c;
+
+  yuy2_to_yv12 = yuy2_to_yv12_c;
+
 
   /* determine best YUV9 -> YV12 converter to use (only the portable C
    * version is available so far) */

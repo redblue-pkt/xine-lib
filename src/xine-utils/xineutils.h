@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.54 2003/06/20 20:57:29 andruil Exp $
+ * $Id: xineutils.h,v 1.55 2003/07/12 03:10:15 miguelfreitas Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -773,6 +773,12 @@ extern void (*yv12_to_yuy2)
    unsigned char *v_src, int v_src_pitch, 
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive);
+extern void (*yuy2_to_yv12)
+  (unsigned char *yuy2_map, int yuy2_pitch,
+   unsigned char *y_dst, int y_dst_pitch, 
+   unsigned char *u_dst, int u_dst_pitch, 
+   unsigned char *v_dst, int v_dst_pitch, 
+   int width, int height);
 
 #define SCALEFACTOR 65536
 #define CENTERSAMPLE 128
