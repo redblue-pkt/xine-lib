@@ -55,6 +55,7 @@ xine-lib (1-rc3b)
     as both the XFree86 and the proprietary driver are broken
   * fix long standing problem with xine using alsa's dmix audio out.
     Sound is now continuous.
+  * fix playback of ogg/ogm files larger than 2GB
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

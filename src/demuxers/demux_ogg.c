@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.143 2004/02/22 23:46:32 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.144 2004/03/30 20:44:15 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -236,7 +236,7 @@ static void get_stream_length (demux_ogg_t *this) {
     You have to seek afterwards, because after get_stream_length, the
     current_position is at the end of the file */
 
-  int filelength;
+  off_t filelength;
   int done=0;
   int stream_num;
 
