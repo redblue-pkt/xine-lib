@@ -973,6 +973,9 @@ fi
 dnl Flags not supported by all *cc* variants
 AC_TRY_CFLAGS("-Wall", wall="-Wall", wall="")
 
+dnl check for __attribute__ ((aligned ()))
+dnl WARNING! Do not move this check behind the $(MULTIPASS_CFLAGS)!
+AC_C_ATTRIBUTE_ALIGNED
 
 dnl Common cflags for all platforms
 CFLAGS="$CFLAGS $wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS)"
@@ -1281,13 +1284,6 @@ dnl ---------------------------------------------
 dnl HAVE_ARMV4L is currently used in libavcodec makefile.am
 dnl ---------------------------------------------
 AM_CONDITIONAL(HAVE_ARMV4L, test x"$enable_armv4l" = "xyes")
-
-
-dnl ---------------------------------------------
-dnl gcc __attribute__ ((aligned ()))
-dnl ---------------------------------------------
-AC_C_ATTRIBUTE_ALIGNED
-
 
 
 dnl ---------------------------------------------
