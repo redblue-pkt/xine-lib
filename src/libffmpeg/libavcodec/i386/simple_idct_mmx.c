@@ -29,49 +29,49 @@
 8866.956905
 4520.335430
 */
-#define C0 23170 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-#define C1 22725 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-#define C2 21407 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-#define C3 19266 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
+#define C0 23170 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+#define C1 22725 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+#define C2 21407 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+#define C3 19266 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
 #if 0
-#define C4 16384 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
+#define C4 16384 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
 #else
-#define C4 16383 //cos(i*M_PI/16)*sqrt(2)*(1<<14) - 0.5
+#define C4 16383 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) - 0.5 */
 #endif
-#define C5 12873 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-#define C6 8867 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-#define C7 4520 //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
+#define C5 12873 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+#define C6 8867 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+#define C7 4520 /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
 
 #define ROW_SHIFT 11
-#define COL_SHIFT 20 // 6
+#define COL_SHIFT 20 /* 6 */
 
 static const uint64_t __attribute__((aligned(8))) wm1010= 0xFFFF0000FFFF0000ULL;
 static const uint64_t __attribute__((aligned(8))) d40000= 0x0000000000040000ULL;
 static int16_t __attribute__((aligned(8))) temp[64];
 static int16_t __attribute__((aligned(8))) coeffs[]= {
 	1<<(ROW_SHIFT-1), 0, 1<<(ROW_SHIFT-1), 0,
-//	1<<(COL_SHIFT-1), 0, 1<<(COL_SHIFT-1), 0,
-//	0, 1<<(COL_SHIFT-1-16), 0, 1<<(COL_SHIFT-1-16),
+/* 	1<<(COL_SHIFT-1), 0, 1<<(COL_SHIFT-1), 0, */
+/* 	0, 1<<(COL_SHIFT-1-16), 0, 1<<(COL_SHIFT-1-16), */
 	1<<(ROW_SHIFT-1), 1, 1<<(ROW_SHIFT-1), 0,
-	// the 1 = ((1<<(COL_SHIFT-1))/C4)<<ROW_SHIFT :)
-//	0, 0, 0, 0,
-//	0, 0, 0, 0,
+/*      the 1 = ((1<<(COL_SHIFT-1))/C4)<<ROW_SHIFT :) */
+/* 	0, 0, 0, 0, */
+/* 	0, 0, 0, 0, */
 
  C4,  C4,  C4,  C4,
  C4, -C4,  C4, -C4,
- 
+
  C2,  C6,  C2,  C6,
  C6, -C2,  C6, -C2,
- 
+
  C1,  C3,  C1,  C3,
  C5,  C7,  C5,  C7,
- 
+
  C3, -C7,  C3, -C7,
 -C1, -C5, -C1, -C5,
- 
+
  C5, -C1,  C5, -C1,
  C7,  C3,  C7,  C3,
- 
+
  C7, -C5,  C7, -C5,
  C3, -C1,  C3, -C1
 };
@@ -93,14 +93,14 @@ static void inline idctCol (int16_t * col, int16_t *input)
 #undef C6
 #undef C7
 	int a0, a1, a2, a3, b0, b1, b2, b3;
-	const int C0 = 23170; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C1 = 22725; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C2 = 21407; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C3 = 19266; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C4 = 16383; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C5 = 12873; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C6 = 8867; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C7 = 4520; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
+	const int C0 = 23170; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C1 = 22725; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C2 = 21407; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C3 = 19266; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C4 = 16383; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C5 = 12873; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C6 = 8867; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C7 = 4520; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
 /*
 	if( !(col[8*1] | col[8*2] |col[8*3] |col[8*4] |col[8*5] |col[8*6] | col[8*7])) {
 		col[8*0] = col[8*1] = col[8*2] = col[8*3] = col[8*4] =
@@ -142,14 +142,14 @@ static void inline idctRow (int16_t * output, int16_t * input)
 	int16_t row[8];
 
 	int a0, a1, a2, a3, b0, b1, b2, b3;
-	const int C0 = 23170; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C1 = 22725; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C2 = 21407; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C3 = 19266; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C4 = 16383; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C5 = 12873; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C6 = 8867; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
-	const int C7 = 4520; //cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5
+	const int C0 = 23170; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C1 = 22725; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C2 = 21407; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C3 = 19266; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C4 = 16383; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C5 = 12873; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C6 = 8867; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
+	const int C7 = 4520; /* cos(i*M_PI/16)*sqrt(2)*(1<<14) + 0.5 */
 
 row[0] = input[0];
 row[2] = input[1];
@@ -206,8 +206,8 @@ row[7] = input[13];
 
 static inline void idct(int16_t *block)
 {
-	asm volatile(
-#if 0 //Alternative, simpler variant
+	__asm__ volatile(
+#if 0 /* Alternative, simpler variant */
 
 #define ROW_IDCT(src0, src4, src1, src5, dst, rounder, shift) \
 	"movq " #src0 ", %%mm0			\n\t" /* R4	R0	r4	r0 */\
@@ -353,7 +353,7 @@ static inline void idct(int16_t *block)
 	"movd %%mm4, 64+" #dst "		\n\t"\
 	"movd %%mm5, 80+" #dst "		\n\t"\
 
-	
+
 #define DC_COND_ROW_IDCT(src0, src4, src1, src5, dst, rounder, shift) \
 	"movq " #src0 ", %%mm0			\n\t" /* R4	R0	r4	r0 */\
 	"movq " #src4 ", %%mm1			\n\t" /* R6	R2	r6	r2 */\
@@ -443,7 +443,7 @@ static inline void idct(int16_t *block)
 	"2:					\n\t"
 
 
-//IDCT(      src0,   src4,   src1,   src5,    dst,    rounder, shift)
+/* IDCT(      src0,   src4,   src1,   src5,    dst,    rounder, shift) */
 ROW_IDCT(    (%0),  8(%0), 16(%0), 24(%0),  0(%1),paddd 8(%2), 11)
 /*ROW_IDCT(  32(%0), 40(%0), 48(%0), 56(%0), 32(%1), paddd (%2), 11)
 ROW_IDCT(  64(%0), 72(%0), 80(%0), 88(%0), 64(%1), paddd (%2), 11)
@@ -454,7 +454,7 @@ DC_COND_ROW_IDCT(  64(%0), 72(%0), 80(%0), 88(%0), 64(%1),paddd (%2), 11)
 DC_COND_ROW_IDCT(  96(%0),104(%0),112(%0),120(%0), 96(%1),paddd (%2), 11)
 
 
-//IDCT(      src0,   src4,   src1,    src5,    dst, rounder, shift)
+/* IDCT(      src0,   src4,   src1,    src5,    dst, rounder, shift) */
 COL_IDCT(    (%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
 COL_IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
 COL_IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
@@ -694,7 +694,7 @@ COL_IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20)
 	"packssdw %%mm0, %%mm4			\n\t" /* A2-B2	a2-b2	A3-B3	a3-b3 */\
 	"movq %%mm4, 16+" #dst "		\n\t"\
 
-//IDCT(         src0,   src4,   src1,   src5,    dst,   rounder, shift)
+/* IDCT(         src0,   src4,   src1,   src5,    dst,   rounder, shift) */
 DC_COND_IDCT(  0(%0),  8(%0), 16(%0), 24(%0),  0(%1),paddd 8(%2), 11)
 Z_COND_IDCT(  32(%0), 40(%0), 48(%0), 56(%0), 32(%1),paddd (%2), 11, 4f)
 Z_COND_IDCT(  64(%0), 72(%0), 80(%0), 88(%0), 64(%1),paddd (%2), 11, 2f)
@@ -778,7 +778,7 @@ Z_COND_IDCT(  96(%0),104(%0),112(%0),120(%0), 96(%1),paddd (%2), 11, 1f)
 	"movd %%mm5, 80+" #dst "		\n\t"
 
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(    (%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
 IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
@@ -853,9 +853,9 @@ Z_COND_IDCT(  96(%0),104(%0),112(%0),120(%0), 96(%1),paddd (%2), 11, 5f)
 	"packssdw %%mm5, %%mm5			\n\t" /* A2-B2	a2-b2 */\
 	"movd %%mm6, 48+" #dst "		\n\t"\
 	"movd %%mm1, 64+" #dst "		\n\t"\
-	"movd %%mm5, 80+" #dst "		\n\t"	
+	"movd %%mm5, 80+" #dst "		\n\t"
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(    (%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
 IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
@@ -920,10 +920,10 @@ Z_COND_IDCT(  96(%0),104(%0),112(%0),120(%0), 96(%1),paddd (%2), 11, 7f)
 	"packssdw %%mm5, %%mm5			\n\t" /* A2-B2	a2-b2 */\
 	"movd %%mm6, 48+" #dst "		\n\t"\
 	"movd %%mm1, 64+" #dst "		\n\t"\
-	"movd %%mm5, 80+" #dst "		\n\t"	
+	"movd %%mm5, 80+" #dst "		\n\t"
 
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(    (%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
 IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
@@ -1002,7 +1002,7 @@ Z_COND_IDCT(  96(%0),104(%0),112(%0),120(%0), 96(%1),paddd (%2), 11, 3f)
 	"movd %%mm4, 64+" #dst "		\n\t"\
 	"movd %%mm5, 80+" #dst "		\n\t"
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(    (%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
 IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
@@ -1068,7 +1068,7 @@ IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20)
 	"movd %%mm5, 80+" #dst "		\n\t"
 
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(    (%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
 IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
@@ -1133,14 +1133,14 @@ IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20)
 	"packssdw %%mm1, %%mm6			\n\t" /* A3+B3	a3+b3 */\
 	"movq %%mm6, 48+" #dst "		\n\t"\
 	"movq %%mm6, 64+" #dst "		\n\t"\
-	"movq %%mm5, 80+" #dst "		\n\t"	
-	
+	"movq %%mm5, 80+" #dst "		\n\t"
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(    0(%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
-//IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
+/* IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20) */
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
-//IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20)
+/* IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20) */
 	"jmp 9f					\n\t"
 
 
@@ -1210,9 +1210,9 @@ IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
 	"packssdw %%mm5, %%mm5			\n\t" /* A2-B2	a2-b2 */\
 	"movd %%mm4, 64+" #dst "		\n\t"\
 	"movd %%mm5, 80+" #dst "		\n\t"
-	
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(    (%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
 IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
@@ -1252,13 +1252,13 @@ IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20)
 	"movq %%mm0, 32+" #dst "		\n\t"\
 	"movq %%mm4, 48+" #dst "		\n\t"\
 	"movq %%mm4, 64+" #dst "		\n\t"\
-	"movq %%mm0, 80+" #dst "		\n\t"	
+	"movq %%mm0, 80+" #dst "		\n\t"
 
-//IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift)
+/* IDCT(  src0,   src4,   src1,    src5,    dst, rounder, shift) */
 IDCT(   0(%1), 64(%1), 32(%1),  96(%1),  0(%0),/nop, 20)
-//IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20)
+/* IDCT(   8(%1), 72(%1), 40(%1), 104(%1),  4(%0),/nop, 20) */
 IDCT(  16(%1), 80(%1), 48(%1), 112(%1),  8(%0),/nop, 20)
-//IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20)
+/* IDCT(  24(%1), 88(%1), 56(%1), 120(%1), 12(%0),/nop, 20) */
 
 
 #endif
@@ -1273,7 +1273,7 @@ Input
  12 32 16 36 52 72 56 76
  05 45 07 47 25 65 27 67
  15 35 17 37 55 75 57 77
-  
+
 Temp
  00 04 10 14 20 24 30 34
  40 44 50 54 60 64 70 74
